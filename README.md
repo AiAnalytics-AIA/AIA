@@ -27,27 +27,35 @@ make help       # list every target
 make check      # everything CI runs: lint, typecheck, tests
 ```
 
-Authentication is not implemented yet. In development the API expects two
-headers:
+Authentication is Amazon Cognito federated to Google Workspace. There are no
+local AIA passwords. For local development, `AIA_IDENTITY_PROVIDER=development`
+accepts a subject header instead:
 
 ```bash
-curl -H 'X-AIA-User: dev' -H 'X-AIA-Org: ORG-dev' \
-     http://localhost:8000/api/v1/projects
+curl -H 'X-AIA-Subject: you@art-chain.io' \
+     http://localhost:8000/api/v1/studies
 ```
 
-These are refused in production — see
-[docs/architecture/security.md](docs/architecture/security.md).
+That provider refuses to construct outside `local`/`test`, and a deployed
+environment refuses to boot unless it is configured for Cognito — two independent
+guards. See [docs/architecture/adr/0003](docs/architecture/adr/0003-cognito-identity-boundary.md).
 
 ## Layout
 
 ```
-apps/web              Next.js client (still mock-backed)
-apps/api              FastAPI service
-packages/aia_core     Domain rules, application services, infrastructure
-  domain/             Pure: no framework, no driver, no SDK imports
-migrations/           Alembic
-docs/architecture/    How the system is built and why
-docs/migration/       How we get there from the prototype
+apps/web                    Next.js client (still mock-backed)
+apps/api                    FastAPI service
+  src/aia_api/identity/     Identity providers: Cognito, test, development
+packages/aia_core
+  src/aia_core/domain/      Pure rules: no framework, driver or SDK imports
+  src/aia_core/application/ Use cases; owns authorization
+  src/aia_core/infrastructure/  PostgreSQL, S3, repositories
+migrations/                 Alembic
+docs/product/               What we are building
+docs/architecture/          How it is built, and why
+docs/architecture/adr/      Decision records
+docs/migration/             How we get there from the prototype
+docs/archive/original-mvp/  Superseded. Not requirements.
 ```
 
 Dependencies point inward: `infrastructure → domain` is allowed, the reverse is
@@ -62,8 +70,16 @@ one question: after a user edits something, what work can we *prove* is still
 valid?
 
 ```
-Project → immutable Revision → Stage (input fingerprint) → Artifact (provenance)
+Organization → Client → Study → Project
+                                  → immutable Revision
+                                    → Stage (input fingerprint)
+                                      → Artifact (provenance)
 ```
+
+**Client and Study are hard isolation boundaries.** Every client-derived object
+resolves to a client and a study, and scope is injected from authenticated
+context — never from a request body or a model-generated argument. A resource the
+caller holds no grant on returns 404, not 403.
 
 A content change creates a new revision. Each stage's material inputs are
 fingerprinted, so stages upstream of the change keep their artifacts and only the
@@ -86,18 +102,24 @@ nothing already paid for.
 
 ## Documentation
 
-**Architecture** — [overview](docs/architecture/README.md) ·
+**Product** (what we are building) —
+[scope](docs/product/README.md)
+
+**Architecture** (how) — [overview](docs/architecture/README.md) ·
 [domain map](docs/architecture/domain-map.md) ·
+[scope & authorization](docs/architecture/scope-and-authorization.md) ·
 [data model](docs/architecture/data-model.md) ·
 [workflows](docs/architecture/workflows.md) ·
 [AI runtime](docs/architecture/ai-runtime.md) ·
 [artifacts](docs/architecture/artifacts.md) ·
-[security](docs/architecture/security.md)
+[security](docs/architecture/security.md) ·
+[decision records](docs/architecture/adr/README.md)
 
-**Migration** — [status](docs/migration/status.md) ·
+**Migration** (how we get there) — [status](docs/migration/status.md) ·
 [plan](docs/migration/migration-plan.md) ·
 [parity matrix](docs/migration/parity-matrix.md) ·
-[legacy system map](docs/migration/legacy-system-map.md)
+[legacy system map](docs/migration/legacy-system-map.md) ·
+[reference weaknesses](docs/migration/reference-weaknesses.md)
 
 ## The prototype
 
@@ -119,11 +141,12 @@ AIA_LEGACY_REFERENCE=../npc-panel-reference make test-parity
 
 The tests skip cleanly when it is absent.
 
-## Superseded documents
+## Archived documents — not current requirements
 
-`ROADMAP.md`, `docs/mvp-scope.md` and `docs/BACKLOG.md` describe an earlier,
-much narrower MVP (single case, uploaded CSV, correlation matrix, manual
-Sociomapping). `docs/AGENTS.md` defines a 9-agent/4-gate workflow that matches
-neither that MVP nor the prototype. They are retained unedited pending an
-explicit scope decision — see blocker 3 in
-[docs/migration/status.md](docs/migration/status.md).
+[`docs/archive/original-mvp/`](docs/archive/original-mvp/) holds the *earlier*
+AIA MVP: a single-case workspace producing a copy/paste correlation matrix for
+**manual** Sociomapping, plus a 9-agent/4-gate workflow.
+
+That product was superseded by the production rebuild. Every file there carries a
+superseded notice. **Do not implement from them.** The authoritative sources are
+`docs/product/`, `docs/architecture/` and `docs/migration/`.

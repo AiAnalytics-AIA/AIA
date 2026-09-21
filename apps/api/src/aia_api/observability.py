@@ -221,7 +221,7 @@ def _error(
     message: str,
     details: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
-):
+) -> JSONResponse:
     """Build the standard error response.
 
     ``headers`` is propagated because some errors carry protocol-significant
@@ -250,7 +250,7 @@ def install_exception_handlers(app: FastAPI) -> None:
     """
 
     @app.exception_handler(RequestValidationError)
-    async def _validation(_: Request, exc: RequestValidationError):
+    async def _validation(_: Request, exc: RequestValidationError) -> JSONResponse:
         return _error(
             422,
             "validation_error",
@@ -259,8 +259,11 @@ def install_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(StarletteHTTPException)
-    async def _http(_: Request, exc: StarletteHTTPException):
-        detail = exc.detail
+    async def _http(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+        # Starlette types `detail` as `str`, but FastAPI passes through whatever
+        # a handler raised, and ours raise structured dicts. The annotation is
+        # widened here so the structured branch below is not treated as dead.
+        detail: Any = exc.detail
         headers = getattr(exc, "headers", None)
         if isinstance(detail, dict) and "code" in detail:
             return _error(
@@ -273,7 +276,7 @@ def install_exception_handlers(app: FastAPI) -> None:
         return _error(exc.status_code, f"http_{exc.status_code}", str(detail), headers=headers)
 
     @app.exception_handler(Exception)
-    async def _unhandled(request: Request, exc: Exception):
+    async def _unhandled(request: Request, exc: Exception) -> JSONResponse:
         logging.getLogger("aia.error").exception(
             "unhandled exception",
             extra={"context": {"path": request.url.path, "type": type(exc).__name__}},

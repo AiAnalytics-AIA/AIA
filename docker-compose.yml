@@ -2,7 +2,7 @@
 # (uvicorn / next dev) so that reloads stay fast; this file provides the backing
 # services that must behave like production.
 #
-#   docker compose up -d      start Postgres, Redis and object storage
+#   docker compose up -d      start Postgres and object storage
 #   make migrate              apply schema migrations
 #   make dev                  run the API and web client
 services:
@@ -24,18 +24,9 @@ services:
       timeout: 3s
       retries: 10
 
-  redis:
-    # Queue transport and ephemeral coordination only. PostgreSQL stays the
-    # durable source of truth, so losing this container loses no work.
-    image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "no", "--save", ""]
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+  # Redis is deliberately absent. Dispatch is SQS and durability is PostgreSQL,
+  # so there is no problem Redis would currently solve. See
+  # docs/architecture/adr/0002-postgresql-authoritative-store.md.
 
   minio:
     # S3-compatible artifact storage, so the storage adapter exercises the real

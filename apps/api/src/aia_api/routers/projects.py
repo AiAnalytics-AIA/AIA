@@ -11,7 +11,7 @@ commands rather than field updates.
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from aia_core.domain.pipeline import ProjectType, impact_preview, stage_ids
 from aia_core.domain.project import Project, ProjectStatus, StageState
@@ -115,7 +115,7 @@ def _stage_response(stage: StageState) -> StageResponse:
     )
 
 
-def _impact_response(payload: dict) -> ImpactResponse:
+def _impact_response(payload: dict[str, Any]) -> ImpactResponse:
     """Map an impact dict to its response model."""
     return ImpactResponse(
         root_stage=payload.get("root_stage"),

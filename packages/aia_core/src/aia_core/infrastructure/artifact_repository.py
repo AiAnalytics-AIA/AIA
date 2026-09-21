@@ -1,0 +1,525 @@
+"""Artifact metadata, provenance and reuse.
+
+This is where the durability model pays for itself. Before running an expensive
+stage, a caller asks :meth:`ArtifactRepository.find_reusable` whether a valid
+artifact already exists for the same stage inputs. If it does, no AI call is
+made.
+
+The write order matters and is enforced here rather than left to callers:
+
+1. hash the bytes;
+2. look for a reusable artifact and return it if found;
+3. upload to object storage;
+4. verify the stored object;
+5. **then** commit the metadata row.
+
+A metadata row must never reference an object that does not exist, because the
+row is what the rest of the system trusts.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from datetime import datetime
+from enum import StrEnum
+from typing import Any
+from uuid import uuid4
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from ..domain.pipeline import resolve_stage
+from ..domain.providers import Provider
+from ..domain.scope import Permission, ScopeDenied, StudyContext
+from .storage import ArtifactStore, IntegrityError, ObjectNotFound, build_storage_key
+from .tables import (
+    ProjectArtifactDependencyRow,
+    ProjectArtifactRow,
+    ProjectRow,
+)
+
+__all__ = [
+    "Artifact",
+    "ArtifactNotFound",
+    "ArtifactRepository",
+    "ArtifactStatus",
+    "new_artifact_id",
+]
+
+
+def new_artifact_id() -> str:
+    """Return a new artifact id."""
+    return "ART-" + uuid4().hex[:16]
+
+
+class ArtifactNotFound(LookupError):
+    """The artifact does not exist, or is not in the caller's scope.
+
+    Indistinguishable on purpose: acknowledging an artifact the caller may not
+    read would disclose another client's work.
+    """
+
+
+class ArtifactStatus(StrEnum):
+    """Lifecycle of an artifact."""
+
+    VALID = "VALID"
+    SUPERSEDED = "SUPERSEDED"
+    INVALIDATED = "INVALIDATED"
+    CORRUPT = "CORRUPT"
+
+    @property
+    def is_reusable(self) -> bool:
+        """Only a VALID artifact may satisfy a reuse check."""
+        return self is ArtifactStatus.VALID
+
+
+@dataclass(frozen=True, slots=True)
+class Artifact:
+    """Artifact metadata and provenance.
+
+    Carries everything needed to answer "what produced this, from what inputs, on
+    which provider and model, and when". ``storage_key`` is deliberately present
+    here but never serialised into an API response.
+    """
+
+    artifact_id: str
+    project_id: str
+    revision: int
+    stage_type: str
+    artifact_type: str
+    storage_key: str
+    content_type: str
+    sha256: str
+    size_bytes: int
+    status: ArtifactStatus
+    input_fingerprint: str
+    provider: Provider | None
+    model: str
+    prompt_version: str
+    runtime_version: str
+    produced_by_job_id: str | None
+    metadata: dict[str, Any]
+    is_approved: bool
+    is_frozen: bool
+    created_at: datetime | None
+
+    @property
+    def is_reusable(self) -> bool:
+        """True when this artifact may be reused for a matching fingerprint."""
+        return self.status.is_reusable
+
+
+def _to_domain(row: ProjectArtifactRow) -> Artifact:
+    """Map an artifact row to the domain model."""
+    return Artifact(
+        artifact_id=row.artifact_id,
+        project_id=row.project_id,
+        revision=row.revision,
+        stage_type=row.stage_type,
+        artifact_type=row.artifact_type,
+        storage_key=row.storage_key,
+        content_type=row.content_type,
+        sha256=row.sha256,
+        size_bytes=row.size_bytes,
+        status=ArtifactStatus(row.status),
+        input_fingerprint=row.input_fingerprint,
+        provider=Provider(row.provider) if row.provider else None,
+        model=row.model,
+        prompt_version=row.prompt_version,
+        runtime_version=row.runtime_version,
+        produced_by_job_id=row.produced_by_job_id,
+        metadata=dict(row.artifact_metadata or {}),
+        is_approved=row.is_approved,
+        is_frozen=row.is_frozen,
+        created_at=row.created_at,
+    )
+
+
+class ArtifactRepository:
+    """Stores and retrieves artifacts within one authorised study scope.
+
+    Constructed from a :class:`StudyContext`, so there is no code path that reads
+    or writes an artifact without an authorisation decision having been made.
+    """
+
+    def __init__(self, session: Session, scope: StudyContext, store: ArtifactStore) -> None:
+        if not isinstance(scope, StudyContext):
+            raise TypeError(
+                "ArtifactRepository requires a StudyContext issued by the "
+                "authorization layer; unscoped access is not permitted"
+            )
+        self._session = session
+        self._scope = scope
+        self._store = store
+
+    # ---------------------------------------------------------------- helpers --
+
+    def _owned_project(self, project_id: str) -> ProjectRow:
+        """Fetch a project inside the authorised scope, or raise."""
+        row = self._session.scalar(
+            select(ProjectRow).where(
+                ProjectRow.project_id == project_id,
+                ProjectRow.organization_id == self._scope.organization_id,
+                ProjectRow.client_id == self._scope.client_id,
+                ProjectRow.study_id == self._scope.study_id,
+            )
+        )
+        if row is None:
+            raise ArtifactNotFound(project_id)
+        return row
+
+    def _row(self, artifact_id: str) -> ProjectArtifactRow:
+        """Fetch an artifact inside the authorised scope, or raise.
+
+        Joined through ``projects`` so the scope predicate applies to the artifact
+        too. An artifact is never addressable by id alone.
+        """
+        row = self._session.scalar(
+            select(ProjectArtifactRow)
+            .join(ProjectRow, ProjectRow.project_id == ProjectArtifactRow.project_id)
+            .where(
+                ProjectArtifactRow.artifact_id == artifact_id,
+                ProjectRow.organization_id == self._scope.organization_id,
+                ProjectRow.client_id == self._scope.client_id,
+                ProjectRow.study_id == self._scope.study_id,
+            )
+        )
+        if row is None:
+            raise ArtifactNotFound(artifact_id)
+        return row
+
+    # ------------------------------------------------------------------ reuse --
+
+    def find_reusable(
+        self,
+        *,
+        project_id: str,
+        stage_type: str,
+        artifact_type: str,
+        input_fingerprint: str,
+        across_revisions: bool = True,
+    ) -> Artifact | None:
+        """Return a valid artifact for these exact stage inputs, or None.
+
+        This is the money-saving query. ``across_revisions`` is true by default
+        because that is the whole point: editing a late stage must not re-run the
+        early ones, and their artifacts live on the *previous* revision.
+
+        An empty fingerprint never matches. A stage whose fingerprint could not be
+        computed must recompute rather than reuse whatever happens to share the
+        blank value.
+        """
+        if not input_fingerprint:
+            return None
+
+        self._owned_project(project_id)
+
+        stmt = select(ProjectArtifactRow).where(
+            ProjectArtifactRow.project_id == project_id,
+            ProjectArtifactRow.stage_type == stage_type,
+            ProjectArtifactRow.artifact_type == artifact_type,
+            ProjectArtifactRow.input_fingerprint == input_fingerprint,
+            ProjectArtifactRow.status == ArtifactStatus.VALID.value,
+        )
+        if not across_revisions:
+            project = self._owned_project(project_id)
+            stmt = stmt.where(ProjectArtifactRow.revision == project.current_revision)
+
+        row = self._session.scalar(stmt.order_by(ProjectArtifactRow.revision.desc()))
+        if row is None:
+            return None
+
+        # The row claims the object exists. Verify that before letting a caller
+        # skip an expensive recomputation on the strength of it.
+        if not self._store.exists(row.storage_key):
+            row.status = ArtifactStatus.CORRUPT.value
+            self._session.flush()
+            return None
+
+        return _to_domain(row)
+
+    # ------------------------------------------------------------------ writes --
+
+    def put(
+        self,
+        *,
+        project_id: str,
+        revision: int,
+        stage_type: str,
+        artifact_type: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+        input_fingerprint: str = "",
+        provider: Provider | None = None,
+        model: str = "",
+        prompt_version: str = "",
+        runtime_version: str = "",
+        produced_by_job_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        depends_on: list[str] | None = None,
+        reuse: bool = True,
+    ) -> tuple[Artifact, bool]:
+        """Store an artifact, reusing an existing one when the inputs match.
+
+        Returns ``(artifact, created)``. ``created is False`` means an existing
+        artifact satisfied the request and nothing was uploaded -- the normal,
+        desirable outcome when a step re-runs after a duplicate queue delivery.
+
+        The upload happens before the metadata row is committed, so a crash
+        between the two leaves an orphaned object (harmless, reaped later) rather
+        than a row pointing at nothing (which the system would trust).
+        """
+        self._scope.require(Permission.EDIT_STUDY)
+
+        project = self._owned_project(project_id)
+        stage = resolve_stage(project.project_type, stage_type)
+
+        if reuse and input_fingerprint:
+            existing = self.find_reusable(
+                project_id=project_id,
+                stage_type=stage,
+                artifact_type=artifact_type,
+                input_fingerprint=input_fingerprint,
+            )
+            if existing is not None:
+                return existing, False
+
+        artifact_id = new_artifact_id()
+        key = build_storage_key(
+            organization_id=self._scope.organization_id,
+            client_id=self._scope.client_id,
+            study_id=self._scope.study_id,
+            project_id=project_id,
+            revision=revision,
+            stage_type=stage,
+            artifact_id=artifact_id,
+        )
+
+        stored = self._store.put(
+            key,
+            data,
+            content_type=content_type,
+            metadata={
+                "artifact_type": artifact_type,
+                "stage_type": stage,
+                "project_id": project_id,
+            },
+        )
+
+        # Read back and verify before recording the row. Without this, a backend
+        # that silently truncated or transformed the body would produce a row
+        # asserting an integrity guarantee that does not hold.
+        self._store.get(key, expected_sha256=stored.sha256)
+
+        row = ProjectArtifactRow(
+            artifact_id=artifact_id,
+            project_id=project_id,
+            revision=revision,
+            stage_type=stage,
+            artifact_type=artifact_type,
+            storage_key=key,
+            content_type=content_type,
+            sha256=stored.sha256,
+            size_bytes=stored.size_bytes,
+            status=ArtifactStatus.VALID.value,
+            input_fingerprint=input_fingerprint,
+            provider=provider.value if provider else None,
+            model=model,
+            prompt_version=prompt_version,
+            runtime_version=runtime_version,
+            produced_by_job_id=produced_by_job_id,
+            artifact_metadata=metadata or {},
+        )
+        self._session.add(row)
+        self._session.flush()
+
+        for dependency in depends_on or []:
+            # Validate each dependency is in scope, so an evidence chain cannot
+            # be made to reference another client's artifact.
+            self._row(dependency)
+            self._session.add(
+                ProjectArtifactDependencyRow(
+                    artifact_id=artifact_id, depends_on_artifact_id=dependency
+                )
+            )
+        self._session.flush()
+
+        return _to_domain(row), True
+
+    def put_json(self, *, payload: Any, **kwargs: Any) -> tuple[Artifact, bool]:
+        """Store a JSON artifact.
+
+        Serialisation is canonical -- sorted keys, no incidental whitespace -- so
+        that logically identical payloads hash identically and therefore
+        deduplicate.
+        """
+        data = json.dumps(
+            payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str
+        ).encode("utf-8")
+        kwargs.setdefault("content_type", "application/json")
+        return self.put(data=data, **kwargs)
+
+    # ------------------------------------------------------------------- reads --
+
+    def get(self, artifact_id: str) -> Artifact:
+        """Return artifact metadata."""
+        return _to_domain(self._row(artifact_id))
+
+    def read(self, artifact_id: str) -> bytes:
+        """Return the artifact bytes, verified against the recorded hash.
+
+        A hash mismatch marks the artifact CORRUPT and raises. Serving content
+        that may have been altered as a research finding is worse than failing.
+        """
+        row = self._row(artifact_id)
+        try:
+            return self._store.get(row.storage_key, expected_sha256=row.sha256)
+        except IntegrityError:
+            row.status = ArtifactStatus.CORRUPT.value
+            self._session.flush()
+            raise
+        except ObjectNotFound:
+            row.status = ArtifactStatus.CORRUPT.value
+            self._session.flush()
+            raise
+
+    def read_json(self, artifact_id: str) -> Any:
+        """Return a JSON artifact's decoded payload."""
+        return json.loads(self.read(artifact_id).decode("utf-8"))
+
+    def download_url(self, artifact_id: str, *, expires_seconds: int = 300) -> str | None:
+        """Return a short-lived download URL, or None when streaming is required.
+
+        Requires export authority: handing out a URL is handing out the content,
+        so it is gated like an export rather than like a read.
+        """
+        self._scope.require(Permission.EXPORT_DELIVERABLE)
+        row = self._row(artifact_id)
+        return self._store.presigned_url(row.storage_key, expires_seconds=expires_seconds)
+
+    def list_for_stage(self, *, project_id: str, revision: int, stage_type: str) -> list[Artifact]:
+        """Return the artifacts a stage produced in one revision."""
+        self._owned_project(project_id)
+        rows = self._session.scalars(
+            select(ProjectArtifactRow)
+            .where(
+                ProjectArtifactRow.project_id == project_id,
+                ProjectArtifactRow.revision == revision,
+                ProjectArtifactRow.stage_type == stage_type,
+            )
+            .order_by(ProjectArtifactRow.created_at)
+        ).all()
+        return [_to_domain(r) for r in rows]
+
+    def dependencies(self, artifact_id: str) -> list[Artifact]:
+        """Return the artifacts this one was derived from.
+
+        This is the evidence trace: "which evidence did this report section rest
+        on" is a query rather than an investigation.
+        """
+        self._row(artifact_id)
+        rows = self._session.scalars(
+            select(ProjectArtifactRow)
+            .join(
+                ProjectArtifactDependencyRow,
+                ProjectArtifactDependencyRow.depends_on_artifact_id
+                == ProjectArtifactRow.artifact_id,
+            )
+            .where(ProjectArtifactDependencyRow.artifact_id == artifact_id)
+            .order_by(ProjectArtifactRow.created_at)
+        ).all()
+        return [_to_domain(r) for r in rows]
+
+    # -------------------------------------------------------------- lifecycle --
+
+    def invalidate_stage(self, *, project_id: str, revision: int, stage_type: str) -> int:
+        """Mark a stage's artifacts INVALIDATED. Returns the count.
+
+        Frozen artifacts are skipped: a deliverable a client has been shown is not
+        retroactively invalidated by a later edit.
+        """
+        self._scope.require(Permission.EDIT_STUDY)
+        self._owned_project(project_id)
+
+        rows = self._session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.project_id == project_id,
+                ProjectArtifactRow.revision == revision,
+                ProjectArtifactRow.stage_type == stage_type,
+                ProjectArtifactRow.status == ArtifactStatus.VALID.value,
+                ProjectArtifactRow.is_frozen.is_(False),
+            )
+        ).all()
+        for row in rows:
+            row.status = ArtifactStatus.INVALIDATED.value
+        self._session.flush()
+        return len(rows)
+
+    def approve(self, artifact_id: str) -> Artifact:
+        """Record human sign-off on an artifact.
+
+        Requires sign-off authority, which a RESEARCHER does not hold: the
+        methodology's human gate is meaningless if the author can clear it.
+        """
+        self._scope.require(Permission.SIGN_OFF_DELIVERABLE)
+        row = self._row(artifact_id)
+        row.is_approved = True
+        self._session.flush()
+        return _to_domain(row)
+
+    def freeze(self, artifact_id: str) -> Artifact:
+        """Freeze an artifact so it can no longer be superseded in place.
+
+        Used for simulation frozen results and approved deliverables. Freezing is
+        one-way: unfreezing would let delivered work change under a client.
+        """
+        self._scope.require(Permission.SIGN_OFF_DELIVERABLE)
+        row = self._row(artifact_id)
+        row.is_frozen = True
+        self._session.flush()
+        return _to_domain(row)
+
+    def delete(self, artifact_id: str) -> None:
+        """Delete an artifact's metadata and its object.
+
+        The row goes first: an orphaned object is reaped later and harms nothing,
+        whereas a row pointing at a deleted object would be trusted and served.
+        Frozen artifacts are refused.
+        """
+        self._scope.require(Permission.DELETE_STUDY)
+        row = self._row(artifact_id)
+        if row.is_frozen:
+            raise ScopeDenied("a frozen artifact cannot be deleted", reason="artifact_frozen")
+
+        key = row.storage_key
+        self._session.delete(row)
+        self._session.flush()
+        self._store.delete(key)
+
+    def verify_all(self, *, project_id: str) -> dict[str, list[str]]:
+        """Verify every artifact of a project against its recorded hash.
+
+        Returns ``{"valid": [...], "corrupt": [...]}``. Intended for an operator
+        integrity check, not the request path -- it reads every object.
+        """
+        self._owned_project(project_id)
+        rows = self._session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.project_id == project_id,
+                ProjectArtifactRow.status == ArtifactStatus.VALID.value,
+            )
+        ).all()
+
+        result: dict[str, list[str]] = {"valid": [], "corrupt": []}
+        for row in rows:
+            try:
+                self._store.get(row.storage_key, expected_sha256=row.sha256)
+                result["valid"].append(row.artifact_id)
+            except (IntegrityError, ObjectNotFound):
+                row.status = ArtifactStatus.CORRUPT.value
+                result["corrupt"].append(row.artifact_id)
+        if result["corrupt"]:
+            self._session.flush()
+        return result

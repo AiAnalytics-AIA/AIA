@@ -18,6 +18,7 @@ Design notes:
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import (
     JSON,
@@ -145,10 +146,10 @@ class ProjectRevisionRow(Base):
     branch_id: Mapped[str | None] = mapped_column(String(64))
 
     content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    content: Mapped[dict] = mapped_column(JSONType, nullable=False)
-    analysis: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    content: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    analysis: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     changed_fields: Mapped[list[str]] = mapped_column(JSONType, nullable=False, default=list)
-    impact: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    impact: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
 
     reason: Mapped[str] = mapped_column(String(64), nullable=False, default="autosave")
     questionnaire_version: Mapped[str] = mapped_column(String(32), nullable=False, default="")
@@ -247,7 +248,9 @@ class ProjectArtifactRow(Base):
     prompt_version: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     runtime_version: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     produced_by_job_id: Mapped[str | None] = mapped_column(String(64))
-    artifact_metadata: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    artifact_metadata: Mapped[dict[str, Any]] = mapped_column(
+        JSONType, nullable=False, default=dict
+    )
 
     is_approved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_frozen: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -304,7 +307,7 @@ class ProjectEventRow(Base):
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
     level: Mapped[str] = mapped_column(String(16), nullable=False, default="INFO")
     message: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    payload: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
 
     actor_id: Mapped[str | None] = mapped_column(String(64))
     request_id: Mapped[str | None] = mapped_column(String(64))

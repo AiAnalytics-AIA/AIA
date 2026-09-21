@@ -1,0 +1,55 @@
+# Root tool configuration for the Python workspace.
+#
+# This file holds *only* shared tool settings. Each deployable unit keeps its own
+# pyproject.toml with its dependencies and build config:
+#
+#   packages/aia_core   domain, application and infrastructure library
+#   apps/api            FastAPI service
+#
+# Tool config lives here because ruff and mypy are invoked from the repository
+# root by CI and by `make check`, and per-package config is not discovered from
+# there -- which silently dropped a mypy override until this file existed.
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
+# N818 requires an "Error" suffix on every exception. Our exception names are
+# domain vocabulary that reads better as-is -- `raise ScopeDenied(...)`,
+# `except ExpiredToken` -- and they match the terms used in the architecture
+# docs. Renaming them would make the code read worse for no safety gain.
+ignore = ["N818"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert on private behaviour deliberately, and fixture-heavy signatures
+# trip the unused-argument and boolean-trap rules without being wrong.
+"**/tests/**" = ["SLF001", "PLR2004"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+# Alembic revisions are generated code; they are linted for syntax by being
+# executed in CI rather than type-checked.
+exclude = ["migrations/versions/"]
+
+# boto3 ships no type stubs and is an optional dependency, imported lazily inside
+# S3ArtifactStore so that nothing else in the codebase loads an AWS SDK. The
+# untyped boundary is one function; pulling in boto3-stubs for it is not worth
+# the dependency.
+[[tool.mypy.overrides]]
+module = ["boto3", "boto3.*", "botocore", "botocore.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+# Both test directories are called `tests`, so they are not importable packages.
+# Helpers are shared through conftest fixtures rather than imports.
+addopts = "-ra --strict-markers"
+markers = [
+    "parity: compares this implementation against the legacy prototype (needs AIA_LEGACY_REFERENCE)",
+    "postgres: requires a live PostgreSQL instance via DATABASE_URL",
+]

@@ -22,7 +22,7 @@ Two things this module deliberately does **not** do:
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Annotated
 
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
@@ -35,7 +35,7 @@ from aia_core.domain.scope import (
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from fastapi import Depends, Header, HTTPException, Path, Request, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, status
 from sqlalchemy.orm import Session
 
 from .config import Settings, get_settings
@@ -82,7 +82,7 @@ def build_identity_provider(settings: Settings) -> IdentityProvider:
     )
 
 
-def init_app_state(app, settings: Settings) -> None:
+def init_app_state(app: FastAPI, settings: Settings) -> None:
     """Create the engine, session factory and identity provider once per app.
 
     Idempotent: startup can run more than once for one app object -- nested test
@@ -126,7 +126,7 @@ def get_session(request: Request) -> Iterator[Session]:
 
 def get_identity_provider(request: Request) -> IdentityProvider:
     """Return the process-wide identity provider."""
-    provider = getattr(request.app.state, "identity_provider", None)
+    provider: IdentityProvider | None = getattr(request.app.state, "identity_provider", None)
     if provider is None:  # pragma: no cover - startup guarantees this
         raise RuntimeError("identity provider is not initialised")
     return provider
@@ -307,7 +307,9 @@ def get_study_context(
         raise _not_found_for(exc) from exc
 
 
-def require_permission(permission: Permission):
+def require_permission(
+    permission: Permission,
+) -> Callable[..., StudyContext]:
     """Build a dependency that authorises scope and demands one permission.
 
     Used as ``Depends(require_permission(Permission.EDIT_STUDY))`` so the

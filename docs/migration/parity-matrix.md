@@ -133,6 +133,14 @@ allow/deny decision is unchanged, and parity on the decision is still asserted.
 | Secret handling | n/a | Redaction by key name and value shape | |
 | Packaging | `python-pptx` undeclared | Declared where used | Prototype fails on a clean install |
 
+## Reference weaknesses
+
+Defects found in the prototype are catalogued in
+[reference-weaknesses.md](reference-weaknesses.md), including the undeclared
+`python-pptx` dependency (W1) that makes the advertised test baseline unreachable
+from a clean install. The reference is **not** modified to make our environment
+look clean; workarounds are applied on our side and recorded there.
+
 ## Baseline
 
 Prototype suite, verified 2026-09-21 on Python 3.14.6: **394 passed, 0 skipped**
