@@ -2,189 +2,242 @@
 
 **Updated:** 2026-09-21
 **Branch:** `migration/phase-1-foundation`
-**Phase:** 1 complete except authentication; Phase 2 project core complete
+**Phase:** 1 and 2 complete. Phase 3 characterized, not implemented.
 
 Read this first to continue the work. Companion documents:
 [migration-plan.md](migration-plan.md) ·
 [parity-matrix.md](parity-matrix.md) ·
+[reference-weaknesses.md](reference-weaknesses.md) ·
 [legacy-system-map.md](legacy-system-map.md) ·
-[../architecture/README.md](../architecture/README.md)
+[../architecture/README.md](../architecture/README.md) ·
+[../architecture/adr/README.md](../architecture/adr/README.md)
 
 ## Current architecture
 
 ```
 aia-repo/
 ├── apps/
-│   ├── api/                  FastAPI. Projects API, config, observability, deps
-│   └── web/                  Next.js 16 / React 19. Still mock-backed (untouched)
-├── packages/aia_core/
-│   └── src/aia_core/
-│       ├── domain/           Pure rules: pipeline, project, providers
-│       ├── application/      (empty; Phase 2+)
-│       └── infrastructure/   tables, repositories, db engine
-├── migrations/               Alembic; one migration, verified up/check/down
-├── docs/architecture/        7 documents
-├── docs/migration/           4 documents
-├── .github/workflows/ci.yml  7 jobs
-├── docker-compose.yml        Postgres 16, Redis 7, MinIO
-├── Makefile                  22 targets
-└── src/server.js             Legacy Fastify login stub (retained, see below)
+│   ├── api/                        FastAPI
+│   │   └── src/aia_api/identity/   Cognito, test and development providers
+│   └── web/                        Next.js 16 / React 19. Still mock-backed.
+├── packages/aia_core/src/aia_core/
+│   ├── domain/         pipeline, project, providers, scope  (pure, no I/O)
+│   ├── application/    scope resolution; owns authorization
+│   └── infrastructure/ tables, repositories, storage, db
+├── migrations/         Alembic, 2 revisions
+├── docs/product/       authoritative product scope
+├── docs/architecture/  + adr/ (7 decision records)
+├── docs/migration/     plan, status, parity, weaknesses, legacy map
+├── docs/archive/original-mvp/   superseded; not requirements
+└── src/server.js       legacy Fastify login stub (retained; see below)
 ```
 
 **Stack:** Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic,
 PostgreSQL 16, Next.js 16, TypeScript, Tailwind 4.
+**Target:** AWS — Amplify (web), ECS Fargate (API + workers), RDS PostgreSQL, S3,
+SQS, ECR, Secrets Manager, KMS, CloudWatch, Terraform, GitHub Actions. No
+Kubernetes. No Redis ([ADR 0002](../architecture/adr/0002-postgresql-authoritative-store.md)).
 
 The NPC Panel prototype is **not** in this repository. It lives at
 `../npc-panel-reference` and is referenced by `AIA_LEGACY_REFERENCE` for parity
-tests only.
+and characterization tests only.
 
 ## Completed
 
-- [x] **Phase 0 — Discovery.** Both codebases audited. Prototype baseline
-      established at 394 passed / 0 skipped. Legacy architecture mapped, invariants
-      identified, two latent bugs found.
-- [x] Monorepo structure extending the existing `apps/` convention
-- [x] **Domain layer**, pure and I/O-free: `pipeline.py` (stages, statuses,
-      fingerprinting, impact analysis), `project.py` (revisions, stage
-      carry-forward, save planning), `providers.py` (identity, policy, budget)
-- [x] **Parity with the prototype, verified by 29 automated tests** — stage lists
-      and Czech labels, status set, impact roots, stage input payloads
-      (byte-identical, both pipelines, all 13 stages), fingerprint hashes, impact
-      previews, cross-pipeline stage routing, provider normalisation, UI labels,
-      `provider_for_stage` across a ~700-case matrix, budget decisions including
-      the exact-limit boundary
-- [x] **PostgreSQL schema**: 7 tables — projects, revisions, stages, artifacts,
-      artifact dependencies, events, provider events. Portable JSON (JSONB on
-      PostgreSQL), aware UTC timestamps, explicit constraint naming, indexes for
-      the portfolio listing and the artifact-reuse lookup
-- [x] **Alembic migrations** verified end to end: `upgrade head`, `check` (no
-      drift), `downgrade base`, re-upgrade
-- [x] **Tenant-scoped repository.** `ProjectRepository` cannot be constructed
-      without an `organization_id`; there is no unfiltered read path
-- [x] **Projects API** — 10 routes: create, list (paged/filtered/searched), get
-      (any revision), save content, update settings, impact preview, revision
-      history, project history, trash, restore
-- [x] **Observability**: JSON logs, request ids returned and logged, secret
-      redaction by key name and value shape, one error contract
-- [x] **Production config guards**: refuses to boot on missing/SQLite
-      `DATABASE_URL`, debug mode, or wildcard CORS; docs disabled in production
-- [x] **Auth gate**: production refuses header-based identity in middleware,
-      before any dependency resolves
-- [x] **CI**: 7 jobs — backend lint/types/tests on PostgreSQL *and* SQLite,
-      migration apply/drift/reversibility, parity, OpenAPI generation and
-      validation, frontend lint/types/build, real-server startup smoke with an
-      end-to-end project lifecycle over HTTP, dependency and secret scanning
-- [x] **Development environment**: Docker Compose, `.env.example`, 22 Makefile
-      targets
-- [x] 11 architecture and migration documents
+### Phase 0 — Discovery ✅
+Both codebases audited; prototype baseline established; two latent reference bugs
+found; architecture and feature maps written.
 
-### Test and quality state
+### Phase 1 — Production foundation ✅
+Monorepo structure, pure domain layer, PostgreSQL schema, Alembic migrations,
+typed configuration with production guards, structured logging with request
+correlation and secret redaction, one error contract, Docker Compose, Makefile,
+CI with quality gates. Root `pyproject.toml` holds shared ruff/mypy config.
+
+### Phase 2A — Scope foundation ✅
+`Organization → Client → Study`, with Client and Study as hard isolation
+boundaries. `User → Organization membership → Client grant → Study grant → Role`,
+four scope roles mapped to discrete permissions. `projects` carries
+`client_id` and `study_id`; the isolation predicate asserts all three levels.
+
+`StudyContext` is issuable only by `ScopeResolver` via a module-private sentinel,
+so no model-generated argument, tool payload or request body can widen scope.
+Repositories refuse anything that is not an issued context, by type.
+
+### Phase 2B — Artifact storage ✅
+`ArtifactStore` protocol with three backends: S3 (lazy `boto3` import, SSE/KMS),
+filesystem (atomic temp/fsync/rename) and in-memory. All enforce identical key
+validation and hash verification. `ArtifactRepository` preserves fingerprinting,
+dependency edges, full provenance, revision association and cross-revision reuse.
+Write order — hash, check reuse, upload, verify, then commit the row — is enforced
+rather than left to callers.
+
+### Phase 2C — Authentication boundary ✅
+`IdentityProvider` is the only seam. `CognitoIdentityProvider` validates Cognito
+JWTs offline-testably: RS256 allow-list, JWKS with rotation pickup and
+rate-limited refresh, issuer, `token_use`, audience, expiry with clock skew.
+A token proves identity and nothing else — `VerifiedIdentity` carries no role,
+client or study, and a test asserts those fields stay absent.
+
+### Documentation reorganisation ✅
+`ROADMAP.md`, `mvp-scope.md`, `BACKLOG.md` and `AGENTS.md` moved to
+`docs/archive/original-mvp/` with a superseded notice on each. Authoritative
+product scope at `docs/product/`. Seven ADRs. `docs/migration/reference-weaknesses.md`.
+
+### Phase 3 — Characterization ✅ (implementation not started)
+**64 characterization tests** describe the legacy `job_store.py` before any of it
+is reimplemented: the full status set and transition table verbatim, terminal
+states, idempotency, dependency gating, exclusive claiming, leases, heartbeats,
+lease recovery, cooperative cancellation, the three waiting states, approvals with
+option validation and cost-estimate requirements, workflow status precedence, the
+event log, and restart durability.
+
+Three tests explicitly document behaviour the new engine will **change**, and each
+still asserts the legacy behaviour so the suite reports if the reference differs
+from what we believe:
+
+- `attempt` is a counter, not a history → becomes append-only `StepAttempt` rows.
+- There is no `WAITING_BUDGET`; budget exhaustion routes through `WAITING_USER`.
+- Timestamps are naive local-time strings → become `TIMESTAMP WITH TIME ZONE` UTC.
+
+The single most valuable behaviour found: **`recover_expired` refuses to retry a
+possibly-billed paid call.** When a worker dies mid-flight on a metered provider,
+it moves the job to `RECOVERY_REQUIRED` and converts any outstanding reservation
+to `SETTLED_UNCERTAIN`, adding it to actual cost. Losing that on the port would
+turn a worker crash into a silent double-spend.
+
+## PostgreSQL verification ✅ — the Phase 1 caveat is closed
+
+The earlier SQLite-only caveat no longer applies. A real PostgreSQL 16.15 instance
+(Homebrew, keg-only, user-level, no system service) was used for:
+
+| Checked | Result |
+| --- | --- |
+| `alembic upgrade head`, both revisions | clean |
+| `alembic check` (model/schema drift) | no drift |
+| `alembic downgrade base` then re-upgrade | clean |
+| Constraints, check constraints, foreign keys | created and enforced |
+| Cascade deletes | verified |
+| JSONB columns | exercised |
+| Timezone-aware timestamps | exercised |
+| Repository behaviour, all suites | 377 passed |
+| API behaviour, all suites | included above |
+
+**Still not exercised:** concurrent workflow operations and transaction-isolation
+semantics under contention. There is nothing concurrent to test yet — the job
+engine is Phase 3. Those tests belong with it, and Phase 3 is not complete without
+them.
+
+## Test and quality state
 
 | Suite | Result |
 | --- | --- |
-| `packages/aia_core` | **99 passed** (29 parity against the prototype) |
-| `apps/api` | **69 passed** |
-| **Total** | **168 passed, 0 failed, 0 skipped** |
+| `packages/aia_core` | **263 passed** |
+| `apps/api` | **114 passed** |
+| **Total** | **377 passed, 0 failed, 0 skipped** |
+| of which parity/characterization vs the prototype | **93** |
 | `ruff check` / `ruff format --check` | clean |
-| `mypy --strict` | clean, 20 source files |
-| Alembic up / check / down / re-up | clean |
+| `mypy --strict` | clean, 30 source files |
 
-Verified locally against **SQLite**. The PostgreSQL run is configured in CI but
-**has not been executed** — there is no Docker or PostgreSQL on this machine. The
-schema is written portably and CI runs both, but PostgreSQL-specific behaviour is
-unverified until CI runs.
+Verified on **PostgreSQL 16.15** and on SQLite. Python 3.14.6, macOS.
 
 ## In progress
 
-Nothing. The slice is complete and the tree is green.
+Nothing. The tree is green and the slice is complete.
 
 ## Next
 
-Recommended order. Phase 3 and Phase 4 are independent and can run in parallel.
-
-- [ ] **Authentication** — fill `aia_api.dependencies.get_principal` with a real
-      token verifier. Blocks every deployment with real data. **Needs a team
-      decision on the identity provider first.**
-- [ ] **Artifact storage adapter** — completes Phase 2. S3/MinIO, content
-      hashing, verified read, pre-signed download, the write protocol in
-      [../architecture/artifacts.md](../architecture/artifacts.md)
-- [ ] **Phase 3 — durable job engine.** Highest-risk remaining work and it gates
-      Phases 5–9. Write characterization tests against `job_store.py`'s state
-      transitions *before* reimplementing
-- [ ] **Phase 4 — AI provider gateway.** Port `ai_router.py` behind an interface
-- [ ] Wire `apps/web` to the real projects API and delete `lib/mock.ts`
-- [ ] `organizations` / `users` / `organization_members` tables
+- [ ] **Phase 3 — durable workflow engine.** Characterization is done; implement
+      against it. `WorkflowRun → StepRun → StepAttempt` in PostgreSQL, SQS
+      dispatch, a reconciler so a lost message loses no work, idempotent step
+      execution for at-least-once delivery. **Must include the concurrency and
+      transaction-semantics tests listed above.**
+- [ ] **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`,
+      `ModelPolicy`, `ModelRegistry`, `LLMGateway`, `ToolRegistry`,
+      `AIUsageEvent`. Confirm [ADR 0005](../architecture/adr/0005-llm-gateway.md)
+      and [ADR 0006](../architecture/adr/0006-langgraph-agent-execution.md) first.
+- [ ] Wire `apps/web` to the real API and delete `lib/mock.ts`.
+- [ ] Terraform for the AWS baseline.
+- [ ] PostgreSQL row-level security as a second isolation layer.
+- [ ] Rate limiting.
 
 ## Blockers and decisions needed
 
-1. **Identity provider — blocking.** No SSO or auth configuration exists in the
-   repository. Until this is decided, no environment may hold real client data.
-2. **Hosting target — blocking Phase 10, wanted before Phase 3.** A commit
-   message (`chore: trigger Amplify rebuild`) implies AWS Amplify for the web
-   client, but there is no infrastructure configuration in the repository. The
-   API, workers, PostgreSQL, Redis and object storage need a target.
-3. **MVP scope contradiction — needs an explicit decision.** `README.md`,
-   `ROADMAP.md`, `docs/mvp-scope.md` and `docs/BACKLOG.md` describe a much
-   narrower product: single case, uploaded CSV/XLSX, a Spearman/Pearson
-   correlation matrix, manual Sociomapping SOP. `docs/AGENTS.md` defines a
-   9-agent/4-gate workflow matching neither that nor the prototype. The migration
-   brief supersedes all of it, but those documents still stand unedited. Per
-   `docs/execution-cadence.md`, scope trade-offs escalate to Nigel. **They have
-   been left untouched pending that call.**
-4. **Tenancy model.** `apps/web` already routes `/org/[orgSlug]/…`. One
-   organization per user, or several?
-5. **Data residency** for Czech client research data.
+1. **Confirm ADR 0005 (LiteLLM) before Phase 4.** It is marked *Proposed*, not
+   Accepted. `ai_router.py` contains behaviour we are committed to preserving —
+   no silent fallback, the ten-way error taxonomy, quota parking distinguished
+   from failure — and a library that retries or falls back on our behalf would
+   break the product's central provider rule. The ADR lists four things to verify.
+2. **Confirm ADR 0006 (LangGraph boundary) before Phase 4.**
+3. **AWS provisioning.** The Cognito user pool, app client and Google Workspace
+   federation must exist before any deployment. The code is ready and refuses to
+   boot without them.
+4. **`PRODUCT_POLICY.json` contradicts itself** about the production panel
+   (`v17_4_0` at top level, `v17_1_2` under `data_core`). We treat `v17_4_0` as
+   authoritative; needs resolving in Phase 6. See W5 in
+   [reference-weaknesses.md](reference-weaknesses.md).
 
 ## Legacy functionality not yet migrated
 
-Everything except project persistence. Specifically: 128 of the prototype's 136
-API routes, the entire frontend, the job engine, AI runtime, research lifecycle,
-simulation, analysis, validation and methodology gates, reporting, Data Library,
-Society Intelligence, population and audience, Sociomapa, demos, ingestion,
-exports and scheduling. See [parity-matrix.md](parity-matrix.md) for the
-component-level inventory.
+Everything except project persistence, scope and artifact storage. Specifically:
+the job engine, AI runtime, research and simulation lifecycles, analysis,
+validation and methodology gates, reporting, Data Library, Society Intelligence,
+population and audience, Sociomapa, demos, ingestion, exports and scheduling.
+128 of the prototype's 136 API routes and its entire frontend remain.
+See [parity-matrix.md](parity-matrix.md) for the component inventory.
 
-`src/server.js` (44-line Fastify login stub) is **retained deliberately**. It has
-no domain logic, but it holds the only working login path in the repository, and
-the new auth seam is explicitly unfinished. Removing it now would leave no
-authentication at all. **Removal condition:** delete once `get_principal` has a
-real verifier.
+`src/server.js` (44-line Fastify login stub) is **still retained deliberately**.
+It holds the only login path that works today without AWS. **Removal condition:**
+delete once a Cognito user pool is provisioned and the web client authenticates
+against it.
 
 ## Known regressions
 
 None. No previously working behaviour has been removed or altered.
 
-The prototype remains fully functional and untouched at
-`../npc-panel-reference`.
+The prototype remains fully functional at `../npc-panel-reference` — its own suite
+still passes 394 tests.
+
+**One honest note about the reference tree:** running the prototype's *own* test
+suite writes to its `data/` directory and creates output under
+`full_simulation_runs/` and `full_simulation_benchmarks/`. The tree is therefore
+no longer byte-identical to the supplied snapshot, and its file count has grown
+from 1,565. That is the prototype's own test behaviour, not an edit by us. Our
+own parity and characterization tests were verified to write **nothing** to it:
+a before/after stat snapshot over all 1,893 files showed no change after running
+all 113 of them.
 
 ## Notes for whoever continues
 
-- **Run the parity suite before changing domain logic.**
-  `AIA_LEGACY_REFERENCE=../npc-panel-reference make test-parity`. Those 29 tests
-  are the evidence that artifact reuse decisions match validated behaviour.
-- **`stage_input_payload` is a migration, not a tweak.** Adding a field to a
-  stage's payload changes its fingerprint and invalidates every artifact
-  previously stored for that stage.
+- **Run the parity and characterization suites before changing anything they
+  cover.** `AIA_LEGACY_REFERENCE=../npc-panel-reference make test-parity` —
+  93 tests comparing against the validated prototype.
+- **Phase 3's specification is already written**, in
+  `packages/aia_core/tests/test_legacy_job_store_characterization.py`. Implement
+  against it rather than reading `job_store.py` again from scratch.
+- **`stage_input_payload` changes are migrations, not tweaks.** Adding a field
+  changes the fingerprint and invalidates every artifact stored for that stage.
 - **Provider transport is excluded from fingerprints on purpose.** Do not "fix"
-  this. Mixed-provider continuation depends on it.
-- **The three `WAITING_*` states are not errors.** A quota pause resets the retry
-  counter; treating it as a failed attempt will eventually fail projects that
-  were only waiting.
-- **Three documented deviations from the prototype** — see
-  [parity-matrix.md](parity-matrix.md) D1–D3. Each has a test asserting the
-  legacy behaviour is still what we believe, so the tests will tell you if the
-  reference changes.
-- `python-pptx` is undeclared in the prototype's `requirements.txt` but imported
-  by `output_pack.py`. Install it to get a green prototype baseline.
+  it. Mixed-provider continuation depends on it.
+- **The waiting states are not errors.** A quota pause resets the retry counter;
+  treating it as a failed attempt will eventually fail projects that were only
+  waiting.
+- **Scope cannot come from an argument.** If you find yourself wanting to pass a
+  `client_id` into a service, the design has gone wrong — see
+  [ADR 0004](../architecture/adr/0004-client-study-isolation.md).
+- **Six documented reference weaknesses and three parity deviations** exist. See
+  [reference-weaknesses.md](reference-weaknesses.md) and
+  [parity-matrix.md](parity-matrix.md) D1–D3.
+- Local PostgreSQL for verification (no Docker on the build machine):
+  ```bash
+  /opt/homebrew/opt/postgresql@16/bin/pg_ctl -D <datadir> \
+    -o "-p 55432 -c listen_addresses=127.0.0.1 -c unix_socket_directories=''" start
+  ```
+  The empty socket directory is required: a scratchpad path exceeds the 103-byte
+  Unix-socket limit.
 
 ## Last verified commit
 
-`11f48ab` — feat(migration): production foundation + durable project persistence
-
-Verified at that commit: 168 tests passing (99 core incl. 29 parity, 69 API),
-`ruff check` and `ruff format --check` clean, `mypy --strict` clean, Alembic
-`upgrade head` / `check` / `downgrade base` / re-upgrade clean.
-
-Verified against **SQLite** on Python 3.14.6, macOS. The PostgreSQL path is
-configured in CI but has not been executed — there is no Docker or PostgreSQL on
-the machine this was built on.
+To be filled by the commit that lands this document. Verified state at time of
+writing: 377 tests passing against PostgreSQL 16.15 and SQLite, ruff clean,
+`mypy --strict` clean, migrations clean in both directions.

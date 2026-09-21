@@ -34,6 +34,18 @@ def _legacy_root() -> Path | None:
 
 
 @pytest.fixture(scope="session")
+def legacy_root() -> Path:
+    """Return the legacy prototype root, skipping when it is unavailable."""
+    root = _legacy_root()
+    if root is None:
+        pytest.skip(
+            "legacy prototype not available; set AIA_LEGACY_REFERENCE to the "
+            "npc-panel-reference checkout to enable parity tests"
+        )
+    return root
+
+
+@pytest.fixture(scope="session")
 def legacy_pipeline() -> Iterator[Any]:
     """Import the legacy ``project_pipeline`` module for parity comparison."""
     root = _legacy_root()
