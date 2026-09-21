@@ -1,0 +1,61 @@
+# Local development dependencies only. The application itself runs on the host
+# (uvicorn / next dev) so that reloads stay fast; this file provides the backing
+# services that must behave like production.
+#
+#   docker compose up -d      start Postgres, Redis and object storage
+#   make migrate              apply schema migrations
+#   make dev                  run the API and web client
+services:
+  postgres:
+    # Pinned to the production major version: a migration that works on 16 and
+    # fails on 17 must fail in development, not in a deploy.
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aia
+      POSTGRES_PASSWORD: aia_local_dev
+      POSTGRES_DB: aia
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aia -d aia"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    # Queue transport and ephemeral coordination only. PostgreSQL stays the
+    # durable source of truth, so losing this container loses no work.
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    # S3-compatible artifact storage, so the storage adapter exercises the real
+    # API locally instead of a filesystem stub that hides bugs.
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: aia_local
+      MINIO_ROOT_PASSWORD: aia_local_dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  minio_data:

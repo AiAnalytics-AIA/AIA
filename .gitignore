@@ -1,7 +1,40 @@
+# Dependencies
 node_modules/
+.venv/
+venv/
+*.egg-info/
+__pycache__/
+*.py[cod]
+
+# Environment and secrets -- never commit these
+.env
+.env.*
+!.env.example
+
+# Local databases and scratch state
 data/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
-.env
+*.db
+
+# Build output
+.next/
+dist/
+build/
+openapi.json
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# The NPC Panel prototype must never be committed here. It is a read-only
+# reference kept beside this repository and pointed at by AIA_LEGACY_REFERENCE.
+npc-panel-reference/
+legacy_reference/
+
+# OS
 .DS_Store
