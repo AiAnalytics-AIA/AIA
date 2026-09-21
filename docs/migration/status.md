@@ -238,6 +238,11 @@ all 113 of them.
 
 ## Last verified commit
 
-To be filled by the commit that lands this document. Verified state at time of
-writing: 377 tests passing against PostgreSQL 16.15 and SQLite, ruff clean,
-`mypy --strict` clean, migrations clean in both directions.
+`5c8c6ea` — test(workflow): characterize the legacy job engine before reimplementing it
+
+Verified at that commit: 377 tests passing (263 core + 114 API, of which 93 are
+parity/characterization against the prototype), `ruff check` and
+`ruff format --check` clean, `mypy --strict` clean over 30 source files,
+Alembic upgrade/check/downgrade/re-upgrade clean.
+
+Verified against **PostgreSQL 16.15** and SQLite, on Python 3.14.6, macOS.
