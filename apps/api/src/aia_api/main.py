@@ -17,12 +17,11 @@ from sqlalchemy import text
 from .config import Settings, get_settings
 from .dependencies import init_app_state
 from .observability import (
-    ProductionAuthGateMiddleware,
     RequestContextMiddleware,
     configure_logging,
     install_exception_handlers,
 )
-from .routers import health, projects
+from .routers import health, projects, scope
 
 API_PREFIX = "/api/v1"
 
@@ -33,6 +32,15 @@ AIA research and simulation platform API.
 immutable revisions; completed stages upstream of a change are preserved so their
 artifacts are reused rather than recomputed. Workflows and jobs orchestrate work
 against a project but are never authoritative.
+
+**Scope.** Client and Study are hard isolation boundaries. Every client-derived
+object resolves to a client and a study, and scope is injected from authenticated
+context -- never from a request body or a model-generated argument. A resource the
+caller has no grant on returns 404, not 403.
+
+**Authentication vs authorization.** A token proves identity only. Roles, client
+access and study access are AIA's own decision, answered from PostgreSQL, so a
+token cannot grant itself access.
 
 **Provider behaviour.** There is no silent provider fallback. A provider or model
 change is explicit, audited, and does not invalidate completed work.
@@ -77,9 +85,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved
 
-    # Outermost first: request context wraps everything so even a refused request
-    # is logged with an id, then the auth gate short-circuits before routing.
-    app.add_middleware(ProductionAuthGateMiddleware, enabled=resolved.is_production)
+    # Request context wraps everything, so even a rejected request is logged with
+    # a correlation id.
+    #
+    # There is no longer a blanket production auth gate: it has been replaced by
+    # two stronger, narrower guarantees. Settings.validate_for_production() refuses
+    # to boot a deployed environment that is not configured for Cognito, and
+    # DevelopmentIdentityProvider refuses to construct outside local/test. A gate
+    # here would additionally have blocked correctly configured Cognito traffic.
     app.add_middleware(RequestContextMiddleware)
     if resolved.cors_origins:
         app.add_middleware(
@@ -93,6 +106,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     install_exception_handlers(app)
     app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(scope.router, prefix=API_PREFIX)
     app.include_router(projects.router, prefix=API_PREFIX)
     return app
 

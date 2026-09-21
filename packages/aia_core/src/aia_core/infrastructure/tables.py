@@ -79,9 +79,14 @@ class ProjectRow(Base):
     last_completed_stage: Mapped[str | None] = mapped_column(String(64))
     parent_project_id: Mapped[str | None] = mapped_column(String(64))
 
-    # Ownership and isolation. Every query in the repository layer filters on
-    # organization_id; see docs/architecture/security.md.
+    # Ownership and isolation. Every client-derived object resolves to a client
+    # and a study; see docs/architecture/scope-and-authorization.md. client_id is
+    # denormalised next to study_id deliberately, so the isolation predicate is a
+    # single condition on this row and needs no join -- a missed join is exactly
+    # how cross-tenant leaks happen.
     organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
     created_by: Mapped[str | None] = mapped_column(String(64))
 
     preferred_provider: Mapped[str] = mapped_column(
@@ -110,12 +115,15 @@ class ProjectRow(Base):
     )
 
     __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
         CheckConstraint("current_revision >= 0", name="current_revision_non_negative"),
         CheckConstraint("max_api_cost_usd >= 0", name="budget_non_negative"),
         CheckConstraint("project_type in ('research','simulation')", name="project_type_known"),
-        # Portfolio listing is the hottest read path: newest first, per tenant,
-        # excluding archived and trashed rows.
-        Index("ix_projects_org_modified", "organization_id", "modified_at"),
+        # Portfolio listing is the hottest read path: newest first, within a
+        # study, excluding archived and trashed rows.
+        Index("ix_projects_study_modified", "study_id", "modified_at"),
+        Index("ix_projects_client_modified", "client_id", "modified_at"),
         Index("ix_projects_org_status", "organization_id", "status"),
     )
 
@@ -345,3 +353,214 @@ class ProviderEventRow(Base):
         UniqueConstraint("project_id", "event_id", name="provider_event_unique"),
         Index("ix_provider_events_project", "project_id", "created_at"),
     )
+
+
+# --------------------------------------------------------------------------- #
+# Scope: organizations, users, clients, studies and grants
+# --------------------------------------------------------------------------- #
+
+
+class OrganizationRow(Base):
+    """The AIA team. The outermost tenant boundary."""
+
+    __tablename__ = "organizations"
+
+    organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    slug: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+
+class UserRow(Base):
+    """A person who can sign in.
+
+    ``external_subject`` is the identity provider's immutable subject claim
+    (Cognito ``sub``). It is stored separately from ``user_id`` so that changing
+    identity provider does not rewrite every foreign key in the database, and so
+    that an email change does not orphan a user's work.
+    """
+
+    __tablename__ = "users"
+
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    external_subject: Mapped[str | None] = mapped_column(String(255), unique=True)
+    email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_users_subject", "external_subject"),)
+
+
+class OrganizationMemberRow(Base):
+    """A user's membership of an organization, with an administrative role."""
+
+    __tablename__ = "organization_members"
+
+    organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    role: Mapped[str] = mapped_column(String(32), nullable=False, default="MEMBER")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id"], ["organizations.organization_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        CheckConstraint("role in ('OWNER','ADMIN','MEMBER')", name="org_role_known"),
+        Index("ix_org_members_user", "user_id"),
+    )
+
+
+class ClientRow(Base):
+    """A paying client. A hard confidentiality boundary."""
+
+    __tablename__ = "clients"
+
+    client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    slug: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="ACTIVE")
+    reference: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    modified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id"], ["organizations.organization_id"], ondelete="CASCADE"
+        ),
+        # A slug is unique per organization, not globally: two organizations may
+        # each have a client called "acme".
+        UniqueConstraint("organization_id", "slug", name="client_slug_unique"),
+        CheckConstraint("status in ('ACTIVE','DORMANT','ARCHIVED')", name="client_status_known"),
+        Index("ix_clients_org", "organization_id", "status"),
+    )
+
+
+class StudyRow(Base):
+    """One client engagement: the unit of budget, delivery and access."""
+
+    __tablename__ = "studies"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    slug: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="DRAFT")
+
+    # Budget lives here because a study is what gets quoted to a client.
+    # `spent_usd` is maintained from the immutable AI usage ledger, not trusted
+    # as an independent figure.
+    budget_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    spent_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    modified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id"], ["organizations.organization_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint("client_id", "slug", name="study_slug_unique"),
+        CheckConstraint("budget_usd >= 0", name="study_budget_non_negative"),
+        CheckConstraint("spent_usd >= 0", name="study_spent_non_negative"),
+        CheckConstraint(
+            "status in ('DRAFT','ACTIVE','IN_REVIEW','DELIVERED','ARCHIVED','CANCELLED')",
+            name="study_status_known",
+        ),
+        Index("ix_studies_client", "client_id", "status"),
+        Index("ix_studies_org_modified", "organization_id", "modified_at"),
+    )
+
+
+class ClientGrantRow(Base):
+    """A user's role on a client, applying to all of that client's studies."""
+
+    __tablename__ = "client_grants"
+
+    client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    granted_by: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        CheckConstraint(
+            "role in ('VIEWER','REVIEWER','RESEARCHER','LEAD')", name="client_grant_role_known"
+        ),
+        Index("ix_client_grants_user", "user_id"),
+    )
+
+
+class StudyGrantRow(Base):
+    """A user's role on one study. Authoritative over a client grant."""
+
+    __tablename__ = "study_grants"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    granted_by: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        CheckConstraint(
+            "role in ('VIEWER','REVIEWER','RESEARCHER','LEAD')", name="study_grant_role_known"
+        ),
+        Index("ix_study_grants_user", "user_id"),
+    )
+
+
+class AccessAuditRow(Base):
+    """Append-only record of access grants, revocations and denials.
+
+    Grants are security-relevant: an administrator granting themselves access to a
+    client is legitimate but must be visible afterwards. Denials are recorded too,
+    because a pattern of denials is a signal.
+    """
+
+    __tablename__ = "access_audit"
+
+    event_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str | None] = mapped_column(String(64))
+    study_id: Mapped[str | None] = mapped_column(String(64))
+    subject_user_id: Mapped[str | None] = mapped_column(String(64))
+    actor_id: Mapped[str | None] = mapped_column(String(64))
+
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    role: Mapped[str | None] = mapped_column(String(32))
+    reason: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    request_id: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (Index("ix_access_audit_org", "organization_id", "event_id"),)

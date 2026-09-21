@@ -215,8 +215,20 @@ class ProductionAuthGateMiddleware(BaseHTTPMiddleware):
         )
 
 
-def _error(status_code: int, code: str, message: str, details: dict[str, Any] | None = None):
-    """Build the standard error response."""
+def _error(
+    status_code: int,
+    code: str,
+    message: str,
+    details: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+):
+    """Build the standard error response.
+
+    ``headers`` is propagated because some errors carry protocol-significant
+    headers -- notably ``WWW-Authenticate`` on a 401 and ``Retry-After`` on a
+    429. Building a fresh response and dropping them silently breaks the
+    authentication challenge.
+    """
     return JSONResponse(
         status_code=status_code,
         content={
@@ -225,6 +237,7 @@ def _error(status_code: int, code: str, message: str, details: dict[str, Any] | 
             "details": redact(details or {}),
             "request_id": request_id_var.get() or None,
         },
+        headers=headers or None,
     )
 
 
@@ -248,14 +261,16 @@ def install_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def _http(_: Request, exc: StarletteHTTPException):
         detail = exc.detail
+        headers = getattr(exc, "headers", None)
         if isinstance(detail, dict) and "code" in detail:
             return _error(
                 exc.status_code,
                 str(detail.get("code")),
                 str(detail.get("message", "")),
                 detail.get("details") if isinstance(detail.get("details"), dict) else {},
+                headers=headers,
             )
-        return _error(exc.status_code, f"http_{exc.status_code}", str(detail))
+        return _error(exc.status_code, f"http_{exc.status_code}", str(detail), headers=headers)
 
     @app.exception_handler(Exception)
     async def _unhandled(request: Request, exc: Exception):

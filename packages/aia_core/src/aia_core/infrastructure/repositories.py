@@ -6,9 +6,12 @@ makes the immutability of a revision enforceable.
 
 Two rules are enforced here rather than trusted to callers:
 
-* **Tenant isolation.** Every read and write is scoped by ``organization_id``.
-  There is no method that fetches a project by id alone, so a handler cannot
-  accidentally leak another tenant's project by forgetting a filter.
+* **Scope isolation.** The repository is constructed from a :class:`StudyContext`,
+  which only the authorization layer can issue. Every read and write filters on
+  ``organization_id``, ``client_id`` *and* ``study_id`` in the same statement that
+  finds the row, so there is no unscoped path a handler could forget -- and no way
+  for an AI tool argument to widen scope, because scope does not come from
+  arguments at all.
 * **Revision immutability.** A saved revision is inserted, never updated. The
   decision of *what* to save comes from the pure planner in
   ``aia_core.domain.project.plan_save``; this module only executes it.
@@ -35,6 +38,7 @@ from ..domain.project import (
     resolve_provider_defaults,
 )
 from ..domain.providers import DEFAULT_MAX_API_COST_USD, Provider, ProviderPolicy
+from ..domain.scope import Permission, StudyContext
 from .tables import (
     ProjectEventRow,
     ProjectRevisionRow,
@@ -46,7 +50,7 @@ from .tables import (
 __all__ = ["ProjectNotFound", "ProjectPage", "ProjectRepository"]
 
 
-class ProjectNotFound(LookupError):  # noqa: N818 - reads better than ProjectNotFoundError
+class ProjectNotFound(LookupError):
     """Raised when a project does not exist *or* belongs to another tenant.
 
     The two cases are deliberately indistinguishable to callers: telling a user
@@ -126,21 +130,40 @@ class ProjectRepository:
     save, write an event and enqueue a job atomically.
     """
 
-    def __init__(self, session: Session, *, organization_id: str) -> None:
-        if not organization_id:
-            raise ValueError("organization_id is required: unscoped access is not permitted")
+    def __init__(self, session: Session, scope: StudyContext) -> None:
+        if not isinstance(scope, StudyContext):
+            raise TypeError(
+                "ProjectRepository requires a StudyContext issued by the "
+                "authorization layer; unscoped access is not permitted"
+            )
         self._session = session
-        self._org = organization_id
+        self._scope = scope
+
+    @property
+    def scope(self) -> StudyContext:
+        """The authorised scope this repository operates in."""
+        return self._scope
 
     # ---------------------------------------------------------------- reads --
 
+    def _scope_filter(self) -> tuple[Any, ...]:
+        """The isolation predicate applied to every statement.
+
+        All three levels are asserted, not just the narrowest. ``study_id`` alone
+        would be sufficient given the foreign keys, but checking client and
+        organization too means a corrupted or mis-migrated row cannot be read
+        under the wrong authorisation.
+        """
+        return (
+            ProjectRow.organization_id == self._scope.organization_id,
+            ProjectRow.client_id == self._scope.client_id,
+            ProjectRow.study_id == self._scope.study_id,
+        )
+
     def _row(self, project_id: str) -> ProjectRow:
-        """Fetch a project row within this tenant, or raise :class:`ProjectNotFound`."""
+        """Fetch a project row within scope, or raise :class:`ProjectNotFound`."""
         row = self._session.scalar(
-            select(ProjectRow).where(
-                ProjectRow.project_id == project_id,
-                ProjectRow.organization_id == self._org,
-            )
+            select(ProjectRow).where(ProjectRow.project_id == project_id, *self._scope_filter())
         )
         if row is None:
             raise ProjectNotFound(project_id)
@@ -169,7 +192,7 @@ class ProjectRepository:
         limit = max(1, min(int(limit), 200))
         offset = max(0, int(offset))
 
-        filters = [ProjectRow.organization_id == self._org]
+        filters = [*self._scope_filter()]
         if not include_archived:
             filters.append(ProjectRow.archived.is_(False))
         if not include_trashed:
@@ -306,6 +329,9 @@ class ProjectRepository:
         is written immediately, which is why this returns a :class:`SaveOutcome`
         alongside the project.
         """
+        self._scope.require(Permission.EDIT_STUDY)
+        self._scope.require_open_study()
+
         ptype = ProjectType.coerce(project_type)
         provider, policy = resolve_provider_defaults(
             preferred_provider=preferred_provider, provider_policy=provider_policy
@@ -335,7 +361,9 @@ class ProjectRepository:
             current_revision=0,
             current_stage=project.stage_ids[0],
             parent_project_id=parent_project_id,
-            organization_id=self._org,
+            organization_id=self._scope.organization_id,
+            client_id=self._scope.client_id,
+            study_id=self._scope.study_id,
             created_by=created_by,
             preferred_provider=provider.value,
             provider_policy=policy.value,
@@ -350,8 +378,8 @@ class ProjectRepository:
             project.project_id,
             content=body,
             reason="project_created",
-            actor_id=created_by,
-            request_id=request_id,
+            actor_id=created_by or self._scope.actor_id,
+            request_id=request_id or self._scope.request_id,
         )
         self.record_event(
             project.project_id,
@@ -387,6 +415,8 @@ class ProjectRepository:
         method applies it. When the planner deduplicates, only ``modified_at`` is
         touched and no revision row is written.
         """
+        self._scope.require(Permission.EDIT_STUDY)
+
         row = self._row(project_id)
         project = _to_domain(row)
 
@@ -499,6 +529,8 @@ class ProjectRepository:
         Provider and budget changes are recorded as project events because they
         alter cost and provenance behaviour, and must be auditable after the fact.
         """
+        self._scope.require(Permission.EDIT_STUDY)
+
         row = self._row(project_id)
         changes: dict[str, Any] = {}
 
@@ -550,6 +582,7 @@ class ProjectRepository:
 
     def move_to_trash(self, project_id: str, *, actor_id: str | None = None) -> Project:
         """Soft-delete a project. Bytes and history are retained."""
+        self._scope.require(Permission.EDIT_STUDY)
         row = self._row(project_id)
         row.trashed_at = utcnow()
         row.status = ProjectStatus.TRASHED.value
@@ -565,11 +598,9 @@ class ProjectRepository:
 
     def restore_from_trash(self, project_id: str, *, actor_id: str | None = None) -> Project:
         """Restore a soft-deleted project."""
+        self._scope.require(Permission.EDIT_STUDY)
         row = self._session.scalar(
-            select(ProjectRow).where(
-                ProjectRow.project_id == project_id,
-                ProjectRow.organization_id == self._org,
-            )
+            select(ProjectRow).where(ProjectRow.project_id == project_id, *self._scope_filter())
         )
         if row is None:
             raise ProjectNotFound(project_id)
@@ -592,8 +623,10 @@ class ProjectRepository:
         """Permanently delete a trashed project and everything under it.
 
         Only a project already in the trash can be purged, so a hard delete is
-        always a deliberate second action.
+        always a deliberate second action, and it needs delete authority rather
+        than ordinary edit rights.
         """
+        self._scope.require(Permission.DELETE_STUDY)
         row = self._row(project_id)
         if row.trashed_at is None:
             raise ValueError("only a trashed project can be purged")

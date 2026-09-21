@@ -50,6 +50,17 @@ class Settings(BaseSettings):
     # deployment that serves the web client behind one hostname.
     cors_origins: list[str] = Field(default_factory=list)
 
+    # ------------------------------------------------------------- identity --
+    # Which identity provider answers authentication. "cognito" is the only
+    # production-valid value; "development" trusts a request header and is
+    # rejected outside local/test by validate_for_production().
+    identity_provider: Literal["cognito", "development", "test"] = "development"
+
+    cognito_region: str = ""
+    cognito_user_pool_id: str = ""
+    cognito_client_id: str = ""
+    cognito_token_use: Literal["id", "access"] = "id"
+
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
 
@@ -69,6 +80,16 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         """True for the environments that must not run with development defaults."""
         return self.env in (Environment.PRODUCTION, Environment.STAGING)
+
+    @property
+    def allow_insecure_local_identity(self) -> bool:
+        """Whether header-based identity may be used.
+
+        Granted only in local and test environments. ``DevelopmentIdentityProvider``
+        refuses to construct without it, so this property is the single switch
+        standing between header-trust and a deployed environment.
+        """
+        return self.env in (Environment.LOCAL, Environment.TEST)
 
     @property
     def docs_enabled(self) -> bool:
@@ -97,6 +118,22 @@ class Settings(BaseSettings):
             problems.append("AIA_DEBUG must be off in production")
         if "*" in self.cors_origins:
             problems.append("wildcard CORS origin is not permitted in production")
+
+        # Identity. A deployed environment trusting request headers would make
+        # every tenant and client boundary meaningless, so this is refused at
+        # startup rather than per request.
+        if self.identity_provider != "cognito":
+            problems.append(
+                f"identity_provider must be 'cognito' in production, not '{self.identity_provider}'"
+            )
+        else:
+            missing = [
+                name
+                for name in ("cognito_region", "cognito_user_pool_id", "cognito_client_id")
+                if not getattr(self, name)
+            ]
+            if missing:
+                problems.append("Cognito configuration is incomplete: " + ", ".join(missing))
 
         if problems:
             raise RuntimeError("invalid production configuration: " + "; ".join(problems))

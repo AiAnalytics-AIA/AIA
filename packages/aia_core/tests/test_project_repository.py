@@ -8,10 +8,6 @@ against PostgreSQL by setting ``DATABASE_URL`` so that dialect-specific behaviou
 
 from __future__ import annotations
 
-import os
-from collections.abc import Iterator
-from typing import Any
-
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -19,50 +15,20 @@ from sqlalchemy.orm import Session
 from aia_core.domain.pipeline import ProjectType, StageStatus
 from aia_core.domain.project import ProjectStatus
 from aia_core.domain.providers import Provider, ProviderPolicy
-from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
-from aia_core.infrastructure.tables import Base, ProjectRevisionRow
-
-ORG = "ORG-primary"
-OTHER_ORG = "ORG-other"
-
-
-@pytest.fixture(scope="module")
-def engine() -> Iterator[Any]:
-    """A database engine: PostgreSQL when DATABASE_URL is set, else SQLite."""
-    eng = create_app_engine(os.environ.get("DATABASE_URL"))
-    Base.metadata.create_all(eng)
-    try:
-        yield eng
-    finally:
-        Base.metadata.drop_all(eng)
-        eng.dispose()
+from aia_core.infrastructure.tables import ProjectRevisionRow
 
 
 @pytest.fixture
-def session(engine: Any) -> Iterator[Session]:
-    """A session rolled back after each test so tests stay independent."""
-    factory = create_session_factory(engine)
-    with factory() as s:
-        yield s
-        s.rollback()
-        # SQLite in-memory shares one connection across the module, so clean up
-        # explicitly rather than relying on the rollback alone.
-        for table in reversed(Base.metadata.sorted_tables):
-            s.execute(table.delete())
-        s.commit()
+def repo(session: Session, scoped) -> ProjectRepository:
+    """Repository scoped to the primary client's primary study, as a LEAD."""
+    return ProjectRepository(session, scoped.scope(user="lead", study="primary"))
 
 
 @pytest.fixture
-def repo(session: Session) -> ProjectRepository:
-    """Repository scoped to the primary tenant."""
-    return ProjectRepository(session, organization_id=ORG)
-
-
-@pytest.fixture
-def other_repo(session: Session) -> ProjectRepository:
-    """Repository scoped to a second tenant, for isolation tests."""
-    return ProjectRepository(session, organization_id=OTHER_ORG)
+def other_repo(session: Session, scoped) -> ProjectRepository:
+    """Repository scoped to a *different client's* study, for isolation tests."""
+    return ProjectRepository(session, scoped.scope(user="other_lead", study="other_client"))
 
 
 # --------------------------------------------------------------------------- #
@@ -70,14 +36,14 @@ def other_repo(session: Session) -> ProjectRepository:
 # --------------------------------------------------------------------------- #
 
 
-def test_repository_requires_an_organization(session: Session) -> None:
+def test_repository_requires_an_issued_study_context(session: Session) -> None:
     """An unscoped repository is not constructible.
 
-    This makes tenant isolation a type-level guarantee rather than a convention a
-    handler could forget.
+    Isolation is a type-level guarantee rather than a convention a handler could
+    forget. The forgery cases are covered in test_scope_isolation.py.
     """
-    with pytest.raises(ValueError, match="organization_id is required"):
-        ProjectRepository(session, organization_id="")
+    with pytest.raises(TypeError, match="requires a StudyContext"):
+        ProjectRepository(session, None)  # type: ignore[arg-type]
 
 
 # --------------------------------------------------------------------------- #
@@ -330,13 +296,13 @@ def test_earlier_revision_stages_remain_queryable(
 # --------------------------------------------------------------------------- #
 
 
-def test_another_tenant_cannot_read_a_project(
+def test_another_client_cannot_read_a_project(
     repo: ProjectRepository, other_repo: ProjectRepository
 ) -> None:
-    """Cross-tenant access raises the same error as a missing project.
+    """Cross-client access raises the same error as a missing project.
 
-    Distinguishing "not found" from "not yours" would leak the existence of other
-    tenants' data.
+    Distinguishing "not found" from "not yours" would leak the existence of
+    another client's engagement.
     """
     project, _ = repo.create(title="Secret")
 
@@ -352,10 +318,10 @@ def test_another_tenant_cannot_read_a_project(
         other_repo.revisions(project.project_id)
 
 
-def test_another_tenant_cannot_write_a_project(
+def test_another_client_cannot_write_a_project(
     repo: ProjectRepository, other_repo: ProjectRepository
 ) -> None:
-    """Every mutating path is tenant-scoped too, not just the reads."""
+    """Every mutating path is scope-checked too, not just the reads."""
     project, _ = repo.create(title="Secret", content={"title": "Secret"})
 
     with pytest.raises(ProjectNotFound):
@@ -368,10 +334,10 @@ def test_another_tenant_cannot_write_a_project(
     assert repo.get(project.project_id).title == "Secret"
 
 
-def test_listing_is_scoped_to_the_tenant(
+def test_listing_is_scoped_to_the_study(
     repo: ProjectRepository, other_repo: ProjectRepository
 ) -> None:
-    """A portfolio listing never includes another tenant's projects."""
+    """A portfolio listing never includes another client's projects."""
     repo.create(title="Mine A")
     repo.create(title="Mine B")
     other_repo.create(title="Theirs")

@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
 from aia_api.config import Environment, Settings
-from aia_api.main import create_app
+from aia_api.dependencies import build_identity_provider
+from aia_api.identity import DevelopmentIdentityForbidden
 from aia_api.observability import JsonFormatter, redact
 
 # --------------------------------------------------------------------------- #
@@ -74,7 +76,49 @@ def test_valid_production_config_passes() -> None:
         env=Environment.PRODUCTION,
         database_url="postgresql+psycopg://user:pw@host/aia",
         cors_origins=["https://app.example.com"],
+        identity_provider="cognito",
+        cognito_region="eu-central-1",
+        cognito_user_pool_id="eu-central-1_Pool",
+        cognito_client_id="app-client",
     ).validate_for_production()
+
+
+def test_production_refuses_a_non_cognito_identity_provider() -> None:
+    """A deployed environment must authenticate through Cognito.
+
+    Header-trusting identity in a deployment would make every organization,
+    client and study boundary meaningless, so it is refused at startup.
+    """
+    for provider in ("development", "test"):
+        with pytest.raises(RuntimeError, match="identity_provider must be 'cognito'"):
+            Settings(
+                env=Environment.PRODUCTION,
+                database_url="postgresql+psycopg://u:p@h/aia",
+                identity_provider=provider,
+            ).validate_for_production()
+
+
+def test_production_refuses_incomplete_cognito_configuration() -> None:
+    """A half-configured pool would reject every token; fail at startup instead."""
+    with pytest.raises(RuntimeError, match="Cognito configuration is incomplete"):
+        Settings(
+            env=Environment.PRODUCTION,
+            database_url="postgresql+psycopg://u:p@h/aia",
+            identity_provider="cognito",
+            cognito_region="eu-central-1",
+        ).validate_for_production()
+
+
+def test_insecure_local_identity_is_granted_only_locally() -> None:
+    """The single switch that permits header-based identity.
+
+    DevelopmentIdentityProvider refuses to construct without it, so this property
+    is what stands between header-trust and a deployed environment.
+    """
+    assert Settings(env=Environment.LOCAL).allow_insecure_local_identity
+    assert Settings(env=Environment.TEST).allow_insecure_local_identity
+    assert not Settings(env=Environment.STAGING).allow_insecure_local_identity
+    assert not Settings(env=Environment.PRODUCTION).allow_insecure_local_identity
 
 
 def test_local_config_is_permissive() -> None:
@@ -100,34 +144,73 @@ def test_cors_origins_accept_comma_separated_string() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_production_refuses_header_based_identity() -> None:
-    """Production must not accept a client-supplied identity header.
+def test_development_identity_provider_cannot_be_built_for_production() -> None:
+    """The header-trusting provider refuses construction outside local/test.
 
-    Trusting X-AIA-Org in production would let any caller read any tenant's data,
-    so the development seam fails closed until a real verifier is wired in.
+    Two independent barriers exist: this one, and the config guard above. Neither
+    relies on the other.
     """
-    app = create_app(
+    settings = Settings(
+        env=Environment.PRODUCTION,
+        database_url="postgresql+psycopg://u:p@h/aia",
+        identity_provider="development",
+    )
+    with pytest.raises(DevelopmentIdentityForbidden):
+        build_identity_provider(settings)
+
+
+def test_local_environment_gets_the_insecure_provider() -> None:
+    """Local development works without Cognito, and says so in the provider name."""
+    provider = build_identity_provider(
+        Settings(env=Environment.LOCAL, identity_provider="development")
+    )
+    assert provider.name == "development-insecure"
+
+
+def test_cognito_provider_is_built_from_config() -> None:
+    """Production configuration produces a Cognito provider."""
+    provider = build_identity_provider(
         Settings(
             env=Environment.PRODUCTION,
-            database_url="postgresql+psycopg://u:p@localhost/aia",
-            log_level="WARNING",
-            log_format="console",
+            database_url="postgresql+psycopg://u:p@h/aia",
+            identity_provider="cognito",
+            cognito_region="eu-central-1",
+            cognito_user_pool_id="eu-central-1_Pool",
+            cognito_client_id="app-client",
         )
     )
-    # No lifespan: this must be refused before any database access is attempted.
-    client = TestClient(app, raise_server_exceptions=False)
+    assert provider.name == "cognito"
+
+
+def test_missing_credentials_are_rejected(client: TestClient, world: Any) -> None:
+    """An unauthenticated request is refused with a bearer challenge."""
+    path = f"/api/v1/studies/{world.study_id()}/projects"
+
+    response = client.get(path)
+    assert response.status_code == 401
+    assert response.json()["code"] == "unauthenticated"
+    assert response.headers["WWW-Authenticate"] == "Bearer"
+
+
+def test_malformed_authorization_header_is_rejected(client: TestClient, world: Any) -> None:
+    """Only the bearer scheme is accepted, and it must carry a value."""
+    path = f"/api/v1/studies/{world.study_id()}/projects"
+
+    for header in ("Bearer", "Bearer   ", "Basic dXNlcjpwYXNz", "token abc"):
+        response = client.get(path, headers={"Authorization": header})
+        assert response.status_code == 401, header
+
+
+def test_header_identity_is_ignored_when_a_bearer_token_is_present(
+    client: TestClient, world: Any
+) -> None:
+    """A bearer token wins, so a stray dev header cannot override a real session."""
+    path = f"/api/v1/studies/{world.study_id()}/projects"
     response = client.get(
-        "/api/v1/projects", headers={"X-AIA-User": "attacker", "X-AIA-Org": "ORG-victim"}
+        path,
+        headers={"Authorization": "Bearer nonexistent", "X-AIA-Subject": "lead@art-chain.io"},
     )
-
-    assert response.status_code == 501
-    assert response.json()["code"] == "auth_not_configured"
-
-
-def test_development_requires_both_identity_headers(client: TestClient) -> None:
-    """A partial identity is rejected rather than defaulted."""
-    assert client.get("/api/v1/projects", headers={"X-AIA-User": "u"}).status_code == 401
-    assert client.get("/api/v1/projects", headers={"X-AIA-Org": "o"}).status_code == 401
+    assert response.status_code == 401
 
 
 # --------------------------------------------------------------------------- #
@@ -220,10 +303,10 @@ def test_log_formatter_redacts_and_emits_single_line_json() -> None:
     assert parsed["message"] == "calling provider"
 
 
-def test_error_response_details_are_redacted(auth: TestClient) -> None:
+def test_error_response_details_are_redacted(researcher: TestClient, world: Any) -> None:
     """Validation errors echo input, so that echo must be scrubbed."""
-    response = auth.post(
-        "/api/v1/projects",
+    response = researcher.post(
+        f"/api/v1/studies/{world.study_id()}/projects",
         json={"title": "x", "unexpected_field": "sk-ant-abcdefghijklmnopqrs"},
     )
     assert response.status_code == 422

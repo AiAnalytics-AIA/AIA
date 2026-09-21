@@ -1,0 +1,452 @@
+"""Scope resolution: turning an authenticated principal into an authorised scope.
+
+This module is the **only** place that issues a :class:`StudyContext` or an
+:class:`OrganizationContext`. Every repository touching client data demands one,
+and the private issuer sentinel in ``aia_core.domain.scope`` means nothing else
+can forge one.
+
+That is what makes the product rule enforceable:
+
+> Scope is injected from authenticated application context. No AI- or
+> model-generated argument may determine client or study scope.
+
+An AI tool can pass whatever ``client_id`` it likes; it will not resolve unless
+the *authenticated human* behind the request holds a grant on it. The worst a
+confused or compromised agent can do is fail.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from ..domain.scope import (
+    ClientGrant,
+    ClientStatus,
+    OrganizationContext,
+    OrganizationRole,
+    Permission,
+    ScopeDenied,
+    ScopeGrant,
+    ScopeRole,
+    StudyContext,
+    StudyGrant,
+    StudyStatus,
+    effective_role,
+    permissions_for,
+)
+from ..infrastructure.tables import (
+    AccessAuditRow,
+    ClientGrantRow,
+    ClientRow,
+    OrganizationMemberRow,
+    StudyGrantRow,
+    StudyRow,
+    UserRow,
+)
+
+__all__ = ["AuthenticatedPrincipal", "ScopeResolver"]
+
+
+@dataclass(frozen=True, slots=True)
+class AuthenticatedPrincipal:
+    """A caller whose identity has been verified by the identity provider.
+
+    This carries only what the token proved. It deliberately carries **no roles
+    and no client or study ids**: authorization is AIA's job and is answered from
+    PostgreSQL, not from token claims. A token cannot grant itself access to a
+    client.
+    """
+
+    user_id: str
+    organization_id: str
+    email: str | None = None
+    external_subject: str | None = None
+    request_id: str | None = None
+
+
+class ScopeResolver:
+    """Resolves and authorises scope for one request or one job.
+
+    Construct per unit of work. The resolver reads grants, decides, records the
+    decision when it matters, and issues a context.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    # ------------------------------------------------------------- internals --
+
+    def _membership_role(self, principal: AuthenticatedPrincipal) -> OrganizationRole:
+        """Return the principal's organization role, or deny."""
+        row = self._session.scalar(
+            select(OrganizationMemberRow).where(
+                OrganizationMemberRow.organization_id == principal.organization_id,
+                OrganizationMemberRow.user_id == principal.user_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="not_a_member")
+        return OrganizationRole(row.role)
+
+    def _active_user(self, principal: AuthenticatedPrincipal) -> UserRow:
+        """Return the user row, denying a deactivated account.
+
+        Deactivation must take effect immediately even if a valid token is still
+        in circulation, so it is checked on every resolution rather than trusted
+        to token expiry.
+        """
+        row = self._session.scalar(select(UserRow).where(UserRow.user_id == principal.user_id))
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_user")
+        if not row.is_active:
+            raise ScopeDenied("not found", reason="user_deactivated")
+        return row
+
+    def _record(
+        self,
+        principal: AuthenticatedPrincipal,
+        *,
+        action: str,
+        client_id: str | None = None,
+        study_id: str | None = None,
+        subject_user_id: str | None = None,
+        role: str | None = None,
+        reason: str = "",
+    ) -> None:
+        """Append an access audit entry."""
+        self._session.add(
+            AccessAuditRow(
+                organization_id=principal.organization_id,
+                client_id=client_id,
+                study_id=study_id,
+                subject_user_id=subject_user_id,
+                actor_id=principal.user_id,
+                action=action,
+                role=role,
+                reason=reason,
+                request_id=principal.request_id,
+            )
+        )
+
+    # ---------------------------------------------------------------- public --
+
+    def organization_context(self, principal: AuthenticatedPrincipal) -> OrganizationContext:
+        """Authorise organization-level scope, for administration only.
+
+        The returned context carries no client or study id, so it cannot be used
+        to read client research data.
+        """
+        self._active_user(principal)
+        role = self._membership_role(principal)
+        return OrganizationContext(
+            organization_id=principal.organization_id,
+            actor_id=principal.user_id,
+            organization_role=role,
+            grant=ScopeGrant._issue(),
+            request_id=principal.request_id,
+        )
+
+    def study_context(
+        self,
+        principal: AuthenticatedPrincipal,
+        *,
+        study_id: str,
+        require: Permission | None = None,
+    ) -> StudyContext:
+        """Authorise scope for one study, or raise :class:`ScopeDenied`.
+
+        The client id is derived from the **study row**, never from the caller.
+        Accepting a caller-supplied client id would let a mismatched pair be used
+        to read one client's study under another client's authorisation.
+
+        Resolution order:
+
+        1. the user exists and is active;
+        2. the user is a member of the organization;
+        3. the study exists **within that organization**;
+        4. the client is not archived;
+        5. the user holds a client grant or a study grant, with the study grant
+           authoritative;
+        6. the effective role confers ``require``, when given.
+
+        Every failure raises the same exception with a distinguishing ``reason``
+        for the audit log, and callers must surface all of them as 404.
+        """
+        self._active_user(principal)
+        organization_role = self._membership_role(principal)
+
+        study = self._session.scalar(
+            select(StudyRow).where(
+                StudyRow.study_id == study_id,
+                StudyRow.organization_id == principal.organization_id,
+            )
+        )
+        if study is None:
+            # Not recorded: an id that does not exist in this organization is
+            # noise, and recording it would let a prober fill the audit log.
+            raise ScopeDenied("not found", reason="unknown_study")
+
+        client = self._session.scalar(
+            select(ClientRow).where(ClientRow.client_id == study.client_id)
+        )
+        if client is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        if client.status == ClientStatus.ARCHIVED.value:
+            raise ScopeDenied("not found", reason="client_archived")
+
+        client_grant = self._session.scalar(
+            select(ClientGrantRow).where(
+                ClientGrantRow.client_id == study.client_id,
+                ClientGrantRow.user_id == principal.user_id,
+            )
+        )
+        study_grant = self._session.scalar(
+            select(StudyGrantRow).where(
+                StudyGrantRow.study_id == study_id,
+                StudyGrantRow.user_id == principal.user_id,
+            )
+        )
+
+        role = effective_role(
+            client_role=ScopeRole(client_grant.role) if client_grant else None,
+            study_role=ScopeRole(study_grant.role) if study_grant else None,
+        )
+
+        if role is None:
+            # This one *is* recorded: a member of the organization reaching for a
+            # study they hold no grant on is worth seeing.
+            self._record(
+                principal,
+                action="ACCESS_DENIED",
+                client_id=study.client_id,
+                study_id=study_id,
+                reason="no_grant",
+            )
+            raise ScopeDenied("not found", reason="no_grant")
+
+        context = StudyContext(
+            organization_id=principal.organization_id,
+            client_id=study.client_id,
+            study_id=study_id,
+            actor_id=principal.user_id,
+            role=role,
+            permissions=permissions_for(role),
+            organization_role=organization_role,
+            grant=ScopeGrant._issue(),
+            study_status=StudyStatus(study.status),
+            request_id=principal.request_id,
+        )
+
+        if require is not None:
+            try:
+                context.require(require)
+            except ScopeDenied:
+                self._record(
+                    principal,
+                    action="PERMISSION_DENIED",
+                    client_id=study.client_id,
+                    study_id=study_id,
+                    role=role.value,
+                    reason=require.value,
+                )
+                raise
+
+        return context
+
+    def accessible_studies(
+        self, principal: AuthenticatedPrincipal, *, client_id: str | None = None
+    ) -> list[str]:
+        """Return the study ids this principal may access.
+
+        Used to scope a portfolio listing. A study reachable through either a
+        client grant or a study grant is included; nothing else is, and
+        organization administrators are not silently included.
+        """
+        self._active_user(principal)
+        self._membership_role(principal)
+
+        via_client = (
+            select(StudyRow.study_id)
+            .join(ClientGrantRow, ClientGrantRow.client_id == StudyRow.client_id)
+            .where(
+                StudyRow.organization_id == principal.organization_id,
+                ClientGrantRow.user_id == principal.user_id,
+            )
+        )
+        via_study = (
+            select(StudyRow.study_id)
+            .join(StudyGrantRow, StudyGrantRow.study_id == StudyRow.study_id)
+            .where(
+                StudyRow.organization_id == principal.organization_id,
+                StudyGrantRow.user_id == principal.user_id,
+            )
+        )
+        if client_id is not None:
+            via_client = via_client.where(StudyRow.client_id == client_id)
+            via_study = via_study.where(StudyRow.client_id == client_id)
+
+        ids = set(self._session.scalars(via_client).all())
+        ids.update(self._session.scalars(via_study).all())
+        return sorted(ids)
+
+    # ------------------------------------------------------------- mutations --
+
+    def grant_client_access(
+        self,
+        admin: OrganizationContext,
+        *,
+        client_id: str,
+        user_id: str,
+        role: ScopeRole,
+    ) -> ClientGrant:
+        """Grant a user a role on a client. Requires organization administration.
+
+        An administrator granting **themselves** access is legitimate -- someone
+        has to be able to start work on a new client -- but it is recorded with a
+        distinct action so the break-glass case is visible in the audit log rather
+        than indistinguishable from ordinary provisioning.
+        """
+        admin.require_administer()
+
+        client = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == client_id,
+                ClientRow.organization_id == admin.organization_id,
+            )
+        )
+        if client is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+
+        existing = self._session.scalar(
+            select(ClientGrantRow).where(
+                ClientGrantRow.client_id == client_id,
+                ClientGrantRow.user_id == user_id,
+            )
+        )
+        if existing is not None:
+            existing.role = role.value
+            existing.granted_by = admin.actor_id
+        else:
+            self._session.add(
+                ClientGrantRow(
+                    client_id=client_id,
+                    user_id=user_id,
+                    role=role.value,
+                    granted_by=admin.actor_id,
+                )
+            )
+
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                subject_user_id=user_id,
+                actor_id=admin.actor_id,
+                action=("CLIENT_SELF_GRANT" if user_id == admin.actor_id else "CLIENT_GRANT"),
+                role=role.value,
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+        return ClientGrant(client_id=client_id, user_id=user_id, role=role)
+
+    def grant_study_access(
+        self,
+        granter: StudyContext,
+        *,
+        user_id: str,
+        role: ScopeRole,
+    ) -> StudyGrant:
+        """Grant a user a role on the study in scope.
+
+        Requires ``MANAGE_STUDY_ACCESS``, so a study LEAD can staff their own
+        study without organization administration.
+        """
+        granter.require(Permission.MANAGE_STUDY_ACCESS)
+
+        existing = self._session.scalar(
+            select(StudyGrantRow).where(
+                StudyGrantRow.study_id == granter.study_id,
+                StudyGrantRow.user_id == user_id,
+            )
+        )
+        if existing is not None:
+            existing.role = role.value
+            existing.granted_by = granter.actor_id
+        else:
+            self._session.add(
+                StudyGrantRow(
+                    study_id=granter.study_id,
+                    user_id=user_id,
+                    role=role.value,
+                    granted_by=granter.actor_id,
+                )
+            )
+
+        self._session.add(
+            AccessAuditRow(
+                organization_id=granter.organization_id,
+                client_id=granter.client_id,
+                study_id=granter.study_id,
+                subject_user_id=user_id,
+                actor_id=granter.actor_id,
+                action="STUDY_GRANT",
+                role=role.value,
+                request_id=granter.request_id,
+            )
+        )
+        self._session.flush()
+        return StudyGrant(study_id=granter.study_id, user_id=user_id, role=role)
+
+    def revoke_client_access(
+        self, admin: OrganizationContext, *, client_id: str, user_id: str
+    ) -> None:
+        """Remove a user's client grant."""
+        admin.require_administer()
+        row = self._session.scalar(
+            select(ClientGrantRow).where(
+                ClientGrantRow.client_id == client_id,
+                ClientGrantRow.user_id == user_id,
+            )
+        )
+        if row is not None:
+            self._session.delete(row)
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                subject_user_id=user_id,
+                actor_id=admin.actor_id,
+                action="CLIENT_REVOKE",
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+
+    def audit_trail(self, admin: OrganizationContext, *, limit: int = 200) -> list[dict[str, Any]]:
+        """Return recent access audit entries for the organization."""
+        admin.require_administer()
+        rows = self._session.scalars(
+            select(AccessAuditRow)
+            .where(AccessAuditRow.organization_id == admin.organization_id)
+            .order_by(AccessAuditRow.event_id.desc())
+            .limit(max(1, min(int(limit), 1000)))
+        ).all()
+        return [
+            {
+                "event_id": r.event_id,
+                "action": r.action,
+                "client_id": r.client_id,
+                "study_id": r.study_id,
+                "subject_user_id": r.subject_user_id,
+                "actor_id": r.actor_id,
+                "role": r.role,
+                "reason": r.reason,
+                "created_at": r.created_at,
+            }
+            for r in rows
+        ]

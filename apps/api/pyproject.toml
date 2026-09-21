@@ -44,6 +44,12 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
+# N818 requires an "Error" suffix on every exception. Our exception names are
+# domain vocabulary that reads better as-is -- `raise ScopeDenied(...)`,
+# `except ExpiredToken` -- and they match the terms used in the architecture
+# docs. Renaming them to ScopeDeniedError / ExpiredTokenError would make the
+# code read worse for no safety gain.
+ignore = ["N818"]
 
 [tool.mypy]
 python_version = "3.12"

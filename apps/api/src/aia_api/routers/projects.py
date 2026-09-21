@@ -19,8 +19,7 @@ from aia_core.domain.providers import ui_label
 from aia_core.infrastructure.repositories import ProjectNotFound
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 
-from ..dependencies import PrincipalDep, ProjectRepositoryDep
-from ..observability import request_id_var
+from ..dependencies import PrincipalDep, ProjectRepositoryDep, StudyIdPath
 from ..schemas.projects import (
     ErrorResponse,
     EventResponse,
@@ -38,7 +37,7 @@ from ..schemas.projects import (
 )
 
 router = APIRouter(
-    prefix="/projects",
+    prefix="/studies/{study_id}/projects",
     tags=["projects"],
     responses={
         401: {"model": ErrorResponse, "description": "Not authenticated"},
@@ -133,6 +132,7 @@ def _impact_response(payload: dict) -> ImpactResponse:
     summary="Create a project",
 )
 def create_project(
+    study_id: StudyIdPath,
     body: ProjectCreateRequest,
     repo: ProjectRepositoryDep,
     principal: PrincipalDep,
@@ -152,10 +152,9 @@ def create_project(
         max_api_cost_usd=body.max_api_cost_usd,
         parent_project_id=body.parent_project_id,
         created_by=principal.user_id,
-        request_id=request_id_var.get() or None,
     )
 
-    response.headers["Location"] = f"/api/v1/projects/{project.project_id}"
+    response.headers["Location"] = f"/api/v1/studies/{study_id}/projects/{project.project_id}"
     return ProjectDetailResponse(
         **_project_response(project).model_dump(),
         stages=[_stage_response(s) for s in repo.stages(project.project_id)],
@@ -165,6 +164,7 @@ def create_project(
 
 @router.get("", response_model=ProjectListResponse, summary="List projects")
 def list_projects(
+    study_id: StudyIdPath,
     repo: ProjectRepositoryDep,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -209,6 +209,7 @@ def list_projects(
 
 @router.get("/{project_id}", response_model=ProjectDetailResponse, summary="Get a project")
 def get_project(
+    study_id: StudyIdPath,
     project_id: ProjectIdPath,
     repo: ProjectRepositoryDep,
     revision: Annotated[int | None, Query(ge=1)] = None,
@@ -231,6 +232,7 @@ def get_project(
     summary="Save project content",
 )
 def save_project(
+    study_id: StudyIdPath,
     project_id: ProjectIdPath,
     body: ProjectSaveRequest,
     repo: ProjectRepositoryDep,
@@ -249,7 +251,6 @@ def save_project(
             force_new_revision=body.force_new_revision,
             explicit_stage=body.explicit_stage,
             actor_id=principal.user_id,
-            request_id=request_id_var.get() or None,
         )
     except ProjectNotFound as exc:
         raise _not_found(project_id) from exc
@@ -270,6 +271,7 @@ def save_project(
 
 @router.patch("/{project_id}", response_model=ProjectResponse, summary="Update settings")
 def update_settings(
+    study_id: StudyIdPath,
     project_id: ProjectIdPath,
     body: ProjectSettingsRequest,
     repo: ProjectRepositoryDep,
@@ -308,6 +310,7 @@ def update_settings(
     summary="Preview what an edit would invalidate",
 )
 def preview_impact(
+    study_id: StudyIdPath,
     project_id: ProjectIdPath,
     repo: ProjectRepositoryDep,
     field: Annotated[list[str] | None, Query(description="Project fields about to change")] = None,
@@ -343,6 +346,7 @@ def preview_impact(
     summary="Revision history",
 )
 def list_revisions(
+    study_id: StudyIdPath,
     project_id: ProjectIdPath,
     repo: ProjectRepositoryDep,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
@@ -374,6 +378,7 @@ def list_revisions(
     summary="Project history and audit trail",
 )
 def list_events(
+    study_id: StudyIdPath,
     project_id: ProjectIdPath,
     repo: ProjectRepositoryDep,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
@@ -405,6 +410,7 @@ def list_events(
     summary="Move a project to the trash",
 )
 def trash_project(
+    study_id: StudyIdPath,
     project_id: ProjectIdPath,
     repo: ProjectRepositoryDep,
     principal: PrincipalDep,
@@ -422,6 +428,7 @@ def trash_project(
     summary="Restore a project from the trash",
 )
 def restore_project(
+    study_id: StudyIdPath,
     project_id: ProjectIdPath,
     repo: ProjectRepositoryDep,
     principal: PrincipalDep,
