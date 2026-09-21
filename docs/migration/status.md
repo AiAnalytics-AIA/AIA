@@ -179,6 +179,12 @@ The prototype remains fully functional and untouched at
 
 ## Last verified commit
 
-To be filled by the commit that lands this document. Verified state at time of
-writing: 168 tests passing, ruff clean, mypy strict clean, migrations clean —
-against SQLite, on Python 3.14.6, macOS.
+`11f48ab` — feat(migration): production foundation + durable project persistence
+
+Verified at that commit: 168 tests passing (99 core incl. 29 parity, 69 API),
+`ruff check` and `ruff format --check` clean, `mypy --strict` clean, Alembic
+`upgrade head` / `check` / `downgrade base` / re-upgrade clean.
+
+Verified against **SQLite** on Python 3.14.6, macOS. The PostgreSQL path is
+configured in CI but has not been executed — there is no Docker or PostgreSQL on
+the machine this was built on.
