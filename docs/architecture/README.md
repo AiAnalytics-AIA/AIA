@@ -11,6 +11,7 @@ is shaped that way. The companion documents go deeper:
 | --- | --- |
 | [domain-map.md](domain-map.md) | Bounded contexts and their dependencies |
 | [data-model.md](data-model.md) | Production data model |
+| [population.md](population.md) | Population consumer contract: binding, field policy, joint claims |
 | [workflows.md](workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](ai-runtime.md) | Provider abstraction, provenance, budgets, failure behaviour |
 | [artifacts.md](artifacts.md) | Artifact lifecycle and storage |

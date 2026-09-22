@@ -1,6 +1,6 @@
 # Population consumption readiness
 
-**Status:** in progress · **Owner:** population-data · **Started:** 2026-09-22
+**Status:** done — awaiting review in its PR · **Owner:** population-data · **Started:** 2026-09-22
 
 ## Problem
 
@@ -82,8 +82,10 @@ decides otherwise.
   `decide_joint`; load re-verifies companion bytes and the certificate state, and
   refuses a binding recorded under another policy version, dictionary, companion
   set or joint state
-- [ ] 5. Derived-field decision matrix, OI-7 archive-dependency artifact, docs,
-  PROGRESS, open items, agent status
+- [x] 5. Derived-field decision matrix, OI-7 archive-dependency artifact, docs,
+  PROGRESS, open items, agent status — `docs/migration/population-derived-fields-decision.md`,
+  `docs/migration/population-enrichment-archive-dependency.md`,
+  `docs/architecture/population.md`
 
 ## Out of scope, by instruction
 
@@ -92,4 +94,27 @@ promotion, columnar views.
 
 ## Review outcome
 
-Filled in when the plan is archived.
+**No independent review has happened yet.** This records the author's own
+verification; replace it with the reviewer's findings when the PR is reviewed.
+
+- **Policy parity found the reference's flags permissive**, as expected: our
+  client-measured set is 115 fields, a strict subset of the reference's 287;
+  simulation differs on exactly the 5 `technical/provenance only` fields.
+  Claim rules, provenance classes, persona and weighting equal the reference field
+  for field on all 400.
+- **A contract guard caught a test bug.** `replace(CZ, …)` in the parity bundle
+  kept `joint_certified_labels={"v17_4_0"}` against synthetic known versions, and
+  the contract refused it. The bundle now declares no companions; companions have
+  their own parity tests.
+- **Backfill refused by design.** Migration `85637e58c7dd` raises if any binding
+  row exists rather than stamping today's policy on older runs. That branch is not
+  exercised by a test: seeding a binding row needs a full run graph in a migration
+  test harness the repository does not have.
+- **OI-7 is outcome B**, with the exact archive identities of the missing source.
+- **Not coordinated live:** analysis-governance (the client-claim permits) and
+  integration-architecture (the operator capability, which deliberately does not
+  touch the shared scope contract) are asked to review in the PR.
+
+**Measured** at the head of this change: PostgreSQL 911 passed / 100 skipped (791 /
+100 at `8da7261`), SQLite 893 / 118 (773 / 118), 36 parity tests against
+AIA-reference @ `678e298`, 18 concurrency tests, `layer_check` 18/18.
