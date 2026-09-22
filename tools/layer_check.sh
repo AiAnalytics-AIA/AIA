@@ -196,6 +196,19 @@ forbid "the API never parses a population panel" \
   '^[^#]*\bparse_panel\(' \
   "$API"
 
+# Establishing and promoting a population is platform administration. The
+# operator grant is issued only by PopulationAuthority from trusted configuration
+# (application/population_authority.py); authority.py defines it. Neither a study
+# nor an organization context implies it, and the API never mints one.
+forbid "population-operator grants are issued only by the population authority" \
+  '^[^#]*PopulationOperatorGrant\._issue\(' \
+  "$CORE" \
+  population_authority.py authority.py
+
+forbid "the API never issues a population-operator grant" \
+  '^[^#]*PopulationOperatorGrant\._issue\(' \
+  "$API"
+
 # --- Sociomap: computable is not deliverable --------------------------------
 #
 # AIA_SOCIOMAP_V1 is a preset a study adopts by naming it -- it is not an

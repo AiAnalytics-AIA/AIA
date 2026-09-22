@@ -20,8 +20,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
+from .companions import JointState
 from .contract import PopulationImportContract
 from .errors import PopulationError, PopulationNotEstablished, UnknownDatasetVersion
+from .policy import FIELD_POLICY_VERSION
 from .versions import (
     DatasetVersion,
     Population,
@@ -107,10 +109,20 @@ class PopulationBinding:
     weight_column: str
     view: PopulationView
     resolved_at: datetime
+    #: The field dictionary the policy was derived from, and the version of the
+    #: mapping tables that read it: together, exactly which claim rules applied.
+    dictionary_sha256: str
+    field_policy_version: str
+    #: The companion set the version carried, and what its joint certificate said.
+    companion_set_sha256: str
+    joint_state: JointState
 
     def __post_init__(self) -> None:
-        if not is_sha256(self.content_sha256):
-            raise PopulationError("a binding needs the full content sha256", reason="binding")
+        for name in ("content_sha256", "dictionary_sha256", "companion_set_sha256"):
+            if not is_sha256(getattr(self, name)):
+                raise PopulationError(f"a binding needs the full {name}", reason="binding")
+        if not self.field_policy_version:
+            raise PopulationError("a binding needs its field policy version", reason="binding")
         for name in ("dataset_id", "version_id", "version_label", "contract_id"):
             if not getattr(self, name):
                 raise PopulationError(f"a binding needs {name}", reason="binding")
@@ -138,6 +150,10 @@ class PopulationBinding:
             "weight_column": self.weight_column,
             "view": self.view.value,
             "resolved_at": self.resolved_at.isoformat(),
+            "dictionary_sha256": self.dictionary_sha256,
+            "field_policy_version": self.field_policy_version,
+            "companion_set_sha256": self.companion_set_sha256,
+            "joint_state": self.joint_state.value,
         }
 
 
@@ -151,8 +167,14 @@ def resolve_binding(
     view: PopulationView,
     weight_role: str | None,
     at: datetime,
+    companion_set_sha256: str,
+    joint_state: JointState,
 ) -> PopulationBinding:
-    """Resolve ``selector`` to exactly one version, weight and view, or refuse."""
+    """Resolve ``selector`` to exactly one version, weight and view, or refuse.
+
+    ``companion_set_sha256`` and ``joint_state`` describe the resolved version's
+    recorded companion set; the caller reads them from the registry.
+    """
     population: Population | None = None
     if selector.population_id is not None:
         population = next(
@@ -198,4 +220,8 @@ def resolve_binding(
         weight_column=weight.column,
         view=view,
         resolved_at=at,
+        dictionary_sha256=version.dictionary_sha256,
+        field_policy_version=FIELD_POLICY_VERSION,
+        companion_set_sha256=companion_set_sha256,
+        joint_state=joint_state,
     )

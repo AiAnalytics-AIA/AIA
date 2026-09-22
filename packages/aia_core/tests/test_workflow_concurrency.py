@@ -49,6 +49,25 @@ from aia_core.infrastructure.workflow_repository import (
     WorkflowRepository,
 )
 
+
+def _operator(*permissions: str) -> Any:
+    """An issued population-operator context, the only thing establish/promote accept."""
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+
+    config = PopulationOperatorConfig.from_names(
+        {"owner": permissions or ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+    )
+    return PopulationAuthority(config).operator_context(
+        AuthenticatedPrincipal(user_id="owner", organization_id="platform")
+    )
+
+
+OPERATOR = _operator()
+
 pytestmark = pytest.mark.postgres
 
 
@@ -1246,14 +1265,14 @@ def test_concurrent_live_promotions_have_exactly_one_winner(
             population_id="SYN_STATIC",
             kind=PopulationKind.STATIC,
             version_id=versions["v1_1"].version_id,
-            actor_id="owner",
+            operator=OPERATOR,
             reason="establish",
         )
         rt.establish(
             population_id="SYN_LIVE",
             kind=PopulationKind.LIVE,
             version_id=versions["v1_4"].version_id,
-            actor_id="owner",
+            operator=OPERATOR,
             reason="establish",
         )
         setup.commit()
@@ -1269,7 +1288,7 @@ def test_concurrent_live_promotions_have_exactly_one_winner(
                     population_id="SYN_LIVE",
                     target_version_id=target,
                     expected_current_version_id=expected,
-                    actor_id="operator",
+                    operator=OPERATOR,
                     reason="race",
                 )
                 session.commit()

@@ -199,54 +199,79 @@ the contract does not declare.
 same binding and different `population_snapshot` strings fingerprint identically,
 and that an undeclared `weighting` role is refused.
 
-**Status.** Open. Filed by the population foundation
+**What population-data now exposes for the fix** (consumption readiness): every
+`PopulationBinding` carries `version_id`, `content_sha256`, `weight_role`,
+`weight_column`, `view`, `dictionary_sha256`, `field_policy_version`,
+`companion_set_sha256` and `joint_state` — see `docs/architecture/population.md`.
+The fingerprint change itself stays research-engine's.
+
+**Status.** Open, owner research-engine. Filed by the population foundation
 (`.planning/plans/done/population-version-foundation.md`), deliberately not fixed
 there: it changes stage-fingerprint semantics, which is research-engine scope and
 needs the parity suite run against `AIA_LEGACY_REFERENCE`.
 
 ---
 
-## OI-7 · Question · The seven enrichment derivations are not recovered
+## OI-7 · Finding, archive-blocked · The seven enrichment derivations are not recoverable
 
 **Claim.** The ANALYSIS population view needs `audience_dimensions.enrich_panel`'s
-seven `*_derived` fields, and their derivation logic is in the withheld archive
-only; `PopulationRuntime` therefore refuses to load ANALYSIS in production.
+seven `*_derived` fields, and their derivation logic exists only in the withheld
+archive; no committed evidence in AIA-reference is enough to reconstruct them.
 
 **Anchor.** `packages/aia_core/src/aia_core/application/population.py`
-`PopulationRuntime._enrich` (raises `EnrichmentFailed` with no enricher) @ this
-change; AIA-reference `data-import-contracts/czech-population.md` OUTPUT.
+`PopulationRuntime._enrich` (raises `EnrichmentFailed` with no enricher);
+archive source `audience_dimensions.py` SHA256 `6ae1d1f8…c754bf`.
+
+**Reproduction.** `tests/test_population_runtime.py::test_the_analysis_view_does_not_load_without_an_enricher`.
 
 **Consequence.** Correct fail-closed behaviour (R1), and a hard blocker for any
 research or simulation step that needs the analysis view. The BASE view loads.
 
-**Decision needed.** Recover the derivations from the archive (data owner, D1/D3 in
-AIA-reference `open-decisions.md`) and port them behind the `Enricher` protocol
-with an EXACT parity fixture — or decide the research engine does not need them.
-Either way, the eight runtime fields still need a data-owner classification before
-any may back a client-facing claim (`DerivedField.client_claims_allowed` is False).
+**Result of exhausting the reference (outcome B).** Only function names, four
+threshold expressions and a truncated docstring are recorded — no formulas, no
+inputs, no outputs. The exact missing source, the parity fixture needed (F12,
+EXACT) and why no safe reconstruction exists are in
+`docs/migration/population-enrichment-archive-dependency.md`. This is now a
+data/archive acquisition task, not an engineering one.
 
-**Status.** Open.
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`. The eight runtime
+fields also need a data-owner classification:
+`docs/migration/population-derived-fields-decision.md`.
 
 ---
 
-## OI-8 · Question · No authorization model for establish and promote
+## OI-8 · Finding, closed · No authorization model for establish and promote
 
-**Claim.** `PopulationRuntime.establish` and `promote_live` require an actor and a
-reason but check no permission: the scope model has no platform-administrator role,
-and population data is not study-scoped.
+**Claim.** `PopulationRuntime.establish` and `promote_live` required an actor and a
+reason but checked no permission, and the actor was a free-text argument.
 
 **Anchor.** `packages/aia_core/src/aia_core/application/population.py`
-`establish` / `promote_live` @ this change; `domain/scope.py` `Permission`.
+`establish` / `promote_live` @ `8da7261`.
 
-**Consequence.** None today — no route, worker or CLI exposes them. The first one
-that does must not ship without a permission check, or any caller with a session
-could move LIVE for every study at once.
+**Consequence.** Any caller holding a session could move LIVE for every study in
+every organization. Latent: nothing exposed either method yet.
 
-**Smallest fix.** A platform-level permission (for example `POPULATION_PROMOTE`)
-issued only to an operator role, checked in both methods, with the refusal tested
-by type.
+**Fix.** A separate platform capability rather than a change to the shared scope
+contract: `PopulationPermission` {`POPULATION_ESTABLISH`, `POPULATION_PROMOTE`} and
+an unforgeable `PopulationOperatorContext`
+(`packages/aia_core/src/aia_core/domain/population/authority.py`), issued only by
+`PopulationAuthority` from trusted configuration
+(`application/population_authority.py`). Both use cases take the context instead
+of `actor_id`, check the permission inside the use case, and record the context's
+verified user id. A `StudyContext`, an `OrganizationContext`, a principal, a
+tool-shaped dict or `None` is refused by type; an organization OWNER is not an
+operator; `make layer_check` refuses an issuance anywhere else. The shared
+`Permission` enum and scope roles are untouched, so no integration-architecture
+contract change was needed — flagged to them for review in the PR.
 
-**Status.** Open. Must close before any exposure of promotion.
+**Test that catches it.** `packages/aia_core/tests/test_population_authority.py`
+(17 tests).
+
+**Status.** Closed by the population consumption-readiness change
+(`.planning/plans/done/population-consumption-readiness.md`, chunk 3). Remaining
+decision for the platform: which deployment configuration key names operators, and
+who holds it — the composition root does not wire it yet because nothing exposes
+establish or promote.
 
 ---
 

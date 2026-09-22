@@ -21,13 +21,19 @@ population a *run* used is study-scoped and lives with the run
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from aia_core.domain.population import (
+    CompanionReport,
+    CompanionSet,
+    CompanionSpec,
     DatasetVersion,
+    JointState,
     Population,
     PopulationKind,
     PromotionConflict,
@@ -35,6 +41,8 @@ from aia_core.domain.population import (
 )
 
 from .tables import (
+    PopulationCompanionAssetRow,
+    PopulationCompanionSetRow,
     PopulationDatasetVersionRow,
     PopulationPromotionRow,
     PopulationRow,
@@ -231,6 +239,67 @@ class PopulationRegistryRepository:
                 f"{promoted.population_id} is no longer at {record.from_version_id}"
             )
         self._add_record(record)
+
+    # ------------------------------------------------------------- companions --
+
+    def companion_set(self, version_id: str) -> CompanionSet | None:
+        """The companion set attached to a version, or ``None``."""
+        row = self._session.get(PopulationCompanionSetRow, version_id)
+        if row is None:
+            return None
+        assets = self._session.scalars(
+            select(PopulationCompanionAssetRow).where(
+                PopulationCompanionAssetRow.version_id == version_id
+            )
+        )
+        return CompanionSet(
+            version_id=row.version_id,
+            set_sha256=row.set_sha256,
+            joint_state=JointState(row.joint_state),
+            assets={a.asset_id: (a.sha256, a.location) for a in assets},
+            attached_at=as_utc(row.attached_at),
+            attached_by=row.attached_by,
+        )
+
+    def companion_report(self, version_id: str) -> dict[str, Any] | None:
+        """The report a companion set was accepted on."""
+        row = self._session.get(PopulationCompanionSetRow, version_id)
+        return dict(row.report_json) if row is not None else None
+
+    def insert_companion_set(
+        self,
+        version_id: str,
+        *,
+        specs: Sequence[CompanionSpec],
+        report: CompanionReport,
+        locations: Mapping[str, str],
+        attached_by: str,
+        attached_at: datetime,
+    ) -> None:
+        """Record a validated companion set. Insert-once: a second set is refused by key."""
+        self._session.add(
+            PopulationCompanionSetRow(
+                version_id=version_id,
+                set_sha256=report.set_sha256,
+                joint_state=report.joint.state.value,
+                report_json=report.as_record(),
+                attached_at=attached_at,
+                attached_by=attached_by,
+            )
+        )
+        self._session.flush()
+        for spec in specs:
+            self._session.add(
+                PopulationCompanionAssetRow(
+                    version_id=version_id,
+                    asset_id=spec.asset_id,
+                    kind=spec.kind.value,
+                    sha256=report.hashes[spec.asset_id],
+                    byte_size=spec.byte_size,
+                    location=locations[spec.asset_id],
+                )
+            )
+        self._session.flush()
 
     def _add_record(self, record: PromotionRecord) -> None:
         self._session.add(
