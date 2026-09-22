@@ -1,13 +1,14 @@
 import { Card } from "@/components/aia/ui";
+import { t } from "@/i18n/t";
 
 export default function AdminSettingsPage() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Card title="Org settings (stub)">
-        <div className="text-xs text-zinc-600">Workspace name, billing, retention.</div>
+      <Card title={t("admin.clients")}>
+        <div className="text-xs text-zinc-600">{t("admin.clientsBody")}</div>
       </Card>
-      <Card title="Members & roles (stub)">
-        <div className="text-xs text-zinc-600">RBAC: owner/admin/editor/reviewer.</div>
+      <Card title={t("admin.roles")}>
+        <div className="text-xs text-zinc-600">{t("admin.rolesBody")}</div>
       </Card>
     </div>
   );

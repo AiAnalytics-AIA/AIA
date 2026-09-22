@@ -1,47 +1,46 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Artifact, ArtifactType } from "@/lib/mock";
-import { seedArtifacts } from "@/lib/mockArtifacts";
+import { fixtureArtifacts, type ArtifactType, type FixtureArtifact as Artifact } from "@/fixtures/artifacts";
 import { lsGet, lsSet } from "@/lib/storage";
 import { Card, Pill } from "@/components/aia/ui";
 import { t } from "@/i18n/t";
 
-function key(caseId: string) {
-  return `aia.artifacts.${caseId}`;
+function key(projectId: string) {
+  return `aia.artifacts.${projectId}`;
 }
 
 function typeLabel(tt: ArtifactType) {
   return t(`artifacts.types.${tt}`);
 }
 
-export function ArtifactsPanel({ caseId }: { caseId: string }) {
+export function ArtifactsPanel({ projectId }: { projectId: string }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<ArtifactType>("input_docx");
   const [filename, setFilename] = useState("");
   const [versionLabel, setVersionLabel] = useState("v1");
 
   const artifacts = useMemo(() => {
-    const seeded = seedArtifacts.filter((a) => a.caseId === caseId);
-    const stored = lsGet<Artifact[]>(key(caseId), []);
+    const seeded = fixtureArtifacts.filter((a) => a.projectId === projectId);
+    const stored = lsGet<Artifact[]>(key(projectId), []);
     const merged = [...seeded, ...stored];
     merged.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
     return merged;
-  }, [caseId]);
+  }, [projectId]);
 
   function addArtifact() {
     if (!filename.trim()) return;
-    const stored = lsGet<Artifact[]>(key(caseId), []);
+    const stored = lsGet<Artifact[]>(key(projectId), []);
     const a: Artifact = {
       id: `art-${Math.random().toString(16).slice(2)}`,
-      caseId,
+      projectId,
       type,
       filename: filename.trim(),
       versionLabel: versionLabel.trim() || "v1",
       createdAt: new Date().toISOString(),
       note: t("artifacts.note"),
     };
-    lsSet(key(caseId), [a, ...stored]);
+    lsSet(key(projectId), [a, ...stored]);
     setFilename("");
     setVersionLabel("v1");
     setOpen(false);

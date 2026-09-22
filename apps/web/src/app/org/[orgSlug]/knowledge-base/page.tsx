@@ -1,9 +1,10 @@
 import { Card } from "@/components/aia/ui";
+import { t } from "@/i18n/t";
 
-export default function KnowledgeBasePage() {
+export default function ProjectMemoryPage() {
   return (
-    <Card title="Knowledge Base (stub)">
-      <div className="text-xs text-zinc-600">Search internal precedent reports and pin chunks into an Evidence Pack.</div>
+    <Card title={t("projectMemory.title")}>
+      <div className="text-xs text-zinc-600">{t("projectMemory.body")}</div>
     </Card>
   );
 }

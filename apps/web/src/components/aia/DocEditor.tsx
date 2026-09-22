@@ -20,12 +20,14 @@ import {
   rejectProposal,
   setDocState,
 } from "@/lib/doc";
+import { t } from "@/i18n/t";
 
+// DEVELOPMENT FIXTURE (registry: "report-draft"): proposals are simulated in the
+// browser. The roles are the domain's model roles, not an invented agent roster.
 const AGENTS = [
-  { id: "editor", name: "Editor" },
-  { id: "research", name: "Research" },
-  { id: "finance", name: "Finance" },
-  { id: "qa", name: "QA" },
+  { id: "report_polish_model", name: t("modelRole.report_polish_model") },
+  { id: "analysis_model", name: t("modelRole.analysis_model") },
+  { id: "research_model", name: t("modelRole.research_model") },
 ];
 
 export function DocEditor({ studyId }: { studyId: string }) {
@@ -84,7 +86,7 @@ export function DocEditor({ studyId }: { studyId: string }) {
     // Snapshot current from editor (ensures we propose on latest state)
     const current = editor.getJSON();
 
-    // Simple mock “agent” behavior: append a short formal Czech paragraph + a tiny table.
+    // Simulated assistant proposal (fixture): append a short formal Czech paragraph + a tiny table.
     const proposed = structuredClone(current) as Record<string, unknown>;
 
     const p = proposed as unknown as { content?: unknown[] };
@@ -92,7 +94,7 @@ export function DocEditor({ studyId }: { studyId: string }) {
     p.content.push({
       type: "heading",
       attrs: { level: 2 },
-      content: [{ type: "text", text: "Návrh doplnění (od agenta)" }],
+      content: [{ type: "text", text: t("docEditor.proposalHeading") }],
     });
     p.content.push({
       type: "paragraph",
@@ -235,35 +237,35 @@ export function DocEditor({ studyId }: { studyId: string }) {
 
         {hasProposal ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-            <div className="text-xs font-semibold text-amber-900">Návrh změn je připraven</div>
+            <div className="text-xs font-semibold text-amber-900">{t("docEditor.proposalReady")}</div>
             <div className="mt-1 text-xs text-amber-900/80">
-              Klikněte na „Přijmout změny“ pro aplikaci návrhu na celý dokument, nebo „Zamítnout“.
+              {t("docEditor.proposalHelp")}
             </div>
             <div className="mt-3 flex gap-2">
               <button
                 className="rounded-md bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
                 onClick={onAccept}
               >
-                Přijmout změny
+                {t("docEditor.accept")}
               </button>
               <button
                 className="rounded-md border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
                 onClick={onReject}
               >
-                Zamítnout
+                {t("docEditor.reject")}
               </button>
             </div>
           </div>
         ) : null}
       </div>
 
-      <Card title="Agent">
+      <Card title={t("docEditor.assistant")}>
         <div className="text-xs text-zinc-600">
-          Vyberte agenta, napište zprávu a nechte jej připravit návrh změn pro celý dokument.
+          {t("docEditor.assistantHelp")}
         </div>
 
         <label className="mt-3 block text-xs text-zinc-700">
-          Agent
+          {t("docEditor.modelRole")}
           <select
             className="mt-1 h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm"
             value={agent}
@@ -278,10 +280,10 @@ export function DocEditor({ studyId }: { studyId: string }) {
         </label>
 
         <label className="mt-3 block text-xs text-zinc-700">
-          Zpráva
+          {t("docEditor.message")}
           <textarea
             className="mt-1 min-h-[120px] w-full rounded-md border border-zinc-200 bg-white p-3 text-sm"
-            placeholder="Popište, co má agent doplnit/upravit (formální čeština)…"
+            placeholder={t("docEditor.messagePlaceholder")}
             value={chat}
             onChange={(e) => setChat(e.target.value)}
           />
@@ -292,19 +294,19 @@ export function DocEditor({ studyId }: { studyId: string }) {
             className="rounded-md bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
             onClick={generateProposal}
           >
-            Vygenerovat návrh změn
+            {t("docEditor.generate")}
           </button>
         </div>
 
         {state.lastProposalMeta ? (
           <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
-            <div className="text-xs font-semibold text-zinc-900">Poslední návrh</div>
+            <div className="text-xs font-semibold text-zinc-900">{t("docEditor.lastProposal")}</div>
             <div className="mt-1 text-xs text-zinc-600">
-              Agent: <span className="font-medium">{state.lastProposalMeta.agent}</span>
+              {t("docEditor.modelRole")}: <span className="font-medium">{state.lastProposalMeta.agent}</span>
               <br />
-              Čas: {new Date(state.lastProposalMeta.createdAt).toLocaleString()}
+              {t("docEditor.time")}: {new Date(state.lastProposalMeta.createdAt).toLocaleString("cs-CZ")}
             </div>
-            <div className="mt-2 text-xs text-zinc-700">Zpráva: {state.lastProposalMeta.prompt}</div>
+            <div className="mt-2 text-xs text-zinc-700">{t("docEditor.message")}: {state.lastProposalMeta.prompt}</div>
           </div>
         ) : null}
       </Card>

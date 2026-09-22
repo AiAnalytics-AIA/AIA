@@ -52,7 +52,10 @@ apps/
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope
     schemas/                Request/response models + the one error contract
-  web/                      Next.js 16 / React 19 / Tailwind 4. Still mock-backed.
+  web/                      Next.js 16 / React 19 / Tailwind 4. Fixture-backed, being wired.
+    src/design/             Domain vocabulary the UI renders (enums, 13-stage lifecycles)
+    src/fixtures/           DEVELOPMENT FIXTURES, API-shaped; registry.ts lists every one
+    src/lib/api/            API response types, mirrored from the Pydantic schemas
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.

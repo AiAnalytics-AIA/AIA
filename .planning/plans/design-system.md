@@ -1,6 +1,6 @@
 # Plan: AIA design system → apps/web
 
-**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–3 next, then the first vertical slice. **Owner:** product-surface (A9).
+**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunk 0 in review; chunks 1–3 next, then the first vertical slice. **Owner:** product-surface (A9).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
 **Design source:** the "AIA Design System" artifact, https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
 
@@ -110,6 +110,18 @@ Chunks 4–11 resume only after that slice is working and reviewed.
 | 9 | **Results.** `HeadlineAnswer`, `GradedBars`, the respondent explorer, `Sociomap` (`"use client"`: drag saves a view override through the API; it never mutates results). | `components/results` | a view-override test: the original is unchanged |
 | 10 | **Deliverable.** The `.aia-doc` register, the cover, the evidence margin, the holdout statement, and the export spec handed to the report service. | `components/doc` | greyscale-print snapshot |
 | 11 | **Remaining screens.** Recompose the other screens on real endpoints where they exist. | pages | +35 % string test at 1280 / 1024 |
+
+## Chunk log
+
+- **Chunk 0 — vocabulary alignment** (branch `feature/web-vocabulary`). The
+  "cases" routes, the five-gate and nine-status flow, and the "agents"/"templates"
+  pages are gone. Old paths redirect (307) to Portfolio instead of 404ing. Browser
+  routes follow the API's study scoping: `/org/[orgSlug]/studies/[studyId]/projects/[projectId]/stages/[stageId]`.
+  The org segment is kept, because renaming it would break existing links for no
+  gain. Screens render API-shaped fixtures (`src/fixtures/`), each marked on screen,
+  with 5 fixture-backed capabilities in `src/fixtures/registry.ts`. Copy keys are
+  now typed: a missing key is a `tsc` error. Unknown ids return 404 with the same
+  copy for "missing" and "not granted", as the API does.
 
 ## What product-surface does not own
 

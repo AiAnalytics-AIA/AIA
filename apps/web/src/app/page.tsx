@@ -8,8 +8,8 @@ export default function Home() {
         <h1 className="text-2xl font-semibold">{t("home.title")}</h1>
         <p className="text-sm text-zinc-600">{t("home.intro")}</p>
         <div className="rounded-xl border border-zinc-200 bg-white p-4">
-          <Link className="font-medium text-blue-700 hover:underline" href="/org/aia-demo/dashboard">
-            {t("home.goToDemo")}
+          <Link className="font-medium text-blue-700 hover:underline" href="/org/aia-dev/dashboard">
+            {t("home.goToPortfolio")}
           </Link>
         </div>
       </div>
