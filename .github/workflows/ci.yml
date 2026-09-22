@@ -65,6 +65,13 @@ jobs:
         # after a full PostgreSQL suite.
         run: ./tools/layer_check.sh
 
+      - name: Reference-exposure rules
+        # The legacy reference is client work. Blocking, and early: once a commit
+        # carrying client-identifying names is pushed, removing it from the tree
+        # does not remove it from history -- and that is true of a private
+        # repository too. See docs/migration/public-exposure-remediation.md.
+        run: ./tools/exposure_check.sh
+
       - name: Lint
         run: |
           ruff check packages/aia_core apps/api migrations

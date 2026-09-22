@@ -20,7 +20,7 @@ from anyone's local machine.
 
 | | |
 | --- | --- |
-| Version | 18.6.6 + delivered GEMO patch (2026-09-11) |
+| Version | `18.6.6 + GEMO patch 2026-09-11` — the patch as delivered |
 | Archive | `NPC_PANEL_18.6.6_CURRENT_DEMOS_UPDATED_GEMO_REPUTACNI_SCENARE_2026-09-11_FULL (1).zip` |
 | **SHA256** | **`86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216`** |
 | Size | 52,606,090 bytes |
