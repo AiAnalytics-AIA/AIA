@@ -16,7 +16,8 @@ Payload keys, all optional:
     Reserve this many dollars before working, and never dispatch -- a budget
     hold that cancellation or shutdown must give back.
 ``work_seconds``
-    Run for this long, checkpointing every 20 ms.
+    Run for this long, checkpointing every 20 ms -- only on the first
+    ``slow_attempts`` attempts when that is given, so a recovered retry is quick.
 ``paid``
     ``{"reserve": 2.0, "cost": 1.5, "hang_seconds": 0, "crash_in_flight": false}``
     -- one metered call: reserve, dispatching, then hang (the call in flight, no
@@ -90,7 +91,8 @@ class ScriptedExecutor:
         if "hold" in script:
             context.reserve(amount_usd=float(script["hold"]), provider=Provider.ANTHROPIC)
 
-        deadline = time.monotonic() + float(script.get("work_seconds", 0))
+        slow = step.attempt_number <= int(script.get("slow_attempts", 10**6))
+        deadline = time.monotonic() + (float(script.get("work_seconds", 0)) if slow else 0.0)
         while time.monotonic() < deadline:
             context.checkpoint()
             time.sleep(0.02)

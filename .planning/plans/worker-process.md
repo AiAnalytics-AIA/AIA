@@ -141,7 +141,14 @@ re-run of a possibly-billed call.
   typed settings, CLI, test executors. In-process tests on SQLite and PostgreSQL:
   success, retryable / non-retryable failure, possibly-billed failure, budget,
   gate, cancellation, lease loss, idempotent completion, graceful shutdown.
-- [ ] 6. **Multi-process tests on PostgreSQL.** Two and more `python -m aia_worker`
+- [x] 6. **Multi-process tests on PostgreSQL.** *Landed.*
+  `apps/worker/tests/test_worker_processes.py`: three processes over twelve paid
+  steps (one execution, one attempt and one charge per step; ≥2 processes did
+  work); `SIGKILL` mid-step (recovered, finished by another); `SIGKILL` mid-paid-
+  call (`RECOVERY_REQUIRED`, charged once, never retried); `SIGTERM` (released at
+  once, attempt not consumed, exit 0); second signal (exit 130, lease recovered);
+  cross-process cancellation. Measured: 48/48 worker tests passing in three
+  consecutive runs on PostgreSQL 16, ~27 s each. Two and more `python -m aia_worker`
   processes contending; `SIGKILL` mid-step; `SIGTERM` mid-step; no double
   execution, no double charge.
 - [ ] 7. **Wiring and documents.** Makefile, CI (lint, types, tests, required

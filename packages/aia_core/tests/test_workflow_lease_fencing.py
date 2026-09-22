@@ -244,3 +244,41 @@ def test_heartbeat_is_refused_once_the_attempt_was_recovered(
     assert attempt is not None
     session.refresh(attempt)
     assert attempt.status == AttemptStatus.EXPIRED.value
+
+
+def test_assert_lease_passes_for_the_owner_and_refuses_anyone_else(
+    engine_repo: WorkflowRepository, run: str, session: Session
+) -> None:
+    """The fence an executor's own transaction is built on."""
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
+
+    engine_repo.assert_lease(claimed.attempt_id, worker_id="worker-1")
+    with pytest.raises(LeaseLost):
+        engine_repo.assert_lease(claimed.attempt_id, worker_id="worker-2")
+
+    _expire(session, claimed.attempt_id)
+    engine_repo.recover_expired_attempts()
+    with pytest.raises(LeaseLost):
+        engine_repo.assert_lease(claimed.attempt_id, worker_id="worker-1")
+
+
+def test_progress_is_recorded_for_the_owner_only(
+    engine_repo: WorkflowRepository, run: str, session: Session
+) -> None:
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
+
+    engine_repo.record_progress(
+        claimed.attempt_id,
+        worker_id="worker-1",
+        message="respondent 240 of 300",
+        payload={"n": 240},
+    )
+    with pytest.raises(LeaseLost):
+        engine_repo.record_progress(claimed.attempt_id, worker_id="worker-2", message="forged")
+
+    progress = [e for e in engine_repo.events(run) if e["event_type"] == "STEP_PROGRESS"]
+    assert [(e["message"], e["payload"], e["attempt_id"]) for e in progress] == [
+        ("respondent 240 of 300", {"n": 240}, claimed.attempt_id)
+    ]
