@@ -1,10 +1,11 @@
 # Durable workflows and jobs
 
-**Status: implemented and verified under real PostgreSQL contention.**
-`WorkflowRun → StepRun → StepAttempt`, claiming, leases, reservations, gates and
-the full recovery table are in `aia_core.domain.workflow` and
-`aia_core.infrastructure.workflow_repository`. What remains is a worker process to
-drive them and the AI runtime the steps will call.
+**Status: implemented and verified under real PostgreSQL contention — engine and
+worker.** `WorkflowRun → StepRun → StepAttempt`, claiming, leases, reservations,
+gates and the full recovery table are in `aia_core.domain.workflow` and
+`aia_core.infrastructure.workflow_repository`; the process that drives them is
+`apps/worker` (§ The worker, below), verified with real worker processes killed
+and stopped mid-step. What remains is the AI runtime the steps will call.
 
 The behavioural contract is
 `packages/aia_core/tests/test_legacy_job_store_characterization.py` — 64 tests
@@ -176,6 +177,19 @@ Every case is distinguished, because the distinctions are part of the product.
 | Subscription runtime, any state | Safe retry — no marginal cost |
 | Budget exhausted | `AWAITING_BUDGET` |
 | Human gate outstanding | `AWAITING_GATE` |
+| Worker shut down cleanly (`SIGTERM`) | Released: `RUNNABLE` at once, attempt **not** counted — unless a paid call is in flight, then `RECOVERY_REQUIRED` as for a crash |
+| Run cancelled while the attempt was in flight, and the attempt then failed, lapsed or was released | `CANCELLED` — cancellation wins; uncertain exposure is still recorded |
+
+**Parks resume without anyone acting**, which is what the `WAITING_*` prefix
+promises: every worker sweeps them on an interval (`resume_due`). A quota park
+resumes at its reset instant, or after a 15-minute fallback when the provider gave
+none; a capacity park after a 60-second back-off. `AWAITING_*` and
+`RECOVERY_REQUIRED` never resume by timer.
+
+**Every reservation is closed by one rule when its attempt ends**, however it
+ends: a dispatched call with unknown outcome settles as `SETTLED_UNCERTAIN`; known
+spend not yet charged is settled; the rest is released. Accounting does not
+depend on why the work stopped.
 
 A capacity failure arriving **after** a metered call was dispatched still reaches
 `RECOVERY_REQUIRED`, not a capacity park: the billing question outranks the
@@ -320,6 +334,66 @@ is worse than an honest timer.
 SSE over WebSockets: traffic is server-to-client only, SSE reconnects
 automatically, and it survives ordinary HTTP infrastructure.
 
+## The worker
+
+`apps/worker` is layer 4. It knows how to run *a* step and nothing about what any
+step does.
+
+```
+loop until stopping:
+    every maintenance interval:  recover lapsed leases, resume due parks
+    claim one step of a kind with a registered executor        one transaction
+    issue its execution scope from the lease                    same transaction
+    start the heartbeat thread
+    executor.execute(step, context)                             no transaction held
+    record the outcome                                          one transaction
+```
+
+**The lease is the fence.** Every write about an attempt — heartbeat, complete,
+fail, abandon, release, each metering call, an executor's own transaction — names
+the worker, locks the attempt row, and proceeds only while that worker still holds
+it; otherwise `LeaseLost`, and nothing is written. The deadline is only the
+trigger for recovery. The heartbeat is one conditional `UPDATE`, so a reconciler's
+verdict cannot be overwritten by a heartbeat that read first.
+
+**Scope comes from the lease.** `WorkflowRepository` stays study-scoped. The only
+cross-study surface is `WorkQueue` — claim, recover, resume, refuse — which returns
+no research data. After a claim, `ScopeResolver.execution_context` issues a
+`StudyContext` for exactly the claimed study, only while the lease is held, with
+the RESEARCHER permission set (do the work, never approve it) and the run's
+`triggered_by` as actor, so a gate the worker opens is independence-checked
+against the person who started the run. An archived client's work fails closed.
+
+**The executor seam** (`aia_worker.executor`) is one method,
+`execute(step, context) -> Succeeded | Failed | NeedsApproval`. Executors are
+registered by step kind from `AIA_WORKER_EXECUTORS=module:factory`, and a worker
+claims only kinds it has, so a rolling deploy that adds a kind never has an old
+worker claim and fail it. Through the context an executor checkpoints (raising
+`StopExecution`, a `BaseException`, on cancellation, shutdown or lost lease),
+brackets every metered call `reserve → dispatching → send → settled`, reports
+progress, and writes inside a lease-fenced transaction.
+
+**Guarantees, and the one it does not make.** One *recorded* outcome per attempt;
+one charge per call; no automatic re-run of a call whose billing is uncertain; no
+attempt held by two workers. Execution itself is **at-least-once**: a worker that
+stalls past its lease may run an executor whose result is then discarded, so every
+step kind must be idempotent — which artifact reuse by input fingerprint makes
+cheap.
+
+| Process event | What happens |
+|---|---|
+| `SIGTERM` | Stop claiming; the executor stops at its next checkpoint; the attempt is released; exit 0 |
+| second signal | Exit 130 at once; the lease lapses and any worker's reconciler recovers it |
+| `SIGKILL`, OOM, host loss | Nothing runs; the lease lapses; recovery applies the table above |
+| database unreachable | The loop logs and retries; a heartbeat silent for a whole lease is treated as a lost lease |
+
+Configuration is `WorkerSettings.from_env`: `DATABASE_URL` (required — a worker
+never falls back to SQLite), `AIA_WORKER_EXECUTORS`, `AIA_WORKER_ID`,
+`AIA_WORKER_LEASE_SECONDS` (120), `AIA_WORKER_HEARTBEAT_SECONDS` (30, at most half
+the lease), `AIA_WORKER_POLL_SECONDS` (2), `AIA_WORKER_MAINTENANCE_SECONDS` (30),
+`AIA_WORKER_CAPACITY_BACKOFF_SECONDS` (60), `AIA_WORKER_QUOTA_FALLBACK_SECONDS`
+(900). Logs are JSON lines on stdout with the attempt's ids bound.
+
 ## What was proved, and what is still owed
 
 These passed against **real PostgreSQL**, with actual concurrent transactions
@@ -332,12 +406,23 @@ rather than sequential mocks, and they are what makes the engine trustworthy:
 3. **Recovery semantics.** Every row of the recovery table above.
 4. **Accounting transactionality.** The attempt/reservation/state transaction
    commits or rolls back as a unit; impossible states are unrepresentable.
+5. **The worker, as separate OS processes** (`apps/worker/tests/test_worker_processes.py`).
+   Three processes over twelve paid steps: one execution, one attempt, one charge
+   per step. A process `SIGKILL`ed mid-step: recovered and finished by another. A
+   process `SIGKILL`ed mid-paid-call: `RECOVERY_REQUIRED`, charged once, never
+   retried. `SIGTERM`: released at once, not counted, exit 0. A second signal:
+   exit 130, lease recovered. Cancellation observed across processes.
+6. **Lease fencing under contention.** A heartbeat cannot resurrect an attempt
+   recovered under it; a completion racing recovery leaves exactly one outcome.
+7. **Run-level derivation under concurrent transitions.** Two steps of one run
+   finishing in overlapping transactions complete the run, and release a
+   diamond's join step. Every step transition takes the run row first
+   (`_lock_run`), so the second transaction reads what the first committed.
 
 Still owed, and not to be described as done anywhere:
 
-- **A worker process.** `claim_next` → execute → `complete_attempt` /
-  `fail_attempt`, with heartbeats and a cancellation poll at checkpoints. The
-  engine it would drive exists; the loop does not.
+- **Executors.** The worker runs any registered `StepExecutor`; none exists yet
+  for a real step kind. They arrive with the AI runtime.
 - **The AI runtime the steps call.** See
   [ai-runtime.md](ai-runtime.md) and [ADR 0005](adr/0005-llm-gateway.md).
 - **A generalized metered-cost ledger.** Budget reservations and `Study.spent_usd`

@@ -40,7 +40,7 @@ client studies against a calibrated synthetic population.
 | --- | --- |
 | Next.js web client (`apps/web`) | Built; still mock-backed |
 | FastAPI service (`apps/api`) | Built |
-| Worker process | **Not built** |
+| Worker process (`apps/worker`) | Built; no executor for a real step kind yet |
 | PostgreSQL | Built |
 | Object storage (S3-compatible) | Built in software; **not provisioned** |
 | Cognito, federated to Google Workspace | Built in software; **not provisioned** |

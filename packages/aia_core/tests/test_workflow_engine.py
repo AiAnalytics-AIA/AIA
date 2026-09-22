@@ -242,7 +242,9 @@ def test_success_releases_the_next_step(engine_repo: WorkflowRepository, run: st
     """Completion advances the DAG one level, not all of it."""
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
-    engine_repo.complete_attempt(claimed.attempt_id, output={"ok": True})
+    engine_repo.complete_attempt(
+        claimed.attempt_id, worker_id=claimed.worker_id, output={"ok": True}
+    )
 
     assert _status(engine_repo, run, "compile") is StepRunStatus.SUCCEEDED
     assert _status(engine_repo, run, "research") is StepRunStatus.RUNNABLE
@@ -259,6 +261,7 @@ def test_a_failed_dependency_stalls_the_pipeline(engine_repo: WorkflowRepository
     assert claimed is not None
     engine_repo.fail_attempt(
         claimed.attempt_id,
+        worker_id=claimed.worker_id,
         failure=FailureClass.AUTHENTICATION,
         error={"message": "bad key"},
     )
@@ -333,7 +336,7 @@ def test_heartbeat_on_a_finished_attempt_is_refused(
     """A completed attempt cannot be resurrected by a late heartbeat."""
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
-    engine_repo.complete_attempt(claimed.attempt_id)
+    engine_repo.complete_attempt(claimed.attempt_id, worker_id=claimed.worker_id)
 
     assert engine_repo.heartbeat(claimed.attempt_id, worker_id="worker-1") is False
 
@@ -392,10 +395,15 @@ def test_recovery_does_not_retry_a_possibly_billed_paid_call(
     assert claimed is not None
 
     reservation_id = engine_repo.reserve_budget(
-        attempt_id=claimed.attempt_id, amount_usd=2.00, provider=Provider.ANTHROPIC
+        attempt_id=claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        amount_usd=2.00,
+        provider=Provider.ANTHROPIC,
     )
     assert reservation_id is not None
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, provider_request_id="req_abc123")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id=claimed.worker_id, provider_request_id="req_abc123"
+    )
     _expire(session, claimed.attempt_id)
 
     decisions = engine_repo.recover_expired_attempts()
@@ -433,7 +441,10 @@ def test_recovery_retries_a_paid_call_that_never_dispatched(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     engine_repo.reserve_budget(
-        attempt_id=claimed.attempt_id, amount_usd=2.00, provider=Provider.ANTHROPIC
+        attempt_id=claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        amount_usd=2.00,
+        provider=Provider.ANTHROPIC,
     )
     # paid_call_dispatched stays False.
     _expire(session, claimed.attempt_id)
@@ -451,10 +462,15 @@ def test_recovery_retries_a_paid_call_whose_outcome_is_known(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     engine_repo.reserve_budget(
-        attempt_id=claimed.attempt_id, amount_usd=2.00, provider=Provider.ANTHROPIC
+        attempt_id=claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        amount_usd=2.00,
+        provider=Provider.ANTHROPIC,
     )
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id)
-    engine_repo.mark_paid_call_outcome_known(claimed.attempt_id, actual_cost_usd=1.80)
+    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id=claimed.worker_id)
+    engine_repo.mark_paid_call_outcome_known(
+        claimed.attempt_id, worker_id=claimed.worker_id, actual_cost_usd=1.80
+    )
     _expire(session, claimed.attempt_id)
 
     decisions = engine_repo.recover_expired_attempts()
@@ -476,6 +492,7 @@ def test_subscription_runtime_is_always_safe_to_retry(
     assert (
         engine_repo.reserve_budget(
             attempt_id=claimed.attempt_id,
+            worker_id=claimed.worker_id,
             amount_usd=5.0,
             provider=Provider.CLAUDE_CODE,
         )
@@ -499,7 +516,10 @@ def test_quota_parks_and_does_not_consume_an_attempt(
     assert claimed is not None
 
     decision = engine_repo.fail_attempt(
-        claimed.attempt_id, failure=FailureClass.QUOTA, quota_reset_at=reset_at
+        claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        failure=FailureClass.QUOTA,
+        quota_reset_at=reset_at,
     )
 
     assert decision.action is RecoveryAction.PARK_PROVIDER
@@ -523,7 +543,12 @@ def test_a_parked_quota_step_becomes_claimable_after_its_reset_time(
     past = datetime.now(UTC) - timedelta(minutes=5)
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
-    engine_repo.fail_attempt(claimed.attempt_id, failure=FailureClass.QUOTA, quota_reset_at=past)
+    engine_repo.fail_attempt(
+        claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        failure=FailureClass.QUOTA,
+        quota_reset_at=past,
+    )
 
     # WAITING_PROVIDER is not RUNNABLE, so an operator or reconciler must release
     # it; simulate that, then confirm the time gate has passed.
@@ -547,7 +572,9 @@ def test_provider_capacity_parks_without_consuming_an_attempt(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
 
-    decision = engine_repo.fail_attempt(claimed.attempt_id, failure=FailureClass.PROVIDER_CAPACITY)
+    decision = engine_repo.fail_attempt(
+        claimed.attempt_id, worker_id=claimed.worker_id, failure=FailureClass.PROVIDER_CAPACITY
+    )
     assert decision.action is RecoveryAction.PARK_CAPACITY
     assert decision.consumes_attempt is False
     assert _status(engine_repo, run, "compile") is StepRunStatus.WAITING_CAPACITY
@@ -571,7 +598,10 @@ def test_provider_quota_and_capacity_are_separate_states(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     quota = engine_repo.fail_attempt(
-        claimed.attempt_id, failure=FailureClass.QUOTA, quota_reset_at=reset_at
+        claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        failure=FailureClass.QUOTA,
+        quota_reset_at=reset_at,
     )
 
     second = WorkflowRepository(session, scoped.scope(user="lead", study="sibling"))
@@ -587,7 +617,11 @@ def test_provider_quota_and_capacity_are_separate_states(
     )
     other_claim = second.claim_next(worker_id="worker-2")
     assert other_claim is not None
-    capacity = second.fail_attempt(other_claim.attempt_id, failure=FailureClass.PROVIDER_CAPACITY)
+    capacity = second.fail_attempt(
+        other_claim.attempt_id,
+        worker_id=other_claim.worker_id,
+        failure=FailureClass.PROVIDER_CAPACITY,
+    )
 
     assert quota.step_status is StepRunStatus.WAITING_PROVIDER
     assert capacity.step_status is StepRunStatus.WAITING_CAPACITY
@@ -664,7 +698,9 @@ def test_budget_exhaustion_parks_in_its_own_state(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
 
-    decision = engine_repo.fail_attempt(claimed.attempt_id, failure=FailureClass.BUDGET_EXCEEDED)
+    decision = engine_repo.fail_attempt(
+        claimed.attempt_id, worker_id=claimed.worker_id, failure=FailureClass.BUDGET_EXCEEDED
+    )
 
     assert decision.action is RecoveryAction.PARK_BUDGET
     assert decision.consumes_attempt is False
@@ -693,7 +729,9 @@ def test_permanent_failures_are_not_retried(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
 
-    decision = engine_repo.fail_attempt(claimed.attempt_id, failure=failure)
+    decision = engine_repo.fail_attempt(
+        claimed.attempt_id, worker_id=claimed.worker_id, failure=failure
+    )
     assert decision.action is RecoveryAction.FAIL
     assert _status(engine_repo, run, "compile") is StepRunStatus.FAILED
 
@@ -717,7 +755,9 @@ def test_exhausted_attempts_need_a_human_rather_than_failing(
     for _ in range(2):
         claimed = engine_repo.claim_next(worker_id="worker-1")
         assert claimed is not None
-        decision = engine_repo.fail_attempt(claimed.attempt_id, failure=FailureClass.TRANSPORT)
+        decision = engine_repo.fail_attempt(
+            claimed.attempt_id, worker_id=claimed.worker_id, failure=FailureClass.TRANSPORT
+        )
 
     assert decision.action is RecoveryAction.RECOVERY_REQUIRED
     assert decision.reason == "max_attempts_exhausted"
@@ -744,6 +784,7 @@ def test_attempt_history_is_append_only(engine_repo: WorkflowRepository, project
         assert claimed is not None
         engine_repo.fail_attempt(
             claimed.attempt_id,
+            worker_id=claimed.worker_id,
             failure=FailureClass.TRANSPORT,
             error={"message": message},
         )
@@ -788,11 +829,17 @@ def test_reservations_prevent_concurrent_overspend(
     assert first is not None and second is not None
 
     engine_repo.reserve_budget(
-        attempt_id=first.attempt_id, amount_usd=8.0, provider=Provider.ANTHROPIC
+        attempt_id=first.attempt_id,
+        worker_id=first.worker_id,
+        amount_usd=8.0,
+        provider=Provider.ANTHROPIC,
     )
     with pytest.raises(BudgetExceeded) as exc:
         engine_repo.reserve_budget(
-            attempt_id=second.attempt_id, amount_usd=8.0, provider=Provider.ANTHROPIC
+            attempt_id=second.attempt_id,
+            worker_id=second.worker_id,
+            amount_usd=8.0,
+            provider=Provider.ANTHROPIC,
         )
 
     assert exc.value.remaining == pytest.approx(2.0)
@@ -810,7 +857,10 @@ def test_an_exact_limit_reservation_is_permitted(
 
     assert (
         engine_repo.reserve_budget(
-            attempt_id=claimed.attempt_id, amount_usd=10.0, provider=Provider.ANTHROPIC
+            attempt_id=claimed.attempt_id,
+            worker_id=claimed.worker_id,
+            amount_usd=10.0,
+            provider=Provider.ANTHROPIC,
         )
         is not None
     )
@@ -824,11 +874,17 @@ def test_settling_a_reservation_charges_the_actual_cost(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     reservation_id = engine_repo.reserve_budget(
-        attempt_id=claimed.attempt_id, amount_usd=5.0, provider=Provider.ANTHROPIC
+        attempt_id=claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        amount_usd=5.0,
+        provider=Provider.ANTHROPIC,
     )
 
     engine_repo.complete_attempt(
-        claimed.attempt_id, actual_cost_usd=3.25, reservation_id=reservation_id
+        claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        actual_cost_usd=3.25,
+        reservation_id=reservation_id,
     )
 
     position = engine_repo.budget_position()
@@ -845,11 +901,15 @@ def test_releasing_a_reservation_charges_nothing(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     reservation_id = engine_repo.reserve_budget(
-        attempt_id=claimed.attempt_id, amount_usd=5.0, provider=Provider.ANTHROPIC
+        attempt_id=claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        amount_usd=5.0,
+        provider=Provider.ANTHROPIC,
     )
 
     engine_repo.fail_attempt(
         claimed.attempt_id,
+        worker_id=claimed.worker_id,
         failure=FailureClass.TRANSPORT,
         reservation_id=reservation_id,
     )
@@ -872,7 +932,10 @@ def test_every_reservation_resolves_to_a_study(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     reservation_id = engine_repo.reserve_budget(
-        attempt_id=claimed.attempt_id, amount_usd=1.0, provider=Provider.ANTHROPIC
+        attempt_id=claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        amount_usd=1.0,
+        provider=Provider.ANTHROPIC,
     )
 
     reservation = session.get(BudgetReservationRow, reservation_id)
@@ -891,6 +954,7 @@ def test_a_reservation_requires_an_existing_attempt(engine_repo: WorkflowReposit
     with pytest.raises(WorkflowNotFound):
         engine_repo.reserve_budget(
             attempt_id="ATT-does-not-exist",
+            worker_id="worker-1",
             amount_usd=1.0,
             provider=Provider.ANTHROPIC,
         )
@@ -935,7 +999,9 @@ def test_abandoning_an_attempt_completes_the_cancellation(
     assert claimed is not None
     engine_repo.request_cancel(run)
 
-    engine_repo.abandon_attempt(claimed.attempt_id, reason="cancel observed")
+    engine_repo.abandon_attempt(
+        claimed.attempt_id, worker_id=claimed.worker_id, reason="cancel observed"
+    )
 
     assert engine_repo.attempt_history(claimed.step_id)[0]["status"] is (AttemptStatus.ABANDONED)
     assert engine_repo.get_run(run)["status"] is WorkflowRunStatus.CANCELLED
@@ -954,7 +1020,7 @@ def test_cancelling_a_finished_run_changes_nothing(
     )
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
-    engine_repo.complete_attempt(claimed.attempt_id)
+    engine_repo.complete_attempt(claimed.attempt_id, worker_id=claimed.worker_id)
 
     assert engine_repo.request_cancel(run_id) is WorkflowRunStatus.COMPLETED
 
@@ -1172,7 +1238,9 @@ def test_runs_needing_attention_excludes_self_clearing_waits(
     """An operator dashboard should not nag about a provider wait."""
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
-    engine_repo.fail_attempt(claimed.attempt_id, failure=FailureClass.PROVIDER_CAPACITY)
+    engine_repo.fail_attempt(
+        claimed.attempt_id, worker_id=claimed.worker_id, failure=FailureClass.PROVIDER_CAPACITY
+    )
 
     assert engine_repo.runs_needing_attention() == []
 
@@ -1305,7 +1373,7 @@ def test_events_are_ordered_and_resumable(engine_repo: WorkflowRepository, run: 
     """Monotonic ids let a reconnecting client resume without gaps or duplicates."""
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
-    engine_repo.complete_attempt(claimed.attempt_id)
+    engine_repo.complete_attempt(claimed.attempt_id, worker_id=claimed.worker_id)
 
     events = engine_repo.events(run)
     ids = [e["event_id"] for e in events]
@@ -1331,9 +1399,12 @@ def test_recovery_of_a_paid_call_is_logged_with_its_exposure(
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     engine_repo.reserve_budget(
-        attempt_id=claimed.attempt_id, amount_usd=2.0, provider=Provider.ANTHROPIC
+        attempt_id=claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        amount_usd=2.0,
+        provider=Provider.ANTHROPIC,
     )
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id)
+    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id=claimed.worker_id)
     _expire(session, claimed.attempt_id)
     engine_repo.recover_expired_attempts()
 

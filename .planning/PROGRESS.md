@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `claude/determined-rubin-9j2cjl` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/intelligent-bardeen-tslz9n` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -29,6 +29,9 @@ entry is a **hypothesis**, not a finding.
 | 3 | Characterization of the legacy job engine: 64 tests describing `job_store.py` before any of it was reimplemented | `packages/aia_core/tests/test_legacy_job_store_characterization.py` @ df294e2 |
 | 8 (foundation) | **Population version + import foundation.** Content-addressed `DatasetVersion`, STATIC/LIVE with explicit compare-and-set promotion, lineage, lossless import validation against a hash-pinned 400-field contract, canonical weight resolution with no fallback, one loader (`PopulationRuntime`) issuing an unforgeable `RuntimePopulation`, a `PopulationBinding` recorded per run. Uncommitted at time of writing — see the plan | `packages/aia_core/src/aia_core/domain/population/` · `application/population.py` · `tests/test_population_*.py` · `.planning/plans/done/population-version-foundation.md` |
 | — | **Development rules adopted**: `ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`, `.planning/`, `tools/layer_check.sh` blocking in CI | `tools/layer_check.sh` @ this change · `.planning/plans/done/development-rules-adoption.md` |
+| 3 | **The worker process** (`apps/worker`): claim → execute through a `StepExecutor` → record, with heartbeats, checkpointed cancellation, per-call metering, lease-fenced writes, clean `SIGTERM` release and in-worker reconciliation. Eight engine defects found and fixed on the way (W1–W8) | `apps/worker/src/aia_worker/worker.py` · `apps/worker/tests/test_worker_processes.py` · `.planning/plans/done/worker-process.md` |
+
+
 | 9 (core) | **Sociomap deterministic engine**: spec + artifact contract v2; relation coercion, mutual projection, ipsatization, normaliser, object metrics / T-score and both terrain fields ported from the browser and the reference backend; layout **declared** (legacy algorithms refused, AIA row-conditional unfolding implemented, no parity claimed); drag and what-if as layers. F1–F9 vendored and run in every CI job | `packages/aia_core/src/aia_core/domain/sociomap/` · `test_sociomap_{relations,metrics,terrain,layout,engine,contracts,golden_fixtures}.py` · `docs/architecture/sociomapa-deterministic-engine.md` · `.planning/plans/done/sociomap-deterministic-engine.md` |
 
 **Verified state, population foundation** (PostgreSQL 16.13, Python 3.12.3,
@@ -50,6 +53,15 @@ parity and characterization tests — the prototype is deliberately not vendored
 (OI-1). The extra SQLite skips are the concurrency module, which SQLite cannot
 express; CI sets `AIA_REQUIRE_POSTGRES=1` so their absence fails rather than
 skips (`.github/workflows/ci.yml:99-108` @ df294e2).
+
+**Worker, re-measured** on PostgreSQL 16.13 / Python 3.12.3 when it landed:
+core **526 passed / 100 skipped**, API **114 passed**, concurrency **21 passed**
+under `AIA_REQUIRE_POSTGRES=1`, worker **48 passed** including six tests driving
+real `python -m aia_worker` processes; SQLite **661 passed / 127 skipped** (the
+extra skips are the concurrency and process suites, which SQLite cannot express);
+`mypy --strict` clean across 47 source files; `layer_check` 20/20;
+`exposure_check` 7/7; `alembic check` clean — no schema change.
+
 
 **Sociomap engine, measured when it landed** (SQLite, Python 3.12, no
 PostgreSQL in the session): **733 passed / 117 skipped**, against 546 / 117 on
@@ -144,9 +156,29 @@ these; none is started):
    the manifest reduction in
    [`public-exposure-remediation.md`](../docs/migration/public-exposure-remediation.md)
    §3 and the history-rewrite decision in §4.
-2. **A worker process.** `claim_next` → execute → `complete_attempt` /
-   `fail_attempt`, with heartbeats and a cancellation poll at checkpoints.
-   Creates `apps/worker/` — layer 4 in `ARCHITECTURE.md §2`.
+2. **The generalized metered-cost ledger** — *proposed next platform task*
+   (platform-runtime), ahead of OpenTelemetry. Reasoning, so it can be
+   overruled on its merits:
+   - **It is on Phase 4's critical path; OpenTelemetry is not.** The first
+     `ModelGateway` call must write an `AIUsageEvent` somewhere with its
+     provider, model, tokens, cost and `provider_request_id`, attributed to
+     `Client → Study → Revision → WorkflowRun → Step → Attempt → Call`. Today
+     there is nowhere to write it: reservations carry a study, run, step and
+     attempt, and nothing finer.
+   - **Uncertain spend cannot be resolved without it.** `SETTLED_UNCERTAIN`
+     charges the reserved ceiling and keeps the `provider_request_id`, but there
+     is no ledger to post the reconciled fact to as a *compensating* entry, so
+     every uncertain dollar stays at its ceiling.
+   - **Spend is a client-facing number; traces are an operator convenience.** The
+     worker and API already log JSON with run/step/attempt ids bound, which
+     CloudWatch can search. A handful of users and studies measured in minutes
+     do not need spans to be operable at v0.1; they do need every charged dollar
+     to be explainable to a client.
+   Shape: an append-only `cost_ledger_entries` table (reserve / settle /
+   uncertain / release / compensate) written by the same lease-fenced paths the
+   worker already uses, `budget_position` derived from it, and `Study.spent_usd`
+   kept as a checked projection rather than the source. **Write the plan to
+   `.planning/plans/` before code.**
 3. **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`, `ModelPolicy`,
    `ModelRegistry`, `LLMGateway`, `ToolRegistry`, `AIUsageEvent`.
    **No longer blocked.** [ADR 0005](../docs/architecture/adr/0005-llm-gateway.md)
@@ -161,6 +193,8 @@ these; none is started):
    DS-3 (who owns `WAITING_CREDITS`), recorded in the plan.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
    long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
+
+**Removed: "A worker process"** — done; see Completed.
 
 **Removed from this list: "SQS dispatch + reconciler".** It contradicted
 [ADR 0002](../docs/architecture/adr/0002-postgresql-authoritative-store.md),

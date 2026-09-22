@@ -53,6 +53,7 @@ forbid() {
 
 CORE=packages/aia_core/src/aia_core
 API=apps/api/src/aia_api
+WORKER=apps/worker/src/aia_worker
 
 echo "Layer rules (ARCHITECTURE.md §3)"
 echo
@@ -92,6 +93,45 @@ forbid "AWS SDK stays behind the storage adapter" \
   "$CORE" \
   storage.py
 
+# --- Layer 4: the worker executes; it does not serve, and it does not know ---
+#
+# The worker is driven by the engine and drives executors through one protocol
+# (aia_worker.executor). It never serves HTTP, never reaches into the API, and
+# never names a domain-specific module: an AI or research implementation plugs
+# in through the executor registry, and if the worker imported one directly the
+# seam would be decoration.
+
+forbid "the worker knows nothing about HTTP" \
+  '^\s*(from|import)\s+(fastapi|starlette)\b' \
+  "$WORKER"
+
+forbid "the worker never imports the API" \
+  '^\s*(from|import)\s+aia_api\b' \
+  "$WORKER"
+
+forbid "the worker imports nothing domain-specific" \
+  '^\s*(from|import)\s+aia_core\.(domain\.(pipeline|project|sociomap|residency)|infrastructure\.(repositories|artifact_repository|storage|scope_repository))\b' \
+  "$WORKER"
+
+# Expensive work never runs inside an API request. The only way a step executes
+# is a worker claiming it; a route that claimed, completed or failed an attempt
+# would be doing the work in the request, and would hold a lease for exactly as
+# long as a browser stayed connected.
+forbid "the API never executes workflow steps" \
+  '\b(aia_worker|WorkQueue|claim_next|complete_attempt|fail_attempt|release_attempt|abandon_attempt)\b' \
+  "$API"
+
+# WorkflowRepository is study-scoped. Its unscoped constructor exists for
+# WorkQueue, in the same module, and nothing else may call it: an unscoped
+# repository anywhere else is a query across every client's studies.
+forbid "only the work queue may query across studies" \
+  '_across_studies' \
+  "$CORE" \
+  workflow_repository.py
+forbid "the worker never builds an unscoped repository" \
+  '_across_studies' \
+  "$WORKER"
+
 # --- Layer 6: transport validates, delegates, serialises --------------------
 #
 # A route handler that opens a Session is a route handler that can make a
@@ -124,6 +164,11 @@ forbid "scope contexts are issued only by ScopeResolver" \
 forbid "the API never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$API"
+
+forbid "the worker never builds its own scope context" \
+  '^[^#]*\b(Organization|Client|Study)Context\(' \
+  "$WORKER"
+
 
 # --- Population: one resolver, one loader ----------------------------------
 #
@@ -188,6 +233,9 @@ forbid "no statically skipped or xfailed tests" \
 forbid "no statically skipped or xfailed API tests" \
   '@pytest\.mark\.(skip|xfail)' \
   apps/api/tests
+forbid "no statically skipped or xfailed worker tests" \
+  '@pytest\.mark\.(skip|xfail)' \
+  apps/worker/tests
 
 # --- Presentation: the client renders, it does not decide -------------------
 #
