@@ -1,8 +1,19 @@
 # ADR 0005 — AIA defines the model gateway contract; providers sit underneath
 
-**Status:** **Proposed.** The `ModelGateway` contract below is the decision.
-LiteLLM remains **unaccepted** pending the four conditions.
-**Date:** 2026-09-21
+**Status:** **two decisions, two statuses. Do not collapse them.**
+
+| Decision | Status |
+| --- | --- |
+| **A — AIA owns the provider-neutral `ModelGateway` contract and its semantics** | **Accepted** |
+| **B — LiteLLM implements the transport underneath it** | **Proposed** — blocked on the seven conditions below |
+
+**Date:** 2026-09-21 · **Reconciled:** 2026-09-22 (Architecture v2.1)
+
+An earlier revision carried a single status of *Proposed* for both, which blocked
+the architecture on a vendor question. They are independent: the contract stands
+whatever implements it, and that is the entire point of the inversion below. Phase
+4 may build against decision A now. Decision B stays open until its conditions are
+proved against a real LiteLLM version, and the result recorded here.
 
 > **Numbering note.** The decision keeping LiteLLM unaccepted was communicated as
 > "ADR 0006". In this repository the LLM gateway is **0005** and LangGraph is
@@ -34,7 +45,7 @@ substitution or provider substitution could violate AIA's methodology and
 accounting **without technically failing**. For a system that bills client studies
 and makes research claims, that is unacceptable.
 
-## Decision
+## Decision A — the gateway contract (Accepted)
 
 **AIA defines the semantics. A provider library may later implement transport.**
 
@@ -94,31 +105,50 @@ not fall back to "whatever is available".
 ### Providers underneath
 
 ```
-ModelGateway                  <- AIA owns this contract
-├── AnthropicAdapter
-├── OpenAIAdapter
-├── BedrockAdapter
-└── potentially LiteLLMAdapter <- one option among several, not the interface
+ModelGateway                <- AIA owns this contract
+├── AdapterA                \
+├── AdapterB                 |  candidate implementations, none selected here
+├── AdapterC                 |  and none named as accepted
+└── LiteLLMAdapter          /   one option among several, not the interface
 ```
 
-Three thin provider adapters is entirely reasonable at this scale: five users, not
+The shapes are illustrative. **No provider or hosting product is selected by this
+ADR**, and none should be read into it: a route that carries client material must
+satisfy [ADR 0008](0008-eu-data-residency.md), and choosing a specific vendor to
+satisfy it is a separate decision with its own record.
+
+Two or three thin adapters is entirely reasonable at this scale: five users, not
 five million requests per minute. Writing them keeps the semantics ours.
 
-## Conditions before LiteLLM can be Accepted
+## Decision B — LiteLLM (Proposed, not accepted)
 
-All four must be proved:
+LiteLLM remains a candidate implementation of decision A's transport, and nothing
+more. It is **not** accepted, and no code may assume it.
 
-1. **Automatic retries can be completely disabled**, or made compatible with
-   AIA's attempt and reservation model. A retry we did not record is an attempt
-   that does not exist in `StepAttempt`.
-2. **Fallback and model substitution cannot occur unless AIA explicitly
-   authorises it.** Not "is configured off by default" — cannot occur.
-3. **Complete provider error information survives normalization**, enough to
-   drive the ten-way taxonomy. Collapsing quota, capacity and authentication into
-   one "error" destroys the distinction between parking and failing.
-4. **Usage, provider request ids and cost metadata are exposed accurately enough
-   to reconcile a possibly-billed call after worker failure.** Without a provider
-   request id, `SETTLED_UNCERTAIN` can never be resolved to a fact.
+All seven conditions must be proved against a real version, with the result
+recorded in this file:
+
+1. **Hidden and automatic retries can be completely disabled**, or made compatible
+   with AIA's attempt and reservation model. A retry we did not record is an
+   attempt that does not exist in `StepAttempt`, and a paid one we did not reserve
+   for is money that left without a ledger entry.
+2. **Hidden fallback cannot occur.** Not "is configured off by default" — cannot
+   occur.
+3. **Model substitution cannot occur without AIA authorisation.** A finding
+   produced by a different model is a different finding.
+4. **Provider substitution cannot occur without AIA authorisation.** A silent move
+   from a subscription runtime to a metered API spends a client's money without
+   consent.
+5. **Quota, capacity and authentication remain distinguishable** after
+   normalisation, along with the rest of the ten-way taxonomy. Collapsing them
+   into one "error" destroys the distinction between parking and failing, and
+   turns a wait into a failed study.
+6. **Provider request ids survive**, and token, usage and cost metadata are
+   sufficient. Without a provider request id, `SETTLED_UNCERTAIN` can never be
+   resolved to a fact.
+7. **Uncertain billing can be reconciled** — the end-to-end case, not just the
+   presence of the fields: a call dispatched, a worker killed, and the outcome
+   determined afterwards from what the library exposes.
 
 If any is shaky, do not use it. The adapters are cheap; the semantics are not.
 
@@ -128,9 +158,11 @@ If any is shaky, do not use it. The adapters are cheap; the semantics are not.
 Rejected: it spread model names through the code and duplicated the error
 taxonomy.
 
-**A managed gateway service.** Rejected for now: client briefs and research data
-would transit a third party, and residency is unresolved. `data_classification`
-exists on `ModelRequest` partly so this stays decidable per call.
+**A managed gateway service.** Rejected: client briefs and research data would
+transit a third party. Residency is **not** unresolved — it is frozen by
+[ADR 0008](0008-eu-data-residency.md), and `data_classification` on `ModelRequest`
+is what lets the egress boundary decide per call. A managed gateway would have to
+satisfy ADR 0008's constraints as an approved route like any other transport.
 
 ## Consequences
 
@@ -143,7 +175,7 @@ exists on `ModelRequest` partly so this stays decidable per call.
 
 ## Revisit when
 
-- The four conditions have been tested against a real LiteLLM version, with the
-  result recorded here.
+- The seven conditions in decision B have been tested against a real LiteLLM
+  version, with the result recorded here.
 - A provider is added or removed.
 - Cached-token pricing changes materially enough to affect capability mapping.
