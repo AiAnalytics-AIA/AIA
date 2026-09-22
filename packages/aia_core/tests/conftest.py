@@ -332,3 +332,33 @@ def scope_builder() -> Any:
     imports between their modules collide.
     """
     return build_scope_fixture
+
+
+# --------------------------------------------------------------------------- #
+# Sociomapping golden fixtures
+#
+# F1-F9 are synthetic fixtures captured by executing the reference, vendored from
+# AiAnalytics-AIA/AIA-reference (see fixtures/sociomap/index.json). Unlike the
+# legacy prototype they ARE in this repository, so the tests that use them run in
+# every CI job rather than skipping.
+# --------------------------------------------------------------------------- #
+
+SOCIOMAP_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "sociomap"
+
+
+@pytest.fixture(scope="session")
+def sociomap_fixture() -> Any:
+    """Return a loader: ``sociomap_fixture("F1")`` -> the parsed fixture document."""
+    import json
+
+    index = json.loads((SOCIOMAP_FIXTURES / "index.json").read_text(encoding="utf-8"))
+    by_prefix = {fid.split("_", 1)[0]: entry for fid, entry in index["fixtures"].items()}
+
+    def load(fixture: str) -> dict[str, Any]:
+        entry = by_prefix[fixture]
+        document: dict[str, Any] = json.loads(
+            (SOCIOMAP_FIXTURES / entry["file"]).read_text(encoding="utf-8")
+        )
+        return document
+
+    return load
