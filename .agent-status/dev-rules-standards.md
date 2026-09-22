@@ -4,7 +4,7 @@
 
 - Agent: `dev-rules-standards`
 - Role: Repository operating standards and their mechanical enforcement — the development rules, the layering checker, the planning tree, and the documentation triad.
-- Updated: 2026-09-22T10:58:00Z
+- Updated: 2026-09-22T11:01:00Z
 - Product repository: `AiAnalytics-AIA/AIA`
 - Product branch: `claude/amazing-cerf-1lhmze`
 - Product HEAD: `c5057eb`
@@ -72,7 +72,10 @@ Observed results:
 - `verify_reference_inventory.py` — **8 pass, 2 skip, 0 fail**
 - Parity suite — **not run: reference checkout unavailable**, after checking the locations listed above
 - Frontend gates and startup smoke — **not run locally**; nothing under `apps/web/` touched
-- **CI on PR #5 — not checked yet.** CI on PR #4 completed with no failing suite before merge.
+- **CI on PR #5 — OBSERVED GREEN.** All 6 jobs succeeded on `c5057eb` (run 35718619650): Backend (lint, types, tests), Frontend (lint, types, build), API contract, Parity against legacy prototype, Security and dependency scan, Application starts.
+- **`tools/layer_check.sh` confirmed executing on the GitHub runner.** The Backend job concluded success; a `run:` step with no `if:` cannot be skipped, and a missing executable bit would exit 126 and fail the job. Exec bit, bash availability and path resolution from the runner's working directory are therefore all confirmed working — this was the one untested part of the rules change.
+- Runner's SQLite suite on `c5057eb` — **518 passed, 115 skipped** (higher than this agent's local 386/110 because PRs #2 and #3 added `residency` and self-approval tests).
+- CI on PR #4 completed with no failing suite before merge.
 
 402 + 94 = 496, matching the baseline at `df294e2` — the evidence the rules change moved no behaviour.
 
@@ -128,19 +131,19 @@ The initial classifier returned `demo_library_asset` before checking extension, 
 - Uncommitted product changes: none
 - Product commits since previous update: `10cf940` (merged via PR #4) and `c5057eb` (open in PR #5). Both pushed with explicit permission at the time.
 - Force-with-lease used once, on this agent's own branch, to rebase after PR #4 merged. No other branch's history touched.
-- PRs: [#4](https://github.com/AiAnalytics-AIA/AIA/pull/4) **merged** (`62ae995` on `main`) · [#5](https://github.com/AiAnalytics-AIA/AIA/pull/5) **open, draft, awaiting disposition**
+- PRs: [#4](https://github.com/AiAnalytics-AIA/AIA/pull/4) **merged** (`62ae995` on `main`) · [#5](https://github.com/AiAnalytics-AIA/AIA/pull/5) **open, draft, CI green on `c5057eb`, no merge conflict, no review threads — waiting on a human disposition decision, not on work**
 - `main` observed at `8f545a5`, carrying merged PRs #2 and #3 from other agents.
 
 ## Next step
 
-Await the human's decision on PR #5, and on what this agent's next assignment is. No further work on the reference/ZIP task. If nothing else is assigned, the standing obligation is to watch PR #5's CI — specifically whether `tools/layer_check.sh` executes correctly on the GitHub runner, which has run on `main` but not yet been observed on a PR by this agent.
+Await the human's decision on PR #5 and on this agent's next assignment. No further work on the reference/ZIP task. PR #5 needs no further engineering: it is green, mergeable and has no open review threads, so the only thing outstanding is the human's call on whether it stays, closes, or transfers to the incoming reference agent. A check-in remains scheduled until it is merged or closed.
 
 ## Latest response to the human
 
-Confirmed the reference/ZIP assignment is dropped and reported that the agent ID was changed from `reference-rebuild` to `dev-rules-standards` before anything was published, so as not to claim another agent's territory.
+Confirmed the reference/ZIP assignment is dropped, and that the agent ID was changed from `reference-rebuild` to `dev-rules-standards` before anything was published so as not to claim another agent's territory.
 
-Reported the coordination protocol as installed: `coordination/agent-status` did not exist and was created from `origin/main`; the status file is `.agent-status/dev-rules-standards.md`; work is done in an isolated worktree at `/tmp/aia-agent-status-reference-rebuild` so the product tree is never switched or stashed.
+Reported the coordination protocol installed: `coordination/agent-status` did not exist and was created from `origin/main`; the status file is `.agent-status/dev-rules-standards.md`; the isolated worktree is at `/tmp/aia-agent-status-reference-rebuild`, so the product tree was never switched or stashed; the first status commit touched only `.agent-status/` and was pushed successfully.
 
-Flagged that PR #5 still contains the withdrawn reference-package work and asked whether to leave it open for the incoming agent, close it, or hand the branch over — noting it was not closed unilaterally, and that it already contains a 1324-file hashed inventory and a verifier the incoming agent may not want to rebuild.
+Reported PR #5 CI as **observed green** — all 6 jobs on `c5057eb` — and confirmed `tools/layer_check.sh` executes correctly on the GitHub runner, which closes the last open question from the development-rules change.
 
-Noted that the completed and merged work — the development rules and the blocking layering checker — stands and is unaffected by the reassignment, and that `layer_check` passes 12/12 against the production code merged from PRs #2 and #3.
+Restated the one outstanding question: the disposition of PR #5, which holds the withdrawn reference-package work. Not closed unilaterally; noted that the incoming reference agent may want its 1324-file hashed inventory and CI-runnable verifier rather than rebuilding them.
