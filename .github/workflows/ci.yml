@@ -158,20 +158,36 @@ jobs:
           spec = json.load(open("openapi.json"))
           assert spec["openapi"].startswith("3."), spec["openapi"]
           paths = spec["paths"]
+          # Projects live under a study: the study is the access boundary, so a
+          # bare /projects path would mean scope had leaked out of the URL.
           required = [
               "/api/v1/health",
               "/api/v1/ready",
-              "/api/v1/projects",
-              "/api/v1/projects/{project_id}",
-              "/api/v1/projects/{project_id}/content",
-              "/api/v1/projects/{project_id}/impact",
-              "/api/v1/projects/{project_id}/revisions",
-              "/api/v1/projects/{project_id}/events",
+              "/api/v1/clients",
+              "/api/v1/studies",
+              "/api/v1/studies/{study_id}",
+              "/api/v1/studies/{study_id}/budget",
+              "/api/v1/studies/{study_id}/projects",
+              "/api/v1/studies/{study_id}/projects/{project_id}",
+              "/api/v1/studies/{study_id}/projects/{project_id}/content",
+              "/api/v1/studies/{study_id}/projects/{project_id}/impact",
+              "/api/v1/access-audit",
           ]
           missing = [p for p in required if p not in paths]
           if missing:
               sys.exit(f"OpenAPI is missing documented routes: {missing}")
-          print(f"OpenAPI OK: {len(paths)} paths")
+
+          # A client-derived resource outside a study prefix would mean scope is
+          # no longer carried in the path, which is how isolation gets lost.
+          unscoped = [
+              p
+              for p in paths
+              if "/projects" in p and not p.startswith("/api/v1/studies/")
+          ]
+          if unscoped:
+              sys.exit(f"project routes must sit under a study scope: {unscoped}")
+
+          print(f"OpenAPI OK: {len(paths)} paths, all project routes study-scoped")
           PY
 
       - uses: actions/upload-artifact@v4
@@ -251,16 +267,60 @@ jobs:
 
       - name: End-to-end project lifecycle over HTTP
         run: |
-          H='-H Content-Type:application/json -H X-AIA-User:ci -H X-AIA-Org:ORG-ci'
-          PID=$(curl -fsS $H -X POST http://localhost:8000/api/v1/projects \
+          # Every project route is study-scoped and every study needs a real
+          # grant, so an end-to-end HTTP smoke test needs a provisioned world.
+          # Provisioning runs through the same authorisation path production
+          # uses -- there is no back door that skips it.
+          eval "$(python - <<'PROVISION'
+          import os
+          from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+          from aia_core.domain.scope import ScopeRole
+          from aia_core.infrastructure.db import create_app_engine, create_session_factory
+          from aia_core.infrastructure.repositories import ProjectRepository
+          from aia_core.infrastructure.scope_repository import ScopeRepository
+
+          engine = create_app_engine(os.environ["DATABASE_URL"])
+          with create_session_factory(engine)() as s:
+              repo, resolver = ScopeRepository(s), ScopeResolver(s)
+              org, owner = repo.create_organization(
+                  slug="aia", name="AIA", owner_email="ci@art-chain.io"
+              )
+              admin = resolver.organization_context(
+                  AuthenticatedPrincipal(
+                      user_id=owner.user_id, organization_id=org.organization_id
+                  )
+              )
+              client = repo.create_client(admin, slug="ci-client", name="CI Client")
+              study = repo.create_study(
+                  admin, client_id=client.client_id, slug="ci-study",
+                  name="CI Study", budget_usd=10.0,
+              )
+              resolver.grant_client_access(
+                  admin, client_id=client.client_id, user_id=owner.user_id,
+                  role=ScopeRole.LEAD,
+              )
+              s.commit()
+              print(f"export STUDY_ID={study.study_id}")
+          PROVISION
+          )"
+          echo "provisioned study $STUDY_ID"
+
+          H='-H Content-Type:application/json -H X-AIA-Subject:ci@art-chain.io'
+          BASE="http://localhost:8000/api/v1/studies/$STUDY_ID/projects"
+
+          PID=$(curl -fsS $H -X POST "$BASE" \
                  -d '{"title":"CI smoke","content":{"goal":"g"}}' \
                  | python -c 'import json,sys; print(json.load(sys.stdin)["project_id"])')
           echo "created $PID"
-          curl -fsS $H "http://localhost:8000/api/v1/projects/$PID" | grep -q '"current_revision":1'
-          curl -fsS $H -X PUT "http://localhost:8000/api/v1/projects/$PID/content" \
+
+          curl -fsS $H "$BASE/$PID" | grep -q '"current_revision":1'
+          curl -fsS $H -X PUT "$BASE/$PID/content" \
                -d '{"content":{"title":"CI smoke","goal":"g","audience":{"m":1}}}' \
                | grep -q '"root_stage":"AUDIENCE"'
-          echo "project lifecycle OK"
+
+          # Unauthenticated access must be refused, not merely unhandled.
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$BASE")" = "401"
+          echo "project lifecycle OK; unauthenticated access refused"
 
   security:
     name: Security and dependency scan

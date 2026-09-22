@@ -204,4 +204,7 @@ def issue_test_jwt(
     for name in omit:
         claims.pop(name, None)
 
-    return jwt.encode(claims, private_key, algorithm=algorithm, headers={"kid": kid})
+    # `jwt.encode` is untyped, so the result is annotated explicitly rather than
+    # leaking Any through a function declared to return str.
+    token: str = jwt.encode(claims, private_key, algorithm=algorithm, headers={"kid": kid})
+    return token
