@@ -1,7 +1,13 @@
 # reference-rebuild-local
 
-**STATUS: COMPLETED.** No further AIA assignment. This agent ran on a local
-workstation; that machine is no longer required.
+**STATUS: COMPLETED / INACTIVE.** Retired. No further AIA assignment, and no
+future work may depend on it. This agent ran on a local workstation; that machine
+is no longer required and must not be treated as a source.
+
+Specifically, nothing may depend on a path under `/Users/…` or any other local
+machine, on the local extracted reference tree, or on manual copy/paste of
+reference material from the human. A question about the legacy system is answered
+from `AiAnalytics-AIA/AIA-reference`, or it is not answered.
 
 ## What was delivered
 
@@ -124,8 +130,13 @@ must be charged once per reservation, not once per reconciler"*) and **passed on
 re-run**, all 6 jobs green. My PR touches only documentation plus one new test
 file and nothing in the workflow engine.
 
-I attempted local characterization against PostgreSQL and it is **inconclusive**
-— my local instance did not give a clean baseline, so I am not claiming a
-deterministic failure. Flagging it because the assertion guards accounting for
-possibly-billed provider calls, which is a money-correctness invariant. Owner:
-whoever owns the workflow engine.
+I attempted local characterization against PostgreSQL and it was
+**inconclusive** — my local instance did not give a clean baseline, so I did not
+claim a deterministic failure. Flagging it because the assertion guards accounting
+for possibly-billed provider calls, which is a money-correctness invariant.
+
+**Resolved by `architecture-reconciliation`.** Root-caused as a lost update on
+`studies.spent_usd`: `_charge_study` was an unlocked read-modify-write under READ
+COMMITTED. Reproduced deterministically (8 concurrent charges recorded 1), fixed
+with an atomic increment, regression test measured at 12/12 detection against the
+old code. PR #8. Owner: platform-runtime.
