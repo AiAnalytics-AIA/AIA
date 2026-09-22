@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `claude/trusting-brown-ohxj1c` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/determined-rubin-9j2cjl` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -30,6 +30,7 @@ entry is a **hypothesis**, not a finding.
 | 8 (foundation) | **Population version + import foundation.** Content-addressed `DatasetVersion`, STATIC/LIVE with explicit compare-and-set promotion, lineage, lossless import validation against a hash-pinned 400-field contract, canonical weight resolution with no fallback, one loader (`PopulationRuntime`) issuing an unforgeable `RuntimePopulation`, a `PopulationBinding` recorded per run. Merged in PR #12 after automated verification; no human review comments recorded | `packages/aia_core/src/aia_core/domain/population/` @ `8da7261` · `tests/test_population_*.py` · `.planning/plans/done/population-version-foundation.md` |
 | 8 (readiness) | **Population consumption readiness.** Field policy as code over the 400-field dictionary (closed tables; unmapped refused; client use needs positive support); companion-set validation for the 15 v17 companions with the fail-closed `CORE_JOINT_STATUS` gate; population-operator authority closing OI-8; bindings and loaded populations carry policy and joint identity. OI-7 proven archive-blocked; 8-field decision checklist prepared | `domain/population/{policy,companions,authority}.py` · `application/population_authority.py` · `tests/test_population_{policy,companions,authority}.py` · `docs/architecture/population.md` · `.planning/plans/done/population-consumption-readiness.md` |
 | — | **Development rules adopted**: `ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`, `.planning/`, `tools/layer_check.sh` blocking in CI | `tools/layer_check.sh` @ this change · `.planning/plans/done/development-rules-adoption.md` |
+| 9 (core) | **Sociomap deterministic engine**: spec + artifact contract v2; relation coercion, mutual projection, ipsatization, normaliser, object metrics / T-score and both terrain fields ported from the browser and the reference backend; layout **declared** (legacy algorithms refused, AIA row-conditional unfolding implemented, no parity claimed); drag and what-if as layers. F1–F9 vendored and run in every CI job | `packages/aia_core/src/aia_core/domain/sociomap/` · `test_sociomap_{relations,metrics,terrain,layout,engine,contracts,golden_fixtures}.py` · `docs/architecture/sociomapa-deterministic-engine.md` · `.planning/plans/done/sociomap-deterministic-engine.md` |
 
 **Verified state, population consumption readiness** (PostgreSQL 16.13, Python
 3.12.3, core + API): **911 passed / 100 skipped** on PostgreSQL with
@@ -58,6 +59,12 @@ parity and characterization tests — the prototype is deliberately not vendored
 (OI-1). The extra SQLite skips are the concurrency module, which SQLite cannot
 express; CI sets `AIA_REQUIRE_POSTGRES=1` so their absence fails rather than
 skips (`.github/workflows/ci.yml:99-108` @ df294e2).
+
+**Sociomap engine, measured when it landed** (SQLite, Python 3.12, no
+PostgreSQL in the session): **733 passed / 117 skipped**, against 546 / 117 on
+the parent commit — +187 tests, no new skips. `mypy --strict` clean across 42
+source files, `ruff` clean, `layer_check` 12/12. F4 and F8 are only partly
+reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 ## In progress
 
@@ -112,7 +119,7 @@ it is not answered. "The local agent said so" is not an anchor.
 
 | Item | Owner |
 |---|---|
-| `REF-GAP-SOCIO-R-SMACOF` | parity-quality + sociomapa-deterministic |
+| `REF-GAP-SOCIO-R-SMACOF` | parity-quality + sociomapa-deterministic — **open, OI-15.** R installs in cloud sessions but CRAN is blocked there, and the recipe needs the reference's withheld R wrapper. `r_smacof_unfolding` is refused; no R parity is claimed |
 | `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + simulation-engine |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` | data owner / population-data, after the licensing decision. Its destination must satisfy EU residency — [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) |
 
@@ -160,6 +167,11 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
    decision B (LiteLLM as the transport) is still *Proposed*, and the contract
    can be built against without it.
 4. **Wire `apps/web` to the real API** and delete `lib/mock.ts`.
+   Planned together with the design system in
+   [`plans/design-system.md`](plans/design-system.md): 12 chunks, starting with
+   the vocabulary purge (chunk 0) and the enum-bound status maps (chunk 2).
+   Needs decisions DS-1 (web test runner), DS-2 (`clients.accent_slot`) and
+   DS-3 (who owns `WAITING_CREDITS`), recorded in the plan.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
    long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
 
@@ -172,6 +184,15 @@ left to build.
 7. Rate limiting.
 8. Delete `src/server.js` + `src/views/` and their root dependencies, once step 4
    removes the last thing that needs them.
+9. **Sociomap as a durable job and a route** — **blocked on the shared worker
+   (platform-runtime)**; the Sociomap context is paused until the worker execution
+   contract lands, and the first path that can emit a Sociomap to a client must
+   carry the client-deliverable gate (OI-17). Then:
+   `compute_sociomap` executed as a workflow step, its payload stored through
+   `ArtifactRepository.put_json`, a study-scoped `GET` that serves it, and the
+   `apps/web` sociomapping page rewired to render it (it still implements the
+   superseded manual SOP). A 1,000-respondent map takes ~3 s, so it is a job,
+   not a request (`docs/architecture/sociomapa-deterministic-engine.md` §9).
 
 ## Decisions needed
 
@@ -182,6 +203,7 @@ left to build.
 | D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
+| D6 | **Accept, replace or defer the four AIA Sociomap declarations** — dissimilarity target, `aia_rowcond_unfolding_v1`, the map frame, relation-missing `refuse`. Decision package ready with approval fields; methodology owner, not engineering. **The only methodology decision preventing client use** | Any client-facing Sociomap | `docs/architecture/sociomapa-methodology-decision.md` · OI-16 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);
