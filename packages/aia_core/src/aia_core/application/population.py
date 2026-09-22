@@ -42,13 +42,18 @@ from typing import Protocol, runtime_checkable
 from sqlalchemy.orm import Session
 
 from ..domain.population import (
+    FIELD_POLICY_VERSION,
+    CompanionKind,
     CompanionReport,
     CompanionSet,
     CompanionsIncomplete,
     DatasetVersion,
     EnrichmentFailed,
     ImportRejected,
+    JointState,
+    JointStatus,
     LineageError,
+    ParsedDictionary,
     ParsedPanel,
     Population,
     PopulationBinding,
@@ -66,8 +71,11 @@ from ..domain.population import (
     VersionStatus,
     WeightResolutionError,
     analysis_weights,
+    build_field_policy,
+    companion_set_sha256,
     content_sha256,
     dataset_version_id,
+    evaluate_joint_certificate,
     plan_establish,
     plan_promotion,
     require_operator,
@@ -253,7 +261,7 @@ class PopulationRuntime:
                 f"{version_id} already has its companion set; a set is never replaced",
                 reason="companions_already_attached",
             )
-        panel = self._verified_panel(version)
+        panel, _ = self._verified_panel(version)
         report = self._validate_companions(
             label=version.label,
             panel=panel,
@@ -423,18 +431,28 @@ class PopulationRuntime:
     ) -> PopulationBinding:
         """Resolve a selector to the binding a run records. No fallback."""
         dataset = self._contract.dataset_id
-        binding = resolve_binding(
+        versions = self._registry.versions(dataset)
+        target = selector.version_id
+        if target is None:
+            population = self._registry.population(selector.population_id or "")
+            target = population.current_version_id if population is not None else None
+        if target is not None and target in versions:
+            self._require_usable(target)
+        companions = self._registry.companion_set(target) if target is not None else None
+        return resolve_binding(
             selector,
             contract=self._contract,
-            versions=self._registry.versions(dataset),
+            versions=versions,
             populations=self._registry.populations(dataset),
             promotions=self._registry.promotions(dataset),
             view=view,
             weight_role=weight_role,
             at=self._clock(),
+            companion_set_sha256=(
+                companions.set_sha256 if companions is not None else companion_set_sha256({})
+            ),
+            joint_state=companions.joint_state if companions is not None else JointState.MISSING,
         )
-        self._require_usable(binding.version_id)
-        return binding
 
     # ------------------------------------------------------------------- load --
 
@@ -470,6 +488,27 @@ class PopulationRuntime:
                 f"{contract.contract_id} declares {weight.column}",
                 reason="weight_mismatch",
             )
+        companions = self._registry.companion_set(version.version_id)
+        if contract.companions and companions is None:
+            raise CompanionsIncomplete(f"{version.version_id} has no validated companion set")
+        recorded_set = companions.set_sha256 if companions is not None else companion_set_sha256({})
+        recorded_joint = companions.joint_state if companions is not None else JointState.MISSING
+        policy_drift = [
+            name
+            for name, have, want in (
+                ("dictionary_sha256", binding.dictionary_sha256, version.dictionary_sha256),
+                ("field_policy_version", binding.field_policy_version, FIELD_POLICY_VERSION),
+                ("companion_set_sha256", binding.companion_set_sha256, recorded_set),
+                ("joint_state", binding.joint_state, recorded_joint),
+            )
+            if have != want
+        ]
+        if policy_drift:
+            # The run would be computed under different claim rules, or a different
+            # certificate, than it recorded. Refuse rather than silently re-rule it.
+            raise VersionIntegrityError(
+                f"binding for {binding.version_id} no longer matches on {policy_drift}"
+            )
 
         enricher_id = self._enricher.enricher_id if self._enricher is not None else ""
         key = (
@@ -478,6 +517,8 @@ class PopulationRuntime:
             binding.view.value,
             weight.column,
             enricher_id,
+            recorded_set,
+            FIELD_POLICY_VERSION,
         )
         cached = self._cache.get(key)
         if cached is not None:
@@ -487,11 +528,20 @@ class PopulationRuntime:
                 source_fields=cached.source_fields,
                 derived_fields=cached.derived_fields,
                 row_count=cached.row_count,
+                field_policy=cached.field_policy,
+                joint_status=cached.joint_status,
                 columns=cached._columns,
                 analysis_weight=cached._analysis_weight,
             )
 
-        panel = self._verified_panel(version)
+        panel, dictionary = self._verified_panel(version)
+        joint = self._verified_joint(version, companions)
+        policy = build_field_policy(
+            dictionary.rows,
+            dictionary_sha256=version.dictionary_sha256,
+            weight_columns=contract.weight_columns,
+            derived_fields=contract.derived_policy_fields,
+        )
         columns: dict[str, tuple[Cell, ...]] = {
             name: panel.columns[position] for position, name in enumerate(panel.header)
         }
@@ -507,6 +557,8 @@ class PopulationRuntime:
             source_fields=panel.header,
             derived_fields=tuple(d for d in contract.derived_fields if d.name in derived),
             row_count=panel.row_count,
+            field_policy=policy,
+            joint_status=joint,
             columns=columns,
             analysis_weight=weights,
         )
@@ -515,7 +567,34 @@ class PopulationRuntime:
             self._cache.popitem(last=False)
         return population
 
-    def _verified_panel(self, version: DatasetVersion) -> ParsedPanel:
+    def _verified_joint(
+        self, version: DatasetVersion, companions: CompanionSet | None
+    ) -> JointStatus:
+        """Re-verify every companion's bytes and re-evaluate the certificate."""
+        if companions is None:
+            return JointStatus.fallback(JointState.MISSING, "the contract declares no certificate")
+        certificate: bytes | None = None
+        for spec in self._contract.companions:
+            sha, location = companions.assets[spec.asset_id]
+            data = self._source.read(location)
+            if content_sha256(data) != sha:
+                raise VersionIntegrityError(
+                    f"companion {spec.asset_id} at {location} is not the one attached to "
+                    f"{version.label}; refusing to load a swapped companion"
+                )
+            if spec.kind is CompanionKind.CORE_JOINT_STATUS:
+                certificate = data
+        if certificate is None:
+            return JointStatus.fallback(JointState.MISSING, "the contract declares no certificate")
+        joint = evaluate_joint_certificate(certificate, panel_sha256=version.content_sha256)
+        if joint.state is not companions.joint_state:
+            raise VersionIntegrityError(
+                f"{version.label}'s certificate now evaluates to {joint.state.value}, "
+                f"not the recorded {companions.joint_state.value}"
+            )
+        return joint
+
+    def _verified_panel(self, version: DatasetVersion) -> tuple[ParsedPanel, ParsedDictionary]:
         panel_bytes = self._source.read(version.storage_location)
         if content_sha256(panel_bytes) != version.content_sha256:
             raise VersionIntegrityError(
@@ -529,6 +608,9 @@ class PopulationRuntime:
                 f"{version.label} was imported with"
             )
         panel = parse_panel(panel_bytes)
+        dictionary = parse_dictionary(
+            dictionary_bytes, field_column=self._contract.dictionary_field_column
+        )
         # Defence in depth: the contract is re-applied on every load, so a contract
         # tightened after import stops an old version loading rather than letting it
         # through on its historical report.
@@ -538,9 +620,7 @@ class PopulationRuntime:
             panel_sha256=version.content_sha256,
             panel_byte_size=len(panel_bytes),
             dictionary_sha256=version.dictionary_sha256,
-            dictionary=parse_dictionary(
-                dictionary_bytes, field_column=self._contract.dictionary_field_column
-            ),
+            dictionary=dictionary,
             panel=panel,
         )
         if not report.passed:
@@ -548,7 +628,7 @@ class PopulationRuntime:
                 f"{version.label} no longer satisfies {self._contract.contract_id}: "
                 + "; ".join(report.failures)
             )
-        return panel
+        return panel, dictionary
 
     def _enrich(self, panel: ParsedPanel) -> dict[str, tuple[Cell, ...]]:
         declared = self._contract.enrichment_fields

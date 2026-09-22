@@ -1112,6 +1112,11 @@ class RunPopulationBindingRow(Base):
     weight_column: Mapped[str] = mapped_column(String(128), nullable=False)
     view: Mapped[str] = mapped_column(String(16), nullable=False)
     resolved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Which claim rules and which certificate the run was computed under.
+    dictionary_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    field_policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    companion_set_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    joint_state: Mapped[str] = mapped_column(String(32), nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
@@ -1121,6 +1126,11 @@ class RunPopulationBindingRow(Base):
             name="run_population_resolution_known",
         ),
         CheckConstraint("view in ('BASE','ANALYSIS')", name="run_population_view_known"),
+        CheckConstraint(
+            "joint_state in "
+            "('CERTIFIED','NOT_THIS_PANEL','UNKNOWN_STATUS','UNPARSEABLE','MISSING')",
+            name="run_population_joint_state_known",
+        ),
         Index("ix_run_population_version", "version_id"),
     )
 

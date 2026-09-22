@@ -21,6 +21,7 @@ from aia_core.domain.population import (
     CompanionKind,
     CompanionsIncomplete,
     CompanionSpec,
+    FieldUse,
     ImportRejected,
     JointState,
     JointStatus,
@@ -28,6 +29,8 @@ from aia_core.domain.population import (
     PopulationError,
     PopulationKind,
     PopulationSelector,
+    PopulationView,
+    VersionIntegrityError,
     companion_set_sha256,
     content_sha256,
     evaluate_joint_certificate,
@@ -553,3 +556,101 @@ def test_resolving_a_pinned_version_without_companions_is_refused(
                 import_label(rt, synthetic_companions, "v1_1", with_companions=False).version_id
             )
         )
+
+
+# --------------------------------------------------------------------------- #
+# A loaded population carries its policy and its joint status
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def usable(session: Session, synthetic_companions: Any) -> dict[str, Any]:
+    rt = runtime(session, synthetic_companions)
+    versions = {
+        label: import_label(rt, synthetic_companions, label)
+        for label in ("v1_BASE", "v1_1", "v1_4")
+    }
+    establish_both(rt, versions)
+    return {"rt": rt, "versions": versions, "companions": synthetic_companions, "session": session}
+
+
+def load_base(rt: PopulationRuntime, population_id: str) -> Any:
+    return rt.load(
+        rt.resolve(PopulationSelector.population(population_id), view=PopulationView.BASE)
+    )
+
+
+def test_the_binding_records_the_companion_set_and_certificate(usable: dict[str, Any]) -> None:
+    from aia_core.infrastructure.population_repository import PopulationRegistryRepository
+
+    rt, v = usable["rt"], usable["versions"]
+    binding = rt.resolve(PopulationSelector.population("SYN_LIVE"))
+    live_set = PopulationRegistryRepository(usable["session"]).companion_set(v["v1_4"].version_id)
+    assert live_set is not None
+    assert binding.companion_set_sha256 == live_set.set_sha256
+    assert binding.joint_state is JointState.CERTIFIED
+    assert binding.field_policy_version == "field-policy/v1"
+    assert binding.dictionary_sha256 == v["v1_4"].dictionary_sha256
+    static = rt.resolve(PopulationSelector.population("SYN_STATIC"))
+    assert static.joint_state is JointState.NOT_THIS_PANEL
+
+
+def test_the_loaded_policy_answers_field_use(usable: dict[str, Any]) -> None:
+    population = load_base(usable["rt"], "SYN_LIVE")
+    assert population.decide("vek", FieldUse.CLIENT_MEASURED_CLAIM).allowed
+    refused = population.decide("segment", FieldUse.CLIENT_MEASURED_CLAIM)
+    assert (refused.allowed, refused.reason) == (False, "phrase_permits_no_client_claim")
+    assert population.decide("segment", FieldUse.SIMULATION).allowed
+    assert not population.decide("row_id", FieldUse.AGGREGATE_ANALYSIS).allowed
+    assert population.decide("w_main", FieldUse.WEIGHTING).allowed
+    # BASE carries no enrichment, so its fields are unknown here even though the
+    # version's policy lists them.
+    assert population.decide("life_stage_derived", FieldUse.WEIGHTING).reason == "unknown_field"
+
+
+def test_the_certified_live_population_permits_only_what_the_certificate_says(
+    usable: dict[str, Any],
+) -> None:
+    population = load_base(usable["rt"], "SYN_LIVE")
+    assert population.joint_status.certified
+    assert population.decide_joint(["vek", "occupation_code"], client_facing=False).allowed
+    client = population.decide_joint(["vek", "occupation_code"], client_facing=True)
+    assert client.reason == "client_joint_outputs_forbidden"
+    cross = population.decide_joint(["vek", "segment"], client_facing=False)
+    assert cross.reason == "cross_block_same_person_forbidden"
+    assert population.decide_joint(["vek", "nope"], client_facing=False).reason == "unknown_field"
+
+
+def test_the_static_population_falls_back_to_no_joint_use(usable: dict[str, Any]) -> None:
+    population = load_base(usable["rt"], "SYN_STATIC")
+    assert population.joint_status.state is JointState.NOT_THIS_PANEL
+    decision = population.decide_joint(["vek", "occupation_code"], client_facing=False)
+    assert (decision.allowed, decision.reason) == (False, "certificate_not_this_panel")
+    # Single-field policy is unaffected by the certificate.
+    assert population.decide("vek", FieldUse.CLIENT_MEASURED_CLAIM).allowed
+
+
+def test_a_swapped_companion_refuses_the_load(usable: dict[str, Any]) -> None:
+    rt, companions = usable["rt"], usable["companions"]
+    binding = rt.resolve(PopulationSelector.population("SYN_LIVE"), view=PopulationView.BASE)
+    companions.source.put("companions/RESPONDENT_AUDIT.csv", b"panel_row_id,audit_status\n")
+    with pytest.raises(VersionIntegrityError, match="swapped companion"):
+        rt.load(binding)
+
+
+@pytest.mark.parametrize(
+    "drift",
+    [
+        {"field_policy_version": "field-policy/v0"},
+        {"joint_state": JointState.MISSING},
+        {"companion_set_sha256": content_sha256(b"another set")},
+        {"dictionary_sha256": content_sha256(b"another dictionary")},
+    ],
+)
+def test_a_binding_recorded_under_other_rules_is_refused(
+    usable: dict[str, Any], drift: dict[str, Any]
+) -> None:
+    rt = usable["rt"]
+    binding = rt.resolve(PopulationSelector.population("SYN_LIVE"), view=PopulationView.BASE)
+    with pytest.raises(VersionIntegrityError, match="no longer matches"):
+        rt.load(replace(binding, **drift))

@@ -19,6 +19,7 @@ from aia_core.domain.population import (
     DatasetVersion,
     DerivedOrigin,
     ImportReport,
+    JointState,
     KnownVersion,
     ParsedDictionary,
     ParsedPanel,
@@ -39,6 +40,7 @@ from aia_core.domain.population import (
     WeightResolutionError,
     WeightScheme,
     analysis_weights,
+    companion_set_sha256,
     content_sha256,
     dataset_version_id,
     field_names_fingerprint,
@@ -621,6 +623,8 @@ class Registry:
             view=view,
             weight_role=weight_role,
             at=AT,
+            companion_set_sha256=companion_set_sha256({}),
+            joint_state=JointState.MISSING,
         )
 
 
@@ -699,6 +703,9 @@ def test_the_binding_records_its_provenance() -> None:
     assert record["weight_column"] == "vaha_strukturalni_2025"
     assert record["view"] == "ANALYSIS"
     assert record["resolved_at"] == AT.isoformat()
+    assert record["field_policy_version"] == "field-policy/v1"
+    assert record["dictionary_sha256"] == CZ_SYNTHETIC_V17.dictionary_sha256
+    assert record["joint_state"] == "MISSING"
 
 
 def test_selector_takes_exactly_one_target() -> None:
@@ -718,6 +725,10 @@ def test_binding_guards_its_own_coherence() -> None:
         replace(binding, weight_column="")
     with pytest.raises(PopulationError):
         replace(binding, resolved_at=datetime(2026, 9, 22))
+    with pytest.raises(PopulationError):
+        replace(binding, companion_set_sha256="short")
+    with pytest.raises(PopulationError):
+        replace(binding, field_policy_version="")
 
 
 # --------------------------------------------------------------------------- #
@@ -733,6 +744,8 @@ def test_a_runtime_population_cannot_be_constructed_outside_the_loader() -> None
             source_fields=("a",),
             derived_fields=(),
             row_count=1,
+            field_policy=None,
+            joint_status=None,
             _columns={"a": ("1",)},
             _analysis_weight=None,
             _issuer=object(),

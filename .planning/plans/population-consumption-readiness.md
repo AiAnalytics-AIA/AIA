@@ -77,7 +77,11 @@ decides otherwise.
 - [x] 3. Population operator authority; close OI-8 — `domain/population/authority.py`,
   `application/population_authority.py`, two `layer_check` rules ·
   `tests/test_population_authority.py` (17)
-- [ ] 4. Binding + RuntimePopulation carry policy and joint status; migration
+- [x] 4. Binding + RuntimePopulation carry policy and joint status; migration
+  `85637e58c7dd` (refuses to backfill) · `RuntimePopulation.decide` /
+  `decide_joint`; load re-verifies companion bytes and the certificate state, and
+  refuses a binding recorded under another policy version, dictionary, companion
+  set or joint state
 - [ ] 5. Derived-field decision matrix, OI-7 archive-dependency artifact, docs,
   PROGRESS, open items, agent status
 
