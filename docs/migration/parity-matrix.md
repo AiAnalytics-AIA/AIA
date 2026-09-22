@@ -18,6 +18,25 @@ stays green while a migration engineer gets the comparison.
 
 Run them: `make test-parity`
 
+## Authoritative reference
+
+Reference interpretation is owned by the private repository
+**`AiAnalytics-AIA/AIA-reference`** (tag
+`reference-18.6.6-gemo-2026-09-11-v1`), which carries the full capability map,
+methodology ledger, subsystem contracts and 11 executable golden fixtures. See
+[reference-source.md](reference-source.md).
+
+## Complete module inventory
+
+This table covers the modules whose behaviour has a parity claim. It is **not**
+a complete inventory, and treating it as one is how 85 of the prototype's 191
+modules ended up with no recorded disposition.
+
+For the exhaustive list -- every module, with an explicit port / drop /
+dev-tool / data-pipeline decision and the phase that owns it -- see
+[module-inventory.md](module-inventory.md), enforced by
+`packages/aia_core/tests/test_module_inventory.py`.
+
 ## Migration inventory
 
 | Legacy component | Responsibility | New component | Status | Parity | Notes |
@@ -43,13 +62,13 @@ Run them: `make test-parity`
 | `provider_runtime.api_budget_check` | Budget enforcement | `check_budget` | Done | ✅ ⚠ | Decision identical incl. boundary; one deviation (D3) |
 | `ui_server.py` (136 routes) | HTTP API | `apps/api` routers | ◐ 8 routes | ◐ | Projects only; 128 routes still to migrate |
 | `ui_app.html` | Frontend | `apps/web` | ○ | ○ | Reference UI only; not salvaged |
-| `artifact_store.py` | Artifact bytes | Storage abstraction | ○ | ○ | Schema done, adapter pending |
-| `job_store.py` (10 tables) | Durable queue | Phase 3 | ○ | ○ | Design survives; port schema + semantics |
-| `workflow_engine.STANDARD` | 24-node research DAG | Phase 3 | ○ | ○ | Carry over as data |
-| `worker_job.py` | Stage execution | Phase 3 | ○ | ○ | |
+| `artifact_store.py` | Artifact bytes | `infrastructure.storage` (S3 / filesystem / memory) | Done | ◐ | Three backends, identical key validation and hash verification |
+| `job_store.py` (10 tables) | Durable queue | `WorkflowRun`/`StepRun`/`StepAttempt` + `WorkflowRepository` | Done | ◐ | Redesigned into two-level state; append-only attempts. Verified under real PostgreSQL contention |
+| `workflow_engine.STANDARD` | 24-node research DAG | `domain.workflow.StepDefinition` + `validate_dag` | Done | ◐ | DAG validated at definition time; dependency gating on `SUCCEEDED` |
+| `worker_job.py` | Stage execution | Phase 4 | ○ | ○ | Engine exists; the step body that calls a provider does not |
 | `ai_router.py` | Provider transport | Phase 4 | ○ | ○ | Largely portable behind an interface |
 | `claude_code_provider.py` | Claude Code CLI | Phase 4 | ○ | ○ | |
-| `cost_controller.py` | Reservations | Phase 3 | ○ | ○ | |
+| `cost_controller.py` | Reservations | `WorkflowRepository.reserve_budget` | Done | ◐ | Blocking `FOR UPDATE` on the study row; concurrent-overspend regression test |
 | `dotaznik.py`, `pipeline.py` | Questionnaire + respondents | Phase 5 | ○ | ○ | Needs seeded parity tests |
 | `research_designer.py` | Research design | Phase 5 | ○ | ○ | |
 | `analysis_agent.py` | 8 analysis modules | Phase 6 | ○ | ○ | |
