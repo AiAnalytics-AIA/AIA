@@ -1,6 +1,6 @@
 # product-surface (A9)
 
-**STATUS: ACTIVE. Chunks 0–3 and vertical slice V are pushed as stacked draft PRs.
+**STATUS: ACTIVE. Chunks 0–3 are stacked PRs; slice V (#24) is merged into #21's branch.
 The slice is waiting for review; chunks 4–11 will not start until it has been reviewed.**
 Cloud session. PostgreSQL 16 and Python 3.12 were provisioned in-session, with
 Node 22.22.2 for the web client. Every number below was measured here.
@@ -20,8 +20,8 @@ capability, say so on screen.
 | #16 | `feature/web-vocabulary` | Chunk 0: domain vocabulary, 13-stage lifecycles | green at last check |
 | #17 | `feature/design-tokens` | Chunk 1: `tokens.json` → css/ts, themes, fonts, identity, contrast checks | green at last check |
 | #18 | `feature/enum-binding` | Chunk 2: exhaustive `Record<>` maps + `make enum_check` in CI | green at last check |
-| #21 | `feature/web-primitives` | Chunk 3: Vitest and the primitives | Frontend was red on 22.9 at a02643c (jsdom 30 needs Node ≥ 22.22.2; CI pinned Node 20). Fixed in 8f51488 (CI Node 22). CI on the new head not reported yet |
-| #24 | `feature/web-first-slice` | Chunk V: the slice on the real API | not reported yet (head bc94266) |
+| #21 | `feature/web-primitives` | Chunk 3: Vitest and the primitives, plus slice V since #24 merged in | green on 8f51488 (all 6 checks), after the CI Node 20 → 22 fix. The #24 merge moved the head; CI on the new head not re-checked yet |
+| #24 | `feature/web-first-slice` → `feature/web-primitives` | Chunk V: the slice on the real API | **merged** into `feature/web-primitives`; all 6 checks green on bc94266 |
 
 ## Slice V: observed state
 
@@ -78,6 +78,6 @@ provider fallback, approval authorization, Sociomapping math.
 
 ## Next
 
-1. Get slice review on #24.
+1. The slice now reaches main through #21 → #18 → #17 → #16 → #15; review the stack.
 2. Drive #21 and #24 to green CI.
 3. Once OI-12 is acknowledged, run chunk 4 (scope chrome + the `accent_slot` migration).
