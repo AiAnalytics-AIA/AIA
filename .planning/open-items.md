@@ -175,7 +175,248 @@ for the first time.
 
 ---
 
-## OI-6 · Question · Gate decisions that only the withheld legacy source can confirm
+## OI-6 · Finding · Project content carries a second, unvalidated population identity
+
+**Claim.** A project revision records which population and weight it used as free
+text the caller supplies — `population_snapshot`, `weighting` and
+`aggregation_policy` in the content, `panel_version` on the revision — and none of
+it is checked against the population registry or the import contract, so it can
+disagree with the `PopulationBinding` the run actually records.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/pipeline.py:294,298-299 @ 17c0a6b`
+(those keys feed the FIELDWORK and AGGREGATION stage fingerprints);
+`packages/aia_core/src/aia_core/infrastructure/repositories.py:407 @ 17c0a6b`
+(`panel_version: str = ""`); `infrastructure/tables.py` `ProjectRevisionRow.panel_version`.
+
+**Reproduction.** `ProjectRepository.save(project_id, content={..., "population_snapshot":
+{"panel_version": "v99"}, "weighting": "vaha_kalibrovana"})` succeeds, and the stage
+fingerprint changes on the string alone.
+
+**Consequence.** R4 one level up: the project can *say* `v17_4_0` / structural
+weight while the run was bound to a different version or weight, and a string edit
+reopens stages without any population change. Harmless today — no research step
+reads the population yet — and a false provenance claim the moment one does.
+
+**Smallest fix.** When research execution lands, derive the FIELDWORK/AGGREGATION
+fingerprint inputs from the resolved binding (`version_id`, `content_sha256`,
+`weight_column`, `view`) instead of from free text, and reject a `weighting` role
+the contract does not declare.
+
+**Test that would catch it.** A pipeline test asserting that two projects with the
+same binding and different `population_snapshot` strings fingerprint identically,
+and that an undeclared `weighting` role is refused.
+
+**Status.** Open. Filed by the population foundation
+(`.planning/plans/done/population-version-foundation.md`), deliberately not fixed
+there: it changes stage-fingerprint semantics, which is research-engine scope and
+needs the parity suite run against `AIA_LEGACY_REFERENCE`.
+
+---
+
+## OI-7 · Question · The seven enrichment derivations are not recovered
+
+**Claim.** The ANALYSIS population view needs `audience_dimensions.enrich_panel`'s
+seven `*_derived` fields, and their derivation logic is in the withheld archive
+only; `PopulationRuntime` therefore refuses to load ANALYSIS in production.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/population.py`
+`PopulationRuntime._enrich` (raises `EnrichmentFailed` with no enricher) @ this
+change; AIA-reference `data-import-contracts/czech-population.md` OUTPUT.
+
+**Consequence.** Correct fail-closed behaviour (R1), and a hard blocker for any
+research or simulation step that needs the analysis view. The BASE view loads.
+
+**Decision needed.** Recover the derivations from the archive (data owner, D1/D3 in
+AIA-reference `open-decisions.md`) and port them behind the `Enricher` protocol
+with an EXACT parity fixture — or decide the research engine does not need them.
+Either way, the eight runtime fields still need a data-owner classification before
+any may back a client-facing claim (`DerivedField.client_claims_allowed` is False).
+
+**Status.** Open.
+
+---
+
+## OI-8 · Question · No authorization model for establish and promote
+
+**Claim.** `PopulationRuntime.establish` and `promote_live` require an actor and a
+reason but check no permission: the scope model has no platform-administrator role,
+and population data is not study-scoped.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/population.py`
+`establish` / `promote_live` @ this change; `domain/scope.py` `Permission`.
+
+**Consequence.** None today — no route, worker or CLI exposes them. The first one
+that does must not ship without a permission check, or any caller with a session
+could move LIVE for every study at once.
+
+**Smallest fix.** A platform-level permission (for example `POPULATION_PROMOTE`)
+issued only to an operator role, checked in both methods, with the refusal tested
+by type.
+
+**Status.** Open. Must close before any exposure of promotion.
+
+---
+
+## OI-13 · Gap · The reference's Python unfolding cannot be reproduced without its source
+
+**Claim.** `python_weighted_unfolding` — the layout every local reference run
+actually used — is refused by the engine, because fixture F4 pins its output but
+not its method, and its source is in the withheld archive.
+
+**Anchor.** `LAYOUT_ALGORITHMS` in `packages/aia_core/src/aia_core/domain/sociomap/layout.py`;
+test `test_legacy_algorithms_fail_closed_and_say_why`. Reference:
+`golden-fixtures/F4_python_unfolding_layout.json` @ AIA-reference `678e298`.
+
+**Reproduction.** `require_layout_algorithm("python_weighted_unfolding")` raises
+`LayoutUnavailable` naming `REF-WITHHELD-REFERENCE-ARCHIVE`. The evidence that it
+cannot be reconstructed: ~200 candidate stress definitions (target transform ×
+disparity fit × normalisation) evaluated on F4's own coordinates; none gives
+`stress_1 = 0.391394498` (closest 0.3923).
+
+**Consequence.** Production maps are laid out by `aia_rowcond_unfolding_v1`,
+which is **not numerically comparable to any legacy map**: on F4's ratings the
+two configurations differ by Procrustes RMSD 1.91 against a radius of 2.01. A
+client comparing a new map to a legacy one would see different geometry.
+
+**Smallest fix.** Read `sociomap.fit_python_unfolding` from the archive once the
+licence decision releases it (or have the data owner extract that one function),
+port it under its own identifier, and assert F4 at `1e-6`.
+
+**Test that would catch it.** F4 itself, once the port exists:
+`test_f4_python_unfolding_matches_the_reference` at tolerance `1e-6`.
+
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`. Owner:
+sociomapa-deterministic.
+
+---
+
+## OI-14 · Gap · Object-map base layout (`baseObjectLayout66`) is unrecovered
+
+**Claim.** The reference places objects on the object map with a 1,235-character
+frontend function, `baseObjectLayout66(effectiveMatrix66())`, whose source is
+withheld; F8's expected terrain depends on those positions, so F8 is reproduced
+only in part.
+
+**Anchor.** `ui-capability-ledger.json` entry `baseObjectLayout66` @ AIA-reference
+`678e298`; tests `test_f8_uses_the_reference_constants_and_bounds`,
+`test_f8_height_to_elevation_chain`.
+
+**Reproduction.** F8 gives the object matrix and metric values but not positions;
+a 2,000-start least-squares inverse fit of four object positions to F8's three
+finite samples found no placement consistent with them and with
+`finite_hr_cells = 1655`.
+
+**Consequence.** Production object positions come from the ratings unfolding,
+not from the relation matrix. A scenario edit to the relation matrix therefore
+changes object *heights* but never object *positions*, whereas in the reference
+it may move objects. The kernel-weighted-mean semantics, constants and bounds are
+verified; the end-to-end F8 field is not.
+
+**Smallest fix.** Obtain the function (or a fixture of its output positions for
+F8's matrix), port it as a declared object-layout option, and assert F8 end to end.
+
+**Test that would catch it.** `test_f8_object_terrain_matches_the_reference`,
+comparing every sample, `sum_ht` and `finite_hr_cells`.
+
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`.
+
+---
+
+## OI-15 · Gap · `REF-GAP-SOCIO-R-SMACOF` — R numerical parity is not claimed
+
+**Claim.** No fixture characterises the reference's R branch
+(`fit_r_smacof`, R `smacof::unfolding`, row-conditional), so `r_smacof_unfolding`
+is refused and no R parity is claimed anywhere.
+
+**Anchor.** `reference-gaps.md` § REF-GAP-SOCIO-R-SMACOF @ AIA-reference `678e298`;
+test `test_legacy_algorithms_fail_closed_and_say_why`.
+
+**Reproduction.** Measured in a cloud session on 2026-09-22: `apt-get install
+r-base-core` succeeds (R 4.3.3), but CRAN is unreachable through the session's
+network policy (`available.packages()` → *cannot open URL …/PACKAGES*) and no
+`r-cran-smacof` package exists in the apt archive, so `smacof` cannot be
+installed. **The environment is no longer the only blocker:** the gap's recipe
+runs the *reference's* `sociomap.fit_unfolding(method="r_smacof")`, whose wrapper
+(which `smacof` arguments, which target) is in the withheld archive. Running
+`smacof::unfolding` with guessed arguments would characterise R, not the
+reference.
+
+**Consequence.** Parity with the reference's primary layout contract is unknown.
+The size of the reference's own host-dependence defect (R vs Python coordinates
+for one study) is also still unmeasured.
+
+**Smallest fix.** On a host with CRAN access and the archive: run the recipe in
+`reference-gaps.md` to emit `F12_r_smacof_unfolding_layout.json`, vendor it here
+under `fixtures/sociomap/`, then decide whether `r_smacof_unfolding` becomes an
+implemented algorithm (an R adapter in `infrastructure/`, failing closed when R is
+absent) or stays refused.
+
+**Test that would catch it.** `test_f12_r_smacof_layout_matches_after_procrustes`,
+comparing aligned coordinates *and* pairwise distances at the tolerance the
+reference's `parity-plan.md` records for F12.
+
+**Status.** Open. Owners: parity-quality + sociomapa-deterministic.
+
+---
+
+## OI-16 · Question · The AIA layout and its declarations need methodology sign-off
+
+**Claim.** Four spec values in `AIA_SOCIOMAP_V1` are AIA declarations, not
+recovered reference behaviour: the dissimilarity target `scale_top_minus_rating`,
+the layout `aia_rowcond_unfolding_v1`, the map frame (`max_abs_to_extent`, 45),
+and relation missing-data `refuse`.
+
+**Anchor.** `AIA_SOCIOMAP_V1` in `packages/aia_core/src/aia_core/domain/sociomap/specification.py`
+(each value is commented with its source); `docs/architecture/sociomapa-deterministic-engine.md` §5.
+
+**Consequence.** Adopting a spec for a client study is a group-D decision
+(`sociomapa-deterministic-engine.md` §1). Until a methodology owner accepts these
+four values, a production map is reproducible and auditable but its methodology
+is the engineering team's, not the product's.
+
+**Smallest fix.** The methodology owner completes the four approval fields in
+[`docs/architecture/sociomapa-methodology-decision.md`](../docs/architecture/sociomapa-methodology-decision.md):
+ACCEPT, REPLACE or DEFER per declaration, each with the evidence, the
+consequence, the real alternatives and legacy comparability. The answer is
+recorded there, here and in D6.
+
+**Status.** Open — decision package ready, awaiting the owner (D6). **This is the
+only methodology decision preventing client use.** It does not block computation.
+
+---
+
+## OI-17 · Requirement · No gate yet stops an unapproved Sociomap reaching a client
+
+**Claim.** Nothing yet checks that a Sociomap entering a client deliverable was
+computed under an approved methodology. The engine computes any supported spec
+by design, and approval is product policy that the engine must not know.
+
+**Anchor.** `docs/architecture/sociomapa-deterministic-engine.md` §13, rule 2;
+`tools/layer_check.sh` "… never substitutes the Sociomap preset" (rule 3, the
+part enforceable today).
+
+**Consequence.** As soon as a route, job or export can emit a Sociomap, an
+artifact computed under unapproved `aia-sociomap-1` could be delivered. No such
+path exists yet — the worker, API and web wiring are all blocked — so there is
+no exposure today.
+
+**Smallest fix.** An approved-methodology registry in product policy, entries
+`(methodology_version, spec_fingerprint, approver, date)`, and one check at the
+client-deliverable boundary that refuses an artifact whose pair is not in it.
+Cross-context: **owned by integration-architecture** with product policy; it
+belongs with the approval/gate machinery, not in the Sociomap engine.
+
+**Test that would catch it.** A deliverable-boundary test: an artifact under an
+unregistered `(version, fingerprint)` pair is refused, the same pair after
+registration is accepted, and a registered version with a different fingerprint
+is refused.
+
+**Status.** Open, not yet exposed. Must land before, or with, the first path that
+can emit a Sociomap to a client.
+
+---
+
+## OI-18 · Question · Gate decisions that only the withheld legacy source can confirm
 
 **Claim.** Five decisions in the evidence layer are fail-closed *readings* of the
 reference, because the legacy source is withheld with the archive
@@ -210,7 +451,7 @@ the reading if it differs.
 
 ---
 
-## OI-7 · Question · RELIGION is donor-matched but not named in the joint certificate
+## OI-19 · Question · RELIGION is donor-matched but not named in the joint certificate
 
 **Claim.** The five `RELIGION` fields are `MATCHED_WHOLE_BLOCK_CANONICAL`
 (donor-matched), and the reference certificate's `matched_blocks` lists six
@@ -235,7 +476,7 @@ refusal is correct. Not an engineering judgement.
 
 ---
 
-## OI-8 · Finding · Automatic factual-question detection is not ported
+## OI-20 · Finding · Automatic factual-question detection is not ported
 
 **Claim.** The reference `factual_layer.py` classifies common factual survey
 questions automatically and maps them to panel fields. Only its explicit-metadata

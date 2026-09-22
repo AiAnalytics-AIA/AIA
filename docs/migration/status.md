@@ -268,8 +268,8 @@ no runtime code (M02), and the allowed-metric set existed only inside a prompt
   (the reference passed at 95%), and a runner that ends COMPLETED or BLOCKED.
 
 Where the legacy source would have to confirm a decision, the fail-closed reading
-is taken and recorded (`.planning/open-items.md` OI-6); two further items went to
-the register (OI-7 `RELIGION`, OI-8 factual keyword detection). The plan and its
+is taken and recorded (`.planning/open-items.md` OI-18); two further items went to
+the register (OI-19 `RELIGION`, OI-20 factual keyword detection). The plan and its
 review map are in `.planning/plans/done/evidence-governance-foundation.md`.
 
 ## In progress

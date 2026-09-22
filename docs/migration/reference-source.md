@@ -79,6 +79,21 @@ Rules:
 
 ## `AIA_REFERENCE_REPO` contract
 
+The population parity suite (`packages/aia_core/tests/test_population_reference_parity.py`)
+reads the **repository**, not the archive: `field-policy.json`,
+`dataset-ledger.json` and `golden-fixtures/F10_*` / `F11_*`.
+
+```bash
+git clone https://github.com/AiAnalytics-AIA/AIA-reference.git ../aia-reference
+export AIA_REFERENCE_REPO=../aia-reference     # optional; ../aia-reference is the default
+make test-parity
+```
+
+Same rules as above: absent is valid and every test skips; nothing from it is ever
+copied here. The production contract (`aia_core.domain.population.czech`) pins the
+field dictionary by SHA256 and the ordered field names by fingerprint instead of
+carrying the 400 names, and this suite is what proves the pins still match.
+
 The evidence-governance parity suite
 (`packages/aia_core/tests/test_evidence_gate_parity.py`) reads the machine-readable
 exports of the private reference *repository* — `field-policy.json` and
@@ -90,7 +105,7 @@ export AIA_REFERENCE_REPO=../aia-reference     # the default when unset
 pytest packages/aia_core/tests/test_evidence_gate_parity.py
 ```
 
-Same rules as `AIA_LEGACY_REFERENCE`: absent is valid and skips cleanly, the
+Same rules again: absent is valid and skips cleanly, the
 checkout is read-only, and nothing from it is committed here. The field policy in
 particular is **supplied at runtime** with the population version it describes; it
 is never vendored.
@@ -147,9 +162,22 @@ schema gate and the committed artifact are all asserted by
 
 | Item | Owner |
 | --- | --- |
-| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` | parity-quality + sociomapa-deterministic |
+| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and** the reference's withheld R wrapper; open as OI-15, no R parity claimed | parity-quality + sociomapa-deterministic |
 | `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential | parity-quality + simulation-engine |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` — needs a licence decision | data owner |
 
 Neither fixture gap is unknown behaviour: code paths, constants and seeds are
-recovered. Both need a different environment, not more discovery.
+recovered. The simulation gap needs a different environment. The Sociomapping
+gap turned out to need more than that: the R *recipe* runs the reference's own
+`fit_unfolding` wrapper, which is in the withheld archive
+(`.planning/open-items.md` OI-15).
+
+## Golden fixtures vendored here
+
+`golden-fixtures/F1`–`F9` (Sociomapping) are vendored under
+`packages/aia_core/tests/fixtures/sociomap/`, byte for byte, each pinned to its
+SHA256 in `index.json` against the reference commit it came from. They are
+synthetic inputs with the reference's recorded outputs — not reference source,
+not client data — which is what makes them the one kind of reference material
+this repository may hold. One is renamed to satisfy `exposure_check` (see
+`AGENTS.md`).

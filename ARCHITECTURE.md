@@ -17,6 +17,8 @@ It deliberately does not describe the product. That lives in
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](docs/architecture/scope-and-authorization.md) | Client/Study isolation |
 | [security.md](docs/architecture/security.md) | Threat model |
+| [sociomapa-deterministic-engine.md](docs/architecture/sociomapa-deterministic-engine.md) | Sociomapping engine: what is ported, declared and refused |
+| [sociomapa-methodology-decision.md](docs/architecture/sociomapa-methodology-decision.md) | The D6 decision package for the methodology owner |
 | [adr/](docs/architecture/adr/README.md) | Seven decision records, with the reasoning |
 
 ---
@@ -37,8 +39,8 @@ point; nothing outside it touches its internals.
 
 | # | Layer | Path | Owns | May depend on |
 |---|---|---|---|---|
-| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, evidence gates, analysis modules. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only. |
-| 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context.** Orchestrates domain + infrastructure. | 1, 3 |
+| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract, Sociomapping mathematics, evidence gates, analysis modules. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only — numerical code included, which is why the Sociomap engine is pure Python rather than numpy. |
+| 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context, and the only loader of population data.** Orchestrates domain + infrastructure. | 1, 3 |
 | 3 | **Infrastructure** | `packages/aia_core/src/aia_core/infrastructure/` | SQLAlchemy tables and repositories, object storage, provider gateways. Every external service behind a protocol. | 1 |
 | 4 | **Workers** | `apps/worker/` *(Phase 3+, not yet created)* | Durable job execution. Triggered by the application layer; performs via repositories + services. | 1, 2, 3 |
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
@@ -79,6 +81,9 @@ Run it before every commit. It is blocking in CI.
 | no ORM tables in the HTTP layer | Queries written where they cannot be tested without the whole stack |
 | scope contexts are issued only by `ScopeResolver` | A request body, tool payload or model-generated argument widening its own scope |
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
+| runtime populations are issued only by the canonical loader (and never by the API) | A second loader returning different population semantics from the same bytes (reference F10, R4) |
+| population panels are parsed only by the canonical loader (and never by the API) | The first step of that second loader: a consumer reading the panel itself |
+| the Sociomap preset `AIA_SOCIOMAP_V1` is never named outside the Sociomap domain package | An engineering preset silently filling in a missing spec, and becoming client methodology by default ([sociomapa-deterministic-engine.md §13](docs/architecture/sociomapa-deterministic-engine.md#13-computable-is-not-deliverable)) |
 | claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
 | the API never admits its own claims | The same, at the edge where untrusted input arrives |
 | a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
@@ -114,6 +119,11 @@ script, then confirm it passes before committing.
   `ScopeResolver` through a module-private sentinel. Repositories refuse anything
   that is not an issued context, by type. This is the isolation boundary; see
   [scope-and-authorization.md](docs/architecture/scope-and-authorization.md).
+- **Population data is a capability too.** `RuntimePopulation` is issuable only by
+  `PopulationRuntime` through the same sentinel construction, and carries the
+  `PopulationBinding` (version, content hash, weight scheme, view) it was loaded
+  under. A run records its binding once, at creation; a step reads the population
+  only through it. See `aia_core.domain.population`.
 - **Evidence is a capability, not a flag.** A number enters an analysis result
   only as an `AdmittedClaim`, which only `aia_core.domain.evidence.admit_numeric_claims`
   can mint, after the field policy, the `CORE_JOINT_STATUS` certificate, support,
