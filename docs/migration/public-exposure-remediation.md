@@ -1,8 +1,39 @@
 # Public exposure of reference material — findings and remediation
 
-**Status:** proposal. The current-tree removals and the CI guard are implemented
-in this change. **No history has been rewritten**, and none will be without
-explicit human approval.
+## Decision D5 — RESOLVED, 2026-09-22
+
+**`AiAnalytics-AIA/AIA` must not remain public. It is to be made PRIVATE.**
+Frozen product/security decision, taken by the data owner, on these grounds:
+
+- legacy and reference filenames already expose real client and company
+  associations;
+- the repository contains reference-derived inventory material;
+- the production codebase is not intended for public distribution;
+- future architecture, client configuration and migration metadata must not be
+  publicly visible.
+
+**History is NOT to be rewritten.** Making the repository private lowers the
+urgency of a rewrite to the point where preserving history is the better trade.
+Existing commits stay unless a later legal or data-owner review determines they
+must be expunged. §4 below is retained as the costed procedure **should that
+review ever call for it** — it is no longer the recommendation.
+
+**The cleanup is still required.** Private is not a substitute for any of it:
+remove `aia-reference-rebuild-package/`, remove `.agent-status/` from `main`, keep
+the exposure guard, and keep detailed reference material only in
+`AiAnalytics-AIA/AIA-reference`. Private is a setting somebody can change back,
+and it is not need-to-know — every collaborator, CI log and future fork still sees
+whatever is committed.
+
+> **The visibility change itself has not been made by this session.** The agent
+> proxy refuses repository settings writes (`403 Repository settings writes are
+> not permitted through this proxy`), so it requires a human with admin rights.
+> Until it is confirmed, treat this repository as **public**. Verification
+> command is in §8.
+
+**Status of the rest of this document:** the current-tree removals and the
+guard are implemented. D4 — which legacy identifiers name real clients — remains
+open, and now applies to whether they should remain even in a private repository.
 
 `AiAnalytics-AIA/AIA` is **public**. The legacy NPC Panel reference is client
 work, and its *filenames alone* name real companies and engagements. A filename
@@ -129,11 +160,13 @@ this repository cannot make. Recommended sequencing is in §6.
 **Not performed. Not recommended as a first step.** Recorded so the decision can
 be made on facts.
 
-### Recommendation
+### Recommendation — superseded by D5
 
-**Rotate the assumption, not the history — unless the data owner confirms these
-are real client names under a confidentiality obligation.** If they do, rewrite,
-and accept the costs in §5. The reasoning:
+**Retained for the record. The data owner has since chosen to make the repository
+private and to preserve history**, which is the outcome this section argued for
+over a rewrite. Do not read what follows as an open question.
+
+The original reasoning, which D5 accepted:
 
 - The content disclosed is a *file-name inventory*, not client data, credentials
   or research output. Nothing here is a secret that can be rotated, which is the
@@ -145,9 +178,9 @@ and accept the costs in §5. The reasoning:
 - Making the repository **private** — if that is acceptable — removes the
   exposure immediately and completely for anything not already copied, at a far
   lower cost than a rewrite, and can be done while the classification question is
-  settled.
+  settled. **This is the option that was chosen.**
 
-### Procedure, if approved
+### Procedure, if a later review ever requires a rewrite
 
 Requires: every open PR merged or closed, every collaborator notified, and a
 maintenance window in which nobody pushes.
@@ -211,22 +244,25 @@ Additional consequences:
 - **Forks are unaffected and keep the content.** A fork cannot be rewritten by
   this organization.
 
-**Recommended order regardless of the rewrite decision:** land the current-tree
-removal first. It is cheap, reversible and stops further exposure, and it does
-not foreclose a rewrite later.
+**Order under D5:** make the repository private first, then land the current-tree
+removal. Both are cheap and reversible, and neither forecloses a rewrite if a
+later legal or data-owner review requires one.
 
-## 6. Proposed sequencing
+## 6. Sequencing under D5
 
-1. **Now** — this change: delete the package, delete `.agent-status/`, add the
+1. **Blocking, human** — set visibility to private, and verify it per §8. Nothing
+   below depends on it, but the exposure stays open until it is done.
+2. **Now** — this change: delete the package, delete `.agent-status/`, add the
    blocking CI guard, point the docs at the private reference repository.
-2. **Data owner** — classify the ambiguous tokens in §2. Are `NOVA`, `STREAMIO`,
-   `AURORA`, `NEXORA`, `RAILMOVE`, `MESTO`, `VOLBA` real clients or demo brands?
-   Everything downstream depends on this answer.
-3. **After PR #7 merges** — reduce `reference-manifest.json` per §3, with the
+3. **Data owner (D4)** — classify the ambiguous tokens in §2. Are `NOVA`,
+   `STREAMIO`, `AURORA`, `NEXORA`, `RAILMOVE`, `MESTO`, `VOLBA` real clients or
+   demo brands? Now also: should the confirmed ones remain even in a private
+   repository? Everything downstream depends on this answer.
+4. **After PR #7 merges** — reduce `reference-manifest.json` per §3, with the
    matching `scan()` exclusion, and extend the guard's token list to whatever
-   step 2 confirms.
-4. **Human decision** — private repository, history rewrite, or accept, informed
-   by §4.
+   step 3 confirms.
+5. **Not scheduled** — history rewrite. Preserved unless a legal or data-owner
+   review requires expunging commits.
 
 ## 7. What the guard enforces
 
@@ -242,3 +278,41 @@ not foreclose a rewrite later.
 
 It checks the working tree, which is what a PR adds. **It cannot scrub history**,
 and nothing in this change pretends otherwise.
+
+The guard survives D5 deliberately. Private is a setting that can be changed
+back, and a control removed because it looked unnecessary is not there when it
+becomes necessary again.
+
+## 8. Public surface at the moment of the decision
+
+Captured from the GitHub API at **2026-09-22T20:17:03Z**, immediately before the
+visibility change was attempted:
+
+| Surface | State | Consequence |
+| --- | --- | --- |
+| Forks | **0** | Nothing to chase. A fork would have kept the content regardless of visibility |
+| Network / subscribers | **0** / **0** | No downstream copies via GitHub |
+| Stars / watchers | **0** / **0** | No signal that anyone found it |
+| Releases | **0** | No published assets |
+| Tags | **0** | No downloadable archives |
+| GitHub Pages | `has_pages: false` | No site served from the repository |
+| Downloads | `has_downloads: false` | — |
+| Repository created | 2026-02-11T12:59:18Z | Public window: ~7 months |
+
+**This is the best case available.** Nobody forked, starred or watched it, and no
+release or Pages site distributed anything. What cannot be ruled out is anonymous
+cloning and third-party indexing by code-search crawlers, which leave no trace in
+the API. That residual is the reason the cleanup proceeds anyway.
+
+### Verifying the visibility change
+
+```bash
+gh api repos/AiAnalytics-AIA/AIA --jq '{visibility, private, forks_count}'
+# expect: {"visibility":"private","private":true,"forks_count":0}
+```
+
+The agent proxy in this environment **refuses repository settings writes**, so
+this change cannot be made from an agent session and must be performed by a human
+with admin rights:
+
+**Settings → General → Danger Zone → Change repository visibility → Make private**

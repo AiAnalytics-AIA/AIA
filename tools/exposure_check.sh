@@ -2,10 +2,16 @@
 #
 # Public-exposure guard for AiAnalytics-AIA/AIA.
 #
-# This repository is PUBLIC. The legacy reference is client work: its filenames
-# alone name real companies and engagements, and a filename is disclosure even
-# when the file it names is absent. AiAnalytics-AIA/AIA-reference is private and
-# authoritative for anything detailed.
+# The legacy reference is client work: its filenames alone name real companies and
+# engagements, and a filename is disclosure even when the file it names is absent.
+# AiAnalytics-AIA/AIA-reference is private and authoritative for anything detailed.
+#
+# This repository is being made PRIVATE (decision D5, 2026-09-22). That does not
+# retire this guard, for two reasons. Private is a setting somebody can change
+# back, and a guard that was removed when it looked unnecessary is not there when
+# it becomes necessary again. And private is not need-to-know: every collaborator,
+# every CI log and every future fork still sees whatever is committed, so detailed
+# reference material still does not belong here.
 #
 # This script fails the build when reference material that belongs in the private
 # repository appears here. Grep-level on purpose, matching tools/layer_check.sh:
@@ -125,8 +131,9 @@ fi
 
 echo
 if [ "$FAILED" -ne 0 ]; then
-  echo "exposure_check: FAILED -- this repository is PUBLIC."
-  echo "Detailed reference material belongs in AiAnalytics-AIA/AIA-reference."
+  echo "exposure_check: FAILED."
+  echo "Detailed reference material belongs in AiAnalytics-AIA/AIA-reference,"
+  echo "which is private and authoritative -- regardless of this repo's visibility."
   exit 1
 fi
 echo "exposure_check: $PASSED rules pass."

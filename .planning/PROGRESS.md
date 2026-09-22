@@ -45,7 +45,30 @@ skips (`.github/workflows/ci.yml:99-108` @ df294e2).
 
 Nothing. The tree is green.
 
-## The reference is now a private repository
+## Repository visibility — D5, frozen
+
+**`AiAnalytics-AIA/AIA` is to be PRIVATE.** Product/security decision, taken
+2026-09-22 and not open for re-litigation. The production codebase is not for
+public distribution, and legacy filenames already expose real client
+associations.
+
+**History is preserved.** Going private lowers the urgency of a rewrite to the
+point where keeping history is the better trade. Commits stay unless a later
+legal or data-owner review requires expunging them.
+
+**The cleanup still applies in full.** Private is not need-to-know and is a
+setting somebody can change back: detailed reference material stays out of this
+repository, the exposure guard stays blocking, and
+`AiAnalytics-AIA/AIA-reference` remains the only home for detail.
+
+> ⚠️ **The visibility change is OUTSTANDING.** No agent session can make it —
+> the proxy refuses repository settings writes (HTTP 403). Until a human confirms
+> it via `gh api repos/AiAnalytics-AIA/AIA --jq .visibility`, **treat this
+> repository as public.** Surface measured at the moment of decision: 0 forks,
+> 0 stars, 0 watchers, 0 releases, 0 tags, no Pages —
+> `docs/migration/public-exposure-remediation.md` §8.
+
+## The reference is a private repository
 
 **`AiAnalytics-AIA/AIA-reference` @ `678e298ad9ca0263da53cc8920d153fdfb956c93`,
 tag `reference-18.6.6-gemo-2026-09-11-v1`, is authoritative for every question
@@ -110,8 +133,8 @@ left to build.
 | D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
 | D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
-| D4 | **Which legacy brand tokens name real clients.** The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction; the D5 decision | `docs/migration/public-exposure-remediation.md` §2 |
-| D5 | **Rewrite public history, make the repository private, or accept** the reference-filename exposure. Procedure, recommendation and costs are recorded; **no history has been rewritten and none will be without explicit approval** | Closing the exposure | `docs/migration/public-exposure-remediation.md` §4–5 |
+| D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
+| D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED 2026-09-22: the repository goes PRIVATE and history is PRESERVED.** Frozen. The visibility change itself is **outstanding** — it needs a human with admin rights, because the agent proxy refuses repository settings writes | Closing the exposure | `docs/migration/public-exposure-remediation.md` § D5 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);

@@ -104,6 +104,40 @@ that a future raw query cannot bypass the repository.
 | Double billing after a crash | `RECOVERY_REQUIRED` + `SETTLED_UNCERTAIN`; a possibly-billed call is never auto-retried | Implemented, tested |
 | Dependency vulnerabilities | `pip-audit` and `npm audit` in CI | Implemented |
 | Committed secrets | CI greps for provider key shapes and fails the build | Implemented |
+| Client identity disclosed by legacy filenames | Repository private (D5); `tools/exposure_check.sh` blocking in CI; detail confined to the private reference repository | Guard implemented; **visibility change outstanding** |
+
+## Repository visibility
+
+**This repository is to be PRIVATE** — decision D5, 2026-09-22, frozen. It holds
+the production codebase, architecture, client configuration and migration
+metadata, none of which is intended for public distribution. Separately, the
+legacy reference is client work whose *filenames alone* name real companies, and
+a filename is disclosure even when the file it names is absent.
+
+> ⚠️ **The change is outstanding at the time of writing** and must be made by a
+> human with admin rights; an agent session cannot make it. Verify with
+> `gh api repos/AiAnalytics-AIA/AIA --jq .visibility`. Until that returns
+> `private`, **every threat assessment on this page should be read as though the
+> repository were public.**
+
+**Private is not a control by itself, and nothing here depends on it.** Three
+reasons this matters for the threat model:
+
+1. **It is a setting, not a boundary.** It can be changed back, by accident or by
+   someone who does not know why it was set.
+2. **It is not need-to-know.** Every collaborator, every CI log and every future
+   fork sees whatever is committed. Confidential material is kept out of the
+   repository, not hidden by its visibility.
+3. **It is not retroactive.** It closes future access; it does not retract what
+   was already fetched or indexed while the repository was public.
+
+So the controls stand on their own: detailed reference material lives only in
+`AiAnalytics-AIA/AIA-reference` (private), and `tools/exposure_check.sh` blocks
+its return regardless of visibility. History is deliberately **preserved** —
+going private lowered the urgency of a rewrite enough that keeping history is the
+better trade. Full reasoning, the measured public surface and the rewrite
+procedure should it ever be needed:
+[`../migration/public-exposure-remediation.md`](../migration/public-exposure-remediation.md).
 
 ## Secret handling
 
@@ -170,7 +204,10 @@ Ordered by how much they should worry you:
 6. **No OpenTelemetry instrumentation.** Structured logging, request correlation
    and secret redaction exist; distributed tracing does not. See
    *Observability* below.
-7. **Upload, SSRF and export controls** are not built because those features are
+7. **The repository is still public** until D5's visibility change is applied,
+   and client-identifying legacy filenames remain in `reference-manifest.json`
+   pending D4. Neither is a code defect; both are open exposure.
+8. **Upload, SSRF and export controls** are not built because those features are
    not built.
 
 ## Observability
