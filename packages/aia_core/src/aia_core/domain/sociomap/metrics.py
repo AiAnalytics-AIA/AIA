@@ -184,14 +184,24 @@ def build_normalizer(
     return Normalizer(mode, lo, hi, False, lambda x: _clamp01((x - lo) / (hi - lo)))
 
 
-def bounds_for(metric_id: str, mode: NormalizationMode) -> tuple[float, float] | None:
+def bounds_for(
+    metric_id: str,
+    mode: NormalizationMode,
+    *,
+    rating_scale: tuple[float, float] | None = None,
+) -> tuple[float, float] | None:
     """The bounds ``build_normalizer`` should use for ``metric_id`` under ``mode``.
 
-    Only ``absolute`` mode consults bounds. For it, a metric whose bounds were not
-    recovered raises :class:`UnknownMetricBounds`.
+    Only ``absolute`` mode consults bounds. ``mean_rating`` is bounded by the
+    rating scale the spec declares, when one is given -- the reference's (1, 10)
+    is only that scale's default; a 0-5 study normalised against 1-10 would put a
+    perfect mean at 4/9. Any other metric whose bounds were not recovered raises
+    :class:`UnknownMetricBounds`.
     """
     if NormalizationMode(mode) is not NormalizationMode.ABSOLUTE:
         return None
+    if metric_id == ObjectMetric.MEAN_RATING and rating_scale is not None:
+        return (float(rating_scale[0]), float(rating_scale[1]))
     if metric_id not in METRIC_BOUNDS:
         raise UnknownMetricBounds(
             f"bounds for metric {metric_id!r} were not recovered from the reference; "

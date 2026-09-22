@@ -228,6 +228,21 @@ def test_absolute_normalisation_runs_where_bounds_were_recovered() -> None:
     assert (art.object_terrain.normalizer_lo, art.object_terrain.normalizer_hi) == (1.0, 10.0)
 
 
+def test_absolute_normalisation_uses_a_declared_non_default_scale() -> None:
+    spec = RATINGS_ONLY.model_copy(
+        update={
+            "ratings": RATINGS_ONLY.ratings.model_copy(
+                update={"rating_scale_min": 0.0, "rating_scale_max": 5.0}
+            ),
+            "terrain": RATINGS_ONLY.terrain.model_copy(update={"normalization": "absolute"}),
+        }
+    )
+    rows = [[min(5, v) if v is not None else None for v in r] for r in RATINGS]
+    rows[0] = [5, 5, 5, 0]  # a perfect mean on A must normalise towards 1, not 4/9
+    art = compute_sociomap(SociomapInputs(ratings=ratings(rows), object_relation=None), spec)
+    assert (art.object_terrain.normalizer_lo, art.object_terrain.normalizer_hi) == (0.0, 5.0)
+
+
 # --------------------------------------------------------- input refusals --
 
 
@@ -452,6 +467,9 @@ def test_view_terrain_scopes_to_a_subset_and_redraws_another_metric(
     assert other.metric_id == "mean_rating"
     with pytest.raises(ViewOverrideMismatch):
         view_terrain(artifact, displayed, mode="respondent_density", respondent_subset=("zed",))
+    empty = view_terrain(artifact, displayed, mode="respondent_density", respondent_subset=())
+    assert empty.source_ids == ()
+    assert all(v == 0.0 for row in empty.height_normalised for v in row)
     with pytest.raises(ValueError, match="unknown terrain mode"):
         view_terrain(artifact, displayed, mode="storm")
 
@@ -474,6 +492,8 @@ def test_overrides_are_immutable_values_and_reset(artifact: SociomapArtifact) ->
     assert empty.objects == {} and moved.reset("A").objects == {}
     with pytest.raises(ValueError):
         empty.moving_respondent("p0", math.nan, 0.0)
+    with pytest.raises(ValueError, match="boolean"):
+        empty.moving_respondent("p0", True, 0.0)
 
 
 # -------------------------------------------------------------- scenario --
@@ -520,6 +540,8 @@ def test_scenario_is_bound_and_well_formed(artifact: SociomapArtifact) -> None:
         RelationEdit(source="A", target="A", value=5)
     with pytest.raises(ValueError, match="1-10"):
         RelationEdit(source="A", target="B", value=0.5)
+    with pytest.raises(ValueError, match="boolean"):
+        RelationEdit(source="A", target="B", value=True)
 
 
 def test_scenario_needs_a_relation_matrix() -> None:

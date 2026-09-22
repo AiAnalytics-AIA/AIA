@@ -43,15 +43,20 @@ step.
    ``sigma / C`` and as Kruskal stress-1 ``sqrt(sigma / sum w d^2)``.
 3. **Initialise.** ``b_i`` common. Objects by classical scaling of their profile
    distances ``D[j][k]^2 = mean_i (dhat[i][j] - dhat[i][k])^2`` over co-observing
-   rows, eigenvectors by cyclic Jacobi; respondents at the mean of the objects
-   weighted by ``max_k delta[i][k] - delta[i][j]`` (preferred objects pull
-   harder); then one least-squares scale against ``dhat``.
+   rows -- a pair nobody co-rated takes the mean of the known ones, and the
+   co-rating graph must be connected -- eigenvectors by cyclic Jacobi;
+   respondents at the mean of the objects weighted by
+   ``max_k delta[i][k] - delta[i][j]`` (preferred objects pull harder); then one
+   least-squares scale against ``dhat``.
 4. **Iterate** three exact block steps, none of which can increase ``sigma``:
    respondents given objects (``x_i <- mean_j [y_j + dhat_ij (x_i - y_j) / d_ij]``),
    objects given respondents (symmetrically), then ``b`` given the
    configuration (``b_i`` proportional to ``delta_i . d_i / |delta_i|^2``,
    renormalised). Stop when ``sigma / C`` improves by less than
    ``convergence_tolerance``, or after ``max_iterations``.
+   The start is single and deterministic, so like any unfolding the fit can
+   stop in a local minimum: low stress does not prove the geometry is the only
+   one the data allow. ``stress_1`` is reported for exactly that judgement.
 5. **Fix the gauge.** Translate the object centroid to the origin, rotate onto
    the objects' principal axes, reflect each axis so the objects' third moment
    on it is positive. Distances -- and so stress -- are unchanged, and two runs
@@ -182,12 +187,12 @@ class UnfoldingParameters(BaseModel):
     max_iterations: int
     convergence_tolerance: float
 
-    @field_validator("dimensions", "max_iterations", mode="before")
+    @field_validator("dimensions", "max_iterations", "convergence_tolerance", mode="before")
     @classmethod
     def _not_boolean(cls, v: object) -> object:
         # pydantic would coerce True to 1 before the checks below could see it.
         if isinstance(v, bool):
-            raise ValueError("expected an integer, not a boolean")
+            raise ValueError("expected a number, not a boolean")
         return v
 
     @field_validator("dimensions")
@@ -352,20 +357,41 @@ def _initial_objects(dhat: list[RowCells], m: int) -> list[Point]:
         for j, t in row:
             cells[j] = t
         dense.append(cells)
-    d2 = [[0.0] * m for _ in range(m)]
+    # Squared profile distance for every co-rated pair. A pair nobody rated
+    # together takes the mean of the known ones -- a neutral start, measured to
+    # recover planted geometry far better than a shortest path through co-rated
+    # pairs, which overestimates and leads the fit into a reflected block. The
+    # design must still be connected: an isolated group of objects has no
+    # position relative to the rest, whatever the start.
+    known: list[list[float | None]] = [[None] * m for _ in range(m)]
     for j in range(m):
+        known[j][j] = 0.0
         for k in range(j + 1, m):
             diffs = [
                 (a - c) ** 2
                 for a, c in ((cells[j], cells[k]) for cells in dense)
                 if a is not None and c is not None
             ]
-            if not diffs:
-                raise UnfoldingDesignError(
-                    f"objects {j} and {k} are never rated by the same respondent; the "
-                    "design is disconnected and cannot be placed on one map"
-                )
-            d2[j][k] = d2[k][j] = math.fsum(diffs) / len(diffs)
+            if diffs:
+                known[j][k] = known[k][j] = math.fsum(diffs) / len(diffs)
+    reached = {0}
+    frontier = [0]
+    while frontier:
+        j = frontier.pop()
+        for k in range(m):
+            if k not in reached and known[j][k] is not None:
+                reached.add(k)
+                frontier.append(k)
+    if len(reached) != m:
+        isolated = sorted(set(range(m)) - reached)
+        raise UnfoldingDesignError(
+            f"objects {isolated} are not connected to object 0 through any chain of "
+            "co-rating respondents; the design is disconnected and cannot be placed "
+            "on one map"
+        )
+    observed = [v for j in range(m) for k in range(m) if j != k and (v := known[j][k]) is not None]
+    neutral = math.fsum(observed) / len(observed)
+    d2 = [[neutral if v is None else v for v in row] for row in known]
     row_mean = [math.fsum(r) / m for r in d2]
     grand = math.fsum(row_mean) / m
     b = [

@@ -120,6 +120,17 @@ class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
+def _not_boolean(v: object) -> object:
+    """Refuse a boolean where a number is expected.
+
+    pydantic coerces ``True`` to ``1`` / ``1.0`` before an after-validator runs,
+    so ``"extent": true`` would otherwise become a map compressed to extent 1.
+    """
+    if isinstance(v, bool):
+        raise ValueError("expected a number, not a boolean")
+    return v
+
+
 def _finite(v: float, what: str) -> float:
     if not math.isfinite(v):
         raise ValueError(f"{what} must be finite")
@@ -134,6 +145,11 @@ class RatingsSpec(_Frozen):
     rating_scale_min: float
     rating_scale_max: float
     missing_data_policy: str
+
+    @field_validator("rating_scale_min", "rating_scale_max", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
 
     @model_validator(mode="after")
     def _scale(self) -> RatingsSpec:
@@ -163,6 +179,11 @@ class MapFrameSpec(_Frozen):
     method: str
     extent: float
 
+    @field_validator("extent", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
     @field_validator("extent")
     @classmethod
     def _extent(cls, v: float) -> float:
@@ -178,6 +199,11 @@ class LayoutSpec(_Frozen):
     parameters: dict[str, Any]
     seed: int | None
     map_frame: MapFrameSpec
+
+    @field_validator("seed", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
 
     @field_validator("parameters")
     @classmethod
@@ -349,7 +375,11 @@ def require_supported(spec: SociomapSpec) -> None:
     height = spec.metrics.object_height_metric
     if normalization is not None and _member(ObjectMetric, height):
         try:
-            bounds_for(height, normalization)
+            bounds_for(
+                height,
+                normalization,
+                rating_scale=(spec.ratings.rating_scale_min, spec.ratings.rating_scale_max),
+            )
         except UnknownMetricBounds as exc:
             problems["terrain.normalization"] = str(exc)
 

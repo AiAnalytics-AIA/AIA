@@ -100,6 +100,16 @@ def test_absolute_bounds_are_used_only_where_recovered() -> None:
         bounds_for("support_n", NormalizationMode.ABSOLUTE)
 
 
+def test_mean_rating_is_bounded_by_the_declared_rating_scale() -> None:
+    # A 0-5 study normalised against the reference's 1-10 would put a perfect
+    # mean of 5 at 4/9 instead of 1.
+    bounds = bounds_for("mean_rating", NormalizationMode.ABSOLUTE, rating_scale=(0.0, 5.0))
+    assert bounds == (0.0, 5.0)
+    assert build_normalizer([5.0], NormalizationMode.ABSOLUTE, bounds)(5.0) == 1.0
+    with pytest.raises(UnknownMetricBounds):
+        bounds_for("support_n", NormalizationMode.ABSOLUTE, rating_scale=(0.0, 5.0))
+
+
 def test_metric_bounds_carry_only_the_recovered_entries() -> None:
     assert dict(METRIC_BOUNDS) == {"density": None, "mean_rating": (1.0, 10.0)}
 

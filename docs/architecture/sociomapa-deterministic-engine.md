@@ -1,6 +1,6 @@
 # Sociomapa deterministic engine — what is ported, what is declared, what is refused
 
-**Status:** engine implemented (`ENGINE_IMPLEMENTATION_VERSION = "1.0.0"`), spec
+**Status:** engine implemented (`ENGINE_IMPLEMENTATION_VERSION = "1.1.0"`), spec
 and artifact contract **version 2**. Ported against golden fixtures F1–F9 from
 `AiAnalytics-AIA/AIA-reference` @ `678e298ad9ca0263da53cc8920d153fdfb956c93`.
 **Not ported, and refused:** the reference's two layout algorithms — see §4.
@@ -106,6 +106,20 @@ with preference-weighted respondents; the gauge is fixed afterwards (object
 centroid at the origin, principal axes, positive third moment). **No RNG**, so
 `layout.seed` must be `null`; a seed would be recorded as if it mattered.
 
+**Sparse designs.** The co-rating graph must be connected; object pairs nobody
+co-rated start from the mean known profile distance
+(`test_a_connected_sparse_design_recovers_planted_geometry`). A shortest-path
+start was tried first and measured worse: on two rating blocks sharing four
+objects it settled into a reflected block at RMSD 1.47, against 0.018 for the
+mean.
+
+**Local minima.** The start is single and deterministic, so the fit can stop in
+a local minimum — measured on one fully observed planted 60 × 8 design at
+stress-1 0.017, where two other planted designs reach < 1e-4. Low stress does
+not prove the geometry is unique; a design whose blocks share only two objects
+admits a reflected block at nearly the same stress. Multiple deterministic
+starts are the obvious next step and are not implemented.
+
 What pins it, since no reference can:
 
 - **Recovery.** Data generated from a known configuration, with arbitrary
@@ -205,7 +219,8 @@ round-trips and refuses a tampered body. Storage is
 | S3 | unknown normaliser mode falls through to `range` | refused | `test_normaliser_refuses_an_unknown_mode` |
 | S4 | missing relation → 5.5 midpoint (unknown scored as neutral, A4) | refused unless the spec declares the sentinel; substitutions recorded | `test_a_missing_relation_cell_is_refused_by_default`, `test_the_reference_sentinel_is_used_only_when_declared_and_is_recorded` |
 | S5 | sentinel/branch order ambiguous for a matrix mixing NaN with a [0,1]/[-1,1] scale | refused (`AmbiguousCoercion`) — the fixture only covers orders that agree | `test_coercion_refuses_the_unrecovered_sentinel_order` |
-| S6 | absolute normalisation against any metric's `metricDef66` bounds | only where bounds were recovered (`density`: none, `mean_rating`: 1–10) | `test_absolute_bounds_are_used_only_where_recovered` |
+| S6 | absolute normalisation against any metric's `metricDef66` bounds | only where bounds were recovered (`density`: none); `mean_rating` is bounded by the spec's declared rating scale, 1–10 in the preset | `test_absolute_bounds_are_used_only_where_recovered`, `test_absolute_normalisation_uses_a_declared_non_default_scale` |
+| S7 | terrain with no source (an empty filter) is fitted to the all-zero grid, called constant, and lifted to 0.5 everywhere | flat at 0: no source, no terrain | `test_empty_terrain_is_flat_at_zero_not_a_plateau` |
 
 ## 9. Performance
 

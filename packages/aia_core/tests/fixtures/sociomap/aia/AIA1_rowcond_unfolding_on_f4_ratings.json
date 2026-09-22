@@ -5,7 +5,7 @@
     "ratings_from": "F4_python_unfolding_layout.json",
     "respondent_id_format": "r%02d"
   },
-  "engine_implementation_version": "1.0.0",
+  "engine_implementation_version": "1.1.0",
   "spec": {
     "methodology_version": "aia-sociomap-1",
     "ratings": {

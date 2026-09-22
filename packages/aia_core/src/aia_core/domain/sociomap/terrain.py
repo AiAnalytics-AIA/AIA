@@ -65,12 +65,14 @@ class TerrainParameters(BaseModel):
     kernel_cutoff: float
     z_scale: float
 
-    @field_validator("grid_resolution", mode="before")
+    @field_validator(
+        "grid_resolution", "half_extent", "sigma", "kernel_cutoff", "z_scale", mode="before"
+    )
     @classmethod
     def _not_boolean(cls, v: object) -> object:
-        # pydantic would coerce True to 1 before the check below could see it.
+        # pydantic would coerce True to 1 before the checks below could see it.
         if isinstance(v, bool):
-            raise ValueError("grid_resolution must be an integer, not a boolean")
+            raise ValueError("terrain parameters must be numbers, not booleans")
         return v
 
     @field_validator("grid_resolution")
@@ -120,6 +122,13 @@ class TerrainSource(BaseModel):
     y: float
     height: float
     colour: float
+
+    @field_validator("x", "y", "height", "colour", mode="before")
+    @classmethod
+    def _not_boolean(cls, v: object) -> object:
+        if isinstance(v, bool):
+            raise ValueError("terrain sources must be numbers, not booleans")
+        return v
 
     @field_validator("x", "y", "height", "colour")
     @classmethod
@@ -246,7 +255,12 @@ def compute_terrain(
                 tuple(csum[gy][gx] / den[gy][gx] if den[gy][gx] > 0 else None for gx in range(size))
             )
 
-    norm = build_normalizer([v for row in hr for v in row], normalization, bounds)
+    # No source means no terrain, not a raised plane: fit the normaliser to no
+    # values, so every cell is 0. Fitted to the all-zero grid instead, range mode
+    # would call it constant and lift the whole map to 0.5 -- which is what the
+    # reference does, and which draws an empty filter as a uniform plateau.
+    fitted = [v for row in hr for v in row] if sources else []
+    norm = build_normalizer(fitted, normalization, bounds)
     ht = tuple(tuple(0.0 if v is None else norm(v) for v in row) for row in hr)
     return TerrainField(
         mode=mode,

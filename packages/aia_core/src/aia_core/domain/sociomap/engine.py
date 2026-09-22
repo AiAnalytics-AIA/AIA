@@ -169,11 +169,15 @@ def object_terrain(
     colour: MetricValues,
     params: TerrainParameters,
     normalization: NormalizationMode,
+    *,
+    rating_scale: tuple[float, float],
 ) -> TerrainField:
     """Object metric terrain: kernel-weighted mean of the height metric.
 
     An object whose height or colour value is missing contributes nothing -- an
     unknown value cannot be averaged -- and is absent from ``source_ids``.
+    ``rating_scale`` is the spec's declared scale; it bounds ``mean_rating``
+    under absolute normalisation.
     """
     sources = [
         TerrainSource(entity_id=oid, x=x, y=y, height=h, colour=c)
@@ -188,7 +192,7 @@ def object_terrain(
         params,
         metric_id=height.metric_id,
         normalization=normalization,
-        bounds=bounds_for(height.metric_id, normalization),
+        bounds=bounds_for(height.metric_id, normalization, rating_scale=rating_scale),
     )
 
 
@@ -263,6 +267,7 @@ def compute_sociomap(inputs: SociomapInputs, spec: SociomapSpec) -> SociomapArti
         metrics[spec.metrics.object_colour_metric],
         spec.terrain.object,
         normalization,
+        rating_scale=(spec.ratings.rating_scale_min, spec.ratings.rating_scale_max),
     )
     missing_sources = len(ratings.object_ids) - len(obj_terrain.source_ids)
     if missing_sources:

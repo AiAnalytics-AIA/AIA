@@ -65,6 +65,13 @@ class Position(_Frozen):
     x: float
     y: float
 
+    @field_validator("x", "y", mode="before")
+    @classmethod
+    def _not_boolean(cls, v: object) -> object:
+        if isinstance(v, bool):
+            raise ValueError("positions must be numbers, not booleans")
+        return v
+
     @field_validator("x", "y")
     @classmethod
     def _finite(cls, v: float) -> float:
@@ -242,6 +249,7 @@ def view_terrain(
             artifact.object_metrics[colour],
             spec.terrain.object,
             normalization,
+            rating_scale=(spec.ratings.rating_scale_min, spec.ratings.rating_scale_max),
         )
     raise ValueError(f"unknown terrain mode {mode!r}")
 
@@ -255,6 +263,13 @@ class RelationEdit(_Frozen):
     source: str
     target: str
     value: float
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _not_boolean(cls, v: object) -> object:
+        if isinstance(v, bool):
+            raise ValueError("a scenario relation must be a number, not a boolean")
+        return v
 
     @field_validator("value")
     @classmethod
@@ -347,6 +362,7 @@ def apply_scenario(artifact: SociomapArtifact, layer: ScenarioLayer) -> Scenario
         metrics[spec.metrics.object_colour_metric],
         spec.terrain.object,
         NormalizationMode(spec.terrain.normalization),
+        rating_scale=(spec.ratings.rating_scale_min, spec.ratings.rating_scale_max),
     )
     return ScenarioResult(
         base_artifact_fingerprint=layer.base_artifact_fingerprint,

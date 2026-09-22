@@ -91,6 +91,7 @@ def test_the_aia_algorithm_resolves() -> None:
         ("max_iterations", 0),
         ("max_iterations", True),
         ("convergence_tolerance", 0.0),
+        ("convergence_tolerance", True),
         ("convergence_tolerance", math.nan),
     ],
 )
@@ -212,6 +213,33 @@ def test_reported_stress_matches_the_returned_configuration() -> None:
 def test_unplaceable_designs_are_refused(delta: Any, match: str) -> None:
     with pytest.raises(UnfoldingDesignError, match=match):
         fit_rowcond_unfolding(delta, TIGHT)
+
+
+def test_a_connected_sparse_design_is_placeable() -> None:
+    # A and C are never rated by the same respondent, but B links them.
+    delta = [
+        [1.0, 3.0, None],
+        [2.0, 0.5, None],
+        [None, 1.0, 2.5],
+        [None, 2.0, 0.5],
+    ]
+    result = fit_rowcond_unfolding(delta, TIGHT)
+    assert len(result.object_xy) == 3 and len(result.respondent_xy) == 4
+
+
+def test_a_connected_sparse_design_recovers_planted_geometry() -> None:
+    planted = _planted(60, 8, 13, row_scales=True, missing=False)
+    # Two rating blocks sharing objects 2-5: pairs (0|1, 6|7) are never co-rated.
+    for i, row in enumerate(planted["delta"]):
+        for j in (6, 7) if i % 2 == 0 else (0, 1):
+            row[j] = None
+    result = fit_rowcond_unfolding(planted["delta"], TIGHT)
+    fit = procrustes_align(planted["objects"], list(result.object_xy), allow_scale=True)
+    # Measured: stress-1 0.0097, RMSD 0.018 on a configuration spanning +-3. A
+    # shortest-path start for the missing pairs reached RMSD 1.47 -- a reflected
+    # block -- at similar stress, which is what this test exists to catch.
+    assert result.stress_1 < 0.02
+    assert fit.rmsd < 0.05
 
 
 def test_a_respondent_indifferent_between_objects_is_placeable() -> None:

@@ -108,6 +108,29 @@ def test_rating_scale_must_be_ordered_and_finite() -> None:
         SociomapSpec.model_validate(tree)
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "layout.map_frame.extent",
+        "layout.seed",
+        "ratings.rating_scale_min",
+        "ratings.rating_scale_max",
+        "terrain.respondent.sigma",
+    ],
+)
+def test_json_booleans_are_refused_where_numbers_are_expected(path: str) -> None:
+    # pydantic coerces true -> 1.0 before an after-validator sees it; "extent":
+    # true would silently compress every map to extent 1.
+    tree = spec_dict()
+    node = tree
+    *parents, leaf = path.split(".")
+    for key in parents:
+        node = node[key]
+    node[leaf] = True
+    with pytest.raises(ValidationError, match="boolean"):
+        SociomapSpec.model_validate(json.loads(json.dumps(tree)))
+
+
 def test_map_frame_extent_must_be_positive() -> None:
     tree = spec_dict()
     tree["layout"]["map_frame"]["extent"] = 0

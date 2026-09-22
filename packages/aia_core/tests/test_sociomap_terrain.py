@@ -191,10 +191,25 @@ def test_kernel_cutoff_is_strict_and_the_shortcut_changes_nothing() -> None:
     assert outside.height_raw[0][0] == 0.0
 
 
-def test_empty_terrain_is_flat() -> None:
-    field = _density([])
-    assert field.normalizer_lo == 0.0 and field.normalizer_hi == 0.0
-    assert all(v == 0.5 for row in field.height_normalised for v in row)
+def test_empty_terrain_is_flat_at_zero_not_a_plateau() -> None:
+    # The reference fits range normalisation to the all-zero grid, calls it
+    # constant and lifts the whole map to 0.5 -- an empty filter drawn as a
+    # plateau. No source means no terrain (deviation S7).
+    for field in (_density([]), _weighted([])):
+        assert all(v == 0.0 for row in field.height_normalised for v in row)
+        assert (field.normalizer_lo, field.normalizer_hi) == (0.0, 1.0)
+
+
+def test_a_single_flat_density_still_normalises_as_the_reference_does() -> None:
+    # Only the source-free case changed: real sources keep the F7 semantics.
+    field = _density([(0.0, 0.0)])
+    assert field.normalizer_lo == 0.0 and field.normalizer_hi > 0.0
+
+
+@pytest.mark.parametrize("field", ["half_extent", "sigma", "kernel_cutoff", "z_scale"])
+def test_terrain_parameters_reject_booleans(field: str) -> None:
+    with pytest.raises(ValueError, match="boolean"):
+        TerrainParameters(**{**TERRAIN66_OBJECT.model_dump(), field: True})
 
 
 def test_source_ids_must_be_unique() -> None:
