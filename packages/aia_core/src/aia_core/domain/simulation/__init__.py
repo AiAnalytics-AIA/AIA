@@ -15,6 +15,14 @@ Boundary this package enforces (see
 production rejects what the reference silently clipped.
 """
 
+from .numerics import (
+    NEAREST_CORRELATION_ALGORITHM,
+    RNG_ALGORITHM,
+    CorrelationFactor,
+    NotPositiveDefinite,
+    correlation_factor,
+    nearest_correlation,
+)
 from .reference import (
     BOUNDS,
     DEFAULT_SPEC_SEED,
@@ -51,13 +59,17 @@ __all__ = [
     "FIELD_POLICY",
     "FS_EPISTEMIC_STATUS",
     "LINEAR_INTERPOLATION_ALLOWED",
+    "NEAREST_CORRELATION_ALGORITHM",
+    "RNG_ALGORITHM",
     "SIMULATION_CONSTANTS_VERSION",
     "WORLD_SEED_STRIDE",
+    "CorrelationFactor",
     "Driver",
     "Factor",
     "FactorCorrelation",
     "FieldPolicy",
     "LegacyMechanism",
+    "NotPositiveDefinite",
     "Objective",
     "PanelSchema",
     "ProductionHandling",
@@ -66,6 +78,8 @@ __all__ = [
     "WorldModel",
     "WorldModelRejected",
     "ablation_seed",
+    "correlation_factor",
+    "nearest_correlation",
     "validate_world_model",
     "world_id",
     "world_seed",
