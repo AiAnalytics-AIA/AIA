@@ -90,7 +90,6 @@ const themeCss = [
 const resolved = {};
 for (const t of tokens.color.tokens) resolved[t.name] = { light: resolve(t.name, "light"), dark: resolve(t.name, "dark") };
 const ts = `${header.replace("/*", "//").replace(" */", "")}
-/* eslint-disable */
 
 /** Resolved colour values per theme, for JavaScript consumers (charts, canvas). CSS uses the custom properties. */
 export const colors = ${JSON.stringify(resolved, null, 2)} as const;

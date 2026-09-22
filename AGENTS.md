@@ -279,3 +279,18 @@ screen.getByText("12\u00a0480,50\u00a0USD");
 screen.getByText("12 480,50 USD");
 expect(container.textContent).toBe("12\u00a0480,50\u00a0USD");
 ```
+### React 19 lint: external state goes through `useSyncExternalStore`
+
+`eslint-config-next` enables `react-hooks/set-state-in-effect`, which is an
+**error**. Copying `localStorage` into state from an effect trips it:
+
+```tsx
+// wrong — setState in an effect body; also renders "system" once, then flips
+useEffect(() => { setPref(localStorage.getItem("aia.theme") ?? "system"); }, []);
+// right — read the external store directly; the server snapshot keeps hydration stable
+const pref = useSyncExternalStore(subscribe, readPreference, () => "system");
+```
+
+Read lint's error count, not its last line. `npm run lint | tail -1` prints
+"0 errors and 1 warning potentially fixable" even when an unfixable error sits
+above it. That is how this rule reached CI once.
