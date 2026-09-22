@@ -5,7 +5,12 @@
 **Phase:** 1 and 2 complete. Phase 3 implemented and verified under real
 PostgreSQL contention.
 
-Read this first to continue the work. Companion documents:
+> **This document is the narrative, not the tracker.** What is done, in
+> progress and next lives in [`../../.planning/PROGRESS.md`](../../.planning/PROGRESS.md),
+> and open defects in [`../../.planning/open-items.md`](../../.planning/open-items.md).
+> Where the two disagree, the tracker wins and this document is stale.
+
+Read this for the reasoning behind the state. Companion documents:
 [migration-plan.md](migration-plan.md) ·
 [parity-matrix.md](parity-matrix.md) ·
 [reference-weaknesses.md](reference-weaknesses.md) ·
