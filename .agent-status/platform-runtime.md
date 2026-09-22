@@ -1,6 +1,6 @@
 # platform-runtime
 
-**STATUS: ACTIVE — worker pushed as 8 commits on `claude/intelligent-bardeen-tslz9n`; draft PR #23 open; main merged in (66bd1dc); CI GREEN on 66bd1dc (6/6 jobs), mergeable; waiting on review.**
+**STATUS: ACTIVE — worker MERGED to main (PR #23, merge 0424667, 2026-09-22T23:29Z). Awaiting next task.**
 Cloud session. No local-machine dependency. PostgreSQL 16.13 and Python 3.12.3
 provisioned in-session; every number below was measured here.
 
@@ -59,13 +59,12 @@ full suite green on PostgreSQL and SQLite at every commit.
 
 ## Open, needs a human
 
-- Review of PR #23.
 - OI-21 (was OI-6; renumbered, main uses 6-8): quota park with a paid call in flight re-issues it on resume — domain
   precedence decision, parity-covered.
 - OI-22: should revoking a researcher stop the runs they started?
 - OI-23: secret-redaction patterns duplicated between API and worker.
 
-## Proposed next platform task
+## Proposed next platform task (not started; awaiting go-ahead)
 
 **Generalized metered-cost ledger**, ahead of OpenTelemetry: it is on Phase 4's
 critical path (the first `ModelGateway` call needs somewhere to write an
