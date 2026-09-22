@@ -247,3 +247,89 @@ issued only to an operator role, checked in both methods, with the refusal teste
 by type.
 
 **Status.** Open. Must close before any exposure of promotion.
+
+---
+
+## OI-9 · Question · The evidence-role contract is not published
+
+**Claim.** The UI must render every figure's evidence role, but the repository
+names only three roles and an ellipsis; the full list lives in the prototype's
+data contract, outside this repository.
+
+**Anchor.** `docs/product/README.md:103 @ 17c0a6b`; the Validation & Evidence
+context is "not started" in `docs/architecture/domain-map.md @ 17c0a6b`.
+
+**Reproduction.** `grep -rn "MEASURED_JOINT" --include=*.py .` returns nothing.
+
+**Consequence.** Until the enum exists, the frontend cannot bind it with a parity
+check, so a new role would arrive unnoticed.
+
+**Interim rule (product-surface).** Any role the UI does not know renders as the
+explicit UNKNOWN grade `?` — never as measured, never as the strongest grade.
+
+**Owner.** analysis-governance (A6) publishes the role enum in `aia_core.domain`;
+product-surface then adds it to `apps/web/src/design/enums.ts` and the parity
+check (`.planning/plans/design-system.md`, chunk 2).
+
+**Status.** Open. Cross-context dependency.
+
+---
+
+## OI-10 · Question · `ImpactPreviewEstimate` — no cost or duration for an edit
+
+**Claim.** The impact preview must show what re-running the invalidated stages
+will cost in money and time, but the domain `ImpactPreview` carries only
+`root_stage`, `invalidate`, `preserve` and `presentation_only`.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/pipeline.py:423 @ 17c0a6b`.
+
+**Consequence.** A researcher commits an edit without seeing its price. The UI
+shows cost and duration as explicitly unavailable; it must not compute them.
+
+**Owner.** integration-architecture, with input from research execution
+semantics, the cost ledger / historical usage, and possibly runtime duration
+history. product-surface owns the UI contract only and does not build the
+estimator.
+
+**Status.** Open. Cross-context dependency.
+
+---
+
+## OI-11 · Question · No "what needs this viewer" contract
+
+**Claim.** Portfolio must answer "what needs me today?", but no API states whether
+a parked item is actionable by the authenticated viewer; the status enum alone
+cannot say it (DS-3: `WAITING_CREDITS` needs a person, not necessarily this one).
+
+**Anchor.** No field exists on any response schema under `apps/api/src/aia_api/schemas/`
+@ 7d42285.
+
+**Consequence.** Without it, the UI either guesses (and pages the wrong person) or
+shows nothing personal. Until it exists the UI shows the raw system state and
+never presents an item as assigned to the viewer.
+
+**Proposed shape (the exact shape is an integration decision).** Per parked item:
+`action_required: bool`, `action_kind`, `viewer_can_resolve: bool`,
+`required_permission`, `waiting_reason`.
+
+**Owner.** integration-architecture / platform-runtime.
+
+**Status.** Open. Cross-context dependency.
+
+---
+
+## OI-12 · Question · `clients.accent_slot` changes the Client persistence contract
+
+**Claim.** DS-2 persists a presentation slot per client; a hash of the client id
+alone collides at five clients (`cl_salvia` and `cl_tecka` both map to 4 under
+FNV-1a mod 6).
+
+**Contract.** A smallint in 1–6, assigned server-side at client creation by the
+least-used strategy, immutable afterwards, never chosen by browser input. It is a
+presentation and scope cue — not a security boundary, not an identifier, not
+globally unique. Name, monogram and the scope chrome stay authoritative.
+
+**Owner.** integration-architecture is notified before the migration lands;
+product-surface implements it (`.planning/plans/design-system.md`, chunk 4).
+
+**Status.** Open. Migration held until integration-architecture acknowledges.

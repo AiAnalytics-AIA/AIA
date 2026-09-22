@@ -1,10 +1,32 @@
 # Plan: AIA design system → apps/web
 
-**Status:** planned, no chunk started. **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
-**Design system (source of tokens, components, screens, state gallery):** the "AIA Design System" artifact,
-https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
+**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–3 next, then the first vertical slice. **Owner:** product-surface (A9).
+**Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
+**Design source:** the "AIA Design System" artifact, https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
 
 Anchors below are against `main` @ 0d4c51d unless stated.
+
+## Integration principle — the artifact is a design source, not a dependency
+
+The Claude Design artifact is where the system was designed and reviewed. It is
+**not** a production dependency. Everything the product needs becomes durable
+repository material, under review like any other code:
+
+- tokens (`apps/web/src/design/tokens.json`, the one source) and the generator that
+  emits `tokens.css` and `tokens.ts` — the artifact page's own generated `tokens.css`
+  is never used;
+- identity assets (mark, wordmark, lockup, favicons) as files under `apps/web/public/`;
+- component specs as code: components plus their tests, not screenshots;
+- fonts as woff2 files with their licence texts (SIL OFL 1.1 for IBM Plex and
+  Source Serif 4);
+- state mappings (`enums.ts`, `status.ts`, `evidence.ts`) and their parity check;
+- the accessibility checks (contrast, chart palette, +35 % Czech stress) as scripts
+  that run in the repository.
+
+**`apps/web` never requires the claude.ai artifact at runtime or in CI.** A build
+that fetches from it is a defect. When the design changes, the change is ported
+into the repository in a PR; the artifact may then be re-synced from the repository,
+never the reverse without review.
 
 
 These are chunks small enough to build and verify one at a time (`CLAUDE.md` §6). Each chunk lands with its docs in the same change set (`CLAUDE.md` §1) and passes `make verify` plus `tsc --noEmit` before the next one starts. The plan is mirrored in the repository at `.planning/plans/design-system.md`.
@@ -67,22 +89,42 @@ This gives two independent tripwires:
 
 When the API publishes these enums in its OpenAPI document, `enums.ts` can be generated from it instead, and the parity check becomes a drift check on the generated file.
 
-## Chunks
+## Chunks — order revised
+
+Chunks 0–3 are the foundation, each its own PR. **After chunk 3 the plan stops going
+screen by screen over fixtures** and builds one real vertical slice first (chunk V).
+Chunks 4–11 resume only after that slice is working and reviewed.
 
 | # | Chunk | Lands | Verify |
 |---|---|---|---|
-| 0 | **Vocabulary purge.** Rewrite `lib/mock.ts` as API-shaped fixtures (Study → Project → Revision → Stage, 13 stages, domain enums). Drop "cases", five numbered gates and the nine-status flow. Routes move to `/studies/[studyId]/…`, matching the API's study-scoped paths. | fixtures, route rename, `i18n/cs.ts` keys | `tsc`; no string "case" left in `src/` |
-| 1 | **Tokens.** `design/tokens.json`, `build-tokens.mjs`, generated `tokens.css` and `tokens.ts`, `globals.css` `@theme inline`, `next/font/local` over `app/fonts/`, and `data-theme` on `<html>` with a light/dark/system switch. | tokens, fonts, theme switch | a CI check re-runs the generator and fails on diff; the contrast script's 146 checks re-run |
-| 2 | **Enum binding.** `design/enums.ts`, `status.ts`, `evidence.ts`, `tools/enum_parity_check.py`, and a `make enum_check` target wired into `verify` and CI. | the two tripwires | add a fake value to `StageStatus` locally → both fail |
-| 3 | **Primitives.** `StatusGlyph`, `StatusChip`, `EvidenceMark`, `Value`, `Money`, `Icon`, `Button`, `Kbd`, `Panel`. All are server components. | `components/status`, `evidence`, `shell` | a unit test per component (see decision DS-1) |
-| 4 | **Scope chrome.** `ScopeBar` and `ClientMonogram` in the study layout; `Portfolio` / `Admin` get the above-boundary band. API: `clients.accent_slot` smallint, assigned least-used at creation, immutable (Alembic migration + repository + test). | one migration, one layout | migration reversible; a slot-assignment test |
+| 0 | **Vocabulary alignment.** Remove the "case / five gates / nine statuses" product language. Canonical: Organization → Client → Study → Project Revision → Stage, with the real 13-stage Research and Simulation lifecycles from `pipeline.py`. No frontend-invented statuses. **API routes are authoritative**; browser routes are not renamed merely for tidiness if that breaks links or duplicates router state. Remaining fixtures are explicit development fixtures, labelled as such. | fixtures, `i18n/cs.ts` keys, pages | `tsc`, lint, build; no "case"/"gate N" product vocabulary left |
+| 1 | **Tokens, themes, identity.** `design/tokens.json` as the one source; a repository generator emits `tokens.css` and `tokens.ts` (CI fails on drift); `@theme inline`; light/dark/system; self-hosted fonts with licences; identity and favicon assets; the contrast, chart-palette and +35 % Czech checks re-run from the repository. | tokens, generator, fonts, assets, checks | generator drift check; 146 contrast checks; palette validation; stress test |
+| 2 | **Domain enum binding** (high priority). Total `Record<>` mappings for the bound enums; an independent Python ↔ TypeScript parity check in CI. The UI maps state → visual treatment only. Evidence roles: until analysis-governance publishes the contract, an unknown role renders `?` — never measured, never the strongest grade. | `design/enums.ts`, `status.ts`, `evidence.ts`, `tools/enum_parity_check.py` | a fake domain value fails both tripwires |
+| 3 | **Primitives + Vitest** (DS-1). `StatusGlyph`, `StatusChip`, `EvidenceMark`, `Value`, `Money`, `Icon`, `Button`, `Kbd`, `Panel`, with tests: zero ≠ null, null ≠ suppressed, unknown evidence ≠ measured, every status has text and shape besides colour, both themes, keyboard/focus where interactive, Czech labels. Evidence marks stay SVG. | components + tests | `npm test` in CI |
+| V | **First vertical slice.** Portfolio → Client → Study → Study overview → workflow state → human action / approval, on **real APIs** wherever the capability exists: authenticated user, active Client and Study, accent + monogram, study status, real runs and stages, real waiting reasons, what needs *this viewer* (only as the API states it), permitted approvals, budget where data exists, error and recovery states. No fake percentages or synthetic progress. Fixtures only for capabilities that genuinely do not exist, labelled in code, never presented as production-complete, and counted in a machine-readable registry. | pages + API client | a real run through the dev API; fixture count reported |
+| 4 | **Scope chrome.** `ScopeBar`, `ClientMonogram`. API: `clients.accent_slot` (DS-2) — **integration-architecture is notified before the migration lands** (OI-12). | layout + migration | migration reversible; slot-assignment test |
 | 5 | **Lifecycle.** `StageRail` (`"use client"`: roving focus and `[` `]` keys), `RunTimeline`, `RevisionBanner`, `RevisionHistory`. | `components/lifecycle` | keyboard test; narrow layout at 1024 px |
-| 6 | **Impact preview.** An API endpoint that returns the domain `impact_preview` for a pending edit; the `ImpactPreview` component; the edit flow always passes through it. | endpoint + component | an API test per `IMPACT_ROOTS` entry |
+| 6 | **Impact preview.** Renders the domain `ImpactPreview` only: stages preserved, stages invalidated, the presentation-only flag, and cost and duration **explicitly unavailable**. React computes no estimate. The estimator is a cross-context dependency (`ImpactPreviewEstimate`, OI-10). | component + endpoint wiring | cost/duration render as unavailable while the contract is absent |
 | 7 | **Money.** `BudgetMeter`, `UsageLedger` (server), `ParkAndAsk` (`"use client"`: dialog focus trap), `ProviderChoice`, `RecoveryDecision`. | `components/money` | focus opens on the heading; no default action |
 | 8 | **Review.** `ApprovalPanel` including the separation-of-duties state, driven by the server's `ApprovalIndependence` / denial reason. | `components/review` | a SoD state test |
 | 9 | **Results.** `HeadlineAnswer`, `GradedBars`, the respondent explorer, `Sociomap` (`"use client"`: drag saves a view override through the API; it never mutates results). | `components/results` | a view-override test: the original is unchanged |
 | 10 | **Deliverable.** The `.aia-doc` register, the cover, the evidence margin, the holdout statement, and the export spec handed to the report service. | `components/doc` | greyscale-print snapshot |
-| 11 | **Screens and brand.** Recompose the eleven screens on real endpoints where they exist and fixtures where they do not; favicons into `public/`; `layout.tsx` metadata. | pages | +35 % string test at 1280 / 1024 |
+| 11 | **Remaining screens.** Recompose the other screens on real endpoints where they exist. | pages | +35 % string test at 1280 / 1024 |
+
+## What product-surface does not own
+
+The UI renders the results of these contracts and never re-implements them:
+research computation, population policy, evidence policy, budget calculation,
+provider fallback logic, approval authorization, and Sociomapping mathematics.
+
+## Cross-context contracts this plan depends on
+
+| Contract | Owner | Needed by | Register |
+|---|---|---|---|
+| Complete evidence-role enum | analysis-governance (A6) | chunk 2 (until then: unknown → `?`) | OI-9 |
+| `ImpactPreviewEstimate` — cost and duration of re-running invalidated stages | integration-architecture, with research execution and the cost ledger | chunk 6 (until then: unavailable) | OI-10 |
+| Viewer actionability ("what needs me") — e.g. `action_required`, `action_kind`, `viewer_can_resolve`, `required_permission`, `waiting_reason`; exact shape is theirs | integration-architecture / platform-runtime | chunk V Portfolio (until then: raw system state, never assigned to the viewer) | OI-11 |
+| `clients.accent_slot` persistence change | integration-architecture (notified before the migration) | chunk 4 | OI-12 |
 
 ## What happens to the existing client
 
@@ -94,21 +136,42 @@ When the API publishes these enums in its OpenAPI document, `enums.ts` can be ge
 | `ArtifactsPanel.tsx` | restyled onto `Panel`, artifacts listed with revision and `StatusChip` |
 | `DocEditor.tsx` (TipTap) | kept; toolbar restyled; editing a material field routes through `ImpactPreview` |
 | `lib/mock.ts`, `mockArtifacts.ts` | API-shaped fixtures (chunk 0), deleted once the endpoints exist |
-| `app/org/[orgSlug]/cases/…` | `app/studies/[studyId]/…` |
+| `app/org/[orgSlug]/cases/…` | decided in chunk 0 against the API's study-scoped paths (`/api/v1/studies/{study_id}/…`), which are authoritative; no rename that breaks links or duplicates router state |
 | `app/favicon.ico`, `public/*.svg` (Next.js defaults) | the AIA favicon set; defaults deleted |
 
-## Decisions this plan needs from a person
+## Decisions — resolved
 
-- **DS-1 — a web test runner.** `apps/web` has none (`make test-web` runs `npm test --if-present`). Vitest with Testing Library is the smallest option that fits Next 16 / React 19. Chunk 3 needs a yes or no.
-- **DS-2 — `accent_slot` in the schema** (chunk 4). The alternative, a hash only, is proven to collide at five clients.
-- **DS-3 — who owns `WAITING_CREDITS`.** This system treats it as parked-on-you (someone must add credits). If credits are provider-side quota, it moves to `world`: a one-line change in `status.ts`.
+- **DS-1 — web test runner: YES.** Vitest + Testing Library in `apps/web` (chunk 3).
+- **DS-2 — `clients.accent_slot`: YES, with a contract qualification.** It is a stable
+  *presentation and scope cue*. It is **not** a security boundary, **not** a client
+  identifier, and **not** required to be globally unique for ever. Client name,
+  monogram and the explicit Client / Study scope chrome remain authoritative, and
+  colour is never the only cue. A constrained smallint slot range (1–6), assigned
+  deterministically server-side at client creation by the least-used strategy.
+  Browser input never chooses it. Because it changes the Client persistence
+  contract, integration-architecture is notified before the migration lands (OI-12).
+- **DS-3 — `WAITING_CREDITS`: RESOLVED.** `WAITING_CREDITS` means work needs *human
+  intervention* to become runnable again; `WAITING_CAPACITY` means the system,
+  provider or world must recover. `WAITING_CREDITS` is **not** automatically
+  "waiting on the current viewer". The application layer exposes whether the
+  authenticated viewer is authorized and able to resolve the parked condition, and
+  the UI rule is:
+
+  | Status | Viewer can resolve | Treatment |
+  |---|---|---|
+  | `WAITING_CREDITS` (and every `AWAITING_*`) | yes | "čeká na vás" — personal amber |
+  | `WAITING_CREDITS` (and every `AWAITING_*`) | no, or not stated | "čeká na tým / správce" — waiting on a person, not amber-personal |
+  | `WAITING_CAPACITY`, `WAITING_PROVIDER` | — | "čeká na externí kapacitu" |
+
+  Viewer actionability is never inferred from the status enum. Until the API
+  states it (OI-11), the second row applies.
 
 ## Findings carried from the design work
 
-1. **The evidence role list is incomplete in this repository** — *finding*. Only `MEASURED_JOINT`, `CALIBRATED_CORE` and `MODELED_BEHAVIOR_PRIOR` are named, followed by "…" (`docs/product/README.md:103` @ 17c0a6b), plus `EXTERNAL_HOLDOUT_PENDING`. Reproduce: `grep -rn "MEASURED_JOINT" --include=*.py .` returns nothing. The Validation & Evidence context is not started (`docs/architecture/domain-map.md` @ 17c0a6b). Consequence: the grade grammar is built for an open set, and unknown roles render "?". Fix: publish the role enum in `aia_core.domain` and add it to `enums.ts` and the parity check.
-2. **A hash-derived client accent collides at five clients** — *finding*. `clientAccentIndex("cl_salvia") === clientAccentIndex("cl_tecka") === 4` (FNV-1a mod 6; run it in the bundle). Fix: a persisted `accent_slot` (plan DS-2).
+1. **The evidence role list is incomplete in this repository** — *finding*, filed as OI-9. Only `MEASURED_JOINT`, `CALIBRATED_CORE` and `MODELED_BEHAVIOR_PRIOR` are named, followed by "…" (`docs/product/README.md:103` @ 17c0a6b), plus `EXTERNAL_HOLDOUT_PENDING`. Reproduce: `grep -rn "MEASURED_JOINT" --include=*.py .` returns nothing. The Validation & Evidence context is not started (`docs/architecture/domain-map.md` @ 17c0a6b). Consequence: the grade grammar is built for an open set, and unknown roles render "?". Fix: publish the role enum in `aia_core.domain` and add it to `enums.ts` and the parity check.
+2. **A hash-derived client accent collides at five clients** — *finding*. `clientAccentIndex("cl_salvia") === clientAccentIndex("cl_tecka") === 4` (FNV-1a mod 6; run it in the bundle). Fix: a persisted `accent_slot` (DS-2, resolved).
 3. **Neither shipped face has the geometric-shape glyphs** — *finding*. U+25A1, U+25A3 and U+2B1A are missing from IBM Plex Sans and Source Serif 4, and U+25A0 is missing from Plex Sans (fontTools cmap check on `fonts/*.woff2`). Consequence: evidence marks are always vector, never characters, including in DOCX export.
-4. **`ImpactPreview` carries no cost or time estimate** — *finding*. The domain object has only `root_stage`, `invalidate`, `preserve` and `presentation_only` (`packages/aia_core/src/aia_core/domain/pipeline.py:423` @ 17c0a6b). The component shows *chybí* until an estimate exists. Deriving one from past runs is backend work, not UI.
-5. **`WAITING_CREDITS` ownership** — *hypothesis*. The docstring says a stage waits "until credits, provider capacity or a user decision arrives" (`pipeline.py:63` @ 17c0a6b) but does not say who supplies credits. It is mapped to `you` pending plan decision DS-3.
-6. **Portfolio amber is personal** — *design requirement on the API*. The server must say whether a pending decision is assignable to the viewer, for example through a permission check against `APPROVE_BUDGET` / `APPROVE_GATE`. The UI must not infer it.
+4. **`ImpactPreview` carries no cost or time estimate** — *finding*, filed as OI-10. The domain object has only `root_stage`, `invalidate`, `preserve` and `presentation_only` (`packages/aia_core/src/aia_core/domain/pipeline.py:423` @ 17c0a6b). The component shows *chybí* until an estimate exists. Deriving one from past runs is backend work, not UI.
+5. **`WAITING_CREDITS` ownership** — *resolved by DS-3*: a person must act; whether that person is the viewer comes from the API (OI-11).
+6. **Portfolio amber is personal** — *design requirement on the API*, filed as OI-11. The server must say whether a pending decision is assignable to the viewer, for example through a permission check against `APPROVE_BUDGET` / `APPROVE_GATE`. The UI must not infer it.
 7. **Plex Sans ships no `tnum` feature** — *finding, benign*. Its default figures are already tabular (all digits 600 units in Regular and SemiBold). `tabular-nums` is kept in CSS for fallback faces.

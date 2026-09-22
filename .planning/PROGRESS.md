@@ -148,10 +148,11 @@ these; none is started):
    can be built against without it.
 4. **Wire `apps/web` to the real API** and delete `lib/mock.ts`.
    Planned together with the design system in
-   [`plans/design-system.md`](plans/design-system.md): 12 chunks, starting with
-   the vocabulary purge (chunk 0) and the enum-bound status maps (chunk 2).
-   Needs decisions DS-1 (web test runner), DS-2 (`clients.accent_slot`) and
-   DS-3 (who owns `WAITING_CREDITS`), recorded in the plan.
+   [`plans/design-system.md`](plans/design-system.md). Decisions DS-1, DS-2 and
+   DS-3 are resolved there. Order: chunks 0–3 (vocabulary, tokens, enum binding,
+   primitives + Vitest), then the first real vertical slice (Portfolio → Study →
+   workflow state → approval) before any further screens. Cross-context
+   dependencies: OI-9 to OI-12.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
    long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
 
