@@ -321,8 +321,10 @@ never presents an item as assigned to the viewer.
 ## OI-12 · Question · `clients.accent_slot` changes the Client persistence contract
 
 **Claim.** DS-2 persists a presentation slot per client; a hash of the client id
-alone collides at five clients (`cl_salvia` and `cl_tecka` both map to 4 under
-FNV-1a mod 6).
+alone collides at five clients (`cl_salvia` and `cl_tecka` both map to slot 4
+under FNV-1a mod 6 — `hashAccentSlot` in `apps/web/src/design/accent.ts`, test
+`accent.test.ts › collides`). The web slice uses that hash as a labelled fallback
+until the column exists, and prefers a server slot the moment one is returned.
 
 **Contract.** A smallint in 1–6, assigned server-side at client creation by the
 least-used strategy, immutable afterwards, never chosen by browser input. It is a
@@ -333,3 +335,83 @@ globally unique. Name, monogram and the scope chrome stay authoritative.
 product-surface implements it (`.planning/plans/design-system.md`, chunk 4).
 
 **Status.** Open. Migration held until integration-architecture acknowledges.
+
+---
+
+## OI-13 · Finding · The impact preview answers an unknown field with "nothing changes"
+
+**Claim.** `GET …/projects/{id}/impact?field=<anything>` returns 200 with every
+stage preserved and nothing invalidated when the field is not a key of
+`IMPACT_ROOTS`, so a typo reads as a safe edit.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/pipeline.py:483 @ a02643c`
+(`IMPACT_ROOTS.get(str(field))` drops an unknown key) reached from
+`apps/api/src/aia_api/routers/projects.py:339 @ a02643c`.
+
+**Reproduction.** On a seeded database (`make dev-seed`):
+`curl -H 'X-AIA-Subject: lead@aia.dev' "$API/studies/$S/projects/$P/impact?field=bogus"`
+→ `{"root_stage":null,"invalidate":[],…}`.
+
+**Consequence.** Any client that passes a free-text field shows "nothing is
+recomputed" for an edit it never understood. The web client now offers only
+`IMPACT_FIELDS` (bound to `IMPACT_ROOTS` by `make enum_check`), so it no longer
+relies on this — other callers still can.
+
+**Smallest fix.** Reject a field that is not in `IMPACT_ROOTS` with 422
+`unknown_field` in the route (the domain function may keep ignoring it for the
+save path, where `changed_fields` only yields real keys).
+
+**Test that would have caught it.** An API test asserting 422 for
+`?field=bogus`, beside the existing impact tests.
+
+**Owner.** integration-architecture (API contract).
+
+**Status.** Open.
+
+---
+
+## OI-14 · Question · The web client has no sign-in
+
+**Claim.** The web client authenticates to the API only with a development
+subject (`AIA_DEV_SUBJECT` → `X-AIA-Subject`); there is no browser session, no
+Cognito flow and no token exchange.
+
+**Anchor.** `apps/web/src/lib/api/client.ts` (`apiConfig`), and the API's
+`identity/cognito` provider, which nothing in `apps/web` reaches.
+
+**Consequence.** The slice runs only in local development. The shell labels the
+identity as a development identity so no screenshot passes for a real session.
+
+**Owner.** product-surface (web session), with integration-architecture for the
+token contract.
+
+**Status.** Open.
+
+---
+
+## OI-15 · Question · No HTTP routes for runs, gates, approvals, reservations or usage
+
+**Claim.** Workflow runs, steps and attempts, gate decisions and approvals, cost
+reservations and the usage ledger exist in the repositories but have no route,
+so no screen can show live run state or ask a human to approve anything.
+
+**Anchor.** `apps/api/src/aia_api/routers/` holds only `health.py`, `projects.py`
+and `scope.py` @ a02643c; gates are recorded as
+`step.waiting_reason = f"gate:{gate_type}"` at
+`packages/aia_core/src/aia_core/infrastructure/workflow_repository.py:1250 @ a02643c`.
+
+**Consequence.** The project screen shows stage status and waiting reason (which
+the project route does carry) and renders runs, approvals and reservations as
+explicitly unavailable — never as "none". Also: the study *list* route returns
+`your_role: null` and no costs for every row
+(`apps/api/src/aia_api/routers/scope.py:331 @ a02643c`), so the portfolio makes
+one study call per row to show the viewer's role and remaining budget.
+
+**Needed, in slice order.** Read routes for runs/steps (status, failure class,
+retry-at), for pending gates with the permission that resolves them (feeds
+OI-11), and for a study's reservations and spend; then the approval write.
+
+**Owner.** platform-runtime.
+
+**Status.** Open. Cross-context dependency.
+

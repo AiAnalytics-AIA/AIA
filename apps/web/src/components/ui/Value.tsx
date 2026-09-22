@@ -45,7 +45,7 @@ export function Value({ value, state, reason, format, digits, role, inheritRole 
   }
   if (st === "suppressed") {
     return (
-      <span data-state="suppressed" title={`${cs.nulls.suppressedLong} — ${reason ?? cs.nulls.reasonMissing}`} className="inline-flex items-center gap-1 text-xs text-ink-muted">
+      <span data-state="suppressed" title={`${cs.nulls.suppressedLong} — ${reason ?? cs.nulls.reasonMissing}`} className="inline-flex flex-wrap items-center gap-x-1 text-xs text-ink-muted">
         <span aria-hidden="true" className="inline-block h-2.5 w-7 rounded-[1px] bg-suppressed-fill" />
         <span>{cs.nulls.suppressed}</span>
         <span>· {reason ?? cs.nulls.reasonMissing}</span>
