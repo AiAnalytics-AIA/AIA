@@ -32,6 +32,7 @@ from .storage import (
 )
 from .tables import (
     AccessAuditRow,
+    ApprovalDecisionRow,
     Base,
     ClientGrantRow,
     ClientRow,
@@ -58,6 +59,7 @@ from .workflow_repository import (
 
 __all__ = [
     "AccessAuditRow",
+    "ApprovalDecisionRow",
     "Artifact",
     "ArtifactNotFound",
     "ArtifactRepository",

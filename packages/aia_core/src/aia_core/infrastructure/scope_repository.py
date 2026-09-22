@@ -23,6 +23,7 @@ from ..domain.scope import (
     OrganizationRole,
     Permission,
     ScopeDenied,
+    SelfApprovalPolicy,
     Study,
     StudyContext,
     StudyStatus,
@@ -30,6 +31,7 @@ from ..domain.scope import (
     new_organization_id,
     new_study_id,
     new_user_id,
+    resolve_self_approval_policy,
 )
 from .tables import (
     AccessAuditRow,
@@ -52,6 +54,7 @@ def _client_to_domain(row: ClientRow) -> Client:
         name=row.name,
         status=ClientStatus(row.status),
         reference=row.reference,
+        allow_self_approval=row.allow_self_approval,
         created_at=row.created_at,
         modified_at=row.modified_at,
     )
@@ -67,6 +70,7 @@ def _study_to_domain(row: StudyRow) -> Study:
         status=StudyStatus(row.status),
         budget_usd=row.budget_usd,
         spent_usd=row.spent_usd,
+        allow_self_approval=row.allow_self_approval,
         created_at=row.created_at,
         modified_at=row.modified_at,
         delivered_at=row.delivered_at,
@@ -504,6 +508,94 @@ class ScopeRepository:
         )
         self._session.flush()
         return _study_to_domain(row)
+
+    def set_self_approval(
+        self,
+        admin: OrganizationContext,
+        *,
+        allowed: bool | None,
+        client_id: str | None = None,
+        study_id: str | None = None,
+    ) -> SelfApprovalPolicy:
+        """Configure self-approval at the organization, client or study level.
+
+        This is the **only** way the policy is set, and it requires organization
+        administration. That is deliberate: self-approval weakens a control, so
+        turning it on must be an administrative act against persisted state, not
+        something a study LEAD can arrange for their own study, and certainly not
+        something a request payload or an agent can assert.
+
+        ``allowed=None`` clears the level so it inherits its parent again, which
+        is distinct from setting it to ``False``. Passing ``study_id`` configures
+        that study, ``client_id`` that client, and neither configures the
+        organization.
+
+        Returns the policy that now resolves for the level that was changed, so a
+        caller can show the effect rather than the setting.
+        """
+        admin.require_administer()
+        if client_id and study_id:
+            raise ValueError("configure a client or a study, not both")
+
+        organization = self._session.scalar(
+            select(OrganizationRow).where(OrganizationRow.organization_id == admin.organization_id)
+        )
+        if organization is None:
+            raise ScopeDenied("not found", reason="unknown_organization")
+
+        client_row: ClientRow | None = None
+        study_row: StudyRow | None = None
+        level = "organization"
+
+        if study_id:
+            study_row = self._session.scalar(
+                select(StudyRow).where(
+                    StudyRow.study_id == study_id,
+                    StudyRow.organization_id == admin.organization_id,
+                )
+            )
+            if study_row is None:
+                raise ScopeDenied("not found", reason="unknown_study")
+            study_row.allow_self_approval = allowed
+            client_id = study_row.client_id
+            level = "study"
+        elif client_id:
+            client_row = self._session.scalar(
+                select(ClientRow).where(
+                    ClientRow.client_id == client_id,
+                    ClientRow.organization_id == admin.organization_id,
+                )
+            )
+            if client_row is None:
+                raise ScopeDenied("not found", reason="unknown_client")
+            client_row.allow_self_approval = allowed
+            level = "client"
+        else:
+            organization.allow_self_approval = allowed
+
+        if client_row is None and client_id:
+            client_row = self._session.scalar(
+                select(ClientRow).where(ClientRow.client_id == client_id)
+            )
+
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                study_id=study_id,
+                actor_id=admin.actor_id,
+                action="SELF_APPROVAL_CONFIGURED",
+                reason=f"{level}={'inherit' if allowed is None else str(allowed).lower()}",
+                payload={"level": level, "allow_self_approval": allowed},
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+        return resolve_self_approval_policy(
+            organization=organization.allow_self_approval,
+            client=client_row.allow_self_approval if client_row is not None else None,
+            study=study_row.allow_self_approval if study_row is not None else None,
+        )
 
     def study_spend(self, scope: StudyContext) -> dict[str, float]:
         """Return the study's budget position."""

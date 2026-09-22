@@ -35,10 +35,11 @@ from ..domain.scope import (
     Permission,
     ScopeDenied,
     StudyContext,
-    require_independent_reviewer,
+    require_approval_independence,
 )
 from .storage import ArtifactStore, IntegrityError, ObjectNotFound, build_storage_key
 from .tables import (
+    ApprovalDecisionRow,
     ProjectArtifactDependencyRow,
     ProjectArtifactRow,
     ProjectRow,
@@ -468,26 +469,53 @@ class ArtifactRepository:
         self._session.flush()
         return len(rows)
 
-    def approve(self, artifact_id: str) -> Artifact:
+    def approve(self, artifact_id: str, *, note: str = "") -> Artifact:
         """Record human sign-off on an artifact.
 
         Two independent checks, because either alone is insufficient:
 
         1. ``SIGN_OFF_DELIVERABLE`` authority, which a RESEARCHER does not hold.
-        2. ``producer_user_id != approving_user_id``. A LEAD holds *both*
-           ``EDIT_STUDY`` and ``SIGN_OFF_DELIVERABLE``, so a role check alone
-           would let one person author a deliverable and clear its own gate by
-           switching hats. The methodology's human review gate requires
-           independence, not merely a permission.
+        2. Independence of the producer. A LEAD holds *both* ``EDIT_STUDY`` and
+           ``SIGN_OFF_DELIVERABLE``, so the permission alone would let one person
+           author a deliverable and clear its own gate by switching hats. The
+           methodology's human review gate requires independence, not merely a
+           permission.
+
+        Independent review is the **default**, and the producer may sign off only
+        where self-approval has been explicitly enabled by policy for this
+        organization, client or study. That policy arrives on the
+        :class:`StudyContext`, resolved from persisted state -- a caller cannot
+        pass it in. The permission requirement is unaffected either way.
+
+        The decision, the policy and its source are appended to
+        ``approval_decisions``, so a sign-off remains reconstructible after the
+        configuration changes.
         """
         self._scope.require(Permission.SIGN_OFF_DELIVERABLE)
         row = self._row(artifact_id)
-        require_independent_reviewer(
+        independence = require_approval_independence(
             producer_user_id=row.produced_by_user_id,
             approving_user_id=self._scope.actor_id,
+            policy=self._scope.self_approval,
             what=f"artifact {row.artifact_type}",
         )
         row.is_approved = True
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self._scope.organization_id,
+                client_id=self._scope.client_id,
+                study_id=self._scope.study_id,
+                subject_type="artifact",
+                subject_id=artifact_id,
+                project_id=row.project_id,
+                project_revision=row.revision,
+                artifact_type=row.artifact_type,
+                decision="APPROVED",
+                comment=note,
+                request_id=self._scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
         self._session.flush()
         return _to_domain(row)
 

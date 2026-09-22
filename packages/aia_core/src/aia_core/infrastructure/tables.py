@@ -375,6 +375,11 @@ class OrganizationRow(Base):
     organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     slug: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Self-approval policy, nullable at every level so that the hierarchy
+    # *inherits* rather than duplicates: NULL means "ask my parent". The resolved
+    # value reaches an approval only on a server-issued StudyContext, never as a
+    # call argument. See aia_core.domain.scope.resolve_self_approval_policy.
+    allow_self_approval: Mapped[bool | None] = mapped_column(Boolean)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -437,6 +442,8 @@ class ClientRow(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="ACTIVE")
     reference: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    # Overrides the organization setting; NULL inherits it.
+    allow_self_approval: Mapped[bool | None] = mapped_column(Boolean)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -473,6 +480,10 @@ class StudyRow(Base):
     # as an independent figure.
     budget_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     spent_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    # Most specific level of the self-approval hierarchy; NULL inherits the
+    # client's setting, then the organization's, then the default of false.
+    allow_self_approval: Mapped[bool | None] = mapped_column(Boolean)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -579,8 +590,10 @@ class AccessAuditRow(Base):
 # --------------------------------------------------------------------------- #
 # Durable workflow engine: runs, steps, attempts, reservations, gates
 #
-# PostgreSQL is authoritative. SQS carries an identifier, never state, so losing
-# the queue loses no work. See docs/architecture/adr/0002.
+# PostgreSQL is authoritative *and*, for v0.1, is the queue: workers claim
+# runnable steps transactionally with `SELECT ... FOR UPDATE SKIP LOCKED`. There
+# is no external broker, so there is no second place where work can be lost.
+# See docs/architecture/adr/0002.
 # --------------------------------------------------------------------------- #
 
 
@@ -858,6 +871,69 @@ class WorkflowGateRow(Base):
             name="gate_status_known",
         ),
         Index("ix_gates_pending", "run_id", "status"),
+    )
+
+
+class ApprovalDecisionRow(Base):
+    """**Append-only** record of every approval and gate decision.
+
+    Separate from the gate and artifact rows because those hold *current* state:
+    a gate keeps the decision that stands, and an artifact keeps ``is_approved``.
+    Neither can answer "under what policy was this cleared, by whom, and was it
+    self-approved" after the configuration has since changed.
+
+    Every field needed to reconstruct a decision is denormalised onto the row on
+    purpose. Resolving the policy again at read time would answer what the policy
+    is *now*, not what it was when somebody signed off a client deliverable.
+    """
+
+    __tablename__ = "approval_decisions"
+
+    decision_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Scope. Denormalised so an audit query needs no join, as everywhere else.
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # What was decided on: a workflow gate or an artifact sign-off.
+    subject_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # Where it sat. Nullable because a gate has a run and a step while an
+    # artifact has a project and a revision; neither has both.
+    run_id: Mapped[str | None] = mapped_column(String(64))
+    step_id: Mapped[str | None] = mapped_column(String(64))
+    project_id: Mapped[str | None] = mapped_column(String(64))
+    project_revision: Mapped[int | None] = mapped_column(Integer)
+    artifact_type: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    gate_type: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+
+    # Who, and whether the two were the same person.
+    producer_user_id: Mapped[str | None] = mapped_column(String(64))
+    approver_user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    self_approved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # The policy in force at the moment of the decision, and which level set it.
+    self_approval_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    self_approval_source: Mapped[str] = mapped_column(String(32), nullable=False, default="default")
+
+    decision: Mapped[str] = mapped_column(String(64), nullable=False)
+    comment: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    request_id: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        CheckConstraint("subject_type in ('gate','artifact')", name="approval_subject_type_known"),
+        CheckConstraint(
+            "self_approval_source in ('default','organization','client','study')",
+            name="approval_self_approval_source_known",
+        ),
+        Index("ix_approval_decisions_study", "study_id", "decision_id"),
+        Index("ix_approval_decisions_subject", "subject_type", "subject_id"),
     )
 
 
