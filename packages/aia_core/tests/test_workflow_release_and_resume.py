@@ -1,7 +1,7 @@
 """Releasing an attempt on shutdown, resuming provider parks, and cancel-wins.
 
 Three rules a worker needs that the engine did not have
-(``.planning/plans/worker-process.md``):
+(``.planning/plans/done/worker-process.md``):
 
 * **Release.** A worker shutting down cleanly gives its attempt back: the step
   is runnable at once and the attempt is not counted -- unless a paid call is in

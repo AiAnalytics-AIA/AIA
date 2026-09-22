@@ -97,6 +97,30 @@ from tests.helpers import make_project
 def test_x(project_factory): ...
 ```
 
+**A session left open hangs the next fixture's teardown, not the test.** A test
+that claims a step on a session it never closes leaves a connection *idle in
+transaction* holding row locks; the test passes, and the fixture's `DELETE` at
+teardown then waits on those locks forever. The symptom is a suite that stops
+printing after a `PASSED`. Every session a test opens is closed in a `finally`,
+or opened with `with`:
+
+```python
+# WRONG — never closed; its locks outlive the test
+_, repo = make_repo()
+assert repo.claim_next(worker_id="w") is not None
+
+# RIGHT
+session, repo = make_repo()
+try:
+    assert repo.claim_next(worker_id="w") is not None
+    session.commit()
+finally:
+    session.close()
+```
+
+To find the culprit: `SELECT pid, state, query FROM pg_stat_activity WHERE state
+LIKE 'idle in%'` — its last query names the call that opened it.
+
 Markers are registered in the root `pyproject.toml` and `--strict-markers` is on,
 so a typo in a marker name is an error rather than a silently unfiltered run.
 Current markers: `parity`, `postgres`.
@@ -109,6 +133,56 @@ step, a lock convoy and a budget overspend race all passed the sequential suite.
 Concurrency semantics are tested against real PostgreSQL, with real concurrent
 transactions, and CI runs both engines: PostgreSQL for truth, SQLite to keep the
 offline development path working.
+
+**An ORM read-check-write is a lost update waiting for a second writer.** The
+ORM flushes a changed attribute as `UPDATE … WHERE pk = :id` — the check you made
+in Python is not in the statement. The heartbeat did exactly this, and a
+reconciler that expired the attempt between the read and the write was silently
+overwritten, putting a recovered attempt back to `EXECUTING` so two workers ran
+one step. Put the condition in the statement, where the database re-evaluates it
+against the committed row:
+
+```python
+# WRONG — the status check is Python's; the UPDATE is by primary key only
+attempt = session.get(StepAttemptRow, attempt_id)
+if attempt.worker_id == worker_id and attempt.status in LIVE:
+    attempt.lease_until = deadline          # overwrites a concurrent EXPIRED
+
+# RIGHT — one conditional statement; rowcount says whether it held
+result = session.execute(
+    update(StepAttemptRow)
+    .where(StepAttemptRow.attempt_id == attempt_id,
+           StepAttemptRow.worker_id == worker_id,
+           StepAttemptRow.status.in_(LIVE))
+    .values(lease_until=deadline)
+)
+accepted = result.rowcount == 1
+```
+
+Where a read-then-decide is unavoidable, lock the row first (`with_for_update()`)
+— and see the next entry.
+
+**`SELECT … FOR UPDATE` does not refresh an object already in the identity map.**
+The lock is taken and the row re-read, but SQLAlchemy keeps the attribute values
+it already had for that primary key, so a check made after the lock can still see
+a stale status. When the lock is the point, ask for the fresh values too:
+
+```python
+# WRONG — locked, but `attempt.status` may be what this session read earlier
+attempt = session.scalar(select(StepAttemptRow).where(...).with_for_update())
+
+# RIGHT
+attempt = session.scalar(
+    select(StepAttemptRow).where(...).with_for_update()
+    .execution_options(populate_existing=True)
+)
+```
+
+**In-memory SQLite cannot serve two threads.** `create_app_engine` gives
+`:memory:` a single shared connection (`StaticPool`) so separate sessions see one
+database — which also means a second thread (the worker's heartbeat) shares that
+connection mid-transaction. Tests with more than one thread use a **file-backed**
+SQLite database per test (`apps/worker/tests/conftest.py`).
 
 Anything touching the database lives in `infrastructure/`. See
 [ARCHITECTURE.md §3](ARCHITECTURE.md#3-enforcement--make-layer_check).
@@ -146,10 +220,38 @@ def make_token(claims: dict[str, Any]) -> str:
     return token
 ```
 
+**`aia_core` ships no `py.typed`, so check every source tree in one run.** Run on
+its own, `mypy apps/worker/src` treats `aia_core` as an untyped third party and
+reports eighteen `import-untyped` errors; run together with
+`packages/aia_core/src` it resolves the source directly. `make typecheck` and CI
+therefore pass all three trees to a single `mypy` invocation. Splitting that
+command "for speed" silently changes what is checked.
+
 Where a whole library has no stubs and pulling them in is not worth the
 dependency, add a narrow `[[tool.mypy.overrides]]` in the root `pyproject.toml`
 **with a comment saying why** — as `boto3` has. An unexplained override is
 indistinguishable from an abandoned one.
+
+## Python control flow
+
+**An exception an executor must not swallow is a `BaseException`.** Executor code
+is full of `except Exception:` — retry loops, provider adapters, "log and carry
+on". A cancellation or a lost lease raised as an ordinary `Exception` is caught by
+the first of those, and the executor keeps spending money on a step it no longer
+owns. `asyncio.CancelledError` became a `BaseException` in Python 3.8 for exactly
+this reason, and the worker's `StopExecution` follows it:
+
+```python
+# WRONG — any `except Exception` in an executor swallows it
+class CancellationRequested(Exception): ...
+
+# RIGHT — only code that names it (the worker) catches it
+class StopExecution(BaseException): ...
+class CancellationRequested(StopExecution): ...
+```
+
+The worker's own `except Exception` for an unclassified executor error therefore
+does not catch these either; it names them explicitly, first.
 
 ## FastAPI
 

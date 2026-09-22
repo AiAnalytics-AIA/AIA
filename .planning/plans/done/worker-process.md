@@ -1,6 +1,6 @@
 # Worker process
 
-**Status:** in progress · **Owner:** platform-runtime · **Started:** 2026-09-22
+**Status:** done · **Owner:** platform-runtime · **Started:** 2026-09-22 · **Finished:** 2026-09-22
 
 ## Problem
 
@@ -11,7 +11,7 @@ recovery — but nothing drives it. `PROGRESS.md` Next #2 and
 a cancellation poll. Until it exists no step executes outside a test, and the
 only place work *could* run is an API request, which the architecture forbids.
 
-Reading the engine as a worker would drive it surfaced seven defects that a worker
+Reading the engine as a worker would drive it surfaced eight defects that a worker
 would turn from latent into live. Each is reproduced by a test in the chunk that
 fixes it; none is reachable today only because nothing calls these methods
 concurrently yet.
@@ -25,6 +25,7 @@ concurrently yet.
 | W5 | **Known spend is dropped on a later failure.** A call whose outcome and cost were recorded (`mark_paid_call_outcome_known`) and whose attempt then fails has its reservation *released*, so the money spent is never charged | `workflow_repository.py:931-933` |
 | W6 | **Nothing resumes a provider park.** `WAITING_PROVIDER` and `WAITING_CAPACITY` are not `RUNNABLE`, and no code moves them back; the existing test simulates an operator with `force_step_status` | `test_workflow_engine.py::test_a_parked_quota_step_becomes_claimable_after_its_reset_time` |
 | W7 | **A cancelled run whose worker died never finishes.** `request_cancel` leaves a `RUNNING` step for its worker; if the worker dies, recovery returns `RETRY`, the step goes `RUNNABLE` with `cancel_requested` set, `claim_next` never picks it, and the run reads `RUNNING` forever. Found while designing chunk 3 | `workflow_repository.py:1003-1026`, `claim_next` filter at `461` |
+| W8 | **Two steps of one run finishing together strand the run.** Each finishing transaction derives the run's status, and releases blocked dependants, from a READ COMMITTED snapshot in which the *other* step is still `RUNNING`. The run then reads `RUNNING` forever with every step `SUCCEEDED`, and a diamond's join step stays `BLOCKED` with nothing left to run. Found in chunk 7 while chasing a worker-suite failure | `workflow_repository.py:336-383` (`_refresh_run`), `385-428` (`release_ready_steps`) |
 
 ## Approach
 
@@ -151,10 +152,47 @@ re-run of a possibly-billed call.
   consecutive runs on PostgreSQL 16, ~27 s each. Two and more `python -m aia_worker`
   processes contending; `SIGKILL` mid-step; `SIGTERM` mid-step; no double
   execution, no double charge.
-- [ ] 7. **Wiring and documents.** Makefile, CI (lint, types, tests, required
-  PostgreSQL run), `layer_check` rules for layer 4, `ARCHITECTURE.md`,
-  `CLAUDE.md`, `AGENTS.md`, `workflows.md`, `PROGRESS.md`, `open-items.md`.
+- [x] 7a. **Serialise step transitions per run** (W8). `_lock_run` — the run row,
+  taken before any step row, in completion, failure, recovery, release,
+  abandonment and gate transitions; the resume sweep skips a locked run; the
+  reconciler selects only lapsed leases on PostgreSQL and orders by run. Reproduced
+  deterministically by
+  `test_workflow_concurrency.py::test_regression_the_last_two_steps_finishing_together_complete_the_run`
+  and `…::test_regression_a_join_step_is_released_when_both_parents_finish_together`
+  (both fail with the lock disabled, pass with it). **Not** shown to be the cause
+  of the one unexplained worker-suite failure seen during chunk 7: with the lock
+  disabled, 0 of 15 contention runs and 0 of 40 two-step runs across two real
+  processes stranded a run.
+- [x] 7. **Wiring and documents.** *Landed.* Makefile (`dev-worker`,
+  `test-worker`; worker in lint, format, typecheck, verify); CI (install, lint,
+  one mypy run over all trees, worker suite with `AIA_REQUIRE_POSTGRES=1`, worker
+  in the SQLite run, a boot-and-`SIGTERM` smoke that also fails on any `ERROR`
+  line); eight new `layer_check` rules (20/20, each shown to fail on a probe
+  violation); `ARCHITECTURE.md` §2/§3/§5/§7/§8, `CLAUDE.md` map and commands,
+  `AGENTS.md` (lost-update read-check-write, stale identity map under
+  `FOR UPDATE`, in-memory SQLite and threads, an unclosed session hanging
+  teardown, `py.typed` and mypy, `BaseException` for control flow),
+  `workflows.md` § The worker, the architecture README, board spec, module
+  inventory, migration status, `PROGRESS.md`, OI-6/7/8.
 
 ## Review outcome
 
-Filled in when the plan is archived.
+Not yet reviewed by a human; nothing has been committed (the session was refused
+`git commit`, as CLAUDE.md §5 requires without explicit permission). Follow-ups
+filed rather than done: OI-6 (a quota park can re-issue an in-flight paid call —
+domain precedence, parity-covered), OI-7 (should revoking a researcher stop their
+runs), OI-8 (redaction patterns defined twice).
+
+### Layer-by-layer review map
+
+Walk it in this order; each file's tests sit beside it.
+
+| Layer | Changed / new file | What changed | Tests |
+|---|---|---|---|
+| 1 Domain | `packages/aia_core/src/aia_core/domain/workflow.py` | `decide_release`, `apply_cancellation`, `resume_due`, `RecoveryAction.CANCEL`, two back-off constants. `decide_recovery` untouched | `packages/aia_core/tests/test_workflow_release_and_resume.py` |
+| 2 Application | `packages/aia_core/src/aia_core/application/scope.py` | `ScopeResolver.execution_context`, `EXECUTION_ROLE` | `packages/aia_core/tests/test_work_queue.py` |
+| 3 Infrastructure | `packages/aia_core/src/aia_core/infrastructure/workflow_repository.py` | `LeaseLost`; lease fence on every attempt write; conditional heartbeat; idempotent completion; `settle_paid_call`; the reservation closing rule; `release_attempt`; `resume_waiting_steps`; `_lock_run`; `assert_lease`; `record_progress`; `decided_gates`; kind filter; `WorkQueue` | `test_workflow_lease_fencing.py`, `test_workflow_reservations.py`, `test_workflow_release_and_resume.py`, `test_work_queue.py`, `test_workflow_concurrency.py` (W1, W2 race, W8), `test_workflow_engine.py` (call sites only) |
+| 4 Worker | `apps/worker/pyproject.toml`, `src/aia_worker/{__init__,__main__,executor,context,heartbeat,worker,settings,registry,observability,testing}.py` | The package | `apps/worker/tests/test_worker_loop.py`, `test_worker_settings.py`, `test_worker_processes.py` |
+| 5 Transport | — | Unchanged; `layer_check` now forbids it executing steps | — |
+| Tooling | `Makefile`, `.github/workflows/ci.yml`, `tools/layer_check.sh` | Worker wired in; eight layer rules | `./tools/layer_check.sh` |
+| Documents | `ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`, `docs/architecture/{workflows,README,boards-v2.2-content-spec}.md`, `docs/migration/{module-inventory,status}.md`, `.planning/{PROGRESS,open-items}.md` | As in chunk 7 | — |

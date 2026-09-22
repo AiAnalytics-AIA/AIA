@@ -238,3 +238,34 @@ them. (c) (b), but reassign rather than refuse, which needs a product rule for
 who inherits.
 
 **Status.** Open. A product/security decision, not an engineering one.
+
+---
+
+## OI-8 · Finding · Secret-redaction patterns are defined twice
+
+**Claim.** The provider-key shapes that must never reach a log or an attempt's
+`error_json` are defined in the API and restated in the worker, so a new key
+shape added to one is silently missing from the other.
+
+**Anchor.** `apps/api/src/aia_api/observability.py` `_SECRET_VALUE_PATTERNS` and
+`apps/worker/src/aia_worker/observability.py` `_SECRET_VALUE_PATTERNS` @ this
+change. The worker may not import the API (`tools/layer_check.sh`: "the worker
+never imports the API"), which is why it was restated rather than shared.
+
+**Reproduction.** Add a pattern to one file and run
+`apps/worker/tests/test_worker_loop.py::test_an_unclassified_exception_is_permanent_and_its_message_redacted`
+with a key of the new shape: it is not redacted.
+
+**Consequence.** A provider key in an executor's exception text reaches the
+database and the worker log. Anti-pattern A6 (producer/consumer drift) in a
+security-relevant place.
+
+**Smallest fix.** Move the value patterns and `redact_text` into a pure module
+in `aia_core` (no framework imports, so it may live in `domain/`) and import it
+from both.
+
+**Test that would catch it.** One parametrised test over both redactors with the
+same key fixtures, asserting identical output.
+
+**Status.** Open. Deliberately not done in the worker change set: it moves code
+the API owns, and one logical change per commit.

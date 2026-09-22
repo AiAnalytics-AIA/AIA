@@ -1,7 +1,7 @@
 """The lease is the fence: only the worker holding an attempt may write about it.
 
 These are the engine guarantees a worker process leans on, each written against
-the defect that motivated it (``.planning/plans/worker-process.md`` W1-W3):
+the defect that motivated it (``.planning/plans/done/worker-process.md`` W1-W3):
 
 * a stale worker -- one whose lease was recovered -- cannot complete, fail or
   abandon the attempt, so a step never carries two outcomes;

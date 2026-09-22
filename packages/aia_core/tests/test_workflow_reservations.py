@@ -1,7 +1,7 @@
 """Every way an attempt ends closes its reservations by one rule.
 
 ``WorkflowRepository._close_open_reservations`` is the rule; these tests pin each
-branch and the two defects it replaced (``.planning/plans/worker-process.md``):
+branch and the two defects it replaced (``.planning/plans/done/worker-process.md``):
 
 * **W4** -- cancelling a paid step left its reservation ``RESERVED`` forever, so
   the study's available budget shrank permanently;
