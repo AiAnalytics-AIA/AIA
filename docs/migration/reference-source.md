@@ -77,6 +77,21 @@ Rules:
    reference is a sibling checkout or a bootstrap-managed directory.
 4. `bootstrap_reference.sh` prints the correct value to export.
 
+## `AIA_REFERENCE_FIXTURES` contract
+
+Parity tests that compare against a golden fixture captured *in the reference
+repository* read it from that repository's `golden-fixtures/` directory:
+
+```bash
+export AIA_REFERENCE_FIXTURES=/path/to/AIA-reference/golden-fixtures
+make test-parity
+```
+
+The same rules apply as for `AIA_LEGACY_REFERENCE`: absent is valid and every
+such test skips; a fixture not yet captured also skips, and says which. Fixtures
+are read in place and never copied here. First consumer:
+`packages/aia_core/tests/test_simulation_parity.py` (fixture F13).
+
 ## Do not duplicate raw assets into this repository
 
 This repository is the clean production rebuild. It must not absorb:
@@ -130,7 +145,7 @@ schema gate and the committed artifact are all asserted by
 | Item | Owner |
 | --- | --- |
 | `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` | parity-quality + sociomapa-deterministic |
-| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential | parity-quality + simulation-engine |
+| `REF-GAP-SIMULATION-WORLD-MODEL` — needs the reference source, a provider credential and an ADR 0008 egress route; status in [simulation-deterministic-engine.md](../architecture/simulation-deterministic-engine.md) §7 | parity-quality + simulation-engine |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` — needs a licence decision | data owner |
 
 Neither fixture gap is unknown behaviour: code paths, constants and seeds are
