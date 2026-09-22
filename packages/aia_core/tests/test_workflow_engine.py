@@ -194,11 +194,12 @@ def test_duplicate_run_creation_returns_the_existing_run(
 def test_duplicate_wake_up_produces_one_execution_not_two(
     engine_repo: WorkflowRepository, run: str
 ) -> None:
-    """**SQS delivers at least once. This is the guard.**
+    """**Two workers polling the same run must not both execute the same step.**
 
-    Two workers both woken for the same run must not both execute the same step.
-    Ownership lives in PostgreSQL, not in the queue, so the second claimer gets
-    the *next* step or nothing -- never a second attempt at the same one.
+    Ownership lives in the claim transaction, so the second claimer gets the *next*
+    step or nothing -- never a second attempt at the same one. This holds with no
+    queue at all, and would still hold if a wake-up mechanism were added in front
+    of it, because the guard is the claim rather than the delivery.
     """
     first = engine_repo.claim_next(worker_id="worker-1")
     second = engine_repo.claim_next(worker_id="worker-2")
@@ -537,20 +538,124 @@ def test_a_parked_quota_step_becomes_claimable_after_its_reset_time(
 def test_provider_capacity_parks_without_consuming_an_attempt(
     engine_repo: WorkflowRepository, run: str
 ) -> None:
-    """Capacity clears on its own, so it is a park, not a failure."""
+    """Capacity clears on its own, so it is a park, not a failure.
+
+    It parks in ``WAITING_CAPACITY``, **not** ``WAITING_PROVIDER``: the two waits
+    are separate states in the frozen v2.1 vocabulary because they recover
+    differently. See :func:`test_provider_quota_and_capacity_are_separate_states`.
+    """
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
 
     decision = engine_repo.fail_attempt(claimed.attempt_id, failure=FailureClass.PROVIDER_CAPACITY)
-    assert decision.action is RecoveryAction.PARK_PROVIDER
+    assert decision.action is RecoveryAction.PARK_CAPACITY
     assert decision.consumes_attempt is False
-    assert _status(engine_repo, run, "compile") is StepRunStatus.WAITING_PROVIDER
+    assert _status(engine_repo, run, "compile") is StepRunStatus.WAITING_CAPACITY
+
+
+def test_provider_quota_and_capacity_are_separate_states(
+    engine_repo: WorkflowRepository, run: str, scoped: Any, session: Session
+) -> None:
+    """**The two provider waits must not be merged.**
+
+    An earlier draft collapsed them on the grounds that a researcher does not care
+    which. Operationally they are different conditions with different recovery:
+    quota is an entitlement wall that clears at a reset instant and may warrant
+    raising a limit, capacity is an overload that clears by itself in minutes.
+    Merged, a quota wall looks like a blip so nobody raises the limit, and a blip
+    looks like a quota wall so somebody is paged for nothing.
+
+    Both remain self-clearing, so neither appears on an operator's attention list.
+    """
+    reset_at = datetime.now(UTC) + timedelta(hours=1)
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
+    quota = engine_repo.fail_attempt(
+        claimed.attempt_id, failure=FailureClass.QUOTA, quota_reset_at=reset_at
+    )
+
+    second = WorkflowRepository(session, scoped.scope(user="lead", study="sibling"))
+    project = ProjectRepository(session, scoped.scope(user="lead", study="sibling")).create(
+        title="Capacity host", content={"goal": "g"}
+    )[0]
+    other_run = second.create_run(
+        project_id=project.project_id,
+        project_revision=1,
+        workflow_type="persistent_research_project",
+        steps=PIPELINE,
+        idempotency_key=f"{project.project_id}:rev1:capacity",
+    )
+    other_claim = second.claim_next(worker_id="worker-2")
+    assert other_claim is not None
+    capacity = second.fail_attempt(other_claim.attempt_id, failure=FailureClass.PROVIDER_CAPACITY)
+
+    assert quota.step_status is StepRunStatus.WAITING_PROVIDER
+    assert capacity.step_status is StepRunStatus.WAITING_CAPACITY
+    assert quota.step_status is not capacity.step_status
+    assert quota.action is RecoveryAction.PARK_PROVIDER
+    assert capacity.action is RecoveryAction.PARK_CAPACITY
+
+    # Only the quota park schedules a resume; capacity has no reset instant.
+    assert quota.retry_after == reset_at
+    assert capacity.retry_after is None
+
+    assert engine_repo.get_run(run)["status"] is WorkflowRunStatus.WAITING_PROVIDER
+    assert second.get_run(other_run)["status"] is WorkflowRunStatus.WAITING_CAPACITY
+
+    assert WorkflowRunStatus.WAITING_PROVIDER.needs_attention is False
+    assert WorkflowRunStatus.WAITING_CAPACITY.needs_attention is False
+    assert StepRunStatus.WAITING_CAPACITY.is_waiting is True
+
+
+def test_a_capacity_failure_does_not_bypass_the_uncertain_paid_call_guard() -> None:
+    """**Splitting the provider waits must not weaken paid-call recovery.**
+
+    A capacity error arriving after a metered call was dispatched still leaves the
+    billing question open, so it must reach RECOVERY_REQUIRED and settle its
+    reservation as uncertain -- not park as though nothing had been spent. The
+    ordering inside `decide_recovery` is what guarantees it, and this asserts the
+    ordering rather than trusting it.
+    """
+    decision = decide_recovery(
+        failure=FailureClass.PROVIDER_CAPACITY,
+        attempt_number=0,
+        paid_call_dispatched=True,
+        paid_call_outcome_known=False,
+    )
+    assert decision.action is RecoveryAction.RECOVERY_REQUIRED
+    assert decision.step_status is StepRunStatus.RECOVERY_REQUIRED
+    assert decision.settle_reservation_as_uncertain is True
+    assert decision.reason == "paid_external_call_side_effect_uncertain"
+
+
+def test_the_canonical_business_state_vocabulary_is_frozen() -> None:
+    """The v2.1 contract, asserted so a rename cannot happen by accident.
+
+    Two vocabularies active at once is the failure this guards against: a
+    dashboard filtering on one set and an engine writing the other produces a
+    study that is stuck with nothing on anyone's screen.
+    """
+    assert {s.value for s in WorkflowRunStatus} == {
+        "PENDING",
+        "RUNNING",
+        "AWAITING_GATE",
+        "AWAITING_BUDGET",
+        "WAITING_PROVIDER",
+        "WAITING_CAPACITY",
+        "RECOVERY_REQUIRED",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+    }
+    stale = {"WAITING_GATE", "WAITING_BUDGET"}
+    assert not stale & {s.value for s in WorkflowRunStatus}
+    assert not stale & {s.value for s in StepRunStatus}
 
 
 def test_budget_exhaustion_parks_in_its_own_state(
     engine_repo: WorkflowRepository, run: str
 ) -> None:
-    """WAITING_BUDGET is distinct from WAITING_GATE.
+    """AWAITING_BUDGET is distinct from AWAITING_GATE.
 
     The prototype routed budget exhaustion through an approval in WAITING_USER.
     "A person must decide something" and "this study is out of money" need
@@ -563,8 +668,8 @@ def test_budget_exhaustion_parks_in_its_own_state(
 
     assert decision.action is RecoveryAction.PARK_BUDGET
     assert decision.consumes_attempt is False
-    assert _status(engine_repo, run, "compile") is StepRunStatus.WAITING_BUDGET
-    assert engine_repo.get_run(run)["status"] is WorkflowRunStatus.WAITING_BUDGET
+    assert _status(engine_repo, run, "compile") is StepRunStatus.AWAITING_BUDGET
+    assert engine_repo.get_run(run)["status"] is WorkflowRunStatus.AWAITING_BUDGET
 
 
 @pytest.mark.parametrize(
@@ -890,8 +995,8 @@ def test_opening_a_gate_parks_the_step_and_the_run(
         context={"provider_estimates_usd": {"anthropic": 12.5}},
     )
 
-    assert _status(engine_repo, run, "compile") is StepRunStatus.WAITING_GATE
-    assert engine_repo.get_run(run)["status"] is WorkflowRunStatus.WAITING_GATE
+    assert _status(engine_repo, run, "compile") is StepRunStatus.AWAITING_GATE
+    assert engine_repo.get_run(run)["status"] is WorkflowRunStatus.AWAITING_GATE
 
     gates = engine_repo.pending_gates(run)
     assert gates[0]["options"] == ["use_anthropic_api", "cancel"]
@@ -933,12 +1038,17 @@ def test_a_gate_is_decided_once(
 def test_regression_gate_producer_cannot_decide_their_own_gate(
     engine_repo: WorkflowRepository, run: str
 ) -> None:
-    """**producer_user_id != decided_by_user_id. Never relax this.**
+    """**Independent review is the default.** Self-approval is off unless enabled.
 
-    A LEAD holds both EDIT_STUDY and APPROVE_GATE, so a role check alone would
-    let one person produce the work and clear its own review gate by switching
-    hats. Independent review means a different person, not a different
+    A LEAD holds both EDIT_STUDY and APPROVE_GATE, so the permission check alone
+    would let one person produce the work and clear its own review gate by
+    switching hats. Independent review means a different person, not a different
     permission.
+
+    This fixture configures no self-approval anywhere, so the policy resolves to
+    the default of false and the approval is refused. The cases where policy
+    permits it are in ``test_self_approval_policy.py``; what is permanent is that
+    a deployment which has configured nothing gets this behaviour.
     """
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
@@ -949,7 +1059,7 @@ def test_regression_gate_producer_cannot_decide_their_own_gate(
     with pytest.raises(SeparationOfDutiesViolation) as exc:
         engine_repo.decide_gate(gate_id, option="proceed")
     assert exc.value.reason == "separation_of_duties"
-    assert _status(engine_repo, run, "compile") is StepRunStatus.WAITING_GATE
+    assert _status(engine_repo, run, "compile") is StepRunStatus.AWAITING_GATE
 
 
 def test_a_different_reviewer_can_decide_the_gate(
@@ -1005,7 +1115,7 @@ def test_run_status_precedence() -> None:
     """Derivation order drives the operator dashboard.
 
     FAILED outranks everything. RECOVERY_REQUIRED next, because money may be at
-    stake. WAITING_BUDGET and WAITING_GATE outrank WAITING_PROVIDER, because they
+    stake. AWAITING_BUDGET and AWAITING_GATE outrank the provider waits, because they
     need a person while a provider wait clears itself.
     """
     running = [StepRunStatus.RUNNING, StepRunStatus.BLOCKED]
@@ -1016,15 +1126,17 @@ def test_run_status_precedence() -> None:
         is WorkflowRunStatus.WAITING_PROVIDER
     )
     assert (
-        derive_run_status([*running, StepRunStatus.WAITING_PROVIDER, StepRunStatus.WAITING_GATE])
-        is WorkflowRunStatus.WAITING_GATE
+        derive_run_status([*running, StepRunStatus.WAITING_PROVIDER, StepRunStatus.AWAITING_GATE])
+        is WorkflowRunStatus.AWAITING_GATE
     )
     assert (
-        derive_run_status([*running, StepRunStatus.WAITING_GATE, StepRunStatus.WAITING_BUDGET])
-        is WorkflowRunStatus.WAITING_BUDGET
+        derive_run_status([*running, StepRunStatus.AWAITING_GATE, StepRunStatus.AWAITING_BUDGET])
+        is WorkflowRunStatus.AWAITING_BUDGET
     )
     assert (
-        derive_run_status([*running, StepRunStatus.WAITING_BUDGET, StepRunStatus.RECOVERY_REQUIRED])
+        derive_run_status(
+            [*running, StepRunStatus.AWAITING_BUDGET, StepRunStatus.RECOVERY_REQUIRED]
+        )
         is WorkflowRunStatus.RECOVERY_REQUIRED
     )
     assert (
@@ -1064,7 +1176,7 @@ def test_runs_needing_attention_excludes_self_clearing_waits(
 
     assert engine_repo.runs_needing_attention() == []
 
-    engine_repo.force_step_status(claimed.step_id, StepRunStatus.WAITING_BUDGET, reason="test")
+    engine_repo.force_step_status(claimed.step_id, StepRunStatus.AWAITING_BUDGET, reason="test")
     assert [r["run_id"] for r in engine_repo.runs_needing_attention()] == [run]
 
 

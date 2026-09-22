@@ -7,16 +7,40 @@ revisit it.
 | ADR | Decision | Status |
 | --- | --- | --- |
 | [0001](0001-python-fastapi-backend.md) | Keep the validated Python domain engine; FastAPI for the API | Accepted |
-| [0002](0002-postgresql-authoritative-store.md) | PostgreSQL is the authoritative store; SQS is dispatch only | Accepted |
+| [0002](0002-postgresql-authoritative-store.md) | PostgreSQL is authoritative and is the v0.1 queue; workers claim with `FOR UPDATE SKIP LOCKED` | Accepted |
+| [0002](0002-postgresql-authoritative-store.md) | SQS as a non-authoritative wake-up, after a measured trigger and its own ADR | **Deferred** |
 | [0003](0003-cognito-identity-boundary.md) | Cognito federated to Google Workspace for authentication; authorization stays in AIA | Accepted |
 | [0004](0004-client-study-isolation.md) | Client and Study as hard isolation boundaries with injected scope | Accepted |
-| [0005](0005-llm-gateway.md) | Centralised LLM gateway; capability-based model selection | **Proposed** |
-| [0006](0006-langgraph-agent-execution.md) | LangGraph for agent reasoning, AIA owns the outer workflow | **Proposed** |
+| [0005](0005-llm-gateway.md) | **A** — AIA owns the provider-neutral `ModelGateway` contract and its semantics | Accepted |
+| [0005](0005-llm-gateway.md) | **B** — LiteLLM as the transport underneath it | **Proposed** |
+| [0006](0006-langgraph-agent-execution.md) | LangGraph for agent-internal reasoning; AIA owns the workflow | **Accepted — constrained use** |
 | [0007](0007-deterministic-tools.md) | No LLM for deterministic analytical computation | Accepted |
+| [0008](0008-eu-data-residency.md) | EU data residency as a frozen invariant; the egress boundary fails closed | Accepted |
+
+ADR 0005 is deliberately two rows. The gateway contract and the library that might
+implement it are independent decisions, and collapsing them into one status blocked
+the architecture on a vendor question.
 
 ## Status meanings
 
 - **Accepted** — implemented, or committed to and being implemented.
+- **Accepted — constrained use** — adopted, but only within a stated boundary. The
+  boundary is part of the decision.
 - **Proposed** — the direction is agreed but the choice is not yet locked by
   code. Revisit before the phase that depends on it starts.
+- **Deferred** — considered and explicitly not adopted now. The ADR records what
+  would have to be true to revisit it.
 - **Superseded** — replaced; the replacing ADR is named.
+
+## Not decided anywhere, and deliberately so
+
+These come up often enough to be worth naming as open. Nothing in this repository
+should read as though any of them were settled:
+
+- **Compute service.** ECS Fargate and App Runner both remain options. See
+  [ADR 0002](0002-postgresql-authoritative-store.md) § Compute.
+- **Model provider and hosting.** No provider, managed inference service or region
+  is selected. [ADR 0008](0008-eu-data-residency.md) sets the constraints any
+  candidate must meet; meeting them is not the same as being chosen.
+- **Observability backend.** OpenTelemetry is the instrumentation standard; the
+  backend it exports to is replaceable and unchosen.

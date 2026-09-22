@@ -1,7 +1,12 @@
 # ADR 0006 — LangGraph for agent reasoning; AIA owns the workflow
 
 **Status:** **Accepted — constrained use.** Decided 2026-09-21.
-**Date:** 2026-09-21
+**Date:** 2026-09-21 · **Reconciled:** 2026-09-22 (Architecture v2.1)
+
+> The ADR index previously listed this as *Proposed* while this file said
+> *Accepted*. The file was right; the index is corrected. "Accepted — constrained
+> use" is the whole status: the constraint below is not commentary on the decision,
+> it **is** the decision.
 
 > **Numbering note.** The decision approving LangGraph was communicated as
 > "ADR 0005". In this repository LangGraph is **0006** and the LLM gateway is
@@ -66,7 +71,7 @@ only interpretable through a framework checkpoint.
   attempt is recorded and a new attempt starts a new graph.
 - **LangGraph state is not the record that a step completed.** The `StepRun` row
   is.
-- **An approval gate is not a graph interrupt.** It is a `WAITING_GATE` state in
+- **An approval gate is not a graph interrupt.** It is an `AWAITING_GATE` state in
   AIA's machine, because it may last days and must survive a deploy.
 - **Cost is not aggregated from LangGraph.** Every model call writes an
   `AIUsageEvent`; that ledger is authoritative.

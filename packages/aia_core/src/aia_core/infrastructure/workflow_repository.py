@@ -32,9 +32,11 @@ from sqlalchemy.orm import Session
 
 from ..domain.providers import Provider, is_paid
 from ..domain.scope import (
+    ApprovalIndependence,
     Permission,
     StudyContext,
-    require_independent_reviewer,
+    observe_approval_independence,
+    require_approval_independence,
 )
 from ..domain.workflow import (
     DEFAULT_LEASE_SECONDS,
@@ -57,6 +59,7 @@ from ..domain.workflow import (
     validate_dag,
 )
 from .tables import (
+    ApprovalDecisionRow,
     BudgetReservationRow,
     StepAttemptRow,
     StepDependencyRow,
@@ -88,7 +91,7 @@ class BudgetExceeded(RuntimeError):
     """A paid call would exceed the study's budget.
 
     Raised instead of proceeding, and instead of choosing a cheaper provider. The
-    caller must park the step in ``WAITING_BUDGET`` and ask.
+    caller must park the step in ``AWAITING_BUDGET`` and ask.
     """
 
     def __init__(self, *, requested: float, remaining: float, limit: float) -> None:
@@ -1109,7 +1112,7 @@ class WorkflowRepository:
                 produced_by_user_id=produced_by_user_id or self._scope.actor_id,
             )
         )
-        step.status = StepRunStatus.WAITING_GATE.value
+        step.status = StepRunStatus.AWAITING_GATE.value
         step.waiting_reason = f"gate:{gate_type}"
         step.updated_at = utcnow()
 
@@ -1134,9 +1137,20 @@ class WorkflowRepository:
         1. The option must be one of those offered. Accepting an arbitrary string
            means acting on a decision nobody made.
         2. The gate must still be pending, so a replayed request cannot re-decide.
-        3. The decider must not be the producer, for a gate requiring independent
-           review -- a LEAD holds both edit and sign-off authority, so a role
-           check alone would let one person author and approve.
+        3. For an ``approval`` gate the decider must not be the producer --
+           unless self-approval has been explicitly enabled for this scope. A LEAD
+           holds both edit and sign-off authority, so the permission check alone
+           would let one person author and approve; the policy check is what makes
+           that a deliberate, configured choice rather than an accident. Gates
+           that are not approvals record the same facts without enforcing
+           independence.
+
+        ``APPROVE_GATE`` is required either way. Policy permitting self-approval
+        never substitutes for the permission: it only removes the independence
+        objection for someone who could already approve.
+
+        Every decision is written to the append-only ``approval_decisions``
+        ledger, with the policy that allowed it and where that policy came from.
         """
         self._scope.require(Permission.APPROVE_GATE)
 
@@ -1156,17 +1170,45 @@ class WorkflowRepository:
                 f"invalid gate option {option!r}; allowed: {', '.join(sorted(allowed))}"
             )
 
+        independence: ApprovalIndependence
         if gate.gate_type == "approval":
-            require_independent_reviewer(
+            independence = require_approval_independence(
                 producer_user_id=gate.produced_by_user_id,
                 approving_user_id=self._scope.actor_id,
+                policy=self._scope.self_approval,
                 what="this gate's work",
+            )
+        else:
+            # A clarification or methodology question is not a sign-off, and the
+            # producer is often the only person who can answer it. Recorded, not
+            # gated.
+            independence = observe_approval_independence(
+                producer_user_id=gate.produced_by_user_id,
+                approving_user_id=self._scope.actor_id,
+                policy=self._scope.self_approval,
             )
 
         gate.status = "DECIDED"
-        gate.decision_json = {"option": option, "note": note}
+        gate.decision_json = {"option": option, "note": note, **independence.audit_fields()}
         gate.decided_by_user_id = self._scope.actor_id
         gate.decided_at = utcnow()
+
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self._scope.organization_id,
+                client_id=self._scope.client_id,
+                study_id=self._scope.study_id,
+                subject_type="gate",
+                subject_id=gate_id,
+                run_id=gate.run_id,
+                step_id=gate.step_id,
+                gate_type=gate.gate_type,
+                decision=option,
+                comment=note,
+                request_id=self._scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
 
         step = self._step(gate.step_id)
         if option == "cancel":
@@ -1183,8 +1225,14 @@ class WorkflowRepository:
             gate.run_id,
             event_type="GATE_DECIDED",
             message=f"{option} by {self._scope.actor_id}",
-            payload={"gate_id": gate_id, "option": option, "note": note},
+            payload={
+                "gate_id": gate_id,
+                "option": option,
+                "note": note,
+                **independence.audit_fields(),
+            },
             step_id=gate.step_id,
+            level="WARN" if independence.self_approved else "INFO",
         )
         self._session.flush()
         self._refresh_run(gate.run_id)
@@ -1320,7 +1368,8 @@ class WorkflowRepository:
     def runs_needing_attention(self) -> list[dict[str, Any]]:
         """Return runs blocked on a person, for an operator dashboard.
 
-        ``WAITING_PROVIDER`` is excluded: it clears on its own.
+        ``WAITING_PROVIDER`` and ``WAITING_CAPACITY`` are excluded: both clear
+        without anyone acting.
         """
         statuses = [s.value for s in WorkflowRunStatus if s.needs_attention]
         rows = self._session.scalars(

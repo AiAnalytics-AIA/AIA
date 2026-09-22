@@ -33,7 +33,9 @@ from uuid import uuid4
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 __all__ = [
+    "DEFAULT_SELF_APPROVAL_ALLOWED",
     "ROLE_PERMISSIONS",
+    "ApprovalIndependence",
     "Client",
     "ClientGrant",
     "ClientStatus",
@@ -44,6 +46,8 @@ __all__ = [
     "ScopeDenied",
     "ScopeGrant",
     "ScopeRole",
+    "SelfApprovalPolicy",
+    "SelfApprovalSource",
     "Slug",
     "Study",
     "StudyContext",
@@ -54,7 +58,10 @@ __all__ = [
     "new_organization_id",
     "new_study_id",
     "new_user_id",
+    "observe_approval_independence",
     "permissions_for",
+    "require_approval_independence",
+    "resolve_self_approval_policy",
 ]
 
 
@@ -239,14 +246,14 @@ class ScopeDenied(PermissionError):
 
 
 class SeparationOfDutiesViolation(ScopeDenied):
-    """Raised when the producer of work also tries to approve it.
+    """Raised when the producer of work approves it without policy permitting it.
 
     Role separation alone is not enough: a LEAD holds both ``EDIT_STUDY`` and
     ``SIGN_OFF_DELIVERABLE``, so without this check one person could author a
     deliverable and then clear its own review gate by switching hats.
 
-    The invariant is ``producer_user_id != approving_user_id`` for any gate that
-    requires independent review.
+    Independent review is the **default**, not an absolute. See
+    :func:`require_approval_independence`.
     """
 
     def __init__(self, actor_id: str, *, what: str = "this work") -> None:
@@ -257,19 +264,157 @@ class SeparationOfDutiesViolation(ScopeDenied):
         self.actor_id = actor_id
 
 
-def require_independent_reviewer(
-    *, producer_user_id: str | None, approving_user_id: str, what: str = "this work"
-) -> None:
-    """Enforce ``producer_user_id != approving_user_id``.
+# --------------------------------------------------------------------------- #
+# Self-approval policy
+# --------------------------------------------------------------------------- #
 
-    An unknown producer (``None``) does not bypass the rule silently -- it is
-    allowed, because a gate with no recorded producer predates provenance and
-    blocking it would strand existing work. Callers that can record a producer
-    must do so; :func:`require_independent_reviewer` is only as strong as the
-    provenance feeding it.
+# Independent review is the default posture. A deployment that has configured
+# nothing gets the safe behaviour.
+DEFAULT_SELF_APPROVAL_ALLOWED: Final = False
+
+
+class SelfApprovalSource(StrEnum):
+    """Which level of persisted configuration decided a self-approval policy.
+
+    Recorded on every approval so an auditor can answer "who allowed this?"
+    without reconstructing the configuration as it stood at the time.
     """
-    if producer_user_id and producer_user_id == approving_user_id:
+
+    DEFAULT = "default"
+    ORGANIZATION = "organization"
+    CLIENT = "client"
+    STUDY = "study"
+
+
+@dataclass(frozen=True, slots=True)
+class SelfApprovalPolicy:
+    """The resolved answer to "may the producer approve their own work here?".
+
+    Carries its ``source`` as well as its value because the two together are what
+    makes an approval reconstructible: "allowed" is not an audit record, "allowed,
+    because this study overrides its client" is.
+    """
+
+    allowed: bool = DEFAULT_SELF_APPROVAL_ALLOWED
+    source: SelfApprovalSource = SelfApprovalSource.DEFAULT
+
+
+def resolve_self_approval_policy(
+    *,
+    organization: bool | None = None,
+    client: bool | None = None,
+    study: bool | None = None,
+) -> SelfApprovalPolicy:
+    """Resolve self-approval from the scope hierarchy, most specific first.
+
+    ``study > client > organization > default (false)``.
+
+    Each level is **nullable and inherited** rather than a copied value: ``None``
+    means "whatever my parent says". Duplicating the value down the hierarchy
+    would mean that enabling self-approval for an organization silently failed to
+    reach clients created earlier, which is the kind of divergence nobody notices
+    until an approval that should have been refused was not.
+
+    An explicit ``False`` at a level is **not** inheritance: a client that has
+    turned self-approval off keeps it off under an organization that turned it on.
+    That is why the levels are ``bool | None`` and not ``bool``.
+    """
+    for value, source in (
+        (study, SelfApprovalSource.STUDY),
+        (client, SelfApprovalSource.CLIENT),
+        (organization, SelfApprovalSource.ORGANIZATION),
+    ):
+        if value is not None:
+            return SelfApprovalPolicy(allowed=bool(value), source=source)
+    return SelfApprovalPolicy(
+        allowed=DEFAULT_SELF_APPROVAL_ALLOWED, source=SelfApprovalSource.DEFAULT
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalIndependence:
+    """The independence finding for one approval decision, for the audit record.
+
+    Produced by :func:`require_approval_independence` on the *allowed* path. A
+    refused approval raises instead, and is recorded by the caller as a denial.
+    """
+
+    producer_user_id: str | None
+    approver_user_id: str
+    self_approved: bool
+    policy: SelfApprovalPolicy
+
+    def audit_fields(self) -> dict[str, Any]:
+        """The fields an approval record must carry to be reconstructible."""
+        return {
+            "producer_user_id": self.producer_user_id,
+            "approver_user_id": self.approver_user_id,
+            "self_approved": self.self_approved,
+            "self_approval_allowed": self.policy.allowed,
+            "self_approval_source": self.policy.source.value,
+        }
+
+
+def observe_approval_independence(
+    *,
+    producer_user_id: str | None,
+    approving_user_id: str,
+    policy: SelfApprovalPolicy,
+) -> ApprovalIndependence:
+    """Describe the independence of a decision without enforcing anything.
+
+    For decisions that are recorded but not gated on independence -- a
+    clarification or a methodology question, where the producer is frequently the
+    only person who can answer. The facts are still worth keeping: a pattern of
+    one person answering their own questions is visible only if it is recorded.
+    """
+    return ApprovalIndependence(
+        producer_user_id=producer_user_id,
+        approver_user_id=approving_user_id,
+        self_approved=bool(producer_user_id) and producer_user_id == approving_user_id,
+        policy=policy,
+    )
+
+
+def require_approval_independence(
+    *,
+    producer_user_id: str | None,
+    approving_user_id: str,
+    policy: SelfApprovalPolicy,
+    what: str = "this work",
+) -> ApprovalIndependence:
+    """Decide whether this person may approve this work, and describe the result.
+
+    Independent review is the default: when the producer is also the approver the
+    approval is refused **unless** self-approval has been explicitly enabled by
+    policy for this scope.
+
+    Two things this function deliberately does not do:
+
+    * It does not check permission. Policy permitting self-approval is not
+      authority to approve -- the caller must still have required
+      ``APPROVE_GATE`` or ``SIGN_OFF_DELIVERABLE`` before calling. A policy flag
+      that granted authority would turn a convenience setting into a privilege
+      escalation.
+    * It does not read configuration. ``policy`` must be resolved from persisted
+      AIA state by the authorization layer and arrive on a
+      :class:`StudyContext`. A model, an agent, a tool argument or a request body
+      must never be able to decide that self-approval is permitted; that is the
+      whole reason the flag is not a parameter of the approval call.
+
+    An unknown producer (``None``) is not a self-approval and is allowed, because
+    a gate with no recorded producer predates provenance and blocking it would
+    strand existing work. This function is only as strong as the provenance
+    feeding it, which is why every write records a producer.
+    """
+    independence = observe_approval_independence(
+        producer_user_id=producer_user_id,
+        approving_user_id=approving_user_id,
+        policy=policy,
+    )
+    if independence.self_approved and not policy.allowed:
         raise SeparationOfDutiesViolation(approving_user_id, what=what)
+    return independence
 
 
 # --------------------------------------------------------------------------- #
@@ -348,6 +493,9 @@ class Organization(BaseModel):
     organization_id: str = Field(default_factory=new_organization_id)
     slug: Slug
     name: str
+    # Base of the self-approval hierarchy. ``None`` means "not configured", which
+    # resolves to the default of False -- see `resolve_self_approval_policy`.
+    allow_self_approval: bool | None = None
     created_at: datetime | None = None
 
 
@@ -363,6 +511,10 @@ class Client(BaseModel):
     status: ClientStatus = ClientStatus.ACTIVE
     # Free-form internal reference, e.g. an accounting code. Never client-visible.
     reference: str = ""
+    # Overrides the organization setting for this client's studies. ``None``
+    # inherits; an explicit False overrides an organization that allows it,
+    # because a client's contract may require independent review regardless.
+    allow_self_approval: bool | None = None
     created_at: datetime | None = None
     modified_at: datetime | None = None
 
@@ -383,6 +535,10 @@ class Study(BaseModel):
     # client. Enforcement happens before any paid provider call.
     budget_usd: float = 0.0
     spent_usd: float = 0.0
+
+    # Most specific level of the self-approval hierarchy. ``None`` inherits from
+    # the client, then the organization, then the default of False.
+    allow_self_approval: bool | None = None
 
     created_at: datetime | None = None
     modified_at: datetime | None = None
@@ -507,6 +663,11 @@ class StudyContext:
     organization_role: OrganizationRole
     grant: ScopeGrant
     study_status: StudyStatus = StudyStatus.ACTIVE
+    # Resolved from persisted organization/client/study configuration by the
+    # authorization layer. It travels on the context precisely so that it cannot
+    # be passed as an argument to an approval call: a model, an agent or a request
+    # body can supply an argument, but none of them can issue a StudyContext.
+    self_approval: SelfApprovalPolicy = field(default_factory=SelfApprovalPolicy)
     request_id: str | None = None
 
     def __post_init__(self) -> None:

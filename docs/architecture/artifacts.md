@@ -1,7 +1,16 @@
 # Artifacts and storage
 
-**Status: schema implemented** (`project_artifacts`, `project_artifact_dependencies`).
-**Storage adapter not implemented** — completes Phase 2.
+**Status: implemented in software; storage infrastructure still to provision.**
+
+`ArtifactStore` has three backends — S3 (lazy `boto3` import, SSE/KMS), filesystem
+(atomic temp → fsync → rename) and in-memory — all enforcing identical key
+validation and hash verification. `ArtifactRepository` carries fingerprinting,
+dependency edges, provenance, revision association and cross-revision reuse, and
+the write order below is enforced rather than left to callers.
+
+What remains is **deployment**: an S3 bucket, its encryption configuration and its
+lifecycle policy. Code implementation and provisioned infrastructure are different
+things and this document does not conflate them.
 
 An artifact is a durable output of one pipeline stage: an evidence pack, a
 compiled questionnaire, a respondent dataset, an analysis module, a report, an
@@ -104,6 +113,14 @@ report section rest on" is a query, not an investigation.
 and approved deliverables: a frozen artifact is immutable and may not be
 superseded in place, because a client has been shown it.
 
+Sign-off requires `SIGN_OFF_DELIVERABLE` **and** independence from the producer.
+Independence is the default and may be lifted only where self-approval has been
+explicitly enabled by persisted policy for that organization, client or study —
+never by an argument to the call. Every sign-off, self-approved or not, is appended
+to `approval_decisions` with the policy in force and where it came from, so a
+decision stays reconstructible after the configuration changes. See
+[scope-and-authorization.md](scope-and-authorization.md).
+
 ## Storage layout
 
 ```
@@ -124,7 +141,7 @@ directory. Every class now has one explicit home:
 | Durable application state (projects, revisions, stages, jobs, events) | PostgreSQL |
 | Uploaded customer data (client datasets, attachments) | Object storage + `datasets` metadata; tenant-scoped, retention-governed |
 | Generated artifacts (evidence, analysis, reports, exports) | Object storage + `project_artifacts` |
-| Ephemeral cache (provider model lists, computed map layouts) | Redis, with a TTL; rebuildable |
+| Ephemeral cache (provider model lists, computed map layouts) | Recomputed on demand; no cache service is deployed, and none is planned until there is measured pressure. Any cache holding client material is itself client-derived and falls under [ADR 0008](adr/0008-eu-data-residency.md) |
 | Temporary computation (checkpoints mid-fieldwork) | Worker scratch space, with the durable checkpoint in PostgreSQL |
 | Secrets and configuration | Platform secret manager; environment variables at runtime; never in the repository |
 | Test fixtures and demo data | Repository fixtures and a seeded demo tenant; never mixed with production state |

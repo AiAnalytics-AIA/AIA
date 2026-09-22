@@ -84,22 +84,35 @@ def new_reservation_id() -> str:
 class WorkflowRunStatus(StrEnum):
     """What a study is waiting for. Business state, shown to people.
 
-    ``WAITING_BUDGET`` is new relative to the prototype, which routed budget
+    The vocabulary is the frozen Architecture v2.1 contract, and the two prefixes
+    mean different things. ``AWAITING_*`` is *a person owes us a decision*:
+    nothing moves until a human acts. ``WAITING_*`` is *a system owes us
+    capacity*: it clears without anyone doing anything. A dashboard that mixes the
+    two cannot tell an operator whether to go and find somebody.
+
+    ``AWAITING_BUDGET`` is new relative to the prototype, which routed budget
     exhaustion through an approval in ``WAITING_USER``. "A person must decide
     something" and "this study is out of money" need different dashboards and
     different alerts.
 
-    ``WAITING_PROVIDER`` merges the prototype's ``WAITING_CREDITS`` and
-    ``WAITING_CAPACITY`` at this level, because a researcher does not care which.
-    The distinction survives where it matters -- on the attempt's
-    :class:`FailureClass`, which decides the retry behaviour.
+    ``WAITING_PROVIDER`` and ``WAITING_CAPACITY`` are **deliberately separate**.
+    They were merged in an earlier draft on the grounds that a researcher does not
+    care which; that was wrong operationally, because they recover differently.
+    ``WAITING_PROVIDER`` is a provider-side entitlement wait -- quota exhausted,
+    the account cannot call until a reset window passes -- and it carries a
+    ``runnable_after``. ``WAITING_CAPACITY`` is an execution-capacity condition --
+    the provider is overloaded right now -- which clears on its own in seconds to
+    minutes and needs no scheduled resume. Collapsing them makes a quota wall look
+    like a blip, so nobody raises a limit, and makes a blip look like a quota
+    wall, so somebody is paged for nothing.
     """
 
     PENDING = "PENDING"
     RUNNING = "RUNNING"
-    WAITING_GATE = "WAITING_GATE"
-    WAITING_BUDGET = "WAITING_BUDGET"
+    AWAITING_GATE = "AWAITING_GATE"
+    AWAITING_BUDGET = "AWAITING_BUDGET"
     WAITING_PROVIDER = "WAITING_PROVIDER"
+    WAITING_CAPACITY = "WAITING_CAPACITY"
     RECOVERY_REQUIRED = "RECOVERY_REQUIRED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
@@ -114,7 +127,8 @@ class WorkflowRunStatus(StrEnum):
     def needs_attention(self) -> bool:
         """True when a person has to do something before work continues.
 
-        ``WAITING_PROVIDER`` is excluded: it clears on its own.
+        ``WAITING_PROVIDER`` and ``WAITING_CAPACITY`` are excluded: both clear
+        without anyone acting.
         """
         return self in _ATTENTION_RUN_STATUSES
 
@@ -128,8 +142,8 @@ _TERMINAL_RUN_STATUSES: Final = frozenset(
 )
 _ATTENTION_RUN_STATUSES: Final = frozenset(
     {
-        WorkflowRunStatus.WAITING_GATE,
-        WorkflowRunStatus.WAITING_BUDGET,
+        WorkflowRunStatus.AWAITING_GATE,
+        WorkflowRunStatus.AWAITING_BUDGET,
         WorkflowRunStatus.RECOVERY_REQUIRED,
     }
 )
@@ -145,9 +159,10 @@ class StepRunStatus(StrEnum):
     BLOCKED = "BLOCKED"
     RUNNABLE = "RUNNABLE"
     RUNNING = "RUNNING"
-    WAITING_GATE = "WAITING_GATE"
-    WAITING_BUDGET = "WAITING_BUDGET"
+    AWAITING_GATE = "AWAITING_GATE"
+    AWAITING_BUDGET = "AWAITING_BUDGET"
     WAITING_PROVIDER = "WAITING_PROVIDER"
+    WAITING_CAPACITY = "WAITING_CAPACITY"
     RECOVERY_REQUIRED = "RECOVERY_REQUIRED"
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
@@ -186,9 +201,10 @@ _TERMINAL_STEP_STATUSES: Final = frozenset(
 )
 _WAITING_STEP_STATUSES: Final = frozenset(
     {
-        StepRunStatus.WAITING_GATE,
-        StepRunStatus.WAITING_BUDGET,
+        StepRunStatus.AWAITING_GATE,
+        StepRunStatus.AWAITING_BUDGET,
         StepRunStatus.WAITING_PROVIDER,
+        StepRunStatus.WAITING_CAPACITY,
     }
 )
 
@@ -436,7 +452,11 @@ class RecoveryAction(StrEnum):
     """What to do with a step whose attempt lapsed or failed."""
 
     RETRY = "RETRY"
+    # Two provider parks, because the two waits recover differently: a quota park
+    # resumes at a reset instant, a capacity park resumes as soon as the provider
+    # has room. See :class:`WorkflowRunStatus`.
     PARK_PROVIDER = "PARK_PROVIDER"
+    PARK_CAPACITY = "PARK_CAPACITY"
     PARK_BUDGET = "PARK_BUDGET"
     PARK_GATE = "PARK_GATE"
     RECOVERY_REQUIRED = "RECOVERY_REQUIRED"
@@ -507,19 +527,21 @@ def decide_recovery(
     if failure is FailureClass.APPROVAL_REQUIRED:
         return RecoveryDecision(
             action=RecoveryAction.PARK_GATE,
-            step_status=StepRunStatus.WAITING_GATE,
+            step_status=StepRunStatus.AWAITING_GATE,
             reason="approval_required",
             consumes_attempt=False,
         )
     if failure is FailureClass.BUDGET_EXCEEDED:
         return RecoveryDecision(
             action=RecoveryAction.PARK_BUDGET,
-            step_status=StepRunStatus.WAITING_BUDGET,
+            step_status=StepRunStatus.AWAITING_BUDGET,
             reason="budget_exceeded",
             consumes_attempt=False,
         )
 
-    # Quota is a park, not a retry, and must not consume an attempt.
+    # Quota is a park, not a retry, and must not consume an attempt. It is the
+    # entitlement wait: the account may not call again until the reset instant,
+    # which is why this branch alone carries a `retry_after`.
     if failure is FailureClass.QUOTA:
         return RecoveryDecision(
             action=RecoveryAction.PARK_PROVIDER,
@@ -549,9 +571,12 @@ def decide_recovery(
         )
 
     if failure is FailureClass.PROVIDER_CAPACITY:
+        # Capacity, not quota: the account may call, the provider has no room
+        # right now. It clears on its own with no reset instant to wait for, so
+        # it parks in its own state rather than behind a quota window.
         return RecoveryDecision(
-            action=RecoveryAction.PARK_PROVIDER,
-            step_status=StepRunStatus.WAITING_PROVIDER,
+            action=RecoveryAction.PARK_CAPACITY,
+            step_status=StepRunStatus.WAITING_CAPACITY,
             reason="provider_capacity_unavailable",
             consumes_attempt=False,
         )
@@ -585,14 +610,18 @@ def decide_recovery(
 # wins. Ordering rationale:
 #   - FAILED outranks everything: a failed study needs attention immediately.
 #   - RECOVERY_REQUIRED next: money may be at stake.
-#   - WAITING_BUDGET and WAITING_GATE outrank WAITING_PROVIDER, because they need
-#     a person while provider waits clear on their own.
+#   - AWAITING_BUDGET and AWAITING_GATE outrank the provider waits, because they
+#     need a person while provider waits clear on their own.
+#   - WAITING_PROVIDER outranks WAITING_CAPACITY: a quota wall lasts until a reset
+#     instant and may warrant raising a limit, while a capacity blip clears in
+#     minutes. Reporting the longer wait is the more actionable of the two.
 _STEP_TO_RUN_PRECEDENCE: Final[tuple[tuple[StepRunStatus, WorkflowRunStatus], ...]] = (
     (StepRunStatus.FAILED, WorkflowRunStatus.FAILED),
     (StepRunStatus.RECOVERY_REQUIRED, WorkflowRunStatus.RECOVERY_REQUIRED),
-    (StepRunStatus.WAITING_BUDGET, WorkflowRunStatus.WAITING_BUDGET),
-    (StepRunStatus.WAITING_GATE, WorkflowRunStatus.WAITING_GATE),
+    (StepRunStatus.AWAITING_BUDGET, WorkflowRunStatus.AWAITING_BUDGET),
+    (StepRunStatus.AWAITING_GATE, WorkflowRunStatus.AWAITING_GATE),
     (StepRunStatus.WAITING_PROVIDER, WorkflowRunStatus.WAITING_PROVIDER),
+    (StepRunStatus.WAITING_CAPACITY, WorkflowRunStatus.WAITING_CAPACITY),
     (StepRunStatus.RUNNING, WorkflowRunStatus.RUNNING),
     (StepRunStatus.RUNNABLE, WorkflowRunStatus.RUNNING),
 )

@@ -536,11 +536,12 @@ def test_concurrent_run_creation_with_one_key_creates_one_run(
 def test_a_duplicate_delivery_after_success_does_not_re_execute(
     pg_sessions: sessionmaker[Session], world: dict[str, Any]
 ) -> None:
-    """A message redelivered after the step succeeded must find nothing to do.
+    """A worker woken again after the step succeeded must find nothing to do.
 
-    This is the SQS at-least-once case: the step is SUCCEEDED, so it is not
-    claimable, and the woken worker does no work rather than repeating an AI
-    call.
+    A SUCCEEDED step is not claimable, so the second worker does no work rather
+    than repeating an AI call. This is what makes a duplicate wake-up harmless --
+    from a crash recovery today, or from an at-least-once delivery if a wake-up
+    mechanism is ever added in front of the claim.
     """
     session, repo = _repo_in_new_session(pg_sessions, world)
     try:

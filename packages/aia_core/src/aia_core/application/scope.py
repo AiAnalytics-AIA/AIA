@@ -37,12 +37,14 @@ from ..domain.scope import (
     StudyStatus,
     effective_role,
     permissions_for,
+    resolve_self_approval_policy,
 )
 from ..infrastructure.tables import (
     AccessAuditRow,
     ClientGrantRow,
     ClientRow,
     OrganizationMemberRow,
+    OrganizationRow,
     StudyGrantRow,
     StudyRow,
     UserRow,
@@ -173,6 +175,13 @@ class ScopeResolver:
            authoritative;
         6. the effective role confers ``require``, when given.
 
+        The self-approval policy is resolved here, from the organization, client
+        and study rows, and travels on the issued context. Resolving it at this
+        point rather than at the approval call is the security property: a
+        ``StudyContext`` can only be issued from persisted AIA state, so no model
+        output, tool argument or request body can assert that self-approval is
+        permitted.
+
         Every failure raises the same exception with a distinguishing ``reason``
         for the audit log, and callers must surface all of them as 404.
         """
@@ -228,6 +237,12 @@ class ScopeResolver:
             )
             raise ScopeDenied("not found", reason="no_grant")
 
+        organization = self._session.scalar(
+            select(OrganizationRow).where(
+                OrganizationRow.organization_id == principal.organization_id
+            )
+        )
+
         context = StudyContext(
             organization_id=principal.organization_id,
             client_id=study.client_id,
@@ -238,6 +253,11 @@ class ScopeResolver:
             organization_role=organization_role,
             grant=ScopeGrant._issue(),
             study_status=StudyStatus(study.status),
+            self_approval=resolve_self_approval_policy(
+                organization=organization.allow_self_approval if organization else None,
+                client=client.allow_self_approval,
+                study=study.allow_self_approval,
+            ),
             request_id=principal.request_id,
         )
 

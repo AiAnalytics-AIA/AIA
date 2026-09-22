@@ -172,7 +172,7 @@ class ArtifactStore(Protocol):
 
     Implementations must be safe to share across threads. ``put`` is idempotent
     for identical content at the same key: storing the same bytes twice is not an
-    error, which matters because a duplicate SQS delivery may re-run a step.
+    error, which matters because a step may be re-run after a worker crash.
     """
 
     def put(

@@ -15,7 +15,7 @@ Requires Python 3.12+, Node 20+, Docker.
 
 ```bash
 make setup      # venv, Python packages, npm packages, .env
-make services   # Postgres, Redis, MinIO (waits until healthy)
+make services   # Postgres and MinIO (waits until healthy)
 make migrate    # apply database migrations
 make dev        # API on :8000, web client on :3000
 ```
@@ -106,6 +106,17 @@ nothing already paid for.
 
 - **No silent provider fallback.** Work parks and asks rather than quietly moving
   to a provider that costs money or changes provenance.
+- **No client data leaving the EU.** EU residency is a frozen invariant and the
+  egress boundary fails closed: unclassified material does not leave, an unknown
+  route is refused rather than substituted, and a denial offers no cheaper
+  alternative. [ADR 0008](docs/architecture/adr/0008-eu-data-residency.md).
+- **No one clearing their own gate by default.** Independent review is the
+  default. Self-approval exists only where an administrator has enabled it in
+  persisted policy, and it never grants authority someone did not already hold.
+- **No automatic retry of a possibly-billed call.** When a metered call was
+  dispatched and its outcome is unknown, work parks in `RECOVERY_REQUIRED` and the
+  reservation settles as `SETTLED_UNCERTAIN`, so a worker crash cannot become a
+  silent double-spend.
 - **No spending past a budget.** Paid calls are checked before they are made.
 - **No invented certainty.** Evidence roles travel with the data; a modelled
   figure is never shown as a measurement. External predictive validation is
@@ -129,6 +140,11 @@ nothing already paid for.
 [artifacts](docs/architecture/artifacts.md) ·
 [security](docs/architecture/security.md) ·
 [decision records](docs/architecture/adr/README.md)
+
+Architecture decisions that are **deliberately still open** — the compute
+service, the model provider and the observability backend — are listed as such in
+the [ADR index](docs/architecture/adr/README.md), so nothing in this repository
+should be read as selecting them.
 
 **Migration** (how we get there) — [status](docs/migration/status.md) ·
 [plan](docs/migration/migration-plan.md) ·

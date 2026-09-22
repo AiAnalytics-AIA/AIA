@@ -821,14 +821,16 @@ def test_delete_removes_row_and_object(
 def test_regression_producer_cannot_approve_their_own_artifact(
     session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
 ) -> None:
-    """**producer_user_id != approving_user_id. Never relax this.**
+    """**Independent review is the default.** Self-approval is off unless enabled.
 
-    A role check alone is insufficient: a LEAD holds both EDIT_STUDY and
-    SIGN_OFF_DELIVERABLE, so without this invariant one person could author a
+    A permission check alone is insufficient: a LEAD holds both EDIT_STUDY and
+    SIGN_OFF_DELIVERABLE, so without this check one person could author a
     deliverable and then clear its own review gate by switching hats.
 
     The methodology's human review gate requires *independence*, not merely a
-    permission. This test exists forever.
+    permission. Policy may lift that for a scope where it has been explicitly
+    enabled -- see ``test_self_approval_policy.py`` -- but a deployment that has
+    configured nothing refuses, and this test exists to keep that true.
     """
     lead_scope = scoped.scope(user="lead", study="primary")
     lead = ArtifactRepository(session, lead_scope, store)

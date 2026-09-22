@@ -1,13 +1,19 @@
 # Durable workflows and jobs
 
-**Status: specified, implementation in progress (Phase 3).** The behavioural
-contract is `packages/aia_core/tests/test_legacy_job_store_characterization.py` —
-64 tests describing the prototype's engine. Implement against that rather than
-re-reading `job_store.py`.
+**Status: implemented and verified under real PostgreSQL contention.**
+`WorkflowRun → StepRun → StepAttempt`, claiming, leases, reservations, gates and
+the full recovery table are in `aia_core.domain.workflow` and
+`aia_core.infrastructure.workflow_repository`. What remains is a worker process to
+drive them and the AI runtime the steps will call.
+
+The behavioural contract is
+`packages/aia_core/tests/test_legacy_job_store_characterization.py` — 64 tests
+describing the prototype's engine.
 
 Related: [ADR 0002](adr/0002-postgresql-authoritative-store.md) (PostgreSQL
-authoritative, SQS dispatch only), [ADR 0006](adr/0006-langgraph-agent-execution.md)
-(LangGraph owns reasoning, not workflow state).
+authoritative and, for v0.1, the queue itself),
+[ADR 0006](adr/0006-langgraph-agent-execution.md) (LangGraph owns reasoning, not
+workflow state).
 
 ## The requirement
 
@@ -29,26 +35,38 @@ ordinary failure. The new model separates them.
 
 What a researcher or an operator sees. Answers *what is this study waiting for?*
 
-| State | Meaning |
-| --- | --- |
-| `RUNNING` | Work is progressing |
-| `WAITING_GATE` | A human approval or methodology gate is outstanding |
-| `WAITING_BUDGET` | The study is out of money; needs a budget decision |
-| `WAITING_PROVIDER` | Provider quota or capacity; will clear on its own |
-| `RECOVERY_REQUIRED` | A human must decide; work may have been billed |
-| `COMPLETED` | Every step succeeded |
-| `FAILED` | A step failed terminally |
-| `CANCELLED` | A user cancelled it |
+| State | Meaning | Clears when |
+| --- | --- | --- |
+| `PENDING` | Created, nothing claimed yet | A worker claims a step |
+| `RUNNING` | Work is progressing | — |
+| `AWAITING_GATE` | A human approval or methodology gate is outstanding | **A person decides** |
+| `AWAITING_BUDGET` | The study is out of money; needs a budget decision | **A person decides** |
+| `WAITING_PROVIDER` | Provider quota exhausted; the account may not call yet | A reset instant passes |
+| `WAITING_CAPACITY` | The provider has no capacity right now | By itself, usually in minutes |
+| `RECOVERY_REQUIRED` | A human must decide; work may have been billed | **A person decides** |
+| `COMPLETED` | Every step succeeded | — |
+| `FAILED` | A step failed terminally | — |
+| `CANCELLED` | A user cancelled it | — |
 
-**`WAITING_BUDGET` is new.** The prototype routed budget exhaustion through
+**The two prefixes are the contract.** `AWAITING_*` means a person owes us a
+decision and nothing moves until somebody acts. `WAITING_*` means a system owes us
+capacity and it will clear on its own. A dashboard that mixes them cannot tell an
+operator whether to go and find somebody, which is the only question an operator
+is actually asking. `needs_attention` is exactly the `AWAITING_*` set plus
+`RECOVERY_REQUIRED`.
+
+**`AWAITING_BUDGET` is new.** The prototype routed budget exhaustion through
 `WAITING_USER` with an `increase_budget` approval option. "A person must decide
 something" and "this study is out of money" need different dashboards and
 different alerts, so they are now different states.
 
-**`WAITING_PROVIDER`** merges the prototype's `WAITING_CREDITS` and
-`WAITING_CAPACITY` at the business level — a researcher does not care which — while
-the attempt's error classification retains the distinction, because the retry
-behaviour differs.
+**`WAITING_PROVIDER` and `WAITING_CAPACITY` are separate, deliberately.** An
+earlier draft merged them on the grounds that a researcher does not care which.
+That was wrong operationally: quota is an entitlement wall that clears at a reset
+instant and may warrant raising a limit, capacity is an overload that clears by
+itself. Merged, a quota wall looks like a blip so nobody raises the limit, and a
+blip looks like a quota wall so somebody is paged for nothing. Only the quota park
+carries a `runnable_after`, which is the difference made visible.
 
 ### `StepAttempt` — technical execution state
 
@@ -83,29 +101,41 @@ error, provider, model, cost and timing.
 ## Shape
 
 ```
-  API                  PostgreSQL                SQS            Worker
-   │                       │                      │                │
-   ├─ create run ─────────►│ WorkflowRun          │                │
-   ├─ create steps ───────►│ StepRun (PENDING)    │                │
-   │                       │                      │                │
-   │  ┌─── ONE TRANSACTION ───────────────────┐   │                │
-   ├──┤ StepAttempt + budget reservation +    │   │                │
-   │  │ execution state                       │   │                │
-   │  └─── COMMIT ────────────────────────────┘   │                │
-   ├─ enqueue (id only) ───┼─────────────────────►│ ──── claim ───►│
-   │                       │◄──── lease + heartbeat ───────────────┤
-   │                       │◄──── events (progress) ───────────────┤
-   │                       │◄──── artifact + provenance ───────────┤
-   │                       │◄──── usage + actual cost ─────────────┤
-   ◄─ SSE from events ─────┤                      │                │
-                           │                      │
-                    reconciler ──── finds runnable work with no
-                                    in-flight message, re-enqueues
+  API                  PostgreSQL                          Worker
+   │                       │                                  │
+   ├─ create run ─────────►│ WorkflowRun                      │
+   ├─ create steps ───────►│ StepRun (BLOCKED / RUNNABLE)     │
+   │                       │                                  │
+   │                       │◄── SELECT … FOR UPDATE SKIP ─────┤  claim
+   │                       │    LOCKED, in the same           │
+   │                       │    transaction as the claim      │
+   │                       │                                  │
+   │  ┌─── ONE TRANSACTION ───────────────────┐               │
+   │  │ StepAttempt + budget reservation +    │◄──────────────┤
+   │  │ execution state                       │               │
+   │  └─── COMMIT ────────────────────────────┘               │
+   │                       │◄──── lease + heartbeat ──────────┤
+   │                       │◄──── events (progress) ──────────┤
+   │                       │◄──── artifact + provenance ──────┤
+   │                       │◄──── usage + actual cost ────────┤
+   ◄─ SSE from events ─────┤                                  │
+                           │
+                    reconciler ──── finds attempts whose lease lapsed
+                                    and applies the recovery table
 ```
 
-PostgreSQL is authoritative. An SQS message carries an **identifier, never
-state**. Losing the queue loses no work: the reconciler finds runnable rows and
-re-enqueues them.
+**There is no broker.** PostgreSQL is authoritative *and* is the queue: finding
+work is an indexed query on `ix_steps_claimable`, and claiming it is
+`SELECT … FOR UPDATE SKIP LOCKED` inside the transaction that records the claim.
+Two workers cannot hold one attempt, and there is no second system that can
+disagree with the first about what work exists.
+
+At this volume — a handful of users, studies measured in tens of minutes — a queue
+would add an operational component, a delivery-semantics problem and a second
+place where the truth is kept, and buy nothing. SQS may later be added as a
+**wake-up only**, after a measured trigger and its own ADR; PostgreSQL stays
+authoritative even then. See
+[ADR 0002](adr/0002-postgresql-authoritative-store.md).
 
 ## Accounting transactionality
 
@@ -141,10 +171,15 @@ Every case is distinguished, because the distinctions are part of the product.
 | Paid call crashes **before** dispatch | Safe retry (reservation released) |
 | Paid call **known rejected** by the provider | Safe retry per policy |
 | Paid call **possibly accepted** | **`RECOVERY_REQUIRED`** + `SETTLED_UNCERTAIN` |
-| Provider capacity or rate limit | Parked (`WAITING_PROVIDER`), not failed |
+| Provider quota exhausted | Parked (`WAITING_PROVIDER`) with a resume instant, not failed |
+| Provider capacity unavailable | Parked (`WAITING_CAPACITY`), not failed |
 | Subscription runtime, any state | Safe retry — no marginal cost |
-| Budget exhausted | `WAITING_BUDGET` |
-| Human gate outstanding | `WAITING_GATE` |
+| Budget exhausted | `AWAITING_BUDGET` |
+| Human gate outstanding | `AWAITING_GATE` |
+
+A capacity failure arriving **after** a metered call was dispatched still reaches
+`RECOVERY_REQUIRED`, not a capacity park: the billing question outranks the
+provider condition, and a test asserts that ordering rather than trusting it.
 
 ### The uncertain paid call
 
@@ -189,11 +224,12 @@ is what may later let an uncertain call be reconciled to a fact.
 
 ## Guarantees and how each is achieved
 
-**Idempotency.** Every step carries an idempotency key. A duplicate SQS delivery
-must produce **one** execution, not two — ownership and leasing in PostgreSQL are
-what enforce that, not the queue. Combined with artifact reuse by input
-fingerprint, a step that does re-run produces one artifact and makes no second AI
-call.
+**Idempotency.** Every run carries an idempotency key, and a step re-run after a
+crash must produce **one** execution, not two — ownership and leasing in
+PostgreSQL are what enforce that. It stays an obligation of every step kind even
+without a queue, because a recovered attempt is a re-run. Combined with artifact
+reuse by input fingerprint, a step that does re-run produces one artifact and makes
+no second AI call.
 
 **Exclusive claiming.** `SELECT … FOR UPDATE SKIP LOCKED`, or an equivalent
 conditional update. Two workers cannot hold one attempt.
@@ -218,8 +254,33 @@ a terminal state, so a failed upstream step stalls the pipeline instead of letti
 downstream work run on missing inputs.
 
 **Concurrency limits and priority.** Per-organization caps stop one tenant
-starving another; priority orders the queue, with creation order breaking ties so
-nothing starves.
+starving another; priority orders the claim query, with creation order breaking
+ties so nothing starves.
+
+## Gates and approval
+
+A gate is a durable row, not a graph interrupt: it may sit unanswered for days and
+must survive a deploy. Deciding one requires `APPROVE_GATE`, the option must be one
+of those offered, and a decided gate cannot be re-decided by a replayed request.
+
+**Independent review is the default, and it is configurable.** For an `approval`
+gate the decider must not be the producer, *unless* self-approval has been
+explicitly enabled for that scope. The policy resolves
+`study > client > organization > false` and arrives on the server-issued
+`StudyContext`, so no request payload, tool argument or model output can assert it.
+Policy removes the independence objection; it never confers authority, so someone
+who could not approve still cannot. See
+[scope-and-authorization.md](scope-and-authorization.md).
+
+Gates that are not approvals — a clarification, a methodology question — record the
+same facts without enforcing independence, because the producer is frequently the
+only person who can answer.
+
+Every gate decision and artifact sign-off is appended to `approval_decisions`:
+producer, approver, whether it was self-approved, the effective policy and which
+level set it, the exact subject, the decision, the basis and the timestamp. The
+gate row holds the decision that stands; only the ledger can say what the rules
+were at the time.
 
 ## The research DAG
 
@@ -259,10 +320,10 @@ is worse than an honest timer.
 SSE over WebSockets: traffic is server-to-client only, SSE reconnects
 automatically, and it survives ordinary HTTP infrastructure.
 
-## Phase 3 is not complete until these pass
+## What was proved, and what is still owed
 
-Against **real PostgreSQL**, with actual concurrent transactions rather than
-sequential mocks:
+These passed against **real PostgreSQL**, with actual concurrent transactions
+rather than sequential mocks, and they are what makes the engine trustworthy:
 
 1. **Lease and concurrency correctness.** Two workers claiming simultaneously →
    exactly one succeeds. Concurrent `recover_expired` calls. Two cancellation
@@ -271,3 +332,15 @@ sequential mocks:
 3. **Recovery semantics.** Every row of the recovery table above.
 4. **Accounting transactionality.** The attempt/reservation/state transaction
    commits or rolls back as a unit; impossible states are unrepresentable.
+
+Still owed, and not to be described as done anywhere:
+
+- **A worker process.** `claim_next` → execute → `complete_attempt` /
+  `fail_attempt`, with heartbeats and a cancellation poll at checkpoints. The
+  engine it would drive exists; the loop does not.
+- **The AI runtime the steps call.** See
+  [ai-runtime.md](ai-runtime.md) and [ADR 0005](adr/0005-llm-gateway.md).
+- **A generalized metered-cost ledger.** Budget reservations and `Study.spent_usd`
+  are implemented and enforce spending; attribution down to
+  `Client → Study → Revision → WorkflowRun → Step → Agent/Tool/Call` across every
+  metered source is not. See [ai-runtime.md](ai-runtime.md) § Cost accounting.

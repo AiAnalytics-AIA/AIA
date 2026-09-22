@@ -55,6 +55,59 @@ Two deliberate asymmetries:
 Handlers check **permissions**, never roles, so adding a role does not mean
 finding every call site.
 
+## Self-approval
+
+Independent review is the **default**, not an absolute. A LEAD holds both
+`EDIT_STUDY` and `SIGN_OFF_DELIVERABLE`, so a permission check alone would let one
+person author a deliverable and clear its own gate by switching hats. The producer
+is therefore refused — unless self-approval has been explicitly enabled by policy
+for that scope, which small teams sometimes genuinely need.
+
+```
+study override  >  client override  >  organization setting  >  false
+```
+
+Every level is **nullable**, and null means *ask my parent* rather than *no*. A
+copied-down value would mean that enabling self-approval for an organization
+silently failed to reach clients created earlier — the kind of divergence nobody
+notices until an approval that should have been refused was not. An explicit
+`false` is not inheritance: a client whose contract requires independent review
+keeps it under a permissive organization.
+
+Three properties hold this together:
+
+**The policy is server state.** It is resolved from the organization, client and
+study rows when scope is issued, and travels on the `StudyContext`. A model, an
+agent, a tool argument or a request body cannot assert that self-approval is
+permitted, because none of them can produce a context. This is the same structural
+guarantee as scope itself, applied to a second decision.
+
+**Policy decides independence; permission decides authority.** Enabling
+self-approval does not let anyone approve who could not approve anyway. A
+RESEARCHER still cannot sign off their own deliverable, because they hold no
+sign-off permission at all. Treating the flag as a permission would turn a
+convenience setting into privilege escalation.
+
+**Configuring it requires organization administration.** A study LEAD cannot
+arrange self-approval for their own study. A control that is self-service is not a
+control, and the change itself is written to `access_audit`.
+
+### The approval ledger
+
+`approval_decisions` is append-only and records every gate decision and artifact
+sign-off:
+
+| | |
+| --- | --- |
+| Who | producer, approver, whether they were the same person |
+| Under what rule | the effective policy and which level set it |
+| On what | the exact gate or artifact, with run/step or project/revision |
+| What was decided | the option or `APPROVED`, the comment, the timestamp |
+
+The gate row and `is_approved` hold *current* state. Only the ledger can answer
+what the rules were when a client deliverable was cleared, after the configuration
+has since changed — which is the question an auditor actually asks.
+
 ## Grant precedence
 
 A study grant is authoritative over a client grant **in both directions**.
@@ -152,3 +205,7 @@ has already been shown.
 - **PostgreSQL row-level security** as a second layer, so a future raw query
   cannot bypass the repository.
 - **Rate limiting.** An authenticated member can currently exhaust the API.
+- **An API surface for self-approval configuration.** The trusted write path is
+  `ScopeRepository.set_self_approval`, which requires organization administration
+  and is audited; it is not yet exposed over HTTP, so today it is set from a
+  provisioning command.

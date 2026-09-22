@@ -30,7 +30,7 @@ deps: ## Create the venv and install Python packages in editable mode
 	@$(PIP) install -q -e "packages/aia_core[dev,postgres]"
 	@$(PIP) install -q -e "apps/api[dev]"
 
-services: ## Start Postgres, Redis and MinIO, and wait until healthy
+services: ## Start Postgres and MinIO, and wait until healthy
 	@docker compose up -d --wait
 
 migrate: ## Apply database migrations
