@@ -1,0 +1,1374 @@
+"""Persistence and execution control for the durable workflow engine.
+
+This is the only module permitted to write `workflow_runs`, `step_runs`,
+`step_attempts`, `budget_reservations`, `workflow_gates` and `workflow_events`.
+
+Four properties are enforced here rather than trusted to callers:
+
+* **Scope isolation.** Constructed from a :class:`StudyContext`; every statement
+  filters on organization, client and study.
+* **Exclusive claiming.** ``SELECT … FOR UPDATE SKIP LOCKED`` on PostgreSQL, with
+  a conditional-update fallback on SQLite. Two workers cannot hold one attempt.
+* **Accounting transactionality.** The attempt, its budget reservation and the
+  execution state are written in one unit of work **before** any external
+  dispatch, so "a provider was called but no attempt exists" is unrepresentable.
+* **Append-only attempt history.** An attempt row is never reused. A retry
+  creates attempt *n+1*.
+
+Decision logic lives in ``aia_core.domain.workflow``; this module executes it.
+The behavioural contract is
+``packages/aia_core/tests/test_legacy_job_store_characterization.py``.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy.orm import Session
+
+from ..domain.providers import Provider, is_paid
+from ..domain.scope import (
+    Permission,
+    StudyContext,
+    require_independent_reviewer,
+)
+from ..domain.workflow import (
+    DEFAULT_LEASE_SECONDS,
+    AttemptStatus,
+    FailureClass,
+    InteractionMode,
+    RecoveryDecision,
+    ReservationStatus,
+    StepDefinition,
+    StepRunStatus,
+    WorkflowRunStatus,
+    decide_recovery,
+    derive_run_status,
+    is_lease_expired,
+    lease_deadline,
+    new_attempt_id,
+    new_reservation_id,
+    new_run_id,
+    new_step_id,
+    validate_dag,
+)
+from .tables import (
+    BudgetReservationRow,
+    StepAttemptRow,
+    StepDependencyRow,
+    StepRunRow,
+    StudyRow,
+    WorkflowEventRow,
+    WorkflowGateRow,
+    WorkflowRunRow,
+    utcnow,
+)
+
+__all__ = [
+    "BudgetExceeded",
+    "ClaimedWork",
+    "WorkflowNotFound",
+    "WorkflowRepository",
+]
+
+
+class WorkflowNotFound(LookupError):
+    """The run, step or attempt does not exist, or is not in the caller's scope.
+
+    Indistinguishable on purpose: acknowledging a run the caller may not see
+    would disclose another client's engagement.
+    """
+
+
+class BudgetExceeded(RuntimeError):
+    """A paid call would exceed the study's budget.
+
+    Raised instead of proceeding, and instead of choosing a cheaper provider. The
+    caller must park the step in ``WAITING_BUDGET`` and ask.
+    """
+
+    def __init__(self, *, requested: float, remaining: float, limit: float) -> None:
+        super().__init__(
+            f"budget exceeded: requested {requested:.2f}, remaining {remaining:.2f} of {limit:.2f}"
+        )
+        self.requested = requested
+        self.remaining = remaining
+        self.limit = limit
+
+
+@dataclass(frozen=True, slots=True)
+class ClaimedWork:
+    """A step and attempt a worker now owns."""
+
+    run_id: str
+    step_id: str
+    attempt_id: str
+    attempt_number: int
+    node_key: str
+    kind: str
+    stage_type: str
+    artifact_target: str
+    input_fingerprint: str
+    interaction_mode: InteractionMode
+    lease_until: datetime
+    payload: dict[str, Any]
+    project_id: str
+    project_revision: int
+
+
+class WorkflowRepository:
+    """Durable workflow state within one authorised study scope.
+
+    The caller owns the transaction. Methods flush so generated values are
+    available, but never commit -- which is what lets the attempt, its
+    reservation and the state change be one atomic unit.
+    """
+
+    def __init__(self, session: Session, scope: StudyContext) -> None:
+        if not isinstance(scope, StudyContext):
+            raise TypeError(
+                "WorkflowRepository requires a StudyContext issued by the "
+                "authorization layer; unscoped access is not permitted"
+            )
+        self._session = session
+        self._scope = scope
+
+    @property
+    def scope(self) -> StudyContext:
+        """The authorised scope this repository operates in."""
+        return self._scope
+
+    # ---------------------------------------------------------------- helpers --
+
+    def _scope_filter(self) -> tuple[Any, ...]:
+        """The isolation predicate applied to every run query."""
+        return (
+            WorkflowRunRow.organization_id == self._scope.organization_id,
+            WorkflowRunRow.client_id == self._scope.client_id,
+            WorkflowRunRow.study_id == self._scope.study_id,
+        )
+
+    def _run(self, run_id: str) -> WorkflowRunRow:
+        """Fetch a run inside scope, or raise."""
+        row = self._session.scalar(
+            select(WorkflowRunRow).where(WorkflowRunRow.run_id == run_id, *self._scope_filter())
+        )
+        if row is None:
+            raise WorkflowNotFound(run_id)
+        return row
+
+    def _step(self, step_id: str) -> StepRunRow:
+        """Fetch a step inside scope, or raise.
+
+        Joined through the run so the scope predicate applies to the step too. A
+        step is never addressable by id alone.
+        """
+        row = self._session.scalar(
+            select(StepRunRow)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(StepRunRow.step_id == step_id, *self._scope_filter())
+        )
+        if row is None:
+            raise WorkflowNotFound(step_id)
+        return row
+
+    def _attempt(self, attempt_id: str) -> StepAttemptRow:
+        """Fetch an attempt inside scope, or raise."""
+        row = self._session.scalar(
+            select(StepAttemptRow)
+            .join(StepRunRow, StepRunRow.step_id == StepAttemptRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(StepAttemptRow.attempt_id == attempt_id, *self._scope_filter())
+        )
+        if row is None:
+            raise WorkflowNotFound(attempt_id)
+        return row
+
+    def _event(
+        self,
+        run_id: str,
+        *,
+        event_type: str,
+        message: str = "",
+        payload: dict[str, Any] | None = None,
+        step_id: str | None = None,
+        attempt_id: str | None = None,
+        level: str = "INFO",
+    ) -> None:
+        """Append to the run's history and progress feed."""
+        self._session.add(
+            WorkflowEventRow(
+                run_id=run_id,
+                step_id=step_id,
+                attempt_id=attempt_id,
+                event_type=event_type,
+                level=level,
+                message=message,
+                payload_json=payload or {},
+            )
+        )
+
+    @property
+    def _is_postgres(self) -> bool:
+        """True when the session is bound to PostgreSQL."""
+        bind = self._session.get_bind()
+        return bind.dialect.name == "postgresql"
+
+    # ------------------------------------------------------------------ create --
+
+    def create_run(
+        self,
+        *,
+        project_id: str,
+        project_revision: int,
+        workflow_type: str,
+        steps: Sequence[StepDefinition],
+        idempotency_key: str,
+        priority: int = 50,
+        metadata: dict[str, Any] | None = None,
+        step_inputs: dict[str, dict[str, Any]] | None = None,
+        fingerprints: dict[str, str] | None = None,
+    ) -> str:
+        """Create a run and its step graph, or return an existing run.
+
+        Idempotent on ``idempotency_key``: re-submitting the same logical run
+        returns the existing run id rather than starting a second, duplicate
+        pipeline. This is what makes an at-least-once trigger safe.
+
+        The DAG is validated here rather than at execution time, because a cycle
+        discovered mid-run would strand a study with some steps already paid for.
+        """
+        self._scope.require(Permission.RUN_WORKFLOW)
+        self._scope.require_open_study()
+
+        existing = self._session.scalar(
+            select(WorkflowRunRow).where(
+                WorkflowRunRow.idempotency_key == idempotency_key, *self._scope_filter()
+            )
+        )
+        if existing is not None:
+            return existing.run_id
+
+        step_list = list(steps)
+        validate_dag(step_list)
+
+        run_id = new_run_id()
+        self._session.add(
+            WorkflowRunRow(
+                run_id=run_id,
+                organization_id=self._scope.organization_id,
+                client_id=self._scope.client_id,
+                study_id=self._scope.study_id,
+                project_id=project_id,
+                project_revision=int(project_revision),
+                workflow_type=workflow_type,
+                status=WorkflowRunStatus.PENDING.value,
+                priority=int(priority),
+                idempotency_key=idempotency_key,
+                triggered_by=self._scope.actor_id,
+                metadata_json=metadata or {},
+            )
+        )
+        self._session.flush()
+
+        ids: dict[str, str] = {}
+        for ordinal, definition in enumerate(step_list):
+            step_id = new_step_id()
+            ids[definition.node_key] = step_id
+            self._session.add(
+                StepRunRow(
+                    step_id=step_id,
+                    run_id=run_id,
+                    node_key=definition.node_key,
+                    kind=definition.kind,
+                    # A step with no dependencies is immediately runnable; the
+                    # rest start BLOCKED and are released as dependencies finish.
+                    status=(
+                        StepRunStatus.RUNNABLE.value
+                        if not definition.depends_on
+                        else StepRunStatus.BLOCKED.value
+                    ),
+                    ordinal=ordinal,
+                    priority=definition.priority,
+                    stage_type=definition.stage_type,
+                    artifact_target=definition.artifact_target,
+                    interaction_mode=definition.interaction_mode.value,
+                    input_fingerprint=(fingerprints or {}).get(definition.node_key, ""),
+                    max_attempts=definition.max_attempts,
+                    input_json=(step_inputs or {}).get(definition.node_key, {}),
+                )
+            )
+        self._session.flush()
+
+        for definition in step_list:
+            for dependency in definition.depends_on:
+                self._session.add(
+                    StepDependencyRow(
+                        step_id=ids[definition.node_key],
+                        depends_on_step_id=ids[dependency],
+                    )
+                )
+
+        self._event(
+            run_id,
+            event_type="RUN_CREATED",
+            message=f"{workflow_type} created with {len(step_list)} steps",
+            payload={
+                "workflow_type": workflow_type,
+                "step_count": len(step_list),
+                "project_id": project_id,
+                "project_revision": int(project_revision),
+            },
+        )
+        self._refresh_run(run_id)
+        self._session.flush()
+        return run_id
+
+    # ------------------------------------------------------------ status logic --
+
+    def _refresh_run(self, run_id: str) -> WorkflowRunStatus:
+        """Recompute a run's business state from its steps."""
+        run = self._session.scalar(select(WorkflowRunRow).where(WorkflowRunRow.run_id == run_id))
+        if run is None:
+            raise WorkflowNotFound(run_id)
+
+        statuses = [
+            StepRunStatus(value)
+            for value in self._session.scalars(
+                select(StepRunRow.status).where(StepRunRow.run_id == run_id)
+            ).all()
+        ]
+        derived = derive_run_status(statuses, cancel_requested=run.cancel_requested)
+
+        # Write to the run row ONLY when something actually changes.
+        #
+        # This is not a micro-optimisation. Every claim, completion and recovery
+        # calls this method, and `workflow_runs` has one row per run. An
+        # unconditional `UPDATE ... SET updated_at` took a row lock that every
+        # concurrent worker on the same run then queued behind -- a lock convoy
+        # that serialised the whole engine and defeated the point of
+        # FOR UPDATE SKIP LOCKED in `claim_next`. With eight workers contending it
+        # deadlocked outright.
+        #
+        # Most calls derive the same status the run already has (RUNNING stays
+        # RUNNING), so they now issue no write at all and take no lock.
+        needs_started = derived is WorkflowRunStatus.RUNNING and run.started_at is None
+        needs_finished = derived.is_terminal and run.finished_at is None
+        status_changed = run.status != derived.value
+
+        if not (status_changed or needs_started or needs_finished):
+            return derived
+
+        if status_changed:
+            self._event(
+                run_id,
+                event_type="RUN_STATUS",
+                message=f"{run.status} -> {derived.value}",
+                payload={"from": run.status, "to": derived.value},
+                level="ERROR" if derived is WorkflowRunStatus.FAILED else "INFO",
+            )
+            run.status = derived.value
+        if needs_started:
+            run.started_at = utcnow()
+        if needs_finished:
+            run.finished_at = utcnow()
+        run.updated_at = utcnow()
+        return derived
+
+    def release_ready_steps(self, run_id: str) -> int:
+        """Mark BLOCKED steps RUNNABLE once their dependencies have succeeded.
+
+        A dependant waits for ``SUCCEEDED`` or ``SKIPPED`` specifically -- not
+        merely a terminal state -- so a failed upstream step stalls the pipeline
+        rather than letting downstream work run on missing inputs.
+        """
+        run = self._run(run_id)
+        if run.cancel_requested or WorkflowRunStatus(run.status).is_terminal:
+            return 0
+
+        blocked = self._session.scalars(
+            select(StepRunRow).where(
+                StepRunRow.run_id == run_id,
+                StepRunRow.status == StepRunStatus.BLOCKED.value,
+            )
+        ).all()
+
+        released = 0
+        for step in blocked:
+            dependency_statuses = self._session.scalars(
+                select(StepRunRow.status)
+                .join(
+                    StepDependencyRow,
+                    StepDependencyRow.depends_on_step_id == StepRunRow.step_id,
+                )
+                .where(StepDependencyRow.step_id == step.step_id)
+            ).all()
+
+            if all(StepRunStatus(value).satisfies_dependency for value in dependency_statuses):
+                step.status = StepRunStatus.RUNNABLE.value
+                step.updated_at = utcnow()
+                released += 1
+                self._event(
+                    run_id,
+                    event_type="STEP_RUNNABLE",
+                    message=f"{step.node_key} dependencies satisfied",
+                    step_id=step.step_id,
+                )
+
+        if released:
+            self._refresh_run(run_id)
+            self._session.flush()
+        return released
+
+    # ------------------------------------------------------------------- claim --
+
+    def claim_next(
+        self,
+        *,
+        worker_id: str,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
+        now: datetime | None = None,
+    ) -> ClaimedWork | None:
+        """Claim one runnable step, creating attempt *n+1*, or return None.
+
+        Exclusivity is the whole point. On PostgreSQL this uses
+        ``FOR UPDATE SKIP LOCKED``: the row is locked for this transaction, and a
+        concurrent claimer skips it rather than blocking, so two workers never
+        contend for the same step and neither waits.
+
+        On SQLite (tests, offline development) the lock clauses are unavailable,
+        so a conditional update guarded by the observed status provides the same
+        guarantee more slowly.
+
+        A step is claimable only when it is RUNNABLE, its run is live and not
+        cancelling, and ``runnable_after`` has passed -- which is how a quota park
+        becomes a resume.
+        """
+        moment = now or datetime.now(UTC)
+
+        candidates = (
+            select(StepRunRow)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(
+                StepRunRow.status == StepRunStatus.RUNNABLE.value,
+                StepRunRow.cancel_requested.is_(False),
+                WorkflowRunRow.cancel_requested.is_(False),
+                WorkflowRunRow.status.notin_(
+                    [
+                        WorkflowRunStatus.CANCELLED.value,
+                        WorkflowRunStatus.COMPLETED.value,
+                        WorkflowRunStatus.FAILED.value,
+                    ]
+                ),
+                (StepRunRow.runnable_after.is_(None)) | (StepRunRow.runnable_after <= moment),
+                *self._scope_filter(),
+            )
+            # Priority first, then creation order, so nothing starves.
+            .order_by(StepRunRow.priority.desc(), StepRunRow.created_at, StepRunRow.ordinal)
+            .limit(1)
+        )
+
+        if self._is_postgres:
+            candidates = candidates.with_for_update(skip_locked=True, of=StepRunRow)
+
+        step = self._session.scalar(candidates)
+        if step is None:
+            return None
+
+        if not self._is_postgres:
+            # SQLite: re-assert the status we selected on. If another claimer got
+            # there first the update affects no rows and we report no work.
+            #
+            # `rowcount` is on CursorResult, which is what a DML execute returns;
+            # SQLAlchemy types `execute` as the wider `Result`, so the cast is a
+            # typing accommodation rather than an assumption about behaviour.
+            result = cast(
+                CursorResult[Any],
+                self._session.execute(
+                    update(StepRunRow)
+                    .where(
+                        StepRunRow.step_id == step.step_id,
+                        StepRunRow.status == StepRunStatus.RUNNABLE.value,
+                    )
+                    .values(status=StepRunStatus.RUNNING.value, updated_at=utcnow())
+                ),
+            )
+            if result.rowcount != 1:
+                return None
+            self._session.refresh(step)
+        else:
+            step.status = StepRunStatus.RUNNING.value
+            step.updated_at = utcnow()
+
+        run = self._session.scalar(
+            select(WorkflowRunRow).where(WorkflowRunRow.run_id == step.run_id)
+        )
+        assert run is not None  # guaranteed by the join above
+
+        # Append-only history: a retry is attempt n+1, never a reused row.
+        # `attempts_recorded` is monotonic so attempt numbers never collide, even
+        # when a non-consuming failure lowers `attempts_consumed`.
+        step.attempts_recorded += 1
+        step.attempts_consumed += 1
+        deadline = lease_deadline(now=moment, seconds=lease_seconds)
+        attempt_id = new_attempt_id()
+        self._session.add(
+            StepAttemptRow(
+                attempt_id=attempt_id,
+                step_id=step.step_id,
+                attempt_number=step.attempts_recorded,
+                status=AttemptStatus.CLAIMED.value,
+                worker_id=worker_id,
+                lease_until=deadline,
+                heartbeat_at=moment,
+                started_at=moment,
+            )
+        )
+        self._event(
+            step.run_id,
+            event_type="ATTEMPT_CLAIMED",
+            message=f"{step.node_key} claimed by {worker_id}",
+            payload={
+                "worker_id": worker_id,
+                "attempt_number": step.attempts_recorded,
+                "lease_until": deadline.isoformat(),
+            },
+            step_id=step.step_id,
+            attempt_id=attempt_id,
+        )
+        self._refresh_run(step.run_id)
+        self._session.flush()
+
+        return ClaimedWork(
+            run_id=step.run_id,
+            step_id=step.step_id,
+            attempt_id=attempt_id,
+            attempt_number=step.attempts_recorded,
+            node_key=step.node_key,
+            kind=step.kind,
+            stage_type=step.stage_type,
+            artifact_target=step.artifact_target,
+            input_fingerprint=step.input_fingerprint,
+            interaction_mode=InteractionMode(step.interaction_mode),
+            lease_until=deadline,
+            payload=dict(step.input_json or {}),
+            project_id=run.project_id,
+            project_revision=run.project_revision,
+        )
+
+    def heartbeat(
+        self, attempt_id: str, *, worker_id: str, lease_seconds: int = DEFAULT_LEASE_SECONDS
+    ) -> bool:
+        """Extend an attempt's lease. Returns False when refused.
+
+        Only the lease owner may extend, and only while the attempt is live.
+        Otherwise a worker that already lost its lease could keep a step alive and
+        two workers would run it.
+        """
+        attempt = self._attempt(attempt_id)
+        if attempt.worker_id != worker_id:
+            return False
+        if not AttemptStatus(attempt.status).holds_lease:
+            return False
+
+        attempt.status = AttemptStatus.EXECUTING.value
+        attempt.heartbeat_at = utcnow()
+        attempt.lease_until = lease_deadline(seconds=lease_seconds)
+        self._session.flush()
+        return True
+
+    # ------------------------------------------------------- budget and costs --
+
+    def _outstanding_reservations(self, study_id: str) -> float:
+        """Sum of reservations still holding budget."""
+        total = self._session.scalar(
+            select(func.coalesce(func.sum(BudgetReservationRow.amount_usd), 0.0)).where(
+                BudgetReservationRow.study_id == study_id,
+                BudgetReservationRow.status == ReservationStatus.RESERVED.value,
+            )
+        )
+        return float(total or 0.0)
+
+    def reserve_budget(
+        self,
+        *,
+        attempt_id: str,
+        amount_usd: float,
+        provider: Provider,
+        reason: str = "",
+    ) -> str | None:
+        """Hold budget for a paid call, or raise :class:`BudgetExceeded`.
+
+        Called **before** dispatch, inside the same transaction as the attempt, so
+        a crash cannot leave a call with no reservation behind it.
+
+        Reservations count as spent, so a later check sees earlier holds. A
+        subscription runtime needs no reservation and returns ``None``: its
+        marginal cost is zero.
+
+        **The study row is locked for the duration of the check.** Reading the
+        outstanding total and then inserting is a read-modify-write, and without a
+        lock every concurrent worker reads the same total, every one passes, and
+        together they commit more than the budget. Four workers reserving $40
+        against a $100 budget all succeeded before this lock existed -- $160 of a
+        client's money, from code whose sequential tests passed.
+
+        Serialising reservations per study is cheap: a handful of researchers run
+        a handful of studies, and the lock is held only across this check.
+        """
+        if not is_paid(provider):
+            return None
+
+        attempt = self._attempt(attempt_id)
+        step = self._step(attempt.step_id)
+        run = self._run(step.run_id)
+
+        study_query = select(StudyRow).where(StudyRow.study_id == run.study_id)
+        if self._is_postgres:
+            # Blocking, NOT skip_locked: a concurrent reserver must wait and then
+            # re-read the total, never skip the check.
+            study_query = study_query.with_for_update()
+
+        study = self._session.scalar(study_query)
+        if study is None:
+            raise WorkflowNotFound(run.study_id)
+
+        requested = max(0.0, float(amount_usd))
+        outstanding = self._outstanding_reservations(run.study_id)
+        remaining = max(0.0, study.budget_usd - study.spent_usd - outstanding)
+
+        # Epsilon so an exact-limit reservation is permitted despite float drift.
+        if requested > remaining + 1e-9:
+            raise BudgetExceeded(requested=requested, remaining=remaining, limit=study.budget_usd)
+
+        reservation_id = new_reservation_id()
+        self._session.add(
+            BudgetReservationRow(
+                reservation_id=reservation_id,
+                study_id=run.study_id,
+                run_id=run.run_id,
+                step_id=step.step_id,
+                attempt_id=attempt_id,
+                amount_usd=requested,
+                status=ReservationStatus.RESERVED.value,
+                reason=reason or f"{step.node_key}:{provider.value}",
+            )
+        )
+        attempt.estimated_cost_usd = requested
+        attempt.provider = provider.value
+        self._session.flush()
+        return reservation_id
+
+    def mark_paid_call_dispatched(
+        self, attempt_id: str, *, provider_request_id: str | None = None
+    ) -> None:
+        """Record that a metered provider call has left the process.
+
+        From this point the attempt cannot be auto-retried until its outcome is
+        known: a lapsed lease becomes ``RECOVERY_REQUIRED`` rather than a retry,
+        because the call may already have been billed.
+        """
+        attempt = self._attempt(attempt_id)
+        attempt.paid_call_dispatched = True
+        attempt.paid_call_outcome_known = False
+        if provider_request_id:
+            attempt.provider_request_id = provider_request_id
+        self._session.flush()
+
+    def mark_paid_call_outcome_known(
+        self,
+        attempt_id: str,
+        *,
+        actual_cost_usd: float = 0.0,
+        provider_request_id: str | None = None,
+    ) -> None:
+        """Record that a dispatched call's outcome is now known.
+
+        Once known, the attempt is safe to retry again if it later fails for an
+        unrelated reason, because there is no longer an unresolved billing
+        question.
+        """
+        attempt = self._attempt(attempt_id)
+        attempt.paid_call_outcome_known = True
+        attempt.actual_cost_usd = max(0.0, float(actual_cost_usd))
+        if provider_request_id:
+            attempt.provider_request_id = provider_request_id
+        self._session.flush()
+
+    def settle_reservation(self, reservation_id: str, *, actual_cost_usd: float) -> None:
+        """Settle a reservation against the real cost and charge the study."""
+        reservation = self._session.scalar(
+            select(BudgetReservationRow).where(
+                BudgetReservationRow.reservation_id == reservation_id,
+                BudgetReservationRow.study_id == self._scope.study_id,
+            )
+        )
+        if reservation is None:
+            raise WorkflowNotFound(reservation_id)
+        if reservation.status != ReservationStatus.RESERVED.value:
+            return
+
+        actual = max(0.0, float(actual_cost_usd))
+        reservation.status = ReservationStatus.SETTLED.value
+        reservation.settled_amount_usd = actual
+        reservation.settled_at = utcnow()
+        self._charge_study(reservation.study_id, actual)
+        self._session.flush()
+
+    def release_reservation(self, reservation_id: str, *, reason: str = "") -> None:
+        """Release a reservation without charging.
+
+        Used when a paid call failed *before* dispatch: nothing was billed, so the
+        held budget returns to the study.
+        """
+        reservation = self._session.scalar(
+            select(BudgetReservationRow).where(
+                BudgetReservationRow.reservation_id == reservation_id,
+                BudgetReservationRow.study_id == self._scope.study_id,
+            )
+        )
+        if reservation is None:
+            raise WorkflowNotFound(reservation_id)
+        if reservation.status != ReservationStatus.RESERVED.value:
+            return
+
+        reservation.status = ReservationStatus.RELEASED.value
+        reservation.settled_amount_usd = 0.0
+        reservation.settled_at = utcnow()
+        reservation.reason = reason or reservation.reason
+        self._session.flush()
+
+    def _settle_uncertain(self, attempt: StepAttemptRow) -> float:
+        """Convert an attempt's reservations to uncertain actual exposure.
+
+        The accounting decision behind ``RECOVERY_REQUIRED``. Money that *may*
+        already be gone must appear as spent rather than available, because the
+        alternative is a study that believes it has budget it does not have.
+        Returns the exposure recorded.
+        """
+        reservations = self._session.scalars(
+            select(BudgetReservationRow).where(
+                BudgetReservationRow.attempt_id == attempt.attempt_id,
+                BudgetReservationRow.status == ReservationStatus.RESERVED.value,
+            )
+        ).all()
+
+        exposure = 0.0
+        for reservation in reservations:
+            exposure += float(reservation.amount_usd or 0.0)
+            reservation.status = ReservationStatus.SETTLED_UNCERTAIN.value
+            reservation.settled_amount_usd = float(reservation.amount_usd or 0.0)
+            reservation.settled_at = utcnow()
+            reservation.reason = "paid_external_call_side_effect_uncertain"
+
+        if exposure:
+            attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + exposure
+            self._charge_study(self._scope.study_id, exposure)
+        return exposure
+
+    def _charge_study(self, study_id: str, amount_usd: float) -> None:
+        """Add to a study's recorded spend."""
+        study = self._session.scalar(select(StudyRow).where(StudyRow.study_id == study_id))
+        if study is not None:
+            study.spent_usd = float(study.spent_usd or 0.0) + max(0.0, float(amount_usd))
+
+    def budget_position(self) -> dict[str, float]:
+        """Return the study's budget position including outstanding reservations."""
+        self._scope.require(Permission.VIEW_COSTS)
+        study = self._session.scalar(
+            select(StudyRow).where(StudyRow.study_id == self._scope.study_id)
+        )
+        if study is None:
+            raise WorkflowNotFound(self._scope.study_id)
+
+        reserved = self._outstanding_reservations(self._scope.study_id)
+        uncertain = self._session.scalar(
+            select(func.coalesce(func.sum(BudgetReservationRow.settled_amount_usd), 0.0)).where(
+                BudgetReservationRow.study_id == self._scope.study_id,
+                BudgetReservationRow.status == ReservationStatus.SETTLED_UNCERTAIN.value,
+            )
+        )
+        return {
+            "budget_usd": study.budget_usd,
+            "spent_usd": study.spent_usd,
+            "reserved_usd": reserved,
+            "uncertain_usd": float(uncertain or 0.0),
+            "available_usd": max(0.0, study.budget_usd - study.spent_usd - reserved),
+        }
+
+    # ---------------------------------------------------------- finish or fail --
+
+    def complete_attempt(
+        self,
+        attempt_id: str,
+        *,
+        output: dict[str, Any] | None = None,
+        actual_cost_usd: float = 0.0,
+        reservation_id: str | None = None,
+    ) -> StepRunStatus:
+        """Record a successful attempt and mark its step SUCCEEDED."""
+        attempt = self._attempt(attempt_id)
+        step = self._step(attempt.step_id)
+
+        attempt.status = AttemptStatus.SUCCEEDED.value
+        attempt.finished_at = utcnow()
+        attempt.output_json = output or {}
+        attempt.paid_call_outcome_known = True
+        attempt.lease_until = None
+
+        if reservation_id:
+            self.settle_reservation(reservation_id, actual_cost_usd=actual_cost_usd)
+        elif actual_cost_usd:
+            attempt.actual_cost_usd = max(0.0, float(actual_cost_usd))
+            self._charge_study(self._scope.study_id, actual_cost_usd)
+
+        step.status = StepRunStatus.SUCCEEDED.value
+        step.output_json = output or {}
+        step.finished_at = utcnow()
+        step.waiting_reason = None
+        step.runnable_after = None
+        step.updated_at = utcnow()
+
+        self._event(
+            step.run_id,
+            event_type="STEP_SUCCEEDED",
+            message=f"{step.node_key} completed",
+            payload={"attempt_number": attempt.attempt_number},
+            step_id=step.step_id,
+            attempt_id=attempt_id,
+        )
+        self._session.flush()
+        self.release_ready_steps(step.run_id)
+        self._refresh_run(step.run_id)
+        self._session.flush()
+        return StepRunStatus.SUCCEEDED
+
+    def fail_attempt(
+        self,
+        attempt_id: str,
+        *,
+        failure: FailureClass,
+        error: dict[str, Any] | None = None,
+        reservation_id: str | None = None,
+        quota_reset_at: datetime | None = None,
+    ) -> RecoveryDecision:
+        """Record a failed attempt and apply the recovery decision.
+
+        The decision comes from :func:`aia_core.domain.workflow.decide_recovery`;
+        this method executes it -- including converting a reservation to
+        ``SETTLED_UNCERTAIN`` when a dispatched paid call's outcome is unknown.
+        """
+        attempt = self._attempt(attempt_id)
+        step = self._step(attempt.step_id)
+
+        attempt.status = AttemptStatus.FAILED.value
+        attempt.failure_class = failure.value
+        attempt.error_json = error or {}
+        attempt.finished_at = utcnow()
+        attempt.lease_until = None
+
+        # The retry limit is checked against consumed attempts, not recorded
+        # ones: a step parked three times on quota has used no retries.
+        decision = decide_recovery(
+            failure=failure,
+            attempt_number=step.attempts_consumed,
+            max_attempts=step.max_attempts,
+            paid_call_dispatched=attempt.paid_call_dispatched,
+            paid_call_outcome_known=attempt.paid_call_outcome_known,
+            quota_reset_at=quota_reset_at,
+        )
+        self._apply_recovery(step, attempt, decision, reservation_id=reservation_id)
+        return decision
+
+    def _apply_recovery(
+        self,
+        step: StepRunRow,
+        attempt: StepAttemptRow,
+        decision: RecoveryDecision,
+        *,
+        reservation_id: str | None = None,
+    ) -> None:
+        """Apply a recovery decision to a step and its reservations."""
+        exposure = 0.0
+        if decision.settle_reservation_as_uncertain:
+            exposure = self._settle_uncertain(attempt)
+        elif reservation_id:
+            # Nothing was billed, so the hold returns to the study.
+            self.release_reservation(reservation_id, reason=decision.reason)
+
+        # A non-consuming failure -- quota, budget, approval -- must not count
+        # against max_attempts. None is a failure of the work, and counting them
+        # would eventually fail a project that was only waiting.
+        if not decision.consumes_attempt and step.attempts_consumed > 0:
+            step.attempts_consumed -= 1
+
+        step.status = decision.step_status.value
+        step.waiting_reason = decision.reason if decision.step_status.is_waiting else None
+        step.runnable_after = decision.retry_after
+        step.updated_at = utcnow()
+        if decision.step_status.is_terminal:
+            step.finished_at = utcnow()
+
+        payload: dict[str, Any] = {
+            "action": decision.action.value,
+            "reason": decision.reason,
+            "attempt_number": attempt.attempt_number,
+            "consumes_attempt": decision.consumes_attempt,
+        }
+        if exposure:
+            payload["conservative_cost_exposure_usd"] = exposure
+        if decision.retry_after:
+            payload["retry_after"] = decision.retry_after.isoformat()
+
+        self._event(
+            step.run_id,
+            event_type="STEP_RECOVERY",
+            message=f"{step.node_key}: {decision.reason}",
+            payload=payload,
+            step_id=step.step_id,
+            attempt_id=attempt.attempt_id,
+            level="WARN" if decision.needs_human else "INFO",
+        )
+        self._session.flush()
+        self._refresh_run(step.run_id)
+        self._session.flush()
+
+    # -------------------------------------------------------------- reconciler --
+
+    def recover_expired_attempts(
+        self, *, now: datetime | None = None, limit: int = 100
+    ) -> list[RecoveryDecision]:
+        """Recover attempts whose lease lapsed. Returns the decisions applied.
+
+        This is what makes a worker crash survivable. It is safe to run
+        concurrently: each attempt is locked with ``FOR UPDATE SKIP LOCKED`` on
+        PostgreSQL, so two reconcilers cannot both recover the same attempt and
+        double-count its exposure.
+        """
+        moment = now or datetime.now(UTC)
+
+        query = (
+            select(StepAttemptRow)
+            .join(StepRunRow, StepRunRow.step_id == StepAttemptRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(
+                StepAttemptRow.status.in_(
+                    [AttemptStatus.CLAIMED.value, AttemptStatus.EXECUTING.value]
+                ),
+                *self._scope_filter(),
+            )
+            .limit(max(1, int(limit)))
+        )
+        if self._is_postgres:
+            query = query.with_for_update(skip_locked=True, of=StepAttemptRow)
+
+        decisions: list[RecoveryDecision] = []
+        for attempt in self._session.scalars(query).all():
+            if not is_lease_expired(attempt.lease_until, now=moment):
+                continue
+
+            step = self._session.scalar(
+                select(StepRunRow).where(StepRunRow.step_id == attempt.step_id)
+            )
+            if step is None:  # pragma: no cover - guaranteed by the join
+                continue
+
+            attempt.status = AttemptStatus.EXPIRED.value
+            attempt.finished_at = utcnow()
+            attempt.lease_until = None
+
+            # `failure=None` means "the lease lapsed", not "the work failed": the
+            # worker died without reporting anything.
+            decision = decide_recovery(
+                failure=None,
+                attempt_number=step.attempts_consumed,
+                max_attempts=step.max_attempts,
+                paid_call_dispatched=attempt.paid_call_dispatched,
+                paid_call_outcome_known=attempt.paid_call_outcome_known,
+            )
+            self._apply_recovery(step, attempt, decision)
+            decisions.append(decision)
+
+        return decisions
+
+    # ------------------------------------------------------------ cancellation --
+
+    def request_cancel(self, run_id: str, *, reason: str = "") -> WorkflowRunStatus:
+        """Request cancellation of a run.
+
+        Cooperative for work in flight: a running step is flagged and its worker
+        notices at the next checkpoint, so cancellation leaves a consistent
+        artifact state rather than a half-written one. Steps not yet started are
+        cancelled immediately, and pending gates are closed so nothing is left in
+        someone's queue.
+        """
+        self._scope.require(Permission.CANCEL_WORKFLOW)
+        run = self._run(run_id)
+        if WorkflowRunStatus(run.status).is_terminal:
+            return WorkflowRunStatus(run.status)
+
+        run.cancel_requested = True
+        run.updated_at = utcnow()
+
+        steps = self._session.scalars(select(StepRunRow).where(StepRunRow.run_id == run_id)).all()
+        for step in steps:
+            step.cancel_requested = True
+            if step.status == StepRunStatus.RUNNING.value:
+                continue  # cooperative: the worker will notice
+            if not StepRunStatus(step.status).is_terminal:
+                step.status = StepRunStatus.CANCELLED.value
+                step.finished_at = utcnow()
+            step.updated_at = utcnow()
+
+        self._session.execute(
+            update(WorkflowGateRow)
+            .where(
+                WorkflowGateRow.run_id == run_id,
+                WorkflowGateRow.status == "PENDING",
+            )
+            .values(status="CANCELLED", decided_at=utcnow())
+        )
+
+        self._event(
+            run_id,
+            event_type="RUN_CANCEL_REQUESTED",
+            message=reason or "cancellation requested",
+            payload={"reason": reason, "actor_id": self._scope.actor_id},
+            level="WARN",
+        )
+        self._session.flush()
+        return self._refresh_run(run_id)
+
+    def is_cancel_requested(self, step_id: str) -> bool:
+        """True when a worker should stop at its next checkpoint."""
+        step = self._step(step_id)
+        return bool(step.cancel_requested)
+
+    def abandon_attempt(self, attempt_id: str, *, reason: str = "cancelled") -> None:
+        """Mark an in-flight attempt abandoned after a cooperative cancellation."""
+        attempt = self._attempt(attempt_id)
+        step = self._step(attempt.step_id)
+
+        attempt.status = AttemptStatus.ABANDONED.value
+        attempt.finished_at = utcnow()
+        attempt.lease_until = None
+        attempt.error_json = {"reason": reason}
+
+        step.status = StepRunStatus.CANCELLED.value
+        step.finished_at = utcnow()
+        step.updated_at = utcnow()
+
+        self._event(
+            step.run_id,
+            event_type="ATTEMPT_ABANDONED",
+            message=f"{step.node_key}: {reason}",
+            step_id=step.step_id,
+            attempt_id=attempt_id,
+            level="WARN",
+        )
+        self._session.flush()
+        self._refresh_run(step.run_id)
+        self._session.flush()
+
+    # -------------------------------------------------------------------- gates --
+
+    def open_gate(
+        self,
+        *,
+        step_id: str,
+        question: str,
+        options: list[str],
+        context: dict[str, Any] | None = None,
+        gate_type: str = "approval",
+        produced_by_user_id: str | None = None,
+    ) -> str:
+        """Park a step on a human decision.
+
+        The gate records who produced the work, so the separation-of-duties check
+        on decision has something to compare against.
+        """
+        step = self._step(step_id)
+        if not options:
+            raise ValueError("a gate must offer at least one option")
+
+        gate_id = "GATE-" + new_attempt_id()[4:]
+        self._session.add(
+            WorkflowGateRow(
+                gate_id=gate_id,
+                run_id=step.run_id,
+                step_id=step_id,
+                status="PENDING",
+                gate_type=gate_type,
+                question=question,
+                options_json={"options": list(options)},
+                context_json=context or {},
+                produced_by_user_id=produced_by_user_id or self._scope.actor_id,
+            )
+        )
+        step.status = StepRunStatus.WAITING_GATE.value
+        step.waiting_reason = f"gate:{gate_type}"
+        step.updated_at = utcnow()
+
+        self._event(
+            step.run_id,
+            event_type="GATE_OPENED",
+            message=question,
+            payload={"gate_id": gate_id, "options": list(options), "gate_type": gate_type},
+            step_id=step_id,
+            level="WARN",
+        )
+        self._session.flush()
+        self._refresh_run(step.run_id)
+        self._session.flush()
+        return gate_id
+
+    def decide_gate(self, gate_id: str, *, option: str, note: str = "") -> StepRunStatus:
+        """Record a human decision on a gate and release or stop the step.
+
+        Three checks, and each has bitten a real system:
+
+        1. The option must be one of those offered. Accepting an arbitrary string
+           means acting on a decision nobody made.
+        2. The gate must still be pending, so a replayed request cannot re-decide.
+        3. The decider must not be the producer, for a gate requiring independent
+           review -- a LEAD holds both edit and sign-off authority, so a role
+           check alone would let one person author and approve.
+        """
+        self._scope.require(Permission.APPROVE_GATE)
+
+        gate = self._session.scalar(
+            select(WorkflowGateRow)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == WorkflowGateRow.run_id)
+            .where(WorkflowGateRow.gate_id == gate_id, *self._scope_filter())
+        )
+        if gate is None:
+            raise WorkflowNotFound(gate_id)
+        if gate.status != "PENDING":
+            raise ValueError("gate already decided")
+
+        allowed = list((gate.options_json or {}).get("options") or [])
+        if option not in allowed:
+            raise ValueError(
+                f"invalid gate option {option!r}; allowed: {', '.join(sorted(allowed))}"
+            )
+
+        if gate.gate_type == "approval":
+            require_independent_reviewer(
+                producer_user_id=gate.produced_by_user_id,
+                approving_user_id=self._scope.actor_id,
+                what="this gate's work",
+            )
+
+        gate.status = "DECIDED"
+        gate.decision_json = {"option": option, "note": note}
+        gate.decided_by_user_id = self._scope.actor_id
+        gate.decided_at = utcnow()
+
+        step = self._step(gate.step_id)
+        if option == "cancel":
+            step.status = StepRunStatus.CANCELLED.value
+            step.finished_at = utcnow()
+            resulting = StepRunStatus.CANCELLED
+        else:
+            step.status = StepRunStatus.RUNNABLE.value
+            resulting = StepRunStatus.RUNNABLE
+        step.waiting_reason = None
+        step.updated_at = utcnow()
+
+        self._event(
+            gate.run_id,
+            event_type="GATE_DECIDED",
+            message=f"{option} by {self._scope.actor_id}",
+            payload={"gate_id": gate_id, "option": option, "note": note},
+            step_id=gate.step_id,
+        )
+        self._session.flush()
+        self._refresh_run(gate.run_id)
+        self._session.flush()
+        return resulting
+
+    def pending_gates(self, run_id: str | None = None) -> list[dict[str, Any]]:
+        """Return gates awaiting a decision, newest last."""
+        query = (
+            select(WorkflowGateRow)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == WorkflowGateRow.run_id)
+            .where(WorkflowGateRow.status == "PENDING", *self._scope_filter())
+            .order_by(WorkflowGateRow.created_at)
+        )
+        if run_id:
+            query = query.where(WorkflowGateRow.run_id == run_id)
+
+        return [
+            {
+                "gate_id": g.gate_id,
+                "run_id": g.run_id,
+                "step_id": g.step_id,
+                "gate_type": g.gate_type,
+                "question": g.question,
+                "options": list((g.options_json or {}).get("options") or []),
+                "context": dict(g.context_json or {}),
+                "produced_by_user_id": g.produced_by_user_id,
+                "created_at": g.created_at,
+            }
+            for g in self._session.scalars(query).all()
+        ]
+
+    # -------------------------------------------------------------------- reads --
+
+    def get_run(self, run_id: str) -> dict[str, Any]:
+        """Return a run with its steps and each step's attempt history."""
+        run = self._run(run_id)
+        steps = self._session.scalars(
+            select(StepRunRow).where(StepRunRow.run_id == run_id).order_by(StepRunRow.ordinal)
+        ).all()
+
+        return {
+            "run_id": run.run_id,
+            "status": WorkflowRunStatus(run.status),
+            "workflow_type": run.workflow_type,
+            "project_id": run.project_id,
+            "project_revision": run.project_revision,
+            "cancel_requested": run.cancel_requested,
+            "created_at": run.created_at,
+            "started_at": run.started_at,
+            "finished_at": run.finished_at,
+            "steps": [
+                {
+                    "step_id": s.step_id,
+                    "node_key": s.node_key,
+                    "kind": s.kind,
+                    "status": StepRunStatus(s.status),
+                    "stage_type": s.stage_type,
+                    "attempts_recorded": s.attempts_recorded,
+                    "attempts_consumed": s.attempts_consumed,
+                    "max_attempts": s.max_attempts,
+                    "waiting_reason": s.waiting_reason,
+                    "runnable_after": s.runnable_after,
+                    "attempts": self.attempt_history(s.step_id),
+                }
+                for s in steps
+            ],
+        }
+
+    def attempt_history(self, step_id: str) -> list[dict[str, Any]]:
+        """Return every attempt for a step, oldest first.
+
+        Append-only: a step that failed three different ways retains all three
+        errors, each with its own provider, model, cost and timing. The prototype
+        kept only the latest.
+        """
+        rows = self._session.scalars(
+            select(StepAttemptRow)
+            .where(StepAttemptRow.step_id == step_id)
+            .order_by(StepAttemptRow.attempt_number)
+        ).all()
+        return [
+            {
+                "attempt_id": a.attempt_id,
+                "attempt_number": a.attempt_number,
+                "status": AttemptStatus(a.status),
+                "worker_id": a.worker_id,
+                "provider": a.provider,
+                "model": a.model,
+                "failure_class": FailureClass(a.failure_class) if a.failure_class else None,
+                "error": dict(a.error_json or {}),
+                "paid_call_dispatched": a.paid_call_dispatched,
+                "paid_call_outcome_known": a.paid_call_outcome_known,
+                "provider_request_id": a.provider_request_id,
+                "estimated_cost_usd": a.estimated_cost_usd,
+                "actual_cost_usd": a.actual_cost_usd,
+                "started_at": a.started_at,
+                "finished_at": a.finished_at,
+            }
+            for a in rows
+        ]
+
+    def events(self, run_id: str, *, since: int = 0, limit: int = 500) -> list[dict[str, Any]]:
+        """Return run events after ``since``, in order.
+
+        Monotonic ids let a reconnecting client resume without gaps or duplicates.
+        """
+        self._run(run_id)
+        rows = self._session.scalars(
+            select(WorkflowEventRow)
+            .where(
+                WorkflowEventRow.run_id == run_id,
+                WorkflowEventRow.event_id > int(since),
+            )
+            .order_by(WorkflowEventRow.event_id)
+            .limit(max(1, min(int(limit), 2000)))
+        ).all()
+        return [
+            {
+                "event_id": e.event_id,
+                "run_id": e.run_id,
+                "step_id": e.step_id,
+                "attempt_id": e.attempt_id,
+                "event_type": e.event_type,
+                "level": e.level,
+                "message": e.message,
+                "payload": dict(e.payload_json or {}),
+                "created_at": e.created_at,
+            }
+            for e in rows
+        ]
+
+    def runs_needing_attention(self) -> list[dict[str, Any]]:
+        """Return runs blocked on a person, for an operator dashboard.
+
+        ``WAITING_PROVIDER`` is excluded: it clears on its own.
+        """
+        statuses = [s.value for s in WorkflowRunStatus if s.needs_attention]
+        rows = self._session.scalars(
+            select(WorkflowRunRow)
+            .where(WorkflowRunRow.status.in_(statuses), *self._scope_filter())
+            .order_by(WorkflowRunRow.updated_at.desc())
+        ).all()
+        return [
+            {
+                "run_id": r.run_id,
+                "status": WorkflowRunStatus(r.status),
+                "workflow_type": r.workflow_type,
+                "project_id": r.project_id,
+                "updated_at": r.updated_at,
+            }
+            for r in rows
+        ]
+
+    def force_step_status(self, step_id: str, status: StepRunStatus, *, reason: str) -> None:
+        """Administrative override of a step's status.
+
+        The prototype exposed this as a ``force=True`` keyword on an ordinary
+        transition, which made it reachable by accident. Here it is a separate,
+        explicitly named method that requires ``MANAGE_STUDY_ACCESS`` and always
+        records a reason -- because it can move a step out of a terminal state.
+        """
+        self._scope.require(Permission.MANAGE_STUDY_ACCESS)
+        if not reason:
+            raise ValueError("an administrative override requires a reason")
+
+        step = self._step(step_id)
+        previous = step.status
+        step.status = status.value
+        step.updated_at = utcnow()
+
+        self._event(
+            step.run_id,
+            event_type="STEP_FORCED",
+            message=f"{previous} -> {status.value}: {reason}",
+            payload={
+                "from": previous,
+                "to": status.value,
+                "reason": reason,
+                "actor_id": self._scope.actor_id,
+            },
+            step_id=step_id,
+            level="WARN",
+        )
+        self._session.flush()
+        self._refresh_run(step.run_id)
+        self._session.flush()

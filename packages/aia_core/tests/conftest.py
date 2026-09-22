@@ -321,3 +321,14 @@ def session(engine: Any) -> Iterator[Any]:
 def scoped(session: Any) -> ScopeFixture:
     """A provisioned organization / client / study world with users at every role."""
     return build_scope_fixture(session)
+
+
+@pytest.fixture
+def scope_builder() -> Any:
+    """Return :func:`build_scope_fixture` for tests managing their own sessions.
+
+    Exposed as a fixture rather than imported because both test directories in
+    this repository are named ``tests``, so they cannot be packages and relative
+    imports between their modules collide.
+    """
+    return build_scope_fixture

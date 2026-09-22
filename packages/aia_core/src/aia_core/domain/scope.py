@@ -238,6 +238,40 @@ class ScopeDenied(PermissionError):
         self.reason = reason
 
 
+class SeparationOfDutiesViolation(ScopeDenied):
+    """Raised when the producer of work also tries to approve it.
+
+    Role separation alone is not enough: a LEAD holds both ``EDIT_STUDY`` and
+    ``SIGN_OFF_DELIVERABLE``, so without this check one person could author a
+    deliverable and then clear its own review gate by switching hats.
+
+    The invariant is ``producer_user_id != approving_user_id`` for any gate that
+    requires independent review.
+    """
+
+    def __init__(self, actor_id: str, *, what: str = "this work") -> None:
+        super().__init__(
+            f"independent review required: {what} was produced by the same person",
+            reason="separation_of_duties",
+        )
+        self.actor_id = actor_id
+
+
+def require_independent_reviewer(
+    *, producer_user_id: str | None, approving_user_id: str, what: str = "this work"
+) -> None:
+    """Enforce ``producer_user_id != approving_user_id``.
+
+    An unknown producer (``None``) does not bypass the rule silently -- it is
+    allowed, because a gate with no recorded producer predates provenance and
+    blocking it would strand existing work. Callers that can record a producer
+    must do so; :func:`require_independent_reviewer` is only as strong as the
+    provenance feeding it.
+    """
+    if producer_user_id and producer_user_id == approving_user_id:
+        raise SeparationOfDutiesViolation(approving_user_id, what=what)
+
+
 # --------------------------------------------------------------------------- #
 # Entities
 # --------------------------------------------------------------------------- #

@@ -17,7 +17,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from aia_core.domain.providers import Provider
-from aia_core.domain.scope import ScopeDenied
+from aia_core.domain.scope import ScopeDenied, SeparationOfDutiesViolation
 from aia_core.infrastructure.artifact_repository import (
     ArtifactNotFound,
     ArtifactRepository,
@@ -811,3 +811,109 @@ def test_delete_removes_row_and_object(
     assert not store.exists(key)
     with pytest.raises(ArtifactNotFound):
         lead.get(artifact.artifact_id)
+
+
+# --------------------------------------------------------------------------- #
+# Separation of duties -- a permanent invariant
+# --------------------------------------------------------------------------- #
+
+
+def test_regression_producer_cannot_approve_their_own_artifact(
+    session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
+) -> None:
+    """**producer_user_id != approving_user_id. Never relax this.**
+
+    A role check alone is insufficient: a LEAD holds both EDIT_STUDY and
+    SIGN_OFF_DELIVERABLE, so without this invariant one person could author a
+    deliverable and then clear its own review gate by switching hats.
+
+    The methodology's human review gate requires *independence*, not merely a
+    permission. This test exists forever.
+    """
+    lead_scope = scoped.scope(user="lead", study="primary")
+    lead = ArtifactRepository(session, lead_scope, store)
+
+    artifact, _ = lead.put_json(
+        project_id=project.project_id,
+        revision=1,
+        stage_type="REPORT",
+        artifact_type="CLIENT_REPORT",
+        payload={"draft": True},
+    )
+    assert artifact.produced_by_user_id == lead_scope.actor_id
+
+    with pytest.raises(SeparationOfDutiesViolation) as exc:
+        lead.approve(artifact.artifact_id)
+    assert exc.value.reason == "separation_of_duties"
+    assert lead.get(artifact.artifact_id).is_approved is False
+
+
+def test_a_different_person_with_sign_off_authority_can_approve(
+    session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
+) -> None:
+    """Independence satisfied: a reviewer who did not author it may approve."""
+    researcher = ArtifactRepository(
+        session, scoped.scope(user="researcher", study="primary"), store
+    )
+    artifact, _ = researcher.put_json(
+        project_id=project.project_id,
+        revision=1,
+        stage_type="REPORT",
+        artifact_type="CLIENT_REPORT",
+        payload={"draft": True},
+    )
+
+    reviewer = ArtifactRepository(session, scoped.scope(user="reviewer", study="primary"), store)
+    assert reviewer.approve(artifact.artifact_id).is_approved is True
+
+
+def test_producer_is_taken_from_scope_not_from_an_argument(
+    session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
+) -> None:
+    """The producer cannot be spoofed to defeat the independence check.
+
+    ``produced_by_user_id`` comes from the authorised scope. A caller -- or an AI
+    tool -- cannot claim someone else produced the work in order to approve it
+    themselves.
+    """
+    lead_scope = scoped.scope(user="lead", study="primary")
+    lead = ArtifactRepository(session, lead_scope, store)
+
+    with pytest.raises(TypeError):
+        lead.put_json(  # type: ignore[call-arg]
+            project_id=project.project_id,
+            revision=1,
+            stage_type="REPORT",
+            artifact_type="CLIENT_REPORT",
+            payload={},
+            produced_by_user_id="USR-someone-else",
+        )
+
+
+def test_an_artifact_with_no_recorded_producer_can_still_be_approved(
+    session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
+) -> None:
+    """Unknown provenance does not block approval, but it is visible.
+
+    A gate with no recorded producer predates provenance; blocking it would
+    strand existing work. The check is only as strong as the provenance feeding
+    it, which is why every write records a producer.
+    """
+    from aia_core.infrastructure.tables import ProjectArtifactRow
+
+    lead_scope = scoped.scope(user="lead", study="primary")
+    lead = ArtifactRepository(session, lead_scope, store)
+    artifact, _ = lead.put_json(
+        project_id=project.project_id,
+        revision=1,
+        stage_type="REPORT",
+        artifact_type="CLIENT_REPORT",
+        payload={},
+    )
+
+    row = session.get(ProjectArtifactRow, artifact.artifact_id)
+    assert row is not None
+    row.produced_by_user_id = None
+    session.flush()
+
+    assert lead.approve(artifact.artifact_id).is_approved is True

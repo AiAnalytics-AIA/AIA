@@ -86,6 +86,17 @@ jobs:
       - name: API tests (PostgreSQL)
         run: pytest apps/api -q
 
+      - name: Concurrency and transaction semantics (PostgreSQL only)
+        # These must actually RUN, not skip. They use real concurrent
+        # transactions and are the only thing that detects two workers claiming
+        # one step, a lock convoy, or a budget overspend race -- each of which
+        # passed the sequential suite. `--no-skips` turns a skip into a failure,
+        # so a missing DATABASE_URL cannot masquerade as a pass.
+        env:
+          # Turns a missing database into a failure rather than a skip.
+          AIA_REQUIRE_POSTGRES: "1"
+        run: pytest packages/aia_core/tests/test_workflow_concurrency.py -q
+
       - name: Domain tests on SQLite
         # The offline development path must keep working too.
         env:

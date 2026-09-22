@@ -2,7 +2,8 @@
 
 **Updated:** 2026-09-21
 **Branch:** `migration/phase-1-foundation`
-**Phase:** 1 and 2 complete. Phase 3 characterized, not implemented.
+**Phase:** 1 and 2 complete. Phase 3 implemented and verified under real
+PostgreSQL contention.
 
 Read this first to continue the work. Companion documents:
 [migration-plan.md](migration-plan.md) ·
@@ -84,7 +85,30 @@ client or study, and a test asserts those fields stay absent.
 `docs/archive/original-mvp/` with a superseded notice on each. Authoritative
 product scope at `docs/product/`. Seven ADRs. `docs/migration/reference-weaknesses.md`.
 
-### Phase 3 — Characterization ✅ (implementation not started)
+### Phase 3 — Durable workflow engine ✅
+
+`WorkflowRun → StepRun → StepAttempt`, with the two-level state split: business
+state on the run (what a researcher waits for) and technical execution state on
+the attempt (what a worker is doing). Attempts are **append-only history** -- each
+keeps its own error, provider, model and cost, replacing the prototype's single
+counter and latest-error-only.
+
+Implemented: DAG validation at definition time, dependency gating on `SUCCEEDED`
+specifically, exclusive claiming via `FOR UPDATE SKIP LOCKED`, leases and
+heartbeats, the full recovery table, budget reservations with a study-row lock,
+cooperative cancellation, gates with separation of duties, and an append-only
+event feed with monotonic ids.
+
+**Four bugs were found by tests, three of which the sequential suite could not
+see.** Details in "Bugs found" below.
+
+Two counters where the prototype had one: `attempts_recorded` is monotonic and
+numbers the append-only rows; `attempts_consumed` counts only failures that
+should count against `max_attempts`. One counter cannot do both -- decrementing
+for a quota park collided with attempt numbering and raised a unique-constraint
+violation.
+
+### Phase 3 — Characterization ✅
 **64 characterization tests** describe the legacy `job_store.py` before any of it
 is reimplemented: the full status set and transition table verbatim, terminal
 states, idempotency, dependency gating, exclusive claiming, leases, heartbeats,
@@ -132,14 +156,20 @@ them.
 
 | Suite | Result |
 | --- | --- |
-| `packages/aia_core` | **263 passed** |
-| `apps/api` | **114 passed** |
-| **Total** | **377 passed, 0 failed, 0 skipped** |
-| of which parity/characterization vs the prototype | **93** |
+| Suite, on PostgreSQL | **496 passed, 0 failed, 0 skipped** |
+| Suite, on SQLite | **480 passed, 16 skipped** (the concurrency module) |
+| of which parity/characterization vs the prototype | **94** |
+| of which real-contention concurrency tests | **16** |
 | `ruff check` / `ruff format --check` | clean |
-| `mypy --strict` | clean, 30 source files |
+| `mypy --strict` | clean, 32 source files |
 
 Verified on **PostgreSQL 16.15** and on SQLite. Python 3.14.6, macOS.
+
+The 16 skips on SQLite are correct and deliberate: SQLite has no
+`FOR UPDATE SKIP LOCKED` and a single-writer model, so it cannot express the
+contention being tested. **CI sets `AIA_REQUIRE_POSTGRES=1`, which turns a
+missing database into a failure rather than a skip** -- otherwise a build could go
+green with none of the concurrency guarantees checked.
 
 ## In progress
 
@@ -147,11 +177,13 @@ Nothing. The tree is green and the slice is complete.
 
 ## Next
 
-- [ ] **Phase 3 — durable workflow engine.** Characterization is done; implement
-      against it. `WorkflowRun → StepRun → StepAttempt` in PostgreSQL, SQS
-      dispatch, a reconciler so a lost message loses no work, idempotent step
-      execution for at-least-once delivery. **Must include the concurrency and
-      transaction-semantics tests listed above.**
+- [ ] **SQS dispatch + reconciler.** The engine is complete and PostgreSQL is
+      authoritative; what remains is the transport. An SQS message carries an id
+      only, and a reconciler re-enqueues runnable work with no in-flight message,
+      so a lost message loses nothing. Idempotency is already proven under
+      contention, which is the hard part.
+- [ ] **A worker process.** `claim_next` → execute → `complete_attempt` /
+      `fail_attempt`, with heartbeats and a cancellation poll at checkpoints.
 - [ ] **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`,
       `ModelPolicy`, `ModelRegistry`, `LLMGateway`, `ToolRegistry`,
       `AIUsageEvent`. Confirm [ADR 0005](../architecture/adr/0005-llm-gateway.md)
@@ -190,6 +222,71 @@ See [parity-matrix.md](parity-matrix.md) for the component inventory.
 It holds the only login path that works today without AWS. **Removal condition:**
 delete once a Cognito user pool is provisioned and the web client authenticates
 against it.
+
+## Bugs found by tests in Phase 3
+
+Three of these four could not have been caught by the sequential suite. They are
+recorded because each was a genuine defect in code that looked correct and had
+passing tests.
+
+1. **Lock convoy on the run row.** `_refresh_run` issued an unconditional
+   `UPDATE workflow_runs SET updated_at` on every claim, completion and recovery.
+   Every concurrent worker on the same run queued behind that single row lock,
+   which serialised the whole engine and defeated the point of
+   `FOR UPDATE SKIP LOCKED`. With eight workers it **deadlocked outright** -- the
+   test suite hung rather than failing. Now the run row is written only when the
+   derived status actually changes, so most calls take no lock at all.
+
+2. **Concurrent budget overspend.** The budget check read outstanding
+   reservations and then inserted -- a read-modify-write with no lock. Four
+   workers each reserving $40 against a $100 budget **all succeeded**: $160 of a
+   client's money. The sequential test passed because it was sequential. Fixed by
+   taking a blocking `FOR UPDATE` lock on the study row across the check.
+
+3. **Timezone portability.** `DateTime(timezone=True)` round-trips on PostgreSQL
+   but SQLite stores no offset, so a lease deadline came back naive and the
+   expiry comparison raised `TypeError`. Every recovery path crashed on SQLite
+   while passing on PostgreSQL -- found only because CI runs both. Fixed with an
+   `as_utc` normalisation, since every timestamp written is UTC.
+
+4. **`UNKNOWN` was documented as permanent but omitted from the permanent set**,
+   so an error the system could not classify would have been retried against a
+   metered provider on the assumption it was transient.
+
+Also fixed: the concurrency module's engine fixture dropped the schema the
+session-scoped fixture still owned, which surfaced as ~105 unrelated errors in
+other modules.
+
+## Replacing the old application — not done, and what it needs
+
+**`main` is untouched.** Every commit is on `migration/phase-1-foundation` and
+**nothing has been pushed**. The old code is still present and unmodified:
+
+| Still there | State |
+| --- | --- |
+| `src/server.js` | 44-line Fastify stub. The only login path that works without AWS |
+| `src/views/` | Its two EJS templates |
+| `apps/web` | 1,629 LOC of Next.js, still entirely mock-backed |
+| `docs/archive/original-mvp/` | Archived, not deleted, each file carrying a superseded notice |
+
+This is the strangler rule working as intended: the new system is being built
+alongside, and nothing is switched over until it can carry the traffic.
+
+**What replacement requires, in order:**
+
+1. **A Cognito user pool provisioned**, so real authentication exists. Until then
+   deleting `src/server.js` would leave none.
+2. **`apps/web` wired to the real API** -- `lib/mock.ts` and `lib/mockArtifacts.ts`
+   deleted, the `/org/[orgSlug]/…` routes reading live studies and projects.
+3. **Delete `src/server.js` and `src/views/`**, and drop the root `package.json`
+   dependencies they alone needed (`fastify`, `ejs`, `better-sqlite3`,
+   `exceljs`, `papaparse`).
+4. **Push the branch and open a PR.** CI must pass, including the concurrency
+   suite with `AIA_REQUIRE_POSTGRES=1`.
+5. **Merge to `main`.** At that point the repository *is* the new application.
+
+Steps 1 and 2 are the real work; 3–5 are mechanical. None should happen before
+the AWS baseline exists, because step 1 gates all of it.
 
 ## Known regressions
 

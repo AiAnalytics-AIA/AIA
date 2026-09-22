@@ -840,3 +840,154 @@ def test_slug_normalises_case_and_whitespace() -> None:
         Study(organization_id="ORG-1", client_id="CLI-1", slug="BRAND-2026", name="x").slug
         == "brand-2026"
     )
+
+
+# --------------------------------------------------------------------------- #
+# Permanent regression tests
+#
+# These encode two invariants that must never be relaxed. Both are cheap to
+# break by "simplifying" and expensive to discover afterwards.
+# --------------------------------------------------------------------------- #
+
+
+def test_regression_explicit_study_restriction_beats_broader_client_privilege(
+    resolver: ScopeResolver, world: dict[str, Any]
+) -> None:
+    """**Specificity precedence. Never collapse this into max(role).**
+
+        study grant
+           overrides client grant
+              overrides no access
+
+    An explicit study-level *restriction* wins over a broader client-level
+    privilege. A client LEAD restricted to VIEWER on one sensitive study must
+    lose edit rights there and keep them elsewhere.
+
+    Taking the maximum of the two grants would make a restriction impossible to
+    express, and a restriction is precisely what a confidentiality boundary is
+    for. This test exists forever.
+    """
+    admin = world["admin"]
+    acme = world["acme"]
+    researcher = world["researcher"]
+
+    # The researcher is promoted to LEAD across the whole client.
+    resolver.grant_client_access(
+        admin, client_id=acme.client_id, user_id=researcher, role=ScopeRole.LEAD
+    )
+    principal = world["principal"](researcher)
+
+    broad = resolver.study_context(principal, study_id=world["acme_study"].study_id)
+    assert broad.role is ScopeRole.LEAD
+    assert broad.has(Permission.EDIT_STUDY)
+
+    # An owner with LEAD on the client narrows the researcher on ONE study.
+    resolver.grant_client_access(
+        admin, client_id=acme.client_id, user_id=world["owner_id"], role=ScopeRole.LEAD
+    )
+    owner_scope = resolver.study_context(
+        world["admin_principal"], study_id=world["acme_study"].study_id
+    )
+    resolver.grant_study_access(owner_scope, user_id=researcher, role=ScopeRole.VIEWER)
+
+    restricted = resolver.study_context(principal, study_id=world["acme_study"].study_id)
+
+    assert restricted.role is ScopeRole.VIEWER, (
+        "an explicit study restriction must beat the broader client grant; "
+        "max(role) would wrongly yield LEAD"
+    )
+    assert not restricted.has(Permission.EDIT_STUDY)
+    assert not restricted.has(Permission.SIGN_OFF_DELIVERABLE)
+    assert not restricted.has(Permission.MANAGE_STUDY_ACCESS)
+
+
+def test_regression_study_grant_also_widens_for_a_single_study(
+    resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    """Precedence runs both ways: a study grant can widen as well as restrict.
+
+    The same rule that lets a lead be restricted lets an outsider be brought in
+    for exactly one study and nothing else.
+    """
+    second = scope_repo.create_study(
+        world["admin"],
+        client_id=world["acme"].client_id,
+        slug="second-study",
+        name="Acme second",
+    )
+    resolver.grant_client_access(
+        world["admin"],
+        client_id=world["acme"].client_id,
+        user_id=world["owner_id"],
+        role=ScopeRole.LEAD,
+    )
+    lead = resolver.study_context(world["admin_principal"], study_id=second.study_id)
+    resolver.grant_study_access(lead, user_id=world["outsider"], role=ScopeRole.RESEARCHER)
+
+    principal = world["principal"](world["outsider"])
+    assert resolver.study_context(principal, study_id=second.study_id).role is (
+        ScopeRole.RESEARCHER
+    )
+    assert resolver.accessible_studies(principal) == [second.study_id]
+    with pytest.raises(ScopeDenied):
+        resolver.study_context(principal, study_id=world["acme_study"].study_id)
+
+
+def test_self_grant_records_previous_and_new_access(
+    resolver: ScopeResolver, world: dict[str, Any]
+) -> None:
+    """A self-grant carries a full before/after record.
+
+    This is the one case where administrative authority and confidential research
+    access meet in the same person, so the audit entry must answer what was
+    taken, by whom, from what, and why -- readable years later without
+    reconstructing the roles of the day.
+    """
+    admin = world["admin"]
+    resolver.grant_client_access(
+        admin,
+        client_id=world["acme"].client_id,
+        user_id=world["owner_id"],
+        role=ScopeRole.RESEARCHER,
+        reason="starting engagement kickoff",
+    )
+    # Escalate their own access, which is the interesting case.
+    resolver.grant_client_access(
+        admin,
+        client_id=world["acme"].client_id,
+        user_id=world["owner_id"],
+        role=ScopeRole.LEAD,
+        reason="taking over as study lead",
+    )
+
+    entries = [e for e in resolver.audit_trail(admin) if e["action"] == "CLIENT_SELF_GRANT"]
+    assert len(entries) == 2
+
+    escalation = entries[0]
+    payload = escalation["payload"]
+    assert payload["actor_user_id"] == world["owner_id"]
+    assert payload["subject_user_id"] == world["owner_id"]
+    assert payload["client_id"] == world["acme"].client_id
+    assert payload["previous_access"] == "RESEARCHER"
+    assert payload["new_access"] == "LEAD"
+    assert payload["self_grant"] is True
+    assert payload["reason"] == "taking over as study lead"
+    assert escalation["created_at"] is not None
+
+
+def test_granting_someone_else_is_not_recorded_as_a_self_grant(
+    resolver: ScopeResolver, world: dict[str, Any]
+) -> None:
+    """Ordinary provisioning must stay distinguishable from break-glass access."""
+    resolver.grant_client_access(
+        world["admin"],
+        client_id=world["acme"].client_id,
+        user_id=world["outsider"],
+        role=ScopeRole.VIEWER,
+    )
+    actions = [e["action"] for e in resolver.audit_trail(world["admin"])]
+    assert "CLIENT_GRANT" in actions
+    self_grants = [
+        e for e in resolver.audit_trail(world["admin"]) if e["action"] == "CLIENT_SELF_GRANT"
+    ]
+    assert self_grants == []

@@ -106,9 +106,24 @@ recognised override is honoured; otherwise the policy decides.
 `DATA_CONTRACT_v17.json` says `v17_4_0`, and `v17_4_0` is the file actually
 present (18,766 rows × 400 columns).
 
-**Our action.** Treat `v17_4_0` as authoritative. The stale
-`data_core.production_panel` key must be resolved when the methodology contract is
-migrated in Phase 6, and the resolution recorded rather than assumed.
+**Our action.** Treat `v17_4_0` as authoritative for now, because it is the file
+actually present and two of three sources name it. **This is provisional and must
+not be "fixed" on intuition** — a wrong guess here contaminates data provenance,
+which is the one thing a research system cannot repair after the fact.
+
+**Resolution criteria.** Before this is closed in Phase 6, one of the following
+must be produced. "The top-level key looks newer" is not sufficient:
+
+1. **Historical release evidence** — a release note or manifest stating which
+   panel that policy version shipped against.
+2. **Producer code** — the code that writes `data_core.production_panel`, showing
+   which panel it was reading.
+3. **Fixture or test expectation** — a test asserting a panel version, which
+   pins what the validated behaviour actually used.
+4. **A documented team decision** — an explicit choice, recorded with its date
+   and rationale.
+
+Whichever is used, record it here with the evidence, not just the conclusion.
 
 ## W6 — Structural characteristics, not defects
 
@@ -127,6 +142,45 @@ Recorded so they are not mistaken for things to preserve. Full detail in
   `vystupy`, `osobnost`, `biografie`).
 - Several coexisting generations of the same feature, e.g. `report.py` /
   `client_report_v2.py` / `final_client_report.py`.
+
+## Reference integrity
+
+The reference is a snapshot with **no git history**, so there is no upstream to
+diff against. `docs/migration/reference-manifest.json` is therefore its only
+integrity record: SHA256 of every canonical file — source, configuration, tests,
+packaged data, documentation — with runtime-generated directories excluded.
+
+```bash
+python tools/reference_manifest.py verify   # canonical files unchanged?
+python tools/reference_manifest.py status   # canonical vs runtime counts
+```
+
+**Why runtime directories are excluded.** Running the prototype's *own* test suite
+writes to `data/` and generates output under `full_simulation_runs/` and
+`full_simulation_benchmarks/`. The raw file count therefore grows — it went from
+1,565 at delivery to 1,926 after two full runs of the reference's own suite — and
+is not an integrity signal.
+
+The canonical set has stayed at **1,324 files, all verifying by hash**, across
+those runs. That lets the claim be precise:
+
+> canonical reference source files unchanged
+
+rather than:
+
+> the file count changed, but we think we know why.
+
+Verified by `packages/aia_core/tests/test_reference_manifest.py`, which also
+proves the tool detects a modified, deleted or added canonical file — a manifest
+that failed to detect drift would be worse than none, because it would license a
+false claim.
+
+**If you intentionally edit the reference**, record it here and regenerate the
+manifest in the same commit:
+
+```bash
+python tools/reference_manifest.py write
+```
 
 ## How to add to this file
 

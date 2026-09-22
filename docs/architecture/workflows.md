@@ -1,133 +1,231 @@
 # Durable workflows and jobs
 
-**Status: designed, not yet implemented.** This document is the specification for
-Phase 3. The domain state machine it describes is already encoded in
-`aia_core.domain.pipeline.StageStatus`; the job engine around it is not built.
+**Status: specified, implementation in progress (Phase 3).** The behavioural
+contract is `packages/aia_core/tests/test_legacy_job_store_characterization.py` —
+64 tests describing the prototype's engine. Implement against that rather than
+re-reading `job_store.py`.
+
+Related: [ADR 0002](adr/0002-postgresql-authoritative-store.md) (PostgreSQL
+authoritative, SQS dispatch only), [ADR 0006](adr/0006-langgraph-agent-execution.md)
+(LangGraph owns reasoning, not workflow state).
 
 ## The requirement
 
-A research project runs 24 pipeline nodes, several of which make hundreds of AI
-calls and take tens of minutes. Work must survive:
+A research project runs 24 pipeline nodes, several making hundreds of AI calls
+over tens of minutes. Work must survive browser closure, API restart, worker
+termination, provider failure and temporary quota exhaustion. A browser
+disconnect must have **no effect** on a job.
 
-- browser reload or tab close
-- API process restart or redeploy
-- worker crash or rescheduling
-- provider rate limits and quota exhaustion
-- temporary provider capacity failures
-- database failover
+That rules out doing the work in a request handler, and rules out holding
+progress in memory.
 
-A browser disconnect must have **no effect** on a job. This rules out doing the
-work in an HTTP request handler, and it rules out holding progress state in
-memory.
+## Two levels of state
+
+The prototype used one 14-value status for both "what is this study waiting for"
+and "what is this execution doing", which muddled `RECOVERY_REQUIRED` with
+ordinary failure. The new model separates them.
+
+### `WorkflowRun` — business state
+
+What a researcher or an operator sees. Answers *what is this study waiting for?*
+
+| State | Meaning |
+| --- | --- |
+| `RUNNING` | Work is progressing |
+| `WAITING_GATE` | A human approval or methodology gate is outstanding |
+| `WAITING_BUDGET` | The study is out of money; needs a budget decision |
+| `WAITING_PROVIDER` | Provider quota or capacity; will clear on its own |
+| `RECOVERY_REQUIRED` | A human must decide; work may have been billed |
+| `COMPLETED` | Every step succeeded |
+| `FAILED` | A step failed terminally |
+| `CANCELLED` | A user cancelled it |
+
+**`WAITING_BUDGET` is new.** The prototype routed budget exhaustion through
+`WAITING_USER` with an `increase_budget` approval option. "A person must decide
+something" and "this study is out of money" need different dashboards and
+different alerts, so they are now different states.
+
+**`WAITING_PROVIDER`** merges the prototype's `WAITING_CREDITS` and
+`WAITING_CAPACITY` at the business level — a researcher does not care which — while
+the attempt's error classification retains the distinction, because the retry
+behaviour differs.
+
+### `StepAttempt` — technical execution state
+
+What one execution of one step is doing. Answers *what is this worker doing?*
+
+| State | Meaning |
+| --- | --- |
+| `PENDING` | Created, not yet claimed |
+| `CLAIMED` | A worker holds the lease |
+| `EXECUTING` | Running, heartbeating |
+| `SUCCEEDED` | Finished; output committed |
+| `FAILED` | Finished unsuccessfully |
+| `EXPIRED` | The lease lapsed; the worker is presumed dead |
+| `ABANDONED` | Superseded, e.g. cancelled mid-flight |
+
+Keeping these apart is what stops `RECOVERY_REQUIRED` — a business condition
+needing a human — from looking like an ordinary `FAILED` attempt.
+
+### The model
+
+```
+WorkflowRun            business state, one per run of a pipeline
+└── StepRun            one pipeline node; the record that a step is done
+    └── StepAttempt    append-only history; one row per execution attempt
+```
+
+**Attempts are append-only history, never overwritten retries.** The prototype
+kept an `attempt` integer and only the most recent error, so a step that failed
+three different ways retained one. Each attempt now has its own row with its own
+error, provider, model, cost and timing.
 
 ## Shape
 
 ```
-  API                  PostgreSQL              Redis            Worker
-   │                       │                     │                 │
-   ├─ create workflow ────►│ workflows           │                 │
-   ├─ create jobs ────────►│ jobs (QUEUED)       │                 │
-   ├─ enqueue ─────────────┼────────────────────►│ ──── claim ────►│
+  API                  PostgreSQL                SQS            Worker
+   │                       │                      │                │
+   ├─ create run ─────────►│ WorkflowRun          │                │
+   ├─ create steps ───────►│ StepRun (PENDING)    │                │
+   │                       │                      │                │
+   │  ┌─── ONE TRANSACTION ───────────────────┐   │                │
+   ├──┤ StepAttempt + budget reservation +    │   │                │
+   │  │ execution state                       │   │                │
+   │  └─── COMMIT ────────────────────────────┘   │                │
+   ├─ enqueue (id only) ───┼─────────────────────►│ ──── claim ───►│
    │                       │◄──── lease + heartbeat ───────────────┤
-   │                       │◄──── job_events (PROGRESS) ───────────┤
+   │                       │◄──── events (progress) ───────────────┤
    │                       │◄──── artifact + provenance ───────────┤
-   │                       │◄──── stage transition ────────────────┤
-   ◄─ SSE from events ─────┤                     │                 │
+   │                       │◄──── usage + actual cost ─────────────┤
+   ◄─ SSE from events ─────┤                      │                │
+                           │                      │
+                    reconciler ──── finds runnable work with no
+                                    in-flight message, re-enqueues
 ```
 
-PostgreSQL is authoritative. Redis is transport and ephemeral coordination only:
-if Redis is lost, no work is lost — jobs are still `QUEUED` in PostgreSQL and are
-re-enqueued by a reconciler.
+PostgreSQL is authoritative. An SQS message carries an **identifier, never
+state**. Losing the queue loses no work: the reconciler finds runnable rows and
+re-enqueues them.
 
-## Job state machine
+## Accounting transactionality
+
+The transaction boundary is the part most worth getting right, because the
+failure mode is a lie about money.
+
+**Before any external dispatch, in one transaction:**
 
 ```
-                  ┌──────────────────┐
-                  │      DRAFT       │  created with the workflow graph
-                  └────────┬─────────┘
-                           │ activate
-              ┌────────────▼────────────┐
-              │   WAITING_DEPENDENCY    │◄──── upstream not COMPLETED
-              └────────────┬────────────┘
-                           │ dependencies satisfied
-                    ┌──────▼──────┐
-              ┌────►│   QUEUED    │
-              │     └──────┬──────┘
-              │            │ worker claims (lease acquired)
-              │     ┌──────▼──────┐
-              │     │   RUNNING   │──── heartbeat every 10s
-              │     └──┬───┬───┬──┘
-              │        │   │   │
-     retry    │        │   │   └──────────────► COMPLETED
-     (classified       │   │
-      as transient)    │   └──► WAITING_CREDITS   (subscription quota)
-              │        │        WAITING_CAPACITY  (provider capacity)
-              │        │        WAITING_USER      (approval / over budget)
-              └────────┤             │
-                       │             │ condition cleared or user decides
-                       │             └──────────► QUEUED
-                       │
-                       ├──► FAILED     (terminal, classified as permanent)
-                       └──► CANCELLED  (user requested)
-
-     RUNNING with a stale lease ──► RECOVERY_REQUIRED ──► QUEUED
+create StepAttempt
++ reserve budget
++ mark execution state
+COMMIT
 ```
 
-### The waiting states are not errors
+Only then is the provider called. Reconciliation of actual usage and cost happens
+after the response.
 
-This is the most important distinction in the model. A job in `WAITING_CREDITS`
-has not failed; it is parked until the subscription quota resets, and the user
-sees "continues at 14:00", not an error. The prototype's behaviour, which we
-preserve:
+This makes two impossible states hard to represent:
 
-| State | Trigger | Recovery |
-| --- | --- | --- |
-| `WAITING_CREDITS` | Claude Code subscription usage limit | Lease cleared, retry counter **reset**, one-time resume scheduled at `quota_reset_at` |
-| `WAITING_CAPACITY` | Recoverable provider capacity error | Backoff, then re-queue |
-| `WAITING_USER` | Approval needed, or budget would be exceeded | Waits indefinitely for an explicit decision |
+- *a provider was called but no attempt exists* — the attempt is committed first;
+- *usage recorded with no corresponding study or run* — usage rows carry
+  `organization_id`, `client_id`, `study_id`, `workflow_run_id` and
+  `step_run_id`, all non-null.
 
-Resetting the retry counter on quota matters: a quota pause is not a failed
-attempt, and counting it would eventually exhaust `max_attempts` and fail a
-project that was only waiting.
+## Recovery semantics
+
+Every case is distinguished, because the distinctions are part of the product.
+
+| Situation | Outcome |
+| --- | --- |
+| Free deterministic step crashes | Safe retry |
+| Paid call crashes **before** dispatch | Safe retry (reservation released) |
+| Paid call **known rejected** by the provider | Safe retry per policy |
+| Paid call **possibly accepted** | **`RECOVERY_REQUIRED`** + `SETTLED_UNCERTAIN` |
+| Provider capacity or rate limit | Parked (`WAITING_PROVIDER`), not failed |
+| Subscription runtime, any state | Safe retry — no marginal cost |
+| Budget exhausted | `WAITING_BUDGET` |
+| Human gate outstanding | `WAITING_GATE` |
+
+### The uncertain paid call
+
+Carried over from the prototype and treated as a fundamental invariant.
+
+```
+reserve $2  →  send paid provider call  →  worker dies  →  lease expires
+```
+
+Three possibilities, and the system **cannot** know which:
+
+- the provider never received it;
+- the provider processed it but the response was lost;
+- the provider processed it and billing occurred.
+
+So:
+
+```
+automatic retry  = possible double billing
+assume success   = possible missing output
+assume failure   = an accounting lie
+```
+
+`RECOVERY_REQUIRED` + `SETTLED_UNCERTAIN` is the only responsible answer: park it,
+record the reservation as uncertain *actual* exposure so the budget reflects money
+that may already be gone, and let a researcher decide.
+
+**The UI must surface this plainly**, not as a generic error:
+
+> **Manual recovery required.** The provider call may have been billed, but its
+> result was not safely recorded. A researcher must choose whether to retry.
+>
+> | | |
+> |---|---|
+> | Reserved | $2.00 |
+> | Known usage | unknown |
+> | Accounting | $2.00 uncertain |
+> | Retry cost | up to +$2.00 |
+
+A `provider_request_id` on every `ModelResult` ([ADR 0005](adr/0005-llm-gateway.md))
+is what may later let an uncertain call be reconciled to a fact.
 
 ## Guarantees and how each is achieved
 
-**Idempotency.** Every job carries a unique `idempotency_key`. Creating a
-workflow with a key that already exists returns the existing workflow rather than
-duplicating it. Combined with artifact fingerprint reuse, a job that runs twice
-produces one artifact.
+**Idempotency.** Every step carries an idempotency key. A duplicate SQS delivery
+must produce **one** execution, not two — ownership and leasing in PostgreSQL are
+what enforce that, not the queue. Combined with artifact reuse by input
+fingerprint, a step that does re-run produces one artifact and makes no second AI
+call.
 
-**Leasing.** A worker claims a job by writing `lease_owner` and `lease_until`
-inside a transaction. Two workers cannot hold the same job.
+**Exclusive claiming.** `SELECT … FOR UPDATE SKIP LOCKED`, or an equivalent
+conditional update. Two workers cannot hold one attempt.
 
-**Heartbeats and stalled recovery.** A `RUNNING` job updates `heartbeat_at`. A
-reconciler moves jobs whose lease expired to `RECOVERY_REQUIRED`, then re-queues
-them. This is what makes a worker crash survivable.
+**Heartbeats and expiry.** An executing attempt updates `heartbeat_at`. A
+reconciler moves attempts whose lease lapsed to `EXPIRED` and applies the recovery
+table above.
 
 **Retry classification.** Errors are classified before any retry, reusing the
-prototype's taxonomy from `ai_router.classify_provider_exception`:
-`MISSING`, `AUTHENTICATION`, `PERMISSION`, `QUOTA`, `MODEL`, `SCHEMA`,
-`TRANSPORT`, `SDK_OUTDATED`, `MAX_TURNS`, `OTHER`. Authentication and permission
-failures are permanent and must not be retried — retrying them burns quota and
-hides a configuration problem. Quota is not a retry at all; it is a park.
+prototype's taxonomy. Authentication and permission failures are **permanent** —
+retrying burns quota and hides a misconfiguration. Quota is not a retry at all; it
+is a park, and it **resets the attempt counter**, because a quota pause is not a
+failed attempt and counting it would eventually fail a project that was only
+waiting.
 
-**Cancellation.** `cancel_requested` is a flag the worker polls at checkpoints,
-so cancellation is cooperative and leaves a consistent artifact state rather than
-killing a process mid-write.
+**Cooperative cancellation.** `cancel_requested` is a flag the worker polls at
+checkpoints, so cancellation leaves a consistent artifact state rather than a
+half-written one.
 
-**Cost reservation.** Before a paid call, the job reserves its estimate against
-the project budget. Reservations count as spent, so two concurrent workers cannot
-each pass the budget check and collectively overspend. The reservation is settled
-with the actual cost afterwards.
+**Dependency gating.** A dependant waits for `SUCCEEDED` specifically, not merely
+a terminal state, so a failed upstream step stalls the pipeline instead of letting
+downstream work run on missing inputs.
 
-**Concurrency limits and priority.** Per-organization concurrency caps stop one
-tenant starving another; `priority` orders the queue.
+**Concurrency limits and priority.** Per-organization caps stop one tenant
+starving another; priority orders the queue, with creation order breaking ties so
+nothing starves.
 
 ## The research DAG
 
-The prototype's `workflow_engine.STANDARD` is the canonical definition — 24 nodes
-with their kind, interaction mode, dependencies, stage and artifact target. It is
-carried over as-is:
+`workflow_engine.STANDARD` in the prototype is the canonical definition — 24
+nodes with kind, interaction mode, dependencies, stage and artifact target —
+carried over as data:
 
 ```
 compile → research → design → questionnaire → audience → dimensions → sample
@@ -138,34 +236,38 @@ compile → research → design → questionnaire → audience → dimensions �
         → interpret → verify → alignment → report → delivery
 ```
 
-Two details worth keeping:
+Two details to keep:
 
-- **`preflight` has interaction mode `review_if_warning`**, not `auto`. A
-  methodological warning pauses for a human rather than proceeding.
-- **Analysis is eight separate nodes**, each an independently durable job. A quota
+- **`preflight` is `review_if_warning`**, not `auto`. A methodological warning
+  pauses for a human.
+- **Analysis is eight separate nodes**, each independently durable, so a quota
   pause after `analysis_segments` resumes at `analysis_hypotheses` instead of
   recomputing five modules of AI work.
 
 ## Progress reporting
 
-Jobs emit `PROGRESS` events into `job_events`. The API exposes them over
-Server-Sent Events; the client reconnects and rebuilds state from the server
-rather than holding it locally.
+Attempts emit events. The API exposes them over Server-Sent Events; the client
+reconnects and rebuilds state from the server rather than holding it locally.
+Event ids are monotonic, which is what lets a reconnecting client resume without
+gaps or duplicates.
 
-**Progress must not be invented.** The prototype is explicit about this and the
-rule stands: show real elapsed time, real stage transitions, real counts
-(respondent 240 of 300), and an empirical range for typical duration. Do not
-synthesise a percentage the backend cannot know. A fabricated progress bar that
-stalls at 90% is worse than an honest elapsed timer.
+**Progress must not be invented.** Real elapsed time, real state transitions, real
+counts (respondent 240 of 300), and an empirical range for typical duration. No
+synthesised percentage the backend cannot know — a fabricated bar stalling at 90%
+is worse than an honest timer.
 
-SSE is chosen over WebSockets because the traffic is server-to-client only, SSE
-reconnects automatically, and it survives ordinary HTTP infrastructure. The
-decision is revisitable if interactive features later need a duplex channel.
+SSE over WebSockets: traffic is server-to-client only, SSE reconnects
+automatically, and it survives ordinary HTTP infrastructure.
 
-## What is reused from the prototype
+## Phase 3 is not complete until these pass
 
-`job_store.py` is genuinely good work: 10 tables with leases, heartbeats,
-idempotency keys, cost reservations, approvals and cron-style schedules. The
-*design* survives the migration; only SQLite is replaced. Phase 3 should port its
-schema and semantics rather than redesign them, and characterization tests should
-be written against its state transitions first.
+Against **real PostgreSQL**, with actual concurrent transactions rather than
+sequential mocks:
+
+1. **Lease and concurrency correctness.** Two workers claiming simultaneously →
+   exactly one succeeds. Concurrent `recover_expired` calls. Two cancellation
+   requests. An approval racing a cancellation. A retry racing another worker.
+2. **Idempotency.** A duplicate wake-up produces one execution, not two.
+3. **Recovery semantics.** Every row of the recovery table above.
+4. **Accounting transactionality.** The attempt/reservation/state transaction
+   commits or rolls back as a unit; impossible states are unrepresentable.

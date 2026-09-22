@@ -31,7 +31,12 @@ from sqlalchemy.orm import Session
 
 from ..domain.pipeline import resolve_stage
 from ..domain.providers import Provider
-from ..domain.scope import Permission, ScopeDenied, StudyContext
+from ..domain.scope import (
+    Permission,
+    ScopeDenied,
+    StudyContext,
+    require_independent_reviewer,
+)
 from .storage import ArtifactStore, IntegrityError, ObjectNotFound, build_storage_key
 from .tables import (
     ProjectArtifactDependencyRow,
@@ -100,6 +105,7 @@ class Artifact:
     prompt_version: str
     runtime_version: str
     produced_by_job_id: str | None
+    produced_by_user_id: str | None
     metadata: dict[str, Any]
     is_approved: bool
     is_frozen: bool
@@ -130,6 +136,7 @@ def _to_domain(row: ProjectArtifactRow) -> Artifact:
         prompt_version=row.prompt_version,
         runtime_version=row.runtime_version,
         produced_by_job_id=row.produced_by_job_id,
+        produced_by_user_id=row.produced_by_user_id,
         metadata=dict(row.artifact_metadata or {}),
         is_approved=row.is_approved,
         is_frozen=row.is_frozen,
@@ -330,6 +337,10 @@ class ArtifactRepository:
             prompt_version=prompt_version,
             runtime_version=runtime_version,
             produced_by_job_id=produced_by_job_id,
+            # Recorded from the authorised scope, never from a caller argument,
+            # so the separation-of-duties check cannot be defeated by passing
+            # someone else's id.
+            produced_by_user_id=self._scope.actor_id,
             artifact_metadata=metadata or {},
         )
         self._session.add(row)
@@ -460,11 +471,22 @@ class ArtifactRepository:
     def approve(self, artifact_id: str) -> Artifact:
         """Record human sign-off on an artifact.
 
-        Requires sign-off authority, which a RESEARCHER does not hold: the
-        methodology's human gate is meaningless if the author can clear it.
+        Two independent checks, because either alone is insufficient:
+
+        1. ``SIGN_OFF_DELIVERABLE`` authority, which a RESEARCHER does not hold.
+        2. ``producer_user_id != approving_user_id``. A LEAD holds *both*
+           ``EDIT_STUDY`` and ``SIGN_OFF_DELIVERABLE``, so a role check alone
+           would let one person author a deliverable and clear its own gate by
+           switching hats. The methodology's human review gate requires
+           independence, not merely a permission.
         """
         self._scope.require(Permission.SIGN_OFF_DELIVERABLE)
         row = self._row(artifact_id)
+        require_independent_reviewer(
+            producer_user_id=row.produced_by_user_id,
+            approving_user_id=self._scope.actor_id,
+            what=f"artifact {row.artifact_type}",
+        )
         row.is_approved = True
         self._session.flush()
         return _to_domain(row)
@@ -474,6 +496,10 @@ class ArtifactRepository:
 
         Used for simulation frozen results and approved deliverables. Freezing is
         one-way: unfreezing would let delivered work change under a client.
+
+        Freezing is not a review decision -- it is a mechanical consequence of one
+        -- so it does not carry the independence requirement that
+        :meth:`approve` does.
         """
         self._scope.require(Permission.SIGN_OFF_DELIVERABLE)
         row = self._row(artifact_id)

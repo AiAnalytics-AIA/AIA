@@ -49,6 +49,12 @@ from .tables import (
     UserRow,
     utcnow,
 )
+from .workflow_repository import (
+    BudgetExceeded,
+    ClaimedWork,
+    WorkflowNotFound,
+    WorkflowRepository,
+)
 
 __all__ = [
     "AccessAuditRow",
@@ -58,6 +64,8 @@ __all__ = [
     "ArtifactStatus",
     "ArtifactStore",
     "Base",
+    "BudgetExceeded",
+    "ClaimedWork",
     "ClientGrantRow",
     "ClientRow",
     "FilesystemArtifactStore",
@@ -83,6 +91,8 @@ __all__ = [
     "StudyGrantRow",
     "StudyRow",
     "UserRow",
+    "WorkflowNotFound",
+    "WorkflowRepository",
     "build_storage_key",
     "create_app_engine",
     "create_session_factory",

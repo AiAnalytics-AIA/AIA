@@ -302,6 +302,7 @@ class ScopeResolver:
         client_id: str,
         user_id: str,
         role: ScopeRole,
+        reason: str = "",
     ) -> ClientGrant:
         """Grant a user a role on a client. Requires organization administration.
 
@@ -327,6 +328,8 @@ class ScopeResolver:
                 ClientGrantRow.user_id == user_id,
             )
         )
+        previous_access = existing.role if existing is not None else None
+
         if existing is not None:
             existing.role = role.value
             existing.granted_by = admin.actor_id
@@ -340,15 +343,32 @@ class ScopeResolver:
                 )
             )
 
+        # A self-grant is legitimate -- someone has to be able to start work on a
+        # new client -- but it is the one case where administrative authority and
+        # confidential research access meet in the same person. It gets its own
+        # action and a full before/after record so a reviewer can see exactly what
+        # was taken, by whom, and why.
+        is_self_grant = user_id == admin.actor_id
         self._session.add(
             AccessAuditRow(
                 organization_id=admin.organization_id,
                 client_id=client_id,
                 subject_user_id=user_id,
                 actor_id=admin.actor_id,
-                action=("CLIENT_SELF_GRANT" if user_id == admin.actor_id else "CLIENT_GRANT"),
+                action="CLIENT_SELF_GRANT" if is_self_grant else "CLIENT_GRANT",
                 role=role.value,
+                reason=reason or ("self_grant" if is_self_grant else "granted_by_admin"),
                 request_id=admin.request_id,
+                payload={
+                    "actor_user_id": admin.actor_id,
+                    "client_id": client_id,
+                    "subject_user_id": user_id,
+                    "previous_access": previous_access,
+                    "new_access": role.value,
+                    "self_grant": is_self_grant,
+                    "reason": reason or None,
+                    "request_id": admin.request_id,
+                },
             )
         )
         self._session.flush()
@@ -360,6 +380,7 @@ class ScopeResolver:
         *,
         user_id: str,
         role: ScopeRole,
+        reason: str = "",
     ) -> StudyGrant:
         """Grant a user a role on the study in scope.
 
@@ -374,6 +395,8 @@ class ScopeResolver:
                 StudyGrantRow.user_id == user_id,
             )
         )
+        previous_access = existing.role if existing is not None else None
+
         if existing is not None:
             existing.role = role.value
             existing.granted_by = granter.actor_id
@@ -396,7 +419,19 @@ class ScopeResolver:
                 actor_id=granter.actor_id,
                 action="STUDY_GRANT",
                 role=role.value,
+                reason=reason or "granted_by_study_lead",
                 request_id=granter.request_id,
+                payload={
+                    "actor_user_id": granter.actor_id,
+                    "client_id": granter.client_id,
+                    "study_id": granter.study_id,
+                    "subject_user_id": user_id,
+                    "previous_access": previous_access,
+                    "new_access": role.value,
+                    "restricts_client_grant": True,
+                    "reason": reason or None,
+                    "request_id": granter.request_id,
+                },
             )
         )
         self._session.flush()
@@ -446,6 +481,7 @@ class ScopeResolver:
                 "actor_id": r.actor_id,
                 "role": r.role,
                 "reason": r.reason,
+                "payload": dict(r.payload or {}),
                 "created_at": r.created_at,
             }
             for r in rows

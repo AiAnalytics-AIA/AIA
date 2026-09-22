@@ -248,6 +248,10 @@ class ProjectArtifactRow(Base):
     prompt_version: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     runtime_version: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     produced_by_job_id: Mapped[str | None] = mapped_column(String(64))
+    # Who produced this. Required for the separation-of-duties check on approval:
+    # producer_user_id != approving_user_id. Written from the authorised scope,
+    # never from a caller argument, so it cannot be spoofed to defeat the check.
+    produced_by_user_id: Mapped[str | None] = mapped_column(String(64))
     artifact_metadata: Mapped[dict[str, Any]] = mapped_column(
         JSONType, nullable=False, default=dict
     )
@@ -561,9 +565,326 @@ class AccessAuditRow(Base):
     action: Mapped[str] = mapped_column(String(64), nullable=False)
     role: Mapped[str | None] = mapped_column(String(32))
     reason: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    # Structured before/after record. A grant audit entry must be readable years
+    # later without reconstructing what the roles were at the time.
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     request_id: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
 
     __table_args__ = (Index("ix_access_audit_org", "organization_id", "event_id"),)
+
+
+# --------------------------------------------------------------------------- #
+# Durable workflow engine: runs, steps, attempts, reservations, gates
+#
+# PostgreSQL is authoritative. SQS carries an identifier, never state, so losing
+# the queue loses no work. See docs/architecture/adr/0002.
+# --------------------------------------------------------------------------- #
+
+
+class WorkflowRunRow(Base):
+    """One execution of a pipeline against a project revision.
+
+    Carries business state -- what a researcher is waiting for -- and the scope
+    every client-derived object must resolve to.
+    """
+
+    __tablename__ = "workflow_runs"
+
+    run_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+
+    # Scope. Denormalised so the isolation predicate needs no join, exactly as
+    # for projects.
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    project_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    workflow_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="PENDING")
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
+
+    # Idempotency at the run level: re-submitting the same logical run returns the
+    # existing one rather than starting a second, duplicate pipeline.
+    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    triggered_by: Mapped[str | None] = mapped_column(String(64))
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    steps: Mapped[list[StepRunRow]] = relationship(
+        back_populates="run", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["project_id"], ["projects.project_id"], ondelete="CASCADE"),
+        CheckConstraint("project_revision >= 1", name="run_revision_positive"),
+        Index("ix_runs_study", "study_id", "created_at"),
+        Index("ix_runs_status", "status", "priority"),
+    )
+
+
+class StepRunRow(Base):
+    """One pipeline node within one run. The record that a step is done."""
+
+    __tablename__ = "step_runs"
+
+    step_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    node_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="BLOCKED")
+    ordinal: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
+
+    stage_type: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    artifact_target: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    interaction_mode: Mapped[str] = mapped_column(String(32), nullable=False, default="auto")
+
+    # The artifact-reuse key. A step whose inputs still hash to this may reuse its
+    # previous artifacts instead of recomputing.
+    input_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+
+    # Two counters, because one cannot serve both purposes.
+    #
+    # `attempts_recorded` is monotonic and never decremented: it numbers the
+    # append-only StepAttempt rows, so attempt 3 is always attempt 3.
+    #
+    # `attempts_consumed` counts only failures that should count against
+    # `max_attempts`. A quota park, a budget park and a gate do not consume an
+    # attempt -- none is a failure of the work -- so this can be lower than
+    # `attempts_recorded`, and it is what the retry limit is checked against.
+    attempts_recorded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    attempts_consumed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+
+    # Set when a step is parked. `runnable_after` is how a quota park becomes a
+    # resume: the reconciler will not consider the step before this instant.
+    waiting_reason: Mapped[str | None] = mapped_column(String(128))
+    runnable_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    input_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    output_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    run: Mapped[WorkflowRunRow] = relationship(back_populates="steps")
+    attempts: Mapped[list[StepAttemptRow]] = relationship(
+        back_populates="step", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        UniqueConstraint("run_id", "node_key", name="step_node_unique"),
+        CheckConstraint("max_attempts >= 1", name="step_max_attempts_positive"),
+        CheckConstraint("attempts_recorded >= 0", name="step_attempts_recorded_non_negative"),
+        CheckConstraint("attempts_consumed >= 0", name="step_attempts_consumed_non_negative"),
+        # The claim query: runnable steps, by priority then creation order.
+        Index("ix_steps_claimable", "status", "runnable_after", "priority"),
+        Index("ix_steps_run", "run_id", "ordinal"),
+    )
+
+
+class StepDependencyRow(Base):
+    """An edge in a run's DAG."""
+
+    __tablename__ = "step_dependencies"
+
+    step_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    depends_on_step_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["step_id"], ["step_runs.step_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["depends_on_step_id"], ["step_runs.step_id"], ondelete="CASCADE"),
+        Index("ix_step_deps_reverse", "depends_on_step_id"),
+    )
+
+
+class StepAttemptRow(Base):
+    """One execution attempt. **Append-only history, never overwritten.**
+
+    The prototype kept a counter and only the latest error. Each attempt now has
+    its own row, so a step that failed three different ways retains all three --
+    with each attempt's provider, model, cost and timing.
+    """
+
+    __tablename__ = "step_attempts"
+
+    attempt_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    step_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="PENDING")
+
+    # Lease. `lease_until` is the deadline a reconciler compares against; a
+    # CLAIMED or EXECUTING attempt with no deadline is treated as expired.
+    worker_id: Mapped[str | None] = mapped_column(String(128))
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    provider: Mapped[str | None] = mapped_column(String(64))
+    model: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+
+    # Whether a metered provider call was dispatched, and whether its outcome is
+    # known. Together these decide whether a lapsed attempt may be retried or
+    # must become RECOVERY_REQUIRED -- the double-billing guard.
+    paid_call_dispatched: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    paid_call_outcome_known: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    provider_request_id: Mapped[str | None] = mapped_column(String(255))
+
+    failure_class: Mapped[str | None] = mapped_column(String(32))
+    error_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    output_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+
+    estimated_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    actual_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    step: Mapped[StepRunRow] = relationship(back_populates="attempts")
+
+    __table_args__ = (
+        ForeignKeyConstraint(["step_id"], ["step_runs.step_id"], ondelete="CASCADE"),
+        UniqueConstraint("step_id", "attempt_number", name="attempt_number_unique"),
+        CheckConstraint("attempt_number >= 1", name="attempt_number_positive"),
+        CheckConstraint("estimated_cost_usd >= 0", name="attempt_estimate_non_negative"),
+        CheckConstraint("actual_cost_usd >= 0", name="attempt_actual_non_negative"),
+        Index("ix_attempts_step", "step_id", "attempt_number"),
+        # The reconciler's query: live leases past their deadline.
+        Index("ix_attempts_lease", "status", "lease_until"),
+    )
+
+
+class BudgetReservationRow(Base):
+    """A hold against a study's budget for one attempt.
+
+    Reservations count as spent so that concurrent workers cannot each pass the
+    budget check and collectively overspend. ``SETTLED_UNCERTAIN`` is the state a
+    reservation enters when a paid call's billing status cannot be determined.
+    """
+
+    __tablename__ = "budget_reservations"
+
+    reservation_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str | None] = mapped_column(String(64))
+    step_id: Mapped[str | None] = mapped_column(String(64))
+    attempt_id: Mapped[str | None] = mapped_column(String(64))
+
+    amount_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    settled_amount_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="RESERVED")
+    reason: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        CheckConstraint("amount_usd >= 0", name="reservation_amount_non_negative"),
+        CheckConstraint(
+            "status in ('RESERVED','SETTLED','RELEASED','SETTLED_UNCERTAIN')",
+            name="reservation_status_known",
+        ),
+        # The outstanding-reservation sum, used by every budget check.
+        Index("ix_reservations_study_status", "study_id", "status"),
+        Index("ix_reservations_attempt", "attempt_id"),
+    )
+
+
+class WorkflowGateRow(Base):
+    """A human decision a run is waiting on.
+
+    Distinct from a step status: the gate carries the question, the permitted
+    options and the decision, and it survives a deploy because it may sit
+    unanswered for days.
+    """
+
+    __tablename__ = "workflow_gates"
+
+    gate_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    step_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="PENDING")
+    gate_type: Mapped[str] = mapped_column(String(64), nullable=False, default="approval")
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    options_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    context_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    decision_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+
+    # Who produced the work under review, and who decided. The
+    # separation-of-duties invariant is producer != decider.
+    produced_by_user_id: Mapped[str | None] = mapped_column(String(64))
+    decided_by_user_id: Mapped[str | None] = mapped_column(String(64))
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["step_id"], ["step_runs.step_id"], ondelete="CASCADE"),
+        CheckConstraint(
+            "status in ('PENDING','DECIDED','CANCELLED','EXPIRED')",
+            name="gate_status_known",
+        ),
+        Index("ix_gates_pending", "run_id", "status"),
+    )
+
+
+class WorkflowEventRow(Base):
+    """Append-only run history and the progress feed.
+
+    Monotonic ``event_id`` is what lets a reconnecting client resume without gaps
+    or duplicates.
+    """
+
+    __tablename__ = "workflow_events"
+
+    event_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    step_id: Mapped[str | None] = mapped_column(String(64))
+    attempt_id: Mapped[str | None] = mapped_column(String(64))
+
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    level: Mapped[str] = mapped_column(String(16), nullable=False, default="INFO")
+    message: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    payload_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        Index("ix_workflow_events_run", "run_id", "event_id"),
+    )

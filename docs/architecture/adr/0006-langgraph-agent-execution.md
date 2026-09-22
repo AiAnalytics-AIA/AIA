@@ -1,55 +1,77 @@
-# ADR 0006 — LangGraph for agent reasoning; AIA owns the outer workflow
+# ADR 0006 — LangGraph for agent reasoning; AIA owns the workflow
 
-**Status:** Proposed. To be confirmed before Phase 4 implementation begins.
+**Status:** **Accepted — constrained use.** Decided 2026-09-21.
 **Date:** 2026-09-21
 
-## Context
-
-Some research stages are genuinely agentic: deep research, questionnaire repair,
-segment interpretation. They benefit from a reasoning loop with tool use, retries
-and branching.
-
-They are also expensive, long-running and must survive a worker restart, which is
-exactly what AIA's own durable workflow engine (Phase 3) provides.
+> **Numbering note.** The decision approving LangGraph was communicated as
+> "ADR 0005". In this repository LangGraph is **0006** and the LLM gateway is
+> [0005](0005-llm-gateway.md). The content is unchanged; only the file numbers
+> differ from that message.
 
 ## Decision
 
-**LangGraph owns the inside of an agent step. AIA owns everything outside it.**
+LangGraph is accepted as the **agent-internal orchestration framework**. It is
+**not** AIA's authoritative workflow engine.
+
+> **LangGraph is an implementation detail of eligible agent steps. AIA's workflow
+> engine and PostgreSQL remain the system of record for durable business workflow
+> state.**
+
+## The boundary
 
 ```
-AIA WorkflowRun          durable, PostgreSQL, survives restart
-  └── StepRun            one pipeline node
-      └── StepAttempt    append-only attempt history
-          └── LangGraph execution      agent reasoning, in-memory
-              └── LLMGateway / ToolRegistry calls
+AIA Workflow Engine
+PostgreSQL-owned durable state
+│
+├── WorkflowRun
+├── StepRun
+├── StepAttempt
+├── Gates / approvals
+├── Reservations / budget
+├── Artifacts
+└── Recovery
+        │
+        ▼
+   Agent Step
+        │
+        ▼
+    LangGraph
+        │
+        ├── reasoning
+        ├── tool selection
+        ├── model call
+        └── internal agent checkpoint
 ```
 
-AIA remains the sole owner of: Client, Study, Revision, WorkflowRun, StepRun,
-StepAttempt, Budget, Approvals, Artifacts, Costs and audit history.
+AIA owns anything with business meaning. LangGraph owns reasoning topology inside
+one agent step.
 
-LangGraph owns only the internal execution graph of one agent's reasoning, and
-only for the duration of one attempt.
+## What LangGraph must never be authoritative for
 
-### The rule this exists to prevent
+This list is the decision. Each item, if it lived in LangGraph, would produce the
+state nobody can debug: half a failed run in PostgreSQL tables and the other half
+only interpretable through a framework checkpoint.
 
-> **Do not create a second product workflow state system inside LangGraph.**
+1. Whether a study is waiting for a gate approval.
+2. Whether a paid call is `SETTLED_UNCERTAIN`.
+3. Whether a study exceeded its budget.
+4. Which client and study own a run.
+5. Whether a step is eligible to retry.
+6. Artifact lineage.
+7. Human approval state.
 
-LangGraph has checkpointers and its own persistence. Using them for product state
-would give two systems with independent opinions about whether a stage is
-complete, what it cost and who approved it. Every "why did this project stop"
-question would then need both answered, and they would eventually disagree.
+## Operational rules that follow
 
-Concretely:
-
-- A LangGraph run **must not** outlive a `StepAttempt`. If an attempt fails, the
-  attempt is recorded and a new one starts a new graph.
-- LangGraph state **must not** be the record that a stage completed. The
-  `StepRun` row is.
-- An approval gate **must not** be a LangGraph interrupt. It is a `WAITING_USER`
-  step in AIA's state machine, because it may last days and must survive a
-  deploy.
-- Cost **must not** be aggregated from LangGraph. Every model call writes an
+- **A LangGraph run must not outlive a `StepAttempt`.** If an attempt fails, the
+  attempt is recorded and a new attempt starts a new graph.
+- **LangGraph state is not the record that a step completed.** The `StepRun` row
+  is.
+- **An approval gate is not a graph interrupt.** It is a `WAITING_GATE` state in
+  AIA's machine, because it may last days and must survive a deploy.
+- **Cost is not aggregated from LangGraph.** Every model call writes an
   `AIUsageEvent`; that ledger is authoritative.
+- **LangGraph state is debugging information, not evidence.** It is not an
+  artifact and is not part of provenance.
 
 LangGraph's in-memory checkpointing may be used *within* one attempt, to avoid
 repeating tool calls after a recoverable error inside the loop.
@@ -58,29 +80,19 @@ repeating tool calls after a recoverable error inside the loop.
 
 **LangGraph for the whole pipeline, including durability.** Rejected. The 13-stage
 lifecycle, revisions, artifact reuse by input fingerprint, per-study budgets and
-approval gates are product concepts with contractual behaviour. Expressing them
-in a framework's state model would make them that framework's semantics, and the
-prototype's 394 tests describe them in ours.
+approval gates are product concepts with contractual behaviour, described by the
+prototype's 394 tests in our semantics rather than a framework's.
 
-**No agent framework: hand-written reasoning loops.** Viable, and what the
-prototype does. Kept as the fallback if LangGraph's dependency surface or upgrade
-cadence proves troublesome, since the boundary above means only the inside of a
-step would change.
-
-**A different agent framework.** Not evaluated in depth. The boundary matters far
-more than the choice, and it is deliberately narrow enough to make a swap cheap.
+**No agent framework: hand-written reasoning loops.** What the prototype does, and
+retained as the fallback. The boundary above means only the inside of a step would
+change, so a swap is cheap.
 
 ## Consequences
 
 - Two layers of retry exist: LangGraph's inside an attempt, and AIA's across
   attempts. Their interaction needs explicit tests, particularly that a quota
   error inside the graph surfaces as a park rather than being retried internally.
-- Agent steps must be written so that an interrupted attempt is safe to restart
-  from the beginning, because that is what AIA will do.
-- LangGraph's state is debugging information, not evidence. It is not an artifact.
-
-## Revisit when
-
-- Phase 4 begins, and at the first agent step that wants a multi-day pause.
-- If LangGraph's checkpointer starts being reached for to solve a durability
-  problem, that is a signal the boundary is being eroded.
+- Agent steps must be safe to restart from the beginning, because that is what
+  AIA will do.
+- If anyone reaches for LangGraph's checkpointer to solve a durability problem,
+  the boundary is being eroded and this ADR is being violated.
