@@ -1,6 +1,6 @@
 # platform-runtime
 
-**STATUS: ACTIVE — worker pushed as 8 commits on `claude/intelligent-bardeen-tslz9n`; draft PR #23 open, CI pending.**
+**STATUS: ACTIVE — worker pushed as 8 commits on `claude/intelligent-bardeen-tslz9n`; draft PR #23 open; main merged in (66bd1dc); CI running, result not yet observed.**
 Cloud session. No local-machine dependency. PostgreSQL 16.13 and Python 3.12.3
 provisioned in-session; every number below was measured here.
 
@@ -49,7 +49,8 @@ full suite green on PostgreSQL and SQLite at every commit.
   second signal, cross-process cancellation); SQLite 661 passed / 127 skipped.
 - mypy --strict clean (47 files); layer_check 20/20; exposure_check 7/7;
   alembic check clean (no schema change).
-- CI: pending on PR #23 (not yet observed).
+- PR #23 was unmergeable (main moved 21 commits), so no CI had run. Merged main in (66bd1dc): all conflicts additive. After the merge, measured locally: core 938 / API 114 / concurrency 22 / worker 48 on PostgreSQL, SQLite 1072 passed / 146 skipped, mypy clean (66 files), layer_check 29/29, alembic upgrade/check/downgrade clean, worker boot smoke OK.
+- CI: 5 jobs started 22:58Z; outcome not yet observed.
 - One unexplained worker-suite failure, seen once in ~11 runs before W8 was
   fixed (its output was lost). Not reproduced since: soak of the full worker suite
   on PostgreSQL, **0 failures in 20**, plus 9 earlier clean runs. W8 is real and
@@ -59,10 +60,10 @@ full suite green on PostgreSQL and SQLite at every commit.
 ## Open, needs a human
 
 - Review of PR #23.
-- OI-6: quota park with a paid call in flight re-issues it on resume — domain
+- OI-21 (was OI-6; renumbered, main uses 6-8): quota park with a paid call in flight re-issues it on resume — domain
   precedence decision, parity-covered.
-- OI-7: should revoking a researcher stop the runs they started?
-- OI-8: secret-redaction patterns duplicated between API and worker.
+- OI-22: should revoking a researcher stop the runs they started?
+- OI-23: secret-redaction patterns duplicated between API and worker.
 
 ## Proposed next platform task
 
