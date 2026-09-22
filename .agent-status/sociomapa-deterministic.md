@@ -1,7 +1,7 @@
 # sociomapa-deterministic
 
-**STATUS: PAUSED.** The core engine is merged and the methodology decision package is
-in review. The session is paused until **the worker execution contract lands** or
+**STATUS: PAUSED.** The core engine and the methodology decision package are both
+merged. The session is paused until **the worker execution contract lands** or
 **the withheld reference archive becomes available**. No new Sociomapping features
 will be started to fill the time.
 
@@ -22,12 +22,14 @@ Reference fixtures F1–F9 are vendored and run in every CI job:
 
 **No R parity is claimed.**
 
-## Open, awaiting review
-
-**PR #20: the methodology sign-off package** (draft; CI not yet observed).
+**PR #20: the methodology sign-off package**, merged; `main` is at `6cf9a60`. CI was
+observed green on its head before merge; the "Application starts" job was still
+queued at the last check.
 - `docs/architecture/sociomapa-methodology-decision.md` gives each of the four AIA declarations the reference evidence, the archive gap, the consequence, the real alternatives, legacy comparability, a labelled proposal and an ACCEPT / REPLACE / DEFER field.
 - The engine doc's §13 rule separates computable from deliverable.
-- A `layer_check` guard keeps `AIA_SOCIOMAP_V1` out of the application, infrastructure, API, worker and web layers. It was shown to fail on a probe import and pass without it.
+- A `layer_check` guard keeps `AIA_SOCIOMAP_V1` out of the application, infrastructure, API, worker and web layers.
+
+Nothing of mine is open for review.
 
 ## The one methodology decision preventing client use
 
