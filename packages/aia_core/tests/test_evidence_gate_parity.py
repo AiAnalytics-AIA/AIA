@@ -29,11 +29,14 @@ from typing import Any
 import pytest
 
 from aia_core.domain.evidence import (
+    REFERENCE_THRESHOLDS,
     ClaimRule,
     FieldPolicyBook,
     FieldUse,
     JointDegradation,
     ProductionGrade,
+    SupportAssessment,
+    allowed_metric_spellings,
     load_joint_status,
 )
 
@@ -157,3 +160,21 @@ def test_the_real_certificate_is_honoured_against_the_real_panel(legacy_root: Pa
     assert not status.cross_block_same_person_joint
     assert not status.client_joint_outputs_allowed
     assert not status.cross_block_joint_claims_allowed
+
+
+# --- 3. Support and metrics: EXACT on the constants the gates decide with (M16, M17) --
+
+
+@pytest.mark.parity
+def test_suppression_constants_are_the_ledgers(ledger: dict[str, dict[str, Any]]) -> None:
+    constants = ledger["M16"]["constants"]
+    assert REFERENCE_THRESHOLDS.min_cell == constants["min_cell"]
+    assert REFERENCE_THRESHOLDS.n_guard == constants["n_guard_threshold"]
+    assert REFERENCE_THRESHOLDS.indicative == constants["indicative_threshold"]
+    assert SupportAssessment().status.value == constants["support_status default"]
+
+
+@pytest.mark.parity
+def test_allowed_metric_set_is_the_ledgers(ledger: dict[str, dict[str, Any]]) -> None:
+    stated = ledger["M17"]["constants"]["allowed metrics"]
+    assert " | ".join(allowed_metric_spellings()) == stated

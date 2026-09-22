@@ -77,7 +77,7 @@ passes at 95% — so a draft the prototype would publish can be blocked here.
       the reference `field-policy.json` for all 400 fields.
 - [x] 2. `CORE_JOINT_STATUS` certificate: hash-bound loading with explicit
       degradation, joint-unit classification of fields.
-- [ ] 3. Allowed analysis metrics + effective-n support: `AnalysisMetric`,
+- [x] 3. Allowed analysis metrics + effective-n support: `AnalysisMetric`,
       Kish effective n, `SupportStatus` defaulting to `SUPPRESS`, suppression by
       removal, reportable estimates that cannot exist without an interval.
 - [ ] 4. Validation status bound to a system fingerprint + tier gate.
