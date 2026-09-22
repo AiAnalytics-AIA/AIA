@@ -94,3 +94,27 @@ def test_reordering_is_reported(tool: ModuleType) -> None:
     ts["STUDY_STATUS"] = list(reversed(ts["STUDY_STATUS"]))
     problems = tool.compare(domain, ts, lifecycle, sp, st)
     assert any("different order in STUDY_STATUS" in p for p in problems)
+
+
+def _keys() -> dict[str, list[str]]:
+    from aia_core.domain import pipeline
+
+    return {"IMPACT_ROOTS": list(pipeline.IMPACT_ROOTS)}
+
+
+def test_the_committed_impact_fields_are_in_parity(tool: ModuleType) -> None:
+    assert tool.compare(*_inputs(tool), _keys()) == []
+
+
+def test_an_impact_field_added_to_the_domain_only_fails(tool: ModuleType) -> None:
+    keys = _keys()
+    keys["IMPACT_ROOTS"] = [*keys["IMPACT_ROOTS"], "new_field"]
+    problems = tool.compare(*_inputs(tool), keys)
+    assert any("IMPACT_ROOTS" in p and "IMPACT_FIELDS" in p for p in problems)
+
+
+def test_a_missing_impact_field_list_fails(tool: ModuleType) -> None:
+    domain, ts, lifecycle, sp, st = _inputs(tool)
+    lifecycle = {k: v for k, v in lifecycle.items() if k != "IMPACT_FIELDS"}
+    problems = tool.compare(domain, ts, lifecycle, sp, st, _keys())
+    assert any("no `export const IMPACT_FIELDS" in p for p in problems)

@@ -155,6 +155,9 @@ What are you building?
 │
 ├─ Something a user sees?
 │    → apps/web/src/…  — renders state the server computed. No rules.
+│      Server components read the API through src/lib/api/ (typed, validated,
+│      no fallback data); a capability with no route is shown as unavailable
+│      and listed in src/fixtures/registry.ts, never faked.
 │
 └─ A framework gotcha you just lost an hour to?
      → AGENTS.md, immediately, with the wrong and right versions side by side.
@@ -287,6 +290,7 @@ declared tier.
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | API contract (OpenAPI paths + study-scoping assertion) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
+| Frontend unit tests — Vitest + Testing Library (`npm test`) | **blocking** |
 | Frontend design tokens generated, not hand-edited (`tokens:check`) | **blocking** |
 | Frontend design evidence: 146 contrast checks, chart palette, accent separation (`check:design`) | **blocking** |
 | Frontend +35 % Czech layout stress (`check:layout`) | manual *(needs a browser; run before merging layout changes)* |
@@ -306,7 +310,7 @@ running backwards.
 | Advisory check | Promotion condition |
 |---|---|
 | `pip-audit` | Drop `|| true`, and replace the placeholder `--ignore-vuln GHSA-0000-0000-0000` with a real, dated, individually justified allowlist. Blocked on: a first clean run to establish the baseline. |
-| `npm audit` | Drop `|| true` once `apps/web` transitive advisories are at zero or explicitly waived. Blocked on: the `apps/web` rewire (it is still mock-backed). |
+| `npm audit` | Drop `|| true` once `apps/web` transitive advisories are at zero or explicitly waived. Blocked on: the `apps/web` rewire (the portfolio → project slice reads the real API; stage artifacts and the report draft are still fixtures). |
 | Parity suite | 94 parity and characterization tests currently report as skipped in CI because the prototype is deliberately not vendored. Promotion needs a decision on how the reference reaches CI — a private submodule or a published fixture pack. Until then **anyone changing domain logic runs them locally against `AIA_LEGACY_REFERENCE`**, and CI's warning says plainly that they did not run. |
 
 An advisory check with no promotion plan is decoration — delete it or schedule

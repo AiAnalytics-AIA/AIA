@@ -51,6 +51,12 @@ BOUND: dict[str, str] = {
 # Bound to lifecycle.ts rather than enums.ts.
 BOUND_LIFECYCLE: dict[str, str] = {"ProjectType": "PROJECT_TYPES"}
 
+# Domain dict constants whose KEYS the web client offers as choices. The web
+# client lists the fields an edit preview may be asked about; a key missing here
+# would be offered to nobody, and an extra key would silently preview "nothing
+# changes" (the API ignores unknown fields -- see OI-13).
+BOUND_KEYS: dict[str, str] = {"IMPACT_ROOTS": "IMPACT_FIELDS"}
+
 # Domain enums the web client deliberately does not render, and why.
 UNBOUND: dict[str, str] = {
     "InteractionMode": "worker-side review policy; not shown to researchers yet",
@@ -106,6 +112,7 @@ def compare(
     lifecycle_ts: dict[str, list[str]],
     stages_py: dict[str, list[tuple[str, str]]],
     stages_ts: dict[str, list[tuple[str, str]]],
+    keys_py: dict[str, list[str]] | None = None,
 ) -> list[str]:
     """All parity problems, as human-readable lines. Empty means in parity."""
     problems: list[str] = []
@@ -144,6 +151,16 @@ def compare(
             problems.append(
                 f"{name}: lifecycle.ts differs from pipeline.py: {stages_ts.get(name)} != {rows}"
             )
+    for py_name, ts_name in BOUND_KEYS.items():
+        if keys_py is None or py_name not in keys_py:
+            continue
+        py_keys, web_keys = keys_py[py_name], lifecycle_ts.get(ts_name)
+        if web_keys is None:
+            problems.append(
+                f"{py_name}: no `export const {ts_name} = [...] as const` in lifecycle.ts"
+            )
+        elif web_keys != py_keys:
+            problems.append(f"{py_name}: keys differ from {ts_name}: {web_keys} != {py_keys}")
     return problems
 
 
@@ -160,6 +177,7 @@ def main() -> int:
         ts_arrays(LIFECYCLE_TS),
         stages_py,
         ts_stage_lists(LIFECYCLE_TS),
+        {"IMPACT_ROOTS": list(pipeline.IMPACT_ROOTS)},
     )
     if problems:
         print(
@@ -171,7 +189,8 @@ def main() -> int:
         return 1
     print(
         f"enum_parity_check: {len(BOUND) + len(BOUND_LIFECYCLE)} enums and 2 lifecycles in "
-        f"parity; {len(UNBOUND)} domain enums deliberately unbound."
+        f"parity, {len(BOUND_KEYS)} key list in parity; "
+        f"{len(UNBOUND)} domain enums deliberately unbound."
     )
     return 0
 

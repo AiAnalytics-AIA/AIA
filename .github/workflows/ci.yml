@@ -16,7 +16,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 permissions:
   contents: read
@@ -214,7 +214,7 @@ jobs:
           path: openapi.json
 
   frontend:
-    name: Frontend (lint, types, build)
+    name: Frontend (lint, types, tests, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -235,6 +235,8 @@ jobs:
         run: npm run check:design
       - run: npm run lint
       - run: npx tsc --noEmit
+      - name: Unit tests (Vitest + Testing Library)
+        run: npm test
       - run: npm run build
 
   startup-smoke:
