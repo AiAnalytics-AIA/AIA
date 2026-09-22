@@ -165,3 +165,127 @@ from a clean checkout on an image whose default `python3` is older than 3.12.
 documentation and tooling for the rules themselves, and `CLAUDE.md §5` requires
 one logical change per commit. Found while running the §10 verification sequence
 for the first time.
+
+---
+
+## OI-6 · Gap · The reference's Python unfolding cannot be reproduced without its source
+
+**Claim.** `python_weighted_unfolding` — the layout every local reference run
+actually used — is refused by the engine, because fixture F4 pins its output but
+not its method, and its source is in the withheld archive.
+
+**Anchor.** `LAYOUT_ALGORITHMS` in `packages/aia_core/src/aia_core/domain/sociomap/layout.py`;
+test `test_legacy_algorithms_fail_closed_and_say_why`. Reference:
+`golden-fixtures/F4_python_unfolding_layout.json` @ AIA-reference `678e298`.
+
+**Reproduction.** `require_layout_algorithm("python_weighted_unfolding")` raises
+`LayoutUnavailable` naming `REF-WITHHELD-REFERENCE-ARCHIVE`. The evidence that it
+cannot be reconstructed: ~200 candidate stress definitions (target transform ×
+disparity fit × normalisation) evaluated on F4's own coordinates; none gives
+`stress_1 = 0.391394498` (closest 0.3923).
+
+**Consequence.** Production maps are laid out by `aia_rowcond_unfolding_v1`,
+which is **not numerically comparable to any legacy map**: on F4's ratings the
+two configurations differ by Procrustes RMSD 1.91 against a radius of 2.01. A
+client comparing a new map to a legacy one would see different geometry.
+
+**Smallest fix.** Read `sociomap.fit_python_unfolding` from the archive once the
+licence decision releases it (or have the data owner extract that one function),
+port it under its own identifier, and assert F4 at `1e-6`.
+
+**Test that would catch it.** F4 itself, once the port exists:
+`test_f4_python_unfolding_matches_the_reference` at tolerance `1e-6`.
+
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`. Owner:
+sociomapa-deterministic.
+
+---
+
+## OI-7 · Gap · Object-map base layout (`baseObjectLayout66`) is unrecovered
+
+**Claim.** The reference places objects on the object map with a 1,235-character
+frontend function, `baseObjectLayout66(effectiveMatrix66())`, whose source is
+withheld; F8's expected terrain depends on those positions, so F8 is reproduced
+only in part.
+
+**Anchor.** `ui-capability-ledger.json` entry `baseObjectLayout66` @ AIA-reference
+`678e298`; tests `test_f8_uses_the_reference_constants_and_bounds`,
+`test_f8_height_to_elevation_chain`.
+
+**Reproduction.** F8 gives the object matrix and metric values but not positions;
+a 2,000-start least-squares inverse fit of four object positions to F8's three
+finite samples found no placement consistent with them and with
+`finite_hr_cells = 1655`.
+
+**Consequence.** Production object positions come from the ratings unfolding,
+not from the relation matrix. A scenario edit to the relation matrix therefore
+changes object *heights* but never object *positions*, whereas in the reference
+it may move objects. The kernel-weighted-mean semantics, constants and bounds are
+verified; the end-to-end F8 field is not.
+
+**Smallest fix.** Obtain the function (or a fixture of its output positions for
+F8's matrix), port it as a declared object-layout option, and assert F8 end to end.
+
+**Test that would catch it.** `test_f8_object_terrain_matches_the_reference`,
+comparing every sample, `sum_ht` and `finite_hr_cells`.
+
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`.
+
+---
+
+## OI-8 · Gap · `REF-GAP-SOCIO-R-SMACOF` — R numerical parity is not claimed
+
+**Claim.** No fixture characterises the reference's R branch
+(`fit_r_smacof`, R `smacof::unfolding`, row-conditional), so `r_smacof_unfolding`
+is refused and no R parity is claimed anywhere.
+
+**Anchor.** `reference-gaps.md` § REF-GAP-SOCIO-R-SMACOF @ AIA-reference `678e298`;
+test `test_legacy_algorithms_fail_closed_and_say_why`.
+
+**Reproduction.** Measured in a cloud session on 2026-09-22: `apt-get install
+r-base-core` succeeds (R 4.3.3), but CRAN is unreachable through the session's
+network policy (`available.packages()` → *cannot open URL …/PACKAGES*) and no
+`r-cran-smacof` package exists in the apt archive, so `smacof` cannot be
+installed. **The environment is no longer the only blocker:** the gap's recipe
+runs the *reference's* `sociomap.fit_unfolding(method="r_smacof")`, whose wrapper
+(which `smacof` arguments, which target) is in the withheld archive. Running
+`smacof::unfolding` with guessed arguments would characterise R, not the
+reference.
+
+**Consequence.** Parity with the reference's primary layout contract is unknown.
+The size of the reference's own host-dependence defect (R vs Python coordinates
+for one study) is also still unmeasured.
+
+**Smallest fix.** On a host with CRAN access and the archive: run the recipe in
+`reference-gaps.md` to emit `F12_r_smacof_unfolding_layout.json`, vendor it here
+under `fixtures/sociomap/`, then decide whether `r_smacof_unfolding` becomes an
+implemented algorithm (an R adapter in `infrastructure/`, failing closed when R is
+absent) or stays refused.
+
+**Test that would catch it.** `test_f12_r_smacof_layout_matches_after_procrustes`,
+comparing aligned coordinates *and* pairwise distances at the tolerance the
+reference's `parity-plan.md` records for F12.
+
+**Status.** Open. Owners: parity-quality + sociomapa-deterministic.
+
+---
+
+## OI-9 · Question · The AIA layout and its declarations need methodology sign-off
+
+**Claim.** Four spec values in `AIA_SOCIOMAP_V1` are AIA declarations, not
+recovered reference behaviour: the dissimilarity target `scale_top_minus_rating`,
+the layout `aia_rowcond_unfolding_v1`, the map frame (`max_abs_to_extent`, 45),
+and relation missing-data `refuse`.
+
+**Anchor.** `AIA_SOCIOMAP_V1` in `packages/aia_core/src/aia_core/domain/sociomap/specification.py`
+(each value is commented with its source); `docs/architecture/sociomapa-deterministic-engine.md` §5.
+
+**Consequence.** Adopting a spec for a client study is a group-D decision
+(`sociomapa-deterministic-engine.md` §1). Until a methodology owner accepts these
+four values, a production map is reproducible and auditable but its methodology
+is the engineering team's, not the product's.
+
+**Smallest fix.** Methodology owner reviews §4–§5 and either accepts the preset or
+names replacements; the answer is recorded here and in the engine document.
+
+**Status.** Open — decision D6 in `PROGRESS.md`.

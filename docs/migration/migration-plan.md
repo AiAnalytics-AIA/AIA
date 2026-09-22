@@ -180,8 +180,12 @@ manager, respondent and segment dialogue.
   tolerance on fixed seeds. `manual_drag` must remain a visual override that
   never mutates raw results; what-if must remain a layer over immutable
   originals.
-- Python reuse: `sociomap.py` mathematics ports directly. Rendering is new.
-  Profile before choosing the renderer.
+- Python reuse: coercion, projection and ipsatization ported directly; the
+  terrain, normaliser and object metrics moved from the browser to the backend.
+  **The layout did not port**: the reference's Python unfolding cannot be
+  reconstructed from its fixture, and its R branch is uncharacterised, so an AIA
+  algorithm is declared instead (OI-6, OI-8). Rendering is new. Profile before
+  choosing the renderer.
 
 ### Phase 10 — Hardening
 

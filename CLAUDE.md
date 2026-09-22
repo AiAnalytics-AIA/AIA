@@ -61,6 +61,14 @@ packages/aia_core/src/aia_core/
     providers.py            Provider policy, model roles, budget and error semantics
     scope.py                Organization/Client/Study vocabulary, roles, permissions
     workflow.py             Workflow DAG, job states, retry classification
+    sociomap/               Sociomapping maths, pure Python: compute_sociomap -> artifact
+      specification.py      SociomapSpec v2 (no defaults) + require_supported
+      relations.py          scale coercion, mutual projection, ipsatization   F1-F3
+      layout.py             declared layout registry; aia_rowcond_unfolding_v1
+      metrics.py            object metrics, T-score, normaliser               F5-F6
+      terrain.py            respondent density / object weighted mean         F7-F8
+      engine.py, models.py  the pipeline and the v2 artifact
+      view.py               drag overrides, view terrain, scenarios (never write) F9
   application/
     scope.py                ScopeResolver — the ONLY issuer of a scope context
   infrastructure/
@@ -79,6 +87,7 @@ docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
+tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 ```
@@ -96,6 +105,11 @@ fails the build — that would mean scope had stopped being carried in the path.
 **The legacy prototype is not in this repository.** It lives at
 `../npc-panel-reference`, reached through `AIA_LEGACY_REFERENCE`, and is used by
 the parity and characterization suites only.
+
+**Sociomapping golden fixtures are.** F1–F9 are synthetic inputs with the
+reference's recorded outputs, vendored under
+`packages/aia_core/tests/fixtures/sociomap/` and pinned by SHA256 in its
+`index.json`. They run in every CI job. Never edit one to make a test pass.
 
 ## 3. Commands
 
