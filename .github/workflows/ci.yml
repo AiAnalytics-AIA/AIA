@@ -224,6 +224,10 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
 
       - run: npm ci
+      - name: Design tokens are generated, not hand-edited
+        run: npm run tokens:check
+      - name: Design evidence (contrast, chart palette, accent separation)
+        run: npm run check:design
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run build

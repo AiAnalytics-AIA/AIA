@@ -53,7 +53,8 @@ apps/
     routers/                health, projects, scope
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. Fixture-backed, being wired.
-    src/design/             Domain vocabulary the UI renders (enums, 13-stage lifecycles)
+    src/design/             tokens.json (the one token source), domain vocabulary (enums, lifecycles)
+    scripts/                build-tokens (→ tokens.css/-theme.css/tokens.ts), check-design, check-layout
     src/fixtures/           DEVELOPMENT FIXTURES, API-shaped; registry.ts lists every one
     src/lib/api/            API response types, mirrored from the Pydantic schemas
 
@@ -135,6 +136,7 @@ default weight and no fallback version; `make layer_check` enforces the loader.
 | Everything CI runs | `make check` |
 | **The pre-commit sequence** | `make verify` |
 | OpenAPI document | `make openapi` |
+| Web tokens / design checks | `cd apps/web && npm run tokens` · `npm run check:design` · `npm run check:layout` |
 
 There is no compile step in Python. `make typecheck` is this project's
 warnings-are-errors gate: `mypy --strict` with `warn_unreachable`, plus

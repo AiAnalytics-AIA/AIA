@@ -10,6 +10,7 @@ export const cs = {
     tagline: "Agentic AI Analytics",
     fixtureBanner: "Vývojová data — tato obrazovka zatím není napojená na API.",
   },
+  theme: { label: "Vzhled", system: "Systém", light: "Světlý", dark: "Tmavý" },
   nav: {
     portfolio: "Portfolio",
     studies: "Studie",
