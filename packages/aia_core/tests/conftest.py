@@ -332,3 +332,209 @@ def scope_builder() -> Any:
     imports between their modules collide.
     """
     return build_scope_fixture
+
+
+# --- Evidence governance ------------------------------------------------------
+#
+# The real field dictionary is reference material and is not vendored (see
+# .planning/plans/evidence-governance-foundation.md). Unit tests use this small
+# synthetic dictionary, one row per policy shape the gates must distinguish. The
+# parity suite reads the real export from the private reference repository.
+
+_DEFAULT_REFERENCE_REPO_PATHS = (
+    Path(__file__).resolve().parents[4] / "aia-reference",
+    Path(__file__).resolve().parents[4] / "AIA-reference",
+)
+
+SYNTHETIC_DICTIONARY_SHA256 = "0" * 63 + "1"
+
+SYNTHETIC_DICTIONARY_ROWS: tuple[dict[str, str], ...] = (
+    {
+        "field": "vek",
+        "block": "population_anchor",
+        "source": "Census 2021",
+        "evidence_status": "POPULATION_ANCHOR",
+        "production_grade": "A",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "vzdelani",
+        "block": "core",
+        "source": "matching/core",
+        "evidence_status": "CANONICAL_CORE",
+        "production_grade": "A",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "numeracy_score",
+        "block": "piaac_core",
+        "source": "PIAAC",
+        "evidence_status": "MEASURED_CORE_PIAAC",
+        "production_grade": "B",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "wellbeing_index",
+        "block": "mental_health",
+        "source": "donor",
+        "evidence_status": "MATCHED_WHOLE_BLOCK",
+        "production_grade": "B",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "trust_courts",
+        "block": "rule_of_law",
+        "source": "donor",
+        "evidence_status": "MATCHED_WHOLE_BLOCK",
+        "production_grade": "B",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "vote_2021",
+        "block": "politics",
+        "source": "donor",
+        "evidence_status": "MATCHED_POLITICS_CANONICAL",
+        "production_grade": "C",
+        "recommended_use": "HISTORICAL_OR_EXPLORATORY",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "religious_affiliation",
+        "block": "RELIGION",
+        "source": "donor",
+        "evidence_status": "MATCHED_WHOLE_BLOCK_CANONICAL",
+        "production_grade": "B",
+        "recommended_use": "persona/context with provenance",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "deal_seeking_1_10",
+        "block": "marketing_behavior",
+        "source": "latent",
+        "evidence_status": "MODELED_MARKETING_PRIOR",
+        "production_grade": "D",
+        "recommended_use": "behavioral prior / simulation modifier, never measured fact",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "value_security",
+        "block": "VALUES",
+        "source": "proxy",
+        "evidence_status": "MODELED_VALUE_PROXY",
+        "production_grade": "C",
+        "recommended_use": "simulation prior; never claim direct Schwartz measurement",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "has_savings",
+        "block": "FINANCIAL_CAPABILITY",
+        "source": "calibrated",
+        "evidence_status": "CALIBRATED_MODELED_BINARY",
+        "production_grade": "C",
+        "recommended_use": "segmentation/aggregate; individual value modeled",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "tv_daily_minutes",
+        "block": "media",
+        "source": "benchmark",
+        "evidence_status": "CALIBRATED_BENCHMARK",
+        "production_grade": "B",
+        "recommended_use": (
+            "aggregate planning and persona background with modeled-value disclosure"
+        ),
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "life_stage",
+        "block": "derived",
+        "source": "derived",
+        "evidence_status": "DERIVED_TRANSPARENT",
+        "production_grade": "B",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "is_procurement_buyer_current",
+        "block": "SPECIAL_PANEL_FLAG",
+        "source": "derived",
+        "evidence_status": "DERIVED_TRANSPARENT",
+        "production_grade": "C",
+        "recommended_use": "audience selection; use vaha_strukturalni_2025",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "panel_row_id",
+        "block": "provenance",
+        "source": "matching/core",
+        "evidence_status": "POPULATION_ANCHOR",
+        "production_grade": "T",
+        "recommended_use": "AUDIT_ONLY",
+        "persona_eligible": "no",
+    },
+    {
+        "field": "vaha_strukturalni_2025",
+        "block": "weight",
+        "source": "raking",
+        "evidence_status": "NEW_WEIGHT",
+        "production_grade": "T",
+        "recommended_use": "AUDIT_ONLY",
+        "persona_eligible": "no",
+    },
+    {
+        "field": "donor_id_mental_health",
+        "block": "provenance",
+        "source": "matching",
+        "evidence_status": "PROVENANCE_OR_CORE",
+        "production_grade": "T",
+        "recommended_use": "technical/provenance only",
+        "persona_eligible": "no",
+    },
+)
+
+SYNTHETIC_RUNTIME_ONLY_COLUMNS = ("life_stage_derived", "_analysis_weight")
+
+
+def _reference_repo() -> Path | None:
+    configured = os.environ.get("AIA_REFERENCE_REPO")
+    candidates = [Path(configured)] if configured else list(_DEFAULT_REFERENCE_REPO_PATHS)
+    for candidate in candidates:
+        if (candidate / "methodology-ledger.json").is_file() and (
+            candidate / "field-policy.json"
+        ).is_file():
+            return candidate
+    return None
+
+
+@pytest.fixture(scope="session")
+def reference_repo() -> Path:
+    """The private AiAnalytics-AIA/AIA-reference checkout, skipping when absent."""
+    root = _reference_repo()
+    if root is None:
+        pytest.skip(
+            "reference repository not available; clone AiAnalytics-AIA/AIA-reference and "
+            "set AIA_REFERENCE_REPO to enable reference-contract parity tests"
+        )
+    return root
+
+
+@pytest.fixture
+def dictionary_rows() -> list[dict[str, str]]:
+    return [dict(row, description=f"synthetic {row['field']}") for row in SYNTHETIC_DICTIONARY_ROWS]
+
+
+@pytest.fixture
+def field_book(dictionary_rows: list[dict[str, str]]) -> Any:
+    from aia_core.domain.evidence import FieldPolicyBook
+
+    return FieldPolicyBook.from_dictionary_rows(
+        dictionary_rows,
+        source_sha256=SYNTHETIC_DICTIONARY_SHA256,
+        runtime_columns=[r["field"] for r in dictionary_rows]
+        + list(SYNTHETIC_RUNTIME_ONLY_COLUMNS),
+    )
