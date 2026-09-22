@@ -59,6 +59,12 @@ jobs:
           pip install -e "packages/aia_core[dev,postgres]"
           pip install -e "apps/api[dev]"
 
+      - name: Layering rules
+        # Grep-level enforcement of ARCHITECTURE.md. Runs before the expensive
+        # steps: a layer violation is cheaper to report in five seconds than
+        # after a full PostgreSQL suite.
+        run: ./tools/layer_check.sh
+
       - name: Lint
         run: |
           ruff check packages/aia_core apps/api migrations

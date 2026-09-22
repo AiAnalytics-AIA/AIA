@@ -13,7 +13,7 @@ BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web \
         test test-core test-api test-parity test-web lint format typecheck \
-        check openapi clean
+        layer_check check verify openapi clean
 
 help: ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -76,7 +76,16 @@ typecheck: ## Type-check Python and the web client
 	@$(BIN)mypy packages/aia_core/src apps/api/src
 	@cd apps/web && npx tsc --noEmit
 
-check: lint typecheck test ## Everything CI runs
+layer_check: ## Enforce the layering rules in ARCHITECTURE.md
+	@./tools/layer_check.sh
+
+check: lint typecheck layer_check test ## Everything CI runs
+
+verify: ## The pre-commit sequence from CLAUDE.md §10, in order
+	@$(MAKE) typecheck
+	@$(MAKE) layer_check
+	@$(BIN)ruff format --check packages/aia_core apps/api migrations
+	@$(MAKE) test
 
 openapi: ## Write the OpenAPI document to openapi.json
 	@$(PY) -c "import json; from aia_api.main import create_app; \

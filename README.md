@@ -24,8 +24,23 @@ API docs: http://localhost:8000/api/v1/docs
 
 ```bash
 make help       # list every target
-make check      # everything CI runs: lint, typecheck, tests
+make check      # everything CI runs: lint, typecheck, layering, tests
+make verify     # the pre-commit sequence from CLAUDE.md §10
 ```
+
+## Before you contribute
+
+Read these three, in this order. They are the spec; the code is the
+implementation.
+
+| File | Owns |
+| --- | --- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Layering, boundaries, contracts, enforcement, anti-patterns, CI tiers |
+| [CLAUDE.md](CLAUDE.md) | The project map, the commands, and how work is done here |
+| [AGENTS.md](AGENTS.md) | Framework gotchas, with the wrong and right versions side by side |
+
+Then [.planning/PROGRESS.md](.planning/PROGRESS.md) for what is done, in progress
+and next. Keeping all four current is part of every change set, not a follow-up.
 
 Authentication is Amazon Cognito federated to Google Workspace. There are no
 local AIA passwords. For local development, `AIA_IDENTITY_PROVIDER=development`
