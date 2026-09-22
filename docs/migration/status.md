@@ -257,10 +257,68 @@ Also fixed: the concurrency module's engine fixture dropped the schema the
 session-scoped fixture still owned, which surfaced as ~105 unrelated errors in
 other modules.
 
-## Replacing the old application — not done, and what it needs
+## Bugs found by CI on the first push
 
-**`main` is untouched.** Every commit is on `migration/phase-1-foundation` and
-**nothing has been pushed**. The old code is still present and unmodified:
+The first push to `main` went red, which is the gate doing its job.
+
+5. **`pyjwt[crypto]` was imported but never declared.** Installed into a working
+   virtualenv by hand and never added to `apps/api/pyproject.toml`, so a clean
+   install had no `jwt` module and every Cognito verification failed at import.
+
+   **This is exactly W1** -- the defect catalogued against the reference
+   implementation. Flagged in someone else's code, then committed in ours.
+
+   The lesson is about verification rather than care: a developer virtualenv
+   accumulates packages and stops resembling a clean install. There is now a
+   clean virtualenv built from **declared dependencies only**, and the full suite
+   runs in it before a push. That is what CI does; doing it first turns a red
+   build into a local failure.
+
+6. **The Makefile hardcoded `.venv/bin/python`**, so every target using it failed
+   in CI, which installs into the runner's interpreter. It now prefers the
+   project venv and falls back to `python3` on PATH.
+
+7. **The API contract check asserted routes that no longer existed.** Projects
+   moved under `/api/v1/studies/{study_id}/projects` in Phase 2A but the
+   required-paths list still named the flat `/api/v1/projects`. Corrected, and an
+   inverse assertion added: a project route *outside* a study prefix now fails
+   the build, because that would mean scope had stopped being carried in the
+   path. The startup smoke test had the same staleness and now provisions a real
+   organization/client/study/grant through the authorization path before
+   exercising the study-scoped URL.
+
+## `main` and GitHub — done
+
+**`main` on GitHub is now this work**, and CI is green on it.
+
+The replacement needed nothing destructive: `migration/phase-1-foundation` was a
+direct descendant of `main`, so every old commit is an ancestor of the current
+head. `main` fast-forwarded — the ten original MVP commits are still in the
+history, and nothing was discarded or force-pushed.
+
+```
+0a9ee1d (old main, now an ancestor)  →  fast-forward  →  57c2ec8 (main)
+```
+
+CI status on `main`: **all six jobs green** — backend lint/types/tests on
+PostgreSQL and SQLite, migration apply/drift/reversibility, API contract,
+frontend lint/types/build, real-server startup smoke, dependency and secret scan.
+
+**One honest limitation:** the 94 parity and characterization tests **do not run
+in CI**, because the prototype is deliberately not committed. The parity job
+reports `94 skipped` with a warning rather than claiming a pass. They run only
+where a reference checkout exists:
+
+```bash
+AIA_LEGACY_REFERENCE=../npc-panel-reference make test-parity
+```
+
+Anyone changing domain logic must run them locally. CI cannot be the safety net
+for that particular class of regression.
+
+## The old application code — still present, deliberately
+
+The old code is still in the tree and unmodified:
 
 | Still there | State |
 | --- | --- |
@@ -269,24 +327,33 @@ other modules.
 | `apps/web` | 1,629 LOC of Next.js, still entirely mock-backed |
 | `docs/archive/original-mvp/` | Archived, not deleted, each file carrying a superseded notice |
 
-This is the strangler rule working as intended: the new system is being built
-alongside, and nothing is switched over until it can carry the traffic.
+This is the strangler rule: the new system was built alongside, and the old code
+is removed only once nothing depends on it.
 
-**What replacement requires, in order:**
+**Two distinct things remain, and they should not be conflated:**
 
-1. **A Cognito user pool provisioned**, so real authentication exists. Until then
-   deleting `src/server.js` would leave none.
-2. **`apps/web` wired to the real API** -- `lib/mock.ts` and `lib/mockArtifacts.ts`
-   deleted, the `/org/[orgSlug]/…` routes reading live studies and projects.
-3. **Delete `src/server.js` and `src/views/`**, and drop the root `package.json`
-   dependencies they alone needed (`fastify`, `ejs`, `better-sqlite3`,
-   `exceljs`, `papaparse`).
-4. **Push the branch and open a PR.** CI must pass, including the concurrency
-   suite with `AIA_REQUIRE_POSTGRES=1`.
-5. **Merge to `main`.** At that point the repository *is* the new application.
+**`src/server.js` + `src/views/` — disposable.** A 44-line stub comparing a
+plaintext password from an env var. It protects nothing: the UI behind it is
+mock-backed. The new API covers local development through
+`DevelopmentIdentityProvider` and refuses to boot in production without Cognito,
+which is a stronger posture. Deleting this loses nothing, and the root
+`package.json` dependencies only it needed (`fastify`, `ejs`, `better-sqlite3`,
+`exceljs`, `papaparse`) go with it.
 
-Steps 1 and 2 are the real work; 3–5 are mechanical. None should happen before
-the AWS baseline exists, because step 1 gates all of it.
+**`apps/web` — real work, to be rewired rather than deleted.** 1,629 lines
+someone built: a TipTap document workspace with agent propose/accept-reject, a
+Word-like ribbon, an A4 page canvas, an artifacts panel, and Czech
+(`Studie`) terminology. The plan is to point it at the live API and delete
+`lib/mock.ts` and `lib/mockArtifacts.ts` -- not to discard the UI. Throwing it
+away would repeat the mistake the migration exists to avoid.
+
+**Order:**
+
+1. **Provision the Cognito user pool.** Gates everything else.
+2. **Wire `apps/web` to the real API**; delete the mock modules.
+3. **Delete `src/server.js`, `src/views/`** and their root dependencies.
+
+Step 1 is the blocker. Steps 2–3 are then straightforward.
 
 ## Known regressions
 
