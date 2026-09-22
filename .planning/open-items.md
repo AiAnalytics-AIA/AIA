@@ -367,7 +367,42 @@ and relation missing-data `refuse`.
 four values, a production map is reproducible and auditable but its methodology
 is the engineering team's, not the product's.
 
-**Smallest fix.** Methodology owner reviews §4–§5 and either accepts the preset or
-names replacements; the answer is recorded here and in the engine document.
+**Smallest fix.** The methodology owner completes the four approval fields in
+[`docs/architecture/sociomapa-methodology-decision.md`](../docs/architecture/sociomapa-methodology-decision.md):
+ACCEPT, REPLACE or DEFER per declaration, each with the evidence, the
+consequence, the real alternatives and legacy comparability. The answer is
+recorded there, here and in D6.
 
-**Status.** Open — decision D6 in `PROGRESS.md`.
+**Status.** Open — decision package ready, awaiting the owner (D6). **This is the
+only methodology decision preventing client use.** It does not block computation.
+
+---
+
+## OI-17 · Requirement · No gate yet stops an unapproved Sociomap reaching a client
+
+**Claim.** Nothing yet checks that a Sociomap entering a client deliverable was
+computed under an approved methodology. The engine computes any supported spec
+by design, and approval is product policy that the engine must not know.
+
+**Anchor.** `docs/architecture/sociomapa-deterministic-engine.md` §13, rule 2;
+`tools/layer_check.sh` "… never substitutes the Sociomap preset" (rule 3, the
+part enforceable today).
+
+**Consequence.** As soon as a route, job or export can emit a Sociomap, an
+artifact computed under unapproved `aia-sociomap-1` could be delivered. No such
+path exists yet — the worker, API and web wiring are all blocked — so there is
+no exposure today.
+
+**Smallest fix.** An approved-methodology registry in product policy, entries
+`(methodology_version, spec_fingerprint, approver, date)`, and one check at the
+client-deliverable boundary that refuses an artifact whose pair is not in it.
+Cross-context: **owned by integration-architecture** with product policy; it
+belongs with the approval/gate machinery, not in the Sociomap engine.
+
+**Test that would catch it.** A deliverable-boundary test: an artifact under an
+unregistered `(version, fingerprint)` pair is refused, the same pair after
+registration is accepted, and a registered version with a different fingerprint
+is refused.
+
+**Status.** Open, not yet exposed. Must land before, or with, the first path that
+can emit a Sociomap to a client.

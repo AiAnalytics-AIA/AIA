@@ -151,6 +151,31 @@ forbid "the API never parses a population panel" \
   '^[^#]*\bparse_panel\(' \
   "$API"
 
+# --- Sociomap: computable is not deliverable --------------------------------
+#
+# AIA_SOCIOMAP_V1 is a preset a study adopts by naming it -- it is not an
+# approved client methodology (docs/architecture/sociomapa-methodology-decision.md).
+# If an application service, worker, route or client could reference it, it
+# could fill in a missing spec, and an engineering choice would become client
+# methodology by default. Outside the Sociomap domain package (where it is
+# defined), its tests and the golden-fixture tool, it may not appear at all.
+# See sociomapa-deterministic-engine.md §13.
+forbid "application code never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$CORE/application/"
+forbid "infrastructure never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$CORE/infrastructure/"
+forbid "the API never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$API"
+forbid "workers never substitute the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  apps/worker
+forbid "the web client never names the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  apps/web/src
+
 # --- Tests: the signal is never deleted ------------------------------------
 #
 # A failing test is a finding (ARCHITECTURE.md §7). Runtime `pytest.skip(...)`

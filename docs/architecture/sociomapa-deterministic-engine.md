@@ -261,5 +261,40 @@ corrected in the same change as this engine.
 Tracked in [`.planning/open-items.md`](../../.planning/open-items.md): OI-13 (the
 reference's Python unfolding), OI-14 (`baseObjectLayout66`), OI-15 (R smacof,
 `REF-GAP-SOCIO-R-SMACOF`), OI-16 (methodology sign-off for the AIA declarations
-in §5). Not started: saved segments, A/B comparison, object manager, request
-arrows, time series — each needs its reference behaviour read first.
+in §5, packaged for the owner in
+[sociomapa-methodology-decision.md](sociomapa-methodology-decision.md)), OI-17
+(the client-deliverable gate, §13). OI-13–15 are archive-acquisition
+dependencies: reconstruction by inference has stopped. Not started: saved
+segments, A/B comparison, object manager, request arrows, time series — each
+needs its reference behaviour read first.
+
+## 13. Computable is not deliverable
+
+Binding on every context that runs, stores, serves or shows a Sociomap.
+
+1. **The engine computes what it is asked to.** `compute_sociomap` runs any
+   explicitly supplied `SociomapSpec` that `require_supported` accepts.
+   Supported means *computable*, nothing more.
+2. **A Sociomap is client-facing only under an approved methodology.** An
+   artifact may enter a client deliverable, export or client-role view only if
+   its `spec.methodology_version` **and** `spec_fingerprint` are both approved
+   in the product/methodology policy. Both, because two specs can share a
+   version label and differ in a parameter. Nothing is approved today:
+   `aia-sociomap-1` awaits D6
+   ([decision document](sociomapa-methodology-decision.md)).
+3. **No silent substitution.** No API, worker or UI supplies a spec that the
+   caller did not give — not `AIA_SOCIOMAP_V1`, not "the last one used", not a
+   per-environment default. A request without a spec is an error.
+
+Where each part is enforced:
+
+| Rule | Enforced by | State |
+| --- | --- | --- |
+| 1 | `require_supported`, `compute_sociomap` | **done** |
+| 2 | the client-deliverable gate, reading an approved-methodology registry | **not built** — cross-context, owned by integration-architecture with product policy (OI-17) |
+| 3 | `tools/layer_check.sh`: `AIA_SOCIOMAP_V1` may not appear in `application/`, `infrastructure/`, `apps/api`, `apps/worker` or `apps/web/src` | **done** as a static guard; a runtime "spec required" check lands with the first route or job |
+
+The engine deliberately does not know what is approved. Approval is product
+policy that changes on a person's decision; the engine is deterministic
+mathematics that must not. Putting approval in the engine would make an
+artifact's numbers depend on who signed what.
