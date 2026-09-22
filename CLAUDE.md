@@ -74,6 +74,7 @@ packages/aia_core/src/aia_core/
 
 migrations/                 Alembic
 docs/architecture/          System design + 7 ADRs
+docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, parity matrix, legacy map
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
