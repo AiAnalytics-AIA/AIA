@@ -39,7 +39,9 @@ from ..domain.scope import (
     require_approval_independence,
 )
 from ..domain.workflow import (
+    DEFAULT_CAPACITY_BACKOFF_SECONDS,
     DEFAULT_LEASE_SECONDS,
+    DEFAULT_QUOTA_FALLBACK_SECONDS,
     AttemptStatus,
     FailureClass,
     InteractionMode,
@@ -48,7 +50,9 @@ from ..domain.workflow import (
     StepDefinition,
     StepRunStatus,
     WorkflowRunStatus,
+    apply_cancellation,
     decide_recovery,
+    decide_release,
     derive_run_status,
     is_lease_expired,
     lease_deadline,
@@ -56,6 +60,7 @@ from ..domain.workflow import (
     new_reservation_id,
     new_run_id,
     new_step_id,
+    resume_due,
     validate_dag,
 )
 from .tables import (
@@ -1184,8 +1189,7 @@ class WorkflowRepository:
             paid_call_outcome_known=attempt.paid_call_outcome_known,
             quota_reset_at=quota_reset_at,
         )
-        self._apply_recovery(step, attempt, decision, reservation_id=reservation_id)
-        return decision
+        return self._apply_recovery(step, attempt, decision, reservation_id=reservation_id)
 
     def _apply_recovery(
         self,
@@ -1194,8 +1198,14 @@ class WorkflowRepository:
         decision: RecoveryDecision,
         *,
         reservation_id: str | None = None,
-    ) -> None:
-        """Apply a recovery decision to a step and its reservations."""
+    ) -> RecoveryDecision:
+        """Apply a recovery decision to a step and its reservations.
+
+        Returns the decision actually applied, which differs from the one passed
+        in when the run was cancelled while the attempt was in flight
+        (:func:`aia_core.domain.workflow.apply_cancellation`).
+        """
+        decision = apply_cancellation(decision, cancel_requested=step.cancel_requested)
         # `settle_reservation_as_uncertain` is true exactly when a dispatched
         # call's outcome is unknown, which is the first branch of the closing
         # rule -- so the rule applies it, and applies it on every other path too.
@@ -1241,6 +1251,7 @@ class WorkflowRepository:
         self._session.flush()
         self._refresh_run(step.run_id)
         self._session.flush()
+        return decision
 
     # -------------------------------------------------------------- reconciler --
 
@@ -1295,10 +1306,107 @@ class WorkflowRepository:
                 paid_call_dispatched=attempt.paid_call_dispatched,
                 paid_call_outcome_known=attempt.paid_call_outcome_known,
             )
-            self._apply_recovery(step, attempt, decision)
-            decisions.append(decision)
+            decisions.append(self._apply_recovery(step, attempt, decision))
 
         return decisions
+
+    def release_attempt(
+        self, attempt_id: str, *, worker_id: str, reason: str = "worker_shutdown"
+    ) -> RecoveryDecision:
+        """Give an attempt back without failing it -- a clean worker shutdown.
+
+        The step is ``RUNNABLE`` again immediately, so another worker can pick it
+        up without waiting for the lease to lapse, and the attempt does not count
+        against ``max_attempts``. A paid call in flight with unknown outcome makes
+        it ``RECOVERY_REQUIRED`` instead, exactly as a crash would
+        (:func:`aia_core.domain.workflow.decide_release`). Lease-fenced.
+        """
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
+        step = self._step(attempt.step_id)
+
+        attempt.status = AttemptStatus.ABANDONED.value
+        attempt.finished_at = utcnow()
+        attempt.lease_until = None
+        attempt.error_json = {"reason": reason}
+
+        decision = decide_release(
+            paid_call_dispatched=attempt.paid_call_dispatched,
+            paid_call_outcome_known=attempt.paid_call_outcome_known,
+        )
+        return self._apply_recovery(step, attempt, decision)
+
+    def resume_waiting_steps(
+        self,
+        *,
+        now: datetime | None = None,
+        capacity_backoff_seconds: int = DEFAULT_CAPACITY_BACKOFF_SECONDS,
+        quota_fallback_seconds: int = DEFAULT_QUOTA_FALLBACK_SECONDS,
+        limit: int = 100,
+    ) -> list[str]:
+        """Offer parked provider waits to workers again. Returns the step ids.
+
+        Only ``WAITING_PROVIDER`` and ``WAITING_CAPACITY`` are considered, and the
+        rule for each is :func:`aia_core.domain.workflow.resume_due`. Nothing a
+        person owes a decision on -- ``AWAITING_*``, ``RECOVERY_REQUIRED`` -- is
+        ever touched here.
+
+        Before this existed nothing moved a park back to ``RUNNABLE``, so a quota
+        wall or a capacity blip stranded its step until an operator forced it.
+
+        Safe to run concurrently: steps are locked ``FOR UPDATE SKIP LOCKED`` on
+        PostgreSQL, so two workers sweeping at once resume each step once.
+        """
+        moment = now or datetime.now(UTC)
+        query = (
+            select(StepRunRow)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(
+                StepRunRow.status.in_(
+                    [StepRunStatus.WAITING_PROVIDER.value, StepRunStatus.WAITING_CAPACITY.value]
+                ),
+                StepRunRow.cancel_requested.is_(False),
+                WorkflowRunRow.cancel_requested.is_(False),
+                *self._scope_filter(),
+            )
+            .order_by(StepRunRow.updated_at)
+            .limit(max(1, int(limit)))
+        )
+        if self._is_postgres:
+            query = query.with_for_update(skip_locked=True, of=StepRunRow)
+
+        resumed: list[str] = []
+        touched_runs: set[str] = set()
+        for step in self._session.scalars(query).all():
+            if not resume_due(
+                StepRunStatus(step.status),
+                runnable_after=step.runnable_after,
+                parked_at=step.updated_at,
+                now=moment,
+                capacity_backoff_seconds=capacity_backoff_seconds,
+                quota_fallback_seconds=quota_fallback_seconds,
+            ):
+                continue
+            previous = step.status
+            step.status = StepRunStatus.RUNNABLE.value
+            step.waiting_reason = None
+            step.runnable_after = None
+            step.updated_at = utcnow()
+            resumed.append(step.step_id)
+            touched_runs.add(step.run_id)
+            self._event(
+                step.run_id,
+                event_type="STEP_RESUMED",
+                message=f"{step.node_key}: {previous} -> RUNNABLE",
+                payload={"from": previous},
+                step_id=step.step_id,
+            )
+
+        if resumed:
+            self._session.flush()
+            for run_id in sorted(touched_runs):
+                self._refresh_run(run_id)
+            self._session.flush()
+        return resumed
 
     # ------------------------------------------------------------ cancellation --
 

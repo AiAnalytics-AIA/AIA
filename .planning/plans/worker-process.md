@@ -11,7 +11,7 @@ recovery — but nothing drives it. `PROGRESS.md` Next #2 and
 a cancellation poll. Until it exists no step executes outside a test, and the
 only place work *could* run is an API request, which the architecture forbids.
 
-Reading the engine as a worker would drive it surfaced six defects that a worker
+Reading the engine as a worker would drive it surfaced seven defects that a worker
 would turn from latent into live. Each is reproduced by a test in the chunk that
 fixes it; none is reachable today only because nothing calls these methods
 concurrently yet.
@@ -24,6 +24,7 @@ concurrently yet.
 | W4 | **Cancellation leaks the budget hold.** `abandon_attempt` never touches reservations, so a cancelled paid step leaves its reservation `RESERVED` forever and the study's available budget shrinks permanently | `workflow_repository.py:1083-1107` |
 | W5 | **Known spend is dropped on a later failure.** A call whose outcome and cost were recorded (`mark_paid_call_outcome_known`) and whose attempt then fails has its reservation *released*, so the money spent is never charged | `workflow_repository.py:931-933` |
 | W6 | **Nothing resumes a provider park.** `WAITING_PROVIDER` and `WAITING_CAPACITY` are not `RUNNABLE`, and no code moves them back; the existing test simulates an operator with `force_step_status` | `test_workflow_engine.py::test_a_parked_quota_step_becomes_claimable_after_its_reset_time` |
+| W7 | **A cancelled run whose worker died never finishes.** `request_cancel` leaves a `RUNNING` step for its worker; if the worker dies, recovery returns `RETRY`, the step goes `RUNNABLE` with `cancel_requested` set, `claim_next` never picks it, and the run reads `RUNNING` forever. Found while designing chunk 3 | `workflow_repository.py:1003-1026`, `claim_next` filter at `461` |
 
 ## Approach
 
@@ -117,9 +118,13 @@ re-run of a possibly-billed call.
   left `reserved_usd` at 5.0 for good (W4); a known $1.80 call followed by a
   failure recorded `spent_usd` 0.0 (W5). Tests: `test_workflow_reservations.py`.
   Filed OI-6 (a quota park can re-issue a call whose outcome is unknown).
-- [ ] 3. **Release and resume** (W6). Domain: `decide_release`, `resume_due`.
-  Repository: `release_attempt`, `resume_waiting_steps`. Tests: domain (pure) +
-  engine; `AWAITING_*` and `RECOVERY_REQUIRED` never auto-resume.
+- [x] 3. **Release and resume** (W6, W7). Domain: `decide_release`,
+  `apply_cancellation`, `resume_due`, `RecoveryAction.CANCEL`. Repository:
+  `release_attempt`, `resume_waiting_steps`; `_apply_recovery` lets a
+  mid-attempt cancellation win. *Landed.* W7 reproduced against `origin/main`
+  @ 17c0a6b (recovery → `RETRY`, run `RUNNING`, step unclaimable). Tests:
+  `test_workflow_release_and_resume.py`. `decide_recovery` itself is unchanged;
+  the parity suite could not be run here (OI-1).
 - [ ] 4. **Cross-study queue and execution scope.** `WorkQueue` (claim with a
   kind filter, recover, resume, refuse); `ScopeResolver.execution_context`;
   decided gates for a step. Tests: isolation — the context names the claimed
