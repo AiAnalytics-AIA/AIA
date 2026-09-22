@@ -263,6 +263,69 @@ def test_each_step_has_exactly_one_attempt_after_a_claim_race(
         assert len({a.worker_id for a in attempts}) == 4, "four distinct workers"
 
 
+def test_concurrent_settlements_compose_rather_than_overwrite(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**Deterministic regression for the lost update on `studies.spent_usd`.**
+
+    `test_concurrent_reconcilers_recover_each_attempt_once` caught this once in
+    CI, as ``assert 5.0 == 10.0``, and then passed on rerun. It was not
+    flakiness. `_charge_study` was a read-modify-write with no lock, and
+    PostgreSQL runs READ COMMITTED, so two transactions settling two different
+    reservations each read `spent_usd` as it stood before the other committed and
+    the last writer won. Money a client had spent was not recorded, and
+    unrecorded spend is headroom the budget check hands out again.
+
+    That test only fails when the interleaving happens to line up -- it did not
+    reproduce in 25 consecutive runs here. This one holds every transaction at a
+    barrier until all have started and puts eight of them on one study row, so the
+    interleaving is forced rather than hoped for: measured at 12 failures in 12
+    runs against the old implementation, and it passes against the atomic
+    increment.
+
+    Eight settlements of $5 must record $40. Any lower figure is a lost update.
+    """
+    setup_session, setup_repo = _repo_in_new_session(pg_sessions, world)
+    reservations: list[str] = []
+    try:
+        # Two reservations per attempt, so eight transactions contend for one
+        # study row. Four was enough to fail most of the time; eight makes the
+        # loser of the race overwhelmingly likely to exist.
+        for index in range(4):
+            work = setup_repo.claim_next(worker_id=f"settler-{index}")
+            assert work is not None
+            for _ in range(2):
+                reservation_id = setup_repo.reserve_budget(
+                    attempt_id=work.attempt_id,
+                    amount_usd=5.0,
+                    provider=Provider.ANTHROPIC,
+                )
+                assert reservation_id is not None
+                reservations.append(reservation_id)
+        setup_session.commit()
+    finally:
+        setup_session.close()
+
+    def settle(index: int) -> None:
+        session, repo = _repo_in_new_session(pg_sessions, world)
+        try:
+            repo.settle_reservation(reservations[index], actual_cost_usd=5.0)
+            session.commit()
+        finally:
+            session.close()
+
+    _run_concurrently(len(reservations), settle)
+
+    with pg_sessions() as session:
+        study = session.get(StudyRow, world["study_id"])
+        assert study is not None
+        assert study.spent_usd == pytest.approx(40.0), (
+            "eight concurrent $5 settlements must record $40; a lower figure is a "
+            "lost update on studies.spent_usd, which under-records client spend "
+            "and hands the difference back as budget headroom"
+        )
+
+
 def test_concurrent_reconcilers_recover_each_attempt_once(
     pg_sessions: sessionmaker[Session], world: dict[str, Any]
 ) -> None:

@@ -774,10 +774,39 @@ class WorkflowRepository:
         return exposure
 
     def _charge_study(self, study_id: str, amount_usd: float) -> None:
-        """Add to a study's recorded spend."""
-        study = self._session.scalar(select(StudyRow).where(StudyRow.study_id == study_id))
-        if study is not None:
-            study.spent_usd = float(study.spent_usd or 0.0) + max(0.0, float(amount_usd))
+        """Add to a study's recorded spend, atomically.
+
+        **This must never be a read-modify-write.** It was one, and the result was
+        a lost update: two reconcilers settling two different uncertain attempts
+        each read ``spent_usd`` as 0 and each wrote 5, so a study that had spent
+        $10 recorded $5. PostgreSQL runs READ COMMITTED, so each transaction saw
+        the value as it stood before the other committed, and the last writer won.
+
+        That surfaced once in CI as a flaky assertion. It is not flakiness: it is
+        a client's spend being under-recorded, and under-recorded spend is
+        headroom the budget check will then hand out. It is the same defect as the
+        concurrent-overspend bug fixed in the reservation path, in the settlement
+        half -- reserving was made safe and settling was not.
+
+        ``UPDATE … SET spent_usd = spent_usd + :amount`` is evaluated by the
+        database against the current row, and a concurrent writer blocks and then
+        re-reads, so the increments compose. A ``SELECT … FOR UPDATE`` before the
+        read would also be correct, but it holds a lock across the round trip for
+        no gain over letting the database do the arithmetic.
+
+        ``synchronize_session="fetch"`` refreshes any StudyRow already loaded in
+        this session, so a caller that read the study before the charge does not
+        keep a stale figure and write it back later.
+        """
+        amount = max(0.0, float(amount_usd))
+        if not amount:
+            return
+        self._session.execute(
+            update(StudyRow)
+            .where(StudyRow.study_id == study_id)
+            .values(spent_usd=StudyRow.spent_usd + amount)
+            .execution_options(synchronize_session="fetch")
+        )
 
     def budget_position(self) -> dict[str, float]:
         """Return the study's budget position including outstanding reservations."""
