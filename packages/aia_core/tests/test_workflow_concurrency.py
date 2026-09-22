@@ -33,6 +33,7 @@ from aia_core.domain.workflow import (
     RecoveryAction,
     StepDefinition,
     StepRunStatus,
+    WorkflowRunStatus,
 )
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.repositories import ProjectRepository
@@ -1054,3 +1055,138 @@ def test_cross_client_isolation_holds_under_concurrency(
         "another client's worker must never receive this study's work"
     )
     assert any(claimed is not None for label, claimed in results if label == "own")
+
+
+# --------------------------------------------------------------------------- #
+# Run-level derivation under concurrent step transitions (W8)
+# --------------------------------------------------------------------------- #
+
+
+def _create_run(
+    pg_sessions: sessionmaker[Session],
+    world: dict[str, Any],
+    steps: list[StepDefinition],
+    key: str,
+) -> str:
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        run_id = repo.create_run(
+            project_id=world["project_id"],
+            project_revision=1,
+            workflow_type=key,
+            steps=steps,
+            idempotency_key=key,
+        )
+        session.commit()
+        return run_id
+    finally:
+        session.close()
+
+
+def _claim_all(pg_sessions: sessionmaker[Session], world: dict[str, Any], run_id: str) -> list[Any]:
+    """Claim every currently runnable step of one run, one worker each."""
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        claims = []
+        while (work := repo.claim_next(worker_id=f"w{len(claims)}")) is not None:
+            if work.run_id == run_id:
+                claims.append(work)
+        session.commit()
+        return claims
+    finally:
+        session.close()
+
+
+def _complete_interleaved(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any], first: Any, second: Any
+) -> None:
+    """Complete two attempts in overlapping transactions, the first committing last-but-one.
+
+    ``first`` completes and holds its transaction open; ``second`` completes on
+    another thread; then ``first`` commits, then ``second``. Without serialisation
+    the second transaction derives everything from a snapshot in which the first
+    step is still RUNNING.
+    """
+    s1, r1 = _repo_in_new_session(pg_sessions, world)
+    s2, r2 = _repo_in_new_session(pg_sessions, world)
+    try:
+        r1.complete_attempt(first.attempt_id, worker_id=first.worker_id)
+
+        done = threading.Event()
+
+        def complete_second() -> None:
+            r2.complete_attempt(second.attempt_id, worker_id=second.worker_id)
+            done.set()
+
+        thread = threading.Thread(target=complete_second)
+        thread.start()
+        # Long enough for the second completion to finish if nothing makes it
+        # wait; it is a bound, not a measurement.
+        done.wait(1.0)
+        s1.commit()
+        thread.join(30)
+        assert not thread.is_alive()
+        s2.commit()
+    finally:
+        s1.close()
+        s2.close()
+
+
+def test_regression_the_last_two_steps_finishing_together_complete_the_run(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**W8.** Two workers finish a run's last two steps at the same moment.
+
+    Each transaction derived the run's status from a snapshot in which the
+    *other* step was still RUNNING, so each wrote RUNNING -- which, since the
+    derivation writes only on change, meant neither wrote anything -- and the run
+    read RUNNING forever with every step SUCCEEDED.
+    """
+    run_id = _create_run(
+        pg_sessions, world, [StepDefinition(node_key=k, kind="k", priority=99) for k in "ab"], "w8"
+    )
+    first, second = _claim_all(pg_sessions, world, run_id)[:2]
+
+    _complete_interleaved(pg_sessions, world, first, second)
+
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        run = repo.get_run(run_id)
+        assert [s["status"] for s in run["steps"]] == [StepRunStatus.SUCCEEDED] * 2
+        assert run["status"] is WorkflowRunStatus.COMPLETED
+    finally:
+        session.close()
+
+
+def test_regression_a_join_step_is_released_when_both_parents_finish_together(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**W8, the worse half.** A diamond: ``root → (left, right) → join``.
+
+    ``left`` and ``right`` finish concurrently; each saw the other RUNNING, so
+    neither released ``join``, and the pipeline stalled with nothing runnable.
+    """
+    steps = [
+        StepDefinition(node_key="root", kind="k", priority=99),
+        StepDefinition(node_key="left", kind="k", depends_on=("root",), priority=99),
+        StepDefinition(node_key="right", kind="k", depends_on=("root",), priority=99),
+        StepDefinition(node_key="join", kind="k", depends_on=("left", "right"), priority=99),
+    ]
+    run_id = _create_run(pg_sessions, world, steps, "w8-diamond")
+    [root] = _claim_all(pg_sessions, world, run_id)
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        repo.complete_attempt(root.attempt_id, worker_id=root.worker_id)
+        session.commit()
+    finally:
+        session.close()
+    left, right = _claim_all(pg_sessions, world, run_id)
+
+    _complete_interleaved(pg_sessions, world, left, right)
+
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        statuses = {s["node_key"]: s["status"] for s in repo.get_run(run_id)["steps"]}
+        assert statuses["join"] is StepRunStatus.RUNNABLE, statuses
+    finally:
+        session.close()

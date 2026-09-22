@@ -441,9 +441,52 @@ class WorkflowRepository:
 
     # ------------------------------------------------------------ status logic --
 
+    def _lock_run(self, run_id: str) -> None:
+        """Serialise every step transition in one run on the run's row.
+
+        **Taken before any step row is touched, and held to the end of the
+        transaction.** Everything that derives something from the *set* of a
+        run's steps -- the run's business status, and which blocked steps are now
+        released -- reads the other steps' statuses. Under READ COMMITTED, two
+        transactions finishing two steps of one run each read the other's step as
+        still ``RUNNING``, so neither derived ``COMPLETED`` (and, since the
+        derivation writes only on change, neither wrote anything), and in a
+        diamond neither released the join step: the run read ``RUNNING`` forever
+        with nothing left to run. Holding the run row makes the second
+        transaction wait for the first to commit and then read what it wrote.
+
+        Lock order is attempt → run → steps everywhere, which is also
+        ``request_cancel``'s run → steps, so no two paths can wait on each other
+        in a cycle. Claiming does not take it: a claim only makes a step
+        ``RUNNING``, which no concurrent transition can derive differently, and
+        serialising claims per run is the lock convoy ``_refresh_run`` was
+        rewritten to avoid.
+
+        A no-op on SQLite, whose single writer already serialises everything.
+        """
+        if self._is_postgres:
+            self._session.execute(
+                select(WorkflowRunRow.run_id)
+                .where(WorkflowRunRow.run_id == run_id)
+                .with_for_update()
+            )
+
+    def _lock_run_for(self, step: StepRunRow) -> None:
+        """Lock the step's run, then re-read the step as it now stands.
+
+        The step was read before the lock; a transition that committed while this
+        transaction waited (a cancellation, say) is only visible after a refresh.
+        """
+        self._lock_run(step.run_id)
+        self._session.refresh(step)
+
     def _refresh_run(self, run_id: str) -> WorkflowRunStatus:
         """Recompute a run's business state from its steps."""
-        run = self._session.scalar(select(WorkflowRunRow).where(WorkflowRunRow.run_id == run_id))
+        run = self._session.scalar(
+            select(WorkflowRunRow)
+            .where(WorkflowRunRow.run_id == run_id)
+            .execution_options(populate_existing=True)
+        )
         if run is None:
             raise WorkflowNotFound(run_id)
 
@@ -1177,6 +1220,7 @@ class WorkflowRepository:
             return StepRunStatus.SUCCEEDED
         self._require_lease(attempt, worker_id)
         step = self._step(attempt.step_id)
+        self._lock_run_for(step)
 
         attempt.status = AttemptStatus.SUCCEEDED.value
         attempt.finished_at = utcnow()
@@ -1273,6 +1317,7 @@ class WorkflowRepository:
         in when the run was cancelled while the attempt was in flight
         (:func:`aia_core.domain.workflow.apply_cancellation`).
         """
+        self._lock_run_for(step)
         decision = apply_cancellation(decision, cancel_requested=step.cancel_requested)
         # `settle_reservation_as_uncertain` is true exactly when a dispatched
         # call's outcome is unknown, which is the first branch of the closing
@@ -1345,10 +1390,20 @@ class WorkflowRepository:
                 ),
                 *self._scope_filter(),
             )
+            # Run order, so concurrent reconcilers take run locks (`_lock_run`) in
+            # one order and cannot wait on each other in a cycle.
+            .order_by(StepRunRow.run_id, StepAttemptRow.attempt_id)
             .limit(max(1, int(limit)))
         )
         if self._is_postgres:
-            query = query.with_for_update(skip_locked=True, of=StepAttemptRow)
+            # Only lapsed leases are selected, and so locked. Selecting every live
+            # attempt too made each sweep hold the lock on attempts whose workers
+            # were heartbeating and finishing them, so those workers waited on the
+            # sweep. The Python check below stays authoritative; SQLite, which
+            # returns naive timestamps, relies on it alone.
+            query = query.where(
+                (StepAttemptRow.lease_until.is_(None)) | (StepAttemptRow.lease_until <= moment)
+            ).with_for_update(skip_locked=True, of=StepAttemptRow)
 
         decisions: list[RecoveryDecision] = []
         for attempt in self._session.scalars(query).all():
@@ -1440,7 +1495,10 @@ class WorkflowRepository:
             .limit(max(1, int(limit)))
         )
         if self._is_postgres:
-            query = query.with_for_update(skip_locked=True, of=StepRunRow)
+            # The run row too, and skipped when locked: `_lock_run` order is
+            # run → steps, and a run a worker is finishing a step in right now is
+            # simply resumed on the next sweep.
+            query = query.with_for_update(skip_locked=True, of=(StepRunRow, WorkflowRunRow))
 
         resumed: list[str] = []
         touched_runs: set[str] = set()
@@ -1539,6 +1597,7 @@ class WorkflowRepository:
         """
         attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
+        self._lock_run_for(step)
 
         attempt.status = AttemptStatus.ABANDONED.value
         attempt.finished_at = utcnow()
@@ -1585,6 +1644,7 @@ class WorkflowRepository:
         step = self._step(step_id)
         if not options:
             raise ValueError("a gate must offer at least one option")
+        self._lock_run_for(step)
 
         gate_id = "GATE-" + new_attempt_id()[4:]
         self._session.add(
@@ -1699,6 +1759,7 @@ class WorkflowRepository:
         )
 
         step = self._step(gate.step_id)
+        self._lock_run_for(step)
         if option == "cancel":
             step.status = StepRunStatus.CANCELLED.value
             step.finished_at = utcnow()
@@ -1914,6 +1975,7 @@ class WorkflowRepository:
             raise ValueError("an administrative override requires a reason")
 
         step = self._step(step_id)
+        self._lock_run_for(step)
         previous = step.status
         step.status = status.value
         step.updated_at = utcnow()
