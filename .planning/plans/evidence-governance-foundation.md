@@ -85,7 +85,7 @@ passes at 95% — so a draft the prototype would publish can be blocked here.
       restrictions) + factual layer contract.
 - [x] 6. `AdmittedClaim` capability + `layer_check` rule.
 - [x] 7. Gate-decision parity suite: EXACT and SEMANTIC case tables.
-- [ ] 8. The eight analysis modules: specs, evidence table, draft schema,
+- [x] 8. The eight analysis modules: specs, evidence table, draft schema,
       evidence gate, prompt rendered from the enums.
 - [ ] 9. Application runner: one durable module, bounded repair loop, fail closed.
 - [ ] 10. Documents in sync: ARCHITECTURE, CLAUDE, domain map, parity matrix,
