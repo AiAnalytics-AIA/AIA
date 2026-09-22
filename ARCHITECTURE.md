@@ -42,7 +42,7 @@ point; nothing outside it touches its internals.
 | 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract, Sociomapping mathematics, evidence gates, analysis modules. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only — numerical code included, which is why the Sociomap engine is pure Python rather than numpy. |
 | 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context, and the only loader of population data.** Orchestrates domain + infrastructure. | 1, 3 |
 | 3 | **Infrastructure** | `packages/aia_core/src/aia_core/infrastructure/` | SQLAlchemy tables and repositories, object storage, provider gateways. Every external service behind a protocol. | 1 |
-| 4 | **Workers** | `apps/worker/` *(Phase 3+, not yet created)* | Durable job execution. Triggered by the application layer; performs via repositories + services. | 1, 2, 3 |
+| 4 | **Workers** | `apps/worker/src/aia_worker/` | Durable step execution: claim from the PostgreSQL queue, heartbeat, run the `StepExecutor` registered for the step's kind, record the outcome; every worker also reconciles. **Knows nothing about what a step does.** | 1, 2, 3 — never 5 |
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
 | — | **Legacy stub** | `src/server.js` | Frozen. The sole surviving login path. | Nothing. Receives no new features. |
@@ -81,6 +81,12 @@ Run it before every commit. It is blocking in CI.
 | no ORM tables in the HTTP layer | Queries written where they cannot be tested without the whole stack |
 | scope contexts are issued only by `ScopeResolver` | A request body, tool payload or model-generated argument widening its own scope |
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
+| the worker never builds its own scope context | The same, inside the process where model-driven code will run |
+| the worker knows nothing about HTTP | A worker that only works behind a web server |
+| the worker never imports the API | Layer 4 depending on layer 5, and the API's request state leaking into jobs |
+| the worker imports nothing domain-specific | The executor seam becoming decoration: the loop importing the AI or research code it is supposed to be ignorant of |
+| the API never executes workflow steps | Expensive work inside a request, holding a lease exactly as long as a browser stays connected |
+| only the work queue may query across studies | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
 | runtime populations are issued only by the canonical loader (and never by the API) | A second loader returning different population semantics from the same bytes (reference F10, R4) |
 | population panels are parsed only by the canonical loader (and never by the API) | The first step of that second loader: a consumer reading the panel itself |
 | the Sociomap preset `AIA_SOCIOMAP_V1` is never named outside the Sociomap domain package | An engineering preset silently filling in a missing spec, and becoming client methodology by default ([sociomapa-deterministic-engine.md §13](docs/architecture/sociomapa-deterministic-engine.md#13-computable-is-not-deliverable)) |
@@ -165,8 +171,12 @@ What are you building?
 │      Project routes live under /api/v1/studies/{study_id}/ — always.
 │
 ├─ Background work that can fail, retry, or cost money?
-│    → the workflow engine (aia_core.domain.workflow + workflow_repository)
-│      Never a bare asyncio task. It must be durable and resumable.
+│    → a step kind in the workflow engine (aia_core.domain.workflow +
+│      workflow_repository), executed by a StepExecutor registered with the
+│      worker (apps/worker: aia_worker.executor). Never a bare asyncio task and
+│      never in a request handler. It must be durable, resumable and idempotent,
+│      and every metered call goes through the context's reserve → dispatching →
+│      settled bracket.
 │
 ├─ Something a user sees?
 │    → apps/web/src/…  — renders state the server computed. No rules.
@@ -272,6 +282,7 @@ deliberately; a static `@pytest.mark.skip` is not, and `layer_check` rejects it.
 | Infrastructure / repositories | Round-trip, isolation predicate, concurrent access |
 | Adapters (storage, identity, providers) | Mocked transport; ≥3 real fixtures per parser, asserting every field |
 | Workflow / jobs | Success, missing record, upstream failure, retry, cancellation |
+| Worker | Every row of the outcome table in `aia_worker.worker`, in process; contention, `SIGKILL`, `SIGTERM` and cancellation across **real processes** on PostgreSQL |
 | API | Response shape, auth guards, error cases, and the path in the contract check |
 | Web | Mount, events, auth guards |
 
@@ -299,9 +310,10 @@ declared tier.
 | `alembic upgrade head` / `alembic check` / downgrade-to-base | **blocking** |
 | `pytest` — core + API, on PostgreSQL and on SQLite | **blocking** |
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
+| Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | API contract (OpenAPI paths + study-scoping assertion) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
-| Startup smoke: migrate, boot, end-to-end lifecycle over HTTP | **blocking** |
+| Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots and stops on `SIGTERM` with no error logged | **blocking** |
 | Committed-provider-key scan | **blocking** |
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |

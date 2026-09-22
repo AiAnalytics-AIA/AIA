@@ -278,10 +278,10 @@ Nothing. The tree is green and the slice is complete.
 
 ## Next
 
-- [ ] **A worker process.** `claim_next` → execute → `complete_attempt` /
-      `fail_attempt`, with heartbeats and a cancellation poll at checkpoints. This
-      is the gap between "the engine works" and "work actually runs" — there is no
-      transport to build first, because PostgreSQL is the queue.
+- [x] **A worker process.** Built as `apps/worker`; see
+      [`.planning/plans/done/worker-process.md`](../../.planning/plans/done/worker-process.md)
+      and [workflows.md § The worker](../architecture/workflows.md#the-worker).
+      `PROGRESS.md` is the tracker; this line is narrative.
 - [ ] **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`,
       `ModelPolicy`, `ModelRegistry`, `ModelGateway`, `ToolRegistry`,
       `AIUsageEvent`. [ADR 0005](../architecture/adr/0005-llm-gateway.md) decision
