@@ -135,8 +135,20 @@ def test_committed_manifest_still_matches_the_reference_tree(
         if _is_migration_module(str(path.relative_to(legacy_root)))
     }
     assert actual == manifest_modules, (
-        "docs/migration/reference-manifest.json has drifted from the reference "
-        "tree; regenerate it with `python tools/reference_manifest.py write`.\n"
+        "docs/migration/reference-manifest.json has drifted from the extracted "
+        "reference tree.\n\n"
+        "Do NOT regenerate from the tree. The tree is mutable -- running the "
+        "reference rewrites its data/*.sqlite state -- and a tree-derived write "
+        "cannot supply the archive hash, the reference-repository identity or "
+        "the migration module list, so it would silently downgrade the manifest "
+        "schema. The tool refuses it for that reason.\n\n"
+        "Regenerate from the authoritative archive instead:\n"
+        "    python tools/reference_manifest.py write --archive <reference>.zip\n\n"
+        "AiAnalytics-AIA/AIA-reference is authoritative for obtaining it; see "
+        "docs/migration/reference-source.md.\n\n"
+        "A difference here usually means the TREE has drifted, not the manifest: "
+        "the manifest is derived from the immutable archive, so a checkout that "
+        "disagrees with it is the thing to investigate first.\n"
         f"  only in tree:     {sorted(actual - manifest_modules)}\n"
         f"  only in manifest: {sorted(manifest_modules - actual)}"
     )

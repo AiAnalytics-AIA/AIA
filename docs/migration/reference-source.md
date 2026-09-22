@@ -96,8 +96,16 @@ reference present.
 `docs/migration/reference-manifest.json` previously recorded **1,324 files
 derived from the mutable extracted tree**, with no archive hash, and described
 itself as "the only integrity record" for the reference. It has been regenerated
-from the authoritative ZIP: **1,565 files, 191 migration modules**, carrying the
-archive SHA256 and a pointer to the reference repository.
+from the authoritative ZIP: **1,324 canonical files of the archive's 1,565**, and
+**191 migration modules**, carrying the archive SHA256 and a pointer to the
+reference repository.
+
+Regeneration is archive-only. `tools/reference_manifest.py write` refuses to run
+without `--archive`, because a tree-derived write cannot supply the archive hash,
+the repository identity or the module list and would therefore downgrade the
+manifest schema — the defect that produced the stale manifest. The refusal, the
+schema gate and the committed artifact are all asserted by
+`packages/aia_core/tests/test_reference_manifest_schema.py`.
 
 ## What the reference repository contains
 
