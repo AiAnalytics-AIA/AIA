@@ -95,7 +95,7 @@ are starting clean; propose the identity.
 
 **Tone:** exact, calm, quietly confident. Scientific instrumentation and
 serious consultancy — not startup SaaS, not "AI magic". Explicitly avoid:
-purple-to-blue AI gradients, glow and aurora effects, sparkle or wand
+purple-to-blue AI gradients, glows and light-leak effects, sparkle or wand
 iconography, anything that implies the machine knows more than it does. AI is
 present in this product as an assistant that chooses tools and writes prose; it
 never computes the numbers, and the visual language must not suggest otherwise.
