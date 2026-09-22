@@ -727,6 +727,41 @@ class WorkflowRepository:
         self._session.flush()
         return result.rowcount == 1
 
+    def assert_lease(self, attempt_id: str, *, worker_id: str) -> None:
+        """Raise :class:`LeaseLost` unless ``worker_id`` holds the attempt.
+
+        Takes the attempt's row lock and keeps it until the caller's transaction
+        ends. That is the point: an executor's own writes made in the same
+        transaction commit only if the lease is still held *at commit*, because a
+        reconciler cannot recover a locked attempt (it skips it) until then.
+        """
+        self._held_attempt(attempt_id, worker_id=worker_id)
+
+    def record_progress(
+        self,
+        attempt_id: str,
+        *,
+        worker_id: str,
+        message: str,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
+        """Append a progress event for a live attempt. Lease-fenced.
+
+        Real counts and real transitions only -- "respondent 240 of 300", never a
+        synthesised percentage (``docs/architecture/workflows.md`` § Progress).
+        """
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
+        step = self._step(attempt.step_id)
+        self._event(
+            step.run_id,
+            event_type="STEP_PROGRESS",
+            message=message,
+            payload=payload,
+            step_id=step.step_id,
+            attempt_id=attempt_id,
+        )
+        self._session.flush()
+
     # ------------------------------------------------------- budget and costs --
 
     def _outstanding_reservations(self, study_id: str) -> float:

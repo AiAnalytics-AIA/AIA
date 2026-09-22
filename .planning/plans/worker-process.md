@@ -132,7 +132,12 @@ re-run of a possibly-billed call.
   `decided_gates`. Uncertain exposure is now charged to the reservation's own
   study. *Landed.* Tests: `test_work_queue.py`. Filed OI-7 (should revoking a
   researcher stop their runs?).
-- [ ] 5. **`apps/worker`.** Executor protocol, context, heartbeat thread, loop,
+- [x] 5. **`apps/worker`.** *Landed.* `aia_worker.executor` (the protocols and
+  outcomes; `StopExecution` is a `BaseException` so `except Exception` cannot
+  swallow a cancellation), `context`, `heartbeat`, `worker`, `settings`,
+  `registry`, `observability`, `__main__`, `testing`. Repository gained
+  `assert_lease` and `record_progress`. Tests: `apps/worker/tests/test_worker_loop.py`,
+  `test_worker_settings.py`. Executor protocol, context, heartbeat thread, loop,
   typed settings, CLI, test executors. In-process tests on SQLite and PostgreSQL:
   success, retryable / non-retryable failure, possibly-billed failure, budget,
   gate, cancellation, lease loss, idempotent completion, graceful shutdown.
