@@ -143,6 +143,19 @@ alembic check           # the schema matches the models — catches a model
 alembic downgrade base && alembic upgrade head   # it is reversible
 ```
 
+**The migrations do not run on SQLite.** Several revisions ALTER constraints,
+which SQLite cannot do outside batch mode, so `alembic upgrade head` on a SQLite
+URL dies part-way and leaves a schema the models disagree with — the first insert
+then fails on a missing column (`organizations.allow_self_approval`). The SQLite
+path is `Base.metadata.create_all()`, which is what the test fixtures use.
+
+```bash
+# wrong — half-migrates, then the seed fails on a missing column
+DATABASE_URL=sqlite:///./tmp/dev.db alembic upgrade head && make dev-seed
+# right — a real database for anything that runs migrations
+make services && make migrate && make dev-seed
+```
+
 `migrations/versions/` is excluded from `mypy` and from `ruff`'s extended
 selection: revisions are generated code, and they are verified by being executed
 in CI rather than type-checked.
@@ -259,6 +272,20 @@ avoids this. Never hand-edit `tokens.css`, `tokens-theme.css` or `tokens.ts`:
 payload of *successful* pages, as the boundary's fallback, so a text search
 reports a "not found" on a 200. Verify with
 `curl -o /dev/null -w "%{http_code}"`.
+
+**A malformed path id is a 422, not a 404.** Path parameters carry patterns
+(`^STU-[0-9a-f]{1,32}$`), so `/studies/STU-nope` fails validation before any
+lookup and answers `422 validation_error` with `loc: ["path", …]`. A page that
+only maps 404 to `notFound()` renders a validation error for a mistyped URL.
+`src/lib/api/client.ts` (`errorKind`) treats a 422 whose every error is in the
+path as not-found; a 422 on the query or body stays an error.
+
+**`check:layout` counts a scrolled table as overflow unless you say it scrolls.**
+An element inside an `overflow-x-auto` box still has a bounding rect past the
+viewport, so the +35 % check reports it "off-page". Where horizontal scrolling is
+the intended behaviour (a wide data table), mark the scroll box `data-scroll-x`,
+and give it `tabIndex={0}` and an `aria-label` so keyboard users can scroll it.
+Anywhere else, fix the layout instead.
 
 ### Vitest and Testing Library
 

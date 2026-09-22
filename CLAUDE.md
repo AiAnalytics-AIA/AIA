@@ -52,7 +52,9 @@ apps/
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope
     schemas/                Request/response models + the one error contract
-  web/                      Next.js 16 / React 19 / Tailwind 4. Fixture-backed, being wired.
+  web/                      Next.js 16 / React 19 / Tailwind 4. Reads the API server-side
+    src/lib/api/            Typed, validated API client (dev identity only: OI-14)
+    src/fixtures/registry.ts  The two lists: fixture-backed and unavailable capabilities
     src/design/             tokens.json (the one token source), domain vocabulary (enums, lifecycles)
     scripts/                build-tokens (→ tokens.css/-theme.css/tokens.ts), check-design, check-layout
     src/fixtures/           DEVELOPMENT FIXTURES, API-shaped; registry.ts lists every one
@@ -93,7 +95,8 @@ docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
-tools/enum_parity_check.py  Web client vocabulary ⇄ domain enums (both directions)
+tools/enum_parity_check.py  Web client vocabulary ⇄ domain enums and impact fields (both directions)
+tools/dev_seed.py           Development world for the web slice (local only, real auth path)
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 ```
@@ -127,6 +130,7 @@ default weight and no fallback version; `make layer_check` enforces the loader.
 | Start Postgres / Redis / MinIO | `make services` |
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
+| Development world | `make dev-seed` (once, on an empty migrated database) |
 | Run everything | `make dev` |
 | Tests | `make test` (core + API) |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
@@ -139,7 +143,8 @@ default weight and no fallback version; `make layer_check` enforces the loader.
 | Everything CI runs | `make check` |
 | **The pre-commit sequence** | `make verify` |
 | OpenAPI document | `make openapi` |
-| Web tokens / design checks | `cd apps/web && npm run tokens` · `npm run check:design` · `npm run check:layout` |
+| Web tokens / design checks | `cd apps/web && npm run tokens` · `npm run check:design` · `npm run check:layout` (against a running, seeded API) |
+| Web against the real API | `make dev-seed`, then `AIA_DEV_SUBJECT=lead@aia.dev make dev` |
 | Web unit tests | `cd apps/web && npm test` (Vitest + Testing Library; also `make test-web`) |
 
 There is no compile step in Python. `make typecheck` is this project's

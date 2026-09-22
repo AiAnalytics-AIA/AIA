@@ -89,3 +89,20 @@ export type ErrorResponse = {
   details: Record<string, unknown>;
   request_id: string | null;
 };
+
+export type EventResponse = {
+  event_id: number;
+  event_type: string;
+  level: string;
+  message: string;
+  revision: number;
+  stage_type: string | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
+/** The paginated envelope of list routes (`ProjectListResponse`). */
+export type Page<T> = {
+  items: T[];
+  page: { total: number; limit: number; offset: number; has_more: boolean };
+};

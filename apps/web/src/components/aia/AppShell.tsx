@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import { t } from "@/i18n/t";
 import { ThemeSwitch } from "@/components/theme/ThemeSwitch";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { apiConfig } from "@/lib/api/client";
 
 export function AppShell({ orgSlug, children }: { orgSlug: string; children: ReactNode }) {
   return (
@@ -23,6 +24,7 @@ export function AppShell({ orgSlug, children }: { orgSlug: string; children: Rea
           <div className="mt-6">
             <ThemeSwitch />
           </div>
+          <DevIdentity />
         </aside>
 
         <div>
@@ -41,5 +43,21 @@ function NavLink({ href, children }: { href: string; children: ReactNode }) {
     >
       {children}
     </Link>
+  );
+}
+
+/**
+ * Who the API is being asked as. There is no sign-in yet (OI-14): the identity
+ * is the development subject the web server was started with, and it is labelled
+ * as exactly that, so a screenshot can never pass for a production session.
+ */
+function DevIdentity() {
+  const { subject } = apiConfig();
+  return (
+    <div data-unavailable="sign-in" className="mt-6 rounded-md border border-dashed border-border-strong px-3 py-2 text-xs text-ink-muted">
+      <div className="font-semibold text-ink">{subject ? t("identity.dev") : t("identity.none")}</div>
+      {subject ? <div className="break-all font-mono">{subject}</div> : null}
+      <div className="mt-1">{t("identity.noSignIn")}</div>
+    </div>
   );
 }
