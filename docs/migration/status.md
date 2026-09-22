@@ -335,11 +335,19 @@ all 113 of them.
 
 ## Last verified commit
 
-`5c8c6ea` — test(workflow): characterize the legacy job engine before reimplementing it
+`8102551` — feat(workflow): durable workflow engine with real-contention verification
 
-Verified at that commit: 377 tests passing (263 core + 114 API, of which 93 are
-parity/characterization against the prototype), `ruff check` and
-`ruff format --check` clean, `mypy --strict` clean over 30 source files,
-Alembic upgrade/check/downgrade/re-upgrade clean.
+Verified at that commit:
 
-Verified against **PostgreSQL 16.15** and SQLite, on Python 3.14.6, macOS.
+| | |
+| --- | --- |
+| Suite on PostgreSQL 16.15 | **496 passed**, 0 failed, 0 skipped |
+| Suite on SQLite | **480 passed**, 16 correctly skipped |
+| Parity / characterization vs the prototype | **94** |
+| Real-contention concurrency tests | **16** |
+| `ruff check` / `ruff format --check` | clean |
+| `mypy --strict` | clean, 32 source files |
+| Alembic upgrade / check / downgrade / re-upgrade | clean, 3 revisions |
+| Canonical reference files unchanged | 1,324 verified by hash |
+
+Python 3.14.6, macOS. `main` untouched; nothing pushed.
