@@ -20,6 +20,7 @@ archive. The decisions of ``tier_gate.py``, ``validation_gate.py`` and
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections import Counter
 from pathlib import Path
@@ -31,8 +32,20 @@ from aia_core.domain.evidence import (
     ClaimRule,
     FieldPolicyBook,
     FieldUse,
+    JointDegradation,
     ProductionGrade,
+    load_joint_status,
 )
+
+REPO = Path(__file__).resolve().parents[3]
+
+
+@pytest.fixture(scope="module")
+def ledger(reference_repo: Path) -> dict[str, dict[str, Any]]:
+    """The reference methodology ledger, by entry id (M01..M17)."""
+    raw = json.loads((reference_repo / "methodology-ledger.json").read_text(encoding="utf-8"))
+    return {entry["id"]: entry for entry in raw["entries"]}
+
 
 # --- 1. Field policy: EXACT for all 400 fields ---------------------------------------
 
@@ -96,3 +109,51 @@ def test_runtime_columns_without_an_entry_stay_undeclared(
     assert len(extra) == 8
     assert reference_book.undeclared_runtime_columns == frozenset(extra)
     assert not extra & reference_book.fields.keys()
+
+
+# --- 2. CORE_JOINT_STATUS: EXACT on the restrictions and the hash binding (M03) ------
+
+
+@pytest.mark.parity
+def test_certificate_restrictions_are_the_ledgers(
+    ledger: dict[str, dict[str, Any]], certificate_bytes: Any
+) -> None:
+    """A certificate carrying M03's restrictions loads to exactly those restrictions."""
+    m03 = ledger["M03"]
+    restrictions = m03["claim_restrictions"]
+    sha = m03["constants"]["panel_sha256"].split()[0]
+    certificate = certificate_bytes(
+        production_panel=m03["constants"]["production_panel"],
+        panel_sha256=sha,
+        matched_blocks=m03["matched_blocks"],
+        **restrictions,
+    )
+    status = load_joint_status(certificate, measured_panel_sha256=sha)
+    assert status.certified
+    for key, expected in restrictions.items():
+        assert getattr(status, key) == expected, key
+    assert sorted(status.matched_blocks) == sorted(m03["matched_blocks"])
+
+    moved = load_joint_status(certificate, measured_panel_sha256=hashlib.sha256(b"x").hexdigest())
+    assert moved.degradation is JointDegradation.PANEL_HASH_MISMATCH
+
+
+@pytest.mark.parity
+def test_the_real_certificate_is_honoured_against_the_real_panel(legacy_root: Path) -> None:
+    """With the archive: the shipped certificate parses and binds to the shipped panel.
+
+    If this fails on a key name, the certificate's real shape differs from the
+    one documented in population-subsystem.md -- a finding, not a flake.
+    """
+    manifest = json.loads((REPO / "docs/migration/reference-manifest.json").read_text())
+    raw = (legacy_root / "CORE_JOINT_STATUS.json").read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == manifest["files"]["CORE_JOINT_STATUS.json"]
+    declared = json.loads(raw)
+    panel = next(legacy_root.rglob(str(declared["production_panel"])))
+    status = load_joint_status(
+        raw, measured_panel_sha256=hashlib.sha256(panel.read_bytes()).hexdigest()
+    )
+    assert status.certified, status.detail
+    assert not status.cross_block_same_person_joint
+    assert not status.client_joint_outputs_allowed
+    assert not status.cross_block_joint_claims_allowed

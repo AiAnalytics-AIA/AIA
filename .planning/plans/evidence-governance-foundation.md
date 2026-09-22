@@ -75,7 +75,7 @@ passes at 95% — so a draft the prototype would publish can be blocked here.
       `EvidenceStatus`, `ProvenanceClass`, `ClaimRule`, eligibility derivation,
       `FieldPolicyBook` with fail-closed document parsing. EXACT parity against
       the reference `field-policy.json` for all 400 fields.
-- [ ] 2. `CORE_JOINT_STATUS` certificate: hash-bound loading with explicit
+- [x] 2. `CORE_JOINT_STATUS` certificate: hash-bound loading with explicit
       degradation, joint-unit classification of fields.
 - [ ] 3. Allowed analysis metrics + effective-n support: `AnalysisMetric`,
       Kish effective n, `SupportStatus` defaulting to `SUPPRESS`, suppression by

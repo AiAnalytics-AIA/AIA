@@ -33,8 +33,23 @@ from .gate import (
     block,
     combine,
 )
+from .joint_status import (
+    CORE_BLOCKS,
+    CORE_UNIT,
+    JointDegradation,
+    JointStatus,
+    JointUnitKind,
+    PredictionValidationStatus,
+    StructureStatus,
+    evaluate_joint_structure,
+    joint_unit,
+    joint_unit_kind,
+    load_joint_status,
+)
 
 __all__ = [
+    "CORE_BLOCKS",
+    "CORE_UNIT",
     "ClaimRule",
     "EvidenceStatus",
     "FieldEligibility",
@@ -45,8 +60,13 @@ __all__ = [
     "FieldUse",
     "GateBlocked",
     "GateDecision",
+    "JointDegradation",
+    "JointStatus",
+    "JointUnitKind",
+    "PredictionValidationStatus",
     "ProductionGrade",
     "ProvenanceClass",
+    "StructureStatus",
     "UndeclaredField",
     "Violation",
     "ViolationCode",
@@ -56,6 +76,10 @@ __all__ = [
     "combine",
     "derive_eligibility",
     "derive_field_policy",
+    "evaluate_joint_structure",
+    "joint_unit",
+    "joint_unit_kind",
+    "load_joint_status",
     "mandated_weight_scheme",
     "provenance_class_for",
 ]

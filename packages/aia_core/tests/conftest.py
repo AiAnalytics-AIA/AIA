@@ -538,3 +538,58 @@ def field_book(dictionary_rows: list[dict[str, str]]) -> Any:
         runtime_columns=[r["field"] for r in dictionary_rows]
         + list(SYNTHETIC_RUNTIME_ONLY_COLUMNS),
     )
+
+
+SYNTHETIC_PANEL_SHA256 = "b" * 64
+
+# Shaped like the reference certificate (population-subsystem.md §10), with a
+# synthetic panel name and hash.
+SYNTHETIC_JOINT_CERTIFICATE: dict[str, Any] = {
+    "production_panel": "synthetic_panel.csv.gz",
+    "panel_sha256": SYNTHETIC_PANEL_SHA256,
+    "structure_status": "QC_PASSED",
+    "prediction_validation_status": "EXTERNAL_HOLDOUT_PENDING",
+    "matched_blocks": [
+        "mental_health",
+        "social_network",
+        "institutions",
+        "rule_of_law",
+        "politics",
+        "family_health",
+    ],
+    "core_same_person_joint": True,
+    "cross_block_same_person_joint": False,
+    "client_joint_outputs_allowed": False,
+    "descriptive_core_outputs_allowed": True,
+    "matched_block_outputs_allowed": True,
+    "cross_block_joint_claims_allowed": False,
+    "runtime_identity_contract": (
+        "single authoritative core; specialist donor demographics and party identity are audit-only"
+    ),
+}
+
+
+@pytest.fixture
+def certificate_bytes() -> Any:
+    """Build certificate bytes from the synthetic certificate plus overrides."""
+    import json
+
+    def build(**overrides: Any) -> bytes:
+        return json.dumps({**SYNTHETIC_JOINT_CERTIFICATE, **overrides}).encode("utf-8")
+
+    return build
+
+
+@pytest.fixture
+def joint_status(certificate_bytes: Any) -> Any:
+    """The certified status: the synthetic certificate bound to the synthetic panel."""
+    from aia_core.domain.evidence import load_joint_status
+
+    return load_joint_status(certificate_bytes(), measured_panel_sha256=SYNTHETIC_PANEL_SHA256)
+
+
+@pytest.fixture
+def degraded_joint_status() -> Any:
+    from aia_core.domain.evidence import load_joint_status
+
+    return load_joint_status(None, measured_panel_sha256=SYNTHETIC_PANEL_SHA256)
