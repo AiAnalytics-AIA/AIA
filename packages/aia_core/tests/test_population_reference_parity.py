@@ -1,0 +1,401 @@
+"""Population parity against AIA-reference: field policy, dataset ledger, F10, F11.
+
+Reads the **committed** contracts and golden fixtures of
+``AiAnalytics-AIA/AIA-reference`` -- never the withheld archive, never licensed
+data. Skips cleanly when the checkout is absent (``AIA_REFERENCE_REPO``), and is
+marked ``parity`` so it runs under ``make test-parity``. A skip is reported, never
+counted as a pass.
+
+Three things are proven here that the unit suite cannot prove on its own:
+
+1. **The pinned contract is the reference's contract.** Every value in
+   ``domain.population.czech`` is re-derived from the reference and compared.
+2. **The real 400 field names pass real validation.** A synthetic panel is built
+   with the actual ordered field names from ``field-policy.json`` and imported
+   through ``PopulationRuntime`` under the production contract's own field
+   fingerprint, primary key, text fields, prefixes and derived fields.
+3. **F10 and F11 behave as INTENTIONAL_DIFFERENCE.** One loader where the
+   reference had two; every silent weight fallback the reference had is a refusal.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import replace
+from pathlib import Path
+from typing import Any
+
+import pytest
+from sqlalchemy.orm import Session
+
+from aia_core.application.population import PopulationRuntime
+from aia_core.domain.population import (
+    CZ_SYNTHETIC_V17,
+    DerivedOrigin,
+    ImportRejected,
+    KnownVersion,
+    ParsedPanel,
+    PopulationKind,
+    PopulationSelector,
+    PopulationView,
+    WeightResolutionError,
+    WeightScheme,
+    content_sha256,
+    field_names_fingerprint,
+    resolve_weight_scheme,
+)
+from aia_core.infrastructure.population_source import InMemoryPopulationSource
+
+pytestmark = pytest.mark.parity
+
+REPO = Path(__file__).resolve().parents[3]
+CZ = CZ_SYNTHETIC_V17
+
+
+def load(reference_repo: Path, relative: str) -> Any:
+    return json.loads((reference_repo / relative).read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def field_policy(reference_repo: Path) -> Any:
+    return load(reference_repo, "field-policy.json")
+
+
+@pytest.fixture(scope="module")
+def field_names(field_policy: Any) -> tuple[str, ...]:
+    return tuple(f["field"] for f in field_policy["fields"])
+
+
+@pytest.fixture(scope="module")
+def f10(reference_repo: Path) -> Any:
+    return load(reference_repo, "golden-fixtures/F10_dual_panel_loader_divergence.json")
+
+
+@pytest.fixture(scope="module")
+def f11(reference_repo: Path) -> Any:
+    return load(reference_repo, "golden-fixtures/F11_analysis_weight_fallback_chains.json")
+
+
+# --------------------------------------------------------------------------- #
+# 1. The pinned contract is the reference's contract
+# --------------------------------------------------------------------------- #
+
+
+def test_reference_is_the_snapshot_this_repository_points_at(
+    reference_repo: Path, field_policy: Any
+) -> None:
+    manifest = json.loads((REPO / "docs/migration/reference-manifest.json").read_text())
+    assert field_policy["reference_zip_sha256"] == manifest["authoritative_source"]["sha256"]
+    for fixture in load(reference_repo, "golden-fixtures/manifest.json")["fixtures"]:
+        assert fixture["reference_zip_sha256"] == manifest["authoritative_source"]["sha256"]
+
+
+def test_dictionary_hash_and_field_count_match(
+    field_policy: Any, field_names: tuple[str, ...]
+) -> None:
+    assert field_policy["source_file"] == "FIELD_DICTIONARY_v17_1.csv"
+    assert field_policy["source_sha256"] == CZ.dictionary_sha256
+    assert field_policy["declared_field_count"] == CZ.field_count == 400
+    assert len(field_names) == len(set(field_names)) == 400
+
+
+def test_ordered_field_name_fingerprint_matches(field_names: tuple[str, ...]) -> None:
+    assert field_names_fingerprint(field_names) == CZ.field_names_sha256
+
+
+def test_schema_critical_fields_are_source_fields(field_names: tuple[str, ...]) -> None:
+    assert CZ.primary_key in field_names
+    assert CZ.text_fields <= set(field_names)
+    assert set(CZ.weight_columns) <= set(field_names)
+    assert not [f for f in field_names if f.startswith(CZ.forbidden_prefixes)]
+
+
+def test_the_eight_runtime_fields_are_exactly_the_undictionaried_ones(
+    field_policy: Any, field_names: tuple[str, ...]
+) -> None:
+    undictionaried = {c["field"] for c in field_policy["runtime_columns_without_dictionary_entry"]}
+    assert {d.name for d in CZ.derived_fields} == undictionaried
+    assert len(undictionaried) == 8
+    assert not undictionaried & set(field_names)
+    assert all(
+        c["status"] == "NO_DICTIONARY_ENTRY"
+        for c in field_policy["runtime_columns_without_dictionary_entry"]
+    )
+
+
+def test_occupation_isco08_is_declared_as_text_in_the_reference(field_policy: Any) -> None:
+    entry = next(f for f in field_policy["fields"] if f["field"] == "occupation_isco08")
+    # The dictionary itself says the code is text with significant leading zeros.
+    assert "ISCO-08" in entry["description"]
+    assert "occupation_isco08" in CZ.text_fields
+
+
+def test_the_three_versions_match_the_dataset_ledger(reference_repo: Path) -> None:
+    ledger = {
+        d["path"].rsplit("/", 1)[-1]: d
+        for d in load(reference_repo, "dataset-ledger.json")["datasets"]
+    }
+    expected = {
+        "v17_0_BASE": ("FINALNI_KOMPLETNI_PANEL_v17_0_BASE.csv.gz", "LINEAGE_ROOT"),
+        "v17_1_2": ("FINALNI_KOMPLETNI_PANEL_v17_1_2.csv.gz", "CZ_STATIC_REFERENCE"),
+        "v17_4_0": ("FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz", "CZ_LIVE"),
+    }
+    for label, (filename, role) in expected.items():
+        known = CZ.known_version(label)
+        entry = ledger[filename]
+        assert known is not None
+        assert (known.sha256, known.byte_size) == (entry["sha256"], entry["bytes"])
+        assert (entry["rows"], entry["columns"]) == (CZ.expected_rows, CZ.field_count)
+        assert entry["primary_key"] == CZ.primary_key
+        assert entry["role"] == role
+    assert CZ.static_reference_label == "v17_1_2"
+    dictionary = ledger["FIELD_DICTIONARY_v17_1.csv"]
+    assert (dictionary["sha256"], dictionary["rows"]) == (CZ.dictionary_sha256, 400)
+
+
+# --------------------------------------------------------------------------- #
+# 2. The real 400 names through real validation
+# --------------------------------------------------------------------------- #
+
+
+class ConstantEnricher:
+    """Stands in for the unrecovered enrichment so the ANALYSIS shape can be checked."""
+
+    enricher_id = "parity-constant"
+
+    def derive(self, panel: ParsedPanel) -> dict[str, tuple[str, ...]]:
+        return dict.fromkeys(CZ.enrichment_fields, ("x",) * panel.row_count)
+
+
+def synthetic_cz_bundle(
+    field_names: tuple[str, ...], gzip_csv: Any, *, drop: tuple[str, ...] = ()
+) -> tuple[Any, InMemoryPopulationSource]:
+    """A 5-row panel over the real 400 field names, under a contract that keeps
+    every production rule except the ones tied to the real bytes."""
+    rows = []
+    for i in range(5):
+        row = dict.fromkeys(field_names, "x")
+        row["panel_row_id"] = f"SYN{i}"
+        row["occupation_isco08"] = "0110"
+        for column in CZ.weight_columns:
+            row[column] = "2.5"
+        rows.append(row)
+    header = tuple(f for f in field_names if f not in drop)
+    panels = {
+        # Distinct bytes per version: the key carries the label.
+        label: gzip_csv(
+            header, [r | {"panel_row_id": f"{label}-{r['panel_row_id']}"} for r in rows]
+        )
+        for label in ("syn_root", "syn_static", "syn_live")
+    }
+    dictionary = ("field\n" + "\n".join(field_names) + "\n").encode()
+    contract = replace(
+        CZ,
+        contract_id="cz_synthetic_population/v17-parity",
+        dictionary_sha256=content_sha256(dictionary),
+        expected_rows=5,
+        weight_schemes=tuple(
+            WeightScheme(s.role, s.column, expected_total=12.5, tolerance=1e-9)
+            if s.expected_total is not None
+            else s
+            for s in CZ.weight_schemes
+        ),
+        known_versions=(
+            KnownVersion("syn_root", content_sha256(panels["syn_root"]), len(panels["syn_root"])),
+            KnownVersion(
+                "syn_static",
+                content_sha256(panels["syn_static"]),
+                len(panels["syn_static"]),
+                "syn_root",
+            ),
+            KnownVersion(
+                "syn_live",
+                content_sha256(panels["syn_live"]),
+                len(panels["syn_live"]),
+                "syn_static",
+            ),
+        ),
+        static_reference_label="syn_static",
+    )
+    source = InMemoryPopulationSource({"dictionary.csv": dictionary})
+    for label, data in panels.items():
+        source.put(f"{label}.csv.gz", data)
+    return contract, source
+
+
+def established_runtime(session: Session, contract: Any, source: Any) -> PopulationRuntime:
+    rt = PopulationRuntime(session, contract=contract, source=source, enricher=ConstantEnricher())
+    ids = {}
+    for label in ("syn_root", "syn_static", "syn_live"):
+        ids[label] = rt.import_version(
+            label=label,
+            panel_location=f"{label}.csv.gz",
+            dictionary_location="dictionary.csv",
+            provenance="parity",
+            imported_by="parity",
+        ).version_id
+    rt.establish(
+        population_id="CZ_STATIC_REFERENCE",
+        kind=PopulationKind.STATIC,
+        version_id=ids["syn_static"],
+        actor_id="parity",
+        reason="parity",
+    )
+    rt.establish(
+        population_id="CZ_LIVE",
+        kind=PopulationKind.LIVE,
+        version_id=ids["syn_live"],
+        actor_id="parity",
+        reason="parity",
+    )
+    return rt
+
+
+def test_the_real_400_field_names_import_under_the_production_rules(
+    session: Session, field_names: tuple[str, ...], gzip_csv_writer: Any
+) -> None:
+    contract, source = synthetic_cz_bundle(field_names, gzip_csv_writer)
+    assert contract.field_names_sha256 == CZ.field_names_sha256  # the real fingerprint
+    rt = established_runtime(session, contract, source)
+    base = rt.load(rt.resolve(PopulationSelector.population("CZ_LIVE"), view=PopulationView.BASE))
+    assert base.fields == field_names
+    assert base.column("occupation_isco08")[0] == "0110"
+
+
+def test_a_real_field_renamed_is_rejected(
+    session: Session, field_names: tuple[str, ...], gzip_csv_writer: Any
+) -> None:
+    renamed = tuple("vek_renamed" if f == "vek" else f for f in field_names)
+    contract, source = synthetic_cz_bundle(renamed, gzip_csv_writer)
+    contract = replace(contract, field_names_sha256=CZ.field_names_sha256)
+    rt = PopulationRuntime(session, contract=contract, source=source)
+    with pytest.raises(ImportRejected) as caught:
+        rt.import_version(
+            label="syn_root",
+            panel_location="syn_root.csv.gz",
+            dictionary_location="dictionary.csv",
+            provenance="parity",
+            imported_by="parity",
+        )
+    assert any(f.startswith("dictionary.field_names") for f in caught.value.failures)
+
+
+# --------------------------------------------------------------------------- #
+# 3. F10 -- one canonical loader, named views
+# --------------------------------------------------------------------------- #
+
+
+def test_f10_fixture_is_anchored_to_the_live_version(f10: Any) -> None:
+    live = CZ.known_version("v17_4_0")
+    assert live is not None
+    assert f10["dataset_sha256"] == live.sha256
+    assert tuple(f10["input"]["declared_shape"]) == (CZ.expected_rows, CZ.field_count)
+    assert f10["parity_type"] == "INTENTIONAL_DIFFERENCE"
+
+
+def test_f10_the_analysis_view_is_the_reference_research_loaders_shape(
+    session: Session, f10: Any, field_names: tuple[str, ...], gzip_csv_writer: Any
+) -> None:
+    loader_b = f10["expected_output"]["loader_b"]
+    contract, source = synthetic_cz_bundle(field_names, gzip_csv_writer)
+    rt = established_runtime(session, contract, source)
+    analysis = rt.load(rt.resolve(PopulationSelector.population("CZ_LIVE")))
+
+    extra = sorted(set(analysis.fields) - set(field_names))
+    assert extra == sorted(loader_b["extra_vs_400"])
+    assert len(analysis.fields) == loader_b["n_columns"] == 408
+    assert loader_b["has_analysis_weight"] is True
+    assert analysis.origin(CZ.analysis_weight_field).value == DerivedOrigin.ANALYSIS_WEIGHT
+
+
+def test_f10_the_only_loader_divergence_is_now_a_named_view(
+    session: Session, f10: Any, field_names: tuple[str, ...], gzip_csv_writer: Any
+) -> None:
+    divergence = f10["expected_output"]["divergence"]
+    loader_a = f10["expected_output"]["loader_a"]
+    assert divergence["columns_only_in_b"] == [CZ.analysis_weight_field]
+    assert divergence["rows_dropped_by_b"] == 0
+    # The reference's HTTP loader (A) is the enrichment without the weight.
+    assert sorted(loader_a["extra_vs_400"]) == sorted(CZ.enrichment_fields)
+
+    contract, source = synthetic_cz_bundle(field_names, gzip_csv_writer)
+    rt = established_runtime(session, contract, source)
+    base = rt.load(rt.resolve(PopulationSelector.population("CZ_LIVE"), view=PopulationView.BASE))
+    analysis = rt.load(rt.resolve(PopulationSelector.population("CZ_LIVE")))
+    # Same bytes, same binding target: the views differ only by the declared
+    # derived fields, and the difference is recorded on each binding.
+    assert set(analysis.fields) - set(base.fields) == {d.name for d in CZ.derived_fields}
+    assert base.binding.version_id == analysis.binding.version_id
+    assert (base.binding.view, analysis.binding.view) == (
+        PopulationView.BASE,
+        PopulationView.ANALYSIS,
+    )
+
+
+def test_f10_weight_totals_match_the_contract(f10: Any) -> None:
+    sums = f10["expected_output"]["loader_b"]["weight_sums"]
+    for column, total in sums.items():
+        scheme = next(s for s in CZ.weight_schemes if s.column == column)
+        assert scheme.expected_total == total
+    assert (
+        f10["expected_output"]["loader_b"]["analysis_weight"]["sum"]
+        == sums[resolve_weight_scheme(CZ).column]
+    )
+
+
+# --------------------------------------------------------------------------- #
+# 4. F11 -- every silent weight fallback is a refusal
+# --------------------------------------------------------------------------- #
+
+
+def test_f11_declared_schemes_match(f11: Any) -> None:
+    declared = f11["expected_output"]["declared_schemes"]
+    assert {s.role: s.column for s in CZ.weight_schemes} == declared
+    totals = f11["expected_output"]["measured_totals"]
+    for column, total in totals.items():
+        assert next(s for s in CZ.weight_schemes if s.column == column).expected_total == total
+
+
+def test_f11_scenario_1_declared_roles_resolve_and_unknown_is_refused(f11: Any) -> None:
+    chain = f11["expected_output"]["fallback_chains"]["1_role_resolution"]
+    for role, column in chain.items():
+        if role in ("UNKNOWN_ROLE", "classification"):
+            continue
+        assert resolve_weight_scheme(CZ, role).column == column
+    # Reference: UNKNOWN_ROLE -> "vaha_kalibrovana" (Census 2021). Here: an error.
+    assert chain["UNKNOWN_ROLE"] == "vaha_kalibrovana"
+    with pytest.raises(WeightResolutionError):
+        resolve_weight_scheme(CZ, "UNKNOWN_ROLE")
+
+
+def test_f11_scenario_2_the_default_is_the_declared_structural_weight(f11: Any) -> None:
+    scenario = f11["expected_output"]["fallback_chains"]["2_weight_present"]
+    assert resolve_weight_scheme(CZ).column == scenario["resolved"]
+    assert scenario["classification"] == "intended"
+
+
+@pytest.mark.parametrize("scenario", ["3_declared_column_missing", "4_all_weights_missing"])
+def test_f11_scenarios_3_and_4_a_missing_weight_column_is_rejected(
+    session: Session,
+    f11: Any,
+    field_names: tuple[str, ...],
+    gzip_csv_writer: Any,
+    scenario: str,
+) -> None:
+    chain = f11["expected_output"]["fallback_chains"][scenario]
+    dropped = chain["dropped"] if isinstance(chain["dropped"], list) else [chain["dropped"]]
+    # The reference silently reweighted (3) or went unweighted (4).
+    assert chain["classification"].startswith("DEFECT")
+    contract, source = synthetic_cz_bundle(field_names, gzip_csv_writer, drop=tuple(dropped))
+    rt = PopulationRuntime(session, contract=contract, source=source)
+    with pytest.raises(ImportRejected) as caught:
+        rt.import_version(
+            label="syn_root",
+            panel_location="syn_root.csv.gz",
+            dictionary_location="dictionary.csv",
+            provenance="parity",
+            imported_by="parity",
+        )
+    roles = {s.role for s in CZ.weight_schemes if s.column in dropped}
+    for role in roles:
+        assert any(f.startswith(f"weights.{role}.present") for f in caught.value.failures)

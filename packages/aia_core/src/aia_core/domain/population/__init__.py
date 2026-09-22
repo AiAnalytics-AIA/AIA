@@ -1,0 +1,127 @@
+"""The ``population`` bounded context: the synthetic population as a runtime asset.
+
+Pure. The Czech synthetic population is a core runtime dependency, not reference
+material -- no research, simulation or Sociomapping run can proceed without a valid,
+identified version of it. This package holds the rules that make that dependency
+safe: content-addressed versions, STATIC and LIVE roles, lineage, explicit
+promotion, and the fail-closed errors every refusal raises.
+
+The single entry point for callers above the domain is
+``aia_core.application.population.PopulationRuntime``.
+"""
+
+from .binding import (
+    PopulationBinding,
+    PopulationSelector,
+    PopulationView,
+    ResolutionMode,
+    resolve_binding,
+)
+from .contract import (
+    DerivedField,
+    DerivedOrigin,
+    KnownVersion,
+    PopulationImportContract,
+    WeightScheme,
+    field_names_fingerprint,
+)
+from .czech import CZ_DATASET_ID, CZ_LIVE, CZ_STATIC_REFERENCE, CZ_SYNTHETIC_V17
+from .errors import (
+    EnrichmentFailed,
+    ImportRejected,
+    LineageError,
+    PopulationBindingConflict,
+    PopulationBindingMissing,
+    PopulationBindingRequired,
+    PopulationError,
+    PopulationNotEstablished,
+    PromotionConflict,
+    PromotionRefused,
+    StaticReferenceImmutable,
+    UnknownDatasetVersion,
+    VersionIntegrityError,
+    VersionNotRuntimeEligible,
+    WeightResolutionError,
+)
+from .runtime import FieldOrigin, RuntimePopulation
+from .table import ParsedDictionary, ParsedPanel
+from .validation import CheckResult, ImportReport, validate_import
+from .versions import (
+    VERSION_ID_HASH_CHARS,
+    DatasetVersion,
+    Population,
+    PopulationKind,
+    PromotionRecord,
+    VersionStatus,
+    ancestry,
+    content_sha256,
+    dataset_version_id,
+    descends_from,
+    is_sha256,
+    new_promotion_id,
+    plan_establish,
+    plan_promotion,
+    require_runtime_eligible,
+    version_status,
+)
+from .weights import WeightResolution, analysis_weights, parse_weight, resolve_weight_scheme
+
+__all__ = [
+    "CZ_DATASET_ID",
+    "CZ_LIVE",
+    "CZ_STATIC_REFERENCE",
+    "CZ_SYNTHETIC_V17",
+    "VERSION_ID_HASH_CHARS",
+    "CheckResult",
+    "DatasetVersion",
+    "DerivedField",
+    "DerivedOrigin",
+    "EnrichmentFailed",
+    "FieldOrigin",
+    "ImportRejected",
+    "ImportReport",
+    "KnownVersion",
+    "LineageError",
+    "ParsedDictionary",
+    "ParsedPanel",
+    "Population",
+    "PopulationBinding",
+    "PopulationBindingConflict",
+    "PopulationBindingMissing",
+    "PopulationBindingRequired",
+    "PopulationError",
+    "PopulationImportContract",
+    "PopulationKind",
+    "PopulationNotEstablished",
+    "PopulationSelector",
+    "PopulationView",
+    "PromotionConflict",
+    "PromotionRecord",
+    "PromotionRefused",
+    "ResolutionMode",
+    "RuntimePopulation",
+    "StaticReferenceImmutable",
+    "UnknownDatasetVersion",
+    "VersionIntegrityError",
+    "VersionNotRuntimeEligible",
+    "VersionStatus",
+    "WeightResolution",
+    "WeightResolutionError",
+    "WeightScheme",
+    "analysis_weights",
+    "ancestry",
+    "content_sha256",
+    "dataset_version_id",
+    "descends_from",
+    "field_names_fingerprint",
+    "is_sha256",
+    "new_promotion_id",
+    "parse_weight",
+    "plan_establish",
+    "plan_promotion",
+    "require_runtime_eligible",
+    "resolve_binding",
+    "resolve_weight_scheme",
+    "validate_import",
+    "version_status",
+]

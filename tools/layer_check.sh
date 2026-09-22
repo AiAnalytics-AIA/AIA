@@ -125,6 +125,32 @@ forbid "the API never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$API"
 
+# --- Population: one resolver, one loader ----------------------------------
+#
+# The reference answered "which population is in use" in four places and loaded
+# it through two loaders that returned different populations from the same bytes
+# (AIA-reference R4, fixture F10). A RuntimePopulation is issued only by
+# PopulationRuntime in application/population.py, through a module-private
+# sentinel; runtime.py defines it. Parsing a panel anywhere else is the first step
+# of a second loader, so that is refused too; population_parser.py is the parser.
+forbid "runtime populations are issued only by the canonical loader" \
+  '^[^#]*RuntimePopulation\._issue\(' \
+  "$CORE" \
+  population.py runtime.py
+
+forbid "the API never issues a runtime population" \
+  '^[^#]*RuntimePopulation\._issue\(' \
+  "$API"
+
+forbid "population panels are parsed only by the canonical loader" \
+  '^[^#]*\bparse_panel\(' \
+  "$CORE" \
+  population.py population_parser.py
+
+forbid "the API never parses a population panel" \
+  '^[^#]*\bparse_panel\(' \
+  "$API"
+
 # --- Tests: the signal is never deleted ------------------------------------
 #
 # A failing test is a finding (ARCHITECTURE.md §7). Runtime `pytest.skip(...)`

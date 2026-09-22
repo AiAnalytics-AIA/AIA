@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `remediation/public-reference-exposure` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/trusting-brown-ohxj1c` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -27,9 +27,18 @@ entry is a **hypothesis**, not a finding.
 | 2C | Authentication boundary: `IdentityProvider` as the only seam; offline-testable Cognito JWT validation; `VerifiedIdentity` carries identity and nothing else | `apps/api/src/aia_api/identity/cognito.py` @ df294e2 · `apps/api/tests/test_identity.py` |
 | 3 | Durable workflow engine: `WorkflowRun → StepRun → StepAttempt`, append-only attempts, `FOR UPDATE SKIP LOCKED` claiming, leases, heartbeats, budget reservations under a study-row lock, cooperative cancellation | `packages/aia_core/src/aia_core/infrastructure/workflow_repository.py` @ df294e2 · `tests/test_workflow_engine.py`, `tests/test_workflow_concurrency.py` |
 | 3 | Characterization of the legacy job engine: 64 tests describing `job_store.py` before any of it was reimplemented | `packages/aia_core/tests/test_legacy_job_store_characterization.py` @ df294e2 |
+| 8 (foundation) | **Population version + import foundation.** Content-addressed `DatasetVersion`, STATIC/LIVE with explicit compare-and-set promotion, lineage, lossless import validation against a hash-pinned 400-field contract, canonical weight resolution with no fallback, one loader (`PopulationRuntime`) issuing an unforgeable `RuntimePopulation`, a `PopulationBinding` recorded per run. Uncommitted at time of writing — see the plan | `packages/aia_core/src/aia_core/domain/population/` · `application/population.py` · `tests/test_population_*.py` · `.planning/plans/done/population-version-foundation.md` |
 | — | **Development rules adopted**: `ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`, `.planning/`, `tools/layer_check.sh` blocking in CI | `tools/layer_check.sh` @ this change · `.planning/plans/done/development-rules-adoption.md` |
 
-**Verified state.** Re-measured on PostgreSQL 16 and Python 3.12.12 when the
+**Verified state, population foundation** (PostgreSQL 16.13, Python 3.12.3,
+core + API): **791 passed / 100 skipped** on PostgreSQL with
+`AIA_REQUIRE_POSTGRES=1` (563 / 100 at `17c0a6b`), **773 / 118** on SQLite (546 /
+117), 17 concurrency tests under real contention, `mypy --strict` clean across 51
+source files, `layer_check` 16/16, `exposure_check` 7/7, migration `1068fd22455d`
+reversible with no model drift. The 18 population parity tests ran against
+AIA-reference @ `678e298`; without it they skip (755 / 136 on SQLite).
+
+**Verified state, earlier.** Re-measured on PostgreSQL 16 and Python 3.12.12 when the
 development rules landed: **402 passed / 94 skipped** on PostgreSQL, **386 passed
 / 110 skipped** on SQLite, 16 concurrency tests passing under real contention
 with `AIA_REQUIRE_POSTGRES=1`, `mypy --strict` clean across 32 source files,
@@ -102,6 +111,27 @@ it is not answered. "The local agent said so" is not an anchor.
 
 Ordered. Take the top item unless told otherwise, and **write the plan to
 `.planning/plans/<feature>.md` with its chunks before writing code**.
+
+**Before the research engine can consume the population** (population-data owns
+these; none is started):
+
+- a. **Enrichment** — recover the seven `*_derived` derivations and port them behind
+  `Enricher` with an EXACT fixture, or decide they are not needed. Until then the
+  ANALYSIS view refuses to load (OI-7).
+- b. **Classify the 8 runtime fields** (data owner). `DerivedField.client_claims_allowed`
+  is False for all of them.
+- c. **Field policy as code** (R5) — derive typed per-field claim rules from the
+  dictionary that already travels with every version.
+- d. **Companion assets** — scorecard, persona catalogue, respondent audit and the
+  `CORE_JOINT_STATUS.json` hash-bound certificate (R6) validated at import;
+  `ImportReport.companions_validated` is False today.
+- e. **The EU asset store** behind `PopulationAssetSource`, and the first real import
+  of all three versions (needs `REF-WITHHELD-REFERENCE-ARCHIVE` resolved).
+- f. **A permission on establish/promote** before anything exposes them (OI-8).
+- g. **Stage fingerprints from the binding**, not free text (OI-6).
+- h. **Typed / columnar views** (numeric fields, the M07 age floor) as named,
+  recorded transformations over the text-preserving load, and a process-wide cache
+  for workers.
 
 1. **Classify the ambiguous legacy brand tokens** (data owner, D4 below). Blocks
    the manifest reduction in
