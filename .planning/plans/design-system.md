@@ -74,12 +74,16 @@ export const STAGE_STATUS = ["NOT_STARTED", "READY", "RUNNING", "WAITING_USER", 
 export type StageStatus = (typeof STAGE_STATUS)[number];
 
 // design/status.ts
-export type Tone = "running" | "you" | "world" | "fault" | "recovery" | "done" | "done-warn"
+export type Tone = "running" | "person" | "you" | "world" | "fault" | "recovery" | "done" | "done-warn"
   | "ready" | "inert" | "blocked" | "invalid" | "cancelled" | "skipped";
+type BaseTone = Exclude<Tone, "you">;   // the enum alone can never say "you" (DS-3)
 export const STAGE_TONE = {
-  NOT_STARTED: "inert", READY: "ready", RUNNING: "running", WAITING_USER: "you", WAITING_CREDITS: "you",
+  NOT_STARTED: "inert", READY: "ready", RUNNING: "running", WAITING_USER: "person", WAITING_CREDITS: "person",
   WAITING_CAPACITY: "world", DONE: "done", DONE_WITH_WARNINGS: "done-warn", INVALIDATED: "invalid", FAILED: "fault",
-} as const satisfies Record<StageStatus, Tone>;   // a missing or extra key is a tsc error
+} as const satisfies Record<StageStatus, BaseTone>;   // a missing or extra key is a tsc error
+
+// "person" becomes "you" only from server-computed actionability (OI-11):
+export function appearance(kind: StatusKind, raw: string, viewer?: { viewerCanResolve: boolean }): Appearance;
 ```
 
 This gives two independent tripwires:
@@ -101,7 +105,7 @@ Chunks 4–11 resume only after that slice is working and reviewed.
 | 1 | **Tokens, themes, identity.** `design/tokens.json` as the one source; a repository generator emits `tokens.css` and `tokens.ts` (CI fails on drift); `@theme inline`; light/dark/system; self-hosted fonts with licences; identity and favicon assets; the contrast, chart-palette and +35 % Czech checks re-run from the repository. | tokens, generator, fonts, assets, checks | generator drift check; 146 contrast checks; palette validation; stress test |
 | 2 | **Domain enum binding** (high priority). Total `Record<>` mappings for the bound enums; an independent Python ↔ TypeScript parity check in CI. The UI maps state → visual treatment only. Evidence roles: until analysis-governance publishes the contract, an unknown role renders `?` — never measured, never the strongest grade. | `design/enums.ts`, `status.ts`, `evidence.ts`, `tools/enum_parity_check.py` | a fake domain value fails both tripwires |
 | 3 | **Primitives + Vitest** (DS-1). `StatusGlyph`, `StatusChip`, `EvidenceMark`, `Value`, `Money`, `Icon`, `Button`, `Kbd`, `Panel`, with tests: zero ≠ null, null ≠ suppressed, unknown evidence ≠ measured, every status has text and shape besides colour, both themes, keyboard/focus where interactive, Czech labels. Evidence marks stay SVG. | components + tests | `npm test` in CI |
-| V | **First vertical slice.** Portfolio → Client → Study → Study overview → workflow state → human action / approval, on **real APIs** wherever the capability exists: authenticated user, active Client and Study, accent + monogram, study status, real runs and stages, real waiting reasons, what needs *this viewer* (only as the API states it), permitted approvals, budget where data exists, error and recovery states. No fake percentages or synthetic progress. Fixtures only for capabilities that genuinely do not exist, labelled in code, never presented as production-complete, and counted in a machine-readable registry. | pages + API client | a real run through the dev API; fixture count reported |
+| V | **First vertical slice — deliberately narrow.** Portfolio → Client → Study → Study overview → workflow state → human action, on **real APIs** where the capability has an HTTP route today (clients, studies, study detail with budget, projects with their stages and waiting reasons). It uses the chunk 3 primitives plus *minimal* forms of the later pieces: a scope header (client name + monogram + Client / Study, accent from the hash fallback until OI-12), a plain stage list (not the chunk 5 rail), the study's budget/spent/remaining figures (not the chunk 7 meter). Where the backend has **no route yet** — workflow runs and steps, gates and approvals, reservations, viewer actionability — the slice renders the capability as explicitly *unavailable* and files the route as a blocker; it does not substitute a fixture that looks like the real thing. Fixtures remain only where a screen would otherwise be empty, labelled in code, never presented as production-complete, and counted in `src/fixtures/registry.ts`. No fake percentages or synthetic progress. Chunks 4–8 later replace the minimal forms, which is why they stay minimal. | pages + server-side API client | a run against the dev API; fixture and unavailable counts reported |
 | 4 | **Scope chrome.** `ScopeBar`, `ClientMonogram`. API: `clients.accent_slot` (DS-2) — **integration-architecture is notified before the migration lands** (OI-12). | layout + migration | migration reversible; slot-assignment test |
 | 5 | **Lifecycle.** `StageRail` (`"use client"`: roving focus and `[` `]` keys), `RunTimeline`, `RevisionBanner`, `RevisionHistory`. | `components/lifecycle` | keyboard test; narrow layout at 1024 px |
 | 6 | **Impact preview.** Renders the domain `ImpactPreview` only: stages preserved, stages invalidated, the presentation-only flag, and cost and duration **explicitly unavailable**. React computes no estimate. The estimator is a cross-context dependency (`ImpactPreviewEstimate`, OI-10). | component + endpoint wiring | cost/duration render as unavailable while the contract is absent |
