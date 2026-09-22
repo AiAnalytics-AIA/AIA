@@ -210,3 +210,31 @@ the current order.
 **Status.** Open. The worker's executor contract (`aia_worker.executor`) tells
 executors to settle a refused call at zero before reporting the refusal, which
 closes the path for every executor that follows it.
+
+---
+
+## OI-7 · Question · Should revoking a researcher stop the runs they started?
+
+**Claim.** A worker executes a claimed attempt under a scope issued from the lease
+(`ScopeResolver.execution_context`), with the run's `triggered_by` as actor. It
+does **not** re-check that the triggering user is still active or still holds a
+grant on the study, so a run started by someone since deactivated or revoked runs
+to completion.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/scope.py`
+`ScopeResolver.execution_context` @ this change — the only denials are
+`unknown_attempt`, `lease_not_held`, `scope_mismatch` and `client_archived`.
+
+**Consequence.** None known to be harmful yet: the run was authorised when it was
+created (`create_run` requires `RUN_WORKFLOW` on an open study), and a LEAD can
+cancel it. But interactive access is revoked immediately on deactivation
+(`ScopeResolver._active_user`), and background work is not, which is an
+inconsistency somebody should choose deliberately.
+
+**Options.** (a) Keep as is: authority is fixed at run creation. (b) Re-resolve
+the triggerer on each attempt and `WorkQueue.refuse` when it fails — fail closed,
+at the cost of stranding a leaver's in-flight studies until someone re-triggers
+them. (c) (b), but reassign rather than refuse, which needs a product rule for
+who inherits.
+
+**Status.** Open. A product/security decision, not an engineering one.

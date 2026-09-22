@@ -39,18 +39,29 @@ from ..domain.scope import (
     permissions_for,
     resolve_self_approval_policy,
 )
+from ..domain.workflow import AttemptStatus
 from ..infrastructure.tables import (
     AccessAuditRow,
     ClientGrantRow,
     ClientRow,
     OrganizationMemberRow,
     OrganizationRow,
+    StepAttemptRow,
+    StepRunRow,
     StudyGrantRow,
     StudyRow,
     UserRow,
+    WorkflowRunRow,
 )
 
-__all__ = ["AuthenticatedPrincipal", "ScopeResolver"]
+__all__ = ["EXECUTION_ROLE", "AuthenticatedPrincipal", "ScopeResolver"]
+
+# The role a worker executes under: doing the work, never approving it. RESEARCHER
+# confers RUN_WORKFLOW, EDIT_STUDY and UPLOAD_DATA and withholds APPROVE_GATE,
+# APPROVE_BUDGET and every MANAGE_* permission -- so neither the worker nor any
+# executor or AI tool running inside it can sign off its own gate or raise the
+# budget it is spending.
+EXECUTION_ROLE = ScopeRole.RESEARCHER
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,6 +287,76 @@ class ScopeResolver:
                 raise
 
         return context
+
+    def execution_context(self, *, attempt_id: str, worker_id: str) -> StudyContext:
+        """Issue the scope a worker executes one claimed attempt under.
+
+        **The capability is the lease.** The context is issued only while
+        ``worker_id`` holds ``attempt_id`` -- status ``CLAIMED`` or ``EXECUTING``,
+        owner recorded on the row -- and its organization, client and study come
+        from the persisted attempt → step → run → study chain, never from the
+        caller. Nothing in a worker process can obtain a context for a study it has
+        not claimed work in, and a claim payload or a model-generated argument
+        cannot name one.
+
+        Three properties, each deliberate:
+
+        * **Role** is :data:`EXECUTION_ROLE`: the worker can do the work and
+          cannot approve it.
+        * **Actor** is the run's ``triggered_by`` -- the human on whose behalf the
+          work runs -- so a gate the worker opens records that person as the
+          producer, and the separation-of-duties check compares against them.
+          A run with no recorded trigger is attributed to ``worker:<id>``.
+        * **Fail closed** on an archived client: its work stops, whatever was in
+          flight. (Whether a revoked or deactivated *triggering user* should also
+          stop their runs is an open policy question -- ``open-items.md`` OI-7 --
+          and is not decided here.)
+
+        Denials raise :class:`ScopeDenied` with a reason, like every other
+        resolution.
+        """
+        row = self._session.execute(
+            select(StepAttemptRow, WorkflowRunRow, StudyRow, ClientRow)
+            .join(StepRunRow, StepRunRow.step_id == StepAttemptRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .join(StudyRow, StudyRow.study_id == WorkflowRunRow.study_id)
+            .join(ClientRow, ClientRow.client_id == StudyRow.client_id)
+            .where(StepAttemptRow.attempt_id == attempt_id)
+        ).first()
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_attempt")
+        attempt, run, study, client = row
+
+        if attempt.worker_id != worker_id or not AttemptStatus(attempt.status).holds_lease:
+            raise ScopeDenied("not found", reason="lease_not_held")
+        if (run.organization_id, run.client_id) != (study.organization_id, study.client_id):
+            # The run row carries its own copy of the scope. If it disagrees with
+            # the study it names, one of them is wrong, and guessing which would be
+            # choosing a client's data at random.
+            raise ScopeDenied("not found", reason="scope_mismatch")
+        if client.status == ClientStatus.ARCHIVED.value:
+            raise ScopeDenied("not found", reason="client_archived")
+
+        organization = self._session.scalar(
+            select(OrganizationRow).where(OrganizationRow.organization_id == run.organization_id)
+        )
+        return StudyContext(
+            organization_id=run.organization_id,
+            client_id=study.client_id,
+            study_id=study.study_id,
+            actor_id=run.triggered_by or f"worker:{worker_id}",
+            role=EXECUTION_ROLE,
+            permissions=permissions_for(EXECUTION_ROLE),
+            organization_role=OrganizationRole.MEMBER,
+            grant=ScopeGrant._issue(),
+            study_status=StudyStatus(study.status),
+            self_approval=resolve_self_approval_policy(
+                organization=organization.allow_self_approval if organization else None,
+                client=client.allow_self_approval,
+                study=study.allow_self_approval,
+            ),
+            request_id=f"{run.run_id}/{attempt.attempt_id}",
+        )
 
     def accessible_studies(
         self, principal: AuthenticatedPrincipal, *, client_id: str | None = None

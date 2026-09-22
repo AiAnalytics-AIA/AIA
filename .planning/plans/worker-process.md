@@ -125,10 +125,13 @@ re-run of a possibly-billed call.
   @ 17c0a6b (recovery → `RETRY`, run `RUNNING`, step unclaimable). Tests:
   `test_workflow_release_and_resume.py`. `decide_recovery` itself is unchanged;
   the parity suite could not be run here (OI-1).
-- [ ] 4. **Cross-study queue and execution scope.** `WorkQueue` (claim with a
-  kind filter, recover, resume, refuse); `ScopeResolver.execution_context`;
-  decided gates for a step. Tests: isolation — the context names the claimed
-  study only, a non-holder is refused, RESEARCHER cannot approve.
+- [x] 4. **Cross-study queue and execution scope.** `WorkQueue` (claim with a
+  kind filter, recover, resume, refuse); `ScopeResolver.execution_context`
+  (`EXECUTION_ROLE` = RESEARCHER; actor = `triggered_by`; refuses a non-holder, a
+  finished attempt, a run/study scope mismatch and an archived client);
+  `decided_gates`. Uncertain exposure is now charged to the reservation's own
+  study. *Landed.* Tests: `test_work_queue.py`. Filed OI-7 (should revoking a
+  researcher stop their runs?).
 - [ ] 5. **`apps/worker`.** Executor protocol, context, heartbeat thread, loop,
   typed settings, CLI, test executors. In-process tests on SQLite and PostgreSQL:
   success, retryable / non-retryable failure, possibly-billed failure, budget,

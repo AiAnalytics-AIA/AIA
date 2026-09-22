@@ -22,7 +22,7 @@ The behavioural contract is
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -80,6 +80,7 @@ __all__ = [
     "BudgetExceeded",
     "ClaimedWork",
     "LeaseLost",
+    "WorkQueue",
     "WorkflowNotFound",
     "WorkflowRepository",
 ]
@@ -174,21 +175,43 @@ class WorkflowRepository:
                 "authorization layer; unscoped access is not permitted"
             )
         self._session = session
-        self._scope = scope
+        self._scope: StudyContext | None = scope
+
+    @classmethod
+    def _across_studies(cls, session: Session) -> WorkflowRepository:
+        """An unscoped instance, for :class:`WorkQueue` in this module only.
+
+        Every query then runs without the study predicate, which is exactly what
+        claiming and reconciling across studies need and exactly what nothing
+        else may have. It is reachable only through ``WorkQueue``, which exposes
+        four operations and no read of research data; any scoped public method
+        called on it raises, because :attr:`scope` refuses.
+        """
+        repo = cls.__new__(cls)
+        repo._session = session
+        repo._scope = None
+        return repo
 
     @property
     def scope(self) -> StudyContext:
         """The authorised scope this repository operates in."""
+        if self._scope is None:
+            raise RuntimeError("this repository is the unscoped work queue and has no study scope")
         return self._scope
 
     # ---------------------------------------------------------------- helpers --
 
     def _scope_filter(self) -> tuple[Any, ...]:
-        """The isolation predicate applied to every run query."""
+        """The isolation predicate applied to every run query.
+
+        Empty only for the work queue's unscoped instance (:meth:`_across_studies`).
+        """
+        if self._scope is None:
+            return ()
         return (
-            WorkflowRunRow.organization_id == self._scope.organization_id,
-            WorkflowRunRow.client_id == self._scope.client_id,
-            WorkflowRunRow.study_id == self._scope.study_id,
+            WorkflowRunRow.organization_id == self.scope.organization_id,
+            WorkflowRunRow.client_id == self.scope.client_id,
+            WorkflowRunRow.study_id == self.scope.study_id,
         )
 
     def _run(self, run_id: str) -> WorkflowRunRow:
@@ -330,8 +353,8 @@ class WorkflowRepository:
         The DAG is validated here rather than at execution time, because a cycle
         discovered mid-run would strand a study with some steps already paid for.
         """
-        self._scope.require(Permission.RUN_WORKFLOW)
-        self._scope.require_open_study()
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
 
         existing = self._session.scalar(
             select(WorkflowRunRow).where(
@@ -348,16 +371,16 @@ class WorkflowRepository:
         self._session.add(
             WorkflowRunRow(
                 run_id=run_id,
-                organization_id=self._scope.organization_id,
-                client_id=self._scope.client_id,
-                study_id=self._scope.study_id,
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
                 project_id=project_id,
                 project_revision=int(project_revision),
                 workflow_type=workflow_type,
                 status=WorkflowRunStatus.PENDING.value,
                 priority=int(priority),
                 idempotency_key=idempotency_key,
-                triggered_by=self._scope.actor_id,
+                triggered_by=self.scope.actor_id,
                 metadata_json=metadata or {},
             )
         )
@@ -520,8 +543,14 @@ class WorkflowRepository:
         worker_id: str,
         lease_seconds: int = DEFAULT_LEASE_SECONDS,
         now: datetime | None = None,
+        kinds: Collection[str] | None = None,
     ) -> ClaimedWork | None:
         """Claim one runnable step, creating attempt *n+1*, or return None.
+
+        ``kinds`` restricts the claim to step kinds the caller can execute. A
+        worker that claimed a kind it has no executor for could only fail it, and
+        in a rolling deploy that adds a kind the old workers would do exactly
+        that. ``None`` means any kind; an empty collection claims nothing.
 
         Exclusivity is the whole point. On PostgreSQL this uses
         ``FOR UPDATE SKIP LOCKED``: the row is locked for this transaction, and a
@@ -537,6 +566,8 @@ class WorkflowRepository:
         becomes a resume.
         """
         moment = now or datetime.now(UTC)
+        if kinds is not None and not kinds:
+            return None
 
         candidates = (
             select(StepRunRow)
@@ -560,6 +591,8 @@ class WorkflowRepository:
             .limit(1)
         )
 
+        if kinds is not None:
+            candidates = candidates.where(StepRunRow.kind.in_(sorted(kinds)))
         if self._is_postgres:
             candidates = candidates.with_for_update(skip_locked=True, of=StepRunRow)
 
@@ -882,7 +915,7 @@ class WorkflowRepository:
         reservation = self._session.scalar(
             select(BudgetReservationRow).where(
                 BudgetReservationRow.reservation_id == reservation_id,
-                BudgetReservationRow.study_id == self._scope.study_id,
+                BudgetReservationRow.study_id == self.scope.study_id,
             )
         )
         if reservation is None:
@@ -906,7 +939,7 @@ class WorkflowRepository:
         reservation = self._session.scalar(
             select(BudgetReservationRow).where(
                 BudgetReservationRow.reservation_id == reservation_id,
-                BudgetReservationRow.study_id == self._scope.study_id,
+                BudgetReservationRow.study_id == self.scope.study_id,
             )
         )
         if reservation is None:
@@ -1060,17 +1093,17 @@ class WorkflowRepository:
 
     def budget_position(self) -> dict[str, float]:
         """Return the study's budget position including outstanding reservations."""
-        self._scope.require(Permission.VIEW_COSTS)
+        self.scope.require(Permission.VIEW_COSTS)
         study = self._session.scalar(
-            select(StudyRow).where(StudyRow.study_id == self._scope.study_id)
+            select(StudyRow).where(StudyRow.study_id == self.scope.study_id)
         )
         if study is None:
-            raise WorkflowNotFound(self._scope.study_id)
+            raise WorkflowNotFound(self.scope.study_id)
 
-        reserved = self._outstanding_reservations(self._scope.study_id)
+        reserved = self._outstanding_reservations(self.scope.study_id)
         uncertain = self._session.scalar(
             select(func.coalesce(func.sum(BudgetReservationRow.settled_amount_usd), 0.0)).where(
-                BudgetReservationRow.study_id == self._scope.study_id,
+                BudgetReservationRow.study_id == self.scope.study_id,
                 BudgetReservationRow.status == ReservationStatus.SETTLED_UNCERTAIN.value,
             )
         )
@@ -1419,7 +1452,7 @@ class WorkflowRepository:
         cancelled immediately, and pending gates are closed so nothing is left in
         someone's queue.
         """
-        self._scope.require(Permission.CANCEL_WORKFLOW)
+        self.scope.require(Permission.CANCEL_WORKFLOW)
         run = self._run(run_id)
         if WorkflowRunStatus(run.status).is_terminal:
             return WorkflowRunStatus(run.status)
@@ -1450,7 +1483,7 @@ class WorkflowRepository:
             run_id,
             event_type="RUN_CANCEL_REQUESTED",
             message=reason or "cancellation requested",
-            payload={"reason": reason, "actor_id": self._scope.actor_id},
+            payload={"reason": reason, "actor_id": self.scope.actor_id},
             level="WARN",
         )
         self._session.flush()
@@ -1529,7 +1562,7 @@ class WorkflowRepository:
                 question=question,
                 options_json={"options": list(options)},
                 context_json=context or {},
-                produced_by_user_id=produced_by_user_id or self._scope.actor_id,
+                produced_by_user_id=produced_by_user_id or self.scope.actor_id,
             )
         )
         step.status = StepRunStatus.AWAITING_GATE.value
@@ -1572,7 +1605,7 @@ class WorkflowRepository:
         Every decision is written to the append-only ``approval_decisions``
         ledger, with the policy that allowed it and where that policy came from.
         """
-        self._scope.require(Permission.APPROVE_GATE)
+        self.scope.require(Permission.APPROVE_GATE)
 
         gate = self._session.scalar(
             select(WorkflowGateRow)
@@ -1594,8 +1627,8 @@ class WorkflowRepository:
         if gate.gate_type == "approval":
             independence = require_approval_independence(
                 producer_user_id=gate.produced_by_user_id,
-                approving_user_id=self._scope.actor_id,
-                policy=self._scope.self_approval,
+                approving_user_id=self.scope.actor_id,
+                policy=self.scope.self_approval,
                 what="this gate's work",
             )
         else:
@@ -1604,20 +1637,20 @@ class WorkflowRepository:
             # gated.
             independence = observe_approval_independence(
                 producer_user_id=gate.produced_by_user_id,
-                approving_user_id=self._scope.actor_id,
-                policy=self._scope.self_approval,
+                approving_user_id=self.scope.actor_id,
+                policy=self.scope.self_approval,
             )
 
         gate.status = "DECIDED"
         gate.decision_json = {"option": option, "note": note, **independence.audit_fields()}
-        gate.decided_by_user_id = self._scope.actor_id
+        gate.decided_by_user_id = self.scope.actor_id
         gate.decided_at = utcnow()
 
         self._session.add(
             ApprovalDecisionRow(
-                organization_id=self._scope.organization_id,
-                client_id=self._scope.client_id,
-                study_id=self._scope.study_id,
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
                 subject_type="gate",
                 subject_id=gate_id,
                 run_id=gate.run_id,
@@ -1625,7 +1658,7 @@ class WorkflowRepository:
                 gate_type=gate.gate_type,
                 decision=option,
                 comment=note,
-                request_id=self._scope.request_id,
+                request_id=self.scope.request_id,
                 **independence.audit_fields(),
             )
         )
@@ -1644,7 +1677,7 @@ class WorkflowRepository:
         self._event(
             gate.run_id,
             event_type="GATE_DECIDED",
-            message=f"{option} by {self._scope.actor_id}",
+            message=f"{option} by {self.scope.actor_id}",
             payload={
                 "gate_id": gate_id,
                 "option": option,
@@ -1658,6 +1691,31 @@ class WorkflowRepository:
         self._refresh_run(gate.run_id)
         self._session.flush()
         return resulting
+
+    def decided_gates(self, step_id: str) -> list[dict[str, Any]]:
+        """Return the decisions recorded on a step's gates, oldest first.
+
+        What an executor re-running after a gate needs: without it, a step that
+        parked to ask for approval would ask again on every attempt.
+        """
+        self._step(step_id)
+        rows = self._session.scalars(
+            select(WorkflowGateRow)
+            .where(WorkflowGateRow.step_id == step_id, WorkflowGateRow.status == "DECIDED")
+            .order_by(WorkflowGateRow.decided_at, WorkflowGateRow.gate_id)
+        ).all()
+        return [
+            {
+                "gate_id": g.gate_id,
+                "gate_type": g.gate_type,
+                "question": g.question,
+                "option": str((g.decision_json or {}).get("option", "")),
+                "note": str((g.decision_json or {}).get("note", "")),
+                "decided_by_user_id": g.decided_by_user_id,
+                "decided_at": g.decided_at,
+            }
+            for g in rows
+        ]
 
     def pending_gates(self, run_id: str | None = None) -> list[dict[str, Any]]:
         """Return gates awaiting a decision, newest last."""
@@ -1816,7 +1874,7 @@ class WorkflowRepository:
         explicitly named method that requires ``MANAGE_STUDY_ACCESS`` and always
         records a reason -- because it can move a step out of a terminal state.
         """
-        self._scope.require(Permission.MANAGE_STUDY_ACCESS)
+        self.scope.require(Permission.MANAGE_STUDY_ACCESS)
         if not reason:
             raise ValueError("an administrative override requires a reason")
 
@@ -1833,7 +1891,7 @@ class WorkflowRepository:
                 "from": previous,
                 "to": status.value,
                 "reason": reason,
-                "actor_id": self._scope.actor_id,
+                "actor_id": self.scope.actor_id,
             },
             step_id=step_id,
             level="WARN",
@@ -1841,3 +1899,75 @@ class WorkflowRepository:
         self._session.flush()
         self._refresh_run(step.run_id)
         self._session.flush()
+
+
+class WorkQueue:
+    """The cross-study operations a worker needs, and nothing else.
+
+    :class:`WorkflowRepository` is study-scoped, and stays that way. A worker has
+    to find work in *any* study, so this is the one place allowed to query
+    without a study predicate -- and it exposes exactly four operations, none of
+    which returns research data:
+
+    * :meth:`claim_next` -- take one runnable step, anywhere;
+    * :meth:`recover_expired_attempts` -- the reconciler;
+    * :meth:`resume_waiting_steps` -- clear provider parks that are due;
+    * :meth:`refuse` -- fail a claimed attempt that may not execute.
+
+    Everything else a worker does happens through a scoped repository built from
+    :meth:`aia_core.application.scope.ScopeResolver.execution_context`, which is
+    issued only against a lease this worker holds.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._engine = WorkflowRepository._across_studies(session)
+
+    def claim_next(
+        self,
+        *,
+        worker_id: str,
+        kinds: Collection[str] | None,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
+        now: datetime | None = None,
+    ) -> ClaimedWork | None:
+        """Claim one runnable step in any study. See :meth:`WorkflowRepository.claim_next`."""
+        return self._engine.claim_next(
+            worker_id=worker_id, lease_seconds=lease_seconds, now=now, kinds=kinds
+        )
+
+    def recover_expired_attempts(
+        self, *, now: datetime | None = None, limit: int = 100
+    ) -> list[RecoveryDecision]:
+        """Recover lapsed leases in every study. Safe to run from every worker."""
+        return self._engine.recover_expired_attempts(now=now, limit=limit)
+
+    def resume_waiting_steps(
+        self,
+        *,
+        now: datetime | None = None,
+        capacity_backoff_seconds: int = DEFAULT_CAPACITY_BACKOFF_SECONDS,
+        quota_fallback_seconds: int = DEFAULT_QUOTA_FALLBACK_SECONDS,
+        limit: int = 100,
+    ) -> list[str]:
+        """Resume due provider parks in every study."""
+        return self._engine.resume_waiting_steps(
+            now=now,
+            capacity_backoff_seconds=capacity_backoff_seconds,
+            quota_fallback_seconds=quota_fallback_seconds,
+            limit=limit,
+        )
+
+    def refuse(self, attempt_id: str, *, worker_id: str, reason: str) -> RecoveryDecision:
+        """Fail a claimed attempt permanently because it may not execute at all.
+
+        Used when no execution scope can be issued for it -- its client was
+        archived after the run started, say. Fail closed: the step is ``FAILED``
+        with a ``PERMISSION`` failure and the reason, rather than left for the
+        lease to lapse and be retried into the same refusal. Lease-fenced.
+        """
+        return self._engine.fail_attempt(
+            attempt_id,
+            worker_id=worker_id,
+            failure=FailureClass.PERMISSION,
+            error={"reason": reason},
+        )
