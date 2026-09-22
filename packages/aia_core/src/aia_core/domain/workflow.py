@@ -675,6 +675,10 @@ class StepDefinition:
     priority: int = 50
     max_attempts: int = DEFAULT_MAX_ATTEMPTS
     metadata: dict[str, Any] | None = None
+    #: True when the step reads population data. A run containing such a step
+    #: cannot be created without a recorded population binding, and the step
+    #: obtains its data only through that binding -- never by resolving its own.
+    consumes_population: bool = False
 
 
 def validate_dag(steps: list[StepDefinition]) -> None:

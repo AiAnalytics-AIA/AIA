@@ -45,6 +45,41 @@ def legacy_root() -> Path:
     return root
 
 
+_DEFAULT_REFERENCE_REPO_PATHS = (
+    Path(__file__).resolve().parents[4] / "aia-reference",
+    Path(__file__).resolve().parents[4] / "AIA-reference",
+)
+
+
+def _reference_repo() -> Path | None:
+    """Return the AIA-reference checkout, or None when it is unavailable.
+
+    Distinct from the legacy prototype: this is ``AiAnalytics-AIA/AIA-reference``,
+    the private repository holding the contracts and golden fixtures -- no archive
+    and no licensed data. Identified by its golden-fixture manifest.
+    """
+    configured = os.environ.get("AIA_REFERENCE_REPO")
+    candidates = [Path(configured)] if configured else list(_DEFAULT_REFERENCE_REPO_PATHS)
+    for candidate in candidates:
+        if (candidate / "golden-fixtures" / "manifest.json").is_file() and (
+            candidate / "field-policy.json"
+        ).is_file():
+            return candidate
+    return None
+
+
+@pytest.fixture(scope="session")
+def reference_repo() -> Path:
+    """Return the AIA-reference checkout, skipping when it is unavailable."""
+    root = _reference_repo()
+    if root is None:
+        pytest.skip(
+            "AIA-reference not available; set AIA_REFERENCE_REPO to a checkout of "
+            "AiAnalytics-AIA/AIA-reference to enable population parity tests"
+        )
+    return root
+
+
 @pytest.fixture(scope="session")
 def legacy_pipeline() -> Iterator[Any]:
     """Import the legacy ``project_pipeline`` module for parity comparison."""
@@ -332,3 +367,172 @@ def scope_builder() -> Any:
     imports between their modules collide.
     """
     return build_scope_fixture
+
+
+# --------------------------------------------------------------------------- #
+# Synthetic population bundles
+#
+# The real panels are licensed-derived data withheld from every repository, so
+# population tests run on a small synthetic dataset built here, through exactly the
+# code paths the real import uses: gzip-compressed UTF-8 CSV, a field dictionary,
+# and a contract pinning both by hash. Three versions with the preserved lineage
+# shape -- root, static reference, live -- differing in bytes but not in weights.
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class SyntheticPopulation:
+    """A contract, an in-memory asset source and the bytes of three versions."""
+
+    contract: Any
+    source: Any
+    fields: tuple[str, ...]
+    rows: dict[str, list[dict[str, str]]]
+    dictionary_location: str = "dictionary.csv"
+
+    def location(self, label: str) -> str:
+        return f"panels/{label}.csv.gz"
+
+    def panel_bytes(self, label: str) -> bytes:
+        return bytes(self.source.read(self.location(label)))
+
+    def rebuild(self, label: str, mutate: Any) -> bytes:
+        """Return ``label``'s bytes rebuilt with ``mutate`` applied to a copy of its rows."""
+        rows = [dict(r) for r in self.rows[label]]
+        mutate(rows)
+        return gzip_csv(self.fields, rows)
+
+
+SYNTHETIC_FIELDS = ("row_id", "vek", "occupation_code", "segment", "w_main", "w_alt")
+SYNTHETIC_ENRICHMENT = ("life_stage_derived", "dominant_media_derived")
+
+
+def synthetic_rows(segment_suffix: str) -> list[dict[str, str]]:
+    """Six respondents. Leading-zero occupation codes, a quoted comma, Czech text."""
+    return [
+        {
+            "row_id": "R1",
+            "vek": "34",
+            "occupation_code": "0110",
+            "segment": f"a{segment_suffix}",
+            "w_main": "1.5",
+            "w_alt": "2",
+        },
+        {
+            "row_id": "R2",
+            "vek": "71",
+            "occupation_code": "0310",
+            "segment": f"b{segment_suffix}",
+            "w_main": "0.5",
+            "w_alt": "1",
+        },
+        {
+            "row_id": "R3",
+            "vek": "",
+            "occupation_code": "2512",
+            "segment": "Praha, střed",
+            "w_main": "2.0",
+            "w_alt": "1",
+        },
+        {
+            "row_id": "R4",
+            "vek": "18",
+            "occupation_code": "0010",
+            "segment": "NA",
+            "w_main": "1.0",
+            "w_alt": "3",
+        },
+        {
+            "row_id": "R5",
+            "vek": "45",
+            "occupation_code": "9629",
+            "segment": "",
+            "w_main": "3.25",
+            "w_alt": "1",
+        },
+        {
+            "row_id": "R6",
+            "vek": "100",
+            "occupation_code": "0000",
+            "segment": "x",
+            "w_main": "0.75",
+            "w_alt": "2",
+        },
+    ]
+
+
+def gzip_csv(fields: tuple[str, ...], rows: list[dict[str, str]]) -> bytes:
+    """Deterministic gzip CSV (mtime=0), so a version's hash is stable."""
+    import csv
+    import gzip
+    import io
+
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(fields)
+    for row in rows:
+        writer.writerow([row.get(f, "") for f in fields])
+    return gzip.compress(buffer.getvalue().encode("utf-8"), mtime=0)
+
+
+def build_synthetic_population() -> SyntheticPopulation:
+    from aia_core.domain.population import (
+        KnownVersion,
+        PopulationImportContract,
+        WeightScheme,
+        content_sha256,
+        field_names_fingerprint,
+    )
+    from aia_core.infrastructure.population_source import InMemoryPopulationSource
+
+    rows = {
+        "v1_BASE": synthetic_rows("0"),
+        "v1_1": synthetic_rows("1"),
+        "v1_4": synthetic_rows("4"),
+    }
+    panels = {label: gzip_csv(SYNTHETIC_FIELDS, r) for label, r in rows.items()}
+    dictionary = "field,block\n" + "\n".join(f"{f},core" for f in SYNTHETIC_FIELDS) + "\n"
+    dictionary_bytes = dictionary.encode("utf-8")
+
+    contract = PopulationImportContract(
+        contract_id="synthetic_population/v1",
+        dataset_id="synthetic_population",
+        field_count=len(SYNTHETIC_FIELDS),
+        field_names_sha256=field_names_fingerprint(SYNTHETIC_FIELDS),
+        dictionary_sha256=content_sha256(dictionary_bytes),
+        primary_key="row_id",
+        expected_rows=6,
+        weight_schemes=(
+            WeightScheme("main", "w_main", expected_total=9.0, tolerance=1e-9),
+            WeightScheme("alt", "w_alt", expected_total=10.0, tolerance=1e-9),
+        ),
+        default_weight_role="main",
+        known_versions=(
+            KnownVersion("v1_BASE", content_sha256(panels["v1_BASE"]), len(panels["v1_BASE"])),
+            KnownVersion("v1_1", content_sha256(panels["v1_1"]), len(panels["v1_1"]), "v1_BASE"),
+            KnownVersion("v1_4", content_sha256(panels["v1_4"]), len(panels["v1_4"]), "v1_1"),
+        ),
+        static_reference_label="v1_1",
+        enrichment_fields=SYNTHETIC_ENRICHMENT,
+        text_fields=frozenset({"occupation_code"}),
+        forbidden_prefixes=("D_", "P_"),
+    )
+    source = InMemoryPopulationSource({"dictionary.csv": dictionary_bytes})
+    population = SyntheticPopulation(
+        contract=contract, source=source, fields=SYNTHETIC_FIELDS, rows=rows
+    )
+    for label, data in panels.items():
+        source.put(population.location(label), data)
+    return population
+
+
+@pytest.fixture
+def synthetic_population() -> SyntheticPopulation:
+    """A fresh synthetic population bundle per test."""
+    return build_synthetic_population()
+
+
+@pytest.fixture
+def gzip_csv_writer() -> Any:
+    """Return :func:`gzip_csv` for tests that build their own panels."""
+    return gzip_csv

@@ -30,6 +30,14 @@ from typing import Any, cast
 from sqlalchemy import CursorResult, func, select, update
 from sqlalchemy.orm import Session
 
+from ..domain.population import (
+    PopulationBinding,
+    PopulationBindingConflict,
+    PopulationBindingMissing,
+    PopulationBindingRequired,
+    PopulationView,
+    ResolutionMode,
+)
 from ..domain.providers import Provider, is_paid
 from ..domain.scope import (
     ApprovalIndependence,
@@ -61,6 +69,7 @@ from ..domain.workflow import (
 from .tables import (
     ApprovalDecisionRow,
     BudgetReservationRow,
+    RunPopulationBindingRow,
     StepAttemptRow,
     StepDependencyRow,
     StepRunRow,
@@ -68,6 +77,7 @@ from .tables import (
     WorkflowEventRow,
     WorkflowGateRow,
     WorkflowRunRow,
+    as_utc,
     utcnow,
 )
 
@@ -77,6 +87,36 @@ __all__ = [
     "WorkflowNotFound",
     "WorkflowRepository",
 ]
+
+
+def _binding(row: RunPopulationBindingRow) -> PopulationBinding:
+    return PopulationBinding(
+        dataset_id=row.dataset_id,
+        version_id=row.version_id,
+        version_label=row.version_label,
+        content_sha256=row.content_sha256,
+        contract_id=row.contract_id,
+        population_id=row.population_id,
+        resolution=ResolutionMode(row.resolution),
+        weight_role=row.weight_role,
+        weight_column=row.weight_column,
+        view=PopulationView(row.view),
+        resolved_at=as_utc(row.resolved_at),
+    )
+
+
+def _binding_identity(binding: PopulationBinding | None) -> tuple[str, ...] | None:
+    """What makes two bindings the same population. ``resolved_at`` is not part of it."""
+    if binding is None:
+        return None
+    return (
+        binding.version_id,
+        binding.content_sha256,
+        binding.contract_id,
+        binding.weight_role,
+        binding.weight_column,
+        binding.view.value,
+    )
 
 
 class WorkflowNotFound(LookupError):
@@ -235,6 +275,7 @@ class WorkflowRepository:
         metadata: dict[str, Any] | None = None,
         step_inputs: dict[str, dict[str, Any]] | None = None,
         fingerprints: dict[str, str] | None = None,
+        population: PopulationBinding | None = None,
     ) -> str:
         """Create a run and its step graph, or return an existing run.
 
@@ -244,6 +285,13 @@ class WorkflowRepository:
 
         The DAG is validated here rather than at execution time, because a cycle
         discovered mid-run would strand a study with some steps already paid for.
+
+        ``population`` is the resolved binding every population-consuming step
+        will read through. It is required when any step declares
+        ``consumes_population`` and is recorded once, with the run, in the same
+        unit of work. A re-submission that resolves to a different binding is
+        refused rather than handed the old run: that would silently substitute
+        the recorded population for the one the caller asked for.
         """
         self._scope.require(Permission.RUN_WORKFLOW)
         self._scope.require_open_study()
@@ -254,10 +302,17 @@ class WorkflowRepository:
             )
         )
         if existing is not None:
+            self._require_same_binding(existing.run_id, population)
             return existing.run_id
 
         step_list = list(steps)
         validate_dag(step_list)
+        consumers = sorted(s.node_key for s in step_list if s.consumes_population)
+        if consumers and population is None:
+            raise PopulationBindingRequired(
+                f"steps {consumers} read population data; the run needs a resolved "
+                "population binding"
+            )
 
         run_id = new_run_id()
         self._session.add(
@@ -277,6 +332,8 @@ class WorkflowRepository:
             )
         )
         self._session.flush()
+        if population is not None:
+            self._record_binding(run_id, population)
 
         ids: dict[str, str] = {}
         for ordinal, definition in enumerate(step_list):
@@ -325,11 +382,59 @@ class WorkflowRepository:
                 "step_count": len(step_list),
                 "project_id": project_id,
                 "project_revision": int(project_revision),
+                "population": population.as_record() if population is not None else None,
             },
         )
         self._refresh_run(run_id)
         self._session.flush()
         return run_id
+
+    # ------------------------------------------------------ population binding --
+
+    def _record_binding(self, run_id: str, binding: PopulationBinding) -> None:
+        self._session.add(
+            RunPopulationBindingRow(
+                run_id=run_id,
+                dataset_id=binding.dataset_id,
+                version_id=binding.version_id,
+                version_label=binding.version_label,
+                content_sha256=binding.content_sha256,
+                contract_id=binding.contract_id,
+                population_id=binding.population_id,
+                resolution=binding.resolution.value,
+                weight_role=binding.weight_role,
+                weight_column=binding.weight_column,
+                view=binding.view.value,
+                resolved_at=binding.resolved_at,
+            )
+        )
+        self._session.flush()
+
+    def _binding_row(self, run_id: str) -> RunPopulationBindingRow | None:
+        return self._session.get(RunPopulationBindingRow, run_id)
+
+    def _require_same_binding(self, run_id: str, requested: PopulationBinding | None) -> None:
+        row = self._binding_row(run_id)
+        recorded = _binding(row) if row is not None else None
+        if _binding_identity(recorded) != _binding_identity(requested):
+            raise PopulationBindingConflict(
+                f"run {run_id} was recorded against "
+                f"{recorded.version_id if recorded else 'no population'}; this submission "
+                f"resolves to {requested.version_id if requested else 'no population'}"
+            )
+
+    def population_binding(self, run_id: str) -> PopulationBinding:
+        """Return the population binding a run recorded, or raise.
+
+        The only way a population-consuming step learns which population to load.
+        There is deliberately no "resolve the current one instead" path: a run
+        with no recorded binding reads no population.
+        """
+        self._run(run_id)  # scope check: a run outside this study is not found
+        row = self._binding_row(run_id)
+        if row is None:
+            raise PopulationBindingMissing(f"run {run_id} recorded no population binding")
+        return _binding(row)
 
     # ------------------------------------------------------------ status logic --
 
@@ -1303,6 +1408,7 @@ class WorkflowRepository:
             select(StepRunRow).where(StepRunRow.run_id == run_id).order_by(StepRunRow.ordinal)
         ).all()
 
+        binding_row = self._binding_row(run_id)
         return {
             "run_id": run.run_id,
             "status": WorkflowRunStatus(run.status),
@@ -1313,6 +1419,7 @@ class WorkflowRepository:
             "created_at": run.created_at,
             "started_at": run.started_at,
             "finished_at": run.finished_at,
+            "population": _binding(binding_row).as_record() if binding_row is not None else None,
             "steps": [
                 {
                     "step_id": s.step_id,

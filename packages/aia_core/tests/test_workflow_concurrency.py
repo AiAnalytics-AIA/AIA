@@ -911,3 +911,104 @@ def test_cross_client_isolation_holds_under_concurrency(
         "another client's worker must never receive this study's work"
     )
     assert any(claimed is not None for label, claimed in results if label == "own")
+
+
+# --------------------------------------------------------------------------- #
+# Population promotion under contention
+# --------------------------------------------------------------------------- #
+
+
+def test_concurrent_live_promotions_have_exactly_one_winner(
+    pg_sessions: sessionmaker[Session], synthetic_population: Any
+) -> None:
+    """Eight operators promote the LIVE population at once, all from the same version.
+
+    Every one of them passed the domain check against the same snapshot. The
+    row lock plus the compare-and-set update must still let exactly one through;
+    the rest see ``PromotionConflict`` and change nothing.
+    """
+    from aia_core.application.population import PopulationRuntime
+    from aia_core.domain.population import PopulationKind, PromotionConflict, VersionStatus
+
+    pop = synthetic_population
+    workers = 8
+
+    def runtime(session: Session) -> PopulationRuntime:
+        return PopulationRuntime(session, contract=pop.contract, source=pop.source)
+
+    with pg_sessions() as setup:
+        rt = runtime(setup)
+        versions = {}
+        for label in ("v1_BASE", "v1_1", "v1_4"):
+            versions[label] = rt.import_version(
+                label=label,
+                panel_location=pop.location(label),
+                dictionary_location=pop.dictionary_location,
+                provenance="synthetic",
+                imported_by="importer",
+            )
+        candidates = []
+        for i in range(workers):
+            location = f"panels/candidate_{i}.csv.gz"
+            pop.source.put(
+                location,
+                pop.rebuild("v1_4", lambda rows, i=i: rows[0].update(segment=f"candidate-{i}")),
+            )
+            candidates.append(
+                rt.import_version(
+                    label=f"candidate_{i}",
+                    panel_location=location,
+                    dictionary_location=pop.dictionary_location,
+                    provenance="synthetic",
+                    imported_by="importer",
+                    parent_version_id=versions["v1_4"].version_id,
+                ).version_id
+            )
+        rt.establish(
+            population_id="SYN_STATIC",
+            kind=PopulationKind.STATIC,
+            version_id=versions["v1_1"].version_id,
+            actor_id="owner",
+            reason="establish",
+        )
+        rt.establish(
+            population_id="SYN_LIVE",
+            kind=PopulationKind.LIVE,
+            version_id=versions["v1_4"].version_id,
+            actor_id="owner",
+            reason="establish",
+        )
+        setup.commit()
+
+    barrier = threading.Barrier(workers)
+    expected = versions["v1_4"].version_id
+
+    def promote(target: str) -> str:
+        with pg_sessions() as session:
+            barrier.wait(timeout=30)
+            try:
+                runtime(session).promote_live(
+                    population_id="SYN_LIVE",
+                    target_version_id=target,
+                    expected_current_version_id=expected,
+                    actor_id="operator",
+                    reason="race",
+                )
+                session.commit()
+                return "won"
+            except PromotionConflict:
+                session.rollback()
+                return "conflict"
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        outcomes = list(pool.map(promote, candidates))
+
+    assert outcomes.count("won") == 1
+    assert outcomes.count("conflict") == workers - 1
+    with pg_sessions() as check:
+        rt = runtime(check)
+        winner = candidates[outcomes.index("won")]
+        assert rt.version_status(winner) is VersionStatus.LIVE_CURRENT
+        assert rt.version_status(expected) is VersionStatus.SUPERSEDED
+        losers = [c for c in candidates if c != winner]
+        assert all(rt.version_status(c) is VersionStatus.REGISTERED for c in losers)
