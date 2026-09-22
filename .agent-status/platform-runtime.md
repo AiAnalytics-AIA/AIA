@@ -1,6 +1,6 @@
 # platform-runtime
 
-**STATUS: ACTIVE — worker built and verified in the working tree; product code not yet committed (permission pending).**
+**STATUS: ACTIVE — worker pushed as 8 commits on `claude/intelligent-bardeen-tslz9n`; draft PR #23 open, CI pending.**
 Cloud session. No local-machine dependency. PostgreSQL 16.13 and Python 3.12.3
 provisioned in-session; every number below was measured here.
 
@@ -10,9 +10,9 @@ Make durable workflows actually execute safely in production.
 
 ## Done this turn — the worker process (`apps/worker`)
 
-Plan: `.planning/plans/worker-process.md` (all chunks landed in the working tree
-of `claude/intelligent-bardeen-tslz9n`; **not yet committed** — the session's
-permission classifier refused `git commit`, consistent with CLAUDE.md §5).
+Plan: `.planning/plans/done/worker-process.md`. PR: https://github.com/AiAnalytics-AIA/AIA/pull/23
+(draft). 8 commits, 7864ed1..7326e29; each verified on its own: mypy clean,
+full suite green on PostgreSQL and SQLite at every commit.
 
 - `claim_next` → `StepExecutor.execute` → `complete_attempt` / `fail_attempt`,
   heartbeat thread, cancellation observed at checkpoints within one heartbeat,
@@ -43,13 +43,13 @@ permission classifier refused `git commit`, consistent with CLAUDE.md §5).
 
 ## Observed test results (this session)
 
-- core 526 passed / 100 skipped (PostgreSQL); API 114 passed; concurrency 21
+- final commit: PostgreSQL 688 passed / 100 skipped (core+API+worker); core 526 / API 114; concurrency 21
   passed with `AIA_REQUIRE_POSTGRES=1`; worker 48 passed (6 drive real worker
   processes: 3-way contention, SIGKILL mid-step, SIGKILL mid-paid-call, SIGTERM,
   second signal, cross-process cancellation); SQLite 661 passed / 127 skipped.
 - mypy --strict clean (47 files); layer_check 20/20; exposure_check 7/7;
   alembic check clean (no schema change).
-- CI not run — nothing pushed.
+- CI: pending on PR #23 (not yet observed).
 - One unexplained worker-suite failure, seen once in ~11 runs before W8 was
   fixed (its output was lost). Not reproduced since: soak of the full worker suite
   on PostgreSQL, **0 failures in 20**, plus 9 earlier clean runs. W8 is real and
@@ -58,7 +58,7 @@ permission classifier refused `git commit`, consistent with CLAUDE.md §5).
 
 ## Open, needs a human
 
-- **Permission to commit and push** the seven chunks (commit messages prepared).
+- Review of PR #23.
 - OI-6: quota park with a paid call in flight re-issues it on resume — domain
   precedence decision, parity-covered.
 - OI-7: should revoking a researcher stop the runs they started?
