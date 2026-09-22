@@ -141,5 +141,9 @@ Ordered by how much they should worry you:
   configuration is present in the repository.
 - **Tenancy model.** `apps/web` routes are already `/org/[orgSlug]/…`, implying
   organizations. Is a user in exactly one organization, or several?
-- **Data residency.** Client research data for Czech clients may carry an EU
-  residency requirement that constrains region and provider routing.
+- ~~**Data residency.**~~ **Resolved** 2026-09-22 by
+  [ADR 0008](adr/0008-eu-data-residency.md). Signed Czech client agreements
+  require EU-only processing and storage. All client data stays in
+  `eu-central-1`; model inference runs on Amazon Bedrock there, and the
+  first-party Anthropic API is not an approved provider for client data
+  because its inference-geography pin offers no EU value.

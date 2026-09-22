@@ -228,4 +228,7 @@ These block or reshape phases and are not mine to settle:
    `docs/AGENTS.md` defines a 9-agent/4-gate model that matches neither. They
    should be reconciled or explicitly retired.
 4. **Tenancy model** — one organization per user, or several?
-5. **Data residency** for Czech client research data.
+5. ~~**Data residency** for Czech client research data.~~ **Resolved**
+   2026-09-22 by [ADR 0008](../architecture/adr/0008-eu-data-residency.md):
+   EU-only processing and storage; Bedrock `eu-central-1` is the sole
+   inference path for client-scoped data.

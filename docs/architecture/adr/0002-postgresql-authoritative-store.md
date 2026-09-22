@@ -1,6 +1,7 @@
 # ADR 0002 — PostgreSQL is authoritative; SQS is dispatch only
 
 **Status:** Accepted. PostgreSQL implemented; SQS pending Phase 3.
+Compute target amended 2026-09-22 (ECS Fargate → App Runner).
 **Date:** 2026-09-21
 
 ## Context
@@ -9,8 +10,9 @@ The prototype stored durable state in three SQLite files plus filesystem
 artifacts. SQLite is single-writer and file-local, which blocks concurrent
 workers and multi-instance deployment.
 
-AWS is the production target: ECS Fargate for the API and workers, RDS
-PostgreSQL, S3, SQS. Redis is explicitly not being introduced yet.
+AWS is the production target: RDS PostgreSQL, S3, SQS, and App Runner for
+the API and workers (amended 2026-09-22 — see below). Redis is explicitly
+not being introduced yet.
 
 ## Decision
 
@@ -51,3 +53,28 @@ yet. Adding Redis now would be a component to operate with no problem to solve.
   lost-message case.
 - Idempotency is a per-step-kind obligation and must be part of each step's test
   suite, not assumed.
+
+## Amendment — 2026-09-22: App Runner replaces ECS Fargate
+
+The original context named **ECS Fargate** as the compute target. That is amended
+to **AWS App Runner in `eu-central-1`**. Nothing else in this ADR changes: the
+PostgreSQL-authoritative / SQS-dispatch-only decision is independent of where
+containers run.
+
+**Why.** The team is one engineer, the first client study is 2–3 months out, and
+44k lines of validated Python are still being ported. ECS Fargate brings a VPC,
+subnets, security groups, task definitions, an ALB and a Terraform estate — all of
+which must be built, operated and patched by the same person writing the domain
+code. App Runner delivers managed containers, TLS and autoscaling with none of
+that surface, while staying inside AWS alongside Bedrock, Cognito and RDS, which
+[ADR 0008](0008-eu-data-residency.md) requires for residency.
+
+**What we give up.** Less control over networking and scaling policy, and App
+Runner's own service limits in place of Fargate's. Both are acceptable at roughly
+5–20 studies per month.
+
+**What would make us revisit.** App Runner service limits becoming binding;
+a requirement for VPC-internal networking it cannot express; or sustained
+concurrency that makes explicit task-level scaling control worth the operational
+cost. Moving to Fargate later is a deployment change, not an architecture change —
+the container image and the Postgres-authoritative design are unaffected.
