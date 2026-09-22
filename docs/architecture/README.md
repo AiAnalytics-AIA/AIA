@@ -17,6 +17,7 @@ is shaped that way. The companion documents go deeper:
 | [scope-and-authorization.md](scope-and-authorization.md) | Who may touch which client's work, and approval policy |
 | [security.md](security.md) | Threat model and security architecture |
 | [adr/](adr/) | Decision records, with a list of what is deliberately still open |
+| [boards-v2.2-content-spec.md](boards-v2.2-content-spec.md) | What the visual architecture boards must assert, and must not |
 
 Migration documents live in [`../migration/`](../migration/). Start with
 [status.md](../migration/status.md) to see where the work currently stands.
