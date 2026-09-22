@@ -165,3 +165,48 @@ from a clean checkout on an image whose default `python3` is older than 3.12.
 documentation and tooling for the rules themselves, and `CLAUDE.md §5` requires
 one logical change per commit. Found while running the §10 verification sequence
 for the first time.
+
+---
+
+## OI-6 · Finding · A provider park can auto-resume a possibly-billed call
+
+**Claim.** When an attempt fails with `QUOTA` — or `BUDGET_EXCEEDED` or
+`APPROVAL_REQUIRED` — while a dispatched paid call has no recorded outcome,
+`decide_recovery` parks the step instead of returning `RECOVERY_REQUIRED`, so a
+quota park re-issues the call automatically once its reset instant passes.
+`PROVIDER_CAPACITY` is not affected: its branch comes after the uncertain-billing
+branch, and a test already asserts that ordering.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/workflow.py:527-558 @ 17c0a6b`
+— the approval, budget and quota branches (527, 534, 545) all return before the
+`paid_call_dispatched and not paid_call_outcome_known` branch (558).
+
+**Reproduction.**
+`packages/aia_core/tests/test_workflow_reservations.py::test_a_park_with_a_call_in_flight_still_records_the_exposure`
+— the step goes to `WAITING_PROVIDER` with the call still in flight.
+
+**Consequence.** Possible double billing on resume. The *accounting* is already
+safe — the closing rule charges the in-flight reservation as
+`SETTLED_UNCERTAIN` whatever the decision — so the budget is not overstated; the
+risk is the second provider call itself.
+
+**Why it is not simply reordered.** A quota refusal is a provider *response*:
+the call was answered, so its outcome is known and it was not billed. The
+contradiction only arises when an executor reports `QUOTA` without recording that
+outcome. Whether the fix belongs in `decide_recovery` (billing uncertainty
+outranks every park) or in the executor contract (a provider refusal must settle
+the call at zero first) is a domain decision, and `decide_recovery` is parity-
+covered by `test_legacy_job_store_characterization.py`, which CI cannot run
+(OI-1).
+
+**Smallest fix.** Move the uncertain-billing branch above the `QUOTA` branch in
+`decide_recovery`, after a parity run confirms the prototype does not depend on
+the current order.
+
+**Test that would catch it.** A `decide_recovery` unit test:
+`failure=QUOTA, paid_call_dispatched=True, paid_call_outcome_known=False` →
+`RECOVERY_REQUIRED`.
+
+**Status.** Open. The worker's executor contract (`aia_worker.executor`) tells
+executors to settle a refused call at zero before reporting the refusal, which
+closes the path for every executor that follows it.

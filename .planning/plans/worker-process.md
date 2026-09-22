@@ -110,9 +110,13 @@ re-run of a possibly-billed call.
   idempotent completion; `ClaimedWork` carries the worker and scope ids. Tests:
   engine (sequential) + concurrency (the resurrection race, stale completion after
   re-claim).
-- [ ] 2. **Close reservations at attempt end** (W4, W5). One closing rule for
-  complete, fail, abandon and recovery; `settle_paid_call` for per-call metering.
-  Tests for each branch, and for the cancelled-paid-step leak.
+- [x] 2. **Close reservations at attempt end** (W4, W5). One closing rule for
+  complete, fail, abandon and recovery; `settle_paid_call` for per-call metering;
+  the lease fence extended to `reserve_budget` and both `mark_paid_call_*`.
+  *Landed.* Reproduced against `origin/main` @ 17c0a6b: cancelling a $5 paid step
+  left `reserved_usd` at 5.0 for good (W4); a known $1.80 call followed by a
+  failure recorded `spent_usd` 0.0 (W5). Tests: `test_workflow_reservations.py`.
+  Filed OI-6 (a quota park can re-issue a call whose outcome is unknown).
 - [ ] 3. **Release and resume** (W6). Domain: `decide_release`, `resume_due`.
   Repository: `release_attempt`, `resume_waiting_steps`. Tests: domain (pure) +
   engine; `AWAITING_*` and `RECOVERY_REQUIRED` never auto-resume.

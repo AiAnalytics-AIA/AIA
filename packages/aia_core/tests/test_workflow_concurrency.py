@@ -298,6 +298,7 @@ def test_concurrent_settlements_compose_rather_than_overwrite(
             for _ in range(2):
                 reservation_id = setup_repo.reserve_budget(
                     attempt_id=work.attempt_id,
+                    worker_id=work.worker_id,
                     amount_usd=5.0,
                     provider=Provider.ANTHROPIC,
                 )
@@ -348,10 +349,11 @@ def test_concurrent_reconcilers_recover_each_attempt_once(
         for work in claimed[:2]:
             setup_repo.reserve_budget(
                 attempt_id=work.attempt_id,
+                worker_id=work.worker_id,
                 amount_usd=5.0,
                 provider=Provider.ANTHROPIC,
             )
-            setup_repo.mark_paid_call_dispatched(work.attempt_id)
+            setup_repo.mark_paid_call_dispatched(work.attempt_id, worker_id=work.worker_id)
 
         for work in claimed:
             attempt = setup_session.get(StepAttemptRow, work.attempt_id)
@@ -790,7 +792,12 @@ def test_concurrent_reservations_cannot_exceed_the_budget(
     def reserve(index: int) -> bool:
         s, r = _repo_in_new_session(pg_sessions, world)
         try:
-            r.reserve_budget(attempt_id=claims[index], amount_usd=40.0, provider=Provider.ANTHROPIC)
+            r.reserve_budget(
+                attempt_id=claims[index],
+                worker_id=f"worker-{index}",
+                amount_usd=40.0,
+                provider=Provider.ANTHROPIC,
+            )
             s.commit()
             return True
         except (BudgetExceeded, Exception):
@@ -829,6 +836,7 @@ def test_a_failed_reservation_leaves_no_partial_state(
         with pytest.raises(BudgetExceeded):
             repo.reserve_budget(
                 attempt_id=claimed.attempt_id,
+                worker_id=claimed.worker_id,
                 amount_usd=1_000.0,
                 provider=Provider.ANTHROPIC,
             )
@@ -857,7 +865,10 @@ def test_an_attempt_and_its_reservation_commit_or_roll_back_together(
         claimed = repo.claim_next(worker_id="worker-1")
         assert claimed is not None
         repo.reserve_budget(
-            attempt_id=claimed.attempt_id, amount_usd=10.0, provider=Provider.ANTHROPIC
+            attempt_id=claimed.attempt_id,
+            worker_id=claimed.worker_id,
+            amount_usd=10.0,
+            provider=Provider.ANTHROPIC,
         )
         # Simulate a crash between preparing the call and dispatching it.
         session.rollback()
@@ -887,9 +898,14 @@ def test_uncertain_settlement_is_charged_exactly_once_under_contention(
         claimed = repo.claim_next(worker_id="worker-1")
         assert claimed is not None
         repo.reserve_budget(
-            attempt_id=claimed.attempt_id, amount_usd=7.5, provider=Provider.ANTHROPIC
+            attempt_id=claimed.attempt_id,
+            worker_id=claimed.worker_id,
+            amount_usd=7.5,
+            provider=Provider.ANTHROPIC,
         )
-        repo.mark_paid_call_dispatched(claimed.attempt_id, provider_request_id="req_x")
+        repo.mark_paid_call_dispatched(
+            claimed.attempt_id, worker_id=claimed.worker_id, provider_request_id="req_x"
+        )
         attempt = session.get(StepAttemptRow, claimed.attempt_id)
         assert attempt is not None
         attempt.lease_until = datetime.now(UTC) - timedelta(minutes=10)

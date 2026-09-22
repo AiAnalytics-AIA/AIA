@@ -705,11 +705,15 @@ class WorkflowRepository:
         self,
         *,
         attempt_id: str,
+        worker_id: str,
         amount_usd: float,
         provider: Provider,
         reason: str = "",
     ) -> str | None:
         """Hold budget for a paid call, or raise :class:`BudgetExceeded`.
+
+        Lease-fenced: a worker that no longer holds the attempt cannot reserve
+        against it (:class:`LeaseLost`), so it cannot go on to make the call.
 
         Called **before** dispatch, inside the same transaction as the attempt, so
         a crash cannot leave a call with no reservation behind it.
@@ -731,7 +735,10 @@ class WorkflowRepository:
         if not is_paid(provider):
             return None
 
-        attempt = self._attempt(attempt_id)
+        # Attempt before study: every path that locks both takes them in this
+        # order -- completion and recovery lock the attempt, then charge the
+        # study -- so no two of them can wait on each other in a cycle.
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
         run = self._run(step.run_id)
 
@@ -772,15 +779,19 @@ class WorkflowRepository:
         return reservation_id
 
     def mark_paid_call_dispatched(
-        self, attempt_id: str, *, provider_request_id: str | None = None
+        self, attempt_id: str, *, worker_id: str, provider_request_id: str | None = None
     ) -> None:
-        """Record that a metered provider call has left the process.
+        """Record that a metered provider call is about to leave the process.
 
-        From this point the attempt cannot be auto-retried until its outcome is
-        known: a lapsed lease becomes ``RECOVERY_REQUIRED`` rather than a retry,
-        because the call may already have been billed.
+        Called, and **committed**, before the call is sent. From this point the
+        attempt cannot be auto-retried until its outcome is known: a lapsed lease
+        becomes ``RECOVERY_REQUIRED`` rather than a retry, because the call may
+        already have been billed.
+
+        Lease-fenced, and this is the fence that matters most: a worker that lost
+        its lease learns it here, *before* it spends the client's money.
         """
-        attempt = self._attempt(attempt_id)
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         attempt.paid_call_dispatched = True
         attempt.paid_call_outcome_known = False
         if provider_request_id:
@@ -791,6 +802,7 @@ class WorkflowRepository:
         self,
         attempt_id: str,
         *,
+        worker_id: str,
         actual_cost_usd: float = 0.0,
         provider_request_id: str | None = None,
     ) -> None:
@@ -799,12 +811,65 @@ class WorkflowRepository:
         Once known, the attempt is safe to retry again if it later fails for an
         unrelated reason, because there is no longer an unresolved billing
         question.
+
+        The cost is **added** to the attempt's known spend, which is charged when
+        the attempt ends (:meth:`_close_open_reservations`) -- including when it
+        ends in failure. Prefer :meth:`settle_paid_call`, which charges at once
+        against the call's own reservation.
         """
-        attempt = self._attempt(attempt_id)
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         attempt.paid_call_outcome_known = True
-        attempt.actual_cost_usd = max(0.0, float(actual_cost_usd))
+        attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + max(
+            0.0, float(actual_cost_usd)
+        )
         if provider_request_id:
             attempt.provider_request_id = provider_request_id
+        self._session.flush()
+
+    def settle_paid_call(
+        self,
+        attempt_id: str,
+        *,
+        worker_id: str,
+        reservation_id: str,
+        actual_cost_usd: float,
+        provider_request_id: str | None = None,
+    ) -> None:
+        """Record one metered call's known outcome and charge its real cost.
+
+        The per-call half of accounting transactionality: ``reserve`` →
+        ``mark_paid_call_dispatched`` → send → ``settle_paid_call``, each committed
+        on its own. The reservation is settled at the actual cost *now*, so an
+        attempt that makes several calls and then fails still charges every call
+        that completed, and an attempt that crashes afterwards has nothing left for
+        the uncertain branch to over-charge.
+
+        A call the provider rejected before billing is settled at zero. Settling a
+        reservation twice is a no-op, so retrying after a lost acknowledgement
+        charges once.
+        """
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
+        reservation = self._session.scalar(
+            select(BudgetReservationRow).where(
+                BudgetReservationRow.reservation_id == reservation_id,
+                BudgetReservationRow.attempt_id == attempt_id,
+            )
+        )
+        if reservation is None:
+            raise WorkflowNotFound(reservation_id)
+        attempt.paid_call_outcome_known = True
+        if provider_request_id:
+            attempt.provider_request_id = provider_request_id
+        if reservation.status != ReservationStatus.RESERVED.value:
+            self._session.flush()
+            return
+
+        actual = max(0.0, float(actual_cost_usd))
+        attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + actual
+        reservation.status = ReservationStatus.SETTLED.value
+        reservation.settled_amount_usd = actual
+        reservation.settled_at = utcnow()
+        self._charge_study(reservation.study_id, actual)
         self._session.flush()
 
     def settle_reservation(self, reservation_id: str, *, actual_cost_usd: float) -> None:
@@ -867,16 +932,91 @@ class WorkflowRepository:
 
         exposure = 0.0
         for reservation in reservations:
-            exposure += float(reservation.amount_usd or 0.0)
+            amount = float(reservation.amount_usd or 0.0)
+            exposure += amount
             reservation.status = ReservationStatus.SETTLED_UNCERTAIN.value
-            reservation.settled_amount_usd = float(reservation.amount_usd or 0.0)
+            reservation.settled_amount_usd = amount
             reservation.settled_at = utcnow()
             reservation.reason = "paid_external_call_side_effect_uncertain"
+            # The reservation's own study, not this repository's: the cross-study
+            # work queue recovers attempts without a study scope of its own.
+            self._charge_study(reservation.study_id, amount)
 
         if exposure:
             attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + exposure
-            self._charge_study(self._scope.study_id, exposure)
         return exposure
+
+    def _close_open_reservations(self, attempt: StepAttemptRow, *, reason: str) -> float:
+        """Close every reservation an ending attempt still holds. Returns exposure.
+
+        One rule for every way an attempt ends -- completed, failed, abandoned,
+        released, recovered -- because accounting must not depend on *why* the work
+        stopped:
+
+        1. a call was dispatched and its outcome is unknown → every open
+           reservation becomes ``SETTLED_UNCERTAIN`` actual exposure;
+        2. otherwise, known spend not yet charged (recorded by
+           :meth:`mark_paid_call_outcome_known`, or passed to completion) is
+           settled onto the first open reservation, or charged directly when
+           there is none;
+        3. whatever is still open was never spent, and is released.
+
+        Before this, two paths got it wrong. ``abandon_attempt`` closed nothing, so
+        a cancelled paid step held its reservation forever and the study's
+        available budget shrank permanently. And a failure *released* the
+        reservation of a call whose cost was already known, so money that had been
+        spent was never charged -- under-recorded spend, which the budget check then
+        hands back out.
+        """
+        if attempt.paid_call_dispatched and not attempt.paid_call_outcome_known:
+            return self._settle_uncertain(attempt)
+
+        reservations = self._session.scalars(
+            select(BudgetReservationRow)
+            .where(BudgetReservationRow.attempt_id == attempt.attempt_id)
+            .order_by(BudgetReservationRow.created_at, BudgetReservationRow.reservation_id)
+        ).all()
+        charged = sum(
+            float(r.settled_amount_usd or 0.0)
+            for r in reservations
+            if r.status == ReservationStatus.SETTLED.value
+        )
+        unbilled = max(0.0, float(attempt.actual_cost_usd or 0.0) - charged)
+
+        study_id: str | None = None
+        for reservation in reservations:
+            if reservation.status != ReservationStatus.RESERVED.value:
+                continue
+            study_id = reservation.study_id
+            reservation.settled_at = utcnow()
+            if unbilled > 1e-12:
+                reservation.status = ReservationStatus.SETTLED.value
+                reservation.settled_amount_usd = unbilled
+                self._charge_study(reservation.study_id, unbilled)
+                unbilled = 0.0
+            else:
+                reservation.status = ReservationStatus.RELEASED.value
+                reservation.settled_amount_usd = 0.0
+                reservation.reason = reason or reservation.reason
+
+        if unbilled > 1e-12:
+            # Known spend with no reservation behind it -- a cost reported at
+            # completion for work that reserved nothing. Charged, not dropped.
+            if study_id is None:
+                step = self._session.scalar(
+                    select(StepRunRow).where(StepRunRow.step_id == attempt.step_id)
+                )
+                run = (
+                    self._session.scalar(
+                        select(WorkflowRunRow).where(WorkflowRunRow.run_id == step.run_id)
+                    )
+                    if step is not None
+                    else None
+                )
+                study_id = run.study_id if run is not None else None
+            if study_id is not None:
+                self._charge_study(study_id, unbilled)
+        return 0.0
 
     def _charge_study(self, study_id: str, amount_usd: float) -> None:
         """Add to a study's recorded spend, atomically.
@@ -968,14 +1108,22 @@ class WorkflowRepository:
         attempt.status = AttemptStatus.SUCCEEDED.value
         attempt.finished_at = utcnow()
         attempt.output_json = output or {}
-        attempt.paid_call_outcome_known = True
         attempt.lease_until = None
 
         if reservation_id:
             self.settle_reservation(reservation_id, actual_cost_usd=actual_cost_usd)
+            attempt.actual_cost_usd = max(
+                float(attempt.actual_cost_usd or 0.0), max(0.0, float(actual_cost_usd))
+            )
         elif actual_cost_usd:
-            attempt.actual_cost_usd = max(0.0, float(actual_cost_usd))
-            self._charge_study(self._scope.study_id, actual_cost_usd)
+            attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + max(
+                0.0, float(actual_cost_usd)
+            )
+        # A completed attempt whose paid call has no recorded outcome still owes an
+        # answer about that money: the closing rule settles it as uncertain rather
+        # than releasing it. The flag is set only after the rule has looked.
+        self._close_open_reservations(attempt, reason="completed")
+        attempt.paid_call_outcome_known = True
 
         step.status = StepRunStatus.SUCCEEDED.value
         step.output_json = output or {}
@@ -1048,11 +1196,13 @@ class WorkflowRepository:
         reservation_id: str | None = None,
     ) -> None:
         """Apply a recovery decision to a step and its reservations."""
-        exposure = 0.0
-        if decision.settle_reservation_as_uncertain:
-            exposure = self._settle_uncertain(attempt)
-        elif reservation_id:
-            # Nothing was billed, so the hold returns to the study.
+        # `settle_reservation_as_uncertain` is true exactly when a dispatched
+        # call's outcome is unknown, which is the first branch of the closing
+        # rule -- so the rule applies it, and applies it on every other path too.
+        exposure = self._close_open_reservations(attempt, reason=decision.reason)
+        if reservation_id:
+            # Legacy callers name a reservation; one belonging to this attempt is
+            # already closed, and this is a no-op for it.
             self.release_reservation(reservation_id, reason=decision.reason)
 
         # A non-consuming failure -- quota, budget, approval -- must not count
@@ -1218,6 +1368,9 @@ class WorkflowRepository:
         attempt.finished_at = utcnow()
         attempt.lease_until = None
         attempt.error_json = {"reason": reason}
+        # A cancelled paid step must give its hold back -- or, if a call is in
+        # flight with no known outcome, record it as uncertain exposure.
+        exposure = self._close_open_reservations(attempt, reason=reason)
 
         step.status = StepRunStatus.CANCELLED.value
         step.finished_at = utcnow()
@@ -1227,6 +1380,7 @@ class WorkflowRepository:
             step.run_id,
             event_type="ATTEMPT_ABANDONED",
             message=f"{step.node_key}: {reason}",
+            payload={"conservative_cost_exposure_usd": exposure} if exposure else None,
             step_id=step.step_id,
             attempt_id=attempt_id,
             level="WARN",
