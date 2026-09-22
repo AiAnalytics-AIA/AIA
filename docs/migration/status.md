@@ -11,7 +11,9 @@ PostgreSQL contention. Architecture v2.1 reconciliation applied.
 > Where the two disagree, the tracker wins and this document is stale.
 
 Read this for the reasoning behind the state. Companion documents:
+[reference-source.md](reference-source.md) ·
 [migration-plan.md](migration-plan.md) ·
+[module-inventory.md](module-inventory.md) ·
 [parity-matrix.md](parity-matrix.md) ·
 [reference-weaknesses.md](reference-weaknesses.md) ·
 [legacy-system-map.md](legacy-system-map.md) ·
@@ -50,9 +52,15 @@ The **compute service is not decided**. ECS Fargate and App Runner both remain
 options; neither is frozen, and nothing here should be read as selecting one. The
 web client's hosting is likewise open.
 
-The NPC Panel prototype is **not** in this repository. It lives at
-`../npc-panel-reference` and is referenced by `AIA_LEGACY_REFERENCE` for parity
-and characterization tests only.
+The NPC Panel prototype is **not** in this repository. The authoritative
+reference specification lives in the private repository
+**`AiAnalytics-AIA/AIA-reference`** at tag
+`reference-18.6.6-gemo-2026-09-11-v1` — capability map, methodology ledger,
+subsystem contracts and 11 executable golden fixtures. See
+[reference-source.md](reference-source.md) for the archive identity
+(`86b70bfb…d53216`), the `AIA_LEGACY_REFERENCE` contract and bootstrap
+instructions. A local checkout at `../npc-panel-reference` still satisfies
+`AIA_LEGACY_REFERENCE` for parity and characterization tests.
 
 ## Completed
 

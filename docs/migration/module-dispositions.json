@@ -1,0 +1,1917 @@
+{
+  "generated_from": "npc-panel-reference",
+  "module_count": 191,
+  "total_loc": 39086,
+  "modules": [
+    {
+      "disposition": "data-pipeline",
+      "phase": null,
+      "context": "population",
+      "note": "Offline panel build/rebuild script; becomes a versioned reproducible data pipeline, not app runtime",
+      "module": "BUILD_MARKETING_LATENT_v17_1.py",
+      "loc": 112,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "NPC_AI_DIAGNOSTIKA.py",
+      "loc": 57,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "ai-runtime",
+      "note": "Single-provider mode that disabled the approval queue and reservations; conflicts with no-silent-fallback",
+      "module": "NPC_JEN_CLAUDE_CODE.py",
+      "loc": 227,
+      "docstring": "NPC Panel — rezim JEN CLAUDE CODE. Vyradi celou dvouprovideovou vetev (Anthropic API, OpenAI API, placeny fallback, schvalovaci fronta, rezervace rozpoctu) a nechá jediny motor: Claude Code predplatne",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "ai-runtime",
+      "note": "Capability/policy metadata for user-facing AI actions",
+      "module": "ai_execution_context.py",
+      "loc": 45,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "ai-runtime",
+      "note": "Becomes a ModelGateway adapter behind AIA's own protocol (ADR 0006)",
+      "module": "ai_router.py",
+      "loc": 512,
+      "docstring": "Server-side AI provider router for NPC Panel. Design contract (10.16.1+): * One credential layer (:mod:`provider_auth`) for every cloud call. * Every provider is tried through a *ladder*: native struc",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "ai-runtime",
+      "note": "Capability/policy metadata for user-facing AI actions",
+      "module": "ai_runtime.py",
+      "loc": 58,
+      "docstring": "Unified metadata and policy for user-facing AI actions. Provider execution remains centralized in :mod:`ai_router`. This module is the single UX/runtime catalogue: every durable AI action has an expec",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "ai-runtime",
+      "note": "Usage ledger and audit of model calls",
+      "module": "ai_runtime_audit.py",
+      "loc": 72,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "analysis",
+      "note": "Eight independently durable analysis modules",
+      "module": "analysis_agent.py",
+      "loc": 216,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Known-truth anchors, campaign background (brand knowledge fails closed)",
+      "module": "anchor_registry.py",
+      "loc": 38,
+      "docstring": "Known-truth anchor registry for v15 projects. Global anchors must be explicitly documented in VALIDATION_ANCHORS.json. Customer / Special Audience datasets may carry an optional Benchmarks sheet; thos",
+      "state": "not-started"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "ai-runtime",
+      "note": "Local-machine SDK shim; unnecessary server-side",
+      "module": "anthropic_compat.py",
+      "loc": 68,
+      "docstring": "Anthropic API compatibility helpers. The NPC runtime supports multiple Claude generations. Some current Anthropic models reject the legacy ``temperature`` request parameter. Request shaping is central",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 2,
+      "context": "artifacts",
+      "note": "Reimplemented as ArtifactStore protocol + 3 backends",
+      "module": "artifact_store.py",
+      "loc": 65,
+      "docstring": "Atomic filesystem artifact storage backed by ProjectStore registry.",
+      "state": "done"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "audience",
+      "note": "Audience definition, sufficiency, registry and AI-assisted discovery",
+      "module": "audience.py",
+      "loc": 268,
+      "docstring": "audience.py — kdo je v cílové skupině a jestli jich je dost. Odpovídá na otázku, kterou dosud nešlo položit před během: * kolik person v panelu filtru vyhovuje (support), * jaký podíl populace to je p",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "audience",
+      "note": "Audience definition, sufficiency, registry and AI-assisted discovery",
+      "module": "audience_dimensions.py",
+      "loc": 345,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "audience",
+      "note": "Audience definition, sufficiency, registry and AI-assisted discovery",
+      "module": "audience_profile.py",
+      "loc": 11,
+      "docstring": "Pass-through profile for real Customer / Special Audience rows.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "audience",
+      "note": "Audience definition, sufficiency, registry and AI-assisted discovery",
+      "module": "audience_registry.py",
+      "loc": 346,
+      "docstring": "Persistent registry for Customer / Special Audience datasets (NPC Panel 15). An audience is a real row-level dataset supplied by the user. It is never silently converted into the Czech population pane",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "audience",
+      "note": "Audience definition, sufficiency, registry and AI-assisted discovery",
+      "module": "audience_selector.py",
+      "loc": 49,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "audience",
+      "note": "Audience definition, sufficiency, registry and AI-assisted discovery",
+      "module": "audience_strategist.py",
+      "loc": 150,
+      "docstring": "AI-assisted reverse audience discovery. AI chooses a defensible success outcome from the *actual questionnaire/results*. Code validates that choice, learns propensity on the existing panel, and constr",
+      "state": "not-started"
+    },
+    {
+      "disposition": "data-pipeline",
+      "phase": null,
+      "context": "population",
+      "note": "Offline panel build/rebuild script; becomes a versioned reproducible data pipeline, not app runtime",
+      "module": "audit_reference/legacy_build_scripts/patch_version_v17_1.py",
+      "loc": 54,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Smoke test; replaced by the pytest suite and CI startup smoke job",
+      "module": "backend_smoketest.py",
+      "loc": 29,
+      "docstring": "Short local HTTP smoke test for the NPC backend. No AI/network calls.",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "module": "behavior.py",
+      "loc": 126,
+      "docstring": "Behavioral response-process layer for NPC Panel. The LLM estimates latent preference probabilities. This module then applies explicit, auditable survey-response mechanisms before external RNG selects ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Benchmarks, drift guard and controlled ablation experiments",
+      "module": "benchmark.py",
+      "loc": 274,
+      "docstring": "Blind human holdout / ablation benchmark for NPC Panel. This is the release-defining measurement. A benchmark has substantive meaning only when ``truth_pct`` comes from real human responses that were ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "module": "biografie.py",
+      "loc": 108,
+      "docstring": "NPC PANEL — biografie.py Strukturovana zivotni trajektorie — spojuje UZ EXISTUJICI atributy panelu do souvisleho naracniho fragmentu, MISTO volneho LLM-generovaneho backstory. PROC STRUKTUROVANE, NE V",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "cost",
+      "note": "Pre-run cost/time estimation and the hard per-run spend cap",
+      "module": "budget_guard.py",
+      "loc": 63,
+      "docstring": "Hard per-run spend cap for paid respondent calls.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "data-pipeline",
+      "phase": null,
+      "context": "population",
+      "note": "Offline panel build/rebuild script; becomes a versioned reproducible data pipeline, not app runtime",
+      "module": "build_wp_artifacts_v17_1.py",
+      "loc": 160,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Known-truth anchors, campaign background (brand knowledge fails closed)",
+      "module": "campaign_background.py",
+      "loc": 17,
+      "docstring": "Campaign background contract for v17. Specific brand knowledge is fail-closed.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "ai-runtime",
+      "note": "Becomes a ModelGateway adapter behind AIA's own protocol (ADR 0006)",
+      "module": "claude_code_provider.py",
+      "loc": 618,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Smoke test; replaced by the pytest suite and CI startup smoke job",
+      "module": "claude_code_respondent_smoketest.py",
+      "loc": 44,
+      "docstring": "Offline end-to-end regression for Claude Code respondent transport. Uses a fake local Claude executable. It exercises auth -> provider -> questionnaire -> pipeline -> parsing -> zero incremental API c",
+      "state": "n/a"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "ai-runtime",
+      "note": "Local-machine SDK shim; unnecessary server-side",
+      "module": "claude_code_setup.py",
+      "loc": 378,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Smoke test; replaced by the pytest suite and CI startup smoke job",
+      "module": "claude_code_setup_smoketest.py",
+      "loc": 32,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "reports",
+      "note": "Report composition and export packs",
+      "module": "client_report_v2.py",
+      "loc": 160,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "coherence_audit_v17.py",
+      "loc": 64,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "questionnaire",
+      "note": "Conditional calibration engine and its diagnostics",
+      "module": "conditional_engine.py",
+      "loc": 177,
+      "docstring": "Canonical conditional-calibration engine for NPC Panel 10.13. This module promotes the useful part of the v15 research prototype into the runtime tree: fit P(D|demography) to documented target tables ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "questionnaire",
+      "note": "Conditional calibration engine and its diagnostics",
+      "module": "conditional_validation.py",
+      "loc": 96,
+      "docstring": "Validation diagnostics for 10.13 conditional calibration. Two diagnostics are intentionally separated: 1) category LOO: required as a regression/sensitivity check, but NOT treated as an independent ho",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "population",
+      "note": "Population core: joint structure, donor fusion, subpanels, context",
+      "module": "core_joint.py",
+      "loc": 106,
+      "docstring": "Authoritative structural-joint and predictive-validation gates for NPC Panel. v15.2 separates two questions that older releases conflated: 1) Is the stored respondent internally coherent? Yes for the ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 3,
+      "context": "workflow",
+      "note": "Reimplemented as WorkflowRun/StepRun/StepAttempt; verified under PG contention",
+      "module": "cost_controller.py",
+      "loc": 35,
+      "docstring": "",
+      "state": "done"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "cost",
+      "note": "Pre-run cost/time estimation and the hard per-run spend cap",
+      "module": "cost_estimator.py",
+      "loc": 54,
+      "docstring": "Conservative pre-run cost/time ranges with optional run-store telemetry.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Benchmarks, drift guard and controlled ablation experiments",
+      "module": "cross_survey.py",
+      "loc": 49,
+      "docstring": "Cross-survey hidden-item benchmark for NPC 10.15. The target columns are withheld from the prompt. Known answers and basic respondent descriptors may be supplied. This is a stricter generalization tes",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Methodology contract as enforced backend rules",
+      "module": "data_contract.py",
+      "loc": 12,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Source ingestion → evidence proposal → approval → materialisation",
+      "module": "data_library.py",
+      "loc": 650,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Read-only bundled demo project library",
+      "module": "demo_showcase.py",
+      "loc": 324,
+      "docstring": "Read-only DEMO project library for NPC Panel 17.9.4. Two bundled collections are exposed through the ordinary Projects workspace: - Complete Decision Demos (10): decision/scenario-oriented full output",
+      "state": "not-started"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "runtime",
+      "note": "Windows desktop launcher/supervisor; replaced by containers + ECS",
+      "module": "desktop_launcher.py",
+      "loc": 116,
+      "docstring": "Friendly local launcher for NPC Panel 17.1.2. This file uses only the Python standard library. It never performs a paid API call without an explicit menu choice. The normal entry point is the integrat",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "diagnostika.py",
+      "loc": 209,
+      "docstring": "NPC PANEL — diagnostika.py Kontrola integrity panelu. Pousti se pri nacteni panelu a pred prvnim ostrym behem, ne po nem. python diagnostika.py FINALNI_KOMPLETNI_PANEL.csv Hleda veci, ktere v panelu t",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "module": "dimension_catalog.py",
+      "loc": 798,
+      "docstring": "Canonical NPC disposition/dimension catalogue. This module contains definitions, anchors, provenance roles and eligibility metadata. Runtime synthesis/scoring lives in ``dispozice.py``. Keeping the ca",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Calibration layers, kept separate from respondent microdata",
+      "module": "dispersion_calibration.py",
+      "loc": 32,
+      "docstring": "Calibration of probability sharpness on SMOKE/calibration data only.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "module": "dispozice.py",
+      "loc": 630,
+      "docstring": "NPC PANEL — dispozice.py Vlastni vrstva latentnich dispozic + fakta o domacnosti. 24 dimenzi v 5 blocich, stavene pro spotrebitelsky a trzni vyzkum. PROC VLASTNI VRSTVA HEXACO a 4Elements meri to, co ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "doctor.py",
+      "loc": 202,
+      "docstring": "Environment and handoff diagnostics for NPC Panel. Default mode is offline. User-facing LIVE runtime is Claude Code subscription only. Legacy API diagnostics remain readable for historical compatibili",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "population",
+      "note": "Readiness diagnostics for the integrated population core",
+      "module": "domain_readiness.py",
+      "loc": 68,
+      "docstring": "Domain-specific readiness diagnostics for the v17 integrated population core. Readiness is based on fields that can actually reach the production persona: same-person measured core signals, measured d",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "population",
+      "note": "Population core: joint structure, donor fusion, subpanels, context",
+      "module": "donor_fusion.py",
+      "loc": 125,
+      "docstring": "Block-level statistical donor fusion framework for NPC Panel v15. This module intentionally does NOT fabricate donor microdata. It operates only on real respondent-level donor files explicitly registe",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "questionnaire",
+      "note": "Sequential questionnaire engine — core research runtime",
+      "module": "dotaznik.py",
+      "loc": 1604,
+      "docstring": "NPC PANEL — dotaznik.py Sekvenční dotazníkový engine nad stejným syntetickým vzorkem. Každá otázka se routuje, tematicky klasifikuje a promptuje samostatně. Model nevidí budoucí otázky. U uzavřených o",
+      "state": "not-started"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "runtime",
+      "note": "Local .env loader; replaced by typed config + Secrets Manager",
+      "module": "edition_config.py",
+      "loc": 25,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Effective-evidence audit of dimensions beyond basic demographics",
+      "module": "effective_evidence_audit.py",
+      "loc": 29,
+      "docstring": "Audit effective evidence content of D_* dimensions beyond basic demographics.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "population",
+      "note": "PIAAC 2023 employment bridge",
+      "module": "employment_bridge.py",
+      "loc": 131,
+      "docstring": "PIAAC 2023 employment bridge for the Czech synthetic population. The bridge uses respondent-level PIAAC employment status (C2_D05), age, gender, and detailed education. It deliberately does not infer ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Donor-aware weighted uncertainty; Kish effective N; bootstrap intervals",
+      "module": "ensemble.py",
+      "loc": 54,
+      "docstring": "Ensemble uncertainty for client-facing NPC outputs. The interval is across controlled simulation/model runs (seed + optional calibrated probability temperature). It is deliberately NOT labelled a popu",
+      "state": "not-started"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "runtime",
+      "note": "Local .env loader; replaced by typed config + Secrets Manager",
+      "module": "env_loader.py",
+      "loc": 32,
+      "docstring": "Minimal .env loader for local desktop use. No external dependency is required. Existing environment variables always win. Only a conservative KEY=VALUE syntax is supported; this is intentional for sec",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Validation diagnostics and paired-question statistics",
+      "module": "evaluation.py",
+      "loc": 50,
+      "docstring": "B0–B4 evaluation utilities for smoke/holdout benchmarks.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Fail-closed evidence and predictive-validity gates",
+      "module": "evidence_validator.py",
+      "loc": 60,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Deterministic factual layer — panel facts must never be re-invented by an LLM",
+      "module": "factual_layer.py",
+      "loc": 201,
+      "docstring": "Deterministic factual-response layer for NPC Panel. Facts already present in the panel must never be re-invented by an LLM. This module classifies common factual survey questions and maps them to auth",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Fail-closed evidence and predictive-validity gates",
+      "module": "fidelity.py",
+      "loc": 62,
+      "docstring": "Question-level evidence/fidelity policy for the 10.13 HTML protocol. This layer never upgrades a synthetic estimate merely because it looks stable. GREEN requires an actual validated human holdout sta",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "questionnaire",
+      "note": "Deterministic instrument library, static lint, filter normalisation",
+      "module": "filter_syntax.py",
+      "loc": 141,
+      "docstring": "Normalization of questionnaire filter expressions. Filters are authored by an LLM or typed by a user, so they arrive in whatever syntax felt natural: ``s1 = 'Ano'``, ``s1 == \"Ano\" AND s2 != 'Ne'``, Cz",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "reports",
+      "note": "Report composition and export packs",
+      "module": "final_client_report.py",
+      "loc": 59,
+      "docstring": "Final client report composer — requires a completed external verification bundle.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 7,
+      "context": "simulation",
+      "note": "Simulation lab, learning layer, multi-variant orchestration",
+      "module": "full_simulation.py",
+      "loc": 1631,
+      "docstring": "Full Simulation Lab for NPC Panel 17.0. This module is intentionally separated from the evidence-safe population core. It is an experimental forecasting engine that is *allowed to hypothesize* missing",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 7,
+      "context": "simulation",
+      "note": "Simulation lab, learning layer, multi-variant orchestration",
+      "module": "fullsim_learning.py",
+      "loc": 614,
+      "docstring": "Learning/validation layer for NPC Full Simulation 10.15. Everything in this module is benchmark-driven. It may *use* synthetic priors, but it never upgrades them to evidence. Human calibration samples",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Smoke test; replaced by the pytest suite and CI startup smoke job",
+      "module": "golden_path_test.py",
+      "loc": 28,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Release/handoff packaging check; replaced by CI quality gates",
+      "module": "handoff_verify.py",
+      "loc": 48,
+      "docstring": "Fast bounded handoff integrity verifier. This is intentionally not the regression suite. Release testing is run separately. The verifier checks package hygiene and offline environment readiness only, ",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Blind-human holdout: protocol, registry, preregistration workflow",
+      "module": "holdout_protocol.py",
+      "loc": 218,
+      "docstring": "Preregistered, append-only blind-human-holdout protocol. The protocol deliberately separates three moments: 1) preregister questions/analysis before truth is imported, 2) lock human truth against that",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Blind-human holdout: protocol, registry, preregistration workflow",
+      "module": "holdout_registry.py",
+      "loc": 137,
+      "docstring": "NPC PANEL — holdout_registry.py Electric Twin princip: prisne oddelit data pouzita na stavbu persony od dat pouzitych k overeni. Bez tohohle by holdout validace mohla nevedomky merit, jak dobre panel ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "questionnaire",
+      "note": "Sequential questionnaire engine — core research runtime",
+      "module": "import_dotaznik.py",
+      "loc": 294,
+      "docstring": "NPC PANEL — import_dotaznik.py Nahraje HOTOVY dotaznik (Word, Excel, CSV, PDF, txt) a prevede ho na brief.json, ktery jde primo do run.py. Na rozdil od navrh.py (ktery otazky VYMYSLI ze zadani) tenhle",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "ingest_automation.py",
+      "loc": 38,
+      "docstring": "Filesystem automation adapter for batch ingest (F6). Designed for cron/Task Scheduler/Systemd. It performs one deterministic scan and never starts a hidden background daemon. Tabular files can be proc",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "data-library",
+      "note": "Batch ingest CLI; becomes an API + worker path",
+      "module": "ingest_cli.py",
+      "loc": 69,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "questionnaire",
+      "note": "Deterministic instrument library, static lint, filter normalisation",
+      "module": "instrument_library.py",
+      "loc": 125,
+      "docstring": "Versioned, deterministic questionnaire instrument library for NPC Panel 15.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 3,
+      "context": "workflow",
+      "note": "Reimplemented as WorkflowRun/StepRun/StepAttempt; verified under PG contention",
+      "module": "job_store.py",
+      "loc": 295,
+      "docstring": "",
+      "state": "done"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Raking / IPF weighting and competitor-inspired adjustment mechanisms",
+      "module": "kalibrace.py",
+      "loc": 102,
+      "docstring": "NPC PANEL — kalibrace.py Rakovani / Iterative Proportional Fitting. Dve pouziti: 1. prepocet vah panelu na aktualni marginaly CSU (kdyz vyjdou nova data) 2. dovazeni CILENEHO podvzorku na klientske kv",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Shared survey runtime context; never implicitly injected",
+      "module": "kontext.py",
+      "loc": 145,
+      "docstring": "NPC PANEL — kontext.py Sdileny kontext pro survey runtime. V prototype-10.3+ se NIKDY nepridava implicitne: caller musi explicitne predat kontextove bloky. Research Context OFF tedy znamena nulovy ext",
+      "state": "not-started"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "runtime",
+      "note": "Windows desktop launcher/supervisor; replaced by containers + ECS",
+      "module": "launcher_bootstrap.py",
+      "loc": 378,
+      "docstring": "NPC Panel Research OS bootstrap/supervisor. - creates/reuses a validated local Python runtime in .npc_runtime; - optionally bootstraps Claude Code in the Claude edition; - starts a persistent Research",
+      "state": "n/a"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "workflow",
+      "note": "Pre-17.8 compatibility shim",
+      "module": "legacy_job_dispatch.py",
+      "loc": 230,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Source-use / licensing governance adapter",
+      "module": "legal_gate.py",
+      "loc": 116,
+      "docstring": "Source-use governance adapter. Licensing/rights were reviewed outside this workstream according to the project owner. The historic per-source ledger remains in the repository for traceability, but thi",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Source ingestion → evidence proposal → approval → materialisation",
+      "module": "library_batch_import.py",
+      "loc": 35,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Source ingestion → evidence proposal → approval → materialisation",
+      "module": "library_system_catalog.py",
+      "loc": 225,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Smoke test; replaced by the pytest suite and CI startup smoke job",
+      "module": "live_smoketest.py",
+      "loc": 26,
+      "docstring": "Minimal paid transport smoke test (3 synthetic respondents, 1 question).",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Methodology contract as enforced backend rules",
+      "module": "manifest.py",
+      "loc": 58,
+      "docstring": "Reproducibility manifest and file hashing.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Benchmarks, drift guard and controlled ablation experiments",
+      "module": "model_drift.py",
+      "loc": 43,
+      "docstring": "Benchmark drift guard for model/prompt/runtime upgrades.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Raking / IPF weighting and competitor-inspired adjustment mechanisms",
+      "module": "mrp.py",
+      "loc": 185,
+      "docstring": "NPC PANEL — mrp.py Dva mechanismy inspirovane konkurenci, ktere ADRESUJI (ne jen hlasi) problem malych podskupin — vec, kterou uz qc.py/dotaznik.py detekuji (n<30 varovani), ale nic s tim nedelaji. 1.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "questionnaire",
+      "note": "Sequential questionnaire engine — core research runtime",
+      "module": "navrh.py",
+      "loc": 201,
+      "docstring": "NPC PANEL — navrh.py Z jednovete klientske otazky udela hotovy dotaznik. python navrh.py \"Chceme vedet, jestli lidi koupi predplatne na dorucovani potravin za 299 Kc mesicne\" -o brief.json python run.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "orchestration",
+      "note": "CLI orchestrators; become API/worker entrypoints",
+      "module": "npc.py",
+      "loc": 65,
+      "docstring": "Canonical CLI entrypoint for NPC Panel 17.1.2.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/__init__.py",
+      "loc": 6,
+      "docstring": "NPC Panel INGEST package.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/harmonization.py",
+      "loc": 24,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/leakage.py",
+      "loc": 25,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/manager.py",
+      "loc": 111,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/realism.py",
+      "loc": 181,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/registry.py",
+      "loc": 125,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/response_bank.py",
+      "loc": 109,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/router.py",
+      "loc": 22,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Ingest subsystem: routing, harmonisation, leakage, realism, versioning",
+      "module": "npc_ingest/versioning.py",
+      "loc": 143,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Panel QC, provenance, authenticity lint and source acquisition tools",
+      "module": "npc_tools/__init__.py",
+      "loc": 1,
+      "docstring": "Integrated QC/acquisition helpers retained as tools, not a second survey engine.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Panel QC, provenance, authenticity lint and source acquisition tools",
+      "module": "npc_tools/npc_fetch.py",
+      "loc": 426,
+      "docstring": "npc_fetch.py — stahování zeleného koše datových zdrojů pro NPC Panel ==================================================================== Co to dělá ---------- Stáhne české a evropské datové zdroje, u",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Panel QC, provenance, authenticity lint and source acquisition tools",
+      "module": "npc_tools/npc_lint.py",
+      "loc": 264,
+      "docstring": "npc_lint.py — kontrola autenticity českých odpovědí syntetických respondentů ============================================================================= Detekuje jazykové příznaky toho, že model pře",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Panel QC, provenance, authenticity lint and source acquisition tools",
+      "module": "npc_tools/npc_provenance.py",
+      "loc": 267,
+      "docstring": "npc_provenance.py — původ dat, verzování panelu a výpočet moatu ================================================================ Tři věci, které rozhodnou o enterprise prodeji a o tom, jestli víte, kd",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Panel QC, provenance, authenticity lint and source acquisition tools",
+      "module": "npc_tools/npc_validate.py",
+      "loc": 340,
+      "docstring": "npc_validate.py — validace panelu proti reálným marginálům ČSÚ =============================================================== Tohle je ta kontrola, kterou doporučuju udělat dřív než cokoliv jiného. C",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "module": "osobnost.py",
+      "loc": 268,
+      "docstring": "NPC PANEL — osobnost.py Prerozdeleni osobnostnich vrstev tak, aby korelovaly s demografii. PROBLEM, KTERY TO RESI V puvodnim panelu je HEXACO/4E/TCI nalosovane nezavisle na vsem krome pohlavi. Korelac",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Calibration layers, kept separate from respondent microdata",
+      "module": "output_calibration.py",
+      "loc": 48,
+      "docstring": "Cross-validated B4 calibration layer over raw category distributions. Calibration is intentionally separate from respondent microdata. It may be fitted only on SMOKE/CALIBRATION benchmarks, never on a",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "reports",
+      "note": "Report composition and export packs",
+      "module": "output_pack.py",
+      "loc": 80,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "reports",
+      "note": "Report composition and export packs",
+      "module": "pdf_targets.py",
+      "loc": 39,
+      "docstring": "Track-B PDF target extraction with explicit human confirmation. Extraction uses the existing Anthropic provider path; it does not change survey or orchestration model routing. No target is merged unti",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Benchmarks, drift guard and controlled ablation experiments",
+      "module": "persona_ablation.py",
+      "loc": 112,
+      "docstring": "Controlled persona ablation for NPC Panel. This experiment measures WHETHER persona conditioning changes model responses. It explicitly does not claim that the changed answers are more accurate; that ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Calibration layers, kept separate from respondent microdata",
+      "module": "persona_calibration.py",
+      "loc": 158,
+      "docstring": "Benchmark-driven persona calibration. Only rows explicitly marked CALIBRATION may tune the persona. BLIND_HOLDOUT rows are measurement-only and are rejected for fitting. The active profile selects the",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "module": "persona_depth.py",
+      "loc": 601,
+      "docstring": "Deep, auditable persona overlay for NPC Panel 10.12. The population core remains unchanged. This module derives *presentation and response- conditioning features* from existing panel dimensions and de",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "module": "persona_grounded.py",
+      "loc": 318,
+      "docstring": "v17 evidence-aware persona retrieval over the coherent population data core. The production persona is intentionally narrow: - coherent core facts come from the single PIAAC/ISSP core donor and Census",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Respondent sampling and generation pipeline",
+      "module": "pipeline.py",
+      "loc": 1496,
+      "docstring": "NPC PANEL — pipeline.py Hlavní rozhraní: run_pruzkum(otazka, n, filtry, kategorie) Nahrazuje llm_survey_engine.py + survey_aggregator.py. Vyžaduje: pandas, numpy, anthropic ; ANTHROPIC_API_KEY (kromě ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "population",
+      "note": "Population core: joint structure, donor fusion, subpanels, context",
+      "module": "population_context.py",
+      "loc": 341,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "population",
+      "note": "Population core: joint structure, donor fusion, subpanels, context",
+      "module": "population_subpanels.py",
+      "loc": 53,
+      "docstring": "Canonical v17 built-in and special-audience panel registry.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Release/handoff packaging check; replaced by CI quality gates",
+      "module": "portability_check.py",
+      "loc": 27,
+      "docstring": "Check that the handoff runtime does not depend on this machine's absolute path.",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "analysis",
+      "note": "Post-run QC and pricing analysis helpers",
+      "module": "pricing_engine.py",
+      "loc": 147,
+      "docstring": "Pricing research helpers for NPC Panel. Implements standard survey analysis, not a universal behavioral correction. Any purchase-intent calibration must be supplied with an explicit factor/model and s",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Methodology contract as enforced backend rules",
+      "module": "product_policy.py",
+      "loc": 95,
+      "docstring": "Central product policy for NPC Panel 15.0. Historically, product heuristics were scattered across research_project.py, study_contract.py, persona_depth.py and audience code. This module makes the limi",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 3,
+      "context": "artifacts",
+      "note": "Sub-artifact registration from engine outputs",
+      "module": "project_artifact_sync.py",
+      "loc": 180,
+      "docstring": "Register durable sub-artifacts produced by existing NPC engines. The engines keep their proven 17.8.x checkpoint formats. This module projects those checkpoints into the 17.9.0 project artifact graph ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Respondent sampling and generation pipeline",
+      "module": "project_engine.py",
+      "loc": 187,
+      "docstring": "Run one integrated mixed research project through one respondent sample. Ordinary questions and all object batteries are compiled into one sequential survey, so every answer in the downloadable datase",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "research-design",
+      "note": "Guided research design and dual-agent research context",
+      "module": "project_intake.py",
+      "loc": 80,
+      "docstring": "Optional legacy/template study hints. Not used as authority in the production brief-first workflow.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Cross-project knowledge retrieval (a documented product capability)",
+      "module": "project_memory.py",
+      "loc": 404,
+      "docstring": "Cross-project inspiration and retrieval for NPC Panel 17.9.1. This is deliberately a *knowledge retrieval* layer, not a hidden project mutator. It searches immutable project revisions and selected hig",
+      "state": "not-started"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "pipeline",
+      "note": "One-off migration of the prototype's own SQLite store",
+      "module": "project_migration.py",
+      "loc": 83,
+      "docstring": "Non-destructive PROJECT_PERSISTENCE_MIGRATION_V1 for NPC Panel 17.9.0. Migration is additive and idempotent. Historical jobs/runs are linked only when project + revision + stage identity can be establ",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 2,
+      "context": "pipeline",
+      "note": "Reimplemented; fingerprint parity verified byte-identical",
+      "module": "project_pipeline.py",
+      "loc": 158,
+      "docstring": "Project-centric durable pipelines for NPC Panel 17.9.0. The workflow engine may enqueue work, but the project/stage/artifact graph is the source of truth. Stage definitions intentionally stay small an",
+      "state": "done"
+    },
+    {
+      "disposition": "port",
+      "phase": 2,
+      "context": "pipeline",
+      "note": "Reimplemented as ProjectRepository + domain.project; behavioural tests",
+      "module": "project_store.py",
+      "loc": 596,
+      "docstring": "Persistent project / revision / stage / artifact source of truth. 17.9.0 extends the original immutable revision store without breaking its public save/get/list API. Existing 17.8.x databases are migr",
+      "state": "done"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "api",
+      "note": "Zero-framework local prototype server; superseded by FastAPI",
+      "module": "prototype_server.py",
+      "loc": 533,
+      "docstring": "Local zero-framework web prototype for NPC Panel. Run: python prototype_server.py Open: http://127.0.0.1:8765 The server binds to localhost by default and is intended for prototype use, not public int",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Methodology contract as enforced backend rules",
+      "module": "provenance.py",
+      "loc": 84,
+      "docstring": "NPC PANEL v2 — machine-readable data contracts for synthetic dimensions. The goal is not to prove that a source is licensed for every use. The goal is to make provenance/denominator gaps impossible to",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "ai-runtime",
+      "note": "Credential handling moves to Secrets Manager + KMS; no local keystore",
+      "module": "provider_auth.py",
+      "loc": 587,
+      "docstring": "Provider credential handling for NPC Panel desktop runtime. The local desktop app treats its own ``.env`` file as the explicit settings source. A stale process-wide ANTHROPIC_API_KEY must not silently",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "provider_diagnostics.py",
+      "loc": 78,
+      "docstring": "Claude Code-only actionable diagnostics for NPC Panel. Normal product AI uses the user's Claude Code subscription only. Diagnostics must therefore test that exact runtime instead of asking for unrelat",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Smoke test; replaced by the pytest suite and CI startup smoke job",
+      "module": "provider_parity.py",
+      "loc": 23,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 2,
+      "context": "ai-runtime",
+      "note": "Reimplemented as domain.providers; parity verified",
+      "module": "provider_runtime.py",
+      "loc": 47,
+      "docstring": "Explicit three-provider LIVE runtime policy. Production transports are Claude Code subscription, Claude API and OpenAI API. The selected provider is fail-closed. Cross-provider switching is never auto",
+      "state": "done"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "analysis",
+      "note": "Post-run QC and pricing analysis helpers",
+      "module": "qc.py",
+      "loc": 273,
+      "docstring": "NPC PANEL — qc.py Kontrola kvality behu. Pousti se automaticky po kazdem behu. Syntetický panel selhava jinak nez realny teren. Realny teren ma problem s podvodniky a nepozornosti; syntetický panel ma",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "results",
+      "note": "Post-run external verification and contextual calibration",
+      "module": "reality_alignment.py",
+      "loc": 122,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "results",
+      "note": "Post-run external verification and contextual calibration",
+      "module": "reality_alignment_acceptance.py",
+      "loc": 43,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "data-pipeline",
+      "phase": null,
+      "context": "population",
+      "note": "Offline panel build/rebuild script; becomes a versioned reproducible data pipeline, not app runtime",
+      "module": "rebuild_social_network_gender_v17_4.py",
+      "loc": 73,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Release/handoff packaging check; replaced by CI quality gates",
+      "module": "release_gate.py",
+      "loc": 71,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Release/handoff packaging check; replaced by CI quality gates",
+      "module": "release_integrity.py",
+      "loc": 58,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Release/handoff packaging check; replaced by CI quality gates",
+      "module": "release_scorecard.py",
+      "loc": 57,
+      "docstring": "Evidence-first release status. This file deliberately does NOT assign a self-authored 1–10 product score. It reports what can be mechanically verified and keeps external predictive validity separate.",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "reports",
+      "note": "Report composition and export packs",
+      "module": "report.py",
+      "loc": 448,
+      "docstring": "NPC PANEL — report.py Export behu (run_dotaznik / run_pruzkum) do klientskeho XLSX. from report import export_xlsx export_xlsx(vysledky, \"vystup.xlsx\") Listy: Prehled — zadani, metodika, naklady, disc",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "reports",
+      "note": "Report composition and export packs",
+      "module": "report_html.py",
+      "loc": 140,
+      "docstring": "Standalone offline HTML protocol for NPC Panel 10.13. The protocol is intentionally dependency-free. Quantitative research outputs are rendered as point + interval + evidence rating. Synthetic/derived",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Respondent sampling and generation pipeline",
+      "module": "representative_sampling.py",
+      "loc": 173,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Benchmarks, drift guard and controlled ablation experiments",
+      "module": "research_arena.py",
+      "loc": 34,
+      "docstring": "Permanent blind Research Arena for Full Simulation 10.15.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "research-design",
+      "note": "Guided research design and dual-agent research context",
+      "module": "research_context.py",
+      "loc": 512,
+      "docstring": "Dual-agent Research Context for NPC Panel. Contract -------- * OFF means OFF: no OpenAI/Anthropic research call is made. * ON uses the globally selected provider (OpenAI or Anthropic) fail-closed. * D",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "research-design",
+      "note": "Optional research-design copilot surface",
+      "module": "research_copilot.py",
+      "loc": 256,
+      "docstring": "Optional persistent Claude copilot for NPC Panel 10.12. Claude is a research-design collaborator, not a required control surface. Users can close the panel and edit everything manually. When used, Cla",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "research-design",
+      "note": "Guided research design and dual-agent research context",
+      "module": "research_designer.py",
+      "loc": 756,
+      "docstring": "Guided research design for NPC Panel 17.0. The workflow intentionally separates *thinking about the research* from *writing the questionnaire*. Claude is optional: users can skip these functions and e",
+      "state": "not-started"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "runtime",
+      "note": "Local .env loader; replaced by typed config + Secrets Manager",
+      "module": "research_os_config.py",
+      "loc": 16,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "research-design",
+      "note": "Guided research design and dual-agent research context",
+      "module": "research_project.py",
+      "loc": 498,
+      "docstring": "User-facing research project model for NPC Panel 15.0. The product unit is one research project, not separate Survey / Audience / Map apps. A project can contain ordinary questionnaire blocks and any ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "results",
+      "note": "Grounded and explicitly-simulated respondent dialogue",
+      "module": "respondent_dialogue.py",
+      "loc": 390,
+      "docstring": "Grounded + explicitly simulated dialogue with NPC respondents and segments. The default path is local/deterministic and answers only from the selected respondent rows. The optional simulation path is ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "results",
+      "note": "Post-run external verification and contextual calibration",
+      "module": "result_context.py",
+      "loc": 335,
+      "docstring": "Post-run external verification and transparent contextual calibration. This module is intentionally separate from Research Context used *before* respondent simulation. Post-run verification is opt-in ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "results",
+      "note": "Run/results history and reusable question bank",
+      "module": "results_registry.py",
+      "loc": 117,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "orchestration",
+      "note": "CLI orchestrators; become API/worker entrypoints",
+      "module": "run.py",
+      "loc": 312,
+      "docstring": "One-command NPC Panel orchestrator. The path is deliberately fail-closed: brief -> lint -> panel/data/holdout/legal/domain preflight -> optional dual-agent Research Context -> sequential synthetic int",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "results",
+      "note": "Run/results history and reusable question bank",
+      "module": "run_store.py",
+      "loc": 80,
+      "docstring": "Persistent study/run history and reusable question bank.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "ai-runtime",
+      "note": "Capability/policy metadata for user-facing AI actions",
+      "module": "runtime_config.py",
+      "loc": 156,
+      "docstring": "Runtime configuration for NPC Panel. Survey/orchestration model routing is centralized here. Anthropic and OpenAI are supported production engines. The provider selected for a LIVE run is fail-closed;",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "runtime_diagnostic.py",
+      "loc": 98,
+      "docstring": "Tiny startup diagnostic that survives an incomplete NPC distribution. Uses only the Python standard library. START_NPC.bat runs it before importing the application. If a critical runtime file is missi",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 7,
+      "context": "simulation",
+      "note": "Scenario contracts and the append-only scenario resolution log",
+      "module": "scenario_compiler.py",
+      "loc": 166,
+      "docstring": "Compile free-text scenarios into explicit, reviewable measured-variable shifts. The free-text story is never the final simulation object. The compiler produces a structured delta contract that a user ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 7,
+      "context": "simulation",
+      "note": "Scenario contracts and the append-only scenario resolution log",
+      "module": "scenario_truth_log.py",
+      "loc": 24,
+      "docstring": "Append-only scenario resolution log; separate from blind forecast track record.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 3,
+      "context": "workflow",
+      "note": "Dispatch + reconciler; SQS-backed worker process still to build",
+      "module": "scheduler.py",
+      "loc": 127,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Release/handoff packaging check; replaced by CI quality gates",
+      "module": "secret_scan.py",
+      "loc": 43,
+      "docstring": "Conservative secret scan for handoff packaging. Skips binary/data archives and the documented .env.example placeholders. It is not a replacement for an enterprise secret scanner, but catches common ac",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "audience",
+      "note": "Segment engine and orchestration",
+      "module": "segment.py",
+      "loc": 359,
+      "docstring": "NPC Panel — data-driven audience/segment engine. The engine never invents new synthetic people. It learns or receives a membership propensity over the existing population and changes sampling probabil",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "Preference map and segmentation — numerical parity required",
+      "module": "segment_intelligence.py",
+      "loc": 245,
+      "docstring": "NPC Panel 18.4 — Segment Intelligence for Visualization Lab. The discovery layer is deterministic and evidence-derived. The optional AI layer receives aggregates only (never raw respondent rows) and m",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "audience",
+      "note": "Segment engine and orchestration",
+      "module": "segment_orchestration.py",
+      "loc": 115,
+      "docstring": "High-level segment preparation shared by CLI and local UI.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "selftest.py",
+      "loc": 143,
+      "docstring": "One-command local release self-test. Guaranteed no paid/external research calls.",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 7,
+      "context": "simulation",
+      "note": "Simulation lab, learning layer, multi-variant orchestration",
+      "module": "simulation_batch.py",
+      "loc": 219,
+      "docstring": "Multi-variant Full Simulation orchestration and client-facing comparison outputs.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 7,
+      "context": "simulation",
+      "note": "Simulation lab, learning layer, multi-variant orchestration",
+      "module": "simulation_context.py",
+      "loc": 198,
+      "docstring": "AI-enriched context layer for standalone client-facing simulations. A user may start with a short brief. The system first structures what it knows, then performs topic research on the same Claude Code",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Validation state machine bound to an immutable system fingerprint",
+      "module": "smoke_validation.py",
+      "loc": 23,
+      "docstring": "Repeatable published-margin validation tier. SMOKE_VALIDATED is a development/iteration status only. It never unlocks or replaces the one-shot human HOLDOUT_VALIDATED certificate.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 8,
+      "context": "data-library",
+      "note": "Source ingestion → evidence proposal → approval → materialisation",
+      "module": "society_insights.py",
+      "loc": 276,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "Preference map and segmentation — numerical parity required",
+      "module": "sociomap.py",
+      "loc": 565,
+      "docstring": "Auditovatelná preference mapa a segmentace pro modul VÝZKUM. Primární kontrakt specifikuje row-conditional multidimensional unfolding přes R `smacof::unfolding`. Runtime proto umí dvě cesty: - `method",
+      "state": "not-started"
+    },
+    {
+      "disposition": "drop",
+      "phase": null,
+      "context": "runtime",
+      "note": "Windows desktop launcher/supervisor; replaced by containers + ECS",
+      "module": "spawn_env.py",
+      "loc": 36,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "modul VÝZKUM: data contract, dataset conversion, engine, export, validity",
+      "module": "study_cli.py",
+      "loc": 16,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "modul VÝZKUM: data contract, dataset conversion, engine, export, validity",
+      "module": "study_contract.py",
+      "loc": 271,
+      "docstring": "Datový kontrakt modulu VÝZKUM. Objekty (fam_/obj_) jsou jediná třída proměnných, která vstupuje do mapy. Charakteristiky (dem_/att_/beh_/bin_) slouží pouze k profilaci a drill-down.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "modul VÝZKUM: data contract, dataset conversion, engine, export, validity",
+      "module": "study_dataset.py",
+      "loc": 117,
+      "docstring": "Převod detailního survey runu na standardizovaný dataset modulu VÝZKUM.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "modul VÝZKUM: data contract, dataset conversion, engine, export, validity",
+      "module": "study_engine.py",
+      "loc": 95,
+      "docstring": "End-to-end modul VÝZKUM.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "modul VÝZKUM: data contract, dataset conversion, engine, export, validity",
+      "module": "study_export.py",
+      "loc": 245,
+      "docstring": "Standardní tří-souborový export studie: XLSX + DOCX + HTML mapa.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "modul VÝZKUM: data contract, dataset conversion, engine, export, validity",
+      "module": "study_validation.py",
+      "loc": 182,
+      "docstring": "Validation gates for tracked-object studies — NPC Panel 10.12. 10.12 removes two invalid universal assumptions from the old V4/V5 gates: * a good object battery does NOT need to contain a negative cor",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "modul VÝZKUM: data contract, dataset conversion, engine, export, validity",
+      "module": "study_validity.py",
+      "loc": 140,
+      "docstring": "Pre-run claim/readiness scorecard. Axes intentionally use different vocabularies. Evidence coverage, sampling precision, design quality and external predictive validation are not the same thing and mu",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "module": "styly.py",
+      "loc": 117,
+      "docstring": "NPC PANEL — styly.py Vrstva odpovedniho stylu (response style). Proc existuje: Rozptyl v realnem pruzkumu nevznika jen tim, ze lidi mysli ruzne veci. Vznika taky tim, ze ruzne ODPOVIDAJI. Nekdo souhla",
+      "state": "not-started"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "support_bundle.py",
+      "loc": 122,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Benchmarks, drift guard and controlled ablation experiments",
+      "module": "survey_experiments.py",
+      "loc": 62,
+      "docstring": "Experimental survey-design diagnostics: order and framing sensitivity.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "questionnaire",
+      "note": "Deterministic instrument library, static lint, filter normalisation",
+      "module": "survey_lint.py",
+      "loc": 118,
+      "docstring": "Static questionnaire validation before any paid LLM calls.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Validation state machine bound to an immutable system fingerprint",
+      "module": "system_fingerprint.py",
+      "loc": 101,
+      "docstring": "Immutable system fingerprint for validation/release evidence. A predictive-validity claim is valid only for the exact system that was benchmarked. Changing panel bytes, runtime code, model routing or ",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 5,
+      "context": "respondents",
+      "note": "Shared survey runtime context; never implicitly injected",
+      "module": "task_conditions.py",
+      "loc": 9,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Fail-closed evidence and predictive-validity gates",
+      "module": "tier_gate.py",
+      "loc": 75,
+      "docstring": "Fail-closed evidence tier gate for NPC Panel 10.13. Tier A: conditional + independently validated joint evidence (currently none). Tier B: documented marginal/conditional evidence; aggregate and demog",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "modul VÝZKUM: data contract, dataset conversion, engine, export, validity",
+      "module": "typology_reference.py",
+      "loc": 36,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 10,
+      "context": "api",
+      "note": "136 HTTP paths; 19 ported so far. Source of the API contract",
+      "module": "ui_server.py",
+      "loc": 2185,
+      "docstring": "NPC Panel Research OS — durable background workflow runtime. The browser is a friendly orchestration layer only. Authoritative survey, study, segment, ingest and validation logic remains in the existi",
+      "state": "partial"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Donor-aware weighted uncertainty; Kish effective N; bootstrap intervals",
+      "module": "uncertainty.py",
+      "loc": 199,
+      "docstring": "Donor-aware weighted uncertainty helpers for NPC Panel 17.1.2. 17.1 rules: - report Kish weight effective N *and* real donor support; - bootstrap client-facing intervals over donor clusters, not synth",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Validation diagnostics and paired-question statistics",
+      "module": "validace.py",
+      "loc": 98,
+      "docstring": "Validace panelu proti znamemu realnemu vysledku. Pouziti: from validace import validuj v = validuj( otazka=\"Koho byste volil, kdyby byly volby tento vikend?\", realita={\"ANO\": 30.5, \"ODS\": 13.2, \"Pirat",
+      "state": "not-started"
+    },
+    {
+      "disposition": "data-pipeline",
+      "phase": null,
+      "context": "population",
+      "note": "Offline panel build/rebuild script; becomes a versioned reproducible data pipeline, not app runtime",
+      "module": "validate_v17.py",
+      "loc": 88,
+      "docstring": "",
+      "state": "n/a"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Validation diagnostics and paired-question statistics",
+      "module": "validation_diagnostics.py",
+      "loc": 107,
+      "docstring": "Validation/stability diagnostics that do not pretend larger synthetic N removes bias.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Fail-closed evidence and predictive-validity gates",
+      "module": "validation_gate.py",
+      "loc": 277,
+      "docstring": "Fail-closed evidence gate for predictive validity. A dry/smoke benchmark can never unlock a validity claim. VALIDATED requires: - preregistered blind-human holdout with locked truth, - all five ablati",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "statistics",
+      "note": "Donor-aware weighted uncertainty; Kish effective N; bootstrap intervals",
+      "module": "validation_stats.py",
+      "loc": 75,
+      "docstring": "Paired question-level validation statistics with bootstrap uncertainty.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Validation state machine bound to an immutable system fingerprint",
+      "module": "validation_status.py",
+      "loc": 30,
+      "docstring": "Canonical validation state machine bound to the current system fingerprint.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 6,
+      "context": "governance",
+      "note": "Blind-human holdout: protocol, registry, preregistration workflow",
+      "module": "validation_workflow.py",
+      "loc": 69,
+      "docstring": "CLI for preregistering, locking and signing blind-human validation evidence.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 9,
+      "context": "sociomapa",
+      "note": "Preference map and segmentation — numerical parity required",
+      "module": "visualization_lab.py",
+      "loc": 286,
+      "docstring": "NPC Panel 18.2 — Visualization Lab. Read-only visualization preparation over real respondent rows. The module never synthesizes respondents: a row in the map always comes from the provided dataset.",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 3,
+      "context": "workflow",
+      "note": "Dispatch + reconciler; SQS-backed worker process still to build",
+      "module": "worker_daemon.py",
+      "loc": 117,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 4,
+      "context": "workflow",
+      "note": "Stage execution body; drives one pipeline node",
+      "module": "worker_job.py",
+      "loc": 1096,
+      "docstring": "",
+      "state": "not-started"
+    },
+    {
+      "disposition": "port",
+      "phase": 3,
+      "context": "workflow",
+      "note": "Reimplemented as WorkflowRun/StepRun/StepAttempt; verified under PG contention",
+      "module": "workflow_engine.py",
+      "loc": 99,
+      "docstring": "",
+      "state": "done"
+    },
+    {
+      "disposition": "dev-tool",
+      "phase": null,
+      "context": "operability",
+      "note": "Local diagnostic; replaced by CI checks, health endpoints and CloudWatch",
+      "module": "workflow_report.py",
+      "loc": 27,
+      "docstring": "",
+      "state": "n/a"
+    }
+  ]
+}

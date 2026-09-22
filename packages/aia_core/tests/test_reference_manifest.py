@@ -18,6 +18,29 @@ from typing import Any
 import pytest
 
 TOOLS = Path(__file__).resolve().parents[3] / "tools"
+COMMITTED_MANIFEST = (
+    Path(__file__).resolve().parents[3] / "docs" / "migration" / "reference-manifest.json"
+)
+
+
+def _seed_manifest(tool: Any, root: Path) -> int:
+    """Write a manifest for a synthetic tree so ``verify`` has something to read.
+
+    These tests exercise drift *detection*, and need a manifest that matches a
+    tree they then perturb. The production writer is deliberately archive-only --
+    a tree-derived write would downgrade the schema, which is asserted in
+    ``test_reference_manifest_schema.py`` -- so the fixture is composed here from
+    ``scan()`` rather than by calling a tree-writing entry point that no longer
+    exists on purpose.
+
+    Returns the canonical file count.
+    """
+    entries = tool.scan(root)
+    tool.MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tool.MANIFEST_PATH.write_text(
+        json.dumps({"canonical_file_count": len(entries), "files": entries}, indent=2) + "\n"
+    )
+    return len(entries)
 
 
 @pytest.fixture(scope="module")
@@ -130,7 +153,7 @@ def test_verify_detects_a_modified_canonical_file(
     monkeypatch.setattr(manifest_tool, "MANIFEST_PATH", manifest_path)
     monkeypatch.setenv("AIA_LEGACY_REFERENCE", str(fake_reference))
 
-    assert manifest_tool.write(fake_reference)["canonical_file_count"] == 6
+    assert _seed_manifest(manifest_tool, fake_reference) == 6
     assert manifest_tool.verify(fake_reference) == 0
 
     (fake_reference / "project_pipeline.py").write_text("STAGES = ['BRIEF', 'SNEAKY']\n")
@@ -144,7 +167,7 @@ def test_verify_detects_a_deleted_canonical_file(
     manifest_path = tmp_path / "manifest.json"
     monkeypatch.setattr(manifest_tool, "MANIFEST_PATH", manifest_path)
 
-    manifest_tool.write(fake_reference)
+    _seed_manifest(manifest_tool, fake_reference)
     (fake_reference / "PRODUCT_POLICY.json").unlink()
 
     assert manifest_tool.verify(fake_reference) == 1
@@ -157,7 +180,7 @@ def test_verify_detects_an_added_canonical_file(
     manifest_path = tmp_path / "manifest.json"
     monkeypatch.setattr(manifest_tool, "MANIFEST_PATH", manifest_path)
 
-    manifest_tool.write(fake_reference)
+    _seed_manifest(manifest_tool, fake_reference)
     (fake_reference / "extra_module.py").write_text("def surprise(): pass\n")
 
     assert manifest_tool.verify(fake_reference) == 1
@@ -171,18 +194,22 @@ def test_verify_without_a_manifest_is_an_error_not_a_pass(
     assert manifest_tool.verify(fake_reference) == 2
 
 
-def test_manifest_records_why_it_exists(
-    manifest_tool: Any, fake_reference: Path, monkeypatch: Any, tmp_path: Path
-) -> None:
-    """The file explains itself, because it will be read without this test."""
-    manifest_path = tmp_path / "manifest.json"
-    monkeypatch.setattr(manifest_tool, "MANIFEST_PATH", manifest_path)
-    manifest_tool.write(fake_reference)
+def test_manifest_records_why_it_exists() -> None:
+    """The committed file explains itself, because it is read without this test.
 
-    manifest = json.loads(manifest_path.read_text())
+    Asserted against the real artifact rather than a freshly written one: what
+    matters is that the manifest a reader opens states which snapshot it
+    describes and warns against the mutable tree, not that some function can
+    produce those strings.
+    """
+    manifest = json.loads(COMMITTED_MANIFEST.read_text(encoding="utf-8"))
+
     assert "runtime" in manifest["description"].lower()
-    assert "reference-weaknesses" in manifest["reference_note"]
+    assert "archive" in manifest["description"].lower()
+    # The trap that produced the stale manifest, named in the artifact itself.
+    assert "MUTABLE" in manifest["reference_note"]
     assert manifest["canonical_file_count"] == len(manifest["files"])
+    assert manifest["migration_module_count"] == len(manifest["migration_modules"])
 
 
 def test_committed_manifest_matches_the_real_reference(
