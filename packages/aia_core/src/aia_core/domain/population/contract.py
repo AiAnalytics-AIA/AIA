@@ -212,6 +212,13 @@ class PopulationImportContract:
         )
 
     @property
+    def derived_policy_fields(self) -> tuple[tuple[str, bool], ...]:
+        """``(name, is_weight)`` per derived field, as the field policy takes them."""
+        return tuple(
+            (d.name, d.origin is DerivedOrigin.ANALYSIS_WEIGHT) for d in self.derived_fields
+        )
+
+    @property
     def weight_columns(self) -> tuple[str, ...]:
         """Every declared weight column, in declaration order."""
         return tuple(s.column for s in self.weight_schemes)

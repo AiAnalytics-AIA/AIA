@@ -91,7 +91,7 @@ def parse_panel(data: bytes) -> ParsedPanel:
 
 
 def parse_dictionary(data: bytes, *, field_column: str = "field") -> ParsedDictionary:
-    """Return the ordered field names from a field-dictionary CSV."""
+    """Return the ordered field names, and every row as text, from a field-dictionary CSV."""
     reader = csv.DictReader(io.StringIO(_text(data, "dictionary"), newline=""), strict=True)
     try:
         if reader.fieldnames is None or field_column not in reader.fieldnames:
@@ -100,6 +100,7 @@ def parse_dictionary(data: bytes, *, field_column: str = "field") -> ParsedDicti
                 failures=("dictionary.header",),
             )
         names: list[str] = []
+        rows: list[dict[str, str | None]] = []
         for line_number, row in enumerate(reader, start=2):
             name = row.get(field_column)
             if not name:
@@ -107,9 +108,16 @@ def parse_dictionary(data: bytes, *, field_column: str = "field") -> ParsedDicti
                     f"dictionary row {line_number} names no field",
                     failures=("dictionary.empty_field",),
                 )
+            if None in row:
+                raise ImportRejected(
+                    f"dictionary row {line_number} has more cells than the header",
+                    failures=("dictionary.ragged_row",),
+                )
             names.append(name)
+            rows.append({k: (v if v != "" else None) for k, v in row.items()})
+        columns = tuple(reader.fieldnames)
     except csv.Error as exc:
         raise ImportRejected(
             f"the dictionary is malformed: {exc}", failures=("dictionary.csv",)
         ) from exc
-    return ParsedDictionary(fields=tuple(names))
+    return ParsedDictionary(fields=tuple(names), rows=tuple(rows), columns=columns)

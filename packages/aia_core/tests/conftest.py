@@ -461,6 +461,61 @@ def synthetic_rows(segment_suffix: str) -> list[dict[str, str]]:
     ]
 
 
+# One policy row per synthetic field: (block, evidence_status, grade, recommended_use,
+# persona_eligible). Chosen to cover the interesting policy categories.
+SYNTHETIC_POLICY: dict[str, tuple[str, str, str, str, str]] = {
+    "row_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
+    "vek": ("population_anchor", "POPULATION_ANCHOR", "A", "PERSONA_OR_ANALYSIS_WITH_SCOPE", "yes"),
+    "occupation_code": ("core", "CANONICAL_CORE", "C", "HISTORICAL_OR_EXPLORATORY", "yes"),
+    "segment": (
+        "marketing_behavior",
+        "MODELED_MARKETING_PRIOR",
+        "B",
+        "behavioral prior / simulation modifier, never measured fact",
+        "yes",
+    ),
+    "w_main": ("weight", "NEW_WEIGHT", "T", "AUDIT_ONLY", "no"),
+    "w_alt": ("weight", "NEW_WEIGHT", "T", "AUDIT_ONLY", "no"),
+}
+
+DEFAULT_POLICY_ROW = ("core", "POPULATION_ANCHOR", "A", "PERSONA_OR_ANALYSIS_WITH_SCOPE", "yes")
+
+
+def policy_dictionary_csv(
+    fields: tuple[str, ...], policy: dict[str, tuple[str, str, str, str, str]] | None = None
+) -> bytes:
+    """A field dictionary in the reference's column layout, with a policy row per field."""
+    import csv
+    import io
+
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(
+        [
+            "field",
+            "block",
+            "source",
+            "evidence_status",
+            "production_grade",
+            "recommended_use",
+            "description",
+            "persona_eligible",
+        ]
+    )
+    for name in fields:
+        block, status, grade, use, persona = (policy or {}).get(name, DEFAULT_POLICY_ROW)
+        writer.writerow(
+            [name, block, "synthetic", status, grade, use, f"{name} (synthetic)", persona]
+        )
+    return buffer.getvalue().encode("utf-8")
+
+
+@pytest.fixture
+def policy_dictionary() -> Any:
+    """Return :func:`policy_dictionary_csv` for tests that build their own dictionaries."""
+    return policy_dictionary_csv
+
+
 def gzip_csv(fields: tuple[str, ...], rows: list[dict[str, str]]) -> bytes:
     """Deterministic gzip CSV (mtime=0), so a version's hash is stable."""
     import csv
@@ -491,8 +546,7 @@ def build_synthetic_population() -> SyntheticPopulation:
         "v1_4": synthetic_rows("4"),
     }
     panels = {label: gzip_csv(SYNTHETIC_FIELDS, r) for label, r in rows.items()}
-    dictionary = "field,block\n" + "\n".join(f"{f},core" for f in SYNTHETIC_FIELDS) + "\n"
-    dictionary_bytes = dictionary.encode("utf-8")
+    dictionary_bytes = policy_dictionary_csv(SYNTHETIC_FIELDS, SYNTHETIC_POLICY)
 
     contract = PopulationImportContract(
         contract_id="synthetic_population/v1",

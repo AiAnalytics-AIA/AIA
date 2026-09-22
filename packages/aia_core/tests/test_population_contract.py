@@ -99,6 +99,36 @@ def base_rows() -> list[dict[str, str | None]]:
     ]
 
 
+POLICY_COLUMNS = (
+    "field",
+    "block",
+    "source",
+    "evidence_status",
+    "production_grade",
+    "recommended_use",
+    "description",
+    "persona_eligible",
+)
+
+
+def dictionary_of(fields: tuple[str, ...]) -> ParsedDictionary:
+    """A parsed dictionary whose every row carries a mapped policy."""
+    rows = tuple(
+        {
+            "field": f,
+            "block": "core",
+            "source": "synthetic",
+            "evidence_status": "POPULATION_ANCHOR",
+            "production_grade": "A",
+            "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+            "description": None,
+            "persona_eligible": "yes",
+        }
+        for f in fields
+    )
+    return ParsedDictionary(fields, rows=rows, columns=POLICY_COLUMNS)
+
+
 def panel_of(fields: tuple[str, ...], rows: list[dict[str, str | None]]) -> ParsedPanel:
     return ParsedPanel(
         header=fields,
@@ -125,7 +155,7 @@ class Bundle:
             "panel_sha256": content_sha256(self.panel_bytes),
             "panel_byte_size": len(self.panel_bytes),
             "dictionary_sha256": content_sha256(self.dictionary_bytes),
-            "dictionary": ParsedDictionary(self.fields),
+            "dictionary": dictionary_of(self.fields),
             "panel": panel_of(self.fields, self.rows),
         }
         kwargs.update(overrides)
@@ -368,7 +398,7 @@ def test_a_400_field_bundle_with_one_field_renamed_fails() -> None:
     bundle = Bundle(fields)
     renamed = (*fields[:-1], "field_renamed")
     report = bundle.validate(
-        dictionary=ParsedDictionary(renamed), panel=panel_of(renamed, bundle.rows)
+        dictionary=dictionary_of(renamed), panel=panel_of(renamed, bundle.rows)
     )
     # Panel and dictionary renamed consistently: the header still equals the
     # dictionary, so only the pinned fingerprint can tell. That is its job.
@@ -393,7 +423,7 @@ def test_reordered_columns_fail_and_name_the_position() -> None:
 def test_a_reordered_dictionary_fails_its_fingerprint() -> None:
     bundle = Bundle()
     swapped = ("row_id", "occupation_code", "age", "w_main", "w_alt")
-    report = bundle.validate(dictionary=ParsedDictionary(swapped))
+    report = bundle.validate(dictionary=dictionary_of(swapped))
     assert "dictionary.field_names" in failed(report)
 
 
@@ -427,9 +457,7 @@ def test_forbidden_prefixes_fail() -> None:
     fields = (*BASE_FIELDS, "D_leak")
     bundle = Bundle()
     bundle.fields = fields
-    report = bundle.validate(
-        dictionary=ParsedDictionary(fields), panel=panel_of(fields, bundle.rows)
-    )
+    report = bundle.validate(dictionary=dictionary_of(fields), panel=panel_of(fields, bundle.rows))
     assert "schema.forbidden_prefixes" in failed(report)
 
 
@@ -438,9 +466,7 @@ def test_a_derived_runtime_field_in_the_source_fails() -> None:
     # pretending otherwise.
     fields = (*BASE_FIELDS, "_analysis_weight")
     bundle = Bundle()
-    report = bundle.validate(
-        dictionary=ParsedDictionary(fields), panel=panel_of(fields, bundle.rows)
-    )
+    report = bundle.validate(dictionary=dictionary_of(fields), panel=panel_of(fields, bundle.rows))
     assert "schema.derived_not_in_source" in failed(report)
 
 
