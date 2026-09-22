@@ -25,11 +25,13 @@ the exposure guard, and keep detailed reference material only in
 and it is not need-to-know — every collaborator, CI log and future fork still sees
 whatever is committed.
 
-> **The visibility change itself has not been made by this session.** The agent
-> proxy refuses repository settings writes (`403 Repository settings writes are
-> not permitted through this proxy`), so it requires a human with admin rights.
-> Until it is confirmed, treat this repository as **public**. Verification
-> command is in §8.
+> **APPLIED and verified: the repository is PRIVATE** as of
+> **2026-09-22T20:21:38Z**, confirmed against the GitHub API at 20:22:17Z —
+> `private: true`, `visibility: private`, `forks_count: 0`.
+>
+> It was applied by a human, not by this session: the agent proxy refuses
+> repository settings writes (`403 Repository settings writes are not permitted
+> through this proxy`). Re-verification command is in §8.
 
 **Status of the rest of this document:** the current-tree removals and the
 guard are implemented. D4 — which legacy identifiers name real clients — remains
@@ -308,11 +310,21 @@ the API. That residual is the reason the cleanup proceeds anyway.
 
 ```bash
 gh api repos/AiAnalytics-AIA/AIA --jq '{visibility, private, forks_count}'
-# expect: {"visibility":"private","private":true,"forks_count":0}
+# {"visibility":"private","private":true,"forks_count":0}   ← confirmed 2026-09-22T20:22:17Z
 ```
 
-The agent proxy in this environment **refuses repository settings writes**, so
-this change cannot be made from an agent session and must be performed by a human
-with admin rights:
+**Applied 2026-09-22T20:21:38Z** (the repository's `updated_at` at the moment the
+setting changed). It was performed by a human: the agent proxy in this
+environment refuses repository settings writes, so no agent session can make or
+revert it. If it ever needs reapplying:
 
 **Settings → General → Danger Zone → Change repository visibility → Make private**
+
+The two surfaces named above closed with it. The `openapi` workflow artifacts and
+the workflow logs are now readable only by people with repository access.
+
+**What going private did not do.** It does not retract the ~7 months of public
+availability. Anonymous clones and third-party code-search indexing leave no API
+trace, so the residual cannot be measured — only bounded by the zero forks, stars
+and watchers recorded above. That residual is why the cleanup in this document
+proceeds regardless, and why D4 still matters.

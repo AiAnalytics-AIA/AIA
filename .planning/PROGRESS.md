@@ -61,12 +61,16 @@ setting somebody can change back: detailed reference material stays out of this
 repository, the exposure guard stays blocking, and
 `AiAnalytics-AIA/AIA-reference` remains the only home for detail.
 
-> ⚠️ **The visibility change is OUTSTANDING.** No agent session can make it —
-> the proxy refuses repository settings writes (HTTP 403). Until a human confirms
-> it via `gh api repos/AiAnalytics-AIA/AIA --jq .visibility`, **treat this
-> repository as public.** Surface measured at the moment of decision: 0 forks,
-> 0 stars, 0 watchers, 0 releases, 0 tags, no Pages —
-> `docs/migration/public-exposure-remediation.md` §8.
+✅ **APPLIED 2026-09-22T20:21:38Z**, verified against the API at 20:22:17Z:
+`private: true`, `visibility: private`, `forks_count: 0`. Applied by a human — an
+agent session cannot, as the proxy refuses repository settings writes.
+
+Surface measured immediately before the change: 0 forks, 0 network, 0 stars,
+0 watchers, 0 releases, 0 tags, no Pages, over a ~7-month public window. The
+`openapi` workflow artifacts and workflow logs closed with it. What did **not**
+close: anonymous clones and third-party indexing during that window leave no API
+trace and cannot be measured — which is why the cleanup proceeds anyway.
+`docs/migration/public-exposure-remediation.md` §8.
 
 ## The reference is a private repository
 
@@ -134,7 +138,7 @@ left to build.
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
 | D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
-| D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED 2026-09-22: the repository goes PRIVATE and history is PRESERVED.** Frozen. The visibility change itself is **outstanding** — it needs a human with admin rights, because the agent proxy refuses repository settings writes | Closing the exposure | `docs/migration/public-exposure-remediation.md` § D5 |
+| D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);

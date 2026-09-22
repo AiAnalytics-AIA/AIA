@@ -114,11 +114,10 @@ metadata, none of which is intended for public distribution. Separately, the
 legacy reference is client work whose *filenames alone* name real companies, and
 a filename is disclosure even when the file it names is absent.
 
-> ⚠️ **The change is outstanding at the time of writing** and must be made by a
-> human with admin rights; an agent session cannot make it. Verify with
-> `gh api repos/AiAnalytics-AIA/AIA --jq .visibility`. Until that returns
-> `private`, **every threat assessment on this page should be read as though the
-> repository were public.**
+✅ **Applied 2026-09-22T20:21:38Z** and verified against the API:
+`private: true`, `visibility: private`. Re-check with
+`gh api repos/AiAnalytics-AIA/AIA --jq .visibility`. It was applied by a human —
+an agent session cannot change repository settings in this environment.
 
 **Private is not a control by itself, and nothing here depends on it.** Three
 reasons this matters for the threat model:
@@ -204,9 +203,10 @@ Ordered by how much they should worry you:
 6. **No OpenTelemetry instrumentation.** Structured logging, request correlation
    and secret redaction exist; distributed tracing does not. See
    *Observability* below.
-7. **The repository is still public** until D5's visibility change is applied,
-   and client-identifying legacy filenames remain in `reference-manifest.json`
-   pending D4. Neither is a code defect; both are open exposure.
+7. **Client-identifying legacy filenames remain** in `reference-manifest.json`
+   pending D4. Not a code defect, but open exposure — now to everyone with
+   repository access rather than to everyone. The ~7 months of public
+   availability before 2026-09-22T20:21:38Z cannot be retracted.
 8. **Upload, SSRF and export controls** are not built because those features are
    not built.
 
