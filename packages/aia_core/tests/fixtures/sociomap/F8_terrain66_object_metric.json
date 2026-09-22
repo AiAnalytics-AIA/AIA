@@ -1,0 +1,145 @@
+{
+  "fixture_id": "F8_terrain66_object_metric",
+  "capability_id": "sociomapping.core",
+  "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+  "reference_function": "ui_app.html::terrain66 (object mode)",
+  "dataset_version": "synthetic_fixture",
+  "config": {
+    "algorithm": "gaussian_kernel_weighted_mean"
+  },
+  "seed": null,
+  "algorithm": "gaussian_kernel_weighted_mean",
+  "input": {
+    "map_type": "objects",
+    "height_metric": "mean_rating",
+    "matrix": [
+      [
+        0,
+        4,
+        9,
+        2
+      ],
+      [
+        6,
+        0,
+        3,
+        8
+      ],
+      [
+        7,
+        5,
+        0,
+        1
+      ],
+      [
+        3,
+        9,
+        2,
+        0
+      ]
+    ],
+    "names": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "mean_rating": [
+      6.2,
+      4.8,
+      7.1,
+      3.3
+    ]
+  },
+  "expected_output": {
+    "terrain_mode": "object_metric",
+    "respondent_density_terrain": false,
+    "object_metric_terrain": true,
+    "N": 42,
+    "span": 62,
+    "sigma": 12,
+    "height_def": {
+      "id": "mean_rating",
+      "label": "Průměrné hodnocení",
+      "bounds": [
+        1,
+        10
+      ]
+    },
+    "grid_rows": 43,
+    "grid_cols": 43,
+    "finite_hr_cells": 1655,
+    "sum_ht": 890.271937,
+    "normalizer": {
+      "lo": 3.3,
+      "hi": 7.1,
+      "label": "rozsah"
+    },
+    "cache_key": "OBJECT_METRIC_TERRAIN|mean_rating|range|all||null|{}|base|{}|[\"bar\",\"bar\",\"bar\",\"bar\"]",
+    "samples": [
+      {
+        "gx": 0,
+        "gy": 0,
+        "x": -62,
+        "y": -62,
+        "hr": null,
+        "cr": null,
+        "ht": 0,
+        "ct": 0,
+        "z": 0
+      },
+      {
+        "gx": 10,
+        "gy": 10,
+        "x": -32.4761904762,
+        "y": -32.4761904762,
+        "hr": 3.7360896059,
+        "cr": 3.7360896059,
+        "ht": 0.1147604226,
+        "ct": 0.1147604226,
+        "z": 2.9837709875
+      },
+      {
+        "gx": 21,
+        "gy": 21,
+        "x": 0,
+        "y": 0,
+        "hr": 4.8881587556,
+        "cr": 4.8881587556,
+        "ht": 0.4179365146,
+        "ct": 0.4179365146,
+        "z": 10.8663493806
+      },
+      {
+        "gx": 30,
+        "gy": 12,
+        "x": 26.5714285714,
+        "y": -26.5714285714,
+        "hr": 3.5091351561,
+        "cr": 3.5091351561,
+        "ht": 0.0550355674,
+        "ct": 0.0550355674,
+        "z": 1.4309247519
+      },
+      {
+        "gx": 42,
+        "gy": 42,
+        "x": 62,
+        "y": 62,
+        "hr": null,
+        "cr": null,
+        "ht": 0,
+        "ct": 0,
+        "z": 0
+      }
+    ]
+  },
+  "parity_type": "NUMERICAL",
+  "tolerance": 1e-9,
+  "runtime_environment": {
+    "node": "v20.15.1",
+    "rscript_available": false,
+    "note": "Frontend math executed in Node from functions extracted verbatim from ui_app.html"
+  },
+  "notes": "OBJECT_METRIC_TERRAIN: each non-dot object contributes {h:metric}; height hr = kernel WEIGHTED MEAN (hsum/den). sigma=12. A hill means 'high score here'. Distinct semantics from F7."
+}

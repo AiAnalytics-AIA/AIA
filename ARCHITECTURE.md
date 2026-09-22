@@ -17,6 +17,7 @@ It deliberately does not describe the product. That lives in
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](docs/architecture/scope-and-authorization.md) | Client/Study isolation |
 | [security.md](docs/architecture/security.md) | Threat model |
+| [sociomapa-deterministic-engine.md](docs/architecture/sociomapa-deterministic-engine.md) | Sociomapping engine: what is ported, declared and refused |
 | [adr/](docs/architecture/adr/README.md) | Seven decision records, with the reasoning |
 
 ---
@@ -37,7 +38,7 @@ point; nothing outside it touches its internals.
 
 | # | Layer | Path | Owns | May depend on |
 |---|---|---|---|---|
-| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only. |
+| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract, Sociomapping mathematics. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only — numerical code included, which is why the Sociomap engine is pure Python rather than numpy. |
 | 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context, and the only loader of population data.** Orchestrates domain + infrastructure. | 1, 3 |
 | 3 | **Infrastructure** | `packages/aia_core/src/aia_core/infrastructure/` | SQLAlchemy tables and repositories, object storage, provider gateways. Every external service behind a protocol. | 1 |
 | 4 | **Workers** | `apps/worker/` *(Phase 3+, not yet created)* | Durable job execution. Triggered by the application layer; performs via repositories + services. | 1, 2, 3 |

@@ -1,384 +1,265 @@
-# Sociomapa deterministic engine — boundary, contracts and port plan
+# Sociomapa deterministic engine — what is ported, what is declared, what is refused
 
-**Status:** contracts implemented; **no Sociomapping mathematics ported**.
-**Blocker:** the legacy NPC Panel reference checkout (`sociomap.py` and
-siblings) was not available in the environment where this work was done.
-**Audit date:** 2026-09-22, against `origin/main`
-`df294e27515d225b9d47c15b21e664bbd8051bd8`.
+**Status:** engine implemented (`ENGINE_IMPLEMENTATION_VERSION = "1.1.0"`), spec
+and artifact contract **version 2**. Ported against golden fixtures F1–F9 from
+`AiAnalytics-AIA/AIA-reference` @ `678e298ad9ca0263da53cc8920d153fdfb956c93`.
+**Not ported, and refused:** the reference's two layout algorithms — see §4.
+**R numerical parity is not claimed** and cannot be until `REF-GAP-SOCIO-R-SMACOF`
+has its fixture.
 
-> parity suite not run because the reference checkout is unavailable
+Normative source: `sociomapping-reference-contract.md` and
+`sociomapping-deep-dive.md` in the reference repository. This document records
+how the production engine meets that contract, where it deliberately differs,
+and what it could not reproduce. Companion to
+[ADR 0007 (no LLM for deterministic computation)](adr/0007-deterministic-tools.md)
+and [domain-map.md](domain-map.md).
 
-This document is the Sociomapa-specific companion to
-[ADR 0007 (no LLM for deterministic computation)](adr/0007-deterministic-tools.md),
-[domain-map.md](domain-map.md) and the Phase 9 entry in
-[../migration/migration-plan.md](../migration/migration-plan.md). It does not
-restate the broader architecture and does not decide anything that belongs to
-it.
-
-## 1. Why this exists
-
-Phase 9 requires **numerical parity** with the legacy Sociomapa. The product
-already states the rules a Sociomapa must obey (`docs/product/README.md`,
-`domain-map.md`, the legacy `PRODUCT_POLICY.json` rule
-`manual_drag: visual_override_only_never_mutates_raw_results`). What was
-missing was a place where those rules are *types and tests* rather than prose,
-and an honest account of what can and cannot be built before the reference
-code is read.
-
-The end state:
+## 1. The boundary
 
 ```
-deterministic software   establishes numerical research truth
-LLM agents               decide what to investigate, pick permitted tools,
-                         interpret structured outputs, explain in prose
-humans                   approve consequential methodology decisions and
-                         sign off externally delivered conclusions
+deterministic software   establishes numerical research truth   compute_sociomap
+LLM agents               choose, interpret, explain              consume artifacts
+humans                   approve methodology and conclusions     gates (elsewhere)
 ```
 
-The LLM never invents or calculates the Sociomapping mathematics.
-
-## 2. Boundary classification
-
-Every Sociomapping behaviour falls into one of these groups. The engine package
-(`packages/aia_core/src/aia_core/domain/sociomap/`) enforces the first two and
-the last; it exposes nothing for the third and fourth to compute with.
-
-| Group | Contents | Where it lives |
+| Group | Contents | Where |
 | --- | --- | --- |
-| **A — deterministic research truth** | relation matrix derivation; matrix transforms; normalisation; weighting; missing-data handling; layout (unfolding) mathematics; coordinates; height and colour metric values; request/arrow decisions; segment statistics; comparison deltas; time-window calculations; quality/stress metrics; statistical tests and significance; validation gate outcomes | tested pure functions producing a `SociomapArtifact`. **None ported yet.** |
-| **B — versioned methodology / policy** | relation definition; matrix type; transform; normalisation method; missing-data policy; weighting contract; layout algorithm, parameters and seed; eligible height/colour metrics; (later) arrow rules, comparison rules, segment rules, statistical rules, quality thresholds | `SociomapSpec`, fingerprinted, no hidden defaults, refused when not implemented |
-| **C — LLM / semantic reasoning** | formulate a hypothesis; propose a segment; choose which approved tool to call and with which spec-permitted parameters; request a comparison; interpret and explain a structured result; propose follow-ups | future agent runtime; consumes artifacts, never produces numbers |
-| **D — human / consequentially approved** | methodology exceptions; material changes to a `SociomapSpec` used for a client; acceptance of a non-standard interpretation; approval of externally delivered claims | existing approval/gate machinery (owned elsewhere); artifacts carry `is_approved` / `is_frozen` |
-| **Presentation** | rendered map, surfaces/contours *as pixels*, palette, camera, drag positions, animation | `view.py` (drag overrides, what-if layers) and, later, `apps/web`; reads artifacts, never writes them |
+| **A — research truth** | relation coercion and projection, ipsatization, dissimilarities, layout, coordinates, stress, object metrics and T-score, normalisation, both terrain fields | `domain/sociomap/{relations,layout,metrics,terrain,engine}.py` → `SociomapArtifact` |
+| **B — methodology** | every choice above, as data | `SociomapSpec` v2, fingerprinted, no defaults, `require_supported` |
+| **C — LLM** | hypotheses, segment proposals, which tool, interpretation | consumes artifacts; supplies no number |
+| **D — human** | adopting a spec for a client study; methodology exceptions | existing gates |
+| **Presentation** | drag state, view terrain over dragged positions, scenario layers, pixels | `view.py` reads an artifact, never writes it; `apps/web` renders |
 
-Two things deliberately straddle the line and are resolved this way:
+**The terrain, the normaliser and the object metrics were browser-only in the
+reference** (`ui_app.html`, three live terrain implementations, no backend
+counterpart). They are now backend computation with Python tests. The client
+renders `SociomapArtifact.respondent_terrain` / `object_terrain` and must not
+recompute them.
 
-- **Map surface / contour values** are group A if the legacy code computes them
-  as numbers (a height field), and presentation only in how they are shaded.
-  Until the code is read, they are not in the artifact contract.
-- **Layout quality scores** are group A; the *threshold* that makes one
-  "acceptable" is group B.
-
-## 3. What the production repository knows about the legacy Sociomapa
-
-Everything below is verified from this repository; nothing is from memory.
-
-| Source | Fact |
-| --- | --- |
-| `docs/migration/legacy-system-map.md` | `sociomap.py`, 565 LOC, "relation matrices, unfolding, layout" |
-| `docs/migration/parity-matrix.md` | `sociomap.py`, `visualization_lab.py` → Phase 9, parity **numerical**, status ○ not started |
-| `docs/migration/migration-plan.md` §Phase 9 | "Relation matrix derivation, unfolding and layout mathematics, the two map types, matrix/comparison/what-if modes, saved segments, AI segment intelligence, object manager, respondent and segment dialogue." `sociomap.py` mathematics "ports directly"; rendering is new; profile before choosing the renderer |
-| `docs/architecture/domain-map.md` | owns relation matrices, unfolding/layout maths, map view state, saved segments, A/B area comparison, what-if layers, object manager. Legacy sources: `sociomap.py`, `visualization_lab.py`, `segment_orchestration.py`, `respondent_dialogue.py`. Position is relationship-derived and stable when the displayed metric changes; height and colour independently selectable |
-| `docs/product/README.md` | "Respondent and object maps over a shared data contract; matrix, comparison and what-if modes." Dragging saves a view override; what-if is a layer over immutable originals |
-| `docs/migration/reference-manifest.json` | SHA256 of every legacy file, including `sociomap.py`, `visualization_lab.py`, `segment_orchestration.py`, `respondent_dialogue.py`, `docs/product/03_SOCIOMAPA.md`, `docs/architecture_18/SOCIOMAP_REFERENCE_SHA256.txt`, legacy tests `test_socio_height_semantics_1880.py`, `test_socio_object_matrix_1881.py`, `test_socio_flow_1878_1879.py`, `test_interactive_socio_1877.py`, `test_sociomap_unified_1863.py`, `test_sociomap_workspace_1865.py`, `test_block_c_visualization_lab_1820.py`, and demo fixtures `OBJECTS_SOCIOMAP_DEMO.json` (×20) and `RESPONDENTS_SOCIOMAP.csv` |
-
-The legacy test names are informative even without their contents: there is a
-"height semantics" contract, an "object matrix" contract, a "socio flow", and an
-"interactive" generation. The port must read all of them.
-
-**Not available locally:** any of the above files' contents; the historical
-methodology material (SOMECS, H-Model, fuzzy matrices, STORM/WIND maps, RTS,
-design definitions, computed matrices, request arrows, object mapping, time
-series). None of it is in this repository or on this machine.
-
-## 4. The mathematical pipeline — what must be recovered from code
-
-The chain the artifact contract is built to carry:
+## 2. Pipeline
 
 ```
-canonical inputs → SociomapSpec → relation matrix → transforms → layout
-      → coordinates → height / colour → (presentation)
+SociomapInputs
+  ratings  (respondents × objects, None = unrated)
+    → range check against the declared scale          refused, never clipped
+    → placeable rows (≥ 2 ratings, not all at the top) others excluded, with a reason
+    → dissimilarity  δ = scale_top − rating
+    → aia_rowcond_unfolding_v1                         gauge-fixed coordinates, stress
+    → map frame  max |coord| → extent                   terrain-grid units
+  object_relation  (objects × objects, directed, optional)
+    → missing policy (refuse | reference 5.5 sentinel)
+    → coerce_relation_scale_1_10        directed                          F1
+    → mutual_relation_for_position      symmetric [0,1], position input   F2
+  object metrics   mean_rating, support_n [, relation_classic, T-score]   F6
+  terrain          respondent density   σ = 9.5                           F7
+                   object weighted mean σ = 12, spec's height metric      F8
+→ SociomapArtifact
 ```
 
-The following questions are **unanswered** and must be answered from
-`sociomap.py`, not inferred. They are listed so the port has a checklist and so
-nobody fills them in from a PDF or a hunch.
+`ipsatize` (F3) is ported and tested, and the spec carries an `ipsatize` flag,
+but the one implemented dissimilarity target reads a rating's position on the
+declared scale, which an ipsatized value does not have. `ipsatize: true` is
+therefore refused rather than silently ignored.
 
-| # | Question | Where the answer lands |
+## 3. What each fixture proves
+
+Every fixture was reproduced from the contract's formulas **before** the design
+was chosen. The measurement is recorded in
+[`.planning/plans/done/sociomap-deterministic-engine.md`](../../.planning/plans/done/sociomap-deterministic-engine.md).
+
+| Fixture | Function | Result | Test |
+| --- | --- | --- | --- |
+| F1 | `coerce_relation_scale_1_10` | **match**, all 5 cases, branch exact, values to the fixture's 10-decimal serialisation | `test_f1_coercion_matches_the_reference` |
+| F2 | `mutual_relation_for_position` | **match** ≤ 1e-9 (fixture serialised to 10 dp; tolerance 1e-12 on unrounded values) | `test_f2_mutual_relation_matches_the_reference` |
+| F3 | `ipsatize` | **match** | `test_f3_ipsatization_matches_the_reference` |
+| F4 | legacy `fit_python_unfolding` | **not reproduced — refused.** See §4 | `test_legacy_algorithms_fail_closed_and_say_why` |
+| F5 | `build_normalizer`, all 7 cases | **match** ≤ 1e-9, labels included | `test_f5_normaliser_matches_the_reference` |
+| F6 | `object_metric`, 4 metrics | **match** ≤ 1e-9, directly and through the pipeline | `test_f6_object_metrics_match_the_reference`, `test_relation_metrics_through_the_pipeline_match_f6` |
+| F7 | `compute_terrain` respondent density | **match**: every sample's hr/cr/ht/z ≤ 1e-9, 1,849 finite cells, normaliser, Σht | `test_f7_every_sample_matches` |
+| F8 | `compute_terrain` object mean | **partial**: constants, bounds, hr → ht → z chain, null-cell semantics. The object *positions* come from `baseObjectLayout66`, source withheld; a 2,000-start inverse fit found no consistent placement | `test_f8_*`, `test_one_object_gives_its_own_value_wherever_it_has_support` |
+| F9 | `apply_view_overrides` | **match** on all four assertions (position changes; point, matrix unchanged; view key changes) | `test_f9_manual_drag_is_a_view_override` |
+
+The fixtures are vendored under `packages/aia_core/tests/fixtures/sociomap/`,
+each pinned to its SHA256 in `index.json`, so this evidence runs in **every CI
+job** — unlike the legacy-source parity tier (OI-1).
+
+## 4. Layout: declared, never detected
+
+The reference picks its algorithm by probing the host (`shutil.which("Rscript")`)
+and silently falls back from R to Python — the same study gives different
+coordinates on different machines. Production keeps a registry,
+`LAYOUT_ALGORITHMS`, and the spec names one entry. There is no `auto`.
+
+| Identifier | Status | Why |
 | --- | --- | --- |
-| 1 | Canonical input: square relation matrix, rectangular respondent × object matrix, pairwise evaluations, or derived? | `RelationMatrix` may need a rectangular sibling; `SociomapSpec.relation_method` |
-| 2 | How is the relation matrix formed from raw data? | `relation_method` + engine function |
-| 3 | Are relations directional? How is asymmetry treated (symmetrised, averaged, max, kept)? | `matrix_transform`; `RelationMatrix.max_asymmetry()` exists to *measure*, not decide |
-| 4 | Is layout driven by raw relation, transformed relation, inverse distance, ranks, a fuzzy relation, or another derived quantity? | `matrix_transform`, `normalization_method` |
-| 5 | Which optimisation / unfolding procedure? Objective function? Stopping rule? | `layout_algorithm`, `layout_parameters`, `LayoutResult.diagnostics` |
-| 6 | Initialisation: fixed, data-derived, random? | `layout_seed`; `Provenance.seed` |
-| 7 | Any randomness at all? Deterministic without a seed? | `layout_seed: None` is only valid if the code is seed-free |
-| 8 | Which constraints fix translation, rotation, reflection, scale? | `LayoutResult.gauge_fixed`; decides the parity comparison in §8 |
-| 9 | What exactly determines x, y, height, colour, and which are independent? | `height_metric`, `colour_metric`; `with_metrics()` already asserts independence of position |
-| 10 | How are surfaces / contours derived? | possibly a height-field addition to the artifact |
-| 11 | How are request arrows derived (thresholds, directionality)? | arrow rules in spec + artifact structure, deferred |
-| 12 | How are segments computed or consumed? | `segments.py`, deferred |
-| 13 | How are A/B / temporal comparisons computed? Aligned first? | `comparison.py`, deferred |
-| 14 | What quality diagnostics exist (stress, correlation of distances, ...)? | `SociomapArtifact.quality` |
-| 15 | Time-series behaviour, if present in the *current* implementation | feature matrix, §7 |
-| 16 | Hidden defaults, thresholds, tolerances, module-level mutable state, ordering assumptions, serialisation assumptions, hot spots | `tools/sociomap_inventory.py` output |
+| `python_weighted_unfolding` | **unavailable — refused** | Source withheld (`REF-WITHHELD-REFERENCE-ARCHIVE`). F4 pins its output, not its method: ~200 candidate stress definitions evaluated on F4's own coordinates, none reproduces `stress_1 = 0.391394498`, and an optimiser cannot be matched to 1e-6 by guessing |
+| `r_smacof_unfolding` | **unavailable — refused** | `REF-GAP-SOCIO-R-SMACOF`: no R fixture exists, so there is nothing to be at parity with |
+| `aia_rowcond_unfolding_v1` | **implemented** | Specified in full in `layout.py`'s module docstring |
 
-`tools/sociomap_inventory.py` generates, from the real source and without
-importing it, the per-function table with inputs, outputs, numeric defaults,
-inline numeric literals, randomness calls and module globals read/written. Run
-it first:
+`aia_rowcond_unfolding_v1`: row-conditional **ratio** unfolding. Disparities
+`dhat_ij = b_i · δ_ij` with one free scale per respondent (respondents use the
+scale differently) and one global normalisation `Σ b_i²|δ_i|² = C` against
+collapse. Stress `Σ (dhat − d)²` is minimised by three alternating exact block
+steps — respondents, objects, row scales — none of which can increase it.
+Initialisation is classical scaling of object profile distances (cyclic Jacobi)
+with preference-weighted respondents; the gauge is fixed afterwards (object
+centroid at the origin, principal axes, positive third moment). **No RNG**, so
+`layout.seed` must be `null`; a seed would be recorded as if it mattered.
 
-```bash
-AIA_LEGACY_REFERENCE=../npc-panel-reference python tools/sociomap_inventory.py \
-    --output docs/architecture/sociomapa-legacy-inventory.md
-```
+**Sparse designs.** The co-rating graph must be connected; object pairs nobody
+co-rated start from the mean known profile distance
+(`test_a_connected_sparse_design_recovers_planted_geometry`). A shortest-path
+start was tried first and measured worse: on two rating blocks sharing four
+objects it settled into a reflected block at RMSD 1.47, against 0.018 for the
+mean.
 
-The generated table has the columns the audit asked for; *Responsibility*,
-*Classification*, *Production destination* and *Parity requirement* are filled
-in by the engineer after reading each function.
+**Local minima.** The start is single and deterministic, so the fit can stop in
+a local minimum — measured on one fully observed planted 60 × 8 design at
+stress-1 0.017, where two other planted designs reach < 1e-4. Low stress does
+not prove the geometry is unique; a design whose blocks share only two objects
+admits a reflected block at nearly the same stress. Multiple deterministic
+starts are the obvious next step and are not implemented.
 
-## 5. `SociomapSpec` — the methodology contract
+What pins it, since no reference can:
 
-`aia_core.domain.sociomap.specification.SociomapSpec`, contract version `1`.
+- **Recovery.** Data generated from a known configuration, with arbitrary
+  per-row scales and missing cells, is recovered to stress-1 < 1e-4 and
+  Procrustes RMSD < 1e-3 (`test_recovers_the_geometry_that_generated_the_data`,
+  `test_row_scales_absorb_how_each_respondent_uses_the_scale`).
+- **Monotone.** Stress never increases with more iterations
+  (`test_stress_never_increases_with_more_iterations`).
+- **Bit-identical** across runs (`test_identical_input_gives_identical_bits`).
+- **Its own golden fixture** on F4's ratings,
+  `fixtures/sociomap/aia/AIA1_rowcond_unfolding_on_f4_ratings.json`, written by
+  `tools/sociomap_golden.py` (`test_golden_layout_and_terrain_are_reproduced`).
+  Regenerate only with an `ENGINE_IMPLEMENTATION_VERSION` bump.
+
+**Distance from the reference, measured.** On F4's ratings, after optimal
+translation, rotation, reflection and scale, the AIA configuration sits at
+**Procrustes RMSD 1.91 (worst point 2.99) against the legacy configuration's
+RMS radius of 2.01** — i.e. unrelated geometry. That is expected: different target, different
+optimiser, and F4's ratings are uniform random, so there is no structure for two
+methods to agree on. It is stated so nobody mistakes the AIA layout for a port.
+Reproduce: run `procrustes_align` on F4's `expected_output` against the golden's
+coordinates.
+
+**Deliberately pure Python, not numpy.** `domain/` is stdlib +
+Pydantic only (`ARCHITECTURE.md §2`), and a BLAS-backed SVD is not bit-stable
+across hosts and thread counts — the host-dependence this work exists to remove.
+
+## 5. `SociomapSpec` v2
+
+Every field is required; `AIA_SOCIOMAP_V1` is a named preset adopted
+explicitly. `require_supported` reports every problem at once, as
+`UnsupportedMethodology.unsupported = {field path: reason}`.
+
+| Section | Field | Preset | Source |
+| --- | --- | --- | --- |
+| `ratings` | `ipsatize` | `false` | AIA — see §2 |
+| | `dissimilarity` | `scale_top_minus_rating` | **AIA declaration** |
+| | `rating_scale_min/max` | `1` / `10` | reference 1–10 scale (F1, F8 bounds) |
+| | `missing_data_policy` | `observed_cells_only` | reference (F4 metadata) |
+| `relation` (nullable) | `scale_coercion` | `reference_coerce_1_10` | reference (F1) |
+| | `position_projection` | `mutual_arithmetic_mean` | reference (F2) |
+| | `missing_data_policy` | `refuse` | **AIA — fail closed**; `reference_midpoint_sentinel` is available by declaration |
+| `layout` | `algorithm` | `aia_rowcond_unfolding_v1` | **AIA declaration** |
+| | `parameters` | `dimensions 2, max_iterations 2000, convergence_tolerance 1e-7` | tolerance from the reference's `\|Δstress\| < 1e-7` |
+| | `seed` | `null` | deterministic |
+| | `map_frame` | `max_abs_to_extent`, `45` | **AIA declaration** — the reference's layout→screen scaling is unrecovered; 45 matches F7's ±45 synthetic points |
+| `metrics` | `object_height_metric` / `colour` | `relation_classic_tscore` | reference default (F6) |
+| `terrain` | `respondent` | `N 42, span 62, σ 9.5, cutoff 0.0005, z 26` | reference (F7) |
+| | `object` | same, `σ 12` | reference (F8) |
+| | `normalization` | `range` | reference default |
+
+The fingerprint is a SHA256 over the contract version and every field;
+`test_every_field_changes_the_fingerprint` and
+`test_spec_has_no_hidden_defaults` (every path, every depth) pin both rules.
+
+## 6. `SociomapArtifact` v2
 
 | Field | Meaning |
 | --- | --- |
-| `methodology_version` | which methodology this spec describes (e.g. the legacy build it was recovered from) |
-| `map_kind` | `respondent` or `object` — the two map families the product names |
-| `relation_method` | how the relation matrix is derived from canonical inputs |
-| `matrix_transform` | transform applied before layout (identity, symmetrisation, inverse, rank, fuzzy, ...) |
-| `normalization_method` | scaling applied to the matrix |
-| `missing_data_policy` | how `None` cells are treated; the data model never imputes |
-| `weighting_policy` | which weights, if any, enter the relation |
-| `layout_algorithm` | the unfolding / layout procedure |
-| `layout_parameters` | its parameters, JSON data, part of the fingerprint |
-| `layout_seed` | seed, or `None` as an explicit statement of seed-free determinism |
-| `height_metric` | metric driving map height |
-| `colour_metric` | metric driving colour |
+| `spec` | the full spec, and so its fingerprint |
+| `respondent_ids`, `object_ids` | canonical order |
+| `excluded_respondents` | `{id: reason}` for respondents with no recoverable position; every respondent is placed *or* excluded (validated) |
+| `layout` | algorithm, `gauge_fixed`, placed ids, respondent and object coordinates in map units, `layout_to_map_scale`, `stress_1`, `normalized_stress`, iterations, converged, diagnostics (row scales, principal-axis gap) |
+| `relation` | coercion branch, coerced directed matrix, position-input matrix, any sentinel-substituted cells |
+| `object_metrics` | every computable metric, aligned with `object_ids` |
+| `respondent_terrain`, `object_terrain` | 43 × 43 `hr`, `cr`, `ht` grids with parameters and normaliser bounds |
+| `provenance` | implementation + version, input fingerprints, layout algorithm, seed |
+| `warnings` | exclusions, non-convergence, sentinel use, objects missing a height value |
 
-Design decisions:
+No timestamp and no host detail in the body: either would make identical
+computations on two machines look different. `to_payload` / `from_payload`
+round-trips and refuses a tampered body. Storage is
+`ArtifactRepository.put_json(payload=artifact.to_payload(), …)`; no new table.
 
-- **Every field is required.** There is no default methodology. A spec that
-  omits missing-data treatment cannot be constructed.
-- **Method values are identifiers, validated at execution time** by
-  `require_supported(spec)` against `IMPLEMENTED: ImplementedMethods`. The
-  registry is **empty** and stays empty until a method is ported with parity
-  evidence. Executing any spec today raises `UnsupportedMethodology` naming
-  every missing method. Nothing falls back.
-- **`fingerprint()`** is a SHA256 over the contract version and every field
-  with sorted keys. Any change to any field changes it. Artifacts record it, so
-  reuse and audit can never confuse two methodologies.
-- **Deferred fields**, to be added when the legacy behaviour is read (and
-  refused until then by `extra="forbid"`): `arrow_rules`, `comparison_rules`,
-  `segment_rules`, `statistical_rules`, `quality_thresholds`, and whatever
-  `PRODUCT_POLICY.json` / `DATA_CONTRACT_v17.json` already say about Sociomapa.
-  If those files carry an equivalent structure, this spec should be aligned to
-  or generated from it rather than duplicated.
+## 7. View and scenario layers
 
-## 6. `SociomapArtifact` — the research-truth contract
+- **Drag** (`ViewOverrides`, `{respondents, objects}` like the reference's
+  `st.manual`) is bound to the artifact fingerprint; `apply_view_overrides`
+  returns a `DisplayedMap` with `view_key()` — the backend counterpart of the
+  reference's terrain cache key. `view_terrain` recomputes terrain over the
+  *displayed* positions (as the reference does after a drag), for a respondent
+  subset (`terrainScope == 'filter'`) or another metric, and returns a view
+  product that is never stored on the artifact.
+- **What-if** (`ScenarioLayer` of `RelationEdit`s) implements
+  `effectiveMatrix66` in scenario mode on the coerced matrix: edits override
+  cells, the diagonal is held at 0 (a diagonal edit is refused rather than
+  silently ignored). `apply_scenario` recomputes the relation metrics and the
+  object terrain; positions come from the ratings unfolding, which a relation
+  edit does not touch, so a scenario moves no point.
 
-`aia_core.domain.sociomap.models.SociomapArtifact`, contract version `1`. A
-rendered map is never the canonical result; this is.
+## 8. Intentional differences from the reference
 
-| Field | Meaning |
-| --- | --- |
-| `spec` | the full `SociomapSpec` (and therefore its fingerprint) |
-| `entity_ids` | ordered, unique, non-blank; the canonical order for every vector |
-| `relation` | `RelationMatrix` in the same entity order, missing cells preserved |
-| `layout` | `LayoutResult`: `algorithm`, `x`, `y`, `gauge_fixed`, `diagnostics` |
-| `height`, `colour` | `MetricValues` aligned with `entity_ids`; independent of each other and of `layout` |
-| `provenance` | `implementation`, `implementation_version` (`0.0.0-contracts` today), `input_fingerprints`, `source_artifact_ids`, `seed`, `dependencies` |
-| `quality` | algorithm-specific quality metrics |
-| `warnings` | deterministic warnings raised during computation |
+| # | Reference | Production | Test |
+| --- | --- | --- | --- |
+| S1 | layout algorithm chosen by probing for `Rscript`, silent R→Python fallback | declared in the spec; unavailable ⇒ `LayoutUnavailable` | `test_there_is_no_auto_or_alias`, `test_unsupported_methodology_fails_closed` |
+| S2 | unknown object-metric id silently renders the T-score | refused | `test_unknown_metric_id_is_refused_not_turned_into_a_tscore` |
+| S3 | unknown normaliser mode falls through to `range` | refused | `test_normaliser_refuses_an_unknown_mode` |
+| S4 | missing relation → 5.5 midpoint (unknown scored as neutral, A4) | refused unless the spec declares the sentinel; substitutions recorded | `test_a_missing_relation_cell_is_refused_by_default`, `test_the_reference_sentinel_is_used_only_when_declared_and_is_recorded` |
+| S5 | sentinel/branch order ambiguous for a matrix mixing NaN with a [0,1]/[-1,1] scale | refused (`AmbiguousCoercion`) — the fixture only covers orders that agree | `test_coercion_refuses_the_unrecovered_sentinel_order` |
+| S6 | absolute normalisation against any metric's `metricDef66` bounds | only where bounds were recovered (`density`: none); `mean_rating` is bounded by the spec's declared rating scale, 1–10 in the preset | `test_absolute_bounds_are_used_only_where_recovered`, `test_absolute_normalisation_uses_a_declared_non_default_scale` |
+| S7 | terrain with no source (an empty filter) is fitted to the all-zero grid, called constant, and lifted to 0.5 everywhere | flat at 0: no source, no terrain | `test_empty_terrain_is_flat_at_zero_not_a_plateau` |
 
-Excluded on purpose: timestamps (the artifact repository row records
-`created_at`; a time inside the fingerprinted body would make identical
-computations look different), pixel positions, palettes, drag state, PNG/SVG.
+## 9. Performance
 
-Guarantees, each covered by a test in `test_sociomap_contracts.py`:
+Measured on CPython 3.12, one core, synthetic structured ratings, full
+`compute_sociomap` (layout + metrics + both terrains):
 
-- immutability (frozen models; no mutating operation exists);
-- alignment (matrix order equals artifact order; every vector matches `n`);
-- `fingerprint()` reproducible for identical content and sensitive to one
-  coordinate, one warning, the seed, or the spec;
-- `to_payload()` / `from_payload()` round-trip through JSON and **refuse a
-  tampered payload** (body edited, or spec edited with the artifact fingerprint
-  recomputed);
-- `with_metrics()` swaps height and/or colour and moves no point;
-- the artifact type forbids presentation fields.
+| Respondents × objects | Total | Iterations | Respondent terrain | Payload |
+| --- | --- | --- | --- | --- |
+| 40 × 8 | 0.11 s | 308 | 0.01 s | 194 kB |
+| 200 × 12 | 0.41 s | 160 | 0.06 s | 216 kB |
+| 1,000 × 20 | 3.3 s | 133 | 0.26 s | 282 kB |
 
-Storage: `ArtifactRepository.put_json(payload=artifact.to_payload(), ...)` with
-`input_fingerprint` set from the spec fingerprint and the input fingerprints,
-so the existing reuse mechanism applies unchanged. No new table is needed.
-
-## 7. Presentation and exploration layers
-
-`aia_core.domain.sociomap.view`:
-
-- **`ViewOverrides`** — dragged positions bound to an `artifact_fingerprint`.
-  `apply_view_overrides(artifact, overrides)` returns a `DisplayedLayout`
-  listing which entities were moved. Overrides bound to a different artifact or
-  naming unknown entities are refused. The artifact is never written; tests
-  assert its fingerprint and layout are unchanged after a drag.
-- **`WhatIfLayer`** — a hypothesis as `RelationEdit`s against a base artifact.
-  `derive_what_if_relation(base, layer)` returns a *new* `RelationMatrix`; the
-  base is untouched. A derived artifact records the base under
-  `provenance.input_fingerprints["what_if_base_artifact"]`. The edit vocabulary
-  (cell overrides) is provisional until the legacy what-if mode is read; the
-  layering invariant is not.
-
-## 8. Parity plan and tolerances
-
-Numerical parity is the primary Phase 9 deliverable and cannot start without
-the reference. When it does:
-
-1. **Pin the source.** `test_sociomap_parity.py` already asserts that each
-   legacy Sociomapa module's SHA256 matches `reference-manifest.json`.
-2. **Inventory first.** Generate and commit the function table (§4).
-3. **Characterise before porting.** For each deterministic function, capture
-   its outputs on shared fixtures (the legacy demo `RESPONDENTS_SOCIOMAP.csv` and
-   `OBJECTS_SOCIOMAP_DEMO.json` files are the natural ones) into fixtures under
-   `packages/aia_core/tests/fixtures/sociomap/`, with the reference SHA recorded
-   beside them.
-4. **Port the smallest coherent slice** — relation matrix derivation and its
-   transforms — and compare cell by cell before touching layout.
-5. **Layout comparison depends on `gauge_fixed`.**
-   - If the legacy layout fixes translation, rotation, reflection and scale
-     (canonical orientation), compare coordinates directly.
-   - If it does not, align with an orthogonal Procrustes fit (translation +
-     rotation + reflection; scale only if the legacy scale is arbitrary) and
-     compare the aligned coordinates *and* the full pairwise distance matrix.
-     Comparing distances as well is what stops an over-permissive alignment
-     from passing genuinely different geometry.
-   - A random initialisation must be reproduced with the legacy seeding path,
-     not merely "a seed".
-6. **Tolerances are recorded, not assumed.** Proposed starting points, to be
-   confirmed against the legacy arithmetic:
-   - matrix and metric values: absolute `1e-9` (pure arithmetic reorderings;
-     anything looser indicates a real difference);
-   - coordinates after alignment: to be derived from the legacy stopping
-     tolerance (an iterative procedure cannot be reproduced tighter than it
-     converged); record the value and its justification here when known;
-   - decisions (arrows, gate outcomes): exact.
-7. Compare, in order: relation matrix, transformed matrix, normalised values,
-   coordinates, heights, colours, arrows, segment metrics, comparison outputs,
-   quality outputs. Never screenshots.
-
-## 9. Feature matrix
-
-"Legacy" means the current NPC Panel implementation, which has **not** been
-read; entries are what the production repository's documents say exists.
-
-| Feature | Historical docs | Legacy implementation | Current AIA scope | Classification | Port now / later / exclude |
-| --- | --- | --- | --- | --- | --- |
-| Relation matrix derivation | yes | yes (`sociomap.py`) | Phase 9 | A + B | **first slice**, when reference available |
-| Matrix transforms / normalisation | yes (fuzzy, computed matrices) | unknown which | Phase 9 | A + B | with first slice |
-| Unfolding / layout | yes (H-model, SOMECS) | yes | Phase 9 | A + B | second slice |
-| Respondent map | — | yes | yes | A | with layout |
-| Object map (`test_socio_object_matrix_1881`) | object mapping | yes | yes | A | with layout |
-| Height semantics (`test_socio_height_semantics_1880`) | — | yes | yes | A + B | with metrics |
-| Colour metric | — | presumed | yes | A + B | with metrics |
-| Matrix mode | — | yes | yes | presentation over A | after core |
-| Comparison mode (A/B area) | map comparisons, overlaps | yes | yes | A (deltas) + presentation | later |
-| What-if mode | — | yes | yes | layer over A | contract now; semantics later |
-| Manual drag | — | yes (policy rule) | yes | presentation | **contract now** |
-| Saved segments | subteam maps | yes (`segment_orchestration.py`) | yes | B (definition) + A (statistics) | later |
-| AI segment intelligence | — | yes | yes | C | later; consumes A |
-| Object manager | — | yes | yes | data management | later |
-| Respondent / segment dialogue | — | yes (`respondent_dialogue.py`) | yes | C | later |
-| Request arrows | yes | unknown | not named | A + B | verify in legacy; else exclude |
-| Surfaces / contours (3-D) | STORM/WIND, 3-D | unknown | not named | A (values) + presentation | verify in legacy |
-| Time series / temporal windows / animation | yes | unknown | not named | A + presentation | verify in legacy; else exclude |
-| Communication / knowledge / cooperation designs | yes | unknown | not named | B (relation definitions) | exclude unless in legacy |
-| Fuzzy matrices, H-model as such | yes | unknown | — | A | only if the legacy code is that |
+Team-scale and study-scale maps cost nothing measurable. A 1,000-respondent map
+takes seconds, which belongs in a worker job, not a request. The payload is
+dominated by the two fixed 43 × 43 grids, not by `n`. Nothing is on a hot path
+yet — no route or worker calls the engine — so no kill switch is needed until
+one does (CLAUDE.md §8).
 
 ## 10. Agent tool boundary
 
-Nothing agent-facing is implemented; the shapes are fixed so the future
-`ToolRegistry` entries are mechanical. Every tool takes typed inputs plus a
-`SociomapSpec`, calls `require_supported`, and returns structured data with
-provenance — never prose.
+Unchanged in principle: tools take typed inputs and a `SociomapSpec`, call
+`require_supported`, and return structured data. `compute_sociomap`,
+`view_terrain` and `apply_scenario` are the first three. Scope comes from the
+trusted `StudyContext`, never a tool argument.
 
-```
-derive_relation_matrix(inputs, spec)            -> RelationMatrix + provenance
-calculate_layout(relation, spec)                -> LayoutResult + diagnostics
-calculate_metric(artifact, metric_id, spec)     -> MetricValues
-compare_maps(artifact_a, artifact_b, rules)     -> structured deltas
-calculate_segment_statistics(artifact, segment) -> structured statistics
-evaluate_map_quality(artifact, thresholds)      -> metrics + pass/fail per rule
-test_hypothesis(artifact, hypothesis_spec)      -> statistic, p, effect size, n
-```
+## 11. Contradictions found, not edited here
 
-The agent may choose among these, choose parameters the spec permits, and
-interpret results. It may not supply a number that appears in an artifact.
-Scope (organisation, client, study) comes from the trusted `StudyContext`,
-never from a tool argument.
+Carried over from the contracts-only version of this document. The other item
+it listed -- `artifacts.md` calling computed layouts an ephemeral cache -- is
+corrected in the same change as this engine.
 
-## 11. Contradiction scan
+1. `apps/web` still implements the superseded manual-Sociomapping SOP (an
+   uploaded `sociomap` file, "Gate 5", an import pack). It should be rewired to
+   render `SociomapArtifact`, not extended.
 
-Found while auditing; **not edited** because the surfaces belong to the
-architecture reconciliation or the frontend.
+## 12. Open
 
-1. **`docs/architecture/artifacts.md`** lists "computed map layouts" as an
-   *ephemeral cache* in Redis with a TTL. A layout is canonical research truth
-   under this document (fingerprinted, reproducible, auditable) and belongs in
-   `project_artifacts`; a *rendering* cache may be ephemeral. The same row names
-   Redis, which [ADR 0002](adr/0002-postgresql-authoritative-store.md) says is
-   not being introduced; `docker-compose.yml` already omits it, while
-   `docs/architecture/README.md` and the `Makefile` `services` target still
-   mention it.
-2. **`apps/web`** still implements the superseded MVP concept: a "Manual
-   Sociomapping SOP" page with Import Pack download, Sociomap upload and "Gate 5",
-   a `sociomap` artifact type that is an *uploaded file*, and a Stats page that
-   exports a "Sociomapping Import Pack". The product docs describe a native
-   Sociomapa workspace. This is the known "still mock-backed" state; it should be
-   rewired against `SociomapArtifact`, not extended.
-3. **`docs/migration/status.md`** reports the parity job as "94 skipped"; this
-   change adds 5 more reference-gated tests (4 hash pins, 1 inventory run), so
-   the number becomes 99. The status ledger is owned by the architecture
-   agent and is not updated here.
-
-## 12. Performance observations
-
-Measured on the contracts only (no algorithm exists to profile), CPython 3.12,
-dense synthetic matrices, one core:
-
-| Entities | Matrix validation | Matrix fingerprint | Artifact + JSON serialise | JSON round-trip + integrity check | Wire size |
-| --- | --- | --- | --- | --- | --- |
-| 40 | 1 ms | 1 ms | 2 ms | 2 ms | < 0.1 MB |
-| 400 | 91 ms | 76 ms | 153 ms | 209 ms | 3.2 MB |
-| 2,000 | 2.7 s | 2.6 s | 4.3 s | 7.0 s | 81 MB |
-
-Reading: a team-scale or 400-entity map costs nothing measurable at the
-contract layer. At population scale the dense `n × n` relation matrix is itself
-the cost -- O(n²) cells in Python tuples and 81 MB of JSON at 2,000 entities --
-before any layout mathematics runs. The decision that follows is **not** taken
-here: whether population-scale maps are computed over segments, stored with an
-array-backed or sparse relation representation, or bounded by policy depends on
-the legacy algorithm's own complexity, which is unknown until it is read. No GPU,
-approximation or distribution is warranted on this evidence.
-
-## 13. Verification of this change
-
-Run from the repository root with the project virtualenv:
-
-```bash
-pytest packages/aia_core/tests/test_sociomap_contracts.py \
-       packages/aia_core/tests/test_sociomap_inventory_tool.py \
-       packages/aia_core/tests/test_sociomap_parity.py -q
-ruff check packages/aia_core tools/sociomap_inventory.py
-mypy packages/aia_core/src tools/sociomap_inventory.py --strict
-```
-
-The parity module skips its reference-gated tests without
-`AIA_LEGACY_REFERENCE` and says so; a skip is not a pass.
-
-## 14. Decisions needed from the product owner / methodology owner
-
-1. **Reference access.** The port cannot proceed in an environment without
-   `../npc-panel-reference`. Either provision it (the manifest verifies it) or
-   accept that Phase 9 work is limited to contracts.
-2. **Historical vs. current methodology.** When the code is read, any
-   discrepancy between `sociomap.py` and the SOMECS / H-model literature is to be
-   documented and the *current* behaviour preserved unless an explicit decision
-   changes it. Who makes that decision, and where is it recorded?
-3. **Spec governance.** Changing a `SociomapSpec` used for a client study
-   changes every fingerprint downstream. Is that a gate-approved action (group
-   D) in all cases, or only when a deliverable is frozen?
-4. **What-if vocabulary.** Cell-level relation edits are the provisional
-   mechanism; confirm against the legacy mode before exposing it to agents.
-5. **Operating scale.** Team Sociomaps have tens of entities; a synthetic
-   population map may have hundreds or thousands. Layout complexity is unknown
-   until the algorithm is read; the contract layer handles 400 entities in
-   under a quarter of a second and 2,000 in seconds (§12), and the engine's
-   complexity decides the renderer and any need for segmentation before layout.
+Tracked in [`.planning/open-items.md`](../../.planning/open-items.md): OI-13 (the
+reference's Python unfolding), OI-14 (`baseObjectLayout66`), OI-15 (R smacof,
+`REF-GAP-SOCIO-R-SMACOF`), OI-16 (methodology sign-off for the AIA declarations
+in §5). Not started: saved segments, A/B comparison, object manager, request
+arrows, time series — each needs its reference behaviour read first.
