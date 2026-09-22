@@ -24,8 +24,9 @@ services:
       timeout: 3s
       retries: 10
 
-  # Redis is deliberately absent. Dispatch is SQS and durability is PostgreSQL,
-  # so there is no problem Redis would currently solve. See
+  # No queue or cache service, deliberately. PostgreSQL is both the authoritative
+  # store and the v0.1 queue -- workers claim with FOR UPDATE SKIP LOCKED -- so
+  # there is nothing a broker or Redis would solve here. See
   # docs/architecture/adr/0002-postgresql-authoritative-store.md.
 
   minio:

@@ -17,20 +17,49 @@ personal data and are treated as the most sensitive class.
 
 ## Current posture, stated plainly
 
-**Authentication is not implemented.** `aia_api.dependencies.get_principal` is a
-development seam that trusts `X-AIA-User` and `X-AIA-Org` headers. It **refuses
-every request in production**, and a middleware gate rejects authenticated routes
-before any dependency resolves.
+Two things that are easy to conflate, and must not be: **code** and **deployed
+infrastructure**. Both have to be true before real client data is safe here, and
+only one of them is this repository's to finish.
 
-This is deliberate: the AIA repository has no identity provider wired up, and the
-alternative — shipping a placeholder that *looks* like auth — is worse than an
-explicit refusal. The system fails closed.
+### Implemented in software
 
-Replacing that single function with a token verifier that derives `user_id` and
-`organization_id` from verified claims is the whole of the integration. Nothing
-else in the codebase reads identity from anywhere else.
+**Authentication.** `CognitoIdentityProvider` verifies Cognito JWTs: RS256 with an
+algorithm allow-list, JWKS fetch with rotation pickup and rate-limited refresh,
+issuer, `token_use`, audience, and expiry with clock skew. `IdentityProvider` is
+the only identity seam; nothing else in the codebase reads identity from anywhere.
 
-Until then, no environment holding real client data may run this API.
+A verified token proves **identity and nothing else**. `VerifiedIdentity` carries
+no role, client or study, and a test asserts those fields stay absent — because an
+authorization model that trusts token claims is one misconfigured app client away
+from self-service access.
+
+`DevelopmentIdentityProvider` trusts a header so the system runs without Cognito
+locally. It is refused outside `local` and `test` by two independent guards.
+
+**Authorization.** In PostgreSQL, not in claims. `User → Organization membership →
+Client grant → Study grant → Role → Permissions`, resolved per request, so
+deactivation and revocation take effect on the **next request** rather than at
+token expiry. See [scope-and-authorization.md](scope-and-authorization.md).
+
+**Separation of duties.** Independent review is the default for approvals, with
+self-approval available only where explicitly enabled by persisted policy, and
+every decision written to an append-only ledger.
+
+**Egress and residency.** The fail-closed boundary in
+`aia_core.domain.residency`, per [ADR 0008](adr/0008-eu-data-residency.md).
+
+### Still required operationally
+
+Not defects in the code; work that has to exist outside it:
+
+- **A Cognito user pool and app client**, and Google Workspace federation.
+- **Environment configuration** for staging and production.
+- **S3 bucket provisioning**, encryption and lifecycle policy for artifacts.
+
+The API refuses to boot in production without the identity configuration, so a
+missing pool is a failed health check rather than an open door. **Until that
+infrastructure exists, no deployed environment holds real client data** — but the
+reason is provisioning, not an absent verifier.
 
 ## Tenant isolation
 
@@ -53,9 +82,12 @@ that a future raw query cannot bypass the repository.
 
 | Threat | Control | Status |
 | --- | --- | --- |
-| Unauthenticated access | Auth gate; production fails closed | Partial — gate present, verifier absent |
+| Unauthenticated access | Cognito JWT verification; production refuses to boot unconfigured | Implemented in code; pending provisioning |
 | Cross-tenant data access | Repository cannot be built unscoped; 404 not 403 | Implemented, tested |
-| Privilege escalation | `Principal.roles`; per-tenant roles | Not implemented |
+| Privilege escalation | Permissions resolved from PostgreSQL grants, never from token claims | Implemented, tested |
+| Authoring and approving the same work | Independence required by default; self-approval only by persisted policy, and never a substitute for permission | Implemented, tested |
+| Client data leaving the EU | Fail-closed egress boundary; per-class approved routes | Implemented, tested; routes pending provisioning |
+| Scope widened by a model or tool | `StudyContext` issuable only by the authorization layer | Implemented, tested |
 | SQL injection | SQLAlchemy parameter binding throughout; no string-built SQL | Implemented |
 | Path traversal | No filesystem paths in the API. Project ids are regex-constrained (`^PRJ-[0-9a-f]{1,32}$`) at the route | Implemented, tested |
 | Malicious upload | Type/size validation, no execution, out-of-webroot storage | Not implemented (Phase 5) |
@@ -66,9 +98,10 @@ that a future raw query cannot bypass the repository.
 | Prompt injection via uploaded data | Dataset content is data, not instruction; no tool access from research prompts | Design rule, Phase 4/5 |
 | Information disclosure via errors | One error shape; stack traces and driver messages never returned | Implemented, tested |
 | XSS | React escaping; no `dangerouslySetInnerHTML` in new code | Implemented by convention |
-| CSRF | Token-header auth rather than cookie auth, so CSRF does not apply | Pending the auth decision |
+| CSRF | Token-header auth rather than cookie auth, so CSRF does not apply | Implemented by design |
 | Denial of service | Page-size caps, request body limits, per-tenant concurrency caps | Partial — caps implemented, rate limiting absent |
-| Cost exhaustion | Per-project budget ceiling enforced before every paid call | Implemented |
+| Cost exhaustion | Per-study budget ceiling with reservations, under a study-row lock, enforced before every paid call | Implemented, tested under contention |
+| Double billing after a crash | `RECOVERY_REQUIRED` + `SETTLED_UNCERTAIN`; a possibly-billed call is never auto-retried | Implemented, tested |
 | Dependency vulnerabilities | `pip-audit` and `npm audit` in CI | Implemented |
 | Committed secrets | CI greps for provider key shapes and fails the build | Implemented |
 
@@ -124,22 +157,44 @@ provider switch was genuinely user-authorised.
 
 Ordered by how much they should worry you:
 
-1. **No authentication.** Blocks any deployment with real data. Needs a decision
-   on the identity provider.
-2. **No authorization model.** `Principal.roles` exists but nothing consumes it.
-   Roles, and who may approve a gate or export a report, are undefined.
-3. **No rate limiting.** An authenticated tenant can exhaust the API.
+1. **No identity infrastructure provisioned.** The verifier exists; the user pool,
+   app client and federation do not. Blocks any deployment with real data.
+2. **No approved egress routes configured.** The boundary is enforceable and
+   currently permits nothing, which is the right failure mode but means no client
+   inference can run until routes are declared and justified against
+   [ADR 0008](adr/0008-eu-data-residency.md).
+3. **No rate limiting.** An authenticated member can exhaust the API.
 4. **No encryption-at-rest configuration** documented for the database or bucket.
-5. **No RLS** as a second isolation layer.
-6. **Upload, SSRF and export controls** are not built because those features are
+5. **No RLS** as a second isolation layer, so a future raw query could bypass the
+   repository.
+6. **No OpenTelemetry instrumentation.** Structured logging, request correlation
+   and secret redaction exist; distributed tracing does not. See
+   *Observability* below.
+7. **Upload, SSRF and export controls** are not built because those features are
    not built.
 
-## Decisions needed from the team
+## Observability
 
-- **Identity provider.** Is there an existing AIA SSO, or should this be
-  OIDC-based? The commit history mentions AWS Amplify but no identity
-  configuration is present in the repository.
-- **Tenancy model.** `apps/web` routes are already `/org/[orgSlug]/…`, implying
-  organizations. Is a user in exactly one organization, or several?
-- **Data residency.** Client research data for Czech clients may carry an EU
-  residency requirement that constrains region and provider routing.
+**OpenTelemetry is the instrumentation standard.** It is a decision, not a
+description: what exists today is structured JSON logging, a `request_id` on every
+request, response, log line and error body, and secret redaction before any sink.
+There are no spans, no trace propagation and no metrics, and no document should
+imply otherwise.
+
+The backend OTel exports to is **replaceable and unchosen**. Instrumenting against
+the vendor-neutral API is what keeps it that way; no observability vendor is part
+of the architecture.
+
+## Settled, and not open questions
+
+These have been asked before and are answered. They are recorded here so they are
+not reopened by inference from an older document:
+
+- **Identity provider.** Cognito, federated to Google Workspace, with
+  authorization in AIA rather than in claims.
+  [ADR 0003](adr/0003-cognito-identity-boundary.md).
+- **Tenancy model.** `Organization → Client → Study`, with Client and Study as hard
+  isolation boundaries. [ADR 0004](adr/0004-client-study-isolation.md).
+- **Data residency.** EU residency is a frozen invariant with a fail-closed egress
+  boundary, independent of which vendor eventually satisfies it.
+  [ADR 0008](adr/0008-eu-data-residency.md).

@@ -99,20 +99,49 @@ cost attached is a bug, and it is queryable.
 Also carries `input_tokens`, `output_tokens`, `estimated_cost_usd`,
 `actual_cost_usd` — the basis of AI cost observability.
 
+## Also implemented
+
+**Identity and scope.** `organizations`, `users`, `organization_members`,
+`clients`, `studies`, `client_grants`, `study_grants`, `access_audit`.
+
+`organizations`, `clients` and `studies` each carry a nullable
+`allow_self_approval`. Nullable at every level so the hierarchy **inherits**
+rather than duplicates: NULL means "ask my parent", and resolution is
+`study > client > organization > false`. A copied-down boolean would mean enabling
+self-approval for an organization silently failed to reach clients created
+earlier. See [scope-and-authorization.md](scope-and-authorization.md).
+
+**Durable workflows.** `workflow_runs`, `step_runs`, `step_dependencies`,
+`step_attempts`, `budget_reservations`, `workflow_gates`, `workflow_events`.
+
+`step_attempts` is **append-only**: each attempt keeps its own error, provider,
+model, cost and timing, where the prototype kept a counter and the latest error
+only. `budget_reservations` carries the `SETTLED_UNCERTAIN` status that makes a
+possibly-billed call show as spent rather than available.
+
+Run and step `status` are unconstrained `String(32)` rather than check-constrained
+enums, deliberately: the state vocabulary has already been revised once
+(`WAITING_GATE` → `AWAITING_GATE`, and the provider/capacity split), and a check
+constraint turns each such revision into a constraint rebuild on a live table for
+no gain the application layer does not already provide.
+
+**Approvals.** `approval_decisions`, append-only, one row per gate decision and
+artifact sign-off. Every field is denormalised onto the row on purpose: resolving
+the policy again at read time would answer what the policy is *now*, not what it
+was when somebody cleared a client deliverable.
+
 ## Planned tables
 
 Sequenced by phase; see [../migration/migration-plan.md](../migration/migration-plan.md).
 
-**Phase 1 completion — identity**
-`organizations`, `users`, `organization_members` (role per tenant),
-`api_credentials` (provider keys, encrypted at rest, never returned by any API).
-
-**Phase 3 — durable workflows**
-`workflows`, `jobs`, `job_dependencies`, `job_attempts`, `job_events`,
-`approvals`, `schedules`, `schedule_occurrences`, `cost_reservations`,
-`worker_state`. Modelled on the prototype's `job_store.py`, which already has
-leases, heartbeats, idempotency keys and cancellation — the design is sound and
-survives; only the storage engine changes.
+**Phase 4 — AI runtime**
+`api_credentials` (provider keys, encrypted at rest, never returned by any API),
+`ai_usage_events`, and the generalized metered-cost ledger described in
+[ai-runtime.md](ai-runtime.md) § Cost accounting — the one that has to attribute
+every metered source down to `Client → Study → Revision → WorkflowRun → Step →
+Agent/Tool/Call`, with corrections as compensating entries rather than edits.
+`egress_decisions`, recording what left AIA, under which classification and over
+which approved route, per [adr/0008](adr/0008-eu-data-residency.md).
 
 **Phase 5/6 — research outputs**
 `datasets` (uploaded client data), `respondent_runs`, `aggregations`,

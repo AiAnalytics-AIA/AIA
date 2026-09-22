@@ -88,10 +88,16 @@ uploaded client data.
 
 ### Phase 3 — Durable workflow engine
 
-Port `job_store.py`'s schema and semantics to PostgreSQL. Workflows, jobs,
+Port `job_store.py`'s schema and semantics to PostgreSQL. Runs, steps,
 dependencies, attempts, leases, heartbeats, stalled-job recovery, retry
-classification, cancellation, the three waiting states, approvals, schedules,
-cost reservations. Redis for queue transport. A worker process. SSE progress.
+classification, cancellation, the waiting states, approvals, cost reservations.
+
+**No queue transport.** PostgreSQL is both the authoritative store and the queue:
+workers claim runnable steps with `SELECT … FOR UPDATE SKIP LOCKED`. No Redis, no
+SQS ([ADR 0002](../architecture/adr/0002-postgresql-authoritative-store.md)).
+
+**Status: the engine is done and verified under real contention.** A worker
+process and SSE progress remain.
 
 - Risk: **high.** This is concurrent, stateful code where bugs manifest as lost
   or duplicated expensive work.
@@ -212,20 +218,34 @@ For each subsystem, in order:
 The prototype stays at `../npc-panel-reference`, referenced by
 `AIA_LEGACY_REFERENCE`, and is never committed to this repository.
 
-## Open decisions for the team
+## Decisions, settled and open
 
-These block or reshape phases and are not mine to settle:
+**Settled since this plan was written**, and not to be reopened by inference from
+an older paragraph:
 
-1. **Identity provider** — blocks Phase 1 completion and any real deployment.
-2. **Hosting target.** `chore: trigger Amplify rebuild` implies AWS Amplify for
-   the web client, but no infrastructure configuration exists in the repository.
-   The API, workers, PostgreSQL, Redis and object storage need a target before
-   Phase 10, and ideally before Phase 3.
-3. **Scope of the correlation-matrix MVP.** `README.md`, `ROADMAP.md`,
-   `docs/mvp-scope.md` and `docs/BACKLOG.md` describe a much narrower product —
-   single case, uploaded CSV, Spearman/Pearson matrix, manual Sociomapping SOP.
-   The migration brief supersedes this, but those documents still describe it and
-   `docs/AGENTS.md` defines a 9-agent/4-gate model that matches neither. They
-   should be reconciled or explicitly retired.
-4. **Tenancy model** — one organization per user, or several?
-5. **Data residency** for Czech client research data.
+1. **Identity provider** — Cognito federated to Google Workspace, authorization in
+   AIA. [ADR 0003](../architecture/adr/0003-cognito-identity-boundary.md).
+2. **Tenancy model** — `Organization → Client → Study`, Client and Study as hard
+   isolation boundaries. [ADR 0004](../architecture/adr/0004-client-study-isolation.md).
+3. **Data residency** — an EU invariant with a fail-closed egress boundary.
+   [ADR 0008](../architecture/adr/0008-eu-data-residency.md).
+4. **Queue** — PostgreSQL, claimed with `FOR UPDATE SKIP LOCKED`; no broker.
+   [ADR 0002](../architecture/adr/0002-postgresql-authoritative-store.md).
+5. **Scope of the correlation-matrix MVP** — superseded. Those documents are in
+   `docs/archive/original-mvp/`, each carrying a notice, and are not requirements.
+
+**Still open**, deliberately:
+
+1. **Compute service.** The API and workers run on AWS; *which* container service
+   is undecided. ECS Fargate and App Runner both remain options, and neither
+   should appear in any document as though it were chosen. Needed before Phase 10.
+2. **Model provider and hosting.** No provider or managed inference service is
+   selected. [ADR 0008](../architecture/adr/0008-eu-data-residency.md) sets the
+   constraints a candidate must satisfy; satisfying them is not the same as being
+   chosen, and choosing one needs its own ADR.
+3. **LiteLLM** as the gateway transport —
+   [ADR 0005](../architecture/adr/0005-llm-gateway.md) decision B, against seven
+   conditions. The gateway *contract* (decision A) is accepted and Phase 4 can
+   proceed on it without waiting.
+4. **Observability backend.** OpenTelemetry is the instrumentation standard; where
+   it exports is unchosen and must stay replaceable.

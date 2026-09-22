@@ -1,8 +1,18 @@
 # AI runtime
 
-**Status: domain rules implemented** (`aia_core.domain.providers`, verified by
-`packages/aia_core/tests/test_providers_parity.py`). **Gateway and SDK adapters
-not implemented** — Phase 4.
+**Status: policy implemented, transport not.**
+
+| Piece | State |
+| --- | --- |
+| Provider policy, budget rules, failure taxonomy (`aia_core.domain.providers`) | Implemented, parity-verified |
+| Budget reservations and enforcement (`workflow_repository`) | Implemented, tested under contention |
+| EU residency and the fail-closed egress boundary (`aia_core.domain.residency`) | Implemented, tested |
+| `ModelGateway` contract | **Accepted** as a decision ([ADR 0005](adr/0005-llm-gateway.md) A); not built |
+| Provider adapters / transport | Not built — Phase 4. No vendor selected |
+| Generalized metered-cost ledger | **Not built.** See *Cost accounting* below |
+
+Nothing here calls a model yet. The rules a call will have to obey exist and are
+tested; the code that makes the call does not.
 
 ## The governing rule
 
@@ -70,16 +80,52 @@ Before a paid call:
 
 ```
 spent + reserved + estimate  <=  limit    →  proceed
-                             >   limit    →  park in WAITING_USER and ask
+                             >   limit    →  park in AWAITING_BUDGET and ask
 ```
 
 Reservations count as spent so concurrent workers cannot each pass the check and
-collectively overspend. Subscription runtimes skip the check entirely because
-their marginal API cost is zero. Negative cost records are clamped so a corrupt
-figure cannot manufacture headroom.
+collectively overspend — and the check takes a blocking lock on the study row,
+because without it four workers reserving $40 against a $100 budget all succeed.
+That was a real defect, found only by a genuinely concurrent test. Subscription
+runtimes skip the check entirely because their marginal API cost is zero. Negative
+cost records are clamped so a corrupt figure cannot manufacture headroom.
 
 A denied check is a hard stop. The worker parks the job; it does not proceed, and
 it does not choose a cheaper provider.
+
+## Cost accounting
+
+**What exists:** per-study budget ceilings, transactional reservations, settlement
+including the `SETTLED_UNCERTAIN` path, and `Study.spent_usd`. That is genuine
+spend *control*, and it is enforced before every paid call.
+
+**What does not exist, and should not be described as if it did:** a generalized
+metered-cost ledger. The final authoritative ledger has to meter AI and model
+calls, research APIs, search APIs, retrieval APIs, paid datasets and any other
+metered tool, and attribute each to
+
+```
+Client → Study → Revision → WorkflowRun → Step → Agent/Tool/Call
+```
+
+with corrections written as **compensating entries** rather than by mutating
+history — an accounting record that can be edited after the fact cannot be
+reconciled against an invoice.
+
+Today's reservations cover the model-call case at study granularity. Everything
+beyond that is outstanding, and this section exists so the gap is not quietly
+closed by optimistic prose elsewhere.
+
+## Residency and egress
+
+Every outbound call carries a data classification and resolves to an approved
+route before it is made, per [ADR 0008](adr/0008-eu-data-residency.md). The
+boundary fails closed: unclassified material does not leave, an unknown route is a
+refusal rather than a substitution, and a denial has no fallback affordance — the
+same rule as budget, for the same reason.
+
+A capability with no approved route for a study's data class cannot run, and that
+is discoverable before the study starts rather than mid-pipeline.
 
 ## Failure classification
 
@@ -88,9 +134,9 @@ from `ai_router.classify_provider_exception`:
 
 | Class | Retryable | Handling |
 | --- | --- | --- |
-| `QUOTA` | Not a retry | Park in `WAITING_CREDITS`, reset the retry counter, schedule a one-time resume at the reset time |
+| `QUOTA` | Not a retry | Park in `WAITING_PROVIDER`, reset the retry counter, schedule a one-time resume at the reset time |
 | `TRANSPORT` | Yes | Backoff and retry |
-| Capacity (recoverable) | Yes, later | Park in `WAITING_CAPACITY` |
+| `PROVIDER_CAPACITY` | Yes, later | Park in `WAITING_CAPACITY` — a **separate** state from the quota park, because it clears by itself with no reset instant |
 | `AUTHENTICATION`, `PERMISSION`, `MISSING` | **No** | Terminal. Retrying hides a misconfiguration and burns quota |
 | `SCHEMA` | Once | Structured-output contract violation; one repair attempt, then fail |
 | `MODEL` | Substitute | A retired model id is replaced with a visible equivalent and recorded |
@@ -102,8 +148,7 @@ waiting.
 
 ## Structured output
 
-Domain code never imports `anthropic` or `openai`. It calls a gateway that
-normalises:
+Domain code never imports a provider SDK. It calls a gateway that normalises:
 
 - structured requests against a JSON schema, with the schema strictified where
   the provider supports strict mode

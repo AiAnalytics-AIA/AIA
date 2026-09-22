@@ -14,7 +14,9 @@ is shaped that way. The companion documents go deeper:
 | [workflows.md](workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](ai-runtime.md) | Provider abstraction, provenance, budgets, failure behaviour |
 | [artifacts.md](artifacts.md) | Artifact lifecycle and storage |
+| [scope-and-authorization.md](scope-and-authorization.md) | Who may touch which client's work, and approval policy |
 | [security.md](security.md) | Threat model and security architecture |
+| [adr/](adr/) | Decision records, with a list of what is deliberately still open |
 
 Migration documents live in [`../migration/`](../migration/). Start with
 [status.md](../migration/status.md) to see where the work currently stands.
@@ -57,12 +59,13 @@ against the validated prototype by the parity suite
 ## Layers
 
 ```
-apps/web         Next.js client. No business rules.
+apps/web         Next.js client. No business rules. Still mock-backed.
 apps/api         FastAPI. Validates, delegates, serialises. No business rules.
-apps/worker      Background workers. Long-running AI work. (Phase 3)
+apps/worker      Background workers. Long-running AI work. NOT YET BUILT --
+                 the engine they would drive exists; the loop does not.
 packages/aia_core
   domain/        Pure rules. No framework, no driver, no SDK imports.
-  application/   Use cases that orchestrate domain + infrastructure. (Phase 2+)
+  application/   Use cases that orchestrate domain + infrastructure.
   infrastructure/ SQLAlchemy, object storage, provider gateways.
 ```
 
@@ -85,21 +88,33 @@ Two rules keep this honest rather than decorative:
 | Web client | Next.js 16, React 19, TypeScript, Tailwind 4 | Already established in `apps/web`, including the `/org/[orgSlug]/…` tenant routing |
 | API | FastAPI + Pydantic | The validated domain engine is 44k lines of Python with 394 passing tests. Rewriting it in another language would discard the only evidence that the methodology works |
 | Durable store | PostgreSQL + Alembic | The prototype's SQLite is single-writer and file-local; production needs concurrent workers and shared state |
-| Queue | Redis (transport only) | PostgreSQL stays the durable source of truth, so losing Redis loses no work |
+| Queue | **PostgreSQL itself**, claimed with `FOR UPDATE SKIP LOCKED` | At this volume a broker adds an operational component and a second place the truth is kept, and buys nothing. No Redis, no SQS ([ADR 0002](adr/0002-postgresql-authoritative-store.md)) |
 | Artifact bytes | S3-compatible object storage | Research outputs are large, immutable blobs that must outlive any container |
-| Local development | Docker Compose (Postgres, Redis, MinIO) | Development exercises the same engines as production |
+| Identity | Amazon Cognito, federated to Google Workspace | A token proves identity only; authorization is a PostgreSQL read ([ADR 0003](adr/0003-cognito-identity-boundary.md)) |
+| Instrumentation | OpenTelemetry | Vendor-neutral by decision; the backend it exports to is replaceable and unchosen |
+| Compute | AWS, service **not yet decided** | ECS Fargate and App Runner both remain open; the choice gets its own ADR |
+| Local development | Docker Compose (Postgres, MinIO) | Development exercises the same engines as production |
 
 The root `src/server.js` Fastify stub predates this work and is retained only
 because it holds the sole existing login path. See
 [../migration/status.md](../migration/status.md) for its removal condition.
+
+`apps/web` is real work and is to be rewired to the live API, not replaced.
 
 ## What the system refuses to do
 
 These are product requirements expressed as architecture, not preferences:
 
 - **No silent provider fallback.** When a provider cannot serve a request, work
-  parks in `WAITING_CREDITS` or `WAITING_CAPACITY` and asks the user. It never
+  parks in `WAITING_PROVIDER` or `WAITING_CAPACITY` and asks the user. It never
   quietly moves to a provider that costs money or changes provenance.
+- **No client data leaving the EU.** The egress boundary fails closed:
+  unclassified material does not leave, an unknown route is a refusal rather than a
+  substitution, and a denial offers no cheaper alternative
+  ([ADR 0008](adr/0008-eu-data-residency.md)).
+- **No one clearing their own gate by default.** Independent review is the
+  default; self-approval exists only where an administrator has explicitly enabled
+  it in persisted policy, and it never confers authority someone did not have.
 - **No spending past a budget.** A paid call is checked against the project's
   ceiling *before* it is made. Over budget means park and ask, not proceed.
 - **No invented certainty.** Evidence roles (`MEASURED_JOINT`, `CALIBRATED_CORE`,
@@ -113,10 +128,25 @@ These are product requirements expressed as architecture, not preferences:
 
 ## Current state
 
-Phase 1 and the project-persistence core of Phase 2 are implemented: the domain
-model, PostgreSQL schema with migrations, the tenant-scoped repository, the
-projects API, structured logging, and CI.
+Implemented in software, with tests: the domain model; the PostgreSQL schema and
+migrations; `Organization → Client → Study` isolation with server-issued
+`StudyContext`; the Cognito identity boundary with authorization in PostgreSQL;
+artifact storage across S3, filesystem and in-memory backends with hashing,
+verified reads and cross-revision reuse; the durable workflow engine with
+`FOR UPDATE SKIP LOCKED` claiming, leases, budget reservations and uncertain
+paid-call recovery, verified under real contention; approval policy with an
+append-only decision ledger; the fail-closed residency and egress boundary;
+structured logging with request correlation and secret redaction; and CI.
 
-Not yet built: the durable job engine, the AI provider gateway, artifact storage,
-and every stage that actually calls a model. Those phases are sequenced in
-[../migration/migration-plan.md](../migration/migration-plan.md).
+**Not built:** a worker process to drive the engine, the AI provider gateway and
+adapters, OpenTelemetry instrumentation, a generalized metered-cost ledger, and
+every stage that actually calls a model. `apps/web` is still mock-backed.
+
+**Built but not provisioned** — a distinction worth keeping, because the code
+being finished is not the same as the system being deployable: the Cognito user
+pool and federation, the S3 bucket, and approved egress routes. Until those exist
+no environment holds real client data, and the API refuses to boot in production
+without them.
+
+Sequencing is in [../migration/migration-plan.md](../migration/migration-plan.md);
+current state is in [../migration/status.md](../migration/status.md).

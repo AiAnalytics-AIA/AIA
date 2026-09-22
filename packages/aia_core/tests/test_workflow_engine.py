@@ -194,11 +194,12 @@ def test_duplicate_run_creation_returns_the_existing_run(
 def test_duplicate_wake_up_produces_one_execution_not_two(
     engine_repo: WorkflowRepository, run: str
 ) -> None:
-    """**SQS delivers at least once. This is the guard.**
+    """**Two workers polling the same run must not both execute the same step.**
 
-    Two workers both woken for the same run must not both execute the same step.
-    Ownership lives in PostgreSQL, not in the queue, so the second claimer gets
-    the *next* step or nothing -- never a second attempt at the same one.
+    Ownership lives in the claim transaction, so the second claimer gets the *next*
+    step or nothing -- never a second attempt at the same one. This holds with no
+    queue at all, and would still hold if a wake-up mechanism were added in front
+    of it, because the guard is the claim rather than the delivery.
     """
     first = engine_repo.claim_next(worker_id="worker-1")
     second = engine_repo.claim_next(worker_id="worker-2")

@@ -1,9 +1,9 @@
 # Migration status
 
-**Updated:** 2026-09-21
-**Branch:** `migration/phase-1-foundation`
+**Updated:** 2026-09-22
+**Branch:** `main`
 **Phase:** 1 and 2 complete. Phase 3 implemented and verified under real
-PostgreSQL contention.
+PostgreSQL contention. Architecture v2.1 reconciliation applied.
 
 Read this first to continue the work. Companion documents:
 [migration-plan.md](migration-plan.md) ·
@@ -35,9 +35,15 @@ aia-repo/
 
 **Stack:** Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic,
 PostgreSQL 16, Next.js 16, TypeScript, Tailwind 4.
-**Target:** AWS — Amplify (web), ECS Fargate (API + workers), RDS PostgreSQL, S3,
-SQS, ECR, Secrets Manager, KMS, CloudWatch, Terraform, GitHub Actions. No
-Kubernetes. No Redis ([ADR 0002](../architecture/adr/0002-postgresql-authoritative-store.md)).
+**Target:** AWS — RDS PostgreSQL, S3, ECR, Secrets Manager, KMS, CloudWatch,
+Terraform, GitHub Actions. No Kubernetes. **No Redis and no SQS**: PostgreSQL is
+both the authoritative store and the v0.1 queue, claimed with
+`FOR UPDATE SKIP LOCKED`
+([ADR 0002](../architecture/adr/0002-postgresql-authoritative-store.md)).
+
+The **compute service is not decided**. ECS Fargate and App Runner both remain
+options; neither is frozen, and nothing here should be read as selecting one. The
+web client's hosting is likewise open.
 
 The NPC Panel prototype is **not** in this repository. It lives at
 `../npc-panel-reference` and is referenced by `AIA_LEGACY_REFERENCE` for parity
@@ -121,7 +127,7 @@ still asserts the legacy behaviour so the suite reports if the reference differs
 from what we believe:
 
 - `attempt` is a counter, not a history → becomes append-only `StepAttempt` rows.
-- There is no `WAITING_BUDGET`; budget exhaustion routes through `WAITING_USER`.
+- There is no `AWAITING_BUDGET`; budget exhaustion routes through `WAITING_USER`.
 - Timestamps are naive local-time strings → become `TIMESTAMP WITH TIME ZONE` UTC.
 
 The single most valuable behaviour found: **`recover_expired` refuses to retry a
@@ -154,22 +160,80 @@ them.
 
 ## Test and quality state
 
+Measured after the Architecture v2.1 reconciliation, on **PostgreSQL 16.13**,
+Python 3.12.3, Linux, in a virtualenv built from declared dependencies only:
+
 | Suite | Result |
 | --- | --- |
-| Suite, on PostgreSQL | **496 passed, 0 failed, 0 skipped** |
-| Suite, on SQLite | **480 passed, 16 skipped** (the concurrency module) |
-| of which parity/characterization vs the prototype | **94** |
+| Suite, on PostgreSQL | **449 passed, 94 skipped** |
+| Suite, on SQLite | **433 passed, 110 skipped** |
 | of which real-contention concurrency tests | **16** |
-| `ruff check` / `ruff format --check` | clean |
-| `mypy --strict` | clean, 32 source files |
+| `ruff check` / `ruff format --check` | clean, 51 files |
+| `mypy --strict` | clean, 33 source files |
+| Alembic upgrade / check / downgrade base / re-upgrade | clean, 4 revisions |
+| API contract (OpenAPI) | 19 paths, every project route study-scoped |
+| Startup smoke over HTTP | health, ready, create, read, content edit, 401 |
+| Frontend lint / tsc / build | clean (1 pre-existing lint warning, 0 errors) |
 
-Verified on **PostgreSQL 16.15** and on SQLite. Python 3.14.6, macOS.
+**The 94 skips are the parity and characterization suite, and they are not
+passes.** They need a checkout of the NPC Panel prototype, which is deliberately
+not committed, and no reference was available for this run -- so the comparison
+against the prototype **did not happen** and nothing here should be read as saying
+it did. CI is in the same position and its parity job prints a warning rather than
+claiming a pass. Anyone changing domain logic must run them locally:
 
-The 16 skips on SQLite are correct and deliberate: SQLite has no
+```bash
+AIA_LEGACY_REFERENCE=../npc-panel-reference make test-parity
+```
+
+The additional 16 skips on SQLite are correct and deliberate: SQLite has no
 `FOR UPDATE SKIP LOCKED` and a single-writer model, so it cannot express the
-contention being tested. **CI sets `AIA_REQUIRE_POSTGRES=1`, which turns a
-missing database into a failure rather than a skip** -- otherwise a build could go
-green with none of the concurrency guarantees checked.
+contention being tested. **CI sets `AIA_REQUIRE_POSTGRES=1` for the concurrency
+module, which turns a missing database into a failure rather than a skip** --
+otherwise a build could go green with none of the concurrency guarantees checked.
+
+The migration's data rewrite was verified against **live rows**, not only an empty
+schema: runs and steps written as `WAITING_GATE` / `WAITING_BUDGET` come back as
+`AWAITING_GATE` / `AWAITING_BUDGET` after the upgrade, and a `WAITING_CAPACITY` row
+folds back into `WAITING_PROVIDER` on the downgrade. A migration exercised only on
+an empty database is not a verified migration.
+
+## Architecture v2.1 reconciliation ✅
+
+The frozen v2.1 decision set was compared against this repository and the
+divergences corrected. What changed in behaviour:
+
+**Self-approval is configurable.** The code enforced `producer != approver`
+absolutely. The frozen decision is that independent review is the *default* and
+the same person may approve where policy explicitly allows it.
+`allow_self_approval` is nullable on organizations, clients and studies, resolving
+`study > client > organization > false`, read from persisted state by the
+authorization layer and carried on the `StudyContext` — so nothing a model, agent,
+tool argument or request body can produce is able to assert it. It never confers
+authority: a RESEARCHER still cannot sign off. `approval_decisions` is a new
+append-only ledger recording every decision with the policy that allowed it.
+
+**Canonical workflow states.** `WAITING_GATE` → `AWAITING_GATE`,
+`WAITING_BUDGET` → `AWAITING_BUDGET`, and provider capacity split out of
+`WAITING_PROVIDER` into its own `WAITING_CAPACITY`. `AWAITING_*` means a person
+owes us a decision; `WAITING_*` means a system owes us capacity. The two provider
+waits recover differently -- only the quota park carries a resume instant -- and
+merging them made a quota wall look like a blip.
+
+**EU residency is enforceable.** It had been sitting in a "decisions needed" list
+while nothing in the code could enforce it. `aia_core.domain.residency` is now a
+fail-closed egress boundary with three data classes; see
+[ADR 0008](../architecture/adr/0008-eu-data-residency.md).
+
+**ADRs.** 0002 rewritten (PostgreSQL is the v0.1 queue; SQS explicitly deferred
+behind a measured trigger). 0005 split into two statuses — the gateway contract
+Accepted, LiteLLM still Proposed against seven conditions — so the architecture is
+no longer blocked on a vendor question. 0006 corrected to *Accepted — constrained
+use* in the index, which had contradicted the file.
+
+Paid-call recovery was **not** touched, and has one more guard: a capacity failure
+after a dispatched metered call still reaches `RECOVERY_REQUIRED` rather than
+parking.
 
 ## In progress
 
@@ -177,34 +241,41 @@ Nothing. The tree is green and the slice is complete.
 
 ## Next
 
-- [ ] **SQS dispatch + reconciler.** The engine is complete and PostgreSQL is
-      authoritative; what remains is the transport. An SQS message carries an id
-      only, and a reconciler re-enqueues runnable work with no in-flight message,
-      so a lost message loses nothing. Idempotency is already proven under
-      contention, which is the hard part.
 - [ ] **A worker process.** `claim_next` → execute → `complete_attempt` /
-      `fail_attempt`, with heartbeats and a cancellation poll at checkpoints.
+      `fail_attempt`, with heartbeats and a cancellation poll at checkpoints. This
+      is the gap between "the engine works" and "work actually runs" — there is no
+      transport to build first, because PostgreSQL is the queue.
 - [ ] **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`,
-      `ModelPolicy`, `ModelRegistry`, `LLMGateway`, `ToolRegistry`,
-      `AIUsageEvent`. Confirm [ADR 0005](../architecture/adr/0005-llm-gateway.md)
-      and [ADR 0006](../architecture/adr/0006-langgraph-agent-execution.md) first.
+      `ModelPolicy`, `ModelRegistry`, `ModelGateway`, `ToolRegistry`,
+      `AIUsageEvent`. [ADR 0005](../architecture/adr/0005-llm-gateway.md) decision
+      A is accepted, so this is not blocked; only the choice of transport is.
+- [ ] **A generalized metered-cost ledger.** Reservations control spend today at
+      study granularity. Attribution across every metered source down to
+      `Client → Study → Revision → WorkflowRun → Step → Agent/Tool/Call`, with
+      compensating entries rather than edits, is outstanding.
+- [ ] **OpenTelemetry instrumentation.** Structured logging and request
+      correlation exist; spans, propagation and metrics do not.
 - [ ] Wire `apps/web` to the real API and delete `lib/mock.ts`.
-- [ ] Terraform for the AWS baseline.
+- [ ] Terraform for the AWS baseline, once the compute service is chosen.
 - [ ] PostgreSQL row-level security as a second isolation layer.
 - [ ] Rate limiting.
 
 ## Blockers and decisions needed
 
-1. **Confirm ADR 0005 (LiteLLM) before Phase 4.** It is marked *Proposed*, not
-   Accepted. `ai_router.py` contains behaviour we are committed to preserving —
-   no silent fallback, the ten-way error taxonomy, quota parking distinguished
-   from failure — and a library that retries or falls back on our behalf would
-   break the product's central provider rule. The ADR lists four things to verify.
-2. **Confirm ADR 0006 (LangGraph boundary) before Phase 4.**
+1. **Choose the compute service.** ECS Fargate or App Runner, on operational
+   grounds, recorded as an ADR. Blocks Terraform, not Phase 4.
+2. **Declare approved egress routes.** The residency boundary is enforceable and
+   currently approves nothing, which is the correct failure mode but means no
+   client inference can run until routes are declared and justified against
+   [ADR 0008](../architecture/adr/0008-eu-data-residency.md). Choosing a provider
+   to fill them is a vendor decision needing its own ADR — the residency invariant
+   does not choose one.
 3. **AWS provisioning.** The Cognito user pool, app client and Google Workspace
    federation must exist before any deployment. The code is ready and refuses to
    boot without them.
-4. **`PRODUCT_POLICY.json` contradicts itself** about the production panel
+4. **Test LiteLLM against ADR 0005's seven conditions**, or write the adapters.
+   Not a blocker for the gateway contract, which is accepted.
+5. **`PRODUCT_POLICY.json` contradicts itself** about the production panel
    (`v17_4_0` at top level, `v17_1_2` under `data_core`). We treat `v17_4_0` as
    authoritative; needs resolving in Phase 6. See W5 in
    [reference-weaknesses.md](reference-weaknesses.md).
@@ -402,19 +473,12 @@ all 113 of them.
 
 ## Last verified commit
 
-`8102551` — feat(workflow): durable workflow engine with real-contention verification
+The Architecture v2.1 reconciliation, on the branch opened against `main`.
 
-Verified at that commit:
-
-| | |
-| --- | --- |
-| Suite on PostgreSQL 16.15 | **496 passed**, 0 failed, 0 skipped |
-| Suite on SQLite | **480 passed**, 16 correctly skipped |
-| Parity / characterization vs the prototype | **94** |
-| Real-contention concurrency tests | **16** |
-| `ruff check` / `ruff format --check` | clean |
-| `mypy --strict` | clean, 32 source files |
-| Alembic upgrade / check / downgrade / re-upgrade | clean, 3 revisions |
-| Canonical reference files unchanged | 1,324 verified by hash |
-
-Python 3.14.6, macOS. `main` untouched; nothing pushed.
+Earlier verification of the workflow engine at `8102551`, on PostgreSQL 16.15 with
+a reference checkout present, reported **496 passed / 0 skipped** on PostgreSQL and
+**480 passed / 16 skipped** on SQLite, including the 94 parity and characterization
+tests. Those numbers are not comparable to the table above, because that run had
+the prototype available and this one did not. Both are recorded rather than one
+being rewritten into the other: the difference *is* the parity suite, and
+collapsing them would hide exactly the thing worth knowing.
