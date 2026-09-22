@@ -281,6 +281,7 @@ declared tier.
 | `mypy --strict` | **blocking** |
 | `make layer_check` | **blocking** |
 | `make exposure_check` | **blocking** |
+| `make enum_check` — web vocabulary ⇄ domain enums (`tools/enum_parity_check.py`) | **blocking** |
 | `alembic upgrade head` / `alembic check` / downgrade-to-base | **blocking** |
 | `pytest` — core + API, on PostgreSQL and on SQLite | **blocking** |
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |

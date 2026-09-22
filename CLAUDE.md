@@ -92,6 +92,7 @@ docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
+tools/enum_parity_check.py  Web client vocabulary ⇄ domain enums (both directions)
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 ```
@@ -133,6 +134,7 @@ default weight and no fallback version; `make layer_check` enforces the loader.
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
+| **Web vocabulary parity** | `make enum_check` |
 | Everything CI runs | `make check` |
 | **The pre-commit sequence** | `make verify` |
 | OpenAPI document | `make openapi` |
@@ -361,6 +363,7 @@ Hypotheses are reproduced or deleted; they are never budgeted for.
 make typecheck     # mypy --strict; this project's warnings-are-errors gate
 make layer_check
 make exposure_check
+make enum_check
 ruff format --check packages/aia_core apps/api migrations
 make test
 ```

@@ -1,6 +1,6 @@
 # Plan: AIA design system → apps/web
 
-**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–1 in review; chunks 2–3 next, then the first vertical slice. **Owner:** product-surface (A9).
+**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–2 in review; chunk 3 next, then the first vertical slice. **Owner:** product-surface (A9).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
 **Design source:** the "AIA Design System" artifact, https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
 
@@ -143,6 +143,23 @@ Chunks 4–11 resume only after that slice is working and reviewed.
   `check:layout` needs a browser, so it is manual for now. Existing screens moved
   from zinc/blue/amber classes to token utilities. Amber now appears only on the
   waiting-on-a-person tone: the report editor's "proposal ready" is neutral.
+
+- **Chunk 2 — domain enum binding** (branch `feature/enum-binding`). There are 17
+  bound enums plus both lifecycles (ids and Czech labels). Two independent
+  tripwires, both demonstrated by adding a fake `PAUSED_BY_ADMIN` stage status:
+  1. `satisfies Record<Enum, Tone>` / `Record<Enum, string>` in
+     `src/design/status.ts`. A value without a treatment or label fails `tsc`.
+  2. `tools/enum_parity_check.py` (`make enum_check`, backend CI job, blocking)
+     compares values and order in both directions. It also forces a decision on
+     any *new* domain enum: `InteractionMode`, `RecoveryAction`, `DataClass` and
+     `ResidencyZone` are listed as deliberately unbound, each with a reason.
+     `packages/aia_core/tests/test_enum_parity_check.py` covers it with 6 tests.
+  DS-3 is encoded: the base maps can never produce the personal `you` tone.
+  `appearance()` upgrades `person` → `you` only when the caller passes the API's
+  `viewerCanResolve: true` (OI-11); anything else renders "čeká na tým / správce".
+  Evidence roles: 4 known. Any other value, including null, is `unknown` (OI-9).
+  There is no Python evidence enum yet, so evidence is not in the parity check;
+  it joins when analysis-governance publishes one.
 
 ## What product-surface does not own
 

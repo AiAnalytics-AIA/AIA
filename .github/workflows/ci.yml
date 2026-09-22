@@ -72,6 +72,11 @@ jobs:
         # repository too. See docs/migration/public-exposure-remediation.md.
         run: ./tools/exposure_check.sh
 
+      - name: Web vocabulary in parity with the domain enums
+        # Python half of the binding; the TypeScript half is `satisfies Record<…>`
+        # in apps/web/src/design/status.ts, checked by the frontend job's tsc.
+        run: python tools/enum_parity_check.py
+
       - name: Lint
         run: |
           ruff check packages/aia_core apps/api migrations

@@ -69,6 +69,34 @@ export const cs = {
       DRAFT: "Koncept", ACTIVE: "Aktivní", IN_REVIEW: "V revizi", DELIVERED: "Předáno", ARCHIVED: "Archivováno", CANCELLED: "Zrušeno",
     },
     client: { ACTIVE: "Aktivní", DORMANT: "Neaktivní", ARCHIVED: "Archivováno" },
+    run: {
+      PENDING: "Ve frontě", RUNNING: "Běží", AWAITING_GATE: "Čeká na schválení", AWAITING_BUDGET: "Čeká na rozpočet",
+      WAITING_PROVIDER: "Čeká na poskytovatele", WAITING_CAPACITY: "Čeká na kapacitu", RECOVERY_REQUIRED: "Vyžaduje rozhodnutí",
+      COMPLETED: "Dokončeno", FAILED: "Selhalo", CANCELLED: "Zrušeno",
+    },
+    step: {
+      BLOCKED: "Čeká na předchozí krok", RUNNABLE: "Připraveno ke spuštění", RUNNING: "Běží", AWAITING_GATE: "Čeká na schválení",
+      AWAITING_BUDGET: "Čeká na rozpočet", WAITING_PROVIDER: "Čeká na poskytovatele", WAITING_CAPACITY: "Čeká na kapacitu",
+      RECOVERY_REQUIRED: "Vyžaduje rozhodnutí", SUCCEEDED: "Dokončeno", FAILED: "Selhalo", CANCELLED: "Zrušeno", SKIPPED: "Přeskočeno",
+    },
+    attempt: {
+      PENDING: "Čeká na pracovníka", CLAIMED: "Převzato", EXECUTING: "Provádí se", SUCCEEDED: "Úspěch",
+      FAILED: "Selhání", EXPIRED: "Vypršel pronájem", ABANDONED: "Opuštěno",
+    },
+    reservation: { RESERVED: "Rezervováno", SETTLED: "Vyúčtováno", RELEASED: "Uvolněno", SETTLED_UNCERTAIN: "Nejisté vyúčtování" },
+    failure: {
+      TRANSPORT: "Síťová chyba", PROVIDER_CAPACITY: "Přetížený poskytovatel", TRANSIENT: "Přechodná chyba", QUOTA: "Vyčerpaná kvóta",
+      BUDGET_EXCEEDED: "Překročený rozpočet", APPROVAL_REQUIRED: "Vyžaduje schválení", AUTHENTICATION: "Selhalo ověření",
+      PERMISSION: "Chybí oprávnění", MISSING_CONFIGURATION: "Chybí konfigurace", MODEL_UNAVAILABLE: "Model nedostupný",
+      SCHEMA_VIOLATION: "Neplatná struktura výstupu", MAX_TURNS: "Vyčerpán počet kroků", SDK_OUTDATED: "Zastaralé SDK",
+      CANCELLED: "Zrušeno", UNKNOWN: "Neznámá příčina",
+    },
+    unknownPrefix: "Neznámý stav:",
+  },
+  audience: {
+    you: "čeká na vás",
+    person: "čeká na tým / správce",
+    world: "čeká na externí kapacitu",
   },
   role: { VIEWER: "Čtenář", REVIEWER: "Recenzent", RESEARCHER: "Výzkumník", LEAD: "Vedoucí studie" },
   modelRole: {
