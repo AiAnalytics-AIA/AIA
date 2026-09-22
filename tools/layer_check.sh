@@ -169,6 +169,58 @@ forbid "the worker never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$WORKER"
 
+
+# --- Population: one resolver, one loader ----------------------------------
+#
+# The reference answered "which population is in use" in four places and loaded
+# it through two loaders that returned different populations from the same bytes
+# (AIA-reference R4, fixture F10). A RuntimePopulation is issued only by
+# PopulationRuntime in application/population.py, through a module-private
+# sentinel; runtime.py defines it. Parsing a panel anywhere else is the first step
+# of a second loader, so that is refused too; population_parser.py is the parser.
+forbid "runtime populations are issued only by the canonical loader" \
+  '^[^#]*RuntimePopulation\._issue\(' \
+  "$CORE" \
+  population.py runtime.py
+
+forbid "the API never issues a runtime population" \
+  '^[^#]*RuntimePopulation\._issue\(' \
+  "$API"
+
+forbid "population panels are parsed only by the canonical loader" \
+  '^[^#]*\bparse_panel\(' \
+  "$CORE" \
+  population.py population_parser.py
+
+forbid "the API never parses a population panel" \
+  '^[^#]*\bparse_panel\(' \
+  "$API"
+
+# --- Sociomap: computable is not deliverable --------------------------------
+#
+# AIA_SOCIOMAP_V1 is a preset a study adopts by naming it -- it is not an
+# approved client methodology (docs/architecture/sociomapa-methodology-decision.md).
+# If an application service, worker, route or client could reference it, it
+# could fill in a missing spec, and an engineering choice would become client
+# methodology by default. Outside the Sociomap domain package (where it is
+# defined), its tests and the golden-fixture tool, it may not appear at all.
+# See sociomapa-deterministic-engine.md §13.
+forbid "application code never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$CORE/application/"
+forbid "infrastructure never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$CORE/infrastructure/"
+forbid "the API never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$API"
+forbid "workers never substitute the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  apps/worker
+forbid "the web client never names the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  apps/web/src
+
 # --- Tests: the signal is never deleted ------------------------------------
 #
 # A failing test is a finding (ARCHITECTURE.md §7). Runtime `pytest.skip(...)`

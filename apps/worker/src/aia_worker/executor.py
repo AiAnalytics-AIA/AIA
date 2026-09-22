@@ -145,7 +145,7 @@ class Failed:
     refusal is an answer -- the outcome is known and nothing was billed -- so
     call :meth:`StepContext.not_billed` before returning ``QUOTA``. Returning it
     with the call still marked in flight parks the step *and* charges the
-    reservation as uncertain (``open-items.md`` OI-6).
+    reservation as uncertain (``open-items.md`` OI-21).
     """
 
     failure: FailureClass

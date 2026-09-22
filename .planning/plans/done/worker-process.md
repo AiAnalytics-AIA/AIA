@@ -89,7 +89,7 @@ Rejected alternatives:
 - *Re-resolving the triggering user's grant on every attempt.* Attractive — a
   revoked researcher's runs would stop — but a denial then has no scoped
   repository to record itself through, and it turns an access-policy question
-  into a worker failure mode. Filed as OI-7 rather than decided here.
+  into a worker failure mode. Filed as OI-22 rather than decided here.
 - *Fencing only when `worker_id` is passed.* A guard on one path only (A8). The
   argument is required.
 
@@ -118,7 +118,7 @@ re-run of a possibly-billed call.
   *Landed.* Reproduced against `origin/main` @ 17c0a6b: cancelling a $5 paid step
   left `reserved_usd` at 5.0 for good (W4); a known $1.80 call followed by a
   failure recorded `spent_usd` 0.0 (W5). Tests: `test_workflow_reservations.py`.
-  Filed OI-6 (a quota park can re-issue a call whose outcome is unknown).
+  Filed OI-21 (a quota park can re-issue a call whose outcome is unknown).
 - [x] 3. **Release and resume** (W6, W7). Domain: `decide_release`,
   `apply_cancellation`, `resume_due`, `RecoveryAction.CANCEL`. Repository:
   `release_attempt`, `resume_waiting_steps`; `_apply_recovery` lets a
@@ -131,7 +131,7 @@ re-run of a possibly-billed call.
   (`EXECUTION_ROLE` = RESEARCHER; actor = `triggered_by`; refuses a non-holder, a
   finished attempt, a run/study scope mismatch and an archived client);
   `decided_gates`. Uncertain exposure is now charged to the reservation's own
-  study. *Landed.* Tests: `test_work_queue.py`. Filed OI-7 (should revoking a
+  study. *Landed.* Tests: `test_work_queue.py`. Filed OI-22 (should revoking a
   researcher stop their runs?).
 - [x] 5. **`apps/worker`.** *Landed.* `aia_worker.executor` (the protocols and
   outcomes; `StopExecution` is a `BaseException` so `except Exception` cannot
@@ -173,15 +173,15 @@ re-run of a possibly-billed call.
   `FOR UPDATE`, in-memory SQLite and threads, an unclosed session hanging
   teardown, `py.typed` and mypy, `BaseException` for control flow),
   `workflows.md` § The worker, the architecture README, board spec, module
-  inventory, migration status, `PROGRESS.md`, OI-6/7/8.
+  inventory, migration status, `PROGRESS.md`, OI-21/22/23.
 
 ## Review outcome
 
 Not yet reviewed by a human; nothing has been committed (the session was refused
 `git commit`, as CLAUDE.md §5 requires without explicit permission). Follow-ups
-filed rather than done: OI-6 (a quota park can re-issue an in-flight paid call —
-domain precedence, parity-covered), OI-7 (should revoking a researcher stop their
-runs), OI-8 (redaction patterns defined twice).
+filed rather than done: OI-21 (a quota park can re-issue an in-flight paid call —
+domain precedence, parity-covered), OI-22 (should revoking a researcher stop their
+runs), OI-23 (redaction patterns defined twice).
 
 ### Layer-by-layer review map
 

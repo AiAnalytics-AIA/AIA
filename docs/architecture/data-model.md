@@ -130,6 +130,25 @@ artifact sign-off. Every field is denormalised onto the row on purpose: resolvin
 the policy again at read time would answer what the policy is *now*, not what it
 was when somebody cleared a client deliverable.
 
+**Population registry.** `population_dataset_versions`, `populations`,
+`population_promotions`, `run_population_bindings`. Platform reference data, so the
+first three carry no organization, client or study; the binding hangs off
+`workflow_runs` and inherits its scope.
+
+| Table | Rule the schema enforces |
+| --- | --- |
+| `population_dataset_versions` | **Insert-only.** `content_sha256` unique (same bytes never registered twice); `(dataset_id, label)` unique (a label never re-pointed); `parent_version_id` self-FK without cascade; the import report kept in `validation_json` |
+| `populations` | One `STATIC` and one `LIVE` per dataset (`population_one_per_kind`). `current_version_id` is the single answer to "which population is in use" |
+| `population_promotions` | **Append-only.** `from_version_id` NULL for the establishing entry. SUPERSEDED is derived from this table, never stored |
+| `run_population_bindings` | One row per run (PK `run_id`), never updated, cascades with the run. Every binding field denormalised so the record still says what the run used after later promotions |
+
+Promotion is a compare-and-set `UPDATE … WHERE kind = 'LIVE' AND
+current_version_id = :expected` under a row lock, so concurrent promoters get
+exactly one winner (`test_concurrent_live_promotions_have_exactly_one_winner`) and
+a STATIC pointer can never be written after establishment. The panel **bytes**
+never live here: `storage_location` points into the population asset store, and
+every load re-verifies the bytes against `content_sha256`.
+
 ## Planned tables
 
 Sequenced by phase; see [../migration/migration-plan.md](../migration/migration-plan.md).
@@ -149,7 +168,9 @@ which approved route, per [adr/0008](adr/0008-eu-data-residency.md).
 
 **Phase 8 — data library**
 `library_sources`, `library_evidence`, `evidence_proposals`, `dimensions`,
-`population_revisions`, `results_registry`.
+`results_registry`. (`population_revisions` is superseded by the implemented
+population registry above: a new LIVE revision is a new dataset version plus an
+explicit promotion.)
 
 **Phase 9 — visualisation**
 `saved_segments`, `visualization_specs`, `visualization_layouts`,

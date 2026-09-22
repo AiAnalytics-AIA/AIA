@@ -415,7 +415,7 @@ def test_a_park_with_a_call_in_flight_still_records_the_exposure(
 
     A quota failure reported while a dispatched call has no recorded outcome
     parks the step (the domain's precedence, unchanged) -- but the reservation is
-    charged as uncertain rather than released. See OI-6 for the step-state
+    charged as uncertain rather than released. See OI-21 for the step-state
     question this leaves open.
     """
     reservation_id = _reserve(engine_repo, claimed, 2.0)

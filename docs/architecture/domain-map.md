@@ -134,7 +134,12 @@ scenario truth log.
 fusion, same-person core, weighting contracts, audience registry and selection,
 persona dimensions, calibration.
 
-**Status:** not started (Phase 8). Legacy source: `population_context.py`,
+**Status:** version and import foundation landed —
+`aia_core.domain.population`, `aia_core.application.population.PopulationRuntime`
+(content-addressed versions, STATIC/LIVE, explicit promotion, lossless import
+validation, canonical weight resolution, one loader, a binding recorded per run).
+Sampling, audience, donor fusion, calibration and the seven enrichment derivations
+are not started. Legacy source: `population_context.py`,
 `population_subpanels.py`, `donor_fusion.py`, `core_joint.py`,
 `audience_registry.py`, `audience_dimensions.py`, `persona_grounded.py`,
 `persona_calibration.py`, `dimension_catalog.py`, `mrp.py`,
@@ -162,8 +167,13 @@ quota failure after module 5 continues at module 6 instead of recomputing 1–5.
 **Owns:** relation matrices, unfolding and layout mathematics, map view state,
 saved segments, A/B area comparison, what-if layers, object manager.
 
-**Status:** not started (Phase 9). Legacy source: `sociomap.py`,
-`visualization_lab.py`, `segment_orchestration.py`, `respondent_dialogue.py`.
+**Status:** core engine implemented — `aia_core.domain.sociomap`, specified in
+[sociomapa-deterministic-engine.md](sociomapa-deterministic-engine.md): relation
+transforms, declared layout, object metrics, both terrain fields, drag and
+what-if layers. Not started: saved segments, A/B comparison, object manager,
+dialogue. Legacy source: `sociomap.py`, `visualization_lab.py`,
+`segment_orchestration.py`, `respondent_dialogue.py`, and the `*66` functions of
+`ui_app.html`, which held the terrain mathematics.
 
 **Invariant to preserve:** manual drag is a *visual override only and never
 mutates raw results*; what-if is a scenario layer over immutable originals.

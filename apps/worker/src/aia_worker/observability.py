@@ -9,7 +9,7 @@ an attempt's ``error_json``: an executor's exception message is exactly where a
 provider key or a bearer token ends up. The patterns are the provider-key shapes
 the API redacts (``apps/api/src/aia_api/observability.py``). The worker cannot
 import the API, so the shapes are restated here; moving them into ``aia_core`` so
-both import one definition is ``.planning/open-items.md`` OI-8.
+both import one definition is ``.planning/open-items.md`` OI-23.
 """
 
 from __future__ import annotations

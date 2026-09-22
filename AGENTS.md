@@ -125,6 +125,55 @@ Markers are registered in the root `pyproject.toml` and `--strict-markers` is on
 so a typo in a marker name is an error rather than a silently unfiltered run.
 Current markers: `parity`, `postgres`.
 
+**Golden fixtures are serialised to ten decimals.** The reference's fixture
+builder rounds every float, so an `EXACT` fixture compared with `==` fails on
+`1 + 9 * 0.2`, which is `2.8000000000000003`, not the `2.8` on disk. Compare the
+*decision* exactly and the value at the serialisation:
+
+```python
+# WRONG — fails on float representation, not on behaviour
+assert coerce_relation_scale_1_10(m) == fixture["expected_output"]["similarity_0_1"]
+
+# RIGHT — branch exact, values to the fixture's 1e-10 rounding
+assert coercion_branch(m) is CoercionBranch.SIMILARITY_0_1
+assert all(abs(a - e) <= 1e-9 for a, e in zip(flat(got), flat(want)))
+```
+
+**A vendored fixture's filename must pass `make exposure_check`.** Rule 2c rejects
+any tracked `.csv`/`.tsv`/`.json` whose name contains a reference-data noun —
+`respondent`, `segment`, `panel`, `weights` … — so the reference's
+`F7_terrain66_respondent_density.json` fails the build when copied in as-is. It
+is vendored as `F7_terrain66_density.json`; the fixture id inside is unchanged
+and `fixtures/sociomap/index.json` maps it back. Rename; do not add an exemption.
+`exposure_check` reads `git ls-files`, so an untracked file passes until it is
+staged — run it after `git add`, not before.
+
+## Pydantic
+
+**An after-validator never sees a boolean in an `int` field.** Lax mode coerces
+`True` to `1` *before* a `mode="after"` validator runs, so an
+`isinstance(v, bool)` check there is dead code and `max_iterations=True` becomes
+one iteration. Reject booleans in a `mode="before"` validator:
+
+```python
+# WRONG — v is already 1 by the time this runs
+@field_validator("max_iterations")
+def _check(cls, v: int) -> int:
+    if isinstance(v, bool) or v < 1: ...
+
+# RIGHT
+@field_validator("max_iterations", mode="before")
+def _not_boolean(cls, v: object) -> object:
+    if isinstance(v, bool):
+        raise ValueError("expected an integer, not a boolean")
+    return v
+```
+
+**ruff `RUF001` rejects Greek letters in string literals** — including the
+reference's own legend label `"odchylka σ"`. Escape it (`"odchylka \u03c3"`)
+rather than suppressing the rule; the comment beside it must not contain the
+letter either (`RUF003`).
+
 ## SQLAlchemy and PostgreSQL
 
 **SQLite cannot test concurrency.** It is single-writer, so every lease, lock and
@@ -183,6 +232,25 @@ attempt = session.scalar(
 database — which also means a second thread (the worker's heartbeat) shares that
 connection mid-transaction. Tests with more than one thread use a **file-backed**
 SQLite database per test (`apps/worker/tests/conftest.py`).
+
+
+**SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
+aware `datetime` on PostgreSQL and a **naive** one on SQLite, which has no
+timestamp type. The same repository code therefore builds a valid domain object
+on one engine and trips a "must be timezone-aware" guard on the other — found
+when the population registry's `DatasetVersion` refused its own rows on SQLite
+only.
+
+```python
+# WRONG — passes on PostgreSQL, raises on SQLite
+imported_at=row.imported_at
+
+# RIGHT — every value this schema writes is UTC, so a naive read is UTC
+from .tables import as_utc
+imported_at=as_utc(row.imported_at)
+```
+
+Convert at the row → domain boundary, never by loosening the domain guard.
 
 Anything touching the database lives in `infrastructure/`. See
 [ARCHITECTURE.md §3](ARCHITECTURE.md#3-enforcement--make-layer_check).

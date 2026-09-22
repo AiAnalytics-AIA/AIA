@@ -309,7 +309,7 @@ class ScopeResolver:
           A run with no recorded trigger is attributed to ``worker:<id>``.
         * **Fail closed** on an archived client: its work stops, whatever was in
           flight. (Whether a revoked or deactivated *triggering user* should also
-          stop their runs is an open policy question -- ``open-items.md`` OI-7 --
+          stop their runs is an open policy question -- ``open-items.md`` OI-22 --
           and is not decided here.)
 
         Denials raise :class:`ScopeDenied` with a reason, like every other
