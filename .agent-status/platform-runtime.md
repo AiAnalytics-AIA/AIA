@@ -1,6 +1,6 @@
 # platform-runtime
 
-**STATUS: ACTIVE — worker pushed as 8 commits on `claude/intelligent-bardeen-tslz9n`; draft PR #23 open; main merged in (66bd1dc); CI running, result not yet observed.**
+**STATUS: ACTIVE — worker pushed as 8 commits on `claude/intelligent-bardeen-tslz9n`; draft PR #23 open; main merged in (66bd1dc); CI GREEN on 66bd1dc (6/6 jobs), mergeable; waiting on review.**
 Cloud session. No local-machine dependency. PostgreSQL 16.13 and Python 3.12.3
 provisioned in-session; every number below was measured here.
 
@@ -50,7 +50,7 @@ full suite green on PostgreSQL and SQLite at every commit.
 - mypy --strict clean (47 files); layer_check 20/20; exposure_check 7/7;
   alembic check clean (no schema change).
 - PR #23 was unmergeable (main moved 21 commits), so no CI had run. Merged main in (66bd1dc): all conflicts additive. After the merge, measured locally: core 938 / API 114 / concurrency 22 / worker 48 on PostgreSQL, SQLite 1072 passed / 146 skipped, mypy clean (66 files), layer_check 29/29, alembic upgrade/check/downgrade clean, worker boot smoke OK.
-- CI: 5 jobs started 22:58Z; outcome not yet observed.
+- CI on 66bd1dc, observed 23:02Z: 6/6 jobs success (Backend, Application starts, API contract, Frontend, Security, Parity-advisory). Backend log: core 938 passed / 118 skipped, API 114, concurrency 22, worker 48 (incl. real-process suite), SQLite 1072 / 146 -- identical to the local run.
 - One unexplained worker-suite failure, seen once in ~11 runs before W8 was
   fixed (its output was lost). Not reproduced since: soak of the full worker suite
   on PostgreSQL, **0 failures in 20**, plus 9 earlier clean runs. W8 is real and
