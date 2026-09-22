@@ -79,6 +79,9 @@ Run it before every commit. It is blocking in CI.
 | no ORM tables in the HTTP layer | Queries written where they cannot be tested without the whole stack |
 | scope contexts are issued only by `ScopeResolver` | A request body, tool payload or model-generated argument widening its own scope |
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
+| claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
+| the API never admits its own claims | The same, at the edge where untrusted input arrives |
+| a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
 | no statically skipped or xfailed tests | Deleting the signal instead of fixing the defect |
 | the web client does not talk to a database | The presentation boundary crossed in the most expensive possible way |
 

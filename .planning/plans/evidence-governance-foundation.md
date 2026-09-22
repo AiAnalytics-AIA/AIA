@@ -83,7 +83,7 @@ passes at 95% — so a draft the prototype would publish can be blocked here.
 - [x] 4. Validation status bound to a system fingerprint + tier gate.
 - [x] 5. Permissible claim policy (measured vs modelled basis, joint
       restrictions) + factual layer contract.
-- [ ] 6. `AdmittedClaim` capability + `layer_check` rule.
+- [x] 6. `AdmittedClaim` capability + `layer_check` rule.
 - [ ] 7. Gate-decision parity suite: EXACT and SEMANTIC case tables.
 - [ ] 8. The eight analysis modules: specs, evidence table, draft schema,
       evidence gate, prompt rendered from the enums.

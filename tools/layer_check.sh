@@ -125,6 +125,30 @@ forbid "the API never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$API"
 
+# --- Evidence: admission and certificates are issued, never constructed ------
+#
+# The same capability pattern as scope. An AdmittedClaim is the only form in
+# which a number may sit in an analysis result, and only admit_numeric_claims
+# can mint one, after field policy, joint structure, support, interval and tier
+# have all passed. A JointStatus is the only way the claim gate learns what the
+# population's joint structure supports, and only load_joint_status can issue
+# one, after checking the certificate against the loaded panel's hash. If any
+# other module can build either, a prompt is the enforcement mechanism again.
+# See .planning/plans/evidence-governance-foundation.md.
+forbid "claims are admitted only by the evidence admission gate" \
+  '^[^#]*\bAdmittedClaim\(' \
+  "$CORE" \
+  admission.py
+
+forbid "the API never admits its own claims" \
+  '^[^#]*\bAdmittedClaim\(' \
+  "$API"
+
+forbid "a joint status is issued only by its loader" \
+  '^[^#]*\bJointStatus\(' \
+  "$CORE" \
+  joint_status.py
+
 # --- Tests: the signal is never deleted ------------------------------------
 #
 # A failing test is a finding (ARCHITECTURE.md §7). Runtime `pytest.skip(...)`

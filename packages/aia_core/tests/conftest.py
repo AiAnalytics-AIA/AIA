@@ -593,3 +593,39 @@ def degraded_joint_status() -> Any:
     from aia_core.domain.evidence import load_joint_status
 
     return load_joint_status(None, measured_panel_sha256=SYNTHETIC_PANEL_SHA256)
+
+
+@pytest.fixture
+def evidence_row() -> Any:
+    """Build an EvidenceRow with sensible, fully supported defaults plus overrides."""
+    from aia_core.domain.evidence import (
+        ClaimBasis,
+        ClaimLevel,
+        Disclosure,
+        EvidenceRow,
+        Interval,
+        SupportEvidence,
+        assess_support,
+        parse_metric,
+    )
+
+    def build(ref: str = "E1", **overrides: Any) -> Any:
+        metric = overrides.pop("metric", "top2box_pct")
+        args: dict[str, Any] = {
+            "evidence_ref": ref,
+            "metric": parse_metric(metric) if isinstance(metric, str) else metric,
+            "value": 42.5,
+            "decimals": 1,
+            "support": assess_support(SupportEvidence(n=600, effective_n=480.0)),
+            "fields": ("vek",),
+            "basis": ClaimBasis.MEASURED,
+            "level": ClaimLevel.AGGREGATE,
+            "cell": "total",
+            "question_id": "q1",
+            "interval": Interval(38.1, 46.9, 0.95),
+            "disclosures": frozenset({Disclosure.SCOPE}),
+        }
+        args.update(overrides)
+        return EvidenceRow(**args)
+
+    return build

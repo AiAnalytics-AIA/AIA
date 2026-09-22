@@ -6,6 +6,14 @@ functions decide. See ``.planning/plans/evidence-governance-foundation.md`` for
 the reference contracts each module ports and where it deliberately differs.
 """
 
+from .admission import (
+    Admission,
+    AdmittedClaim,
+    EvidenceRow,
+    EvidenceTable,
+    NumericClaim,
+    admit_numeric_claims,
+)
 from .claims import (
     ClaimBasis,
     ClaimLevel,
@@ -113,6 +121,8 @@ __all__ = [
     "REFERENCE_THRESHOLDS",
     "SYSTEM_FINGERPRINT_COMPONENTS",
     "TIER_PERMITS",
+    "Admission",
+    "AdmittedClaim",
     "AnalysisMetric",
     "ClaimBasis",
     "ClaimLevel",
@@ -120,7 +130,9 @@ __all__ = [
     "ClaimRule",
     "ClaimSurface",
     "Disclosure",
+    "EvidenceRow",
     "EvidenceStatus",
+    "EvidenceTable",
     "EvidenceTier",
     "FactKind",
     "FactualContract",
@@ -140,6 +152,7 @@ __all__ = [
     "JointUnitKind",
     "MetricKind",
     "MetricUnit",
+    "NumericClaim",
     "PredictionValidationStatus",
     "ProductionGrade",
     "ProvenanceClass",
@@ -159,6 +172,7 @@ __all__ = [
     "ValidationStatus",
     "Violation",
     "ViolationCode",
+    "admit_numeric_claims",
     "allow",
     "allowed_metric_spellings",
     "assess_support",
