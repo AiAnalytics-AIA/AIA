@@ -366,3 +366,51 @@ def sim_world_model(sim_fixture: dict[str, Any]) -> Any:
     from aia_core.domain.simulation import WorldModel
 
     return WorldModel.model_validate(sim_fixture["frozen_world_model"])
+
+
+def build_sim_population(n: int = 300, *, seed: int = 20260922) -> Any:
+    """A synthetic population whose fields match the fixture schema.
+
+    ``random.Random`` (Mersenne Twister) is specified and stable across Python
+    versions for ``random()``, so the rows are identical on every machine. About
+    one row in twenty is missing ``income_index`` so the missing-value path runs.
+    """
+    import random
+
+    from aia_core.domain.simulation import PopulationRow, SimulationPopulation
+
+    rng = random.Random(seed)
+    rows = []
+    for i in range(n):
+        age = 18 + int(rng.random() * 70)
+        education = 9 + int(rng.random() * 10)
+        rows.append(
+            PopulationRow(
+                row_id=f"r{i:05d}",
+                weight=0.5 + rng.random(),
+                values={
+                    "age": float(age),
+                    "education_years": float(education),
+                    "income_index": None if rng.random() < 0.05 else round(rng.random() * 2.0, 4),
+                    "institutional_trust_10": float(1 + int(rng.random() * 10)),
+                    "digital_use_share": round(
+                        max(0.0, min(1.0, 1.1 - age / 90 + rng.random() * 0.3)), 4
+                    ),
+                    "household_size": float(1 + int(rng.random() * 5)),
+                },
+            )
+        )
+    return SimulationPopulation(
+        dataset_version="synthetic-fixture-v1", weight_basis="synthetic_weight", rows=tuple(rows)
+    )
+
+
+@pytest.fixture(scope="session")
+def sim_population() -> Any:
+    return build_sim_population()
+
+
+@pytest.fixture(scope="session")
+def sim_population_builder() -> Any:
+    """:func:`build_sim_population`, for tests that need a different size or seed."""
+    return build_sim_population
