@@ -332,3 +332,37 @@ def scope_builder() -> Any:
     imports between their modules collide.
     """
     return build_scope_fixture
+
+
+# --- Simulation core ----------------------------------------------------------
+#
+# The deterministic simulation tests run from a frozen, hand-authored world model
+# (tests/fixtures/simulation/) and a synthetic population generated here from a
+# fixed seed. Neither is provider output nor reference material: no live model is
+# needed to test the numerical logic.
+
+SIMULATION_FIXTURE = (
+    Path(__file__).parent / "fixtures" / "simulation" / "world_model_frozen_v1.json"
+)
+
+
+@pytest.fixture(scope="session")
+def sim_fixture() -> dict[str, Any]:
+    import json
+
+    loaded: dict[str, Any] = json.loads(SIMULATION_FIXTURE.read_text(encoding="utf-8"))
+    return loaded
+
+
+@pytest.fixture(scope="session")
+def sim_schema(sim_fixture: dict[str, Any]) -> Any:
+    from aia_core.domain.simulation import PanelSchema
+
+    return PanelSchema.model_validate(sim_fixture["schema"])
+
+
+@pytest.fixture(scope="session")
+def sim_world_model(sim_fixture: dict[str, Any]) -> Any:
+    from aia_core.domain.simulation import WorldModel
+
+    return WorldModel.model_validate(sim_fixture["frozen_world_model"])

@@ -1,0 +1,320 @@
+{
+  "_about": "Frozen structured world model for the simulation core's deterministic tests. SYNTHETIC and hand-authored: it is not provider output and not reference material. The provider-produced fixture is REF-GAP-SIMULATION-WORLD-MODEL (F13) and lives in AiAnalytics-AIA/AIA-reference once captured.",
+  "objective": "blind_forecast",
+  "research_sha256": "2668e6a32b9401033094d7e129f40fa94d40546bd1fbf85ab3eff52964c2bb7a",
+  "schema": {
+    "dataset_version": "synthetic-fixture-v1",
+    "numeric_fields": [
+      "age",
+      "digital_use_share",
+      "education_years",
+      "household_size",
+      "income_index",
+      "institutional_trust_10"
+    ],
+    "categorical_fields": [
+      "region"
+    ]
+  },
+  "raw_model_output": {
+    "summary": "Synthetic world model for adoption of a municipal e-services app. Hand-authored for deterministic tests; not produced by any provider and not reference material.",
+    "factors": [
+      {
+        "id": "digital_confidence",
+        "label": "Digital confidence",
+        "description": "Comfort completing official tasks online.",
+        "target_mean_10": 6.1,
+        "target_sd_10": 2.1,
+        "confidence": 0.55,
+        "drivers": [
+          {
+            "field": "digital_use_share",
+            "effect": 0.55
+          },
+          {
+            "field": "age",
+            "effect": -0.35
+          },
+          {
+            "field": "education_years",
+            "effect": 0.2
+          }
+        ]
+      },
+      {
+        "id": "institutional_trust",
+        "label": "Trust in the municipality",
+        "description": "Expectation that the city handles data and requests fairly.",
+        "target_mean_10": 4.8,
+        "target_sd_10": 1.9,
+        "confidence": 0.45,
+        "drivers": [
+          {
+            "field": "institutional_trust_10",
+            "effect": 0.7
+          }
+        ]
+      },
+      {
+        "id": "price_sensitivity",
+        "label": "Price sensitivity",
+        "description": "Weight placed on fees for faster service.",
+        "target_mean_10": 6.8,
+        "target_sd_10": 1.7,
+        "confidence": 0.4,
+        "drivers": [
+          {
+            "field": "income_index",
+            "effect": -0.5
+          },
+          {
+            "field": "household_size",
+            "effect": 0.15
+          }
+        ]
+      },
+      {
+        "id": "privacy_concern",
+        "label": "Privacy concern",
+        "description": "Reluctance to share identity data with an app.",
+        "target_mean_10": 5.9,
+        "target_sd_10": 2.4,
+        "confidence": 0.35,
+        "drivers": [
+          {
+            "field": "age",
+            "effect": 0.25
+          },
+          {
+            "field": "institutional_trust_10",
+            "effect": -0.3
+          }
+        ]
+      },
+      {
+        "id": "civic_engagement",
+        "label": "Civic engagement",
+        "description": "Frequency of dealing with the municipality at all.",
+        "target_mean_10": 3.9,
+        "target_sd_10": 1.6,
+        "confidence": 0.3,
+        "drivers": [
+          {
+            "field": "age",
+            "effect": 0.2
+          },
+          {
+            "field": "education_years",
+            "effect": 0.25
+          }
+        ]
+      },
+      {
+        "id": "novelty_seeking",
+        "label": "Novelty seeking",
+        "description": "Willingness to try a new channel first.",
+        "target_mean_10": 5.2,
+        "target_sd_10": 2.0,
+        "confidence": 0.3,
+        "drivers": [
+          {
+            "field": "age",
+            "effect": -0.45
+          },
+          {
+            "field": "digital_use_share",
+            "effect": 0.3
+          }
+        ]
+      }
+    ],
+    "correlations": [
+      {
+        "a": "digital_confidence",
+        "b": "novelty_seeking",
+        "rho": 0.6
+      },
+      {
+        "a": "institutional_trust",
+        "b": "privacy_concern",
+        "rho": -0.55
+      },
+      {
+        "a": "digital_confidence",
+        "b": "privacy_concern",
+        "rho": -0.6
+      },
+      {
+        "a": "novelty_seeking",
+        "b": "privacy_concern",
+        "rho": 0.65
+      },
+      {
+        "a": "price_sensitivity",
+        "b": "civic_engagement",
+        "rho": -0.2
+      }
+    ],
+    "target_overlap_refs": []
+  },
+  "frozen_world_model": {
+    "contract_version": "1",
+    "constants_version": "sim-constants-1",
+    "objective": "blind_forecast",
+    "research_sha256": "2668e6a32b9401033094d7e129f40fa94d40546bd1fbf85ab3eff52964c2bb7a",
+    "panel_schema_sha256": "9619477ee2e17066af14b82d257ee62eb7e109179ede4aab88ff0e2212b7ed72",
+    "dataset_version": "synthetic-fixture-v1",
+    "summary": "Synthetic world model for adoption of a municipal e-services app. Hand-authored for deterministic tests; not produced by any provider and not reference material.",
+    "factors": [
+      {
+        "id": "digital_confidence",
+        "label": "Digital confidence",
+        "description": "Comfort completing official tasks online.",
+        "target_mean_10": 6.1,
+        "target_sd_10": 2.1,
+        "confidence": 0.55,
+        "drivers": [
+          {
+            "field": "digital_use_share",
+            "effect": 0.55
+          },
+          {
+            "field": "age",
+            "effect": -0.35
+          },
+          {
+            "field": "education_years",
+            "effect": 0.2
+          }
+        ],
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "id": "institutional_trust",
+        "label": "Trust in the municipality",
+        "description": "Expectation that the city handles data and requests fairly.",
+        "target_mean_10": 4.8,
+        "target_sd_10": 1.9,
+        "confidence": 0.45,
+        "drivers": [
+          {
+            "field": "institutional_trust_10",
+            "effect": 0.7
+          }
+        ],
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "id": "price_sensitivity",
+        "label": "Price sensitivity",
+        "description": "Weight placed on fees for faster service.",
+        "target_mean_10": 6.8,
+        "target_sd_10": 1.7,
+        "confidence": 0.4,
+        "drivers": [
+          {
+            "field": "income_index",
+            "effect": -0.5
+          },
+          {
+            "field": "household_size",
+            "effect": 0.15
+          }
+        ],
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "id": "privacy_concern",
+        "label": "Privacy concern",
+        "description": "Reluctance to share identity data with an app.",
+        "target_mean_10": 5.9,
+        "target_sd_10": 2.4,
+        "confidence": 0.35,
+        "drivers": [
+          {
+            "field": "age",
+            "effect": 0.25
+          },
+          {
+            "field": "institutional_trust_10",
+            "effect": -0.3
+          }
+        ],
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "id": "civic_engagement",
+        "label": "Civic engagement",
+        "description": "Frequency of dealing with the municipality at all.",
+        "target_mean_10": 3.9,
+        "target_sd_10": 1.6,
+        "confidence": 0.3,
+        "drivers": [
+          {
+            "field": "age",
+            "effect": 0.2
+          },
+          {
+            "field": "education_years",
+            "effect": 0.25
+          }
+        ],
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "id": "novelty_seeking",
+        "label": "Novelty seeking",
+        "description": "Willingness to try a new channel first.",
+        "target_mean_10": 5.2,
+        "target_sd_10": 2.0,
+        "confidence": 0.3,
+        "drivers": [
+          {
+            "field": "age",
+            "effect": -0.45
+          },
+          {
+            "field": "digital_use_share",
+            "effect": 0.3
+          }
+        ],
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      }
+    ],
+    "correlations": [
+      {
+        "a": "digital_confidence",
+        "b": "novelty_seeking",
+        "rho": 0.6,
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "a": "institutional_trust",
+        "b": "privacy_concern",
+        "rho": -0.55,
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "a": "digital_confidence",
+        "b": "privacy_concern",
+        "rho": -0.6,
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "a": "novelty_seeking",
+        "b": "privacy_concern",
+        "rho": 0.65,
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      },
+      {
+        "a": "price_sensitivity",
+        "b": "civic_engagement",
+        "rho": -0.2,
+        "epistemic_status": "HYPOTHESIZED_JOINT"
+      }
+    ],
+    "target_overlap_refs": [],
+    "contaminated_for_predictive_benchmark": false,
+    "sha256": "5b06ccbc63944025fc06c7a3e796e65799280dde4c351e49a1d2321b19ce87fb"
+  }
+}
