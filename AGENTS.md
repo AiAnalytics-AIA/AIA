@@ -262,6 +262,14 @@ reports a "not found" on a 200. Verify with
 
 ### Vitest and Testing Library
 
+**jsdom 30 needs Node 22.22.2 or newer, and fails obscurely on older ones.**
+Its bundled undici calls `webidl.util.markAsUncloneable`, which older Node
+releases do not provide, so every test file dies with `TypeError:
+webidl.util.markAsUncloneable is not a function` before a single test runs. CI
+pinned Node 20 and went red on exactly this, while a local Node 22 passed. The
+requirement is now stated in `apps/web/package.json` (`engines`) and CI runs
+Node 22 (`NODE_VERSION` in `.github/workflows/ci.yml`).
+
 **Do not add `@vitejs/plugin-react` to the Vitest config.** Its current release
 depends on a newer Vite than the one Vitest 3 bundles, so the config fails
 `tsc` with an unreadable `Plugin<any>[] is not assignable to PluginOption`.
