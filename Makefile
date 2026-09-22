@@ -11,7 +11,7 @@ PY := $(shell [ -x $(VENV)/bin/python ] && echo $(VENV)/bin/python || command -v
 PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
-.PHONY: help setup deps services migrate migration dev dev-api dev-web \
+.PHONY: help setup deps services migrate migration dev-seed dev dev-api dev-web \
         test test-core test-api test-parity test-web lint format typecheck \
         layer_check exposure_check enum_check check verify openapi clean
 
@@ -35,6 +35,9 @@ services: ## Start Postgres and MinIO, and wait until healthy
 
 migrate: ## Apply database migrations
 	@$(PY) -m alembic upgrade head
+
+dev-seed: ## Provision a development world (local only; run once on an empty, migrated database)
+	@$(PY) tools/dev_seed.py
 
 migration: ## Create a migration from model changes: make migration m="add jobs"
 	@test -n "$(m)" || (echo 'Usage: make migration m="description"' && exit 1)
