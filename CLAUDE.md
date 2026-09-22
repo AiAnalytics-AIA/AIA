@@ -78,6 +78,7 @@ docs/migration/             Plan, status, parity matrix, legacy map
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
+tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 ```
@@ -111,6 +112,7 @@ the parity and characterization suites only.
 | Format | `make format` |
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
 | **Layering** | `make layer_check` |
+| **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |
 | **The pre-commit sequence** | `make verify` |
 | OpenAPI document | `make openapi` |
@@ -337,6 +339,7 @@ Hypotheses are reproduced or deleted; they are never budgeted for.
 ```bash
 make typecheck     # mypy --strict; this project's warnings-are-errors gate
 make layer_check
+make exposure_check
 ruff format --check packages/aia_core apps/api migrations
 make test
 ```

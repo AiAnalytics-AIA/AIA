@@ -26,8 +26,13 @@
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+
 FAILED=0
 PASSED=0
+
+MANIFEST=docs/migration/reference-manifest.json
 
 fail() {
   printf 'FAIL  %s\n' "$1"
@@ -59,7 +64,7 @@ else
   pass "no detailed reference inventories in the public repo"
 fi
 
-# --- 2. No raw reference assets --------------------------------------------
+# --- 2a. No raw reference assets by shape ----------------------------------
 #
 # The archive is 52.6 MB, the population panels ~22 MB. Neither may be committed
 # here, and neither may arrive by a different extension.
@@ -68,9 +73,63 @@ ASSET_HITS=$(git ls-files \
   | grep -Ei '\.(zip|7z|rar|sqlite|sqlite3|db|parquet)$|\.csv\.gz$|(^|/)npc[-_]panel' \
   || true)
 if [ -n "$ASSET_HITS" ]; then
-  fail "no raw reference assets in the public repo" "$ASSET_HITS"
+  fail "no raw reference assets by file shape" "$ASSET_HITS"
 else
-  pass "no raw reference assets in the public repo"
+  pass "no raw reference assets by file shape"
+fi
+
+# --- 2b. No reference file, under ANY name ---------------------------------
+#
+# The shape rule above only catches assets that arrive as archives or databases.
+# Much of the reference is plain .csv and .json -- LIVE_POPULATION_TARGETS_18_5.csv,
+# CALIBRATION_REGISTRY.csv, DONOR_BLOCK_REGISTRY.json -- which no extension rule
+# can distinguish from a legitimate config file.
+#
+# So this rule does not guess from names at all. The manifest records the SHA256
+# of all 1,324 canonical reference files; a tracked file whose content hashes to
+# one of them IS that reference file, whatever it has been renamed to. Exact, no
+# false positives by construction, and it needs no maintenance: the hash set
+# comes from the manifest, so it widens automatically when the manifest does.
+#
+# Name matching was considered and rejected. `README.md` and `pyproject.toml`
+# exist in both trees, so matching by path would flag this repository's own
+# files; matching by content cannot.
+
+if [ -f "$MANIFEST" ]; then
+  grep -oE '"[0-9a-f]{64}"' "$MANIFEST" | tr -d '"' | sort -u > "$WORK/ref-hashes"
+
+  REFERENCE_CONTENT=$(git ls-files | grep -Fxv "$MANIFEST" | while read -r f; do
+      [ -f "$f" ] || continue
+      h=$(sha256sum "$f" 2>/dev/null | cut -d' ' -f1)
+      [ -n "$h" ] && grep -qxF "$h" "$WORK/ref-hashes" && echo "$f ($h)"
+    done || true)
+
+  if [ -n "$REFERENCE_CONTENT" ]; then
+    fail "no file whose contents are a reference file" "$REFERENCE_CONTENT"
+  else
+    pass "no file whose contents are a reference file"
+  fi
+else
+  printf 'skip  no file whose contents are a reference file\n      (%s absent)\n' "$MANIFEST"
+fi
+
+# --- 2c. No uncompressed reference datasets by naming convention -----------
+#
+# Defence in depth behind 2b, which only catches a byte-identical copy. A
+# reference dataset that has been filtered, re-exported or had a column dropped
+# hashes differently and would pass, so its naming convention is caught too.
+# Deliberately narrow: it requires a reference-data noun, so `package.json` and
+# `tsconfig.json` are unaffected.
+
+DATASET_HITS=$(git ls-files \
+  | grep -Ei '\.(csv|tsv|json)$' \
+  | grep -Ei '(population|panel|calibration|donor|respondent|segment|registry|targets|weights|census|piaac|issp)' \
+  | grep -Ev "^($MANIFEST)$" \
+  || true)
+if [ -n "$DATASET_HITS" ]; then
+  fail "no uncompressed reference datasets" "$DATASET_HITS"
+else
+  pass "no uncompressed reference datasets"
 fi
 
 # --- 3. No client-identifying legacy filenames -----------------------------
@@ -94,7 +153,10 @@ CLIENT_TOKENS='GEMO|MMC_GEMO|STREAMIO|AURORA|NEXORA|RAILMOVE'
 #   tools/exposure_check.sh        holds the token list itself
 ALLOWED_PATHS='^(docs/migration/(reference-source|public-exposure-remediation)\.md|docs/migration/reference-manifest\.json|\.planning/PROGRESS\.md|tools/exposure_check\.sh)$'
 
-NAME_HITS=$(git ls-files | grep -E "$CLIENT_TOKENS" | grep -Ev "$ALLOWED_PATHS" || true)
+# Case-insensitive throughout. `gemo-notes.txt` discloses exactly what
+# `GEMO-notes.txt` does, and a control that a change of capitalisation defeats is
+# not a control.
+NAME_HITS=$(git ls-files | grep -Ei "$CLIENT_TOKENS" | grep -Ev "$ALLOWED_PATHS" || true)
 if [ -n "$NAME_HITS" ]; then
   fail "no client-identifying legacy filenames" "$NAME_HITS"
 else
@@ -103,12 +165,18 @@ fi
 
 # Content, not just names. A ledger that lists the engagements is the same
 # disclosure as a file named after one.
+#
+# Test trees are scanned like everything else. An earlier revision exempted
+# them, which was wrong twice over: parity and characterization fixtures are the
+# single most plausible route for legacy material to enter this repository, and
+# the exemption bought nothing -- no test file carries one of these tokens, so it
+# was attack surface protecting nothing. Exceptions are per file in
+# ALLOWED_PATHS, never per directory.
 CONTENT_HITS=$(git ls-files \
   | grep -Ev "$ALLOWED_PATHS" \
-  | grep -Ev '^(packages|apps)/.*/tests?/' \
   | while read -r f; do
       [ -f "$f" ] || continue
-      if grep -qE "$CLIENT_TOKENS" "$f" 2>/dev/null; then echo "$f"; fi
+      if grep -qiE "$CLIENT_TOKENS" "$f" 2>/dev/null; then echo "$f"; fi
     done || true)
 if [ -n "$CONTENT_HITS" ]; then
   fail "no client-identifying legacy names in file contents" "$CONTENT_HITS"

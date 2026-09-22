@@ -79,7 +79,7 @@ typecheck: ## Type-check Python and the web client
 layer_check: ## Enforce the layering rules in ARCHITECTURE.md
 	@./tools/layer_check.sh
 
-exposure_check: ## Fail if private reference material reached this public repo
+exposure_check: ## Fail if detailed reference material reached this repository
 	@./tools/exposure_check.sh
 
 check: lint typecheck layer_check exposure_check test ## Everything CI runs

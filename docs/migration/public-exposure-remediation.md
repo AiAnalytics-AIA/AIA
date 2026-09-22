@@ -273,10 +273,23 @@ later legal or data-owner review requires one.
 | Rule | Prevents |
 | --- | --- |
 | No detailed reference inventories | `reference-file-inventory*`, `reference-snapshot*`, any `aia-reference-rebuild-package/` |
-| No raw reference assets | `.zip`, `.7z`, `.sqlite`, `.db`, `.parquet`, `.csv.gz`, `npc-panel*` |
-| No client-identifying filenames | The confidently-identifying token list, with exceptions named explicitly |
-| No client-identifying names in contents | The same tokens inside committed files |
+| No raw reference assets by shape | `.zip`, `.7z`, `.sqlite`, `.db`, `.parquet`, `.csv.gz`, `npc-panel*` |
+| **No file whose contents are a reference file** | Any of the 1,324 manifest files, **committed under any name**, matched by SHA256 |
+| **No uncompressed reference datasets** | `.csv`/`.json`/`.tsv` named for population, panel, calibration, donor, respondent, segment, registry, targets, weights, census, PIAAC or ISSP |
+| No client-identifying filenames | The token list, **case-insensitively**, with exceptions named per file |
+| No client-identifying names in contents | The same tokens inside committed files, **including test trees** |
 | No `.agent-status/` | Agent coordination state reaching product history |
+
+Four of these exist because a review of the first version demonstrated the
+bypasses: an uncompressed dataset under its original generic name, client
+material under `packages/**/tests/`, and a lowercase `gemo`. Each was reproduced
+against the guard, which reported 5/5 passing, before being closed.
+
+The hash rule is the load-bearing one. It does not guess from names: the manifest
+records the SHA256 of every canonical reference file, so a tracked file hashing to
+one of them **is** that file, whatever it was renamed to. Matching by *path* was
+rejected — `README.md` and `pyproject.toml` exist in both trees, so a path rule
+would flag this repository's own files while content matching cannot.
 
 It checks the working tree, which is what a PR adds. **It cannot scrub history**,
 and nothing in this change pretends otherwise.
