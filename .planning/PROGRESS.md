@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `claude/amazing-cerf-1lhmze` ·
+**Updated:** 2026-09-22 · **Branch:** `remediation/public-reference-exposure` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -45,24 +45,59 @@ skips (`.github/workflows/ci.yml:99-108` @ df294e2).
 
 Nothing. The tree is green.
 
+## The reference is now a private repository
+
+**`AiAnalytics-AIA/AIA-reference` @ `678e298ad9ca0263da53cc8920d153fdfb956c93`,
+tag `reference-18.6.6-gemo-2026-09-11-v1`, is authoritative for every question
+about legacy behaviour and methodology.** It is private. This repository is
+public and holds pointers only — see
+[`docs/migration/reference-source.md`](../docs/migration/reference-source.md).
+
+**`reference-rebuild-local` is COMPLETED / INACTIVE.** Nothing may depend on it
+again. Specifically, no future work may rely on:
+
+- a path under `/Users/…`, or any other local machine,
+- the local extracted reference tree,
+- manual copy/paste of reference material from the human.
+
+A question about the legacy system is answered from the reference repository, or
+it is not answered. "The local agent said so" is not an anchor.
+
+### Reference ownership — now cloud-owned
+
+| Item | Owner |
+|---|---|
+| `REF-GAP-SOCIO-R-SMACOF` | parity-quality + sociomapa-deterministic |
+| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + simulation-engine |
+| `REF-WITHHELD-REFERENCE-ARCHIVE` | data owner / population-data, after the licensing decision. Its destination must satisfy EU residency — [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) |
+
 ## Next
 
 Ordered. Take the top item unless told otherwise, and **write the plan to
 `.planning/plans/<feature>.md` with its chunks before writing code**.
 
-1. **SQS dispatch + reconciler.** The engine is complete and PostgreSQL is
-   authoritative; what remains is transport. A message carries an id only; a
-   reconciler re-enqueues runnable work with no in-flight message, so a lost
-   message loses nothing. Idempotency is already proven under contention.
+1. **Classify the ambiguous legacy brand tokens** (data owner, D4 below). Blocks
+   the manifest reduction in
+   [`public-exposure-remediation.md`](../docs/migration/public-exposure-remediation.md)
+   §3 and the history-rewrite decision in §4.
 2. **A worker process.** `claim_next` → execute → `complete_attempt` /
    `fail_attempt`, with heartbeats and a cancellation poll at checkpoints.
    Creates `apps/worker/` — layer 4 in `ARCHITECTURE.md §2`.
 3. **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`, `ModelPolicy`,
    `ModelRegistry`, `LLMGateway`, `ToolRegistry`, `AIUsageEvent`.
-   **Blocked on decision D1 below.**
+   **No longer blocked.** [ADR 0005](../docs/architecture/adr/0005-llm-gateway.md)
+   decision A — AIA owns the `ModelGateway` contract — is *Accepted*; only
+   decision B (LiteLLM as the transport) is still *Proposed*, and the contract
+   can be built against without it.
 4. **Wire `apps/web` to the real API** and delete `lib/mock.ts`.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
-   long-lived keys (`ARCHITECTURE.md §9`).
+   long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
+
+**Removed from this list: "SQS dispatch + reconciler".** It contradicted
+[ADR 0002](../docs/architecture/adr/0002-postgresql-authoritative-store.md),
+which defers SQS behind a measured trigger and its own ADR: PostgreSQL *is* the
+v0.1 queue and workers claim with `FOR UPDATE SKIP LOCKED`. There is no transport
+left to build.
 6. PostgreSQL row-level security as a second isolation layer.
 7. Rate limiting.
 8. Delete `src/server.js` + `src/views/` and their root dependencies, once step 4
@@ -72,9 +107,11 @@ Ordered. Take the top item unless told otherwise, and **write the plan to
 
 | # | Decision | Blocks | Anchor |
 |---|---|---|---|
-| D1 | Confirm or replace **ADR 0005 (LiteLLM gateway)** — still *Proposed*, not Accepted. `ai_router.py` holds behaviour we are committed to preserving: no silent fallback, the ten-way error taxonomy, quota parking | Next #3 | `docs/architecture/adr/0005-llm-gateway.md` @ df294e2 |
-| D2 | Confirm **ADR 0006 (LangGraph agent execution)** | Next #3 | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ df294e2 |
-| D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
+| D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |
+| D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
+| D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
+| D4 | **Which legacy brand tokens name real clients.** The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction; the D5 decision | `docs/migration/public-exposure-remediation.md` §2 |
+| D5 | **Rewrite public history, make the repository private, or accept** the reference-filename exposure. Procedure, recommendation and costs are recorded; **no history has been rewritten and none will be without explicit approval** | Closing the exposure | `docs/migration/public-exposure-remediation.md` §4–5 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);

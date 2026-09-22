@@ -13,7 +13,7 @@ BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web \
         test test-core test-api test-parity test-web lint format typecheck \
-        layer_check check verify openapi clean
+        layer_check exposure_check check verify openapi clean
 
 help: ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -79,11 +79,15 @@ typecheck: ## Type-check Python and the web client
 layer_check: ## Enforce the layering rules in ARCHITECTURE.md
 	@./tools/layer_check.sh
 
-check: lint typecheck layer_check test ## Everything CI runs
+exposure_check: ## Fail if private reference material reached this public repo
+	@./tools/exposure_check.sh
+
+check: lint typecheck layer_check exposure_check test ## Everything CI runs
 
 verify: ## The pre-commit sequence from CLAUDE.md §10, in order
 	@$(MAKE) typecheck
 	@$(MAKE) layer_check
+	@$(MAKE) exposure_check
 	@$(BIN)ruff format --check packages/aia_core apps/api migrations
 	@$(MAKE) test
 
