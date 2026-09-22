@@ -4,11 +4,11 @@
 
 - Agent: `dev-rules-standards`
 - Role: Repository operating standards and their mechanical enforcement — the development rules, the layering checker, the planning tree, and the documentation triad.
-- Updated: 2026-09-22T11:01:00Z
+- Updated: 2026-09-22T11:15:00Z
 - Product repository: `AiAnalytics-AIA/AIA`
 - Product branch: `claude/amazing-cerf-1lhmze`
-- Product HEAD: `c5057eb`
-- Base/main SHA observed: `8f545a5`
+- Product HEAD: `c5057eb` (merged; `origin/main` now `69a2874`)
+- Base/main SHA observed: `69a2874`
 - Coordination branch: `coordination/agent-status`
 
 > **ID note.** An earlier draft of this file used `reference-rebuild`. The human
@@ -19,11 +19,22 @@
 
 ## Current assignment
 
-1. **Development rules — COMPLETED.** Adopt the supplied operating rules as repository content with mechanical enforcement. Merged to `main` via PR #4 as `10cf940`.
-2. **Reference rebuild package — WITHDRAWN BY THE HUMAN.** Was worked before the reassignment was known; the resulting commit is open as draft PR #5 and is **awaiting disposition** (see *Blockers*). No further work on it by this agent.
-3. **Agent coordination protocol — INSTALLED** this turn.
+**COMPLETED — repository operating standards and their enforcement.**
 
-**Scope boundaries — not owned by this agent:** the reference/ZIP forensic rebuild (reassigned), and every product subsystem — research engine, simulation, Sociomapping, population, reporting, analysis, Data Library, frontend.
+1. **Development rules — COMPLETED, MERGED.** `10cf940`, merged to `main` via PR #4.
+2. **Reference rebuild package — WITHDRAWN as an assignment, but MERGED.** `c5057eb`, merged to `main` via PR #5 by the product owner at 2026-09-22T11:11Z. The disposition question is answered: it stays, and it is now the incoming reference agent's starting material.
+3. **Agent coordination protocol — INSTALLED.**
+
+**Final state.** Product `main` at `69a2874`. Branch `claude/amazing-cerf-1lhmze` fully merged and safe to delete or reuse. No uncommitted work. No outstanding engineering on either PR.
+
+**Safe for another agent to build on:** yes. Both changes are on `main`, CI was green on each before merge, and nothing is held in an unmerged branch by this agent.
+
+**Follow-up work left behind, all unclaimed:**
+- **OI-5** — `make deps` installs into the system interpreter rather than the venv it creates. One-line fix, isolated, reproduction in `.planning/open-items.md`.
+- **OI-1** — the 94 parity tests never run in CI; the prototype is not vendored.
+- **F8 below** — `.agent-status/` has leaked into product history on `main` and needs removing.
+
+**Scope boundaries — not owned by this agent:** the reference/ZIP forensic rebuild (reassigned to another agent), and every product subsystem — research engine, simulation, Sociomapping, population, reporting, analysis, Data Library, frontend.
 
 ## Latest user instruction
 
@@ -96,6 +107,24 @@ Consequence: the 94 parity tests cannot run here, matching CI. Relevant to which
 **F3 · FINDING (self-inflicted, fixed) · Location masked file type in the first inventory build.**
 The initial classifier returned `demo_library_asset` before checking extension, hiding 74 of 76 HTML files. Zone and category are now separate facets; counts reconcile exactly against manifest extension totals. Documented in the tool rather than silently patched.
 
+**F8 · FINDING · The coordination branch has been merged into product history, which the protocol forbids.**
+
+Claim: `.agent-status/` is now tracked on `main`, so the coordination bus is part of the product repository rather than isolated from it.
+
+Anchor: `6a9e0dd` on `origin/main` — *"Merge pull request #6 from AiAnalytics-AIA/coordination/agent-status"*, authored by nigelblount 2026-09-22T13:11:18+02:00. Verified by `git ls-tree -r --name-only origin/main -- .agent-status`, which returns `.agent-status/README.md` and `.agent-status/dev-rules-standards.md`.
+
+Reproduction: `git ls-tree -r --name-only origin/main -- .agent-status` returns two paths where it should return none.
+
+Consequence: three, and they compound. (1) Every future status update diverges `coordination/agent-status` from `main`, so any repeat merge drags more coordination noise into product history. (2) An agent branching from `main` now inherits `.agent-status/`, and can include another agent's status file in a product PR — which §13 of the protocol exists to prevent. (3) Status files are written for a reviewing model, not for the repository, and they will rot in product history with nothing keeping them current.
+
+Not caused by this agent: only pushes to `coordination/agent-status` were made, and no PR was opened from it. PR #6 was opened and merged externally.
+
+Smallest fix: a `chore/` commit removing `.agent-status/` from `main`. **Requires permission — it is a product change.** A `.gitignore` entry is *not* the right fix: it would be inherited by the coordination branch and break `git add .agent-status` there.
+
+Durable fix, recommended and time-sensitive: recreate `coordination/agent-status` as an **orphan branch** with no common ancestor with `main`. A PR from an orphan branch shows as unrelated histories and cannot be merged by accident. This agent created the branch from `origin/main` as the protocol literally instructed; an orphan would have made this structurally impossible. It is cheap to do now — the branch holds only this agent's two files — and gets progressively more disruptive as other agents publish onto it. It needs the human's agreement because it rewrites the branch, which the protocol otherwise forbids.
+
+Test that would protect it: a CI check failing when `.agent-status/` appears in a diff against `main`.
+
 ## Decisions / assumptions
 
 **Frozen by the product owner** (asked before writing):
@@ -112,7 +141,9 @@ The initial classifier returned `demo_library_asset` before checking extension, 
 
 ## Blockers / questions for human
 
-1. **PR #5 disposition.** It contains the withdrawn reference-package work: [#5](https://github.com/AiAnalytics-AIA/AIA/pull/5), draft, on branch `claude/amazing-cerf-1lhmze`. Options: leave it open as a starting point for the incoming reference agent, close it, or hand the branch over. **Not closed unilaterally** — it is deletable work but the decision is the owner's, and the incoming agent may want the 1324-file hashed inventory and the verifier rather than rebuilding them.
+1. **F8 — permission to remove `.agent-status/` from `main`**, and a decision on recreating `coordination/agent-status` as an orphan branch. Time-sensitive: cheap now, disruptive once other agents publish onto the branch.
+
+*(Resolved this turn: PR #5 disposition — the product owner merged it.)*
 
 ## Coordination notes for other agents
 
@@ -131,19 +162,20 @@ The initial classifier returned `demo_library_asset` before checking extension, 
 - Uncommitted product changes: none
 - Product commits since previous update: `10cf940` (merged via PR #4) and `c5057eb` (open in PR #5). Both pushed with explicit permission at the time.
 - Force-with-lease used once, on this agent's own branch, to rebase after PR #4 merged. No other branch's history touched.
-- PRs: [#4](https://github.com/AiAnalytics-AIA/AIA/pull/4) **merged** (`62ae995` on `main`) · [#5](https://github.com/AiAnalytics-AIA/AIA/pull/5) **open, draft, CI green on `c5057eb`, no merge conflict, no review threads — waiting on a human disposition decision, not on work**
+- PRs: [#4](https://github.com/AiAnalytics-AIA/AIA/pull/4) **merged** · [#5](https://github.com/AiAnalytics-AIA/AIA/pull/5) **merged** (`69a2874` on `main`). PR #6 merged `coordination/agent-status` into `main` — not opened by this agent; see F8.
+- Scheduled PR #5 check-in cancelled: the PR is merged, so the check-in had nothing left to watch.
 - `main` observed at `8f545a5`, carrying merged PRs #2 and #3 from other agents.
 
 ## Next step
 
-Await the human's decision on PR #5 and on this agent's next assignment. No further work on the reference/ZIP task. PR #5 needs no further engineering: it is green, mergeable and has no open review threads, so the only thing outstanding is the human's call on whether it stays, closes, or transfers to the incoming reference agent. A check-in remains scheduled until it is merged or closed.
+Await the human's decision on F8 (removing `.agent-status/` from `main`, and whether to make the coordination branch an orphan), and on this agent's next assignment. Both delivered assignments are merged; nothing else is in flight.
 
 ## Latest response to the human
 
-Confirmed the reference/ZIP assignment is dropped, and that the agent ID was changed from `reference-rebuild` to `dev-rules-standards` before anything was published so as not to claim another agent's territory.
+Confirmed both assignments merged to `main` (`69a2874`): the development rules via PR #4 and the reference rebuild package via PR #5, the latter resolving the disposition question in favour of keeping it.
 
-Reported the coordination protocol installed: `coordination/agent-status` did not exist and was created from `origin/main`; the status file is `.agent-status/dev-rules-standards.md`; the isolated worktree is at `/tmp/aia-agent-status-reference-rebuild`, so the product tree was never switched or stashed; the first status commit touched only `.agent-status/` and was pushed successfully.
+Reported **F8**: PR #6 merged `coordination/agent-status` into `main`, so `.agent-status/` is now tracked in product history — which the protocol forbids in two separate clauses. Verified by `git ls-tree`. Not caused by this agent, which only pushed to the coordination branch and opened no PR from it. Explained the three compounding consequences, asked permission for the `chore/` removal (a product change), and recommended recreating the branch as an **orphan** so a PR from it can never be merged by accident — noting this agent created it from `main` as the protocol literally instructed, that an orphan would have made the mistake structurally impossible, and that it is cheap now but gets harder as other agents publish onto the branch.
 
-Reported PR #5 CI as **observed green** — all 6 jobs on `c5057eb` — and confirmed `tools/layer_check.sh` executes correctly on the GitHub runner, which closes the last open question from the development-rules change.
+Cancelled the scheduled PR #5 check-in, since a merged PR has nothing left to watch.
 
-Restated the one outstanding question: the disposition of PR #5, which holds the withdrawn reference-package work. Not closed unilaterally; noted that the incoming reference agent may want its 1324-file hashed inventory and CI-runnable verifier rather than rebuilding them.
+Left three unclaimed follow-ups: OI-5 (`make deps` installs into the system interpreter), OI-1 (parity tests never run in CI), and F8.
