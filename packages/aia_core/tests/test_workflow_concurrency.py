@@ -44,6 +44,7 @@ from aia_core.infrastructure.tables import (
 )
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
+    LeaseLost,
     WorkflowRepository,
 )
 
@@ -538,6 +539,132 @@ def test_heartbeat_races_do_not_transfer_a_lease(
         assert attempt.worker_id == "owner"
 
 
+def test_regression_a_heartbeat_cannot_resurrect_an_attempt_recovered_under_it(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**W1.** A reconciler's verdict must survive a heartbeat that read first.
+
+    The interleaving is forced rather than raced, so the test fails every time on
+    the defect instead of occasionally:
+
+    1. the worker's session has the attempt loaded -- as a heartbeat that has
+       done its read would;
+    2. a reconciler on another connection expires and recovers it, and commits;
+    3. the worker's heartbeat proceeds.
+
+    Before the fix, step 3 wrote ``EXECUTING`` and a fresh deadline back over
+    ``EXPIRED`` by primary key, while the step was already ``RUNNABLE`` -- so a
+    second worker claimed it and two workers ran one step. Measured: fails 1 of 1
+    against the read-check-write heartbeat, passes against the conditional update.
+    """
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        claimed = repo.claim_next(worker_id="owner")
+        assert claimed is not None
+        attempt = session.get(StepAttemptRow, claimed.attempt_id)
+        assert attempt is not None
+        attempt.lease_until = datetime.now(UTC) - timedelta(minutes=5)
+        session.commit()
+    finally:
+        session.close()
+
+    worker_session, worker_repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        # (1) the worker has read the attempt; it is CLAIMED in its identity map.
+        stale = worker_session.get(StepAttemptRow, claimed.attempt_id)
+        assert stale is not None
+        assert stale.status == AttemptStatus.CLAIMED.value
+
+        # (2) a reconciler recovers it on another connection, and commits.
+        reconciler_session, reconciler_repo = _repo_in_new_session(pg_sessions, world)
+        try:
+            assert len(reconciler_repo.recover_expired_attempts()) == 1
+            reconciler_session.commit()
+        finally:
+            reconciler_session.close()
+
+        # (3) the worker's heartbeat must now be refused.
+        assert worker_repo.heartbeat(claimed.attempt_id, worker_id="owner") is False
+        worker_session.commit()
+    finally:
+        worker_session.close()
+
+    with pg_sessions() as check:
+        attempt = check.get(StepAttemptRow, claimed.attempt_id)
+        assert attempt is not None
+        assert attempt.status == AttemptStatus.EXPIRED.value, "the recovery verdict stands"
+
+    # And the step is claimable by a new owner.
+    successor_session, successor_repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        assert successor_repo.claim_next(worker_id="successor") is not None
+        successor_session.commit()
+    finally:
+        successor_session.close()
+
+
+def test_completion_racing_recovery_leaves_exactly_one_outcome(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**W2 under contention.** The owner finishing as the reconciler fires.
+
+    Either the completion wins -- the attempt is SUCCEEDED and recovery finds
+    nothing -- or recovery wins and the completion is refused with ``LeaseLost``.
+    What must never happen is both: a SUCCEEDED step that recovery also made
+    RUNNABLE again. Repeated, because a race lost once proves little.
+    """
+    for round_number in range(8):
+        session, repo = _repo_in_new_session(pg_sessions, world)
+        try:
+            # A fresh one-step run per round, claimed at a priority above the
+            # fixture's steps, so every round races over a step of its own.
+            repo.create_run(
+                project_id=world["project_id"],
+                project_revision=1,
+                workflow_type="race",
+                steps=[StepDefinition(node_key="only", kind="k", priority=99)],
+                idempotency_key=f"race-{round_number}",
+            )
+            claimed = repo.claim_next(worker_id=f"owner-{round_number}")
+            assert claimed is not None
+            attempt = session.get(StepAttemptRow, claimed.attempt_id)
+            assert attempt is not None
+            attempt.lease_until = datetime.now(UTC) - timedelta(minutes=5)
+            session.commit()
+        finally:
+            session.close()
+
+        def act(index: int, work: Any = claimed) -> str:
+            s, r = _repo_in_new_session(pg_sessions, world)
+            try:
+                if index == 0:
+                    try:
+                        r.complete_attempt(work.attempt_id, worker_id=work.worker_id)
+                    except LeaseLost:
+                        s.rollback()
+                        return "refused"
+                    s.commit()
+                    return "completed"
+                recovered = r.recover_expired_attempts()
+                s.commit()
+                return f"recovered:{len(recovered)}"
+            finally:
+                s.close()
+
+        outcome = _run_concurrently(2, act)
+        assert sorted(outcome) in (
+            ["completed", "recovered:0"],
+            ["recovered:1", "refused"],
+        ), f"round {round_number}: {outcome}"
+
+        with pg_sessions() as check:
+            attempts = check.scalars(
+                select(StepAttemptRow).where(StepAttemptRow.step_id == claimed.step_id)
+            ).all()
+            statuses = sorted(a.status for a in attempts)
+            assert statuses.count(AttemptStatus.SUCCEEDED.value) <= 1
+
+
 # --------------------------------------------------------------------------- #
 # 2. Idempotency under concurrency
 # --------------------------------------------------------------------------- #
@@ -610,7 +737,7 @@ def test_a_duplicate_delivery_after_success_does_not_re_execute(
     try:
         claimed = repo.claim_next(worker_id="worker-1")
         assert claimed is not None
-        repo.complete_attempt(claimed.attempt_id, output={"ok": True})
+        repo.complete_attempt(claimed.attempt_id, worker_id=claimed.worker_id, output={"ok": True})
         session.commit()
         completed_step = claimed.step_id
     finally:

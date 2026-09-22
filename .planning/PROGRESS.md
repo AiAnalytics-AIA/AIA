@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `remediation/public-reference-exposure` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/intelligent-bardeen-tslz9n` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -43,7 +43,9 @@ skips (`.github/workflows/ci.yml:99-108` @ df294e2).
 
 ## In progress
 
-Nothing. The tree is green.
+**The worker process** (Next #2) —
+[`plans/worker-process.md`](plans/worker-process.md). Seven chunks; the plan
+records which have landed. Owner: platform-runtime.
 
 ## Repository visibility — D5, frozen
 

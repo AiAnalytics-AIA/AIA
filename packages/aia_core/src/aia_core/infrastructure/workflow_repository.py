@@ -74,6 +74,7 @@ from .tables import (
 __all__ = [
     "BudgetExceeded",
     "ClaimedWork",
+    "LeaseLost",
     "WorkflowNotFound",
     "WorkflowRepository",
 ]
@@ -103,9 +104,35 @@ class BudgetExceeded(RuntimeError):
         self.limit = limit
 
 
+class LeaseLost(RuntimeError):
+    """The caller no longer holds the attempt's lease, so it may write nothing.
+
+    Raised by every lease-fenced write -- complete, fail, abandon, release and
+    per-call metering -- when the attempt has already ended or belongs to another
+    worker. The only correct response is to stop: the attempt was recovered, and
+    another worker may already be running the step. Recording anything would put
+    two outcomes on one step.
+    """
+
+    def __init__(self, attempt_id: str, *, worker_id: str, owner: str | None, status: str) -> None:
+        super().__init__(
+            f"lease on {attempt_id} is not held by {worker_id} (owner {owner}, status {status})"
+        )
+        self.attempt_id = attempt_id
+        self.worker_id = worker_id
+        self.owner = owner
+        self.status = status
+
+
 @dataclass(frozen=True, slots=True)
 class ClaimedWork:
-    """A step and attempt a worker now owns."""
+    """A step and attempt a worker now owns.
+
+    ``worker_id`` is carried so that the lease-fenced calls that follow name the
+    same owner the claim recorded; the scope ids are carried so a worker that
+    claimed across studies can have the matching scope issued
+    (:meth:`aia_core.application.scope.ScopeResolver.execution_context`).
+    """
 
     run_id: str
     step_id: str
@@ -121,6 +148,10 @@ class ClaimedWork:
     payload: dict[str, Any]
     project_id: str
     project_revision: int
+    worker_id: str
+    organization_id: str
+    client_id: str
+    study_id: str
 
 
 class WorkflowRepository:
@@ -190,6 +221,55 @@ class WorkflowRepository:
         if row is None:
             raise WorkflowNotFound(attempt_id)
         return row
+
+    def _locked_attempt(self, attempt_id: str) -> StepAttemptRow:
+        """Fetch an attempt inside scope, row-locked, with its current values.
+
+        The lock is **blocking**, not ``skip_locked``: a worker finishing an attempt
+        that a reconciler is recovering right now must wait for the reconciler's
+        verdict and then see it, never skip past it. ``populate_existing`` matters
+        as much as the lock -- without it an attempt already in this session's
+        identity map keeps the status it had when first read, and the fence below
+        would check a stale value.
+        """
+        query = (
+            select(StepAttemptRow)
+            .join(StepRunRow, StepRunRow.step_id == StepAttemptRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(StepAttemptRow.attempt_id == attempt_id, *self._scope_filter())
+            .execution_options(populate_existing=True)
+        )
+        if self._is_postgres:
+            query = query.with_for_update(of=StepAttemptRow)
+        row = self._session.scalar(query)
+        if row is None:
+            raise WorkflowNotFound(attempt_id)
+        return row
+
+    @staticmethod
+    def _require_lease(attempt: StepAttemptRow, worker_id: str) -> None:
+        """Raise :class:`LeaseLost` unless ``worker_id`` holds ``attempt``'s lease.
+
+        Ownership is the attempt's status plus its ``worker_id``, read under the
+        row lock. The lease *deadline* is deliberately not consulted: it is the
+        trigger for recovery, not the fence. An attempt whose deadline passed but
+        which no reconciler has recovered yet is still exclusively this worker's
+        -- claiming requires the step to be ``RUNNABLE``, and only recovery, which
+        takes this same lock, makes it so.
+        """
+        if attempt.worker_id != worker_id or not AttemptStatus(attempt.status).holds_lease:
+            raise LeaseLost(
+                attempt.attempt_id,
+                worker_id=worker_id,
+                owner=attempt.worker_id,
+                status=attempt.status,
+            )
+
+    def _held_attempt(self, attempt_id: str, *, worker_id: str) -> StepAttemptRow:
+        """Lock an attempt and return it only while ``worker_id`` holds its lease."""
+        attempt = self._locked_attempt(attempt_id)
+        self._require_lease(attempt, worker_id)
+        return attempt
 
     def _event(
         self,
@@ -561,6 +641,10 @@ class WorkflowRepository:
             payload=dict(step.input_json or {}),
             project_id=run.project_id,
             project_revision=run.project_revision,
+            worker_id=worker_id,
+            organization_id=run.organization_id,
+            client_id=run.client_id,
+            study_id=run.study_id,
         )
 
     def heartbeat(
@@ -571,18 +655,39 @@ class WorkflowRepository:
         Only the lease owner may extend, and only while the attempt is live.
         Otherwise a worker that already lost its lease could keep a step alive and
         two workers would run it.
-        """
-        attempt = self._attempt(attempt_id)
-        if attempt.worker_id != worker_id:
-            return False
-        if not AttemptStatus(attempt.status).holds_lease:
-            return False
 
-        attempt.status = AttemptStatus.EXECUTING.value
-        attempt.heartbeat_at = utcnow()
-        attempt.lease_until = lease_deadline(seconds=lease_seconds)
+        **One conditional statement, never a read followed by a write.** It was a
+        read-check-write, and a reconciler that expired the attempt between the
+        read and the write was silently overwritten: the ORM's update by primary
+        key put the attempt back to ``EXECUTING`` while its step was already
+        ``RUNNABLE`` again, so a second worker claimed it and two workers ran one
+        step. The ``WHERE`` clause below is re-evaluated by the database against
+        the committed row, so an attempt expired a moment ago is refused.
+        """
+        self._attempt(attempt_id)  # scope check: an attempt outside scope is not found
+
+        moment = utcnow()
+        result = cast(
+            CursorResult[Any],
+            self._session.execute(
+                update(StepAttemptRow)
+                .where(
+                    StepAttemptRow.attempt_id == attempt_id,
+                    StepAttemptRow.worker_id == worker_id,
+                    StepAttemptRow.status.in_(
+                        [AttemptStatus.CLAIMED.value, AttemptStatus.EXECUTING.value]
+                    ),
+                )
+                .values(
+                    status=AttemptStatus.EXECUTING.value,
+                    heartbeat_at=moment,
+                    lease_until=lease_deadline(now=moment, seconds=lease_seconds),
+                )
+                .execution_options(synchronize_session="fetch")
+            ),
+        )
         self._session.flush()
-        return True
+        return result.rowcount == 1
 
     # ------------------------------------------------------- budget and costs --
 
@@ -838,12 +943,26 @@ class WorkflowRepository:
         self,
         attempt_id: str,
         *,
+        worker_id: str,
         output: dict[str, Any] | None = None,
         actual_cost_usd: float = 0.0,
         reservation_id: str | None = None,
     ) -> StepRunStatus:
-        """Record a successful attempt and mark its step SUCCEEDED."""
-        attempt = self._attempt(attempt_id)
+        """Record a successful attempt and mark its step SUCCEEDED.
+
+        Lease-fenced: only the worker holding the attempt may complete it, so a
+        worker whose lease was recovered cannot put a second outcome on a step
+        another worker is now running. Raises :class:`LeaseLost` otherwise.
+
+        **Idempotent for its owner.** Completing an attempt this worker already
+        completed returns ``SUCCEEDED`` and writes nothing. That is the retry of a
+        commit whose acknowledgement was lost -- the first commit landed, the
+        worker could not know -- and it must not charge the study a second time.
+        """
+        attempt = self._locked_attempt(attempt_id)
+        if attempt.status == AttemptStatus.SUCCEEDED.value and attempt.worker_id == worker_id:
+            return StepRunStatus.SUCCEEDED
+        self._require_lease(attempt, worker_id)
         step = self._step(attempt.step_id)
 
         attempt.status = AttemptStatus.SUCCEEDED.value
@@ -883,6 +1002,7 @@ class WorkflowRepository:
         self,
         attempt_id: str,
         *,
+        worker_id: str,
         failure: FailureClass,
         error: dict[str, Any] | None = None,
         reservation_id: str | None = None,
@@ -893,8 +1013,11 @@ class WorkflowRepository:
         The decision comes from :func:`aia_core.domain.workflow.decide_recovery`;
         this method executes it -- including converting a reservation to
         ``SETTLED_UNCERTAIN`` when a dispatched paid call's outcome is unknown.
+
+        Lease-fenced like :meth:`complete_attempt`; raises :class:`LeaseLost` when
+        the caller no longer holds the attempt.
         """
-        attempt = self._attempt(attempt_id)
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
 
         attempt.status = AttemptStatus.FAILED.value
@@ -1080,9 +1203,15 @@ class WorkflowRepository:
         step = self._step(step_id)
         return bool(step.cancel_requested)
 
-    def abandon_attempt(self, attempt_id: str, *, reason: str = "cancelled") -> None:
-        """Mark an in-flight attempt abandoned after a cooperative cancellation."""
-        attempt = self._attempt(attempt_id)
+    def abandon_attempt(
+        self, attempt_id: str, *, worker_id: str, reason: str = "cancelled"
+    ) -> None:
+        """Mark an in-flight attempt abandoned after a cooperative cancellation.
+
+        Lease-fenced; raises :class:`LeaseLost` when the caller no longer holds
+        the attempt.
+        """
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
 
         attempt.status = AttemptStatus.ABANDONED.value
