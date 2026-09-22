@@ -57,6 +57,7 @@ apps/
     scripts/                build-tokens (→ tokens.css/-theme.css/tokens.ts), check-design, check-layout
     src/fixtures/           DEVELOPMENT FIXTURES, API-shaped; registry.ts lists every one
     src/lib/api/            API response types, mirrored from the Pydantic schemas
+    src/components/ui/      Primitives: StatusChip, StatusGlyph, EvidenceMark, Value, Money, Icon, Button, Kbd, Panel
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
@@ -139,6 +140,7 @@ default weight and no fallback version; `make layer_check` enforces the loader.
 | **The pre-commit sequence** | `make verify` |
 | OpenAPI document | `make openapi` |
 | Web tokens / design checks | `cd apps/web && npm run tokens` · `npm run check:design` · `npm run check:layout` |
+| Web unit tests | `cd apps/web && npm test` (Vitest + Testing Library; also `make test-web`) |
 
 There is no compile step in Python. `make typecheck` is this project's
 warnings-are-errors gate: `mypy --strict` with `warn_unreachable`, plus

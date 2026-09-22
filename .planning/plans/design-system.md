@@ -1,6 +1,6 @@
 # Plan: AIA design system → apps/web
 
-**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–2 in review; chunk 3 next, then the first vertical slice. **Owner:** product-surface (A9).
+**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–3 in review; the first vertical slice next. **Owner:** product-surface (A9).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
 **Design source:** the "AIA Design System" artifact, https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
 
@@ -160,6 +160,29 @@ Chunks 4–11 resume only after that slice is working and reviewed.
   Evidence roles: 4 known. Any other value, including null, is `unknown` (OI-9).
   There is no Python evidence enum yet, so evidence is not in the parity check;
   it joins when analysis-governance publishes one.
+
+- **Chunk 3 — primitives + Vitest** (branch `feature/web-primitives`). DS-1:
+  Vitest 3 + Testing Library + jsdom. `npm test` runs in CI and is blocking.
+  `src/components/ui/` holds `StatusGlyph`, `StatusChip`, `EvidenceMark`,
+  `Value`, `Money`, `Icon`, `Button`, `Kbd` and `Panel`. All are server
+  components; `ThemeSwitch` is the one client component. 117 tests, including
+  the required ones:
+  - zero ≠ null, null ≠ suppressed, and suppression always carries its reason;
+  - an unknown evidence role is never measured;
+  - every status of the 9 bound status enums renders a Czech label and a
+    shaped glyph;
+  - the five room-scale tones have five distinct shapes;
+  - DS-3: team vs "you" is decided only by `viewerCanResolve`;
+  - chip classes use token utilities only, and the solid amber fill is
+    reserved for `you`;
+  - `ThemeSwitch` works with light, dark and system, including from the
+    keyboard;
+  - `Button` activates on Enter and Space and has no `disabled` prop at all;
+  - tokens resolve in both themes.
+  Evidence marks are SVG, with the "?" drawn as a path rather than typed. The
+  demo's `components/aia/ui.tsx` (`Card`, `Pill`) is gone; screens use `Panel`
+  and `StatusChip`. `/dev/states` is a dev-only state gallery for review
+  screenshots, and 404s unless `AIA_ENABLE_DEV_PAGES=1`.
 
 ## What product-surface does not own
 

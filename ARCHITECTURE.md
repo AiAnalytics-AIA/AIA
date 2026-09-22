@@ -287,6 +287,7 @@ declared tier.
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | API contract (OpenAPI paths + study-scoping assertion) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
+| Frontend unit tests — Vitest + Testing Library (`npm test`) | **blocking** |
 | Frontend design tokens generated, not hand-edited (`tokens:check`) | **blocking** |
 | Frontend design evidence: 146 contrast checks, chart palette, accent separation (`check:design`) | **blocking** |
 | Frontend +35 % Czech layout stress (`check:layout`) | manual *(needs a browser; run before merging layout changes)* |

@@ -259,3 +259,23 @@ avoids this. Never hand-edit `tokens.css`, `tokens-theme.css` or `tokens.ts`:
 payload of *successful* pages, as the boundary's fallback, so a text search
 reports a "not found" on a 200. Verify with
 `curl -o /dev/null -w "%{http_code}"`.
+
+### Vitest and Testing Library
+
+**Do not add `@vitejs/plugin-react` to the Vitest config.** Its current release
+depends on a newer Vite than the one Vitest 3 bundles, so the config fails
+`tsc` with an unreadable `Plugin<any>[] is not assignable to PluginOption`.
+The tests need no Fast Refresh: `esbuild: { jsx: "automatic" }` is enough.
+
+**Czech numbers contain U+00A0; matcher strings must not.** `Intl.NumberFormat("cs-CZ")`
+separates thousands and units with a non-breaking space. Testing Library
+normalises the *node's* text to plain spaces before matching, but not the
+string you pass, so a literal NBSP in the query never matches:
+
+```ts
+// wrong — the NBSP in the query survives, the node's was normalised away
+screen.getByText("12\u00a0480,50\u00a0USD");
+// right — match normalised text, and assert the raw separators separately
+screen.getByText("12 480,50 USD");
+expect(container.textContent).toBe("12\u00a0480,50\u00a0USD");
+```

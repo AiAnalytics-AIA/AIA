@@ -2,7 +2,8 @@ import Link from "next/link";
 import { t } from "@/i18n/t";
 import { fixtureClient, fixtureStudies } from "@/fixtures";
 import { FixtureNotice } from "@/components/aia/FixtureNotice";
-import { roleLabel, studyStatusLabel } from "@/lib/labels";
+import { roleLabel } from "@/lib/labels";
+import { StatusChip } from "@/components/ui";
 
 /** Portfolio: studies across clients the viewer holds a grant on. */
 export default async function PortfolioPage({ params }: { params: Promise<{ orgSlug: string }> }) {
@@ -31,7 +32,7 @@ export default async function PortfolioPage({ params }: { params: Promise<{ orgS
                   <Link className="text-signal hover:underline" href={`/org/${orgSlug}/studies/${s.study_id}`}>{s.name}</Link>
                 </td>
                 <td className="px-4 py-2">{fixtureClient(s.client_id)?.name ?? s.client_id}</td>
-                <td className="px-4 py-2">{studyStatusLabel(s.status)}</td>
+                <td className="px-4 py-2"><StatusChip kind="StudyStatus" value={s.status} small /></td>
                 <td className="px-4 py-2">{roleLabel(s.your_role)}</td>
               </tr>
             ))}

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { t } from "@/i18n/t";
 import { fixtureProject } from "@/fixtures";
 import { FixtureNotice } from "@/components/aia/FixtureNotice";
-import { lifecycleLabel, projectStatusLabel, stageStatusLabel } from "@/lib/labels";
+import { lifecycleLabel } from "@/lib/labels";
+import { StatusChip } from "@/components/ui";
 
 export default async function ProjectPage({ params }: { params: Promise<{ orgSlug: string; studyId: string; projectId: string }> }) {
   const { orgSlug, studyId, projectId } = await params;
@@ -14,7 +15,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ orgSlu
       <div>
         <h1 className="text-2xl font-semibold">{project.title}</h1>
         <div className="text-sm text-ink-muted">
-          {lifecycleLabel(project.project_type)} · {projectStatusLabel(project.status)} · {t("project.revision")} <span className="font-mono">{project.current_revision}</span>
+          {lifecycleLabel(project.project_type)} · <StatusChip kind="ProjectStatus" value={project.status} small /> · {t("project.revision")} <span className="font-mono">{project.current_revision}</span>
         </div>
       </div>
       <FixtureNotice capability="project-stages" />
@@ -27,8 +28,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ orgSlu
                 <span className="font-mono text-ink-muted">{String(s.ordinal + 1).padStart(2, "0")}</span> {s.label}
               </Link>
               <span>
-                {stageStatusLabel(s.status)}
-                {s.waiting_reason ? <span className="text-ink-muted"> · {t("project.waitingReason")}: {s.waiting_reason}</span> : null}
+                <StatusChip kind="StageStatus" value={s.status} small showAudience />
+                {s.waiting_reason ? <span className="text-ink-muted"> · {t("project.waitingReason")}: <span className="font-mono">{s.waiting_reason}</span></span> : null}
               </span>
             </li>
           ))}

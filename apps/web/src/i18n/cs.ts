@@ -93,6 +93,21 @@ export const cs = {
     },
     unknownPrefix: "Neznámý stav:",
   },
+  evidence: {
+    measured: { name: "Měřeno", long: "Měřeno společně na téže osobě", short: "měř." },
+    calibrated: { name: "Kalibrované jádro", long: "Kalibrované jádro populace vůči externím zdrojům", short: "kal." },
+    modelled: { name: "Modelováno", long: "Modelováno z behaviorálního prioru — nejde o měření", short: "mod." },
+    "holdout-pending": { name: "Validace čeká", long: "Externí prediktivní validace dosud neproběhla", short: "neval." },
+    unknown: { name: "Role neznámá", long: "Evidenční role nedorazila nebo ji systém nezná — nečtěte jako měření", short: "?" },
+  },
+  nulls: {
+    na: "chybí",
+    naLong: "Nezjištěno — nikdy jsme se nepodívali, nebo odpověď nedorazila.",
+    suppressed: "potlačeno",
+    suppressedLong: "Máme, ale nezobrazujeme",
+    reasonMissing: "důvod neuveden",
+    loading: "Načítá se",
+  },
   audience: {
     you: "čeká na vás",
     person: "čeká na tým / správce",
@@ -124,6 +139,8 @@ export const cs = {
   docEditor: {
     proposalHeading: "Návrh doplnění (asistent, neschváleno)",
     proposalReady: "Návrh změn je připraven",
+    proposalPending: "Návrh změn čeká na rozhodnutí",
+    noProposal: "Bez návrhu",
     proposalHelp: "„Přijmout změny“ použije návrh na celý dokument, „Zamítnout“ ho zahodí.",
     accept: "Přijmout změny",
     reject: "Zamítnout",

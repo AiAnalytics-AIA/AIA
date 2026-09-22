@@ -3,7 +3,8 @@ import Link from "next/link";
 import { t } from "@/i18n/t";
 import { fixtureClient, fixtureProjects, fixtureStudy } from "@/fixtures";
 import { FixtureNotice } from "@/components/aia/FixtureNotice";
-import { lifecycleLabel, projectStatusLabel, roleLabel, stageStatusLabel, studyStatusLabel } from "@/lib/labels";
+import { lifecycleLabel, roleLabel } from "@/lib/labels";
+import { StatusChip } from "@/components/ui";
 import { stageLabel, type ProjectType } from "@/design/lifecycle";
 
 export default async function StudyPage({ params }: { params: Promise<{ orgSlug: string; studyId: string }> }) {
@@ -17,7 +18,7 @@ export default async function StudyPage({ params }: { params: Promise<{ orgSlug:
       <div>
         <div className="text-sm text-ink-muted">{client?.name ?? study.client_id}</div>
         <h1 className="text-2xl font-semibold">{study.name}</h1>
-        <div className="text-sm text-ink-muted">{studyStatusLabel(study.status)} · {roleLabel(study.your_role)}</div>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted"><StatusChip kind="StudyStatus" value={study.status} small /> {roleLabel(study.your_role)}</div>
       </div>
       <FixtureNotice capability="study-projects" />
       <section className="rounded-md border border-border bg-surface-raised">
@@ -44,9 +45,9 @@ export default async function StudyPage({ params }: { params: Promise<{ orgSlug:
                     <td className="px-4 py-2">{lifecycleLabel(p.project_type)}</td>
                     <td className="px-4 py-2">
                       {stageLabel(p.project_type as ProjectType, p.current_stage) ?? p.current_stage}
-                      {current ? <span className="text-ink-muted"> · {stageStatusLabel(current.status)}</span> : null}
+                      {current ? <> <StatusChip kind="StageStatus" value={current.status} small /></> : null}
                     </td>
-                    <td className="px-4 py-2">{projectStatusLabel(p.status)}</td>
+                    <td className="px-4 py-2"><StatusChip kind="ProjectStatus" value={p.status} small /></td>
                     <td className="px-4 py-2 font-mono">{p.current_revision}</td>
                   </tr>
                 );
