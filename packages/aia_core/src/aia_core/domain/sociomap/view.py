@@ -1,57 +1,66 @@
-"""Presentation and exploration layers over an immutable Sociomapa.
+"""Presentation and exploration layers over an immutable Sociomap artifact.
 
 Two product rules are implemented here as types rather than as discipline:
 
-* **Manual drag is view state.** ``PRODUCT_POLICY.json`` in the legacy system
-  states ``manual_drag: visual_override_only_never_mutates_raw_results``. A
-  :class:`ViewOverrides` is bound to one artifact by fingerprint and produces a
-  :class:`DisplayedLayout`; the artifact it reads is never written.
-* **What-if is a layer.** A :class:`WhatIfLayer` names its base artifact and
-  the edits applied to the base *inputs*; :func:`derive_what_if_relation` builds
-  a new relation matrix from an untouched original. The derived artifact must
-  record the base under :data:`WHAT_IF_BASE_KEY` in its provenance so lineage is
-  a lookup, not an inference.
-
-The edit vocabulary of the what-if layer (cell overrides on the relation
-matrix) is the minimal deterministic mechanism. The legacy what-if mode's exact
-semantics have not been read from the reference implementation yet; when they
-are, they extend this vocabulary rather than replace the layering invariant.
+* **Manual drag is a view override** (fixture F9). ``PRODUCT_POLICY.json`` in the
+  reference states ``manual_drag: visual_override_only_never_mutates_raw_results``,
+  and ``manualPerson66`` returns the dragged coordinate without touching the
+  underlying point. A :class:`ViewOverrides` is bound to one artifact by
+  fingerprint and produces a :class:`DisplayedMap`; the artifact is never
+  written. As in the reference -- where manual state is part of the terrain
+  cache key -- a dragged map may redraw its terrain: :func:`view_terrain`
+  computes it over the *displayed* positions and returns it as a view product.
+  It is never stored on, or mistaken for, the artifact's terrain.
+* **What-if is a scenario layer over immutable originals.** The reference's
+  ``effectiveMatrix66`` returns the original matrix unless the source mode is
+  ``scenario`` *and* edits exist, in which case ``edits["i:j"]`` overrides cell
+  ``(i, j)`` with the diagonal held at ``0``. :func:`apply_scenario` does exactly
+  that to the artifact's coerced relation matrix, recomputes what depends on it
+  -- relation metrics and, when the height metric is relation-derived, the
+  object terrain -- and returns a :class:`ScenarioResult` naming its base.
+  Positions come from the ratings unfolding, which a relation edit does not
+  touch, so a scenario moves no point.
 """
 
 from __future__ import annotations
 
 import math
-from typing import Any, Self
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .models import RelationMatrix, SociomapArtifact
+from ..pipeline import fingerprint
+from .engine import object_terrain, respondent_terrain
+from .metrics import NormalizationMode, ObjectMetric, object_metric
+from .models import MetricValues, RelationMatrix, SociomapArtifact
+from .terrain import TerrainField
 
 __all__ = [
-    "WHAT_IF_BASE_KEY",
-    "DisplayedLayout",
+    "DisplayedMap",
     "Position",
     "RelationEdit",
+    "ScenarioLayer",
+    "ScenarioResult",
     "ViewOverrideMismatch",
     "ViewOverrides",
-    "WhatIfLayer",
+    "apply_scenario",
     "apply_view_overrides",
-    "derive_what_if_relation",
+    "view_terrain",
 ]
 
-# Provenance key under which a what-if artifact records its base artifact's
-# fingerprint (``Provenance.input_fingerprints[WHAT_IF_BASE_KEY]``).
-WHAT_IF_BASE_KEY = "what_if_base_artifact"
+Point = tuple[float, float]
 
 
 class ViewOverrideMismatch(ValueError):
-    """The overrides do not belong to the artifact they were applied to."""
+    """An override or scenario does not belong to the artifact it was applied to."""
 
 
-class Position(BaseModel):
-    """A displayed 2-D position."""
-
+class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+class Position(_Frozen):
+    """A displayed 2-D position, in map-frame units."""
 
     x: float
     y: float
@@ -64,19 +73,18 @@ class Position(BaseModel):
         return float(v)
 
 
-class ViewOverrides(BaseModel):
-    """Per-entity display positions a user dragged to, bound to one artifact.
+class ViewOverrides(_Frozen):
+    """Dragged display positions, bound to one artifact.
 
-    Binding by ``artifact_fingerprint`` is what stops an override recorded
-    against one computation being silently shown over another: if the
-    methodology, inputs or implementation change, the artifact fingerprint
-    changes and the stale overrides are refused.
+    Mirrors the reference's ``st.manual = {respondents: {...}, objects: {...}}``.
+    Binding by ``artifact_fingerprint`` stops an override recorded against one
+    computation being shown over another: if anything upstream changes, the
+    fingerprint changes and the stale drag state is refused.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
     artifact_fingerprint: str
-    positions: dict[str, Position] = Field(default_factory=dict)
+    respondents: dict[str, Position] = Field(default_factory=dict)
+    objects: dict[str, Position] = Field(default_factory=dict)
 
     @field_validator("artifact_fingerprint")
     @classmethod
@@ -85,48 +93,70 @@ class ViewOverrides(BaseModel):
             raise ValueError("overrides must be bound to an artifact fingerprint")
         return v
 
-    def with_position(self, entity_id: str, x: float, y: float) -> ViewOverrides:
-        """Return overrides with one entity moved; the receiver is unchanged."""
-        positions = dict(self.positions)
-        positions[entity_id] = Position(x=x, y=y)
-        return self.model_copy(update={"positions": positions})
+    def moving_respondent(self, respondent_id: str, x: float, y: float) -> ViewOverrides:
+        """Overrides with one respondent dragged; the receiver is unchanged."""
+        return self.model_copy(
+            update={"respondents": {**self.respondents, respondent_id: Position(x=x, y=y)}}
+        )
 
-    def without(self, entity_id: str) -> ViewOverrides:
-        """Return overrides with one entity reset to its canonical position."""
-        positions = {k: v for k, v in self.positions.items() if k != entity_id}
-        return self.model_copy(update={"positions": positions})
+    def moving_object(self, object_id: str, x: float, y: float) -> ViewOverrides:
+        """Overrides with one object dragged; the receiver is unchanged."""
+        return self.model_copy(update={"objects": {**self.objects, object_id: Position(x=x, y=y)}})
+
+    def reset(self, entity_id: str) -> ViewOverrides:
+        """Overrides with one entity returned to its canonical position."""
+        return self.model_copy(
+            update={
+                "respondents": {k: v for k, v in self.respondents.items() if k != entity_id},
+                "objects": {k: v for k, v in self.objects.items() if k != entity_id},
+            }
+        )
+
+    def key(self) -> str:
+        """Fingerprint of the view state; part of :meth:`DisplayedMap.view_key`."""
+        return fingerprint(self.model_dump(mode="json"))
 
 
-class DisplayedLayout(BaseModel):
-    """What a renderer draws: canonical coordinates with overrides applied.
+class DisplayedMap(_Frozen):
+    """What a renderer draws: canonical positions with overrides applied.
 
     Carries the artifact fingerprint so the display can always be traced to the
-    research truth it departs from, and lists which entities were moved so the
-    departure is visible rather than silent.
+    research truth it departs from, and lists what was moved so the departure is
+    visible rather than silent.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
     artifact_fingerprint: str
-    entity_ids: tuple[str, ...]
-    x: tuple[float, ...]
-    y: tuple[float, ...]
-    overridden: tuple[str, ...] = ()
+    overrides_key: str
+    respondent_ids: tuple[str, ...]
+    respondent_xy: tuple[Point, ...]
+    object_ids: tuple[str, ...]
+    object_xy: tuple[Point, ...]
+    moved_respondents: tuple[str, ...]
+    moved_objects: tuple[str, ...]
 
     @model_validator(mode="after")
     def _aligned(self) -> Self:
-        n = len(self.entity_ids)
-        if len(self.x) != n or len(self.y) != n:
-            raise ValueError("displayed coordinates must align with entity_ids")
+        if len(self.respondent_xy) != len(self.respondent_ids) or len(self.object_xy) != len(
+            self.object_ids
+        ):
+            raise ValueError("displayed positions must align with their ids")
         return self
 
+    def view_key(self) -> str:
+        """The invalidation key for anything drawn from this view.
 
-def apply_view_overrides(artifact: SociomapArtifact, overrides: ViewOverrides) -> DisplayedLayout:
-    """Layer dragged positions over an artifact's canonical layout.
+        The backend counterpart of the reference's terrain cache key: it changes
+        when the artifact or the manual state changes, and on nothing else.
+        """
+        return fingerprint({"artifact": self.artifact_fingerprint, "view": self.overrides_key})
 
-    Pure: returns a new :class:`DisplayedLayout` and touches nothing else. Raises
-    :class:`ViewOverrideMismatch` when the overrides are bound to a different
-    artifact or name an entity the artifact does not contain.
+
+def apply_view_overrides(artifact: SociomapArtifact, overrides: ViewOverrides) -> DisplayedMap:
+    """Layer dragged positions over the canonical layout (``personPos66``, F9).
+
+    Pure: returns a new :class:`DisplayedMap`. Raises :class:`ViewOverrideMismatch`
+    when the overrides are bound to another artifact or name an unknown or
+    unplaced entity.
     """
     fp = artifact.fingerprint()
     if overrides.artifact_fingerprint != fp:
@@ -134,53 +164,117 @@ def apply_view_overrides(artifact: SociomapArtifact, overrides: ViewOverrides) -
             "view overrides are bound to a different artifact; canonical results "
             "changed, so the stale drag state is refused rather than shown"
         )
-    unknown = sorted(set(overrides.positions) - set(artifact.entity_ids))
+    placed = artifact.layout.respondent_ids
+    unknown = sorted(set(overrides.respondents) - set(placed)) + sorted(
+        set(overrides.objects) - set(artifact.object_ids)
+    )
     if unknown:
-        raise ViewOverrideMismatch(f"overrides name entities not in the artifact: {unknown}")
+        raise ViewOverrideMismatch(f"overrides name entities not placed on this map: {unknown}")
 
-    xs = list(artifact.layout.x)
-    ys = list(artifact.layout.y)
-    moved: list[str] = []
-    for i, entity in enumerate(artifact.entity_ids):
-        position = overrides.positions.get(entity)
-        if position is not None:
-            xs[i], ys[i] = position.x, position.y
-            moved.append(entity)
-    return DisplayedLayout(
+    def place(
+        ids: tuple[str, ...], base: tuple[Point, ...], moved: dict[str, Position]
+    ) -> tuple[tuple[Point, ...], tuple[str, ...]]:
+        xy = tuple(
+            (moved[i].x, moved[i].y) if i in moved else p for i, p in zip(ids, base, strict=True)
+        )
+        return xy, tuple(i for i in ids if i in moved)
+
+    r_xy, r_moved = place(placed, artifact.layout.respondent_xy, overrides.respondents)
+    o_xy, o_moved = place(artifact.object_ids, artifact.layout.object_xy, overrides.objects)
+    return DisplayedMap(
         artifact_fingerprint=fp,
-        entity_ids=artifact.entity_ids,
-        x=tuple(xs),
-        y=tuple(ys),
-        overridden=tuple(moved),
+        overrides_key=overrides.key(),
+        respondent_ids=placed,
+        respondent_xy=r_xy,
+        object_ids=artifact.object_ids,
+        object_xy=o_xy,
+        moved_respondents=r_moved,
+        moved_objects=o_moved,
     )
 
 
-class RelationEdit(BaseModel):
-    """One hypothetical change to a relation cell: ``source -> target`` becomes ``value``."""
+def view_terrain(
+    artifact: SociomapArtifact,
+    displayed: DisplayedMap,
+    *,
+    mode: str,
+    respondent_subset: tuple[str, ...] | None = None,
+    height_metric: str | None = None,
+) -> TerrainField:
+    """Terrain over the *displayed* positions -- a view product, never research truth.
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    ``mode`` is ``respondent_density`` or ``object_metric``. ``respondent_subset``
+    is the reference's ``terrainScope == 'filter'``: density over a subset only.
+    ``height_metric`` redraws the object terrain for another metric without
+    moving a point. Parameters and normaliser are the artifact spec's.
+    """
+    if displayed.artifact_fingerprint != artifact.fingerprint():
+        raise ViewOverrideMismatch("displayed map belongs to a different artifact")
+    spec = artifact.spec
+    normalization = NormalizationMode(spec.terrain.normalization)
+    if mode == "respondent_density":
+        chosen = displayed.respondent_ids
+        if respondent_subset is not None:
+            unknown = sorted(set(respondent_subset) - set(chosen))
+            if unknown:
+                raise ViewOverrideMismatch(f"subset names respondents not on this map: {unknown}")
+            keep = set(respondent_subset)
+            chosen = tuple(r for r in chosen if r in keep)
+        index = {r: i for i, r in enumerate(displayed.respondent_ids)}
+        return respondent_terrain(
+            chosen,
+            tuple(displayed.respondent_xy[index[r]] for r in chosen),
+            spec.terrain.respondent,
+            normalization,
+        )
+    if mode == "object_metric":
+        # Redrawing for another metric colours by that metric too; otherwise the
+        # spec's height and colour metrics apply.
+        height = height_metric or spec.metrics.object_height_metric
+        colour = height_metric or spec.metrics.object_colour_metric
+        for metric in (height, colour):
+            if metric not in artifact.object_metrics:
+                raise ViewOverrideMismatch(f"metric {metric!r} is not available on this artifact")
+        return object_terrain(
+            displayed.object_ids,
+            displayed.object_xy,
+            artifact.object_metrics[height],
+            artifact.object_metrics[colour],
+            spec.terrain.object,
+            normalization,
+        )
+    raise ValueError(f"unknown terrain mode {mode!r}")
+
+
+# ------------------------------------------------------------ scenarios --
+
+
+class RelationEdit(_Frozen):
+    """One hypothetical relation, ``source -> target = value`` on the coerced 1-10 scale."""
 
     source: str
     target: str
-    value: float | None
+    value: float
 
     @field_validator("value")
     @classmethod
-    def _finite(cls, v: float | None) -> float | None:
-        if v is not None and not math.isfinite(v):
-            raise ValueError("a what-if value must be finite or None")
-        return v
+    def _on_scale(cls, v: float) -> float:
+        if not (math.isfinite(v) and 1.0 <= v <= 10.0):
+            raise ValueError("a scenario relation must be on the coerced 1-10 scale")
+        return float(v)
+
+    @model_validator(mode="after")
+    def _off_diagonal(self) -> Self:
+        if self.source == self.target:
+            raise ValueError(
+                "the diagonal is held at 0 in a scenario; an edit to it would be silently "
+                "ignored, so it is refused"
+            )
+        return self
 
 
-class WhatIfLayer(BaseModel):
-    """A hypothesis expressed as edits to an immutable base artifact's inputs.
-
-    ``label`` is for people. ``edits`` are the deterministic content. The layer
-    never holds a result: results are separate artifacts whose provenance names
-    this layer's base.
-    """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
+class ScenarioLayer(_Frozen):
+    """A hypothesis: edits to an immutable base artifact's relation matrix."""
 
     base_artifact_fingerprint: str
     edits: tuple[RelationEdit, ...]
@@ -190,46 +284,74 @@ class WhatIfLayer(BaseModel):
     @classmethod
     def _bound(cls, v: str) -> str:
         if not v.strip():
-            raise ValueError("a what-if layer must name its base artifact")
+            raise ValueError("a scenario must name its base artifact")
         return v
 
     @field_validator("edits")
     @classmethod
     def _non_empty(cls, v: tuple[RelationEdit, ...]) -> tuple[RelationEdit, ...]:
         if not v:
-            raise ValueError("a what-if layer with no edits is the base itself")
+            raise ValueError("a scenario with no edits is the base itself")
+        pairs = [(e.source, e.target) for e in v]
+        if len(set(pairs)) != len(pairs):
+            raise ValueError("a scenario may edit each relation cell once")
         return v
 
-    def provenance_inputs(self) -> dict[str, str]:
-        """The provenance entries a derived artifact must carry."""
-        return {WHAT_IF_BASE_KEY: self.base_artifact_fingerprint}
 
+class ScenarioResult(_Frozen):
+    """What a scenario changes: the effective matrix, relation metrics, object terrain.
 
-def derive_what_if_relation(base: SociomapArtifact, layer: WhatIfLayer) -> RelationMatrix:
-    """Build the alternative relation matrix a what-if layer describes.
-
-    Refuses a layer bound to a different artifact. The base artifact and its
-    matrix are read only; the result is a new :class:`RelationMatrix` ready to be
-    fed to the engine under the base artifact's spec (or a deliberately different
-    one, recorded as such).
+    ``base_artifact_fingerprint`` is the lineage. Positions are not here because a
+    relation edit does not move any: they are the base artifact's.
     """
-    if layer.base_artifact_fingerprint != base.fingerprint():
-        raise ViewOverrideMismatch("what-if layer is bound to a different base artifact")
-    overrides: dict[tuple[str, str], float | None] = {
-        (edit.source, edit.target): edit.value for edit in layer.edits
-    }
+
+    base_artifact_fingerprint: str
+    layer: ScenarioLayer
+    effective_relation: RelationMatrix
+    object_metrics: dict[str, MetricValues]
+    object_terrain: TerrainField
+
+    def fingerprint(self) -> str:
+        """Stable SHA256 of the scenario result."""
+        return fingerprint(self.model_dump(mode="json"))
+
+
+def apply_scenario(artifact: SociomapArtifact, layer: ScenarioLayer) -> ScenarioResult:
+    """``effectiveMatrix66`` in scenario mode, and everything that reads it.
+
+    The base artifact is read only.
+    """
+    if layer.base_artifact_fingerprint != artifact.fingerprint():
+        raise ViewOverrideMismatch("scenario is bound to a different base artifact")
+    if artifact.relation is None:
+        raise ViewOverrideMismatch("this artifact has no relation matrix to build a scenario on")
+    base = artifact.relation.coerced
     try:
-        return base.relation.with_cells(overrides)
+        effective = base.with_cells({(e.source, e.target): e.value for e in layer.edits})
     except KeyError as exc:
         raise ViewOverrideMismatch(
-            f"what-if edit names an unknown entity {exc.args[0]!r}"
+            f"scenario edit names an unknown object {exc.args[0]!r}"
         ) from None
 
-
-def what_if_inputs(base: SociomapArtifact, layer: WhatIfLayer) -> dict[str, Any]:
-    """Convenience: the inputs an engine call for this what-if would receive."""
-    return {
-        "relation": derive_what_if_relation(base, layer),
-        "spec": base.spec,
-        "provenance_inputs": layer.provenance_inputs(),
-    }
+    matrix = [[v if v is not None else 0.0 for v in row] for row in effective.values]
+    metrics = dict(artifact.object_metrics)
+    for metric in (ObjectMetric.RELATION_CLASSIC, ObjectMetric.RELATION_CLASSIC_TSCORE):
+        metrics[metric.value] = MetricValues(
+            metric_id=metric.value, values=object_metric(metric, relation=matrix)
+        )
+    spec = artifact.spec
+    terrain = object_terrain(
+        artifact.object_ids,
+        artifact.layout.object_xy,
+        metrics[spec.metrics.object_height_metric],
+        metrics[spec.metrics.object_colour_metric],
+        spec.terrain.object,
+        NormalizationMode(spec.terrain.normalization),
+    )
+    return ScenarioResult(
+        base_artifact_fingerprint=layer.base_artifact_fingerprint,
+        layer=layer,
+        effective_relation=effective,
+        object_metrics=metrics,
+        object_terrain=terrain,
+    )
