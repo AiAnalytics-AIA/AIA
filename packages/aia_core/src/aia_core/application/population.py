@@ -34,12 +34,16 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Protocol, runtime_checkable
 
 from sqlalchemy.orm import Session
 
 from ..domain.population import (
+    CompanionReport,
+    CompanionSet,
+    CompanionsIncomplete,
     DatasetVersion,
     EnrichmentFailed,
     ImportRejected,
@@ -47,6 +51,7 @@ from ..domain.population import (
     ParsedPanel,
     Population,
     PopulationBinding,
+    PopulationError,
     PopulationImportContract,
     PopulationKind,
     PopulationNotEstablished,
@@ -64,6 +69,7 @@ from ..domain.population import (
     plan_promotion,
     resolve_binding,
     resolve_weight_scheme,
+    validate_companions,
     validate_import,
     version_status,
 )
@@ -137,12 +143,18 @@ class PopulationRuntime:
         provenance: str,
         imported_by: str,
         parent_version_id: str | None = None,
+        companion_locations: Mapping[str, str] | None = None,
     ) -> DatasetVersion:
         """Validate a bundle and register it as a new version. Never promotes.
 
         Idempotent for the same bytes under the same label: the existing version is
         returned. The same bytes under another label, or another label's bytes
         under this one, are refused.
+
+        ``companion_locations`` (asset id -> location) validates the companion set
+        with the panel, in one decision: a failing companion rejects the whole
+        import. Omitted, the version is registered without companions and is not
+        usable until :meth:`attach_companions` records a valid set.
         """
         contract = self._contract
         panel_bytes = self._source.read(panel_location)
@@ -178,10 +190,18 @@ class PopulationRuntime:
             dictionary=dictionary,
             panel=panel,
         )
-        if not report.passed:
-            raise ImportRejected(
-                f"{label} failed {len(report.failures)} import checks", failures=report.failures
+        companions: CompanionReport | None = None
+        if companion_locations is not None or not contract.companions:
+            companions = self._validate_companions(
+                label=label,
+                panel=panel,
+                panel_sha256=panel_sha,
+                locations=companion_locations or {},
             )
+        failures = (*report.failures, *(companions.failures if companions else ()))
+        if failures:
+            raise ImportRejected(f"{label} failed {len(failures)} import checks", failures=failures)
+        report = replace(report, companions_validated=companions is not None)
 
         version = DatasetVersion(
             version_id=dataset_version_id(contract.dataset_id, panel_sha),
@@ -202,7 +222,85 @@ class PopulationRuntime:
             imported_by=imported_by,
         )
         self._registry.insert_version(version, validation=report.as_record())
+        if companions is not None:
+            self._registry.insert_companion_set(
+                version.version_id,
+                specs=contract.companions,
+                report=companions,
+                locations=companion_locations or {},
+                attached_by=imported_by,
+                attached_at=version.imported_at,
+            )
         return version
+
+    def attach_companions(
+        self, *, version_id: str, companion_locations: Mapping[str, str], attached_by: str
+    ) -> CompanionSet:
+        """Validate and record the companion set of an already-registered version.
+
+        Once per version: a set is never replaced, because a run already bound to
+        this version recorded the set it was computed with.
+        """
+        version = self._registry.get_version(version_id)
+        if version is None:
+            raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        if self._registry.companion_set(version_id) is not None:
+            raise PopulationError(
+                f"{version_id} already has its companion set; a set is never replaced",
+                reason="companions_already_attached",
+            )
+        panel = self._verified_panel(version)
+        report = self._validate_companions(
+            label=version.label,
+            panel=panel,
+            panel_sha256=version.content_sha256,
+            locations=companion_locations,
+        )
+        if not report.passed:
+            raise ImportRejected(
+                f"{version.label}'s companions failed {len(report.failures)} checks",
+                failures=report.failures,
+            )
+        self._registry.insert_companion_set(
+            version_id,
+            specs=self._contract.companions,
+            report=report,
+            locations=companion_locations,
+            attached_by=attached_by,
+            attached_at=self._clock(),
+        )
+        attached = self._registry.companion_set(version_id)
+        assert attached is not None  # just inserted in this unit of work
+        return attached
+
+    def _validate_companions(
+        self,
+        *,
+        label: str,
+        panel: ParsedPanel,
+        panel_sha256: str,
+        locations: Mapping[str, str],
+    ) -> CompanionReport:
+        contract = self._contract
+        assets: dict[str, bytes] = {}
+        for asset_id, location in locations.items():
+            assets[asset_id] = self._source.read(location)
+        return validate_companions(
+            contract.companions,
+            assets=assets,
+            panel=panel,
+            panel_sha256=panel_sha256,
+            field_count=contract.field_count,
+            joint_must_certify=label in contract.joint_certified_labels,
+        )
+
+    def _require_usable(self, version_id: str) -> None:
+        """Refuse a version whose contract declares companions it does not have."""
+        if self._contract.companions and self._registry.companion_set(version_id) is None:
+            raise CompanionsIncomplete(
+                f"{version_id} has no validated companion set; "
+                f"{len(self._contract.companions)} companions are required before it is usable"
+            )
 
     def _lineage_parent(self, label: str, parent_version_id: str | None) -> str | None:
         contract = self._contract
@@ -246,6 +344,7 @@ class PopulationRuntime:
         version = self._registry.get_version(version_id)
         if version is None:
             raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        self._require_usable(version_id)
         population, record = plan_establish(
             population_id=population_id,
             kind=kind,
@@ -279,6 +378,8 @@ class PopulationRuntime:
         population = self._registry.population(population_id, for_update=True)
         if population is None:
             raise PopulationNotEstablished(f"population {population_id} has not been established")
+        if self._registry.get_version(target_version_id) is not None:
+            self._require_usable(target_version_id)
         promoted, record = plan_promotion(
             population=population,
             target_version_id=target_version_id,
@@ -312,7 +413,7 @@ class PopulationRuntime:
     ) -> PopulationBinding:
         """Resolve a selector to the binding a run records. No fallback."""
         dataset = self._contract.dataset_id
-        return resolve_binding(
+        binding = resolve_binding(
             selector,
             contract=self._contract,
             versions=self._registry.versions(dataset),
@@ -322,6 +423,8 @@ class PopulationRuntime:
             weight_role=weight_role,
             at=self._clock(),
         )
+        self._require_usable(binding.version_id)
+        return binding
 
     # ------------------------------------------------------------------- load --
 

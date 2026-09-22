@@ -20,6 +20,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from .companions import CompanionKind, CompanionSpec
 from .errors import WeightResolutionError
 from .versions import is_sha256
 
@@ -140,6 +141,12 @@ class PopulationImportContract:
     forbidden_prefixes: tuple[str, ...] = ()
     #: The column in the dictionary CSV that names each field.
     dictionary_field_column: str = "field"
+    #: Assets that must travel with every version for it to be usable. Empty means
+    #: the panel and dictionary are the whole version (synthetic test contracts).
+    companions: tuple[CompanionSpec, ...] = ()
+    #: Versions whose joint certificate must bind to their own panel. For any other
+    #: version joint claims fall back to forbidden.
+    joint_certified_labels: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         if not self.contract_id or not self.dataset_id:
@@ -175,6 +182,17 @@ class PopulationImportContract:
         derived = [*self.enrichment_fields, self.analysis_weight_field]
         if len(set(derived)) != len(derived):
             raise ValueError("derived field names must be unique")
+
+        assets = [c.asset_id for c in self.companions]
+        if len(set(assets)) != len(assets):
+            raise ValueError("companion asset ids must be unique")
+        certificates = [c for c in self.companions if c.kind is CompanionKind.CORE_JOINT_STATUS]
+        if len(certificates) > 1:
+            raise ValueError("a contract declares at most one joint certificate")
+        if self.joint_certified_labels and not certificates:
+            raise ValueError("certified labels need a declared joint certificate")
+        if not self.joint_certified_labels <= set(labels):
+            raise ValueError("certified labels must be known versions")
 
     # ----------------------------------------------------------------- lookups
 

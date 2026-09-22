@@ -68,8 +68,12 @@ decides otherwise.
   against `field-policy.json` — `domain/population/policy.py` ·
   `tests/test_population_policy.py` (33) · parity: 400/400 mapped, claim rules and
   provenance equal field for field, internal uses equal, measured claims 115 ⊂ 287
-- [ ] 2. Companion contract + joint-certificate gate + persistence + usability
-  gating, tests, parity against the dataset ledger and M03/M14
+- [x] 2. Companion contract + joint-certificate gate + persistence + usability
+  gating — `domain/population/companions.py`, `czech.py` (15 companions),
+  `population_companion_{sets,assets}` (migration `cadbca872dc5`),
+  `PopulationRuntime.attach_companions` · `tests/test_population_companions.py`
+  (41) · parity: 15 identities equal the ledger, M14 shapes, M03 certificate binds
+  `v17_4_0` only
 - [ ] 3. Population operator authority; close OI-8
 - [ ] 4. Binding + RuntimePopulation carry policy and joint status; migration
 - [ ] 5. Derived-field decision matrix, OI-7 archive-dependency artifact, docs,

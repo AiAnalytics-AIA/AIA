@@ -590,3 +590,142 @@ def synthetic_population() -> SyntheticPopulation:
 def gzip_csv_writer() -> Any:
     """Return :func:`gzip_csv` for tests that build their own panels."""
     return gzip_csv
+
+
+# --------------------------------------------------------------------------- #
+# Synthetic companion sets
+# --------------------------------------------------------------------------- #
+
+
+def joint_certificate_json(certified_sha256: str, /, **overrides: Any) -> bytes:
+    """A certificate in the v17 ``CORE_JOINT_STATUS.json`` shape (methodology M03)."""
+    import json
+
+    document: dict[str, Any] = {
+        "status": "COHERENT_CORE_MATCHED_BLOCKS",
+        "structure_status": "QC_PASSED",
+        "prediction_validation_status": "EXTERNAL_HOLDOUT_PENDING",
+        "panel_sha256": certified_sha256,
+        "matched_blocks": ["marketing_behavior"],
+        "core_same_person_joint": True,
+        "cross_block_same_person_joint": False,
+        "client_joint_outputs_allowed": False,
+        "descriptive_core_outputs_allowed": True,
+        "matched_block_outputs_allowed": True,
+        "cross_block_joint_claims_allowed": False,
+    }
+    document.update(overrides)
+    return json.dumps(document, indent=2).encode("utf-8")
+
+
+def _csv(header: list[str], rows: list[list[str]]) -> bytes:
+    import csv
+    import io
+
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(header)
+    writer.writerows(rows)
+    return buffer.getvalue().encode("utf-8")
+
+
+@dataclass
+class SyntheticCompanions:
+    """A synthetic population whose contract declares a companion set."""
+
+    population: SyntheticPopulation
+    assets: dict[str, bytes]
+
+    @property
+    def contract(self) -> Any:
+        return self.population.contract
+
+    @property
+    def source(self) -> Any:
+        return self.population.source
+
+    def locations(self, label: str = "v1_4") -> dict[str, str]:
+        """Asset id -> location, for ``label``'s set. The certificate differs per label."""
+        return {
+            asset: f"companions/{label}/{asset}"
+            if asset == "CORE_JOINT_STATUS.json"
+            else f"companions/{asset}"
+            for asset in self.assets
+        }
+
+
+def build_synthetic_companions() -> SyntheticCompanions:
+    from dataclasses import replace
+
+    from aia_core.domain.population import CompanionKind, CompanionSpec, content_sha256
+
+    pop = build_synthetic_population()
+    fields = list(pop.fields)
+    assets = {
+        "SCORECARD.csv": _csv(["dimension", "score"], [[f, "0.9"] for f in fields]),
+        "PERSONA_CATALOG.csv": _csv(["column", "label"], [["vek", "age"], ["segment", "seg"]]),
+        "RESPONDENT_AUDIT.csv": _csv(
+            ["panel_row_id", "audit_status"], [[f"R{i}", "PASS"] for i in range(1, 7)]
+        ),
+        "CORE_JOINT_STATUS.json": joint_certificate_json(content_sha256(pop.panel_bytes("v1_4"))),
+    }
+    specs = (
+        CompanionSpec(
+            asset_id="SCORECARD.csv",
+            kind=CompanionKind.DIMENSION_SCORECARD,
+            sha256=content_sha256(assets["SCORECARD.csv"]),
+            byte_size=len(assets["SCORECARD.csv"]),
+            fmt="csv",
+            rows=len(fields),
+            columns=2,
+        ),
+        CompanionSpec(
+            asset_id="PERSONA_CATALOG.csv",
+            kind=CompanionKind.PERSONA_SIGNAL_CATALOG,
+            sha256=content_sha256(assets["PERSONA_CATALOG.csv"]),
+            byte_size=len(assets["PERSONA_CATALOG.csv"]),
+            fmt="csv",
+            rows=2,
+            columns=2,
+            panel_column_field="column",
+        ),
+        CompanionSpec(
+            asset_id="RESPONDENT_AUDIT.csv",
+            kind=CompanionKind.RESPONDENT_AUDIT,
+            sha256=content_sha256(assets["RESPONDENT_AUDIT.csv"]),
+            byte_size=len(assets["RESPONDENT_AUDIT.csv"]),
+            fmt="csv",
+            rows=6,
+            columns=2,
+            status_column="audit_status",
+            forbidden_status="FAIL",
+        ),
+        CompanionSpec(
+            asset_id="CORE_JOINT_STATUS.json",
+            kind=CompanionKind.CORE_JOINT_STATUS,
+            sha256=content_sha256(assets["CORE_JOINT_STATUS.json"]),
+            byte_size=len(assets["CORE_JOINT_STATUS.json"]),
+            fmt="json",
+        ),
+    )
+    pop.contract = replace(
+        pop.contract, companions=specs, joint_certified_labels=frozenset({"v1_4"})
+    )
+    companions = SyntheticCompanions(population=pop, assets=assets)
+    # Every label ships the same pinned certificate bytes: it certifies v1_4 only.
+    for label in ("v1_BASE", "v1_1", "v1_4"):
+        for asset, location in companions.locations(label).items():
+            pop.source.put(location, assets[asset])
+    return companions
+
+
+@pytest.fixture
+def synthetic_companions() -> SyntheticCompanions:
+    """A synthetic population whose contract requires a companion set."""
+    return build_synthetic_companions()
+
+
+@pytest.fixture
+def certificate_json() -> Any:
+    """Return :func:`joint_certificate_json`."""
+    return joint_certificate_json

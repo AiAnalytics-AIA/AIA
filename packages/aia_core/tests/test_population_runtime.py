@@ -138,7 +138,8 @@ def test_import_records_its_full_validation_report(
     record = PopulationRegistryRepository(session).validation_record(base.version_id)
     assert record is not None
     assert record["passed"] is True
-    assert record["companions_validated"] is False
+    # The synthetic contract declares no companions, so the (empty) set is complete.
+    assert record["companions_validated"] is True
     assert {c["check"] for c in record["checks"]} >= {
         "dictionary.checksum",
         "schema.columns_in_order",

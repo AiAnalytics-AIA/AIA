@@ -34,10 +34,12 @@ from aia_core.application.population import PopulationRuntime
 from aia_core.domain.population import (
     CZ_SYNTHETIC_V17,
     ClaimRule,
+    CompanionKind,
     DerivedOrigin,
     FieldPolicy,
     FieldUse,
     ImportRejected,
+    JointState,
     KnownVersion,
     ParsedPanel,
     PopulationKind,
@@ -47,6 +49,7 @@ from aia_core.domain.population import (
     WeightScheme,
     build_field_policy,
     content_sha256,
+    evaluate_joint_certificate,
     field_names_fingerprint,
     resolve_weight_scheme,
 )
@@ -391,6 +394,10 @@ def synthetic_cz_bundle(
             ),
         ),
         static_reference_label="syn_static",
+        # Companion bytes are withheld with the archive; companions have their own
+        # parity tests below, against the ledger and methodology M03/M14.
+        companions=(),
+        joint_certified_labels=frozenset(),
     )
     source = InMemoryPopulationSource({"dictionary.csv": dictionary})
     for label, data in panels.items():
@@ -583,3 +590,109 @@ def test_f11_scenarios_3_and_4_a_missing_weight_column_is_rejected(
     roles = {s.role for s in CZ.weight_schemes if s.column in dropped}
     for role in roles:
         assert any(f.startswith(f"weights.{role}.present") for f in caught.value.failures)
+
+
+# --------------------------------------------------------------------------- #
+# 5. Companion assets and the joint certificate
+# --------------------------------------------------------------------------- #
+
+# Ledger assets that are not per-version companions: the panels themselves, the
+# dictionary (validated as the version's dictionary), the dataset manifest whose
+# content this contract *is*, and two global rule/anchor files that
+# population-subsystem.md §9 does not list as companions.
+NOT_COMPANIONS = {
+    "FINALNI_KOMPLETNI_PANEL_v17_1_2.csv.gz",
+    "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+    "FINALNI_KOMPLETNI_PANEL_v17_0_BASE.csv.gz",
+    "FIELD_DICTIONARY_v17_1.csv",
+    "DATA_CONTRACT_v17.json",
+    "PRODUCT_POLICY.json",
+    "VALIDATION_ANCHORS.json",
+}
+
+
+@pytest.fixture(scope="module")
+def ledger(reference_repo: Path) -> dict[str, Any]:
+    datasets = load(reference_repo, "dataset-ledger.json")["datasets"]
+    return {d["path"].rsplit("/", 1)[-1]: d for d in datasets}
+
+
+@pytest.fixture(scope="module")
+def m03(reference_repo: Path) -> Any:
+    entries = load(reference_repo, "methodology-ledger.json")
+    entries = entries.get("entries", entries) if isinstance(entries, dict) else entries
+    return next(e for e in entries if e["id"] == "M03")
+
+
+def test_the_companion_set_is_the_ledger_less_the_non_companions(ledger: dict[str, Any]) -> None:
+    assert {c.asset_id for c in CZ.companions} == set(ledger) - NOT_COMPANIONS
+    assert len(CZ.companions) == 15
+
+
+def test_every_companion_identity_matches_the_ledger(ledger: dict[str, Any]) -> None:
+    for spec in CZ.companions:
+        entry = ledger[spec.asset_id]
+        assert (spec.sha256, spec.byte_size) == (entry["sha256"], entry["bytes"]), spec.asset_id
+        assert entry["hash_verified"] is True
+        if spec.fmt == "csv":
+            assert (spec.rows, spec.columns) == (entry["rows"], entry["columns"]), spec.asset_id
+
+
+def test_m14_shape_invariants_are_encoded(reference_repo: Path) -> None:
+    entries = load(reference_repo, "methodology-ledger.json")
+    entries = entries.get("entries", entries) if isinstance(entries, dict) else entries
+    m14 = next(e for e in entries if e["id"] == "M14")["constants"]
+    specs = {c.kind: c for c in CZ.companions}
+    assert specs[CompanionKind.PERSONA_SIGNAL_CATALOG].rows == int(m14["persona catalog rows"])
+    assert specs[CompanionKind.RESPONDENT_AUDIT].rows == int(m14["respondent audit rows"])
+    assert int(m14["respondent audit hard failures allowed"]) == 0
+    assert specs[CompanionKind.RESPONDENT_AUDIT].forbidden_status == "FAIL"
+    assert specs[CompanionKind.DIMENSION_SCORECARD].rows == CZ.field_count == 400
+    assert specs[CompanionKind.PERSONA_SIGNAL_CATALOG].panel_column_field == "column"
+
+
+def m03_certificate(m03: Any, panel_sha: str) -> bytes:
+    """``CORE_JOINT_STATUS.json`` rebuilt from the constants M03 recorded from it."""
+    restrictions = m03["claim_restrictions"]
+    document = {
+        "status": "COHERENT_CORE_MATCHED_BLOCKS",
+        "structure_status": "QC_PASSED",
+        "panel_sha256": panel_sha,
+        "matched_blocks": m03["matched_blocks"],
+        "core_same_person_joint": True,
+        **{k: v for k, v in restrictions.items() if isinstance(v, bool)},
+        "prediction_validation_status": restrictions["prediction_validation_status"],
+    }
+    return json.dumps(document).encode()
+
+
+def test_m03_the_certificate_binds_only_the_live_panel(m03: Any) -> None:
+    live = CZ.known_version("v17_4_0")
+    static = CZ.known_version("v17_1_2")
+    assert live is not None and static is not None
+    assert m03["constants"]["panel_sha256"].startswith(live.sha256)
+    certificate = m03_certificate(m03, live.sha256)
+
+    on_live = evaluate_joint_certificate(certificate, panel_sha256=live.sha256)
+    assert on_live.state is JointState.CERTIFIED
+    for flag, value in m03["claim_restrictions"].items():
+        if isinstance(value, bool):
+            assert getattr(on_live, flag) is value, flag
+    assert on_live.matched_blocks == set(m03["matched_blocks"])
+    assert on_live.prediction_validation_status == "EXTERNAL_HOLDOUT_PENDING"
+
+    on_static = evaluate_joint_certificate(certificate, panel_sha256=static.sha256)
+    assert on_static.state is JointState.NOT_THIS_PANEL
+    assert CZ.joint_certified_labels == {"v17_4_0"}
+
+
+def test_m03_client_joint_and_cross_block_claims_stay_forbidden(m03: Any) -> None:
+    live = CZ.known_version("v17_4_0")
+    assert live is not None
+    status = evaluate_joint_certificate(m03_certificate(m03, live.sha256), panel_sha256=live.sha256)
+    assert not status.decide({"vek": "core", "pohlavi": "core"}, client_facing=True).allowed
+    decision = status.decide({"vek": "core", "party": "politics"}, client_facing=False)
+    assert (decision.allowed, decision.reason) == (False, "cross_block_same_person_forbidden")
+    assert status.decide(
+        {"vek": "core", "pohlavi": "population_anchor"}, client_facing=False
+    ).allowed

@@ -1123,3 +1123,49 @@ class RunPopulationBindingRow(Base):
         CheckConstraint("view in ('BASE','ANALYSIS')", name="run_population_view_known"),
         Index("ix_run_population_version", "version_id"),
     )
+
+
+class PopulationCompanionSetRow(Base):
+    """The validated companion set of one dataset version. **Insert-once.**
+
+    A version is usable only with its complete companion set, when its contract
+    declares one. The set is attached once -- at import or afterwards -- and never
+    replaced: a different set is a different version's business. ``report_json``
+    keeps every companion check and the joint-certificate evaluation it passed on.
+    """
+
+    __tablename__ = "population_companion_sets"
+
+    version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    set_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    joint_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    report_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    attached_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    attached_by: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["version_id"], ["population_dataset_versions.version_id"]),
+        CheckConstraint(
+            "joint_state in "
+            "('CERTIFIED','NOT_THIS_PANEL','UNKNOWN_STATUS','UNPARSEABLE','MISSING')",
+            name="population_companion_joint_state_known",
+        ),
+    )
+
+
+class PopulationCompanionAssetRow(Base):
+    """One companion asset of a version: its identity and where its bytes live."""
+
+    __tablename__ = "population_companion_assets"
+
+    version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    asset_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    location: Mapped[str] = mapped_column(Text, nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["version_id"], ["population_companion_sets.version_id"]),
+        CheckConstraint("byte_size > 0", name="population_companion_bytes_positive"),
+    )
