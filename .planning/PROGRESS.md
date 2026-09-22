@@ -171,7 +171,10 @@ left to build.
 7. Rate limiting.
 8. Delete `src/server.js` + `src/views/` and their root dependencies, once step 4
    removes the last thing that needs them.
-9. **Sociomap as a durable job and a route**, once the worker (step 2) exists:
+9. **Sociomap as a durable job and a route** — **blocked on the shared worker
+   (platform-runtime)**; the Sociomap context is paused until the worker execution
+   contract lands, and the first path that can emit a Sociomap to a client must
+   carry the client-deliverable gate (OI-17). Then:
    `compute_sociomap` executed as a workflow step, its payload stored through
    `ArtifactRepository.put_json`, a study-scoped `GET` that serves it, and the
    `apps/web` sociomapping page rewired to render it (it still implements the
@@ -187,7 +190,7 @@ left to build.
 | D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
-| D6 | **Accept or replace the AIA Sociomap declarations**: dissimilarity target, `aia_rowcond_unfolding_v1`, the map frame, relation-missing `refuse`. Methodology owner, not engineering | Using `AIA_SOCIOMAP_V1` for a client deliverable | `.planning/open-items.md` OI-16 |
+| D6 | **Accept, replace or defer the four AIA Sociomap declarations** — dissimilarity target, `aia_rowcond_unfolding_v1`, the map frame, relation-missing `refuse`. Decision package ready with approval fields; methodology owner, not engineering. **The only methodology decision preventing client use** | Any client-facing Sociomap | `docs/architecture/sociomapa-methodology-decision.md` · OI-16 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);
