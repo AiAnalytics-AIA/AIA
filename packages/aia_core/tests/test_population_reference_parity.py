@@ -58,6 +58,25 @@ from aia_core.infrastructure.population_source import InMemoryPopulationSource
 
 pytestmark = pytest.mark.parity
 
+
+def _operator(*permissions: str) -> Any:
+    """An issued population-operator context, the only thing establish/promote accept."""
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+
+    config = PopulationOperatorConfig.from_names(
+        {"owner": permissions or ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+    )
+    return PopulationAuthority(config).operator_context(
+        AuthenticatedPrincipal(user_id="owner", organization_id="platform")
+    )
+
+
+OPERATOR = _operator()
+
 REPO = Path(__file__).resolve().parents[3]
 CZ = CZ_SYNTHETIC_V17
 
@@ -420,14 +439,14 @@ def established_runtime(session: Session, contract: Any, source: Any) -> Populat
         population_id="CZ_STATIC_REFERENCE",
         kind=PopulationKind.STATIC,
         version_id=ids["syn_static"],
-        actor_id="parity",
+        operator=OPERATOR,
         reason="parity",
     )
     rt.establish(
         population_id="CZ_LIVE",
         kind=PopulationKind.LIVE,
         version_id=ids["syn_live"],
-        actor_id="parity",
+        operator=OPERATOR,
         reason="parity",
     )
     return rt

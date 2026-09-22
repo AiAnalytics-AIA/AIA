@@ -74,7 +74,9 @@ decides otherwise.
   `PopulationRuntime.attach_companions` · `tests/test_population_companions.py`
   (41) · parity: 15 identities equal the ledger, M14 shapes, M03 certificate binds
   `v17_4_0` only
-- [ ] 3. Population operator authority; close OI-8
+- [x] 3. Population operator authority; close OI-8 — `domain/population/authority.py`,
+  `application/population_authority.py`, two `layer_check` rules ·
+  `tests/test_population_authority.py` (17)
 - [ ] 4. Binding + RuntimePopulation carry policy and joint status; migration
 - [ ] 5. Derived-field decision matrix, OI-7 archive-dependency artifact, docs,
   PROGRESS, open items, agent status

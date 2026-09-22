@@ -34,6 +34,25 @@ from aia_core.domain.population import (
     validate_companions,
 )
 
+
+def _operator(*permissions: str) -> Any:
+    """An issued population-operator context, the only thing establish/promote accept."""
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+
+    config = PopulationOperatorConfig.from_names(
+        {"owner": permissions or ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+    )
+    return PopulationAuthority(config).operator_context(
+        AuthenticatedPrincipal(user_id="owner", organization_id="platform")
+    )
+
+
+OPERATOR = _operator()
+
 SHA = content_sha256(b"the panel")
 OTHER = content_sha256(b"another panel")
 
@@ -363,14 +382,14 @@ def establish_both(rt: PopulationRuntime, versions: dict[str, Any]) -> None:
         population_id="SYN_STATIC",
         kind=PopulationKind.STATIC,
         version_id=versions["v1_1"].version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="r",
     )
     rt.establish(
         population_id="SYN_LIVE",
         kind=PopulationKind.LIVE,
         version_id=versions["v1_4"].version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="r",
     )
 
@@ -415,7 +434,7 @@ def test_a_version_without_companions_is_registered_but_not_usable(
             population_id="SYN_STATIC",
             kind=PopulationKind.STATIC,
             version_id=static.version_id,
-            actor_id="owner",
+            operator=OPERATOR,
             reason="r",
         )
     assert base.version_id != static.version_id
@@ -437,7 +456,7 @@ def test_companions_can_be_attached_once_after_import(
         population_id="SYN_STATIC",
         kind=PopulationKind.STATIC,
         version_id=static.version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="r",
     )
     with pytest.raises(PopulationError) as caught:
@@ -516,7 +535,7 @@ def test_promotion_to_a_version_without_companions_is_refused(
             population_id="SYN_LIVE",
             target_version_id=newer.version_id,
             expected_current_version_id=versions["v1_4"].version_id,
-            actor_id="owner",
+            operator=OPERATOR,
             reason="r",
         )
 

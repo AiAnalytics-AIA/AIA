@@ -10,6 +10,13 @@ The single entry point for callers above the domain is
 ``aia_core.application.population.PopulationRuntime``.
 """
 
+from .authority import (
+    PopulationOperatorContext,
+    PopulationOperatorGrant,
+    PopulationPermission,
+    PopulationPermissionDenied,
+    require_operator,
+)
 from .binding import (
     PopulationBinding,
     PopulationSelector,
@@ -147,6 +154,10 @@ __all__ = [
     "PopulationImportContract",
     "PopulationKind",
     "PopulationNotEstablished",
+    "PopulationOperatorContext",
+    "PopulationOperatorGrant",
+    "PopulationPermission",
+    "PopulationPermissionDenied",
     "PopulationSelector",
     "PopulationView",
     "PromotionConflict",
@@ -178,6 +189,7 @@ __all__ = [
     "parse_weight",
     "plan_establish",
     "plan_promotion",
+    "require_operator",
     "require_runtime_eligible",
     "resolve_binding",
     "resolve_weight_scheme",

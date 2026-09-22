@@ -25,9 +25,10 @@ What it guarantees, each as a refusal rather than a degradation:
 * **A run reads only the population it recorded.** :meth:`load_for_run` takes the
   binding from the run; there is no "resolve the current one instead" path.
 
-Not here yet, deliberately: authorization for establish/promote (there is no
-platform-administrator role in the scope model), companion-asset validation, and a
-process-wide cache. See ``.planning/plans/done/population-version-foundation.md``.
+Establish and promote need a population-operator context
+(``aia_core.domain.population.authority``), issued only by
+``PopulationAuthority`` from trusted configuration; the actor they record is the
+operator's verified user id. Not here yet, deliberately: a process-wide cache.
 """
 
 from __future__ import annotations
@@ -55,6 +56,8 @@ from ..domain.population import (
     PopulationImportContract,
     PopulationKind,
     PopulationNotEstablished,
+    PopulationOperatorContext,
+    PopulationPermission,
     PopulationSelector,
     PopulationView,
     RuntimePopulation,
@@ -67,6 +70,7 @@ from ..domain.population import (
     dataset_version_id,
     plan_establish,
     plan_promotion,
+    require_operator,
     resolve_binding,
     resolve_weight_scheme,
     validate_companions,
@@ -333,13 +337,18 @@ class PopulationRuntime:
     def establish(
         self,
         *,
+        operator: PopulationOperatorContext,
         population_id: str,
         kind: PopulationKind,
         version_id: str,
-        actor_id: str,
         reason: str,
     ) -> Population:
-        """Create a population pointing at ``version_id``. Once per population."""
+        """Create a population pointing at ``version_id``. Once per population.
+
+        Needs ``POPULATION_ESTABLISH``; the recorded actor is the operator's verified
+        user id, never an argument.
+        """
+        actor_id = require_operator(operator, PopulationPermission.POPULATION_ESTABLISH)
         dataset = self._contract.dataset_id
         version = self._registry.get_version(version_id)
         if version is None:
@@ -362,18 +371,19 @@ class PopulationRuntime:
     def promote_live(
         self,
         *,
+        operator: PopulationOperatorContext,
         population_id: str,
         target_version_id: str,
         expected_current_version_id: str,
-        actor_id: str,
         reason: str,
     ) -> Population:
         """Explicitly move a LIVE population to ``target_version_id``.
 
-        Compare-and-set twice over: the domain rule checks the caller's expected
-        version against a locked read, and the repository's conditional update
-        refuses if the pointer moved anyway.
+        Needs ``POPULATION_PROMOTE``. Compare-and-set twice over: the domain rule
+        checks the caller's expected version against a locked read, and the
+        repository's conditional update refuses if the pointer moved anyway.
         """
+        actor_id = require_operator(operator, PopulationPermission.POPULATION_PROMOTE)
         dataset = self._contract.dataset_id
         population = self._registry.population(population_id, for_update=True)
         if population is None:
