@@ -78,7 +78,7 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | `full_simulation.py`, `scenario_compiler.py` | Simulation | Phase 7 | ○ | ○ | Seeded reproduction required |
 | `data_library.py`, `society_insights.py` | Data Library | Phase 8 | ○ | ○ | Approval ordering must hold |
 | `population_context.py`, `donor_fusion.py`, `core_joint.py` | Population | Phase 8 | ○ | ○ | 18,766 × 400 panel |
-| `sociomap.py` (+ `ui_app.html` `*66` terrain, normaliser, object metrics) | Sociomapa core | `aia_core.domain.sociomap` | Done (core) | ◐ | ✅ against golden fixtures F1–F3, F5–F7, F9; F8 partial (OI-7); layout **not** at parity — the legacy Python and R algorithms are refused (OI-6, OI-8) and an AIA algorithm is declared instead. Deviations S1–S6 in `docs/architecture/sociomapa-deterministic-engine.md` §8 |
+| `sociomap.py` (+ `ui_app.html` `*66` terrain, normaliser, object metrics) | Sociomapa core | `aia_core.domain.sociomap` | Done (core) | ◐ | ✅ against golden fixtures F1–F3, F5–F7, F9; F8 partial (OI-14); layout **not** at parity — the legacy Python and R algorithms are refused (OI-13, OI-15) and an AIA algorithm is declared instead. Deviations S1–S6 in `docs/architecture/sociomapa-deterministic-engine.md` §8 |
 | `visualization_lab.py`, segments, comparison, object manager | Sociomapa modes | Phase 9 | ○ | ○ | Numerical parity required |
 | 19 `.bat` launchers, `launcher_bootstrap.py` | Windows startup | — | Dropped | n/a | Replaced by containers + CI |
 | `legacy_job_dispatch.py`, `LEGACY_STAGE_MAP` | Pre-17.8 compatibility | — | Dropped | n/a | Remove after Phase 3 |

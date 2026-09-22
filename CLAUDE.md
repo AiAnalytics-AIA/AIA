@@ -57,6 +57,9 @@ apps/
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
+    population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
+                            contract + validation, weights, bindings, RuntimePopulation
+      czech.py              The Czech v17 import contract (pinned by hash, not copied)
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics
     scope.py                Organization/Client/Study vocabulary, roles, permissions
@@ -71,17 +74,23 @@ packages/aia_core/src/aia_core/
       view.py               drag overrides, view terrain, scenarios (never write) F9
   application/
     scope.py                ScopeResolver — the ONLY issuer of a scope context
+    population.py           PopulationRuntime — the ONLY loader of population data
   infrastructure/
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
     repositories.py         ProjectRepository
     scope_repository.py     Organizations, clients, studies, grants
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
-    workflow_repository.py  Durable jobs, leases, heartbeats, cost reservations
+    workflow_repository.py  Durable jobs, leases, heartbeats, cost reservations,
+                            the population binding each run records
+    population_repository.py  Population registry: versions, populations, history
+    population_parser.py    Text-preserving panel + dictionary parser (stdlib)
+    population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     storage.py              ArtifactStore: S3 / filesystem / memory
 
 migrations/                 Alembic
 docs/architecture/          System design + 7 ADRs
+docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, parity matrix, legacy map
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
@@ -104,7 +113,14 @@ fails the build — that would mean scope had stopped being carried in the path.
 
 **The legacy prototype is not in this repository.** It lives at
 `../npc-panel-reference`, reached through `AIA_LEGACY_REFERENCE`, and is used by
-the parity and characterization suites only.
+the parity and characterization suites only. The population parity suite reads the
+committed contracts and golden fixtures of `AiAnalytics-AIA/AIA-reference` through
+`AIA_REFERENCE_REPO` (default `../aia-reference`) — never the withheld archive.
+
+**The population is resolved once per run.** Research and simulation code gets
+population data only from `PopulationRuntime.load_for_run`, which reads the
+`PopulationBinding` the run recorded at creation. There is no other loader, no
+default weight and no fallback version; `make layer_check` enforces the loader.
 
 **Sociomapping golden fixtures are.** F1–F9 are synthetic inputs with the
 reference's recorded outputs, vendored under
@@ -121,7 +137,7 @@ reference's recorded outputs, vendored under
 | New migration | `make migration m="add jobs"` |
 | Run everything | `make dev` |
 | Tests | `make test` (core + API) |
-| Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`) |
+| Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
 | Lint | `make lint` |
 | Format | `make format` |
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |

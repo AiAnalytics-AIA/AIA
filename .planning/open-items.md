@@ -168,7 +168,89 @@ for the first time.
 
 ---
 
-## OI-6 · Gap · The reference's Python unfolding cannot be reproduced without its source
+## OI-6 · Finding · Project content carries a second, unvalidated population identity
+
+**Claim.** A project revision records which population and weight it used as free
+text the caller supplies — `population_snapshot`, `weighting` and
+`aggregation_policy` in the content, `panel_version` on the revision — and none of
+it is checked against the population registry or the import contract, so it can
+disagree with the `PopulationBinding` the run actually records.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/pipeline.py:294,298-299 @ 17c0a6b`
+(those keys feed the FIELDWORK and AGGREGATION stage fingerprints);
+`packages/aia_core/src/aia_core/infrastructure/repositories.py:407 @ 17c0a6b`
+(`panel_version: str = ""`); `infrastructure/tables.py` `ProjectRevisionRow.panel_version`.
+
+**Reproduction.** `ProjectRepository.save(project_id, content={..., "population_snapshot":
+{"panel_version": "v99"}, "weighting": "vaha_kalibrovana"})` succeeds, and the stage
+fingerprint changes on the string alone.
+
+**Consequence.** R4 one level up: the project can *say* `v17_4_0` / structural
+weight while the run was bound to a different version or weight, and a string edit
+reopens stages without any population change. Harmless today — no research step
+reads the population yet — and a false provenance claim the moment one does.
+
+**Smallest fix.** When research execution lands, derive the FIELDWORK/AGGREGATION
+fingerprint inputs from the resolved binding (`version_id`, `content_sha256`,
+`weight_column`, `view`) instead of from free text, and reject a `weighting` role
+the contract does not declare.
+
+**Test that would catch it.** A pipeline test asserting that two projects with the
+same binding and different `population_snapshot` strings fingerprint identically,
+and that an undeclared `weighting` role is refused.
+
+**Status.** Open. Filed by the population foundation
+(`.planning/plans/done/population-version-foundation.md`), deliberately not fixed
+there: it changes stage-fingerprint semantics, which is research-engine scope and
+needs the parity suite run against `AIA_LEGACY_REFERENCE`.
+
+---
+
+## OI-7 · Question · The seven enrichment derivations are not recovered
+
+**Claim.** The ANALYSIS population view needs `audience_dimensions.enrich_panel`'s
+seven `*_derived` fields, and their derivation logic is in the withheld archive
+only; `PopulationRuntime` therefore refuses to load ANALYSIS in production.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/population.py`
+`PopulationRuntime._enrich` (raises `EnrichmentFailed` with no enricher) @ this
+change; AIA-reference `data-import-contracts/czech-population.md` OUTPUT.
+
+**Consequence.** Correct fail-closed behaviour (R1), and a hard blocker for any
+research or simulation step that needs the analysis view. The BASE view loads.
+
+**Decision needed.** Recover the derivations from the archive (data owner, D1/D3 in
+AIA-reference `open-decisions.md`) and port them behind the `Enricher` protocol
+with an EXACT parity fixture — or decide the research engine does not need them.
+Either way, the eight runtime fields still need a data-owner classification before
+any may back a client-facing claim (`DerivedField.client_claims_allowed` is False).
+
+**Status.** Open.
+
+---
+
+## OI-8 · Question · No authorization model for establish and promote
+
+**Claim.** `PopulationRuntime.establish` and `promote_live` require an actor and a
+reason but check no permission: the scope model has no platform-administrator role,
+and population data is not study-scoped.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/population.py`
+`establish` / `promote_live` @ this change; `domain/scope.py` `Permission`.
+
+**Consequence.** None today — no route, worker or CLI exposes them. The first one
+that does must not ship without a permission check, or any caller with a session
+could move LIVE for every study at once.
+
+**Smallest fix.** A platform-level permission (for example `POPULATION_PROMOTE`)
+issued only to an operator role, checked in both methods, with the refusal tested
+by type.
+
+**Status.** Open. Must close before any exposure of promotion.
+
+---
+
+## OI-13 · Gap · The reference's Python unfolding cannot be reproduced without its source
 
 **Claim.** `python_weighted_unfolding` — the layout every local reference run
 actually used — is refused by the engine, because fixture F4 pins its output but
@@ -201,7 +283,7 @@ sociomapa-deterministic.
 
 ---
 
-## OI-7 · Gap · Object-map base layout (`baseObjectLayout66`) is unrecovered
+## OI-14 · Gap · Object-map base layout (`baseObjectLayout66`) is unrecovered
 
 **Claim.** The reference places objects on the object map with a 1,235-character
 frontend function, `baseObjectLayout66(effectiveMatrix66())`, whose source is
@@ -233,7 +315,7 @@ comparing every sample, `sum_ht` and `finite_hr_cells`.
 
 ---
 
-## OI-8 · Gap · `REF-GAP-SOCIO-R-SMACOF` — R numerical parity is not claimed
+## OI-15 · Gap · `REF-GAP-SOCIO-R-SMACOF` — R numerical parity is not claimed
 
 **Claim.** No fixture characterises the reference's R branch
 (`fit_r_smacof`, R `smacof::unfolding`, row-conditional), so `r_smacof_unfolding`
@@ -270,7 +352,7 @@ reference's `parity-plan.md` records for F12.
 
 ---
 
-## OI-9 · Question · The AIA layout and its declarations need methodology sign-off
+## OI-16 · Question · The AIA layout and its declarations need methodology sign-off
 
 **Claim.** Four spec values in `AIA_SOCIOMAP_V1` are AIA declarations, not
 recovered reference behaviour: the dissimilarity target `scale_top_minus_rating`,

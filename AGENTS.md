@@ -159,6 +159,24 @@ Concurrency semantics are tested against real PostgreSQL, with real concurrent
 transactions, and CI runs both engines: PostgreSQL for truth, SQLite to keep the
 offline development path working.
 
+**SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
+aware `datetime` on PostgreSQL and a **naive** one on SQLite, which has no
+timestamp type. The same repository code therefore builds a valid domain object
+on one engine and trips a "must be timezone-aware" guard on the other — found
+when the population registry's `DatasetVersion` refused its own rows on SQLite
+only.
+
+```python
+# WRONG — passes on PostgreSQL, raises on SQLite
+imported_at=row.imported_at
+
+# RIGHT — every value this schema writes is UTC, so a naive read is UTC
+from .tables import as_utc
+imported_at=as_utc(row.imported_at)
+```
+
+Convert at the row → domain boundary, never by loosening the domain guard.
+
 Anything touching the database lives in `infrastructure/`. See
 [ARCHITECTURE.md §3](ARCHITECTURE.md#3-enforcement--make-layer_check).
 

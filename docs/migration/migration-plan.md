@@ -184,7 +184,7 @@ manager, respondent and segment dialogue.
   terrain, normaliser and object metrics moved from the browser to the backend.
   **The layout did not port**: the reference's Python unfolding cannot be
   reconstructed from its fixture, and its R branch is uncharacterised, so an AIA
-  algorithm is declared instead (OI-6, OI-8). Rendering is new. Profile before
+  algorithm is declared instead (OI-13, OI-15). Rendering is new. Profile before
   choosing the renderer.
 
 ### Phase 10 — Hardening

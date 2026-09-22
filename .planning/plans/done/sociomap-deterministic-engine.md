@@ -1,6 +1,6 @@
 # Sociomap deterministic engine — versioned spec, artifact, Python numerical path
 
-**Status:** done (all chunks landed; gaps carried as OI-6 – OI-9) · **Owner:** sociomapa-deterministic (+ parity-quality for
+**Status:** done (all chunks landed; gaps carried as OI-13 – OI-16) · **Owner:** sociomapa-deterministic (+ parity-quality for
 `REF-GAP-SOCIO-R-SMACOF`) · **Started:** 2026-09-22
 
 ## Problem
@@ -110,7 +110,7 @@ to legacy maps until the legacy source (or an R fixture) is available.
   (F3), cannot feed the implemented target and is refused when requested.
 - **Chunk 6, scenarios.** The reference's what-if edits the relation matrix,
   and in the reference that also moves objects (through `baseObjectLayout66`,
-  OI-7). Here positions come from the ratings, so a scenario changes heights and
+  OI-14). Here positions come from the ratings, so a scenario changes heights and
   metrics only — recorded rather than approximated.
 
 ## Measured
@@ -122,7 +122,7 @@ to legacy maps until the legacy source (or an R fixture) is available.
 ## Review outcome
 
 Not yet reviewed by a human. Items the reviewer is asked to rule on are D6 /
-OI-9 (the four AIA declarations). Not run: the PostgreSQL suite and the
+OI-16 (the four AIA declarations). Not run: the PostgreSQL suite and the
 legacy-source parity tier — neither the database nor `AIA_LEGACY_REFERENCE` was
 available in the session, and this change touches neither the schema nor any
 module the legacy-source tier covers.

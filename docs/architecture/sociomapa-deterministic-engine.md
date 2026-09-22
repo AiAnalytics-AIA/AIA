@@ -243,8 +243,8 @@ corrected in the same change as this engine.
 
 ## 12. Open
 
-Tracked in [`.planning/open-items.md`](../../.planning/open-items.md): OI-6 (the
-reference's Python unfolding), OI-7 (`baseObjectLayout66`), OI-8 (R smacof,
-`REF-GAP-SOCIO-R-SMACOF`), OI-9 (methodology sign-off for the AIA declarations
+Tracked in [`.planning/open-items.md`](../../.planning/open-items.md): OI-13 (the
+reference's Python unfolding), OI-14 (`baseObjectLayout66`), OI-15 (R smacof,
+`REF-GAP-SOCIO-R-SMACOF`), OI-16 (methodology sign-off for the AIA declarations
 in §5). Not started: saved segments, A/B comparison, object manager, request
 arrows, time series — each needs its reference behaviour read first.
