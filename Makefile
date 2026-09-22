@@ -2,8 +2,14 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 VENV := .venv
-PY := $(VENV)/bin/python
-PIP := $(VENV)/bin/python -m pip
+
+# Use the project venv when it exists, otherwise whatever python is on PATH.
+# CI installs into the runner's interpreter and has no .venv, so hardcoding the
+# venv path breaks every target that uses it -- which is how `make openapi`
+# failed on the first push.
+PY := $(shell [ -x $(VENV)/bin/python ] && echo $(VENV)/bin/python || command -v python3)
+PIP := $(PY) -m pip
+BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web \
         test test-core test-api test-parity test-web lint format typecheck \
@@ -38,7 +44,7 @@ dev: ## Run the API and web client together
 	@trap 'kill 0' EXIT; $(MAKE) dev-api & $(MAKE) dev-web & wait
 
 dev-api: ## Run the API with autoreload on :8000
-	@$(VENV)/bin/uvicorn aia_api.main:app --reload --port 8000
+	@$(BIN)uvicorn aia_api.main:app --reload --port 8000
 
 dev-web: ## Run the web client on :3000
 	@cd apps/web && npm run dev
@@ -58,16 +64,16 @@ test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
 
 lint: ## Lint Python and the web client
-	@$(VENV)/bin/ruff check packages/aia_core apps/api migrations
-	@$(VENV)/bin/ruff format --check packages/aia_core apps/api migrations
+	@$(BIN)ruff check packages/aia_core apps/api migrations
+	@$(BIN)ruff format --check packages/aia_core apps/api migrations
 	@cd apps/web && npm run lint
 
 format: ## Auto-format Python and the web client
-	@$(VENV)/bin/ruff format packages/aia_core apps/api migrations
-	@$(VENV)/bin/ruff check --fix packages/aia_core apps/api migrations
+	@$(BIN)ruff format packages/aia_core apps/api migrations
+	@$(BIN)ruff check --fix packages/aia_core apps/api migrations
 
 typecheck: ## Type-check Python and the web client
-	@$(VENV)/bin/mypy packages/aia_core/src apps/api/src
+	@$(BIN)mypy packages/aia_core/src apps/api/src
 	@cd apps/web && npx tsc --noEmit
 
 check: lint typecheck test ## Everything CI runs
