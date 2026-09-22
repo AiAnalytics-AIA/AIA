@@ -20,7 +20,7 @@ This module makes that policy typed and enforceable:
 
 The dictionary itself is **not** vendored. It is reference material bound to one
 population version, supplied at runtime with that version and checked against
-its SHA-256 (see ``.planning/plans/evidence-governance-foundation.md``).
+its SHA-256 (see ``.planning/plans/done/evidence-governance-foundation.md``).
 """
 
 from __future__ import annotations

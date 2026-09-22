@@ -101,6 +101,25 @@ Markers are registered in the root `pyproject.toml` and `--strict-markers` is on
 so a typo in a marker name is an error rather than a silently unfiltered run.
 Current markers: `parity`, `postgres`.
 
+## ruff and Czech text
+
+**`RUF001` rejects the characters Czech prose is made of.** Real report text uses
+an en dash between numbers (`18–29 let`) and non-breaking spaces as thousands
+separators (`12 345`), and a test of the prose number checker must use them — a
+hyphen and an ordinary space test a different code path. Written literally, ruff
+flags them as "ambiguous unicode" and some editors silently normalise them.
+
+```python
+# WRONG — flagged by RUF001, and invisible in review when it is an NBSP
+("lidé 18–29 let", ((18.0, 0), (29.0, 0))),
+
+# RIGHT — the escape is the character, and the diff shows it
+("lidé 18\u201329 let", ((18.0, 0), (29.0, 0))),
+```
+
+The same applies to regex character classes in source: write `[ \u00a0\u202f]`,
+never the literal characters.
+
 ## SQLAlchemy and PostgreSQL
 
 **SQLite cannot test concurrency.** It is single-writer, so every lease, lock and

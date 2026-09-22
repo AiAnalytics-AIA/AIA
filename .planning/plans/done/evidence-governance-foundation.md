@@ -1,6 +1,6 @@
 # Evidence and governance foundation, then the eight analysis modules
 
-**Status:** in progress · **Owner:** analysis-governance · **Started:** 2026-09-22
+**Status:** done · **Owner:** analysis-governance · **Started:** 2026-09-22 · **Finished:** 2026-09-22
 
 ## Problem
 
@@ -88,9 +88,45 @@ passes at 95% — so a draft the prototype would publish can be blocked here.
 - [x] 8. The eight analysis modules: specs, evidence table, draft schema,
       evidence gate, prompt rendered from the enums.
 - [x] 9. Application runner: one durable module, bounded repair loop, fail closed.
-- [ ] 10. Documents in sync: ARCHITECTURE, CLAUDE, domain map, parity matrix,
+- [x] 10. Documents in sync: ARCHITECTURE, CLAUDE, domain map, parity matrix,
       open items, PROGRESS.
 
 ## Review outcome
 
-Filled in when the plan is archived.
+Self-review only; no human review yet. What changed during the work:
+
+- **The analysis evidence gate moved into `evidence/`.** Planned as part of the
+  analysis package, it had to live beside the `AdmittedClaim` sentinel for the
+  capability to mean anything, so `evidence.admission` owns row checks and
+  minting, and `analysis.draft` owns only the prose rules.
+- **Numbers in a cited name are not claims.** A strict "every number" rule
+  blocked `vek 18-29` as two uncited numbers. The fix is narrow: numbers in the
+  cell label of a row the item cites, or in the question it answers, are names.
+  A year written in passing still blocks; that is the accepted cost.
+- **`AnalysisModuleResult` re-checks prose on construction.** Added after
+  noticing that a result built by hand bypassed the draft check.
+- **Pre-flight before spend** in the runner: a degraded certificate blocks a
+  client-facing module before any model call.
+- **Commits.** Chunks 1–2 were committed; the permission layer then refused
+  further commits (CLAUDE.md §5 requires explicit permission). Chunks 3–10 are
+  prepared, one message per chunk, awaiting that permission.
+
+### Layer-by-layer review map
+
+| Layer | File | Tests |
+| --- | --- | --- |
+| Domain · evidence | `domain/evidence/gate.py` | `test_evidence_field_policy.py` (gate primitives) |
+| | `domain/evidence/field_policy.py` | `test_evidence_field_policy.py`, parity §1 |
+| | `domain/evidence/joint_status.py` | `test_evidence_joint_status.py`, parity §2 |
+| | `domain/evidence/metrics.py` | `test_evidence_metrics.py`, parity §3 |
+| | `domain/evidence/support.py` | `test_evidence_support.py`, parity §3 |
+| | `domain/evidence/validation.py` | `test_evidence_validation.py` |
+| | `domain/evidence/claims.py` | `test_evidence_claims.py`, parity §4–5 |
+| | `domain/evidence/factual.py` | `test_evidence_claims.py` (factual layer) |
+| | `domain/evidence/admission.py` | `test_evidence_admission.py` |
+| Domain · analysis | `domain/analysis/modules.py`, `prompt.py` | `test_analysis_modules.py` |
+| | `domain/analysis/draft.py`, `result.py` | `test_analysis_draft.py` |
+| Application | `application/analysis.py` | `test_analysis_runner.py` |
+| Enforcement | `tools/layer_check.sh` (+3 rules) | probe-verified to fail, then green |
+| Tests · shared | `tests/conftest.py` (synthetic dictionary, certificate, rows, `reference_repo`) | — |
+| Documents | `ARCHITECTURE.md` §2 §3 §4 §8, `CLAUDE.md` §2, `AGENTS.md`, `domain-map.md`, `parity-matrix.md`, `reference-source.md`, `status.md`, `open-items.md` OI-1/6/7/8, `PROGRESS.md` | — |

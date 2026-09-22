@@ -42,6 +42,13 @@ than zero tests, rather than that it exited zero.
 **Status.** Open. Mitigated, honestly reported by the workflow itself, promotion
 condition recorded in `ARCHITECTURE.md §8`.
 
+**Widened 2026-09-22.** The evidence-governance parity cases that read the private
+reference repository (`AIA_REFERENCE_REPO`, e.g.
+`test_evidence_gate_parity.py::test_every_reference_field_rederives_identically`)
+skip in CI for the same reason. The recovered decision tables in that module do
+not need the reference and run everywhere; the 400-field checks do not. The same
+decision (D3) closes both.
+
 ---
 
 ## OI-2 · Finding · The dependency audit cannot fail
@@ -165,3 +172,88 @@ from a clean checkout on an image whose default `python3` is older than 3.12.
 documentation and tooling for the rules themselves, and `CLAUDE.md §5` requires
 one logical change per commit. Found while running the §10 verification sequence
 for the first time.
+
+---
+
+## OI-6 · Question · Gate decisions that only the withheld legacy source can confirm
+
+**Claim.** Five decisions in the evidence layer are fail-closed *readings* of the
+reference, because the legacy source is withheld with the archive
+(`REF-WITHHELD-REFERENCE-ARCHIVE`) and the reference repository records only
+excerpts, constants and thresholds for them:
+
+| Decision | Reading taken | Recovered evidence |
+| --- | --- | --- |
+| `tier_gate.py` Tier B permissions | aggregate, demographic breakdown, internal experimental; nothing else | docstring excerpt stops at "demographic breakdowns ma…" |
+| `tier_gate.py` Tier C | internal experimental only | not in the excerpt at all |
+| `core_joint._fallback()` values | every `*_allowed` false, no matched block certified | only that it exists and when it is used |
+| `uncertainty.py:129` `nlayer < 50` | donor-layer *indicative* line | the threshold, not the branch it guards |
+| `factual_layer.py` `fact_kind="fact"` without a source field | refused | docstring excerpt stops at "…wi" |
+
+**Anchor.** Tests `test_evidence_validation.py::test_tier_permits`,
+`test_evidence_joint_status.py::test_degraded_status_permits_nothing`,
+`test_evidence_support.py::test_donor_layer_support`,
+`test_evidence_claims.py::test_metadata_that_would_need_an_invented_fact_is_refused`.
+
+**Reproduction.** With the archive: `export AIA_LEGACY_REFERENCE=…` and read the
+five functions; each test above states the decision it pins.
+
+**Consequence.** Each reading is stricter than or equal to any plausible
+reference behaviour, so the risk is over-blocking, not an unsupported claim
+reaching a client. None is asserted as parity in `test_evidence_gate_parity.py`.
+
+**Smallest fix.** Once the archive is available (D3 / the licence decision),
+turn each row into an EXACT parity case against the legacy function and correct
+the reading if it differs.
+
+**Status.** Open, blocked on the archive.
+
+---
+
+## OI-7 · Question · RELIGION is donor-matched but not named in the joint certificate
+
+**Claim.** The five `RELIGION` fields are `MATCHED_WHOLE_BLOCK_CANONICAL`
+(donor-matched), and the reference certificate's `matched_blocks` lists six
+blocks that do not include it. The claim gate therefore refuses every
+client-facing claim on them, although the field dictionary marks them eligible.
+
+**Anchor.** `test_evidence_gate_parity.py::test_claim_gate_never_permits_what_the_reference_policy_forbids`
+(asserts the narrowing is exactly `{"RELIGION"}` over all 400 fields) and
+`test_evidence_joint_status.py::test_uncertified_matched_block_is_refused_client_facing`.
+
+**Reproduction.** `AIA_REFERENCE_REPO=../aia-reference pytest -k never_permits`.
+
+**Consequence.** Religion cannot be reported to a client until this is decided.
+The reference enforced neither the dictionary nor the certificate here, so it
+would have reported it.
+
+**Smallest fix.** A data-owner decision: either the certificate should name the
+block (then it is re-issued and bound to the panel hash as usual), or the
+refusal is correct. Not an engineering judgement.
+
+**Status.** Open, with the data owner.
+
+---
+
+## OI-8 · Finding · Automatic factual-question detection is not ported
+
+**Claim.** The reference `factual_layer.py` classifies common factual survey
+questions automatically and maps them to panel fields. Only its explicit-metadata
+contract is ported; a question with no metadata resolves to `UNDECLARED`.
+
+**Anchor.** `test_evidence_claims.py::test_no_metadata_is_undeclared_not_factual`.
+
+**Reproduction.** `resolve_factual_contract(QuestionFactMetadata(), book)` returns
+`UNDECLARED` for "Kolik je vám let?".
+
+**Consequence.** Until the respondent engine exists nothing consumes this. When
+it does, it must treat `UNDECLARED` as "not proven factual" — so a factual
+question without metadata is answered by simulation rather than read from the
+panel, which is the reference's defect class, inverted: never an invented fact,
+but a fact the panel held that was not used.
+
+**Smallest fix.** Port the keyword classification from the legacy source once
+the archive is available, with a golden fixture of classified questions.
+
+**Status.** Open, blocked on the archive; must close before Phase 5's respondent
+engine ships.

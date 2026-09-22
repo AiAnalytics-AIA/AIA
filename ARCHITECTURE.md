@@ -37,7 +37,7 @@ point; nothing outside it touches its internals.
 
 | # | Layer | Path | Owns | May depend on |
 |---|---|---|---|---|
-| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only. |
+| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, evidence gates, analysis modules. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only. |
 | 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context.** Orchestrates domain + infrastructure. | 1, 3 |
 | 3 | **Infrastructure** | `packages/aia_core/src/aia_core/infrastructure/` | SQLAlchemy tables and repositories, object storage, provider gateways. Every external service behind a protocol. | 1 |
 | 4 | **Workers** | `apps/worker/` *(Phase 3+, not yet created)* | Durable job execution. Triggered by the application layer; performs via repositories + services. | 1, 2, 3 |
@@ -114,6 +114,15 @@ script, then confirm it passes before committing.
   `ScopeResolver` through a module-private sentinel. Repositories refuse anything
   that is not an issued context, by type. This is the isolation boundary; see
   [scope-and-authorization.md](docs/architecture/scope-and-authorization.md).
+- **Evidence is a capability, not a flag.** A number enters an analysis result
+  only as an `AdmittedClaim`, which only `aia_core.domain.evidence.admit_numeric_claims`
+  can mint, after the field policy, the `CORE_JOINT_STATUS` certificate, support,
+  the interval rule and the tier gate have all passed. The certificate itself is a
+  `JointStatus` only `load_joint_status` can issue, bound to the loaded panel's
+  hash. A prompt may state a rule; it is never the only thing enforcing it.
+- **Every gate returns a `GateDecision`, and allowed means no violations.** There
+  is no override field, a missing input blocks, and `combine` keeps every refusal
+  so a later gate cannot launder an earlier one.
 
 ## 5. Where does this go?
 
@@ -287,6 +296,7 @@ declared tier.
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |
 | Parity suite against the legacy prototype | advisory *(skips: prototype not vendored)* |
+| Evidence-governance reference parity (`AIA_REFERENCE_REPO`) | advisory *(skips: reference repository not in CI)*; its recovered decision tables run in the blocking `pytest` step |
 
 This deviates deliberately from the tiering in the development rules, which puts
 lint and types in the advisory tier. That tier exists for day one of adoption.

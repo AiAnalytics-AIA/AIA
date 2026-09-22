@@ -77,6 +77,24 @@ Rules:
    reference is a sibling checkout or a bootstrap-managed directory.
 4. `bootstrap_reference.sh` prints the correct value to export.
 
+## `AIA_REFERENCE_REPO` contract
+
+The evidence-governance parity suite
+(`packages/aia_core/tests/test_evidence_gate_parity.py`) reads the machine-readable
+exports of the private reference *repository* — `field-policy.json` and
+`methodology-ledger.json` — from this variable:
+
+```bash
+git clone https://github.com/AiAnalytics-AIA/AIA-reference.git ../aia-reference
+export AIA_REFERENCE_REPO=../aia-reference     # the default when unset
+pytest packages/aia_core/tests/test_evidence_gate_parity.py
+```
+
+Same rules as `AIA_LEGACY_REFERENCE`: absent is valid and skips cleanly, the
+checkout is read-only, and nothing from it is committed here. The field policy in
+particular is **supplied at runtime** with the population version it describes; it
+is never vendored.
+
 ## Do not duplicate raw assets into this repository
 
 This repository is the clean production rebuild. It must not absorb:

@@ -3,7 +3,7 @@
 A model drafts; :func:`check_analysis_draft` decides; only an
 :class:`AnalysisModuleResult` built from admitted claims leaves this package.
 Reporting is deliberately absent: it is built on top of results, after the
-evidence layer is enforceable (``.planning/plans/evidence-governance-foundation.md``).
+evidence layer is enforceable (``.planning/plans/done/evidence-governance-foundation.md``).
 """
 
 from .draft import (

@@ -337,7 +337,7 @@ def scope_builder() -> Any:
 # --- Evidence governance ------------------------------------------------------
 #
 # The real field dictionary is reference material and is not vendored (see
-# .planning/plans/evidence-governance-foundation.md). Unit tests use this small
+# .planning/plans/done/evidence-governance-foundation.md). Unit tests use this small
 # synthetic dictionary, one row per policy shape the gates must distinguish. The
 # parity suite reads the real export from the private reference repository.
 

@@ -134,7 +134,7 @@ forbid "the API never builds its own scope context" \
 # population's joint structure supports, and only load_joint_status can issue
 # one, after checking the certificate against the loaded panel's hash. If any
 # other module can build either, a prompt is the enforcement mechanism again.
-# See .planning/plans/evidence-governance-foundation.md.
+# See .planning/plans/done/evidence-governance-foundation.md.
 forbid "claims are admitted only by the evidence admission gate" \
   '^[^#]*\bAdmittedClaim\(' \
   "$CORE" \

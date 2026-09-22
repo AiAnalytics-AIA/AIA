@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `remediation/public-reference-exposure` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/peaceful-davinci-xuhrld` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -28,6 +28,16 @@ entry is a **hypothesis**, not a finding.
 | 3 | Durable workflow engine: `WorkflowRun → StepRun → StepAttempt`, append-only attempts, `FOR UPDATE SKIP LOCKED` claiming, leases, heartbeats, budget reservations under a study-row lock, cooperative cancellation | `packages/aia_core/src/aia_core/infrastructure/workflow_repository.py` @ df294e2 · `tests/test_workflow_engine.py`, `tests/test_workflow_concurrency.py` |
 | 3 | Characterization of the legacy job engine: 64 tests describing `job_store.py` before any of it was reimplemented | `packages/aia_core/tests/test_legacy_job_store_characterization.py` @ df294e2 |
 | — | **Development rules adopted**: `ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`, `.planning/`, `tools/layer_check.sh` blocking in CI | `tools/layer_check.sh` @ this change · `.planning/plans/done/development-rules-adoption.md` |
+| 6 | **Evidence governance foundation**: field dictionary as enforced policy (all 400 fields re-derive identically to the reference export), `CORE_JOINT_STATUS` hash-bound certificate, permissible-claim policy, effective-n `SUPPRESS`-by-default support, allowed-metric enum, validation bound to system fingerprint, tier gate, factual layer, `AdmittedClaim` capability enforced by `layer_check` | `packages/aia_core/src/aia_core/domain/evidence/` · `tests/test_evidence_gate_parity.py` · `.planning/plans/done/evidence-governance-foundation.md` |
+| 6 | **The eight analysis modules** against those contracts: order, input fingerprints and resume, closed draft schema, 100% prose number coverage, prompts rendered from the enums, results that hold only admitted claims; runner with repair ≤ 2 and pre-flight blocking | `packages/aia_core/src/aia_core/domain/analysis/`, `application/analysis.py` · `tests/test_analysis_runner.py` |
+
+**Verified state, evidence governance (2026-09-22).** PostgreSQL 16.13 / Python
+3.12: **895 passed / 101 skipped**; SQLite: **878 passed / 118 skipped**;
+concurrency 17/17 with `AIA_REQUIRE_POSTGRES=1`; `alembic check` no drift;
+`mypy --strict` clean across 53 source files; `ruff` clean; `layer_check` 15/15;
+`exposure_check` 7/7. With `AIA_REFERENCE_REPO` at the reference repository
+@ `678e298`, the evidence parity suite runs 42 cases and skips 1 (the real
+certificate against the real panel, which needs the archive).
 
 **Verified state.** Re-measured on PostgreSQL 16 and Python 3.12.12 when the
 development rules landed: **402 passed / 94 skipped** on PostgreSQL, **386 passed
@@ -119,6 +129,13 @@ Ordered. Take the top item unless told otherwise, and **write the plan to
 4. **Wire `apps/web` to the real API** and delete `lib/mock.ts`.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
    long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
+5a. **Reporting on admitted claims** — `client_report_v2` + `output_pack`
+   (authoritative, `report-export-inventory.md` in the reference repository),
+   consuming only `AnalysisModuleResult`. Now unblocked: the evidence layer is
+   enforceable. Needs the worker (2) and the gateway (3) to run for real.
+5b. **`statistics.uncertainty`** — Kish n, donor support and bootstrap intervals
+   computed rather than supplied; `EvidenceRow` already refuses a client
+   estimate without one. NUMERICAL parity, tolerance 1e-9, needs the archive.
 
 **Removed from this list: "SQS dispatch + reconciler".** It contradicted
 [ADR 0002](../docs/architecture/adr/0002-postgresql-authoritative-store.md),
@@ -138,6 +155,7 @@ left to build.
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
 | D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
+| D6 | **Is `RELIGION` a certified matched block?** It is donor-matched and dictionary-eligible, but absent from the certificate's `matched_blocks`, so the claim gate refuses it client-facing. Data owner | Client claims on the five religion fields | `.planning/open-items.md` OI-7 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 
 Open defects and questions live in

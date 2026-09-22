@@ -61,8 +61,19 @@ packages/aia_core/src/aia_core/
     providers.py            Provider policy, model roles, budget and error semantics
     scope.py                Organization/Client/Study vocabulary, roles, permissions
     workflow.py             Workflow DAG, job states, retry classification
+    evidence/               What may be claimed — every gate fails closed
+      field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
+      joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
+      claims.py             Permissible-claim policy: measured vs modelled, disclosures
+      support.py            Kish effective n, SUPPRESS by default, intervals required
+      metrics.py            The allowed analysis metrics, one unit each
+      validation.py         Validation bound to system fingerprint; tier gate
+      factual.py            Factual layer: panel facts are read, never invented
+      admission.py          AdmittedClaim — the ONLY way a number enters a result
+    analysis/               The eight analysis modules, drafts, prompts, results
   application/
     scope.py                ScopeResolver — the ONLY issuer of a scope context
+    analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
   infrastructure/
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
@@ -95,7 +106,15 @@ fails the build — that would mean scope had stopped being carried in the path.
 
 **The legacy prototype is not in this repository.** It lives at
 `../npc-panel-reference`, reached through `AIA_LEGACY_REFERENCE`, and is used by
-the parity and characterization suites only.
+the parity and characterization suites only. The private reference *repository*
+(`AiAnalytics-AIA/AIA-reference` — ledgers, field policy, contracts) is reached
+through `AIA_REFERENCE_REPO` (default `../aia-reference`) by the evidence-governance
+parity suite; it is never vendored.
+
+**Evidence is a capability, like scope.** A number reaches an analysis result only
+as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,
+joint structure, support, interval and tier have all passed. Prompts state the
+rules; they never enforce them.
 
 ## 3. Commands
 
