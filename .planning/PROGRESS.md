@@ -147,6 +147,11 @@ these; none is started):
    decision B (LiteLLM as the transport) is still *Proposed*, and the contract
    can be built against without it.
 4. **Wire `apps/web` to the real API** and delete `lib/mock.ts`.
+   Planned together with the design system in
+   [`plans/design-system.md`](plans/design-system.md): 12 chunks, starting with
+   the vocabulary purge (chunk 0) and the enum-bound status maps (chunk 2).
+   Needs decisions DS-1 (web test runner), DS-2 (`clients.accent_slot`) and
+   DS-3 (who owns `WAITING_CREDITS`), recorded in the plan.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
    long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
 
