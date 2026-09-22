@@ -176,11 +176,23 @@ that failed to detect drift would be worse than none, because it would license a
 false claim.
 
 **If you intentionally edit the reference**, record it here and regenerate the
-manifest in the same commit:
+manifest in the same commit — **from the authoritative archive, never from the
+extracted tree**:
 
 ```bash
-python tools/reference_manifest.py write
+python tools/reference_manifest.py write --archive <reference>.zip
 ```
+
+The tree is mutable: running the reference rewrites its `data/*.sqlite` state, so
+hashing it measures whatever was last executed. A tree-derived write also cannot
+supply the archive SHA256, the reference-repository identity or the migration
+module list, so it would downgrade the manifest schema. The tool refuses it and
+prints this workflow; `packages/aia_core/tests/test_reference_manifest_schema.py`
+asserts that it does.
+
+Obtaining the archive is documented in
+[reference-source.md](reference-source.md); `AiAnalytics-AIA/AIA-reference` is
+authoritative.
 
 ## How to add to this file
 

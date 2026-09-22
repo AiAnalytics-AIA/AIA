@@ -144,14 +144,25 @@ fi
 # in reference-source.md.
 
 CLIENT_TOKENS='GEMO|MMC_GEMO|STREAMIO|AURORA|NEXORA|RAILMOVE'
-# Named exceptions, each with a reason -- a silent exception is how a guard stops
-# meaning anything:
-#   reference-source.md            records the snapshot identity: tag and archive name
-#   public-exposure-remediation.md enumerates the tokens, which is its subject
+# The snapshot's own identity. The reference tag, its version string and the
+# archive filename all contain a client token, and every document that points at
+# the authoritative reference has to name them -- that is the pointer working, not
+# a disclosure.
+#
+# These are exempted as LITERALS rather than by exempting the files that carry
+# them. A per-file exemption is coarse: it would excuse every token in that file,
+# and the allowlist would grow by one entry each time another document cited the
+# tag, which is how an allowlist becomes the rule. Matching the literal keeps the
+# exemption to exactly the string that is safe, in any file.
+SNAPSHOT_IDENTITY='reference-18\.6\.6-gemo-2026-09-11-v1|18\.6\.6 \+ GEMO patch 2026-09-11|NPC_PANEL_18\.6\.6_CURRENT_DEMOS_UPDATED_GEMO_REPUTACNI_SCENARE_2026-09-11_FULL'
+
+# Named file exceptions, each with a reason -- a silent exception is how a guard
+# stops meaning anything. Only three remain, because the literal exemption above
+# now covers every document that merely cites the snapshot:
 #   reference-manifest.json        carries the reference path set; being reduced, see §3
-#   .planning/PROGRESS.md          cites the reference tag as the authoritative pointer
+#   public-exposure-remediation.md enumerates the tokens, which is its subject
 #   tools/exposure_check.sh        holds the token list itself
-ALLOWED_PATHS='^(docs/migration/(reference-source|public-exposure-remediation)\.md|docs/migration/reference-manifest\.json|\.planning/PROGRESS\.md|tools/exposure_check\.sh)$'
+ALLOWED_PATHS='^(docs/migration/public-exposure-remediation\.md|docs/migration/reference-manifest\.json|tools/exposure_check\.sh)$'
 
 # Case-insensitive throughout. `gemo-notes.txt` discloses exactly what
 # `GEMO-notes.txt` does, and a control that a change of capitalisation defeats is
@@ -176,7 +187,10 @@ CONTENT_HITS=$(git ls-files \
   | grep -Ev "$ALLOWED_PATHS" \
   | while read -r f; do
       [ -f "$f" ] || continue
-      if grep -qiE "$CLIENT_TOKENS" "$f" 2>/dev/null; then echo "$f"; fi
+      # A line that carries a token ONLY as part of the snapshot identity is the
+      # pointer, not a disclosure. Anything else on that line still counts.
+      if grep -iE "$CLIENT_TOKENS" "$f" 2>/dev/null \
+           | grep -qivE "$SNAPSHOT_IDENTITY"; then echo "$f"; fi
     done || true)
 if [ -n "$CONTENT_HITS" ]; then
   fail "no client-identifying legacy names in file contents" "$CONTENT_HITS"
