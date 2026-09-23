@@ -80,7 +80,7 @@ reference source is readable and F13 exists.
       `tests/test_simulation_parity.py`
 - [x] 7. Documents: engine doc, domain map, parity matrix, CLAUDE.md map,
       reference-source, module inventory, PROGRESS (REF-GAP ownership,
-      decisions D6 and D7)
+      decisions D9 and D10)
 
 ## What changed during the work
 
@@ -102,7 +102,7 @@ reference source is readable and F13 exists.
 - `REF-GAP-SIMULATION-WORLD-MODEL` (F13) needs the withheld reference source, a
   project-authorized credential and an ADR 0008 egress route. None was available
   (`PROGRESS.md`, reference ownership).
-- Decisions D6 (minimum factors) and D7 (exact numerics vs production v1).
+- Decisions D9 (minimum factors) and D10 (exact numerics vs production v1).
 
 ## Review outcome
 

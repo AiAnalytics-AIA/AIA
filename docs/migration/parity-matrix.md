@@ -71,14 +71,21 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | `cost_controller.py` | Reservations | `WorkflowRepository.reserve_budget` | Done | ◐ | Blocking `FOR UPDATE` on the study row; concurrent-overspend regression test |
 | `dotaznik.py`, `pipeline.py` | Questionnaire + respondents | Phase 5 | ○ | ○ | Needs seeded parity tests |
 | `research_designer.py` | Research design | Phase 5 | ○ | ○ | |
-| `analysis_agent.py` | 8 analysis modules | Phase 6 | ○ | ○ | |
-| `validation_gate.py`, `evidence_validator.py`, `holdout_protocol.py`, `legal_gate.py` | Governance | Phase 6 | ○ | ○ | **Must fail closed** where the prototype does |
-| `PRODUCT_POLICY.json`, `DATA_CONTRACT_v17.json` | Methodology contract | Phase 6 | ○ | ○ | Become enforced backend rules |
+| `analysis_agent.py` | 8 analysis modules | `domain.analysis` + `application.analysis` | Done | ◐ | Order, fingerprints, one draft schema, repair ≤ 2. Evidence discipline EXACT; prose SEMANTIC. Stricter: 100% number coverage, not 95% |
+| `FIELD_DICTIONARY_v17_1.csv` (M02) | Per-field claim policy | `domain.evidence.field_policy` | Done | ✅ | All 400 fields re-derive identically to the reference export; the reference enforced none of it |
+| `CORE_JOINT_STATUS.json`, `core_joint.py` (M03) | Joint-structure claim gate | `domain.evidence.joint_status` | Done | ✅ ◐ | Restrictions and hash binding EXACT; fallback values are a fail-closed reading (OI-18) |
+| `dotaznik.agreguj_otazku`, `uncertainty.py` (M16) | Effective-n suppression | `domain.evidence.support` | Done | ✅ ◐ | Thresholds and `SUPPRESS` default EXACT; state names and the donor-layer 50 line are readings (OI-18); intervals are inputs, not yet computed |
+| `analysis_agent.py` prompt, `evidence_validator.py` (M17) | Allowed metrics, evidence refs | `domain.evidence.metrics`, `.admission` | Done | ✅ | The metric set is an enum, not prompt text; admission is all-or-nothing |
+| `tier_gate.py`, `validation_status.py`, `smoke_validation.py` (M10, R12) | Tiers, validation state | `domain.evidence.validation` | Done | ◐ | Smoke never unlocks; fingerprint binding EXACT; Tier B/C permissions are readings (OI-18) |
+| `factual_layer.py` | Panel facts never invented | `domain.evidence.factual` | ◐ | ◐ | Explicit metadata contract only; keyword detection not ported (OI-20) |
+| `validation_gate.py` thresholds, `holdout_protocol.py`, `legal_gate.py` | Holdout, legal | Phase 6 | ○ | ○ | **Must fail closed** where the prototype does |
+| `PRODUCT_POLICY.json`, `DATA_CONTRACT_v17.json` | Methodology contract | Phase 6 | ◐ | ◐ | Field dictionary and joint certificate enforced; weights and brand knowledge not yet |
 | `client_report_v2.py`, `output_pack.py` | Reports and exports | Phase 6 | ○ | ○ | |
 | `full_simulation.py`, `scenario_compiler.py` | Simulation — deterministic core | `domain.simulation` | ◐ | ◐ ⚠ | Seed derivation, bounds, markers, eligibility and write-once truth ported exactly; bound handling is deviation D4; formula bodies production-defined pending F13 ([engine doc](../architecture/simulation-deterministic-engine.md)) |
 | `data_library.py`, `society_insights.py` | Data Library | Phase 8 | ○ | ○ | Approval ordering must hold |
 | `population_context.py`, `donor_fusion.py`, `core_joint.py` | Population | Phase 8 | ○ | ○ | 18,766 × 400 panel |
-| `sociomap.py`, `visualization_lab.py` | Sociomapa | Phase 9 | ○ | ○ | Numerical parity required |
+| `sociomap.py` (+ `ui_app.html` `*66` terrain, normaliser, object metrics) | Sociomapa core | `aia_core.domain.sociomap` | Done (core) | ◐ | ✅ against golden fixtures F1–F3, F5–F7, F9; F8 partial (OI-14); layout **not** at parity — the legacy Python and R algorithms are refused (OI-13, OI-15) and an AIA algorithm is declared instead. Deviations S1–S6 in `docs/architecture/sociomapa-deterministic-engine.md` §8 |
+| `visualization_lab.py`, segments, comparison, object manager | Sociomapa modes | Phase 9 | ○ | ○ | Numerical parity required |
 | 19 `.bat` launchers, `launcher_bootstrap.py` | Windows startup | — | Dropped | n/a | Replaced by containers + CI |
 | `legacy_job_dispatch.py`, `LEGACY_STAGE_MAP` | Pre-17.8 compatibility | — | Dropped | n/a | Remove after Phase 3 |
 | `anthropic_compat.py`, `spawn_env.py`, `portability_check.py` | Local-machine shims | — | Dropped | n/a | |
@@ -153,7 +160,7 @@ violations at once. The bounds themselves are the reference's, unchanged. Each
 difference is one row of `aia_core.domain.simulation.reference.FIELD_POLICY`:
 the legacy mechanism, and production handling `REJECT` — no field is clamped.
 The one bound the reference left ambiguous (minimum factors: 6 in the prompt,
-4 in the schema) is declared as 6, pending decision D6 in `PROGRESS.md`.
+4 in the schema) is declared as 6, pending decision D9 in `PROGRESS.md`.
 
 **Why not preserve it:** the reference contract names reject as the production
 target. A clip hides a misbehaving model; a silent top-up simulates factors the

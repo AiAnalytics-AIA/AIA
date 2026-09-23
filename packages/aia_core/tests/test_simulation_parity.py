@@ -15,14 +15,14 @@ today would fail by construction and prove nothing. It is written when the
 reference source is readable; see
 ``docs/architecture/simulation-deterministic-engine.md`` §6.
 
-``AIA_REFERENCE_FIXTURES`` points at the reference repository's
-``golden-fixtures/`` directory.
+The fixture is read from the AIA-reference checkout through the shared
+``reference_repo`` fixture (``AIA_REFERENCE_REPO``, see
+``docs/migration/reference-source.md``).
 """
 
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
@@ -41,11 +41,8 @@ F13 = "F13_simulation_world_inoculation.json"
 
 
 @pytest.fixture(scope="module")
-def f13() -> dict[str, Any]:
-    root = os.environ.get("AIA_REFERENCE_FIXTURES")
-    if not root:
-        pytest.skip("AIA_REFERENCE_FIXTURES is not set; F13 is read from AIA-reference")
-    path = Path(root).expanduser() / F13
+def f13(reference_repo: Path) -> dict[str, Any]:
+    path = reference_repo / "golden-fixtures" / F13
     if not path.is_file():
         pytest.skip(f"{F13} not captured yet (REF-GAP-SIMULATION-WORLD-MODEL is open)")
     loaded: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
