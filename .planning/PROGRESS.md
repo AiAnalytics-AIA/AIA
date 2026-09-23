@@ -82,7 +82,7 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 | What | Plan | State |
 |---|---|---|
-| Design system into `apps/web` | [`plans/design-system.md`](plans/design-system.md) | Chunk 0 (vocabulary) in review; chunks 1–3 follow as stacked PRs |
+| Design system into `apps/web` | [`plans/design-system.md`](plans/design-system.md) | Chunks 0 (vocabulary) and 1 (tokens) in review; chunks 2–3 follow as stacked PRs |
 
 ## Repository visibility — D5, frozen
 

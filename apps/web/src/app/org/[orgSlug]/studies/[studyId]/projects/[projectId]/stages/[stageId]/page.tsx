@@ -16,14 +16,14 @@ export default async function StagePage({
   const stage = project?.stages.find((s) => s.stage_type === stageId);
   if (!project || !stage) notFound();
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <section className="space-y-4">
         <div>
-          <div className="text-sm text-zinc-600">{project.title}</div>
+          <div className="text-sm text-ink-muted">{project.title}</div>
           <h1 className="text-2xl font-semibold">
-            <span className="font-mono text-zinc-500">{String(stage.ordinal + 1).padStart(2, "0")}</span> {stage.label}
+            <span className="font-mono text-ink-muted">{String(stage.ordinal + 1).padStart(2, "0")}</span> {stage.label}
           </h1>
-          <div className="text-sm text-zinc-600">{t("stage.status")}: {stageStatusLabel(stage.status)}</div>
+          <div className="text-sm text-ink-muted">{t("stage.status")}: {stageStatusLabel(stage.status)}</div>
         </div>
         {stage.stage_type === "REPORT" ? (
           <>

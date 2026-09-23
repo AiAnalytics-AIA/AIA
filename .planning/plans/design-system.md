@@ -1,6 +1,6 @@
 # Plan: AIA design system → apps/web
 
-**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunk 0 in review; chunks 1–3 next, then the first vertical slice. **Owner:** product-surface (A9).
+**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–1 in review; chunks 2–3 next, then the first vertical slice. **Owner:** product-surface (A9).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
 **Design source:** the "AIA Design System" artifact, https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
 
@@ -126,6 +126,27 @@ Chunks 4–11 resume only after that slice is working and reviewed.
   with 5 fixture-backed capabilities in `src/fixtures/registry.ts`. Copy keys are
   now typed: a missing key is a `tsc` error. Unknown ids return 404 with the same
   copy for "missing" and "not granted", as the API does.
+
+- **Chunk 1 — tokens, themes, identity** (branch `feature/design-tokens`).
+  `src/design/tokens.json` is the one source. `scripts/build-tokens.mjs` generates
+  `src/app/tokens.css`, `src/app/tokens-theme.css` (the Tailwind `@theme inline`
+  mapping) and `src/design/tokens.ts`, and `tokens:check` fails CI on drift. The
+  artifact page's generated CSS is not used. Themes are light, dark and system;
+  the system theme sets no attribute and follows the OS. The preference is stored
+  per viewer and applied before first paint. The four faces are self-hosted with
+  `next/font/local`, with their OFL licences beside them. The mark, wordmark,
+  lockup, motif and favicon set are repository files. Evidence re-measured from
+  the repository:
+  - `check:design`: 146 contrast checks, 0 failures.
+  - Chart palette: colour-blind ΔE 9.2 light / 9.3 dark, normal-vision ΔE
+    27.6 / 24.6, and the first three slots pass all-pairs.
+  - Accent separation: ΔE ≥ 7.6 from status/UI/chart colours and ≥ 12.9 between
+    accents.
+  - `check:layout`: +35 % Czech at 1280 and 1024 px, 0 overflows, after fixing
+    the Report stage, which overflowed on first run.
+  `check:layout` needs a browser, so it is manual for now. Existing screens moved
+  from zinc/blue/amber classes to token utilities. Amber now appears only on the
+  waiting-on-a-person tone: the report editor's "proposal ready" is neutral.
 
 ## What product-surface does not own
 
