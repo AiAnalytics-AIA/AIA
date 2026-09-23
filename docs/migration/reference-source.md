@@ -146,9 +146,22 @@ schema gate and the committed artifact are all asserted by
 
 | Item | Owner |
 | --- | --- |
-| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` | parity-quality + sociomapa-deterministic |
+| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and** the reference's withheld R wrapper; open as OI-15, no R parity claimed | parity-quality + sociomapa-deterministic |
 | `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential | parity-quality + simulation-engine |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` — needs a licence decision | data owner |
 
 Neither fixture gap is unknown behaviour: code paths, constants and seeds are
-recovered. Both need a different environment, not more discovery.
+recovered. The simulation gap needs a different environment. The Sociomapping
+gap turned out to need more than that: the R *recipe* runs the reference's own
+`fit_unfolding` wrapper, which is in the withheld archive
+(`.planning/open-items.md` OI-15).
+
+## Golden fixtures vendored here
+
+`golden-fixtures/F1`–`F9` (Sociomapping) are vendored under
+`packages/aia_core/tests/fixtures/sociomap/`, byte for byte, each pinned to its
+SHA256 in `index.json` against the reference commit it came from. They are
+synthetic inputs with the reference's recorded outputs — not reference source,
+not client data — which is what makes them the one kind of reference material
+this repository may hold. One is renamed to satisfy `exposure_check` (see
+`AGENTS.md`).

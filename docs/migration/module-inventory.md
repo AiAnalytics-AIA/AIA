@@ -54,10 +54,14 @@ reference LOC" means 3% of the *behaviour surface*, not 3% of the effort.
 39,086 reference LOC (3% of the behaviour surface).
 `ui_server.py` is partial: 19 of its 136 HTTP paths exist.
 
-Phase 3 is the engine, not the dispatch: `job_store`, `workflow_engine` and
-`cost_controller` are reimplemented and verified under real PostgreSQL
-contention, but `scheduler`, `worker_daemon` and `project_artifact_sync` are
-still to build, so no worker process runs yet.
+Phase 3's engine -- `job_store`, `workflow_engine` and `cost_controller` -- is
+reimplemented and verified under real PostgreSQL contention. The dispatch half now
+exists as `apps/worker`, which polls PostgreSQL rather than SQS
+([ADR 0002](../architecture/adr/0002-postgresql-authoritative-store.md)).
+`scheduler` and `worker_daemon` are marked ◐, not ✅: the worker replaces their
+role, but its behaviour has **not** been compared against the reference modules,
+which were not available when it was built. `project_artifact_sync` is still to
+build.
 
 The work so far deliberately took the *load-bearing* modules first -- the
 fingerprint contract, provider policy, the durable graph and the workflow
@@ -79,8 +83,8 @@ wrong answer corrupts artifact reuse or lies about money.
 | --- | --- | --- | --- | --- |
 | ✅ | `job_store.py` | 295 | workflow | Reimplemented as WorkflowRun/StepRun/StepAttempt; verified under PG contention |
 | ○ | `project_artifact_sync.py` | 180 | artifacts | Sub-artifact registration from engine outputs |
-| ○ | `scheduler.py` | 127 | workflow | Dispatch + reconciler; SQS-backed worker process still to build |
-| ○ | `worker_daemon.py` | 117 | workflow | Dispatch + reconciler; SQS-backed worker process still to build |
+| ◐ | `scheduler.py` | 127 | workflow | Role taken by `apps/worker` (PostgreSQL-polled claim + in-worker reconciler); behaviour not yet compared against the reference |
+| ◐ | `worker_daemon.py` | 117 | workflow | Role taken by `apps/worker`; behaviour not yet compared against the reference |
 | ✅ | `workflow_engine.py` | 99 | workflow | Reimplemented as WorkflowRun/StepRun/StepAttempt; verified under PG contention |
 | ✅ | `cost_controller.py` | 35 | workflow | Reimplemented as WorkflowRun/StepRun/StepAttempt; verified under PG contention |
 

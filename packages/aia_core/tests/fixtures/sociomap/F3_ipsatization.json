@@ -1,0 +1,79 @@
+{
+  "algorithm": null,
+  "capability_id": "sociomapping.study_module",
+  "config": {},
+  "dataset_version": "synthetic_fixture",
+  "expected_output": {
+    "columns": [
+      "obj_a",
+      "obj_b",
+      "obj_c"
+    ],
+    "values": {
+      "obj_a": [
+        2.0,
+        -2.0,
+        0.0,
+        4.3333333333,
+        -3.6666666667
+      ],
+      "obj_b": [
+        -2.0,
+        2.0,
+        0.0,
+        -3.6666666667,
+        0.3333333333
+      ],
+      "obj_c": [
+        0.0,
+        0.0,
+        0.0,
+        -0.6666666667,
+        3.3333333333
+      ]
+    }
+  },
+  "fixture_id": "F3_ipsatization",
+  "input": {
+    "dem_age": [
+      30,
+      41,
+      55,
+      22,
+      67
+    ],
+    "obj_a": [
+      8,
+      3,
+      5,
+      9,
+      2
+    ],
+    "obj_b": [
+      4,
+      7,
+      5,
+      1,
+      6
+    ],
+    "obj_c": [
+      6,
+      5,
+      5,
+      4,
+      9
+    ]
+  },
+  "notes": "Within-person centring over object columns only; dem_ columns excluded.",
+  "parity_type": "NUMERICAL",
+  "reference_function": "study_validation.ipsatize",
+  "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+  "runtime_environment": {
+    "numpy": "2.5.3",
+    "pandas": "2.3.3",
+    "python": "3.14.6",
+    "rscript_available": false
+  },
+  "seed": null,
+  "tolerance": 1e-12
+}

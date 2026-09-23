@@ -22,6 +22,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 from .contract import PopulationImportContract, field_names_fingerprint
+from .policy import POLICY_COLUMNS, build_field_policy
 from .table import ParsedDictionary, ParsedPanel
 from .weights import parse_weight
 
@@ -137,6 +138,32 @@ def validate_import(
         fingerprint == contract.field_names_sha256,
         f"ordered field names must fingerprint to {contract.field_names_sha256}; got {fingerprint}",
     )
+
+    # -- the field policy the dictionary states --------------------------------
+    missing_policy_columns = [c for c in POLICY_COLUMNS if c not in dictionary.columns]
+    if missing_policy_columns:
+        check(
+            "dictionary.policy_mapped",
+            False,
+            f"the dictionary lacks the policy columns {missing_policy_columns}",
+        )
+    else:
+        policy = build_field_policy(
+            dictionary.rows,
+            dictionary_sha256=dictionary_sha256,
+            weight_columns=contract.weight_columns,
+        )
+        unmapped = policy.unmapped
+        check(
+            "dictionary.policy_mapped",
+            not unmapped,
+            (
+                f"{len(unmapped)} fields have unmapped policy, e.g. "
+                f"{unmapped[0].field}: {'; '.join(unmapped[0].unmapped)}"
+                if unmapped
+                else f"all {len(policy.entries)} fields map to {policy.version}"
+            ),
+        )
 
     # -- the header against the dictionary -------------------------------------
     header = panel.header

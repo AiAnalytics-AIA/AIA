@@ -1,0 +1,83 @@
+{
+  "fixture_id": "F9_manual_drag_is_view_override",
+  "capability_id": "sociomapping.core",
+  "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+  "reference_function": "ui_app.html::manualPerson66 / personPos66 / terrain66 cache key",
+  "dataset_version": "synthetic_fixture",
+  "config": {},
+  "seed": null,
+  "algorithm": null,
+  "input": {
+    "respondent_id": "r0",
+    "base_position": {
+      "x": -1.0582762957,
+      "y": 44.3154573441
+    },
+    "manual_override": {
+      "x": 11.5,
+      "y": -7.25
+    }
+  },
+  "expected_output": {
+    "before": {
+      "pos": {
+        "x": -1.0582762957,
+        "y": 44.3154573441
+      },
+      "matrix": [
+        [
+          0,
+          4,
+          9,
+          2
+        ],
+        [
+          6,
+          0,
+          3,
+          8
+        ],
+        [
+          7,
+          5,
+          0,
+          1
+        ],
+        [
+          3,
+          9,
+          2,
+          0
+        ]
+      ],
+      "base_point": {
+        "x": -1.0582762957,
+        "y": 44.3154573441
+      },
+      "cache_key": "RESPONDENT_DENSITY_TERRAIN|density|range|all||null|{}|base|{}|[\"bar\"]"
+    },
+    "after": {
+      "pos": {
+        "x": 11.5,
+        "y": -7.25
+      },
+      "base_point": {
+        "x": -1.0582762957,
+        "y": 44.3154573441
+      },
+      "cache_key": "RESPONDENT_DENSITY_TERRAIN|density|range|all||null|{\"respondents\":{\"r0\":{\"x\":11.5,\"y\":-7.25}}}|base|{}|[\"bar\"]"
+    },
+    "position_changed": true,
+    "base_point_unchanged": true,
+    "cache_key_changed": true,
+    "relation_matrix_unchanged": true
+  },
+  "parity_type": "EXACT",
+  "tolerance": null,
+  "runtime_environment": {
+    "node": "v20.15.1",
+    "rscript_available": false,
+    "note": "Frontend math executed in Node from functions extracted verbatim from ui_app.html"
+  },
+  "notes": "PROOF that manual drag is a pure view override: the rendered position changes, the underlying respondent point is untouched, the relation matrix is untouched, and the terrain cache key changes so the view recomputes. Visualisation does not mutate research truth."
+}

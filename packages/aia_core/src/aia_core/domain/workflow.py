@@ -23,15 +23,17 @@ describing the validated prototype engine.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any, Final
 from uuid import uuid4
 
 __all__ = [
+    "DEFAULT_CAPACITY_BACKOFF_SECONDS",
     "DEFAULT_LEASE_SECONDS",
     "DEFAULT_MAX_ATTEMPTS",
+    "DEFAULT_QUOTA_FALLBACK_SECONDS",
     "AttemptStatus",
     "FailureClass",
     "InteractionMode",
@@ -40,8 +42,10 @@ __all__ = [
     "ReservationStatus",
     "StepRunStatus",
     "WorkflowRunStatus",
+    "apply_cancellation",
     "classify_failure",
     "decide_recovery",
+    "decide_release",
     "derive_run_status",
     "is_lease_expired",
     "lease_deadline",
@@ -49,11 +53,23 @@ __all__ = [
     "new_reservation_id",
     "new_run_id",
     "new_step_id",
+    "resume_due",
 ]
 
 
 DEFAULT_LEASE_SECONDS: Final = 120
 DEFAULT_MAX_ATTEMPTS: Final = 3
+
+# How long a capacity park waits before its step is offered again. Capacity has
+# no reset instant -- the provider is overloaded now and will not say until when
+# -- so the resume is a fixed back-off rather than a scheduled time.
+DEFAULT_CAPACITY_BACKOFF_SECONDS: Final = 60
+
+# A quota park whose provider gave no reset instant. Without a fallback the step
+# would wait for a `runnable_after` that never comes; with one, the worst case is
+# one refused call every fifteen minutes, which costs nothing (a refusal is not
+# billed) and needs nobody to notice.
+DEFAULT_QUOTA_FALLBACK_SECONDS: Final = 900
 
 
 def new_run_id() -> str:
@@ -461,6 +477,9 @@ class RecoveryAction(StrEnum):
     PARK_GATE = "PARK_GATE"
     RECOVERY_REQUIRED = "RECOVERY_REQUIRED"
     FAIL = "FAIL"
+    # The run was cancelled while the attempt was in flight; whatever the attempt
+    # would otherwise have become, the step is cancelled. See `apply_cancellation`.
+    CANCEL = "CANCEL"
 
 
 @dataclass(frozen=True, slots=True)
@@ -600,6 +619,102 @@ def decide_recovery(
         step_status=StepRunStatus.RECOVERY_REQUIRED,
         reason="max_attempts_exhausted",
     )
+
+
+def decide_release(
+    *, paid_call_dispatched: bool, paid_call_outcome_known: bool
+) -> RecoveryDecision:
+    """Decide what happens when a live worker gives an attempt back.
+
+    A release is a worker shutting down cleanly at a checkpoint: the work did not
+    fail, so the step becomes ``RUNNABLE`` again at once and the attempt does
+    **not** count against ``max_attempts``. Counting it would let three rolling
+    deploys fail a step that never did anything wrong.
+
+    The one exception is the same invariant :func:`decide_recovery` protects. A
+    worker releasing with a paid call dispatched and its outcome unknown is, for
+    billing purposes, indistinguishable from a worker that crashed at that
+    moment, so it gets the same answer: ``RECOVERY_REQUIRED`` and uncertain
+    exposure, never an automatic retry.
+    """
+    if paid_call_dispatched and not paid_call_outcome_known:
+        return RecoveryDecision(
+            action=RecoveryAction.RECOVERY_REQUIRED,
+            step_status=StepRunStatus.RECOVERY_REQUIRED,
+            reason="paid_external_call_side_effect_uncertain",
+            settle_reservation_as_uncertain=True,
+        )
+    return RecoveryDecision(
+        action=RecoveryAction.RETRY,
+        step_status=StepRunStatus.RUNNABLE,
+        reason="released_by_worker",
+        consumes_attempt=False,
+    )
+
+
+def apply_cancellation(decision: RecoveryDecision, *, cancel_requested: bool) -> RecoveryDecision:
+    """Let a cancellation that arrived mid-attempt win over the attempt's outcome.
+
+    ``request_cancel`` deliberately leaves a ``RUNNING`` step for its worker to
+    stop at a checkpoint. If that worker instead dies, fails, or releases the
+    attempt, the ordinary decision would put the step back to ``RUNNABLE`` or a
+    park -- and a step with ``cancel_requested`` set is never claimed again, so
+    the run would sit in ``RUNNING`` forever with nothing able to finish it.
+
+    The step state becomes ``CANCELLED``. The **accounting half is kept**:
+    ``settle_reservation_as_uncertain`` survives, because cancelling does not make
+    an in-flight call's cost go away. A decision that is already terminal is
+    returned unchanged -- a permanent failure is still a failure.
+    """
+    if not cancel_requested or decision.step_status.is_terminal:
+        return decision
+    return replace(
+        decision,
+        action=RecoveryAction.CANCEL,
+        step_status=StepRunStatus.CANCELLED,
+        reason=f"cancelled_after_{decision.reason}",
+        retry_after=None,
+    )
+
+
+def resume_due(
+    status: StepRunStatus,
+    *,
+    runnable_after: datetime | None,
+    parked_at: datetime | None,
+    now: datetime | None = None,
+    capacity_backoff_seconds: int = DEFAULT_CAPACITY_BACKOFF_SECONDS,
+    quota_fallback_seconds: int = DEFAULT_QUOTA_FALLBACK_SECONDS,
+) -> bool:
+    """True when a parked step should be offered to workers again.
+
+    Only the two ``WAITING_*`` parks ever resume on their own, which is the
+    contract of the prefix: a system owes us capacity, and it clears without
+    anyone acting. ``AWAITING_*`` and ``RECOVERY_REQUIRED`` return False
+    unconditionally -- a person owes a decision, and a timer resuming them would
+    be the system deciding on their behalf.
+
+    * ``WAITING_PROVIDER`` resumes at its ``runnable_after`` (the provider's reset
+      instant), or after ``quota_fallback_seconds`` when none was given.
+    * ``WAITING_CAPACITY`` resumes after ``capacity_backoff_seconds``.
+
+    A missing ``parked_at`` counts as parked long ago. The alternative strands the
+    step forever, and resuming costs at most one refused call.
+    """
+    moment = as_utc(now) or datetime.now(UTC)
+    parked = as_utc(parked_at)
+
+    def waited(seconds: int) -> bool:
+        return parked is None or parked + timedelta(seconds=max(0, int(seconds))) <= moment
+
+    if status is StepRunStatus.WAITING_PROVIDER:
+        reset = as_utc(runnable_after)
+        if reset is not None:
+            return reset <= moment
+        return waited(quota_fallback_seconds)
+    if status is StepRunStatus.WAITING_CAPACITY:
+        return waited(capacity_backoff_seconds)
+    return False
 
 
 # --------------------------------------------------------------------------- #

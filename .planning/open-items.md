@@ -199,54 +199,79 @@ the contract does not declare.
 same binding and different `population_snapshot` strings fingerprint identically,
 and that an undeclared `weighting` role is refused.
 
-**Status.** Open. Filed by the population foundation
+**What population-data now exposes for the fix** (consumption readiness): every
+`PopulationBinding` carries `version_id`, `content_sha256`, `weight_role`,
+`weight_column`, `view`, `dictionary_sha256`, `field_policy_version`,
+`companion_set_sha256` and `joint_state` — see `docs/architecture/population.md`.
+The fingerprint change itself stays research-engine's.
+
+**Status.** Open, owner research-engine. Filed by the population foundation
 (`.planning/plans/done/population-version-foundation.md`), deliberately not fixed
 there: it changes stage-fingerprint semantics, which is research-engine scope and
 needs the parity suite run against `AIA_LEGACY_REFERENCE`.
 
 ---
 
-## OI-7 · Question · The seven enrichment derivations are not recovered
+## OI-7 · Finding, archive-blocked · The seven enrichment derivations are not recoverable
 
 **Claim.** The ANALYSIS population view needs `audience_dimensions.enrich_panel`'s
-seven `*_derived` fields, and their derivation logic is in the withheld archive
-only; `PopulationRuntime` therefore refuses to load ANALYSIS in production.
+seven `*_derived` fields, and their derivation logic exists only in the withheld
+archive; no committed evidence in AIA-reference is enough to reconstruct them.
 
 **Anchor.** `packages/aia_core/src/aia_core/application/population.py`
-`PopulationRuntime._enrich` (raises `EnrichmentFailed` with no enricher) @ this
-change; AIA-reference `data-import-contracts/czech-population.md` OUTPUT.
+`PopulationRuntime._enrich` (raises `EnrichmentFailed` with no enricher);
+archive source `audience_dimensions.py` SHA256 `6ae1d1f8…c754bf`.
+
+**Reproduction.** `tests/test_population_runtime.py::test_the_analysis_view_does_not_load_without_an_enricher`.
 
 **Consequence.** Correct fail-closed behaviour (R1), and a hard blocker for any
 research or simulation step that needs the analysis view. The BASE view loads.
 
-**Decision needed.** Recover the derivations from the archive (data owner, D1/D3 in
-AIA-reference `open-decisions.md`) and port them behind the `Enricher` protocol
-with an EXACT parity fixture — or decide the research engine does not need them.
-Either way, the eight runtime fields still need a data-owner classification before
-any may back a client-facing claim (`DerivedField.client_claims_allowed` is False).
+**Result of exhausting the reference (outcome B).** Only function names, four
+threshold expressions and a truncated docstring are recorded — no formulas, no
+inputs, no outputs. The exact missing source, the parity fixture needed (F12,
+EXACT) and why no safe reconstruction exists are in
+`docs/migration/population-enrichment-archive-dependency.md`. This is now a
+data/archive acquisition task, not an engineering one.
 
-**Status.** Open.
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`. The eight runtime
+fields also need a data-owner classification:
+`docs/migration/population-derived-fields-decision.md`.
 
 ---
 
-## OI-8 · Question · No authorization model for establish and promote
+## OI-8 · Finding, closed · No authorization model for establish and promote
 
-**Claim.** `PopulationRuntime.establish` and `promote_live` require an actor and a
-reason but check no permission: the scope model has no platform-administrator role,
-and population data is not study-scoped.
+**Claim.** `PopulationRuntime.establish` and `promote_live` required an actor and a
+reason but checked no permission, and the actor was a free-text argument.
 
 **Anchor.** `packages/aia_core/src/aia_core/application/population.py`
-`establish` / `promote_live` @ this change; `domain/scope.py` `Permission`.
+`establish` / `promote_live` @ `8da7261`.
 
-**Consequence.** None today — no route, worker or CLI exposes them. The first one
-that does must not ship without a permission check, or any caller with a session
-could move LIVE for every study at once.
+**Consequence.** Any caller holding a session could move LIVE for every study in
+every organization. Latent: nothing exposed either method yet.
 
-**Smallest fix.** A platform-level permission (for example `POPULATION_PROMOTE`)
-issued only to an operator role, checked in both methods, with the refusal tested
-by type.
+**Fix.** A separate platform capability rather than a change to the shared scope
+contract: `PopulationPermission` {`POPULATION_ESTABLISH`, `POPULATION_PROMOTE`} and
+an unforgeable `PopulationOperatorContext`
+(`packages/aia_core/src/aia_core/domain/population/authority.py`), issued only by
+`PopulationAuthority` from trusted configuration
+(`application/population_authority.py`). Both use cases take the context instead
+of `actor_id`, check the permission inside the use case, and record the context's
+verified user id. A `StudyContext`, an `OrganizationContext`, a principal, a
+tool-shaped dict or `None` is refused by type; an organization OWNER is not an
+operator; `make layer_check` refuses an issuance anywhere else. The shared
+`Permission` enum and scope roles are untouched, so no integration-architecture
+contract change was needed — flagged to them for review in the PR.
 
-**Status.** Open. Must close before any exposure of promotion.
+**Test that catches it.** `packages/aia_core/tests/test_population_authority.py`
+(17 tests).
+
+**Status.** Closed by the population consumption-readiness change
+(`.planning/plans/done/population-consumption-readiness.md`, chunk 3). Remaining
+decision for the platform: which deployment configuration key names operators, and
+who holds it — the composition root does not wire it yet because nothing exposes
+establish or promote.
 
 ---
 
@@ -338,6 +363,269 @@ product-surface implements it (`.planning/plans/design-system.md`, chunk 4).
 
 ---
 
+## OI-13 · Gap · The reference's Python unfolding cannot be reproduced without its source
+
+**Claim.** `python_weighted_unfolding` — the layout every local reference run
+actually used — is refused by the engine, because fixture F4 pins its output but
+not its method, and its source is in the withheld archive.
+
+**Anchor.** `LAYOUT_ALGORITHMS` in `packages/aia_core/src/aia_core/domain/sociomap/layout.py`;
+test `test_legacy_algorithms_fail_closed_and_say_why`. Reference:
+`golden-fixtures/F4_python_unfolding_layout.json` @ AIA-reference `678e298`.
+
+**Reproduction.** `require_layout_algorithm("python_weighted_unfolding")` raises
+`LayoutUnavailable` naming `REF-WITHHELD-REFERENCE-ARCHIVE`. The evidence that it
+cannot be reconstructed: ~200 candidate stress definitions (target transform ×
+disparity fit × normalisation) evaluated on F4's own coordinates; none gives
+`stress_1 = 0.391394498` (closest 0.3923).
+
+**Consequence.** Production maps are laid out by `aia_rowcond_unfolding_v1`,
+which is **not numerically comparable to any legacy map**: on F4's ratings the
+two configurations differ by Procrustes RMSD 1.91 against a radius of 2.01. A
+client comparing a new map to a legacy one would see different geometry.
+
+**Smallest fix.** Read `sociomap.fit_python_unfolding` from the archive once the
+licence decision releases it (or have the data owner extract that one function),
+port it under its own identifier, and assert F4 at `1e-6`.
+
+**Test that would catch it.** F4 itself, once the port exists:
+`test_f4_python_unfolding_matches_the_reference` at tolerance `1e-6`.
+
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`. Owner:
+sociomapa-deterministic.
+
+---
+
+## OI-14 · Gap · Object-map base layout (`baseObjectLayout66`) is unrecovered
+
+**Claim.** The reference places objects on the object map with a 1,235-character
+frontend function, `baseObjectLayout66(effectiveMatrix66())`, whose source is
+withheld; F8's expected terrain depends on those positions, so F8 is reproduced
+only in part.
+
+**Anchor.** `ui-capability-ledger.json` entry `baseObjectLayout66` @ AIA-reference
+`678e298`; tests `test_f8_uses_the_reference_constants_and_bounds`,
+`test_f8_height_to_elevation_chain`.
+
+**Reproduction.** F8 gives the object matrix and metric values but not positions;
+a 2,000-start least-squares inverse fit of four object positions to F8's three
+finite samples found no placement consistent with them and with
+`finite_hr_cells = 1655`.
+
+**Consequence.** Production object positions come from the ratings unfolding,
+not from the relation matrix. A scenario edit to the relation matrix therefore
+changes object *heights* but never object *positions*, whereas in the reference
+it may move objects. The kernel-weighted-mean semantics, constants and bounds are
+verified; the end-to-end F8 field is not.
+
+**Smallest fix.** Obtain the function (or a fixture of its output positions for
+F8's matrix), port it as a declared object-layout option, and assert F8 end to end.
+
+**Test that would catch it.** `test_f8_object_terrain_matches_the_reference`,
+comparing every sample, `sum_ht` and `finite_hr_cells`.
+
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`.
+
+---
+
+## OI-15 · Gap · `REF-GAP-SOCIO-R-SMACOF` — R numerical parity is not claimed
+
+**Claim.** No fixture characterises the reference's R branch
+(`fit_r_smacof`, R `smacof::unfolding`, row-conditional), so `r_smacof_unfolding`
+is refused and no R parity is claimed anywhere.
+
+**Anchor.** `reference-gaps.md` § REF-GAP-SOCIO-R-SMACOF @ AIA-reference `678e298`;
+test `test_legacy_algorithms_fail_closed_and_say_why`.
+
+**Reproduction.** Measured in a cloud session on 2026-09-22: `apt-get install
+r-base-core` succeeds (R 4.3.3), but CRAN is unreachable through the session's
+network policy (`available.packages()` → *cannot open URL …/PACKAGES*) and no
+`r-cran-smacof` package exists in the apt archive, so `smacof` cannot be
+installed. **The environment is no longer the only blocker:** the gap's recipe
+runs the *reference's* `sociomap.fit_unfolding(method="r_smacof")`, whose wrapper
+(which `smacof` arguments, which target) is in the withheld archive. Running
+`smacof::unfolding` with guessed arguments would characterise R, not the
+reference.
+
+**Consequence.** Parity with the reference's primary layout contract is unknown.
+The size of the reference's own host-dependence defect (R vs Python coordinates
+for one study) is also still unmeasured.
+
+**Smallest fix.** On a host with CRAN access and the archive: run the recipe in
+`reference-gaps.md` to emit `F12_r_smacof_unfolding_layout.json`, vendor it here
+under `fixtures/sociomap/`, then decide whether `r_smacof_unfolding` becomes an
+implemented algorithm (an R adapter in `infrastructure/`, failing closed when R is
+absent) or stays refused.
+
+**Test that would catch it.** `test_f12_r_smacof_layout_matches_after_procrustes`,
+comparing aligned coordinates *and* pairwise distances at the tolerance the
+reference's `parity-plan.md` records for F12.
+
+**Status.** Open. Owners: parity-quality + sociomapa-deterministic.
+
+---
+
+## OI-16 · Question · The AIA layout and its declarations need methodology sign-off
+
+**Claim.** Four spec values in `AIA_SOCIOMAP_V1` are AIA declarations, not
+recovered reference behaviour: the dissimilarity target `scale_top_minus_rating`,
+the layout `aia_rowcond_unfolding_v1`, the map frame (`max_abs_to_extent`, 45),
+and relation missing-data `refuse`.
+
+**Anchor.** `AIA_SOCIOMAP_V1` in `packages/aia_core/src/aia_core/domain/sociomap/specification.py`
+(each value is commented with its source); `docs/architecture/sociomapa-deterministic-engine.md` §5.
+
+**Consequence.** Adopting a spec for a client study is a group-D decision
+(`sociomapa-deterministic-engine.md` §1). Until a methodology owner accepts these
+four values, a production map is reproducible and auditable but its methodology
+is the engineering team's, not the product's.
+
+**Smallest fix.** The methodology owner completes the four approval fields in
+[`docs/architecture/sociomapa-methodology-decision.md`](../docs/architecture/sociomapa-methodology-decision.md):
+ACCEPT, REPLACE or DEFER per declaration, each with the evidence, the
+consequence, the real alternatives and legacy comparability. The answer is
+recorded there, here and in D6.
+
+**Status.** Open — decision package ready, awaiting the owner (D6). **This is the
+only methodology decision preventing client use.** It does not block computation.
+
+---
+
+## OI-17 · Requirement · No gate yet stops an unapproved Sociomap reaching a client
+
+**Claim.** Nothing yet checks that a Sociomap entering a client deliverable was
+computed under an approved methodology. The engine computes any supported spec
+by design, and approval is product policy that the engine must not know.
+
+**Anchor.** `docs/architecture/sociomapa-deterministic-engine.md` §13, rule 2;
+`tools/layer_check.sh` "… never substitutes the Sociomap preset" (rule 3, the
+part enforceable today).
+
+**Consequence.** As soon as a route, job or export can emit a Sociomap, an
+artifact computed under unapproved `aia-sociomap-1` could be delivered. No such
+path exists yet — the worker, API and web wiring are all blocked — so there is
+no exposure today.
+
+**Smallest fix.** An approved-methodology registry in product policy, entries
+`(methodology_version, spec_fingerprint, approver, date)`, and one check at the
+client-deliverable boundary that refuses an artifact whose pair is not in it.
+Cross-context: **owned by integration-architecture** with product policy; it
+belongs with the approval/gate machinery, not in the Sociomap engine.
+
+**Test that would catch it.** A deliverable-boundary test: an artifact under an
+unregistered `(version, fingerprint)` pair is refused, the same pair after
+registration is accepted, and a registered version with a different fingerprint
+is refused.
+
+**Status.** Open, not yet exposed. Must land before, or with, the first path that
+can emit a Sociomap to a client.
+
+---
+
+## OI-21 · Finding · A provider park can auto-resume a possibly-billed call
+
+**Claim.** When an attempt fails with `QUOTA` — or `BUDGET_EXCEEDED` or
+`APPROVAL_REQUIRED` — while a dispatched paid call has no recorded outcome,
+`decide_recovery` parks the step instead of returning `RECOVERY_REQUIRED`, so a
+quota park re-issues the call automatically once its reset instant passes.
+`PROVIDER_CAPACITY` is not affected: its branch comes after the uncertain-billing
+branch, and a test already asserts that ordering.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/workflow.py:527-558 @ 17c0a6b`
+— the approval, budget and quota branches (527, 534, 545) all return before the
+`paid_call_dispatched and not paid_call_outcome_known` branch (558).
+
+**Reproduction.**
+`packages/aia_core/tests/test_workflow_reservations.py::test_a_park_with_a_call_in_flight_still_records_the_exposure`
+— the step goes to `WAITING_PROVIDER` with the call still in flight.
+
+**Consequence.** Possible double billing on resume. The *accounting* is already
+safe — the closing rule charges the in-flight reservation as
+`SETTLED_UNCERTAIN` whatever the decision — so the budget is not overstated; the
+risk is the second provider call itself.
+
+**Why it is not simply reordered.** A quota refusal is a provider *response*:
+the call was answered, so its outcome is known and it was not billed. The
+contradiction only arises when an executor reports `QUOTA` without recording that
+outcome. Whether the fix belongs in `decide_recovery` (billing uncertainty
+outranks every park) or in the executor contract (a provider refusal must settle
+the call at zero first) is a domain decision, and `decide_recovery` is parity-
+covered by `test_legacy_job_store_characterization.py`, which CI cannot run
+(OI-1).
+
+**Smallest fix.** Move the uncertain-billing branch above the `QUOTA` branch in
+`decide_recovery`, after a parity run confirms the prototype does not depend on
+the current order.
+
+**Test that would catch it.** A `decide_recovery` unit test:
+`failure=QUOTA, paid_call_dispatched=True, paid_call_outcome_known=False` →
+`RECOVERY_REQUIRED`.
+
+**Status.** Open. The worker's executor contract (`aia_worker.executor`) tells
+executors to settle a refused call at zero before reporting the refusal, which
+closes the path for every executor that follows it.
+
+---
+
+## OI-22 · Question · Should revoking a researcher stop the runs they started?
+
+**Claim.** A worker executes a claimed attempt under a scope issued from the lease
+(`ScopeResolver.execution_context`), with the run's `triggered_by` as actor. It
+does **not** re-check that the triggering user is still active or still holds a
+grant on the study, so a run started by someone since deactivated or revoked runs
+to completion.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/scope.py`
+`ScopeResolver.execution_context` @ this change — the only denials are
+`unknown_attempt`, `lease_not_held`, `scope_mismatch` and `client_archived`.
+
+**Consequence.** None known to be harmful yet: the run was authorised when it was
+created (`create_run` requires `RUN_WORKFLOW` on an open study), and a LEAD can
+cancel it. But interactive access is revoked immediately on deactivation
+(`ScopeResolver._active_user`), and background work is not, which is an
+inconsistency somebody should choose deliberately.
+
+**Options.** (a) Keep as is: authority is fixed at run creation. (b) Re-resolve
+the triggerer on each attempt and `WorkQueue.refuse` when it fails — fail closed,
+at the cost of stranding a leaver's in-flight studies until someone re-triggers
+them. (c) (b), but reassign rather than refuse, which needs a product rule for
+who inherits.
+
+**Status.** Open. A product/security decision, not an engineering one.
+
+---
+
+## OI-23 · Finding · Secret-redaction patterns are defined twice
+
+**Claim.** The provider-key shapes that must never reach a log or an attempt's
+`error_json` are defined in the API and restated in the worker, so a new key
+shape added to one is silently missing from the other.
+
+**Anchor.** `apps/api/src/aia_api/observability.py` `_SECRET_VALUE_PATTERNS` and
+`apps/worker/src/aia_worker/observability.py` `_SECRET_VALUE_PATTERNS` @ this
+change. The worker may not import the API (`tools/layer_check.sh`: "the worker
+never imports the API"), which is why it was restated rather than shared.
+
+**Reproduction.** Add a pattern to one file and run
+`apps/worker/tests/test_worker_loop.py::test_an_unclassified_exception_is_permanent_and_its_message_redacted`
+with a key of the new shape: it is not redacted.
+
+**Consequence.** A provider key in an executor's exception text reaches the
+database and the worker log. Anti-pattern A6 (producer/consumer drift) in a
+security-relevant place.
+
+**Smallest fix.** Move the value patterns and `redact_text` into a pure module
+in `aia_core` (no framework imports, so it may live in `domain/`) and import it
+from both.
+
+**Test that would catch it.** One parametrised test over both redactors with the
+same key fixtures, asserting identical output.
+
+**Status.** Open. Deliberately not done in the worker change set: it moves code
+the API owns, and one logical change per commit.
+
+---
+
 ## OI-24 · Finding · The impact preview answers an unknown field with "nothing changes"
 
 **Claim.** `GET …/projects/{id}/impact?field=<anything>` returns 200 with every
@@ -414,4 +702,3 @@ OI-11), and for a study's reservations and spend; then the approval write.
 **Owner.** platform-runtime.
 
 **Status.** Open. Cross-context dependency.
-
