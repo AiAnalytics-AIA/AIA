@@ -146,25 +146,31 @@ the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
 
 ### Switching the unit on
 
-The unit needs four values under `/aia/develop/` in Parameter Store and its data
-bundle in the ops bucket. Terraform does not create them yet (OI-44). From a
-shell with the operator's AWS credentials, `eu-central-1`:
+The 18.6.6 interface needs one value under `/aia/develop/` in Parameter Store
+and its data bundle in the ops bucket. The oracle hostname for the parity harness
+needs three more, and is optional. Terraform does not create any of them yet
+(OI-44). From a shell with the operator's AWS credentials, `eu-central-1`:
 
 ```bash
-# Where the data bundle lives in the ops bucket, as uploaded once with
+# Required. Where the data bundle lives in the ops bucket, as uploaded once with
 #   aws s3 sync <extract_legacy.py --data-out dir> s3://<ops-bucket>/<prefix>/
+# (develop: legacy-data/86b70bfb5c1b, set 2026-09-23)
 aws ssm put-parameter --name /aia/develop/aia_legacy_data_prefix --type String --value legacy-data/<bundle-id>
-# The oracle hostname (an A record at the host's public IP) and its basic-auth gate.
+
+# Optional: the oracle hostname (an A record at the host's public IP) and its
+# basic-auth gate, for the parity harness (OI-39). Not needed for the interface.
 aws ssm put-parameter --name /aia/develop/aia_legacy_hostname --type String --value legacy.aia-develop.art-chain.io
 aws ssm put-parameter --name /aia/develop/aia_legacy_basic_user --type String --value oracle
 aws ssm put-parameter --name /aia/develop/aia_legacy_basic_hash --type SecureString \
   --value "$(docker run --rm caddy:2-alpine caddy hash-password --plaintext '<password>')"
 ```
 
-Then, on the host, `bin/write-env.sh` and re-run *Deploy develop*. The smoke
-test reports `legacy: the 18.6.6 unit is healthy` when it worked. Without the
-hostname values the oracle block binds `legacy-unconfigured.localhost` with a
-gate nobody can pass, so the product hostname is unaffected.
+Then re-run *Deploy develop*. Every deploy rewrites `.env` from Parameter Store
+(`bin/write-env.sh`) before `bin/deploy.sh`, so nothing is run on the host by
+hand. The smoke test reports `legacy: the 18.6.6 unit is healthy` when it worked
+(first on 2026-09-23, run 12). Without the hostname values the oracle block binds
+`legacy-unconfigured.localhost` with a gate nobody can pass, so the product
+hostname is unaffected.
 
 ## Logs
 

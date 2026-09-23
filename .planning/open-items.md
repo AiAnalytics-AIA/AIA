@@ -1224,6 +1224,12 @@ the `oracle` marker, the CI job, `make test-oracle`) landed with slice 1.
 defect after all, filed and fixed as OI-41. Still needed from the human, in
 order: `terraform apply` in `infra/develop`, re-run run 8, confirm
 `bin/smoke.sh`, provision the three secrets.
+2026-09-23 23:34 UTC: `legacy-panel` deployed and healthy (run 12, smoke
+`legacy: the 18.6.6 unit is healthy`), serving the product hostname behind the
+gate (ADR 0012). The oracle hostname is not configured yet, so the parity gate
+still reports `NOT_EXECUTED`: remaining are the three optional `aia_legacy_*`
+hostname parameters (runbook § Switching the unit on), the DNS record, and the
+three repository secrets.
 
 ---
 
@@ -1418,5 +1424,8 @@ runbook (§ Switching the unit on) gives the commands.
 `9e42f24`) and the CI step *Caddy loads through Compose without the oracle's
 settings*.
 
-**Status.** Code fix open for review; Terraform ownership of the parameters open.
+**Status.** Fixed in PR #43 @ `5b51640`: deploy run 11 brought the site back with
+the unit unhealthy (every other smoke check passed), and run 12 passed everything
+once `aia_legacy_data_prefix` was set. Still open: Terraform ownership of the
+four `aia_legacy_*` parameters and the oracle's DNS record.
 
