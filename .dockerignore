@@ -1,0 +1,29 @@
+# Build context for deploy/docker/python.Dockerfile (repository root). Everything
+# not needed to install and run the Python distributions stays out, which keeps
+# the context small and keeps secrets, checkouts and test output out of images.
+.git
+.github
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+.pytest_cache
+.ruff_cache
+.mypy_cache
+tmp
+data
+node_modules
+apps/web
+docs
+.planning
+.reference
+npc-panel-reference
+legacy_reference
+infra
+deploy
+src
+*.md
+.env
+.env.*
+openapi.json
