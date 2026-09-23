@@ -3,9 +3,8 @@
 # nothing until a second environment needs the same shapes.
 #
 # State: keep it out of the repository. The simplest safe choice is an S3
-# backend in the same account; uncomment and fill in once the bucket exists, or
-# pass `-backend-config` at init. Local state is acceptable only for the very
-# first apply by one person.
+# backend in the same account. The bucket is provisioned separately before the
+# first apply, with versioning, SSE-S3, public access blocked, and TLS enforced.
 
 terraform {
   required_version = ">= 1.6"
@@ -21,13 +20,13 @@ terraform {
     }
   }
 
-  # backend "s3" {
-  #   bucket       = "aia-terraform-state-<account-id>"
-  #   key          = "develop/terraform.tfstate"
-  #   region       = "eu-central-1"
-  #   encrypt      = true
-  #   use_lockfile = true
-  # }
+  backend "s3" {
+    bucket       = "aia-terraform-state-311141567391"
+    key          = "develop/terraform.tfstate"
+    region       = "eu-central-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 }
 
 provider "aws" {
