@@ -66,12 +66,14 @@ services:
     image: ${AIA_IMAGE_REGISTRY}/aia-web:${AIA_IMAGE_TAG}
     restart: unless-stopped
     environment:
-      # Same-origin: the browser calls /api/v1 on the public hostname and Caddy
-      # routes it, so no CORS configuration exists anywhere.
-      NEXT_PUBLIC_AIA_API_BASE: ""
-      NEXT_PUBLIC_AIA_COGNITO_DOMAIN: ${AIA_COGNITO_DOMAIN}
-      NEXT_PUBLIC_AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
-      NEXT_PUBLIC_AIA_PUBLIC_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
+      # Read at request time by the web container's /config route and handed to
+      # the browser, so one SHA-tagged image serves any environment. Same-origin:
+      # the browser calls /api/v1 on the public hostname and Caddy routes it, so
+      # no CORS configuration exists anywhere and AIA_API_BASE stays empty.
+      AIA_API_BASE: ""
+      AIA_COGNITO_DOMAIN: ${AIA_COGNITO_DOMAIN}
+      AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
+      AIA_PUBLIC_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
     expose: ["3000"]
     networks: [internal]
     read_only: true
