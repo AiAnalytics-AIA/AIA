@@ -44,6 +44,7 @@ point; nothing outside it touches its internals.
 | 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context, and the only loader of population data.** Orchestrates domain + infrastructure. | 1, 3 |
 | 3 | **Infrastructure** | `packages/aia_core/src/aia_core/infrastructure/` | SQLAlchemy tables and repositories, object storage, provider gateways. Every external service behind a protocol. | 1 |
 | 4 | **Workers** | `apps/worker/src/aia_worker/` | Durable step execution: claim from the PostgreSQL queue, heartbeat, run the `StepExecutor` registered for the step's kind, record the outcome; every worker also reconciles. **Knows nothing about what a step does.** | 1, 2, 3 — never 5 |
+| 4b | **Executors** | `apps/executors/src/aia_executors/` | What a step of each kind *does*, under the scope the lease issued and through the worker's `StepContext`. Registered by kind; the worker loads them from `AIA_WORKER_EXECUTORS`. Also the operator commands (seed, smoke) that act as a user would through the application layer. | 1, 2, 3 and `aia_worker.executor` — never 5 |
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
 | — | **Legacy stub** | `src/server.js` | Frozen. The sole surviving login path. | Nothing. Receives no new features. |
@@ -86,6 +87,8 @@ Run it before every commit. It is blocking in CI.
 | the worker knows nothing about HTTP | A worker that only works behind a web server |
 | the worker never imports the API | Layer 4 depending on layer 5, and the API's request state leaking into jobs |
 | the worker imports nothing domain-specific | The executor seam becoming decoration: the loop importing the AI or research code it is supposed to be ignorant of |
+| executors know nothing about HTTP and never import the API | A step implementation that only works behind a web server, or reaches into request state |
+| executors never build their own scope context, admit their own claims, or build an unscoped repository | A claimed step writing another client's artifacts, or a number reaching a result without the admission gate, from inside the process where model-driven code will run |
 | the API never executes workflow steps | Expensive work inside a request, holding a lease exactly as long as a browser stays connected |
 | only the work queue may query across studies | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
 | runtime populations are issued only by the canonical loader (and never by the API) | A second loader returning different population semantics from the same bytes (reference F10, R4) |
@@ -176,12 +179,12 @@ What are you building?
 │      Project routes live under /api/v1/studies/{study_id}/ — always.
 │
 ├─ Background work that can fail, retry, or cost money?
-│    → a step kind in the workflow engine (aia_core.domain.workflow +
-│      workflow_repository), executed by a StepExecutor registered with the
-│      worker (apps/worker: aia_worker.executor). Never a bare asyncio task and
-│      never in a request handler. It must be durable, resumable and idempotent,
-│      and every metered call goes through the context's reserve → dispatching →
-│      settled bracket.
+│    → a step kind named in aia_core.domain.workflow_templates, executed by a
+│      StepExecutor in apps/executors/src/aia_executors/ (registered by kind in
+│      its registry.py; the seam is apps/worker: aia_worker.executor). Never a
+│      bare asyncio task and never in a request handler. It must be durable,
+│      resumable and idempotent, and every metered call goes through the
+│      context's reserve → dispatching → settled bracket.
 │
 ├─ Something a user sees?
 │    → apps/web/src/…  — renders state the server computed. No rules.
@@ -317,9 +320,10 @@ declared tier.
 | Parity-matrix consistency (`test_parity_matrix.py`, inside the pytest steps) | **blocking** |
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
-| API contract (OpenAPI paths + study-scoping assertion) | **blocking** |
+| Executor suite (the `develop_snapshot` step under the real loop, the develop seed, the smoke module) with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
+| API contract (OpenAPI paths + study-scoping assertion, now covering `/runs` and `/artifacts` too) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
-| Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots and stops on `SIGTERM` with no error logged | **blocking** |
+| Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
 | Committed-provider-key scan | **blocking** |
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |
@@ -347,17 +351,34 @@ it. Never move a check to advisory because it is failing on your branch.
 
 ## 9. Deployment
 
+The `develop` environment is one EC2 host under Docker Compose
+([ADR 0009](docs/architecture/adr/0009-single-host-develop-environment.md)):
+`.github/workflows/deploy-develop.yml` deploys every CI-green head of `develop`;
+`deploy/develop/` holds the Compose file, Caddyfile and the host's scripts, and
+its `README.md` is the runbook; `infra/develop/` is the Terraform. The running
+revision is always visible: `/api/v1/health` reports `build.sha`, the web
+client's `/version` reports the same, and every artifact records it as its
+`runtime_version`. Production compute remains undecided.
+
 - Deploy only what CI verified: chain CD to CI's *completion* and guard on
   `workflow_run.conclusion == 'success'`, checking out
   `github.event.workflow_run.head_sha` — a `workflow_run` job runs in the
   default-branch context, so the default checkout is an **older** head than the
-  one just verified.
-- `concurrency: { group: deploy, cancel-in-progress: true }`. Migrations run as
-  an explicit post-deploy step. Seeding is idempotent.
+  one just verified. `deploy-develop.yml` does exactly this.
+- One deployment at a time (`concurrency: deploy-develop`, never cancelling a
+  deploy already running on the host). Migrations run **once, as a distinct
+  deploy step** (`alembic upgrade head` from the api image at the SHA being
+  deployed, after a `pg_dump`, before the services are replaced); neither the
+  API nor the worker migrates on start, and `alembic downgrade` is never run
+  automatically. Seeding is idempotent (`aia_executors.seed`).
 - **No long-lived cloud keys** in the repository or in repository secrets. AWS
-  access uses OIDC federation (`permissions: { id-token: write }`). Every other
-  secret comes from Secrets Manager and is referenced, never echoed into a log or
-  a step summary.
+  access uses OIDC federation (`permissions: { id-token: write }`), scoped to one
+  repository's `develop` GitHub environment. On the host the only credential is
+  the instance role; the two application secrets live in SSM Parameter Store and
+  reach the host as a root-only env file, never an image, a log or a step
+  summary. Deployed processes must be told their revision (`AIA_BUILD_SHA`) and
+  keep artifacts in S3 itself; `Settings.validate_for_production` refuses to
+  boot otherwise.
 - **CORS origins are an explicit allowlist read from typed config. Never `*`.**
 - A scheduled workflow that rebuilds a heavy artefact pushes it tagged and stops.
   Promotion to live is a human command, and the job summary prints it. Nothing

@@ -28,6 +28,15 @@ make check      # everything CI runs: lint, typecheck, layering, tests
 make verify     # the pre-commit sequence from CLAUDE.md §10
 ```
 
+## The develop environment
+
+Every CI-green merge to `develop` is deployed to one EC2 host under Docker
+Compose, with S3, Cognito (Google Workspace), ECR, SSM and Bedrock used for real
+([ADR 0009](docs/architecture/adr/0009-single-host-develop-environment.md)).
+The runbook is [`deploy/develop/README.md`](deploy/develop/README.md); the
+resources are [`infra/develop/`](infra/develop/README.md). The running revision
+is at `/api/v1/health` (`build.sha`) and `/version`.
+
 ## Before you contribute
 
 Read these three, in this order. They are the spec; the code is the
@@ -58,9 +67,14 @@ guards. See [docs/architecture/adr/0003](docs/architecture/adr/0003-cognito-iden
 ## Layout
 
 ```
-apps/web                    Next.js client (still mock-backed)
+apps/web                    Next.js client: /studies is the live slice (Cognito + real API);
+                            /org/* is the UI demo on mock data, labelled as such
 apps/api                    FastAPI service
   src/aia_api/identity/     Identity providers: Cognito, test, development
+apps/worker                 The execution loop: claims, heartbeats, records
+apps/executors              What each step kind does; the develop seed and smoke commands
+deploy/                     Container images and the develop host (Compose, Caddy, runbook)
+infra/develop               Terraform for the develop AWS resources
 packages/aia_core
   src/aia_core/domain/      Pure rules: no framework, driver or SDK imports
   src/aia_core/application/ Use cases; owns authorization

@@ -48,9 +48,12 @@ both the authoritative store and the v0.1 queue, claimed with
 `FOR UPDATE SKIP LOCKED`
 ([ADR 0002](../architecture/adr/0002-postgresql-authoritative-store.md)).
 
-The **compute service is not decided**. ECS Fargate and App Runner both remain
-options; neither is frozen, and nothing here should be read as selecting one. The
-web client's hosting is likewise open.
+The **production compute service is not decided**. ECS Fargate and App Runner
+both remain options. The **`develop` environment** is decided and declared:
+one EC2 host under Docker Compose with S3, Cognito, ECR, SSM and Bedrock used
+for real ([ADR 0009](../architecture/adr/0009-single-host-develop-environment.md));
+`deploy/develop/README.md` is its runbook and `infra/develop/` its Terraform.
+Applying it is a human action (§ The develop environment, below).
 
 The NPC Panel prototype is **not** in this repository. The authoritative
 reference specification lives in the private repository
@@ -272,6 +275,38 @@ is taken and recorded (`.planning/open-items.md` OI-18); two further items went 
 the register (OI-19 `RELIGION`, OI-20 factual keyword detection). The plan and its
 review map are in `.planning/plans/done/evidence-governance-foundation.md`.
 
+## The develop environment — declared, awaiting apply
+
+Narrative for the tracker entry in `PROGRESS.md` (Completed, "The `develop`
+environment") and the plan `.planning/plans/develop-deployment.md`, which also
+holds the audit of `main` @ `a15be65` this work started from.
+
+What landed: every process names its commit (`AIA_BUILD_SHA`) and refuses to
+run deployed without it or with any artifact store but S3; api, worker and web
+images; one host's Compose, Caddyfile and scripts (deploy → backup → migrate once
+→ replace → smoke); a Terraform root for the AWS resources with an instance role
+as the host's only credential and a GitHub OIDC role scoped to the `develop`
+environment; the first real vertical slice — a `develop_snapshot` run started
+from the browser after a Cognito (Google Workspace) sign-in, executed by the
+worker through `apps/executors`, written to S3 through `ArtifactRepository`, and
+read back in the browser with its provenance; an idempotent seed; CI on
+`develop`; a deploy workflow that ships only what CI verified.
+
+What did **not** land, and why: a governed model call. `main` has no
+`ModelGateway`; PR #28 builds it and is unmerged and conflicting. The route is
+recorded as ADR 0010 *Proposed*, the instance role may already invoke exactly
+one pinned EU model, and the smoke test reports the AI check `NOT_RUNNABLE`
+rather than pass. Decision D10 in `PROGRESS.md`.
+
+Verified here: 1668 passed / 169 skipped on PostgreSQL 16 (1620 / 169 before),
+the same on SQLite, `mypy --strict` clean over 99 files, `layer_check` 40/40,
+`exposure_check` 7/7, `alembic check` clean, web lint / `tsc` / build clean, the
+standalone web server answering `/config`, `/version`, `/studies`. **Not
+verified here:** the image builds and the deploy workflow — this sandbox's
+egress policy refused Docker Hub and the Terraform registry — so the first real
+run happens in GitHub Actions after the human actions in
+`infra/develop/README.md`.
+
 ## In progress
 
 Nothing. The tree is green and the slice is complete.
@@ -292,8 +327,11 @@ Nothing. The tree is green and the slice is complete.
       compensating entries rather than edits, is outstanding.
 - [ ] **OpenTelemetry instrumentation.** Structured logging and request
       correlation exist; spans, propagation and metrics do not.
-- [ ] Wire `apps/web` to the real API and delete `lib/mock.ts`.
-- [ ] Terraform for the AWS baseline, once the compute service is chosen.
+- [ ] Wire `apps/web` to the real API and delete `lib/mock.ts`. The live
+      `/studies` slice is real; the demo pages remain, labelled as mock.
+- [x] Terraform for the AWS baseline — for `develop` (`infra/develop/`,
+      ADR 0009). Production compute is still open.
+- [ ] The Bedrock adapter and `aws_bedrock` provider, after PR #28 (ADR 0010).
 - [ ] PostgreSQL row-level security as a second isolation layer.
 - [ ] Rate limiting.
 

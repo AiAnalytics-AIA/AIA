@@ -42,6 +42,14 @@ applying the rule at all.
 
 ## Python packaging
 
+**A dev extra that names a sibling distribution installs in dependency order.**
+`apps/api[dev]` depends on `aia-worker` and `aia-executors` (its slice test
+drives a real worker over the API's database). pip resolves those names only if
+they are already installed or in the same `pip install` invocation, so the
+Makefile and CI install `packages/aia_core`, `apps/worker`, `apps/executors`
+and then `apps/api[dev]` — `pip install -e "apps/api[dev]"` on its own fails
+on a clean machine with "No matching distribution found for aia-executors".
+
 **An import with no declared dependency is a broken build waiting for a clean
 machine.** `pyjwt[crypto]` was imported by the identity layer and installed by
 hand into one working virtualenv; a clean install had no `jwt` module. Before
@@ -420,7 +428,52 @@ existed. Two habits fix it:
 ## Next.js / TypeScript
 
 `npm run lint`, `npx tsc --noEmit` and `npm run build` are three different
-gates and all three are blocking. `apps/web` has its own lockfile, so CI caches
+gates and all three are blocking.
+
+**Standalone output roots itself at the nearest lockfile above the app.** With
+`output: "standalone"`, Next found the repository's root `package-lock.json`,
+treated the monorepo as the workspace, and emitted
+`.next/standalone/apps/web/server.js` — while an image built from `apps/web`
+alone emits `.next/standalone/server.js`. The same Dockerfile then works in one
+place and not the other. Pin the trace root to the package:
+
+```ts
+// WRONG — layout depends on what is above apps/web
+const nextConfig: NextConfig = { output: "standalone" };
+
+// RIGHT — apps/web/next.config.ts
+const nextConfig: NextConfig = {
+  output: "standalone",
+  outputFileTracingRoot: path.join(__dirname),
+};
+```
+
+**`NEXT_PUBLIC_*` is baked in at `next build`.** A value the browser needs that
+differs per environment (the Cognito domain and client id) cannot be an
+environment variable of the *running* container if it is read through
+`process.env.NEXT_PUBLIC_…` in a client component: the SHA-tagged image becomes
+environment-specific. Serve it from a route handler that reads `process.env` at
+request time (`apps/web/src/app/config/route.ts`, `dynamic = "force-dynamic"`)
+and fetch it once on the client.
+
+**`react-hooks/set-state-in-effect` is an error under `eslint-config-next` 16.**
+Reading `sessionStorage` into state inside `useEffect` fails lint, and reading
+it during render breaks hydration (the server has no storage). The shape that
+passes both is an external store with a server snapshot of `null`, and a cached
+snapshot so React sees a stable object:
+
+```ts
+// WRONG — lint error, and a hydration mismatch if moved into render
+useEffect(() => { setSession(readSession()); }, []);
+
+// RIGHT — apps/web/src/lib/auth.ts
+export function useSession() {
+  return useSyncExternalStore(() => () => {}, readSession, () => null);
+}
+```
+
+Errors derived from the URL (`useSearchParams`) are computed during render, not
+set in an effect; only the asynchronous outcome of a promise is `setState`d. `apps/web` has its own lockfile, so CI caches
 on `apps/web/package-lock.json` — caching on a branch name gives a stale
 `node_modules` that fails for reasons unrelated to the change.
 

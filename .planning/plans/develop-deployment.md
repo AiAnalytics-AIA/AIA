@@ -158,15 +158,36 @@ model call**, which waits on the gateway PR; in exchange nothing here forks ADR
 
 ## Chunks
 
-- [ ] 1. This plan, ADR 0009 (single-host develop), ADR 0010 (Bedrock EU route, Proposed) — lands: docs
-- [ ] 2. Build identity and storage settings — `AIA_BUILD_SHA` in `/health`, worker start log and the web client; typed `AIA_STORAGE_*` settings in both composition roots, S3 required under `staging`/`production` — lands: code + tests + `.env.example`
-- [ ] 3. Containers — `apps/api/Dockerfile`, `apps/worker/Dockerfile`, `apps/web/Dockerfile` (standalone output), non-root, SHA baked in — lands: images built locally
-- [ ] 4. Single host — `deploy/develop/`: Compose, Caddyfile, `env.example`, `bin/deploy.sh`, `bin/backup.sh`, `bin/restore.sh`, `bin/smoke.sh`, runbook — lands: files + runbook
-- [ ] 5. Terraform — `infra/develop/`: instance + role + EIP + DLM snapshots, S3 artifacts + backups, ECR ×3, GitHub OIDC role, SSM parameters, Cognito pool + Google IdP + client + domain, budget, optional Route53 — lands: files + tfvars example
-- [ ] 6. Vertical slice, backend — `apps/executors` with `develop_snapshot`; run routes under `/studies/{id}/projects/{pid}/runs`; artifact read route; `application/develop_seed.py` + `tools/seed_develop.py` — lands: code + tests + layer rules
-- [ ] 7. Vertical slice, frontend — Cognito PKCE login, `lib/api.ts`, `/studies` pages, version footer, demo pages labelled — lands: code, lint/tsc/build green
-- [ ] 8. CI/CD — CI on `develop`; `deploy-develop.yml`: `workflow_run` → build → ECR → SSM → smoke — lands: workflows
-- [ ] 9. Docs sync, `make verify`, `develop` branch from `main`, PR, cost table, human actions — lands: docs + branch + PR
+- [x] 1. This plan, ADR 0009 (single-host develop), ADR 0010 (Bedrock EU route, Proposed) — lands: docs
+- [x] 2. Build identity and storage settings — `AIA_BUILD_SHA` in `/health`, worker start log and the web client; typed `AIA_STORAGE_*` settings in both composition roots, S3 required under `staging`/`production` — lands: code + tests + `.env.example`
+- [x] 3. Containers — `apps/api/Dockerfile`, `apps/worker/Dockerfile`, `apps/web/Dockerfile` (standalone output), non-root, SHA baked in — lands: images built locally
+- [x] 4. Single host — `deploy/develop/`: Compose, Caddyfile, `env.example`, `bin/deploy.sh`, `bin/backup.sh`, `bin/restore.sh`, `bin/smoke.sh`, runbook — lands: files + runbook
+- [x] 5. Terraform — `infra/develop/`: instance + role + EIP + DLM snapshots, S3 artifacts + backups, ECR ×3, GitHub OIDC role, SSM parameters, Cognito pool + Google IdP + client + domain, budget, optional Route53 — lands: files + tfvars example
+- [x] 6. Vertical slice, backend — `apps/executors` with `develop_snapshot`; run routes under `/studies/{id}/projects/{pid}/runs`; artifact read route; `application/develop_seed.py` + `tools/seed_develop.py` — lands: code + tests + layer rules
+- [x] 7. Vertical slice, frontend — Cognito PKCE login, `lib/api.ts`, `/studies` pages, version footer, demo pages labelled — lands: code, lint/tsc/build green
+- [x] 8. CI/CD — CI on `develop`; `deploy-develop.yml`: `workflow_run` → build → ECR → SSM → smoke — lands: workflows
+- [x] 9. Docs sync, `make verify`, `develop` branch from `main`, PR, cost table, human actions — lands: docs + branch + PR
+
+## What was verified, and what was not
+
+Verified in the session that wrote this (Python 3.12, PostgreSQL 16.13, Node 22):
+the whole Python suite on PostgreSQL and SQLite, `mypy --strict`, `layer_check`,
+`exposure_check`, `alembic check`, web lint / `tsc` / production build, the
+standalone web server, `shellcheck` on the host scripts, `docker compose config`,
+`terraform fmt`, and both workflow files parsing.
+
+**Not verified** — the sandbox's egress policy refused Docker Hub, Amazon ECR
+Public's anonymous quota and the Terraform provider registry: `docker build` of
+the three images, `terraform validate`/`plan`, Caddy configuration validation,
+and the deploy workflow itself. Each is exercised for the first time by the
+human actions in `infra/develop/README.md`; the workflow fails loudly on any of
+them rather than reporting a deployment that did not happen.
+
+## Findings filed along the way
+
+OI-32 (a repository `ScopeDenied` is a 500 in the projects and scope routers),
+OI-33 (no web test runner), OI-34 (browser session in `sessionStorage`, accepted
+for develop). OI-3 closed: `develop` is the second branch it asked for.
 
 ## Not done here, deliberately
 

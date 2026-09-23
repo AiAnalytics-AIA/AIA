@@ -138,6 +138,19 @@ place where the truth is kept, and buy nothing. SQS may later be added as a
 authoritative even then. See
 [ADR 0002](adr/0002-postgresql-authoritative-store.md).
 
+## Templates
+
+A run is created from a **workflow type**, never from a step list a caller
+supplies. `aia_core.domain.workflow_templates` maps each type to its step graph
+and refuses an unknown type; `aia_core.application.workflows.start_workflow`
+validates the project, fingerprints the content the steps will read, and creates
+the run idempotently per `(type, project, revision)`. One template exists today:
+`develop_snapshot`, a single deterministic step executed by
+`apps/executors/src/aia_executors/snapshot.py` that records a project revision
+as an artifact — the develop environment's vertical slice (ADR 0009). The
+research pipeline's graph lands as a second template when its steps have
+executors.
+
 ## Accounting transactionality
 
 The transaction boundary is the part most worth getting right, because the
