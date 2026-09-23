@@ -34,7 +34,7 @@ describe("Unavailable", () => {
     const region = screen.getByRole("region", { name: "Schválení" });
     expect(region).toHaveTextContent(cs.unavailable.label);
     expect(region).toHaveTextContent("platform-runtime");
-    expect(region).toHaveTextContent("OI-15");
+    expect(region).toHaveTextContent("OI-26");
   });
   it("refuses an id the registry does not list", () => {
     expect(() => render(<Unavailable id="nope" title="x" />)).toThrow(/UNAVAILABLE_CAPABILITIES/);

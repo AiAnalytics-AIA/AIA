@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  * A project's workflow state as the API reports it: every stage of its
  * lifecycle with status, waiting reason and quota reset, the project history,
  * and the edit-impact preview. Runs, steps, gates and approvals have no HTTP
- * route yet and are shown as unavailable (OI-15) — never as "none".
+ * route yet and are shown as unavailable (OI-26) — never as "none".
  *
  * Stage statuses are drawn without a viewer: the API does not yet say whether a
  * waiting stage is this viewer's to resolve (OI-11), so WAITING_CREDITS reads

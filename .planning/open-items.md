@@ -338,7 +338,7 @@ product-surface implements it (`.planning/plans/design-system.md`, chunk 4).
 
 ---
 
-## OI-13 · Finding · The impact preview answers an unknown field with "nothing changes"
+## OI-24 · Finding · The impact preview answers an unknown field with "nothing changes"
 
 **Claim.** `GET …/projects/{id}/impact?field=<anything>` returns 200 with every
 stage preserved and nothing invalidated when the field is not a key of
@@ -370,7 +370,7 @@ save path, where `changed_fields` only yields real keys).
 
 ---
 
-## OI-14 · Question · The web client has no sign-in
+## OI-25 · Question · The web client has no sign-in
 
 **Claim.** The web client authenticates to the API only with a development
 subject (`AIA_DEV_SUBJECT` → `X-AIA-Subject`); there is no browser session, no
@@ -389,7 +389,7 @@ token contract.
 
 ---
 
-## OI-15 · Question · No HTTP routes for runs, gates, approvals, reservations or usage
+## OI-26 · Question · No HTTP routes for runs, gates, approvals, reservations or usage
 
 **Claim.** Workflow runs, steps and attempts, gate decisions and approvals, cost
 reservations and the usage ledger exist in the repositories but have no route,

@@ -53,7 +53,7 @@ apps/
     routers/                health, projects, scope
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. Reads the API server-side
-    src/lib/api/            Typed, validated API client (dev identity only: OI-14)
+    src/lib/api/            Typed, validated API client (dev identity only: OI-25)
     src/fixtures/registry.ts  The two lists: fixture-backed and unavailable capabilities
     src/design/             tokens.json (the one token source), domain vocabulary (enums, lifecycles)
     scripts/                build-tokens (→ tokens.css/-theme.css/tokens.ts), check-design, check-layout

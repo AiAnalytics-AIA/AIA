@@ -12,7 +12,7 @@ import { parseError } from "./validate";
  *   AIA_DEV_ORG      organization id, sent as X-AIA-Org, for a member of several.
  *
  * There is no production identity path yet: the web client has no sign-in
- * (open item OI-14). Until it does, this client authenticates only in local
+ * (open item OI-25). Until it does, this client authenticates only in local
  * development, and it says so on screen.
  */
 

@@ -180,7 +180,7 @@ export const cs = {
   identity: {
     dev: "Vývojová identita",
     none: "Bez identity",
-    noSignIn: "Webový klient zatím nemá přihlášení (OI-14). Identita pochází z AIA_DEV_SUBJECT.",
+    noSignIn: "Webový klient zatím nemá přihlášení (OI-25). Identita pochází z AIA_DEV_SUBJECT.",
   },
   api: {
     title: {
@@ -194,7 +194,7 @@ export const cs = {
     },
     recovery: {
       unreachable: "Spusťte API (make dev-api) a obnovte stránku. Zobrazená data nejsou nahrazena ničím jiným.",
-      unauthenticated: "Nastavte AIA_DEV_SUBJECT pro webový server (vývoj). Přihlášení zatím neexistuje (OI-14).",
+      unauthenticated: "Nastavte AIA_DEV_SUBJECT pro webový server (vývoj). Přihlášení zatím neexistuje (OI-25).",
       not_provisioned: "Účet musí přidat správce organizace. Ve vývoji spusťte make dev-seed.",
       organization_required: "Jste členem více organizací. Nastavte AIA_DEV_ORG.",
       not_found: "Buď to neexistuje, nebo k tomu nemáte přístup.",

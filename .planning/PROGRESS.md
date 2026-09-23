@@ -54,7 +54,7 @@ skips (`.github/workflows/ci.yml:99-108` @ df294e2).
 
 | What | Plan | State |
 |---|---|---|
-| Design system into `apps/web` | [`plans/design-system.md`](plans/design-system.md) | Chunks 0–3 (vocabulary, tokens, enum binding, primitives + Vitest) and the first vertical slice (V: portfolio → project on the real API; 2 fixture-backed, 7 unavailable capabilities) in review as stacked PRs. Chunks 4–11 wait for the slice review. Blocked cross-context: OI-9 to OI-15 |
+| Design system into `apps/web` | [`plans/design-system.md`](plans/design-system.md) | Chunks 0–3 (vocabulary, tokens, enum binding, primitives + Vitest) and the first vertical slice (V: portfolio → project on the real API; 2 fixture-backed, 7 unavailable capabilities) in review as stacked PRs. Chunks 4–11 wait for the slice review. Blocked cross-context: OI-9 to OI-12 and OI-24 to OI-26 |
 
 ## Repository visibility — D5, frozen
 
