@@ -42,12 +42,12 @@ export type UnavailableCapability = {
 
 export const UNAVAILABLE_CAPABILITIES: readonly UnavailableCapability[] = [
   { id: "needs-me", capability: "Portfolio: what is waiting on this viewer", reason: "no-contract", owner: "integration-architecture", register: "OI-11" },
-  { id: "workflow-runs", capability: "Project: workflow runs, steps and attempts", reason: "no-http-route", owner: "platform-runtime", register: "OI-26" },
-  { id: "approvals", capability: "Project: gates and approvals awaiting a decision", reason: "no-http-route", owner: "platform-runtime", register: "OI-26" },
-  { id: "budget-reservations", capability: "Study: cost reservations and the usage ledger", reason: "no-http-route", owner: "platform-runtime", register: "OI-26" },
+  { id: "workflow-runs", capability: "Project: workflow runs, steps and attempts", reason: "no-http-route", owner: "platform-runtime", register: "OI-27" },
+  { id: "approvals", capability: "Project: gates and approvals awaiting a decision", reason: "no-http-route", owner: "platform-runtime", register: "OI-27" },
+  { id: "budget-reservations", capability: "Study: cost reservations and the usage ledger", reason: "no-http-route", owner: "platform-runtime", register: "OI-27" },
   { id: "impact-estimate", capability: "Impact preview: cost and duration of recomputation", reason: "no-contract", owner: "integration-architecture", register: "OI-10" },
   { id: "client-accent", capability: "Scope chrome: persisted client accent slot", reason: "degraded", owner: "integration-architecture", register: "OI-12" },
-  { id: "sign-in", capability: "Authenticated web session (the client uses a development identity)", reason: "no-contract", owner: "product-surface", register: "OI-25" },
+  { id: "sign-in", capability: "Authenticated web session (the client uses a development identity)", reason: "no-contract", owner: "product-surface", register: "OI-26" },
 ] as const;
 
 export function unavailable(id: string): UnavailableCapability | undefined {

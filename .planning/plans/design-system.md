@@ -204,21 +204,21 @@ Chunks 4–11 resume only after that slice is working and reviewed.
     render as *suppressed*, with the reason), and each project's status.
     "What needs you" is explicitly unavailable (OI-11).
   - Study: status, accepts-work, role, budget/spent/remaining, and projects with
-    their current stage and its live status. Reservations: unavailable (OI-26).
+    their current stage and its live status. Reservations: unavailable (OI-27).
   - Project: all 13 stages with status, waiting reason, quota reset and times;
     project history from `…/events`. The `ImpactPreview` renders the server's
     preserve / invalidate / presentation-only split, with cost and duration
-    shown as missing (OI-10). Approvals and workflow runs: unavailable (OI-26).
+    shown as missing (OI-10). Approvals and workflow runs: unavailable (OI-27).
   - Stage status is real. Its artifacts and the report draft are still fixtures.
   Counts (machine-readable in `src/fixtures/registry.ts`, enforced by
   `registry.test.ts` in both directions): **2 fixture-backed capabilities**
   (down from 5) and **7 unavailable capabilities**, each with an owner and a
   register entry. No fake percentages or synthetic progress: every stage in the
   seeded world is `NOT_STARTED`, because no workflow has run.
-  Findings filed: OI-24 (the impact route treats an unknown field as "nothing
+  Findings filed: OI-25 (the impact route treats an unknown field as "nothing
   changes"; the client now offers only `IMPACT_FIELDS`, bound to `IMPACT_ROOTS`
-  by `make enum_check`), OI-25 (no web sign-in; the shell labels the
-  development identity), OI-26 (no routes for runs, gates, approvals,
+  by `make enum_check`), OI-26 (no web sign-in; the shell labels the
+  development identity), OI-27 (no routes for runs, gates, approvals,
   reservations or usage).
   Evidence: 170 Vitest tests; `check:layout` discovers routes from the running
   app, and 6 real routes × 2 widths at +35 % Czech have 0 overflows, after
@@ -241,9 +241,9 @@ provider fallback logic, approval authorization, and Sociomapping mathematics.
 | `ImpactPreviewEstimate` — cost and duration of re-running invalidated stages | integration-architecture, with research execution and the cost ledger | chunk 6 (until then: unavailable) | OI-10 |
 | Viewer actionability ("what needs me") — e.g. `action_required`, `action_kind`, `viewer_can_resolve`, `required_permission`, `waiting_reason`; exact shape is theirs | integration-architecture / platform-runtime | chunk V Portfolio (until then: raw system state, never assigned to the viewer) | OI-11 |
 | `clients.accent_slot` persistence change | integration-architecture (notified before the migration) | chunk 4 | OI-12 |
-| Impact route rejects an unknown field (422) instead of "nothing changes" | integration-architecture | chunk 6 (until then: the client offers only `IMPACT_FIELDS`) | OI-24 |
-| Web sign-in: a browser session and the token contract | product-surface, with integration-architecture | any non-local deployment of `apps/web` | OI-25 |
-| Read routes for runs/steps, pending gates (with the resolving permission), reservations and spend; then the approval write | platform-runtime | chunk V project and study screens (until then: unavailable) | OI-26 |
+| Impact route rejects an unknown field (422) instead of "nothing changes" | integration-architecture | chunk 6 (until then: the client offers only `IMPACT_FIELDS`) | OI-25 |
+| Web sign-in: a browser session and the token contract | product-surface, with integration-architecture | any non-local deployment of `apps/web` | OI-26 |
+| Read routes for runs/steps, pending gates (with the resolving permission), reservations and spend; then the approval write | platform-runtime | chunk V project and study screens (until then: unavailable) | OI-27 |
 
 ## What happens to the existing client
 

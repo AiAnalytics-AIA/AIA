@@ -47,7 +47,7 @@ function NavLink({ href, children }: { href: string; children: ReactNode }) {
 }
 
 /**
- * Who the API is being asked as. There is no sign-in yet (OI-25): the identity
+ * Who the API is being asked as. There is no sign-in yet (OI-26): the identity
  * is the development subject the web server was started with, and it is labelled
  * as exactly that, so a screenshot can never pass for a production session.
  */

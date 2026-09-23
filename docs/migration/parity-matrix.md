@@ -71,9 +71,15 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | `cost_controller.py` | Reservations | `WorkflowRepository.reserve_budget` | Done | ◐ | Blocking `FOR UPDATE` on the study row; concurrent-overspend regression test |
 | `dotaznik.py`, `pipeline.py` | Questionnaire + respondents | Phase 5 | ○ | ○ | Needs seeded parity tests |
 | `research_designer.py` | Research design | Phase 5 | ○ | ○ | |
-| `analysis_agent.py` | 8 analysis modules | Phase 6 | ○ | ○ | |
-| `validation_gate.py`, `evidence_validator.py`, `holdout_protocol.py`, `legal_gate.py` | Governance | Phase 6 | ○ | ○ | **Must fail closed** where the prototype does |
-| `PRODUCT_POLICY.json`, `DATA_CONTRACT_v17.json` | Methodology contract | Phase 6 | ○ | ○ | Become enforced backend rules |
+| `analysis_agent.py` | 8 analysis modules | `domain.analysis` + `application.analysis` | Done | ◐ | Order, fingerprints, one draft schema, repair ≤ 2. Evidence discipline EXACT; prose SEMANTIC. Stricter: 100% number coverage, not 95% |
+| `FIELD_DICTIONARY_v17_1.csv` (M02) | Per-field claim policy | `domain.evidence.field_policy` | Done | ✅ | All 400 fields re-derive identically to the reference export; the reference enforced none of it |
+| `CORE_JOINT_STATUS.json`, `core_joint.py` (M03) | Joint-structure claim gate | `domain.evidence.joint_status` | Done | ✅ ◐ | Restrictions and hash binding EXACT; fallback values are a fail-closed reading (OI-18) |
+| `dotaznik.agreguj_otazku`, `uncertainty.py` (M16) | Effective-n suppression | `domain.evidence.support` | Done | ✅ ◐ | Thresholds and `SUPPRESS` default EXACT; state names and the donor-layer 50 line are readings (OI-18); intervals are inputs, not yet computed |
+| `analysis_agent.py` prompt, `evidence_validator.py` (M17) | Allowed metrics, evidence refs | `domain.evidence.metrics`, `.admission` | Done | ✅ | The metric set is an enum, not prompt text; admission is all-or-nothing |
+| `tier_gate.py`, `validation_status.py`, `smoke_validation.py` (M10, R12) | Tiers, validation state | `domain.evidence.validation` | Done | ◐ | Smoke never unlocks; fingerprint binding EXACT; Tier B/C permissions are readings (OI-18) |
+| `factual_layer.py` | Panel facts never invented | `domain.evidence.factual` | ◐ | ◐ | Explicit metadata contract only; keyword detection not ported (OI-20) |
+| `validation_gate.py` thresholds, `holdout_protocol.py`, `legal_gate.py` | Holdout, legal | Phase 6 | ○ | ○ | **Must fail closed** where the prototype does |
+| `PRODUCT_POLICY.json`, `DATA_CONTRACT_v17.json` | Methodology contract | Phase 6 | ◐ | ◐ | Field dictionary and joint certificate enforced; weights and brand knowledge not yet |
 | `client_report_v2.py`, `output_pack.py` | Reports and exports | Phase 6 | ○ | ○ | |
 | `full_simulation.py`, `scenario_compiler.py` | Simulation | Phase 7 | ○ | ○ | Seeded reproduction required |
 | `data_library.py`, `society_insights.py` | Data Library | Phase 8 | ○ | ○ | Approval ordering must hold |

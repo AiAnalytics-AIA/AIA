@@ -61,7 +61,7 @@ export function stageLabel(projectType: ProjectType, stageId: string): string | 
  * Content fields the edit preview (`GET …/impact?field=`) understands — the keys
  * of `IMPACT_ROOTS` in `aia_core/domain/pipeline.py`, in the same order. Bound by
  * `tools/enum_parity_check.py`. Only these are offered: the API answers an
- * unknown field with "nothing is invalidated" rather than an error (OI-24), so
+ * unknown field with "nothing is invalidated" rather than an error (OI-25), so
  * a free-text field would let a typo pass for a safe edit.
  */
 export const IMPACT_FIELDS = [

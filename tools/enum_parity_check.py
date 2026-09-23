@@ -54,7 +54,7 @@ BOUND_LIFECYCLE: dict[str, str] = {"ProjectType": "PROJECT_TYPES"}
 # Domain dict constants whose KEYS the web client offers as choices. The web
 # client lists the fields an edit preview may be asked about; a key missing here
 # would be offered to nobody, and an extra key would silently preview "nothing
-# changes" (the API ignores unknown fields -- see OI-24).
+# changes" (the API ignores unknown fields -- see OI-25).
 BOUND_KEYS: dict[str, str] = {"IMPACT_ROOTS": "IMPACT_FIELDS"}
 
 # Domain enums the web client deliberately does not render, and why.

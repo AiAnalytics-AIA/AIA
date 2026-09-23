@@ -97,10 +97,20 @@ and SDK adapters are not (Phase 4). Legacy source: `ai_router.py`,
 validation gates, holdout protocol and registry, legal and tier gates, the
 methodology policy itself.
 
-**Status:** not started (Phase 6). Legacy source: `validation_gate.py`,
-`evidence_validator.py`, `holdout_protocol.py`, `legal_gate.py`,
-`product_policy.py`, `provenance.py`, and critically the machine-readable
-`PRODUCT_POLICY.json` and `DATA_CONTRACT_v17.json`.
+**Status:** foundation implemented in `aia_core.domain.evidence`: the 400-field
+dictionary as typed, fail-closed policy; the `CORE_JOINT_STATUS` certificate,
+hash-bound; the permissible-claim policy (measured vs modelled basis,
+disclosures, joint restrictions); effective-n support with `SUPPRESS` by
+default; the allowed-metric set; validation bound to a system fingerprint; the
+tier gate; the factual layer's explicit contract; and evidence admission, the
+only way a number becomes an `AdmittedClaim`. Not yet: the holdout protocol and
+registry, the legal gate, benchmarks, and the parts listed in
+`.planning/open-items.md` OI-18 that need the withheld legacy source. Legacy
+source: `validation_gate.py`, `evidence_validator.py`, `tier_gate.py`,
+`fidelity.py`, `core_joint.py`, `validation_status.py`, `smoke_validation.py`,
+`factual_layer.py`, `holdout_protocol.py`, `legal_gate.py`, `product_policy.py`,
+`provenance.py`, and the machine-readable `PRODUCT_POLICY.json`,
+`DATA_CONTRACT_v17.json` and `FIELD_DICTIONARY_v17_1.csv`.
 
 **Note:** this context must fail closed. The prototype deliberately blocks rather
 than degrades when a methodology precondition is unmet, and that behaviour is a
@@ -157,9 +167,14 @@ cross-block claims fail closed.
 objects, audience, segments, hypotheses, implications, limitations), deterministic
 assembly, client and internal report variants, export packs.
 
-**Status:** not started (Phase 6). Legacy source: `analysis_agent.py`,
-`client_report_v2.py`, `final_client_report.py`, `report.py`, `report_html.py`,
-`output_pack.py`, `segment_intelligence.py`.
+**Status:** the eight modules are implemented in `aia_core.domain.analysis` —
+identity, order, input fingerprints, the closed draft schema, the prose
+number-coverage check, prompts rendered from the evidence enums, and a result
+type that holds only admitted claims — and run one at a time by
+`aia_core.application.analysis`. Reporting and export are **not started, by
+design**: they come after the evidence layer is enforceable. Legacy source:
+`analysis_agent.py`, `client_report_v2.py`, `final_client_report.py`,
+`report.py`, `report_html.py`, `output_pack.py`, `segment_intelligence.py`.
 
 **Invariant to preserve:** the eight modules are independently durable jobs, so a
 quota failure after module 5 continues at module 6 instead of recomputing 1–5.
