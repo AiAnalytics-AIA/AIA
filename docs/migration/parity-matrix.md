@@ -75,7 +75,7 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | `validation_gate.py`, `evidence_validator.py`, `holdout_protocol.py`, `legal_gate.py` | Governance | Phase 6 | ○ | ○ | **Must fail closed** where the prototype does |
 | `PRODUCT_POLICY.json`, `DATA_CONTRACT_v17.json` | Methodology contract | Phase 6 | ○ | ○ | Become enforced backend rules |
 | `client_report_v2.py`, `output_pack.py` | Reports and exports | Phase 6 | ○ | ○ | |
-| `full_simulation.py`, `scenario_compiler.py` | Simulation | Phase 7 | ○ | ○ | Seeded reproduction required |
+| `full_simulation.py`, `scenario_compiler.py` | Simulation — deterministic core | `domain.simulation` | ◐ | ◐ ⚠ | Seed derivation, bounds, markers, eligibility and write-once truth ported exactly; bound handling is deviation D4; formula bodies production-defined pending F13 ([engine doc](../architecture/simulation-deterministic-engine.md)) |
 | `data_library.py`, `society_insights.py` | Data Library | Phase 8 | ○ | ○ | Approval ordering must hold |
 | `population_context.py`, `donor_fusion.py`, `core_joint.py` | Population | Phase 8 | ○ | ○ | 18,766 × 400 panel |
 | `sociomap.py`, `visualization_lab.py` | Sociomapa | Phase 9 | ○ | ○ | Numerical parity required |
@@ -138,6 +138,30 @@ allow/deny decision is unchanged, and parity on the decision is still asserted.
 **Why not preserve it:** the figure is surfaced to users and cost dashboards.
 
 **Tests:** `test_negative_cost_records_do_not_inflate_remaining_budget`.
+
+### D4 — invalid world-model output is rejected, not clipped
+
+**Prototype:** `_sanitize_world_model` silently corrects an LLM world model that
+breaks its bounds — it clips means, SDs, confidences, effects and correlations,
+truncates text and driver lists, drops unknown or near-zero drivers, defaults
+missing numbers, strips target-overlap evidence from blind runs, and tops a
+degenerate model up with fallback factors. The run then proceeds as if the model
+had behaved (AIA-reference `simulation-reference-contract.md`).
+
+**Now:** `validate_world_model` rejects every such field and lists all
+violations at once. The bounds themselves are the reference's, unchanged. Each
+difference is one row of `aia_core.domain.simulation.reference.FIELD_POLICY`:
+the legacy mechanism, and production handling `REJECT` — no field is clamped.
+The one bound the reference left ambiguous (minimum factors: 6 in the prompt,
+4 in the schema) is declared as 6, pending decision D6 in `PROGRESS.md`.
+
+**Why not preserve it:** the reference contract names reject as the production
+target. A clip hides a misbehaving model; a silent top-up simulates factors the
+model never proposed.
+
+**Tests:** `test_production_rejects_what_the_reference_corrected` (one case per
+policy row), `test_every_recorded_difference_is_exercised`,
+`test_policy_table_is_reject_only_and_unambiguous`.
 
 ## Deliberate improvements (not behaviour changes)
 

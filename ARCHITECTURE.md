@@ -17,6 +17,7 @@ It deliberately does not describe the product. That lives in
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](docs/architecture/scope-and-authorization.md) | Client/Study isolation |
 | [security.md](docs/architecture/security.md) | Threat model |
+| [simulation-deterministic-engine.md](docs/architecture/simulation-deterministic-engine.md) | Simulation core boundary and parity status |
 | [adr/](docs/architecture/adr/README.md) | Seven decision records, with the reasoning |
 
 ---

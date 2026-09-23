@@ -45,14 +45,16 @@ reference LOC" means 3% of the *behaviour surface*, not 3% of the effort.
 | 4 | AI runtime and cost | 10 | 3,261 | 0 | ○ not started |
 | 5 | Research engine | 42 | 13,152 | 0 | ○ not started |
 | 6 | Analysis, governance and reports | 43 | 4,538 | 0 | ○ not started |
-| 7 | Simulation | 6 | 2,852 | 0 | ○ not started |
+| 7 | Simulation | 6 | 2,852 | 0 | ◐ deterministic core of 2 |
 | 8 | Data Library and population | 29 | 5,017 | 0 | ○ not started |
 | 9 | Sociomapa and modul VÝZKUM | 11 | 2,198 | 0 | ○ not started |
 | 10 | HTTP surface | 1 | 2,185 | 0 | ◐ 19 of 136 paths |
 
 **Reimplemented so far:** 7 modules, 1,295 of
 39,086 reference LOC (3% of the behaviour surface).
-`ui_server.py` is partial: 19 of its 136 HTTP paths exist.
+`ui_server.py` is partial: 19 of its 136 HTTP paths exist. `full_simulation.py`
+and `scenario_compiler.py` are partial: their deterministic halves exist
+(`aia_core.domain.simulation`), their model-calling halves do not.
 
 Phase 3 is the engine, not the dispatch: `job_store`, `workflow_engine` and
 `cost_controller` are reimplemented and verified under real PostgreSQL
@@ -198,11 +200,11 @@ wrong answer corrupts artifact reuse or lies about money.
 
 | | Module | LOC | Context | Disposition note |
 | --- | --- | --- | --- | --- |
-| ○ | `full_simulation.py` | 1631 | simulation | Simulation lab, learning layer, multi-variant orchestration |
+| ◐ | `full_simulation.py` | 1631 | simulation | Simulation lab, learning layer, multi-variant orchestration. Deterministic core in `aia_core.domain.simulation`; world-model generation, respondent run and learning layer not started |
 | ○ | `fullsim_learning.py` | 614 | simulation | Simulation lab, learning layer, multi-variant orchestration |
 | ○ | `simulation_batch.py` | 219 | simulation | Simulation lab, learning layer, multi-variant orchestration |
 | ○ | `simulation_context.py` | 198 | simulation | Simulation lab, learning layer, multi-variant orchestration |
-| ○ | `scenario_compiler.py` | 166 | simulation | Scenario contracts and the append-only scenario resolution log |
+| ◐ | `scenario_compiler.py` | 166 | simulation | Scenario contracts and the append-only scenario resolution log. Contract, approval binding and application ported; the LLM compile step is not |
 | ○ | `scenario_truth_log.py` | 24 | simulation | Scenario contracts and the append-only scenario resolution log |
 
 ## Phase 8 — Data Library and population

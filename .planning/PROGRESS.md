@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `remediation/public-reference-exposure` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/determined-gates-tbz874` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -43,7 +43,9 @@ skips (`.github/workflows/ci.yml:99-108` @ df294e2).
 
 ## In progress
 
-Nothing. The tree is green.
+| What | State | Anchor |
+|---|---|---|
+| **Phase 7 — simulation deterministic core.** Typed, pure-Python core driven from a frozen `WorldModel`: reference constants and bounds (versioned `sim-constants-1`), reject-not-clip validation with a per-field record of intentional differences, nearest-correlation projection, calibrate-on-baseline inoculation producing `FS_*` columns, scenario contracts with approval bound to the contract hash, independently modelled variants and their deltas, frozen predictions, write-once truth, eligibility, scoring | All 7 chunks landed; in review. Measured with SQLite: core **602 passed / 120 skipped** (the 3 new skips are the F13 parity scaffold), API **114 passed**, `mypy --strict` clean on 44 files, `layer_check` 12/12, `exposure_check` 7/7. Not run here: the PostgreSQL suite (no database in the session; the change touches no table) and `tsc` (no `node_modules`) | `.planning/plans/simulation-deterministic-core.md` · `docs/architecture/simulation-deterministic-engine.md` · `tests/test_simulation_*.py` |
 
 ## Repository visibility — D5, frozen
 
@@ -95,7 +97,7 @@ it is not answered. "The local agent said so" is not an anchor.
 | Item | Owner |
 |---|---|
 | `REF-GAP-SOCIO-R-SMACOF` | parity-quality + sociomapa-deterministic |
-| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + simulation-engine |
+| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + simulation-engine. **Taken 2026-09-22; OPEN.** It is blocked on three things together: the reference source (archive withheld), a project-authorized provider credential, and an ADR 0008 egress route. None exists yet, so no capture was attempted. The scaffold is `test_simulation_parity.py`, which skips until F13 exists. Status: `docs/architecture/simulation-deterministic-engine.md` §7 |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` | data owner / population-data, after the licensing decision. Its destination must satisfy EU residency — [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) |
 
 ## Next
@@ -138,6 +140,8 @@ left to build.
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
 | D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
+| D6 | **Minimum factors in a world model: 6 or 4.** The reference prompt asks for 6–12, its schema allows 4, and its code tops anything under 4 up to 6. Production declares **6** and rejects fewer. Data owner to confirm or change it; a change bumps `SIMULATION_CONSTANTS_VERSION` | Confirming the simulation bounds as final | `packages/aia_core/src/aia_core/domain/simulation/reference.py` `WorldModelBounds.min_factors` · `test_bounds_are_pinned_to_the_constants_version` |
+| D7 | **Port the reference simulation numerics exactly, or accept production-defined v1 as an intentional difference.** Exact `FS_*` parity needs the reference formula bodies (withheld) *and* numpy's PCG64 stream, which the stdlib-only domain layer (`ARCHITECTURE.md §2`) cannot hold without a named exception. Decide once the source is readable | The NUMERICAL half of F13 parity | `docs/architecture/simulation-deterministic-engine.md` §4.3, §5 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 
 Open defects and questions live in

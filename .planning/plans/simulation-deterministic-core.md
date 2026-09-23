@@ -1,6 +1,6 @@
 # Simulation deterministic core
 
-**Status:** in progress · **Owner:** simulation-engine · **Started:** 2026-09-22
+**Status:** all chunks landed, in review · **Owner:** simulation-engine · **Started:** 2026-09-22
 
 ## Problem
 
@@ -61,26 +61,48 @@ reference source is readable and F13 exists.
 
 ## Chunks
 
-- [ ] 1. Reference constants, field policy, `WorldModel` contract and
+- [x] 1. Reference constants, field policy, `WorldModel` contract and
       rejecting validator — `reference.py`, `world_model.py`,
       `tests/test_simulation_world_model.py`
-- [ ] 2. Numerics: clip/logit/sigmoid, weighted stats, Jacobi eigen, nearest
+- [x] 2. Numerics: clip/logit/sigmoid, weighted stats, Jacobi eigen, nearest
       correlation matrix, counter-based normal draws — `numerics.py`,
       `tests/test_simulation_numerics.py`
-- [ ] 3. Population inoculation: world seeds, driver vector, intercept
+- [x] 3. Population inoculation: world seeds, driver vector, intercept
       calibration, `FS_*` columns, factor stats — `inoculation.py`,
       `tests/test_simulation_inoculation.py`
-- [ ] 4. Scenario contract, approval, variants — `scenario.py`,
+- [x] 4. Scenario contract, approval, variants — `scenario.py`,
       `tests/test_simulation_scenarios.py`
-- [ ] 5. Outcomes, ensembling, comparisons/deltas, frozen predictions,
+- [x] 5. Outcomes, ensembling, comparisons/deltas, frozen predictions,
       write-once truth, eligibility, scoring — `results.py`,
       `tests/test_simulation_results.py`
-- [ ] 6. Regression golden pinned on the frozen fixture; F13 parity scaffold that
+- [x] 6. Regression golden pinned on the frozen fixture; F13 parity scaffold that
       skips without the fixture — `tests/test_simulation_golden.py`,
       `tests/test_simulation_parity.py`
-- [ ] 7. Documents: engine doc, domain map, parity matrix, CLAUDE.md map,
+- [x] 7. Documents: engine doc, domain map, parity matrix, CLAUDE.md map,
       reference-source, module inventory, PROGRESS (REF-GAP ownership,
       decisions D6 and D7)
+
+## What changed during the work
+
+- **Calibration moved to the baseline.** Chunk 3 first calibrated every
+  population on itself. Chunk 5's variant test then showed that every scenario
+  reported a factor-mean change of exactly 0, because re-calibration pulls each
+  mean back to its target. The fix, in chunk 3's module: `calibrate_world` on
+  the baseline, then `apply_world` for any variant. Covered by
+  `test_a_shifted_population_is_evaluated_in_the_baseline_world` and
+  `test_trust_scenario_moves_trust_up_and_privacy_down`.
+- **`Delta`, not `OptionDelta.delta_pp`.** Mean deltas are in 1–10 scale
+  points, not percentage points, so the field name was wrong for half its uses.
+- **Realised SD is below target** by 10–18% on the fixture (ratio 0.82–0.90).
+  It is recorded in the engine document §6, reported in `FactorStats`, and not
+  forced.
+
+## Left open, deliberately
+
+- `REF-GAP-SIMULATION-WORLD-MODEL` (F13) needs the withheld reference source, a
+  project-authorized credential and an ADR 0008 egress route. None was available
+  (`PROGRESS.md`, reference ownership).
+- Decisions D6 (minimum factors) and D7 (exact numerics vs production v1).
 
 ## Review outcome
 

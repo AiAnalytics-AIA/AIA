@@ -61,6 +61,9 @@ packages/aia_core/src/aia_core/
     providers.py            Provider policy, model roles, budget and error semantics
     scope.py                Organization/Client/Study vocabulary, roles, permissions
     workflow.py             Workflow DAG, job states, retry classification
+    simulation/             Deterministic simulation core from a frozen WorldModel:
+                            reference constants, reject-not-clip validation,
+                            inoculation, scenarios, variants, frozen results
   application/
     scope.py                ScopeResolver — the ONLY issuer of a scope context
   infrastructure/
