@@ -160,10 +160,11 @@ replaces the `aia` database, starts them, runs the smoke test.
 
 ## AI
 
-There is **no live model call on this revision**: the `ModelGateway` contract is
-not on `main` (PR #28), so the egress policy is empty and fails closed. The
-smoke test reports the AI check as `NOT_RUNNABLE`, never as a pass. What the
-environment already provides for it:
+There is **no live model call on this revision**. The `ModelGateway` contract
+and provider adapter interfaces exist, but no Bedrock adapter, live transport
+or governed EU route is wired into the API or worker. The smoke test reports
+the AI check as `NOT_RUNNABLE`, never as a pass. What the environment already
+provides for it:
 
 - the instance role may call `bedrock:InvokeModel` on the one pinned EU model
   in `infra/develop/terraform.tfvars` (`bedrock_model_id`), and nothing else;
@@ -171,7 +172,7 @@ environment already provides for it:
 - [ADR 0010](../../docs/architecture/adr/0010-bedrock-eu-inference-route.md)
   records the proposed route `bedrock-eu-primary` and the checks a human performs.
 
-When the gateway and the Bedrock adapter land, inspect: the model policy and
+When the Bedrock adapter and its governed route land, inspect: the model policy and
 route in the api/worker environment (`AIA_MODEL_POLICY_*`, `AIA_EGRESS_ROUTES_*`
 as that change defines them), usage in the `ai_usage_events` table (`provider`,
 `route_id`, `model`, `provider_request_id`, tokens, `cost_usd`, `input_fingerprint`,
