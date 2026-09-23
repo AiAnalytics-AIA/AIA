@@ -56,6 +56,35 @@ def test_rounding_shown_in_prose_is_allowed_and_no_more() -> None:
     assert uncovered_numbers("43 %", [42.4], []) == (43.0,)
 
 
+def test_a_number_from_a_cited_name_cannot_be_reused_as_a_figure() -> None:
+    """Review finding: citing ``age 18-29`` must not license an invented "29%"."""
+    assert uncovered_numbers("Interest is 29%", [42.5], ["age 18-29"]) == (29.0,)
+    assert uncovered_numbers("Zájem je 18 %.", [42.5], ["vek 18-29"]) == (18.0,)
+
+
+@pytest.mark.parametrize(
+    ("text", "label"),
+    [
+        ("mezi 18\u201329 lety 51 %", "vek 18-29"),
+        ("mezi 18-29 lety 51 %", "vek 18\u201329"),
+        ("ve věku 18 až 29 let 51 %", "vek 18-29"),
+        ("aged 18 to 29: 51 %", "vek 18-29"),
+        ("lidé 65+ 51 %", "vek 65+"),
+        ("mladší <30 let 51 %", "vek <30"),
+    ],
+)
+def test_a_cited_range_or_bound_is_a_name(text: str, label: str) -> None:
+    assert uncovered_numbers(text, [51.0], [label]) == ()
+
+
+def test_a_bare_number_in_a_label_licenses_nothing() -> None:
+    assert uncovered_numbers("Kohorta 2021 má 51 %.", [51.0], ["kohorta 2021"]) == (2021.0,)
+
+
+def test_a_different_range_is_not_the_cited_name() -> None:
+    assert uncovered_numbers("mezi 18\u201330 lety 51 %", [51.0], ["vek 18-29"]) == (18.0, 30.0)
+
+
 def test_numbers_in_a_cited_name_are_not_claims() -> None:
     assert uncovered_numbers("Mezi 18\u201329 lety je to 51 %", [51.0], ["vek 18-29"]) == ()
     assert uncovered_numbers("Mezi 30\u201344 lety je to 51 %", [51.0], ["vek 18-29"]) == (
@@ -179,6 +208,14 @@ def test_a_number_must_be_cited_by_the_item_that_uses_it(check: Any) -> None:
 def test_a_year_written_in_passing_is_an_uncited_number(check: Any) -> None:
     raw = draft(summary="V roce 2025 projevuje zájem 42,5 % populace.")
     assert check(raw).decision.codes == {ViolationCode.UNCITED_NUMBER}
+
+
+def test_a_cited_rows_label_does_not_back_an_invented_figure(check: Any) -> None:
+    """Review finding, end to end: c2 cites ``vek 18-29`` at 51 %, not a 29 % share."""
+    raw = draft(key_findings=[{"text": "Zájem má 29 %.", "claim_ids": ["c2"]}])
+    result = check(raw)
+    assert result.decision.codes == {ViolationCode.UNCITED_NUMBER}
+    assert "29" in result.decision.violations[0].detail
 
 
 def test_dangling_claim_reference_is_refused(check: Any) -> None:

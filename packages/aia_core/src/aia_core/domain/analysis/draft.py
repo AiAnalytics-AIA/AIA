@@ -12,8 +12,11 @@ A number in prose is covered when it is
 
 * a cited claim's value, allowing only the rounding the prose itself shows
   (``42`` covers 42.4; ``42,4`` does not cover 42.46), or
-* part of the *name* of what was cited -- a number in the cell label of a row
-  the item cites (``vek 18-29``) or in the research question it answers.
+* part of the *name* of what was cited -- the prose writes a range or bound
+  that the cell label of a row the item cites (``vek 18-29``), or the research
+  question it answers, also contains. The whole form must match: citing
+  ``vek 18-29`` licenses "18\u201329 let", never a stray "29 %". A bare number in a
+  label licenses nothing.
 
 Anything else is an uncited number, including a year or a count written in
 passing. That is the trade-off: some innocent drafts go back for repair, and no
@@ -98,14 +101,50 @@ _NUMBER: Final = re.compile(
 )
 
 
-def numbers_in(text: str) -> tuple[tuple[float, int], ...]:
-    """Every number in prose, as (value, decimals shown)."""
-    found: list[tuple[float, int]] = []
+# The forms in which a number is part of a *name* rather than a claim: a range
+# (18-29, 18\u201329, 18 až 29, 18 to 29) or a bound (65+, <30, \u226565). A bare number
+# in a label is not one of them -- "cohort 2021" gives no licence to write 2021 --
+# because a bare number in a name cannot be told apart from a bare figure in prose.
+_NUM: Final = r"(?<![\w.,])\d+(?:[.,]\d+)?"
+_NAME_FORM: Final = re.compile(
+    rf"(?P<lo>{_NUM})\s*(?:[-\u2013\u2014\u2212]|\ba\u017e\b|\bto\b)\s*(?P<hi>{_NUM})(?!\w)"
+    rf"|(?P<plus>{_NUM})\s*\+"
+    rf"|(?P<op>[<>\u2264\u2265])\s*(?P<bound>{_NUM})"
+)
+
+
+def _as_float(raw: str) -> float:
+    return float(re.sub(r"[ \u00a0\u202f]", "", raw).replace(",", "."))
+
+
+def _name_forms(text: str) -> list[tuple[tuple[object, ...], int, int]]:
+    """Every range or bound in ``text``, as (canonical key, start, end)."""
+    forms: list[tuple[tuple[object, ...], int, int]] = []
+    for m in _NAME_FORM.finditer(text):
+        if m.group("lo") is not None:
+            key: tuple[object, ...] = ("range", _as_float(m["lo"]), _as_float(m["hi"]))
+        elif m.group("plus") is not None:
+            key = ("bound", ">=", _as_float(m["plus"]))
+        else:
+            op = {"<": "<", ">": ">", "\u2264": "<=", "\u2265": ">="}[m["op"]]
+            key = ("bound", op, _as_float(m["bound"]))
+        forms.append((key, m.start(), m.end()))
+    return forms
+
+
+def _numbers_at(text: str) -> list[tuple[float, int, int]]:
+    """Every number in prose, as (value, decimals shown, start offset)."""
+    found: list[tuple[float, int, int]] = []
     for match in _NUMBER.finditer(text):
         raw = re.sub(r"[ \u00a0\u202f]", "", match.group(0)).replace(",", ".")
         decimals = len(raw.split(".", 1)[1]) if "." in raw else 0
-        found.append((float(raw), decimals))
-    return tuple(found)
+        found.append((float(raw), decimals, match.start()))
+    return found
+
+
+def numbers_in(text: str) -> tuple[tuple[float, int], ...]:
+    """Every number in prose, as (value, decimals shown)."""
+    return tuple((value, decimals) for value, decimals, _ in _numbers_at(text))
 
 
 def _covers(value: float, decimals: int, backing: Iterable[float]) -> bool:
@@ -116,10 +155,20 @@ def _covers(value: float, decimals: int, backing: Iterable[float]) -> bool:
 def uncovered_numbers(
     text: str, values: Iterable[float], identifiers: Iterable[str]
 ) -> tuple[float, ...]:
-    """Numbers in ``text`` backed neither by a cited value nor by a cited name."""
+    """Numbers in ``text`` backed neither by a cited value nor by a cited name.
+
+    A number is part of a cited name only where the prose writes the name's
+    range or bound itself: ``vek 18-29`` exempts the 18 and the 29 of "18\u201329 let",
+    and nothing in "zájem má 29 %".
+    """
     backing = list(values)
-    named = {n for label in identifiers for n, _ in numbers_in(label)}
-    return tuple(n for n, d in numbers_in(text) if n not in named and not _covers(n, d, backing))
+    allowed = {key for label in identifiers for key, _, _ in _name_forms(label)}
+    named_spans = [(start, end) for key, start, end in _name_forms(text) if key in allowed]
+    return tuple(
+        n
+        for n, d, at in _numbers_at(text)
+        if not any(start <= at < end for start, end in named_spans) and not _covers(n, d, backing)
+    )
 
 
 @dataclass(frozen=True, slots=True)
