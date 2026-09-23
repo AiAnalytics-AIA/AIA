@@ -60,6 +60,17 @@ def utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+def as_utc(value: datetime) -> datetime:
+    """Return ``value`` as an aware UTC timestamp, as it was written.
+
+    ``DateTime(timezone=True)`` round-trips aware on PostgreSQL but comes back
+    **naive** on SQLite, which has no timestamp type. Every value this schema writes
+    is UTC (see :func:`utcnow`), so a naive read is UTC by construction. Domain
+    types that refuse naive timestamps are built through this at the row boundary.
+    """
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
 class Base(DeclarativeBase):
     """Declarative base carrying the shared metadata and naming convention."""
 
@@ -1067,4 +1078,208 @@ class AIUsageEventRow(Base):
         Index("ix_usage_call", "call_id"),
         Index("ix_usage_attempt", "attempt_id"),
         Index("ix_usage_provider_request", "provider_request_id"),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Population registry
+#
+# Platform reference data, not client data: these rows carry no organization,
+# client or study, because the population is shared by every study. What *is*
+# study-scoped is which population a run used -- ``run_population_bindings`` hangs
+# off ``workflow_runs`` and inherits its scope.
+#
+# Semantics live in ``aia_core.domain.population``; these tables only hold them.
+# --------------------------------------------------------------------------- #
+
+
+class PopulationDatasetVersionRow(Base):
+    """One immutable, content-addressed dataset version.
+
+    **Insert-only.** The repository has no update path for this table: a corrected
+    dataset is a new version whose parent is this one. ``content_sha256`` is unique
+    so the same bytes can never be registered twice, and ``(dataset_id, label)`` is
+    unique so a label can never name two different byte sequences.
+    """
+
+    __tablename__ = "population_dataset_versions"
+
+    version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    dataset_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    label: Mapped[str] = mapped_column(String(64), nullable=False)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    row_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    column_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    contract_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    dictionary_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    field_names_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    parent_version_id: Mapped[str | None] = mapped_column(String(128))
+    storage_location: Mapped[str] = mapped_column(Text, nullable=False)
+    dictionary_location: Mapped[str] = mapped_column(Text, nullable=False)
+    provenance: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # The full import report the version was accepted on, kept with it.
+    validation_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    imported_by: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        # No cascade: a version with descendants cannot be deleted out from under
+        # them. The default NO ACTION (checked at statement end) rather than
+        # RESTRICT, so one statement may still remove a whole lineage in tests.
+        ForeignKeyConstraint(["parent_version_id"], ["population_dataset_versions.version_id"]),
+        UniqueConstraint("dataset_id", "label", name="population_version_label"),
+        CheckConstraint("byte_size > 0", name="population_version_bytes_positive"),
+        CheckConstraint("row_count > 0", name="population_version_rows_positive"),
+        CheckConstraint("column_count > 0", name="population_version_columns_positive"),
+        CheckConstraint(
+            "parent_version_id IS NULL OR parent_version_id <> version_id",
+            name="population_version_not_own_parent",
+        ),
+        Index("ix_population_versions_dataset", "dataset_id", "imported_at"),
+    )
+
+
+class PopulationRow(Base):
+    """A named population (STATIC or LIVE) and the version it resolves to.
+
+    ``current_version_id`` is the single authority for "which version is in use"
+    (R4). It moves only through the registry's compare-and-set promotion, and a
+    STATIC row has no path that moves it at all.
+    """
+
+    __tablename__ = "populations"
+
+    population_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    dataset_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    current_version_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    established_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    established_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["current_version_id"], ["population_dataset_versions.version_id"]),
+        CheckConstraint("kind in ('STATIC','LIVE')", name="population_kind_known"),
+        # One STATIC and one LIVE per dataset.
+        UniqueConstraint("dataset_id", "kind", name="population_one_per_kind"),
+    )
+
+
+class PopulationPromotionRow(Base):
+    """**Append-only** history of every establish and promote.
+
+    ``from_version_id`` is NULL for the establishing entry. A version that appears
+    here as a target but is no longer current is SUPERSEDED -- derived from this
+    table, never stored as a status that could disagree with it.
+    """
+
+    __tablename__ = "population_promotions"
+
+    promotion_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    population_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    from_version_id: Mapped[str | None] = mapped_column(String(128))
+    to_version_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    promoted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["population_id"], ["populations.population_id"]),
+        ForeignKeyConstraint(["to_version_id"], ["population_dataset_versions.version_id"]),
+        Index("ix_population_promotions_population", "population_id", "promoted_at"),
+    )
+
+
+class RunPopulationBindingRow(Base):
+    """The population a workflow run is computed over. One per run, never updated.
+
+    Every field of the domain ``PopulationBinding`` is denormalised here, so the
+    record still says exactly what the run used after any later promotion. The
+    version foreign key does not cascade: a version a run was computed over cannot
+    be deleted.
+    """
+
+    __tablename__ = "run_population_bindings"
+
+    run_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    dataset_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    version_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_label: Mapped[str] = mapped_column(String(64), nullable=False)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    contract_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    population_id: Mapped[str | None] = mapped_column(String(64))
+    resolution: Mapped[str] = mapped_column(String(32), nullable=False)
+    weight_role: Mapped[str] = mapped_column(String(64), nullable=False)
+    weight_column: Mapped[str] = mapped_column(String(128), nullable=False)
+    view: Mapped[str] = mapped_column(String(16), nullable=False)
+    resolved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Which claim rules and which certificate the run was computed under.
+    dictionary_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    field_policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    companion_set_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    joint_state: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["version_id"], ["population_dataset_versions.version_id"]),
+        CheckConstraint(
+            "resolution in ('LIVE_CURRENT','STATIC_REFERENCE','PINNED')",
+            name="run_population_resolution_known",
+        ),
+        CheckConstraint("view in ('BASE','ANALYSIS')", name="run_population_view_known"),
+        CheckConstraint(
+            "joint_state in "
+            "('CERTIFIED','NOT_THIS_PANEL','UNKNOWN_STATUS','UNPARSEABLE','MISSING')",
+            name="run_population_joint_state_known",
+        ),
+        Index("ix_run_population_version", "version_id"),
+    )
+
+
+class PopulationCompanionSetRow(Base):
+    """The validated companion set of one dataset version. **Insert-once.**
+
+    A version is usable only with its complete companion set, when its contract
+    declares one. The set is attached once -- at import or afterwards -- and never
+    replaced: a different set is a different version's business. ``report_json``
+    keeps every companion check and the joint-certificate evaluation it passed on.
+    """
+
+    __tablename__ = "population_companion_sets"
+
+    version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    set_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    joint_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    report_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    attached_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    attached_by: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["version_id"], ["population_dataset_versions.version_id"]),
+        CheckConstraint(
+            "joint_state in "
+            "('CERTIFIED','NOT_THIS_PANEL','UNKNOWN_STATUS','UNPARSEABLE','MISSING')",
+            name="population_companion_joint_state_known",
+        ),
+    )
+
+
+class PopulationCompanionAssetRow(Base):
+    """One companion asset of a version: its identity and where its bytes live."""
+
+    __tablename__ = "population_companion_assets"
+
+    version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    asset_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    location: Mapped[str] = mapped_column(Text, nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["version_id"], ["population_companion_sets.version_id"]),
+        CheckConstraint("byte_size > 0", name="population_companion_bytes_positive"),
     )

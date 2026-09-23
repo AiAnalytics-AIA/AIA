@@ -11,8 +11,9 @@ PY := $(shell [ -x $(VENV)/bin/python ] && echo $(VENV)/bin/python || command -v
 PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
-.PHONY: help setup deps services migrate migration dev dev-api dev-web \
-        test test-core test-api test-parity test-web lint format typecheck \
+.PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
+        test test-core test-api test-worker test-parity test-golden parity-status test-web \
+        lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
 help: ## Show available targets
@@ -29,6 +30,7 @@ deps: ## Create the venv and install Python packages in editable mode
 	@$(PIP) install -q --upgrade pip
 	@$(PIP) install -q -e "packages/aia_core[dev,postgres]"
 	@$(PIP) install -q -e "apps/api[dev]"
+	@$(PIP) install -q -e "apps/worker[dev]"
 
 services: ## Start Postgres and MinIO, and wait until healthy
 	@docker compose up -d --wait
@@ -46,10 +48,14 @@ dev: ## Run the API and web client together
 dev-api: ## Run the API with autoreload on :8000
 	@$(BIN)uvicorn aia_api.main:app --reload --port 8000
 
+dev-worker: ## Run one worker with the test executors (needs DATABASE_URL)
+	@AIA_WORKER_EXECUTORS=$${AIA_WORKER_EXECUTORS:-aia_worker.testing:build_registry} \
+	  $(PY) -m aia_worker
+
 dev-web: ## Run the web client on :3000
 	@cd apps/web && npm run dev
 
-test: test-core test-api ## Run all Python tests
+test: test-core test-api test-worker ## Run all Python tests
 
 test-core: ## Domain and repository tests
 	@$(PY) -m pytest packages/aia_core -q
@@ -57,23 +63,37 @@ test-core: ## Domain and repository tests
 test-api: ## API tests
 	@$(PY) -m pytest apps/api -q
 
+test-worker: ## Worker tests (the multi-process suite needs a PostgreSQL DATABASE_URL)
+	@$(PY) -m pytest apps/worker -q
+
 test-parity: ## Compare against the legacy prototype (needs AIA_LEGACY_REFERENCE)
 	@$(PY) -m pytest packages/aia_core -q -m parity
+
+test-golden: ## Golden-fixture gates (needs the reference repo: sibling clone or AIA_REFERENCE_REPO)
+	@$(PY) -m pytest packages/aia_core/tests/test_golden_fixtures.py -q -rs
+
+parity-status: ## Parity verdict per capability, from a fresh run of every suite
+	@mkdir -p tmp/junit
+	-@$(PY) -m pytest packages/aia_core -q -o junit_family=xunit1 --junit-xml=tmp/junit/core.xml
+	-@$(PY) -m pytest apps/api -q -o junit_family=xunit1 --junit-xml=tmp/junit/api.xml
+	@$(PY) tools/parity_status.py --junit tmp/junit/core.xml tmp/junit/api.xml \
+	  --markdown tmp/parity-status.md --json tmp/parity-status.json
+	@echo "full report: tmp/parity-status.md"
 
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
 
 lint: ## Lint Python and the web client
-	@$(BIN)ruff check packages/aia_core apps/api migrations
-	@$(BIN)ruff format --check packages/aia_core apps/api migrations
+	@$(BIN)ruff check packages/aia_core apps/api apps/worker migrations
+	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker migrations
 	@cd apps/web && npm run lint
 
 format: ## Auto-format Python and the web client
-	@$(BIN)ruff format packages/aia_core apps/api migrations
-	@$(BIN)ruff check --fix packages/aia_core apps/api migrations
+	@$(BIN)ruff format packages/aia_core apps/api apps/worker migrations
+	@$(BIN)ruff check --fix packages/aia_core apps/api apps/worker migrations
 
 typecheck: ## Type-check Python and the web client
-	@$(BIN)mypy packages/aia_core/src apps/api/src
+	@$(BIN)mypy packages/aia_core/src apps/api/src apps/worker/src
 	@cd apps/web && npx tsc --noEmit
 
 layer_check: ## Enforce the layering rules in ARCHITECTURE.md
@@ -88,7 +108,7 @@ verify: ## The pre-commit sequence from CLAUDE.md §10, in order
 	@$(MAKE) typecheck
 	@$(MAKE) layer_check
 	@$(MAKE) exposure_check
-	@$(BIN)ruff format --check packages/aia_core apps/api migrations
+	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker migrations
 	@$(MAKE) test
 
 openapi: ## Write the OpenAPI document to openapi.json

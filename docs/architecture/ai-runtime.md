@@ -163,7 +163,7 @@ retrieval, paid datasets). `ToolRegistry` refuses to register a tool with an
 external paid effect until that exists, rather than letting one run uncounted.
 Also outstanding: reconciling a resolved uncertain call back into
 `Study.spent_usd`, which still carries the `SETTLED_UNCERTAIN` reservation
-amount (OI-6), and the reference's per-run hard cap (`budget_guard.py`, R10).
+amount (OI-32), and the reference's per-run hard cap (`budget_guard.py`, R10).
 
 ## Residency and egress
 

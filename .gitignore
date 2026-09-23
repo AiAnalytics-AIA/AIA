@@ -36,5 +36,12 @@ htmlcov/
 npc-panel-reference/
 legacy_reference/
 
+# The reference specification repository, checked out by CI for golden fixtures
+# (and optionally locally). Fetched at a pinned commit, never committed here.
+.reference/
+
+# Test-run output: JUnit XML and parity-status reports
+tmp/
+
 # OS
 .DS_Store

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aia-worker"
+version = "0.1.0"
+description = "AIA durable workflow worker: claims steps from PostgreSQL and executes them"
+requires-python = ">=3.12"
+dependencies = [
+    "aia-core",
+    # The worker exists to run against PostgreSQL: FOR UPDATE SKIP LOCKED is how
+    # several workers share one queue. SQLite is for its unit tests only.
+    "psycopg[binary]>=3.2,<4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff>=0.7,<1",
+    "mypy>=1.13,<2",
+]
+
+[project.scripts]
+aia-worker = "aia_worker.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aia_worker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "postgres: requires a live PostgreSQL instance via DATABASE_URL",
+]

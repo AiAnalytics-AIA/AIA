@@ -1,0 +1,80 @@
+{
+  "reference_repository": "AiAnalytics-AIA/AIA-reference",
+  "reference_commit": "678e298ad9ca0263da53cc8920d153fdfb956c93",
+  "reference_directory": "golden-fixtures",
+  "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+  "fixtures": {
+    "F1_relation_scale_coercion": {
+      "file": "F1_relation_scale_coercion.json",
+      "reference_file": "F1_relation_scale_coercion.json",
+      "sha256": "14300d173b4639c876f5f89d8d11020a02b5d6d752d44b9724b567fc07f18c32",
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "reference_function": "sociomap._coerce_relation_scale_1_10"
+    },
+    "F2_mutual_relation_for_position": {
+      "file": "F2_mutual_relation_for_position.json",
+      "reference_file": "F2_mutual_relation_for_position.json",
+      "sha256": "9f20f60544b4defaa5d9d38444a35bb7705559fab21ded4ece13d0cf2111d263",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-12,
+      "reference_function": "sociomap._mutual_relation_for_position"
+    },
+    "F3_ipsatization": {
+      "file": "F3_ipsatization.json",
+      "reference_file": "F3_ipsatization.json",
+      "sha256": "14bf1ab307f4f6237f54096a2c9545b8a4a78d79751b7d70bbf5871d7979e5b6",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-12,
+      "reference_function": "study_validation.ipsatize"
+    },
+    "F4_python_unfolding_layout": {
+      "file": "F4_python_unfolding_layout.json",
+      "reference_file": "F4_python_unfolding_layout.json",
+      "sha256": "23e5791696f977011a454c9abdd92b3b72f1d04ccdc1c40287e11e53150cf52f",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-06,
+      "reference_function": "sociomap.fit_unfolding(method='python') -> fit_python_unfolding"
+    },
+    "F5_normalizer66_all_modes": {
+      "file": "F5_normalizer66_all_modes.json",
+      "reference_file": "F5_normalizer66_all_modes.json",
+      "sha256": "6930199511e7ab1b116e9a3b3e5e9781ab68a71ab52adcfccc5da0735d7ba65c",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "reference_function": "ui_app.html::normalizer66"
+    },
+    "F6_objectMetricArray66": {
+      "file": "F6_objectMetricArray66.json",
+      "reference_file": "F6_objectMetricArray66.json",
+      "sha256": "c1b108126eff63d8a313f9978d57860f351eb1d1a798bf90a078faa1043473ef",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "reference_function": "ui_app.html::objectMetricArray66"
+    },
+    "F7_terrain66_respondent_density": {
+      "file": "F7_terrain66_density.json",
+      "reference_file": "F7_terrain66_respondent_density.json",
+      "sha256": "9d75068a33b2da4f45bb9dd3b13fd4752afef34f15c2edc265ca61dc034f7527",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "reference_function": "ui_app.html::terrain66 (respondent mode)"
+    },
+    "F8_terrain66_object_metric": {
+      "file": "F8_terrain66_object_metric.json",
+      "reference_file": "F8_terrain66_object_metric.json",
+      "sha256": "7ba368643ad028b68b71a6a58bdeed37a998d7bce4e016986bce16092f9eebb2",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "reference_function": "ui_app.html::terrain66 (object mode)"
+    },
+    "F9_manual_drag_is_view_override": {
+      "file": "F9_manual_drag_is_view_override.json",
+      "reference_file": "F9_manual_drag_is_view_override.json",
+      "sha256": "c0fa4cc5fc2b59b28c07f4eec6b5be235a78414459c133d2590a83c0b4d42d92",
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "reference_function": "ui_app.html::manualPerson66 / personPos66 / terrain66 cache key"
+    }
+  }
+}

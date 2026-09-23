@@ -35,6 +35,9 @@ class WorkflowCallJournal:
     worker, the lapsed lease then looks safe to retry, and the retry is a
     second paid call for work that may already have been billed.
 
+    ``worker_id`` is the lease holder: every attempt write is fenced on it, so a
+    worker that lost the attempt cannot mark a dispatch and therefore never sends.
+
     ``committed_usd`` counts every terminal entry this journal wrote, uncertain
     ones at their ceiling. It starts from the attempt's own ledger entries, so a
     journal rebuilt mid-attempt does not forget what was already spent.
@@ -46,6 +49,7 @@ class WorkflowCallJournal:
         workflow: WorkflowRepository,
         usage: AIUsageRepository,
         attempt_id: str,
+        worker_id: str,
         commit: Callable[[], None],
     ) -> None:
         if workflow.scope is not usage.scope:
@@ -53,35 +57,53 @@ class WorkflowCallJournal:
         self._workflow = workflow
         self._usage = usage
         self._attempt_id = attempt_id
+        self._worker_id = worker_id
         self._commit = commit
-        self._committed = sum(
-            e.cost_usd for e in usage._events(attempt_id=attempt_id) if e.outcome.is_terminal
-        )
+        self._committed = usage.attempt_spend_usd(attempt_id)
 
     def record_dispatch(self, event: AIUsageEvent) -> None:
+        """Fence, then record, then commit -- all before the call leaves.
+
+        ``mark_paid_call_dispatched`` is lease-fenced: a worker that lost the
+        attempt gets ``LeaseLost`` here, *before* anything is written or sent, and
+        the gateway never reaches the adapter. The fence runs first so a refused
+        dispatch leaves no ledger row claiming a call that never happened.
+        """
         if event.attempt_id != self._attempt_id:
             raise ValueError("dispatch is for a different attempt")
-        self._usage.append(event)
         if _is_metered(event):
-            self._workflow.mark_paid_call_dispatched(self._attempt_id)
+            self._workflow.mark_paid_call_dispatched(self._attempt_id, worker_id=self._worker_id)
+        self._usage.append(event)
         self._commit()
 
     def record_outcome(self, event: AIUsageEvent) -> None:
+        """Record the terminal entry, commit it, then close the attempt's question.
+
+        The ledger entry is committed **before** the fenced attempt write. The call
+        has happened whatever the lease says; if the lease was lost mid-call, the
+        attempt write raises ``LeaseLost`` and the recovered attempt is settled as
+        uncertain by the reconciler -- but the ledger still holds what the
+        provider actually answered, which is what a person reconciles against.
+        """
         if event.attempt_id != self._attempt_id:
             raise ValueError("outcome is for a different attempt")
         self._usage.append(event)
         self._committed += event.cost_usd
+        self._commit()
         if _is_metered(event) and event.outcome is not UsageOutcome.UNCERTAIN:
-            # Known outcome: the billing question for this attempt is closed at
-            # the cumulative figure. An UNCERTAIN outcome deliberately leaves the
-            # attempt dispatched-and-unknown, which is what makes fail_attempt
-            # choose RECOVERY_REQUIRED instead of a retry.
+            # Known outcome: the billing question for this attempt is closed. The
+            # repository *adds* the cost to the attempt's known spend, so this is
+            # the call's own cost, never the running total -- passing the total
+            # double-counts every attempt that makes more than one call. An
+            # UNCERTAIN outcome deliberately leaves the attempt
+            # dispatched-and-unknown, so fail_attempt chooses RECOVERY_REQUIRED.
             self._workflow.mark_paid_call_outcome_known(
                 self._attempt_id,
-                actual_cost_usd=self._committed,
+                worker_id=self._worker_id,
+                actual_cost_usd=event.cost_usd,
                 provider_request_id=event.provider_request_id,
             )
-        self._commit()
+            self._commit()
 
     def committed_usd(self) -> float:
         return self._committed

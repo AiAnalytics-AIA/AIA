@@ -1,25 +1,23 @@
-"""Sociomapa parity scaffold against the legacy NPC Panel reference.
+"""Sociomapa parity against the legacy source checkout (``AIA_LEGACY_REFERENCE``).
 
-There is no Sociomapping mathematics to compare yet: the reference checkout was
-unavailable when the deterministic contracts were written, and no algorithm has
-been ported. These tests therefore do the two things that *can* be done
-honestly before that:
+The numerical parity evidence for the ported Sociomapping mathematics is the
+golden fixtures F1-F9, vendored under ``fixtures/sociomap/`` and exercised by
+``test_sociomap_relations.py``, ``test_sociomap_metrics.py``,
+``test_sociomap_terrain.py`` and ``test_sociomap_engine.py`` -- in every CI job,
+without a checkout.
 
-1. pin the reference ``sociomap.py`` to the hash the committed manifest records,
-   so the inventory and the future port are known to describe the validated
-   snapshot and not a drifted copy;
-2. generate the function-level inventory from the real source, so the engineer
-   who has the checkout gets the audit table without writing it by hand.
+This module does the two things that still need the legacy *source*:
+
+1. pin the reference ``sociomap.py`` and siblings to the hash the committed
+   manifest records, so any future port from source is known to describe the
+   validated snapshot and not a drifted copy;
+2. generate the function-level inventory from the real source.
 
 Both skip cleanly without ``AIA_LEGACY_REFERENCE`` and are marked ``parity`` so
 they run under ``make test-parity``. A skip here is reported, never counted as a
-pass -- see the CI parity job.
-
-When the port begins, the numerical comparisons belong in this module: relation
-matrix, transformed matrix, coordinates (after whichever alignment the reference's
-gauge behaviour justifies), heights, colours, arrows and quality metrics, on
-shared fixtures, within tolerances recorded in
-``docs/architecture/sociomapa-deterministic-engine.md``.
+pass. What the source is still needed for -- the reference's Python unfolding
+(F4), ``baseObjectLayout66`` and the R smacof branch -- is recorded in
+``.planning/open-items.md``.
 """
 
 from __future__ import annotations

@@ -53,6 +53,7 @@ forbid() {
 
 CORE=packages/aia_core/src/aia_core
 API=apps/api/src/aia_api
+WORKER=apps/worker/src/aia_worker
 
 echo "Layer rules (ARCHITECTURE.md §3)"
 echo
@@ -108,6 +109,45 @@ forbid "the API does not call providers directly" \
   '^\s*(from|import)\s+(anthropic|openai|litellm|langchain[a-z_]*|google\.generativeai|mistralai|cohere)\b' \
   "$API"
 
+# --- Layer 4: the worker executes; it does not serve, and it does not know ---
+#
+# The worker is driven by the engine and drives executors through one protocol
+# (aia_worker.executor). It never serves HTTP, never reaches into the API, and
+# never names a domain-specific module: an AI or research implementation plugs
+# in through the executor registry, and if the worker imported one directly the
+# seam would be decoration.
+
+forbid "the worker knows nothing about HTTP" \
+  '^\s*(from|import)\s+(fastapi|starlette)\b' \
+  "$WORKER"
+
+forbid "the worker never imports the API" \
+  '^\s*(from|import)\s+aia_api\b' \
+  "$WORKER"
+
+forbid "the worker imports nothing domain-specific" \
+  '^\s*(from|import)\s+aia_core\.(domain\.(pipeline|project|sociomap|residency)|infrastructure\.(repositories|artifact_repository|storage|scope_repository))\b' \
+  "$WORKER"
+
+# Expensive work never runs inside an API request. The only way a step executes
+# is a worker claiming it; a route that claimed, completed or failed an attempt
+# would be doing the work in the request, and would hold a lease for exactly as
+# long as a browser stayed connected.
+forbid "the API never executes workflow steps" \
+  '\b(aia_worker|WorkQueue|claim_next|complete_attempt|fail_attempt|release_attempt|abandon_attempt)\b' \
+  "$API"
+
+# WorkflowRepository is study-scoped. Its unscoped constructor exists for
+# WorkQueue, in the same module, and nothing else may call it: an unscoped
+# repository anywhere else is a query across every client's studies.
+forbid "only the work queue may query across studies" \
+  '_across_studies' \
+  "$CORE" \
+  workflow_repository.py
+forbid "the worker never builds an unscoped repository" \
+  '_across_studies' \
+  "$WORKER"
+
 # --- Layer 6: transport validates, delegates, serialises --------------------
 #
 # A route handler that opens a Session is a route handler that can make a
@@ -141,6 +181,103 @@ forbid "the API never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$API"
 
+forbid "the worker never builds its own scope context" \
+  '^[^#]*\b(Organization|Client|Study)Context\(' \
+  "$WORKER"
+
+# --- Evidence: admission and certificates are issued, never constructed ------
+#
+# The same capability pattern as scope. An AdmittedClaim is the only form in
+# which a number may sit in an analysis result, and only admit_numeric_claims
+# can mint one, after field policy, joint structure, support, interval and tier
+# have all passed. A JointStatus is the only way the claim gate learns what the
+# population's joint structure supports, and only load_joint_status can issue
+# one, after checking the certificate against the loaded panel's hash. If any
+# other module can build either, a prompt is the enforcement mechanism again.
+# See .planning/plans/done/evidence-governance-foundation.md.
+forbid "claims are admitted only by the evidence admission gate" \
+  '^[^#]*\bAdmittedClaim\(' \
+  "$CORE" \
+  admission.py
+
+forbid "the API never admits its own claims" \
+  '^[^#]*\bAdmittedClaim\(' \
+  "$API"
+
+# companions.py is exempt by name, and only for now: it defines a *second*
+# JointStatus -- the population loader's own certificate evaluator -- which is a
+# duplicate of the evidence one, not a bypass of it. Which of the two is the single
+# authority is an open decision (.planning/open-items.md OI-24); this exemption goes
+# when that decision lands, not before.
+forbid "a joint status is issued only by its loader" \
+  '^[^#]*\bJointStatus\(' \
+  "$CORE" \
+  joint_status.py companions.py
+
+# --- Population: one resolver, one loader ----------------------------------
+#
+# The reference answered "which population is in use" in four places and loaded
+# it through two loaders that returned different populations from the same bytes
+# (AIA-reference R4, fixture F10). A RuntimePopulation is issued only by
+# PopulationRuntime in application/population.py, through a module-private
+# sentinel; runtime.py defines it. Parsing a panel anywhere else is the first step
+# of a second loader, so that is refused too; population_parser.py is the parser.
+forbid "runtime populations are issued only by the canonical loader" \
+  '^[^#]*RuntimePopulation\._issue\(' \
+  "$CORE" \
+  population.py runtime.py
+
+forbid "the API never issues a runtime population" \
+  '^[^#]*RuntimePopulation\._issue\(' \
+  "$API"
+
+forbid "population panels are parsed only by the canonical loader" \
+  '^[^#]*\bparse_panel\(' \
+  "$CORE" \
+  population.py population_parser.py
+
+forbid "the API never parses a population panel" \
+  '^[^#]*\bparse_panel\(' \
+  "$API"
+
+# Establishing and promoting a population is platform administration. The
+# operator grant is issued only by PopulationAuthority from trusted configuration
+# (application/population_authority.py); authority.py defines it. Neither a study
+# nor an organization context implies it, and the API never mints one.
+forbid "population-operator grants are issued only by the population authority" \
+  '^[^#]*PopulationOperatorGrant\._issue\(' \
+  "$CORE" \
+  population_authority.py authority.py
+
+forbid "the API never issues a population-operator grant" \
+  '^[^#]*PopulationOperatorGrant\._issue\(' \
+  "$API"
+
+# --- Sociomap: computable is not deliverable --------------------------------
+#
+# AIA_SOCIOMAP_V1 is a preset a study adopts by naming it -- it is not an
+# approved client methodology (docs/architecture/sociomapa-methodology-decision.md).
+# If an application service, worker, route or client could reference it, it
+# could fill in a missing spec, and an engineering choice would become client
+# methodology by default. Outside the Sociomap domain package (where it is
+# defined), its tests and the golden-fixture tool, it may not appear at all.
+# See sociomapa-deterministic-engine.md §13.
+forbid "application code never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$CORE/application/"
+forbid "infrastructure never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$CORE/infrastructure/"
+forbid "the API never substitutes the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  "$API"
+forbid "workers never substitute the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  apps/worker
+forbid "the web client never names the Sociomap preset" \
+  'AIA_SOCIOMAP_V1' \
+  apps/web/src
+
 # --- Tests: the signal is never deleted ------------------------------------
 #
 # A failing test is a finding (ARCHITECTURE.md §7). Runtime `pytest.skip(...)`
@@ -153,6 +290,9 @@ forbid "no statically skipped or xfailed tests" \
 forbid "no statically skipped or xfailed API tests" \
   '@pytest\.mark\.(skip|xfail)' \
   apps/api/tests
+forbid "no statically skipped or xfailed worker tests" \
+  '@pytest\.mark\.(skip|xfail)' \
+  apps/worker/tests
 
 # --- Presentation: the client renders, it does not decide -------------------
 #

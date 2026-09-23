@@ -248,16 +248,40 @@ Paid-call recovery was **not** touched, and has one more guard: a capacity failu
 after a dispatched metered call still reaches `RECOVERY_REQUIRED` rather than
 parking.
 
+## Evidence governance foundation and the eight analysis modules ✅
+
+The first Phase 6 slice, and deliberately not reporting. The reference enforced
+most of its epistemic discipline as prose — the 400-field dictionary is read by
+no runtime code (M02), and the allowed-metric set existed only inside a prompt
+(M17) — so the claim layer was built before anything that could publish a claim.
+
+- `aia_core.domain.evidence`: the dictionary as typed policy, re-derived and
+  checked, EXACT against the reference export for all 400 fields; the
+  `CORE_JOINT_STATUS` certificate, honoured only when bound to the loaded panel's
+  hash; a claim policy that keeps modelled priors from backing measured claims and
+  cross-block relationships from becoming same-person truth; effective-n support
+  that suppresses by default; validation bound to a system fingerprint; the tier
+  gate; the factual layer's explicit contract; and admission — the only way a
+  number becomes an `AdmittedClaim`.
+- `aia_core.domain.analysis` + `application.analysis`: the eight modules with
+  fingerprints and resume, a closed draft schema, 100% prose number coverage
+  (the reference passed at 95%), and a runner that ends COMPLETED or BLOCKED.
+
+Where the legacy source would have to confirm a decision, the fail-closed reading
+is taken and recorded (`.planning/open-items.md` OI-18); two further items went to
+the register (OI-19 `RELIGION`, OI-20 factual keyword detection). The plan and its
+review map are in `.planning/plans/done/evidence-governance-foundation.md`.
+
 ## In progress
 
 Nothing. The tree is green and the slice is complete.
 
 ## Next
 
-- [ ] **A worker process.** `claim_next` → execute → `complete_attempt` /
-      `fail_attempt`, with heartbeats and a cancellation poll at checkpoints. This
-      is the gap between "the engine works" and "work actually runs" — there is no
-      transport to build first, because PostgreSQL is the queue.
+- [x] **A worker process.** Built as `apps/worker`; see
+      [`.planning/plans/done/worker-process.md`](../../.planning/plans/done/worker-process.md)
+      and [workflows.md § The worker](../architecture/workflows.md#the-worker).
+      `PROGRESS.md` is the tracker; this line is narrative.
 - [ ] **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`,
       `ModelPolicy`, `ModelRegistry`, `ModelGateway`, `ToolRegistry`,
       `AIUsageEvent`. [ADR 0005](../architecture/adr/0005-llm-gateway.md) decision

@@ -16,6 +16,14 @@ from .db import (
     resolve_database_url,
     session_scope,
 )
+from .population_parser import parse_dictionary, parse_panel
+from .population_repository import PopulationRegistryRepository
+from .population_source import (
+    FilesystemPopulationSource,
+    InMemoryPopulationSource,
+    PopulationAssetMissing,
+    PopulationAssetSource,
+)
 from .repositories import ProjectNotFound, ProjectPage, ProjectRepository
 from .scope_repository import ScopeRepository
 from .storage import (
@@ -38,6 +46,9 @@ from .tables import (
     ClientRow,
     OrganizationMemberRow,
     OrganizationRow,
+    PopulationDatasetVersionRow,
+    PopulationPromotionRow,
+    PopulationRow,
     ProjectArtifactDependencyRow,
     ProjectArtifactRow,
     ProjectEventRow,
@@ -45,6 +56,7 @@ from .tables import (
     ProjectRow,
     ProjectStageRow,
     ProviderEventRow,
+    RunPopulationBindingRow,
     StudyGrantRow,
     StudyRow,
     UserRow,
@@ -71,11 +83,19 @@ __all__ = [
     "ClientGrantRow",
     "ClientRow",
     "FilesystemArtifactStore",
+    "FilesystemPopulationSource",
     "InMemoryArtifactStore",
+    "InMemoryPopulationSource",
     "IntegrityError",
     "ObjectNotFound",
     "OrganizationMemberRow",
     "OrganizationRow",
+    "PopulationAssetMissing",
+    "PopulationAssetSource",
+    "PopulationDatasetVersionRow",
+    "PopulationPromotionRow",
+    "PopulationRegistryRepository",
+    "PopulationRow",
     "ProjectArtifactDependencyRow",
     "ProjectArtifactRow",
     "ProjectEventRow",
@@ -86,6 +106,7 @@ __all__ = [
     "ProjectRow",
     "ProjectStageRow",
     "ProviderEventRow",
+    "RunPopulationBindingRow",
     "S3ArtifactStore",
     "ScopeRepository",
     "StorageError",
@@ -99,6 +120,8 @@ __all__ = [
     "create_app_engine",
     "create_session_factory",
     "new_artifact_id",
+    "parse_dictionary",
+    "parse_panel",
     "resolve_database_url",
     "session_scope",
     "sha256_bytes",

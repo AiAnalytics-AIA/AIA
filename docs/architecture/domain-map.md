@@ -100,10 +100,20 @@ transports are not. See [ai-runtime.md](ai-runtime.md). Legacy source: `ai_route
 validation gates, holdout protocol and registry, legal and tier gates, the
 methodology policy itself.
 
-**Status:** not started (Phase 6). Legacy source: `validation_gate.py`,
-`evidence_validator.py`, `holdout_protocol.py`, `legal_gate.py`,
-`product_policy.py`, `provenance.py`, and critically the machine-readable
-`PRODUCT_POLICY.json` and `DATA_CONTRACT_v17.json`.
+**Status:** foundation implemented in `aia_core.domain.evidence`: the 400-field
+dictionary as typed, fail-closed policy; the `CORE_JOINT_STATUS` certificate,
+hash-bound; the permissible-claim policy (measured vs modelled basis,
+disclosures, joint restrictions); effective-n support with `SUPPRESS` by
+default; the allowed-metric set; validation bound to a system fingerprint; the
+tier gate; the factual layer's explicit contract; and evidence admission, the
+only way a number becomes an `AdmittedClaim`. Not yet: the holdout protocol and
+registry, the legal gate, benchmarks, and the parts listed in
+`.planning/open-items.md` OI-18 that need the withheld legacy source. Legacy
+source: `validation_gate.py`, `evidence_validator.py`, `tier_gate.py`,
+`fidelity.py`, `core_joint.py`, `validation_status.py`, `smoke_validation.py`,
+`factual_layer.py`, `holdout_protocol.py`, `legal_gate.py`, `product_policy.py`,
+`provenance.py`, and the machine-readable `PRODUCT_POLICY.json`,
+`DATA_CONTRACT_v17.json` and `FIELD_DICTIONARY_v17_1.csv`.
 
 **Note:** this context must fail closed. The prototype deliberately blocks rather
 than degrades when a methodology precondition is unmet, and that behaviour is a
@@ -137,7 +147,14 @@ scenario truth log.
 fusion, same-person core, weighting contracts, audience registry and selection,
 persona dimensions, calibration.
 
-**Status:** not started (Phase 8). Legacy source: `population_context.py`,
+**Status:** version, import and consumption-readiness landed —
+`aia_core.domain.population`, `aia_core.application.population.PopulationRuntime`
+(content-addressed versions, STATIC/LIVE, operator-gated explicit promotion,
+lossless import validation, canonical weight resolution, one loader, a binding
+recorded per run, field policy as code, companion-set validation, the fail-closed
+joint certificate). Consumer contract: [population.md](population.md). Sampling,
+audience, donor fusion, calibration and the seven enrichment derivations (OI-7) are
+not started. Legacy source: `population_context.py`,
 `population_subpanels.py`, `donor_fusion.py`, `core_joint.py`,
 `audience_registry.py`, `audience_dimensions.py`, `persona_grounded.py`,
 `persona_calibration.py`, `dimension_catalog.py`, `mrp.py`,
@@ -153,9 +170,14 @@ cross-block claims fail closed.
 objects, audience, segments, hypotheses, implications, limitations), deterministic
 assembly, client and internal report variants, export packs.
 
-**Status:** not started (Phase 6). Legacy source: `analysis_agent.py`,
-`client_report_v2.py`, `final_client_report.py`, `report.py`, `report_html.py`,
-`output_pack.py`, `segment_intelligence.py`.
+**Status:** the eight modules are implemented in `aia_core.domain.analysis` —
+identity, order, input fingerprints, the closed draft schema, the prose
+number-coverage check, prompts rendered from the evidence enums, and a result
+type that holds only admitted claims — and run one at a time by
+`aia_core.application.analysis`. Reporting and export are **not started, by
+design**: they come after the evidence layer is enforceable. Legacy source:
+`analysis_agent.py`, `client_report_v2.py`, `final_client_report.py`,
+`report.py`, `report_html.py`, `output_pack.py`, `segment_intelligence.py`.
 
 **Invariant to preserve:** the eight modules are independently durable jobs, so a
 quota failure after module 5 continues at module 6 instead of recomputing 1–5.
@@ -165,8 +187,13 @@ quota failure after module 5 continues at module 6 instead of recomputing 1–5.
 **Owns:** relation matrices, unfolding and layout mathematics, map view state,
 saved segments, A/B area comparison, what-if layers, object manager.
 
-**Status:** not started (Phase 9). Legacy source: `sociomap.py`,
-`visualization_lab.py`, `segment_orchestration.py`, `respondent_dialogue.py`.
+**Status:** core engine implemented — `aia_core.domain.sociomap`, specified in
+[sociomapa-deterministic-engine.md](sociomapa-deterministic-engine.md): relation
+transforms, declared layout, object metrics, both terrain fields, drag and
+what-if layers. Not started: saved segments, A/B comparison, object manager,
+dialogue. Legacy source: `sociomap.py`, `visualization_lab.py`,
+`segment_orchestration.py`, `respondent_dialogue.py`, and the `*66` functions of
+`ui_app.html`, which held the terrain mathematics.
 
 **Invariant to preserve:** manual drag is a *visual override only and never
 mutates raw results*; what-if is a scenario layer over immutable originals.

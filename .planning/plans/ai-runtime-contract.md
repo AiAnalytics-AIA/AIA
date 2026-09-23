@@ -96,7 +96,7 @@ by the first live run rather than by CI.
 - [x] 6. Infrastructure: `ai_usage_events` (migration `1cd2a5acd29f`), `AIUsageRepository`, `WorkflowCallJournal` + `tests/test_ai_usage_ledger.py` (17)
 - [x] 7. Enforcement + docs: `layer_check` provider-SDK rules (12 → 14), `ai-runtime.md`,
       `ai-step-executor-contract.md`, ADR 0005 implementation note, ARCHITECTURE /
-      CLAUDE / AGENTS, data-model, domain-map, parity matrix, OI-6, PROGRESS
+      CLAUDE / AGENTS, data-model, domain-map, parity matrix, OI-32 (filed as OI-6, renumbered on merge with main), PROGRESS
 
 All seven landed on PR #28.
 
@@ -157,7 +157,7 @@ All seven landed on PR #28.
 
 D6 route approval per data class · D7 live transport · D8 credential storage ·
 D9 catalog/prices/policy ownership · D10 capacity backoff and per-run cap
-(platform-runtime). All in `PROGRESS.md` *Decisions needed*. Plus OI-6
+(platform-runtime). All in `PROGRESS.md` *Decisions needed*. Plus OI-32
 (uncertain resolution → study spend), owned by platform-runtime.
 
 ### Dependency for research-engine
@@ -183,5 +183,14 @@ Codex review on #28 (four findings, all verified and fixed): adapters are now bo
 per route, not per provider (P1); OpenAI usage with `cached_tokens > prompt_tokens`
 is carried as unreported and `ModelUsage` refuses negatives inside `send` (P2);
 `resolve_uncertain` refuses non-finite costs (P2); every ledger entry and the
-result provenance carry an `input_fingerprint` (P2). Remaining fields filled in
-when archived.
+result provenance carry an `input_fingerprint` (P2). 
+
+Merge of `main` @ a15be65 (worker, lease-fenced `WorkflowRepository`): the journal
+now passes `worker_id`, fences dispatch before writing the ledger row, commits
+an outcome's ledger row before its fenced attempt write, and reports each call's
+own cost because `mark_paid_call_outcome_known` now adds rather than sets --
+passing the running total would have double-charged every multi-call attempt
+(`test_several_calls_in_one_attempt_are_charged_once_each`,
+`test_a_failed_attempt_is_charged_for_every_billed_call`, both shown to fail
+against the old journal). OI-6 renumbered OI-32; the ledger migration re-parented
+onto `85637e58c7dd`. Remaining fields filled in when archived.

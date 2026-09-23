@@ -9,7 +9,7 @@ The study foreign key deliberately does not cascade: a study with ledger entries
 cannot be deleted out from under its accounting record.
 
 Revision ID: 1cd2a5acd29f
-Revises: 4599186ff65b
+Revises: 85637e58c7dd
 Created: 2026-09-22 21:34:06.455315+00:00
 """
 
@@ -20,7 +20,7 @@ import sqlalchemy as sa
 
 
 revision: str = '1cd2a5acd29f'
-down_revision: str | None = '4599186ff65b'
+down_revision: str | None = '85637e58c7dd'
 branch_labels = None
 depends_on = None
 

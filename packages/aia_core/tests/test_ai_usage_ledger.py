@@ -58,6 +58,8 @@ from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.tables import AIUsageEventRow, BudgetReservationRow, StepAttemptRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
+WORKER = "worker-1"
+
 
 class Answer(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -139,7 +141,11 @@ class Attempt:
                 self.session.commit()
 
         return WorkflowCallJournal(
-            workflow=self.workflow, usage=self.usage, attempt_id=self.attempt_id, commit=commit
+            workflow=self.workflow,
+            usage=self.usage,
+            attempt_id=self.attempt_id,
+            worker_id=WORKER,
+            commit=commit,
         )
 
     def context(self, journal: WorkflowCallJournal) -> ExecutionContext:
@@ -184,10 +190,10 @@ def attempt(session: Session, scoped: Any) -> Attempt:
         steps=[StepDefinition(node_key="analyse", kind="analysis")],
         idempotency_key=f"{project.project_id}:ledger",
     )
-    claimed = workflow.claim_next(worker_id="worker-1")
+    claimed = workflow.claim_next(worker_id=WORKER)
     assert claimed is not None
     reservation_id = workflow.reserve_budget(
-        attempt_id=claimed.attempt_id, amount_usd=1.0, provider=Provider.OPENAI
+        attempt_id=claimed.attempt_id, worker_id=WORKER, amount_usd=1.0, provider=Provider.OPENAI
     )
     assert reservation_id is not None
     session.commit()
@@ -232,10 +238,13 @@ def test_successful_call_is_ledgered_and_closes_the_billing_question(
     assert row.paid_call_outcome_known is True
     assert row.provider_request_id == "req_ledger"
     assert row.actual_cost_usd == pytest.approx(result.actual_cost_usd)
-    assert len(attempt.commits) == 2
+    # Dispatch (fence + ledger row), then the outcome's ledger row, then the
+    # fenced attempt write: the ledger commit never waits on the lease.
+    assert len(attempt.commits) == 3
 
     attempt.workflow.complete_attempt(
         attempt.attempt_id,
+        worker_id=WORKER,
         output={"verdict": "fine"},
         actual_cost_usd=result.total_cost_usd,
         reservation_id=attempt.reservation_id,
@@ -308,6 +317,7 @@ def test_uncertain_outcome_leaves_the_attempt_unknown_and_resolves_to_zero(
     inputs = recovery_inputs(exc.value)
     decision = attempt.workflow.fail_attempt(
         attempt.attempt_id,
+        worker_id=WORKER,
         failure=inputs.failure,
         error=dict(inputs.error),
         reservation_id=attempt.reservation_id,
@@ -350,8 +360,102 @@ def test_journal_requires_one_scope(attempt: Attempt, scoped: Any) -> None:
             workflow=attempt.workflow,
             usage=other,
             attempt_id=attempt.attempt_id,
+            worker_id=WORKER,
             commit=lambda: None,
         )
+
+
+# --------------------------------------------------------------------------- #
+# Integration with the lease-fenced workflow engine (merge of main into #28)
+# --------------------------------------------------------------------------- #
+
+
+def test_a_worker_that_lost_the_lease_never_sends_and_ledgers_nothing(
+    attempt: Attempt, model_registry: ModelRegistry
+) -> None:
+    """The dispatch mark is the lease fence. A worker whose attempt was recovered
+    learns it there -- before the adapter is reached and before a ledger row
+    claims a call that never happened."""
+    from aia_core.infrastructure.workflow_repository import LeaseLost
+
+    attempt.workflow.recover_expired_attempts(now=_future())
+    attempt.session.commit()
+    adapter = Adapter([OK])
+    with pytest.raises(LeaseLost):
+        attempt.invoke(adapter, model_registry)
+    attempt.session.rollback()
+    assert adapter.requests == []
+    assert attempt.usage.events(attempt_id=attempt.attempt_id) == []
+
+
+def test_several_calls_in_one_attempt_are_charged_once_each(
+    attempt: Attempt, model_registry: ModelRegistry
+) -> None:
+    """The repository *adds* each outcome's cost to the attempt. A journal that
+    reported the running total instead would charge a primary-plus-repair
+    attempt three calls' worth for two."""
+    bad = dataclasses.replace(OK, text='{"verdict": 1}')
+    result = attempt.invoke(Adapter([bad, OK]), model_registry)
+    two_calls = result.total_cost_usd
+    assert two_calls == pytest.approx(2 * result.actual_cost_usd)
+    assert attempt.attempt_row().actual_cost_usd == pytest.approx(two_calls)
+
+    attempt.workflow.complete_attempt(
+        attempt.attempt_id,
+        worker_id=WORKER,
+        output={"verdict": "fine"},
+        actual_cost_usd=two_calls,
+        reservation_id=attempt.reservation_id,
+    )
+    attempt.session.commit()
+    assert attempt.workflow.budget_position()["spent_usd"] == pytest.approx(two_calls)
+    assert attempt.usage.total_cost_usd() == pytest.approx(two_calls)
+
+
+def test_a_failed_attempt_is_charged_for_every_billed_call(
+    attempt: Attempt, model_registry: ModelRegistry
+) -> None:
+    """Both answers were billed and both failed validation. The attempt fails,
+    and the study is charged for the two calls -- not zero, not the reservation."""
+    bad = dataclasses.replace(OK, text='{"verdict": 1}')
+    with pytest.raises(ModelCallFailed) as exc:
+        attempt.invoke(Adapter([bad, bad]), model_registry)
+    billed = sum(e.cost_usd for e in exc.value.usage_events if e.outcome.is_terminal)
+    assert billed > 0
+
+    inputs = recovery_inputs(exc.value)
+    attempt.workflow.fail_attempt(
+        attempt.attempt_id,
+        worker_id=WORKER,
+        failure=inputs.failure,
+        error=dict(inputs.error),
+        reservation_id=attempt.reservation_id,
+    )
+    attempt.session.commit()
+    assert attempt.workflow.budget_position()["spent_usd"] == pytest.approx(billed)
+    assert attempt.usage.total_cost_usd() == pytest.approx(billed)
+
+
+def test_outcome_is_ledgered_even_when_the_lease_is_lost_mid_call(
+    attempt: Attempt, model_registry: ModelRegistry
+) -> None:
+    """The call happened whatever the lease says. The terminal entry is committed
+    before the fenced attempt write, so the reconciler's uncertain settlement has
+    the provider's real answer beside it."""
+    from aia_core.infrastructure.workflow_repository import LeaseLost
+
+    class LosesLeaseMidCall(Adapter):
+        async def send(self, request: AdapterRequest) -> AdapterResponse:
+            attempt.workflow.recover_expired_attempts(now=_future())
+            attempt.session.commit()
+            return await super().send(request)
+
+    with pytest.raises(LeaseLost):
+        attempt.invoke(LosesLeaseMidCall([OK]), model_registry)
+    attempt.session.rollback()
+    outcomes = [e.outcome for e in attempt.usage.events(attempt_id=attempt.attempt_id)]
+    assert outcomes == [UsageOutcome.DISPATCHED, UsageOutcome.SUCCEEDED]
+    assert attempt.reservation_row().status == ReservationStatus.SETTLED_UNCERTAIN.value
 
 
 # --------------------------------------------------------------------------- #
