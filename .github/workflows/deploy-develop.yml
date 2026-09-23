@@ -2,7 +2,7 @@ name: Deploy develop
 
 # Deploy only what CI verified (ARCHITECTURE.md §9): CI dispatches this workflow
 # on `develop` after every required check succeeds. It checks out that exact SHA,
-# builds the three images tagged by that SHA, pushes them to ECR,
+# builds the four images tagged by that SHA, pushes them to ECR,
 # ships deploy/develop as a versioned bundle, and runs bin/deploy.sh on the host
 # through SSM Run Command. No SSH, no stored AWS keys: the job assumes an IAM
 # role through GitHub's OIDC provider, and only from the `develop` environment.
@@ -123,6 +123,22 @@ jobs:
             AIA_BUILD_TIME=${{ github.run_started_at }}
           cache-from: type=gha,scope=python
           cache-to: type=gha,scope=python,mode=max
+          provenance: false
+
+      - name: Build and push aia-legacy-panel
+        # The vendored NPC Panel 18.6.6 unit (ADR 0011). Its own Dockerfile and
+        # context: the code tree is baked in, the data is mounted on the host.
+        uses: docker/build-push-action@v6
+        with:
+          context: legacy/npc-panel-18.6.6
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/aia-legacy-panel:${{ env.SHA }}
+            ${{ env.REGISTRY }}/aia-legacy-panel:develop
+          build-args: |
+            AIA_BUILD_SHA=${{ env.SHA }}
+          cache-from: type=gha,scope=legacy
+          cache-to: type=gha,scope=legacy,mode=max
           provenance: false
 
       - name: Build and push aia-web

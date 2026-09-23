@@ -1,10 +1,11 @@
-# The develop environment: one host, five services, ADR 0009.
+# The develop environment: one host, six services, ADR 0009 and ADR 0011.
 #
-#   caddy     public HTTPS entrypoint (80/443), proxies to web and api
-#   web       Next.js standalone, internal only
-#   api       FastAPI under uvicorn, internal only
-#   worker    aia-worker, no inbound port
-#   postgres  PostgreSQL 16 on a named volume, internal only
+#   caddy         public HTTPS entrypoint (80/443), proxies to web, api and legacy-panel
+#   web           Next.js standalone, internal only
+#   api           FastAPI under uvicorn, internal only
+#   worker        aia-worker, no inbound port
+#   postgres      PostgreSQL 16 on a named volume, internal only
+#   legacy-panel  the vendored NPC Panel 18.6.6 unit, its own hostname, behind a gate
 #
 # Every image is pulled by immutable git SHA (AIA_IMAGE_TAG), never by a floating
 # tag, so the running deployment is always traceable to one commit. Migrations
@@ -43,6 +44,9 @@ services:
     environment:
       AIA_PUBLIC_HOSTNAME: ${AIA_PUBLIC_HOSTNAME}
       AIA_ACME_EMAIL: ${AIA_ACME_EMAIL}
+      AIA_LEGACY_HOSTNAME: ${AIA_LEGACY_HOSTNAME}
+      AIA_LEGACY_BASIC_USER: ${AIA_LEGACY_BASIC_USER}
+      AIA_LEGACY_BASIC_HASH: ${AIA_LEGACY_BASIC_HASH}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -51,6 +55,8 @@ services:
       web:
         condition: service_healthy
       api:
+        condition: service_healthy
+      legacy-panel:
         condition: service_healthy
     networks: [edge, internal]
     healthcheck:
@@ -124,6 +130,29 @@ services:
     stop_grace_period: 60s
     logging: *logging
 
+  legacy-panel:
+    # The extracted 18.6.6 product (legacy/npc-panel-18.6.6, ADR 0011): the
+    # rebuild's behavioural baseline and parity oracle, unchanged. Its code is
+    # in the image; the licence-bound data is synced from the ops bucket to
+    # /opt/aia/develop/legacy-data by bin/deploy.sh and hydrated at start with
+    # hash verification. The working tree is written at run time (SQLite state,
+    # logs, runs), so this service is not read_only.
+    image: ${AIA_IMAGE_REGISTRY}/aia-legacy-panel:${AIA_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      NPC_VERIFY: strict
+      NPC_START_WORKER: "1"
+      # No provider credential: the baseline runs every deterministic route
+      # without one. A live-AI run on the oracle is a separate, recorded decision.
+    expose: ["8765"]
+    volumes:
+      - legacy_state:/app
+      - /opt/aia/develop/legacy-data:/data:ro
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+    logging: *logging
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -156,3 +185,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  legacy_state:
