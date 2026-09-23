@@ -1,0 +1,228 @@
+name: Deploy develop
+
+# Deploy only what CI verified (ARCHITECTURE.md §9): this runs when the CI
+# workflow *completes successfully* on `develop`, checks out the exact SHA CI
+# verified, builds the three images tagged by that SHA, pushes them to ECR,
+# ships deploy/develop as a versioned bundle, and runs bin/deploy.sh on the host
+# through SSM Run Command. No SSH, no stored AWS keys: the job assumes an IAM
+# role through GitHub's OIDC provider, and only from the `develop` environment.
+#
+# `workflow_dispatch` lets a person deploy a specific SHA by hand, which is also
+# how a rollback is done (deploy/develop/README.md § Rollback).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Git SHA to deploy (defaults to the head of develop)"
+        required: false
+        default: ""
+      migrate:
+        description: "Run alembic upgrade head (uncheck for a rollback to an older schema-compatible SHA)"
+        type: boolean
+        default: true
+
+# One deployment at a time. A newer push cancels a build still in progress, but
+# never a deploy already running on the host: cancel-in-progress is per job below.
+concurrency:
+  group: deploy-develop
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  resolve:
+    name: Resolve the SHA to deploy
+    runs-on: ubuntu-latest
+    # workflow_run fires for failures and cancellations too; deploy only on success.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'develop')
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+      migrate: ${{ steps.pick.outputs.migrate }}
+    steps:
+      - id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            sha="${{ github.event.workflow_run.head_sha }}"
+            migrate="true"
+          else
+            sha="${{ inputs.sha }}"
+            migrate="${{ inputs.migrate }}"
+            if [ -z "$sha" ]; then sha="${{ github.sha }}"; fi
+          fi
+          if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::expected a full 40-character SHA, got '$sha'"; exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "migrate=$migrate" >> "$GITHUB_OUTPUT"
+          echo "deploying $sha (migrate=$migrate)" >> "$GITHUB_STEP_SUMMARY"
+
+  build-and-deploy:
+    name: Build, push and deploy
+    needs: resolve
+    runs-on: ubuntu-latest
+    # The GitHub environment is what the AWS role trusts, and where a human can
+    # add required reviewers later without touching this file.
+    environment:
+      name: develop
+      url: https://${{ vars.AIA_PUBLIC_HOSTNAME }}/
+    timeout-minutes: 45
+    env:
+      SHA: ${{ needs.resolve.outputs.sha }}
+      REGISTRY: ${{ vars.AIA_ECR_REGISTRY }}
+      OPS_BUCKET: ${{ vars.AIA_OPS_BUCKET }}
+      INSTANCE_ID: ${{ vars.AIA_DEVELOP_INSTANCE_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A workflow_run job checks out the default branch by default, which is
+          # an OLDER head than the one CI just verified. Always the resolved SHA.
+          ref: ${{ env.SHA }}
+          persist-credentials: false
+
+      - name: Assume the deploy role (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AIA_DEPLOY_ROLE_ARN }}
+          role-session-name: aia-develop-deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push aia-api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/python.Dockerfile
+          target: api
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/aia-api:${{ env.SHA }}
+            ${{ env.REGISTRY }}/aia-api:develop
+          build-args: |
+            AIA_BUILD_SHA=${{ env.SHA }}
+            AIA_BUILD_TIME=${{ github.event.workflow_run.updated_at || github.run_started_at }}
+          cache-from: type=gha,scope=python
+          cache-to: type=gha,scope=python,mode=max
+          provenance: false
+
+      - name: Build and push aia-worker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/python.Dockerfile
+          target: worker
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/aia-worker:${{ env.SHA }}
+            ${{ env.REGISTRY }}/aia-worker:develop
+          build-args: |
+            AIA_BUILD_SHA=${{ env.SHA }}
+            AIA_BUILD_TIME=${{ github.event.workflow_run.updated_at || github.run_started_at }}
+          cache-from: type=gha,scope=python
+          cache-to: type=gha,scope=python,mode=max
+          provenance: false
+
+      - name: Build and push aia-web
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          file: apps/web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/aia-web:${{ env.SHA }}
+            ${{ env.REGISTRY }}/aia-web:develop
+          build-args: |
+            AIA_BUILD_SHA=${{ env.SHA }}
+            AIA_BUILD_TIME=${{ github.event.workflow_run.updated_at || github.run_started_at }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+          provenance: false
+
+      - name: Ship the deploy bundle
+        # The compose file, Caddyfile and scripts the host runs, at this SHA, so
+        # the host's procedure is versioned with the code it deploys.
+        run: |
+          tar -czf deploy-bundle.tar.gz -C deploy/develop docker-compose.yml Caddyfile bin
+          aws s3 cp deploy-bundle.tar.gz "s3://$OPS_BUCKET/deploy/$SHA.tar.gz" --only-show-errors
+          echo "bundle s3://$OPS_BUCKET/deploy/$SHA.tar.gz" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy on the host through SSM
+        env:
+          MIGRATE: ${{ needs.resolve.outputs.migrate }}
+        run: |
+          set -euo pipefail
+          flag=""
+          if [ "$MIGRATE" != "true" ]; then flag="--no-migrate"; fi
+          # One shell script, run as root on the instance by the SSM agent. It
+          # refreshes the env file from Parameter Store (secrets never leave the
+          # host), unpacks this SHA's bundle and runs the deploy.
+          script=$(cat <<EOF
+          set -euo pipefail
+          exec > >(tee -a /var/log/aia-deploy.log) 2>&1
+          echo "== deploy $SHA at \$(date -u +%FT%TZ) =="
+          mkdir -p /opt/aia/develop && cd /opt/aia/develop
+          aws s3 cp "s3://$OPS_BUCKET/deploy/$SHA.tar.gz" /tmp/deploy-bundle.tar.gz --only-show-errors
+          tar -xzf /tmp/deploy-bundle.tar.gz -C /opt/aia/develop && rm -f /tmp/deploy-bundle.tar.gz
+          chmod 0755 bin/*.sh
+          bin/write-env.sh
+          bin/deploy.sh "$SHA" $flag
+          EOF
+          )
+          command_id=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "aia develop deploy $SHA" \
+            --timeout-seconds 600 \
+            --parameters "commands=$(jq -Rn --arg s "$script" '[$s]')" \
+            --query 'Command.CommandId' --output text)
+          echo "ssm command $command_id"
+
+          status="Pending"
+          for i in $(seq 1 120); do
+            status=$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+                       --query Status --output text 2>/dev/null || echo "Pending")
+            case "$status" in
+              Success|Failed|Cancelled|TimedOut) break ;;
+            esac
+            sleep 10
+          done
+
+          echo "## Host output ($status)" >> "$GITHUB_STEP_SUMMARY"
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query StandardOutputContent --output text | tail -c 60000 | tee -a "$GITHUB_STEP_SUMMARY"
+          err=$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query StandardErrorContent --output text)
+          if [ -n "$err" ] && [ "$err" != "None" ]; then echo "$err" | tail -c 20000; fi
+
+          if [ "$status" != "Success" ]; then
+            echo "::error::deploy of $SHA ended with SSM status $status"; exit 1
+          fi
+          echo "deployed $SHA to https://${{ vars.AIA_PUBLIC_HOSTNAME }}/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Confirm from outside
+        # The host already ran smoke.sh; this is the independent check from the
+        # runner: the public URL answers with the SHA that was just deployed.
+        run: |
+          host="${{ vars.AIA_PUBLIC_HOSTNAME }}"
+          api=$(curl -fsS --max-time 15 "https://$host/api/v1/health" | jq -r '.build.sha')
+          web=$(curl -fsS --max-time 15 "https://$host/version" | jq -r '.sha')
+          test "$api" = "$SHA" || { echo "::error::API reports build $api, expected $SHA"; exit 1; }
+          test "$web" = "$SHA" || { echo "::error::web reports build $web, expected $SHA"; exit 1; }
+          echo "https://$host/ is running $SHA"

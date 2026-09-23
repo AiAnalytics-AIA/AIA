@@ -54,6 +54,7 @@ forbid() {
 CORE=packages/aia_core/src/aia_core
 API=apps/api/src/aia_api
 WORKER=apps/worker/src/aia_worker
+EXECUTORS=apps/executors/src/aia_executors
 
 echo "Layer rules (ARCHITECTURE.md §3)"
 echo
@@ -131,6 +132,33 @@ forbid "only the work queue may query across studies" \
 forbid "the worker never builds an unscoped repository" \
   '_across_studies' \
   "$WORKER"
+
+# --- Layer 4b: executors do the work; they neither serve nor decide scope -----
+#
+# Step implementations depend on the worker's executor seam and on aia_core.
+# They never import the API, never serve HTTP, and -- like the worker -- act
+# only under the scope the lease issued them. An executor that could build a
+# StudyContext could write another client's artifacts from inside a claimed step.
+
+forbid "executors know nothing about HTTP" \
+  '^\s*(from|import)\s+(fastapi|starlette)\b' \
+  "$EXECUTORS"
+
+forbid "executors never import the API" \
+  '^\s*(from|import)\s+aia_api\b' \
+  "$EXECUTORS"
+
+forbid "executors never build their own scope context" \
+  '^[^#]*\b(Organization|Client|Study)Context\(' \
+  "$EXECUTORS"
+
+forbid "executors never admit their own claims" \
+  '^[^#]*\bAdmittedClaim\(' \
+  "$EXECUTORS"
+
+forbid "executors never build an unscoped workflow repository" \
+  '_across_studies' \
+  "$EXECUTORS"
 
 # --- Layer 6: transport validates, delegates, serialises --------------------
 #
@@ -277,6 +305,9 @@ forbid "no statically skipped or xfailed API tests" \
 forbid "no statically skipped or xfailed worker tests" \
   '@pytest\.mark\.(skip|xfail)' \
   apps/worker/tests
+forbid "no statically skipped or xfailed executor tests" \
+  '@pytest\.mark\.(skip|xfail)' \
+  apps/executors/tests
 
 # --- Presentation: the client renders, it does not decide -------------------
 #

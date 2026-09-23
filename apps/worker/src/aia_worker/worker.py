@@ -142,7 +142,10 @@ class Worker:
 
     def run_forever(self) -> None:
         """Run until :meth:`request_stop`. Never raises for a failed iteration."""
-        log.info("worker started", extra={"fields": {"kinds": sorted(self._kinds)}})
+        log.info(
+            "worker started",
+            extra={"fields": {"kinds": sorted(self._kinds), "build_sha": self._settings.build_sha}},
+        )
         while not self._stopping.is_set():
             did_work = False
             try:

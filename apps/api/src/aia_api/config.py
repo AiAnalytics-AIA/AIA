@@ -12,6 +12,8 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Literal
 
+from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
+from aia_core.infrastructure.storage_settings import StorageBackend, StorageSettings
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -42,6 +44,13 @@ class Settings(BaseSettings):
     service_name: str = "aia-api"
     version: str = "0.1.0"
 
+    # The git commit this process was built from, baked into the image by the
+    # deployment. Reported by /health and written into artifact provenance as the
+    # runtime version. Required in a deployed environment: a deployment that
+    # cannot say which revision it is cannot be debugged or rolled back.
+    build_sha: str = ""
+    build_time: str = ""
+
     # ``DATABASE_URL`` is read without the AIA_ prefix because every hosting
     # platform and migration tool already uses that name.
     database_url: str = Field(default="", validation_alias="DATABASE_URL")
@@ -49,6 +58,17 @@ class Settings(BaseSettings):
     # CORS. Empty means same-origin only, which is the correct default for a
     # deployment that serves the web client behind one hostname.
     cors_origins: list[str] = Field(default_factory=list)
+
+    # -------------------------------------------------------------- storage --
+    # Where artifact bytes live. Metadata is always PostgreSQL; this selects the
+    # ArtifactStore for the bytes. A deployed environment must use S3 itself.
+    storage_backend: StorageBackend = "memory"
+    storage_bucket: str = ""
+    storage_region: str = ""
+    storage_prefix: str = ""
+    storage_kms_key_id: str = ""
+    storage_endpoint: str = ""
+    storage_root: str = "./data/artifacts"
 
     # ------------------------------------------------------------- identity --
     # Which identity provider answers authentication. "cognito" is the only
@@ -68,6 +88,14 @@ class Settings(BaseSettings):
     # its own limit; this guards ordinary JSON endpoints.
     max_request_bytes: int = 2 * 1024 * 1024
 
+    @field_validator("build_sha", mode="before")
+    @classmethod
+    def _check_build_sha(cls, value: object) -> object:
+        """Refuse a malformed revision rather than record it (ARCHITECTURE.md A5)."""
+        if isinstance(value, str):
+            return parse_build_sha(value) or ""
+        return value
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:
@@ -75,6 +103,23 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @property
+    def build(self) -> BuildIdentity:
+        """The build this process runs, or an identity with ``sha=None``."""
+        return BuildIdentity(sha=self.build_sha or None, built_at=self.build_time or None)
+
+    def storage_settings(self) -> StorageSettings:
+        """The typed storage configuration, shared with the executors' composition root."""
+        return StorageSettings(
+            backend=self.storage_backend,
+            bucket=self.storage_bucket,
+            region=self.storage_region,
+            prefix=self.storage_prefix,
+            kms_key_id=self.storage_kms_key_id,
+            endpoint_url=self.storage_endpoint,
+            root=self.storage_root,
+        )
 
     @property
     def is_production(self) -> bool:
@@ -118,6 +163,16 @@ class Settings(BaseSettings):
             problems.append("AIA_DEBUG must be off in production")
         if "*" in self.cors_origins:
             problems.append("wildcard CORS origin is not permitted in production")
+        if not self.build_sha:
+            problems.append("AIA_BUILD_SHA is required so the deployed revision is known")
+
+        # Storage. Memory vanishes with the container and a container filesystem
+        # is unshared between the API and the worker, so a deployment that is not
+        # on S3 would lose every artifact on the first restart.
+        try:
+            problems.extend(self.storage_settings().deployment_problems())
+        except ValueError as exc:
+            problems.append(str(exc))
 
         # Identity. A deployed environment trusting request headers would make
         # every tenant and client boundary meaningless, so this is refused at

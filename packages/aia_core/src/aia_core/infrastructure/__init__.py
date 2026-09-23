@@ -10,6 +10,7 @@ from .artifact_repository import (
     ArtifactStatus,
     new_artifact_id,
 )
+from .build_identity import BuildIdentity, parse_build_sha
 from .db import (
     create_app_engine,
     create_session_factory,
@@ -38,6 +39,7 @@ from .storage import (
     build_storage_key,
     sha256_bytes,
 )
+from .storage_settings import StorageBackend, StorageSettings, build_artifact_store
 from .tables import (
     AccessAuditRow,
     ApprovalDecisionRow,
@@ -79,6 +81,7 @@ __all__ = [
     "ArtifactStore",
     "Base",
     "BudgetExceeded",
+    "BuildIdentity",
     "ClaimedWork",
     "ClientGrantRow",
     "ClientRow",
@@ -109,17 +112,21 @@ __all__ = [
     "RunPopulationBindingRow",
     "S3ArtifactStore",
     "ScopeRepository",
+    "StorageBackend",
     "StorageError",
+    "StorageSettings",
     "StoredObject",
     "StudyGrantRow",
     "StudyRow",
     "UserRow",
     "WorkflowNotFound",
     "WorkflowRepository",
+    "build_artifact_store",
     "build_storage_key",
     "create_app_engine",
     "create_session_factory",
     "new_artifact_id",
+    "parse_build_sha",
     "parse_dictionary",
     "parse_panel",
     "resolve_database_url",

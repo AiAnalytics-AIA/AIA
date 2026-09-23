@@ -1,0 +1,45 @@
+# One hostname, two upstreams. Caddy terminates TLS with an ACME certificate it
+# renews itself, redirects HTTP to HTTPS (its default when a site is named with a
+# hostname), and routes /api/* to FastAPI and everything else to Next.js. The
+# browser therefore talks to one origin and no CORS configuration exists.
+
+{
+	email {$AIA_ACME_EMAIL}
+	# The admin endpoint stays on the loopback of the container; the compose
+	# health check reads /metrics there. It is not published.
+	admin 127.0.0.1:2019
+	servers {
+		metrics
+	}
+}
+
+{$AIA_PUBLIC_HOSTNAME} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# The API. Uvicorn runs with --proxy-headers and trusts this network, so the
+	# client address and scheme it logs are the browser's.
+	handle /api/* {
+		reverse_proxy api:8000 {
+			header_up X-Request-Start {time.now.unix_ms}
+		}
+	}
+
+	# Everything else is the Next.js client, including /version.
+	handle {
+		reverse_proxy web:3000
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

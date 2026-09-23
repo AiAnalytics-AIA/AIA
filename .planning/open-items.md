@@ -102,7 +102,11 @@ is deferred until there is a release to protect.
 **Trigger to revisit.** The first production deployment, or Terraform landing
 (Next #5) — whichever comes first.
 
-**Status.** Open by decision, not by neglect.
+**Status.** **Closed** by the develop deployment: `develop` is the integration
+branch, deployed on every green head (ADR 0009), and `main` is the release
+branch receiving release PRs (`CLAUDE.md §5`, `.github/workflows/ci.yml`
+`on.push.branches`). Branch protection itself is a human action
+(`infra/develop/README.md` § Human actions, items 10–11).
 
 ---
 
@@ -957,4 +961,82 @@ against a scratch repository and fails if a tracked `.agent-status/` stops
 failing the build.
 
 **Status.** Open. Needs a repository admin.
+---
 
+## OI-33 · Finding · A repository's `ScopeDenied` reaches the client as a 500
+
+**Claim.** A permission the *repository* checks (not the route dependency) is
+unhandled by the API: a VIEWER creating a project gets `500 internal_error`
+instead of `403 insufficient_role`.
+
+**Anchor.** `apps/api/src/aia_api/routers/projects.py:146 @ a15be65`
+(`repo.create(...)` → `repositories.py:332` `self._scope.require(Permission.EDIT_STUDY)`),
+with no `ScopeDenied` handler in `apps/api/src/aia_api/observability.py:244-289 @ a15be65`.
+
+**Reproduction.** In `apps/api/tests`, as the `viewer` client:
+`viewer.post(f"/api/v1/studies/{world.study_id()}/projects", json={"title": "x"})`
+returns 500 (log: `ScopeDenied: role VIEWER does not permit EDIT_STUDY`).
+Confirmed 2026-09-23 against SQLite.
+
+**Consequence.** The refusal is correct but unreadable: the client sees a generic
+error and an alert fires for what is a normal authorization outcome. Nothing is
+disclosed. The new `runs.py` router maps `ScopeDenied` itself (`_denied`) and so
+does not have the defect; the projects and scope routers do.
+
+**Smallest fix.** One `@app.exception_handler(ScopeDenied)` in
+`install_exception_handlers`: `insufficient_role` and `study_closed` → 403 with
+the scope router's `insufficient_role` shape; every other reason → the 404
+`dependencies._not_found_for` already renders. Then delete `runs.py::_denied`.
+
+**Test that would catch it.** `test_a_viewer_cannot_create_a_project_and_is_told_why`
+asserting 403 and `code == "insufficient_role"` on `POST …/projects`.
+
+**Status.** Open. Found while writing the run routes; deliberately not fixed in
+the deployment change set (it touches every router's error contract).
+
+---
+
+## OI-34 · Finding · The web client has no test runner
+
+**Claim.** `ARCHITECTURE.md §7` requires web tests ("Mount, events, auth
+guards"); `apps/web` has no test framework, no test file and no `test` script.
+
+**Anchor.** `apps/web/package.json:6-11 @ a15be65` (`scripts`: dev, build,
+start, lint only).
+
+**Reproduction.** `cd apps/web && npm test` → `Missing script: "test"`.
+
+**Consequence.** The PKCE login (`src/lib/auth.ts`) and the API client
+(`src/lib/api.ts`) landed with lint, `tsc` and a build as their only gates. Their
+pure parts (PKCE encoding, session caching, error mapping) are testable today
+and untested.
+
+**Smallest fix.** Vitest with `jsdom`, as `plans/design-system.md` chunk 3 already
+schedules; first tests on `auth.ts` (`parseBuildSha`-style pure functions,
+`readSession` caching, `completeLogin` state mismatch) and `api.ts` (401 →
+`Unauthenticated`). Owner: product-surface, with the design-system plan.
+
+**Test that would catch it.** A CI step `npm test` that fails on a missing script.
+
+**Status.** Open.
+
+---
+
+## OI-35 · Decision · The browser session lives in `sessionStorage`
+
+**Claim.** The live pages keep the Cognito id and refresh tokens in
+`sessionStorage` for the tab's lifetime and send the id token as a bearer header.
+
+**Anchor.** `apps/web/src/lib/auth.ts` (`SESSION_KEY`, `writeSession`) @ this change.
+
+**Consequence.** Correct against CSRF (no cookie), same-origin only, cleared when
+the tab closes; exposed to any XSS in the client. Accepted for `develop`
+(synthetic data, five internal users) and recorded here so it is not mistaken
+for the production shape.
+
+**Smallest fix, when production is provisioned.** A same-site, `HttpOnly` cookie
+session minted by the API after verifying the id token once (a `POST
+/api/v1/session` that returns a cookie and a CSRF token), the browser holding no
+token at all. The `IdentityProvider` seam is unchanged by that move.
+
+**Status.** Open by decision. Trigger: the production environment.

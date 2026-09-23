@@ -10,6 +10,7 @@
 | `ModelGateway` contract | **Accepted** as a decision ([ADR 0005](adr/0005-llm-gateway.md) A); not built |
 | Provider adapters / transport | Not built — Phase 4. No vendor selected |
 | Generalized metered-cost ledger | **Not built.** See *Cost accounting* below |
+| First approved route | **Proposed**: `bedrock-eu-primary`, Amazon Bedrock in the EU geography, Class C only ([ADR 0010](adr/0010-bedrock-eu-inference-route.md)). Not declared in code until the gateway and its adapter land; the develop host's instance role may already invoke exactly one pinned EU model |
 
 Nothing here calls a model yet. The rules a call will have to obey exist and are
 tested; the code that makes the call does not.

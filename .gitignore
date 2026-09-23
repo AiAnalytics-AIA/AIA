@@ -45,3 +45,11 @@ tmp/
 
 # OS
 .DS_Store
+
+# Terraform: state and the tfvars file hold account ids and the Google client
+# secret. The .example file is the only tfvars that is committed.
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/terraform.tfvars
+infra/**/.terraform.lock.hcl

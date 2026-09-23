@@ -70,17 +70,65 @@ def test_production_config_reports_every_problem_at_once() -> None:
     assert "AIA_DEBUG" in message
 
 
+PRODUCTION_OK: dict[str, Any] = {
+    "env": Environment.PRODUCTION,
+    "database_url": "postgresql+psycopg://user:pw@host/aia",
+    "cors_origins": ["https://app.example.com"],
+    "identity_provider": "cognito",
+    "cognito_region": "eu-central-1",
+    "cognito_user_pool_id": "eu-central-1_Pool",
+    "cognito_client_id": "app-client",
+    "build_sha": "a15be650937aacaa821db783c7eff6b9ab40cbe9",
+    "storage_backend": "s3",
+    "storage_bucket": "aia-develop-artifacts",
+    "storage_region": "eu-central-1",
+}
+
+
 def test_valid_production_config_passes() -> None:
     """A correct production configuration validates cleanly."""
-    Settings(
-        env=Environment.PRODUCTION,
-        database_url="postgresql+psycopg://user:pw@host/aia",
-        cors_origins=["https://app.example.com"],
-        identity_provider="cognito",
-        cognito_region="eu-central-1",
-        cognito_user_pool_id="eu-central-1_Pool",
-        cognito_client_id="app-client",
-    ).validate_for_production()
+    Settings(**PRODUCTION_OK).validate_for_production()
+
+
+def test_staging_applies_the_same_guards_as_production() -> None:
+    """The develop host runs with AIA_ENV=staging precisely to exercise these guards."""
+    Settings(**{**PRODUCTION_OK, "env": Environment.STAGING}).validate_for_production()
+    with pytest.raises(RuntimeError, match="identity_provider must be 'cognito'"):
+        Settings(
+            **{**PRODUCTION_OK, "env": Environment.STAGING, "identity_provider": "development"}
+        ).validate_for_production()
+
+
+def test_production_requires_the_build_sha() -> None:
+    """A deployment that cannot say which revision it is cannot be debugged or rolled back."""
+    with pytest.raises(RuntimeError, match="AIA_BUILD_SHA is required"):
+        Settings(**{**PRODUCTION_OK, "build_sha": ""}).validate_for_production()
+
+
+def test_a_malformed_build_sha_is_refused_at_construction() -> None:
+    """A branch name in the revision slot is a broken build step, not a revision."""
+    with pytest.raises(ValueError, match="AIA_BUILD_SHA"):
+        Settings(env=Environment.LOCAL, build_sha="develop")
+
+
+def test_production_requires_s3_storage_without_an_endpoint_override() -> None:
+    """Memory vanishes with the container; a filesystem is unshared with the worker;
+    an endpoint override points at something that is not S3."""
+    with pytest.raises(RuntimeError, match="AIA_STORAGE_BACKEND must be 's3'"):
+        Settings(**{**PRODUCTION_OK, "storage_backend": "memory"}).validate_for_production()
+    with pytest.raises(RuntimeError, match="AIA_STORAGE_ENDPOINT must not be set"):
+        Settings(
+            **{**PRODUCTION_OK, "storage_endpoint": "http://minio:9000"}
+        ).validate_for_production()
+    with pytest.raises(RuntimeError, match="AIA_STORAGE_BUCKET is required"):
+        Settings(**{**PRODUCTION_OK, "storage_bucket": ""}).validate_for_production()
+
+
+def test_local_config_may_keep_artifacts_in_memory() -> None:
+    """Local development needs no bucket."""
+    settings = Settings(env=Environment.LOCAL)
+    settings.validate_for_production()
+    assert settings.storage_settings().backend == "memory"
 
 
 def test_production_refuses_a_non_cognito_identity_provider() -> None:

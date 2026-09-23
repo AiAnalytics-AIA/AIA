@@ -96,7 +96,7 @@ Two rules keep this honest rather than decorative:
 | Artifact bytes | S3-compatible object storage | Research outputs are large, immutable blobs that must outlive any container |
 | Identity | Amazon Cognito, federated to Google Workspace | A token proves identity only; authorization is a PostgreSQL read ([ADR 0003](adr/0003-cognito-identity-boundary.md)) |
 | Instrumentation | OpenTelemetry | Vendor-neutral by decision; the backend it exports to is replaceable and unchosen |
-| Compute | AWS, service **not yet decided** | ECS Fargate and App Runner both remain open; the choice gets its own ADR |
+| Compute | AWS. `develop`: one EC2 host under Docker Compose ([ADR 0009](adr/0009-single-host-develop-environment.md)). Production: **not yet decided** | ECS Fargate and App Runner both remain open for production; the develop decision is explicitly not that decision |
 | Local development | Docker Compose (Postgres, MinIO) | Development exercises the same engines as production |
 
 The root `src/server.js` Fastify stub predates this work and is retained only

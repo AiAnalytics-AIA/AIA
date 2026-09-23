@@ -50,7 +50,7 @@ apps/
     dependencies.py         Composition root: engine, sessions, identity, scope
     identity/               IdentityProvider protocol: cognito, testing, development
     observability.py        Structured logging, request correlation, secret redaction
-    routers/                health, projects, scope
+    routers/                health, projects, scope, runs (runs + artifacts under a project)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. Still mock-backed.
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
@@ -61,6 +61,10 @@ apps/
     settings.py             Typed, validated settings from the environment
     registry.py             Loads executors from AIA_WORKER_EXECUTORS=module:factory
     testing.py              Scripted executor for the tests (and the multi-process suite)
+  executors/src/aia_executors/  Step implementations the worker runs, registered by kind
+    snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
+    registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build
+    seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
@@ -75,6 +79,7 @@ packages/aia_core/src/aia_core/
     providers.py            Provider policy, model roles, budget and error semantics
     scope.py                Organization/Client/Study vocabulary, roles, permissions
     workflow.py             Workflow DAG, job states, retry classification
+    workflow_templates.py   The closed set of workflow types and their step graphs
     sociomap/               Sociomapping maths, pure Python: compute_sociomap -> artifact
       specification.py      SociomapSpec v2 (no defaults) + require_supported
       relations.py          scale coercion, mutual projection, ipsatization   F1-F3
@@ -102,6 +107,8 @@ packages/aia_core/src/aia_core/
     population.py           PopulationRuntime — the ONLY loader of population data
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
+    workflows.py            start_workflow: a run from a template, idempotent per revision
+    develop_seed.py         The synthetic develop world, through the same paths the API uses
   infrastructure/
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
@@ -115,8 +122,13 @@ packages/aia_core/src/aia_core/
     population_parser.py    Text-preserving panel + dictionary parser (stdlib)
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     storage.py              ArtifactStore: S3 / filesystem / memory
+    storage_settings.py     AIA_STORAGE_*: one typed definition for every composition root
+    build_identity.py       AIA_BUILD_SHA: the commit a process runs; null, never a guess
 
 migrations/                 Alembic
+deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
+deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
+infra/develop/              Terraform for the develop AWS resources (one root, no modules)
 docs/architecture/          System design + 7 ADRs
 docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, legacy map, MVP acceptance test
@@ -133,8 +145,11 @@ src/server.js               Legacy Fastify login stub. Frozen. No new features.
 
 **Stack:** Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic,
 PostgreSQL 16, Next.js 16, TypeScript, Tailwind 4.
-**Target:** AWS — Amplify, ECS Fargate, RDS, S3, SQS, Secrets Manager, KMS,
-CloudWatch, Terraform, GitHub Actions. No Kubernetes, no Redis
+**Target:** AWS. The `develop` environment is one EC2 host under Docker Compose
+with S3, Cognito, ECR, SSM and Bedrock used for real
+([ADR 0009](docs/architecture/adr/0009-single-host-develop-environment.md));
+production compute is undecided (ECS Fargate expected, with RDS). Terraform,
+GitHub Actions with OIDC. No Kubernetes, no Redis, no SQS
 ([ADR 0002](docs/architecture/adr/0002-postgresql-authoritative-store.md)).
 
 **Routes.** Every project route is study-scoped:
@@ -183,9 +198,12 @@ ungated fixture.
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
 | Run everything | `make dev` |
-| Run one worker | `make dev-worker` (needs `DATABASE_URL`; test executors by default) |
-| Tests | `make test` (core + API + worker) |
+| Run one worker | `make dev-worker` (needs `DATABASE_URL`; the real executors, over `AIA_STORAGE_*`) |
+| Seed the synthetic develop world | `make seed-develop` (needs `DATABASE_URL`, `AIA_SEED_OWNER_EMAIL`; idempotent) |
+| Tests | `make test` (core + API + worker + executors) |
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
+| Executor tests | `make test-executors` (the snapshot step under the real worker loop; seed; smoke module) |
+| Deploy `develop` | Merge to `develop`; [`deploy/develop/README.md`](deploy/develop/README.md) is the runbook |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
 | Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
@@ -281,19 +299,21 @@ purpose and was the right tool.
 ### Branches
 
 ```
-main                       integration branch; CI runs on every push and every PR
-  ├── feature/<slug>       new capability
-  ├── fix/<slug>           defect
-  └── chore/<slug>         docs, plan archiving, dependency bumps, tooling
+main                       release branch; receives release PRs from develop
+  └── develop              integration branch; CI on every push; every green head is
+       │                   deployed to https://dev.<domain>/ (ADR 0009)
+       ├── feature/<slug>  new capability
+       ├── fix/<slug>      defect
+       └── chore/<slug>    docs, plan archiving, dependency bumps, tooling
 ```
 
-Work happens on a prefixed branch, opens a pull request into `main`, and is
-merged there. **Never commit directly to `main`.**
-
-This project runs a single integration branch: `main` is both trunk and release.
-A separate release branch is deliberately deferred — it buys nothing until there
-is something to protect a release *from*, and the condition for adding one is
-recorded in [`.planning/open-items.md`](.planning/open-items.md).
+Work happens on a prefixed branch, opens a pull request into `develop`, and is
+merged there; a release is a pull request from `develop` into `main`. **Never
+commit directly to `main` or `develop`.** The recommended protection for both,
+and who has to configure it, is in
+[`infra/develop/README.md` § Human actions](infra/develop/README.md#human-actions).
+OI-3 recorded the condition for a second branch: a deployed environment to
+protect a release from. That condition is met by `develop`.
 
 ### Commit messages
 

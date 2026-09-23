@@ -1,0 +1,158 @@
+# The develop environment: one host, five services, ADR 0009.
+#
+#   caddy     public HTTPS entrypoint (80/443), proxies to web and api
+#   web       Next.js standalone, internal only
+#   api       FastAPI under uvicorn, internal only
+#   worker    aia-worker, no inbound port
+#   postgres  PostgreSQL 16 on a named volume, internal only
+#
+# Every image is pulled by immutable git SHA (AIA_IMAGE_TAG), never by a floating
+# tag, so the running deployment is always traceable to one commit. Migrations
+# are NOT run by any service here: bin/deploy.sh runs `alembic upgrade head`
+# once, from the api image, after a backup and before the services are replaced.
+#
+# Configuration comes from /opt/aia/develop/.env (root-only, written from SSM
+# Parameter Store by bin/write-env.sh); see env.example. Nothing in this file is
+# a secret.
+
+name: aia-develop
+
+x-app-env: &app-env
+  AIA_ENV: staging
+  AIA_LOG_FORMAT: json
+  AIA_LOG_LEVEL: ${AIA_LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+psycopg://aia:${POSTGRES_PASSWORD}@postgres:5432/aia
+  AIA_STORAGE_BACKEND: s3
+  AIA_STORAGE_BUCKET: ${AIA_STORAGE_BUCKET}
+  AIA_STORAGE_REGION: ${AWS_REGION}
+  AIA_STORAGE_PREFIX: ${AIA_STORAGE_PREFIX:-}
+  AIA_STORAGE_KMS_KEY_ID: ${AIA_STORAGE_KMS_KEY_ID:-}
+  AWS_REGION: ${AWS_REGION}
+  AWS_DEFAULT_REGION: ${AWS_REGION}
+  # Credentials are deliberately absent: boto3 finds the instance role through
+  # IMDS. The containers reach 169.254.169.254 through the host's default route.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      AIA_PUBLIC_HOSTNAME: ${AIA_PUBLIC_HOSTNAME}
+      AIA_ACME_EMAIL: ${AIA_ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks: [edge, internal]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/metrics"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+    logging: &logging
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  web:
+    image: ${AIA_IMAGE_REGISTRY}/aia-web:${AIA_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      # Read at request time by the web container's /config route and handed to
+      # the browser, so one SHA-tagged image serves any environment. Same-origin:
+      # the browser calls /api/v1 on the public hostname and Caddy routes it, so
+      # no CORS configuration exists anywhere and AIA_API_BASE stays empty.
+      AIA_API_BASE: ""
+      AIA_COGNITO_DOMAIN: ${AIA_COGNITO_DOMAIN}
+      AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
+      AIA_PUBLIC_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
+    expose: ["3000"]
+    networks: [internal]
+    read_only: true
+    tmpfs: ["/tmp", "/app/.next/cache"]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+
+  api:
+    image: ${AIA_IMAGE_REGISTRY}/aia-api:${AIA_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      AIA_IDENTITY_PROVIDER: cognito
+      AIA_COGNITO_REGION: ${AWS_REGION}
+      AIA_COGNITO_USER_POOL_ID: ${AIA_COGNITO_USER_POOL_ID}
+      AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
+      AIA_COGNITO_TOKEN_USE: id
+      # Same-origin through Caddy: an empty list means no CORS middleware at all.
+      AIA_CORS_ORIGINS: ""
+    expose: ["8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+
+  worker:
+    image: ${AIA_IMAGE_REGISTRY}/aia-worker:${AIA_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      AIA_WORKER_EXECUTORS: aia_executors.registry:build_registry
+      AIA_WORKER_LEASE_SECONDS: ${AIA_WORKER_LEASE_SECONDS:-120}
+      AIA_WORKER_HEARTBEAT_SECONDS: ${AIA_WORKER_HEARTBEAT_SECONDS:-30}
+      AIA_WORKER_POLL_SECONDS: ${AIA_WORKER_POLL_SECONDS:-2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    # A first SIGTERM releases the executing step; give it the lease's worth of
+    # time to reach a checkpoint before Compose sends SIGKILL.
+    stop_grace_period: 60s
+    logging: *logging
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: aia
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    # No `ports:` entry, deliberately. The database is reachable only on the
+    # internal Compose network; bin/smoke.sh asserts nothing listens on 5432 on
+    # the host.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aia -d aia"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    shm_size: 256m
+    logging: *logging
+
+networks:
+  edge:
+  internal:
+    # No outbound NAT is needed by web; api and worker reach S3 and IMDS, so the
+    # network stays a normal bridge. It is simply not published.
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

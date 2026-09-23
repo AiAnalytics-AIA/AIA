@@ -35,6 +35,8 @@ from aia_core.domain.scope import (
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
+from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.storage_settings import build_artifact_store
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, status
 from sqlalchemy.orm import Session
 
@@ -83,7 +85,7 @@ def build_identity_provider(settings: Settings) -> IdentityProvider:
 
 
 def init_app_state(app: FastAPI, settings: Settings) -> None:
-    """Create the engine, session factory and identity provider once per app.
+    """Create the engine, session factory, identity provider and artifact store once per app.
 
     Idempotent: startup can run more than once for one app object -- nested test
     clients do it, and so does a server that re-enters lifespan on reload.
@@ -97,9 +99,16 @@ def init_app_state(app: FastAPI, settings: Settings) -> None:
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine)
     app.state.identity_provider = build_identity_provider(settings)
+    # The store's S3 client is created on first use, so building it here costs
+    # nothing and needs no credentials until an artifact is actually read.
+    app.state.artifact_store = build_artifact_store(settings.storage_settings())
     logger.info(
         "identity provider configured",
         extra={"context": {"provider": app.state.identity_provider.name}},
+    )
+    logger.info(
+        "artifact store configured",
+        extra={"context": {"backend": settings.storage_backend}},
     )
 
 
@@ -122,6 +131,14 @@ def get_session(request: Request) -> Iterator[Session]:
         raise
     finally:
         session.close()
+
+
+def get_artifact_store(request: Request) -> ArtifactStore:
+    """Return the process-wide artifact store."""
+    store: ArtifactStore | None = getattr(request.app.state, "artifact_store", None)
+    if store is None:  # pragma: no cover - startup guarantees this
+        raise RuntimeError("artifact store is not initialised")
+    return store
 
 
 def get_identity_provider(request: Request) -> IdentityProvider:
@@ -345,6 +362,7 @@ def get_scope_repository(
     return ScopeRepository(session)
 
 
+ArtifactStoreDep = Annotated[ArtifactStore, Depends(get_artifact_store)]
 SessionDep = Annotated[Session, Depends(get_session)]
 PrincipalDep = Annotated[AuthenticatedPrincipal, Depends(get_principal)]
 OrganizationDep = Annotated[OrganizationContext, Depends(get_organization_context)]

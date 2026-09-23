@@ -1,0 +1,13 @@
+# Build context for apps/web/Dockerfile. Dependencies are installed inside the
+# image from the lockfile; nothing from the host's node_modules or build output
+# is copied in.
+node_modules
+.next
+out
+coverage
+.layout-evidence
+.env
+.env.*
+*.md
+Dockerfile
+.dockerignore
