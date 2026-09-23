@@ -326,9 +326,13 @@ jobs:
           cache: pip
 
       - name: Install
+        # apps/api[dev] names aia-worker and aia-executors (AGENTS.md § Python
+        # packaging), so they install first even though this job runs no test.
         run: |
           python -m pip install --upgrade pip
           pip install -e "packages/aia_core[dev]"
+          pip install -e "apps/worker"
+          pip install -e "apps/executors"
           pip install -e "apps/api[dev]"
 
       - name: Generate OpenAPI document
