@@ -1,11 +1,13 @@
 # The develop environment: one host, six services, ADR 0009 and ADR 0011.
 #
 #   caddy         public HTTPS entrypoint (80/443), proxies to web, api and legacy-panel
+#                 (the product hostname serves the 18.6.6 interface behind AIA sign-in, ADR 0012)
 #   web           Next.js standalone, internal only
 #   api           FastAPI under uvicorn, internal only
 #   worker        aia-worker, no inbound port
 #   postgres      PostgreSQL 16 on a named volume, internal only
-#   legacy-panel  the vendored NPC Panel 18.6.6 unit, its own hostname, behind a gate
+#   legacy-panel  the vendored NPC Panel 18.6.6 unit: the product hostname's interface
+#                 behind AIA sign-in, and its own hostname behind basic auth as the oracle
 #
 # Every image is pulled by immutable git SHA (AIA_IMAGE_TAG), never by a floating
 # tag, so the running deployment is always traceable to one commit. Migrations
@@ -99,6 +101,11 @@ services:
       AIA_COGNITO_TOKEN_USE: id
       # Same-origin through Caddy: an empty list means no CORS middleware at all.
       AIA_CORS_ORIGINS: "[]"
+      # The gate Caddy asks before forwarding to the 18.6.6 unit (ADR 0012).
+      # Develop only: the API refuses it when AIA_ENV=production. The origin is
+      # the one a state-changing request to the unit must name.
+      AIA_LEGACY_PANEL_ENABLED: "true"
+      AIA_LEGACY_PANEL_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
     expose: ["8000"]
     depends_on:
       postgres:

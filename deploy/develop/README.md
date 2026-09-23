@@ -76,9 +76,10 @@ Done once, by a person with AWS access. Everything after this is automatic.
    Idempotent. Creates the organization, the operator named in
    `AIA_SEED_OWNER_EMAIL` as its owner, a synthetic client and study with a
    budget, a project, and one example workflow run. Re-running changes nothing.
-9. **Sign in.** Open the public hostname (`https://aia-develop.art-chain.io/`), choose *Sign in*, authenticate with
-   the Google Workspace account from step 8, and open *Studies*. That page is the
-   real API; the *demo* pages are labelled as mock.
+9. **Sign in.** Open the public hostname (`https://aia-develop.art-chain.io/`).
+   The gate sends you to `/login`; choose *Sign in* and authenticate with the
+   Google Workspace account from step 8. You land on the NPC Panel 18.6.6
+   interface (ADR 0012). `/studies` is AIA's own live view of the same API.
 
 ## Normal deployment
 
@@ -103,6 +104,39 @@ Merge a pull request into `develop`. Then:
 
 Refresh `https://aia-develop.art-chain.io/` — the footer and `/version` show the SHA;
 `/api/v1/health` shows the same SHA under `build.sha`.
+
+## The 18.6.6 interface on the product hostname
+
+Since [ADR 0012](../../docs/architecture/adr/0012-legacy-interface-as-product-facade.md)
+`https://aia-develop.art-chain.io/` is the NPC Panel 18.6.6 interface, served by
+the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
+
+| Path | Goes to |
+|---|---|
+| `/api/v1/*` | the AIA API |
+| `/login`, `/logout`, `/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*` | the AIA web client |
+| everything else | `legacy-panel`, after `forward_auth` to `GET /api/v1/panel/gate` |
+
+- **Who gets in.** An active member of the organization whose role is `OWNER`
+  or `ADMIN`. Anyone else who signs in is shown a message and can still use
+  `/studies`. To let someone in, make them an organization admin; there is no
+  separate list.
+- **How.** `/login` turns the Google sign-in into an HttpOnly session cookie
+  (`aia_panel`) through `POST /api/v1/panel/session`; the gate re-verifies it on
+  every request and Caddy strips it before the request reaches the unit.
+  Opening a session is recorded in the access audit (`LEGACY_PANEL_SESSION`,
+  `LEGACY_PANEL_DENIED`); individual requests are not.
+- **Signing out.** `/logout` clears the cookie and the Cognito session.
+- **Switching it off.** Set `AIA_LEGACY_PANEL_ENABLED: "false"` on the `api`
+  service and `docker compose up -d api`. The gate then answers 404 to
+  everything, so nothing reaches the unit from the product hostname; `/` shows
+  a 404 until the Caddyfile routes it elsewhere.
+- **The oracle hostname** (`AIA_LEGACY_HOSTNAME`, basic auth) is unchanged and
+  reaches the same container, so both share its state.
+- **When `/` shows an error.** `docker compose ps legacy-panel`: the unit needs
+  its data bundle synced by `bin/deploy.sh` (OI-39). A 401 or 403 JSON body on a
+  page means the gate refused it; the `code` field says why (`unauthenticated`,
+  `legacy_panel_denied`, `cross_origin`).
 
 ## Logs
 

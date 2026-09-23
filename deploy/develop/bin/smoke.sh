@@ -31,10 +31,28 @@ code() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$@"; }
 echo "Smoke: $BASE expecting build $SHA"
 echo
 
-# --- web ---------------------------------------------------------------------
-if [ "$(code "$BASE/")" = "200" ] && curl -fsS --max-time 10 "$BASE/" | grep -qi '<html'; then
-  pass "web: HTTPS loads and the page renders"
-else fail "web: HTTPS loads and the page renders" "GET $BASE/ did not return 200 HTML"; fi
+# --- web and the 18.6.6 interface (ADR 0012) --------------------------------
+# `/` is the 18.6.6 interface behind AIA sign-in: anonymous, a browser is sent
+# to /login and a data request is refused. Both answers come from the API's
+# gate, so they also prove Caddy asks it before forwarding to the unit.
+root_headers="$(curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' "$BASE/" || true)"
+root_code="$(printf '%s' "$root_headers" | awk 'NR==1{print $2}')"
+root_location="$(printf '%s' "$root_headers" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')"
+if [ "$root_code" = "302" ] && [ "$root_location" = "/login?next=%2F" ]; then
+  pass "web: an anonymous visit to / is sent to sign-in (302 /login)"
+else fail "web: an anonymous visit to / is sent to sign-in" "got ${root_code} Location '${root_location}'"; fi
+
+if [ "$(code "$BASE/login")" = "200" ] && curl -fsS --max-time 10 "$BASE/login" | grep -qi '<html'; then
+  pass "web: the sign-in page renders"
+else fail "web: the sign-in page renders" "GET $BASE/login did not return 200 HTML"; fi
+
+panel_code="$(code "$BASE/api/bootstrap")"
+if [ "$panel_code" = "401" ]; then pass "security: the 18.6.6 interface refuses an anonymous data request (401)"
+else fail "security: the 18.6.6 interface refuses an anonymous data request" "GET /api/bootstrap returned ${panel_code}, expected 401"; fi
+
+forged_code="$(code -X POST -H 'Origin: https://evil.example' -H "Cookie: aia_panel=forged" "$BASE/api/projects")"
+if [ "$forged_code" = "403" ]; then pass "security: a cross-origin write to the 18.6.6 interface is refused (403)"
+else fail "security: a cross-origin write to the 18.6.6 interface is refused" "POST /api/projects returned ${forged_code}, expected 403"; fi
 
 web_sha="$(curl -fsS --max-time 10 "$BASE/version" | json 'd["sha"] or ""' || true)"
 if [ "$web_sha" = "$SHA" ]; then pass "web: /version reports $SHA"
