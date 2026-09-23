@@ -428,7 +428,7 @@ resource "aws_iam_role_policy_attachment" "dlm" {
 }
 
 resource "aws_dlm_lifecycle_policy" "daily" {
-  description        = "Daily snapshot of the develop root volume, 7 kept"
+  description        = "Daily snapshot of the develop root volume - 7 kept"
   execution_role_arn = aws_iam_role.dlm.arn
   state              = "ENABLED"
 
@@ -496,7 +496,7 @@ resource "aws_cloudwatch_metric_alarm" "disk" {
   evaluation_periods  = 2
   threshold           = 85
   comparison_operator = "GreaterThanThreshold"
-  dimensions          = { InstanceId = aws_instance.host.id, path = "/", fstype = "ext4", device = "nvme0n1p1" }
+  dimensions          = { InstanceId = aws_instance.host.id, path = "/", fstype = "ext4" }
   alarm_actions       = [aws_sns_topic.alerts.arn]
   treat_missing_data  = "missing"
 }
