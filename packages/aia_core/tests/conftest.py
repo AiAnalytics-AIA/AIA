@@ -45,18 +45,28 @@ def legacy_root() -> Path:
     return root
 
 
+# --------------------------------------------------------------------------- #
+# The reference repository (contracts and golden fixtures)
+#
+# Distinct from the legacy prototype above. ``AiAnalytics-AIA/AIA-reference`` is
+# the private specification repository: contracts, field policy and golden
+# fixtures as committed JSON, with no archive and no licensed data. CI checks it
+# out with a read-only deploy key; locally it is a sibling clone or
+# ``AIA_REFERENCE_REPO``.
+# --------------------------------------------------------------------------- #
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_REFERENCE_REPO_PATHS = (
-    Path(__file__).resolve().parents[4] / "aia-reference",
-    Path(__file__).resolve().parents[4] / "AIA-reference",
+    _REPO_ROOT.parent / "aia-reference",
+    _REPO_ROOT.parent / "AIA-reference",
+    _REPO_ROOT / ".reference" / "aia-reference",
 )
 
 
 def _reference_repo() -> Path | None:
     """Return the AIA-reference checkout, or None when it is unavailable.
 
-    Distinct from the legacy prototype: this is ``AiAnalytics-AIA/AIA-reference``,
-    the private repository holding the contracts and golden fixtures -- no archive
-    and no licensed data. Identified by its golden-fixture manifest.
+    Identified by its golden-fixture manifest and field policy together.
     """
     configured = os.environ.get("AIA_REFERENCE_REPO")
     candidates = [Path(configured)] if configured else list(_DEFAULT_REFERENCE_REPO_PATHS)
@@ -70,13 +80,22 @@ def _reference_repo() -> Path | None:
 
 @pytest.fixture(scope="session")
 def reference_repo() -> Path:
-    """Return the AIA-reference checkout, skipping when it is unavailable."""
+    """Return the AIA-reference checkout, skipping -- or failing -- without it.
+
+    Absent is valid by default, so a fork or a fresh clone stays green. Once CI
+    holds the deploy key it sets ``AIA_REQUIRE_REFERENCE_REPO=1``, and a missing
+    checkout becomes a failure rather than a skip that reads like a pass.
+    """
     root = _reference_repo()
     if root is None:
-        pytest.skip(
-            "AIA-reference not available; set AIA_REFERENCE_REPO to a checkout of "
-            "AiAnalytics-AIA/AIA-reference to enable population and evidence parity tests"
+        message = (
+            "AIA-reference not available; clone AiAnalytics-AIA/AIA-reference beside "
+            "this repository or set AIA_REFERENCE_REPO to enable golden-fixture, "
+            "population and evidence parity tests"
         )
+        if os.environ.get("AIA_REQUIRE_REFERENCE_REPO") == "1":
+            pytest.fail("AIA_REQUIRE_REFERENCE_REPO=1 but " + message)
+        pytest.skip(message)
     return root
 
 

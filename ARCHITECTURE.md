@@ -314,6 +314,7 @@ declared tier.
 | `make exposure_check` | **blocking** |
 | `alembic upgrade head` / `alembic check` / downgrade-to-base | **blocking** |
 | `pytest` — core + API, on PostgreSQL and on SQLite | **blocking** |
+| Parity-matrix consistency (`test_parity_matrix.py`, inside the pytest steps) | **blocking** |
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | API contract (OpenAPI paths + study-scoping assertion) | **blocking** |
@@ -322,8 +323,10 @@ declared tier.
 | Committed-provider-key scan | **blocking** |
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |
-| Parity suite against the legacy prototype | advisory *(skips: prototype not vendored)* |
-| Evidence-governance reference parity (`AIA_REFERENCE_REPO`) | advisory *(skips: reference repository not in CI)*; its recovered decision tables run in the blocking `pytest` step |
+| Parity suite against the legacy prototype | **blocking when it runs** (no more `|| true`); skips without the withheld archive, reported `NOT_EXECUTED` |
+| Golden fixtures F1–F9 (vendored, inside the pytest steps) | **blocking** |
+| Golden fixtures F10–F11, pin checks, and population / evidence reference parity against the reference repository | **blocking when they run** (`golden-fixtures` job); skipped without the deploy key *(see below)*. The evidence layer's recovered decision tables need no checkout and run in the blocking `pytest` step |
+| Parity status — one verdict per capability from every JUnit file | **blocking on `FAIL`**; `NOT_EXECUTED` / `NOT_RUNNABLE` reported in the step summary |
 
 This deviates deliberately from the tiering in the development rules, which puts
 lint and types in the advisory tier. That tier exists for day one of adoption.
@@ -336,7 +339,8 @@ running backwards.
 |---|---|
 | `pip-audit` | Drop `|| true`, and replace the placeholder `--ignore-vuln GHSA-0000-0000-0000` with a real, dated, individually justified allowlist. Blocked on: a first clean run to establish the baseline. |
 | `npm audit` | Drop `|| true` once `apps/web` transitive advisories are at zero or explicitly waived. Blocked on: the `apps/web` rewire (it is still mock-backed). |
-| Parity suite | 94 parity and characterization tests currently report as skipped in CI because the prototype is deliberately not vendored. Promotion needs a decision on how the reference reaches CI — a private submodule or a published fixture pack. Until then **anyone changing domain logic runs them locally against `AIA_LEGACY_REFERENCE`**, and CI's warning says plainly that they did not run. |
+| Parity suite | 94 parity and characterization tests report as skipped in CI because they execute the legacy code, which exists only inside the withheld archive. **The archive is deliberately not a CI dependency.** Promotion needs the archive's licence decision and an EU-resident home (`REF-WITHHELD-REFERENCE-ARCHIVE`). Until then **anyone changing domain logic runs them locally against `AIA_LEGACY_REFERENCE`**, and `parity-status` reports them as `NOT_EXECUTED` — never as a pass. |
+| Golden fixtures | A human provisions a read-only deploy key on `AiAnalytics-AIA/AIA-reference` as the `AIA_REFERENCE_DEPLOY_KEY` secret, then sets the repository variable `AIA_REQUIRE_REFERENCE_REPO=1`. From then on a missing checkout fails the job instead of skipping. |
 
 An advisory check with no promotion plan is decoration — delete it or schedule
 it. Never move a check to advisory because it is failing on your branch.

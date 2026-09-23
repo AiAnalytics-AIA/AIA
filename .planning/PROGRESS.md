@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `claude/peaceful-davinci-xuhrld` ·
+**Updated:** 2026-09-23 · **Branch:** `claude/sleepy-keller-kg48oz` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -90,7 +90,68 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 ## In progress
 
-Nothing. The tree is green.
+**Production parity matrix and parity gates** — owner parity-quality. Plan:
+[`plans/parity-matrix-and-gates.md`](plans/parity-matrix-and-gates.md).
+All seven chunks are written, verified and committed as one change on
+`claude/sleepy-keller-kg48oz`. The plan moves to `done/` once the PR merges and
+CI has run the new jobs once.
+
+- [x] `docs/migration/parity-matrix.json` — all 78 capabilities, keyed by
+      capability id; `test_parity_matrix.py`
+- [x] MVP acceptance test defined — `docs/migration/mvp-acceptance.md`
+      (`MVP-ACCEPT-1`, criteria AC-01…AC-14); release blocker ≡ named by a criterion
+- [x] Golden-fixture pins — `test_golden_fixtures.py`: the checkout is the pinned
+      commit, every fixture hashes to its pin, every vendored copy (F1–F9, from
+      `main`) is byte-identical to the reference; gates point at the engine's and
+      population's own fixture tests
+- [x] `tools/parity_status.py` — `PASS` / `FAIL` / `NOT_EXECUTED` /
+      `NOT_RUNNABLE` / `NOT_REQUIRED` from JUnit; `test_parity_status_tool.py`
+- [x] CI: JUnit from every pytest step, `golden-fixtures` and `parity-status`
+      jobs, `|| true` removed from the legacy parity job
+- [x] `REF-GAP-SOCIO-R-SMACOF` / `REF-GAP-SIMULATION-WORLD-MODEL` owned —
+      OI-15 (already open on `main`, now also in the matrix) / OI-27, `reference_gaps` in the matrix
+- [x] Parity status below; findings OI-28, OI-29
+
+## Parity status — this cycle
+
+**Highest-risk unverified capability: `analysis.modules`.** It is on the MVP
+path, turns population data into client-facing claims (high-risk R5), and its
+eight modules, draft check and admitted-claim results are ported — with **no
+reference-backed gate**: nothing compares a module's output, or its
+evidence-reference discipline, with the reference. The evidence layer beneath it
+*is* reference-backed (`governance.evidence_gates`); the modules on top are not.
+The smallest fix is a recovered decision table for the reference's analysis
+evidence integrity check (methodology-ledger M17), as
+`test_evidence_gate_parity.py` already does for the gates.
+
+Second is `cost.reservations` (implemented, money, R10, no reference-backed gate;
+OI-29).
+
+Measured 2026-09-23 in a cloud session (Python 3.12, PostgreSQL 16 and SQLite,
+reference repository @ 678e298, **no legacy tree**), on this branch after merging
+`main` @ 2dbe2cf (Sociomap engine, population readiness, worker, evidence
+governance), by running the CI pytest sequence and then
+`tools/parity_status.py --available postgres reference_repo`:
+
+| Verdict | All 78 | MVP blockers (52) |
+| --- | ---: | ---: |
+| `PASS` | 11 — all `PARTIAL` except `workflow.legacy_dispatch` | 11 |
+| `NOT_EXECUTED` | 4 (`pipeline.stages`, `ai.provider_policy`, `workflow.engine`, `governance.evidence_gates` — their legacy-tree gates skip) | 4 |
+| `NOT_RUNNABLE` | 54 | 37 |
+| `FAIL` | 0 | 0 |
+| `NOT_REQUIRED` | 9 | — |
+
+**One MVP blocker is release-ready** (`workflow.legacy_dispatch`), so
+`MVP-ACCEPT-1` is `NOT_RUNNABLE`. Golden fixtures: F1–F3, F5–F7, F9–F11 gated
+and passing; F8 partially gated (OI-14); F4 refused (OI-13); F12/F13 uncaptured.
+Next by risk after the top two: `ai.provider_policy` (R11, legacy gates not
+executed), `governance.validation_state` (R12, no reference-backed gate),
+`sociomapping.core` (R16; F4 and F8). 68 of 78 capabilities have no confirmed
+owner — only A7, A8 and population-data are named in the matrix; the rest carry
+their bounded context as an *unconfirmed* workstream.
+
+Re-run each cycle with `make parity-status`, or read the `parity-status` job's
+summary; update this section from it, anchored.
 
 ## Repository visibility — D5, frozen
 
@@ -123,8 +184,12 @@ trace and cannot be measured — which is why the cleanup proceeds anyway.
 
 **`AiAnalytics-AIA/AIA-reference` @ `678e298ad9ca0263da53cc8920d153fdfb956c93`,
 tag `reference-18.6.6-gemo-2026-09-11-v1`, is authoritative for every question
-about legacy behaviour and methodology.** It is private. This repository is
-public and holds pointers only — see
+about legacy behaviour and methodology.** It is private. The tag
+itself points at `90d4c5b`, two commits behind `678e298`; the two commits touch
+only `tools/bootstrap_reference.sh` and `tools/verify_reference_inventory.py`,
+so every fixture and plan file is identical at both. Parity pins the **commit**
+and the SHA256 of every fixture (`docs/migration/parity-matrix.json`), never the
+tag. This repository holds pointers only — see
 [`docs/migration/reference-source.md`](../docs/migration/reference-source.md).
 
 **`reference-rebuild-local` is COMPLETED / INACTIVE.** Nothing may depend on it
@@ -141,8 +206,8 @@ it is not answered. "The local agent said so" is not an anchor.
 
 | Item | Owner |
 |---|---|
-| `REF-GAP-SOCIO-R-SMACOF` | parity-quality + sociomapa-deterministic — **open, OI-15.** R installs in cloud sessions but CRAN is blocked there, and the recipe needs the reference's withheld R wrapper. `r_smacof_unfolding` is refused; no R parity is claimed |
-| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + simulation-engine |
+| `REF-GAP-SOCIO-R-SMACOF` | parity-quality + A8 sociomapa-deterministic — **open, OI-15.** R installs in cloud sessions but CRAN is blocked there, and the recipe needs the reference's withheld R wrapper. `r_smacof_unfolding` is refused; no R parity is claimed |
+| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + A7 simulation-engine — **open, OI-27.** Blocked on a credential, an ADR 0008 egress route **and** the withheld archive |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` | data owner / population-data, after the licensing decision. Its destination must satisfy EU residency — [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) |
 
 ## Next
@@ -252,12 +317,13 @@ left to build.
 |---|---|---|---|
 | D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
-| D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
+| D3 | ~~How the reference reaches CI~~ — **split.** Golden fixtures: CI checks out `AiAnalytics-AIA/AIA-reference` at the pinned commit; **needs a human to add a read-only deploy key as the `AIA_REFERENCE_DEPLOY_KEY` secret, then set the variable `AIA_REQUIRE_REFERENCE_REPO=1`**. Legacy-code comparison (the 94 tests): needs the withheld archive, which stays out of CI until its licence decision and an EU-resident home | Golden gates running in CI; the legacy parity tier | `ARCHITECTURE.md §8`, OI-1 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 | D6 | **Accept, replace or defer the four AIA Sociomap declarations** — dissimilarity target, `aia_rowcond_unfolding_v1`, the map frame, relation-missing `refuse`. Decision package ready with approval fields; methodology owner, not engineering. **The only methodology decision preventing client use** | Any client-facing Sociomap | `docs/architecture/sociomapa-methodology-decision.md` · OI-16 |
 | D7 | **Is `RELIGION` a certified matched block?** It is donor-matched and dictionary-eligible, but absent from the certificate's `matched_blocks`, so the claim gate refuses it client-facing. Data owner | Client claims on the five religion fields | `.planning/open-items.md` OI-19 |
 | D8 | **One authority for field policy and the joint certificate.** `domain.evidence` and `domain.population` each implement both, with different eligibility (287 vs 115 client measured-claim fields). Pick one; the other consumes it | Consistent claim decisions between a run's recorded policy and the claims admitted from it | `.planning/open-items.md` OI-24 |
+| D9 | **Is the Simulation lifecycle in the MVP?** `MVP-ACCEPT-1` is scoped to one Research study. Bringing Simulation in adds `simulation.*` to the blockers and makes OI-27 release-blocking | MVP scope | `docs/migration/mvp-acceptance.md` §6 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);
