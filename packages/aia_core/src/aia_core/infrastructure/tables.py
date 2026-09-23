@@ -964,3 +964,106 @@ class WorkflowEventRow(Base):
         ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
         Index("ix_workflow_events_run", "run_id", "event_id"),
     )
+
+
+class AIUsageEventRow(Base):
+    """The AI usage ledger. **Append-only**: one row per ledger entry, never edited.
+
+    Every model call writes a ``DISPATCHED`` row before it is sent and a terminal
+    row after. A correction -- the resolution of an uncertain call -- is a new
+    ``COMPENSATION`` row naming what it ``supersedes``, so the sum of ``cost_usd``
+    over a call is the truth and the history of how it was reached survives.
+    Nothing in the repository updates or deletes a row.
+
+    The study foreign key deliberately does **not** cascade. A study with ledger
+    entries cannot be deleted out from under its accounting record.
+
+    Attribution columns are copied from the egress decision, which was computed
+    from an issued ``StudyContext``; they are never taken from a request body or
+    a model's output.
+    """
+
+    __tablename__ = "ai_usage_events"
+
+    event_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    call_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False)
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str | None] = mapped_column(String(64))
+    step_id: Mapped[str | None] = mapped_column(String(64))
+    attempt_id: Mapped[str | None] = mapped_column(String(64))
+    reservation_id: Mapped[str | None] = mapped_column(String(64))
+
+    agent_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    agent_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    capability: Mapped[str] = mapped_column(String(64), nullable=False)
+    policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    runtime_version: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    provider: Mapped[str] = mapped_column(String(64), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=False)
+    served_model: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    route_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    data_class: Mapped[str] = mapped_column(String(64), nullable=False)
+    residency_zone: Mapped[str] = mapped_column(String(16), nullable=False)
+    provider_request_id: Mapped[str | None] = mapped_column(String(255))
+
+    error_kind: Mapped[str | None] = mapped_column(String(32))
+    failure_class: Mapped[str | None] = mapped_column(String(32))
+    finish_reason: Mapped[str | None] = mapped_column(String(32))
+
+    # NULL is "not reported", which is not zero.
+    input_tokens: Mapped[int | None] = mapped_column(Integer)
+    output_tokens: Mapped[int | None] = mapped_column(Integer)
+    cache_read_input_tokens: Mapped[int | None] = mapped_column(Integer)
+    cache_write_input_tokens: Mapped[int | None] = mapped_column(Integer)
+
+    cost_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    cost_basis: Mapped[str] = mapped_column(String(32), nullable=False)
+    ceiling_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    schema_fingerprint: Mapped[str | None] = mapped_column(String(80))
+    substituted_from: Mapped[str | None] = mapped_column(String(128))
+    fallback_from: Mapped[str | None] = mapped_column(String(255))
+    fallback_authorised_by: Mapped[str | None] = mapped_column(String(64))
+
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    supersedes_event_id: Mapped[str | None] = mapped_column(String(64))
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"]),
+        ForeignKeyConstraint(["supersedes_event_id"], ["ai_usage_events.event_id"]),
+        # One entry of each kind per call: one dispatch, one terminal outcome, one
+        # resolution. A second of any would double-count.
+        UniqueConstraint("call_id", "outcome", name="usage_call_outcome_unique"),
+        CheckConstraint(
+            "outcome in ('DISPATCHED','SUCCEEDED','FAILED','UNCERTAIN',"
+            "'RESOLVED_BILLED','RESOLVED_NOT_BILLED')",
+            name="usage_outcome_known",
+        ),
+        CheckConstraint(
+            "cost_basis in ('SUBSCRIPTION','METERED','CEILING','COMPENSATION')",
+            name="usage_cost_basis_known",
+        ),
+        # Only a compensating entry may reduce a total.
+        CheckConstraint(
+            "cost_usd >= 0 OR cost_basis = 'COMPENSATION'", name="usage_cost_non_negative"
+        ),
+        CheckConstraint("ceiling_usd >= 0", name="usage_ceiling_non_negative"),
+        Index("ix_usage_study_time", "study_id", "occurred_at"),
+        Index("ix_usage_call", "call_id"),
+        Index("ix_usage_attempt", "attempt_id"),
+        Index("ix_usage_provider_request", "provider_request_id"),
+    )

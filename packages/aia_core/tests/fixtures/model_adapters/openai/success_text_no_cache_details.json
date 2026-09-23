@@ -1,0 +1,49 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Plain text; no prompt_tokens_details, so nothing is assumed cached.",
+  "structured": false,
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-request-id": "req_openai_text"
+    },
+    "body": {
+      "id": "chatcmpl-Test",
+      "object": "chat.completion",
+      "created": 1790000000,
+      "model": "extraction-small-2026-08-01",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Shrnutí.",
+            "refusal": null
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 30,
+        "completion_tokens": 5,
+        "total_tokens": 35
+      }
+    }
+  },
+  "expect": {
+    "ok": {
+      "text": "Shrnutí.",
+      "structured": null,
+      "finish_reason": "COMPLETED",
+      "usage": {
+        "input_tokens": 30,
+        "output_tokens": 5,
+        "cache_read_input_tokens": null,
+        "cache_write_input_tokens": null
+      },
+      "provider_request_id": "req_openai_text",
+      "served_model": "extraction-small-2026-08-01",
+      "reported_cost_usd": null
+    }
+  }
+}

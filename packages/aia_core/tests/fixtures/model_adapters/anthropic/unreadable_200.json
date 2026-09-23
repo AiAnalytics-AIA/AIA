@@ -1,0 +1,21 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "200 whose body cannot be read: may have been billed, so uncertain.",
+  "structured": false,
+  "response": {
+    "status": 200,
+    "headers": {
+      "request-id": "req_011CGarbled"
+    },
+    "body": "<html>proxy page</html>"
+  },
+  "expect": {
+    "error": {
+      "kind": "OTHER",
+      "delivery": "UNKNOWN",
+      "provider_request_id": "req_011CGarbled",
+      "retry_after": null,
+      "http_status": 200
+    }
+  }
+}
