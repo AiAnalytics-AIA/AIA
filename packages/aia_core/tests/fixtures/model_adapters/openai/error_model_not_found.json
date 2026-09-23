@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "404 unknown model.",
+  "structured": false,
+  "response": {
+    "status": 404,
+    "headers": {
+      "x-request-id": "req_openai_err"
+    },
+    "body": {
+      "error": {
+        "message": "The model `extraction-small-9` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "MODEL",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_openai_err",
+      "retry_after": null,
+      "http_status": 404,
+      "provider_error_type": "model_not_found"
+    }
+  }
+}

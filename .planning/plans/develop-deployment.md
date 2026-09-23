@@ -84,7 +84,7 @@ correct fail-closed state and it is what this deployment inherits.
 
 | # | Brief | Repository | Resolution taken here |
 |---|---|---|---|
-| C1 | "At least one governed Bedrock call works through `ModelGateway`" (done-criteria 11–13) | `ModelGateway` does not exist on `main`; PR #28 builds it and is unmerged, conflicting, and adds no Bedrock adapter | **Reported, not faked.** The deployment provisions everything the route needs (instance role scoped to one pinned EU model, region, no static keys) and records the route as ADR 0010 *Proposed*. The Bedrock `ProviderAdapter` is built **after** PR #28 merges, against its `ProviderAdapter`/`HttpTransport` protocols, as a separate PR. Building a second gateway here would fork ADR 0005 A; merging #28 into `develop` is a decision the brief reserves to a human ("do not merge arbitrary open PR branches") |
+| C1 | "At least one governed Bedrock call works through `ModelGateway`" (done-criteria 11–13) | `ModelGateway` does not exist on `main`; PR #28 builds it and is unmerged, conflicting, and adds no Bedrock adapter | **Reported, not faked.** The deployment provisions everything the route needs (instance role scoped to one pinned EU model, region, no static keys) and records the route as ADR 0010 *Proposed*. The Bedrock `ProviderAdapter` is built **after** PR #28 merges, against its `ProviderAdapter`/`HttpTransport` protocols, as a separate PR. Building a second gateway here would fork ADR 0005 A; merging #28 into `develop` is a decision the brief reserves to a human ("do not merge arbitrary open PR branches") **Update 2026-09-23:** #28 merged into `main` at `676bc1f`; the follow-up change merges `main` into `develop`, so the gateway is on both branches and the adapter PR can start (D12 resolved) |
 | C2 | Single AWS host running Compose | ADR index and four documents say the compute service is *undecided* between ECS Fargate and App Runner | ADR 0009 records the single host as the **develop** compute decision only, with the ECS/RDS migration path; production compute stays undecided |
 | C3 | Bedrock as the initial provider | ADR 0008 selects no vendor; ADR index: "model provider … not selected" | ADR 0010 is the vendor record ADR 0008 asks for, *Proposed* until a human confirms terms and model availability |
 | C4 | `Provider` for Bedrock | `Provider` enum has `claude_code_subscription`, `anthropic`, `openai` only; parity tests pin these | A new `aws_bedrock` provider id lands with the adapter PR, not here |
@@ -140,8 +140,8 @@ honest browser → API → PostgreSQL → worker → S3 → browser flow is a
 `develop_snapshot` workflow: one step that reads the project's current revision
 under the lease-issued scope, writes a JSON artifact through `ArtifactRepository`
 (so S3, reuse and provenance are all real), and completes. The brief allows "AI
-call or deterministic stage" for this milestone. The AI step is the next slice,
-after C1 resolves.
+call or deterministic stage" for this milestone. The AI step is the next slice;
+C1 resolved when #28 reached `main` (D12).
 
 **Executors get their own package.** `layer_check` forbids `apps/worker`
 importing repositories, storage or `domain.project` (`tools/layer_check.sh:85-88`);

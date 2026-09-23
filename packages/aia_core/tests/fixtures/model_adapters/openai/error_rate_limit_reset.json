@@ -1,0 +1,30 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Rate limited, reset given as a duration header.",
+  "structured": false,
+  "response": {
+    "status": 429,
+    "headers": {
+      "x-request-id": "req_openai_err",
+      "x-ratelimit-reset-requests": "6m0s"
+    },
+    "body": {
+      "error": {
+        "message": "Rate limit reached for requests",
+        "type": "requests",
+        "param": null,
+        "code": "rate_limit_exceeded"
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "QUOTA",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_openai_err",
+      "retry_after": "2026-09-22T12:06:00+00:00",
+      "http_status": 429,
+      "provider_error_type": "rate_limit_exceeded"
+    }
+  }
+}

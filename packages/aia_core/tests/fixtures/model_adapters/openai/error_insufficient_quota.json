@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Out of credits: QUOTA, and no reset is invented.",
+  "structured": false,
+  "response": {
+    "status": 429,
+    "headers": {
+      "x-request-id": "req_openai_err"
+    },
+    "body": {
+      "error": {
+        "message": "You exceeded your current quota, please check your plan and billing details.",
+        "type": "insufficient_quota",
+        "param": null,
+        "code": "insufficient_quota"
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "QUOTA",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_openai_err",
+      "retry_after": null,
+      "http_status": 429,
+      "provider_error_type": "insufficient_quota"
+    }
+  }
+}

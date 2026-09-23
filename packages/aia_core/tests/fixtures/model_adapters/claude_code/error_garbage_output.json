@@ -1,0 +1,19 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Non-JSON output: permanent OTHER.",
+  "structured": false,
+  "cli": {
+    "exit_code": 1,
+    "stdout": "Segmentation fault",
+    "stderr": ""
+  },
+  "expect": {
+    "error": {
+      "kind": "OTHER",
+      "delivery": "RESPONDED",
+      "provider_request_id": null,
+      "retry_after": null,
+      "http_status": null
+    }
+  }
+}

@@ -184,8 +184,8 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | `job_store.py` (10 tables) | Durable queue | `WorkflowRun`/`StepRun`/`StepAttempt` + `WorkflowRepository` | Done | ◐ | Redesigned into two-level state; append-only attempts. Verified under real PostgreSQL contention |
 | `workflow_engine.STANDARD` | 24-node research DAG | `domain.workflow.StepDefinition` + `validate_dag` | Done | ◐ | DAG validated at definition time; dependency gating on `SUCCEEDED` |
 | `worker_job.py` | Stage execution | Phase 4 | ○ | ○ | Engine exists; the step body that calls a provider does not |
-| `ai_router.py` | Provider transport | Phase 4 | ○ | ○ | Largely portable behind an interface |
-| `claude_code_provider.py` | Claude Code CLI | Phase 4 | ○ | ○ | |
+| `ai_router.py` | Provider transport | Phase 4 | ◐ | ○ | Semantics re-expressed behind `ModelGateway`, not ported: ten-way taxonomy (`ProviderErrorKind`, one vocabulary with `classify_failure`), `allow_fallback=False` as the default, strict tier skipped rather than forced, forced-tool structured output. **Deviations:** retired-id substitution comes from the versioned policy, not a live model listing; the 5/15/45 s in-call capacity retry is not ported (parks in `WAITING_CAPACITY`). Parity against the reference is **not run**: the source is withheld (REF-WITHHELD-REFERENCE-ARCHIVE) |
+| `claude_code_provider.py` | Claude Code CLI | Phase 4 | ◐ | ○ | `ClaudeCodeCliAdapter` against recorded results; credential overrides scrubbed from the child environment. No live run |
 | `cost_controller.py` | Reservations | `WorkflowRepository.reserve_budget` | Done | ◐ | Blocking `FOR UPDATE` on the study row; concurrent-overspend regression test |
 | `dotaznik.py`, `pipeline.py` | Questionnaire + respondents | Phase 5 | ○ | ○ | Needs seeded parity tests |
 | `research_designer.py` | Research design | Phase 5 | ○ | ○ | |
