@@ -186,3 +186,63 @@ def test_a_blocked_module_does_not_stop_the_next(inputs: AnalysisInputs) -> None
 
 def _fields(inputs: AnalysisInputs) -> dict[str, Any]:
     return {name: getattr(inputs, name) for name in AnalysisInputs.__dataclass_fields__}
+
+
+# --- review findings: what the resume fingerprint must see ------------------------------
+
+
+def test_a_revoked_certificate_permission_reruns_completed_modules(
+    inputs: AnalysisInputs, certificate_bytes: Any
+) -> None:
+    """Same panel, narrower certificate: a result the new one would refuse is not reused."""
+    from aia_core.domain.evidence import load_joint_status
+
+    narrower = load_joint_status(
+        certificate_bytes(matched_block_outputs_allowed=False, matched_blocks=[]),
+        measured_panel_sha256=inputs.joint_status.panel_sha256,
+    )
+    assert narrower.certified and narrower.panel_sha256 == inputs.joint_status.panel_sha256
+    changed = AnalysisInputs(**{**_fields(inputs), "joint_status": narrower})
+    for module_id in AnalysisModuleId:
+        assert input_fingerprint(module_id, changed) != input_fingerprint(module_id, inputs)
+
+
+def test_a_changed_validation_or_external_context_reruns_completed_modules(
+    inputs: AnalysisInputs,
+) -> None:
+    validated = AnalysisInputs(
+        **{
+            **_fields(inputs),
+            "validation": ValidationState(ValidationStatus.HOLDOUT_VALIDATED, SYSTEM_FP),
+        }
+    )
+    new_context = AnalysisInputs(**{**_fields(inputs), "external_context": ("nová zpráva",)})
+    new_system = AnalysisInputs(**{**_fields(inputs), "system_fingerprint": "c" * 64})
+    module_id = AnalysisModuleId.EXECUTIVE
+    base = input_fingerprint(module_id, inputs)
+    assert input_fingerprint(module_id, validated) != base
+    assert input_fingerprint(module_id, new_context) != base
+    assert input_fingerprint(module_id, new_system) != base
+
+
+def test_revoking_a_holdout_does_not_reuse_the_validated_stamp(inputs: AnalysisInputs) -> None:
+    validated = AnalysisInputs(
+        **{
+            **_fields(inputs),
+            "validation": ValidationState(ValidationStatus.HOLDOUT_VALIDATED, SYSTEM_FP),
+        }
+    )
+    ids = list(AnalysisModuleId)
+    completed = {m: input_fingerprint(m, validated) for m in ids}
+    answers = [{"question": QUESTIONS[0], "answer": "Zájem má 42,5 %.", "claim_ids": ["c1"]}]
+    drafts: list[object] = [
+        {**good(m.value), "research_question_answers": answers}
+        if m is AnalysisModuleId.RESEARCH_QUESTIONS
+        else good(m.value)
+        for m in ids
+    ]
+    generator = ScriptedGenerator(drafts)
+    outcomes = run_pending_modules(inputs, generator, completed)
+    assert [o.module_id for o in outcomes] == ids
+    assert all(o.result is not None and o.result.method_status == METHOD_STATUS_PENDING
+               for o in outcomes)  # fmt: skip

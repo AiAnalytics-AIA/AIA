@@ -123,8 +123,17 @@ def module_input_fingerprint(
     prompt_template_sha256: str,
     surface: str,
     language: str,
+    method_status: str,
+    system_fingerprint: str,
+    external_context: Sequence[str],
 ) -> str:
     """Everything that makes a module's output valid. Change any of it and the module reruns.
+
+    ``joint_certificate`` is the fingerprint of the whole certificate in force,
+    not its panel hash: a certificate re-issued for the same panel with a
+    permission revoked must rerun what the old one allowed. ``method_status`` and
+    ``system_fingerprint`` are there because the stamp is part of the result;
+    ``external_context`` because it is part of what the model was shown.
 
     The provider and model are deliberately absent: a provider switch after a
     quota failure must not force completed modules to rerun (reference
@@ -141,6 +150,9 @@ def module_input_fingerprint(
             "prompt_template": prompt_template_sha256,
             "surface": surface,
             "language": language,
+            "method_status": method_status,
+            "system": system_fingerprint,
+            "external_context": list(external_context),
         }
     )
 

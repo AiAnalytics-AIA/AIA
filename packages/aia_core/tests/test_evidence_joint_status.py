@@ -219,3 +219,29 @@ def test_certificate_flags_are_read_not_assumed(field_book: Any, certificate_byt
         ViolationCode.CROSS_BLOCK_NOT_SAME_PERSON
     }
     assert _decide(field_book, open_joint, "vote_2021", "wellbeing_index", measured=False).allowed
+
+
+def test_fingerprint_identifies_everything_the_certificate_permits(certificate_bytes: Any) -> None:
+    base = load_joint_status(certificate_bytes(), measured_panel_sha256=PANEL)
+    again = load_joint_status(certificate_bytes(), measured_panel_sha256=PANEL)
+    assert base.fingerprint() == again.fingerprint() and len(base.fingerprint()) == 64
+    reordered = load_joint_status(
+        certificate_bytes(matched_blocks=sorted(base.matched_blocks, reverse=True)),
+        measured_panel_sha256=PANEL,
+    )
+    assert reordered.fingerprint() == base.fingerprint()
+    for change in (
+        {"matched_block_outputs_allowed": False},
+        {"descriptive_core_outputs_allowed": False},
+        {"matched_blocks": ["politics"]},
+        {"runtime_identity_contract": "a different contract"},
+    ):
+        narrower = load_joint_status(certificate_bytes(**change), measured_panel_sha256=PANEL)
+        assert narrower.panel_sha256 == base.panel_sha256
+        assert narrower.fingerprint() != base.fingerprint(), change
+
+
+def test_degraded_fingerprints_differ_by_reason(certificate_bytes: Any) -> None:
+    missing = load_joint_status(None, measured_panel_sha256=PANEL)
+    moved = load_joint_status(certificate_bytes(), measured_panel_sha256="c" * 64)
+    assert missing.fingerprint() != moved.fingerprint()

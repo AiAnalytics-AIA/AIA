@@ -35,6 +35,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final
 
+from ..pipeline import fingerprint
 from .field_policy import FieldPolicy, ProvenanceClass
 from .gate import GateDecision, ViolationCode, block, combine
 
@@ -135,6 +136,35 @@ class JointStatus:
     @property
     def certified(self) -> bool:
         return self.degradation is None
+
+    def fingerprint(self) -> str:
+        """Identity of everything this status permits, for anything cached on it.
+
+        Two certificates for the same panel that permit different things must not
+        share an identity: a result computed under one is not valid under the
+        other. ``detail`` is prose and is left out.
+        """
+        return fingerprint(
+            {
+                "degradation": None if self.degradation is None else self.degradation.value,
+                "production_panel": self.production_panel,
+                "panel_sha256": self.panel_sha256,
+                "structure_status": None
+                if self.structure_status is None
+                else self.structure_status.value,
+                "prediction_validation_status": None
+                if self.prediction_validation_status is None
+                else self.prediction_validation_status.value,
+                "core_same_person_joint": self.core_same_person_joint,
+                "cross_block_same_person_joint": self.cross_block_same_person_joint,
+                "client_joint_outputs_allowed": self.client_joint_outputs_allowed,
+                "descriptive_core_outputs_allowed": self.descriptive_core_outputs_allowed,
+                "matched_block_outputs_allowed": self.matched_block_outputs_allowed,
+                "cross_block_joint_claims_allowed": self.cross_block_joint_claims_allowed,
+                "matched_blocks": sorted(self.matched_blocks),
+                "runtime_identity_contract": self.runtime_identity_contract,
+            }
+        )
 
 
 def _degraded(reason: JointDegradation, detail: str) -> JointStatus:

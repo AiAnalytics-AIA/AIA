@@ -63,6 +63,9 @@ def _fp(**overrides: Any) -> str:
         "prompt_template_sha256": prompt_template_sha256(),
         "surface": "CLIENT_FACING",
         "language": "cs",
+        "method_status": "synthetic/modelled research; external predictive certification pending",
+        "system_fingerprint": "a" * 64,
+        "external_context": ["Tisková zpráva"],
     }
     module = overrides.pop("module", AnalysisModuleId.EXECUTIVE)
     args.update(overrides)
@@ -79,6 +82,9 @@ def _fp(**overrides: Any) -> str:
         {"prompt_template_sha256": "1" * 64},
         {"surface": "INTERNAL"},
         {"language": "en"},
+        {"method_status": "synthetic/modelled research; externally validated"},
+        {"system_fingerprint": "b" * 64},
+        {"external_context": ["Jiná zpráva"]},
         {"module": AnalysisModuleId.LIMITATIONS},
     ],
 )

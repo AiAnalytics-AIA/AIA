@@ -126,21 +126,19 @@ class ModuleOutcome:
 
 
 def input_fingerprint(module_id: AnalysisModuleId, inputs: AnalysisInputs) -> str:
-    joint = inputs.joint_status
-    certificate = (
-        joint.panel_sha256
-        if joint.certified and joint.panel_sha256
-        else f"DEGRADED:{joint.degradation}"
-    )
+    """Everything a completed module's validity depends on, including the stamp it carries."""
     return module_input_fingerprint(
         module_id,
         evidence_fingerprint=inputs.table.fingerprint(),
         research_questions=inputs.research_questions,
         field_dictionary_sha256=inputs.book.source_sha256,
-        joint_certificate=certificate,
+        joint_certificate=inputs.joint_status.fingerprint(),
         prompt_template_sha256=prompt_template_sha256(),
         surface=inputs.surface.value,
         language=inputs.language,
+        method_status=method_status(inputs.validation, inputs.system_fingerprint),
+        system_fingerprint=inputs.system_fingerprint,
+        external_context=inputs.external_context,
     )
 
 
