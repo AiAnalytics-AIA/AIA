@@ -694,12 +694,13 @@ jobs:
           # The host's env file has no AIA_LEGACY_* values until an operator
           # provisions them; run 10 (2026-09-23) found the Caddyfile unparseable
           # in exactly that state and the site down. This is the same check
-          # bin/deploy.sh now makes before it replaces anything: placeholder.env
-          # above carries no legacy settings, then quoted ones must survive too.
-          docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml \
+          # bin/deploy.sh now makes before it replaces anything: first with no
+          # AIA_LEGACY_* value at all, then with real, quoted ones.
+          grep -v '^AIA_LEGACY_' placeholder.env > unconfigured.env
+          docker compose --env-file unconfigured.env -f deploy/develop/docker-compose.yml \
             run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
           hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext placeholder)"
-          cp placeholder.env configured.env
+          cp unconfigured.env configured.env
           printf "AIA_LEGACY_HOSTNAME='legacy.example.test'\nAIA_LEGACY_BASIC_USER='oracle'\nAIA_LEGACY_BASIC_HASH='%s'\n" "$hash" >> configured.env
           docker compose --env-file configured.env -f deploy/develop/docker-compose.yml \
             run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
