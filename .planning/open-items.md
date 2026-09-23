@@ -1177,3 +1177,82 @@ its own build and asserting one stored object.
 
 **Status.** Fixed in this change (`apps/executors/src/aia_executors/smoke.py`).
 Verified by the dispatched run its merge triggers, not before.
+
+---
+
+## OI-39 · Finding · The oracle is deployed by a workflow that ran before the unit existed, and is unreachable from cloud sessions
+
+**Claim.** The first *Deploy develop* run to build `aia-legacy-panel` failed
+before deploying anything, the run that would deploy the unit is waiting on a
+human, and no cloud session can reach the develop host to check either — so
+Phase 0 of the strangler plan (a healthy, gated oracle) is unproven from here.
+
+**Anchor.** `.github/workflows/deploy-develop.yml:128-141 @ 09810d1`
+(`context: legacy/npc-panel-18.6.6`); `git ls-tree 71d3576 -- legacy` (only
+`legacy/README.md`); `.planning/plans/legacy-strangler.md` § Phase 0.
+
+**Reproduction.** GitHub Actions *Deploy develop* run 6 (`35880744530`) @
+`71d3576`, step *Build and push aia-legacy-panel*: `ERROR: failed to build:
+unable to prepare context: path "legacy/npc-panel-18.6.6" not found`. Run 7
+(`35883107082`) @ `09810d1` (PR #39, the unit's files): job *Build, push and
+deploy* `waiting` since 2026-09-23T15:39:11Z. From a cloud session:
+`curl https://aia-develop.art-chain.io/api/v1/health` → `connect_rejected`
+(egress policy); `docker ps` → no daemon.
+
+**Consequence.** `legacy-panel` has not been deployed; the oracle parity gate
+(`api.http/oracle-contract`) reports `NOT_EXECUTED`; slice 2 of the strangler
+plan (HTTP differential recordings) cannot start until an operator either
+approves run 7 or dispatches *Deploy develop* for `09810d1` or later, then adds
+`AIA_LEGACY_REFERENCE_URL` / `_USER` / `_PASSWORD` as repository secrets for the
+`oracle-parity` CI job (`ARCHITECTURE.md` §8 promotion table).
+
+**Smallest fix.** Human: approve or re-dispatch the deploy at a SHA that carries
+the unit, confirm `bin/smoke.sh` reports `legacy: hostname answers and the gate
+refuses anonymous access (401)`, then provision the three secrets. No code
+change: run 6 failed on ordering (PR #38 merged before PR #39), which cannot
+recur now that both are on `develop`.
+
+**Test that would have caught it.** None in this repository can: the failure is a
+merge order across two PRs. The `oracle-parity` job with
+`AIA_REQUIRE_LEGACY_ORACLE=1` is what turns a missing oracle into a red check
+from now on.
+
+**Status.** Open — human action. The engineering half (the endpoint contract,
+the `oracle` marker, the CI job, `make test-oracle`) landed with slice 1.
+
+---
+
+## OI-40 · Finding · The reference's UI ledger leaves `normalizer66` out of the 88 research functions
+
+**Claim.** `AIA-reference/ui-capability-ledger.json` classifies
+`ui_app.html::normalizer66` as `PRESENTATION_ONLY` although the reference's own
+golden fixture F5 executes it as methodology and its "UI-only methodology rules"
+table names its four modes and population-variance sd; the 88-function list a
+port would follow therefore misses at least one research function.
+
+**Anchor.** `AIA-reference/ui-capability-ledger.json` `functions[name="normalizer66"]`
+(`class: PRESENTATION_ONLY`, `signals: ["compute:1"]`) @ `678e298`;
+`AIA-reference/golden-fixtures/manifest.json` `F5_normalizer66_all_modes`;
+`docs/migration/legacy-ui-functions.json` row `normalizer66`
+(`source: aia_addition`).
+
+**Reproduction.**
+`python3 -c "import json;d=json.load(open('../aia-reference/ui-capability-ledger.json'));print([f['name'] for f in d['methodology_functions']+d['computation_functions'] if f['name']=='normalizer66'])"`
+→ `[]`.
+
+**Consequence.** A restructuring that ported exactly the 88 would leave the
+normaliser in the browser, where it decides what "high" means on every map.
+
+**Smallest fix.** Carry `normalizer66` as a recorded AIA addition in
+`docs/migration/legacy-ui-functions.json` (done; discrepancy `REF-DISC-3` in
+`docs/migration/parity-matrix.json`) and reclassify upstream in
+`AIA-reference/tools/build_ui_ledger.py`; when the re-pinned ledger carries it,
+the row's `source` returns to `reference_ledger`. The classifier's `compute:1`
+signal on a 900-character numeric function suggests the threshold, not the
+function, is the defect — worth a sweep of the other `PRESENTATION_ONLY`
+functions with a `compute` signal before slice 7.
+
+**Test that would have caught it.** `test_legacy_ui_functions.py::test_the_ledger_holds_the_88_research_functions_and_names_every_addition`
+pins the addition; the sweep above would be its widening.
+
+**Status.** Open — upstream (AIA-reference). Carried here as an addition.

@@ -143,12 +143,18 @@ docs/architecture/          System design + 10 ADRs; ai-step-executor-contract.m
 docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
+  legacy-route-ledger.json  The strangler's route ledger: 153 legacy routes, LEGACY/PORTING/PORTED/RETIRED
+  legacy-ui-functions.json  The 88 research functions of ui_app.html (+ recorded additions), hash-pinned
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
+tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
+tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; check the UI ledger
+tools/ui_function_runner.mjs, ui_function_capture.py
+                            Run extracted functions under Node; capture U<nn> fixtures
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
@@ -203,6 +209,17 @@ as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,
 joint structure, support, interval and tier have all passed. Prompts state the
 rules; they never enforce them.
 
+**The unit is the oracle, and its functions are fixtures.** The strangler plan
+([`.planning/plans/legacy-strangler.md`](.planning/plans/legacy-strangler.md))
+replaces one capability at a time behind the running `legacy-panel`, reached only
+through `tools/legacy_oracle.py` and `AIA_LEGACY_REFERENCE_URL`. The 88 research
+functions of `ui_app.html` are ported *from the JavaScript*: a fixture is captured
+first by running the extracted function under Node
+(`packages/aia_core/tests/fixtures/legacy_ui/`, `U<nn>_<function>`), pinned to the
+function's source hash, and the port is compared with it. The two ledgers in
+`docs/migration/legacy-route-ledger.json` and `legacy-ui-functions.json` are the
+state; the plan is the order.
+
 **The golden fixtures need no archive.** F1–F9 are vendored, byte for byte,
 under `packages/aia_core/tests/fixtures/sociomap/`; F10–F11 are read from a
 checkout of the private `AiAnalytics-AIA/AIA-reference` at `../aia-reference` or
@@ -228,6 +245,8 @@ ungated fixture.
 | Deploy `develop` | Merge to `develop`; [`deploy/develop/README.md`](deploy/develop/README.md) is the runbook. Live at <https://aia-develop.art-chain.io/> |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
 | Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
+| **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |
+| Capture UI function fixtures | `python tools/ui_function_capture.py capture` (needs Node); `verify` re-runs and compares |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` |
 | Format | `make format` |
