@@ -611,7 +611,7 @@
       "module": "full_simulation.py",
       "loc": 1631,
       "docstring": "Full Simulation Lab for NPC Panel 17.0. This module is intentionally separated from the evidence-safe population core. It is an experimental forecasting engine that is *allowed to hypothesize* missing",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",
@@ -1491,7 +1491,7 @@
       "module": "scenario_compiler.py",
       "loc": 166,
       "docstring": "Compile free-text scenarios into explicit, reviewable measured-variable shifts. The free-text story is never the final simulation object. The compiler produces a structured delta contract that a user ",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",

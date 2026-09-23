@@ -320,7 +320,8 @@ Nothing. The tree is green and the slice is complete.
 ## Legacy functionality not yet migrated
 
 Everything except project persistence, scope and artifact storage. Specifically:
-the job engine, AI runtime, research and simulation lifecycles, analysis,
+the job engine, AI runtime, the research lifecycle, the simulation lifecycle beyond
+its deterministic core (`aia_core.domain.simulation`), analysis,
 validation and methodology gates, reporting, Data Library, Society Intelligence,
 population and audience, Sociomapa, demos, ingestion, exports and scheduling.
 128 of the prototype's 136 API routes and its entire frontend remain.

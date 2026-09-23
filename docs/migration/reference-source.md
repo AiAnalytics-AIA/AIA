@@ -110,6 +110,11 @@ checkout is read-only, and nothing from it is committed here. The field policy i
 particular is **supplied at runtime** with the population version it describes; it
 is never vendored.
 
+The simulation parity scaffold (`packages/aia_core/tests/test_simulation_parity.py`)
+reads `golden-fixtures/F13_simulation_world_inoculation.json` from the same
+checkout. F13 is not captured yet (`REF-GAP-SIMULATION-WORLD-MODEL`), so it skips
+and says so.
+
 ## Do not duplicate raw assets into this repository
 
 This repository is the clean production rebuild. It must not absorb:
@@ -182,7 +187,7 @@ behind `678e298`, and differs from it only in two tool scripts.
 | Item | Owner |
 | --- | --- |
 | `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and** the reference's withheld R wrapper; open as OI-15, no R parity claimed | parity-quality + A8 sociomapa-deterministic |
-| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential, an ADR 0008 egress route **and** the withheld `full_simulation.py`; open as OI-27 | parity-quality + A7 simulation-engine |
+| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential, an ADR 0008 egress route **and** the withheld `full_simulation.py`; open as OI-27; status in [simulation-deterministic-engine.md](../architecture/simulation-deterministic-engine.md) §7 | parity-quality + A7 simulation-engine |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` — needs a licence decision | data owner |
 
 Neither fixture gap is unknown behaviour: code paths, constants and seeds are

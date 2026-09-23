@@ -93,6 +93,9 @@ packages/aia_core/src/aia_core/
       factual.py            Factual layer: panel facts are read, never invented
       admission.py          AdmittedClaim — the ONLY way a number enters a result
     analysis/               The eight analysis modules, drafts, prompts, results
+    simulation/             Deterministic simulation core from a frozen WorldModel:
+                            reference constants, reject-not-clip validation,
+                            inoculation, scenarios, variants, frozen results
   application/
     scope.py                ScopeResolver — the ONLY issuer of a scope context,
                             including a worker's, issued only against a held lease

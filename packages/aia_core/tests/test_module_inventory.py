@@ -118,6 +118,9 @@ def test_only_ported_modules_claim_progress(inventory: dict[str, dict[str, Any]]
         "workflow_engine.py",
         "cost_controller.py",
         "ui_server.py",
+        # Deterministic halves only; behavioural tests in test_simulation_*.py.
+        "full_simulation.py",
+        "scenario_compiler.py",
     }, (
         "The set of modules claiming progress changed. Update this assertion "
         "deliberately, with the parity or behavioural evidence for the new entry."

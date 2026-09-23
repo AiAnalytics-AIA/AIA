@@ -2870,8 +2870,10 @@
         "confirmed": true
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/simulation/"
+      ],
       "reference_modules": [
         "full_simulation.py",
         "fullsim_learning.py",
@@ -2884,7 +2886,20 @@
       "fixtures": [
         "F13_simulation_world_inoculation"
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "simulation.engine/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_simulation_world_model.py",
+            "packages/aia_core/tests/test_simulation_numerics.py",
+            "packages/aia_core/tests/test_simulation_inoculation.py",
+            "packages/aia_core/tests/test_simulation_results.py",
+            "packages/aia_core/tests/test_simulation_golden.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [
@@ -2892,7 +2907,7 @@
           "id": "SUB-SIM-BOUNDS",
           "summary": "out-of-range world-model output is rejected, where the reference silently clips it",
           "anchor": "AIA-reference simulation-reference-contract.md (_sanitize_world_model) @ 678e298",
-          "gate": null
+          "gate": "simulation.engine/contract"
         }
       ],
       "high_risk": [],
@@ -2901,7 +2916,7 @@
         "blocking": false,
         "reason": "Off the MVP acceptance path; blocks the first release that ships it."
       },
-      "notes": ""
+      "notes": "Deterministic core only (docs/architecture/simulation-deterministic-engine.md): world-model validation that rejects instead of clipping, seeds, correlation projection, calibrate-on-baseline inoculation, ensembles, variant deltas. Formula bodies are production-defined (fs-inoculation-v1) and no gate compares them with the reference: that needs F13 and decision D11. World-model generation, the respondent run and fullsim_learning are not started."
     },
     "simulation.scenarios": {
       "family": "simulation",
@@ -2911,8 +2926,11 @@
         "confirmed": true
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/simulation/scenario.py",
+        "packages/aia_core/src/aia_core/domain/simulation/results.py"
+      ],
       "reference_modules": [
         "scenario_compiler.py",
         "scenario_truth_log.py"
@@ -2921,7 +2939,17 @@
       "tolerance": null,
       "parity_reason": "Blind/scenario eligibility and frozen-truth write-once immutability are discrete rules",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "simulation.scenarios/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_simulation_scenarios.py",
+            "packages/aia_core/tests/test_simulation_results.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -2931,7 +2959,7 @@
         "blocking": false,
         "reason": "Off the MVP acceptance path; blocks the first release that ships it."
       },
-      "notes": ""
+      "notes": "Scenario contract, approval bound to the contract hash, blind/scenario eligibility and write-once truth are implemented and tested against the rules the reference contract records; no gate runs the reference's own code. The LLM compile step and the truth log's persistence are not started."
     },
     "sociomapping.core": {
       "family": "sociomapping",
