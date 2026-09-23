@@ -71,9 +71,14 @@ expect_401 "a forged bearer token is refused" -H 'Authorization: Bearer not-a-to
 if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE '(^|:)5432$'; then
   fail "security: PostgreSQL is not listening on the host" "something listens on :5432"
 else pass "security: PostgreSQL is not listening on the host"; fi
-if [ -n "$("${COMPOSE[@]}" port postgres 5432 2>/dev/null)" ]; then
-  fail "security: the postgres service publishes no port" "$("${COMPOSE[@]}" port postgres 5432)"
-else pass "security: the postgres service publishes no port"; fi
+# Compose v2 may report an unpublished container port as ":0". Inspect the
+# actual Docker host bindings instead, and fail closed if inspection fails.
+postgres_id="$("${COMPOSE[@]}" ps -q postgres 2>/dev/null)"
+port_bindings="$(docker inspect --format '{{json .HostConfig.PortBindings}}' "$postgres_id" 2>/dev/null || echo inspect-failed)"
+case "$port_bindings" in
+  '{}'|'null') pass "security: the postgres service publishes no port" ;;
+  *) fail "security: the postgres service publishes no port" "Docker host bindings: $port_bindings" ;;
+esac
 
 # --- database ----------------------------------------------------------------
 current="$("${COMPOSE[@]}" run --rm --no-deps -T api alembic current 2>/dev/null | tail -1 || true)"
