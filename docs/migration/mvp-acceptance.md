@@ -112,7 +112,7 @@ count.
 
 | Left out | Why | What would bring it in |
 | --- | --- | --- |
-| The Simulation lifecycle | A second 13-stage lifecycle; the MVP is scoped to Research | **Decision D6** in `.planning/PROGRESS.md` |
+| The Simulation lifecycle | A second 13-stage lifecycle; the MVP is scoped to Research | **Decision D7** in `.planning/PROGRESS.md` |
 | Data Library ingestion and demo seeding | The MVP uses the published `v17_4_0` population; the demo library's status is reference open decision D4 | D4 in the reference repository |
 | A reference demo study as a second comparison | The ten demo studies are client work; comparing against one needs the withheld archive and a data-owner decision | `REF-WITHHELD-REFERENCE-ARCHIVE` |
 | Project memory, copilot, results dialogue | No research output depends on them | Product scope change |

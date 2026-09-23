@@ -97,6 +97,30 @@ from tests.helpers import make_project
 def test_x(project_factory): ...
 ```
 
+**A session left open hangs the next fixture's teardown, not the test.** A test
+that claims a step on a session it never closes leaves a connection *idle in
+transaction* holding row locks; the test passes, and the fixture's `DELETE` at
+teardown then waits on those locks forever. The symptom is a suite that stops
+printing after a `PASSED`. Every session a test opens is closed in a `finally`,
+or opened with `with`:
+
+```python
+# WRONG — never closed; its locks outlive the test
+_, repo = make_repo()
+assert repo.claim_next(worker_id="w") is not None
+
+# RIGHT
+session, repo = make_repo()
+try:
+    assert repo.claim_next(worker_id="w") is not None
+    session.commit()
+finally:
+    session.close()
+```
+
+To find the culprit: `SELECT pid, state, query FROM pg_stat_activity WHERE state
+LIKE 'idle in%'` — its last query names the call that opened it.
+
 Markers are registered in the root `pyproject.toml` **and** in each package's
 own `pyproject.toml`, and `--strict-markers` is on, so a typo in a marker name is
 an error rather than a silently unfiltered run. Current markers: `parity`,
@@ -128,6 +152,55 @@ exits 0. Every CI pytest step writes `--junit-xml … -o junit_family=xunit1`
 skipped parity gate reports `NOT_EXECUTED` rather than green.
 `test_parity_matrix.py` fails any CI pytest step that stops writing JUnit.
 
+**Golden fixtures are serialised to ten decimals.** The reference's fixture
+builder rounds every float, so an `EXACT` fixture compared with `==` fails on
+`1 + 9 * 0.2`, which is `2.8000000000000003`, not the `2.8` on disk. Compare the
+*decision* exactly and the value at the serialisation:
+
+```python
+# WRONG — fails on float representation, not on behaviour
+assert coerce_relation_scale_1_10(m) == fixture["expected_output"]["similarity_0_1"]
+
+# RIGHT — branch exact, values to the fixture's 1e-10 rounding
+assert coercion_branch(m) is CoercionBranch.SIMILARITY_0_1
+assert all(abs(a - e) <= 1e-9 for a, e in zip(flat(got), flat(want)))
+```
+
+**A vendored fixture's filename must pass `make exposure_check`.** Rule 2c rejects
+any tracked `.csv`/`.tsv`/`.json` whose name contains a reference-data noun —
+`respondent`, `segment`, `panel`, `weights` … — so the reference's
+`F7_terrain66_respondent_density.json` fails the build when copied in as-is. It
+is vendored as `F7_terrain66_density.json`; the fixture id inside is unchanged
+and `fixtures/sociomap/index.json` maps it back. Rename; do not add an exemption.
+`exposure_check` reads `git ls-files`, so an untracked file passes until it is
+staged — run it after `git add`, not before.
+
+## Pydantic
+
+**An after-validator never sees a boolean in an `int` field.** Lax mode coerces
+`True` to `1` *before* a `mode="after"` validator runs, so an
+`isinstance(v, bool)` check there is dead code and `max_iterations=True` becomes
+one iteration. Reject booleans in a `mode="before"` validator:
+
+```python
+# WRONG — v is already 1 by the time this runs
+@field_validator("max_iterations")
+def _check(cls, v: int) -> int:
+    if isinstance(v, bool) or v < 1: ...
+
+# RIGHT
+@field_validator("max_iterations", mode="before")
+def _not_boolean(cls, v: object) -> object:
+    if isinstance(v, bool):
+        raise ValueError("expected an integer, not a boolean")
+    return v
+```
+
+**ruff `RUF001` rejects Greek letters in string literals** — including the
+reference's own legend label `"odchylka σ"`. Escape it (`"odchylka \u03c3"`)
+rather than suppressing the rule; the comment beside it must not contain the
+letter either (`RUF003`).
+
 ## SQLAlchemy and PostgreSQL
 
 **SQLite cannot test concurrency.** It is single-writer, so every lease, lock and
@@ -136,6 +209,75 @@ step, a lock convoy and a budget overspend race all passed the sequential suite.
 Concurrency semantics are tested against real PostgreSQL, with real concurrent
 transactions, and CI runs both engines: PostgreSQL for truth, SQLite to keep the
 offline development path working.
+
+**An ORM read-check-write is a lost update waiting for a second writer.** The
+ORM flushes a changed attribute as `UPDATE … WHERE pk = :id` — the check you made
+in Python is not in the statement. The heartbeat did exactly this, and a
+reconciler that expired the attempt between the read and the write was silently
+overwritten, putting a recovered attempt back to `EXECUTING` so two workers ran
+one step. Put the condition in the statement, where the database re-evaluates it
+against the committed row:
+
+```python
+# WRONG — the status check is Python's; the UPDATE is by primary key only
+attempt = session.get(StepAttemptRow, attempt_id)
+if attempt.worker_id == worker_id and attempt.status in LIVE:
+    attempt.lease_until = deadline          # overwrites a concurrent EXPIRED
+
+# RIGHT — one conditional statement; rowcount says whether it held
+result = session.execute(
+    update(StepAttemptRow)
+    .where(StepAttemptRow.attempt_id == attempt_id,
+           StepAttemptRow.worker_id == worker_id,
+           StepAttemptRow.status.in_(LIVE))
+    .values(lease_until=deadline)
+)
+accepted = result.rowcount == 1
+```
+
+Where a read-then-decide is unavoidable, lock the row first (`with_for_update()`)
+— and see the next entry.
+
+**`SELECT … FOR UPDATE` does not refresh an object already in the identity map.**
+The lock is taken and the row re-read, but SQLAlchemy keeps the attribute values
+it already had for that primary key, so a check made after the lock can still see
+a stale status. When the lock is the point, ask for the fresh values too:
+
+```python
+# WRONG — locked, but `attempt.status` may be what this session read earlier
+attempt = session.scalar(select(StepAttemptRow).where(...).with_for_update())
+
+# RIGHT
+attempt = session.scalar(
+    select(StepAttemptRow).where(...).with_for_update()
+    .execution_options(populate_existing=True)
+)
+```
+
+**In-memory SQLite cannot serve two threads.** `create_app_engine` gives
+`:memory:` a single shared connection (`StaticPool`) so separate sessions see one
+database — which also means a second thread (the worker's heartbeat) shares that
+connection mid-transaction. Tests with more than one thread use a **file-backed**
+SQLite database per test (`apps/worker/tests/conftest.py`).
+
+
+**SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
+aware `datetime` on PostgreSQL and a **naive** one on SQLite, which has no
+timestamp type. The same repository code therefore builds a valid domain object
+on one engine and trips a "must be timezone-aware" guard on the other — found
+when the population registry's `DatasetVersion` refused its own rows on SQLite
+only.
+
+```python
+# WRONG — passes on PostgreSQL, raises on SQLite
+imported_at=row.imported_at
+
+# RIGHT — every value this schema writes is UTC, so a naive read is UTC
+from .tables import as_utc
+imported_at=as_utc(row.imported_at)
+```
+
+Convert at the row → domain boundary, never by loosening the domain guard.
 
 Anything touching the database lives in `infrastructure/`. See
 [ARCHITECTURE.md §3](ARCHITECTURE.md#3-enforcement--make-layer_check).
@@ -173,10 +315,38 @@ def make_token(claims: dict[str, Any]) -> str:
     return token
 ```
 
+**`aia_core` ships no `py.typed`, so check every source tree in one run.** Run on
+its own, `mypy apps/worker/src` treats `aia_core` as an untyped third party and
+reports eighteen `import-untyped` errors; run together with
+`packages/aia_core/src` it resolves the source directly. `make typecheck` and CI
+therefore pass all three trees to a single `mypy` invocation. Splitting that
+command "for speed" silently changes what is checked.
+
 Where a whole library has no stubs and pulling them in is not worth the
 dependency, add a narrow `[[tool.mypy.overrides]]` in the root `pyproject.toml`
 **with a comment saying why** — as `boto3` has. An unexplained override is
 indistinguishable from an abandoned one.
+
+## Python control flow
+
+**An exception an executor must not swallow is a `BaseException`.** Executor code
+is full of `except Exception:` — retry loops, provider adapters, "log and carry
+on". A cancellation or a lost lease raised as an ordinary `Exception` is caught by
+the first of those, and the executor keeps spending money on a step it no longer
+owns. `asyncio.CancelledError` became a `BaseException` in Python 3.8 for exactly
+this reason, and the worker's `StopExecution` follows it:
+
+```python
+# WRONG — any `except Exception` in an executor swallows it
+class CancellationRequested(Exception): ...
+
+# RIGHT — only code that names it (the worker) catches it
+class StopExecution(BaseException): ...
+class CancellationRequested(StopExecution): ...
+```
+
+The worker's own `except Exception` for an unclassified executor error therefore
+does not catch these either; it names them explicitly, first.
 
 ## FastAPI
 

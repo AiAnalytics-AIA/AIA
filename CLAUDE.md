@@ -53,33 +53,65 @@ apps/
     routers/                health, projects, scope
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. Still mock-backed.
+  worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
+    executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
+    worker.py               The loop: claim, execute, record; reconcile on an interval
+    context.py              Checkpoints, per-call metering, lease-fenced transactions
+    heartbeat.py            Lease extension + cancellation carried back, one thread per attempt
+    settings.py             Typed, validated settings from the environment
+    registry.py             Loads executors from AIA_WORKER_EXECUTORS=module:factory
+    testing.py              Scripted executor for the tests (and the multi-process suite)
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
+    population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
+                            contract + validation, weights, bindings, RuntimePopulation
+      czech.py              The Czech v17 import contract (pinned by hash, not copied)
+      policy.py             Field policy as code: what each field may be used for
+      companions.py         Companion assets + the fail-closed joint certificate gate
+      authority.py          Population-operator capability (establish / promote)
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics
     scope.py                Organization/Client/Study vocabulary, roles, permissions
     workflow.py             Workflow DAG, job states, retry classification
+    sociomap/               Sociomapping maths, pure Python: compute_sociomap -> artifact
+      specification.py      SociomapSpec v2 (no defaults) + require_supported
+      relations.py          scale coercion, mutual projection, ipsatization   F1-F3
+      layout.py             declared layout registry; aia_rowcond_unfolding_v1
+      metrics.py            object metrics, T-score, normaliser               F5-F6
+      terrain.py            respondent density / object weighted mean         F7-F8
+      engine.py, models.py  the pipeline and the v2 artifact
+      view.py               drag overrides, view terrain, scenarios (never write) F9
   application/
-    scope.py                ScopeResolver — the ONLY issuer of a scope context
+    scope.py                ScopeResolver — the ONLY issuer of a scope context,
+                            including a worker's, issued only against a held lease
+    population.py           PopulationRuntime — the ONLY loader of population data
+    population_authority.py PopulationAuthority — the ONLY issuer of an operator context
   infrastructure/
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
     repositories.py         ProjectRepository
     scope_repository.py     Organizations, clients, studies, grants
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
-    workflow_repository.py  Durable jobs, leases, heartbeats, cost reservations
+    workflow_repository.py  Durable jobs, lease-fenced writes, cost reservations,
+                            the population binding each run records; WorkQueue --
+                            the only cross-study surface (claim, recover, resume, refuse)
+    population_repository.py  Population registry: versions, populations, history
+    population_parser.py    Text-preserving panel + dictionary parser (stdlib)
+    population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     storage.py              ArtifactStore: S3 / filesystem / memory
 
 migrations/                 Alembic
 docs/architecture/          System design + 7 ADRs
+docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
+tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
@@ -97,12 +129,27 @@ fails the build — that would mean scope had stopped being carried in the path.
 
 **The legacy prototype is not in this repository.** It lives at
 `../npc-panel-reference`, reached through `AIA_LEGACY_REFERENCE`, and is used by
-the parity and characterization suites only.
+the parity and characterization suites only. The population parity suite reads the
+committed contracts and golden fixtures of `AiAnalytics-AIA/AIA-reference` through
+`AIA_REFERENCE_REPO` (default `../aia-reference`) — never the withheld archive.
 
-**Neither are the golden fixtures.** They live in the private
-`AiAnalytics-AIA/AIA-reference` repository and need no raw archive. The
-golden-fixture gates read a checkout at `../aia-reference` or
-`AIA_REFERENCE_REPO`, and refuse any fixture that does not hash to its pin in
+**The population is resolved once per run.** Research and simulation code gets
+population data only from `PopulationRuntime.load_for_run`, which reads the
+`PopulationBinding` the run recorded at creation. There is no other loader, no
+default weight and no fallback version; `make layer_check` enforces the loader.
+Before using a field, a consumer asks `RuntimePopulation.decide(field, use)` and,
+before combining fields, `decide_joint(...)` — never the dictionary directly. The
+contract is [docs/architecture/population.md](docs/architecture/population.md).
+
+**Sociomapping golden fixtures are.** F1–F9 are synthetic inputs with the
+reference's recorded outputs, vendored under
+`packages/aia_core/tests/fixtures/sociomap/` and pinned by SHA256 in its
+`index.json`. They run in every CI job. Never edit one to make a test pass.
+
+**The golden fixtures need no archive.** F1–F9 are vendored, byte for byte,
+under `packages/aia_core/tests/fixtures/sociomap/`; F10–F11 are read from a
+checkout of the private `AiAnalytics-AIA/AIA-reference` at `../aia-reference` or
+`AIA_REFERENCE_REPO`. Every fixture is pinned by SHA256 in
 `docs/migration/parity-matrix.json`. When a capability lands, its fixture gate
 lands with it — `test_parity_matrix.py` fails an `IMPLEMENTED` capability with an
 ungated fixture.
@@ -116,9 +163,11 @@ ungated fixture.
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
 | Run everything | `make dev` |
-| Tests | `make test` (core + API) |
-| Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`) |
-| Golden-fixture gates | `make test-golden` (needs the reference repository) |
+| Run one worker | `make dev-worker` (needs `DATABASE_URL`; test executors by default) |
+| Tests | `make test` (core + API + worker) |
+| Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
+| Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
+| Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` |
 | Format | `make format` |
@@ -131,7 +180,8 @@ ungated fixture.
 
 There is no compile step in Python. `make typecheck` is this project's
 warnings-are-errors gate: `mypy --strict` with `warn_unreachable`, plus
-`tsc --noEmit` for the client.
+`tsc --noEmit` for the client. mypy runs over all three Python source trees in
+one invocation, because `aia_core` ships no `py.typed` (`AGENTS.md` § mypy).
 
 ## 4. Planning — `.planning/`
 
@@ -177,6 +227,12 @@ closes the item filed under another's.* That is how a shipped fix gets carried a
 
 **Do not run `git add`, `git commit` or `git push` without explicit permission.**
 Prepare the change, report what you would commit, and wait.
+
+**One standing exception:** an agent may commit and push its own
+`.agent-status/<AGENT_ID>.md` to the `coordination/agent-status` branch whenever
+it wants to record progress. That file must reflect real work done, materially
+verified and measured, never intentions. Use a separate worktree, never this
+checkout. Anything else, that branch's README included, still needs permission.
 
 ### Never touch the working tree to inspect another ref
 

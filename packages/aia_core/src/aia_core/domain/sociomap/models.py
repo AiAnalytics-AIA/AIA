@@ -1,27 +1,24 @@
-"""Deterministic Sociomapping data contracts: inputs, results and the artifact.
+"""Deterministic Sociomapping data contracts: inputs, results and the artifact (v2).
 
-These types describe the *shape* of Sociomapping research truth -- a relation
-matrix, a layout, per-entity metrics, and the artifact that binds them to the
-methodology and inputs that produced them. They deliberately contain no
-methodology: nothing here derives a relation, transforms a matrix or places a
-point. Those operations belong to the (not yet ported) deterministic engine and
-are gated by :func:`aia_core.domain.sociomap.specification.require_supported`.
+:class:`SociomapInputs` is what a computation reads: a respondents x objects
+:class:`RatingsMatrix` and, optionally, an objects x objects
+:class:`RelationMatrix`. :class:`SociomapArtifact` is what it produces -- the
+canonical, immutable research truth a renderer draws and an auditor reads:
+respondent and object coordinates with their stress, the relation matrix as
+coerced and as projected for position, every object metric, both terrain
+fields, and the provenance that binds them to the spec and inputs.
 
-What the contracts do enforce:
+What the contracts enforce:
 
-* **Validity.** Square matrices, unique non-blank entity identifiers, finite
-  numbers, per-entity vectors that match the entity list exactly. An invalid
+* **Validity.** Unique non-blank ids, finite numbers, aligned shapes. An invalid
   input fails at construction, not three stages later.
-* **Immutability.** Every model is frozen. A rendered map, a drag or a what-if
-  cannot mutate research truth because there is no mutating operation.
-* **Traceability.** An artifact carries its spec, its input fingerprints, the
-  implementation version and the seed, and fingerprints itself over all of them.
-  "Why is this point here" is answerable from the artifact alone.
+* **Immutability.** Every model is frozen. A drag or a what-if cannot mutate
+  research truth because there is no mutating operation.
+* **Traceability.** An artifact carries its spec, its input fingerprints and the
+  implementation version, and fingerprints itself over all of them.
 
-Missing values are represented as ``None`` and are *preserved*, never imputed:
-how a missing cell is treated is a methodology decision recorded in the spec's
-``missing_data_policy`` and executed by the engine, not a default of the data
-model.
+Missing values are ``None`` and are *preserved*; how one is treated is a spec
+decision executed by the engine, never a default of the data model.
 """
 
 from __future__ import annotations
@@ -34,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from ..pipeline import fingerprint
 from .specification import SociomapSpec
+from .terrain import TerrainField
 
 __all__ = [
     "ARTIFACT_CONTRACT_VERSION",
@@ -43,29 +41,34 @@ __all__ = [
     "LayoutResult",
     "MetricValues",
     "Provenance",
+    "RatingsMatrix",
+    "RelationDerivation",
     "RelationMatrix",
     "SociomapArtifact",
+    "SociomapInputs",
 ]
 
-ARTIFACT_CONTRACT_VERSION: Literal["1"] = "1"
+ARTIFACT_CONTRACT_VERSION: Literal["2"] = "2"
 
 # Identity of the deterministic implementation recorded into every artifact.
-# ``0.0.0-contracts`` states plainly that no Sociomapping mathematics has been
-# ported yet: contracts exist, computation does not.
+# Bump it whenever any computation changes its output: the version is part of
+# the fingerprint, so artifacts from different engine behaviour never collide.
 ENGINE_IMPLEMENTATION = "aia_core.domain.sociomap"
-ENGINE_IMPLEMENTATION_VERSION = "0.0.0-contracts"
+ENGINE_IMPLEMENTATION_VERSION = "1.1.0"
+
+Point = tuple[float, float]
 
 
-def _check_entity_ids(ids: Iterable[str]) -> tuple[str, ...]:
+def _check_ids(ids: Iterable[str], *, minimum: int, what: str) -> tuple[str, ...]:
     ordered = tuple(ids)
-    if len(ordered) < 2:
-        raise ValueError("a Sociomapa needs at least two entities; a relation requires a pair")
+    if len(ordered) < minimum:
+        raise ValueError(f"{what} needs at least {minimum} ids; got {len(ordered)}")
     seen: set[str] = set()
     for entity in ordered:
         if not isinstance(entity, str) or not entity.strip():
-            raise ValueError(f"entity ids must be non-blank strings; got {entity!r}")
+            raise ValueError(f"{what} ids must be non-blank strings; got {entity!r}")
         if entity in seen:
-            raise ValueError(f"duplicate entity id {entity!r}; identifiers must be unique")
+            raise ValueError(f"duplicate {what} id {entity!r}; identifiers must be unique")
         seen.add(entity)
     return ordered
 
@@ -74,8 +77,7 @@ def _reject_booleans(value: Any, where: str) -> Any:
     """Refuse ``True``/``False`` where a number is expected.
 
     Runs before pydantic's coercion, which would otherwise turn a boolean into
-    ``1.0`` silently. A yes/no relation is a legitimate input, but the caller must
-    encode it as numbers deliberately rather than have the contract guess.
+    ``1.0`` silently.
     """
     if isinstance(value, bool):
         raise ValueError(f"{where} must be a number or None, not a boolean")
@@ -94,20 +96,21 @@ def _check_finite(value: float | None, where: str) -> float | None:
     return number
 
 
-class RelationMatrix(BaseModel):
+class _Frozen(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+# ----------------------------------------------------------------- inputs --
+
+
+class RelationMatrix(_Frozen):
     """A square matrix of relation values between entities.
 
     ``values[i][j]`` is the relation *from* ``entity_ids[i]`` *to*
     ``entity_ids[j]``. Directionality is preserved as given: the model does not
-    symmetrise, and whether the methodology treats the relation as directed is a
-    spec decision. :meth:`is_symmetric` and :meth:`max_asymmetry` are descriptive
-    only.
-
-    ``None`` marks a missing cell. The diagonal is stored as supplied; what it
-    means (self-relation, ignored, forced to a constant) is again methodology.
+    symmetrise. :meth:`is_symmetric` and :meth:`max_asymmetry` are descriptive
+    only. ``None`` marks a missing cell; the diagonal is stored as supplied.
     """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
 
     entity_ids: tuple[str, ...]
     values: tuple[tuple[float | None, ...], ...]
@@ -115,7 +118,9 @@ class RelationMatrix(BaseModel):
     @field_validator("entity_ids")
     @classmethod
     def _ids(cls, v: tuple[str, ...]) -> tuple[str, ...]:
-        return _check_entity_ids(v)
+        if len(v) < 2:
+            raise ValueError("a Sociomapa needs at least two entities; a relation requires a pair")
+        return _check_ids(v, minimum=2, what="entity")
 
     @field_validator("values", mode="before")
     @classmethod
@@ -134,8 +139,6 @@ class RelationMatrix(BaseModel):
             checked.append(tuple(_check_finite(v, f"values[{i}][{j}]") for j, v in enumerate(row)))
         object.__setattr__(self, "values", tuple(checked))
         return self
-
-    # ------------------------------------------------------------- inspection --
 
     @property
     def n(self) -> int:
@@ -164,11 +167,7 @@ class RelationMatrix(BaseModel):
         return self.missing_count == 0
 
     def max_asymmetry(self) -> float | None:
-        """Largest ``|a_ij - a_ji|`` over pairs where both cells are present.
-
-        Returns ``None`` when no off-diagonal pair is fully present. Descriptive
-        only: it reports how directed the data is, it does not decide anything.
-        """
+        """Largest ``|a_ij - a_ji|`` over fully present off-diagonal pairs, else ``None``."""
         largest: float | None = None
         for i in range(self.n):
             for j in range(i + 1, self.n):
@@ -182,8 +181,7 @@ class RelationMatrix(BaseModel):
     def is_symmetric(self, *, abs_tol: float = 0.0) -> bool:
         """True when every present off-diagonal pair agrees within ``abs_tol``.
 
-        A pair with one side missing counts as asymmetric: symmetry cannot be
-        asserted about a value that is not there.
+        A pair with one side missing counts as asymmetric.
         """
         for i in range(self.n):
             for j in range(i + 1, self.n):
@@ -194,14 +192,8 @@ class RelationMatrix(BaseModel):
                     return False
         return True
 
-    # ------------------------------------------------------------ derivation --
-
     def reordered(self, entity_ids: Iterable[str]) -> RelationMatrix:
-        """Return the same relation with rows and columns in a new entity order.
-
-        The new order must be a permutation of the existing ids. Relation values
-        are carried by identity, so ``cell(a, b)`` is invariant under reordering.
-        """
+        """The same relation with rows and columns in a new entity order."""
         order = tuple(entity_ids)
         if sorted(order) != sorted(self.entity_ids):
             raise ValueError("reordered() requires a permutation of the existing entity ids")
@@ -212,11 +204,7 @@ class RelationMatrix(BaseModel):
         )
 
     def with_cells(self, overrides: Mapping[tuple[str, str], float | None]) -> RelationMatrix:
-        """Return a new matrix with the given ``(source, target)`` cells replaced.
-
-        The receiver is untouched. This is the data mechanism a what-if layer uses
-        to derive an alternative input from an immutable original.
-        """
+        """A new matrix with the given ``(source, target)`` cells replaced."""
         rows = [list(row) for row in self.values]
         for (source, target), value in overrides.items():
             rows[self.index_of(source)][self.index_of(target)] = value
@@ -227,15 +215,85 @@ class RelationMatrix(BaseModel):
         return fingerprint(self.model_dump(mode="json"))
 
 
-class MetricValues(BaseModel):
-    """One per-entity metric, e.g. the values chosen to drive height or colour.
+class RatingsMatrix(_Frozen):
+    """Respondents x objects ratings. ``values[i][j]``: respondent ``i`` rates object ``j``.
 
-    ``metric_id`` names the metric as the spec does; ``values`` are aligned with
-    the owning artifact's ``entity_ids``. ``None`` is a missing value and is kept
-    as such.
+    ``None`` is an unrated cell. Values are raw, on the scale the spec declares;
+    the engine checks them against it.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    respondent_ids: tuple[str, ...]
+    object_ids: tuple[str, ...]
+    values: tuple[tuple[float | None, ...], ...]
+
+    @field_validator("respondent_ids")
+    @classmethod
+    def _respondents(cls, v: tuple[str, ...]) -> tuple[str, ...]:
+        return _check_ids(v, minimum=1, what="respondent")
+
+    @field_validator("object_ids")
+    @classmethod
+    def _objects(cls, v: tuple[str, ...]) -> tuple[str, ...]:
+        return _check_ids(v, minimum=3, what="object")
+
+    @field_validator("values", mode="before")
+    @classmethod
+    def _no_booleans(cls, v: Any) -> Any:
+        return _reject_booleans(v, "values")
+
+    @model_validator(mode="after")
+    def _shape(self) -> Self:
+        n, m = len(self.respondent_ids), len(self.object_ids)
+        if len(self.values) != n:
+            raise ValueError(f"ratings have {len(self.values)} rows for {n} respondents")
+        checked: list[tuple[float | None, ...]] = []
+        for i, row in enumerate(self.values):
+            if len(row) != m:
+                raise ValueError(f"ratings row {i} has {len(row)} cells for {m} objects")
+            checked.append(tuple(_check_finite(v, f"values[{i}][{j}]") for j, v in enumerate(row)))
+        object.__setattr__(self, "values", tuple(checked))
+        return self
+
+    def fingerprint(self) -> str:
+        """Stable SHA256 of both id orders and every cell."""
+        return fingerprint(self.model_dump(mode="json"))
+
+
+class SociomapInputs(_Frozen):
+    """Everything a Sociomap computation reads.
+
+    ``object_relation``, when given, must name exactly the ratings' objects in
+    the same order -- positional coincidence is not alignment.
+    """
+
+    ratings: RatingsMatrix
+    object_relation: RelationMatrix | None
+
+    @model_validator(mode="after")
+    def _aligned(self) -> Self:
+        if (
+            self.object_relation is not None
+            and self.object_relation.entity_ids != self.ratings.object_ids
+        ):
+            raise ValueError(
+                "object_relation must list the ratings' object ids in the same order; "
+                "reorder the matrix rather than relying on positional coincidence"
+            )
+        return self
+
+    def fingerprints(self) -> dict[str, str]:
+        """Input fingerprints, as recorded in provenance."""
+        out = {"ratings": self.ratings.fingerprint()}
+        if self.object_relation is not None:
+            out["object_relation"] = self.object_relation.fingerprint()
+        return out
+
+
+# ---------------------------------------------------------------- results --
+
+
+class MetricValues(_Frozen):
+    """One per-object metric, aligned with the artifact's ``object_ids``."""
 
     metric_id: str
     values: tuple[float | None, ...]
@@ -258,75 +316,84 @@ class MetricValues(BaseModel):
         return tuple(_check_finite(x, f"values[{i}]") for i, x in enumerate(v))
 
 
-class LayoutResult(BaseModel):
-    """Canonical 2-D coordinates produced by a layout algorithm.
+def _finite_points(points: tuple[Point, ...], where: str) -> tuple[Point, ...]:
+    for i, (x, y) in enumerate(points):
+        if not (math.isfinite(x) and math.isfinite(y)):
+            raise ValueError(f"{where}[{i}] must be finite")
+    return points
 
-    ``gauge_fixed`` records whether the algorithm fixes translation, rotation,
-    reflection and scale (so two runs are comparable coordinate-by-coordinate)
-    or leaves them free (so comparison needs an alignment step). ``None`` means
-    the implementation has not declared this; a parity comparison must not
-    assume either.
 
-    ``diagnostics`` is for algorithm-specific facts worth auditing -- iteration
-    count, final stress, convergence flag -- and is included in the fingerprint.
+class LayoutResult(_Frozen):
+    """Canonical coordinates from the declared layout algorithm, in map-frame units.
+
+    ``respondent_ids`` are the *placed* respondents, in input order; respondents
+    that could not be placed are listed, with the reason, on the artifact.
+    ``layout_to_map_scale`` is the factor applied to the algorithm's own units by
+    the spec's map frame, recorded so either unit system can be recovered.
     """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
 
     algorithm: str
-    x: tuple[float, ...]
-    y: tuple[float, ...]
-    gauge_fixed: bool | None = None
+    gauge_fixed: bool
+    respondent_ids: tuple[str, ...]
+    respondent_xy: tuple[Point, ...]
+    object_xy: tuple[Point, ...]
+    layout_to_map_scale: float
+    stress_1: float
+    normalized_stress: float
+    iterations: int
+    converged: bool
     diagnostics: dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator("x", "y", mode="before")
+    @field_validator("respondent_xy", "object_xy")
     @classmethod
-    def _no_booleans(cls, v: Any, info: Any) -> Any:
-        return _reject_booleans(v, str(info.field_name))
-
-    @field_validator("x", "y")
-    @classmethod
-    def _finite_coords(cls, v: tuple[float, ...], info: Any) -> tuple[float, ...]:
-        out: list[float] = []
-        for i, value in enumerate(v):
-            checked = _check_finite(value, f"{info.field_name}[{i}]")
-            if checked is None:
-                raise ValueError(f"{info.field_name}[{i}] must not be missing")
-            out.append(checked)
-        return tuple(out)
+    def _finite(cls, v: tuple[Point, ...], info: Any) -> tuple[Point, ...]:
+        return _finite_points(v, str(info.field_name))
 
     @model_validator(mode="after")
-    def _same_length(self) -> Self:
-        if len(self.x) != len(self.y):
-            raise ValueError(f"x has {len(self.x)} values and y has {len(self.y)}")
+    def _aligned(self) -> Self:
+        if len(self.respondent_ids) != len(self.respondent_xy):
+            raise ValueError("respondent_xy must align with respondent_ids")
+        if not (math.isfinite(self.layout_to_map_scale) and self.layout_to_map_scale > 0):
+            raise ValueError("layout_to_map_scale must be positive and finite")
         return self
 
-    @property
-    def n(self) -> int:
-        """Number of placed entities."""
-        return len(self.x)
 
+class RelationDerivation(_Frozen):
+    """The object relation matrix as the engine used it.
 
-class Provenance(BaseModel):
-    """Where an artifact came from, sufficient to reproduce or refuse it.
-
-    No timestamp lives here on purpose: the artifact repository row records
-    ``created_at``, and a time inside the fingerprinted body would make two
-    identical computations look different.
+    ``coerced`` is the directed matrix on the 1-10 scale (diagonal ``0``) -- what
+    relation metrics and scenarios read. ``position_input`` is the symmetric
+    ``[0, 1]`` projection that collapses direction for 2-D placement. Both are
+    kept: direction stays visible even where position ignores it.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    coercion_branch: str
+    coerced: RelationMatrix
+    position_input: RelationMatrix
+    substituted_cells: tuple[tuple[str, str], ...] = ()
+
+
+class Provenance(_Frozen):
+    """Where an artifact came from, sufficient to reproduce or refuse it.
+
+    No timestamp and no host detail: the artifact repository row records
+    ``created_at``, and anything host-specific inside the fingerprinted body
+    would make identical computations on two machines look different -- the
+    very defect the declared-algorithm rule removes.
+    """
 
     implementation: str = ENGINE_IMPLEMENTATION
     implementation_version: str = ENGINE_IMPLEMENTATION_VERSION
-    input_fingerprints: dict[str, str] = Field(default_factory=dict)
+    input_fingerprints: dict[str, str]
     source_artifact_ids: tuple[str, ...] = ()
-    seed: int | None = None
-    dependencies: dict[str, str] = Field(default_factory=dict)
+    layout_algorithm: str
+    seed: int | None
 
-    @field_validator("input_fingerprints", "dependencies")
+    @field_validator("input_fingerprints")
     @classmethod
     def _string_map(cls, v: dict[str, str]) -> dict[str, str]:
+        if "ratings" not in v:
+            raise ValueError("provenance must record the ratings fingerprint")
         for key, value in v.items():
             if not key.strip() or not value.strip():
                 raise ValueError("provenance maps must have non-blank keys and values")
@@ -337,52 +404,49 @@ class ArtifactIntegrityError(ValueError):
     """A serialised artifact's recorded fingerprints do not match its content."""
 
 
-class SociomapArtifact(BaseModel):
+class SociomapArtifact(_Frozen):
     """The canonical, immutable result of one Sociomapping computation.
 
-    Everything a renderer needs and everything an auditor needs, with nothing
-    presentational in it: no pixel positions, no palette, no drag state. The
-    chain ``inputs -> spec -> relation -> layout -> height/colour`` is all here,
-    fingerprinted, so a rendered map can always be traced back to numbers.
-
-    Height and colour are independent of the layout and of each other:
-    :meth:`with_metrics` swaps either while leaving the coordinates untouched,
-    which is the product invariant that position is relationship-derived and
-    stays stable when the displayed metric changes.
+    Nothing presentational: no pixels, no palette, no drag state. The chain
+    ``inputs -> spec -> dissimilarities -> layout -> metrics -> terrain`` is all
+    here and fingerprinted, so a rendered map can always be traced to numbers.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
     kind: Literal["sociomap"] = "sociomap"
-    contract_version: Literal["1"] = ARTIFACT_CONTRACT_VERSION
+    contract_version: Literal["2"] = ARTIFACT_CONTRACT_VERSION
     spec: SociomapSpec
-    entity_ids: tuple[str, ...]
-    relation: RelationMatrix
+    respondent_ids: tuple[str, ...]
+    object_ids: tuple[str, ...]
+    excluded_respondents: dict[str, str]
     layout: LayoutResult
-    height: MetricValues | None = None
-    colour: MetricValues | None = None
-    provenance: Provenance = Field(default_factory=Provenance)
-    quality: dict[str, Any] = Field(default_factory=dict)
+    relation: RelationDerivation | None
+    object_metrics: dict[str, MetricValues]
+    respondent_terrain: TerrainField
+    object_terrain: TerrainField
+    provenance: Provenance
     warnings: tuple[str, ...] = ()
-
-    @field_validator("entity_ids")
-    @classmethod
-    def _ids(cls, v: tuple[str, ...]) -> tuple[str, ...]:
-        return _check_entity_ids(v)
 
     @model_validator(mode="after")
     def _aligned(self) -> Self:
-        n = len(self.entity_ids)
-        if self.relation.entity_ids != self.entity_ids:
+        m = len(self.object_ids)
+        if len(self.layout.object_xy) != m:
             raise ValueError(
-                "relation matrix entity order must equal the artifact entity order; "
-                "reorder the matrix rather than relying on positional coincidence"
+                f"layout places {len(self.layout.object_xy)} objects; artifact has {m}"
             )
-        if self.layout.n != n:
-            raise ValueError(f"layout places {self.layout.n} entities; artifact has {n}")
-        for name, metric in (("height", self.height), ("colour", self.colour)):
-            if metric is not None and len(metric.values) != n:
-                raise ValueError(f"{name} metric has {len(metric.values)} values for {n} entities")
+        placed = set(self.layout.respondent_ids)
+        excluded = set(self.excluded_respondents)
+        if placed & excluded:
+            raise ValueError("a respondent cannot be both placed and excluded")
+        if placed | excluded != set(self.respondent_ids):
+            raise ValueError("every respondent must be either placed or excluded, with a reason")
+        order = [r for r in self.respondent_ids if r in placed]
+        if tuple(order) != self.layout.respondent_ids:
+            raise ValueError("placed respondents must keep the input order")
+        for metric_id, metric in self.object_metrics.items():
+            if metric.metric_id != metric_id or len(metric.values) != m:
+                raise ValueError(f"object metric {metric_id!r} must align with object_ids")
+        if self.relation is not None and self.relation.coerced.entity_ids != self.object_ids:
+            raise ValueError("relation derivation must use the artifact's object order")
         return self
 
     # --------------------------------------------------------------- identity --
@@ -393,41 +457,28 @@ class SociomapArtifact(BaseModel):
         return self.spec.fingerprint()
 
     def fingerprint(self) -> str:
-        """Stable SHA256 over the entire canonical body.
-
-        Identical inputs, spec, implementation and seed give an identical
-        fingerprint. Any difference anywhere -- one coordinate, one warning, one
-        provenance entry -- gives a different one.
-        """
+        """Stable SHA256 over the entire canonical body."""
         return fingerprint(self.model_dump(mode="json"))
 
-    # ------------------------------------------------------------- derivation --
+    def respondent_position(self, respondent_id: str) -> Point:
+        """Canonical map position of a placed respondent (``KeyError`` otherwise)."""
+        try:
+            return self.layout.respondent_xy[self.layout.respondent_ids.index(respondent_id)]
+        except ValueError:
+            raise KeyError(respondent_id) from None
 
-    def with_metrics(
-        self,
-        *,
-        height: MetricValues | Literal[False] | None = False,
-        colour: MetricValues | Literal[False] | None = False,
-    ) -> SociomapArtifact:
-        """Return a copy with height and/or colour replaced; layout is unchanged.
-
-        Pass ``None`` to clear a metric. ``False`` (the default) leaves it as is.
-        The relation, layout, spec and provenance are carried by reference, so the
-        derived artifact answers "why is this point here" identically.
-        """
-        update: dict[str, Any] = {}
-        if height is not False:
-            update["height"] = height
-        if colour is not False:
-            update["colour"] = colour
-        return self.model_copy(update=update)
+    def object_position(self, object_id: str) -> Point:
+        """Canonical map position of an object (``KeyError`` otherwise)."""
+        try:
+            return self.layout.object_xy[self.object_ids.index(object_id)]
+        except ValueError:
+            raise KeyError(object_id) from None
 
     # ---------------------------------------------------------- serialisation --
 
     def to_payload(self) -> dict[str, Any]:
         """JSON-ready payload carrying the body plus its recorded fingerprints.
 
-        The fingerprints are redundant with the body on purpose:
         :meth:`from_payload` recomputes and compares them, so a payload edited in
         storage or in transit is refused rather than served as a finding.
         """

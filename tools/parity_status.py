@@ -56,7 +56,7 @@ NOT_REQUIRED = "NOT_REQUIRED"
 VERDICTS = (FAIL, NOT_RUNNABLE, NOT_EXECUTED, PASS, NOT_REQUIRED)
 
 REFERENCE_BACKED = frozenset(
-    {"reference_comparison", "reference_characterization", "golden_fixture"}
+    {"reference_comparison", "reference_characterization", "reference_contract", "golden_fixture"}
 )
 PARITY_WEIGHT = {"EXACT": 0, "NUMERICAL": 1, "INTENTIONAL_DIFFERENCE": 2, "SEMANTIC": 3}
 NO_RISK_RANK = 99
@@ -306,16 +306,20 @@ def _risk_rank(high_risk: Sequence[str]) -> int:
 def rank_unverified(statuses: Iterable[CapabilityStatus]) -> list[CapabilityStatus]:
     """Order the capabilities that are not release-ready, riskiest first.
 
-    A failed gate outranks everything. Then release blockers. Then code that
-    already exists -- an unverified port can ship; an unstarted one cannot. Then
-    the highest-consequence high-risk behaviour, then the strictest parity type.
+    A failed gate outranks everything. Then release blockers. Then anything
+    whose gates do not pass -- a capability whose existing gates all pass but
+    whose implementation is unfinished is incomplete, not unverified. Then code
+    that already exists -- an unverified port can ship; an unstarted one cannot.
+    Then the highest-consequence high-risk behaviour, then the strictest parity
+    type.
     """
     candidates = [s for s in statuses if s.verdict != NOT_REQUIRED and not s.release_ready]
 
-    def key(s: CapabilityStatus) -> tuple[int, int, int, int, int, str]:
+    def key(s: CapabilityStatus) -> tuple[int, int, int, int, int, int, str]:
         return (
             0 if s.verdict == FAIL else 1,
             0 if s.release_blocker else 1,
+            1 if s.verdict == PASS else 0,
             0 if s.implementation_state in {"IMPLEMENTED", "PARTIAL"} else 1,
             _risk_rank(s.high_risk),
             PARITY_WEIGHT.get(s.parity_type, 9),
@@ -374,25 +378,19 @@ def build_report(
     acceptance_verdict = NOT_RUNNABLE if acceptance["test"] is None or not_ready else NOT_EXECUTED
 
     gate_verdicts = {g.id: g.verdict for s in statuses for g in s.gates}
-    golden_gate_of = {
-        pattern.rsplit("[", 1)[1].rstrip("]"): gate["id"]
-        for cap in matrix["capabilities"].values()
-        for gate in cap["gates"]
-        if gate["kind"] == "golden_fixture"
-        for pattern in gate["tests"]
-        if pattern.endswith("]")
-    }
     fixture_rows = []
     for fid, fx in sorted(fixtures.items()):
-        gate_verdict = gate_verdicts.get(golden_gate_of.get(fid, ""))
+        gate_verdict = gate_verdicts.get(fx["gate"].get("gate_id") or "")
         fixture_rows.append(
             {
                 "fixture": fid,
                 "capability": fx["capability"],
                 "status": fx["status"],
+                "source": fx.get("source"),
                 "gate_state": fx["gate"]["state"],
                 "verdict": gate_verdict or NOT_RUNNABLE,
-                "ci_runnable": set(fx["requires"]) <= {"reference_repo"},
+                "ci_runnable": fx["status"] == "CAPTURED"
+                and set(fx["requires"]) <= {"reference_repo"},
                 "gap": fx["gap"],
             }
         )
@@ -458,12 +456,12 @@ def render_report_markdown(report: Report) -> str:
         "",
         "### Golden fixtures",
         "",
-        "| Fixture | Capability | Status | Gate | Verdict | Runs in CI | Gap |",
+        "| Fixture | Capability | Source | Gate | Verdict | Runs in CI | Gap |",
         "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in report.fixtures:
         lines.append(
-            f"| `{row['fixture']}` | `{row['capability']}` | {row['status']} "
+            f"| `{row['fixture']}` | `{row['capability']}` | {row['source'] or row['status']} "
             f"| {row['gate_state']} | `{row['verdict']}` "
             f"| {'yes' if row['ci_runnable'] else 'no'} | {row['gap'] or ''} |"
         )

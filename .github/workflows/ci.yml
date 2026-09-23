@@ -58,6 +58,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e "packages/aia_core[dev,postgres]"
           pip install -e "apps/api[dev]"
+          pip install -e "apps/worker[dev]"
 
       - name: Layering rules
         # Grep-level enforcement of ARCHITECTURE.md. Runs before the expensive
@@ -74,11 +75,13 @@ jobs:
 
       - name: Lint
         run: |
-          ruff check packages/aia_core apps/api migrations
-          ruff format --check packages/aia_core apps/api migrations
+          ruff check packages/aia_core apps/api apps/worker migrations
+          ruff format --check packages/aia_core apps/api apps/worker migrations
 
       - name: Type check
-        run: mypy packages/aia_core/src apps/api/src
+        # One invocation over every source tree: aia_core ships no py.typed, so a
+        # tree checked on its own sees aia_core as untyped (AGENTS.md § mypy).
+        run: mypy packages/aia_core/src apps/api/src apps/worker/src
 
       - name: Migrations apply cleanly
         run: alembic upgrade head
@@ -116,11 +119,21 @@ jobs:
           pytest packages/aia_core/tests/test_workflow_concurrency.py -q
           --junit-xml=tmp/junit/concurrency.xml -o junit_family=xunit1
 
+      - name: Worker tests, including real worker processes (PostgreSQL only)
+        # Starts `python -m aia_worker` processes and SIGKILLs / SIGTERMs them
+        # mid-step and mid-paid-call. These are the only tests that exercise two
+        # workers contending, a worker dying, and a clean shutdown -- so, like the
+        # concurrency suite, a missing database must fail rather than skip.
+        env:
+          AIA_REQUIRE_POSTGRES: "1"
+        run: pytest apps/worker -q --junit-xml=tmp/junit/worker-postgres.xml -o junit_family=xunit1
+
       - name: Domain tests on SQLite
-        # The offline development path must keep working too.
+        # The offline development path must keep working too. The worker's
+        # process suite skips here by design: SQLite cannot express contention.
         env:
           DATABASE_URL: ""
-        run: pytest packages/aia_core apps/api -q --junit-xml=tmp/junit/sqlite.xml -o junit_family=xunit1
+        run: pytest packages/aia_core apps/api apps/worker -q --junit-xml=tmp/junit/sqlite.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -172,9 +185,11 @@ jobs:
 
   golden-fixtures:
     # The golden fixtures are committed JSON in the private reference
-    # repository and need no raw archive. They are fetched at the commit pinned
-    # in docs/migration/parity-matrix.json -- never copied into this repository
-    # -- and every fixture is refused unless it hashes to its pin.
+    # repository and need no raw archive. F1-F9 are vendored and gated in the
+    # backend job; this job checks out the reference at the commit pinned in
+    # docs/migration/parity-matrix.json, refuses any fixture that does not hash
+    # to its pin, proves each vendored copy is byte-identical to its original,
+    # and runs the F10/F11 and population-contract gates that read the checkout.
     #
     # Access is a read-only deploy key on AiAnalytics-AIA/AIA-reference, stored
     # as the AIA_REFERENCE_DEPLOY_KEY secret. Without it (forks, or before it is
@@ -223,10 +238,14 @@ jobs:
           pip install -e "packages/aia_core[dev]"
 
       - name: Run golden-fixture gates
+        # F1-F9 are vendored and run in the backend job with no checkout; what
+        # needs the reference repository is the pin check against its manifest
+        # and parity plan, and F10/F11 plus the population contract parity.
         env:
           AIA_REFERENCE_REPO: ${{ github.workspace }}/.reference/aia-reference
         run: >-
-          pytest packages/aia_core/tests/test_golden_fixtures.py -q -rs
+          pytest packages/aia_core/tests/test_golden_fixtures.py
+          packages/aia_core/tests/test_population_reference_parity.py -q -rs
           --junit-xml=tmp/junit/golden.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4
@@ -400,6 +419,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e "packages/aia_core[dev,postgres]"
           pip install -e "apps/api[dev]"
+          pip install -e "apps/worker[dev]"
 
       - name: Migrate and boot the API
         # Proves the real ASGI server starts against a real database and serves
@@ -471,6 +491,27 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' "$BASE")" = "401"
           echo "project lifecycle OK; unauthenticated access refused"
 
+      - name: The worker boots against the migrated schema and stops on SIGTERM
+        # A passing unit test does not prove the process starts: the console
+        # entry point, settings from the environment, executor loading and the
+        # signal handling are all exercised only here.
+        env:
+          AIA_WORKER_EXECUTORS: aia_worker.testing:build_registry
+        run: |
+          aia-worker > worker.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 30); do
+            if grep -q '"worker started"' worker.log; then break; fi
+            sleep 1
+          done
+          kill -TERM "$PID"
+          wait "$PID"
+          cat worker.log
+          grep -q '"worker stopped"' worker.log
+          # It must have *worked*, not merely survived: the loop outlives a
+          # database error by design, so an unmigrated schema would still exit 0.
+          ! grep -q '"level": "ERROR"' worker.log
+
   security:
     name: Security and dependency scan
     runs-on: ubuntu-latest
@@ -486,7 +527,7 @@ jobs:
 
       - name: Audit Python dependencies
         run: |
-          pip install -e "packages/aia_core[postgres]" -e "apps/api"
+          pip install -e "packages/aia_core[postgres]" -e "apps/api" -e "apps/worker"
           pip-audit --strict --ignore-vuln GHSA-0000-0000-0000 || true
 
       - uses: actions/setup-node@v4

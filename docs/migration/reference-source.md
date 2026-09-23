@@ -77,6 +77,23 @@ Rules:
    reference is a sibling checkout or a bootstrap-managed directory.
 4. `bootstrap_reference.sh` prints the correct value to export.
 
+## `AIA_REFERENCE_REPO` contract
+
+The population parity suite (`packages/aia_core/tests/test_population_reference_parity.py`)
+reads the **repository**, not the archive: `field-policy.json`,
+`dataset-ledger.json` and `golden-fixtures/F10_*` / `F11_*`.
+
+```bash
+git clone https://github.com/AiAnalytics-AIA/AIA-reference.git ../aia-reference
+export AIA_REFERENCE_REPO=../aia-reference     # optional; ../aia-reference is the default
+make test-parity
+```
+
+Same rules as above: absent is valid and every test skips; nothing from it is ever
+copied here. The production contract (`aia_core.domain.population.czech`) pins the
+field dictionary by SHA256 and the ordered field names by fingerprint instead of
+carrying the 400 names, and this suite is what proves the pins still match.
+
 ## Do not duplicate raw assets into this repository
 
 This repository is the clean production rebuild. It must not absorb:
@@ -128,13 +145,18 @@ schema gate and the committed artifact are all asserted by
 ## Golden fixtures in CI — no archive needed
 
 The eleven golden fixtures are committed JSON in the reference repository and
-**do not need the archive**. CI's `golden-fixtures` job checks the reference
-repository out at the commit pinned in
-[`parity-matrix.json`](parity-matrix.json) (`reference.commit`), using a
-read-only deploy key held as the `AIA_REFERENCE_DEPLOY_KEY` secret, and every
-fixture is refused unless its SHA256 matches the pin. The fixtures are never
-copied into this repository. Locally, a sibling clone at `../aia-reference` or
-`AIA_REFERENCE_REPO` does the same: `make test-golden`.
+**do not need the archive**. Two routes carry them into CI:
+
+- **F1–F9 are vendored** (next section) and run in every backend job.
+- **F10–F11 are read from a reference checkout.** CI's `golden-fixtures` job
+  checks the reference repository out at the commit pinned in
+  [`parity-matrix.json`](parity-matrix.json) (`reference.commit`) with a
+  read-only deploy key held as the `AIA_REFERENCE_DEPLOY_KEY` secret. The same
+  job checks that the reference's fixture manifest and parity plan hash to their
+  pins, and that every vendored copy is byte-identical to the fixture it copies.
+
+Locally, a sibling clone at `../aia-reference` or `AIA_REFERENCE_REPO` does the
+same: `make test-golden`.
 
 The pin is a **commit**, not the tag: the tag points at `90d4c5b`, two commits
 behind `678e298`, and differs from it only in two tool scripts.
@@ -143,10 +165,22 @@ behind `678e298`, and differs from it only in two tool scripts.
 
 | Item | Owner |
 | --- | --- |
-| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and the archive** | parity-quality + A8 sociomapa-deterministic (`.planning/open-items.md` OI-6) |
-| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential, an ADR 0008 egress route **and the archive** | parity-quality + A7 simulation-engine (OI-7) |
+| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and** the reference's withheld R wrapper; open as OI-15, no R parity claimed | parity-quality + A8 sociomapa-deterministic |
+| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential, an ADR 0008 egress route **and** the withheld `full_simulation.py`; open as OI-24 | parity-quality + A7 simulation-engine |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` — needs a licence decision | data owner |
 
 Neither fixture gap is unknown behaviour: code paths, constants and seeds are
-recovered. Both need a different environment, not more discovery — and both
-recipes execute legacy code, so that environment includes the archive.
+recovered. The simulation gap needs a different environment and, like the Sociomapping gap, the archive: its recipe runs the reference's `build_world_model` and `inoculate_population` (OI-24). The Sociomapping
+gap turned out to need more than that: the R *recipe* runs the reference's own
+`fit_unfolding` wrapper, which is in the withheld archive
+(`.planning/open-items.md` OI-15).
+
+## Golden fixtures vendored here
+
+`golden-fixtures/F1`–`F9` (Sociomapping) are vendored under
+`packages/aia_core/tests/fixtures/sociomap/`, byte for byte, each pinned to its
+SHA256 in `index.json` against the reference commit it came from. They are
+synthetic inputs with the reference's recorded outputs — not reference source,
+not client data — which is what makes them the one kind of reference material
+this repository may hold. One is renamed to satisfy `exposure_check` (see
+`AGENTS.md`).

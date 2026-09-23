@@ -33,6 +33,7 @@ from aia_core.domain.workflow import (
     RecoveryAction,
     StepDefinition,
     StepRunStatus,
+    WorkflowRunStatus,
 )
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.repositories import ProjectRepository
@@ -44,8 +45,28 @@ from aia_core.infrastructure.tables import (
 )
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
+    LeaseLost,
     WorkflowRepository,
 )
+
+
+def _operator(*permissions: str) -> Any:
+    """An issued population-operator context, the only thing establish/promote accept."""
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+
+    config = PopulationOperatorConfig.from_names(
+        {"owner": permissions or ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+    )
+    return PopulationAuthority(config).operator_context(
+        AuthenticatedPrincipal(user_id="owner", organization_id="platform")
+    )
+
+
+OPERATOR = _operator()
 
 pytestmark = pytest.mark.postgres
 
@@ -297,6 +318,7 @@ def test_concurrent_settlements_compose_rather_than_overwrite(
             for _ in range(2):
                 reservation_id = setup_repo.reserve_budget(
                     attempt_id=work.attempt_id,
+                    worker_id=work.worker_id,
                     amount_usd=5.0,
                     provider=Provider.ANTHROPIC,
                 )
@@ -347,10 +369,11 @@ def test_concurrent_reconcilers_recover_each_attempt_once(
         for work in claimed[:2]:
             setup_repo.reserve_budget(
                 attempt_id=work.attempt_id,
+                worker_id=work.worker_id,
                 amount_usd=5.0,
                 provider=Provider.ANTHROPIC,
             )
-            setup_repo.mark_paid_call_dispatched(work.attempt_id)
+            setup_repo.mark_paid_call_dispatched(work.attempt_id, worker_id=work.worker_id)
 
         for work in claimed:
             attempt = setup_session.get(StepAttemptRow, work.attempt_id)
@@ -538,6 +561,132 @@ def test_heartbeat_races_do_not_transfer_a_lease(
         assert attempt.worker_id == "owner"
 
 
+def test_regression_a_heartbeat_cannot_resurrect_an_attempt_recovered_under_it(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**W1.** A reconciler's verdict must survive a heartbeat that read first.
+
+    The interleaving is forced rather than raced, so the test fails every time on
+    the defect instead of occasionally:
+
+    1. the worker's session has the attempt loaded -- as a heartbeat that has
+       done its read would;
+    2. a reconciler on another connection expires and recovers it, and commits;
+    3. the worker's heartbeat proceeds.
+
+    Before the fix, step 3 wrote ``EXECUTING`` and a fresh deadline back over
+    ``EXPIRED`` by primary key, while the step was already ``RUNNABLE`` -- so a
+    second worker claimed it and two workers ran one step. Measured: fails 1 of 1
+    against the read-check-write heartbeat, passes against the conditional update.
+    """
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        claimed = repo.claim_next(worker_id="owner")
+        assert claimed is not None
+        attempt = session.get(StepAttemptRow, claimed.attempt_id)
+        assert attempt is not None
+        attempt.lease_until = datetime.now(UTC) - timedelta(minutes=5)
+        session.commit()
+    finally:
+        session.close()
+
+    worker_session, worker_repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        # (1) the worker has read the attempt; it is CLAIMED in its identity map.
+        stale = worker_session.get(StepAttemptRow, claimed.attempt_id)
+        assert stale is not None
+        assert stale.status == AttemptStatus.CLAIMED.value
+
+        # (2) a reconciler recovers it on another connection, and commits.
+        reconciler_session, reconciler_repo = _repo_in_new_session(pg_sessions, world)
+        try:
+            assert len(reconciler_repo.recover_expired_attempts()) == 1
+            reconciler_session.commit()
+        finally:
+            reconciler_session.close()
+
+        # (3) the worker's heartbeat must now be refused.
+        assert worker_repo.heartbeat(claimed.attempt_id, worker_id="owner") is False
+        worker_session.commit()
+    finally:
+        worker_session.close()
+
+    with pg_sessions() as check:
+        attempt = check.get(StepAttemptRow, claimed.attempt_id)
+        assert attempt is not None
+        assert attempt.status == AttemptStatus.EXPIRED.value, "the recovery verdict stands"
+
+    # And the step is claimable by a new owner.
+    successor_session, successor_repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        assert successor_repo.claim_next(worker_id="successor") is not None
+        successor_session.commit()
+    finally:
+        successor_session.close()
+
+
+def test_completion_racing_recovery_leaves_exactly_one_outcome(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**W2 under contention.** The owner finishing as the reconciler fires.
+
+    Either the completion wins -- the attempt is SUCCEEDED and recovery finds
+    nothing -- or recovery wins and the completion is refused with ``LeaseLost``.
+    What must never happen is both: a SUCCEEDED step that recovery also made
+    RUNNABLE again. Repeated, because a race lost once proves little.
+    """
+    for round_number in range(8):
+        session, repo = _repo_in_new_session(pg_sessions, world)
+        try:
+            # A fresh one-step run per round, claimed at a priority above the
+            # fixture's steps, so every round races over a step of its own.
+            repo.create_run(
+                project_id=world["project_id"],
+                project_revision=1,
+                workflow_type="race",
+                steps=[StepDefinition(node_key="only", kind="k", priority=99)],
+                idempotency_key=f"race-{round_number}",
+            )
+            claimed = repo.claim_next(worker_id=f"owner-{round_number}")
+            assert claimed is not None
+            attempt = session.get(StepAttemptRow, claimed.attempt_id)
+            assert attempt is not None
+            attempt.lease_until = datetime.now(UTC) - timedelta(minutes=5)
+            session.commit()
+        finally:
+            session.close()
+
+        def act(index: int, work: Any = claimed) -> str:
+            s, r = _repo_in_new_session(pg_sessions, world)
+            try:
+                if index == 0:
+                    try:
+                        r.complete_attempt(work.attempt_id, worker_id=work.worker_id)
+                    except LeaseLost:
+                        s.rollback()
+                        return "refused"
+                    s.commit()
+                    return "completed"
+                recovered = r.recover_expired_attempts()
+                s.commit()
+                return f"recovered:{len(recovered)}"
+            finally:
+                s.close()
+
+        outcome = _run_concurrently(2, act)
+        assert sorted(outcome) in (
+            ["completed", "recovered:0"],
+            ["recovered:1", "refused"],
+        ), f"round {round_number}: {outcome}"
+
+        with pg_sessions() as check:
+            attempts = check.scalars(
+                select(StepAttemptRow).where(StepAttemptRow.step_id == claimed.step_id)
+            ).all()
+            statuses = sorted(a.status for a in attempts)
+            assert statuses.count(AttemptStatus.SUCCEEDED.value) <= 1
+
+
 # --------------------------------------------------------------------------- #
 # 2. Idempotency under concurrency
 # --------------------------------------------------------------------------- #
@@ -610,7 +759,7 @@ def test_a_duplicate_delivery_after_success_does_not_re_execute(
     try:
         claimed = repo.claim_next(worker_id="worker-1")
         assert claimed is not None
-        repo.complete_attempt(claimed.attempt_id, output={"ok": True})
+        repo.complete_attempt(claimed.attempt_id, worker_id=claimed.worker_id, output={"ok": True})
         session.commit()
         completed_step = claimed.step_id
     finally:
@@ -663,7 +812,12 @@ def test_concurrent_reservations_cannot_exceed_the_budget(
     def reserve(index: int) -> bool:
         s, r = _repo_in_new_session(pg_sessions, world)
         try:
-            r.reserve_budget(attempt_id=claims[index], amount_usd=40.0, provider=Provider.ANTHROPIC)
+            r.reserve_budget(
+                attempt_id=claims[index],
+                worker_id=f"worker-{index}",
+                amount_usd=40.0,
+                provider=Provider.ANTHROPIC,
+            )
             s.commit()
             return True
         except (BudgetExceeded, Exception):
@@ -702,6 +856,7 @@ def test_a_failed_reservation_leaves_no_partial_state(
         with pytest.raises(BudgetExceeded):
             repo.reserve_budget(
                 attempt_id=claimed.attempt_id,
+                worker_id=claimed.worker_id,
                 amount_usd=1_000.0,
                 provider=Provider.ANTHROPIC,
             )
@@ -730,7 +885,10 @@ def test_an_attempt_and_its_reservation_commit_or_roll_back_together(
         claimed = repo.claim_next(worker_id="worker-1")
         assert claimed is not None
         repo.reserve_budget(
-            attempt_id=claimed.attempt_id, amount_usd=10.0, provider=Provider.ANTHROPIC
+            attempt_id=claimed.attempt_id,
+            worker_id=claimed.worker_id,
+            amount_usd=10.0,
+            provider=Provider.ANTHROPIC,
         )
         # Simulate a crash between preparing the call and dispatching it.
         session.rollback()
@@ -760,9 +918,14 @@ def test_uncertain_settlement_is_charged_exactly_once_under_contention(
         claimed = repo.claim_next(worker_id="worker-1")
         assert claimed is not None
         repo.reserve_budget(
-            attempt_id=claimed.attempt_id, amount_usd=7.5, provider=Provider.ANTHROPIC
+            attempt_id=claimed.attempt_id,
+            worker_id=claimed.worker_id,
+            amount_usd=7.5,
+            provider=Provider.ANTHROPIC,
         )
-        repo.mark_paid_call_dispatched(claimed.attempt_id, provider_request_id="req_x")
+        repo.mark_paid_call_dispatched(
+            claimed.attempt_id, worker_id=claimed.worker_id, provider_request_id="req_x"
+        )
         attempt = session.get(StepAttemptRow, claimed.attempt_id)
         assert attempt is not None
         attempt.lease_until = datetime.now(UTC) - timedelta(minutes=10)
@@ -911,3 +1074,238 @@ def test_cross_client_isolation_holds_under_concurrency(
         "another client's worker must never receive this study's work"
     )
     assert any(claimed is not None for label, claimed in results if label == "own")
+
+
+# --------------------------------------------------------------------------- #
+# Run-level derivation under concurrent step transitions (W8)
+# --------------------------------------------------------------------------- #
+
+
+def _create_run(
+    pg_sessions: sessionmaker[Session],
+    world: dict[str, Any],
+    steps: list[StepDefinition],
+    key: str,
+) -> str:
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        run_id = repo.create_run(
+            project_id=world["project_id"],
+            project_revision=1,
+            workflow_type=key,
+            steps=steps,
+            idempotency_key=key,
+        )
+        session.commit()
+        return run_id
+    finally:
+        session.close()
+
+
+def _claim_all(pg_sessions: sessionmaker[Session], world: dict[str, Any], run_id: str) -> list[Any]:
+    """Claim every currently runnable step of one run, one worker each."""
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        claims = []
+        while (work := repo.claim_next(worker_id=f"w{len(claims)}")) is not None:
+            if work.run_id == run_id:
+                claims.append(work)
+        session.commit()
+        return claims
+    finally:
+        session.close()
+
+
+def _complete_interleaved(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any], first: Any, second: Any
+) -> None:
+    """Complete two attempts in overlapping transactions, the first committing last-but-one.
+
+    ``first`` completes and holds its transaction open; ``second`` completes on
+    another thread; then ``first`` commits, then ``second``. Without serialisation
+    the second transaction derives everything from a snapshot in which the first
+    step is still RUNNING.
+    """
+    s1, r1 = _repo_in_new_session(pg_sessions, world)
+    s2, r2 = _repo_in_new_session(pg_sessions, world)
+    try:
+        r1.complete_attempt(first.attempt_id, worker_id=first.worker_id)
+
+        done = threading.Event()
+
+        def complete_second() -> None:
+            r2.complete_attempt(second.attempt_id, worker_id=second.worker_id)
+            done.set()
+
+        thread = threading.Thread(target=complete_second)
+        thread.start()
+        # Long enough for the second completion to finish if nothing makes it
+        # wait; it is a bound, not a measurement.
+        done.wait(1.0)
+        s1.commit()
+        thread.join(30)
+        assert not thread.is_alive()
+        s2.commit()
+    finally:
+        s1.close()
+        s2.close()
+
+
+def test_regression_the_last_two_steps_finishing_together_complete_the_run(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**W8.** Two workers finish a run's last two steps at the same moment.
+
+    Each transaction derived the run's status from a snapshot in which the
+    *other* step was still RUNNING, so each wrote RUNNING -- which, since the
+    derivation writes only on change, meant neither wrote anything -- and the run
+    read RUNNING forever with every step SUCCEEDED.
+    """
+    run_id = _create_run(
+        pg_sessions, world, [StepDefinition(node_key=k, kind="k", priority=99) for k in "ab"], "w8"
+    )
+    first, second = _claim_all(pg_sessions, world, run_id)[:2]
+
+    _complete_interleaved(pg_sessions, world, first, second)
+
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        run = repo.get_run(run_id)
+        assert [s["status"] for s in run["steps"]] == [StepRunStatus.SUCCEEDED] * 2
+        assert run["status"] is WorkflowRunStatus.COMPLETED
+    finally:
+        session.close()
+
+
+def test_regression_a_join_step_is_released_when_both_parents_finish_together(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """**W8, the worse half.** A diamond: ``root → (left, right) → join``.
+
+    ``left`` and ``right`` finish concurrently; each saw the other RUNNING, so
+    neither released ``join``, and the pipeline stalled with nothing runnable.
+    """
+    steps = [
+        StepDefinition(node_key="root", kind="k", priority=99),
+        StepDefinition(node_key="left", kind="k", depends_on=("root",), priority=99),
+        StepDefinition(node_key="right", kind="k", depends_on=("root",), priority=99),
+        StepDefinition(node_key="join", kind="k", depends_on=("left", "right"), priority=99),
+    ]
+    run_id = _create_run(pg_sessions, world, steps, "w8-diamond")
+    [root] = _claim_all(pg_sessions, world, run_id)
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        repo.complete_attempt(root.attempt_id, worker_id=root.worker_id)
+        session.commit()
+    finally:
+        session.close()
+    left, right = _claim_all(pg_sessions, world, run_id)
+
+    _complete_interleaved(pg_sessions, world, left, right)
+
+    session, repo = _repo_in_new_session(pg_sessions, world)
+    try:
+        statuses = {s["node_key"]: s["status"] for s in repo.get_run(run_id)["steps"]}
+        assert statuses["join"] is StepRunStatus.RUNNABLE, statuses
+    finally:
+        session.close()
+
+
+# Population promotion under contention
+# --------------------------------------------------------------------------- #
+
+
+def test_concurrent_live_promotions_have_exactly_one_winner(
+    pg_sessions: sessionmaker[Session], synthetic_population: Any
+) -> None:
+    """Eight operators promote the LIVE population at once, all from the same version.
+
+    Every one of them passed the domain check against the same snapshot. The
+    row lock plus the compare-and-set update must still let exactly one through;
+    the rest see ``PromotionConflict`` and change nothing.
+    """
+    from aia_core.application.population import PopulationRuntime
+    from aia_core.domain.population import PopulationKind, PromotionConflict, VersionStatus
+
+    pop = synthetic_population
+    workers = 8
+
+    def runtime(session: Session) -> PopulationRuntime:
+        return PopulationRuntime(session, contract=pop.contract, source=pop.source)
+
+    with pg_sessions() as setup:
+        rt = runtime(setup)
+        versions = {}
+        for label in ("v1_BASE", "v1_1", "v1_4"):
+            versions[label] = rt.import_version(
+                label=label,
+                panel_location=pop.location(label),
+                dictionary_location=pop.dictionary_location,
+                provenance="synthetic",
+                imported_by="importer",
+            )
+        candidates = []
+        for i in range(workers):
+            location = f"panels/candidate_{i}.csv.gz"
+            pop.source.put(
+                location,
+                pop.rebuild("v1_4", lambda rows, i=i: rows[0].update(segment=f"candidate-{i}")),
+            )
+            candidates.append(
+                rt.import_version(
+                    label=f"candidate_{i}",
+                    panel_location=location,
+                    dictionary_location=pop.dictionary_location,
+                    provenance="synthetic",
+                    imported_by="importer",
+                    parent_version_id=versions["v1_4"].version_id,
+                ).version_id
+            )
+        rt.establish(
+            population_id="SYN_STATIC",
+            kind=PopulationKind.STATIC,
+            version_id=versions["v1_1"].version_id,
+            operator=OPERATOR,
+            reason="establish",
+        )
+        rt.establish(
+            population_id="SYN_LIVE",
+            kind=PopulationKind.LIVE,
+            version_id=versions["v1_4"].version_id,
+            operator=OPERATOR,
+            reason="establish",
+        )
+        setup.commit()
+
+    barrier = threading.Barrier(workers)
+    expected = versions["v1_4"].version_id
+
+    def promote(target: str) -> str:
+        with pg_sessions() as session:
+            barrier.wait(timeout=30)
+            try:
+                runtime(session).promote_live(
+                    population_id="SYN_LIVE",
+                    target_version_id=target,
+                    expected_current_version_id=expected,
+                    operator=OPERATOR,
+                    reason="race",
+                )
+                session.commit()
+                return "won"
+            except PromotionConflict:
+                session.rollback()
+                return "conflict"
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        outcomes = list(pool.map(promote, candidates))
+
+    assert outcomes.count("won") == 1
+    assert outcomes.count("conflict") == workers - 1
+    with pg_sessions() as check:
+        rt = runtime(check)
+        winner = candidates[outcomes.index("won")]
+        assert rt.version_status(winner) is VersionStatus.LIVE_CURRENT
+        assert rt.version_status(expected) is VersionStatus.SUPERSEDED
+        losers = [c for c in candidates if c != winner]
+        assert all(rt.version_status(c) is VersionStatus.REGISTERED for c in losers)

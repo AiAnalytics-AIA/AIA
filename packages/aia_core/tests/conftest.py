@@ -46,12 +46,13 @@ def legacy_root() -> Path:
 
 
 # --------------------------------------------------------------------------- #
-# The reference repository (golden fixtures)
+# The reference repository (contracts and golden fixtures)
 #
 # Distinct from the legacy prototype above. ``AiAnalytics-AIA/AIA-reference`` is
-# the private specification repository: it holds the golden fixtures as
-# committed JSON and needs no raw archive. CI checks it out with a read-only
-# deploy key; locally it is a sibling clone or ``AIA_REFERENCE_REPO``.
+# the private specification repository: contracts, field policy and golden
+# fixtures as committed JSON, with no archive and no licensed data. CI checks it
+# out with a read-only deploy key; locally it is a sibling clone or
+# ``AIA_REFERENCE_REPO``.
 # --------------------------------------------------------------------------- #
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -62,29 +63,35 @@ _DEFAULT_REFERENCE_REPO_PATHS = (
 )
 
 
-def _reference_repo_root() -> Path | None:
-    """Return a reference-repository checkout, or None when there is none."""
+def _reference_repo() -> Path | None:
+    """Return the AIA-reference checkout, or None when it is unavailable.
+
+    Identified by its golden-fixture manifest and field policy together.
+    """
     configured = os.environ.get("AIA_REFERENCE_REPO")
     candidates = [Path(configured)] if configured else list(_DEFAULT_REFERENCE_REPO_PATHS)
     for candidate in candidates:
-        if (candidate / "golden-fixtures" / "manifest.json").is_file():
+        if (candidate / "golden-fixtures" / "manifest.json").is_file() and (
+            candidate / "field-policy.json"
+        ).is_file():
             return candidate
     return None
 
 
 @pytest.fixture(scope="session")
 def reference_repo() -> Path:
-    """Return the reference repository root, skipping -- or failing -- without it.
+    """Return the AIA-reference checkout, skipping -- or failing -- without it.
 
     Absent is valid by default, so a fork or a fresh clone stays green. Once CI
     holds the deploy key it sets ``AIA_REQUIRE_REFERENCE_REPO=1``, and a missing
     checkout becomes a failure rather than a skip that reads like a pass.
     """
-    root = _reference_repo_root()
+    root = _reference_repo()
     if root is None:
         message = (
-            "reference repository not available; clone AiAnalytics-AIA/AIA-reference "
-            "beside this repository or set AIA_REFERENCE_REPO to enable golden fixtures"
+            "AIA-reference not available; clone AiAnalytics-AIA/AIA-reference beside "
+            "this repository or set AIA_REFERENCE_REPO to enable golden-fixture and "
+            "population parity tests"
         )
         if os.environ.get("AIA_REQUIRE_REFERENCE_REPO") == "1":
             pytest.fail("AIA_REQUIRE_REFERENCE_REPO=1 but " + message)
@@ -379,3 +386,395 @@ def scope_builder() -> Any:
     imports between their modules collide.
     """
     return build_scope_fixture
+
+
+# --------------------------------------------------------------------------- #
+# Sociomapping golden fixtures
+#
+# F1-F9 are synthetic fixtures captured by executing the reference, vendored from
+# AiAnalytics-AIA/AIA-reference (see fixtures/sociomap/index.json). Unlike the
+# legacy prototype they ARE in this repository, so the tests that use them run in
+# every CI job rather than skipping.
+# --------------------------------------------------------------------------- #
+
+SOCIOMAP_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "sociomap"
+
+
+@pytest.fixture(scope="session")
+def sociomap_fixture() -> Any:
+    """Return a loader: ``sociomap_fixture("F1")`` -> the parsed fixture document."""
+    import json
+
+    index = json.loads((SOCIOMAP_FIXTURES / "index.json").read_text(encoding="utf-8"))
+    by_prefix = {fid.split("_", 1)[0]: entry for fid, entry in index["fixtures"].items()}
+
+    def load(fixture: str) -> dict[str, Any]:
+        entry = by_prefix[fixture]
+        document: dict[str, Any] = json.loads(
+            (SOCIOMAP_FIXTURES / entry["file"]).read_text(encoding="utf-8")
+        )
+        return document
+
+    return load
+
+
+# --------------------------------------------------------------------------- #
+# Synthetic population bundles
+#
+# The real panels are licensed-derived data withheld from every repository, so
+# population tests run on a small synthetic dataset built here, through exactly the
+# code paths the real import uses: gzip-compressed UTF-8 CSV, a field dictionary,
+# and a contract pinning both by hash. Three versions with the preserved lineage
+# shape -- root, static reference, live -- differing in bytes but not in weights.
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class SyntheticPopulation:
+    """A contract, an in-memory asset source and the bytes of three versions."""
+
+    contract: Any
+    source: Any
+    fields: tuple[str, ...]
+    rows: dict[str, list[dict[str, str]]]
+    dictionary_location: str = "dictionary.csv"
+
+    def location(self, label: str) -> str:
+        return f"panels/{label}.csv.gz"
+
+    def panel_bytes(self, label: str) -> bytes:
+        return bytes(self.source.read(self.location(label)))
+
+    def rebuild(self, label: str, mutate: Any) -> bytes:
+        """Return ``label``'s bytes rebuilt with ``mutate`` applied to a copy of its rows."""
+        rows = [dict(r) for r in self.rows[label]]
+        mutate(rows)
+        return gzip_csv(self.fields, rows)
+
+
+SYNTHETIC_FIELDS = ("row_id", "vek", "occupation_code", "segment", "w_main", "w_alt")
+SYNTHETIC_ENRICHMENT = ("life_stage_derived", "dominant_media_derived")
+
+
+def synthetic_rows(segment_suffix: str) -> list[dict[str, str]]:
+    """Six respondents. Leading-zero occupation codes, a quoted comma, Czech text."""
+    return [
+        {
+            "row_id": "R1",
+            "vek": "34",
+            "occupation_code": "0110",
+            "segment": f"a{segment_suffix}",
+            "w_main": "1.5",
+            "w_alt": "2",
+        },
+        {
+            "row_id": "R2",
+            "vek": "71",
+            "occupation_code": "0310",
+            "segment": f"b{segment_suffix}",
+            "w_main": "0.5",
+            "w_alt": "1",
+        },
+        {
+            "row_id": "R3",
+            "vek": "",
+            "occupation_code": "2512",
+            "segment": "Praha, střed",
+            "w_main": "2.0",
+            "w_alt": "1",
+        },
+        {
+            "row_id": "R4",
+            "vek": "18",
+            "occupation_code": "0010",
+            "segment": "NA",
+            "w_main": "1.0",
+            "w_alt": "3",
+        },
+        {
+            "row_id": "R5",
+            "vek": "45",
+            "occupation_code": "9629",
+            "segment": "",
+            "w_main": "3.25",
+            "w_alt": "1",
+        },
+        {
+            "row_id": "R6",
+            "vek": "100",
+            "occupation_code": "0000",
+            "segment": "x",
+            "w_main": "0.75",
+            "w_alt": "2",
+        },
+    ]
+
+
+# One policy row per synthetic field: (block, evidence_status, grade, recommended_use,
+# persona_eligible). Chosen to cover the interesting policy categories.
+SYNTHETIC_POLICY: dict[str, tuple[str, str, str, str, str]] = {
+    "row_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
+    "vek": ("population_anchor", "POPULATION_ANCHOR", "A", "PERSONA_OR_ANALYSIS_WITH_SCOPE", "yes"),
+    "occupation_code": ("core", "CANONICAL_CORE", "C", "HISTORICAL_OR_EXPLORATORY", "yes"),
+    "segment": (
+        "marketing_behavior",
+        "MODELED_MARKETING_PRIOR",
+        "B",
+        "behavioral prior / simulation modifier, never measured fact",
+        "yes",
+    ),
+    "w_main": ("weight", "NEW_WEIGHT", "T", "AUDIT_ONLY", "no"),
+    "w_alt": ("weight", "NEW_WEIGHT", "T", "AUDIT_ONLY", "no"),
+}
+
+DEFAULT_POLICY_ROW = ("core", "POPULATION_ANCHOR", "A", "PERSONA_OR_ANALYSIS_WITH_SCOPE", "yes")
+
+
+def policy_dictionary_csv(
+    fields: tuple[str, ...], policy: dict[str, tuple[str, str, str, str, str]] | None = None
+) -> bytes:
+    """A field dictionary in the reference's column layout, with a policy row per field."""
+    import csv
+    import io
+
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(
+        [
+            "field",
+            "block",
+            "source",
+            "evidence_status",
+            "production_grade",
+            "recommended_use",
+            "description",
+            "persona_eligible",
+        ]
+    )
+    for name in fields:
+        block, status, grade, use, persona = (policy or {}).get(name, DEFAULT_POLICY_ROW)
+        writer.writerow(
+            [name, block, "synthetic", status, grade, use, f"{name} (synthetic)", persona]
+        )
+    return buffer.getvalue().encode("utf-8")
+
+
+@pytest.fixture
+def policy_dictionary() -> Any:
+    """Return :func:`policy_dictionary_csv` for tests that build their own dictionaries."""
+    return policy_dictionary_csv
+
+
+def gzip_csv(fields: tuple[str, ...], rows: list[dict[str, str]]) -> bytes:
+    """Deterministic gzip CSV (mtime=0), so a version's hash is stable."""
+    import csv
+    import gzip
+    import io
+
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(fields)
+    for row in rows:
+        writer.writerow([row.get(f, "") for f in fields])
+    return gzip.compress(buffer.getvalue().encode("utf-8"), mtime=0)
+
+
+def build_synthetic_population() -> SyntheticPopulation:
+    from aia_core.domain.population import (
+        KnownVersion,
+        PopulationImportContract,
+        WeightScheme,
+        content_sha256,
+        field_names_fingerprint,
+    )
+    from aia_core.infrastructure.population_source import InMemoryPopulationSource
+
+    rows = {
+        "v1_BASE": synthetic_rows("0"),
+        "v1_1": synthetic_rows("1"),
+        "v1_4": synthetic_rows("4"),
+    }
+    panels = {label: gzip_csv(SYNTHETIC_FIELDS, r) for label, r in rows.items()}
+    dictionary_bytes = policy_dictionary_csv(SYNTHETIC_FIELDS, SYNTHETIC_POLICY)
+
+    contract = PopulationImportContract(
+        contract_id="synthetic_population/v1",
+        dataset_id="synthetic_population",
+        field_count=len(SYNTHETIC_FIELDS),
+        field_names_sha256=field_names_fingerprint(SYNTHETIC_FIELDS),
+        dictionary_sha256=content_sha256(dictionary_bytes),
+        primary_key="row_id",
+        expected_rows=6,
+        weight_schemes=(
+            WeightScheme("main", "w_main", expected_total=9.0, tolerance=1e-9),
+            WeightScheme("alt", "w_alt", expected_total=10.0, tolerance=1e-9),
+        ),
+        default_weight_role="main",
+        known_versions=(
+            KnownVersion("v1_BASE", content_sha256(panels["v1_BASE"]), len(panels["v1_BASE"])),
+            KnownVersion("v1_1", content_sha256(panels["v1_1"]), len(panels["v1_1"]), "v1_BASE"),
+            KnownVersion("v1_4", content_sha256(panels["v1_4"]), len(panels["v1_4"]), "v1_1"),
+        ),
+        static_reference_label="v1_1",
+        enrichment_fields=SYNTHETIC_ENRICHMENT,
+        text_fields=frozenset({"occupation_code"}),
+        forbidden_prefixes=("D_", "P_"),
+    )
+    source = InMemoryPopulationSource({"dictionary.csv": dictionary_bytes})
+    population = SyntheticPopulation(
+        contract=contract, source=source, fields=SYNTHETIC_FIELDS, rows=rows
+    )
+    for label, data in panels.items():
+        source.put(population.location(label), data)
+    return population
+
+
+@pytest.fixture
+def synthetic_population() -> SyntheticPopulation:
+    """A fresh synthetic population bundle per test."""
+    return build_synthetic_population()
+
+
+@pytest.fixture
+def gzip_csv_writer() -> Any:
+    """Return :func:`gzip_csv` for tests that build their own panels."""
+    return gzip_csv
+
+
+# --------------------------------------------------------------------------- #
+# Synthetic companion sets
+# --------------------------------------------------------------------------- #
+
+
+def joint_certificate_json(certified_sha256: str, /, **overrides: Any) -> bytes:
+    """A certificate in the v17 ``CORE_JOINT_STATUS.json`` shape (methodology M03)."""
+    import json
+
+    document: dict[str, Any] = {
+        "status": "COHERENT_CORE_MATCHED_BLOCKS",
+        "structure_status": "QC_PASSED",
+        "prediction_validation_status": "EXTERNAL_HOLDOUT_PENDING",
+        "panel_sha256": certified_sha256,
+        "matched_blocks": ["marketing_behavior"],
+        "core_same_person_joint": True,
+        "cross_block_same_person_joint": False,
+        "client_joint_outputs_allowed": False,
+        "descriptive_core_outputs_allowed": True,
+        "matched_block_outputs_allowed": True,
+        "cross_block_joint_claims_allowed": False,
+    }
+    document.update(overrides)
+    return json.dumps(document, indent=2).encode("utf-8")
+
+
+def _csv(header: list[str], rows: list[list[str]]) -> bytes:
+    import csv
+    import io
+
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(header)
+    writer.writerows(rows)
+    return buffer.getvalue().encode("utf-8")
+
+
+@dataclass
+class SyntheticCompanions:
+    """A synthetic population whose contract declares a companion set."""
+
+    population: SyntheticPopulation
+    assets: dict[str, bytes]
+
+    @property
+    def contract(self) -> Any:
+        return self.population.contract
+
+    @property
+    def source(self) -> Any:
+        return self.population.source
+
+    def locations(self, label: str = "v1_4") -> dict[str, str]:
+        """Asset id -> location, for ``label``'s set. The certificate differs per label."""
+        return {
+            asset: f"companions/{label}/{asset}"
+            if asset == "CORE_JOINT_STATUS.json"
+            else f"companions/{asset}"
+            for asset in self.assets
+        }
+
+
+def build_synthetic_companions() -> SyntheticCompanions:
+    from dataclasses import replace
+
+    from aia_core.domain.population import CompanionKind, CompanionSpec, content_sha256
+
+    pop = build_synthetic_population()
+    fields = list(pop.fields)
+    assets = {
+        "SCORECARD.csv": _csv(["dimension", "score"], [[f, "0.9"] for f in fields]),
+        "PERSONA_CATALOG.csv": _csv(["column", "label"], [["vek", "age"], ["segment", "seg"]]),
+        "RESPONDENT_AUDIT.csv": _csv(
+            ["panel_row_id", "audit_status"], [[f"R{i}", "PASS"] for i in range(1, 7)]
+        ),
+        "CORE_JOINT_STATUS.json": joint_certificate_json(content_sha256(pop.panel_bytes("v1_4"))),
+    }
+    specs = (
+        CompanionSpec(
+            asset_id="SCORECARD.csv",
+            kind=CompanionKind.DIMENSION_SCORECARD,
+            sha256=content_sha256(assets["SCORECARD.csv"]),
+            byte_size=len(assets["SCORECARD.csv"]),
+            fmt="csv",
+            rows=len(fields),
+            columns=2,
+        ),
+        CompanionSpec(
+            asset_id="PERSONA_CATALOG.csv",
+            kind=CompanionKind.PERSONA_SIGNAL_CATALOG,
+            sha256=content_sha256(assets["PERSONA_CATALOG.csv"]),
+            byte_size=len(assets["PERSONA_CATALOG.csv"]),
+            fmt="csv",
+            rows=2,
+            columns=2,
+            panel_column_field="column",
+        ),
+        CompanionSpec(
+            asset_id="RESPONDENT_AUDIT.csv",
+            kind=CompanionKind.RESPONDENT_AUDIT,
+            sha256=content_sha256(assets["RESPONDENT_AUDIT.csv"]),
+            byte_size=len(assets["RESPONDENT_AUDIT.csv"]),
+            fmt="csv",
+            rows=6,
+            columns=2,
+            status_column="audit_status",
+            forbidden_status="FAIL",
+        ),
+        CompanionSpec(
+            asset_id="CORE_JOINT_STATUS.json",
+            kind=CompanionKind.CORE_JOINT_STATUS,
+            sha256=content_sha256(assets["CORE_JOINT_STATUS.json"]),
+            byte_size=len(assets["CORE_JOINT_STATUS.json"]),
+            fmt="json",
+        ),
+    )
+    pop.contract = replace(
+        pop.contract, companions=specs, joint_certified_labels=frozenset({"v1_4"})
+    )
+    companions = SyntheticCompanions(population=pop, assets=assets)
+    # Every label ships the same pinned certificate bytes: it certifies v1_4 only.
+    for label in ("v1_BASE", "v1_1", "v1_4"):
+        for asset, location in companions.locations(label).items():
+            pop.source.put(location, assets[asset])
+    return companions
+
+
+@pytest.fixture
+def synthetic_companions() -> SyntheticCompanions:
+    """A synthetic population whose contract requires a companion set."""
+    return build_synthetic_companions()
+
+
+@pytest.fixture
+def certificate_json() -> Any:
+    """Return :func:`joint_certificate_json`."""
+    return joint_certificate_json

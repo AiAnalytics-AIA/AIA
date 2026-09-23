@@ -18,7 +18,8 @@ each needs to run; whether a gate passed is a property of a run, not of a file.
 
 | Term | Meaning |
 | --- | --- |
-| **Gate** | A set of tests that establishes parity for a capability. Kinds: `reference_comparison` (runs the legacy code — needs the extracted archive), `reference_characterization` (pins down legacy behaviour — needs the extracted archive), `golden_fixture` (compares against a fixture in the reference repository — needs that repository, never the archive), `production_contract` (production-only; proves an intentional difference or an equivalence criterion) |
+| **Gate** | A set of tests that establishes parity for a capability. Kinds: `reference_comparison` (runs the legacy code — needs the extracted archive), `reference_characterization` (pins down legacy behaviour — needs the extracted archive), `reference_contract` (compares against a committed reference contract or ledger — needs the reference repository), `golden_fixture` (compares against a golden fixture — vendored F1–F9 need nothing, F10–F11 need the reference repository, none needs the archive), `production_contract` (production-only; proves an intentional difference or an equivalence criterion) |
+| **Fixture gate state** | `GATED`, `PARTIALLY_GATED` (some of the fixture's facts are asserted; the capability cannot pass until all are), `AWAITING_IMPLEMENTATION`, `AWAITING_CAPTURE` — each fixture names the gate that covers it (`gate.gate_id`) |
 | **Release blocker** | Exactly the capabilities an MVP acceptance criterion names. Off-path high-risk capabilities say why they are off the path |
 | **Implementation state** | `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `RETIRED` — checked against `module-dispositions.json` in both directions |
 
@@ -67,21 +68,21 @@ job's summary in CI.
 | `governance.evidence_gates` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
 | `governance.holdout` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R12 | no |
 | `governance.legal` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
-| `governance.product_policy` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R5, R6 | yes |
+| `governance.product_policy` | governance *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1, reference_contract x1 | R5, R6 | yes |
 | `governance.validation_state` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R12 | yes |
 | `operability.diagnostics` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
-| `operability.integrity` | platform *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
+| `operability.integrity` | platform *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1, reference_contract x1 | — | yes |
 | `operability.release` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `operability.smoke` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `operability.support` | platform *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | no |
-| `orchestration.cli` | platform *(unconfirmed)* | NOT_STARTED | INTENTIONAL_DIFFERENCE | — | — | — | — | yes |
+| `orchestration.cli` | platform *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
 | `pipeline.stages` | project *(unconfirmed)* | IMPLEMENTED | EXACT | — | — | production_contract x1, reference_comparison x2 | — | yes |
 | `population.bridges` | population-data | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | no |
 | `population.build` | population-data | NOT_STARTED | EXACT | — | — | — | R7, R8 | no |
-| `population.core` | population-data | NOT_STARTED | EXACT | — | F10 | — | R2, R4 | yes |
-| `population.panel_loader` | population-data | NOT_STARTED | INTENTIONAL_DIFFERENCE | — | F10 | — | R1, R4, R9 | yes |
+| `population.core` | population-data | PARTIAL | EXACT | — | F10 | production_contract x1, reference_contract x1 | R2, R4 | yes |
+| `population.panel_loader` | population-data | PARTIAL | INTENTIONAL_DIFFERENCE | — | F10 | golden_fixture x1, production_contract x1 | R1, R4, R9 | yes |
 | `population.readiness` | population-data | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
-| `population.weighting` | population-data | NOT_STARTED | INTENTIONAL_DIFFERENCE | — | F11 | — | R3 | yes |
+| `population.weighting` | population-data | PARTIAL | INTENTIONAL_DIFFERENCE | — | F11 | golden_fixture x1, production_contract x1 | R3 | yes |
 | `project.memory` | project *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | no |
 | `project.migration` | project *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `project.persistence` | project *(unconfirmed)* | IMPLEMENTED | SEMANTIC | — | — | production_contract x1 | — | yes |
@@ -101,17 +102,17 @@ job's summary in CI.
 | `runtime.desktop` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `simulation.engine` | A7 simulation-engine | NOT_STARTED | NUMERICAL | `1e-09` | F13 | — | — | no |
 | `simulation.scenarios` | A7 simulation-engine | NOT_STARTED | EXACT | — | — | — | — | no |
-| `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12 | golden_fixture x1, production_contract x2 | R16 | yes |
-| `sociomapping.study_module` | A8 sociomapa-deterministic | NOT_STARTED | NUMERICAL | `1e-12` | F3 | — | — | yes |
+| `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12 | golden_fixture x7, production_contract x2 | R16 | yes |
+| `sociomapping.study_module` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-12` | F3 | golden_fixture x1 | — | yes |
 | `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
 | `statistics.diagnostics` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
 | `statistics.uncertainty` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
 | `tests` | verification *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `workflow.config` | workflow *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R10 | yes |
-| `workflow.dispatch` | workflow *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | — | — | yes |
+| `workflow.dispatch` | workflow *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
 | `workflow.engine` | workflow *(unconfirmed)* | IMPLEMENTED | SEMANTIC | — | — | production_contract x2, reference_characterization x1 | — | yes |
-| `workflow.legacy_dispatch` | workflow *(unconfirmed)* | NOT_STARTED | INTENTIONAL_DIFFERENCE | — | — | — | — | yes |
-| `workflow.step_execution` | workflow *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
+| `workflow.legacy_dispatch` | workflow *(unconfirmed)* | IMPLEMENTED | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
+| `workflow.step_execution` | workflow *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x2 | — | yes |
 
 <!-- parity-matrix:end -->
 
@@ -195,7 +196,8 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | `full_simulation.py`, `scenario_compiler.py` | Simulation | Phase 7 | ○ | ○ | Seeded reproduction required |
 | `data_library.py`, `society_insights.py` | Data Library | Phase 8 | ○ | ○ | Approval ordering must hold |
 | `population_context.py`, `donor_fusion.py`, `core_joint.py` | Population | Phase 8 | ○ | ○ | 18,766 × 400 panel |
-| `sociomap.py`, `visualization_lab.py` | Sociomapa | Phase 9 | ○ | ○ | Numerical parity required |
+| `sociomap.py` (+ `ui_app.html` `*66` terrain, normaliser, object metrics) | Sociomapa core | `aia_core.domain.sociomap` | Done (core) | ◐ | ✅ against golden fixtures F1–F3, F5–F7, F9; F8 partial (OI-14); layout **not** at parity — the legacy Python and R algorithms are refused (OI-13, OI-15) and an AIA algorithm is declared instead. Deviations S1–S6 in `docs/architecture/sociomapa-deterministic-engine.md` §8 |
+| `visualization_lab.py`, segments, comparison, object manager | Sociomapa modes | Phase 9 | ○ | ○ | Numerical parity required |
 | 19 `.bat` launchers, `launcher_bootstrap.py` | Windows startup | — | Dropped | n/a | Replaced by containers + CI |
 | `legacy_job_dispatch.py`, `LEGACY_STAGE_MAP` | Pre-17.8 compatibility | — | Dropped | n/a | Remove after Phase 3 |
 | `anthropic_compat.py`, `spawn_env.py`, `portability_check.py` | Local-machine shims | — | Dropped | n/a | |

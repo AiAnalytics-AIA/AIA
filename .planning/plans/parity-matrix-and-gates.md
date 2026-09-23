@@ -106,10 +106,35 @@ Until a human provisions the deploy key, CI reports golden fixtures as
   only at the root failed collection for `pytest packages/aia_core`. Recorded in
   `AGENTS.md`.
 - **The reference gap records understate their blockers.** Both F12 and F13
-  recipes execute legacy code that exists only in the withheld archive (OI-6,
-  OI-7).
-- **A reference mis-link** — F11 listed under `cost.reservations` (OI-8,
+  recipes execute legacy code that exists only in the withheld archive (OI-15,
+  OI-24).
+- **A reference mis-link** — F11 listed under `cost.reservations` (OI-25,
   `REF-DISC-1`).
+
+## Merge with `main` @ 8978b99
+
+`main` landed the Sociomap engine, population readiness and the worker while this
+branch was open. What changed here as a result:
+
+- **F1–F9 are vendored on `main`** (`packages/aia_core/tests/fixtures/sociomap/`,
+  hash-pinned). That supersedes this plan's "fetched, never copied" for those
+  nine, and it was the better call for them: they then run in every backend job.
+  The matrix now records each fixture's `source`; `test_golden_fixtures.py`
+  checks that each vendored copy is byte-identical to the reference, and
+  `test_parity_matrix.py` checks each copy against its pin without a checkout.
+  My own F9 gate was dropped in favour of the engine's.
+- **Two gate shapes were added**: `reference_contract` (comparison with a
+  committed reference contract or ledger) and the `PARTIALLY_GATED` fixture
+  state (F8). Fixtures name their gate (`gate.gate_id`) instead of a registry.
+- **Fifteen capabilities changed state** (Sociomap core and study module, four
+  population capabilities, product policy, integrity, four workflow and
+  orchestration capabilities); the `IMPLEMENTED` ceiling is the stale module
+  inventory (OI-27).
+- **Numbering collisions resolved**: my SMACOF entry folded into OI-15; the other
+  findings renumbered OI-24 to OI-26; the Simulation-scope decision is D7; the
+  two fixtures named F12 are OI-28.
+- **Ranking tightened**: a capability whose gates pass but whose port is
+  unfinished ranks below one with no passing evidence.
 
 ## Review outcome
 

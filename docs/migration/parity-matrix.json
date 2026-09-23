@@ -20,6 +20,13 @@
       "production_position": "Not carried. F11 characterises the four analysis-weight fallback chains (golden-fixtures/manifest.json names population.weighting); nothing in it exercises a cost reservation. Carrying the link would let a weighting gate count as money-control evidence.",
       "anchor": "AIA-reference parity-plan.json, capability cost.reservations, fixtures @ 678e298",
       "resolution": "Correct the link upstream in AIA-reference and re-run tools/build_parity_plan.py"
+    },
+    {
+      "id": "REF-DISC-2",
+      "reference_claim": "reference-gaps.md names F12 as the R smacof layout fixture (F12_r_smacof_unfolding_layout)",
+      "production_position": "docs/migration/population-enrichment-archive-dependency.md on main also names an 'F12' for population.enrichment. The reference's id is carried here; the enrichment fixture needs its own id before either is captured.",
+      "anchor": "AIA-reference reference-gaps.md 'REF-GAP-SOCIO-R-SMACOF' step 5 @ 678e298; docs/migration/population-enrichment-archive-dependency.md",
+      "resolution": "Give the enrichment fixture an unused id (F14 or later) and record it upstream (OI-28)."
     }
   ],
   "reference_gaps": {
@@ -35,11 +42,11 @@
         "legacy_tree"
       ],
       "blockers": [
-        "A host with Rscript and the R package smacof.",
-        "The legacy sociomap.py, which exists only inside the withheld archive: the recipe runs sociomap.fit_unfolding(method='r_smacof'), so R alone cannot produce the fixture (REF-WITHHELD-REFERENCE-ARCHIVE)."
+        "A host with Rscript and the R package smacof; CRAN is unreachable from cloud sessions (OI-15).",
+        "The reference's R wrapper in sociomap.py, which exists only inside the withheld archive (REF-WITHHELD-REFERENCE-ARCHIVE)."
       ],
-      "definition_of_done": "F12 captured in AIA-reference and manifested; the R-vs-Python divergence against F4 stated as a number after optimal rotation/reflection alignment, with the stress_1 delta; the tolerance for the production-declared algorithm recorded; F12 pinned here.",
-      "register": ".planning/open-items.md OI-6",
+      "definition_of_done": "F12 captured in AIA-reference, vendored under packages/aia_core/tests/fixtures/sociomap/ and pinned here; the R-vs-Python divergence against F4 stated as a number after Procrustes alignment, with the stress_1 delta; the decision recorded whether r_smacof_unfolding becomes an implemented algorithm or stays refused (OI-15).",
+      "register": ".planning/open-items.md OI-15",
       "anchor": "AIA-reference reference-gaps.md 'REF-GAP-SOCIO-R-SMACOF' @ 678e298"
     },
     "REF-GAP-SIMULATION-WORLD-MODEL": {
@@ -60,7 +67,7 @@
         "Population v17_4_0, which the inoculation step reads."
       ],
       "definition_of_done": "The sanitised world model is frozen once, with its sha256, as fixture input; F13 captures the FS_* columns, factor_stats, correlation_matrix and the _nearest_psd_corr / _calibrate_intercept / _driver_vector outputs at tolerance 1e-9 on v17_4_0; F13 manifested upstream and pinned here. World-model generation itself stays SEMANTIC.",
-      "register": ".planning/open-items.md OI-7",
+      "register": ".planning/open-items.md OI-24",
       "anchor": "AIA-reference reference-gaps.md 'REF-GAP-SIMULATION-WORLD-MODEL' @ 678e298"
     }
   },
@@ -68,181 +75,11 @@
     "F10_dual_panel_loader_divergence": {
       "capability": "population.panel_loader",
       "status": "CAPTURED",
+      "source": "reference_repo",
       "path": "golden-fixtures/F10_dual_panel_loader_divergence.json",
+      "reference_path": "golden-fixtures/F10_dual_panel_loader_divergence.json",
       "sha256": "4871ff342386543c2fbab90ab8baa352af2f0aa366a2c9d2b53203cd69996a05",
       "parity_type": "INTENTIONAL_DIFFERENCE",
-      "tolerance": null,
-      "requires": [
-        "reference_repo",
-        "population_panel"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "ONE canonical panel loader; any differing consumer view is a named transformation"
-      },
-      "gap": null
-    },
-    "F11_analysis_weight_fallback_chains": {
-      "capability": "population.weighting",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F11_analysis_weight_fallback_chains.json",
-      "sha256": "ac25bc3b200c407c1d1d32512733f99552a34e4ab404dd9c023e5af84f3b3b3b",
-      "parity_type": "INTENTIONAL_DIFFERENCE",
-      "tolerance": null,
-      "requires": [
-        "reference_repo",
-        "population_panel"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "weight resolution that fails explicitly and records the resolved weight identity"
-      },
-      "gap": null
-    },
-    "F1_relation_scale_coercion": {
-      "capability": "sociomapping.core",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F1_relation_scale_coercion.json",
-      "sha256": "14300d173b4639c876f5f89d8d11020a02b5d6d752d44b9724b567fc07f18c32",
-      "parity_type": "EXACT",
-      "tolerance": null,
-      "requires": [
-        "reference_repo"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "relation-scale coercion to 1..10 with NaN/inf sentinels and diagonal zeroing"
-      },
-      "gap": null
-    },
-    "F2_mutual_relation_for_position": {
-      "capability": "sociomapping.core",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F2_mutual_relation_for_position.json",
-      "sha256": "9f20f60544b4defaa5d9d38444a35bb7705559fab21ded4ece13d0cf2111d263",
-      "parity_type": "NUMERICAL",
-      "tolerance": 1e-12,
-      "requires": [
-        "reference_repo"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "mutual relation for position: mean of i->j and j->i, (m-1)/9 clipped to [0,1]"
-      },
-      "gap": null
-    },
-    "F3_ipsatization": {
-      "capability": "sociomapping.study_module",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F3_ipsatization.json",
-      "sha256": "14bf1ab307f4f6237f54096a2c9545b8a4a78d79751b7d70bbf5871d7979e5b6",
-      "parity_type": "NUMERICAL",
-      "tolerance": 1e-12,
-      "requires": [
-        "reference_repo"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "within-person centring over object columns"
-      },
-      "gap": null
-    },
-    "F4_python_unfolding_layout": {
-      "capability": "sociomapping.core",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F4_python_unfolding_layout.json",
-      "sha256": "23e5791696f977011a454c9abdd92b3b72f1d04ccdc1c40287e11e53150cf52f",
-      "parity_type": "NUMERICAL",
-      "tolerance": 1e-06,
-      "requires": [
-        "reference_repo"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "python weighted unfolding layout, seed 20260814"
-      },
-      "gap": null
-    },
-    "F5_normalizer66_all_modes": {
-      "capability": "sociomapping.core",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F5_normalizer66_all_modes.json",
-      "sha256": "6930199511e7ab1b116e9a3b3e5e9781ab68a71ab52adcfccc5da0735d7ba65c",
-      "parity_type": "NUMERICAL",
-      "tolerance": 1e-09,
-      "requires": [
-        "reference_repo"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "metric normaliser, every mode (frontend mathematics moved server-side)"
-      },
-      "gap": null
-    },
-    "F6_objectMetricArray66": {
-      "capability": "sociomapping.core",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F6_objectMetricArray66.json",
-      "sha256": "c1b108126eff63d8a313f9978d57860f351eb1d1a798bf90a078faa1043473ef",
-      "parity_type": "NUMERICAL",
-      "tolerance": 1e-09,
-      "requires": [
-        "reference_repo"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "object metric array (frontend mathematics moved server-side)"
-      },
-      "gap": null
-    },
-    "F7_terrain66_respondent_density": {
-      "capability": "sociomapping.core",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F7_terrain66_respondent_density.json",
-      "sha256": "9d75068a33b2da4f45bb9dd3b13fd4752afef34f15c2edc265ca61dc034f7527",
-      "parity_type": "NUMERICAL",
-      "tolerance": 1e-09,
-      "requires": [
-        "reference_repo"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "respondent-density terrain (frontend mathematics; no reference backend exists)"
-      },
-      "gap": null
-    },
-    "F8_terrain66_object_metric": {
-      "capability": "sociomapping.core",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F8_terrain66_object_metric.json",
-      "sha256": "7ba368643ad028b68b71a6a58bdeed37a998d7bce4e016986bce16092f9eebb2",
-      "parity_type": "NUMERICAL",
-      "tolerance": 1e-09,
-      "requires": [
-        "reference_repo"
-      ],
-      "gates_capability": true,
-      "gate": {
-        "state": "AWAITING_IMPLEMENTATION",
-        "entry_point": "object-metric terrain (frontend mathematics; no reference backend exists)"
-      },
-      "gap": null
-    },
-    "F9_manual_drag_is_view_override": {
-      "capability": "sociomapping.core",
-      "status": "CAPTURED",
-      "path": "golden-fixtures/F9_manual_drag_is_view_override.json",
-      "sha256": "c0fa4cc5fc2b59b28c07f4eec6b5be235a78414459c133d2590a83c0b4d42d92",
-      "parity_type": "EXACT",
       "tolerance": null,
       "requires": [
         "reference_repo"
@@ -250,14 +87,199 @@
       "gates_capability": true,
       "gate": {
         "state": "GATED",
-        "entry_point": "aia_core.domain.sociomap.view.apply_view_overrides"
+        "entry_point": "ONE canonical panel loader; any differing consumer view is a named transformation",
+        "gate_id": "population.panel_loader/F10"
+      },
+      "gap": null
+    },
+    "F11_analysis_weight_fallback_chains": {
+      "capability": "population.weighting",
+      "status": "CAPTURED",
+      "source": "reference_repo",
+      "path": "golden-fixtures/F11_analysis_weight_fallback_chains.json",
+      "reference_path": "golden-fixtures/F11_analysis_weight_fallback_chains.json",
+      "sha256": "ac25bc3b200c407c1d1d32512733f99552a34e4ab404dd9c023e5af84f3b3b3b",
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "weight resolution that fails explicitly and records the resolved weight identity",
+        "gate_id": "population.weighting/F11"
+      },
+      "gap": null
+    },
+    "F1_relation_scale_coercion": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F1_relation_scale_coercion.json",
+      "reference_path": "golden-fixtures/F1_relation_scale_coercion.json",
+      "sha256": "14300d173b4639c876f5f89d8d11020a02b5d6d752d44b9724b567fc07f18c32",
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "relation-scale coercion to 1..10 with NaN/inf sentinels and diagonal zeroing",
+        "gate_id": "sociomapping.core/F1"
+      },
+      "gap": null
+    },
+    "F2_mutual_relation_for_position": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F2_mutual_relation_for_position.json",
+      "reference_path": "golden-fixtures/F2_mutual_relation_for_position.json",
+      "sha256": "9f20f60544b4defaa5d9d38444a35bb7705559fab21ded4ece13d0cf2111d263",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-12,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "mutual relation for position: mean of i->j and j->i, (m-1)/9 clipped to [0,1]",
+        "gate_id": "sociomapping.core/F2"
+      },
+      "gap": null
+    },
+    "F3_ipsatization": {
+      "capability": "sociomapping.study_module",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F3_ipsatization.json",
+      "reference_path": "golden-fixtures/F3_ipsatization.json",
+      "sha256": "14bf1ab307f4f6237f54096a2c9545b8a4a78d79751b7d70bbf5871d7979e5b6",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-12,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "within-person centring over object columns",
+        "gate_id": "sociomapping.study_module/F3"
+      },
+      "gap": null
+    },
+    "F4_python_unfolding_layout": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F4_python_unfolding_layout.json",
+      "reference_path": "golden-fixtures/F4_python_unfolding_layout.json",
+      "sha256": "23e5791696f977011a454c9abdd92b3b72f1d04ccdc1c40287e11e53150cf52f",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-06,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "python_weighted_unfolding is refused: its method is unrecoverable without the archive (OI-13); an AIA algorithm is declared instead",
+        "gate_id": null
+      },
+      "gap": null
+    },
+    "F5_normalizer66_all_modes": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F5_normalizer66_all_modes.json",
+      "reference_path": "golden-fixtures/F5_normalizer66_all_modes.json",
+      "sha256": "6930199511e7ab1b116e9a3b3e5e9781ab68a71ab52adcfccc5da0735d7ba65c",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "metric normaliser, every mode (frontend mathematics moved server-side)",
+        "gate_id": "sociomapping.core/F5"
+      },
+      "gap": null
+    },
+    "F6_objectMetricArray66": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F6_objectMetricArray66.json",
+      "reference_path": "golden-fixtures/F6_objectMetricArray66.json",
+      "sha256": "c1b108126eff63d8a313f9978d57860f351eb1d1a798bf90a078faa1043473ef",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "object metric array (frontend mathematics moved server-side)",
+        "gate_id": "sociomapping.core/F6"
+      },
+      "gap": null
+    },
+    "F7_terrain66_respondent_density": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F7_terrain66_density.json",
+      "reference_path": "golden-fixtures/F7_terrain66_respondent_density.json",
+      "sha256": "9d75068a33b2da4f45bb9dd3b13fd4752afef34f15c2edc265ca61dc034f7527",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "respondent-density terrain (frontend mathematics; no reference backend exists)",
+        "gate_id": "sociomapping.core/F7"
+      },
+      "gap": null
+    },
+    "F8_terrain66_object_metric": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F8_terrain66_object_metric.json",
+      "reference_path": "golden-fixtures/F8_terrain66_object_metric.json",
+      "sha256": "7ba368643ad028b68b71a6a58bdeed37a998d7bce4e016986bce16092f9eebb2",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "PARTIALLY_GATED",
+        "entry_point": "constants, bounds and the height-to-elevation chain are gated; the end-to-end field needs baseObjectLayout66 (OI-14)",
+        "gate_id": "sociomapping.core/F8"
+      },
+      "gap": null
+    },
+    "F9_manual_drag_is_view_override": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "source": "vendored",
+      "path": "packages/aia_core/tests/fixtures/sociomap/F9_manual_drag_is_view_override.json",
+      "reference_path": "golden-fixtures/F9_manual_drag_is_view_override.json",
+      "sha256": "c0fa4cc5fc2b59b28c07f4eec6b5be235a78414459c133d2590a83c0b4d42d92",
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "requires": [],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "aia_core.domain.sociomap.view.apply_view_overrides",
+        "gate_id": "sociomapping.core/F9"
       },
       "gap": null
     },
     "F12_r_smacof_unfolding_layout": {
       "capability": "sociomapping.core",
       "status": "SPECIFIED_NOT_CAPTURED",
+      "source": null,
       "path": null,
+      "reference_path": null,
       "sha256": null,
       "parity_type": "NUMERICAL",
       "tolerance": null,
@@ -269,7 +291,8 @@
       "gates_capability": false,
       "gate": {
         "state": "AWAITING_CAPTURE",
-        "entry_point": "R smacof::unfolding layout on F4's input, seed 20260814"
+        "entry_point": "R smacof::unfolding layout on F4's input, seed 20260814",
+        "gate_id": null
       },
       "gap": "REF-GAP-SOCIO-R-SMACOF",
       "note": "Characterises the reference's host-dependence defect. Gates sociomapping.core only if production declares r_smacof as its algorithm; if it declares the Python unfolding, F4 is the gate and F12 sizes the recorded divergence."
@@ -277,7 +300,9 @@
     "F13_simulation_world_inoculation": {
       "capability": "simulation.engine",
       "status": "SPECIFIED_NOT_CAPTURED",
+      "source": null,
       "path": null,
+      "reference_path": null,
       "sha256": null,
       "parity_type": "NUMERICAL",
       "tolerance": 1e-09,
@@ -290,7 +315,8 @@
       "gates_capability": true,
       "gate": {
         "state": "AWAITING_CAPTURE",
-        "entry_point": "inoculate_population against a frozen world-model snapshot, seed 20260816"
+        "entry_point": "inoculate_population against a frozen world-model snapshot, seed 20260816",
+        "gate_id": null
       },
       "gap": "REF-GAP-SIMULATION-WORLD-MODEL",
       "note": "The world model is frozen as fixture input so deterministic parity never depends on a model reproducing tokens; world-model generation itself stays SEMANTIC."
@@ -1089,7 +1115,8 @@
             "packages/aia_core/tests/test_workflow_engine.py::test_settling_a_reservation_charges_the_actual_cost",
             "packages/aia_core/tests/test_workflow_engine.py::test_releasing_a_reservation_charges_nothing",
             "packages/aia_core/tests/test_workflow_engine.py::test_every_reservation_resolves_to_a_study",
-            "packages/aia_core/tests/test_providers_parity.py::test_reservations_prevent_concurrent_overspend"
+            "packages/aia_core/tests/test_providers_parity.py::test_reservations_prevent_concurrent_overspend",
+            "packages/aia_core/tests/test_workflow_reservations.py"
           ]
         },
         {
@@ -1479,8 +1506,11 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/population/policy.py",
+        "packages/aia_core/src/aia_core/domain/population/companions.py"
+      ],
       "reference_modules": [
         "data_contract.py",
         "manifest.py",
@@ -1491,7 +1521,34 @@
       "tolerance": null,
       "parity_reason": "Methodology contract decisions, incl. CORE_JOINT_STATUS hash binding",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "governance.product_policy/reference-contract",
+          "kind": "reference_contract",
+          "requires": [
+            "reference_repo"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_population_reference_parity.py::test_policy_maps_every_one_of_the_400_fields",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_claim_rules_equal_the_reference_extraction_field_for_field",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_the_catalogue_of_rules_is_the_reference_catalogue",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_internal_uses_equal_the_reference_flags",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_client_measured_claims_are_never_more_permissive_than_the_reference",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_the_critical_rules_never_reach_a_client",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_m03_the_certificate_binds_only_the_live_panel",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_m03_client_joint_and_cross_block_claims_stay_forbidden"
+          ]
+        },
+        {
+          "id": "governance.product_policy/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_population_policy.py",
+            "packages/aia_core/tests/test_population_companions.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -1504,7 +1561,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-09)."
       },
-      "notes": ""
+      "notes": "The field dictionary's claim rules (R5) and the CORE_JOINT_STATUS certificate gate (R6) are enforced as closed policy over the population. The wider methodology contract (PRODUCT_POLICY.json, DATA_CONTRACT_v17.json) is not ported."
     },
     "governance.validation_state": {
       "family": "governance",
@@ -1581,8 +1638,11 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/population/companions.py",
+        "packages/aia_core/src/aia_core/application/population.py"
+      ],
       "reference_modules": [
         "diagnostika.py"
       ],
@@ -1590,7 +1650,34 @@
       "tolerance": null,
       "parity_reason": "Panel integrity gate runs before a live run, so it gates research",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "operability.integrity/reference-contract",
+          "kind": "reference_contract",
+          "requires": [
+            "reference_repo"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_population_reference_parity.py::test_the_companion_set_is_the_ledger_less_the_non_companions",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_every_companion_identity_matches_the_ledger",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_m14_shape_invariants_are_encoded"
+          ]
+        },
+        {
+          "id": "operability.integrity/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_population_companions.py::test_a_complete_valid_set_passes",
+            "packages/aia_core/tests/test_population_companions.py::test_a_missing_companion_fails",
+            "packages/aia_core/tests/test_population_companions.py::test_altered_bytes_fail_the_checksum",
+            "packages/aia_core/tests/test_population_companions.py::test_a_swapped_companion_refuses_the_load",
+            "packages/aia_core/tests/test_population_companions.py::test_promotion_to_a_version_without_companions_is_refused",
+            "packages/aia_core/tests/test_population_runtime.py::test_a_swapped_file_is_refused_by_hash",
+            "packages/aia_core/tests/test_population_runtime.py::test_a_swapped_dictionary_is_refused_by_hash"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -1600,7 +1687,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-04)."
       },
-      "notes": ""
+      "notes": "Companion-set and hash integrity refuse a panel before it can be loaded. No gate yet runs it as the pre-live-run check the reference's diagnostika performed."
     },
     "operability.release": {
       "family": "operability",
@@ -1706,8 +1793,10 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "apps/worker/src/aia_worker/"
+      ],
       "reference_modules": [
         "npc.py",
         "run.py"
@@ -1716,7 +1805,16 @@
       "tolerance": null,
       "parity_reason": "CLI entry points become API and worker entry points",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "orchestration.cli/worker-entry-point",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "apps/worker/tests/test_worker_settings.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": {
         "legacy": "CLI entry points become API and worker entry points",
@@ -1730,7 +1828,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-07)."
       },
-      "notes": ""
+      "notes": "API (apps/api) and worker (python -m aia_worker) entry points exist; the reference CLIs' research commands have no production equivalent yet."
     },
     "pipeline.stages": {
       "family": "pipeline",
@@ -1913,8 +2011,12 @@
         "confirmed": true
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/population/",
+        "packages/aia_core/src/aia_core/application/population.py",
+        "packages/aia_core/src/aia_core/application/population_authority.py"
+      ],
       "reference_modules": [
         "core_joint.py",
         "donor_fusion.py",
@@ -1927,7 +2029,33 @@
       "fixtures": [
         "F10_dual_panel_loader_divergence"
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "population.core/reference-contract",
+          "kind": "reference_contract",
+          "requires": [
+            "reference_repo"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_population_reference_parity.py::test_reference_is_the_snapshot_this_repository_points_at",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_dictionary_hash_and_field_count_match",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_ordered_field_name_fingerprint_matches",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_the_three_versions_match_the_dataset_ledger",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_the_real_400_field_names_import_under_the_production_rules",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_a_real_field_renamed_is_rejected"
+          ]
+        },
+        {
+          "id": "population.core/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_population_versions.py",
+            "packages/aia_core/tests/test_population_contract.py",
+            "packages/aia_core/tests/test_population_authority.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -1940,7 +2068,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-04)."
       },
-      "notes": ""
+      "notes": "STATIC/LIVE roles, content-addressed versions, promotion refusal and one injected population authority are ported (docs/architecture/population.md). Not yet consumed by any research step; project content still carries a free-text population identity (OI-6)."
     },
     "population.panel_loader": {
       "family": "population",
@@ -1950,8 +2078,11 @@
         "confirmed": true
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/population/",
+        "packages/aia_core/src/aia_core/application/population.py"
+      ],
       "reference_modules": [
         "prototype_server.py"
       ],
@@ -1961,7 +2092,34 @@
       "fixtures": [
         "F10_dual_panel_loader_divergence"
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "population.panel_loader/F10",
+          "kind": "golden_fixture",
+          "requires": [
+            "reference_repo"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_population_reference_parity.py::test_f10_fixture_is_anchored_to_the_live_version",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_f10_the_analysis_view_is_the_reference_research_loaders_shape",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_f10_the_only_loader_divergence_is_now_a_named_view",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_f10_weight_totals_match_the_contract"
+          ]
+        },
+        {
+          "id": "population.panel_loader/one-loader",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_population_runtime.py::test_the_base_view_is_exactly_the_source_fields",
+            "packages/aia_core/tests/test_population_runtime.py::test_the_analysis_view_adds_exactly_the_declared_derived_fields",
+            "packages/aia_core/tests/test_population_runtime.py::test_the_analysis_view_does_not_load_without_an_enricher",
+            "packages/aia_core/tests/test_population_runtime.py::test_a_failing_enricher_is_a_refusal_never_a_silent_skip",
+            "packages/aia_core/tests/test_population_runtime.py::test_loaded_text_is_lossless",
+            "packages/aia_core/tests/test_population_runtime.py::test_a_swapped_file_is_refused_by_hash"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": {
         "legacy": "Legacy has TWO loaders differing by _analysis_weight; production must expose ONE canonical loader with explicit derived views",
@@ -1979,7 +2137,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-04)."
       },
-      "notes": ""
+      "notes": "One loader with named BASE and ANALYSIS views. The ANALYSIS view refuses to load: the seven enrichment derivations exist only in the archive (OI-7)."
     },
     "population.readiness": {
       "family": "population",
@@ -2018,8 +2176,11 @@
         "confirmed": true
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/population/",
+        "packages/aia_core/src/aia_core/application/population.py"
+      ],
       "reference_modules": [
         "kalibrace.py",
         "mrp.py"
@@ -2030,7 +2191,34 @@
       "fixtures": [
         "F11_analysis_weight_fallback_chains"
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "population.weighting/F11",
+          "kind": "golden_fixture",
+          "requires": [
+            "reference_repo"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_population_reference_parity.py::test_f11_declared_schemes_match",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_f11_scenario_1_declared_roles_resolve_and_unknown_is_refused",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_f11_scenario_2_the_default_is_the_declared_structural_weight",
+            "packages/aia_core/tests/test_population_reference_parity.py::test_f11_scenarios_3_and_4_a_missing_weight_column_is_rejected"
+          ]
+        },
+        {
+          "id": "population.weighting/fails-explicitly",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_population_contract.py::test_an_unknown_role_is_an_error_not_the_census_weight",
+            "packages/aia_core/tests/test_population_contract.py::test_default_role_resolves_to_its_declared_column",
+            "packages/aia_core/tests/test_population_contract.py::test_analysis_weights_refuse_an_unusable_column",
+            "packages/aia_core/tests/test_population_contract.py::test_a_missing_weight_column_fails",
+            "packages/aia_core/tests/test_population_runtime.py::test_resolution_records_version_weight_and_view",
+            "packages/aia_core/tests/test_population_runtime.py::test_a_null_in_the_selected_weight_refuses_the_load"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": {
         "legacy": "Four silent fallback chains (structural 2025 -> census 2021 -> unweighted 1.0); production must fail explicitly and record weight identity in provenance",
@@ -2046,7 +2234,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-04)."
       },
-      "notes": ""
+      "notes": "Weight resolution fails explicitly and the binding records the resolved weight. PARTIAL until research execution derives its fingerprints from the binding (OI-6), and because module-dispositions.json still records kalibrace.py and mrp.py as not started (OI-27)."
     },
     "project.memory": {
       "family": "project",
@@ -2687,13 +2875,66 @@
       ],
       "gates": [
         {
+          "id": "sociomapping.core/F1",
+          "kind": "golden_fixture",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_relations.py::test_f1_coercion_matches_the_reference",
+            "packages/aia_core/tests/test_sociomap_relations.py::test_f1_covers_every_branch"
+          ]
+        },
+        {
+          "id": "sociomapping.core/F2",
+          "kind": "golden_fixture",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_relations.py::test_f2_mutual_relation_matches_the_reference"
+          ]
+        },
+        {
+          "id": "sociomapping.core/F5",
+          "kind": "golden_fixture",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_metrics.py::test_f5_normaliser_matches_the_reference",
+            "packages/aia_core/tests/test_sociomap_metrics.py::test_f5_covers_every_reference_case"
+          ]
+        },
+        {
+          "id": "sociomapping.core/F6",
+          "kind": "golden_fixture",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_metrics.py::test_f6_object_metrics_match_the_reference",
+            "packages/aia_core/tests/test_sociomap_engine.py::test_relation_metrics_through_the_pipeline_match_f6"
+          ]
+        },
+        {
+          "id": "sociomapping.core/F7",
+          "kind": "golden_fixture",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_terrain.py::test_f7_uses_the_reference_constants",
+            "packages/aia_core/tests/test_sociomap_terrain.py::test_f7_grid_shape_and_every_cell_finite",
+            "packages/aia_core/tests/test_sociomap_terrain.py::test_f7_normaliser_and_total_height",
+            "packages/aia_core/tests/test_sociomap_terrain.py::test_f7_every_sample_matches"
+          ]
+        },
+        {
+          "id": "sociomapping.core/F8",
+          "kind": "golden_fixture",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_terrain.py::test_f8_uses_the_reference_constants_and_bounds",
+            "packages/aia_core/tests/test_sociomap_terrain.py::test_f8_height_to_elevation_chain"
+          ]
+        },
+        {
           "id": "sociomapping.core/F9",
           "kind": "golden_fixture",
-          "requires": [
-            "reference_repo"
-          ],
+          "requires": [],
           "tests": [
-            "packages/aia_core/tests/test_golden_fixtures.py::test_golden_fixture_gate[F9_manual_drag_is_view_override]"
+            "packages/aia_core/tests/test_sociomap_engine.py::test_f9_manual_drag_is_a_view_override"
           ]
         },
         {
@@ -2701,12 +2942,11 @@
           "kind": "production_contract",
           "requires": [],
           "tests": [
-            "packages/aia_core/tests/test_sociomap_contracts.py::test_dragging_a_node_never_mutates_the_artifact",
-            "packages/aia_core/tests/test_sociomap_contracts.py::test_overrides_are_themselves_immutable_values",
-            "packages/aia_core/tests/test_sociomap_contracts.py::test_stale_overrides_are_refused_when_canonical_results_change",
-            "packages/aia_core/tests/test_sociomap_contracts.py::test_overrides_for_unknown_entities_are_refused",
-            "packages/aia_core/tests/test_sociomap_contracts.py::test_empty_overrides_display_the_canonical_layout",
-            "packages/aia_core/tests/test_sociomap_contracts.py::test_overrides_reject_non_finite_positions"
+            "packages/aia_core/tests/test_sociomap_engine.py::test_view_terrain_follows_the_drag_and_the_artifact_terrain_does_not",
+            "packages/aia_core/tests/test_sociomap_engine.py::test_stale_or_foreign_overrides_are_refused",
+            "packages/aia_core/tests/test_sociomap_engine.py::test_overrides_are_immutable_values_and_reset",
+            "packages/aia_core/tests/test_sociomap_engine.py::test_artifact_forbids_presentation_fields",
+            "packages/aia_core/tests/test_sociomap_engine.py::test_scenario_recomputes_relation_metrics_and_leaves_the_base"
           ]
         },
         {
@@ -2714,26 +2954,34 @@
           "kind": "production_contract",
           "requires": [],
           "tests": [
-            "packages/aia_core/tests/test_sociomap_contracts.py::test_no_methodology_is_implemented_yet",
-            "packages/aia_core/tests/test_sociomap_contracts.py::test_require_supported_passes_only_when_every_dimension_is_implemented"
+            "packages/aia_core/tests/test_sociomap_layout.py::test_exactly_one_algorithm_is_implemented",
+            "packages/aia_core/tests/test_sociomap_layout.py::test_legacy_algorithms_fail_closed_and_say_why",
+            "packages/aia_core/tests/test_sociomap_layout.py::test_there_is_no_auto_or_alias",
+            "packages/aia_core/tests/test_sociomap_engine.py::test_unsupported_methodology_fails_closed"
           ]
         }
       ],
       "recorded_evidence": [
         {
-          "date": "2026-09-22",
+          "date": "2026-09-23",
           "verdict": "NOT_RUNNABLE",
-          "environment": "cloud session, Python 3.12, SQLite, reference repository @ 678e298, no legacy tree",
-          "anchor": "First golden-fixture execution: test_golden_fixture_gate[F9_manual_drag_is_view_override] passed; F1, F2, F4-F8 AWAITING_IMPLEMENTATION, so the capability cannot pass. Working tree over 17c0a6b on claude/sleepy-keller-kg48oz."
+          "environment": "cloud session, Python 3.12, PostgreSQL 16 + SQLite, reference repository @ 678e298, no legacy tree",
+          "anchor": "After merging main @ 8978b99: gates F1, F2, F5, F6, F7, F9 and the view and declared-algorithm contracts passed; F8 PARTIALLY_GATED (OI-14) and F4 AWAITING_IMPLEMENTATION (OI-13), so the capability cannot pass. Branch claude/sleepy-keller-kg48oz."
         }
       ],
       "intentional_difference": null,
       "documented_deviations": [
         {
           "id": "SUB-SOCIO-ALGORITHM",
-          "summary": "the layout algorithm is declared on the spec and an unavailable one fails closed, where the reference picked R or Python by shutil.which('Rscript')",
+          "summary": "the layout algorithm is declared on the spec and a legacy or unavailable one fails closed, where the reference picked R or Python by shutil.which('Rscript')",
           "anchor": "AIA-reference sociomapping-reference-contract.md (algorithm selection) @ 678e298",
           "gate": "sociomapping.core/declared-algorithm-fails-closed"
+        },
+        {
+          "id": "S1-S6",
+          "summary": "the engine's recorded deviations from the reference",
+          "anchor": "docs/architecture/sociomapa-deterministic-engine.md §8",
+          "gate": null
         }
       ],
       "high_risk": [
@@ -2744,7 +2992,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-10)."
       },
-      "notes": "Spec, artifact and view-state contracts only. No Sociomapping mathematics is ported (docs/architecture/sociomapa-deterministic-engine.md)."
+      "notes": "Relations, metrics, terrain, an AIA-declared layout and the artifact/view contracts are ported (docs/architecture/sociomapa-deterministic-engine.md). Not at parity: the layout (F4 refused, OI-13; R branch refused, OI-15), the object-map base layout (F8 partial, OI-14), and the Sociomapa modes (segments, comparison, object manager). The AIA declarations await methodology sign-off (OI-16, D6)."
     },
     "sociomapping.study_module": {
       "family": "sociomapping",
@@ -2754,8 +3002,10 @@
         "confirmed": true
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/sociomap/relations.py"
+      ],
       "reference_modules": [
         "study_cli.py",
         "study_contract.py",
@@ -2772,7 +3022,16 @@
       "fixtures": [
         "F3_ipsatization"
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "sociomapping.study_module/F3",
+          "kind": "golden_fixture",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_relations.py::test_f3_ipsatization_matches_the_reference"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -2782,7 +3041,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-10)."
       },
-      "notes": ""
+      "notes": "Ipsatization only (relations.ipsatize). The study_* modules' contract, dataset, engine, validity and export are not ported."
     },
     "statistics.calibration": {
       "family": "statistics",
@@ -2949,6 +3208,7 @@
       "parity_owner": "parity-quality",
       "implementation_state": "PARTIAL",
       "implementation": [
+        "apps/worker/src/aia_worker/",
         "packages/aia_core/src/aia_core/infrastructure/workflow_repository.py"
       ],
       "reference_modules": [
@@ -2959,7 +3219,19 @@
       "tolerance": null,
       "parity_reason": "In-process scheduler replaced by SQS plus a reconciler",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "workflow.dispatch/postgres-queue",
+          "kind": "production_contract",
+          "requires": [
+            "postgres"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_work_queue.py",
+            "apps/worker/tests/test_worker_processes.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": {
         "legacy": "In-process scheduler replaced by SQS plus a reconciler",
@@ -2973,7 +3245,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-07)."
       },
-      "notes": "PostgreSQL is the queue: claim_next with FOR UPDATE SKIP LOCKED exists and is tested under contention. The worker process that drains it does not (PROGRESS.md Next #2)."
+      "notes": "PostgreSQL queue drained by the worker process (apps/worker). PARTIAL only because module-dispositions.json still records scheduler.py and worker_daemon.py as not started (OI-27)."
     },
     "workflow.engine": {
       "family": "workflow",
@@ -3012,7 +3284,9 @@
           "kind": "production_contract",
           "requires": [],
           "tests": [
-            "packages/aia_core/tests/test_workflow_engine.py"
+            "packages/aia_core/tests/test_workflow_engine.py",
+            "packages/aia_core/tests/test_workflow_lease_fencing.py",
+            "packages/aia_core/tests/test_workflow_release_and_resume.py"
           ]
         },
         {
@@ -3058,8 +3332,10 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "IMPLEMENTED",
+      "implementation": [
+        "apps/worker/src/aia_worker/"
+      ],
       "reference_modules": [
         "legacy_job_dispatch.py"
       ],
@@ -3067,7 +3343,17 @@
       "tolerance": null,
       "parity_reason": "Live legacy fallback path in worker_job; production consolidates onto one executor",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "workflow.legacy_dispatch/one-executor",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "apps/worker/tests/test_worker_loop.py::test_a_step_is_executed_and_completed",
+            "apps/worker/tests/test_worker_loop.py::test_a_worker_claims_only_the_kinds_it_has_executors_for"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": {
         "legacy": "Live legacy fallback path in worker_job; production consolidates onto one executor",
@@ -3081,7 +3367,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-07)."
       },
-      "notes": ""
+      "notes": "One executor: the worker's executor registry. There is no legacy fallback path to remove."
     },
     "workflow.step_execution": {
       "family": "workflow",
@@ -3091,8 +3377,10 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "apps/worker/src/aia_worker/"
+      ],
       "reference_modules": [
         "worker_job.py"
       ],
@@ -3100,7 +3388,26 @@
       "tolerance": null,
       "parity_reason": "Per-node execution; the 24-node DAG shape and gating are EXACT",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "workflow.step_execution/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "apps/worker/tests/test_worker_loop.py"
+          ]
+        },
+        {
+          "id": "workflow.step_execution/processes",
+          "kind": "production_contract",
+          "requires": [
+            "postgres"
+          ],
+          "tests": [
+            "apps/worker/tests/test_worker_processes.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -3110,7 +3417,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-07)."
       },
-      "notes": ""
+      "notes": "The worker claims, executes, heartbeats, parks and completes durable steps with test executors. No research step body exists, and the 24-node DAG's gating has no reference-backed gate."
     }
   },
   "mvp_acceptance": {

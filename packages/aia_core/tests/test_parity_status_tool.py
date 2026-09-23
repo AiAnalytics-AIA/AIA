@@ -298,6 +298,13 @@ def test_ranking_puts_the_riskiest_unverified_capability_first(tool: ModuleType)
         _status(tool, "e.failed", release_blocker=False, verdict="FAIL"),
         _status(tool, "f.ready", verdict="PASS", release_ready=True),
         _status(tool, "g.not_required", verdict="NOT_REQUIRED"),
+        _status(
+            tool,
+            "h.passing_partial",
+            implementation_state="PARTIAL",
+            verdict="PASS",
+            high_risk=["R1"],
+        ),
     ]
     ranked = [s.id for s in tool.rank_unverified(statuses)]
     assert ranked == [
@@ -305,6 +312,7 @@ def test_ranking_puts_the_riskiest_unverified_capability_first(tool: ModuleType)
         "d.built_r2_semantic",  # built, blocker, R2 beats R10
         "c.built_r10",
         "b.unstarted_r1",  # not built yet: a risk for later, not unverified code
+        "h.passing_partial",  # gates pass; incomplete, not unverified
         "a.off_path",
     ]
 
@@ -331,11 +339,7 @@ def test_the_declared_picture_contains_no_pass(tool: ModuleType, matrix: dict[st
 
 
 def test_a_failed_gate_test_fails_the_cli(tool: ModuleType, tmp_path: Path) -> None:
-    body = case(
-        "tests/test_golden_fixtures.py",
-        "test_golden_fixture_gate[F9_manual_drag_is_view_override]",
-        "failed",
-    )
+    body = case("tests/test_sociomap_engine.py", "test_f9_manual_drag_is_a_view_override", "failed")
     path = junit(tmp_path, body)
     assert tool.main(["--junit", str(path)]) == 1
     assert tool.main(["--junit", str(junit(tmp_path, "", "empty.xml"))]) == 0

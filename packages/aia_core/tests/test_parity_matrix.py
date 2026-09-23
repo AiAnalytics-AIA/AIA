@@ -20,6 +20,7 @@ failure mode this file exists to prevent.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -38,7 +39,13 @@ PARITY_TYPES = frozenset(
 )
 IMPLEMENTATION_STATES = frozenset({"NOT_STARTED", "PARTIAL", "IMPLEMENTED", "RETIRED"})
 GATE_KINDS = frozenset(
-    {"reference_comparison", "reference_characterization", "golden_fixture", "production_contract"}
+    {
+        "reference_comparison",
+        "reference_characterization",
+        "reference_contract",
+        "golden_fixture",
+        "production_contract",
+    }
 )
 REQUIREMENTS = frozenset(
     {
@@ -51,9 +58,11 @@ REQUIREMENTS = frozenset(
     }
 )
 FIXTURE_STATUSES = frozenset({"CAPTURED", "SPECIFIED_NOT_CAPTURED"})
-FIXTURE_GATE_STATES = frozenset({"GATED", "AWAITING_IMPLEMENTATION", "AWAITING_CAPTURE"})
+FIXTURE_GATE_STATES = frozenset(
+    {"GATED", "PARTIALLY_GATED", "AWAITING_IMPLEMENTATION", "AWAITING_CAPTURE"}
+)
+FIXTURE_SOURCES = frozenset({"vendored", "reference_repo"})
 RECORDED_VERDICTS = frozenset({"PASS", "FAIL", "NOT_EXECUTED", "NOT_RUNNABLE"})
-GOLDEN_GATE_TEST = "packages/aia_core/tests/test_golden_fixtures.py::test_golden_fixture_gate"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 CAPABILITY_ID = re.compile(r"^[a-z_]+(\.[a-z_]+)?$")
 
@@ -228,13 +237,19 @@ def test_every_gate_names_real_tests(capabilities: dict[str, dict[str, Any]]) ->
 
 
 def test_reference_backed_gates_declare_what_they_need(
-    capabilities: dict[str, dict[str, Any]],
+    capabilities: dict[str, dict[str, Any]], fixtures: dict[str, dict[str, Any]]
 ) -> None:
     """A reference-backed gate must say which environment it needs, or it cannot
-    be told apart from one that simply did not run."""
+    be told apart from one that simply did not run. A golden gate needs what its
+    fixture needs: nothing when the fixture is vendored, the reference
+    repository when it is read from a checkout."""
+    fixture_of = {fx["gate"]["gate_id"]: fx for fx in fixtures.values() if fx["gate"]["gate_id"]}
     for cid, cap in capabilities.items():
         for gate in cap["gates"]:
             if gate["kind"] == "golden_fixture":
+                assert gate["id"] in fixture_of, f"{gate['id']} gates no fixture"
+                assert gate["requires"] == fixture_of[gate["id"]]["requires"], gate["id"]
+            if gate["kind"] == "reference_contract":
                 assert "reference_repo" in gate["requires"], (cid, gate["id"])
             if gate["kind"] in {"reference_comparison", "reference_characterization"}:
                 assert "legacy_tree" in gate["requires"], (cid, gate["id"])
@@ -262,38 +277,56 @@ def test_fixture_records_are_well_formed(fixtures: dict[str, dict[str, Any]]) ->
         assert fx["status"] in FIXTURE_STATUSES, fid
         assert fx["gate"]["state"] in FIXTURE_GATE_STATES, fid
         assert set(fx["requires"]) <= REQUIREMENTS, fid
-        assert "reference_repo" in fx["requires"], fid
         if fx["status"] == "CAPTURED":
             assert SHA256.match(fx["sha256"]), fid
-            assert fx["path"] == f"golden-fixtures/{fid}.json", fid
+            assert fx["source"] in FIXTURE_SOURCES, fid
+            assert fx["reference_path"].startswith("golden-fixtures/"), fid
             assert fx["gate"]["state"] != "AWAITING_CAPTURE", fid
             assert fx["gap"] is None, fid
+            if fx["source"] == "vendored":
+                assert fx["requires"] == [], f"{fid} is vendored and needs nothing"
+            else:
+                assert fx["path"] == fx["reference_path"], fid
+                assert "reference_repo" in fx["requires"], fid
         else:
             assert fx["sha256"] is None and fx["path"] is None, fid
             assert fx["gate"]["state"] == "AWAITING_CAPTURE", fid
             assert fx["gap"], f"{fid} is not captured but names no reference gap"
 
 
-def test_a_gated_fixture_has_exactly_one_golden_gate(
+def test_every_vendored_fixture_is_the_pinned_bytes(fixtures: dict[str, dict[str, Any]]) -> None:
+    """Runs everywhere: a vendored copy that no longer hashes to its pin is a
+    fixture someone edited, and a parity test against it tests itself."""
+    for fid, fx in fixtures.items():
+        if fx["source"] != "vendored":
+            continue
+        actual = hashlib.sha256((REPO / fx["path"]).read_bytes()).hexdigest()
+        assert actual == fx["sha256"], f"{fid}: {fx['path']} does not hash to its pin"
+
+
+def test_a_fixture_gate_link_is_one_golden_gate_of_its_capability(
     capabilities: dict[str, dict[str, Any]], fixtures: dict[str, dict[str, Any]]
 ) -> None:
-    """``GATED`` in the matrix and a golden gate in the capability must agree.
-
-    The registry in ``test_golden_fixtures.py`` is checked against the same set
-    from the other side, so the three cannot drift apart.
-    """
+    """``GATED`` or ``PARTIALLY_GATED`` names exactly one golden gate, and every
+    golden gate is named by exactly one fixture -- from both sides."""
+    linked: dict[str, str] = {}
     for fid, fx in fixtures.items():
-        node = f"{GOLDEN_GATE_TEST}[{fid}]"
-        referencing = [
-            (cid, g["id"])
-            for cid, cap in capabilities.items()
-            for g in cap["gates"]
-            if g["kind"] == "golden_fixture" and node in g["tests"]
-        ]
-        if fx["gate"]["state"] == "GATED":
-            assert len(referencing) == 1, f"{fid} is GATED but referenced by {referencing}"
+        gid = fx["gate"]["gate_id"]
+        if fx["gate"]["state"] in {"GATED", "PARTIALLY_GATED"}:
+            assert gid, f"{fid} is {fx['gate']['state']} but names no gate"
+            gates = {g["id"]: g for g in capabilities[fx["capability"]]["gates"]}
+            assert gid in gates and gates[gid]["kind"] == "golden_fixture", (fid, gid)
+            assert gid not in linked, f"{gid} gates both {linked.get(gid)} and {fid}"
+            linked[gid] = fid
         else:
-            assert not referencing, f"{fid} is {fx['gate']['state']} but gated by {referencing}"
+            assert gid is None, f"{fid} is {fx['gate']['state']} but names gate {gid}"
+    golden = {
+        g["id"]
+        for cap in capabilities.values()
+        for g in cap["gates"]
+        if g["kind"] == "golden_fixture"
+    }
+    assert golden == set(linked), {"unlinked golden gates": sorted(golden - set(linked))}
 
 
 def test_an_implemented_capability_has_every_fixture_gated(
