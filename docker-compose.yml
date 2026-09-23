@@ -15,7 +15,7 @@ services:
       POSTGRES_PASSWORD: aia_local_dev
       POSTGRES_DB: aia
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -41,8 +41,8 @@ services:
       # application's SSE-S3 writes without changing production storage rules.
       MINIO_KMS_SECRET_KEY: local-dev-only:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
     healthcheck:
