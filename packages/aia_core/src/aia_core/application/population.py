@@ -25,31 +25,44 @@ What it guarantees, each as a refusal rather than a degradation:
 * **A run reads only the population it recorded.** :meth:`load_for_run` takes the
   binding from the run; there is no "resolve the current one instead" path.
 
-Not here yet, deliberately: authorization for establish/promote (there is no
-platform-administrator role in the scope model), companion-asset validation, and a
-process-wide cache. See ``.planning/plans/done/population-version-foundation.md``.
+Establish and promote need a population-operator context
+(``aia_core.domain.population.authority``), issued only by
+``PopulationAuthority`` from trusted configuration; the actor they record is the
+operator's verified user id. Not here yet, deliberately: a process-wide cache.
 """
 
 from __future__ import annotations
 
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Protocol, runtime_checkable
 
 from sqlalchemy.orm import Session
 
 from ..domain.population import (
+    FIELD_POLICY_VERSION,
+    CompanionKind,
+    CompanionReport,
+    CompanionSet,
+    CompanionsIncomplete,
     DatasetVersion,
     EnrichmentFailed,
     ImportRejected,
+    JointState,
+    JointStatus,
     LineageError,
+    ParsedDictionary,
     ParsedPanel,
     Population,
     PopulationBinding,
+    PopulationError,
     PopulationImportContract,
     PopulationKind,
     PopulationNotEstablished,
+    PopulationOperatorContext,
+    PopulationPermission,
     PopulationSelector,
     PopulationView,
     RuntimePopulation,
@@ -58,12 +71,17 @@ from ..domain.population import (
     VersionStatus,
     WeightResolutionError,
     analysis_weights,
+    build_field_policy,
+    companion_set_sha256,
     content_sha256,
     dataset_version_id,
+    evaluate_joint_certificate,
     plan_establish,
     plan_promotion,
+    require_operator,
     resolve_binding,
     resolve_weight_scheme,
+    validate_companions,
     validate_import,
     version_status,
 )
@@ -137,12 +155,18 @@ class PopulationRuntime:
         provenance: str,
         imported_by: str,
         parent_version_id: str | None = None,
+        companion_locations: Mapping[str, str] | None = None,
     ) -> DatasetVersion:
         """Validate a bundle and register it as a new version. Never promotes.
 
         Idempotent for the same bytes under the same label: the existing version is
         returned. The same bytes under another label, or another label's bytes
         under this one, are refused.
+
+        ``companion_locations`` (asset id -> location) validates the companion set
+        with the panel, in one decision: a failing companion rejects the whole
+        import. Omitted, the version is registered without companions and is not
+        usable until :meth:`attach_companions` records a valid set.
         """
         contract = self._contract
         panel_bytes = self._source.read(panel_location)
@@ -178,10 +202,18 @@ class PopulationRuntime:
             dictionary=dictionary,
             panel=panel,
         )
-        if not report.passed:
-            raise ImportRejected(
-                f"{label} failed {len(report.failures)} import checks", failures=report.failures
+        companions: CompanionReport | None = None
+        if companion_locations is not None or not contract.companions:
+            companions = self._validate_companions(
+                label=label,
+                panel=panel,
+                panel_sha256=panel_sha,
+                locations=companion_locations or {},
             )
+        failures = (*report.failures, *(companions.failures if companions else ()))
+        if failures:
+            raise ImportRejected(f"{label} failed {len(failures)} import checks", failures=failures)
+        report = replace(report, companions_validated=companions is not None)
 
         version = DatasetVersion(
             version_id=dataset_version_id(contract.dataset_id, panel_sha),
@@ -202,7 +234,85 @@ class PopulationRuntime:
             imported_by=imported_by,
         )
         self._registry.insert_version(version, validation=report.as_record())
+        if companions is not None:
+            self._registry.insert_companion_set(
+                version.version_id,
+                specs=contract.companions,
+                report=companions,
+                locations=companion_locations or {},
+                attached_by=imported_by,
+                attached_at=version.imported_at,
+            )
         return version
+
+    def attach_companions(
+        self, *, version_id: str, companion_locations: Mapping[str, str], attached_by: str
+    ) -> CompanionSet:
+        """Validate and record the companion set of an already-registered version.
+
+        Once per version: a set is never replaced, because a run already bound to
+        this version recorded the set it was computed with.
+        """
+        version = self._registry.get_version(version_id)
+        if version is None:
+            raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        if self._registry.companion_set(version_id) is not None:
+            raise PopulationError(
+                f"{version_id} already has its companion set; a set is never replaced",
+                reason="companions_already_attached",
+            )
+        panel, _ = self._verified_panel(version)
+        report = self._validate_companions(
+            label=version.label,
+            panel=panel,
+            panel_sha256=version.content_sha256,
+            locations=companion_locations,
+        )
+        if not report.passed:
+            raise ImportRejected(
+                f"{version.label}'s companions failed {len(report.failures)} checks",
+                failures=report.failures,
+            )
+        self._registry.insert_companion_set(
+            version_id,
+            specs=self._contract.companions,
+            report=report,
+            locations=companion_locations,
+            attached_by=attached_by,
+            attached_at=self._clock(),
+        )
+        attached = self._registry.companion_set(version_id)
+        assert attached is not None  # just inserted in this unit of work
+        return attached
+
+    def _validate_companions(
+        self,
+        *,
+        label: str,
+        panel: ParsedPanel,
+        panel_sha256: str,
+        locations: Mapping[str, str],
+    ) -> CompanionReport:
+        contract = self._contract
+        assets: dict[str, bytes] = {}
+        for asset_id, location in locations.items():
+            assets[asset_id] = self._source.read(location)
+        return validate_companions(
+            contract.companions,
+            assets=assets,
+            panel=panel,
+            panel_sha256=panel_sha256,
+            field_count=contract.field_count,
+            joint_must_certify=label in contract.joint_certified_labels,
+        )
+
+    def _require_usable(self, version_id: str) -> None:
+        """Refuse a version whose contract declares companions it does not have."""
+        if self._contract.companions and self._registry.companion_set(version_id) is None:
+            raise CompanionsIncomplete(
+                f"{version_id} has no validated companion set; "
+                f"{len(self._contract.companions)} companions are required before it is usable"
+            )
 
     def _lineage_parent(self, label: str, parent_version_id: str | None) -> str | None:
         contract = self._contract
@@ -235,17 +345,23 @@ class PopulationRuntime:
     def establish(
         self,
         *,
+        operator: PopulationOperatorContext,
         population_id: str,
         kind: PopulationKind,
         version_id: str,
-        actor_id: str,
         reason: str,
     ) -> Population:
-        """Create a population pointing at ``version_id``. Once per population."""
+        """Create a population pointing at ``version_id``. Once per population.
+
+        Needs ``POPULATION_ESTABLISH``; the recorded actor is the operator's verified
+        user id, never an argument.
+        """
+        actor_id = require_operator(operator, PopulationPermission.POPULATION_ESTABLISH)
         dataset = self._contract.dataset_id
         version = self._registry.get_version(version_id)
         if version is None:
             raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        self._require_usable(version_id)
         population, record = plan_establish(
             population_id=population_id,
             kind=kind,
@@ -263,22 +379,25 @@ class PopulationRuntime:
     def promote_live(
         self,
         *,
+        operator: PopulationOperatorContext,
         population_id: str,
         target_version_id: str,
         expected_current_version_id: str,
-        actor_id: str,
         reason: str,
     ) -> Population:
         """Explicitly move a LIVE population to ``target_version_id``.
 
-        Compare-and-set twice over: the domain rule checks the caller's expected
-        version against a locked read, and the repository's conditional update
-        refuses if the pointer moved anyway.
+        Needs ``POPULATION_PROMOTE``. Compare-and-set twice over: the domain rule
+        checks the caller's expected version against a locked read, and the
+        repository's conditional update refuses if the pointer moved anyway.
         """
+        actor_id = require_operator(operator, PopulationPermission.POPULATION_PROMOTE)
         dataset = self._contract.dataset_id
         population = self._registry.population(population_id, for_update=True)
         if population is None:
             raise PopulationNotEstablished(f"population {population_id} has not been established")
+        if self._registry.get_version(target_version_id) is not None:
+            self._require_usable(target_version_id)
         promoted, record = plan_promotion(
             population=population,
             target_version_id=target_version_id,
@@ -312,15 +431,27 @@ class PopulationRuntime:
     ) -> PopulationBinding:
         """Resolve a selector to the binding a run records. No fallback."""
         dataset = self._contract.dataset_id
+        versions = self._registry.versions(dataset)
+        target = selector.version_id
+        if target is None:
+            population = self._registry.population(selector.population_id or "")
+            target = population.current_version_id if population is not None else None
+        if target is not None and target in versions:
+            self._require_usable(target)
+        companions = self._registry.companion_set(target) if target is not None else None
         return resolve_binding(
             selector,
             contract=self._contract,
-            versions=self._registry.versions(dataset),
+            versions=versions,
             populations=self._registry.populations(dataset),
             promotions=self._registry.promotions(dataset),
             view=view,
             weight_role=weight_role,
             at=self._clock(),
+            companion_set_sha256=(
+                companions.set_sha256 if companions is not None else companion_set_sha256({})
+            ),
+            joint_state=companions.joint_state if companions is not None else JointState.MISSING,
         )
 
     # ------------------------------------------------------------------- load --
@@ -357,6 +488,27 @@ class PopulationRuntime:
                 f"{contract.contract_id} declares {weight.column}",
                 reason="weight_mismatch",
             )
+        companions = self._registry.companion_set(version.version_id)
+        if contract.companions and companions is None:
+            raise CompanionsIncomplete(f"{version.version_id} has no validated companion set")
+        recorded_set = companions.set_sha256 if companions is not None else companion_set_sha256({})
+        recorded_joint = companions.joint_state if companions is not None else JointState.MISSING
+        policy_drift = [
+            name
+            for name, have, want in (
+                ("dictionary_sha256", binding.dictionary_sha256, version.dictionary_sha256),
+                ("field_policy_version", binding.field_policy_version, FIELD_POLICY_VERSION),
+                ("companion_set_sha256", binding.companion_set_sha256, recorded_set),
+                ("joint_state", binding.joint_state, recorded_joint),
+            )
+            if have != want
+        ]
+        if policy_drift:
+            # The run would be computed under different claim rules, or a different
+            # certificate, than it recorded. Refuse rather than silently re-rule it.
+            raise VersionIntegrityError(
+                f"binding for {binding.version_id} no longer matches on {policy_drift}"
+            )
 
         enricher_id = self._enricher.enricher_id if self._enricher is not None else ""
         key = (
@@ -365,6 +517,8 @@ class PopulationRuntime:
             binding.view.value,
             weight.column,
             enricher_id,
+            recorded_set,
+            FIELD_POLICY_VERSION,
         )
         cached = self._cache.get(key)
         if cached is not None:
@@ -374,11 +528,20 @@ class PopulationRuntime:
                 source_fields=cached.source_fields,
                 derived_fields=cached.derived_fields,
                 row_count=cached.row_count,
+                field_policy=cached.field_policy,
+                joint_status=cached.joint_status,
                 columns=cached._columns,
                 analysis_weight=cached._analysis_weight,
             )
 
-        panel = self._verified_panel(version)
+        panel, dictionary = self._verified_panel(version)
+        joint = self._verified_joint(version, companions)
+        policy = build_field_policy(
+            dictionary.rows,
+            dictionary_sha256=version.dictionary_sha256,
+            weight_columns=contract.weight_columns,
+            derived_fields=contract.derived_policy_fields,
+        )
         columns: dict[str, tuple[Cell, ...]] = {
             name: panel.columns[position] for position, name in enumerate(panel.header)
         }
@@ -394,6 +557,8 @@ class PopulationRuntime:
             source_fields=panel.header,
             derived_fields=tuple(d for d in contract.derived_fields if d.name in derived),
             row_count=panel.row_count,
+            field_policy=policy,
+            joint_status=joint,
             columns=columns,
             analysis_weight=weights,
         )
@@ -402,7 +567,34 @@ class PopulationRuntime:
             self._cache.popitem(last=False)
         return population
 
-    def _verified_panel(self, version: DatasetVersion) -> ParsedPanel:
+    def _verified_joint(
+        self, version: DatasetVersion, companions: CompanionSet | None
+    ) -> JointStatus:
+        """Re-verify every companion's bytes and re-evaluate the certificate."""
+        if companions is None:
+            return JointStatus.fallback(JointState.MISSING, "the contract declares no certificate")
+        certificate: bytes | None = None
+        for spec in self._contract.companions:
+            sha, location = companions.assets[spec.asset_id]
+            data = self._source.read(location)
+            if content_sha256(data) != sha:
+                raise VersionIntegrityError(
+                    f"companion {spec.asset_id} at {location} is not the one attached to "
+                    f"{version.label}; refusing to load a swapped companion"
+                )
+            if spec.kind is CompanionKind.CORE_JOINT_STATUS:
+                certificate = data
+        if certificate is None:
+            return JointStatus.fallback(JointState.MISSING, "the contract declares no certificate")
+        joint = evaluate_joint_certificate(certificate, panel_sha256=version.content_sha256)
+        if joint.state is not companions.joint_state:
+            raise VersionIntegrityError(
+                f"{version.label}'s certificate now evaluates to {joint.state.value}, "
+                f"not the recorded {companions.joint_state.value}"
+            )
+        return joint
+
+    def _verified_panel(self, version: DatasetVersion) -> tuple[ParsedPanel, ParsedDictionary]:
         panel_bytes = self._source.read(version.storage_location)
         if content_sha256(panel_bytes) != version.content_sha256:
             raise VersionIntegrityError(
@@ -416,6 +608,9 @@ class PopulationRuntime:
                 f"{version.label} was imported with"
             )
         panel = parse_panel(panel_bytes)
+        dictionary = parse_dictionary(
+            dictionary_bytes, field_column=self._contract.dictionary_field_column
+        )
         # Defence in depth: the contract is re-applied on every load, so a contract
         # tightened after import stops an old version loading rather than letting it
         # through on its historical report.
@@ -425,9 +620,7 @@ class PopulationRuntime:
             panel_sha256=version.content_sha256,
             panel_byte_size=len(panel_bytes),
             dictionary_sha256=version.dictionary_sha256,
-            dictionary=parse_dictionary(
-                dictionary_bytes, field_column=self._contract.dictionary_field_column
-            ),
+            dictionary=dictionary,
             panel=panel,
         )
         if not report.passed:
@@ -435,7 +628,7 @@ class PopulationRuntime:
                 f"{version.label} no longer satisfies {self._contract.contract_id}: "
                 + "; ".join(report.failures)
             )
-        return panel
+        return panel, dictionary
 
     def _enrich(self, panel: ParsedPanel) -> dict[str, tuple[Cell, ...]]:
         declared = self._contract.enrichment_fields

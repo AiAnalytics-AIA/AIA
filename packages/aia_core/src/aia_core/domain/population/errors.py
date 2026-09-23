@@ -14,6 +14,7 @@ without parsing prose.
 from __future__ import annotations
 
 __all__ = [
+    "CompanionsIncomplete",
     "EnrichmentFailed",
     "ImportRejected",
     "LineageError",
@@ -120,6 +121,17 @@ class ImportRejected(PopulationError):
     def __init__(self, message: str, *, failures: tuple[str, ...] = ()) -> None:
         super().__init__(message)
         self.failures = failures
+
+
+class CompanionsIncomplete(PopulationError):
+    """A version whose contract declares companions has no validated companion set.
+
+    Such a version is registered -- its panel is preserved and validated -- but it
+    is not usable: it cannot be established, promoted or resolved for a run, because
+    without its companions it cannot say what may be claimed from it.
+    """
+
+    reason = "companions_incomplete"
 
 
 class WeightResolutionError(PopulationError):

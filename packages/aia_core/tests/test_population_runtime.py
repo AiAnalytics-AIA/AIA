@@ -42,6 +42,25 @@ from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 
+def _operator(*permissions: str) -> Any:
+    """An issued population-operator context, the only thing establish/promote accept."""
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+
+    config = PopulationOperatorConfig.from_names(
+        {"owner": permissions or ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+    )
+    return PopulationAuthority(config).operator_context(
+        AuthenticatedPrincipal(user_id="owner", organization_id="platform")
+    )
+
+
+OPERATOR = _operator()
+
+
 class LifeStageEnricher:
     """A test enricher: deterministic text derived from source fields."""
 
@@ -97,14 +116,14 @@ def established(session: Session, synthetic_population: Any) -> dict[str, Any]:
         population_id="SYN_STATIC",
         kind=PopulationKind.STATIC,
         version_id=versions["v1_1"].version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="establish the reproducibility anchor",
     )
     rt.establish(
         population_id="SYN_LIVE",
         kind=PopulationKind.LIVE,
         version_id=versions["v1_4"].version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="establish the default runtime",
     )
     return {"rt": rt, "versions": versions, "pop": synthetic_population}
@@ -138,7 +157,8 @@ def test_import_records_its_full_validation_report(
     record = PopulationRegistryRepository(session).validation_record(base.version_id)
     assert record is not None
     assert record["passed"] is True
-    assert record["companions_validated"] is False
+    # The synthetic contract declares no companions, so the (empty) set is complete.
+    assert record["companions_validated"] is True
     assert {c["check"] for c in record["checks"]} >= {
         "dictionary.checksum",
         "schema.columns_in_order",
@@ -313,7 +333,7 @@ def test_static_is_immutable_even_by_explicit_call(established: dict[str, Any]) 
             population_id="SYN_STATIC",
             target_version_id=v["v1_4"].version_id,
             expected_current_version_id=v["v1_1"].version_id,
-            actor_id="owner",
+            operator=OPERATOR,
             reason="try to move the anchor",
         )
     assert rt.version_status(v["v1_1"].version_id) is VersionStatus.STATIC_REFERENCE
@@ -329,7 +349,7 @@ def test_explicit_promotion_supersedes_the_previous_live(established: dict[str, 
         population_id="SYN_LIVE",
         target_version_id=newer.version_id,
         expected_current_version_id=v["v1_4"].version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="approved calibration overlay",
     )
     assert rt.version_status(newer.version_id) is VersionStatus.LIVE_CURRENT
@@ -346,7 +366,7 @@ def test_promotion_with_a_stale_expectation_is_refused(established: dict[str, An
             population_id="SYN_LIVE",
             target_version_id=newer.version_id,
             expected_current_version_id=v["v1_1"].version_id,
-            actor_id="owner",
+            operator=OPERATOR,
             reason="stale",
         )
 
@@ -357,7 +377,7 @@ def test_promoting_an_unknown_population_is_refused(established: dict[str, Any])
             population_id="NOPE",
             target_version_id="x",
             expected_current_version_id="y",
-            actor_id="owner",
+            operator=OPERATOR,
             reason="r",
         )
 
@@ -370,7 +390,7 @@ def test_establishing_an_unknown_version_is_refused(
             population_id="SYN_STATIC",
             kind=PopulationKind.STATIC,
             version_id="synthetic_population@sha256:0000000000000000",
-            actor_id="owner",
+            operator=OPERATOR,
             reason="r",
         )
 
@@ -574,14 +594,14 @@ def test_a_null_in_the_selected_weight_refuses_the_load(
         population_id="SYN_STATIC",
         kind=PopulationKind.STATIC,
         version_id=static.version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="r",
     )
     rt.establish(
         population_id="SYN_LIVE",
         kind=PopulationKind.LIVE,
         version_id=candidate.version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="r",
     )
     ok = rt.load(rt.resolve(PopulationSelector.population("SYN_LIVE")))
@@ -642,7 +662,7 @@ def test_a_run_loads_exactly_its_recorded_population_after_a_promotion(
         population_id="SYN_LIVE",
         target_version_id=newer.version_id,
         expected_current_version_id=v["v1_4"].version_id,
-        actor_id="owner",
+        operator=OPERATOR,
         reason="approved",
     )
 

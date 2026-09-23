@@ -1,0 +1,90 @@
+{
+  "fixture_id": "F6_objectMetricArray66",
+  "capability_id": "sociomapping.core",
+  "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+  "reference_function": "ui_app.html::objectMetricArray66",
+  "dataset_version": "synthetic_fixture",
+  "config": {},
+  "seed": null,
+  "algorithm": null,
+  "input": {
+    "matrix": [
+      [
+        0,
+        4,
+        9,
+        2
+      ],
+      [
+        6,
+        0,
+        3,
+        8
+      ],
+      [
+        7,
+        5,
+        0,
+        1
+      ],
+      [
+        3,
+        9,
+        2,
+        0
+      ]
+    ],
+    "names": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "mean_rating": [
+      6.2,
+      4.8,
+      7.1,
+      3.3
+    ],
+    "support_n": [
+      120,
+      98,
+      140,
+      75
+    ]
+  },
+  "expected_output": {
+    "mean_rating": [
+      6.2,
+      4.8,
+      7.1,
+      3.3
+    ],
+    "support_n": [
+      120,
+      98,
+      140,
+      75
+    ],
+    "relation_classic": [
+      31,
+      35,
+      27,
+      25
+    ],
+    "tscore_default": [
+      53.9056673294,
+      64.3207802079,
+      43.490554451,
+      38.2829980117
+    ]
+  },
+  "parity_type": "NUMERICAL",
+  "tolerance": 1e-9,
+  "runtime_environment": {
+    "node": "v20.15.1",
+    "rscript_available": false,
+    "note": "Frontend math executed in Node from functions extracted verbatim from ui_app.html"
+  },
+  "notes": "relation_classic = sum_j (M[i][j] + M[j][i]). Any unrecognised metric id falls through to the T-score default: 50 + 10*(v-mu)/sd over relation_classic, or 50 when sd < 1e-9. sd uses the POPULATION divisor."
+}

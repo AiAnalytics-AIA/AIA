@@ -11,6 +11,7 @@ is shaped that way. The companion documents go deeper:
 | --- | --- |
 | [domain-map.md](domain-map.md) | Bounded contexts and their dependencies |
 | [data-model.md](data-model.md) | Production data model |
+| [population.md](population.md) | Population consumer contract: binding, field policy, joint claims |
 | [workflows.md](workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](ai-runtime.md) | Provider abstraction, provenance, budgets, failure behaviour |
 | [artifacts.md](artifacts.md) | Artifact lifecycle and storage |
@@ -62,8 +63,9 @@ against the validated prototype by the parity suite
 ```
 apps/web         Next.js client. No business rules. Still mock-backed.
 apps/api         FastAPI. Validates, delegates, serialises. No business rules.
-apps/worker      Background workers. Long-running AI work. NOT YET BUILT --
-                 the engine they would drive exists; the loop does not.
+apps/worker      The execution loop: claims steps from PostgreSQL, heartbeats,
+                 runs the StepExecutor registered for each kind, records the
+                 outcome. No executor for a real step kind exists yet.
 packages/aia_core
   domain/        Pure rules. No framework, no driver, no SDK imports.
   application/   Use cases that orchestrate domain + infrastructure.
@@ -139,7 +141,10 @@ paid-call recovery, verified under real contention; approval policy with an
 append-only decision ledger; the fail-closed residency and egress boundary;
 structured logging with request correlation and secret redaction; and CI.
 
-**Not built:** a worker process to drive the engine, the AI provider gateway and
+The worker process that drives the engine is built and verified with real
+processes contending, killed and stopped mid-step.
+
+**Not built:** executors for real step kinds, the AI provider gateway and
 adapters, OpenTelemetry instrumentation, a generalized metered-cost ledger, and
 every stage that actually calls a model. `apps/web` is still mock-backed.
 

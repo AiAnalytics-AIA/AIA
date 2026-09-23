@@ -131,7 +131,8 @@ the policy again at read time would answer what the policy is *now*, not what it
 was when somebody cleared a client deliverable.
 
 **Population registry.** `population_dataset_versions`, `populations`,
-`population_promotions`, `run_population_bindings`. Platform reference data, so the
+`population_promotions`, `population_companion_sets`, `population_companion_assets`,
+`run_population_bindings`. Platform reference data, so the
 first three carry no organization, client or study; the binding hangs off
 `workflow_runs` and inherits its scope.
 
@@ -140,7 +141,9 @@ first three carry no organization, client or study; the binding hangs off
 | `population_dataset_versions` | **Insert-only.** `content_sha256` unique (same bytes never registered twice); `(dataset_id, label)` unique (a label never re-pointed); `parent_version_id` self-FK without cascade; the import report kept in `validation_json` |
 | `populations` | One `STATIC` and one `LIVE` per dataset (`population_one_per_kind`). `current_version_id` is the single answer to "which population is in use" |
 | `population_promotions` | **Append-only.** `from_version_id` NULL for the establishing entry. SUPERSEDED is derived from this table, never stored |
-| `run_population_bindings` | One row per run (PK `run_id`), never updated, cascades with the run. Every binding field denormalised so the record still says what the run used after later promotions |
+| `population_companion_sets` | **Insert-once** per version: the companion-set digest, the joint-certificate state and the report it was accepted on. A version whose contract declares companions is unusable without one |
+| `population_companion_assets` | Each companion's SHA256, size and location, re-verified on every load |
+| `run_population_bindings` | One row per run (PK `run_id`), never updated, cascades with the run. Every binding field denormalised — including `dictionary_sha256`, `field_policy_version`, `companion_set_sha256` and `joint_state` — so the record still says what the run used, and under which rules, after later promotions |
 
 Promotion is a compare-and-set `UPDATE … WHERE kind = 'LIVE' AND
 current_version_id = :expected` under a row lock, so concurrent promoters get
