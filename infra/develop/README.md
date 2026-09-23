@@ -91,7 +91,13 @@ These need account control an agent does not have. In order.
     starts`, `Parity status`), block force pushes and deletion, restrict direct
     pushes to administrators.
 11. **Branch `main`**: stricter — the same, plus require review, and merge only
-    release PRs from `develop`.
+    release PRs from `develop`. **Then release once before the first deploy:**
+    GitHub registers `workflow_run` and `workflow_dispatch` only from the default
+    branch, so `.github/workflows/deploy-develop.yml` deploys nothing — and
+    offers no *Run workflow* — until it is on `main`. A release PR `develop →
+    main` (or a chore PR carrying only that file) is the step; after it, every
+    CI-green head of `develop` deploys, and every later change to the workflow
+    itself is likewise inert until released (OI-37).
 12. **Cognito users.** Provisioning is administrator-only. Add each person in
     the Cognito console (*Users* → *Create user*; email as username; any
     temporary password is unused because sign-in is Google), or leave it to

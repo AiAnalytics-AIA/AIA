@@ -460,6 +460,35 @@ raise RuntimeError("invalid production configuration: " + "; ".join(problems))
 An empty `cors_origins` means same-origin only, which is the correct default.
 **Never `*`.**
 
+## GitHub Actions
+
+**A `workflow_run` or `workflow_dispatch` workflow exists only on the default
+branch.** GitHub registers those two triggers from the workflow files on the
+default branch (`main` here) and nowhere else. A workflow that lives only on
+`develop` is not listed under *Actions*, never fires when CI completes, and has
+no *Run workflow* button — with no error anywhere. `push` and `pull_request`
+triggers behave differently: they run the file from the pushed branch, which is
+why `ci.yml` ran on `develop` while `deploy-develop.yml`, beside it, did not.
+
+```
+# WRONG -- merged to develop only; CI went green there and nothing deployed
+.github/workflows/deploy-develop.yml   on: workflow_run: {workflows: [CI], branches: [develop]}
+
+# RIGHT -- the same file also on main (a release PR develop -> main, or a chore
+# PR carrying only that file); GitHub then runs main's copy when CI on develop
+# completes, and checks out the develop SHA it names
+```
+
+Two consequences to carry:
+
+- The copy that runs is **`main`'s**. An edit to the deploy workflow merged to
+  `develop` takes effect only when it reaches `main`; until then the old copy
+  deploys the new code. Release the workflow change before relying on it.
+- Verify a registration, do not assume it:
+  `GET /repos/<owner>/<repo>/actions/workflows` lists what GitHub will run; a
+  file missing from that list will not fire. OI-37 records the first time this
+  was learned here.
+
 ## CI contracts
 
 **A contract assertion that outlives the contract is worse than none.** CI

@@ -1086,3 +1086,44 @@ agree after resolution.
 
 **Status.** Open. Owner **platform-runtime**. Listed as ask 3 in
 `docs/architecture/ai-step-executor-contract.md`.
+
+---
+
+## OI-37 · Finding · The deploy workflow cannot fire until it is on `main`
+
+**Claim.** `deploy-develop.yml` is on `develop` only; GitHub registers
+`workflow_run` and `workflow_dispatch` triggers from the default branch alone,
+so the first CI-green head of `develop` was never deployed and no manual
+rollback dispatch is offered.
+
+**Anchor.** `.github/workflows/deploy-develop.yml:13-18 @ 262a6dd` (the `on:`
+block); `git ls-tree origin/main .github/workflows/` lists `ci.yml` only @ `676bc1f`.
+
+**Reproduction.** CI run 35836518940 on `develop` @ `262a6dd` completed
+`success` at 2026-09-23 08:24:55 UTC; seventeen minutes later
+`GET /repos/AiAnalytics-AIA/AIA/actions/workflows` listed one workflow (`CI`) and
+`GET …/actions/workflows/deploy-develop.yml/runs` returned 404. Same check, one
+command: `gh api repos/AiAnalytics-AIA/AIA/actions/workflows --jq '.workflows[].path'`.
+
+**Consequence.** The chain `develop → CI → deploy` that the plan calls done stops
+after CI, silently: no run, no failure, no *Run workflow* button. The human
+actions in `infra/develop/README.md` would have been completed against a
+pipeline that could not fire. Nothing was deployed wrongly; nothing was deployed.
+
+**Smallest fix.** Put the file on `main`: a release PR `develop → main` (after
+this change `develop ⊇ main`, so it is the repository's normal release and
+carries PR #29 with it), or a `chore/` PR into `main` carrying only
+`.github/workflows/deploy-develop.yml`. No code change. Recorded as human action
+11 in `infra/develop/README.md`. Standing rule, now in `AGENTS.md` § GitHub
+Actions: edits to that workflow take effect when they reach `main`, not `develop`.
+
+**Test that would catch it.** Not a unit test — a repository-state property. A
+`push`-to-`develop` job that fails when `.github/workflows/deploy-develop.yml`
+differs from `main`'s copy (`git diff --quiet origin/main -- .github/workflows/deploy-develop.yml`)
+would have turned the first green `develop` head red with the reason. It also
+fails, correctly, for the window between merging a workflow change to `develop`
+and releasing it; whether that noise is wanted is a human decision, so it is
+proposed here and not added.
+
+**Status.** Open. Blocks the first automatic deployment. Owner: the person doing
+the human actions; the fix is one merge.

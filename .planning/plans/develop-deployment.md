@@ -183,11 +183,20 @@ and the deploy workflow itself. Each is exercised for the first time by the
 human actions in `infra/develop/README.md`; the workflow fails loudly on any of
 them rather than reporting a deployment that did not happen.
 
+**Observed after the merge (2026-09-23).** PR #29 merged into `develop` at
+`262a6dd`; CI on `develop` passed at 08:24:55 UTC; *Deploy develop* did not run,
+because GitHub registers `workflow_run` and `workflow_dispatch` only from the
+default branch and the file is on `develop` alone. "The deploy workflow itself"
+above was therefore not merely unverified: it could not fire. OI-37 has the
+reproduction and the one-merge fix (a release PR `develop → main`); the rule is
+in `AGENTS.md` § GitHub Actions and in human action 11.
+
 ## Findings filed along the way
 
 OI-33 (a repository `ScopeDenied` is a 500 in the projects and scope routers),
 OI-34 (no web test runner), OI-35 (browser session in `sessionStorage`, accepted
-for develop). OI-3 closed: `develop` is the second branch it asked for.
+for develop). After the merge: OI-37 (the deploy workflow cannot fire until it is
+on `main`). OI-3 closed: `develop` is the second branch it asked for.
 
 ## Not done here, deliberately
 

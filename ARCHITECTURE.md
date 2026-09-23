@@ -373,6 +373,11 @@ client's `/version` reports the same, and every artifact records it as its
   `github.event.workflow_run.head_sha` — a `workflow_run` job runs in the
   default-branch context, so the default checkout is an **older** head than the
   one just verified. `deploy-develop.yml` does exactly this.
+- **The deploy workflow must be on `main`.** GitHub registers `workflow_run`
+  and `workflow_dispatch` only from the default branch, and runs *that* copy.
+  A change to `deploy-develop.yml` is inert until a release PR carries it to
+  `main`; a `develop` branch whose workflow differs from `main`'s deploys with
+  `main`'s procedure (`AGENTS.md` § GitHub Actions; OI-37).
 - One deployment at a time (`concurrency: deploy-develop`, never cancelling a
   deploy already running on the host). Migrations run **once, as a distinct
   deploy step** (`alembic upgrade head` from the api image at the SHA being

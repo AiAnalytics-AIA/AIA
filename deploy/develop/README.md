@@ -84,7 +84,11 @@ Done once, by a person with AWS access. Everything after this is automatic.
 Merge a pull request into `develop`. Then:
 
 1. CI runs (`.github/workflows/ci.yml`) — unchanged, and not weakened.
-2. On CI success, `deploy-develop.yml` runs in the `develop` GitHub environment,
+2. On CI success, `deploy-develop.yml` — **`main`'s copy of it**: GitHub
+   registers `workflow_run` and `workflow_dispatch` only from the default
+   branch, so the file must have reached `main` through a release PR before
+   anything deploys, and an edit to it deploys nothing new until it is released
+   too (`AGENTS.md` § GitHub Actions) — runs in the `develop` GitHub environment,
    assumes the deploy role through OIDC (no stored AWS keys), builds
    `aia-api`, `aia-worker` and `aia-web` at the verified SHA, pushes them to ECR
    tagged `<sha>` (and `develop` as a convenience alias), uploads this directory
@@ -189,7 +193,7 @@ volume and Caddy's certificates), then `bin/deploy.sh <sha>` and the seed.
 ## Rollback
 
 Deploy the previous SHA. The workflow accepts a SHA by hand (*Run workflow* →
-`sha`), or from the host:
+`sha`; the button exists only once the workflow is on `main`), or from the host:
 
 ```bash
 bin/deploy.sh <previous-sha> --no-migrate
