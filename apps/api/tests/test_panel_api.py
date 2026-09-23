@@ -270,3 +270,29 @@ def test_a_deployed_panel_must_name_its_origin() -> None:
     )
     with pytest.raises(RuntimeError, match="AIA_LEGACY_PANEL_ORIGIN is required"):
         settings.validate_for_production()
+
+
+def test_local_development_identity_opens_a_session_too(settings: Settings) -> None:
+    """``make dev`` signs in with X-AIA-Subject; the panel session carries that identity."""
+    from aia_core.infrastructure.tables import Base
+
+    from aia_api.main import create_app
+
+    local = settings.model_copy(
+        update={"env": Environment.LOCAL, "identity_provider": "development"}
+    )
+    application = create_app(local)
+    with TestClient(application, follow_redirects=False) as client:
+        Base.metadata.create_all(application.state.engine)
+        factory = create_session_factory(application.state.engine)
+        with factory() as session:
+            ScopeRepository(session).create_organization(
+                slug="aia", name="AIA", owner_email="owner@example.test", owner_name="Owner"
+            )
+            session.commit()
+        opened = client.post(SESSION, headers={"X-AIA-Subject": "owner@example.test"})
+        assert opened.status_code == 204
+        # Quoted, because of the "@"; a JWT needs no quoting. The client's jar
+        # sends it back as a browser would.
+        assert opened.headers["set-cookie"].startswith('aia_panel="owner@example.test";')
+        assert client.get(GATE, headers={"X-Forwarded-Method": "GET"}).status_code == 204

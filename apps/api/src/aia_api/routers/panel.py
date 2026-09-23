@@ -35,6 +35,7 @@ from ..dependencies import (
     ResolverDep,
     SessionDep,
     SettingsDep,
+    bearer_credential,
     get_identity_provider,
     principal_from_credential,
 )
@@ -97,7 +98,8 @@ def open_session(
     session: SessionDep,
     principal: PrincipalDep,
     resolver: ResolverDep,
-    authorization: Annotated[str, Header()],
+    authorization: Annotated[str | None, Header()] = None,
+    x_aia_subject: Annotated[str | None, Header(alias="X-AIA-Subject")] = None,
 ) -> Response:
     """Admit the caller to the 18.6.6 interface and set its session cookie.
 
@@ -114,9 +116,15 @@ def open_session(
             "legacy_panel_denied",
             "The 18.6.6 interface is open to organization owners and admins only.",
         ) from exc
+    # The credential get_principal has just verified: the bearer token, or in
+    # local development only, the header identity it accepted instead.
+    credential = bearer_credential(authorization)
+    if credential is None and settings.allow_insecure_local_identity:
+        credential = x_aia_subject
+    if not credential:  # pragma: no cover - get_principal refused it already
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
-    # get_principal has already verified the header, so this is its token.
-    _set_cookie(response, authorization.partition(" ")[2].strip(), settings)
+    _set_cookie(response, credential, settings)
     return response
 
 
