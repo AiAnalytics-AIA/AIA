@@ -12,7 +12,6 @@ package_upgrade: true
 packages:
   - docker.io
   - docker-compose-v2
-  - awscli
   - unzip
   - jq
   - python3
@@ -92,6 +91,12 @@ write_files:
 
 runcmd:
   - mkdir -p /opt/aia/develop && chmod 0750 /opt/aia/develop
+  # Ubuntu 24.04's apt sources do not reliably provide awscli. Install the
+  # official AWS CLI v2 before any deploy or backup script needs S3 or SSM.
+  - curl -fsSL --retry 3 -o /tmp/aia-awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+  - unzip -q /tmp/aia-awscliv2.zip -d /tmp/aia-awscli-install
+  - /tmp/aia-awscli-install/aws/install --install-dir /usr/local/aws-cli --bin-dir /usr/local/bin
+  - rm -rf /tmp/aia-awscliv2.zip /tmp/aia-awscli-install
   - systemctl enable --now docker
   - systemctl daemon-reload
   - systemctl enable --now aia-backup.timer
