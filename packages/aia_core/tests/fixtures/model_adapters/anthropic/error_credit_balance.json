@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Out of credits. The reference's WAITING_CREDITS; no reset is invented.",
+  "structured": false,
+  "response": {
+    "status": 400,
+    "headers": {
+      "request-id": "req_011CTestError"
+    },
+    "body": {
+      "type": "error",
+      "error": {
+        "type": "invalid_request_error",
+        "message": "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."
+      },
+      "request_id": "req_011CTestError"
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "QUOTA",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_011CTestError",
+      "retry_after": null,
+      "http_status": 400,
+      "provider_error_type": "invalid_request_error"
+    }
+  }
+}

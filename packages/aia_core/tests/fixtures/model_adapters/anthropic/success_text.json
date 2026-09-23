@@ -1,0 +1,50 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Plain text answer, end_turn.",
+  "structured": false,
+  "response": {
+    "status": 200,
+    "headers": {
+      "request-id": "req_011CTextOk",
+      "content-type": "application/json"
+    },
+    "body": {
+      "id": "msg_01TextOk",
+      "type": "message",
+      "role": "assistant",
+      "model": "reasoning-large-v2-20260901",
+      "content": [
+        {
+          "type": "text",
+          "text": "Dobrý den. "
+        },
+        {
+          "type": "text",
+          "text": "Zde je shrnutí."
+        }
+      ],
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "usage": {
+        "input_tokens": 25,
+        "output_tokens": 12
+      }
+    }
+  },
+  "expect": {
+    "ok": {
+      "text": "Dobrý den. Zde je shrnutí.",
+      "structured": null,
+      "finish_reason": "COMPLETED",
+      "usage": {
+        "input_tokens": 25,
+        "output_tokens": 12,
+        "cache_read_input_tokens": null,
+        "cache_write_input_tokens": null
+      },
+      "provider_request_id": "req_011CTextOk",
+      "served_model": "reasoning-large-v2-20260901",
+      "reported_cost_usd": null
+    }
+  }
+}

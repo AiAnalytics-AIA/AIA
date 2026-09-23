@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "403 permission.",
+  "structured": false,
+  "response": {
+    "status": 403,
+    "headers": {
+      "request-id": "req_011CTestError"
+    },
+    "body": {
+      "type": "error",
+      "error": {
+        "type": "permission_error",
+        "message": "Your API key does not have permission to use the specified resource."
+      },
+      "request_id": "req_011CTestError"
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "PERMISSION",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_011CTestError",
+      "retry_after": null,
+      "http_status": 403,
+      "provider_error_type": "permission_error"
+    }
+  }
+}

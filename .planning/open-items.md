@@ -123,6 +123,15 @@ studies (`apps/api/src/aia_api/routers/scope.py:236 @ df294e2`).
 **Status.** Closed. Re-run the sweep when the AI runtime lands — scoring and
 budget code is exactly where this bug is expensive.
 
+**Re-run 2026-09-22, AI runtime change set.** 4 new hits, all cleared: an empty
+ledger SUM is genuinely zero (`ai_usage_repository.py` `total_cost_usd`); unreported
+cache counts are zero only because adapters leave every unattributed token in the
+full-rate `input_tokens` (`application/model_gateway.py` `_price`, commented); the
+ceiling's `cache_write_usd_per_mtok or 0.0` sits inside a `max` with the input rate
+(`domain/ai_models.py` `ceiling_usd`). The companion A7 sweep found one real defect,
+fixed in the same change: `parse_duration_seconds("inf")` / `"nan"` crashed the
+retry-after computation (`test_model_adapters.py::test_duration_parsing_consumes_the_whole_value`).
+
 ---
 
 ## OI-5 · Finding · `make deps` installs into the system interpreter, not the venv
@@ -958,3 +967,39 @@ failing the build.
 
 **Status.** Open. Needs a repository admin.
 
+---
+
+## OI-33 · Finding · Resolving an uncertain call corrects the ledger but not the study's spend
+
+**Claim.** `AIUsageRepository.resolve_uncertain` appends the compensating ledger
+entry, but `Study.spent_usd` keeps the full `SETTLED_UNCERTAIN` reservation
+amount that `_settle_uncertain` charged, so the two disagree until something
+reconciles the reservation -- and nothing does yet.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/ai_usage_repository.py:233`
+(`resolve_uncertain`) and
+`packages/aia_core/src/aia_core/infrastructure/workflow_repository.py:748`
+(`_settle_uncertain`) @ this change.
+
+**Reproduction.** Run
+`test_ai_usage_ledger.py::test_worker_killed_mid_call_parks_for_a_person_and_the_ledger_can_find_it`
+and, after the resolution, compare `attempt.usage.total_cost_usd()` (0.00027)
+with `attempt.workflow.budget_position()["spent_usd"]` (1.0, the reservation).
+
+**Consequence.** After an operator resolves an uncertain call as cheap or unbilled,
+the study still shows the reservation as spent, so its budget headroom stays
+understated until corrected by hand. The error is in the safe direction --
+over-stated spend, never under-stated -- which is why it is filed rather than
+patched across the ownership boundary.
+
+**Smallest fix.** A `WorkflowRepository` method, owned by platform-runtime, that
+takes a resolved call's compensation and writes a compensating adjustment to the
+`SETTLED_UNCERTAIN` reservation and `spent_usd` (atomic, as `_charge_study` is).
+The AI side already exposes everything it needs: the resolution entry carries
+`reservation_id`, `attempt_id` and the compensation amount.
+
+**Test that would catch it.** The reproduction above, asserting the two figures
+agree after resolution.
+
+**Status.** Open. Owner **platform-runtime**. Listed as ask 3 in
+`docs/architecture/ai-step-executor-contract.md`.

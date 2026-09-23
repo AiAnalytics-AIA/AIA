@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "500: answered, not billed, retryable.",
+  "structured": false,
+  "response": {
+    "status": 500,
+    "headers": {
+      "x-request-id": "req_openai_err"
+    },
+    "body": {
+      "error": {
+        "message": "The server had an error while processing your request.",
+        "type": "server_error",
+        "param": null,
+        "code": null
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "TRANSPORT",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_openai_err",
+      "retry_after": null,
+      "http_status": 500,
+      "provider_error_type": "server_error"
+    }
+  }
+}

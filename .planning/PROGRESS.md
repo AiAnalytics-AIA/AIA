@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-23 · **Branch:** `claude/determined-gates-tbz874` ·
+**Updated:** 2026-09-23 · **Branch:** `claude/eager-mendel-3bom5p` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -92,6 +92,7 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 | What | State | Anchor |
 |---|---|---|
+| **Phase 4 — AI runtime contract** ([plan](plans/ai-runtime-contract.md)) | All 7 chunks on PR #28; Codex findings fixed; `main` merged twice (a15be65: worker, lease fencing, population, evidence governance; b85431f: simulation core). Measured on the latest merge: SQLite 2128 passed / 132 skipped (core + API + worker); PostgreSQL 16 with `AIA_REQUIRE_POSTGRES=1` core 1994 / 104 skipped, API 114, worker 48, concurrency 22; golden fixtures 24 against reference @ 678e298; `mypy --strict` clean (105 files); `layer_check` 36/36; `exposure_check` 7/7; migration `1cd2a5acd29f` single head on `85637e58c7dd`, `alembic check` clean, reversible. Next slice: the AI step executor over `StepContext` (D11) | `application/model_gateway.py` · `infrastructure/ai_call_journal.py` · `tests/test_ai_usage_ledger.py` |
 | **Phase 7 — simulation deterministic core.** Typed, pure-Python core driven from a frozen `WorldModel`: reference constants and bounds (versioned `sim-constants-1`), reject-not-clip validation with a per-field record of intentional differences, nearest-correlation projection, calibrate-on-baseline inoculation producing `FS_*` columns, scenario contracts with approval bound to the contract hash, independently modelled variants and their deltas, frozen predictions, write-once truth, eligibility, scoring | All 7 chunks landed; in review (PR #27). Measured 2026-09-23 after merging `main` @ a15be65: PostgreSQL 16 core **1699 passed / 104 skipped**, API **114 passed**, concurrency **22 passed** and worker **48 passed** with `AIA_REQUIRE_POSTGRES=1`; SQLite **1833 passed / 132 skipped**; migrations up, check, down to base and up again clean; `mypy --strict` 93 files and `tsc` clean; `layer_check` 34/34; `exposure_check` 7/7; reference-repo parity **45 passed** (the 3 F13 tests skip, not captured). Not run: the legacy-tree parity suite (archive withheld) | `.planning/plans/simulation-deterministic-core.md` · `docs/architecture/simulation-deterministic-engine.md` · `tests/test_simulation_*.py` |
 
 **Production parity matrix and parity gates** — owner parity-quality. Plan:
@@ -271,12 +272,16 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
    worker already uses, `budget_position` derived from it, and `Study.spent_usd`
    kept as a checked projection rather than the source. **Write the plan to
    `.planning/plans/` before code.**
-3. **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`, `ModelPolicy`,
-   `ModelRegistry`, `LLMGateway`, `ToolRegistry`, `AIUsageEvent`.
-   **No longer blocked.** [ADR 0005](../docs/architecture/adr/0005-llm-gateway.md)
-   decision A — AIA owns the `ModelGateway` contract — is *Accepted*; only
-   decision B (LiteLLM as the transport) is still *Proposed*, and the contract
-   can be built against without it.
+   **Since PR #28:** model calls now have an append-only ledger,
+   `ai_usage_events`, with compensating entries for uncertain calls. The
+   generalized ledger should extend it or derive from it, not duplicate it, and
+   the reconciliation of `Study.spent_usd` it would own is OI-33.
+3. **Phase 4, second slice — live transport and the AI step executor.** The
+   contract, registry, gateway, ledger and three adapters exist (In progress,
+   above). What remains before any model call is real: an approved route per
+   data class (D6), a transport (D7), a credential store (D8), a published
+   catalog/policy (D9), and a worker executor that drives
+   [the contract](../docs/architecture/ai-step-executor-contract.md).
 4. **Wire `apps/web` to the real API** and delete `lib/mock.ts`.
    Planned together with the design system in
    [`plans/design-system.md`](plans/design-system.md). Decisions DS-1, DS-2 and
@@ -323,6 +328,12 @@ left to build.
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
 | D3 | ~~How the reference reaches CI~~ — **split.** Golden fixtures: CI checks out `AiAnalytics-AIA/AIA-reference` at the pinned commit; **needs a human to add a read-only deploy key as the `AIA_REFERENCE_DEPLOY_KEY` secret, then set the variable `AIA_REQUIRE_REFERENCE_REPO=1`**. Legacy-code comparison (the 94 tests): needs the withheld archive, which stays out of CI until its licence decision and an EU-resident home | Golden gates running in CI; the legacy parity tier | `ARCHITECTURE.md §8`, OI-1 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
+| D6 | **Which provider route is approved for which data class.** A vendor/route ADR judged against ADR 0008. Until one exists every route is Class C only, and no client material may reach a model | Any live call on client material | `docs/architecture/adr/0008-eu-data-residency.md` |
+| D7 | **Live transport.** An HTTP client in the core package (new dependency), provider SDKs behind the adapters, or LiteLLM if ADR 0005 B's seven conditions are proved. The adapters already take a transport protocol, so this is additive | Any live call | `infrastructure/model_adapters/transport.py` @ this change |
+| D8 | **Credential storage.** Secrets Manager reference scheme and/or the planned `api_credentials` table; adapters already hold a reference, never a secret | Live metered calls | `infrastructure/model_adapters/transport.py` `CredentialSource` @ this change |
+| D9 | **Who publishes the model catalog, prices and policy versions**, and where the document lives. `parse_model_config` fails closed; there is deliberately no default | research-engine running anything | `domain/ai_models.py` `parse_model_config` @ this change |
+| D10 | **Capacity backoff and the per-run hard cap.** The reference retried capacity 5/15/45 s in-call (not ported) and capped per run (`budget_guard.py`, R10, not ported). Both are scheduler/budget semantics — platform-runtime | Parity for `cost.hard_cap` | `docs/architecture/ai-runtime.md` *Failure classification* |
+| D11 | **Per-call or per-attempt reservations for AI steps.** The worker's `StepContext` reserves per metered call; `GovernedModelGateway` checks every call against one attempt reservation. The AI step executor needs one answer, shared by ai-runtime and platform-runtime | The AI step executor | `apps/worker/src/aia_worker/executor.py` `StepContext.reserve`; `docs/architecture/ai-step-executor-contract.md` ask 1 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 | D6 | **Accept, replace or defer the four AIA Sociomap declarations** — dissimilarity target, `aia_rowcond_unfolding_v1`, the map frame, relation-missing `refuse`. Decision package ready with approval fields; methodology owner, not engineering. **The only methodology decision preventing client use** | Any client-facing Sociomap | `docs/architecture/sociomapa-methodology-decision.md` · OI-16 |
 | D7 | **Is `RELIGION` a certified matched block?** It is donor-matched and dictionary-eligible, but absent from the certificate's `matched_blocks`, so the claim gate refuses it client-facing. Data owner | Client claims on the five religion fields | `.planning/open-items.md` OI-19 |

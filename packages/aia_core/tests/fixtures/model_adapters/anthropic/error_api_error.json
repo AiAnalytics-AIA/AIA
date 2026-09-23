@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "500 from the provider: answered, not billed, retryable.",
+  "structured": false,
+  "response": {
+    "status": 500,
+    "headers": {
+      "request-id": "req_011CTestError"
+    },
+    "body": {
+      "type": "error",
+      "error": {
+        "type": "api_error",
+        "message": "Internal server error"
+      },
+      "request_id": "req_011CTestError"
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "TRANSPORT",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_011CTestError",
+      "retry_after": null,
+      "http_status": 500,
+      "provider_error_type": "api_error"
+    }
+  }
+}

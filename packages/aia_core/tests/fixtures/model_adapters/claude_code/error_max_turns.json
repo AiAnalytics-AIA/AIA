@@ -1,0 +1,20 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Stopped at the turn limit.",
+  "structured": false,
+  "cli": {
+    "exit_code": 0,
+    "stdout": "{\"type\": \"result\", \"subtype\": \"error_max_turns\", \"is_error\": false, \"duration_ms\": 2100, \"num_turns\": 1, \"result\": null, \"session_id\": \"3f2a-session\", \"total_cost_usd\": 0.0123, \"usage\": {\"input_tokens\": 12, \"output_tokens\": 40, \"cache_read_input_tokens\": 3000, \"cache_creation_input_tokens\": 0}}",
+    "stderr": ""
+  },
+  "expect": {
+    "error": {
+      "kind": "MAX_TURNS",
+      "delivery": "RESPONDED",
+      "provider_request_id": "3f2a-session",
+      "retry_after": null,
+      "http_status": null,
+      "provider_error_type": "error_max_turns"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "404 unknown model id.",
+  "structured": false,
+  "response": {
+    "status": 404,
+    "headers": {
+      "request-id": "req_011CTestError"
+    },
+    "body": {
+      "type": "error",
+      "error": {
+        "type": "not_found_error",
+        "message": "model: reasoning-large-v9"
+      },
+      "request_id": "req_011CTestError"
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "MODEL",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_011CTestError",
+      "retry_after": null,
+      "http_status": 404,
+      "provider_error_type": "not_found_error"
+    }
+  }
+}

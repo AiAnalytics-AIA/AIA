@@ -120,6 +120,33 @@ satisfy it is a separate decision with its own record.
 Two or three thin adapters is entirely reasonable at this scale: five users, not
 five million requests per minute. Writing them keeps the semantics ours.
 
+### Implementation (2026-09-22)
+
+Decision A is built. Anchors, all under `packages/aia_core/src/aia_core/`:
+
+| Contract element | Where |
+| --- | --- |
+| `ModelGateway`, `ExecutionContext`, the step-executor seam | `domain/ai_execution.py` |
+| `ModelRequest`, `ModelResult`, `AIUsageEvent`, `ProviderErrorKind`, `FallbackPolicy`, structured-output validation | `domain/ai_contracts.py` |
+| `ModelCapability`, `ModelPolicy`, `ModelRegistry` (fails closed) | `domain/ai_models.py` |
+| `ToolRegistry` | `domain/ai_tools.py` |
+| `GovernedModelGateway` — the semantics | `application/model_gateway.py` |
+| Adapters: `AnthropicMessagesAdapter`, `OpenAIChatAdapter`, `ClaudeCodeCliAdapter` | `infrastructure/model_adapters/` |
+| Ledger `ai_usage_events`, `AIUsageRepository`, `WorkflowCallJournal` | `infrastructure/` |
+
+Two field-level refinements of the table above, both in the direction of less
+trust: `ModelRequest.capability` is derived from its `AgentDefinition` rather than
+passed separately, so an agent cannot be invoked under a capability it was not
+defined for; and `budget_reservation_id` is checked against the reservation the
+*execution context* carries, whose amount comes from the workflow repository and
+never from the request.
+
+The adapters are written in-house over AIA's own transport protocols, per the
+"two or three thin adapters" consequence below. None imports a provider SDK, and
+`make layer_check` now forbids one anywhere in the core or API. They are tested
+against recorded exchanges only; **no live call has been made**, and no
+provider, route or vendor is selected by them (ADR 0008 still decides that).
+
 ## Decision B — LiteLLM (Proposed, not accepted)
 
 LiteLLM remains a candidate implementation of decision A's transport, and nothing

@@ -1,0 +1,51 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Relationally impossible usage (cached_tokens > prompt_tokens): both input counts are unreported, never a negative count. Codex P2 on #28.",
+  "structured": false,
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-request-id": "req_openai_bad_usage"
+    },
+    "body": {
+      "id": "chatcmpl-Test",
+      "object": "chat.completion",
+      "created": 1790000000,
+      "model": "extraction-small-2026-08-01",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Shrnutí.",
+            "refusal": null
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 5,
+        "prompt_tokens_details": {
+          "cached_tokens": 250
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": {
+      "text": "Shrnutí.",
+      "structured": null,
+      "finish_reason": "COMPLETED",
+      "usage": {
+        "input_tokens": null,
+        "output_tokens": 5,
+        "cache_read_input_tokens": null,
+        "cache_write_input_tokens": null
+      },
+      "provider_request_id": "req_openai_bad_usage",
+      "served_model": "extraction-small-2026-08-01",
+      "reported_cost_usd": null
+    }
+  }
+}

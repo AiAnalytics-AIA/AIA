@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "403 region refusal is a permission failure, not something to route around.",
+  "structured": false,
+  "response": {
+    "status": 403,
+    "headers": {
+      "x-request-id": "req_openai_err"
+    },
+    "body": {
+      "error": {
+        "message": "Country, region, or territory not supported",
+        "type": "request_forbidden",
+        "param": null,
+        "code": "unsupported_country_region_territory"
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "PERMISSION",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_openai_err",
+      "retry_after": null,
+      "http_status": 403,
+      "provider_error_type": "unsupported_country_region_territory"
+    }
+  }
+}

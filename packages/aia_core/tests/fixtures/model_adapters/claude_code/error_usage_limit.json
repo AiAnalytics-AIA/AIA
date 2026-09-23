@@ -1,0 +1,20 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Subscription usage limit with a reset epoch: QUOTA, parked until the reset.",
+  "structured": false,
+  "cli": {
+    "exit_code": 0,
+    "stdout": "{\"type\": \"result\", \"subtype\": \"success\", \"is_error\": true, \"duration_ms\": 2100, \"num_turns\": 1, \"result\": \"Claude AI usage limit reached|1790089200\", \"session_id\": \"3f2a-session\", \"total_cost_usd\": 0.0123, \"usage\": {\"input_tokens\": 12, \"output_tokens\": 40, \"cache_read_input_tokens\": 3000, \"cache_creation_input_tokens\": 0}}",
+    "stderr": ""
+  },
+  "expect": {
+    "error": {
+      "kind": "QUOTA",
+      "delivery": "RESPONDED",
+      "provider_request_id": "3f2a-session",
+      "retry_after": "2026-09-22T15:00:00+00:00",
+      "http_status": null,
+      "provider_error_type": "success"
+    }
+  }
+}
