@@ -1,0 +1,29 @@
+{
+ "fixture_id": "U01_normalizer66",
+ "function": "normalizer66",
+ "capability_id": "sociomapping.core",
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-9,
+ "helpers": ["arrow:clamp"],
+ "notes": "The four normalisation modes on inputs the reference's F5 did not use: negative values, a non-integer spread, duplicated extremes, a single value, and absolute bounds that clip. Each case probes the returned transform on the same points, as F5 does. Ported as aia_core.domain.sociomap.metrics.build_normalizer.",
+ "cases": [
+  {"id": "range_negative_spread", "args": [[-3.5, -1.25, 0, 2.75, 9.5], "range", null],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [-10, -3.5, -1, 0, 3, 9.5, 12]}},
+  {"id": "sigma_negative_spread", "args": [[-3.5, -1.25, 0, 2.75, 9.5], "sigma", null],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [-10, -3.5, -1, 0, 3, 9.5, 12]}},
+  {"id": "percentile_with_duplicates", "args": [[4, 4, 4, 7, 7, 9, 9, 9, 9, 12], "percentile", null],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [3, 4, 5, 7, 8, 9, 12, 13]}},
+  {"id": "absolute_default_uses_largest_magnitude", "args": [[-8, 2, 5], "absolute", null],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [-8, -4, 0, 2, 5, 8, 9]}},
+  {"id": "absolute_with_clipping_bounds", "args": [[1, 2, 3, 4, 5], "absolute", [2, 4]],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [1, 2, 2.5, 3, 4, 5]}},
+  {"id": "absolute_inverted_bounds_fall_back", "args": [[1, 2, 3], "absolute", [4, 2]],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [0, 1, 2, 3, 4]}},
+  {"id": "single_value_range", "args": [[7.5], "range", null],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [0, 7.5, 10]}},
+  {"id": "non_finite_values_are_ignored", "args": [[1, null, "x", 3, 5], "range", null],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [1, 2, 3, 5]}},
+  {"id": "unknown_mode_falls_through_to_range", "args": [[1, 2, 3], "typo", null],
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})", "extra": {"probe_points": [1, 2, 3]}}
+ ]
+}

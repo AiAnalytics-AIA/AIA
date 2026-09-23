@@ -1,0 +1,191 @@
+{
+ "schema": "aia-legacy-ui-fixture-1",
+ "fixture_id": "U03_computeDirectedMatrix1798",
+ "capability_id": "sociomapping.core",
+ "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+ "reference_function": "ui_app.html::computeDirectedMatrix1798",
+ "source_sha256": "de3fc0d653f5101aa835370fe0fa033b4acf232c7e280036c513d44b3ac16082",
+ "helpers": {
+  "edgeWeightMap1798": "918417116364409df250e1811bc5d5ba6b59d13514a618474fdd659ee7c3a7a9"
+ },
+ "ui_app_sha256": "d844dd6fc7bc738bf1bedaed1b668eb44d79c1ad7d281f093eee15ed1c81eaee",
+ "runtime_environment": {
+  "node": "v22.22.2",
+  "note": "Frontend function executed in a Node vm sandbox (no DOM) from source extracted verbatim from the vendored legacy/npc-panel-18.6.6/app/ui_app.html"
+ },
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-09,
+ "input": {
+  "weights_reverse_and_distance": {
+   "args": [
+    [
+     {
+      "name": "A",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "name": "B",
+      "x": 3,
+      "y": 4
+     },
+     {
+      "name": "C",
+      "x": 6,
+      "y": 8
+     },
+     {
+      "name": "D",
+      "x": 10,
+      "y": 0
+     }
+    ],
+    [
+     {
+      "from": 0,
+      "to": 1,
+      "weight": 0.5
+     },
+     {
+      "from": 1,
+      "to": 2,
+      "weight": 7
+     },
+     {
+      "from": 3,
+      "to": 0,
+      "value": 1.5
+     },
+     {
+      "from": 2,
+      "to": 0,
+      "score": 0.25
+     }
+    ]
+   ]
+  },
+  "no_edges_distance_only": {
+   "args": [
+    [
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 1,
+      "y": 0
+     },
+     {
+      "x": 0,
+      "y": 2
+     }
+    ],
+    []
+   ]
+  },
+  "single_node": {
+   "args": [
+    [
+     {
+      "x": 5,
+      "y": 5
+     }
+    ],
+    [
+     {
+      "from": 0,
+      "to": 0,
+      "weight": 1
+     }
+    ]
+   ]
+  },
+  "weight_above_ten_and_below_zero": {
+   "args": [
+    [
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 1,
+      "y": 1
+     }
+    ],
+    [
+     {
+      "from": 0,
+      "to": 1,
+      "weight": 42
+     },
+     {
+      "from": 1,
+      "to": 0,
+      "weight": -3
+     }
+    ]
+   ]
+  }
+ },
+ "expected_output": {
+  "weights_reverse_and_distance": [
+   [
+    0,
+    5.5,
+    3.25,
+    1.5
+   ],
+   [
+    5.5,
+    0,
+    7,
+    2.7439680265
+   ],
+   [
+    3.25,
+    7,
+    0,
+    1.950155281
+   ],
+   [
+    1.5,
+    2.7439680265,
+    1.950155281,
+    0
+   ]
+  ],
+  "no_edges_distance_only": [
+   [
+    0,
+    5.9750776405,
+    1.950155281
+   ],
+   [
+    5.9750776405,
+    0,
+    1
+   ],
+   [
+    1.950155281,
+    1,
+    0
+   ]
+  ],
+  "single_node": [
+   [
+    0
+   ]
+  ],
+  "weight_above_ten_and_below_zero": [
+   [
+    0,
+    10
+   ],
+   [
+    1,
+    0
+   ]
+  ]
+ },
+ "notes": "Directed 1..10 relation matrix from nodes and edges (the 1798 sociomap navigation slice): an explicit edge weight <= 1 is rescaled 1+9w, a weight > 1 is clamped to [1,10], a missing direction borrows the reverse edge, and a pair with no edge falls back to inverse normalised distance. Not yet ported."
+}

@@ -1,0 +1,349 @@
+{
+ "schema": "aia-legacy-ui-fixture-1",
+ "fixture_id": "U01_normalizer66",
+ "capability_id": "sociomapping.core",
+ "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+ "reference_function": "ui_app.html::normalizer66",
+ "source_sha256": "72db114b041f70c2b8c51deb091823b3bb6c7642566774999a2c0eeb5cd550fa",
+ "helpers": {
+  "arrow:clamp": "0e8874aed5714a15e9b362e9b8206e8853d134a5c2a621dff449a15fb74dbdb3"
+ },
+ "ui_app_sha256": "d844dd6fc7bc738bf1bedaed1b668eb44d79c1ad7d281f093eee15ed1c81eaee",
+ "runtime_environment": {
+  "node": "v22.22.2",
+  "note": "Frontend function executed in a Node vm sandbox (no DOM) from source extracted verbatim from the vendored legacy/npc-panel-18.6.6/app/ui_app.html"
+ },
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-09,
+ "input": {
+  "range_negative_spread": {
+   "args": [
+    [
+     -3.5,
+     -1.25,
+     0,
+     2.75,
+     9.5
+    ],
+    "range",
+    null
+   ],
+   "extra": {
+    "probe_points": [
+     -10,
+     -3.5,
+     -1,
+     0,
+     3,
+     9.5,
+     12
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  },
+  "sigma_negative_spread": {
+   "args": [
+    [
+     -3.5,
+     -1.25,
+     0,
+     2.75,
+     9.5
+    ],
+    "sigma",
+    null
+   ],
+   "extra": {
+    "probe_points": [
+     -10,
+     -3.5,
+     -1,
+     0,
+     3,
+     9.5,
+     12
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  },
+  "percentile_with_duplicates": {
+   "args": [
+    [
+     4,
+     4,
+     4,
+     7,
+     7,
+     9,
+     9,
+     9,
+     9,
+     12
+    ],
+    "percentile",
+    null
+   ],
+   "extra": {
+    "probe_points": [
+     3,
+     4,
+     5,
+     7,
+     8,
+     9,
+     12,
+     13
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  },
+  "absolute_default_uses_largest_magnitude": {
+   "args": [
+    [
+     -8,
+     2,
+     5
+    ],
+    "absolute",
+    null
+   ],
+   "extra": {
+    "probe_points": [
+     -8,
+     -4,
+     0,
+     2,
+     5,
+     8,
+     9
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  },
+  "absolute_with_clipping_bounds": {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "absolute",
+    [
+     2,
+     4
+    ]
+   ],
+   "extra": {
+    "probe_points": [
+     1,
+     2,
+     2.5,
+     3,
+     4,
+     5
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  },
+  "absolute_inverted_bounds_fall_back": {
+   "args": [
+    [
+     1,
+     2,
+     3
+    ],
+    "absolute",
+    [
+     4,
+     2
+    ]
+   ],
+   "extra": {
+    "probe_points": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  },
+  "single_value_range": {
+   "args": [
+    [
+     7.5
+    ],
+    "range",
+    null
+   ],
+   "extra": {
+    "probe_points": [
+     0,
+     7.5,
+     10
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  },
+  "non_finite_values_are_ignored": {
+   "args": [
+    [
+     1,
+     null,
+     "x",
+     3,
+     5
+    ],
+    "range",
+    null
+   ],
+   "extra": {
+    "probe_points": [
+     1,
+     2,
+     3,
+     5
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  },
+  "unknown_mode_falls_through_to_range": {
+   "args": [
+    [
+     1,
+     2,
+     3
+    ],
+    "typo",
+    null
+   ],
+   "extra": {
+    "probe_points": [
+     1,
+     2,
+     3
+    ]
+   },
+   "probe": "(r,c)=>({lo:r.lo,hi:r.hi,label:r.label,transform:c.probe_points.map(x=>r.t(x))})"
+  }
+ },
+ "expected_output": {
+  "range_negative_spread": {
+   "lo": -3.5,
+   "hi": 9.5,
+   "label": "rozsah",
+   "transform": [
+    0,
+    0,
+    0.1923076923,
+    0.2692307692,
+    0.5,
+    1,
+    1
+   ]
+  },
+  "sigma_negative_spread": {
+   "lo": -9.7012834086,
+   "hi": 12.7012834086,
+   "label": "odchylka σ",
+   "transform": [
+    0,
+    0.2768112895,
+    0.3884056447,
+    0.4330433868,
+    0.5669566132,
+    0.8571019368,
+    0.9686962921
+   ]
+  },
+  "percentile_with_duplicates": {
+   "lo": 0,
+   "hi": 100,
+   "label": "percentil",
+   "transform": [
+    0,
+    0.3,
+    0.3,
+    0.5,
+    0.5,
+    0.9,
+    1,
+    1
+   ]
+  },
+  "absolute_default_uses_largest_magnitude": {
+   "lo": 0,
+   "hi": 8,
+   "label": "absolutní",
+   "transform": [
+    0,
+    0,
+    0,
+    0.25,
+    0.625,
+    1,
+    1
+   ]
+  },
+  "absolute_with_clipping_bounds": {
+   "lo": 2,
+   "hi": 4,
+   "label": "absolutní",
+   "transform": [
+    0,
+    0,
+    0.25,
+    0.5,
+    1,
+    1
+   ]
+  },
+  "absolute_inverted_bounds_fall_back": {
+   "lo": 0,
+   "hi": 3,
+   "label": "absolutní",
+   "transform": [
+    0,
+    0.3333333333,
+    0.6666666667,
+    1,
+    1
+   ]
+  },
+  "single_value_range": {
+   "lo": 7.5,
+   "hi": 7.5,
+   "label": "rozsah",
+   "transform": [
+    0.5,
+    0.5,
+    0.5
+   ]
+  },
+  "non_finite_values_are_ignored": {
+   "lo": 1,
+   "hi": 5,
+   "label": "rozsah",
+   "transform": [
+    0,
+    0.25,
+    0.5,
+    1
+   ]
+  },
+  "unknown_mode_falls_through_to_range": {
+   "lo": 1,
+   "hi": 3,
+   "label": "rozsah",
+   "transform": [
+    0,
+    0.5,
+    1
+   ]
+  }
+ },
+ "notes": "The four normalisation modes on inputs the reference's F5 did not use: negative values, a non-integer spread, duplicated extremes, a single value, and absolute bounds that clip. Each case probes the returned transform on the same points, as F5 does. Ported as aia_core.domain.sociomap.metrics.build_normalizer."
+}

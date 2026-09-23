@@ -1,0 +1,100 @@
+{
+ "description": "Fixtures captured from the vendored ui_app.html functions by tools/ui_function_capture.py. Each entry pins the fixture file and the SHA256 of the function source it was captured from. Never edited by hand: re-run the capture.",
+ "unit": {
+  "path": "legacy/npc-panel-18.6.6/app/ui_app.html",
+  "ui_app_sha256": "d844dd6fc7bc738bf1bedaed1b668eb44d79c1ad7d281f093eee15ed1c81eaee",
+  "archive_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216"
+ },
+ "fixtures": {
+  "U01_normalizer66": {
+   "file": "U01_normalizer66.json",
+   "function": "normalizer66",
+   "source_sha256": "72db114b041f70c2b8c51deb091823b3bb6c7642566774999a2c0eeb5cd550fa",
+   "sha256": "3a937a845ffb3557c7ad0daad9b2d9a2297921a80d7bef506642e94e65c1958f",
+   "parity_type": "NUMERICAL",
+   "tolerance": 1e-09,
+   "capability": "sociomapping.core"
+  },
+  "U02_objectMetricArray66": {
+   "file": "U02_objectMetricArray66.json",
+   "function": "objectMetricArray66",
+   "source_sha256": "73bb36bd3be737d3a07eede93399c428936ebd432dcc82bf50c6e7e108f7d3c5",
+   "sha256": "d19ba3b5bc7f28f529a073ce5f1b95a84fbecaac419453bf483501718febe42d",
+   "parity_type": "NUMERICAL",
+   "tolerance": 1e-09,
+   "capability": "sociomapping.core"
+  },
+  "U03_computeDirectedMatrix1798": {
+   "file": "U03_computeDirectedMatrix1798.json",
+   "function": "computeDirectedMatrix1798",
+   "source_sha256": "de3fc0d653f5101aa835370fe0fa033b4acf232c7e280036c513d44b3ac16082",
+   "sha256": "e0d4c2591dcac477ba2671d9f505c780c4e77652742fc68948e64c23e5e6a71d",
+   "parity_type": "NUMERICAL",
+   "tolerance": 1e-09,
+   "capability": "sociomapping.core"
+  },
+  "U04_buildFullMatrix1797": {
+   "file": "U04_buildFullMatrix1797.json",
+   "function": "buildFullMatrix1797",
+   "source_sha256": "0a4bcd13da3da724012e2b34453846fc4e9438308b54529476f100c9c3cd505b",
+   "sha256": "d63067184abcafb8cacd6981cad94f54116f4ae225ff56d8967d1f67278f2d59",
+   "parity_type": "NUMERICAL",
+   "tolerance": 1e-09,
+   "capability": "sociomapping.core"
+  },
+  "U05_layoutFromMatrix1797": {
+   "file": "U05_layoutFromMatrix1797.json",
+   "function": "layoutFromMatrix1797",
+   "source_sha256": "728bd50dada3ba9053b3a80c06a15f9082a9bd29b22ddef17ca228f1f1ca986d",
+   "sha256": "b3ee497421e38cc2b9fa2d85fcc29202ba39e6f2d352a9ab9024e9acb6f67a83",
+   "parity_type": "NUMERICAL",
+   "tolerance": 1e-09,
+   "capability": "sociomapping.core"
+  },
+  "U06_layoutStatic1798": {
+   "file": "U06_layoutStatic1798.json",
+   "function": "layoutStatic1798",
+   "source_sha256": "1b7e5999486b9c8ee65270e55ff2b8f08513faba45410c6e64ff766f3719a97c",
+   "sha256": "1adf84b7c80109bae6d66c323cebe898db5fa79a423cbba20c6ab4f1e05fb065",
+   "parity_type": "NUMERICAL",
+   "tolerance": 1e-09,
+   "capability": "sociomapping.core"
+  },
+  "U07_forceLayout27": {
+   "file": "U07_forceLayout27.json",
+   "function": "forceLayout27",
+   "source_sha256": "4dd944a8bca8cb0543f803b6e9a48effa653a59cd528d076fcc898c7f8545053",
+   "sha256": "5a1c235342e0384b4b810cc1d6be6495ccae198a9c1808311aa7a575b40c0142",
+   "parity_type": "NUMERICAL",
+   "tolerance": 1e-09,
+   "capability": "sociomapping.core"
+  },
+  "U08_keyInsights": {
+   "file": "U08_keyInsights.json",
+   "function": "keyInsights",
+   "source_sha256": "24628a12c18db415fea5d170595bec16bfba0009398488acf220d4a4820912b3",
+   "sha256": "03fadac6519dbb9729d88e23a11f96c4ea55062f8098c43b6dbdc88d8ae9877e",
+   "parity_type": "NUMERICAL",
+   "tolerance": 1e-09,
+   "capability": "analysis.qc"
+  },
+  "U09_workflowStepLabel": {
+   "file": "U09_workflowStepLabel.json",
+   "function": "workflowStepLabel",
+   "source_sha256": "e193c15fb396989250790312f66e02beccb64c9de5971b9a8672f1ab266229dd",
+   "sha256": "b210b4a5c30c2bcd020e971b46ce3a191070f89030525d25fb520bdc3f691351",
+   "parity_type": "EXACT",
+   "tolerance": null,
+   "capability": "workflow.step_execution"
+  },
+  "U10_sampleRecommendation1785": {
+   "file": "U10_sampleRecommendation1785.json",
+   "function": "sampleRecommendation1785",
+   "source_sha256": "39df73d08327a6137300025db5cbde4e794b5dc5d2fc1314b6b191e204e7ba76",
+   "sha256": "4eb4ffb50da11dfe5c2cb5129b2d3363eee42b15c43cf2fb9ef82f7f5ff89cec",
+   "parity_type": "EXACT",
+   "tolerance": null,
+   "capability": "audience.definition"
+  }
+ }
+}

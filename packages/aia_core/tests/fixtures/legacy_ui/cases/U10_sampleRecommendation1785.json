@@ -1,0 +1,15 @@
+{
+ "fixture_id": "U10_sampleRecommendation1785",
+ "function": "sampleRecommendation1785",
+ "capability_id": "audience.definition",
+ "parity_type": "EXACT",
+ "helpers": [],
+ "notes": "Recommended sample size from the project's questionnaire: 200 / 300 / 400 by question count (each object battery counts as one), raised to 500 for segment discovery, to 400 for three or more object batteries, with the Czech reason text. Reads the PROJECT global. Not yet ported.",
+ "cases": [
+  {"id": "short_questionnaire", "globals": {"PROJECT": {"sections": [{"type": "questions", "questions": [{}, {}, {}]}]}}},
+  {"id": "standard_questionnaire", "globals": {"PROJECT": {"sections": [{"type": "questions", "questions": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]}]}}},
+  {"id": "long_with_batteries", "globals": {"PROJECT": {"sections": [{"type": "questions", "questions": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]}, {"type": "object_battery"}, {"type": "object_battery"}, {"type": "object_battery"}]}}},
+  {"id": "discovery_raises_to_500", "globals": {"PROJECT": {"sections": [{"type": "questions", "questions": [{}]}], "audience": {"strategy": "discover"}}}},
+  {"id": "no_sections", "globals": {"PROJECT": {}}}
+ ]
+}
