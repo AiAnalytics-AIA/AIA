@@ -2,8 +2,8 @@
 #
 # The role may be assumed only by a job of this repository running in the
 # named GitHub environment, and may do only what the deploy needs: push the
-# three images, upload one deploy bundle, and run one SSM command on one
-# instance. It cannot read the database, the artifacts or a parameter.
+# images in local.images, upload one deploy bundle, and run one SSM command on
+# one instance. It cannot read the database, the artifacts or a parameter.
 
 data "aws_iam_openid_connect_provider" "github" {
   count = var.create_github_oidc_provider ? 0 : 1

@@ -1219,6 +1219,11 @@ from now on.
 
 **Status.** Open — human action. The engineering half (the endpoint contract,
 the `oracle` marker, the CI job, `make test-oracle`) landed with slice 1.
+2026-09-23 21:23 UTC: the operator cancelled run 7; run 8 (`35920580798`) @
+`764f9f7` started in its place and failed pushing `aia-legacy-panel` — a code
+defect after all, filed and fixed as OI-41. Still needed from the human, in
+order: `terraform apply` in `infra/develop`, re-run run 8, confirm
+`bin/smoke.sh`, provision the three secrets.
 
 ---
 
@@ -1256,3 +1261,49 @@ functions with a `compute` signal before slice 7.
 pins the addition; the sweep above would be its widening.
 
 **Status.** Open — upstream (AIA-reference). Carried here as an addition.
+
+---
+
+## OI-41 · Finding · The deploy role could build the fourth image but not push it
+
+**Claim.** `infra/develop/main.tf` still declared three images, so the ECR
+repository `aia-legacy-panel` was never created and the deploy role's push
+grant never named it; the first deploy that carried the unit built the image
+and was refused at the push.
+
+**Anchor.** `infra/develop/main.tf:12 @ 764f9f7`
+(`images = ["aia-api", "aia-worker", "aia-web"]`);
+`infra/develop/github.tf:84 @ 764f9f7` (`resources = [for r in
+aws_ecr_repository.images : r.arn]`);
+`.github/workflows/deploy-develop.yml:128-141 @ 764f9f7` (the fourth push).
+
+**Reproduction.** GitHub Actions *Deploy develop* run 8 (`35920580798`) @
+`764f9f7`, step *Build and push aia-legacy-panel*: the build completes, then
+`failed to push 311141567391.dkr.ecr.eu-central-1.amazonaws.com/aia-legacy-panel:764f9f7…:
+unexpected status from HEAD request to …/v2/aia-legacy-panel/blobs/sha256:4f4fb7…: 403 Forbidden`.
+`aia-api` and `aia-worker` pushed in the same run. Locally:
+`pytest packages/aia_core/tests/test_deploy_images.py` fails on `764f9f7` and
+passes with the fix.
+
+**Consequence.** No deploy of `develop` has succeeded since the unit landed
+(runs 6, 7 and 8); the host still runs `85d8d00` (run 5), no migration after it
+has been applied, and the oracle is still not deployed (OI-39). The failure
+mode is the expensive one: two images pushed, the third refused, the deploy
+never reached the host — so nothing is half-deployed, but every push to
+`develop` since 15:19 UTC has been silently undeployable.
+
+**Smallest fix.** Add `aia-legacy-panel` to `local.images` — the one list that
+is both the repository set and the push grant — with the docs that count the
+repositories (done in this change). Then, by the operator: `terraform apply` in
+`infra/develop` (plan: one `aws_ecr_repository`, one lifecycle policy, an
+in-place update of the `aia-develop-github-deploy` inline policy and the
+instance role's pull grant), and *Re-run failed jobs* on run 8.
+
+**Test that would have caught it.** `packages/aia_core/tests/test_deploy_images.py`
+(added here): the images the workflow pushes, the images the compose file
+pulls and `local.images` in the Terraform must be the same set. Terraform does
+not run in CI, so a text-level check is the only one that fires before
+`apply`; the test explains why it parses with regular expressions.
+
+**Status.** Fixed in code in this change; `terraform apply` and the re-run are
+human actions, tracked under OI-39.

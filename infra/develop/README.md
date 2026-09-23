@@ -11,7 +11,7 @@ What it creates, and why each piece exists:
 | Instance role | The host's only credential: S3 (artifacts, ops), ECR pull, SSM parameters under `/aia/develop/`, `bedrock:InvokeModel` on **one** pinned EU model, SSM agent, CloudWatch agent |
 | S3 `aia-develop-artifacts-<account>` | The `ArtifactStore`. Versioned, SSE-S3, private, TLS-only |
 | S3 `aia-develop-ops-<account>` | `backups/` (pg_dump, expire after 30 days) and `deploy/` (bundles, 90 days) |
-| ECR `aia-api`, `aia-worker`, `aia-web` | Images by git SHA; 30 kept; scan on push |
+| ECR `aia-api`, `aia-worker`, `aia-web`, `aia-legacy-panel` | Images by git SHA; 30 kept; scan on push. The list (`local.images`) is also the deploy role's push grant: a fourth image in the workflow without it here is refused with 403 (OI-41) |
 | SSM parameters `/aia/develop/*` | Configuration for the host's env file; the PostgreSQL password is a generated `SecureString` |
 | Cognito user pool + Google IdP + hosted domain + public app client | Authentication only ([ADR 0003](../../docs/architecture/adr/0003-cognito-identity-boundary.md)); PKCE; no self sign-up |
 | GitHub OIDC provider + `aia-develop-github-deploy` role | Lets the `develop` GitHub environment push images, upload one bundle and run one SSM command. No stored keys |
