@@ -1,6 +1,6 @@
 # product-surface (A9)
 
-**STATUS: ACTIVE. Chunks 0–3 are stacked PRs; slice V (#24) is merged into #21's branch.
+**STATUS: ACTIVE. #24 → #21 → `feature/enum-binding` merged; #18 → #17 → #16 → #15 still open.
 The slice is waiting for review; chunks 4–11 will not start until it has been reviewed.**
 Cloud session. PostgreSQL 16 and Python 3.12 were provisioned in-session, with
 Node 22.22.2 for the web client. Every number below was measured here.
@@ -16,11 +16,11 @@ capability, say so on screen.
 
 | PR | Branch | What | CI observed |
 |---|---|---|---|
-| #15 | `claude/determined-clarke-q6002c` → main | Planning: DS-1/2/3, the integration principle, and the chunk order | no checks reported |
+| #15 | `claude/determined-clarke-q6002c` → main | Planning: DS-1/2/3, the integration principle, and the chunk order | conflicted with main on 23.9; main merged in (608b91e), open-items kept both sides. No CI checks run on this PR |
 | #16 | `feature/web-vocabulary` | Chunk 0: domain vocabulary, 13-stage lifecycles | green at last check |
 | #17 | `feature/design-tokens` | Chunk 1: `tokens.json` → css/ts, themes, fonts, identity, contrast checks | green at last check |
-| #18 | `feature/enum-binding` | Chunk 2: exhaustive `Record<>` maps + `make enum_check` in CI | green at last check |
-| #21 | `feature/web-primitives` | Chunk 3: Vitest and the primitives, plus slice V since #24 merged in | green on 8f51488 (all 6 checks), after the CI Node 20 → 22 fix. The #24 merge moved the head; CI on the new head not re-checked yet |
+| #18 | `feature/enum-binding` | Chunk 2, and now chunk 3 + slice V | green on 2bbb87e; 840e5d5 renumbers the slice's items OI-13/14/15 → OI-24/25/26 (main uses 13–23); CI on it not reported yet |
+| #21 | `feature/web-primitives` | Chunk 3: Vitest and the primitives, plus slice V | **merged** into `feature/enum-binding`; green on cb26c15 |
 | #24 | `feature/web-first-slice` → `feature/web-primitives` | Chunk V: the slice on the real API | **merged** into `feature/web-primitives`; all 6 checks green on bc94266 |
 
 ## Slice V: observed state
@@ -52,12 +52,12 @@ capability, say so on screen.
   `action_required`, `action_kind`, `viewer_can_resolve`, `required_permission`,
   `waiting_reason`. The exact shape is your decision. The UI shows raw state and never assigns an
   item to the viewer.
-- **OI-13: finding.** `GET …/impact?field=<unknown>` answers 200 with "nothing
+- **OI-24: finding.** `GET …/impact?field=<unknown>` answers 200 with "nothing
   invalidated". The smallest fix is a 422 `unknown_field` in the route.
-- **OI-14: the token contract for web sign-in.** The web client has a development identity only.
+- **OI-25: the token contract for web sign-in.** The web client has a development identity only.
 
 **platform-runtime**
-- **OI-15: read routes are needed, in this order:**
+- **OI-26: read routes are needed, in this order:**
   1. runs, steps and attempts (status, failure class, retry-at);
   2. pending gates, with the permission that resolves each one (this also feeds OI-11);
   3. a study's reservations and spend;
