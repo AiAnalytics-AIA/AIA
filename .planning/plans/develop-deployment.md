@@ -185,8 +185,8 @@ them rather than reporting a deployment that did not happen.
 
 ## Findings filed along the way
 
-OI-32 (a repository `ScopeDenied` is a 500 in the projects and scope routers),
-OI-33 (no web test runner), OI-34 (browser session in `sessionStorage`, accepted
+OI-33 (a repository `ScopeDenied` is a 500 in the projects and scope routers),
+OI-34 (no web test runner), OI-35 (browser session in `sessionStorage`, accepted
 for develop). OI-3 closed: `develop` is the second branch it asked for.
 
 ## Not done here, deliberately

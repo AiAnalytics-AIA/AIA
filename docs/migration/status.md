@@ -296,7 +296,7 @@ What did **not** land, and why: a governed model call. `main` has no
 `ModelGateway`; PR #28 builds it and is unmerged and conflicting. The route is
 recorded as ADR 0010 *Proposed*, the instance role may already invoke exactly
 one pinned EU model, and the smoke test reports the AI check `NOT_RUNNABLE`
-rather than pass. Decision D10 in `PROGRESS.md`.
+rather than pass. Decision D12 in `PROGRESS.md`.
 
 Verified here: 1668 passed / 169 skipped on PostgreSQL 16 (1620 / 169 before),
 the same on SQLite, `mypy --strict` clean over 99 files, `layer_check` 40/40,
@@ -358,7 +358,8 @@ Nothing. The tree is green and the slice is complete.
 ## Legacy functionality not yet migrated
 
 Everything except project persistence, scope and artifact storage. Specifically:
-the job engine, AI runtime, research and simulation lifecycles, analysis,
+the job engine, AI runtime, the research lifecycle, the simulation lifecycle beyond
+its deterministic core (`aia_core.domain.simulation`), analysis,
 validation and methodology gates, reporting, Data Library, Society Intelligence,
 population and audience, Sociomapa, demos, ingestion, exports and scheduling.
 128 of the prototype's 136 API routes and its entire frontend remain.
