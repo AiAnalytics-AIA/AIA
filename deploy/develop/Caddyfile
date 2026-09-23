@@ -1,7 +1,10 @@
-# One hostname, two upstreams. Caddy terminates TLS with an ACME certificate it
-# renews itself, redirects HTTP to HTTPS (its default when a site is named with a
-# hostname), and routes /api/* to FastAPI and everything else to Next.js. The
-# browser therefore talks to one origin and no CORS configuration exists.
+# Two hostnames. On the product hostname Caddy terminates TLS with an ACME
+# certificate it renews itself, redirects HTTP to HTTPS (its default when a site
+# is named with a hostname), and routes /api/* to FastAPI and everything else to
+# Next.js, so the browser talks to one origin and no CORS configuration exists.
+# On the legacy hostname it fronts the vendored NPC Panel 18.6.6 unit (ADR 0011)
+# behind HTTP basic authentication: that application has no identity model of
+# its own, and its absolute /api/* paths would collide with AIA's on one origin.
 
 {
 	email {$AIA_ACME_EMAIL}
@@ -37,6 +40,35 @@
 	handle {
 		reverse_proxy web:3000
 	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$AIA_LEGACY_HOSTNAME} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# The reference API has no authentication (AIA-reference
+	# high-risk-behaviors.md R14). This gate is not optional; forward-auth to
+	# Cognito may replace it later, a bare reverse_proxy may not. The hash is
+	# produced by `caddy hash-password` and stored in SSM like every secret.
+	basic_auth {
+		{$AIA_LEGACY_BASIC_USER} {$AIA_LEGACY_BASIC_HASH}
+	}
+
+	# The unit's own relay rewrites Host/Origin/Referer for the reference's
+	# origin guard, so nothing is rewritten here.
+	reverse_proxy legacy-panel:8765
 
 	log {
 		output stdout

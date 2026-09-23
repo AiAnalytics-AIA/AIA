@@ -1,7 +1,13 @@
 # Reference source
 
-The legacy NPC Panel reference is **not in this repository** and must never be
-copied into it. It lives in a dedicated private repository.
+The legacy NPC Panel reference **archive** is not in this repository and must
+never be copied into it. Its interpretation lives in a dedicated private
+repository. What this repository does hold, since
+[ADR 0011](../architecture/adr/0011-vendor-legacy-product-unit.md), is the
+**extracted product unit** at `legacy/npc-panel-18.6.6/`: the code and
+configuration of 18.6.6, byte-identical to the archive, produced by the reference
+repository's `tools/extract_legacy.py` and regenerated rather than edited. The
+data the product needs stays out of Git and out of images.
 
 ## Authoritative reference repository
 
@@ -117,12 +123,16 @@ and says so.
 
 ## Do not duplicate raw assets into this repository
 
-This repository is the clean production rebuild. It must not absorb:
+This repository is the production rebuild. It must not absorb:
 
 - the 52.6 MB reference archive
 - the three population panels (~22 MB compressed)
-- `demo_library/` (32 MB) or `audit_reference/` (7.3 MB)
-- any legacy source tree
+- `demo_library/` payloads (databases, exports, reports) or `audit_reference/`
+- any real-subject client material (the extraction removes all 69 such files)
+- any legacy source tree **other than** the extracted unit at
+  `legacy/npc-panel-18.6.6/` (ADR 0011), which carries only code, configuration
+  and the fictional demo seeds, and whose data arrives at run time from the EU
+  ops bucket through `data-manifest.json`
 
 `docs/migration/reference-manifest.json` is the only integrity artifact kept
 here, and it is deliberately small: hashes plus the migration module list,

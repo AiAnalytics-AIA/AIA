@@ -34,6 +34,20 @@ PASSED=0
 
 MANIFEST=docs/migration/reference-manifest.json
 
+# The vendored legacy product unit (ADR 0011): the 18.6.6 code tree extracted
+# byte-for-byte by AIA-reference/tools/extract_legacy.py, plus its manifests and
+# runtime. It is the one place in this repository that legitimately holds
+# reference bytes, reference file names and the invented demo brands, so rules
+# 2a, 2b and 2c and the fictional-token half of rule 3 skip it BY PATH, named
+# here once. What still applies inside it: rule 1 (no per-file inventory of the
+# whole archive), the real-client tokens in file NAMES (the extraction removes
+# all 69 client-named files and fails if one remains), and rule 4. Real-client
+# tokens inside file CONTENTS under this path are the reference code naming its
+# own canonical demos by identifier; the extraction's exposure-report.json lists
+# every such file, and accepting them in a private repository is decision D-L1
+# in ADR 0011. Everything outside this path is checked exactly as before.
+LEGACY_UNIT='^legacy/npc-panel-18\.6\.6/'
+
 fail() {
   printf 'FAIL  %s\n' "$1"
   shift
@@ -70,6 +84,7 @@ fi
 # here, and neither may arrive by a different extension.
 
 ASSET_HITS=$(git ls-files \
+  | grep -Ev "$LEGACY_UNIT" \
   | grep -Ei '\.(zip|7z|rar|sqlite|sqlite3|db|parquet)$|\.csv\.gz$|(^|/)npc[-_]panel' \
   || true)
 if [ -n "$ASSET_HITS" ]; then
@@ -98,7 +113,7 @@ fi
 if [ -f "$MANIFEST" ]; then
   grep -oE '"[0-9a-f]{64}"' "$MANIFEST" | tr -d '"' | sort -u > "$WORK/ref-hashes"
 
-  REFERENCE_CONTENT=$(git ls-files | grep -Fxv "$MANIFEST" | while read -r f; do
+  REFERENCE_CONTENT=$(git ls-files | grep -Fxv "$MANIFEST" | grep -Ev "$LEGACY_UNIT" | while read -r f; do
       [ -f "$f" ] || continue
       h=$(sha256sum "$f" 2>/dev/null | cut -d' ' -f1)
       [ -n "$h" ] && grep -qxF "$h" "$WORK/ref-hashes" && echo "$f ($h)"
@@ -122,6 +137,7 @@ fi
 # `tsconfig.json` are unaffected.
 
 DATASET_HITS=$(git ls-files \
+  | grep -Ev "$LEGACY_UNIT" \
   | grep -Ei '\.(csv|tsv|json)$' \
   | grep -Ei '(population|panel|calibration|donor|respondent|segment|registry|targets|weights|census|piaac|issp)' \
   | grep -Ev "^($MANIFEST)$" \
@@ -143,7 +159,15 @@ fi
 # tokens: they are the snapshot's identity and are recorded in the manifest and
 # in reference-source.md.
 
-CLIENT_TOKENS='GEMO|MMC_GEMO|STREAMIO|AURORA|NEXORA|RAILMOVE'
+# Two kinds of token, treated differently inside the legacy unit (ADR 0011):
+# REAL_CLIENT_TOKENS name real organisations and are enforced on file names
+# everywhere, the unit included. FICTIONAL_DEMO_TOKENS are the invented brands
+# of the prototype's showcase demos (AIA-reference publication-safety-report.md,
+# Result 3: "Fictional -- no concern"); they stay enforced outside the unit,
+# where nothing should be named after a prototype demo at all.
+REAL_CLIENT_TOKENS='GEMO|MMC_GEMO'
+FICTIONAL_DEMO_TOKENS='STREAMIO|AURORA|NEXORA|RAILMOVE'
+CLIENT_TOKENS="$REAL_CLIENT_TOKENS|$FICTIONAL_DEMO_TOKENS"
 # The snapshot's own identity. The reference tag, its version string and the
 # archive filename all contain a client token, and every document that points at
 # the authoritative reference has to name them -- that is the pointer working, not
@@ -167,7 +191,9 @@ ALLOWED_PATHS='^(docs/migration/public-exposure-remediation\.md|docs/migration/r
 # Case-insensitive throughout. `gemo-notes.txt` discloses exactly what
 # `GEMO-notes.txt` does, and a control that a change of capitalisation defeats is
 # not a control.
-NAME_HITS=$(git ls-files | grep -Ei "$CLIENT_TOKENS" | grep -Ev "$ALLOWED_PATHS" || true)
+NAME_HITS=$( { git ls-files | grep -Ei "$REAL_CLIENT_TOKENS";
+               git ls-files | grep -Ev "$LEGACY_UNIT" | grep -Ei "$FICTIONAL_DEMO_TOKENS"; } \
+             | sort -u | grep -Ev "$ALLOWED_PATHS" || true)
 if [ -n "$NAME_HITS" ]; then
   fail "no client-identifying legacy filenames" "$NAME_HITS"
 else
@@ -185,6 +211,7 @@ fi
 # ALLOWED_PATHS, never per directory.
 CONTENT_HITS=$(git ls-files \
   | grep -Ev "$ALLOWED_PATHS" \
+  | grep -Ev "$LEGACY_UNIT" \
   | while read -r f; do
       [ -f "$f" ] || continue
       # A line that carries a token ONLY as part of the snapshot identity is the

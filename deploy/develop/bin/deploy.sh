@@ -34,7 +34,19 @@ log "deploying $SHA (currently running: ${previous:-nothing})"
 
 log "logging in to ECR and pulling images"
 ecr_login
-"${COMPOSE[@]}" pull --quiet api worker web
+"${COMPOSE[@]}" pull --quiet api worker web legacy-panel
+
+# The legacy unit's data (population panels, demo payloads) lives in the EU ops
+# bucket, never in an image or in Git (ADR 0011). Sync it before the service
+# starts; the container hydrates and hash-verifies every file at start and
+# refuses to run on a partial or drifted bundle.
+if [ -n "${AIA_LEGACY_DATA_PREFIX:-}" ]; then
+  log "syncing the legacy unit's data bundle from s3://$AIA_OPS_BUCKET/$AIA_LEGACY_DATA_PREFIX/"
+  mkdir -p "$DEPLOY_DIR/legacy-data"
+  aws s3 sync "s3://$AIA_OPS_BUCKET/$AIA_LEGACY_DATA_PREFIX/" "$DEPLOY_DIR/legacy-data" --only-show-errors --delete
+else
+  log "AIA_LEGACY_DATA_PREFIX is unset; the legacy unit will refuse to start without its data"
+fi
 
 log "starting postgres"
 "${COMPOSE[@]}" up -d --wait postgres

@@ -23,6 +23,7 @@ legacy_reference
 infra
 deploy
 src
+legacy
 *.md
 .env
 .env.*

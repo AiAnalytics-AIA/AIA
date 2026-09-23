@@ -44,6 +44,15 @@ redirect="$(code "http://${AIA_PUBLIC_HOSTNAME}/")"
 case "$redirect" in 301|308) pass "web: HTTP redirects to HTTPS ($redirect)" ;;
   *) fail "web: HTTP redirects to HTTPS" "got $redirect" ;; esac
 
+# --- legacy unit (ADR 0011) --------------------------------------------------
+# The gate is the check: the reference API is unauthenticated, so an anonymous
+# request to the legacy hostname must be refused by Caddy before it reaches it.
+if [ -n "${AIA_LEGACY_HOSTNAME:-}" ]; then
+  legacy_code="$(code "https://${AIA_LEGACY_HOSTNAME}/health")"
+  if [ "$legacy_code" = "401" ]; then pass "legacy: hostname answers and the gate refuses anonymous access (401)"
+  else fail "legacy: hostname answers and the gate refuses anonymous access" "GET /health returned ${legacy_code}, expected 401"; fi
+fi
+
 # --- api ---------------------------------------------------------------------
 health="$(curl -fsS --max-time 10 "$BASE/api/v1/health" || true)"
 if [ "$(printf '%s' "$health" | json 'd["status"]' 2>/dev/null)" = "ok" ]; then pass "api: /health is ok"
