@@ -45,7 +45,14 @@ def _truncate(factory: sessionmaker[Session]) -> None:
 
 @pytest.fixture
 def database_url(tmp_path: Path) -> str:
-    return postgres_url() or f"sqlite+pysqlite:///{tmp_path / 'executors.db'}"
+    url = postgres_url()
+    if url is None and os.environ.get("AIA_REQUIRE_POSTGRES") == "1":
+        # CI sets the flag so a missing database is a failure, not a quiet
+        # fall-back to SQLite that reports the executor suite green.
+        pytest.fail(
+            "executor tests require PostgreSQL here; DATABASE_URL is not a postgresql:// URL"
+        )
+    return url or f"sqlite+pysqlite:///{tmp_path / 'executors.db'}"
 
 
 @pytest.fixture

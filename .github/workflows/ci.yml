@@ -4,9 +4,12 @@ name: CI
 # step may leave main unable to start, so this workflow proves on every change
 # that the schema migrates, the API boots, and the domain invariants hold.
 
+# `develop` is the integration branch (ADR 0009): CI runs on every push to it,
+# and deploy-develop.yml deploys the head it verified when this workflow
+# succeeds there. `main` stays the release branch.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
   workflow_dispatch:
 
@@ -54,11 +57,14 @@ jobs:
           cache: pip
 
       - name: Install
+        # The API's dev extra names aia-worker and aia-executors (its slice test
+        # drives a real worker), so those install first.
         run: |
           python -m pip install --upgrade pip
           pip install -e "packages/aia_core[dev,postgres]"
-          pip install -e "apps/api[dev]"
           pip install -e "apps/worker[dev]"
+          pip install -e "apps/executors[dev]"
+          pip install -e "apps/api[dev]"
 
       - name: Layering rules
         # Grep-level enforcement of ARCHITECTURE.md. Runs before the expensive
@@ -75,13 +81,13 @@ jobs:
 
       - name: Lint
         run: |
-          ruff check packages/aia_core apps/api apps/worker migrations
-          ruff format --check packages/aia_core apps/api apps/worker migrations
+          ruff check packages/aia_core apps/api apps/worker apps/executors migrations
+          ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
 
       - name: Type check
         # One invocation over every source tree: aia_core ships no py.typed, so a
         # tree checked on its own sees aia_core as untyped (AGENTS.md § mypy).
-        run: mypy packages/aia_core/src apps/api/src apps/worker/src
+        run: mypy packages/aia_core/src apps/api/src apps/worker/src apps/executors/src
 
       - name: Migrations apply cleanly
         run: alembic upgrade head
@@ -128,12 +134,19 @@ jobs:
           AIA_REQUIRE_POSTGRES: "1"
         run: pytest apps/worker -q --junit-xml=tmp/junit/worker-postgres.xml -o junit_family=xunit1
 
+      - name: Executor, seed and smoke-module tests (PostgreSQL)
+        # The develop_snapshot executor driven by the real worker loop, the
+        # idempotent develop seed, and the smoke module that proves a deployment.
+        env:
+          AIA_REQUIRE_POSTGRES: "1"
+        run: pytest apps/executors -q --junit-xml=tmp/junit/executors-postgres.xml -o junit_family=xunit1
+
       - name: Domain tests on SQLite
         # The offline development path must keep working too. The worker's
         # process suite skips here by design: SQLite cannot express contention.
         env:
           DATABASE_URL: ""
-        run: pytest packages/aia_core apps/api apps/worker -q --junit-xml=tmp/junit/sqlite.xml -o junit_family=xunit1
+        run: pytest packages/aia_core apps/api apps/worker apps/executors -q --junit-xml=tmp/junit/sqlite.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -341,6 +354,10 @@ jobs:
               "/api/v1/studies/{study_id}/projects/{project_id}",
               "/api/v1/studies/{study_id}/projects/{project_id}/content",
               "/api/v1/studies/{study_id}/projects/{project_id}/impact",
+              "/api/v1/studies/{study_id}/projects/{project_id}/runs",
+              "/api/v1/studies/{study_id}/projects/{project_id}/runs/{run_id}",
+              "/api/v1/studies/{study_id}/projects/{project_id}/runs/{run_id}/events",
+              "/api/v1/studies/{study_id}/projects/{project_id}/artifacts/{artifact_id}",
               "/api/v1/access-audit",
           ]
           missing = [p for p in required if p not in paths]
@@ -352,7 +369,8 @@ jobs:
           unscoped = [
               p
               for p in paths
-              if "/projects" in p and not p.startswith("/api/v1/studies/")
+              if any(k in p for k in ("/projects", "/runs", "/artifacts"))
+              and not p.startswith("/api/v1/studies/")
           ]
           if unscoped:
               sys.exit(f"project routes must sit under a study scope: {unscoped}")
@@ -420,8 +438,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e "packages/aia_core[dev,postgres]"
-          pip install -e "apps/api[dev]"
           pip install -e "apps/worker[dev]"
+          pip install -e "apps/executors[dev]"
+          pip install -e "apps/api[dev]"
 
       - name: Migrate and boot the API
         # Proves the real ASGI server starts against a real database and serves
@@ -496,9 +515,13 @@ jobs:
       - name: The worker boots against the migrated schema and stops on SIGTERM
         # A passing unit test does not prove the process starts: the console
         # entry point, settings from the environment, executor loading and the
-        # signal handling are all exercised only here.
+        # signal handling are all exercised only here -- with the real executor
+        # registry the develop host runs, over a filesystem store.
         env:
-          AIA_WORKER_EXECUTORS: aia_worker.testing:build_registry
+          AIA_WORKER_EXECUTORS: aia_executors.registry:build_registry
+          AIA_STORAGE_BACKEND: filesystem
+          AIA_STORAGE_ROOT: ./tmp/artifacts
+          AIA_BUILD_SHA: ${{ github.sha }}
         run: |
           aia-worker > worker.log 2>&1 &
           PID=$!
@@ -529,7 +552,7 @@ jobs:
 
       - name: Audit Python dependencies
         run: |
-          pip install -e "packages/aia_core[postgres]" -e "apps/api" -e "apps/worker"
+          pip install -e "packages/aia_core[postgres,s3]" -e "apps/worker" -e "apps/executors" -e "apps/api"
           pip-audit --strict --ignore-vuln GHSA-0000-0000-0000 || true
 
       - uses: actions/setup-node@v4
