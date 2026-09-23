@@ -11,6 +11,9 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+from aia_api.config import Settings
+from aia_api.main import create_app
+
 API = "/api/v1"
 
 
@@ -37,6 +40,23 @@ def test_health_does_not_require_auth(client: TestClient) -> None:
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+def test_health_reports_the_build_it_was_told_and_null_otherwise(
+    settings: Settings, client: TestClient
+) -> None:
+    """The deployed revision must be visible from the URL; an untold process says None."""
+    assert client.get("/api/v1/health").json()["build"] == {"sha": None, "built_at": None}
+
+    told = create_app(
+        settings.model_copy(
+            update={"build_sha": "a15be650937aacaa", "build_time": "2026-09-23T01:00:00Z"}
+        )
+    )
+    with TestClient(told) as c:
+        body = c.get("/api/v1/health").json()
+    assert body["build"] == {"sha": "a15be650937aacaa", "built_at": "2026-09-23T01:00:00Z"}
+    assert body["env"] == "test"
 
 
 def test_readiness_reports_database(client: TestClient) -> None:

@@ -24,6 +24,7 @@ from aia_core.domain.workflow import (
     DEFAULT_LEASE_SECONDS,
     DEFAULT_QUOTA_FALLBACK_SECONDS,
 )
+from aia_core.infrastructure.build_identity import parse_build_sha
 
 __all__ = ["WorkerSettings", "default_worker_id"]
 
@@ -60,6 +61,10 @@ class WorkerSettings:
     capacity_backoff_seconds: int = DEFAULT_CAPACITY_BACKOFF_SECONDS
     quota_fallback_seconds: int = DEFAULT_QUOTA_FALLBACK_SECONDS
     finish_attempts: int = 5
+    #: The git commit this worker was built from (``AIA_BUILD_SHA``), logged at
+    #: start so a running container can be matched to a revision. None when the
+    #: deployment did not say; never a placeholder.
+    build_sha: str | None = None
 
     def __post_init__(self) -> None:
         problems: list[str] = []
@@ -119,11 +124,17 @@ class WorkerSettings:
                 "AIA_WORKER_QUOTA_FALLBACK_SECONDS", DEFAULT_QUOTA_FALLBACK_SECONDS, integer=True
             )
         )
+        try:
+            build_sha = parse_build_sha(source.get("AIA_BUILD_SHA"))
+        except ValueError as error:
+            problems.append(str(error))
+            build_sha = None
         if problems:
             raise ValueError("invalid worker configuration: " + "; ".join(problems))
 
         return cls(
             database_url=source.get("DATABASE_URL", "").strip(),
+            build_sha=build_sha,
             executors=source.get("AIA_WORKER_EXECUTORS", "").strip(),
             worker_id=source.get("AIA_WORKER_ID", "").strip() or default_worker_id(),
             lease_seconds=lease,

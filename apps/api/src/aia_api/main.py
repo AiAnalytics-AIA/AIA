@@ -64,7 +64,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         init_app_state(app, resolved)
         logging.getLogger("aia.startup").info(
             "api started",
-            extra={"context": {"env": resolved.env.value, "version": resolved.version}},
+            extra={
+                "context": {
+                    "env": resolved.env.value,
+                    "version": resolved.version,
+                    "build": resolved.build.as_record(),
+                }
+            },
         )
         try:
             yield

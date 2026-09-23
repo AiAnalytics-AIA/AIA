@@ -10,20 +10,26 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request, Response, status
 
-from ..config import get_settings
+from ..config import Settings, get_settings
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/health", summary="Liveness probe")
-def health() -> dict[str, str]:
-    """Return OK when the process is running. Never touches a dependency."""
-    settings = get_settings()
+def health(request: Request) -> dict[str, object]:
+    """Return OK when the process is running. Never touches a dependency.
+
+    ``build`` names the exact git commit this process was built from, so an
+    operator refreshing the develop URL can see which revision answered. It is
+    ``None`` when the process was not told -- never a placeholder.
+    """
+    settings: Settings = getattr(request.app.state, "settings", None) or get_settings()
     return {
         "status": "ok",
         "service": settings.service_name,
         "version": settings.version,
         "env": settings.env.value,
+        "build": settings.build.as_record(),
     }
 
 
