@@ -300,11 +300,12 @@ model, and the smoke test reports the AI check `NOT_RUNNABLE` rather than pass.
 
 Applied 2026-09-23. `terraform apply`, DNS, the Google OAuth client, the GitHub
 environment and the workflow registration on `main` (PR #32) were done by hand;
-the first three dispatched deploys each failed one step further along and
-became PRs #34 and #35 (the table in the archived plan). The host runs
-`develop` @ `b5c331f` at <https://aia-develop.art-chain.io/>; the live smoke
-passed everything but the PostgreSQL port check that PR #35 corrects. The first
-dispatched deploy that completes without a human step is still owed.
+the first four dispatched deploys each failed one step further along and
+became PRs #34, #35 and #37 (the table in the archived plan). Run 4 deployed
+`848ec11` to <https://aia-develop.art-chain.io/> without a human step and was
+failed only by its own smoke check, which required a reused artifact to name the
+deployed build (OI-38, fixed in PR #37). The first dispatched deploy that ends
+green is still owed.
 
 Verified here: 1668 passed / 169 skipped on PostgreSQL 16 (1620 / 169 before),
 the same on SQLite, `mypy --strict` clean over 99 files, `layer_check` 40/40,
