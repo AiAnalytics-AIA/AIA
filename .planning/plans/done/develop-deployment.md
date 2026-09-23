@@ -1,6 +1,6 @@
 # The first continuously deployed `develop` environment
 
-**Status:** in progress · **Owner:** integration-architecture · **Started:** 2026-09-23
+**Status:** completed 2026-09-23 (live at <https://aia-develop.art-chain.io/>) · **Owner:** integration-architecture · **Started:** 2026-09-23
 
 Anchors are against `main` @ `a15be65` unless stated.
 
@@ -191,6 +191,29 @@ above was therefore not merely unverified: it could not fire. OI-37 has the
 reproduction and the one-merge fix (a release PR `develop → main`); the rule is
 in `AGENTS.md` § GitHub Actions and in human action 11.
 
+**Observed at the first deployment (2026-09-23, after PR #32 registered the
+workflow on `main` at `7f8cb2a`).** CI on `develop` dispatched *Deploy develop*
+on every green push from then on; the first three runs each failed one step
+further along, and each failure became a PR against `develop`:
+
+| Run | `develop` @ | Failed step | Cause | Fix |
+|---|---|---|---|---|
+| 35863981545 (12:59 UTC, CI-dispatched) | `13abad9` | Assume the deploy role (OIDC) | The organization issues immutable OIDC subjects; the role trusted the classic repository-name subject | PR #34 (`73dc8bd`), `github_oidc_subject` in `infra/develop` |
+| 35864470763 (13:03 UTC, by hand) | `13abad9` | Deploy on the host through SSM, 14 s | The SSM document ran the script under `sh`; it needs Bash | PR #34 (`3a0cdc3`) |
+| 35866350052 (13:20 UTC, CI-dispatched) | `b5c331f` | Deploy on the host through SSM, 71 s | The API crashed at start-up: pydantic-settings JSON-decodes a list-typed environment value before any validator, so `AIA_CORS_ORIGINS=""` is a parse error, not an empty list. The smoke test also read Compose v2's `:0` for an unpublished port as exposure | PR #35 (open): `AIA_CORS_ORIGINS: "[]"` and `docker inspect` of the host bindings; `AGENTS.md` § Pydantic settings |
+
+The host was brought up by hand at the CI-verified SHA `b5c331f` with the
+one-line environment change, and the live smoke then passed everything but the
+port check: HTTPS and redirect, build SHA, staging guards, readiness, 401
+protections, schema head, worker, S3 round-trip and one completed vertical
+slice with artifact provenance; AI reports `NOT_RUNNABLE`, as designed (PR #35
+body). The chain `develop → CI → deploy → smoke` has therefore run end to end
+once *with* a human step and not yet without one; PR #35's dispatched run is
+the first chance. Terraform validate/plan, the image builds and Caddy's
+certificate issuance — unverifiable from the sandbox — all worked in AWS at the
+first attempt; the runs above show the images building and pushing in under
+three minutes with the GHA cache warm.
+
 ## Findings filed along the way
 
 OI-33 (a repository `ScopeDenied` is a 500 in the projects and scope routers),
@@ -207,4 +230,13 @@ on `main`). OI-3 closed: `develop` is the second branch it asked for.
 
 ## Review outcome
 
-Filled in when the plan is archived.
+PR #29 merged into `develop` at `262a6dd` (2026-09-23 08:19 UTC) after automated
+verification; no human review comments recorded. What review did not catch, the
+first deployment did, and in this order: the workflow registration rule (OI-37,
+PR #30 and #32), the host bootstrap and remote Terraform state (PR #31, #33), the
+CI-gated dispatch replacing `workflow_run` (PR #33), the immutable OIDC subject
+and the SSM shell (PR #34), and the list-typed environment value (PR #35). Every
+one was an integration fact about GitHub, AWS or pydantic-settings that the
+sandbox could not reach; each is now recorded in `AGENTS.md` or the runbook so
+it is learned once. The application code, the guards and the vertical slice
+needed no change to run deployed.

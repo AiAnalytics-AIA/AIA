@@ -30,8 +30,9 @@ make verify     # the pre-commit sequence from CLAUDE.md §10
 
 ## The develop environment
 
-Every CI-green merge to `develop` is deployed to one EC2 host under Docker
-Compose, with S3, Cognito (Google Workspace), ECR, SSM and Bedrock used for real
+The develop environment is live at <https://aia-develop.art-chain.io/>. Every
+CI-green merge to `develop` is deployed to one EC2 host under Docker Compose,
+with S3, Cognito (Google Workspace), ECR, SSM and Bedrock used for real
 ([ADR 0009](docs/architecture/adr/0009-single-host-develop-environment.md)).
 The runbook is [`deploy/develop/README.md`](deploy/develop/README.md); the
 resources are [`infra/develop/`](infra/develop/README.md). The running revision

@@ -1,6 +1,7 @@
 # ADR 0009 — One EC2 host runs the `develop` environment under Docker Compose
 
-**Status:** Accepted for the `develop` integration environment only. **Production
+**Status:** Accepted for the `develop` integration environment only, and applied:
+live at <https://aia-develop.art-chain.io/> since 2026-09-23. **Production
 compute remains undecided** (ADR 0002 § Compute, ADR index).
 **Date:** 2026-09-23
 

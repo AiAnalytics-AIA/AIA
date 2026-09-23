@@ -1125,5 +1125,13 @@ fails, correctly, for the window between merging a workflow change to `develop`
 and releasing it; whether that noise is wanted is a human decision, so it is
 proposed here and not added.
 
-**Status.** Open. Blocks the first automatic deployment. Owner: the person doing
-the human actions; the fix is one merge.
+**Status.** **Closed 2026-09-23.** PR #32 (`fix/register-develop-workflow`)
+put the file on `main` at `7f8cb2a`, merged 12:41 UTC;
+`GET /repos/AiAnalytics-AIA/AIA/actions/workflows/deploy-develop.yml/runs`
+now lists runs, the first (35863981545) dispatched by CI at 12:59 UTC from the
+next `develop` merge (PR #33). The standing rule stays in `AGENTS.md` § GitHub
+Actions. The first *green* dispatched run is still owed: runs 1–3 failed at
+the OIDC trust (fixed by PR #34), the SSM script launch (same PR) and the API's
+start-up on `AIA_CORS_ORIGINS=""` (PR #35, open); the host was recovered by
+hand at the verified SHA `b5c331f` and is live at
+<https://aia-develop.art-chain.io/>.

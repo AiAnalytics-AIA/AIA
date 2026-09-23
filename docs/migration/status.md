@@ -53,7 +53,7 @@ both remain options. The **`develop` environment** is decided and declared:
 one EC2 host under Docker Compose with S3, Cognito, ECR, SSM and Bedrock used
 for real ([ADR 0009](../architecture/adr/0009-single-host-develop-environment.md));
 `deploy/develop/README.md` is its runbook and `infra/develop/` its Terraform.
-Applying it is a human action (§ The develop environment, below).
+It is live at <https://aia-develop.art-chain.io/> (§ The develop environment, below).
 
 The NPC Panel prototype is **not** in this repository. The authoritative
 reference specification lives in the private repository
@@ -275,10 +275,10 @@ is taken and recorded (`.planning/open-items.md` OI-18); two further items went 
 the register (OI-19 `RELIGION`, OI-20 factual keyword detection). The plan and its
 review map are in `.planning/plans/done/evidence-governance-foundation.md`.
 
-## The develop environment — declared, awaiting apply
+## The develop environment — live
 
 Narrative for the tracker entry in `PROGRESS.md` (Completed, "The `develop`
-environment") and the plan `.planning/plans/develop-deployment.md`, which also
+environment") and the plan `.planning/plans/done/develop-deployment.md`, which also
 holds the audit of `main` @ `a15be65` this work started from.
 
 What landed: every process names its commit (`AIA_BUILD_SHA`) and refuses to
@@ -292,11 +292,19 @@ worker through `apps/executors`, written to S3 through `ArtifactRepository`, and
 read back in the browser with its provenance; an idempotent seed; CI on
 `develop`; a deploy workflow that ships only what CI verified.
 
-What did **not** land, and why: a governed model call. `main` has no
-`ModelGateway`; PR #28 builds it and is unmerged and conflicting. The route is
-recorded as ADR 0010 *Proposed*, the instance role may already invoke exactly
-one pinned EU model, and the smoke test reports the AI check `NOT_RUNNABLE`
-rather than pass. Decision D12 in `PROGRESS.md`.
+What did **not** land, and why: a governed model call. When this was built
+`main` had no `ModelGateway`; PR #28 has since merged (D12), but the Bedrock
+adapter it needs is still to be written (Next #5c). The route is recorded as
+ADR 0010 *Proposed*, the instance role may already invoke exactly one pinned EU
+model, and the smoke test reports the AI check `NOT_RUNNABLE` rather than pass.
+
+Applied 2026-09-23. `terraform apply`, DNS, the Google OAuth client, the GitHub
+environment and the workflow registration on `main` (PR #32) were done by hand;
+the first three dispatched deploys each failed one step further along and
+became PRs #34 and #35 (the table in the archived plan). The host runs
+`develop` @ `b5c331f` at <https://aia-develop.art-chain.io/>; the live smoke
+passed everything but the PostgreSQL port check that PR #35 corrects. The first
+dispatched deploy that completes without a human step is still owed.
 
 Verified here: 1668 passed / 169 skipped on PostgreSQL 16 (1620 / 169 before),
 the same on SQLite, `mypy --strict` clean over 99 files, `layer_check` 40/40,
@@ -305,7 +313,7 @@ standalone web server answering `/config`, `/version`, `/studies`. **Not
 verified here:** the image builds and the deploy workflow — this sandbox's
 egress policy refused Docker Hub and the Terraform registry — so the first real
 run happens in GitHub Actions after the human actions in
-`infra/develop/README.md`.
+`infra/develop/README.md` — and did, as recorded above.
 
 ## In progress
 

@@ -16,7 +16,7 @@ revisit it.
 | [0006](0006-langgraph-agent-execution.md) | LangGraph for agent-internal reasoning; AIA owns the workflow | **Accepted — constrained use** |
 | [0007](0007-deterministic-tools.md) | No LLM for deterministic analytical computation | Accepted |
 | [0008](0008-eu-data-residency.md) | EU data residency as a frozen invariant; the egress boundary fails closed | Accepted |
-| [0009](0009-single-host-develop-environment.md) | One EC2 host under Docker Compose runs the `develop` environment; production compute stays open | **Accepted — develop only** |
+| [0009](0009-single-host-develop-environment.md) | One EC2 host under Docker Compose runs the `develop` environment; production compute stays open | **Accepted — develop only; live 2026-09-23** |
 | [0010](0010-bedrock-eu-inference-route.md) | Amazon Bedrock, EU geography, as the first governed inference route (`bedrock-eu-primary`, Class C) | **Proposed** |
 
 ADR 0005 is deliberately two rows. The gateway contract and the library that might

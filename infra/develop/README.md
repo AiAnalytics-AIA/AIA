@@ -47,7 +47,8 @@ These need account control an agent does not have. In order.
    and that `eu-central-1` is the region (ADR 0008 requires an EU region;
    Frankfurt hosts the EU Bedrock inference profiles). Set `aws_region` if not.
 2. **Hostname.** Choose `dev.<domain>` and set `public_hostname`. Decide whether
-   the zone is in Route 53 (`route53_zone_id`) or elsewhere.
+   the zone is in Route 53 (`route53_zone_id`) or elsewhere. Chosen:
+   `aia-develop.art-chain.io`.
 3. **Google OAuth client** (Google Cloud console → APIs & Services → Credentials
    → *Create credentials* → *OAuth client ID*, type *Web application*):
    - Authorised JavaScript origins: none needed.
@@ -102,7 +103,8 @@ These need account control an agent does not have. In order.
     offers no *Run workflow* — until it is on `main`. A release PR `develop →
     main` (or a chore PR carrying only that file) is the step; after it, every
     CI-green head of `develop` deploys, and every later change to the workflow
-    itself is likewise inert until released (OI-37).
+    itself is likewise inert until released (OI-37). **Done 2026-09-23:** PR #32
+    registered the file on `main` at `7f8cb2a`; CI has dispatched it since.
 12. **Cognito users.** Provisioning is administrator-only. Add each person in
     the Cognito console (*Users* → *Create user*; email as username; any
     temporary password is unused because sign-in is Google), or leave it to
