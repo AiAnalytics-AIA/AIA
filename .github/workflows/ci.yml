@@ -271,6 +271,60 @@ jobs:
           path: tmp/junit/
           if-no-files-found: warn
 
+  oracle-parity:
+    # Differential tests against the RUNNING 18.6.6 unit (ADR 0011): the
+    # legacy-panel service on the develop host, behind its basic-auth gate. The
+    # endpoint and its credentials are repository secrets; without them the
+    # `oracle` tests skip and parity-status reports their gates as NOT_EXECUTED,
+    # never as a pass. With them present, `AIA_REQUIRE_LEGACY_ORACLE=1` turns an
+    # unreachable oracle into a failure -- the same ratchet as AIA_REQUIRE_POSTGRES.
+    # Never a `|| true`: an oracle that answers differently is a finding.
+    name: Parity against the running 18.6.6 unit (needs the oracle secrets)
+    runs-on: ubuntu-latest
+    env:
+      HAS_ORACLE: ${{ secrets.AIA_LEGACY_REFERENCE_URL != '' }}
+    outputs:
+      oracle: ${{ steps.oracle.outputs.available }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "packages/aia_core[dev]"
+
+      - name: Record whether the oracle is configured
+        id: oracle
+        run: |
+          if [ "$HAS_ORACLE" = "true" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::AIA_LEGACY_REFERENCE_URL is not configured; oracle parity tests are skipped and reported as NOT_EXECUTED."
+          fi
+
+      - name: Run the oracle suite
+        env:
+          AIA_LEGACY_REFERENCE_URL: ${{ secrets.AIA_LEGACY_REFERENCE_URL }}
+          AIA_LEGACY_REFERENCE_USER: ${{ secrets.AIA_LEGACY_REFERENCE_USER }}
+          AIA_LEGACY_REFERENCE_PASSWORD: ${{ secrets.AIA_LEGACY_REFERENCE_PASSWORD }}
+          AIA_REQUIRE_LEGACY_ORACLE: ${{ env.HAS_ORACLE == 'true' && '1' || '' }}
+        run: >-
+          pytest packages/aia_core -q -m oracle -rs
+          --junit-xml=tmp/junit/oracle.xml -o junit_family=xunit1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-oracle
+          path: tmp/junit/
+          if-no-files-found: warn
+
   parity-status:
     # One verdict per capability, from every JUnit file above. FAIL (a gate ran
     # and failed, or could have run and did not) fails this job. NOT_EXECUTED
@@ -278,7 +332,7 @@ jobs:
     # skip can no longer be read as one.
     name: Parity status
     runs-on: ubuntu-latest
-    needs: [backend, parity, golden-fixtures]
+    needs: [backend, parity, golden-fixtures, oracle-parity]
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -296,9 +350,11 @@ jobs:
       - name: Compute parity verdicts
         env:
           REFERENCE_AVAILABLE: ${{ needs.golden-fixtures.outputs.reference }}
+          ORACLE_AVAILABLE: ${{ needs.oracle-parity.outputs.oracle }}
         run: |
           available="postgres"
           if [ "$REFERENCE_AVAILABLE" = "true" ]; then available="$available reference_repo"; fi
+          if [ "$ORACLE_AVAILABLE" = "true" ]; then available="$available legacy_oracle"; fi
           set +e
           python tools/parity_status.py --junit tmp/junit/*.xml --available $available \
             --json parity-status.json --markdown parity-status.md
@@ -591,7 +647,7 @@ jobs:
 
   dispatch-develop:
     name: Dispatch verified develop deployment
-    needs: [backend, parity, golden-fixtures, parity-status, api-contract, frontend, startup-smoke, security]
+    needs: [backend, parity, golden-fixtures, oracle-parity, parity-status, api-contract, frontend, startup-smoke, security]
     if: success() && github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     permissions:

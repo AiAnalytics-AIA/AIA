@@ -12,7 +12,7 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden parity-status test-web \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
@@ -82,6 +82,9 @@ test-parity: ## Compare against the legacy prototype (needs AIA_LEGACY_REFERENCE
 
 test-golden: ## Golden-fixture gates (needs the reference repo: sibling clone or AIA_REFERENCE_REPO)
 	@$(PY) -m pytest packages/aia_core/tests/test_golden_fixtures.py -q -rs
+
+test-oracle: ## Differential tests against the running 18.6.6 unit (needs AIA_LEGACY_REFERENCE_URL + credentials)
+	@$(PY) -m pytest packages/aia_core -q -m oracle -rs
 
 parity-status: ## Parity verdict per capability, from a fresh run of every suite
 	@mkdir -p tmp/junit
