@@ -22,6 +22,7 @@ DEVELOP = REPO / "deploy" / "develop"
 COMPOSE = DEVELOP / "docker-compose.yml"
 DEPLOY = DEVELOP / "bin" / "deploy.sh"
 SMOKE = DEVELOP / "bin" / "smoke.sh"
+WRITE_ENV = DEVELOP / "bin" / "write-env.sh"
 
 
 def _service_block(text: str, name: str) -> str:
@@ -72,3 +73,9 @@ def test_the_deploy_waits_only_on_aias_services_and_smoke_checks_the_unit() -> N
         assert "legacy-panel" not in line
         assert line.rstrip().endswith("postgres api worker web caddy")
     assert "the 18.6.6 unit is healthy" in SMOKE.read_text(encoding="utf-8")
+
+
+def test_the_env_file_quotes_every_value() -> None:
+    text = WRITE_ENV.read_text(encoding="utf-8")
+    assert 'printf "%s=\'%s\'\\n" "$key" "$value"' in text
+    assert 'printf \'%s=%s\\n\' "$key" "$value"' not in text

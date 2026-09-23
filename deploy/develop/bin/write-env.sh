@@ -31,12 +31,16 @@ chmod 0600 "$tmp"
       --query 'Parameters[].[Name,Value]' --output text \
     | while IFS=$'\t' read -r name value; do
         key="$(basename "$name" | tr '[:lower:]' '[:upper:]')"
-        printf '%s=%s\n' "$key" "$value"
+        # Single-quoted, because both readers expand `$` in an unquoted value:
+        # Compose interpolates the env file and lib.sh sources it. A bcrypt
+        # hash ($2a$14$...) written bare reaches Caddy as "$2a$14".
+        case "$value" in *"'"*) die "$key contains a single quote, which the env file cannot carry" ;; esac
+        printf "%s='%s'\n" "$key" "$value"
         printf '  %s\n' "$key" >&2
       done
   if [ -n "$current_tag" ]; then printf 'AIA_IMAGE_TAG=%s\n' "$current_tag"; fi
 } > "$tmp"
 
-grep -q '^POSTGRES_PASSWORD=.\+' "$tmp" || die "POSTGRES_PASSWORD is not set under $PREFIX"
+grep -q "^POSTGRES_PASSWORD='.\+'" "$tmp" || die "POSTGRES_PASSWORD is not set under $PREFIX"
 install -o root -g root -m 0600 "$tmp" "$ENV_FILE"
 log "wrote $ENV_FILE ($(grep -c '=' "$ENV_FILE") entries)"
