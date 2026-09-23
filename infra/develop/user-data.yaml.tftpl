@@ -1,0 +1,104 @@
+#cloud-config
+# First boot of the develop host (Ubuntu 24.04). Installs Docker and Compose
+# from Ubuntu's repositories, the AWS CLI, the CloudWatch agent, the nightly
+# backup timer and the deployment directory. Everything application-specific
+# arrives later, versioned by SHA, in the deploy bundle bin/deploy.sh unpacks.
+#
+# Nothing here is a secret. The env file is written on the host from SSM
+# Parameter Store by bin/write-env.sh, using the instance role.
+
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - awscli
+  - unzip
+  - jq
+  - python3
+
+write_files:
+  - path: /etc/docker/daemon.json
+    permissions: "0644"
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": { "max-size": "20m", "max-file": "5" },
+        "live-restore": true
+      }
+
+  - path: /etc/systemd/system/aia-backup.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=AIA develop: nightly pg_dump to S3
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      Type=oneshot
+      WorkingDirectory=/opt/aia/develop
+      ExecCondition=/usr/bin/test -x /opt/aia/develop/bin/backup.sh
+      ExecStart=/opt/aia/develop/bin/backup.sh nightly
+
+  - path: /etc/systemd/system/aia-backup.timer
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=AIA develop: run the nightly backup at 02:30 UTC
+
+      [Timer]
+      OnCalendar=*-*-* 02:30:00 UTC
+      RandomizedDelaySec=600
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+
+  - path: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    permissions: "0644"
+    content: |
+      {
+        "agent": { "metrics_collection_interval": 60, "run_as_user": "root" },
+        "metrics": {
+          "namespace": "CWAgent",
+          "append_dimensions": { "InstanceId": "$${aws:InstanceId}" },
+          "metrics_collected": {
+            "disk": { "measurement": ["used_percent"], "resources": ["/"], "metrics_collection_interval": 60 },
+            "mem":  { "measurement": ["mem_used_percent"], "metrics_collection_interval": 60 }
+          }
+        },
+        "logs": {
+          "logs_collected": {
+            "files": {
+              "collect_list": [
+                {
+                  "file_path": "/var/lib/docker/containers/*/*-json.log",
+                  "log_group_name": "/aia/develop",
+                  "log_stream_name": "{instance_id}/containers",
+                  "timezone": "UTC"
+                },
+                {
+                  "file_path": "/var/log/aia-deploy.log",
+                  "log_group_name": "/aia/develop",
+                  "log_stream_name": "{instance_id}/deploy",
+                  "timezone": "UTC"
+                }
+              ]
+            }
+          }
+        }
+      }
+
+runcmd:
+  - mkdir -p /opt/aia/develop && chmod 0750 /opt/aia/develop
+  - systemctl enable --now docker
+  - systemctl daemon-reload
+  - systemctl enable --now aia-backup.timer
+  # SSM agent ships in the Ubuntu AMI as a snap; make sure it is running.
+  - snap start amazon-ssm-agent || true
+  # CloudWatch agent, from AWS's regional bucket.
+  - curl -fsSL -o /tmp/amazon-cloudwatch-agent.deb https://amazoncloudwatch-agent-${aws_region}.s3.${aws_region}.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+  - dpkg -i /tmp/amazon-cloudwatch-agent.deb || apt-get install -f -y
+  - /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+  - touch /var/log/aia-deploy.log
