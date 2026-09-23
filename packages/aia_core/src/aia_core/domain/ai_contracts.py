@@ -68,6 +68,7 @@ __all__ = [
     "canonical_json",
     "content_fingerprint",
     "extract_json_object",
+    "input_fingerprint",
     "new_call_id",
     "new_usage_event_id",
     "output_schema",
@@ -194,6 +195,22 @@ def output_schema(contract: type[BaseModel]) -> dict[str, Any]:
 def content_fingerprint(value: Any) -> str:
     """``sha256:`` hash of a JSON value's canonical form."""
     return "sha256:" + hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def input_fingerprint(request: AdapterRequest) -> str:
+    """Content hash of what one call sends: the provider-neutral inputs.
+
+    The model and provider are recorded separately; this identifies the
+    *content*, so the same inputs sent to a fallback model share a fingerprint.
+    """
+    return content_fingerprint(
+        {
+            "system": request.system,
+            "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+            "output_schema": dict(request.output_schema) if request.output_schema else None,
+            "max_output_tokens": request.max_output_tokens,
+        }
+    )
 
 
 def schema_fingerprint(schema: Mapping[str, Any]) -> str:
@@ -575,6 +592,20 @@ class ModelUsage:
     cache_read_input_tokens: int | None = None
     cache_write_input_tokens: int | None = None
 
+    def __post_init__(self) -> None:
+        # A negative count would fail pricing *after* the call was dispatched.
+        # Refusing it here makes a bad adapter fail inside ``send``, where the
+        # gateway records the call as uncertain rather than losing it.
+        for name in (
+            "input_tokens",
+            "output_tokens",
+            "cache_read_input_tokens",
+            "cache_write_input_tokens",
+        ):
+            value = getattr(self, name)
+            if value is not None and value < 0:
+                raise ValueError(f"{name} cannot be negative")
+
     @property
     def is_priceable(self) -> bool:
         """True when input and output counts are both reported."""
@@ -689,6 +720,8 @@ class CallProvenance:
     fallback_authorised_by: str | None
     started_at: datetime
     finished_at: datetime
+    #: Content hash of the inputs of the call that produced the output.
+    input_fingerprint: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -746,6 +779,10 @@ class AIUsageEvent:
     #: The preflight worst case for this call. On ``DISPATCHED`` it is the
     #: exposure the call opens; on ``UNCERTAIN`` it is also the cost carried.
     ceiling_usd: float = 0.0
+    #: Content hash of exactly what this call sent -- system prompt, messages,
+    #: output schema and output cap -- so a primary call and its repair, or two
+    #: calls from the same prompt version with different inputs, are told apart.
+    input_fingerprint: str | None = None
     supersedes_event_id: str | None = None
     note: str = ""
 

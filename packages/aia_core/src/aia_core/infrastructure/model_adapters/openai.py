@@ -169,6 +169,11 @@ class OpenAIChatAdapter:
         # prompt_tokens *includes* the cached tokens; AIA prices the uncached
         # remainder at the input rate and the cached part at the cache rate.
         uncached = prompt - cached if prompt is not None and cached is not None else prompt
+        if prompt is not None and cached is not None and cached > prompt:
+            # Relationally impossible usage. Neither figure can be trusted, so
+            # both are unreported and the call is carried at its ceiling --
+            # never priced from a negative count.
+            uncached, cached = None, None
         return AdapterResponse(
             text=content if isinstance(content, str) else "",
             finish_reason=finish,

@@ -387,7 +387,7 @@ def test_gateway_over_a_recorded_openai_exchange(
                 ),
             )
         ),
-        adapters=[adapter],
+        adapters={"openai-direct": adapter},
     )
     journal = InMemoryCallJournal()
     context = ExecutionContext(

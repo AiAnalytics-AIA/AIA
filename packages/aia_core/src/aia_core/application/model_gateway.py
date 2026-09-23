@@ -14,7 +14,7 @@ with cost or provenance consequences is made here, in this order, and recorded:
    plus what this attempt has already spent, must fit the reservation the
    durable layer granted. A metered call with no reservation is refused.
 4. **Journal the dispatch** -- durably -- before anything is sent.
-5. **Send** through the adapter, and classify what comes back.
+5. **Send** through the adapter bound to that route, and classify what comes back.
 6. **Validate** structured output deterministically, allowing the agent's one
    same-model repair, recorded as its own call.
 7. **Ledger** every call's terminal outcome, including failures and the
@@ -33,7 +33,7 @@ anybody deciding to.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Final
@@ -55,6 +55,7 @@ from aia_core.domain.ai_contracts import (
     ProviderErrorKind,
     UsageOutcome,
     canonical_json,
+    input_fingerprint,
     new_call_id,
     new_usage_event_id,
     schema_fingerprint,
@@ -63,7 +64,7 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.ai_execution import ExecutionContext
 from aia_core.domain.ai_models import ModelRegistry, ModelResolution, ResolutionError
-from aia_core.domain.providers import Provider, check_budget
+from aia_core.domain.providers import check_budget
 from aia_core.domain.residency import EgressDecision, EgressDenied, EgressPolicy
 from aia_core.domain.workflow import FailureClass
 
@@ -133,18 +134,30 @@ class GovernedModelGateway:
         *,
         registry: ModelRegistry,
         egress: EgressPolicy,
-        adapters: Iterable[ProviderAdapter],
+        adapters: Mapping[str, ProviderAdapter],
         call_ids: Callable[[], str] = new_call_id,
         event_ids: Callable[[], str] = new_usage_event_id,
     ) -> None:
-        by_provider: dict[Provider, ProviderAdapter] = {}
-        for adapter in adapters:
-            if adapter.provider in by_provider:
-                raise ValueError(f"two adapters for {adapter.provider.value}")
-            by_provider[adapter.provider] = adapter
+        """``adapters`` is keyed by **route id**, not by provider.
+
+        A route is the unit of residency approval (ADR 0008): the same provider
+        over a different region, account, credential or transport is a different
+        route. Selecting an adapter by provider would let a call authorised for
+        one route leave over another route's transport, so each approved route
+        names the adapter that carries it, and nothing else may.
+        """
+        for route_id, adapter in adapters.items():
+            route = egress.route(route_id)
+            if route is None:
+                raise ValueError(f"adapter bound to unknown route {route_id!r}")
+            if route.provider != adapter.provider.value:
+                raise ValueError(
+                    f"route {route_id} carries {route.provider}, but its adapter speaks "
+                    f"{adapter.provider.value}"
+                )
         self._registry = registry
         self._egress = egress
-        self._adapters = by_provider
+        self._adapters = dict(adapters)
         self._call_ids = call_ids
         self._event_ids = event_ids
 
@@ -253,13 +266,15 @@ class GovernedModelGateway:
                 reason="egress_route_provider_mismatch",
             )
 
-        adapter = self._adapters.get(resolution.provider)
-        if adapter is None:
+        adapter = self._adapters.get(resolution.route_id)
+        if adapter is None or adapter.provider is not resolution.provider:
+            # No provider-wide default: an unbound route does not borrow another
+            # route's adapter, even for the same provider.
             raise self._failed(
-                f"no adapter configured for {resolution.provider.value}",
+                f"no adapter bound to route {resolution.route_id}",
                 events,
                 failure=FailureClass.MISSING_CONFIGURATION,
-                reason="no_adapter_for_provider",
+                reason="no_adapter_for_route",
             )
 
         if request.output_token_limit > resolution.descriptor.max_output_tokens:
@@ -334,6 +349,7 @@ class GovernedModelGateway:
                 schema_name=_schema_name(agent.agent_id) if schema is not None else "",
                 strict_schema=strict,
             )
+            in_fp = input_fingerprint(outbound)
             ceiling = 0.0
             if descriptor.pricing is not None and descriptor.is_paid:
                 ceiling = descriptor.pricing.ceiling_usd(
@@ -375,6 +391,7 @@ class GovernedModelGateway:
                 context,
                 lane,
                 call_id=outbound.call_id,
+                input_fp=in_fp,
                 outcome=UsageOutcome.DISPATCHED,
                 purpose=purpose,
                 cost_usd=0.0,
@@ -399,6 +416,7 @@ class GovernedModelGateway:
                         context,
                         lane,
                         call_id=outbound.call_id,
+                        input_fp=in_fp,
                         outcome=UsageOutcome.FAILED if known else UsageOutcome.UNCERTAIN,
                         purpose=purpose,
                         cost_usd=0.0 if known else ceiling,
@@ -437,6 +455,7 @@ class GovernedModelGateway:
                         context,
                         lane,
                         call_id=outbound.call_id,
+                        input_fp=in_fp,
                         outcome=UsageOutcome.UNCERTAIN,
                         purpose=purpose,
                         cost_usd=ceiling,
@@ -483,6 +502,7 @@ class GovernedModelGateway:
                     context,
                     lane,
                     call_id=outbound.call_id,
+                    input_fp=in_fp,
                     outcome=UsageOutcome.FAILED if violations else UsageOutcome.SUCCEEDED,
                     purpose=purpose,
                     cost_usd=cost,
@@ -513,7 +533,7 @@ class GovernedModelGateway:
                     finish_reason=response.finish_reason,
                     latency_ms=_ms(started, finished),
                     provenance=self._provenance(
-                        request, context, lane, fingerprint, started, finished
+                        request, context, lane, fingerprint, started, finished, in_fp
                     ),
                     text=response.text
                     if response.structured is None
@@ -628,6 +648,7 @@ class GovernedModelGateway:
         fingerprint: str | None,
         started: datetime,
         finished: datetime,
+        input_fp: str,
     ) -> CallProvenance:
         agent = request.agent
         return CallProvenance(
@@ -647,6 +668,7 @@ class GovernedModelGateway:
             fallback_authorised_by=lane.fallback_authorised_by,
             started_at=started,
             finished_at=finished,
+            input_fingerprint=input_fp,
         )
 
     def _event(
@@ -669,6 +691,7 @@ class GovernedModelGateway:
         finish_reason: FinishReason | None = None,
         usage: ModelUsage | None = None,
         served_model: str = "",
+        input_fp: str | None = None,
         note: str = "",
     ) -> AIUsageEvent:
         agent = request.agent
@@ -715,6 +738,7 @@ class GovernedModelGateway:
             occurred_at=at,
             latency_ms=_ms(started, at) if started is not None else None,
             ceiling_usd=ceiling_usd,
+            input_fingerprint=input_fp,
             note=note,
         )
 

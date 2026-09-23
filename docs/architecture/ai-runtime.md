@@ -30,11 +30,15 @@ domain code ──ModelRequest──▶ GovernedModelGateway.invoke(request, Exe
                                  2 egress    EgressPolicy.authorise(issued scope, data class, route)
                                  3 budget    ceiling + committed ≤ reservation   (metered only)
                                  4 journal   DISPATCHED entry, committed         (before sending)
-                                 5 send      ProviderAdapter → transport
+                                 5 send      the ProviderAdapter bound to that route → transport
                                  6 validate  Pydantic strict JSON; ≤1 same-model repair
                                  7 ledger    terminal entry: SUCCEEDED / FAILED / UNCERTAIN
                                  8 fallback  only if explicitly authorised, outcome known
 ```
+
+Adapters are bound **per route**, not per provider: the same provider over two
+routes (region, account, credential, transport) is two residency answers, and a
+call authorised for one route cannot leave over the other's adapter.
 
 Each step is a refusal point, and none offers an alternative: there is no
 `suggested_model`, `suggested_route` or `suggested_provider` anywhere in the
@@ -265,7 +269,8 @@ entry record `substituted_from`. A live listing never changes what runs.
 
 Every call writes `AIUsageEvent`s (`ai_usage_events`) carrying the fields below
 plus agent id/version, policy version, route, data class, residency zone,
-schema fingerprint, `served_model` (what the provider says ran),
+schema fingerprint, `input_fingerprint` (a hash of exactly what that call sent, so a
+primary call and its repair are distinguishable), `served_model` (what the provider says ran),
 `substituted_from`, and `fallback_from` / `fallback_authorised_by`.
 
 | Field | Why |

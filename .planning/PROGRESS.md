@@ -45,7 +45,7 @@ skips (`.github/workflows/ci.yml:99-108` @ df294e2).
 
 | What | State | Anchor |
 |---|---|---|
-| **Phase 4 — AI runtime contract** ([plan](plans/ai-runtime-contract.md)) | All 7 chunks implemented and verified in the working tree; **not yet committed** (awaiting permission, `CLAUDE.md §5`). SQLite 829 passed / 117 skipped (baseline 546); PostgreSQL 16 846 passed / 100 skipped with `AIA_REQUIRE_POSTGRES=1`; `mypy --strict` clean (49 files, core + API); `layer_check` 14/14; `exposure_check` 7/7; migration `1cd2a5acd29f` upgrades, `alembic check` clean, reversible to base | `application/model_gateway.py` · `tests/test_model_gateway.py`, `test_model_adapters.py`, `test_ai_usage_ledger.py` |
+| **Phase 4 — AI runtime contract** ([plan](plans/ai-runtime-contract.md)) | All 7 chunks landed on PR #28; Codex review findings fixed. SQLite 837 passed / 117 skipped (baseline 546); PostgreSQL 16 854 passed / 100 skipped with `AIA_REQUIRE_POSTGRES=1`; `mypy --strict` clean (49 files, core + API); `layer_check` 14/14; `exposure_check` 7/7; migration `1cd2a5acd29f` upgrades, `alembic check` clean, reversible to base | `application/model_gateway.py` · `tests/test_model_gateway.py`, `test_model_adapters.py`, `test_ai_usage_ledger.py` |
 
 ## Repository visibility — D5, frozen
 

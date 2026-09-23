@@ -1030,6 +1030,7 @@ class AIUsageEventRow(Base):
     ceiling_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
     schema_fingerprint: Mapped[str | None] = mapped_column(String(80))
+    input_fingerprint: Mapped[str | None] = mapped_column(String(80))
     substituted_from: Mapped[str | None] = mapped_column(String(128))
     fallback_from: Mapped[str | None] = mapped_column(String(255))
     fallback_authorised_by: Mapped[str | None] = mapped_column(String(64))

@@ -173,8 +173,21 @@ def context(scope: Any, journal: InMemoryCallJournal) -> ExecutionContext:
     )
 
 
+# The route each test adapter is bound to. Adapters are keyed by route, not by
+# provider: a route is the unit of residency approval.
+ROUTE_FOR: dict[Provider, str] = {
+    Provider.ANTHROPIC: "anthropic-direct",
+    Provider.OPENAI: "openai-direct",
+    Provider.CLAUDE_CODE: "claude-code-cli",
+}
+
+
 def _gateway(registry: ModelRegistry, *adapters: ScriptedAdapter) -> GovernedModelGateway:
-    return GovernedModelGateway(registry=registry, egress=EGRESS, adapters=adapters)
+    return GovernedModelGateway(
+        registry=registry,
+        egress=EGRESS,
+        adapters={ROUTE_FOR[a.provider]: a for a in adapters},
+    )
 
 
 def _run(gateway: GovernedModelGateway, request: ModelRequest, ctx: ExecutionContext) -> Any:
@@ -374,7 +387,9 @@ def test_route_approved_for_another_provider_is_refused(
     gateway = GovernedModelGateway(
         registry=model_registry,
         egress=EgressPolicy(routes=(_route("openai-direct", "someone_else"),)),
-        adapters=[adapter],
+        # No adapter can even be bound to this route (the constructor refuses a
+        # mismatch), so the egress check is what stops the call.
+        adapters={},
     )
     failure = _fail(gateway, _request(), context)
     assert failure.reason == "egress_route_provider_mismatch"
@@ -440,7 +455,7 @@ def test_missing_adapter_fails_closed(
     model_registry: ModelRegistry, context: ExecutionContext, journal: InMemoryCallJournal
 ) -> None:
     failure = _fail(_gateway(model_registry), _request(), context)
-    assert failure.reason == "no_adapter_for_provider"
+    assert failure.reason == "no_adapter_for_route"
     assert journal.dispatched == []
 
 
@@ -466,13 +481,63 @@ def test_invoke_requires_an_execution_context(model_registry: ModelRegistry) -> 
         asyncio.run(gateway.invoke(_request(), {"study_id": "STU-x"}))  # type: ignore[arg-type]
 
 
-def test_two_adapters_for_one_provider_are_refused(model_registry: ModelRegistry) -> None:
-    with pytest.raises(ValueError, match="two adapters"):
-        _gateway(
-            model_registry,
-            ScriptedAdapter(Provider.OPENAI, []),
-            ScriptedAdapter(Provider.OPENAI, []),
+def test_adapter_bound_to_an_unknown_or_mismatched_route_is_refused(
+    model_registry: ModelRegistry,
+) -> None:
+    with pytest.raises(ValueError, match="unknown route"):
+        GovernedModelGateway(
+            registry=model_registry,
+            egress=EGRESS,
+            adapters={"nowhere": ScriptedAdapter(Provider.OPENAI, [])},
         )
+    with pytest.raises(ValueError, match="carries anthropic"):
+        GovernedModelGateway(
+            registry=model_registry,
+            egress=EGRESS,
+            adapters={"anthropic-direct": ScriptedAdapter(Provider.OPENAI, [])},
+        )
+
+
+def _two_openai_routes(document: dict[str, Any]) -> tuple[ModelRegistry, EgressPolicy]:
+    """A policy whose CRITIC binding uses a second OpenAI route."""
+    from aia_core.domain.ai_models import parse_model_config
+
+    document["policies"][0]["bindings"]["CRITIC"]["route_id"] = "openai-eu"
+    egress = EgressPolicy(
+        routes=(*EGRESS.routes, _route("openai-eu", "openai")),
+    )
+    return parse_model_config(document), egress
+
+
+def test_each_route_uses_its_own_adapter(
+    model_config_document: dict[str, Any], context: ExecutionContext
+) -> None:
+    """Codex P1 on #28: the same provider over two routes is two residency
+    answers. The call authorised for one route must leave over that route's
+    adapter, not over whichever adapter happens to speak the same provider."""
+    registry, egress = _two_openai_routes(model_config_document)
+    direct = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    eu = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    gateway = GovernedModelGateway(
+        registry=registry, egress=egress, adapters={"openai-direct": direct, "openai-eu": eu}
+    )
+    result = _run(gateway, _request(), context)
+    assert result.provenance.route_id == "openai-eu"
+    assert len(eu.requests) == 1
+    assert direct.requests == []
+
+
+def test_unbound_route_does_not_borrow_another_routes_adapter(
+    model_config_document: dict[str, Any], context: ExecutionContext, journal: InMemoryCallJournal
+) -> None:
+    registry, egress = _two_openai_routes(model_config_document)
+    direct = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    gateway = GovernedModelGateway(
+        registry=registry, egress=egress, adapters={"openai-direct": direct}
+    )
+    failure = _fail(gateway, _request(), context)
+    assert failure.reason == "no_adapter_for_route"
+    _nothing_sent(direct, journal)
 
 
 # --------------------------------------------------------------------------- #
@@ -886,3 +951,25 @@ def test_schema_name_is_provider_safe(
     name = adapter.requests[0].schema_name
     assert len(name) == 64
     assert all(c.isascii() and (c.isalnum() or c == "_") for c in name)
+
+
+def test_every_call_records_the_fingerprint_of_its_own_inputs(
+    model_registry: ModelRegistry, context: ExecutionContext
+) -> None:
+    """Codex P2 on #28: a primary call and its repair send different messages,
+    so they must be distinguishable in the ledger by what they sent."""
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok('{"verdict": "fine", "score": "7"}'), _ok()])
+    result = _run(_gateway(model_registry, adapter), _request(), context)
+    primary, repair = (
+        [e for e in result.usage_events if e.call_id == call]
+        for call in dict.fromkeys(e.call_id for e in result.usage_events)
+    )
+    assert {e.input_fingerprint for e in primary} == {primary[0].input_fingerprint}
+    assert {e.input_fingerprint for e in repair} == {repair[0].input_fingerprint}
+    assert primary[0].input_fingerprint != repair[0].input_fingerprint
+    assert primary[0].input_fingerprint.startswith("sha256:")
+    assert result.provenance.input_fingerprint == repair[0].input_fingerprint
+
+    again = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    same = _run(_gateway(model_registry, again), _request(), context)
+    assert same.provenance.input_fingerprint == primary[0].input_fingerprint

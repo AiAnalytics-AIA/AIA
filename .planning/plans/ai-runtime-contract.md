@@ -92,14 +92,13 @@ by the first live run rather than by CI.
 - [x] 2. Domain: call contracts, taxonomy, structured output — `domain/ai_contracts.py` + `tests/test_ai_contracts.py` (70)
 - [x] 3. Domain: StepExecutor contract + ToolRegistry — `domain/ai_execution.py`, `domain/ai_tools.py` + `tests/test_ai_tools.py` (36)
 - [x] 4. Application: `GovernedModelGateway` — `application/model_gateway.py` + `tests/test_model_gateway.py` (40)
-- [x] 5. Infrastructure: three adapters over transport protocols + 41 recorded exchanges — `infrastructure/model_adapters/` + `tests/test_model_adapters.py` (74)
+- [x] 5. Infrastructure: three adapters over transport protocols + 42 recorded exchanges — `infrastructure/model_adapters/` + `tests/test_model_adapters.py` (74)
 - [x] 6. Infrastructure: `ai_usage_events` (migration `1cd2a5acd29f`), `AIUsageRepository`, `WorkflowCallJournal` + `tests/test_ai_usage_ledger.py` (17)
 - [x] 7. Enforcement + docs: `layer_check` provider-SDK rules (12 → 14), `ai-runtime.md`,
       `ai-step-executor-contract.md`, ADR 0005 implementation note, ARCHITECTURE /
       CLAUDE / AGENTS, data-model, domain-map, parity matrix, OI-6, PROGRESS
 
-All seven implemented and verified in the working tree. **Not committed**: the
-commit was refused pending explicit permission (`CLAUDE.md §5`).
+All seven landed on PR #28.
 
 ## Status
 
@@ -180,4 +179,9 @@ records them, but there is no prompt store (reference rebuild requirement 1).
 
 ## Review outcome
 
-Filled in when archived.
+Codex review on #28 (four findings, all verified and fixed): adapters are now bound
+per route, not per provider (P1); OpenAI usage with `cached_tokens > prompt_tokens`
+is carried as unreported and `ModelUsage` refuses negatives inside `send` (P2);
+`resolve_uncertain` refuses non-finite costs (P2); every ledger entry and the
+result provenance carry an `input_fingerprint` (P2). Remaining fields filled in
+when archived.

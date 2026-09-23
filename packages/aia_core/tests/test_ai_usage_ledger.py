@@ -154,7 +154,9 @@ class Attempt:
         )
 
     def invoke(self, adapter: Adapter, registry: ModelRegistry, *, durable: bool = True) -> Any:
-        gateway = GovernedModelGateway(registry=registry, egress=EGRESS, adapters=[adapter])
+        gateway = GovernedModelGateway(
+            registry=registry, egress=EGRESS, adapters={"openai-direct": adapter}
+        )
         return asyncio.run(gateway.invoke(REQUEST, self.context(self.journal(durable=durable))))
 
     def attempt_row(self) -> StepAttemptRow:
@@ -222,6 +224,8 @@ def test_successful_call_is_ledgered_and_closes_the_billing_question(
     assert entries[1].cost_usd == pytest.approx(result.actual_cost_usd)
     # Round-trips every field it wrote.
     assert entries == list(result.usage_events)
+    assert entries[0].input_fingerprint is not None
+    assert entries[0].input_fingerprint == entries[1].input_fingerprint
 
     row = attempt.attempt_row()
     assert row.paid_call_dispatched is True
@@ -433,6 +437,10 @@ def test_resolution_is_a_budget_act(
         attempt.usage.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.5)
     with pytest.raises(ValueError):
         attempt.usage.resolve_uncertain(call.call_id, billed=True, actual_cost_usd=-1.0)
+    # Codex P2 on #28: NaN passes every comparison; inf is not a cost.
+    for bad in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(ValueError, match="finite"):
+            attempt.usage.resolve_uncertain(call.call_id, billed=True, actual_cost_usd=bad)
 
     attempt.usage.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.0)
     with pytest.raises(LedgerConflict):

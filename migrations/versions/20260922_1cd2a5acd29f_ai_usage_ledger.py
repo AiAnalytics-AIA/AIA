@@ -65,6 +65,7 @@ def upgrade() -> None:
     sa.Column('cost_basis', sa.String(length=32), nullable=False),
     sa.Column('ceiling_usd', sa.Float(), nullable=False),
     sa.Column('schema_fingerprint', sa.String(length=80), nullable=True),
+    sa.Column('input_fingerprint', sa.String(length=80), nullable=True),
     sa.Column('substituted_from', sa.String(length=128), nullable=True),
     sa.Column('fallback_from', sa.String(length=255), nullable=True),
     sa.Column('fallback_authorised_by', sa.String(length=64), nullable=True),

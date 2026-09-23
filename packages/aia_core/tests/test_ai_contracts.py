@@ -414,6 +414,17 @@ def test_request_output_limit_defaults_to_the_agent() -> None:
 # --------------------------------------------------------------------------- #
 
 
+@pytest.mark.parametrize(
+    "field",
+    ["input_tokens", "output_tokens", "cache_read_input_tokens", "cache_write_input_tokens"],
+)
+def test_negative_usage_is_refused_where_the_adapter_builds_it(field: str) -> None:
+    """Raised inside the adapter's send, so the gateway records the call as
+    uncertain instead of failing to price it after dispatch."""
+    with pytest.raises(ValueError, match="cannot be negative"):
+        ModelUsage(**{field: -1})
+
+
 def test_unreported_usage_is_not_zero() -> None:
     assert ModelUsage().is_priceable is False
     assert ModelUsage(input_tokens=0, output_tokens=0).is_priceable is True

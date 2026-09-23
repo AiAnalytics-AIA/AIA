@@ -14,6 +14,7 @@ bug upstream cannot write one client's spend onto another's ledger.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -108,6 +109,7 @@ def _row(event: AIUsageEvent) -> AIUsageEventRow:
         cost_basis=event.cost_basis.value,
         ceiling_usd=event.ceiling_usd,
         schema_fingerprint=event.schema_fingerprint,
+        input_fingerprint=event.input_fingerprint,
         substituted_from=event.substituted_from,
         fallback_from=event.fallback_from,
         fallback_authorised_by=event.fallback_authorised_by,
@@ -161,6 +163,7 @@ def _event(row: AIUsageEventRow) -> AIUsageEvent:
         cost_basis=CostBasis(row.cost_basis),
         ceiling_usd=row.ceiling_usd,
         schema_fingerprint=row.schema_fingerprint,
+        input_fingerprint=row.input_fingerprint,
         substituted_from=row.substituted_from,
         fallback_from=row.fallback_from,
         fallback_authorised_by=row.fallback_authorised_by,
@@ -252,6 +255,10 @@ class AIUsageRepository:
         """
         self._scope.require(Permission.MANAGE_STUDY_BUDGET)
         actual = float(actual_cost_usd)
+        if not math.isfinite(actual):
+            # NaN passes every comparison below and would make the ledger's
+            # sums non-finite forever: an append-only record cannot be fixed.
+            raise ValueError("a resolved cost must be a finite number")
         if actual < 0 or (not billed and actual != 0):
             raise ValueError("an unbilled call costs nothing; a billed one cannot cost less")
 
