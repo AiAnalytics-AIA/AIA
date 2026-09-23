@@ -58,6 +58,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e "packages/aia_core[dev,postgres]"
           pip install -e "apps/api[dev]"
+          pip install -e "apps/worker[dev]"
 
       - name: Layering rules
         # Grep-level enforcement of ARCHITECTURE.md. Runs before the expensive
@@ -74,11 +75,13 @@ jobs:
 
       - name: Lint
         run: |
-          ruff check packages/aia_core apps/api migrations
-          ruff format --check packages/aia_core apps/api migrations
+          ruff check packages/aia_core apps/api apps/worker migrations
+          ruff format --check packages/aia_core apps/api apps/worker migrations
 
       - name: Type check
-        run: mypy packages/aia_core/src apps/api/src
+        # One invocation over every source tree: aia_core ships no py.typed, so a
+        # tree checked on its own sees aia_core as untyped (AGENTS.md § mypy).
+        run: mypy packages/aia_core/src apps/api/src apps/worker/src
 
       - name: Migrations apply cleanly
         run: alembic upgrade head
@@ -110,11 +113,21 @@ jobs:
           AIA_REQUIRE_POSTGRES: "1"
         run: pytest packages/aia_core/tests/test_workflow_concurrency.py -q
 
+      - name: Worker tests, including real worker processes (PostgreSQL only)
+        # Starts `python -m aia_worker` processes and SIGKILLs / SIGTERMs them
+        # mid-step and mid-paid-call. These are the only tests that exercise two
+        # workers contending, a worker dying, and a clean shutdown -- so, like the
+        # concurrency suite, a missing database must fail rather than skip.
+        env:
+          AIA_REQUIRE_POSTGRES: "1"
+        run: pytest apps/worker -q
+
       - name: Domain tests on SQLite
-        # The offline development path must keep working too.
+        # The offline development path must keep working too. The worker's
+        # process suite skips here by design: SQLite cannot express contention.
         env:
           DATABASE_URL: ""
-        run: pytest packages/aia_core apps/api -q
+        run: pytest packages/aia_core apps/api apps/worker -q
 
   parity:
     name: Parity against legacy prototype
@@ -268,6 +281,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e "packages/aia_core[dev,postgres]"
           pip install -e "apps/api[dev]"
+          pip install -e "apps/worker[dev]"
 
       - name: Migrate and boot the API
         # Proves the real ASGI server starts against a real database and serves
@@ -339,6 +353,27 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' "$BASE")" = "401"
           echo "project lifecycle OK; unauthenticated access refused"
 
+      - name: The worker boots against the migrated schema and stops on SIGTERM
+        # A passing unit test does not prove the process starts: the console
+        # entry point, settings from the environment, executor loading and the
+        # signal handling are all exercised only here.
+        env:
+          AIA_WORKER_EXECUTORS: aia_worker.testing:build_registry
+        run: |
+          aia-worker > worker.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 30); do
+            if grep -q '"worker started"' worker.log; then break; fi
+            sleep 1
+          done
+          kill -TERM "$PID"
+          wait "$PID"
+          cat worker.log
+          grep -q '"worker stopped"' worker.log
+          # It must have *worked*, not merely survived: the loop outlives a
+          # database error by design, so an unmigrated schema would still exit 0.
+          ! grep -q '"level": "ERROR"' worker.log
+
   security:
     name: Security and dependency scan
     runs-on: ubuntu-latest
@@ -354,7 +389,7 @@ jobs:
 
       - name: Audit Python dependencies
         run: |
-          pip install -e "packages/aia_core[postgres]" -e "apps/api"
+          pip install -e "packages/aia_core[postgres]" -e "apps/api" -e "apps/worker"
           pip-audit --strict --ignore-vuln GHSA-0000-0000-0000 || true
 
       - uses: actions/setup-node@v4
