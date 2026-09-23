@@ -94,6 +94,22 @@ forbid "AWS SDK stays behind the storage adapter" \
   "$CORE" \
   storage.py
 
+# --- AI runtime: AIA owns the contract, providers sit underneath ------------
+#
+# ADR 0005 decision A. Model traffic goes through GovernedModelGateway, which
+# owns retry, fallback, budget, egress and provenance; the adapters under it
+# speak to providers through AIA's own transport protocols. A provider SDK or a
+# gateway library imported anywhere else is a second call path that can retry,
+# fall back or substitute a model without the gateway deciding to -- which is
+# exactly what ADR 0005 exists to prevent. No file is exempt today; a live
+# transport built on an SDK will be named here, in model_adapters/, when it lands.
+forbid "provider SDKs and gateway libraries are not imported (ADR 0005)" \
+  '^\s*(from|import)\s+(anthropic|openai|litellm|langchain[a-z_]*|google\.generativeai|mistralai|cohere)\b' \
+  "$CORE"
+forbid "the API does not call providers directly" \
+  '^\s*(from|import)\s+(anthropic|openai|litellm|langchain[a-z_]*|google\.generativeai|mistralai|cohere)\b' \
+  "$API"
+
 # --- Layer 4: the worker executes; it does not serve, and it does not know ---
 #
 # The worker is driven by the engine and drives executors through one protocol

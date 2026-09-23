@@ -105,6 +105,12 @@ from tests.helpers import make_project
 def test_x(project_factory): ...
 ```
 
+**There is no `pytest-asyncio`.** The model gateway is `async`; tests drive it
+with `asyncio.run(gateway.invoke(...))` rather than adding a plugin and a marker.
+To simulate a worker dying mid-call, raise a `BaseException` subclass from the
+adapter: the gateway catches `Exception` (an adapter defect becomes an
+*uncertain* call), and a process death must not be caught by anything.
+
 **A session left open hangs the next fixture's teardown, not the test.** A test
 that claims a step on a session it never closes leaves a connection *idle in
 transaction* holding row locks; the test passes, and the fixture's `DELETE` at
@@ -309,6 +315,27 @@ Convert at the row → domain boundary, never by loosening the domain guard.
 Anything touching the database lives in `infrastructure/`. See
 [ARCHITECTURE.md §3](ARCHITECTURE.md#3-enforcement--make-layer_check).
 
+**A flush is not durable.** Repositories here flush and never commit, which is
+right for a state change and wrong for a record that must survive the process
+dying *during* a side effect. The paid-call dispatch mark is exactly that: if it
+is only flushed when the HTTP request leaves, a worker killed mid-call rolls it
+back, the lapsed lease then looks safe, and the reconciler retries a call that
+may already have been billed.
+
+```python
+# WRONG -- the mark lives in an open transaction while the money leaves
+workflow.mark_paid_call_dispatched(attempt_id)     # flush only
+response = await adapter.send(request)
+
+# RIGHT -- committed before anything is sent (WorkflowCallJournal does this)
+workflow.mark_paid_call_dispatched(attempt_id)
+session.commit()
+response = await adapter.send(request)
+```
+
+`test_ai_usage_ledger.py::test_without_a_committed_dispatch_the_same_crash_is_retried`
+runs the crash both ways.
+
 ## Alembic
 
 Three checks, and each catches something the others do not:
@@ -397,6 +424,26 @@ test "$(curl -s -o /dev/null -w '%{http_code}' "$BASE")" = "401"
 decision. `dependencies.py` is the composition root and the only place that wires
 engine, sessions, identity and scope.
 
+## Pydantic strict mode
+
+**Strict *Python* mode rejects what JSON can express.** `model_validate(data,
+strict=True)` on a dict parsed from JSON refuses `"a"` for an enum field ("Input
+should be an instance of E") and an ISO string for a datetime, because in Python
+mode strict means "already the right type". Strict *JSON* mode accepts those and
+still rejects `"12"` for an integer, which is the strictness actually wanted when
+validating a model's answer or a config file.
+
+```python
+# WRONG -- fails on every enum value in a JSON-shaped document
+Contract.model_validate(json.loads(text), strict=True)
+
+# RIGHT -- strict about types, fluent in JSON
+Contract.model_validate_json(text, strict=True)
+```
+
+The model gateway, the tool registry and `parse_model_config` all validate this
+way; a dict is re-serialised with `canonical_json` first.
+
 ## Pydantic settings
 
 **Invalid production configuration fails at startup, not at first use.**
@@ -412,6 +459,35 @@ raise RuntimeError("invalid production configuration: " + "; ".join(problems))
 
 An empty `cors_origins` means same-origin only, which is the correct default.
 **Never `*`.**
+
+## GitHub Actions
+
+**A `workflow_run` or `workflow_dispatch` workflow exists only on the default
+branch.** GitHub registers those two triggers from the workflow files on the
+default branch (`main` here) and nowhere else. A workflow that lives only on
+`develop` is not listed under *Actions*, never fires when CI completes, and has
+no *Run workflow* button — with no error anywhere. `push` and `pull_request`
+triggers behave differently: they run the file from the pushed branch, which is
+why `ci.yml` ran on `develop` while `deploy-develop.yml`, beside it, did not.
+
+```
+# WRONG -- merged to develop only; CI went green there and nothing deployed
+.github/workflows/deploy-develop.yml   on: workflow_run: {workflows: [CI], branches: [develop]}
+
+# RIGHT -- the same file also on main (a release PR develop -> main, or a chore
+# PR carrying only that file); GitHub then runs main's copy when CI on develop
+# completes, and checks out the develop SHA it names
+```
+
+Two consequences to carry:
+
+- The copy that runs is **`main`'s**. An edit to the deploy workflow merged to
+  `develop` takes effect only when it reaches `main`; until then the old copy
+  deploys the new code. Release the workflow change before relying on it.
+- Verify a registration, do not assume it:
+  `GET /repos/<owner>/<repo>/actions/workflows` lists what GitHub will run; a
+  file missing from that list will not fire. OI-37 records the first time this
+  was learned here.
 
 ## CI contracts
 

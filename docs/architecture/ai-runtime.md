@@ -1,19 +1,50 @@
 # AI runtime
 
-**Status: policy implemented, transport not.**
+**Status: the contract is implemented; live transport is not.**
 
 | Piece | State |
 | --- | --- |
-| Provider policy, budget rules, failure taxonomy (`aia_core.domain.providers`) | Implemented, parity-verified |
+| Provider policy, budget rules, failure taxonomy (`aia_core.domain.providers`, `workflow`) | Implemented, parity-verified |
 | Budget reservations and enforcement (`workflow_repository`) | Implemented, tested under contention |
 | EU residency and the fail-closed egress boundary (`aia_core.domain.residency`) | Implemented, tested |
-| `ModelGateway` contract | **Accepted** as a decision ([ADR 0005](adr/0005-llm-gateway.md) A); not built |
-| Provider adapters / transport | Not built — Phase 4. No vendor selected |
-| Generalized metered-cost ledger | **Not built.** See *Cost accounting* below |
-| First approved route | **Proposed**: `bedrock-eu-primary`, Amazon Bedrock in the EU geography, Class C only ([ADR 0010](adr/0010-bedrock-eu-inference-route.md)). Not declared in code until the gateway and its adapter land; the develop host's instance role may already invoke exactly one pinned EU model |
+| Capabilities, catalog, `ModelPolicy`, `ModelRegistry` (`domain/ai_models.py`) | **Implemented** — fail-closed resolution and config parsing |
+| Call contract: `AgentDefinition`, `ModelRequest`, `ModelResult`, `AIUsageEvent`, the ten-way `ProviderErrorKind`, structured-output validation (`domain/ai_contracts.py`) | **Implemented** |
+| `ModelGateway` contract and the step-executor seam (`domain/ai_execution.py`) | **Implemented** — see [ai-step-executor-contract.md](ai-step-executor-contract.md) |
+| `ToolRegistry` (`domain/ai_tools.py`) | **Implemented** — scope never from arguments |
+| `GovernedModelGateway` (`application/model_gateway.py`) | **Implemented** — the one implementation of the semantics |
+| Adapters: Anthropic Messages, OpenAI Chat Completions, Claude Code CLI (`infrastructure/model_adapters/`) | **Implemented against recorded exchanges.** No live transport; no call has been made |
+| AI usage ledger `ai_usage_events` + `AIUsageRepository` + `WorkflowCallJournal` | **Implemented** — append-only, compensating entries |
+| Live HTTP / CLI transports, credential store | **Not built.** Needs an approved route (ADR 0008; [ADR 0010](adr/0010-bedrock-eu-inference-route.md) proposes the first) and a transport decision |
+| First approved route | **Proposed**: `bedrock-eu-primary`, Amazon Bedrock in the EU geography, Class C only ([ADR 0010](adr/0010-bedrock-eu-inference-route.md)). No adapter is bound to it yet, so nothing can leave over it; the develop host's instance role may already invoke exactly one pinned EU model |
+| Generalized metered-cost ledger for non-model tools | **Not built.** See *Cost accounting* |
+| Research prompts and agents | **Not built**, deliberately (research-engine) |
 
-Nothing here calls a model yet. The rules a call will have to obey exist and are
-tested; the code that makes the call does not.
+The rules a call must obey are enforced by code that has been exercised end to
+end — gateway, adapter, recorded exchange, ledger, workflow attempt — but never
+against a live provider.
+
+## The call path
+
+```
+domain code ──ModelRequest──▶ GovernedModelGateway.invoke(request, ExecutionContext)
+                                 1 resolve   ModelRegistry: capability → (provider, model, route)
+                                 2 egress    EgressPolicy.authorise(issued scope, data class, route)
+                                 3 budget    ceiling + committed ≤ reservation   (metered only)
+                                 4 journal   DISPATCHED entry, committed         (before sending)
+                                 5 send      the ProviderAdapter bound to that route → transport
+                                 6 validate  Pydantic strict JSON; ≤1 same-model repair
+                                 7 ledger    terminal entry: SUCCEEDED / FAILED / UNCERTAIN
+                                 8 fallback  only if explicitly authorised, outcome known
+```
+
+Adapters are bound **per route**, not per provider: the same provider over two
+routes (region, account, credential, transport) is two residency answers, and a
+call authorised for one route cannot leave over the other's adapter.
+
+Each step is a refusal point, and none offers an alternative: there is no
+`suggested_model`, `suggested_route` or `suggested_provider` anywhere in the
+failure types. The tests that pin each refusal are in
+`packages/aia_core/tests/test_model_gateway.py`.
 
 ## The governing rule
 
@@ -40,6 +71,15 @@ The rule is enforced in code by three mechanisms:
 3. Every switch is written to `project_provider_events` with
    `explicit_user_action`. A switch with that flag false and a cost attached is a
    queryable bug.
+4. `GovernedModelGateway` falls back only under a `FallbackPolicy` that names its
+   alternates, the failure kinds it covers and **who authorised it**; it cannot
+   cover authentication, permission, missing-configuration or schema failures;
+   it never runs while a failed call's billing is uncertain; and every alternate
+   must be a binding the model policy already permits. The default policy is no
+   fallback. `test_model_gateway.py::test_no_fallback_without_an_explicit_policy`.
+5. The Claude Code adapter strips `ANTHROPIC_API_KEY` and the other credential
+   overrides from the CLI's environment, because with a key present the CLI bills
+   the metered API instead of the subscription.
 
 ## Providers
 
@@ -113,9 +153,18 @@ with corrections written as **compensating entries** rather than by mutating
 history — an accounting record that can be edited after the fact cannot be
 reconciled against an invoice.
 
-Today's reservations cover the model-call case at study granularity. Everything
-beyond that is outstanding, and this section exists so the gap is not quietly
-closed by optimistic prose elsewhere.
+**Model calls now have that ledger.** `ai_usage_events` is append-only, carries
+`Client → Study → Run → Step → Attempt → Agent → Call` attribution, and corrects
+by compensating entry (`resolve_uncertain`). The database refuses a negative
+cost that is not a compensation. It is authoritative for model-call cost, per
+ADR 0006.
+
+Still outstanding: the same for **non-model** metered tools (research, search,
+retrieval, paid datasets). `ToolRegistry` refuses to register a tool with an
+external paid effect until that exists, rather than letting one run uncounted.
+Also outstanding: reconciling a resolved uncertain call back into
+`Study.spent_usd`, which still carries the `SETTLED_UNCERTAIN` reservation
+amount (OI-36), and the reference's per-run hard cap (`budget_guard.py`, R10).
 
 ## Residency and egress
 
@@ -135,21 +184,60 @@ from `ai_router.classify_provider_exception`:
 
 | Class | Retryable | Handling |
 | --- | --- | --- |
-| `QUOTA` | Not a retry | Park in `WAITING_PROVIDER`, reset the retry counter, schedule a one-time resume at the reset time |
+| `QUOTA` | Not a retry | Park in `WAITING_PROVIDER` (the reference's `WAITING_CREDITS`), reset the retry counter, schedule a one-time resume at the reset time when the provider gave a plausible one |
 | `TRANSPORT` | Yes | Backoff and retry |
-| `PROVIDER_CAPACITY` | Yes, later | Park in `WAITING_CAPACITY` — a **separate** state from the quota park, because it clears by itself with no reset instant |
+| `PROVIDER_CAPACITY` | Yes, later | Park in `WAITING_CAPACITY` — a **separate** state from the quota park, because it clears by itself with no reset instant. The reference retried 5 s → 15 s → 45 s inside the call; that is **not** ported (ADR 0005 condition 1 forbids unrecorded retries) and the backoff is the scheduler's |
 | `AUTHENTICATION`, `PERMISSION`, `MISSING` | **No** | Terminal. Retrying hides a misconfiguration and burns quota |
 | `SCHEMA` | Once | Structured-output contract violation; one repair attempt, then fail |
-| `MODEL` | Substitute | A retired model id is replaced with a visible equivalent and recorded |
+| `MODEL` | No | Terminal. Retirement substitution happens at resolution, from the versioned policy — see *Model defaults* |
 | `SDK_OUTDATED`, `MAX_TURNS`, `OTHER` | No | Terminal with a specific operator message |
 
 Treating quota as a retry rather than a park is the single easiest way to break
 this system: it would consume `max_attempts` and fail a project that was merely
 waiting.
 
+The adapters' mappings are tabulated in each adapter's module docstring and
+pinned by one recorded exchange per row in
+`packages/aia_core/tests/fixtures/model_adapters/`. Two mappings are judgement
+calls worth knowing: an out-of-credit response (Anthropic's "credit balance is
+too low", OpenAI's `insufficient_quota`) is `QUOTA` with **no** reset instant,
+because somebody has to add credit; and a `200` whose body cannot be read is
+`OTHER` with delivery `UNKNOWN`, because the provider processed something and may
+have billed it.
+
+### Delivery, and the uncertain call
+
+Every adapter failure states a `Delivery`: `NOT_SENT`, `RESPONDED` or `UNKNOWN`.
+Only `UNKNOWN` leaves a billing question open, and for a metered call it becomes
+an `UNCERTAIN` ledger entry carried at the call's ceiling, an attempt left
+`paid_call_dispatched` and not `paid_call_outcome_known`, and therefore
+`RECOVERY_REQUIRED` with the reservation `SETTLED_UNCERTAIN`. An authorised
+fallback does **not** run after an uncertain failure: the first call may already
+have done the work.
+
+If the worker dies instead, the committed `DISPATCHED` entry is what remains.
+`AIUsageRepository.uncertain_calls()` lists both kinds; a person holding
+`MANAGE_STUDY_BUDGET` closes one with `resolve_uncertain`, which appends a
+`COMPENSATION` entry of `actual − recorded exposure`. The provider-side handle is
+the provider request id where a response carried one, and AIA's `call_id` —
+sent as `X-Client-Request-Id` where the provider accepts a client id.
+
 ## Structured output
 
-Domain code never imports a provider SDK. It calls a gateway that normalises:
+**Implemented.** An agent's output contract is a Pydantic model that must forbid
+undeclared fields at every level. Its JSON Schema is what the provider sees;
+Pydantic in strict JSON mode is what accepts or rejects the answer. A violation
+gets one repair call on the same model (versioned `schema-repair-v1`, recorded as
+its own ledger entry and budget-checked like any call), then `SCHEMA_VIOLATION`.
+Truncated structured output is a violation. Strict mode is used only when the
+contract is strict-compatible unchanged; otherwise the schema is sent non-strict
+rather than rewritten, as the reference router did.
+
+JSON extraction from text is deliberately narrow: a bare object, or one fenced
+block holding one. Prose around JSON is a violation, not something to dig out.
+
+Domain code never imports a provider SDK (`make layer_check` enforces it). It
+calls a gateway that normalises:
 
 - structured requests against a JSON schema, with the schema strictified where
   the provider supports strict mode
@@ -161,18 +249,30 @@ Domain code never imports a provider SDK. It calls a gateway that normalises:
 - error classification
 - provenance metadata returned alongside the result
 
-The prototype's `ai_router.py` already does all of this well, including
-substituting retired model ids against what an account can actually see. Phase 4
-should port it behind an interface rather than rewrite it.
+Model selection is by `ModelCapability` (ADR 0005), not by the legacy
+`ModelRole` slots, which remain for the project settings that still name them.
 
 ## Model defaults
 
-Defaults follow Anthropic's current lineup and are validated against the models
-an account can actually see; a retired id is substituted automatically and the
-substitution is recorded. Pin an id in configuration when a reproducible run is
-required.
+There are none in code. The catalog, prices and policies are a configuration
+document parsed by `parse_model_config`, which fails closed: an unknown provider
+spelling, a numeric string, an empty allow-list or a metered model without
+pricing is an error, never a default. (The reference's edition loader reverted a
+malformed file to "all providers on".)
+
+**Retirement is declared, not discovered.** The reference replaced a retired id
+with a visible equivalent after listing the account's models. Here a policy
+declares `retired → replacement` per provider; a pinned retired id resolves to
+its replacement and the resolution, the result's provenance and every ledger
+entry record `substituted_from`. A live listing never changes what runs.
 
 ## Provenance recorded per call
+
+Every call writes `AIUsageEvent`s (`ai_usage_events`) carrying the fields below
+plus agent id/version, policy version, route, data class, residency zone,
+schema fingerprint, `input_fingerprint` (a hash of exactly what that call sent, so a
+primary call and its repair are distinguishable), `served_model` (what the provider says ran),
+`substituted_from`, and `fallback_from` / `fallback_authorised_by`.
 
 | Field | Why |
 | --- | --- |

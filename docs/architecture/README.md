@@ -14,6 +14,7 @@ is shaped that way. The companion documents go deeper:
 | [population.md](population.md) | Population consumer contract: binding, field policy, joint claims |
 | [workflows.md](workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](ai-runtime.md) | Provider abstraction, provenance, budgets, failure behaviour |
+| [ai-step-executor-contract.md](ai-step-executor-contract.md) | The contract between the model gateway and the step executor |
 | [artifacts.md](artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](scope-and-authorization.md) | Who may touch which client's work, and approval policy |
 | [security.md](security.md) | Threat model and security architecture |

@@ -1,0 +1,29 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "401 invalid key.",
+  "structured": false,
+  "response": {
+    "status": 401,
+    "headers": {
+      "request-id": "req_011CTestError"
+    },
+    "body": {
+      "type": "error",
+      "error": {
+        "type": "authentication_error",
+        "message": "invalid x-api-key"
+      },
+      "request_id": "req_011CTestError"
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "AUTHENTICATION",
+      "delivery": "RESPONDED",
+      "provider_request_id": "req_011CTestError",
+      "retry_after": null,
+      "http_status": 401,
+      "provider_error_type": "authentication_error"
+    }
+  }
+}

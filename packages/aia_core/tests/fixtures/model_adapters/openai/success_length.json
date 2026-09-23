@@ -1,0 +1,51 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Stopped at the token limit.",
+  "structured": false,
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-request-id": "req_openai_ok"
+    },
+    "body": {
+      "id": "chatcmpl-Test",
+      "object": "chat.completion",
+      "created": 1790000000,
+      "model": "extraction-small-2026-08-01",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Nedokonč",
+            "refusal": null
+          },
+          "finish_reason": "length"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 30,
+        "completion_tokens": 16,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": {
+      "text": "Nedokonč",
+      "structured": null,
+      "finish_reason": "TRUNCATED",
+      "usage": {
+        "input_tokens": 30,
+        "output_tokens": 16,
+        "cache_read_input_tokens": 0,
+        "cache_write_input_tokens": null
+      },
+      "provider_request_id": "req_openai_ok",
+      "served_model": "extraction-small-2026-08-01",
+      "reported_cost_usd": null
+    }
+  }
+}

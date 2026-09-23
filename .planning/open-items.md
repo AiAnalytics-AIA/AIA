@@ -127,6 +127,15 @@ studies (`apps/api/src/aia_api/routers/scope.py:236 @ df294e2`).
 **Status.** Closed. Re-run the sweep when the AI runtime lands — scoring and
 budget code is exactly where this bug is expensive.
 
+**Re-run 2026-09-22, AI runtime change set.** 4 new hits, all cleared: an empty
+ledger SUM is genuinely zero (`ai_usage_repository.py` `total_cost_usd`); unreported
+cache counts are zero only because adapters leave every unattributed token in the
+full-rate `input_tokens` (`application/model_gateway.py` `_price`, commented); the
+ceiling's `cache_write_usd_per_mtok or 0.0` sits inside a `max` with the input rate
+(`domain/ai_models.py` `ceiling_usd`). The companion A7 sweep found one real defect,
+fixed in the same change: `parse_duration_seconds("inf")` / `"nan"` crashed the
+retry-after computation (`test_model_adapters.py::test_duration_parsing_consumes_the_whole_value`).
+
 ---
 
 ## OI-5 · Finding · `make deps` installs into the system interpreter, not the venv
@@ -1040,3 +1049,81 @@ session minted by the API after verifying the id token once (a `POST
 token at all. The `IdentityProvider` seam is unchanged by that move.
 
 **Status.** Open by decision. Trigger: the production environment.
+
+---
+
+## OI-36 · Finding · Resolving an uncertain call corrects the ledger but not the study's spend
+
+**Claim.** `AIUsageRepository.resolve_uncertain` appends the compensating ledger
+entry, but `Study.spent_usd` keeps the full `SETTLED_UNCERTAIN` reservation
+amount that `_settle_uncertain` charged, so the two disagree until something
+reconciles the reservation -- and nothing does yet.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/ai_usage_repository.py:233`
+(`resolve_uncertain`) and
+`packages/aia_core/src/aia_core/infrastructure/workflow_repository.py:748`
+(`_settle_uncertain`) @ this change.
+
+**Reproduction.** Run
+`test_ai_usage_ledger.py::test_worker_killed_mid_call_parks_for_a_person_and_the_ledger_can_find_it`
+and, after the resolution, compare `attempt.usage.total_cost_usd()` (0.00027)
+with `attempt.workflow.budget_position()["spent_usd"]` (1.0, the reservation).
+
+**Consequence.** After an operator resolves an uncertain call as cheap or unbilled,
+the study still shows the reservation as spent, so its budget headroom stays
+understated until corrected by hand. The error is in the safe direction --
+over-stated spend, never under-stated -- which is why it is filed rather than
+patched across the ownership boundary.
+
+**Smallest fix.** A `WorkflowRepository` method, owned by platform-runtime, that
+takes a resolved call's compensation and writes a compensating adjustment to the
+`SETTLED_UNCERTAIN` reservation and `spent_usd` (atomic, as `_charge_study` is).
+The AI side already exposes everything it needs: the resolution entry carries
+`reservation_id`, `attempt_id` and the compensation amount.
+
+**Test that would catch it.** The reproduction above, asserting the two figures
+agree after resolution.
+
+**Status.** Open. Owner **platform-runtime**. Listed as ask 3 in
+`docs/architecture/ai-step-executor-contract.md`.
+
+---
+
+## OI-37 · Finding · The deploy workflow cannot fire until it is on `main`
+
+**Claim.** `deploy-develop.yml` is on `develop` only; GitHub registers
+`workflow_run` and `workflow_dispatch` triggers from the default branch alone,
+so the first CI-green head of `develop` was never deployed and no manual
+rollback dispatch is offered.
+
+**Anchor.** `.github/workflows/deploy-develop.yml:13-18 @ 262a6dd` (the `on:`
+block); `git ls-tree origin/main .github/workflows/` lists `ci.yml` only @ `676bc1f`.
+
+**Reproduction.** CI run 35836518940 on `develop` @ `262a6dd` completed
+`success` at 2026-09-23 08:24:55 UTC; seventeen minutes later
+`GET /repos/AiAnalytics-AIA/AIA/actions/workflows` listed one workflow (`CI`) and
+`GET …/actions/workflows/deploy-develop.yml/runs` returned 404. Same check, one
+command: `gh api repos/AiAnalytics-AIA/AIA/actions/workflows --jq '.workflows[].path'`.
+
+**Consequence.** The chain `develop → CI → deploy` that the plan calls done stops
+after CI, silently: no run, no failure, no *Run workflow* button. The human
+actions in `infra/develop/README.md` would have been completed against a
+pipeline that could not fire. Nothing was deployed wrongly; nothing was deployed.
+
+**Smallest fix.** Put the file on `main`: a release PR `develop → main` (after
+this change `develop ⊇ main`, so it is the repository's normal release and
+carries PR #29 with it), or a `chore/` PR into `main` carrying only
+`.github/workflows/deploy-develop.yml`. No code change. Recorded as human action
+11 in `infra/develop/README.md`. Standing rule, now in `AGENTS.md` § GitHub
+Actions: edits to that workflow take effect when they reach `main`, not `develop`.
+
+**Test that would catch it.** Not a unit test — a repository-state property. A
+`push`-to-`develop` job that fails when `.github/workflows/deploy-develop.yml`
+differs from `main`'s copy (`git diff --quiet origin/main -- .github/workflows/deploy-develop.yml`)
+would have turned the first green `develop` head red with the reason. It also
+fails, correctly, for the window between merging a workflow change to `develop`
+and releasing it; whether that noise is wanted is a human decision, so it is
+proposed here and not added.
+
+**Status.** Open. Blocks the first automatic deployment. Owner: the person doing
+the human actions; the fix is one merge.

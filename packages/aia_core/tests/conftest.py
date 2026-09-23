@@ -388,6 +388,124 @@ def scope_builder() -> Any:
     return build_scope_fixture
 
 
+# --------------------------------------------------------------------------- #
+# AI runtime configuration
+#
+# One model catalog and one policy, shared by the registry, gateway and adapter
+# tests. Model ids are deliberately fixture names rather than real product ids:
+# no provider or model is selected by these tests (ADR 0005, ADR 0008), and a
+# real id here would read as one.
+# --------------------------------------------------------------------------- #
+
+
+def _model_config_document() -> dict[str, Any]:
+    return {
+        "models": [
+            {
+                "provider": "anthropic",
+                "model": "reasoning-large",
+                "capabilities": ["RESEARCH_REASONING", "REPORT_WRITING", "CRITIC"],
+                "max_output_tokens": 8192,
+                "context_window_tokens": 200000,
+                "pricing": {
+                    "input_usd_per_mtok": 3.0,
+                    "output_usd_per_mtok": 15.0,
+                    "cache_read_usd_per_mtok": 0.3,
+                    "cache_write_usd_per_mtok": 3.75,
+                },
+            },
+            {
+                "provider": "anthropic",
+                "model": "reasoning-large-v2",
+                "capabilities": ["RESEARCH_REASONING", "REPORT_WRITING", "CRITIC"],
+                "max_output_tokens": 8192,
+                "context_window_tokens": 200000,
+                "pricing": {"input_usd_per_mtok": 3.0, "output_usd_per_mtok": 15.0},
+            },
+            {
+                "provider": "openai",
+                "model": "extraction-small",
+                "capabilities": ["FAST_EXTRACTION", "CRITIC"],
+                "max_output_tokens": 4096,
+                "context_window_tokens": 128000,
+                "pricing": {
+                    "input_usd_per_mtok": 0.15,
+                    "output_usd_per_mtok": 0.6,
+                    "cache_read_usd_per_mtok": 0.075,
+                },
+                "supports_strict_schema": True,
+            },
+            {
+                "provider": "claude_code_subscription",
+                "model": "subscription-default",
+                "capabilities": ["RESEARCH_REASONING", "FAST_EXTRACTION"],
+                "max_output_tokens": 8192,
+                "context_window_tokens": 200000,
+            },
+        ],
+        "policies": [
+            {
+                "version": "policy-test-v1",
+                "allowed_providers": ["anthropic", "openai", "claude_code_subscription"],
+                "bindings": {
+                    "RESEARCH_REASONING": {
+                        "provider": "anthropic",
+                        "model": "reasoning-large-v2",
+                        "route_id": "anthropic-direct",
+                    },
+                    "FAST_EXTRACTION": {
+                        "provider": "openai",
+                        "model": "extraction-small",
+                        "route_id": "openai-direct",
+                    },
+                    "CRITIC": {
+                        "provider": "openai",
+                        "model": "extraction-small",
+                        "route_id": "openai-direct",
+                    },
+                },
+                "permitted": {
+                    "RESEARCH_REASONING": [
+                        {
+                            "provider": "claude_code_subscription",
+                            "model": "subscription-default",
+                            "route_id": "claude-code-cli",
+                        }
+                    ],
+                    "CRITIC": [
+                        {
+                            "provider": "anthropic",
+                            "model": "reasoning-large-v2",
+                            "route_id": "anthropic-direct",
+                        }
+                    ],
+                },
+                "retirements": [
+                    {
+                        "provider": "anthropic",
+                        "retired": "reasoning-large",
+                        "replacement": "reasoning-large-v2",
+                    }
+                ],
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def model_config_document() -> dict[str, Any]:
+    """A valid model catalog + policy document. A fresh copy per test."""
+    return _model_config_document()
+
+
+@pytest.fixture
+def model_registry(model_config_document: dict[str, Any]) -> Any:
+    """A :class:`ModelRegistry` built from :func:`model_config_document`."""
+    from aia_core.domain.ai_models import parse_model_config
+
+    return parse_model_config(model_config_document)
+
+
 # --- Evidence governance ------------------------------------------------------
 #
 # The real field dictionary is reference material and is not vendored (see

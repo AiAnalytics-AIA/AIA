@@ -1,0 +1,24 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "200 with no choices: may have been billed, so uncertain.",
+  "structured": false,
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-request-id": "req_openai_garbled"
+    },
+    "body": {
+      "id": "chatcmpl-x",
+      "choices": []
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "OTHER",
+      "delivery": "UNKNOWN",
+      "provider_request_id": "req_openai_garbled",
+      "retry_after": null,
+      "http_status": 200
+    }
+  }
+}

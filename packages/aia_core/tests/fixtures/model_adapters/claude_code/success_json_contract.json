@@ -1,0 +1,26 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "Structured answer as JSON text under the appended contract.",
+  "structured": true,
+  "cli": {
+    "exit_code": 0,
+    "stdout": "{\"type\": \"result\", \"subtype\": \"success\", \"is_error\": false, \"duration_ms\": 2100, \"num_turns\": 1, \"result\": \"{\\\"verdict\\\":\\\"fine\\\",\\\"score\\\":7}\", \"session_id\": \"3f2a-session\", \"total_cost_usd\": 0.0123, \"usage\": {\"input_tokens\": 12, \"output_tokens\": 40, \"cache_read_input_tokens\": 3000, \"cache_creation_input_tokens\": 0}}",
+    "stderr": ""
+  },
+  "expect": {
+    "ok": {
+      "text": "{\"verdict\":\"fine\",\"score\":7}",
+      "structured": null,
+      "finish_reason": "COMPLETED",
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 40,
+        "cache_read_input_tokens": 3000,
+        "cache_write_input_tokens": 0
+      },
+      "provider_request_id": "3f2a-session",
+      "served_model": "",
+      "reported_cost_usd": 0.0123
+    }
+  }
+}

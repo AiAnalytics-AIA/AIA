@@ -1,0 +1,19 @@
+{
+  "provenance": "Hand-authored from the provider's published API reference; not captured from a live call. Replace with a live capture when a route is approved (ADR 0008).",
+  "description": "The installed CLI does not know a flag this adapter passes.",
+  "structured": false,
+  "cli": {
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "error: unknown option '--system-prompt'"
+  },
+  "expect": {
+    "error": {
+      "kind": "SDK_OUTDATED",
+      "delivery": "RESPONDED",
+      "provider_request_id": null,
+      "retry_after": null,
+      "http_status": null
+    }
+  }
+}

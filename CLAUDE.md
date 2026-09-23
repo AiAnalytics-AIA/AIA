@@ -68,6 +68,11 @@ apps/
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
+    ai_models.py            ModelCapability, catalog, ModelPolicy, ModelRegistry (fails closed)
+    ai_contracts.py         ModelRequest/Result, AIUsageEvent, 10-way error taxonomy,
+                            structured-output validation, AgentDefinition, FallbackPolicy
+    ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
+    ai_tools.py             ToolRegistry — scope never from model arguments
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
                             contract + validation, weights, bindings, RuntimePopulation
@@ -77,6 +82,7 @@ packages/aia_core/src/aia_core/
       authority.py          Population-operator capability (establish / promote)
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics
+    residency.py            EU residency, data classes, the fail-closed egress boundary
     scope.py                Organization/Client/Study vocabulary, roles, permissions
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
@@ -102,6 +108,7 @@ packages/aia_core/src/aia_core/
                             reference constants, reject-not-clip validation,
                             inoculation, scenarios, variants, frozen results
   application/
+    model_gateway.py        GovernedModelGateway — the ONLY model call path (ADR 0005)
     scope.py                ScopeResolver — the ONLY issuer of a scope context,
                             including a worker's, issued only against a held lease
     population.py           PopulationRuntime — the ONLY loader of population data
@@ -121,6 +128,9 @@ packages/aia_core/src/aia_core/
     population_repository.py  Population registry: versions, populations, history
     population_parser.py    Text-preserving panel + dictionary parser (stdlib)
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
+    ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
+    ai_call_journal.py      CallJournal over the workflow attempt + ledger
+    model_adapters/         Anthropic / OpenAI / Claude Code adapters, transports, recorded doubles
     storage.py              ArtifactStore: S3 / filesystem / memory
     storage_settings.py     AIA_STORAGE_*: one typed definition for every composition root
     build_identity.py       AIA_BUILD_SHA: the commit a process runs; null, never a guess
@@ -129,7 +139,7 @@ migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
-docs/architecture/          System design + 7 ADRs
+docs/architecture/          System design + 10 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
@@ -151,6 +161,11 @@ with S3, Cognito, ECR, SSM and Bedrock used for real
 production compute is undecided (ECS Fargate expected, with RDS). Terraform,
 GitHub Actions with OIDC. No Kubernetes, no Redis, no SQS
 ([ADR 0002](docs/architecture/adr/0002-postgresql-authoritative-store.md)).
+
+**Model calls.** Nothing calls a provider except through
+`GovernedModelGateway.invoke`; `make layer_check` forbids a provider SDK or gateway
+library anywhere in the core or API. Domain code names a `ModelCapability` and a
+`DataClass`, never a model.
 
 **Routes.** Every project route is study-scoped:
 `/api/v1/studies/{study_id}/projects/…`. A project route outside a study prefix
