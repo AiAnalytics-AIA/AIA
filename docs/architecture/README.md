@@ -18,6 +18,7 @@ is shaped that way. The companion documents go deeper:
 | [artifacts.md](artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](scope-and-authorization.md) | Who may touch which client's work, and approval policy |
 | [security.md](security.md) | Threat model and security architecture |
+| [simulation-deterministic-engine.md](simulation-deterministic-engine.md) | Simulation core: model-generated vs deterministic boundary, ported constants, intentional differences, parity status |
 | [adr/](adr/) | Decision records, with a list of what is deliberately still open |
 | [boards-v2.2-content-spec.md](boards-v2.2-content-spec.md) | What the visual architecture boards must assert, and must not |
 

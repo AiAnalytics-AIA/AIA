@@ -131,7 +131,7 @@ own. Filed so nothing is assumed:
 3. **Settling an uncertain reservation from a ledger resolution.**
    `AIUsageRepository.resolve_uncertain` corrects the *ledger*; the study's
    `spent_usd` still carries the `SETTLED_UNCERTAIN` reservation amount.
-   `.planning/open-items.md` OI-32.
+   `.planning/open-items.md` OI-33.
 4. **The commit hook.** `WorkflowCallJournal` commits the session it is given.
    If the claim transaction must stay open across the call, supply a separate
    session for the journal instead; the obligation is durability, not this

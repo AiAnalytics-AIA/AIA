@@ -1,0 +1,180 @@
+{
+  "_about": "Regression golden for the simulation core on the synthetic fixture. Produced by THIS implementation (fs-inoculation-v1, sim-constants-1, sha256-counter-inv-normal-v1). It pins production behaviour against accidental change; it is NOT reference parity. Regenerate only together with a version bump.",
+  "versions": {
+    "constants": "sim-constants-1",
+    "algorithm": "fs-inoculation-v1",
+    "rng": "sha256-counter-inv-normal-v1",
+    "nearest_correlation": "higham2002-dykstra-v1"
+  },
+  "population": {
+    "rows": 300,
+    "seed": 20260922,
+    "sha256": "08e7f2e209275c34b3d4e198a376bfe4df66b899f3820dbe643aa44951d450bd"
+  },
+  "world_model_sha256": "5b06ccbc63944025fc06c7a3e796e65799280dde4c351e49a1d2321b19ce87fb",
+  "spec_seed": 20260816,
+  "tolerance": 1e-09,
+  "correlation_matrix": [
+    [
+      1.0,
+      0.05660652800788786,
+      0.0,
+      -0.4525890050614537,
+      0.0,
+      0.471489033025443
+    ],
+    [
+      0.05660652800788786,
+      1.0,
+      0.0,
+      -0.4827625417525622,
+      0.0,
+      -0.05861673194645732
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -0.20000000000000034,
+      0.0
+    ],
+    [
+      -0.4525890050614537,
+      -0.4827625417525622,
+      0.0,
+      1.0,
+      0.0,
+      0.4973541642569898
+    ],
+    [
+      0.0,
+      0.0,
+      -0.20000000000000034,
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.471489033025443,
+      -0.05861673194645732,
+      0.0,
+      0.4973541642569898,
+      0.0,
+      1.0
+    ]
+  ],
+  "correlation_adjustment": 0.3813316595811587,
+  "world_001": {
+    "world_seed": 20365545,
+    "factor_stats": {
+      "digital_confidence": {
+        "intercept": 0.3217104266423121,
+        "slope": 0.9502262443438915,
+        "residual_scale": 0.40099526307421873,
+        "weighted_mean": 6.1000000000000005,
+        "weighted_sd": 1.8330590367440933
+      },
+      "institutional_trust": {
+        "intercept": -0.362344812644551,
+        "slope": 0.8653846153846155,
+        "residual_scale": 0.714142842854285,
+        "weighted_mean": 4.800000000000388,
+        "weighted_sd": 1.667286406741853
+      },
+      "price_sensitivity": {
+        "intercept": 0.6877708834163059,
+        "slope": 0.8243534482758621,
+        "residual_scale": 0.8619176667747704,
+        "weighted_mean": 6.800000000000095,
+        "weighted_sd": 1.5143875991144047
+      },
+      "privacy_concern": {
+        "intercept": 0.20096708910114103,
+        "slope": 1.0751617720258835,
+        "residual_scale": 0.9178480440908277,
+        "weighted_mean": 5.900000000000457,
+        "weighted_sd": 1.9522913198152962
+      },
+      "civic_engagement": {
+        "intercept": -0.8443365762686881,
+        "slope": 0.8140192198982478,
+        "residual_scale": 0.9477074829902363,
+        "weighted_mean": 3.8999999999991943,
+        "weighted_sd": 1.4294549689432225
+      },
+      "novelty_seeking": {
+        "intercept": -0.15228378851952584,
+        "slope": 0.8928571428571428,
+        "residual_scale": 0.6731054175396336,
+        "weighted_mean": 5.199999999999346,
+        "weighted_sd": 1.7519923480259516
+      }
+    },
+    "first_rows": {
+      "r00000": {
+        "digital_confidence": 3.3476667346366153,
+        "institutional_trust": 4.625243020546563,
+        "price_sensitivity": 4.900387767269624,
+        "privacy_concern": 6.540147314524873,
+        "civic_engagement": 5.993143830424443,
+        "novelty_seeking": 2.4161859683085742
+      },
+      "r00001": {
+        "digital_confidence": 8.526575312974655,
+        "institutional_trust": 5.364828412372915,
+        "price_sensitivity": 4.576489089785477,
+        "privacy_concern": 4.565807251825489,
+        "civic_engagement": 2.430252494610429,
+        "novelty_seeking": 6.832901356481933
+      },
+      "r00002": {
+        "digital_confidence": 4.613170682494442,
+        "institutional_trust": 5.156721949733359,
+        "price_sensitivity": 8.912264281207442,
+        "privacy_concern": 3.915987184049171,
+        "civic_engagement": 5.178993900005751,
+        "novelty_seeking": 2.557401990515693
+      },
+      "r00003": {
+        "digital_confidence": 7.760719372035774,
+        "institutional_trust": 2.44559915931326,
+        "price_sensitivity": 8.703619231353809,
+        "privacy_concern": 7.795352389707198,
+        "civic_engagement": 2.841271860592256,
+        "novelty_seeking": 6.60220604980202
+      },
+      "r00004": {
+        "digital_confidence": 7.3128260030376175,
+        "institutional_trust": 5.7678737200368415,
+        "price_sensitivity": 5.66843744402935,
+        "privacy_concern": 8.51364887317168,
+        "civic_engagement": 3.2987417734483415,
+        "novelty_seeking": 7.564204760001719
+      }
+    },
+    "first_profiles": [
+      "civic_engagement",
+      "digital_confidence",
+      "price_sensitivity",
+      "price_sensitivity",
+      "privacy_concern"
+    ]
+  },
+  "baseline_ensemble_means": {
+    "FS_digital_confidence_10": 6.100000000000168,
+    "FS_institutional_trust_10": 4.800000000000282,
+    "FS_price_sensitivity_10": 6.800000000000085,
+    "FS_privacy_concern_10": 5.900000000000001,
+    "FS_civic_engagement_10": 3.8999999999997885,
+    "FS_novelty_seeking_10": 5.199999999999901
+  },
+  "trust_mean_deltas": {
+    "FS_digital_confidence_10": 0.0,
+    "FS_institutional_trust_10": 0.8124939782114389,
+    "FS_price_sensitivity_10": 0.0,
+    "FS_privacy_concern_10": -0.4287553466495577,
+    "FS_civic_engagement_10": 0.0,
+    "FS_novelty_seeking_10": 0.0
+  }
+}

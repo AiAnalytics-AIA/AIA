@@ -100,8 +100,8 @@ job's summary in CI.
 | `results.registry` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `results.verification` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `runtime.desktop` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
-| `simulation.engine` | A7 simulation-engine | NOT_STARTED | NUMERICAL | `1e-09` | F13 | — | — | no |
-| `simulation.scenarios` | A7 simulation-engine | NOT_STARTED | EXACT | — | — | — | — | no |
+| `simulation.engine` | A7 simulation-engine | PARTIAL | NUMERICAL | `1e-09` | F13 | production_contract x1 | — | no |
+| `simulation.scenarios` | A7 simulation-engine | PARTIAL | EXACT | — | — | production_contract x1 | — | no |
 | `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12 | golden_fixture x7, production_contract x2 | R16 | yes |
 | `sociomapping.study_module` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-12` | F3 | golden_fixture x1 | — | yes |
 | `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
@@ -199,7 +199,7 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | `validation_gate.py` thresholds, `holdout_protocol.py`, `legal_gate.py` | Holdout, legal | Phase 6 | ○ | ○ | **Must fail closed** where the prototype does |
 | `PRODUCT_POLICY.json`, `DATA_CONTRACT_v17.json` | Methodology contract | Phase 6 | ◐ | ◐ | Field dictionary and joint certificate enforced; weights and brand knowledge not yet |
 | `client_report_v2.py`, `output_pack.py` | Reports and exports | Phase 6 | ○ | ○ | |
-| `full_simulation.py`, `scenario_compiler.py` | Simulation | Phase 7 | ○ | ○ | Seeded reproduction required |
+| `full_simulation.py`, `scenario_compiler.py` | Simulation — deterministic core | `domain.simulation` | ◐ | ◐ ⚠ | Seed derivation, bounds, markers, eligibility and write-once truth ported exactly; bound handling is deviation D4; formula bodies production-defined pending F13 ([engine doc](../architecture/simulation-deterministic-engine.md)) |
 | `data_library.py`, `society_insights.py` | Data Library | Phase 8 | ○ | ○ | Approval ordering must hold |
 | `population_context.py`, `donor_fusion.py`, `core_joint.py` | Population | Phase 8 | ○ | ○ | 18,766 × 400 panel |
 | `sociomap.py` (+ `ui_app.html` `*66` terrain, normaliser, object metrics) | Sociomapa core | `aia_core.domain.sociomap` | Done (core) | ◐ | ✅ against golden fixtures F1–F3, F5–F7, F9; F8 partial (OI-14); layout **not** at parity — the legacy Python and R algorithms are refused (OI-13, OI-15) and an AIA algorithm is declared instead. Deviations S1–S6 in `docs/architecture/sociomapa-deterministic-engine.md` §8 |
@@ -263,6 +263,30 @@ allow/deny decision is unchanged, and parity on the decision is still asserted.
 **Why not preserve it:** the figure is surfaced to users and cost dashboards.
 
 **Tests:** `test_negative_cost_records_do_not_inflate_remaining_budget`.
+
+### D4 — invalid world-model output is rejected, not clipped
+
+**Prototype:** `_sanitize_world_model` silently corrects an LLM world model that
+breaks its bounds — it clips means, SDs, confidences, effects and correlations,
+truncates text and driver lists, drops unknown or near-zero drivers, defaults
+missing numbers, strips target-overlap evidence from blind runs, and tops a
+degenerate model up with fallback factors. The run then proceeds as if the model
+had behaved (AIA-reference `simulation-reference-contract.md`).
+
+**Now:** `validate_world_model` rejects every such field and lists all
+violations at once. The bounds themselves are the reference's, unchanged. Each
+difference is one row of `aia_core.domain.simulation.reference.FIELD_POLICY`:
+the legacy mechanism, and production handling `REJECT` — no field is clamped.
+The one bound the reference left ambiguous (minimum factors: 6 in the prompt,
+4 in the schema) is declared as 6, pending decision D10 in `PROGRESS.md`.
+
+**Why not preserve it:** the reference contract names reject as the production
+target. A clip hides a misbehaving model; a silent top-up simulates factors the
+model never proposed.
+
+**Tests:** `test_production_rejects_what_the_reference_corrected` (one case per
+policy row), `test_every_recorded_difference_is_exercised`,
+`test_policy_table_is_reject_only_and_unambiguous`.
 
 ## Deliberate improvements (not behaviour changes)
 

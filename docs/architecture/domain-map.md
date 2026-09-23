@@ -137,9 +137,14 @@ variants, worlds, frozen results, comparison, interpretation. Independent varian
 modelling (never linear interpolation), scenario compilation and approval, the
 scenario truth log.
 
-**Status:** not started (Phase 7). Legacy source: `full_simulation.py`,
-`scenario_compiler.py`, `simulation_batch.py`, `fullsim_learning.py`,
-`simulation_context.py`, `scenario_truth_log.py`.
+**Status:** deterministic core implemented in `aia_core.domain.simulation` —
+world-model validation (reject, never clip), world seeds, correlation projection,
+population inoculation, scenario contracts and approval, variant comparison,
+frozen predictions, write-once truth, scoring. World-model generation, the
+respondent run per world, the learning layer and persistence are not started.
+See [simulation-deterministic-engine.md](simulation-deterministic-engine.md).
+Legacy source: `full_simulation.py`, `scenario_compiler.py`, `simulation_batch.py`,
+`fullsim_learning.py`, `simulation_context.py`, `scenario_truth_log.py`.
 
 ### Population & Audience
 
