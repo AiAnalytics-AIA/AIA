@@ -141,7 +141,7 @@ directory. Every class now has one explicit home:
 | Durable application state (projects, revisions, stages, jobs, events) | PostgreSQL |
 | Uploaded customer data (client datasets, attachments) | Object storage + `datasets` metadata; tenant-scoped, retention-governed |
 | Generated artifacts (evidence, analysis, reports, exports) | Object storage + `project_artifacts` |
-| Ephemeral cache (provider model lists, computed map layouts) | Recomputed on demand; no cache service is deployed, and none is planned until there is measured pressure. Any cache holding client material is itself client-derived and falls under [ADR 0008](adr/0008-eu-data-residency.md) |
+| Ephemeral cache (provider model lists, rendered map imagery — never a layout, which is a fingerprinted `SociomapArtifact`) | Recomputed on demand; no cache service is deployed, and none is planned until there is measured pressure. Any cache holding client material is itself client-derived and falls under [ADR 0008](adr/0008-eu-data-residency.md) |
 | Temporary computation (checkpoints mid-fieldwork) | Worker scratch space, with the durable checkpoint in PostgreSQL |
 | Secrets and configuration | Platform secret manager; environment variables at runtime; never in the repository |
 | Test fixtures and demo data | Repository fixtures and a seeded demo tenant; never mixed with production state |

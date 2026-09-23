@@ -1,6 +1,6 @@
 # Population version + import foundation
 
-**Status:** done, awaiting human review · **Owner:** population-data · **Started:** 2026-09-22
+**Status:** done — merged to `main` in PR #12 (`8da7261`) · **Owner:** population-data · **Started:** 2026-09-22
 
 ## Problem
 
@@ -95,8 +95,15 @@ and speed that the research engine will need a typed columnar view to recover.
 
 ## Review outcome
 
-**Self-review, before human review.** Human review has not happened yet; this
-section records what the author's own verification found and changed.
+**Merged after automated verification; no independent human review comments
+were recorded.** PR #12 was marked ready and merged at `8da7261` with no review
+threads, no review comments and no review approvals on record. The verification
+basis is the CI run on the head commit `260b652` (all six checks green: backend
+lint/types/tests, frontend, API contract, startup smoke, security scan, and the
+advisory parity job, which skips without the prototype) plus the author's local
+evidence below. Nothing here should be read as a reviewer's finding.
+
+What the author's own verification found and changed:
 
 - **SQLite returns naive timestamps.** `DatasetVersion` refused its own rows on
   SQLite only. Fixed at the row boundary with `tables.as_utc`, not by loosening the

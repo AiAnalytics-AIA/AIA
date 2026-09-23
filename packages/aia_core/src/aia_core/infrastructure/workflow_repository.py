@@ -22,7 +22,7 @@ The behavioural contract is
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -31,6 +31,7 @@ from sqlalchemy import CursorResult, func, select, update
 from sqlalchemy.orm import Session
 
 from ..domain.population import (
+    JointState,
     PopulationBinding,
     PopulationBindingConflict,
     PopulationBindingMissing,
@@ -47,7 +48,9 @@ from ..domain.scope import (
     require_approval_independence,
 )
 from ..domain.workflow import (
+    DEFAULT_CAPACITY_BACKOFF_SECONDS,
     DEFAULT_LEASE_SECONDS,
+    DEFAULT_QUOTA_FALLBACK_SECONDS,
     AttemptStatus,
     FailureClass,
     InteractionMode,
@@ -56,7 +59,9 @@ from ..domain.workflow import (
     StepDefinition,
     StepRunStatus,
     WorkflowRunStatus,
+    apply_cancellation,
     decide_recovery,
+    decide_release,
     derive_run_status,
     is_lease_expired,
     lease_deadline,
@@ -64,6 +69,7 @@ from ..domain.workflow import (
     new_reservation_id,
     new_run_id,
     new_step_id,
+    resume_due,
     validate_dag,
 )
 from .tables import (
@@ -84,6 +90,8 @@ from .tables import (
 __all__ = [
     "BudgetExceeded",
     "ClaimedWork",
+    "LeaseLost",
+    "WorkQueue",
     "WorkflowNotFound",
     "WorkflowRepository",
 ]
@@ -102,6 +110,10 @@ def _binding(row: RunPopulationBindingRow) -> PopulationBinding:
         weight_column=row.weight_column,
         view=PopulationView(row.view),
         resolved_at=as_utc(row.resolved_at),
+        dictionary_sha256=row.dictionary_sha256,
+        field_policy_version=row.field_policy_version,
+        companion_set_sha256=row.companion_set_sha256,
+        joint_state=JointState(row.joint_state),
     )
 
 
@@ -116,6 +128,10 @@ def _binding_identity(binding: PopulationBinding | None) -> tuple[str, ...] | No
         binding.weight_role,
         binding.weight_column,
         binding.view.value,
+        binding.dictionary_sha256,
+        binding.field_policy_version,
+        binding.companion_set_sha256,
+        binding.joint_state.value,
     )
 
 
@@ -143,9 +159,35 @@ class BudgetExceeded(RuntimeError):
         self.limit = limit
 
 
+class LeaseLost(RuntimeError):
+    """The caller no longer holds the attempt's lease, so it may write nothing.
+
+    Raised by every lease-fenced write -- complete, fail, abandon, release and
+    per-call metering -- when the attempt has already ended or belongs to another
+    worker. The only correct response is to stop: the attempt was recovered, and
+    another worker may already be running the step. Recording anything would put
+    two outcomes on one step.
+    """
+
+    def __init__(self, attempt_id: str, *, worker_id: str, owner: str | None, status: str) -> None:
+        super().__init__(
+            f"lease on {attempt_id} is not held by {worker_id} (owner {owner}, status {status})"
+        )
+        self.attempt_id = attempt_id
+        self.worker_id = worker_id
+        self.owner = owner
+        self.status = status
+
+
 @dataclass(frozen=True, slots=True)
 class ClaimedWork:
-    """A step and attempt a worker now owns."""
+    """A step and attempt a worker now owns.
+
+    ``worker_id`` is carried so that the lease-fenced calls that follow name the
+    same owner the claim recorded; the scope ids are carried so a worker that
+    claimed across studies can have the matching scope issued
+    (:meth:`aia_core.application.scope.ScopeResolver.execution_context`).
+    """
 
     run_id: str
     step_id: str
@@ -161,6 +203,10 @@ class ClaimedWork:
     payload: dict[str, Any]
     project_id: str
     project_revision: int
+    worker_id: str
+    organization_id: str
+    client_id: str
+    study_id: str
 
 
 class WorkflowRepository:
@@ -178,21 +224,43 @@ class WorkflowRepository:
                 "authorization layer; unscoped access is not permitted"
             )
         self._session = session
-        self._scope = scope
+        self._scope: StudyContext | None = scope
+
+    @classmethod
+    def _across_studies(cls, session: Session) -> WorkflowRepository:
+        """An unscoped instance, for :class:`WorkQueue` in this module only.
+
+        Every query then runs without the study predicate, which is exactly what
+        claiming and reconciling across studies need and exactly what nothing
+        else may have. It is reachable only through ``WorkQueue``, which exposes
+        four operations and no read of research data; any scoped public method
+        called on it raises, because :attr:`scope` refuses.
+        """
+        repo = cls.__new__(cls)
+        repo._session = session
+        repo._scope = None
+        return repo
 
     @property
     def scope(self) -> StudyContext:
         """The authorised scope this repository operates in."""
+        if self._scope is None:
+            raise RuntimeError("this repository is the unscoped work queue and has no study scope")
         return self._scope
 
     # ---------------------------------------------------------------- helpers --
 
     def _scope_filter(self) -> tuple[Any, ...]:
-        """The isolation predicate applied to every run query."""
+        """The isolation predicate applied to every run query.
+
+        Empty only for the work queue's unscoped instance (:meth:`_across_studies`).
+        """
+        if self._scope is None:
+            return ()
         return (
-            WorkflowRunRow.organization_id == self._scope.organization_id,
-            WorkflowRunRow.client_id == self._scope.client_id,
-            WorkflowRunRow.study_id == self._scope.study_id,
+            WorkflowRunRow.organization_id == self.scope.organization_id,
+            WorkflowRunRow.client_id == self.scope.client_id,
+            WorkflowRunRow.study_id == self.scope.study_id,
         )
 
     def _run(self, run_id: str) -> WorkflowRunRow:
@@ -230,6 +298,55 @@ class WorkflowRepository:
         if row is None:
             raise WorkflowNotFound(attempt_id)
         return row
+
+    def _locked_attempt(self, attempt_id: str) -> StepAttemptRow:
+        """Fetch an attempt inside scope, row-locked, with its current values.
+
+        The lock is **blocking**, not ``skip_locked``: a worker finishing an attempt
+        that a reconciler is recovering right now must wait for the reconciler's
+        verdict and then see it, never skip past it. ``populate_existing`` matters
+        as much as the lock -- without it an attempt already in this session's
+        identity map keeps the status it had when first read, and the fence below
+        would check a stale value.
+        """
+        query = (
+            select(StepAttemptRow)
+            .join(StepRunRow, StepRunRow.step_id == StepAttemptRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(StepAttemptRow.attempt_id == attempt_id, *self._scope_filter())
+            .execution_options(populate_existing=True)
+        )
+        if self._is_postgres:
+            query = query.with_for_update(of=StepAttemptRow)
+        row = self._session.scalar(query)
+        if row is None:
+            raise WorkflowNotFound(attempt_id)
+        return row
+
+    @staticmethod
+    def _require_lease(attempt: StepAttemptRow, worker_id: str) -> None:
+        """Raise :class:`LeaseLost` unless ``worker_id`` holds ``attempt``'s lease.
+
+        Ownership is the attempt's status plus its ``worker_id``, read under the
+        row lock. The lease *deadline* is deliberately not consulted: it is the
+        trigger for recovery, not the fence. An attempt whose deadline passed but
+        which no reconciler has recovered yet is still exclusively this worker's
+        -- claiming requires the step to be ``RUNNABLE``, and only recovery, which
+        takes this same lock, makes it so.
+        """
+        if attempt.worker_id != worker_id or not AttemptStatus(attempt.status).holds_lease:
+            raise LeaseLost(
+                attempt.attempt_id,
+                worker_id=worker_id,
+                owner=attempt.worker_id,
+                status=attempt.status,
+            )
+
+    def _held_attempt(self, attempt_id: str, *, worker_id: str) -> StepAttemptRow:
+        """Lock an attempt and return it only while ``worker_id`` holds its lease."""
+        attempt = self._locked_attempt(attempt_id)
+        self._require_lease(attempt, worker_id)
+        return attempt
 
     def _event(
         self,
@@ -293,8 +410,8 @@ class WorkflowRepository:
         refused rather than handed the old run: that would silently substitute
         the recorded population for the one the caller asked for.
         """
-        self._scope.require(Permission.RUN_WORKFLOW)
-        self._scope.require_open_study()
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
 
         existing = self._session.scalar(
             select(WorkflowRunRow).where(
@@ -318,16 +435,16 @@ class WorkflowRepository:
         self._session.add(
             WorkflowRunRow(
                 run_id=run_id,
-                organization_id=self._scope.organization_id,
-                client_id=self._scope.client_id,
-                study_id=self._scope.study_id,
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
                 project_id=project_id,
                 project_revision=int(project_revision),
                 workflow_type=workflow_type,
                 status=WorkflowRunStatus.PENDING.value,
                 priority=int(priority),
                 idempotency_key=idempotency_key,
-                triggered_by=self._scope.actor_id,
+                triggered_by=self.scope.actor_id,
                 metadata_json=metadata or {},
             )
         )
@@ -406,6 +523,10 @@ class WorkflowRepository:
                 weight_column=binding.weight_column,
                 view=binding.view.value,
                 resolved_at=binding.resolved_at,
+                dictionary_sha256=binding.dictionary_sha256,
+                field_policy_version=binding.field_policy_version,
+                companion_set_sha256=binding.companion_set_sha256,
+                joint_state=binding.joint_state.value,
             )
         )
         self._session.flush()
@@ -438,9 +559,52 @@ class WorkflowRepository:
 
     # ------------------------------------------------------------ status logic --
 
+    def _lock_run(self, run_id: str) -> None:
+        """Serialise every step transition in one run on the run's row.
+
+        **Taken before any step row is touched, and held to the end of the
+        transaction.** Everything that derives something from the *set* of a
+        run's steps -- the run's business status, and which blocked steps are now
+        released -- reads the other steps' statuses. Under READ COMMITTED, two
+        transactions finishing two steps of one run each read the other's step as
+        still ``RUNNING``, so neither derived ``COMPLETED`` (and, since the
+        derivation writes only on change, neither wrote anything), and in a
+        diamond neither released the join step: the run read ``RUNNING`` forever
+        with nothing left to run. Holding the run row makes the second
+        transaction wait for the first to commit and then read what it wrote.
+
+        Lock order is attempt → run → steps everywhere, which is also
+        ``request_cancel``'s run → steps, so no two paths can wait on each other
+        in a cycle. Claiming does not take it: a claim only makes a step
+        ``RUNNING``, which no concurrent transition can derive differently, and
+        serialising claims per run is the lock convoy ``_refresh_run`` was
+        rewritten to avoid.
+
+        A no-op on SQLite, whose single writer already serialises everything.
+        """
+        if self._is_postgres:
+            self._session.execute(
+                select(WorkflowRunRow.run_id)
+                .where(WorkflowRunRow.run_id == run_id)
+                .with_for_update()
+            )
+
+    def _lock_run_for(self, step: StepRunRow) -> None:
+        """Lock the step's run, then re-read the step as it now stands.
+
+        The step was read before the lock; a transition that committed while this
+        transaction waited (a cancellation, say) is only visible after a refresh.
+        """
+        self._lock_run(step.run_id)
+        self._session.refresh(step)
+
     def _refresh_run(self, run_id: str) -> WorkflowRunStatus:
         """Recompute a run's business state from its steps."""
-        run = self._session.scalar(select(WorkflowRunRow).where(WorkflowRunRow.run_id == run_id))
+        run = self._session.scalar(
+            select(WorkflowRunRow)
+            .where(WorkflowRunRow.run_id == run_id)
+            .execution_options(populate_existing=True)
+        )
         if run is None:
             raise WorkflowNotFound(run_id)
 
@@ -540,8 +704,14 @@ class WorkflowRepository:
         worker_id: str,
         lease_seconds: int = DEFAULT_LEASE_SECONDS,
         now: datetime | None = None,
+        kinds: Collection[str] | None = None,
     ) -> ClaimedWork | None:
         """Claim one runnable step, creating attempt *n+1*, or return None.
+
+        ``kinds`` restricts the claim to step kinds the caller can execute. A
+        worker that claimed a kind it has no executor for could only fail it, and
+        in a rolling deploy that adds a kind the old workers would do exactly
+        that. ``None`` means any kind; an empty collection claims nothing.
 
         Exclusivity is the whole point. On PostgreSQL this uses
         ``FOR UPDATE SKIP LOCKED``: the row is locked for this transaction, and a
@@ -557,6 +727,8 @@ class WorkflowRepository:
         becomes a resume.
         """
         moment = now or datetime.now(UTC)
+        if kinds is not None and not kinds:
+            return None
 
         candidates = (
             select(StepRunRow)
@@ -580,6 +752,8 @@ class WorkflowRepository:
             .limit(1)
         )
 
+        if kinds is not None:
+            candidates = candidates.where(StepRunRow.kind.in_(sorted(kinds)))
         if self._is_postgres:
             candidates = candidates.with_for_update(skip_locked=True, of=StepRunRow)
 
@@ -666,6 +840,10 @@ class WorkflowRepository:
             payload=dict(step.input_json or {}),
             project_id=run.project_id,
             project_revision=run.project_revision,
+            worker_id=worker_id,
+            organization_id=run.organization_id,
+            client_id=run.client_id,
+            study_id=run.study_id,
         )
 
     def heartbeat(
@@ -676,18 +854,74 @@ class WorkflowRepository:
         Only the lease owner may extend, and only while the attempt is live.
         Otherwise a worker that already lost its lease could keep a step alive and
         two workers would run it.
-        """
-        attempt = self._attempt(attempt_id)
-        if attempt.worker_id != worker_id:
-            return False
-        if not AttemptStatus(attempt.status).holds_lease:
-            return False
 
-        attempt.status = AttemptStatus.EXECUTING.value
-        attempt.heartbeat_at = utcnow()
-        attempt.lease_until = lease_deadline(seconds=lease_seconds)
+        **One conditional statement, never a read followed by a write.** It was a
+        read-check-write, and a reconciler that expired the attempt between the
+        read and the write was silently overwritten: the ORM's update by primary
+        key put the attempt back to ``EXECUTING`` while its step was already
+        ``RUNNABLE`` again, so a second worker claimed it and two workers ran one
+        step. The ``WHERE`` clause below is re-evaluated by the database against
+        the committed row, so an attempt expired a moment ago is refused.
+        """
+        self._attempt(attempt_id)  # scope check: an attempt outside scope is not found
+
+        moment = utcnow()
+        result = cast(
+            CursorResult[Any],
+            self._session.execute(
+                update(StepAttemptRow)
+                .where(
+                    StepAttemptRow.attempt_id == attempt_id,
+                    StepAttemptRow.worker_id == worker_id,
+                    StepAttemptRow.status.in_(
+                        [AttemptStatus.CLAIMED.value, AttemptStatus.EXECUTING.value]
+                    ),
+                )
+                .values(
+                    status=AttemptStatus.EXECUTING.value,
+                    heartbeat_at=moment,
+                    lease_until=lease_deadline(now=moment, seconds=lease_seconds),
+                )
+                .execution_options(synchronize_session="fetch")
+            ),
+        )
         self._session.flush()
-        return True
+        return result.rowcount == 1
+
+    def assert_lease(self, attempt_id: str, *, worker_id: str) -> None:
+        """Raise :class:`LeaseLost` unless ``worker_id`` holds the attempt.
+
+        Takes the attempt's row lock and keeps it until the caller's transaction
+        ends. That is the point: an executor's own writes made in the same
+        transaction commit only if the lease is still held *at commit*, because a
+        reconciler cannot recover a locked attempt (it skips it) until then.
+        """
+        self._held_attempt(attempt_id, worker_id=worker_id)
+
+    def record_progress(
+        self,
+        attempt_id: str,
+        *,
+        worker_id: str,
+        message: str,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
+        """Append a progress event for a live attempt. Lease-fenced.
+
+        Real counts and real transitions only -- "respondent 240 of 300", never a
+        synthesised percentage (``docs/architecture/workflows.md`` § Progress).
+        """
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
+        step = self._step(attempt.step_id)
+        self._event(
+            step.run_id,
+            event_type="STEP_PROGRESS",
+            message=message,
+            payload=payload,
+            step_id=step.step_id,
+            attempt_id=attempt_id,
+        )
+        self._session.flush()
 
     # ------------------------------------------------------- budget and costs --
 
@@ -705,11 +939,15 @@ class WorkflowRepository:
         self,
         *,
         attempt_id: str,
+        worker_id: str,
         amount_usd: float,
         provider: Provider,
         reason: str = "",
     ) -> str | None:
         """Hold budget for a paid call, or raise :class:`BudgetExceeded`.
+
+        Lease-fenced: a worker that no longer holds the attempt cannot reserve
+        against it (:class:`LeaseLost`), so it cannot go on to make the call.
 
         Called **before** dispatch, inside the same transaction as the attempt, so
         a crash cannot leave a call with no reservation behind it.
@@ -731,7 +969,10 @@ class WorkflowRepository:
         if not is_paid(provider):
             return None
 
-        attempt = self._attempt(attempt_id)
+        # Attempt before study: every path that locks both takes them in this
+        # order -- completion and recovery lock the attempt, then charge the
+        # study -- so no two of them can wait on each other in a cycle.
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
         run = self._run(step.run_id)
 
@@ -772,15 +1013,19 @@ class WorkflowRepository:
         return reservation_id
 
     def mark_paid_call_dispatched(
-        self, attempt_id: str, *, provider_request_id: str | None = None
+        self, attempt_id: str, *, worker_id: str, provider_request_id: str | None = None
     ) -> None:
-        """Record that a metered provider call has left the process.
+        """Record that a metered provider call is about to leave the process.
 
-        From this point the attempt cannot be auto-retried until its outcome is
-        known: a lapsed lease becomes ``RECOVERY_REQUIRED`` rather than a retry,
-        because the call may already have been billed.
+        Called, and **committed**, before the call is sent. From this point the
+        attempt cannot be auto-retried until its outcome is known: a lapsed lease
+        becomes ``RECOVERY_REQUIRED`` rather than a retry, because the call may
+        already have been billed.
+
+        Lease-fenced, and this is the fence that matters most: a worker that lost
+        its lease learns it here, *before* it spends the client's money.
         """
-        attempt = self._attempt(attempt_id)
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         attempt.paid_call_dispatched = True
         attempt.paid_call_outcome_known = False
         if provider_request_id:
@@ -791,6 +1036,7 @@ class WorkflowRepository:
         self,
         attempt_id: str,
         *,
+        worker_id: str,
         actual_cost_usd: float = 0.0,
         provider_request_id: str | None = None,
     ) -> None:
@@ -799,12 +1045,65 @@ class WorkflowRepository:
         Once known, the attempt is safe to retry again if it later fails for an
         unrelated reason, because there is no longer an unresolved billing
         question.
+
+        The cost is **added** to the attempt's known spend, which is charged when
+        the attempt ends (:meth:`_close_open_reservations`) -- including when it
+        ends in failure. Prefer :meth:`settle_paid_call`, which charges at once
+        against the call's own reservation.
         """
-        attempt = self._attempt(attempt_id)
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         attempt.paid_call_outcome_known = True
-        attempt.actual_cost_usd = max(0.0, float(actual_cost_usd))
+        attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + max(
+            0.0, float(actual_cost_usd)
+        )
         if provider_request_id:
             attempt.provider_request_id = provider_request_id
+        self._session.flush()
+
+    def settle_paid_call(
+        self,
+        attempt_id: str,
+        *,
+        worker_id: str,
+        reservation_id: str,
+        actual_cost_usd: float,
+        provider_request_id: str | None = None,
+    ) -> None:
+        """Record one metered call's known outcome and charge its real cost.
+
+        The per-call half of accounting transactionality: ``reserve`` →
+        ``mark_paid_call_dispatched`` → send → ``settle_paid_call``, each committed
+        on its own. The reservation is settled at the actual cost *now*, so an
+        attempt that makes several calls and then fails still charges every call
+        that completed, and an attempt that crashes afterwards has nothing left for
+        the uncertain branch to over-charge.
+
+        A call the provider rejected before billing is settled at zero. Settling a
+        reservation twice is a no-op, so retrying after a lost acknowledgement
+        charges once.
+        """
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
+        reservation = self._session.scalar(
+            select(BudgetReservationRow).where(
+                BudgetReservationRow.reservation_id == reservation_id,
+                BudgetReservationRow.attempt_id == attempt_id,
+            )
+        )
+        if reservation is None:
+            raise WorkflowNotFound(reservation_id)
+        attempt.paid_call_outcome_known = True
+        if provider_request_id:
+            attempt.provider_request_id = provider_request_id
+        if reservation.status != ReservationStatus.RESERVED.value:
+            self._session.flush()
+            return
+
+        actual = max(0.0, float(actual_cost_usd))
+        attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + actual
+        reservation.status = ReservationStatus.SETTLED.value
+        reservation.settled_amount_usd = actual
+        reservation.settled_at = utcnow()
+        self._charge_study(reservation.study_id, actual)
         self._session.flush()
 
     def settle_reservation(self, reservation_id: str, *, actual_cost_usd: float) -> None:
@@ -812,7 +1111,7 @@ class WorkflowRepository:
         reservation = self._session.scalar(
             select(BudgetReservationRow).where(
                 BudgetReservationRow.reservation_id == reservation_id,
-                BudgetReservationRow.study_id == self._scope.study_id,
+                BudgetReservationRow.study_id == self.scope.study_id,
             )
         )
         if reservation is None:
@@ -836,7 +1135,7 @@ class WorkflowRepository:
         reservation = self._session.scalar(
             select(BudgetReservationRow).where(
                 BudgetReservationRow.reservation_id == reservation_id,
-                BudgetReservationRow.study_id == self._scope.study_id,
+                BudgetReservationRow.study_id == self.scope.study_id,
             )
         )
         if reservation is None:
@@ -867,16 +1166,91 @@ class WorkflowRepository:
 
         exposure = 0.0
         for reservation in reservations:
-            exposure += float(reservation.amount_usd or 0.0)
+            amount = float(reservation.amount_usd or 0.0)
+            exposure += amount
             reservation.status = ReservationStatus.SETTLED_UNCERTAIN.value
-            reservation.settled_amount_usd = float(reservation.amount_usd or 0.0)
+            reservation.settled_amount_usd = amount
             reservation.settled_at = utcnow()
             reservation.reason = "paid_external_call_side_effect_uncertain"
+            # The reservation's own study, not this repository's: the cross-study
+            # work queue recovers attempts without a study scope of its own.
+            self._charge_study(reservation.study_id, amount)
 
         if exposure:
             attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + exposure
-            self._charge_study(self._scope.study_id, exposure)
         return exposure
+
+    def _close_open_reservations(self, attempt: StepAttemptRow, *, reason: str) -> float:
+        """Close every reservation an ending attempt still holds. Returns exposure.
+
+        One rule for every way an attempt ends -- completed, failed, abandoned,
+        released, recovered -- because accounting must not depend on *why* the work
+        stopped:
+
+        1. a call was dispatched and its outcome is unknown → every open
+           reservation becomes ``SETTLED_UNCERTAIN`` actual exposure;
+        2. otherwise, known spend not yet charged (recorded by
+           :meth:`mark_paid_call_outcome_known`, or passed to completion) is
+           settled onto the first open reservation, or charged directly when
+           there is none;
+        3. whatever is still open was never spent, and is released.
+
+        Before this, two paths got it wrong. ``abandon_attempt`` closed nothing, so
+        a cancelled paid step held its reservation forever and the study's
+        available budget shrank permanently. And a failure *released* the
+        reservation of a call whose cost was already known, so money that had been
+        spent was never charged -- under-recorded spend, which the budget check then
+        hands back out.
+        """
+        if attempt.paid_call_dispatched and not attempt.paid_call_outcome_known:
+            return self._settle_uncertain(attempt)
+
+        reservations = self._session.scalars(
+            select(BudgetReservationRow)
+            .where(BudgetReservationRow.attempt_id == attempt.attempt_id)
+            .order_by(BudgetReservationRow.created_at, BudgetReservationRow.reservation_id)
+        ).all()
+        charged = sum(
+            float(r.settled_amount_usd or 0.0)
+            for r in reservations
+            if r.status == ReservationStatus.SETTLED.value
+        )
+        unbilled = max(0.0, float(attempt.actual_cost_usd or 0.0) - charged)
+
+        study_id: str | None = None
+        for reservation in reservations:
+            if reservation.status != ReservationStatus.RESERVED.value:
+                continue
+            study_id = reservation.study_id
+            reservation.settled_at = utcnow()
+            if unbilled > 1e-12:
+                reservation.status = ReservationStatus.SETTLED.value
+                reservation.settled_amount_usd = unbilled
+                self._charge_study(reservation.study_id, unbilled)
+                unbilled = 0.0
+            else:
+                reservation.status = ReservationStatus.RELEASED.value
+                reservation.settled_amount_usd = 0.0
+                reservation.reason = reason or reservation.reason
+
+        if unbilled > 1e-12:
+            # Known spend with no reservation behind it -- a cost reported at
+            # completion for work that reserved nothing. Charged, not dropped.
+            if study_id is None:
+                step = self._session.scalar(
+                    select(StepRunRow).where(StepRunRow.step_id == attempt.step_id)
+                )
+                run = (
+                    self._session.scalar(
+                        select(WorkflowRunRow).where(WorkflowRunRow.run_id == step.run_id)
+                    )
+                    if step is not None
+                    else None
+                )
+                study_id = run.study_id if run is not None else None
+            if study_id is not None:
+                self._charge_study(study_id, unbilled)
+        return 0.0
 
     def _charge_study(self, study_id: str, amount_usd: float) -> None:
         """Add to a study's recorded spend, atomically.
@@ -915,17 +1289,17 @@ class WorkflowRepository:
 
     def budget_position(self) -> dict[str, float]:
         """Return the study's budget position including outstanding reservations."""
-        self._scope.require(Permission.VIEW_COSTS)
+        self.scope.require(Permission.VIEW_COSTS)
         study = self._session.scalar(
-            select(StudyRow).where(StudyRow.study_id == self._scope.study_id)
+            select(StudyRow).where(StudyRow.study_id == self.scope.study_id)
         )
         if study is None:
-            raise WorkflowNotFound(self._scope.study_id)
+            raise WorkflowNotFound(self.scope.study_id)
 
-        reserved = self._outstanding_reservations(self._scope.study_id)
+        reserved = self._outstanding_reservations(self.scope.study_id)
         uncertain = self._session.scalar(
             select(func.coalesce(func.sum(BudgetReservationRow.settled_amount_usd), 0.0)).where(
-                BudgetReservationRow.study_id == self._scope.study_id,
+                BudgetReservationRow.study_id == self.scope.study_id,
                 BudgetReservationRow.status == ReservationStatus.SETTLED_UNCERTAIN.value,
             )
         )
@@ -943,25 +1317,48 @@ class WorkflowRepository:
         self,
         attempt_id: str,
         *,
+        worker_id: str,
         output: dict[str, Any] | None = None,
         actual_cost_usd: float = 0.0,
         reservation_id: str | None = None,
     ) -> StepRunStatus:
-        """Record a successful attempt and mark its step SUCCEEDED."""
-        attempt = self._attempt(attempt_id)
+        """Record a successful attempt and mark its step SUCCEEDED.
+
+        Lease-fenced: only the worker holding the attempt may complete it, so a
+        worker whose lease was recovered cannot put a second outcome on a step
+        another worker is now running. Raises :class:`LeaseLost` otherwise.
+
+        **Idempotent for its owner.** Completing an attempt this worker already
+        completed returns ``SUCCEEDED`` and writes nothing. That is the retry of a
+        commit whose acknowledgement was lost -- the first commit landed, the
+        worker could not know -- and it must not charge the study a second time.
+        """
+        attempt = self._locked_attempt(attempt_id)
+        if attempt.status == AttemptStatus.SUCCEEDED.value and attempt.worker_id == worker_id:
+            return StepRunStatus.SUCCEEDED
+        self._require_lease(attempt, worker_id)
         step = self._step(attempt.step_id)
+        self._lock_run_for(step)
 
         attempt.status = AttemptStatus.SUCCEEDED.value
         attempt.finished_at = utcnow()
         attempt.output_json = output or {}
-        attempt.paid_call_outcome_known = True
         attempt.lease_until = None
 
         if reservation_id:
             self.settle_reservation(reservation_id, actual_cost_usd=actual_cost_usd)
+            attempt.actual_cost_usd = max(
+                float(attempt.actual_cost_usd or 0.0), max(0.0, float(actual_cost_usd))
+            )
         elif actual_cost_usd:
-            attempt.actual_cost_usd = max(0.0, float(actual_cost_usd))
-            self._charge_study(self._scope.study_id, actual_cost_usd)
+            attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + max(
+                0.0, float(actual_cost_usd)
+            )
+        # A completed attempt whose paid call has no recorded outcome still owes an
+        # answer about that money: the closing rule settles it as uncertain rather
+        # than releasing it. The flag is set only after the rule has looked.
+        self._close_open_reservations(attempt, reason="completed")
+        attempt.paid_call_outcome_known = True
 
         step.status = StepRunStatus.SUCCEEDED.value
         step.output_json = output or {}
@@ -988,6 +1385,7 @@ class WorkflowRepository:
         self,
         attempt_id: str,
         *,
+        worker_id: str,
         failure: FailureClass,
         error: dict[str, Any] | None = None,
         reservation_id: str | None = None,
@@ -998,8 +1396,11 @@ class WorkflowRepository:
         The decision comes from :func:`aia_core.domain.workflow.decide_recovery`;
         this method executes it -- including converting a reservation to
         ``SETTLED_UNCERTAIN`` when a dispatched paid call's outcome is unknown.
+
+        Lease-fenced like :meth:`complete_attempt`; raises :class:`LeaseLost` when
+        the caller no longer holds the attempt.
         """
-        attempt = self._attempt(attempt_id)
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
 
         attempt.status = AttemptStatus.FAILED.value
@@ -1018,8 +1419,7 @@ class WorkflowRepository:
             paid_call_outcome_known=attempt.paid_call_outcome_known,
             quota_reset_at=quota_reset_at,
         )
-        self._apply_recovery(step, attempt, decision, reservation_id=reservation_id)
-        return decision
+        return self._apply_recovery(step, attempt, decision, reservation_id=reservation_id)
 
     def _apply_recovery(
         self,
@@ -1028,13 +1428,22 @@ class WorkflowRepository:
         decision: RecoveryDecision,
         *,
         reservation_id: str | None = None,
-    ) -> None:
-        """Apply a recovery decision to a step and its reservations."""
-        exposure = 0.0
-        if decision.settle_reservation_as_uncertain:
-            exposure = self._settle_uncertain(attempt)
-        elif reservation_id:
-            # Nothing was billed, so the hold returns to the study.
+    ) -> RecoveryDecision:
+        """Apply a recovery decision to a step and its reservations.
+
+        Returns the decision actually applied, which differs from the one passed
+        in when the run was cancelled while the attempt was in flight
+        (:func:`aia_core.domain.workflow.apply_cancellation`).
+        """
+        self._lock_run_for(step)
+        decision = apply_cancellation(decision, cancel_requested=step.cancel_requested)
+        # `settle_reservation_as_uncertain` is true exactly when a dispatched
+        # call's outcome is unknown, which is the first branch of the closing
+        # rule -- so the rule applies it, and applies it on every other path too.
+        exposure = self._close_open_reservations(attempt, reason=decision.reason)
+        if reservation_id:
+            # Legacy callers name a reservation; one belonging to this attempt is
+            # already closed, and this is a no-op for it.
             self.release_reservation(reservation_id, reason=decision.reason)
 
         # A non-consuming failure -- quota, budget, approval -- must not count
@@ -1073,6 +1482,7 @@ class WorkflowRepository:
         self._session.flush()
         self._refresh_run(step.run_id)
         self._session.flush()
+        return decision
 
     # -------------------------------------------------------------- reconciler --
 
@@ -1098,10 +1508,20 @@ class WorkflowRepository:
                 ),
                 *self._scope_filter(),
             )
+            # Run order, so concurrent reconcilers take run locks (`_lock_run`) in
+            # one order and cannot wait on each other in a cycle.
+            .order_by(StepRunRow.run_id, StepAttemptRow.attempt_id)
             .limit(max(1, int(limit)))
         )
         if self._is_postgres:
-            query = query.with_for_update(skip_locked=True, of=StepAttemptRow)
+            # Only lapsed leases are selected, and so locked. Selecting every live
+            # attempt too made each sweep hold the lock on attempts whose workers
+            # were heartbeating and finishing them, so those workers waited on the
+            # sweep. The Python check below stays authoritative; SQLite, which
+            # returns naive timestamps, relies on it alone.
+            query = query.where(
+                (StepAttemptRow.lease_until.is_(None)) | (StepAttemptRow.lease_until <= moment)
+            ).with_for_update(skip_locked=True, of=StepAttemptRow)
 
         decisions: list[RecoveryDecision] = []
         for attempt in self._session.scalars(query).all():
@@ -1127,10 +1547,110 @@ class WorkflowRepository:
                 paid_call_dispatched=attempt.paid_call_dispatched,
                 paid_call_outcome_known=attempt.paid_call_outcome_known,
             )
-            self._apply_recovery(step, attempt, decision)
-            decisions.append(decision)
+            decisions.append(self._apply_recovery(step, attempt, decision))
 
         return decisions
+
+    def release_attempt(
+        self, attempt_id: str, *, worker_id: str, reason: str = "worker_shutdown"
+    ) -> RecoveryDecision:
+        """Give an attempt back without failing it -- a clean worker shutdown.
+
+        The step is ``RUNNABLE`` again immediately, so another worker can pick it
+        up without waiting for the lease to lapse, and the attempt does not count
+        against ``max_attempts``. A paid call in flight with unknown outcome makes
+        it ``RECOVERY_REQUIRED`` instead, exactly as a crash would
+        (:func:`aia_core.domain.workflow.decide_release`). Lease-fenced.
+        """
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
+        step = self._step(attempt.step_id)
+
+        attempt.status = AttemptStatus.ABANDONED.value
+        attempt.finished_at = utcnow()
+        attempt.lease_until = None
+        attempt.error_json = {"reason": reason}
+
+        decision = decide_release(
+            paid_call_dispatched=attempt.paid_call_dispatched,
+            paid_call_outcome_known=attempt.paid_call_outcome_known,
+        )
+        return self._apply_recovery(step, attempt, decision)
+
+    def resume_waiting_steps(
+        self,
+        *,
+        now: datetime | None = None,
+        capacity_backoff_seconds: int = DEFAULT_CAPACITY_BACKOFF_SECONDS,
+        quota_fallback_seconds: int = DEFAULT_QUOTA_FALLBACK_SECONDS,
+        limit: int = 100,
+    ) -> list[str]:
+        """Offer parked provider waits to workers again. Returns the step ids.
+
+        Only ``WAITING_PROVIDER`` and ``WAITING_CAPACITY`` are considered, and the
+        rule for each is :func:`aia_core.domain.workflow.resume_due`. Nothing a
+        person owes a decision on -- ``AWAITING_*``, ``RECOVERY_REQUIRED`` -- is
+        ever touched here.
+
+        Before this existed nothing moved a park back to ``RUNNABLE``, so a quota
+        wall or a capacity blip stranded its step until an operator forced it.
+
+        Safe to run concurrently: steps are locked ``FOR UPDATE SKIP LOCKED`` on
+        PostgreSQL, so two workers sweeping at once resume each step once.
+        """
+        moment = now or datetime.now(UTC)
+        query = (
+            select(StepRunRow)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(
+                StepRunRow.status.in_(
+                    [StepRunStatus.WAITING_PROVIDER.value, StepRunStatus.WAITING_CAPACITY.value]
+                ),
+                StepRunRow.cancel_requested.is_(False),
+                WorkflowRunRow.cancel_requested.is_(False),
+                *self._scope_filter(),
+            )
+            .order_by(StepRunRow.updated_at)
+            .limit(max(1, int(limit)))
+        )
+        if self._is_postgres:
+            # The run row too, and skipped when locked: `_lock_run` order is
+            # run → steps, and a run a worker is finishing a step in right now is
+            # simply resumed on the next sweep.
+            query = query.with_for_update(skip_locked=True, of=(StepRunRow, WorkflowRunRow))
+
+        resumed: list[str] = []
+        touched_runs: set[str] = set()
+        for step in self._session.scalars(query).all():
+            if not resume_due(
+                StepRunStatus(step.status),
+                runnable_after=step.runnable_after,
+                parked_at=step.updated_at,
+                now=moment,
+                capacity_backoff_seconds=capacity_backoff_seconds,
+                quota_fallback_seconds=quota_fallback_seconds,
+            ):
+                continue
+            previous = step.status
+            step.status = StepRunStatus.RUNNABLE.value
+            step.waiting_reason = None
+            step.runnable_after = None
+            step.updated_at = utcnow()
+            resumed.append(step.step_id)
+            touched_runs.add(step.run_id)
+            self._event(
+                step.run_id,
+                event_type="STEP_RESUMED",
+                message=f"{step.node_key}: {previous} -> RUNNABLE",
+                payload={"from": previous},
+                step_id=step.step_id,
+            )
+
+        if resumed:
+            self._session.flush()
+            for run_id in sorted(touched_runs):
+                self._refresh_run(run_id)
+            self._session.flush()
+        return resumed
 
     # ------------------------------------------------------------ cancellation --
 
@@ -1143,7 +1663,7 @@ class WorkflowRepository:
         cancelled immediately, and pending gates are closed so nothing is left in
         someone's queue.
         """
-        self._scope.require(Permission.CANCEL_WORKFLOW)
+        self.scope.require(Permission.CANCEL_WORKFLOW)
         run = self._run(run_id)
         if WorkflowRunStatus(run.status).is_terminal:
             return WorkflowRunStatus(run.status)
@@ -1174,7 +1694,7 @@ class WorkflowRepository:
             run_id,
             event_type="RUN_CANCEL_REQUESTED",
             message=reason or "cancellation requested",
-            payload={"reason": reason, "actor_id": self._scope.actor_id},
+            payload={"reason": reason, "actor_id": self.scope.actor_id},
             level="WARN",
         )
         self._session.flush()
@@ -1185,15 +1705,25 @@ class WorkflowRepository:
         step = self._step(step_id)
         return bool(step.cancel_requested)
 
-    def abandon_attempt(self, attempt_id: str, *, reason: str = "cancelled") -> None:
-        """Mark an in-flight attempt abandoned after a cooperative cancellation."""
-        attempt = self._attempt(attempt_id)
+    def abandon_attempt(
+        self, attempt_id: str, *, worker_id: str, reason: str = "cancelled"
+    ) -> None:
+        """Mark an in-flight attempt abandoned after a cooperative cancellation.
+
+        Lease-fenced; raises :class:`LeaseLost` when the caller no longer holds
+        the attempt.
+        """
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
+        self._lock_run_for(step)
 
         attempt.status = AttemptStatus.ABANDONED.value
         attempt.finished_at = utcnow()
         attempt.lease_until = None
         attempt.error_json = {"reason": reason}
+        # A cancelled paid step must give its hold back -- or, if a call is in
+        # flight with no known outcome, record it as uncertain exposure.
+        exposure = self._close_open_reservations(attempt, reason=reason)
 
         step.status = StepRunStatus.CANCELLED.value
         step.finished_at = utcnow()
@@ -1203,6 +1733,7 @@ class WorkflowRepository:
             step.run_id,
             event_type="ATTEMPT_ABANDONED",
             message=f"{step.node_key}: {reason}",
+            payload={"conservative_cost_exposure_usd": exposure} if exposure else None,
             step_id=step.step_id,
             attempt_id=attempt_id,
             level="WARN",
@@ -1231,6 +1762,7 @@ class WorkflowRepository:
         step = self._step(step_id)
         if not options:
             raise ValueError("a gate must offer at least one option")
+        self._lock_run_for(step)
 
         gate_id = "GATE-" + new_attempt_id()[4:]
         self._session.add(
@@ -1243,7 +1775,7 @@ class WorkflowRepository:
                 question=question,
                 options_json={"options": list(options)},
                 context_json=context or {},
-                produced_by_user_id=produced_by_user_id or self._scope.actor_id,
+                produced_by_user_id=produced_by_user_id or self.scope.actor_id,
             )
         )
         step.status = StepRunStatus.AWAITING_GATE.value
@@ -1286,7 +1818,7 @@ class WorkflowRepository:
         Every decision is written to the append-only ``approval_decisions``
         ledger, with the policy that allowed it and where that policy came from.
         """
-        self._scope.require(Permission.APPROVE_GATE)
+        self.scope.require(Permission.APPROVE_GATE)
 
         gate = self._session.scalar(
             select(WorkflowGateRow)
@@ -1308,8 +1840,8 @@ class WorkflowRepository:
         if gate.gate_type == "approval":
             independence = require_approval_independence(
                 producer_user_id=gate.produced_by_user_id,
-                approving_user_id=self._scope.actor_id,
-                policy=self._scope.self_approval,
+                approving_user_id=self.scope.actor_id,
+                policy=self.scope.self_approval,
                 what="this gate's work",
             )
         else:
@@ -1318,20 +1850,20 @@ class WorkflowRepository:
             # gated.
             independence = observe_approval_independence(
                 producer_user_id=gate.produced_by_user_id,
-                approving_user_id=self._scope.actor_id,
-                policy=self._scope.self_approval,
+                approving_user_id=self.scope.actor_id,
+                policy=self.scope.self_approval,
             )
 
         gate.status = "DECIDED"
         gate.decision_json = {"option": option, "note": note, **independence.audit_fields()}
-        gate.decided_by_user_id = self._scope.actor_id
+        gate.decided_by_user_id = self.scope.actor_id
         gate.decided_at = utcnow()
 
         self._session.add(
             ApprovalDecisionRow(
-                organization_id=self._scope.organization_id,
-                client_id=self._scope.client_id,
-                study_id=self._scope.study_id,
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
                 subject_type="gate",
                 subject_id=gate_id,
                 run_id=gate.run_id,
@@ -1339,12 +1871,13 @@ class WorkflowRepository:
                 gate_type=gate.gate_type,
                 decision=option,
                 comment=note,
-                request_id=self._scope.request_id,
+                request_id=self.scope.request_id,
                 **independence.audit_fields(),
             )
         )
 
         step = self._step(gate.step_id)
+        self._lock_run_for(step)
         if option == "cancel":
             step.status = StepRunStatus.CANCELLED.value
             step.finished_at = utcnow()
@@ -1358,7 +1891,7 @@ class WorkflowRepository:
         self._event(
             gate.run_id,
             event_type="GATE_DECIDED",
-            message=f"{option} by {self._scope.actor_id}",
+            message=f"{option} by {self.scope.actor_id}",
             payload={
                 "gate_id": gate_id,
                 "option": option,
@@ -1372,6 +1905,31 @@ class WorkflowRepository:
         self._refresh_run(gate.run_id)
         self._session.flush()
         return resulting
+
+    def decided_gates(self, step_id: str) -> list[dict[str, Any]]:
+        """Return the decisions recorded on a step's gates, oldest first.
+
+        What an executor re-running after a gate needs: without it, a step that
+        parked to ask for approval would ask again on every attempt.
+        """
+        self._step(step_id)
+        rows = self._session.scalars(
+            select(WorkflowGateRow)
+            .where(WorkflowGateRow.step_id == step_id, WorkflowGateRow.status == "DECIDED")
+            .order_by(WorkflowGateRow.decided_at, WorkflowGateRow.gate_id)
+        ).all()
+        return [
+            {
+                "gate_id": g.gate_id,
+                "gate_type": g.gate_type,
+                "question": g.question,
+                "option": str((g.decision_json or {}).get("option", "")),
+                "note": str((g.decision_json or {}).get("note", "")),
+                "decided_by_user_id": g.decided_by_user_id,
+                "decided_at": g.decided_at,
+            }
+            for g in rows
+        ]
 
     def pending_gates(self, run_id: str | None = None) -> list[dict[str, Any]]:
         """Return gates awaiting a decision, newest last."""
@@ -1532,11 +2090,12 @@ class WorkflowRepository:
         explicitly named method that requires ``MANAGE_STUDY_ACCESS`` and always
         records a reason -- because it can move a step out of a terminal state.
         """
-        self._scope.require(Permission.MANAGE_STUDY_ACCESS)
+        self.scope.require(Permission.MANAGE_STUDY_ACCESS)
         if not reason:
             raise ValueError("an administrative override requires a reason")
 
         step = self._step(step_id)
+        self._lock_run_for(step)
         previous = step.status
         step.status = status.value
         step.updated_at = utcnow()
@@ -1549,7 +2108,7 @@ class WorkflowRepository:
                 "from": previous,
                 "to": status.value,
                 "reason": reason,
-                "actor_id": self._scope.actor_id,
+                "actor_id": self.scope.actor_id,
             },
             step_id=step_id,
             level="WARN",
@@ -1557,3 +2116,75 @@ class WorkflowRepository:
         self._session.flush()
         self._refresh_run(step.run_id)
         self._session.flush()
+
+
+class WorkQueue:
+    """The cross-study operations a worker needs, and nothing else.
+
+    :class:`WorkflowRepository` is study-scoped, and stays that way. A worker has
+    to find work in *any* study, so this is the one place allowed to query
+    without a study predicate -- and it exposes exactly four operations, none of
+    which returns research data:
+
+    * :meth:`claim_next` -- take one runnable step, anywhere;
+    * :meth:`recover_expired_attempts` -- the reconciler;
+    * :meth:`resume_waiting_steps` -- clear provider parks that are due;
+    * :meth:`refuse` -- fail a claimed attempt that may not execute.
+
+    Everything else a worker does happens through a scoped repository built from
+    :meth:`aia_core.application.scope.ScopeResolver.execution_context`, which is
+    issued only against a lease this worker holds.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._engine = WorkflowRepository._across_studies(session)
+
+    def claim_next(
+        self,
+        *,
+        worker_id: str,
+        kinds: Collection[str] | None,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
+        now: datetime | None = None,
+    ) -> ClaimedWork | None:
+        """Claim one runnable step in any study. See :meth:`WorkflowRepository.claim_next`."""
+        return self._engine.claim_next(
+            worker_id=worker_id, lease_seconds=lease_seconds, now=now, kinds=kinds
+        )
+
+    def recover_expired_attempts(
+        self, *, now: datetime | None = None, limit: int = 100
+    ) -> list[RecoveryDecision]:
+        """Recover lapsed leases in every study. Safe to run from every worker."""
+        return self._engine.recover_expired_attempts(now=now, limit=limit)
+
+    def resume_waiting_steps(
+        self,
+        *,
+        now: datetime | None = None,
+        capacity_backoff_seconds: int = DEFAULT_CAPACITY_BACKOFF_SECONDS,
+        quota_fallback_seconds: int = DEFAULT_QUOTA_FALLBACK_SECONDS,
+        limit: int = 100,
+    ) -> list[str]:
+        """Resume due provider parks in every study."""
+        return self._engine.resume_waiting_steps(
+            now=now,
+            capacity_backoff_seconds=capacity_backoff_seconds,
+            quota_fallback_seconds=quota_fallback_seconds,
+            limit=limit,
+        )
+
+    def refuse(self, attempt_id: str, *, worker_id: str, reason: str) -> RecoveryDecision:
+        """Fail a claimed attempt permanently because it may not execute at all.
+
+        Used when no execution scope can be issued for it -- its client was
+        archived after the run started, say. Fail closed: the step is ``FAILED``
+        with a ``PERMISSION`` failure and the reason, rather than left for the
+        lease to lapse and be retried into the same refusal. Lease-fenced.
+        """
+        return self._engine.fail_attempt(
+            attempt_id,
+            worker_id=worker_id,
+            failure=FailureClass.PERMISSION,
+            error={"reason": reason},
+        )

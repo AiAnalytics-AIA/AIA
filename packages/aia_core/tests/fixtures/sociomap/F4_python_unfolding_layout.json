@@ -1,0 +1,312 @@
+{
+  "algorithm": "python_weighted_unfolding",
+  "capability_id": "sociomapping.core",
+  "config": {
+    "algorithm": "python_weighted_unfolding",
+    "method_arg": "python",
+    "seed": 20260814
+  },
+  "dataset_version": "synthetic_fixture",
+  "determinism": {
+    "identical_across_runs": true,
+    "repeat_runs": 3
+  },
+  "expected_output": {
+    "iterations": 350,
+    "metadata": {
+      "exact_r_smacof": 0,
+      "ipsatized": 1,
+      "missing_policy": "observed_cells_only",
+      "target": "row_relative_dissimilarity"
+    },
+    "method": "python_weighted_unfolding",
+    "object_names": [
+      "obj_p",
+      "obj_q",
+      "obj_r",
+      "obj_s",
+      "obj_t"
+    ],
+    "object_xy": [
+      [
+        1.3246958744,
+        -1.4863539738
+      ],
+      [
+        -1.0039675738,
+        -1.1429275932
+      ],
+      [
+        -0.9407910852,
+        1.5521329858
+      ],
+      [
+        -1.2988342091,
+        0.2485856459
+      ],
+      [
+        1.4544816132,
+        1.4705056863
+      ]
+    ],
+    "respondent_xy": [
+      [
+        -1.777011034,
+        -0.2010423649
+      ],
+      [
+        -1.9664906404,
+        -1.072670629
+      ],
+      [
+        2.0405484797,
+        2.1819274065
+      ],
+      [
+        -0.6821112713,
+        0.2051167873
+      ],
+      [
+        -0.0903783786,
+        1.294596555
+      ],
+      [
+        0.9748726899,
+        0.1400685359
+      ],
+      [
+        -0.7242146083,
+        -1.1401953877
+      ],
+      [
+        1.7199955126,
+        -0.2905956404
+      ],
+      [
+        0.2810610582,
+        -2.4609031613
+      ],
+      [
+        -0.5880348123,
+        1.0765839295
+      ],
+      [
+        -2.2854167601,
+        1.2284916959
+      ],
+      [
+        0.6912353091,
+        -1.2786837288
+      ],
+      [
+        -1.1125099441,
+        2.5837659891
+      ],
+      [
+        0.0599488737,
+        -1.9251031556
+      ],
+      [
+        1.3305082163,
+        0.8998368057
+      ],
+      [
+        -0.2503820946,
+        1.8100120269
+      ],
+      [
+        -1.7765945453,
+        1.5759140231
+      ],
+      [
+        1.6319064575,
+        -1.0939819793
+      ],
+      [
+        0.8734992074,
+        -1.6447978647
+      ],
+      [
+        -1.305343248,
+        -0.406707283
+      ],
+      [
+        1.5303524805,
+        -2.4152484204
+      ],
+      [
+        1.918544815,
+        -0.4888066848
+      ],
+      [
+        -2.3978247964,
+        -0.9642603792
+      ],
+      [
+        2.3682544138,
+        1.7447401733
+      ]
+    ],
+    "stress_1": 0.391394498
+  },
+  "fixture_id": "F4_python_unfolding_layout",
+  "input": {
+    "columns": [
+      "obj_p",
+      "obj_q",
+      "obj_r",
+      "obj_s",
+      "obj_t"
+    ],
+    "generator": "numpy.random.default_rng(4242).integers(1,11,(24,5)).astype(float)",
+    "ratings": {
+      "obj_p": [
+        5.0,
+        3.0,
+        1.0,
+        3.0,
+        1.0,
+        6.0,
+        9.0,
+        8.0,
+        7.0,
+        3.0,
+        2.0,
+        7.0,
+        2.0,
+        10.0,
+        6.0,
+        8.0,
+        1.0,
+        9.0,
+        10.0,
+        7.0,
+        8.0,
+        10.0,
+        1.0,
+        3.0
+      ],
+      "obj_q": [
+        8.0,
+        8.0,
+        2.0,
+        10.0,
+        5.0,
+        7.0,
+        10.0,
+        9.0,
+        8.0,
+        10.0,
+        4.0,
+        5.0,
+        2.0,
+        10.0,
+        2.0,
+        2.0,
+        2.0,
+        3.0,
+        6.0,
+        10.0,
+        4.0,
+        2.0,
+        8.0,
+        3.0
+      ],
+      "obj_r": [
+        9.0,
+        2.0,
+        2.0,
+        6.0,
+        6.0,
+        6.0,
+        5.0,
+        2.0,
+        4.0,
+        10.0,
+        8.0,
+        1.0,
+        3.0,
+        6.0,
+        6.0,
+        10.0,
+        5.0,
+        4.0,
+        7.0,
+        9.0,
+        2.0,
+        2.0,
+        2.0,
+        3.0
+      ],
+      "obj_s": [
+        7.0,
+        9.0,
+        4.0,
+        10.0,
+        8.0,
+        1.0,
+        10.0,
+        3.0,
+        4.0,
+        8.0,
+        10.0,
+        6.0,
+        4.0,
+        6.0,
+        3.0,
+        6.0,
+        6.0,
+        8.0,
+        9.0,
+        10.0,
+        1.0,
+        8.0,
+        9.0,
+        2.0
+      ],
+      "obj_t": [
+        2.0,
+        4.0,
+        10.0,
+        10.0,
+        8.0,
+        7.0,
+        1.0,
+        10.0,
+        5.0,
+        9.0,
+        3.0,
+        4.0,
+        3.0,
+        4.0,
+        6.0,
+        5.0,
+        3.0,
+        5.0,
+        5.0,
+        3.0,
+        1.0,
+        8.0,
+        1.0,
+        7.0
+      ]
+    },
+    "ratings_shape": [
+      24,
+      5
+    ]
+  },
+  "notes": "This machine has NO Rscript, so fit_r_smacof is UNREACHABLE locally and the R branch remains UNCHARACTERIZED. Under method='auto' this same input would take the Python branch here and potentially the R branch on a host with R installed, producing different coordinates -- the INTENTIONAL_DIFFERENCE recorded for algorithm selection.",
+  "parity_type": "NUMERICAL",
+  "reference_function": "sociomap.fit_unfolding(method='python') -> fit_python_unfolding",
+  "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+  "runtime_environment": {
+    "numpy": "2.5.3",
+    "pandas": "2.3.3",
+    "python": "3.14.6",
+    "rscript_available": false,
+    "scipy_available": true
+  },
+  "seed": 20260814,
+  "tolerance": 1e-06
+}
