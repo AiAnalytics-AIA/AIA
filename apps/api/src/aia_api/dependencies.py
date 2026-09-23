@@ -141,6 +141,18 @@ def get_artifact_store(request: Request) -> ArtifactStore:
     return store
 
 
+def get_app_settings(request: Request) -> Settings:
+    """Return the settings the application was built with.
+
+    Not ``get_settings()``, which re-reads the environment: ``create_app`` takes an
+    explicit, validated ``Settings``, and a request must see that one, or a test
+    that builds its own settings (and any caller of ``create_app``) is silently
+    answered with the process environment's.
+    """
+    settings: Settings | None = getattr(request.app.state, "settings", None)
+    return settings if settings is not None else get_settings()
+
+
 def get_identity_provider(request: Request) -> IdentityProvider:
     """Return the process-wide identity provider."""
     provider: IdentityProvider | None = getattr(request.app.state, "identity_provider", None)
@@ -163,37 +175,24 @@ def _unauthenticated(code: str, message: str) -> HTTPException:
     )
 
 
-def get_principal(
-    settings: Annotated[Settings, Depends(get_settings)],
-    session: Annotated[Session, Depends(get_session)],
-    provider: Annotated[IdentityProvider, Depends(get_identity_provider)],
-    authorization: Annotated[str | None, Header()] = None,
-    x_aia_subject: Annotated[str | None, Header(alias="X-AIA-Subject")] = None,
-    x_aia_org: Annotated[str | None, Header(alias="X-AIA-Org")] = None,
+def principal_from_credential(
+    credential: str,
+    *,
+    session: Session,
+    provider: IdentityProvider,
+    organization_hint: str | None = None,
 ) -> AuthenticatedPrincipal:
-    """Authenticate the caller and bind them to an AIA user record.
+    """Verify a credential and bind it to an AIA user record, or raise.
 
-    The credential is a bearer token in ``Authorization``. In local development
-    only, ``X-AIA-Subject`` is accepted instead; the provider that consumes it
-    cannot be constructed outside a local environment, so that branch is
-    unreachable in a deployment.
+    The one place a raw credential becomes a principal: a bearer token on an API
+    call and the legacy-panel session cookie (ADR 0012) take the same path, so a
+    rule added here applies to both.
 
-    ``organization_id`` comes from the user's membership, and ``X-AIA-Org`` only
-    disambiguates when they belong to several. It is never taken on trust:
-    :meth:`ScopeResolver.study_context` re-checks membership on every resolution.
+    ``organization_id`` comes from the user's membership, and ``organization_hint``
+    (``X-AIA-Org``) only disambiguates when they belong to several. It is never
+    taken on trust: :meth:`ScopeResolver.study_context` re-checks membership on
+    every resolution.
     """
-    credential: str | None = None
-    if authorization:
-        scheme, _, value = authorization.partition(" ")
-        if scheme.lower() != "bearer" or not value.strip():
-            raise _unauthenticated("invalid_authorization_header", "Expected 'Bearer <token>'.")
-        credential = value.strip()
-    elif x_aia_subject and settings.allow_insecure_local_identity:
-        credential = x_aia_subject
-
-    if not credential:
-        raise _unauthenticated("unauthenticated", "Authentication is required.")
-
     try:
         identity = provider.verify(credential)
     except ExpiredToken as exc:
@@ -235,8 +234,8 @@ def get_principal(
 
     if len(memberships) == 1:
         organization_id = memberships[0]
-    elif x_aia_org and x_aia_org in memberships:
-        organization_id = x_aia_org
+    elif organization_hint and organization_hint in memberships:
+        organization_id = organization_hint
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -253,6 +252,43 @@ def get_principal(
         email=user["email"],
         external_subject=identity.subject,
         request_id=request_id_var.get() or None,
+    )
+
+
+def bearer_credential(authorization: str | None) -> str | None:
+    """The token of an ``Authorization: Bearer <token>`` header, or None when absent."""
+    if not authorization:
+        return None
+    scheme, _, value = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not value.strip():
+        raise _unauthenticated("invalid_authorization_header", "Expected 'Bearer <token>'.")
+    return value.strip()
+
+
+def get_principal(
+    settings: Annotated[Settings, Depends(get_app_settings)],
+    session: Annotated[Session, Depends(get_session)],
+    provider: Annotated[IdentityProvider, Depends(get_identity_provider)],
+    authorization: Annotated[str | None, Header()] = None,
+    x_aia_subject: Annotated[str | None, Header(alias="X-AIA-Subject")] = None,
+    x_aia_org: Annotated[str | None, Header(alias="X-AIA-Org")] = None,
+) -> AuthenticatedPrincipal:
+    """Authenticate the caller and bind them to an AIA user record.
+
+    The credential is a bearer token in ``Authorization``. In local development
+    only, ``X-AIA-Subject`` is accepted instead; the provider that consumes it
+    cannot be constructed outside a local environment, so that branch is
+    unreachable in a deployment.
+    """
+    credential = bearer_credential(authorization)
+    if credential is None and x_aia_subject and settings.allow_insecure_local_identity:
+        credential = x_aia_subject
+
+    if not credential:
+        raise _unauthenticated("unauthenticated", "Authentication is required.")
+
+    return principal_from_credential(
+        credential, session=session, provider=provider, organization_hint=x_aia_org
     )
 
 
@@ -370,4 +406,4 @@ StudyScopeDep = Annotated[StudyContext, Depends(get_study_context)]
 ProjectRepositoryDep = Annotated[ProjectRepository, Depends(get_project_repository)]
 ScopeRepositoryDep = Annotated[ScopeRepository, Depends(get_scope_repository)]
 ResolverDep = Annotated[ScopeResolver, Depends(get_scope_resolver)]
-SettingsDep = Annotated[Settings, Depends(get_settings)]
+SettingsDep = Annotated[Settings, Depends(get_app_settings)]

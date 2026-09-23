@@ -21,7 +21,7 @@ from .observability import (
     configure_logging,
     install_exception_handlers,
 )
-from .routers import health, projects, runs, scope
+from .routers import health, panel, projects, runs, scope
 
 API_PREFIX = "/api/v1"
 
@@ -115,6 +115,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(scope.router, prefix=API_PREFIX)
     app.include_router(projects.router, prefix=API_PREFIX)
     app.include_router(runs.router, prefix=API_PREFIX)
+    app.include_router(panel.router, prefix=API_PREFIX)
     return app
 
 
