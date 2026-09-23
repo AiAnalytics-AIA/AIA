@@ -9,6 +9,9 @@ seed_owner_email = "you@example.com" # the Google Workspace account that will si
 
 github_repository  = "AiAnalytics-AIA/AIA"
 github_environment = "develop"
+# If GitHub Settings > Actions > OIDC subject customization uses immutable
+# subjects, use the exact subject shown there (including organization/repo IDs).
+# github_oidc_subject = "repo:OWNER@OWNER_ID/REPO@REPO_ID:environment:develop"
 # create_github_oidc_provider = false   # if the account already has one for GitHub
 
 instance_type  = "t3a.medium"
