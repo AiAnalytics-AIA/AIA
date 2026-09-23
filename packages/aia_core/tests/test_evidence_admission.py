@@ -18,6 +18,7 @@ from aia_core.domain.evidence import (
     SupportEvidence,
     SupportStatus,
     TierUseCase,
+    UnsupportedEstimate,
     ViolationCode,
     admit_numeric_claims,
     assess_support,
@@ -196,6 +197,12 @@ def test_indicative_support_is_admitted_and_flagged(admit: Any, evidence_row: An
     assert indicative.status is SupportStatus.INDICATIVE
     result = admit([nc()], EvidenceTable.build([evidence_row(support=indicative)]))
     assert result.admitted[0].indicative
+
+
+def test_a_hand_written_reportable_status_never_reaches_the_table(evidence_row: Any) -> None:
+    """The forged-support route: a REPORTABLE status with no evidence behind it."""
+    with pytest.raises(UnsupportedEstimate):
+        evidence_row(support=SupportAssessment(SupportStatus.REPORTABLE))
 
 
 def test_a_row_never_assessed_cannot_be_cited(admit: Any, evidence_row: Any) -> None:

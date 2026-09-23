@@ -30,9 +30,9 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Final
+from typing import Any, Final
 
 __all__ = [
     "REFERENCE_THRESHOLDS",
@@ -51,6 +51,10 @@ __all__ = [
     "weighted_mean",
     "weighted_share_pct",
 ]
+
+
+class UnsupportedEstimate(ValueError):
+    """A number was about to be reported without the support or interval it needs."""
 
 
 class SupportStatus(StrEnum):
@@ -87,13 +91,31 @@ class SupportEvidence:
     n_unique_layer_donors: int | None = None
 
 
+# Proves an assessment came from assess_support. SUPPRESS needs no proof -- it is the
+# fail-closed default anyone may state -- but INDICATIVE and REPORTABLE do: a status
+# that lets a number reach a client must have been computed from support evidence,
+# never written by hand or decoded from a payload.
+_SUPPORT_ISSUER: Final = object()
+
+
 @dataclass(frozen=True, slots=True)
 class SupportAssessment:
-    """A support decision and every reason for it. The default is SUPPRESS."""
+    """A support decision and every reason for it. The default is SUPPRESS.
+
+    Only :func:`assess_support` can produce an INDICATIVE or REPORTABLE assessment.
+    """
 
     status: SupportStatus = SupportStatus.SUPPRESS
     reasons: tuple[str, ...] = ("no support evidence",)
     effective_n: float | None = None
+    _issuer: Any = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self.status is not SupportStatus.SUPPRESS and self._issuer is not _SUPPORT_ISSUER:
+            raise UnsupportedEstimate(
+                f"a {self.status} assessment is issued only by assess_support, "
+                "from support evidence"
+            )
 
     @property
     def reportable(self) -> bool:
@@ -135,8 +157,10 @@ def assess_support(
     if suppress:
         return SupportAssessment(SupportStatus.SUPPRESS, tuple(suppress), eff)
     if indicative:
-        return SupportAssessment(SupportStatus.INDICATIVE, tuple(indicative), eff)
-    return SupportAssessment(SupportStatus.REPORTABLE, (), eff)
+        return SupportAssessment(
+            SupportStatus.INDICATIVE, tuple(indicative), eff, _issuer=_SUPPORT_ISSUER
+        )
+    return SupportAssessment(SupportStatus.REPORTABLE, (), eff, _issuer=_SUPPORT_ISSUER)
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,10 +181,6 @@ def suppress_cells(
         assessment = assess_support(evidence, thresholds)
         (kept if assessment.reportable else removed)[cell_id] = assessment
     return Suppression(kept, removed)
-
-
-class UnsupportedEstimate(ValueError):
-    """A number was about to be reported without the support or interval it needs."""
 
 
 @dataclass(frozen=True, slots=True)

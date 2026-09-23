@@ -33,6 +33,19 @@ def test_default_assessment_is_suppress() -> None:
     assert not SupportAssessment().reportable
 
 
+@pytest.mark.parametrize("status", [SupportStatus.REPORTABLE, SupportStatus.INDICATIVE])
+def test_a_reportable_status_cannot_be_written_by_hand(status: SupportStatus) -> None:
+    """Only assess_support issues a status that lets a number reach a client."""
+    with pytest.raises(UnsupportedEstimate, match="issued only by assess_support"):
+        SupportAssessment(status)
+    with pytest.raises(UnsupportedEstimate):
+        SupportAssessment(status, (), 400.0, _issuer=object())
+
+
+def test_suppress_may_be_stated_by_anyone() -> None:
+    assert SupportAssessment(SupportStatus.SUPPRESS, ("cell removed",)).reasons == ("cell removed",)
+
+
 @pytest.mark.parametrize(
     ("n", "eff", "status"),
     [
