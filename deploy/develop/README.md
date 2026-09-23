@@ -136,7 +136,35 @@ the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
 - **When `/` shows an error.** `docker compose ps legacy-panel`: the unit needs
   its data bundle synced by `bin/deploy.sh` (OI-39). A 401 or 403 JSON body on a
   page means the gate refused it; the `code` field says why (`unauthenticated`,
-  `legacy_panel_denied`, `cross_origin`).
+  `legacy_panel_denied`, `cross_origin`). A 502 on `/` means the gate admitted
+  the request and the unit is not answering.
+- **The site does not depend on the unit** (OI-44). Caddy starts without it,
+  the deploy waits only on AIA's services, and the unit's health is a smoke
+  check: an unhealthy unit fails the deploy but `/login`, `/studies` and the API
+  stay up. The deploy also loads the Caddyfile with this host's `.env` before it
+  touches anything, and stops if it does not load.
+
+### Switching the unit on
+
+The unit needs four values under `/aia/develop/` in Parameter Store and its data
+bundle in the ops bucket. Terraform does not create them yet (OI-44). From a
+shell with the operator's AWS credentials, `eu-central-1`:
+
+```bash
+# Where the data bundle lives in the ops bucket, as uploaded once with
+#   aws s3 sync <extract_legacy.py --data-out dir> s3://<ops-bucket>/<prefix>/
+aws ssm put-parameter --name /aia/develop/aia_legacy_data_prefix --type String --value legacy-data/<bundle-id>
+# The oracle hostname (an A record at the host's public IP) and its basic-auth gate.
+aws ssm put-parameter --name /aia/develop/aia_legacy_hostname --type String --value legacy.aia-develop.art-chain.io
+aws ssm put-parameter --name /aia/develop/aia_legacy_basic_user --type String --value oracle
+aws ssm put-parameter --name /aia/develop/aia_legacy_basic_hash --type SecureString \
+  --value "$(docker run --rm caddy:2-alpine caddy hash-password --plaintext '<password>')"
+```
+
+Then, on the host, `bin/write-env.sh` and re-run *Deploy develop*. The smoke
+test reports `legacy: the 18.6.6 unit is healthy` when it worked. Without the
+hostname values the oracle block binds `legacy-unconfigured.localhost` with a
+gate nobody can pass, so the product hostname is unaffected.
 
 ## Logs
 
