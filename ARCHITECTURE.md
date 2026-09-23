@@ -12,6 +12,7 @@ It deliberately does not describe the product. That lives in
 | [docs/architecture/README.md](docs/architecture/README.md) | What the system is and why it is shaped that way |
 | [domain-map.md](docs/architecture/domain-map.md) | Bounded contexts and their dependency direction |
 | [data-model.md](docs/architecture/data-model.md) | Production data model |
+| [population.md](docs/architecture/population.md) | The population consumer contract: binding, field policy, joint claims |
 | [workflows.md](docs/architecture/workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](docs/architecture/ai-runtime.md) | Providers, provenance, budgets, failure behaviour |
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
@@ -89,6 +90,7 @@ Run it before every commit. It is blocking in CI.
 | only the work queue may query across studies | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
 | runtime populations are issued only by the canonical loader (and never by the API) | A second loader returning different population semantics from the same bytes (reference F10, R4) |
 | population panels are parsed only by the canonical loader (and never by the API) | The first step of that second loader: a consumer reading the panel itself |
+| population-operator grants are issued only by the population authority (and never by the API) | A study context, an organization owner or a request body moving LIVE for every tenant (OI-8) |
 | the Sociomap preset `AIA_SOCIOMAP_V1` is never named outside the Sociomap domain package | An engineering preset silently filling in a missing spec, and becoming client methodology by default ([sociomapa-deterministic-engine.md §13](docs/architecture/sociomapa-deterministic-engine.md#13-computable-is-not-deliverable)) |
 | claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
 | the API never admits its own claims | The same, at the edge where untrusted input arrives |
@@ -128,13 +130,16 @@ script, then confirm it passes before committing.
 - **Population data is a capability too.** `RuntimePopulation` is issuable only by
   `PopulationRuntime` through the same sentinel construction, and carries the
   `PopulationBinding` (version, content hash, weight scheme, view) it was loaded
-  under. A run records its binding once, at creation; a step reads the population
-  only through it. See `aia_core.domain.population`.
+  under, its `FieldPolicy` (what each field may be used for) and its `JointStatus`
+  (what may be claimed jointly). A run records its binding once, at creation; a
+  step reads the population only through it. Establish and promote need a
+  `PopulationOperatorContext`, issued only by `PopulationAuthority`. See
+  [population.md](docs/architecture/population.md).
 - **Evidence is a capability, not a flag.** A number enters an analysis result
   only as an `AdmittedClaim`, which only `aia_core.domain.evidence.admit_numeric_claims`
   can mint, after the field policy, the `CORE_JOINT_STATUS` certificate, support,
-  the interval rule and the tier gate have all passed. The certificate itself is a
-  `JointStatus` only `load_joint_status` can issue, bound to the loaded panel's
+  the interval rule and the tier gate have all passed. The certificate itself is an
+  `aia_core.domain.evidence.JointStatus` only `load_joint_status` can issue, bound to the loaded panel's
   hash. A prompt may state a rule; it is never the only thing enforcing it.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal

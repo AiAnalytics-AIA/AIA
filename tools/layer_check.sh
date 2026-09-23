@@ -188,10 +188,15 @@ forbid "the API never admits its own claims" \
   '^[^#]*\bAdmittedClaim\(' \
   "$API"
 
+# companions.py is exempt by name, and only for now: it defines a *second*
+# JointStatus -- the population loader's own certificate evaluator -- which is a
+# duplicate of the evidence one, not a bypass of it. Which of the two is the single
+# authority is an open decision (.planning/open-items.md OI-24); this exemption goes
+# when that decision lands, not before.
 forbid "a joint status is issued only by its loader" \
   '^[^#]*\bJointStatus\(' \
   "$CORE" \
-  joint_status.py
+  joint_status.py companions.py
 
 # --- Population: one resolver, one loader ----------------------------------
 #
@@ -217,6 +222,19 @@ forbid "population panels are parsed only by the canonical loader" \
 
 forbid "the API never parses a population panel" \
   '^[^#]*\bparse_panel\(' \
+  "$API"
+
+# Establishing and promoting a population is platform administration. The
+# operator grant is issued only by PopulationAuthority from trusted configuration
+# (application/population_authority.py); authority.py defines it. Neither a study
+# nor an organization context implies it, and the API never mints one.
+forbid "population-operator grants are issued only by the population authority" \
+  '^[^#]*PopulationOperatorGrant\._issue\(' \
+  "$CORE" \
+  population_authority.py authority.py
+
+forbid "the API never issues a population-operator grant" \
+  '^[^#]*PopulationOperatorGrant\._issue\(' \
   "$API"
 
 # --- Sociomap: computable is not deliverable --------------------------------

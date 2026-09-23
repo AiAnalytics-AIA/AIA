@@ -206,54 +206,79 @@ the contract does not declare.
 same binding and different `population_snapshot` strings fingerprint identically,
 and that an undeclared `weighting` role is refused.
 
-**Status.** Open. Filed by the population foundation
+**What population-data now exposes for the fix** (consumption readiness): every
+`PopulationBinding` carries `version_id`, `content_sha256`, `weight_role`,
+`weight_column`, `view`, `dictionary_sha256`, `field_policy_version`,
+`companion_set_sha256` and `joint_state` — see `docs/architecture/population.md`.
+The fingerprint change itself stays research-engine's.
+
+**Status.** Open, owner research-engine. Filed by the population foundation
 (`.planning/plans/done/population-version-foundation.md`), deliberately not fixed
 there: it changes stage-fingerprint semantics, which is research-engine scope and
 needs the parity suite run against `AIA_LEGACY_REFERENCE`.
 
 ---
 
-## OI-7 · Question · The seven enrichment derivations are not recovered
+## OI-7 · Finding, archive-blocked · The seven enrichment derivations are not recoverable
 
 **Claim.** The ANALYSIS population view needs `audience_dimensions.enrich_panel`'s
-seven `*_derived` fields, and their derivation logic is in the withheld archive
-only; `PopulationRuntime` therefore refuses to load ANALYSIS in production.
+seven `*_derived` fields, and their derivation logic exists only in the withheld
+archive; no committed evidence in AIA-reference is enough to reconstruct them.
 
 **Anchor.** `packages/aia_core/src/aia_core/application/population.py`
-`PopulationRuntime._enrich` (raises `EnrichmentFailed` with no enricher) @ this
-change; AIA-reference `data-import-contracts/czech-population.md` OUTPUT.
+`PopulationRuntime._enrich` (raises `EnrichmentFailed` with no enricher);
+archive source `audience_dimensions.py` SHA256 `6ae1d1f8…c754bf`.
+
+**Reproduction.** `tests/test_population_runtime.py::test_the_analysis_view_does_not_load_without_an_enricher`.
 
 **Consequence.** Correct fail-closed behaviour (R1), and a hard blocker for any
 research or simulation step that needs the analysis view. The BASE view loads.
 
-**Decision needed.** Recover the derivations from the archive (data owner, D1/D3 in
-AIA-reference `open-decisions.md`) and port them behind the `Enricher` protocol
-with an EXACT parity fixture — or decide the research engine does not need them.
-Either way, the eight runtime fields still need a data-owner classification before
-any may back a client-facing claim (`DerivedField.client_claims_allowed` is False).
+**Result of exhausting the reference (outcome B).** Only function names, four
+threshold expressions and a truncated docstring are recorded — no formulas, no
+inputs, no outputs. The exact missing source, the parity fixture needed (F12,
+EXACT) and why no safe reconstruction exists are in
+`docs/migration/population-enrichment-archive-dependency.md`. This is now a
+data/archive acquisition task, not an engineering one.
 
-**Status.** Open.
+**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`. The eight runtime
+fields also need a data-owner classification:
+`docs/migration/population-derived-fields-decision.md`.
 
 ---
 
-## OI-8 · Question · No authorization model for establish and promote
+## OI-8 · Finding, closed · No authorization model for establish and promote
 
-**Claim.** `PopulationRuntime.establish` and `promote_live` require an actor and a
-reason but check no permission: the scope model has no platform-administrator role,
-and population data is not study-scoped.
+**Claim.** `PopulationRuntime.establish` and `promote_live` required an actor and a
+reason but checked no permission, and the actor was a free-text argument.
 
 **Anchor.** `packages/aia_core/src/aia_core/application/population.py`
-`establish` / `promote_live` @ this change; `domain/scope.py` `Permission`.
+`establish` / `promote_live` @ `8da7261`.
 
-**Consequence.** None today — no route, worker or CLI exposes them. The first one
-that does must not ship without a permission check, or any caller with a session
-could move LIVE for every study at once.
+**Consequence.** Any caller holding a session could move LIVE for every study in
+every organization. Latent: nothing exposed either method yet.
 
-**Smallest fix.** A platform-level permission (for example `POPULATION_PROMOTE`)
-issued only to an operator role, checked in both methods, with the refusal tested
-by type.
+**Fix.** A separate platform capability rather than a change to the shared scope
+contract: `PopulationPermission` {`POPULATION_ESTABLISH`, `POPULATION_PROMOTE`} and
+an unforgeable `PopulationOperatorContext`
+(`packages/aia_core/src/aia_core/domain/population/authority.py`), issued only by
+`PopulationAuthority` from trusted configuration
+(`application/population_authority.py`). Both use cases take the context instead
+of `actor_id`, check the permission inside the use case, and record the context's
+verified user id. A `StudyContext`, an `OrganizationContext`, a principal, a
+tool-shaped dict or `None` is refused by type; an organization OWNER is not an
+operator; `make layer_check` refuses an issuance anywhere else. The shared
+`Permission` enum and scope roles are untouched, so no integration-architecture
+contract change was needed — flagged to them for review in the PR.
 
-**Status.** Open. Must close before any exposure of promotion.
+**Test that catches it.** `packages/aia_core/tests/test_population_authority.py`
+(17 tests).
+
+**Status.** Closed by the population consumption-readiness change
+(`.planning/plans/done/population-consumption-readiness.md`, chunk 3). Remaining
+decision for the platform: which deployment configuration key names operators, and
+who holds it — the composition root does not wire it yet because nothing exposes
+establish or promote.
 
 ---
 
@@ -602,3 +627,43 @@ same key fixtures, asserting identical output.
 
 **Status.** Open. Deliberately not done in the worker change set: it moves code
 the API owns, and one logical change per commit.
+
+---
+
+## OI-24 · Finding · Two field policies and two joint certificates, with different rules
+
+**Claim.** The field dictionary's claim policy and the `CORE_JOINT_STATUS` gate are
+each implemented twice, under the same names and with different semantics:
+`aia_core.domain.evidence` (`FieldPolicyBook`, `JointStatus`, used by the claim
+gate, admission and the analysis modules) and `aia_core.domain.population`
+(`FieldPolicy`, `JointStatus`, carried by `RuntimePopulation` and recorded on the
+run binding). Anti-pattern A6: one concept, two definitions, drifting.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/evidence/field_policy.py`,
+`evidence/joint_status.py` (PR #22) and
+`packages/aia_core/src/aia_core/domain/population/policy.py`,
+`population/companions.py` @ `121b746` (PR #19).
+
+**Reproduction.** Over the real 400-field dictionary the two disagree on which
+fields may back a client-facing measured claim: the evidence policy follows the
+reference export (287 eligible, `test_evidence_gate_parity.py::test_every_reference_field_rederives_identically`),
+the population policy is deliberately stricter (115, a strict subset, per `c872cd7`).
+`layer_check`'s "a joint status is issued only by its loader" rule needs a named
+exemption for `companions.py` because the second `JointStatus` is built there.
+
+**Consequence.** An analysis claim is admitted under the evidence policy while the
+run that produced the population records the population policy. A field the
+population policy refuses for client claims can still be admitted by the evidence
+gate, and nothing ties the two versions together.
+
+**Smallest fix.** A decision first: one authority. The likely shape is the
+population's `FieldPolicy` and `JointStatus` as the single source (they are bound to
+the loaded population and the run), with the evidence claim gate and admission
+consuming them in place of their own copies — keeping the evidence layer's
+claim rules, joint-unit rules, support and admission, and its parity tests
+retargeted. Then drop the `companions.py` exemption.
+
+**Test that would catch it.** One parity test asserting a single eligibility per
+field for client measured claims, and `layer_check` green with no exemption.
+
+**Status.** Open, needs a decision from the owner of both.

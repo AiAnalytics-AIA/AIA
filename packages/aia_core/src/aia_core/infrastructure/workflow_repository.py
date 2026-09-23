@@ -31,6 +31,7 @@ from sqlalchemy import CursorResult, func, select, update
 from sqlalchemy.orm import Session
 
 from ..domain.population import (
+    JointState,
     PopulationBinding,
     PopulationBindingConflict,
     PopulationBindingMissing,
@@ -109,6 +110,10 @@ def _binding(row: RunPopulationBindingRow) -> PopulationBinding:
         weight_column=row.weight_column,
         view=PopulationView(row.view),
         resolved_at=as_utc(row.resolved_at),
+        dictionary_sha256=row.dictionary_sha256,
+        field_policy_version=row.field_policy_version,
+        companion_set_sha256=row.companion_set_sha256,
+        joint_state=JointState(row.joint_state),
     )
 
 
@@ -123,6 +128,10 @@ def _binding_identity(binding: PopulationBinding | None) -> tuple[str, ...] | No
         binding.weight_role,
         binding.weight_column,
         binding.view.value,
+        binding.dictionary_sha256,
+        binding.field_policy_version,
+        binding.companion_set_sha256,
+        binding.joint_state.value,
     )
 
 
@@ -514,6 +523,10 @@ class WorkflowRepository:
                 weight_column=binding.weight_column,
                 view=binding.view.value,
                 resolved_at=binding.resolved_at,
+                dictionary_sha256=binding.dictionary_sha256,
+                field_policy_version=binding.field_policy_version,
+                companion_set_sha256=binding.companion_set_sha256,
+                joint_state=binding.joint_state.value,
             )
         )
         self._session.flush()

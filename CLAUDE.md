@@ -68,6 +68,9 @@ packages/aia_core/src/aia_core/
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
                             contract + validation, weights, bindings, RuntimePopulation
       czech.py              The Czech v17 import contract (pinned by hash, not copied)
+      policy.py             Field policy as code: what each field may be used for
+      companions.py         Companion assets + the fail-closed joint certificate gate
+      authority.py          Population-operator capability (establish / promote)
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics
     scope.py                Organization/Client/Study vocabulary, roles, permissions
@@ -94,6 +97,7 @@ packages/aia_core/src/aia_core/
     scope.py                ScopeResolver — the ONLY issuer of a scope context,
                             including a worker's, issued only against a held lease
     population.py           PopulationRuntime — the ONLY loader of population data
+    population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
   infrastructure/
     tables.py               SQLAlchemy tables
@@ -143,6 +147,9 @@ fixtures of `AiAnalytics-AIA/AIA-reference` through `AIA_REFERENCE_REPO`
 population data only from `PopulationRuntime.load_for_run`, which reads the
 `PopulationBinding` the run recorded at creation. There is no other loader, no
 default weight and no fallback version; `make layer_check` enforces the loader.
+Before using a field, a consumer asks `RuntimePopulation.decide(field, use)` and,
+before combining fields, `decide_joint(...)` — never the dictionary directly. The
+contract is [docs/architecture/population.md](docs/architecture/population.md).
 
 **Sociomapping golden fixtures are.** F1–F9 are synthetic inputs with the
 reference's recorded outputs, vendored under

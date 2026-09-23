@@ -20,9 +20,15 @@ Cell = str | None
 
 @dataclass(frozen=True, slots=True)
 class ParsedDictionary:
-    """The ordered field names declared by a field dictionary."""
+    """The ordered field names declared by a field dictionary, and its rows.
+
+    ``rows`` are the dictionary's rows as text, in order, one per field: the
+    source of the field policy. ``columns`` is the dictionary's header.
+    """
 
     fields: tuple[str, ...]
+    rows: tuple[Mapping[str, str | None], ...] = ()
+    columns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

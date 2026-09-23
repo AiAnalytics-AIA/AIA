@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from aia_core.domain.population import (
     DatasetVersion,
     ImportRejected,
+    JointState,
     PopulationBinding,
     PopulationBindingConflict,
     PopulationBindingMissing,
@@ -417,6 +418,10 @@ def binding_for(version: DatasetVersion, **changes: Any) -> PopulationBinding:
         weight_column="w_main",
         view=PopulationView.ANALYSIS,
         resolved_at=AT,
+        dictionary_sha256=version.dictionary_sha256,
+        field_policy_version="field-policy/v1",
+        companion_set_sha256=content_sha256(b"companions"),
+        joint_state=JointState.MISSING,
     )
     return replace(binding, **changes)
 
@@ -474,7 +479,7 @@ def test_an_idempotent_resubmission_with_the_same_binding_returns_the_run(
     assert again == first
 
 
-@pytest.mark.parametrize("change", ["version", "weight", "view", "none"])
+@pytest.mark.parametrize("change", ["version", "weight", "view", "policy", "certificate", "none"])
 def test_a_resubmission_that_resolves_differently_is_refused(
     workflow: WorkflowRepository,
     project: Any,
@@ -490,6 +495,8 @@ def test_a_resubmission_that_resolves_differently_is_refused(
         ),
         "weight": binding_for(lineage["live"], weight_role="alt", weight_column="w_alt"),
         "view": binding_for(lineage["live"], view=PopulationView.BASE),
+        "policy": binding_for(lineage["live"], field_policy_version="field-policy/v2"),
+        "certificate": binding_for(lineage["live"], joint_state=JointState.CERTIFIED),
         "none": None,
     }[change]
     with pytest.raises(PopulationBindingConflict):

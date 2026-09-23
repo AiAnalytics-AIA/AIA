@@ -144,12 +144,14 @@ scenario truth log.
 fusion, same-person core, weighting contracts, audience registry and selection,
 persona dimensions, calibration.
 
-**Status:** version and import foundation landed —
+**Status:** version, import and consumption-readiness landed —
 `aia_core.domain.population`, `aia_core.application.population.PopulationRuntime`
-(content-addressed versions, STATIC/LIVE, explicit promotion, lossless import
-validation, canonical weight resolution, one loader, a binding recorded per run).
-Sampling, audience, donor fusion, calibration and the seven enrichment derivations
-are not started. Legacy source: `population_context.py`,
+(content-addressed versions, STATIC/LIVE, operator-gated explicit promotion,
+lossless import validation, canonical weight resolution, one loader, a binding
+recorded per run, field policy as code, companion-set validation, the fail-closed
+joint certificate). Consumer contract: [population.md](population.md). Sampling,
+audience, donor fusion, calibration and the seven enrichment derivations (OI-7) are
+not started. Legacy source: `population_context.py`,
 `population_subpanels.py`, `donor_fusion.py`, `core_joint.py`,
 `audience_registry.py`, `audience_dimensions.py`, `persona_grounded.py`,
 `persona_calibration.py`, `dimension_catalog.py`, `mrp.py`,

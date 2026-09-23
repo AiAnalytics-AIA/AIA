@@ -27,7 +27,8 @@ entry is a **hypothesis**, not a finding.
 | 2C | Authentication boundary: `IdentityProvider` as the only seam; offline-testable Cognito JWT validation; `VerifiedIdentity` carries identity and nothing else | `apps/api/src/aia_api/identity/cognito.py` @ df294e2 · `apps/api/tests/test_identity.py` |
 | 3 | Durable workflow engine: `WorkflowRun → StepRun → StepAttempt`, append-only attempts, `FOR UPDATE SKIP LOCKED` claiming, leases, heartbeats, budget reservations under a study-row lock, cooperative cancellation | `packages/aia_core/src/aia_core/infrastructure/workflow_repository.py` @ df294e2 · `tests/test_workflow_engine.py`, `tests/test_workflow_concurrency.py` |
 | 3 | Characterization of the legacy job engine: 64 tests describing `job_store.py` before any of it was reimplemented | `packages/aia_core/tests/test_legacy_job_store_characterization.py` @ df294e2 |
-| 8 (foundation) | **Population version + import foundation.** Content-addressed `DatasetVersion`, STATIC/LIVE with explicit compare-and-set promotion, lineage, lossless import validation against a hash-pinned 400-field contract, canonical weight resolution with no fallback, one loader (`PopulationRuntime`) issuing an unforgeable `RuntimePopulation`, a `PopulationBinding` recorded per run. Uncommitted at time of writing — see the plan | `packages/aia_core/src/aia_core/domain/population/` · `application/population.py` · `tests/test_population_*.py` · `.planning/plans/done/population-version-foundation.md` |
+| 8 (foundation) | **Population version + import foundation.** Content-addressed `DatasetVersion`, STATIC/LIVE with explicit compare-and-set promotion, lineage, lossless import validation against a hash-pinned 400-field contract, canonical weight resolution with no fallback, one loader (`PopulationRuntime`) issuing an unforgeable `RuntimePopulation`, a `PopulationBinding` recorded per run. Merged in PR #12 after automated verification; no human review comments recorded | `packages/aia_core/src/aia_core/domain/population/` @ `8da7261` · `tests/test_population_*.py` · `.planning/plans/done/population-version-foundation.md` |
+| 8 (readiness) | **Population consumption readiness.** Field policy as code over the 400-field dictionary (closed tables; unmapped refused; client use needs positive support); companion-set validation for the 15 v17 companions with the fail-closed `CORE_JOINT_STATUS` gate; population-operator authority closing OI-8; bindings and loaded populations carry policy and joint identity. OI-7 proven archive-blocked; 8-field decision checklist prepared | `domain/population/{policy,companions,authority}.py` · `application/population_authority.py` · `tests/test_population_{policy,companions,authority}.py` · `docs/architecture/population.md` · `.planning/plans/done/population-consumption-readiness.md` |
 | — | **Development rules adopted**: `ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`, `.planning/`, `tools/layer_check.sh` blocking in CI | `tools/layer_check.sh` @ this change · `.planning/plans/done/development-rules-adoption.md` |
 | 3 | **The worker process** (`apps/worker`): claim → execute through a `StepExecutor` → record, with heartbeats, checkpointed cancellation, per-call metering, lease-fenced writes, clean `SIGTERM` release and in-worker reconciliation. Eight engine defects found and fixed on the way (W1–W8) | `apps/worker/src/aia_worker/worker.py` · `apps/worker/tests/test_worker_processes.py` · `.planning/plans/done/worker-process.md` |
 
@@ -36,15 +37,21 @@ entry is a **hypothesis**, not a finding.
 | 6 | **Evidence governance foundation**: field dictionary as enforced policy (all 400 fields re-derive identically to the reference export), `CORE_JOINT_STATUS` hash-bound certificate, permissible-claim policy, effective-n `SUPPRESS`-by-default support, allowed-metric enum, validation bound to system fingerprint, tier gate, factual layer, `AdmittedClaim` capability enforced by `layer_check` | `packages/aia_core/src/aia_core/domain/evidence/` · `tests/test_evidence_gate_parity.py` · `.planning/plans/done/evidence-governance-foundation.md` |
 | 6 | **The eight analysis modules** against those contracts: order, input fingerprints and resume, closed draft schema, 100% prose number coverage, prompts rendered from the enums, results that hold only admitted claims; runner with repair ≤ 2 and pre-flight blocking | `packages/aia_core/src/aia_core/domain/analysis/`, `application/analysis.py` · `tests/test_analysis_runner.py` |
 
-**Verified state, evidence governance merged with the population, Sociomap and
-worker work (2026-09-22).** PostgreSQL 16.13 / Python 3.12: **1450 passed / 101
-skipped** across core, API and worker; SQLite: **1422 passed / 129 skipped**;
-concurrency 22/22 with `AIA_REQUIRE_POSTGRES=1`; migrations upgrade, `alembic
-check` no drift, downgrade to base and back; `mypy --strict` clean across 82
-source files; `ruff` clean; `layer_check` 32/32; `exposure_check` 7/7. With
-`AIA_REFERENCE_REPO` at the reference repository @ `678e298`, the evidence and
-population parity suites run 60 cases and skip 1 (the real certificate against the
-real panel, which needs the archive).
+**Verified state, evidence governance merged with main @ `121b746` (population,
+Sociomap, worker, population readiness) plus the four review fixes (2026-09-23).**
+PostgreSQL 16.13 / Python 3.12: **1592 passed / 101 skipped** across core, API and
+worker; SQLite: **1564 passed / 129 skipped**; concurrency 22/22 with
+`AIA_REQUIRE_POSTGRES=1`; migrations upgrade, `alembic check` no drift, downgrade
+to base and back; `mypy --strict` clean across 86 source files; `ruff` clean;
+`layer_check` 34/34 (one named exemption pending D8 / OI-24); `exposure_check` 7/7.
+
+**Verified state, population consumption readiness** (PostgreSQL 16.13, Python
+3.12.3, core + API): **911 passed / 100 skipped** on PostgreSQL with
+`AIA_REQUIRE_POSTGRES=1` (791 / 100 at `8da7261`), **893 / 118** on SQLite (773 /
+118), 18 concurrency tests under real contention, `mypy --strict` clean across 55
+source files, `layer_check` 18/18, `exposure_check` 7/7, migrations `cadbca872dc5`
+and `85637e58c7dd` reversible with no model drift. 36 population parity tests ran
+against AIA-reference @ `678e298`; without it they skip (857 / 154 on SQLite).
 
 **Verified state, population foundation** (PostgreSQL 16.13, Python 3.12.3,
 core + API): **791 passed / 100 skipped** on PostgreSQL with
@@ -143,26 +150,30 @@ it is not answered. "The local agent said so" is not an anchor.
 Ordered. Take the top item unless told otherwise, and **write the plan to
 `.planning/plans/<feature>.md` with its chunks before writing code**.
 
-**Before the research engine can consume the population** (population-data owns
-these; none is started):
+**Before the research engine can consume the population.** Field policy,
+companion validation and OI-8 are done (Completed, above). What remains, with its
+owner — the consumer contract is [`docs/architecture/population.md`](../docs/architecture/population.md):
 
-- a. **Enrichment** — recover the seven `*_derived` derivations and port them behind
-  `Enricher` with an EXACT fixture, or decide they are not needed. Until then the
-  ANALYSIS view refuses to load (OI-7).
-- b. **Classify the 8 runtime fields** (data owner). `DerivedField.client_claims_allowed`
-  is False for all of them.
-- c. **Field policy as code** (R5) — derive typed per-field claim rules from the
-  dictionary that already travels with every version.
-- d. **Companion assets** — scorecard, persona catalogue, respondent audit and the
-  `CORE_JOINT_STATUS.json` hash-bound certificate (R6) validated at import;
-  `ImportReport.companions_validated` is False today.
-- e. **The EU asset store** behind `PopulationAssetSource`, and the first real import
-  of all three versions (needs `REF-WITHHELD-REFERENCE-ARCHIVE` resolved).
-- f. **A permission on establish/promote** before anything exposes them (OI-8).
-- g. **Stage fingerprints from the binding**, not free text (OI-6).
-- h. **Typed / columnar views** (numeric fields, the M07 age floor) as named,
-  recorded transformations over the text-preserving load, and a process-wide cache
-  for workers.
+- a. **Archive release** (`REF-WITHHELD-REFERENCE-ARCHIVE`, data owner) to an
+  approved EU destination. Unblocks b, c and e. *External dependency.*
+- b. **Enrichment** (OI-7) — outcome B proven: port `attach_derived` behind
+  `Enricher` against a new EXACT fixture F12 captured from the archive
+  ([archive dependency](../docs/migration/population-enrichment-archive-dependency.md)).
+  Until then the ANALYSIS view refuses to load. population-data + parity-quality.
+- c. **The EU asset source** behind `PopulationAssetSource`, and the first real
+  import of all three versions with their 15 companions. population-data.
+- d. **Classify the 8 runtime fields** — an 8-row checklist
+  ([decision](../docs/migration/population-derived-fields-decision.md)). Data owner +
+  analysis-governance.
+- e. **Review the client-facing permits** in `RECOMMENDED_USE_POLICY` (115 of 400
+  fields may back a measured claim; the reference would have allowed 287).
+  analysis-governance. *Not a blocker; the default is the conservative reading.*
+- f. **Stage fingerprints from the binding**, not free text (OI-6). research-engine.
+- g. **Operator configuration key** at the composition root, when the first route,
+  worker or CLI exposes establish/promote. integration-architecture.
+- h. **Typed / columnar views** (numeric fields, the M07 age floor) and a
+  process-wide cache for workers. population-data, when the research engine needs
+  them.
 
 1. **Classify the ambiguous legacy brand tokens** (data owner, D4 below). Blocks
    the manifest reduction in
@@ -245,6 +256,7 @@ left to build.
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 | D6 | **Accept, replace or defer the four AIA Sociomap declarations** — dissimilarity target, `aia_rowcond_unfolding_v1`, the map frame, relation-missing `refuse`. Decision package ready with approval fields; methodology owner, not engineering. **The only methodology decision preventing client use** | Any client-facing Sociomap | `docs/architecture/sociomapa-methodology-decision.md` · OI-16 |
 | D7 | **Is `RELIGION` a certified matched block?** It is donor-matched and dictionary-eligible, but absent from the certificate's `matched_blocks`, so the claim gate refuses it client-facing. Data owner | Client claims on the five religion fields | `.planning/open-items.md` OI-19 |
+| D8 | **One authority for field policy and the joint certificate.** `domain.evidence` and `domain.population` each implement both, with different eligibility (287 vs 115 client measured-claim fields). Pick one; the other consumes it | Consistent claim decisions between a run's recorded policy and the claims admitted from it | `.planning/open-items.md` OI-24 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);
