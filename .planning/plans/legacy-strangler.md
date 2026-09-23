@@ -114,7 +114,7 @@ for the frontend mathematics and only the *contract* for the HTTP oracle.
 | Check | Result | Anchor |
 | --- | --- | --- |
 | CI green on `develop` at the unit commit | **yes** — run 108 (`35882425631`) `success` @ `09810d1` | GitHub Actions `ci.yml`, branch `develop` |
-| `legacy-panel` deployed and healthy | **not yet** — *Deploy develop* run 6 (`35880744530`) @ `71d3576` failed at *Build and push aia-legacy-panel*: `unable to prepare context: path "legacy/npc-panel-18.6.6" not found`. That SHA is PR #38 (the integration) merged *before* PR #39 (the unit's files); `git ls-tree 71d3576 -- legacy` holds only `legacy/README.md`. Run 7 (`35883107082`) @ `09810d1`, which has the unit, has been `waiting` on the `develop` environment since 15:39 UTC — a human approval or protection rule, not a code defect | `.github/workflows/deploy-develop.yml:128-141 @ 09810d1`; OI-39 |
+| `legacy-panel` deployed and healthy | **not yet** — *Deploy develop* run 6 (`35880744530`) @ `71d3576` failed at *Build and push aia-legacy-panel*: `unable to prepare context: path "legacy/npc-panel-18.6.6" not found`. That SHA is PR #38 (the integration) merged *before* PR #39 (the unit's files); `git ls-tree 71d3576 -- legacy` holds only `legacy/README.md`. Run 7 (`35883107082`) @ `09810d1`, which has the unit, waited on the `develop` environment from 15:39 UTC and was cancelled by the operator at 21:23. Run 8 (`35920580798`) @ `764f9f7` then built all four images and **failed pushing `aia-legacy-panel`: ECR answered 403** — the Terraform that creates the repositories and grants the deploy role's push (`infra/develop/main.tf` `local.images`) still listed three images. Fixed in code (OI-41); needs `terraform apply` by the operator, then a re-run | `.github/workflows/deploy-develop.yml:128-141 @ 764f9f7`; `infra/develop/main.tf:12 @ 764f9f7`; OI-39, OI-41 |
 | Data bundle synced (`AIA_LEGACY_DATA_PREFIX`) | **unverifiable from here** — happens in `bin/deploy.sh` on the host during run 7 | `deploy/develop/bin/deploy.sh:39-48 @ 09810d1` |
 | Anonymous request refused (401) | **unverifiable from here** — the develop hostnames are denied by the cloud session's egress policy (`connect_rejected`), and no Docker daemon is available to build the unit locally. The check exists as `bin/smoke.sh` on the host and as `test_legacy_oracle.py::test_anonymous_request_is_refused` here, for any environment that can reach the oracle | `deploy/develop/bin/smoke.sh:44-50 @ 09810d1`; OI-39 |
 | Oracle endpoint contract for parity tests | **landed in slice 1** — `AIA_LEGACY_REFERENCE_URL` (+ user/password), `legacy_oracle` fixture, `oracle` marker, `make test-oracle` | `packages/aia_core/tests/conftest.py` `legacy_oracle`; `tools/legacy_oracle.py` |
@@ -219,7 +219,7 @@ any live-AI run on the oracle (a provider credential through the governed
       `application/scope.py`, not a new module: admission is a scope decision),
       `test_panel_api.py` (25), `test_legacy_panel_access.py` (7). Found on the way:
       the settings dependency re-read the environment instead of the app's
-      settings (fixed), and refusals' audit rows roll back with the request (OI-41).
+      settings (fixed), and refusals' audit rows roll back with the request (OI-42).
 - [x] 2. **Web: `/login`, `/logout`, no mock-up** — `/login` turns the Cognito
       session into the panel cookie and returns to the interface; `/logout` clears
       both; `/org/*`, `components/aia/*`, `lib/mock*.ts`, `lib/doc.ts`,
@@ -237,10 +237,11 @@ any live-AI run on the oracle (a provider credential through the governed
       (`API_BASE` empty, `GET /api/bootstrap` through the gate); a member sees the
       admins-only message; `/logout` clears the cookie.
 - [x] 4. **Documents** — CLAUDE.md, ARCHITECTURE.md (§8 CI tier, §9), the runbook,
-      PROGRESS.md, OI-41, OI-42.
+      PROGRESS.md, OI-42, OI-43.
 
-**Still needed to see it live:** the *Deploy develop* approval and the unit's
-data bundle (OI-39). Without the bundle the page loads and its bootstrap call
+**Still needed to see it live:** `terraform apply` for the fourth image
+repository (OI-41), a green *Deploy develop* run, and the unit's data bundle
+(OI-39). Without the bundle the page loads and its bootstrap call
 fails, as it did locally.
 
 ## Review outcome

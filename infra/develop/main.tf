@@ -9,7 +9,12 @@ locals {
   artifacts_bucket = "${local.name}-artifacts-${local.account_id}"
   ops_bucket       = "${local.name}-ops-${local.account_id}"
   ecr_registry     = "${local.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
-  images           = ["aia-api", "aia-worker", "aia-web"]
+
+  # Every image the deploy workflow pushes. The list is the ECR repository set
+  # AND the deploy role's push grant (github.tf), so a new image in
+  # deploy-develop.yml lands here in the same change or its push is refused
+  # with 403 (OI-41).
+  images = ["aia-api", "aia-worker", "aia-web", "aia-legacy-panel"]
 
   # The EU inference profile and every EU foundation model it may route to.
   # Bedrock evaluates InvokeModel on both the profile ARN and the underlying

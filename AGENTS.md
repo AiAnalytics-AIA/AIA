@@ -481,7 +481,7 @@ SettingsDep = Annotated[Settings, Depends(get_app_settings)]   # request.app.sta
 `get_session` is a `yield` dependency that commits on success and rolls back on
 any exception, and FastAPI propagates an `HTTPException` raised in the handler
 or a later dependency into it. A refusal that writes an audit row and then
-raises a 403 therefore records nothing (OI-41). Commit the row you mean to keep
+raises a 403 therefore records nothing (OI-42). Commit the row you mean to keep
 before raising, or write it in a session of its own.
 
 ```python

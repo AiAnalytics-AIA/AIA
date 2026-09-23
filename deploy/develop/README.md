@@ -62,7 +62,7 @@ Done once, by a person with AWS access. Everything after this is automatic.
 
 7. **First deploy.** Merge anything into `develop`, or run the
    *Deploy develop* workflow by hand with the SHA of `develop`'s head. Watch the
-   Actions run: it builds the three images, pushes them by SHA, ships this
+   Actions run: it builds the four images, pushes them by SHA, ships this
    directory to `s3://<ops-bucket>/deploy/<sha>.tar.gz`, and runs
    `bin/deploy.sh <sha>` on the host through SSM. The first run has no database
    to back up and says so.
@@ -94,7 +94,7 @@ Merge a pull request into `develop`. Then:
    on `develop` lets the environment's develop-only branch rule apply. It
    runs in the `develop` GitHub environment,
    assumes the deploy role through OIDC (no stored AWS keys), builds
-   `aia-api`, `aia-worker` and `aia-web` at the verified SHA, pushes them to ECR
+   `aia-api`, `aia-worker`, `aia-legacy-panel` and `aia-web` at the verified SHA, pushes them to ECR
    tagged `<sha>` (and `develop` as a convenience alias), uploads this directory
    as `deploy/<sha>.tar.gz`, and sends one SSM command to the host.
 3. On the host, `bin/deploy.sh <sha>`: pull → backup → `alembic upgrade head`
@@ -280,7 +280,7 @@ against the AWS calculator before approving the budget.
 | Elastic IP (in use) | ~4 |
 | EBS snapshots, 7 daily × ~10 GB changed | ~4 |
 | S3 artifacts + ops (< 20 GB, few requests) | ~1 |
-| ECR (3 repositories, ~10 tags kept, ~2 GB) | ~1 |
+| ECR (4 repositories, ~10 tags kept, ~3 GB) | ~1 |
 | CloudWatch (agent metrics, 2 GB logs, 3 alarms) | ~4 |
 | Route 53 hosted zone (only if DNS is in AWS) | 0.5 |
 | Cognito (≤ 10,000 MAU, Essentials tier) | 0 |
