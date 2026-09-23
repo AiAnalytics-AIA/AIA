@@ -125,13 +125,28 @@ schema gate and the committed artifact are all asserted by
 | Open product decisions | `open-decisions.md` |
 | Outstanding fixture gaps | `reference-gaps.md` |
 
+## Golden fixtures in CI — no archive needed
+
+The eleven golden fixtures are committed JSON in the reference repository and
+**do not need the archive**. CI's `golden-fixtures` job checks the reference
+repository out at the commit pinned in
+[`parity-matrix.json`](parity-matrix.json) (`reference.commit`), using a
+read-only deploy key held as the `AIA_REFERENCE_DEPLOY_KEY` secret, and every
+fixture is refused unless its SHA256 matches the pin. The fixtures are never
+copied into this repository. Locally, a sibling clone at `../aia-reference` or
+`AIA_REFERENCE_REPO` does the same: `make test-golden`.
+
+The pin is a **commit**, not the tag: the tag points at `90d4c5b`, two commits
+behind `678e298`, and differs from it only in two tool scripts.
+
 ## Known open items owned elsewhere
 
 | Item | Owner |
 | --- | --- |
-| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` | parity-quality + sociomapa-deterministic |
-| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential | parity-quality + simulation-engine |
+| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and the archive** | parity-quality + A8 sociomapa-deterministic (`.planning/open-items.md` OI-6) |
+| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential, an ADR 0008 egress route **and the archive** | parity-quality + A7 simulation-engine (OI-7) |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` — needs a licence decision | data owner |
 
 Neither fixture gap is unknown behaviour: code paths, constants and seeds are
-recovered. Both need a different environment, not more discovery.
+recovered. Both need a different environment, not more discovery — and both
+recipes execute legacy code, so that environment includes the archive.

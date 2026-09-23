@@ -97,9 +97,36 @@ from tests.helpers import make_project
 def test_x(project_factory): ...
 ```
 
-Markers are registered in the root `pyproject.toml` and `--strict-markers` is on,
-so a typo in a marker name is an error rather than a silently unfiltered run.
-Current markers: `parity`, `postgres`.
+Markers are registered in the root `pyproject.toml` **and** in each package's
+own `pyproject.toml`, and `--strict-markers` is on, so a typo in a marker name is
+an error rather than a silently unfiltered run. Current markers: `parity`,
+`postgres`, `golden`.
+
+**pytest takes its configuration from the nearest `pyproject.toml` to the paths
+you pass, not from the root.** `pytest packages/aia_core/tests/…` reads
+`packages/aia_core/pyproject.toml`; only `pytest packages/aia_core apps/api`
+(common ancestor: the root) reads the root file. A marker registered only at the
+root therefore fails collection for a single-package run:
+
+```toml
+# WRONG — root pyproject.toml only; `pytest packages/aia_core` errors with
+# "'golden' not found in `markers` configuration option"
+markers = ["golden: ..."]
+
+# RIGHT — the same line in the root AND in packages/aia_core/pyproject.toml
+```
+
+The same rule moves **JUnit paths**: the `file` attribute is relative to that
+chosen rootdir, so one test is `tests/test_x.py` in one run and
+`packages/aia_core/tests/test_x.py` in another. `tools/parity_status.py` matches
+by path suffix for exactly this reason. Found when the golden-fixture marker was
+added.
+
+**Exit code 0 is not evidence that anything ran.** A suite whose tests all skip
+exits 0. Every CI pytest step writes `--junit-xml … -o junit_family=xunit1`
+(xunit1 carries the file path) and `tools/parity_status.py` reads it, so a
+skipped parity gate reports `NOT_EXECUTED` rather than green.
+`test_parity_matrix.py` fails any CI pytest step that stops writing JUnit.
 
 ## SQLAlchemy and PostgreSQL
 

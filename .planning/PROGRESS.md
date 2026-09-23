@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `remediation/public-reference-exposure` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/sleepy-keller-kg48oz` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -43,7 +43,57 @@ skips (`.github/workflows/ci.yml:99-108` @ df294e2).
 
 ## In progress
 
-Nothing. The tree is green.
+**Production parity matrix and parity gates** — owner parity-quality. Plan:
+[`plans/parity-matrix-and-gates.md`](plans/parity-matrix-and-gates.md).
+All seven chunks are written, verified and committed as one change on
+`claude/sleepy-keller-kg48oz`. The plan moves to `done/` once the PR merges and
+CI has run the new jobs once.
+
+- [x] `docs/migration/parity-matrix.json` — all 78 capabilities, keyed by
+      capability id; `test_parity_matrix.py`
+- [x] MVP acceptance test defined — `docs/migration/mvp-acceptance.md`
+      (`MVP-ACCEPT-1`, criteria AC-01…AC-14); release blocker ≡ named by a criterion
+- [x] Golden-fixture harness — `test_golden_fixtures.py`, first gate F9 against
+      `domain.sociomap.view`, every fixture refused unless it hashes to its pin
+- [x] `tools/parity_status.py` — `PASS` / `FAIL` / `NOT_EXECUTED` /
+      `NOT_RUNNABLE` / `NOT_REQUIRED` from JUnit; `test_parity_status_tool.py`
+- [x] CI: JUnit from every pytest step, `golden-fixtures` and `parity-status`
+      jobs, `|| true` removed from the legacy parity job
+- [x] `REF-GAP-SOCIO-R-SMACOF` / `REF-GAP-SIMULATION-WORLD-MODEL` owned —
+      OI-6 / OI-7, `reference_gaps` in the matrix
+- [x] Parity status below; findings OI-8, OI-9
+
+## Parity status — this cycle
+
+**Highest-risk unverified capability: `cost.reservations`.** It is
+`IMPLEMENTED`, moves money (high-risk R10), owes **EXACT** parity, sits on the
+MVP path — and has **no reference-backed gate at all**: every test of it is
+production-only, so a divergence from the reference's reservation decisions
+would merge green. OI-9 carries the fix.
+
+Measured 2026-09-22 in a cloud session (Python 3.12, PostgreSQL 16 and SQLite,
+reference repository @ 678e298, **no legacy tree**), working tree over 17c0a6b,
+by running the CI pytest sequence and then
+`tools/parity_status.py --available postgres reference_repo`:
+
+| Verdict | All 78 | MVP blockers (52) |
+| --- | ---: | ---: |
+| `PASS` | 1 (`api.http`, and it is `PARTIAL`) | 1 |
+| `NOT_EXECUTED` | 3 (`pipeline.stages`, `ai.provider_policy`, `workflow.engine` — their legacy-tree gates skip) | 3 |
+| `NOT_RUNNABLE` | 65 | 48 |
+| `FAIL` | 0 | 0 |
+| `NOT_REQUIRED` | 9 | — |
+
+**Zero MVP blockers are release-ready**, so `MVP-ACCEPT-1` is `NOT_RUNNABLE`.
+Next four by risk: `ai.provider_policy` (R11, legacy gates not executed),
+`api.http` (R14, partial), `sociomapping.core` (R16; F9 passes, seven fixtures
+await the port), `pipeline.stages` (legacy gates not executed). 68 of 78
+capabilities have no confirmed owner — only A7, A8 and population-data are
+named anywhere durable; the rest carry their bounded context as an
+*unconfirmed* workstream.
+
+Re-run each cycle with `make parity-status`, or read the `parity-status` job's
+summary; update this section from it, anchored.
 
 ## Repository visibility — D5, frozen
 
@@ -76,8 +126,12 @@ trace and cannot be measured — which is why the cleanup proceeds anyway.
 
 **`AiAnalytics-AIA/AIA-reference` @ `678e298ad9ca0263da53cc8920d153fdfb956c93`,
 tag `reference-18.6.6-gemo-2026-09-11-v1`, is authoritative for every question
-about legacy behaviour and methodology.** It is private. This repository is
-public and holds pointers only — see
+about legacy behaviour and methodology.** It is private. The tag
+itself points at `90d4c5b`, two commits behind `678e298`; the two commits touch
+only `tools/bootstrap_reference.sh` and `tools/verify_reference_inventory.py`,
+so every fixture and plan file is identical at both. Parity pins the **commit**
+and the SHA256 of every fixture (`docs/migration/parity-matrix.json`), never the
+tag. This repository holds pointers only — see
 [`docs/migration/reference-source.md`](../docs/migration/reference-source.md).
 
 **`reference-rebuild-local` is COMPLETED / INACTIVE.** Nothing may depend on it
@@ -94,8 +148,8 @@ it is not answered. "The local agent said so" is not an anchor.
 
 | Item | Owner |
 |---|---|
-| `REF-GAP-SOCIO-R-SMACOF` | parity-quality + sociomapa-deterministic |
-| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + simulation-engine |
+| `REF-GAP-SOCIO-R-SMACOF` | parity-quality + A8 sociomapa-deterministic — OI-6. Blocked on R + `smacof` **and** the withheld archive |
+| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + A7 simulation-engine — OI-7. Blocked on a credential, an ADR 0008 egress route **and** the withheld archive |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` | data owner / population-data, after the licensing decision. Its destination must satisfy EU residency — [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) |
 
 ## Next
@@ -136,7 +190,8 @@ left to build.
 |---|---|---|---|
 | D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
-| D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
+| D3 | ~~How the reference reaches CI~~ — **split.** Golden fixtures: CI checks out `AiAnalytics-AIA/AIA-reference` at the pinned commit; **needs a human to add a read-only deploy key as the `AIA_REFERENCE_DEPLOY_KEY` secret, then set the variable `AIA_REQUIRE_REFERENCE_REPO=1`**. Legacy-code comparison (the 94 tests): needs the withheld archive, which stays out of CI until its licence decision and an EU-resident home | Golden gates running in CI; the legacy parity tier | `ARCHITECTURE.md §8`, OI-1 |
+| D6 | **Is the Simulation lifecycle in the MVP?** `MVP-ACCEPT-1` is scoped to one Research study. Bringing Simulation in adds `simulation.*` to the blockers and makes OI-7 release-blocking | MVP scope | `docs/migration/mvp-acceptance.md` §6 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 

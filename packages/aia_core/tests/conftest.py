@@ -45,6 +45,53 @@ def legacy_root() -> Path:
     return root
 
 
+# --------------------------------------------------------------------------- #
+# The reference repository (golden fixtures)
+#
+# Distinct from the legacy prototype above. ``AiAnalytics-AIA/AIA-reference`` is
+# the private specification repository: it holds the golden fixtures as
+# committed JSON and needs no raw archive. CI checks it out with a read-only
+# deploy key; locally it is a sibling clone or ``AIA_REFERENCE_REPO``.
+# --------------------------------------------------------------------------- #
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_DEFAULT_REFERENCE_REPO_PATHS = (
+    _REPO_ROOT.parent / "aia-reference",
+    _REPO_ROOT.parent / "AIA-reference",
+    _REPO_ROOT / ".reference" / "aia-reference",
+)
+
+
+def _reference_repo_root() -> Path | None:
+    """Return a reference-repository checkout, or None when there is none."""
+    configured = os.environ.get("AIA_REFERENCE_REPO")
+    candidates = [Path(configured)] if configured else list(_DEFAULT_REFERENCE_REPO_PATHS)
+    for candidate in candidates:
+        if (candidate / "golden-fixtures" / "manifest.json").is_file():
+            return candidate
+    return None
+
+
+@pytest.fixture(scope="session")
+def reference_repo() -> Path:
+    """Return the reference repository root, skipping -- or failing -- without it.
+
+    Absent is valid by default, so a fork or a fresh clone stays green. Once CI
+    holds the deploy key it sets ``AIA_REQUIRE_REFERENCE_REPO=1``, and a missing
+    checkout becomes a failure rather than a skip that reads like a pass.
+    """
+    root = _reference_repo_root()
+    if root is None:
+        message = (
+            "reference repository not available; clone AiAnalytics-AIA/AIA-reference "
+            "beside this repository or set AIA_REFERENCE_REPO to enable golden fixtures"
+        )
+        if os.environ.get("AIA_REQUIRE_REFERENCE_REPO") == "1":
+            pytest.fail("AIA_REQUIRE_REFERENCE_REPO=1 but " + message)
+        pytest.skip(message)
+    return root
+
+
 @pytest.fixture(scope="session")
 def legacy_pipeline() -> Iterator[Any]:
     """Import the legacy ``project_pipeline`` module for parity comparison."""

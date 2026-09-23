@@ -1,0 +1,3263 @@
+{
+  "schema_version": 1,
+  "description": "Production parity matrix, keyed by the 78 stable capability ids of the reference. Hand-edited; verdicts are never stored here -- tools/parity_status.py computes them from these declarations plus test results. Rules: docs/migration/parity-matrix.md.",
+  "reference": {
+    "repository": "AiAnalytics-AIA/AIA-reference",
+    "commit": "678e298ad9ca0263da53cc8920d153fdfb956c93",
+    "tag": "reference-18.6.6-gemo-2026-09-11-v1",
+    "archive_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+    "parity_plan_sha256": "d5351e9163064e1cdfef2bdda1faa9b129566ca782e52bb9e59c3f564228a005",
+    "fixture_manifest_sha256": "515b18bbf777fe6ddd656f369fd00e67819be12e9bdc594ab2bc3949b3ef5f1a"
+  },
+  "reference_discrepancies": [
+    {
+      "id": "REF-DISC-1",
+      "rejected_fixture_link": {
+        "capability": "cost.reservations",
+        "fixture": "F11_analysis_weight_fallback_chains"
+      },
+      "reference_claim": "parity-plan.json lists F11_analysis_weight_fallback_chains as a fixture of cost.reservations",
+      "production_position": "Not carried. F11 characterises the four analysis-weight fallback chains (golden-fixtures/manifest.json names population.weighting); nothing in it exercises a cost reservation. Carrying the link would let a weighting gate count as money-control evidence.",
+      "anchor": "AIA-reference parity-plan.json, capability cost.reservations, fixtures @ 678e298",
+      "resolution": "Correct the link upstream in AIA-reference and re-run tools/build_parity_plan.py"
+    }
+  ],
+  "reference_gaps": {
+    "REF-GAP-SOCIO-R-SMACOF": {
+      "fixture": "F12_r_smacof_unfolding_layout",
+      "owners": [
+        "parity-quality",
+        "A8 sociomapa-deterministic"
+      ],
+      "status": "OPEN",
+      "blocked_on": [
+        "r_smacof",
+        "legacy_tree"
+      ],
+      "blockers": [
+        "A host with Rscript and the R package smacof.",
+        "The legacy sociomap.py, which exists only inside the withheld archive: the recipe runs sociomap.fit_unfolding(method='r_smacof'), so R alone cannot produce the fixture (REF-WITHHELD-REFERENCE-ARCHIVE)."
+      ],
+      "definition_of_done": "F12 captured in AIA-reference and manifested; the R-vs-Python divergence against F4 stated as a number after optimal rotation/reflection alignment, with the stress_1 delta; the tolerance for the production-declared algorithm recorded; F12 pinned here.",
+      "register": ".planning/open-items.md OI-6",
+      "anchor": "AIA-reference reference-gaps.md 'REF-GAP-SOCIO-R-SMACOF' @ 678e298"
+    },
+    "REF-GAP-SIMULATION-WORLD-MODEL": {
+      "fixture": "F13_simulation_world_inoculation",
+      "owners": [
+        "parity-quality",
+        "A7 simulation-engine"
+      ],
+      "status": "OPEN",
+      "blocked_on": [
+        "provider_credential",
+        "legacy_tree",
+        "population_panel"
+      ],
+      "blockers": [
+        "An authorised model-provider credential, through an egress route approved under ADR 0008 for the spec's data class.",
+        "The legacy full_simulation.py (build_world_model, inoculate_population), which exists only inside the withheld archive (REF-WITHHELD-REFERENCE-ARCHIVE).",
+        "Population v17_4_0, which the inoculation step reads."
+      ],
+      "definition_of_done": "The sanitised world model is frozen once, with its sha256, as fixture input; F13 captures the FS_* columns, factor_stats, correlation_matrix and the _nearest_psd_corr / _calibrate_intercept / _driver_vector outputs at tolerance 1e-9 on v17_4_0; F13 manifested upstream and pinned here. World-model generation itself stays SEMANTIC.",
+      "register": ".planning/open-items.md OI-7",
+      "anchor": "AIA-reference reference-gaps.md 'REF-GAP-SIMULATION-WORLD-MODEL' @ 678e298"
+    }
+  },
+  "fixtures": {
+    "F10_dual_panel_loader_divergence": {
+      "capability": "population.panel_loader",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F10_dual_panel_loader_divergence.json",
+      "sha256": "4871ff342386543c2fbab90ab8baa352af2f0aa366a2c9d2b53203cd69996a05",
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "requires": [
+        "reference_repo",
+        "population_panel"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "ONE canonical panel loader; any differing consumer view is a named transformation"
+      },
+      "gap": null
+    },
+    "F11_analysis_weight_fallback_chains": {
+      "capability": "population.weighting",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F11_analysis_weight_fallback_chains.json",
+      "sha256": "ac25bc3b200c407c1d1d32512733f99552a34e4ab404dd9c023e5af84f3b3b3b",
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "requires": [
+        "reference_repo",
+        "population_panel"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "weight resolution that fails explicitly and records the resolved weight identity"
+      },
+      "gap": null
+    },
+    "F1_relation_scale_coercion": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F1_relation_scale_coercion.json",
+      "sha256": "14300d173b4639c876f5f89d8d11020a02b5d6d752d44b9724b567fc07f18c32",
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "relation-scale coercion to 1..10 with NaN/inf sentinels and diagonal zeroing"
+      },
+      "gap": null
+    },
+    "F2_mutual_relation_for_position": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F2_mutual_relation_for_position.json",
+      "sha256": "9f20f60544b4defaa5d9d38444a35bb7705559fab21ded4ece13d0cf2111d263",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-12,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "mutual relation for position: mean of i->j and j->i, (m-1)/9 clipped to [0,1]"
+      },
+      "gap": null
+    },
+    "F3_ipsatization": {
+      "capability": "sociomapping.study_module",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F3_ipsatization.json",
+      "sha256": "14bf1ab307f4f6237f54096a2c9545b8a4a78d79751b7d70bbf5871d7979e5b6",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-12,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "within-person centring over object columns"
+      },
+      "gap": null
+    },
+    "F4_python_unfolding_layout": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F4_python_unfolding_layout.json",
+      "sha256": "23e5791696f977011a454c9abdd92b3b72f1d04ccdc1c40287e11e53150cf52f",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-06,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "python weighted unfolding layout, seed 20260814"
+      },
+      "gap": null
+    },
+    "F5_normalizer66_all_modes": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F5_normalizer66_all_modes.json",
+      "sha256": "6930199511e7ab1b116e9a3b3e5e9781ab68a71ab52adcfccc5da0735d7ba65c",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "metric normaliser, every mode (frontend mathematics moved server-side)"
+      },
+      "gap": null
+    },
+    "F6_objectMetricArray66": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F6_objectMetricArray66.json",
+      "sha256": "c1b108126eff63d8a313f9978d57860f351eb1d1a798bf90a078faa1043473ef",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "object metric array (frontend mathematics moved server-side)"
+      },
+      "gap": null
+    },
+    "F7_terrain66_respondent_density": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F7_terrain66_respondent_density.json",
+      "sha256": "9d75068a33b2da4f45bb9dd3b13fd4752afef34f15c2edc265ca61dc034f7527",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "respondent-density terrain (frontend mathematics; no reference backend exists)"
+      },
+      "gap": null
+    },
+    "F8_terrain66_object_metric": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F8_terrain66_object_metric.json",
+      "sha256": "7ba368643ad028b68b71a6a58bdeed37a998d7bce4e016986bce16092f9eebb2",
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_IMPLEMENTATION",
+        "entry_point": "object-metric terrain (frontend mathematics; no reference backend exists)"
+      },
+      "gap": null
+    },
+    "F9_manual_drag_is_view_override": {
+      "capability": "sociomapping.core",
+      "status": "CAPTURED",
+      "path": "golden-fixtures/F9_manual_drag_is_view_override.json",
+      "sha256": "c0fa4cc5fc2b59b28c07f4eec6b5be235a78414459c133d2590a83c0b4d42d92",
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "requires": [
+        "reference_repo"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "GATED",
+        "entry_point": "aia_core.domain.sociomap.view.apply_view_overrides"
+      },
+      "gap": null
+    },
+    "F12_r_smacof_unfolding_layout": {
+      "capability": "sociomapping.core",
+      "status": "SPECIFIED_NOT_CAPTURED",
+      "path": null,
+      "sha256": null,
+      "parity_type": "NUMERICAL",
+      "tolerance": null,
+      "requires": [
+        "reference_repo",
+        "legacy_tree",
+        "r_smacof"
+      ],
+      "gates_capability": false,
+      "gate": {
+        "state": "AWAITING_CAPTURE",
+        "entry_point": "R smacof::unfolding layout on F4's input, seed 20260814"
+      },
+      "gap": "REF-GAP-SOCIO-R-SMACOF",
+      "note": "Characterises the reference's host-dependence defect. Gates sociomapping.core only if production declares r_smacof as its algorithm; if it declares the Python unfolding, F4 is the gate and F12 sizes the recorded divergence."
+    },
+    "F13_simulation_world_inoculation": {
+      "capability": "simulation.engine",
+      "status": "SPECIFIED_NOT_CAPTURED",
+      "path": null,
+      "sha256": null,
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "requires": [
+        "reference_repo",
+        "legacy_tree",
+        "provider_credential",
+        "population_panel"
+      ],
+      "gates_capability": true,
+      "gate": {
+        "state": "AWAITING_CAPTURE",
+        "entry_point": "inoculate_population against a frozen world-model snapshot, seed 20260816"
+      },
+      "gap": "REF-GAP-SIMULATION-WORLD-MODEL",
+      "note": "The world model is frozen as fixture input so deterministic parity never depends on a model reproducing tokens; world-model generation itself stays SEMANTIC."
+    }
+  },
+  "capabilities": {
+    "ai.credentials": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "provider_auth.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "Local keystore replaced by Secrets Manager + KMS",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "Local keystore replaced by Secrets Manager + KMS",
+        "production_target": "Secrets Manager + KMS; no local keystore",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02)."
+      },
+      "notes": ""
+    },
+    "ai.gateway": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "ai_router.py",
+        "claude_code_provider.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Provider transport behind a ModelGateway; no silent fallback is EXACT",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R11"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02)."
+      },
+      "notes": ""
+    },
+    "ai.provider_compat": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "anthropic_compat.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "Local SDK shim unnecessary server-side",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "Local SDK shim unnecessary server-side",
+        "production_target": "Native SDK use; shim removed",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "ai.provider_diagnostics": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "provider_diagnostics.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "User-facing diagnostics; actionable content matters",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "ai.provider_parity": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "provider_parity.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Runtime provider-parity gate decisions, called by both ui_server and worker_job",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "ai.provider_policy": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "IMPLEMENTED",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/providers.py"
+      ],
+      "reference_modules": [
+        "provider_runtime.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Provider/policy resolution verified over a 700-case matrix; one documented deviation (D2)",
+      "fixtures": [],
+      "gates": [
+        {
+          "id": "ai.provider_policy/reference",
+          "kind": "reference_comparison",
+          "requires": [
+            "legacy_tree"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_providers_parity.py::test_provider_ids_match_legacy",
+            "packages/aia_core/tests/test_providers_parity.py::test_ui_labels_match_legacy",
+            "packages/aia_core/tests/test_providers_parity.py::test_normalize_provider_matches_legacy",
+            "packages/aia_core/tests/test_providers_parity.py::test_normalize_policy_matches_legacy",
+            "packages/aia_core/tests/test_providers_parity.py::test_policy_for_provider_matches_legacy",
+            "packages/aia_core/tests/test_providers_parity.py::test_provider_for_stage_matches_legacy_for_known_inputs",
+            "packages/aia_core/tests/test_providers_parity.py::test_budget_check_matches_legacy_for_paid_providers",
+            "packages/aia_core/tests/test_providers_parity.py::test_default_budget_matches_product_policy"
+          ]
+        },
+        {
+          "id": "ai.provider_policy/deviations-D2-D3",
+          "kind": "reference_comparison",
+          "requires": [
+            "legacy_tree"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_providers_parity.py::test_negative_cost_records_do_not_inflate_remaining_budget",
+            "packages/aia_core/tests/test_providers_parity.py::test_unknown_stage_override_no_longer_breaks_policy"
+          ]
+        },
+        {
+          "id": "ai.provider_policy/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_providers_parity.py::test_unknown_stage_override_falls_back_to_policy",
+            "packages/aia_core/tests/test_providers_parity.py::test_no_silent_fallback_from_claude_code_to_paid_api",
+            "packages/aia_core/tests/test_providers_parity.py::test_single_provider_policies_ignore_preference",
+            "packages/aia_core/tests/test_providers_parity.py::test_subscription_runtime_is_never_budget_blocked",
+            "packages/aia_core/tests/test_providers_parity.py::test_budget_denial_is_explicit_not_a_downgrade",
+            "packages/aia_core/tests/test_providers_parity.py::test_paid_provider_classification",
+            "packages/aia_core/tests/test_providers_parity.py::test_budget_decision_is_immutable"
+          ]
+        }
+      ],
+      "recorded_evidence": [
+        {
+          "date": "2026-09-21",
+          "verdict": "PASS",
+          "environment": "local, legacy tree present (AIA_LEGACY_REFERENCE), Python 3.14.6",
+          "anchor": "docs/migration/parity-matrix.md 'Baseline' @ df294e2 -- 29 parity tests passed against the prototype"
+        },
+        {
+          "date": "2026-09-21",
+          "verdict": "PASS",
+          "environment": "local, PostgreSQL 16.15, legacy tree present",
+          "anchor": "docs/migration/status.md 'Last verified commit' -- 496 passed / 0 skipped @ 8102551, including the 94 parity and characterization tests"
+        },
+        {
+          "date": "2026-09-22",
+          "verdict": "NOT_EXECUTED",
+          "environment": "CI",
+          "anchor": ".github/workflows/ci.yml parity job @ 17c0a6b -- legacy tree absent, every reference test skipped"
+        }
+      ],
+      "intentional_difference": null,
+      "documented_deviations": [
+        {
+          "id": "D2",
+          "summary": "an unrecognised stage override no longer overrides the project's provider policy",
+          "anchor": "docs/migration/parity-matrix.md D2",
+          "gate": "ai.provider_policy/deviations-D2-D3"
+        },
+        {
+          "id": "D3",
+          "summary": "negative cost records no longer inflate the reported remaining budget",
+          "anchor": "docs/migration/parity-matrix.md D3",
+          "gate": "ai.provider_policy/deviations-D2-D3"
+        }
+      ],
+      "high_risk": [
+        "R11"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02)."
+      },
+      "notes": ""
+    },
+    "ai.provider_setup": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "claude_code_setup.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "Local CLI bootstrap has no server-side equivalent; capability detection must remain",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "Local CLI bootstrap has no server-side equivalent; capability detection must remain",
+        "production_target": "Server-side capability detection; no local CLI bootstrap",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "ai.runtime_policy": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "ai_execution_context.py",
+        "ai_runtime.py",
+        "runtime_config.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Model routing and pricing constants; runtime_config has fan-in 34",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02)."
+      },
+      "notes": ""
+    },
+    "ai.single_provider_mode": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "RETIRED",
+      "implementation": [],
+      "reference_modules": [
+        "NPC_JEN_CLAUDE_CODE.py"
+      ],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "Contradicts the no-silent-fallback and budget rules; intentionally retired",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: Contradicts the no-silent-fallback and budget rules; intentionally retired"
+      },
+      "notes": ""
+    },
+    "ai.usage_ledger": {
+      "family": "ai",
+      "bounded_context": "ai-runtime",
+      "owner": {
+        "workstream": "ai-runtime",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "ai_runtime_audit.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Immutable usage and cost records",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02, AC-13)."
+      },
+      "notes": ""
+    },
+    "analysis.modules": {
+      "family": "analysis",
+      "bounded_context": "analysis",
+      "owner": {
+        "workstream": "analysis",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "analysis_agent.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Eight analysis modules; evidence-reference discipline is EXACT, prose is SEMANTIC",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R5"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "analysis.qc": {
+      "family": "analysis",
+      "bounded_context": "analysis",
+      "owner": {
+        "workstream": "analysis",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "pricing_engine.py",
+        "qc.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "QC metrics and pricing analysis are deterministic",
+      "fixtures": [
+        "F11_analysis_weight_fallback_chains"
+      ],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "api.http": {
+      "family": "api",
+      "bounded_context": "api",
+      "owner": {
+        "workstream": "api",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "apps/api/src/aia_api/routers/"
+      ],
+      "reference_modules": [
+        "ui_server.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "162 unauthenticated routes replaced by an authenticated, study-scoped API. Capability coverage must be preserved; route shape need not be",
+      "fixtures": [],
+      "gates": [
+        {
+          "id": "api.http/authenticated-study-scoped",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "apps/api/tests/test_projects_api.py",
+            "apps/api/tests/test_identity.py",
+            "packages/aia_core/tests/test_scope_isolation.py"
+          ]
+        }
+      ],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "162 unauthenticated routes replaced by an authenticated, study-scoped API. Capability coverage must be preserved; route shape need not be",
+        "production_target": "Authenticated, study-scoped API; capability coverage preserved, route shape free",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [
+        "R14"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-01)."
+      },
+      "notes": "Projects, scope, budget and health routes exist and are study-scoped; most capability routes do not."
+    },
+    "artifacts.registration": {
+      "family": "artifacts",
+      "bounded_context": "artifacts",
+      "owner": {
+        "workstream": "artifacts",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "project_artifact_sync.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Sub-artifact registration from engine outputs; lineage edges and provenance are EXACT within it",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-08, AC-13)."
+      },
+      "notes": "ArtifactRepository stores provenance and dependency edges, but no engine emits sub-artifacts yet, so registration from engine outputs is not started."
+    },
+    "artifacts.storage": {
+      "family": "artifacts",
+      "bounded_context": "artifacts",
+      "owner": {
+        "workstream": "artifacts",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "IMPLEMENTED",
+      "implementation": [
+        "packages/aia_core/src/aia_core/infrastructure/storage.py",
+        "packages/aia_core/src/aia_core/infrastructure/artifact_repository.py"
+      ],
+      "reference_modules": [
+        "artifact_store.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Hash-then-reuse-then-upload-then-verify ordering preserved; three backends replace one filesystem store",
+      "fixtures": [],
+      "gates": [
+        {
+          "id": "artifacts.storage/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_artifacts.py"
+          ]
+        }
+      ],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-08)."
+      },
+      "notes": ""
+    },
+    "audience.definition": {
+      "family": "audience",
+      "bounded_context": "audience",
+      "owner": {
+        "workstream": "audience",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "audience.py",
+        "audience_dimensions.py",
+        "audience_profile.py",
+        "audience_registry.py",
+        "audience_selector.py",
+        "audience_strategist.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Audience sufficiency and eligibility decisions gate whether a study may run",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-05)."
+      },
+      "notes": ""
+    },
+    "audience.segments": {
+      "family": "audience",
+      "bounded_context": "audience",
+      "owner": {
+        "workstream": "audience",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "segment.py",
+        "segment_orchestration.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Segment assignment is deterministic given inputs",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-05)."
+      },
+      "notes": ""
+    },
+    "config.edition": {
+      "family": "config",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "edition_config.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "Edition allow-list currently FAILS OPEN on a malformed file; production must fail closed",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "Edition allow-list currently FAILS OPEN on a malformed file; production must fail closed",
+        "production_target": "A malformed edition file FAILS CLOSED instead of enabling all providers",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [
+        "R17"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-12)."
+      },
+      "notes": ""
+    },
+    "config.environment": {
+      "family": "config",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "apps/api/src/aia_api/config.py"
+      ],
+      "reference_modules": [
+        "env_loader.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "Ambient env vars replaced by typed configuration recorded on the run",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "Ambient env vars replaced by typed configuration recorded on the run",
+        "production_target": "Typed configuration recorded on the run; no ambient methodology switches",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-12)."
+      },
+      "notes": "Typed settings with production guards exist; recording the resolved configuration on each run does not."
+    },
+    "cost.estimation": {
+      "family": "cost",
+      "bounded_context": "cost",
+      "owner": {
+        "workstream": "cost",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "cost_estimator.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 0.01,
+      "parity_reason": "Pre-run cost and duration ranges; tolerance in USD",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-03, AC-13)."
+      },
+      "notes": ""
+    },
+    "cost.hard_cap": {
+      "family": "cost",
+      "bounded_context": "cost",
+      "owner": {
+        "workstream": "cost",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "budget_guard.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "The per-run spend cap decision must match exactly",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R10"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-03)."
+      },
+      "notes": "Study-level reservations exist (cost.reservations); budget_guard's per-run hard cap is not ported (high-risk-behaviors R10)."
+    },
+    "cost.reservations": {
+      "family": "cost",
+      "bounded_context": "cost",
+      "owner": {
+        "workstream": "cost",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "IMPLEMENTED",
+      "implementation": [
+        "packages/aia_core/src/aia_core/infrastructure/workflow_repository.py"
+      ],
+      "reference_modules": [
+        "cost_controller.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Reservation decisions must match; concurrency behaviour is stronger by design",
+      "fixtures": [],
+      "gates": [
+        {
+          "id": "cost.reservations/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_workflow_engine.py::test_budget_exhaustion_parks_in_its_own_state",
+            "packages/aia_core/tests/test_workflow_engine.py::test_reservations_prevent_concurrent_overspend",
+            "packages/aia_core/tests/test_workflow_engine.py::test_an_exact_limit_reservation_is_permitted",
+            "packages/aia_core/tests/test_workflow_engine.py::test_settling_a_reservation_charges_the_actual_cost",
+            "packages/aia_core/tests/test_workflow_engine.py::test_releasing_a_reservation_charges_nothing",
+            "packages/aia_core/tests/test_workflow_engine.py::test_every_reservation_resolves_to_a_study",
+            "packages/aia_core/tests/test_providers_parity.py::test_reservations_prevent_concurrent_overspend"
+          ]
+        },
+        {
+          "id": "cost.reservations/contention",
+          "kind": "production_contract",
+          "requires": [
+            "postgres"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_workflow_concurrency.py::test_concurrent_reservations_cannot_exceed_the_budget",
+            "packages/aia_core/tests/test_workflow_concurrency.py::test_a_failed_reservation_leaves_no_partial_state",
+            "packages/aia_core/tests/test_workflow_concurrency.py::test_an_attempt_and_its_reservation_commit_or_roll_back_together",
+            "packages/aia_core/tests/test_workflow_concurrency.py::test_uncertain_settlement_is_charged_exactly_once_under_contention"
+          ]
+        }
+      ],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R10"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-03)."
+      },
+      "notes": ""
+    },
+    "data_library.demos": {
+      "family": "data_library",
+      "bounded_context": "data-library",
+      "owner": {
+        "workstream": "data-library",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "demo_showcase.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Read-only seeding, registry-driven, and the no-AI-on-open rule. Ten demos are also end-to-end golden studies",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R15"
+      ],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP path pending reference open decision D4 (demo library as product or fixture). Blocks the first release that ships demo seeding."
+      },
+      "notes": ""
+    },
+    "data_library.ingest_cli": {
+      "family": "data_library",
+      "bounded_context": "data-library",
+      "owner": {
+        "workstream": "data-library",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "RETIRED",
+      "implementation": [],
+      "reference_modules": [
+        "ingest_cli.py"
+      ],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "Becomes an API plus worker path",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: Becomes an API plus worker path"
+      },
+      "notes": ""
+    },
+    "data_library.ingest_subsystem": {
+      "family": "data_library",
+      "bounded_context": "data-library",
+      "owner": {
+        "workstream": "data-library",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "ingest_automation.py",
+        "npc_ingest/__init__.py",
+        "npc_ingest/harmonization.py",
+        "npc_ingest/leakage.py",
+        "npc_ingest/manager.py",
+        "npc_ingest/realism.py",
+        "npc_ingest/registry.py",
+        "npc_ingest/response_bank.py",
+        "npc_ingest/router.py",
+        "npc_ingest/versioning.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Routing, harmonisation and leakage checks; leakage decision is EXACT",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "data_library.ingestion": {
+      "family": "data_library",
+      "bounded_context": "data-library",
+      "owner": {
+        "workstream": "data-library",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "data_library.py",
+        "library_batch_import.py",
+        "library_system_catalog.py",
+        "society_insights.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Approval ordering: propose -> human decision -> materialise. Order is the contract",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "data_library.panel_tools": {
+      "family": "data_library",
+      "bounded_context": "data-library",
+      "owner": {
+        "workstream": "data-library",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "npc_tools/__init__.py",
+        "npc_tools/npc_fetch.py",
+        "npc_tools/npc_lint.py",
+        "npc_tools/npc_provenance.py",
+        "npc_tools/npc_validate.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Panel QC, provenance and authenticity lint",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "governance.anchors": {
+      "family": "governance",
+      "bounded_context": "governance",
+      "owner": {
+        "workstream": "governance",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "anchor_registry.py",
+        "campaign_background.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Known-truth anchors and fail-closed brand knowledge",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R13"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "governance.benchmarks": {
+      "family": "governance",
+      "bounded_context": "governance",
+      "owner": {
+        "workstream": "governance",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "benchmark.py",
+        "cross_survey.py",
+        "model_drift.py",
+        "persona_ablation.py",
+        "research_arena.py",
+        "survey_experiments.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Benchmark scoring, drift detection and ablation deltas",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "governance.evidence_audit": {
+      "family": "governance",
+      "bounded_context": "governance",
+      "owner": {
+        "workstream": "governance",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "effective_evidence_audit.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Effective-evidence coverage computation",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-11)."
+      },
+      "notes": ""
+    },
+    "governance.evidence_gates": {
+      "family": "governance",
+      "bounded_context": "governance",
+      "owner": {
+        "workstream": "governance",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "evidence_validator.py",
+        "fidelity.py",
+        "tier_gate.py",
+        "validation_gate.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Fail-closed gate decisions; a different decision is a product defect",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "governance.holdout": {
+      "family": "governance",
+      "bounded_context": "governance",
+      "owner": {
+        "workstream": "governance",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "holdout_protocol.py",
+        "holdout_registry.py",
+        "validation_workflow.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Build/verify separation and preregistration are discrete and load-bearing",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R12"
+      ],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP path: the MVP delivers with prediction validation stated as EXTERNAL_HOLDOUT_PENDING (governance.validation_state). The holdout protocol blocks any claim of external predictive validation, which the MVP does not make."
+      },
+      "notes": ""
+    },
+    "governance.legal": {
+      "family": "governance",
+      "bounded_context": "governance",
+      "owner": {
+        "workstream": "governance",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "legal_gate.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Source-use gate decisions",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-11)."
+      },
+      "notes": ""
+    },
+    "governance.product_policy": {
+      "family": "governance",
+      "bounded_context": "governance",
+      "owner": {
+        "workstream": "governance",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "data_contract.py",
+        "manifest.py",
+        "product_policy.py",
+        "provenance.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Methodology contract decisions, incl. CORE_JOINT_STATUS hash binding",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R5",
+        "R6"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "governance.validation_state": {
+      "family": "governance",
+      "bounded_context": "governance",
+      "owner": {
+        "workstream": "governance",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "smoke_validation.py",
+        "system_fingerprint.py",
+        "validation_status.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "State machine bound to a system fingerprint",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R12"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "operability.diagnostics": {
+      "family": "operability",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "RETIRED",
+      "implementation": [],
+      "reference_modules": [
+        "NPC_AI_DIAGNOSTIKA.py",
+        "coherence_audit_v17.py",
+        "doctor.py",
+        "runtime_diagnostic.py",
+        "selftest.py",
+        "workflow_report.py"
+      ],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "Replaced by CI, health endpoints and CloudWatch",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: Replaced by CI, health endpoints and CloudWatch"
+      },
+      "notes": ""
+    },
+    "operability.integrity": {
+      "family": "operability",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "diagnostika.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Panel integrity gate runs before a live run, so it gates research",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-04)."
+      },
+      "notes": ""
+    },
+    "operability.release": {
+      "family": "operability",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "RETIRED",
+      "implementation": [],
+      "reference_modules": [
+        "handoff_verify.py",
+        "portability_check.py",
+        "release_gate.py",
+        "release_integrity.py",
+        "release_scorecard.py",
+        "secret_scan.py"
+      ],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "Replaced by CI quality gates",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: Replaced by CI quality gates"
+      },
+      "notes": ""
+    },
+    "operability.smoke": {
+      "family": "operability",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "RETIRED",
+      "implementation": [],
+      "reference_modules": [
+        "backend_smoketest.py",
+        "claude_code_respondent_smoketest.py",
+        "claude_code_setup_smoketest.py",
+        "golden_path_test.py",
+        "live_smoketest.py"
+      ],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "Replaced by the production test suite",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: Replaced by the production test suite"
+      },
+      "notes": ""
+    },
+    "operability.support": {
+      "family": "operability",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "support_bundle.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Support bundle is HTTP-exposed product behaviour; contents matter, format does not",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "orchestration.cli": {
+      "family": "orchestration",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "npc.py",
+        "run.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "CLI entry points become API and worker entry points",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "CLI entry points become API and worker entry points",
+        "production_target": "API and worker entry points",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-07)."
+      },
+      "notes": ""
+    },
+    "pipeline.stages": {
+      "family": "pipeline",
+      "bounded_context": "project",
+      "owner": {
+        "workstream": "project",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "IMPLEMENTED",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/pipeline.py"
+      ],
+      "reference_modules": [
+        "project_pipeline.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Fingerprint contract; byte-identical parity already verified against the prototype",
+      "fixtures": [],
+      "gates": [
+        {
+          "id": "pipeline.stages/reference",
+          "kind": "reference_comparison",
+          "requires": [
+            "legacy_tree"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_pipeline_parity.py::test_stage_lists_match_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_stage_statuses_match_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_impact_roots_match_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_stage_input_payload_matches_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_stage_fingerprint_matches_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_unknown_stage_payload_matches_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_impact_preview_single_field_matches_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_impact_preview_combinations_match_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_impact_preview_explicit_stage_matches_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_resolve_stage_matches_legacy",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_fingerprint_function_matches_legacy"
+          ]
+        },
+        {
+          "id": "pipeline.stages/deviation-D1",
+          "kind": "reference_comparison",
+          "requires": [
+            "legacy_tree"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_pipeline_parity.py::test_cross_pipeline_field_crashes_legacy_but_not_us",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_cross_pipeline_field_reverse_direction"
+          ]
+        },
+        {
+          "id": "pipeline.stages/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_pipeline_parity.py::test_unmappable_cross_pipeline_root_is_dropped",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_provider_change_preserves_entire_pipeline",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_earliest_changed_stage_wins",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_presentation_only_change_spares_fieldwork",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_invalidate_and_preserve_partition_the_pipeline",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_fingerprint_ignores_key_order_but_not_values",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_fingerprint_is_stable_for_unserialisable_values",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_stage_fingerprint_changes_only_for_material_inputs",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_changed_fields_detects_nested_edits",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_changed_fields_reports_additions_and_removals",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_project_type_coercion_defaults_to_research",
+            "packages/aia_core/tests/test_pipeline_parity.py::test_stage_status_classification"
+          ]
+        }
+      ],
+      "recorded_evidence": [
+        {
+          "date": "2026-09-21",
+          "verdict": "PASS",
+          "environment": "local, legacy tree present (AIA_LEGACY_REFERENCE), Python 3.14.6",
+          "anchor": "docs/migration/parity-matrix.md 'Baseline' @ df294e2 -- 29 parity tests passed against the prototype"
+        },
+        {
+          "date": "2026-09-21",
+          "verdict": "PASS",
+          "environment": "local, PostgreSQL 16.15, legacy tree present",
+          "anchor": "docs/migration/status.md 'Last verified commit' -- 496 passed / 0 skipped @ 8102551, including the 94 parity and characterization tests"
+        },
+        {
+          "date": "2026-09-22",
+          "verdict": "NOT_EXECUTED",
+          "environment": "CI",
+          "anchor": ".github/workflows/ci.yml parity job @ 17c0a6b -- legacy tree absent, every reference test skipped"
+        }
+      ],
+      "intentional_difference": null,
+      "documented_deviations": [
+        {
+          "id": "D1",
+          "summary": "impact_preview resolves a cross-pipeline field through STAGE_EQUIVALENTS instead of raising in the save path",
+          "anchor": "docs/migration/parity-matrix.md D1",
+          "gate": "pipeline.stages/deviation-D1"
+        }
+      ],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02, AC-08)."
+      },
+      "notes": ""
+    },
+    "population.bridges": {
+      "family": "population",
+      "bounded_context": "population",
+      "owner": {
+        "workstream": "population-data",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "employment_bridge.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "PIAAC employment bridge is deterministic arithmetic",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "population.build": {
+      "family": "population",
+      "bounded_context": "population",
+      "owner": {
+        "workstream": "population-data",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "BUILD_MARKETING_LATENT_v17_1.py",
+        "audit_reference/legacy_build_scripts/patch_version_v17_1.py",
+        "build_wp_artifacts_v17_1.py",
+        "rebuild_social_network_gender_v17_4.py",
+        "validate_v17.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Re-running the two build scripts must reproduce the published panel SHA256 exactly",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R7",
+        "R8"
+      ],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP path: the MVP imports the published v17_4_0 panel and verifies its SHA256 (population.core). Re-running the builds is lineage reproducibility, required before the population is rebuilt, not before a study is delivered."
+      },
+      "notes": ""
+    },
+    "population.core": {
+      "family": "population",
+      "bounded_context": "population",
+      "owner": {
+        "workstream": "population-data",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "core_joint.py",
+        "donor_fusion.py",
+        "population_context.py",
+        "population_subpanels.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "STATIC/LIVE roles, promotion refusal and version identity are product contract",
+      "fixtures": [
+        "F10_dual_panel_loader_divergence"
+      ],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R2",
+        "R4"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-04)."
+      },
+      "notes": ""
+    },
+    "population.panel_loader": {
+      "family": "population",
+      "bounded_context": "population",
+      "owner": {
+        "workstream": "population-data",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "prototype_server.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "Legacy has TWO loaders differing by _analysis_weight; production must expose ONE canonical loader with explicit derived views",
+      "fixtures": [
+        "F10_dual_panel_loader_divergence"
+      ],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "Legacy has TWO loaders differing by _analysis_weight; production must expose ONE canonical loader with explicit derived views",
+        "production_target": "ONE canonical loader; any differing consumer view is an explicit named transformation",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [
+        "R1",
+        "R4",
+        "R9"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-04)."
+      },
+      "notes": ""
+    },
+    "population.readiness": {
+      "family": "population",
+      "bounded_context": "population",
+      "owner": {
+        "workstream": "population-data",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "domain_readiness.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Readiness diagnostics; thresholds preserved, presentation free",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-04)."
+      },
+      "notes": ""
+    },
+    "population.weighting": {
+      "family": "population",
+      "bounded_context": "population",
+      "owner": {
+        "workstream": "population-data",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "kalibrace.py",
+        "mrp.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "Four silent fallback chains (structural 2025 -> census 2021 -> unweighted 1.0); production must fail explicitly and record weight identity in provenance",
+      "fixtures": [
+        "F11_analysis_weight_fallback_chains"
+      ],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "Four silent fallback chains (structural 2025 -> census 2021 -> unweighted 1.0); production must fail explicitly and record weight identity in provenance",
+        "production_target": "Missing/malformed weight selection FAILS EXPLICITLY; resolved weight identity recorded in provenance",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [
+        "R3"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-04)."
+      },
+      "notes": ""
+    },
+    "project.memory": {
+      "family": "project",
+      "bounded_context": "project",
+      "owner": {
+        "workstream": "project",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "project_memory.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Retrieval quality; must never mutate a project",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "project.migration": {
+      "family": "project",
+      "bounded_context": "project",
+      "owner": {
+        "workstream": "project",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "RETIRED",
+      "implementation": [],
+      "reference_modules": [
+        "project_migration.py"
+      ],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "One-off migration of the prototype's own SQLite store",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: One-off migration of the prototype's own SQLite store"
+      },
+      "notes": ""
+    },
+    "project.persistence": {
+      "family": "project",
+      "bounded_context": "project",
+      "owner": {
+        "workstream": "project",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "IMPLEMENTED",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/project.py",
+        "packages/aia_core/src/aia_core/infrastructure/repositories.py",
+        "packages/aia_core/src/aia_core/infrastructure/tables.py"
+      ],
+      "reference_modules": [
+        "project_store.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Revision/stage/artifact semantics preserved; schema deliberately redesigned for PostgreSQL and multi-tenancy",
+      "fixtures": [],
+      "gates": [
+        {
+          "id": "project.persistence/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_project_repository.py",
+            "packages/aia_core/tests/test_project_revisions.py"
+          ]
+        }
+      ],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02, AC-08)."
+      },
+      "notes": ""
+    },
+    "questionnaire.conditionals": {
+      "family": "questionnaire",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "conditional_engine.py",
+        "conditional_validation.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Conditional calibration and category-LOO diagnostics",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02)."
+      },
+      "notes": ""
+    },
+    "questionnaire.engine": {
+      "family": "questionnaire",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "dotaznik.py",
+        "import_dotaznik.py",
+        "navrh.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Question sequencing and filter evaluation; exact prompt text need not match",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02)."
+      },
+      "notes": ""
+    },
+    "questionnaire.instruments": {
+      "family": "questionnaire",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "filter_syntax.py",
+        "instrument_library.py",
+        "survey_lint.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Deterministic instrument library and static lint decisions",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02)."
+      },
+      "notes": ""
+    },
+    "reports.generation": {
+      "family": "reports",
+      "bounded_context": "reporting",
+      "owner": {
+        "workstream": "reporting",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "client_report_v2.py",
+        "final_client_report.py",
+        "output_pack.py",
+        "pdf_targets.py",
+        "report.py",
+        "report_html.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "client_report_v2 + output_pack authoritative; report DATA assembly is EXACT, prose SEMANTIC",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-11)."
+      },
+      "notes": ""
+    },
+    "research.copilot": {
+      "family": "research",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "research_copilot.py"
+      ],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "Optional, closable assistant surface; no research output depends on it",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: Optional, closable assistant surface; no research output depends on it"
+      },
+      "notes": "Optional assistant surface; not scheduled."
+    },
+    "research.design": {
+      "family": "research",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "project_intake.py",
+        "research_context.py",
+        "research_designer.py",
+        "research_project.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "AI-assisted design; structure and constraints matter, not wording",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-02)."
+      },
+      "notes": ""
+    },
+    "respondents.context": {
+      "family": "respondents",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "kontext.py",
+        "task_conditions.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Context must never be implicitly injected; the rule is what matters",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-06)."
+      },
+      "notes": ""
+    },
+    "respondents.engine": {
+      "family": "respondents",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "pipeline.py",
+        "project_engine.py",
+        "representative_sampling.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Sampling and generation; representativeness raking is NUMERICAL within it",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-06)."
+      },
+      "notes": ""
+    },
+    "respondents.factual_layer": {
+      "family": "respondents",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "factual_layer.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Panel facts must never be re-invented by an LLM; the classification decision must match",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-06)."
+      },
+      "notes": ""
+    },
+    "respondents.layers": {
+      "family": "respondents",
+      "bounded_context": "research",
+      "owner": {
+        "workstream": "research",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "behavior.py",
+        "biografie.py",
+        "dimension_catalog.py",
+        "dispozice.py",
+        "osobnost.py",
+        "persona_depth.py",
+        "persona_grounded.py",
+        "styly.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Disposition, personality, biography, style and behaviour layers are deterministic transforms",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-06)."
+      },
+      "notes": ""
+    },
+    "results.dialogue": {
+      "family": "results",
+      "bounded_context": "results",
+      "owner": {
+        "workstream": "results",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "respondent_dialogue.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Grounded vs simulated dialogue must stay distinguishable",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "results.registry": {
+      "family": "results",
+      "bounded_context": "results",
+      "owner": {
+        "workstream": "results",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "results_registry.py",
+        "run_store.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Run history and question bank; storage redesigned",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-11)."
+      },
+      "notes": ""
+    },
+    "results.verification": {
+      "family": "results",
+      "bounded_context": "results",
+      "owner": {
+        "workstream": "results",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "reality_alignment.py",
+        "reality_alignment_acceptance.py",
+        "result_context.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "External verification and reality alignment; gate outcome is EXACT",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "runtime.desktop": {
+      "family": "runtime",
+      "bounded_context": "platform",
+      "owner": {
+        "workstream": "platform",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "RETIRED",
+      "implementation": [],
+      "reference_modules": [
+        "desktop_launcher.py",
+        "launcher_bootstrap.py",
+        "spawn_env.py"
+      ],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "Windows launchers replaced by containers on ECS",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: Windows launchers replaced by containers on ECS"
+      },
+      "notes": ""
+    },
+    "simulation.engine": {
+      "family": "simulation",
+      "bounded_context": "simulation",
+      "owner": {
+        "workstream": "A7 simulation-engine",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "full_simulation.py",
+        "fullsim_learning.py",
+        "simulation_batch.py",
+        "simulation_context.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Deterministic given a fixed world model and seed; world model generation is SEMANTIC. FIXTURE OUTSTANDING - recipe in parity-plan.md",
+      "fixtures": [
+        "F13_simulation_world_inoculation"
+      ],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [
+        {
+          "id": "SUB-SIM-BOUNDS",
+          "summary": "out-of-range world-model output is rejected, where the reference silently clips it",
+          "anchor": "AIA-reference simulation-reference-contract.md (_sanitize_world_model) @ 678e298",
+          "gate": null
+        }
+      ],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "simulation.scenarios": {
+      "family": "simulation",
+      "bounded_context": "simulation",
+      "owner": {
+        "workstream": "A7 simulation-engine",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "scenario_compiler.py",
+        "scenario_truth_log.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "Blind/scenario eligibility and frozen-truth write-once immutability are discrete rules",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+      },
+      "notes": ""
+    },
+    "sociomapping.core": {
+      "family": "sociomapping",
+      "bounded_context": "sociomapping",
+      "owner": {
+        "workstream": "A8 sociomapa-deterministic",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/sociomap/"
+      ],
+      "reference_modules": [
+        "segment_intelligence.py",
+        "sociomap.py",
+        "visualization_lab.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Terrain, normalisation, T-score and layout are deterministic research computation; R smacof branch UNCHARACTERIZED locally",
+      "fixtures": [
+        "F1_relation_scale_coercion",
+        "F2_mutual_relation_for_position",
+        "F4_python_unfolding_layout",
+        "F5_normalizer66_all_modes",
+        "F6_objectMetricArray66",
+        "F7_terrain66_respondent_density",
+        "F8_terrain66_object_metric",
+        "F9_manual_drag_is_view_override",
+        "F12_r_smacof_unfolding_layout"
+      ],
+      "gates": [
+        {
+          "id": "sociomapping.core/F9",
+          "kind": "golden_fixture",
+          "requires": [
+            "reference_repo"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_golden_fixtures.py::test_golden_fixture_gate[F9_manual_drag_is_view_override]"
+          ]
+        },
+        {
+          "id": "sociomapping.core/view-contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_contracts.py::test_dragging_a_node_never_mutates_the_artifact",
+            "packages/aia_core/tests/test_sociomap_contracts.py::test_overrides_are_themselves_immutable_values",
+            "packages/aia_core/tests/test_sociomap_contracts.py::test_stale_overrides_are_refused_when_canonical_results_change",
+            "packages/aia_core/tests/test_sociomap_contracts.py::test_overrides_for_unknown_entities_are_refused",
+            "packages/aia_core/tests/test_sociomap_contracts.py::test_empty_overrides_display_the_canonical_layout",
+            "packages/aia_core/tests/test_sociomap_contracts.py::test_overrides_reject_non_finite_positions"
+          ]
+        },
+        {
+          "id": "sociomapping.core/declared-algorithm-fails-closed",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_sociomap_contracts.py::test_no_methodology_is_implemented_yet",
+            "packages/aia_core/tests/test_sociomap_contracts.py::test_require_supported_passes_only_when_every_dimension_is_implemented"
+          ]
+        }
+      ],
+      "recorded_evidence": [
+        {
+          "date": "2026-09-22",
+          "verdict": "NOT_RUNNABLE",
+          "environment": "cloud session, Python 3.12, SQLite, reference repository @ 678e298, no legacy tree",
+          "anchor": "First golden-fixture execution: test_golden_fixture_gate[F9_manual_drag_is_view_override] passed; F1, F2, F4-F8 AWAITING_IMPLEMENTATION, so the capability cannot pass. Working tree over 17c0a6b on claude/sleepy-keller-kg48oz."
+        }
+      ],
+      "intentional_difference": null,
+      "documented_deviations": [
+        {
+          "id": "SUB-SOCIO-ALGORITHM",
+          "summary": "the layout algorithm is declared on the spec and an unavailable one fails closed, where the reference picked R or Python by shutil.which('Rscript')",
+          "anchor": "AIA-reference sociomapping-reference-contract.md (algorithm selection) @ 678e298",
+          "gate": "sociomapping.core/declared-algorithm-fails-closed"
+        }
+      ],
+      "high_risk": [
+        "R16"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-10)."
+      },
+      "notes": "Spec, artifact and view-state contracts only. No Sociomapping mathematics is ported (docs/architecture/sociomapa-deterministic-engine.md)."
+    },
+    "sociomapping.study_module": {
+      "family": "sociomapping",
+      "bounded_context": "sociomapping",
+      "owner": {
+        "workstream": "A8 sociomapa-deterministic",
+        "confirmed": true
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "study_cli.py",
+        "study_contract.py",
+        "study_dataset.py",
+        "study_engine.py",
+        "study_export.py",
+        "study_validation.py",
+        "study_validity.py",
+        "typology_reference.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-12,
+      "parity_reason": "modul VYZKUM dataset conversion, ipsatization and validity scoring",
+      "fixtures": [
+        "F3_ipsatization"
+      ],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-10)."
+      },
+      "notes": ""
+    },
+    "statistics.calibration": {
+      "family": "statistics",
+      "bounded_context": "analysis",
+      "owner": {
+        "workstream": "analysis",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "dispersion_calibration.py",
+        "output_calibration.py",
+        "persona_calibration.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Output, dispersion and persona calibration layers",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R5"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-06)."
+      },
+      "notes": ""
+    },
+    "statistics.diagnostics": {
+      "family": "statistics",
+      "bounded_context": "analysis",
+      "owner": {
+        "workstream": "analysis",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "evaluation.py",
+        "validace.py",
+        "validation_diagnostics.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Paired validation statistics",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "statistics.uncertainty": {
+      "family": "statistics",
+      "bounded_context": "analysis",
+      "owner": {
+        "workstream": "analysis",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "ensemble.py",
+        "uncertainty.py",
+        "validation_stats.py"
+      ],
+      "parity_type": "NUMERICAL",
+      "tolerance": 1e-09,
+      "parity_reason": "Kish effective N, donor support and bootstrap intervals reach clients directly",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R5"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-09)."
+      },
+      "notes": ""
+    },
+    "tests": {
+      "family": "tests",
+      "bounded_context": "verification",
+      "owner": {
+        "workstream": "verification",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "RETIRED",
+      "implementation": [],
+      "reference_modules": [],
+      "parity_type": "NO_PARITY_REQUIRED",
+      "tolerance": null,
+      "parity_reason": "Reference tests are characterization evidence, not a production capability",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": false,
+      "release_blocker": {
+        "blocking": false,
+        "reason": "No parity required: Reference tests are characterization evidence, not a production capability"
+      },
+      "notes": ""
+    },
+    "workflow.config": {
+      "family": "workflow",
+      "bounded_context": "workflow",
+      "owner": {
+        "workstream": "workflow",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "research_os_config.py"
+      ],
+      "parity_type": "EXACT",
+      "tolerance": null,
+      "parity_reason": "COST_MODES budgets and per-phase model presets change research cost and quality",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [
+        "R10"
+      ],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-03)."
+      },
+      "notes": ""
+    },
+    "workflow.dispatch": {
+      "family": "workflow",
+      "bounded_context": "workflow",
+      "owner": {
+        "workstream": "workflow",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/infrastructure/workflow_repository.py"
+      ],
+      "reference_modules": [
+        "scheduler.py",
+        "worker_daemon.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "In-process scheduler replaced by SQS plus a reconciler",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "In-process scheduler replaced by SQS plus a reconciler",
+        "production_target": "A durable PostgreSQL queue claimed with FOR UPDATE SKIP LOCKED by a worker process; PostgreSQL is the source of truth. SQS is deferred behind a measured trigger and its own ADR.",
+        "override": "The reference names SQS plus a reconciler. ADR 0002 (docs/architecture/adr/0002-postgresql-authoritative-store.md) supersedes that for v0.1; PROGRESS.md removed the SQS item for contradicting it."
+      },
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-07)."
+      },
+      "notes": "PostgreSQL is the queue: claim_next with FOR UPDATE SKIP LOCKED exists and is tested under contention. The worker process that drains it does not (PROGRESS.md Next #2)."
+    },
+    "workflow.engine": {
+      "family": "workflow",
+      "bounded_context": "workflow",
+      "owner": {
+        "workstream": "workflow",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "IMPLEMENTED",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/workflow.py",
+        "packages/aia_core/src/aia_core/infrastructure/workflow_repository.py"
+      ],
+      "reference_modules": [
+        "job_store.py",
+        "workflow_engine.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Two-level state split replaces the prototype's single 14-value status; append-only attempts replace a counter",
+      "fixtures": [],
+      "gates": [
+        {
+          "id": "workflow.engine/characterization",
+          "kind": "reference_characterization",
+          "requires": [
+            "legacy_tree"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_legacy_job_store_characterization.py"
+          ]
+        },
+        {
+          "id": "workflow.engine/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_workflow_engine.py"
+          ]
+        },
+        {
+          "id": "workflow.engine/contention",
+          "kind": "production_contract",
+          "requires": [
+            "postgres"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_workflow_concurrency.py"
+          ]
+        }
+      ],
+      "recorded_evidence": [
+        {
+          "date": "2026-09-21",
+          "verdict": "PASS",
+          "environment": "local, PostgreSQL 16.15, legacy tree present",
+          "anchor": "docs/migration/status.md 'Last verified commit' -- 496 passed / 0 skipped @ 8102551, including the 94 parity and characterization tests"
+        },
+        {
+          "date": "2026-09-22",
+          "verdict": "NOT_EXECUTED",
+          "environment": "CI",
+          "anchor": ".github/workflows/ci.yml parity job @ 17c0a6b -- legacy tree absent, every reference test skipped"
+        }
+      ],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-07)."
+      },
+      "notes": ""
+    },
+    "workflow.legacy_dispatch": {
+      "family": "workflow",
+      "bounded_context": "workflow",
+      "owner": {
+        "workstream": "workflow",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "legacy_job_dispatch.py"
+      ],
+      "parity_type": "INTENTIONAL_DIFFERENCE",
+      "tolerance": null,
+      "parity_reason": "Live legacy fallback path in worker_job; production consolidates onto one executor",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": {
+        "legacy": "Live legacy fallback path in worker_job; production consolidates onto one executor",
+        "production_target": "One executor; the legacy fallback path is removed",
+        "override": null
+      },
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-07)."
+      },
+      "notes": ""
+    },
+    "workflow.step_execution": {
+      "family": "workflow",
+      "bounded_context": "workflow",
+      "owner": {
+        "workstream": "workflow",
+        "confirmed": false
+      },
+      "parity_owner": "parity-quality",
+      "implementation_state": "NOT_STARTED",
+      "implementation": [],
+      "reference_modules": [
+        "worker_job.py"
+      ],
+      "parity_type": "SEMANTIC",
+      "tolerance": null,
+      "parity_reason": "Per-node execution; the 24-node DAG shape and gating are EXACT",
+      "fixtures": [],
+      "gates": [],
+      "recorded_evidence": [],
+      "intentional_difference": null,
+      "documented_deviations": [],
+      "high_risk": [],
+      "mvp_path": true,
+      "release_blocker": {
+        "blocking": true,
+        "reason": "On the MVP acceptance path (AC-07)."
+      },
+      "notes": ""
+    }
+  },
+  "mvp_acceptance": {
+    "id": "MVP-ACCEPT-1",
+    "definition": "docs/migration/mvp-acceptance.md",
+    "test": null,
+    "criteria": [
+      {
+        "id": "AC-01",
+        "statement": "Researcher and reviewer authenticate through the IdentityProvider seam (Cognito in the deployed stack); the study is provisioned as Organization -> Client -> Study and every call is study-scoped. A second client's user gets 404, not 403, on every study route.",
+        "capabilities": [
+          "api.http"
+        ]
+      },
+      {
+        "id": "AC-02",
+        "statement": "From a brief, the Research lifecycle produces Deep Research, Research Design and a Questionnaire through the ModelGateway: provider and policy resolved per stage, credentials from Secrets Manager, every call on the immutable usage ledger, and no silent provider fallback.",
+        "capabilities": [
+          "project.persistence",
+          "pipeline.stages",
+          "research.design",
+          "questionnaire.engine",
+          "questionnaire.instruments",
+          "questionnaire.conditionals",
+          "ai.gateway",
+          "ai.credentials",
+          "ai.provider_policy",
+          "ai.runtime_policy",
+          "ai.usage_ledger"
+        ]
+      },
+      {
+        "id": "AC-03",
+        "statement": "Cost is estimated before any paid stage, reserved under the study-row lock, capped per run, and a deliberately exhausted budget parks the step in AWAITING_BUDGET without spending. Cost-mode presets match the reference.",
+        "capabilities": [
+          "cost.estimation",
+          "cost.reservations",
+          "cost.hard_cap",
+          "workflow.config"
+        ]
+      },
+      {
+        "id": "AC-04",
+        "statement": "Fieldwork runs against population v17_4_0 imported losslessly with its SHA256 verified, through ONE canonical loader, after the panel integrity gate. The resolved population version and weight identity are recorded in provenance; removing the weight declaration fails the run instead of reweighting it.",
+        "capabilities": [
+          "population.core",
+          "population.panel_loader",
+          "population.weighting",
+          "population.readiness",
+          "operability.integrity"
+        ]
+      },
+      {
+        "id": "AC-05",
+        "statement": "The audience sufficiency and eligibility decision gates the run, and segment definitions reproduce the reference's numbers within tolerance.",
+        "capabilities": [
+          "audience.definition",
+          "audience.segments"
+        ]
+      },
+      {
+        "id": "AC-06",
+        "statement": "Respondents are generated with panel facts never re-invented by a model, no implicitly injected context, and representativeness raking within tolerance.",
+        "capabilities": [
+          "respondents.engine",
+          "respondents.factual_layer",
+          "respondents.context",
+          "respondents.layers",
+          "statistics.calibration"
+        ]
+      },
+      {
+        "id": "AC-07",
+        "statement": "Killing the worker mid-stage loses no work: the stage resumes on the one executor, and a possibly-billed paid call moves to RECOVERY_REQUIRED instead of being retried.",
+        "capabilities": [
+          "workflow.engine",
+          "workflow.step_execution",
+          "workflow.dispatch",
+          "workflow.legacy_dispatch",
+          "orchestration.cli"
+        ]
+      },
+      {
+        "id": "AC-08",
+        "statement": "A content edit after fieldwork reopens exactly the stages the impact preview names, and reuses every unaffected stage's artifacts by fingerprint.",
+        "capabilities": [
+          "pipeline.stages",
+          "project.persistence",
+          "artifacts.storage",
+          "artifacts.registration"
+        ]
+      },
+      {
+        "id": "AC-09",
+        "statement": "Validation and analysis fail closed: QC and diagnostics run, evidence gates decide, the validation state is bound to the system fingerprint, effective-n suppression applies to every client-facing number, and no claim exceeds the field policy or CORE_JOINT_STATUS.",
+        "capabilities": [
+          "analysis.qc",
+          "statistics.diagnostics",
+          "statistics.uncertainty",
+          "governance.evidence_gates",
+          "governance.validation_state",
+          "analysis.modules",
+          "governance.product_policy",
+          "governance.anchors",
+          "results.verification"
+        ]
+      },
+      {
+        "id": "AC-10",
+        "statement": "The results include a Sociomapa computed deterministically under a declared algorithm; a manual drag changes the displayed layout and nothing else.",
+        "capabilities": [
+          "sociomapping.core",
+          "sociomapping.study_module"
+        ]
+      },
+      {
+        "id": "AC-11",
+        "statement": "The report is assembled from stored results, passes the evidence audit and the legal source-use gate, and is delivered only after a reviewer other than its producer approves it (unless study policy explicitly allows self-approval).",
+        "capabilities": [
+          "reports.generation",
+          "governance.evidence_audit",
+          "governance.legal",
+          "results.registry"
+        ]
+      },
+      {
+        "id": "AC-12",
+        "statement": "Configuration is typed and recorded on the run; a malformed edition file refuses to start rather than enabling every provider.",
+        "capabilities": [
+          "config.environment",
+          "config.edition"
+        ]
+      },
+      {
+        "id": "AC-13",
+        "statement": "Every number in the delivered report traces to stored provenance -- input fingerprints, provider, model, population version and weight identity -- and the study's spend reconciles to the usage ledger within USD 0.01.",
+        "capabilities": [
+          "artifacts.registration",
+          "ai.usage_ledger",
+          "cost.estimation"
+        ]
+      },
+      {
+        "id": "AC-14",
+        "statement": "In the same CI run, every capability named above reports PASS from executed gates -- not skipped, not NOT_EXECUTED -- and is IMPLEMENTED.",
+        "capabilities": []
+      }
+    ]
+  }
+}

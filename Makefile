@@ -12,7 +12,8 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web \
-        test test-core test-api test-parity test-web lint format typecheck \
+        test test-core test-api test-parity test-golden parity-status test-web \
+        lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
 help: ## Show available targets
@@ -59,6 +60,17 @@ test-api: ## API tests
 
 test-parity: ## Compare against the legacy prototype (needs AIA_LEGACY_REFERENCE)
 	@$(PY) -m pytest packages/aia_core -q -m parity
+
+test-golden: ## Golden-fixture gates (needs the reference repo: sibling clone or AIA_REFERENCE_REPO)
+	@$(PY) -m pytest packages/aia_core/tests/test_golden_fixtures.py -q -rs
+
+parity-status: ## Parity verdict per capability, from a fresh run of every suite
+	@mkdir -p tmp/junit
+	-@$(PY) -m pytest packages/aia_core -q -o junit_family=xunit1 --junit-xml=tmp/junit/core.xml
+	-@$(PY) -m pytest apps/api -q -o junit_family=xunit1 --junit-xml=tmp/junit/api.xml
+	@$(PY) tools/parity_status.py --junit tmp/junit/core.xml tmp/junit/api.xml \
+	  --markdown tmp/parity-status.md --json tmp/parity-status.json
+	@echo "full report: tmp/parity-status.md"
 
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present

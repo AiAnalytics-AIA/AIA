@@ -74,11 +74,13 @@ packages/aia_core/src/aia_core/
 
 migrations/                 Alembic
 docs/architecture/          System design + 7 ADRs
-docs/migration/             Plan, status, parity matrix, legacy map
+docs/migration/             Plan, status, legacy map, MVP acceptance test
+  parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
+tools/parity_status.py      Parity verdict per capability, from JUnit XML
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 ```
@@ -97,6 +99,14 @@ fails the build — that would mean scope had stopped being carried in the path.
 `../npc-panel-reference`, reached through `AIA_LEGACY_REFERENCE`, and is used by
 the parity and characterization suites only.
 
+**Neither are the golden fixtures.** They live in the private
+`AiAnalytics-AIA/AIA-reference` repository and need no raw archive. The
+golden-fixture gates read a checkout at `../aia-reference` or
+`AIA_REFERENCE_REPO`, and refuse any fixture that does not hash to its pin in
+`docs/migration/parity-matrix.json`. When a capability lands, its fixture gate
+lands with it — `test_parity_matrix.py` fails an `IMPLEMENTED` capability with an
+ungated fixture.
+
 ## 3. Commands
 
 | Purpose | Command |
@@ -108,6 +118,8 @@ the parity and characterization suites only.
 | Run everything | `make dev` |
 | Tests | `make test` (core + API) |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`) |
+| Golden-fixture gates | `make test-golden` (needs the reference repository) |
+| **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` |
 | Format | `make format` |
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |

@@ -93,11 +93,15 @@ jobs:
           alembic downgrade base
           alembic upgrade head
 
+      # Every pytest step writes JUnit XML. tools/parity_status.py reads it to
+      # tell a parity gate that passed from one that was skipped or never
+      # collected -- the exit code alone cannot, which is how 94 skipped parity
+      # tests read as a green job (OI-1). xunit1 carries each test's file path.
       - name: Domain and repository tests (PostgreSQL)
-        run: pytest packages/aia_core -q
+        run: pytest packages/aia_core -q --junit-xml=tmp/junit/core-postgres.xml -o junit_family=xunit1
 
       - name: API tests (PostgreSQL)
-        run: pytest apps/api -q
+        run: pytest apps/api -q --junit-xml=tmp/junit/api-postgres.xml -o junit_family=xunit1
 
       - name: Concurrency and transaction semantics (PostgreSQL only)
         # These must actually RUN, not skip. They use real concurrent
@@ -108,16 +112,29 @@ jobs:
         env:
           # Turns a missing database into a failure rather than a skip.
           AIA_REQUIRE_POSTGRES: "1"
-        run: pytest packages/aia_core/tests/test_workflow_concurrency.py -q
+        run: >-
+          pytest packages/aia_core/tests/test_workflow_concurrency.py -q
+          --junit-xml=tmp/junit/concurrency.xml -o junit_family=xunit1
 
       - name: Domain tests on SQLite
         # The offline development path must keep working too.
         env:
           DATABASE_URL: ""
-        run: pytest packages/aia_core apps/api -q
+        run: pytest packages/aia_core apps/api -q --junit-xml=tmp/junit/sqlite.xml -o junit_family=xunit1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-backend
+          path: tmp/junit/
+          if-no-files-found: warn
 
   parity:
-    name: Parity against legacy prototype
+    # Needs the extracted reference archive, which is withheld pending a licence
+    # decision and is deliberately NOT a CI dependency. Until it has an approved
+    # EU-resident home these tests skip here, and parity-status reports them as
+    # NOT_EXECUTED rather than letting the skip read as a pass.
+    name: Parity against legacy prototype (needs the withheld archive)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -136,13 +153,132 @@ jobs:
         # The prototype is not vendored into this repository. When it is not
         # present the parity tests skip, and this step reports that honestly
         # instead of implying the comparison ran.
+        # No `|| true`: when the prototype is absent every reference test skips
+        # and pytest exits 0 on its own, so the only thing `|| true` ever hid
+        # was a real failure in a parity-marked test that runs without it.
         run: |
-          if [ -f "${AIA_LEGACY_REFERENCE:-../npc-panel-reference}/project_pipeline.py" ]; then
-            pytest packages/aia_core -q -m parity
-          else
-            echo "::warning::Legacy prototype not available in CI; parity tests were skipped."
-            pytest packages/aia_core -q -m parity --no-header -rs || true
+          if [ ! -f "${AIA_LEGACY_REFERENCE:-../npc-panel-reference}/project_pipeline.py" ]; then
+            echo "::warning::Legacy prototype not available in CI; its parity tests are skipped and reported as NOT_EXECUTED."
           fi
+          pytest packages/aia_core -q -m parity -rs \
+            --junit-xml=tmp/junit/parity-legacy.xml -o junit_family=xunit1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-parity-legacy
+          path: tmp/junit/
+          if-no-files-found: warn
+
+  golden-fixtures:
+    # The golden fixtures are committed JSON in the private reference
+    # repository and need no raw archive. They are fetched at the commit pinned
+    # in docs/migration/parity-matrix.json -- never copied into this repository
+    # -- and every fixture is refused unless it hashes to its pin.
+    #
+    # Access is a read-only deploy key on AiAnalytics-AIA/AIA-reference, stored
+    # as the AIA_REFERENCE_DEPLOY_KEY secret. Without it (forks, or before it is
+    # provisioned) the gates skip and parity-status reports NOT_EXECUTED. Once it
+    # exists, set the repository variable AIA_REQUIRE_REFERENCE_REPO=1 and an
+    # absent checkout becomes a failure -- the same ratchet as AIA_REQUIRE_POSTGRES.
+    name: Golden fixtures (reference repository)
+    runs-on: ubuntu-latest
+    env:
+      HAS_REFERENCE_KEY: ${{ secrets.AIA_REFERENCE_DEPLOY_KEY != '' }}
+      AIA_REQUIRE_REFERENCE_REPO: ${{ vars.AIA_REQUIRE_REFERENCE_REPO }}
+    outputs:
+      reference: ${{ steps.reference.outputs.available }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the reference repository at the pinned commit
+        if: env.HAS_REFERENCE_KEY == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: AiAnalytics-AIA/AIA-reference
+          # Must equal parity-matrix.json reference.commit; a test enforces it.
+          ref: 678e298ad9ca0263da53cc8920d153fdfb956c93
+          path: .reference/aia-reference
+          ssh-key: ${{ secrets.AIA_REFERENCE_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - name: Record whether the reference is present
+        id: reference
+        run: |
+          if [ -f .reference/aia-reference/golden-fixtures/manifest.json ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Reference repository not available (no AIA_REFERENCE_DEPLOY_KEY); golden-fixture gates are skipped and reported as NOT_EXECUTED."
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "packages/aia_core[dev]"
+
+      - name: Run golden-fixture gates
+        env:
+          AIA_REFERENCE_REPO: ${{ github.workspace }}/.reference/aia-reference
+        run: >-
+          pytest packages/aia_core/tests/test_golden_fixtures.py -q -rs
+          --junit-xml=tmp/junit/golden.xml -o junit_family=xunit1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-golden
+          path: tmp/junit/
+          if-no-files-found: warn
+
+  parity-status:
+    # One verdict per capability, from every JUnit file above. FAIL (a gate ran
+    # and failed, or could have run and did not) fails this job. NOT_EXECUTED
+    # and NOT_RUNNABLE are reported in the step summary beside the passes, so a
+    # skip can no longer be read as one.
+    name: Parity status
+    runs-on: ubuntu-latest
+    needs: [backend, parity, golden-fixtures]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: junit-*
+          path: tmp/junit
+          merge-multiple: true
+
+      - name: Compute parity verdicts
+        env:
+          REFERENCE_AVAILABLE: ${{ needs.golden-fixtures.outputs.reference }}
+        run: |
+          available="postgres"
+          if [ "$REFERENCE_AVAILABLE" = "true" ]; then available="$available reference_repo"; fi
+          set +e
+          python tools/parity_status.py --junit tmp/junit/*.xml --available $available \
+            --json parity-status.json --markdown parity-status.md
+          status=$?
+          set -e
+          cat parity-status.md >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-status
+          path: |
+            parity-status.json
+            parity-status.md
 
   api-contract:
     name: API contract
