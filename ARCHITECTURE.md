@@ -339,6 +339,9 @@ declared tier.
 | Parity suite against the legacy prototype | **blocking when it runs** (no more `|| true`); skips without the withheld archive, reported `NOT_EXECUTED` |
 | Golden fixtures F1–F9 (vendored, inside the pytest steps) | **blocking** |
 | Golden fixtures F10–F11, pin checks, and population / evidence reference parity against the reference repository | **blocking when they run** (`golden-fixtures` job); skipped without the deploy key *(see below)*. The evidence layer's recovered decision tables need no checkout and run in the blocking `pytest` step |
+| Unit-captured UI function fixtures `U<nn>` (`test_legacy_ui_functions.py`, inside the pytest steps) | **blocking** — the vendored unit's own JavaScript is the reference, so they need nothing |
+| Route and UI function ledgers (`test_legacy_route_ledger.py`, `test_legacy_route_claims.py`, `test_legacy_ui_functions.py`, inside the pytest steps) | **blocking**; the reference-pin halves run in the `golden-fixtures` job |
+| Parity against the running 18.6.6 unit (`oracle-parity` job, `-m oracle`) | **blocking when it runs**; skips without the `AIA_LEGACY_REFERENCE_*` secrets, reported `NOT_EXECUTED`; `AIA_REQUIRE_LEGACY_ORACLE=1` once they exist |
 | Parity status — one verdict per capability from every JUnit file | **blocking on `FAIL`**; `NOT_EXECUTED` / `NOT_RUNNABLE` reported in the step summary |
 
 This deviates deliberately from the tiering in the development rules, which puts
@@ -354,6 +357,7 @@ running backwards.
 | `npm audit` | Drop `|| true` once `apps/web` transitive advisories are at zero or explicitly waived. Blocked on: the `apps/web` rewire (it is still mock-backed). |
 | Parity suite | 94 parity and characterization tests report as skipped in CI because they execute the legacy code, which exists only inside the withheld archive. **The archive is deliberately not a CI dependency.** Promotion needs the archive's licence decision and an EU-resident home (`REF-WITHHELD-REFERENCE-ARCHIVE`). Until then **anyone changing domain logic runs them locally against `AIA_LEGACY_REFERENCE`**, and `parity-status` reports them as `NOT_EXECUTED` — never as a pass. |
 | Golden fixtures | A human provisions a read-only deploy key on `AiAnalytics-AIA/AIA-reference` as the `AIA_REFERENCE_DEPLOY_KEY` secret, then sets the repository variable `AIA_REQUIRE_REFERENCE_REPO=1`. From then on a missing checkout fails the job instead of skipping. |
+| Oracle parity | A human provisions `AIA_LEGACY_REFERENCE_URL`, `AIA_LEGACY_REFERENCE_USER` and `AIA_LEGACY_REFERENCE_PASSWORD` (the legacy hostname and its Caddy basic-auth credentials from SSM) as repository secrets, after *Deploy develop* has run green with `legacy-panel` healthy. The job then sets `AIA_REQUIRE_LEGACY_ORACLE=1` itself, so an unreachable oracle fails rather than skips (OI-39). |
 
 An advisory check with no promotion plan is decoration — delete it or schedule
 it. Never move a check to advisory because it is failing on your branch.

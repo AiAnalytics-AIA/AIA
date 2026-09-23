@@ -1,0 +1,16 @@
+{
+ "fixture_id": "U04_buildFullMatrix1797",
+ "function": "buildFullMatrix1797",
+ "capability_id": "sociomapping.core",
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-9,
+ "helpers": [],
+ "notes": "Symmetric 0..100 distance matrix of the 1797 bubble sociomap: normalised Euclidean distance, blended 0.65/0.35 with an undirected edge weight when one exists, rounded to one decimal. Edges with out-of-range indices or non-finite weights are ignored. Not yet ported.",
+ "cases": [
+  {"id": "distance_blended_with_edges", "args": [
+    [{"x": 0, "y": 0}, {"x": 4, "y": 3}, {"x": -2, "y": 6}, {"x": 8, "y": -1}],
+    [{"from": 0, "to": 1, "weight": 0.9}, {"from": 2, "to": 3, "weight": 0.1}, {"from": 1, "to": 3, "weight": 1.7}, {"from": 9, "to": 0, "weight": 0.5}, {"from": 0, "to": 2, "weight": "x"}]]},
+  {"id": "coincident_points", "args": [[{"x": 1, "y": 1}, {"x": 1, "y": 1}, {"x": 1, "y": 1}], []]},
+  {"id": "empty", "args": [[], []]}
+ ]
+}

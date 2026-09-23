@@ -1,0 +1,196 @@
+{
+ "schema": "aia-legacy-ui-fixture-1",
+ "fixture_id": "U08_keyInsights",
+ "capability_id": "analysis.qc",
+ "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+ "reference_function": "ui_app.html::keyInsights",
+ "source_sha256": "24628a12c18db415fea5d170595bec16bfba0009398488acf220d4a4820912b3",
+ "helpers": {},
+ "ui_app_sha256": "d844dd6fc7bc738bf1bedaed1b668eb44d79c1ad7d281f093eee15ed1c81eaee",
+ "runtime_environment": {
+  "node": "v22.22.2",
+  "note": "Frontend function executed in a Node vm sandbox (no DOM) from source extracted verbatim from the vendored legacy/npc-panel-18.6.6/app/ui_app.html"
+ },
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-09,
+ "input": {
+  "mixed_questions": {
+   "args": [
+    {
+     "vysledky": {
+      "q1": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "ano": 62.5,
+        "ne": 30,
+        "nevim": 7.5
+       }
+      },
+      "q2": {
+       "typ": "skala",
+       "prumer": 3.456,
+       "top2box_pct": 41.2
+      },
+      "q3": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "A": 45,
+        "B": 44.9
+       }
+      },
+      "q4": {
+       "typ": "skala",
+       "prumer": 7.05
+      },
+      "q5": {
+       "typ": "vyber",
+       "celkem_pct": {}
+      },
+      "q6": {
+       "typ": "text"
+      }
+     }
+    }
+   ]
+  },
+  "more_than_eight_rows_are_cut": {
+   "args": [
+    {
+     "vysledky": {
+      "a": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "x": 90,
+        "y": 10
+       }
+      },
+      "b": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "x": 80,
+        "y": 20
+       }
+      },
+      "c": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "x": 70,
+        "y": 30
+       }
+      },
+      "d": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "x": 60,
+        "y": 40
+       }
+      },
+      "e": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "x": 55,
+        "y": 45
+       }
+      },
+      "f": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "x": 51,
+        "y": 49
+       }
+      },
+      "g": {
+       "typ": "skala",
+       "prumer": 5
+      },
+      "h": {
+       "typ": "skala",
+       "prumer": 6,
+       "top2box_pct": 12
+      },
+      "i": {
+       "typ": "vyber",
+       "celkem_pct": {
+        "x": 50.5,
+        "y": 49.5
+       }
+      }
+     }
+    }
+   ]
+  },
+  "empty": {
+   "args": [
+    {}
+   ]
+  }
+ },
+ "expected_output": {
+  "mixed_questions": [
+   {
+    "id": "q1",
+    "text": "Nejčastější odpověď: ano · 63 %",
+    "strength": 32.5
+   },
+   {
+    "id": "q3",
+    "text": "Nejčastější odpověď: A · 45 %",
+    "strength": 0.1
+   },
+   {
+    "id": "q2",
+    "text": "Průměr 3.5 · top-2 41 %",
+    "strength": 0
+   },
+   {
+    "id": "q4",
+    "text": "Průměr 7.0 · top-2 —",
+    "strength": 0
+   }
+  ],
+  "more_than_eight_rows_are_cut": [
+   {
+    "id": "a",
+    "text": "Nejčastější odpověď: x · 90 %",
+    "strength": 80
+   },
+   {
+    "id": "b",
+    "text": "Nejčastější odpověď: x · 80 %",
+    "strength": 60
+   },
+   {
+    "id": "c",
+    "text": "Nejčastější odpověď: x · 70 %",
+    "strength": 40
+   },
+   {
+    "id": "d",
+    "text": "Nejčastější odpověď: x · 60 %",
+    "strength": 20
+   },
+   {
+    "id": "e",
+    "text": "Nejčastější odpověď: x · 55 %",
+    "strength": 10
+   },
+   {
+    "id": "f",
+    "text": "Nejčastější odpověď: x · 51 %",
+    "strength": 2
+   },
+   {
+    "id": "i",
+    "text": "Nejčastější odpověď: x · 51 %",
+    "strength": 1
+   },
+   {
+    "id": "g",
+    "text": "Průměr 5.0 · top-2 —",
+    "strength": 0
+   }
+  ],
+  "empty": []
+ },
+ "notes": "Key insights from aggregated results: for a choice question the most frequent answer and its lead over the runner-up (strength); for a scale question the mean and top-2 box; sorted by strength, at most eight rows. Czech labels are part of the output. Not yet ported."
+}

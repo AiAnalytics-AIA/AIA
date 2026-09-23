@@ -1,0 +1,532 @@
+{
+ "schema": "aia-legacy-ui-fixture-1",
+ "fixture_id": "U02_objectMetricArray66",
+ "capability_id": "sociomapping.core",
+ "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+ "reference_function": "ui_app.html::objectMetricArray66",
+ "source_sha256": "73bb36bd3be737d3a07eede93399c428936ebd432dcc82bf50c6e7e108f7d3c5",
+ "helpers": {
+  "arrow:S": "551d565f1f2d597cb84e4a1051dea6ee14621f1c79ad3fed6f6f327f9627a2f5",
+  "arrow:safeNum": "0e4f8cb167ff0a19c0240a7a7026770dbf2b45b76bb2066c28f23347dcc3bd6a",
+  "effectiveMatrix66": "aa5f4434ac9b6cacdd851afd79bcf5ed78407dd49d0a2a52d4df81a803a0d29a"
+ },
+ "ui_app_sha256": "d844dd6fc7bc738bf1bedaed1b668eb44d79c1ad7d281f093eee15ed1c81eaee",
+ "runtime_environment": {
+  "node": "v22.22.2",
+  "note": "Frontend function executed in a Node vm sandbox (no DOM) from source extracted verbatim from the vendored legacy/npc-panel-18.6.6/app/ui_app.html"
+ },
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-09,
+ "input": {
+  "relation_classic": {
+   "args": [
+    "relation_classic"
+   ],
+   "globals": {
+    "window": {
+     "SOCIOMAP1866": {
+      "sourceMode": "base",
+      "edits": {},
+      "objects": {
+       "names": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+       ],
+       "matrix": [
+        [
+         0,
+         7,
+         2,
+         5,
+         1
+        ],
+        [
+         3,
+         0,
+         8,
+         1,
+         6
+        ],
+        [
+         9,
+         2,
+         0,
+         4,
+         4
+        ],
+        [
+         1,
+         5,
+         7,
+         0,
+         2
+        ],
+        [
+         6,
+         3,
+         1,
+         8,
+         0
+        ]
+       ],
+       "mean_rating": [
+        5.5,
+        7.25,
+        3.9,
+        6.05,
+        4.4
+       ],
+       "support_n": [
+        210,
+        88,
+        145,
+        60,
+        132
+       ]
+      }
+     }
+    }
+   }
+  },
+  "tscore_via_unknown_id": {
+   "args": [
+    "relation_norm"
+   ],
+   "globals": {
+    "window": {
+     "SOCIOMAP1866": {
+      "sourceMode": "base",
+      "edits": {},
+      "objects": {
+       "names": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+       ],
+       "matrix": [
+        [
+         0,
+         7,
+         2,
+         5,
+         1
+        ],
+        [
+         3,
+         0,
+         8,
+         1,
+         6
+        ],
+        [
+         9,
+         2,
+         0,
+         4,
+         4
+        ],
+        [
+         1,
+         5,
+         7,
+         0,
+         2
+        ],
+        [
+         6,
+         3,
+         1,
+         8,
+         0
+        ]
+       ],
+       "mean_rating": [
+        5.5,
+        7.25,
+        3.9,
+        6.05,
+        4.4
+       ],
+       "support_n": [
+        210,
+        88,
+        145,
+        60,
+        132
+       ]
+      }
+     }
+    }
+   }
+  },
+  "mean_rating": {
+   "args": [
+    "mean_rating"
+   ],
+   "globals": {
+    "window": {
+     "SOCIOMAP1866": {
+      "sourceMode": "base",
+      "edits": {},
+      "objects": {
+       "names": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+       ],
+       "matrix": [
+        [
+         0,
+         7,
+         2,
+         5,
+         1
+        ],
+        [
+         3,
+         0,
+         8,
+         1,
+         6
+        ],
+        [
+         9,
+         2,
+         0,
+         4,
+         4
+        ],
+        [
+         1,
+         5,
+         7,
+         0,
+         2
+        ],
+        [
+         6,
+         3,
+         1,
+         8,
+         0
+        ]
+       ],
+       "mean_rating": [
+        5.5,
+        7.25,
+        3.9,
+        6.05,
+        4.4
+       ],
+       "support_n": [
+        210,
+        88,
+        145,
+        60,
+        132
+       ]
+      }
+     }
+    }
+   }
+  },
+  "support_n": {
+   "args": [
+    "support_n"
+   ],
+   "globals": {
+    "window": {
+     "SOCIOMAP1866": {
+      "sourceMode": "base",
+      "edits": {},
+      "objects": {
+       "names": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+       ],
+       "matrix": [
+        [
+         0,
+         7,
+         2,
+         5,
+         1
+        ],
+        [
+         3,
+         0,
+         8,
+         1,
+         6
+        ],
+        [
+         9,
+         2,
+         0,
+         4,
+         4
+        ],
+        [
+         1,
+         5,
+         7,
+         0,
+         2
+        ],
+        [
+         6,
+         3,
+         1,
+         8,
+         0
+        ]
+       ],
+       "mean_rating": [
+        5.5,
+        7.25,
+        3.9,
+        6.05,
+        4.4
+       ],
+       "support_n": [
+        210,
+        88,
+        145,
+        60,
+        132
+       ]
+      }
+     }
+    }
+   }
+  },
+  "relation_classic_under_a_scenario_edit": {
+   "args": [
+    "relation_classic"
+   ],
+   "globals": {
+    "window": {
+     "SOCIOMAP1866": {
+      "sourceMode": "scenario",
+      "edits": {
+       "0:1": 10,
+       "4:3": 0
+      },
+      "objects": {
+       "names": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+       ],
+       "matrix": [
+        [
+         0,
+         7,
+         2,
+         5,
+         1
+        ],
+        [
+         3,
+         0,
+         8,
+         1,
+         6
+        ],
+        [
+         9,
+         2,
+         0,
+         4,
+         4
+        ],
+        [
+         1,
+         5,
+         7,
+         0,
+         2
+        ],
+        [
+         6,
+         3,
+         1,
+         8,
+         0
+        ]
+       ],
+       "mean_rating": [
+        5.5,
+        7.25,
+        3.9,
+        6.05,
+        4.4
+       ],
+       "support_n": [
+        210,
+        88,
+        145,
+        60,
+        132
+       ]
+      }
+     }
+    }
+   }
+  },
+  "constant_relations_give_tscore_fifty": {
+   "args": [
+    "tscore"
+   ],
+   "globals": {
+    "window": {
+     "SOCIOMAP1866": {
+      "sourceMode": "base",
+      "edits": {},
+      "objects": {
+       "names": [
+        "A",
+        "B",
+        "C"
+       ],
+       "matrix": [
+        [
+         0,
+         4,
+         4
+        ],
+        [
+         4,
+         0,
+         4
+        ],
+        [
+         4,
+         4,
+         0
+        ]
+       ],
+       "mean_rating": [
+        1,
+        2,
+        3
+       ],
+       "support_n": [
+        10,
+        20,
+        30
+       ]
+      }
+     }
+    }
+   }
+  },
+  "missing_ratings_are_null": {
+   "args": [
+    "mean_rating"
+   ],
+   "globals": {
+    "window": {
+     "SOCIOMAP1866": {
+      "sourceMode": "base",
+      "edits": {},
+      "objects": {
+       "names": [
+        "A",
+        "B",
+        "C"
+       ],
+       "matrix": [
+        [
+         0,
+         1,
+         2
+        ],
+        [
+         1,
+         0,
+         3
+        ],
+        [
+         2,
+         3,
+         0
+        ]
+       ],
+       "mean_rating": [
+        4.5,
+        null,
+        "n/a"
+       ],
+       "support_n": [
+        10,
+        20,
+        30
+       ]
+      }
+     }
+    }
+   }
+  }
+ },
+ "expected_output": {
+  "relation_classic": [
+   34,
+   35,
+   37,
+   33,
+   31
+  ],
+  "tscore_via_unknown_id": [
+   50,
+   55,
+   65,
+   45,
+   35
+  ],
+  "mean_rating": [
+   5.5,
+   7.25,
+   3.9,
+   6.05,
+   4.4
+  ],
+  "support_n": [
+   210,
+   88,
+   145,
+   60,
+   132
+  ],
+  "relation_classic_under_a_scenario_edit": [
+   37,
+   38,
+   37,
+   25,
+   23
+  ],
+  "constant_relations_give_tscore_fifty": [
+   50,
+   50,
+   50
+  ],
+  "missing_ratings_are_null": [
+   4.5,
+   0,
+   null
+  ]
+ },
+ "notes": "Object metrics on a 5x5 asymmetric relation matrix the reference's F6 did not use, read through the slice's S() state accessor, with a scenario edit in one case (effectiveMatrix66 overlays st.edits when sourceMode is 'scenario'). The T-score default is exercised through an unknown metric id, which the reference silently accepts; AIA refuses it (aia_core.domain.sociomap.metrics.object_metric)."
+}

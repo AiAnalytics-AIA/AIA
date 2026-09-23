@@ -99,6 +99,69 @@ def reference_repo() -> Path:
     return root
 
 
+# --------------------------------------------------------------------------- #
+# The running oracle (ADR 0011)
+#
+# Distinct from both of the above. The vendored 18.6.6 unit runs as the
+# ``legacy-panel`` service on the develop host behind Caddy's basic-auth gate,
+# and the differential parity tests reach it over HTTP through
+# ``tools/legacy_oracle.py``. ``AIA_LEGACY_REFERENCE_URL`` names it;
+# ``AIA_LEGACY_REFERENCE_USER`` / ``AIA_LEGACY_REFERENCE_PASSWORD`` pass the
+# gate. Absent URL is valid and skips; ``AIA_REQUIRE_LEGACY_ORACLE=1`` makes
+# absence a failure, the same ratchet as ``AIA_REQUIRE_POSTGRES``.
+# --------------------------------------------------------------------------- #
+
+_TOOLS = _REPO_ROOT / "tools"
+
+
+def load_tool(name: str) -> Any:
+    """Import ``tools/<name>.py`` by path: ``tools/`` is a script directory, not a package."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(name, _TOOLS / f"{name}.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    # Registered before execution: with ``from __future__ import annotations`` the
+    # dataclass machinery resolves field annotations through ``sys.modules`` and
+    # crashes on a module that is not there (AGENTS.md § Python control flow).
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="session")
+def tool_loader() -> Any:
+    """``load_tool`` as a fixture: test modules share helpers through fixtures, never imports."""
+    return load_tool
+
+
+@pytest.fixture(scope="session")
+def legacy_oracle_tool() -> Any:
+    """The ``tools/legacy_oracle.py`` module, for tests that need the oracle or its harness."""
+    return load_tool("legacy_oracle")
+
+
+@pytest.fixture(scope="session")
+def legacy_oracle(legacy_oracle_tool: Any) -> Any:
+    """An ``OracleClient`` for the running 18.6.6 unit, skipping -- or failing -- without one."""
+    endpoint = legacy_oracle_tool.OracleEndpoint.from_environment()
+    if endpoint is None:
+        message = (
+            "the running 18.6.6 unit is not configured; set AIA_LEGACY_REFERENCE_URL (and "
+            "AIA_LEGACY_REFERENCE_USER / AIA_LEGACY_REFERENCE_PASSWORD for its gate) to run "
+            "the oracle parity tests"
+        )
+        if legacy_oracle_tool.require_oracle():
+            pytest.fail("AIA_REQUIRE_LEGACY_ORACLE=1 but " + message)
+        pytest.skip(message)
+    client = legacy_oracle_tool.OracleClient(endpoint)
+    try:
+        legacy_oracle_tool.probe(client)
+    except legacy_oracle_tool.OracleUnavailable as exc:
+        pytest.fail(f"AIA_LEGACY_REFERENCE_URL is set but the oracle did not answer: {exc}")
+    return client
+
+
 @pytest.fixture(scope="session")
 def legacy_pipeline() -> Iterator[Any]:
     """Import the legacy ``project_pipeline`` module for parity comparison."""

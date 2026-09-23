@@ -138,7 +138,44 @@ LIKE 'idle in%'` — its last query names the call that opened it.
 Markers are registered in the root `pyproject.toml` **and** in each package's
 own `pyproject.toml`, and `--strict-markers` is on, so a typo in a marker name is
 an error rather than a silently unfiltered run. Current markers: `parity`,
-`postgres`, `golden`.
+`postgres`, `golden`, `oracle`.
+
+**`skipif` is a static skip to `layer_check`.** The rule that rejects
+`@pytest.mark.skip` matches `@pytest.mark.skipif` too, on purpose: a condition
+evaluated at import time (``shutil.which("node") is None``) is decided before the
+test exists and never reports *why* in the run. Skip at run time instead, where
+the reason lands in the JUnit file that `tools/parity_status.py` reads:
+
+```python
+# WRONG -- rejected by `make layer_check`, and the reason is lost
+@pytest.mark.skipif(shutil.which("node") is None, reason="needs Node")
+def test_capture_reproduces_every_fixture(): ...
+
+# RIGHT
+def test_capture_reproduces_every_fixture():
+    if shutil.which("node") is None:
+        pytest.skip("capture reproducibility needs Node.js on PATH")
+```
+
+**A module imported by path must be registered in `sys.modules` before it runs.**
+`tools/` is a script directory, so tests load a tool with
+`importlib.util.spec_from_file_location`. With `from __future__ import
+annotations`, `@dataclass` resolves string annotations through
+`sys.modules[cls.__module__]`, and a module that was never registered crashes at
+class-definition time with ``AttributeError: 'NoneType' object has no attribute
+'__dict__'`` -- from inside `dataclasses.py`, naming nothing of yours. Register
+first; `conftest.load_tool` does.
+
+```python
+# WRONG -- executes, then dies in dataclasses.py on the first @dataclass
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+# RIGHT
+module = importlib.util.module_from_spec(spec)
+sys.modules[name] = module
+spec.loader.exec_module(module)
+```
 
 **pytest takes its configuration from the nearest `pyproject.toml` to the paths
 you pass, not from the root.** `pytest packages/aia_core/tests/…` reads

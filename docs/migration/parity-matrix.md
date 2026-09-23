@@ -18,7 +18,9 @@ each needs to run; whether a gate passed is a property of a run, not of a file.
 
 | Term | Meaning |
 | --- | --- |
-| **Gate** | A set of tests that establishes parity for a capability. Kinds: `reference_comparison` (runs the legacy code — needs the extracted archive), `reference_characterization` (pins down legacy behaviour — needs the extracted archive), `reference_contract` (compares against a committed reference contract or ledger — needs the reference repository, or nothing when the test carries the reference's recovered decision table itself), `golden_fixture` (compares against a golden fixture — vendored F1–F9 need nothing, F10–F11 need the reference repository, none needs the archive), `production_contract` (production-only; proves an intentional difference or an equivalence criterion) |
+| **Gate** | A set of tests that establishes parity for a capability. Kinds: `reference_comparison` (runs the legacy code — from the extracted archive, `legacy_tree`, or as the deployed unit reached over HTTP, `legacy_oracle`), `reference_characterization` (pins down legacy behaviour — needs the extracted archive), `reference_contract` (compares against a committed reference contract or ledger — needs the reference repository, or nothing when the test carries the reference's recovered decision table itself), `golden_fixture` (compares against a golden fixture — vendored F1–F9 and unit-captured `U<nn>` need nothing, F10–F11 need the reference repository, none needs the archive), `production_contract` (production-only; proves an intentional difference or an equivalence criterion) |
+| **Fixture source** | `vendored` (a byte-identical copy of a reference golden fixture, F1–F9), `reference_repo` (read from the pinned checkout, F10–F11), `legacy_unit` (captured by `tools/ui_function_capture.py` from the vendored unit's own `ui_app.html` functions, `U<nn>_<function>`; pinned by file hash *and* by the SHA256 of the function source, `source_sha256`, so a regenerated unit that changes the function is known) |
+| **Requirement** | What a gate needs to run: `postgres`, `reference_repo`, `legacy_tree` (the extracted archive), `legacy_oracle` (the running unit, `AIA_LEGACY_REFERENCE_URL`), `population_panel`, `r_smacof`, `provider_credential`. `tools/parity_status.py --available …` names what a run had; a gate whose needs were all present and which did not run is a `FAIL` |
 | **Fixture gate state** | `GATED`, `PARTIALLY_GATED` (some of the fixture's facts are asserted; the capability cannot pass until all are), `AWAITING_IMPLEMENTATION`, `AWAITING_CAPTURE` — each fixture names the gate that covers it (`gate.gate_id`) |
 | **Release blocker** | Exactly the capabilities an MVP acceptance criterion names. Off-path high-risk capabilities say why they are off the path |
 | **Implementation state** | `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `RETIRED` — checked against `module-dispositions.json` in both directions |
@@ -46,11 +48,11 @@ job's summary in CI.
 | `ai.single_provider_mode` | ai-runtime *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `ai.usage_ledger` | ai-runtime *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
 | `analysis.modules` | analysis *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x1 | R5 | yes |
-| `analysis.qc` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | F11 | — | — | yes |
-| `api.http` | api *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | R14 | yes |
+| `analysis.qc` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | F11, U08 | — | — | yes |
+| `api.http` | api *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1, reference_comparison x1 | R14 | yes |
 | `artifacts.registration` | artifacts *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `artifacts.storage` | artifacts *(unconfirmed)* | IMPLEMENTED | SEMANTIC | — | — | production_contract x1 | — | yes |
-| `audience.definition` | audience *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
+| `audience.definition` | audience *(unconfirmed)* | NOT_STARTED | EXACT | — | U10 | — | — | yes |
 | `audience.segments` | audience *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
 | `config.edition` | platform *(unconfirmed)* | NOT_STARTED | INTENTIONAL_DIFFERENCE | — | — | — | R17 | yes |
 | `config.environment` | platform *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | — | — | yes |
@@ -102,7 +104,7 @@ job's summary in CI.
 | `runtime.desktop` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `simulation.engine` | A7 simulation-engine | PARTIAL | NUMERICAL | `1e-09` | F13 | production_contract x1 | — | no |
 | `simulation.scenarios` | A7 simulation-engine | PARTIAL | EXACT | — | — | production_contract x1 | — | no |
-| `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12 | golden_fixture x7, production_contract x2 | R16 | yes |
+| `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12, U01, U02, U03, U04, U05, U06, U07 | golden_fixture x9, production_contract x2 | R16 | yes |
 | `sociomapping.study_module` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-12` | F3 | golden_fixture x1 | — | yes |
 | `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
 | `statistics.diagnostics` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
@@ -112,7 +114,7 @@ job's summary in CI.
 | `workflow.dispatch` | workflow *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
 | `workflow.engine` | workflow *(unconfirmed)* | IMPLEMENTED | SEMANTIC | — | — | production_contract x2, reference_characterization x1 | — | yes |
 | `workflow.legacy_dispatch` | workflow *(unconfirmed)* | IMPLEMENTED | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
-| `workflow.step_execution` | workflow *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x2 | — | yes |
+| `workflow.step_execution` | workflow *(unconfirmed)* | PARTIAL | SEMANTIC | — | U09 | production_contract x2 | — | yes |
 
 <!-- parity-matrix:end -->
 
