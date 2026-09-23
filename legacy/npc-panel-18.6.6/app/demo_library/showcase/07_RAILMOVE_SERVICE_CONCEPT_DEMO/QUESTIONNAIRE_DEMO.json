@@ -1,0 +1,44 @@
+[
+  {
+    "id": "Q1",
+    "section": "Context",
+    "text": "Jak často cestujete vlakem a za jakým účelem?",
+    "type": "frequency",
+    "purpose": "context"
+  },
+  {
+    "id": "Q2",
+    "section": "Needs",
+    "text": "Co vám dnes nejvíce vadí na nákupu a změně jízdenek?",
+    "type": "battery",
+    "purpose": "drivers"
+  },
+  {
+    "id": "Q3",
+    "section": "Objects",
+    "text": "Jak hodnotíte čtyři tarifní koncepty?",
+    "type": "object_battery",
+    "purpose": "comparison + sociomap"
+  },
+  {
+    "id": "Q4",
+    "section": "Emotions",
+    "text": "Jak srozumitelná je cenová logika každého konceptu?",
+    "type": "emotion_battery",
+    "purpose": "emotional map"
+  },
+  {
+    "id": "Q5",
+    "section": "Decision",
+    "text": "Jaká měsíční cena / kreditní hodnota je přijatelná?",
+    "type": "choice",
+    "purpose": "decision KPI"
+  },
+  {
+    "id": "Q6",
+    "section": "Validation",
+    "text": "Který koncept byste nejpravděpodobněji použili?",
+    "type": "certainty",
+    "purpose": "robustness"
+  }
+]

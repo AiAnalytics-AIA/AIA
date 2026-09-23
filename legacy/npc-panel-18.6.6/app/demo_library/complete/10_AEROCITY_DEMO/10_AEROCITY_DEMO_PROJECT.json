@@ -1,0 +1,433 @@
+{
+  "project": {
+    "title": "AeroCity — DEMO",
+    "type": "Customer experience + rebranding",
+    "industry": "Letiště / travel",
+    "status": "COMPLETED",
+    "sample_n": 1500,
+    "world_count": 8,
+    "variant_count": 4
+  },
+  "assignment_summary": {
+    "client_need": "Letiště chce přepracovat passenger experience a značku terminálu tak, aby snížilo stres a zvýšilo vnímanou kvalitu bez drahého premium-only řešení.",
+    "primary_decision": "Vybrat experience concept pro pilot v terminálu a nový brand promise.",
+    "success_definition": "Koncept má zvyšovat jasnost, pohodlí, důvěru a ochotu používat digitální/servisní prvky.",
+    "questions": [
+      "Který koncept nejvíce snižuje stres a zvyšuje convenience?",
+      "Co má největší hodnotu pro frequent vs. occasional travellers?",
+      "Jak důležité jsou lokální prvky značky?",
+      "Kdy premium prvky nepřinášejí dost hodnoty?"
+    ],
+    "inputs": [
+      "Čtyři airport experience concepts.",
+      "Syntetický passenger sample.",
+      "8 světů mění crowding, disruption, security wait, digitální adopci, premium mix a význam lokální identity."
+    ],
+    "deliverables": [
+      "Executive answer",
+      "Porovnání variant",
+      "Segmentová analýza",
+      "8 detailních světů a breakpointy",
+      "Word report",
+      "Excel workbook",
+      "Respondent-level CSV",
+      "SQLite databáze",
+      "JSON + provenance + historie"
+    ],
+    "out_of_scope": [
+      "Skutečné provozní CAPEX.",
+      "Bezpečnostní/provozní rozhodnutí.",
+      "Predikce konkrétních passenger flows."
+    ]
+  },
+  "variants": [
+    {
+      "id": "A",
+      "name": "Fast Lane",
+      "price_or_fee": 0,
+      "positioning": "Speed first",
+      "description": "Navigace, fast-lane service a jasné time-to-gate informace."
+    },
+    {
+      "id": "B",
+      "name": "Calm Journey",
+      "price_or_fee": 0,
+      "positioning": "Stress reduction",
+      "description": "Klidové zóny, jasná orientace a průběžná reassurance."
+    },
+    {
+      "id": "C",
+      "name": "Local Welcome",
+      "price_or_fee": 0,
+      "positioning": "Lokální identita",
+      "description": "Silný lokální brand, gastronomie a kulturní prvky."
+    },
+    {
+      "id": "D",
+      "name": "Smart Journey",
+      "price_or_fee": 0,
+      "positioning": "Digitální informace + human backup",
+      "description": "Proaktivní status, navigace a dostupná lidská pomoc."
+    }
+  ],
+  "variant_results": [
+    {
+      "variant_id": "A",
+      "variant_name": "Fast Lane",
+      "price_or_fee": 0,
+      "decision_score_0_100": 76,
+      "usage_intent_pct": 67.5,
+      "preference_pct": 45.0,
+      "clarity": 7.58,
+      "convenience": 7.99,
+      "trust": 6.87,
+      "premium_fit": 6.36,
+      "respondent_composite_avg": 66.7
+    },
+    {
+      "variant_id": "B",
+      "variant_name": "Calm Journey",
+      "price_or_fee": 0,
+      "decision_score_0_100": 80,
+      "usage_intent_pct": 71.9,
+      "preference_pct": 50.4,
+      "clarity": 8.0,
+      "convenience": 7.39,
+      "trust": 7.65,
+      "premium_fit": 6.61,
+      "respondent_composite_avg": 69.8
+    },
+    {
+      "variant_id": "C",
+      "variant_name": "Local Welcome",
+      "price_or_fee": 0,
+      "decision_score_0_100": 71,
+      "usage_intent_pct": 61.5,
+      "preference_pct": 39.5,
+      "clarity": 6.36,
+      "convenience": 6.3,
+      "trust": 6.91,
+      "premium_fit": 7.06,
+      "respondent_composite_avg": 61.2
+    },
+    {
+      "variant_id": "D",
+      "variant_name": "Smart Journey",
+      "price_or_fee": 0,
+      "decision_score_0_100": 84,
+      "usage_intent_pct": 76.1,
+      "preference_pct": 55.7,
+      "clarity": 8.17,
+      "convenience": 8.29,
+      "trust": 7.88,
+      "premium_fit": 6.9,
+      "respondent_composite_avg": 74.0
+    }
+  ],
+  "worlds": [
+    {
+      "world_id": "W1",
+      "name": "Base case",
+      "headline": "Vyrovnané podmínky bez extrémního šoku.",
+      "description": "Vyrovnané podmínky bez extrémního šoku.",
+      "assumptions": {
+        "price_pressure": 1.0,
+        "trust_pressure": 1.0,
+        "competition_pressure": 1.0,
+        "activation": 1.0
+      },
+      "primary_metric": {
+        "A": 43,
+        "B": 49,
+        "C": 39,
+        "D": 55
+      },
+      "decision_scores": {
+        "A": 73.7,
+        "B": 77.0,
+        "C": 71.5,
+        "D": 85.2
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W2",
+      "name": "Rozpočtový tlak",
+      "headline": "Lidé více řeší cenu, riziko a bezprostřední hodnotu.",
+      "description": "Lidé více řeší cenu, riziko a bezprostřední hodnotu.",
+      "assumptions": {
+        "price_pressure": 1.3,
+        "trust_pressure": 1.02,
+        "competition_pressure": 1.08,
+        "activation": 0.94
+      },
+      "primary_metric": {
+        "A": 41,
+        "B": 53,
+        "C": 34,
+        "D": 54
+      },
+      "decision_scores": {
+        "A": 72.5,
+        "B": 79.2,
+        "C": 68.7,
+        "D": 84.7
+      },
+      "winner": "D",
+      "risk": "MEDIUM",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W3",
+      "name": "Promo / konkurenční tlak",
+      "headline": "Konkurence zvyšuje promo nebo agresivitu nabídky.",
+      "description": "Konkurence zvyšuje promo nebo agresivitu nabídky.",
+      "assumptions": {
+        "price_pressure": 1.22,
+        "trust_pressure": 0.96,
+        "competition_pressure": 1.35,
+        "activation": 0.98
+      },
+      "primary_metric": {
+        "A": 41,
+        "B": 55,
+        "C": 35,
+        "D": 56
+      },
+      "decision_scores": {
+        "A": 72.5,
+        "B": 80.2,
+        "C": 69.2,
+        "D": 85.8
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W4",
+      "name": "Vyšší skepticismus",
+      "headline": "Roste požadavek na důkaz, srozumitelnost a důvěryhodnost.",
+      "description": "Roste požadavek na důkaz, srozumitelnost a důvěryhodnost.",
+      "assumptions": {
+        "price_pressure": 1.03,
+        "trust_pressure": 1.3,
+        "competition_pressure": 1.02,
+        "activation": 0.95
+      },
+      "primary_metric": {
+        "A": 42,
+        "B": 47,
+        "C": 38,
+        "D": 56
+      },
+      "decision_scores": {
+        "A": 73.1,
+        "B": 75.8,
+        "C": 70.9,
+        "D": 85.8
+      },
+      "winner": "D",
+      "risk": "MEDIUM",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W5",
+      "name": "Silnější důvěra / relevance",
+      "headline": "Zesiluje faktor, na kterém stojí doporučený koncept.",
+      "description": "Zesiluje faktor, na kterém stojí doporučený koncept.",
+      "assumptions": {
+        "price_pressure": 0.96,
+        "trust_pressure": 0.88,
+        "competition_pressure": 0.95,
+        "activation": 1.02
+      },
+      "primary_metric": {
+        "A": 43,
+        "B": 50,
+        "C": 40,
+        "D": 58
+      },
+      "decision_scores": {
+        "A": 73.7,
+        "B": 77.5,
+        "C": 72.0,
+        "D": 86.9
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W6",
+      "name": "Kategorie se mění",
+      "headline": "Posouvají se potřeby a kontext používání.",
+      "description": "Posouvají se potřeby a kontext používání.",
+      "assumptions": {
+        "price_pressure": 1.0,
+        "trust_pressure": 1.05,
+        "competition_pressure": 1.04,
+        "activation": 1.05
+      },
+      "primary_metric": {
+        "A": 42,
+        "B": 49,
+        "C": 41,
+        "D": 57
+      },
+      "decision_scores": {
+        "A": 73.1,
+        "B": 77.0,
+        "C": 72.5,
+        "D": 86.3
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W7",
+      "name": "Opatrný trh",
+      "headline": "Klesá obecná ochota ke změně a roste potřeba jistoty.",
+      "description": "Klesá obecná ochota ke změně a roste potřeba jistoty.",
+      "assumptions": {
+        "price_pressure": 1.12,
+        "trust_pressure": 1.22,
+        "competition_pressure": 1.08,
+        "activation": 0.9
+      },
+      "primary_metric": {
+        "A": 39,
+        "B": 56,
+        "C": 35,
+        "D": 53
+      },
+      "decision_scores": {
+        "A": 71.5,
+        "B": 80.8,
+        "C": 69.2,
+        "D": 84.2
+      },
+      "winner": "D",
+      "risk": "HIGH",
+      "implication": "Breakpoint: za těchto podmínek přebírá vedení B."
+    },
+    {
+      "world_id": "W8",
+      "name": "Silná aktivace",
+      "headline": "Vyšší dostupnost, informovanost nebo trial usnadní první krok.",
+      "description": "Vyšší dostupnost, informovanost nebo trial usnadní první krok.",
+      "assumptions": {
+        "price_pressure": 0.95,
+        "trust_pressure": 0.92,
+        "competition_pressure": 0.9,
+        "activation": 1.35
+      },
+      "primary_metric": {
+        "A": 46,
+        "B": 52,
+        "C": 42,
+        "D": 59
+      },
+      "decision_scores": {
+        "A": 75.3,
+        "B": 78.6,
+        "C": 73.1,
+        "D": 87.5
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    }
+  ],
+  "history": [
+    {
+      "revision": 1,
+      "time": "20:10:04",
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní zadání uloženo do persistentního projektu."
+    },
+    {
+      "revision": 2,
+      "time": "20:10:22",
+      "stage": "RESEARCH_DESIGN",
+      "event": "Výzkumný rámec připraven",
+      "detail": "Rozhodovací otázky, KPI a varianty byly strukturovány."
+    },
+    {
+      "revision": 3,
+      "time": "20:12:15",
+      "stage": "AUDIENCE",
+      "event": "Audience a segmenty uzamčeny",
+      "detail": "Syntetická populace a segmentační logika připravena."
+    },
+    {
+      "revision": 4,
+      "time": "20:15:41",
+      "stage": "WORLDS",
+      "event": "8 světů dokončeno",
+      "detail": "Otestována robustnost doporučení napříč změnami podmínek."
+    },
+    {
+      "revision": 5,
+      "time": "20:18:54",
+      "stage": "ANALYSIS",
+      "event": "Analýza dokončena",
+      "detail": "Varianty, segmenty, breakpointy a rozhodovací implikace sestaveny."
+    },
+    {
+      "revision": 6,
+      "time": "20:20:03",
+      "stage": "DELIVERY",
+      "event": "Výstupy dokončeny",
+      "detail": "Word, Excel, SQLite, CSV, JSON, dashboard a provenance uzamčeny."
+    }
+  ],
+  "winner": "D",
+  "alternative": "B",
+  "takeaway": "Smart Journey je nejlepší core; při technologických výpadcích nebo nízké digitální důvěře je Calm Journey bezpečnější záloha.",
+  "next_steps": [
+    "Pilotovat gate-status a wayfinding.",
+    "Ověřit human backup v disruption scénáři.",
+    "Měřit perceived stress a navigation errors.",
+    "Lokální prvky použít jako brand layer, ne jako core UX."
+  ],
+  "metrics": [
+    [
+      "usage_intent_pct",
+      "Usage intent %"
+    ],
+    [
+      "preference_pct",
+      "Preference %"
+    ],
+    [
+      "clarity",
+      "Clarity /10"
+    ],
+    [
+      "convenience",
+      "Convenience /10"
+    ],
+    [
+      "trust",
+      "Trust /10"
+    ],
+    [
+      "premium_fit",
+      "Premium fit /10"
+    ]
+  ],
+  "primary": "usage_intent_pct",
+  "primary_label": "Usage intent",
+  "segments": [
+    "Frequent Business",
+    "Leisure Families",
+    "Infrequent Travellers",
+    "International Transfer",
+    "Digital Self-Service"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "version": "17.9.5",
+  "project_id": "PRJ-DEMO-COMPLETE-10-AEROCITY-DEMO",
+  "title": "AeroCity — DEMO",
+  "project_type": "research",
+  "primary_outputs": {
+    "overview_html": "FINAL_CLIENT_REPORT_OVERVIEW.html",
+    "main_report": "10_AEROCITY_DEMO_REPORT.docx",
+    "results_workbook": "10_AEROCITY_DEMO_RESULTS.xlsx",
+    "project_export_zip": "PROJECT_EXPORT_10_AEROCITY_DEMO.zip",
+    "dashboard_or_preview": "10_AEROCITY_DEMO_DASHBOARD.html"
+  },
+  "narrative_contract": [
+    "context",
+    "market situation",
+    "methodology",
+    "results",
+    "segmentation",
+    "risks",
+    "opportunities",
+    "recommendations",
+    "next steps"
+  ],
+  "counts": {
+    "artifacts": 20,
+    "worlds": 8,
+    "questionnaire_items": 0,
+    "segments": 20
+  },
+  "notes": "Generated overview that mirrors the reading order of real NPC Panel outputs."
+}

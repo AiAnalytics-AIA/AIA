@@ -1,0 +1,58 @@
+{
+  "version": "18.6.5",
+  "release": "NPC Panel 18.6.5 Unified Interactive Sociomapa Workspace",
+  "status": "PASS_WITH_EXTERNAL_BROWSER_NAVIGATION_NOT_RUN",
+  "sociomap": {
+    "single_workspace": true,
+    "modes": [
+      "respondents",
+      "objects"
+    ],
+    "old_flat_renderer_is_not_final_entrypoint": true,
+    "respondent_drag_visual_override": true,
+    "object_drag_visual_override": true,
+    "layout_persistence": true,
+    "layout_changes_data": false,
+    "respondent_filters": [
+      "důchodci",
+      "ženy",
+      "maso 1",
+      "maso <= 2",
+      "sport >= 7"
+    ],
+    "area_ab": true,
+    "ai_segments": true,
+    "object_normative_score": true,
+    "directional_relations": true,
+    "object_ab_measure": true,
+    "matrix_collapsed": true,
+    "new_360_demo_contract": {
+      "respondents": 600,
+      "objects": 8
+    },
+    "old_demo_fallback": "objects"
+  },
+  "tests": {
+    "targeted_passed": 106,
+    "workspace_tests": "4/4 PASS",
+    "python_compileall": "PASS",
+    "javascript_syntax": "PASS",
+    "critical_imports": "10/10 PASS",
+    "secret_scan_findings": 0,
+    "project_store_seed_projects": 0
+  },
+  "browser_testing": {
+    "isolated_chromium_workspace_smoke": "PASS",
+    "full_localhost_navigation": "NOT_RUN_ENVIRONMENT_BLOCKED_BY_ADMINISTRATOR"
+  },
+  "truth": {
+    "live_fake_respondent_fallback": false,
+    "manual_layout_changes_answers": false,
+    "manual_layout_changes_relation_matrix": false,
+    "manual_layout_creates_project_revision": false
+  },
+  "known_limits": [
+    "Full localhost navigation in Chromium could not be executed in this sandbox because browser navigation to localhost/file URLs is blocked by administrator policy.",
+    "Real paid Claude/OpenAI roundtrip is not part of this Sociomapa release gate."
+  ]
+}

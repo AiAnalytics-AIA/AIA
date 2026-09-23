@@ -1,0 +1,200 @@
+{
+  "nodes": [
+    {
+      "name": "Current",
+      "type": "object",
+      "score": 59,
+      "x": 255,
+      "y": 245,
+      "color": "#537bd7"
+    },
+    {
+      "name": "Clear & Human",
+      "type": "object",
+      "score": 78,
+      "x": 405,
+      "y": 210,
+      "color": "#3c9890"
+    },
+    {
+      "name": "Neo Future",
+      "type": "object",
+      "score": 67,
+      "x": 570,
+      "y": 125,
+      "color": "#7961c5"
+    },
+    {
+      "name": "Trusted Expert",
+      "type": "object",
+      "score": 71,
+      "x": 365,
+      "y": 315,
+      "color": "#299764"
+    },
+    {
+      "name": "Důvěra",
+      "type": "anchor",
+      "x": 380,
+      "y": 115,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Relevance",
+      "type": "anchor",
+      "x": 500,
+      "y": 245,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Cena / náklad",
+      "type": "anchor",
+      "x": 170,
+      "y": 205,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Jednoduchost",
+      "type": "anchor",
+      "x": 335,
+      "y": 355,
+      "color": "#9ba3af"
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 6,
+      "weight": 0.77
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "weight": 0.66
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "weight": 0.75
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "weight": 0.75
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "weight": 0.65
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "weight": 0.52
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "weight": 0.88
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "weight": 0.62
+    }
+  ],
+  "layers": [
+    "perception",
+    "emotion",
+    "segment_resonance"
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      6.6,
+      2.56,
+      7.12,
+      6.02,
+      4.59,
+      7.93,
+      6.94
+    ],
+    [
+      6.6,
+      0.0,
+      5.9,
+      7.52,
+      7.75,
+      7.75,
+      4.81,
+      6.45
+    ],
+    [
+      2.56,
+      5.9,
+      0.0,
+      3.83,
+      5.68,
+      6.8500000000000005,
+      1.0,
+      2.75
+    ],
+    [
+      7.12,
+      7.52,
+      3.83,
+      0.0,
+      5.57,
+      6.58,
+      5.06,
+      8.92
+    ],
+    [
+      6.02,
+      7.75,
+      5.68,
+      5.57,
+      0.0,
+      6.1,
+      4.96,
+      4.61
+    ],
+    [
+      4.59,
+      7.75,
+      6.8500000000000005,
+      6.58,
+      6.1,
+      0.0,
+      2.67,
+      5.62
+    ],
+    [
+      7.93,
+      4.81,
+      1.0,
+      5.06,
+      4.96,
+      2.67,
+      0.0,
+      5.08
+    ],
+    [
+      6.94,
+      6.45,
+      2.75,
+      8.92,
+      4.61,
+      5.62,
+      5.08,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SEED_RELATIONS_WITH_GEOMETRY_FILL; LIVE uses respondent correlations or explicit directional relations",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": true
+  }
+}

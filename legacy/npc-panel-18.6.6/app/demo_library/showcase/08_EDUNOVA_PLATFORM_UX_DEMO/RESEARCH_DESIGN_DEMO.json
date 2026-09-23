@@ -1,0 +1,59 @@
+{
+  "study_type": "Concept + UX research",
+  "decision": "Vybrat produktový koncept a prioritní learning flow před MVP.",
+  "research_questions": [
+    "Jak dnes studujete mimo školu / kurz?",
+    "Kde nejčastěji ztrácíte motivaci?",
+    "Jak hodnotíte čtyři možné produktové koncepty?",
+    "Jak důvěryhodné je AI vysvětlení bez lidského kurátora?",
+    "Které funkce byste používali každý týden?",
+    "Který koncept by vám nejvíce pomohl dokončit studijní cíl?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Library",
+      "description": "Knihovna lekcí",
+      "type": "tracked_object",
+      "score": 62,
+      "x": 245,
+      "y": 300
+    },
+    {
+      "id": "OBJ-B",
+      "name": "AI Tutor",
+      "description": "Volný AI chat",
+      "type": "tracked_object",
+      "score": 70,
+      "x": 565,
+      "y": 145
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Coach",
+      "description": "Plán + diagnostika + lekce",
+      "type": "tracked_object",
+      "score": 81,
+      "x": 400,
+      "y": 210
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Challenge",
+      "description": "Gamifikované výzvy",
+      "type": "tracked_object",
+      "score": 68,
+      "x": 330,
+      "y": 340
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Usefulness",
+    "Clarity",
+    "Trust",
+    "Motivation",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

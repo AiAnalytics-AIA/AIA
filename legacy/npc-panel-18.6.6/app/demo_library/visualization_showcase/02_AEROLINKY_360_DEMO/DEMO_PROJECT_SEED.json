@@ -1,0 +1,249 @@
+{
+  "project_id": "PRJ-DEMO-VIS-AEROLINKY-360",
+  "title": "Aerolinky 360 — bezpečnost, komfort a cena",
+  "project_type": "research",
+  "study_type": "Brand preference / positioning",
+  "domain": "Cestování / aerolinky",
+  "current_revision": 1,
+  "brief": {
+    "client_input": "Zadavatel: Aerolinky NUBIOUS.",
+    "decision": "Které aerolinky volí lidé podle bezpečnosti, komfortu, ceny a sítě spojů?"
+  },
+  "audience": {
+    "population": "Česká populace 18+",
+    "n": 600,
+    "provenance": "DEMO_SYNTHETIC_DATASET"
+  },
+  "research_questions": [
+    "Které aerolinky volí lidé podle bezpečnosti, komfortu, ceny a sítě spojů?",
+    "Které segmenty tvoří nejvýraznější shluky?",
+    "Jaké charakteristiky jednotlivé shluky odlišují?"
+  ],
+  "questionnaire": [
+    {
+      "id": "Q0",
+      "text": "Demografický a profilový blok"
+    },
+    {
+      "id": "QO1",
+      "text": "Jak blízko je vám British Airways? Hodnocení 1–10."
+    },
+    {
+      "id": "QO2",
+      "text": "Jak blízko je vám Air France? Hodnocení 1–10."
+    },
+    {
+      "id": "QO3",
+      "text": "Jak blízko je vám Qatar Airways? Hodnocení 1–10."
+    },
+    {
+      "id": "QO4",
+      "text": "Jak blízko je vám Emirates? Hodnocení 1–10."
+    },
+    {
+      "id": "QO5",
+      "text": "Jak blízko je vám Ryanair? Hodnocení 1–10."
+    },
+    {
+      "id": "QO6",
+      "text": "Jak blízko je vám Wizz Air? Hodnocení 1–10."
+    },
+    {
+      "id": "QO7",
+      "text": "Jak blízko je vám Lufthansa? Hodnocení 1–10."
+    },
+    {
+      "id": "QO8",
+      "text": "Jak blízko je vám easyJet? Hodnocení 1–10."
+    },
+    {
+      "id": "QT1",
+      "text": "Safety — škála 1–10"
+    },
+    {
+      "id": "QT2",
+      "text": "Comfort — škála 1–10"
+    },
+    {
+      "id": "QT3",
+      "text": "Price — škála 1–10"
+    },
+    {
+      "id": "QT4",
+      "text": "Network — škála 1–10"
+    },
+    {
+      "id": "QT5",
+      "text": "Status — škála 1–10"
+    },
+    {
+      "id": "QT6",
+      "text": "Service — škála 1–10"
+    },
+    {
+      "id": "QT7",
+      "text": "Frequency — škála 1–10"
+    }
+  ],
+  "segments": [
+    {
+      "segment": "Bezpečnost na prvním místě",
+      "n": 125,
+      "share": 0.208,
+      "top_objects": [
+        {
+          "object": "British Airways",
+          "mean": 7.0
+        },
+        {
+          "object": "Air France",
+          "mean": 6.91
+        },
+        {
+          "object": "Lufthansa",
+          "mean": 6.9
+        }
+      ]
+    },
+    {
+      "segment": "Komfort a servis",
+      "n": 113,
+      "share": 0.188,
+      "top_objects": [
+        {
+          "object": "Qatar Airways",
+          "mean": 7.67
+        },
+        {
+          "object": "Emirates",
+          "mean": 7.46
+        },
+        {
+          "object": "British Airways",
+          "mean": 5.88
+        }
+      ]
+    },
+    {
+      "segment": "Lovci nejnižší ceny",
+      "n": 156,
+      "share": 0.26,
+      "top_objects": [
+        {
+          "object": "Wizz Air",
+          "mean": 7.39
+        },
+        {
+          "object": "Ryanair",
+          "mean": 7.16
+        },
+        {
+          "object": "easyJet",
+          "mean": 7.04
+        }
+      ]
+    },
+    {
+      "segment": "Síť a spolehlivost",
+      "n": 119,
+      "share": 0.198,
+      "top_objects": [
+        {
+          "object": "Air France",
+          "mean": 6.74
+        },
+        {
+          "object": "British Airways",
+          "mean": 6.72
+        },
+        {
+          "object": "Lufthansa",
+          "mean": 6.72
+        }
+      ]
+    },
+    {
+      "segment": "Prémioví cestující",
+      "n": 87,
+      "share": 0.145,
+      "top_objects": [
+        {
+          "object": "Qatar Airways",
+          "mean": 7.02
+        },
+        {
+          "object": "Emirates",
+          "mean": 7.0
+        },
+        {
+          "object": "Air France",
+          "mean": 5.38
+        }
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "British Airways",
+      "mean": 6.03
+    },
+    {
+      "name": "Air France",
+      "mean": 6.01
+    },
+    {
+      "name": "Qatar Airways",
+      "mean": 5.83
+    },
+    {
+      "name": "Emirates",
+      "mean": 5.8
+    },
+    {
+      "name": "Ryanair",
+      "mean": 5.46
+    },
+    {
+      "name": "Wizz Air",
+      "mean": 5.45
+    },
+    {
+      "name": "Lufthansa",
+      "mean": 5.94
+    },
+    {
+      "name": "easyJet",
+      "mean": 5.78
+    }
+  ],
+  "executive_answer": "Segmentace podle blízkosti ke značkám (QO1–QO8) a atributů Safety, Comfort, Price, Network, Status, Service a Frequency (QT1–QT7) ukazuje, že volba aerolinky se řídí hlavně bezpečností, komfortem nebo cenou — ne sítí spojů nebo statusem.",
+  "recommendation": "Positioning a produktovou nabídku odlišit podle tří jasných segmentů: bezpečnost (British Airways, Air France, Lufthansa), komfort (Qatar Airways, Emirates) a cena (Ryanair, Wizz Air). V Visualization Labu si tyto segmenty vyfiltrujte a porovnejte s oblastí A/B.",
+  "demo_truth": "ILUSTRAČNÍ DEMO — data jsou synteticky vygenerována pro demonstraci funkce, nejde o reálný průzkum.",
+  "demo_summary": {
+    "main_question": "Které aerolinky volí lidé podle bezpečnosti, komfortu, ceny a sítě spojů?",
+    "main_answer": "Bezpečnostní segment tíhne k British Airways, Air France a Lufthanse; komfortní k Qatar Airways a Emirates; cenový k Ryanairu a Wizz Air.",
+    "recommendation": "Positioning a produktovou nabídku odlišit podle tří jasných segmentů: bezpečnost (British Airways, Air France, Lufthansa), komfort (Qatar Airways, Emirates) a cena (Ryanair, Wizz Air). V Visualization Labu si tyto segmenty vyfiltrujte a porovnejte s oblastí A/B.",
+    "why": "Segmentace podle blízkosti ke značkám (QO1–QO8) a atributů Safety, Comfort, Price, Network, Status, Service a Frequency (QT1–QT7) ukazuje, že volba aerolinky se řídí hlavně bezpečností, komfortem nebo cenou — ne sítí spojů nebo statusem.",
+    "report_outline": [
+      "1. Executive summary (klíčové zjištění: tři jasné segmenty — bezpečnost, komfort, cena)",
+      "2. Zadání klienta (Aerolinky NUBIOUS, cestování / aerolinky)",
+      "3. Kontext trhu a situace (letecká doprava; British Airways, Air France, Lufthansa, Qatar Airways, Emirates, Ryanair, Wizz Air, easyJet)",
+      "4. Výzkumné otázky a hypotézy (které aerolinky volí lidé podle bezpečnosti, komfortu, ceny a sítě spojů)",
+      "5. Design a vzorek (česká populace 18+, N=600)",
+      "6. Audience a segmentace (bezpečnostní, komfortní a cenový segment)",
+      "7. Hlavní KPI a outcome (blízkost ke značkám QO1–QO8, atributy QT1–QT7)",
+      "8. Srovnání variant / objektů (srovnání aerolinek dle blízkosti a atributů)",
+      "9. Emocionální a percepční mapa (vnímání bezpečnosti, komfortu a statusu jednotlivých aerolinek)",
+      "10. Sociomapa (mapa blízkosti respondentů k jednotlivým aerolinkám)",
+      "11. Segmentové rozdíly (bezpečnostní vs. komfortní vs. cenový segment)",
+      "12. Rizika a scénáře (přelévání segmentů mezi nízkonákladovými a prémiovými aerolinkami)",
+      "13. Příležitosti (positioning na míru pro bezpečnostní, komfortní nebo cenový segment)",
+      "14. Doporučený akční plán (segmentovaná komunikace a produktová nabídka podle tří segmentů)",
+      "15. Ověření a další kroky (rozšířit sběr dat o další vlny a segmenty)"
+    ],
+    "summary_heading": "Shrnutí a doporučení",
+    "badge_label": "Hotovo",
+    "client": "Aerolinky NUBIOUS",
+    "report_intro": "Tento report ukazuje stejnou logiku jako reálný výstup: kontext → data → interpretace → rizika → doporučení. Pro prezentaci investorům/klientům počítejte s cca 40–50 stranami plus appendix a exporty."
+  }
+}

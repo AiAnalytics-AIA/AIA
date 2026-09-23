@@ -1,0 +1,62 @@
+{
+  "status": "AI_READY",
+  "provider": "build_time_ai",
+  "model": "GPT-5.6 Sol",
+  "fallback_used": false,
+  "summary": "V mapě se oddělují především tři spotřebitelské logiky: zdraví a omezení cukru, tradiční sladká chuť a energetická potřeba. Pro inovaci bez cukru je nejzajímavější skupina Aktivní bez cukru: je dostatečně početná a současně se výrazně odlišuje ve sportu, vyhýbání se cukru a vztahu k Zero variantám.",
+  "insights": [
+    {
+      "candidate_id": "SG-4BD1F1A8F6",
+      "title": "Aktivní bez cukru",
+      "why_interesting": "Silný a početný shluk pro nabídku bez cukru.",
+      "characterization": "V této skupině se současně objevuje vyšší sportovní orientace, nižší vztah k cukru, vyšší vyhýbání se cukru a nadprůměrná blízkost Coca-Cola Zero.",
+      "business_meaning": "Skupina je kandidátem pro testování funkčnějšího nebo sportovněji pozicovaného nápoje bez cukru.",
+      "map_cta": "Zobrazit skupinu A na mapě",
+      "confidence_note": "Skupina má 120 respondentů (20.0 %) a datové skóre odlišnosti 100.0/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-5EC15E2C0E",
+      "title": "Tradiční sladká chuť",
+      "why_interesting": "Výrazný protipól k bezcukrovému segmentu.",
+      "characterization": "Respondenti mají vyšší vztah ke sladké chuti a značkám Coca-Cola a Kofola, zatímco Zero profil je slabší.",
+      "business_meaning": "Pomáhá odlišit, co by nová bezcukrová nabídka neměla ztratit na chuti a značkové známosti.",
+      "map_cta": "Zobrazit skupinu B na mapě",
+      "confidence_note": "Skupina má 137 respondentů (22.8 %) a datové skóre odlišnosti 100.0/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-D96C0F1304",
+      "title": "Energetičtí mladí",
+      "why_interesting": "Dobře oddělený mladší shluk orientovaný na energii a novinky.",
+      "characterization": "V datech se pojí vyšší potřeba energie s Red Bullem a Monsterem a zároveň s vyšší otevřeností novinkám.",
+      "business_meaning": "Je zajímavý pro inovace na pomezí energy a zero, ale neměl by být zaměněn s čistě zdravotním segmentem.",
+      "map_cta": "Zobrazit skupinu C na mapě",
+      "confidence_note": "Skupina má 121 respondentů (20.2 %) a datové skóre odlišnosti 100.0/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-27A802FC07",
+      "title": "Minerálka a zdraví",
+      "why_interesting": "Zdravotně orientovaný shluk s odlišnou kategoriální gravitací.",
+      "characterization": "Skupina tíhne k Mattoni a k vyššímu zdravotnímu nastavení; sladké klasické varianty jsou relativně slabší.",
+      "business_meaning": "Ukazuje možný prostor pro lehčí, funkční nebo přirozeněji komunikovanou nabídku.",
+      "map_cta": "Zobrazit skupinu D na mapě",
+      "confidence_note": "Skupina má 119 respondentů (19.8 %) a datové skóre odlišnosti 78.1/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-1BC4EE91B5",
+      "title": "Cenově citliví",
+      "why_interesting": "Početný segment, který může limitovat prémiové pozicování.",
+      "characterization": "Jeho profil je charakterizován vyšší citlivostí na cenu a méně jednoznačnou vazbou na prémiovou značkovou logiku.",
+      "business_meaning": "Je důležitý pro cenový koridor, promo strategii a velikost balení.",
+      "map_cta": "Zobrazit skupinu E na mapě",
+      "confidence_note": "Skupina má 103 respondentů (17.2 %) a datové skóre odlišnosti 76.1/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    }
+  ],
+  "privacy_contract": "Interpretace vznikla nad agregovanými profily DEMO skupin; individuální respondentní řádky nebyly součástí interpretačního promptu.",
+  "provenance": "BUILD_TIME_AI_DEMO",
+  "demo_truth": "ILUSTRAČNÍ DEMO — syntetický dataset, nikoli reálný průzkum."
+}

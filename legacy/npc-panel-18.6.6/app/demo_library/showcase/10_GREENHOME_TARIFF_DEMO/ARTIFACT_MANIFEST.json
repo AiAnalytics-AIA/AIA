@@ -1,0 +1,194 @@
+[
+  {
+    "path": "AUDIENCE_DESIGN_DEMO.json",
+    "stage": "AUDIENCE",
+    "sha256": "0931f86534b8f312607450344e28e9467255811159718b912077f90e088684ee",
+    "bytes": 371
+  },
+  {
+    "path": "CLIENT_REPORT_GREENHOME_DEMO.docx",
+    "stage": "DELIVERY",
+    "sha256": "c093080feaf6937d8cba6af3820be5e29860bf0630cdbf92755114664478ea1f",
+    "bytes": 50904
+  },
+  {
+    "path": "DEMO_PREVIEW.html",
+    "stage": "DELIVERY",
+    "sha256": "ab6c85382e1f8975aad22d0363d11d3db30b3ab5fb67c1171b471fe2ad0c95eb",
+    "bytes": 3005
+  },
+  {
+    "path": "DEMO_PROJECT_SEED.json",
+    "stage": "DELIVERY",
+    "sha256": "c22d49d986c9240f44f323910e09da8516f1df9383ab8e94ff6d904435dca32c",
+    "bytes": 10051
+  },
+  {
+    "path": "EXECUTIVE_XLSX_PREVIEW.png",
+    "stage": "DELIVERY",
+    "sha256": "edc5b068a4f3b99454faeba794c278012d049a3a15deab5ff1832fabdbb08360",
+    "bytes": 94082
+  },
+  {
+    "path": "IMPLEMENTACE_DO_PANELU.md",
+    "stage": "DELIVERY",
+    "sha256": "2053a58b6560171391d7e6fc67d4231e349df31ea1a1dde7d6804052145e495e",
+    "bytes": 2515
+  },
+  {
+    "path": "OBJECTS_SOCIOMAP_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "76ef73d42b09185e7dc15b69110594fde923fd07859fa182f7daa5ed467d7622",
+    "bytes": 1676
+  },
+  {
+    "path": "PROJECT_HISTORY_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "cbf03c587463eeb2fa80d18a18f0208155d5aa3f8058972d7e6937318cf3ccc8",
+    "bytes": 1068
+  },
+  {
+    "path": "QUESTIONNAIRE_DEMO.json",
+    "stage": "QUESTIONNAIRE",
+    "sha256": "1101354fdf636572358d4e2970e9d0453e0132cb2d92875947d9d03251cecf71",
+    "bytes": 1034
+  },
+  {
+    "path": "REPORT_TEXT_DEMO.md",
+    "stage": "DELIVERY",
+    "sha256": "059eeb20d2cf75a4262d01507edf01597e38b732d9e90ccd13caf681acb31954",
+    "bytes": 851
+  },
+  {
+    "path": "RESEARCH_DESIGN_DEMO.json",
+    "stage": "RESEARCH_DESIGN",
+    "sha256": "7854a8be9eef3d5d8b8c1c3583a429e9f6677a68739dc8c875fa06e87f6cfb24",
+    "bytes": 1466
+  },
+  {
+    "path": "RESPONDENT_DATABASE_DEMO.csv",
+    "stage": "FIELDWORK",
+    "sha256": "87e070ff7b2c14be61bada9df3a36278008a17658fc976be4c0620362018c500",
+    "bytes": 100715
+  },
+  {
+    "path": "RESULTS_TABLES_GREENHOME_TARIFF_DEMO.xlsx",
+    "stage": "DELIVERY",
+    "sha256": "5489fe8037729c282c525ac28ae37f5c9fe8919dc28ee904468b3102e929ab99",
+    "bytes": 85996
+  },
+  {
+    "path": "analysis/ANALYSIS_01_EXECUTIVE.json",
+    "stage": "ANALYSIS",
+    "sha256": "be926bd7170172c1250500c52b476ed09ae15712e4f54106ff106c6d142903dd",
+    "bytes": 284
+  },
+  {
+    "path": "analysis/ANALYSIS_02_RESEARCH_QUESTIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "f3b3e1b3c8c41cc8198ef78b44c2bf94288ff65e3eaaa6259212cee631000d71",
+    "bytes": 397
+  },
+  {
+    "path": "analysis/ANALYSIS_03_OBJECTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "a8db8dc063b260d2533a05e34cb920b81507a6465bb989bae9ec005e444e08a1",
+    "bytes": 123
+  },
+  {
+    "path": "analysis/ANALYSIS_04_AUDIENCE.json",
+    "stage": "ANALYSIS",
+    "sha256": "e626ba70c4b5e65fa7a24e9a7c6f020e685334f6192d4f027addec1641259b07",
+    "bytes": 146
+  },
+  {
+    "path": "analysis/ANALYSIS_05_SEGMENTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "e8bcc713f0a4372a0578531ce2eeba879c5ac413b9bc3b3be4f8ee3dba10fd63",
+    "bytes": 168
+  },
+  {
+    "path": "analysis/ANALYSIS_06_HYPOTHESES.json",
+    "stage": "ANALYSIS",
+    "sha256": "fd66ae160d8e4ba697df7eadb5ec13181256504f1f724f694d56384c540ff2c0",
+    "bytes": 150
+  },
+  {
+    "path": "analysis/ANALYSIS_07_IMPLICATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "6f72fd552ac04ecb67b054f898bda4a470084d345381020922c4979eb38d36f9",
+    "bytes": 187
+  },
+  {
+    "path": "analysis/ANALYSIS_08_LIMITATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "749242efd82f9f4dc79300ef4b762d7f400e4d2407349b5d83442abead815d85",
+    "bytes": 246
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.png",
+    "stage": "ANALYSIS",
+    "sha256": "2700f75919b2a366b700e3cf7a5622c28642edbd322085d9deebeb856073b3e1",
+    "bytes": 12190
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.svg",
+    "stage": "ANALYSIS",
+    "sha256": "96483dcdca4fe98f5647d4b441f46288a9cf8c26e8378ae8f038104871fa3988",
+    "bytes": 2340
+  },
+  {
+    "path": "demo_project_loader.py",
+    "stage": "DELIVERY",
+    "sha256": "be789dc013c07efb2cb1febedae1e6878b6d895c711f74402907ec4173af8b6b",
+    "bytes": 1024
+  },
+  {
+    "path": "worlds/WORLD_1_BASE_ENERGY.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "6afc943743e0d5b29ebf4b849fbf050b3950cb5a57a6530f208187b231a46a96",
+    "bytes": 146
+  },
+  {
+    "path": "worlds/WORLD_2_PRICE_VOLATILITY.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "256a940534a7e01fc16829f4348c40e8b0d7bae4c29633f6fd1bc7cc9279907c",
+    "bytes": 159
+  },
+  {
+    "path": "worlds/WORLD_3_STABLE_PRICES.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "785f32843ca951f8dcb3b9f22dd5c8c9718d1d871e56a119cd101d1466a9a900",
+    "bytes": 150
+  },
+  {
+    "path": "worlds/WORLD_4_GREEN_CONCERN.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "714aa976a18cabb13b4eec376b8384fde8cb88f9918c7ddc8a22dac889000c17",
+    "bytes": 167
+  },
+  {
+    "path": "worlds/WORLD_5_SMART_HOME_GROWTH.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "f8b9f4b75cf2b29afbdcfda1b3f014bc915e80e2c6ada0b8cefdcbd07f5e73c8",
+    "bytes": 164
+  },
+  {
+    "path": "worlds/WORLD_6_TRUST_SHOCK.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "9e9121ea35ea5108798ac83e0fe11c2f80e9cc9161341077955aae69dc7e0970",
+    "bytes": 160
+  },
+  {
+    "path": "worlds/WORLD_7_SAVINGS_PRESSURE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "37e726af250c3fedef7c4c5a00ad467422ec614f159f251913685b21b3ec786d",
+    "bytes": 159
+  },
+  {
+    "path": "worlds/WORLD_8_AUTOMATION_COMFORT.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "a1f330c64108ccef7f931dd11bcf7029dd2cb206fd2ba44fd3d6ef30ceb54c61",
+    "bytes": 169
+  }
+]

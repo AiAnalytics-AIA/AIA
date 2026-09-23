@@ -1,0 +1,56 @@
+{
+  "project_id": "PRJ-DEMO-VIS-AEROLINKY-360",
+  "slug": "02_AEROLINKY_360_DEMO",
+  "files": [
+    {
+      "name": "ANALYSIS.json",
+      "size_bytes": 2336,
+      "sha256": "53570c99b5c467c2c422bcf9e29e1cdbb2a34ea1334f08df553b65006d57c292"
+    },
+    {
+      "name": "DATA_DICTIONARY.json",
+      "size_bytes": 2364,
+      "sha256": "f5ea6f4a2e192330864e2d058a0119b5590af6864550434bbfd26c8bf804596d"
+    },
+    {
+      "name": "DEMO_PROJECT_SEED.json",
+      "size_bytes": 4979,
+      "sha256": "e1a07275f3e45089226ef2654e027d5d197482c12a4e10dea17e965d2970ef5d"
+    },
+    {
+      "name": "DEMO_REPORT.html",
+      "size_bytes": 1446,
+      "sha256": "0dd256fbb9bc0c7a85aa65b7c0cbc2a9b8e93ab60599829f31e755c5f4296390"
+    },
+    {
+      "name": "OBJECTS_SOCIOMAP_DEMO.json",
+      "size_bytes": 5020,
+      "sha256": "ee2a79882a71d097b496a08fa94ef38a1502c6bd2f5d4793f6b5dc2a12acb8b8"
+    },
+    {
+      "name": "OBJECT_MAP_3D.html",
+      "size_bytes": 13716,
+      "sha256": "37bcdf02cbbefe646dcb68bbd138948a51b17d1fdec8f7d2213c0e7c2cd3425c"
+    },
+    {
+      "name": "QUESTIONNAIRE.json",
+      "size_bytes": 1265,
+      "sha256": "0ae0de1c6d877e38a0c0b85fa492d2f745144a0290d06abd2f7315c301712db9"
+    },
+    {
+      "name": "README.md",
+      "size_bytes": 151,
+      "sha256": "51df5ab4d956e08715b100cbe553fa7c8f009166b565ad8e5d1f16cf45b4cd59"
+    },
+    {
+      "name": "RESPONDENTS.csv",
+      "size_bytes": 66665,
+      "sha256": "1731807e9541ceb4bf69333f9d74a2481c7652a23669de7e59db0fe24dde5297"
+    },
+    {
+      "name": "RESULTS.xlsx",
+      "size_bytes": 60375,
+      "sha256": "1e6b51fb6e3eab571acb072e4c7ec32b5971b58c72469f3af2d648ba98b2c502"
+    }
+  ]
+}

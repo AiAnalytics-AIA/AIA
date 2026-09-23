@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "status": "READY_NO_GLOBAL_ANCHORS_BUNDLED",
+  "note": "Anchor truth must come from a documented published benchmark or an uploaded audience Benchmarks sheet. No benchmark is fabricated by the runtime.",
+  "anchors": []
+}

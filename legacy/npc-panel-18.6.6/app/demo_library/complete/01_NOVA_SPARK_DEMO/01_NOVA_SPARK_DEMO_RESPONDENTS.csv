@@ -1,0 +1,1201 @@
+﻿respondent_id,age,gender,region,education,segment,price_sensitivity_1_10,digital_confidence_1_10,change_openness_1_10,institutional_trust_1_10,category_involvement_1_10
+1,38,Muž,Severovýchod,SŠ s maturitou,Price-Sensitive,6,4,6,7,5
+2,31,Žena,Severozápad,ZŠ / bez maturity,Health-Oriented,8,6,6,4,6
+3,37,Muž,Moravskoslezsko,ZŠ / bez maturity,Skeptical Traditional,5,7,5,4,6
+4,54,Žena,Severovýchod,SŠ s maturitou,Price-Sensitive,5,7,10,10,1
+5,18,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,7,8,5,6,7
+6,48,Muž,Severozápad,SŠ s maturitou,Health-Oriented,4,4,9,6,5
+7,35,Žena,Střední Čechy,SŠ s maturitou,Skeptical Traditional,10,2,6,8,5
+8,35,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,5,6,10,5,6
+9,25,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,7,6,7,6,5
+10,64,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,3,3,4,4,4
+11,32,Žena,Severovýchod,VŠ,Young Explorers,6,7,7,5,7
+12,44,Muž,Severozápad,ZŠ / bez maturity,Price-Sensitive,2,6,7,3,7
+13,45,Žena,Severovýchod,SŠ s maturitou,Skeptical Traditional,9,4,6,7,7
+14,33,Muž,Praha,SŠ s maturitou,Price-Sensitive,3,1,5,7,3
+15,33,Žena,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,7,7,7,3,1
+16,34,Žena,Severozápad,VŠ,Price-Sensitive,5,7,9,5,5
+17,42,Žena,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,4,6,7,2,6
+18,41,Muž,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,2,10,5,4,8
+19,44,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,6,9,6,7,8
+20,27,Muž,Jihovýchod,VŠ,Young Explorers,6,6,4,6,8
+21,68,Muž,Severovýchod,SŠ s maturitou,Health-Oriented,10,8,5,6,7
+22,42,Muž,Praha,ZŠ / bez maturity,Health-Oriented,4,5,8,5,4
+23,42,Muž,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,4,9,4,3,8
+24,42,Muž,Praha,SŠ s maturitou,Price-Sensitive,4,6,6,7,7
+25,62,Žena,Praha,SŠ s maturitou,Young Explorers,5,2,6,6,5
+26,39,Žena,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,2,6,5,4,10
+27,44,Muž,Jihozápad,VŠ,Skeptical Traditional,8,5,5,3,9
+28,44,Muž,Střední Čechy,VŠ,Skeptical Traditional,1,7,5,4,4
+29,42,Muž,Severovýchod,SŠ s maturitou,Young Explorers,8,3,4,3,5
+30,42,Žena,Severozápad,ZŠ / bez maturity,Pragmatic Mainstream,6,7,6,5,3
+31,56,Žena,Praha,VŠ,Health-Oriented,7,6,5,3,7
+32,72,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,6,5,4,4,6
+33,28,Muž,Moravskoslezsko,SŠ s maturitou,Young Explorers,8,6,6,6,7
+34,27,Žena,Jihovýchod,SŠ s maturitou,Young Explorers,9,7,9,5,6
+35,18,Žena,Jihozápad,VŠ,Pragmatic Mainstream,2,5,5,3,5
+36,40,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,6,7,4,3,5
+37,31,Žena,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,5,6,5,4,5
+38,30,Muž,Severovýchod,SŠ s maturitou,Price-Sensitive,4,3,5,7,6
+39,42,Žena,Severovýchod,ZŠ / bez maturity,Pragmatic Mainstream,6,5,4,8,5
+40,58,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,7,8,4,4,4
+41,34,Muž,Praha,SŠ s maturitou,Price-Sensitive,8,5,7,3,5
+42,24,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,5,8,1,1,7
+43,66,Muž,Praha,VŠ,Price-Sensitive,5,10,1,5,4
+44,54,Muž,Severovýchod,SŠ s maturitou,Health-Oriented,6,10,5,3,3
+45,25,Muž,Severovýchod,VŠ,Health-Oriented,6,4,2,6,5
+46,33,Žena,Severovýchod,ZŠ / bez maturity,Price-Sensitive,9,10,5,4,6
+47,19,Muž,Jihozápad,SŠ s maturitou,Young Explorers,7,5,4,6,8
+48,49,Žena,Praha,SŠ s maturitou,Skeptical Traditional,4,8,4,4,3
+49,51,Žena,Jihovýchod,VŠ,Pragmatic Mainstream,4,7,7,8,5
+50,34,Žena,Jihovýchod,VŠ,Health-Oriented,7,3,5,7,7
+51,57,Muž,Jihovýchod,VŠ,Pragmatic Mainstream,6,7,6,7,7
+52,50,Muž,Severozápad,SŠ s maturitou,Health-Oriented,6,6,8,1,4
+53,60,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,5,7,7,6,10
+54,54,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,4,6,4,1,9
+55,33,Muž,Severozápad,ZŠ / bez maturity,Skeptical Traditional,7,2,7,5,5
+56,30,Muž,Střední Čechy,VŠ,Price-Sensitive,7,10,6,7,6
+57,50,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,5,5,8,4,5
+58,25,Žena,Severozápad,VŠ,Skeptical Traditional,7,6,5,6,6
+59,33,Žena,Praha,SŠ s maturitou,Young Explorers,6,3,5,8,9
+60,18,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,5,8,7,4,3
+61,64,Muž,Jihovýchod,ZŠ / bez maturity,Young Explorers,6,6,4,3,3
+62,44,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,1,5,5,1,1
+63,45,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,5,7,4,1,7
+64,58,Žena,Střední Čechy,SŠ s maturitou,Health-Oriented,6,4,6,6,9
+65,22,Muž,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,8,5,5,7,3
+66,60,Žena,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,7,5,5,5,7
+67,45,Žena,Severozápad,SŠ s maturitou,Skeptical Traditional,3,6,2,5,1
+68,66,Muž,Praha,SŠ s maturitou,Price-Sensitive,3,7,7,7,4
+69,49,Žena,Praha,ZŠ / bez maturity,Pragmatic Mainstream,6,6,6,6,3
+70,30,Žena,Střední Čechy,SŠ s maturitou,Young Explorers,9,9,10,7,5
+71,48,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,5,6,6,7,10
+72,34,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,7,3,1,6,5
+73,27,Žena,Střední Čechy,VŠ,Young Explorers,8,6,3,7,7
+74,60,Muž,Severovýchod,VŠ,Skeptical Traditional,9,6,5,8,8
+75,52,Žena,Jihozápad,ZŠ / bez maturity,Pragmatic Mainstream,5,6,4,6,7
+76,18,Muž,Praha,ZŠ / bez maturity,Pragmatic Mainstream,7,5,7,9,6
+77,21,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,6,5,6,4,5
+78,45,Muž,Střední Čechy,SŠ s maturitou,Young Explorers,7,7,5,7,1
+79,42,Muž,Praha,VŠ,Health-Oriented,6,8,9,5,6
+80,50,Muž,Praha,ZŠ / bez maturity,Young Explorers,5,3,8,3,1
+81,44,Muž,Jihovýchod,ZŠ / bez maturity,Young Explorers,6,5,4,7,8
+82,18,Muž,Jihozápad,VŠ,Pragmatic Mainstream,6,5,7,4,5
+83,21,Žena,Jihovýchod,VŠ,Health-Oriented,4,5,4,5,6
+84,28,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,6,7,2,8,3
+85,42,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,4,5,1,6,5
+86,22,Žena,Střední Čechy,VŠ,Young Explorers,7,7,4,3,7
+87,53,Žena,Severozápad,SŠ s maturitou,Health-Oriented,5,5,8,6,6
+88,23,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,4,4,5,3,5
+89,31,Muž,Jihovýchod,SŠ s maturitou,Young Explorers,8,8,8,4,10
+90,43,Žena,Jihozápad,SŠ s maturitou,Price-Sensitive,5,5,6,7,3
+91,74,Žena,Severovýchod,VŠ,Young Explorers,6,6,6,8,5
+92,25,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,9,5,5,6,7
+93,43,Žena,Severovýchod,SŠ s maturitou,Price-Sensitive,7,8,5,7,6
+94,43,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,5,10,4,8,4
+95,22,Žena,Praha,VŠ,Pragmatic Mainstream,3,5,5,3,3
+96,61,Žena,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,8,7,7,7,1
+97,41,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,6,8,9,5,8
+98,39,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,6,7,5,6,3
+99,34,Žena,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,10,7,7,7,4
+100,57,Žena,Severozápad,VŠ,Pragmatic Mainstream,9,4,6,3,6
+101,34,Muž,Praha,ZŠ / bez maturity,Young Explorers,3,6,4,8,7
+102,18,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,5,8,7,2,3
+103,18,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,5,4,2,6,5
+104,55,Žena,Střední Čechy,VŠ,Young Explorers,5,7,5,2,10
+105,47,Žena,Jihovýchod,VŠ,Price-Sensitive,7,9,4,8,6
+106,41,Žena,Střední Čechy,SŠ s maturitou,Skeptical Traditional,6,8,8,7,3
+107,48,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,3,3,5,6,8
+108,62,Muž,Jihozápad,VŠ,Young Explorers,8,6,3,9,3
+109,48,Muž,Severozápad,ZŠ / bez maturity,Young Explorers,6,5,6,5,4
+110,36,Žena,Jihozápad,ZŠ / bez maturity,Health-Oriented,4,7,3,4,4
+111,33,Muž,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,5,5,3,3,8
+112,27,Žena,Střední Čechy,SŠ s maturitou,Young Explorers,8,4,5,7,5
+113,35,Žena,Praha,SŠ s maturitou,Health-Oriented,6,4,3,6,9
+114,27,Žena,Severovýchod,SŠ s maturitou,Skeptical Traditional,4,6,1,7,6
+115,51,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,8,3,7,10,7
+116,69,Muž,Praha,SŠ s maturitou,Young Explorers,6,4,7,7,3
+117,42,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,6,5,9,6,5
+118,35,Muž,Severozápad,VŠ,Health-Oriented,3,10,7,7,9
+119,55,Žena,Severozápad,ZŠ / bez maturity,Health-Oriented,4,4,4,6,6
+120,32,Muž,Severovýchod,ZŠ / bez maturity,Pragmatic Mainstream,6,10,6,4,4
+121,47,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,6,7,5,6,7
+122,49,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,4,7,6,4,7
+123,54,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,4,8,4,5,7
+124,21,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,5,7,4,5,5
+125,74,Muž,Praha,SŠ s maturitou,Skeptical Traditional,5,7,7,7,8
+126,18,Žena,Jihozápad,VŠ,Pragmatic Mainstream,5,8,10,8,8
+127,52,Žena,Střední Čechy,ZŠ / bez maturity,Skeptical Traditional,8,6,3,5,8
+128,20,Žena,Praha,SŠ s maturitou,Price-Sensitive,10,7,6,8,7
+129,50,Muž,Severovýchod,ZŠ / bez maturity,Price-Sensitive,4,6,5,2,5
+130,30,Žena,Střední Čechy,VŠ,Young Explorers,6,3,7,2,5
+131,25,Muž,Praha,VŠ,Price-Sensitive,5,7,5,4,5
+132,28,Muž,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,8,6,7,6,3
+133,28,Žena,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,6,5,8,3,9
+134,31,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,2,7,4,8,5
+135,18,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,5,8,7,5,5
+136,40,Žena,Jihozápad,VŠ,Skeptical Traditional,4,10,3,4,7
+137,43,Muž,Jihovýchod,SŠ s maturitou,Health-Oriented,6,6,4,6,3
+138,51,Žena,Praha,VŠ,Pragmatic Mainstream,2,9,4,6,8
+139,34,Žena,Střední Čechy,VŠ,Young Explorers,7,7,5,5,8
+140,25,Žena,Severovýchod,VŠ,Skeptical Traditional,4,4,8,6,7
+141,40,Muž,Moravskoslezsko,VŠ,Price-Sensitive,6,7,6,5,3
+142,38,Žena,Praha,VŠ,Health-Oriented,7,7,6,6,5
+143,29,Žena,Severovýchod,VŠ,Pragmatic Mainstream,8,8,7,4,4
+144,30,Žena,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,4,5,3,1,7
+145,44,Muž,Střední Čechy,SŠ s maturitou,Health-Oriented,5,7,6,5,8
+146,43,Žena,Severovýchod,ZŠ / bez maturity,Young Explorers,6,7,6,3,5
+147,49,Žena,Severovýchod,ZŠ / bez maturity,Pragmatic Mainstream,7,3,6,8,7
+148,26,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,5,5,4,4,4
+149,36,Muž,Praha,SŠ s maturitou,Price-Sensitive,2,9,1,7,3
+150,74,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,6,9,3,4,9
+151,38,Muž,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,9,5,4,4,7
+152,57,Žena,Praha,VŠ,Price-Sensitive,10,8,5,6,2
+153,52,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,5,2,10,5,5
+154,61,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,4,10,5,3,6
+155,27,Muž,Jihovýchod,VŠ,Health-Oriented,5,5,4,5,6
+156,58,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,5,9,6,4,5
+157,39,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,10,6,4,4,5
+158,48,Muž,Praha,VŠ,Young Explorers,4,5,8,7,10
+159,41,Žena,Praha,ZŠ / bez maturity,Young Explorers,3,8,4,4,6
+160,44,Muž,Severovýchod,SŠ s maturitou,Health-Oriented,8,3,6,4,6
+161,74,Muž,Jihozápad,SŠ s maturitou,Skeptical Traditional,7,6,9,7,6
+162,39,Žena,Severovýchod,SŠ s maturitou,Young Explorers,7,6,6,5,2
+163,43,Žena,Praha,VŠ,Pragmatic Mainstream,3,6,4,4,4
+164,54,Žena,Střední Čechy,SŠ s maturitou,Skeptical Traditional,6,9,6,4,3
+165,66,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,2,5,5,9,8
+166,31,Muž,Jihovýchod,VŠ,Health-Oriented,7,6,6,8,4
+167,26,Muž,Střední Čechy,SŠ s maturitou,Health-Oriented,3,6,5,8,5
+168,49,Muž,Praha,SŠ s maturitou,Health-Oriented,4,7,5,5,8
+169,68,Žena,Jihozápad,ZŠ / bez maturity,Price-Sensitive,6,4,5,5,5
+170,46,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,4,5,8,8,7
+171,40,Žena,Severovýchod,SŠ s maturitou,Young Explorers,5,8,2,2,3
+172,51,Žena,Praha,ZŠ / bez maturity,Pragmatic Mainstream,4,2,10,6,6
+173,62,Žena,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,5,7,4,7,6
+174,23,Žena,Severozápad,ZŠ / bez maturity,Price-Sensitive,5,9,4,7,3
+175,18,Žena,Severozápad,SŠ s maturitou,Young Explorers,5,6,4,6,5
+176,46,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,7,7,5,3,8
+177,31,Žena,Moravskoslezsko,VŠ,Skeptical Traditional,5,5,5,4,8
+178,43,Muž,Střední Čechy,SŠ s maturitou,Young Explorers,4,8,5,7,2
+179,51,Žena,Severozápad,VŠ,Skeptical Traditional,7,5,7,5,6
+180,31,Žena,Střední Čechy,VŠ,Health-Oriented,8,4,2,7,4
+181,39,Muž,Severozápad,VŠ,Health-Oriented,5,6,7,3,6
+182,18,Muž,Praha,SŠ s maturitou,Pragmatic Mainstream,6,8,5,4,3
+183,47,Žena,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,7,8,5,1,9
+184,56,Muž,Jihozápad,SŠ s maturitou,Young Explorers,7,9,6,5,2
+185,41,Muž,Praha,SŠ s maturitou,Health-Oriented,4,8,6,5,1
+186,48,Muž,Jihozápad,VŠ,Price-Sensitive,9,7,4,7,5
+187,56,Žena,Jihozápad,VŠ,Skeptical Traditional,7,4,7,6,5
+188,47,Muž,Praha,SŠ s maturitou,Price-Sensitive,4,6,10,5,9
+189,18,Žena,Střední Čechy,VŠ,Young Explorers,7,7,1,8,6
+190,45,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,6,6,3,7,4
+191,47,Žena,Střední Čechy,SŠ s maturitou,Health-Oriented,3,5,5,6,4
+192,70,Žena,Praha,ZŠ / bez maturity,Price-Sensitive,5,6,6,8,3
+193,46,Žena,Jihovýchod,SŠ s maturitou,Young Explorers,7,8,6,3,10
+194,31,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,4,6,6,8,8
+195,63,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,8,4,6,9,5
+196,45,Muž,Severozápad,ZŠ / bez maturity,Skeptical Traditional,7,7,5,8,7
+197,49,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,7,6,4,4,7
+198,27,Muž,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,7,8,6,3,7
+199,35,Muž,Severozápad,SŠ s maturitou,Young Explorers,6,8,4,8,4
+200,39,Žena,Praha,SŠ s maturitou,Young Explorers,6,8,5,8,3
+201,60,Žena,Jihovýchod,VŠ,Pragmatic Mainstream,3,5,7,7,6
+202,57,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,3,6,4,7,4
+203,40,Žena,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,5,8,4,6,6
+204,40,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,8,4,6,2,8
+205,22,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,6,8,7,7,5
+206,25,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,6,7,8,5,6
+207,43,Muž,Jihovýchod,VŠ,Health-Oriented,7,7,2,8,9
+208,27,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,6,6,9,4,5
+209,39,Žena,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,6,2,6,5,6
+210,51,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,5,8,6,7,3
+211,64,Muž,Střední Čechy,ZŠ / bez maturity,Young Explorers,7,5,4,5,8
+212,48,Muž,Moravskoslezsko,VŠ,Pragmatic Mainstream,6,7,5,5,6
+213,35,Muž,Střední Čechy,VŠ,Skeptical Traditional,7,3,8,5,10
+214,35,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,8,7,9,2,4
+215,58,Muž,Jihozápad,SŠ s maturitou,Health-Oriented,10,6,3,4,9
+216,66,Muž,Severozápad,ZŠ / bez maturity,Price-Sensitive,5,5,2,6,5
+217,59,Muž,Praha,VŠ,Health-Oriented,4,7,5,6,4
+218,53,Muž,Severovýchod,SŠ s maturitou,Young Explorers,5,5,3,6,7
+219,28,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,4,5,8,4,8
+220,53,Muž,Praha,SŠ s maturitou,Health-Oriented,6,7,3,5,4
+221,23,Žena,Moravskoslezsko,VŠ,Young Explorers,3,5,7,7,7
+222,31,Muž,Severozápad,SŠ s maturitou,Skeptical Traditional,7,6,5,5,4
+223,70,Žena,Severozápad,SŠ s maturitou,Young Explorers,6,6,7,3,5
+224,22,Muž,Jihovýchod,VŠ,Health-Oriented,5,3,3,9,6
+225,47,Žena,Jihovýchod,ZŠ / bez maturity,Pragmatic Mainstream,3,5,8,5,6
+226,63,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,7,5,9,5,4
+227,29,Muž,Praha,SŠ s maturitou,Health-Oriented,9,5,7,5,6
+228,33,Žena,Severovýchod,VŠ,Young Explorers,4,6,4,3,2
+229,41,Žena,Střední Čechy,SŠ s maturitou,Young Explorers,9,5,7,4,8
+230,23,Žena,Jihovýchod,VŠ,Young Explorers,8,4,10,3,8
+231,49,Žena,Jihovýchod,ZŠ / bez maturity,Young Explorers,1,5,9,7,4
+232,43,Muž,Severovýchod,VŠ,Skeptical Traditional,7,4,6,7,6
+233,37,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,6,6,4,8,3
+234,41,Muž,Jihovýchod,VŠ,Pragmatic Mainstream,9,7,6,8,4
+235,43,Muž,Severovýchod,SŠ s maturitou,Young Explorers,4,5,6,6,7
+236,23,Žena,Střední Čechy,SŠ s maturitou,Young Explorers,4,7,5,9,5
+237,21,Muž,Severozápad,SŠ s maturitou,Skeptical Traditional,5,8,4,6,6
+238,18,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,5,4,7,8,5
+239,57,Žena,Severovýchod,VŠ,Pragmatic Mainstream,4,4,6,6,6
+240,22,Muž,Severozápad,SŠ s maturitou,Price-Sensitive,4,9,4,6,6
+241,52,Žena,Moravskoslezsko,VŠ,Young Explorers,5,7,6,7,6
+242,37,Žena,Praha,VŠ,Young Explorers,4,6,5,4,5
+243,33,Muž,Jihozápad,ZŠ / bez maturity,Health-Oriented,7,6,5,2,10
+244,18,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,2,5,7,7,7
+245,27,Muž,Jihovýchod,VŠ,Price-Sensitive,4,7,3,5,8
+246,50,Muž,Severozápad,VŠ,Health-Oriented,4,9,5,1,7
+247,42,Muž,Severozápad,VŠ,Young Explorers,6,7,7,9,4
+248,73,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,4,6,6,10,8
+249,39,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,4,7,5,7,3
+250,39,Muž,Jihozápad,SŠ s maturitou,Health-Oriented,3,9,7,8,5
+251,38,Muž,Střední Čechy,SŠ s maturitou,Skeptical Traditional,2,3,7,9,5
+252,47,Muž,Jihovýchod,SŠ s maturitou,Young Explorers,7,7,5,8,3
+253,33,Žena,Severozápad,VŠ,Price-Sensitive,3,7,7,2,4
+254,40,Žena,Severozápad,SŠ s maturitou,Pragmatic Mainstream,7,6,3,2,6
+255,38,Žena,Severozápad,VŠ,Pragmatic Mainstream,4,6,7,7,6
+256,29,Muž,Severovýchod,SŠ s maturitou,Health-Oriented,6,4,6,6,5
+257,20,Muž,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,5,7,2,8,4
+258,65,Muž,Střední Čechy,ZŠ / bez maturity,Health-Oriented,6,8,5,8,4
+259,43,Muž,Jihozápad,VŠ,Health-Oriented,4,5,4,3,3
+260,48,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,5,1,9,5,7
+261,47,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,5,5,6,6,6
+262,40,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,7,7,6,5,7
+263,51,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,6,5,7,7,6
+264,33,Žena,Jihovýchod,ZŠ / bez maturity,Health-Oriented,3,8,6,6,7
+265,57,Muž,Střední Čechy,VŠ,Pragmatic Mainstream,7,6,4,7,4
+266,31,Žena,Praha,SŠ s maturitou,Pragmatic Mainstream,10,6,8,5,5
+267,47,Muž,Jihovýchod,ZŠ / bez maturity,Young Explorers,6,8,8,6,4
+268,35,Žena,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,4,7,4,8,3
+269,57,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,6,4,5,7,5
+270,44,Žena,Severozápad,SŠ s maturitou,Health-Oriented,3,7,7,4,8
+271,41,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,5,7,4,4,6
+272,48,Žena,Severovýchod,ZŠ / bez maturity,Pragmatic Mainstream,4,6,4,4,9
+273,49,Žena,Severovýchod,ZŠ / bez maturity,Health-Oriented,4,4,5,7,7
+274,52,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,7,4,8,2,7
+275,44,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,5,5,4,6,4
+276,27,Muž,Jihozápad,SŠ s maturitou,Young Explorers,3,5,7,7,7
+277,33,Žena,Jihozápad,VŠ,Skeptical Traditional,7,6,9,5,8
+278,46,Žena,Praha,VŠ,Skeptical Traditional,7,4,9,5,5
+279,54,Žena,Praha,SŠ s maturitou,Health-Oriented,5,6,7,3,3
+280,60,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,6,7,8,4,6
+281,45,Žena,Severovýchod,SŠ s maturitou,Young Explorers,5,7,8,6,9
+282,51,Žena,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,1,3,9,4,6
+283,34,Žena,Jihovýchod,ZŠ / bez maturity,Price-Sensitive,4,6,9,9,5
+284,19,Žena,Praha,SŠ s maturitou,Pragmatic Mainstream,10,9,6,8,5
+285,65,Muž,Jihovýchod,VŠ,Pragmatic Mainstream,6,5,6,6,5
+286,41,Muž,Severovýchod,VŠ,Pragmatic Mainstream,5,6,7,5,7
+287,31,Žena,Severozápad,VŠ,Pragmatic Mainstream,3,6,8,7,3
+288,18,Žena,Střední Čechy,VŠ,Health-Oriented,6,8,7,3,8
+289,35,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,2,10,7,6,2
+290,39,Muž,Praha,ZŠ / bez maturity,Pragmatic Mainstream,3,7,7,7,6
+291,55,Muž,Severozápad,ZŠ / bez maturity,Price-Sensitive,4,5,9,4,5
+292,51,Muž,Severozápad,SŠ s maturitou,Skeptical Traditional,7,8,5,7,6
+293,74,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,3,8,6,7,9
+294,20,Muž,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,3,4,8,5,3
+295,51,Muž,Severozápad,SŠ s maturitou,Health-Oriented,6,5,6,6,5
+296,49,Žena,Praha,VŠ,Young Explorers,7,5,4,2,10
+297,62,Žena,Praha,SŠ s maturitou,Pragmatic Mainstream,4,6,5,4,5
+298,59,Žena,Jihozápad,SŠ s maturitou,Young Explorers,6,6,6,5,5
+299,56,Žena,Severovýchod,SŠ s maturitou,Young Explorers,6,5,9,3,8
+300,45,Muž,Severovýchod,ZŠ / bez maturity,Health-Oriented,6,6,6,6,5
+301,32,Žena,Moravskoslezsko,VŠ,Price-Sensitive,3,5,7,8,8
+302,30,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,7,4,4,3,6
+303,25,Muž,Střední Čechy,VŠ,Young Explorers,8,7,8,1,6
+304,37,Žena,Severozápad,SŠ s maturitou,Young Explorers,10,7,7,7,5
+305,29,Muž,Severovýchod,SŠ s maturitou,Young Explorers,9,6,5,7,4
+306,50,Muž,Severovýchod,SŠ s maturitou,Young Explorers,3,4,3,7,7
+307,37,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,6,5,5,4,9
+308,57,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,5,8,8,4,7
+309,32,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,6,4,8,6,1
+310,40,Žena,Střední Čechy,VŠ,Health-Oriented,7,6,8,6,6
+311,40,Žena,Praha,VŠ,Price-Sensitive,5,6,4,7,7
+312,50,Žena,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,4,4,5,6,8
+313,50,Muž,Severozápad,VŠ,Skeptical Traditional,7,4,2,5,6
+314,31,Muž,Jihozápad,VŠ,Pragmatic Mainstream,10,2,6,6,5
+315,18,Muž,Jihozápad,VŠ,Young Explorers,7,4,4,6,6
+316,32,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,5,7,5,4,10
+317,24,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Explorers,8,7,8,7,4
+318,35,Muž,Praha,ZŠ / bez maturity,Health-Oriented,4,6,3,4,8
+319,18,Muž,Střední Čechy,SŠ s maturitou,Price-Sensitive,8,5,4,5,7
+320,33,Žena,Severozápad,ZŠ / bez maturity,Young Explorers,6,4,5,10,6
+321,18,Muž,Severovýchod,SŠ s maturitou,Young Explorers,3,6,6,7,8
+322,29,Žena,Severozápad,VŠ,Skeptical Traditional,7,10,5,5,8
+323,44,Muž,Severozápad,VŠ,Pragmatic Mainstream,4,7,6,5,6
+324,19,Žena,Praha,SŠ s maturitou,Skeptical Traditional,2,10,7,4,8
+325,46,Muž,Jihozápad,SŠ s maturitou,Skeptical Traditional,4,3,6,7,7
+326,38,Muž,Severozápad,ZŠ / bez maturity,Young Explorers,8,4,5,4,5
+327,18,Žena,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,8,7,7,8,3
+328,27,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,8,7,5,2,4
+329,54,Muž,Severozápad,SŠ s maturitou,Health-Oriented,7,9,7,3,9
+330,31,Muž,Střední Čechy,SŠ s maturitou,Young Explorers,7,5,8,3,3
+331,38,Žena,Praha,SŠ s maturitou,Health-Oriented,6,9,7,6,6
+332,18,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,4,6,4,4,2
+333,38,Žena,Jihovýchod,SŠ s maturitou,Price-Sensitive,9,7,7,6,7
+334,48,Žena,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,5,9,10,8,2
+335,54,Žena,Jihovýchod,SŠ s maturitou,Young Explorers,5,4,4,5,5
+336,25,Muž,Severovýchod,ZŠ / bez maturity,Health-Oriented,9,4,6,4,7
+337,45,Žena,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,8,2,5,5,5
+338,27,Žena,Jihovýchod,VŠ,Health-Oriented,7,10,4,2,8
+339,24,Muž,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,4,3,7,3,9
+340,57,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,6,3,10,6,7
+341,47,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,7,8,4,6,3
+342,30,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,6,7,7,6,3
+343,18,Muž,Jihozápad,VŠ,Price-Sensitive,4,9,6,5,4
+344,38,Muž,Jihozápad,SŠ s maturitou,Young Explorers,2,2,8,4,2
+345,53,Muž,Praha,ZŠ / bez maturity,Health-Oriented,3,7,6,3,6
+346,39,Muž,Moravskoslezsko,VŠ,Skeptical Traditional,5,5,6,7,6
+347,58,Muž,Severozápad,VŠ,Young Explorers,9,5,3,6,6
+348,38,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,4,5,7,6,8
+349,51,Muž,Jihozápad,VŠ,Price-Sensitive,8,5,5,6,3
+350,19,Žena,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,7,1,6,7,4
+351,46,Žena,Severozápad,ZŠ / bez maturity,Skeptical Traditional,9,7,3,5,7
+352,39,Muž,Jihovýchod,SŠ s maturitou,Health-Oriented,3,8,1,5,4
+353,42,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,2,4,6,5,7
+354,63,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,7,3,7,3,5
+355,37,Muž,Jihovýchod,SŠ s maturitou,Health-Oriented,3,7,9,7,5
+356,39,Žena,Střední Čechy,VŠ,Price-Sensitive,4,4,3,8,7
+357,18,Žena,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,5,6,8,6,2
+358,44,Žena,Severovýchod,ZŠ / bez maturity,Price-Sensitive,2,5,6,6,5
+359,50,Muž,Praha,VŠ,Pragmatic Mainstream,3,3,4,8,5
+360,47,Žena,Jihovýchod,ZŠ / bez maturity,Skeptical Traditional,5,9,9,4,3
+361,47,Žena,Jihozápad,SŠ s maturitou,Young Explorers,6,7,5,3,5
+362,29,Muž,Střední Čechy,SŠ s maturitou,Young Explorers,6,5,3,4,6
+363,27,Žena,Jihozápad,VŠ,Pragmatic Mainstream,4,5,6,1,4
+364,44,Žena,Severovýchod,VŠ,Price-Sensitive,4,8,3,6,6
+365,56,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,3,5,7,4,7
+366,46,Muž,Severovýchod,ZŠ / bez maturity,Price-Sensitive,6,4,6,8,10
+367,26,Žena,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,8,6,8,7,5
+368,39,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,8,4,8,4,5
+369,54,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,6,7,1,6,10
+370,39,Muž,Střední Čechy,ZŠ / bez maturity,Young Explorers,6,8,4,6,4
+371,33,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,8,6,8,5,6
+372,62,Žena,Praha,SŠ s maturitou,Health-Oriented,7,10,4,4,7
+373,30,Muž,Střední Čechy,ZŠ / bez maturity,Health-Oriented,6,6,7,8,7
+374,45,Muž,Severovýchod,SŠ s maturitou,Young Explorers,7,4,5,1,4
+375,65,Muž,Severozápad,VŠ,Skeptical Traditional,5,6,5,4,3
+376,44,Žena,Jihovýchod,VŠ,Health-Oriented,2,4,8,6,7
+377,34,Žena,Severozápad,VŠ,Price-Sensitive,5,4,7,6,5
+378,58,Muž,Severovýchod,SŠ s maturitou,Price-Sensitive,5,3,3,3,10
+379,30,Žena,Střední Čechy,SŠ s maturitou,Young Explorers,6,3,8,6,4
+380,29,Žena,Severozápad,ZŠ / bez maturity,Health-Oriented,6,6,6,6,5
+381,43,Muž,Severovýchod,SŠ s maturitou,Price-Sensitive,5,7,6,8,5
+382,36,Muž,Jihovýchod,VŠ,Young Explorers,6,5,6,6,2
+383,54,Muž,Moravskoslezsko,SŠ s maturitou,Young Explorers,4,1,6,6,5
+384,31,Žena,Jihozápad,SŠ s maturitou,Young Explorers,7,5,5,5,5
+385,36,Muž,Praha,VŠ,Pragmatic Mainstream,4,5,6,8,6
+386,31,Muž,Moravskoslezsko,VŠ,Price-Sensitive,4,7,1,7,4
+387,18,Žena,Praha,VŠ,Pragmatic Mainstream,5,5,7,6,10
+388,31,Muž,Severozápad,VŠ,Young Explorers,7,8,1,8,4
+389,33,Muž,Severozápad,VŠ,Health-Oriented,6,7,4,6,5
+390,26,Muž,Střední Čechy,SŠ s maturitou,Health-Oriented,9,8,4,3,9
+391,27,Žena,Severozápad,SŠ s maturitou,Health-Oriented,5,7,5,9,1
+392,40,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,7,8,3,4,3
+393,60,Muž,Střední Čechy,SŠ s maturitou,Health-Oriented,5,7,2,6,3
+394,44,Muž,Severozápad,SŠ s maturitou,Health-Oriented,3,8,7,6,8
+395,26,Žena,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,9,5,9,4,4
+396,55,Muž,Praha,SŠ s maturitou,Young Explorers,7,5,5,4,5
+397,74,Muž,Střední Čechy,VŠ,Health-Oriented,7,3,7,6,6
+398,40,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,6,4,4,5,7
+399,18,Muž,Jihozápad,SŠ s maturitou,Health-Oriented,6,4,6,7,8
+400,43,Muž,Severovýchod,ZŠ / bez maturity,Pragmatic Mainstream,5,8,6,5,9
+401,31,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,7,4,5,8,7
+402,57,Žena,Severozápad,ZŠ / bez maturity,Health-Oriented,4,7,4,3,3
+403,26,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Explorers,4,10,7,2,5
+404,46,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,6,8,1,3,5
+405,33,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,6,7,9,1,6
+406,48,Muž,Praha,VŠ,Price-Sensitive,3,5,8,4,7
+407,41,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,6,9,7,7,10
+408,49,Žena,Severozápad,SŠ s maturitou,Skeptical Traditional,4,9,7,5,8
+409,36,Žena,Praha,SŠ s maturitou,Young Explorers,5,6,8,6,7
+410,43,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,2,9,5,6,6
+411,53,Žena,Střední Čechy,VŠ,Price-Sensitive,5,5,5,4,8
+412,34,Muž,Severovýchod,SŠ s maturitou,Health-Oriented,5,8,7,1,7
+413,65,Žena,Severovýchod,VŠ,Pragmatic Mainstream,7,6,6,4,7
+414,41,Muž,Jihovýchod,VŠ,Young Explorers,8,9,3,6,9
+415,49,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,4,8,5,6,4
+416,49,Muž,Severozápad,ZŠ / bez maturity,Young Explorers,6,6,8,7,5
+417,38,Žena,Jihozápad,ZŠ / bez maturity,Young Explorers,5,7,6,10,6
+418,44,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,6,4,5,4,6
+419,29,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,8,8,3,7,7
+420,61,Muž,Praha,VŠ,Health-Oriented,5,4,4,6,7
+421,50,Muž,Severovýchod,SŠ s maturitou,Young Explorers,1,6,6,3,5
+422,30,Žena,Severovýchod,SŠ s maturitou,Price-Sensitive,10,7,1,5,8
+423,44,Žena,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,4,4,6,4,2
+424,59,Žena,Moravskoslezsko,SŠ s maturitou,Young Explorers,2,3,7,6,5
+425,45,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,4,7,6,3,7
+426,48,Žena,Severovýchod,VŠ,Health-Oriented,4,5,7,4,7
+427,37,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,5,4,7,7,5
+428,54,Muž,Praha,SŠ s maturitou,Price-Sensitive,5,3,3,2,5
+429,35,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,10,6,3,5,4
+430,23,Žena,Jihovýchod,ZŠ / bez maturity,Pragmatic Mainstream,4,5,7,3,7
+431,58,Muž,Severovýchod,SŠ s maturitou,Price-Sensitive,4,3,5,7,6
+432,63,Muž,Severovýchod,ZŠ / bez maturity,Health-Oriented,5,7,5,5,6
+433,52,Muž,Severozápad,ZŠ / bez maturity,Young Explorers,8,5,7,4,5
+434,60,Muž,Střední Čechy,VŠ,Skeptical Traditional,5,7,8,6,7
+435,54,Muž,Severovýchod,SŠ s maturitou,Young Explorers,4,7,2,6,5
+436,38,Muž,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,6,7,3,7,6
+437,50,Žena,Praha,SŠ s maturitou,Young Explorers,6,9,5,3,8
+438,28,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,4,6,8,2,5
+439,24,Muž,Severozápad,ZŠ / bez maturity,Health-Oriented,6,9,7,7,4
+440,42,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,7,8,5,5,3
+441,43,Žena,Jihozápad,ZŠ / bez maturity,Price-Sensitive,4,5,9,4,7
+442,24,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,9,10,1,5,7
+443,45,Žena,Moravskoslezsko,VŠ,Pragmatic Mainstream,8,8,4,9,4
+444,28,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,5,7,3,3,8
+445,58,Muž,Moravskoslezsko,VŠ,Health-Oriented,4,4,4,8,7
+446,18,Žena,Střední Čechy,SŠ s maturitou,Skeptical Traditional,5,1,5,2,6
+447,39,Žena,Střední Čechy,VŠ,Pragmatic Mainstream,5,5,5,6,5
+448,31,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,8,7,6,2,9
+449,44,Muž,Praha,VŠ,Health-Oriented,6,1,8,8,8
+450,50,Žena,Jihozápad,SŠ s maturitou,Health-Oriented,1,8,3,2,7
+451,28,Žena,Severozápad,SŠ s maturitou,Young Explorers,7,8,3,4,5
+452,37,Žena,Severozápad,VŠ,Price-Sensitive,4,3,3,6,8
+453,28,Muž,Severovýchod,VŠ,Price-Sensitive,5,6,6,2,2
+454,59,Žena,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,7,10,3,3,8
+455,50,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,5,3,7,4,6
+456,46,Žena,Jihozápad,VŠ,Skeptical Traditional,8,6,3,5,8
+457,28,Muž,Moravskoslezsko,VŠ,Health-Oriented,9,7,8,6,7
+458,74,Muž,Jihovýchod,ZŠ / bez maturity,Health-Oriented,5,7,6,5,5
+459,74,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,2,5,3,10,5
+460,53,Žena,Praha,SŠ s maturitou,Price-Sensitive,5,9,6,7,2
+461,43,Muž,Jihozápad,VŠ,Health-Oriented,7,8,6,7,8
+462,32,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,7,8,4,6,3
+463,51,Žena,Jihovýchod,VŠ,Price-Sensitive,4,6,3,3,5
+464,42,Muž,Jihovýchod,VŠ,Skeptical Traditional,6,10,6,4,6
+465,47,Muž,Severozápad,ZŠ / bez maturity,Young Explorers,7,4,7,5,8
+466,38,Žena,Jihozápad,ZŠ / bez maturity,Young Explorers,2,6,5,5,7
+467,35,Žena,Jihozápad,SŠ s maturitou,Price-Sensitive,5,5,7,8,8
+468,58,Žena,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,9,8,3,5,8
+469,52,Žena,Praha,SŠ s maturitou,Skeptical Traditional,7,6,10,8,6
+470,60,Muž,Severozápad,ZŠ / bez maturity,Pragmatic Mainstream,8,9,5,8,4
+471,45,Žena,Severozápad,SŠ s maturitou,Health-Oriented,3,7,4,8,3
+472,64,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,5,4,4,7,8
+473,33,Muž,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,9,6,4,5,9
+474,23,Muž,Moravskoslezsko,VŠ,Young Explorers,8,5,2,7,6
+475,48,Žena,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,5,7,7,6,4
+476,62,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,2,8,8,2,3
+477,18,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,6,4,6,7,6
+478,32,Žena,Střední Čechy,VŠ,Skeptical Traditional,3,3,10,9,8
+479,26,Muž,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,6,4,7,4,5
+480,29,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,1,5,4,4,7
+481,49,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,3,7,7,9,5
+482,60,Muž,Severozápad,VŠ,Skeptical Traditional,1,8,6,6,5
+483,52,Žena,Praha,ZŠ / bez maturity,Price-Sensitive,3,9,6,4,7
+484,49,Žena,Praha,ZŠ / bez maturity,Pragmatic Mainstream,8,10,5,6,6
+485,18,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,5,4,3,4,5
+486,40,Žena,Jihovýchod,ZŠ / bez maturity,Pragmatic Mainstream,7,5,5,4,6
+487,47,Žena,Střední Čechy,VŠ,Price-Sensitive,5,7,4,5,7
+488,49,Žena,Praha,SŠ s maturitou,Young Explorers,5,8,7,6,4
+489,44,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,8,6,8,5,6
+490,50,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,4,5,4,7,7
+491,38,Žena,Praha,VŠ,Health-Oriented,6,8,7,6,6
+492,18,Žena,Praha,VŠ,Health-Oriented,4,6,5,1,6
+493,56,Muž,Praha,ZŠ / bez maturity,Pragmatic Mainstream,6,6,10,5,1
+494,46,Žena,Praha,ZŠ / bez maturity,Price-Sensitive,2,2,8,7,4
+495,37,Muž,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,8,2,7,2,8
+496,22,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Explorers,6,9,7,6,6
+497,48,Muž,Severozápad,SŠ s maturitou,Skeptical Traditional,3,7,6,8,4
+498,27,Muž,Praha,ZŠ / bez maturity,Health-Oriented,6,1,4,1,5
+499,48,Žena,Jihozápad,VŠ,Pragmatic Mainstream,3,7,7,6,10
+500,54,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,7,6,10,6,5
+501,23,Žena,Jihovýchod,VŠ,Skeptical Traditional,7,6,7,6,5
+502,25,Žena,Jihovýchod,VŠ,Skeptical Traditional,4,8,5,2,5
+503,29,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,6,4,7,3,7
+504,36,Muž,Praha,ZŠ / bez maturity,Pragmatic Mainstream,8,7,3,3,6
+505,46,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,5,3,6,8,7
+506,25,Žena,Střední Čechy,ZŠ / bez maturity,Skeptical Traditional,7,3,4,1,3
+507,47,Muž,Severozápad,ZŠ / bez maturity,Pragmatic Mainstream,4,9,7,3,5
+508,43,Žena,Severovýchod,ZŠ / bez maturity,Pragmatic Mainstream,8,6,6,4,8
+509,36,Žena,Severozápad,SŠ s maturitou,Skeptical Traditional,3,6,4,6,3
+510,18,Žena,Jihozápad,SŠ s maturitou,Young Explorers,2,8,7,10,7
+511,45,Žena,Jihozápad,SŠ s maturitou,Health-Oriented,6,1,10,6,4
+512,35,Žena,Severovýchod,ZŠ / bez maturity,Young Explorers,9,8,7,6,3
+513,55,Muž,Praha,VŠ,Pragmatic Mainstream,6,2,8,8,8
+514,59,Žena,Severozápad,ZŠ / bez maturity,Price-Sensitive,6,8,7,5,7
+515,18,Muž,Jihovýchod,VŠ,Pragmatic Mainstream,5,7,5,8,8
+516,18,Muž,Moravskoslezsko,VŠ,Skeptical Traditional,7,7,5,7,5
+517,22,Žena,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,7,7,7,4,4
+518,27,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,3,8,5,6,8
+519,36,Muž,Praha,SŠ s maturitou,Health-Oriented,5,5,6,3,8
+520,74,Žena,Jihozápad,ZŠ / bez maturity,Health-Oriented,3,5,7,5,7
+521,53,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,5,6,4,6,3
+522,53,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,6,7,8,5,8
+523,23,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,7,5,6,7,8
+524,52,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,4,4,10,8,9
+525,38,Žena,Jihozápad,VŠ,Price-Sensitive,3,6,4,8,6
+526,60,Žena,Severovýchod,VŠ,Health-Oriented,6,3,2,8,7
+527,60,Muž,Jihozápad,VŠ,Price-Sensitive,4,6,5,9,4
+528,49,Žena,Severozápad,SŠ s maturitou,Pragmatic Mainstream,4,4,6,2,5
+529,43,Muž,Praha,VŠ,Price-Sensitive,4,7,8,5,4
+530,62,Muž,Severozápad,VŠ,Skeptical Traditional,8,8,5,3,7
+531,38,Žena,Praha,SŠ s maturitou,Young Explorers,4,9,7,5,6
+532,51,Žena,Jihovýchod,SŠ s maturitou,Young Explorers,7,1,5,8,8
+533,61,Muž,Severozápad,ZŠ / bez maturity,Skeptical Traditional,5,7,8,6,8
+534,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,6,6,5,3,6
+535,45,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,6,6,7,6,3
+536,22,Muž,Severovýchod,VŠ,Pragmatic Mainstream,6,7,3,6,1
+537,45,Žena,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,7,5,5,6,5
+538,20,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,6,7,6,2,7
+539,32,Muž,Střední Čechy,SŠ s maturitou,Price-Sensitive,8,10,6,5,9
+540,29,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,3,4,6,1,2
+541,41,Žena,Jihozápad,SŠ s maturitou,Young Explorers,5,7,6,3,5
+542,41,Muž,Střední Čechy,SŠ s maturitou,Young Explorers,7,6,6,5,3
+543,37,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,4,7,6,7,1
+544,69,Žena,Jihovýchod,ZŠ / bez maturity,Health-Oriented,5,2,8,8,5
+545,42,Muž,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,5,5,4,4,7
+546,22,Žena,Jihozápad,VŠ,Health-Oriented,4,4,5,7,2
+547,44,Žena,Jihozápad,VŠ,Skeptical Traditional,6,10,4,3,6
+548,42,Muž,Jihozápad,VŠ,Skeptical Traditional,6,7,4,4,4
+549,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Explorers,6,6,5,5,3
+550,21,Muž,Střední Čechy,VŠ,Health-Oriented,2,5,4,9,7
+551,31,Muž,Severozápad,VŠ,Health-Oriented,7,6,7,8,5
+552,50,Žena,Jihozápad,SŠ s maturitou,Health-Oriented,4,5,3,4,6
+553,33,Žena,Jihozápad,SŠ s maturitou,Young Explorers,7,4,7,9,5
+554,34,Žena,Jihozápad,VŠ,Health-Oriented,3,9,5,5,5
+555,50,Muž,Jihozápad,ZŠ / bez maturity,Pragmatic Mainstream,9,3,7,6,6
+556,39,Muž,Střední Čechy,SŠ s maturitou,Health-Oriented,10,4,6,4,4
+557,32,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,7,10,3,5,7
+558,48,Žena,Praha,SŠ s maturitou,Young Explorers,8,5,8,6,10
+559,38,Muž,Střední Čechy,SŠ s maturitou,Skeptical Traditional,4,7,6,4,8
+560,40,Žena,Praha,VŠ,Skeptical Traditional,4,6,7,7,5
+561,58,Žena,Jihozápad,ZŠ / bez maturity,Health-Oriented,4,4,7,5,9
+562,35,Muž,Praha,SŠ s maturitou,Skeptical Traditional,8,8,5,9,1
+563,64,Muž,Praha,SŠ s maturitou,Health-Oriented,5,7,4,2,5
+564,22,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,7,7,6,6,8
+565,53,Žena,Severovýchod,ZŠ / bez maturity,Pragmatic Mainstream,5,7,5,6,9
+566,54,Žena,Jihovýchod,VŠ,Price-Sensitive,5,5,7,7,5
+567,53,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,5,7,3,9,6
+568,48,Žena,Střední Čechy,SŠ s maturitou,Skeptical Traditional,4,4,4,4,10
+569,36,Muž,Severozápad,ZŠ / bez maturity,Price-Sensitive,8,4,6,5,4
+570,59,Žena,Praha,VŠ,Price-Sensitive,5,7,5,9,6
+571,28,Muž,Moravskoslezsko,VŠ,Price-Sensitive,4,5,4,4,10
+572,32,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,8,6,6,6,8
+573,60,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,5,6,7,4,4
+574,20,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,3,6,6,5,6
+575,32,Muž,Praha,ZŠ / bez maturity,Skeptical Traditional,3,9,4,8,10
+576,54,Žena,Jihovýchod,VŠ,Price-Sensitive,1,5,6,5,5
+577,33,Muž,Střední Čechy,SŠ s maturitou,Price-Sensitive,6,5,6,7,6
+578,43,Žena,Severovýchod,SŠ s maturitou,Skeptical Traditional,7,6,7,8,5
+579,45,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,4,5,4,5,5
+580,27,Muž,Jihozápad,SŠ s maturitou,Skeptical Traditional,5,3,5,4,2
+581,46,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,6,4,8,5,8
+582,22,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,9,4,4,4,4
+583,18,Žena,Střední Čechy,VŠ,Skeptical Traditional,4,8,7,4,6
+584,41,Žena,Severozápad,ZŠ / bez maturity,Young Explorers,7,9,6,4,6
+585,30,Žena,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,7,4,9,6,4
+586,24,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,1,7,4,7,5
+587,57,Muž,Praha,SŠ s maturitou,Young Explorers,4,6,6,5,6
+588,30,Muž,Severozápad,ZŠ / bez maturity,Skeptical Traditional,7,3,9,6,8
+589,35,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,9,9,6,8,4
+590,56,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,7,4,1,6,4
+591,58,Muž,Severozápad,ZŠ / bez maturity,Health-Oriented,7,1,4,5,6
+592,67,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,9,6,7,8,4
+593,61,Žena,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,7,8,3,5,6
+594,40,Muž,Severozápad,ZŠ / bez maturity,Pragmatic Mainstream,5,3,7,1,6
+595,18,Žena,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,3,3,6,8,5
+596,29,Žena,Střední Čechy,VŠ,Price-Sensitive,7,5,6,10,3
+597,35,Žena,Jihozápad,SŠ s maturitou,Price-Sensitive,7,8,7,5,7
+598,40,Muž,Moravskoslezsko,ZŠ / bez maturity,Skeptical Traditional,6,5,2,8,6
+599,31,Žena,Severovýchod,SŠ s maturitou,Young Explorers,6,5,8,6,6
+600,32,Žena,Střední Čechy,VŠ,Health-Oriented,4,5,6,5,6
+601,18,Žena,Praha,SŠ s maturitou,Pragmatic Mainstream,3,6,4,8,8
+602,22,Žena,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,6,4,4,9,5
+603,29,Žena,Praha,VŠ,Pragmatic Mainstream,8,4,5,6,4
+604,61,Žena,Praha,SŠ s maturitou,Price-Sensitive,8,7,6,5,3
+605,20,Žena,Praha,SŠ s maturitou,Skeptical Traditional,5,10,5,6,7
+606,40,Žena,Jihozápad,ZŠ / bez maturity,Price-Sensitive,2,1,6,7,5
+607,50,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,5,10,5,4,7
+608,66,Žena,Praha,VŠ,Price-Sensitive,3,4,8,4,7
+609,44,Žena,Severovýchod,ZŠ / bez maturity,Young Explorers,4,3,6,5,5
+610,37,Muž,Severovýchod,SŠ s maturitou,Price-Sensitive,3,10,5,3,6
+611,43,Žena,Severozápad,VŠ,Health-Oriented,6,5,9,6,3
+612,47,Žena,Severovýchod,SŠ s maturitou,Young Explorers,4,5,5,3,9
+613,48,Žena,Severozápad,ZŠ / bez maturity,Price-Sensitive,5,7,6,8,8
+614,36,Muž,Severozápad,VŠ,Skeptical Traditional,5,7,5,5,8
+615,50,Muž,Severovýchod,VŠ,Pragmatic Mainstream,4,8,6,7,9
+616,35,Muž,Praha,ZŠ / bez maturity,Young Explorers,8,6,2,7,4
+617,47,Žena,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,2,6,3,7,6
+618,39,Muž,Praha,ZŠ / bez maturity,Young Explorers,2,3,10,7,5
+619,45,Žena,Severovýchod,ZŠ / bez maturity,Price-Sensitive,3,7,10,7,8
+620,34,Žena,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,4,5,5,4,7
+621,29,Žena,Praha,SŠ s maturitou,Health-Oriented,5,3,6,7,3
+622,42,Muž,Praha,SŠ s maturitou,Skeptical Traditional,7,5,6,3,6
+623,56,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,4,5,4,6,8
+624,26,Muž,Jihovýchod,ZŠ / bez maturity,Young Explorers,9,5,5,7,6
+625,45,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,4,10,6,7,3
+626,31,Muž,Praha,ZŠ / bez maturity,Young Explorers,7,7,9,9,7
+627,62,Žena,Severozápad,ZŠ / bez maturity,Price-Sensitive,5,7,1,9,5
+628,61,Žena,Severozápad,ZŠ / bez maturity,Young Explorers,2,3,6,6,7
+629,52,Žena,Severozápad,VŠ,Skeptical Traditional,7,4,3,6,7
+630,29,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,5,7,8,6,3
+631,33,Žena,Severovýchod,ZŠ / bez maturity,Price-Sensitive,4,6,6,9,6
+632,18,Muž,Moravskoslezsko,SŠ s maturitou,Young Explorers,7,4,6,5,9
+633,56,Muž,Jihozápad,SŠ s maturitou,Skeptical Traditional,6,8,8,7,5
+634,40,Muž,Severozápad,SŠ s maturitou,Price-Sensitive,8,5,4,5,3
+635,36,Muž,Praha,VŠ,Young Explorers,5,4,10,5,5
+636,58,Žena,Jihovýchod,ZŠ / bez maturity,Price-Sensitive,3,7,4,2,8
+637,41,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,4,6,7,8,10
+638,33,Muž,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,4,6,4,3,8
+639,46,Žena,Praha,SŠ s maturitou,Price-Sensitive,4,6,6,3,6
+640,43,Muž,Praha,ZŠ / bez maturity,Skeptical Traditional,5,1,7,7,9
+641,40,Muž,Praha,SŠ s maturitou,Health-Oriented,6,5,6,6,2
+642,67,Muž,Jihovýchod,SŠ s maturitou,Young Explorers,7,7,6,4,6
+643,45,Muž,Střední Čechy,VŠ,Young Explorers,5,10,6,1,5
+644,35,Žena,Jihozápad,VŠ,Skeptical Traditional,6,8,4,7,9
+645,49,Muž,Praha,SŠ s maturitou,Health-Oriented,5,6,8,3,6
+646,66,Žena,Severovýchod,SŠ s maturitou,Skeptical Traditional,4,6,6,4,7
+647,51,Žena,Moravskoslezsko,VŠ,Price-Sensitive,4,7,10,4,7
+648,38,Muž,Střední Čechy,SŠ s maturitou,Skeptical Traditional,6,2,3,5,5
+649,34,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,4,8,7,5,3
+650,41,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,7,1,8,8,6
+651,61,Žena,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,3,8,8,3,7
+652,29,Žena,Jihovýchod,ZŠ / bez maturity,Young Explorers,2,6,3,2,7
+653,65,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,5,9,4,5,9
+654,33,Žena,Jihozápad,ZŠ / bez maturity,Price-Sensitive,6,5,6,4,6
+655,45,Žena,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,6,10,7,7,8
+656,29,Muž,Jihozápad,ZŠ / bez maturity,Price-Sensitive,3,9,3,9,6
+657,37,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,6,5,1,6,8
+658,29,Muž,Jihovýchod,VŠ,Health-Oriented,5,4,5,4,5
+659,18,Žena,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,4,7,1,4,5
+660,44,Muž,Severovýchod,ZŠ / bez maturity,Health-Oriented,10,10,4,7,8
+661,20,Žena,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,6,4,10,7,7
+662,60,Muž,Střední Čechy,ZŠ / bez maturity,Skeptical Traditional,7,7,4,8,8
+663,18,Žena,Severozápad,SŠ s maturitou,Young Explorers,7,5,3,5,3
+664,29,Muž,Střední Čechy,VŠ,Pragmatic Mainstream,5,5,7,6,2
+665,33,Žena,Jihovýchod,VŠ,Skeptical Traditional,4,5,4,5,3
+666,43,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,10,6,9,1,4
+667,30,Žena,Severovýchod,VŠ,Skeptical Traditional,2,7,6,6,6
+668,53,Žena,Severozápad,ZŠ / bez maturity,Price-Sensitive,8,5,3,5,2
+669,38,Žena,Moravskoslezsko,SŠ s maturitou,Young Explorers,4,1,6,4,7
+670,37,Muž,Jihovýchod,ZŠ / bez maturity,Pragmatic Mainstream,8,7,6,8,6
+671,36,Muž,Severovýchod,SŠ s maturitou,Price-Sensitive,5,4,6,9,5
+672,18,Muž,Severozápad,SŠ s maturitou,Skeptical Traditional,5,1,3,4,4
+673,32,Muž,Střední Čechy,SŠ s maturitou,Young Explorers,6,5,7,8,6
+674,18,Žena,Moravskoslezsko,VŠ,Skeptical Traditional,5,7,6,5,9
+675,50,Žena,Severozápad,SŠ s maturitou,Skeptical Traditional,3,6,4,2,7
+676,41,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,6,2,7,7,7
+677,54,Žena,Jihozápad,SŠ s maturitou,Health-Oriented,4,7,4,3,7
+678,34,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,1,4,6,6,8
+679,58,Muž,Jihovýchod,VŠ,Young Explorers,9,6,7,3,4
+680,33,Muž,Praha,ZŠ / bez maturity,Price-Sensitive,3,7,7,6,7
+681,58,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,6,2,8,3,6
+682,18,Muž,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,7,6,4,4,9
+683,41,Žena,Praha,SŠ s maturitou,Skeptical Traditional,3,5,6,6,7
+684,56,Muž,Moravskoslezsko,ZŠ / bez maturity,Skeptical Traditional,7,3,8,6,5
+685,67,Muž,Severovýchod,VŠ,Price-Sensitive,4,7,5,8,6
+686,67,Muž,Jihovýchod,ZŠ / bez maturity,Price-Sensitive,5,6,4,5,6
+687,26,Muž,Severozápad,VŠ,Pragmatic Mainstream,10,8,9,4,6
+688,31,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,6,6,8,8,7
+689,57,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,6,5,6,2,4
+690,41,Muž,Střední Čechy,VŠ,Price-Sensitive,7,8,10,4,4
+691,63,Žena,Jihozápad,VŠ,Young Explorers,5,3,8,6,5
+692,44,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,5,3,3,3,4
+693,25,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,5,9,4,5,6
+694,45,Žena,Severozápad,ZŠ / bez maturity,Young Explorers,6,6,4,6,2
+695,18,Muž,Praha,ZŠ / bez maturity,Price-Sensitive,5,5,7,8,7
+696,50,Žena,Jihovýchod,VŠ,Young Explorers,4,9,2,4,7
+697,51,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,8,6,7,8,8
+698,65,Muž,Jihozápad,ZŠ / bez maturity,Price-Sensitive,3,5,7,5,5
+699,29,Muž,Jihozápad,SŠ s maturitou,Skeptical Traditional,9,7,5,6,10
+700,43,Žena,Severozápad,SŠ s maturitou,Young Explorers,5,4,9,6,5
+701,49,Muž,Severozápad,ZŠ / bez maturity,Price-Sensitive,5,6,3,4,6
+702,32,Muž,Severozápad,ZŠ / bez maturity,Pragmatic Mainstream,5,6,6,4,6
+703,50,Žena,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,8,6,4,3,7
+704,33,Žena,Severovýchod,SŠ s maturitou,Young Explorers,8,8,4,4,8
+705,18,Muž,Jihovýchod,ZŠ / bez maturity,Young Explorers,6,6,5,5,6
+706,42,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,5,7,1,7,3
+707,28,Muž,Praha,SŠ s maturitou,Young Explorers,5,7,6,9,4
+708,34,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,2,6,6,4,6
+709,48,Žena,Praha,ZŠ / bez maturity,Health-Oriented,5,6,6,1,9
+710,54,Žena,Jihozápad,ZŠ / bez maturity,Health-Oriented,6,5,9,6,3
+711,44,Žena,Jihozápad,VŠ,Price-Sensitive,5,4,3,7,8
+712,63,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,7,9,5,4,5
+713,18,Muž,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,4,5,2,3,3
+714,56,Žena,Severovýchod,VŠ,Price-Sensitive,7,5,7,3,7
+715,53,Muž,Praha,VŠ,Skeptical Traditional,7,6,2,6,5
+716,25,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,5,6,4,3,6
+717,24,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,7,7,6,5,5
+718,45,Žena,Střední Čechy,VŠ,Pragmatic Mainstream,6,3,5,4,6
+719,38,Muž,Střední Čechy,ZŠ / bez maturity,Health-Oriented,5,8,7,4,8
+720,67,Žena,Praha,VŠ,Skeptical Traditional,4,4,6,5,4
+721,74,Muž,Jihovýchod,SŠ s maturitou,Health-Oriented,7,7,5,4,5
+722,41,Žena,Moravskoslezsko,VŠ,Young Explorers,4,8,5,4,5
+723,33,Žena,Jihozápad,VŠ,Skeptical Traditional,5,7,7,6,7
+724,38,Žena,Praha,VŠ,Skeptical Traditional,9,8,3,6,6
+725,21,Žena,Praha,ZŠ / bez maturity,Price-Sensitive,5,6,3,8,3
+726,29,Muž,Střední Čechy,VŠ,Young Explorers,7,4,4,5,3
+727,58,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,5,8,9,3,5
+728,53,Muž,Severozápad,ZŠ / bez maturity,Price-Sensitive,3,4,3,5,4
+729,25,Muž,Střední Čechy,ZŠ / bez maturity,Young Explorers,4,8,6,3,9
+730,27,Muž,Praha,ZŠ / bez maturity,Pragmatic Mainstream,8,7,5,3,6
+731,73,Muž,Praha,SŠ s maturitou,Skeptical Traditional,8,3,2,4,7
+732,38,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,7,10,9,6,5
+733,34,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,5,8,8,5,10
+734,35,Žena,Moravskoslezsko,VŠ,Health-Oriented,7,6,4,6,9
+735,32,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,3,6,4,5,7
+736,45,Žena,Jihovýchod,VŠ,Pragmatic Mainstream,5,4,7,1,3
+737,44,Žena,Střední Čechy,VŠ,Health-Oriented,6,8,7,3,4
+738,25,Žena,Praha,VŠ,Skeptical Traditional,6,3,5,4,8
+739,31,Žena,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,6,4,2,8,7
+740,55,Muž,Severovýchod,ZŠ / bez maturity,Health-Oriented,5,7,5,8,1
+741,29,Žena,Severovýchod,SŠ s maturitou,Price-Sensitive,7,6,4,5,2
+742,40,Žena,Severozápad,ZŠ / bez maturity,Health-Oriented,4,2,6,4,7
+743,41,Žena,Moravskoslezsko,ZŠ / bez maturity,Skeptical Traditional,5,6,10,9,6
+744,74,Muž,Severozápad,ZŠ / bez maturity,Health-Oriented,4,6,6,6,5
+745,30,Žena,Severozápad,ZŠ / bez maturity,Health-Oriented,5,7,1,2,7
+746,67,Žena,Severozápad,ZŠ / bez maturity,Young Explorers,3,7,5,7,5
+747,18,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,6,5,4,8,1
+748,29,Muž,Praha,VŠ,Price-Sensitive,5,3,5,9,8
+749,25,Muž,Střední Čechy,SŠ s maturitou,Price-Sensitive,9,6,9,7,9
+750,49,Žena,Praha,SŠ s maturitou,Health-Oriented,5,8,4,5,4
+751,56,Žena,Praha,VŠ,Young Explorers,3,10,5,5,2
+752,57,Žena,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,6,10,7,5,5
+753,59,Muž,Jihozápad,VŠ,Health-Oriented,7,5,8,7,4
+754,40,Muž,Severovýchod,VŠ,Pragmatic Mainstream,7,7,7,5,7
+755,38,Žena,Jihovýchod,ZŠ / bez maturity,Price-Sensitive,8,7,3,4,8
+756,28,Muž,Severozápad,VŠ,Young Explorers,2,4,6,6,7
+757,18,Žena,Severozápad,VŠ,Pragmatic Mainstream,5,6,6,3,4
+758,36,Žena,Praha,SŠ s maturitou,Health-Oriented,3,5,8,4,8
+759,42,Žena,Praha,ZŠ / bez maturity,Price-Sensitive,5,7,6,2,6
+760,49,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,6,6,4,4,6
+761,49,Muž,Jihozápad,VŠ,Pragmatic Mainstream,4,9,4,6,7
+762,25,Muž,Jihovýchod,VŠ,Health-Oriented,7,9,3,4,6
+763,38,Žena,Severozápad,VŠ,Price-Sensitive,7,7,4,4,6
+764,49,Muž,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,8,5,7,3,7
+765,18,Žena,Praha,SŠ s maturitou,Price-Sensitive,8,6,8,3,4
+766,37,Žena,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,2,5,5,6,3
+767,35,Žena,Jihovýchod,ZŠ / bez maturity,Young Explorers,2,7,7,3,4
+768,53,Žena,Jihozápad,VŠ,Skeptical Traditional,5,3,4,2,5
+769,23,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,4,3,8,1,6
+770,22,Žena,Praha,VŠ,Skeptical Traditional,4,6,8,4,10
+771,27,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,4,7,4,5,7
+772,40,Žena,Jihozápad,ZŠ / bez maturity,Price-Sensitive,4,8,5,5,4
+773,58,Žena,Severozápad,SŠ s maturitou,Health-Oriented,4,6,10,3,5
+774,46,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,6,6,7,8,7
+775,45,Muž,Severozápad,SŠ s maturitou,Price-Sensitive,6,6,5,5,5
+776,31,Muž,Jihovýchod,ZŠ / bez maturity,Young Explorers,3,4,9,7,3
+777,38,Žena,Praha,SŠ s maturitou,Young Explorers,4,8,5,4,6
+778,37,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,6,6,4,5,8
+779,24,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,7,9,4,8,7
+780,57,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,9,6,5,7,5
+781,43,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,5,7,7,4,9
+782,34,Muž,Jihozápad,SŠ s maturitou,Young Explorers,7,8,4,6,3
+783,48,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,5,5,5,8,5
+784,19,Žena,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,7,5,7,10,5
+785,36,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,9,3,7,9,9
+786,46,Žena,Jihovýchod,SŠ s maturitou,Young Explorers,9,9,9,7,5
+787,53,Muž,Praha,SŠ s maturitou,Price-Sensitive,6,5,9,4,6
+788,43,Žena,Jihozápad,ZŠ / bez maturity,Pragmatic Mainstream,9,8,7,4,6
+789,57,Žena,Praha,SŠ s maturitou,Health-Oriented,2,4,9,3,4
+790,40,Žena,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,4,4,7,7,6
+791,38,Muž,Severozápad,ZŠ / bez maturity,Young Explorers,6,5,7,6,7
+792,38,Muž,Moravskoslezsko,VŠ,Health-Oriented,9,2,10,4,10
+793,56,Muž,Severovýchod,SŠ s maturitou,Young Explorers,4,6,6,8,2
+794,53,Muž,Jihozápad,VŠ,Young Explorers,5,8,7,6,6
+795,38,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,7,4,5,3,8
+796,27,Muž,Moravskoslezsko,VŠ,Health-Oriented,7,5,6,1,7
+797,73,Muž,Severovýchod,ZŠ / bez maturity,Health-Oriented,3,8,6,7,7
+798,61,Žena,Severovýchod,SŠ s maturitou,Young Explorers,7,5,4,8,5
+799,44,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,5,8,6,8,5
+800,31,Muž,Severozápad,VŠ,Young Explorers,8,7,3,7,5
+801,49,Muž,Severozápad,VŠ,Pragmatic Mainstream,6,6,9,3,6
+802,31,Muž,Severozápad,SŠ s maturitou,Price-Sensitive,3,5,3,4,6
+803,48,Muž,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,5,5,6,5,4
+804,56,Muž,Praha,SŠ s maturitou,Skeptical Traditional,6,5,7,2,6
+805,18,Muž,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,5,5,3,8,8
+806,37,Žena,Jihozápad,ZŠ / bez maturity,Pragmatic Mainstream,8,5,5,1,10
+807,49,Muž,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,7,4,3,8,7
+808,35,Žena,Střední Čechy,SŠ s maturitou,Health-Oriented,3,6,4,4,5
+809,32,Žena,Praha,SŠ s maturitou,Young Explorers,6,9,2,5,6
+810,34,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,4,4,6,6,6
+811,37,Muž,Severovýchod,VŠ,Young Explorers,6,5,6,5,6
+812,52,Muž,Jihozápad,SŠ s maturitou,Skeptical Traditional,3,3,10,8,7
+813,50,Žena,Jihozápad,VŠ,Young Explorers,4,8,2,9,5
+814,52,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,4,5,6,6,5
+815,33,Muž,Střední Čechy,VŠ,Health-Oriented,3,6,6,5,9
+816,64,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,5,6,7,6,8
+817,41,Žena,Praha,ZŠ / bez maturity,Price-Sensitive,1,7,5,6,5
+818,50,Žena,Jihovýchod,VŠ,Skeptical Traditional,7,8,5,6,5
+819,26,Muž,Severovýchod,ZŠ / bez maturity,Price-Sensitive,9,3,3,5,4
+820,39,Muž,Jihovýchod,ZŠ / bez maturity,Pragmatic Mainstream,7,10,7,5,5
+821,18,Žena,Jihozápad,SŠ s maturitou,Price-Sensitive,2,6,6,7,10
+822,34,Žena,Střední Čechy,VŠ,Skeptical Traditional,7,6,5,10,6
+823,39,Muž,Jihovýchod,ZŠ / bez maturity,Health-Oriented,10,6,6,5,6
+824,28,Žena,Jihovýchod,ZŠ / bez maturity,Pragmatic Mainstream,5,5,5,4,6
+825,37,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,3,9,2,7,5
+826,58,Žena,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,7,7,6,6,7
+827,70,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,3,8,6,6,10
+828,45,Muž,Severozápad,SŠ s maturitou,Skeptical Traditional,5,8,6,6,4
+829,63,Žena,Jihovýchod,ZŠ / bez maturity,Price-Sensitive,8,5,9,5,5
+830,45,Muž,Jihovýchod,SŠ s maturitou,Young Explorers,4,4,1,4,4
+831,39,Žena,Severovýchod,VŠ,Young Explorers,4,5,4,5,5
+832,56,Žena,Moravskoslezsko,VŠ,Health-Oriented,6,4,2,9,3
+833,48,Žena,Severovýchod,SŠ s maturitou,Skeptical Traditional,7,6,6,2,3
+834,66,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,7,3,3,3,10
+835,38,Muž,Severozápad,SŠ s maturitou,Skeptical Traditional,6,6,7,7,3
+836,21,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,8,7,3,5,8
+837,52,Žena,Severovýchod,SŠ s maturitou,Skeptical Traditional,8,6,3,2,7
+838,45,Muž,Severovýchod,VŠ,Pragmatic Mainstream,9,2,5,7,6
+839,49,Muž,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,5,2,5,3,9
+840,47,Muž,Severovýchod,VŠ,Price-Sensitive,4,3,3,6,4
+841,18,Žena,Střední Čechy,VŠ,Price-Sensitive,5,6,5,6,6
+842,51,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,8,7,7,5,7
+843,44,Žena,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,5,7,2,5,5
+844,48,Muž,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,4,9,7,5,7
+845,69,Žena,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,6,5,6,5,10
+846,55,Žena,Střední Čechy,SŠ s maturitou,Young Explorers,7,9,10,6,6
+847,33,Muž,Praha,ZŠ / bez maturity,Pragmatic Mainstream,5,7,6,4,6
+848,35,Muž,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,4,6,4,4,8
+849,40,Muž,Praha,SŠ s maturitou,Health-Oriented,7,9,7,5,6
+850,55,Žena,Jihovýchod,VŠ,Price-Sensitive,7,3,4,3,8
+851,34,Žena,Jihozápad,SŠ s maturitou,Young Explorers,8,7,5,8,9
+852,25,Žena,Střední Čechy,ZŠ / bez maturity,Skeptical Traditional,4,4,8,3,5
+853,18,Muž,Severozápad,ZŠ / bez maturity,Health-Oriented,7,4,5,5,6
+854,27,Muž,Moravskoslezsko,VŠ,Price-Sensitive,7,9,6,6,3
+855,30,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,7,5,4,5,6
+856,59,Žena,Jihozápad,VŠ,Skeptical Traditional,6,8,5,2,9
+857,18,Žena,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,5,7,6,4,6
+858,53,Muž,Střední Čechy,SŠ s maturitou,Health-Oriented,3,4,5,4,6
+859,58,Muž,Praha,ZŠ / bez maturity,Skeptical Traditional,8,3,6,5,7
+860,40,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,6,10,6,8,8
+861,32,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,3,8,4,8,6
+862,21,Žena,Jihozápad,ZŠ / bez maturity,Young Explorers,6,3,8,7,9
+863,41,Žena,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,4,4,6,6,5
+864,40,Muž,Praha,SŠ s maturitou,Pragmatic Mainstream,6,5,4,9,5
+865,54,Muž,Střední Čechy,SŠ s maturitou,Skeptical Traditional,5,7,4,5,7
+866,31,Žena,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,5,5,6,6,3
+867,74,Žena,Severozápad,SŠ s maturitou,Skeptical Traditional,4,9,6,3,4
+868,67,Žena,Praha,ZŠ / bez maturity,Price-Sensitive,6,4,5,6,8
+869,63,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,5,8,8,6,10
+870,37,Muž,Jihovýchod,VŠ,Pragmatic Mainstream,9,5,6,7,5
+871,49,Žena,Severozápad,ZŠ / bez maturity,Young Explorers,3,4,6,8,4
+872,21,Žena,Jihozápad,VŠ,Skeptical Traditional,6,5,4,4,4
+873,61,Žena,Střední Čechy,SŠ s maturitou,Young Explorers,7,6,3,7,3
+874,41,Žena,Jihozápad,SŠ s maturitou,Price-Sensitive,4,6,7,5,10
+875,52,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,6,7,6,7,4
+876,47,Muž,Severovýchod,SŠ s maturitou,Price-Sensitive,2,6,7,3,9
+877,37,Muž,Severozápad,VŠ,Young Explorers,4,5,4,1,6
+878,50,Žena,Jihozápad,ZŠ / bez maturity,Pragmatic Mainstream,8,6,3,2,6
+879,42,Žena,Praha,ZŠ / bez maturity,Pragmatic Mainstream,4,7,7,2,5
+880,33,Žena,Praha,SŠ s maturitou,Skeptical Traditional,3,8,6,1,5
+881,38,Muž,Střední Čechy,ZŠ / bez maturity,Health-Oriented,8,5,8,6,5
+882,60,Žena,Severovýchod,SŠ s maturitou,Young Explorers,5,3,7,6,5
+883,24,Muž,Severozápad,SŠ s maturitou,Health-Oriented,7,5,6,7,9
+884,45,Žena,Jihozápad,ZŠ / bez maturity,Price-Sensitive,4,9,8,4,9
+885,18,Žena,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,8,7,7,6,7
+886,46,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,3,5,6,6,6
+887,44,Žena,Severovýchod,SŠ s maturitou,Skeptical Traditional,8,7,3,5,5
+888,36,Žena,Moravskoslezsko,VŠ,Price-Sensitive,5,3,5,8,10
+889,36,Žena,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,4,3,6,7,7
+890,52,Žena,Jihozápad,ZŠ / bez maturity,Price-Sensitive,6,8,5,7,6
+891,45,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,7,7,9,3,6
+892,58,Muž,Jihozápad,VŠ,Young Explorers,4,9,6,10,5
+893,60,Žena,Praha,VŠ,Price-Sensitive,5,7,2,5,5
+894,39,Žena,Praha,SŠ s maturitou,Pragmatic Mainstream,4,6,5,5,9
+895,23,Muž,Střední Čechy,ZŠ / bez maturity,Skeptical Traditional,3,6,5,4,6
+896,27,Muž,Severovýchod,SŠ s maturitou,Health-Oriented,5,6,6,6,7
+897,59,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,4,6,6,4,6
+898,34,Muž,Praha,ZŠ / bez maturity,Health-Oriented,6,2,5,5,7
+899,74,Muž,Moravskoslezsko,VŠ,Health-Oriented,8,4,9,5,5
+900,46,Žena,Jihozápad,SŠ s maturitou,Young Explorers,3,6,8,7,5
+901,47,Muž,Severozápad,SŠ s maturitou,Young Explorers,6,10,9,6,2
+902,48,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,6,6,7,5,2
+903,50,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,5,5,5,4,6
+904,40,Muž,Jihozápad,VŠ,Pragmatic Mainstream,9,8,7,6,6
+905,60,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,4,4,6,2,8
+906,55,Žena,Severozápad,VŠ,Health-Oriented,6,6,6,4,8
+907,37,Žena,Praha,ZŠ / bez maturity,Pragmatic Mainstream,9,7,6,4,7
+908,55,Žena,Severozápad,ZŠ / bez maturity,Skeptical Traditional,4,9,5,4,7
+909,46,Žena,Praha,SŠ s maturitou,Health-Oriented,7,3,4,7,5
+910,30,Žena,Jihovýchod,SŠ s maturitou,Health-Oriented,6,10,5,5,6
+911,38,Muž,Střední Čechy,SŠ s maturitou,Health-Oriented,7,7,4,8,6
+912,46,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,6,8,4,6,5
+913,35,Žena,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,6,8,3,4,5
+914,54,Žena,Jihovýchod,ZŠ / bez maturity,Skeptical Traditional,8,5,6,5,7
+915,52,Muž,Praha,SŠ s maturitou,Price-Sensitive,6,5,4,8,7
+916,42,Muž,Moravskoslezsko,VŠ,Price-Sensitive,6,5,4,9,9
+917,47,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,3,6,6,5,5
+918,67,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,4,8,6,4,3
+919,36,Muž,Praha,SŠ s maturitou,Price-Sensitive,5,7,7,4,8
+920,54,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,4,5,4,5,7
+921,64,Žena,Severozápad,SŠ s maturitou,Young Explorers,6,5,5,9,9
+922,62,Muž,Moravskoslezsko,VŠ,Health-Oriented,3,8,7,8,3
+923,35,Žena,Praha,ZŠ / bez maturity,Health-Oriented,4,9,6,6,10
+924,48,Žena,Praha,VŠ,Health-Oriented,8,4,1,6,6
+925,74,Muž,Jihovýchod,VŠ,Price-Sensitive,8,7,4,6,5
+926,52,Muž,Jihozápad,VŠ,Price-Sensitive,4,7,6,5,6
+927,50,Žena,Moravskoslezsko,VŠ,Price-Sensitive,5,5,6,6,3
+928,52,Muž,Severozápad,ZŠ / bez maturity,Skeptical Traditional,5,6,6,6,8
+929,18,Žena,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,7,5,3,5,7
+930,18,Žena,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,5,3,10,2,5
+931,47,Žena,Severovýchod,ZŠ / bez maturity,Health-Oriented,8,9,6,5,5
+932,41,Žena,Severovýchod,SŠ s maturitou,Young Explorers,2,6,6,5,2
+933,54,Muž,Severozápad,ZŠ / bez maturity,Pragmatic Mainstream,9,8,9,5,8
+934,38,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,9,7,6,4,4
+935,66,Žena,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,9,7,4,3,8
+936,28,Žena,Střední Čechy,VŠ,Health-Oriented,3,3,5,8,7
+937,50,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,4,6,6,6,8
+938,58,Muž,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,4,5,7,5,3
+939,62,Žena,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,7,7,4,4,6
+940,30,Žena,Praha,SŠ s maturitou,Price-Sensitive,8,6,7,7,7
+941,74,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,7,8,7,5,4
+942,18,Žena,Praha,SŠ s maturitou,Skeptical Traditional,7,8,8,7,4
+943,39,Muž,Jihovýchod,SŠ s maturitou,Health-Oriented,3,6,5,6,5
+944,47,Žena,Severovýchod,VŠ,Skeptical Traditional,9,5,6,9,4
+945,51,Muž,Severozápad,VŠ,Health-Oriented,4,9,7,6,8
+946,44,Žena,Praha,ZŠ / bez maturity,Pragmatic Mainstream,6,8,6,8,5
+947,31,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,8,5,7,8,6
+948,59,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,2,1,8,4,8
+949,52,Žena,Severozápad,ZŠ / bez maturity,Young Explorers,5,2,8,10,7
+950,28,Žena,Praha,ZŠ / bez maturity,Pragmatic Mainstream,5,4,10,10,6
+951,29,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,6,4,8,3,8
+952,47,Žena,Střední Čechy,SŠ s maturitou,Health-Oriented,4,5,6,4,7
+953,46,Muž,Jihozápad,SŠ s maturitou,Pragmatic Mainstream,5,4,9,3,4
+954,24,Žena,Severovýchod,ZŠ / bez maturity,Young Explorers,5,2,5,6,3
+955,62,Muž,Jihozápad,VŠ,Skeptical Traditional,8,3,6,5,6
+956,42,Žena,Severovýchod,ZŠ / bez maturity,Price-Sensitive,6,8,8,7,5
+957,48,Žena,Praha,ZŠ / bez maturity,Skeptical Traditional,3,4,6,2,5
+958,46,Žena,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,3,7,6,4,4
+959,18,Muž,Severovýchod,SŠ s maturitou,Health-Oriented,10,4,9,8,5
+960,48,Žena,Severovýchod,ZŠ / bez maturity,Young Explorers,5,6,4,6,7
+961,38,Žena,Jihozápad,SŠ s maturitou,Young Explorers,5,7,8,6,8
+962,32,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,5,7,7,7,9
+963,34,Muž,Moravskoslezsko,VŠ,Health-Oriented,5,6,5,7,6
+964,57,Žena,Jihozápad,SŠ s maturitou,Health-Oriented,6,6,4,3,4
+965,30,Muž,Jihozápad,SŠ s maturitou,Skeptical Traditional,7,7,9,7,2
+966,25,Muž,Severovýchod,VŠ,Pragmatic Mainstream,5,4,4,4,5
+967,29,Žena,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,3,5,6,5,7
+968,58,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,5,5,7,8,6
+969,72,Žena,Severozápad,VŠ,Young Explorers,3,5,5,2,6
+970,25,Žena,Střední Čechy,VŠ,Skeptical Traditional,6,9,4,5,6
+971,32,Žena,Jihovýchod,VŠ,Young Explorers,6,5,3,6,6
+972,45,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,6,2,3,6,10
+973,18,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,1,6,7,6,9
+974,67,Žena,Střední Čechy,SŠ s maturitou,Health-Oriented,9,5,7,8,5
+975,51,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,3,9,6,5,4
+976,56,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,6,3,3,5,6
+977,37,Muž,Střední Čechy,VŠ,Price-Sensitive,9,7,6,6,6
+978,39,Muž,Střední Čechy,SŠ s maturitou,Skeptical Traditional,5,6,4,3,5
+979,44,Muž,Střední Čechy,VŠ,Young Explorers,4,6,5,2,7
+980,40,Muž,Střední Čechy,ZŠ / bez maturity,Young Explorers,3,5,3,6,6
+981,42,Žena,Střední Čechy,VŠ,Skeptical Traditional,5,9,8,5,5
+982,29,Muž,Jihozápad,ZŠ / bez maturity,Health-Oriented,9,6,7,4,8
+983,36,Žena,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,9,7,5,3,7
+984,41,Muž,Praha,ZŠ / bez maturity,Young Explorers,6,7,5,4,3
+985,50,Žena,Střední Čechy,ZŠ / bez maturity,Skeptical Traditional,6,4,3,3,4
+986,53,Muž,Severovýchod,ZŠ / bez maturity,Price-Sensitive,9,6,4,6,4
+987,45,Muž,Jihozápad,SŠ s maturitou,Health-Oriented,3,6,4,2,6
+988,35,Muž,Praha,ZŠ / bez maturity,Skeptical Traditional,3,8,8,9,7
+989,31,Muž,Severozápad,ZŠ / bez maturity,Young Explorers,6,7,7,7,3
+990,47,Muž,Praha,ZŠ / bez maturity,Price-Sensitive,6,4,7,6,3
+991,55,Žena,Střední Čechy,SŠ s maturitou,Health-Oriented,4,6,8,8,10
+992,52,Žena,Severozápad,ZŠ / bez maturity,Pragmatic Mainstream,5,8,6,5,5
+993,38,Muž,Praha,VŠ,Young Explorers,7,7,5,4,10
+994,63,Žena,Severovýchod,VŠ,Pragmatic Mainstream,1,6,7,6,9
+995,51,Muž,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,3,6,6,5,6
+996,33,Muž,Jihozápad,SŠ s maturitou,Health-Oriented,8,7,7,6,9
+997,27,Žena,Jihozápad,ZŠ / bez maturity,Pragmatic Mainstream,5,7,4,6,7
+998,52,Žena,Severovýchod,VŠ,Price-Sensitive,5,9,6,3,7
+999,57,Žena,Praha,SŠ s maturitou,Price-Sensitive,9,6,5,5,5
+1000,31,Žena,Severozápad,VŠ,Skeptical Traditional,4,5,3,8,5
+1001,40,Žena,Praha,VŠ,Young Explorers,2,6,6,2,6
+1002,37,Muž,Jihozápad,ZŠ / bez maturity,Skeptical Traditional,5,7,7,6,8
+1003,43,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,6,6,6,9,8
+1004,35,Žena,Severovýchod,ZŠ / bez maturity,Health-Oriented,6,7,3,5,5
+1005,25,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,8,5,7,4,6
+1006,70,Muž,Praha,VŠ,Health-Oriented,9,7,9,5,3
+1007,39,Muž,Praha,ZŠ / bez maturity,Young Explorers,4,6,3,6,8
+1008,18,Muž,Moravskoslezsko,SŠ s maturitou,Young Explorers,5,5,7,6,7
+1009,41,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,6,9,7,9,6
+1010,46,Žena,Moravskoslezsko,VŠ,Health-Oriented,7,7,4,5,10
+1011,63,Muž,Severozápad,VŠ,Health-Oriented,9,7,3,9,10
+1012,33,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,7,4,7,3,6
+1013,26,Muž,Praha,SŠ s maturitou,Health-Oriented,8,9,8,5,4
+1014,54,Muž,Praha,SŠ s maturitou,Price-Sensitive,4,6,5,5,6
+1015,55,Žena,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,3,5,5,5,8
+1016,60,Muž,Moravskoslezsko,ZŠ / bez maturity,Skeptical Traditional,8,10,10,5,6
+1017,23,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,6,8,4,10,6
+1018,34,Žena,Severozápad,ZŠ / bez maturity,Health-Oriented,2,3,9,9,4
+1019,21,Muž,Jihozápad,ZŠ / bez maturity,Young Explorers,2,3,6,4,4
+1020,43,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,7,6,4,5,7
+1021,39,Muž,Severovýchod,VŠ,Skeptical Traditional,6,2,6,5,3
+1022,39,Žena,Severozápad,ZŠ / bez maturity,Health-Oriented,7,4,6,7,6
+1023,46,Žena,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,8,5,5,6,6
+1024,21,Muž,Střední Čechy,SŠ s maturitou,Price-Sensitive,4,7,5,4,4
+1025,39,Muž,Severozápad,SŠ s maturitou,Young Explorers,6,7,6,9,6
+1026,48,Žena,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,5,9,8,2,6
+1027,50,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,6,5,5,7,7
+1028,61,Žena,Moravskoslezsko,VŠ,Pragmatic Mainstream,5,9,8,6,6
+1029,40,Žena,Severovýchod,ZŠ / bez maturity,Health-Oriented,9,8,3,6,6
+1030,18,Muž,Severozápad,ZŠ / bez maturity,Young Explorers,6,4,5,5,6
+1031,51,Žena,Severovýchod,SŠ s maturitou,Price-Sensitive,6,6,3,5,10
+1032,38,Žena,Severozápad,SŠ s maturitou,Skeptical Traditional,5,6,3,7,5
+1033,38,Žena,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,1,10,5,5,5
+1034,41,Žena,Severovýchod,SŠ s maturitou,Price-Sensitive,6,6,5,4,5
+1035,36,Žena,Střední Čechy,VŠ,Pragmatic Mainstream,8,5,8,10,6
+1036,19,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,4,5,6,7,5
+1037,49,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,6,8,6,5,9
+1038,43,Žena,Severozápad,VŠ,Skeptical Traditional,3,5,1,6,5
+1039,23,Žena,Moravskoslezsko,ZŠ / bez maturity,Health-Oriented,3,6,7,8,6
+1040,44,Muž,Moravskoslezsko,VŠ,Young Explorers,8,8,6,9,3
+1041,34,Muž,Střední Čechy,SŠ s maturitou,Skeptical Traditional,3,7,6,3,7
+1042,50,Muž,Severovýchod,ZŠ / bez maturity,Young Explorers,7,6,8,6,4
+1043,37,Muž,Moravskoslezsko,VŠ,Young Explorers,8,5,5,2,9
+1044,56,Žena,Severozápad,VŠ,Health-Oriented,6,7,4,5,4
+1045,58,Žena,Severovýchod,VŠ,Health-Oriented,7,6,4,5,7
+1046,37,Žena,Střední Čechy,VŠ,Health-Oriented,5,5,4,6,7
+1047,18,Žena,Severozápad,SŠ s maturitou,Pragmatic Mainstream,7,3,6,8,9
+1048,38,Žena,Severozápad,VŠ,Young Explorers,3,7,7,5,1
+1049,29,Muž,Severovýchod,ZŠ / bez maturity,Health-Oriented,4,3,4,6,5
+1050,49,Muž,Jihozápad,SŠ s maturitou,Skeptical Traditional,4,5,1,4,7
+1051,28,Muž,Jihozápad,VŠ,Health-Oriented,7,8,6,4,4
+1052,29,Muž,Severozápad,VŠ,Young Explorers,6,6,5,4,7
+1053,60,Žena,Praha,SŠ s maturitou,Health-Oriented,8,4,3,6,8
+1054,26,Žena,Praha,SŠ s maturitou,Health-Oriented,10,9,8,8,2
+1055,35,Žena,Severovýchod,SŠ s maturitou,Pragmatic Mainstream,8,8,8,8,5
+1056,43,Žena,Moravskoslezsko,SŠ s maturitou,Young Explorers,9,6,4,5,7
+1057,52,Žena,Severovýchod,SŠ s maturitou,Price-Sensitive,9,10,6,6,7
+1058,37,Žena,Jihozápad,SŠ s maturitou,Young Explorers,6,6,6,6,6
+1059,46,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Explorers,5,7,5,7,5
+1060,45,Žena,Praha,SŠ s maturitou,Health-Oriented,8,5,7,2,8
+1061,37,Muž,Praha,ZŠ / bez maturity,Young Explorers,8,7,7,4,8
+1062,53,Muž,Jihovýchod,ZŠ / bez maturity,Pragmatic Mainstream,3,9,5,7,5
+1063,48,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,6,8,6,4,4
+1064,18,Muž,Jihozápad,ZŠ / bez maturity,Health-Oriented,6,5,6,4,6
+1065,64,Žena,Jihovýchod,ZŠ / bez maturity,Pragmatic Mainstream,7,6,4,7,4
+1066,28,Muž,Severovýchod,VŠ,Young Explorers,7,9,10,4,3
+1067,43,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,5,7,7,6,7
+1068,45,Žena,Praha,VŠ,Skeptical Traditional,8,8,6,3,7
+1069,49,Žena,Moravskoslezsko,VŠ,Health-Oriented,9,4,6,5,8
+1070,64,Žena,Střední Čechy,ZŠ / bez maturity,Young Explorers,6,8,10,6,7
+1071,31,Žena,Jihozápad,SŠ s maturitou,Young Explorers,5,5,7,3,3
+1072,27,Muž,Severozápad,SŠ s maturitou,Pragmatic Mainstream,7,8,7,6,6
+1073,45,Žena,Severozápad,VŠ,Health-Oriented,6,3,9,2,9
+1074,44,Muž,Moravskoslezsko,VŠ,Pragmatic Mainstream,2,7,6,4,7
+1075,43,Žena,Severovýchod,SŠ s maturitou,Price-Sensitive,3,6,6,1,6
+1076,56,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,4,5,7,2,7
+1077,42,Muž,Jihovýchod,VŠ,Skeptical Traditional,7,3,7,7,3
+1078,59,Žena,Severozápad,SŠ s maturitou,Young Explorers,2,5,10,4,6
+1079,49,Muž,Severozápad,VŠ,Skeptical Traditional,4,3,4,4,3
+1080,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Pragmatic Mainstream,6,6,4,6,8
+1081,43,Muž,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,2,4,8,4,6
+1082,64,Muž,Jihozápad,VŠ,Young Explorers,7,4,5,4,7
+1083,63,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,5,6,6,6,3
+1084,25,Žena,Severovýchod,VŠ,Health-Oriented,6,8,6,4,9
+1085,36,Žena,Moravskoslezsko,SŠ s maturitou,Young Explorers,7,3,5,3,3
+1086,23,Žena,Jihozápad,VŠ,Pragmatic Mainstream,5,7,4,4,5
+1087,49,Muž,Moravskoslezsko,SŠ s maturitou,Price-Sensitive,4,6,8,7,9
+1088,54,Muž,Praha,SŠ s maturitou,Pragmatic Mainstream,2,7,5,1,2
+1089,42,Muž,Praha,SŠ s maturitou,Health-Oriented,6,8,2,5,8
+1090,47,Žena,Jihozápad,ZŠ / bez maturity,Health-Oriented,7,4,8,2,7
+1091,37,Muž,Severozápad,VŠ,Young Explorers,5,9,6,8,4
+1092,43,Žena,Střední Čechy,ZŠ / bez maturity,Skeptical Traditional,3,5,4,7,4
+1093,44,Žena,Praha,SŠ s maturitou,Skeptical Traditional,3,6,5,5,5
+1094,28,Muž,Moravskoslezsko,VŠ,Skeptical Traditional,7,9,9,4,7
+1095,50,Žena,Střední Čechy,ZŠ / bez maturity,Skeptical Traditional,4,4,7,7,4
+1096,60,Muž,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,5,4,8,8,3
+1097,59,Muž,Jihovýchod,VŠ,Health-Oriented,5,8,3,2,4
+1098,34,Muž,Praha,SŠ s maturitou,Pragmatic Mainstream,6,4,9,5,5
+1099,73,Žena,Praha,SŠ s maturitou,Young Explorers,6,5,10,10,8
+1100,61,Žena,Severozápad,SŠ s maturitou,Pragmatic Mainstream,6,8,5,4,4
+1101,45,Žena,Střední Čechy,VŠ,Pragmatic Mainstream,8,9,5,7,5
+1102,41,Muž,Jihovýchod,SŠ s maturitou,Young Explorers,4,4,7,9,5
+1103,44,Žena,Praha,VŠ,Skeptical Traditional,7,6,8,1,6
+1104,53,Muž,Střední Čechy,ZŠ / bez maturity,Pragmatic Mainstream,4,6,5,7,5
+1105,33,Muž,Praha,VŠ,Health-Oriented,7,3,6,6,7
+1106,22,Muž,Jihovýchod,VŠ,Price-Sensitive,4,3,4,4,8
+1107,40,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,4,6,6,7,7
+1108,44,Muž,Severozápad,SŠ s maturitou,Price-Sensitive,9,7,7,6,8
+1109,46,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,5,7,3,3,7
+1110,35,Žena,Jihovýchod,SŠ s maturitou,Young Explorers,2,6,5,5,9
+1111,51,Žena,Moravskoslezsko,SŠ s maturitou,Health-Oriented,2,6,6,6,5
+1112,18,Muž,Střední Čechy,VŠ,Health-Oriented,4,3,7,8,9
+1113,48,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,7,4,6,5,3
+1114,54,Muž,Moravskoslezsko,VŠ,Pragmatic Mainstream,7,7,1,9,2
+1115,39,Žena,Moravskoslezsko,ZŠ / bez maturity,Skeptical Traditional,5,5,8,8,5
+1116,64,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,4,2,6,3,4
+1117,40,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,5,6,2,1,8
+1118,27,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Explorers,3,7,4,6,7
+1119,23,Muž,Jihozápad,SŠ s maturitou,Health-Oriented,5,5,5,8,7
+1120,33,Muž,Jihovýchod,VŠ,Young Explorers,4,6,5,6,5
+1121,53,Žena,Praha,SŠ s maturitou,Skeptical Traditional,10,10,8,6,5
+1122,43,Muž,Jihozápad,SŠ s maturitou,Young Explorers,2,9,8,6,4
+1123,33,Žena,Praha,VŠ,Price-Sensitive,4,6,8,6,8
+1124,38,Muž,Jihovýchod,ZŠ / bez maturity,Health-Oriented,4,2,5,4,6
+1125,59,Muž,Jihovýchod,ZŠ / bez maturity,Young Explorers,3,4,10,6,6
+1126,60,Muž,Jihovýchod,VŠ,Health-Oriented,6,8,1,6,4
+1127,46,Muž,Severozápad,VŠ,Pragmatic Mainstream,5,5,2,2,8
+1128,57,Žena,Moravskoslezsko,SŠ s maturitou,Young Explorers,6,2,4,6,6
+1129,23,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,7,9,4,2,4
+1130,35,Muž,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,2,9,5,7,4
+1131,31,Žena,Praha,ZŠ / bez maturity,Skeptical Traditional,5,10,4,5,3
+1132,57,Žena,Jihozápad,ZŠ / bez maturity,Health-Oriented,3,6,5,4,5
+1133,62,Žena,Jihozápad,ZŠ / bez maturity,Health-Oriented,7,6,7,7,6
+1134,41,Žena,Severozápad,SŠ s maturitou,Young Explorers,7,5,4,5,6
+1135,54,Muž,Praha,ZŠ / bez maturity,Health-Oriented,5,8,5,7,8
+1136,38,Muž,Moravskoslezsko,SŠ s maturitou,Health-Oriented,4,4,6,5,8
+1137,26,Muž,Severovýchod,ZŠ / bez maturity,Health-Oriented,5,5,5,5,5
+1138,50,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,6,9,8,10,7
+1139,51,Muž,Severovýchod,SŠ s maturitou,Young Explorers,1,7,7,7,7
+1140,39,Žena,Moravskoslezsko,SŠ s maturitou,Skeptical Traditional,7,3,8,3,1
+1141,49,Žena,Jihozápad,ZŠ / bez maturity,Price-Sensitive,1,7,6,7,10
+1142,41,Žena,Jihozápad,SŠ s maturitou,Health-Oriented,5,8,5,6,5
+1143,18,Muž,Severovýchod,ZŠ / bez maturity,Skeptical Traditional,5,5,4,6,5
+1144,40,Žena,Severozápad,SŠ s maturitou,Young Explorers,3,6,5,6,7
+1145,48,Žena,Jihovýchod,SŠ s maturitou,Skeptical Traditional,2,6,7,1,6
+1146,31,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,4,9,6,6,5
+1147,28,Žena,Střední Čechy,ZŠ / bez maturity,Price-Sensitive,5,5,7,3,6
+1148,74,Žena,Severozápad,SŠ s maturitou,Skeptical Traditional,7,5,5,6,8
+1149,28,Muž,Jihozápad,VŠ,Price-Sensitive,7,2,6,5,3
+1150,33,Žena,Střední Čechy,SŠ s maturitou,Health-Oriented,6,7,6,4,3
+1151,44,Muž,Jihovýchod,VŠ,Skeptical Traditional,4,4,6,5,4
+1152,68,Žena,Severozápad,VŠ,Young Explorers,6,7,5,3,5
+1153,39,Žena,Jihozápad,ZŠ / bez maturity,Young Explorers,6,3,6,4,6
+1154,41,Muž,Jihozápad,SŠ s maturitou,Price-Sensitive,8,10,5,7,2
+1155,60,Muž,Praha,ZŠ / bez maturity,Health-Oriented,5,4,2,4,6
+1156,35,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,6,1,8,4,7
+1157,33,Žena,Jihozápad,SŠ s maturitou,Young Explorers,6,7,8,7,9
+1158,18,Žena,Praha,ZŠ / bez maturity,Skeptical Traditional,10,7,8,2,6
+1159,46,Žena,Severozápad,VŠ,Young Explorers,7,4,8,4,5
+1160,18,Muž,Jihovýchod,SŠ s maturitou,Health-Oriented,7,10,6,5,7
+1161,28,Žena,Severovýchod,SŠ s maturitou,Health-Oriented,7,1,4,8,6
+1162,25,Muž,Jihozápad,VŠ,Pragmatic Mainstream,7,5,8,8,5
+1163,27,Muž,Severovýchod,SŠ s maturitou,Skeptical Traditional,4,3,3,5,7
+1164,56,Žena,Moravskoslezsko,SŠ s maturitou,Young Explorers,8,5,8,8,6
+1165,57,Žena,Moravskoslezsko,ZŠ / bez maturity,Skeptical Traditional,6,4,5,6,6
+1166,47,Žena,Severozápad,VŠ,Price-Sensitive,1,4,9,4,3
+1167,36,Žena,Jihozápad,SŠ s maturitou,Skeptical Traditional,7,7,8,5,9
+1168,43,Muž,Severozápad,SŠ s maturitou,Price-Sensitive,5,7,8,8,2
+1169,33,Muž,Střední Čechy,SŠ s maturitou,Skeptical Traditional,7,6,6,4,6
+1170,29,Žena,Jihozápad,VŠ,Price-Sensitive,8,5,4,6,5
+1171,49,Žena,Praha,SŠ s maturitou,Young Explorers,9,7,9,6,6
+1172,51,Muž,Střední Čechy,SŠ s maturitou,Pragmatic Mainstream,7,6,6,7,8
+1173,39,Žena,Střední Čechy,ZŠ / bez maturity,Health-Oriented,5,4,6,3,5
+1174,38,Žena,Jihovýchod,VŠ,Skeptical Traditional,7,6,6,7,9
+1175,36,Žena,Moravskoslezsko,SŠ s maturitou,Pragmatic Mainstream,9,7,5,7,5
+1176,57,Muž,Jihovýchod,SŠ s maturitou,Price-Sensitive,9,6,4,6,9
+1177,48,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,9,4,4,8,8
+1178,37,Žena,Praha,SŠ s maturitou,Young Explorers,6,7,8,6,9
+1179,31,Muž,Jihovýchod,SŠ s maturitou,Skeptical Traditional,5,7,7,1,10
+1180,18,Žena,Severozápad,VŠ,Price-Sensitive,6,6,7,6,7
+1181,26,Muž,Jihovýchod,VŠ,Skeptical Traditional,6,4,7,6,2
+1182,33,Muž,Jihovýchod,SŠ s maturitou,Pragmatic Mainstream,4,4,5,5,7
+1183,54,Žena,Střední Čechy,SŠ s maturitou,Price-Sensitive,2,8,7,8,7
+1184,37,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,5,8,4,3,5
+1185,32,Žena,Severozápad,SŠ s maturitou,Young Explorers,6,7,7,1,7
+1186,24,Žena,Praha,VŠ,Pragmatic Mainstream,7,9,3,7,8
+1187,33,Muž,Jihovýchod,ZŠ / bez maturity,Young Explorers,4,9,6,5,8
+1188,74,Muž,Jihovýchod,ZŠ / bez maturity,Price-Sensitive,5,4,7,7,6
+1189,43,Žena,Jihozápad,ZŠ / bez maturity,Health-Oriented,3,10,7,7,7
+1190,50,Muž,Střední Čechy,SŠ s maturitou,Health-Oriented,1,6,6,2,2
+1191,56,Žena,Severozápad,ZŠ / bez maturity,Pragmatic Mainstream,5,8,7,7,5
+1192,29,Muž,Severozápad,SŠ s maturitou,Young Explorers,6,8,6,6,7
+1193,74,Muž,Severovýchod,VŠ,Young Explorers,7,3,7,10,2
+1194,45,Žena,Jihozápad,SŠ s maturitou,Health-Oriented,8,5,5,4,8
+1195,33,Žena,Moravskoslezsko,ZŠ / bez maturity,Price-Sensitive,5,9,3,6,4
+1196,59,Žena,Severozápad,VŠ,Pragmatic Mainstream,5,5,6,5,3
+1197,36,Muž,Praha,VŠ,Pragmatic Mainstream,3,6,6,7,6
+1198,36,Muž,Severozápad,SŠ s maturitou,Health-Oriented,4,9,2,2,3
+1199,19,Žena,Severozápad,SŠ s maturitou,Price-Sensitive,3,5,4,7,5
+1200,35,Žena,Moravskoslezsko,VŠ,Pragmatic Mainstream,5,6,2,4,6

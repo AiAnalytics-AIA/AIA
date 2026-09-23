@@ -1,0 +1,194 @@
+[
+  {
+    "path": "AUDIENCE_DESIGN_DEMO.json",
+    "stage": "AUDIENCE",
+    "sha256": "d70b16f576d767dfb3fac67d7f652f80a93d843f97341f575b0b295df066538f",
+    "bytes": 392
+  },
+  {
+    "path": "CLIENT_REPORT_MESTO_2035_DEMO.docx",
+    "stage": "DELIVERY",
+    "sha256": "38cfb327e8da6cb65e1e9670ac952f01ed910b9367ecda642a16eecb49562711",
+    "bytes": 53232
+  },
+  {
+    "path": "DEMO_PREVIEW.html",
+    "stage": "DELIVERY",
+    "sha256": "d20ada30284dbf05e5af8bde138cc9dfcd1a501262b342ed094f8a535d8e4219",
+    "bytes": 3290
+  },
+  {
+    "path": "DEMO_PROJECT_SEED.json",
+    "stage": "DELIVERY",
+    "sha256": "8933b8164e67c8447b3acb2f0b62bd581e2007bc4df2755ce508a4fe3a2c636c",
+    "bytes": 10479
+  },
+  {
+    "path": "EXECUTIVE_XLSX_PREVIEW.png",
+    "stage": "DELIVERY",
+    "sha256": "9a23d30e5a58c18a33b1c957e62671bab8cb792ef942fa5c5f0379b8ab2e1e78",
+    "bytes": 105739
+  },
+  {
+    "path": "IMPLEMENTACE_DO_PANELU.md",
+    "stage": "DELIVERY",
+    "sha256": "9d0279445aa7d18d4ccaac51f3d2db9d5fa799d857729e4e6de4b9b20372ce04",
+    "bytes": 2626
+  },
+  {
+    "path": "OBJECTS_SOCIOMAP_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "4c5928840f0ac48338902693c8cd1f92285e6eb90ff951875f7917d0b64c4d34",
+    "bytes": 1713
+  },
+  {
+    "path": "PROJECT_HISTORY_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "cbf03c587463eeb2fa80d18a18f0208155d5aa3f8058972d7e6937318cf3ccc8",
+    "bytes": 1068
+  },
+  {
+    "path": "QUESTIONNAIRE_DEMO.json",
+    "stage": "QUESTIONNAIRE",
+    "sha256": "f71ebdffa6e83966db66900eb2708e8939ec8191ae3c2787aae4c66e3d4cbb6d",
+    "bytes": 1060
+  },
+  {
+    "path": "REPORT_TEXT_DEMO.md",
+    "stage": "DELIVERY",
+    "sha256": "b59026d7cb2062de28910883f36a0565c2d76cf0f75bf49034653056e9541e88",
+    "bytes": 999
+  },
+  {
+    "path": "RESEARCH_DESIGN_DEMO.json",
+    "stage": "RESEARCH_DESIGN",
+    "sha256": "6ad07c544ce7250f4422b1bb6e3add96e280918ccd0ed9254ebff7e6cafdc67a",
+    "bytes": 1575
+  },
+  {
+    "path": "RESPONDENT_DATABASE_DEMO.csv",
+    "stage": "FIELDWORK",
+    "sha256": "f7fbf17d8d9ae4b0552d6989935689299cc0a830bbc88c4186187e2b28f9cae3",
+    "bytes": 117636
+  },
+  {
+    "path": "RESULTS_TABLES_MESTO_2035_POLICY_DEMO.xlsx",
+    "stage": "DELIVERY",
+    "sha256": "96d84e449f805e819987dfd9741d7b507f39b5920bb6374261394c133d90ff88",
+    "bytes": 92485
+  },
+  {
+    "path": "analysis/ANALYSIS_01_EXECUTIVE.json",
+    "stage": "ANALYSIS",
+    "sha256": "8bdd9ad36ee4f2c7fdcf50dd0e0ac0c045a9857ba903c5ecd4276c896c6f0d04",
+    "bytes": 338
+  },
+  {
+    "path": "analysis/ANALYSIS_02_RESEARCH_QUESTIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "8abaa920f87054b8febd2fc7e58d839e22266739812c6cee7d5dd14a0e7cf492",
+    "bytes": 423
+  },
+  {
+    "path": "analysis/ANALYSIS_03_OBJECTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "143135051964b58bd7cfc40f6630c25068802a22438326823d623bca78526f5f",
+    "bytes": 142
+  },
+  {
+    "path": "analysis/ANALYSIS_04_AUDIENCE.json",
+    "stage": "ANALYSIS",
+    "sha256": "48c5b2fad9f62e36dce72a728106f951a3e4505fac9d287273213ccd671df45f",
+    "bytes": 167
+  },
+  {
+    "path": "analysis/ANALYSIS_05_SEGMENTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "6edae17dd17b9b17516c426ff6bd8820bca22d120339372a0d973fd7e76dad0c",
+    "bytes": 179
+  },
+  {
+    "path": "analysis/ANALYSIS_06_HYPOTHESES.json",
+    "stage": "ANALYSIS",
+    "sha256": "fd66ae160d8e4ba697df7eadb5ec13181256504f1f724f694d56384c540ff2c0",
+    "bytes": 150
+  },
+  {
+    "path": "analysis/ANALYSIS_07_IMPLICATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "862e34c2b88cf58704568e74425a9c373e95f20c6fe6463862f08599e88f55d4",
+    "bytes": 228
+  },
+  {
+    "path": "analysis/ANALYSIS_08_LIMITATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "7c9920543e82c28f7df93f3881907e78b06ce825f753fea297881688f5ba253a",
+    "bytes": 284
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.png",
+    "stage": "ANALYSIS",
+    "sha256": "db7a21bed42f1736392ad8b2897de65d5a91391aeaf1189c0649b86075cd02ac",
+    "bytes": 14434
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.svg",
+    "stage": "ANALYSIS",
+    "sha256": "496a4c95fb0c352a1e4034470ae769b323858743e8958d6f223449545329be70",
+    "bytes": 2396
+  },
+  {
+    "path": "demo_project_loader.py",
+    "stage": "DELIVERY",
+    "sha256": "42f8d6e038cdc06a56566c805ff43a4fe8a0fce002692f17506d6015e5427151",
+    "bytes": 1015
+  },
+  {
+    "path": "worlds/WORLD_1_BASE_MOBILITY.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "5b46f22d0a90e6e83b5af74694783096a54bd2f7171c87096a7b8174eca4a45d",
+    "bytes": 158
+  },
+  {
+    "path": "worlds/WORLD_2_FUEL_PRICE_UP.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "7fe1db5d85da16cfab29766cb2ccada0d75707e938221e2f12970cb41eb230fb",
+    "bytes": 165
+  },
+  {
+    "path": "worlds/WORLD_3_TRANSIT_RELIABILITY_LOW.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "2ba426abed5a28d75db5db26c59e07c6abd30d97ab6d5400198dac4bba456e9a",
+    "bytes": 169
+  },
+  {
+    "path": "worlds/WORLD_4_AIR_QUALITY_CONCERN.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "cc6cbf842b5a2a177f30a7e42f2e0da1b5e467200de2859260dda5596b51050c",
+    "bytes": 177
+  },
+  {
+    "path": "worlds/WORLD_5_OUTER_DISTRICTS_WEIGHT.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "11a764837d5f5598ab7c0971c82edc81b7fea262203edfdb13cb7598c20f44f2",
+    "bytes": 180
+  },
+  {
+    "path": "worlds/WORLD_6_PARKING_PRESSURE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "4ee7472d685cf2aacde1289c2272c84b4aa489057ef4591e303dfc62aa2d792e",
+    "bytes": 171
+  },
+  {
+    "path": "worlds/WORLD_7_ECONOMIC_SQUEEZE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "b10e3962c18d545c3d5957c24e2f22ac58f17e10caa61cd89c8aaa0396d2a76f",
+    "bytes": 165
+  },
+  {
+    "path": "worlds/WORLD_8_VISIBLE_TRANSIT_GAINS.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "8be63828f27b14adb3a7c0d410b85115d140aeb29424868f9674be12e6e26f4d",
+    "bytes": 169
+  }
+]

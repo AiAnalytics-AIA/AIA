@@ -1,0 +1,17 @@
+{
+  "population": "ČR 18–69, voliči ODS, STAN, ANO a TOP 09, nespokojení a zvažující změnu",
+  "n": 460,
+  "persona_mode": "calibrated",
+  "dimensions": [
+    "věk",
+    "region",
+    "socioeconomics",
+    "media/digital behavior",
+    "values",
+    "category involvement",
+    "trust",
+    "price sensitivity",
+    "innovation adoption",
+    "context-specific dimensions"
+  ]
+}

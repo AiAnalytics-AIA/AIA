@@ -1,0 +1,194 @@
+[
+  {
+    "path": "AUDIENCE_DESIGN_DEMO.json",
+    "stage": "AUDIENCE",
+    "sha256": "b495f89d923ca2189a5e17ecfa16b02f3474702bcbc2c0e886d3faf7181a441d",
+    "bytes": 385
+  },
+  {
+    "path": "CLIENT_REPORT_NEXORA_DEMO.docx",
+    "stage": "DELIVERY",
+    "sha256": "36f3ae4dbbaacbdcc0b6f632b3035175d7893ace05c70abd13c0d8d37f1c7653",
+    "bytes": 52638
+  },
+  {
+    "path": "DEMO_PREVIEW.html",
+    "stage": "DELIVERY",
+    "sha256": "1ad9b8cdfa13d082fb093700678333560aff99a31a587498cc319fb55bd97f4a",
+    "bytes": 3096
+  },
+  {
+    "path": "DEMO_PROJECT_SEED.json",
+    "stage": "DELIVERY",
+    "sha256": "482ff204458898622f862e4a922c128692e69d218f9f5b0b8e2886d4a478b9a4",
+    "bytes": 10297
+  },
+  {
+    "path": "EXECUTIVE_XLSX_PREVIEW.png",
+    "stage": "DELIVERY",
+    "sha256": "b3016b6b15bc6e1218cba79f08a3eea710fbf359a9372ff9c163661a46e974cd",
+    "bytes": 104841
+  },
+  {
+    "path": "IMPLEMENTACE_DO_PANELU.md",
+    "stage": "DELIVERY",
+    "sha256": "e8d426e9ebbb485b6cf8ee725d12f44a882af911d044fad4b0df27a21ee617f1",
+    "bytes": 2636
+  },
+  {
+    "path": "OBJECTS_SOCIOMAP_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "6e5f141751ea7b974817f3004bbe91bbfb8d3b4bda78054d85ed974825cb0810",
+    "bytes": 1688
+  },
+  {
+    "path": "PROJECT_HISTORY_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "cbf03c587463eeb2fa80d18a18f0208155d5aa3f8058972d7e6937318cf3ccc8",
+    "bytes": 1068
+  },
+  {
+    "path": "QUESTIONNAIRE_DEMO.json",
+    "stage": "QUESTIONNAIRE",
+    "sha256": "cbca86dd2153174b4231671b4cbb0a867f87a11432573b3c279b97a183923448",
+    "bytes": 1073
+  },
+  {
+    "path": "REPORT_TEXT_DEMO.md",
+    "stage": "DELIVERY",
+    "sha256": "faab6b98815142dfa164796af0fdf0b6608782ac64d0ca6ddc0f02d4532d215a",
+    "bytes": 1055
+  },
+  {
+    "path": "RESEARCH_DESIGN_DEMO.json",
+    "stage": "RESEARCH_DESIGN",
+    "sha256": "2395e89ba52e0d6856c6fea223ffc77abc0b672490cd4d2c8714735ae114634d",
+    "bytes": 1546
+  },
+  {
+    "path": "RESPONDENT_DATABASE_DEMO.csv",
+    "stage": "FIELDWORK",
+    "sha256": "2f4b56ae99c1b6b316708f0d438ce96be0ca1bac10923828df1e5a0068565a56",
+    "bytes": 51876
+  },
+  {
+    "path": "RESULTS_TABLES_NEXORA_EMPLOYEE_CLIMATE_DEMO.xlsx",
+    "stage": "DELIVERY",
+    "sha256": "d625e457e88412338be1a39d0648c5d74c287adae476ff0be1a452d8233b612f",
+    "bytes": 54393
+  },
+  {
+    "path": "analysis/ANALYSIS_01_EXECUTIVE.json",
+    "stage": "ANALYSIS",
+    "sha256": "1cbbeaa2bf42a0bb67352bc84056d9e8fea0688a10c3d15f676b3f7f942831af",
+    "bytes": 335
+  },
+  {
+    "path": "analysis/ANALYSIS_02_RESEARCH_QUESTIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "20de7ce8707238f5d677605c3e3a585b50330ef5652d01121ca3c723a59888e8",
+    "bytes": 436
+  },
+  {
+    "path": "analysis/ANALYSIS_03_OBJECTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "a96785c6ea9355a866462780d66a301eda08f8f4a21513ce852a6feea597cc34",
+    "bytes": 122
+  },
+  {
+    "path": "analysis/ANALYSIS_04_AUDIENCE.json",
+    "stage": "ANALYSIS",
+    "sha256": "b7ef294a77d57db4302cc00f88adf0a8658ca98231458c429b5af8ea63d4e575",
+    "bytes": 161
+  },
+  {
+    "path": "analysis/ANALYSIS_05_SEGMENTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "68b7ae153d59b8f8c86aa2fc849c8ec2cc21ad2f106ee2c4032b0d0373b66660",
+    "bytes": 162
+  },
+  {
+    "path": "analysis/ANALYSIS_06_HYPOTHESES.json",
+    "stage": "ANALYSIS",
+    "sha256": "fd66ae160d8e4ba697df7eadb5ec13181256504f1f724f694d56384c540ff2c0",
+    "bytes": 150
+  },
+  {
+    "path": "analysis/ANALYSIS_07_IMPLICATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "a71bb2da37c9ee874a23abbe611a922ffc7e54b7efa88840cdedff26616c3e45",
+    "bytes": 242
+  },
+  {
+    "path": "analysis/ANALYSIS_08_LIMITATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "e7845278a41c4737d84962613e4326f4e8289be73bb9e7bd2007c73dbfd224ba",
+    "bytes": 312
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.png",
+    "stage": "ANALYSIS",
+    "sha256": "9f20a0d26bd4b8fd298e2123b482d5f66c2a2d9e67154b2b5c44e7ab2385de6a",
+    "bytes": 14109
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.svg",
+    "stage": "ANALYSIS",
+    "sha256": "c8ac0a45ddb1ab7a5b2c35a8c3ad4b6da72b887ce0e808902f917feb1a582232",
+    "bytes": 2380
+  },
+  {
+    "path": "demo_project_loader.py",
+    "stage": "DELIVERY",
+    "sha256": "6a3ac6514f951f1b57672040013cb1fefbb7c009b34e9c433a867291b9f04096",
+    "bytes": 1044
+  },
+  {
+    "path": "worlds/WORLD_1_BASE_ORG.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "01d73d7d306803651ff0c2f3c0599e49632d4fc3c96aadc7ccfbc063d0ff3be0",
+    "bytes": 143
+  },
+  {
+    "path": "worlds/WORLD_2_GROWTH_PRESSURE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "0e9be36258121424644d0321f2486bc354779f62c637f482a4841df787bb5706",
+    "bytes": 151
+  },
+  {
+    "path": "worlds/WORLD_3_LEADERSHIP_CLARITY.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "f494510a50f9fd14f7047d084821ea7696f5db0dff5a17f2a0075f5f548ce5f7",
+    "bytes": 160
+  },
+  {
+    "path": "worlds/WORLD_4_REMOTE_HEAVY.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "5125ae87b33f66eb38d2f2269fd3b0b495c228b23b3c011bba53ca49ee7e8f20",
+    "bytes": 149
+  },
+  {
+    "path": "worlds/WORLD_5_OFFICE_RHYTHM.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "fdb5c2791fe0f3345b97e68e629d6a638535685d7338203ce4da17f5adcaba3c",
+    "bytes": 158
+  },
+  {
+    "path": "worlds/WORLD_6_SALES_PRESSURE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "615726e2233f7721b55b50bd11f08089089d9ecde657b9190ccc4e19cd3ddcb5",
+    "bytes": 148
+  },
+  {
+    "path": "worlds/WORLD_7_OPS_INTEGRATION.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "c92859a82a798dd8c60781fc1bb001c5546205a8ed611f0ef403f25418f5affc",
+    "bytes": 158
+  },
+  {
+    "path": "worlds/WORLD_8_PSYCH_SAFETY_UP.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "0e5fe2babef8697b56e7a67cabd1db319ebb3e7ed7d8a4583eee6fdf868f39a0",
+    "bytes": 163
+  }
+]

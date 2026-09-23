@@ -1,0 +1,376 @@
+{
+  "version": "17.1.2",
+  "weight": "vaha_strukturalni_2025",
+  "subpanels": [
+    {
+      "key": "young_18_29",
+      "name": "Mladí 18–29",
+      "description": "Vestavěný pohled na kanonický panel: Mladí 18–29.",
+      "filter": {
+        "vek": [
+          18,
+          29
+        ]
+      },
+      "focus_domains": [
+        "media",
+        "socialni_site",
+        "nakup",
+        "hodnoty"
+      ],
+      "status": "ready",
+      "support_tier": "ROBUST",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 2785,
+      "weighted_population": 1340427.0,
+      "unique_core_donors": 983,
+      "effective_core_donors": 687.4,
+      "max_core_reuse": 12
+    },
+    {
+      "key": "students",
+      "name": "Studenti",
+      "description": "Vestavěný pohled na kanonický panel: Studenti.",
+      "filter": {
+        "is_student": 1
+      },
+      "focus_domains": [
+        "vzdelani",
+        "media",
+        "finance"
+      ],
+      "status": "ready",
+      "support_tier": "ROBUST",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 869,
+      "weighted_population": 403371.2,
+      "unique_core_donors": 334,
+      "effective_core_donors": 240.1,
+      "max_core_reuse": 10
+    },
+    {
+      "key": "working_students",
+      "name": "Pracující studenti",
+      "description": "Vestavěný pohled na kanonický panel: Pracující studenti.",
+      "filter": {
+        "is_working_student": 1
+      },
+      "focus_domains": [
+        "prace",
+        "vzdelani",
+        "finance"
+      ],
+      "status": "ready",
+      "support_tier": "MODERATE",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 238,
+      "weighted_population": 119586.1,
+      "unique_core_donors": 115,
+      "effective_core_donors": 83.3,
+      "max_core_reuse": 7
+    },
+    {
+      "key": "young_students",
+      "name": "Mladí studenti",
+      "description": "Vestavěný pohled na kanonický panel: Mladí studenti.",
+      "filter": {
+        "is_young_student": 1
+      },
+      "focus_domains": [
+        "vzdelani",
+        "media"
+      ],
+      "status": "ready",
+      "support_tier": "ROBUST",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 866,
+      "weighted_population": 402355.9,
+      "unique_core_donors": 332,
+      "effective_core_donors": 238.8,
+      "max_core_reuse": 10
+    },
+    {
+      "key": "young_workers",
+      "name": "Mladí pracující",
+      "description": "Vestavěný pohled na kanonický panel: Mladí pracující.",
+      "filter": {
+        "is_young_worker": 1
+      },
+      "focus_domains": [
+        "prace",
+        "media",
+        "finance"
+      ],
+      "status": "ready",
+      "support_tier": "ROBUST",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 1795,
+      "weighted_population": 890035.6,
+      "unique_core_donors": 635,
+      "effective_core_donors": 432.1,
+      "max_core_reuse": 12
+    },
+    {
+      "key": "seniors_66_79",
+      "name": "Senioři 66–79",
+      "description": "Vestavěný pohled na kanonický panel: Senioři 66–79.",
+      "filter": {
+        "is_senior_66_79": 1
+      },
+      "focus_domains": [
+        "zdravi",
+        "media",
+        "finance"
+      ],
+      "status": "ready",
+      "support_tier": "GOOD",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 3422,
+      "weighted_population": 1689334.3,
+      "unique_core_donors": 292,
+      "effective_core_donors": 193.0,
+      "max_core_reuse": 51
+    },
+    {
+      "key": "seniors_80_plus",
+      "name": "Senioři 80+",
+      "description": "Vestavěný pohled na kanonický panel: Senioři 80+.",
+      "filter": {
+        "is_senior_80_plus": 1
+      },
+      "focus_domains": [
+        "zdravi",
+        "media"
+      ],
+      "status": "proxy",
+      "support_tier": "LIMITED",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 1422,
+      "weighted_population": 436061.4,
+      "unique_core_donors": 48,
+      "effective_core_donors": 20.7,
+      "max_core_reuse": 142
+    },
+    {
+      "key": "parents",
+      "name": "Rodiče",
+      "description": "Vestavěný pohled na kanonický panel: Rodiče.",
+      "filter": {
+        "is_parent": 1
+      },
+      "focus_domains": [
+        "rodina",
+        "nakup",
+        "finance"
+      ],
+      "status": "proxy",
+      "support_tier": "LIMITED",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 14083,
+      "weighted_population": 6675995.3,
+      "unique_core_donors": 3177,
+      "effective_core_donors": 955.0,
+      "max_core_reuse": 142
+    },
+    {
+      "key": "employed",
+      "name": "Pracující",
+      "description": "Vestavěný pohled na kanonický panel: Pracující.",
+      "filter": {
+        "is_employed": 1
+      },
+      "focus_domains": [
+        "prace",
+        "finance"
+      ],
+      "status": "ready",
+      "support_tier": "ROBUST",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 11397,
+      "weighted_population": 5636699.8,
+      "unique_core_donors": 3456,
+      "effective_core_donors": 2154.4,
+      "max_core_reuse": 52
+    },
+    {
+      "key": "unemployed",
+      "name": "Nezaměstnaní",
+      "description": "Vestavěný pohled na kanonický panel: Nezaměstnaní.",
+      "filter": {
+        "is_unemployed": 1
+      },
+      "focus_domains": [
+        "prace",
+        "finance"
+      ],
+      "status": "ready",
+      "support_tier": "GOOD",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 475,
+      "weighted_population": 241084.0,
+      "unique_core_donors": 179,
+      "effective_core_donors": 125.0,
+      "max_core_reuse": 12
+    },
+    {
+      "key": "teachers",
+      "name": "Učitelé",
+      "description": "Vestavěný pohled na kanonický panel: Učitelé.",
+      "filter": {
+        "is_teacher": 1
+      },
+      "focus_domains": [
+        "prace",
+        "vzdelani"
+      ],
+      "status": "ready",
+      "support_tier": "GOOD",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 569,
+      "weighted_population": 400621.4,
+      "unique_core_donors": 207,
+      "effective_core_donors": 141.4,
+      "max_core_reuse": 19
+    },
+    {
+      "key": "ict_specialists",
+      "name": "ICT specialisté",
+      "description": "Vestavěný pohled na kanonický panel: ICT specialisté.",
+      "filter": {
+        "is_ict_specialist": 1
+      },
+      "focus_domains": [
+        "prace",
+        "technologie"
+      ],
+      "status": "ready",
+      "support_tier": "MODERATE",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 275,
+      "weighted_population": 180479.3,
+      "unique_core_donors": 76,
+      "effective_core_donors": 57.7,
+      "max_core_reuse": 9
+    },
+    {
+      "key": "managers",
+      "name": "Manažeři",
+      "description": "Vestavěný pohled na kanonický panel: Manažeři.",
+      "filter": {
+        "is_manager": 1
+      },
+      "focus_domains": [
+        "prace",
+        "B2B"
+      ],
+      "status": "ready",
+      "support_tier": "GOOD",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 503,
+      "weighted_population": 284670.3,
+      "unique_core_donors": 147,
+      "effective_core_donors": 106.4,
+      "max_core_reuse": 12
+    },
+    {
+      "key": "science_engineering",
+      "name": "Věda a technické specializace",
+      "description": "Vestavěný pohled na kanonický panel: Věda a technické specializace.",
+      "filter": {
+        "is_science_engineering": 1
+      },
+      "focus_domains": [
+        "prace",
+        "technologie"
+      ],
+      "status": "ready",
+      "support_tier": "MODERATE",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 306,
+      "weighted_population": 195730.7,
+      "unique_core_donors": 76,
+      "effective_core_donors": 57.3,
+      "max_core_reuse": 12
+    },
+    {
+      "key": "business_admin_specialists",
+      "name": "Business a administrativní specialisté",
+      "description": "Vestavěný pohled na kanonický panel: Business a administrativní specialisté.",
+      "filter": {
+        "is_business_admin_specialist": 1
+      },
+      "focus_domains": [
+        "prace",
+        "finance"
+      ],
+      "status": "ready",
+      "support_tier": "MODERATE",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 275,
+      "weighted_population": 192894.7,
+      "unique_core_donors": 103,
+      "effective_core_donors": 80.0,
+      "max_core_reuse": 7
+    },
+    {
+      "key": "service_sales",
+      "name": "Služby a prodej",
+      "description": "Vestavěný pohled na kanonický panel: Služby a prodej.",
+      "filter": {
+        "is_service_sales": 1
+      },
+      "focus_domains": [
+        "prace",
+        "retail"
+      ],
+      "status": "ready",
+      "support_tier": "ROBUST",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 2058,
+      "weighted_population": 839625.0,
+      "unique_core_donors": 701,
+      "effective_core_donors": 482.5,
+      "max_core_reuse": 16
+    },
+    {
+      "key": "health_professionals",
+      "name": "Zdravotničtí profesionálové",
+      "description": "Vestavěný pohled na kanonický panel: Zdravotničtí profesionálové.",
+      "filter": {
+        "is_healthcare_profession_current": 1
+      },
+      "focus_domains": [
+        "zdravi",
+        "prace"
+      ],
+      "status": "ready",
+      "support_tier": "MODERATE",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 260,
+      "weighted_population": 143806.8,
+      "unique_core_donors": 104,
+      "effective_core_donors": 69.4,
+      "max_core_reuse": 10
+    },
+    {
+      "key": "medical_doctors",
+      "name": "Lékaři",
+      "description": "Vestavěný pohled na kanonický panel: Lékaři.",
+      "filter": {
+        "is_medical_doctor": 1
+      },
+      "focus_domains": [
+        "zdravi",
+        "prace"
+      ],
+      "status": "proxy",
+      "support_tier": "EXPERIMENTAL_LOW_SUPPORT",
+      "note": "Donor support je autoritativní; počet syntetických řádků není totéž co informační kapacita.",
+      "rows": 29,
+      "weighted_population": 19842.5,
+      "unique_core_donors": 9,
+      "effective_core_donors": 6.3,
+      "max_core_reuse": 7
+    }
+  ]
+}

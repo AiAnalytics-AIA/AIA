@@ -1,0 +1,66 @@
+[
+  {
+    "id": "Q0",
+    "text": "Demografický a profilový blok"
+  },
+  {
+    "id": "QO1",
+    "text": "Jak blízko je vám Instagram? Hodnocení 1–10."
+  },
+  {
+    "id": "QO2",
+    "text": "Jak blízko je vám TikTok? Hodnocení 1–10."
+  },
+  {
+    "id": "QO3",
+    "text": "Jak blízko je vám Facebook? Hodnocení 1–10."
+  },
+  {
+    "id": "QO4",
+    "text": "Jak blízko je vám YouTube? Hodnocení 1–10."
+  },
+  {
+    "id": "QO5",
+    "text": "Jak blízko je vám LinkedIn? Hodnocení 1–10."
+  },
+  {
+    "id": "QO6",
+    "text": "Jak blízko je vám X? Hodnocení 1–10."
+  },
+  {
+    "id": "QO7",
+    "text": "Jak blízko je vám Reddit? Hodnocení 1–10."
+  },
+  {
+    "id": "QO8",
+    "text": "Jak blízko je vám Snapchat? Hodnocení 1–10."
+  },
+  {
+    "id": "QT1",
+    "text": "Video — škála 1–10"
+  },
+  {
+    "id": "QT2",
+    "text": "Professional — škála 1–10"
+  },
+  {
+    "id": "QT3",
+    "text": "Community — škála 1–10"
+  },
+  {
+    "id": "QT4",
+    "text": "News — škála 1–10"
+  },
+  {
+    "id": "QT5",
+    "text": "Privacy — škála 1–10"
+  },
+  {
+    "id": "QT6",
+    "text": "Creator — škála 1–10"
+  },
+  {
+    "id": "QT7",
+    "text": "Youth — škála 1–10"
+  }
+]

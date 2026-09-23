@@ -1,0 +1,13 @@
+{
+  "n_fields": 51,
+  "median_abs_r": 0.12036276476826639,
+  "mean_abs_r": 0.15192461615809932,
+  "share_abs_r_gt_0_2": 0.2203921568627451,
+  "share_abs_r_gt_0_4": 0.06352941176470588,
+  "max_abs_r": 0.7323643095854446,
+  "target_median_abs_r_low": 0.12,
+  "target_median_abs_r_high": 0.25,
+  "anchored_pairs": 12,
+  "anchor_failures": 0,
+  "anchor_frobenius_norm": 0.2919839700850409
+}

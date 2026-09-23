@@ -1,0 +1,44 @@
+[
+  {
+    "id": "Q1",
+    "section": "Context",
+    "text": "Jak dnes studujete mimo školu / kurz?",
+    "type": "frequency",
+    "purpose": "context"
+  },
+  {
+    "id": "Q2",
+    "section": "Needs",
+    "text": "Kde nejčastěji ztrácíte motivaci?",
+    "type": "battery",
+    "purpose": "drivers"
+  },
+  {
+    "id": "Q3",
+    "section": "Objects",
+    "text": "Jak hodnotíte čtyři možné produktové koncepty?",
+    "type": "object_battery",
+    "purpose": "comparison + sociomap"
+  },
+  {
+    "id": "Q4",
+    "section": "Emotions",
+    "text": "Jak důvěryhodné je AI vysvětlení bez lidského kurátora?",
+    "type": "emotion_battery",
+    "purpose": "emotional map"
+  },
+  {
+    "id": "Q5",
+    "section": "Decision",
+    "text": "Které funkce byste používali každý týden?",
+    "type": "choice",
+    "purpose": "decision KPI"
+  },
+  {
+    "id": "Q6",
+    "section": "Validation",
+    "text": "Který koncept by vám nejvíce pomohl dokončit studijní cíl?",
+    "type": "certainty",
+    "purpose": "robustness"
+  }
+]

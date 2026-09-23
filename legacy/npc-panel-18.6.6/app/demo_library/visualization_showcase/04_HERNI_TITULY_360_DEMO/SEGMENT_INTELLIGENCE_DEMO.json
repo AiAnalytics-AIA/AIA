@@ -1,0 +1,62 @@
+{
+  "status": "AI_READY",
+  "provider": "build_time_ai",
+  "model": "GPT-5.6 Sol",
+  "fallback_used": false,
+  "summary": "Hráčská mapa rozděluje publikum podle motivace ke hře: soutěž, kreativita, příběh, sportovní mainstream a casual/social režim. To je pro výběr titulu i komunikaci podstatnější než samotný věk.",
+  "insights": [
+    {
+      "candidate_id": "SG-F6A8123C4A",
+      "title": "Kompetitivní online",
+      "why_interesting": "Silný soutěžní shluk s jasnou herní gravitací.",
+      "characterization": "Vyšší kompetitivnost a challenge se pojí s League of Legends, Call of Duty a Fortnite.",
+      "business_meaning": "Je vhodný pro ranked, výkon, mastery a komunitní soutěž.",
+      "map_cta": "Zobrazit skupinu A na mapě",
+      "confidence_note": "Skupina má 139 respondentů (23.2 %) a datové skóre odlišnosti 97.1/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-91349DBC04",
+      "title": "Kreativní stavitelé",
+      "why_interesting": "Odlišný kreativní segment s nižší potřebou soutěže.",
+      "characterization": "Kreativita se pojí především s Minecraftem a The Sims, zatímco kompetitivní tituly jsou relativně slabší.",
+      "business_meaning": "Je relevantní pro tvorbu, sandbox mechaniky a dlouhodobé sebevyjádření.",
+      "map_cta": "Zobrazit skupinu B na mapě",
+      "confidence_note": "Skupina má 104 respondentů (17.3 %) a datové skóre odlišnosti 85.4/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-895C178943",
+      "title": "Příběhoví hráči",
+      "why_interesting": "Jasný segment pro hlubší narativní zkušenost.",
+      "characterization": "Silnější příběhová orientace se pojí s Baldur’s Gate 3 a slabší potřebou sportovní nebo kompetitivní hry.",
+      "business_meaning": "Je vhodný pro komunikaci světa, postav a rozhodnutí hráče.",
+      "map_cta": "Zobrazit skupinu C na mapě",
+      "confidence_note": "Skupina má 113 respondentů (18.8 %) a datové skóre odlišnosti 83.3/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-E4510A72CA",
+      "title": "Sportovní mainstream",
+      "why_interesting": "Široce srozumitelný sportovní shluk.",
+      "characterization": "Sportovní motivace se výrazně pojí s EA Sports FC a méně s kreativními nebo narativními motivy.",
+      "business_meaning": "Je vhodný pro mainstreamovou sportovní komunikaci a známé soutěžní značky.",
+      "map_cta": "Zobrazit skupinu D na mapě",
+      "confidence_note": "Skupina má 125 respondentů (20.8 %) a datové skóre odlišnosti 84.8/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-0C72FC92EA",
+      "title": "Casual a social",
+      "why_interesting": "Sociálnější a méně výkonnostní způsob hraní.",
+      "characterization": "Skupina kombinuje lehčí zapojení, social motivaci a tituly použitelné pro společnou nebo nenáročnou hru.",
+      "business_meaning": "Je důležitá pro onboarding, dostupnost a společenské hraní.",
+      "map_cta": "Zobrazit skupinu E na mapě",
+      "confidence_note": "Skupina má 119 respondentů (19.8 %) a datové skóre odlišnosti 80.4/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    }
+  ],
+  "privacy_contract": "Interpretace vznikla nad agregovanými profily DEMO skupin; individuální respondentní řádky nebyly součástí interpretačního promptu.",
+  "provenance": "BUILD_TIME_AI_DEMO",
+  "demo_truth": "ILUSTRAČNÍ DEMO — syntetický dataset, nikoli reálný průzkum."
+}

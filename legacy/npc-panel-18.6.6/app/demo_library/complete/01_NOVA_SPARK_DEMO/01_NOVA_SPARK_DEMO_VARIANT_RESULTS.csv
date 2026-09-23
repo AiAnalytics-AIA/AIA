@@ -1,0 +1,5 @@
+﻿variant_id,variant_name,price_or_fee,decision_score_0_100,trial_intent_pct,purchase_intent_pct,appeal,uniqueness,price_acceptance_pct,credibility,respondent_composite_avg
+A,Baseline,49,61,47.7,32.2,5.8,5.29,46.0,6.13,49.7
+B,Value,39,70,57.7,46.8,5.58,4.15,67.9,5.88,54.7
+C,Premium,59,67,51.3,36.9,6.4,5.99,30.0,6.13,50.6
+D,Familiar,49,72,61.8,46.2,6.17,4.9,50.7,6.83,56.3

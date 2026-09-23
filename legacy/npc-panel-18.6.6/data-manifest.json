@@ -1,0 +1,1974 @@
+{
+  "description": "Runtime files deliberately kept out of app/ and out of Git. Hydrated into the working tree at container start by runtime/hydrate_data.py from NPC_DATA_SOURCE, hash-verified.",
+  "source_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+  "count": 245,
+  "bytes": 54536858,
+  "by_class": {
+    "data_asset": 83,
+    "population": 33,
+    "state_seed": 3,
+    "demo_payload": 126
+  },
+  "files": [
+    {
+      "path": "AI_PANEL_CALIBRATION_TEMPLATE.csv",
+      "sha256": "9c3ad26ce9e53a06390f2b365e432813d85fb2cf7f7621a7f747b38d3558813c",
+      "bytes": 356,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "BACKBONE_CENSUS_2021_TARGETS.csv",
+      "sha256": "c24faf7a94b6d95482b9a21ebbb9c81cd6b46f5670fb6e2fe7ff56adddab779a",
+      "bytes": 6933,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "BATCH_1_MANIFEST.csv",
+      "sha256": "3a5242fb8d059a17d80e2bb334aba7bc07db93b50d826b974e39de05290dd75c",
+      "bytes": 5019,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "BENCHMARKS_FINANCE_SPECIAL_v17.csv",
+      "sha256": "6f83a5401ffd8c5be3328bcd863b31696a35cc08fd684c71f0c4eff3046f706d",
+      "bytes": 2128,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "CALIBRATION_REGISTRY.csv",
+      "sha256": "1b0d9cea2f7a0962fad7d2f1ffe8de67f0a5cce58eace746c7faf20a30d4a7a9",
+      "bytes": 19832,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "CALIBRATION_REPRODUCTION_CHECK_v17_1.csv",
+      "sha256": "d06d62988812dad8e11d4a29fb923f3ed02fcb54bbec6686aeedc3274eb7a10e",
+      "bytes": 15411,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "CENSUS_LABOUR_FORCE_TARGETS_v17.csv",
+      "sha256": "748c6a0ec6a4e74242fd5bd168e815e77332f54f152e37952a5520e772ad92d5",
+      "bytes": 934,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "COHERENCE_AUDIT_v17.csv",
+      "sha256": "cb7f432407a972304f73ad8287b1c3aa9d4bf769d7c619d330d514221b5e4125",
+      "bytes": 1707,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "COHERENCE_AUDIT_v17_1.csv",
+      "sha256": "cb7f432407a972304f73ad8287b1c3aa9d4bf769d7c619d330d514221b5e4125",
+      "bytes": 1707,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "CONDITIONAL_AXIS_HOLDOUT.csv",
+      "sha256": "96a8cd8da944b3711aea0b342b194a22c4590e1c9bea7363ca8acbb9b59aa737",
+      "bytes": 6993,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "CONDITIONAL_FITTED_TARGETS.csv",
+      "sha256": "7eb32ec725b531f68724bffaca1fded09e163442fc009f81984eccd5b3d41d60",
+      "bytes": 7520,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "CONDITIONAL_LOO_30.csv",
+      "sha256": "120067bb496f42a21bfb207cebbaaaa0bf31740da89361b07614d2c6eaee1c47",
+      "bytes": 1458,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "CORRELATION_MATRIX_QC_v17_1.csv",
+      "sha256": "3daa69ff1f22bc01ddf8c8c98e621d4800def9d7c848a1952d9a04f9bd20c35f",
+      "bytes": 165453,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "CUMULATIVE_FIX_MANIFEST.csv",
+      "sha256": "f280e4acec182df7dfe0e353fd209059abde9d2aaf53a6a70520293b92528aab",
+      "bytes": 8793,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "DATA_LICENSE_REGISTER.csv",
+      "sha256": "837a698e16de06458126c69abce8242cde20bb9f1d27c469fd2a64068f024fbc",
+      "bytes": 3030,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "DATA_PROVENANCE_REGISTRY_v17.csv",
+      "sha256": "3208a2459133005cb48bcbd14a49cb612326415628eecbf4d9ed3c88b6228ed8",
+      "bytes": 79472,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "DIMENSION_DATA_DICTIONARY_v2.csv",
+      "sha256": "0766dbc881626165eaf6b406c2404a7d05ab8dd66aba3f570b7c933b4221fc7e",
+      "bytes": 16333,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "DIMENSION_EVIDENCE_REGISTRY_v3.csv",
+      "sha256": "4e977fe1503bdfb7cdeebf9fe14c05fcd9e228f7cef662c2900358e0087afcbd",
+      "bytes": 22774,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "DIMENSION_SCORECARD_v17.csv",
+      "sha256": "5ce05efad1f026146066f2943ff3afd2a80cb6ab712e9d88ffbf009272749fe3",
+      "bytes": 103884,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "DIMENSION_SCORECARD_v17_1.csv",
+      "sha256": "687d52da3a9ad447a67cec53bfa1a55e3cb04e6cc7eb6aa1e31d11de03c9d862",
+      "bytes": 123496,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": true
+    },
+    {
+      "path": "DOMAIN_EVIDENCE_COVERAGE.csv",
+      "sha256": "de5c2ec6c5020fd9fa1fd1c4da00d24d365a9bc44d973f81ca53d6562c9e370e",
+      "bytes": 3101,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "DONOR_COVERAGE_MATRIX_v17_1.csv",
+      "sha256": "11fdfce2c003feb980924824b260118c70b1d854b956e971a40cec39f44090e7",
+      "bytes": 92534,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "DONOR_SUPPORT_SUMMARY_v17_1.csv",
+      "sha256": "95cf7ef3ef0837cf792ff0e4435421a1bf8346f00a0173077b794d0fbfe34429",
+      "bytes": 379,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "EMPLOYMENT_BRIDGE_PIAAC2023.csv",
+      "sha256": "f7920aced8977b2f378eee739b71ff01be6665dcdcb6ebe68559d6b4c821d287",
+      "bytes": 4361,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FIELD_DICTIONARY_v17.csv",
+      "sha256": "4f2defebc79a4bbf3caab8affa9e76ea1eae087a806c2d6252c2e79a3b58273c",
+      "bytes": 83829,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FIELD_DICTIONARY_v17_1.csv",
+      "sha256": "4f2defebc79a4bbf3caab8affa9e76ea1eae087a806c2d6252c2e79a3b58273c",
+      "bytes": 83829,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": true
+    },
+    {
+      "path": "FINALNI_KOMPLETNI_PANEL_v17_1_2.csv.gz",
+      "sha256": "d6a9ef120b81982e195b360fbdb9539fd70b7845a296918a12622502f2400387",
+      "bytes": 7324528,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+      "sha256": "864f8dbcd101e4be1b2a006ccebe4196a85f9bfcbf1a474af762b8135cc779ce",
+      "bytes": 7324827,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "FINAL_ANALYTICS_WORKSPACE_MANIFEST.csv",
+      "sha256": "8152da5d98c538c14312623e2b24bb1a12107899dc986670021b5b51fb2e5a8a",
+      "bytes": 192436,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_FILE_MANIFEST_18_6_2.csv",
+      "sha256": "771382d04283ac296c63e7dadf14729d24cf5c91ec473410faf68e7a8d9e0921",
+      "bytes": 229818,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_FILE_MANIFEST_18_6_3.csv",
+      "sha256": "f0f1fcfc102abf09de245a1f07ab546f1f7c0627c79a2a60ff85952286d9a7bb",
+      "bytes": 181796,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_FILE_MANIFEST_18_6_4.csv",
+      "sha256": "71c59d674ac99cd6fa531f1a22af029b61bb3d371ecf02518df612fba1f7910c",
+      "bytes": 181900,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_FILE_MANIFEST_18_6_5.csv",
+      "sha256": "a12d1df3faf22d258f92afdeb45539fd60a8017f11e22b5bffcf0803c8dcffc1",
+      "bytes": 182303,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_FILE_MANIFEST_18_6_6.csv",
+      "sha256": "fd70ddd98129119f1cc37d5a28e08d350c2d2ec4525da486288a60ad96b22935",
+      "bytes": 182706,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_INTERACTIVE_SOCIO_MANIFEST.csv",
+      "sha256": "daaebf7d575c19f5173917c5acd080c1c94b6383a1fea687a026e5fda9a7f5bf",
+      "bytes": 192915,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_INTERACTIVE_SOCIO_V3_MANIFEST.csv",
+      "sha256": "7e12b4f13057a94e7ff51ea8258bc700c7bd48fc12c3536f61d5ca7458ceb134",
+      "bytes": 193252,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_INTERACTIVE_SOCIO_V4_MANIFEST.csv",
+      "sha256": "51c4832c1d8ddc094e485d03978d3056b92ad6cd7133112cb24005bb0f2b16d2",
+      "bytes": 193504,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_INTERACTIVE_SOCIO_V5_MANIFEST.csv",
+      "sha256": "a70414b6618d239988d81a1c037d5ae4b586455c3e5bd3ad686dd822d8306550",
+      "bytes": 194083,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "FINAL_SOURCE_CATALOG_v17.csv",
+      "sha256": "62e959077ba77683da7161fac0f8de856fc9934400df03fe0f79f992da5187ec",
+      "bytes": 338455,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "INTEGRATION_QC_SOURCE_v17.csv",
+      "sha256": "1f23c516bcd87a09e42802213cd658d875a82b69255141859dedf92215c935fc",
+      "bytes": 470,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "JOINT_TAIL_QC_v17_1.csv",
+      "sha256": "3ade2f0eddf76d8b8fe6e6ab56c1725c0ea9f5a1bbdad86e367c6bdd48607814",
+      "bytes": 533,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "LATENT_FACTOR_AUDIT_v17_1.csv.gz",
+      "sha256": "7473e4e57ff7823332d2c6fc8dcf51718fe200aa46a8cf498a0429cbedf22798",
+      "bytes": 1256871,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "LEGAL_APPROVALS.csv",
+      "sha256": "8f39e01cc5b77296c1e495492eeb746daca480730923f162957094bdf2d809d7",
+      "bytes": 8854,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "LIVE_POPULATION_TARGETS_18_5.csv",
+      "sha256": "b8adb939975d661501c85fb14f765a49d98579d35ecb082d61b7b31dca14bdf0",
+      "bytes": 2184,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "LLM_ABLATION_RESULTS_v17_1.csv",
+      "sha256": "85b2e69024a3f03c851f8ab0f61bf7642acbba5b4c3fa324a032af0699f715ad",
+      "bytes": 69,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "MARGINAL_PRESERVATION_QC_v17_1.csv",
+      "sha256": "c652ec34831753f70ffdcd6532e28bb21eb89fb67d2349cc2eb36f7002164327",
+      "bytes": 5062,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "MICRODATA_SOURCE_INVENTORY.csv",
+      "sha256": "4149e1dd034a18cce8e577602eb06e574c406369e0d3799b533e3b8b76c3373d",
+      "bytes": 91345,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "MISSING_PAYLOADS_18_5.csv",
+      "sha256": "23789cbc5b469d00f2fb1e495e203bfd66b45c1022dfca6f071035df4e8db1ee",
+      "bytes": 108556,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "OUT_OF_SAMPLE_VALIDATION_v17_1.csv",
+      "sha256": "c3e58952f8be4b0bb81525b40bd61d585201d9f6a294b7ed6f6e853e8a9fd041",
+      "bytes": 3684,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "PERSONA_PROFILE_DICTIONARY_v1.csv",
+      "sha256": "bf3deafcb7096906f8b1ee443bf8d31346a032741e43340b928d2b1c137b8d36",
+      "bytes": 10307,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "PERSONA_SIGNAL_CATALOG_v17.csv",
+      "sha256": "75e0acf7cabae4d13dbc9177d9546ca6b0eecb4a9e6a5ac2780ba19970a590d8",
+      "bytes": 20237,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": true
+    },
+    {
+      "path": "PSYCH_BEHAVIOR_RULES_v17.csv",
+      "sha256": "7f7931d4771607d3737fdb7c51aa6f27920e8bc71e0956b23bc62e44eff3e7cd",
+      "bytes": 1164,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "PSYCH_BEHAVIOR_RULES_v17_1.csv",
+      "sha256": "d817383603f2a78ff302efd81760a62b4fb79f491defad717e55c5731d8f3b3a",
+      "bytes": 3316,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "RELEASE_GATE_v17.csv",
+      "sha256": "219e7a2a43eea467a5d2815d27446e64e6193d4bc8e33fb56041b88a15773a61",
+      "bytes": 9213,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "RESPONDENT_AUDIT_v17.csv",
+      "sha256": "f544f1c6d0c18216597cb0e46c4ca4fc3ed15e908aaa48f6a95b13fb82c790b4",
+      "bytes": 677212,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "RESPONDENT_AUDIT_v17_1.csv",
+      "sha256": "42ce6b3d73425e23c292281c436f4255a80299097fc1fc7d2a19773b05e11aed",
+      "bytes": 958710,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "SOURCE_AVAILABILITY_18_5.csv",
+      "sha256": "46cbb49e57c0471552c6fb293e8de9c284c0f7b1b1d4787fa3498305b816b0fb",
+      "bytes": 36556,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/foreigners/foreign_russian.csv.gz",
+      "sha256": "2b4ee69ce631f2d218aa6524012b9446bf8bda5dd048ca028917f0d2f5004997",
+      "bytes": 87337,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/foreigners/foreign_slovak.csv.gz",
+      "sha256": "419fb54bd68749af9222350e7b3d72c490f822ac2199b17df0a9b06275e1b272",
+      "bytes": 117474,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/foreigners/foreign_ukrainian.csv.gz",
+      "sha256": "13d9acc0a92387f3520c2c9ed6033aceec09bdaa3035fd4629a968a1470c4733",
+      "bytes": 188784,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/foreigners/foreign_vietnamese.csv.gz",
+      "sha256": "b27730f690505e7cc6d70993470f23dfe8d033032aa06984ce2261ea7ec2b460",
+      "bytes": 106426,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/foreigners/foreigners_overall_top4_proxy.csv.gz",
+      "sha256": "d3e91c9e2e001d36c73808a98a381e92521a7d410f9fe4e246d1388e36741f23",
+      "bytes": 210514,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/industry/construction_ecosystem.csv.gz",
+      "sha256": "dc56f79205477033dfb56f69f22ebcf5be61ebbbcdcb7b70c1659392702745af",
+      "bytes": 259422,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/industry/healthcare_clinical_professionals.csv.gz",
+      "sha256": "72b5380cc85806166663e2ca8afd2af71630371f3109eda65f6113930e60dcd2",
+      "bytes": 130095,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/industry/healthcare_material_ecosystem.csv.gz",
+      "sha256": "c5010a7ff40257199b156625a9b224b96dfd2c8260084386796e012e6c2f6c88",
+      "bytes": 155714,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/industry/procurement_buyers.csv.gz",
+      "sha256": "20a579666a13e9e340ba070ed158a71caef910a3aec2c2f94d0462d056b12837",
+      "bytes": 29867,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/industry/real_estate_professionals.csv.gz",
+      "sha256": "2b218e56ebc39896f9087b8f41e0412559b8dfe8616a32188eb04d5b96ef90f9",
+      "bytes": 12875,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/minorities/minority_german.csv.gz",
+      "sha256": "29a2e386632d5676ddc28dcfedc3299916c4b25290b97de4c250a44254f849b8",
+      "bytes": 74405,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/minorities/minority_moravian.csv.gz",
+      "sha256": "1dde4b9045ccebe4fac216333c602541398b8e8b3c9927c2e9a67b2cebd852d4",
+      "bytes": 129263,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/minorities/minority_polish.csv.gz",
+      "sha256": "dc2e6ab83147d5342f5ea27db25f6706194816a15096c1b9aa6bd97f5a57f9cd",
+      "bytes": 85413,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/minorities/minority_roma_selfdeclared.csv.gz",
+      "sha256": "c1c2306f75cb14ef68f100dd0a6502e96d4e8d24cce077ea6f5ef9a78aa9f6cf",
+      "bytes": 88519,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/minorities/minority_silesian.csv.gz",
+      "sha256": "353000f86b6ec5cad7655902b5734b5240367b6f6f003603ab83967f19a51ca2",
+      "bytes": 60257,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/minorities/minority_slovak_declared.csv.gz",
+      "sha256": "eb2ab15e082b246158258aa5c9d52a4c17497772d3dfb9832e9607a9c2532b4c",
+      "bytes": 104826,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/minorities/minority_ukrainian_declared.csv.gz",
+      "sha256": "032fa6ea8fc4063f6622e49f5865f6d017a1c94c360071204d42bdd2efa6e889",
+      "bytes": 107075,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANELS/minorities/minority_vietnamese_declared.csv.gz",
+      "sha256": "32f7bfce96f87c892d4a2abdf8153a08191f06c9e6bf46c8334e321e60d1ad17",
+      "bytes": 88441,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANEL_QC_SOURCE_v17.csv",
+      "sha256": "07f9540e1c5a1f149dc79aa27d282b3ece978c4a825b002e2aad8446c0db345a",
+      "bytes": 1135,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "SPECIAL_PANEL_REGISTRY_v17.csv",
+      "sha256": "a398cf4ce4d834781eda259d3d19b3f7e466e29f7640677b6bdb5c24eab44958",
+      "bytes": 4422,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "SUBPANEL_SUPPORT_v17.csv",
+      "sha256": "74550307946d13ba20354d46e968725119a593a2e9896d6dee86563e48e371c9",
+      "bytes": 4330,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "V17_TARGETED_TESTS.csv",
+      "sha256": "097ead40a87d20cd683a2a112e2f88c319753d753cd396a3d74c178beeea05e2",
+      "bytes": 4734,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/FINALNI_KOMPLETNI_PANEL_v17_0_BASE.csv.gz",
+      "sha256": "5300c1aeeef4ead1deb07f183d87040e6031ab1273e816dd057ad3ddd6464105",
+      "bytes": 7318890,
+      "class": "population",
+      "category": "population_data",
+      "ledgered": true
+    },
+    {
+      "path": "audit_reference/base_17_1_2/PACKAGE_MANIFEST_v17_1_2.csv",
+      "sha256": "b43e95bb8373b6cbba292a4061a204688b371ec8318812ad86706626dc3ff15e",
+      "bytes": 34152,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/base_17_1_2/SHA256SUMS_v17_1_2.txt",
+      "sha256": "60d2d143fba8a4ef400438ff59fe0b72e0c990fb02eb00c67ad35d1e3bcbd472",
+      "bytes": 34540,
+      "class": "data_asset",
+      "category": "config",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/DOC_STATUS.md",
+      "sha256": "49b6ea2517b74963357bec23053716b9e11ea22c0c0ca42054ced79ac8dd1cc5",
+      "bytes": 249,
+      "class": "data_asset",
+      "category": "documentation",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/FINAL_INTEGRATION_REPORT_v17.md",
+      "sha256": "19704e3baf1c01de060c80d023507dd59e11ffd5883a865a9f582e45a2539c16",
+      "bytes": 798,
+      "class": "data_asset",
+      "category": "documentation",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/FINAL_METHOD_CONTRACT_v17.md",
+      "sha256": "a2d6f994be0ba813c439cbbb6c7408eb64f8e174509cfadac9660deb0e6ae3b8",
+      "bytes": 1262,
+      "class": "data_asset",
+      "category": "documentation",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/HOTFIX_17_0_1.md",
+      "sha256": "97e5af83a464c29fe74f44203b8c529a0afd29c7a96386373e652219c6dae23f",
+      "bytes": 1267,
+      "class": "data_asset",
+      "category": "documentation",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/MARKETING_BENCHMARK_VALIDATION_v17.csv",
+      "sha256": "7ca3d0b364b9e141f2ee6ba5d29978ba05bc2a8054eebde2fda25aacee5c6008",
+      "bytes": 7269,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/MARKETING_DEEP_QC_v17.csv",
+      "sha256": "c1b47aa71084899ce22c17d018176eb96cd4f81294fd2a3b6e45ef3b22dc9308",
+      "bytes": 1427,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/MARKETING_VALIDATION_v17.csv",
+      "sha256": "cebf9fbe6b642ad6aef8137a08da99a405f196aeb93951cd833e7a822d09d387",
+      "bytes": 964,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/PACKAGE_MANIFEST_V17_0_1.csv",
+      "sha256": "df5984f196c5f4cce092987ec0d9efea3421d39a2447342712c5cdea424d8c9e",
+      "bytes": 28223,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/README_FINAL_17.md",
+      "sha256": "8954b7bdfe9f4cb671c56cc371ea2a8c02442c3572854f6e5832229cd991dcbe",
+      "bytes": 948,
+      "class": "data_asset",
+      "category": "documentation",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/START_HERE_17_0_1.md",
+      "sha256": "11ffb9a7346744f918376e6ca8a43106a9e2c11933cf19507e69e181e91f6381",
+      "bytes": 396,
+      "class": "data_asset",
+      "category": "documentation",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/V17_0_1_HOTFIX_TESTS.csv",
+      "sha256": "1b1a78373116ed3e66088c0db3e431dd7571d9e69483f35f4b02ac29819132eb",
+      "bytes": 676,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_0_1/V17_0_1_HOTFIX_TESTS.json",
+      "sha256": "c4a598b70d7c151968059b9fc34ef7211a9ce3df1bd4d0ee72ca00ef34a75419",
+      "bytes": 72,
+      "class": "data_asset",
+      "category": "config",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_17_1_1/ZMENY_17_1_1.md",
+      "sha256": "da009029a9af94b69c29f3c699123443318dac10eb3e83308fa29a3199c5c9de",
+      "bytes": 3473,
+      "class": "data_asset",
+      "category": "documentation",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/legacy_build_scripts/patch_version_v17_1.py",
+      "sha256": "a9fb0c5567e31c9c43c8dfbe98f4bd8b3fb45c6b0bd325692846517597117b7f",
+      "bytes": 3963,
+      "class": "data_asset",
+      "category": "python_source",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/FINAL_RELEASE_VALIDATION_v17_1_2.csv",
+      "sha256": "b64b094b9070b64ffa13a769d9787234e0db631f4b920f1053d33ac15448e186",
+      "bytes": 1412,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/FINAL_RELEASE_VALIDATION_v17_2_1.csv",
+      "sha256": "2c50257718c92ffe2d6c6d7f7673da3d6b24a35e8487c9798eb6218c366bccca",
+      "bytes": 653,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/MANIFEST_v17_1_2.json",
+      "sha256": "2911ed59a72a85519bf7c00bb647cdcd63885c92f4ed5fdf0b735a01c0569424",
+      "bytes": 2559,
+      "class": "data_asset",
+      "category": "build_release",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/MANIFEST_v17_2_0.json",
+      "sha256": "36eedb879894535cdcaf3cad7ae4101518c2d8fdb47a1306b72fd2d3ae10d800",
+      "bytes": 1333,
+      "class": "data_asset",
+      "category": "build_release",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/PACKAGE_MANIFEST_v17_2_1.csv",
+      "sha256": "75069c078bea00985a9b158c94e1945c20ea43910b1ea542e04e7ac4038e7ac8",
+      "bytes": 44419,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/PACKAGE_MANIFEST_v17_3_0.csv",
+      "sha256": "57a67d32ad32796787b8c1148250708493cfccf8f5e1ef366cbad21d7607269f",
+      "bytes": 51308,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/PACKAGE_MANIFEST_v17_3_1.csv",
+      "sha256": "772d8ee9347c12fd7fcf1f2851d1b39678e2e203e3a1ba1b240c5890ec124a45",
+      "bytes": 52111,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/RESEARCH_OS_ACCEPTANCE_17_2.json",
+      "sha256": "a33af117eba7441b682402c58d2ebdfe530094b54448bbfaf200357b2eb895ce",
+      "bytes": 2445,
+      "class": "data_asset",
+      "category": "config",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/release_history/UX_ACCEPTANCE_17_2_1.json",
+      "sha256": "2561a4689898e3dfb6c421dc8f177419ede01bb523d7fee23fe2cba41f06bf50",
+      "bytes": 3588,
+      "class": "data_asset",
+      "category": "config",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/runtime_17_2_0/FINAL_RELEASE_17_2_0.md",
+      "sha256": "b2baf06460e4c6a5f636599d6a757f43066a1293072d3dcb0641f83fb7c26728",
+      "bytes": 4540,
+      "class": "data_asset",
+      "category": "documentation",
+      "ledgered": false
+    },
+    {
+      "path": "audit_reference/runtime_17_2_0/FINAL_RELEASE_VALIDATION_v17_2_0.csv",
+      "sha256": "d246de351da223790df7ede43101ab178fd15183b3f279843ddbe994b9a35251",
+      "bytes": 1771,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "campaign/BRAND_ASSET_STATE_TEMPLATE_v17.csv",
+      "sha256": "e2e0087a8118d588cbdff1acaf55c7ed5d6a5d17deb0b264390966f37445652e",
+      "bytes": 134,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "campaign/BRAND_STATE_TEMPLATE_v17.csv",
+      "sha256": "6b8341b1d892bf00874614a9049e2b1afa0a284adae5fff54ef36af30ec8b383",
+      "bytes": 385,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "campaign/CAMPAIGN_EXPOSURE_STATE_TEMPLATE_v17.csv",
+      "sha256": "29d3d278643dcc6045b94fc8b21ff6bcc359b3b1d122e50bc4d4533f882043b3",
+      "bytes": 370,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "campaign/CATEGORY_ENTRY_POINT_STATE_TEMPLATE_v17.csv",
+      "sha256": "8ed09a29fe97b6f992c1b46a6740ad43543e4d6533483351270ea8df2d6fc30d",
+      "bytes": 179,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "campaign/CATEGORY_STATE_TEMPLATE_v17.csv",
+      "sha256": "a7ac4c891f257ff72086fa38faf54b81ddfff26f91607ef8a260d7ca310179b3",
+      "bytes": 276,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "campaign/CURRENT_STATE_TEMPLATE_v17.csv",
+      "sha256": "8f40a9b048c3b445d950b2f99f805525b0ac8d3bf7641e579faa119031adacff",
+      "bytes": 169,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "campaign/DECISION_CRITERIA_TEMPLATE_v17.csv",
+      "sha256": "3ede50fec8020b59a2f7edbc76edf5f92a7147b74a7793fa60d75cb732857a1a",
+      "bytes": 130,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "campaign/INFORMATION_SOURCE_STATE_TEMPLATE_v17.csv",
+      "sha256": "d57803f1705619089aec876520a38ba948d85ca43b24dd1cbbe18ac1a6ea90e0",
+      "bytes": 128,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    },
+    {
+      "path": "data/knowledge_library.sqlite",
+      "sha256": "0c661462125cbcb6631253255cce3a976132b1bc1e29f5025a5a0dcc093901d9",
+      "bytes": 57344,
+      "class": "state_seed",
+      "category": "database",
+      "ledgered": false
+    },
+    {
+      "path": "data/population_registry.sqlite",
+      "sha256": "3481f0284c2d6da09b4698fd0d7b072410ff23d5726f926adfcd63f96f7d243e",
+      "bytes": 28672,
+      "class": "state_seed",
+      "category": "database",
+      "ledgered": false
+    },
+    {
+      "path": "data/project_store.sqlite",
+      "sha256": "3888eaa4cf75908da21c6773f3d9012a1527ad42a1675d9253970823bbda1e0a",
+      "bytes": 126976,
+      "class": "state_seed",
+      "category": "database",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/01_NOVA_SPARK_DEMO/01_NOVA_SPARK_DEMO_DATABASE.sqlite",
+      "sha256": "cbd7384d6ecab614d84512192ee617ab7f63d4f913fd5b95d0bb0bb689056e46",
+      "bytes": 380928,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/01_NOVA_SPARK_DEMO/01_NOVA_SPARK_DEMO_REPORT.docx",
+      "sha256": "871b3b75023547c3acbb012988b92f1fdf964cb9995d83830b946bd746f9d631",
+      "bytes": 144967,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/01_NOVA_SPARK_DEMO/01_NOVA_SPARK_DEMO_RESULTS.xlsx",
+      "sha256": "4033fd1bba3bb8b79c771758e213a3ba0f881ff1fe1a5691f5404534b65c6972",
+      "bytes": 247303,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/01_NOVA_SPARK_DEMO/PROJECT_EXPORT_01_NOVA_SPARK_DEMO.zip",
+      "sha256": "924b46eb4b05896564177f119e4cbea5b9836db8eb1fd95a59f63e75717b9a90",
+      "bytes": 643226,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/01_NOVA_SPARK_DEMO/chart_segments.png",
+      "sha256": "2dd9ade11d631b2ac16d40b5a54fd3f3041312c9e6586dfb4ebf91f7c4ded99a",
+      "bytes": 48906,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/01_NOVA_SPARK_DEMO/chart_variants.png",
+      "sha256": "da670092eefd6f6b28c1a8c737bab007e283e55736f3a7389c4bf37923cf5663",
+      "bytes": 25222,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/01_NOVA_SPARK_DEMO/chart_worlds.png",
+      "sha256": "2b3e6d5a1ee563c8742645f9bcb9705ff29a2b06c3aabb2836437b4d372c3463",
+      "bytes": 43566,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/02_VOLTIO_FLEX_DEMO/02_VOLTIO_FLEX_DEMO_DATABASE.sqlite",
+      "sha256": "9c99dbac5e7c5ade71f4ceb1397321cebcb85b73c4448bdc4e2222c8bc389071",
+      "bytes": 507904,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/02_VOLTIO_FLEX_DEMO/02_VOLTIO_FLEX_DEMO_REPORT.docx",
+      "sha256": "423dc08d0acbb7dba3446e1bbe19ef88c443535b2528d5b85200e7ff24fa8907",
+      "bytes": 147882,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/02_VOLTIO_FLEX_DEMO/02_VOLTIO_FLEX_DEMO_RESULTS.xlsx",
+      "sha256": "fe323c7f4127d348c52f1fb8617ae909c546edacc3b3932d8156c4b71899ac98",
+      "bytes": 309099,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/02_VOLTIO_FLEX_DEMO/PROJECT_EXPORT_02_VOLTIO_FLEX_DEMO.zip",
+      "sha256": "75e2045703cfc176a4bc8bb1bfaf82745145b1dc42bd27e487ddc3992a49fe36",
+      "bytes": 760941,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/02_VOLTIO_FLEX_DEMO/chart_segments.png",
+      "sha256": "282d438afcfc6c5aa3c18249d4e48bd9eb6eae5cf72433a7224550eb496042e7",
+      "bytes": 49449,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/02_VOLTIO_FLEX_DEMO/chart_variants.png",
+      "sha256": "14b49db0c99ceda79922cc1f84827b1c67c207a3bcca1961822986f40d2858e0",
+      "bytes": 26925,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/02_VOLTIO_FLEX_DEMO/chart_worlds.png",
+      "sha256": "d673ebf4630a508a3857c3eec399026ed71cc471a4b15a521d262e227d636843",
+      "bytes": 44695,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/03_AURORA_BANK_DEMO/03_AURORA_BANK_DEMO_DATABASE.sqlite",
+      "sha256": "143160cdf2e255688530ef9c57ad042320e813cb6bf9404a000a7afa575e3561",
+      "bytes": 471040,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/03_AURORA_BANK_DEMO/03_AURORA_BANK_DEMO_REPORT.docx",
+      "sha256": "c61e326257f869783b030c8da90944a78fe2f6be56619fb5df86bbc2ea145767",
+      "bytes": 149754,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/03_AURORA_BANK_DEMO/03_AURORA_BANK_DEMO_RESULTS.xlsx",
+      "sha256": "8f7b926b426f75bf72562a082ec523fee26cecffe453e1eafd7315f00896def1",
+      "bytes": 290025,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/03_AURORA_BANK_DEMO/PROJECT_EXPORT_03_AURORA_BANK_DEMO.zip",
+      "sha256": "aff38c62128761ae61d7fe7092ea05c6284227c6efed73b622bb107bf2818db6",
+      "bytes": 738038,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/03_AURORA_BANK_DEMO/chart_segments.png",
+      "sha256": "d9a66bc7182218ef60eabe7c5449e69bcdfa2606f4c9935331cdd3f9e034ab39",
+      "bytes": 45982,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/03_AURORA_BANK_DEMO/chart_variants.png",
+      "sha256": "75daf70c9a85fceeb6b56c97f7d55bae81063b98b308ac226934a8352a63be32",
+      "bytes": 34260,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/03_AURORA_BANK_DEMO/chart_worlds.png",
+      "sha256": "bbd35a2dd0cc274ecaba6f8fdb12dda1c1442384b5b304d4aad04f1dc8e5d0e7",
+      "bytes": 43149,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/04_MESTO_2035_DEMO/04_MESTO_2035_DEMO_DATABASE.sqlite",
+      "sha256": "27883de8d92ea25fa75e4b86cbef72f45fa5e0d4c4d3735ab2cafaee2608b5c5",
+      "bytes": 589824,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/04_MESTO_2035_DEMO/04_MESTO_2035_DEMO_REPORT.docx",
+      "sha256": "f9041f9b1a138ad4f85e4eab02b3cba4a89349094c2d599fc8027182e1b2d9ac",
+      "bytes": 152487,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/04_MESTO_2035_DEMO/04_MESTO_2035_DEMO_RESULTS.xlsx",
+      "sha256": "6dbef8ff984686078405864830c965178ac2f90372b4da1723c1c6a8178deca3",
+      "bytes": 367883,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/04_MESTO_2035_DEMO/PROJECT_EXPORT_04_MESTO_2035_DEMO.zip",
+      "sha256": "46fe2b41464f81aed04239e761f119a02d37e8fb873aacfcf8b58fd198fcc353",
+      "bytes": 867182,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/04_MESTO_2035_DEMO/chart_segments.png",
+      "sha256": "a88ffbd2fda73c890bfa399bf73a5b7a550741876e37cc55e9e207f99e92ec50",
+      "bytes": 45179,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/04_MESTO_2035_DEMO/chart_variants.png",
+      "sha256": "34b0faaa4bfde7149f43b4d424a26209107b345c8f26f92c3b6123db6f7ca2e6",
+      "bytes": 36337,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/04_MESTO_2035_DEMO/chart_worlds.png",
+      "sha256": "62691f1b0aac38d4cfe276baca6dcd3d308c6642ee512ba600024b2faef9b224",
+      "bytes": 44666,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/05_VOLBA_2027_DEMO/05_VOLBA_2027_DEMO_DATABASE.sqlite",
+      "sha256": "1e14992dd739dabb4ec0990190609b512b25e4e16bb0832326dd27c72e87d594",
+      "bytes": 536576,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/05_VOLBA_2027_DEMO/05_VOLBA_2027_DEMO_REPORT.docx",
+      "sha256": "486e2cc8eebbc97d99760f5f2fc150eb34c3e6f8bdd9965866dbb6b7cc6c471e",
+      "bytes": 154111,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/05_VOLBA_2027_DEMO/05_VOLBA_2027_DEMO_RESULTS.xlsx",
+      "sha256": "420f9989b88185caf3013cff96e1eeda84a6e945249276170a253eab9884370a",
+      "bytes": 328022,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/05_VOLBA_2027_DEMO/PROJECT_EXPORT_05_VOLBA_2027_DEMO.zip",
+      "sha256": "087af3761a18b8370d8f6efd715884df5ae66287d6c6d3c19df166791be06860",
+      "bytes": 805604,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/05_VOLBA_2027_DEMO/chart_segments.png",
+      "sha256": "ca83826c9b42e0960b6b5b613129550b9011290b503697c702844a4313ecb5c9",
+      "bytes": 51672,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/05_VOLBA_2027_DEMO/chart_variants.png",
+      "sha256": "9e7c05de014cdbe654331c42ddcd0b35d79f526977a112536d1ea6704a08f51b",
+      "bytes": 33884,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/05_VOLBA_2027_DEMO/chart_worlds.png",
+      "sha256": "1b9be80af67bcea4796468852c35b6401a5e015d14cdfc7ab851d7e5597fe52e",
+      "bytes": 42148,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/06_WORKNEST_DEMO/06_WORKNEST_DEMO_DATABASE.sqlite",
+      "sha256": "3921383001097ebcb702301985398d592133270152c1addc914b7035ec36ad8a",
+      "bytes": 446464,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/06_WORKNEST_DEMO/06_WORKNEST_DEMO_REPORT.docx",
+      "sha256": "75f47b8a801f72e1da412c509779b66717dbdda67287123251111a8ab8854d17",
+      "bytes": 154443,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/06_WORKNEST_DEMO/06_WORKNEST_DEMO_RESULTS.xlsx",
+      "sha256": "b7eeb41d67adb43517012144fc84549e09dfc026390a6af7773acfda93528d63",
+      "bytes": 270237,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/06_WORKNEST_DEMO/PROJECT_EXPORT_06_WORKNEST_DEMO.zip",
+      "sha256": "8ad8b49d4c7331a56018730a6fe0dcf50e33af9361ee91420d2ecc661a0814f1",
+      "bytes": 714461,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/06_WORKNEST_DEMO/chart_segments.png",
+      "sha256": "280a8ae290bd89f3f6298534b8856bfcf286ccf4a90d6969c03bfb3b38acaa7d",
+      "bytes": 45127,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/06_WORKNEST_DEMO/chart_variants.png",
+      "sha256": "316a8ecbb24e4e135c2d2521345d11511bf413ee758aadf8d1980517d6868430",
+      "bytes": 36713,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/06_WORKNEST_DEMO/chart_worlds.png",
+      "sha256": "7849b6cc14d38d6eecc7da8ea2849d685f86b30bed8aafd77f2f509f3372595b",
+      "bytes": 46585,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/07_METROMARKET_LOCAL_DEMO/07_METROMARKET_LOCAL_DEMO_DATABASE.sqlite",
+      "sha256": "f2a185d6b136b8fa642b5dd87b8647ab0d93da607ed20eaa327fb3f3695b0d55",
+      "bytes": 499712,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/07_METROMARKET_LOCAL_DEMO/07_METROMARKET_LOCAL_DEMO_REPORT.docx",
+      "sha256": "b8d58cfbf9ebe043ee66b9037b5ef7fcfb77ac19805c4c6bd4c243a0b64e603d",
+      "bytes": 144943,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/07_METROMARKET_LOCAL_DEMO/07_METROMARKET_LOCAL_DEMO_RESULTS.xlsx",
+      "sha256": "45bf3e5e7ad7771a559a8515ed0b48c43d5f6d985af4928351849d6fc867d47b",
+      "bytes": 308758,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/07_METROMARKET_LOCAL_DEMO/PROJECT_EXPORT_07_METROMARKET_LOCAL_DEMO.zip",
+      "sha256": "3c03e9b7b77cae0f3ef0040d44012fba987108317585ed1735112394c644ee7f",
+      "bytes": 756955,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/07_METROMARKET_LOCAL_DEMO/chart_segments.png",
+      "sha256": "3d811b05a0d5e83a1c0671bad36776944ff3fc3bde555fc00cad9a011042681b",
+      "bytes": 43058,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/07_METROMARKET_LOCAL_DEMO/chart_variants.png",
+      "sha256": "79514725eef1196ed0678b466b1ac16a1e4a949ebca1dcfbd58fdc24f9cd6057",
+      "bytes": 33587,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/07_METROMARKET_LOCAL_DEMO/chart_worlds.png",
+      "sha256": "00b550faec86c9da2bace6340f3d87f42c9e050e980ee005426f1e4d99d7f988",
+      "bytes": 41593,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/08_CARELINK_DEMO/08_CARELINK_DEMO_DATABASE.sqlite",
+      "sha256": "8c847826ea15b14783f967de275cdd9e2518fcfa4c6afa5e3eb9b3769aaf9d69",
+      "bytes": 475136,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/08_CARELINK_DEMO/08_CARELINK_DEMO_REPORT.docx",
+      "sha256": "6c048d88881ed0325f9f6a86f83b47056d3f6f32b341ba2d166a1b66e34e8301",
+      "bytes": 160751,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/08_CARELINK_DEMO/08_CARELINK_DEMO_RESULTS.xlsx",
+      "sha256": "aa6b20d12bc99e0c75d5a51e3ad81a02c505692e01ae9357fea0bd3dec53cfc3",
+      "bytes": 289500,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/08_CARELINK_DEMO/PROJECT_EXPORT_08_CARELINK_DEMO.zip",
+      "sha256": "450176cfe50340a9bd53311a0fa5e24bd67f03a3db793d1776eee718391d1257",
+      "bytes": 758983,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/08_CARELINK_DEMO/chart_segments.png",
+      "sha256": "94661013b78346db34984c26180fccf004d199cea3a917829396e8984f6f9b73",
+      "bytes": 49617,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/08_CARELINK_DEMO/chart_variants.png",
+      "sha256": "4c5170fa4c30bff287b46f1c6553363151fc1567c926b7e96885098aec432dff",
+      "bytes": 40815,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/08_CARELINK_DEMO/chart_worlds.png",
+      "sha256": "d604f177d266c9a6e6a4cd1b7e18c01cca2d62f485ca5a7e4fb67322763d02c2",
+      "bytes": 44708,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/09_STREAMIO_ONE_DEMO/09_STREAMIO_ONE_DEMO_DATABASE.sqlite",
+      "sha256": "029142bf834e2ebcd005a62d953cab5d2ae261ab8089790c459955a6b21e03f2",
+      "bytes": 524288,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/09_STREAMIO_ONE_DEMO/09_STREAMIO_ONE_DEMO_REPORT.docx",
+      "sha256": "d33ec5e7c864c86b965b58ae13b7ea90d9282172a8bd2863f2e4f71a73649d5f",
+      "bytes": 133146,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/09_STREAMIO_ONE_DEMO/09_STREAMIO_ONE_DEMO_RESULTS.xlsx",
+      "sha256": "05f1acedd52cb630a98a44ef1c9785de1062dff54836ea64cfd83a8739ff4786",
+      "bytes": 327668,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/09_STREAMIO_ONE_DEMO/PROJECT_EXPORT_09_STREAMIO_ONE_DEMO.zip",
+      "sha256": "baf3b7ebe2676d831b87d627767fe174b4201a60158f1959ca5e321a0a0ee0c0",
+      "bytes": 761838,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/09_STREAMIO_ONE_DEMO/chart_segments.png",
+      "sha256": "95869f10a42e6608406c69bc0e40ea5070274b4957cedcf8ec08103dbcf30467",
+      "bytes": 37831,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/09_STREAMIO_ONE_DEMO/chart_variants.png",
+      "sha256": "53b351f2447edafb81c669ba14239019bf3fc3c50e35e99af82a2d7924abd7c5",
+      "bytes": 24455,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/09_STREAMIO_ONE_DEMO/chart_worlds.png",
+      "sha256": "fdd5d1aa9637193a917ac61133648f55012aeb045c53e6b68d0118700ab4defa",
+      "bytes": 42693,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/10_AEROCITY_DEMO/10_AEROCITY_DEMO_DATABASE.sqlite",
+      "sha256": "456b8b5da0004bc0d644126994d0e4e5417bea21782d1811cd386829e60a9a8f",
+      "bytes": 503808,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/10_AEROCITY_DEMO/10_AEROCITY_DEMO_REPORT.docx",
+      "sha256": "079853926461722128d75d48fbac1c12a324231528474de3bf2b208e998b13d8",
+      "bytes": 149953,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/10_AEROCITY_DEMO/10_AEROCITY_DEMO_RESULTS.xlsx",
+      "sha256": "cd1712dea44c2ce508e9d1673e589d15edbb60baf87f76ee4adcd7971bc20d5e",
+      "bytes": 308614,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/10_AEROCITY_DEMO/PROJECT_EXPORT_10_AEROCITY_DEMO.zip",
+      "sha256": "22e167076635d90b3cecd38d9aa917bb929a9c5879a6e1517e05ae1d11825cd4",
+      "bytes": 766506,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/10_AEROCITY_DEMO/chart_segments.png",
+      "sha256": "0c84bdccb40ebd88f7e8fbf37a89ef86df71a6c6e94828e3a8d24fbb470d4b58",
+      "bytes": 48600,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/10_AEROCITY_DEMO/chart_variants.png",
+      "sha256": "cb00599fb74f688d505b492687574a2a67d74bd82a2631ebc9ea1ed98771fdbc",
+      "bytes": 33811,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/10_AEROCITY_DEMO/chart_worlds.png",
+      "sha256": "626a5e08063a1dab77639a025209c6a063f39328c5a4573791687295fe3dc91d",
+      "bytes": 41667,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/complete/DEMO_LIBRARY_INDEX.xlsx",
+      "sha256": "e065b20e78d1d3b46d996bfc450fe1ad98fc497320b21614e96d6b2fd5912b48",
+      "bytes": 9135,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/01_NOVA_SPARK_DEMO/CLIENT_REPORT_NOVA_SPARK_DEMO.docx",
+      "sha256": "5e7b8cbbb0a3004ca20f77915511b0cdc145c65b27dbdcd71a92dcdef36fd067",
+      "bytes": 50930,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/01_NOVA_SPARK_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "75292c14b63cfa564852df3ebf1745d342fcae4aa1aa13a707ff4a2b46d85909",
+      "bytes": 86226,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/01_NOVA_SPARK_DEMO/PROJECT_EXPORT_NOVA_SPARK_DEMO.zip",
+      "sha256": "e5cfacc13158de58dcb506986075f3ce44625a67ef3d259190d09454131e366b",
+      "bytes": 256720,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/01_NOVA_SPARK_DEMO/RESULTS_TABLES_NOVA_SPARK_DEMO.xlsx",
+      "sha256": "df951f1296c88854550d5f8d2e94e33b202bff42f6ea19764c54a546d3fa420b",
+      "bytes": 86254,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/01_NOVA_SPARK_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "56e1a7958632f25e08e71d8e5ca7656f601a1d9059a6ab342800df5598b82d8f",
+      "bytes": 12112,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/02_AURORA_BANK_REBRAND_DEMO/CLIENT_REPORT_AURORA_BANK_DEMO.docx",
+      "sha256": "f95ffaa4d8864ba297649a30a9aa670e625b5b5ff9f861145e9442e7887ea27c",
+      "bytes": 39073,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/02_AURORA_BANK_REBRAND_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "9f55623a6a7d41623347c56c5afed6e07731fe837b9d8b41f11912006af2b98c",
+      "bytes": 92925,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/02_AURORA_BANK_REBRAND_DEMO/PROJECT_EXPORT_AURORA_BANK_REBRAND_DEMO.zip",
+      "sha256": "3e3f1049e411acf63f70964ba999d88761af771a2d5743afcdd72fb7f76ef347",
+      "bytes": 260625,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/02_AURORA_BANK_REBRAND_DEMO/RESULTS_TABLES_AURORA_BANK_REBRAND_DEMO.xlsx",
+      "sha256": "b6f622d12242e0025e7f386ed09af7776c1d961f7ea424d4149bae5a2055c814",
+      "bytes": 80744,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/02_AURORA_BANK_REBRAND_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "813af08130337c7002529821afefe98384cd17b6f5f20b97467f64bb6e70544d",
+      "bytes": 13202,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/03_VOLBA_MESTA_DEMO/CLIENT_REPORT_VOLBA_MESTA_DEMO.docx",
+      "sha256": "ca312f7c71771524e203c06b56f8e670f86b8e3c6ca8d6d1324b949364c5e031",
+      "bytes": 51433,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/03_VOLBA_MESTA_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "7290bc0d8a436669557d8c33a640b102420ce05938828579743a049d4d4db500",
+      "bytes": 99175,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/03_VOLBA_MESTA_DEMO/PROJECT_EXPORT_VOLBA_MESTA_DEMO.zip",
+      "sha256": "dde448731d82bad3fa9f19ab0c1c72f927f7a4b1e8d77ddd9da0dd5afac27caa",
+      "bytes": 291341,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/03_VOLBA_MESTA_DEMO/RESULTS_TABLES_VOLBA_MESTA_DEMO.xlsx",
+      "sha256": "4e90c43216371645938f2fdbe8d3c1ce2e472386012c61d304ecc6e17e40d714",
+      "bytes": 103880,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/03_VOLBA_MESTA_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "f5868b4c7cf60d98d64ec0aa0ced7c58abd02369dc7c4d7a54226a5a02688217",
+      "bytes": 12731,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/04_MESTO_2035_POLICY_DEMO/CLIENT_REPORT_MESTO_2035_DEMO.docx",
+      "sha256": "38cfb327e8da6cb65e1e9670ac952f01ed910b9367ecda642a16eecb49562711",
+      "bytes": 53232,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/04_MESTO_2035_POLICY_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "9a23d30e5a58c18a33b1c957e62671bab8cb792ef942fa5c5f0379b8ab2e1e78",
+      "bytes": 105739,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/04_MESTO_2035_POLICY_DEMO/PROJECT_EXPORT_MESTO_2035_POLICY_DEMO.zip",
+      "sha256": "317989e2f48a365d315bdbc5dcdf497ade0fe032c560830d9077abacec739e88",
+      "bytes": 287047,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/04_MESTO_2035_POLICY_DEMO/RESULTS_TABLES_MESTO_2035_POLICY_DEMO.xlsx",
+      "sha256": "96d84e449f805e819987dfd9741d7b507f39b5920bb6374261394c133d90ff88",
+      "bytes": 92485,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/04_MESTO_2035_POLICY_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "db7a21bed42f1736392ad8b2897de65d5a91391aeaf1189c0649b86075cd02ac",
+      "bytes": 14434,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/05_MEDORA_PATIENT_EXPERIENCE_DEMO/CLIENT_REPORT_MEDORA_DEMO.docx",
+      "sha256": "97a560a025d5e6fc2b434ea3c5820d90e67eece1ee68bf96aabcb514cd6e5055",
+      "bytes": 51767,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/05_MEDORA_PATIENT_EXPERIENCE_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "a17a61c5d0d5e5ce1cb57d0fac0e08984e6c08d8015ac2ebf96d33327a036017",
+      "bytes": 101609,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/05_MEDORA_PATIENT_EXPERIENCE_DEMO/PROJECT_EXPORT_MEDORA_PATIENT_EXPERIENCE_DEMO.zip",
+      "sha256": "5862ddb4bf4d13a1f925ffd30eed64fa052bd1751c423626ffdc8b71c8bf170d",
+      "bytes": 251105,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/05_MEDORA_PATIENT_EXPERIENCE_DEMO/RESULTS_TABLES_MEDORA_PATIENT_EXPERIENCE_DEMO.xlsx",
+      "sha256": "2d29977fdc65966b3c79b74690a4b0b57224e1cea744fa7066f3cf253e985065",
+      "bytes": 69104,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/05_MEDORA_PATIENT_EXPERIENCE_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "41efc73caf14caeed2c71e31e39e3f583457b35070515a2eb7fd45b1c7552f4b",
+      "bytes": 13182,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/06_NEXORA_EMPLOYEE_CLIMATE_DEMO/CLIENT_REPORT_NEXORA_DEMO.docx",
+      "sha256": "36f3ae4dbbaacbdcc0b6f632b3035175d7893ace05c70abd13c0d8d37f1c7653",
+      "bytes": 52638,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/06_NEXORA_EMPLOYEE_CLIMATE_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "b3016b6b15bc6e1218cba79f08a3eea710fbf359a9372ff9c163661a46e974cd",
+      "bytes": 104841,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/06_NEXORA_EMPLOYEE_CLIMATE_DEMO/PROJECT_EXPORT_NEXORA_EMPLOYEE_CLIMATE_DEMO.zip",
+      "sha256": "e329400c458bc294006320825dfeb9a9138e2ff7649617922b7f93b21f806eb7",
+      "bytes": 237358,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/06_NEXORA_EMPLOYEE_CLIMATE_DEMO/RESULTS_TABLES_NEXORA_EMPLOYEE_CLIMATE_DEMO.xlsx",
+      "sha256": "d625e457e88412338be1a39d0648c5d74c287adae476ff0be1a452d8233b612f",
+      "bytes": 54393,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/06_NEXORA_EMPLOYEE_CLIMATE_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "9f20a0d26bd4b8fd298e2123b482d5f66c2a2d9e67154b2b5c44e7ab2385de6a",
+      "bytes": 14109,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/07_RAILMOVE_SERVICE_CONCEPT_DEMO/CLIENT_REPORT_RAILMOVE_DEMO.docx",
+      "sha256": "76f58c3e9535b2fa414e5a5a768dd6f2ba8409d26c67be49a3ea98340b464d0c",
+      "bytes": 53082,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/07_RAILMOVE_SERVICE_CONCEPT_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "01f6defa4aab85267aa0b9d8ab2741e04fe25148106c3d47ba7e4733e54b0264",
+      "bytes": 95729,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/07_RAILMOVE_SERVICE_CONCEPT_DEMO/PROJECT_EXPORT_RAILMOVE_SERVICE_CONCEPT_DEMO.zip",
+      "sha256": "924408cd2e2060efb9fd5c99d0dfff6c6b6865fe773d7e757629247e4223de6f",
+      "bytes": 273311,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/07_RAILMOVE_SERVICE_CONCEPT_DEMO/RESULTS_TABLES_RAILMOVE_SERVICE_CONCEPT_DEMO.xlsx",
+      "sha256": "d369aa4b7f16ca810d0ff664ef6b85521b9a3e2295ecafa6aaa9208a7f060960",
+      "bytes": 88893,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/07_RAILMOVE_SERVICE_CONCEPT_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "7c6b435ad583ba026ba4457af07aab21e941edb1e912c436c7767468a81832f5",
+      "bytes": 14493,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/08_EDUNOVA_PLATFORM_UX_DEMO/CLIENT_REPORT_EDUNOVA_DEMO.docx",
+      "sha256": "322235800a9601170d6f92bef61570ad0acc320d7c8e56a4eeb034a2a84f50da",
+      "bytes": 51172,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/08_EDUNOVA_PLATFORM_UX_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "b06c7db7f03f196e68a3178333dc7eb451c464bb94cf137d3fbdc4a5416c377e",
+      "bytes": 97433,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/08_EDUNOVA_PLATFORM_UX_DEMO/PROJECT_EXPORT_EDUNOVA_PLATFORM_UX_DEMO.zip",
+      "sha256": "5eb52e85e44b325003bb85f32b773d150e90fec05223a703773b6a2195b71fed",
+      "bytes": 250902,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/08_EDUNOVA_PLATFORM_UX_DEMO/RESULTS_TABLES_EDUNOVA_PLATFORM_UX_DEMO.xlsx",
+      "sha256": "fc27a73d65939f203bff1bce063313616d52367b21af48221ffe9d38b8e08bb4",
+      "bytes": 73211,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/08_EDUNOVA_PLATFORM_UX_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "3312a84bfdb35d7b06087a75b948141d76e034db93847b4c9d117dea6a7d1182",
+      "bytes": 12300,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/09_STREAMIO_BRAND_CONTENT_DEMO/CLIENT_REPORT_STREAMIO_DEMO.docx",
+      "sha256": "534580a1b1163d85e3b755a428d00cd8081acec7a6ad9fc4b98e11c5d83d4cae",
+      "bytes": 52366,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/09_STREAMIO_BRAND_CONTENT_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "926609e286d8033d8ae482b4c9c8c4776497e4341906dffac16890ab82e17207",
+      "bytes": 100660,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/09_STREAMIO_BRAND_CONTENT_DEMO/PROJECT_EXPORT_STREAMIO_BRAND_CONTENT_DEMO.zip",
+      "sha256": "3f888668c878a9be658330e162d8fdb50616bb0635bbd80e2e5ad35fd2859ccf",
+      "bytes": 287352,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/09_STREAMIO_BRAND_CONTENT_DEMO/RESULTS_TABLES_STREAMIO_BRAND_CONTENT_DEMO.xlsx",
+      "sha256": "ff6e3293dbdf0ddf214f6eb3db7c493b473e06a0589078d878718e9000b3caba",
+      "bytes": 97731,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/09_STREAMIO_BRAND_CONTENT_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "c5353001f3fc304df01d695201fc2f0a242c5bb150d44944e5c2e8d3e2fd2493",
+      "bytes": 13636,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/10_GREENHOME_TARIFF_DEMO/CLIENT_REPORT_GREENHOME_DEMO.docx",
+      "sha256": "c093080feaf6937d8cba6af3820be5e29860bf0630cdbf92755114664478ea1f",
+      "bytes": 50904,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/10_GREENHOME_TARIFF_DEMO/EXECUTIVE_XLSX_PREVIEW.png",
+      "sha256": "edc5b068a4f3b99454faeba794c278012d049a3a15deab5ff1832fabdbb08360",
+      "bytes": 94082,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/10_GREENHOME_TARIFF_DEMO/PROJECT_EXPORT_GREENHOME_TARIFF_DEMO.zip",
+      "sha256": "074451fcba0bf03c9fcbe6e496fdc688d0d5959d807a571077c694b219de3294",
+      "bytes": 262957,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/10_GREENHOME_TARIFF_DEMO/RESULTS_TABLES_GREENHOME_TARIFF_DEMO.xlsx",
+      "sha256": "5489fe8037729c282c525ac28ae37f5c9fe8919dc28ee904468b3102e929ab99",
+      "bytes": 85996,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/showcase/10_GREENHOME_TARIFF_DEMO/assets/SOCIOMAP_OBJECTS_DEMO.png",
+      "sha256": "2700f75919b2a366b700e3cf7a5622c28642edbd322085d9deebeb856073b3e1",
+      "bytes": 12190,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/visualization_showcase/01_NAPOJE_360_DEMO/RESULTS.xlsx",
+      "sha256": "813df9f027cfa2d6100407a445066fa04870da1191e8974fa4ff3da84e304286",
+      "bytes": 63688,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/visualization_showcase/02_AEROLINKY_360_DEMO/RESULTS.xlsx",
+      "sha256": "1e6b51fb6e3eab571acb072e4c7ec32b5971b58c72469f3af2d648ba98b2c502",
+      "bytes": 60375,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/visualization_showcase/03_SOCIALNI_SITE_360_DEMO/RESULTS.xlsx",
+      "sha256": "d5a123b9cbf54713e41734b82f446fb4b8883a594b25f1932dcce6d3a8b92b81",
+      "bytes": 60014,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/visualization_showcase/04_HERNI_TITULY_360_DEMO/RESULTS.xlsx",
+      "sha256": "dd056c7eae8f513b8a4acec270349af035edbb62e8797505f73f6271ce3f8f54",
+      "bytes": 60081,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "demo_library/visualization_showcase/05_MODNI_ZNACKY_360_DEMO/RESULTS.xlsx",
+      "sha256": "f5843b4dc46440aa0bae5d56503e6e6f2269caa2f19ee98344e323afa840f304",
+      "bytes": 59892,
+      "class": "demo_payload",
+      "category": "demo_content",
+      "ledgered": false
+    },
+    {
+      "path": "examples/targets_track_b.csv",
+      "sha256": "96bc49e5ad7479305c98ac71956581241be22e1f51755c2278e3a941c7cdbc6e",
+      "bytes": 68,
+      "class": "data_asset",
+      "category": "data_asset",
+      "ledgered": false
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+[
+  {
+    "column": "respondent_id",
+    "kind": "profile",
+    "description": "respondent id"
+  },
+  {
+    "column": "segment",
+    "kind": "profile",
+    "description": "segment"
+  },
+  {
+    "column": "dem_gender",
+    "kind": "profile",
+    "description": "dem gender"
+  },
+  {
+    "column": "dem_age",
+    "kind": "profile",
+    "description": "dem age"
+  },
+  {
+    "column": "dem_region",
+    "kind": "profile",
+    "description": "dem region"
+  },
+  {
+    "column": "dem_education",
+    "kind": "profile",
+    "description": "dem education"
+  },
+  {
+    "column": "dem_income",
+    "kind": "profile",
+    "description": "dem income"
+  },
+  {
+    "column": "att_safety",
+    "kind": "profile",
+    "description": "att safety"
+  },
+  {
+    "column": "att_comfort",
+    "kind": "profile",
+    "description": "att comfort"
+  },
+  {
+    "column": "att_price",
+    "kind": "profile",
+    "description": "att price"
+  },
+  {
+    "column": "att_network",
+    "kind": "profile",
+    "description": "att network"
+  },
+  {
+    "column": "att_status",
+    "kind": "profile",
+    "description": "att status"
+  },
+  {
+    "column": "att_service",
+    "kind": "profile",
+    "description": "att service"
+  },
+  {
+    "column": "att_frequency",
+    "kind": "profile",
+    "description": "att frequency"
+  },
+  {
+    "column": "beh_sport_frequency",
+    "kind": "profile",
+    "description": "beh sport frequency"
+  },
+  {
+    "column": "beh_novelty_openness",
+    "kind": "profile",
+    "description": "beh novelty openness"
+  },
+  {
+    "column": "obj_British Airways",
+    "kind": "object_rating",
+    "description": "obj British Airways"
+  },
+  {
+    "column": "obj_Air France",
+    "kind": "object_rating",
+    "description": "obj Air France"
+  },
+  {
+    "column": "obj_Qatar Airways",
+    "kind": "object_rating",
+    "description": "obj Qatar Airways"
+  },
+  {
+    "column": "obj_Emirates",
+    "kind": "object_rating",
+    "description": "obj Emirates"
+  },
+  {
+    "column": "obj_Ryanair",
+    "kind": "object_rating",
+    "description": "obj Ryanair"
+  },
+  {
+    "column": "obj_Wizz Air",
+    "kind": "object_rating",
+    "description": "obj Wizz Air"
+  },
+  {
+    "column": "obj_Lufthansa",
+    "kind": "object_rating",
+    "description": "obj Lufthansa"
+  },
+  {
+    "column": "obj_easyJet",
+    "kind": "object_rating",
+    "description": "obj easyJet"
+  }
+]

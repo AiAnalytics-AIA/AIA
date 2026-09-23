@@ -1,0 +1,44 @@
+[
+  {
+    "id": "Q1",
+    "section": "Context",
+    "text": "Jak dnes volíte dodavatele a tarif?",
+    "type": "frequency",
+    "purpose": "context"
+  },
+  {
+    "id": "Q2",
+    "section": "Needs",
+    "text": "Jak důležitá je jistota ceny oproti možné úspoře?",
+    "type": "battery",
+    "purpose": "drivers"
+  },
+  {
+    "id": "Q3",
+    "section": "Objects",
+    "text": "Jak hodnotíte čtyři tarifní koncepty?",
+    "type": "object_battery",
+    "purpose": "comparison + sociomap"
+  },
+  {
+    "id": "Q4",
+    "section": "Emotions",
+    "text": "Jak moc důvěřujete automatickému řízení spotřeby?",
+    "type": "emotion_battery",
+    "purpose": "emotional map"
+  },
+  {
+    "id": "Q5",
+    "section": "Decision",
+    "text": "Jaký green premium by byl ještě přijatelný?",
+    "type": "choice",
+    "purpose": "decision KPI"
+  },
+  {
+    "id": "Q6",
+    "section": "Validation",
+    "text": "Který tarif byste si vybrali pro vlastní domácnost?",
+    "type": "certainty",
+    "purpose": "robustness"
+  }
+]

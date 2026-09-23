@@ -1,0 +1,222 @@
+{
+  "project_id": "PRJ-DEMO-VIS-MODA-360",
+  "title": "Módní značky 360 — styl, cena a hodnoty",
+  "project_type": "research",
+  "study_type": "Brand map / lifestyle segmentation",
+  "domain": "Móda / retail",
+  "current_revision": 1,
+  "brief": {
+    "client_input": "Ilustrační komplexní výzkum vytvořený pro demonstraci Visualization Lab.",
+    "decision": "Jaké typy lidí volí sport, fast fashion, basics, udržitelnost nebo status?"
+  },
+  "audience": {
+    "population": "Ilustrační česká populace 18+",
+    "n": 600,
+    "provenance": "DEMO_SYNTHETIC_DATASET"
+  },
+  "research_questions": [
+    "Jaké typy lidí volí sport, fast fashion, basics, udržitelnost nebo status?",
+    "Které segmenty tvoří nejvýraznější shluky?",
+    "Jaké charakteristiky jednotlivé shluky odlišují?"
+  ],
+  "questionnaire": [
+    {
+      "id": "Q0",
+      "text": "Demografický a profilový blok"
+    },
+    {
+      "id": "QO1",
+      "text": "Jak blízko je vám Nike? Hodnocení 1–10."
+    },
+    {
+      "id": "QO2",
+      "text": "Jak blízko je vám Adidas? Hodnocení 1–10."
+    },
+    {
+      "id": "QO3",
+      "text": "Jak blízko je vám Zara? Hodnocení 1–10."
+    },
+    {
+      "id": "QO4",
+      "text": "Jak blízko je vám H&M? Hodnocení 1–10."
+    },
+    {
+      "id": "QO5",
+      "text": "Jak blízko je vám Uniqlo? Hodnocení 1–10."
+    },
+    {
+      "id": "QO6",
+      "text": "Jak blízko je vám Patagonia? Hodnocení 1–10."
+    },
+    {
+      "id": "QO7",
+      "text": "Jak blízko je vám Levi’s? Hodnocení 1–10."
+    },
+    {
+      "id": "QO8",
+      "text": "Jak blízko je vám Gucci? Hodnocení 1–10."
+    },
+    {
+      "id": "QT1",
+      "text": "Sport — škála 1–10"
+    },
+    {
+      "id": "QT2",
+      "text": "Price — škála 1–10"
+    },
+    {
+      "id": "QT3",
+      "text": "Sustainability — škála 1–10"
+    },
+    {
+      "id": "QT4",
+      "text": "Status — škála 1–10"
+    },
+    {
+      "id": "QT5",
+      "text": "Basics — škála 1–10"
+    },
+    {
+      "id": "QT6",
+      "text": "Trend — škála 1–10"
+    },
+    {
+      "id": "QT7",
+      "text": "Quality — škála 1–10"
+    }
+  ],
+  "segments": [
+    {
+      "segment": "Sportovní lifestyle",
+      "n": 126,
+      "share": 0.21,
+      "top_objects": [
+        {
+          "object": "Adidas",
+          "mean": 7.21
+        },
+        {
+          "object": "Nike",
+          "mean": 7.1
+        },
+        {
+          "object": "Patagonia",
+          "mean": 5.87
+        }
+      ]
+    },
+    {
+      "segment": "Trend a fast fashion",
+      "n": 145,
+      "share": 0.242,
+      "top_objects": [
+        {
+          "object": "Zara",
+          "mean": 7.02
+        },
+        {
+          "object": "H&M",
+          "mean": 6.95
+        },
+        {
+          "object": "Nike",
+          "mean": 5.78
+        }
+      ]
+    },
+    {
+      "segment": "Minimalistické basics",
+      "n": 112,
+      "share": 0.187,
+      "top_objects": [
+        {
+          "object": "Uniqlo",
+          "mean": 7.3
+        },
+        {
+          "object": "Levi’s",
+          "mean": 7.17
+        },
+        {
+          "object": "Patagonia",
+          "mean": 5.7
+        }
+      ]
+    },
+    {
+      "segment": "Udržitelnost",
+      "n": 106,
+      "share": 0.177,
+      "top_objects": [
+        {
+          "object": "Patagonia",
+          "mean": 7.38
+        },
+        {
+          "object": "Levi’s",
+          "mean": 5.86
+        },
+        {
+          "object": "Uniqlo",
+          "mean": 5.67
+        }
+      ]
+    },
+    {
+      "segment": "Status a luxus",
+      "n": 111,
+      "share": 0.185,
+      "top_objects": [
+        {
+          "object": "Gucci",
+          "mean": 7.62
+        },
+        {
+          "object": "Levi’s",
+          "mean": 5.66
+        },
+        {
+          "object": "Zara",
+          "mean": 5.47
+        }
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "Nike",
+      "mean": 5.86
+    },
+    {
+      "name": "Adidas",
+      "mean": 5.85
+    },
+    {
+      "name": "Zara",
+      "mean": 5.77
+    },
+    {
+      "name": "H&M",
+      "mean": 5.7
+    },
+    {
+      "name": "Uniqlo",
+      "mean": 5.8
+    },
+    {
+      "name": "Patagonia",
+      "mean": 5.82
+    },
+    {
+      "name": "Levi’s",
+      "mean": 5.83
+    },
+    {
+      "name": "Gucci",
+      "mean": 5.78
+    }
+  ],
+  "executive_answer": "Sportovní lifestyle se soustředí kolem Nike/Adidas, udržitelnost kolem Patagonie, status kolem Gucci a cenový trend kolem Zara/H&M.",
+  "recommendation": "Použijte Visualization Lab: filtrujte segmenty, klikněte na respondenty a porovnejte oblasti A/B.",
+  "demo_truth": "ILUSTRAČNÍ DEMO — data jsou synteticky vygenerována pro demonstraci funkce, nejde o reálný průzkum."
+}

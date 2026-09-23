@@ -1,0 +1,111 @@
+{
+  "executive_summary": "Kompetitivní hráči se shlukují kolem Call of Duty a League of Legends; kreativní kolem Minecraftu a The Sims; příběhoví kolem Baldur’s Gate 3.",
+  "segment_profiles": [
+    {
+      "segment": "Kompetitivní online",
+      "n": 139,
+      "share": 0.232,
+      "top_objects": [
+        {
+          "object": "League of Legends",
+          "mean": 7.41
+        },
+        {
+          "object": "Call of Duty",
+          "mean": 7.4
+        },
+        {
+          "object": "Fortnite",
+          "mean": 7.14
+        }
+      ]
+    },
+    {
+      "segment": "Kreativní stavitelé",
+      "n": 104,
+      "share": 0.173,
+      "top_objects": [
+        {
+          "object": "Minecraft",
+          "mean": 6.97
+        },
+        {
+          "object": "The Sims",
+          "mean": 6.7
+        },
+        {
+          "object": "Fortnite",
+          "mean": 5.37
+        }
+      ]
+    },
+    {
+      "segment": "Příběhoví hráči",
+      "n": 113,
+      "share": 0.188,
+      "top_objects": [
+        {
+          "object": "Baldur’s Gate 3",
+          "mean": 6.95
+        },
+        {
+          "object": "League of Legends",
+          "mean": 5.68
+        },
+        {
+          "object": "Call of Duty",
+          "mean": 5.57
+        }
+      ]
+    },
+    {
+      "segment": "Sportovní mainstream",
+      "n": 125,
+      "share": 0.208,
+      "top_objects": [
+        {
+          "object": "EA Sports FC",
+          "mean": 7.18
+        },
+        {
+          "object": "Call of Duty",
+          "mean": 5.98
+        },
+        {
+          "object": "League of Legends",
+          "mean": 5.69
+        }
+      ]
+    },
+    {
+      "segment": "Casual a social",
+      "n": 119,
+      "share": 0.198,
+      "top_objects": [
+        {
+          "object": "The Sims",
+          "mean": 6.38
+        },
+        {
+          "object": "GTA Online",
+          "mean": 6.24
+        },
+        {
+          "object": "Minecraft",
+          "mean": 6.13
+        }
+      ]
+    }
+  ],
+  "object_means": {
+    "EA Sports FC": 5.842,
+    "Fortnite": 5.975,
+    "Minecraft": 5.84,
+    "GTA Online": 5.797,
+    "Call of Duty": 5.957,
+    "League of Legends": 5.918,
+    "The Sims": 5.747,
+    "Baldur’s Gate 3": 5.585
+  },
+  "method_note": "Ilustrační syntetický dataset; výsledky demonstrují schopnosti mapování, nejsou tržním měřením."
+}

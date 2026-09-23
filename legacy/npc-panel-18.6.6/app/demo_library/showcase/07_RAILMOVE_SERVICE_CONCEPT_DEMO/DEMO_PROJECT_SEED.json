@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "07_RAILMOVE_SERVICE_CONCEPT_DEMO",
+  "project_id": "PRJ-DEMO-RAILMOVE",
+  "title": "RailMove Service Concept DEMO",
+  "domain": "Doprava / mobilita",
+  "study_type": "Service concept a pricing research",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Dopravce chce vytvořit nový digitální tarif a službu pro pravidelné i příležitostné cestující. Potřebujeme porovnat koncepty a cenu.",
+    "decision": "Vybrat service proposition, tarifní logiku a priority digitálního experience."
+  },
+  "executive_answer": "Nejlépe funguje FlexPass: měsíční balíček s kredity, automatickou nejlepší cenou a jednoduchou změnou rezervace. Čisté předplatné je srozumitelné pro dojíždějící, ale příliš úzké pro širší trh.",
+  "recommendation": "GO — FlexPass jako hlavní koncept; komunikovat „nejlepší cena bez počítání“ a flexibilitu změn.",
+  "audience": {
+    "population": "ČR 16+, pravidelní i příležitostní cestující vlakem",
+    "n": 1250,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jak často cestujete vlakem a za jakým účelem?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Co vám dnes nejvíce vadí na nákupu a změně jízdenek?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Jak hodnotíte čtyři tarifní koncepty?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Jak srozumitelná je cenová logika každého konceptu?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Jaká měsíční cena / kreditní hodnota je přijatelná?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Který koncept byste nejpravděpodobněji použili?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Pay as you go",
+      "description": "Současný nákup jednotlivých jízd",
+      "type": "tracked_object",
+      "score": 58,
+      "x": 245,
+      "y": 290
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Commuter Pass",
+      "description": "Pevné měsíční předplatné",
+      "type": "tracked_object",
+      "score": 71,
+      "x": 355,
+      "y": 185
+    },
+    {
+      "id": "OBJ-C",
+      "name": "FlexPass",
+      "description": "Kredity + best-price engine",
+      "type": "tracked_object",
+      "score": 79,
+      "x": 420,
+      "y": 235
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Membership Plus",
+      "description": "Členství + benefity",
+      "type": "tracked_object",
+      "score": 69,
+      "x": 555,
+      "y": 135
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Value",
+    "Clarity",
+    "Flexibility",
+    "Trust",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      25,
+      54,
+      81,
+      42,
+      76,
+      58
+    ],
+    [
+      38,
+      74,
+      72,
+      61,
+      73,
+      71
+    ],
+    [
+      44,
+      82,
+      76,
+      88,
+      78,
+      79
+    ],
+    [
+      31,
+      66,
+      58,
+      73,
+      68,
+      69
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Daily Commuters",
+      "share_pct": 30,
+      "description": "Vysoká frekvence",
+      "best_object": "Commuter Pass"
+    },
+    {
+      "id": "SEG2",
+      "name": "Hybrid Commuters",
+      "share_pct": 26,
+      "description": "2–3 cesty týdně",
+      "best_object": "FlexPass"
+    },
+    {
+      "id": "SEG3",
+      "name": "Weekend Explorers",
+      "share_pct": 18,
+      "description": "Volnočasové cesty",
+      "best_object": "FlexPass"
+    },
+    {
+      "id": "SEG4",
+      "name": "Price Planners",
+      "share_pct": 16,
+      "description": "Silná cenová orientace",
+      "best_object": "FlexPass"
+    },
+    {
+      "id": "SEG5",
+      "name": "Comfort Members",
+      "share_pct": 10,
+      "description": "Benefity a pohodlí",
+      "best_object": "Membership Plus"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base demand",
+      "winner": "FlexPass",
+      "primary_metric": 44,
+      "overall": 79,
+      "assumption": "Současný travel mix"
+    },
+    {
+      "id": "W2",
+      "name": "Fuel price up",
+      "winner": "FlexPass",
+      "primary_metric": 46,
+      "overall": 80,
+      "assumption": "Více modal shift do vlaků"
+    },
+    {
+      "id": "W3",
+      "name": "Remote work",
+      "winner": "FlexPass",
+      "primary_metric": 47,
+      "overall": 81,
+      "assumption": "Méně pravidelného dojíždění"
+    },
+    {
+      "id": "W4",
+      "name": "High commuting",
+      "winner": "FlexPass",
+      "primary_metric": 42,
+      "overall": 77,
+      "assumption": "Více daily commuters"
+    },
+    {
+      "id": "W5",
+      "name": "Price pressure",
+      "winner": "FlexPass",
+      "primary_metric": 45,
+      "overall": 80,
+      "assumption": "Vyšší cenová citlivost"
+    },
+    {
+      "id": "W6",
+      "name": "Service disruption",
+      "winner": "FlexPass",
+      "primary_metric": 41,
+      "overall": 75,
+      "assumption": "Nižší důvěra v spolehlivost"
+    },
+    {
+      "id": "W7",
+      "name": "Weekend growth",
+      "winner": "FlexPass",
+      "primary_metric": 46,
+      "overall": 80,
+      "assumption": "Více leisure cest"
+    },
+    {
+      "id": "W8",
+      "name": "App adoption",
+      "winner": "FlexPass",
+      "primary_metric": 47,
+      "overall": 82,
+      "assumption": "Vyšší digitální adoption"
+    }
+  ],
+  "findings": [
+    "Flexibilita změny je téměř stejně důležitá jako cena.",
+    "Commuter Pass je silný jen u každodenních dojíždějících.",
+    "Membership Plus potřebuje konkrétnější benefity, jinak působí jako příplatek.",
+    "Best-price mechanism zvyšuje vnímanou férovost, pokud je vysvětlen jednoduše."
+  ],
+  "risks": [
+    "Preference konceptu není skutečná usage behavior.",
+    "Tarif vyžaduje ekonomický model výnosnosti.",
+    "Při výpadcích služby se value perception rychle zhoršuje."
+  ],
+  "primary_metric": "Concept preference",
+  "primary_value": 44,
+  "world_range": "41–47 %",
+  "winner_stability": "8/8",
+  "overall": 79,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Pay as you go",
+        "type": "object",
+        "score": 58,
+        "x": 245,
+        "y": 290,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Commuter Pass",
+        "type": "object",
+        "score": 71,
+        "x": 355,
+        "y": 185,
+        "color": "#3c9890"
+      },
+      {
+        "name": "FlexPass",
+        "type": "object",
+        "score": 79,
+        "x": 420,
+        "y": 235,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Membership Plus",
+        "type": "object",
+        "score": 69,
+        "x": 555,
+        "y": 135,
+        "color": "#299764"
+      },
+      {
+        "name": "Důvěra",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Relevance",
+        "type": "anchor",
+        "x": 500,
+        "y": 245,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Cena / náklad",
+        "type": "anchor",
+        "x": 170,
+        "y": 205,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Jednoduchost",
+        "type": "anchor",
+        "x": 335,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 7,
+        "weight": 0.72
+      },
+      {
+        "from": 0,
+        "to": 6,
+        "weight": 0.72
+      },
+      {
+        "from": 1,
+        "to": 4,
+        "weight": 0.81
+      },
+      {
+        "from": 1,
+        "to": 5,
+        "weight": 0.61
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.8
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "weight": 0.68
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.69
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "weight": 0.56
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

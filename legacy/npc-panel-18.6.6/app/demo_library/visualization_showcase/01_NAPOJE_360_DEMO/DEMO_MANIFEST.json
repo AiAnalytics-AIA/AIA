@@ -1,0 +1,56 @@
+{
+  "project_id": "PRJ-DEMO-VIS-NAPOJE-360",
+  "slug": "01_NAPOJE_360_DEMO",
+  "files": [
+    {
+      "name": "ANALYSIS.json",
+      "size_bytes": 2261,
+      "sha256": "09abfceb0cbaa9f5e4a9bed1536c7c0efd11f5b04d62c2d87ee94cf8daab4045"
+    },
+    {
+      "name": "DATA_DICTIONARY.json",
+      "size_bytes": 2542,
+      "sha256": "33fa3c2cfa66a58cdc66bfe7d36f69973aa01c9cb2fb506b0f1e5b0119c095b3"
+    },
+    {
+      "name": "DEMO_PROJECT_SEED.json",
+      "size_bytes": 4845,
+      "sha256": "a5de88426d6aa4f238f006f2ac78cc194ab44f31468d96a54633083976ffcbfb"
+    },
+    {
+      "name": "DEMO_REPORT.html",
+      "size_bytes": 1363,
+      "sha256": "7ce0c3a871338a76958553e1e732682f8062a7c891a4edec7bdcbc350ee809a2"
+    },
+    {
+      "name": "OBJECTS_SOCIOMAP_DEMO.json",
+      "size_bytes": 5032,
+      "sha256": "e4b2f10ff4fecea7a005bdeec8ea715c04297f07c2978480d7ca4331aa1fa69e"
+    },
+    {
+      "name": "OBJECT_MAP_3D.html",
+      "size_bytes": 13685,
+      "sha256": "bc8c8c8be2b82693550e8899ee63e920ec094504a1385babd201c857ab7dff90"
+    },
+    {
+      "name": "QUESTIONNAIRE.json",
+      "size_bytes": 1245,
+      "sha256": "4ba84540edf51661d231c95a157cf21dbc5b022d464cbfc9dc573a1a496e8de7"
+    },
+    {
+      "name": "README.md",
+      "size_bytes": 143,
+      "sha256": "aeb01ab2d7ebdf5ec4de5210a40883cfb6bfd6f3849ac6083cccd9b6115c2d03"
+    },
+    {
+      "name": "RESPONDENTS.csv",
+      "size_bytes": 67674,
+      "sha256": "f5272be3735947a0367f2f70e88af1eb2d60a40d383577593ea476168d415821"
+    },
+    {
+      "name": "RESULTS.xlsx",
+      "size_bytes": 63688,
+      "sha256": "813df9f027cfa2d6100407a445066fa04870da1191e8974fa4ff3da84e304286"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "population": "Obyvatelé fiktivního města 18+, včetně řidičů, MHD uživatelů a cyklistů",
+  "n": 1300,
+  "persona_mode": "calibrated",
+  "dimensions": [
+    "věk",
+    "region",
+    "socioeconomics",
+    "media/digital behavior",
+    "values",
+    "category involvement",
+    "trust",
+    "price sensitivity",
+    "innovation adoption",
+    "context-specific dimensions"
+  ]
+}

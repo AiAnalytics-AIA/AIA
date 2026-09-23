@@ -1,0 +1,44 @@
+[
+  {
+    "id": "Q1",
+    "section": "Context",
+    "text": "Jak se obvykle pohybujete po městě?",
+    "type": "frequency",
+    "purpose": "context"
+  },
+  {
+    "id": "Q2",
+    "section": "Needs",
+    "text": "Které dopravní problémy považujete za nejzávažnější?",
+    "type": "battery",
+    "purpose": "drivers"
+  },
+  {
+    "id": "Q3",
+    "section": "Objects",
+    "text": "Jak hodnotíte čtyři policy balíčky na stejné sadě kritérií?",
+    "type": "object_battery",
+    "purpose": "comparison + sociomap"
+  },
+  {
+    "id": "Q4",
+    "section": "Emotions",
+    "text": "Jak spravedlivé jsou dopady na různé skupiny?",
+    "type": "emotion_battery",
+    "purpose": "emotional map"
+  },
+  {
+    "id": "Q5",
+    "section": "Decision",
+    "text": "Které podmínky by zvýšily vaši přijatelnost opatření?",
+    "type": "choice",
+    "purpose": "decision KPI"
+  },
+  {
+    "id": "Q6",
+    "section": "Validation",
+    "text": "Který balíček byste celkově podpořili?",
+    "type": "certainty",
+    "purpose": "robustness"
+  }
+]

@@ -1,0 +1,47 @@
+{
+  "topic": "Nový nealkoholický aperitiv pro český trh",
+  "domain": "brand",
+  "objective": "blind_forecast",
+  "questions": [
+    {
+      "id": "purchase_intent",
+      "text": "Jak pravděpodobné je, že byste tento produkt při vhodné příležitosti vyzkoušel/a?",
+      "kategorie": [
+        "Určitě ano",
+        "Spíše ano",
+        "Spíše ne",
+        "Určitě ne"
+      ],
+      "ordered": true
+    },
+    {
+      "id": "recommend",
+      "text": "Doporučil/a byste tento koncept někomu známému?",
+      "kategorie": [
+        "Ano",
+        "Ne"
+      ]
+    }
+  ],
+  "n": 400,
+  "worlds": 12,
+  "seed": 20260816,
+  "model": "sonnet",
+  "mode": "dry",
+  "persona_mode": "core",
+  "research_enabled": true,
+  "research_max_sources": 8,
+  "world_model_provider": "auto",
+  "include_core_baseline": true,
+  "include_demographics_baseline": true,
+  "use_learning_profile": true,
+  "save_world_overlays": true,
+  "notes": "Před live během přepnout mode na sync nebo batch.",
+  "adaptive_worlds": true,
+  "min_worlds": 5,
+  "world_convergence_pp": 1.25,
+  "diagnostic_mode": "smart",
+  "diagnostic_n": 120,
+  "auto_wording_stress": true,
+  "anti_stereotype_guard": true
+}

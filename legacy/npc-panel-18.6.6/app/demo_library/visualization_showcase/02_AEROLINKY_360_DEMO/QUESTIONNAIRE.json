@@ -1,0 +1,66 @@
+[
+  {
+    "id": "Q0",
+    "text": "Demografický a profilový blok"
+  },
+  {
+    "id": "QO1",
+    "text": "Jak blízko je vám British Airways? Hodnocení 1–10."
+  },
+  {
+    "id": "QO2",
+    "text": "Jak blízko je vám Air France? Hodnocení 1–10."
+  },
+  {
+    "id": "QO3",
+    "text": "Jak blízko je vám Qatar Airways? Hodnocení 1–10."
+  },
+  {
+    "id": "QO4",
+    "text": "Jak blízko je vám Emirates? Hodnocení 1–10."
+  },
+  {
+    "id": "QO5",
+    "text": "Jak blízko je vám Ryanair? Hodnocení 1–10."
+  },
+  {
+    "id": "QO6",
+    "text": "Jak blízko je vám Wizz Air? Hodnocení 1–10."
+  },
+  {
+    "id": "QO7",
+    "text": "Jak blízko je vám Lufthansa? Hodnocení 1–10."
+  },
+  {
+    "id": "QO8",
+    "text": "Jak blízko je vám easyJet? Hodnocení 1–10."
+  },
+  {
+    "id": "QT1",
+    "text": "Safety — škála 1–10"
+  },
+  {
+    "id": "QT2",
+    "text": "Comfort — škála 1–10"
+  },
+  {
+    "id": "QT3",
+    "text": "Price — škála 1–10"
+  },
+  {
+    "id": "QT4",
+    "text": "Network — škála 1–10"
+  },
+  {
+    "id": "QT5",
+    "text": "Status — škála 1–10"
+  },
+  {
+    "id": "QT6",
+    "text": "Service — škála 1–10"
+  },
+  {
+    "id": "QT7",
+    "text": "Frequency — škála 1–10"
+  }
+]

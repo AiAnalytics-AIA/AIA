@@ -1,0 +1,21 @@
+{
+  "version": "17.1.2",
+  "llm_ablation_run": false,
+  "reason": "NO_LIVE_PROVIDER_CREDENTIALS_IN_BUILD_ENVIRONMENT",
+  "required_arms": [
+    "A_question_only",
+    "B_demographics",
+    "C_demographics_plus_measured",
+    "D_full_persona"
+  ],
+  "required_metrics": [
+    "TVD",
+    "entropy_gap",
+    "modal_response_share",
+    "age_x_sex_subgroup_error",
+    "seed_variance"
+  ],
+  "required_seeds": 3,
+  "decision_rule": "Keep marketing persona signals in LLM prompt only if D beats C and C beats B by more than between-seed noise on preregistered external truth.",
+  "release_effect": "EXTERNAL_PREDICTIVE_CERTIFICATION_PENDING"
+}

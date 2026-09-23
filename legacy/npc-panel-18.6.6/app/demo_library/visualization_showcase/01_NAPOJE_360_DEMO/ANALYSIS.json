@@ -1,0 +1,111 @@
+{
+  "executive_summary": "Výrazný shluk aktivních lidí odmítá cukr a koncentruje se kolem Coca-Cola Zero, Pepsi Max a minerálních vod.",
+  "segment_profiles": [
+    {
+      "segment": "Aktivní bez cukru",
+      "n": 120,
+      "share": 0.2,
+      "top_objects": [
+        {
+          "object": "Coca-Cola Zero",
+          "mean": 7.72
+        },
+        {
+          "object": "Mattoni",
+          "mean": 7.56
+        },
+        {
+          "object": "Pepsi Max",
+          "mean": 7.42
+        }
+      ]
+    },
+    {
+      "segment": "Tradiční sladká chuť",
+      "n": 137,
+      "share": 0.228,
+      "top_objects": [
+        {
+          "object": "Coca-Cola",
+          "mean": 6.89
+        },
+        {
+          "object": "Kofola",
+          "mean": 6.72
+        },
+        {
+          "object": "Vinea",
+          "mean": 6.43
+        }
+      ]
+    },
+    {
+      "segment": "Energetičtí mladí",
+      "n": 121,
+      "share": 0.202,
+      "top_objects": [
+        {
+          "object": "Red Bull",
+          "mean": 7.25
+        },
+        {
+          "object": "Monster",
+          "mean": 7.25
+        },
+        {
+          "object": "Pepsi Max",
+          "mean": 5.69
+        }
+      ]
+    },
+    {
+      "segment": "Cenově citliví",
+      "n": 103,
+      "share": 0.172,
+      "top_objects": [
+        {
+          "object": "Kofola",
+          "mean": 5.74
+        },
+        {
+          "object": "Pepsi Max",
+          "mean": 5.55
+        },
+        {
+          "object": "Monster",
+          "mean": 5.48
+        }
+      ]
+    },
+    {
+      "segment": "Minerálka a zdraví",
+      "n": 119,
+      "share": 0.198,
+      "top_objects": [
+        {
+          "object": "Mattoni",
+          "mean": 7.08
+        },
+        {
+          "object": "Pepsi Max",
+          "mean": 6.72
+        },
+        {
+          "object": "Coca-Cola Zero",
+          "mean": 6.64
+        }
+      ]
+    }
+  ],
+  "object_means": {
+    "Coca-Cola": 5.152,
+    "Coca-Cola Zero": 6.025,
+    "Pepsi Max": 5.817,
+    "Red Bull": 5.62,
+    "Monster": 5.698,
+    "Mattoni": 5.977,
+    "Vinea": 5.197,
+    "Kofola": 5.335
+  },
+  "method_note": "Ilustrační syntetický dataset; výsledky demonstrují schopnosti mapování, nejsou tržním měřením."
+}

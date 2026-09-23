@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "04_MESTO_2035_POLICY_DEMO",
+  "project_id": "PRJ-DEMO-MESTO-2035",
+  "title": "Město 2035 DEMO",
+  "domain": "Veřejná politika / městská správa",
+  "study_type": "Policy acceptance a trade-off research",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Město zvažuje nový dopravní balíček. Potřebujeme zjistit, které kombinace parkování, MHD, cykloinfrastruktury a nízkoemisních opatření jsou přijatelné.",
+    "decision": "Vybrat policy package s nejvyšší veřejnou přijatelností a nejnižší polarizací."
+  },
+  "executive_answer": "Samostatné restrikce mají nízkou podporu. Nejlépe funguje vyvážený balíček „Invest & Manage“: zlepšení MHD + rezidentní parkování + postupné řízení vjezdu do centra. Přijatelnost roste, když lidé vidí konkrétní protihodnotu.",
+  "recommendation": "Preferovat Invest & Manage a komunikovat trade-off transparentně; největší riziko je zavedení restrikcí před zlepšením alternativ.",
+  "audience": {
+    "population": "Obyvatelé fiktivního města 18+, včetně řidičů, MHD uživatelů a cyklistů",
+    "n": 1300,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jak se obvykle pohybujete po městě?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Které dopravní problémy považujete za nejzávažnější?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Jak hodnotíte čtyři policy balíčky na stejné sadě kritérií?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Jak spravedlivé jsou dopady na různé skupiny?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Které podmínky by zvýšily vaši přijatelnost opatření?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Který balíček byste celkově podpořili?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Status quo",
+      "description": "Bez zásadní změny",
+      "type": "tracked_object",
+      "score": 52,
+      "x": 260,
+      "y": 280
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Restrict first",
+      "description": "Poplatky a omezení vjezdu",
+      "type": "tracked_object",
+      "score": 43,
+      "x": 555,
+      "y": 315
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Transit first",
+      "description": "Silné investice do MHD",
+      "type": "tracked_object",
+      "score": 70,
+      "x": 365,
+      "y": 155
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Invest & Manage",
+      "description": "MHD + parkování + postupné řízení",
+      "type": "tracked_object",
+      "score": 76,
+      "x": 405,
+      "y": 235
+    }
+  ],
+  "metrics": [
+    "Support",
+    "Fairness",
+    "Effectiveness",
+    "Clarity",
+    "Personal acceptability",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      48,
+      54,
+      39,
+      72,
+      63,
+      52
+    ],
+    [
+      34,
+      31,
+      68,
+      59,
+      28,
+      43
+    ],
+    [
+      62,
+      69,
+      73,
+      66,
+      61,
+      70
+    ],
+    [
+      58,
+      72,
+      78,
+      71,
+      64,
+      76
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Daily Drivers",
+      "share_pct": 30,
+      "description": "Každodenní automobilová mobilita",
+      "best_object": "Status quo"
+    },
+    {
+      "id": "SEG2",
+      "name": "Multimodal Families",
+      "share_pct": 25,
+      "description": "Auto + MHD podle situace",
+      "best_object": "Invest & Manage"
+    },
+    {
+      "id": "SEG3",
+      "name": "Transit Dependents",
+      "share_pct": 19,
+      "description": "Primárně MHD",
+      "best_object": "Transit first"
+    },
+    {
+      "id": "SEG4",
+      "name": "Urban Greens",
+      "share_pct": 14,
+      "description": "Emise a veřejný prostor",
+      "best_object": "Invest & Manage"
+    },
+    {
+      "id": "SEG5",
+      "name": "Outer District Residents",
+      "share_pct": 12,
+      "description": "Citlivost na dostupnost centra",
+      "best_object": "Invest & Manage"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base mobility",
+      "winner": "Invest & Manage",
+      "primary_metric": 58,
+      "overall": 76,
+      "assumption": "Současný modal split"
+    },
+    {
+      "id": "W2",
+      "name": "Fuel price up",
+      "winner": "Invest & Manage",
+      "primary_metric": 61,
+      "overall": 78,
+      "assumption": "Vyšší náklady automobilů"
+    },
+    {
+      "id": "W3",
+      "name": "Transit reliability low",
+      "winner": "Invest & Manage",
+      "primary_metric": 53,
+      "overall": 72,
+      "assumption": "Nižší důvěra v MHD"
+    },
+    {
+      "id": "W4",
+      "name": "Air quality concern",
+      "winner": "Invest & Manage",
+      "primary_metric": 62,
+      "overall": 80,
+      "assumption": "Vyšší environmentální salience"
+    },
+    {
+      "id": "W5",
+      "name": "Outer districts weight",
+      "winner": "Invest & Manage",
+      "primary_metric": 55,
+      "overall": 74,
+      "assumption": "Vyšší váha okrajových částí"
+    },
+    {
+      "id": "W6",
+      "name": "Parking pressure",
+      "winner": "Invest & Manage",
+      "primary_metric": 60,
+      "overall": 77,
+      "assumption": "Vyšší problém s parkováním"
+    },
+    {
+      "id": "W7",
+      "name": "Economic squeeze",
+      "winner": "Invest & Manage",
+      "primary_metric": 54,
+      "overall": 73,
+      "assumption": "Vyšší cenová citlivost"
+    },
+    {
+      "id": "W8",
+      "name": "Visible transit gains",
+      "winner": "Invest & Manage",
+      "primary_metric": 62,
+      "overall": 81,
+      "assumption": "Viditelné zlepšení MHD"
+    }
+  ],
+  "findings": [
+    "Lidé odmítají restrikci bez viditelné protihodnoty.",
+    "Fairness je téměř stejně důležitá jako očekávaná efektivita.",
+    "Transit first má vysokou podporu, ale neřeší celý problém parkování a centra.",
+    "Invest & Manage je jediný balíček s většinovou podporou napříč hlavními skupinami."
+  ],
+  "risks": [
+    "Deklarovaná podpora se může změnit po zavedení konkrétních sazeb.",
+    "Geografické dopady je nutné ověřit na reálných datech.",
+    "Výsledky nepředstavují právní ani dopravní posouzení."
+  ],
+  "primary_metric": "Policy support",
+  "primary_value": 58,
+  "world_range": "53–62 %",
+  "winner_stability": "8/8",
+  "overall": 76,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Status quo",
+        "type": "object",
+        "score": 52,
+        "x": 260,
+        "y": 280,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Restrict first",
+        "type": "object",
+        "score": 43,
+        "x": 555,
+        "y": 315,
+        "color": "#3c9890"
+      },
+      {
+        "name": "Transit first",
+        "type": "object",
+        "score": 70,
+        "x": 365,
+        "y": 155,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Invest & Manage",
+        "type": "object",
+        "score": 76,
+        "x": 405,
+        "y": 235,
+        "color": "#299764"
+      },
+      {
+        "name": "Fairness",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Effectiveness",
+        "type": "anchor",
+        "x": 520,
+        "y": 225,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Osobní dopad",
+        "type": "anchor",
+        "x": 160,
+        "y": 210,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Srozumitelnost",
+        "type": "anchor",
+        "x": 350,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 7,
+        "weight": 0.71
+      },
+      {
+        "from": 0,
+        "to": 6,
+        "weight": 0.69
+      },
+      {
+        "from": 1,
+        "to": 5,
+        "weight": 0.76
+      },
+      {
+        "from": 1,
+        "to": 7,
+        "weight": 0.48
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "weight": 0.89
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.57
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.71
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "weight": 0.69
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

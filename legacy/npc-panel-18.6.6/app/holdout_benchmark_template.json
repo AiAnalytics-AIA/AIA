@@ -1,0 +1,16 @@
+{
+  "questions": [
+    {
+      "id": "H01",
+      "holdout_id": "UNIQUE_SOURCE_WAVE_ITEM_ID",
+      "holdout_source": "Název skutečného human průzkumu + vlna + datum",
+      "human_n": 1000,
+      "text": "SEM VLOŽTE SKUTEČNOU HOLDOUT OTÁZKU, KTERÁ NEBYLA POUŽITA PŘI STAVBĚ PANELU",
+      "typ": "vyber",
+      "kategorie": ["možnost A", "možnost B"],
+      "povolit_nevim": false,
+      "topics": ["sluzby"],
+      "truth_pct": {"možnost A": 50.0, "možnost B": 50.0}
+    }
+  ]
+}

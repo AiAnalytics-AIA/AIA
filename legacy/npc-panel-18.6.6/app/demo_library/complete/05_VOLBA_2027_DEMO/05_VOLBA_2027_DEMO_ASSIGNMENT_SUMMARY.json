@@ -1,0 +1,32 @@
+{
+  "client_need": "Neutrálně porovnat formáty veřejné předvolební debaty z hlediska důvěry, férovosti a informační hodnoty.",
+  "primary_decision": "Vybrat formát debaty pro veřejnoprávní/mediální použití, nikoli optimalizovat persuazi konkrétního kandidáta.",
+  "success_definition": "Formát má být vnímán jako férový, informačně přínosný, srozumitelný a dostatečně atraktivní pro sledování.",
+  "questions": [
+    "Který formát posiluje důvěru ve férovost debaty?",
+    "Jaký je trade-off mezi dynamikou a informační hloubkou?",
+    "Jak se liší preference formátu podle politického zájmu a věku?",
+    "Kdy fact-check zvyšuje vs. snižuje důvěru?"
+  ],
+  "inputs": [
+    "Čtyři neutrální formáty debaty.",
+    "Syntetický agregovaný vzorek dospělé populace.",
+    "8 světů mění polarizaci, důvěru v média, informační únavu, zájem o politiku a časovou dostupnost."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Targeting konkrétních voličů.",
+    "Doporučení, jak přesvědčit konkrétní segment.",
+    "Optimalizace volební kampaně kandidáta nebo strany."
+  ]
+}

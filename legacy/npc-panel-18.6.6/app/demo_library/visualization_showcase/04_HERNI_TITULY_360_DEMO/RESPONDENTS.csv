@@ -1,0 +1,601 @@
+﻿respondent_id,segment,dem_gender,dem_age,dem_region,dem_education,dem_income,att_competitive,att_social,att_creative,att_story,att_casual,att_sports,att_challenge,beh_sport_frequency,beh_novelty_openness,obj_EA Sports FC,obj_Fortnite,obj_Minecraft,obj_GTA Online,obj_Call of Duty,obj_League of Legends,obj_The Sims,obj_Baldur’s Gate 3
+04R0001,Příběhoví hráči,muž,33,Plzeňský,ZŠ / vyučení,80 tis. +,7,4,7,9,3,6,7,5,3,5,6,5,5,7,5,5,7
+04R0002,Kreativní stavitelé,žena,35,Ústecký,ZŠ / vyučení,30–50 tis.,6,4,8,5,6,5,7,5,8,4,7,9,4,7,4,7,5
+04R0003,Kompetitivní online,žena,18,Moravskoslezský,VŠ,30–50 tis.,7,6,6,4,6,5,6,6,7,6,6,6,7,7,7,6,4
+04R0004,Příběhoví hráči,žena,42,Jihomoravský,SŠ s maturitou,80 tis. +,5,5,2,9,6,7,5,6,5,7,3,3,5,4,6,6,9
+04R0005,Kompetitivní online,muž,18,Středočeský,SŠ s maturitou,30–50 tis.,8,7,6,5,3,6,7,7,5,9,6,5,6,9,8,4,6
+04R0006,Kompetitivní online,žena,33,Jihomoravský,SŠ s maturitou,80 tis. +,8,9,4,5,8,7,9,7,4,7,6,4,9,9,8,6,4
+04R0007,Kompetitivní online,žena,39,Ústecký,SŠ s maturitou,50–80 tis.,8,6,3,6,5,4,8,6,3,7,7,5,9,10,10,4,6
+04R0008,Casual a social,muž,40,Jihomoravský,SŠ s maturitou,80 tis. +,7,5,5,6,8,6,4,5,3,8,7,4,5,5,5,6,5
+04R0009,Příběhoví hráči,muž,36,Jihomoravský,SŠ s maturitou,do 30 tis.,6,6,5,8,4,3,8,2,6,2,6,3,6,5,6,3,6
+04R0010,Kompetitivní online,žena,18,Ústecký,ZŠ / vyučení,30–50 tis.,8,6,6,5,6,4,5,6,7,5,8,7,7,6,8,6,5
+04R0011,Kompetitivní online,žena,44,Praha,SŠ s maturitou,50–80 tis.,10,6,6,6,3,5,7,5,5,8,10,5,6,8,9,4,7
+04R0012,Casual a social,muž,18,Olomoucký,VŠ,50–80 tis.,5,6,5,4,8,6,4,6,4,6,6,5,5,4,7,7,4
+04R0013,Kompetitivní online,žena,18,Olomoucký,SŠ s maturitou,30–50 tis.,7,5,7,4,7,6,8,2,7,6,4,6,5,8,6,6,5
+04R0014,Casual a social,muž,18,Středočeský,SŠ s maturitou,30–50 tis.,8,6,6,6,9,7,5,7,4,7,6,7,4,5,6,7,5
+04R0015,Kreativní stavitelé,žena,38,Ústecký,SŠ s maturitou,do 30 tis.,6,4,8,7,5,4,6,6,4,5,4,8,6,6,5,6,6
+04R0016,Kreativní stavitelé,žena,19,Moravskoslezský,ZŠ / vyučení,80 tis. +,5,5,8,6,5,6,4,3,6,6,5,6,5,4,4,6,6
+04R0017,Kreativní stavitelé,žena,53,Moravskoslezský,VŠ,30–50 tis.,4,6,8,7,7,5,5,4,5,3,5,9,6,3,2,7,7
+04R0018,Kompetitivní online,žena,18,Jihomoravský,ZŠ / vyučení,do 30 tis.,9,7,5,5,4,5,8,4,5,5,7,4,7,8,8,3,4
+04R0019,Kreativní stavitelé,žena,37,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,5,8,7,9,6,5,9,6,6,6,8,5,6,5,8,6
+04R0020,Kompetitivní online,žena,22,Jihomoravský,ZŠ / vyučení,30–50 tis.,9,10,6,5,6,5,8,5,5,6,8,6,10,9,8,7,5
+04R0021,Kompetitivní online,žena,37,Středočeský,VŠ,30–50 tis.,7,9,6,6,7,7,8,4,6,10,7,7,10,7,7,5,7
+04R0022,Kompetitivní online,muž,18,Plzeňský,SŠ s maturitou,do 30 tis.,7,6,4,4,4,5,8,3,4,6,3,4,6,7,7,3,5
+04R0023,Casual a social,muž,18,Středočeský,SŠ s maturitou,80 tis. +,6,7,7,4,8,2,5,2,5,5,7,8,8,7,7,7,4
+04R0024,Sportovní mainstream,žena,27,Ústecký,ZŠ / vyučení,30–50 tis.,8,7,6,6,7,10,6,7,6,7,9,6,6,7,5,6,4
+04R0025,Sportovní mainstream,muž,67,Olomoucký,VŠ,do 30 tis.,8,4,5,6,5,10,6,6,6,9,6,6,5,9,8,5,7
+04R0026,Casual a social,muž,18,Jihočeský,ZŠ / vyučení,80 tis. +,6,7,5,7,8,7,6,5,6,7,7,6,6,7,6,8,6
+04R0027,Casual a social,žena,18,Jihočeský,ZŠ / vyučení,50–80 tis.,5,7,5,7,7,6,4,6,6,6,8,5,6,5,5,6,5
+04R0028,Kompetitivní online,žena,45,Moravskoslezský,ZŠ / vyučení,30–50 tis.,8,8,5,8,7,5,8,5,2,5,10,5,7,8,9,5,7
+04R0029,Casual a social,muž,45,Plzeňský,SŠ s maturitou,50–80 tis.,6,8,5,5,9,4,4,6,4,5,5,6,6,4,4,7,5
+04R0030,Kreativní stavitelé,muž,42,Olomoucký,VŠ,50–80 tis.,5,5,10,6,5,6,8,4,7,6,4,9,4,6,6,7,4
+04R0031,Kreativní stavitelé,žena,61,Plzeňský,ZŠ / vyučení,80 tis. +,5,3,7,6,4,4,5,4,7,5,6,5,5,6,5,5,6
+04R0032,Sportovní mainstream,žena,21,Středočeský,ZŠ / vyučení,30–50 tis.,7,5,5,7,5,8,4,6,4,8,5,5,6,5,8,4,5
+04R0033,Sportovní mainstream,žena,34,Ústecký,SŠ s maturitou,do 30 tis.,6,6,5,7,7,7,5,7,6,8,6,7,8,7,7,6,7
+04R0034,Sportovní mainstream,muž,46,Ústecký,SŠ s maturitou,do 30 tis.,7,7,7,5,6,8,6,4,9,7,7,6,7,7,7,6,4
+04R0035,Příběhoví hráči,muž,18,Ústecký,ZŠ / vyučení,50–80 tis.,7,4,8,9,5,6,7,3,2,4,6,8,6,7,8,5,9
+04R0036,Příběhoví hráči,muž,56,Ústecký,ZŠ / vyučení,50–80 tis.,5,6,5,8,7,6,7,2,7,5,6,6,4,5,6,5,6
+04R0037,Kreativní stavitelé,žena,26,Středočeský,SŠ s maturitou,50–80 tis.,6,8,4,5,9,5,5,4,7,6,5,6,6,6,6,6,6
+04R0038,Příběhoví hráči,muž,24,Jihomoravský,VŠ,30–50 tis.,8,4,6,8,5,4,6,8,4,4,6,7,4,6,7,4,6
+04R0039,Casual a social,žena,37,Olomoucký,SŠ s maturitou,50–80 tis.,4,6,7,5,8,3,6,6,6,2,5,8,7,5,4,8,4
+04R0040,Kreativní stavitelé,žena,63,Moravskoslezský,ZŠ / vyučení,do 30 tis.,6,5,9,5,6,5,6,3,2,6,4,6,3,6,4,7,4
+04R0041,Casual a social,muž,30,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,6,7,6,8,6,4,6,4,5,6,6,6,3,5,8,6
+04R0042,Sportovní mainstream,žena,38,Jihočeský,SŠ s maturitou,30–50 tis.,8,5,6,5,4,8,6,7,4,6,6,6,7,8,8,5,7
+04R0043,Kompetitivní online,žena,41,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,7,4,3,7,4,7,4,7,4,6,6,7,5,8,5,4
+04R0044,Kompetitivní online,muž,18,Praha,ZŠ / vyučení,50–80 tis.,9,6,4,6,5,4,7,4,6,3,6,4,5,10,9,4,6
+04R0045,Kreativní stavitelé,žena,49,Ústecký,SŠ s maturitou,30–50 tis.,7,4,8,7,6,7,5,6,10,7,6,8,6,4,6,8,7
+04R0046,Sportovní mainstream,muž,34,Jihomoravský,VŠ,do 30 tis.,4,5,5,3,5,8,5,4,6,7,4,3,6,4,4,5,2
+04R0047,Kreativní stavitelé,muž,56,Moravskoslezský,VŠ,do 30 tis.,4,6,8,6,8,5,7,4,5,4,6,6,5,7,7,8,7
+04R0048,Příběhoví hráči,žena,34,Jihomoravský,ZŠ / vyučení,50–80 tis.,8,3,6,9,4,7,6,5,6,6,4,6,5,5,8,4,8
+04R0049,Kreativní stavitelé,žena,18,Praha,VŠ,30–50 tis.,5,5,8,5,6,5,4,6,5,3,6,7,5,4,4,7,5
+04R0050,Sportovní mainstream,muž,32,Jihočeský,VŠ,30–50 tis.,6,4,5,6,8,7,5,5,3,8,5,7,4,4,4,6,6
+04R0051,Kompetitivní online,žena,33,Olomoucký,VŠ,50–80 tis.,7,6,8,7,6,6,6,8,4,6,5,6,4,6,5,7,6
+04R0052,Kompetitivní online,žena,49,Olomoucký,ZŠ / vyučení,50–80 tis.,7,8,7,4,4,5,8,4,6,6,8,6,7,6,6,5,5
+04R0053,Kompetitivní online,žena,22,Jihomoravský,SŠ s maturitou,do 30 tis.,9,7,6,6,6,5,7,3,6,6,9,7,7,7,8,6,5
+04R0054,Sportovní mainstream,muž,50,Plzeňský,ZŠ / vyučení,50–80 tis.,7,5,5,5,6,7,5,7,7,7,6,5,4,6,7,7,6
+04R0055,Sportovní mainstream,žena,44,Jihomoravský,ZŠ / vyučení,30–50 tis.,5,5,4,4,6,10,7,9,4,9,3,2,6,7,6,6,4
+04R0056,Sportovní mainstream,žena,27,Jihomoravský,ZŠ / vyučení,50–80 tis.,6,3,5,5,4,8,7,7,5,8,2,3,4,5,6,3,3
+04R0057,Sportovní mainstream,muž,34,Jihočeský,SŠ s maturitou,30–50 tis.,7,4,6,6,6,9,6,5,5,7,5,6,3,7,5,6,5
+04R0058,Příběhoví hráči,muž,22,Jihomoravský,SŠ s maturitou,do 30 tis.,5,5,4,7,5,4,7,7,7,3,4,3,4,5,6,4,4
+04R0059,Sportovní mainstream,muž,55,Olomoucký,SŠ s maturitou,30–50 tis.,7,7,6,6,5,8,4,8,7,5,7,5,7,5,6,4,6
+04R0060,Casual a social,muž,18,Praha,ZŠ / vyučení,30–50 tis.,7,9,6,5,8,5,6,4,5,5,8,8,5,6,5,9,5
+04R0061,Kompetitivní online,muž,34,Praha,ZŠ / vyučení,80 tis. +,9,8,4,6,7,5,8,6,4,6,10,5,9,9,7,5,6
+04R0062,Příběhoví hráči,muž,58,Středočeský,VŠ,do 30 tis.,8,5,5,8,7,6,5,8,9,7,5,6,3,6,4,5,6
+04R0063,Casual a social,žena,23,Plzeňský,VŠ,50–80 tis.,7,9,5,3,8,3,7,6,8,5,7,6,7,6,5,4,3
+04R0064,Příběhoví hráči,žena,41,Praha,ZŠ / vyučení,do 30 tis.,7,5,6,9,4,6,6,4,4,5,5,5,5,4,4,3,6
+04R0065,Sportovní mainstream,žena,37,Jihomoravský,VŠ,30–50 tis.,5,6,6,4,5,6,6,8,5,5,5,5,7,5,3,5,6
+04R0066,Příběhoví hráči,muž,51,Moravskoslezský,VŠ,do 30 tis.,5,4,5,8,5,6,8,8,5,6,4,4,4,4,5,4,8
+04R0067,Sportovní mainstream,žena,42,Praha,VŠ,50–80 tis.,6,5,3,3,6,10,7,7,6,7,5,3,6,7,6,4,3
+04R0068,Příběhoví hráči,muž,32,Středočeský,SŠ s maturitou,50–80 tis.,5,6,7,9,4,5,5,6,6,6,6,7,6,5,6,6,8
+04R0069,Casual a social,muž,36,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,8,5,7,7,5,4,6,4,3,6,8,6,5,6,6,5
+04R0070,Casual a social,žena,19,Ústecký,ZŠ / vyučení,30–50 tis.,5,5,6,7,5,4,4,2,4,3,3,3,6,4,4,4,6
+04R0071,Kreativní stavitelé,muž,56,Moravskoslezský,VŠ,50–80 tis.,3,6,8,5,7,5,5,4,7,4,5,7,3,4,4,9,2
+04R0072,Kompetitivní online,muž,18,Jihomoravský,SŠ s maturitou,do 30 tis.,7,8,6,8,7,6,8,4,3,7,8,7,9,6,7,7,8
+04R0073,Příběhoví hráči,muž,18,Jihomoravský,SŠ s maturitou,30–50 tis.,4,5,5,8,6,4,7,5,6,3,2,3,4,4,4,3,5
+04R0074,Casual a social,muž,64,Ústecký,SŠ s maturitou,do 30 tis.,6,8,6,6,8,4,4,4,7,5,8,8,6,6,4,6,5
+04R0075,Casual a social,žena,18,Moravskoslezský,ZŠ / vyučení,80 tis. +,6,8,5,5,8,5,4,2,7,5,5,7,6,5,8,7,5
+04R0076,Sportovní mainstream,muž,31,Středočeský,SŠ s maturitou,50–80 tis.,7,4,5,6,6,8,8,5,3,6,4,5,6,8,6,6,5
+04R0077,Sportovní mainstream,žena,41,Ústecký,SŠ s maturitou,do 30 tis.,7,5,8,4,5,7,6,5,5,5,7,7,5,8,7,5,5
+04R0078,Casual a social,muž,38,Jihočeský,ZŠ / vyučení,30–50 tis.,5,7,6,6,9,3,7,3,5,3,6,6,5,5,7,6,5
+04R0079,Příběhoví hráči,žena,50,Jihomoravský,VŠ,80 tis. +,5,5,6,9,4,4,5,5,3,4,4,6,5,4,3,5,8
+04R0080,Příběhoví hráči,muž,44,Ústecký,ZŠ / vyučení,30–50 tis.,7,7,5,7,5,3,4,8,5,4,8,7,7,8,7,5,7
+04R0081,Příběhoví hráči,žena,52,Olomoucký,ZŠ / vyučení,do 30 tis.,9,6,7,8,4,6,6,7,4,7,9,4,6,8,8,4,7
+04R0082,Casual a social,žena,18,Středočeský,ZŠ / vyučení,do 30 tis.,5,7,5,6,10,5,6,6,7,5,6,8,7,7,3,8,7
+04R0083,Casual a social,muž,28,Plzeňský,VŠ,50–80 tis.,7,8,7,6,6,5,5,3,5,6,8,6,7,8,6,6,3
+04R0084,Sportovní mainstream,žena,42,Olomoucký,SŠ s maturitou,50–80 tis.,6,5,5,8,7,9,6,2,6,6,4,5,5,6,5,6,6
+04R0085,Kompetitivní online,žena,30,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,6,7,5,8,6,7,3,5,8,8,6,5,9,8,6,6
+04R0086,Příběhoví hráči,žena,40,Olomoucký,VŠ,do 30 tis.,3,5,7,7,4,3,4,8,5,4,4,7,5,4,6,4,7
+04R0087,Casual a social,žena,28,Praha,SŠ s maturitou,80 tis. +,6,6,5,4,8,3,7,6,5,4,5,5,7,7,7,8,5
+04R0088,Kreativní stavitelé,muž,55,Jihomoravský,SŠ s maturitou,30–50 tis.,6,7,10,3,8,5,6,3,3,4,6,7,4,5,5,9,4
+04R0089,Casual a social,žena,18,Středočeský,SŠ s maturitou,30–50 tis.,5,8,5,5,7,7,5,7,3,6,6,6,8,6,6,6,7
+04R0090,Kompetitivní online,žena,42,Ústecký,SŠ s maturitou,80 tis. +,8,7,6,7,6,6,7,8,4,6,7,6,5,8,7,5,7
+04R0091,Kompetitivní online,muž,22,Jihomoravský,ZŠ / vyučení,do 30 tis.,8,7,5,6,5,6,7,2,8,8,7,7,8,6,9,7,7
+04R0092,Příběhoví hráči,žena,37,Středočeský,SŠ s maturitou,50–80 tis.,7,5,6,8,6,5,6,4,6,5,5,5,4,7,8,7,6
+04R0093,Příběhoví hráči,žena,42,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,6,6,9,5,5,7,4,5,6,6,8,6,7,6,6,8
+04R0094,Kreativní stavitelé,muž,26,Moravskoslezský,ZŠ / vyučení,50–80 tis.,6,5,9,5,3,7,4,7,4,6,4,8,5,5,4,6,5
+04R0095,Sportovní mainstream,žena,39,Jihomoravský,VŠ,do 30 tis.,7,5,4,5,7,8,6,7,6,8,5,4,6,7,8,7,5
+04R0096,Příběhoví hráči,žena,29,Středočeský,ZŠ / vyučení,50–80 tis.,6,7,5,8,6,6,7,4,8,6,6,5,7,6,4,5,6
+04R0097,Kreativní stavitelé,žena,38,Moravskoslezský,ZŠ / vyučení,30–50 tis.,8,6,8,5,6,5,5,5,6,5,6,6,6,7,6,6,6
+04R0098,Sportovní mainstream,žena,28,Olomoucký,VŠ,30–50 tis.,6,5,7,5,5,7,5,6,4,5,3,5,3,4,6,4,3
+04R0099,Sportovní mainstream,muž,61,Plzeňský,SŠ s maturitou,30–50 tis.,7,5,4,7,5,8,5,6,5,7,5,5,5,6,8,5,9
+04R0100,Příběhoví hráči,muž,18,Praha,SŠ s maturitou,50–80 tis.,7,6,4,8,5,8,7,6,6,7,7,6,6,6,7,5,6
+04R0101,Kompetitivní online,muž,18,Jihočeský,VŠ,do 30 tis.,7,5,7,4,4,7,9,6,3,7,6,7,8,6,6,5,4
+04R0102,Kompetitivní online,žena,19,Ústecký,SŠ s maturitou,30–50 tis.,10,9,4,3,3,4,9,6,6,7,10,5,9,10,9,3,6
+04R0103,Sportovní mainstream,žena,37,Moravskoslezský,VŠ,30–50 tis.,7,8,5,6,6,7,5,7,7,7,7,5,4,8,5,6,6
+04R0104,Sportovní mainstream,muž,27,Jihočeský,SŠ s maturitou,do 30 tis.,6,6,8,6,7,7,6,3,7,5,5,9,3,5,5,6,5
+04R0105,Příběhoví hráči,muž,41,Ústecký,SŠ s maturitou,50–80 tis.,6,8,8,8,6,6,6,6,5,8,8,7,7,7,5,7,7
+04R0106,Příběhoví hráči,muž,21,Plzeňský,SŠ s maturitou,30–50 tis.,6,5,5,9,6,6,7,4,4,4,7,5,6,7,6,6,9
+04R0107,Kreativní stavitelé,muž,36,Moravskoslezský,SŠ s maturitou,50–80 tis.,4,6,8,6,6,6,5,2,4,6,4,6,5,6,6,9,5
+04R0108,Příběhoví hráči,muž,39,Středočeský,SŠ s maturitou,50–80 tis.,6,5,7,8,3,5,7,5,6,4,5,5,5,8,9,3,7
+04R0109,Příběhoví hráči,muž,39,Olomoucký,ZŠ / vyučení,30–50 tis.,4,6,5,9,8,6,6,8,7,5,4,5,6,5,6,7,7
+04R0110,Kreativní stavitelé,žena,22,Olomoucký,SŠ s maturitou,do 30 tis.,5,4,7,7,5,8,7,4,7,6,4,5,4,4,5,5,8
+04R0111,Kompetitivní online,muž,46,Ústecký,SŠ s maturitou,30–50 tis.,6,7,5,4,7,5,9,5,5,5,7,5,7,7,7,7,4
+04R0112,Kompetitivní online,muž,46,Praha,SŠ s maturitou,30–50 tis.,9,8,4,7,5,6,5,6,8,7,9,7,8,6,8,5,5
+04R0113,Příběhoví hráči,žena,46,Plzeňský,VŠ,50–80 tis.,3,6,5,10,5,7,7,5,7,5,3,6,7,5,6,5,9
+04R0114,Sportovní mainstream,muž,50,Jihomoravský,ZŠ / vyučení,do 30 tis.,6,5,5,7,7,9,4,3,4,8,5,5,4,5,4,5,5
+04R0115,Příběhoví hráči,žena,41,Olomoucký,VŠ,30–50 tis.,6,6,4,7,4,6,5,7,5,5,6,5,6,5,5,4,6
+04R0116,Kompetitivní online,žena,45,Plzeňský,ZŠ / vyučení,50–80 tis.,8,5,5,5,4,6,7,7,8,5,8,3,6,6,7,5,5
+04R0117,Příběhoví hráči,žena,36,Olomoucký,ZŠ / vyučení,30–50 tis.,5,6,5,9,6,3,6,7,5,5,6,5,7,7,7,6,8
+04R0118,Sportovní mainstream,žena,30,Olomoucký,SŠ s maturitou,30–50 tis.,8,4,5,6,5,8,2,3,7,7,4,5,3,7,6,4,4
+04R0119,Kompetitivní online,žena,20,Jihomoravský,SŠ s maturitou,30–50 tis.,8,6,7,6,5,4,6,4,2,5,8,6,5,6,6,7,6
+04R0120,Casual a social,žena,22,Jihomoravský,SŠ s maturitou,do 30 tis.,6,7,5,6,6,5,6,8,4,7,5,5,6,5,4,4,6
+04R0121,Kompetitivní online,muž,25,Plzeňský,VŠ,80 tis. +,8,7,9,5,7,4,8,10,6,6,8,8,7,9,8,8,7
+04R0122,Kreativní stavitelé,muž,18,Středočeský,SŠ s maturitou,30–50 tis.,5,7,8,7,5,8,4,5,7,7,7,8,6,4,5,8,7
+04R0123,Casual a social,muž,40,Plzeňský,SŠ s maturitou,80 tis. +,6,5,4,7,9,7,6,4,7,8,6,5,6,6,5,6,7
+04R0124,Kompetitivní online,muž,35,Středočeský,SŠ s maturitou,do 30 tis.,10,7,7,6,5,4,10,5,5,7,9,6,7,10,6,6,5
+04R0125,Kompetitivní online,žena,36,Moravskoslezský,SŠ s maturitou,30–50 tis.,9,7,4,5,5,7,8,4,5,8,7,5,9,9,7,6,6
+04R0126,Casual a social,žena,38,Středočeský,ZŠ / vyučení,do 30 tis.,5,7,4,7,7,5,7,5,6,5,5,5,8,5,6,6,6
+04R0127,Casual a social,muž,36,Středočeský,SŠ s maturitou,do 30 tis.,6,9,5,6,8,3,7,5,4,3,7,6,8,7,5,6,8
+04R0128,Sportovní mainstream,žena,45,Praha,SŠ s maturitou,80 tis. +,7,8,6,4,8,9,5,8,6,7,7,7,6,4,7,6,3
+04R0129,Casual a social,žena,22,Jihomoravský,VŠ,30–50 tis.,6,8,4,4,7,4,6,6,7,4,4,3,4,6,4,2,4
+04R0130,Casual a social,žena,30,Ústecký,VŠ,30–50 tis.,6,8,4,3,7,5,5,6,6,6,7,5,6,6,7,5,3
+04R0131,Kompetitivní online,muž,32,Plzeňský,VŠ,30–50 tis.,5,6,6,4,6,4,8,2,4,4,4,7,7,4,5,5,4
+04R0132,Sportovní mainstream,muž,27,Praha,ZŠ / vyučení,do 30 tis.,6,5,4,6,5,8,5,8,6,8,3,4,4,5,5,7,6
+04R0133,Příběhoví hráči,žena,38,Jihočeský,SŠ s maturitou,80 tis. +,3,4,7,9,6,5,6,7,5,6,3,7,4,5,4,4,7
+04R0134,Kreativní stavitelé,muž,47,Praha,SŠ s maturitou,80 tis. +,7,5,9,6,5,5,6,7,7,4,5,7,4,4,5,6,5
+04R0135,Sportovní mainstream,žena,60,Ústecký,SŠ s maturitou,30–50 tis.,6,5,5,6,6,8,5,3,8,7,4,8,5,7,5,5,7
+04R0136,Casual a social,žena,21,Plzeňský,SŠ s maturitou,30–50 tis.,5,7,6,5,8,5,6,6,7,5,4,5,6,5,7,6,5
+04R0137,Kompetitivní online,muž,18,Olomoucký,SŠ s maturitou,30–50 tis.,7,4,5,4,5,7,8,7,6,4,7,5,3,6,8,5,5
+04R0138,Kreativní stavitelé,žena,24,Jihočeský,VŠ,50–80 tis.,4,6,9,7,8,7,6,5,7,6,6,7,8,6,5,10,6
+04R0139,Sportovní mainstream,žena,32,Jihomoravský,VŠ,do 30 tis.,6,4,7,5,4,9,5,7,6,6,5,6,4,5,7,4,2
+04R0140,Sportovní mainstream,žena,36,Jihomoravský,SŠ s maturitou,50–80 tis.,5,4,4,5,5,8,6,2,5,6,3,2,4,3,5,2,4
+04R0141,Sportovní mainstream,žena,22,Plzeňský,VŠ,do 30 tis.,7,5,5,3,6,8,5,6,6,6,4,5,5,7,4,5,3
+04R0142,Sportovní mainstream,žena,29,Středočeský,VŠ,30–50 tis.,6,5,6,6,6,8,5,3,5,6,5,6,4,5,4,6,2
+04R0143,Casual a social,muž,25,Praha,VŠ,do 30 tis.,6,6,6,5,7,5,7,7,4,5,6,6,6,5,5,6,4
+04R0144,Sportovní mainstream,žena,42,Jihomoravský,SŠ s maturitou,80 tis. +,7,6,4,6,7,7,5,7,6,6,5,6,4,6,7,5,7
+04R0145,Casual a social,žena,35,Jihočeský,SŠ s maturitou,50–80 tis.,5,7,7,6,9,6,5,7,4,7,5,5,5,5,4,8,6
+04R0146,Příběhoví hráči,žena,21,Jihomoravský,ZŠ / vyučení,do 30 tis.,7,6,4,8,6,5,7,6,5,5,5,4,6,8,7,6,8
+04R0147,Kompetitivní online,žena,35,Praha,SŠ s maturitou,do 30 tis.,8,6,3,6,6,7,8,4,5,8,5,5,6,7,9,3,5
+04R0148,Kreativní stavitelé,muž,32,Jihočeský,SŠ s maturitou,80 tis. +,6,7,7,6,6,4,6,6,6,6,4,5,5,5,5,6,5
+04R0149,Sportovní mainstream,muž,32,Moravskoslezský,SŠ s maturitou,do 30 tis.,9,7,4,7,5,9,4,2,4,9,6,4,5,6,7,5,4
+04R0150,Sportovní mainstream,muž,27,Středočeský,ZŠ / vyučení,50–80 tis.,6,5,5,4,5,8,3,9,6,6,8,6,5,6,5,6,5
+04R0151,Casual a social,muž,27,Jihočeský,VŠ,30–50 tis.,8,8,4,4,7,5,7,5,8,5,9,4,6,7,7,5,4
+04R0152,Sportovní mainstream,žena,32,Olomoucký,SŠ s maturitou,30–50 tis.,8,5,4,7,6,9,5,7,3,10,6,3,4,6,6,6,5
+04R0153,Kompetitivní online,muž,38,Ústecký,ZŠ / vyučení,50–80 tis.,10,10,6,5,6,6,6,9,7,7,8,6,7,8,8,5,4
+04R0154,Příběhoví hráči,žena,34,Moravskoslezský,VŠ,80 tis. +,5,7,5,7,4,3,5,5,6,5,6,5,4,4,4,4,6
+04R0155,Kompetitivní online,muž,18,Jihomoravský,SŠ s maturitou,50–80 tis.,8,8,6,3,6,7,6,7,6,8,7,8,8,8,8,8,6
+04R0156,Kompetitivní online,žena,48,Středočeský,VŠ,30–50 tis.,8,4,6,7,9,4,8,3,5,4,5,6,5,7,8,8,7
+04R0157,Kompetitivní online,žena,22,Jihomoravský,SŠ s maturitou,50–80 tis.,5,7,6,8,6,7,8,7,7,8,6,7,7,6,5,6,6
+04R0158,Sportovní mainstream,muž,39,Praha,VŠ,80 tis. +,4,6,6,8,3,9,5,7,2,7,4,6,5,4,5,3,6
+04R0159,Kompetitivní online,muž,51,Jihomoravský,SŠ s maturitou,do 30 tis.,10,6,7,6,6,4,7,4,2,5,8,6,5,8,9,5,5
+04R0160,Kompetitivní online,žena,35,Jihomoravský,SŠ s maturitou,80 tis. +,8,8,6,3,5,5,8,2,5,7,8,7,9,9,8,4,5
+04R0161,Kreativní stavitelé,muž,42,Jihočeský,ZŠ / vyučení,50–80 tis.,5,5,9,7,7,6,5,4,5,7,5,9,4,5,5,7,7
+04R0162,Kreativní stavitelé,muž,32,Středočeský,ZŠ / vyučení,80 tis. +,4,6,7,7,7,6,5,3,9,4,5,7,6,3,4,7,5
+04R0163,Kreativní stavitelé,muž,47,Moravskoslezský,SŠ s maturitou,80 tis. +,6,5,8,7,6,5,6,6,4,4,6,6,4,6,5,7,5
+04R0164,Sportovní mainstream,žena,49,Ústecký,SŠ s maturitou,50–80 tis.,8,6,6,7,6,8,6,5,5,8,6,6,5,8,7,5,7
+04R0165,Kompetitivní online,žena,18,Praha,ZŠ / vyučení,do 30 tis.,9,8,4,5,5,5,6,6,5,4,6,5,6,8,6,2,4
+04R0166,Sportovní mainstream,muž,39,Středočeský,VŠ,30–50 tis.,7,5,6,5,3,10,5,4,6,8,6,6,5,6,7,4,4
+04R0167,Sportovní mainstream,žena,61,Středočeský,VŠ,30–50 tis.,5,4,8,6,5,6,5,5,4,5,4,6,3,5,5,7,5
+04R0168,Příběhoví hráči,žena,49,Plzeňský,SŠ s maturitou,30–50 tis.,8,6,3,8,4,6,7,7,6,7,6,5,7,9,7,4,8
+04R0169,Kompetitivní online,muž,31,Olomoucký,SŠ s maturitou,30–50 tis.,7,6,6,6,6,6,8,7,4,6,7,7,6,8,8,7,4
+04R0170,Kreativní stavitelé,muž,35,Středočeský,SŠ s maturitou,50–80 tis.,6,6,8,7,6,7,6,8,5,4,6,7,5,6,5,6,5
+04R0171,Kreativní stavitelé,žena,24,Plzeňský,ZŠ / vyučení,30–50 tis.,4,5,10,5,9,6,6,3,3,4,4,8,5,3,4,6,4
+04R0172,Kreativní stavitelé,muž,45,Středočeský,ZŠ / vyučení,30–50 tis.,6,3,7,7,7,6,7,6,2,5,4,6,5,6,4,6,8
+04R0173,Kreativní stavitelé,žena,30,Moravskoslezský,VŠ,50–80 tis.,6,6,7,5,6,7,7,4,4,7,5,6,5,7,5,7,3
+04R0174,Kompetitivní online,žena,61,Středočeský,VŠ,do 30 tis.,7,7,5,6,7,4,8,5,1,5,8,5,7,8,8,7,8
+04R0175,Kreativní stavitelé,muž,34,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,6,9,7,5,6,6,8,7,7,7,8,5,5,5,6,7
+04R0176,Casual a social,muž,18,Praha,ZŠ / vyučení,30–50 tis.,6,7,5,4,7,7,7,4,7,7,6,5,5,6,7,6,6
+04R0177,Sportovní mainstream,muž,45,Plzeňský,ZŠ / vyučení,do 30 tis.,8,3,6,5,6,10,6,4,6,8,6,5,5,9,7,6,6
+04R0178,Kompetitivní online,muž,30,Praha,VŠ,50–80 tis.,9,7,6,5,3,5,5,4,6,5,7,5,7,8,6,4,6
+04R0179,Kreativní stavitelé,žena,45,Olomoucký,ZŠ / vyučení,50–80 tis.,6,7,5,7,6,6,5,7,4,7,6,6,5,4,5,6,6
+04R0180,Casual a social,muž,18,Jihomoravský,SŠ s maturitou,30–50 tis.,4,10,6,4,9,7,6,3,8,7,8,7,9,7,5,7,7
+04R0181,Kompetitivní online,žena,22,Středočeský,SŠ s maturitou,50–80 tis.,7,7,6,6,5,4,8,4,5,5,5,3,7,7,6,7,6
+04R0182,Casual a social,žena,49,Olomoucký,SŠ s maturitou,80 tis. +,5,8,6,6,9,5,6,1,4,4,6,5,6,6,6,6,5
+04R0183,Příběhoví hráči,žena,37,Jihočeský,SŠ s maturitou,30–50 tis.,5,6,6,8,4,7,7,6,6,7,5,4,6,4,5,6,8
+04R0184,Kreativní stavitelé,žena,28,Olomoucký,SŠ s maturitou,80 tis. +,7,5,9,6,8,4,4,5,3,3,5,6,3,5,5,8,4
+04R0185,Sportovní mainstream,muž,45,Jihočeský,SŠ s maturitou,30–50 tis.,7,7,6,6,4,8,5,9,7,7,6,4,7,7,8,3,6
+04R0186,Kompetitivní online,muž,39,Jihočeský,SŠ s maturitou,80 tis. +,6,8,6,4,8,7,7,7,6,7,7,7,8,6,6,6,4
+04R0187,Sportovní mainstream,muž,35,Plzeňský,SŠ s maturitou,50–80 tis.,5,5,6,4,6,8,5,4,4,5,5,6,3,4,5,6,5
+04R0188,Kompetitivní online,žena,23,Jihočeský,VŠ,30–50 tis.,7,6,5,6,8,5,9,9,6,6,5,6,7,8,9,6,5
+04R0189,Sportovní mainstream,žena,39,Olomoucký,VŠ,do 30 tis.,7,5,4,6,5,8,3,6,7,7,5,3,4,5,5,3,5
+04R0190,Sportovní mainstream,žena,59,Středočeský,SŠ s maturitou,do 30 tis.,6,6,6,7,6,8,7,5,7,7,5,3,4,6,6,5,6
+04R0191,Příběhoví hráči,žena,53,Ústecký,SŠ s maturitou,30–50 tis.,5,6,7,8,3,4,8,6,7,3,4,7,8,7,7,4,8
+04R0192,Kreativní stavitelé,žena,44,Plzeňský,ZŠ / vyučení,do 30 tis.,4,4,8,5,6,5,5,5,5,4,3,5,5,3,3,6,4
+04R0193,Casual a social,muž,35,Moravskoslezský,SŠ s maturitou,50–80 tis.,9,6,6,5,9,4,5,2,4,5,7,6,5,8,9,8,5
+04R0194,Sportovní mainstream,žena,44,Moravskoslezský,VŠ,30–50 tis.,8,5,5,4,6,9,5,6,6,8,7,6,5,6,6,6,4
+04R0195,Kompetitivní online,muž,39,Olomoucký,VŠ,30–50 tis.,10,5,6,2,5,6,5,7,7,8,5,6,4,8,6,5,3
+04R0196,Kompetitivní online,žena,30,Praha,ZŠ / vyučení,50–80 tis.,9,8,4,5,5,4,7,6,6,6,7,4,8,8,8,4,3
+04R0197,Casual a social,žena,50,Praha,SŠ s maturitou,do 30 tis.,6,6,6,5,10,4,7,6,7,4,7,5,6,7,7,9,6
+04R0198,Kompetitivní online,žena,59,Plzeňský,ZŠ / vyučení,50–80 tis.,9,7,5,7,6,4,9,6,4,6,7,6,6,9,8,5,7
+04R0199,Sportovní mainstream,muž,49,Jihomoravský,SŠ s maturitou,30–50 tis.,4,7,6,6,3,9,6,5,9,7,5,8,7,8,7,5,5
+04R0200,Kreativní stavitelé,muž,47,Olomoucký,SŠ s maturitou,50–80 tis.,6,9,7,6,5,5,6,5,3,6,8,7,8,6,6,5,6
+04R0201,Kreativní stavitelé,muž,45,Olomoucký,VŠ,50–80 tis.,6,5,9,4,6,6,4,2,7,6,7,6,3,8,5,8,5
+04R0202,Sportovní mainstream,muž,33,Jihočeský,VŠ,do 30 tis.,7,7,5,6,6,10,5,5,5,9,6,5,4,6,5,4,5
+04R0203,Příběhoví hráči,žena,27,Jihočeský,ZŠ / vyučení,30–50 tis.,5,7,5,9,5,5,6,4,10,5,5,4,7,5,6,6,8
+04R0204,Casual a social,žena,36,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,6,6,4,8,4,6,4,6,5,5,6,5,6,7,7,5
+04R0205,Příběhoví hráči,žena,58,Jihomoravský,ZŠ / vyučení,50–80 tis.,5,5,6,7,6,6,6,6,4,5,4,8,5,6,5,8,4
+04R0206,Příběhoví hráči,muž,21,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,6,5,7,7,4,7,3,5,3,7,4,6,8,5,3,7
+04R0207,Příběhoví hráči,muž,61,Středočeský,SŠ s maturitou,do 30 tis.,5,4,6,8,5,5,7,6,7,6,5,6,6,3,6,6,4
+04R0208,Sportovní mainstream,muž,31,Středočeský,SŠ s maturitou,30–50 tis.,5,6,6,5,3,9,6,5,5,8,5,5,6,6,6,6,6
+04R0209,Kreativní stavitelé,muž,31,Moravskoslezský,ZŠ / vyučení,50–80 tis.,4,6,8,7,9,7,6,4,7,4,3,8,5,3,4,7,6
+04R0210,Kreativní stavitelé,žena,47,Praha,SŠ s maturitou,do 30 tis.,5,7,8,6,7,6,6,5,8,6,5,6,6,4,4,8,6
+04R0211,Casual a social,žena,72,Jihočeský,SŠ s maturitou,30–50 tis.,5,9,6,5,7,6,6,5,3,5,6,7,9,7,5,7,6
+04R0212,Příběhoví hráči,žena,29,Olomoucký,ZŠ / vyučení,30–50 tis.,6,4,5,7,6,7,6,7,8,5,5,5,3,4,6,5,7
+04R0213,Kreativní stavitelé,žena,53,Jihomoravský,ZŠ / vyučení,30–50 tis.,5,7,9,4,7,5,7,9,7,5,6,7,6,7,6,6,4
+04R0214,Příběhoví hráči,muž,26,Plzeňský,VŠ,50–80 tis.,4,6,4,8,6,4,7,9,7,4,4,3,4,5,3,6,7
+04R0215,Sportovní mainstream,žena,35,Jihočeský,SŠ s maturitou,80 tis. +,7,4,7,5,3,8,6,9,7,8,7,5,4,8,8,5,4
+04R0216,Sportovní mainstream,žena,20,Jihomoravský,ZŠ / vyučení,50–80 tis.,9,7,4,5,6,9,8,4,7,8,6,6,7,7,7,5,4
+04R0217,Příběhoví hráči,žena,62,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,6,4,10,6,6,9,4,9,5,5,6,8,7,7,5,10
+04R0218,Příběhoví hráči,žena,18,Plzeňský,SŠ s maturitou,30–50 tis.,6,7,6,8,5,6,6,6,7,5,7,6,7,5,6,5,8
+04R0219,Příběhoví hráči,muž,35,Moravskoslezský,SŠ s maturitou,30–50 tis.,4,5,5,6,6,7,7,5,8,6,6,5,6,5,5,4,5
+04R0220,Příběhoví hráči,muž,52,Plzeňský,SŠ s maturitou,50–80 tis.,6,5,5,9,5,4,6,7,6,4,3,5,5,3,6,5,8
+04R0221,Casual a social,muž,54,Ústecký,ZŠ / vyučení,30–50 tis.,5,7,6,6,7,6,5,4,7,5,6,7,4,6,4,5,3
+04R0222,Kreativní stavitelé,žena,47,Středočeský,VŠ,30–50 tis.,4,6,8,9,5,7,7,7,7,6,4,6,5,6,5,5,6
+04R0223,Sportovní mainstream,žena,35,Středočeský,SŠ s maturitou,50–80 tis.,5,6,6,6,5,9,7,9,4,7,4,5,3,7,4,5,5
+04R0224,Příběhoví hráči,muž,38,Jihomoravský,SŠ s maturitou,30–50 tis.,6,7,4,8,4,5,6,4,7,7,8,7,7,6,6,4,7
+04R0225,Kompetitivní online,muž,46,Ústecký,SŠ s maturitou,50–80 tis.,7,6,6,6,6,5,7,4,8,4,6,7,6,8,6,6,5
+04R0226,Casual a social,muž,28,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,6,7,5,8,5,5,4,5,5,4,7,6,3,5,7,5
+04R0227,Kompetitivní online,žena,19,Moravskoslezský,VŠ,30–50 tis.,8,5,5,3,6,5,7,9,6,6,7,4,6,7,8,4,4
+04R0228,Sportovní mainstream,žena,33,Praha,VŠ,30–50 tis.,8,5,6,7,7,7,4,6,8,8,6,5,4,5,4,6,7
+04R0229,Casual a social,žena,30,Olomoucký,VŠ,50–80 tis.,6,7,5,4,9,5,5,6,5,6,6,6,7,6,5,7,5
+04R0230,Kompetitivní online,žena,22,Plzeňský,SŠ s maturitou,50–80 tis.,6,7,6,4,5,3,7,5,8,3,5,5,7,6,5,4,5
+04R0231,Příběhoví hráči,muž,25,Praha,VŠ,30–50 tis.,6,8,4,8,5,5,6,3,6,5,5,4,6,4,4,3,7
+04R0232,Kreativní stavitelé,žena,21,Moravskoslezský,VŠ,do 30 tis.,3,6,8,6,7,6,4,5,8,6,6,9,6,3,4,8,4
+04R0233,Sportovní mainstream,žena,18,Praha,VŠ,50–80 tis.,5,5,5,6,5,9,6,5,3,8,5,5,5,5,6,5,3
+04R0234,Sportovní mainstream,žena,18,Praha,ZŠ / vyučení,30–50 tis.,6,3,4,6,6,8,5,4,8,7,3,7,4,7,4,7,5
+04R0235,Kreativní stavitelé,muž,31,Moravskoslezský,ZŠ / vyučení,50–80 tis.,6,4,7,4,5,6,6,8,6,5,4,5,4,5,3,6,3
+04R0236,Sportovní mainstream,muž,66,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,6,7,5,5,10,5,4,5,8,6,5,5,6,6,5,5
+04R0237,Kreativní stavitelé,muž,41,Olomoucký,SŠ s maturitou,80 tis. +,5,5,8,8,6,5,5,5,7,5,5,8,3,5,7,6,7
+04R0238,Casual a social,žena,49,Ústecký,SŠ s maturitou,do 30 tis.,6,7,4,4,7,5,5,7,4,5,6,7,7,6,4,4,5
+04R0239,Casual a social,muž,29,Plzeňský,SŠ s maturitou,do 30 tis.,5,6,5,5,7,7,5,5,5,7,8,7,7,7,5,6,6
+04R0240,Casual a social,muž,18,Ústecký,ZŠ / vyučení,do 30 tis.,4,7,5,7,9,5,5,5,5,3,6,5,6,5,3,7,6
+04R0241,Casual a social,muž,47,Jihočeský,VŠ,do 30 tis.,4,7,7,7,7,4,4,7,7,4,5,5,5,3,3,6,6
+04R0242,Sportovní mainstream,muž,50,Jihomoravský,VŠ,do 30 tis.,7,3,7,5,5,9,6,5,7,7,5,6,5,7,6,7,6
+04R0243,Příběhoví hráči,muž,48,Ústecký,SŠ s maturitou,do 30 tis.,6,5,6,8,4,4,6,3,4,5,5,4,6,7,6,7,7
+04R0244,Sportovní mainstream,žena,35,Plzeňský,SŠ s maturitou,50–80 tis.,7,3,6,6,5,8,5,4,8,8,6,3,3,5,5,6,5
+04R0245,Casual a social,žena,33,Ústecký,VŠ,80 tis. +,7,8,5,5,10,4,5,7,5,6,7,6,6,4,6,8,6
+04R0246,Příběhoví hráči,muž,41,Ústecký,SŠ s maturitou,30–50 tis.,6,4,6,9,7,6,6,6,4,7,5,5,5,6,4,6,8
+04R0247,Kreativní stavitelé,muž,48,Olomoucký,VŠ,50–80 tis.,6,5,8,7,8,7,8,7,8,5,6,6,5,7,9,8,7
+04R0248,Příběhoví hráči,muž,18,Jihočeský,SŠ s maturitou,50–80 tis.,7,6,6,8,6,7,6,4,7,5,6,7,5,6,7,6,7
+04R0249,Sportovní mainstream,žena,29,Plzeňský,SŠ s maturitou,do 30 tis.,8,6,6,5,5,9,7,3,5,8,6,3,4,7,6,6,3
+04R0250,Kreativní stavitelé,muž,42,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,9,8,7,4,5,6,9,5,4,7,7,7,5,5,5,4
+04R0251,Kompetitivní online,muž,28,Moravskoslezský,VŠ,30–50 tis.,9,7,4,6,6,8,9,6,5,9,6,6,7,8,9,5,8
+04R0252,Příběhoví hráči,muž,39,Praha,VŠ,80 tis. +,6,5,6,6,7,6,5,6,8,6,4,5,6,6,7,5,5
+04R0253,Sportovní mainstream,muž,30,Středočeský,ZŠ / vyučení,30–50 tis.,7,4,6,3,7,7,6,4,7,7,5,5,5,6,6,5,5
+04R0254,Casual a social,žena,37,Plzeňský,SŠ s maturitou,30–50 tis.,4,5,3,5,9,5,6,7,5,4,5,3,6,5,4,7,4
+04R0255,Kreativní stavitelé,muž,54,Olomoucký,ZŠ / vyučení,50–80 tis.,5,7,9,5,6,5,6,5,4,4,5,8,6,4,5,7,4
+04R0256,Kompetitivní online,muž,23,Středočeský,ZŠ / vyučení,80 tis. +,8,6,5,3,6,7,7,3,4,8,8,5,9,10,8,7,7
+04R0257,Casual a social,žena,21,Plzeňský,SŠ s maturitou,80 tis. +,6,8,7,5,8,6,5,4,4,4,5,8,7,5,6,8,5
+04R0258,Kompetitivní online,žena,35,Jihomoravský,ZŠ / vyučení,50–80 tis.,9,6,5,2,5,6,8,7,5,8,8,4,7,6,8,4,3
+04R0259,Kompetitivní online,žena,37,Moravskoslezský,SŠ s maturitou,do 30 tis.,8,8,6,7,7,6,6,3,5,4,7,7,7,7,4,8,5
+04R0260,Kompetitivní online,žena,18,Ústecký,VŠ,do 30 tis.,8,8,7,4,6,4,6,5,3,6,9,6,7,7,8,5,6
+04R0261,Kompetitivní online,žena,24,Jihočeský,SŠ s maturitou,50–80 tis.,8,6,5,3,4,4,7,5,6,5,8,4,6,6,6,3,4
+04R0262,Kompetitivní online,žena,30,Olomoucký,SŠ s maturitou,do 30 tis.,7,7,4,3,5,6,6,5,4,5,9,5,7,8,7,4,4
+04R0263,Sportovní mainstream,muž,32,Středočeský,VŠ,30–50 tis.,7,5,5,5,4,7,3,5,5,6,7,4,5,5,6,4,5
+04R0264,Casual a social,muž,25,Středočeský,SŠ s maturitou,30–50 tis.,5,7,6,6,9,7,6,6,7,8,5,8,5,6,5,7,6
+04R0265,Příběhoví hráči,žena,57,Ústecký,SŠ s maturitou,30–50 tis.,6,5,4,9,5,7,5,8,5,7,5,4,3,4,7,5,7
+04R0266,Příběhoví hráči,muž,38,Jihomoravský,VŠ,50–80 tis.,5,4,6,8,5,6,6,4,7,4,4,5,4,4,5,4,6
+04R0267,Příběhoví hráči,žena,61,Jihomoravský,VŠ,do 30 tis.,6,6,7,8,6,5,7,6,5,4,6,5,5,4,5,6,6
+04R0268,Příběhoví hráči,žena,24,Jihočeský,VŠ,80 tis. +,3,5,7,9,6,5,7,7,6,5,5,5,7,6,5,6,8
+04R0269,Casual a social,žena,31,Středočeský,VŠ,30–50 tis.,5,5,5,4,7,5,5,4,5,4,6,6,6,4,6,6,5
+04R0270,Casual a social,muž,18,Jihomoravský,VŠ,80 tis. +,7,5,6,6,7,6,8,7,5,7,7,7,7,8,9,7,8
+04R0271,Příběhoví hráči,žena,41,Jihočeský,ZŠ / vyučení,30–50 tis.,4,5,7,6,5,3,6,5,6,2,5,6,5,4,5,5,4
+04R0272,Příběhoví hráči,muž,36,Jihočeský,SŠ s maturitou,50–80 tis.,4,5,6,10,4,5,4,5,6,4,5,5,6,4,3,3,8
+04R0273,Kreativní stavitelé,muž,36,Plzeňský,SŠ s maturitou,80 tis. +,7,4,8,5,7,6,6,4,5,5,5,6,4,6,6,7,6
+04R0274,Kreativní stavitelé,muž,38,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,5,7,5,6,6,5,6,3,5,7,8,5,5,4,5,6
+04R0275,Sportovní mainstream,žena,24,Ústecký,SŠ s maturitou,50–80 tis.,4,5,4,4,6,9,4,7,7,7,4,4,4,4,4,5,3
+04R0276,Příběhoví hráči,muž,35,Praha,SŠ s maturitou,30–50 tis.,7,5,6,8,4,5,9,6,6,5,5,5,6,9,8,4,6
+04R0277,Kreativní stavitelé,muž,35,Olomoucký,ZŠ / vyučení,80 tis. +,7,4,8,4,6,5,5,8,6,4,6,8,6,5,6,7,3
+04R0278,Kompetitivní online,žena,45,Středočeský,SŠ s maturitou,80 tis. +,8,6,6,5,5,5,8,6,5,6,9,7,8,8,9,5,5
+04R0279,Kompetitivní online,muž,21,Jihomoravský,VŠ,do 30 tis.,8,6,5,6,6,6,8,3,4,6,8,3,6,8,8,7,7
+04R0280,Příběhoví hráči,žena,22,Jihomoravský,ZŠ / vyučení,50–80 tis.,5,5,7,8,6,6,6,7,7,6,6,6,7,4,6,5,8
+04R0281,Kreativní stavitelé,žena,34,Jihočeský,SŠ s maturitou,30–50 tis.,4,4,10,6,5,5,5,7,6,5,4,8,4,3,4,7,5
+04R0282,Příběhoví hráči,žena,34,Jihočeský,VŠ,do 30 tis.,5,6,4,8,7,5,7,7,5,4,5,4,5,6,5,5,7
+04R0283,Kreativní stavitelé,muž,32,Plzeňský,SŠ s maturitou,do 30 tis.,4,6,9,6,4,8,6,10,6,7,4,7,4,6,5,7,7
+04R0284,Kompetitivní online,žena,32,Olomoucký,VŠ,30–50 tis.,10,7,5,5,5,5,9,2,6,7,8,5,6,8,9,5,5
+04R0285,Sportovní mainstream,žena,38,Středočeský,VŠ,do 30 tis.,7,5,7,6,6,6,7,5,6,7,8,10,7,7,8,8,7
+04R0286,Kompetitivní online,muž,50,Moravskoslezský,VŠ,30–50 tis.,9,8,5,5,6,6,8,4,5,6,7,6,8,6,9,6,5
+04R0287,Casual a social,žena,30,Praha,SŠ s maturitou,50–80 tis.,6,9,7,6,8,7,5,9,6,5,5,7,6,5,5,7,5
+04R0288,Sportovní mainstream,muž,59,Jihomoravský,VŠ,30–50 tis.,6,6,3,6,5,7,9,5,6,6,7,5,7,7,7,6,7
+04R0289,Kompetitivní online,muž,40,Ústecký,SŠ s maturitou,30–50 tis.,8,9,5,6,6,6,9,6,4,6,6,7,10,9,9,7,7
+04R0290,Casual a social,žena,44,Plzeňský,ZŠ / vyučení,30–50 tis.,7,8,3,4,9,6,7,7,6,5,6,6,6,7,6,6,4
+04R0291,Sportovní mainstream,muž,27,Plzeňský,ZŠ / vyučení,50–80 tis.,6,6,7,7,5,7,5,7,5,5,6,5,5,3,3,6,5
+04R0292,Casual a social,muž,44,Středočeský,ZŠ / vyučení,50–80 tis.,5,8,5,5,8,6,5,4,7,4,4,5,7,4,4,3,4
+04R0293,Kreativní stavitelé,žena,43,Praha,SŠ s maturitou,do 30 tis.,5,6,9,8,5,5,8,6,7,5,6,8,6,7,5,7,7
+04R0294,Příběhoví hráči,muž,39,Praha,ZŠ / vyučení,do 30 tis.,7,6,4,5,5,6,6,1,6,5,6,7,6,7,5,4,4
+04R0295,Příběhoví hráči,muž,22,Středočeský,VŠ,50–80 tis.,6,5,6,7,6,4,7,3,5,6,6,7,4,5,5,6,6
+04R0296,Casual a social,muž,36,Praha,ZŠ / vyučení,30–50 tis.,6,7,6,3,10,3,5,6,6,4,7,9,7,6,5,9,5
+04R0297,Kreativní stavitelé,muž,37,Moravskoslezský,VŠ,50–80 tis.,6,6,10,7,6,7,4,1,6,7,6,8,4,4,4,6,8
+04R0298,Kreativní stavitelé,muž,30,Praha,VŠ,30–50 tis.,4,6,8,5,6,5,5,3,5,3,4,7,6,4,3,8,5
+04R0299,Kompetitivní online,muž,18,Jihočeský,ZŠ / vyučení,30–50 tis.,8,3,6,5,5,4,10,7,5,4,5,5,6,9,9,5,7
+04R0300,Příběhoví hráči,muž,40,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,5,8,9,6,4,7,3,6,6,6,6,7,8,6,7,7
+04R0301,Kreativní stavitelé,žena,29,Jihočeský,SŠ s maturitou,80 tis. +,4,4,8,6,5,4,5,9,4,5,3,8,6,5,2,7,6
+04R0302,Kompetitivní online,žena,22,Moravskoslezský,VŠ,do 30 tis.,10,6,7,7,5,5,6,5,5,5,9,6,6,8,7,4,6
+04R0303,Kreativní stavitelé,muž,39,Plzeňský,VŠ,50–80 tis.,8,5,9,6,5,6,4,3,6,6,5,6,5,5,6,7,4
+04R0304,Kreativní stavitelé,muž,36,Praha,ZŠ / vyučení,30–50 tis.,5,7,8,7,9,3,5,3,6,4,7,8,7,6,3,10,8
+04R0305,Příběhoví hráči,žena,35,Plzeňský,ZŠ / vyučení,do 30 tis.,5,4,6,8,6,6,7,7,6,6,6,4,5,6,7,5,6
+04R0306,Sportovní mainstream,muž,45,Moravskoslezský,VŠ,30–50 tis.,5,6,6,5,5,9,5,5,8,8,6,6,7,5,4,5,6
+04R0307,Casual a social,žena,18,Praha,VŠ,50–80 tis.,5,6,6,6,5,6,7,9,7,6,4,6,8,5,6,3,7
+04R0308,Sportovní mainstream,muž,25,Jihomoravský,ZŠ / vyučení,50–80 tis.,9,6,4,4,5,9,6,5,5,9,7,5,5,8,5,3,4
+04R0309,Příběhoví hráči,muž,39,Středočeský,ZŠ / vyučení,30–50 tis.,7,5,3,8,8,6,8,6,7,4,6,3,5,7,8,5,7
+04R0310,Casual a social,žena,35,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,8,5,6,7,7,4,5,6,6,7,5,6,3,2,6,6
+04R0311,Kompetitivní online,žena,20,Moravskoslezský,VŠ,80 tis. +,4,7,5,5,6,6,6,4,5,6,7,6,7,7,6,5,6
+04R0312,Kreativní stavitelé,muž,25,Moravskoslezský,VŠ,30–50 tis.,5,5,8,3,6,3,5,5,5,4,5,8,6,5,4,8,4
+04R0313,Sportovní mainstream,muž,44,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,4,6,7,7,8,6,7,6,9,5,5,5,5,6,8,8
+04R0314,Kreativní stavitelé,žena,47,Jihomoravský,SŠ s maturitou,30–50 tis.,5,5,8,4,6,5,5,6,4,5,4,7,5,4,4,6,5
+04R0315,Příběhoví hráči,žena,25,Plzeňský,VŠ,30–50 tis.,6,5,6,10,6,6,7,5,7,5,5,6,7,6,6,5,7
+04R0316,Casual a social,žena,48,Jihomoravský,SŠ s maturitou,30–50 tis.,6,9,7,5,10,6,5,5,6,5,7,7,7,5,6,5,4
+04R0317,Kompetitivní online,muž,46,Ústecký,ZŠ / vyučení,50–80 tis.,8,6,5,4,5,7,7,9,5,7,7,4,5,7,6,5,5
+04R0318,Casual a social,muž,18,Plzeňský,SŠ s maturitou,30–50 tis.,5,6,4,7,10,6,6,6,5,6,5,5,6,4,6,6,5
+04R0319,Kreativní stavitelé,muž,27,Středočeský,ZŠ / vyučení,50–80 tis.,8,3,9,8,5,5,6,3,5,6,6,8,4,5,6,7,7
+04R0320,Kompetitivní online,žena,31,Plzeňský,SŠ s maturitou,do 30 tis.,7,5,5,6,5,5,9,3,6,5,5,4,4,8,7,5,7
+04R0321,Kompetitivní online,žena,46,Jihočeský,ZŠ / vyučení,50–80 tis.,8,6,5,7,6,7,6,5,6,8,6,6,7,6,7,6,6
+04R0322,Příběhoví hráči,žena,41,Olomoucký,VŠ,do 30 tis.,5,4,4,6,5,6,7,4,6,4,3,4,3,4,3,3,6
+04R0323,Casual a social,žena,37,Praha,SŠ s maturitou,30–50 tis.,5,9,6,7,7,5,6,7,5,6,7,9,8,3,7,8,8
+04R0324,Kompetitivní online,muž,23,Jihočeský,SŠ s maturitou,30–50 tis.,9,9,6,5,5,6,6,1,7,8,8,8,8,8,8,5,5
+04R0325,Casual a social,muž,18,Ústecký,VŠ,30–50 tis.,6,7,6,6,8,3,6,2,8,7,6,7,6,4,6,6,3
+04R0326,Kompetitivní online,muž,27,Moravskoslezský,ZŠ / vyučení,50–80 tis.,9,6,5,6,6,4,6,6,7,6,10,7,9,8,8,7,7
+04R0327,Příběhoví hráči,muž,32,Praha,SŠ s maturitou,50–80 tis.,5,5,5,9,6,7,7,5,4,7,4,5,5,6,4,4,7
+04R0328,Casual a social,žena,18,Plzeňský,VŠ,30–50 tis.,6,7,5,5,7,5,7,5,6,5,7,5,6,5,6,5,6
+04R0329,Sportovní mainstream,žena,49,Jihočeský,SŠ s maturitou,80 tis. +,5,4,5,7,5,8,4,6,5,9,4,4,4,5,5,3,6
+04R0330,Kreativní stavitelé,žena,38,Středočeský,SŠ s maturitou,do 30 tis.,3,6,8,5,5,4,4,8,7,2,4,6,4,2,2,5,5
+04R0331,Kreativní stavitelé,muž,40,Praha,SŠ s maturitou,30–50 tis.,5,7,10,6,8,8,4,5,7,5,5,7,6,5,5,8,6
+04R0332,Sportovní mainstream,muž,40,Moravskoslezský,ZŠ / vyučení,30–50 tis.,5,5,4,4,7,8,6,4,5,5,5,4,5,6,5,5,5
+04R0333,Příběhoví hráči,žena,40,Praha,SŠ s maturitou,50–80 tis.,7,6,6,9,4,7,4,4,5,5,6,3,5,4,3,4,8
+04R0334,Casual a social,žena,19,Jihomoravský,SŠ s maturitou,30–50 tis.,7,9,6,7,8,3,7,8,7,6,8,7,9,5,7,7,5
+04R0335,Kompetitivní online,žena,27,Středočeský,SŠ s maturitou,50–80 tis.,10,7,5,5,8,6,7,6,3,9,10,6,5,10,9,7,6
+04R0336,Sportovní mainstream,muž,30,Praha,SŠ s maturitou,do 30 tis.,5,6,6,7,6,7,5,5,4,5,6,7,6,7,4,8,7
+04R0337,Kreativní stavitelé,žena,29,Středočeský,SŠ s maturitou,50–80 tis.,5,5,10,9,6,6,5,2,8,4,4,9,5,5,5,5,6
+04R0338,Casual a social,žena,40,Středočeský,SŠ s maturitou,80 tis. +,4,7,5,6,6,4,4,9,8,3,5,5,5,2,4,5,4
+04R0339,Casual a social,žena,42,Ústecký,ZŠ / vyučení,50–80 tis.,7,7,5,5,6,6,5,4,3,6,6,5,6,5,7,4,5
+04R0340,Kreativní stavitelé,žena,46,Jihočeský,SŠ s maturitou,do 30 tis.,5,6,7,5,5,4,5,2,4,4,6,6,6,5,7,4,5
+04R0341,Příběhoví hráči,muž,45,Ústecký,ZŠ / vyučení,80 tis. +,5,5,5,7,9,6,4,7,4,6,6,6,5,6,4,7,7
+04R0342,Kompetitivní online,žena,41,Olomoucký,ZŠ / vyučení,80 tis. +,9,5,6,6,7,5,7,3,5,7,8,7,7,9,9,7,7
+04R0343,Sportovní mainstream,žena,50,Plzeňský,VŠ,30–50 tis.,5,4,5,6,4,8,5,6,6,6,4,4,3,6,5,6,6
+04R0344,Casual a social,muž,33,Plzeňský,VŠ,80 tis. +,8,8,6,5,7,6,6,6,7,8,9,7,6,7,6,6,4
+04R0345,Příběhoví hráči,žena,43,Praha,SŠ s maturitou,30–50 tis.,6,5,5,9,3,6,5,4,5,5,6,2,6,5,5,5,7
+04R0346,Sportovní mainstream,muž,49,Moravskoslezský,VŠ,50–80 tis.,8,5,4,7,5,8,5,2,9,8,5,5,6,5,6,3,5
+04R0347,Casual a social,muž,24,Jihočeský,SŠ s maturitou,do 30 tis.,4,7,6,4,8,6,7,4,5,6,6,7,4,5,7,6,5
+04R0348,Kreativní stavitelé,žena,42,Jihomoravský,ZŠ / vyučení,50–80 tis.,5,4,8,5,2,5,5,5,2,7,5,7,6,5,7,5,5
+04R0349,Sportovní mainstream,muž,45,Praha,VŠ,30–50 tis.,6,5,6,4,5,9,6,6,7,7,4,5,6,5,6,4,5
+04R0350,Kompetitivní online,žena,27,Středočeský,SŠ s maturitou,30–50 tis.,9,6,6,4,5,4,9,7,6,6,8,4,7,10,10,7,6
+04R0351,Kompetitivní online,žena,28,Praha,SŠ s maturitou,30–50 tis.,8,8,5,4,5,5,7,2,5,7,7,5,6,7,9,5,5
+04R0352,Sportovní mainstream,žena,46,Plzeňský,VŠ,30–50 tis.,8,6,6,6,5,7,3,6,4,7,6,6,2,7,6,6,5
+04R0353,Kompetitivní online,muž,18,Středočeský,ZŠ / vyučení,do 30 tis.,8,6,6,5,5,4,6,6,5,3,8,5,7,7,7,5,5
+04R0354,Kompetitivní online,muž,18,Jihočeský,SŠ s maturitou,30–50 tis.,7,7,5,6,4,4,5,5,6,4,7,7,8,6,5,5,6
+04R0355,Kompetitivní online,muž,18,Jihočeský,SŠ s maturitou,30–50 tis.,9,7,4,5,4,5,7,7,7,7,5,4,5,8,9,4,7
+04R0356,Kreativní stavitelé,žena,59,Plzeňský,SŠ s maturitou,do 30 tis.,7,5,8,3,8,6,5,6,6,5,4,6,5,6,6,8,3
+04R0357,Kompetitivní online,muž,35,Jihomoravský,SŠ s maturitou,30–50 tis.,5,8,4,6,5,5,5,7,5,6,8,3,7,3,5,5,6
+04R0358,Casual a social,žena,38,Ústecký,SŠ s maturitou,30–50 tis.,5,8,8,7,9,7,4,6,7,6,8,9,6,4,3,6,6
+04R0359,Příběhoví hráči,muž,34,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,6,6,7,7,4,6,4,4,5,5,5,5,5,7,8,6
+04R0360,Příběhoví hráči,žena,54,Plzeňský,VŠ,50–80 tis.,6,7,5,8,5,5,6,6,4,6,6,7,7,4,7,6,7
+04R0361,Sportovní mainstream,muž,32,Jihočeský,ZŠ / vyučení,30–50 tis.,6,4,5,6,5,9,6,6,5,8,7,6,6,6,8,6,5
+04R0362,Kreativní stavitelé,žena,38,Olomoucký,ZŠ / vyučení,80 tis. +,5,6,8,6,6,6,4,6,3,7,6,7,5,5,5,6,5
+04R0363,Casual a social,žena,39,Ústecký,SŠ s maturitou,30–50 tis.,6,7,5,5,4,8,5,4,6,7,6,7,6,6,8,4,8
+04R0364,Casual a social,muž,21,Olomoucký,ZŠ / vyučení,80 tis. +,6,7,3,6,8,3,2,8,7,6,5,5,4,6,4,6,7
+04R0365,Příběhoví hráči,žena,34,Olomoucký,ZŠ / vyučení,50–80 tis.,5,6,3,7,5,6,5,7,4,5,6,5,6,5,6,5,6
+04R0366,Příběhoví hráči,žena,30,Olomoucký,SŠ s maturitou,30–50 tis.,7,6,3,6,7,6,7,6,6,4,7,4,7,6,7,4,5
+04R0367,Příběhoví hráči,muž,40,Praha,SŠ s maturitou,do 30 tis.,5,7,3,8,8,7,5,8,6,6,7,4,7,7,4,7,10
+04R0368,Casual a social,muž,42,Moravskoslezský,SŠ s maturitou,50–80 tis.,7,8,7,5,9,5,7,7,6,5,7,7,7,7,6,8,3
+04R0369,Sportovní mainstream,muž,46,Jihomoravský,SŠ s maturitou,do 30 tis.,7,6,4,4,6,8,4,5,2,7,8,7,6,6,5,5,7
+04R0370,Sportovní mainstream,žena,25,Olomoucký,SŠ s maturitou,do 30 tis.,7,6,6,5,7,8,4,3,3,5,6,6,6,6,7,5,5
+04R0371,Casual a social,žena,35,Olomoucký,ZŠ / vyučení,80 tis. +,6,8,4,4,9,5,6,5,5,5,6,7,8,6,6,6,3
+04R0372,Casual a social,žena,18,Středočeský,ZŠ / vyučení,do 30 tis.,6,7,6,6,10,4,5,6,3,6,7,7,8,6,6,10,6
+04R0373,Kreativní stavitelé,muž,20,Jihočeský,SŠ s maturitou,do 30 tis.,5,6,7,7,6,6,4,5,7,5,5,7,6,5,6,7,7
+04R0374,Kreativní stavitelé,žena,18,Praha,ZŠ / vyučení,30–50 tis.,5,4,10,4,5,5,6,4,8,5,5,10,6,5,7,8,5
+04R0375,Příběhoví hráči,muž,43,Jihočeský,SŠ s maturitou,do 30 tis.,7,6,6,9,6,4,6,8,5,4,8,6,5,8,7,5,6
+04R0376,Casual a social,muž,29,Ústecký,SŠ s maturitou,30–50 tis.,7,8,5,4,9,6,5,7,7,7,8,9,7,7,7,8,4
+04R0377,Casual a social,muž,20,Praha,SŠ s maturitou,30–50 tis.,7,7,6,5,8,5,7,7,7,5,8,7,7,6,8,7,6
+04R0378,Kreativní stavitelé,muž,25,Olomoucký,SŠ s maturitou,do 30 tis.,7,6,9,5,8,4,9,7,5,3,7,6,7,7,6,7,4
+04R0379,Kreativní stavitelé,muž,46,Plzeňský,ZŠ / vyučení,80 tis. +,5,8,7,5,5,6,6,5,4,6,6,6,5,4,4,4,2
+04R0380,Kompetitivní online,žena,19,Moravskoslezský,VŠ,30–50 tis.,9,6,5,7,5,7,5,5,3,8,8,7,5,7,7,6,6
+04R0381,Kompetitivní online,žena,27,Ústecký,VŠ,50–80 tis.,9,7,6,4,4,5,7,6,7,7,7,6,6,6,7,6,3
+04R0382,Kompetitivní online,žena,37,Jihomoravský,VŠ,50–80 tis.,8,4,6,6,5,7,5,6,3,7,5,4,4,6,6,4,5
+04R0383,Kreativní stavitelé,muž,25,Praha,SŠ s maturitou,30–50 tis.,5,3,9,7,7,7,4,2,8,5,4,7,2,5,4,8,5
+04R0384,Sportovní mainstream,žena,40,Středočeský,ZŠ / vyučení,80 tis. +,5,6,5,6,4,9,6,7,5,7,4,6,4,5,4,3,4
+04R0385,Sportovní mainstream,muž,37,Středočeský,VŠ,do 30 tis.,8,5,6,4,5,8,4,10,6,6,8,5,4,7,5,5,2
+04R0386,Casual a social,muž,20,Jihomoravský,ZŠ / vyučení,50–80 tis.,3,7,5,6,8,5,4,7,5,4,4,6,6,4,3,7,5
+04R0387,Kreativní stavitelé,muž,32,Praha,VŠ,do 30 tis.,7,7,7,5,5,4,4,4,6,4,8,9,6,6,4,5,5
+04R0388,Příběhoví hráči,muž,45,Středočeský,SŠ s maturitou,do 30 tis.,5,6,5,9,4,5,8,6,5,2,4,6,5,5,7,3,8
+04R0389,Kreativní stavitelé,muž,37,Středočeský,SŠ s maturitou,30–50 tis.,6,5,9,6,6,6,4,6,3,6,4,7,6,4,6,7,5
+04R0390,Sportovní mainstream,žena,34,Praha,VŠ,do 30 tis.,6,6,4,6,6,8,4,6,6,7,5,5,5,5,6,6,6
+04R0391,Kreativní stavitelé,muž,34,Jihomoravský,ZŠ / vyučení,30–50 tis.,6,4,8,4,5,6,6,4,5,6,6,6,6,6,5,8,2
+04R0392,Sportovní mainstream,muž,51,Plzeňský,SŠ s maturitou,do 30 tis.,6,6,4,5,7,8,6,3,3,6,7,6,7,5,7,5,4
+04R0393,Kompetitivní online,muž,25,Ústecký,VŠ,30–50 tis.,9,8,4,6,5,7,7,5,7,9,10,6,9,10,9,5,5
+04R0394,Sportovní mainstream,žena,19,Praha,SŠ s maturitou,50–80 tis.,7,6,6,6,6,6,6,4,8,5,6,7,6,7,5,6,5
+04R0395,Kompetitivní online,žena,26,Praha,SŠ s maturitou,30–50 tis.,6,7,6,5,5,4,6,4,7,6,5,8,6,7,6,4,6
+04R0396,Kompetitivní online,žena,23,Ústecký,SŠ s maturitou,do 30 tis.,8,7,6,5,7,6,4,8,4,7,9,5,6,5,6,5,3
+04R0397,Casual a social,žena,28,Středočeský,ZŠ / vyučení,50–80 tis.,6,8,4,4,8,7,6,3,6,7,7,3,7,6,6,6,5
+04R0398,Sportovní mainstream,muž,28,Praha,VŠ,80 tis. +,8,5,6,8,5,7,8,3,3,7,7,6,5,9,6,7,8
+04R0399,Casual a social,žena,41,Olomoucký,SŠ s maturitou,30–50 tis.,6,7,5,3,9,5,5,2,7,4,6,5,6,5,4,6,5
+04R0400,Kompetitivní online,muž,18,Středočeský,VŠ,50–80 tis.,7,8,5,3,7,7,8,7,6,7,9,8,9,8,8,6,5
+04R0401,Kreativní stavitelé,muž,43,Jihomoravský,SŠ s maturitou,do 30 tis.,5,5,6,4,5,5,4,6,5,5,4,4,3,3,5,6,3
+04R0402,Sportovní mainstream,žena,52,Plzeňský,SŠ s maturitou,30–50 tis.,7,6,7,6,5,9,4,8,6,7,6,6,4,3,5,5,6
+04R0403,Kompetitivní online,žena,18,Plzeňský,SŠ s maturitou,30–50 tis.,8,7,6,8,5,7,8,6,4,7,10,5,7,8,8,5,9
+04R0404,Kompetitivní online,muž,18,Ústecký,SŠ s maturitou,do 30 tis.,7,5,4,5,3,6,7,7,5,6,6,3,5,6,5,3,4
+04R0405,Sportovní mainstream,žena,38,Olomoucký,SŠ s maturitou,80 tis. +,8,8,8,5,7,7,6,4,1,8,7,8,7,7,4,6,6
+04R0406,Příběhoví hráči,muž,41,Plzeňský,ZŠ / vyučení,50–80 tis.,5,8,7,9,6,5,7,7,7,6,7,6,7,7,5,7,8
+04R0407,Sportovní mainstream,muž,61,Plzeňský,SŠ s maturitou,50–80 tis.,6,6,8,6,6,10,6,7,3,7,5,6,7,4,6,7,8
+04R0408,Sportovní mainstream,muž,46,Jihomoravský,SŠ s maturitou,30–50 tis.,6,6,6,1,7,8,5,5,7,5,5,6,3,6,3,5,3
+04R0409,Kreativní stavitelé,žena,46,Jihočeský,ZŠ / vyučení,30–50 tis.,6,5,10,6,5,7,5,8,6,5,6,10,5,6,6,10,5
+04R0410,Sportovní mainstream,muž,36,Praha,ZŠ / vyučení,50–80 tis.,5,6,5,5,7,8,6,7,7,6,6,6,4,5,4,5,5
+04R0411,Příběhoví hráči,žena,52,Moravskoslezský,VŠ,do 30 tis.,5,7,6,9,4,5,8,5,7,6,7,5,7,6,7,5,8
+04R0412,Sportovní mainstream,žena,21,Jihomoravský,VŠ,do 30 tis.,7,5,7,4,5,10,5,5,4,9,7,5,6,6,4,4,2
+04R0413,Casual a social,žena,21,Jihomoravský,VŠ,do 30 tis.,7,8,3,6,8,5,4,4,9,4,6,5,5,6,5,6,4
+04R0414,Kreativní stavitelé,žena,18,Praha,VŠ,do 30 tis.,6,6,8,4,7,7,5,3,5,7,5,8,7,5,6,9,5
+04R0415,Sportovní mainstream,muž,36,Olomoucký,SŠ s maturitou,do 30 tis.,7,6,6,5,7,9,6,4,7,6,4,3,8,4,7,6,2
+04R0416,Sportovní mainstream,muž,33,Ústecký,VŠ,80 tis. +,5,3,7,3,6,6,5,6,4,6,4,8,5,5,6,7,5
+04R0417,Kreativní stavitelé,muž,40,Praha,SŠ s maturitou,30–50 tis.,5,7,8,5,6,7,7,6,6,4,4,7,6,7,7,7,6
+04R0418,Kreativní stavitelé,muž,39,Olomoucký,SŠ s maturitou,30–50 tis.,7,5,9,5,8,6,6,6,8,7,6,8,6,7,5,8,5
+04R0419,Casual a social,žena,21,Ústecký,SŠ s maturitou,80 tis. +,7,7,5,5,8,6,5,7,6,5,5,6,5,4,7,5,2
+04R0420,Sportovní mainstream,žena,57,Moravskoslezský,ZŠ / vyučení,50–80 tis.,5,8,5,6,6,10,5,5,6,7,5,5,8,6,6,5,6
+04R0421,Sportovní mainstream,žena,56,Plzeňský,VŠ,30–50 tis.,7,6,6,5,7,8,5,9,10,5,7,6,6,6,5,9,5
+04R0422,Kreativní stavitelé,žena,52,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,5,8,9,5,5,6,6,6,2,6,8,5,4,4,6,8
+04R0423,Casual a social,muž,42,Praha,VŠ,30–50 tis.,6,6,3,5,9,4,5,4,6,4,8,6,6,5,6,8,6
+04R0424,Casual a social,žena,32,Olomoucký,SŠ s maturitou,50–80 tis.,7,6,4,4,7,5,4,9,7,6,5,4,6,6,6,4,4
+04R0425,Casual a social,muž,32,Středočeský,ZŠ / vyučení,30–50 tis.,6,7,7,5,10,6,4,4,6,3,7,8,4,5,4,7,4
+04R0426,Sportovní mainstream,muž,30,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,5,6,4,6,7,6,3,8,7,6,6,6,6,6,6,5
+04R0427,Kreativní stavitelé,žena,45,Ústecký,SŠ s maturitou,80 tis. +,7,5,8,5,6,5,6,6,4,6,5,6,5,6,6,6,2
+04R0428,Kompetitivní online,žena,44,Moravskoslezský,ZŠ / vyučení,50–80 tis.,8,8,6,6,7,5,7,5,2,6,7,5,8,10,7,8,6
+04R0429,Příběhoví hráči,muž,46,Středočeský,SŠ s maturitou,30–50 tis.,3,6,6,10,5,8,6,4,3,5,5,5,7,4,5,7,9
+04R0430,Kompetitivní online,žena,18,Plzeňský,VŠ,50–80 tis.,9,7,7,6,4,6,6,2,7,7,6,5,7,5,7,4,6
+04R0431,Kompetitivní online,žena,18,Jihomoravský,VŠ,80 tis. +,10,9,6,5,4,4,9,8,6,7,9,7,10,9,10,5,7
+04R0432,Kompetitivní online,muž,36,Praha,VŠ,do 30 tis.,8,8,6,7,6,6,6,6,5,6,7,4,9,7,6,4,6
+04R0433,Kompetitivní online,žena,27,Moravskoslezský,SŠ s maturitou,do 30 tis.,8,7,6,4,5,4,7,5,4,5,7,6,6,8,7,7,5
+04R0434,Casual a social,žena,22,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,7,6,7,9,5,6,9,6,6,7,6,7,5,7,7,7
+04R0435,Casual a social,muž,48,Olomoucký,SŠ s maturitou,do 30 tis.,3,7,7,5,7,6,4,8,4,5,5,8,6,4,2,6,3
+04R0436,Kompetitivní online,muž,18,Praha,SŠ s maturitou,50–80 tis.,7,6,6,5,5,6,7,4,7,5,5,6,5,4,7,5,6
+04R0437,Příběhoví hráči,žena,41,Jihomoravský,VŠ,do 30 tis.,5,6,4,8,5,4,6,4,6,3,6,3,5,5,4,6,7
+04R0438,Příběhoví hráči,žena,55,Středočeský,SŠ s maturitou,do 30 tis.,6,6,7,8,5,7,7,6,5,5,7,5,6,6,8,5,8
+04R0439,Příběhoví hráči,žena,35,Plzeňský,ZŠ / vyučení,do 30 tis.,7,6,5,7,6,3,8,7,5,7,7,5,6,8,7,5,6
+04R0440,Příběhoví hráči,žena,43,Plzeňský,ZŠ / vyučení,80 tis. +,6,5,6,10,6,5,5,7,4,6,6,6,5,7,8,6,9
+04R0441,Kompetitivní online,muž,51,Jihomoravský,ZŠ / vyučení,do 30 tis.,6,6,4,7,5,6,8,4,2,7,6,5,7,7,8,4,6
+04R0442,Kompetitivní online,muž,35,Plzeňský,VŠ,80 tis. +,6,6,4,6,4,5,8,2,4,6,8,6,7,9,7,5,6
+04R0443,Příběhoví hráči,muž,42,Jihočeský,VŠ,do 30 tis.,5,5,5,7,7,3,6,6,6,3,4,5,5,7,4,6,7
+04R0444,Casual a social,žena,37,Plzeňský,ZŠ / vyučení,30–50 tis.,6,8,6,7,9,5,3,8,3,7,7,7,7,6,3,7,8
+04R0445,Kompetitivní online,muž,36,Olomoucký,SŠ s maturitou,30–50 tis.,10,4,7,6,5,5,7,6,3,7,6,7,5,8,7,7,6
+04R0446,Casual a social,žena,34,Středočeský,SŠ s maturitou,do 30 tis.,7,7,6,6,7,6,6,4,4,6,6,5,6,8,7,7,7
+04R0447,Sportovní mainstream,žena,41,Jihočeský,SŠ s maturitou,50–80 tis.,7,5,5,4,5,10,5,4,3,7,6,4,4,3,4,2,3
+04R0448,Casual a social,žena,35,Ústecký,VŠ,do 30 tis.,6,6,6,6,7,6,7,6,4,8,7,7,6,8,7,6,9
+04R0449,Casual a social,žena,18,Moravskoslezský,ZŠ / vyučení,30–50 tis.,4,6,7,8,7,3,6,3,6,4,4,4,6,3,5,6,6
+04R0450,Sportovní mainstream,žena,56,Moravskoslezský,SŠ s maturitou,80 tis. +,6,6,3,6,7,5,5,6,6,8,5,3,5,6,2,5,5
+04R0451,Casual a social,muž,23,Plzeňský,SŠ s maturitou,do 30 tis.,5,10,7,5,9,4,6,7,6,4,7,7,7,4,5,7,3
+04R0452,Kompetitivní online,muž,33,Ústecký,SŠ s maturitou,30–50 tis.,7,7,5,4,5,5,7,3,3,6,6,7,6,5,6,5,3
+04R0453,Příběhoví hráči,žena,40,Olomoucký,VŠ,30–50 tis.,5,6,4,6,5,3,6,5,3,3,4,4,5,5,5,4,6
+04R0454,Casual a social,žena,18,Středočeský,SŠ s maturitou,50–80 tis.,7,9,7,5,9,4,6,7,5,5,8,6,8,6,5,8,6
+04R0455,Příběhoví hráči,žena,50,Ústecký,ZŠ / vyučení,30–50 tis.,3,4,5,9,7,6,5,6,6,6,4,5,3,5,4,7,8
+04R0456,Sportovní mainstream,muž,33,Středočeský,ZŠ / vyučení,do 30 tis.,6,5,5,5,6,9,5,6,7,9,5,4,5,4,6,4,4
+04R0457,Kompetitivní online,muž,25,Praha,SŠ s maturitou,30–50 tis.,10,8,5,5,6,6,7,7,4,8,10,6,7,9,7,5,6
+04R0458,Příběhoví hráči,muž,29,Olomoucký,SŠ s maturitou,30–50 tis.,7,6,5,6,6,4,5,5,4,7,8,5,6,8,8,5,6
+04R0459,Kreativní stavitelé,žena,32,Praha,SŠ s maturitou,30–50 tis.,5,6,9,5,9,7,5,4,4,5,6,6,5,3,5,8,5
+04R0460,Kompetitivní online,žena,20,Plzeňský,SŠ s maturitou,80 tis. +,8,8,5,5,5,6,7,8,6,4,8,4,6,7,6,4,6
+04R0461,Sportovní mainstream,muž,26,Praha,SŠ s maturitou,30–50 tis.,5,8,6,6,6,10,5,6,6,8,5,7,5,5,4,5,4
+04R0462,Příběhoví hráči,muž,27,Praha,ZŠ / vyučení,do 30 tis.,5,6,6,6,4,5,6,6,4,5,5,6,4,5,7,5,5
+04R0463,Kompetitivní online,žena,27,Olomoucký,VŠ,50–80 tis.,8,6,6,3,7,6,9,5,5,6,7,9,7,10,8,7,3
+04R0464,Sportovní mainstream,žena,18,Olomoucký,SŠ s maturitou,do 30 tis.,7,5,6,7,5,7,5,4,4,5,6,6,5,7,5,7,6
+04R0465,Kompetitivní online,muž,24,Olomoucký,SŠ s maturitou,do 30 tis.,7,7,7,5,6,4,7,4,7,5,5,7,8,7,6,7,5
+04R0466,Kreativní stavitelé,žena,45,Moravskoslezský,SŠ s maturitou,30–50 tis.,4,5,8,6,6,5,4,4,6,5,6,8,5,4,5,6,7
+04R0467,Casual a social,muž,26,Ústecký,ZŠ / vyučení,50–80 tis.,5,6,5,3,10,6,5,5,7,6,5,4,6,5,3,7,4
+04R0468,Příběhoví hráči,muž,48,Moravskoslezský,SŠ s maturitou,50–80 tis.,7,4,4,7,8,7,5,7,7,6,5,5,6,6,6,8,7
+04R0469,Kompetitivní online,žena,36,Praha,VŠ,50–80 tis.,8,5,6,6,7,4,8,8,8,5,6,5,7,8,9,6,7
+04R0470,Kompetitivní online,muž,24,Olomoucký,VŠ,do 30 tis.,8,7,4,7,6,7,6,8,6,8,7,5,7,9,7,6,8
+04R0471,Příběhoví hráči,muž,46,Olomoucký,SŠ s maturitou,do 30 tis.,4,3,6,8,5,4,6,3,6,4,1,4,3,1,4,5,6
+04R0472,Kompetitivní online,žena,42,Olomoucký,VŠ,50–80 tis.,9,7,5,5,5,3,7,4,4,4,6,4,7,7,7,5,3
+04R0473,Kreativní stavitelé,žena,37,Jihočeský,SŠ s maturitou,30–50 tis.,7,4,7,4,6,6,7,4,5,6,6,6,6,6,6,6,6
+04R0474,Kompetitivní online,žena,60,Olomoucký,SŠ s maturitou,50–80 tis.,10,6,6,6,5,4,6,8,7,7,7,5,6,9,10,7,6
+04R0475,Kompetitivní online,žena,30,Středočeský,SŠ s maturitou,30–50 tis.,6,7,5,7,6,6,7,7,4,6,5,6,5,5,5,5,6
+04R0476,Kompetitivní online,muž,28,Plzeňský,ZŠ / vyučení,30–50 tis.,8,8,6,4,6,6,8,5,5,6,7,8,8,7,6,4,2
+04R0477,Kompetitivní online,žena,18,Jihomoravský,VŠ,30–50 tis.,9,7,6,6,4,7,7,6,7,7,6,6,8,9,6,4,6
+04R0478,Kompetitivní online,muž,18,Jihomoravský,SŠ s maturitou,30–50 tis.,9,6,6,5,6,5,6,3,4,6,6,6,6,8,9,7,4
+04R0479,Casual a social,muž,33,Praha,VŠ,do 30 tis.,6,8,6,3,10,6,6,8,6,6,6,6,6,3,4,7,3
+04R0480,Casual a social,žena,27,Praha,VŠ,30–50 tis.,4,6,5,6,9,3,4,6,7,3,5,6,7,4,3,8,6
+04R0481,Příběhoví hráči,žena,48,Plzeňský,SŠ s maturitou,80 tis. +,7,6,7,8,5,6,7,8,4,6,5,6,7,6,4,6,7
+04R0482,Sportovní mainstream,žena,21,Jihomoravský,VŠ,do 30 tis.,6,8,5,4,5,7,4,2,6,6,7,5,7,6,6,6,5
+04R0483,Sportovní mainstream,žena,27,Středočeský,ZŠ / vyučení,30–50 tis.,8,4,3,7,4,9,3,7,7,8,7,3,4,6,6,3,7
+04R0484,Kompetitivní online,žena,18,Praha,SŠ s maturitou,do 30 tis.,7,8,5,5,4,6,8,4,8,8,5,4,6,5,6,4,5
+04R0485,Příběhoví hráči,žena,39,Olomoucký,SŠ s maturitou,30–50 tis.,6,6,5,9,3,4,8,6,4,5,7,5,7,9,8,3,8
+04R0486,Kompetitivní online,muž,46,Jihomoravský,SŠ s maturitou,30–50 tis.,7,8,6,6,3,4,7,6,5,6,6,5,6,7,7,4,5
+04R0487,Sportovní mainstream,žena,32,Jihočeský,ZŠ / vyučení,80 tis. +,9,5,6,5,6,9,4,7,5,10,9,5,6,6,6,6,5
+04R0488,Casual a social,žena,44,Plzeňský,VŠ,80 tis. +,6,8,4,6,8,6,5,6,6,6,6,4,4,5,5,6,7
+04R0489,Příběhoví hráči,muž,42,Ústecký,VŠ,30–50 tis.,5,6,7,10,6,4,7,5,4,4,6,7,6,5,5,6,9
+04R0490,Kompetitivní online,muž,31,Plzeňský,VŠ,30–50 tis.,9,6,5,3,6,6,10,4,5,5,8,5,6,7,7,4,3
+04R0491,Příběhoví hráči,žena,18,Moravskoslezský,VŠ,50–80 tis.,6,5,5,9,6,7,5,6,4,5,5,6,5,4,4,7,7
+04R0492,Příběhoví hráči,muž,44,Středočeský,SŠ s maturitou,50–80 tis.,5,4,4,9,6,5,6,1,4,4,4,5,5,5,6,6,7
+04R0493,Casual a social,muž,18,Jihomoravský,SŠ s maturitou,do 30 tis.,5,9,5,5,8,6,4,5,4,6,6,7,6,3,4,6,5
+04R0494,Casual a social,muž,18,Plzeňský,ZŠ / vyučení,30–50 tis.,5,7,5,5,8,5,6,7,5,4,7,8,6,4,5,6,5
+04R0495,Sportovní mainstream,muž,44,Jihočeský,VŠ,30–50 tis.,6,6,6,6,6,9,7,3,4,8,7,7,7,6,9,6,7
+04R0496,Kompetitivní online,žena,42,Středočeský,ZŠ / vyučení,50–80 tis.,8,8,5,6,8,4,7,6,6,5,7,5,9,6,8,5,5
+04R0497,Kompetitivní online,muž,37,Jihomoravský,SŠ s maturitou,30–50 tis.,8,6,6,4,5,7,7,6,7,6,7,3,6,4,7,5,3
+04R0498,Kompetitivní online,muž,42,Středočeský,SŠ s maturitou,do 30 tis.,9,4,3,4,7,6,7,8,4,8,9,5,7,7,9,7,5
+04R0499,Příběhoví hráči,žena,21,Olomoucký,SŠ s maturitou,80 tis. +,7,7,6,6,4,7,6,9,6,7,7,5,4,5,6,4,5
+04R0500,Sportovní mainstream,žena,39,Jihomoravský,SŠ s maturitou,50–80 tis.,6,4,7,4,5,8,6,6,5,8,6,6,3,7,6,4,4
+04R0501,Kreativní stavitelé,žena,49,Plzeňský,VŠ,do 30 tis.,7,5,6,5,8,6,6,6,4,5,5,4,4,5,5,5,4
+04R0502,Kompetitivní online,žena,21,Středočeský,SŠ s maturitou,50–80 tis.,9,6,8,6,5,4,5,6,5,3,8,7,5,7,7,4,5
+04R0503,Kreativní stavitelé,žena,25,Ústecký,VŠ,50–80 tis.,5,5,8,5,8,7,2,7,5,5,4,7,4,2,3,6,5
+04R0504,Kompetitivní online,muž,35,Praha,SŠ s maturitou,30–50 tis.,10,8,5,4,6,7,7,9,4,7,8,6,6,7,10,5,3
+04R0505,Casual a social,muž,28,Ústecký,SŠ s maturitou,30–50 tis.,4,7,6,5,9,5,4,5,5,3,6,7,5,2,3,6,4
+04R0506,Casual a social,muž,62,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,8,6,5,9,5,3,5,7,5,5,6,7,5,6,8,6
+04R0507,Kreativní stavitelé,žena,35,Jihočeský,ZŠ / vyučení,30–50 tis.,5,4,7,4,6,3,8,7,4,3,4,6,5,5,6,6,6
+04R0508,Sportovní mainstream,žena,23,Plzeňský,VŠ,do 30 tis.,8,7,6,5,3,8,6,5,2,10,7,4,7,8,8,4,6
+04R0509,Kreativní stavitelé,žena,61,Jihočeský,SŠ s maturitou,50–80 tis.,8,5,4,6,4,7,6,7,7,7,7,6,6,7,8,3,7
+04R0510,Sportovní mainstream,muž,48,Jihomoravský,SŠ s maturitou,80 tis. +,5,6,7,7,7,10,4,6,5,8,7,8,4,5,6,8,5
+04R0511,Kompetitivní online,žena,30,Středočeský,SŠ s maturitou,30–50 tis.,7,6,6,3,4,6,8,5,4,4,6,5,7,6,7,5,3
+04R0512,Kreativní stavitelé,muž,48,Ústecký,VŠ,50–80 tis.,7,6,9,4,6,5,6,6,7,6,9,8,5,7,8,7,3
+04R0513,Kreativní stavitelé,žena,35,Jihomoravský,SŠ s maturitou,50–80 tis.,6,4,8,6,5,4,3,7,4,3,6,7,4,5,3,6,4
+04R0514,Příběhoví hráči,muž,26,Olomoucký,ZŠ / vyučení,50–80 tis.,5,5,6,8,6,6,7,7,5,6,4,6,5,4,6,6,6
+04R0515,Kreativní stavitelé,muž,32,Jihočeský,VŠ,30–50 tis.,7,5,7,6,6,7,8,5,8,6,7,7,7,7,6,5,8
+04R0516,Příběhoví hráči,muž,28,Středočeský,SŠ s maturitou,30–50 tis.,6,7,5,8,6,2,7,1,4,2,8,5,7,6,5,5,7
+04R0517,Sportovní mainstream,muž,34,Jihočeský,SŠ s maturitou,80 tis. +,10,8,5,3,5,9,7,5,8,9,7,4,6,9,7,4,5
+04R0518,Sportovní mainstream,žena,48,Plzeňský,SŠ s maturitou,80 tis. +,5,5,5,6,5,9,6,2,4,7,4,4,6,4,5,5,5
+04R0519,Kompetitivní online,muž,32,Ústecký,ZŠ / vyučení,do 30 tis.,10,6,3,8,4,4,8,7,5,6,9,6,7,9,10,5,9
+04R0520,Casual a social,žena,45,Plzeňský,SŠ s maturitou,50–80 tis.,3,8,4,4,8,4,7,4,4,3,6,5,6,4,4,5,4
+04R0521,Příběhoví hráči,muž,49,Praha,SŠ s maturitou,do 30 tis.,6,4,6,7,6,3,6,7,5,3,4,6,3,4,5,6,6
+04R0522,Casual a social,žena,42,Plzeňský,ZŠ / vyučení,30–50 tis.,5,7,4,8,8,7,6,7,6,6,5,6,8,4,6,6,7
+04R0523,Kompetitivní online,muž,36,Olomoucký,ZŠ / vyučení,30–50 tis.,9,8,5,5,4,6,7,4,7,8,8,5,9,7,9,4,7
+04R0524,Kompetitivní online,žena,30,Jihočeský,VŠ,30–50 tis.,8,6,7,4,5,3,8,7,7,4,8,8,7,6,8,5,6
+04R0525,Kompetitivní online,žena,36,Jihomoravský,VŠ,80 tis. +,6,5,6,5,5,6,7,6,4,8,7,7,7,8,8,6,7
+04R0526,Casual a social,žena,43,Středočeský,ZŠ / vyučení,50–80 tis.,6,6,7,4,7,5,7,5,7,6,5,6,7,6,5,6,4
+04R0527,Sportovní mainstream,muž,36,Praha,SŠ s maturitou,50–80 tis.,7,4,6,6,7,9,6,3,6,8,5,6,7,7,6,5,4
+04R0528,Kreativní stavitelé,muž,40,Plzeňský,VŠ,30–50 tis.,6,5,8,4,6,3,6,6,2,2,7,6,5,6,4,7,5
+04R0529,Kreativní stavitelé,žena,37,Plzeňský,SŠ s maturitou,do 30 tis.,6,5,8,6,7,5,5,6,3,7,8,8,5,6,8,8,7
+04R0530,Casual a social,muž,18,Plzeňský,SŠ s maturitou,30–50 tis.,4,8,7,5,8,5,4,8,5,4,9,8,8,4,4,6,4
+04R0531,Casual a social,muž,25,Jihomoravský,VŠ,30–50 tis.,7,8,4,7,7,5,6,5,7,8,7,6,6,8,6,7,7
+04R0532,Casual a social,muž,22,Olomoucký,VŠ,30–50 tis.,4,8,7,6,9,4,7,6,4,2,8,7,7,6,4,10,7
+04R0533,Casual a social,muž,21,Ústecký,VŠ,30–50 tis.,6,6,7,4,7,7,7,7,6,6,6,5,7,4,7,7,6
+04R0534,Sportovní mainstream,muž,20,Plzeňský,VŠ,50–80 tis.,6,5,7,4,5,9,4,7,7,7,6,8,6,5,6,6,4
+04R0535,Příběhoví hráči,muž,40,Plzeňský,VŠ,30–50 tis.,5,6,5,8,6,7,5,3,6,7,5,5,7,5,4,7,6
+04R0536,Příběhoví hráči,muž,50,Plzeňský,ZŠ / vyučení,30–50 tis.,7,7,7,9,5,6,8,8,6,7,8,7,5,7,8,6,9
+04R0537,Sportovní mainstream,muž,40,Středočeský,ZŠ / vyučení,30–50 tis.,7,6,6,6,8,8,5,5,4,9,6,7,8,7,6,7,7
+04R0538,Kreativní stavitelé,žena,46,Ústecký,SŠ s maturitou,do 30 tis.,5,4,9,6,6,5,4,6,5,5,5,6,4,5,5,6,7
+04R0539,Casual a social,žena,23,Moravskoslezský,SŠ s maturitou,30–50 tis.,4,8,5,6,8,5,6,6,6,6,4,6,7,4,5,5,5
+04R0540,Casual a social,muž,41,Plzeňský,VŠ,50–80 tis.,3,7,7,4,8,6,6,5,6,4,4,8,5,4,5,7,4
+04R0541,Kompetitivní online,muž,22,Jihomoravský,VŠ,50–80 tis.,8,9,5,7,5,5,9,5,6,8,7,5,8,6,6,7,6
+04R0542,Příběhoví hráči,muž,39,Ústecký,VŠ,do 30 tis.,4,5,4,7,8,6,4,6,5,7,4,6,6,5,5,6,6
+04R0543,Sportovní mainstream,žena,18,Jihočeský,SŠ s maturitou,50–80 tis.,8,4,3,5,4,9,2,5,4,9,5,4,4,6,6,4,5
+04R0544,Kompetitivní online,muž,24,Středočeský,ZŠ / vyučení,30–50 tis.,10,7,6,8,5,5,6,6,6,5,10,4,6,8,8,5,6
+04R0545,Sportovní mainstream,muž,22,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,6,6,4,8,8,7,7,6,7,7,5,6,6,7,7,4
+04R0546,Sportovní mainstream,muž,18,Olomoucký,SŠ s maturitou,30–50 tis.,7,7,7,8,5,9,5,3,5,8,7,7,6,6,5,8,7
+04R0547,Kreativní stavitelé,žena,48,Plzeňský,SŠ s maturitou,do 30 tis.,4,4,6,5,7,6,6,6,8,5,3,5,5,4,4,6,5
+04R0548,Kreativní stavitelé,žena,30,Středočeský,ZŠ / vyučení,80 tis. +,3,7,8,7,7,5,5,10,2,4,5,8,6,3,4,7,6
+04R0549,Casual a social,muž,29,Jihomoravský,SŠ s maturitou,30–50 tis.,7,9,7,6,6,6,5,6,6,5,7,6,7,6,8,9,6
+04R0550,Casual a social,žena,35,Plzeňský,ZŠ / vyučení,30–50 tis.,7,7,6,5,7,6,4,6,5,5,4,7,5,5,4,8,4
+04R0551,Sportovní mainstream,muž,45,Jihočeský,SŠ s maturitou,do 30 tis.,6,6,5,3,6,9,5,5,6,9,5,5,5,6,6,5,5
+04R0552,Sportovní mainstream,žena,42,Středočeský,SŠ s maturitou,50–80 tis.,6,6,5,6,6,9,6,7,5,8,8,4,7,6,4,5,5
+04R0553,Casual a social,muž,26,Středočeský,ZŠ / vyučení,80 tis. +,7,5,4,6,6,5,5,4,8,5,5,4,6,5,7,3,5
+04R0554,Příběhoví hráči,žena,34,Ústecký,SŠ s maturitou,30–50 tis.,4,6,6,7,3,6,8,6,4,7,5,6,7,5,5,4,7
+04R0555,Sportovní mainstream,žena,54,Olomoucký,SŠ s maturitou,30–50 tis.,7,7,6,5,6,7,6,6,6,8,7,6,6,6,7,7,5
+04R0556,Kompetitivní online,muž,33,Jihomoravský,VŠ,30–50 tis.,10,7,5,4,7,6,6,6,5,7,6,5,4,7,8,3,4
+04R0557,Sportovní mainstream,žena,18,Středočeský,ZŠ / vyučení,30–50 tis.,7,6,6,6,6,9,5,6,7,8,6,8,5,5,4,6,5
+04R0558,Casual a social,žena,36,Moravskoslezský,SŠ s maturitou,do 30 tis.,4,7,4,4,8,5,7,4,8,5,6,6,6,7,5,5,5
+04R0559,Sportovní mainstream,muž,41,Olomoucký,SŠ s maturitou,30–50 tis.,6,7,6,5,6,8,6,5,8,7,6,7,6,7,5,6,6
+04R0560,Casual a social,muž,37,Plzeňský,SŠ s maturitou,do 30 tis.,5,9,8,8,9,7,6,5,7,6,6,10,7,6,5,7,6
+04R0561,Kompetitivní online,žena,43,Olomoucký,SŠ s maturitou,30–50 tis.,9,6,7,7,6,5,7,4,10,6,8,8,4,8,8,8,5
+04R0562,Casual a social,žena,29,Jihomoravský,ZŠ / vyučení,30–50 tis.,5,7,5,6,6,6,8,8,7,4,7,5,7,8,5,6,6
+04R0563,Sportovní mainstream,žena,34,Plzeňský,ZŠ / vyučení,50–80 tis.,6,4,6,5,6,9,3,5,6,6,5,6,3,5,4,7,3
+04R0564,Sportovní mainstream,muž,36,Středočeský,ZŠ / vyučení,50–80 tis.,6,6,7,6,6,10,3,6,7,8,6,6,6,5,5,3,7
+04R0565,Kreativní stavitelé,muž,22,Olomoucký,VŠ,30–50 tis.,9,8,8,7,5,7,7,7,5,7,9,7,7,7,8,5,6
+04R0566,Casual a social,žena,27,Jihočeský,SŠ s maturitou,80 tis. +,5,7,8,4,9,6,3,3,4,6,6,8,4,4,3,8,3
+04R0567,Kompetitivní online,žena,23,Olomoucký,SŠ s maturitou,30–50 tis.,8,8,6,6,6,5,6,5,7,5,8,8,7,7,8,5,8
+04R0568,Kreativní stavitelé,žena,57,Jihomoravský,SŠ s maturitou,80 tis. +,6,5,8,3,4,6,6,6,4,7,5,7,6,8,8,7,5
+04R0569,Příběhoví hráči,žena,28,Jihočeský,ZŠ / vyučení,30–50 tis.,3,4,5,7,6,5,7,4,6,3,3,4,4,4,5,3,7
+04R0570,Kompetitivní online,žena,19,Jihočeský,SŠ s maturitou,do 30 tis.,8,7,3,2,5,6,8,4,6,7,7,3,8,8,8,3,3
+04R0571,Kreativní stavitelé,žena,18,Praha,SŠ s maturitou,50–80 tis.,7,6,9,7,5,6,6,4,8,7,8,7,7,8,7,5,8
+04R0572,Kreativní stavitelé,muž,24,Středočeský,VŠ,50–80 tis.,6,6,10,5,6,6,5,4,6,6,5,7,4,5,4,8,5
+04R0573,Kompetitivní online,muž,20,Plzeňský,ZŠ / vyučení,do 30 tis.,7,6,5,5,6,6,7,5,3,4,5,4,5,4,6,5,4
+04R0574,Kompetitivní online,žena,44,Ústecký,VŠ,80 tis. +,8,5,6,4,7,4,7,2,4,5,8,7,6,7,8,6,5
+04R0575,Kreativní stavitelé,žena,38,Jihomoravský,ZŠ / vyučení,30–50 tis.,6,4,9,3,4,4,6,4,5,5,4,6,2,5,6,6,3
+04R0576,Kompetitivní online,muž,27,Středočeský,SŠ s maturitou,50–80 tis.,9,7,3,6,5,6,8,6,4,8,7,5,7,8,9,4,7
+04R0577,Kompetitivní online,žena,20,Olomoucký,VŠ,30–50 tis.,7,7,5,5,4,4,9,6,3,6,7,5,8,8,7,3,6
+04R0578,Kompetitivní online,muž,18,Praha,SŠ s maturitou,do 30 tis.,9,7,6,7,3,7,6,7,6,8,6,4,6,9,7,5,7
+04R0579,Příběhoví hráči,muž,49,Ústecký,VŠ,80 tis. +,5,5,7,7,5,5,7,9,5,5,3,5,5,7,6,5,6
+04R0580,Příběhoví hráči,muž,38,Moravskoslezský,ZŠ / vyučení,do 30 tis.,7,7,7,7,8,6,5,4,4,6,7,6,4,6,5,8,6
+04R0581,Kompetitivní online,žena,22,Praha,SŠ s maturitou,30–50 tis.,7,10,5,6,5,6,7,4,5,7,7,6,9,6,5,6,6
+04R0582,Příběhoví hráči,muž,43,Plzeňský,SŠ s maturitou,30–50 tis.,5,6,5,7,8,6,6,4,7,4,4,3,4,4,6,6,5
+04R0583,Příběhoví hráči,žena,37,Olomoucký,SŠ s maturitou,50–80 tis.,3,6,5,8,3,4,7,6,3,5,2,5,6,4,3,3,6
+04R0584,Kreativní stavitelé,žena,26,Moravskoslezský,ZŠ / vyučení,50–80 tis.,7,3,7,5,7,6,4,5,5,8,5,6,3,5,6,8,5
+04R0585,Kreativní stavitelé,muž,21,Jihočeský,VŠ,do 30 tis.,5,4,8,5,5,7,4,5,4,7,5,7,3,3,3,5,5
+04R0586,Příběhoví hráči,žena,54,Jihočeský,SŠ s maturitou,80 tis. +,6,6,6,8,4,6,7,4,6,5,6,7,6,5,6,4,9
+04R0587,Příběhoví hráči,muž,58,Jihomoravský,SŠ s maturitou,30–50 tis.,6,4,6,9,8,7,7,7,4,7,4,6,5,6,6,8,10
+04R0588,Kreativní stavitelé,žena,47,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,7,9,6,6,6,7,6,7,6,5,8,5,6,6,8,5
+04R0589,Casual a social,muž,45,Olomoucký,SŠ s maturitou,30–50 tis.,6,7,4,5,7,4,5,4,6,4,6,6,6,7,7,6,6
+04R0590,Casual a social,žena,34,Ústecký,ZŠ / vyučení,50–80 tis.,6,6,5,8,9,7,4,5,5,7,4,6,5,5,5,8,7
+04R0591,Sportovní mainstream,žena,47,Moravskoslezský,SŠ s maturitou,do 30 tis.,7,6,5,7,6,8,6,5,3,7,6,5,6,7,6,6,6
+04R0592,Kompetitivní online,žena,18,Jihomoravský,SŠ s maturitou,50–80 tis.,9,8,6,3,9,7,8,7,5,7,7,7,7,8,7,8,4
+04R0593,Kompetitivní online,muž,22,Moravskoslezský,ZŠ / vyučení,80 tis. +,9,8,7,5,6,7,7,8,8,6,8,6,5,7,6,7,6
+04R0594,Sportovní mainstream,muž,32,Jihomoravský,SŠ s maturitou,50–80 tis.,7,6,6,5,6,9,6,3,6,7,7,4,3,8,6,6,4
+04R0595,Sportovní mainstream,žena,57,Plzeňský,ZŠ / vyučení,50–80 tis.,8,4,7,5,5,8,6,5,5,9,8,6,6,8,6,5,5
+04R0596,Příběhoví hráči,muž,35,Jihomoravský,VŠ,30–50 tis.,5,5,5,8,3,5,6,6,4,4,5,4,6,4,5,2,6
+04R0597,Casual a social,muž,18,Středočeský,SŠ s maturitou,80 tis. +,4,7,4,5,8,6,4,4,6,4,5,4,6,4,3,4,4
+04R0598,Casual a social,muž,31,Moravskoslezský,VŠ,do 30 tis.,7,9,5,6,6,6,5,7,6,7,7,6,7,5,6,3,6
+04R0599,Casual a social,žena,20,Jihomoravský,VŠ,do 30 tis.,4,7,4,5,5,5,6,5,6,7,8,6,7,6,7,6,7
+04R0600,Příběhoví hráči,žena,36,Jihočeský,ZŠ / vyučení,do 30 tis.,8,3,7,10,6,4,5,6,5,6,5,5,3,6,6,7,10

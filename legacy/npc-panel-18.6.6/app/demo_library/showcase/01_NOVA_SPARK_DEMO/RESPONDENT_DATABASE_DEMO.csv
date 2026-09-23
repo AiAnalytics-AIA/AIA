@@ -1,0 +1,1201 @@
+﻿respondent_id,age_group,sex,region,segment,preferred_object,primary_metric,trust,clarity,appeal,overall,weight,demo
+R0001,45–64,žena,Moravskoslezsko,Trend Explorers,Premium,48,87,51,60,62,0.833,TRUE
+R0002,45–64,muž,Severozápad,Health Optimizers,Premium,29,59,87,50,56,1.09,TRUE
+R0003,65+,žena,Moravskoslezsko,Price Maximizers,Value,35,74,56,37,50,1.245,TRUE
+R0004,65+,žena,Jihozápad,Trend Explorers,Premium,47,89,57,36,57,1.199,TRUE
+R0005,18–29,žena,Jihovýchod,Trend Explorers,Premium,27,61,55,53,49,1.157,TRUE
+R0006,18–29,žena,Severovýchod,Category Skeptics,Familiar,37,63,78,84,66,0.941,TRUE
+R0007,65+,žena,Severovýchod,Category Skeptics,Familiar,35,59,67,74,59,0.938,TRUE
+R0008,45–64,žena,Praha,Price Maximizers,Value,52,83,62,65,66,0.821,TRUE
+R0009,18–29,muž,Jihozápad,Category Skeptics,Familiar,25,59,63,87,58,0.853,TRUE
+R0010,45–64,muž,Severozápad,Pragmatic Energy Seekers,Familiar,53,66,67,56,60,1.201,TRUE
+R0011,45–64,muž,Jihovýchod,Price Maximizers,Value,25,59,60,54,50,0.753,TRUE
+R0012,65+,muž,Střední Morava,Category Skeptics,Familiar,31,51,76,61,55,1.01,TRUE
+R0013,30–44,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,40,48,47,90,56,0.922,TRUE
+R0014,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,27,49,53,70,50,0.801,TRUE
+R0015,45–64,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,24,55,54,84,54,0.994,TRUE
+R0016,18–29,žena,Severozápad,Trend Explorers,Premium,35,58,62,74,57,1.126,TRUE
+R0017,65+,žena,Severovýchod,Trend Explorers,Premium,54,78,73,49,64,1.168,TRUE
+R0018,18–29,muž,Střední Čechy,Health Optimizers,Premium,21,86,47,64,54,1.249,TRUE
+R0019,18–29,muž,Střední Čechy,Health Optimizers,Premium,38,90,85,48,65,1.183,TRUE
+R0020,30–44,žena,Severozápad,Price Maximizers,Value,34,66,59,56,54,1.217,TRUE
+R0021,65+,žena,Jihozápad,Category Skeptics,Familiar,29,47,79,66,55,1.113,TRUE
+R0022,30–44,muž,Střední Čechy,Trend Explorers,Premium,45,72,57,73,62,0.877,TRUE
+R0023,30–44,žena,Jihozápad,Price Maximizers,Value,41,76,72,74,66,0.895,TRUE
+R0024,45–64,žena,Moravskoslezsko,Category Skeptics,Familiar,48,63,52,83,62,1.063,TRUE
+R0025,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,51,59,61,87,64,1.119,TRUE
+R0026,65+,muž,Jihozápad,Health Optimizers,Premium,26,56,54,82,54,1.103,TRUE
+R0027,45–64,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,29,72,72,35,52,0.953,TRUE
+R0028,65+,muž,Moravskoslezsko,Health Optimizers,Premium,55,58,74,58,61,1.098,TRUE
+R0029,30–44,žena,Střední Čechy,Trend Explorers,Premium,49,63,73,53,60,1.106,TRUE
+R0030,30–44,žena,Praha,Category Skeptics,Familiar,23,48,61,83,54,1.126,TRUE
+R0031,65+,muž,Severovýchod,Price Maximizers,Value,50,86,77,49,66,0.871,TRUE
+R0032,45–64,žena,Jihozápad,Category Skeptics,Familiar,52,85,72,75,71,1.068,TRUE
+R0033,65+,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,34,57,72,64,57,1.079,TRUE
+R0034,30–44,muž,Praha,Price Maximizers,Value,33,67,52,69,55,1.246,TRUE
+R0035,65+,muž,Severozápad,Health Optimizers,Premium,30,68,85,42,56,1.079,TRUE
+R0036,45–64,muž,Praha,Category Skeptics,Familiar,37,50,45,63,49,0.926,TRUE
+R0037,30–44,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,31,87,69,61,62,0.809,TRUE
+R0038,18–29,muž,Jihovýchod,Category Skeptics,Familiar,44,68,85,83,70,0.866,TRUE
+R0039,65+,muž,Jihovýchod,Trend Explorers,Premium,56,72,80,82,72,1.032,TRUE
+R0040,30–44,muž,Jihozápad,Trend Explorers,Premium,23,69,53,38,46,1.19,TRUE
+R0041,30–44,muž,Jihozápad,Category Skeptics,Familiar,43,69,67,48,57,0.989,TRUE
+R0042,45–64,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,42,56,55,49,50,1.172,TRUE
+R0043,30–44,muž,Jihovýchod,Trend Explorers,Premium,35,72,59,70,59,0.884,TRUE
+R0044,45–64,muž,Jihozápad,Category Skeptics,Familiar,34,84,69,40,57,1.119,TRUE
+R0045,30–44,muž,Jihozápad,Category Skeptics,Familiar,41,68,83,68,65,1.162,TRUE
+R0046,18–29,žena,Jihovýchod,Category Skeptics,Familiar,41,71,64,88,66,1.166,TRUE
+R0047,65+,muž,Severozápad,Category Skeptics,Familiar,42,59,76,46,56,1.21,TRUE
+R0048,30–44,muž,Severozápad,Price Maximizers,Value,56,77,56,74,66,0.798,TRUE
+R0049,18–29,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,33,54,88,70,61,0.761,TRUE
+R0050,18–29,žena,Severozápad,Pragmatic Energy Seekers,Familiar,48,74,79,78,70,0.773,TRUE
+R0051,18–29,muž,Severozápad,Health Optimizers,Premium,31,50,70,81,58,0.963,TRUE
+R0052,45–64,žena,Praha,Health Optimizers,Premium,43,76,59,56,58,0.982,TRUE
+R0053,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,45,66,76,53,60,0.849,TRUE
+R0054,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,24,54,79,75,58,1.237,TRUE
+R0055,65+,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,47,72,57,87,66,1.116,TRUE
+R0056,18–29,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,57,58,90,76,70,0.953,TRUE
+R0057,45–64,žena,Moravskoslezsko,Price Maximizers,Value,40,53,60,71,56,0.755,TRUE
+R0058,45–64,muž,Moravskoslezsko,Health Optimizers,Premium,41,73,87,45,62,0.806,TRUE
+R0059,18–29,žena,Střední Čechy,Trend Explorers,Premium,51,47,51,37,46,0.805,TRUE
+R0060,18–29,žena,Jihovýchod,Price Maximizers,Value,34,50,74,79,59,1.063,TRUE
+R0061,30–44,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,52,72,63,70,64,0.757,TRUE
+R0062,45–64,muž,Praha,Category Skeptics,Familiar,42,73,67,35,54,0.962,TRUE
+R0063,18–29,žena,Jihozápad,Price Maximizers,Value,39,60,70,43,53,1.227,TRUE
+R0064,65+,žena,Střední Morava,Price Maximizers,Value,39,46,51,79,54,1.191,TRUE
+R0065,65+,muž,Jihovýchod,Health Optimizers,Premium,42,45,46,61,48,1.021,TRUE
+R0066,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,41,52,89,37,55,1.062,TRUE
+R0067,18–29,žena,Střední Čechy,Category Skeptics,Familiar,46,73,83,84,72,0.916,TRUE
+R0068,18–29,žena,Severozápad,Price Maximizers,Value,32,77,65,49,56,1.035,TRUE
+R0069,45–64,muž,Praha,Price Maximizers,Value,26,73,75,37,53,0.986,TRUE
+R0070,30–44,žena,Střední Čechy,Trend Explorers,Premium,27,85,59,57,57,0.875,TRUE
+R0071,45–64,žena,Praha,Price Maximizers,Value,42,83,62,72,65,1.063,TRUE
+R0072,45–64,žena,Moravskoslezsko,Category Skeptics,Familiar,44,65,90,55,64,0.965,TRUE
+R0073,65+,žena,Střední Morava,Health Optimizers,Premium,21,88,61,62,58,0.903,TRUE
+R0074,45–64,žena,Jihozápad,Category Skeptics,Familiar,57,45,56,36,48,1.208,TRUE
+R0075,65+,muž,Severozápad,Price Maximizers,Value,39,78,47,58,56,1.167,TRUE
+R0076,45–64,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,35,66,56,82,60,1.173,TRUE
+R0077,18–29,muž,Jihovýchod,Price Maximizers,Value,47,72,80,54,63,1.159,TRUE
+R0078,30–44,muž,Jihovýchod,Price Maximizers,Value,39,61,59,62,55,1.12,TRUE
+R0079,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,48,75,56,90,67,1.019,TRUE
+R0080,18–29,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,54,58,57,51,55,1.163,TRUE
+R0081,65+,muž,Praha,Health Optimizers,Premium,53,79,61,90,71,1.244,TRUE
+R0082,18–29,žena,Praha,Category Skeptics,Familiar,25,85,57,49,54,1.074,TRUE
+R0083,65+,žena,Jihovýchod,Health Optimizers,Premium,46,83,73,83,71,0.95,TRUE
+R0084,45–64,muž,Střední Čechy,Price Maximizers,Value,28,59,73,38,50,1.123,TRUE
+R0085,65+,žena,Střední Čechy,Health Optimizers,Premium,26,83,58,76,61,1.196,TRUE
+R0086,45–64,muž,Jihozápad,Health Optimizers,Premium,24,66,52,80,56,1.236,TRUE
+R0087,30–44,muž,Jihovýchod,Price Maximizers,Value,53,45,81,35,54,1.009,TRUE
+R0088,65+,žena,Moravskoslezsko,Price Maximizers,Value,21,64,82,63,58,1.171,TRUE
+R0089,18–29,muž,Moravskoslezsko,Price Maximizers,Value,35,80,55,42,53,0.783,TRUE
+R0090,65+,žena,Severovýchod,Category Skeptics,Familiar,57,76,83,39,64,0.835,TRUE
+R0091,18–29,žena,Střední Morava,Health Optimizers,Premium,29,82,72,84,67,0.998,TRUE
+R0092,30–44,muž,Praha,Category Skeptics,Familiar,55,66,67,36,56,1.15,TRUE
+R0093,45–64,muž,Praha,Category Skeptics,Familiar,51,53,88,37,57,1.196,TRUE
+R0094,65+,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,22,59,77,64,56,1.203,TRUE
+R0095,65+,žena,Praha,Category Skeptics,Familiar,28,90,68,64,62,0.987,TRUE
+R0096,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,33,77,53,37,50,1.185,TRUE
+R0097,30–44,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,45,88,69,39,60,1.206,TRUE
+R0098,30–44,žena,Jihovýchod,Category Skeptics,Familiar,47,64,71,90,68,1.102,TRUE
+R0099,45–64,muž,Severozápad,Category Skeptics,Familiar,44,82,89,49,66,1.168,TRUE
+R0100,30–44,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,26,84,78,88,69,1.122,TRUE
+R0101,65+,žena,Jihovýchod,Price Maximizers,Value,32,88,68,68,64,1.113,TRUE
+R0102,45–64,žena,Severovýchod,Price Maximizers,Value,36,68,77,87,67,0.915,TRUE
+R0103,45–64,žena,Severozápad,Trend Explorers,Premium,55,64,69,54,60,1.096,TRUE
+R0104,30–44,muž,Jihozápad,Category Skeptics,Familiar,26,69,63,59,54,1.091,TRUE
+R0105,45–64,žena,Jihozápad,Price Maximizers,Value,57,62,82,55,64,0.874,TRUE
+R0106,30–44,žena,Praha,Health Optimizers,Premium,35,82,75,40,58,0.78,TRUE
+R0107,65+,žena,Severozápad,Pragmatic Energy Seekers,Familiar,24,57,74,55,52,1.077,TRUE
+R0108,65+,muž,Jihovýchod,Health Optimizers,Premium,27,62,70,51,52,1.249,TRUE
+R0109,18–29,muž,Praha,Category Skeptics,Familiar,50,87,52,39,57,1.139,TRUE
+R0110,65+,muž,Praha,Price Maximizers,Value,56,85,65,57,66,0.771,TRUE
+R0111,30–44,muž,Praha,Price Maximizers,Value,47,79,82,42,62,0.813,TRUE
+R0112,30–44,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,46,69,50,61,56,0.786,TRUE
+R0113,45–64,žena,Praha,Health Optimizers,Premium,28,53,86,80,62,1.121,TRUE
+R0114,30–44,muž,Severozápad,Pragmatic Energy Seekers,Familiar,35,87,48,65,59,1.12,TRUE
+R0115,18–29,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,36,68,68,35,52,1.09,TRUE
+R0116,18–29,žena,Jihovýchod,Category Skeptics,Familiar,25,63,60,71,55,0.811,TRUE
+R0117,30–44,muž,Střední Morava,Price Maximizers,Value,23,60,85,85,63,0.886,TRUE
+R0118,18–29,muž,Severozápad,Pragmatic Energy Seekers,Familiar,49,78,53,75,64,0.916,TRUE
+R0119,45–64,muž,Severozápad,Pragmatic Energy Seekers,Familiar,43,79,88,63,68,1.178,TRUE
+R0120,18–29,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,34,67,88,89,70,0.98,TRUE
+R0121,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,54,77,71,64,66,1.132,TRUE
+R0122,30–44,muž,Jihovýchod,Health Optimizers,Premium,34,50,73,70,57,1.091,TRUE
+R0123,65+,muž,Střední Morava,Trend Explorers,Premium,43,84,83,69,70,1.164,TRUE
+R0124,18–29,muž,Střední Čechy,Price Maximizers,Value,32,65,70,89,64,1.181,TRUE
+R0125,45–64,žena,Jihovýchod,Price Maximizers,Value,21,49,63,81,54,1.003,TRUE
+R0126,65+,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,57,48,71,48,56,1.039,TRUE
+R0127,30–44,žena,Moravskoslezsko,Price Maximizers,Value,46,82,89,72,72,0.762,TRUE
+R0128,65+,muž,Severovýchod,Category Skeptics,Familiar,43,69,51,36,50,1.245,TRUE
+R0129,30–44,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,55,85,72,81,73,1.234,TRUE
+R0130,18–29,muž,Jihozápad,Trend Explorers,Premium,42,59,65,44,52,1.127,TRUE
+R0131,45–64,muž,Severozápad,Price Maximizers,Value,36,58,77,39,52,0.79,TRUE
+R0132,18–29,žena,Severovýchod,Trend Explorers,Premium,35,57,47,42,45,1.17,TRUE
+R0133,65+,muž,Střední Čechy,Category Skeptics,Familiar,54,74,86,40,64,1.142,TRUE
+R0134,65+,žena,Střední Morava,Category Skeptics,Familiar,48,67,89,57,65,1.208,TRUE
+R0135,45–64,muž,Moravskoslezsko,Health Optimizers,Premium,31,47,68,76,56,0.943,TRUE
+R0136,18–29,muž,Střední Čechy,Category Skeptics,Familiar,38,54,90,44,56,0.934,TRUE
+R0137,65+,žena,Praha,Price Maximizers,Value,25,82,81,61,62,1.014,TRUE
+R0138,18–29,žena,Jihozápad,Price Maximizers,Value,25,71,71,49,54,0.92,TRUE
+R0139,65+,muž,Moravskoslezsko,Health Optimizers,Premium,54,58,88,46,62,1.138,TRUE
+R0140,18–29,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,50,61,69,89,67,1.044,TRUE
+R0141,45–64,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,27,83,51,58,55,1.117,TRUE
+R0142,30–44,žena,Jihovýchod,Price Maximizers,Value,23,69,64,37,48,1.204,TRUE
+R0143,18–29,muž,Střední Čechy,Price Maximizers,Value,36,75,46,62,55,0.846,TRUE
+R0144,18–29,muž,Praha,Pragmatic Energy Seekers,Familiar,25,64,79,69,59,1.222,TRUE
+R0145,30–44,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,31,87,75,85,70,1.099,TRUE
+R0146,65+,muž,Praha,Pragmatic Energy Seekers,Familiar,54,82,77,68,70,0.778,TRUE
+R0147,65+,žena,Jihozápad,Category Skeptics,Familiar,57,63,46,48,54,1.216,TRUE
+R0148,18–29,muž,Střední Morava,Price Maximizers,Value,40,64,68,39,53,1.241,TRUE
+R0149,65+,žena,Moravskoslezsko,Trend Explorers,Premium,27,54,84,62,57,0.815,TRUE
+R0150,18–29,žena,Severozápad,Pragmatic Energy Seekers,Familiar,28,63,86,70,62,0.989,TRUE
+R0151,65+,žena,Střední Morava,Health Optimizers,Premium,46,75,49,67,59,0.962,TRUE
+R0152,45–64,muž,Severozápad,Health Optimizers,Premium,24,81,73,74,63,0.959,TRUE
+R0153,45–64,muž,Severozápad,Price Maximizers,Value,50,45,46,56,49,0.937,TRUE
+R0154,18–29,žena,Jihozápad,Price Maximizers,Value,32,71,86,87,69,0.968,TRUE
+R0155,30–44,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,52,82,77,79,72,1.188,TRUE
+R0156,30–44,muž,Jihozápad,Category Skeptics,Familiar,21,45,74,43,46,0.89,TRUE
+R0157,45–64,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,47,48,47,81,56,0.854,TRUE
+R0158,18–29,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,23,65,73,79,60,0.88,TRUE
+R0159,45–64,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,27,69,71,73,60,1.232,TRUE
+R0160,45–64,muž,Střední Morava,Health Optimizers,Premium,36,51,59,54,50,1.082,TRUE
+R0161,18–29,muž,Praha,Pragmatic Energy Seekers,Familiar,57,86,87,63,73,1.008,TRUE
+R0162,30–44,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,48,82,86,46,66,1.226,TRUE
+R0163,45–64,žena,Severozápad,Trend Explorers,Premium,22,70,75,39,52,1.164,TRUE
+R0164,65+,muž,Jihozápad,Category Skeptics,Familiar,35,73,73,45,56,1.168,TRUE
+R0165,30–44,muž,Severozápad,Category Skeptics,Familiar,25,83,53,87,62,1.069,TRUE
+R0166,18–29,muž,Moravskoslezsko,Price Maximizers,Value,48,88,62,69,67,0.985,TRUE
+R0167,18–29,žena,Střední Čechy,Category Skeptics,Familiar,43,89,55,46,58,0.769,TRUE
+R0168,45–64,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,52,88,51,62,63,1.211,TRUE
+R0169,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,44,63,55,88,62,0.771,TRUE
+R0170,30–44,muž,Jihovýchod,Price Maximizers,Value,37,61,50,84,58,1.025,TRUE
+R0171,18–29,muž,Střední Morava,Trend Explorers,Premium,36,48,63,71,54,0.91,TRUE
+R0172,45–64,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,43,47,66,39,49,1.032,TRUE
+R0173,65+,žena,Jihozápad,Trend Explorers,Premium,56,57,62,59,58,1.002,TRUE
+R0174,30–44,muž,Severozápad,Pragmatic Energy Seekers,Familiar,33,67,83,84,67,1.137,TRUE
+R0175,18–29,žena,Severovýchod,Category Skeptics,Familiar,52,61,48,83,61,1.013,TRUE
+R0176,65+,žena,Praha,Health Optimizers,Premium,41,82,89,76,72,0.858,TRUE
+R0177,65+,žena,Severozápad,Price Maximizers,Value,48,83,90,54,69,0.858,TRUE
+R0178,65+,žena,Střední Čechy,Health Optimizers,Premium,35,73,46,79,58,1.001,TRUE
+R0179,30–44,žena,Jihovýchod,Price Maximizers,Value,55,57,60,49,55,1.157,TRUE
+R0180,18–29,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,56,50,74,87,67,0.822,TRUE
+R0181,65+,žena,Severovýchod,Health Optimizers,Premium,21,73,81,77,63,0.861,TRUE
+R0182,18–29,žena,Praha,Health Optimizers,Premium,55,81,83,38,64,1.109,TRUE
+R0183,65+,žena,Střední Morava,Price Maximizers,Value,57,81,90,36,66,0.966,TRUE
+R0184,65+,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,25,58,61,48,48,0.868,TRUE
+R0185,30–44,žena,Moravskoslezsko,Price Maximizers,Value,39,62,86,48,59,1.218,TRUE
+R0186,30–44,žena,Praha,Price Maximizers,Value,40,61,83,49,58,1.093,TRUE
+R0187,18–29,muž,Jihozápad,Trend Explorers,Premium,49,47,62,50,52,0.899,TRUE
+R0188,65+,muž,Jihovýchod,Price Maximizers,Value,55,52,72,59,60,1.121,TRUE
+R0189,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,56,49,81,60,62,0.764,TRUE
+R0190,30–44,muž,Jihovýchod,Price Maximizers,Value,52,53,79,43,57,0.856,TRUE
+R0191,45–64,žena,Moravskoslezsko,Category Skeptics,Familiar,48,62,57,75,60,1.028,TRUE
+R0192,30–44,muž,Jihozápad,Trend Explorers,Premium,53,84,87,67,73,1.221,TRUE
+R0193,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,33,74,82,49,60,1.046,TRUE
+R0194,45–64,žena,Střední Morava,Category Skeptics,Familiar,37,54,49,83,56,1.031,TRUE
+R0195,65+,muž,Severozápad,Trend Explorers,Premium,49,54,57,39,50,1.209,TRUE
+R0196,65+,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,26,80,89,67,66,0.75,TRUE
+R0197,18–29,žena,Severovýchod,Trend Explorers,Premium,36,72,59,38,51,1.055,TRUE
+R0198,18–29,žena,Střední Morava,Price Maximizers,Value,53,62,64,53,58,0.946,TRUE
+R0199,45–64,muž,Moravskoslezsko,Price Maximizers,Value,27,85,70,61,61,0.859,TRUE
+R0200,30–44,muž,Praha,Pragmatic Energy Seekers,Familiar,50,79,76,82,72,0.909,TRUE
+R0201,30–44,žena,Severozápad,Pragmatic Energy Seekers,Familiar,29,53,59,65,52,0.872,TRUE
+R0202,30–44,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,46,80,77,39,60,1.07,TRUE
+R0203,30–44,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,39,75,88,36,60,1.104,TRUE
+R0204,18–29,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,44,75,85,38,60,1.105,TRUE
+R0205,30–44,žena,Severovýchod,Price Maximizers,Value,25,76,72,85,64,0.851,TRUE
+R0206,30–44,muž,Střední Morava,Category Skeptics,Familiar,36,75,87,82,70,1.196,TRUE
+R0207,30–44,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,40,81,62,46,57,0.759,TRUE
+R0208,30–44,žena,Jihozápad,Price Maximizers,Value,48,81,72,37,60,1.249,TRUE
+R0209,18–29,žena,Praha,Trend Explorers,Premium,21,76,54,60,53,1.176,TRUE
+R0210,30–44,žena,Severovýchod,Price Maximizers,Value,44,73,73,54,61,0.968,TRUE
+R0211,45–64,muž,Moravskoslezsko,Price Maximizers,Value,55,64,51,36,52,0.979,TRUE
+R0212,30–44,žena,Severozápad,Price Maximizers,Value,29,75,70,66,60,0.898,TRUE
+R0213,45–64,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,26,58,56,81,55,0.766,TRUE
+R0214,65+,žena,Střední Morava,Health Optimizers,Premium,34,76,72,71,63,1.069,TRUE
+R0215,30–44,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,53,49,55,48,51,1.013,TRUE
+R0216,18–29,muž,Severozápad,Pragmatic Energy Seekers,Familiar,46,61,46,80,58,1.142,TRUE
+R0217,65+,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,34,85,45,57,55,0.873,TRUE
+R0218,30–44,žena,Jihozápad,Price Maximizers,Value,57,58,49,68,58,0.95,TRUE
+R0219,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,49,47,56,53,51,0.982,TRUE
+R0220,45–64,muž,Jihovýchod,Health Optimizers,Premium,46,53,46,87,58,1.181,TRUE
+R0221,18–29,žena,Jihozápad,Price Maximizers,Value,25,86,87,77,69,0.791,TRUE
+R0222,45–64,žena,Jihozápad,Category Skeptics,Familiar,41,75,46,62,56,1.179,TRUE
+R0223,18–29,muž,Střední Morava,Price Maximizers,Value,27,71,46,65,52,0.937,TRUE
+R0224,30–44,žena,Střední Čechy,Price Maximizers,Value,33,52,76,81,60,1.249,TRUE
+R0225,30–44,žena,Jihozápad,Price Maximizers,Value,39,80,46,38,51,0.929,TRUE
+R0226,65+,žena,Praha,Health Optimizers,Premium,36,55,70,84,61,1.083,TRUE
+R0227,45–64,žena,Severozápad,Pragmatic Energy Seekers,Familiar,34,47,55,66,50,1.085,TRUE
+R0228,65+,žena,Praha,Health Optimizers,Premium,32,78,45,52,52,0.9,TRUE
+R0229,45–64,žena,Jihozápad,Health Optimizers,Premium,44,62,79,53,60,0.98,TRUE
+R0230,18–29,muž,Praha,Pragmatic Energy Seekers,Familiar,38,72,76,43,57,0.833,TRUE
+R0231,45–64,žena,Severozápad,Health Optimizers,Premium,38,81,80,85,71,0.78,TRUE
+R0232,45–64,žena,Střední Čechy,Price Maximizers,Value,22,79,73,69,61,1.237,TRUE
+R0233,65+,žena,Střední Morava,Price Maximizers,Value,45,70,57,36,52,0.952,TRUE
+R0234,18–29,muž,Jihozápad,Price Maximizers,Value,35,70,62,51,54,1.067,TRUE
+R0235,30–44,žena,Praha,Price Maximizers,Value,55,83,83,35,64,1.234,TRUE
+R0236,65+,muž,Jihovýchod,Price Maximizers,Value,25,85,73,59,60,1.003,TRUE
+R0237,45–64,žena,Moravskoslezsko,Category Skeptics,Familiar,35,87,50,89,65,0.795,TRUE
+R0238,30–44,muž,Severozápad,Pragmatic Energy Seekers,Familiar,50,89,76,64,70,1.158,TRUE
+R0239,30–44,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,54,79,67,50,62,0.996,TRUE
+R0240,45–64,žena,Jihovýchod,Health Optimizers,Premium,49,46,54,39,47,0.946,TRUE
+R0241,18–29,žena,Praha,Trend Explorers,Premium,21,84,67,85,64,1.209,TRUE
+R0242,65+,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,26,61,71,83,60,0.959,TRUE
+R0243,18–29,muž,Střední Morava,Trend Explorers,Premium,48,64,86,67,66,1.205,TRUE
+R0244,45–64,žena,Jihovýchod,Price Maximizers,Value,47,61,48,83,60,0.812,TRUE
+R0245,30–44,žena,Střední Morava,Trend Explorers,Premium,26,49,61,55,48,0.794,TRUE
+R0246,45–64,muž,Severozápad,Health Optimizers,Premium,45,57,67,63,58,0.755,TRUE
+R0247,45–64,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,28,63,65,61,54,0.765,TRUE
+R0248,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,41,65,45,38,47,1.249,TRUE
+R0249,65+,žena,Praha,Price Maximizers,Value,39,68,56,64,57,1.007,TRUE
+R0250,18–29,muž,Jihozápad,Health Optimizers,Premium,56,88,84,87,79,0.852,TRUE
+R0251,45–64,žena,Severozápad,Category Skeptics,Familiar,29,50,81,77,59,0.825,TRUE
+R0252,45–64,žena,Střední Morava,Price Maximizers,Value,31,52,75,48,52,1.218,TRUE
+R0253,65+,žena,Severozápad,Category Skeptics,Familiar,30,49,77,82,60,1.123,TRUE
+R0254,18–29,žena,Jihozápad,Trend Explorers,Premium,38,82,58,48,56,1.218,TRUE
+R0255,65+,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,44,65,54,89,63,0.83,TRUE
+R0256,18–29,muž,Jihovýchod,Price Maximizers,Value,41,63,87,60,63,0.999,TRUE
+R0257,30–44,žena,Jihovýchod,Health Optimizers,Premium,28,72,90,80,68,0.85,TRUE
+R0258,45–64,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,47,87,79,57,68,0.866,TRUE
+R0259,18–29,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,25,79,57,63,56,0.897,TRUE
+R0260,30–44,žena,Jihozápad,Price Maximizers,Value,30,51,75,59,54,0.969,TRUE
+R0261,65+,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,52,87,45,57,60,1.056,TRUE
+R0262,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,30,90,61,64,61,0.89,TRUE
+R0263,30–44,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,49,55,48,78,58,0.938,TRUE
+R0264,65+,muž,Severozápad,Pragmatic Energy Seekers,Familiar,50,87,54,75,66,0.825,TRUE
+R0265,30–44,žena,Jihovýchod,Trend Explorers,Premium,44,69,89,44,62,1.135,TRUE
+R0266,65+,muž,Severozápad,Pragmatic Energy Seekers,Familiar,50,78,58,83,67,1.036,TRUE
+R0267,30–44,muž,Severozápad,Pragmatic Energy Seekers,Familiar,30,56,71,72,57,1.174,TRUE
+R0268,18–29,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,35,86,59,67,62,0.847,TRUE
+R0269,65+,muž,Jihozápad,Category Skeptics,Familiar,35,63,49,79,56,0.939,TRUE
+R0270,65+,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,48,50,70,45,53,1.171,TRUE
+R0271,45–64,žena,Střední Čechy,Health Optimizers,Premium,28,72,59,61,55,1.071,TRUE
+R0272,30–44,žena,Severozápad,Health Optimizers,Premium,45,66,84,52,62,1.029,TRUE
+R0273,18–29,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,46,89,45,70,62,0.901,TRUE
+R0274,30–44,žena,Praha,Pragmatic Energy Seekers,Familiar,43,78,81,38,60,1.141,TRUE
+R0275,45–64,muž,Severozápad,Trend Explorers,Premium,38,47,80,70,59,0.995,TRUE
+R0276,65+,muž,Severozápad,Category Skeptics,Familiar,50,53,47,88,60,1.176,TRUE
+R0277,45–64,muž,Praha,Health Optimizers,Premium,44,45,60,60,52,1.196,TRUE
+R0278,18–29,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,32,64,47,64,52,0.818,TRUE
+R0279,65+,muž,Jihovýchod,Price Maximizers,Value,43,51,54,61,52,0.769,TRUE
+R0280,18–29,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,51,72,45,84,63,1.058,TRUE
+R0281,30–44,muž,Severozápad,Price Maximizers,Value,21,87,63,47,54,0.944,TRUE
+R0282,30–44,muž,Severozápad,Health Optimizers,Premium,24,58,88,77,62,1.236,TRUE
+R0283,30–44,muž,Severovýchod,Category Skeptics,Familiar,32,83,53,61,57,1.086,TRUE
+R0284,65+,žena,Střední Čechy,Health Optimizers,Premium,52,80,50,49,58,0.754,TRUE
+R0285,65+,žena,Severozápad,Pragmatic Energy Seekers,Familiar,46,68,71,56,60,1.085,TRUE
+R0286,45–64,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,21,63,73,80,59,1.115,TRUE
+R0287,18–29,žena,Severovýchod,Category Skeptics,Familiar,49,70,60,48,57,0.847,TRUE
+R0288,65+,muž,Střední Morava,Price Maximizers,Value,51,73,53,40,54,0.932,TRUE
+R0289,65+,muž,Severovýchod,Price Maximizers,Value,52,61,58,46,54,1.15,TRUE
+R0290,30–44,muž,Praha,Price Maximizers,Value,36,84,54,72,62,0.756,TRUE
+R0291,65+,muž,Moravskoslezsko,Category Skeptics,Familiar,52,77,64,61,64,0.903,TRUE
+R0292,18–29,muž,Severovýchod,Trend Explorers,Premium,46,55,63,51,54,1.019,TRUE
+R0293,45–64,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,22,54,46,52,44,0.797,TRUE
+R0294,18–29,žena,Praha,Health Optimizers,Premium,39,56,47,61,51,1.203,TRUE
+R0295,18–29,muž,Praha,Pragmatic Energy Seekers,Familiar,52,72,73,60,64,1.021,TRUE
+R0296,65+,žena,Jihozápad,Category Skeptics,Familiar,31,86,56,68,60,1.148,TRUE
+R0297,45–64,žena,Moravskoslezsko,Health Optimizers,Premium,49,48,58,69,56,0.771,TRUE
+R0298,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,47,74,57,81,65,1.211,TRUE
+R0299,18–29,muž,Praha,Pragmatic Energy Seekers,Familiar,24,66,49,63,50,1.107,TRUE
+R0300,30–44,muž,Jihovýchod,Health Optimizers,Premium,33,62,61,81,59,0.912,TRUE
+R0301,30–44,žena,Moravskoslezsko,Category Skeptics,Familiar,56,85,88,48,69,0.826,TRUE
+R0302,45–64,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,25,47,60,50,46,0.904,TRUE
+R0303,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,29,87,48,77,60,0.919,TRUE
+R0304,30–44,muž,Střední Morava,Trend Explorers,Premium,50,45,71,56,56,0.752,TRUE
+R0305,65+,žena,Severozápad,Health Optimizers,Premium,41,88,51,47,57,1.013,TRUE
+R0306,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,44,81,55,64,61,1.12,TRUE
+R0307,30–44,žena,Severozápad,Price Maximizers,Value,55,68,45,60,57,0.776,TRUE
+R0308,45–64,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,21,82,83,56,60,1.128,TRUE
+R0309,65+,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,27,66,61,46,50,1.22,TRUE
+R0310,30–44,muž,Střední Čechy,Category Skeptics,Familiar,47,87,72,41,62,1.023,TRUE
+R0311,18–29,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,23,88,52,52,54,0.977,TRUE
+R0312,45–64,muž,Severozápad,Price Maximizers,Value,21,50,60,58,47,0.866,TRUE
+R0313,30–44,žena,Severovýchod,Category Skeptics,Familiar,48,73,70,90,70,0.995,TRUE
+R0314,65+,muž,Moravskoslezsko,Health Optimizers,Premium,43,70,72,68,63,0.766,TRUE
+R0315,65+,žena,Jihozápad,Category Skeptics,Familiar,42,47,59,48,49,1.065,TRUE
+R0316,65+,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,54,69,45,36,51,1.03,TRUE
+R0317,65+,žena,Severozápad,Health Optimizers,Premium,50,65,49,43,52,0.944,TRUE
+R0318,65+,muž,Střední Čechy,Health Optimizers,Premium,52,51,73,86,66,0.794,TRUE
+R0319,65+,žena,Praha,Health Optimizers,Premium,51,46,54,41,48,1.2,TRUE
+R0320,65+,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,26,55,81,39,50,1.135,TRUE
+R0321,30–44,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,48,62,90,64,66,0.835,TRUE
+R0322,65+,muž,Střední Čechy,Price Maximizers,Value,37,60,51,71,55,1.019,TRUE
+R0323,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,55,52,90,43,60,1.114,TRUE
+R0324,18–29,muž,Moravskoslezsko,Health Optimizers,Premium,41,46,80,76,61,1.25,TRUE
+R0325,45–64,žena,Jihovýchod,Health Optimizers,Premium,46,46,76,35,51,0.848,TRUE
+R0326,30–44,muž,Severovýchod,Price Maximizers,Value,55,76,64,79,68,0.92,TRUE
+R0327,30–44,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,40,75,71,43,57,0.908,TRUE
+R0328,65+,žena,Jihovýchod,Health Optimizers,Premium,32,45,79,51,52,0.955,TRUE
+R0329,18–29,žena,Severozápad,Health Optimizers,Premium,48,54,65,44,53,1.127,TRUE
+R0330,30–44,muž,Moravskoslezsko,Price Maximizers,Value,26,65,74,42,52,0.908,TRUE
+R0331,18–29,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,47,47,89,38,55,1.186,TRUE
+R0332,18–29,žena,Jihovýchod,Price Maximizers,Value,23,50,63,38,44,1.087,TRUE
+R0333,18–29,žena,Praha,Health Optimizers,Premium,56,89,61,39,61,1.075,TRUE
+R0334,45–64,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,44,70,57,74,61,0.754,TRUE
+R0335,18–29,muž,Severozápad,Category Skeptics,Familiar,40,78,74,58,62,0.79,TRUE
+R0336,65+,žena,Jihozápad,Category Skeptics,Familiar,44,56,87,68,64,0.783,TRUE
+R0337,30–44,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,54,82,54,81,68,0.865,TRUE
+R0338,18–29,muž,Moravskoslezsko,Health Optimizers,Premium,48,65,45,54,53,1.138,TRUE
+R0339,30–44,muž,Střední Čechy,Price Maximizers,Value,40,75,89,37,60,0.917,TRUE
+R0340,65+,muž,Jihovýchod,Trend Explorers,Premium,57,56,56,82,63,1.169,TRUE
+R0341,18–29,muž,Praha,Trend Explorers,Premium,46,61,66,80,63,0.97,TRUE
+R0342,30–44,žena,Střední Čechy,Price Maximizers,Value,27,70,47,76,55,1.134,TRUE
+R0343,45–64,muž,Moravskoslezsko,Health Optimizers,Premium,41,68,74,56,60,1.088,TRUE
+R0344,30–44,muž,Severovýchod,Health Optimizers,Premium,53,87,73,61,68,0.982,TRUE
+R0345,45–64,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,42,75,70,49,59,0.903,TRUE
+R0346,18–29,žena,Praha,Health Optimizers,Premium,49,87,54,72,66,1.142,TRUE
+R0347,18–29,muž,Střední Morava,Price Maximizers,Value,53,50,55,42,50,0.948,TRUE
+R0348,18–29,muž,Jihozápad,Health Optimizers,Premium,45,71,59,43,54,1.139,TRUE
+R0349,18–29,žena,Jihovýchod,Category Skeptics,Familiar,54,60,73,86,68,1.207,TRUE
+R0350,18–29,muž,Střední Morava,Category Skeptics,Familiar,55,55,74,80,66,0.946,TRUE
+R0351,18–29,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,24,71,56,77,57,1.029,TRUE
+R0352,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,56,58,49,81,61,0.983,TRUE
+R0353,30–44,žena,Střední Morava,Price Maximizers,Value,28,55,61,70,54,0.828,TRUE
+R0354,45–64,muž,Jihovýchod,Price Maximizers,Value,25,55,78,57,54,1.048,TRUE
+R0355,45–64,muž,Severozápad,Trend Explorers,Premium,52,87,88,35,66,1.112,TRUE
+R0356,30–44,žena,Jihovýchod,Price Maximizers,Value,43,87,51,44,56,1.187,TRUE
+R0357,18–29,muž,Střední Čechy,Health Optimizers,Premium,30,54,87,76,62,0.964,TRUE
+R0358,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,28,61,51,63,51,1.058,TRUE
+R0359,30–44,muž,Jihovýchod,Trend Explorers,Premium,33,51,73,83,60,1.228,TRUE
+R0360,30–44,žena,Jihovýchod,Category Skeptics,Familiar,52,74,58,70,64,1.06,TRUE
+R0361,65+,muž,Střední Morava,Trend Explorers,Premium,25,59,57,59,50,0.969,TRUE
+R0362,30–44,žena,Praha,Trend Explorers,Premium,46,78,52,36,53,0.854,TRUE
+R0363,65+,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,43,60,85,85,68,0.751,TRUE
+R0364,65+,muž,Jihozápad,Price Maximizers,Value,26,67,54,57,51,1.039,TRUE
+R0365,18–29,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,57,71,71,65,66,0.98,TRUE
+R0366,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,31,64,75,83,63,0.824,TRUE
+R0367,30–44,žena,Jihovýchod,Price Maximizers,Value,31,67,84,76,64,0.813,TRUE
+R0368,45–64,žena,Střední Čechy,Trend Explorers,Premium,48,78,51,54,58,1.125,TRUE
+R0369,30–44,žena,Severozápad,Health Optimizers,Premium,46,55,50,78,57,1.237,TRUE
+R0370,30–44,žena,Moravskoslezsko,Trend Explorers,Premium,55,78,73,36,60,1.244,TRUE
+R0371,45–64,žena,Jihozápad,Price Maximizers,Value,36,72,82,55,61,1.144,TRUE
+R0372,45–64,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,44,68,84,49,61,0.888,TRUE
+R0373,45–64,žena,Praha,Category Skeptics,Familiar,26,52,52,72,50,0.954,TRUE
+R0374,45–64,muž,Moravskoslezsko,Price Maximizers,Value,48,45,59,49,50,1.068,TRUE
+R0375,65+,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,52,66,53,80,63,1.153,TRUE
+R0376,30–44,žena,Praha,Price Maximizers,Value,34,85,80,77,69,0.821,TRUE
+R0377,30–44,muž,Severozápad,Health Optimizers,Premium,29,73,47,54,51,0.856,TRUE
+R0378,30–44,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,29,70,90,60,62,1.221,TRUE
+R0379,30–44,muž,Moravskoslezsko,Trend Explorers,Premium,51,84,45,54,58,0.786,TRUE
+R0380,45–64,žena,Moravskoslezsko,Trend Explorers,Premium,52,76,60,35,56,1.011,TRUE
+R0381,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,57,59,77,85,70,0.968,TRUE
+R0382,18–29,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,26,46,50,45,42,0.987,TRUE
+R0383,65+,žena,Střední Čechy,Trend Explorers,Premium,56,67,56,44,56,0.914,TRUE
+R0384,65+,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,34,58,82,79,63,0.974,TRUE
+R0385,18–29,žena,Severozápad,Pragmatic Energy Seekers,Familiar,39,72,70,60,60,1.063,TRUE
+R0386,65+,žena,Moravskoslezsko,Category Skeptics,Familiar,54,54,79,63,62,1.15,TRUE
+R0387,30–44,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,21,85,85,64,64,0.787,TRUE
+R0388,18–29,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,40,80,52,50,56,0.959,TRUE
+R0389,65+,muž,Severovýchod,Price Maximizers,Value,34,79,59,86,64,1.085,TRUE
+R0390,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,27,65,84,57,58,1.022,TRUE
+R0391,45–64,žena,Moravskoslezsko,Health Optimizers,Premium,43,70,58,89,65,1.237,TRUE
+R0392,65+,žena,Praha,Pragmatic Energy Seekers,Familiar,57,68,69,54,62,0.822,TRUE
+R0393,65+,žena,Severozápad,Health Optimizers,Premium,49,76,84,59,67,0.754,TRUE
+R0394,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,45,60,85,78,67,0.92,TRUE
+R0395,45–64,žena,Severovýchod,Trend Explorers,Premium,25,45,61,71,50,1.066,TRUE
+R0396,65+,muž,Severovýchod,Price Maximizers,Value,55,66,82,65,67,0.982,TRUE
+R0397,30–44,žena,Severozápad,Category Skeptics,Familiar,36,67,81,87,68,1.021,TRUE
+R0398,65+,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,33,58,64,35,48,1.079,TRUE
+R0399,30–44,muž,Střední Čechy,Trend Explorers,Premium,40,89,90,37,64,0.895,TRUE
+R0400,65+,muž,Jihovýchod,Trend Explorers,Premium,46,90,82,82,75,1.244,TRUE
+R0401,30–44,muž,Jihovýchod,Category Skeptics,Familiar,28,45,60,37,42,0.981,TRUE
+R0402,18–29,muž,Moravskoslezsko,Category Skeptics,Familiar,33,71,53,43,50,1.097,TRUE
+R0403,18–29,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,53,62,87,81,71,1.004,TRUE
+R0404,30–44,muž,Severovýchod,Category Skeptics,Familiar,42,51,87,61,60,0.966,TRUE
+R0405,18–29,žena,Jihozápad,Trend Explorers,Premium,32,52,56,90,58,0.794,TRUE
+R0406,30–44,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,53,68,45,69,59,0.845,TRUE
+R0407,45–64,muž,Střední Morava,Price Maximizers,Value,21,88,75,78,66,0.942,TRUE
+R0408,65+,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,41,79,82,89,73,0.766,TRUE
+R0409,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,45,86,76,47,64,0.822,TRUE
+R0410,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,51,67,49,39,52,1.031,TRUE
+R0411,65+,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,22,66,73,88,62,1.079,TRUE
+R0412,30–44,muž,Praha,Price Maximizers,Value,45,64,84,82,69,0.96,TRUE
+R0413,45–64,žena,Jihozápad,Trend Explorers,Premium,40,48,86,46,55,1.12,TRUE
+R0414,45–64,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,51,64,60,82,64,0.779,TRUE
+R0415,45–64,žena,Praha,Health Optimizers,Premium,28,76,45,47,49,0.881,TRUE
+R0416,30–44,žena,Severovýchod,Category Skeptics,Familiar,41,86,62,51,60,1.078,TRUE
+R0417,65+,muž,Praha,Pragmatic Energy Seekers,Familiar,34,86,64,83,67,1.05,TRUE
+R0418,65+,muž,Jihozápad,Health Optimizers,Premium,41,66,66,85,64,0.777,TRUE
+R0419,30–44,muž,Praha,Price Maximizers,Value,56,48,49,35,47,1.068,TRUE
+R0420,18–29,muž,Severovýchod,Category Skeptics,Familiar,36,80,88,57,65,0.751,TRUE
+R0421,18–29,žena,Severovýchod,Price Maximizers,Value,26,54,86,57,56,1.205,TRUE
+R0422,30–44,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,26,52,71,78,57,0.985,TRUE
+R0423,30–44,muž,Střední Morava,Category Skeptics,Familiar,40,83,79,37,60,0.973,TRUE
+R0424,45–64,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,33,66,78,47,56,0.921,TRUE
+R0425,45–64,muž,Severovýchod,Trend Explorers,Premium,23,80,52,68,56,1.087,TRUE
+R0426,65+,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,43,47,62,68,55,1.062,TRUE
+R0427,30–44,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,35,80,68,70,63,1.056,TRUE
+R0428,45–64,žena,Severozápad,Trend Explorers,Premium,55,59,48,55,54,0.945,TRUE
+R0429,30–44,muž,Severovýchod,Health Optimizers,Premium,41,81,69,83,68,1.101,TRUE
+R0430,45–64,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,57,67,70,37,58,0.956,TRUE
+R0431,18–29,muž,Severovýchod,Health Optimizers,Premium,57,72,50,80,65,1.139,TRUE
+R0432,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,27,72,60,89,62,1.107,TRUE
+R0433,45–64,žena,Praha,Trend Explorers,Premium,54,82,65,65,66,1.013,TRUE
+R0434,18–29,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,28,63,57,68,54,1.049,TRUE
+R0435,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,40,87,86,66,70,1.186,TRUE
+R0436,30–44,muž,Moravskoslezsko,Category Skeptics,Familiar,28,60,50,42,45,1.087,TRUE
+R0437,18–29,muž,Praha,Health Optimizers,Premium,57,74,45,53,57,0.976,TRUE
+R0438,18–29,žena,Jihovýchod,Price Maximizers,Value,31,71,84,54,60,0.86,TRUE
+R0439,45–64,muž,Jihovýchod,Health Optimizers,Premium,49,70,89,39,62,1.029,TRUE
+R0440,45–64,žena,Jihozápad,Category Skeptics,Familiar,34,47,75,46,50,1.037,TRUE
+R0441,30–44,žena,Jihovýchod,Category Skeptics,Familiar,39,77,82,58,64,0.995,TRUE
+R0442,18–29,žena,Střední Morava,Health Optimizers,Premium,41,62,85,35,56,1.179,TRUE
+R0443,30–44,žena,Jihozápad,Price Maximizers,Value,28,72,76,37,53,1.104,TRUE
+R0444,65+,žena,Jihovýchod,Price Maximizers,Value,46,59,50,66,55,0.85,TRUE
+R0445,18–29,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,33,82,80,40,59,0.898,TRUE
+R0446,65+,žena,Praha,Price Maximizers,Value,48,54,71,39,53,0.948,TRUE
+R0447,18–29,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,51,51,76,82,65,1.208,TRUE
+R0448,18–29,žena,Praha,Health Optimizers,Premium,51,73,86,55,66,1.192,TRUE
+R0449,65+,muž,Střední Čechy,Health Optimizers,Premium,54,48,51,79,58,1.102,TRUE
+R0450,45–64,žena,Jihovýchod,Health Optimizers,Premium,50,75,75,80,70,0.873,TRUE
+R0451,45–64,žena,Praha,Pragmatic Energy Seekers,Familiar,45,83,68,63,65,1.096,TRUE
+R0452,30–44,muž,Střední Morava,Category Skeptics,Familiar,27,81,65,90,66,1.06,TRUE
+R0453,18–29,muž,Praha,Health Optimizers,Premium,49,82,56,49,59,0.855,TRUE
+R0454,65+,muž,Jihozápad,Category Skeptics,Familiar,21,67,70,52,52,1.062,TRUE
+R0455,45–64,muž,Severovýchod,Health Optimizers,Premium,35,49,72,50,52,1.22,TRUE
+R0456,18–29,muž,Severozápad,Category Skeptics,Familiar,42,64,75,84,66,0.859,TRUE
+R0457,30–44,muž,Severozápad,Health Optimizers,Premium,31,49,84,47,53,1.204,TRUE
+R0458,45–64,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,29,63,86,75,63,0.932,TRUE
+R0459,65+,muž,Moravskoslezsko,Price Maximizers,Value,36,88,73,56,63,0.771,TRUE
+R0460,45–64,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,57,71,69,64,65,1.207,TRUE
+R0461,65+,muž,Praha,Category Skeptics,Familiar,40,46,62,90,60,0.752,TRUE
+R0462,30–44,muž,Jihozápad,Trend Explorers,Premium,32,60,50,84,56,1.156,TRUE
+R0463,45–64,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,42,56,56,42,49,0.947,TRUE
+R0464,18–29,žena,Praha,Health Optimizers,Premium,50,55,89,39,58,0.963,TRUE
+R0465,65+,muž,Jihovýchod,Price Maximizers,Value,27,75,46,85,58,0.913,TRUE
+R0466,30–44,žena,Jihozápad,Category Skeptics,Familiar,23,88,54,79,61,1.238,TRUE
+R0467,18–29,muž,Severozápad,Pragmatic Energy Seekers,Familiar,47,87,57,68,65,1.099,TRUE
+R0468,30–44,žena,Střední Morava,Health Optimizers,Premium,41,52,47,40,45,1.229,TRUE
+R0469,65+,muž,Jihovýchod,Category Skeptics,Familiar,29,71,72,78,62,0.987,TRUE
+R0470,18–29,muž,Severozápad,Pragmatic Energy Seekers,Familiar,51,51,80,60,60,1.117,TRUE
+R0471,65+,muž,Praha,Price Maximizers,Value,54,87,50,60,63,0.805,TRUE
+R0472,18–29,žena,Moravskoslezsko,Price Maximizers,Value,45,70,47,66,57,0.963,TRUE
+R0473,65+,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,37,82,52,41,53,0.988,TRUE
+R0474,18–29,muž,Praha,Health Optimizers,Premium,22,57,82,78,60,0.941,TRUE
+R0475,18–29,muž,Střední Čechy,Health Optimizers,Premium,35,51,78,41,51,0.806,TRUE
+R0476,30–44,muž,Praha,Category Skeptics,Familiar,57,60,49,39,51,0.948,TRUE
+R0477,45–64,muž,Severozápad,Price Maximizers,Value,43,76,80,83,70,1.067,TRUE
+R0478,18–29,muž,Praha,Trend Explorers,Premium,32,63,52,54,50,1.228,TRUE
+R0479,30–44,žena,Střední Čechy,Price Maximizers,Value,43,64,45,61,53,0.853,TRUE
+R0480,45–64,muž,Střední Čechy,Health Optimizers,Premium,56,78,50,68,63,1.225,TRUE
+R0481,45–64,žena,Severovýchod,Price Maximizers,Value,56,49,76,72,63,1.011,TRUE
+R0482,18–29,žena,Praha,Category Skeptics,Familiar,32,63,72,53,55,0.909,TRUE
+R0483,30–44,muž,Střední Morava,Category Skeptics,Familiar,44,82,55,50,58,0.948,TRUE
+R0484,45–64,žena,Praha,Health Optimizers,Premium,57,64,67,76,66,1.101,TRUE
+R0485,65+,žena,Severovýchod,Trend Explorers,Premium,21,90,50,78,60,0.751,TRUE
+R0486,65+,muž,Severozápad,Category Skeptics,Familiar,39,81,63,63,62,0.916,TRUE
+R0487,18–29,žena,Praha,Pragmatic Energy Seekers,Familiar,34,58,90,87,67,0.786,TRUE
+R0488,18–29,žena,Severozápad,Category Skeptics,Familiar,22,62,90,81,64,1.035,TRUE
+R0489,65+,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,41,74,53,54,56,0.809,TRUE
+R0490,65+,žena,Severovýchod,Category Skeptics,Familiar,27,81,58,80,62,0.806,TRUE
+R0491,45–64,muž,Střední Čechy,Trend Explorers,Premium,54,49,73,56,58,0.845,TRUE
+R0492,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,24,60,62,90,59,1.101,TRUE
+R0493,18–29,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,42,77,72,43,58,0.96,TRUE
+R0494,65+,muž,Jihozápad,Price Maximizers,Value,29,60,50,40,45,0.903,TRUE
+R0495,18–29,žena,Jihozápad,Health Optimizers,Premium,26,90,86,49,63,1.106,TRUE
+R0496,45–64,žena,Moravskoslezsko,Category Skeptics,Familiar,51,52,64,79,62,0.876,TRUE
+R0497,30–44,žena,Střední Čechy,Category Skeptics,Familiar,50,63,65,77,64,1.014,TRUE
+R0498,45–64,muž,Jihozápad,Price Maximizers,Value,45,81,86,75,72,0.909,TRUE
+R0499,18–29,muž,Střední Morava,Price Maximizers,Value,23,71,50,52,49,1.097,TRUE
+R0500,30–44,žena,Střední Čechy,Trend Explorers,Premium,37,51,89,76,63,0.834,TRUE
+R0501,45–64,žena,Jihovýchod,Category Skeptics,Familiar,26,84,60,65,59,1.083,TRUE
+R0502,45–64,muž,Střední Čechy,Trend Explorers,Premium,46,81,86,54,67,1.009,TRUE
+R0503,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,36,87,84,65,68,0.784,TRUE
+R0504,45–64,muž,Severovýchod,Trend Explorers,Premium,35,59,74,84,63,0.982,TRUE
+R0505,65+,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,27,81,54,36,50,0.902,TRUE
+R0506,18–29,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,40,79,64,86,67,1.141,TRUE
+R0507,45–64,žena,Jihovýchod,Category Skeptics,Familiar,45,73,60,70,62,0.838,TRUE
+R0508,18–29,muž,Jihozápad,Health Optimizers,Premium,29,72,90,51,60,0.797,TRUE
+R0509,65+,muž,Severovýchod,Trend Explorers,Premium,40,58,65,50,53,0.953,TRUE
+R0510,30–44,muž,Severovýchod,Health Optimizers,Premium,38,88,78,47,63,1.157,TRUE
+R0511,30–44,žena,Jihozápad,Price Maximizers,Value,56,47,58,57,54,1.107,TRUE
+R0512,45–64,žena,Moravskoslezsko,Price Maximizers,Value,28,59,71,42,50,1.032,TRUE
+R0513,18–29,žena,Praha,Pragmatic Energy Seekers,Familiar,37,81,71,44,58,1.04,TRUE
+R0514,18–29,žena,Praha,Category Skeptics,Familiar,44,84,74,76,70,0.787,TRUE
+R0515,45–64,žena,Moravskoslezsko,Price Maximizers,Value,33,55,89,79,64,0.893,TRUE
+R0516,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,54,78,54,50,59,0.838,TRUE
+R0517,30–44,muž,Severozápad,Health Optimizers,Premium,34,51,61,52,50,1.196,TRUE
+R0518,45–64,žena,Praha,Pragmatic Energy Seekers,Familiar,21,90,63,73,62,0.99,TRUE
+R0519,30–44,žena,Střední Čechy,Price Maximizers,Value,40,75,48,47,52,0.969,TRUE
+R0520,65+,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,32,90,66,68,64,0.896,TRUE
+R0521,18–29,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,54,82,73,53,66,1.112,TRUE
+R0522,45–64,žena,Praha,Health Optimizers,Premium,41,66,88,82,69,0.826,TRUE
+R0523,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,40,72,51,61,56,1.029,TRUE
+R0524,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,28,53,57,81,55,1.164,TRUE
+R0525,30–44,žena,Severozápad,Health Optimizers,Premium,38,81,89,81,72,0.949,TRUE
+R0526,65+,žena,Praha,Price Maximizers,Value,23,47,51,83,51,0.867,TRUE
+R0527,18–29,žena,Moravskoslezsko,Category Skeptics,Familiar,52,66,45,75,60,0.978,TRUE
+R0528,30–44,žena,Moravskoslezsko,Price Maximizers,Value,53,69,50,35,52,1.208,TRUE
+R0529,45–64,žena,Praha,Trend Explorers,Premium,25,63,86,61,59,0.936,TRUE
+R0530,30–44,žena,Jihovýchod,Health Optimizers,Premium,24,75,68,48,54,1.157,TRUE
+R0531,18–29,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,35,53,72,88,62,0.893,TRUE
+R0532,65+,žena,Praha,Price Maximizers,Value,28,74,82,42,56,1.052,TRUE
+R0533,45–64,žena,Moravskoslezsko,Price Maximizers,Value,54,53,84,43,58,0.943,TRUE
+R0534,45–64,žena,Praha,Category Skeptics,Familiar,40,68,69,85,66,1.174,TRUE
+R0535,45–64,žena,Střední Morava,Price Maximizers,Value,26,49,84,81,60,0.804,TRUE
+R0536,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,34,51,66,78,57,1.065,TRUE
+R0537,45–64,muž,Praha,Category Skeptics,Familiar,42,76,88,36,60,1.106,TRUE
+R0538,65+,muž,Střední Čechy,Trend Explorers,Premium,52,59,82,68,65,1.219,TRUE
+R0539,65+,žena,Jihovýchod,Price Maximizers,Value,43,60,70,74,62,0.95,TRUE
+R0540,45–64,muž,Střední Morava,Category Skeptics,Familiar,36,72,83,77,67,1.075,TRUE
+R0541,18–29,muž,Severozápad,Price Maximizers,Value,56,47,45,74,56,1.114,TRUE
+R0542,18–29,žena,Moravskoslezsko,Category Skeptics,Familiar,40,86,45,74,61,0.835,TRUE
+R0543,65+,žena,Jihovýchod,Health Optimizers,Premium,43,77,54,90,66,1.037,TRUE
+R0544,30–44,žena,Střední Morava,Price Maximizers,Value,26,63,77,37,51,0.938,TRUE
+R0545,65+,žena,Severovýchod,Health Optimizers,Premium,48,53,74,47,56,0.922,TRUE
+R0546,30–44,žena,Střední Morava,Health Optimizers,Premium,23,67,71,81,60,0.839,TRUE
+R0547,45–64,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,38,89,73,36,59,0.808,TRUE
+R0548,30–44,žena,Střední Čechy,Health Optimizers,Premium,21,74,64,81,60,1.212,TRUE
+R0549,18–29,žena,Praha,Price Maximizers,Value,27,50,66,52,49,0.816,TRUE
+R0550,18–29,žena,Praha,Category Skeptics,Familiar,36,57,87,62,60,0.841,TRUE
+R0551,30–44,muž,Jihozápad,Health Optimizers,Premium,44,50,50,84,57,0.995,TRUE
+R0552,45–64,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,24,72,68,39,51,0.966,TRUE
+R0553,65+,muž,Praha,Health Optimizers,Premium,35,63,62,60,55,0.994,TRUE
+R0554,18–29,žena,Jihovýchod,Price Maximizers,Value,57,62,61,82,66,1.107,TRUE
+R0555,65+,muž,Severovýchod,Health Optimizers,Premium,43,81,76,47,62,1.01,TRUE
+R0556,18–29,muž,Praha,Price Maximizers,Value,35,54,48,71,52,1.2,TRUE
+R0557,45–64,muž,Praha,Price Maximizers,Value,48,84,73,55,65,0.939,TRUE
+R0558,45–64,muž,Jihovýchod,Health Optimizers,Premium,44,90,81,68,71,1.042,TRUE
+R0559,30–44,žena,Praha,Price Maximizers,Value,56,59,88,62,66,1.175,TRUE
+R0560,30–44,muž,Střední Morava,Price Maximizers,Value,45,79,45,45,54,1.075,TRUE
+R0561,30–44,muž,Praha,Price Maximizers,Value,32,68,77,80,64,1.236,TRUE
+R0562,18–29,žena,Moravskoslezsko,Health Optimizers,Premium,35,52,77,42,52,1.045,TRUE
+R0563,45–64,muž,Střední Morava,Price Maximizers,Value,51,49,90,40,58,1.0,TRUE
+R0564,45–64,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,23,48,83,49,51,1.24,TRUE
+R0565,45–64,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,32,59,55,79,56,0.785,TRUE
+R0566,30–44,žena,Jihozápad,Health Optimizers,Premium,44,86,58,88,69,1.013,TRUE
+R0567,45–64,žena,Severozápad,Price Maximizers,Value,54,47,77,68,62,1.143,TRUE
+R0568,65+,muž,Střední Čechy,Category Skeptics,Familiar,43,57,65,80,61,0.8,TRUE
+R0569,45–64,žena,Praha,Price Maximizers,Value,45,47,75,35,50,0.956,TRUE
+R0570,65+,žena,Severovýchod,Category Skeptics,Familiar,34,64,60,55,53,1.174,TRUE
+R0571,30–44,muž,Severozápad,Category Skeptics,Familiar,34,77,90,58,65,0.757,TRUE
+R0572,65+,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,41,68,45,53,52,1.156,TRUE
+R0573,30–44,muž,Střední Morava,Price Maximizers,Value,55,47,72,44,54,1.074,TRUE
+R0574,30–44,muž,Jihovýchod,Trend Explorers,Premium,55,50,62,85,63,1.201,TRUE
+R0575,65+,žena,Severozápad,Category Skeptics,Familiar,26,64,68,63,55,0.787,TRUE
+R0576,45–64,žena,Střední Morava,Price Maximizers,Value,51,78,68,64,65,1.125,TRUE
+R0577,65+,žena,Jihovýchod,Health Optimizers,Premium,39,83,72,90,71,1.187,TRUE
+R0578,45–64,muž,Střední Čechy,Health Optimizers,Premium,24,46,76,60,52,1.229,TRUE
+R0579,45–64,žena,Severozápad,Price Maximizers,Value,45,51,74,52,56,1.107,TRUE
+R0580,30–44,žena,Praha,Trend Explorers,Premium,51,62,57,72,60,0.845,TRUE
+R0581,65+,žena,Praha,Category Skeptics,Familiar,27,47,61,70,51,0.902,TRUE
+R0582,65+,žena,Střední Morava,Trend Explorers,Premium,39,89,69,85,70,0.976,TRUE
+R0583,18–29,žena,Severovýchod,Category Skeptics,Familiar,40,88,74,68,68,0.963,TRUE
+R0584,30–44,muž,Střední Morava,Trend Explorers,Premium,41,49,46,50,46,0.884,TRUE
+R0585,45–64,muž,Střední Čechy,Trend Explorers,Premium,46,75,81,89,73,1.161,TRUE
+R0586,65+,muž,Severovýchod,Category Skeptics,Familiar,30,60,59,64,53,1.087,TRUE
+R0587,30–44,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,49,83,75,81,72,1.123,TRUE
+R0588,18–29,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,41,49,63,76,57,1.2,TRUE
+R0589,30–44,žena,Střední Čechy,Health Optimizers,Premium,52,69,89,64,68,1.018,TRUE
+R0590,65+,muž,Střední Čechy,Price Maximizers,Value,28,75,90,90,71,1.187,TRUE
+R0591,30–44,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,28,61,89,49,57,0.976,TRUE
+R0592,45–64,žena,Jihovýchod,Trend Explorers,Premium,27,51,64,66,52,1.231,TRUE
+R0593,18–29,žena,Praha,Pragmatic Energy Seekers,Familiar,21,84,54,51,52,1.223,TRUE
+R0594,18–29,muž,Jihozápad,Category Skeptics,Familiar,47,86,56,73,66,0.814,TRUE
+R0595,30–44,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,54,70,82,72,70,0.837,TRUE
+R0596,65+,muž,Jihovýchod,Trend Explorers,Premium,36,86,61,76,65,0.996,TRUE
+R0597,65+,žena,Moravskoslezsko,Category Skeptics,Familiar,26,54,86,46,53,0.919,TRUE
+R0598,30–44,muž,Střední Morava,Health Optimizers,Premium,53,56,76,41,56,0.873,TRUE
+R0599,18–29,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,23,50,54,49,44,0.947,TRUE
+R0600,18–29,muž,Střední Čechy,Price Maximizers,Value,35,56,87,45,56,0.841,TRUE
+R0601,65+,žena,Severovýchod,Price Maximizers,Value,55,79,88,35,64,0.753,TRUE
+R0602,18–29,muž,Jihovýchod,Price Maximizers,Value,50,47,77,51,56,1.249,TRUE
+R0603,65+,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,45,56,45,69,54,0.917,TRUE
+R0604,30–44,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,28,58,89,67,60,1.141,TRUE
+R0605,45–64,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,48,71,82,89,72,1.132,TRUE
+R0606,30–44,muž,Severovýchod,Trend Explorers,Premium,37,89,51,82,65,0.802,TRUE
+R0607,45–64,muž,Moravskoslezsko,Category Skeptics,Familiar,23,88,84,75,68,0.849,TRUE
+R0608,30–44,muž,Střední Morava,Price Maximizers,Value,27,88,72,88,69,0.845,TRUE
+R0609,18–29,žena,Jihovýchod,Price Maximizers,Value,54,75,63,70,66,0.931,TRUE
+R0610,65+,žena,Severovýchod,Trend Explorers,Premium,34,67,48,63,53,1.141,TRUE
+R0611,18–29,žena,Moravskoslezsko,Price Maximizers,Value,27,70,86,88,68,0.821,TRUE
+R0612,45–64,muž,Severovýchod,Price Maximizers,Value,40,80,81,37,60,1.246,TRUE
+R0613,45–64,žena,Jihovýchod,Price Maximizers,Value,55,69,66,72,66,0.838,TRUE
+R0614,45–64,žena,Střední Morava,Health Optimizers,Premium,38,70,77,71,64,1.021,TRUE
+R0615,65+,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,50,52,54,60,54,1.012,TRUE
+R0616,45–64,muž,Severovýchod,Category Skeptics,Familiar,31,78,77,73,65,1.122,TRUE
+R0617,65+,žena,Praha,Trend Explorers,Premium,30,65,65,56,54,1.134,TRUE
+R0618,18–29,muž,Severozápad,Price Maximizers,Value,35,76,73,53,59,1.11,TRUE
+R0619,65+,žena,Severovýchod,Price Maximizers,Value,39,52,74,61,56,0.758,TRUE
+R0620,18–29,muž,Severozápad,Trend Explorers,Premium,28,46,63,68,51,1.238,TRUE
+R0621,18–29,muž,Praha,Price Maximizers,Value,32,49,58,47,46,1.081,TRUE
+R0622,65+,žena,Moravskoslezsko,Health Optimizers,Premium,28,45,89,53,54,0.991,TRUE
+R0623,45–64,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,53,87,81,56,69,0.837,TRUE
+R0624,30–44,žena,Jihovýchod,Health Optimizers,Premium,40,51,47,85,56,1.004,TRUE
+R0625,30–44,muž,Severozápad,Pragmatic Energy Seekers,Familiar,25,64,86,83,64,1.007,TRUE
+R0626,65+,muž,Praha,Pragmatic Energy Seekers,Familiar,47,56,72,69,61,0.804,TRUE
+R0627,18–29,žena,Jihovýchod,Price Maximizers,Value,25,74,70,78,62,0.98,TRUE
+R0628,18–29,muž,Jihovýchod,Category Skeptics,Familiar,27,79,47,67,55,0.866,TRUE
+R0629,18–29,muž,Severovýchod,Price Maximizers,Value,46,59,90,68,66,0.785,TRUE
+R0630,45–64,žena,Severovýchod,Price Maximizers,Value,54,83,82,44,66,0.905,TRUE
+R0631,65+,žena,Střední Morava,Health Optimizers,Premium,56,65,90,80,73,1.054,TRUE
+R0632,45–64,žena,Severozápad,Pragmatic Energy Seekers,Familiar,45,80,90,58,68,1.07,TRUE
+R0633,30–44,muž,Střední Čechy,Category Skeptics,Familiar,29,50,73,73,56,1.003,TRUE
+R0634,18–29,žena,Moravskoslezsko,Health Optimizers,Premium,34,54,63,86,59,0.834,TRUE
+R0635,45–64,muž,Střední Čechy,Price Maximizers,Value,51,63,68,59,60,0.838,TRUE
+R0636,18–29,muž,Moravskoslezsko,Price Maximizers,Value,44,79,83,62,67,0.844,TRUE
+R0637,45–64,muž,Moravskoslezsko,Category Skeptics,Familiar,30,81,53,67,58,1.163,TRUE
+R0638,45–64,muž,Moravskoslezsko,Price Maximizers,Value,24,53,64,57,50,0.822,TRUE
+R0639,65+,muž,Praha,Pragmatic Energy Seekers,Familiar,24,68,68,69,57,0.896,TRUE
+R0640,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,47,80,64,47,60,1.21,TRUE
+R0641,18–29,žena,Jihovýchod,Health Optimizers,Premium,52,47,46,55,50,0.768,TRUE
+R0642,30–44,žena,Moravskoslezsko,Price Maximizers,Value,35,70,66,75,62,0.804,TRUE
+R0643,18–29,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,26,67,86,62,60,1.237,TRUE
+R0644,45–64,muž,Střední Čechy,Category Skeptics,Familiar,46,86,49,53,58,1.082,TRUE
+R0645,45–64,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,55,62,89,49,64,1.093,TRUE
+R0646,30–44,žena,Moravskoslezsko,Category Skeptics,Familiar,52,69,61,85,67,0.993,TRUE
+R0647,65+,muž,Severozápad,Pragmatic Energy Seekers,Familiar,55,71,69,63,64,1.24,TRUE
+R0648,30–44,žena,Střední Morava,Category Skeptics,Familiar,32,52,88,38,52,0.79,TRUE
+R0649,45–64,muž,Střední Čechy,Price Maximizers,Value,23,78,76,68,61,0.841,TRUE
+R0650,30–44,muž,Jihovýchod,Trend Explorers,Premium,30,90,87,78,71,1.081,TRUE
+R0651,45–64,muž,Moravskoslezsko,Health Optimizers,Premium,24,55,48,90,54,0.994,TRUE
+R0652,30–44,žena,Střední Morava,Price Maximizers,Value,46,59,59,52,54,0.831,TRUE
+R0653,45–64,muž,Severozápad,Trend Explorers,Premium,54,87,51,64,64,0.969,TRUE
+R0654,30–44,žena,Moravskoslezsko,Health Optimizers,Premium,44,62,50,74,58,0.962,TRUE
+R0655,45–64,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,23,62,68,82,59,1.045,TRUE
+R0656,18–29,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,29,75,78,80,66,1.063,TRUE
+R0657,65+,muž,Jihozápad,Health Optimizers,Premium,48,87,45,39,55,1.24,TRUE
+R0658,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,52,74,90,41,64,1.109,TRUE
+R0659,18–29,muž,Severovýchod,Trend Explorers,Premium,41,86,58,74,65,0.934,TRUE
+R0660,18–29,žena,Severozápad,Category Skeptics,Familiar,53,76,50,72,63,1.165,TRUE
+R0661,30–44,žena,Moravskoslezsko,Category Skeptics,Familiar,42,61,59,49,53,1.061,TRUE
+R0662,18–29,muž,Jihozápad,Price Maximizers,Value,21,73,49,37,45,1.048,TRUE
+R0663,18–29,žena,Praha,Price Maximizers,Value,40,53,65,89,62,1.181,TRUE
+R0664,18–29,muž,Severovýchod,Trend Explorers,Premium,35,58,50,78,55,0.764,TRUE
+R0665,18–29,žena,Severovýchod,Health Optimizers,Premium,48,72,67,48,59,0.883,TRUE
+R0666,30–44,žena,Praha,Category Skeptics,Familiar,49,79,71,85,71,1.23,TRUE
+R0667,18–29,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,22,66,50,46,46,0.954,TRUE
+R0668,65+,muž,Severozápad,Pragmatic Energy Seekers,Familiar,46,76,75,81,70,1.247,TRUE
+R0669,65+,muž,Střední Morava,Price Maximizers,Value,52,70,81,35,60,0.774,TRUE
+R0670,18–29,žena,Střední Morava,Price Maximizers,Value,46,54,70,59,57,0.88,TRUE
+R0671,45–64,muž,Praha,Category Skeptics,Familiar,29,61,78,61,57,0.822,TRUE
+R0672,30–44,muž,Severozápad,Pragmatic Energy Seekers,Familiar,55,89,54,78,69,1.012,TRUE
+R0673,18–29,muž,Střední Čechy,Health Optimizers,Premium,33,87,82,76,70,0.825,TRUE
+R0674,18–29,muž,Moravskoslezsko,Category Skeptics,Familiar,56,55,56,87,64,1.106,TRUE
+R0675,30–44,žena,Jihovýchod,Category Skeptics,Familiar,53,51,70,55,57,0.763,TRUE
+R0676,18–29,muž,Střední Morava,Price Maximizers,Value,26,61,89,43,55,1.067,TRUE
+R0677,18–29,muž,Jihozápad,Health Optimizers,Premium,51,61,53,60,56,1.24,TRUE
+R0678,45–64,žena,Střední Morava,Trend Explorers,Premium,30,50,76,65,55,1.09,TRUE
+R0679,65+,žena,Praha,Pragmatic Energy Seekers,Familiar,52,84,75,55,66,0.974,TRUE
+R0680,45–64,muž,Střední Morava,Price Maximizers,Value,43,54,63,83,61,0.751,TRUE
+R0681,45–64,muž,Severovýchod,Health Optimizers,Premium,25,55,77,52,52,1.213,TRUE
+R0682,65+,muž,Střední Morava,Price Maximizers,Value,49,48,52,88,59,0.974,TRUE
+R0683,65+,žena,Severozápad,Pragmatic Energy Seekers,Familiar,45,64,46,67,56,1.219,TRUE
+R0684,65+,žena,Praha,Price Maximizers,Value,40,72,79,79,68,0.942,TRUE
+R0685,45–64,žena,Severozápad,Trend Explorers,Premium,40,68,73,49,58,0.764,TRUE
+R0686,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,34,53,65,50,50,1.003,TRUE
+R0687,30–44,žena,Střední Čechy,Category Skeptics,Familiar,31,63,64,66,56,1.196,TRUE
+R0688,30–44,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,28,77,71,82,64,1.081,TRUE
+R0689,18–29,žena,Severozápad,Category Skeptics,Familiar,39,56,82,64,60,1.158,TRUE
+R0690,18–29,žena,Střední Morava,Health Optimizers,Premium,23,54,81,55,53,1.012,TRUE
+R0691,18–29,žena,Střední Morava,Trend Explorers,Premium,48,56,46,48,50,1.111,TRUE
+R0692,18–29,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,31,71,64,70,59,1.136,TRUE
+R0693,30–44,žena,Severovýchod,Health Optimizers,Premium,41,74,90,47,63,1.14,TRUE
+R0694,45–64,žena,Praha,Price Maximizers,Value,53,88,55,81,69,0.915,TRUE
+R0695,18–29,žena,Moravskoslezsko,Trend Explorers,Premium,47,90,61,86,71,0.763,TRUE
+R0696,18–29,žena,Jihovýchod,Category Skeptics,Familiar,23,83,74,63,61,1.171,TRUE
+R0697,30–44,žena,Severozápad,Price Maximizers,Value,40,78,80,57,64,1.01,TRUE
+R0698,45–64,žena,Střední Čechy,Price Maximizers,Value,50,76,53,71,62,1.237,TRUE
+R0699,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,25,46,75,74,55,1.236,TRUE
+R0700,45–64,muž,Střední Čechy,Price Maximizers,Value,47,50,82,54,58,1.199,TRUE
+R0701,18–29,muž,Severovýchod,Price Maximizers,Value,57,57,49,37,50,0.926,TRUE
+R0702,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,28,60,86,53,57,0.767,TRUE
+R0703,30–44,žena,Severozápad,Health Optimizers,Premium,44,58,69,83,64,0.859,TRUE
+R0704,18–29,muž,Severovýchod,Health Optimizers,Premium,54,74,81,64,68,1.024,TRUE
+R0705,65+,žena,Severozápad,Pragmatic Energy Seekers,Familiar,34,54,76,56,55,1.184,TRUE
+R0706,45–64,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,46,83,68,63,65,0.904,TRUE
+R0707,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,52,70,50,75,62,1.165,TRUE
+R0708,65+,muž,Střední Morava,Category Skeptics,Familiar,30,88,70,40,57,1.219,TRUE
+R0709,45–64,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,57,51,87,76,68,0.944,TRUE
+R0710,65+,žena,Moravskoslezsko,Price Maximizers,Value,25,86,52,51,54,0.971,TRUE
+R0711,45–64,žena,Jihozápad,Price Maximizers,Value,23,53,56,79,53,1.09,TRUE
+R0712,45–64,muž,Severozápad,Category Skeptics,Familiar,51,85,52,78,66,1.05,TRUE
+R0713,45–64,muž,Severovýchod,Price Maximizers,Value,41,88,45,81,64,0.913,TRUE
+R0714,65+,muž,Severovýchod,Trend Explorers,Premium,43,58,68,45,54,1.165,TRUE
+R0715,45–64,žena,Střední Čechy,Trend Explorers,Premium,24,55,56,81,54,0.88,TRUE
+R0716,65+,muž,Severozápad,Trend Explorers,Premium,29,69,49,45,48,0.927,TRUE
+R0717,65+,muž,Střední Morava,Trend Explorers,Premium,37,62,54,90,61,1.121,TRUE
+R0718,65+,žena,Praha,Trend Explorers,Premium,42,73,88,58,65,1.022,TRUE
+R0719,65+,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,48,60,78,80,66,0.845,TRUE
+R0720,45–64,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,21,84,70,45,55,1.197,TRUE
+R0721,45–64,žena,Praha,Health Optimizers,Premium,22,62,54,87,56,0.772,TRUE
+R0722,45–64,muž,Severovýchod,Price Maximizers,Value,31,54,71,46,50,1.035,TRUE
+R0723,30–44,žena,Jihovýchod,Price Maximizers,Value,46,79,56,75,64,0.98,TRUE
+R0724,18–29,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,42,70,85,57,64,1.101,TRUE
+R0725,18–29,muž,Praha,Category Skeptics,Familiar,56,46,89,60,63,0.899,TRUE
+R0726,18–29,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,37,61,58,67,56,1.196,TRUE
+R0727,65+,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,38,66,90,61,64,0.762,TRUE
+R0728,30–44,muž,Severozápad,Category Skeptics,Familiar,34,63,51,74,56,1.11,TRUE
+R0729,30–44,žena,Střední Čechy,Health Optimizers,Premium,26,76,78,61,60,0.841,TRUE
+R0730,18–29,muž,Severozápad,Health Optimizers,Premium,57,67,73,88,71,0.859,TRUE
+R0731,45–64,žena,Jihozápad,Price Maximizers,Value,50,45,80,55,58,0.836,TRUE
+R0732,30–44,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,21,70,53,81,56,1.143,TRUE
+R0733,65+,žena,Praha,Health Optimizers,Premium,48,55,53,47,51,0.894,TRUE
+R0734,18–29,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,36,76,78,36,56,1.248,TRUE
+R0735,18–29,muž,Střední Morava,Category Skeptics,Familiar,38,80,57,81,64,1.123,TRUE
+R0736,18–29,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,55,84,74,44,64,1.064,TRUE
+R0737,30–44,žena,Severozápad,Category Skeptics,Familiar,36,83,65,60,61,0.997,TRUE
+R0738,45–64,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,22,70,90,71,63,1.125,TRUE
+R0739,18–29,muž,Moravskoslezsko,Category Skeptics,Familiar,36,62,54,42,48,1.025,TRUE
+R0740,30–44,žena,Jihovýchod,Price Maximizers,Value,53,89,68,37,62,1.067,TRUE
+R0741,45–64,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,34,45,58,42,45,0.885,TRUE
+R0742,18–29,muž,Jihozápad,Health Optimizers,Premium,43,87,46,59,59,1.172,TRUE
+R0743,30–44,žena,Střední Morava,Category Skeptics,Familiar,55,51,59,58,56,0.978,TRUE
+R0744,65+,žena,Severozápad,Pragmatic Energy Seekers,Familiar,39,62,71,76,62,1.082,TRUE
+R0745,45–64,žena,Praha,Health Optimizers,Premium,45,52,85,82,66,0.98,TRUE
+R0746,18–29,žena,Střední Morava,Price Maximizers,Value,33,69,53,87,60,1.245,TRUE
+R0747,18–29,muž,Jihozápad,Category Skeptics,Familiar,32,49,82,59,56,1.062,TRUE
+R0748,30–44,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,39,76,56,59,58,1.092,TRUE
+R0749,65+,žena,Moravskoslezsko,Health Optimizers,Premium,41,62,67,64,58,1.126,TRUE
+R0750,30–44,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,44,75,81,46,62,0.857,TRUE
+R0751,65+,muž,Jihovýchod,Category Skeptics,Familiar,29,73,76,53,58,0.951,TRUE
+R0752,30–44,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,38,55,79,62,58,1.232,TRUE
+R0753,65+,muž,Jihovýchod,Health Optimizers,Premium,40,83,54,82,65,1.22,TRUE
+R0754,30–44,muž,Střední Morava,Price Maximizers,Value,39,52,51,78,55,1.212,TRUE
+R0755,45–64,žena,Střední Čechy,Health Optimizers,Premium,24,69,47,45,46,0.773,TRUE
+R0756,65+,žena,Moravskoslezsko,Trend Explorers,Premium,52,53,46,90,60,1.172,TRUE
+R0757,45–64,muž,Severozápad,Health Optimizers,Premium,24,58,74,78,58,0.973,TRUE
+R0758,30–44,žena,Jihovýchod,Price Maximizers,Value,53,64,80,46,61,1.155,TRUE
+R0759,45–64,žena,Moravskoslezsko,Price Maximizers,Value,39,74,64,42,55,0.845,TRUE
+R0760,18–29,žena,Střední Čechy,Category Skeptics,Familiar,29,80,69,73,63,1.223,TRUE
+R0761,65+,žena,Moravskoslezsko,Trend Explorers,Premium,43,61,64,52,55,0.949,TRUE
+R0762,18–29,muž,Jihozápad,Price Maximizers,Value,40,65,65,56,56,0.833,TRUE
+R0763,18–29,muž,Severozápad,Health Optimizers,Premium,38,67,85,59,62,0.977,TRUE
+R0764,18–29,žena,Severovýchod,Category Skeptics,Familiar,26,74,69,64,58,1.172,TRUE
+R0765,18–29,muž,Jihovýchod,Trend Explorers,Premium,43,50,74,37,51,0.982,TRUE
+R0766,45–64,žena,Střední Morava,Category Skeptics,Familiar,38,76,80,72,66,1.136,TRUE
+R0767,65+,žena,Jihozápad,Category Skeptics,Familiar,23,71,46,39,45,0.983,TRUE
+R0768,45–64,žena,Jihovýchod,Health Optimizers,Premium,25,52,85,61,56,1.173,TRUE
+R0769,65+,muž,Jihovýchod,Price Maximizers,Value,41,56,83,35,54,0.799,TRUE
+R0770,30–44,muž,Severozápad,Trend Explorers,Premium,51,46,81,68,62,0.946,TRUE
+R0771,30–44,žena,Severozápad,Category Skeptics,Familiar,50,90,77,44,65,1.047,TRUE
+R0772,18–29,muž,Jihovýchod,Trend Explorers,Premium,43,46,85,67,60,0.852,TRUE
+R0773,65+,muž,Střední Morava,Price Maximizers,Value,35,60,57,72,56,0.969,TRUE
+R0774,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,37,57,69,52,54,1.041,TRUE
+R0775,65+,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,42,52,45,56,49,0.796,TRUE
+R0776,65+,žena,Jihovýchod,Category Skeptics,Familiar,41,71,56,60,57,0.968,TRUE
+R0777,65+,muž,Praha,Pragmatic Energy Seekers,Familiar,44,70,71,89,68,0.915,TRUE
+R0778,65+,muž,Severovýchod,Health Optimizers,Premium,28,57,81,77,61,1.18,TRUE
+R0779,18–29,muž,Střední Čechy,Category Skeptics,Familiar,22,66,75,68,58,1.193,TRUE
+R0780,30–44,žena,Střední Čechy,Trend Explorers,Premium,47,51,45,87,58,1.011,TRUE
+R0781,65+,žena,Střední Čechy,Price Maximizers,Value,54,70,58,42,56,1.188,TRUE
+R0782,45–64,muž,Praha,Price Maximizers,Value,50,64,48,77,60,1.201,TRUE
+R0783,18–29,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,54,81,87,79,75,1.134,TRUE
+R0784,18–29,muž,Jihovýchod,Price Maximizers,Value,38,88,81,79,72,1.056,TRUE
+R0785,30–44,žena,Praha,Pragmatic Energy Seekers,Familiar,47,67,50,66,58,1.029,TRUE
+R0786,18–29,muž,Severovýchod,Price Maximizers,Value,46,72,45,74,59,1.111,TRUE
+R0787,18–29,muž,Severovýchod,Trend Explorers,Premium,36,90,81,77,71,0.762,TRUE
+R0788,45–64,muž,Praha,Category Skeptics,Familiar,27,78,48,57,52,0.955,TRUE
+R0789,65+,muž,Severovýchod,Price Maximizers,Value,50,79,87,71,72,1.141,TRUE
+R0790,65+,žena,Severozápad,Category Skeptics,Familiar,45,62,81,89,69,1.073,TRUE
+R0791,45–64,žena,Střední Morava,Category Skeptics,Familiar,40,64,50,85,60,0.754,TRUE
+R0792,45–64,žena,Severozápad,Pragmatic Energy Seekers,Familiar,27,65,73,54,55,0.941,TRUE
+R0793,30–44,muž,Praha,Trend Explorers,Premium,29,80,73,90,68,0.795,TRUE
+R0794,65+,žena,Jihovýchod,Health Optimizers,Premium,37,49,52,81,55,1.017,TRUE
+R0795,18–29,žena,Severozápad,Category Skeptics,Familiar,56,80,84,59,70,1.037,TRUE
+R0796,30–44,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,23,90,66,77,64,0.812,TRUE
+R0797,30–44,žena,Střední Čechy,Price Maximizers,Value,23,56,87,49,54,1.138,TRUE
+R0798,18–29,muž,Jihovýchod,Health Optimizers,Premium,25,85,75,61,62,1.043,TRUE
+R0799,45–64,žena,Střední Morava,Health Optimizers,Premium,30,69,45,40,46,1.21,TRUE
+R0800,30–44,žena,Praha,Trend Explorers,Premium,48,73,56,37,54,1.098,TRUE
+R0801,65+,muž,Praha,Health Optimizers,Premium,38,60,55,64,54,1.133,TRUE
+R0802,65+,muž,Moravskoslezsko,Price Maximizers,Value,24,45,77,83,57,0.933,TRUE
+R0803,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,41,60,45,40,46,1.154,TRUE
+R0804,18–29,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,36,89,84,69,70,1.18,TRUE
+R0805,30–44,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,49,81,70,87,72,0.813,TRUE
+R0806,65+,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,31,54,65,77,57,0.882,TRUE
+R0807,18–29,žena,Jihovýchod,Price Maximizers,Value,53,45,75,72,61,1.172,TRUE
+R0808,18–29,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,48,81,88,85,76,0.899,TRUE
+R0809,65+,žena,Jihozápad,Price Maximizers,Value,37,63,63,70,58,1.134,TRUE
+R0810,18–29,muž,Střední Morava,Health Optimizers,Premium,38,88,56,81,66,1.189,TRUE
+R0811,30–44,žena,Střední Morava,Health Optimizers,Premium,49,66,85,69,67,1.085,TRUE
+R0812,65+,muž,Jihovýchod,Health Optimizers,Premium,57,58,83,53,63,1.227,TRUE
+R0813,65+,muž,Severozápad,Health Optimizers,Premium,23,48,68,89,57,0.794,TRUE
+R0814,65+,žena,Střední Čechy,Health Optimizers,Premium,33,86,45,48,53,1.212,TRUE
+R0815,30–44,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,38,65,64,58,56,1.143,TRUE
+R0816,30–44,žena,Jihovýchod,Price Maximizers,Value,51,47,77,38,53,1.006,TRUE
+R0817,18–29,muž,Jihozápad,Health Optimizers,Premium,29,64,90,59,60,0.992,TRUE
+R0818,65+,žena,Praha,Health Optimizers,Premium,31,87,63,72,63,0.823,TRUE
+R0819,18–29,žena,Severovýchod,Category Skeptics,Familiar,40,81,76,50,62,0.98,TRUE
+R0820,45–64,muž,Praha,Health Optimizers,Premium,38,61,79,90,67,0.908,TRUE
+R0821,18–29,žena,Severovýchod,Category Skeptics,Familiar,55,71,60,42,57,1.121,TRUE
+R0822,30–44,muž,Praha,Health Optimizers,Premium,53,60,70,77,65,1.232,TRUE
+R0823,45–64,muž,Střední Čechy,Price Maximizers,Value,49,66,64,85,66,1.248,TRUE
+R0824,18–29,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,40,71,71,72,64,0.847,TRUE
+R0825,18–29,žena,Severozápad,Health Optimizers,Premium,37,57,88,77,65,0.896,TRUE
+R0826,18–29,žena,Moravskoslezsko,Category Skeptics,Familiar,31,67,82,75,64,0.779,TRUE
+R0827,30–44,žena,Praha,Category Skeptics,Familiar,24,82,49,45,50,0.96,TRUE
+R0828,65+,žena,Střední Čechy,Price Maximizers,Value,57,89,53,42,60,1.144,TRUE
+R0829,30–44,muž,Jihovýchod,Price Maximizers,Value,33,52,49,53,47,0.948,TRUE
+R0830,18–29,muž,Severozápad,Health Optimizers,Premium,51,71,79,57,64,1.071,TRUE
+R0831,30–44,žena,Severozápad,Category Skeptics,Familiar,28,64,68,86,62,0.969,TRUE
+R0832,30–44,muž,Moravskoslezsko,Health Optimizers,Premium,24,76,82,56,60,1.185,TRUE
+R0833,18–29,žena,Moravskoslezsko,Price Maximizers,Value,56,67,77,40,60,0.96,TRUE
+R0834,45–64,žena,Severozápad,Trend Explorers,Premium,57,66,88,52,66,0.93,TRUE
+R0835,45–64,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,22,65,47,66,50,1.217,TRUE
+R0836,45–64,žena,Jihozápad,Health Optimizers,Premium,40,64,73,74,63,0.812,TRUE
+R0837,65+,žena,Jihovýchod,Health Optimizers,Premium,39,58,75,40,53,0.995,TRUE
+R0838,30–44,muž,Praha,Trend Explorers,Premium,39,86,74,68,67,0.77,TRUE
+R0839,30–44,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,52,53,64,46,54,1.059,TRUE
+R0840,45–64,žena,Severovýchod,Category Skeptics,Familiar,40,45,80,36,50,1.105,TRUE
+R0841,30–44,muž,Severozápad,Health Optimizers,Premium,37,51,75,79,60,1.074,TRUE
+R0842,45–64,muž,Severovýchod,Health Optimizers,Premium,22,75,74,40,53,0.823,TRUE
+R0843,30–44,žena,Severozápad,Pragmatic Energy Seekers,Familiar,47,79,80,85,73,0.852,TRUE
+R0844,18–29,žena,Severovýchod,Category Skeptics,Familiar,52,53,50,88,61,1.039,TRUE
+R0845,18–29,muž,Severozápad,Category Skeptics,Familiar,36,50,59,90,59,0.786,TRUE
+R0846,30–44,muž,Praha,Pragmatic Energy Seekers,Familiar,48,45,73,83,62,1.12,TRUE
+R0847,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,49,56,62,59,56,0.87,TRUE
+R0848,65+,žena,Střední Čechy,Category Skeptics,Familiar,36,80,71,39,56,0.86,TRUE
+R0849,30–44,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,35,69,46,62,53,0.979,TRUE
+R0850,30–44,žena,Severozápad,Health Optimizers,Premium,39,86,75,51,63,0.775,TRUE
+R0851,45–64,žena,Praha,Price Maximizers,Value,25,66,50,46,47,1.038,TRUE
+R0852,18–29,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,28,67,72,52,55,0.773,TRUE
+R0853,45–64,žena,Severovýchod,Health Optimizers,Premium,32,61,51,76,55,1.131,TRUE
+R0854,45–64,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,51,62,87,36,59,0.807,TRUE
+R0855,65+,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,22,53,86,43,51,0.941,TRUE
+R0856,45–64,muž,Střední Morava,Price Maximizers,Value,50,67,69,81,67,1.131,TRUE
+R0857,30–44,žena,Praha,Price Maximizers,Value,36,89,85,57,67,0.827,TRUE
+R0858,18–29,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,51,90,53,40,58,0.938,TRUE
+R0859,45–64,muž,Moravskoslezsko,Trend Explorers,Premium,37,77,47,63,56,0.83,TRUE
+R0860,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,56,71,77,84,72,0.995,TRUE
+R0861,45–64,žena,Praha,Price Maximizers,Value,55,61,88,63,67,0.758,TRUE
+R0862,45–64,muž,Severovýchod,Price Maximizers,Value,54,80,72,75,70,0.854,TRUE
+R0863,65+,žena,Severozápad,Price Maximizers,Value,28,75,48,66,54,0.765,TRUE
+R0864,30–44,žena,Praha,Health Optimizers,Premium,23,89,64,81,64,1.007,TRUE
+R0865,45–64,muž,Jihozápad,Health Optimizers,Premium,34,50,73,90,62,0.909,TRUE
+R0866,30–44,žena,Střední Morava,Trend Explorers,Premium,40,56,73,59,57,0.762,TRUE
+R0867,18–29,žena,Praha,Health Optimizers,Premium,39,90,68,77,68,0.898,TRUE
+R0868,45–64,žena,Severozápad,Health Optimizers,Premium,51,80,46,83,65,0.841,TRUE
+R0869,30–44,žena,Střední Čechy,Category Skeptics,Familiar,39,53,65,84,60,1.007,TRUE
+R0870,45–64,muž,Severovýchod,Price Maximizers,Value,38,45,56,36,44,0.782,TRUE
+R0871,18–29,muž,Střední Morava,Price Maximizers,Value,39,47,72,80,60,1.22,TRUE
+R0872,45–64,muž,Jihovýchod,Category Skeptics,Familiar,21,51,53,78,51,0.975,TRUE
+R0873,65+,žena,Střední Morava,Category Skeptics,Familiar,46,70,45,73,58,1.234,TRUE
+R0874,45–64,muž,Moravskoslezsko,Price Maximizers,Value,45,77,64,80,66,1.152,TRUE
+R0875,30–44,žena,Severovýchod,Trend Explorers,Premium,50,87,62,63,66,1.211,TRUE
+R0876,65+,žena,Praha,Price Maximizers,Value,42,80,69,59,62,0.819,TRUE
+R0877,30–44,muž,Jihozápad,Category Skeptics,Familiar,46,50,69,70,59,0.91,TRUE
+R0878,18–29,muž,Střední Čechy,Health Optimizers,Premium,22,79,71,38,52,1.206,TRUE
+R0879,45–64,muž,Severovýchod,Price Maximizers,Value,49,71,72,82,68,0.939,TRUE
+R0880,30–44,žena,Moravskoslezsko,Health Optimizers,Premium,31,75,87,55,62,1.089,TRUE
+R0881,65+,žena,Moravskoslezsko,Category Skeptics,Familiar,30,65,60,51,52,1.05,TRUE
+R0882,45–64,muž,Jihozápad,Health Optimizers,Premium,34,86,70,36,56,1.17,TRUE
+R0883,65+,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,24,62,58,90,58,0.907,TRUE
+R0884,65+,muž,Jihovýchod,Trend Explorers,Premium,26,49,65,90,58,1.065,TRUE
+R0885,45–64,žena,Severovýchod,Category Skeptics,Familiar,55,51,71,56,58,1.234,TRUE
+R0886,65+,muž,Praha,Trend Explorers,Premium,35,67,89,42,58,1.203,TRUE
+R0887,45–64,muž,Střední Čechy,Price Maximizers,Value,41,78,74,71,66,1.161,TRUE
+R0888,45–64,muž,Moravskoslezsko,Price Maximizers,Value,42,66,79,66,63,1.129,TRUE
+R0889,30–44,žena,Střední Morava,Category Skeptics,Familiar,41,46,51,70,52,0.753,TRUE
+R0890,65+,žena,Praha,Health Optimizers,Premium,24,66,57,70,54,1.172,TRUE
+R0891,65+,žena,Střední Morava,Price Maximizers,Value,54,52,56,55,54,1.075,TRUE
+R0892,45–64,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,52,48,58,45,51,1.126,TRUE
+R0893,18–29,muž,Praha,Health Optimizers,Premium,21,55,66,58,50,0.76,TRUE
+R0894,30–44,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,49,66,78,80,68,1.011,TRUE
+R0895,45–64,žena,Střední Morava,Price Maximizers,Value,45,60,76,66,62,0.91,TRUE
+R0896,65+,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,43,85,62,60,62,1.069,TRUE
+R0897,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,56,63,59,90,67,1.161,TRUE
+R0898,18–29,žena,Severozápad,Price Maximizers,Value,44,76,61,74,64,1.036,TRUE
+R0899,30–44,žena,Moravskoslezsko,Health Optimizers,Premium,23,71,78,71,61,1.128,TRUE
+R0900,65+,žena,Severozápad,Price Maximizers,Value,43,64,87,58,63,0.785,TRUE
+R0901,65+,muž,Severozápad,Price Maximizers,Value,57,48,72,43,55,1.203,TRUE
+R0902,45–64,muž,Praha,Trend Explorers,Premium,47,60,68,74,62,0.761,TRUE
+R0903,45–64,žena,Jihozápad,Price Maximizers,Value,44,50,75,83,63,0.922,TRUE
+R0904,30–44,žena,Střední Morava,Trend Explorers,Premium,50,47,84,84,66,0.96,TRUE
+R0905,65+,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,34,81,80,78,68,0.858,TRUE
+R0906,18–29,žena,Severozápad,Price Maximizers,Value,49,72,79,51,63,1.244,TRUE
+R0907,45–64,muž,Severovýchod,Health Optimizers,Premium,38,86,64,90,70,1.077,TRUE
+R0908,65+,žena,Severovýchod,Price Maximizers,Value,29,68,82,57,59,1.104,TRUE
+R0909,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,47,57,50,72,56,0.811,TRUE
+R0910,18–29,muž,Jihozápad,Price Maximizers,Value,29,54,76,59,54,0.879,TRUE
+R0911,45–64,žena,Moravskoslezsko,Price Maximizers,Value,40,75,55,67,59,0.989,TRUE
+R0912,18–29,žena,Praha,Category Skeptics,Familiar,50,69,53,59,58,1.243,TRUE
+R0913,65+,muž,Jihozápad,Health Optimizers,Premium,29,55,76,35,49,0.789,TRUE
+R0914,30–44,muž,Severovýchod,Health Optimizers,Premium,37,63,61,78,60,1.194,TRUE
+R0915,65+,žena,Jihovýchod,Health Optimizers,Premium,26,53,90,88,64,1.165,TRUE
+R0916,18–29,muž,Jihovýchod,Health Optimizers,Premium,42,73,82,76,68,1.026,TRUE
+R0917,18–29,žena,Střední Morava,Health Optimizers,Premium,51,53,76,77,64,0.989,TRUE
+R0918,18–29,žena,Jihovýchod,Category Skeptics,Familiar,30,70,67,45,53,1.182,TRUE
+R0919,65+,žena,Severovýchod,Category Skeptics,Familiar,33,55,70,63,55,1.016,TRUE
+R0920,18–29,muž,Moravskoslezsko,Health Optimizers,Premium,55,76,68,80,70,0.96,TRUE
+R0921,65+,muž,Severozápad,Category Skeptics,Familiar,53,81,62,81,69,1.152,TRUE
+R0922,65+,žena,Praha,Trend Explorers,Premium,46,47,63,90,62,0.897,TRUE
+R0923,65+,žena,Střední Čechy,Trend Explorers,Premium,26,45,79,78,57,0.799,TRUE
+R0924,30–44,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,38,47,60,90,59,1.199,TRUE
+R0925,45–64,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,55,56,66,38,54,1.099,TRUE
+R0926,18–29,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,43,75,49,43,52,1.221,TRUE
+R0927,45–64,žena,Střední Čechy,Health Optimizers,Premium,31,45,67,90,58,0.865,TRUE
+R0928,30–44,muž,Moravskoslezsko,Category Skeptics,Familiar,57,52,77,71,64,1.15,TRUE
+R0929,65+,žena,Jihozápad,Health Optimizers,Premium,37,49,55,40,45,1.226,TRUE
+R0930,18–29,žena,Severovýchod,Category Skeptics,Familiar,48,66,78,64,64,0.987,TRUE
+R0931,45–64,žena,Moravskoslezsko,Price Maximizers,Value,44,67,59,55,56,1.075,TRUE
+R0932,45–64,žena,Moravskoslezsko,Price Maximizers,Value,22,76,54,45,49,0.815,TRUE
+R0933,45–64,muž,Moravskoslezsko,Health Optimizers,Premium,29,70,87,77,66,1.187,TRUE
+R0934,65+,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,41,46,46,49,46,1.212,TRUE
+R0935,45–64,muž,Severovýchod,Trend Explorers,Premium,43,62,85,90,70,1.15,TRUE
+R0936,65+,žena,Jihovýchod,Health Optimizers,Premium,37,76,54,76,61,1.024,TRUE
+R0937,65+,muž,Jihozápad,Health Optimizers,Premium,37,70,90,83,70,0.875,TRUE
+R0938,30–44,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,23,48,55,55,45,0.822,TRUE
+R0939,45–64,žena,Jihovýchod,Trend Explorers,Premium,49,58,79,80,66,1.045,TRUE
+R0940,65+,žena,Praha,Price Maximizers,Value,28,90,87,42,62,0.788,TRUE
+R0941,18–29,muž,Praha,Pragmatic Energy Seekers,Familiar,53,50,53,54,52,1.002,TRUE
+R0942,18–29,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,28,86,58,40,53,0.929,TRUE
+R0943,30–44,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,23,46,81,40,48,1.151,TRUE
+R0944,30–44,muž,Střední Morava,Price Maximizers,Value,21,55,83,69,57,0.778,TRUE
+R0945,18–29,muž,Severozápad,Category Skeptics,Familiar,56,47,74,72,62,0.778,TRUE
+R0946,18–29,muž,Severozápad,Category Skeptics,Familiar,32,80,78,48,60,0.92,TRUE
+R0947,65+,žena,Severovýchod,Category Skeptics,Familiar,42,59,84,78,66,0.873,TRUE
+R0948,45–64,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,30,87,64,69,62,1.031,TRUE
+R0949,65+,muž,Severozápad,Category Skeptics,Familiar,51,49,52,54,52,1.219,TRUE
+R0950,65+,muž,Střední Morava,Price Maximizers,Value,52,57,50,83,60,1.143,TRUE
+R0951,45–64,žena,Severovýchod,Health Optimizers,Premium,55,68,90,90,76,1.128,TRUE
+R0952,65+,žena,Severozápad,Category Skeptics,Familiar,33,47,63,58,50,0.832,TRUE
+R0953,18–29,žena,Severozápad,Category Skeptics,Familiar,35,88,48,69,60,0.785,TRUE
+R0954,45–64,žena,Severovýchod,Price Maximizers,Value,21,77,49,89,59,0.834,TRUE
+R0955,18–29,muž,Moravskoslezsko,Trend Explorers,Premium,39,72,84,76,68,1.198,TRUE
+R0956,18–29,žena,Střední Čechy,Category Skeptics,Familiar,53,53,72,74,63,0.919,TRUE
+R0957,18–29,muž,Moravskoslezsko,Price Maximizers,Value,22,60,63,57,50,1.122,TRUE
+R0958,45–64,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,27,78,61,35,50,0.798,TRUE
+R0959,18–29,muž,Jihovýchod,Trend Explorers,Premium,36,89,60,73,64,0.924,TRUE
+R0960,45–64,muž,Praha,Category Skeptics,Familiar,24,76,69,48,54,1.25,TRUE
+R0961,30–44,žena,Moravskoslezsko,Category Skeptics,Familiar,37,61,82,77,64,0.897,TRUE
+R0962,18–29,žena,Jihozápad,Price Maximizers,Value,37,65,69,65,59,1.105,TRUE
+R0963,30–44,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,33,79,45,80,59,0.893,TRUE
+R0964,45–64,žena,Jihozápad,Price Maximizers,Value,45,90,84,71,72,1.132,TRUE
+R0965,45–64,žena,Střední Morava,Price Maximizers,Value,37,64,50,88,60,1.086,TRUE
+R0966,65+,žena,Praha,Pragmatic Energy Seekers,Familiar,45,68,90,39,60,1.243,TRUE
+R0967,65+,muž,Praha,Category Skeptics,Familiar,34,89,77,51,63,0.751,TRUE
+R0968,30–44,muž,Severozápad,Pragmatic Energy Seekers,Familiar,47,55,54,72,57,1.121,TRUE
+R0969,18–29,žena,Střední Morava,Category Skeptics,Familiar,27,66,86,51,58,0.779,TRUE
+R0970,65+,muž,Jihozápad,Trend Explorers,Premium,51,71,86,39,62,1.158,TRUE
+R0971,45–64,žena,Moravskoslezsko,Price Maximizers,Value,51,54,72,67,61,0.908,TRUE
+R0972,65+,muž,Severozápad,Trend Explorers,Premium,34,62,64,77,59,0.899,TRUE
+R0973,18–29,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,31,85,79,36,58,0.761,TRUE
+R0974,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,26,71,47,80,56,1.0,TRUE
+R0975,45–64,muž,Střední Morava,Category Skeptics,Familiar,48,70,79,51,62,0.832,TRUE
+R0976,18–29,žena,Severovýchod,Price Maximizers,Value,43,72,73,35,56,1.15,TRUE
+R0977,45–64,muž,Střední Morava,Trend Explorers,Premium,41,57,77,56,58,0.811,TRUE
+R0978,18–29,muž,Střední Čechy,Health Optimizers,Premium,26,90,82,72,68,1.08,TRUE
+R0979,45–64,muž,Moravskoslezsko,Health Optimizers,Premium,31,53,81,46,53,0.912,TRUE
+R0980,18–29,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,37,77,46,41,50,0.884,TRUE
+R0981,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,23,70,80,64,59,0.757,TRUE
+R0982,18–29,žena,Střední Morava,Category Skeptics,Familiar,32,54,75,46,52,1.079,TRUE
+R0983,18–29,žena,Střední Morava,Health Optimizers,Premium,48,82,77,65,68,0.93,TRUE
+R0984,30–44,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,38,88,69,65,65,1.036,TRUE
+R0985,18–29,žena,Jihovýchod,Trend Explorers,Premium,52,78,78,50,64,0.949,TRUE
+R0986,18–29,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,24,89,79,43,59,1.199,TRUE
+R0987,30–44,žena,Jihozápad,Price Maximizers,Value,35,75,85,52,62,0.81,TRUE
+R0988,45–64,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,40,73,88,39,60,1.159,TRUE
+R0989,45–64,žena,Severozápad,Pragmatic Energy Seekers,Familiar,42,49,75,61,57,0.773,TRUE
+R0990,45–64,muž,Střední Čechy,Health Optimizers,Premium,39,60,72,46,54,1.166,TRUE
+R0991,65+,muž,Praha,Trend Explorers,Premium,55,50,69,82,64,1.141,TRUE
+R0992,45–64,muž,Praha,Category Skeptics,Familiar,28,45,49,37,40,1.241,TRUE
+R0993,30–44,muž,Jihozápad,Health Optimizers,Premium,50,87,47,89,68,0.844,TRUE
+R0994,45–64,muž,Severovýchod,Category Skeptics,Familiar,37,60,45,70,53,0.907,TRUE
+R0995,45–64,muž,Střední Čechy,Price Maximizers,Value,29,45,77,53,51,0.851,TRUE
+R0996,45–64,žena,Jihozápad,Price Maximizers,Value,46,47,67,80,60,0.921,TRUE
+R0997,30–44,muž,Střední Morava,Category Skeptics,Familiar,32,54,49,70,51,0.829,TRUE
+R0998,65+,muž,Střední Čechy,Trend Explorers,Premium,57,52,56,88,63,1.144,TRUE
+R0999,18–29,žena,Střední Morava,Category Skeptics,Familiar,24,46,70,63,51,0.961,TRUE
+R1000,30–44,muž,Severozápad,Category Skeptics,Familiar,33,56,61,54,51,1.164,TRUE
+R1001,45–64,muž,Praha,Pragmatic Energy Seekers,Familiar,22,71,70,81,61,0.971,TRUE
+R1002,18–29,muž,Severovýchod,Price Maximizers,Value,25,51,70,90,59,1.09,TRUE
+R1003,45–64,žena,Moravskoslezsko,Price Maximizers,Value,43,84,59,58,61,1.086,TRUE
+R1004,65+,muž,Střední Čechy,Category Skeptics,Familiar,49,71,90,35,61,0.833,TRUE
+R1005,18–29,muž,Praha,Price Maximizers,Value,26,85,80,61,63,0.943,TRUE
+R1006,45–64,žena,Severovýchod,Health Optimizers,Premium,50,67,62,41,55,1.033,TRUE
+R1007,45–64,žena,Moravskoslezsko,Price Maximizers,Value,36,58,55,87,59,1.019,TRUE
+R1008,18–29,žena,Střední Morava,Price Maximizers,Value,55,79,72,88,74,1.204,TRUE
+R1009,30–44,žena,Severozápad,Price Maximizers,Value,22,87,63,54,56,0.764,TRUE
+R1010,45–64,muž,Severovýchod,Category Skeptics,Familiar,31,85,56,41,53,1.233,TRUE
+R1011,30–44,žena,Severozápad,Price Maximizers,Value,26,50,80,86,60,1.095,TRUE
+R1012,30–44,muž,Praha,Price Maximizers,Value,24,72,46,36,44,1.17,TRUE
+R1013,18–29,muž,Jihovýchod,Health Optimizers,Premium,50,55,62,55,56,0.989,TRUE
+R1014,45–64,muž,Praha,Health Optimizers,Premium,52,52,52,73,57,0.96,TRUE
+R1015,45–64,žena,Severozápad,Price Maximizers,Value,21,49,49,60,45,0.856,TRUE
+R1016,30–44,muž,Praha,Health Optimizers,Premium,41,71,65,63,60,1.073,TRUE
+R1017,45–64,žena,Moravskoslezsko,Health Optimizers,Premium,26,63,84,56,57,0.802,TRUE
+R1018,30–44,muž,Praha,Trend Explorers,Premium,51,47,87,45,58,1.224,TRUE
+R1019,45–64,muž,Severozápad,Pragmatic Energy Seekers,Familiar,53,87,50,46,59,0.792,TRUE
+R1020,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,42,46,48,76,53,0.938,TRUE
+R1021,65+,žena,Praha,Price Maximizers,Value,43,84,70,38,59,0.915,TRUE
+R1022,18–29,muž,Praha,Pragmatic Energy Seekers,Familiar,52,76,47,85,65,1.121,TRUE
+R1023,45–64,muž,Jihozápad,Category Skeptics,Familiar,45,89,81,54,67,0.891,TRUE
+R1024,45–64,muž,Jihozápad,Category Skeptics,Familiar,34,50,78,83,61,0.805,TRUE
+R1025,45–64,žena,Severovýchod,Category Skeptics,Familiar,42,67,88,41,60,0.787,TRUE
+R1026,18–29,muž,Jihovýchod,Price Maximizers,Value,56,71,74,51,63,1.02,TRUE
+R1027,45–64,žena,Praha,Health Optimizers,Premium,35,55,74,50,54,1.054,TRUE
+R1028,18–29,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,26,52,62,61,50,1.128,TRUE
+R1029,18–29,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,53,62,77,77,67,0.95,TRUE
+R1030,65+,muž,Severozápad,Category Skeptics,Familiar,28,67,49,55,50,0.933,TRUE
+R1031,30–44,žena,Severovýchod,Price Maximizers,Value,46,81,90,82,75,1.062,TRUE
+R1032,45–64,muž,Praha,Trend Explorers,Premium,24,73,57,41,49,0.899,TRUE
+R1033,45–64,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,55,46,62,86,62,0.936,TRUE
+R1034,65+,muž,Jihozápad,Category Skeptics,Familiar,24,60,46,49,45,0.838,TRUE
+R1035,65+,muž,Střední Morava,Trend Explorers,Premium,27,87,79,55,62,1.186,TRUE
+R1036,30–44,žena,Střední Čechy,Category Skeptics,Familiar,38,56,87,52,58,1.161,TRUE
+R1037,65+,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,44,59,52,51,52,0.901,TRUE
+R1038,18–29,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,47,45,72,70,58,0.815,TRUE
+R1039,18–29,žena,Moravskoslezsko,Price Maximizers,Value,54,79,68,75,69,1.202,TRUE
+R1040,65+,muž,Střední Morava,Health Optimizers,Premium,24,45,56,78,51,1.028,TRUE
+R1041,45–64,žena,Jihozápad,Health Optimizers,Premium,42,45,79,76,60,0.976,TRUE
+R1042,18–29,žena,Střední Čechy,Price Maximizers,Value,45,69,84,68,66,1.018,TRUE
+R1043,18–29,muž,Severovýchod,Health Optimizers,Premium,45,72,88,62,67,0.949,TRUE
+R1044,30–44,muž,Severozápad,Health Optimizers,Premium,56,77,48,82,66,1.14,TRUE
+R1045,45–64,muž,Severovýchod,Price Maximizers,Value,49,68,82,60,65,0.945,TRUE
+R1046,30–44,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,37,88,83,67,69,0.994,TRUE
+R1047,30–44,žena,Severovýchod,Health Optimizers,Premium,52,86,79,55,68,0.934,TRUE
+R1048,65+,žena,Moravskoslezsko,Trend Explorers,Premium,54,56,81,79,68,0.998,TRUE
+R1049,30–44,žena,Severovýchod,Health Optimizers,Premium,31,82,75,54,60,0.972,TRUE
+R1050,18–29,žena,Střední Morava,Price Maximizers,Value,41,64,47,72,56,0.841,TRUE
+R1051,30–44,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,46,52,65,49,53,0.915,TRUE
+R1052,45–64,žena,Severozápad,Pragmatic Energy Seekers,Familiar,36,58,85,47,56,1.135,TRUE
+R1053,45–64,žena,Moravskoslezsko,Price Maximizers,Value,54,87,56,60,64,0.833,TRUE
+R1054,18–29,muž,Jihovýchod,Category Skeptics,Familiar,44,45,56,69,54,0.818,TRUE
+R1055,30–44,muž,Severovýchod,Price Maximizers,Value,27,55,66,72,55,1.031,TRUE
+R1056,18–29,muž,Severovýchod,Trend Explorers,Premium,21,53,84,61,55,0.785,TRUE
+R1057,18–29,žena,Praha,Trend Explorers,Premium,44,76,69,64,63,1.164,TRUE
+R1058,30–44,žena,Severovýchod,Category Skeptics,Familiar,38,90,81,89,74,0.838,TRUE
+R1059,45–64,žena,Jihovýchod,Category Skeptics,Familiar,57,73,47,71,62,1.215,TRUE
+R1060,18–29,muž,Střední Čechy,Health Optimizers,Premium,39,60,76,57,58,0.758,TRUE
+R1061,30–44,muž,Moravskoslezsko,Trend Explorers,Premium,31,77,64,55,57,0.891,TRUE
+R1062,18–29,žena,Praha,Pragmatic Energy Seekers,Familiar,24,60,90,59,58,0.873,TRUE
+R1063,45–64,žena,Severozápad,Pragmatic Energy Seekers,Familiar,31,72,82,78,66,1.158,TRUE
+R1064,65+,žena,Střední Morava,Health Optimizers,Premium,35,67,55,89,62,0.988,TRUE
+R1065,65+,muž,Praha,Trend Explorers,Premium,53,79,67,48,62,1.225,TRUE
+R1066,30–44,muž,Moravskoslezsko,Price Maximizers,Value,55,70,70,59,64,1.067,TRUE
+R1067,45–64,muž,Moravskoslezsko,Category Skeptics,Familiar,46,60,57,47,52,1.154,TRUE
+R1068,18–29,muž,Severozápad,Health Optimizers,Premium,35,48,49,72,51,0.947,TRUE
+R1069,65+,žena,Moravskoslezsko,Health Optimizers,Premium,28,70,70,90,64,0.909,TRUE
+R1070,30–44,muž,Severozápad,Category Skeptics,Familiar,44,53,49,58,51,1.248,TRUE
+R1071,30–44,muž,Moravskoslezsko,Category Skeptics,Familiar,24,59,81,35,50,0.991,TRUE
+R1072,18–29,žena,Praha,Pragmatic Energy Seekers,Familiar,52,72,55,39,54,0.805,TRUE
+R1073,18–29,žena,Střední Morava,Price Maximizers,Value,56,53,62,73,61,0.811,TRUE
+R1074,30–44,žena,Severozápad,Category Skeptics,Familiar,43,46,88,77,64,1.212,TRUE
+R1075,18–29,muž,Praha,Category Skeptics,Familiar,24,56,71,58,52,1.172,TRUE
+R1076,65+,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,24,86,87,89,72,1.051,TRUE
+R1077,30–44,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,34,83,65,55,59,1.071,TRUE
+R1078,45–64,muž,Severovýchod,Price Maximizers,Value,29,53,55,75,53,1.039,TRUE
+R1079,30–44,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,28,55,54,44,45,1.108,TRUE
+R1080,65+,muž,Střední Morava,Price Maximizers,Value,52,62,53,39,52,1.039,TRUE
+R1081,18–29,žena,Severovýchod,Health Optimizers,Premium,53,81,46,38,54,1.101,TRUE
+R1082,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,33,72,45,62,53,1.164,TRUE
+R1083,65+,muž,Moravskoslezsko,Category Skeptics,Familiar,22,85,84,68,65,0.794,TRUE
+R1084,65+,muž,Severovýchod,Price Maximizers,Value,30,87,76,79,68,0.875,TRUE
+R1085,45–64,žena,Severozápad,Trend Explorers,Premium,21,81,54,81,59,0.807,TRUE
+R1086,30–44,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,32,68,58,37,49,0.941,TRUE
+R1087,30–44,žena,Moravskoslezsko,Health Optimizers,Premium,57,67,65,70,65,1.083,TRUE
+R1088,65+,žena,Střední Čechy,Price Maximizers,Value,38,47,60,51,49,0.892,TRUE
+R1089,18–29,muž,Jihozápad,Price Maximizers,Value,27,83,89,46,61,1.088,TRUE
+R1090,30–44,muž,Severovýchod,Category Skeptics,Familiar,33,50,88,54,56,1.12,TRUE
+R1091,18–29,muž,Praha,Health Optimizers,Premium,52,75,81,49,64,0.859,TRUE
+R1092,65+,muž,Střední Čechy,Price Maximizers,Value,38,89,49,40,54,1.114,TRUE
+R1093,65+,žena,Jihovýchod,Trend Explorers,Premium,47,82,82,46,64,1.236,TRUE
+R1094,45–64,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,45,59,82,45,58,1.07,TRUE
+R1095,65+,muž,Střední Čechy,Price Maximizers,Value,44,48,54,84,58,0.97,TRUE
+R1096,65+,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,28,57,47,89,55,0.828,TRUE
+R1097,30–44,žena,Střední Čechy,Price Maximizers,Value,24,51,86,70,58,1.104,TRUE
+R1098,30–44,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,49,51,89,83,68,0.78,TRUE
+R1099,30–44,muž,Střední Morava,Health Optimizers,Premium,46,88,49,81,66,0.809,TRUE
+R1100,65+,žena,Severozápad,Pragmatic Energy Seekers,Familiar,24,76,70,68,60,1.182,TRUE
+R1101,18–29,žena,Střední Čechy,Price Maximizers,Value,42,46,81,55,56,0.788,TRUE
+R1102,45–64,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,39,47,60,39,46,1.026,TRUE
+R1103,30–44,žena,Střední Morava,Price Maximizers,Value,23,70,53,43,47,0.814,TRUE
+R1104,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,31,75,69,72,62,1.087,TRUE
+R1105,65+,muž,Moravskoslezsko,Price Maximizers,Value,40,77,86,75,70,0.881,TRUE
+R1106,65+,muž,Moravskoslezsko,Price Maximizers,Value,35,55,54,37,45,1.212,TRUE
+R1107,30–44,žena,Jihozápad,Price Maximizers,Value,23,57,48,90,54,0.975,TRUE
+R1108,65+,muž,Severozápad,Health Optimizers,Premium,38,60,83,39,55,1.181,TRUE
+R1109,30–44,muž,Střední Čechy,Health Optimizers,Premium,56,71,53,88,67,1.107,TRUE
+R1110,45–64,žena,Moravskoslezsko,Trend Explorers,Premium,21,49,48,90,52,1.166,TRUE
+R1111,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,53,69,48,84,64,1.01,TRUE
+R1112,45–64,žena,Severovýchod,Price Maximizers,Value,38,50,55,81,56,1.047,TRUE
+R1113,45–64,muž,Jihovýchod,Price Maximizers,Value,54,72,81,39,62,1.061,TRUE
+R1114,18–29,žena,Střední Čechy,Price Maximizers,Value,28,46,65,38,44,1.052,TRUE
+R1115,65+,žena,Jihozápad,Pragmatic Energy Seekers,Familiar,53,59,62,36,52,0.857,TRUE
+R1116,45–64,muž,Severozápad,Trend Explorers,Premium,42,48,85,60,59,1.233,TRUE
+R1117,18–29,muž,Střední Čechy,Price Maximizers,Value,45,74,76,58,63,0.875,TRUE
+R1118,65+,muž,Praha,Pragmatic Energy Seekers,Familiar,35,78,84,61,64,0.824,TRUE
+R1119,30–44,žena,Severovýchod,Price Maximizers,Value,52,72,49,56,57,0.982,TRUE
+R1120,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,54,62,81,73,68,1.026,TRUE
+R1121,18–29,žena,Jihozápad,Health Optimizers,Premium,25,87,49,43,51,0.997,TRUE
+R1122,30–44,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,47,54,88,43,58,1.096,TRUE
+R1123,45–64,žena,Střední Morava,Price Maximizers,Value,49,87,69,68,68,1.105,TRUE
+R1124,30–44,žena,Střední Čechy,Price Maximizers,Value,39,74,59,46,54,1.176,TRUE
+R1125,30–44,muž,Severozápad,Category Skeptics,Familiar,47,72,66,63,62,0.777,TRUE
+R1126,30–44,muž,Střední Morava,Trend Explorers,Premium,29,63,47,67,52,0.868,TRUE
+R1127,65+,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,36,78,68,79,65,1.016,TRUE
+R1128,65+,muž,Střední Čechy,Health Optimizers,Premium,32,83,82,48,61,1.026,TRUE
+R1129,30–44,žena,Střední Čechy,Price Maximizers,Value,57,63,64,72,64,0.806,TRUE
+R1130,18–29,muž,Praha,Pragmatic Energy Seekers,Familiar,33,63,89,77,66,1.05,TRUE
+R1131,45–64,žena,Střední Čechy,Category Skeptics,Familiar,50,89,46,75,65,1.136,TRUE
+R1132,30–44,žena,Moravskoslezsko,Category Skeptics,Familiar,43,75,75,84,69,0.963,TRUE
+R1133,45–64,muž,Severozápad,Trend Explorers,Premium,39,64,64,59,56,0.857,TRUE
+R1134,30–44,žena,Severozápad,Health Optimizers,Premium,53,46,79,84,66,1.207,TRUE
+R1135,30–44,muž,Střední Morava,Category Skeptics,Familiar,51,76,68,65,65,0.782,TRUE
+R1136,65+,žena,Jihozápad,Price Maximizers,Value,47,64,85,74,68,0.87,TRUE
+R1137,65+,muž,Severozápad,Trend Explorers,Premium,42,58,70,40,52,1.192,TRUE
+R1138,18–29,muž,Severozápad,Pragmatic Energy Seekers,Familiar,26,76,60,72,58,0.855,TRUE
+R1139,30–44,žena,Jihozápad,Trend Explorers,Premium,37,89,80,37,61,0.884,TRUE
+R1140,45–64,žena,Severozápad,Pragmatic Energy Seekers,Familiar,46,74,47,81,62,0.983,TRUE
+R1141,18–29,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,43,63,78,66,62,1.087,TRUE
+R1142,18–29,muž,Moravskoslezsko,Category Skeptics,Familiar,56,69,61,74,65,0.777,TRUE
+R1143,65+,žena,Severozápad,Trend Explorers,Premium,22,52,60,75,52,0.94,TRUE
+R1144,45–64,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,41,52,68,60,55,1.148,TRUE
+R1145,18–29,muž,Střední Čechy,Price Maximizers,Value,22,62,83,86,63,1.15,TRUE
+R1146,18–29,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,40,48,71,80,60,1.044,TRUE
+R1147,30–44,muž,Moravskoslezsko,Category Skeptics,Familiar,50,62,88,40,60,0.838,TRUE
+R1148,18–29,muž,Jihovýchod,Health Optimizers,Premium,21,86,90,65,66,0.913,TRUE
+R1149,45–64,žena,Severovýchod,Price Maximizers,Value,36,67,50,51,51,1.16,TRUE
+R1150,18–29,žena,Severozápad,Health Optimizers,Premium,22,56,66,63,52,0.886,TRUE
+R1151,18–29,muž,Severozápad,Price Maximizers,Value,40,45,60,71,54,1.088,TRUE
+R1152,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,22,48,69,54,48,1.227,TRUE
+R1153,18–29,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,51,62,59,72,61,0.888,TRUE
+R1154,18–29,žena,Střední Čechy,Health Optimizers,Premium,24,76,79,86,66,1.156,TRUE
+R1155,18–29,žena,Jihovýchod,Trend Explorers,Premium,43,62,87,50,60,1.214,TRUE
+R1156,30–44,žena,Jihovýchod,Price Maximizers,Value,22,59,64,37,46,0.754,TRUE
+R1157,30–44,muž,Moravskoslezsko,Trend Explorers,Premium,44,52,89,85,68,1.108,TRUE
+R1158,18–29,muž,Severovýchod,Pragmatic Energy Seekers,Familiar,24,47,48,39,40,0.98,TRUE
+R1159,45–64,žena,Severovýchod,Price Maximizers,Value,55,69,65,42,58,1.128,TRUE
+R1160,65+,žena,Severovýchod,Category Skeptics,Familiar,37,67,53,63,55,0.89,TRUE
+R1161,30–44,muž,Jihovýchod,Health Optimizers,Premium,44,64,55,60,56,1.214,TRUE
+R1162,30–44,žena,Jihozápad,Trend Explorers,Premium,31,78,85,56,62,1.157,TRUE
+R1163,45–64,muž,Jihovýchod,Pragmatic Energy Seekers,Familiar,52,52,89,76,67,0.799,TRUE
+R1164,65+,muž,Střední Čechy,Pragmatic Energy Seekers,Familiar,57,73,84,62,69,0.861,TRUE
+R1165,65+,muž,Střední Morava,Category Skeptics,Familiar,53,78,65,48,61,1.005,TRUE
+R1166,65+,muž,Střední Čechy,Trend Explorers,Premium,51,62,69,41,56,0.855,TRUE
+R1167,65+,žena,Severozápad,Price Maximizers,Value,38,48,45,81,53,1.218,TRUE
+R1168,45–64,žena,Severozápad,Price Maximizers,Value,48,76,56,69,62,0.779,TRUE
+R1169,65+,muž,Střední Morava,Category Skeptics,Familiar,22,52,52,60,46,0.948,TRUE
+R1170,65+,žena,Střední Morava,Trend Explorers,Premium,41,57,69,40,52,0.882,TRUE
+R1171,65+,žena,Střední Čechy,Trend Explorers,Premium,46,62,87,71,66,1.011,TRUE
+R1172,18–29,muž,Severovýchod,Health Optimizers,Premium,48,65,48,83,61,0.768,TRUE
+R1173,65+,žena,Jihozápad,Health Optimizers,Premium,42,46,59,51,50,0.882,TRUE
+R1174,65+,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,46,53,69,55,56,1.067,TRUE
+R1175,65+,muž,Severovýchod,Health Optimizers,Premium,21,75,46,71,53,0.8,TRUE
+R1176,30–44,žena,Praha,Pragmatic Energy Seekers,Familiar,24,59,88,63,58,0.835,TRUE
+R1177,18–29,žena,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,53,62,75,85,69,1.226,TRUE
+R1178,30–44,žena,Střední Morava,Pragmatic Energy Seekers,Familiar,28,74,47,48,49,1.18,TRUE
+R1179,30–44,muž,Moravskoslezsko,Price Maximizers,Value,37,66,71,52,56,0.853,TRUE
+R1180,65+,muž,Praha,Price Maximizers,Value,50,63,79,83,69,0.817,TRUE
+R1181,45–64,žena,Jihovýchod,Pragmatic Energy Seekers,Familiar,42,46,51,37,44,1.188,TRUE
+R1182,45–64,muž,Severozápad,Pragmatic Energy Seekers,Familiar,31,52,56,78,54,0.935,TRUE
+R1183,18–29,žena,Střední Morava,Health Optimizers,Premium,40,57,70,39,52,0.912,TRUE
+R1184,30–44,žena,Střední Morava,Trend Explorers,Premium,57,75,55,65,63,1.2,TRUE
+R1185,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,21,87,80,43,58,0.913,TRUE
+R1186,18–29,muž,Střední Morava,Trend Explorers,Premium,28,52,78,50,52,0.861,TRUE
+R1187,65+,žena,Střední Čechy,Health Optimizers,Premium,33,79,83,82,69,1.138,TRUE
+R1188,18–29,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,48,68,86,60,66,0.76,TRUE
+R1189,45–64,muž,Moravskoslezsko,Pragmatic Energy Seekers,Familiar,31,87,59,68,61,0.806,TRUE
+R1190,30–44,muž,Střední Morava,Pragmatic Energy Seekers,Familiar,41,68,58,75,60,0.984,TRUE
+R1191,30–44,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,48,75,56,58,59,1.217,TRUE
+R1192,45–64,žena,Severovýchod,Pragmatic Energy Seekers,Familiar,26,51,62,71,52,0.776,TRUE
+R1193,18–29,muž,Praha,Trend Explorers,Premium,29,58,49,72,52,0.869,TRUE
+R1194,30–44,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,56,66,72,45,60,1.209,TRUE
+R1195,45–64,žena,Severozápad,Pragmatic Energy Seekers,Familiar,26,47,55,35,41,1.16,TRUE
+R1196,45–64,žena,Střední Čechy,Pragmatic Energy Seekers,Familiar,47,89,67,42,61,0.824,TRUE
+R1197,30–44,žena,Střední Čechy,Category Skeptics,Familiar,51,50,60,58,55,1.121,TRUE
+R1198,65+,žena,Severovýchod,Price Maximizers,Value,33,77,83,61,64,0.926,TRUE
+R1199,18–29,muž,Jihozápad,Pragmatic Energy Seekers,Familiar,35,62,73,68,60,0.866,TRUE
+R1200,30–44,žena,Praha,Trend Explorers,Premium,24,61,67,89,60,0.941,TRUE

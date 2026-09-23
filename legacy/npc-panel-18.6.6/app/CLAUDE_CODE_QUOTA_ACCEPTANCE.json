@@ -1,0 +1,15 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "status": "PASS",
+  "forced_quota_test": "PASS",
+  "checks": {
+    "WAITING_CREDITS": "PASS",
+    "retry_budget_not_burned": "PASS",
+    "lease_cleared": "PASS",
+    "checkpoint_preserved": "PASS",
+    "one_time_resume_schedule": "PASS"
+  },
+  "real_quota_event": "NOT_RUN"
+}

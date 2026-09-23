@@ -1,0 +1,111 @@
+{
+  "executive_summary": "Mapa odděluje krátké video, profesní sítě a komunitně-diskusní platformy a dovoluje prokliknout profil konkrétního uživatele.",
+  "segment_profiles": [
+    {
+      "segment": "Krátké video a trendy",
+      "n": 142,
+      "share": 0.237,
+      "top_objects": [
+        {
+          "object": "TikTok",
+          "mean": 7.68
+        },
+        {
+          "object": "Instagram",
+          "mean": 7.5
+        },
+        {
+          "object": "YouTube",
+          "mean": 7.05
+        }
+      ]
+    },
+    {
+      "segment": "Profesionálové",
+      "n": 109,
+      "share": 0.182,
+      "top_objects": [
+        {
+          "object": "LinkedIn",
+          "mean": 7.02
+        },
+        {
+          "object": "X",
+          "mean": 5.81
+        },
+        {
+          "object": "Reddit",
+          "mean": 5.54
+        }
+      ]
+    },
+    {
+      "segment": "Komunitní diskutéři",
+      "n": 87,
+      "share": 0.145,
+      "top_objects": [
+        {
+          "object": "X",
+          "mean": 7.08
+        },
+        {
+          "object": "Reddit",
+          "mean": 7.07
+        },
+        {
+          "object": "Facebook",
+          "mean": 6.43
+        }
+      ]
+    },
+    {
+      "segment": "Masový mainstream",
+      "n": 158,
+      "share": 0.263,
+      "top_objects": [
+        {
+          "object": "Reddit",
+          "mean": 5.89
+        },
+        {
+          "object": "X",
+          "mean": 5.72
+        },
+        {
+          "object": "YouTube",
+          "mean": 5.7
+        }
+      ]
+    },
+    {
+      "segment": "Soukromější pozorovatelé",
+      "n": 104,
+      "share": 0.173,
+      "top_objects": [
+        {
+          "object": "Snapchat",
+          "mean": 5.92
+        },
+        {
+          "object": "Reddit",
+          "mean": 5.74
+        },
+        {
+          "object": "YouTube",
+          "mean": 5.58
+        }
+      ]
+    }
+  ],
+  "object_means": {
+    "Instagram": 5.783,
+    "TikTok": 5.942,
+    "Facebook": 5.348,
+    "YouTube": 5.922,
+    "LinkedIn": 5.57,
+    "X": 5.738,
+    "Reddit": 5.85,
+    "Snapchat": 5.8
+  },
+  "method_note": "Ilustrační syntetický dataset; výsledky demonstrují schopnosti mapování, nejsou tržním měřením."
+}

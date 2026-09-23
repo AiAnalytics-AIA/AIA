@@ -1,0 +1,34 @@
+{
+  "client_need": "Rozhodnout, která produktová konfigurace fiktivního funkčního nápoje má nejlepší potenciál pro další validaci na českém trhu.",
+  "primary_decision": "Vybrat core variantu, cenovou hladinu a hlavní positioning pro další reálný test.",
+  "success_definition": "Management má během několika minut pochopit doporučenou variantu, důvody, breakpointy a další validační kroky.",
+  "questions": [
+    "Která varianta nejlépe kombinuje trial, nákupní záměr, appeal a cenu?",
+    "Je nejvyšší okamžitý nákupní záměr zároveň nejrobustnější rozhodnutí?",
+    "Které skupiny reagují jinak?",
+    "Za jakých podmínek se winner mění?",
+    "Co ověřit před launch rozhodnutím?"
+  ],
+  "inputs": [
+    "330 ml funkční nápoj bez cukru, 80 mg kofeinu.",
+    "Čtyři varianty ceny a positioningu.",
+    "Český trh; syntetický DEMO vzorek.",
+    "8 světů mění cenu, promo tlak, claim scrutiny, lokální původ a aktivaci trialu."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Reálný reprezentativní fieldwork.",
+    "Skutečná predikce prodejů nebo podílu.",
+    "Statistické intervaly z reálného výběru."
+  ]
+}

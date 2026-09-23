@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "03_VOLBA_MESTA_DEMO",
+  "project_id": "PRJ-DEMO-VOLBA-MESTA",
+  "title": "Volba města DEMO",
+  "domain": "Politika / veřejné mínění",
+  "study_type": "Předvolební veřejné mínění a image kandidátů",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Chci neutrálně zmapovat volební náladu ve fiktivním městě, význam témat a image tří kandidátů na primátora.",
+    "decision": "Popsat stav veřejného mínění, hlavní issues, nejisté voliče a silné/slabé stránky kandidátských image."
+  },
+  "executive_answer": "Kandidátka Jana Novotná vede v celkové přijatelnosti a důvěryhodnosti, ale volba zůstává otevřená: 29 % voličů je nerozhodnutých. Nejdůležitějšími tématy jsou bydlení, doprava a bezpečnost. Výstup je deskriptivní — neobsahuje cílené přesvědčovací instrukce.",
+  "recommendation": "Výzkumný závěr — závod je otevřený; sledovat nerozhodnuté jako analytickou skupinu, nikoli jako cíl přesvědčování.",
+  "audience": {
+    "population": "Fiktivní město, oprávnění voliči 18+, reprezentativní DEMO vzorek",
+    "n": 1500,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jak pravděpodobně půjdete volit?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Jaké jsou tři nejdůležitější problémy města?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Jak hodnotíte každého kandidáta na stejné sadě image atributů?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Kterému kandidátovi nejvíce důvěřujete v jednotlivých tématech?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Koho byste volili, kdyby se volby konaly dnes?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Jak pevné je vaše současné rozhodnutí?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Jana Novotná",
+      "description": "Fiktivní kandidátka",
+      "type": "tracked_object",
+      "score": 69,
+      "x": 390,
+      "y": 205
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Petr Marek",
+      "description": "Fiktivní kandidát",
+      "type": "tracked_object",
+      "score": 64,
+      "x": 255,
+      "y": 275
+    },
+    {
+      "id": "OBJ-C",
+      "name": "David Král",
+      "description": "Fiktivní kandidát",
+      "type": "tracked_object",
+      "score": 58,
+      "x": 535,
+      "y": 290
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Nerozhodnutí",
+      "description": "Analytická skupina",
+      "type": "tracked_object",
+      "score": 0,
+      "x": 380,
+      "y": 345
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Trust",
+    "Competence",
+    "Empathy",
+    "Issue fit",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      31,
+      68,
+      72,
+      64,
+      66,
+      69
+    ],
+    [
+      26,
+      61,
+      67,
+      55,
+      63,
+      64
+    ],
+    [
+      14,
+      52,
+      58,
+      48,
+      49,
+      58
+    ],
+    [
+      29,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Civic Stabilizers",
+      "share_pct": 27,
+      "description": "Stabilita a kompetence",
+      "best_object": "Jana Novotná"
+    },
+    {
+      "id": "SEG2",
+      "name": "Cost-of-living voters",
+      "share_pct": 24,
+      "description": "Bydlení a ceny",
+      "best_object": "Petr Marek"
+    },
+    {
+      "id": "SEG3",
+      "name": "Change Seekers",
+      "share_pct": 18,
+      "description": "Silná potřeba změny",
+      "best_object": "David Král"
+    },
+    {
+      "id": "SEG4",
+      "name": "Local Community",
+      "share_pct": 16,
+      "description": "Sousedství a služby",
+      "best_object": "Jana Novotná"
+    },
+    {
+      "id": "SEG5",
+      "name": "Undecided / low info",
+      "share_pct": 15,
+      "description": "Nízká jistota volby",
+      "best_object": "Nerozhodnutí"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base turnout",
+      "winner": "Jana Novotná",
+      "primary_metric": 31,
+      "overall": 69,
+      "assumption": "Standardní účast"
+    },
+    {
+      "id": "W2",
+      "name": "High turnout",
+      "winner": "Jana Novotná",
+      "primary_metric": 30,
+      "overall": 68,
+      "assumption": "Vyšší účast mladších"
+    },
+    {
+      "id": "W3",
+      "name": "Low turnout",
+      "winner": "Jana Novotná",
+      "primary_metric": 33,
+      "overall": 70,
+      "assumption": "Vyšší váha rozhodnutých"
+    },
+    {
+      "id": "W4",
+      "name": "Housing salience",
+      "winner": "Petr Marek",
+      "primary_metric": 30,
+      "overall": 67,
+      "assumption": "Bydlení dominantní issue"
+    },
+    {
+      "id": "W5",
+      "name": "Transport salience",
+      "winner": "Jana Novotná",
+      "primary_metric": 32,
+      "overall": 70,
+      "assumption": "Doprava dominantní issue"
+    },
+    {
+      "id": "W6",
+      "name": "Late undecided shift",
+      "winner": "Jana Novotná",
+      "primary_metric": 29,
+      "overall": 67,
+      "assumption": "Vyšší přesun nerozhodnutých"
+    },
+    {
+      "id": "W7",
+      "name": "Anti-incumbent mood",
+      "winner": "David Král",
+      "primary_metric": 28,
+      "overall": 66,
+      "assumption": "Silnější nálada pro změnu"
+    },
+    {
+      "id": "W8",
+      "name": "Stability mood",
+      "winner": "Jana Novotná",
+      "primary_metric": 33,
+      "overall": 71,
+      "assumption": "Vyšší preference stability"
+    }
+  ],
+  "findings": [
+    "29 % voličů zůstává nerozhodnutých nebo s nízkou jistotou volby.",
+    "Bydlení, doprava a bezpečnost tvoří hlavní issue mapu.",
+    "Jana Novotná vede v důvěře a kompetenci; Petr Marek je silnější v cost-of-living.",
+    "David Král koncentruje preference voličů s nejvyšší potřebou změny."
+  ],
+  "risks": [
+    "Jde o fiktivní DEMO, nikoli skutečný volební model.",
+    "Preference se mohou měnit s účastí a událostmi.",
+    "Výstup nesmí být používán jako návod k cílenému politickému přesvědčování."
+  ],
+  "primary_metric": "Volební preference",
+  "primary_value": 31,
+  "world_range": "29–33 %",
+  "winner_stability": "6/8",
+  "overall": 69,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Jana Novotná",
+        "type": "object",
+        "score": 69,
+        "x": 390,
+        "y": 205,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Petr Marek",
+        "type": "object",
+        "score": 64,
+        "x": 255,
+        "y": 275,
+        "color": "#3c9890"
+      },
+      {
+        "name": "David Král",
+        "type": "object",
+        "score": 58,
+        "x": 535,
+        "y": 290,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Nerozhodnutí",
+        "type": "object",
+        "score": 0,
+        "x": 380,
+        "y": 345,
+        "color": "#299764"
+      },
+      {
+        "name": "Důvěra",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Kompetence",
+        "type": "anchor",
+        "x": 520,
+        "y": 225,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Změna",
+        "type": "anchor",
+        "x": 165,
+        "y": 200,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Empatie",
+        "type": "anchor",
+        "x": 350,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 4,
+        "weight": 0.77
+      },
+      {
+        "from": 0,
+        "to": 5,
+        "weight": 0.67
+      },
+      {
+        "from": 1,
+        "to": 6,
+        "weight": 0.71
+      },
+      {
+        "from": 1,
+        "to": 7,
+        "weight": 0.69
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.83
+      },
+      {
+        "from": 2,
+        "to": 7,
+        "weight": 0.51
+      },
+      {
+        "from": 3,
+        "to": 7,
+        "weight": 0.92
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.54
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

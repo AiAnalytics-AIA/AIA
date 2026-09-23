@@ -1,0 +1,178 @@
+{
+  "version": "18.6.6",
+  "release_date": "2026-08-26",
+  "status": "FINAL_ENGINEERING_RELEASE_EXTERNAL_VALIDATION_PENDING",
+  "production_panel": "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+  "panel_rows": 18766,
+  "panel_columns": 400,
+  "panel_sha256": "864f8dbcd101e4be1b2a006ccebe4196a85f9bfcbf1a474af762b8135cc779ce",
+  "system_sha256": "942718b585dc8094baf3eceb93e2f742c5ac5d78272d99462b785ee0a8625b8f",
+  "runtime_code_sha256": "eca1beece9122b6303631cab7e60169bf86cde52a24ff9c73ad866d674f8cbd2",
+  "config_sha256": "341ed0f4a615e8930e863f1480f0a1cbda685e74b29905b204570acb18afdfb3",
+  "data_contract": "DATA_CONTRACT_v17.json",
+  "default_weight": "vaha_strukturalni_2025",
+  "weights": {
+    "default_current": {
+      "column": "vaha_strukturalni_2025",
+      "sum": 8956290.361759476,
+      "missing_rows": 0,
+      "ess": 16678.36203919256
+    },
+    "demographic_current_approx": {
+      "column": "vaha_populace_2025_aprox",
+      "sum": 8956290.361759476,
+      "missing_rows": 0,
+      "ess": 18166.44783853239
+    },
+    "census_2021": {
+      "column": "vaha_kalibrovana",
+      "sum": 8533116.0,
+      "missing_rows": 0,
+      "ess": 18177.583503100934
+    },
+    "party_2021_aggregate": {
+      "column": "vaha_strana_2021_benchmark",
+      "sum": 5370379.581869571,
+      "missing_rows": 7052,
+      "ess": 10907.930028925022
+    }
+  },
+  "field_dictionary": {
+    "file": "FIELD_DICTIONARY_v17_1.csv",
+    "rows": 400
+  },
+  "dimension_scorecard": {
+    "file": "DIMENSION_SCORECARD_v17_1.csv",
+    "rows": 400,
+    "production_grades": {
+      "B": 188,
+      "C": 114,
+      "T": 45,
+      "D": 27,
+      "C_RAW/B_WEIGHTED": 11,
+      "A": 10,
+      "B_WEIGHTED": 5
+    }
+  },
+  "persona": {
+    "default": "calibrated",
+    "signal_catalog": "PERSONA_SIGNAL_CATALOG_v17.csv",
+    "signals": 117,
+    "brand_specific_background_required": true
+  },
+  "population": {
+    "same_person_core": true,
+    "whole_donor_blocks": true,
+    "cross_block_same_person": false,
+    "core_joint_status": "COHERENT_CORE_MATCHED_BLOCKS"
+  },
+  "audiences": {
+    "builtin_subpanels": 18,
+    "special_panels": 18,
+    "special_registry": "SPECIAL_PANEL_REGISTRY_v17.json"
+  },
+  "sources": {
+    "catalog": "FINAL_SOURCE_CATALOG_v17.csv",
+    "catalog_rows": 945,
+    "large_microdata_evidence_archive": "distributed separately"
+  },
+  "respondent_audit": {
+    "file": "RESPONDENT_AUDIT_v17_1.csv",
+    "rows": 18766,
+    "status_counts": {
+      "PASS": 17437,
+      "REVIEW_LOW_CONFIDENCE": 1329
+    }
+  },
+  "structural_audit": {
+    "file": "COHERENCE_AUDIT_v17_1.csv",
+    "pass": 23,
+    "fail": 0
+  },
+  "targeted_tests": {
+    "version": "17.1.2",
+    "tests": 41,
+    "passed": 41,
+    "failed": 0
+  },
+  "release_gate": {
+    "status": "ENGINEERING_RELEASE_EXTERNAL_HOLDOUT_PENDING",
+    "passed": 141,
+    "failed": 0
+  },
+  "validation": {
+    "external_predictive_holdout": "PENDING",
+    "client_cross_block_latent_claims_allowed": false,
+    "live_provider_tested_in_build_environment": false
+  },
+  "provider_policy": {
+    "live_providers": [
+      "claude_code_subscription",
+      "anthropic",
+      "openai"
+    ],
+    "live_selected_provider_fail_closed": true,
+    "cross_provider_fallback_live": false,
+    "dry_exports_invalid": true
+  },
+  "campaign": {
+    "generic_background_available": true,
+    "brand_specific_state_required_for_brand_claims": true
+  },
+  "typology": {
+    "role": "HYPOTHESIS_REFERENCE_ONLY",
+    "hard_assignment": false,
+    "numeric_hexaco_reconstruction": false
+  },
+  "hotfix": {
+    "backend_startup": "bootstrap log + product bootstrap smoke + HTTP smoke",
+    "ui_internal_panels": "registry only in Settings",
+    "illustrative_mode": "INVALID precomputed demo; no live survey call",
+    "data_changed": false,
+    "hotfix_tests": "19/19 PASS"
+  },
+  "hotfix_tests": {
+    "file": "V17_0_1_HOTFIX_TESTS.json",
+    "tests": 19,
+    "passed": 19,
+    "failed": 0
+  },
+  "product_release": "NPC Panel 18.6.6 — Native Sociomapa Design Final",
+  "demos": {
+    "research_showcase": 25,
+    "simulation": 5,
+    "total": 30
+  },
+  "data_library": {
+    "source_groups": 133,
+    "static_population": true,
+    "live_population": true,
+    "expected_payload_files": 775,
+    "retained_payload_files": 0
+  },
+  "sociomap_release": {
+    "version": "18.6.6",
+    "primary_map_types": [
+      "respondents",
+      "objects"
+    ],
+    "analysis_modes": [
+      "map",
+      "matrix",
+      "comparison",
+      "what_if"
+    ],
+    "normalization": [
+      "absolute",
+      "range",
+      "sigma",
+      "percentile"
+    ],
+    "native_offline_canvas": true,
+    "external_cdn": false,
+    "position_height_separated": true,
+    "manual_layout_visual_override_only": true,
+    "scenario_preserves_original": true,
+    "inferential_comparison": "Welch t-test + Cohen d + 95% CI when respondent rows support it"
+  }
+}

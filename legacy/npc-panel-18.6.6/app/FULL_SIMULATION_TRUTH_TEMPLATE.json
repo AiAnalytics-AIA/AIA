@@ -1,0 +1,30 @@
+{
+  "source": "Název skutečného průzkumu / agentury",
+  "source_url": "",
+  "fieldwork_start": "2026-09-01",
+  "fieldwork_end": "2026-09-05",
+  "human_n": 1000,
+  "methodology": "CAWI/CATI/… + stručný popis výběru a vah",
+  "domain": "brand",
+  "questions": {
+    "purchase_intent": {
+      "truth_pct": {
+        "Určitě ano": 0,
+        "Spíše ano": 0,
+        "Spíše ne": 0,
+        "Určitě ne": 0
+      },
+      "ordered": true
+    },
+    "recommend": {
+      "truth_pct": {
+        "Ano": 0,
+        "Ne": 0
+      },
+      "ordered": false
+    }
+  },
+  "rows": [],
+  "weight_column": "weight",
+  "_rows_note": "Volitelné respondent-level rows umožní joint/demographic-inflation diagnostiku. Holdout truth nesmí být použita při přípravě frozen forecastu."
+}

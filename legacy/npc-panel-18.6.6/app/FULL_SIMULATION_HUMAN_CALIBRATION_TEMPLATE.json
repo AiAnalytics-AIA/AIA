@@ -1,0 +1,9 @@
+{
+  "source": "internal pilot before truth",
+  "sample_id": "pilot-001",
+  "weight_column": "weight",
+  "rows": [
+    {"q1": "Ano", "q2": "A", "pohlavi": "žena", "vek": "35-44", "vzdelani": "VŠ", "kraj": "Praha", "weight": 1.0},
+    {"q1": "Ne", "q2": "B", "pohlavi": "muž", "vek": "45-54", "vzdelani": "SŠ", "kraj": "Jihomoravský", "weight": 1.0}
+  ]
+}

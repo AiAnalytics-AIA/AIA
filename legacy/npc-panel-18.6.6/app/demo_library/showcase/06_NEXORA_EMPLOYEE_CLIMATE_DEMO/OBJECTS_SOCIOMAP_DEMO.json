@@ -1,0 +1,200 @@
+{
+  "nodes": [
+    {
+      "name": "Product",
+      "type": "object",
+      "score": 74,
+      "x": 390,
+      "y": 185,
+      "color": "#537bd7"
+    },
+    {
+      "name": "Sales",
+      "type": "object",
+      "score": 70,
+      "x": 270,
+      "y": 265,
+      "color": "#3c9890"
+    },
+    {
+      "name": "Operations",
+      "type": "object",
+      "score": 56,
+      "x": 565,
+      "y": 300,
+      "color": "#7961c5"
+    },
+    {
+      "name": "Leadership",
+      "type": "object",
+      "score": 68,
+      "x": 420,
+      "y": 320,
+      "color": "#299764"
+    },
+    {
+      "name": "Důvěra",
+      "type": "anchor",
+      "x": 380,
+      "y": 115,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Spolupráce",
+      "type": "anchor",
+      "x": 520,
+      "y": 225,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Decision speed",
+      "type": "anchor",
+      "x": 160,
+      "y": 210,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Psych safety",
+      "type": "anchor",
+      "x": 350,
+      "y": 355,
+      "color": "#9ba3af"
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 4,
+      "weight": 0.82
+    },
+    {
+      "from": 0,
+      "to": 5,
+      "weight": 0.66
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "weight": 0.7
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "weight": 0.69
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "weight": 0.78
+    },
+    {
+      "from": 2,
+      "to": 7,
+      "weight": 0.45
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "weight": 0.8
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "weight": 0.66
+    }
+  ],
+  "layers": [
+    "perception",
+    "emotion",
+    "segment_resonance"
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      6.87,
+      5.46,
+      7.0,
+      8.379999999999999,
+      6.94,
+      4.98,
+      6.21
+    ],
+    [
+      6.87,
+      0.0,
+      3.56,
+      6.53,
+      5.96,
+      4.51,
+      7.209999999999999,
+      7.3
+    ],
+    [
+      5.46,
+      3.56,
+      0.0,
+      6.82,
+      4.32,
+      8.02,
+      1.0,
+      5.05
+    ],
+    [
+      7.0,
+      6.53,
+      6.82,
+      0.0,
+      5.47,
+      6.94,
+      3.88,
+      8.2
+    ],
+    [
+      8.379999999999999,
+      5.96,
+      4.32,
+      5.47,
+      0.0,
+      6.14,
+      4.8,
+      4.75
+    ],
+    [
+      6.94,
+      4.51,
+      8.02,
+      6.94,
+      6.14,
+      0.0,
+      2.18,
+      5.36
+    ],
+    [
+      4.98,
+      7.209999999999999,
+      1.0,
+      3.88,
+      4.8,
+      2.18,
+      0.0,
+      4.82
+    ],
+    [
+      6.21,
+      7.3,
+      5.05,
+      8.2,
+      4.75,
+      5.36,
+      4.82,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SEED_RELATIONS_WITH_GEOMETRY_FILL; LIVE uses respondent correlations or explicit directional relations",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": true
+  }
+}

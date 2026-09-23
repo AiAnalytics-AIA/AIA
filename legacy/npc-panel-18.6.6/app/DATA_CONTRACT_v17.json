@@ -1,0 +1,29 @@
+{
+  "version": "17.6.7",
+  "panel": "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+  "rows": 18766,
+  "columns": 400,
+  "weights": {
+    "default_current": "vaha_strukturalni_2025",
+    "demographic_current_approx": "vaha_populace_2025_aprox",
+    "census_2021": "vaha_kalibrovana",
+    "party_2021_aggregate": "vaha_strana_2021_benchmark"
+  },
+  "persona_catalog": "PERSONA_SIGNAL_CATALOG_v17.csv",
+  "persona_value_labels": "PERSONA_VALUE_LABELS_v17.json",
+  "field_dictionary": "FIELD_DICTIONARY_v17_1.csv",
+  "dimension_scorecard": "DIMENSION_SCORECARD_v17_1.csv",
+  "provenance_registry": "DATA_PROVENANCE_REGISTRY_v17.csv",
+  "builtin_subpanels": "BUILTIN_SUBPANELS_v17.json",
+  "special_panels": "SPECIAL_PANEL_REGISTRY_v17.json",
+  "respondent_audit": "RESPONDENT_AUDIT_v17_1.csv",
+  "source_catalog": "FINAL_SOURCE_CATALOG_v17.csv",
+  "core_joint_status": "CORE_JOINT_STATUS.json",
+  "brand_specific_background_required": true,
+  "external_predictive_holdout": "EXTERNAL_HOLDOUT_PENDING_LIVE_T1_T3_NOT_RUN",
+  "same_person_core": true,
+  "cross_block_same_person": false,
+  "marketing_modeled_prior_prompt_default": false,
+  "oos_validation": "OUT_OF_SAMPLE_VALIDATION_v17_1.csv",
+  "donor_coverage": "DONOR_COVERAGE_MATRIX_v17_1.csv"
+}

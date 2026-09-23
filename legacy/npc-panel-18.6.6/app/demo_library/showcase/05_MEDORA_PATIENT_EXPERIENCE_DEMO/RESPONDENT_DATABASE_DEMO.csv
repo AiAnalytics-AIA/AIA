@@ -1,0 +1,901 @@
+﻿respondent_id,age_group,sex,region,segment,preferred_object,primary_metric,trust,clarity,appeal,overall,weight,demo
+R0001,30–44,žena,Jihovýchod,Anxious Navigators,Guided Care,49,84,79,79,73,1.075,TRUE
+R0002,30–44,žena,Jihozápad,Digital Self-servers,Digital only,52,84,68,39,61,1.107,TRUE
+R0003,65+,muž,Praha,Routine Patients,Digital only,52,50,77,55,58,0.809,TRUE
+R0004,18–29,žena,Praha,Routine Patients,Digital only,73,48,63,70,64,1.173,TRUE
+R0005,30–44,muž,Střední Morava,Digital Self-servers,Digital only,67,63,73,38,60,0.996,TRUE
+R0006,65+,žena,Jihozápad,Human Support Seekers,Concierge,68,73,55,50,62,0.986,TRUE
+R0007,45–64,žena,Jihovýchod,Human Support Seekers,Concierge,53,46,74,44,54,0.824,TRUE
+R0008,30–44,muž,Střední Morava,Complex Care,Guided Care,67,76,72,76,73,1.032,TRUE
+R0009,30–44,žena,Střední Morava,Complex Care,Guided Care,73,71,60,51,64,0.929,TRUE
+R0010,45–64,žena,Střední Čechy,Complex Care,Guided Care,78,48,51,48,56,1.101,TRUE
+R0011,65+,žena,Jihovýchod,Anxious Navigators,Guided Care,76,76,66,83,75,1.224,TRUE
+R0012,30–44,muž,Praha,Routine Patients,Digital only,49,88,65,71,68,0.848,TRUE
+R0013,65+,žena,Praha,Digital Self-servers,Digital only,63,88,78,78,77,0.96,TRUE
+R0014,18–29,žena,Praha,Routine Patients,Digital only,65,72,82,72,73,0.857,TRUE
+R0015,45–64,muž,Severozápad,Digital Self-servers,Digital only,75,51,64,70,65,0.879,TRUE
+R0016,30–44,muž,Severozápad,Human Support Seekers,Concierge,60,60,66,68,64,1.063,TRUE
+R0017,45–64,muž,Střední Čechy,Routine Patients,Digital only,43,66,57,40,52,1.195,TRUE
+R0018,45–64,muž,Střední Čechy,Complex Care,Guided Care,53,59,46,67,56,0.997,TRUE
+R0019,30–44,muž,Střední Čechy,Human Support Seekers,Concierge,60,80,84,77,75,1.035,TRUE
+R0020,45–64,muž,Severozápad,Digital Self-servers,Digital only,66,64,77,36,61,1.055,TRUE
+R0021,65+,žena,Střední Morava,Routine Patients,Digital only,57,76,86,61,70,1.009,TRUE
+R0022,30–44,žena,Střední Morava,Routine Patients,Digital only,66,67,45,77,64,0.905,TRUE
+R0023,30–44,muž,Střední Morava,Routine Patients,Digital only,51,70,85,63,67,1.198,TRUE
+R0024,45–64,žena,Jihovýchod,Digital Self-servers,Digital only,51,64,56,58,57,0.779,TRUE
+R0025,30–44,žena,Severovýchod,Human Support Seekers,Concierge,74,60,57,82,68,0.946,TRUE
+R0026,45–64,žena,Jihovýchod,Complex Care,Guided Care,54,72,63,62,63,0.858,TRUE
+R0027,18–29,žena,Střední Čechy,Human Support Seekers,Concierge,46,76,63,70,64,1.032,TRUE
+R0028,45–64,muž,Severozápad,Complex Care,Guided Care,71,70,80,80,75,1.161,TRUE
+R0029,18–29,muž,Střední Morava,Complex Care,Guided Care,45,45,48,45,46,1.054,TRUE
+R0030,45–64,muž,Jihovýchod,Anxious Navigators,Guided Care,54,47,58,47,52,1.133,TRUE
+R0031,18–29,muž,Severozápad,Routine Patients,Digital only,64,90,57,61,68,1.149,TRUE
+R0032,18–29,žena,Moravskoslezsko,Complex Care,Guided Care,48,77,51,64,60,1.234,TRUE
+R0033,65+,muž,Praha,Routine Patients,Digital only,76,57,72,79,71,0.923,TRUE
+R0034,65+,žena,Střední Morava,Digital Self-servers,Digital only,65,62,47,39,53,1.096,TRUE
+R0035,30–44,žena,Severovýchod,Anxious Navigators,Guided Care,58,50,45,47,50,0.871,TRUE
+R0036,18–29,žena,Jihozápad,Anxious Navigators,Guided Care,64,46,87,90,72,1.173,TRUE
+R0037,18–29,muž,Střední Čechy,Routine Patients,Digital only,70,48,60,80,64,1.186,TRUE
+R0038,65+,muž,Moravskoslezsko,Human Support Seekers,Concierge,51,52,46,55,51,1.05,TRUE
+R0039,30–44,muž,Praha,Complex Care,Guided Care,56,71,75,43,61,0.967,TRUE
+R0040,65+,muž,Moravskoslezsko,Complex Care,Guided Care,58,74,46,79,64,1.066,TRUE
+R0041,45–64,žena,Moravskoslezsko,Routine Patients,Digital only,78,62,72,67,70,0.85,TRUE
+R0042,30–44,muž,Praha,Routine Patients,Digital only,64,66,45,65,60,0.847,TRUE
+R0043,65+,žena,Jihozápad,Routine Patients,Digital only,55,88,75,75,73,1.02,TRUE
+R0044,30–44,žena,Jihozápad,Anxious Navigators,Guided Care,67,75,54,57,63,1.175,TRUE
+R0045,65+,žena,Jihovýchod,Digital Self-servers,Digital only,49,85,83,74,73,1.056,TRUE
+R0046,45–64,muž,Jihozápad,Routine Patients,Digital only,76,55,78,86,74,1.014,TRUE
+R0047,45–64,žena,Střední Čechy,Anxious Navigators,Guided Care,63,60,85,75,71,1.073,TRUE
+R0048,18–29,muž,Jihozápad,Routine Patients,Digital only,78,73,89,88,82,1.083,TRUE
+R0049,18–29,žena,Jihovýchod,Digital Self-servers,Digital only,65,70,51,39,56,1.031,TRUE
+R0050,65+,muž,Jihovýchod,Routine Patients,Digital only,51,49,55,90,61,1.221,TRUE
+R0051,30–44,žena,Praha,Routine Patients,Digital only,77,75,80,52,71,0.914,TRUE
+R0052,30–44,muž,Praha,Human Support Seekers,Concierge,58,76,58,88,70,1.12,TRUE
+R0053,18–29,žena,Střední Morava,Human Support Seekers,Concierge,71,67,56,77,68,1.041,TRUE
+R0054,18–29,žena,Jihozápad,Routine Patients,Digital only,77,84,88,57,76,1.194,TRUE
+R0055,18–29,muž,Moravskoslezsko,Routine Patients,Digital only,76,85,65,58,71,0.981,TRUE
+R0056,30–44,žena,Jihovýchod,Complex Care,Guided Care,53,45,54,49,50,1.075,TRUE
+R0057,18–29,žena,Jihozápad,Anxious Navigators,Guided Care,59,48,87,75,67,1.201,TRUE
+R0058,30–44,muž,Moravskoslezsko,Anxious Navigators,Guided Care,69,79,87,39,68,1.024,TRUE
+R0059,65+,žena,Jihovýchod,Digital Self-servers,Digital only,73,75,57,63,67,1.104,TRUE
+R0060,65+,žena,Severozápad,Routine Patients,Digital only,62,75,54,52,61,1.05,TRUE
+R0061,45–64,muž,Moravskoslezsko,Anxious Navigators,Guided Care,51,78,73,44,62,0.96,TRUE
+R0062,30–44,žena,Praha,Digital Self-servers,Digital only,43,65,83,79,68,1.117,TRUE
+R0063,30–44,žena,Severovýchod,Anxious Navigators,Guided Care,64,83,78,57,70,1.068,TRUE
+R0064,18–29,žena,Severozápad,Routine Patients,Digital only,57,84,52,86,70,1.23,TRUE
+R0065,45–64,muž,Severozápad,Routine Patients,Digital only,61,58,82,72,68,0.965,TRUE
+R0066,65+,muž,Severovýchod,Complex Care,Guided Care,69,79,60,39,62,0.914,TRUE
+R0067,18–29,žena,Severozápad,Routine Patients,Digital only,67,89,68,88,78,1.225,TRUE
+R0068,65+,žena,Severovýchod,Human Support Seekers,Concierge,50,69,84,40,61,0.908,TRUE
+R0069,18–29,žena,Severozápad,Human Support Seekers,Concierge,44,57,47,41,47,0.872,TRUE
+R0070,30–44,muž,Střední Morava,Routine Patients,Digital only,55,68,79,49,63,0.939,TRUE
+R0071,65+,žena,Severozápad,Routine Patients,Digital only,78,48,57,78,65,1.04,TRUE
+R0072,45–64,muž,Severozápad,Human Support Seekers,Concierge,58,56,76,88,70,1.002,TRUE
+R0073,45–64,žena,Jihovýchod,Anxious Navigators,Guided Care,76,58,69,40,61,1.03,TRUE
+R0074,45–64,muž,Moravskoslezsko,Anxious Navigators,Guided Care,60,83,65,77,71,1.068,TRUE
+R0075,45–64,muž,Jihozápad,Routine Patients,Digital only,73,82,50,36,60,1.235,TRUE
+R0076,30–44,muž,Severovýchod,Routine Patients,Digital only,52,52,76,43,56,1.216,TRUE
+R0077,65+,žena,Jihovýchod,Digital Self-servers,Digital only,77,51,57,45,58,1.222,TRUE
+R0078,30–44,žena,Střední Čechy,Human Support Seekers,Concierge,45,78,69,90,70,0.831,TRUE
+R0079,65+,muž,Praha,Complex Care,Guided Care,51,88,87,46,68,0.949,TRUE
+R0080,65+,žena,Severovýchod,Routine Patients,Digital only,66,52,79,60,64,0.979,TRUE
+R0081,18–29,muž,Praha,Routine Patients,Digital only,57,87,53,48,61,1.194,TRUE
+R0082,45–64,muž,Severozápad,Complex Care,Guided Care,67,61,77,73,70,0.896,TRUE
+R0083,45–64,muž,Jihozápad,Routine Patients,Digital only,44,78,89,88,75,0.879,TRUE
+R0084,30–44,muž,Severozápad,Complex Care,Guided Care,67,74,45,43,57,0.938,TRUE
+R0085,65+,žena,Severovýchod,Digital Self-servers,Digital only,65,64,64,71,66,0.859,TRUE
+R0086,65+,žena,Moravskoslezsko,Human Support Seekers,Concierge,78,74,52,37,60,0.958,TRUE
+R0087,45–64,žena,Praha,Routine Patients,Digital only,56,58,83,50,62,0.872,TRUE
+R0088,65+,muž,Moravskoslezsko,Routine Patients,Digital only,53,53,83,54,61,0.878,TRUE
+R0089,18–29,žena,Moravskoslezsko,Anxious Navigators,Guided Care,63,61,82,50,64,0.839,TRUE
+R0090,45–64,muž,Severovýchod,Complex Care,Guided Care,79,78,47,86,72,1.22,TRUE
+R0091,18–29,žena,Praha,Routine Patients,Digital only,58,69,89,73,72,1.051,TRUE
+R0092,30–44,muž,Praha,Digital Self-servers,Digital only,67,61,80,71,70,1.041,TRUE
+R0093,18–29,žena,Jihovýchod,Digital Self-servers,Digital only,75,71,63,63,68,1.125,TRUE
+R0094,18–29,muž,Střední Čechy,Complex Care,Guided Care,60,78,66,68,68,1.117,TRUE
+R0095,45–64,muž,Moravskoslezsko,Human Support Seekers,Concierge,45,62,52,78,59,1.102,TRUE
+R0096,18–29,muž,Střední Čechy,Digital Self-servers,Digital only,70,79,63,53,66,0.783,TRUE
+R0097,30–44,muž,Severovýchod,Routine Patients,Digital only,43,88,85,88,76,1.134,TRUE
+R0098,45–64,žena,Severozápad,Digital Self-servers,Digital only,73,72,82,40,67,0.757,TRUE
+R0099,45–64,žena,Jihovýchod,Routine Patients,Digital only,75,53,60,71,65,1.057,TRUE
+R0100,18–29,muž,Praha,Complex Care,Guided Care,47,74,70,58,62,0.777,TRUE
+R0101,45–64,muž,Jihozápad,Human Support Seekers,Concierge,50,63,51,63,57,1.188,TRUE
+R0102,30–44,žena,Jihozápad,Anxious Navigators,Guided Care,66,82,49,54,63,1.124,TRUE
+R0103,18–29,muž,Střední Čechy,Anxious Navigators,Guided Care,49,80,63,84,69,1.161,TRUE
+R0104,18–29,muž,Severozápad,Anxious Navigators,Guided Care,50,45,59,39,48,0.941,TRUE
+R0105,45–64,muž,Moravskoslezsko,Anxious Navigators,Guided Care,51,68,55,83,64,1.123,TRUE
+R0106,18–29,žena,Střední Čechy,Anxious Navigators,Guided Care,65,83,62,75,71,1.227,TRUE
+R0107,18–29,muž,Severovýchod,Digital Self-servers,Digital only,43,61,56,56,54,0.848,TRUE
+R0108,30–44,muž,Jihozápad,Routine Patients,Digital only,61,89,86,44,70,1.106,TRUE
+R0109,18–29,muž,Střední Morava,Routine Patients,Digital only,67,72,68,83,72,0.828,TRUE
+R0110,18–29,žena,Severovýchod,Digital Self-servers,Digital only,75,73,75,50,68,1.245,TRUE
+R0111,45–64,žena,Severovýchod,Complex Care,Guided Care,55,64,55,47,55,1.244,TRUE
+R0112,45–64,žena,Severozápad,Routine Patients,Digital only,72,49,65,80,66,0.999,TRUE
+R0113,18–29,žena,Praha,Routine Patients,Digital only,67,85,70,49,68,1.249,TRUE
+R0114,30–44,muž,Střední Morava,Anxious Navigators,Guided Care,70,67,55,75,67,0.845,TRUE
+R0115,65+,muž,Střední Morava,Digital Self-servers,Digital only,44,83,77,62,66,0.975,TRUE
+R0116,18–29,žena,Severovýchod,Human Support Seekers,Concierge,65,88,73,36,66,1.071,TRUE
+R0117,45–64,žena,Jihovýchod,Anxious Navigators,Guided Care,59,67,45,65,59,0.931,TRUE
+R0118,45–64,žena,Jihovýchod,Routine Patients,Digital only,65,75,50,77,67,0.941,TRUE
+R0119,18–29,žena,Severovýchod,Anxious Navigators,Guided Care,68,57,64,42,58,1.093,TRUE
+R0120,65+,muž,Jihovýchod,Anxious Navigators,Guided Care,45,58,78,75,64,0.94,TRUE
+R0121,65+,muž,Jihozápad,Human Support Seekers,Concierge,43,52,90,89,68,1.122,TRUE
+R0122,65+,žena,Jihozápad,Anxious Navigators,Guided Care,54,46,68,45,53,1.141,TRUE
+R0123,30–44,žena,Jihovýchod,Complex Care,Guided Care,54,84,49,44,58,1.108,TRUE
+R0124,65+,muž,Jihozápad,Anxious Navigators,Guided Care,46,79,89,37,63,0.895,TRUE
+R0125,65+,žena,Moravskoslezsko,Digital Self-servers,Digital only,60,50,57,86,63,0.82,TRUE
+R0126,30–44,žena,Jihovýchod,Anxious Navigators,Guided Care,50,66,48,36,50,1.083,TRUE
+R0127,18–29,žena,Střední Čechy,Digital Self-servers,Digital only,57,89,51,55,63,0.87,TRUE
+R0128,18–29,žena,Střední Čechy,Human Support Seekers,Concierge,45,85,67,90,72,1.102,TRUE
+R0129,18–29,žena,Jihozápad,Human Support Seekers,Concierge,63,51,81,70,66,1.237,TRUE
+R0130,18–29,žena,Jihozápad,Anxious Navigators,Guided Care,63,90,81,77,78,0.771,TRUE
+R0131,18–29,žena,Moravskoslezsko,Anxious Navigators,Guided Care,79,45,88,88,75,0.785,TRUE
+R0132,30–44,muž,Střední Morava,Anxious Navigators,Guided Care,76,84,84,60,76,0.856,TRUE
+R0133,30–44,muž,Praha,Routine Patients,Digital only,66,53,59,54,58,0.962,TRUE
+R0134,18–29,žena,Severozápad,Anxious Navigators,Guided Care,46,68,50,58,56,0.763,TRUE
+R0135,18–29,žena,Jihozápad,Complex Care,Guided Care,46,78,55,84,66,1.14,TRUE
+R0136,30–44,muž,Střední Morava,Routine Patients,Digital only,74,60,63,41,60,0.944,TRUE
+R0137,18–29,žena,Severozápad,Complex Care,Guided Care,51,61,88,57,64,1.164,TRUE
+R0138,18–29,muž,Severovýchod,Complex Care,Guided Care,50,68,78,35,58,1.2,TRUE
+R0139,45–64,žena,Moravskoslezsko,Anxious Navigators,Guided Care,46,70,53,64,58,1.209,TRUE
+R0140,30–44,žena,Střední Morava,Anxious Navigators,Guided Care,50,46,64,70,58,0.939,TRUE
+R0141,45–64,žena,Jihozápad,Routine Patients,Digital only,52,70,67,90,70,1.086,TRUE
+R0142,18–29,muž,Severovýchod,Complex Care,Guided Care,73,74,59,83,72,0.983,TRUE
+R0143,45–64,žena,Severozápad,Complex Care,Guided Care,55,71,81,35,60,0.875,TRUE
+R0144,65+,žena,Jihovýchod,Routine Patients,Digital only,72,68,63,58,65,0.778,TRUE
+R0145,45–64,žena,Praha,Digital Self-servers,Digital only,65,69,60,62,64,1.147,TRUE
+R0146,45–64,žena,Praha,Routine Patients,Digital only,45,65,74,60,61,1.124,TRUE
+R0147,65+,žena,Praha,Human Support Seekers,Concierge,59,83,49,71,66,0.831,TRUE
+R0148,30–44,žena,Střední Morava,Routine Patients,Digital only,43,59,58,90,62,0.995,TRUE
+R0149,18–29,muž,Praha,Routine Patients,Digital only,79,62,57,50,62,1.136,TRUE
+R0150,65+,žena,Jihovýchod,Routine Patients,Digital only,73,53,83,43,63,1.041,TRUE
+R0151,45–64,žena,Střední Morava,Complex Care,Guided Care,70,52,88,79,72,0.838,TRUE
+R0152,30–44,muž,Severozápad,Routine Patients,Digital only,43,51,47,37,44,1.14,TRUE
+R0153,45–64,muž,Jihovýchod,Routine Patients,Digital only,46,70,49,89,64,0.836,TRUE
+R0154,65+,žena,Severovýchod,Complex Care,Guided Care,51,82,69,47,62,1.08,TRUE
+R0155,65+,muž,Jihozápad,Digital Self-servers,Digital only,73,53,66,40,58,1.217,TRUE
+R0156,30–44,žena,Střední Čechy,Complex Care,Guided Care,60,81,64,43,62,0.828,TRUE
+R0157,30–44,žena,Severozápad,Complex Care,Guided Care,57,58,67,82,66,1.23,TRUE
+R0158,18–29,žena,Jihozápad,Digital Self-servers,Digital only,78,70,51,68,67,0.979,TRUE
+R0159,65+,žena,Střední Čechy,Routine Patients,Digital only,63,55,56,79,63,1.072,TRUE
+R0160,45–64,muž,Moravskoslezsko,Digital Self-servers,Digital only,55,47,83,89,68,1.059,TRUE
+R0161,30–44,muž,Praha,Complex Care,Guided Care,68,90,60,88,76,0.939,TRUE
+R0162,65+,žena,Severozápad,Routine Patients,Digital only,65,90,65,49,67,1.012,TRUE
+R0163,65+,muž,Severozápad,Routine Patients,Digital only,57,73,49,61,60,1.108,TRUE
+R0164,18–29,muž,Jihovýchod,Complex Care,Guided Care,70,82,80,75,77,1.198,TRUE
+R0165,30–44,žena,Moravskoslezsko,Complex Care,Guided Care,72,56,89,66,71,0.911,TRUE
+R0166,45–64,muž,Střední Morava,Complex Care,Guided Care,64,71,77,51,66,1.09,TRUE
+R0167,30–44,žena,Praha,Routine Patients,Digital only,70,49,51,49,55,0.869,TRUE
+R0168,45–64,žena,Jihovýchod,Routine Patients,Digital only,57,60,73,78,67,0.831,TRUE
+R0169,18–29,žena,Střední Čechy,Anxious Navigators,Guided Care,78,87,74,85,81,0.868,TRUE
+R0170,45–64,muž,Jihozápad,Human Support Seekers,Concierge,46,85,88,90,77,0.822,TRUE
+R0171,65+,muž,Jihovýchod,Routine Patients,Digital only,44,79,73,44,60,0.96,TRUE
+R0172,65+,žena,Praha,Routine Patients,Digital only,53,49,71,81,64,1.112,TRUE
+R0173,65+,muž,Jihovýchod,Complex Care,Guided Care,63,75,52,42,58,1.067,TRUE
+R0174,30–44,žena,Střední Čechy,Human Support Seekers,Concierge,77,77,79,48,70,0.991,TRUE
+R0175,65+,muž,Střední Čechy,Digital Self-servers,Digital only,73,56,47,63,60,1.241,TRUE
+R0176,65+,muž,Praha,Routine Patients,Digital only,64,77,64,73,70,0.906,TRUE
+R0177,45–64,žena,Severozápad,Digital Self-servers,Digital only,44,88,46,89,67,1.068,TRUE
+R0178,30–44,žena,Jihozápad,Routine Patients,Digital only,69,56,77,45,62,0.904,TRUE
+R0179,30–44,žena,Jihovýchod,Complex Care,Guided Care,44,65,48,63,55,0.873,TRUE
+R0180,30–44,muž,Jihozápad,Complex Care,Guided Care,48,63,53,75,60,0.924,TRUE
+R0181,18–29,žena,Jihozápad,Human Support Seekers,Concierge,66,82,63,53,66,0.816,TRUE
+R0182,65+,muž,Jihozápad,Human Support Seekers,Concierge,56,71,49,45,55,1.113,TRUE
+R0183,45–64,žena,Jihovýchod,Routine Patients,Digital only,75,60,78,87,75,1.212,TRUE
+R0184,65+,žena,Severovýchod,Routine Patients,Digital only,56,54,55,86,63,0.993,TRUE
+R0185,18–29,žena,Severozápad,Routine Patients,Digital only,70,82,67,64,71,1.059,TRUE
+R0186,65+,žena,Severovýchod,Routine Patients,Digital only,74,83,48,74,70,1.168,TRUE
+R0187,18–29,žena,Jihozápad,Complex Care,Guided Care,44,58,54,74,58,1.162,TRUE
+R0188,30–44,muž,Střední Morava,Human Support Seekers,Concierge,76,69,45,51,60,1.234,TRUE
+R0189,30–44,žena,Praha,Routine Patients,Digital only,66,65,54,49,58,0.981,TRUE
+R0190,65+,muž,Moravskoslezsko,Routine Patients,Digital only,65,54,90,83,73,0.842,TRUE
+R0191,18–29,žena,Severovýchod,Human Support Seekers,Concierge,54,69,64,76,66,0.913,TRUE
+R0192,30–44,žena,Severozápad,Complex Care,Guided Care,44,70,67,67,62,0.857,TRUE
+R0193,45–64,žena,Jihozápad,Complex Care,Guided Care,48,72,88,63,68,1.019,TRUE
+R0194,65+,žena,Jihovýchod,Complex Care,Guided Care,49,45,81,70,61,0.974,TRUE
+R0195,18–29,muž,Jihovýchod,Routine Patients,Digital only,70,74,64,51,65,1.093,TRUE
+R0196,45–64,žena,Severozápad,Routine Patients,Digital only,52,49,65,63,57,0.951,TRUE
+R0197,45–64,žena,Severozápad,Complex Care,Guided Care,43,64,45,62,54,1.067,TRUE
+R0198,18–29,žena,Praha,Routine Patients,Digital only,72,75,49,54,62,1.126,TRUE
+R0199,65+,muž,Střední Morava,Complex Care,Guided Care,75,50,58,60,61,1.196,TRUE
+R0200,65+,muž,Střední Čechy,Complex Care,Guided Care,71,71,70,62,68,0.975,TRUE
+R0201,30–44,žena,Jihovýchod,Routine Patients,Digital only,65,82,49,77,68,1.02,TRUE
+R0202,45–64,žena,Severovýchod,Routine Patients,Digital only,65,89,63,78,74,0.985,TRUE
+R0203,45–64,žena,Střední Morava,Digital Self-servers,Digital only,64,86,58,76,71,0.838,TRUE
+R0204,18–29,muž,Jihovýchod,Anxious Navigators,Guided Care,50,71,75,56,63,1.075,TRUE
+R0205,65+,žena,Severozápad,Anxious Navigators,Guided Care,77,85,62,61,71,1.212,TRUE
+R0206,45–64,muž,Střední Morava,Anxious Navigators,Guided Care,75,74,62,69,70,0.901,TRUE
+R0207,45–64,muž,Praha,Routine Patients,Digital only,57,69,74,49,62,0.945,TRUE
+R0208,65+,muž,Moravskoslezsko,Routine Patients,Digital only,79,80,73,66,74,0.971,TRUE
+R0209,30–44,žena,Moravskoslezsko,Routine Patients,Digital only,46,47,62,86,60,1.146,TRUE
+R0210,30–44,žena,Praha,Digital Self-servers,Digital only,66,78,51,71,66,1.067,TRUE
+R0211,30–44,žena,Severovýchod,Anxious Navigators,Guided Care,68,67,50,54,60,1.173,TRUE
+R0212,30–44,muž,Střední Morava,Anxious Navigators,Guided Care,73,81,67,75,74,1.228,TRUE
+R0213,65+,žena,Severovýchod,Digital Self-servers,Digital only,64,87,85,39,69,0.939,TRUE
+R0214,30–44,muž,Jihozápad,Anxious Navigators,Guided Care,78,57,65,53,63,0.944,TRUE
+R0215,30–44,muž,Praha,Digital Self-servers,Digital only,49,76,75,37,59,0.841,TRUE
+R0216,45–64,muž,Jihovýchod,Anxious Navigators,Guided Care,78,71,49,46,61,1.147,TRUE
+R0217,18–29,žena,Severozápad,Anxious Navigators,Guided Care,78,76,62,36,63,1.082,TRUE
+R0218,65+,žena,Jihozápad,Routine Patients,Digital only,45,73,70,90,70,0.998,TRUE
+R0219,18–29,žena,Jihovýchod,Routine Patients,Digital only,79,66,56,41,60,0.934,TRUE
+R0220,30–44,žena,Střední Čechy,Anxious Navigators,Guided Care,59,87,79,38,66,1.036,TRUE
+R0221,18–29,muž,Střední Morava,Complex Care,Guided Care,71,79,64,53,67,0.951,TRUE
+R0222,18–29,muž,Střední Morava,Digital Self-servers,Digital only,71,48,83,70,68,0.809,TRUE
+R0223,30–44,muž,Moravskoslezsko,Anxious Navigators,Guided Care,68,59,52,48,57,0.772,TRUE
+R0224,45–64,žena,Jihozápad,Routine Patients,Digital only,72,79,80,87,80,0.867,TRUE
+R0225,45–64,žena,Severovýchod,Routine Patients,Digital only,63,70,62,82,69,1.01,TRUE
+R0226,65+,žena,Moravskoslezsko,Digital Self-servers,Digital only,53,79,81,43,64,1.166,TRUE
+R0227,65+,muž,Jihovýchod,Digital Self-servers,Digital only,77,46,85,86,74,0.983,TRUE
+R0228,45–64,muž,Jihovýchod,Anxious Navigators,Guided Care,76,47,52,69,61,1.224,TRUE
+R0229,18–29,muž,Severovýchod,Human Support Seekers,Concierge,50,61,54,73,60,0.812,TRUE
+R0230,45–64,muž,Střední Čechy,Routine Patients,Digital only,77,89,58,65,72,1.217,TRUE
+R0231,18–29,muž,Střední Čechy,Routine Patients,Digital only,53,45,87,48,58,0.964,TRUE
+R0232,65+,žena,Jihovýchod,Human Support Seekers,Concierge,53,56,62,51,56,0.924,TRUE
+R0233,45–64,muž,Severozápad,Routine Patients,Digital only,69,88,55,59,68,1.133,TRUE
+R0234,18–29,žena,Severozápad,Anxious Navigators,Guided Care,64,57,83,44,62,0.908,TRUE
+R0235,45–64,žena,Jihovýchod,Digital Self-servers,Digital only,54,53,68,69,61,0.798,TRUE
+R0236,45–64,žena,Jihovýchod,Digital Self-servers,Digital only,79,83,69,89,80,0.787,TRUE
+R0237,18–29,žena,Jihozápad,Digital Self-servers,Digital only,50,78,77,42,62,0.793,TRUE
+R0238,65+,žena,Jihozápad,Human Support Seekers,Concierge,47,76,88,69,70,0.76,TRUE
+R0239,18–29,muž,Severovýchod,Routine Patients,Digital only,52,49,71,52,56,1.097,TRUE
+R0240,65+,žena,Jihovýchod,Routine Patients,Digital only,66,52,55,53,56,0.98,TRUE
+R0241,30–44,žena,Severovýchod,Routine Patients,Digital only,52,81,64,76,68,0.855,TRUE
+R0242,45–64,muž,Jihovýchod,Human Support Seekers,Concierge,54,72,76,85,72,0.765,TRUE
+R0243,18–29,žena,Moravskoslezsko,Anxious Navigators,Guided Care,77,75,83,65,75,1.195,TRUE
+R0244,30–44,muž,Jihovýchod,Human Support Seekers,Concierge,78,67,72,66,71,1.085,TRUE
+R0245,65+,muž,Severozápad,Digital Self-servers,Digital only,55,52,62,73,60,0.984,TRUE
+R0246,65+,žena,Střední Morava,Routine Patients,Digital only,43,74,54,82,63,1.193,TRUE
+R0247,30–44,muž,Severozápad,Complex Care,Guided Care,58,64,52,55,57,1.173,TRUE
+R0248,45–64,muž,Severovýchod,Complex Care,Guided Care,77,67,64,59,67,1.019,TRUE
+R0249,45–64,muž,Jihozápad,Anxious Navigators,Guided Care,64,74,76,90,76,0.814,TRUE
+R0250,30–44,žena,Praha,Human Support Seekers,Concierge,46,52,84,59,60,0.881,TRUE
+R0251,18–29,žena,Střední Čechy,Routine Patients,Digital only,61,52,45,75,58,1.12,TRUE
+R0252,30–44,muž,Praha,Anxious Navigators,Guided Care,77,53,45,81,64,0.773,TRUE
+R0253,18–29,muž,Jihozápad,Anxious Navigators,Guided Care,75,86,76,82,80,0.929,TRUE
+R0254,45–64,muž,Praha,Digital Self-servers,Digital only,50,63,61,47,55,1.157,TRUE
+R0255,65+,žena,Jihovýchod,Human Support Seekers,Concierge,50,47,62,42,50,0.888,TRUE
+R0256,65+,muž,Severozápad,Routine Patients,Digital only,60,74,71,56,65,1.232,TRUE
+R0257,45–64,muž,Střední Morava,Anxious Navigators,Guided Care,68,54,58,84,66,1.221,TRUE
+R0258,30–44,žena,Moravskoslezsko,Anxious Navigators,Guided Care,67,84,54,83,72,0.839,TRUE
+R0259,18–29,muž,Moravskoslezsko,Routine Patients,Digital only,44,51,61,74,58,1.171,TRUE
+R0260,30–44,žena,Moravskoslezsko,Anxious Navigators,Guided Care,74,83,45,64,66,0.966,TRUE
+R0261,45–64,muž,Jihozápad,Complex Care,Guided Care,71,82,45,90,72,1.007,TRUE
+R0262,30–44,muž,Moravskoslezsko,Routine Patients,Digital only,69,64,51,45,57,0.906,TRUE
+R0263,18–29,žena,Moravskoslezsko,Digital Self-servers,Digital only,78,82,71,66,74,0.899,TRUE
+R0264,18–29,muž,Jihozápad,Digital Self-servers,Digital only,63,55,53,84,64,0.802,TRUE
+R0265,30–44,žena,Praha,Digital Self-servers,Digital only,77,78,75,72,76,1.006,TRUE
+R0266,45–64,muž,Severovýchod,Complex Care,Guided Care,75,48,89,51,66,0.784,TRUE
+R0267,65+,žena,Severozápad,Anxious Navigators,Guided Care,69,48,47,90,64,0.929,TRUE
+R0268,30–44,žena,Praha,Complex Care,Guided Care,75,68,75,36,64,1.193,TRUE
+R0269,45–64,muž,Praha,Routine Patients,Digital only,60,48,87,44,60,0.776,TRUE
+R0270,65+,žena,Praha,Routine Patients,Digital only,53,80,77,51,65,1.163,TRUE
+R0271,45–64,muž,Střední Čechy,Routine Patients,Digital only,66,50,56,57,57,1.077,TRUE
+R0272,45–64,žena,Střední Čechy,Digital Self-servers,Digital only,75,81,52,37,61,1.001,TRUE
+R0273,45–64,muž,Severozápad,Digital Self-servers,Digital only,64,62,55,37,54,1.242,TRUE
+R0274,18–29,muž,Jihovýchod,Anxious Navigators,Guided Care,64,49,82,74,67,0.904,TRUE
+R0275,18–29,žena,Jihozápad,Routine Patients,Digital only,69,68,47,53,59,0.861,TRUE
+R0276,18–29,muž,Severozápad,Anxious Navigators,Guided Care,75,49,52,63,60,1.166,TRUE
+R0277,65+,muž,Severovýchod,Human Support Seekers,Concierge,56,88,72,59,69,1.045,TRUE
+R0278,65+,žena,Jihozápad,Routine Patients,Digital only,49,88,71,43,63,1.132,TRUE
+R0279,30–44,muž,Jihozápad,Human Support Seekers,Concierge,62,55,78,90,71,1.102,TRUE
+R0280,18–29,žena,Jihovýchod,Anxious Navigators,Guided Care,64,81,73,81,75,1.02,TRUE
+R0281,65+,muž,Jihozápad,Routine Patients,Digital only,63,50,60,54,57,1.118,TRUE
+R0282,18–29,žena,Jihozápad,Routine Patients,Digital only,50,52,57,41,50,1.033,TRUE
+R0283,18–29,žena,Jihozápad,Anxious Navigators,Guided Care,56,48,59,86,62,1.178,TRUE
+R0284,18–29,muž,Jihovýchod,Human Support Seekers,Concierge,72,74,70,67,71,1.022,TRUE
+R0285,30–44,žena,Jihovýchod,Complex Care,Guided Care,76,78,53,40,62,1.203,TRUE
+R0286,65+,muž,Střední Čechy,Anxious Navigators,Guided Care,58,45,56,39,50,0.862,TRUE
+R0287,65+,žena,Střední Morava,Complex Care,Guided Care,75,87,55,77,74,1.217,TRUE
+R0288,45–64,žena,Praha,Complex Care,Guided Care,67,68,70,71,69,0.863,TRUE
+R0289,18–29,žena,Praha,Routine Patients,Digital only,45,78,74,67,66,0.781,TRUE
+R0290,45–64,žena,Severovýchod,Routine Patients,Digital only,76,82,88,85,83,1.058,TRUE
+R0291,65+,muž,Jihozápad,Complex Care,Guided Care,56,78,45,37,54,0.938,TRUE
+R0292,18–29,muž,Severovýchod,Anxious Navigators,Guided Care,74,68,90,57,72,1.038,TRUE
+R0293,65+,žena,Severozápad,Complex Care,Guided Care,65,60,81,63,67,0.838,TRUE
+R0294,30–44,žena,Jihozápad,Digital Self-servers,Digital only,50,66,45,48,52,1.11,TRUE
+R0295,65+,žena,Severovýchod,Digital Self-servers,Digital only,47,64,79,87,69,1.213,TRUE
+R0296,30–44,žena,Severovýchod,Routine Patients,Digital only,68,70,60,55,63,1.188,TRUE
+R0297,65+,žena,Jihovýchod,Digital Self-servers,Digital only,46,76,50,49,55,0.851,TRUE
+R0298,45–64,žena,Střední Morava,Digital Self-servers,Digital only,48,75,47,66,59,0.765,TRUE
+R0299,45–64,muž,Střední Čechy,Human Support Seekers,Concierge,53,73,84,68,70,1.09,TRUE
+R0300,45–64,žena,Jihovýchod,Anxious Navigators,Guided Care,63,65,87,68,71,0.881,TRUE
+R0301,65+,žena,Praha,Digital Self-servers,Digital only,47,47,80,38,53,0.867,TRUE
+R0302,30–44,muž,Severozápad,Anxious Navigators,Guided Care,73,88,89,90,85,1.14,TRUE
+R0303,18–29,muž,Praha,Anxious Navigators,Guided Care,45,67,53,69,58,1.068,TRUE
+R0304,18–29,muž,Severozápad,Routine Patients,Digital only,44,51,58,63,54,0.772,TRUE
+R0305,30–44,žena,Praha,Digital Self-servers,Digital only,61,45,88,52,62,1.002,TRUE
+R0306,30–44,žena,Praha,Digital Self-servers,Digital only,50,70,86,63,67,0.776,TRUE
+R0307,65+,žena,Jihozápad,Routine Patients,Digital only,64,90,52,58,66,1.173,TRUE
+R0308,65+,muž,Střední Morava,Complex Care,Guided Care,49,55,77,72,63,0.88,TRUE
+R0309,65+,žena,Severozápad,Routine Patients,Digital only,58,79,74,70,70,1.103,TRUE
+R0310,45–64,muž,Jihovýchod,Human Support Seekers,Concierge,61,65,56,41,56,1.194,TRUE
+R0311,18–29,žena,Severozápad,Anxious Navigators,Guided Care,48,56,88,79,68,0.795,TRUE
+R0312,45–64,žena,Jihozápad,Anxious Navigators,Guided Care,47,47,67,48,52,0.874,TRUE
+R0313,30–44,žena,Jihovýchod,Anxious Navigators,Guided Care,65,87,46,84,70,0.981,TRUE
+R0314,65+,muž,Severozápad,Routine Patients,Digital only,43,89,51,63,62,1.041,TRUE
+R0315,45–64,žena,Moravskoslezsko,Routine Patients,Digital only,79,79,46,73,69,1.016,TRUE
+R0316,18–29,muž,Severozápad,Complex Care,Guided Care,52,63,47,63,56,1.124,TRUE
+R0317,30–44,muž,Severovýchod,Digital Self-servers,Digital only,50,56,76,49,58,1.201,TRUE
+R0318,65+,žena,Praha,Digital Self-servers,Digital only,51,70,89,38,62,1.046,TRUE
+R0319,65+,muž,Severozápad,Routine Patients,Digital only,48,76,82,56,66,0.769,TRUE
+R0320,65+,muž,Severozápad,Routine Patients,Digital only,64,56,59,49,57,0.89,TRUE
+R0321,18–29,žena,Střední Čechy,Anxious Navigators,Guided Care,75,60,55,50,60,0.835,TRUE
+R0322,18–29,muž,Severozápad,Routine Patients,Digital only,65,50,52,90,64,0.813,TRUE
+R0323,65+,muž,Jihozápad,Routine Patients,Digital only,60,53,75,89,69,1.028,TRUE
+R0324,45–64,žena,Jihovýchod,Routine Patients,Digital only,62,87,57,60,66,0.976,TRUE
+R0325,45–64,muž,Severovýchod,Routine Patients,Digital only,60,66,62,59,62,0.903,TRUE
+R0326,30–44,žena,Moravskoslezsko,Complex Care,Guided Care,46,48,61,87,60,1.067,TRUE
+R0327,30–44,muž,Jihozápad,Complex Care,Guided Care,79,85,64,50,70,0.843,TRUE
+R0328,65+,žena,Střední Morava,Routine Patients,Digital only,70,49,50,69,60,1.057,TRUE
+R0329,45–64,muž,Jihozápad,Routine Patients,Digital only,57,83,76,58,68,0.768,TRUE
+R0330,45–64,muž,Severovýchod,Complex Care,Guided Care,61,64,62,73,65,0.871,TRUE
+R0331,45–64,žena,Moravskoslezsko,Digital Self-servers,Digital only,76,49,69,58,63,0.968,TRUE
+R0332,30–44,žena,Jihovýchod,Complex Care,Guided Care,72,66,46,74,64,1.223,TRUE
+R0333,45–64,žena,Praha,Routine Patients,Digital only,73,50,51,37,53,0.902,TRUE
+R0334,45–64,žena,Moravskoslezsko,Complex Care,Guided Care,67,63,61,62,63,0.921,TRUE
+R0335,30–44,žena,Jihovýchod,Complex Care,Guided Care,76,86,87,81,82,0.91,TRUE
+R0336,45–64,muž,Jihozápad,Human Support Seekers,Concierge,78,73,62,64,69,1.121,TRUE
+R0337,65+,žena,Praha,Routine Patients,Digital only,78,59,85,37,65,0.757,TRUE
+R0338,18–29,muž,Jihozápad,Routine Patients,Digital only,61,87,48,78,68,0.777,TRUE
+R0339,45–64,muž,Severovýchod,Complex Care,Guided Care,71,65,51,73,65,1.106,TRUE
+R0340,30–44,muž,Jihovýchod,Routine Patients,Digital only,76,61,84,62,71,1.035,TRUE
+R0341,18–29,žena,Severozápad,Complex Care,Guided Care,69,85,64,69,72,1.177,TRUE
+R0342,65+,žena,Severovýchod,Human Support Seekers,Concierge,76,57,66,55,64,0.76,TRUE
+R0343,18–29,žena,Střední Čechy,Complex Care,Guided Care,44,65,45,61,54,1.088,TRUE
+R0344,30–44,muž,Jihozápad,Routine Patients,Digital only,76,57,77,45,64,0.958,TRUE
+R0345,65+,žena,Střední Čechy,Routine Patients,Digital only,64,76,66,72,70,0.983,TRUE
+R0346,65+,žena,Střední Čechy,Anxious Navigators,Guided Care,68,51,69,58,62,1.184,TRUE
+R0347,18–29,muž,Jihovýchod,Digital Self-servers,Digital only,57,61,73,78,67,1.122,TRUE
+R0348,30–44,žena,Severovýchod,Digital Self-servers,Digital only,58,87,47,55,62,1.008,TRUE
+R0349,65+,muž,Praha,Anxious Navigators,Guided Care,71,45,52,56,56,1.097,TRUE
+R0350,30–44,žena,Severozápad,Digital Self-servers,Digital only,45,59,58,49,53,0.839,TRUE
+R0351,45–64,muž,Jihozápad,Human Support Seekers,Concierge,49,64,61,48,56,1.241,TRUE
+R0352,65+,žena,Jihovýchod,Anxious Navigators,Guided Care,54,76,53,56,60,0.779,TRUE
+R0353,18–29,žena,Severovýchod,Digital Self-servers,Digital only,72,69,49,87,69,1.078,TRUE
+R0354,18–29,muž,Střední Morava,Routine Patients,Digital only,55,73,66,82,69,0.91,TRUE
+R0355,45–64,muž,Moravskoslezsko,Human Support Seekers,Concierge,55,66,84,63,67,1.028,TRUE
+R0356,30–44,žena,Severovýchod,Routine Patients,Digital only,79,60,72,84,74,0.978,TRUE
+R0357,18–29,muž,Střední Morava,Human Support Seekers,Concierge,69,49,83,38,60,1.075,TRUE
+R0358,18–29,žena,Jihovýchod,Digital Self-servers,Digital only,64,45,76,75,65,0.917,TRUE
+R0359,18–29,žena,Severovýchod,Anxious Navigators,Guided Care,71,73,51,78,68,1.191,TRUE
+R0360,45–64,žena,Moravskoslezsko,Complex Care,Guided Care,64,75,62,79,70,0.821,TRUE
+R0361,30–44,žena,Jihozápad,Routine Patients,Digital only,69,45,63,60,59,0.945,TRUE
+R0362,65+,muž,Severozápad,Routine Patients,Digital only,57,52,72,89,68,0.874,TRUE
+R0363,65+,žena,Jihozápad,Human Support Seekers,Concierge,75,64,48,61,62,0.903,TRUE
+R0364,65+,muž,Jihovýchod,Anxious Navigators,Guided Care,50,54,52,73,57,0.81,TRUE
+R0365,65+,muž,Střední Čechy,Anxious Navigators,Guided Care,75,53,67,62,64,0.846,TRUE
+R0366,65+,muž,Praha,Complex Care,Guided Care,76,57,46,50,57,1.031,TRUE
+R0367,30–44,žena,Moravskoslezsko,Digital Self-servers,Digital only,55,73,61,87,69,0.852,TRUE
+R0368,30–44,žena,Praha,Routine Patients,Digital only,47,47,73,45,53,0.889,TRUE
+R0369,30–44,žena,Severovýchod,Anxious Navigators,Guided Care,43,82,81,36,60,0.892,TRUE
+R0370,45–64,muž,Moravskoslezsko,Human Support Seekers,Concierge,69,58,68,63,64,0.979,TRUE
+R0371,65+,muž,Praha,Complex Care,Guided Care,51,61,59,40,53,1.161,TRUE
+R0372,65+,muž,Jihovýchod,Routine Patients,Digital only,76,67,78,89,78,1.235,TRUE
+R0373,30–44,žena,Jihozápad,Digital Self-servers,Digital only,66,57,82,74,70,1.001,TRUE
+R0374,18–29,žena,Severozápad,Anxious Navigators,Guided Care,76,51,59,43,57,0.987,TRUE
+R0375,30–44,muž,Jihovýchod,Digital Self-servers,Digital only,78,87,48,53,66,1.224,TRUE
+R0376,18–29,muž,Praha,Digital Self-servers,Digital only,55,66,87,57,66,0.932,TRUE
+R0377,65+,žena,Moravskoslezsko,Complex Care,Guided Care,56,58,51,35,50,0.793,TRUE
+R0378,45–64,žena,Střední Čechy,Digital Self-servers,Digital only,78,90,60,78,76,1.153,TRUE
+R0379,18–29,žena,Střední Čechy,Digital Self-servers,Digital only,69,66,46,62,61,1.084,TRUE
+R0380,45–64,muž,Střední Morava,Anxious Navigators,Guided Care,59,54,75,82,68,0.804,TRUE
+R0381,18–29,žena,Střední Čechy,Anxious Navigators,Guided Care,68,65,75,42,62,0.842,TRUE
+R0382,65+,žena,Jihozápad,Routine Patients,Digital only,61,87,52,60,65,1.006,TRUE
+R0383,65+,muž,Severozápad,Routine Patients,Digital only,60,54,66,86,66,0.781,TRUE
+R0384,18–29,muž,Praha,Routine Patients,Digital only,73,78,66,79,74,0.955,TRUE
+R0385,45–64,žena,Jihovýchod,Digital Self-servers,Digital only,79,73,56,62,68,0.753,TRUE
+R0386,30–44,žena,Praha,Routine Patients,Digital only,53,51,67,44,54,1.145,TRUE
+R0387,65+,muž,Severozápad,Routine Patients,Digital only,66,45,70,61,60,0.898,TRUE
+R0388,18–29,žena,Moravskoslezsko,Digital Self-servers,Digital only,65,85,75,40,66,0.881,TRUE
+R0389,30–44,muž,Severovýchod,Anxious Navigators,Guided Care,43,58,86,50,59,1.078,TRUE
+R0390,18–29,žena,Jihovýchod,Complex Care,Guided Care,70,75,78,40,66,1.208,TRUE
+R0391,18–29,žena,Moravskoslezsko,Anxious Navigators,Guided Care,59,83,77,76,74,0.773,TRUE
+R0392,45–64,žena,Severovýchod,Routine Patients,Digital only,75,86,66,49,69,1.102,TRUE
+R0393,30–44,žena,Praha,Routine Patients,Digital only,73,65,66,74,70,1.05,TRUE
+R0394,45–64,muž,Praha,Complex Care,Guided Care,62,87,48,66,66,1.047,TRUE
+R0395,18–29,muž,Jihovýchod,Human Support Seekers,Concierge,49,51,50,46,49,1.201,TRUE
+R0396,65+,muž,Severovýchod,Anxious Navigators,Guided Care,46,69,57,83,64,1.162,TRUE
+R0397,45–64,žena,Praha,Complex Care,Guided Care,50,86,63,86,71,0.898,TRUE
+R0398,18–29,žena,Severozápad,Digital Self-servers,Digital only,50,62,52,86,62,0.905,TRUE
+R0399,65+,žena,Střední Čechy,Digital Self-servers,Digital only,62,79,84,88,78,0.762,TRUE
+R0400,30–44,žena,Střední Morava,Digital Self-servers,Digital only,43,54,86,41,56,0.751,TRUE
+R0401,30–44,muž,Severovýchod,Digital Self-servers,Digital only,54,57,57,47,54,0.849,TRUE
+R0402,65+,žena,Severovýchod,Routine Patients,Digital only,69,78,48,48,61,0.966,TRUE
+R0403,18–29,žena,Střední Čechy,Complex Care,Guided Care,54,45,73,43,54,1.233,TRUE
+R0404,45–64,muž,Střední Čechy,Complex Care,Guided Care,62,84,63,76,71,0.776,TRUE
+R0405,18–29,žena,Moravskoslezsko,Anxious Navigators,Guided Care,70,71,55,61,64,0.923,TRUE
+R0406,65+,žena,Střední Čechy,Human Support Seekers,Concierge,75,45,77,39,59,1.123,TRUE
+R0407,45–64,muž,Jihozápad,Complex Care,Guided Care,55,67,60,75,64,0.953,TRUE
+R0408,30–44,muž,Severovýchod,Human Support Seekers,Concierge,62,81,57,78,70,0.991,TRUE
+R0409,18–29,muž,Praha,Routine Patients,Digital only,47,59,62,58,56,0.892,TRUE
+R0410,30–44,muž,Jihovýchod,Routine Patients,Digital only,59,54,84,89,72,0.862,TRUE
+R0411,65+,žena,Jihozápad,Complex Care,Guided Care,45,79,47,65,59,0.836,TRUE
+R0412,65+,muž,Střední Morava,Digital Self-servers,Digital only,45,89,86,61,70,1.228,TRUE
+R0413,65+,muž,Severovýchod,Complex Care,Guided Care,59,83,87,78,77,1.147,TRUE
+R0414,65+,žena,Střední Morava,Human Support Seekers,Concierge,63,73,73,66,69,0.982,TRUE
+R0415,18–29,žena,Jihovýchod,Digital Self-servers,Digital only,50,72,53,88,66,0.898,TRUE
+R0416,65+,žena,Jihozápad,Digital Self-servers,Digital only,51,79,61,48,60,0.909,TRUE
+R0417,45–64,žena,Střední Morava,Digital Self-servers,Digital only,56,78,76,39,62,1.246,TRUE
+R0418,18–29,žena,Severovýchod,Anxious Navigators,Guided Care,46,89,60,80,69,0.909,TRUE
+R0419,65+,žena,Jihovýchod,Anxious Navigators,Guided Care,49,87,52,62,62,0.968,TRUE
+R0420,18–29,muž,Praha,Anxious Navigators,Guided Care,75,61,70,44,62,0.885,TRUE
+R0421,30–44,žena,Moravskoslezsko,Complex Care,Guided Care,73,87,78,43,70,1.134,TRUE
+R0422,30–44,žena,Severozápad,Digital Self-servers,Digital only,56,83,77,56,68,1.199,TRUE
+R0423,65+,muž,Moravskoslezsko,Routine Patients,Digital only,60,57,87,68,68,1.058,TRUE
+R0424,18–29,muž,Severovýchod,Complex Care,Guided Care,78,66,71,69,71,0.874,TRUE
+R0425,18–29,žena,Střední Morava,Routine Patients,Digital only,64,79,49,47,60,0.821,TRUE
+R0426,30–44,muž,Severozápad,Routine Patients,Digital only,46,75,74,69,66,0.829,TRUE
+R0427,18–29,muž,Střední Čechy,Anxious Navigators,Guided Care,63,65,68,65,65,1.128,TRUE
+R0428,45–64,muž,Moravskoslezsko,Anxious Navigators,Guided Care,59,89,70,73,73,0.845,TRUE
+R0429,45–64,muž,Praha,Anxious Navigators,Guided Care,54,45,56,89,61,1.201,TRUE
+R0430,18–29,muž,Moravskoslezsko,Complex Care,Guided Care,62,49,46,87,61,0.874,TRUE
+R0431,65+,žena,Severovýchod,Human Support Seekers,Concierge,53,87,66,42,62,1.134,TRUE
+R0432,65+,žena,Jihozápad,Complex Care,Guided Care,59,55,52,79,61,0.812,TRUE
+R0433,45–64,muž,Praha,Anxious Navigators,Guided Care,58,63,79,40,60,1.018,TRUE
+R0434,18–29,muž,Střední Morava,Human Support Seekers,Concierge,66,65,86,37,64,0.771,TRUE
+R0435,65+,muž,Praha,Human Support Seekers,Concierge,58,77,86,61,70,0.779,TRUE
+R0436,18–29,žena,Moravskoslezsko,Digital Self-servers,Digital only,72,90,60,64,72,0.875,TRUE
+R0437,45–64,žena,Severovýchod,Routine Patients,Digital only,65,59,83,77,71,0.876,TRUE
+R0438,65+,muž,Jihovýchod,Routine Patients,Digital only,77,63,80,77,74,1.002,TRUE
+R0439,30–44,muž,Severozápad,Routine Patients,Digital only,52,55,89,36,58,0.866,TRUE
+R0440,45–64,žena,Praha,Anxious Navigators,Guided Care,43,69,80,45,59,0.75,TRUE
+R0441,45–64,muž,Moravskoslezsko,Routine Patients,Digital only,56,82,81,82,75,0.989,TRUE
+R0442,45–64,muž,Moravskoslezsko,Routine Patients,Digital only,60,82,62,88,73,0.787,TRUE
+R0443,18–29,muž,Moravskoslezsko,Complex Care,Guided Care,54,88,90,86,80,1.044,TRUE
+R0444,30–44,muž,Severozápad,Routine Patients,Digital only,77,76,69,45,67,0.97,TRUE
+R0445,18–29,žena,Střední Morava,Anxious Navigators,Guided Care,65,90,73,54,70,0.771,TRUE
+R0446,65+,muž,Střední Čechy,Complex Care,Guided Care,63,54,46,38,50,1.11,TRUE
+R0447,30–44,muž,Praha,Digital Self-servers,Digital only,73,90,54,62,70,0.804,TRUE
+R0448,18–29,žena,Střední Morava,Routine Patients,Digital only,56,79,76,59,68,0.836,TRUE
+R0449,45–64,žena,Severozápad,Human Support Seekers,Concierge,72,77,77,75,75,0.978,TRUE
+R0450,45–64,muž,Severovýchod,Anxious Navigators,Guided Care,64,51,55,64,58,1.006,TRUE
+R0451,18–29,žena,Střední Morava,Complex Care,Guided Care,55,77,45,71,62,1.104,TRUE
+R0452,18–29,muž,Severozápad,Anxious Navigators,Guided Care,70,85,57,54,66,0.852,TRUE
+R0453,45–64,žena,Střední Morava,Routine Patients,Digital only,69,90,71,45,69,1.214,TRUE
+R0454,65+,muž,Střední Čechy,Complex Care,Guided Care,57,80,89,47,68,1.196,TRUE
+R0455,30–44,muž,Jihovýchod,Routine Patients,Digital only,52,86,83,44,66,1.2,TRUE
+R0456,45–64,muž,Jihozápad,Digital Self-servers,Digital only,52,61,88,57,64,0.966,TRUE
+R0457,30–44,žena,Střední Morava,Routine Patients,Digital only,56,81,54,57,62,0.879,TRUE
+R0458,30–44,žena,Severozápad,Anxious Navigators,Guided Care,61,84,58,89,73,0.82,TRUE
+R0459,45–64,žena,Střední Morava,Digital Self-servers,Digital only,60,47,52,42,50,1.085,TRUE
+R0460,18–29,muž,Severozápad,Routine Patients,Digital only,64,59,73,69,66,1.128,TRUE
+R0461,45–64,žena,Praha,Routine Patients,Digital only,67,56,68,55,62,0.937,TRUE
+R0462,65+,žena,Střední Čechy,Anxious Navigators,Guided Care,78,61,53,76,67,1.13,TRUE
+R0463,18–29,muž,Jihovýchod,Anxious Navigators,Guided Care,47,74,56,37,54,0.826,TRUE
+R0464,30–44,muž,Střední Čechy,Human Support Seekers,Concierge,43,48,90,58,60,1.009,TRUE
+R0465,30–44,žena,Praha,Digital Self-servers,Digital only,47,65,77,78,67,0.999,TRUE
+R0466,30–44,muž,Střední Čechy,Human Support Seekers,Concierge,69,80,67,76,73,1.239,TRUE
+R0467,30–44,žena,Střední Morava,Complex Care,Guided Care,53,70,63,86,68,1.17,TRUE
+R0468,45–64,žena,Moravskoslezsko,Complex Care,Guided Care,77,56,90,44,67,1.217,TRUE
+R0469,18–29,žena,Praha,Routine Patients,Digital only,43,76,55,66,60,1.22,TRUE
+R0470,18–29,muž,Jihovýchod,Routine Patients,Digital only,44,72,47,50,53,1.139,TRUE
+R0471,45–64,žena,Severozápad,Digital Self-servers,Digital only,79,67,82,46,68,1.11,TRUE
+R0472,30–44,muž,Střední Morava,Human Support Seekers,Concierge,70,82,59,87,74,0.782,TRUE
+R0473,30–44,žena,Jihovýchod,Anxious Navigators,Guided Care,54,69,80,67,68,0.754,TRUE
+R0474,65+,muž,Jihozápad,Complex Care,Guided Care,70,72,90,45,69,1.153,TRUE
+R0475,30–44,žena,Severovýchod,Routine Patients,Digital only,60,84,65,80,72,0.929,TRUE
+R0476,30–44,žena,Střední Čechy,Routine Patients,Digital only,70,74,66,65,69,0.966,TRUE
+R0477,65+,žena,Severozápad,Human Support Seekers,Concierge,45,53,72,46,54,0.879,TRUE
+R0478,30–44,žena,Severozápad,Human Support Seekers,Concierge,63,85,72,48,67,1.22,TRUE
+R0479,30–44,žena,Severovýchod,Human Support Seekers,Concierge,75,46,47,88,64,1.202,TRUE
+R0480,18–29,muž,Severovýchod,Routine Patients,Digital only,44,64,90,53,63,1.025,TRUE
+R0481,18–29,žena,Praha,Complex Care,Guided Care,44,48,57,41,48,1.197,TRUE
+R0482,30–44,muž,Severozápad,Anxious Navigators,Guided Care,71,50,59,77,64,0.969,TRUE
+R0483,45–64,žena,Severozápad,Human Support Seekers,Concierge,57,79,79,85,75,0.905,TRUE
+R0484,45–64,žena,Střední Čechy,Digital Self-servers,Digital only,46,49,52,89,59,1.111,TRUE
+R0485,65+,muž,Střední Čechy,Digital Self-servers,Digital only,60,73,45,46,56,0.758,TRUE
+R0486,30–44,žena,Jihovýchod,Routine Patients,Digital only,73,76,50,42,60,1.194,TRUE
+R0487,18–29,žena,Střední Čechy,Digital Self-servers,Digital only,50,47,77,73,62,1.232,TRUE
+R0488,65+,žena,Severovýchod,Routine Patients,Digital only,70,66,62,40,60,0.923,TRUE
+R0489,65+,žena,Jihovýchod,Anxious Navigators,Guided Care,57,82,76,60,69,1.213,TRUE
+R0490,45–64,muž,Střední Čechy,Routine Patients,Digital only,43,85,85,42,64,1.09,TRUE
+R0491,18–29,žena,Jihozápad,Digital Self-servers,Digital only,55,55,84,40,58,0.774,TRUE
+R0492,65+,žena,Moravskoslezsko,Routine Patients,Digital only,56,50,49,52,52,0.959,TRUE
+R0493,18–29,žena,Jihovýchod,Digital Self-servers,Digital only,63,59,79,36,59,0.793,TRUE
+R0494,18–29,muž,Severovýchod,Routine Patients,Digital only,78,45,54,58,59,1.109,TRUE
+R0495,18–29,žena,Střední Čechy,Human Support Seekers,Concierge,59,74,57,46,59,1.01,TRUE
+R0496,30–44,muž,Moravskoslezsko,Anxious Navigators,Guided Care,53,65,74,79,68,0.885,TRUE
+R0497,45–64,žena,Jihovýchod,Human Support Seekers,Concierge,75,58,63,89,71,1.114,TRUE
+R0498,45–64,muž,Střední Morava,Routine Patients,Digital only,56,79,54,75,66,1.189,TRUE
+R0499,65+,žena,Severozápad,Complex Care,Guided Care,74,80,87,76,79,0.955,TRUE
+R0500,65+,žena,Střední Morava,Anxious Navigators,Guided Care,51,78,55,56,60,1.199,TRUE
+R0501,45–64,žena,Střední Čechy,Digital Self-servers,Digital only,48,57,57,45,52,0.829,TRUE
+R0502,18–29,žena,Severovýchod,Anxious Navigators,Guided Care,59,83,51,44,59,0.85,TRUE
+R0503,18–29,žena,Jihozápad,Anxious Navigators,Guided Care,52,70,82,60,66,1.058,TRUE
+R0504,65+,muž,Jihozápad,Routine Patients,Digital only,70,51,53,75,62,1.099,TRUE
+R0505,65+,žena,Střední Morava,Routine Patients,Digital only,60,48,69,69,62,0.853,TRUE
+R0506,65+,žena,Jihozápad,Digital Self-servers,Digital only,69,72,66,90,74,1.152,TRUE
+R0507,18–29,žena,Praha,Anxious Navigators,Guided Care,64,89,75,45,68,1.114,TRUE
+R0508,45–64,muž,Praha,Anxious Navigators,Guided Care,53,69,85,87,74,0.817,TRUE
+R0509,18–29,muž,Střední Morava,Complex Care,Guided Care,52,51,89,67,65,0.995,TRUE
+R0510,30–44,muž,Praha,Anxious Navigators,Guided Care,49,54,71,35,52,0.798,TRUE
+R0511,30–44,žena,Praha,Complex Care,Guided Care,67,57,81,46,63,1.001,TRUE
+R0512,18–29,muž,Severozápad,Complex Care,Guided Care,45,77,67,66,64,0.916,TRUE
+R0513,18–29,žena,Jihovýchod,Anxious Navigators,Guided Care,71,51,83,80,71,1.055,TRUE
+R0514,18–29,žena,Severozápad,Digital Self-servers,Digital only,56,60,53,84,63,1.08,TRUE
+R0515,18–29,muž,Moravskoslezsko,Routine Patients,Digital only,48,90,53,35,56,1.198,TRUE
+R0516,65+,muž,Jihovýchod,Anxious Navigators,Guided Care,51,57,84,82,68,0.984,TRUE
+R0517,30–44,muž,Jihovýchod,Digital Self-servers,Digital only,45,55,60,53,53,0.759,TRUE
+R0518,65+,muž,Severozápad,Digital Self-servers,Digital only,48,71,67,36,56,0.964,TRUE
+R0519,65+,muž,Severovýchod,Routine Patients,Digital only,65,89,58,67,70,1.151,TRUE
+R0520,30–44,žena,Praha,Complex Care,Guided Care,64,53,65,36,54,1.081,TRUE
+R0521,30–44,žena,Střední Čechy,Anxious Navigators,Guided Care,60,55,49,79,61,1.094,TRUE
+R0522,30–44,muž,Severovýchod,Digital Self-servers,Digital only,62,52,83,71,67,1.123,TRUE
+R0523,45–64,muž,Jihozápad,Digital Self-servers,Digital only,79,71,70,81,75,1.164,TRUE
+R0524,30–44,žena,Severozápad,Human Support Seekers,Concierge,69,54,66,69,64,0.851,TRUE
+R0525,30–44,žena,Jihovýchod,Anxious Navigators,Guided Care,78,57,68,86,72,1.022,TRUE
+R0526,45–64,žena,Jihozápad,Routine Patients,Digital only,55,58,77,73,66,0.8,TRUE
+R0527,18–29,žena,Jihovýchod,Routine Patients,Digital only,44,67,49,37,49,1.155,TRUE
+R0528,45–64,muž,Praha,Anxious Navigators,Guided Care,54,84,69,87,74,1.185,TRUE
+R0529,30–44,žena,Jihozápad,Digital Self-servers,Digital only,63,65,57,84,67,0.751,TRUE
+R0530,18–29,muž,Střední Morava,Anxious Navigators,Guided Care,58,87,65,52,66,0.967,TRUE
+R0531,65+,žena,Severovýchod,Routine Patients,Digital only,58,85,55,63,65,1.134,TRUE
+R0532,30–44,muž,Jihozápad,Complex Care,Guided Care,60,46,74,90,68,1.069,TRUE
+R0533,18–29,muž,Severozápad,Complex Care,Guided Care,54,72,48,90,66,1.17,TRUE
+R0534,18–29,muž,Střední Morava,Digital Self-servers,Digital only,63,54,61,51,57,0.952,TRUE
+R0535,45–64,muž,Praha,Anxious Navigators,Guided Care,52,68,56,90,66,1.035,TRUE
+R0536,18–29,žena,Jihozápad,Anxious Navigators,Guided Care,48,56,85,68,64,1.169,TRUE
+R0537,30–44,muž,Jihozápad,Anxious Navigators,Guided Care,59,47,87,66,65,0.905,TRUE
+R0538,45–64,muž,Střední Čechy,Human Support Seekers,Concierge,43,58,75,69,61,0.794,TRUE
+R0539,30–44,žena,Střední Morava,Anxious Navigators,Guided Care,67,73,67,74,70,0.954,TRUE
+R0540,65+,muž,Severovýchod,Complex Care,Guided Care,51,76,59,75,65,1.235,TRUE
+R0541,18–29,žena,Střední Čechy,Routine Patients,Digital only,50,59,57,35,50,0.918,TRUE
+R0542,30–44,žena,Střední Morava,Anxious Navigators,Guided Care,45,71,62,45,56,0.8,TRUE
+R0543,65+,muž,Moravskoslezsko,Complex Care,Guided Care,74,50,87,39,62,0.891,TRUE
+R0544,45–64,muž,Střední Morava,Routine Patients,Digital only,56,62,78,49,61,0.906,TRUE
+R0545,18–29,muž,Střední Čechy,Anxious Navigators,Guided Care,78,75,66,89,77,0.869,TRUE
+R0546,30–44,žena,Moravskoslezsko,Human Support Seekers,Concierge,69,71,55,81,69,1.023,TRUE
+R0547,65+,žena,Severozápad,Anxious Navigators,Guided Care,79,88,90,56,78,1.146,TRUE
+R0548,45–64,žena,Jihozápad,Digital Self-servers,Digital only,59,74,51,40,56,1.223,TRUE
+R0549,18–29,muž,Střední Morava,Routine Patients,Digital only,74,56,64,39,58,0.939,TRUE
+R0550,45–64,muž,Severozápad,Digital Self-servers,Digital only,58,75,66,68,67,1.101,TRUE
+R0551,18–29,žena,Střední Morava,Human Support Seekers,Concierge,52,59,67,74,63,1.018,TRUE
+R0552,45–64,muž,Praha,Digital Self-servers,Digital only,55,82,74,68,70,0.97,TRUE
+R0553,65+,žena,Moravskoslezsko,Anxious Navigators,Guided Care,55,73,79,80,72,1.043,TRUE
+R0554,65+,muž,Jihovýchod,Anxious Navigators,Guided Care,67,84,52,89,73,1.027,TRUE
+R0555,65+,muž,Jihovýchod,Routine Patients,Digital only,46,85,55,65,63,0.832,TRUE
+R0556,65+,muž,Moravskoslezsko,Routine Patients,Digital only,71,65,89,84,77,0.839,TRUE
+R0557,45–64,muž,Praha,Digital Self-servers,Digital only,48,56,65,55,56,1.04,TRUE
+R0558,18–29,žena,Praha,Routine Patients,Digital only,51,68,88,36,61,0.951,TRUE
+R0559,30–44,muž,Praha,Digital Self-servers,Digital only,62,51,84,65,66,1.097,TRUE
+R0560,30–44,žena,Jihozápad,Routine Patients,Digital only,70,74,53,64,65,0.939,TRUE
+R0561,30–44,žena,Severozápad,Routine Patients,Digital only,71,87,77,49,71,0.759,TRUE
+R0562,45–64,muž,Moravskoslezsko,Human Support Seekers,Concierge,45,64,46,64,55,0.927,TRUE
+R0563,45–64,muž,Střední Morava,Routine Patients,Digital only,70,52,84,84,72,0.861,TRUE
+R0564,45–64,muž,Střední Morava,Anxious Navigators,Guided Care,66,79,63,47,64,0.871,TRUE
+R0565,65+,muž,Jihovýchod,Routine Patients,Digital only,76,65,84,44,67,1.015,TRUE
+R0566,65+,muž,Severovýchod,Complex Care,Guided Care,52,87,55,73,67,0.964,TRUE
+R0567,45–64,muž,Jihozápad,Routine Patients,Digital only,56,89,87,71,76,0.839,TRUE
+R0568,65+,žena,Severovýchod,Digital Self-servers,Digital only,57,66,85,63,68,1.201,TRUE
+R0569,65+,žena,Severozápad,Routine Patients,Digital only,49,85,54,55,61,1.197,TRUE
+R0570,65+,muž,Jihovýchod,Complex Care,Guided Care,73,83,47,61,66,1.012,TRUE
+R0571,30–44,žena,Moravskoslezsko,Routine Patients,Digital only,72,85,89,68,78,0.856,TRUE
+R0572,45–64,žena,Jihozápad,Anxious Navigators,Guided Care,60,76,80,60,69,1.18,TRUE
+R0573,30–44,žena,Moravskoslezsko,Anxious Navigators,Guided Care,50,45,79,37,53,0.84,TRUE
+R0574,65+,žena,Severozápad,Routine Patients,Digital only,49,60,58,41,52,0.863,TRUE
+R0575,65+,muž,Moravskoslezsko,Complex Care,Guided Care,60,71,71,51,63,0.768,TRUE
+R0576,65+,muž,Střední Morava,Routine Patients,Digital only,44,51,57,65,54,0.989,TRUE
+R0577,18–29,žena,Jihozápad,Human Support Seekers,Concierge,70,80,55,62,67,1.242,TRUE
+R0578,18–29,žena,Praha,Complex Care,Guided Care,63,47,63,43,54,1.031,TRUE
+R0579,45–64,muž,Severozápad,Human Support Seekers,Concierge,67,61,78,79,71,1.043,TRUE
+R0580,30–44,muž,Severozápad,Anxious Navigators,Guided Care,71,83,79,64,74,1.043,TRUE
+R0581,30–44,žena,Střední Čechy,Routine Patients,Digital only,58,59,68,37,56,1.231,TRUE
+R0582,65+,žena,Severozápad,Anxious Navigators,Guided Care,71,52,65,90,70,0.891,TRUE
+R0583,30–44,žena,Praha,Routine Patients,Digital only,62,77,79,61,70,0.806,TRUE
+R0584,45–64,muž,Moravskoslezsko,Complex Care,Guided Care,73,76,51,46,62,0.833,TRUE
+R0585,65+,muž,Severozápad,Digital Self-servers,Digital only,70,55,81,74,70,1.119,TRUE
+R0586,30–44,muž,Střední Morava,Anxious Navigators,Guided Care,51,61,53,87,63,0.889,TRUE
+R0587,45–64,žena,Moravskoslezsko,Complex Care,Guided Care,51,60,76,51,60,0.84,TRUE
+R0588,65+,žena,Střední Čechy,Complex Care,Guided Care,76,82,73,84,79,0.882,TRUE
+R0589,18–29,žena,Severozápad,Human Support Seekers,Concierge,66,90,69,72,74,0.996,TRUE
+R0590,18–29,žena,Jihozápad,Routine Patients,Digital only,76,68,83,61,72,0.889,TRUE
+R0591,30–44,muž,Jihozápad,Anxious Navigators,Guided Care,56,81,47,46,58,0.965,TRUE
+R0592,30–44,muž,Severozápad,Complex Care,Guided Care,51,72,48,79,62,1.225,TRUE
+R0593,30–44,žena,Jihozápad,Digital Self-servers,Digital only,61,71,61,80,68,1.133,TRUE
+R0594,18–29,žena,Střední Morava,Routine Patients,Digital only,78,80,60,45,66,0.861,TRUE
+R0595,18–29,žena,Střední Morava,Complex Care,Guided Care,61,81,64,45,63,1.113,TRUE
+R0596,65+,muž,Severozápad,Digital Self-servers,Digital only,75,69,62,73,70,0.821,TRUE
+R0597,18–29,žena,Střední Morava,Digital Self-servers,Digital only,47,55,61,46,52,0.845,TRUE
+R0598,65+,žena,Severozápad,Digital Self-servers,Digital only,52,45,76,84,64,0.979,TRUE
+R0599,18–29,muž,Severozápad,Anxious Navigators,Guided Care,79,57,51,82,67,1.234,TRUE
+R0600,18–29,muž,Severovýchod,Complex Care,Guided Care,58,48,62,68,59,1.212,TRUE
+R0601,30–44,muž,Jihozápad,Routine Patients,Digital only,48,89,63,64,66,1.233,TRUE
+R0602,18–29,muž,Jihozápad,Complex Care,Guided Care,68,68,67,73,69,1.178,TRUE
+R0603,65+,muž,Moravskoslezsko,Routine Patients,Digital only,51,66,50,47,54,0.858,TRUE
+R0604,18–29,žena,Praha,Anxious Navigators,Guided Care,46,77,47,76,62,0.769,TRUE
+R0605,45–64,žena,Praha,Human Support Seekers,Concierge,53,83,66,44,62,1.249,TRUE
+R0606,30–44,muž,Moravskoslezsko,Anxious Navigators,Guided Care,56,69,81,72,70,1.195,TRUE
+R0607,30–44,muž,Střední Čechy,Routine Patients,Digital only,64,54,88,81,72,1.133,TRUE
+R0608,65+,muž,Praha,Complex Care,Guided Care,67,58,51,44,55,0.93,TRUE
+R0609,65+,muž,Moravskoslezsko,Anxious Navigators,Guided Care,79,54,64,50,62,0.92,TRUE
+R0610,18–29,muž,Praha,Human Support Seekers,Concierge,46,64,89,88,72,1.115,TRUE
+R0611,18–29,muž,Severozápad,Human Support Seekers,Concierge,44,65,49,73,58,1.208,TRUE
+R0612,45–64,žena,Severozápad,Routine Patients,Digital only,64,63,62,35,56,1.127,TRUE
+R0613,65+,muž,Jihozápad,Routine Patients,Digital only,56,66,51,68,60,0.905,TRUE
+R0614,65+,žena,Severovýchod,Routine Patients,Digital only,78,50,58,48,58,1.249,TRUE
+R0615,65+,žena,Praha,Complex Care,Guided Care,55,58,65,74,63,0.843,TRUE
+R0616,45–64,žena,Severovýchod,Digital Self-servers,Digital only,58,54,85,82,70,0.976,TRUE
+R0617,18–29,muž,Moravskoslezsko,Anxious Navigators,Guided Care,66,64,64,68,66,0.85,TRUE
+R0618,18–29,muž,Severovýchod,Anxious Navigators,Guided Care,53,52,54,35,48,0.863,TRUE
+R0619,65+,žena,Střední Morava,Digital Self-servers,Digital only,57,45,87,39,57,0.859,TRUE
+R0620,18–29,žena,Moravskoslezsko,Anxious Navigators,Guided Care,55,45,56,67,56,1.069,TRUE
+R0621,18–29,žena,Jihozápad,Routine Patients,Digital only,51,80,68,57,64,1.172,TRUE
+R0622,65+,muž,Jihozápad,Human Support Seekers,Concierge,72,90,73,41,69,1.003,TRUE
+R0623,18–29,žena,Střední Čechy,Complex Care,Guided Care,59,53,46,35,48,0.878,TRUE
+R0624,18–29,muž,Střední Morava,Complex Care,Guided Care,46,50,72,67,59,0.976,TRUE
+R0625,45–64,muž,Střední Čechy,Routine Patients,Digital only,52,90,89,68,75,1.224,TRUE
+R0626,65+,muž,Severozápad,Digital Self-servers,Digital only,65,48,45,47,51,1.018,TRUE
+R0627,45–64,žena,Severozápad,Anxious Navigators,Guided Care,63,70,88,37,64,1.067,TRUE
+R0628,65+,muž,Severozápad,Complex Care,Guided Care,43,77,45,86,63,1.201,TRUE
+R0629,30–44,muž,Severovýchod,Complex Care,Guided Care,61,81,62,67,68,0.803,TRUE
+R0630,30–44,žena,Střední Čechy,Routine Patients,Digital only,52,53,68,60,58,0.925,TRUE
+R0631,18–29,žena,Severozápad,Human Support Seekers,Concierge,65,61,68,55,62,1.134,TRUE
+R0632,30–44,muž,Praha,Anxious Navigators,Guided Care,63,63,81,85,73,0.912,TRUE
+R0633,45–64,žena,Moravskoslezsko,Anxious Navigators,Guided Care,76,50,71,90,72,0.885,TRUE
+R0634,18–29,žena,Střední Čechy,Human Support Seekers,Concierge,52,53,75,77,64,0.988,TRUE
+R0635,30–44,žena,Severozápad,Anxious Navigators,Guided Care,72,45,81,68,66,0.847,TRUE
+R0636,18–29,muž,Jihovýchod,Complex Care,Guided Care,65,48,45,79,59,0.782,TRUE
+R0637,45–64,muž,Moravskoslezsko,Human Support Seekers,Concierge,71,51,48,77,62,1.145,TRUE
+R0638,30–44,muž,Moravskoslezsko,Human Support Seekers,Concierge,64,47,71,74,64,1.036,TRUE
+R0639,65+,žena,Střední Morava,Digital Self-servers,Digital only,43,86,46,55,58,1.158,TRUE
+R0640,45–64,muž,Jihozápad,Digital Self-servers,Digital only,60,85,75,87,77,1.022,TRUE
+R0641,65+,žena,Jihovýchod,Digital Self-servers,Digital only,70,74,75,58,69,1.23,TRUE
+R0642,65+,žena,Střední Morava,Routine Patients,Digital only,49,49,50,82,58,0.882,TRUE
+R0643,30–44,muž,Střední Morava,Anxious Navigators,Guided Care,77,78,48,35,60,1.176,TRUE
+R0644,30–44,muž,Praha,Routine Patients,Digital only,62,63,62,76,66,0.841,TRUE
+R0645,65+,žena,Střední Čechy,Routine Patients,Digital only,52,49,85,81,67,1.201,TRUE
+R0646,65+,muž,Jihovýchod,Digital Self-servers,Digital only,74,87,83,89,83,1.091,TRUE
+R0647,45–64,muž,Střední Čechy,Anxious Navigators,Guided Care,44,73,57,45,55,0.893,TRUE
+R0648,65+,muž,Jihozápad,Human Support Seekers,Concierge,55,58,72,88,68,1.156,TRUE
+R0649,45–64,muž,Jihovýchod,Routine Patients,Digital only,56,64,62,56,60,0.761,TRUE
+R0650,18–29,žena,Moravskoslezsko,Routine Patients,Digital only,74,90,76,57,74,0.832,TRUE
+R0651,18–29,žena,Severozápad,Digital Self-servers,Digital only,45,89,67,74,69,0.918,TRUE
+R0652,45–64,muž,Severovýchod,Routine Patients,Digital only,54,49,79,54,59,1.217,TRUE
+R0653,30–44,žena,Střední Morava,Routine Patients,Digital only,73,74,87,67,75,0.819,TRUE
+R0654,65+,žena,Střední Čechy,Digital Self-servers,Digital only,53,50,88,43,58,1.156,TRUE
+R0655,65+,muž,Praha,Routine Patients,Digital only,62,51,71,48,58,0.873,TRUE
+R0656,30–44,muž,Moravskoslezsko,Anxious Navigators,Guided Care,65,86,48,65,66,1.167,TRUE
+R0657,18–29,muž,Severovýchod,Routine Patients,Digital only,78,81,79,40,70,0.871,TRUE
+R0658,65+,žena,Jihozápad,Anxious Navigators,Guided Care,68,52,68,52,60,0.805,TRUE
+R0659,18–29,žena,Praha,Anxious Navigators,Guided Care,64,74,71,65,68,1.016,TRUE
+R0660,18–29,žena,Praha,Routine Patients,Digital only,79,45,64,41,57,1.016,TRUE
+R0661,65+,žena,Praha,Anxious Navigators,Guided Care,60,84,77,45,66,1.136,TRUE
+R0662,45–64,muž,Střední Čechy,Digital Self-servers,Digital only,56,50,70,49,56,0.809,TRUE
+R0663,18–29,muž,Severovýchod,Anxious Navigators,Guided Care,53,77,69,44,61,1.035,TRUE
+R0664,30–44,žena,Jihovýchod,Routine Patients,Digital only,65,87,87,50,72,0.996,TRUE
+R0665,30–44,žena,Severozápad,Routine Patients,Digital only,54,81,80,40,64,0.801,TRUE
+R0666,30–44,muž,Jihovýchod,Digital Self-servers,Digital only,75,47,53,74,62,0.835,TRUE
+R0667,18–29,muž,Jihovýchod,Anxious Navigators,Guided Care,57,77,68,59,65,1.056,TRUE
+R0668,65+,žena,Severovýchod,Anxious Navigators,Guided Care,68,55,80,72,69,1.04,TRUE
+R0669,30–44,muž,Jihovýchod,Routine Patients,Digital only,47,60,78,64,62,1.23,TRUE
+R0670,45–64,muž,Severozápad,Digital Self-servers,Digital only,72,63,63,78,69,0.948,TRUE
+R0671,18–29,žena,Praha,Routine Patients,Digital only,78,75,70,45,67,0.754,TRUE
+R0672,18–29,žena,Jihovýchod,Routine Patients,Digital only,60,59,63,41,56,1.075,TRUE
+R0673,18–29,muž,Jihozápad,Anxious Navigators,Guided Care,44,87,49,58,60,1.001,TRUE
+R0674,65+,žena,Moravskoslezsko,Complex Care,Guided Care,64,87,58,84,73,0.873,TRUE
+R0675,65+,žena,Moravskoslezsko,Complex Care,Guided Care,58,45,74,72,62,1.033,TRUE
+R0676,30–44,muž,Severozápad,Digital Self-servers,Digital only,55,88,83,66,73,1.054,TRUE
+R0677,65+,muž,Střední Morava,Routine Patients,Digital only,57,61,72,67,64,1.037,TRUE
+R0678,45–64,muž,Praha,Anxious Navigators,Guided Care,76,71,58,80,71,1.091,TRUE
+R0679,65+,žena,Severovýchod,Complex Care,Guided Care,55,73,70,76,68,1.08,TRUE
+R0680,18–29,žena,Severozápad,Digital Self-servers,Digital only,57,50,60,84,63,0.865,TRUE
+R0681,30–44,žena,Střední Čechy,Routine Patients,Digital only,66,55,75,50,62,0.924,TRUE
+R0682,65+,muž,Jihozápad,Digital Self-servers,Digital only,46,76,61,46,57,0.867,TRUE
+R0683,18–29,žena,Střední Čechy,Complex Care,Guided Care,67,62,70,42,60,0.808,TRUE
+R0684,18–29,muž,Střední Morava,Complex Care,Guided Care,61,90,46,68,66,0.926,TRUE
+R0685,18–29,muž,Střední Čechy,Complex Care,Guided Care,48,90,52,89,70,1.152,TRUE
+R0686,18–29,žena,Moravskoslezsko,Digital Self-servers,Digital only,67,52,67,78,66,1.146,TRUE
+R0687,65+,žena,Střední Morava,Routine Patients,Digital only,48,58,65,83,64,1.113,TRUE
+R0688,30–44,žena,Severozápad,Complex Care,Guided Care,62,52,67,42,56,0.938,TRUE
+R0689,65+,žena,Střední Morava,Anxious Navigators,Guided Care,70,67,45,73,64,1.247,TRUE
+R0690,18–29,žena,Severovýchod,Anxious Navigators,Guided Care,76,51,64,47,60,1.184,TRUE
+R0691,30–44,muž,Severozápad,Human Support Seekers,Concierge,51,58,77,47,58,0.815,TRUE
+R0692,18–29,muž,Moravskoslezsko,Anxious Navigators,Guided Care,65,75,88,59,72,1.248,TRUE
+R0693,45–64,žena,Střední Čechy,Complex Care,Guided Care,64,74,64,43,61,0.984,TRUE
+R0694,45–64,muž,Střední Čechy,Routine Patients,Digital only,57,73,76,82,72,0.995,TRUE
+R0695,45–64,žena,Střední Čechy,Anxious Navigators,Guided Care,71,77,46,52,62,0.848,TRUE
+R0696,30–44,muž,Severozápad,Anxious Navigators,Guided Care,65,60,86,77,72,1.092,TRUE
+R0697,18–29,muž,Střední Čechy,Digital Self-servers,Digital only,45,55,70,64,58,0.751,TRUE
+R0698,65+,muž,Severovýchod,Anxious Navigators,Guided Care,64,68,57,62,63,0.849,TRUE
+R0699,18–29,muž,Jihovýchod,Routine Patients,Digital only,48,51,88,52,60,0.948,TRUE
+R0700,65+,muž,Praha,Digital Self-servers,Digital only,44,83,70,43,60,0.881,TRUE
+R0701,45–64,žena,Jihovýchod,Routine Patients,Digital only,69,65,75,38,62,1.174,TRUE
+R0702,30–44,muž,Jihozápad,Complex Care,Guided Care,43,86,58,36,56,0.825,TRUE
+R0703,30–44,muž,Jihovýchod,Complex Care,Guided Care,51,48,53,36,47,1.073,TRUE
+R0704,45–64,žena,Praha,Routine Patients,Digital only,49,57,85,90,70,0.948,TRUE
+R0705,65+,muž,Praha,Routine Patients,Digital only,68,80,60,39,62,0.963,TRUE
+R0706,18–29,muž,Severozápad,Routine Patients,Digital only,74,53,53,64,61,0.885,TRUE
+R0707,30–44,žena,Praha,Anxious Navigators,Guided Care,44,64,83,82,68,1.0,TRUE
+R0708,18–29,žena,Jihozápad,Digital Self-servers,Digital only,76,55,59,89,70,1.213,TRUE
+R0709,30–44,muž,Střední Čechy,Anxious Navigators,Guided Care,49,51,50,46,49,1.247,TRUE
+R0710,45–64,žena,Střední Čechy,Complex Care,Guided Care,64,86,67,71,72,0.974,TRUE
+R0711,30–44,muž,Střední Morava,Anxious Navigators,Guided Care,68,58,68,82,69,0.981,TRUE
+R0712,45–64,žena,Jihovýchod,Routine Patients,Digital only,50,77,76,43,62,0.841,TRUE
+R0713,65+,muž,Moravskoslezsko,Routine Patients,Digital only,51,51,89,56,62,0.979,TRUE
+R0714,65+,žena,Střední Morava,Routine Patients,Digital only,58,47,67,83,64,1.057,TRUE
+R0715,45–64,muž,Střední Čechy,Routine Patients,Digital only,62,75,79,74,72,0.915,TRUE
+R0716,30–44,žena,Jihozápad,Anxious Navigators,Guided Care,66,63,46,45,55,1.055,TRUE
+R0717,18–29,žena,Jihozápad,Routine Patients,Digital only,46,71,87,36,60,1.077,TRUE
+R0718,45–64,žena,Severovýchod,Human Support Seekers,Concierge,66,45,56,75,60,0.895,TRUE
+R0719,18–29,muž,Praha,Routine Patients,Digital only,51,71,52,62,59,1.108,TRUE
+R0720,65+,žena,Jihovýchod,Anxious Navigators,Guided Care,62,70,90,35,64,1.213,TRUE
+R0721,45–64,muž,Jihozápad,Digital Self-servers,Digital only,63,80,69,88,75,0.894,TRUE
+R0722,45–64,muž,Jihovýchod,Routine Patients,Digital only,60,61,67,55,61,0.973,TRUE
+R0723,45–64,muž,Severozápad,Human Support Seekers,Concierge,73,84,78,45,70,1.143,TRUE
+R0724,18–29,muž,Jihozápad,Anxious Navigators,Guided Care,48,90,70,38,62,0.785,TRUE
+R0725,18–29,muž,Severovýchod,Complex Care,Guided Care,66,68,68,42,61,1.157,TRUE
+R0726,30–44,žena,Střední Čechy,Routine Patients,Digital only,79,51,77,62,67,0.837,TRUE
+R0727,18–29,žena,Praha,Anxious Navigators,Guided Care,48,72,53,64,59,0.75,TRUE
+R0728,18–29,muž,Severovýchod,Routine Patients,Digital only,57,80,52,57,62,0.861,TRUE
+R0729,45–64,žena,Severozápad,Anxious Navigators,Guided Care,57,82,49,52,60,1.229,TRUE
+R0730,45–64,muž,Praha,Routine Patients,Digital only,61,62,76,84,71,1.223,TRUE
+R0731,18–29,muž,Severovýchod,Complex Care,Guided Care,50,71,64,76,65,1.059,TRUE
+R0732,65+,muž,Střední Čechy,Anxious Navigators,Guided Care,72,50,86,72,70,0.872,TRUE
+R0733,45–64,žena,Jihovýchod,Routine Patients,Digital only,67,82,57,77,71,0.957,TRUE
+R0734,30–44,žena,Střední Čechy,Routine Patients,Digital only,66,84,49,56,64,1.184,TRUE
+R0735,18–29,žena,Praha,Digital Self-servers,Digital only,65,61,72,87,71,0.886,TRUE
+R0736,45–64,muž,Jihozápad,Anxious Navigators,Guided Care,75,54,60,48,59,1.172,TRUE
+R0737,65+,žena,Střední Morava,Complex Care,Guided Care,49,58,80,46,58,1.237,TRUE
+R0738,45–64,žena,Severozápad,Anxious Navigators,Guided Care,52,49,52,61,54,1.216,TRUE
+R0739,65+,žena,Jihozápad,Complex Care,Guided Care,47,71,76,79,68,0.814,TRUE
+R0740,65+,muž,Střední Morava,Routine Patients,Digital only,75,85,64,70,74,0.918,TRUE
+R0741,30–44,muž,Praha,Routine Patients,Digital only,70,61,50,62,61,0.978,TRUE
+R0742,18–29,muž,Moravskoslezsko,Complex Care,Guided Care,72,66,69,38,61,1.084,TRUE
+R0743,45–64,muž,Jihozápad,Complex Care,Guided Care,46,59,77,76,64,1.112,TRUE
+R0744,18–29,žena,Severovýchod,Routine Patients,Digital only,57,83,63,45,62,0.76,TRUE
+R0745,18–29,muž,Severovýchod,Complex Care,Guided Care,68,88,46,70,68,0.842,TRUE
+R0746,18–29,muž,Praha,Routine Patients,Digital only,49,66,63,67,61,1.134,TRUE
+R0747,45–64,muž,Praha,Digital Self-servers,Digital only,71,47,87,45,62,0.843,TRUE
+R0748,30–44,žena,Severozápad,Routine Patients,Digital only,47,87,80,79,73,0.771,TRUE
+R0749,30–44,žena,Jihovýchod,Routine Patients,Digital only,50,72,80,55,64,0.885,TRUE
+R0750,30–44,žena,Střední Čechy,Human Support Seekers,Concierge,55,52,76,42,56,0.754,TRUE
+R0751,30–44,žena,Severozápad,Digital Self-servers,Digital only,69,74,51,46,60,0.792,TRUE
+R0752,30–44,žena,Praha,Complex Care,Guided Care,74,53,77,44,62,1.157,TRUE
+R0753,45–64,žena,Střední Čechy,Anxious Navigators,Guided Care,69,53,85,82,72,0.985,TRUE
+R0754,18–29,muž,Severozápad,Anxious Navigators,Guided Care,79,56,75,57,67,1.035,TRUE
+R0755,30–44,žena,Severovýchod,Routine Patients,Digital only,51,85,67,54,64,0.824,TRUE
+R0756,30–44,žena,Střední Morava,Anxious Navigators,Guided Care,76,89,88,54,77,0.949,TRUE
+R0757,30–44,muž,Střední Čechy,Human Support Seekers,Concierge,65,87,56,68,69,0.953,TRUE
+R0758,65+,žena,Severozápad,Routine Patients,Digital only,68,53,49,66,59,1.157,TRUE
+R0759,65+,žena,Severozápad,Human Support Seekers,Concierge,75,52,60,74,65,0.898,TRUE
+R0760,30–44,muž,Severovýchod,Digital Self-servers,Digital only,43,50,90,41,56,1.202,TRUE
+R0761,65+,muž,Jihovýchod,Complex Care,Guided Care,54,82,71,74,70,1.018,TRUE
+R0762,18–29,muž,Moravskoslezsko,Digital Self-servers,Digital only,62,55,48,84,62,0.872,TRUE
+R0763,65+,žena,Moravskoslezsko,Digital Self-servers,Digital only,51,85,89,72,74,1.116,TRUE
+R0764,18–29,muž,Střední Čechy,Anxious Navigators,Guided Care,71,77,83,39,68,0.979,TRUE
+R0765,18–29,žena,Střední Morava,Complex Care,Guided Care,75,46,57,74,63,0.776,TRUE
+R0766,45–64,muž,Střední Morava,Complex Care,Guided Care,46,56,71,64,59,1.149,TRUE
+R0767,45–64,žena,Praha,Routine Patients,Digital only,55,88,87,71,75,1.167,TRUE
+R0768,18–29,žena,Jihozápad,Routine Patients,Digital only,63,49,69,48,57,0.972,TRUE
+R0769,45–64,žena,Severovýchod,Routine Patients,Digital only,55,45,61,61,56,1.239,TRUE
+R0770,45–64,žena,Severovýchod,Routine Patients,Digital only,56,87,59,59,65,1.095,TRUE
+R0771,30–44,žena,Střední Čechy,Routine Patients,Digital only,77,74,72,41,66,1.16,TRUE
+R0772,65+,žena,Moravskoslezsko,Anxious Navigators,Guided Care,44,64,77,89,68,1.099,TRUE
+R0773,18–29,žena,Jihozápad,Digital Self-servers,Digital only,68,57,58,37,55,1.096,TRUE
+R0774,18–29,žena,Praha,Human Support Seekers,Concierge,54,80,73,78,71,0.864,TRUE
+R0775,65+,žena,Střední Morava,Digital Self-servers,Digital only,74,47,65,82,67,1.142,TRUE
+R0776,30–44,žena,Severovýchod,Routine Patients,Digital only,72,85,58,35,62,1.187,TRUE
+R0777,45–64,žena,Jihozápad,Complex Care,Guided Care,65,78,76,39,64,0.968,TRUE
+R0778,45–64,muž,Jihovýchod,Digital Self-servers,Digital only,47,71,50,89,64,1.013,TRUE
+R0779,18–29,žena,Jihozápad,Anxious Navigators,Guided Care,50,46,88,76,65,0.986,TRUE
+R0780,30–44,muž,Střední Morava,Human Support Seekers,Concierge,54,50,66,70,60,0.859,TRUE
+R0781,18–29,muž,Střední Morava,Human Support Seekers,Concierge,67,82,49,44,60,1.088,TRUE
+R0782,30–44,muž,Severovýchod,Anxious Navigators,Guided Care,49,89,48,50,59,1.217,TRUE
+R0783,30–44,žena,Střední Čechy,Routine Patients,Digital only,45,70,77,53,61,0.899,TRUE
+R0784,18–29,muž,Severovýchod,Complex Care,Guided Care,67,57,48,63,59,1.249,TRUE
+R0785,30–44,žena,Střední Čechy,Anxious Navigators,Guided Care,77,80,63,43,66,1.017,TRUE
+R0786,18–29,žena,Severozápad,Complex Care,Guided Care,68,50,87,81,72,1.182,TRUE
+R0787,65+,žena,Jihovýchod,Complex Care,Guided Care,43,52,51,35,45,0.986,TRUE
+R0788,30–44,muž,Praha,Digital Self-servers,Digital only,75,72,59,86,73,1.233,TRUE
+R0789,30–44,žena,Střední Morava,Routine Patients,Digital only,46,80,54,40,55,0.76,TRUE
+R0790,65+,žena,Severozápad,Anxious Navigators,Guided Care,75,85,72,68,75,1.03,TRUE
+R0791,65+,žena,Moravskoslezsko,Anxious Navigators,Guided Care,68,69,84,59,70,0.986,TRUE
+R0792,45–64,žena,Severozápad,Complex Care,Guided Care,51,45,81,50,57,0.838,TRUE
+R0793,30–44,žena,Střední Morava,Complex Care,Guided Care,77,64,81,81,76,0.862,TRUE
+R0794,18–29,muž,Jihovýchod,Routine Patients,Digital only,43,79,89,72,71,0.99,TRUE
+R0795,65+,muž,Moravskoslezsko,Digital Self-servers,Digital only,52,58,54,77,60,0.855,TRUE
+R0796,65+,muž,Jihozápad,Anxious Navigators,Guided Care,44,55,81,87,67,1.025,TRUE
+R0797,18–29,žena,Praha,Digital Self-servers,Digital only,60,89,52,84,71,1.236,TRUE
+R0798,18–29,žena,Střední Čechy,Routine Patients,Digital only,51,69,61,50,58,0.798,TRUE
+R0799,30–44,muž,Střední Čechy,Routine Patients,Digital only,47,52,76,50,56,1.169,TRUE
+R0800,45–64,muž,Jihozápad,Digital Self-servers,Digital only,70,55,68,79,68,0.796,TRUE
+R0801,45–64,muž,Moravskoslezsko,Complex Care,Guided Care,50,80,63,62,64,0.817,TRUE
+R0802,18–29,muž,Střední Morava,Anxious Navigators,Guided Care,76,52,77,90,74,0.787,TRUE
+R0803,30–44,žena,Střední Morava,Routine Patients,Digital only,59,61,82,64,66,0.844,TRUE
+R0804,18–29,muž,Moravskoslezsko,Anxious Navigators,Guided Care,53,80,87,50,68,1.097,TRUE
+R0805,30–44,muž,Jihozápad,Routine Patients,Digital only,46,89,62,75,68,1.234,TRUE
+R0806,45–64,žena,Střední Morava,Routine Patients,Digital only,66,62,60,87,69,1.13,TRUE
+R0807,18–29,muž,Střední Morava,Anxious Navigators,Guided Care,51,72,66,39,57,1.019,TRUE
+R0808,30–44,muž,Jihovýchod,Human Support Seekers,Concierge,67,62,90,66,71,0.948,TRUE
+R0809,45–64,žena,Severozápad,Complex Care,Guided Care,68,84,51,87,72,1.0,TRUE
+R0810,30–44,žena,Praha,Digital Self-servers,Digital only,64,48,46,90,62,0.817,TRUE
+R0811,18–29,žena,Moravskoslezsko,Human Support Seekers,Concierge,44,69,46,75,58,0.832,TRUE
+R0812,30–44,žena,Severovýchod,Routine Patients,Digital only,51,87,50,81,67,0.767,TRUE
+R0813,18–29,muž,Jihovýchod,Human Support Seekers,Concierge,50,88,74,75,72,1.163,TRUE
+R0814,30–44,žena,Jihovýchod,Complex Care,Guided Care,67,46,83,68,66,0.778,TRUE
+R0815,65+,muž,Střední Čechy,Complex Care,Guided Care,60,47,46,49,50,0.77,TRUE
+R0816,65+,muž,Střední Čechy,Human Support Seekers,Concierge,63,74,47,86,68,1.176,TRUE
+R0817,18–29,muž,Jihozápad,Anxious Navigators,Guided Care,77,56,77,54,66,0.794,TRUE
+R0818,18–29,muž,Jihovýchod,Routine Patients,Digital only,78,74,46,76,68,1.006,TRUE
+R0819,30–44,muž,Jihovýchod,Digital Self-servers,Digital only,44,65,54,41,51,0.82,TRUE
+R0820,65+,muž,Praha,Routine Patients,Digital only,52,75,68,40,59,0.846,TRUE
+R0821,18–29,muž,Moravskoslezsko,Digital Self-servers,Digital only,47,62,89,77,69,0.827,TRUE
+R0822,45–64,žena,Střední Čechy,Routine Patients,Digital only,63,62,52,89,66,0.922,TRUE
+R0823,18–29,muž,Severovýchod,Routine Patients,Digital only,43,53,83,76,64,1.194,TRUE
+R0824,45–64,muž,Střední Čechy,Routine Patients,Digital only,50,67,78,64,65,0.847,TRUE
+R0825,45–64,muž,Střední Čechy,Digital Self-servers,Digital only,78,49,78,60,66,1.064,TRUE
+R0826,65+,žena,Jihovýchod,Anxious Navigators,Guided Care,78,72,60,56,66,1.118,TRUE
+R0827,65+,žena,Jihozápad,Anxious Navigators,Guided Care,55,88,77,54,68,0.75,TRUE
+R0828,45–64,žena,Jihovýchod,Anxious Navigators,Guided Care,65,72,70,36,61,1.046,TRUE
+R0829,18–29,žena,Severozápad,Human Support Seekers,Concierge,45,81,89,83,74,1.131,TRUE
+R0830,30–44,žena,Moravskoslezsko,Routine Patients,Digital only,58,73,53,38,56,1.033,TRUE
+R0831,45–64,muž,Jihozápad,Complex Care,Guided Care,43,46,67,53,52,1.089,TRUE
+R0832,18–29,žena,Jihozápad,Anxious Navigators,Guided Care,72,86,45,74,69,0.843,TRUE
+R0833,65+,muž,Praha,Anxious Navigators,Guided Care,56,47,80,68,63,1.237,TRUE
+R0834,18–29,žena,Severozápad,Complex Care,Guided Care,75,76,54,83,72,0.934,TRUE
+R0835,65+,žena,Praha,Anxious Navigators,Guided Care,73,89,79,78,80,1.147,TRUE
+R0836,45–64,žena,Střední Čechy,Routine Patients,Digital only,45,82,57,70,64,0.881,TRUE
+R0837,45–64,muž,Jihovýchod,Routine Patients,Digital only,69,48,49,55,55,0.975,TRUE
+R0838,45–64,žena,Severovýchod,Routine Patients,Digital only,53,66,64,58,60,0.869,TRUE
+R0839,65+,muž,Střední Morava,Anxious Navigators,Guided Care,67,65,87,61,70,0.804,TRUE
+R0840,18–29,muž,Severozápad,Routine Patients,Digital only,68,51,66,81,66,1.16,TRUE
+R0841,30–44,muž,Moravskoslezsko,Routine Patients,Digital only,72,69,76,76,73,0.949,TRUE
+R0842,30–44,muž,Severozápad,Anxious Navigators,Guided Care,49,59,65,38,53,1.021,TRUE
+R0843,65+,žena,Jihozápad,Routine Patients,Digital only,64,71,90,79,76,0.991,TRUE
+R0844,45–64,žena,Střední Morava,Routine Patients,Digital only,57,64,58,58,59,1.183,TRUE
+R0845,18–29,žena,Severovýchod,Human Support Seekers,Concierge,59,86,89,68,76,1.216,TRUE
+R0846,65+,žena,Jihovýchod,Digital Self-servers,Digital only,43,76,70,66,64,0.913,TRUE
+R0847,30–44,žena,Jihozápad,Digital Self-servers,Digital only,49,78,54,61,60,1.198,TRUE
+R0848,30–44,muž,Jihovýchod,Complex Care,Guided Care,49,73,69,39,58,0.941,TRUE
+R0849,30–44,muž,Severovýchod,Complex Care,Guided Care,59,73,67,52,63,0.862,TRUE
+R0850,30–44,žena,Střední Morava,Digital Self-servers,Digital only,79,72,54,41,62,1.193,TRUE
+R0851,65+,žena,Moravskoslezsko,Routine Patients,Digital only,47,58,83,54,60,1.035,TRUE
+R0852,65+,muž,Severovýchod,Digital Self-servers,Digital only,60,73,55,65,63,1.242,TRUE
+R0853,65+,muž,Severozápad,Anxious Navigators,Guided Care,73,47,58,48,56,0.949,TRUE
+R0854,18–29,žena,Jihovýchod,Anxious Navigators,Guided Care,58,73,80,58,67,1.188,TRUE
+R0855,65+,žena,Jihovýchod,Routine Patients,Digital only,65,88,57,51,65,1.222,TRUE
+R0856,65+,muž,Střední Morava,Anxious Navigators,Guided Care,49,55,56,43,51,1.245,TRUE
+R0857,65+,žena,Jihovýchod,Complex Care,Guided Care,79,61,60,55,64,0.822,TRUE
+R0858,18–29,žena,Jihovýchod,Routine Patients,Digital only,64,78,46,43,58,1.013,TRUE
+R0859,18–29,muž,Jihozápad,Anxious Navigators,Guided Care,79,47,82,69,69,0.99,TRUE
+R0860,30–44,žena,Severozápad,Digital Self-servers,Digital only,65,67,67,68,67,0.935,TRUE
+R0861,18–29,muž,Střední Čechy,Anxious Navigators,Guided Care,75,57,78,90,75,0.903,TRUE
+R0862,30–44,žena,Střední Morava,Routine Patients,Digital only,55,51,48,90,61,0.872,TRUE
+R0863,18–29,žena,Jihovýchod,Routine Patients,Digital only,60,68,53,83,66,1.032,TRUE
+R0864,30–44,muž,Praha,Digital Self-servers,Digital only,70,58,78,59,66,0.944,TRUE
+R0865,30–44,žena,Jihovýchod,Anxious Navigators,Guided Care,78,86,66,59,72,0.807,TRUE
+R0866,18–29,žena,Praha,Complex Care,Guided Care,73,74,75,49,68,0.99,TRUE
+R0867,30–44,muž,Střední Morava,Anxious Navigators,Guided Care,69,78,67,76,72,1.102,TRUE
+R0868,45–64,muž,Jihovýchod,Digital Self-servers,Digital only,77,76,74,35,66,1.048,TRUE
+R0869,45–64,muž,Střední Čechy,Anxious Navigators,Guided Care,74,50,80,83,72,1.244,TRUE
+R0870,18–29,muž,Střední Morava,Anxious Navigators,Guided Care,71,61,57,43,58,0.782,TRUE
+R0871,65+,muž,Střední Morava,Anxious Navigators,Guided Care,78,50,48,65,60,1.064,TRUE
+R0872,65+,žena,Jihovýchod,Routine Patients,Digital only,58,65,61,73,64,1.165,TRUE
+R0873,65+,muž,Jihovýchod,Complex Care,Guided Care,58,68,84,64,68,1.181,TRUE
+R0874,30–44,žena,Jihovýchod,Digital Self-servers,Digital only,77,52,58,87,68,0.819,TRUE
+R0875,30–44,muž,Jihozápad,Human Support Seekers,Concierge,66,72,86,52,69,0.847,TRUE
+R0876,30–44,muž,Střední Morava,Digital Self-servers,Digital only,76,58,53,73,65,1.213,TRUE
+R0877,45–64,žena,Severovýchod,Digital Self-servers,Digital only,47,51,52,70,55,1.201,TRUE
+R0878,45–64,žena,Střední Morava,Complex Care,Guided Care,71,70,53,47,60,1.057,TRUE
+R0879,65+,muž,Severozápad,Anxious Navigators,Guided Care,70,49,56,82,64,0.855,TRUE
+R0880,45–64,muž,Severozápad,Anxious Navigators,Guided Care,72,48,61,70,63,1.214,TRUE
+R0881,65+,žena,Střední Čechy,Digital Self-servers,Digital only,73,86,71,82,78,1.015,TRUE
+R0882,65+,žena,Severozápad,Anxious Navigators,Guided Care,47,47,82,49,56,0.927,TRUE
+R0883,65+,muž,Střední Morava,Digital Self-servers,Digital only,52,72,48,71,61,1.016,TRUE
+R0884,65+,žena,Severovýchod,Routine Patients,Digital only,43,63,64,64,58,0.802,TRUE
+R0885,45–64,žena,Severozápad,Routine Patients,Digital only,53,67,76,57,63,0.938,TRUE
+R0886,30–44,žena,Severozápad,Human Support Seekers,Concierge,62,71,84,38,64,1.003,TRUE
+R0887,30–44,muž,Severovýchod,Anxious Navigators,Guided Care,59,71,66,40,59,0.928,TRUE
+R0888,65+,žena,Střední Morava,Routine Patients,Digital only,73,62,55,45,59,0.772,TRUE
+R0889,45–64,žena,Praha,Complex Care,Guided Care,73,46,64,52,59,1.026,TRUE
+R0890,65+,muž,Severozápad,Routine Patients,Digital only,78,61,71,66,69,1.008,TRUE
+R0891,18–29,žena,Moravskoslezsko,Human Support Seekers,Concierge,55,79,59,85,70,1.031,TRUE
+R0892,45–64,žena,Střední Morava,Routine Patients,Digital only,68,62,66,86,70,0.941,TRUE
+R0893,18–29,muž,Jihozápad,Anxious Navigators,Guided Care,57,86,66,82,73,1.229,TRUE
+R0894,45–64,muž,Severovýchod,Digital Self-servers,Digital only,77,73,62,55,67,0.813,TRUE
+R0895,65+,muž,Severozápad,Complex Care,Guided Care,69,66,45,35,54,0.84,TRUE
+R0896,45–64,žena,Praha,Complex Care,Guided Care,79,71,67,59,69,0.778,TRUE
+R0897,65+,žena,Jihovýchod,Digital Self-servers,Digital only,61,66,90,56,68,0.932,TRUE
+R0898,18–29,muž,Střední Čechy,Complex Care,Guided Care,47,71,88,78,71,1.141,TRUE
+R0899,45–64,muž,Jihovýchod,Routine Patients,Digital only,45,54,85,50,58,0.846,TRUE
+R0900,30–44,žena,Jihovýchod,Routine Patients,Digital only,79,77,60,49,66,0.981,TRUE

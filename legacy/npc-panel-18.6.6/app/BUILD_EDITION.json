@@ -1,0 +1,36 @@
+{
+  "edition": "COMPLETE_FINAL_THREE_PROVIDER",
+  "label": "Guided UX · NPC Panel 18.6.6 · Native Sociomapa Design Workspace · Projects + AI + Data Library",
+  "claude_code_enabled": true,
+  "claude_api_enabled": true,
+  "default_provider": "claude_code_subscription",
+  "allowed_live_providers": [
+    "claude_code_subscription",
+    "anthropic",
+    "openai"
+  ],
+  "provider_ui_labels": {
+    "claude_code_subscription": "Claude Code",
+    "anthropic": "Claude API",
+    "openai": "OpenAI API"
+  },
+  "version": "18.6.6",
+  "name": "NPC Panel",
+  "flow_performance_fix": "17.9.1",
+  "audience_dimensions": "17.9.3",
+  "project_memory_ai_assistant": "17.9.4",
+  "demo_showcase_projects": 25,
+  "sociomap_ui": "18.6.6_native_design_workspace",
+  "project_orientation": "17.9.7",
+  "demo_simulation_companions": 5,
+  "claude_token_optimization": "17.9.9",
+  "stage_routing_fix": "17.9.9",
+  "openai_api_enabled": true,
+  "data_library_enabled": true,
+  "population_modes": [
+    "STATIC",
+    "LIVE"
+  ],
+  "results_registry_enabled": true,
+  "sociomap_reference": "user_supplied_native_design_port"
+}

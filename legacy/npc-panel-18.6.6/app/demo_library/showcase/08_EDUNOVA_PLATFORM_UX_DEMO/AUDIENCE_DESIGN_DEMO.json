@@ -1,0 +1,17 @@
+{
+  "population": "Studenti 15–24, rodiče a dospělí learners jako oddělené analytické skupiny",
+  "n": 980,
+  "persona_mode": "calibrated",
+  "dimensions": [
+    "věk",
+    "region",
+    "socioeconomics",
+    "media/digital behavior",
+    "values",
+    "category involvement",
+    "trust",
+    "price sensitivity",
+    "innovation adoption",
+    "context-specific dimensions"
+  ]
+}

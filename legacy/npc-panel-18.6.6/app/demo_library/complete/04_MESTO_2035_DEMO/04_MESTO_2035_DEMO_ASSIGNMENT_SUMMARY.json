@@ -1,0 +1,33 @@
+{
+  "client_need": "Město chce porovnat čtyři balíčky dopravních opatření a pochopit podporu, vnímanou férovost a breakpointy veřejné přijatelnosti.",
+  "primary_decision": "Vybrat balíček, který má nejlepší kombinaci podpory, účinnosti a legitimity pro veřejnou diskusi.",
+  "success_definition": "Výstup musí jasně oddělit podporu opatření, důvody odporu a podmínky, za kterých se postoj mění.",
+  "questions": [
+    "Který balíček má nejvyšší veřejnou přijatelnost?",
+    "Jak lidé vnímají férovost nákladů a výhod?",
+    "Které skupiny nesou největší obavy?",
+    "Jak důležitá je předchozí investice do MHD?",
+    "Kdy se podpora congestion charge láme?"
+  ],
+  "inputs": [
+    "Čtyři politicko-veřejnopolitické balíčky mobility.",
+    "Agregovaný syntetický vzorek obyvatel města.",
+    "8 světů mění kvalitu MHD, ceny parkování, dopravní kongesci, důvěru v magistrát a životní náklady."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Volební microtargeting.",
+    "Doporučení pro individuální persuazi voličů.",
+    "Právní posouzení zavedení opatření."
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "study_type": "Patient experience / service redesign",
+  "decision": "Prioritizovat service redesign a určit, které touchpointy mají největší dopad na zkušenost pacienta.",
+  "research_questions": [
+    "Jak snadné bylo objednat se?",
+    "Jak dobře jste věděli, co se bude dít před návštěvou?",
+    "Jak hodnotíte jednotlivé návrhy nové patient journey?",
+    "Které touchpointy nejvíce ovlivňují důvěru?",
+    "Jaké emoce jste zažívali před, během a po návštěvě?",
+    "Jak pravděpodobně byste zařízení doporučili?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Current journey",
+      "description": "Současný proces",
+      "type": "tracked_object",
+      "score": 55,
+      "x": 250,
+      "y": 285
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Digital only",
+      "description": "Maximum samoobsluhy",
+      "type": "tracked_object",
+      "score": 68,
+      "x": 555,
+      "y": 180
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Guided Care",
+      "description": "Digitál + jasná lidská navigace",
+      "type": "tracked_object",
+      "score": 82,
+      "x": 395,
+      "y": 205
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Concierge",
+      "description": "Vysoce osobní podpora",
+      "type": "tracked_object",
+      "score": 73,
+      "x": 350,
+      "y": 330
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Trust",
+    "Clarity",
+    "Ease",
+    "Human support",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

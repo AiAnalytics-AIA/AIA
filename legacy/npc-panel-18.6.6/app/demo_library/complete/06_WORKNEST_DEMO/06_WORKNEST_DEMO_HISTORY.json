@@ -1,0 +1,44 @@
+[
+  {
+    "revision": 1,
+    "time": "20:10:04",
+    "stage": "BRIEF",
+    "event": "Projekt vytvořen",
+    "detail": "Původní zadání uloženo do persistentního projektu."
+  },
+  {
+    "revision": 2,
+    "time": "20:10:22",
+    "stage": "RESEARCH_DESIGN",
+    "event": "Výzkumný rámec připraven",
+    "detail": "Rozhodovací otázky, KPI a varianty byly strukturovány."
+  },
+  {
+    "revision": 3,
+    "time": "20:12:15",
+    "stage": "AUDIENCE",
+    "event": "Audience a segmenty uzamčeny",
+    "detail": "Syntetická populace a segmentační logika připravena."
+  },
+  {
+    "revision": 4,
+    "time": "20:15:41",
+    "stage": "WORLDS",
+    "event": "8 světů dokončeno",
+    "detail": "Otestována robustnost doporučení napříč změnami podmínek."
+  },
+  {
+    "revision": 5,
+    "time": "20:18:54",
+    "stage": "ANALYSIS",
+    "event": "Analýza dokončena",
+    "detail": "Varianty, segmenty, breakpointy a rozhodovací implikace sestaveny."
+  },
+  {
+    "revision": 6,
+    "time": "20:20:03",
+    "stage": "DELIVERY",
+    "event": "Výstupy dokončeny",
+    "detail": "Word, Excel, SQLite, CSV, JSON, dashboard a provenance uzamčeny."
+  }
+]

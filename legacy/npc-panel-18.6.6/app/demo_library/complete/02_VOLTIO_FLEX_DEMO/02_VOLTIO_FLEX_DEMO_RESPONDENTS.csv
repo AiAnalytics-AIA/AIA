@@ -1,0 +1,1501 @@
+﻿respondent_id,age,gender,region,education,segment,price_sensitivity_1_10,digital_confidence_1_10,change_openness_1_10,institutional_trust_1_10,category_involvement_1_10
+1,30,Žena,Severovýchod,SŠ s maturitou,Green Progressives,4,6,5,5,8
+2,49,Muž,Severovýchod,SŠ s maturitou,Green Progressives,4,8,5,8,6
+3,34,Žena,Severovýchod,ZŠ / bez maturity,Digital Optimizers,6,7,5,4,5
+4,41,Muž,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,8,8,8,4,5
+5,51,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,10,2,7,4,6
+6,18,Žena,Severovýchod,ZŠ / bez maturity,Prosumer Households,7,8,6,5,5
+7,29,Muž,Jihovýchod,VŠ,Green Progressives,5,10,9,1,6
+8,58,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,7,7,7,7,5
+9,48,Žena,Jihovýchod,SŠ s maturitou,Budget Guarded,3,7,4,4,7
+10,36,Muž,Jihozápad,VŠ,Digital Optimizers,2,4,6,4,5
+11,42,Muž,Severovýchod,SŠ s maturitou,Green Progressives,6,4,6,4,8
+12,39,Muž,Praha,SŠ s maturitou,Budget Guarded,8,6,3,6,2
+13,51,Muž,Jihovýchod,VŠ,Digital Optimizers,4,6,4,8,2
+14,31,Muž,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,7,5,6,7,8
+15,58,Žena,Jihovýchod,VŠ,Green Progressives,4,8,8,8,5
+16,44,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,4,5,9,6,2
+17,37,Muž,Severovýchod,ZŠ / bez maturity,Prosumer Households,5,6,9,2,6
+18,43,Muž,Praha,SŠ s maturitou,Stability Seekers,8,4,4,2,7
+19,65,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,4,7,6,8,4
+20,41,Muž,Praha,SŠ s maturitou,Digital Optimizers,3,5,7,8,6
+21,50,Žena,Jihozápad,VŠ,Budget Guarded,6,5,4,8,4
+22,30,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,6,8,5,5,1
+23,29,Muž,Severozápad,SŠ s maturitou,Budget Guarded,5,5,8,8,5
+24,65,Muž,Jihozápad,SŠ s maturitou,Green Progressives,8,2,4,6,7
+25,28,Žena,Střední Čechy,VŠ,Stability Seekers,6,4,5,5,5
+26,47,Muž,Praha,VŠ,Digital Optimizers,7,10,9,6,7
+27,34,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,4,6,7,8,1
+28,30,Muž,Severovýchod,ZŠ / bez maturity,Digital Optimizers,6,3,7,8,5
+29,40,Žena,Severozápad,VŠ,Green Progressives,8,7,6,4,8
+30,42,Žena,Střední Čechy,SŠ s maturitou,Prosumer Households,3,7,4,6,4
+31,51,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,4,6,7,5,8
+32,26,Žena,Severovýchod,VŠ,Prosumer Households,4,7,4,6,3
+33,51,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,2,7,5,5,7
+34,41,Muž,Praha,VŠ,Green Progressives,9,7,4,6,7
+35,66,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,2,7,6,7,8
+36,41,Muž,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,7,8,4,4,4
+37,44,Žena,Jihovýchod,VŠ,Budget Guarded,9,4,6,3,6
+38,23,Žena,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,9,10,2,6,5
+39,27,Žena,Severovýchod,SŠ s maturitou,Green Progressives,5,9,4,6,4
+40,43,Žena,Severozápad,SŠ s maturitou,Prosumer Households,8,6,3,5,8
+41,31,Muž,Severozápad,SŠ s maturitou,Prosumer Households,5,7,5,5,6
+42,58,Muž,Severozápad,SŠ s maturitou,Green Progressives,6,9,6,6,7
+43,39,Muž,Severozápad,SŠ s maturitou,Prosumer Households,3,8,6,5,6
+44,33,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,6,3,4,5,8
+45,42,Žena,Severovýchod,SŠ s maturitou,Green Progressives,4,9,3,1,5
+46,48,Muž,Jihozápad,ZŠ / bez maturity,Budget Guarded,4,3,5,7,6
+47,44,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,5,10,5,8,2
+48,40,Žena,Jihozápad,ZŠ / bez maturity,Green Progressives,2,3,9,8,6
+49,32,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,3,5,6,6,7
+50,56,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,9,7,5,4,6
+51,34,Žena,Střední Čechy,SŠ s maturitou,Stability Seekers,6,5,10,1,8
+52,45,Žena,Severozápad,SŠ s maturitou,Green Progressives,8,3,4,5,6
+53,40,Muž,Jihozápad,VŠ,Digital Optimizers,7,8,5,2,3
+54,74,Žena,Střední Čechy,VŠ,Prosumer Households,2,5,6,2,6
+55,18,Žena,Jihovýchod,VŠ,Prosumer Households,7,10,6,1,7
+56,44,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,3,8,6,5,6
+57,70,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,4,7,1,4,7
+58,40,Žena,Severozápad,VŠ,Digital Optimizers,3,7,5,6,7
+59,49,Muž,Severozápad,VŠ,Digital Optimizers,8,6,3,7,6
+60,31,Muž,Střední Čechy,VŠ,Stability Seekers,5,5,8,4,5
+61,45,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,6,2,2,4,3
+62,33,Žena,Praha,ZŠ / bez maturity,Stability Seekers,3,9,3,5,6
+63,44,Žena,Praha,ZŠ / bez maturity,Prosumer Households,8,1,8,7,5
+64,35,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,8,4,7,1,8
+65,35,Muž,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,3,6,5,2,8
+66,34,Žena,Jihovýchod,SŠ s maturitou,Budget Guarded,3,10,2,4,2
+67,43,Žena,Praha,ZŠ / bez maturity,Prosumer Households,7,5,5,3,4
+68,48,Muž,Jihozápad,SŠ s maturitou,Digital Optimizers,7,2,5,2,5
+69,53,Muž,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,4,6,4,5,5
+70,28,Žena,Severozápad,VŠ,Green Progressives,6,4,7,6,10
+71,29,Žena,Severovýchod,ZŠ / bez maturity,Digital Optimizers,5,3,7,6,4
+72,34,Žena,Jihovýchod,ZŠ / bez maturity,Stability Seekers,4,7,7,9,7
+73,51,Žena,Severozápad,ZŠ / bez maturity,Prosumer Households,9,7,7,4,7
+74,45,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,7,5,7,3,2
+75,30,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,4,7,7,4,6
+76,38,Muž,Severovýchod,ZŠ / bez maturity,Prosumer Households,6,2,10,4,6
+77,41,Muž,Jihozápad,ZŠ / bez maturity,Prosumer Households,6,6,6,7,4
+78,18,Muž,Moravskoslezsko,VŠ,Digital Optimizers,4,3,3,6,6
+79,47,Muž,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,2,7,3,5,6
+80,28,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,4,6,1,8,5
+81,71,Žena,Střední Čechy,ZŠ / bez maturity,Green Progressives,6,4,8,8,5
+82,37,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,8,4,7,6,7
+83,41,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,5,7,6,6,7
+84,46,Muž,Severovýchod,VŠ,Budget Guarded,7,2,5,4,8
+85,27,Muž,Jihovýchod,ZŠ / bez maturity,Budget Guarded,5,9,7,6,3
+86,64,Žena,Severovýchod,ZŠ / bez maturity,Prosumer Households,6,4,6,6,6
+87,39,Muž,Severozápad,SŠ s maturitou,Stability Seekers,6,6,3,6,7
+88,59,Žena,Severovýchod,VŠ,Green Progressives,6,7,6,8,8
+89,25,Muž,Jihovýchod,VŠ,Stability Seekers,6,4,6,10,7
+90,53,Žena,Střední Čechy,VŠ,Digital Optimizers,7,8,3,5,6
+91,46,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,3,3,7,6,10
+92,42,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,4,4,8,5,4
+93,35,Muž,Praha,SŠ s maturitou,Digital Optimizers,4,5,7,4,8
+94,45,Muž,Severozápad,SŠ s maturitou,Budget Guarded,8,7,8,9,4
+95,27,Žena,Jihozápad,SŠ s maturitou,Green Progressives,6,3,10,5,5
+96,28,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,7,5,9,7,6
+97,45,Muž,Jihovýchod,ZŠ / bez maturity,Stability Seekers,9,6,7,5,10
+98,18,Žena,Severovýchod,ZŠ / bez maturity,Stability Seekers,6,9,5,1,7
+99,74,Žena,Jihozápad,VŠ,Stability Seekers,9,3,7,6,6
+100,35,Muž,Severozápad,SŠ s maturitou,Budget Guarded,9,5,9,3,6
+101,56,Žena,Praha,ZŠ / bez maturity,Digital Optimizers,2,4,4,7,5
+102,35,Žena,Severozápad,ZŠ / bez maturity,Prosumer Households,5,8,6,3,10
+103,31,Muž,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,4,6,3,3,8
+104,36,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,3,8,6,3,5
+105,53,Žena,Severovýchod,ZŠ / bez maturity,Green Progressives,5,1,5,9,10
+106,49,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,4,6,6,6,5
+107,43,Žena,Severovýchod,SŠ s maturitou,Prosumer Households,3,6,6,7,6
+108,46,Žena,Praha,ZŠ / bez maturity,Budget Guarded,10,7,8,7,5
+109,52,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,5,6,10,8,6
+110,19,Muž,Střední Čechy,ZŠ / bez maturity,Prosumer Households,9,10,8,6,6
+111,34,Žena,Severozápad,ZŠ / bez maturity,Budget Guarded,4,3,7,6,8
+112,74,Žena,Moravskoslezsko,VŠ,Digital Optimizers,1,4,5,4,10
+113,42,Žena,Moravskoslezsko,VŠ,Stability Seekers,3,6,4,4,10
+114,34,Muž,Střední Čechy,SŠ s maturitou,Stability Seekers,8,7,6,4,6
+115,54,Muž,Severovýchod,ZŠ / bez maturity,Digital Optimizers,8,5,8,5,3
+116,63,Muž,Severovýchod,SŠ s maturitou,Green Progressives,8,6,5,4,2
+117,47,Muž,Praha,SŠ s maturitou,Prosumer Households,7,3,9,4,10
+118,47,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,4,8,6,4,9
+119,48,Muž,Severovýchod,ZŠ / bez maturity,Prosumer Households,4,7,8,5,8
+120,22,Muž,Praha,VŠ,Stability Seekers,5,6,7,5,6
+121,26,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,5,5,7,5,3
+122,35,Žena,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,9,4,3,4,2
+123,46,Muž,Severovýchod,ZŠ / bez maturity,Budget Guarded,3,4,4,7,4
+124,38,Žena,Střední Čechy,VŠ,Green Progressives,8,4,5,4,5
+125,33,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,4,4,5,4,5
+126,56,Muž,Moravskoslezsko,VŠ,Prosumer Households,10,5,4,7,6
+127,44,Muž,Severovýchod,SŠ s maturitou,Green Progressives,5,3,7,7,6
+128,46,Muž,Praha,SŠ s maturitou,Budget Guarded,4,6,3,6,10
+129,53,Žena,Moravskoslezsko,VŠ,Green Progressives,6,7,4,3,6
+130,47,Muž,Jihovýchod,VŠ,Budget Guarded,6,5,6,6,7
+131,38,Muž,Jihozápad,SŠ s maturitou,Digital Optimizers,4,5,4,8,5
+132,41,Muž,Jihozápad,VŠ,Prosumer Households,4,3,5,6,8
+133,47,Žena,Severovýchod,SŠ s maturitou,Budget Guarded,4,4,7,4,3
+134,38,Muž,Praha,SŠ s maturitou,Digital Optimizers,5,8,4,7,6
+135,32,Žena,Severovýchod,ZŠ / bez maturity,Budget Guarded,2,5,7,6,8
+136,35,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,6,3,3,4,6
+137,22,Žena,Střední Čechy,ZŠ / bez maturity,Green Progressives,7,10,8,5,6
+138,53,Žena,Severozápad,SŠ s maturitou,Budget Guarded,4,9,5,3,8
+139,63,Muž,Moravskoslezsko,VŠ,Budget Guarded,7,7,6,7,8
+140,43,Muž,Jihozápad,ZŠ / bez maturity,Budget Guarded,5,7,8,5,5
+141,34,Žena,Praha,VŠ,Prosumer Households,2,7,4,5,7
+142,45,Žena,Severovýchod,VŠ,Green Progressives,7,5,7,8,3
+143,63,Muž,Střední Čechy,ZŠ / bez maturity,Budget Guarded,3,7,3,3,3
+144,23,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,6,8,9,3,10
+145,31,Žena,Moravskoslezsko,SŠ s maturitou,Stability Seekers,7,6,3,8,7
+146,36,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,6,6,8,4,6
+147,31,Muž,Praha,VŠ,Stability Seekers,4,5,5,9,6
+148,51,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,1,6,5,3,7
+149,67,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,5,8,10,4,3
+150,44,Muž,Praha,ZŠ / bez maturity,Prosumer Households,6,6,9,8,4
+151,60,Muž,Severozápad,VŠ,Stability Seekers,6,3,9,6,7
+152,56,Muž,Praha,VŠ,Digital Optimizers,5,2,7,5,6
+153,28,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,5,5,8,4,7
+154,46,Muž,Jihozápad,SŠ s maturitou,Digital Optimizers,2,5,6,1,8
+155,60,Žena,Severovýchod,ZŠ / bez maturity,Budget Guarded,3,8,6,5,6
+156,58,Žena,Jihozápad,SŠ s maturitou,Green Progressives,4,8,8,7,4
+157,33,Žena,Jihozápad,VŠ,Prosumer Households,9,6,7,5,8
+158,36,Žena,Praha,SŠ s maturitou,Digital Optimizers,4,9,9,5,5
+159,26,Žena,Jihovýchod,ZŠ / bez maturity,Prosumer Households,4,4,4,2,5
+160,43,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,5,8,8,6,7
+161,66,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,1,3,6,7,6
+162,74,Žena,Jihovýchod,SŠ s maturitou,Prosumer Households,5,3,6,5,6
+163,52,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,1,2,8,8,3
+164,39,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,6,6,7,8,6
+165,37,Žena,Praha,VŠ,Stability Seekers,3,3,5,5,6
+166,71,Muž,Severozápad,SŠ s maturitou,Stability Seekers,5,4,4,4,1
+167,40,Muž,Jihovýchod,ZŠ / bez maturity,Budget Guarded,4,4,2,3,6
+168,40,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,5,3,4,5,7
+169,27,Žena,Jihovýchod,VŠ,Budget Guarded,7,7,4,4,5
+170,38,Muž,Jihozápad,SŠ s maturitou,Green Progressives,4,6,8,3,6
+171,47,Žena,Jihozápad,SŠ s maturitou,Green Progressives,7,4,3,8,4
+172,22,Žena,Jihozápad,VŠ,Budget Guarded,8,5,5,2,8
+173,36,Žena,Severovýchod,VŠ,Stability Seekers,6,8,5,3,5
+174,53,Muž,Střední Čechy,SŠ s maturitou,Green Progressives,8,5,4,4,8
+175,52,Muž,Moravskoslezsko,VŠ,Prosumer Households,6,7,5,8,7
+176,41,Muž,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,4,4,5,7,7
+177,59,Žena,Střední Čechy,SŠ s maturitou,Stability Seekers,3,7,5,8,6
+178,60,Žena,Severozápad,ZŠ / bez maturity,Budget Guarded,8,4,6,3,6
+179,35,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,3,5,5,6,8
+180,18,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,4,5,5,6,9
+181,45,Muž,Jihovýchod,SŠ s maturitou,Budget Guarded,1,6,3,4,5
+182,29,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,6,4,6,8,5
+183,41,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,4,4,5,9,5
+184,61,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,8,8,5,3,6
+185,19,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,3,8,5,5,6
+186,38,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,6,6,3,7,10
+187,74,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,6,6,4,6,9
+188,38,Muž,Jihozápad,ZŠ / bez maturity,Budget Guarded,6,8,8,5,8
+189,37,Žena,Jihozápad,SŠ s maturitou,Green Progressives,10,9,5,7,4
+190,43,Muž,Střední Čechy,VŠ,Budget Guarded,4,7,6,1,7
+191,33,Muž,Praha,SŠ s maturitou,Budget Guarded,7,9,10,7,4
+192,57,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,5,2,5,7,7
+193,26,Muž,Severozápad,VŠ,Prosumer Households,9,6,8,7,4
+194,35,Muž,Severozápad,ZŠ / bez maturity,Budget Guarded,5,7,9,1,1
+195,42,Žena,Severozápad,VŠ,Prosumer Households,7,6,4,3,8
+196,48,Žena,Praha,VŠ,Budget Guarded,4,6,2,6,10
+197,32,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,4,4,6,8,8
+198,42,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,4,8,2,1,4
+199,51,Muž,Severozápad,VŠ,Budget Guarded,6,5,6,4,6
+200,18,Muž,Praha,SŠ s maturitou,Stability Seekers,3,7,8,4,6
+201,46,Muž,Střední Čechy,VŠ,Prosumer Households,7,5,7,6,5
+202,50,Muž,Severovýchod,ZŠ / bez maturity,Budget Guarded,3,9,8,5,9
+203,43,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,5,6,6,10,5
+204,37,Žena,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,6,4,5,8,2
+205,18,Muž,Moravskoslezsko,VŠ,Budget Guarded,4,4,5,10,4
+206,43,Žena,Jihozápad,VŠ,Stability Seekers,5,9,4,5,6
+207,32,Žena,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,4,6,6,5,8
+208,52,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,5,4,6,5,6
+209,72,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,6,5,5,5,4
+210,22,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,6,4,4,6,8
+211,54,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,7,6,6,7,7
+212,37,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,2,9,3,4,6
+213,26,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,6,8,7,2,1
+214,67,Žena,Praha,SŠ s maturitou,Prosumer Households,5,5,2,7,6
+215,52,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,8,9,6,7,3
+216,55,Muž,Severozápad,SŠ s maturitou,Stability Seekers,9,8,5,5,8
+217,44,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,3,6,5,8,6
+218,32,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,5,6,6,7,7
+219,38,Muž,Severovýchod,VŠ,Budget Guarded,1,6,4,3,6
+220,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,8,6,5,9,7
+221,37,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,3,5,7,6,4
+222,27,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,5,8,8,5,6
+223,38,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,6,7,7,4,10
+224,52,Muž,Severozápad,ZŠ / bez maturity,Digital Optimizers,5,8,6,3,6
+225,43,Muž,Praha,ZŠ / bez maturity,Digital Optimizers,5,7,4,2,6
+226,36,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,5,6,4,3,5
+227,47,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,4,7,4,4,5
+228,19,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,5,9,5,1,9
+229,36,Žena,Severozápad,VŠ,Digital Optimizers,7,8,7,4,8
+230,55,Žena,Praha,VŠ,Budget Guarded,10,5,5,2,5
+231,51,Žena,Severovýchod,SŠ s maturitou,Green Progressives,6,2,6,4,10
+232,55,Žena,Severovýchod,ZŠ / bez maturity,Budget Guarded,5,2,5,4,10
+233,24,Muž,Jihozápad,VŠ,Prosumer Households,4,2,6,5,4
+234,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,5,4,3,4,2
+235,19,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,8,8,9,5,7
+236,46,Muž,Moravskoslezsko,VŠ,Stability Seekers,9,5,2,4,8
+237,40,Muž,Severovýchod,VŠ,Budget Guarded,5,6,8,8,5
+238,43,Žena,Praha,ZŠ / bez maturity,Prosumer Households,4,6,7,2,4
+239,29,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,8,2,4,7,4
+240,51,Žena,Praha,ZŠ / bez maturity,Digital Optimizers,3,8,5,4,9
+241,37,Muž,Severovýchod,ZŠ / bez maturity,Budget Guarded,6,10,5,2,3
+242,37,Muž,Moravskoslezsko,VŠ,Stability Seekers,3,6,6,5,9
+243,29,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,1,8,7,2,6
+244,46,Muž,Praha,VŠ,Digital Optimizers,7,5,6,5,4
+245,44,Žena,Střední Čechy,SŠ s maturitou,Prosumer Households,7,5,7,4,10
+246,49,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,7,7,6,4,8
+247,18,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,5,6,4,5,6
+248,23,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,2,5,6,5,7
+249,65,Muž,Střední Čechy,VŠ,Green Progressives,3,3,5,6,7
+250,60,Muž,Severozápad,SŠ s maturitou,Green Progressives,3,5,5,2,9
+251,71,Muž,Severozápad,VŠ,Stability Seekers,3,8,2,2,2
+252,22,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,7,7,5,5,10
+253,27,Žena,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,4,5,7,4,3
+254,72,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,6,3,5,2,7
+255,32,Žena,Jihovýchod,VŠ,Digital Optimizers,8,5,7,3,6
+256,38,Muž,Moravskoslezsko,SŠ s maturitou,Budget Guarded,6,10,8,4,3
+257,42,Žena,Moravskoslezsko,SŠ s maturitou,Stability Seekers,9,8,7,7,4
+258,46,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,4,6,7,4,6
+259,44,Muž,Severozápad,VŠ,Stability Seekers,8,6,5,6,8
+260,42,Žena,Střední Čechy,VŠ,Stability Seekers,3,7,6,4,6
+261,54,Žena,Severozápad,SŠ s maturitou,Stability Seekers,5,7,4,9,7
+262,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,9,8,5,4,10
+263,30,Žena,Jihozápad,VŠ,Digital Optimizers,9,8,4,4,5
+264,31,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,8,3,3,4,7
+265,18,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,5,5,6,7,6
+266,46,Muž,Moravskoslezsko,VŠ,Stability Seekers,5,9,5,8,6
+267,43,Žena,Střední Čechy,VŠ,Prosumer Households,4,7,5,7,7
+268,25,Žena,Jihovýchod,VŠ,Prosumer Households,2,9,6,5,4
+269,63,Muž,Severovýchod,ZŠ / bez maturity,Digital Optimizers,6,4,10,5,6
+270,28,Muž,Moravskoslezsko,VŠ,Digital Optimizers,7,7,4,4,5
+271,20,Muž,Severozápad,ZŠ / bez maturity,Digital Optimizers,6,10,9,5,4
+272,39,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,8,6,3,7,7
+273,47,Muž,Jihozápad,SŠ s maturitou,Green Progressives,4,4,6,4,3
+274,18,Žena,Praha,SŠ s maturitou,Prosumer Households,3,6,3,3,10
+275,18,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,8,9,6,5,6
+276,44,Žena,Jihozápad,ZŠ / bez maturity,Green Progressives,6,8,8,8,8
+277,64,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,4,6,9,4,7
+278,54,Žena,Střední Čechy,SŠ s maturitou,Stability Seekers,4,2,4,4,5
+279,48,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,3,8,4,5,7
+280,34,Žena,Severozápad,SŠ s maturitou,Green Progressives,5,7,4,5,5
+281,29,Muž,Severozápad,VŠ,Green Progressives,6,2,4,2,2
+282,50,Žena,Praha,ZŠ / bez maturity,Prosumer Households,7,7,2,4,3
+283,39,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,3,10,9,5,9
+284,55,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,2,8,7,1,4
+285,64,Žena,Severovýchod,SŠ s maturitou,Green Progressives,7,4,4,5,8
+286,40,Žena,Praha,SŠ s maturitou,Green Progressives,4,7,3,3,5
+287,33,Žena,Jihozápad,VŠ,Stability Seekers,2,9,6,5,4
+288,21,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,4,5,7,4,9
+289,37,Žena,Severozápad,VŠ,Stability Seekers,3,7,4,4,7
+290,46,Žena,Praha,ZŠ / bez maturity,Prosumer Households,5,7,7,3,4
+291,44,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,7,3,9,3,5
+292,35,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,6,7,8,7,4
+293,57,Žena,Střední Čechy,VŠ,Budget Guarded,5,5,8,4,8
+294,74,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,2,10,8,2,1
+295,54,Muž,Střední Čechy,VŠ,Digital Optimizers,8,7,7,5,7
+296,22,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,4,2,7,8,8
+297,56,Muž,Severovýchod,VŠ,Green Progressives,7,7,7,6,10
+298,58,Muž,Jihovýchod,ZŠ / bez maturity,Budget Guarded,5,4,7,7,5
+299,26,Muž,Praha,SŠ s maturitou,Green Progressives,7,9,2,5,8
+300,40,Žena,Praha,SŠ s maturitou,Stability Seekers,4,4,2,8,3
+301,36,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,1,4,7,6,4
+302,64,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,8,7,6,5,7
+303,24,Žena,Střední Čechy,VŠ,Stability Seekers,5,6,6,1,5
+304,18,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,6,7,5,6,5
+305,20,Muž,Střední Čechy,VŠ,Prosumer Households,6,3,5,4,7
+306,60,Muž,Severozápad,VŠ,Stability Seekers,5,5,6,6,4
+307,18,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,3,5,7,1,6
+308,25,Žena,Severovýchod,ZŠ / bez maturity,Budget Guarded,4,4,8,7,6
+309,33,Muž,Střední Čechy,ZŠ / bez maturity,Budget Guarded,7,6,9,1,7
+310,55,Muž,Severozápad,SŠ s maturitou,Stability Seekers,1,4,5,6,3
+311,49,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,6,8,5,9,8
+312,35,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,3,6,2,4,2
+313,42,Muž,Praha,ZŠ / bez maturity,Green Progressives,8,6,6,5,5
+314,56,Muž,Severovýchod,ZŠ / bez maturity,Budget Guarded,7,6,5,5,6
+315,21,Žena,Praha,SŠ s maturitou,Prosumer Households,7,6,2,5,6
+316,28,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,6,4,5,3,5
+317,58,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,4,7,6,6,2
+318,34,Žena,Praha,SŠ s maturitou,Digital Optimizers,5,2,6,4,3
+319,52,Muž,Střední Čechy,VŠ,Digital Optimizers,3,6,5,4,5
+320,54,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,6,5,2,8,5
+321,26,Žena,Jihovýchod,SŠ s maturitou,Budget Guarded,4,7,6,3,3
+322,68,Muž,Praha,SŠ s maturitou,Digital Optimizers,5,5,6,6,10
+323,65,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,6,6,2,4,3
+324,51,Muž,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,10,10,5,8,8
+325,51,Muž,Severozápad,VŠ,Stability Seekers,6,3,4,6,9
+326,20,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,4,7,3,4,9
+327,45,Muž,Střední Čechy,VŠ,Budget Guarded,6,7,4,6,2
+328,61,Žena,Praha,VŠ,Digital Optimizers,5,4,6,3,1
+329,42,Žena,Praha,ZŠ / bez maturity,Digital Optimizers,3,4,5,5,4
+330,60,Žena,Severovýchod,SŠ s maturitou,Budget Guarded,8,5,6,10,5
+331,53,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,8,5,6,5,3
+332,62,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,5,7,6,6,6
+333,49,Muž,Praha,ZŠ / bez maturity,Stability Seekers,4,7,9,4,6
+334,25,Muž,Střední Čechy,ZŠ / bez maturity,Green Progressives,8,4,4,6,3
+335,45,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,5,5,7,5,9
+336,31,Muž,Severozápad,SŠ s maturitou,Budget Guarded,5,6,4,6,7
+337,47,Muž,Praha,SŠ s maturitou,Stability Seekers,6,7,5,5,3
+338,55,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,1,6,5,5,7
+339,43,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,6,6,3,7,6
+340,33,Muž,Moravskoslezsko,VŠ,Budget Guarded,6,4,6,4,5
+341,74,Muž,Střední Čechy,SŠ s maturitou,Stability Seekers,5,7,5,5,8
+342,36,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,7,1,4,8,6
+343,74,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,3,6,8,5,6
+344,45,Žena,Severozápad,SŠ s maturitou,Stability Seekers,2,5,6,8,9
+345,34,Muž,Jihozápad,VŠ,Green Progressives,6,5,5,5,7
+346,18,Žena,Jihovýchod,ZŠ / bez maturity,Prosumer Households,8,8,5,4,6
+347,72,Muž,Severozápad,SŠ s maturitou,Prosumer Households,7,7,5,6,5
+348,18,Muž,Jihovýchod,ZŠ / bez maturity,Prosumer Households,3,7,5,6,2
+349,60,Muž,Jihovýchod,ZŠ / bez maturity,Budget Guarded,7,6,6,4,3
+350,56,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,3,6,4,5,5
+351,42,Muž,Jihozápad,VŠ,Green Progressives,9,5,7,6,5
+352,39,Žena,Střední Čechy,ZŠ / bez maturity,Budget Guarded,10,8,4,2,4
+353,35,Muž,Moravskoslezsko,VŠ,Prosumer Households,5,7,9,1,5
+354,37,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,8,9,4,3,8
+355,33,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,10,5,10,5,2
+356,34,Muž,Severozápad,SŠ s maturitou,Stability Seekers,7,8,4,5,7
+357,41,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,8,9,9,6,5
+358,49,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,4,4,4,5,9
+359,66,Muž,Jihovýchod,VŠ,Stability Seekers,5,8,8,5,4
+360,30,Žena,Severozápad,ZŠ / bez maturity,Digital Optimizers,2,2,10,7,6
+361,52,Muž,Severozápad,VŠ,Prosumer Households,5,8,6,7,8
+362,38,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,7,5,7,2,6
+363,51,Žena,Severozápad,VŠ,Budget Guarded,5,2,6,7,6
+364,66,Žena,Praha,SŠ s maturitou,Stability Seekers,6,4,2,6,8
+365,38,Muž,Praha,ZŠ / bez maturity,Green Progressives,4,5,8,4,10
+366,44,Muž,Jihozápad,SŠ s maturitou,Digital Optimizers,9,7,6,4,6
+367,61,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,6,6,8,8,5
+368,23,Muž,Praha,SŠ s maturitou,Digital Optimizers,2,6,5,9,1
+369,18,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,7,6,7,5,7
+370,26,Žena,Praha,SŠ s maturitou,Stability Seekers,9,7,9,6,5
+371,26,Žena,Praha,VŠ,Green Progressives,6,7,7,7,8
+372,45,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,10,5,4,7,10
+373,29,Žena,Praha,ZŠ / bez maturity,Prosumer Households,9,3,3,3,4
+374,57,Žena,Praha,VŠ,Budget Guarded,3,7,7,5,7
+375,74,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,7,3,10,8,9
+376,57,Žena,Severovýchod,VŠ,Digital Optimizers,5,5,1,8,6
+377,74,Žena,Jihozápad,SŠ s maturitou,Green Progressives,4,4,1,6,5
+378,33,Muž,Severovýchod,ZŠ / bez maturity,Digital Optimizers,3,7,6,7,9
+379,45,Muž,Moravskoslezsko,VŠ,Digital Optimizers,3,9,5,6,8
+380,44,Žena,Praha,VŠ,Digital Optimizers,7,6,5,7,6
+381,18,Muž,Severozápad,SŠ s maturitou,Stability Seekers,7,6,3,4,3
+382,52,Muž,Praha,SŠ s maturitou,Budget Guarded,4,7,4,5,6
+383,40,Muž,Jihozápad,VŠ,Budget Guarded,6,6,9,2,6
+384,18,Žena,Moravskoslezsko,VŠ,Stability Seekers,6,2,6,3,3
+385,22,Muž,Moravskoslezsko,VŠ,Stability Seekers,7,2,8,2,10
+386,35,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,6,10,4,1,4
+387,51,Žena,Severozápad,VŠ,Budget Guarded,4,9,6,6,6
+388,49,Muž,Severozápad,ZŠ / bez maturity,Digital Optimizers,7,6,6,9,9
+389,42,Muž,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,7,1,10,5,6
+390,43,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,4,6,5,6,6
+391,50,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,6,5,7,7,7
+392,42,Žena,Severozápad,ZŠ / bez maturity,Budget Guarded,5,3,6,4,5
+393,32,Žena,Severozápad,VŠ,Stability Seekers,5,4,9,5,7
+394,53,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,6,4,7,8,9
+395,46,Muž,Jihozápad,SŠ s maturitou,Budget Guarded,5,5,1,4,3
+396,54,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,4,7,8,2,1
+397,61,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,5,7,9,7,5
+398,55,Muž,Jihozápad,SŠ s maturitou,Budget Guarded,7,6,4,6,10
+399,23,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,5,1,7,6,4
+400,38,Muž,Severozápad,SŠ s maturitou,Stability Seekers,7,5,4,8,5
+401,49,Žena,Jihovýchod,SŠ s maturitou,Budget Guarded,9,10,7,4,9
+402,26,Žena,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,7,9,7,8,8
+403,49,Muž,Praha,ZŠ / bez maturity,Prosumer Households,5,7,7,9,6
+404,63,Muž,Moravskoslezsko,VŠ,Prosumer Households,4,6,5,1,4
+405,40,Muž,Praha,SŠ s maturitou,Stability Seekers,4,5,3,2,5
+406,46,Žena,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,2,8,7,2,8
+407,65,Muž,Praha,SŠ s maturitou,Stability Seekers,6,4,2,5,1
+408,35,Muž,Praha,VŠ,Green Progressives,7,4,5,4,5
+409,53,Muž,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,4,4,5,3,5
+410,34,Muž,Severozápad,SŠ s maturitou,Stability Seekers,10,10,2,5,4
+411,42,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,7,7,4,2,8
+412,31,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,8,5,5,5,7
+413,47,Žena,Jihovýchod,SŠ s maturitou,Prosumer Households,2,3,3,5,5
+414,54,Muž,Střední Čechy,SŠ s maturitou,Budget Guarded,5,2,2,6,4
+415,55,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,5,9,7,2,4
+416,30,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,4,3,6,3,8
+417,56,Muž,Praha,ZŠ / bez maturity,Budget Guarded,8,5,4,5,7
+418,35,Muž,Střední Čechy,SŠ s maturitou,Green Progressives,4,6,6,5,10
+419,30,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,7,3,5,2,7
+420,38,Muž,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,7,9,5,6,4
+421,47,Žena,Severozápad,VŠ,Digital Optimizers,8,7,3,5,6
+422,44,Žena,Severozápad,SŠ s maturitou,Green Progressives,8,9,6,8,7
+423,55,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,8,6,2,4,4
+424,29,Muž,Jihozápad,ZŠ / bez maturity,Budget Guarded,2,4,4,1,6
+425,39,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,6,8,3,7,4
+426,54,Žena,Severozápad,SŠ s maturitou,Stability Seekers,7,8,3,5,5
+427,46,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,8,5,8,8,10
+428,51,Muž,Jihozápad,VŠ,Budget Guarded,5,7,1,6,4
+429,48,Muž,Praha,SŠ s maturitou,Prosumer Households,6,3,4,5,7
+430,46,Muž,Jihozápad,ZŠ / bez maturity,Green Progressives,6,5,9,5,8
+431,35,Žena,Severovýchod,ZŠ / bez maturity,Stability Seekers,6,7,4,3,6
+432,29,Žena,Jihovýchod,VŠ,Prosumer Households,5,6,9,2,9
+433,35,Žena,Jihovýchod,ZŠ / bez maturity,Stability Seekers,3,3,5,7,1
+434,32,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,5,6,4,6,8
+435,48,Žena,Severovýchod,ZŠ / bez maturity,Digital Optimizers,6,6,8,8,7
+436,35,Žena,Severozápad,SŠ s maturitou,Green Progressives,5,5,10,5,5
+437,27,Muž,Severozápad,SŠ s maturitou,Stability Seekers,9,4,5,6,8
+438,43,Muž,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,6,10,6,6,5
+439,24,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,9,7,7,6,5
+440,49,Muž,Praha,SŠ s maturitou,Budget Guarded,8,2,5,3,4
+441,21,Muž,Severozápad,SŠ s maturitou,Prosumer Households,8,4,8,6,9
+442,38,Žena,Jihozápad,SŠ s maturitou,Green Progressives,3,7,8,4,6
+443,36,Muž,Severozápad,VŠ,Digital Optimizers,4,9,4,8,2
+444,53,Muž,Severovýchod,VŠ,Stability Seekers,4,5,5,5,7
+445,18,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,6,8,3,5,3
+446,35,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,5,7,5,4,5
+447,56,Muž,Moravskoslezsko,SŠ s maturitou,Prosumer Households,7,6,5,4,6
+448,34,Muž,Severozápad,SŠ s maturitou,Stability Seekers,6,3,6,9,6
+449,35,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,5,6,6,7,7
+450,36,Muž,Severovýchod,VŠ,Green Progressives,7,10,6,3,1
+451,28,Muž,Praha,ZŠ / bez maturity,Green Progressives,7,6,7,4,8
+452,70,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,7,5,7,5,8
+453,56,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,4,6,9,8,9
+454,46,Žena,Praha,SŠ s maturitou,Stability Seekers,8,5,5,9,4
+455,44,Muž,Severovýchod,ZŠ / bez maturity,Budget Guarded,7,9,6,5,6
+456,46,Muž,Jihozápad,ZŠ / bez maturity,Prosumer Households,4,8,3,7,10
+457,60,Žena,Severovýchod,ZŠ / bez maturity,Budget Guarded,4,9,4,3,4
+458,61,Muž,Jihovýchod,VŠ,Prosumer Households,4,9,5,7,5
+459,47,Muž,Severozápad,VŠ,Green Progressives,3,10,5,3,8
+460,38,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,5,4,6,7,5
+461,43,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,8,5,9,4,10
+462,36,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,8,7,6,7,3
+463,58,Muž,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,4,7,1,6,8
+464,44,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,6,7,7,8,8
+465,21,Muž,Severozápad,ZŠ / bez maturity,Digital Optimizers,3,8,2,5,4
+466,56,Žena,Praha,SŠ s maturitou,Stability Seekers,5,8,5,7,5
+467,24,Žena,Střední Čechy,SŠ s maturitou,Stability Seekers,4,4,3,4,7
+468,20,Muž,Severovýchod,VŠ,Digital Optimizers,6,4,4,6,5
+469,57,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,7,7,5,8,7
+470,48,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,3,8,10,6,8
+471,22,Muž,Praha,VŠ,Digital Optimizers,8,7,6,8,7
+472,43,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,2,4,7,5,5
+473,46,Muž,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,6,6,8,7,5
+474,38,Žena,Moravskoslezsko,VŠ,Prosumer Households,5,7,4,8,8
+475,48,Žena,Jihovýchod,VŠ,Stability Seekers,2,7,7,7,6
+476,18,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,5,5,5,10,9
+477,43,Žena,Jihozápad,SŠ s maturitou,Green Progressives,7,5,6,8,8
+478,44,Muž,Severovýchod,VŠ,Budget Guarded,5,6,3,5,8
+479,21,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,7,6,7,7,6
+480,49,Muž,Praha,SŠ s maturitou,Digital Optimizers,8,7,4,4,3
+481,24,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,4,6,5,5,6
+482,53,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,7,4,4,6,8
+483,45,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,4,9,4,4,3
+484,45,Muž,Střední Čechy,VŠ,Digital Optimizers,5,7,8,6,9
+485,39,Muž,Severozápad,VŠ,Prosumer Households,8,2,9,7,9
+486,74,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,4,5,5,6,7
+487,44,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,6,6,5,6,7
+488,20,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,6,6,6,5,4
+489,38,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,4,6,6,9,7
+490,42,Muž,Jihozápad,SŠ s maturitou,Green Progressives,3,6,5,7,9
+491,49,Žena,Jihovýchod,ZŠ / bez maturity,Prosumer Households,6,7,4,6,7
+492,18,Muž,Jihozápad,VŠ,Stability Seekers,7,10,8,5,4
+493,38,Muž,Střední Čechy,VŠ,Prosumer Households,4,7,3,9,8
+494,18,Muž,Jihovýchod,VŠ,Stability Seekers,4,9,5,4,8
+495,28,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,5,8,10,4,5
+496,20,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,6,7,7,4,5
+497,74,Muž,Severovýchod,ZŠ / bez maturity,Digital Optimizers,7,6,3,5,8
+498,66,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,6,7,9,6,5
+499,39,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,5,7,5,1,2
+500,27,Žena,Střední Čechy,SŠ s maturitou,Prosumer Households,6,3,6,3,6
+501,52,Muž,Střední Čechy,SŠ s maturitou,Budget Guarded,4,7,6,9,9
+502,42,Muž,Jihozápad,VŠ,Digital Optimizers,5,9,6,7,6
+503,28,Žena,Severozápad,SŠ s maturitou,Green Progressives,2,9,9,4,3
+504,49,Muž,Praha,ZŠ / bez maturity,Digital Optimizers,7,6,6,5,4
+505,46,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,8,7,8,8,3
+506,49,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,2,5,7,6,5
+507,70,Žena,Střední Čechy,ZŠ / bez maturity,Stability Seekers,1,7,4,3,5
+508,47,Muž,Střední Čechy,ZŠ / bez maturity,Green Progressives,5,6,8,4,5
+509,49,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,3,5,7,5,7
+510,22,Žena,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,4,6,7,2,2
+511,44,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,5,4,6,4,7
+512,37,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,4,6,3,5,5
+513,39,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,7,7,5,2,6
+514,49,Muž,Jihozápad,ZŠ / bez maturity,Prosumer Households,7,6,6,3,5
+515,32,Žena,Střední Čechy,VŠ,Digital Optimizers,5,5,6,3,3
+516,65,Žena,Severovýchod,SŠ s maturitou,Green Progressives,3,5,6,7,7
+517,51,Žena,Moravskoslezsko,VŠ,Digital Optimizers,2,4,6,6,4
+518,18,Žena,Praha,ZŠ / bez maturity,Stability Seekers,9,6,4,6,4
+519,58,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,5,6,8,5,8
+520,29,Muž,Moravskoslezsko,SŠ s maturitou,Prosumer Households,8,3,6,4,2
+521,35,Muž,Praha,ZŠ / bez maturity,Digital Optimizers,7,4,4,9,3
+522,38,Muž,Severovýchod,SŠ s maturitou,Green Progressives,5,4,2,4,3
+523,59,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,5,8,7,10,8
+524,45,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,2,6,7,10,5
+525,39,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,8,4,7,4,8
+526,30,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,8,6,9,5,7
+527,43,Muž,Praha,SŠ s maturitou,Green Progressives,7,2,3,6,5
+528,44,Žena,Praha,SŠ s maturitou,Digital Optimizers,3,6,8,6,1
+529,55,Žena,Praha,SŠ s maturitou,Stability Seekers,5,8,5,6,6
+530,63,Muž,Jihovýchod,VŠ,Green Progressives,5,7,3,6,7
+531,45,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,4,5,4,4,4
+532,25,Muž,Jihozápad,SŠ s maturitou,Green Progressives,6,7,3,3,7
+533,45,Žena,Severovýchod,SŠ s maturitou,Budget Guarded,5,7,7,5,10
+534,63,Muž,Jihovýchod,VŠ,Digital Optimizers,4,8,4,5,5
+535,53,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,2,9,1,5,8
+536,36,Muž,Severovýchod,VŠ,Digital Optimizers,8,4,5,7,6
+537,23,Žena,Praha,ZŠ / bez maturity,Green Progressives,9,5,4,5,8
+538,39,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,9,10,6,6,8
+539,26,Muž,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,5,6,10,6,5
+540,33,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,5,5,6,9,7
+541,48,Žena,Střední Čechy,VŠ,Green Progressives,3,6,7,10,6
+542,54,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,5,4,3,6,8
+543,32,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,8,7,8,3,6
+544,47,Muž,Moravskoslezsko,SŠ s maturitou,Prosumer Households,1,3,7,5,6
+545,53,Žena,Praha,ZŠ / bez maturity,Prosumer Households,1,4,7,8,5
+546,43,Muž,Severozápad,VŠ,Stability Seekers,5,6,8,9,6
+547,58,Žena,Střední Čechy,VŠ,Green Progressives,6,10,7,5,6
+548,51,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,7,5,7,7,7
+549,49,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,8,4,7,6,8
+550,25,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,10,9,5,2,9
+551,64,Žena,Jihozápad,SŠ s maturitou,Green Progressives,6,6,6,1,7
+552,72,Žena,Severozápad,SŠ s maturitou,Green Progressives,2,2,7,7,5
+553,27,Žena,Praha,VŠ,Stability Seekers,6,6,7,4,5
+554,49,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,2,8,8,7,7
+555,67,Muž,Severozápad,VŠ,Digital Optimizers,8,5,6,7,10
+556,31,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,5,8,1,4,6
+557,46,Muž,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,6,7,5,6,6
+558,62,Muž,Praha,VŠ,Prosumer Households,6,10,10,8,8
+559,59,Muž,Jihozápad,VŠ,Digital Optimizers,6,3,8,7,5
+560,18,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,4,3,7,7,6
+561,42,Muž,Severozápad,SŠ s maturitou,Stability Seekers,6,5,2,6,8
+562,33,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,6,8,3,5,6
+563,43,Žena,Severovýchod,ZŠ / bez maturity,Stability Seekers,3,4,7,6,4
+564,47,Muž,Jihovýchod,VŠ,Green Progressives,7,9,6,5,9
+565,46,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,8,6,6,4,2
+566,30,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,2,8,8,3,3
+567,47,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,8,6,2,7,6
+568,29,Muž,Praha,SŠ s maturitou,Stability Seekers,5,5,4,1,4
+569,28,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,3,7,7,7,8
+570,29,Muž,Severozápad,SŠ s maturitou,Green Progressives,6,6,4,5,9
+571,48,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,7,8,6,8,6
+572,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,6,8,6,6,6
+573,45,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,5,5,6,6,4
+574,25,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,7,7,3,5,8
+575,21,Žena,Severovýchod,SŠ s maturitou,Green Progressives,6,3,8,4,9
+576,48,Muž,Jihovýchod,SŠ s maturitou,Budget Guarded,5,6,4,4,8
+577,26,Žena,Severozápad,VŠ,Prosumer Households,7,6,7,6,6
+578,62,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,4,3,6,2,7
+579,34,Muž,Praha,VŠ,Green Progressives,7,7,3,5,7
+580,38,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,4,6,7,7,8
+581,18,Žena,Severozápad,SŠ s maturitou,Budget Guarded,4,7,7,7,9
+582,40,Žena,Severovýchod,SŠ s maturitou,Digital Optimizers,5,5,7,2,7
+583,35,Žena,Severozápad,SŠ s maturitou,Green Progressives,7,4,5,2,4
+584,24,Muž,Jihozápad,VŠ,Stability Seekers,3,8,6,2,7
+585,37,Žena,Praha,ZŠ / bez maturity,Prosumer Households,1,1,6,4,8
+586,50,Žena,Praha,VŠ,Prosumer Households,7,4,7,4,6
+587,48,Muž,Praha,SŠ s maturitou,Green Progressives,5,6,6,6,7
+588,35,Žena,Jihozápad,VŠ,Stability Seekers,6,8,8,8,3
+589,46,Muž,Jihozápad,VŠ,Digital Optimizers,2,6,5,8,4
+590,51,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,7,4,5,6,8
+591,37,Žena,Praha,ZŠ / bez maturity,Digital Optimizers,2,5,7,7,7
+592,48,Žena,Střední Čechy,SŠ s maturitou,Stability Seekers,5,6,7,8,4
+593,49,Žena,Střední Čechy,ZŠ / bez maturity,Stability Seekers,3,4,6,7,6
+594,18,Žena,Severovýchod,SŠ s maturitou,Prosumer Households,9,4,4,7,5
+595,27,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,7,7,2,7,7
+596,49,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,4,9,6,7,9
+597,22,Muž,Severozápad,SŠ s maturitou,Green Progressives,9,9,3,6,6
+598,47,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,3,7,9,7,7
+599,35,Muž,Severozápad,VŠ,Digital Optimizers,3,8,7,1,8
+600,51,Žena,Severozápad,SŠ s maturitou,Green Progressives,9,9,7,3,5
+601,63,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,7,4,3,4,2
+602,54,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,7,7,4,5,5
+603,57,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,4,6,8,5,7
+604,40,Žena,Severozápad,ZŠ / bez maturity,Prosumer Households,7,8,6,7,7
+605,34,Muž,Praha,ZŠ / bez maturity,Green Progressives,8,6,6,10,7
+606,35,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,10,6,5,5,4
+607,18,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,5,4,7,6,4
+608,60,Žena,Severovýchod,VŠ,Digital Optimizers,9,4,6,5,5
+609,58,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,5,5,4,6,6
+610,61,Žena,Severovýchod,SŠ s maturitou,Prosumer Households,6,7,4,6,7
+611,60,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,7,8,6,6,2
+612,38,Muž,Severozápad,VŠ,Budget Guarded,6,7,10,6,5
+613,41,Žena,Severovýchod,SŠ s maturitou,Prosumer Households,6,4,7,3,8
+614,38,Žena,Moravskoslezsko,VŠ,Budget Guarded,7,9,2,7,5
+615,34,Muž,Praha,SŠ s maturitou,Budget Guarded,4,7,3,5,10
+616,61,Žena,Střední Čechy,SŠ s maturitou,Prosumer Households,6,5,3,1,8
+617,54,Žena,Severozápad,SŠ s maturitou,Prosumer Households,3,8,7,5,7
+618,37,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,7,8,7,6,4
+619,62,Žena,Praha,VŠ,Prosumer Households,8,7,9,6,6
+620,55,Žena,Střední Čechy,ZŠ / bez maturity,Prosumer Households,7,8,6,4,5
+621,48,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,7,4,5,4,2
+622,52,Žena,Severovýchod,VŠ,Digital Optimizers,5,10,5,5,6
+623,24,Muž,Severozápad,SŠ s maturitou,Prosumer Households,8,6,5,4,6
+624,26,Muž,Střední Čechy,VŠ,Green Progressives,6,9,6,7,6
+625,36,Žena,Severovýchod,VŠ,Budget Guarded,6,8,5,4,3
+626,33,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,2,4,6,3,1
+627,26,Žena,Praha,SŠ s maturitou,Budget Guarded,5,6,6,6,7
+628,39,Muž,Střední Čechy,VŠ,Digital Optimizers,10,7,10,7,2
+629,61,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,5,6,7,5,4
+630,47,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,5,7,6,3,7
+631,29,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,8,7,6,2,8
+632,50,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,7,3,8,4,7
+633,34,Muž,Jihovýchod,ZŠ / bez maturity,Stability Seekers,8,9,4,6,6
+634,30,Muž,Praha,VŠ,Stability Seekers,3,4,2,6,2
+635,42,Žena,Severovýchod,VŠ,Digital Optimizers,7,9,6,4,7
+636,31,Muž,Severozápad,VŠ,Digital Optimizers,10,4,10,7,4
+637,40,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,3,5,9,4,5
+638,44,Muž,Severozápad,SŠ s maturitou,Green Progressives,4,8,9,2,5
+639,35,Žena,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,4,8,5,9,5
+640,38,Žena,Severozápad,ZŠ / bez maturity,Digital Optimizers,5,6,9,6,5
+641,34,Muž,Střední Čechy,ZŠ / bez maturity,Prosumer Households,6,6,8,7,6
+642,26,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,3,6,2,5,4
+643,74,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,3,7,6,7,2
+644,66,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,5,9,6,7,5
+645,28,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,8,4,5,8,4
+646,18,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,8,7,4,3,3
+647,33,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,7,2,8,4,6
+648,44,Muž,Severovýchod,ZŠ / bez maturity,Prosumer Households,4,7,6,5,5
+649,37,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,4,6,8,6,4
+650,49,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,9,7,6,5,6
+651,31,Žena,Jihovýchod,ZŠ / bez maturity,Prosumer Households,5,7,6,8,5
+652,51,Žena,Severovýchod,SŠ s maturitou,Prosumer Households,5,5,6,5,2
+653,38,Muž,Jihozápad,SŠ s maturitou,Green Progressives,4,6,4,4,8
+654,34,Muž,Moravskoslezsko,SŠ s maturitou,Budget Guarded,6,7,8,7,6
+655,48,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,5,8,4,6,7
+656,43,Muž,Jihozápad,SŠ s maturitou,Budget Guarded,4,6,9,5,3
+657,60,Žena,Praha,ZŠ / bez maturity,Budget Guarded,5,2,2,4,10
+658,39,Žena,Praha,SŠ s maturitou,Green Progressives,5,3,6,5,8
+659,72,Žena,Severozápad,SŠ s maturitou,Prosumer Households,4,10,6,6,4
+660,42,Žena,Severozápad,SŠ s maturitou,Prosumer Households,4,8,9,7,6
+661,46,Muž,Praha,SŠ s maturitou,Prosumer Households,7,7,4,5,7
+662,55,Žena,Severovýchod,VŠ,Budget Guarded,7,5,4,6,3
+663,18,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,5,5,5,6,7
+664,43,Žena,Praha,VŠ,Prosumer Households,3,7,6,4,8
+665,41,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,3,4,8,5,8
+666,62,Muž,Jihozápad,ZŠ / bez maturity,Green Progressives,8,8,9,8,10
+667,18,Žena,Praha,SŠ s maturitou,Stability Seekers,9,7,5,3,4
+668,39,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,2,3,9,6,4
+669,63,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,2,7,9,6,6
+670,41,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,5,9,3,5,6
+671,36,Žena,Střední Čechy,VŠ,Green Progressives,4,10,5,5,7
+672,55,Muž,Severovýchod,ZŠ / bez maturity,Budget Guarded,6,8,5,7,10
+673,46,Žena,Střední Čechy,VŠ,Digital Optimizers,7,3,5,6,3
+674,28,Muž,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,5,3,4,2,7
+675,44,Žena,Praha,ZŠ / bez maturity,Budget Guarded,5,10,7,9,6
+676,48,Muž,Severovýchod,VŠ,Green Progressives,9,5,7,7,5
+677,42,Muž,Praha,SŠ s maturitou,Budget Guarded,7,9,6,6,9
+678,34,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,5,9,7,4,6
+679,48,Žena,Severozápad,ZŠ / bez maturity,Prosumer Households,7,8,7,3,5
+680,32,Muž,Severozápad,VŠ,Green Progressives,9,4,8,7,8
+681,39,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,3,6,8,7,9
+682,22,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,3,10,6,5,7
+683,55,Žena,Střední Čechy,ZŠ / bez maturity,Prosumer Households,3,8,8,5,6
+684,30,Žena,Moravskoslezsko,VŠ,Digital Optimizers,6,5,1,6,6
+685,27,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,5,4,3,4,3
+686,18,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,5,7,9,5,8
+687,44,Žena,Střední Čechy,ZŠ / bez maturity,Stability Seekers,3,7,8,1,4
+688,18,Muž,Severovýchod,VŠ,Stability Seekers,5,8,4,5,6
+689,34,Muž,Severozápad,VŠ,Stability Seekers,5,3,7,6,5
+690,48,Muž,Jihozápad,SŠ s maturitou,Digital Optimizers,6,3,8,5,4
+691,30,Žena,Střední Čechy,ZŠ / bez maturity,Green Progressives,4,6,9,1,6
+692,38,Žena,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,6,8,6,5,9
+693,54,Žena,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,7,10,10,9,4
+694,33,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,5,5,5,5,7
+695,29,Žena,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,4,7,6,6,10
+696,61,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,3,5,8,4,3
+697,52,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,4,7,2,7,5
+698,28,Žena,Severozápad,VŠ,Prosumer Households,3,5,6,4,5
+699,54,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,5,8,8,4,2
+700,41,Žena,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,6,5,9,4,8
+701,25,Muž,Jihozápad,SŠ s maturitou,Green Progressives,7,5,7,5,7
+702,41,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,5,9,1,3,5
+703,19,Žena,Střední Čechy,VŠ,Digital Optimizers,3,9,10,5,4
+704,26,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,7,4,6,4,8
+705,32,Žena,Praha,SŠ s maturitou,Digital Optimizers,3,7,1,2,10
+706,49,Muž,Střední Čechy,VŠ,Prosumer Households,10,6,5,5,5
+707,64,Muž,Severozápad,VŠ,Digital Optimizers,5,9,6,6,7
+708,21,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,4,6,3,6,6
+709,26,Žena,Moravskoslezsko,SŠ s maturitou,Stability Seekers,6,8,6,7,3
+710,40,Muž,Moravskoslezsko,SŠ s maturitou,Budget Guarded,4,7,5,1,8
+711,24,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,5,7,5,5,6
+712,42,Žena,Severovýchod,ZŠ / bez maturity,Digital Optimizers,1,7,6,5,6
+713,31,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,3,9,5,1,1
+714,71,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,7,5,4,2,10
+715,31,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,6,7,3,4,8
+716,32,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,5,5,4,9,5
+717,71,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,3,6,1,5,5
+718,47,Muž,Praha,SŠ s maturitou,Budget Guarded,6,5,5,5,6
+719,45,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,5,9,4,1,2
+720,21,Muž,Praha,ZŠ / bez maturity,Budget Guarded,7,9,6,5,8
+721,46,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,7,1,2,5,3
+722,56,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,5,5,5,2,4
+723,45,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,8,8,5,4,5
+724,59,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,1,5,4,9,7
+725,50,Muž,Střední Čechy,VŠ,Budget Guarded,6,6,7,3,7
+726,41,Žena,Praha,ZŠ / bez maturity,Green Progressives,6,10,3,7,5
+727,31,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,3,3,8,2,4
+728,49,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,10,6,7,8,6
+729,61,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,7,6,6,8,9
+730,22,Žena,Severovýchod,SŠ s maturitou,Digital Optimizers,10,2,5,4,6
+731,36,Žena,Severozápad,VŠ,Green Progressives,6,8,5,2,7
+732,48,Muž,Střední Čechy,VŠ,Budget Guarded,4,7,6,9,5
+733,40,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,3,5,4,6,8
+734,57,Muž,Praha,VŠ,Digital Optimizers,10,3,6,5,6
+735,33,Žena,Severovýchod,SŠ s maturitou,Digital Optimizers,3,7,5,8,8
+736,25,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,5,9,6,8,5
+737,62,Žena,Střední Čechy,ZŠ / bez maturity,Green Progressives,9,8,3,6,10
+738,38,Muž,Praha,ZŠ / bez maturity,Digital Optimizers,5,7,9,9,6
+739,49,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,5,2,3,7,5
+740,60,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,6,4,5,8,5
+741,48,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,3,9,6,1,7
+742,29,Žena,Praha,VŠ,Budget Guarded,8,5,4,8,8
+743,42,Žena,Praha,SŠ s maturitou,Green Progressives,3,2,5,5,6
+744,44,Žena,Jihozápad,ZŠ / bez maturity,Green Progressives,5,8,7,6,5
+745,61,Žena,Jihozápad,VŠ,Prosumer Households,9,6,5,5,6
+746,38,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,5,6,6,8,4
+747,48,Muž,Moravskoslezsko,VŠ,Prosumer Households,8,4,7,3,7
+748,40,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,4,10,5,3,5
+749,45,Muž,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,9,5,6,3,9
+750,52,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,4,7,10,6,6
+751,21,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,1,3,9,6,4
+752,49,Muž,Jihozápad,SŠ s maturitou,Green Progressives,7,10,3,8,3
+753,35,Žena,Moravskoslezsko,VŠ,Stability Seekers,5,5,6,7,2
+754,49,Žena,Severozápad,SŠ s maturitou,Stability Seekers,4,7,7,10,9
+755,47,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,6,9,5,4,7
+756,46,Žena,Severovýchod,SŠ s maturitou,Digital Optimizers,9,4,4,5,6
+757,68,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,2,7,4,2,7
+758,41,Žena,Moravskoslezsko,VŠ,Stability Seekers,8,6,3,4,6
+759,28,Muž,Severovýchod,VŠ,Green Progressives,7,6,4,2,8
+760,56,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,7,5,8,5,5
+761,42,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,4,1,10,9,10
+762,18,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,4,9,5,10,1
+763,45,Žena,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,8,8,7,3,2
+764,40,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,3,8,3,5,3
+765,26,Žena,Severozápad,SŠ s maturitou,Prosumer Households,6,5,8,8,8
+766,41,Muž,Jihozápad,VŠ,Prosumer Households,10,6,6,5,6
+767,30,Muž,Praha,SŠ s maturitou,Prosumer Households,5,7,4,3,5
+768,49,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,1,4,6,7,5
+769,32,Žena,Praha,SŠ s maturitou,Stability Seekers,4,7,8,7,7
+770,35,Muž,Severovýchod,ZŠ / bez maturity,Prosumer Households,6,6,7,5,9
+771,44,Žena,Severovýchod,ZŠ / bez maturity,Green Progressives,4,8,5,6,8
+772,35,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,4,4,1,7,4
+773,50,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,5,5,7,7,6
+774,74,Muž,Jihozápad,VŠ,Prosumer Households,7,6,2,8,6
+775,47,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,6,6,8,8,5
+776,43,Žena,Praha,VŠ,Budget Guarded,4,3,7,3,9
+777,50,Muž,Severozápad,ZŠ / bez maturity,Budget Guarded,5,9,5,1,5
+778,65,Muž,Praha,SŠ s maturitou,Prosumer Households,6,6,5,6,5
+779,33,Žena,Praha,ZŠ / bez maturity,Green Progressives,2,10,5,4,5
+780,57,Muž,Jihovýchod,VŠ,Green Progressives,3,8,5,3,10
+781,47,Žena,Severozápad,SŠ s maturitou,Green Progressives,9,6,7,5,2
+782,33,Žena,Praha,ZŠ / bez maturity,Digital Optimizers,2,5,4,5,10
+783,32,Žena,Severovýchod,VŠ,Budget Guarded,9,6,4,7,3
+784,26,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,7,2,2,6,5
+785,41,Žena,Severozápad,VŠ,Digital Optimizers,5,4,10,1,8
+786,41,Žena,Severozápad,SŠ s maturitou,Budget Guarded,3,6,7,4,6
+787,62,Žena,Střední Čechy,VŠ,Digital Optimizers,7,5,5,5,2
+788,47,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,3,8,7,7,7
+789,37,Muž,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,3,8,7,6,7
+790,55,Žena,Střední Čechy,SŠ s maturitou,Prosumer Households,6,7,8,2,5
+791,34,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,4,6,2,6,6
+792,19,Žena,Moravskoslezsko,VŠ,Digital Optimizers,7,7,6,2,5
+793,26,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,3,3,5,6,5
+794,34,Muž,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,7,5,8,5,5
+795,49,Muž,Střední Čechy,VŠ,Budget Guarded,8,8,9,9,6
+796,26,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,4,6,3,6,9
+797,40,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,8,7,7,5,7
+798,38,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,5,10,6,3,4
+799,23,Muž,Moravskoslezsko,SŠ s maturitou,Prosumer Households,6,6,5,6,6
+800,29,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,2,10,7,7,7
+801,47,Muž,Praha,SŠ s maturitou,Green Progressives,6,7,10,6,3
+802,59,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,4,5,5,5,3
+803,49,Žena,Severovýchod,SŠ s maturitou,Budget Guarded,6,8,5,6,7
+804,18,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,5,8,4,1,4
+805,35,Žena,Praha,ZŠ / bez maturity,Digital Optimizers,5,4,5,5,4
+806,35,Muž,Moravskoslezsko,SŠ s maturitou,Budget Guarded,8,7,4,5,9
+807,35,Žena,Severovýchod,ZŠ / bez maturity,Digital Optimizers,6,7,5,7,8
+808,51,Žena,Střední Čechy,ZŠ / bez maturity,Green Progressives,4,8,6,4,2
+809,18,Žena,Severozápad,ZŠ / bez maturity,Digital Optimizers,3,3,2,4,4
+810,45,Muž,Střední Čechy,VŠ,Budget Guarded,3,6,7,2,6
+811,18,Muž,Severovýchod,VŠ,Digital Optimizers,7,1,3,5,5
+812,34,Žena,Severozápad,ZŠ / bez maturity,Digital Optimizers,6,8,6,7,4
+813,44,Žena,Moravskoslezsko,VŠ,Stability Seekers,6,4,4,7,4
+814,48,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,4,10,8,4,6
+815,74,Muž,Severovýchod,SŠ s maturitou,Green Progressives,4,2,3,4,7
+816,27,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,5,7,6,6,2
+817,54,Žena,Praha,SŠ s maturitou,Prosumer Households,8,6,8,7,6
+818,29,Žena,Praha,SŠ s maturitou,Prosumer Households,6,8,7,7,2
+819,53,Muž,Severozápad,ZŠ / bez maturity,Stability Seekers,3,6,6,5,6
+820,51,Muž,Severozápad,ZŠ / bez maturity,Stability Seekers,5,7,8,7,3
+821,18,Muž,Moravskoslezsko,VŠ,Stability Seekers,3,7,7,6,8
+822,31,Muž,Severozápad,ZŠ / bez maturity,Budget Guarded,3,9,8,8,7
+823,19,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,8,3,7,1,6
+824,26,Muž,Praha,VŠ,Prosumer Households,9,10,8,6,5
+825,63,Žena,Praha,VŠ,Prosumer Households,7,7,6,6,5
+826,53,Žena,Severozápad,SŠ s maturitou,Stability Seekers,7,8,5,2,10
+827,18,Žena,Severozápad,VŠ,Stability Seekers,8,7,4,3,10
+828,18,Muž,Praha,SŠ s maturitou,Stability Seekers,6,4,5,7,3
+829,18,Muž,Severovýchod,SŠ s maturitou,Green Progressives,5,8,2,9,5
+830,37,Žena,Jihovýchod,VŠ,Green Progressives,7,8,7,6,7
+831,50,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,5,5,4,9,8
+832,40,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,2,8,6,8,2
+833,29,Muž,Jihozápad,SŠ s maturitou,Digital Optimizers,4,5,7,7,4
+834,18,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,8,7,9,6,8
+835,47,Muž,Severovýchod,VŠ,Digital Optimizers,2,6,3,8,9
+836,36,Žena,Severovýchod,VŠ,Prosumer Households,8,2,6,3,8
+837,68,Žena,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,3,2,5,7,6
+838,26,Žena,Severovýchod,SŠ s maturitou,Digital Optimizers,8,5,7,1,4
+839,28,Žena,Severozápad,VŠ,Budget Guarded,2,4,4,1,2
+840,47,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,4,4,4,4,3
+841,42,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,4,6,10,6,6
+842,38,Muž,Jihovýchod,SŠ s maturitou,Budget Guarded,10,10,5,7,7
+843,53,Muž,Jihozápad,SŠ s maturitou,Budget Guarded,2,6,5,5,4
+844,45,Muž,Severozápad,SŠ s maturitou,Stability Seekers,5,6,1,7,7
+845,36,Muž,Praha,VŠ,Digital Optimizers,7,4,6,6,6
+846,21,Žena,Střední Čechy,VŠ,Digital Optimizers,7,7,7,4,6
+847,27,Žena,Střední Čechy,SŠ s maturitou,Prosumer Households,9,5,6,5,7
+848,53,Žena,Jihozápad,VŠ,Prosumer Households,6,7,1,8,9
+849,19,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,8,5,5,2,2
+850,49,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,7,5,9,7,3
+851,46,Muž,Střední Čechy,VŠ,Prosumer Households,6,7,7,6,6
+852,41,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,5,5,7,4,2
+853,22,Žena,Severovýchod,SŠ s maturitou,Digital Optimizers,6,6,4,8,9
+854,49,Muž,Moravskoslezsko,VŠ,Stability Seekers,6,5,9,5,5
+855,49,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,4,5,4,5,4
+856,18,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,10,5,6,8,8
+857,46,Muž,Moravskoslezsko,VŠ,Green Progressives,7,8,8,3,4
+858,28,Muž,Praha,SŠ s maturitou,Prosumer Households,7,4,5,5,4
+859,37,Muž,Severovýchod,VŠ,Stability Seekers,6,7,3,4,4
+860,58,Muž,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,6,3,7,7,10
+861,55,Muž,Jihozápad,VŠ,Budget Guarded,3,4,6,6,4
+862,33,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,5,2,5,7,7
+863,49,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,5,7,6,7,5
+864,36,Muž,Jihozápad,ZŠ / bez maturity,Digital Optimizers,4,2,4,6,5
+865,48,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,4,4,5,8,9
+866,47,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,6,7,5,6,7
+867,26,Muž,Střední Čechy,SŠ s maturitou,Green Progressives,8,7,5,2,9
+868,43,Žena,Jihovýchod,VŠ,Stability Seekers,7,4,7,8,1
+869,33,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,6,9,7,1,5
+870,37,Muž,Severozápad,SŠ s maturitou,Budget Guarded,6,7,7,4,9
+871,20,Muž,Severovýchod,VŠ,Stability Seekers,2,8,5,6,6
+872,19,Muž,Praha,VŠ,Stability Seekers,3,9,6,4,3
+873,26,Muž,Praha,ZŠ / bez maturity,Budget Guarded,7,4,5,1,5
+874,27,Muž,Střední Čechy,SŠ s maturitou,Budget Guarded,9,7,5,6,8
+875,32,Muž,Jihovýchod,SŠ s maturitou,Budget Guarded,3,6,8,1,7
+876,18,Žena,Praha,ZŠ / bez maturity,Stability Seekers,5,6,5,3,7
+877,27,Žena,Praha,VŠ,Digital Optimizers,6,6,4,5,7
+878,48,Muž,Jihozápad,SŠ s maturitou,Budget Guarded,6,9,4,2,4
+879,32,Žena,Střední Čechy,VŠ,Green Progressives,7,4,8,6,5
+880,28,Muž,Praha,SŠ s maturitou,Stability Seekers,5,10,4,6,9
+881,53,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,3,7,3,5,7
+882,26,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,5,5,5,6,5
+883,55,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,7,7,5,5,6
+884,47,Muž,Praha,SŠ s maturitou,Digital Optimizers,8,7,6,10,7
+885,58,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,3,8,3,6,5
+886,58,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,4,6,6,6,5
+887,50,Muž,Střední Čechy,VŠ,Prosumer Households,4,6,5,7,7
+888,32,Muž,Moravskoslezsko,VŠ,Digital Optimizers,5,9,8,1,4
+889,19,Muž,Severovýchod,ZŠ / bez maturity,Prosumer Households,5,4,5,3,8
+890,30,Žena,Střední Čechy,VŠ,Digital Optimizers,5,5,3,6,8
+891,44,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,4,4,6,4,10
+892,37,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,7,7,7,10,6
+893,47,Muž,Severozápad,SŠ s maturitou,Green Progressives,3,3,4,5,7
+894,18,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,7,7,3,6,5
+895,41,Muž,Praha,VŠ,Stability Seekers,7,6,8,9,2
+896,19,Muž,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,6,8,3,5,6
+897,46,Muž,Jihozápad,VŠ,Stability Seekers,6,4,6,9,7
+898,56,Muž,Moravskoslezsko,VŠ,Budget Guarded,2,5,5,1,4
+899,38,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,3,5,5,8,6
+900,49,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,6,10,6,5,8
+901,27,Muž,Severovýchod,SŠ s maturitou,Green Progressives,4,5,6,5,1
+902,74,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,6,9,5,6,5
+903,48,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,3,10,2,7,1
+904,18,Muž,Severozápad,ZŠ / bez maturity,Budget Guarded,5,9,2,3,6
+905,50,Muž,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,8,5,4,5,7
+906,44,Muž,Praha,SŠ s maturitou,Prosumer Households,6,6,6,9,4
+907,38,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,4,6,6,5,5
+908,48,Muž,Moravskoslezsko,VŠ,Green Progressives,4,6,5,4,7
+909,32,Muž,Jihozápad,VŠ,Budget Guarded,7,8,7,3,8
+910,45,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,9,5,8,7,9
+911,29,Muž,Praha,ZŠ / bez maturity,Budget Guarded,7,6,3,9,3
+912,35,Muž,Jihozápad,ZŠ / bez maturity,Digital Optimizers,5,5,4,6,9
+913,44,Muž,Jihozápad,VŠ,Digital Optimizers,2,7,6,6,5
+914,55,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,6,3,3,3,5
+915,41,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,3,6,9,5,6
+916,18,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,5,7,8,8,5
+917,48,Muž,Moravskoslezsko,SŠ s maturitou,Prosumer Households,5,7,8,2,2
+918,54,Žena,Jihovýchod,VŠ,Stability Seekers,6,4,6,6,4
+919,34,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,6,6,5,3,3
+920,35,Žena,Severovýchod,SŠ s maturitou,Digital Optimizers,5,5,6,7,6
+921,29,Muž,Střední Čechy,SŠ s maturitou,Budget Guarded,5,4,3,8,8
+922,41,Žena,Moravskoslezsko,VŠ,Prosumer Households,7,9,5,8,7
+923,49,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,3,5,6,6,4
+924,57,Muž,Severozápad,SŠ s maturitou,Budget Guarded,6,7,7,5,6
+925,35,Muž,Střední Čechy,SŠ s maturitou,Green Progressives,7,5,5,4,4
+926,47,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,3,6,4,7,8
+927,40,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,6,9,7,5,7
+928,48,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,10,2,6,2,6
+929,44,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,3,6,6,4,7
+930,24,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,6,5,4,4,6
+931,32,Žena,Severozápad,ZŠ / bez maturity,Digital Optimizers,7,7,7,6,6
+932,30,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,4,5,4,6,7
+933,43,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,5,5,9,6,6
+934,52,Žena,Praha,SŠ s maturitou,Budget Guarded,7,8,8,10,2
+935,53,Žena,Střední Čechy,VŠ,Prosumer Households,6,5,5,4,6
+936,69,Žena,Praha,VŠ,Prosumer Households,5,6,6,5,5
+937,27,Muž,Jihozápad,SŠ s maturitou,Budget Guarded,2,9,3,6,6
+938,50,Muž,Severovýchod,SŠ s maturitou,Green Progressives,5,3,4,8,6
+939,37,Muž,Jihovýchod,ZŠ / bez maturity,Prosumer Households,4,7,6,5,3
+940,53,Žena,Severozápad,SŠ s maturitou,Green Progressives,8,4,3,6,7
+941,42,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,9,6,3,8,3
+942,62,Žena,Jihozápad,VŠ,Digital Optimizers,7,5,6,6,3
+943,52,Muž,Střední Čechy,ZŠ / bez maturity,Green Progressives,7,7,3,6,6
+944,51,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,3,7,3,3,6
+945,40,Žena,Moravskoslezsko,VŠ,Green Progressives,4,5,8,7,4
+946,48,Muž,Praha,VŠ,Budget Guarded,6,10,6,9,6
+947,39,Muž,Severozápad,ZŠ / bez maturity,Budget Guarded,5,4,9,4,2
+948,48,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,7,8,6,5,5
+949,60,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,7,7,5,4,6
+950,23,Muž,Praha,SŠ s maturitou,Stability Seekers,5,7,5,4,3
+951,28,Muž,Střední Čechy,VŠ,Digital Optimizers,7,4,5,8,4
+952,29,Žena,Jihozápad,ZŠ / bez maturity,Green Progressives,3,7,6,7,4
+953,74,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,5,6,3,1,7
+954,65,Žena,Jihovýchod,SŠ s maturitou,Prosumer Households,6,7,4,6,10
+955,59,Žena,Severovýchod,SŠ s maturitou,Green Progressives,6,9,7,7,7
+956,45,Muž,Severozápad,SŠ s maturitou,Budget Guarded,7,8,6,3,8
+957,50,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,3,7,6,6,7
+958,52,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,3,2,9,5,6
+959,50,Žena,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,7,7,5,7,6
+960,37,Žena,Praha,SŠ s maturitou,Budget Guarded,4,3,5,9,7
+961,39,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,5,5,7,6,7
+962,37,Muž,Moravskoslezsko,VŠ,Budget Guarded,7,10,9,7,6
+963,41,Žena,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,5,3,5,7,1
+964,48,Žena,Jihozápad,VŠ,Green Progressives,3,5,10,3,8
+965,47,Žena,Severovýchod,VŠ,Stability Seekers,8,9,5,1,6
+966,35,Muž,Praha,VŠ,Digital Optimizers,6,9,5,5,5
+967,55,Muž,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,3,9,6,6,8
+968,48,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,5,9,7,5,6
+969,40,Žena,Střední Čechy,VŠ,Budget Guarded,5,8,10,2,4
+970,18,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,8,10,2,2,3
+971,31,Muž,Jihovýchod,ZŠ / bez maturity,Budget Guarded,3,7,3,5,7
+972,47,Muž,Severozápad,VŠ,Budget Guarded,5,7,7,5,4
+973,60,Muž,Severovýchod,SŠ s maturitou,Green Progressives,7,5,5,1,8
+974,52,Žena,Severovýchod,ZŠ / bez maturity,Prosumer Households,7,5,7,2,6
+975,57,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,3,4,6,3,3
+976,37,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,4,7,6,5,7
+977,44,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,9,6,4,4,7
+978,56,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,2,6,5,3,8
+979,47,Muž,Severozápad,ZŠ / bez maturity,Budget Guarded,9,5,3,5,8
+980,57,Žena,Střední Čechy,ZŠ / bez maturity,Prosumer Households,7,3,4,5,6
+981,36,Muž,Severozápad,SŠ s maturitou,Prosumer Households,9,5,6,3,5
+982,41,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,4,3,7,6,9
+983,30,Žena,Střední Čechy,SŠ s maturitou,Stability Seekers,2,7,2,4,5
+984,22,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,6,7,8,9,6
+985,41,Muž,Střední Čechy,VŠ,Digital Optimizers,6,4,7,4,4
+986,68,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,2,7,3,8,3
+987,18,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,5,6,4,7,6
+988,44,Žena,Jihozápad,SŠ s maturitou,Green Progressives,4,4,7,6,4
+989,20,Muž,Jihozápad,SŠ s maturitou,Stability Seekers,7,6,9,3,5
+990,43,Žena,Praha,SŠ s maturitou,Budget Guarded,4,5,5,4,5
+991,44,Žena,Severozápad,VŠ,Green Progressives,8,9,4,4,6
+992,18,Muž,Severozápad,SŠ s maturitou,Green Progressives,5,5,5,6,6
+993,20,Žena,Moravskoslezsko,VŠ,Digital Optimizers,4,7,9,5,5
+994,32,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,3,4,8,7,4
+995,55,Žena,Praha,ZŠ / bez maturity,Prosumer Households,6,8,9,6,7
+996,55,Žena,Praha,SŠ s maturitou,Stability Seekers,8,4,7,5,9
+997,33,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,4,6,5,4,4
+998,37,Muž,Jihozápad,SŠ s maturitou,Green Progressives,7,4,6,6,6
+999,46,Žena,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,6,6,4,5,7
+1000,74,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,7,6,6,8,7
+1001,61,Muž,Jihozápad,ZŠ / bez maturity,Digital Optimizers,5,2,3,5,5
+1002,44,Muž,Jihovýchod,VŠ,Green Progressives,3,8,7,6,4
+1003,36,Muž,Jihozápad,ZŠ / bez maturity,Prosumer Households,6,7,3,6,8
+1004,44,Žena,Jihozápad,VŠ,Budget Guarded,6,4,9,7,4
+1005,27,Žena,Jihozápad,VŠ,Green Progressives,5,6,4,4,6
+1006,50,Žena,Severovýchod,ZŠ / bez maturity,Green Progressives,2,9,8,6,5
+1007,45,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,4,3,6,8,6
+1008,72,Muž,Moravskoslezsko,SŠ s maturitou,Prosumer Households,4,5,9,3,9
+1009,53,Muž,Jihozápad,VŠ,Digital Optimizers,9,6,4,6,7
+1010,44,Muž,Moravskoslezsko,SŠ s maturitou,Budget Guarded,7,3,7,7,4
+1011,34,Muž,Severozápad,SŠ s maturitou,Budget Guarded,5,6,5,4,9
+1012,25,Muž,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,3,10,5,6,5
+1013,30,Žena,Severozápad,VŠ,Stability Seekers,6,8,7,4,6
+1014,54,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,7,3,4,5,5
+1015,61,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,7,4,5,7,8
+1016,34,Muž,Severozápad,VŠ,Digital Optimizers,6,5,5,7,8
+1017,47,Muž,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,3,3,4,2,8
+1018,61,Muž,Střední Čechy,ZŠ / bez maturity,Green Progressives,5,6,6,4,6
+1019,30,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,8,3,6,4,7
+1020,45,Žena,Jihozápad,SŠ s maturitou,Green Progressives,5,4,7,5,9
+1021,54,Muž,Severozápad,VŠ,Prosumer Households,1,10,5,5,6
+1022,43,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,6,4,4,9,3
+1023,52,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,1,7,7,8,6
+1024,33,Žena,Moravskoslezsko,VŠ,Budget Guarded,6,4,3,5,4
+1025,23,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,5,3,10,4,4
+1026,41,Žena,Severovýchod,ZŠ / bez maturity,Green Progressives,6,8,7,4,5
+1027,49,Žena,Moravskoslezsko,VŠ,Prosumer Households,3,5,7,8,9
+1028,52,Žena,Praha,VŠ,Budget Guarded,3,8,3,8,5
+1029,45,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,6,10,7,9,8
+1030,51,Muž,Praha,VŠ,Digital Optimizers,1,6,6,7,4
+1031,30,Muž,Praha,VŠ,Digital Optimizers,7,10,5,5,10
+1032,36,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,6,6,1,4,5
+1033,18,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,6,7,4,3,7
+1034,59,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,5,3,5,7,7
+1035,32,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,7,4,7,9,8
+1036,32,Žena,Střední Čechy,VŠ,Digital Optimizers,4,7,6,4,2
+1037,40,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,8,4,5,3,5
+1038,45,Žena,Praha,SŠ s maturitou,Prosumer Households,6,6,6,7,4
+1039,61,Muž,Jihovýchod,ZŠ / bez maturity,Prosumer Households,6,4,9,3,8
+1040,34,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,6,5,1,5,4
+1041,50,Žena,Jihozápad,VŠ,Budget Guarded,2,6,6,4,7
+1042,18,Žena,Jihozápad,VŠ,Green Progressives,6,7,5,4,7
+1043,18,Žena,Střední Čechy,ZŠ / bez maturity,Green Progressives,5,6,4,7,6
+1044,33,Žena,Jihovýchod,VŠ,Prosumer Households,8,6,10,6,7
+1045,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,8,10,6,6,8
+1046,47,Žena,Jihovýchod,VŠ,Stability Seekers,5,6,8,5,7
+1047,39,Muž,Jihovýchod,VŠ,Digital Optimizers,10,7,5,8,5
+1048,59,Žena,Střední Čechy,ZŠ / bez maturity,Stability Seekers,6,6,4,4,7
+1049,55,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,6,7,8,8,7
+1050,41,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,8,6,9,7,4
+1051,47,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,3,4,8,5,6
+1052,59,Muž,Střední Čechy,VŠ,Prosumer Households,6,7,5,3,7
+1053,30,Žena,Jihovýchod,VŠ,Budget Guarded,4,6,8,8,7
+1054,46,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,5,5,5,4,6
+1055,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,6,9,8,5,6
+1056,50,Muž,Jihovýchod,ZŠ / bez maturity,Green Progressives,9,5,4,5,3
+1057,55,Žena,Jihovýchod,VŠ,Stability Seekers,6,5,8,4,6
+1058,37,Muž,Jihozápad,VŠ,Stability Seekers,8,9,4,5,7
+1059,23,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,4,8,7,10,7
+1060,47,Muž,Jihozápad,VŠ,Digital Optimizers,4,5,6,2,5
+1061,44,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,7,5,6,5,5
+1062,39,Muž,Severovýchod,VŠ,Green Progressives,6,10,8,7,4
+1063,25,Muž,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,5,6,6,6,5
+1064,18,Žena,Severozápad,ZŠ / bez maturity,Prosumer Households,9,8,6,9,5
+1065,43,Muž,Střední Čechy,ZŠ / bez maturity,Green Progressives,8,5,5,7,7
+1066,24,Muž,Střední Čechy,ZŠ / bez maturity,Budget Guarded,4,7,6,1,6
+1067,46,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,5,5,8,5,1
+1068,38,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,7,6,6,7,5
+1069,36,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,1,7,2,5,9
+1070,43,Žena,Jihovýchod,ZŠ / bez maturity,Stability Seekers,7,7,6,8,10
+1071,46,Muž,Praha,ZŠ / bez maturity,Green Progressives,7,9,7,5,8
+1072,52,Muž,Střední Čechy,VŠ,Stability Seekers,3,7,5,6,10
+1073,23,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,8,5,4,7,3
+1074,67,Žena,Jihovýchod,SŠ s maturitou,Budget Guarded,6,5,6,6,5
+1075,31,Muž,Severozápad,VŠ,Digital Optimizers,4,8,5,4,7
+1076,39,Muž,Praha,SŠ s maturitou,Stability Seekers,6,5,2,9,2
+1077,64,Muž,Střední Čechy,SŠ s maturitou,Stability Seekers,1,5,5,7,8
+1078,66,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,7,5,5,7,9
+1079,33,Muž,Střední Čechy,SŠ s maturitou,Budget Guarded,1,6,6,3,5
+1080,36,Žena,Střední Čechy,ZŠ / bez maturity,Budget Guarded,7,8,10,5,1
+1081,29,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,6,3,6,3,7
+1082,26,Žena,Severovýchod,SŠ s maturitou,Budget Guarded,10,9,5,6,6
+1083,27,Žena,Severovýchod,SŠ s maturitou,Green Progressives,1,6,7,1,6
+1084,18,Žena,Jihovýchod,ZŠ / bez maturity,Stability Seekers,8,6,6,6,8
+1085,41,Žena,Severozápad,ZŠ / bez maturity,Prosumer Households,5,7,8,3,7
+1086,26,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,6,6,8,8,5
+1087,50,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,6,5,4,6,8
+1088,26,Žena,Praha,ZŠ / bez maturity,Budget Guarded,4,7,5,6,7
+1089,42,Muž,Severovýchod,VŠ,Stability Seekers,7,7,5,6,3
+1090,26,Žena,Severovýchod,VŠ,Budget Guarded,3,9,5,7,4
+1091,30,Žena,Severozápad,ZŠ / bez maturity,Prosumer Households,4,4,9,3,8
+1092,18,Muž,Jihozápad,VŠ,Prosumer Households,4,8,2,5,5
+1093,19,Muž,Severozápad,SŠ s maturitou,Stability Seekers,8,4,9,9,6
+1094,39,Žena,Severozápad,SŠ s maturitou,Budget Guarded,5,5,2,7,2
+1095,45,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,5,7,7,3,5
+1096,52,Žena,Střední Čechy,VŠ,Stability Seekers,2,6,9,5,8
+1097,59,Muž,Praha,SŠ s maturitou,Prosumer Households,6,3,6,5,6
+1098,52,Muž,Praha,SŠ s maturitou,Budget Guarded,5,4,7,7,6
+1099,42,Žena,Severozápad,VŠ,Green Progressives,4,4,6,5,6
+1100,49,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,7,8,7,6,5
+1101,30,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,6,10,5,3,10
+1102,37,Muž,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,5,6,7,9,7
+1103,69,Muž,Severozápad,VŠ,Prosumer Households,6,5,5,8,4
+1104,39,Muž,Jihozápad,VŠ,Budget Guarded,2,5,6,2,6
+1105,57,Muž,Moravskoslezsko,SŠ s maturitou,Green Progressives,8,6,5,7,6
+1106,33,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,2,10,5,5,5
+1107,45,Žena,Jihovýchod,SŠ s maturitou,Prosumer Households,2,3,8,7,2
+1108,54,Žena,Praha,ZŠ / bez maturity,Prosumer Households,3,6,5,5,8
+1109,59,Žena,Jihozápad,SŠ s maturitou,Digital Optimizers,7,3,3,7,3
+1110,34,Muž,Moravskoslezsko,VŠ,Prosumer Households,5,3,6,6,10
+1111,35,Žena,Jihovýchod,ZŠ / bez maturity,Digital Optimizers,4,6,8,3,2
+1112,47,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,4,5,8,4,3
+1113,39,Žena,Střední Čechy,VŠ,Budget Guarded,8,6,4,4,8
+1114,32,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,4,10,5,5,6
+1115,52,Žena,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,5,8,10,5,4
+1116,36,Žena,Praha,ZŠ / bez maturity,Budget Guarded,8,4,5,5,9
+1117,28,Muž,Moravskoslezsko,VŠ,Digital Optimizers,4,7,7,7,3
+1118,62,Žena,Střední Čechy,VŠ,Digital Optimizers,8,10,3,4,5
+1119,59,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,3,8,4,6,5
+1120,37,Muž,Severozápad,SŠ s maturitou,Green Progressives,5,3,4,4,6
+1121,49,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,5,7,7,5,8
+1122,21,Muž,Praha,VŠ,Digital Optimizers,6,8,9,5,3
+1123,21,Muž,Jihovýchod,SŠ s maturitou,Digital Optimizers,6,5,4,3,5
+1124,31,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,5,7,1,5,6
+1125,27,Muž,Střední Čechy,ZŠ / bez maturity,Budget Guarded,7,10,6,4,5
+1126,47,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,9,5,5,4,5
+1127,42,Žena,Severovýchod,SŠ s maturitou,Green Progressives,5,8,4,5,7
+1128,50,Žena,Střední Čechy,SŠ s maturitou,Prosumer Households,8,7,3,1,2
+1129,57,Muž,Severovýchod,VŠ,Stability Seekers,7,7,4,8,9
+1130,49,Muž,Jihovýchod,VŠ,Budget Guarded,8,7,5,3,6
+1131,22,Žena,Severovýchod,ZŠ / bez maturity,Green Progressives,3,6,5,7,5
+1132,26,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,5,5,8,5,3
+1133,35,Žena,Severozápad,VŠ,Stability Seekers,5,6,6,5,5
+1134,44,Žena,Severovýchod,SŠ s maturitou,Prosumer Households,1,6,5,9,5
+1135,46,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,3,7,5,6,4
+1136,51,Žena,Severovýchod,VŠ,Budget Guarded,3,9,6,5,9
+1137,42,Žena,Střední Čechy,ZŠ / bez maturity,Stability Seekers,4,4,5,5,7
+1138,23,Muž,Střední Čechy,SŠ s maturitou,Stability Seekers,2,4,8,6,6
+1139,18,Muž,Jihovýchod,ZŠ / bez maturity,Stability Seekers,7,5,8,6,6
+1140,32,Muž,Severozápad,SŠ s maturitou,Prosumer Households,5,6,7,4,4
+1141,50,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,8,6,5,8,5
+1142,35,Žena,Jihovýchod,VŠ,Budget Guarded,5,4,2,3,6
+1143,41,Muž,Jihovýchod,SŠ s maturitou,Budget Guarded,3,6,5,4,9
+1144,32,Žena,Praha,ZŠ / bez maturity,Stability Seekers,3,5,9,7,4
+1145,28,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,4,4,6,6,8
+1146,45,Muž,Jihovýchod,VŠ,Stability Seekers,3,5,5,4,6
+1147,59,Muž,Střední Čechy,ZŠ / bez maturity,Prosumer Households,1,7,7,7,5
+1148,47,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,8,3,4,6,5
+1149,42,Muž,Praha,SŠ s maturitou,Stability Seekers,8,7,1,6,4
+1150,66,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,5,3,7,6,6
+1151,62,Žena,Praha,ZŠ / bez maturity,Green Progressives,6,5,4,3,8
+1152,45,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,2,7,7,5,8
+1153,29,Žena,Střední Čechy,ZŠ / bez maturity,Green Progressives,7,5,8,6,8
+1154,54,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,6,4,10,7,7
+1155,57,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,7,4,2,1,5
+1156,20,Žena,Praha,ZŠ / bez maturity,Prosumer Households,8,5,3,9,6
+1157,21,Muž,Moravskoslezsko,VŠ,Prosumer Households,2,5,7,8,5
+1158,58,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,9,6,4,5,10
+1159,35,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,3,7,5,6,4
+1160,18,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,9,8,1,8,8
+1161,18,Žena,Severovýchod,ZŠ / bez maturity,Stability Seekers,4,5,2,7,4
+1162,57,Muž,Severovýchod,ZŠ / bez maturity,Digital Optimizers,7,6,4,7,3
+1163,32,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,6,7,7,4,4
+1164,35,Žena,Praha,ZŠ / bez maturity,Digital Optimizers,2,7,8,3,4
+1165,38,Žena,Severovýchod,VŠ,Budget Guarded,5,6,5,7,8
+1166,25,Muž,Severozápad,VŠ,Green Progressives,5,5,8,4,3
+1167,37,Žena,Jihovýchod,ZŠ / bez maturity,Budget Guarded,5,7,6,6,10
+1168,40,Muž,Jihozápad,SŠ s maturitou,Prosumer Households,4,5,3,7,7
+1169,60,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,7,9,3,5,5
+1170,43,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,5,6,3,9,3
+1171,54,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,4,9,6,6,7
+1172,39,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,6,6,5,6,6
+1173,21,Muž,Praha,ZŠ / bez maturity,Green Progressives,6,4,5,5,9
+1174,35,Muž,Severovýchod,VŠ,Prosumer Households,7,3,7,8,1
+1175,50,Žena,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,6,8,5,5,6
+1176,52,Muž,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,3,4,3,3,5
+1177,41,Žena,Severovýchod,VŠ,Prosumer Households,4,5,5,4,4
+1178,25,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,2,6,6,4,6
+1179,70,Žena,Severovýchod,ZŠ / bez maturity,Green Progressives,4,5,5,6,3
+1180,36,Žena,Severozápad,VŠ,Green Progressives,5,6,4,6,8
+1181,52,Žena,Moravskoslezsko,VŠ,Stability Seekers,1,6,4,5,6
+1182,47,Žena,Severozápad,SŠ s maturitou,Green Progressives,6,5,5,5,9
+1183,29,Žena,Jihovýchod,VŠ,Prosumer Households,10,10,6,4,6
+1184,48,Muž,Jihozápad,ZŠ / bez maturity,Prosumer Households,6,5,7,7,9
+1185,39,Muž,Praha,VŠ,Budget Guarded,6,4,3,1,4
+1186,46,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,4,4,5,9,9
+1187,29,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,6,6,5,6,4
+1188,50,Žena,Severovýchod,ZŠ / bez maturity,Green Progressives,7,7,6,7,9
+1189,43,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,3,3,6,4,4
+1190,18,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,7,7,5,1,5
+1191,55,Muž,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,8,6,2,7,8
+1192,51,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,5,6,5,5,9
+1193,39,Muž,Střední Čechy,VŠ,Digital Optimizers,6,7,5,8,1
+1194,34,Muž,Moravskoslezsko,VŠ,Digital Optimizers,4,8,8,3,3
+1195,18,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,5,9,10,1,8
+1196,49,Muž,Praha,VŠ,Budget Guarded,4,5,8,4,3
+1197,52,Muž,Střední Čechy,SŠ s maturitou,Green Progressives,6,7,7,5,4
+1198,44,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,6,5,6,7,6
+1199,29,Muž,Praha,VŠ,Green Progressives,10,5,9,5,5
+1200,33,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,5,3,6,3,10
+1201,34,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,1,5,8,4,2
+1202,51,Muž,Střední Čechy,VŠ,Prosumer Households,3,5,7,8,6
+1203,53,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,7,6,9,1,6
+1204,35,Žena,Jihozápad,ZŠ / bez maturity,Prosumer Households,5,5,8,3,4
+1205,53,Muž,Praha,ZŠ / bez maturity,Stability Seekers,6,9,5,3,3
+1206,46,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,6,5,5,5,4
+1207,62,Žena,Jihozápad,VŠ,Green Progressives,10,1,4,3,3
+1208,34,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,7,6,10,2,4
+1209,52,Žena,Jihozápad,VŠ,Green Progressives,2,5,6,6,6
+1210,49,Žena,Jihovýchod,ZŠ / bez maturity,Prosumer Households,4,3,6,6,8
+1211,28,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,4,8,6,3,6
+1212,30,Žena,Severovýchod,ZŠ / bez maturity,Stability Seekers,7,6,7,6,5
+1213,28,Žena,Moravskoslezsko,VŠ,Budget Guarded,7,7,9,1,9
+1214,31,Žena,Severovýchod,ZŠ / bez maturity,Prosumer Households,5,7,7,5,6
+1215,53,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,6,2,4,4,7
+1216,54,Žena,Jihozápad,ZŠ / bez maturity,Stability Seekers,2,6,9,8,4
+1217,34,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,2,8,5,4,5
+1218,47,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,10,8,7,4,4
+1219,32,Žena,Moravskoslezsko,VŠ,Prosumer Households,4,9,8,8,3
+1220,33,Muž,Praha,VŠ,Stability Seekers,6,10,9,8,3
+1221,30,Žena,Moravskoslezsko,VŠ,Stability Seekers,7,7,7,6,5
+1222,43,Žena,Jihozápad,ZŠ / bez maturity,Budget Guarded,6,5,5,5,10
+1223,42,Žena,Praha,VŠ,Digital Optimizers,3,5,6,8,8
+1224,33,Muž,Severovýchod,VŠ,Stability Seekers,5,6,1,5,7
+1225,59,Žena,Praha,ZŠ / bez maturity,Stability Seekers,6,5,7,2,4
+1226,56,Muž,Severozápad,ZŠ / bez maturity,Budget Guarded,7,8,8,3,6
+1227,54,Muž,Střední Čechy,ZŠ / bez maturity,Stability Seekers,7,3,5,5,8
+1228,35,Žena,Severozápad,ZŠ / bez maturity,Digital Optimizers,5,6,6,4,6
+1229,35,Muž,Praha,ZŠ / bez maturity,Stability Seekers,5,6,4,6,8
+1230,44,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,8,9,4,4,4
+1231,18,Muž,Střední Čechy,ZŠ / bez maturity,Budget Guarded,8,7,5,7,7
+1232,38,Žena,Moravskoslezsko,VŠ,Budget Guarded,5,5,5,8,5
+1233,22,Muž,Střední Čechy,SŠ s maturitou,Budget Guarded,4,4,10,8,3
+1234,52,Muž,Severozápad,SŠ s maturitou,Prosumer Households,3,7,9,5,8
+1235,50,Muž,Jihozápad,ZŠ / bez maturity,Digital Optimizers,2,3,3,6,4
+1236,48,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,1,3,4,4,4
+1237,68,Žena,Praha,SŠ s maturitou,Stability Seekers,7,6,6,9,7
+1238,26,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,5,9,6,4,3
+1239,46,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,8,5,4,8,7
+1240,45,Žena,Severovýchod,SŠ s maturitou,Green Progressives,6,10,2,5,6
+1241,42,Žena,Moravskoslezsko,VŠ,Digital Optimizers,6,10,6,7,7
+1242,49,Muž,Severozápad,SŠ s maturitou,Green Progressives,6,8,4,6,7
+1243,41,Žena,Moravskoslezsko,VŠ,Prosumer Households,1,7,1,1,6
+1244,32,Žena,Praha,VŠ,Budget Guarded,8,6,6,5,2
+1245,37,Žena,Severovýchod,SŠ s maturitou,Budget Guarded,6,6,5,5,5
+1246,59,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,8,5,6,6,7
+1247,46,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,5,9,5,3,3
+1248,48,Muž,Praha,SŠ s maturitou,Stability Seekers,8,7,10,7,3
+1249,39,Žena,Severozápad,VŠ,Digital Optimizers,4,9,8,8,5
+1250,24,Žena,Střední Čechy,SŠ s maturitou,Stability Seekers,6,6,4,3,6
+1251,65,Žena,Severovýchod,ZŠ / bez maturity,Stability Seekers,7,4,6,4,7
+1252,19,Muž,Praha,SŠ s maturitou,Budget Guarded,6,9,4,5,8
+1253,34,Žena,Severozápad,SŠ s maturitou,Budget Guarded,8,5,4,7,6
+1254,70,Žena,Severovýchod,ZŠ / bez maturity,Digital Optimizers,5,6,5,1,8
+1255,58,Muž,Jihozápad,ZŠ / bez maturity,Green Progressives,6,6,6,6,10
+1256,20,Žena,Praha,SŠ s maturitou,Stability Seekers,1,7,3,8,6
+1257,29,Muž,Severozápad,SŠ s maturitou,Budget Guarded,4,5,4,8,4
+1258,18,Muž,Praha,SŠ s maturitou,Green Progressives,8,7,7,4,6
+1259,45,Žena,Jihozápad,SŠ s maturitou,Green Progressives,2,3,4,6,3
+1260,33,Žena,Jihovýchod,VŠ,Prosumer Households,6,7,2,3,4
+1261,38,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,2,4,8,3,7
+1262,38,Žena,Moravskoslezsko,ZŠ / bez maturity,Prosumer Households,3,6,6,6,6
+1263,55,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,3,8,7,6,4
+1264,18,Muž,Praha,VŠ,Prosumer Households,7,8,7,6,5
+1265,45,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,4,5,5,10,5
+1266,54,Muž,Severozápad,SŠ s maturitou,Stability Seekers,9,4,5,6,9
+1267,18,Žena,Jihovýchod,VŠ,Budget Guarded,6,5,6,6,8
+1268,32,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,4,6,6,5,6
+1269,18,Žena,Jihozápad,SŠ s maturitou,Stability Seekers,4,8,10,5,6
+1270,38,Žena,Severovýchod,SŠ s maturitou,Prosumer Households,8,6,10,3,4
+1271,55,Žena,Praha,ZŠ / bez maturity,Prosumer Households,5,4,6,4,5
+1272,54,Muž,Severozápad,ZŠ / bez maturity,Prosumer Households,4,10,6,5,5
+1273,52,Žena,Severozápad,VŠ,Stability Seekers,4,10,7,5,5
+1274,64,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,6,5,8,7,8
+1275,40,Žena,Jihozápad,VŠ,Digital Optimizers,8,4,9,6,8
+1276,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,8,6,7,4,6
+1277,45,Žena,Jihozápad,SŠ s maturitou,Green Progressives,5,8,6,7,2
+1278,50,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,2,6,6,3,3
+1279,70,Žena,Praha,SŠ s maturitou,Digital Optimizers,4,5,7,5,6
+1280,37,Žena,Severovýchod,VŠ,Prosumer Households,4,5,3,8,4
+1281,60,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,7,4,8,5,6
+1282,51,Žena,Moravskoslezsko,VŠ,Digital Optimizers,8,4,6,5,5
+1283,51,Muž,Jihovýchod,VŠ,Stability Seekers,6,6,5,7,5
+1284,43,Žena,Severozápad,SŠ s maturitou,Budget Guarded,2,4,4,9,7
+1285,27,Žena,Střední Čechy,VŠ,Green Progressives,6,6,3,4,5
+1286,35,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,5,6,8,7,7
+1287,48,Muž,Střední Čechy,SŠ s maturitou,Green Progressives,7,5,4,4,7
+1288,30,Žena,Praha,SŠ s maturitou,Green Progressives,3,7,5,4,4
+1289,47,Muž,Střední Čechy,SŠ s maturitou,Stability Seekers,3,5,1,6,4
+1290,57,Muž,Praha,ZŠ / bez maturity,Digital Optimizers,4,5,5,1,4
+1291,51,Žena,Praha,SŠ s maturitou,Green Progressives,6,4,6,6,4
+1292,32,Žena,Střední Čechy,ZŠ / bez maturity,Prosumer Households,6,8,7,5,8
+1293,25,Muž,Jihozápad,VŠ,Digital Optimizers,6,8,6,2,9
+1294,54,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,3,4,5,7,6
+1295,56,Žena,Severovýchod,VŠ,Green Progressives,10,8,7,5,8
+1296,60,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,6,9,7,5,6
+1297,38,Muž,Jihovýchod,SŠ s maturitou,Green Progressives,6,5,5,3,6
+1298,37,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,5,6,6,2,7
+1299,39,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,5,8,6,6,8
+1300,40,Muž,Jihozápad,VŠ,Stability Seekers,5,7,5,4,6
+1301,57,Muž,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,8,8,4,3,8
+1302,43,Žena,Praha,SŠ s maturitou,Budget Guarded,6,8,5,4,8
+1303,22,Muž,Severozápad,ZŠ / bez maturity,Digital Optimizers,1,6,6,9,5
+1304,50,Žena,Jihovýchod,VŠ,Digital Optimizers,7,5,5,5,7
+1305,51,Muž,Střední Čechy,SŠ s maturitou,Budget Guarded,8,8,5,8,3
+1306,21,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,8,4,5,4,10
+1307,49,Muž,Jihozápad,VŠ,Green Progressives,6,3,6,5,7
+1308,45,Žena,Střední Čechy,ZŠ / bez maturity,Stability Seekers,6,8,8,5,7
+1309,34,Muž,Praha,SŠ s maturitou,Prosumer Households,4,4,5,3,8
+1310,25,Muž,Jihovýchod,SŠ s maturitou,Stability Seekers,3,10,5,8,7
+1311,18,Žena,Severozápad,SŠ s maturitou,Green Progressives,7,5,5,6,6
+1312,37,Žena,Jihovýchod,VŠ,Green Progressives,6,5,2,4,8
+1313,48,Muž,Jihozápad,ZŠ / bez maturity,Green Progressives,5,8,10,7,5
+1314,18,Žena,Severozápad,SŠ s maturitou,Prosumer Households,4,7,5,6,4
+1315,51,Muž,Jihozápad,SŠ s maturitou,Green Progressives,8,10,8,10,3
+1316,30,Muž,Moravskoslezsko,SŠ s maturitou,Stability Seekers,9,4,8,5,5
+1317,27,Muž,Jihozápad,VŠ,Stability Seekers,6,5,7,6,5
+1318,34,Žena,Moravskoslezsko,ZŠ / bez maturity,Green Progressives,2,8,6,7,8
+1319,36,Žena,Severozápad,VŠ,Green Progressives,6,7,8,4,7
+1320,38,Žena,Severozápad,VŠ,Digital Optimizers,8,3,4,9,8
+1321,74,Muž,Severovýchod,VŠ,Prosumer Households,4,10,5,5,6
+1322,52,Muž,Jihovýchod,SŠ s maturitou,Budget Guarded,6,7,9,7,4
+1323,39,Muž,Severozápad,ZŠ / bez maturity,Digital Optimizers,4,2,8,5,4
+1324,39,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,6,7,4,1,1
+1325,44,Žena,Střední Čechy,SŠ s maturitou,Budget Guarded,6,4,5,6,4
+1326,20,Muž,Jihovýchod,ZŠ / bez maturity,Stability Seekers,5,8,9,9,5
+1327,35,Muž,Praha,SŠ s maturitou,Prosumer Households,7,7,8,5,10
+1328,25,Muž,Jihovýchod,ZŠ / bez maturity,Stability Seekers,4,8,5,9,5
+1329,43,Muž,Jihovýchod,VŠ,Stability Seekers,3,7,1,4,8
+1330,49,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,3,4,4,3,7
+1331,33,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,3,5,7,6,6
+1332,69,Žena,Střední Čechy,SŠ s maturitou,Digital Optimizers,7,8,3,7,8
+1333,46,Žena,Jihovýchod,VŠ,Prosumer Households,4,8,5,4,4
+1334,48,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,8,8,5,5,5
+1335,33,Muž,Jihovýchod,ZŠ / bez maturity,Stability Seekers,3,5,7,6,3
+1336,49,Muž,Moravskoslezsko,SŠ s maturitou,Budget Guarded,7,9,5,7,5
+1337,28,Žena,Praha,SŠ s maturitou,Green Progressives,5,5,7,7,3
+1338,32,Muž,Praha,ZŠ / bez maturity,Budget Guarded,5,3,7,1,2
+1339,37,Muž,Jihovýchod,SŠ s maturitou,Budget Guarded,4,9,7,6,4
+1340,28,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,7,7,1,4,6
+1341,57,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,4,6,5,4,6
+1342,59,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,4,4,6,2,3
+1343,41,Muž,Praha,ZŠ / bez maturity,Prosumer Households,6,7,5,2,7
+1344,49,Muž,Jihozápad,ZŠ / bez maturity,Budget Guarded,2,5,4,5,6
+1345,53,Muž,Jihovýchod,ZŠ / bez maturity,Stability Seekers,7,7,6,7,9
+1346,37,Žena,Severovýchod,ZŠ / bez maturity,Prosumer Households,6,5,3,7,9
+1347,18,Muž,Praha,ZŠ / bez maturity,Stability Seekers,8,5,7,5,8
+1348,20,Žena,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,4,9,4,5,7
+1349,32,Žena,Jihozápad,VŠ,Prosumer Households,8,8,5,6,6
+1350,33,Žena,Praha,ZŠ / bez maturity,Digital Optimizers,6,3,2,7,2
+1351,41,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,8,7,8,1,6
+1352,48,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,6,6,8,7,5
+1353,44,Žena,Severovýchod,VŠ,Prosumer Households,8,8,9,7,6
+1354,49,Muž,Střední Čechy,ZŠ / bez maturity,Green Progressives,7,5,7,5,8
+1355,56,Muž,Střední Čechy,ZŠ / bez maturity,Budget Guarded,7,8,6,7,7
+1356,43,Muž,Severozápad,SŠ s maturitou,Stability Seekers,1,8,5,3,4
+1357,21,Muž,Severozápad,ZŠ / bez maturity,Green Progressives,8,2,7,4,7
+1358,48,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,4,5,6,4,5
+1359,43,Muž,Severozápad,ZŠ / bez maturity,Budget Guarded,6,4,2,6,3
+1360,48,Muž,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,2,5,5,9,6
+1361,51,Žena,Praha,SŠ s maturitou,Stability Seekers,5,4,7,4,8
+1362,26,Žena,Severozápad,SŠ s maturitou,Budget Guarded,6,5,10,7,5
+1363,56,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,8,7,6,4,8
+1364,51,Žena,Jihovýchod,SŠ s maturitou,Budget Guarded,8,4,2,9,6
+1365,45,Žena,Severozápad,ZŠ / bez maturity,Budget Guarded,6,4,3,7,8
+1366,26,Žena,Praha,ZŠ / bez maturity,Green Progressives,7,5,7,4,5
+1367,59,Muž,Moravskoslezsko,SŠ s maturitou,Digital Optimizers,1,6,9,7,8
+1368,37,Žena,Moravskoslezsko,VŠ,Green Progressives,5,7,5,3,8
+1369,46,Žena,Střední Čechy,ZŠ / bez maturity,Green Progressives,3,5,6,8,7
+1370,72,Muž,Jihovýchod,ZŠ / bez maturity,Prosumer Households,1,3,4,5,3
+1371,18,Žena,Střední Čechy,SŠ s maturitou,Green Progressives,3,10,6,4,10
+1372,74,Žena,Praha,VŠ,Green Progressives,5,5,7,5,2
+1373,24,Žena,Střední Čechy,VŠ,Digital Optimizers,7,7,10,5,4
+1374,42,Žena,Jihovýchod,SŠ s maturitou,Digital Optimizers,6,8,4,8,7
+1375,59,Žena,Severozápad,SŠ s maturitou,Budget Guarded,8,7,6,3,5
+1376,56,Muž,Praha,SŠ s maturitou,Green Progressives,7,2,6,4,5
+1377,35,Muž,Jihozápad,VŠ,Budget Guarded,3,7,6,7,6
+1378,22,Žena,Praha,ZŠ / bez maturity,Prosumer Households,4,10,6,6,7
+1379,40,Muž,Praha,SŠ s maturitou,Budget Guarded,3,6,4,8,3
+1380,31,Žena,Severozápad,SŠ s maturitou,Budget Guarded,6,5,5,7,7
+1381,69,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,2,5,8,4,3
+1382,36,Muž,Severovýchod,SŠ s maturitou,Budget Guarded,6,2,9,3,6
+1383,37,Muž,Severozápad,VŠ,Stability Seekers,6,7,3,4,6
+1384,32,Muž,Střední Čechy,SŠ s maturitou,Green Progressives,4,10,7,10,7
+1385,60,Muž,Praha,SŠ s maturitou,Green Progressives,7,5,6,7,6
+1386,22,Žena,Severozápad,ZŠ / bez maturity,Green Progressives,5,7,6,6,5
+1387,50,Muž,Jihovýchod,VŠ,Digital Optimizers,7,7,3,5,5
+1388,41,Muž,Jihovýchod,ZŠ / bez maturity,Green Progressives,8,4,5,5,10
+1389,19,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,2,4,5,5,7
+1390,34,Muž,Praha,SŠ s maturitou,Budget Guarded,6,4,5,6,7
+1391,60,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,6,6,9,3,7
+1392,29,Muž,Moravskoslezsko,VŠ,Digital Optimizers,5,10,5,5,6
+1393,26,Žena,Severovýchod,SŠ s maturitou,Stability Seekers,5,7,7,10,7
+1394,45,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,5,9,5,5,5
+1395,60,Muž,Jihovýchod,VŠ,Green Progressives,3,10,5,3,4
+1396,18,Žena,Jihozápad,ZŠ / bez maturity,Digital Optimizers,5,6,2,8,10
+1397,41,Žena,Jihozápad,SŠ s maturitou,Green Progressives,7,6,7,2,5
+1398,29,Žena,Střední Čechy,ZŠ / bez maturity,Prosumer Households,4,4,7,6,5
+1399,49,Muž,Moravskoslezsko,VŠ,Prosumer Households,4,7,7,5,4
+1400,24,Muž,Severozápad,SŠ s maturitou,Prosumer Households,2,6,3,7,3
+1401,43,Muž,Moravskoslezsko,VŠ,Budget Guarded,5,9,8,3,9
+1402,37,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,1,5,9,5,6
+1403,36,Muž,Severovýchod,SŠ s maturitou,Stability Seekers,5,7,4,3,9
+1404,35,Žena,Severovýchod,VŠ,Digital Optimizers,3,10,5,8,9
+1405,41,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,4,8,5,4,6
+1406,44,Muž,Jihozápad,ZŠ / bez maturity,Prosumer Households,8,10,10,1,7
+1407,48,Muž,Moravskoslezsko,SŠ s maturitou,Prosumer Households,7,6,6,3,4
+1408,38,Muž,Střední Čechy,ZŠ / bez maturity,Green Progressives,8,10,7,6,6
+1409,31,Žena,Moravskoslezsko,VŠ,Green Progressives,5,4,5,2,4
+1410,20,Žena,Moravskoslezsko,VŠ,Stability Seekers,5,9,1,6,5
+1411,48,Žena,Moravskoslezsko,VŠ,Stability Seekers,5,6,10,4,6
+1412,18,Žena,Praha,SŠ s maturitou,Digital Optimizers,5,1,5,6,6
+1413,62,Žena,Jihovýchod,ZŠ / bez maturity,Green Progressives,6,7,6,3,8
+1414,32,Muž,Moravskoslezsko,ZŠ / bez maturity,Budget Guarded,3,7,7,4,4
+1415,40,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,8,4,9,3,4
+1416,43,Žena,Jihozápad,SŠ s maturitou,Budget Guarded,5,5,4,8,6
+1417,40,Žena,Praha,SŠ s maturitou,Digital Optimizers,2,6,8,5,6
+1418,23,Muž,Jihozápad,SŠ s maturitou,Green Progressives,9,7,5,3,6
+1419,58,Žena,Moravskoslezsko,VŠ,Stability Seekers,7,3,7,6,7
+1420,39,Muž,Praha,SŠ s maturitou,Green Progressives,5,7,3,3,4
+1421,69,Muž,Jihovýchod,SŠ s maturitou,Prosumer Households,5,3,3,8,6
+1422,36,Žena,Jihozápad,VŠ,Green Progressives,7,7,10,8,8
+1423,36,Muž,Jihozápad,VŠ,Stability Seekers,4,10,3,7,3
+1424,60,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,5,2,7,6,4
+1425,27,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,9,3,5,4,7
+1426,38,Žena,Severovýchod,ZŠ / bez maturity,Digital Optimizers,10,7,7,9,8
+1427,45,Muž,Moravskoslezsko,VŠ,Budget Guarded,3,4,4,3,4
+1428,52,Žena,Jihozápad,SŠ s maturitou,Prosumer Households,7,6,6,6,7
+1429,33,Žena,Severovýchod,VŠ,Green Progressives,5,8,6,3,7
+1430,56,Žena,Severovýchod,ZŠ / bez maturity,Prosumer Households,7,10,7,8,5
+1431,35,Žena,Praha,SŠ s maturitou,Digital Optimizers,2,10,2,6,7
+1432,49,Muž,Jihovýchod,ZŠ / bez maturity,Green Progressives,6,4,7,5,6
+1433,47,Muž,Praha,VŠ,Digital Optimizers,7,8,5,7,7
+1434,27,Žena,Praha,SŠ s maturitou,Green Progressives,8,6,4,6,1
+1435,53,Muž,Severovýchod,VŠ,Prosumer Households,8,10,5,8,7
+1436,54,Muž,Jihozápad,ZŠ / bez maturity,Digital Optimizers,4,10,5,6,7
+1437,30,Žena,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,3,7,5,4,4
+1438,38,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,5,5,8,2,8
+1439,18,Muž,Praha,VŠ,Prosumer Households,4,7,5,3,6
+1440,44,Žena,Severovýchod,ZŠ / bez maturity,Green Progressives,8,7,6,4,7
+1441,34,Muž,Severovýchod,ZŠ / bez maturity,Stability Seekers,7,4,5,7,7
+1442,43,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,6,5,3,7,7
+1443,23,Muž,Severozápad,SŠ s maturitou,Digital Optimizers,5,6,6,4,7
+1444,20,Muž,Severovýchod,SŠ s maturitou,Prosumer Households,1,7,6,6,8
+1445,53,Muž,Praha,SŠ s maturitou,Green Progressives,7,7,4,5,10
+1446,33,Žena,Severozápad,VŠ,Green Progressives,4,7,10,5,5
+1447,63,Žena,Praha,SŠ s maturitou,Prosumer Households,8,5,5,7,5
+1448,38,Žena,Severovýchod,SŠ s maturitou,Prosumer Households,3,1,7,3,7
+1449,30,Žena,Jihozápad,SŠ s maturitou,Green Progressives,5,8,6,8,3
+1450,55,Žena,Praha,SŠ s maturitou,Stability Seekers,7,4,4,5,10
+1451,72,Žena,Severozápad,SŠ s maturitou,Prosumer Households,5,7,9,9,5
+1452,41,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,7,4,2,5,5
+1453,45,Žena,Moravskoslezsko,SŠ s maturitou,Budget Guarded,3,9,5,4,6
+1454,36,Žena,Jihovýchod,SŠ s maturitou,Budget Guarded,6,5,6,3,4
+1455,19,Muž,Severovýchod,ZŠ / bez maturity,Prosumer Households,6,5,8,4,8
+1456,49,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,5,4,5,4,7
+1457,32,Muž,Střední Čechy,VŠ,Green Progressives,6,5,4,3,5
+1458,54,Muž,Střední Čechy,ZŠ / bez maturity,Green Progressives,6,7,8,5,8
+1459,35,Muž,Jihozápad,ZŠ / bez maturity,Stability Seekers,4,10,10,6,6
+1460,59,Muž,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,7,6,8,7,10
+1461,61,Žena,Moravskoslezsko,SŠ s maturitou,Prosumer Households,7,3,3,7,7
+1462,34,Žena,Moravskoslezsko,ZŠ / bez maturity,Stability Seekers,2,4,4,4,8
+1463,33,Muž,Severozápad,VŠ,Budget Guarded,10,6,3,6,6
+1464,29,Žena,Jihovýchod,SŠ s maturitou,Green Progressives,6,7,4,7,2
+1465,56,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,5,3,5,5,8
+1466,58,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Optimizers,6,5,3,3,3
+1467,61,Muž,Severovýchod,VŠ,Prosumer Households,6,6,8,4,5
+1468,40,Žena,Severovýchod,ZŠ / bez maturity,Prosumer Households,2,6,4,3,4
+1469,52,Žena,Severozápad,ZŠ / bez maturity,Digital Optimizers,5,9,1,3,4
+1470,41,Muž,Moravskoslezsko,VŠ,Stability Seekers,6,4,7,7,8
+1471,46,Muž,Praha,ZŠ / bez maturity,Digital Optimizers,6,5,3,7,7
+1472,42,Žena,Severovýchod,SŠ s maturitou,Digital Optimizers,5,8,7,5,7
+1473,42,Žena,Praha,SŠ s maturitou,Green Progressives,6,5,5,2,6
+1474,31,Žena,Severovýchod,SŠ s maturitou,Budget Guarded,7,5,6,6,3
+1475,39,Žena,Praha,VŠ,Digital Optimizers,9,9,5,5,3
+1476,44,Žena,Severozápad,ZŠ / bez maturity,Stability Seekers,3,6,6,6,7
+1477,26,Muž,Severovýchod,VŠ,Prosumer Households,4,3,4,6,7
+1478,63,Muž,Moravskoslezsko,SŠ s maturitou,Budget Guarded,8,4,6,6,5
+1479,22,Žena,Severozápad,SŠ s maturitou,Digital Optimizers,9,8,8,4,6
+1480,48,Muž,Praha,ZŠ / bez maturity,Green Progressives,6,7,7,6,6
+1481,48,Muž,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,4,8,5,5,6
+1482,54,Žena,Severozápad,ZŠ / bez maturity,Digital Optimizers,7,6,2,1,6
+1483,25,Žena,Praha,SŠ s maturitou,Budget Guarded,7,6,7,7,9
+1484,48,Muž,Střední Čechy,SŠ s maturitou,Digital Optimizers,3,6,5,4,7
+1485,42,Muž,Severozápad,ZŠ / bez maturity,Stability Seekers,5,5,8,7,9
+1486,55,Žena,Moravskoslezsko,SŠ s maturitou,Green Progressives,7,3,9,7,7
+1487,42,Žena,Severovýchod,SŠ s maturitou,Green Progressives,2,4,7,4,7
+1488,27,Muž,Střední Čechy,SŠ s maturitou,Prosumer Households,4,10,6,3,6
+1489,50,Žena,Severozápad,SŠ s maturitou,Stability Seekers,7,6,5,5,7
+1490,38,Muž,Praha,ZŠ / bez maturity,Stability Seekers,5,8,7,7,6
+1491,18,Žena,Střední Čechy,ZŠ / bez maturity,Digital Optimizers,5,3,8,7,7
+1492,43,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,9,6,7,5,4
+1493,34,Žena,Jihovýchod,SŠ s maturitou,Stability Seekers,2,6,6,6,4
+1494,28,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,4,5,6,7,5
+1495,46,Muž,Severovýchod,ZŠ / bez maturity,Green Progressives,3,8,3,8,4
+1496,35,Muž,Moravskoslezsko,SŠ s maturitou,Budget Guarded,10,4,6,7,10
+1497,18,Muž,Severozápad,SŠ s maturitou,Budget Guarded,6,8,3,7,7
+1498,58,Muž,Střední Čechy,SŠ s maturitou,Budget Guarded,2,5,9,6,7
+1499,36,Žena,Severovýchod,ZŠ / bez maturity,Stability Seekers,10,10,7,7,6
+1500,39,Muž,Severovýchod,SŠ s maturitou,Digital Optimizers,9,8,6,7,3

@@ -1,0 +1,200 @@
+{
+  "nodes": [
+    {
+      "name": "Status quo",
+      "type": "object",
+      "score": 52,
+      "x": 260,
+      "y": 280,
+      "color": "#537bd7"
+    },
+    {
+      "name": "Restrict first",
+      "type": "object",
+      "score": 43,
+      "x": 555,
+      "y": 315,
+      "color": "#3c9890"
+    },
+    {
+      "name": "Transit first",
+      "type": "object",
+      "score": 70,
+      "x": 365,
+      "y": 155,
+      "color": "#7961c5"
+    },
+    {
+      "name": "Invest & Manage",
+      "type": "object",
+      "score": 76,
+      "x": 405,
+      "y": 235,
+      "color": "#299764"
+    },
+    {
+      "name": "Fairness",
+      "type": "anchor",
+      "x": 380,
+      "y": 115,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Effectiveness",
+      "type": "anchor",
+      "x": 520,
+      "y": 225,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Osobní dopad",
+      "type": "anchor",
+      "x": 160,
+      "y": 210,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Srozumitelnost",
+      "type": "anchor",
+      "x": 350,
+      "y": 355,
+      "color": "#9ba3af"
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 7,
+      "weight": 0.71
+    },
+    {
+      "from": 0,
+      "to": 6,
+      "weight": 0.69
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "weight": 0.76
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "weight": 0.48
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "weight": 0.89
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "weight": 0.57
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "weight": 0.71
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "weight": 0.69
+    }
+  ],
+  "layers": [
+    "perception",
+    "emotion",
+    "segment_resonance"
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      3.46,
+      6.41,
+      6.66,
+      5.51,
+      4.15,
+      7.209999999999999,
+      7.39
+    ],
+    [
+      3.46,
+      0.0,
+      4.53,
+      6.26,
+      4.15,
+      7.84,
+      1.0,
+      5.32
+    ],
+    [
+      6.41,
+      4.53,
+      0.0,
+      8.03,
+      9.01,
+      6.13,
+      5.33,
+      5.58
+    ],
+    [
+      6.66,
+      6.26,
+      8.03,
+      0.0,
+      7.209999999999999,
+      7.39,
+      4.58,
+      7.09
+    ],
+    [
+      5.51,
+      4.15,
+      9.01,
+      7.209999999999999,
+      0.0,
+      6.08,
+      4.72,
+      4.67
+    ],
+    [
+      4.15,
+      7.84,
+      6.13,
+      7.39,
+      6.08,
+      0.0,
+      2.07,
+      5.29
+    ],
+    [
+      7.209999999999999,
+      1.0,
+      5.33,
+      4.58,
+      4.72,
+      2.07,
+      0.0,
+      4.74
+    ],
+    [
+      7.39,
+      5.32,
+      5.58,
+      7.09,
+      4.67,
+      5.29,
+      4.74,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SEED_RELATIONS_WITH_GEOMETRY_FILL; LIVE uses respondent correlations or explicit directional relations",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": true
+  }
+}

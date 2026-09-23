@@ -1,0 +1,21 @@
+﻿dimension,segment_value,variant_id,n,subscribe_intent_pct,preference_pct,perceived_value,simplicity,content_fit,price_acceptance
+segment,Solo Viewers,A,322,57.5,35.4,6.48,7.65,5.71,7.36
+segment,Solo Viewers,B,322,68.9,49.1,7.26,7.9,6.8,7.11
+segment,Solo Viewers,C,322,65.8,38.8,7.36,6.95,7.38,5.91
+segment,Solo Viewers,D,322,69.6,51.9,7.94,7.37,7.65,6.69
+segment,Couples,A,308,57.5,35.1,6.45,7.52,5.73,7.37
+segment,Couples,B,308,70.8,42.5,7.17,7.66,6.66,7.02
+segment,Couples,C,308,61.4,33.8,7.11,6.73,7.43,5.67
+segment,Couples,D,308,73.4,50.0,7.98,7.21,7.73,6.82
+segment,Families,A,338,56.8,34.3,6.53,7.59,5.65,7.37
+segment,Families,B,338,67.5,47.3,7.09,7.56,6.48,6.89
+segment,Families,C,338,56.8,42.9,7.18,6.83,7.38,5.71
+segment,Families,D,338,77.8,51.5,7.91,7.52,7.74,6.82
+segment,Sports Fans,A,290,60.7,32.1,6.61,7.62,5.77,7.35
+segment,Sports Fans,B,290,62.4,44.8,6.98,7.38,6.57,6.84
+segment,Sports Fans,C,290,62.8,42.1,7.01,6.69,7.27,5.65
+segment,Sports Fans,D,290,74.5,50.0,7.9,7.39,7.78,6.73
+segment,Price Switchers,A,342,62.6,32.7,6.48,7.49,5.68,7.35
+segment,Price Switchers,B,342,68.1,48.0,7.1,7.59,6.56,7.05
+segment,Price Switchers,C,342,63.7,35.7,7.17,6.61,7.18,5.59
+segment,Price Switchers,D,342,70.5,48.5,7.62,7.18,7.45,6.52

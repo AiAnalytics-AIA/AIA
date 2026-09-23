@@ -1,0 +1,21 @@
+﻿dimension,segment_value,variant_id,n,visit_intent_pct,basket_intent_pct,convenience,differentiation,value,trust
+segment,Urban Singles,A,282,52.5,34.8,8.05,4.83,5.59,6.12
+segment,Urban Singles,B,282,71.3,47.9,7.28,7.88,6.53,7.45
+segment,Urban Singles,C,282,58.2,48.9,6.06,5.03,7.83,6.2
+segment,Urban Singles,D,282,76.2,52.5,7.7,7.5,7.47,7.75
+segment,Young Families,A,315,57.5,37.5,8.06,4.76,5.57,6.12
+segment,Young Families,B,315,68.9,51.1,6.97,7.85,6.34,7.45
+segment,Young Families,C,315,66.7,47.6,6.33,5.02,7.98,6.18
+segment,Young Families,D,315,68.9,51.7,7.56,7.11,7.21,7.19
+segment,Value Hunters,A,305,54.8,37.0,8.06,4.95,5.85,6.14
+segment,Value Hunters,B,305,66.6,46.9,6.7,7.62,6.06,7.03
+segment,Value Hunters,C,305,61.6,42.6,6.37,4.95,7.91,6.18
+segment,Value Hunters,D,305,71.8,49.5,7.52,7.22,7.14,7.22
+segment,Fresh Seekers,A,295,59.7,38.0,8.11,4.99,5.73,6.41
+segment,Fresh Seekers,B,295,66.4,47.5,6.84,7.84,6.26,7.37
+segment,Fresh Seekers,C,295,69.8,45.8,6.36,5.29,8.07,6.4
+segment,Fresh Seekers,D,295,69.8,50.2,7.53,7.21,7.17,7.55
+segment,Older Convenience,A,303,62.4,39.9,8.07,4.9,5.64,6.18
+segment,Older Convenience,B,303,69.6,49.5,6.95,7.67,6.24,7.27
+segment,Older Convenience,C,303,69.6,48.2,6.58,5.19,8.0,6.42
+segment,Older Convenience,D,303,75.9,54.5,7.79,7.36,7.41,7.6

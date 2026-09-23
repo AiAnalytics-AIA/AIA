@@ -1,0 +1,1501 @@
+﻿respondent_id,age,gender,region,education,segment,price_sensitivity_1_10,digital_confidence_1_10,change_openness_1_10,institutional_trust_1_10,category_involvement_1_10
+1,51,Žena,Jihozápad,SŠ s maturitou,Frequent Business,3,8,8,5,6
+2,35,Žena,Jihozápad,SŠ s maturitou,Leisure Families,4,7,2,6,2
+3,61,Muž,Střední Čechy,VŠ,Digital Self-Service,6,4,6,4,4
+4,33,Žena,Severozápad,VŠ,International Transfer,9,4,5,8,8
+5,25,Žena,Severozápad,VŠ,Infrequent Travellers,3,5,7,7,6
+6,44,Žena,Moravskoslezsko,VŠ,Frequent Business,3,7,6,6,5
+7,23,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,5,6,7,5,5
+8,61,Muž,Jihovýchod,SŠ s maturitou,International Transfer,6,7,7,6,4
+9,39,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,5,4,6,4,7
+10,39,Muž,Jihovýchod,VŠ,Leisure Families,3,5,3,10,6
+11,40,Muž,Jihozápad,ZŠ / bez maturity,Frequent Business,7,10,5,6,2
+12,52,Muž,Jihovýchod,VŠ,International Transfer,6,7,3,5,8
+13,46,Muž,Jihovýchod,VŠ,Infrequent Travellers,6,8,5,5,8
+14,18,Žena,Praha,SŠ s maturitou,Digital Self-Service,8,6,6,6,2
+15,18,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,6,1,6,5,9
+16,24,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,6,5,2,4,7
+17,43,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,5,10,8,10,5
+18,74,Muž,Praha,SŠ s maturitou,Infrequent Travellers,4,10,6,4,6
+19,18,Žena,Severozápad,SŠ s maturitou,International Transfer,4,7,5,4,7
+20,50,Muž,Severozápad,SŠ s maturitou,Leisure Families,6,8,5,3,6
+21,38,Muž,Severozápad,ZŠ / bez maturity,Frequent Business,6,4,10,10,5
+22,38,Žena,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,6,5,5,6,4
+23,47,Žena,Jihozápad,VŠ,International Transfer,5,5,3,5,6
+24,38,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,9,6,4,9,9
+25,32,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,3,6,8,6,3
+26,38,Žena,Jihovýchod,SŠ s maturitou,Digital Self-Service,1,2,4,4,8
+27,27,Žena,Praha,SŠ s maturitou,Infrequent Travellers,7,8,6,8,3
+28,61,Žena,Severovýchod,ZŠ / bez maturity,Frequent Business,5,6,5,4,7
+29,18,Žena,Moravskoslezsko,VŠ,Infrequent Travellers,1,9,5,4,5
+30,30,Muž,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,2,8,5,9,3
+31,56,Žena,Severozápad,VŠ,Digital Self-Service,6,5,7,7,9
+32,34,Žena,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,6,4,7,3,5
+33,28,Muž,Severovýchod,ZŠ / bez maturity,Digital Self-Service,6,4,7,7,6
+34,49,Žena,Severozápad,ZŠ / bez maturity,Infrequent Travellers,8,6,6,3,7
+35,53,Žena,Praha,SŠ s maturitou,Infrequent Travellers,4,6,6,5,10
+36,35,Muž,Jihovýchod,SŠ s maturitou,Leisure Families,6,4,5,6,7
+37,39,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,3,5,3,6,5
+38,48,Žena,Jihovýchod,VŠ,Frequent Business,6,7,4,7,9
+39,41,Žena,Jihozápad,VŠ,Digital Self-Service,7,4,6,4,9
+40,64,Muž,Moravskoslezsko,ZŠ / bez maturity,International Transfer,8,5,3,6,3
+41,46,Muž,Střední Čechy,SŠ s maturitou,Infrequent Travellers,4,5,6,2,4
+42,43,Muž,Severovýchod,VŠ,Leisure Families,3,7,6,5,5
+43,34,Žena,Střední Čechy,VŠ,Frequent Business,6,8,7,2,8
+44,35,Muž,Severozápad,SŠ s maturitou,Infrequent Travellers,5,4,5,7,5
+45,57,Žena,Střední Čechy,SŠ s maturitou,International Transfer,5,5,7,4,6
+46,37,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,8,6,10,9,5
+47,49,Žena,Jihovýchod,SŠ s maturitou,Infrequent Travellers,5,5,4,7,10
+48,27,Žena,Severovýchod,SŠ s maturitou,International Transfer,4,7,5,6,5
+49,41,Muž,Severozápad,SŠ s maturitou,Frequent Business,3,3,7,5,8
+50,52,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,6,6,7,8,4
+51,49,Muž,Severovýchod,ZŠ / bez maturity,International Transfer,6,9,3,4,8
+52,32,Žena,Severozápad,VŠ,Digital Self-Service,3,8,4,7,7
+53,62,Žena,Severovýchod,SŠ s maturitou,International Transfer,9,6,6,3,6
+54,68,Žena,Jihozápad,ZŠ / bez maturity,International Transfer,3,2,5,5,6
+55,23,Žena,Severozápad,ZŠ / bez maturity,Leisure Families,3,5,2,7,7
+56,66,Muž,Praha,ZŠ / bez maturity,Infrequent Travellers,6,7,6,7,9
+57,65,Muž,Jihozápad,VŠ,Infrequent Travellers,7,7,9,5,4
+58,22,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,7,3,7,6,5
+59,23,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,4,8,3,3,6
+60,37,Muž,Jihozápad,SŠ s maturitou,International Transfer,3,6,4,5,7
+61,36,Muž,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,4,7,8,2,8
+62,42,Žena,Severozápad,VŠ,Leisure Families,3,8,5,4,7
+63,39,Muž,Praha,ZŠ / bez maturity,Infrequent Travellers,10,5,3,8,9
+64,46,Muž,Severovýchod,VŠ,Digital Self-Service,6,6,5,6,6
+65,27,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,9,4,7,5,6
+66,57,Žena,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,7,8,7,6,6
+67,49,Žena,Severozápad,SŠ s maturitou,Frequent Business,6,8,4,2,4
+68,46,Žena,Jihovýchod,VŠ,Frequent Business,3,5,3,6,6
+69,50,Žena,Střední Čechy,ZŠ / bez maturity,International Transfer,6,6,7,3,7
+70,55,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,6,10,7,7,3
+71,29,Muž,Severovýchod,VŠ,Infrequent Travellers,7,7,6,6,6
+72,25,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,3,9,5,8,5
+73,39,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,6,6,3,7,4
+74,48,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,7,6,4,5,4
+75,66,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,7,4,5,6,6
+76,45,Žena,Jihovýchod,VŠ,Frequent Business,4,8,7,3,5
+77,44,Žena,Severovýchod,VŠ,International Transfer,3,7,7,3,7
+78,51,Žena,Praha,VŠ,Digital Self-Service,6,5,5,5,4
+79,30,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,7,8,9,4,6
+80,60,Žena,Praha,ZŠ / bez maturity,Frequent Business,8,5,5,4,6
+81,49,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,7,4,6,2,3
+82,18,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,7,10,4,3,9
+83,55,Muž,Severovýchod,ZŠ / bez maturity,Frequent Business,5,10,5,5,7
+84,40,Muž,Severozápad,VŠ,International Transfer,6,2,8,3,3
+85,54,Muž,Severovýchod,VŠ,Digital Self-Service,3,4,3,5,6
+86,51,Muž,Moravskoslezsko,SŠ s maturitou,International Transfer,4,8,6,6,6
+87,59,Žena,Jihozápad,SŠ s maturitou,Frequent Business,9,7,7,4,7
+88,26,Muž,Střední Čechy,VŠ,Digital Self-Service,4,8,7,4,9
+89,19,Žena,Praha,SŠ s maturitou,International Transfer,4,3,5,6,7
+90,25,Žena,Jihovýchod,ZŠ / bez maturity,International Transfer,7,4,5,5,9
+91,44,Muž,Praha,ZŠ / bez maturity,Frequent Business,5,5,2,2,5
+92,65,Muž,Jihovýchod,SŠ s maturitou,International Transfer,3,6,8,4,7
+93,53,Žena,Praha,SŠ s maturitou,International Transfer,8,4,7,2,6
+94,51,Žena,Jihozápad,SŠ s maturitou,Leisure Families,4,6,7,9,8
+95,42,Žena,Střední Čechy,ZŠ / bez maturity,International Transfer,9,7,5,10,4
+96,36,Žena,Severozápad,ZŠ / bez maturity,Digital Self-Service,7,6,2,8,5
+97,61,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,3,5,5,5,7
+98,42,Žena,Střední Čechy,VŠ,Digital Self-Service,3,5,6,8,10
+99,23,Žena,Severozápad,VŠ,Leisure Families,3,4,7,1,6
+100,45,Žena,Moravskoslezsko,VŠ,Leisure Families,8,7,7,3,9
+101,41,Žena,Severovýchod,VŠ,Digital Self-Service,5,6,4,3,4
+102,18,Žena,Severovýchod,VŠ,Frequent Business,5,5,9,7,8
+103,32,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,4,5,8,8,4
+104,42,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,7,4,8,5,6
+105,20,Žena,Moravskoslezsko,VŠ,Frequent Business,7,7,1,4,1
+106,48,Žena,Praha,ZŠ / bez maturity,Digital Self-Service,5,7,5,5,9
+107,33,Žena,Severozápad,VŠ,Digital Self-Service,9,6,4,8,5
+108,58,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,7,5,5,6,8
+109,39,Muž,Severovýchod,VŠ,Infrequent Travellers,4,7,6,1,6
+110,40,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,1,7,10,6,5
+111,56,Žena,Severozápad,SŠ s maturitou,International Transfer,3,8,3,10,6
+112,43,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,7,6,5,8,3
+113,32,Muž,Moravskoslezsko,VŠ,Digital Self-Service,6,10,3,5,3
+114,38,Muž,Praha,SŠ s maturitou,Frequent Business,9,6,4,7,3
+115,41,Žena,Praha,ZŠ / bez maturity,International Transfer,7,5,3,7,10
+116,48,Žena,Jihovýchod,SŠ s maturitou,International Transfer,5,8,4,9,9
+117,43,Muž,Jihozápad,VŠ,Frequent Business,4,6,6,3,2
+118,41,Muž,Praha,VŠ,Frequent Business,3,3,4,5,6
+119,23,Žena,Jihozápad,SŠ s maturitou,International Transfer,7,8,8,6,3
+120,52,Muž,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,6,8,5,2,2
+121,39,Žena,Jihozápad,VŠ,Frequent Business,5,8,8,3,5
+122,50,Muž,Jihozápad,SŠ s maturitou,International Transfer,7,1,5,1,4
+123,18,Muž,Střední Čechy,SŠ s maturitou,International Transfer,4,8,6,7,8
+124,38,Žena,Praha,ZŠ / bez maturity,Leisure Families,7,9,7,7,5
+125,41,Muž,Jihozápad,VŠ,Digital Self-Service,6,6,7,4,8
+126,44,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,5,4,10,7,3
+127,41,Muž,Praha,SŠ s maturitou,Digital Self-Service,5,7,10,5,5
+128,36,Muž,Severovýchod,SŠ s maturitou,Frequent Business,9,7,6,4,7
+129,63,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,5,9,4,3,6
+130,27,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,8,3,5,7,5
+131,46,Žena,Praha,SŠ s maturitou,Infrequent Travellers,7,4,5,6,5
+132,28,Muž,Severovýchod,VŠ,Leisure Families,8,6,9,3,2
+133,18,Muž,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,6,3,10,5,2
+134,59,Muž,Jihovýchod,VŠ,Infrequent Travellers,9,2,5,7,5
+135,18,Žena,Praha,SŠ s maturitou,Infrequent Travellers,3,3,7,3,2
+136,70,Muž,Jihozápad,VŠ,International Transfer,7,5,6,4,6
+137,41,Muž,Severozápad,SŠ s maturitou,Frequent Business,2,7,8,7,6
+138,40,Žena,Severovýchod,SŠ s maturitou,International Transfer,5,4,6,5,4
+139,34,Muž,Severovýchod,VŠ,International Transfer,6,7,6,1,4
+140,48,Žena,Severovýchod,SŠ s maturitou,Infrequent Travellers,8,5,6,7,9
+141,48,Žena,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,5,6,6,8,7
+142,46,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,5,3,8,6,1
+143,42,Žena,Severovýchod,ZŠ / bez maturity,International Transfer,7,7,7,5,3
+144,58,Žena,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,8,5,3,7,3
+145,32,Žena,Střední Čechy,SŠ s maturitou,International Transfer,7,4,4,3,8
+146,35,Muž,Jihozápad,SŠ s maturitou,International Transfer,5,9,1,5,7
+147,27,Žena,Jihovýchod,SŠ s maturitou,Frequent Business,5,8,3,6,7
+148,37,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,1,7,5,6,10
+149,64,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,2,6,6,7,5
+150,36,Muž,Jihovýchod,VŠ,International Transfer,4,5,3,4,5
+151,37,Žena,Severozápad,ZŠ / bez maturity,International Transfer,8,6,5,6,1
+152,53,Muž,Střední Čechy,VŠ,Leisure Families,8,7,6,5,7
+153,55,Muž,Jihozápad,SŠ s maturitou,International Transfer,3,1,6,5,6
+154,40,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,5,4,5,7,6
+155,38,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,8,3,5,2,4
+156,53,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,5,7,3,4,4
+157,45,Muž,Praha,ZŠ / bez maturity,Leisure Families,10,4,8,6,2
+158,48,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,8,6,4,5,5
+159,31,Žena,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,3,6,6,4,3
+160,38,Muž,Praha,VŠ,Digital Self-Service,6,7,3,6,3
+161,53,Žena,Severovýchod,ZŠ / bez maturity,Frequent Business,7,6,5,7,8
+162,68,Muž,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,9,8,6,3,6
+163,35,Muž,Střední Čechy,SŠ s maturitou,Frequent Business,7,6,3,7,10
+164,20,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,7,5,6,3,6
+165,40,Muž,Jihovýchod,SŠ s maturitou,Digital Self-Service,6,4,7,5,3
+166,25,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,7,10,5,4,5
+167,40,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,8,5,3,8,8
+168,61,Muž,Střední Čechy,VŠ,Digital Self-Service,6,7,8,6,8
+169,58,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,4,4,5,5,7
+170,24,Muž,Moravskoslezsko,VŠ,Digital Self-Service,4,4,2,9,3
+171,42,Muž,Severovýchod,SŠ s maturitou,Leisure Families,7,5,7,5,3
+172,45,Muž,Jihovýchod,SŠ s maturitou,Leisure Families,10,6,6,9,7
+173,60,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,5,6,7,4,10
+174,65,Žena,Jihovýchod,SŠ s maturitou,International Transfer,7,7,3,9,8
+175,59,Muž,Moravskoslezsko,VŠ,Frequent Business,6,3,4,7,3
+176,18,Žena,Střední Čechy,ZŠ / bez maturity,Frequent Business,2,5,4,6,6
+177,30,Muž,Severozápad,VŠ,Frequent Business,5,7,7,7,7
+178,39,Muž,Praha,SŠ s maturitou,Leisure Families,8,4,7,8,8
+179,44,Muž,Moravskoslezsko,VŠ,Leisure Families,3,7,4,6,3
+180,58,Žena,Jihozápad,VŠ,Leisure Families,5,8,4,6,9
+181,56,Muž,Severozápad,SŠ s maturitou,International Transfer,4,9,5,10,7
+182,38,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,9,7,7,4,7
+183,22,Muž,Praha,SŠ s maturitou,Frequent Business,1,7,7,5,4
+184,41,Muž,Severozápad,SŠ s maturitou,Leisure Families,6,10,4,4,5
+185,71,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,5,8,5,6,2
+186,43,Žena,Střední Čechy,VŠ,Infrequent Travellers,6,7,2,6,2
+187,52,Muž,Jihovýchod,ZŠ / bez maturity,Leisure Families,4,7,8,8,4
+188,37,Žena,Střední Čechy,SŠ s maturitou,Leisure Families,8,6,5,6,2
+189,42,Muž,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,6,5,10,5,5
+190,38,Žena,Severozápad,SŠ s maturitou,International Transfer,8,6,6,6,7
+191,27,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,8,5,5,7,3
+192,43,Muž,Severozápad,VŠ,International Transfer,6,9,7,9,9
+193,42,Muž,Severovýchod,ZŠ / bez maturity,International Transfer,4,4,5,1,3
+194,36,Muž,Praha,VŠ,Infrequent Travellers,6,8,7,7,9
+195,58,Muž,Jihozápad,SŠ s maturitou,Frequent Business,5,3,7,7,6
+196,21,Žena,Praha,SŠ s maturitou,Digital Self-Service,2,7,5,3,9
+197,30,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,6,6,6,4,5
+198,32,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,4,8,3,6,5
+199,46,Muž,Střední Čechy,VŠ,Digital Self-Service,2,2,2,8,5
+200,43,Žena,Jihozápad,ZŠ / bez maturity,Frequent Business,2,6,5,3,8
+201,39,Muž,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,6,5,1,7,6
+202,18,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,5,7,6,5,3
+203,18,Žena,Praha,SŠ s maturitou,Digital Self-Service,4,6,7,6,4
+204,37,Muž,Střední Čechy,ZŠ / bez maturity,International Transfer,7,7,2,4,3
+205,41,Žena,Severozápad,ZŠ / bez maturity,Leisure Families,5,5,5,9,2
+206,34,Žena,Severozápad,ZŠ / bez maturity,Leisure Families,6,8,10,9,6
+207,52,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,4,4,2,2,7
+208,33,Žena,Severozápad,SŠ s maturitou,International Transfer,6,6,9,9,6
+209,26,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,7,3,2,4,5
+210,51,Žena,Severovýchod,VŠ,Infrequent Travellers,6,8,5,5,4
+211,56,Žena,Severovýchod,SŠ s maturitou,Leisure Families,6,5,8,6,7
+212,40,Muž,Jihovýchod,SŠ s maturitou,Digital Self-Service,10,4,8,3,7
+213,47,Žena,Jihovýchod,ZŠ / bez maturity,International Transfer,6,9,5,6,7
+214,28,Muž,Praha,VŠ,Frequent Business,6,7,4,7,5
+215,45,Žena,Moravskoslezsko,VŠ,Infrequent Travellers,7,4,5,6,6
+216,65,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,5,8,1,7,7
+217,41,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,6,6,5,7,7
+218,19,Muž,Praha,SŠ s maturitou,International Transfer,5,6,2,6,3
+219,29,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,4,7,7,7,4
+220,20,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,4,6,7,10,7
+221,34,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,5,4,6,6,5
+222,56,Žena,Moravskoslezsko,ZŠ / bez maturity,International Transfer,1,5,9,7,6
+223,34,Muž,Jihovýchod,SŠ s maturitou,International Transfer,6,1,6,4,4
+224,37,Muž,Praha,VŠ,Infrequent Travellers,5,5,2,5,8
+225,18,Muž,Jihovýchod,SŠ s maturitou,Leisure Families,6,6,6,7,7
+226,52,Muž,Střední Čechy,VŠ,Leisure Families,4,5,4,4,6
+227,38,Žena,Severovýchod,ZŠ / bez maturity,International Transfer,6,5,5,5,6
+228,60,Žena,Praha,VŠ,Infrequent Travellers,3,7,4,3,6
+229,49,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,3,8,9,3,2
+230,33,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,5,4,6,10,7
+231,35,Muž,Praha,SŠ s maturitou,Digital Self-Service,3,5,3,7,5
+232,49,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,6,6,5,6,7
+233,23,Muž,Jihovýchod,VŠ,Digital Self-Service,8,4,3,6,3
+234,41,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,6,5,3,5,9
+235,36,Muž,Praha,SŠ s maturitou,Digital Self-Service,3,3,8,5,5
+236,54,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,5,5,6,5,5
+237,34,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,7,4,5,4,8
+238,50,Žena,Severozápad,ZŠ / bez maturity,Digital Self-Service,7,2,5,2,5
+239,59,Žena,Střední Čechy,VŠ,International Transfer,6,9,7,7,7
+240,46,Žena,Jihovýchod,SŠ s maturitou,Digital Self-Service,3,4,10,5,7
+241,50,Muž,Severovýchod,SŠ s maturitou,Frequent Business,5,7,5,8,5
+242,35,Žena,Jihozápad,VŠ,Leisure Families,2,9,9,7,9
+243,37,Muž,Severovýchod,VŠ,Leisure Families,5,7,10,5,4
+244,67,Muž,Praha,SŠ s maturitou,Infrequent Travellers,1,6,4,4,5
+245,31,Muž,Střední Čechy,ZŠ / bez maturity,International Transfer,5,7,5,9,4
+246,18,Muž,Severovýchod,SŠ s maturitou,International Transfer,10,7,7,7,2
+247,37,Muž,Praha,SŠ s maturitou,Infrequent Travellers,5,9,8,7,10
+248,18,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,4,8,6,4,5
+249,74,Muž,Střední Čechy,SŠ s maturitou,International Transfer,3,9,7,7,5
+250,60,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,9,4,5,5,10
+251,36,Muž,Severovýchod,ZŠ / bez maturity,Leisure Families,7,8,3,7,6
+252,37,Muž,Praha,SŠ s maturitou,Leisure Families,2,6,7,2,8
+253,55,Žena,Jihozápad,VŠ,Frequent Business,4,7,4,3,8
+254,42,Žena,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,6,6,5,3,3
+255,36,Žena,Severozápad,VŠ,International Transfer,3,7,3,8,8
+256,36,Žena,Severovýchod,VŠ,Frequent Business,4,6,9,5,10
+257,48,Žena,Severovýchod,SŠ s maturitou,Leisure Families,3,7,9,4,6
+258,27,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,4,8,8,8,6
+259,33,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,5,10,6,7,7
+260,58,Žena,Praha,SŠ s maturitou,Leisure Families,6,6,5,3,6
+261,37,Žena,Praha,ZŠ / bez maturity,Leisure Families,8,5,7,3,7
+262,62,Žena,Jihozápad,ZŠ / bez maturity,International Transfer,4,5,4,9,5
+263,43,Muž,Střední Čechy,ZŠ / bez maturity,Frequent Business,3,6,6,5,5
+264,34,Muž,Severozápad,SŠ s maturitou,Leisure Families,3,4,5,6,5
+265,39,Žena,Severozápad,SŠ s maturitou,International Transfer,9,9,1,2,10
+266,37,Muž,Severovýchod,SŠ s maturitou,Frequent Business,4,8,3,5,5
+267,44,Žena,Praha,ZŠ / bez maturity,International Transfer,4,5,3,6,3
+268,39,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,5,6,4,4,3
+269,51,Žena,Praha,ZŠ / bez maturity,Leisure Families,4,6,5,5,7
+270,49,Žena,Severovýchod,VŠ,Frequent Business,5,5,6,5,8
+271,18,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,3,7,9,5,4
+272,40,Žena,Praha,SŠ s maturitou,Infrequent Travellers,8,2,7,5,10
+273,39,Muž,Jihovýchod,VŠ,Frequent Business,3,7,6,9,4
+274,23,Muž,Praha,VŠ,Infrequent Travellers,5,8,10,6,3
+275,23,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,8,4,6,6,8
+276,32,Muž,Jihovýchod,SŠ s maturitou,Infrequent Travellers,10,7,4,3,10
+277,33,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,7,5,6,4,3
+278,27,Žena,Severovýchod,ZŠ / bez maturity,Frequent Business,4,8,5,7,7
+279,44,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,6,3,7,8,6
+280,47,Muž,Severovýchod,VŠ,Infrequent Travellers,7,5,8,5,6
+281,43,Muž,Jihovýchod,VŠ,Leisure Families,4,4,4,6,4
+282,60,Muž,Praha,SŠ s maturitou,Frequent Business,8,8,7,2,3
+283,24,Žena,Severozápad,SŠ s maturitou,International Transfer,6,3,5,5,7
+284,23,Žena,Střední Čechy,VŠ,Infrequent Travellers,6,6,4,5,5
+285,59,Žena,Jihozápad,VŠ,International Transfer,5,5,8,6,8
+286,52,Žena,Praha,SŠ s maturitou,Frequent Business,9,8,1,6,7
+287,38,Žena,Střední Čechy,ZŠ / bez maturity,Frequent Business,6,6,8,6,8
+288,42,Muž,Jihozápad,ZŠ / bez maturity,Digital Self-Service,10,9,6,7,5
+289,23,Muž,Praha,SŠ s maturitou,International Transfer,3,9,6,10,5
+290,28,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,8,4,8,10,9
+291,46,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,7,8,3,7,6
+292,18,Muž,Střední Čechy,VŠ,International Transfer,7,4,4,4,8
+293,45,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,6,7,5,6,7
+294,45,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,7,4,8,4,7
+295,49,Žena,Střední Čechy,VŠ,Frequent Business,5,5,1,6,10
+296,29,Žena,Severozápad,VŠ,Infrequent Travellers,2,6,5,6,6
+297,51,Žena,Praha,SŠ s maturitou,Leisure Families,5,6,3,6,8
+298,28,Žena,Severovýchod,SŠ s maturitou,International Transfer,3,6,3,5,10
+299,44,Žena,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,9,9,5,6,10
+300,47,Muž,Praha,ZŠ / bez maturity,International Transfer,7,5,4,5,5
+301,69,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,4,6,5,4,6
+302,57,Žena,Severovýchod,ZŠ / bez maturity,International Transfer,10,6,5,7,6
+303,65,Žena,Severozápad,SŠ s maturitou,International Transfer,10,3,5,4,10
+304,29,Žena,Jihovýchod,ZŠ / bez maturity,Leisure Families,7,10,5,8,5
+305,49,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,8,3,7,8,3
+306,60,Muž,Jihozápad,SŠ s maturitou,Frequent Business,9,5,6,9,7
+307,35,Žena,Praha,SŠ s maturitou,Digital Self-Service,5,2,7,8,6
+308,42,Muž,Praha,SŠ s maturitou,Digital Self-Service,6,7,7,7,7
+309,44,Žena,Praha,ZŠ / bez maturity,Leisure Families,4,8,3,6,7
+310,59,Žena,Jihovýchod,VŠ,Frequent Business,3,8,8,2,4
+311,32,Žena,Jihovýchod,SŠ s maturitou,Frequent Business,6,7,7,3,10
+312,48,Žena,Střední Čechy,SŠ s maturitou,Leisure Families,8,7,3,5,4
+313,46,Žena,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,5,7,8,5,10
+314,23,Žena,Severozápad,VŠ,Digital Self-Service,2,10,9,5,4
+315,25,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,4,8,7,5,7
+316,40,Muž,Moravskoslezsko,VŠ,Infrequent Travellers,1,6,5,5,5
+317,45,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,9,3,4,3,5
+318,40,Žena,Jihozápad,VŠ,Frequent Business,4,3,8,1,6
+319,20,Muž,Moravskoslezsko,VŠ,Leisure Families,7,5,4,7,5
+320,48,Muž,Jihozápad,SŠ s maturitou,International Transfer,4,5,8,9,8
+321,72,Muž,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,5,6,6,4,3
+322,34,Muž,Střední Čechy,VŠ,Infrequent Travellers,5,7,6,4,2
+323,35,Muž,Jihovýchod,VŠ,Digital Self-Service,3,6,5,2,6
+324,65,Žena,Jihovýchod,VŠ,Digital Self-Service,8,8,8,3,5
+325,28,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,4,8,7,10,5
+326,41,Žena,Jihozápad,VŠ,Frequent Business,3,7,8,6,6
+327,38,Žena,Severovýchod,SŠ s maturitou,International Transfer,7,7,6,6,6
+328,60,Žena,Moravskoslezsko,VŠ,International Transfer,6,6,5,8,7
+329,37,Muž,Praha,ZŠ / bez maturity,International Transfer,3,7,9,5,7
+330,63,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,7,4,6,4,7
+331,37,Žena,Jihovýchod,ZŠ / bez maturity,Frequent Business,9,3,1,4,3
+332,41,Muž,Severovýchod,VŠ,Infrequent Travellers,5,5,7,3,5
+333,18,Muž,Střední Čechy,VŠ,Leisure Families,5,10,8,5,6
+334,18,Žena,Praha,SŠ s maturitou,Frequent Business,2,6,7,6,5
+335,54,Žena,Jihovýchod,SŠ s maturitou,Digital Self-Service,4,6,5,8,8
+336,21,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,6,6,5,5,6
+337,47,Žena,Praha,VŠ,Leisure Families,9,6,1,10,2
+338,19,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,9,7,5,9,4
+339,34,Žena,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,5,6,7,5,8
+340,47,Žena,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,5,6,2,6,5
+341,38,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,5,5,9,5,8
+342,35,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,8,8,6,2,9
+343,54,Muž,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,3,6,6,4,6
+344,56,Žena,Severovýchod,SŠ s maturitou,International Transfer,8,6,8,8,4
+345,28,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,5,5,6,3,6
+346,35,Muž,Střední Čechy,VŠ,Frequent Business,3,2,3,7,10
+347,28,Žena,Střední Čechy,SŠ s maturitou,Leisure Families,2,6,5,2,8
+348,74,Muž,Praha,SŠ s maturitou,Digital Self-Service,6,3,6,7,9
+349,21,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,5,8,5,10,3
+350,32,Žena,Jihozápad,SŠ s maturitou,Frequent Business,5,6,6,7,8
+351,33,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,8,4,8,7,8
+352,18,Muž,Severozápad,VŠ,International Transfer,6,9,7,5,6
+353,55,Žena,Jihozápad,VŠ,Digital Self-Service,5,6,4,4,7
+354,54,Žena,Praha,VŠ,Frequent Business,5,7,5,6,1
+355,29,Žena,Moravskoslezsko,VŠ,Frequent Business,2,3,3,4,4
+356,58,Muž,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,5,3,9,4,7
+357,44,Žena,Střední Čechy,VŠ,Infrequent Travellers,7,8,5,7,5
+358,68,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,6,4,3,1,10
+359,52,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,6,6,7,3,8
+360,28,Muž,Severozápad,ZŠ / bez maturity,International Transfer,7,6,8,4,3
+361,47,Muž,Střední Čechy,VŠ,Frequent Business,6,7,4,4,6
+362,74,Žena,Praha,SŠ s maturitou,Frequent Business,3,9,4,5,6
+363,54,Žena,Moravskoslezsko,VŠ,International Transfer,8,5,5,6,5
+364,37,Žena,Jihozápad,SŠ s maturitou,Frequent Business,5,2,7,7,4
+365,38,Muž,Jihovýchod,ZŠ / bez maturity,Frequent Business,8,2,5,6,6
+366,33,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,2,6,9,6,6
+367,38,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,4,5,5,1,7
+368,50,Muž,Jihozápad,ZŠ / bez maturity,Frequent Business,5,6,6,5,8
+369,48,Žena,Moravskoslezsko,VŠ,Leisure Families,6,3,6,4,6
+370,40,Žena,Střední Čechy,VŠ,International Transfer,4,7,6,3,4
+371,25,Žena,Severozápad,VŠ,Infrequent Travellers,5,4,6,5,5
+372,26,Žena,Severovýchod,ZŠ / bez maturity,Digital Self-Service,7,4,8,7,8
+373,29,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,3,6,2,6,3
+374,53,Žena,Severozápad,ZŠ / bez maturity,International Transfer,7,7,5,10,9
+375,52,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,5,1,5,8,7
+376,34,Muž,Severozápad,SŠ s maturitou,Frequent Business,6,3,8,7,9
+377,48,Muž,Jihozápad,VŠ,Frequent Business,8,9,4,5,6
+378,36,Žena,Praha,ZŠ / bez maturity,Digital Self-Service,7,10,8,6,9
+379,29,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,5,8,1,9,5
+380,45,Žena,Střední Čechy,ZŠ / bez maturity,International Transfer,3,6,7,4,4
+381,41,Žena,Jihovýchod,VŠ,Leisure Families,5,7,5,1,7
+382,47,Muž,Praha,SŠ s maturitou,Leisure Families,5,6,9,6,1
+383,51,Žena,Střední Čechy,ZŠ / bez maturity,International Transfer,7,9,3,5,7
+384,65,Muž,Jihovýchod,VŠ,Frequent Business,9,6,10,7,7
+385,37,Žena,Severovýchod,VŠ,Leisure Families,3,4,6,10,7
+386,45,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,6,6,8,4,5
+387,50,Žena,Střední Čechy,VŠ,Infrequent Travellers,7,7,3,5,8
+388,37,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,3,3,6,6,4
+389,43,Muž,Severozápad,SŠ s maturitou,Infrequent Travellers,6,5,8,4,8
+390,48,Muž,Jihovýchod,SŠ s maturitou,Infrequent Travellers,9,10,7,5,3
+391,47,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,8,6,8,4,6
+392,43,Muž,Praha,SŠ s maturitou,Frequent Business,4,5,7,4,6
+393,57,Muž,Severozápad,VŠ,Frequent Business,5,6,4,6,5
+394,51,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,6,3,5,4,4
+395,28,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,5,5,8,8,6
+396,47,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,4,7,4,8,7
+397,56,Žena,Severozápad,VŠ,Digital Self-Service,2,6,10,6,5
+398,32,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,7,8,7,9,6
+399,43,Muž,Severozápad,SŠ s maturitou,Infrequent Travellers,9,6,5,5,9
+400,39,Žena,Jihovýchod,ZŠ / bez maturity,Frequent Business,10,8,2,5,5
+401,38,Muž,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,6,5,5,3,9
+402,33,Muž,Severovýchod,VŠ,Infrequent Travellers,4,3,8,6,6
+403,53,Muž,Střední Čechy,ZŠ / bez maturity,Leisure Families,4,9,7,5,7
+404,35,Žena,Střední Čechy,SŠ s maturitou,Leisure Families,5,3,4,6,3
+405,42,Muž,Jihozápad,VŠ,Infrequent Travellers,3,6,5,3,4
+406,33,Žena,Střední Čechy,SŠ s maturitou,Leisure Families,9,3,7,6,8
+407,45,Žena,Severovýchod,ZŠ / bez maturity,Frequent Business,5,3,6,9,4
+408,32,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,3,3,5,5,4
+409,53,Muž,Střední Čechy,ZŠ / bez maturity,International Transfer,2,7,9,6,7
+410,39,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,8,3,4,6,5
+411,55,Muž,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,7,7,10,5,6
+412,24,Muž,Moravskoslezsko,VŠ,International Transfer,3,7,4,8,9
+413,43,Muž,Střední Čechy,SŠ s maturitou,Frequent Business,4,5,5,5,7
+414,37,Muž,Severovýchod,SŠ s maturitou,International Transfer,7,7,10,3,5
+415,39,Žena,Jihozápad,SŠ s maturitou,Leisure Families,6,6,8,7,2
+416,49,Žena,Severozápad,VŠ,International Transfer,5,7,7,4,7
+417,30,Muž,Jihovýchod,VŠ,Leisure Families,2,5,2,6,2
+418,32,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,3,5,2,5,9
+419,64,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,4,8,4,7,6
+420,31,Muž,Praha,VŠ,Leisure Families,4,6,2,5,8
+421,38,Muž,Praha,SŠ s maturitou,Infrequent Travellers,5,8,2,8,4
+422,47,Muž,Jihozápad,ZŠ / bez maturity,Frequent Business,7,6,8,3,10
+423,32,Žena,Severovýchod,ZŠ / bez maturity,Frequent Business,8,5,4,7,6
+424,54,Žena,Severozápad,SŠ s maturitou,Leisure Families,5,9,4,5,5
+425,30,Žena,Jihozápad,VŠ,Leisure Families,7,8,5,5,3
+426,49,Muž,Střední Čechy,SŠ s maturitou,Frequent Business,8,5,8,8,6
+427,20,Muž,Severozápad,VŠ,Leisure Families,6,5,4,4,6
+428,45,Muž,Praha,SŠ s maturitou,Digital Self-Service,4,4,7,5,9
+429,32,Žena,Střední Čechy,VŠ,Leisure Families,1,4,6,7,8
+430,49,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,5,6,6,5,4
+431,53,Muž,Jihovýchod,VŠ,Leisure Families,4,8,6,4,9
+432,43,Žena,Praha,SŠ s maturitou,International Transfer,6,5,3,3,9
+433,26,Muž,Jihozápad,VŠ,International Transfer,4,5,4,6,8
+434,50,Žena,Severovýchod,ZŠ / bez maturity,Digital Self-Service,2,8,3,8,8
+435,46,Žena,Severovýchod,ZŠ / bez maturity,Frequent Business,6,3,5,5,8
+436,44,Žena,Praha,SŠ s maturitou,Digital Self-Service,8,5,8,2,6
+437,30,Muž,Jihovýchod,VŠ,Frequent Business,7,6,5,4,4
+438,58,Muž,Jihovýchod,ZŠ / bez maturity,Frequent Business,3,6,5,7,5
+439,38,Žena,Severovýchod,ZŠ / bez maturity,Frequent Business,4,7,8,9,3
+440,38,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,10,7,7,8,6
+441,42,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,6,4,9,6,4
+442,58,Muž,Střední Čechy,VŠ,Digital Self-Service,5,5,6,5,2
+443,33,Žena,Střední Čechy,SŠ s maturitou,International Transfer,7,8,5,1,5
+444,48,Muž,Jihozápad,SŠ s maturitou,Leisure Families,6,5,6,6,1
+445,49,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,9,9,9,3,8
+446,41,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,8,7,7,4,2
+447,31,Žena,Severovýchod,SŠ s maturitou,Frequent Business,6,9,5,5,7
+448,62,Žena,Praha,SŠ s maturitou,Infrequent Travellers,10,7,7,2,3
+449,40,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,3,5,7,7,2
+450,44,Muž,Jihozápad,VŠ,Frequent Business,7,5,5,7,3
+451,46,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,5,7,3,5,4
+452,28,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,8,7,3,5,9
+453,45,Muž,Jihozápad,VŠ,Digital Self-Service,6,5,8,7,6
+454,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,6,6,9,5,7
+455,59,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,2,7,7,1,3
+456,37,Muž,Střední Čechy,ZŠ / bez maturity,International Transfer,4,7,10,6,8
+457,33,Žena,Jihozápad,ZŠ / bez maturity,International Transfer,7,4,8,5,7
+458,45,Muž,Praha,VŠ,Frequent Business,7,7,6,8,2
+459,58,Muž,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,5,9,8,4,5
+460,25,Žena,Severovýchod,VŠ,Digital Self-Service,5,4,8,3,5
+461,36,Muž,Jihovýchod,SŠ s maturitou,Infrequent Travellers,9,6,6,6,6
+462,66,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,4,9,3,3,10
+463,37,Žena,Jihozápad,VŠ,Digital Self-Service,8,5,3,6,6
+464,68,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,3,6,7,4,9
+465,40,Žena,Severozápad,VŠ,International Transfer,3,9,7,7,7
+466,39,Žena,Jihovýchod,SŠ s maturitou,Digital Self-Service,5,1,7,8,10
+467,58,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,5,10,8,6,3
+468,70,Muž,Jihovýchod,VŠ,Leisure Families,4,5,9,7,3
+469,42,Žena,Jihovýchod,VŠ,International Transfer,2,7,8,3,9
+470,58,Žena,Jihozápad,VŠ,Frequent Business,5,7,6,3,6
+471,18,Žena,Praha,SŠ s maturitou,Infrequent Travellers,6,6,4,7,4
+472,66,Muž,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,4,4,10,3,7
+473,53,Muž,Praha,SŠ s maturitou,Infrequent Travellers,3,4,3,4,5
+474,40,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,5,4,3,7,10
+475,58,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,9,9,5,6,8
+476,25,Žena,Moravskoslezsko,VŠ,Frequent Business,9,4,2,9,5
+477,64,Žena,Severozápad,SŠ s maturitou,Frequent Business,6,4,4,7,6
+478,53,Žena,Střední Čechy,SŠ s maturitou,International Transfer,6,2,5,3,7
+479,21,Muž,Jihozápad,SŠ s maturitou,Frequent Business,6,5,5,4,7
+480,39,Muž,Jihovýchod,SŠ s maturitou,International Transfer,7,9,6,4,10
+481,50,Žena,Jihozápad,SŠ s maturitou,International Transfer,3,8,6,3,4
+482,37,Žena,Severozápad,VŠ,Infrequent Travellers,9,5,7,3,7
+483,52,Muž,Moravskoslezsko,VŠ,Frequent Business,6,3,6,5,3
+484,33,Muž,Střední Čechy,SŠ s maturitou,International Transfer,2,5,6,3,1
+485,56,Muž,Severovýchod,SŠ s maturitou,International Transfer,4,7,5,3,8
+486,44,Muž,Severovýchod,VŠ,Infrequent Travellers,4,10,4,6,7
+487,35,Muž,Jihovýchod,ZŠ / bez maturity,Frequent Business,3,4,7,4,5
+488,27,Muž,Jihovýchod,SŠ s maturitou,International Transfer,10,5,3,5,10
+489,32,Žena,Severovýchod,ZŠ / bez maturity,Digital Self-Service,9,5,4,7,7
+490,56,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,10,4,7,3,8
+491,34,Muž,Střední Čechy,SŠ s maturitou,International Transfer,8,6,4,4,7
+492,43,Muž,Severozápad,ZŠ / bez maturity,Leisure Families,7,10,3,5,5
+493,43,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,7,10,1,6,8
+494,27,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,2,6,6,9,8
+495,46,Žena,Jihovýchod,VŠ,Frequent Business,4,9,5,5,6
+496,32,Muž,Severozápad,SŠ s maturitou,Leisure Families,4,4,6,4,6
+497,57,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,4,8,6,8,6
+498,32,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,7,6,6,7,7
+499,45,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,7,2,8,7,6
+500,20,Žena,Moravskoslezsko,VŠ,Digital Self-Service,4,5,3,5,5
+501,65,Žena,Jihovýchod,ZŠ / bez maturity,Leisure Families,7,5,7,7,6
+502,67,Muž,Jihovýchod,ZŠ / bez maturity,Leisure Families,3,6,7,4,6
+503,65,Žena,Jihovýchod,SŠ s maturitou,Frequent Business,9,6,9,6,9
+504,47,Muž,Severovýchod,ZŠ / bez maturity,Digital Self-Service,6,4,7,4,7
+505,69,Žena,Severozápad,ZŠ / bez maturity,Digital Self-Service,6,7,4,5,5
+506,41,Muž,Jihozápad,SŠ s maturitou,Leisure Families,4,4,4,6,8
+507,35,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,6,9,1,7,5
+508,45,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,5,7,5,6,6
+509,36,Muž,Střední Čechy,SŠ s maturitou,Infrequent Travellers,6,5,4,6,7
+510,60,Muž,Praha,SŠ s maturitou,International Transfer,6,3,6,3,7
+511,35,Žena,Severozápad,ZŠ / bez maturity,Digital Self-Service,7,8,6,3,5
+512,32,Žena,Jihovýchod,VŠ,Frequent Business,7,4,4,7,5
+513,38,Muž,Střední Čechy,ZŠ / bez maturity,International Transfer,7,10,3,4,6
+514,33,Žena,Jihozápad,ZŠ / bez maturity,International Transfer,3,7,6,1,7
+515,19,Žena,Jihozápad,SŠ s maturitou,International Transfer,4,8,4,10,5
+516,40,Žena,Střední Čechy,VŠ,Frequent Business,8,4,6,7,6
+517,21,Žena,Jihovýchod,VŠ,Frequent Business,5,6,6,8,4
+518,62,Muž,Jihovýchod,SŠ s maturitou,Digital Self-Service,7,2,10,6,3
+519,43,Žena,Praha,VŠ,Frequent Business,5,9,8,5,9
+520,62,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,7,6,7,7,6
+521,45,Žena,Střední Čechy,VŠ,Digital Self-Service,4,7,7,5,5
+522,42,Muž,Jihovýchod,VŠ,Infrequent Travellers,6,3,5,3,3
+523,45,Žena,Severovýchod,ZŠ / bez maturity,Digital Self-Service,2,5,3,7,5
+524,39,Muž,Severozápad,VŠ,Infrequent Travellers,7,9,4,5,8
+525,74,Muž,Jihozápad,ZŠ / bez maturity,Digital Self-Service,6,4,4,8,3
+526,31,Žena,Střední Čechy,ZŠ / bez maturity,International Transfer,4,4,2,5,6
+527,46,Muž,Střední Čechy,SŠ s maturitou,International Transfer,6,6,6,4,5
+528,42,Žena,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,6,8,6,6,5
+529,56,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,8,2,5,5,7
+530,35,Muž,Praha,SŠ s maturitou,International Transfer,2,5,5,4,6
+531,34,Muž,Moravskoslezsko,ZŠ / bez maturity,International Transfer,4,5,3,4,7
+532,52,Muž,Severozápad,SŠ s maturitou,Frequent Business,4,6,6,4,8
+533,41,Žena,Severozápad,VŠ,International Transfer,8,5,7,5,4
+534,18,Žena,Praha,SŠ s maturitou,Leisure Families,6,10,4,4,5
+535,31,Žena,Severovýchod,SŠ s maturitou,Frequent Business,8,8,3,9,4
+536,42,Muž,Jihozápad,SŠ s maturitou,International Transfer,1,5,6,6,7
+537,43,Muž,Jihovýchod,SŠ s maturitou,Digital Self-Service,10,6,8,5,2
+538,30,Žena,Jihozápad,VŠ,Infrequent Travellers,9,4,5,3,3
+539,62,Žena,Praha,VŠ,International Transfer,3,5,4,7,7
+540,41,Žena,Jihozápad,VŠ,Infrequent Travellers,6,10,3,7,6
+541,40,Muž,Severozápad,SŠ s maturitou,Infrequent Travellers,5,8,7,6,7
+542,74,Žena,Moravskoslezsko,VŠ,Frequent Business,4,1,5,6,5
+543,51,Muž,Jihovýchod,SŠ s maturitou,Leisure Families,7,3,7,4,7
+544,45,Žena,Jihozápad,VŠ,International Transfer,7,8,5,6,6
+545,22,Žena,Severovýchod,VŠ,Frequent Business,7,7,8,6,3
+546,28,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,7,7,7,6,7
+547,23,Muž,Střední Čechy,SŠ s maturitou,Infrequent Travellers,7,3,1,8,6
+548,54,Muž,Jihozápad,ZŠ / bez maturity,Frequent Business,5,8,6,8,7
+549,38,Žena,Jihovýchod,ZŠ / bez maturity,Frequent Business,3,5,6,6,6
+550,34,Žena,Severovýchod,VŠ,Digital Self-Service,5,9,5,6,2
+551,33,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,3,4,9,7,4
+552,41,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,6,4,8,6,4
+553,47,Žena,Praha,SŠ s maturitou,Digital Self-Service,9,4,6,8,5
+554,40,Žena,Severozápad,ZŠ / bez maturity,Frequent Business,4,6,4,6,6
+555,42,Muž,Severozápad,VŠ,International Transfer,4,3,6,9,10
+556,50,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,7,7,2,6,8
+557,53,Žena,Jihozápad,VŠ,Leisure Families,6,5,2,5,7
+558,52,Muž,Střední Čechy,VŠ,Infrequent Travellers,6,9,7,1,4
+559,55,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,7,10,6,3,4
+560,20,Žena,Jihovýchod,SŠ s maturitou,Infrequent Travellers,4,7,9,8,5
+561,41,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,5,6,6,8,6
+562,18,Muž,Severovýchod,ZŠ / bez maturity,Frequent Business,1,8,6,7,7
+563,37,Žena,Jihozápad,VŠ,Infrequent Travellers,5,3,5,6,7
+564,37,Žena,Střední Čechy,VŠ,Leisure Families,10,4,6,2,2
+565,56,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,7,5,6,5,5
+566,42,Žena,Severozápad,SŠ s maturitou,Leisure Families,4,6,4,6,7
+567,63,Žena,Praha,ZŠ / bez maturity,Digital Self-Service,7,7,4,5,7
+568,43,Muž,Moravskoslezsko,VŠ,Digital Self-Service,6,5,8,5,4
+569,35,Žena,Severozápad,SŠ s maturitou,International Transfer,4,4,7,6,6
+570,55,Žena,Střední Čechy,SŠ s maturitou,Digital Self-Service,9,5,7,2,6
+571,42,Muž,Praha,ZŠ / bez maturity,Leisure Families,7,6,7,2,3
+572,30,Muž,Severovýchod,SŠ s maturitou,Leisure Families,5,7,3,4,2
+573,45,Muž,Jihozápad,SŠ s maturitou,International Transfer,5,7,8,4,4
+574,51,Žena,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,7,5,8,7,8
+575,38,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,5,10,5,5,4
+576,40,Muž,Střední Čechy,VŠ,International Transfer,5,6,6,7,6
+577,27,Muž,Jihozápad,ZŠ / bez maturity,Digital Self-Service,3,7,4,6,7
+578,65,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,6,7,8,5,4
+579,29,Žena,Severozápad,ZŠ / bez maturity,Digital Self-Service,1,6,10,8,5
+580,18,Muž,Moravskoslezsko,VŠ,Frequent Business,4,9,8,7,7
+581,50,Muž,Severovýchod,ZŠ / bez maturity,Leisure Families,9,5,5,6,6
+582,20,Muž,Moravskoslezsko,VŠ,Infrequent Travellers,9,2,8,6,1
+583,30,Žena,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,4,10,7,7,10
+584,38,Muž,Jihovýchod,VŠ,Leisure Families,5,7,5,6,5
+585,43,Muž,Severovýchod,SŠ s maturitou,Leisure Families,7,6,7,7,8
+586,41,Žena,Praha,SŠ s maturitou,Frequent Business,6,5,10,1,7
+587,36,Muž,Střední Čechy,VŠ,Digital Self-Service,5,5,8,7,7
+588,18,Žena,Severovýchod,ZŠ / bez maturity,Digital Self-Service,6,3,5,3,10
+589,35,Muž,Severozápad,SŠ s maturitou,Frequent Business,7,4,5,4,8
+590,30,Žena,Praha,ZŠ / bez maturity,Leisure Families,3,5,8,2,2
+591,49,Žena,Severovýchod,SŠ s maturitou,Infrequent Travellers,6,6,3,4,3
+592,52,Muž,Praha,ZŠ / bez maturity,International Transfer,5,8,9,2,4
+593,32,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,6,7,6,6,5
+594,24,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,2,4,7,4,6
+595,55,Žena,Střední Čechy,VŠ,International Transfer,5,4,10,3,7
+596,36,Muž,Severovýchod,VŠ,Frequent Business,10,6,7,4,6
+597,50,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,6,6,2,6,7
+598,27,Žena,Praha,VŠ,Frequent Business,3,8,4,3,6
+599,36,Žena,Severovýchod,VŠ,Frequent Business,3,4,8,2,2
+600,22,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,4,4,8,4,6
+601,34,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,4,6,7,5,7
+602,18,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,8,8,4,8,5
+603,42,Žena,Moravskoslezsko,VŠ,Frequent Business,9,5,7,2,5
+604,50,Muž,Jihovýchod,VŠ,Digital Self-Service,3,8,5,4,4
+605,18,Muž,Praha,VŠ,Digital Self-Service,8,6,10,6,7
+606,47,Žena,Jihozápad,VŠ,International Transfer,7,1,3,5,1
+607,58,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,10,5,9,3,7
+608,42,Muž,Praha,SŠ s maturitou,Infrequent Travellers,6,4,8,8,7
+609,39,Žena,Jihovýchod,SŠ s maturitou,International Transfer,5,6,8,2,8
+610,46,Muž,Severozápad,SŠ s maturitou,Infrequent Travellers,6,3,6,2,3
+611,25,Žena,Severozápad,VŠ,Frequent Business,9,6,5,1,5
+612,49,Muž,Jihovýchod,ZŠ / bez maturity,Frequent Business,7,6,7,4,4
+613,48,Žena,Severovýchod,ZŠ / bez maturity,Digital Self-Service,7,5,4,4,7
+614,48,Muž,Praha,SŠ s maturitou,Leisure Families,5,2,4,6,8
+615,35,Muž,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,2,7,8,6,5
+616,62,Muž,Severozápad,VŠ,International Transfer,4,6,6,7,7
+617,18,Muž,Jihovýchod,VŠ,International Transfer,5,7,4,4,9
+618,57,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,3,9,5,6,8
+619,49,Muž,Severozápad,ZŠ / bez maturity,Frequent Business,6,3,4,3,5
+620,51,Žena,Jihozápad,VŠ,International Transfer,10,4,3,6,1
+621,19,Žena,Střední Čechy,VŠ,Digital Self-Service,6,4,5,4,7
+622,35,Muž,Jihozápad,SŠ s maturitou,Frequent Business,4,8,5,8,6
+623,42,Žena,Severovýchod,VŠ,International Transfer,9,7,8,6,9
+624,29,Muž,Střední Čechy,VŠ,International Transfer,6,4,7,7,5
+625,47,Žena,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,4,3,7,6,3
+626,40,Žena,Jihozápad,ZŠ / bez maturity,International Transfer,6,7,5,3,4
+627,31,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,4,8,6,10,4
+628,29,Muž,Jihozápad,SŠ s maturitou,International Transfer,5,5,7,8,4
+629,31,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,4,7,6,8,4
+630,43,Žena,Praha,VŠ,Digital Self-Service,5,4,5,3,7
+631,57,Žena,Praha,ZŠ / bez maturity,Leisure Families,3,7,3,1,8
+632,33,Žena,Střední Čechy,VŠ,International Transfer,6,7,6,8,4
+633,41,Muž,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,7,6,5,5,4
+634,55,Žena,Praha,SŠ s maturitou,Digital Self-Service,1,3,9,4,9
+635,53,Muž,Střední Čechy,ZŠ / bez maturity,Frequent Business,3,4,4,6,7
+636,18,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,5,3,5,4,3
+637,27,Žena,Severovýchod,SŠ s maturitou,Frequent Business,5,4,8,4,6
+638,51,Žena,Střední Čechy,VŠ,Frequent Business,6,8,5,6,4
+639,33,Žena,Severozápad,ZŠ / bez maturity,Infrequent Travellers,5,2,3,7,5
+640,48,Žena,Jihozápad,SŠ s maturitou,Leisure Families,1,8,3,5,2
+641,40,Muž,Moravskoslezsko,VŠ,Digital Self-Service,3,8,7,6,5
+642,30,Muž,Severozápad,SŠ s maturitou,International Transfer,5,8,6,5,7
+643,51,Muž,Střední Čechy,SŠ s maturitou,Digital Self-Service,8,7,7,5,8
+644,41,Muž,Severozápad,SŠ s maturitou,International Transfer,3,8,4,5,3
+645,26,Muž,Praha,SŠ s maturitou,Infrequent Travellers,2,5,8,7,6
+646,37,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,4,5,7,6,6
+647,48,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,7,9,6,3,6
+648,47,Muž,Moravskoslezsko,SŠ s maturitou,International Transfer,6,5,5,5,4
+649,45,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,3,5,6,7,7
+650,47,Muž,Praha,VŠ,Infrequent Travellers,10,7,5,8,1
+651,25,Žena,Moravskoslezsko,ZŠ / bez maturity,International Transfer,3,5,8,3,3
+652,43,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,4,6,10,7,5
+653,31,Žena,Severovýchod,VŠ,Leisure Families,4,6,6,6,5
+654,18,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,6,5,2,5,6
+655,24,Muž,Moravskoslezsko,VŠ,Leisure Families,6,3,5,6,9
+656,48,Žena,Jihozápad,VŠ,International Transfer,6,3,8,4,4
+657,51,Žena,Jihovýchod,VŠ,International Transfer,6,4,5,4,5
+658,56,Žena,Severozápad,VŠ,Digital Self-Service,5,8,7,8,8
+659,43,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,2,4,2,9,8
+660,33,Muž,Jihozápad,VŠ,Digital Self-Service,8,7,4,4,5
+661,36,Žena,Moravskoslezsko,ZŠ / bez maturity,International Transfer,3,4,4,6,6
+662,47,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,2,4,7,5,3
+663,46,Muž,Praha,VŠ,Digital Self-Service,5,6,5,5,4
+664,21,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,5,8,4,8,4
+665,37,Žena,Jihovýchod,ZŠ / bez maturity,International Transfer,10,7,10,3,6
+666,33,Muž,Jihozápad,SŠ s maturitou,Leisure Families,5,6,6,8,7
+667,56,Žena,Severovýchod,VŠ,Digital Self-Service,9,5,5,5,7
+668,71,Muž,Praha,ZŠ / bez maturity,Frequent Business,6,5,10,2,6
+669,32,Žena,Severozápad,SŠ s maturitou,Leisure Families,6,3,4,5,8
+670,38,Žena,Severovýchod,VŠ,International Transfer,5,8,5,7,1
+671,50,Muž,Střední Čechy,SŠ s maturitou,Digital Self-Service,4,4,3,9,5
+672,63,Žena,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,2,5,7,8,7
+673,50,Muž,Severozápad,SŠ s maturitou,Frequent Business,5,3,3,9,2
+674,22,Muž,Praha,SŠ s maturitou,Infrequent Travellers,7,6,2,3,5
+675,46,Muž,Praha,VŠ,Leisure Families,6,9,1,7,2
+676,35,Žena,Jihovýchod,VŠ,Digital Self-Service,5,7,7,4,4
+677,39,Žena,Střední Čechy,SŠ s maturitou,International Transfer,7,2,5,6,5
+678,37,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,3,8,8,3,4
+679,51,Muž,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,4,6,6,4,2
+680,37,Muž,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,5,8,7,6,10
+681,31,Žena,Moravskoslezsko,VŠ,International Transfer,2,6,8,2,7
+682,74,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,5,7,9,6,5
+683,26,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,7,5,5,9,5
+684,18,Žena,Praha,SŠ s maturitou,Infrequent Travellers,6,9,10,6,4
+685,47,Žena,Severozápad,ZŠ / bez maturity,Infrequent Travellers,5,9,6,7,3
+686,68,Žena,Severozápad,ZŠ / bez maturity,Infrequent Travellers,5,4,5,6,6
+687,40,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,6,5,5,5,1
+688,41,Muž,Severozápad,SŠ s maturitou,Leisure Families,6,4,3,9,4
+689,48,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,4,4,5,3,5
+690,74,Muž,Střední Čechy,ZŠ / bez maturity,Leisure Families,6,9,5,8,4
+691,52,Žena,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,1,9,4,3,6
+692,64,Žena,Jihovýchod,ZŠ / bez maturity,Leisure Families,5,5,6,6,9
+693,41,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,6,4,1,9,7
+694,21,Muž,Jihozápad,ZŠ / bez maturity,Frequent Business,3,5,9,6,7
+695,47,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,3,8,5,3,7
+696,27,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,6,8,7,4,9
+697,47,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,9,6,9,6,10
+698,40,Žena,Jihovýchod,ZŠ / bez maturity,Leisure Families,4,7,4,6,8
+699,43,Muž,Jihozápad,VŠ,Frequent Business,5,8,5,4,4
+700,48,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,5,8,6,3,7
+701,40,Žena,Střední Čechy,ZŠ / bez maturity,International Transfer,8,5,5,9,4
+702,33,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,7,10,6,5,7
+703,30,Muž,Severozápad,ZŠ / bez maturity,Frequent Business,5,6,6,2,8
+704,59,Žena,Severozápad,VŠ,Digital Self-Service,7,10,7,5,8
+705,33,Žena,Praha,ZŠ / bez maturity,Frequent Business,7,3,4,5,8
+706,25,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,5,7,3,5,8
+707,27,Muž,Severozápad,SŠ s maturitou,International Transfer,4,2,5,4,5
+708,48,Žena,Severozápad,ZŠ / bez maturity,International Transfer,7,7,4,5,4
+709,66,Žena,Praha,ZŠ / bez maturity,Leisure Families,4,5,4,8,5
+710,55,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,8,5,8,5,6
+711,49,Žena,Jihovýchod,VŠ,Infrequent Travellers,4,5,10,9,6
+712,37,Žena,Severovýchod,SŠ s maturitou,International Transfer,5,7,8,1,5
+713,53,Muž,Střední Čechy,ZŠ / bez maturity,Frequent Business,5,5,2,5,9
+714,29,Žena,Jihovýchod,VŠ,Infrequent Travellers,5,7,5,6,6
+715,28,Žena,Severovýchod,VŠ,Frequent Business,7,10,9,4,6
+716,33,Žena,Jihozápad,SŠ s maturitou,Leisure Families,6,8,5,7,6
+717,35,Muž,Severozápad,VŠ,Digital Self-Service,3,3,5,4,6
+718,67,Muž,Moravskoslezsko,SŠ s maturitou,International Transfer,9,6,4,7,2
+719,34,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,8,5,6,5,4
+720,42,Žena,Střední Čechy,SŠ s maturitou,Digital Self-Service,4,6,5,5,3
+721,36,Muž,Severozápad,VŠ,Frequent Business,3,5,7,8,5
+722,32,Žena,Moravskoslezsko,VŠ,Frequent Business,6,8,8,6,7
+723,38,Žena,Severozápad,SŠ s maturitou,Leisure Families,6,7,3,2,7
+724,36,Muž,Severozápad,SŠ s maturitou,International Transfer,4,6,3,6,5
+725,46,Žena,Jihozápad,SŠ s maturitou,Frequent Business,6,6,5,7,5
+726,18,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,2,6,7,8,7
+727,57,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,4,5,5,3,4
+728,44,Muž,Severovýchod,SŠ s maturitou,International Transfer,8,5,8,7,5
+729,31,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,3,9,6,7,6
+730,43,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,4,6,4,8,6
+731,44,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,5,7,4,5,1
+732,47,Muž,Střední Čechy,VŠ,Leisure Families,8,8,8,5,7
+733,46,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,7,5,4,9,5
+734,58,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,7,8,5,3,6
+735,35,Žena,Střední Čechy,ZŠ / bez maturity,Frequent Business,6,5,5,1,5
+736,35,Muž,Moravskoslezsko,SŠ s maturitou,International Transfer,5,9,6,5,6
+737,33,Žena,Jihovýchod,SŠ s maturitou,International Transfer,7,5,9,7,10
+738,39,Muž,Moravskoslezsko,VŠ,Frequent Business,6,8,6,5,7
+739,48,Žena,Severozápad,SŠ s maturitou,Leisure Families,7,6,4,8,6
+740,41,Muž,Severozápad,SŠ s maturitou,International Transfer,8,10,5,4,5
+741,36,Muž,Jihozápad,SŠ s maturitou,Leisure Families,6,3,4,8,5
+742,33,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,4,3,10,5,8
+743,56,Žena,Jihozápad,VŠ,Infrequent Travellers,5,4,9,5,6
+744,60,Žena,Jihozápad,SŠ s maturitou,Leisure Families,4,10,5,7,5
+745,33,Muž,Praha,VŠ,Infrequent Travellers,10,6,3,5,4
+746,35,Žena,Praha,SŠ s maturitou,International Transfer,3,5,6,4,3
+747,54,Muž,Střední Čechy,VŠ,Infrequent Travellers,5,4,3,3,4
+748,37,Žena,Severovýchod,VŠ,International Transfer,9,7,4,7,5
+749,43,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,5,6,10,4,6
+750,34,Žena,Moravskoslezsko,VŠ,Digital Self-Service,7,6,7,8,6
+751,60,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,5,6,7,3,2
+752,37,Žena,Severozápad,VŠ,International Transfer,5,8,7,7,5
+753,21,Muž,Jihovýchod,ZŠ / bez maturity,Frequent Business,4,7,7,6,4
+754,44,Žena,Jihovýchod,SŠ s maturitou,International Transfer,6,1,7,4,8
+755,60,Muž,Moravskoslezsko,VŠ,Infrequent Travellers,6,7,5,2,7
+756,29,Žena,Střední Čechy,VŠ,Infrequent Travellers,3,5,5,4,5
+757,39,Žena,Jihovýchod,ZŠ / bez maturity,International Transfer,4,5,5,6,5
+758,74,Muž,Severovýchod,SŠ s maturitou,Leisure Families,4,6,10,2,5
+759,52,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,2,5,5,5,5
+760,34,Žena,Střední Čechy,VŠ,International Transfer,5,6,6,5,8
+761,35,Muž,Praha,SŠ s maturitou,Digital Self-Service,5,4,6,10,5
+762,44,Žena,Praha,VŠ,International Transfer,7,9,5,1,2
+763,46,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,4,8,3,4,2
+764,72,Žena,Praha,SŠ s maturitou,Infrequent Travellers,8,5,6,8,7
+765,57,Žena,Severozápad,VŠ,Frequent Business,5,2,6,7,7
+766,74,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,4,3,4,5,4
+767,35,Žena,Severovýchod,ZŠ / bez maturity,Digital Self-Service,6,5,5,5,9
+768,33,Žena,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,4,4,6,6,4
+769,62,Žena,Jihozápad,SŠ s maturitou,Frequent Business,7,4,5,8,6
+770,27,Žena,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,3,8,6,9,3
+771,53,Muž,Střední Čechy,SŠ s maturitou,Digital Self-Service,8,5,6,6,10
+772,18,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,4,7,6,7,6
+773,63,Žena,Moravskoslezsko,ZŠ / bez maturity,International Transfer,6,3,9,3,10
+774,61,Muž,Severovýchod,SŠ s maturitou,Leisure Families,8,5,6,6,6
+775,48,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,3,4,5,5,1
+776,45,Žena,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,6,6,9,10,4
+777,51,Žena,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,6,8,5,8,6
+778,21,Muž,Severovýchod,SŠ s maturitou,Frequent Business,8,6,8,3,8
+779,62,Žena,Střední Čechy,SŠ s maturitou,International Transfer,8,4,2,3,7
+780,32,Žena,Moravskoslezsko,VŠ,International Transfer,5,5,7,8,2
+781,57,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,7,6,6,9,8
+782,60,Muž,Severozápad,SŠ s maturitou,Leisure Families,3,5,3,4,6
+783,35,Žena,Severovýchod,SŠ s maturitou,International Transfer,6,9,5,6,3
+784,32,Žena,Moravskoslezsko,ZŠ / bez maturity,International Transfer,3,6,6,6,6
+785,18,Žena,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,5,10,6,7,3
+786,45,Muž,Jihozápad,VŠ,Frequent Business,4,7,8,6,6
+787,52,Muž,Severovýchod,SŠ s maturitou,Leisure Families,3,6,5,8,6
+788,66,Žena,Praha,SŠ s maturitou,Digital Self-Service,5,7,5,7,7
+789,30,Žena,Severovýchod,VŠ,Leisure Families,5,8,6,2,1
+790,38,Muž,Jihozápad,SŠ s maturitou,Leisure Families,5,7,2,3,7
+791,45,Žena,Jihozápad,SŠ s maturitou,International Transfer,5,6,3,2,6
+792,49,Žena,Jihozápad,SŠ s maturitou,International Transfer,8,7,9,10,6
+793,44,Žena,Jihovýchod,SŠ s maturitou,Digital Self-Service,4,7,7,5,8
+794,43,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,1,4,6,5,7
+795,51,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,3,7,10,8,4
+796,25,Muž,Střední Čechy,SŠ s maturitou,International Transfer,5,8,9,8,5
+797,35,Žena,Jihovýchod,ZŠ / bez maturity,International Transfer,6,8,4,7,6
+798,38,Žena,Severovýchod,SŠ s maturitou,Infrequent Travellers,8,6,4,3,7
+799,55,Muž,Praha,ZŠ / bez maturity,Frequent Business,6,5,2,7,4
+800,57,Žena,Moravskoslezsko,VŠ,Digital Self-Service,4,5,6,7,5
+801,56,Muž,Severovýchod,SŠ s maturitou,Leisure Families,2,3,5,7,10
+802,57,Muž,Střední Čechy,VŠ,Infrequent Travellers,8,7,4,1,3
+803,31,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,7,6,6,5,10
+804,44,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,6,7,5,4,6
+805,39,Muž,Jihozápad,ZŠ / bez maturity,Frequent Business,7,8,1,7,4
+806,53,Žena,Severovýchod,SŠ s maturitou,International Transfer,6,6,5,8,5
+807,34,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,7,8,8,7,2
+808,27,Muž,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,6,5,2,5,1
+809,44,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,8,5,6,7,6
+810,44,Žena,Praha,SŠ s maturitou,Digital Self-Service,6,5,6,7,4
+811,42,Žena,Severozápad,VŠ,Frequent Business,8,7,8,5,6
+812,36,Žena,Jihozápad,SŠ s maturitou,International Transfer,5,7,6,4,7
+813,33,Žena,Jihovýchod,SŠ s maturitou,International Transfer,6,3,8,1,5
+814,38,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,5,6,9,4,3
+815,49,Muž,Střední Čechy,VŠ,Digital Self-Service,5,7,3,7,5
+816,47,Muž,Jihovýchod,SŠ s maturitou,International Transfer,9,6,5,6,6
+817,50,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,6,6,8,5,9
+818,46,Žena,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,4,4,4,10,8
+819,50,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,8,6,3,4,10
+820,29,Muž,Jihozápad,ZŠ / bez maturity,Leisure Families,5,5,7,4,2
+821,49,Žena,Jihovýchod,SŠ s maturitou,Infrequent Travellers,6,5,5,8,6
+822,23,Žena,Severozápad,SŠ s maturitou,Leisure Families,7,8,7,5,7
+823,35,Žena,Severovýchod,VŠ,Digital Self-Service,4,4,4,6,5
+824,41,Muž,Praha,SŠ s maturitou,Digital Self-Service,9,8,10,8,6
+825,26,Žena,Severovýchod,VŠ,Frequent Business,5,7,4,7,6
+826,37,Muž,Střední Čechy,SŠ s maturitou,International Transfer,6,6,9,8,7
+827,57,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,6,10,5,9,2
+828,48,Žena,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,6,3,8,7,4
+829,38,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,4,8,5,3,3
+830,26,Muž,Střední Čechy,VŠ,Leisure Families,1,5,4,4,2
+831,36,Žena,Severozápad,SŠ s maturitou,International Transfer,4,6,4,8,9
+832,45,Muž,Jihovýchod,VŠ,Digital Self-Service,6,6,6,9,9
+833,60,Muž,Střední Čechy,ZŠ / bez maturity,Leisure Families,9,3,3,3,7
+834,18,Žena,Střední Čechy,VŠ,Digital Self-Service,6,6,7,4,3
+835,59,Muž,Severovýchod,ZŠ / bez maturity,International Transfer,7,6,3,9,8
+836,51,Žena,Praha,SŠ s maturitou,Digital Self-Service,10,5,1,6,3
+837,20,Žena,Jihovýchod,ZŠ / bez maturity,Frequent Business,6,7,4,6,8
+838,47,Žena,Severovýchod,VŠ,Frequent Business,3,8,3,4,5
+839,50,Muž,Praha,ZŠ / bez maturity,International Transfer,5,6,5,6,8
+840,28,Muž,Severovýchod,ZŠ / bez maturity,Digital Self-Service,4,9,6,4,4
+841,23,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,6,5,6,7,4
+842,44,Muž,Severozápad,VŠ,Frequent Business,4,6,6,5,1
+843,34,Muž,Praha,SŠ s maturitou,Leisure Families,8,5,6,8,3
+844,37,Muž,Jihovýchod,SŠ s maturitou,Infrequent Travellers,4,8,6,8,8
+845,43,Muž,Jihozápad,SŠ s maturitou,International Transfer,4,4,6,6,7
+846,32,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,1,8,7,4,5
+847,18,Muž,Severozápad,SŠ s maturitou,Leisure Families,5,9,5,4,7
+848,41,Muž,Jihozápad,ZŠ / bez maturity,International Transfer,4,5,3,4,6
+849,54,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,3,5,6,4,9
+850,42,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,6,4,1,4,4
+851,44,Muž,Severovýchod,SŠ s maturitou,International Transfer,4,2,8,6,1
+852,59,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,5,7,5,6,7
+853,34,Muž,Praha,VŠ,Digital Self-Service,10,2,5,4,6
+854,56,Muž,Jihozápad,ZŠ / bez maturity,International Transfer,5,5,9,4,2
+855,51,Muž,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,8,10,8,6,8
+856,57,Muž,Jihozápad,VŠ,Leisure Families,4,8,6,3,6
+857,74,Muž,Jihovýchod,SŠ s maturitou,Infrequent Travellers,3,9,4,4,1
+858,29,Muž,Střední Čechy,VŠ,International Transfer,2,3,7,1,6
+859,72,Muž,Severovýchod,ZŠ / bez maturity,Digital Self-Service,7,1,4,7,3
+860,50,Žena,Jihozápad,VŠ,Frequent Business,6,8,4,5,5
+861,34,Žena,Praha,SŠ s maturitou,Leisure Families,8,3,6,3,5
+862,56,Muž,Severozápad,VŠ,Infrequent Travellers,6,4,6,7,7
+863,62,Muž,Střední Čechy,VŠ,Frequent Business,4,7,6,5,3
+864,49,Muž,Praha,SŠ s maturitou,Infrequent Travellers,9,4,4,8,7
+865,39,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,5,8,4,7,6
+866,57,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,4,4,2,6,4
+867,25,Žena,Severovýchod,SŠ s maturitou,Frequent Business,7,8,3,9,10
+868,48,Muž,Severozápad,SŠ s maturitou,Leisure Families,5,9,8,3,7
+869,46,Muž,Severozápad,SŠ s maturitou,Frequent Business,9,7,3,7,2
+870,60,Muž,Jihovýchod,VŠ,International Transfer,4,7,7,8,6
+871,39,Žena,Severovýchod,VŠ,Frequent Business,6,5,4,6,4
+872,37,Žena,Praha,SŠ s maturitou,Digital Self-Service,4,4,6,9,6
+873,24,Žena,Střední Čechy,VŠ,Frequent Business,6,7,5,8,5
+874,19,Muž,Střední Čechy,ZŠ / bez maturity,Frequent Business,6,4,7,5,4
+875,32,Žena,Praha,SŠ s maturitou,Infrequent Travellers,7,7,2,6,5
+876,21,Muž,Severovýchod,SŠ s maturitou,Leisure Families,3,2,1,5,10
+877,29,Muž,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,7,8,10,6,5
+878,74,Muž,Praha,VŠ,Frequent Business,7,8,5,4,6
+879,48,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,7,5,9,3,5
+880,59,Žena,Praha,VŠ,Frequent Business,6,4,9,7,5
+881,31,Muž,Jihovýchod,ZŠ / bez maturity,Leisure Families,4,6,7,10,4
+882,65,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,6,5,7,8,6
+883,45,Žena,Jihovýchod,VŠ,Frequent Business,6,7,5,3,3
+884,55,Žena,Severovýchod,SŠ s maturitou,Leisure Families,5,1,6,6,6
+885,35,Žena,Střední Čechy,VŠ,Leisure Families,5,5,6,8,4
+886,64,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,6,5,6,7,3
+887,45,Muž,Severovýchod,ZŠ / bez maturity,Frequent Business,5,6,5,7,3
+888,18,Muž,Jihovýchod,ZŠ / bez maturity,Leisure Families,3,6,5,3,2
+889,26,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,6,6,7,4,4
+890,52,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,3,7,4,3,4
+891,45,Muž,Střední Čechy,VŠ,International Transfer,4,7,1,6,6
+892,48,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,9,5,4,9,2
+893,34,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,5,7,6,4,2
+894,65,Žena,Praha,SŠ s maturitou,Infrequent Travellers,7,5,6,5,5
+895,44,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,4,8,5,5,9
+896,47,Žena,Jihovýchod,SŠ s maturitou,Digital Self-Service,5,5,5,2,10
+897,56,Muž,Moravskoslezsko,VŠ,Frequent Business,7,5,6,5,5
+898,21,Žena,Praha,SŠ s maturitou,Leisure Families,4,6,8,3,1
+899,55,Žena,Moravskoslezsko,VŠ,Leisure Families,5,5,6,6,7
+900,42,Žena,Severozápad,VŠ,International Transfer,5,7,6,8,7
+901,23,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,6,7,5,8,6
+902,30,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,5,6,6,6,6
+903,37,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,7,6,6,5,5
+904,44,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,4,3,5,4,6
+905,34,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,5,8,8,7,3
+906,50,Žena,Praha,SŠ s maturitou,Frequent Business,5,9,2,4,3
+907,48,Žena,Praha,SŠ s maturitou,Digital Self-Service,4,7,7,4,6
+908,58,Muž,Severozápad,SŠ s maturitou,Leisure Families,3,8,4,2,7
+909,47,Muž,Praha,ZŠ / bez maturity,Leisure Families,6,7,8,6,5
+910,64,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,6,9,5,3,8
+911,38,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,5,4,4,8,10
+912,33,Muž,Jihovýchod,VŠ,Frequent Business,3,7,6,6,5
+913,54,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,7,5,6,5,6
+914,40,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,3,8,8,3,5
+915,18,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,3,5,8,5,6
+916,40,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,4,5,4,8,7
+917,38,Žena,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,5,6,9,5,5
+918,34,Muž,Praha,ZŠ / bez maturity,Frequent Business,3,6,7,8,8
+919,66,Muž,Praha,SŠ s maturitou,Infrequent Travellers,8,3,4,5,5
+920,47,Muž,Jihozápad,VŠ,Frequent Business,6,1,4,6,6
+921,41,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,6,3,7,6,4
+922,57,Muž,Severozápad,VŠ,Infrequent Travellers,4,9,5,7,7
+923,45,Žena,Severozápad,VŠ,Digital Self-Service,5,7,5,5,6
+924,36,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,7,7,7,7,5
+925,70,Muž,Praha,SŠ s maturitou,Infrequent Travellers,6,4,5,10,5
+926,36,Žena,Jihovýchod,ZŠ / bez maturity,Leisure Families,10,2,6,2,3
+927,25,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,2,8,6,4,4
+928,48,Muž,Střední Čechy,SŠ s maturitou,Digital Self-Service,3,6,5,5,6
+929,34,Muž,Severovýchod,ZŠ / bez maturity,Leisure Families,4,5,7,7,8
+930,71,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,8,4,8,5,4
+931,41,Muž,Severovýchod,ZŠ / bez maturity,Frequent Business,3,3,6,6,7
+932,20,Žena,Severozápad,SŠ s maturitou,Frequent Business,5,1,3,4,8
+933,44,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,7,5,4,7,3
+934,50,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,9,5,4,1,6
+935,18,Muž,Moravskoslezsko,SŠ s maturitou,International Transfer,5,8,2,7,3
+936,30,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,4,4,5,7,4
+937,39,Žena,Praha,VŠ,Leisure Families,8,7,6,7,5
+938,74,Muž,Severovýchod,SŠ s maturitou,International Transfer,10,6,4,4,4
+939,37,Muž,Severozápad,SŠ s maturitou,Leisure Families,8,3,3,4,8
+940,30,Muž,Severovýchod,SŠ s maturitou,International Transfer,1,4,4,6,3
+941,18,Muž,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,6,3,7,3,6
+942,22,Muž,Praha,ZŠ / bez maturity,Infrequent Travellers,6,1,4,8,3
+943,34,Žena,Praha,SŠ s maturitou,Frequent Business,4,5,6,5,6
+944,20,Muž,Praha,SŠ s maturitou,Digital Self-Service,6,3,4,4,8
+945,30,Žena,Praha,VŠ,Infrequent Travellers,7,5,3,10,7
+946,41,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,4,6,5,2,4
+947,36,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,5,4,4,1,1
+948,23,Žena,Severozápad,VŠ,Frequent Business,5,5,7,9,8
+949,44,Žena,Střední Čechy,VŠ,Leisure Families,5,9,5,3,3
+950,32,Muž,Moravskoslezsko,VŠ,Frequent Business,7,8,2,7,9
+951,62,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,6,8,4,5,5
+952,59,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,5,8,6,8,9
+953,30,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,4,5,8,5,3
+954,40,Žena,Jihovýchod,VŠ,International Transfer,6,6,6,2,3
+955,49,Žena,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,6,5,2,3,4
+956,49,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,5,5,6,7,10
+957,67,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,5,4,9,4,7
+958,39,Žena,Severovýchod,SŠ s maturitou,Leisure Families,6,8,5,5,9
+959,51,Muž,Praha,SŠ s maturitou,Frequent Business,4,6,7,5,7
+960,34,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,7,5,6,5,5
+961,26,Muž,Moravskoslezsko,VŠ,Infrequent Travellers,7,8,10,7,7
+962,55,Žena,Praha,SŠ s maturitou,Digital Self-Service,5,3,6,8,6
+963,36,Žena,Jihozápad,ZŠ / bez maturity,International Transfer,7,8,5,6,8
+964,54,Žena,Jihozápad,SŠ s maturitou,Frequent Business,3,5,5,5,6
+965,51,Žena,Střední Čechy,ZŠ / bez maturity,International Transfer,6,7,5,8,5
+966,52,Žena,Praha,VŠ,Infrequent Travellers,6,5,6,6,3
+967,24,Žena,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,6,4,7,6,7
+968,33,Muž,Severovýchod,VŠ,Digital Self-Service,2,6,2,5,6
+969,21,Muž,Střední Čechy,VŠ,Leisure Families,2,9,8,4,9
+970,55,Muž,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,10,4,5,8,6
+971,37,Žena,Praha,ZŠ / bez maturity,International Transfer,1,6,6,4,9
+972,48,Muž,Jihovýchod,VŠ,Frequent Business,3,10,3,6,2
+973,33,Muž,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,8,6,1,8,3
+974,61,Žena,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,7,5,5,6,6
+975,28,Žena,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,3,5,2,8,5
+976,18,Žena,Praha,SŠ s maturitou,Leisure Families,6,7,7,6,7
+977,33,Žena,Severozápad,VŠ,Digital Self-Service,6,8,6,6,3
+978,22,Žena,Jihozápad,SŠ s maturitou,International Transfer,6,6,6,7,7
+979,50,Muž,Praha,SŠ s maturitou,Infrequent Travellers,5,4,4,6,9
+980,58,Žena,Severozápad,VŠ,Leisure Families,5,10,8,2,5
+981,30,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,7,6,1,10,4
+982,68,Žena,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,2,7,5,5,10
+983,51,Žena,Severovýchod,SŠ s maturitou,Leisure Families,8,8,8,7,3
+984,74,Žena,Severovýchod,VŠ,International Transfer,6,5,8,6,4
+985,26,Muž,Praha,SŠ s maturitou,Leisure Families,4,7,6,1,2
+986,19,Žena,Jihovýchod,VŠ,Leisure Families,6,6,4,5,3
+987,46,Žena,Jihozápad,VŠ,International Transfer,3,5,3,8,6
+988,23,Žena,Severovýchod,SŠ s maturitou,Frequent Business,5,6,7,5,6
+989,45,Žena,Severozápad,ZŠ / bez maturity,Frequent Business,5,6,8,3,5
+990,52,Žena,Jihovýchod,VŠ,International Transfer,5,4,4,8,4
+991,24,Žena,Jihozápad,SŠ s maturitou,Leisure Families,7,5,8,3,5
+992,23,Muž,Severovýchod,ZŠ / bez maturity,International Transfer,3,5,10,7,1
+993,40,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,2,3,6,4,7
+994,31,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,5,6,8,10,6
+995,51,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,8,6,3,7,4
+996,45,Muž,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,7,2,4,5,7
+997,35,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,5,5,9,7,4
+998,38,Muž,Jihovýchod,SŠ s maturitou,Leisure Families,6,4,4,5,8
+999,33,Muž,Střední Čechy,SŠ s maturitou,International Transfer,8,5,7,4,6
+1000,48,Muž,Severovýchod,SŠ s maturitou,Frequent Business,8,5,6,4,4
+1001,45,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,6,4,6,9,10
+1002,45,Žena,Severovýchod,SŠ s maturitou,Frequent Business,6,5,9,5,3
+1003,38,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,4,8,5,4,8
+1004,50,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,6,5,3,5,8
+1005,74,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,6,8,6,6,6
+1006,26,Žena,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,6,10,6,6,4
+1007,42,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,4,7,4,7,3
+1008,38,Žena,Střední Čechy,SŠ s maturitou,Digital Self-Service,5,7,4,7,6
+1009,54,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,2,3,8,4,5
+1010,53,Muž,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,3,8,5,6,4
+1011,53,Žena,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,6,3,5,4,6
+1012,18,Žena,Praha,SŠ s maturitou,Leisure Families,9,4,5,10,4
+1013,35,Muž,Jihozápad,SŠ s maturitou,International Transfer,5,5,9,7,3
+1014,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,5,3,6,6,7
+1015,24,Žena,Střední Čechy,SŠ s maturitou,Leisure Families,6,6,5,8,5
+1016,18,Žena,Severovýchod,VŠ,Infrequent Travellers,6,5,9,7,6
+1017,45,Muž,Jihozápad,ZŠ / bez maturity,International Transfer,8,6,6,5,8
+1018,33,Žena,Severozápad,VŠ,International Transfer,9,4,7,7,1
+1019,42,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,3,6,9,6,4
+1020,64,Muž,Severozápad,VŠ,Infrequent Travellers,4,8,3,4,9
+1021,47,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,6,7,7,4,7
+1022,35,Muž,Jihozápad,VŠ,Infrequent Travellers,3,5,6,9,7
+1023,34,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,6,4,7,4,7
+1024,57,Muž,Jihozápad,SŠ s maturitou,Frequent Business,4,5,5,5,9
+1025,47,Žena,Jihovýchod,ZŠ / bez maturity,International Transfer,7,7,6,7,3
+1026,62,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,4,1,5,7,5
+1027,57,Muž,Praha,VŠ,Infrequent Travellers,8,7,6,4,5
+1028,40,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,8,9,9,6,8
+1029,18,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,9,7,7,4,6
+1030,39,Muž,Severovýchod,ZŠ / bez maturity,Leisure Families,5,7,4,7,4
+1031,67,Muž,Praha,SŠ s maturitou,Frequent Business,5,6,4,5,8
+1032,42,Muž,Jihozápad,VŠ,Leisure Families,4,5,6,3,7
+1033,63,Muž,Praha,SŠ s maturitou,Frequent Business,6,5,3,7,8
+1034,42,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,6,4,5,3,7
+1035,58,Žena,Praha,SŠ s maturitou,International Transfer,8,1,8,6,4
+1036,59,Muž,Jihozápad,VŠ,Frequent Business,3,4,6,6,9
+1037,34,Muž,Moravskoslezsko,VŠ,International Transfer,7,7,10,4,9
+1038,27,Žena,Severovýchod,VŠ,Infrequent Travellers,6,3,7,4,7
+1039,71,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,2,6,8,6,6
+1040,33,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,4,7,6,8,7
+1041,30,Muž,Severozápad,SŠ s maturitou,Frequent Business,8,2,4,2,6
+1042,48,Žena,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,7,5,6,6,8
+1043,36,Žena,Praha,VŠ,Infrequent Travellers,2,10,4,7,7
+1044,24,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,3,3,8,5,9
+1045,18,Muž,Severozápad,ZŠ / bez maturity,Frequent Business,6,5,4,6,6
+1046,52,Muž,Jihovýchod,VŠ,Digital Self-Service,6,6,7,9,6
+1047,46,Žena,Jihozápad,VŠ,Digital Self-Service,7,5,5,8,6
+1048,25,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,6,5,7,6,2
+1049,46,Muž,Střední Čechy,VŠ,International Transfer,5,5,4,4,9
+1050,51,Žena,Jihozápad,ZŠ / bez maturity,Leisure Families,4,5,3,10,6
+1051,55,Žena,Jihovýchod,SŠ s maturitou,Infrequent Travellers,8,5,6,2,7
+1052,51,Žena,Střední Čechy,VŠ,International Transfer,6,2,3,3,7
+1053,23,Žena,Střední Čechy,VŠ,International Transfer,5,7,7,7,3
+1054,43,Žena,Praha,VŠ,Digital Self-Service,3,8,9,7,8
+1055,63,Žena,Severovýchod,SŠ s maturitou,International Transfer,7,6,6,7,7
+1056,22,Žena,Jihovýchod,SŠ s maturitou,Infrequent Travellers,3,4,4,5,6
+1057,23,Muž,Moravskoslezsko,VŠ,Leisure Families,5,6,5,5,4
+1058,37,Žena,Jihozápad,VŠ,Frequent Business,7,5,4,5,8
+1059,38,Muž,Severozápad,SŠ s maturitou,Leisure Families,7,7,8,7,6
+1060,25,Muž,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,5,7,7,7,7
+1061,48,Muž,Jihozápad,SŠ s maturitou,International Transfer,2,3,8,3,5
+1062,52,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,4,8,5,8,8
+1063,40,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,8,8,7,6,7
+1064,64,Muž,Severozápad,SŠ s maturitou,Leisure Families,5,3,10,4,8
+1065,32,Žena,Jihovýchod,SŠ s maturitou,Infrequent Travellers,7,7,5,6,5
+1066,55,Muž,Jihovýchod,VŠ,Infrequent Travellers,8,3,5,4,8
+1067,67,Muž,Praha,SŠ s maturitou,Leisure Families,2,4,5,6,10
+1068,53,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,4,6,5,6,5
+1069,60,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,5,3,7,7,6
+1070,26,Žena,Jihozápad,VŠ,Frequent Business,6,6,4,1,6
+1071,47,Muž,Praha,ZŠ / bez maturity,International Transfer,7,5,7,5,8
+1072,39,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,7,6,5,8,5
+1073,20,Muž,Jihozápad,VŠ,International Transfer,6,9,6,5,6
+1074,46,Žena,Jihozápad,VŠ,Frequent Business,6,7,7,3,6
+1075,33,Žena,Severozápad,ZŠ / bez maturity,Leisure Families,3,8,4,4,7
+1076,44,Žena,Praha,SŠ s maturitou,Infrequent Travellers,3,6,9,1,3
+1077,50,Muž,Jihozápad,SŠ s maturitou,International Transfer,4,4,5,7,8
+1078,38,Muž,Moravskoslezsko,VŠ,Frequent Business,7,6,5,1,2
+1079,26,Žena,Praha,ZŠ / bez maturity,Digital Self-Service,6,6,6,5,7
+1080,27,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,7,5,5,3,7
+1081,37,Muž,Jihozápad,VŠ,Leisure Families,5,7,7,5,7
+1082,42,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,6,6,5,2,7
+1083,55,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,6,9,3,4,7
+1084,49,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,4,7,8,4,6
+1085,45,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,5,4,7,4,5
+1086,34,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,2,4,7,7,10
+1087,57,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,4,7,6,4,5
+1088,73,Muž,Severozápad,VŠ,International Transfer,8,5,4,4,7
+1089,53,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,4,7,7,3,6
+1090,54,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,3,7,6,4,2
+1091,27,Žena,Praha,SŠ s maturitou,Frequent Business,2,5,8,5,8
+1092,39,Muž,Jihozápad,SŠ s maturitou,Frequent Business,8,4,5,3,4
+1093,38,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,7,5,4,6,3
+1094,26,Žena,Severovýchod,SŠ s maturitou,Leisure Families,8,9,5,4,3
+1095,32,Žena,Střední Čechy,VŠ,Infrequent Travellers,4,7,3,4,4
+1096,33,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,8,3,5,6,7
+1097,38,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,2,6,7,6,3
+1098,52,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,7,4,7,6,5
+1099,33,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,5,9,7,3,3
+1100,58,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,4,5,8,7,8
+1101,52,Muž,Jihozápad,VŠ,Infrequent Travellers,3,6,10,5,3
+1102,18,Muž,Praha,SŠ s maturitou,Digital Self-Service,4,3,4,5,8
+1103,43,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,5,4,4,5,8
+1104,46,Žena,Severovýchod,SŠ s maturitou,Frequent Business,3,3,4,4,5
+1105,38,Muž,Praha,ZŠ / bez maturity,International Transfer,3,7,6,2,3
+1106,53,Muž,Střední Čechy,ZŠ / bez maturity,Leisure Families,4,5,6,5,5
+1107,37,Žena,Jihozápad,SŠ s maturitou,Frequent Business,6,9,8,4,6
+1108,45,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,5,6,4,5,7
+1109,34,Muž,Moravskoslezsko,SŠ s maturitou,International Transfer,2,10,6,5,2
+1110,50,Žena,Severovýchod,VŠ,Infrequent Travellers,8,5,3,5,3
+1111,31,Muž,Střední Čechy,ZŠ / bez maturity,Leisure Families,2,5,4,5,6
+1112,32,Muž,Praha,VŠ,Frequent Business,9,6,6,4,8
+1113,39,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,1,6,5,5,1
+1114,56,Žena,Moravskoslezsko,VŠ,Digital Self-Service,7,4,4,4,1
+1115,31,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,2,7,8,6,5
+1116,34,Muž,Jihovýchod,VŠ,Infrequent Travellers,8,5,5,7,5
+1117,37,Muž,Severozápad,VŠ,Frequent Business,7,6,2,8,5
+1118,52,Žena,Střední Čechy,VŠ,Digital Self-Service,6,7,3,9,5
+1119,39,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,4,4,5,10,6
+1120,39,Muž,Střední Čechy,VŠ,Digital Self-Service,5,5,10,6,7
+1121,45,Muž,Severozápad,ZŠ / bez maturity,Leisure Families,8,6,5,4,7
+1122,57,Žena,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,4,5,3,6,9
+1123,42,Žena,Jihozápad,VŠ,Infrequent Travellers,8,4,3,7,2
+1124,32,Muž,Severozápad,SŠ s maturitou,International Transfer,5,4,6,5,6
+1125,31,Žena,Moravskoslezsko,VŠ,Digital Self-Service,5,6,7,7,7
+1126,45,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,2,5,8,6,2
+1127,28,Žena,Jihozápad,VŠ,Infrequent Travellers,8,4,4,4,4
+1128,56,Žena,Praha,ZŠ / bez maturity,Frequent Business,6,7,5,4,6
+1129,45,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,2,6,4,4,6
+1130,26,Žena,Jihozápad,VŠ,Digital Self-Service,7,9,6,6,5
+1131,49,Žena,Severozápad,SŠ s maturitou,International Transfer,9,4,6,2,6
+1132,43,Muž,Severozápad,ZŠ / bez maturity,Frequent Business,5,6,3,5,7
+1133,43,Muž,Jihovýchod,VŠ,Frequent Business,9,9,7,3,5
+1134,19,Žena,Střední Čechy,VŠ,International Transfer,7,8,7,4,4
+1135,47,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,6,7,5,7,2
+1136,54,Muž,Jihovýchod,VŠ,Frequent Business,7,8,7,6,6
+1137,35,Žena,Severozápad,ZŠ / bez maturity,Leisure Families,6,10,5,5,7
+1138,29,Muž,Praha,ZŠ / bez maturity,Frequent Business,3,10,2,7,4
+1139,40,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,5,6,5,9,1
+1140,27,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,4,5,7,6,5
+1141,28,Žena,Praha,SŠ s maturitou,Digital Self-Service,5,8,10,2,1
+1142,36,Muž,Jihozápad,ZŠ / bez maturity,Leisure Families,8,5,5,7,1
+1143,61,Žena,Praha,SŠ s maturitou,Infrequent Travellers,6,5,4,4,8
+1144,39,Žena,Praha,SŠ s maturitou,International Transfer,7,8,3,6,5
+1145,49,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,4,9,6,6,7
+1146,20,Žena,Severozápad,SŠ s maturitou,Frequent Business,5,5,4,6,8
+1147,49,Žena,Jihovýchod,VŠ,Frequent Business,8,8,3,5,6
+1148,50,Žena,Praha,SŠ s maturitou,Leisure Families,9,7,5,4,5
+1149,37,Žena,Střední Čechy,SŠ s maturitou,International Transfer,7,6,5,5,7
+1150,34,Žena,Severozápad,VŠ,International Transfer,4,3,3,8,1
+1151,39,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,6,10,1,4,5
+1152,28,Žena,Jihozápad,SŠ s maturitou,Leisure Families,4,7,6,10,4
+1153,41,Muž,Moravskoslezsko,ZŠ / bez maturity,International Transfer,2,4,9,5,8
+1154,34,Muž,Severovýchod,SŠ s maturitou,Frequent Business,5,6,9,6,3
+1155,56,Muž,Jihovýchod,SŠ s maturitou,Infrequent Travellers,7,8,6,3,6
+1156,50,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,5,6,5,5,6
+1157,32,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,3,9,8,8,5
+1158,36,Žena,Jihozápad,SŠ s maturitou,Frequent Business,4,7,6,5,6
+1159,46,Žena,Praha,ZŠ / bez maturity,International Transfer,6,4,8,4,10
+1160,41,Žena,Jihovýchod,SŠ s maturitou,International Transfer,5,5,8,6,6
+1161,44,Žena,Střední Čechy,ZŠ / bez maturity,International Transfer,3,7,7,3,9
+1162,18,Muž,Střední Čechy,VŠ,Leisure Families,4,9,6,5,10
+1163,47,Muž,Jihovýchod,VŠ,Frequent Business,4,6,8,4,5
+1164,40,Muž,Praha,VŠ,International Transfer,6,10,5,5,8
+1165,36,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,7,5,7,7,5
+1166,42,Muž,Střední Čechy,SŠ s maturitou,Infrequent Travellers,4,6,3,7,4
+1167,25,Muž,Jihozápad,SŠ s maturitou,Leisure Families,4,5,10,6,5
+1168,37,Žena,Střední Čechy,VŠ,Frequent Business,5,9,4,7,5
+1169,36,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,4,8,7,5,7
+1170,43,Muž,Jihozápad,ZŠ / bez maturity,Leisure Families,3,9,5,6,3
+1171,39,Muž,Severozápad,VŠ,Frequent Business,5,6,5,5,6
+1172,20,Muž,Jihovýchod,SŠ s maturitou,Digital Self-Service,8,6,5,4,4
+1173,56,Žena,Severovýchod,VŠ,Infrequent Travellers,2,6,6,5,4
+1174,50,Žena,Moravskoslezsko,VŠ,Infrequent Travellers,8,5,6,7,10
+1175,18,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,6,8,5,5,8
+1176,20,Muž,Severozápad,ZŠ / bez maturity,International Transfer,2,5,4,5,4
+1177,25,Muž,Střední Čechy,SŠ s maturitou,Frequent Business,4,7,8,6,6
+1178,27,Žena,Jihozápad,VŠ,Digital Self-Service,9,6,8,7,8
+1179,40,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,4,9,5,2,8
+1180,30,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,6,5,7,2,4
+1181,45,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,7,4,5,4,4
+1182,35,Muž,Moravskoslezsko,ZŠ / bez maturity,International Transfer,4,1,7,6,6
+1183,46,Muž,Praha,SŠ s maturitou,Leisure Families,6,6,8,4,1
+1184,50,Muž,Praha,ZŠ / bez maturity,Frequent Business,5,4,4,4,9
+1185,30,Muž,Jihozápad,VŠ,Leisure Families,5,4,9,6,5
+1186,23,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,6,8,2,3,3
+1187,56,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,9,7,1,3,5
+1188,47,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,3,8,9,1,5
+1189,35,Žena,Jihozápad,ZŠ / bez maturity,Frequent Business,8,8,7,5,8
+1190,27,Žena,Jihovýchod,SŠ s maturitou,Digital Self-Service,6,7,2,7,5
+1191,30,Žena,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,6,7,4,8,6
+1192,50,Muž,Severovýchod,SŠ s maturitou,International Transfer,5,6,4,8,2
+1193,28,Muž,Jihozápad,SŠ s maturitou,Frequent Business,9,7,8,5,5
+1194,44,Žena,Jihovýchod,SŠ s maturitou,International Transfer,4,4,7,6,5
+1195,41,Muž,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,4,6,2,5,8
+1196,51,Muž,Jihozápad,SŠ s maturitou,Leisure Families,9,7,6,6,5
+1197,46,Muž,Jihozápad,VŠ,Digital Self-Service,5,5,2,4,7
+1198,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,4,5,4,6,8
+1199,35,Muž,Praha,ZŠ / bez maturity,Digital Self-Service,6,7,5,4,5
+1200,39,Žena,Moravskoslezsko,VŠ,Digital Self-Service,4,5,3,5,4
+1201,54,Muž,Severozápad,ZŠ / bez maturity,International Transfer,4,6,6,9,4
+1202,38,Muž,Střední Čechy,SŠ s maturitou,Digital Self-Service,3,5,9,5,4
+1203,41,Muž,Severovýchod,VŠ,Frequent Business,6,7,7,6,3
+1204,47,Muž,Praha,SŠ s maturitou,Frequent Business,8,7,7,3,3
+1205,63,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,3,6,5,3,6
+1206,37,Žena,Severovýchod,SŠ s maturitou,Leisure Families,8,4,8,5,3
+1207,30,Žena,Severovýchod,VŠ,Infrequent Travellers,7,6,6,4,10
+1208,44,Muž,Severozápad,VŠ,Digital Self-Service,7,4,4,7,5
+1209,62,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,8,10,4,3,5
+1210,39,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,6,5,2,6,5
+1211,42,Žena,Severovýchod,SŠ s maturitou,Frequent Business,5,7,9,4,6
+1212,61,Žena,Jihovýchod,SŠ s maturitou,International Transfer,8,5,3,5,4
+1213,51,Žena,Severozápad,SŠ s maturitou,International Transfer,6,9,5,6,5
+1214,31,Žena,Severovýchod,SŠ s maturitou,Infrequent Travellers,8,8,10,1,7
+1215,31,Muž,Severozápad,SŠ s maturitou,International Transfer,8,4,8,2,4
+1216,37,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,9,7,5,4,2
+1217,73,Žena,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,8,9,5,7,5
+1218,47,Muž,Severozápad,ZŠ / bez maturity,Digital Self-Service,4,6,7,10,5
+1219,73,Žena,Praha,SŠ s maturitou,International Transfer,5,6,6,2,6
+1220,52,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,5,10,4,8,1
+1221,41,Žena,Moravskoslezsko,ZŠ / bez maturity,International Transfer,5,2,2,6,5
+1222,39,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,7,5,7,5,6
+1223,21,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,5,6,4,6,4
+1224,52,Žena,Praha,VŠ,International Transfer,6,6,7,5,5
+1225,47,Žena,Severovýchod,SŠ s maturitou,International Transfer,2,7,5,5,4
+1226,66,Muž,Jihovýchod,SŠ s maturitou,International Transfer,8,5,8,5,5
+1227,41,Žena,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,5,9,4,6,5
+1228,18,Žena,Moravskoslezsko,VŠ,Frequent Business,7,6,5,5,2
+1229,42,Muž,Střední Čechy,ZŠ / bez maturity,Frequent Business,7,8,3,5,4
+1230,22,Žena,Jihozápad,SŠ s maturitou,Frequent Business,5,4,5,4,4
+1231,62,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,5,6,9,5,8
+1232,39,Žena,Severozápad,ZŠ / bez maturity,International Transfer,7,8,5,4,4
+1233,19,Muž,Jihovýchod,SŠ s maturitou,International Transfer,10,6,5,6,4
+1234,39,Žena,Praha,ZŠ / bez maturity,Frequent Business,6,10,6,4,7
+1235,40,Muž,Jihozápad,SŠ s maturitou,International Transfer,10,9,5,9,4
+1236,43,Žena,Severovýchod,SŠ s maturitou,Leisure Families,10,5,6,1,4
+1237,49,Žena,Jihovýchod,VŠ,Frequent Business,7,4,7,7,6
+1238,42,Muž,Jihovýchod,SŠ s maturitou,Infrequent Travellers,6,7,5,4,1
+1239,47,Žena,Jihovýchod,VŠ,Leisure Families,8,6,3,6,5
+1240,38,Žena,Severozápad,ZŠ / bez maturity,International Transfer,4,3,9,4,3
+1241,50,Žena,Jihozápad,VŠ,Infrequent Travellers,7,4,4,7,2
+1242,34,Žena,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,3,5,10,3,5
+1243,74,Žena,Střední Čechy,VŠ,Leisure Families,9,4,4,8,4
+1244,45,Žena,Jihovýchod,ZŠ / bez maturity,International Transfer,6,7,4,4,6
+1245,56,Muž,Jihozápad,VŠ,International Transfer,8,6,4,5,3
+1246,74,Žena,Severovýchod,SŠ s maturitou,Frequent Business,7,9,6,8,5
+1247,68,Žena,Severovýchod,SŠ s maturitou,International Transfer,5,3,6,7,6
+1248,71,Muž,Praha,ZŠ / bez maturity,Leisure Families,9,9,6,5,6
+1249,34,Žena,Severovýchod,SŠ s maturitou,Infrequent Travellers,6,9,6,3,6
+1250,48,Žena,Praha,VŠ,Infrequent Travellers,1,5,10,7,7
+1251,69,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,9,7,6,3,6
+1252,35,Muž,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,5,6,6,7,5
+1253,29,Muž,Praha,VŠ,Infrequent Travellers,4,6,7,4,5
+1254,36,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,8,9,8,5,6
+1255,29,Muž,Praha,ZŠ / bez maturity,International Transfer,7,2,8,5,3
+1256,66,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,2,7,6,6,2
+1257,35,Žena,Severozápad,SŠ s maturitou,Frequent Business,7,8,6,6,6
+1258,53,Žena,Praha,SŠ s maturitou,Infrequent Travellers,4,6,5,5,6
+1259,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,6,9,5,6,7
+1260,41,Žena,Praha,SŠ s maturitou,Digital Self-Service,7,3,8,5,7
+1261,47,Muž,Jihozápad,ZŠ / bez maturity,International Transfer,4,9,2,2,8
+1262,38,Žena,Jihovýchod,VŠ,Digital Self-Service,8,3,8,5,6
+1263,55,Muž,Severovýchod,ZŠ / bez maturity,International Transfer,5,8,6,8,6
+1264,40,Žena,Jihovýchod,ZŠ / bez maturity,International Transfer,5,10,6,3,6
+1265,57,Muž,Praha,SŠ s maturitou,International Transfer,7,6,6,4,6
+1266,49,Žena,Severovýchod,VŠ,Frequent Business,6,7,5,4,6
+1267,18,Muž,Jihozápad,ZŠ / bez maturity,Leisure Families,7,7,5,5,5
+1268,54,Muž,Praha,VŠ,Infrequent Travellers,7,4,5,1,6
+1269,26,Žena,Moravskoslezsko,VŠ,Leisure Families,5,8,5,5,7
+1270,50,Muž,Praha,VŠ,Frequent Business,5,5,6,7,7
+1271,50,Žena,Severovýchod,SŠ s maturitou,International Transfer,8,6,9,4,4
+1272,22,Muž,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,6,5,8,7,7
+1273,52,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,9,6,5,6,6
+1274,29,Žena,Praha,VŠ,International Transfer,6,5,9,5,2
+1275,54,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,5,7,7,5,5
+1276,55,Muž,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,6,7,7,8,5
+1277,43,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,5,8,3,7,8
+1278,50,Muž,Praha,VŠ,Digital Self-Service,3,4,7,4,7
+1279,46,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,9,5,6,5,5
+1280,42,Muž,Střední Čechy,SŠ s maturitou,Digital Self-Service,8,6,9,5,6
+1281,18,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,5,3,5,5,10
+1282,67,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,6,6,10,5,6
+1283,72,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,7,4,4,3,4
+1284,19,Žena,Střední Čechy,SŠ s maturitou,Digital Self-Service,6,6,8,3,4
+1285,57,Žena,Moravskoslezsko,SŠ s maturitou,Leisure Families,7,8,2,3,6
+1286,24,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,8,6,6,7,7
+1287,43,Žena,Severozápad,ZŠ / bez maturity,Frequent Business,9,10,8,4,8
+1288,42,Muž,Střední Čechy,SŠ s maturitou,Frequent Business,9,8,4,3,6
+1289,60,Muž,Jihovýchod,VŠ,Leisure Families,6,6,7,8,8
+1290,48,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,7,7,6,5,7
+1291,59,Muž,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,1,4,3,5,4
+1292,22,Muž,Praha,SŠ s maturitou,Infrequent Travellers,4,8,7,8,9
+1293,50,Žena,Střední Čechy,VŠ,Frequent Business,8,4,7,3,4
+1294,33,Žena,Severovýchod,SŠ s maturitou,International Transfer,5,7,5,8,3
+1295,74,Muž,Severovýchod,VŠ,Frequent Business,6,7,7,5,3
+1296,62,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,5,5,3,1,5
+1297,45,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,4,3,6,3,8
+1298,39,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,4,7,9,4,6
+1299,28,Žena,Severozápad,SŠ s maturitou,Infrequent Travellers,5,7,4,6,7
+1300,61,Žena,Střední Čechy,VŠ,Leisure Families,8,6,4,6,4
+1301,30,Muž,Jihovýchod,SŠ s maturitou,Leisure Families,6,3,9,4,4
+1302,41,Žena,Moravskoslezsko,SŠ s maturitou,Frequent Business,1,3,6,4,1
+1303,24,Muž,Severozápad,ZŠ / bez maturity,International Transfer,8,6,3,4,3
+1304,24,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,7,10,6,4,7
+1305,56,Muž,Jihozápad,VŠ,International Transfer,7,7,5,4,1
+1306,42,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,7,6,3,5,4
+1307,38,Muž,Jihozápad,SŠ s maturitou,Leisure Families,5,6,9,4,8
+1308,20,Muž,Střední Čechy,SŠ s maturitou,Frequent Business,3,6,8,5,6
+1309,61,Žena,Praha,SŠ s maturitou,Leisure Families,9,2,5,6,5
+1310,35,Žena,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,3,4,5,6,7
+1311,61,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,5,6,4,5,8
+1312,18,Muž,Střední Čechy,ZŠ / bez maturity,International Transfer,6,4,5,8,6
+1313,51,Žena,Praha,SŠ s maturitou,Frequent Business,7,10,5,6,5
+1314,19,Muž,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,5,1,5,5,5
+1315,50,Žena,Severovýchod,SŠ s maturitou,Infrequent Travellers,6,6,8,6,4
+1316,46,Žena,Jihovýchod,SŠ s maturitou,Frequent Business,7,6,6,5,3
+1317,25,Žena,Severovýchod,ZŠ / bez maturity,International Transfer,6,4,8,5,6
+1318,51,Muž,Střední Čechy,SŠ s maturitou,Digital Self-Service,4,4,4,5,6
+1319,33,Muž,Jihovýchod,ZŠ / bez maturity,Digital Self-Service,7,10,4,7,3
+1320,43,Muž,Střední Čechy,SŠ s maturitou,Infrequent Travellers,8,6,8,4,4
+1321,31,Žena,Jihozápad,SŠ s maturitou,Leisure Families,8,8,7,5,4
+1322,51,Muž,Severovýchod,VŠ,International Transfer,3,5,3,4,3
+1323,58,Žena,Střední Čechy,ZŠ / bez maturity,Leisure Families,6,3,7,3,4
+1324,40,Muž,Praha,VŠ,International Transfer,7,7,4,7,7
+1325,59,Žena,Moravskoslezsko,VŠ,Infrequent Travellers,9,5,7,7,10
+1326,53,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,7,8,6,8,1
+1327,18,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,4,7,3,6,6
+1328,40,Muž,Střední Čechy,SŠ s maturitou,International Transfer,9,3,3,7,9
+1329,69,Žena,Střední Čechy,VŠ,Infrequent Travellers,3,7,8,7,5
+1330,30,Žena,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,9,4,6,6,6
+1331,36,Žena,Moravskoslezsko,VŠ,International Transfer,7,7,9,6,7
+1332,44,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,5,5,5,8,5
+1333,21,Muž,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,1,7,3,3,5
+1334,63,Muž,Střední Čechy,SŠ s maturitou,Digital Self-Service,9,6,7,5,3
+1335,35,Žena,Střední Čechy,VŠ,International Transfer,6,4,6,5,5
+1336,55,Muž,Severovýchod,ZŠ / bez maturity,Leisure Families,5,6,6,5,5
+1337,31,Žena,Moravskoslezsko,VŠ,Infrequent Travellers,9,5,1,5,6
+1338,21,Muž,Severozápad,SŠ s maturitou,International Transfer,8,5,6,4,6
+1339,39,Muž,Praha,ZŠ / bez maturity,Leisure Families,2,5,5,7,4
+1340,55,Muž,Jihozápad,ZŠ / bez maturity,Frequent Business,5,6,8,4,7
+1341,46,Muž,Jihovýchod,SŠ s maturitou,Leisure Families,6,6,3,5,8
+1342,42,Žena,Jihozápad,SŠ s maturitou,Digital Self-Service,6,2,5,9,8
+1343,31,Žena,Severozápad,ZŠ / bez maturity,Infrequent Travellers,5,7,8,5,6
+1344,36,Muž,Střední Čechy,VŠ,Digital Self-Service,5,6,5,5,6
+1345,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,3,5,5,4,2
+1346,24,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,8,8,6,7,2
+1347,30,Muž,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,2,7,9,1,5
+1348,30,Muž,Jihovýchod,SŠ s maturitou,Digital Self-Service,7,5,9,6,4
+1349,26,Žena,Severovýchod,VŠ,Infrequent Travellers,9,9,6,6,7
+1350,51,Žena,Praha,VŠ,International Transfer,6,9,6,5,5
+1351,48,Žena,Jihovýchod,SŠ s maturitou,Digital Self-Service,3,6,6,6,8
+1352,49,Muž,Moravskoslezsko,SŠ s maturitou,Infrequent Travellers,7,5,5,7,6
+1353,25,Žena,Jihovýchod,VŠ,Frequent Business,10,2,6,3,6
+1354,43,Žena,Jihovýchod,VŠ,Leisure Families,3,4,9,6,5
+1355,39,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,6,5,6,6,8
+1356,25,Žena,Střední Čechy,SŠ s maturitou,International Transfer,7,10,4,6,9
+1357,51,Žena,Severozápad,ZŠ / bez maturity,Frequent Business,3,7,3,3,7
+1358,30,Muž,Praha,SŠ s maturitou,Infrequent Travellers,7,5,6,3,5
+1359,30,Muž,Jihozápad,SŠ s maturitou,Infrequent Travellers,4,4,5,6,5
+1360,47,Muž,Střední Čechy,VŠ,Infrequent Travellers,4,6,8,8,6
+1361,18,Žena,Severovýchod,SŠ s maturitou,Leisure Families,7,5,5,6,7
+1362,35,Muž,Severozápad,ZŠ / bez maturity,Leisure Families,2,9,5,4,3
+1363,32,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,6,4,4,9,9
+1364,51,Žena,Střední Čechy,SŠ s maturitou,International Transfer,6,6,7,7,4
+1365,55,Muž,Severozápad,SŠ s maturitou,International Transfer,6,5,8,2,5
+1366,53,Muž,Severozápad,SŠ s maturitou,Digital Self-Service,7,7,8,5,4
+1367,37,Žena,Severozápad,SŠ s maturitou,Leisure Families,8,4,6,7,9
+1368,36,Muž,Praha,ZŠ / bez maturity,Infrequent Travellers,5,6,8,4,2
+1369,49,Žena,Jihovýchod,SŠ s maturitou,International Transfer,8,7,8,5,6
+1370,31,Žena,Severovýchod,SŠ s maturitou,International Transfer,6,8,3,9,8
+1371,49,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,9,1,7,3,3
+1372,39,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,10,2,1,7,9
+1373,30,Muž,Severozápad,ZŠ / bez maturity,Infrequent Travellers,5,6,7,2,2
+1374,57,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,4,6,5,5,9
+1375,18,Žena,Severovýchod,ZŠ / bez maturity,Infrequent Travellers,8,7,5,2,5
+1376,33,Žena,Severovýchod,VŠ,Frequent Business,8,8,8,4,6
+1377,56,Žena,Jihovýchod,VŠ,Infrequent Travellers,3,7,6,7,3
+1378,47,Muž,Severovýchod,SŠ s maturitou,International Transfer,5,4,5,8,3
+1379,46,Muž,Praha,ZŠ / bez maturity,International Transfer,8,10,2,5,4
+1380,29,Muž,Jihovýchod,SŠ s maturitou,Digital Self-Service,3,7,3,2,5
+1381,31,Muž,Jihozápad,VŠ,Digital Self-Service,5,8,3,4,6
+1382,55,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,5,4,4,3,1
+1383,73,Žena,Severovýchod,VŠ,International Transfer,4,7,6,4,6
+1384,70,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,1,8,8,5,6
+1385,38,Žena,Jihovýchod,VŠ,Digital Self-Service,6,3,4,6,2
+1386,37,Muž,Jihozápad,ZŠ / bez maturity,Leisure Families,7,6,3,8,8
+1387,35,Muž,Jihozápad,VŠ,Digital Self-Service,3,2,4,6,7
+1388,18,Žena,Severozápad,VŠ,Digital Self-Service,4,2,10,8,3
+1389,59,Muž,Severozápad,ZŠ / bez maturity,Leisure Families,8,8,6,5,9
+1390,50,Muž,Moravskoslezsko,SŠ s maturitou,Leisure Families,7,5,5,8,2
+1391,61,Muž,Praha,SŠ s maturitou,Infrequent Travellers,2,5,1,8,7
+1392,54,Muž,Jihovýchod,SŠ s maturitou,Frequent Business,9,5,6,7,2
+1393,39,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,7,6,5,5,3
+1394,45,Muž,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,8,4,5,7,6
+1395,36,Muž,Praha,ZŠ / bez maturity,International Transfer,7,6,6,7,8
+1396,45,Muž,Severozápad,SŠ s maturitou,International Transfer,1,2,7,2,10
+1397,53,Muž,Střední Čechy,ZŠ / bez maturity,Digital Self-Service,3,6,6,8,6
+1398,42,Žena,Severozápad,ZŠ / bez maturity,International Transfer,5,5,8,3,6
+1399,30,Žena,Severovýchod,SŠ s maturitou,International Transfer,4,6,8,8,6
+1400,50,Muž,Moravskoslezsko,VŠ,Infrequent Travellers,5,8,4,6,4
+1401,61,Muž,Jihovýchod,VŠ,Infrequent Travellers,5,4,2,2,5
+1402,45,Muž,Moravskoslezsko,ZŠ / bez maturity,Frequent Business,2,9,7,5,5
+1403,23,Muž,Moravskoslezsko,ZŠ / bez maturity,Infrequent Travellers,8,5,5,5,7
+1404,64,Žena,Praha,ZŠ / bez maturity,Infrequent Travellers,8,7,3,1,9
+1405,31,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,7,10,5,7,4
+1406,18,Muž,Severozápad,SŠ s maturitou,Frequent Business,4,5,5,7,6
+1407,74,Žena,Střední Čechy,SŠ s maturitou,Leisure Families,8,6,4,5,6
+1408,54,Muž,Střední Čechy,VŠ,Infrequent Travellers,3,7,1,5,3
+1409,36,Muž,Praha,SŠ s maturitou,Leisure Families,3,8,7,4,8
+1410,54,Žena,Severozápad,SŠ s maturitou,Digital Self-Service,3,4,3,7,6
+1411,44,Žena,Severovýchod,ZŠ / bez maturity,Frequent Business,3,7,8,7,7
+1412,59,Žena,Severovýchod,ZŠ / bez maturity,Leisure Families,5,4,9,3,9
+1413,31,Muž,Střední Čechy,ZŠ / bez maturity,International Transfer,9,5,10,7,6
+1414,56,Žena,Severovýchod,ZŠ / bez maturity,International Transfer,6,4,5,6,6
+1415,32,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,4,2,7,6,5
+1416,27,Žena,Praha,SŠ s maturitou,Leisure Families,3,6,7,5,4
+1417,44,Žena,Střední Čechy,VŠ,International Transfer,5,7,8,5,5
+1418,18,Muž,Severovýchod,VŠ,Infrequent Travellers,7,5,7,6,8
+1419,40,Muž,Jihovýchod,SŠ s maturitou,International Transfer,2,6,6,5,5
+1420,33,Žena,Jihozápad,ZŠ / bez maturity,Leisure Families,10,2,6,5,5
+1421,35,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,7,5,4,7,6
+1422,36,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,5,7,8,6,7
+1423,30,Muž,Praha,VŠ,International Transfer,3,6,6,4,3
+1424,18,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,4,6,5,3,4
+1425,48,Muž,Moravskoslezsko,SŠ s maturitou,Frequent Business,7,4,4,10,7
+1426,18,Muž,Střední Čechy,ZŠ / bez maturity,Frequent Business,4,7,5,7,4
+1427,64,Žena,Praha,SŠ s maturitou,Infrequent Travellers,8,9,4,10,5
+1428,50,Žena,Moravskoslezsko,ZŠ / bez maturity,Leisure Families,5,4,4,5,4
+1429,25,Muž,Moravskoslezsko,VŠ,Leisure Families,2,7,8,3,3
+1430,54,Žena,Severozápad,VŠ,Infrequent Travellers,6,6,7,8,4
+1431,54,Žena,Moravskoslezsko,SŠ s maturitou,International Transfer,9,7,10,3,1
+1432,55,Muž,Jihovýchod,ZŠ / bez maturity,International Transfer,3,5,3,3,8
+1433,38,Žena,Praha,VŠ,International Transfer,2,6,6,4,4
+1434,41,Muž,Jihozápad,VŠ,Digital Self-Service,8,7,7,7,5
+1435,56,Muž,Moravskoslezsko,SŠ s maturitou,International Transfer,4,6,7,7,9
+1436,43,Muž,Jihozápad,ZŠ / bez maturity,International Transfer,4,6,8,6,7
+1437,74,Žena,Moravskoslezsko,ZŠ / bez maturity,Digital Self-Service,5,8,2,5,6
+1438,43,Muž,Střední Čechy,VŠ,Digital Self-Service,4,7,4,4,7
+1439,50,Žena,Moravskoslezsko,VŠ,Digital Self-Service,2,4,8,6,3
+1440,49,Muž,Praha,ZŠ / bez maturity,Frequent Business,9,4,3,10,6
+1441,46,Žena,Střední Čechy,VŠ,Infrequent Travellers,8,6,7,5,3
+1442,47,Muž,Jihovýchod,SŠ s maturitou,Leisure Families,3,3,4,5,3
+1443,48,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,7,6,5,6,6
+1444,25,Muž,Severovýchod,SŠ s maturitou,Frequent Business,6,10,3,2,6
+1445,58,Žena,Střední Čechy,SŠ s maturitou,Digital Self-Service,8,7,3,8,7
+1446,63,Muž,Jihovýchod,SŠ s maturitou,Digital Self-Service,5,9,5,4,9
+1447,40,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,5,2,4,8,9
+1448,48,Muž,Praha,VŠ,Digital Self-Service,4,6,3,8,3
+1449,58,Žena,Jihovýchod,SŠ s maturitou,Leisure Families,4,7,7,5,3
+1450,23,Muž,Střední Čechy,ZŠ / bez maturity,Infrequent Travellers,6,6,4,4,7
+1451,21,Žena,Severozápad,VŠ,Frequent Business,6,4,3,4,3
+1452,61,Žena,Střední Čechy,SŠ s maturitou,International Transfer,6,9,7,5,6
+1453,27,Muž,Severovýchod,SŠ s maturitou,Frequent Business,3,8,5,4,3
+1454,47,Žena,Jihozápad,ZŠ / bez maturity,Frequent Business,2,4,6,5,5
+1455,45,Žena,Jihozápad,ZŠ / bez maturity,Infrequent Travellers,4,6,6,6,4
+1456,35,Žena,Severozápad,ZŠ / bez maturity,International Transfer,4,7,8,7,6
+1457,39,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,5,8,4,7,8
+1458,56,Muž,Střední Čechy,SŠ s maturitou,Leisure Families,4,6,4,7,5
+1459,43,Žena,Severozápad,VŠ,Digital Self-Service,5,4,7,6,4
+1460,41,Žena,Severozápad,VŠ,International Transfer,6,9,3,2,6
+1461,41,Muž,Jihozápad,VŠ,International Transfer,6,10,7,5,8
+1462,60,Muž,Moravskoslezsko,SŠ s maturitou,Digital Self-Service,2,5,4,5,10
+1463,58,Žena,Severovýchod,VŠ,International Transfer,6,7,3,5,5
+1464,44,Žena,Jihovýchod,SŠ s maturitou,International Transfer,5,4,5,8,5
+1465,67,Muž,Moravskoslezsko,VŠ,Digital Self-Service,10,7,4,4,5
+1466,45,Žena,Severovýchod,SŠ s maturitou,Frequent Business,6,4,8,7,7
+1467,32,Žena,Severovýchod,SŠ s maturitou,Digital Self-Service,5,4,6,4,7
+1468,60,Muž,Jihozápad,VŠ,Frequent Business,6,8,5,6,8
+1469,18,Žena,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,4,6,6,8,5
+1470,50,Žena,Severovýchod,ZŠ / bez maturity,Digital Self-Service,9,7,9,6,8
+1471,45,Muž,Jihozápad,SŠ s maturitou,Leisure Families,2,7,2,6,8
+1472,57,Muž,Severovýchod,ZŠ / bez maturity,Frequent Business,9,4,4,5,6
+1473,33,Žena,Jihozápad,VŠ,Digital Self-Service,4,4,4,2,5
+1474,65,Muž,Jihovýchod,VŠ,Leisure Families,7,8,8,6,3
+1475,46,Muž,Střední Čechy,SŠ s maturitou,Infrequent Travellers,6,9,4,3,10
+1476,22,Žena,Jihovýchod,SŠ s maturitou,Frequent Business,8,6,4,6,8
+1477,43,Žena,Jihozápad,ZŠ / bez maturity,Digital Self-Service,3,6,6,5,6
+1478,30,Žena,Moravskoslezsko,ZŠ / bez maturity,International Transfer,8,4,4,4,10
+1479,53,Muž,Severovýchod,SŠ s maturitou,Infrequent Travellers,8,6,6,4,1
+1480,55,Muž,Střední Čechy,SŠ s maturitou,Infrequent Travellers,8,5,3,6,5
+1481,47,Muž,Moravskoslezsko,VŠ,Frequent Business,4,3,7,6,5
+1482,62,Muž,Střední Čechy,SŠ s maturitou,Frequent Business,2,3,9,5,5
+1483,50,Žena,Severovýchod,VŠ,Leisure Families,3,4,7,7,7
+1484,54,Muž,Praha,VŠ,Digital Self-Service,8,9,4,9,4
+1485,50,Žena,Jihovýchod,VŠ,Infrequent Travellers,3,8,2,8,5
+1486,64,Muž,Jihozápad,SŠ s maturitou,Digital Self-Service,8,8,7,4,10
+1487,65,Žena,Praha,SŠ s maturitou,Frequent Business,2,5,6,5,7
+1488,46,Žena,Jihozápad,SŠ s maturitou,Infrequent Travellers,5,8,5,7,7
+1489,45,Muž,Severozápad,SŠ s maturitou,Infrequent Travellers,5,10,4,4,6
+1490,26,Muž,Jihovýchod,ZŠ / bez maturity,Infrequent Travellers,5,5,8,1,9
+1491,53,Muž,Severovýchod,VŠ,International Transfer,6,7,7,4,4
+1492,62,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,8,5,4,3,6
+1493,64,Žena,Střední Čechy,SŠ s maturitou,Frequent Business,4,6,6,1,4
+1494,45,Muž,Jihovýchod,VŠ,Leisure Families,4,7,6,5,4
+1495,74,Muž,Severovýchod,SŠ s maturitou,Digital Self-Service,7,7,2,6,2
+1496,52,Muž,Praha,ZŠ / bez maturity,International Transfer,7,6,6,7,9
+1497,32,Žena,Jihovýchod,SŠ s maturitou,Infrequent Travellers,3,4,7,8,7
+1498,60,Muž,Praha,SŠ s maturitou,International Transfer,4,6,5,4,10
+1499,20,Žena,Severovýchod,SŠ s maturitou,Frequent Business,5,5,6,6,6
+1500,28,Žena,Střední Čechy,SŠ s maturitou,Infrequent Travellers,7,10,7,4,8

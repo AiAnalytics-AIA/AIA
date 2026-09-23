@@ -1,0 +1,1501 @@
+﻿respondent_id,age,gender,region,education,segment,price_sensitivity_1_10,digital_confidence_1_10,change_openness_1_10,institutional_trust_1_10,category_involvement_1_10
+1,34,Žena,Střední Čechy,SŠ s maturitou,Young Families,2,1,8,9,4
+2,27,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,8,7,4,6,8
+3,18,Žena,Jihozápad,SŠ s maturitou,Urban Singles,4,4,5,6,4
+4,34,Žena,Severovýchod,ZŠ / bez maturity,Older Convenience,2,7,5,6,7
+5,18,Žena,Severovýchod,SŠ s maturitou,Young Families,4,8,4,1,5
+6,54,Muž,Severovýchod,SŠ s maturitou,Value Hunters,6,3,10,6,4
+7,46,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,5,5,5,4,7
+8,50,Žena,Severozápad,SŠ s maturitou,Value Hunters,4,5,4,5,7
+9,19,Muž,Severozápad,ZŠ / bez maturity,Fresh Seekers,7,3,5,8,4
+10,43,Žena,Jihozápad,ZŠ / bez maturity,Urban Singles,4,4,10,4,6
+11,35,Žena,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,7,5,3,3,8
+12,62,Muž,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,3,5,3,4,8
+13,33,Žena,Severozápad,SŠ s maturitou,Young Families,6,5,8,8,7
+14,36,Muž,Severozápad,SŠ s maturitou,Urban Singles,5,7,8,7,9
+15,33,Muž,Praha,SŠ s maturitou,Value Hunters,4,2,7,5,3
+16,40,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Families,6,5,7,4,8
+17,47,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,6,7,9,4,6
+18,37,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,5,6,5,6,8
+19,42,Žena,Praha,SŠ s maturitou,Young Families,6,4,2,5,9
+20,28,Muž,Střední Čechy,SŠ s maturitou,Older Convenience,8,6,9,9,9
+21,45,Žena,Severovýchod,SŠ s maturitou,Young Families,5,6,3,5,3
+22,74,Žena,Praha,SŠ s maturitou,Young Families,8,9,7,6,10
+23,39,Muž,Severovýchod,VŠ,Value Hunters,6,8,8,3,7
+24,31,Muž,Střední Čechy,ZŠ / bez maturity,Value Hunters,5,6,7,5,2
+25,23,Muž,Jihozápad,ZŠ / bez maturity,Older Convenience,6,8,4,7,1
+26,55,Muž,Severovýchod,SŠ s maturitou,Value Hunters,6,7,6,5,6
+27,38,Muž,Praha,SŠ s maturitou,Young Families,7,5,6,6,6
+28,31,Muž,Severovýchod,ZŠ / bez maturity,Fresh Seekers,5,9,6,6,4
+29,35,Žena,Jihozápad,SŠ s maturitou,Value Hunters,5,9,6,4,9
+30,31,Žena,Severovýchod,VŠ,Older Convenience,2,8,4,6,6
+31,35,Žena,Severovýchod,VŠ,Young Families,7,6,7,9,4
+32,40,Žena,Střední Čechy,SŠ s maturitou,Young Families,5,5,4,5,5
+33,28,Muž,Jihozápad,SŠ s maturitou,Urban Singles,7,10,6,2,6
+34,49,Muž,Severozápad,ZŠ / bez maturity,Value Hunters,9,9,5,3,10
+35,36,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,8,3,3,5,4
+36,56,Muž,Severovýchod,VŠ,Urban Singles,8,8,4,7,4
+37,66,Žena,Severozápad,SŠ s maturitou,Urban Singles,3,8,5,10,5
+38,59,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,3,6,10,5,8
+39,25,Muž,Jihozápad,ZŠ / bez maturity,Older Convenience,1,3,5,8,5
+40,30,Žena,Severozápad,ZŠ / bez maturity,Fresh Seekers,7,9,5,2,7
+41,37,Muž,Střední Čechy,VŠ,Value Hunters,6,4,3,6,7
+42,70,Žena,Jihovýchod,ZŠ / bez maturity,Young Families,5,5,5,5,4
+43,27,Žena,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,5,8,1,3,3
+44,18,Žena,Praha,VŠ,Value Hunters,3,8,7,5,10
+45,24,Muž,Střední Čechy,ZŠ / bez maturity,Older Convenience,5,10,6,5,10
+46,33,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,4,6,7,1,3
+47,37,Muž,Jihozápad,ZŠ / bez maturity,Value Hunters,5,3,6,5,4
+48,25,Žena,Severozápad,SŠ s maturitou,Young Families,8,4,4,6,5
+49,18,Žena,Severozápad,SŠ s maturitou,Value Hunters,3,3,7,7,4
+50,23,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,6,7,7,6,7
+51,48,Muž,Praha,ZŠ / bez maturity,Young Families,3,6,7,10,4
+52,44,Žena,Praha,SŠ s maturitou,Fresh Seekers,3,2,10,3,2
+53,32,Žena,Jihovýchod,ZŠ / bez maturity,Older Convenience,6,3,8,4,9
+54,35,Žena,Severovýchod,VŠ,Value Hunters,6,4,6,6,3
+55,32,Muž,Jihozápad,ZŠ / bez maturity,Young Families,9,7,4,3,8
+56,43,Muž,Střední Čechy,SŠ s maturitou,Young Families,5,4,9,6,8
+57,45,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,4,4,3,5,3
+58,64,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,4,7,8,8,8
+59,29,Žena,Severozápad,ZŠ / bez maturity,Older Convenience,4,9,6,2,6
+60,27,Žena,Moravskoslezsko,VŠ,Urban Singles,6,4,4,8,4
+61,34,Žena,Moravskoslezsko,VŠ,Value Hunters,7,8,4,3,4
+62,63,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,9,6,7,6,3
+63,63,Žena,Severovýchod,SŠ s maturitou,Young Families,5,5,7,4,6
+64,41,Muž,Jihozápad,SŠ s maturitou,Young Families,8,6,2,4,3
+65,40,Muž,Severozápad,VŠ,Older Convenience,5,6,6,5,9
+66,52,Muž,Jihozápad,ZŠ / bez maturity,Urban Singles,3,5,7,3,2
+67,47,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,8,7,5,7,7
+68,49,Žena,Jihozápad,VŠ,Young Families,4,5,7,4,5
+69,43,Muž,Jihovýchod,SŠ s maturitou,Young Families,3,4,6,4,5
+70,47,Muž,Jihozápad,ZŠ / bez maturity,Young Families,6,8,5,6,6
+71,23,Žena,Severozápad,SŠ s maturitou,Urban Singles,7,8,2,5,4
+72,31,Žena,Praha,ZŠ / bez maturity,Young Families,1,7,7,2,5
+73,71,Muž,Jihozápad,SŠ s maturitou,Older Convenience,3,6,1,6,7
+74,32,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,9,10,4,3,5
+75,56,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,9,1,7,4,9
+76,25,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,7,5,9,10,8
+77,55,Muž,Jihovýchod,VŠ,Fresh Seekers,5,4,3,7,6
+78,27,Žena,Severovýchod,SŠ s maturitou,Older Convenience,5,5,7,1,5
+79,27,Muž,Severovýchod,ZŠ / bez maturity,Older Convenience,6,6,4,9,7
+80,41,Žena,Severovýchod,VŠ,Young Families,6,9,6,3,6
+81,57,Muž,Severozápad,ZŠ / bez maturity,Young Families,4,6,9,3,3
+82,29,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,9,5,3,8,5
+83,27,Žena,Jihozápad,VŠ,Urban Singles,5,8,5,7,7
+84,52,Muž,Střední Čechy,ZŠ / bez maturity,Value Hunters,6,6,5,8,6
+85,62,Muž,Praha,SŠ s maturitou,Fresh Seekers,5,4,5,2,4
+86,44,Žena,Jihovýchod,VŠ,Older Convenience,8,8,3,8,6
+87,38,Žena,Severovýchod,SŠ s maturitou,Young Families,5,9,7,5,9
+88,65,Žena,Praha,SŠ s maturitou,Older Convenience,5,6,6,5,5
+89,18,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,3,7,6,4,7
+90,33,Muž,Severovýchod,SŠ s maturitou,Young Families,6,2,5,4,5
+91,53,Muž,Praha,VŠ,Young Families,10,6,6,7,5
+92,47,Muž,Severovýchod,SŠ s maturitou,Value Hunters,3,7,6,5,3
+93,36,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,6,8,4,2,8
+94,25,Žena,Moravskoslezsko,SŠ s maturitou,Young Families,5,9,8,4,8
+95,26,Muž,Jihovýchod,ZŠ / bez maturity,Value Hunters,7,6,5,7,5
+96,35,Muž,Jihozápad,SŠ s maturitou,Urban Singles,3,7,8,5,8
+97,46,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,4,5,4,5,5
+98,51,Žena,Moravskoslezsko,VŠ,Older Convenience,5,5,8,5,5
+99,22,Žena,Severozápad,SŠ s maturitou,Young Families,10,6,5,8,5
+100,60,Muž,Jihovýchod,VŠ,Older Convenience,8,9,8,5,9
+101,40,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,1,5,10,3,7
+102,35,Muž,Severozápad,SŠ s maturitou,Older Convenience,8,7,9,6,6
+103,54,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,7,6,3,6,4
+104,42,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,5,2,9,6,4
+105,45,Žena,Severovýchod,VŠ,Young Families,5,7,5,6,3
+106,46,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,2,8,4,5,6
+107,51,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,5,7,7,3,7
+108,29,Žena,Praha,VŠ,Urban Singles,6,8,6,6,3
+109,40,Žena,Jihozápad,SŠ s maturitou,Older Convenience,6,7,5,2,7
+110,18,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,6,3,5,8,10
+111,18,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,3,6,6,6,4
+112,55,Žena,Střední Čechy,VŠ,Fresh Seekers,6,6,6,8,8
+113,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,4,9,7,7,6
+114,26,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,4,8,5,4,6
+115,43,Žena,Jihozápad,SŠ s maturitou,Young Families,8,5,10,4,6
+116,42,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,8,10,4,8,2
+117,47,Žena,Praha,ZŠ / bez maturity,Value Hunters,3,1,3,1,5
+118,52,Muž,Jihovýchod,SŠ s maturitou,Young Families,7,7,7,6,5
+119,65,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,4,6,6,7,6
+120,43,Žena,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,9,5,8,4,9
+121,57,Muž,Jihozápad,VŠ,Value Hunters,9,6,3,3,3
+122,39,Žena,Jihovýchod,VŠ,Urban Singles,3,6,7,6,3
+123,24,Žena,Moravskoslezsko,VŠ,Young Families,10,3,7,7,9
+124,27,Muž,Severozápad,ZŠ / bez maturity,Young Families,3,8,8,2,3
+125,48,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Families,8,6,9,5,6
+126,54,Muž,Jihozápad,SŠ s maturitou,Young Families,5,3,5,2,7
+127,54,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,2,4,8,5,8
+128,55,Muž,Severovýchod,VŠ,Young Families,4,8,9,6,7
+129,38,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,7,5,7,3,5
+130,54,Muž,Jihozápad,ZŠ / bez maturity,Urban Singles,10,7,6,2,6
+131,60,Žena,Severovýchod,ZŠ / bez maturity,Value Hunters,6,9,10,8,8
+132,74,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,5,7,8,4,6
+133,46,Žena,Jihovýchod,ZŠ / bez maturity,Value Hunters,6,9,7,3,5
+134,43,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,9,7,7,5,9
+135,74,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,5,7,3,2,9
+136,24,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,5,7,2,7,6
+137,49,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,5,5,4,9,6
+138,52,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,5,6,5,4,7
+139,48,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,7,6,7,7,6
+140,31,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,7,10,8,8,4
+141,51,Muž,Severozápad,ZŠ / bez maturity,Urban Singles,3,10,7,7,4
+142,50,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,6,8,4,4,7
+143,57,Muž,Severozápad,SŠ s maturitou,Older Convenience,7,5,7,2,5
+144,26,Muž,Severovýchod,ZŠ / bez maturity,Older Convenience,4,7,2,3,5
+145,59,Žena,Jihozápad,SŠ s maturitou,Young Families,4,8,5,10,5
+146,51,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,5,4,4,7,6
+147,41,Muž,Jihovýchod,VŠ,Fresh Seekers,4,9,5,6,7
+148,46,Muž,Severovýchod,ZŠ / bez maturity,Young Families,3,7,9,5,5
+149,47,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,5,8,5,4,10
+150,33,Muž,Jihozápad,SŠ s maturitou,Older Convenience,5,6,7,6,3
+151,47,Žena,Praha,SŠ s maturitou,Urban Singles,4,10,7,4,5
+152,45,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,4,7,7,5,8
+153,47,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,5,5,9,6,8
+154,46,Žena,Jihovýchod,SŠ s maturitou,Young Families,6,3,8,2,6
+155,44,Žena,Jihovýchod,VŠ,Value Hunters,4,5,3,5,8
+156,43,Muž,Moravskoslezsko,SŠ s maturitou,Urban Singles,5,5,5,4,4
+157,52,Muž,Moravskoslezsko,VŠ,Urban Singles,5,5,7,5,7
+158,36,Žena,Praha,SŠ s maturitou,Older Convenience,4,6,6,5,7
+159,32,Žena,Severozápad,VŠ,Young Families,6,4,5,5,6
+160,49,Muž,Jihozápad,VŠ,Fresh Seekers,3,5,1,5,5
+161,26,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,10,7,4,6,3
+162,39,Muž,Severozápad,VŠ,Urban Singles,4,4,1,1,6
+163,63,Žena,Jihovýchod,ZŠ / bez maturity,Value Hunters,4,7,4,6,7
+164,45,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,2,7,7,8,2
+165,48,Žena,Jihovýchod,VŠ,Young Families,5,5,3,7,6
+166,53,Muž,Jihovýchod,VŠ,Older Convenience,4,7,7,5,6
+167,58,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,3,8,4,4,7
+168,49,Žena,Severozápad,VŠ,Fresh Seekers,6,4,7,6,4
+169,31,Žena,Severovýchod,ZŠ / bez maturity,Fresh Seekers,5,7,9,3,9
+170,42,Žena,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,3,7,4,2,7
+171,57,Žena,Střední Čechy,VŠ,Fresh Seekers,3,9,5,8,5
+172,50,Muž,Střední Čechy,VŠ,Older Convenience,8,8,9,6,1
+173,38,Muž,Severozápad,SŠ s maturitou,Value Hunters,8,5,6,5,7
+174,40,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,8,4,6,5,2
+175,18,Žena,Severovýchod,SŠ s maturitou,Fresh Seekers,6,5,7,4,7
+176,38,Žena,Jihozápad,SŠ s maturitou,Older Convenience,5,6,4,6,4
+177,37,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,6,9,7,4,6
+178,58,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,6,1,6,6,6
+179,33,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,1,10,8,6,6
+180,36,Muž,Praha,ZŠ / bez maturity,Value Hunters,5,6,7,5,5
+181,38,Žena,Moravskoslezsko,VŠ,Urban Singles,6,4,9,4,3
+182,20,Muž,Praha,SŠ s maturitou,Urban Singles,10,6,6,2,10
+183,64,Muž,Jihovýchod,SŠ s maturitou,Urban Singles,5,9,4,3,3
+184,59,Muž,Severovýchod,SŠ s maturitou,Older Convenience,4,7,3,5,4
+185,52,Žena,Jihozápad,ZŠ / bez maturity,Value Hunters,3,3,4,6,5
+186,36,Muž,Severovýchod,SŠ s maturitou,Young Families,6,3,6,6,6
+187,40,Žena,Střední Čechy,SŠ s maturitou,Young Families,4,7,7,4,5
+188,65,Žena,Severovýchod,VŠ,Fresh Seekers,6,5,4,2,4
+189,18,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,4,5,5,2,5
+190,46,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,5,1,7,4,8
+191,31,Muž,Moravskoslezsko,SŠ s maturitou,Urban Singles,6,4,6,6,4
+192,61,Muž,Jihozápad,SŠ s maturitou,Urban Singles,3,5,4,8,9
+193,32,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,5,6,8,10,5
+194,48,Muž,Severovýchod,SŠ s maturitou,Value Hunters,6,8,4,3,8
+195,30,Žena,Praha,SŠ s maturitou,Older Convenience,2,5,3,6,8
+196,48,Muž,Severovýchod,VŠ,Older Convenience,3,8,6,3,8
+197,45,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,5,8,6,9,7
+198,71,Žena,Praha,ZŠ / bez maturity,Young Families,4,8,5,6,5
+199,36,Žena,Severozápad,SŠ s maturitou,Fresh Seekers,6,7,6,5,8
+200,60,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,3,4,5,4,8
+201,31,Muž,Severovýchod,VŠ,Value Hunters,6,5,7,3,7
+202,38,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,5,8,4,4,7
+203,47,Muž,Jihozápad,ZŠ / bez maturity,Fresh Seekers,8,8,4,5,4
+204,38,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,4,6,6,5,8
+205,43,Muž,Moravskoslezsko,VŠ,Older Convenience,6,8,6,6,7
+206,50,Muž,Severovýchod,VŠ,Older Convenience,6,5,6,3,4
+207,37,Žena,Praha,ZŠ / bez maturity,Older Convenience,4,3,4,4,5
+208,46,Muž,Jihovýchod,SŠ s maturitou,Urban Singles,5,9,3,4,9
+209,36,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,8,7,9,5,5
+210,48,Muž,Praha,SŠ s maturitou,Urban Singles,7,8,8,7,9
+211,34,Muž,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,7,5,4,9,3
+212,24,Muž,Jihovýchod,VŠ,Fresh Seekers,6,7,8,6,1
+213,55,Žena,Střední Čechy,SŠ s maturitou,Young Families,5,9,7,7,5
+214,47,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,6,8,5,10,1
+215,60,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,6,9,5,6,7
+216,55,Žena,Jihozápad,SŠ s maturitou,Urban Singles,4,3,2,4,7
+217,31,Žena,Moravskoslezsko,VŠ,Fresh Seekers,3,9,6,1,8
+218,28,Žena,Jihozápad,ZŠ / bez maturity,Older Convenience,4,6,7,4,7
+219,53,Muž,Jihozápad,SŠ s maturitou,Value Hunters,6,10,3,4,5
+220,18,Žena,Jihozápad,SŠ s maturitou,Urban Singles,3,6,4,5,5
+221,42,Muž,Severozápad,SŠ s maturitou,Fresh Seekers,5,5,9,6,7
+222,48,Žena,Jihovýchod,VŠ,Fresh Seekers,7,5,5,8,6
+223,54,Muž,Severozápad,SŠ s maturitou,Fresh Seekers,10,1,5,4,10
+224,33,Muž,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,7,4,5,5,8
+225,41,Muž,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,6,6,7,7,1
+226,54,Žena,Severovýchod,ZŠ / bez maturity,Young Families,8,8,4,5,8
+227,26,Muž,Praha,SŠ s maturitou,Older Convenience,9,4,3,2,3
+228,31,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,8,6,4,7,4
+229,60,Muž,Severozápad,SŠ s maturitou,Older Convenience,7,4,7,4,5
+230,25,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,5,7,7,6,7
+231,46,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,6,8,7,5,1
+232,73,Žena,Moravskoslezsko,VŠ,Urban Singles,3,4,4,6,5
+233,65,Žena,Praha,SŠ s maturitou,Urban Singles,7,5,7,2,7
+234,39,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,4,6,8,3,8
+235,32,Muž,Jihozápad,VŠ,Fresh Seekers,7,5,8,8,5
+236,67,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,4,8,7,1,6
+237,27,Žena,Jihozápad,SŠ s maturitou,Urban Singles,7,6,6,4,5
+238,40,Žena,Jihozápad,ZŠ / bez maturity,Young Families,6,6,5,5,1
+239,40,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,6,7,7,4,5
+240,29,Žena,Severovýchod,SŠ s maturitou,Urban Singles,6,6,6,7,6
+241,54,Muž,Jihovýchod,SŠ s maturitou,Young Families,8,7,6,5,6
+242,31,Žena,Jihovýchod,VŠ,Value Hunters,8,7,5,7,7
+243,57,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,8,5,5,4,2
+244,74,Žena,Severozápad,VŠ,Urban Singles,9,5,6,7,3
+245,30,Žena,Praha,SŠ s maturitou,Urban Singles,6,5,3,5,6
+246,57,Muž,Jihovýchod,SŠ s maturitou,Young Families,4,7,4,1,6
+247,18,Muž,Severozápad,SŠ s maturitou,Older Convenience,4,7,7,7,3
+248,33,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,6,7,5,1,9
+249,45,Muž,Jihovýchod,VŠ,Urban Singles,4,9,7,6,8
+250,44,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,10,7,5,5,6
+251,50,Žena,Střední Čechy,VŠ,Urban Singles,5,6,5,7,10
+252,39,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,5,4,4,5,8
+253,51,Žena,Jihozápad,SŠ s maturitou,Urban Singles,4,5,8,6,2
+254,35,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,8,7,5,6,7
+255,64,Muž,Jihozápad,VŠ,Older Convenience,8,7,5,7,4
+256,21,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,1,8,5,5,2
+257,35,Muž,Severozápad,SŠ s maturitou,Young Families,7,10,6,7,4
+258,44,Žena,Jihozápad,VŠ,Young Families,4,7,8,5,7
+259,47,Žena,Severozápad,SŠ s maturitou,Value Hunters,6,5,3,8,6
+260,51,Žena,Jihozápad,SŠ s maturitou,Value Hunters,9,6,6,4,7
+261,53,Žena,Moravskoslezsko,VŠ,Value Hunters,4,6,3,2,7
+262,23,Muž,Praha,SŠ s maturitou,Urban Singles,5,5,4,5,7
+263,38,Žena,Severovýchod,SŠ s maturitou,Urban Singles,8,2,8,3,7
+264,48,Žena,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,5,8,4,2,2
+265,30,Žena,Severozápad,SŠ s maturitou,Young Families,7,2,5,5,5
+266,33,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,5,7,4,7,3
+267,73,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,6,5,7,6,6
+268,51,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,9,6,4,6,6
+269,46,Muž,Severozápad,VŠ,Young Families,6,4,5,6,4
+270,36,Žena,Moravskoslezsko,SŠ s maturitou,Urban Singles,5,10,5,5,3
+271,54,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,6,6,9,7,7
+272,45,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,5,7,6,4,2
+273,33,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,2,8,4,4,10
+274,41,Žena,Jihozápad,SŠ s maturitou,Value Hunters,7,7,2,2,4
+275,53,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,4,2,4,6,4
+276,55,Muž,Jihovýchod,SŠ s maturitou,Young Families,6,7,9,4,7
+277,38,Žena,Praha,VŠ,Young Families,5,5,6,7,10
+278,63,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,10,9,7,4,5
+279,45,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,4,8,4,10,6
+280,26,Muž,Jihovýchod,VŠ,Older Convenience,5,8,2,5,1
+281,29,Žena,Střední Čechy,VŠ,Value Hunters,8,5,5,3,8
+282,57,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,6,8,6,6,6
+283,41,Žena,Jihozápad,SŠ s maturitou,Value Hunters,6,8,5,4,4
+284,53,Muž,Střední Čechy,VŠ,Young Families,4,5,2,7,8
+285,42,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,8,5,6,9,8
+286,47,Muž,Praha,VŠ,Fresh Seekers,8,3,5,4,10
+287,35,Žena,Jihozápad,VŠ,Value Hunters,6,3,8,3,9
+288,45,Muž,Střední Čechy,SŠ s maturitou,Young Families,4,4,8,6,10
+289,20,Muž,Severovýchod,ZŠ / bez maturity,Young Families,7,8,4,3,9
+290,48,Muž,Praha,ZŠ / bez maturity,Older Convenience,2,6,7,7,2
+291,39,Žena,Jihozápad,VŠ,Urban Singles,6,4,5,4,5
+292,35,Muž,Severovýchod,SŠ s maturitou,Urban Singles,4,6,7,4,7
+293,56,Žena,Praha,VŠ,Young Families,9,2,2,7,6
+294,33,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,7,4,6,3,8
+295,27,Muž,Jihovýchod,SŠ s maturitou,Young Families,5,7,5,2,7
+296,59,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,3,5,5,7,7
+297,39,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,10,9,4,4,7
+298,18,Muž,Severovýchod,SŠ s maturitou,Urban Singles,6,5,9,8,6
+299,30,Muž,Jihozápad,SŠ s maturitou,Urban Singles,7,3,7,5,6
+300,46,Žena,Severozápad,SŠ s maturitou,Older Convenience,4,8,5,6,5
+301,26,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,4,5,8,6,7
+302,43,Muž,Střední Čechy,SŠ s maturitou,Older Convenience,5,5,4,4,8
+303,52,Žena,Severovýchod,SŠ s maturitou,Value Hunters,2,6,6,4,5
+304,43,Muž,Praha,SŠ s maturitou,Urban Singles,6,9,7,8,6
+305,32,Žena,Severovýchod,SŠ s maturitou,Urban Singles,5,5,7,4,9
+306,57,Muž,Severovýchod,VŠ,Fresh Seekers,3,5,4,4,2
+307,56,Žena,Moravskoslezsko,VŠ,Value Hunters,6,1,6,7,6
+308,48,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,2,5,8,7,3
+309,34,Muž,Jihozápad,VŠ,Older Convenience,9,9,2,4,10
+310,73,Muž,Severovýchod,SŠ s maturitou,Value Hunters,4,6,6,10,5
+311,36,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,4,7,7,1,4
+312,36,Žena,Severovýchod,SŠ s maturitou,Urban Singles,2,4,3,1,5
+313,37,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,3,7,7,7,7
+314,46,Muž,Severozápad,SŠ s maturitou,Value Hunters,5,5,4,3,4
+315,35,Muž,Severozápad,VŠ,Urban Singles,6,4,4,4,3
+316,22,Muž,Severovýchod,ZŠ / bez maturity,Urban Singles,4,8,7,5,7
+317,47,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,4,6,4,3,8
+318,44,Žena,Jihozápad,SŠ s maturitou,Value Hunters,4,6,5,4,4
+319,23,Žena,Praha,VŠ,Fresh Seekers,7,7,4,8,3
+320,59,Muž,Jihovýchod,SŠ s maturitou,Young Families,5,3,7,5,5
+321,60,Žena,Severozápad,SŠ s maturitou,Older Convenience,6,5,6,6,9
+322,36,Žena,Severozápad,ZŠ / bez maturity,Value Hunters,7,9,9,7,7
+323,24,Žena,Severozápad,SŠ s maturitou,Older Convenience,7,5,6,4,5
+324,43,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,6,4,6,8,7
+325,33,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,4,3,7,5,6
+326,37,Žena,Severozápad,VŠ,Value Hunters,2,6,6,5,9
+327,46,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,4,6,5,7,6
+328,36,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,6,9,9,4,5
+329,47,Muž,Střední Čechy,SŠ s maturitou,Value Hunters,3,7,5,8,4
+330,40,Žena,Jihozápad,SŠ s maturitou,Young Families,6,4,7,4,5
+331,42,Žena,Severozápad,ZŠ / bez maturity,Urban Singles,7,4,4,7,6
+332,46,Muž,Moravskoslezsko,VŠ,Urban Singles,8,5,5,6,4
+333,30,Žena,Severovýchod,VŠ,Older Convenience,6,6,7,6,4
+334,41,Žena,Praha,ZŠ / bez maturity,Young Families,7,5,4,3,5
+335,52,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,4,3,4,4,2
+336,38,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,5,7,7,5,8
+337,53,Žena,Jihovýchod,ZŠ / bez maturity,Value Hunters,4,4,7,6,6
+338,48,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,3,5,8,6,4
+339,54,Žena,Severozápad,VŠ,Fresh Seekers,6,4,9,10,5
+340,45,Muž,Střední Čechy,VŠ,Urban Singles,8,1,7,3,7
+341,28,Žena,Severozápad,ZŠ / bez maturity,Older Convenience,7,5,8,6,6
+342,31,Žena,Severozápad,VŠ,Young Families,7,7,9,3,5
+343,38,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Families,6,9,4,8,7
+344,30,Žena,Severozápad,SŠ s maturitou,Young Families,6,5,3,3,5
+345,37,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,9,9,1,7,8
+346,40,Muž,Praha,SŠ s maturitou,Fresh Seekers,5,6,6,4,8
+347,56,Muž,Střední Čechy,VŠ,Value Hunters,6,5,5,5,6
+348,43,Žena,Jihozápad,VŠ,Fresh Seekers,4,4,4,6,5
+349,31,Žena,Jihozápad,ZŠ / bez maturity,Value Hunters,8,5,5,2,6
+350,43,Žena,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,3,4,8,4,5
+351,52,Žena,Moravskoslezsko,VŠ,Value Hunters,10,5,2,2,6
+352,35,Žena,Severozápad,VŠ,Young Families,4,8,7,6,9
+353,34,Žena,Střední Čechy,SŠ s maturitou,Young Families,10,2,10,7,6
+354,34,Muž,Severovýchod,VŠ,Older Convenience,9,4,3,2,8
+355,35,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,4,4,1,7,8
+356,53,Muž,Severozápad,SŠ s maturitou,Value Hunters,7,8,7,8,5
+357,37,Žena,Severozápad,ZŠ / bez maturity,Fresh Seekers,9,5,5,5,5
+358,30,Žena,Jihozápad,VŠ,Value Hunters,4,4,7,4,4
+359,18,Muž,Jihovýchod,VŠ,Urban Singles,1,9,6,6,8
+360,57,Žena,Praha,VŠ,Young Families,7,8,4,5,9
+361,55,Muž,Severovýchod,VŠ,Young Families,4,7,4,7,6
+362,21,Žena,Praha,ZŠ / bez maturity,Older Convenience,6,7,5,8,4
+363,48,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,9,7,3,6,5
+364,45,Muž,Severozápad,SŠ s maturitou,Older Convenience,4,3,3,6,5
+365,39,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,5,5,7,5,9
+366,57,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,6,8,7,8,9
+367,53,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,5,6,1,3,5
+368,34,Žena,Jihovýchod,VŠ,Older Convenience,6,5,9,2,6
+369,29,Žena,Praha,SŠ s maturitou,Young Families,10,6,3,6,8
+370,44,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,7,6,7,4,4
+371,30,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,7,4,4,6,7
+372,35,Žena,Střední Čechy,VŠ,Value Hunters,4,6,7,6,1
+373,64,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,3,7,7,5,3
+374,38,Muž,Severovýchod,SŠ s maturitou,Young Families,6,8,7,3,5
+375,44,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,5,4,8,4,5
+376,31,Muž,Jihovýchod,SŠ s maturitou,Urban Singles,7,7,5,2,3
+377,58,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,6,6,2,4,8
+378,45,Žena,Střední Čechy,VŠ,Older Convenience,9,8,8,8,9
+379,38,Muž,Severozápad,SŠ s maturitou,Fresh Seekers,8,4,6,6,1
+380,60,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,4,5,6,5,6
+381,42,Muž,Severozápad,ZŠ / bez maturity,Young Families,7,3,4,6,4
+382,48,Muž,Střední Čechy,VŠ,Young Families,5,3,10,5,7
+383,35,Žena,Praha,SŠ s maturitou,Value Hunters,5,4,5,6,3
+384,60,Žena,Severozápad,SŠ s maturitou,Older Convenience,5,8,10,7,2
+385,33,Žena,Severozápad,VŠ,Urban Singles,6,8,8,2,8
+386,24,Muž,Jihovýchod,SŠ s maturitou,Urban Singles,6,7,7,4,6
+387,18,Žena,Severozápad,SŠ s maturitou,Young Families,6,7,5,8,3
+388,46,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,5,4,5,2,6
+389,62,Muž,Jihozápad,SŠ s maturitou,Value Hunters,9,4,6,5,7
+390,38,Muž,Jihovýchod,SŠ s maturitou,Young Families,7,5,3,4,4
+391,32,Žena,Severovýchod,ZŠ / bez maturity,Value Hunters,8,8,5,5,8
+392,49,Žena,Jihozápad,ZŠ / bez maturity,Young Families,3,4,6,3,5
+393,63,Muž,Praha,SŠ s maturitou,Older Convenience,6,6,4,1,4
+394,74,Žena,Moravskoslezsko,VŠ,Urban Singles,3,8,7,4,9
+395,37,Muž,Jihozápad,SŠ s maturitou,Urban Singles,3,5,8,5,4
+396,45,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,7,5,6,4,5
+397,39,Muž,Střední Čechy,SŠ s maturitou,Older Convenience,9,5,2,8,4
+398,32,Žena,Severozápad,ZŠ / bez maturity,Value Hunters,4,6,8,7,7
+399,70,Žena,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,6,4,6,9,5
+400,42,Žena,Praha,VŠ,Value Hunters,10,5,7,8,3
+401,54,Žena,Střední Čechy,VŠ,Value Hunters,9,7,7,7,5
+402,50,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,5,5,7,5,4
+403,52,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,5,8,7,3,3
+404,45,Žena,Jihovýchod,VŠ,Fresh Seekers,6,10,8,4,8
+405,36,Muž,Střední Čechy,VŠ,Value Hunters,5,8,4,1,5
+406,20,Žena,Praha,SŠ s maturitou,Older Convenience,5,3,5,9,5
+407,33,Žena,Severovýchod,ZŠ / bez maturity,Fresh Seekers,6,6,3,3,6
+408,44,Muž,Střední Čechy,SŠ s maturitou,Value Hunters,5,6,5,3,4
+409,45,Muž,Severovýchod,ZŠ / bez maturity,Young Families,7,8,8,5,7
+410,67,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,6,5,4,8,7
+411,40,Žena,Severovýchod,SŠ s maturitou,Fresh Seekers,5,4,6,3,10
+412,62,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,10,4,6,6,10
+413,52,Muž,Jihovýchod,VŠ,Urban Singles,7,7,5,6,2
+414,36,Žena,Severozápad,VŠ,Value Hunters,6,3,7,7,8
+415,36,Muž,Praha,VŠ,Young Families,6,5,8,4,5
+416,47,Žena,Severozápad,SŠ s maturitou,Older Convenience,6,4,7,5,6
+417,41,Muž,Severozápad,SŠ s maturitou,Fresh Seekers,10,6,6,5,8
+418,33,Žena,Jihozápad,VŠ,Value Hunters,4,10,6,7,9
+419,51,Muž,Severozápad,VŠ,Urban Singles,5,6,6,4,4
+420,18,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,4,4,2,5,9
+421,53,Muž,Jihozápad,SŠ s maturitou,Older Convenience,5,4,10,6,7
+422,36,Žena,Moravskoslezsko,VŠ,Urban Singles,6,3,6,9,10
+423,46,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,6,6,4,5,6
+424,42,Muž,Jihozápad,VŠ,Fresh Seekers,5,7,2,4,3
+425,23,Žena,Praha,VŠ,Older Convenience,5,7,8,10,3
+426,48,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,4,4,6,6,1
+427,38,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,6,3,8,7,5
+428,61,Muž,Moravskoslezsko,VŠ,Urban Singles,5,5,5,9,9
+429,27,Muž,Moravskoslezsko,SŠ s maturitou,Urban Singles,5,7,5,7,6
+430,52,Muž,Jihozápad,SŠ s maturitou,Value Hunters,5,3,6,3,4
+431,23,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,5,8,7,7,7
+432,45,Muž,Severozápad,ZŠ / bez maturity,Urban Singles,1,4,5,5,6
+433,18,Žena,Střední Čechy,VŠ,Urban Singles,6,3,7,4,7
+434,47,Muž,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,7,6,7,4,7
+435,51,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,6,4,9,6,1
+436,43,Muž,Severovýchod,SŠ s maturitou,Value Hunters,5,6,4,5,7
+437,38,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,4,7,5,5,1
+438,18,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,4,6,7,8,9
+439,18,Muž,Severovýchod,VŠ,Fresh Seekers,5,8,4,6,8
+440,37,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,7,3,7,1,5
+441,63,Žena,Severozápad,VŠ,Older Convenience,4,4,8,4,3
+442,56,Muž,Praha,VŠ,Older Convenience,7,8,4,3,6
+443,47,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,6,4,7,2,7
+444,63,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,8,9,6,4,6
+445,36,Muž,Severozápad,ZŠ / bez maturity,Value Hunters,8,5,7,3,5
+446,24,Muž,Jihovýchod,ZŠ / bez maturity,Young Families,4,6,5,6,3
+447,51,Žena,Moravskoslezsko,VŠ,Fresh Seekers,5,3,5,6,4
+448,54,Žena,Praha,ZŠ / bez maturity,Value Hunters,5,6,10,5,4
+449,45,Muž,Praha,SŠ s maturitou,Young Families,5,5,6,7,7
+450,43,Žena,Jihozápad,SŠ s maturitou,Young Families,5,8,7,3,3
+451,25,Žena,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,8,10,6,6,6
+452,46,Žena,Praha,SŠ s maturitou,Older Convenience,8,6,6,3,7
+453,34,Muž,Severozápad,ZŠ / bez maturity,Fresh Seekers,5,6,3,8,4
+454,25,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,7,6,6,3,5
+455,43,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,9,7,5,6,7
+456,61,Muž,Severozápad,ZŠ / bez maturity,Fresh Seekers,4,4,4,6,5
+457,58,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,2,6,10,6,7
+458,39,Žena,Střední Čechy,VŠ,Older Convenience,4,6,8,6,1
+459,53,Žena,Severozápad,SŠ s maturitou,Fresh Seekers,6,4,4,4,1
+460,18,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,5,6,3,7,1
+461,50,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,5,8,4,5,10
+462,24,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,5,8,4,6,6
+463,18,Žena,Střední Čechy,VŠ,Older Convenience,3,4,3,6,5
+464,52,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,7,9,7,7,7
+465,39,Muž,Severovýchod,ZŠ / bez maturity,Young Families,5,6,3,6,8
+466,36,Muž,Severozápad,VŠ,Older Convenience,4,7,5,5,7
+467,30,Žena,Severozápad,VŠ,Value Hunters,5,4,7,7,4
+468,53,Žena,Praha,SŠ s maturitou,Young Families,3,4,7,6,2
+469,46,Žena,Severozápad,ZŠ / bez maturity,Older Convenience,7,4,4,8,4
+470,45,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,8,5,5,7,3
+471,51,Muž,Severozápad,SŠ s maturitou,Urban Singles,6,3,6,9,6
+472,28,Žena,Severovýchod,ZŠ / bez maturity,Urban Singles,5,7,6,7,8
+473,20,Muž,Praha,VŠ,Value Hunters,3,9,5,5,5
+474,32,Žena,Severozápad,SŠ s maturitou,Value Hunters,4,6,5,8,2
+475,24,Žena,Moravskoslezsko,VŠ,Value Hunters,6,5,10,6,6
+476,31,Muž,Praha,VŠ,Older Convenience,5,8,7,9,9
+477,42,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,5,6,9,6,4
+478,20,Žena,Severovýchod,SŠ s maturitou,Older Convenience,7,8,10,5,3
+479,49,Žena,Severovýchod,SŠ s maturitou,Fresh Seekers,7,3,7,4,7
+480,41,Muž,Severovýchod,SŠ s maturitou,Urban Singles,8,6,7,6,6
+481,22,Žena,Severozápad,SŠ s maturitou,Fresh Seekers,5,8,3,7,4
+482,44,Žena,Severozápad,SŠ s maturitou,Urban Singles,8,10,9,3,7
+483,42,Žena,Jihovýchod,VŠ,Young Families,7,9,9,7,5
+484,31,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,7,6,3,2,6
+485,41,Muž,Střední Čechy,SŠ s maturitou,Value Hunters,7,4,6,7,6
+486,56,Žena,Severovýchod,ZŠ / bez maturity,Young Families,4,3,8,6,4
+487,55,Žena,Moravskoslezsko,SŠ s maturitou,Urban Singles,7,4,5,2,9
+488,47,Žena,Praha,ZŠ / bez maturity,Older Convenience,5,8,6,6,5
+489,42,Muž,Severovýchod,ZŠ / bez maturity,Value Hunters,4,6,4,6,8
+490,36,Muž,Praha,SŠ s maturitou,Fresh Seekers,5,7,7,3,6
+491,52,Žena,Jihovýchod,ZŠ / bez maturity,Older Convenience,3,4,4,7,2
+492,35,Muž,Jihozápad,ZŠ / bez maturity,Older Convenience,7,2,8,8,6
+493,55,Žena,Moravskoslezsko,VŠ,Urban Singles,5,3,7,2,10
+494,54,Muž,Moravskoslezsko,SŠ s maturitou,Older Convenience,5,5,7,4,5
+495,42,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,8,6,6,5,6
+496,37,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,1,10,5,4,9
+497,35,Žena,Severovýchod,VŠ,Value Hunters,7,6,10,9,5
+498,51,Muž,Praha,VŠ,Older Convenience,8,8,8,7,3
+499,57,Žena,Severozápad,ZŠ / bez maturity,Value Hunters,8,10,4,8,6
+500,37,Muž,Jihovýchod,VŠ,Fresh Seekers,5,3,2,5,7
+501,49,Muž,Severozápad,SŠ s maturitou,Young Families,6,6,4,6,7
+502,60,Muž,Moravskoslezsko,VŠ,Fresh Seekers,7,6,8,7,8
+503,56,Žena,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,5,9,6,5,6
+504,63,Muž,Severovýchod,SŠ s maturitou,Value Hunters,4,10,8,3,7
+505,43,Muž,Střední Čechy,SŠ s maturitou,Older Convenience,5,8,8,8,5
+506,56,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,3,5,7,7,4
+507,46,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,6,3,9,6,6
+508,36,Žena,Jihovýchod,ZŠ / bez maturity,Value Hunters,6,8,10,6,6
+509,59,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,3,6,10,5,8
+510,69,Muž,Severozápad,ZŠ / bez maturity,Young Families,4,6,2,1,6
+511,43,Žena,Praha,ZŠ / bez maturity,Urban Singles,4,5,3,5,8
+512,40,Žena,Střední Čechy,VŠ,Young Families,9,4,4,5,4
+513,46,Žena,Severozápad,SŠ s maturitou,Urban Singles,5,5,2,5,6
+514,52,Žena,Praha,ZŠ / bez maturity,Urban Singles,7,4,5,6,5
+515,53,Muž,Střední Čechy,ZŠ / bez maturity,Older Convenience,6,4,2,8,8
+516,46,Žena,Severozápad,VŠ,Young Families,8,8,7,6,5
+517,30,Žena,Severovýchod,SŠ s maturitou,Older Convenience,6,5,8,5,2
+518,65,Muž,Severovýchod,SŠ s maturitou,Young Families,6,9,2,4,8
+519,23,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,2,7,8,5,8
+520,42,Muž,Střední Čechy,SŠ s maturitou,Value Hunters,3,6,5,5,7
+521,37,Muž,Praha,SŠ s maturitou,Value Hunters,8,7,6,7,7
+522,45,Muž,Střední Čechy,ZŠ / bez maturity,Older Convenience,8,6,4,8,5
+523,45,Muž,Praha,SŠ s maturitou,Young Families,7,6,3,6,8
+524,28,Muž,Severovýchod,VŠ,Young Families,5,5,6,3,4
+525,34,Žena,Jihozápad,VŠ,Older Convenience,5,7,5,8,4
+526,18,Muž,Jihozápad,SŠ s maturitou,Urban Singles,6,4,5,4,2
+527,18,Muž,Jihovýchod,VŠ,Young Families,5,6,5,6,7
+528,33,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,6,4,6,6,3
+529,56,Muž,Severozápad,ZŠ / bez maturity,Value Hunters,6,6,5,9,8
+530,32,Muž,Severozápad,SŠ s maturitou,Older Convenience,6,5,7,4,7
+531,74,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,6,7,5,4,7
+532,37,Muž,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,5,4,9,6,3
+533,45,Žena,Severovýchod,SŠ s maturitou,Young Families,8,7,9,7,8
+534,32,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,2,5,8,5,7
+535,18,Žena,Severozápad,ZŠ / bez maturity,Young Families,6,7,7,6,5
+536,25,Muž,Střední Čechy,VŠ,Older Convenience,4,5,7,7,5
+537,23,Muž,Severovýchod,ZŠ / bez maturity,Young Families,6,5,6,4,6
+538,29,Muž,Severovýchod,ZŠ / bez maturity,Young Families,7,4,6,6,7
+539,28,Žena,Praha,SŠ s maturitou,Young Families,5,6,6,4,5
+540,30,Žena,Severozápad,VŠ,Value Hunters,5,10,9,5,6
+541,37,Muž,Praha,ZŠ / bez maturity,Urban Singles,3,5,7,5,4
+542,37,Muž,Moravskoslezsko,VŠ,Urban Singles,5,6,3,7,3
+543,34,Muž,Praha,SŠ s maturitou,Older Convenience,4,6,2,3,4
+544,42,Muž,Praha,SŠ s maturitou,Urban Singles,4,6,6,6,6
+545,49,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,2,8,6,4,5
+546,59,Žena,Jihozápad,ZŠ / bez maturity,Urban Singles,5,7,4,1,9
+547,32,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,7,7,3,2,5
+548,60,Žena,Severozápad,ZŠ / bez maturity,Older Convenience,5,5,7,2,3
+549,28,Muž,Jihovýchod,VŠ,Value Hunters,7,9,7,10,6
+550,27,Žena,Jihozápad,SŠ s maturitou,Value Hunters,5,8,4,6,2
+551,33,Muž,Praha,VŠ,Young Families,7,5,6,1,8
+552,18,Muž,Moravskoslezsko,SŠ s maturitou,Urban Singles,5,6,5,4,6
+553,28,Žena,Severovýchod,ZŠ / bez maturity,Urban Singles,4,4,8,7,9
+554,74,Muž,Praha,ZŠ / bez maturity,Young Families,5,5,8,4,9
+555,41,Muž,Moravskoslezsko,VŠ,Older Convenience,4,8,7,5,5
+556,50,Žena,Severozápad,ZŠ / bez maturity,Fresh Seekers,5,9,3,6,5
+557,42,Muž,Střední Čechy,ZŠ / bez maturity,Older Convenience,10,8,3,7,7
+558,23,Muž,Jihozápad,SŠ s maturitou,Young Families,6,2,8,7,7
+559,20,Žena,Střední Čechy,ZŠ / bez maturity,Young Families,5,5,5,7,9
+560,43,Žena,Severovýchod,SŠ s maturitou,Young Families,7,5,7,5,6
+561,43,Žena,Jihovýchod,SŠ s maturitou,Young Families,2,5,8,5,6
+562,25,Muž,Jihovýchod,SŠ s maturitou,Urban Singles,2,5,6,5,8
+563,35,Žena,Jihozápad,ZŠ / bez maturity,Value Hunters,4,6,9,5,9
+564,34,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,5,5,7,6,6
+565,18,Žena,Severozápad,ZŠ / bez maturity,Young Families,8,6,9,4,6
+566,37,Muž,Severovýchod,ZŠ / bez maturity,Young Families,5,6,6,5,8
+567,26,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,6,8,4,4,10
+568,56,Muž,Praha,SŠ s maturitou,Older Convenience,4,9,6,4,7
+569,52,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,5,5,10,6,7
+570,45,Muž,Moravskoslezsko,VŠ,Urban Singles,2,5,6,5,5
+571,23,Muž,Severovýchod,SŠ s maturitou,Older Convenience,5,6,7,6,7
+572,26,Žena,Severozápad,SŠ s maturitou,Older Convenience,6,9,6,7,10
+573,45,Žena,Jihovýchod,ZŠ / bez maturity,Value Hunters,7,6,3,10,5
+574,38,Muž,Severovýchod,SŠ s maturitou,Value Hunters,6,6,5,6,8
+575,34,Žena,Praha,SŠ s maturitou,Young Families,7,4,5,7,3
+576,45,Žena,Střední Čechy,ZŠ / bez maturity,Urban Singles,4,3,6,5,6
+577,39,Muž,Severovýchod,SŠ s maturitou,Young Families,7,9,5,5,6
+578,30,Žena,Severovýchod,SŠ s maturitou,Older Convenience,7,4,5,4,2
+579,21,Žena,Praha,SŠ s maturitou,Value Hunters,4,6,7,6,3
+580,40,Muž,Praha,SŠ s maturitou,Value Hunters,6,7,5,6,5
+581,46,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,6,6,5,5,9
+582,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Families,6,6,6,9,9
+583,41,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,7,6,5,3,4
+584,32,Žena,Jihozápad,SŠ s maturitou,Young Families,5,3,8,6,5
+585,31,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,6,7,4,1,7
+586,71,Muž,Jihozápad,ZŠ / bez maturity,Urban Singles,1,10,9,7,6
+587,33,Žena,Severovýchod,ZŠ / bez maturity,Value Hunters,9,7,6,6,7
+588,74,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,7,7,7,8,8
+589,25,Žena,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,8,6,6,3,5
+590,46,Muž,Severozápad,ZŠ / bez maturity,Young Families,4,4,6,4,7
+591,53,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,5,6,4,4,4
+592,32,Muž,Střední Čechy,SŠ s maturitou,Young Families,9,5,4,7,9
+593,46,Muž,Severovýchod,SŠ s maturitou,Young Families,2,7,8,4,5
+594,29,Muž,Moravskoslezsko,VŠ,Value Hunters,7,6,8,7,10
+595,39,Žena,Jihozápad,SŠ s maturitou,Young Families,6,6,6,4,5
+596,36,Muž,Moravskoslezsko,VŠ,Older Convenience,6,6,4,5,5
+597,40,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,4,7,8,6,10
+598,26,Muž,Severovýchod,SŠ s maturitou,Older Convenience,6,4,5,7,4
+599,33,Muž,Střední Čechy,SŠ s maturitou,Older Convenience,4,7,4,5,7
+600,63,Muž,Jihozápad,ZŠ / bez maturity,Young Families,2,8,7,3,8
+601,50,Muž,Praha,ZŠ / bez maturity,Young Families,4,8,7,9,7
+602,34,Žena,Jihovýchod,SŠ s maturitou,Young Families,4,6,4,6,8
+603,29,Muž,Severozápad,VŠ,Fresh Seekers,5,7,10,9,6
+604,65,Žena,Jihozápad,VŠ,Fresh Seekers,7,7,1,4,10
+605,54,Muž,Severozápad,SŠ s maturitou,Young Families,9,5,7,4,5
+606,61,Žena,Severozápad,SŠ s maturitou,Older Convenience,4,6,6,6,5
+607,47,Muž,Severovýchod,ZŠ / bez maturity,Value Hunters,6,3,7,8,6
+608,32,Muž,Praha,VŠ,Urban Singles,6,3,7,3,9
+609,23,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Families,6,7,5,5,6
+610,34,Žena,Severozápad,SŠ s maturitou,Urban Singles,6,6,5,5,6
+611,32,Muž,Praha,SŠ s maturitou,Young Families,4,6,8,6,8
+612,28,Žena,Severozápad,VŠ,Older Convenience,3,8,2,5,5
+613,30,Žena,Praha,SŠ s maturitou,Urban Singles,5,3,8,7,7
+614,50,Muž,Severovýchod,ZŠ / bez maturity,Young Families,6,7,6,4,4
+615,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,6,7,5,6,5
+616,45,Žena,Jihovýchod,ZŠ / bez maturity,Value Hunters,6,8,7,4,4
+617,67,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,7,6,6,9,5
+618,32,Muž,Severozápad,VŠ,Fresh Seekers,6,9,6,5,1
+619,18,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,7,5,6,7,9
+620,56,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,6,8,6,6,3
+621,46,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,6,4,5,5,9
+622,53,Muž,Severozápad,SŠ s maturitou,Value Hunters,6,8,6,4,8
+623,42,Žena,Severovýchod,VŠ,Young Families,1,6,5,7,3
+624,39,Muž,Severozápad,SŠ s maturitou,Value Hunters,6,7,6,4,5
+625,43,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,6,5,1,6,9
+626,48,Žena,Severozápad,VŠ,Urban Singles,4,7,8,8,2
+627,35,Muž,Praha,VŠ,Value Hunters,8,2,5,7,7
+628,54,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,7,5,6,5,9
+629,61,Muž,Jihovýchod,VŠ,Fresh Seekers,7,4,4,5,4
+630,34,Muž,Severozápad,ZŠ / bez maturity,Urban Singles,7,6,4,6,4
+631,25,Žena,Střední Čechy,SŠ s maturitou,Young Families,5,8,6,6,1
+632,31,Muž,Jihovýchod,SŠ s maturitou,Urban Singles,5,10,5,3,4
+633,20,Žena,Severozápad,VŠ,Value Hunters,3,9,3,5,6
+634,24,Muž,Praha,ZŠ / bez maturity,Older Convenience,6,4,7,7,8
+635,19,Žena,Jihozápad,ZŠ / bez maturity,Fresh Seekers,7,5,10,5,7
+636,33,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,6,9,8,1,6
+637,42,Žena,Severozápad,ZŠ / bez maturity,Older Convenience,8,3,10,7,8
+638,43,Žena,Jihozápad,VŠ,Older Convenience,4,5,7,8,6
+639,18,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,8,4,7,9,7
+640,47,Žena,Moravskoslezsko,VŠ,Value Hunters,7,4,8,5,7
+641,32,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,5,5,5,3,4
+642,74,Muž,Severovýchod,VŠ,Urban Singles,5,2,2,5,6
+643,72,Muž,Střední Čechy,SŠ s maturitou,Value Hunters,6,4,4,5,6
+644,44,Muž,Severovýchod,VŠ,Young Families,5,7,6,6,8
+645,55,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,3,8,2,4,9
+646,57,Žena,Severovýchod,SŠ s maturitou,Value Hunters,5,3,6,6,3
+647,19,Žena,Severozápad,VŠ,Young Families,8,6,6,3,2
+648,25,Žena,Severovýchod,SŠ s maturitou,Value Hunters,7,5,7,5,10
+649,60,Žena,Jihozápad,SŠ s maturitou,Young Families,6,7,7,3,2
+650,55,Žena,Praha,VŠ,Urban Singles,4,7,6,5,6
+651,28,Žena,Severovýchod,SŠ s maturitou,Young Families,5,8,3,4,5
+652,53,Žena,Praha,SŠ s maturitou,Young Families,5,4,5,2,3
+653,35,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,3,9,7,5,5
+654,18,Žena,Severovýchod,ZŠ / bez maturity,Fresh Seekers,3,4,6,3,6
+655,18,Žena,Severovýchod,ZŠ / bez maturity,Young Families,6,1,5,3,3
+656,47,Žena,Jihozápad,VŠ,Value Hunters,4,5,5,10,1
+657,29,Žena,Jihozápad,VŠ,Young Families,3,8,4,3,4
+658,42,Žena,Jihovýchod,VŠ,Older Convenience,4,8,7,6,1
+659,59,Muž,Moravskoslezsko,VŠ,Value Hunters,7,5,5,5,6
+660,36,Muž,Jihovýchod,ZŠ / bez maturity,Value Hunters,3,9,2,8,2
+661,44,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,9,6,5,2,8
+662,20,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,7,7,3,4,8
+663,56,Žena,Jihozápad,SŠ s maturitou,Older Convenience,7,6,7,3,6
+664,51,Žena,Severovýchod,SŠ s maturitou,Older Convenience,4,8,4,3,2
+665,61,Žena,Jihozápad,SŠ s maturitou,Urban Singles,8,5,10,6,7
+666,42,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,4,5,6,6,6
+667,62,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,4,5,7,2,6
+668,59,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,7,6,10,5,10
+669,43,Muž,Severovýchod,VŠ,Young Families,5,8,5,4,4
+670,29,Muž,Severozápad,SŠ s maturitou,Young Families,6,2,5,5,4
+671,18,Žena,Severovýchod,VŠ,Older Convenience,5,4,7,7,4
+672,45,Žena,Severozápad,SŠ s maturitou,Older Convenience,7,5,5,1,7
+673,50,Žena,Jihovýchod,SŠ s maturitou,Young Families,6,7,8,5,1
+674,58,Muž,Praha,ZŠ / bez maturity,Urban Singles,4,4,6,3,5
+675,46,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,3,3,10,6,4
+676,45,Muž,Jihovýchod,VŠ,Fresh Seekers,6,6,7,5,7
+677,68,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,6,5,5,6,6
+678,56,Žena,Praha,VŠ,Older Convenience,4,6,8,1,8
+679,47,Žena,Střední Čechy,ZŠ / bez maturity,Urban Singles,3,6,3,5,3
+680,37,Muž,Moravskoslezsko,SŠ s maturitou,Urban Singles,7,6,4,3,3
+681,45,Žena,Severozápad,VŠ,Older Convenience,9,7,4,6,4
+682,33,Žena,Severovýchod,VŠ,Young Families,7,9,7,3,7
+683,54,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,4,3,6,8,4
+684,38,Muž,Severozápad,ZŠ / bez maturity,Fresh Seekers,10,8,7,6,7
+685,50,Muž,Praha,SŠ s maturitou,Urban Singles,7,6,7,5,6
+686,55,Muž,Severozápad,SŠ s maturitou,Young Families,3,5,5,10,5
+687,40,Muž,Severozápad,VŠ,Urban Singles,8,6,4,5,1
+688,74,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,9,5,7,4,7
+689,51,Muž,Praha,SŠ s maturitou,Young Families,5,3,6,5,7
+690,31,Žena,Praha,SŠ s maturitou,Older Convenience,7,7,7,10,10
+691,55,Muž,Moravskoslezsko,VŠ,Urban Singles,6,4,1,5,5
+692,52,Žena,Praha,VŠ,Value Hunters,9,5,4,5,6
+693,38,Muž,Jihovýchod,VŠ,Older Convenience,2,6,9,6,8
+694,36,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,8,6,5,2,1
+695,64,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,8,6,7,8,5
+696,48,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,5,5,7,7,5
+697,40,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,2,6,4,6,3
+698,51,Muž,Jihozápad,VŠ,Young Families,3,6,4,4,4
+699,43,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,6,8,4,3,4
+700,43,Muž,Střední Čechy,ZŠ / bez maturity,Value Hunters,8,5,8,4,6
+701,45,Žena,Moravskoslezsko,SŠ s maturitou,Young Families,10,5,7,8,7
+702,63,Žena,Praha,SŠ s maturitou,Value Hunters,7,10,6,5,7
+703,44,Žena,Moravskoslezsko,VŠ,Young Families,4,3,5,5,5
+704,18,Muž,Severozápad,VŠ,Young Families,5,9,5,7,4
+705,31,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,3,8,2,7,5
+706,32,Žena,Jihovýchod,ZŠ / bez maturity,Young Families,8,4,7,7,9
+707,62,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,5,6,6,4,6
+708,34,Žena,Severovýchod,SŠ s maturitou,Urban Singles,6,7,8,5,8
+709,35,Muž,Jihozápad,ZŠ / bez maturity,Young Families,2,7,4,6,6
+710,45,Muž,Severozápad,SŠ s maturitou,Older Convenience,4,5,8,7,4
+711,41,Žena,Jihovýchod,VŠ,Value Hunters,6,5,8,4,8
+712,43,Žena,Severozápad,VŠ,Older Convenience,4,5,5,7,5
+713,30,Žena,Severovýchod,ZŠ / bez maturity,Value Hunters,7,8,4,4,10
+714,41,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,3,7,6,6,8
+715,33,Muž,Jihovýchod,VŠ,Older Convenience,6,6,6,5,10
+716,38,Muž,Střední Čechy,VŠ,Urban Singles,5,4,9,7,5
+717,55,Žena,Jihozápad,ZŠ / bez maturity,Urban Singles,4,7,9,6,4
+718,39,Muž,Praha,SŠ s maturitou,Young Families,8,3,9,6,5
+719,37,Muž,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,5,7,4,3,9
+720,31,Žena,Praha,SŠ s maturitou,Value Hunters,5,5,7,9,5
+721,48,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,8,7,5,5,7
+722,44,Muž,Střední Čechy,SŠ s maturitou,Value Hunters,8,5,7,10,5
+723,74,Muž,Praha,SŠ s maturitou,Value Hunters,7,8,6,4,9
+724,45,Žena,Severozápad,VŠ,Value Hunters,5,6,4,5,8
+725,44,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,9,6,4,7,4
+726,31,Žena,Praha,ZŠ / bez maturity,Young Families,8,7,7,5,7
+727,18,Žena,Severozápad,ZŠ / bez maturity,Value Hunters,5,7,4,4,3
+728,37,Žena,Severovýchod,SŠ s maturitou,Urban Singles,6,6,6,7,6
+729,45,Žena,Střední Čechy,ZŠ / bez maturity,Young Families,4,4,3,2,4
+730,50,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,7,6,1,7,7
+731,31,Žena,Severozápad,SŠ s maturitou,Young Families,2,6,6,9,7
+732,25,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,4,5,4,2,7
+733,29,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,4,6,4,5,3
+734,31,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,7,6,5,5,6
+735,49,Žena,Praha,SŠ s maturitou,Young Families,6,6,5,1,2
+736,21,Muž,Severovýchod,SŠ s maturitou,Urban Singles,6,6,7,6,8
+737,50,Muž,Severovýchod,VŠ,Young Families,4,8,6,4,5
+738,36,Žena,Střední Čechy,ZŠ / bez maturity,Urban Singles,8,7,8,4,6
+739,48,Muž,Jihozápad,ZŠ / bez maturity,Value Hunters,9,5,3,5,7
+740,43,Žena,Severovýchod,SŠ s maturitou,Young Families,5,7,6,7,5
+741,32,Žena,Praha,SŠ s maturitou,Fresh Seekers,6,5,10,6,7
+742,59,Žena,Praha,VŠ,Young Families,3,3,6,8,5
+743,35,Žena,Severozápad,VŠ,Young Families,6,7,7,7,8
+744,20,Muž,Praha,SŠ s maturitou,Value Hunters,7,6,4,4,6
+745,43,Muž,Severozápad,ZŠ / bez maturity,Older Convenience,6,10,5,3,1
+746,30,Muž,Severozápad,SŠ s maturitou,Urban Singles,3,5,8,8,9
+747,53,Žena,Střední Čechy,VŠ,Urban Singles,5,7,7,6,5
+748,38,Muž,Jihozápad,SŠ s maturitou,Value Hunters,4,5,2,4,9
+749,38,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,3,4,6,7,10
+750,44,Žena,Severovýchod,ZŠ / bez maturity,Urban Singles,5,5,7,4,4
+751,54,Žena,Střední Čechy,VŠ,Fresh Seekers,6,9,9,7,4
+752,25,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,3,6,4,6,3
+753,40,Žena,Jihovýchod,ZŠ / bez maturity,Young Families,7,6,3,5,6
+754,27,Žena,Severozápad,ZŠ / bez maturity,Fresh Seekers,7,4,8,4,7
+755,36,Žena,Severozápad,ZŠ / bez maturity,Fresh Seekers,3,7,4,5,3
+756,69,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,6,8,3,5,8
+757,28,Žena,Severovýchod,SŠ s maturitou,Older Convenience,10,7,5,10,6
+758,39,Žena,Jihozápad,VŠ,Older Convenience,7,7,8,5,7
+759,40,Žena,Severovýchod,SŠ s maturitou,Older Convenience,8,8,4,1,8
+760,39,Muž,Střední Čechy,VŠ,Value Hunters,9,6,6,4,3
+761,41,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,4,4,10,5,4
+762,52,Žena,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,7,10,6,5,7
+763,18,Muž,Střední Čechy,VŠ,Urban Singles,7,5,6,6,1
+764,49,Žena,Jihozápad,VŠ,Young Families,1,7,7,4,7
+765,32,Muž,Praha,SŠ s maturitou,Value Hunters,5,10,4,6,7
+766,21,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,6,8,4,1,6
+767,39,Žena,Praha,ZŠ / bez maturity,Value Hunters,5,8,6,9,2
+768,46,Žena,Severozápad,SŠ s maturitou,Young Families,3,7,4,7,9
+769,30,Muž,Severovýchod,SŠ s maturitou,Older Convenience,5,5,5,9,3
+770,26,Muž,Střední Čechy,VŠ,Value Hunters,10,5,3,2,6
+771,43,Muž,Severovýchod,ZŠ / bez maturity,Young Families,5,5,9,7,7
+772,36,Muž,Jihovýchod,SŠ s maturitou,Urban Singles,6,5,4,6,6
+773,33,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,6,8,7,3,5
+774,49,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,7,8,6,8,6
+775,20,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,2,4,5,7,6
+776,33,Žena,Severozápad,SŠ s maturitou,Young Families,8,7,7,5,8
+777,26,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,4,3,7,6,9
+778,29,Muž,Praha,SŠ s maturitou,Value Hunters,7,8,5,7,6
+779,42,Žena,Střední Čechy,ZŠ / bez maturity,Young Families,4,4,8,2,5
+780,53,Žena,Střední Čechy,VŠ,Fresh Seekers,2,8,5,8,5
+781,42,Žena,Severozápad,VŠ,Fresh Seekers,3,8,5,5,5
+782,56,Žena,Severovýchod,SŠ s maturitou,Fresh Seekers,6,3,4,10,7
+783,18,Muž,Severovýchod,ZŠ / bez maturity,Young Families,7,7,6,5,4
+784,37,Žena,Severovýchod,VŠ,Value Hunters,6,7,5,5,8
+785,46,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,7,7,3,8,6
+786,28,Muž,Jihovýchod,VŠ,Value Hunters,8,1,5,5,3
+787,42,Žena,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,6,6,7,4,5
+788,56,Žena,Severovýchod,VŠ,Urban Singles,4,7,3,2,5
+789,60,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,7,4,7,4,7
+790,45,Muž,Severovýchod,SŠ s maturitou,Older Convenience,5,6,2,2,4
+791,54,Žena,Severozápad,SŠ s maturitou,Urban Singles,2,6,5,6,4
+792,40,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,7,4,5,2,4
+793,24,Žena,Jihozápad,SŠ s maturitou,Urban Singles,4,7,3,8,4
+794,48,Žena,Jihozápad,SŠ s maturitou,Urban Singles,3,3,9,3,4
+795,55,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,8,6,2,6,7
+796,33,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,6,4,4,8,5
+797,43,Žena,Střední Čechy,VŠ,Fresh Seekers,7,10,8,8,4
+798,40,Muž,Jihozápad,SŠ s maturitou,Value Hunters,7,9,10,4,6
+799,55,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,8,8,2,7,4
+800,20,Muž,Severovýchod,SŠ s maturitou,Urban Singles,2,5,8,8,9
+801,46,Žena,Severovýchod,ZŠ / bez maturity,Urban Singles,8,5,4,5,3
+802,41,Muž,Střední Čechy,VŠ,Fresh Seekers,6,7,4,8,6
+803,24,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,6,5,8,5,7
+804,53,Muž,Severovýchod,ZŠ / bez maturity,Young Families,3,10,4,3,3
+805,26,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,7,3,6,7,5
+806,39,Muž,Moravskoslezsko,VŠ,Older Convenience,4,6,5,5,7
+807,48,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,4,6,8,9,6
+808,40,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,4,8,7,9,4
+809,41,Muž,Severozápad,ZŠ / bez maturity,Older Convenience,4,3,8,4,7
+810,24,Muž,Severozápad,ZŠ / bez maturity,Young Families,6,6,5,6,4
+811,58,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,5,5,2,2,7
+812,31,Žena,Severovýchod,ZŠ / bez maturity,Fresh Seekers,7,6,6,4,4
+813,18,Muž,Severozápad,ZŠ / bez maturity,Fresh Seekers,7,5,5,4,4
+814,41,Muž,Severozápad,ZŠ / bez maturity,Fresh Seekers,4,7,6,8,9
+815,35,Muž,Praha,VŠ,Urban Singles,8,8,1,6,6
+816,33,Žena,Severozápad,SŠ s maturitou,Young Families,3,8,8,4,3
+817,24,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,5,7,7,7,4
+818,52,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,7,5,6,3,2
+819,62,Muž,Severovýchod,SŠ s maturitou,Value Hunters,5,4,3,6,8
+820,20,Žena,Severovýchod,SŠ s maturitou,Urban Singles,5,9,8,1,4
+821,32,Muž,Střední Čechy,VŠ,Value Hunters,4,5,6,10,3
+822,52,Muž,Jihovýchod,VŠ,Value Hunters,7,6,5,7,6
+823,70,Žena,Praha,SŠ s maturitou,Young Families,3,7,5,9,5
+824,53,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Families,7,6,3,7,10
+825,45,Žena,Jihozápad,SŠ s maturitou,Urban Singles,7,5,3,4,3
+826,34,Žena,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,3,4,6,5,8
+827,72,Muž,Jihozápad,SŠ s maturitou,Young Families,4,6,7,6,2
+828,56,Muž,Jihozápad,VŠ,Fresh Seekers,3,8,6,6,5
+829,52,Muž,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,4,5,6,7,7
+830,53,Žena,Praha,ZŠ / bez maturity,Young Families,7,9,5,7,4
+831,33,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,7,1,3,3,5
+832,35,Muž,Severovýchod,ZŠ / bez maturity,Older Convenience,3,8,3,5,2
+833,43,Žena,Jihovýchod,SŠ s maturitou,Young Families,5,6,6,5,8
+834,18,Muž,Severozápad,SŠ s maturitou,Fresh Seekers,8,6,3,6,5
+835,22,Žena,Praha,ZŠ / bez maturity,Value Hunters,7,6,8,10,7
+836,20,Muž,Praha,SŠ s maturitou,Young Families,6,3,6,7,6
+837,52,Muž,Severovýchod,SŠ s maturitou,Value Hunters,10,10,4,5,5
+838,50,Žena,Jihozápad,ZŠ / bez maturity,Older Convenience,6,6,5,6,6
+839,62,Žena,Jihovýchod,ZŠ / bez maturity,Older Convenience,6,10,7,3,6
+840,46,Žena,Severovýchod,SŠ s maturitou,Young Families,5,5,6,6,5
+841,57,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,8,8,6,8,8
+842,31,Žena,Severovýchod,ZŠ / bez maturity,Value Hunters,2,5,3,5,7
+843,42,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,10,6,4,1,7
+844,24,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,5,7,5,7,6
+845,45,Žena,Jihozápad,VŠ,Older Convenience,5,4,7,5,8
+846,42,Muž,Jihovýchod,ZŠ / bez maturity,Value Hunters,5,4,6,5,7
+847,74,Žena,Střední Čechy,VŠ,Older Convenience,8,7,7,7,8
+848,47,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,1,9,4,5,4
+849,49,Muž,Jihozápad,ZŠ / bez maturity,Fresh Seekers,4,5,7,7,7
+850,56,Muž,Praha,VŠ,Older Convenience,6,7,8,5,6
+851,23,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Families,2,4,5,3,6
+852,57,Žena,Severovýchod,SŠ s maturitou,Older Convenience,6,5,8,6,4
+853,47,Žena,Jihozápad,VŠ,Urban Singles,8,7,4,6,6
+854,51,Muž,Moravskoslezsko,SŠ s maturitou,Older Convenience,5,10,6,6,4
+855,47,Žena,Severovýchod,VŠ,Fresh Seekers,6,6,5,10,7
+856,32,Muž,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,7,7,7,3,9
+857,40,Muž,Jihozápad,SŠ s maturitou,Older Convenience,8,10,5,3,6
+858,42,Žena,Jihozápad,SŠ s maturitou,Value Hunters,4,5,2,3,2
+859,61,Muž,Praha,ZŠ / bez maturity,Older Convenience,6,7,4,6,6
+860,38,Žena,Jihovýchod,VŠ,Fresh Seekers,8,9,5,5,7
+861,74,Muž,Moravskoslezsko,VŠ,Older Convenience,7,3,3,2,5
+862,48,Žena,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,6,8,6,7,4
+863,27,Žena,Moravskoslezsko,SŠ s maturitou,Young Families,5,8,10,5,4
+864,36,Žena,Praha,SŠ s maturitou,Older Convenience,4,6,8,1,5
+865,34,Muž,Moravskoslezsko,VŠ,Young Families,4,7,4,6,6
+866,39,Žena,Jihozápad,SŠ s maturitou,Urban Singles,5,7,6,4,5
+867,47,Žena,Moravskoslezsko,SŠ s maturitou,Urban Singles,8,4,6,5,5
+868,38,Žena,Severozápad,SŠ s maturitou,Urban Singles,4,3,6,6,5
+869,48,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,3,6,6,3,4
+870,28,Muž,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,4,8,4,6,5
+871,42,Žena,Moravskoslezsko,VŠ,Urban Singles,4,10,7,3,2
+872,58,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,9,5,7,6,4
+873,48,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,6,7,9,10,6
+874,26,Žena,Střední Čechy,VŠ,Value Hunters,7,6,3,8,8
+875,54,Žena,Severovýchod,SŠ s maturitou,Urban Singles,5,5,5,4,6
+876,35,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,9,5,6,6,5
+877,29,Žena,Jihozápad,SŠ s maturitou,Young Families,7,7,10,4,4
+878,31,Muž,Jihozápad,ZŠ / bez maturity,Young Families,5,10,5,4,9
+879,24,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,7,5,5,8,5
+880,33,Muž,Střední Čechy,ZŠ / bez maturity,Value Hunters,6,7,9,7,4
+881,37,Muž,Severovýchod,SŠ s maturitou,Young Families,4,8,5,1,3
+882,38,Žena,Severovýchod,SŠ s maturitou,Value Hunters,8,10,10,7,5
+883,58,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,8,2,9,5,4
+884,29,Muž,Severovýchod,ZŠ / bez maturity,Young Families,7,8,8,5,3
+885,44,Žena,Jihozápad,ZŠ / bez maturity,Urban Singles,6,7,2,5,6
+886,58,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,5,4,7,4,6
+887,37,Muž,Severovýchod,SŠ s maturitou,Young Families,6,7,6,5,4
+888,33,Žena,Severovýchod,ZŠ / bez maturity,Urban Singles,4,5,6,5,6
+889,40,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,5,5,7,5,1
+890,45,Muž,Severozápad,ZŠ / bez maturity,Older Convenience,4,7,7,7,7
+891,46,Muž,Praha,VŠ,Urban Singles,4,4,6,8,4
+892,26,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,8,4,8,5,6
+893,50,Muž,Severovýchod,SŠ s maturitou,Older Convenience,7,5,2,2,6
+894,49,Žena,Severozápad,SŠ s maturitou,Older Convenience,5,6,5,8,7
+895,53,Žena,Jihovýchod,VŠ,Fresh Seekers,5,5,6,5,8
+896,64,Muž,Severozápad,ZŠ / bez maturity,Fresh Seekers,6,9,8,2,4
+897,23,Žena,Severozápad,VŠ,Young Families,5,10,5,6,7
+898,55,Žena,Severozápad,VŠ,Older Convenience,4,6,8,6,2
+899,38,Muž,Severozápad,VŠ,Older Convenience,8,4,3,4,4
+900,54,Žena,Jihovýchod,VŠ,Older Convenience,6,8,3,3,5
+901,49,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,5,5,7,6,6
+902,24,Muž,Praha,SŠ s maturitou,Value Hunters,9,9,6,9,4
+903,40,Žena,Jihozápad,SŠ s maturitou,Older Convenience,4,5,3,1,6
+904,41,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,4,5,5,5,5
+905,59,Žena,Jihovýchod,SŠ s maturitou,Young Families,5,10,6,4,4
+906,36,Žena,Severozápad,SŠ s maturitou,Young Families,7,4,5,9,10
+907,34,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,5,8,4,5,8
+908,18,Žena,Jihovýchod,ZŠ / bez maturity,Young Families,7,8,7,9,6
+909,42,Žena,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,7,5,6,9,6
+910,48,Muž,Severozápad,SŠ s maturitou,Value Hunters,5,5,4,6,1
+911,50,Muž,Praha,SŠ s maturitou,Older Convenience,4,8,9,6,7
+912,49,Muž,Severozápad,SŠ s maturitou,Urban Singles,7,7,4,8,3
+913,44,Žena,Jihovýchod,VŠ,Urban Singles,4,7,6,4,8
+914,27,Muž,Jihovýchod,VŠ,Young Families,5,9,6,8,4
+915,46,Žena,Jihozápad,ZŠ / bez maturity,Urban Singles,3,7,7,8,7
+916,74,Žena,Praha,SŠ s maturitou,Older Convenience,4,7,6,5,8
+917,62,Muž,Praha,SŠ s maturitou,Value Hunters,1,4,6,9,7
+918,47,Muž,Severovýchod,ZŠ / bez maturity,Fresh Seekers,7,5,8,7,4
+919,26,Muž,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,4,3,6,2,3
+920,54,Muž,Jihozápad,ZŠ / bez maturity,Young Families,4,9,8,8,6
+921,36,Žena,Jihozápad,ZŠ / bez maturity,Older Convenience,4,3,8,2,6
+922,35,Žena,Jihovýchod,VŠ,Fresh Seekers,7,6,8,7,5
+923,51,Muž,Praha,VŠ,Fresh Seekers,3,8,5,6,3
+924,46,Muž,Praha,VŠ,Value Hunters,7,5,6,5,10
+925,28,Žena,Praha,SŠ s maturitou,Fresh Seekers,7,5,3,4,5
+926,41,Muž,Střední Čechy,SŠ s maturitou,Young Families,5,7,5,10,4
+927,49,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,3,5,4,7,7
+928,66,Žena,Severozápad,SŠ s maturitou,Value Hunters,2,5,6,4,4
+929,38,Muž,Jihozápad,SŠ s maturitou,Young Families,6,8,5,4,3
+930,70,Muž,Severovýchod,ZŠ / bez maturity,Fresh Seekers,5,3,7,5,6
+931,58,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,7,9,6,9,3
+932,38,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,3,6,8,2,3
+933,18,Muž,Jihovýchod,VŠ,Young Families,6,6,6,6,4
+934,47,Muž,Jihozápad,SŠ s maturitou,Older Convenience,9,5,4,3,6
+935,33,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,1,6,6,8,6
+936,33,Žena,Praha,SŠ s maturitou,Older Convenience,3,4,3,3,3
+937,58,Muž,Praha,VŠ,Urban Singles,7,9,6,5,4
+938,58,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,6,8,6,4,1
+939,72,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,10,7,4,7,7
+940,36,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,7,8,6,9,5
+941,33,Žena,Severovýchod,SŠ s maturitou,Young Families,2,10,4,4,7
+942,53,Muž,Praha,SŠ s maturitou,Older Convenience,8,2,2,5,6
+943,43,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Families,6,10,8,7,7
+944,41,Muž,Moravskoslezsko,SŠ s maturitou,Older Convenience,2,8,5,5,3
+945,54,Žena,Severozápad,SŠ s maturitou,Older Convenience,2,5,3,7,4
+946,41,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,3,4,7,5,8
+947,32,Žena,Severovýchod,SŠ s maturitou,Older Convenience,3,6,7,5,7
+948,50,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,8,5,6,10,6
+949,30,Žena,Jihovýchod,VŠ,Value Hunters,4,3,4,7,8
+950,42,Žena,Jihozápad,SŠ s maturitou,Young Families,7,6,6,7,3
+951,54,Muž,Severovýchod,ZŠ / bez maturity,Value Hunters,6,5,9,6,5
+952,69,Muž,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,7,3,5,5,8
+953,41,Muž,Střední Čechy,ZŠ / bez maturity,Value Hunters,6,6,5,10,5
+954,32,Žena,Praha,ZŠ / bez maturity,Older Convenience,7,10,2,4,7
+955,50,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,4,6,9,2,2
+956,33,Žena,Severozápad,SŠ s maturitou,Older Convenience,8,5,4,7,4
+957,41,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,7,9,8,3,6
+958,39,Muž,Severovýchod,SŠ s maturitou,Older Convenience,5,9,7,6,8
+959,37,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,4,4,9,3,7
+960,47,Muž,Severozápad,VŠ,Older Convenience,8,2,5,1,10
+961,37,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,6,8,9,10,2
+962,58,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,6,6,4,6,3
+963,62,Muž,Jihozápad,ZŠ / bez maturity,Urban Singles,7,6,7,7,4
+964,49,Muž,Praha,ZŠ / bez maturity,Urban Singles,6,4,8,3,3
+965,39,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,3,5,7,6,7
+966,42,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,3,5,7,7,6
+967,42,Žena,Severovýchod,VŠ,Young Families,8,6,2,5,1
+968,29,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,5,4,3,3,6
+969,41,Muž,Praha,ZŠ / bez maturity,Older Convenience,4,6,8,10,5
+970,35,Žena,Praha,ZŠ / bez maturity,Urban Singles,5,7,6,6,8
+971,43,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,4,1,6,5,4
+972,61,Muž,Severovýchod,VŠ,Older Convenience,9,5,7,6,3
+973,30,Muž,Jihozápad,VŠ,Fresh Seekers,7,6,6,4,8
+974,66,Muž,Jihozápad,ZŠ / bez maturity,Urban Singles,7,6,8,8,7
+975,40,Muž,Moravskoslezsko,VŠ,Young Families,9,5,3,5,7
+976,34,Žena,Střední Čechy,ZŠ / bez maturity,Urban Singles,6,6,3,1,4
+977,71,Žena,Severovýchod,VŠ,Value Hunters,9,7,7,1,8
+978,30,Muž,Severovýchod,ZŠ / bez maturity,Young Families,8,5,6,4,7
+979,43,Muž,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,5,8,4,4,4
+980,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,4,7,10,8,4
+981,39,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,1,5,7,3,9
+982,26,Žena,Jihovýchod,SŠ s maturitou,Young Families,3,6,5,1,7
+983,60,Muž,Praha,SŠ s maturitou,Fresh Seekers,5,6,6,3,7
+984,57,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,3,9,5,6,5
+985,27,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,6,9,6,4,3
+986,29,Žena,Severovýchod,SŠ s maturitou,Older Convenience,6,6,8,5,6
+987,40,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,6,1,4,6,5
+988,37,Žena,Severozápad,SŠ s maturitou,Older Convenience,8,8,5,5,6
+989,21,Muž,Severovýchod,SŠ s maturitou,Young Families,5,7,6,5,6
+990,18,Žena,Praha,VŠ,Fresh Seekers,5,6,7,8,5
+991,23,Žena,Severovýchod,SŠ s maturitou,Value Hunters,8,5,5,1,3
+992,35,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,5,5,5,7,4
+993,49,Žena,Severovýchod,VŠ,Young Families,10,9,7,6,8
+994,31,Muž,Střední Čechy,VŠ,Urban Singles,7,8,5,4,7
+995,54,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,6,5,4,4,6
+996,49,Žena,Střední Čechy,VŠ,Young Families,7,7,8,4,6
+997,44,Muž,Praha,SŠ s maturitou,Value Hunters,7,8,6,9,5
+998,53,Muž,Praha,SŠ s maturitou,Fresh Seekers,1,5,6,5,5
+999,42,Muž,Praha,ZŠ / bez maturity,Value Hunters,1,9,5,4,3
+1000,35,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,5,7,5,7,7
+1001,25,Muž,Severovýchod,SŠ s maturitou,Older Convenience,7,9,4,4,6
+1002,39,Muž,Střední Čechy,SŠ s maturitou,Young Families,7,8,3,4,5
+1003,35,Muž,Severovýchod,ZŠ / bez maturity,Older Convenience,4,5,9,6,5
+1004,51,Žena,Severovýchod,SŠ s maturitou,Older Convenience,5,6,9,5,7
+1005,24,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,4,9,7,7,7
+1006,48,Muž,Střední Čechy,VŠ,Young Families,4,4,8,8,5
+1007,43,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,8,5,6,3,5
+1008,44,Muž,Jihovýchod,ZŠ / bez maturity,Value Hunters,7,8,4,5,5
+1009,54,Žena,Moravskoslezsko,SŠ s maturitou,Young Families,6,5,3,8,8
+1010,50,Žena,Moravskoslezsko,VŠ,Older Convenience,6,7,6,3,6
+1011,53,Muž,Severozápad,SŠ s maturitou,Older Convenience,3,6,5,4,5
+1012,62,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,7,9,5,4,2
+1013,41,Žena,Jihozápad,SŠ s maturitou,Older Convenience,6,3,4,2,9
+1014,44,Muž,Jihozápad,VŠ,Older Convenience,5,6,6,5,6
+1015,36,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,4,6,3,10,8
+1016,34,Žena,Severozápad,SŠ s maturitou,Young Families,4,5,5,2,4
+1017,42,Žena,Moravskoslezsko,VŠ,Value Hunters,10,5,8,6,7
+1018,25,Muž,Střední Čechy,ZŠ / bez maturity,Value Hunters,7,5,3,7,7
+1019,44,Žena,Jihozápad,VŠ,Urban Singles,8,6,4,9,10
+1020,31,Muž,Jihozápad,SŠ s maturitou,Value Hunters,6,6,6,9,6
+1021,31,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,7,9,9,5,6
+1022,74,Muž,Jihovýchod,ZŠ / bez maturity,Value Hunters,2,8,9,5,6
+1023,38,Muž,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,5,5,5,9,3
+1024,31,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,7,6,3,6,5
+1025,22,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,6,10,7,7,6
+1026,27,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,6,4,8,7,10
+1027,48,Žena,Jihozápad,ZŠ / bez maturity,Older Convenience,5,7,8,4,4
+1028,18,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,4,7,6,10,5
+1029,37,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,3,8,6,5,3
+1030,28,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,3,4,8,5,4
+1031,45,Muž,Jihovýchod,SŠ s maturitou,Young Families,6,8,8,5,1
+1032,64,Žena,Jihovýchod,VŠ,Urban Singles,6,7,2,5,5
+1033,57,Žena,Severovýchod,VŠ,Older Convenience,4,3,5,8,8
+1034,24,Muž,Severovýchod,ZŠ / bez maturity,Older Convenience,4,5,5,1,5
+1035,53,Muž,Jihozápad,SŠ s maturitou,Young Families,3,5,5,6,6
+1036,38,Muž,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,6,6,10,7,6
+1037,49,Žena,Jihozápad,ZŠ / bez maturity,Urban Singles,6,1,5,8,9
+1038,39,Muž,Praha,VŠ,Value Hunters,1,6,4,8,6
+1039,46,Žena,Severovýchod,SŠ s maturitou,Value Hunters,9,6,5,6,3
+1040,31,Muž,Jihozápad,SŠ s maturitou,Urban Singles,4,5,7,5,6
+1041,24,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,6,6,6,4,3
+1042,32,Muž,Severozápad,SŠ s maturitou,Young Families,4,6,6,1,7
+1043,43,Muž,Střední Čechy,SŠ s maturitou,Young Families,6,6,7,8,8
+1044,41,Žena,Praha,SŠ s maturitou,Value Hunters,4,5,7,7,6
+1045,18,Muž,Jihozápad,SŠ s maturitou,Urban Singles,7,8,8,3,5
+1046,47,Žena,Severozápad,ZŠ / bez maturity,Value Hunters,9,9,3,6,8
+1047,25,Muž,Severovýchod,VŠ,Value Hunters,6,6,6,5,6
+1048,48,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,9,7,10,7,5
+1049,47,Žena,Jihozápad,ZŠ / bez maturity,Value Hunters,6,6,6,6,4
+1050,27,Žena,Jihozápad,SŠ s maturitou,Older Convenience,4,6,5,7,6
+1051,62,Žena,Severozápad,SŠ s maturitou,Older Convenience,10,7,4,6,5
+1052,64,Muž,Praha,SŠ s maturitou,Fresh Seekers,1,8,6,3,5
+1053,49,Muž,Severovýchod,VŠ,Young Families,5,7,4,8,9
+1054,38,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,5,2,5,8,5
+1055,42,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Families,4,5,1,6,5
+1056,46,Muž,Severozápad,ZŠ / bez maturity,Value Hunters,6,7,7,4,9
+1057,37,Muž,Jihozápad,ZŠ / bez maturity,Fresh Seekers,5,5,5,3,7
+1058,52,Žena,Severozápad,ZŠ / bez maturity,Young Families,4,7,7,5,3
+1059,55,Muž,Střední Čechy,VŠ,Fresh Seekers,5,4,10,8,6
+1060,28,Muž,Jihozápad,VŠ,Older Convenience,2,7,4,7,8
+1061,50,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,5,4,7,6,3
+1062,54,Muž,Severovýchod,ZŠ / bez maturity,Young Families,8,5,6,3,4
+1063,40,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,6,9,2,6,9
+1064,50,Muž,Jihovýchod,VŠ,Value Hunters,5,3,6,5,6
+1065,56,Muž,Praha,VŠ,Value Hunters,3,7,8,4,8
+1066,60,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,8,6,3,10,8
+1067,22,Muž,Severovýchod,ZŠ / bez maturity,Older Convenience,9,5,10,10,8
+1068,67,Žena,Severozápad,SŠ s maturitou,Young Families,9,9,9,9,6
+1069,40,Muž,Severovýchod,ZŠ / bez maturity,Value Hunters,7,8,4,6,9
+1070,48,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,8,8,5,5,5
+1071,36,Muž,Střední Čechy,SŠ s maturitou,Young Families,6,6,9,4,6
+1072,44,Žena,Jihovýchod,VŠ,Older Convenience,6,4,7,9,9
+1073,40,Žena,Severovýchod,ZŠ / bez maturity,Fresh Seekers,2,9,6,3,5
+1074,59,Žena,Severozápad,SŠ s maturitou,Fresh Seekers,5,5,5,5,6
+1075,74,Muž,Jihozápad,SŠ s maturitou,Older Convenience,3,7,7,7,6
+1076,33,Žena,Praha,SŠ s maturitou,Fresh Seekers,5,3,10,10,3
+1077,28,Muž,Střední Čechy,ZŠ / bez maturity,Value Hunters,1,5,3,6,6
+1078,57,Žena,Severozápad,VŠ,Young Families,5,5,7,7,4
+1079,53,Muž,Jihozápad,SŠ s maturitou,Young Families,5,10,4,5,4
+1080,55,Muž,Severovýchod,SŠ s maturitou,Older Convenience,4,7,6,4,8
+1081,51,Žena,Jihozápad,ZŠ / bez maturity,Fresh Seekers,5,5,3,3,9
+1082,55,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,1,3,6,6,7
+1083,29,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,8,5,8,5,9
+1084,46,Žena,Střední Čechy,VŠ,Value Hunters,6,7,7,4,8
+1085,44,Muž,Praha,VŠ,Urban Singles,6,6,6,1,3
+1086,42,Muž,Jihozápad,VŠ,Older Convenience,7,9,6,7,8
+1087,61,Žena,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,6,8,7,4,7
+1088,38,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,5,6,1,6,6
+1089,18,Muž,Severovýchod,ZŠ / bez maturity,Urban Singles,7,6,6,9,5
+1090,35,Muž,Střední Čechy,VŠ,Young Families,5,7,7,5,5
+1091,47,Muž,Moravskoslezsko,VŠ,Urban Singles,2,9,4,4,5
+1092,33,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,5,7,7,8,3
+1093,54,Muž,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,4,5,8,9,6
+1094,35,Žena,Severozápad,SŠ s maturitou,Young Families,2,6,4,5,2
+1095,52,Žena,Jihozápad,SŠ s maturitou,Urban Singles,7,5,8,5,4
+1096,36,Muž,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,6,5,7,3,7
+1097,28,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Families,6,5,10,3,4
+1098,50,Muž,Střední Čechy,ZŠ / bez maturity,Value Hunters,4,7,5,5,5
+1099,61,Muž,Jihovýchod,VŠ,Fresh Seekers,8,5,7,7,4
+1100,40,Muž,Severovýchod,SŠ s maturitou,Older Convenience,4,4,7,7,6
+1101,57,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,7,9,9,8,6
+1102,53,Muž,Praha,SŠ s maturitou,Fresh Seekers,3,7,5,7,5
+1103,50,Muž,Jihozápad,SŠ s maturitou,Value Hunters,7,5,4,3,8
+1104,46,Žena,Jihovýchod,SŠ s maturitou,Young Families,3,10,2,5,5
+1105,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Families,5,4,4,6,8
+1106,52,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,3,8,10,7,5
+1107,26,Muž,Severozápad,VŠ,Value Hunters,4,5,4,5,3
+1108,20,Muž,Severozápad,VŠ,Urban Singles,9,7,9,8,3
+1109,51,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,10,9,8,3,7
+1110,38,Žena,Střední Čechy,SŠ s maturitou,Older Convenience,2,1,7,6,5
+1111,44,Žena,Severozápad,ZŠ / bez maturity,Urban Singles,4,10,5,6,7
+1112,44,Muž,Severovýchod,ZŠ / bez maturity,Urban Singles,4,8,3,5,7
+1113,46,Muž,Jihovýchod,VŠ,Urban Singles,9,6,7,6,6
+1114,24,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,8,4,8,7,4
+1115,58,Žena,Praha,SŠ s maturitou,Fresh Seekers,4,7,4,9,5
+1116,18,Muž,Severozápad,VŠ,Value Hunters,5,8,9,4,4
+1117,31,Žena,Jihozápad,VŠ,Young Families,6,4,4,6,6
+1118,47,Muž,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,6,9,7,4,3
+1119,31,Muž,Severovýchod,ZŠ / bez maturity,Value Hunters,5,8,8,4,6
+1120,42,Muž,Jihozápad,VŠ,Fresh Seekers,6,5,5,5,3
+1121,34,Žena,Jihovýchod,ZŠ / bez maturity,Young Families,9,8,9,7,4
+1122,32,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,7,7,2,7,4
+1123,28,Žena,Jihozápad,VŠ,Older Convenience,5,5,8,5,7
+1124,53,Žena,Jihozápad,VŠ,Young Families,5,6,10,4,4
+1125,59,Muž,Jihozápad,VŠ,Urban Singles,3,2,8,5,4
+1126,40,Muž,Severovýchod,SŠ s maturitou,Value Hunters,4,8,4,8,6
+1127,40,Žena,Jihozápad,VŠ,Urban Singles,8,6,6,1,6
+1128,35,Žena,Praha,VŠ,Urban Singles,1,4,4,3,4
+1129,39,Muž,Jihozápad,SŠ s maturitou,Value Hunters,8,3,4,6,5
+1130,29,Žena,Střední Čechy,VŠ,Young Families,6,4,2,5,7
+1131,31,Muž,Moravskoslezsko,VŠ,Young Families,7,2,6,7,5
+1132,45,Muž,Severovýchod,VŠ,Fresh Seekers,1,5,7,4,10
+1133,58,Žena,Moravskoslezsko,SŠ s maturitou,Young Families,8,4,3,6,9
+1134,68,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,4,4,7,7,1
+1135,51,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,10,7,3,6,6
+1136,27,Žena,Střední Čechy,SŠ s maturitou,Young Families,6,9,7,6,7
+1137,40,Žena,Jihozápad,SŠ s maturitou,Older Convenience,10,5,7,3,5
+1138,39,Žena,Severozápad,SŠ s maturitou,Fresh Seekers,6,5,6,4,8
+1139,28,Muž,Jihozápad,VŠ,Value Hunters,6,6,5,5,5
+1140,39,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,5,6,6,4,3
+1141,59,Žena,Praha,SŠ s maturitou,Value Hunters,8,2,8,6,6
+1142,18,Žena,Severovýchod,VŠ,Fresh Seekers,4,4,5,7,6
+1143,31,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Families,5,4,6,7,7
+1144,61,Muž,Střední Čechy,ZŠ / bez maturity,Older Convenience,6,2,6,5,5
+1145,61,Muž,Jihovýchod,VŠ,Value Hunters,8,9,4,6,6
+1146,37,Muž,Jihovýchod,SŠ s maturitou,Young Families,8,9,7,6,5
+1147,38,Žena,Severovýchod,ZŠ / bez maturity,Fresh Seekers,7,4,5,7,4
+1148,35,Žena,Severovýchod,ZŠ / bez maturity,Urban Singles,7,6,5,6,8
+1149,51,Žena,Severovýchod,ZŠ / bez maturity,Urban Singles,7,7,5,7,8
+1150,18,Muž,Střední Čechy,SŠ s maturitou,Urban Singles,6,3,6,6,6
+1151,47,Žena,Severozápad,SŠ s maturitou,Older Convenience,5,5,3,5,8
+1152,18,Muž,Jihozápad,SŠ s maturitou,Urban Singles,5,6,8,5,9
+1153,42,Muž,Moravskoslezsko,VŠ,Fresh Seekers,6,8,9,5,6
+1154,38,Muž,Severovýchod,SŠ s maturitou,Value Hunters,3,4,2,9,6
+1155,32,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,7,5,7,5,5
+1156,57,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,6,7,5,5,7
+1157,54,Žena,Moravskoslezsko,VŠ,Fresh Seekers,4,6,4,4,7
+1158,58,Žena,Moravskoslezsko,SŠ s maturitou,Young Families,5,7,6,6,5
+1159,46,Muž,Jihozápad,SŠ s maturitou,Value Hunters,2,6,6,8,5
+1160,49,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,7,6,4,9,6
+1161,48,Muž,Praha,SŠ s maturitou,Urban Singles,6,8,9,2,3
+1162,65,Žena,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,5,7,7,5,8
+1163,51,Žena,Severovýchod,VŠ,Young Families,4,7,3,4,6
+1164,71,Žena,Severozápad,ZŠ / bez maturity,Urban Singles,2,7,6,6,10
+1165,23,Žena,Střední Čechy,SŠ s maturitou,Young Families,8,5,7,6,6
+1166,35,Muž,Jihozápad,VŠ,Urban Singles,8,6,7,6,5
+1167,35,Žena,Severovýchod,SŠ s maturitou,Value Hunters,4,7,7,4,7
+1168,27,Muž,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,3,8,4,10,4
+1169,57,Žena,Jihozápad,ZŠ / bez maturity,Young Families,4,4,7,5,7
+1170,58,Muž,Jihovýchod,VŠ,Value Hunters,5,9,6,4,3
+1171,47,Muž,Jihozápad,VŠ,Value Hunters,6,7,5,6,5
+1172,43,Žena,Střední Čechy,SŠ s maturitou,Young Families,5,8,7,2,6
+1173,23,Muž,Praha,VŠ,Young Families,10,7,7,6,3
+1174,37,Muž,Praha,ZŠ / bez maturity,Urban Singles,4,5,7,6,4
+1175,23,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,4,5,6,6,6
+1176,52,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,5,7,4,5,7
+1177,40,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,6,6,5,6,4
+1178,47,Žena,Severovýchod,SŠ s maturitou,Older Convenience,8,9,4,2,4
+1179,61,Žena,Střední Čechy,VŠ,Older Convenience,4,7,10,6,4
+1180,52,Muž,Jihovýchod,VŠ,Urban Singles,8,4,5,5,9
+1181,60,Žena,Jihozápad,ZŠ / bez maturity,Young Families,5,8,5,3,3
+1182,59,Muž,Praha,VŠ,Urban Singles,7,7,10,10,4
+1183,34,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,7,7,7,6,5
+1184,39,Žena,Severovýchod,VŠ,Young Families,5,5,6,5,5
+1185,22,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,4,7,2,4,4
+1186,25,Žena,Severozápad,ZŠ / bez maturity,Fresh Seekers,4,8,1,7,3
+1187,49,Žena,Severovýchod,VŠ,Older Convenience,5,4,3,4,4
+1188,23,Žena,Severovýchod,SŠ s maturitou,Urban Singles,7,5,10,6,6
+1189,30,Muž,Jihovýchod,VŠ,Urban Singles,6,5,7,6,5
+1190,44,Muž,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,6,8,2,2,10
+1191,63,Muž,Jihozápad,SŠ s maturitou,Young Families,9,4,6,2,1
+1192,35,Žena,Severozápad,ZŠ / bez maturity,Value Hunters,5,4,7,8,6
+1193,20,Muž,Praha,ZŠ / bez maturity,Fresh Seekers,6,7,7,3,9
+1194,39,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,3,4,7,4,5
+1195,27,Muž,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,4,4,2,6,4
+1196,64,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,6,6,6,5,8
+1197,40,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,3,9,7,7,10
+1198,32,Muž,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,9,8,6,9,3
+1199,48,Muž,Jihozápad,VŠ,Value Hunters,4,4,5,3,6
+1200,45,Muž,Jihozápad,ZŠ / bez maturity,Value Hunters,10,6,5,4,7
+1201,45,Muž,Jihozápad,SŠ s maturitou,Value Hunters,6,8,6,7,8
+1202,59,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,6,4,7,6,5
+1203,32,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,7,7,4,4,7
+1204,38,Muž,Praha,SŠ s maturitou,Older Convenience,4,5,5,5,6
+1205,54,Muž,Moravskoslezsko,VŠ,Urban Singles,2,4,4,1,7
+1206,18,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,6,7,10,8,8
+1207,25,Žena,Jihovýchod,VŠ,Fresh Seekers,6,8,4,6,4
+1208,20,Žena,Severozápad,ZŠ / bez maturity,Older Convenience,9,4,1,3,8
+1209,18,Muž,Severovýchod,VŠ,Value Hunters,6,5,3,8,1
+1210,28,Muž,Praha,SŠ s maturitou,Older Convenience,5,5,9,3,8
+1211,63,Žena,Jihozápad,ZŠ / bez maturity,Urban Singles,5,5,7,7,6
+1212,41,Muž,Jihozápad,ZŠ / bez maturity,Young Families,3,2,8,4,3
+1213,24,Muž,Severovýchod,SŠ s maturitou,Urban Singles,3,6,8,6,4
+1214,44,Žena,Jihozápad,VŠ,Value Hunters,8,2,5,3,6
+1215,65,Žena,Moravskoslezsko,SŠ s maturitou,Value Hunters,3,6,9,5,4
+1216,60,Žena,Praha,ZŠ / bez maturity,Urban Singles,6,6,7,5,8
+1217,53,Muž,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,5,10,6,4,4
+1218,36,Žena,Praha,SŠ s maturitou,Value Hunters,7,8,8,9,7
+1219,21,Muž,Praha,ZŠ / bez maturity,Urban Singles,6,7,3,5,8
+1220,31,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,4,7,6,7,6
+1221,37,Muž,Jihovýchod,SŠ s maturitou,Young Families,10,1,8,6,5
+1222,22,Muž,Střední Čechy,VŠ,Fresh Seekers,6,6,3,4,6
+1223,32,Muž,Moravskoslezsko,SŠ s maturitou,Urban Singles,4,6,6,4,9
+1224,18,Muž,Jihozápad,SŠ s maturitou,Young Families,6,5,9,7,4
+1225,31,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,5,5,6,10,4
+1226,37,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,6,9,1,6,8
+1227,26,Žena,Jihozápad,SŠ s maturitou,Older Convenience,6,5,7,6,6
+1228,30,Muž,Střední Čechy,SŠ s maturitou,Older Convenience,7,8,5,1,6
+1229,26,Žena,Moravskoslezsko,VŠ,Urban Singles,6,3,4,7,8
+1230,35,Muž,Praha,VŠ,Urban Singles,6,5,7,6,5
+1231,37,Muž,Střední Čechy,SŠ s maturitou,Value Hunters,4,5,8,6,5
+1232,55,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,6,10,5,7,6
+1233,26,Žena,Severovýchod,SŠ s maturitou,Urban Singles,6,6,9,7,6
+1234,36,Muž,Severovýchod,SŠ s maturitou,Older Convenience,4,8,4,6,3
+1235,67,Muž,Severovýchod,VŠ,Young Families,5,5,6,9,5
+1236,35,Žena,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,8,7,3,7,6
+1237,45,Žena,Střední Čechy,VŠ,Young Families,9,7,9,8,6
+1238,39,Žena,Severozápad,VŠ,Older Convenience,2,8,5,8,4
+1239,44,Žena,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,7,8,6,6,9
+1240,45,Muž,Praha,VŠ,Young Families,2,4,10,5,6
+1241,19,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Families,6,5,5,6,5
+1242,68,Muž,Moravskoslezsko,VŠ,Value Hunters,7,9,9,6,8
+1243,49,Žena,Severovýchod,SŠ s maturitou,Older Convenience,4,8,9,9,7
+1244,44,Žena,Jihozápad,VŠ,Urban Singles,9,6,4,7,6
+1245,33,Žena,Severovýchod,SŠ s maturitou,Value Hunters,6,10,7,9,6
+1246,47,Muž,Severozápad,ZŠ / bez maturity,Young Families,5,9,3,8,9
+1247,55,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,5,3,8,7,3
+1248,47,Muž,Severovýchod,SŠ s maturitou,Young Families,4,6,4,3,5
+1249,47,Žena,Jihozápad,ZŠ / bez maturity,Young Families,3,6,5,4,4
+1250,41,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,4,6,3,9,6
+1251,52,Žena,Střední Čechy,VŠ,Value Hunters,8,4,3,7,6
+1252,18,Muž,Severovýchod,SŠ s maturitou,Older Convenience,6,7,7,7,4
+1253,34,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,6,2,6,3,2
+1254,29,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,5,5,3,5,8
+1255,52,Muž,Jihovýchod,ZŠ / bez maturity,Value Hunters,4,10,8,4,7
+1256,53,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,4,5,7,9,4
+1257,65,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,5,8,4,4,10
+1258,39,Žena,Jihozápad,ZŠ / bez maturity,Young Families,5,10,7,6,2
+1259,49,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,2,4,4,7,7
+1260,40,Žena,Střední Čechy,VŠ,Fresh Seekers,3,8,5,3,6
+1261,49,Žena,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,8,4,4,4,8
+1262,54,Žena,Severovýchod,SŠ s maturitou,Value Hunters,4,5,8,3,7
+1263,55,Žena,Jihozápad,SŠ s maturitou,Young Families,5,7,5,4,10
+1264,49,Žena,Severovýchod,SŠ s maturitou,Young Families,1,2,7,7,4
+1265,30,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,8,8,7,5,9
+1266,66,Žena,Severozápad,SŠ s maturitou,Young Families,1,5,8,7,7
+1267,19,Muž,Severozápad,SŠ s maturitou,Value Hunters,8,5,4,7,4
+1268,51,Žena,Severozápad,VŠ,Older Convenience,6,6,6,9,8
+1269,24,Žena,Severozápad,SŠ s maturitou,Young Families,7,4,8,7,4
+1270,72,Muž,Severozápad,SŠ s maturitou,Young Families,7,8,8,2,7
+1271,39,Žena,Severozápad,VŠ,Young Families,9,6,3,6,7
+1272,60,Muž,Severovýchod,SŠ s maturitou,Young Families,7,4,4,6,8
+1273,29,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,7,4,4,4,3
+1274,43,Žena,Střední Čechy,ZŠ / bez maturity,Value Hunters,7,8,6,5,7
+1275,52,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,7,4,8,5,7
+1276,46,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,6,4,7,9,5
+1277,24,Muž,Jihovýchod,SŠ s maturitou,Older Convenience,4,4,4,7,8
+1278,50,Žena,Severozápad,SŠ s maturitou,Value Hunters,4,7,7,6,6
+1279,55,Žena,Moravskoslezsko,SŠ s maturitou,Urban Singles,6,7,7,7,7
+1280,48,Žena,Střední Čechy,SŠ s maturitou,Young Families,3,4,3,2,10
+1281,43,Muž,Jihovýchod,VŠ,Fresh Seekers,9,6,2,5,9
+1282,44,Žena,Jihovýchod,SŠ s maturitou,Young Families,1,8,7,9,5
+1283,19,Muž,Severozápad,SŠ s maturitou,Older Convenience,5,5,6,7,5
+1284,25,Žena,Jihovýchod,ZŠ / bez maturity,Value Hunters,9,4,4,6,6
+1285,32,Žena,Severozápad,SŠ s maturitou,Value Hunters,3,6,7,8,4
+1286,28,Muž,Střední Čechy,VŠ,Young Families,7,4,4,6,4
+1287,48,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,8,6,8,5,6
+1288,29,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,6,4,5,4,5
+1289,47,Muž,Jihozápad,ZŠ / bez maturity,Young Families,3,10,4,1,6
+1290,55,Žena,Jihozápad,ZŠ / bez maturity,Value Hunters,7,8,5,4,7
+1291,36,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,7,4,7,6,6
+1292,42,Muž,Severovýchod,VŠ,Young Families,6,3,8,8,10
+1293,43,Muž,Severovýchod,VŠ,Older Convenience,5,5,4,4,4
+1294,60,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,6,3,5,7,6
+1295,45,Žena,Jihozápad,SŠ s maturitou,Young Families,3,9,7,5,1
+1296,58,Žena,Jihozápad,ZŠ / bez maturity,Young Families,4,7,6,4,3
+1297,47,Žena,Severozápad,ZŠ / bez maturity,Urban Singles,5,2,5,7,7
+1298,56,Muž,Jihozápad,ZŠ / bez maturity,Fresh Seekers,4,5,4,3,5
+1299,36,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,9,6,4,6,4
+1300,32,Žena,Praha,VŠ,Urban Singles,8,3,4,4,6
+1301,26,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,6,7,5,9,7
+1302,56,Žena,Jihozápad,SŠ s maturitou,Fresh Seekers,9,7,4,5,5
+1303,37,Muž,Severozápad,ZŠ / bez maturity,Older Convenience,5,2,7,10,6
+1304,53,Žena,Moravskoslezsko,ZŠ / bez maturity,Value Hunters,4,7,8,4,8
+1305,54,Muž,Severovýchod,SŠ s maturitou,Urban Singles,7,4,7,3,5
+1306,51,Žena,Praha,SŠ s maturitou,Older Convenience,4,2,8,6,9
+1307,53,Muž,Střední Čechy,SŠ s maturitou,Young Families,5,6,7,9,4
+1308,46,Muž,Moravskoslezsko,SŠ s maturitou,Older Convenience,5,7,7,5,7
+1309,40,Žena,Střední Čechy,ZŠ / bez maturity,Young Families,3,5,3,3,6
+1310,43,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,3,6,5,4,8
+1311,45,Muž,Praha,SŠ s maturitou,Older Convenience,1,8,3,2,9
+1312,27,Žena,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,3,6,2,5,9
+1313,57,Muž,Jihozápad,SŠ s maturitou,Young Families,4,7,4,3,6
+1314,38,Muž,Praha,VŠ,Young Families,6,3,5,7,6
+1315,45,Muž,Severozápad,VŠ,Urban Singles,4,4,5,3,8
+1316,48,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,9,8,4,6,5
+1317,33,Muž,Severozápad,SŠ s maturitou,Older Convenience,8,8,5,4,3
+1318,52,Žena,Praha,VŠ,Fresh Seekers,4,9,8,7,4
+1319,19,Žena,Jihozápad,VŠ,Fresh Seekers,10,5,1,5,6
+1320,53,Muž,Severozápad,SŠ s maturitou,Urban Singles,2,7,6,5,10
+1321,34,Muž,Praha,SŠ s maturitou,Older Convenience,2,10,8,5,3
+1322,61,Muž,Jihozápad,VŠ,Older Convenience,8,6,8,9,7
+1323,28,Muž,Praha,VŠ,Young Families,7,4,5,5,7
+1324,28,Muž,Severovýchod,ZŠ / bez maturity,Fresh Seekers,5,2,6,5,6
+1325,18,Muž,Moravskoslezsko,SŠ s maturitou,Older Convenience,7,5,6,7,8
+1326,35,Žena,Severovýchod,ZŠ / bez maturity,Urban Singles,6,8,8,5,4
+1327,57,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Families,7,6,5,4,5
+1328,54,Muž,Severozápad,ZŠ / bez maturity,Young Families,7,9,6,7,10
+1329,43,Žena,Jihovýchod,ZŠ / bez maturity,Value Hunters,3,3,1,7,7
+1330,31,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,6,7,6,9,6
+1331,56,Muž,Střední Čechy,VŠ,Older Convenience,5,6,6,7,3
+1332,52,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,3,10,4,6,1
+1333,62,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,2,7,6,5,5
+1334,28,Žena,Jihozápad,SŠ s maturitou,Older Convenience,5,6,8,5,9
+1335,28,Žena,Jihozápad,ZŠ / bez maturity,Value Hunters,4,5,6,6,5
+1336,32,Žena,Severovýchod,SŠ s maturitou,Older Convenience,1,9,10,7,4
+1337,18,Žena,Jihozápad,VŠ,Older Convenience,4,4,5,5,4
+1338,38,Muž,Severozápad,ZŠ / bez maturity,Young Families,4,4,4,4,7
+1339,31,Muž,Severovýchod,SŠ s maturitou,Value Hunters,6,2,6,6,6
+1340,41,Žena,Praha,ZŠ / bez maturity,Older Convenience,7,6,2,6,4
+1341,38,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,4,5,7,6,9
+1342,34,Muž,Severovýchod,ZŠ / bez maturity,Young Families,4,10,10,1,5
+1343,49,Muž,Severovýchod,SŠ s maturitou,Urban Singles,3,4,5,4,7
+1344,70,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,7,4,4,8,1
+1345,43,Muž,Praha,VŠ,Young Families,5,6,4,3,6
+1346,22,Muž,Moravskoslezsko,SŠ s maturitou,Urban Singles,7,3,6,7,7
+1347,28,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,6,7,8,6,4
+1348,64,Muž,Střední Čechy,SŠ s maturitou,Older Convenience,5,6,3,9,9
+1349,50,Žena,Jihovýchod,VŠ,Older Convenience,5,5,1,9,4
+1350,48,Žena,Severozápad,SŠ s maturitou,Young Families,8,3,8,3,10
+1351,36,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,8,7,6,4,3
+1352,59,Žena,Střední Čechy,SŠ s maturitou,Young Families,3,8,9,8,7
+1353,38,Žena,Střední Čechy,SŠ s maturitou,Urban Singles,5,7,6,3,7
+1354,59,Muž,Praha,ZŠ / bez maturity,Young Families,9,7,8,5,7
+1355,23,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,2,5,8,7,5
+1356,42,Muž,Střední Čechy,SŠ s maturitou,Fresh Seekers,5,7,5,4,7
+1357,46,Žena,Severozápad,VŠ,Urban Singles,4,7,8,8,5
+1358,31,Žena,Severovýchod,SŠ s maturitou,Fresh Seekers,4,8,6,6,7
+1359,34,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,5,3,5,4,4
+1360,34,Muž,Střední Čechy,VŠ,Fresh Seekers,9,7,6,9,2
+1361,40,Muž,Severozápad,SŠ s maturitou,Urban Singles,6,9,6,7,8
+1362,31,Muž,Severovýchod,ZŠ / bez maturity,Young Families,5,8,6,4,6
+1363,51,Muž,Severozápad,VŠ,Urban Singles,8,10,5,6,7
+1364,23,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,8,3,8,8,5
+1365,39,Muž,Severovýchod,SŠ s maturitou,Young Families,5,7,6,4,7
+1366,60,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,2,5,6,9,4
+1367,61,Žena,Severovýchod,ZŠ / bez maturity,Fresh Seekers,8,7,2,3,5
+1368,43,Žena,Severozápad,VŠ,Urban Singles,4,7,9,4,8
+1369,54,Muž,Praha,SŠ s maturitou,Fresh Seekers,4,7,7,4,4
+1370,38,Muž,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,5,3,4,4,6
+1371,32,Žena,Severozápad,SŠ s maturitou,Fresh Seekers,5,4,4,6,8
+1372,53,Žena,Praha,SŠ s maturitou,Young Families,7,9,5,4,7
+1373,51,Žena,Severozápad,ZŠ / bez maturity,Young Families,10,5,3,4,7
+1374,53,Žena,Moravskoslezsko,VŠ,Young Families,9,6,5,3,3
+1375,27,Muž,Severovýchod,SŠ s maturitou,Fresh Seekers,2,3,3,5,6
+1376,38,Žena,Jihovýchod,VŠ,Young Families,8,7,4,5,7
+1377,35,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,8,5,9,3,9
+1378,58,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,5,5,7,7,3
+1379,57,Muž,Moravskoslezsko,VŠ,Urban Singles,7,4,9,6,5
+1380,68,Muž,Praha,SŠ s maturitou,Young Families,8,4,4,6,3
+1381,18,Žena,Severovýchod,VŠ,Young Families,7,7,5,6,4
+1382,44,Žena,Severovýchod,SŠ s maturitou,Older Convenience,3,4,5,7,6
+1383,43,Muž,Jihozápad,VŠ,Urban Singles,5,10,6,6,8
+1384,18,Muž,Severovýchod,SŠ s maturitou,Value Hunters,4,6,7,2,5
+1385,53,Žena,Jihovýchod,VŠ,Urban Singles,5,9,7,5,6
+1386,56,Muž,Severovýchod,VŠ,Fresh Seekers,4,5,4,3,6
+1387,44,Žena,Moravskoslezsko,VŠ,Young Families,6,4,2,7,5
+1388,42,Muž,Jihovýchod,ZŠ / bez maturity,Fresh Seekers,5,7,4,5,6
+1389,61,Muž,Střední Čechy,SŠ s maturitou,Value Hunters,7,3,6,5,5
+1390,28,Muž,Jihozápad,SŠ s maturitou,Fresh Seekers,3,6,5,5,6
+1391,39,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,8,5,3,5,6
+1392,40,Žena,Severovýchod,VŠ,Young Families,3,5,7,5,8
+1393,38,Žena,Jihozápad,VŠ,Older Convenience,6,8,6,2,4
+1394,30,Muž,Severovýchod,VŠ,Older Convenience,5,7,7,6,5
+1395,37,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,6,5,8,2,4
+1396,32,Žena,Jihovýchod,VŠ,Older Convenience,3,6,5,3,8
+1397,24,Muž,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,6,6,6,7,5
+1398,55,Žena,Severovýchod,ZŠ / bez maturity,Fresh Seekers,2,4,7,5,5
+1399,26,Muž,Severovýchod,ZŠ / bez maturity,Fresh Seekers,6,6,3,3,3
+1400,39,Žena,Praha,SŠ s maturitou,Urban Singles,6,5,8,9,6
+1401,45,Žena,Severovýchod,SŠ s maturitou,Urban Singles,6,10,3,3,3
+1402,37,Žena,Střední Čechy,ZŠ / bez maturity,Fresh Seekers,8,8,5,6,3
+1403,53,Muž,Jihovýchod,SŠ s maturitou,Value Hunters,4,2,9,1,10
+1404,48,Žena,Jihozápad,SŠ s maturitou,Young Families,8,10,5,8,7
+1405,32,Muž,Severozápad,ZŠ / bez maturity,Urban Singles,6,4,7,10,4
+1406,31,Muž,Severovýchod,ZŠ / bez maturity,Value Hunters,7,3,5,5,6
+1407,53,Žena,Praha,VŠ,Older Convenience,8,2,6,8,5
+1408,45,Muž,Severovýchod,VŠ,Fresh Seekers,5,6,7,5,4
+1409,53,Muž,Jihovýchod,ZŠ / bez maturity,Value Hunters,4,5,6,8,4
+1410,18,Žena,Jihozápad,ZŠ / bez maturity,Value Hunters,4,5,4,7,4
+1411,41,Muž,Jihovýchod,VŠ,Urban Singles,3,8,3,4,6
+1412,59,Muž,Severovýchod,SŠ s maturitou,Urban Singles,5,6,7,6,6
+1413,18,Muž,Moravskoslezsko,SŠ s maturitou,Older Convenience,7,4,3,4,6
+1414,62,Žena,Severovýchod,SŠ s maturitou,Value Hunters,9,5,8,7,7
+1415,45,Muž,Moravskoslezsko,VŠ,Fresh Seekers,6,7,4,6,4
+1416,18,Žena,Jihozápad,VŠ,Fresh Seekers,4,8,6,3,7
+1417,18,Žena,Severovýchod,SŠ s maturitou,Value Hunters,2,8,10,9,9
+1418,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Fresh Seekers,2,10,6,5,8
+1419,18,Muž,Jihovýchod,ZŠ / bez maturity,Older Convenience,6,3,6,6,5
+1420,42,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,5,3,9,4,5
+1421,28,Muž,Severozápad,SŠ s maturitou,Fresh Seekers,4,5,7,8,4
+1422,21,Muž,Střední Čechy,ZŠ / bez maturity,Young Families,8,7,6,5,9
+1423,56,Žena,Severozápad,VŠ,Fresh Seekers,3,5,5,9,8
+1424,18,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,2,10,5,4,10
+1425,25,Žena,Jihovýchod,SŠ s maturitou,Urban Singles,4,7,8,4,5
+1426,29,Žena,Jihozápad,SŠ s maturitou,Older Convenience,6,3,7,10,3
+1427,30,Žena,Praha,ZŠ / bez maturity,Fresh Seekers,5,7,6,4,5
+1428,29,Žena,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,6,6,7,6,4
+1429,60,Žena,Praha,SŠ s maturitou,Fresh Seekers,5,7,8,6,5
+1430,36,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,9,6,6,4,4
+1431,56,Žena,Praha,ZŠ / bez maturity,Urban Singles,4,6,3,5,5
+1432,44,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,4,7,3,4,6
+1433,31,Muž,Praha,SŠ s maturitou,Fresh Seekers,7,6,8,8,4
+1434,31,Žena,Střední Čechy,SŠ s maturitou,Young Families,4,7,9,5,5
+1435,58,Muž,Severozápad,SŠ s maturitou,Fresh Seekers,6,5,6,4,6
+1436,39,Žena,Jihozápad,ZŠ / bez maturity,Older Convenience,6,3,4,6,6
+1437,51,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,5,5,4,3,3
+1438,51,Muž,Praha,VŠ,Value Hunters,5,4,6,7,7
+1439,43,Žena,Jihozápad,SŠ s maturitou,Urban Singles,4,7,4,7,9
+1440,54,Žena,Jihovýchod,SŠ s maturitou,Older Convenience,6,6,3,5,9
+1441,37,Muž,Moravskoslezsko,SŠ s maturitou,Value Hunters,6,10,3,6,6
+1442,72,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,5,8,8,4,6
+1443,53,Muž,Jihovýchod,ZŠ / bez maturity,Urban Singles,10,6,5,7,6
+1444,52,Muž,Moravskoslezsko,SŠ s maturitou,Young Families,5,8,6,7,8
+1445,54,Žena,Praha,VŠ,Value Hunters,9,5,8,1,7
+1446,19,Muž,Moravskoslezsko,ZŠ / bez maturity,Older Convenience,7,9,9,4,8
+1447,52,Žena,Jihozápad,VŠ,Older Convenience,5,9,7,4,4
+1448,52,Žena,Jihozápad,ZŠ / bez maturity,Urban Singles,6,4,4,4,4
+1449,35,Muž,Severozápad,ZŠ / bez maturity,Older Convenience,4,4,4,5,7
+1450,36,Muž,Jihovýchod,VŠ,Urban Singles,4,8,4,6,10
+1451,39,Žena,Jihovýchod,ZŠ / bez maturity,Young Families,7,1,3,8,6
+1452,46,Žena,Moravskoslezsko,SŠ s maturitou,Fresh Seekers,9,5,5,7,6
+1453,37,Žena,Jihovýchod,VŠ,Urban Singles,4,7,3,5,4
+1454,64,Muž,Severovýchod,SŠ s maturitou,Value Hunters,5,10,6,3,2
+1455,45,Muž,Jihovýchod,SŠ s maturitou,Fresh Seekers,6,7,7,6,7
+1456,24,Žena,Jihozápad,SŠ s maturitou,Value Hunters,5,8,5,3,3
+1457,51,Žena,Severovýchod,SŠ s maturitou,Value Hunters,5,5,5,8,8
+1458,39,Žena,Praha,VŠ,Older Convenience,2,7,7,5,6
+1459,44,Žena,Severovýchod,SŠ s maturitou,Young Families,7,8,6,5,8
+1460,34,Žena,Jihozápad,SŠ s maturitou,Young Families,7,5,4,5,6
+1461,19,Žena,Severozápad,SŠ s maturitou,Fresh Seekers,6,8,5,5,5
+1462,43,Muž,Praha,VŠ,Urban Singles,3,6,7,5,7
+1463,46,Muž,Praha,SŠ s maturitou,Fresh Seekers,2,5,5,9,7
+1464,51,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,8,5,7,4,7
+1465,40,Žena,Severozápad,VŠ,Urban Singles,8,5,7,4,5
+1466,39,Žena,Moravskoslezsko,SŠ s maturitou,Urban Singles,4,5,5,5,7
+1467,38,Žena,Střední Čechy,SŠ s maturitou,Fresh Seekers,6,4,3,4,6
+1468,52,Žena,Severozápad,SŠ s maturitou,Fresh Seekers,1,7,6,5,5
+1469,53,Žena,Střední Čechy,VŠ,Older Convenience,7,5,4,6,9
+1470,41,Muž,Severozápad,SŠ s maturitou,Value Hunters,3,5,4,6,7
+1471,21,Muž,Praha,ZŠ / bez maturity,Older Convenience,8,5,8,3,7
+1472,28,Muž,Severovýchod,SŠ s maturitou,Young Families,7,4,5,10,7
+1473,38,Žena,Moravskoslezsko,SŠ s maturitou,Older Convenience,6,3,7,3,5
+1474,57,Muž,Praha,SŠ s maturitou,Fresh Seekers,7,5,4,6,7
+1475,33,Žena,Jihovýchod,ZŠ / bez maturity,Urban Singles,9,7,7,3,6
+1476,28,Muž,Severovýchod,ZŠ / bez maturity,Value Hunters,3,7,5,5,8
+1477,43,Žena,Jihovýchod,SŠ s maturitou,Fresh Seekers,10,7,6,6,8
+1478,32,Muž,Moravskoslezsko,ZŠ / bez maturity,Urban Singles,8,6,6,10,6
+1479,66,Žena,Praha,SŠ s maturitou,Value Hunters,5,6,4,8,4
+1480,56,Muž,Praha,SŠ s maturitou,Urban Singles,5,5,7,9,6
+1481,50,Muž,Severovýchod,VŠ,Young Families,8,4,2,8,7
+1482,54,Muž,Severovýchod,ZŠ / bez maturity,Fresh Seekers,5,6,4,7,2
+1483,66,Muž,Střední Čechy,ZŠ / bez maturity,Urban Singles,6,6,8,4,8
+1484,42,Muž,Praha,VŠ,Fresh Seekers,4,9,4,7,4
+1485,42,Muž,Praha,SŠ s maturitou,Older Convenience,3,2,8,5,1
+1486,61,Žena,Střední Čechy,ZŠ / bez maturity,Older Convenience,4,4,2,4,4
+1487,72,Žena,Severovýchod,VŠ,Fresh Seekers,1,6,8,7,10
+1488,65,Muž,Praha,SŠ s maturitou,Older Convenience,6,5,8,4,6
+1489,37,Žena,Jihovýchod,SŠ s maturitou,Value Hunters,5,4,8,6,7
+1490,23,Žena,Praha,ZŠ / bez maturity,Urban Singles,1,5,7,10,6
+1491,48,Žena,Jihozápad,ZŠ / bez maturity,Older Convenience,10,8,9,5,7
+1492,61,Žena,Střední Čechy,SŠ s maturitou,Value Hunters,4,7,6,3,6
+1493,34,Žena,Severovýchod,ZŠ / bez maturity,Older Convenience,10,4,8,3,6
+1494,47,Muž,Moravskoslezsko,SŠ s maturitou,Older Convenience,4,4,5,4,1
+1495,18,Žena,Střední Čechy,SŠ s maturitou,Young Families,7,1,8,6,8
+1496,63,Žena,Severovýchod,ZŠ / bez maturity,Older Convenience,4,6,6,6,10
+1497,42,Žena,Severovýchod,ZŠ / bez maturity,Value Hunters,8,6,5,5,9
+1498,18,Muž,Severovýchod,VŠ,Value Hunters,6,9,10,4,4
+1499,63,Žena,Jihozápad,ZŠ / bez maturity,Older Convenience,3,6,5,2,3
+1500,27,Muž,Moravskoslezsko,SŠ s maturitou,Older Convenience,4,8,8,9,5

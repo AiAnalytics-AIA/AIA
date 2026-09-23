@@ -1,0 +1,31 @@
+{
+  "version": "17.9.5",
+  "project_id": "PRJ-DEMO-NOVA-SPARK",
+  "title": "NOVA Spark DEMO",
+  "project_type": "research",
+  "primary_outputs": {
+    "overview_html": "FINAL_CLIENT_REPORT_OVERVIEW.html",
+    "main_report": "CLIENT_REPORT_NOVA_SPARK_DEMO.docx",
+    "results_workbook": "RESULTS_TABLES_NOVA_SPARK_DEMO.xlsx",
+    "project_export_zip": "PROJECT_EXPORT_NOVA_SPARK_DEMO.zip",
+    "dashboard_or_preview": "DEMO_PREVIEW.html"
+  },
+  "narrative_contract": [
+    "context",
+    "market situation",
+    "methodology",
+    "results",
+    "segmentation",
+    "risks",
+    "opportunities",
+    "recommendations",
+    "next steps"
+  ],
+  "counts": {
+    "artifacts": 35,
+    "worlds": 8,
+    "questionnaire_items": 6,
+    "segments": 5
+  },
+  "notes": "Generated overview that mirrors the reading order of real NPC Panel outputs."
+}

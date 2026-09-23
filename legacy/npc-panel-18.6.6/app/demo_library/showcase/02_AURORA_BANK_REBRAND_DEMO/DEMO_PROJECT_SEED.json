@@ -1,0 +1,462 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "02_AURORA_BANK_REBRAND_DEMO",
+  "project_id": "PRJ-DEMO-AURORA-REBRAND",
+  "title": "Naše Česko — segment nerozhodnutých voličů",
+  "domain": "Politika / veřejná správa",
+  "study_type": "Politický marketingový výzkum / segmentace voličů",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Naše Česko chce před podzimními komunálními a senátními volbami 2026 ověřit, jak silně může oslovit zklamané voliče etablovaných stran a kde soustředit kampaňové zdroje.",
+    "decision": "Nakolik je segment nespokojených voličů ODS, STAN, ANO a TOP 09 nakloněn volbě Naše Česko a co tento přechod podporuje nebo brzdí."
+  },
+  "executive_answer": "Nejsilnějším motorem přechodu je kombinace protestního hlasu vůči současné straně (237 zmínek z 460) a poptávky po nezkorumpovaných lidech v politice (208 zmínek); region, ne minulá volba, určuje, kde je hnutí připraveno tento potenciál proměnit ve skutečné hlasy — v krajích s etablovanou kandidátkou přesahuje záměr 40 %, jinde klesá pod 10 %.",
+  "recommendation": "Komunikaci soustředit na zklamání ze stávající strany a poptávku po nezkorumpovaných lidech, doplněnou konkrétním závazkem transparentnosti hospodaření obce. Přímo adresovat obavu z propadnutí hlasu konkrétními čísly o reálné šanci na mandát a prioritizovat kampaňové zdroje do Karlovarského, Jihočeského a Ústeckého kraje, kde je motivace voličů už vysoká a přechod vyžaduje spíše mobilizaci než přesvědčování.",
+  "audience": {
+    "population": "ČR 18–69, voliči ODS, STAN, ANO a TOP 09, nespokojení a zvažující změnu",
+    "n": 460,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jaké politické strany/hnutí spontánně znáte a naposledy jste volili?",
+      "type": "frequency",
+      "purpose": "content"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Jak vnímáte současnou stranu, kterou jste volili, na klíčových atributech nespokojenosti?",
+      "type": "battery",
+      "purpose": "drivers — odpovídá baterii Q1a–Q1f: neplnění slibů, odtržení od lidí, netransparentnost, chybějící vize pro obec, absence komunikace, upřednostňování jiných zájmů"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Porovnejte důvody pro a proti přechodu k Naše Česko na stejné sadě motivů.",
+      "type": "object_battery",
+      "purpose": "comparison + iconmap / object_battery — odpovídá Q4/Q4b a Q5 z dotazníku"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Jaké emoce ve vás jednotliví kandidáti Naše Česko vyvolávají?",
+      "type": "emotion_battery",
+      "purpose": "odpovídá hodnocení kandidátů Q7, škála 1–5 + „Neznám“, routováno podle kraje"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Nakolik by přechod k Naše Česko snížil nebo zvýšil vaši důvěru v komunální politiku?",
+      "type": "choice",
+      "purpose": "odpovídá Q9 — celková důvěryhodnost kandidátů"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Které prvky vaší současné volby musí Naše Česko nahradit, aby získalo váš hlas?",
+      "type": "certainty",
+      "purpose": "odpovídá otevřené doplňkové otázce z metodických poznámek dotazníku"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Current",
+      "description": "Současná značka",
+      "type": "tracked_object",
+      "score": 59,
+      "x": 255,
+      "y": 245
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Clear & Human",
+      "description": "Evoluční lidský rebrand",
+      "type": "tracked_object",
+      "score": 78,
+      "x": 405,
+      "y": 210
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Neo Future",
+      "description": "Radikálně digitální identita",
+      "type": "tracked_object",
+      "score": 67,
+      "x": 570,
+      "y": 125
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Trusted Expert",
+      "description": "Seriózní poradenský směr",
+      "type": "tracked_object",
+      "score": 71,
+      "x": 365,
+      "y": 315
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Trust",
+    "Modernity",
+    "Humanity",
+    "Distinctiveness",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      24,
+      74,
+      42,
+      35,
+      39,
+      59
+    ],
+    [
+      46,
+      79,
+      71,
+      76,
+      63,
+      78
+    ],
+    [
+      35,
+      55,
+      84,
+      48,
+      78,
+      67
+    ],
+    [
+      39,
+      83,
+      52,
+      61,
+      54,
+      71
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Digital Pragmatists",
+      "share_pct": 31,
+      "description": "Chtějí jednoduchost a kontrolu",
+      "best_object": "Clear & Human"
+    },
+    {
+      "id": "SEG2",
+      "name": "Security First",
+      "share_pct": 24,
+      "description": "Důvěra a stabilita",
+      "best_object": "Trusted Expert"
+    },
+    {
+      "id": "SEG3",
+      "name": "Mobile Natives",
+      "share_pct": 19,
+      "description": "Moderní digitální experience",
+      "best_object": "Neo Future"
+    },
+    {
+      "id": "SEG4",
+      "name": "Relationship Seekers",
+      "share_pct": 16,
+      "description": "Lidská podpora a srozumitelnost",
+      "best_object": "Clear & Human"
+    },
+    {
+      "id": "SEG5",
+      "name": "Passive Traditionalists",
+      "share_pct": 10,
+      "description": "Nízká potřeba změny",
+      "best_object": "Current"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base market",
+      "winner": "Clear & Human",
+      "primary_metric": 46,
+      "overall": 78,
+      "assumption": "Vyvážená důvěra a modernita"
+    },
+    {
+      "id": "W2",
+      "name": "Trust shock",
+      "winner": "Clear & Human",
+      "primary_metric": 44,
+      "overall": 76,
+      "assumption": "Vyšší citlivost na bezpečnost"
+    },
+    {
+      "id": "W3",
+      "name": "Fintech boom",
+      "winner": "Clear & Human",
+      "primary_metric": 48,
+      "overall": 79,
+      "assumption": "Vyšší přijetí digitálních značek"
+    },
+    {
+      "id": "W4",
+      "name": "Older clientele",
+      "winner": "Clear & Human",
+      "primary_metric": 43,
+      "overall": 75,
+      "assumption": "Vyšší váha stávajících klientů"
+    },
+    {
+      "id": "W5",
+      "name": "Mobile first",
+      "winner": "Clear & Human",
+      "primary_metric": 49,
+      "overall": 80,
+      "assumption": "Vyšší váha mobilních uživatelů"
+    },
+    {
+      "id": "W6",
+      "name": "Reputation pressure",
+      "winner": "Clear & Human",
+      "primary_metric": 45,
+      "overall": 77,
+      "assumption": "Vyšší reputační citlivost"
+    },
+    {
+      "id": "W7",
+      "name": "Price competition",
+      "winner": "Clear & Human",
+      "primary_metric": 47,
+      "overall": 78,
+      "assumption": "Cena služeb důležitější"
+    },
+    {
+      "id": "W8",
+      "name": "Human service need",
+      "winner": "Clear & Human",
+      "primary_metric": 48,
+      "overall": 81,
+      "assumption": "Vyšší potřeba lidské podpory"
+    }
+  ],
+  "findings": [
+    "Aurora má vysokou důvěru, ale nízkou lidskost a distinctiveness.",
+    "Clear & Human zvyšuje modernost bez ztráty bezpečnostních asociací.",
+    "Neo Future je atraktivní, ale příliš odřezává starší a stávající klienty.",
+    "Název Aurora není problém; problém je způsob, jak značka mluví a vypadá."
+  ],
+  "risks": [
+    "Rebranding může poškodit rozpoznatelnost při příliš rychlé změně.",
+    "Brand preference není ekvivalent skutečné změny banky.",
+    "Migrační komunikaci je třeba testovat se stávající klientskou bází."
+  ],
+  "primary_metric": "Brand preference",
+  "primary_value": 46,
+  "world_range": "43–49 %",
+  "winner_stability": "8/8",
+  "overall": 78,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Current",
+        "type": "object",
+        "score": 59,
+        "x": 255,
+        "y": 245,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Clear & Human",
+        "type": "object",
+        "score": 78,
+        "x": 405,
+        "y": 210,
+        "color": "#3c9890"
+      },
+      {
+        "name": "Neo Future",
+        "type": "object",
+        "score": 67,
+        "x": 570,
+        "y": 125,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Trusted Expert",
+        "type": "object",
+        "score": 71,
+        "x": 365,
+        "y": 315,
+        "color": "#299764"
+      },
+      {
+        "name": "Důvěra",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Relevance",
+        "type": "anchor",
+        "x": 500,
+        "y": 245,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Cena / náklad",
+        "type": "anchor",
+        "x": 170,
+        "y": 205,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Jednoduchost",
+        "type": "anchor",
+        "x": 335,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 6,
+        "weight": 0.77
+      },
+      {
+        "from": 0,
+        "to": 7,
+        "weight": 0.66
+      },
+      {
+        "from": 1,
+        "to": 4,
+        "weight": 0.75
+      },
+      {
+        "from": 1,
+        "to": 5,
+        "weight": 0.75
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.65
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "weight": 0.52
+      },
+      {
+        "from": 3,
+        "to": 7,
+        "weight": 0.88
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.62
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum.",
+  "demo_summary": {
+    "main_question": "Nakolik je segment nespokojených voličů ODS, STAN, ANO a TOP 09 nakloněn volbě Naše Česko a co tento přechod podporuje nebo brzdí.",
+    "main_answer": "31 % nerozhodnutých voličů ODS, STAN, ANO a TOP 09 by nyní volilo Naše Česko; region rozhoduje víc než minulá volba — s viditelnou kandidátkou přesahuje záměr 40 %, bez ní klesá pod 10 %.",
+    "recommendation": "Komunikaci soustředit na zklamání ze stávající strany a poptávku po nezkorumpovaných lidech, doplněnou konkrétním závazkem transparentnosti hospodaření obce. Přímo adresovat obavu z propadnutí hlasu konkrétními čísly o reálné šanci na mandát a prioritizovat kampaňové zdroje do Karlovarského, Jihočeského a Ústeckého kraje, kde je motivace voličů už vysoká a přechod vyžaduje spíše mobilizaci než přesvědčování.",
+    "why": "Nejsilnějším motorem přechodu je kombinace protestního hlasu vůči současné straně (237 zmínek z 460) a poptávky po nezkorumpovaných lidech v politice (208 zmínek); region, ne minulá volba, určuje, kde je hnutí připraveno tento potenciál proměnit ve skutečné hlasy — v krajích s etablovanou kandidátkou přesahuje záměr 40 %, jinde klesá pod 10 %.",
+    "report_outline": [
+      "1. Executive summary (klíčové zjištění: 31 % okamžitý volební záměr, region silnější prediktor než minulá volba)",
+      "2. Zadání klienta (Naše Česko, komunální a senátní volby 2026)",
+      "3. Kontext trhu a situace (politická situace před podzimními volbami 2026; ODS, STAN, ANO, TOP 09)",
+      "4. Výzkumné otázky a hypotézy (nakolik jsou nespokojení voliči etablovaných stran nakloněni volbě Naše Česko)",
+      "5. Design a vzorek (ČR 18–69, N=460 kvalifikovaných z 587 oslovených, kvótní výběr)",
+      "6. Audience a segmentace (voliči ODS/STAN/ANO/TOP 09 podle kraje a míry nespokojenosti)",
+      "7. Hlavní KPI a outcome (31 % záměr, 27 % nerozhodnutých, 72 % znalost hnutí, 3,8/5 důvěryhodnost kandidátů)",
+      "8. Srovnání variant / objektů (srovnání motivů přechodu podle kraje a původní strany)",
+      "9. Emocionální a percepční mapa (důvěryhodnost a vnímání jednotlivých kandidátů hnutí)",
+      "10. Sociomapa (mapa blízkosti voličů k jednotlivým stranám a hnutí)",
+      "11. Segmentové rozdíly (kraje s etablovanou kandidátkou vs. kraje bez ní)",
+      "12. Rizika a scénáře (propadnutí hlasu, nízká znalost regionálních kandidátů)",
+      "13. Příležitosti (mobilizace v krajích s vysokým záměrem, budování viditelnosti jinde)",
+      "14. Doporučený akční plán (prioritizace krajů, adresování obavy z propadnutí hlasu, mediální exposure kandidátů)",
+      "15. Ověření a další kroky (nahradit syntetická data reálným sběrem před kampaňovými rozhodnutími)"
+    ],
+    "summary_heading": "Co DEMO přineslo",
+    "client": "Naše Česko",
+    "attention": "Nízká vzorková základna u regionálních kandidátů (routováno dle kraje) · Data jsou syntetická, nekalibrovaná na reálný volební výzkum",
+    "page_title": "Naše Česko — segment nerozhodnutých voličů",
+    "page_subtitle": "Výzkum · Politický marketing / komunální volby 2026"
+  }
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "id": "Q0",
+    "text": "Demografický a profilový blok"
+  },
+  {
+    "id": "QO1",
+    "text": "Jak blízko je vám Coca-Cola? Hodnocení 1–10."
+  },
+  {
+    "id": "QO2",
+    "text": "Jak blízko je vám Coca-Cola Zero? Hodnocení 1–10."
+  },
+  {
+    "id": "QO3",
+    "text": "Jak blízko je vám Pepsi Max? Hodnocení 1–10."
+  },
+  {
+    "id": "QO4",
+    "text": "Jak blízko je vám Red Bull? Hodnocení 1–10."
+  },
+  {
+    "id": "QO5",
+    "text": "Jak blízko je vám Monster? Hodnocení 1–10."
+  },
+  {
+    "id": "QO6",
+    "text": "Jak blízko je vám Mattoni? Hodnocení 1–10."
+  },
+  {
+    "id": "QO7",
+    "text": "Jak blízko je vám Vinea? Hodnocení 1–10."
+  },
+  {
+    "id": "QO8",
+    "text": "Jak blízko je vám Kofola? Hodnocení 1–10."
+  },
+  {
+    "id": "QT1",
+    "text": "Health — škála 1–10"
+  },
+  {
+    "id": "QT2",
+    "text": "Sugar — škála 1–10"
+  },
+  {
+    "id": "QT3",
+    "text": "Energy — škála 1–10"
+  },
+  {
+    "id": "QT4",
+    "text": "Price — škála 1–10"
+  },
+  {
+    "id": "QT5",
+    "text": "Brand — škála 1–10"
+  },
+  {
+    "id": "QT6",
+    "text": "Sport — škála 1–10"
+  },
+  {
+    "id": "QT7",
+    "text": "Novelty — škála 1–10"
+  }
+]

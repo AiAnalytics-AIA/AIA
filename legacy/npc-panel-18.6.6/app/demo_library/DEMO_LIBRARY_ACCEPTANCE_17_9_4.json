@@ -1,0 +1,14 @@
+{
+  "release": "17.9.4",
+  "demo_count": 20,
+  "collections": {
+    "complete": 10,
+    "showcase": 10
+  },
+  "all_have_report": true,
+  "all_have_workbook": true,
+  "all_have_project_export": true,
+  "complete_have_sqlite": true,
+  "showcase_have_8_worlds": true,
+  "showcase_have_8_analysis_modules": true
+}

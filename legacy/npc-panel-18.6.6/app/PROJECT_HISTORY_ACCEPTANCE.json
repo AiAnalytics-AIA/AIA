@@ -1,0 +1,15 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "status": "PASS",
+  "checks": {
+    "immutable_revision": "PASS",
+    "branch_preserves_original": "PASS",
+    "restore_creates_new_revision": "PASS",
+    "event_history": "PASS",
+    "provider_history": "PASS",
+    "reused_artifacts_visible_in_new_revision": "PASS",
+    "project_export_sha_manifest": "PASS"
+  }
+}
