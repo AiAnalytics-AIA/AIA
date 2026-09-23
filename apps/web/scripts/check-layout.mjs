@@ -5,25 +5,51 @@
  *   - Czech +35 % stress: extends every text node by 35 % with diacritics and
  *     fails on any element that overflows its box or the page, at 1280 and 1024 px.
  *
+ * The screens read the real API, so the routes are discovered from the running
+ * app: the portfolio, every study it links to, each study's first project with
+ * an impact preview, and that project's REPORT stage. Run the API on a seeded
+ * database first (`make dev-seed`). LAYOUT_ROUTES (comma-separated) overrides.
+ * LAYOUT_ORG is the organization slug in the URL (default "aia").
+ *
  * Needs a Chromium: set PLAYWRIGHT_CHROMIUM (path) or install playwright browsers.
  * Not in CI yet (the CI image has no browser); run before merging layout changes:
- *   npm run build && npx next start -p 3000 & npm run check:layout
+ *   npm run build && AIA_DEV_SUBJECT=lead@aia.dev npx next start -p 3000 & npm run check:layout
  */
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const OUT = ".layout-evidence";
-const ROUTES = (process.env.LAYOUT_ROUTES ?? [
-  "/org/aia-dev/dashboard",
-  "/org/aia-dev/studies/STU-0a1b01",
-  "/org/aia-dev/studies/STU-0a1b01/projects/PRJ-00a1",
-  "/org/aia-dev/studies/STU-0a1b01/projects/PRJ-00a1/stages/REPORT",
-].join(",")).split(",");
+const ORG = process.env.LAYOUT_ORG ?? "aia";
 
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined });
 const page = await browser.newPage();
+
+async function links(route, pattern) {
+  await page.goto(BASE + route, { waitUntil: "networkidle" });
+  const hrefs = await page.$$eval("a[href]", (as) => as.map((a) => a.getAttribute("href")));
+  return [...new Set(hrefs.filter((h) => h && pattern.test(h)))];
+}
+
+async function discover() {
+  const dashboard = `/org/${ORG}/dashboard`;
+  const studies = await links(dashboard, /\/studies\/STU-[0-9a-f]+$/);
+  const clients = await links(dashboard, /\/clients\/CLI-[0-9a-f]+$/);
+  const routes = [dashboard, ...clients.slice(0, 1), ...studies];
+  for (const study of studies) {
+    const [project] = await links(study, /\/projects\/PRJ-[0-9a-f]+$/);
+    if (project) routes.push(`${project}?field=audience`, `${project}/stages/REPORT`);
+  }
+  if (studies.length === 0) {
+    console.error(`check-layout: no studies linked from ${dashboard} — is the API up and seeded?`);
+    process.exit(2);
+  }
+  return routes;
+}
+
+const ROUTES = process.env.LAYOUT_ROUTES ? process.env.LAYOUT_ROUTES.split(",") : await discover();
+console.log(`check-layout: ${ROUTES.length} routes`);
 let failures = 0;
 
 for (const route of ROUTES) {

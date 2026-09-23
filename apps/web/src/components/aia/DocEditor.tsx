@@ -11,7 +11,7 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
-import { Card, Pill } from "@/components/aia/ui";
+import { Panel } from "@/components/ui";
 import { RibbonButton, RibbonGroup } from "@/components/aia/Ribbon";
 import {
   acceptProposal,
@@ -158,7 +158,7 @@ export function DocEditor({ studyId }: { studyId: string }) {
           <div className="flex items-center justify-between border-b border-border px-4 py-2">
             <div className="text-sm font-semibold text-ink">Dokument</div>
             <div className="flex items-center gap-2">
-              {hasProposal ? <Pill tone="zinc">Čeká návrh změn</Pill> : <Pill tone="zinc">Bez návrhu</Pill>}
+              {hasProposal ? <span className="inline-flex items-center rounded-sm border border-border px-1.5 text-xs text-ink-muted">{t("docEditor.proposalPending")}</span> : <span className="inline-flex items-center rounded-sm border border-border px-1.5 text-xs text-ink-muted">{t("docEditor.noProposal")}</span>}
               <button
                 className="rounded-md bg-signal px-3 py-2 text-xs font-semibold text-on-signal hover:brightness-110"
                 onClick={saveCurrent}
@@ -259,7 +259,7 @@ export function DocEditor({ studyId }: { studyId: string }) {
         ) : null}
       </div>
 
-      <Card title={t("docEditor.assistant")}>
+      <Panel title={t("docEditor.assistant")}>
         <div className="text-xs text-ink-muted">
           {t("docEditor.assistantHelp")}
         </div>
@@ -309,7 +309,7 @@ export function DocEditor({ studyId }: { studyId: string }) {
             <div className="mt-2 text-xs text-ink-muted">{t("docEditor.message")}: {state.lastProposalMeta.prompt}</div>
           </div>
         ) : null}
-      </Card>
+      </Panel>
     </div>
   );
 }

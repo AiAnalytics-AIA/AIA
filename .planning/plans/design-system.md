@@ -1,6 +1,6 @@
 # Plan: AIA design system → apps/web
 
-**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–1 in review; chunks 2–3 next, then the first vertical slice. **Owner:** product-surface (A9).
+**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–3 in review; the first vertical slice next. **Owner:** product-surface (A9).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
 **Design source:** the "AIA Design System" artifact, https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
 
@@ -148,6 +148,85 @@ Chunks 4–11 resume only after that slice is working and reviewed.
   from zinc/blue/amber classes to token utilities. Amber now appears only on the
   waiting-on-a-person tone: the report editor's "proposal ready" is neutral.
 
+- **Chunk 2 — domain enum binding** (branch `feature/enum-binding`). There are 17
+  bound enums plus both lifecycles (ids and Czech labels). Two independent
+  tripwires, both demonstrated by adding a fake `PAUSED_BY_ADMIN` stage status:
+  1. `satisfies Record<Enum, Tone>` / `Record<Enum, string>` in
+     `src/design/status.ts`. A value without a treatment or label fails `tsc`.
+  2. `tools/enum_parity_check.py` (`make enum_check`, backend CI job, blocking)
+     compares values and order in both directions. It also forces a decision on
+     any *new* domain enum: `InteractionMode`, `RecoveryAction`, `DataClass` and
+     `ResidencyZone` are listed as deliberately unbound, each with a reason.
+     `packages/aia_core/tests/test_enum_parity_check.py` covers it with 6 tests.
+  DS-3 is encoded: the base maps can never produce the personal `you` tone.
+  `appearance()` upgrades `person` → `you` only when the caller passes the API's
+  `viewerCanResolve: true` (OI-11); anything else renders "čeká na tým / správce".
+  Evidence roles: 4 known. Any other value, including null, is `unknown` (OI-9).
+  There is no Python evidence enum yet, so evidence is not in the parity check;
+  it joins when analysis-governance publishes one.
+
+- **Chunk 3 — primitives + Vitest** (branch `feature/web-primitives`). DS-1:
+  Vitest 3 + Testing Library + jsdom. `npm test` runs in CI and is blocking.
+  `src/components/ui/` holds `StatusGlyph`, `StatusChip`, `EvidenceMark`,
+  `Value`, `Money`, `Icon`, `Button`, `Kbd` and `Panel`. All are server
+  components; `ThemeSwitch` is the one client component. 117 tests, including
+  the required ones:
+  - zero ≠ null, null ≠ suppressed, and suppression always carries its reason;
+  - an unknown evidence role is never measured;
+  - every status of the 9 bound status enums renders a Czech label and a
+    shaped glyph;
+  - the five room-scale tones have five distinct shapes;
+  - DS-3: team vs "you" is decided only by `viewerCanResolve`;
+  - chip classes use token utilities only, and the solid amber fill is
+    reserved for `you`;
+  - `ThemeSwitch` works with light, dark and system, including from the
+    keyboard;
+  - `Button` activates on Enter and Space and has no `disabled` prop at all;
+  - tokens resolve in both themes.
+  Evidence marks are SVG, with the "?" drawn as a path rather than typed. The
+  demo's `components/aia/ui.tsx` (`Card`, `Pill`) is gone; screens use `Panel`
+  and `StatusChip`. `/dev/states` is a dev-only state gallery for review
+  screenshots, and 404s unless `AIA_ENABLE_DEV_PAGES=1`.
+
+- **Chunk V — first vertical slice** (branch `feature/web-first-slice`). Portfolio
+  → Client → Study → Project (workflow state) → Stage now read the **real API**,
+  server-side, through `src/lib/api/` (`client.ts`, `validate.ts`,
+  `endpoints.ts`). Every response is shape-checked; a mismatch is an
+  `invalid_response` error, never coerced. Failures render as
+  `ApiErrorPanel` with a Czech recovery step and the request id; nothing falls
+  back to fixture data. A 404 — and a 422 on a malformed path id — is the page's
+  404. `tools/dev_seed.py` (`make dev-seed`) provisions a world through the real
+  authorisation path (LEAD on one client, VIEWER on the other).
+  What the slice shows, and from where:
+  - Scope header: client name + monogram + Client / Study crumbs. The accent is
+    the hash fallback, marked OI-12 on screen until `accent_slot` exists.
+  - Portfolio: study status, the viewer's role, remaining budget (withheld costs
+    render as *suppressed*, with the reason), and each project's status.
+    "What needs you" is explicitly unavailable (OI-11).
+  - Study: status, accepts-work, role, budget/spent/remaining, and projects with
+    their current stage and its live status. Reservations: unavailable (OI-26).
+  - Project: all 13 stages with status, waiting reason, quota reset and times;
+    project history from `…/events`. The `ImpactPreview` renders the server's
+    preserve / invalidate / presentation-only split, with cost and duration
+    shown as missing (OI-10). Approvals and workflow runs: unavailable (OI-26).
+  - Stage status is real. Its artifacts and the report draft are still fixtures.
+  Counts (machine-readable in `src/fixtures/registry.ts`, enforced by
+  `registry.test.ts` in both directions): **2 fixture-backed capabilities**
+  (down from 5) and **7 unavailable capabilities**, each with an owner and a
+  register entry. No fake percentages or synthetic progress: every stage in the
+  seeded world is `NOT_STARTED`, because no workflow has run.
+  Findings filed: OI-24 (the impact route treats an unknown field as "nothing
+  changes"; the client now offers only `IMPACT_FIELDS`, bound to `IMPACT_ROOTS`
+  by `make enum_check`), OI-25 (no web sign-in; the shell labels the
+  development identity), OI-26 (no routes for runs, gates, approvals,
+  reservations or usage).
+  Evidence: 170 Vitest tests; `check:layout` discovers routes from the running
+  app, and 6 real routes × 2 widths at +35 % Czech have 0 overflows, after
+  folding the portfolio's client column into the study cell and marking the
+  table as a keyboard-scrollable region. Screens were captured in light, dark
+  and greyscale, and in the unauthenticated and API-unreachable states.
+  **Review gate:** chunks 4–11 do not start until this slice is reviewed.
+
 ## What product-surface does not own
 
 The UI renders the results of these contracts and never re-implements them:
@@ -162,6 +241,9 @@ provider fallback logic, approval authorization, and Sociomapping mathematics.
 | `ImpactPreviewEstimate` — cost and duration of re-running invalidated stages | integration-architecture, with research execution and the cost ledger | chunk 6 (until then: unavailable) | OI-10 |
 | Viewer actionability ("what needs me") — e.g. `action_required`, `action_kind`, `viewer_can_resolve`, `required_permission`, `waiting_reason`; exact shape is theirs | integration-architecture / platform-runtime | chunk V Portfolio (until then: raw system state, never assigned to the viewer) | OI-11 |
 | `clients.accent_slot` persistence change | integration-architecture (notified before the migration) | chunk 4 | OI-12 |
+| Impact route rejects an unknown field (422) instead of "nothing changes" | integration-architecture | chunk 6 (until then: the client offers only `IMPACT_FIELDS`) | OI-24 |
+| Web sign-in: a browser session and the token contract | product-surface, with integration-architecture | any non-local deployment of `apps/web` | OI-25 |
+| Read routes for runs/steps, pending gates (with the resolving permission), reservations and spend; then the approval write | platform-runtime | chunk V project and study screens (until then: unavailable) | OI-26 |
 
 ## What happens to the existing client
 

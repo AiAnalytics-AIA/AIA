@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { fixtureArtifacts, type ArtifactType, type FixtureArtifact as Artifact } from "@/fixtures/artifacts";
 import { lsGet, lsSet } from "@/lib/storage";
-import { Card, Pill } from "@/components/aia/ui";
+import { Panel } from "@/components/ui";
 import { t } from "@/i18n/t";
 
 function key(projectId: string) {
@@ -49,7 +49,7 @@ export function ArtifactsPanel({ projectId }: { projectId: string }) {
   }
 
   return (
-    <Card title={t("artifacts.title")}>
+    <Panel title={t("artifacts.title")}>
       <div className="flex items-center justify-between">
         <div className="text-xs text-ink-muted">{t("artifacts.helper")}</div>
         <button
@@ -72,8 +72,8 @@ export function ArtifactsPanel({ projectId }: { projectId: string }) {
                   <div className="mt-0.5 text-[11px] text-ink-muted">{new Date(a.createdAt).toLocaleString()}</div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <Pill tone="zinc">{typeLabel(a.type)}</Pill>
-                  <Pill tone="blue">{a.versionLabel}</Pill>
+                  <span className="inline-flex items-center rounded-sm border border-border px-1.5 text-xs text-ink-muted">{typeLabel(a.type)}</span>
+                  <span className="inline-flex items-center rounded-sm border border-border px-1.5 text-xs text-ink-muted">{a.versionLabel}</span>
                 </div>
               </div>
               {a.note ? <div className="mt-1 text-[11px] text-ink-muted">{a.note}</div> : null}
@@ -143,6 +143,6 @@ export function ArtifactsPanel({ projectId }: { projectId: string }) {
           </div>
         </div>
       ) : null}
-    </Card>
+    </Panel>
   );
 }

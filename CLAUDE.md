@@ -52,11 +52,14 @@ apps/
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope
     schemas/                Request/response models + the one error contract
-  web/                      Next.js 16 / React 19 / Tailwind 4. Fixture-backed, being wired.
+  web/                      Next.js 16 / React 19 / Tailwind 4. Reads the API server-side
+    src/lib/api/            Typed, validated API client (dev identity only: OI-25)
+    src/fixtures/registry.ts  The two lists: fixture-backed and unavailable capabilities
     src/design/             tokens.json (the one token source), domain vocabulary (enums, lifecycles)
     scripts/                build-tokens (→ tokens.css/-theme.css/tokens.ts), check-design, check-layout
     src/fixtures/           DEVELOPMENT FIXTURES, API-shaped; registry.ts lists every one
     src/lib/api/            API response types, mirrored from the Pydantic schemas
+    src/components/ui/      Primitives: StatusChip, StatusGlyph, EvidenceMark, Value, Money, Icon, Button, Kbd, Panel
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
     executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
     worker.py               The loop: claim, execute, record; reconcile on an interval
@@ -114,6 +117,8 @@ docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
+tools/enum_parity_check.py  Web client vocabulary ⇄ domain enums and impact fields (both directions)
+tools/dev_seed.py           Development world for the web slice (local only, real auth path)
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
@@ -156,6 +161,7 @@ reference's recorded outputs, vendored under
 | Start Postgres / Redis / MinIO | `make services` |
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
+| Development world | `make dev-seed` (once, on an empty migrated database) |
 | Run everything | `make dev` |
 | Run one worker | `make dev-worker` (needs `DATABASE_URL`; test executors by default) |
 | Tests | `make test` (core + API + worker) |
@@ -166,10 +172,13 @@ reference's recorded outputs, vendored under
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
+| **Web vocabulary parity** | `make enum_check` |
 | Everything CI runs | `make check` |
 | **The pre-commit sequence** | `make verify` |
 | OpenAPI document | `make openapi` |
-| Web tokens / design checks | `cd apps/web && npm run tokens` · `npm run check:design` · `npm run check:layout` |
+| Web tokens / design checks | `cd apps/web && npm run tokens` · `npm run check:design` · `npm run check:layout` (against a running, seeded API) |
+| Web against the real API | `make dev-seed`, then `AIA_DEV_SUBJECT=lead@aia.dev make dev` |
+| Web unit tests | `cd apps/web && npm test` (Vitest + Testing Library; also `make test-web`) |
 
 There is no compile step in Python. `make typecheck` is this project's
 warnings-are-errors gate: `mypy --strict` with `warn_unreachable`, plus
@@ -401,6 +410,7 @@ Hypotheses are reproduced or deleted; they are never budgeted for.
 make typecheck     # mypy --strict; this project's warnings-are-errors gate
 make layer_check
 make exposure_check
+make enum_check
 ruff format --check packages/aia_core apps/api migrations
 make test
 ```

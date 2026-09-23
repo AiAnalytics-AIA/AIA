@@ -56,3 +56,19 @@ export function stageLabel(projectType: ProjectType, stageId: string): string | 
   const hit = stagesFor(projectType).find(([id]) => id === stageId);
   return hit ? hit[1] : null;
 }
+
+/**
+ * Content fields the edit preview (`GET …/impact?field=`) understands — the keys
+ * of `IMPACT_ROOTS` in `aia_core/domain/pipeline.py`, in the same order. Bound by
+ * `tools/enum_parity_check.py`. Only these are offered: the API answers an
+ * unknown field with "nothing is invalidated" rather than an error (OI-24), so
+ * a free-text field would let a typo pass for a safe edit.
+ */
+export const IMPACT_FIELDS = [
+  "brief", "briefing", "goal", "decision_use", "research_plan", "questionnaire",
+  "sections", "tracked_objects", "audience", "persona_dimensions", "n", "sample",
+  "panel_mode", "provider", "preferred_provider", "provider_policy", "model",
+  "analysis_instructions", "analysis_style", "report_style", "report_branding",
+  "simulation_change", "scenario", "scenario_contract", "variants",
+] as const;
+export type ImpactField = (typeof IMPACT_FIELDS)[number];

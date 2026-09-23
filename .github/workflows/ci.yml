@@ -16,7 +16,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 permissions:
   contents: read
@@ -72,6 +72,11 @@ jobs:
         # does not remove it from history -- and that is true of a private
         # repository too. See docs/migration/public-exposure-remediation.md.
         run: ./tools/exposure_check.sh
+
+      - name: Web vocabulary in parity with the domain enums
+        # Python half of the binding; the TypeScript half is `satisfies Record<…>`
+        # in apps/web/src/design/status.ts, checked by the frontend job's tsc.
+        run: python tools/enum_parity_check.py
 
       - name: Lint
         run: |
@@ -222,7 +227,7 @@ jobs:
           path: openapi.json
 
   frontend:
-    name: Frontend (lint, types, build)
+    name: Frontend (lint, types, tests, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -243,6 +248,8 @@ jobs:
         run: npm run check:design
       - run: npm run lint
       - run: npx tsc --noEmit
+      - name: Unit tests (Vitest + Testing Library)
+        run: npm test
       - run: npm run build
 
   startup-smoke:

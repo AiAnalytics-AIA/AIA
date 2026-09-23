@@ -267,6 +267,19 @@ alembic check           # the schema matches the models — catches a model
 alembic downgrade base && alembic upgrade head   # it is reversible
 ```
 
+**The migrations do not run on SQLite.** Several revisions ALTER constraints,
+which SQLite cannot do outside batch mode, so `alembic upgrade head` on a SQLite
+URL dies part-way and leaves a schema the models disagree with — the first insert
+then fails on a missing column (`organizations.allow_self_approval`). The SQLite
+path is `Base.metadata.create_all()`, which is what the test fixtures use.
+
+```bash
+# wrong — half-migrates, then the seed fails on a missing column
+DATABASE_URL=sqlite:///./tmp/dev.db alembic upgrade head && make dev-seed
+# right — a real database for anything that runs migrations
+make services && make migrate && make dev-seed
+```
+
 `migrations/versions/` is excluded from `mypy` and from `ruff`'s extended
 selection: revisions are generated code, and they are verified by being executed
 in CI rather than type-checked.
@@ -412,6 +425,47 @@ payload of *successful* pages, as the boundary's fallback, so a text search
 reports a "not found" on a 200. Verify with
 `curl -o /dev/null -w "%{http_code}"`.
 
+**A malformed path id is a 422, not a 404.** Path parameters carry patterns
+(`^STU-[0-9a-f]{1,32}$`), so `/studies/STU-nope` fails validation before any
+lookup and answers `422 validation_error` with `loc: ["path", …]`. A page that
+only maps 404 to `notFound()` renders a validation error for a mistyped URL.
+`src/lib/api/client.ts` (`errorKind`) treats a 422 whose every error is in the
+path as not-found; a 422 on the query or body stays an error.
+
+**`check:layout` counts a scrolled table as overflow unless you say it scrolls.**
+An element inside an `overflow-x-auto` box still has a bounding rect past the
+viewport, so the +35 % check reports it "off-page". Where horizontal scrolling is
+the intended behaviour (a wide data table), mark the scroll box `data-scroll-x`,
+and give it `tabIndex={0}` and an `aria-label` so keyboard users can scroll it.
+Anywhere else, fix the layout instead.
+
+### Vitest and Testing Library
+
+**jsdom 30 needs Node 22.22.2 or newer, and fails obscurely on older ones.**
+Its bundled undici calls `webidl.util.markAsUncloneable`, which older Node
+releases do not provide, so every test file dies with `TypeError:
+webidl.util.markAsUncloneable is not a function` before a single test runs. CI
+pinned Node 20 and went red on exactly this, while a local Node 22 passed. The
+requirement is now stated in `apps/web/package.json` (`engines`) and CI runs
+Node 22 (`NODE_VERSION` in `.github/workflows/ci.yml`).
+
+**Do not add `@vitejs/plugin-react` to the Vitest config.** Its current release
+depends on a newer Vite than the one Vitest 3 bundles, so the config fails
+`tsc` with an unreadable `Plugin<any>[] is not assignable to PluginOption`.
+The tests need no Fast Refresh: `esbuild: { jsx: "automatic" }` is enough.
+
+**Czech numbers contain U+00A0; matcher strings must not.** `Intl.NumberFormat("cs-CZ")`
+separates thousands and units with a non-breaking space. Testing Library
+normalises the *node's* text to plain spaces before matching, but not the
+string you pass, so a literal NBSP in the query never matches:
+
+```ts
+// wrong — the NBSP in the query survives, the node's was normalised away
+screen.getByText("12\u00a0480,50\u00a0USD");
+// right — match normalised text, and assert the raw separators separately
+screen.getByText("12 480,50 USD");
+expect(container.textContent).toBe("12\u00a0480,50\u00a0USD");
+```
 ### React 19 lint: external state goes through `useSyncExternalStore`
 
 `eslint-config-next` enables `react-hooks/set-state-in-effect`, which is an
