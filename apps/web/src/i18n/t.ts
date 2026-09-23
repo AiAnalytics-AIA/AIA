@@ -1,24 +1,22 @@
 import { cs } from "@/i18n/cs";
 
-// Minimal i18n helper (MVP): Czech-only UI.
-// Docs remain English.
+// Czech-only UI for now; docs remain English.
 
-type Dict = typeof cs;
+type Leaves<T, P extends string = ""> = {
+  [K in keyof T & string]: T[K] extends string ? `${P}${K}` : Leaves<T[K], `${P}${K}.`>;
+}[keyof T & string];
 
-function get(obj: Record<string, unknown>, path: string) {
-  return path
-    .split(".")
-    .reduce<unknown>(
-      (acc, k) =>
-        acc && typeof acc === "object"
-          ? (acc as Record<string, unknown>)[k]
-          : undefined,
-      obj,
-    );
+/** Every valid copy key, e.g. "portfolio.title". A typo is a type error, not a raw key on screen. */
+export type CopyKey = Leaves<typeof cs>;
+
+function get(obj: unknown, path: string): unknown {
+  return path.split(".").reduce<unknown>(
+    (acc, k) => (acc && typeof acc === "object" ? (acc as Record<string, unknown>)[k] : undefined),
+    obj,
+  );
 }
 
-export function t(key: string): string {
-  const v = get(cs as unknown as Dict, key);
-  if (typeof v === "string") return v;
-  return key;
+export function t(key: CopyKey): string {
+  const v = get(cs, key);
+  return typeof v === "string" ? v : key;
 }

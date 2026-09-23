@@ -2,8 +2,8 @@
 
 export function RibbonGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{title}</div>
+    <div className="rounded-md border border-border bg-surface-sunken p-2">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{title}</div>
       <div className="mt-2">{children}</div>
     </div>
   );
@@ -23,10 +23,10 @@ export function RibbonButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`h-9 rounded-md border px-2 text-xs font-semibold transition-colors ${
+      className={`min-h-9 rounded-sm border px-2 text-xs font-semibold [overflow-wrap:anywhere] transition-colors ${
         disabled
-          ? "cursor-not-allowed border-zinc-200 bg-white text-zinc-400"
-          : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-100"
+          ? "cursor-not-allowed border-border bg-surface-raised text-ink-faint"
+          : "border-border bg-surface-raised text-ink hover:bg-surface-sunken"
       }`}
     >
       {children}

@@ -80,7 +80,9 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 ## In progress
 
-Nothing. The tree is green.
+| What | Plan | State |
+|---|---|---|
+| Design system into `apps/web` | [`plans/design-system.md`](plans/design-system.md) | Chunks 0 (vocabulary) and 1 (tokens) in review; chunks 2–3 follow as stacked PRs |
 
 ## Repository visibility — D5, frozen
 

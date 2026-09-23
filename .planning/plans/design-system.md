@@ -1,6 +1,6 @@
 # Plan: AIA design system → apps/web
 
-**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–3 next, then the first vertical slice. **Owner:** product-surface (A9).
+**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–1 in review; chunks 2–3 next, then the first vertical slice. **Owner:** product-surface (A9).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
 **Design source:** the "AIA Design System" artifact, https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
 
@@ -114,6 +114,39 @@ Chunks 4–11 resume only after that slice is working and reviewed.
 | 9 | **Results.** `HeadlineAnswer`, `GradedBars`, the respondent explorer, `Sociomap` (`"use client"`: drag saves a view override through the API; it never mutates results). | `components/results` | a view-override test: the original is unchanged |
 | 10 | **Deliverable.** The `.aia-doc` register, the cover, the evidence margin, the holdout statement, and the export spec handed to the report service. | `components/doc` | greyscale-print snapshot |
 | 11 | **Remaining screens.** Recompose the other screens on real endpoints where they exist. | pages | +35 % string test at 1280 / 1024 |
+
+## Chunk log
+
+- **Chunk 0 — vocabulary alignment** (branch `feature/web-vocabulary`). The
+  "cases" routes, the five-gate and nine-status flow, and the "agents"/"templates"
+  pages are gone. Old paths redirect (307) to Portfolio instead of 404ing. Browser
+  routes follow the API's study scoping: `/org/[orgSlug]/studies/[studyId]/projects/[projectId]/stages/[stageId]`.
+  The org segment is kept, because renaming it would break existing links for no
+  gain. Screens render API-shaped fixtures (`src/fixtures/`), each marked on screen,
+  with 5 fixture-backed capabilities in `src/fixtures/registry.ts`. Copy keys are
+  now typed: a missing key is a `tsc` error. Unknown ids return 404 with the same
+  copy for "missing" and "not granted", as the API does.
+
+- **Chunk 1 — tokens, themes, identity** (branch `feature/design-tokens`).
+  `src/design/tokens.json` is the one source. `scripts/build-tokens.mjs` generates
+  `src/app/tokens.css`, `src/app/tokens-theme.css` (the Tailwind `@theme inline`
+  mapping) and `src/design/tokens.ts`, and `tokens:check` fails CI on drift. The
+  artifact page's generated CSS is not used. Themes are light, dark and system;
+  the system theme sets no attribute and follows the OS. The preference is stored
+  per viewer and applied before first paint. The four faces are self-hosted with
+  `next/font/local`, with their OFL licences beside them. The mark, wordmark,
+  lockup, motif and favicon set are repository files. Evidence re-measured from
+  the repository:
+  - `check:design`: 146 contrast checks, 0 failures.
+  - Chart palette: colour-blind ΔE 9.2 light / 9.3 dark, normal-vision ΔE
+    27.6 / 24.6, and the first three slots pass all-pairs.
+  - Accent separation: ΔE ≥ 7.6 from status/UI/chart colours and ≥ 12.9 between
+    accents.
+  - `check:layout`: +35 % Czech at 1280 and 1024 px, 0 overflows, after fixing
+    the Report stage, which overflowed on first run.
+  `check:layout` needs a browser, so it is manual for now. Existing screens moved
+  from zinc/blue/amber classes to token utilities. Amber now appears only on the
+  waiting-on-a-person tone: the report editor's "proposal ready" is neutral.
 
 ## What product-surface does not own
 

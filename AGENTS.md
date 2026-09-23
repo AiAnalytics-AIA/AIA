@@ -380,3 +380,50 @@ on `apps/web/package-lock.json` — caching on a branch name gives a stale
 
 The client renders state the server computed. `GET …/impact` exists precisely so
 no component reasons about which stages an edit invalidates.
+
+### Tailwind 4 and the token theme
+
+**`dark:` follows the OS, not our `data-theme` attribute.** The theme is chosen
+per viewer (`<html data-theme="light|dark">`, or no attribute for "system"), and
+Tailwind 4's default `dark:` variant is `prefers-color-scheme`. So a viewer who
+picked light on a dark OS still gets every `dark:` utility.
+
+```tsx
+// wrong — shows the dark asset whenever the OS is dark, whatever the viewer chose
+<img src="/brand/aia-wordmark.svg" className="dark:hidden" />
+// right — colour comes from tokens, which already follow data-theme
+<Wordmark label={t("app.name")} />   // SVG in currentColor + var(--signal)
+```
+
+Prefer token utilities (`bg-surface`, `text-ink`), which switch with the
+attribute, over any `dark:` variant.
+
+**`@theme inline` must not map a token onto a variable of the same name.**
+`--radius-sm: var(--radius-sm)` inside `@theme inline` is a self-reference that
+resolves to nothing, and every `rounded-sm` silently loses its radius. The
+generator (`scripts/build-tokens.mjs`) writes literal values for radii and a
+`-stack` suffix for font variables (`--font-sans: var(--font-sans-stack)`), which
+avoids this. Never hand-edit `tokens.css`, `tokens-theme.css` or `tokens.ts`:
+`npm run tokens:check` fails CI on drift.
+
+**Check a 404 by status code, never by grepping the page.** A page that calls
+`notFound()` does return 404, but the not-found copy also appears in the RSC
+payload of *successful* pages, as the boundary's fallback, so a text search
+reports a "not found" on a 200. Verify with
+`curl -o /dev/null -w "%{http_code}"`.
+
+### React 19 lint: external state goes through `useSyncExternalStore`
+
+`eslint-config-next` enables `react-hooks/set-state-in-effect`, which is an
+**error**. Copying `localStorage` into state from an effect trips it:
+
+```tsx
+// wrong — setState in an effect body; also renders "system" once, then flips
+useEffect(() => { setPref(localStorage.getItem("aia.theme") ?? "system"); }, []);
+// right — read the external store directly; the server snapshot keeps hydration stable
+const pref = useSyncExternalStore(subscribe, readPreference, () => "system");
+```
+
+Read lint's error count, not its last line. `npm run lint | tail -1` prints
+"0 errors and 1 warning potentially fixable" even when an unfixable error sits
+above it. That is how this rule reached CI once.

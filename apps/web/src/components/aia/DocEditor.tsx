@@ -20,12 +20,14 @@ import {
   rejectProposal,
   setDocState,
 } from "@/lib/doc";
+import { t } from "@/i18n/t";
 
+// DEVELOPMENT FIXTURE (registry: "report-draft"): proposals are simulated in the
+// browser. The roles are the domain's model roles, not an invented agent roster.
 const AGENTS = [
-  { id: "editor", name: "Editor" },
-  { id: "research", name: "Research" },
-  { id: "finance", name: "Finance" },
-  { id: "qa", name: "QA" },
+  { id: "report_polish_model", name: t("modelRole.report_polish_model") },
+  { id: "analysis_model", name: t("modelRole.analysis_model") },
+  { id: "research_model", name: t("modelRole.research_model") },
 ];
 
 export function DocEditor({ studyId }: { studyId: string }) {
@@ -84,7 +86,7 @@ export function DocEditor({ studyId }: { studyId: string }) {
     // Snapshot current from editor (ensures we propose on latest state)
     const current = editor.getJSON();
 
-    // Simple mock “agent” behavior: append a short formal Czech paragraph + a tiny table.
+    // Simulated assistant proposal (fixture): append a short formal Czech paragraph + a tiny table.
     const proposed = structuredClone(current) as Record<string, unknown>;
 
     const p = proposed as unknown as { content?: unknown[] };
@@ -92,7 +94,7 @@ export function DocEditor({ studyId }: { studyId: string }) {
     p.content.push({
       type: "heading",
       attrs: { level: 2 },
-      content: [{ type: "text", text: "Návrh doplnění (od agenta)" }],
+      content: [{ type: "text", text: t("docEditor.proposalHeading") }],
     });
     p.content.push({
       type: "paragraph",
@@ -149,16 +151,16 @@ export function DocEditor({ studyId }: { studyId: string }) {
   const hasProposal = Boolean(state.proposed);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-3">
         {/* Ribbon (Word-like) */}
-        <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2">
-            <div className="text-sm font-semibold text-zinc-900">Dokument</div>
+        <div className="rounded-md border border-border bg-surface-raised ">
+          <div className="flex items-center justify-between border-b border-border px-4 py-2">
+            <div className="text-sm font-semibold text-ink">Dokument</div>
             <div className="flex items-center gap-2">
-              {hasProposal ? <Pill tone="amber">Čeká návrh změn</Pill> : <Pill tone="green">Bez návrhu</Pill>}
+              {hasProposal ? <Pill tone="zinc">Čeká návrh změn</Pill> : <Pill tone="zinc">Bez návrhu</Pill>}
               <button
-                className="rounded-md bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
+                className="rounded-md bg-signal px-3 py-2 text-xs font-semibold text-on-signal hover:brightness-110"
                 onClick={saveCurrent}
               >
                 Uložit
@@ -167,14 +169,14 @@ export function DocEditor({ studyId }: { studyId: string }) {
           </div>
 
           <div className="grid gap-3 px-4 py-3">
-            <div className="grid gap-3 lg:grid-cols-4">
+            <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
               <RibbonGroup title="Písmo">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(56px,1fr))] gap-2">
                   <RibbonButton onClick={() => editor?.chain().focus().toggleBold().run()}>B</RibbonButton>
                   <RibbonButton onClick={() => editor?.chain().focus().toggleItalic().run()}>I</RibbonButton>
                   <RibbonButton onClick={() => editor?.chain().focus().toggleUnderline().run()}>U</RibbonButton>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] gap-2">
                   <RibbonButton onClick={() => editor?.chain().focus().setParagraph().run()}>Normální</RibbonButton>
                   <RibbonButton onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>Nadpis 1</RibbonButton>
                   <RibbonButton onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}>Nadpis 2</RibbonButton>
@@ -183,13 +185,13 @@ export function DocEditor({ studyId }: { studyId: string }) {
               </RibbonGroup>
 
               <RibbonGroup title="Odstavec">
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(56px,1fr))] gap-2">
                   <RibbonButton onClick={() => editor?.chain().focus().setTextAlign("left").run()}>Vlevo</RibbonButton>
                   <RibbonButton onClick={() => editor?.chain().focus().setTextAlign("center").run()}>Na střed</RibbonButton>
                   <RibbonButton onClick={() => editor?.chain().focus().setTextAlign("right").run()}>Vpravo</RibbonButton>
                   <RibbonButton onClick={() => editor?.chain().focus().setTextAlign("justify").run()}>Do bloku</RibbonButton>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] gap-2">
                   <RibbonButton onClick={() => editor?.chain().focus().toggleBulletList().run()}>Odrážky</RibbonButton>
                   <RibbonButton onClick={() => editor?.chain().focus().toggleOrderedList().run()}>Číslování</RibbonButton>
                 </div>
@@ -207,7 +209,7 @@ export function DocEditor({ studyId }: { studyId: string }) {
                   <RibbonButton disabled>Obrázek</RibbonButton>
                   <RibbonButton disabled>Zalomení stránky</RibbonButton>
                 </div>
-                <div className="mt-2 text-[11px] text-zinc-500">(obrázky + DOCX export doplníme)</div>
+                <div className="mt-2 text-[11px] text-ink-muted">(obrázky + DOCX export doplníme)</div>
               </RibbonGroup>
 
               <RibbonGroup title="Revize">
@@ -221,11 +223,11 @@ export function DocEditor({ studyId }: { studyId: string }) {
         </div>
 
         {/* A4 page canvas */}
-        <div className="rounded-xl border border-zinc-200 bg-zinc-200/50 p-6">
+        <div className="rounded-md border border-border bg-surface-sunken p-6">
           <div className="mx-auto w-full max-w-[820px]">
-            <div className="rounded-sm bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <div className="rounded-sm border border-doc-rule bg-doc-paper text-doc-ink">
               <div className="px-16 py-14">
-                <div className="prose max-w-none prose-zinc">
+                <div className="max-w-none font-serif">
                   <EditorContent editor={editor} />
                 </div>
               </div>
@@ -234,38 +236,38 @@ export function DocEditor({ studyId }: { studyId: string }) {
         </div>
 
         {hasProposal ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-            <div className="text-xs font-semibold text-amber-900">Návrh změn je připraven</div>
-            <div className="mt-1 text-xs text-amber-900/80">
-              Klikněte na „Přijmout změny“ pro aplikaci návrhu na celý dokument, nebo „Zamítnout“.
+          <div className="rounded-md border border-border-strong bg-surface-sunken p-3">
+            <div className="text-xs font-semibold text-ink">{t("docEditor.proposalReady")}</div>
+            <div className="mt-1 text-xs text-ink-muted">
+              {t("docEditor.proposalHelp")}
             </div>
             <div className="mt-3 flex gap-2">
               <button
-                className="rounded-md bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
+                className="rounded-md bg-signal px-3 py-2 text-xs font-semibold text-on-signal hover:brightness-110"
                 onClick={onAccept}
               >
-                Přijmout změny
+                {t("docEditor.accept")}
               </button>
               <button
-                className="rounded-md border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+                className="rounded-sm border border-border-strong bg-surface-raised px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-sunken"
                 onClick={onReject}
               >
-                Zamítnout
+                {t("docEditor.reject")}
               </button>
             </div>
           </div>
         ) : null}
       </div>
 
-      <Card title="Agent">
-        <div className="text-xs text-zinc-600">
-          Vyberte agenta, napište zprávu a nechte jej připravit návrh změn pro celý dokument.
+      <Card title={t("docEditor.assistant")}>
+        <div className="text-xs text-ink-muted">
+          {t("docEditor.assistantHelp")}
         </div>
 
-        <label className="mt-3 block text-xs text-zinc-700">
-          Agent
+        <label className="mt-3 block text-xs text-ink-muted">
+          {t("docEditor.modelRole")}
           <select
-            className="mt-1 h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm"
+            className="mt-1 h-10 w-full rounded-md border border-border bg-surface-raised px-3 text-sm"
             value={agent}
             onChange={(e) => setAgent(e.target.value)}
           >
@@ -277,11 +279,11 @@ export function DocEditor({ studyId }: { studyId: string }) {
           </select>
         </label>
 
-        <label className="mt-3 block text-xs text-zinc-700">
-          Zpráva
+        <label className="mt-3 block text-xs text-ink-muted">
+          {t("docEditor.message")}
           <textarea
-            className="mt-1 min-h-[120px] w-full rounded-md border border-zinc-200 bg-white p-3 text-sm"
-            placeholder="Popište, co má agent doplnit/upravit (formální čeština)…"
+            className="mt-1 min-h-[120px] w-full rounded-md border border-border bg-surface-raised p-3 text-sm"
+            placeholder={t("docEditor.messagePlaceholder")}
             value={chat}
             onChange={(e) => setChat(e.target.value)}
           />
@@ -289,22 +291,22 @@ export function DocEditor({ studyId }: { studyId: string }) {
 
         <div className="mt-3 flex gap-2">
           <button
-            className="rounded-md bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
+            className="rounded-md bg-signal px-3 py-2 text-xs font-semibold text-on-signal hover:brightness-110"
             onClick={generateProposal}
           >
-            Vygenerovat návrh změn
+            {t("docEditor.generate")}
           </button>
         </div>
 
         {state.lastProposalMeta ? (
-          <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
-            <div className="text-xs font-semibold text-zinc-900">Poslední návrh</div>
-            <div className="mt-1 text-xs text-zinc-600">
-              Agent: <span className="font-medium">{state.lastProposalMeta.agent}</span>
+          <div className="mt-4 rounded-md border border-border bg-surface-raised p-3">
+            <div className="text-xs font-semibold text-ink">{t("docEditor.lastProposal")}</div>
+            <div className="mt-1 text-xs text-ink-muted">
+              {t("docEditor.modelRole")}: <span className="font-medium">{state.lastProposalMeta.agent}</span>
               <br />
-              Čas: {new Date(state.lastProposalMeta.createdAt).toLocaleString()}
+              {t("docEditor.time")}: {new Date(state.lastProposalMeta.createdAt).toLocaleString("cs-CZ")}
             </div>
-            <div className="mt-2 text-xs text-zinc-700">Zpráva: {state.lastProposalMeta.prompt}</div>
+            <div className="mt-2 text-xs text-ink-muted">{t("docEditor.message")}: {state.lastProposalMeta.prompt}</div>
           </div>
         ) : null}
       </Card>
