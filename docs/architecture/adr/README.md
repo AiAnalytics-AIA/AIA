@@ -19,6 +19,7 @@ revisit it.
 | [0009](0009-single-host-develop-environment.md) | One EC2 host under Docker Compose runs the `develop` environment; production compute stays open | **Accepted — develop only; live 2026-09-23** |
 | [0010](0010-bedrock-eu-inference-route.md) | Amazon Bedrock, EU geography, as the first governed inference route (`bedrock-eu-primary`, Class C) | **Proposed** |
 | [0011](0011-vendor-legacy-product-unit.md) | Vendor the NPC Panel 18.6.6 product as a frozen, regenerated unit at `legacy/npc-panel-18.6.6/`; run it as the baseline and parity oracle on its own gated hostname | **Accepted — develop; unit frozen** |
+| [0012](0012-legacy-interface-as-product-facade.md) | Serve the 18.6.6 interface on the product hostname behind AIA sign-in (org owners/admins), and rebuild each feature behind it; supersedes ADR 0011's "never user-facing" | **Accepted — develop only** |
 
 ADR 0005 is deliberately two rows. The gateway contract and the library that might
 implement it are independent decisions, and collapsing them into one status blocked

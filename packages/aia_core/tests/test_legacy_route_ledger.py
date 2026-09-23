@@ -74,7 +74,7 @@ def test_every_row_is_well_formed(routes: list[dict[str, Any]]) -> None:
         assert r["path"].startswith("/"), r["route"]
         assert r["status"] in STATUSES, r["route"]
         assert r["scope"] in SCOPES, r["route"]
-        assert isinstance(r["slice"], int) and 2 <= r["slice"] <= 15, r["route"]
+        assert isinstance(r["slice"], int) and 3 <= r["slice"] <= 16, r["route"]
         assert r["family"] and r["api_ledger_capability"], r["route"]
         assert r["reference_capabilities"] == sorted(set(r["reference_capabilities"])), r["route"]
         assert r["arms"], r["route"]
@@ -150,7 +150,7 @@ def test_every_slice_in_the_ledger_is_in_the_plan(routes: list[dict[str, Any]]) 
     plan = PLAN.read_text(encoding="utf-8")
     slices = {int(m.group(1)) for m in re.finditer(r"^\| (\d+) \|", plan, re.M)}
     for r in routes:
-        assert r["slice"] in slices or r["slice"] >= 15, f"{r['route']} names slice {r['slice']}"
+        assert r["slice"] in slices or r["slice"] >= 16, f"{r['route']} names slice {r['slice']}"
 
 
 # --------------------------------------------------------------------------- #
