@@ -42,6 +42,13 @@ than zero tests, rather than that it exited zero.
 **Status.** Open. Mitigated, honestly reported by the workflow itself, promotion
 condition recorded in `ARCHITECTURE.md §8`.
 
+**Widened 2026-09-22.** The evidence-governance parity cases that read the private
+reference repository (`AIA_REFERENCE_REPO`, e.g.
+`test_evidence_gate_parity.py::test_every_reference_field_rederives_identically`)
+skip in CI for the same reason. The recovered decision tables in that module do
+not need the reference and run everywhere; the 400-field checks do not. The same
+decision (D3) closes both.
+
 ---
 
 ## OI-2 · Finding · The dependency audit cannot fail
@@ -520,6 +527,91 @@ can emit a Sociomap to a client.
 
 ---
 
+## OI-18 · Question · Gate decisions that only the withheld legacy source can confirm
+
+**Claim.** Five decisions in the evidence layer are fail-closed *readings* of the
+reference, because the legacy source is withheld with the archive
+(`REF-WITHHELD-REFERENCE-ARCHIVE`) and the reference repository records only
+excerpts, constants and thresholds for them:
+
+| Decision | Reading taken | Recovered evidence |
+| --- | --- | --- |
+| `tier_gate.py` Tier B permissions | aggregate, demographic breakdown, internal experimental; nothing else | docstring excerpt stops at "demographic breakdowns ma…" |
+| `tier_gate.py` Tier C | internal experimental only | not in the excerpt at all |
+| `core_joint._fallback()` values | every `*_allowed` false, no matched block certified | only that it exists and when it is used |
+| `uncertainty.py:129` `nlayer < 50` | donor-layer *indicative* line | the threshold, not the branch it guards |
+| `factual_layer.py` `fact_kind="fact"` without a source field | refused | docstring excerpt stops at "…wi" |
+
+**Anchor.** Tests `test_evidence_validation.py::test_tier_permits`,
+`test_evidence_joint_status.py::test_degraded_status_permits_nothing`,
+`test_evidence_support.py::test_donor_layer_support`,
+`test_evidence_claims.py::test_metadata_that_would_need_an_invented_fact_is_refused`.
+
+**Reproduction.** With the archive: `export AIA_LEGACY_REFERENCE=…` and read the
+five functions; each test above states the decision it pins.
+
+**Consequence.** Each reading is stricter than or equal to any plausible
+reference behaviour, so the risk is over-blocking, not an unsupported claim
+reaching a client. None is asserted as parity in `test_evidence_gate_parity.py`.
+
+**Smallest fix.** Once the archive is available (D3 / the licence decision),
+turn each row into an EXACT parity case against the legacy function and correct
+the reading if it differs.
+
+**Status.** Open, blocked on the archive.
+
+---
+
+## OI-19 · Question · RELIGION is donor-matched but not named in the joint certificate
+
+**Claim.** The five `RELIGION` fields are `MATCHED_WHOLE_BLOCK_CANONICAL`
+(donor-matched), and the reference certificate's `matched_blocks` lists six
+blocks that do not include it. The claim gate therefore refuses every
+client-facing claim on them, although the field dictionary marks them eligible.
+
+**Anchor.** `test_evidence_gate_parity.py::test_claim_gate_never_permits_what_the_reference_policy_forbids`
+(asserts the narrowing is exactly `{"RELIGION"}` over all 400 fields) and
+`test_evidence_joint_status.py::test_uncertified_matched_block_is_refused_client_facing`.
+
+**Reproduction.** `AIA_REFERENCE_REPO=../aia-reference pytest -k never_permits`.
+
+**Consequence.** Religion cannot be reported to a client until this is decided.
+The reference enforced neither the dictionary nor the certificate here, so it
+would have reported it.
+
+**Smallest fix.** A data-owner decision: either the certificate should name the
+block (then it is re-issued and bound to the panel hash as usual), or the
+refusal is correct. Not an engineering judgement.
+
+**Status.** Open, with the data owner.
+
+---
+
+## OI-20 · Finding · Automatic factual-question detection is not ported
+
+**Claim.** The reference `factual_layer.py` classifies common factual survey
+questions automatically and maps them to panel fields. Only its explicit-metadata
+contract is ported; a question with no metadata resolves to `UNDECLARED`.
+
+**Anchor.** `test_evidence_claims.py::test_no_metadata_is_undeclared_not_factual`.
+
+**Reproduction.** `resolve_factual_contract(QuestionFactMetadata(), book)` returns
+`UNDECLARED` for "Kolik je vám let?".
+
+**Consequence.** Until the respondent engine exists nothing consumes this. When
+it does, it must treat `UNDECLARED` as "not proven factual" — so a factual
+question without metadata is answered by simulation rather than read from the
+panel, which is the reference's defect class, inverted: never an invented fact,
+but a fact the panel held that was not used.
+
+**Smallest fix.** Port the keyword classification from the legacy source once
+the archive is available, with a golden fixture of classified questions.
+
+**Status.** Open, blocked on the archive; must close before Phase 5's respondent
+engine ships.
+
+---
+
 ## OI-21 · Finding · A provider park can auto-resume a possibly-billed call
 
 **Claim.** When an attempt fails with `QUOTA` — or `BUDGET_EXCEEDED` or
@@ -621,3 +713,43 @@ same key fixtures, asserting identical output.
 
 **Status.** Open. Deliberately not done in the worker change set: it moves code
 the API owns, and one logical change per commit.
+
+---
+
+## OI-24 · Finding · Two field policies and two joint certificates, with different rules
+
+**Claim.** The field dictionary's claim policy and the `CORE_JOINT_STATUS` gate are
+each implemented twice, under the same names and with different semantics:
+`aia_core.domain.evidence` (`FieldPolicyBook`, `JointStatus`, used by the claim
+gate, admission and the analysis modules) and `aia_core.domain.population`
+(`FieldPolicy`, `JointStatus`, carried by `RuntimePopulation` and recorded on the
+run binding). Anti-pattern A6: one concept, two definitions, drifting.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/evidence/field_policy.py`,
+`evidence/joint_status.py` (PR #22) and
+`packages/aia_core/src/aia_core/domain/population/policy.py`,
+`population/companions.py` @ `121b746` (PR #19).
+
+**Reproduction.** Over the real 400-field dictionary the two disagree on which
+fields may back a client-facing measured claim: the evidence policy follows the
+reference export (287 eligible, `test_evidence_gate_parity.py::test_every_reference_field_rederives_identically`),
+the population policy is deliberately stricter (115, a strict subset, per `c872cd7`).
+`layer_check`'s "a joint status is issued only by its loader" rule needs a named
+exemption for `companions.py` because the second `JointStatus` is built there.
+
+**Consequence.** An analysis claim is admitted under the evidence policy while the
+run that produced the population records the population policy. A field the
+population policy refuses for client claims can still be admitted by the evidence
+gate, and nothing ties the two versions together.
+
+**Smallest fix.** A decision first: one authority. The likely shape is the
+population's `FieldPolicy` and `JointStatus` as the single source (they are bound to
+the loaded population and the run), with the evidence claim gate and admission
+consuming them in place of their own copies — keeping the evidence layer's
+claim rules, joint-unit rules, support and admission, and its parity tests
+retargeted. Then drop the `companions.py` exemption.
+
+**Test that would catch it.** One parity test asserting a single eligibility per
+field for client measured claims, and `layer_check` green with no exemption.
+
+**Status.** Open, needs a decision from the owner of both.

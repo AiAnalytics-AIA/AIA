@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `claude/intelligent-bardeen-tslz9n` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/peaceful-davinci-xuhrld` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -34,6 +34,16 @@ entry is a **hypothesis**, not a finding.
 
 
 | 9 (core) | **Sociomap deterministic engine**: spec + artifact contract v2; relation coercion, mutual projection, ipsatization, normaliser, object metrics / T-score and both terrain fields ported from the browser and the reference backend; layout **declared** (legacy algorithms refused, AIA row-conditional unfolding implemented, no parity claimed); drag and what-if as layers. F1–F9 vendored and run in every CI job | `packages/aia_core/src/aia_core/domain/sociomap/` · `test_sociomap_{relations,metrics,terrain,layout,engine,contracts,golden_fixtures}.py` · `docs/architecture/sociomapa-deterministic-engine.md` · `.planning/plans/done/sociomap-deterministic-engine.md` |
+| 6 | **Evidence governance foundation**: field dictionary as enforced policy (all 400 fields re-derive identically to the reference export), `CORE_JOINT_STATUS` hash-bound certificate, permissible-claim policy, effective-n `SUPPRESS`-by-default support, allowed-metric enum, validation bound to system fingerprint, tier gate, factual layer, `AdmittedClaim` capability enforced by `layer_check` | `packages/aia_core/src/aia_core/domain/evidence/` · `tests/test_evidence_gate_parity.py` · `.planning/plans/done/evidence-governance-foundation.md` |
+| 6 | **The eight analysis modules** against those contracts: order, input fingerprints and resume, closed draft schema, 100% prose number coverage, prompts rendered from the enums, results that hold only admitted claims; runner with repair ≤ 2 and pre-flight blocking | `packages/aia_core/src/aia_core/domain/analysis/`, `application/analysis.py` · `tests/test_analysis_runner.py` |
+
+**Verified state, evidence governance merged with main @ `121b746` (population,
+Sociomap, worker, population readiness) plus the four review fixes (2026-09-23).**
+PostgreSQL 16.13 / Python 3.12: **1592 passed / 101 skipped** across core, API and
+worker; SQLite: **1564 passed / 129 skipped**; concurrency 22/22 with
+`AIA_REQUIRE_POSTGRES=1`; migrations upgrade, `alembic check` no drift, downgrade
+to base and back; `mypy --strict` clean across 86 source files; `ruff` clean;
+`layer_check` 34/34 (one named exemption pending D8 / OI-24); `exposure_check` 7/7.
 
 **Verified state, population consumption readiness** (PostgreSQL 16.13, Python
 3.12.3, core + API): **911 passed / 100 skipped** on PostgreSQL with
@@ -207,6 +217,13 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
    dependencies: OI-9 to OI-12.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
    long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
+5a. **Reporting on admitted claims** — `client_report_v2` + `output_pack`
+   (authoritative, `report-export-inventory.md` in the reference repository),
+   consuming only `AnalysisModuleResult`. Now unblocked: the evidence layer is
+   enforceable. Needs the worker (2) and the gateway (3) to run for real.
+5b. **`statistics.uncertainty`** — Kish n, donor support and bootstrap intervals
+   computed rather than supplied; `EvidenceRow` already refuses a client
+   estimate without one. NUMERICAL parity, tolerance 1e-9, needs the archive.
 
 **Removed: "A worker process"** — done; see Completed.
 
@@ -239,6 +256,8 @@ left to build.
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 | D6 | **Accept, replace or defer the four AIA Sociomap declarations** — dissimilarity target, `aia_rowcond_unfolding_v1`, the map frame, relation-missing `refuse`. Decision package ready with approval fields; methodology owner, not engineering. **The only methodology decision preventing client use** | Any client-facing Sociomap | `docs/architecture/sociomapa-methodology-decision.md` · OI-16 |
+| D7 | **Is `RELIGION` a certified matched block?** It is donor-matched and dictionary-eligible, but absent from the certificate's `matched_blocks`, so the claim gate refuses it client-facing. Data owner | Client claims on the five religion fields | `.planning/open-items.md` OI-19 |
+| D8 | **One authority for field policy and the joint certificate.** `domain.evidence` and `domain.population` each implement both, with different eligibility (287 vs 115 client measured-claim fields). Pick one; the other consumes it | Consistent claim decisions between a run's recorded policy and the claims admitted from it | `.planning/open-items.md` OI-24 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);

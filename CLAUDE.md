@@ -83,11 +83,22 @@ packages/aia_core/src/aia_core/
       terrain.py            respondent density / object weighted mean         F7-F8
       engine.py, models.py  the pipeline and the v2 artifact
       view.py               drag overrides, view terrain, scenarios (never write) F9
+    evidence/               What may be claimed — every gate fails closed
+      field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
+      joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
+      claims.py             Permissible-claim policy: measured vs modelled, disclosures
+      support.py            Kish effective n, SUPPRESS by default, intervals required
+      metrics.py            The allowed analysis metrics, one unit each
+      validation.py         Validation bound to system fingerprint; tier gate
+      factual.py            Factual layer: panel facts are read, never invented
+      admission.py          AdmittedClaim — the ONLY way a number enters a result
+    analysis/               The eight analysis modules, drafts, prompts, results
   application/
     scope.py                ScopeResolver — the ONLY issuer of a scope context,
                             including a worker's, issued only against a held lease
     population.py           PopulationRuntime — the ONLY loader of population data
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
+    analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
   infrastructure/
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
@@ -127,9 +138,10 @@ fails the build — that would mean scope had stopped being carried in the path.
 
 **The legacy prototype is not in this repository.** It lives at
 `../npc-panel-reference`, reached through `AIA_LEGACY_REFERENCE`, and is used by
-the parity and characterization suites only. The population parity suite reads the
-committed contracts and golden fixtures of `AiAnalytics-AIA/AIA-reference` through
-`AIA_REFERENCE_REPO` (default `../aia-reference`) — never the withheld archive.
+the parity and characterization suites only. The population and evidence-governance
+parity suites read the committed contracts, ledgers, field policy and golden
+fixtures of `AiAnalytics-AIA/AIA-reference` through `AIA_REFERENCE_REPO`
+(default `../aia-reference`) — never the withheld archive, and never vendored.
 
 **The population is resolved once per run.** Research and simulation code gets
 population data only from `PopulationRuntime.load_for_run`, which reads the
@@ -143,6 +155,11 @@ contract is [docs/architecture/population.md](docs/architecture/population.md).
 reference's recorded outputs, vendored under
 `packages/aia_core/tests/fixtures/sociomap/` and pinned by SHA256 in its
 `index.json`. They run in every CI job. Never edit one to make a test pass.
+
+**Evidence is a capability, like scope.** A number reaches an analysis result only
+as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,
+joint structure, support, interval and tier have all passed. Prompts state the
+rules; they never enforce them.
 
 ## 3. Commands
 

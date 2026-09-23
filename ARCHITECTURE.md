@@ -40,7 +40,7 @@ point; nothing outside it touches its internals.
 
 | # | Layer | Path | Owns | May depend on |
 |---|---|---|---|---|
-| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract, Sociomapping mathematics. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only — numerical code included, which is why the Sociomap engine is pure Python rather than numpy. |
+| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract, Sociomapping mathematics, evidence gates, analysis modules. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only — numerical code included, which is why the Sociomap engine is pure Python rather than numpy. |
 | 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context, and the only loader of population data.** Orchestrates domain + infrastructure. | 1, 3 |
 | 3 | **Infrastructure** | `packages/aia_core/src/aia_core/infrastructure/` | SQLAlchemy tables and repositories, object storage, provider gateways. Every external service behind a protocol. | 1 |
 | 4 | **Workers** | `apps/worker/src/aia_worker/` | Durable step execution: claim from the PostgreSQL queue, heartbeat, run the `StepExecutor` registered for the step's kind, record the outcome; every worker also reconciles. **Knows nothing about what a step does.** | 1, 2, 3 — never 5 |
@@ -92,6 +92,9 @@ Run it before every commit. It is blocking in CI.
 | population panels are parsed only by the canonical loader (and never by the API) | The first step of that second loader: a consumer reading the panel itself |
 | population-operator grants are issued only by the population authority (and never by the API) | A study context, an organization owner or a request body moving LIVE for every tenant (OI-8) |
 | the Sociomap preset `AIA_SOCIOMAP_V1` is never named outside the Sociomap domain package | An engineering preset silently filling in a missing spec, and becoming client methodology by default ([sociomapa-deterministic-engine.md §13](docs/architecture/sociomapa-deterministic-engine.md#13-computable-is-not-deliverable)) |
+| claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
+| the API never admits its own claims | The same, at the edge where untrusted input arrives |
+| a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
 | no statically skipped or xfailed tests | Deleting the signal instead of fixing the defect |
 | the web client does not talk to a database | The presentation boundary crossed in the most expensive possible way |
 
@@ -132,6 +135,15 @@ script, then confirm it passes before committing.
   step reads the population only through it. Establish and promote need a
   `PopulationOperatorContext`, issued only by `PopulationAuthority`. See
   [population.md](docs/architecture/population.md).
+- **Evidence is a capability, not a flag.** A number enters an analysis result
+  only as an `AdmittedClaim`, which only `aia_core.domain.evidence.admit_numeric_claims`
+  can mint, after the field policy, the `CORE_JOINT_STATUS` certificate, support,
+  the interval rule and the tier gate have all passed. The certificate itself is an
+  `aia_core.domain.evidence.JointStatus` only `load_joint_status` can issue, bound to the loaded panel's
+  hash. A prompt may state a rule; it is never the only thing enforcing it.
+- **Every gate returns a `GateDecision`, and allowed means no violations.** There
+  is no override field, a missing input blocks, and `combine` keeps every refusal
+  so a later gate cannot launder an earlier one.
 
 ## 5. Where does this go?
 
@@ -311,6 +323,7 @@ declared tier.
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |
 | Parity suite against the legacy prototype | advisory *(skips: prototype not vendored)* |
+| Evidence-governance reference parity (`AIA_REFERENCE_REPO`) | advisory *(skips: reference repository not in CI)*; its recovered decision tables run in the blocking `pytest` step |
 
 This deviates deliberately from the tiering in the development rules, which puts
 lint and types in the advisory tier. That tier exists for day one of adoption.
