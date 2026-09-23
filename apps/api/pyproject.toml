@@ -27,6 +27,11 @@ dev = [
     "httpx>=0.28,<1",
     "ruff>=0.7,<1",
     "mypy>=1.13,<2",
+    # The vertical-slice test drives a real worker over the API's database with
+    # the real executor registry. Test-time only; the API's source imports
+    # neither, and tools/layer_check.sh keeps it that way.
+    "aia-worker",
+    "aia-executors",
 ]
 
 [tool.hatch.build.targets.wheel]
