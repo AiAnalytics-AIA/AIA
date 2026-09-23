@@ -1,0 +1,33 @@
+{
+  "client_need": "Energetický dodavatel chce navrhnout retailovou nabídku pro domácnosti, která kombinuje úsporu, jednoduchost a ochranu proti cenovým extrémům.",
+  "primary_decision": "Vybrat core tarif pro pilot, fee a hlavní benefit komunikace.",
+  "success_definition": "Management má vidět nejlepší tarif, kdo jej chce, kdy se doporučení láme a co ověřit v pilotu.",
+  "questions": [
+    "Který tarif nejlépe kombinuje switch intent, důvěru, úsporu a kontrolu?",
+    "Jak moc čistý dynamický tarif trpí obavou z volatility?",
+    "Je ochranný cenový strop dost silný?",
+    "Které domácnosti preferují fix, dynamiku nebo hybrid?",
+    "Za jakých cenových podmínek se winner mění?"
+  ],
+  "inputs": [
+    "Čtyři fiktivní tarifní koncepty.",
+    "1 500 syntetických domácností.",
+    "8 světů mění volatilitu, finanční stres, digitální důvěru, smart-meter dostupnost a promo tlak."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Skutečné aktuální nabídky dodavatelů.",
+    "Predikce skutečné churn míry.",
+    "Regulatorní nebo právní stanovisko."
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "W1",
+  "name": "Base learners",
+  "winner": "Coach",
+  "primary_metric": 48,
+  "overall": 81,
+  "assumption": "Vyvážený learner mix"
+}

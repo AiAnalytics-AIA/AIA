@@ -1,0 +1,44 @@
+[
+  {
+    "id": "Q1",
+    "section": "Context",
+    "text": "Jak často používáte produkty pro zvýšení energie?",
+    "type": "frequency",
+    "purpose": "context"
+  },
+  {
+    "id": "Q2",
+    "section": "Needs",
+    "text": "Jak důležité jsou pro vás funkční benefity, chuť, cena a původ?",
+    "type": "battery",
+    "purpose": "drivers"
+  },
+  {
+    "id": "Q3",
+    "section": "Objects",
+    "text": "Jak na vás působí čtyři produktové varianty?",
+    "type": "object_battery",
+    "purpose": "comparison + sociomap"
+  },
+  {
+    "id": "Q4",
+    "section": "Emotions",
+    "text": "Jaké emoce a asociace ve vás jednotlivé varianty vyvolávají?",
+    "type": "emotion_battery",
+    "purpose": "emotional map"
+  },
+  {
+    "id": "Q5",
+    "section": "Decision",
+    "text": "Jakou cenu považujete za přijatelnou?",
+    "type": "choice",
+    "purpose": "decision KPI"
+  },
+  {
+    "id": "Q6",
+    "section": "Validation",
+    "text": "Jak pravděpodobně byste produkt vyzkoušeli a koupili?",
+    "type": "certainty",
+    "purpose": "robustness"
+  }
+]

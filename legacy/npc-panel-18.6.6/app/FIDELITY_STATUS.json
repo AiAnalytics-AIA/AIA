@@ -1,0 +1,8 @@
+{
+  "release": "10.13.0",
+  "status": "UNVALIDATED",
+  "traffic_light_default": "AMBER",
+  "green_requires": "locked blind human holdout with matching wording, population and scale",
+  "red_question_types": ["absolute_value", "absolute_WTP", "market_size"],
+  "note": "Stability across synthetic reruns is a sensitivity diagnostic, not human-ground-truth fidelity."
+}

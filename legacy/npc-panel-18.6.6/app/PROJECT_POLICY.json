@@ -1,0 +1,203 @@
+{
+  "project": "NPC Panel",
+  "release": "npc-panel-18.6.6-native-sociomap-design-final",
+  "licensing": {
+    "mode": "external_owner_cleared",
+    "status": "REVIEW_REQUIRED",
+    "note": "Project owner states licensing/rights were reviewed and covered in a separate workstream. This repository does not recreate or re-adjudicate that legal analysis."
+  },
+  "research_context": {
+    "default": "OFF",
+    "agents_attempted_when_on": [
+      "claude_code_subscription"
+    ],
+    "dual_success_status": "CLAUDE_RESEARCH_VERIFIED",
+    "single_success_status": "CLAUDE_RESEARCH_VERIFIED",
+    "zero_success": "FAIL",
+    "may_modify_panel_calibration": false,
+    "may_modify_respondent_attributes": false
+  },
+  "validation": {
+    "external_tier": "UNVALIDATED",
+    "core_joint_status": "COHERENT_CORE_MATCHED_BLOCKS",
+    "human_evidence_required_for_predictive_claim": true,
+    "conditional_v15_status": "PROTOTYPE_AVAILABLE_NOT_PRODUCTION",
+    "contextual_numeric_adjustment": "HEURISTIC_CONTEXT_SCENARIO_NOT_CALIBRATION"
+  },
+  "production": {
+    "panel": "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+    "own_estimates_default": false,
+    "sampling": "pps_without_replacement",
+    "client_natural_joint_outputs": "FAIL_CLOSED_FOR_CROSS_BLOCK_LATENT_CLAIMS_UNTIL_EXTERNAL_VALIDATION",
+    "persona_default": "calibrated",
+    "persona_profile": "PERSONA_SIGNAL_CATALOG_v17.csv",
+    "complete_owner_export": true,
+    "tracked_set_required": false,
+    "data_core": "same-person PIAAC/ISSP core + whole matched donor blocks",
+    "built_in_subpanels": "BUILTIN_SUBPANELS_v17.json"
+  },
+  "product_ui": {
+    "mode": "user_friendly_research_objects_personas_library_learning",
+    "ordinary_work_requires_json": false,
+    "persistent_research_copilot": "claude_code_subscription",
+    "mixed_multi_topic_projects": true,
+    "multiple_object_batteries_same_sample": true,
+    "ideal_group_discovery_visible": true,
+    "server_project_revisions": true,
+    "copilot_changes_require_acceptance": true,
+    "child_projects_for_discovery": true,
+    "internal_methodology_hidden_from_normal_ui": true,
+    "final_ai_review": true,
+    "continuous_learning_approval_gated": true,
+    "top_level_products": [
+      "research",
+      "simulation",
+      "data_library",
+      "demos"
+    ],
+    "special_audience_selectable": true,
+    "simulation_standalone": true,
+    "simulation_batch_variants": true,
+    "persistent_projects": true,
+    "immutable_revisions": true,
+    "project_history": true,
+    "explicit_claude_api_continuation": true,
+    "project_memory_ai_assistant": true,
+    "assistant_raw_respondent_indexing": false,
+    "bundled_demo_projects": 30,
+    "demo_seed_read_only": true,
+    "demo_copy_to_editable_project": true,
+    "visualization_lab": true,
+    "ai_segment_intelligence": true,
+    "data_library_unified": true
+  },
+  "version": "18.6.6",
+  "production_panel": "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+  "external_validation": "EXTERNAL_HOLDOUT_PENDING",
+  "same_person_core": true,
+  "cross_block_same_person": false,
+  "default_weight": "vaha_strukturalni_2025",
+  "brand_specific_background_rule": "REQUIRED_FOR_BRAND_SPECIFIC_CLAIMS",
+  "modeled_background_allowed": true,
+  "modeled_background_must_be_labeled": true,
+  "simulation": {
+    "provider": "claude_code_subscription",
+    "standalone": true,
+    "context_enrichment": true,
+    "uncertainty_resolution": true,
+    "batch_variants": true,
+    "variant_policy": "independent_world_models_shared_frozen_core_baseline",
+    "linear_interpolation": false,
+    "client_outputs": [
+      "CSV",
+      "XLSX",
+      "HTML",
+      "CLIENT_DELIVERY_ZIP",
+      "FROZEN_AUDIT"
+    ],
+    "continuation_provider": "anthropic",
+    "provider_policy": "CLAUDE_CODE_THEN_API",
+    "api_continuation_requires_explicit_user_action": true
+  },
+  "respondent_runtime": {
+    "provider": "claude_code_subscription",
+    "execution": "grouped_question_batches",
+    "durable_journal": true,
+    "initial_checkpoint_before_first_live_call": true,
+    "batch_split_on_failure": true,
+    "question_watchdog": true,
+    "automatic_retry_from_checkpoint": true
+  },
+  "ux_17_8_5": {
+    "compact_guided_start": true,
+    "project_attachments": true,
+    "projects_navigation": true,
+    "audience_label": "Audience / Cílová skupina",
+    "dimensions_label": "Dimenze",
+    "sample_recommendation": true,
+    "simulation_worlds_explained": true,
+    "review_comments_for_ai_generated_content": true,
+    "local_logo_route": true
+  },
+  "flow_performance": {
+    "research_intake": "claude_code_haiku_interactive",
+    "simulation_quick_context": true,
+    "simulation_deep_research_optional": true,
+    "cancel_stage_sync": true,
+    "autosave_debounce_ms": 1800
+  },
+  "audience_dimensions": {
+    "catalog_version": "17.9.3",
+    "base_panel_immutable": true,
+    "filter_logic": "OR within one factor; AND across factors",
+    "states": [
+      "PANEL_EXISTING",
+      "DERIVED_EXISTING_SIGNALS",
+      "SIMULATED_FROM_EVIDENCE"
+    ],
+    "sensitive_fields": "research_only_not_targeting",
+    "custom_dimension_materialization": {
+      "approval_required": true,
+      "quantitative_population_anchor_required": true,
+      "existing_predictor_required": true,
+      "fail_closed": true
+    }
+  },
+  "project_design_variants": [
+    "lean",
+    "recommended",
+    "deep"
+  ],
+  "demo_library": {
+    "collections": {
+      "complete_decision_demos": 10,
+      "deep_showcase_demos": 10
+    },
+    "label": "DEMO",
+    "read_only_seed": true,
+    "opens_without_ai_api": true,
+    "excluded_from_learning_benchmarks_validation": true,
+    "copy_creates_editable_project": true,
+    "raw_respondent_data_available_for_download_but_not_indexed_by_assistant": true
+  },
+  "project_memory": {
+    "local_search_without_ai": true,
+    "claude_synthesis_optional": true,
+    "raw_fieldwork_indexing": false,
+    "attachments_indexed_by_default": false,
+    "explicit_reuse_only": true,
+    "source_provenance_required": true,
+    "demo_high_level_memory": true
+  },
+  "ux": {
+    "global_navigation": "clean_7_items",
+    "diagnostics_location": "settings",
+    "project_workspace_human_summary": true,
+    "demo_simulation_companions": 5
+  },
+  "sociomap": {
+    "version": "18.6.6",
+    "workspace": "single_native_workspace",
+    "maps": [
+      "Mapa respondentů",
+      "Objektová mapa"
+    ],
+    "analysis": [
+      "Matice",
+      "Porovnání",
+      "What-if"
+    ],
+    "normalization": [
+      "Absolutní",
+      "Rozsah",
+      "σ",
+      "Percentil"
+    ],
+    "position_height_separated": true,
+    "directional_relationships": true,
+    "manual_drag_visual_only": true,
+    "scenario_original_immutable": true,
+    "offline_canvas": true,
+    "old_renderers_retired": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "npc_ai_panel_calibration/v1",
+  "profile_id": "AIP-MANUAL-TEMPLATE",
+  "created_at": "",
+  "source_workflow_id": "",
+  "source_project_title": "",
+  "alignment_score": null,
+  "rules": [
+    {
+      "rule_id": "example_rule",
+      "enabled": false,
+      "title": "Příklad měkkého kalibračního prioru",
+      "scope": {"question_ids": [], "topics": [], "segments": []},
+      "anchor": {"type": "context_prior", "target": "Popište evidencí podložený směr nebo cílový benchmark."},
+      "strength": 0.15,
+      "evidence_strength": "moderate",
+      "rationale": "Proč je korekce oprávněná.",
+      "expected_effect": "Jaký posun očekáváte.",
+      "evidence_refs": []
+    }
+  ],
+  "application": {"mode": "soft_prior", "preserve_measured_facts": true, "preserve_demographics": true, "max_strength": 0.35}
+}

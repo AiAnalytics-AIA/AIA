@@ -1,0 +1,31 @@
+{
+  "version": "17.9.5",
+  "project_id": "PRJ-DEMO-MESTO-2035",
+  "title": "Město 2035 DEMO",
+  "project_type": "research",
+  "primary_outputs": {
+    "overview_html": "FINAL_CLIENT_REPORT_OVERVIEW.html",
+    "main_report": "CLIENT_REPORT_MESTO_2035_DEMO.docx",
+    "results_workbook": "RESULTS_TABLES_MESTO_2035_POLICY_DEMO.xlsx",
+    "project_export_zip": "PROJECT_EXPORT_MESTO_2035_POLICY_DEMO.zip",
+    "dashboard_or_preview": "DEMO_PREVIEW.html"
+  },
+  "narrative_contract": [
+    "context",
+    "market situation",
+    "methodology",
+    "results",
+    "segmentation",
+    "risks",
+    "opportunities",
+    "recommendations",
+    "next steps"
+  ],
+  "counts": {
+    "artifacts": 35,
+    "worlds": 8,
+    "questionnaire_items": 6,
+    "segments": 5
+  },
+  "notes": "Generated overview that mirrors the reading order of real NPC Panel outputs."
+}

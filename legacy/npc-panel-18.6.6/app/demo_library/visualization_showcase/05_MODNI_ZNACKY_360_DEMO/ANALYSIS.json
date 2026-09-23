@@ -1,0 +1,111 @@
+{
+  "executive_summary": "Sportovní lifestyle se soustředí kolem Nike/Adidas, udržitelnost kolem Patagonie, status kolem Gucci a cenový trend kolem Zara/H&M.",
+  "segment_profiles": [
+    {
+      "segment": "Sportovní lifestyle",
+      "n": 126,
+      "share": 0.21,
+      "top_objects": [
+        {
+          "object": "Adidas",
+          "mean": 7.21
+        },
+        {
+          "object": "Nike",
+          "mean": 7.1
+        },
+        {
+          "object": "Patagonia",
+          "mean": 5.87
+        }
+      ]
+    },
+    {
+      "segment": "Trend a fast fashion",
+      "n": 145,
+      "share": 0.242,
+      "top_objects": [
+        {
+          "object": "Zara",
+          "mean": 7.02
+        },
+        {
+          "object": "H&M",
+          "mean": 6.95
+        },
+        {
+          "object": "Nike",
+          "mean": 5.78
+        }
+      ]
+    },
+    {
+      "segment": "Minimalistické basics",
+      "n": 112,
+      "share": 0.187,
+      "top_objects": [
+        {
+          "object": "Uniqlo",
+          "mean": 7.3
+        },
+        {
+          "object": "Levi’s",
+          "mean": 7.17
+        },
+        {
+          "object": "Patagonia",
+          "mean": 5.7
+        }
+      ]
+    },
+    {
+      "segment": "Udržitelnost",
+      "n": 106,
+      "share": 0.177,
+      "top_objects": [
+        {
+          "object": "Patagonia",
+          "mean": 7.38
+        },
+        {
+          "object": "Levi’s",
+          "mean": 5.86
+        },
+        {
+          "object": "Uniqlo",
+          "mean": 5.67
+        }
+      ]
+    },
+    {
+      "segment": "Status a luxus",
+      "n": 111,
+      "share": 0.185,
+      "top_objects": [
+        {
+          "object": "Gucci",
+          "mean": 7.62
+        },
+        {
+          "object": "Levi’s",
+          "mean": 5.66
+        },
+        {
+          "object": "Zara",
+          "mean": 5.47
+        }
+      ]
+    }
+  ],
+  "object_means": {
+    "Nike": 5.862,
+    "Adidas": 5.847,
+    "Zara": 5.773,
+    "H&M": 5.697,
+    "Uniqlo": 5.805,
+    "Patagonia": 5.822,
+    "Levi’s": 5.828,
+    "Gucci": 5.777
+  },
+  "method_note": "Ilustrační syntetický dataset; výsledky demonstrují schopnosti mapování, nejsou tržním měřením."
+}

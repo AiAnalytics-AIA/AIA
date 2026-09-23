@@ -1,0 +1,32 @@
+{
+  "client_need": "Letiště chce přepracovat passenger experience a značku terminálu tak, aby snížilo stres a zvýšilo vnímanou kvalitu bez drahého premium-only řešení.",
+  "primary_decision": "Vybrat experience concept pro pilot v terminálu a nový brand promise.",
+  "success_definition": "Koncept má zvyšovat jasnost, pohodlí, důvěru a ochotu používat digitální/servisní prvky.",
+  "questions": [
+    "Který koncept nejvíce snižuje stres a zvyšuje convenience?",
+    "Co má největší hodnotu pro frequent vs. occasional travellers?",
+    "Jak důležité jsou lokální prvky značky?",
+    "Kdy premium prvky nepřinášejí dost hodnoty?"
+  ],
+  "inputs": [
+    "Čtyři airport experience concepts.",
+    "Syntetický passenger sample.",
+    "8 světů mění crowding, disruption, security wait, digitální adopci, premium mix a význam lokální identity."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Skutečné provozní CAPEX.",
+    "Bezpečnostní/provozní rozhodnutí.",
+    "Predikce konkrétních passenger flows."
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "client_need": "Technologická firma chce přepracovat employer brand tak, aby zvýšila atraktivitu bez nevěrohodných slibů.",
+  "primary_decision": "Vybrat EVP směr pro nábor a retention komunikaci.",
+  "success_definition": "EVP má zvýšit application intent, credibility a culture fit u klíčových talent skupin.",
+  "questions": [
+    "Který EVP směr nejvíce zvyšuje zájem o práci?",
+    "Co působí nevěrohodně?",
+    "Jak se liší junior, senior a manager preference?",
+    "Jaký je trade-off mezi odměnou, flexibilitou a růstem?"
+  ],
+  "inputs": [
+    "Čtyři EVP platformy.",
+    "Syntetický talent market.",
+    "8 světů mění napětí na trhu práce, mzdy, remote normu, job security a AI změny rolí."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Skutečný salary benchmark.",
+    "Predikce individuální výkonnosti zaměstnanců.",
+    "Automatizované hiring rozhodování."
+  ]
+}

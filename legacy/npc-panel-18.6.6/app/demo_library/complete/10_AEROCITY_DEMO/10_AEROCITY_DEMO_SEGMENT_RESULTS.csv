@@ -1,0 +1,21 @@
+﻿dimension,segment_value,variant_id,n,usage_intent_pct,preference_pct,clarity,convenience,trust,premium_fit
+segment,Frequent Business,A,297,63.6,43.1,7.35,7.72,6.58,6.21
+segment,Frequent Business,B,297,72.7,51.2,8.16,7.6,7.87,6.82
+segment,Frequent Business,C,297,64.3,39.4,6.29,6.39,6.87,7.0
+segment,Frequent Business,D,297,81.8,55.6,8.36,8.54,8.09,7.1
+segment,Leisure Families,A,266,62.8,43.2,7.6,7.81,6.83,6.33
+segment,Leisure Families,B,266,77.8,55.3,8.15,7.48,7.81,6.57
+segment,Leisure Families,C,266,60.2,40.2,6.43,6.26,6.86,7.04
+segment,Leisure Families,D,266,75.2,57.1,7.97,8.23,7.91,6.77
+segment,Infrequent Travellers,A,320,70.9,45.0,7.75,8.22,6.99,6.48
+segment,Infrequent Travellers,B,320,66.9,51.2,8.02,7.3,7.59,6.59
+segment,Infrequent Travellers,C,320,61.9,39.7,6.34,6.13,6.91,7.07
+segment,Infrequent Travellers,D,320,74.1,56.2,8.2,8.25,7.79,6.9
+segment,International Transfer,A,306,72.9,48.7,7.55,8.05,7.03,6.3
+segment,International Transfer,B,306,73.9,44.8,7.76,7.32,7.53,6.38
+segment,International Transfer,C,306,62.1,36.9,6.47,6.39,7.1,7.16
+segment,International Transfer,D,306,76.1,57.8,8.21,8.4,7.95,7.06
+segment,Digital Self-Service,A,311,66.2,44.7,7.62,8.11,6.9,6.47
+segment,Digital Self-Service,B,311,69.5,50.2,7.95,7.29,7.47,6.7
+segment,Digital Self-Service,C,311,58.8,41.5,6.29,6.33,6.83,7.03
+segment,Digital Self-Service,D,311,73.3,52.1,8.11,8.05,7.67,6.68

@@ -1,0 +1,92 @@
+[
+  {
+    "title": "NOVA Spark — DEMO",
+    "type": "Uvedení produktu",
+    "industry": "FMCG / nápoje",
+    "project_import": "01_NOVA_SPARK_DEMO/01_NOVA_SPARK_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "01_NOVA_SPARK_DEMO/01_NOVA_SPARK_DEMO_DASHBOARD.html",
+    "report": "01_NOVA_SPARK_DEMO/01_NOVA_SPARK_DEMO_REPORT.docx",
+    "workbook": "01_NOVA_SPARK_DEMO/01_NOVA_SPARK_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "Voltio Flex — DEMO",
+    "type": "Nová služba + pricing",
+    "industry": "Energetika",
+    "project_import": "02_VOLTIO_FLEX_DEMO/02_VOLTIO_FLEX_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "02_VOLTIO_FLEX_DEMO/02_VOLTIO_FLEX_DEMO_DASHBOARD.html",
+    "report": "02_VOLTIO_FLEX_DEMO/02_VOLTIO_FLEX_DEMO_REPORT.docx",
+    "workbook": "02_VOLTIO_FLEX_DEMO/02_VOLTIO_FLEX_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "Aurora Bank — DEMO",
+    "type": "Rebranding značky",
+    "industry": "Bankovnictví",
+    "project_import": "03_AURORA_BANK_DEMO/03_AURORA_BANK_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "03_AURORA_BANK_DEMO/03_AURORA_BANK_DEMO_DASHBOARD.html",
+    "report": "03_AURORA_BANK_DEMO/03_AURORA_BANK_DEMO_REPORT.docx",
+    "workbook": "03_AURORA_BANK_DEMO/03_AURORA_BANK_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "Město 2035 — DEMO",
+    "type": "Veřejná politika",
+    "industry": "Městská mobilita",
+    "project_import": "04_MESTO_2035_DEMO/04_MESTO_2035_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "04_MESTO_2035_DEMO/04_MESTO_2035_DEMO_DASHBOARD.html",
+    "report": "04_MESTO_2035_DEMO/04_MESTO_2035_DEMO_REPORT.docx",
+    "workbook": "04_MESTO_2035_DEMO/04_MESTO_2035_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "Volba 2027 — DEMO",
+    "type": "Politický výzkum – formát veřejné debaty",
+    "industry": "Politická komunikace / média",
+    "project_import": "05_VOLBA_2027_DEMO/05_VOLBA_2027_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "05_VOLBA_2027_DEMO/05_VOLBA_2027_DEMO_DASHBOARD.html",
+    "report": "05_VOLBA_2027_DEMO/05_VOLBA_2027_DEMO_REPORT.docx",
+    "workbook": "05_VOLBA_2027_DEMO/05_VOLBA_2027_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "WorkNest — DEMO",
+    "type": "Employer brand / EVP",
+    "industry": "Technologie / HR",
+    "project_import": "06_WORKNEST_DEMO/06_WORKNEST_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "06_WORKNEST_DEMO/06_WORKNEST_DEMO_DASHBOARD.html",
+    "report": "06_WORKNEST_DEMO/06_WORKNEST_DEMO_REPORT.docx",
+    "workbook": "06_WORKNEST_DEMO/06_WORKNEST_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "MetroMarket Local — DEMO",
+    "type": "Retail koncept + private label",
+    "industry": "Retail / potraviny",
+    "project_import": "07_METROMARKET_LOCAL_DEMO/07_METROMARKET_LOCAL_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "07_METROMARKET_LOCAL_DEMO/07_METROMARKET_LOCAL_DEMO_DASHBOARD.html",
+    "report": "07_METROMARKET_LOCAL_DEMO/07_METROMARKET_LOCAL_DEMO_REPORT.docx",
+    "workbook": "07_METROMARKET_LOCAL_DEMO/07_METROMARKET_LOCAL_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "CareLink — DEMO",
+    "type": "Adopce digitální služby",
+    "industry": "Zdravotní služby / UX",
+    "project_import": "08_CARELINK_DEMO/08_CARELINK_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "08_CARELINK_DEMO/08_CARELINK_DEMO_DASHBOARD.html",
+    "report": "08_CARELINK_DEMO/08_CARELINK_DEMO_REPORT.docx",
+    "workbook": "08_CARELINK_DEMO/08_CARELINK_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "Streamio One — DEMO",
+    "type": "Pricing / subscription bundle",
+    "industry": "Média / streaming",
+    "project_import": "09_STREAMIO_ONE_DEMO/09_STREAMIO_ONE_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "09_STREAMIO_ONE_DEMO/09_STREAMIO_ONE_DEMO_DASHBOARD.html",
+    "report": "09_STREAMIO_ONE_DEMO/09_STREAMIO_ONE_DEMO_REPORT.docx",
+    "workbook": "09_STREAMIO_ONE_DEMO/09_STREAMIO_ONE_DEMO_RESULTS.xlsx"
+  },
+  {
+    "title": "AeroCity — DEMO",
+    "type": "Customer experience + rebranding",
+    "industry": "Letiště / travel",
+    "project_import": "10_AEROCITY_DEMO/10_AEROCITY_DEMO_NPC_PROJECT_IMPORT.json",
+    "dashboard": "10_AEROCITY_DEMO/10_AEROCITY_DEMO_DASHBOARD.html",
+    "report": "10_AEROCITY_DEMO/10_AEROCITY_DEMO_REPORT.docx",
+    "workbook": "10_AEROCITY_DEMO/10_AEROCITY_DEMO_RESULTS.xlsx"
+  }
+]

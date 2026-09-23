@@ -1,0 +1,59 @@
+{
+  "study_type": "Policy acceptance a trade-off research",
+  "decision": "Vybrat policy package s nejvyšší veřejnou přijatelností a nejnižší polarizací.",
+  "research_questions": [
+    "Jak se obvykle pohybujete po městě?",
+    "Které dopravní problémy považujete za nejzávažnější?",
+    "Jak hodnotíte čtyři policy balíčky na stejné sadě kritérií?",
+    "Jak spravedlivé jsou dopady na různé skupiny?",
+    "Které podmínky by zvýšily vaši přijatelnost opatření?",
+    "Který balíček byste celkově podpořili?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Status quo",
+      "description": "Bez zásadní změny",
+      "type": "tracked_object",
+      "score": 52,
+      "x": 260,
+      "y": 280
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Restrict first",
+      "description": "Poplatky a omezení vjezdu",
+      "type": "tracked_object",
+      "score": 43,
+      "x": 555,
+      "y": 315
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Transit first",
+      "description": "Silné investice do MHD",
+      "type": "tracked_object",
+      "score": 70,
+      "x": 365,
+      "y": 155
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Invest & Manage",
+      "description": "MHD + parkování + postupné řízení",
+      "type": "tracked_object",
+      "score": 76,
+      "x": 405,
+      "y": 235
+    }
+  ],
+  "metrics": [
+    "Support",
+    "Fairness",
+    "Effectiveness",
+    "Clarity",
+    "Personal acceptability",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

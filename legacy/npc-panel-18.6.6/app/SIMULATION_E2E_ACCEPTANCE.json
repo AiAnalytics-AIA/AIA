@@ -1,0 +1,16 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "status": "PASS",
+  "checks": {
+    "simulation_13_stage_project": "PASS",
+    "scenario_regression_suite": "PASS",
+    "simulation_ai_hotfix_suite": "PASS",
+    "world_artifact_projection": "PASS",
+    "frozen_prediction_artifacts": "PASS",
+    "results_guarantee_renderer_failure": "PASS",
+    "batch_interpretation_fallback": "PASS"
+  },
+  "live_paid_simulation": "NOT_RUN"
+}

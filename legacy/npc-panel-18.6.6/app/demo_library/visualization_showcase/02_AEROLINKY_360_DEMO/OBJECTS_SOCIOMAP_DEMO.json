@@ -1,0 +1,327 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "name": "British Airways",
+      "type": "object",
+      "x": -0.3886,
+      "y": 0.0002,
+      "score": 6.033
+    },
+    {
+      "id": 1,
+      "name": "Air France",
+      "type": "object",
+      "x": -0.4187,
+      "y": 0.0002,
+      "score": 6.01
+    },
+    {
+      "id": 2,
+      "name": "Qatar Airways",
+      "type": "object",
+      "x": -0.6133,
+      "y": 0.0002,
+      "score": 5.825
+    },
+    {
+      "id": 3,
+      "name": "Emirates",
+      "type": "object",
+      "x": -0.5878,
+      "y": 0.0002,
+      "score": 5.797
+    },
+    {
+      "id": 4,
+      "name": "Ryanair",
+      "type": "object",
+      "x": 0.82,
+      "y": 0.0002,
+      "score": 5.46
+    },
+    {
+      "id": 5,
+      "name": "Wizz Air",
+      "type": "object",
+      "x": 0.8159,
+      "y": 0.0002,
+      "score": 5.447
+    },
+    {
+      "id": 6,
+      "name": "Lufthansa",
+      "type": "object",
+      "x": -0.3696,
+      "y": 0.0002,
+      "score": 5.942
+    },
+    {
+      "id": 7,
+      "name": "easyJet",
+      "type": "object",
+      "x": 0.7421,
+      "y": 0.0002,
+      "score": 5.78
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 1,
+      "relation_1_10": 7.045,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 2,
+      "relation_1_10": 4.984,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 3,
+      "relation_1_10": 4.846,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 4,
+      "relation_1_10": 3.77,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 5,
+      "relation_1_10": 3.806,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 6,
+      "relation_1_10": 7.083,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "relation_1_10": 3.93,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "relation_1_10": 5.041,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 3,
+      "relation_1_10": 4.98,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "relation_1_10": 3.622,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "relation_1_10": 3.794,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "relation_1_10": 7.116,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "relation_1_10": 3.863,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "relation_1_10": 8.451,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "relation_1_10": 3.092,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "relation_1_10": 3.06,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "relation_1_10": 4.82,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 7,
+      "relation_1_10": 3.281,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "relation_1_10": 3.16,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "relation_1_10": 3.05,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 6,
+      "relation_1_10": 4.832,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "relation_1_10": 3.453,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "relation_1_10": 8.358,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 6,
+      "relation_1_10": 3.798,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 7,
+      "relation_1_10": 7.832,
+      "directed": false
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "relation_1_10": 3.797,
+      "directed": false
+    },
+    {
+      "from": 5,
+      "to": 7,
+      "relation_1_10": 7.66,
+      "directed": false
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "relation_1_10": 4.049,
+      "directed": false
+    }
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      7.045,
+      4.984,
+      4.846,
+      3.77,
+      3.806,
+      7.083,
+      3.93
+    ],
+    [
+      7.045,
+      0.0,
+      5.041,
+      4.98,
+      3.622,
+      3.794,
+      7.116,
+      3.863
+    ],
+    [
+      4.984,
+      5.041,
+      0.0,
+      8.451,
+      3.092,
+      3.06,
+      4.82,
+      3.281
+    ],
+    [
+      4.846,
+      4.98,
+      8.451,
+      0.0,
+      3.16,
+      3.05,
+      4.832,
+      3.453
+    ],
+    [
+      3.77,
+      3.622,
+      3.092,
+      3.16,
+      0.0,
+      8.358,
+      3.798,
+      7.832
+    ],
+    [
+      3.806,
+      3.794,
+      3.06,
+      3.05,
+      8.358,
+      0.0,
+      3.797,
+      7.66
+    ],
+    [
+      7.083,
+      7.116,
+      4.82,
+      4.832,
+      3.798,
+      3.797,
+      0.0,
+      4.049
+    ],
+    [
+      3.93,
+      3.863,
+      3.281,
+      3.453,
+      7.832,
+      7.66,
+      4.049,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SYNTHETIC_RESPONDENT_CORRELATIONS",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": false
+  }
+}

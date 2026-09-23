@@ -1,0 +1,14 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "status": "PASS",
+  "checks": {
+    "research_optional_export_failure_still_completed": "PASS",
+    "research_core_outputs_preserved": "PASS",
+    "fullsim_renderer_failure_still_results_ready": "PASS",
+    "fullsim_csv_xlsx_zip_present": "PASS",
+    "batch_ai_interpretation_failure_deterministic_fallback": "PASS",
+    "respondent_results_first_contract": "PASS"
+  }
+}

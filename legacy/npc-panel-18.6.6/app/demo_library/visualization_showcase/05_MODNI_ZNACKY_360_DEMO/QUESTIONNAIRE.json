@@ -1,0 +1,66 @@
+[
+  {
+    "id": "Q0",
+    "text": "Demografický a profilový blok"
+  },
+  {
+    "id": "QO1",
+    "text": "Jak blízko je vám Nike? Hodnocení 1–10."
+  },
+  {
+    "id": "QO2",
+    "text": "Jak blízko je vám Adidas? Hodnocení 1–10."
+  },
+  {
+    "id": "QO3",
+    "text": "Jak blízko je vám Zara? Hodnocení 1–10."
+  },
+  {
+    "id": "QO4",
+    "text": "Jak blízko je vám H&M? Hodnocení 1–10."
+  },
+  {
+    "id": "QO5",
+    "text": "Jak blízko je vám Uniqlo? Hodnocení 1–10."
+  },
+  {
+    "id": "QO6",
+    "text": "Jak blízko je vám Patagonia? Hodnocení 1–10."
+  },
+  {
+    "id": "QO7",
+    "text": "Jak blízko je vám Levi’s? Hodnocení 1–10."
+  },
+  {
+    "id": "QO8",
+    "text": "Jak blízko je vám Gucci? Hodnocení 1–10."
+  },
+  {
+    "id": "QT1",
+    "text": "Sport — škála 1–10"
+  },
+  {
+    "id": "QT2",
+    "text": "Price — škála 1–10"
+  },
+  {
+    "id": "QT3",
+    "text": "Sustainability — škála 1–10"
+  },
+  {
+    "id": "QT4",
+    "text": "Status — škála 1–10"
+  },
+  {
+    "id": "QT5",
+    "text": "Basics — škála 1–10"
+  },
+  {
+    "id": "QT6",
+    "text": "Trend — škála 1–10"
+  },
+  {
+    "id": "QT7",
+    "text": "Quality — škála 1–10"
+  }
+]

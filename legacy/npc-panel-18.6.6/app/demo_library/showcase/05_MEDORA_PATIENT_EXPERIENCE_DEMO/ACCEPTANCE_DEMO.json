@@ -1,0 +1,20 @@
+{
+  "project_id": "PRJ-DEMO-MEDORA-PX",
+  "title": "Medora Patient Experience DEMO",
+  "status": "PASS",
+  "checks": {
+    "seed": true,
+    "docx": true,
+    "xlsx": true,
+    "csv_rows": true,
+    "worlds": true,
+    "analysis_modules": true,
+    "sociomap_svg": true,
+    "sociomap_png": true,
+    "history": true,
+    "preview": true
+  },
+  "respondent_rows": 900,
+  "world_count": 8,
+  "analysis_module_count": 8
+}

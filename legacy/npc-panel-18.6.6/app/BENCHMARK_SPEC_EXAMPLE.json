@@ -1,0 +1,111 @@
+{
+  "example_only": true,
+  "note": "ČÍSLA JSOU POUZE ILUSTRAČNÍ. Před ostrým benchmarkem nahraďte truth_pct skutečnými českými human daty a zdroji.",
+  "questions": [
+    {
+      "id": "purchase_intent",
+      "text": "Koupil(a) byste produkt?",
+      "typ": "vyber",
+      "kategorie": [
+        "Určitě ano",
+        "Spíše ano",
+        "Spíše ne",
+        "Určitě ne"
+      ],
+      "truth_pct": {
+        "Určitě ano": 12,
+        "Spíše ano": 31,
+        "Spíše ne": 35,
+        "Určitě ne": 22
+      },
+      "target_answers": [
+        "Určitě ano",
+        "Spíše ano"
+      ],
+      "human_n": 1000,
+      "holdout_source": "REPLACE_ME",
+      "domain": "nakup",
+      "benchmark_role": "CALIBRATION"
+    },
+    {
+      "id": "brand_switch",
+      "text": "Zvažoval(a) byste změnu značky?",
+      "typ": "vyber",
+      "kategorie": [
+        "Ano",
+        "Ne"
+      ],
+      "truth_pct": {
+        "Ano": 38,
+        "Ne": 62
+      },
+      "target_answers": [
+        "Ano"
+      ],
+      "human_n": 1000,
+      "holdout_source": "REPLACE_ME",
+      "domain": "brand",
+      "benchmark_role": "CALIBRATION"
+    },
+    {
+      "id": "concept_fit",
+      "text": "Je pro vás koncept relevantní?",
+      "typ": "vyber",
+      "kategorie": [
+        "Ano",
+        "Ne"
+      ],
+      "truth_pct": {
+        "Ano": 47,
+        "Ne": 53
+      },
+      "target_answers": [
+        "Ano"
+      ],
+      "human_n": 1000,
+      "holdout_source": "REPLACE_ME",
+      "domain": "koncept",
+      "benchmark_role": "CALIBRATION"
+    },
+    {
+      "id": "recommend",
+      "text": "Doporučil(a) byste produkt?",
+      "typ": "vyber",
+      "kategorie": [
+        "Ano",
+        "Ne"
+      ],
+      "truth_pct": {
+        "Ano": 33,
+        "Ne": 67
+      },
+      "target_answers": [
+        "Ano"
+      ],
+      "human_n": 1000,
+      "holdout_source": "REPLACE_ME",
+      "domain": "brand",
+      "benchmark_role": "CALIBRATION"
+    },
+    {
+      "id": "blind_01",
+      "text": "Preferujete variantu A?",
+      "typ": "vyber",
+      "kategorie": [
+        "Ano",
+        "Ne"
+      ],
+      "truth_pct": {
+        "Ano": 52,
+        "Ne": 48
+      },
+      "target_answers": [
+        "Ano"
+      ],
+      "human_n": 1000,
+      "holdout_source": "REPLACE_ME",
+      "domain": "koncept",
+      "benchmark_role": "BLIND_HOLDOUT"
+    }
+  ]
+}

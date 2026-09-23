@@ -1,0 +1,20 @@
+{
+  "questions": {
+    "purchase_intent": {
+      "estimate_pct": {
+        "Určitě ano": 0,
+        "Spíše ano": 0,
+        "Spíše ne": 0,
+        "Určitě ne": 0
+      },
+      "interval_95": {}
+    },
+    "recommend": {
+      "estimate_pct": {
+        "Ano": 0,
+        "Ne": 0
+      },
+      "interval_95": {}
+    }
+  }
+}

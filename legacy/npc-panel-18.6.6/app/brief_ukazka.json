@@ -1,0 +1,42 @@
+{
+  "nazev": "Nazev pruzkumu",
+  "n": 500,
+  "mode": "batch",
+  "model": "sonnet",
+  "seed": 42,
+  "filtry": {},
+  "vystup": "vystupy/pruzkum.xlsx",
+  "otazky": [
+    {
+      "id": "O1",
+      "text": "Prvni otazka?",
+      "typ": "vyber",
+      "kategorie": [
+        "moznost A",
+        "moznost B",
+        "moznost C"
+      ]
+    },
+    {
+      "id": "O2",
+      "text": "Na skale 1-10?",
+      "typ": "skala",
+      "skala": [
+        1,
+        10
+      ],
+      "popisky_skaly": [
+        "vubec",
+        "zcela"
+      ]
+    },
+    {
+      "id": "O3",
+      "text": "Otevrena otazka?",
+      "typ": "otevrena",
+      "max_slov": 25
+    }
+  ],
+  "response_mode": "probability",
+  "persona_mode": "calibrated"
+}

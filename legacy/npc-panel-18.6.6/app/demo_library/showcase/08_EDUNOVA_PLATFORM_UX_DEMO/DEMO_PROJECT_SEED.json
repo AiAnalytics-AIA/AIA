@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "08_EDUNOVA_PLATFORM_UX_DEMO",
+  "project_id": "PRJ-DEMO-EDUNOVA",
+  "title": "EduNova Learning Platform DEMO",
+  "domain": "Vzdělávání / edtech",
+  "study_type": "Concept + UX research",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Chci otestovat nový vzdělávací portál, který kombinuje krátké lekce, AI vysvětlení, testy a studijní plán. Potřebujeme zjistit, jaký koncept je srozumitelný a důvěryhodný.",
+    "decision": "Vybrat produktový koncept a prioritní learning flow před MVP."
+  },
+  "executive_answer": "Nejlépe funguje „Coach“ koncept: jasný studijní plán, krátké lekce a průběžná diagnostika. Samostatný AI chat je atraktivní, ale bez struktury působí méně důvěryhodně a hůře podporuje dokončování.",
+  "recommendation": "GO — Coach jako core UX; AI Tutor jako nástroj uvnitř strukturované cesty, ne jako celý produkt.",
+  "audience": {
+    "population": "Studenti 15–24, rodiče a dospělí learners jako oddělené analytické skupiny",
+    "n": 980,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jak dnes studujete mimo školu / kurz?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Kde nejčastěji ztrácíte motivaci?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Jak hodnotíte čtyři možné produktové koncepty?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Jak důvěryhodné je AI vysvětlení bez lidského kurátora?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Které funkce byste používali každý týden?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Který koncept by vám nejvíce pomohl dokončit studijní cíl?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Library",
+      "description": "Knihovna lekcí",
+      "type": "tracked_object",
+      "score": 62,
+      "x": 245,
+      "y": 300
+    },
+    {
+      "id": "OBJ-B",
+      "name": "AI Tutor",
+      "description": "Volný AI chat",
+      "type": "tracked_object",
+      "score": 70,
+      "x": 565,
+      "y": 145
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Coach",
+      "description": "Plán + diagnostika + lekce",
+      "type": "tracked_object",
+      "score": 81,
+      "x": 400,
+      "y": 210
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Challenge",
+      "description": "Gamifikované výzvy",
+      "type": "tracked_object",
+      "score": 68,
+      "x": 330,
+      "y": 340
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Usefulness",
+    "Clarity",
+    "Trust",
+    "Motivation",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      27,
+      68,
+      76,
+      72,
+      51,
+      62
+    ],
+    [
+      39,
+      80,
+      55,
+      61,
+      72,
+      70
+    ],
+    [
+      48,
+      86,
+      83,
+      79,
+      82,
+      81
+    ],
+    [
+      34,
+      69,
+      64,
+      59,
+      84,
+      68
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Goal-driven Students",
+      "share_pct": 29,
+      "description": "Jasný cíl / zkouška",
+      "best_object": "Coach"
+    },
+    {
+      "id": "SEG2",
+      "name": "Curious Explorers",
+      "share_pct": 23,
+      "description": "Široké zájmy",
+      "best_object": "AI Tutor"
+    },
+    {
+      "id": "SEG3",
+      "name": "Structure Seekers",
+      "share_pct": 21,
+      "description": "Potřeba plánu",
+      "best_object": "Coach"
+    },
+    {
+      "id": "SEG4",
+      "name": "Gamified Learners",
+      "share_pct": 16,
+      "description": "Motivace přes výzvy",
+      "best_object": "Challenge"
+    },
+    {
+      "id": "SEG5",
+      "name": "Parent-guided Teens",
+      "share_pct": 11,
+      "description": "Vyšší potřeba důvěry",
+      "best_object": "Coach"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base learners",
+      "winner": "Coach",
+      "primary_metric": 48,
+      "overall": 81,
+      "assumption": "Vyvážený learner mix"
+    },
+    {
+      "id": "W2",
+      "name": "Exam season",
+      "winner": "Coach",
+      "primary_metric": 52,
+      "overall": 84,
+      "assumption": "Vyšší goal orientation"
+    },
+    {
+      "id": "W3",
+      "name": "AI enthusiasm",
+      "winner": "Coach",
+      "primary_metric": 46,
+      "overall": 79,
+      "assumption": "Vyšší AI adoption"
+    },
+    {
+      "id": "W4",
+      "name": "AI skepticism",
+      "winner": "Coach",
+      "primary_metric": 49,
+      "overall": 82,
+      "assumption": "Nižší důvěra v AI"
+    },
+    {
+      "id": "W5",
+      "name": "Low motivation",
+      "winner": "Coach",
+      "primary_metric": 47,
+      "overall": 80,
+      "assumption": "Vyšší dropout risk"
+    },
+    {
+      "id": "W6",
+      "name": "Parent influence",
+      "winner": "Coach",
+      "primary_metric": 50,
+      "overall": 83,
+      "assumption": "Vyšší váha rodičů"
+    },
+    {
+      "id": "W7",
+      "name": "Adult learners",
+      "winner": "Coach",
+      "primary_metric": 44,
+      "overall": 78,
+      "assumption": "Vyšší adult share"
+    },
+    {
+      "id": "W8",
+      "name": "Gamification trend",
+      "winner": "Coach",
+      "primary_metric": 45,
+      "overall": 79,
+      "assumption": "Vyšší preference gamification"
+    }
+  ],
+  "findings": [
+    "Struktura a pokrok jsou důležitější než počet funkcí.",
+    "AI Tutor má vysokou užitečnost, ale nižší clarity a trust.",
+    "Gamifikace podporuje motivaci, ale sama neřeší learning outcome.",
+    "Coach je nejsilnější u segmentů s konkrétním cílem."
+  ],
+  "risks": [
+    "Deklarovaná motivace není skutečná retence.",
+    "Learning outcomes vyžadují experimentální ověření.",
+    "AI vysvětlení musí mít safety a quality governance."
+  ],
+  "primary_metric": "Concept preference",
+  "primary_value": 48,
+  "world_range": "44–52 %",
+  "winner_stability": "8/8",
+  "overall": 81,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Library",
+        "type": "object",
+        "score": 62,
+        "x": 245,
+        "y": 300,
+        "color": "#537bd7"
+      },
+      {
+        "name": "AI Tutor",
+        "type": "object",
+        "score": 70,
+        "x": 565,
+        "y": 145,
+        "color": "#3c9890"
+      },
+      {
+        "name": "Coach",
+        "type": "object",
+        "score": 81,
+        "x": 400,
+        "y": 210,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Challenge",
+        "type": "object",
+        "score": 68,
+        "x": 330,
+        "y": 340,
+        "color": "#299764"
+      },
+      {
+        "name": "Důvěra",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Relevance",
+        "type": "anchor",
+        "x": 500,
+        "y": 245,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Cena / náklad",
+        "type": "anchor",
+        "x": 170,
+        "y": 205,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Jednoduchost",
+        "type": "anchor",
+        "x": 335,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 7,
+        "weight": 0.74
+      },
+      {
+        "from": 0,
+        "to": 6,
+        "weight": 0.7
+      },
+      {
+        "from": 1,
+        "to": 5,
+        "weight": 0.7
+      },
+      {
+        "from": 1,
+        "to": 4,
+        "weight": 0.53
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "weight": 0.76
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.74
+      },
+      {
+        "from": 3,
+        "to": 7,
+        "weight": 0.96
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.51
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

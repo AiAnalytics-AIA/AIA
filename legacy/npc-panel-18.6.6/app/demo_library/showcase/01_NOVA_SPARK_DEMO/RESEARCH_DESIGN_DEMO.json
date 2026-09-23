@@ -1,0 +1,59 @@
+{
+  "study_type": "Uvedení nového produktu",
+  "decision": "Go / No-Go + doporučení varianty, ceny, publika a komunikace.",
+  "research_questions": [
+    "Jak často používáte produkty pro zvýšení energie?",
+    "Jak důležité jsou pro vás funkční benefity, chuť, cena a původ?",
+    "Jak na vás působí čtyři produktové varianty?",
+    "Jaké emoce a asociace ve vás jednotlivé varianty vyvolávají?",
+    "Jakou cenu považujete za přijatelnou?",
+    "Jak pravděpodobně byste produkt vyzkoušeli a koupili?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Baseline",
+      "description": "Základní funkční positioning",
+      "type": "tracked_object",
+      "score": 61,
+      "x": 280,
+      "y": 230
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Value",
+      "description": "Dostupná energie každý den",
+      "type": "tracked_object",
+      "score": 70,
+      "x": 150,
+      "y": 310
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Premium",
+      "description": "Přírodní / prémiový benefit",
+      "type": "tracked_object",
+      "score": 67,
+      "x": 575,
+      "y": 135
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Familiar",
+      "description": "Český původ + jednoduchá funkčnost",
+      "type": "tracked_object",
+      "score": 72,
+      "x": 390,
+      "y": 245
+    }
+  ],
+  "metrics": [
+    "Trial intent",
+    "Purchase intent",
+    "Appeal",
+    "Uniqueness",
+    "Price acceptance",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

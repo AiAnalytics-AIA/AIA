@@ -1,0 +1,59 @@
+{
+  "study_type": "Rebranding a brand equity",
+  "decision": "Vybrat rebranding směr, brand promise a migrační strategii.",
+  "research_questions": [
+    "Jaké bankovní značky spontánně znáte a používáte?",
+    "Jak vnímáte současnou Aurora Bank na brand atributech?",
+    "Porovnejte čtyři možné brand směry na stejné sadě atributů.",
+    "Jaké emoce ve vás jednotlivé identity vyvolávají?",
+    "Nakolik by změna snížila nebo zvýšila vaši důvěru?",
+    "Které prvky současné značky musí zůstat zachované?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Current",
+      "description": "Současná značka",
+      "type": "tracked_object",
+      "score": 59,
+      "x": 255,
+      "y": 245
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Clear & Human",
+      "description": "Evoluční lidský rebrand",
+      "type": "tracked_object",
+      "score": 78,
+      "x": 405,
+      "y": 210
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Neo Future",
+      "description": "Radikálně digitální identita",
+      "type": "tracked_object",
+      "score": 67,
+      "x": 570,
+      "y": 125
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Trusted Expert",
+      "description": "Seriózní poradenský směr",
+      "type": "tracked_object",
+      "score": 71,
+      "x": 365,
+      "y": 315
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Trust",
+    "Modernity",
+    "Humanity",
+    "Distinctiveness",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

@@ -1,0 +1,1101 @@
+﻿respondent_id,age_group,sex,region,segment,preferred_object,primary_metric,trust,clarity,appeal,overall,weight,demo
+R0001,30–44,muž,Jihovýchod,Digital Pragmatists,Clear & Human,40,50,80,59,57,1.032,TRUE
+R0002,18–29,žena,Moravskoslezsko,Passive Traditionalists,Current,53,81,57,73,66,1.107,TRUE
+R0003,18–29,žena,Střední Morava,Relationship Seekers,Clear & Human,40,77,84,44,61,1.093,TRUE
+R0004,65+,žena,Severovýchod,Digital Pragmatists,Clear & Human,44,72,82,39,59,0.924,TRUE
+R0005,30–44,žena,Střední Morava,Security First,Trusted Expert,30,54,51,73,52,1.04,TRUE
+R0006,65+,žena,Praha,Passive Traditionalists,Current,49,57,53,69,57,0.78,TRUE
+R0007,30–44,žena,Střední Čechy,Mobile Natives,Neo Future,39,52,89,57,59,0.867,TRUE
+R0008,65+,žena,Jihozápad,Relationship Seekers,Clear & Human,51,75,46,81,63,0.824,TRUE
+R0009,18–29,žena,Severozápad,Passive Traditionalists,Current,58,86,61,51,64,1.14,TRUE
+R0010,18–29,žena,Jihovýchod,Mobile Natives,Neo Future,40,80,78,58,64,1.014,TRUE
+R0011,45–64,muž,Střední Morava,Mobile Natives,Neo Future,29,74,61,86,62,0.901,TRUE
+R0012,18–29,muž,Jihozápad,Mobile Natives,Neo Future,49,90,58,87,71,1.002,TRUE
+R0013,45–64,žena,Střední Čechy,Digital Pragmatists,Clear & Human,41,61,80,90,68,0.807,TRUE
+R0014,30–44,muž,Střední Morava,Digital Pragmatists,Clear & Human,33,60,87,39,55,1.015,TRUE
+R0015,45–64,žena,Střední Čechy,Mobile Natives,Neo Future,35,74,48,48,51,0.782,TRUE
+R0016,65+,žena,Jihozápad,Digital Pragmatists,Clear & Human,40,90,86,77,73,1.048,TRUE
+R0017,18–29,muž,Střední Čechy,Security First,Trusted Expert,45,84,64,63,64,0.879,TRUE
+R0018,30–44,muž,Severovýchod,Security First,Trusted Expert,57,46,55,62,55,1.211,TRUE
+R0019,45–64,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,41,51,86,67,61,0.834,TRUE
+R0020,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,40,79,54,52,56,1.105,TRUE
+R0021,65+,muž,Severovýchod,Digital Pragmatists,Clear & Human,35,84,88,69,69,0.936,TRUE
+R0022,65+,žena,Střední Morava,Mobile Natives,Neo Future,28,64,77,81,62,0.894,TRUE
+R0023,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,42,46,78,52,54,0.812,TRUE
+R0024,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,54,57,72,87,68,0.81,TRUE
+R0025,65+,žena,Praha,Relationship Seekers,Clear & Human,43,70,77,79,67,0.974,TRUE
+R0026,18–29,žena,Jihovýchod,Digital Pragmatists,Clear & Human,58,50,84,46,60,0.776,TRUE
+R0027,18–29,muž,Střední Čechy,Passive Traditionalists,Current,39,67,57,74,59,0.767,TRUE
+R0028,45–64,žena,Jihovýchod,Digital Pragmatists,Clear & Human,39,50,76,82,62,0.898,TRUE
+R0029,45–64,muž,Střední Morava,Digital Pragmatists,Clear & Human,58,88,78,86,78,0.882,TRUE
+R0030,18–29,žena,Jihovýchod,Digital Pragmatists,Clear & Human,29,56,75,43,51,1.024,TRUE
+R0031,18–29,žena,Jihovýchod,Relationship Seekers,Clear & Human,59,77,46,50,58,1.193,TRUE
+R0032,18–29,muž,Jihovýchod,Digital Pragmatists,Clear & Human,41,82,73,74,68,1.191,TRUE
+R0033,30–44,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,54,45,58,70,57,1.156,TRUE
+R0034,45–64,žena,Střední Čechy,Mobile Natives,Neo Future,45,75,88,45,63,0.947,TRUE
+R0035,45–64,muž,Praha,Mobile Natives,Neo Future,46,87,53,57,61,0.838,TRUE
+R0036,65+,žena,Severozápad,Security First,Trusted Expert,56,79,45,41,55,1.137,TRUE
+R0037,30–44,žena,Moravskoslezsko,Mobile Natives,Neo Future,58,74,51,42,56,0.952,TRUE
+R0038,65+,muž,Praha,Mobile Natives,Neo Future,42,85,90,83,75,1.14,TRUE
+R0039,65+,muž,Severozápad,Security First,Trusted Expert,54,75,71,70,68,0.942,TRUE
+R0040,65+,muž,Severovýchod,Mobile Natives,Neo Future,30,78,88,66,66,1.026,TRUE
+R0041,30–44,žena,Severovýchod,Relationship Seekers,Clear & Human,38,57,49,79,56,0.753,TRUE
+R0042,18–29,žena,Střední Morava,Mobile Natives,Neo Future,39,75,78,56,62,0.928,TRUE
+R0043,18–29,muž,Jihozápad,Mobile Natives,Neo Future,31,49,49,43,43,0.87,TRUE
+R0044,18–29,muž,Jihovýchod,Security First,Trusted Expert,64,64,72,43,61,0.76,TRUE
+R0045,65+,muž,Jihozápad,Relationship Seekers,Clear & Human,59,48,84,46,59,0.983,TRUE
+R0046,30–44,žena,Severozápad,Relationship Seekers,Clear & Human,57,82,54,68,65,0.886,TRUE
+R0047,30–44,muž,Severovýchod,Security First,Trusted Expert,54,52,51,48,51,0.855,TRUE
+R0048,65+,žena,Střední Čechy,Digital Pragmatists,Clear & Human,62,83,80,39,66,1.117,TRUE
+R0049,65+,žena,Praha,Relationship Seekers,Clear & Human,48,87,78,36,62,1.065,TRUE
+R0050,65+,muž,Střední Morava,Relationship Seekers,Clear & Human,58,73,86,63,70,0.803,TRUE
+R0051,18–29,žena,Jihozápad,Digital Pragmatists,Clear & Human,53,63,77,39,58,0.991,TRUE
+R0052,45–64,žena,Střední Čechy,Security First,Trusted Expert,58,87,64,75,71,0.843,TRUE
+R0053,45–64,muž,Střední Čechy,Digital Pragmatists,Clear & Human,63,68,58,58,62,1.176,TRUE
+R0054,65+,muž,Severovýchod,Digital Pragmatists,Clear & Human,29,53,54,72,52,1.067,TRUE
+R0055,45–64,žena,Jihozápad,Mobile Natives,Neo Future,30,79,78,39,56,1.075,TRUE
+R0056,18–29,muž,Střední Čechy,Security First,Trusted Expert,36,85,78,56,64,0.88,TRUE
+R0057,65+,muž,Severovýchod,Security First,Trusted Expert,61,84,55,42,60,1.09,TRUE
+R0058,18–29,žena,Severozápad,Digital Pragmatists,Clear & Human,47,53,82,47,57,1.131,TRUE
+R0059,45–64,žena,Střední Morava,Relationship Seekers,Clear & Human,60,62,72,39,58,0.873,TRUE
+R0060,18–29,muž,Moravskoslezsko,Security First,Trusted Expert,41,71,60,49,55,0.914,TRUE
+R0061,45–64,muž,Praha,Security First,Trusted Expert,28,54,79,41,50,1.119,TRUE
+R0062,45–64,muž,Jihovýchod,Mobile Natives,Neo Future,63,82,83,81,77,1.245,TRUE
+R0063,30–44,muž,Jihozápad,Security First,Trusted Expert,40,54,65,90,62,1.156,TRUE
+R0064,65+,muž,Jihozápad,Relationship Seekers,Clear & Human,54,72,59,82,67,0.771,TRUE
+R0065,65+,muž,Praha,Passive Traditionalists,Current,48,57,89,51,61,1.085,TRUE
+R0066,45–64,muž,Jihovýchod,Security First,Trusted Expert,34,88,76,51,62,1.045,TRUE
+R0067,30–44,žena,Praha,Relationship Seekers,Clear & Human,42,72,80,57,63,0.757,TRUE
+R0068,18–29,žena,Moravskoslezsko,Mobile Natives,Neo Future,43,60,52,89,61,0.954,TRUE
+R0069,45–64,muž,Severozápad,Security First,Trusted Expert,32,79,88,75,68,0.89,TRUE
+R0070,18–29,žena,Severovýchod,Digital Pragmatists,Clear & Human,30,77,62,53,56,1.012,TRUE
+R0071,45–64,muž,Praha,Digital Pragmatists,Clear & Human,28,53,84,48,53,0.978,TRUE
+R0072,30–44,žena,Střední Morava,Passive Traditionalists,Current,40,68,76,81,66,1.166,TRUE
+R0073,65+,muž,Moravskoslezsko,Mobile Natives,Neo Future,53,59,52,87,63,1.031,TRUE
+R0074,18–29,muž,Jihozápad,Security First,Trusted Expert,51,79,50,49,57,1.095,TRUE
+R0075,30–44,muž,Moravskoslezsko,Security First,Trusted Expert,52,76,81,88,74,1.036,TRUE
+R0076,30–44,žena,Střední Čechy,Digital Pragmatists,Clear & Human,60,47,48,68,56,1.141,TRUE
+R0077,30–44,žena,Střední Morava,Digital Pragmatists,Clear & Human,56,61,59,50,56,0.839,TRUE
+R0078,30–44,žena,Jihozápad,Mobile Natives,Neo Future,64,73,68,72,69,0.913,TRUE
+R0079,30–44,muž,Jihovýchod,Mobile Natives,Neo Future,46,46,53,88,58,0.811,TRUE
+R0080,18–29,žena,Moravskoslezsko,Mobile Natives,Neo Future,64,70,47,65,62,1.13,TRUE
+R0081,45–64,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,57,45,49,49,50,0.781,TRUE
+R0082,65+,muž,Střední Čechy,Relationship Seekers,Clear & Human,51,74,76,80,70,1.01,TRUE
+R0083,45–64,žena,Střední Morava,Relationship Seekers,Clear & Human,35,52,89,55,58,1.041,TRUE
+R0084,45–64,muž,Moravskoslezsko,Security First,Trusted Expert,51,75,71,89,72,1.234,TRUE
+R0085,65+,žena,Severovýchod,Digital Pragmatists,Clear & Human,40,62,64,79,61,0.89,TRUE
+R0086,65+,žena,Severozápad,Mobile Natives,Neo Future,37,74,78,61,62,1.0,TRUE
+R0087,18–29,muž,Střední Morava,Passive Traditionalists,Current,41,80,49,63,58,1.22,TRUE
+R0088,65+,žena,Jihovýchod,Relationship Seekers,Clear & Human,29,49,78,85,60,0.967,TRUE
+R0089,45–64,žena,Severovýchod,Digital Pragmatists,Clear & Human,46,80,78,53,64,0.784,TRUE
+R0090,30–44,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,55,53,45,44,49,1.049,TRUE
+R0091,30–44,žena,Střední Čechy,Mobile Natives,Neo Future,49,80,64,66,65,0.865,TRUE
+R0092,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,42,74,53,60,57,1.121,TRUE
+R0093,18–29,žena,Severovýchod,Mobile Natives,Neo Future,32,73,58,83,62,0.904,TRUE
+R0094,30–44,muž,Střední Čechy,Mobile Natives,Neo Future,41,58,51,80,58,1.191,TRUE
+R0095,45–64,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,44,58,64,48,54,1.183,TRUE
+R0096,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,44,63,56,68,58,0.92,TRUE
+R0097,30–44,muž,Praha,Digital Pragmatists,Clear & Human,46,50,59,86,60,0.837,TRUE
+R0098,30–44,muž,Severovýchod,Digital Pragmatists,Clear & Human,43,80,82,54,65,1.066,TRUE
+R0099,30–44,muž,Střední Morava,Security First,Trusted Expert,31,46,55,39,43,1.147,TRUE
+R0100,18–29,žena,Severozápad,Mobile Natives,Neo Future,45,51,50,69,54,1.221,TRUE
+R0101,30–44,žena,Jihovýchod,Digital Pragmatists,Clear & Human,51,57,88,47,61,1.172,TRUE
+R0102,30–44,žena,Severovýchod,Security First,Trusted Expert,40,47,66,63,54,0.87,TRUE
+R0103,18–29,žena,Praha,Digital Pragmatists,Clear & Human,64,87,47,77,69,1.119,TRUE
+R0104,30–44,muž,Jihovýchod,Mobile Natives,Neo Future,59,88,63,42,63,0.912,TRUE
+R0105,30–44,žena,Jihovýchod,Security First,Trusted Expert,47,59,76,85,67,0.777,TRUE
+R0106,30–44,žena,Střední Čechy,Relationship Seekers,Clear & Human,55,53,61,83,63,0.758,TRUE
+R0107,18–29,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,38,81,64,70,63,0.973,TRUE
+R0108,18–29,žena,Střední Čechy,Security First,Trusted Expert,56,67,53,60,59,1.213,TRUE
+R0109,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,33,84,76,38,58,1.043,TRUE
+R0110,18–29,muž,Moravskoslezsko,Mobile Natives,Neo Future,32,80,55,38,51,1.03,TRUE
+R0111,30–44,muž,Střední Morava,Digital Pragmatists,Clear & Human,46,62,53,44,51,1.075,TRUE
+R0112,45–64,žena,Jihovýchod,Relationship Seekers,Clear & Human,28,74,90,71,66,0.865,TRUE
+R0113,18–29,muž,Jihozápad,Digital Pragmatists,Clear & Human,34,46,85,64,57,0.802,TRUE
+R0114,45–64,žena,Střední Čechy,Digital Pragmatists,Clear & Human,63,53,66,76,64,1.084,TRUE
+R0115,45–64,žena,Severozápad,Security First,Trusted Expert,45,55,82,89,68,1.134,TRUE
+R0116,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,49,77,72,78,69,0.972,TRUE
+R0117,65+,muž,Praha,Digital Pragmatists,Clear & Human,59,56,48,61,56,1.107,TRUE
+R0118,18–29,žena,Střední Čechy,Security First,Trusted Expert,45,50,90,89,68,0.786,TRUE
+R0119,65+,žena,Střední Morava,Digital Pragmatists,Clear & Human,33,62,82,78,64,0.903,TRUE
+R0120,45–64,muž,Praha,Digital Pragmatists,Clear & Human,28,55,72,44,50,1.185,TRUE
+R0121,30–44,muž,Moravskoslezsko,Security First,Trusted Expert,58,49,48,54,52,1.093,TRUE
+R0122,65+,žena,Praha,Digital Pragmatists,Clear & Human,60,80,55,78,68,0.974,TRUE
+R0123,18–29,žena,Jihozápad,Digital Pragmatists,Clear & Human,52,82,64,61,65,1.02,TRUE
+R0124,65+,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,39,58,55,55,52,1.171,TRUE
+R0125,30–44,žena,Moravskoslezsko,Passive Traditionalists,Current,32,45,65,63,51,0.97,TRUE
+R0126,18–29,žena,Střední Čechy,Passive Traditionalists,Current,58,70,51,54,58,1.128,TRUE
+R0127,45–64,muž,Severovýchod,Digital Pragmatists,Clear & Human,40,60,68,52,55,0.967,TRUE
+R0128,65+,žena,Severovýchod,Relationship Seekers,Clear & Human,57,85,55,73,68,0.934,TRUE
+R0129,18–29,žena,Jihovýchod,Security First,Trusted Expert,49,64,49,64,56,0.824,TRUE
+R0130,65+,žena,Jihozápad,Digital Pragmatists,Clear & Human,53,89,53,45,60,1.054,TRUE
+R0131,30–44,muž,Jihovýchod,Security First,Trusted Expert,34,73,88,87,70,1.012,TRUE
+R0132,30–44,žena,Jihozápad,Relationship Seekers,Clear & Human,37,89,47,84,64,0.918,TRUE
+R0133,65+,muž,Střední Čechy,Mobile Natives,Neo Future,61,74,82,71,72,1.205,TRUE
+R0134,65+,žena,Severozápad,Digital Pragmatists,Clear & Human,29,87,46,80,60,0.785,TRUE
+R0135,65+,žena,Severozápad,Relationship Seekers,Clear & Human,55,57,50,72,58,0.941,TRUE
+R0136,45–64,žena,Praha,Mobile Natives,Neo Future,44,85,77,62,67,0.925,TRUE
+R0137,65+,muž,Praha,Digital Pragmatists,Clear & Human,40,45,56,74,54,0.886,TRUE
+R0138,45–64,muž,Jihozápad,Digital Pragmatists,Clear & Human,35,77,48,39,50,0.789,TRUE
+R0139,65+,žena,Praha,Digital Pragmatists,Clear & Human,40,53,83,55,58,1.052,TRUE
+R0140,18–29,muž,Severovýchod,Security First,Trusted Expert,55,79,89,89,78,1.249,TRUE
+R0141,65+,muž,Severovýchod,Mobile Natives,Neo Future,40,75,60,70,61,1.021,TRUE
+R0142,18–29,muž,Střední Čechy,Digital Pragmatists,Clear & Human,39,81,72,35,57,1.143,TRUE
+R0143,18–29,muž,Jihovýchod,Mobile Natives,Neo Future,32,49,70,50,50,0.967,TRUE
+R0144,65+,muž,Jihovýchod,Passive Traditionalists,Current,37,63,85,51,59,1.167,TRUE
+R0145,45–64,muž,Jihovýchod,Mobile Natives,Neo Future,62,90,56,61,67,1.242,TRUE
+R0146,65+,muž,Severozápad,Security First,Trusted Expert,61,64,67,55,62,1.195,TRUE
+R0147,18–29,žena,Jihozápad,Mobile Natives,Neo Future,59,47,65,65,59,0.755,TRUE
+R0148,30–44,žena,Střední Čechy,Security First,Trusted Expert,33,76,84,73,66,0.752,TRUE
+R0149,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,49,87,76,52,66,0.888,TRUE
+R0150,30–44,muž,Jihovýchod,Relationship Seekers,Clear & Human,55,90,46,67,64,1.146,TRUE
+R0151,65+,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,32,54,56,64,52,0.764,TRUE
+R0152,18–29,žena,Moravskoslezsko,Mobile Natives,Neo Future,31,54,68,51,51,1.065,TRUE
+R0153,30–44,muž,Jihozápad,Security First,Trusted Expert,61,82,64,86,73,1.088,TRUE
+R0154,45–64,muž,Jihozápad,Digital Pragmatists,Clear & Human,46,64,85,83,70,0.776,TRUE
+R0155,45–64,muž,Střední Morava,Digital Pragmatists,Clear & Human,50,90,62,54,64,0.792,TRUE
+R0156,65+,žena,Střední Čechy,Digital Pragmatists,Clear & Human,47,64,77,58,62,0.781,TRUE
+R0157,30–44,žena,Severozápad,Mobile Natives,Neo Future,40,72,73,82,67,1.202,TRUE
+R0158,30–44,muž,Praha,Mobile Natives,Neo Future,28,78,79,86,68,0.896,TRUE
+R0159,18–29,žena,Severovýchod,Mobile Natives,Neo Future,60,75,53,83,68,0.815,TRUE
+R0160,45–64,muž,Střední Čechy,Digital Pragmatists,Clear & Human,33,67,68,77,61,1.022,TRUE
+R0161,65+,muž,Jihovýchod,Mobile Natives,Neo Future,63,58,74,81,69,1.237,TRUE
+R0162,65+,muž,Jihovýchod,Passive Traditionalists,Current,28,72,61,41,50,1.166,TRUE
+R0163,30–44,žena,Jihozápad,Digital Pragmatists,Clear & Human,51,73,83,37,61,1.188,TRUE
+R0164,45–64,muž,Jihozápad,Relationship Seekers,Clear & Human,38,65,55,41,50,0.776,TRUE
+R0165,65+,muž,Jihovýchod,Passive Traditionalists,Current,45,89,81,89,76,0.92,TRUE
+R0166,18–29,muž,Střední Čechy,Mobile Natives,Neo Future,43,90,87,43,66,1.231,TRUE
+R0167,30–44,žena,Jihozápad,Digital Pragmatists,Clear & Human,47,69,55,45,54,1.186,TRUE
+R0168,65+,muž,Severovýchod,Digital Pragmatists,Clear & Human,30,70,49,50,50,0.857,TRUE
+R0169,18–29,žena,Střední Čechy,Relationship Seekers,Clear & Human,52,75,47,35,52,0.77,TRUE
+R0170,65+,žena,Střední Čechy,Security First,Trusted Expert,35,86,67,85,68,1.066,TRUE
+R0171,45–64,muž,Střední Čechy,Relationship Seekers,Clear & Human,48,68,81,50,62,0.991,TRUE
+R0172,30–44,muž,Severovýchod,Relationship Seekers,Clear & Human,53,53,77,85,67,0.903,TRUE
+R0173,65+,žena,Severovýchod,Passive Traditionalists,Current,61,84,71,71,72,0.847,TRUE
+R0174,45–64,muž,Jihovýchod,Digital Pragmatists,Clear & Human,62,84,50,45,60,0.803,TRUE
+R0175,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,28,47,80,36,48,1.204,TRUE
+R0176,30–44,muž,Střední Morava,Mobile Natives,Neo Future,63,54,69,40,56,1.13,TRUE
+R0177,65+,žena,Praha,Passive Traditionalists,Current,57,48,65,75,61,0.849,TRUE
+R0178,65+,muž,Jihozápad,Security First,Trusted Expert,49,64,55,46,54,0.753,TRUE
+R0179,65+,muž,Severozápad,Digital Pragmatists,Clear & Human,49,75,80,60,66,1.1,TRUE
+R0180,65+,žena,Střední Čechy,Digital Pragmatists,Clear & Human,49,58,67,77,63,0.772,TRUE
+R0181,45–64,muž,Praha,Digital Pragmatists,Clear & Human,43,70,79,44,59,0.838,TRUE
+R0182,30–44,muž,Praha,Digital Pragmatists,Clear & Human,36,86,50,45,54,0.941,TRUE
+R0183,65+,muž,Praha,Mobile Natives,Neo Future,37,76,62,59,58,1.18,TRUE
+R0184,30–44,muž,Jihozápad,Digital Pragmatists,Clear & Human,46,69,66,77,64,1.114,TRUE
+R0185,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,34,63,88,51,59,0.887,TRUE
+R0186,45–64,muž,Střední Morava,Security First,Trusted Expert,36,66,53,72,57,1.215,TRUE
+R0187,30–44,žena,Praha,Mobile Natives,Neo Future,43,72,62,41,54,0.985,TRUE
+R0188,18–29,muž,Jihovýchod,Security First,Trusted Expert,44,51,58,46,50,1.198,TRUE
+R0189,18–29,muž,Severozápad,Security First,Trusted Expert,58,55,63,41,54,1.246,TRUE
+R0190,30–44,muž,Severovýchod,Security First,Trusted Expert,38,56,75,78,62,0.976,TRUE
+R0191,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,30,64,68,69,58,0.832,TRUE
+R0192,45–64,muž,Severovýchod,Digital Pragmatists,Clear & Human,44,46,45,58,48,1.142,TRUE
+R0193,45–64,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,59,78,76,87,75,0.934,TRUE
+R0194,30–44,muž,Praha,Mobile Natives,Neo Future,63,77,86,90,79,0.757,TRUE
+R0195,30–44,muž,Střední Čechy,Passive Traditionalists,Current,34,63,64,84,61,0.805,TRUE
+R0196,65+,muž,Severozápad,Security First,Trusted Expert,48,50,84,49,58,1.24,TRUE
+R0197,30–44,muž,Moravskoslezsko,Security First,Trusted Expert,55,61,76,71,66,1.082,TRUE
+R0198,45–64,muž,Jihovýchod,Digital Pragmatists,Clear & Human,34,87,48,83,63,1.159,TRUE
+R0199,65+,žena,Jihozápad,Digital Pragmatists,Clear & Human,59,75,55,36,56,1.124,TRUE
+R0200,45–64,muž,Střední Morava,Relationship Seekers,Clear & Human,57,46,45,85,58,1.054,TRUE
+R0201,65+,muž,Moravskoslezsko,Passive Traditionalists,Current,60,49,86,59,64,1.15,TRUE
+R0202,30–44,muž,Jihozápad,Digital Pragmatists,Clear & Human,33,77,87,83,70,0.979,TRUE
+R0203,30–44,žena,Severovýchod,Relationship Seekers,Clear & Human,53,72,53,35,53,0.83,TRUE
+R0204,45–64,muž,Severozápad,Security First,Trusted Expert,52,62,77,71,66,0.998,TRUE
+R0205,45–64,muž,Jihozápad,Relationship Seekers,Clear & Human,54,62,80,38,58,1.104,TRUE
+R0206,65+,žena,Severozápad,Mobile Natives,Neo Future,62,79,84,79,76,1.172,TRUE
+R0207,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,53,54,59,74,60,0.787,TRUE
+R0208,30–44,muž,Jihovýchod,Passive Traditionalists,Current,62,64,90,43,65,1.057,TRUE
+R0209,45–64,žena,Střední Čechy,Relationship Seekers,Clear & Human,63,69,71,37,60,1.142,TRUE
+R0210,65+,žena,Jihozápad,Digital Pragmatists,Clear & Human,63,89,81,73,76,0.856,TRUE
+R0211,65+,žena,Střední Morava,Relationship Seekers,Clear & Human,39,70,47,82,60,0.782,TRUE
+R0212,45–64,muž,Praha,Mobile Natives,Neo Future,31,84,86,48,62,0.895,TRUE
+R0213,18–29,žena,Jihovýchod,Digital Pragmatists,Clear & Human,37,60,82,72,63,1.159,TRUE
+R0214,65+,muž,Střední Čechy,Passive Traditionalists,Current,63,59,56,39,54,0.862,TRUE
+R0215,65+,žena,Střední Morava,Mobile Natives,Neo Future,37,74,63,63,59,1.135,TRUE
+R0216,18–29,muž,Praha,Security First,Trusted Expert,34,85,58,45,56,1.182,TRUE
+R0217,65+,muž,Střední Čechy,Mobile Natives,Neo Future,54,77,53,86,68,1.194,TRUE
+R0218,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,51,88,90,75,76,0.924,TRUE
+R0219,65+,muž,Severozápad,Digital Pragmatists,Clear & Human,30,65,70,66,58,1.111,TRUE
+R0220,30–44,žena,Jihovýchod,Security First,Trusted Expert,52,75,88,50,66,0.919,TRUE
+R0221,18–29,žena,Jihovýchod,Security First,Trusted Expert,47,47,50,63,52,1.137,TRUE
+R0222,30–44,žena,Jihozápad,Security First,Trusted Expert,33,47,89,76,61,0.963,TRUE
+R0223,18–29,muž,Praha,Security First,Trusted Expert,39,50,77,87,63,0.901,TRUE
+R0224,45–64,muž,Jihovýchod,Security First,Trusted Expert,41,45,84,85,64,0.753,TRUE
+R0225,65+,žena,Severozápad,Passive Traditionalists,Current,31,55,80,87,63,1.199,TRUE
+R0226,30–44,muž,Severovýchod,Passive Traditionalists,Current,64,84,88,57,73,0.969,TRUE
+R0227,18–29,muž,Praha,Digital Pragmatists,Clear & Human,54,63,57,39,53,1.069,TRUE
+R0228,30–44,žena,Praha,Digital Pragmatists,Clear & Human,30,84,81,59,64,0.994,TRUE
+R0229,30–44,muž,Střední Morava,Digital Pragmatists,Clear & Human,55,67,66,40,57,0.83,TRUE
+R0230,65+,muž,Jihovýchod,Security First,Trusted Expert,55,67,67,38,57,0.752,TRUE
+R0231,65+,muž,Severozápad,Digital Pragmatists,Clear & Human,29,53,89,66,59,1.169,TRUE
+R0232,18–29,muž,Jihovýchod,Security First,Trusted Expert,41,51,50,46,47,0.953,TRUE
+R0233,18–29,žena,Moravskoslezsko,Passive Traditionalists,Current,61,79,77,84,75,0.934,TRUE
+R0234,30–44,muž,Jihozápad,Security First,Trusted Expert,36,60,60,78,58,0.769,TRUE
+R0235,45–64,muž,Praha,Security First,Trusted Expert,58,78,61,70,67,0.95,TRUE
+R0236,65+,muž,Střední Morava,Mobile Natives,Neo Future,28,48,80,35,48,1.074,TRUE
+R0237,65+,žena,Střední Čechy,Digital Pragmatists,Clear & Human,35,64,63,70,58,0.848,TRUE
+R0238,45–64,žena,Severozápad,Mobile Natives,Neo Future,44,55,77,70,62,0.996,TRUE
+R0239,45–64,muž,Severozápad,Relationship Seekers,Clear & Human,31,79,82,80,68,1.236,TRUE
+R0240,65+,muž,Severozápad,Digital Pragmatists,Clear & Human,47,50,46,71,54,1.119,TRUE
+R0241,65+,muž,Severovýchod,Digital Pragmatists,Clear & Human,34,74,83,89,70,1.161,TRUE
+R0242,45–64,muž,Jihovýchod,Mobile Natives,Neo Future,51,49,50,78,57,1.011,TRUE
+R0243,18–29,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,28,78,48,79,58,0.895,TRUE
+R0244,45–64,žena,Střední Čechy,Digital Pragmatists,Clear & Human,45,88,79,39,63,0.866,TRUE
+R0245,45–64,žena,Moravskoslezsko,Security First,Trusted Expert,61,81,48,74,66,0.806,TRUE
+R0246,30–44,muž,Jihozápad,Security First,Trusted Expert,32,79,58,71,60,1.042,TRUE
+R0247,30–44,žena,Střední Morava,Passive Traditionalists,Current,51,47,90,67,64,0.928,TRUE
+R0248,30–44,žena,Severozápad,Security First,Trusted Expert,43,79,53,48,56,1.232,TRUE
+R0249,30–44,žena,Severovýchod,Security First,Trusted Expert,29,47,64,37,44,0.913,TRUE
+R0250,65+,muž,Praha,Mobile Natives,Neo Future,64,84,50,58,64,0.974,TRUE
+R0251,45–64,žena,Severovýchod,Digital Pragmatists,Clear & Human,63,76,46,42,57,0.79,TRUE
+R0252,45–64,muž,Praha,Mobile Natives,Neo Future,34,67,90,44,59,1.012,TRUE
+R0253,30–44,muž,Severozápad,Digital Pragmatists,Clear & Human,50,53,79,60,60,1.248,TRUE
+R0254,30–44,žena,Severovýchod,Relationship Seekers,Clear & Human,29,58,88,65,60,1.111,TRUE
+R0255,18–29,žena,Střední Morava,Mobile Natives,Neo Future,56,61,63,73,63,1.048,TRUE
+R0256,65+,žena,Severozápad,Passive Traditionalists,Current,64,88,51,39,60,1.027,TRUE
+R0257,45–64,muž,Praha,Security First,Trusted Expert,64,89,89,66,77,0.803,TRUE
+R0258,65+,muž,Severovýchod,Relationship Seekers,Clear & Human,53,72,67,37,57,1.156,TRUE
+R0259,30–44,žena,Severozápad,Security First,Trusted Expert,33,86,54,49,56,1.113,TRUE
+R0260,45–64,muž,Moravskoslezsko,Mobile Natives,Neo Future,48,67,55,37,52,1.047,TRUE
+R0261,18–29,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,28,46,67,90,58,1.203,TRUE
+R0262,65+,muž,Jihovýchod,Security First,Trusted Expert,39,45,75,85,61,1.18,TRUE
+R0263,30–44,žena,Praha,Digital Pragmatists,Clear & Human,63,66,78,49,64,0.981,TRUE
+R0264,30–44,muž,Moravskoslezsko,Passive Traditionalists,Current,37,89,53,39,54,0.829,TRUE
+R0265,18–29,muž,Střední Čechy,Digital Pragmatists,Clear & Human,43,67,55,81,62,0.997,TRUE
+R0266,65+,muž,Střední Morava,Relationship Seekers,Clear & Human,53,88,82,83,76,1.095,TRUE
+R0267,65+,muž,Jihovýchod,Security First,Trusted Expert,57,51,72,86,66,0.815,TRUE
+R0268,45–64,muž,Střední Morava,Relationship Seekers,Clear & Human,40,50,63,53,52,1.235,TRUE
+R0269,30–44,muž,Jihozápad,Security First,Trusted Expert,39,86,73,35,58,0.98,TRUE
+R0270,45–64,žena,Jihozápad,Digital Pragmatists,Clear & Human,51,84,69,62,66,1.091,TRUE
+R0271,45–64,žena,Praha,Digital Pragmatists,Clear & Human,56,76,52,42,56,0.972,TRUE
+R0272,65+,žena,Střední Morava,Relationship Seekers,Clear & Human,48,46,70,47,53,1.06,TRUE
+R0273,18–29,muž,Praha,Passive Traditionalists,Current,49,69,72,39,57,1.086,TRUE
+R0274,65+,muž,Praha,Mobile Natives,Neo Future,52,55,79,50,59,0.807,TRUE
+R0275,65+,žena,Jihozápad,Security First,Trusted Expert,32,76,58,40,52,1.227,TRUE
+R0276,30–44,muž,Severovýchod,Passive Traditionalists,Current,50,57,67,57,58,1.06,TRUE
+R0277,45–64,muž,Jihovýchod,Digital Pragmatists,Clear & Human,54,53,81,54,60,0.993,TRUE
+R0278,65+,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,48,45,62,61,54,0.846,TRUE
+R0279,45–64,žena,Praha,Digital Pragmatists,Clear & Human,28,83,71,40,56,0.763,TRUE
+R0280,65+,žena,Jihozápad,Mobile Natives,Neo Future,30,85,81,73,67,1.119,TRUE
+R0281,30–44,žena,Jihovýchod,Digital Pragmatists,Clear & Human,47,87,73,42,62,0.792,TRUE
+R0282,45–64,muž,Jihovýchod,Digital Pragmatists,Clear & Human,31,83,74,56,61,1.182,TRUE
+R0283,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,30,57,85,69,60,1.066,TRUE
+R0284,30–44,muž,Moravskoslezsko,Passive Traditionalists,Current,39,82,54,52,57,1.147,TRUE
+R0285,18–29,žena,Severovýchod,Security First,Trusted Expert,31,80,77,72,65,0.842,TRUE
+R0286,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,40,88,62,87,69,0.786,TRUE
+R0287,45–64,muž,Střední Morava,Digital Pragmatists,Clear & Human,28,74,77,78,64,0.943,TRUE
+R0288,45–64,muž,Severovýchod,Security First,Trusted Expert,57,53,65,39,54,1.036,TRUE
+R0289,30–44,muž,Severovýchod,Digital Pragmatists,Clear & Human,38,70,65,72,61,1.139,TRUE
+R0290,30–44,muž,Severozápad,Security First,Trusted Expert,55,69,52,72,62,0.89,TRUE
+R0291,30–44,muž,Severozápad,Passive Traditionalists,Current,44,48,81,60,58,0.879,TRUE
+R0292,30–44,žena,Jihovýchod,Security First,Trusted Expert,57,54,48,67,56,0.969,TRUE
+R0293,18–29,muž,Severozápad,Digital Pragmatists,Clear & Human,55,52,70,54,58,0.804,TRUE
+R0294,18–29,žena,Střední Čechy,Security First,Trusted Expert,44,62,76,87,67,0.932,TRUE
+R0295,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,42,77,82,50,63,1.145,TRUE
+R0296,45–64,muž,Střední Morava,Security First,Trusted Expert,33,67,66,41,52,0.874,TRUE
+R0297,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,50,75,69,76,68,1.116,TRUE
+R0298,30–44,muž,Moravskoslezsko,Mobile Natives,Neo Future,43,77,58,52,58,1.228,TRUE
+R0299,65+,muž,Jihozápad,Relationship Seekers,Clear & Human,46,64,63,45,54,1.009,TRUE
+R0300,18–29,žena,Severozápad,Relationship Seekers,Clear & Human,41,82,77,86,72,0.977,TRUE
+R0301,30–44,muž,Severovýchod,Security First,Trusted Expert,37,64,84,76,65,0.959,TRUE
+R0302,30–44,žena,Moravskoslezsko,Passive Traditionalists,Current,55,83,53,35,56,1.102,TRUE
+R0303,45–64,muž,Jihovýchod,Mobile Natives,Neo Future,37,68,89,83,69,1.218,TRUE
+R0304,30–44,žena,Praha,Digital Pragmatists,Clear & Human,42,67,55,39,51,0.775,TRUE
+R0305,65+,žena,Jihozápad,Mobile Natives,Neo Future,58,51,46,64,55,1.242,TRUE
+R0306,18–29,žena,Praha,Mobile Natives,Neo Future,54,49,54,41,50,1.018,TRUE
+R0307,18–29,muž,Severovýchod,Passive Traditionalists,Current,54,48,47,44,48,0.886,TRUE
+R0308,18–29,muž,Střední Morava,Relationship Seekers,Clear & Human,44,55,84,59,60,1.175,TRUE
+R0309,18–29,muž,Jihovýchod,Digital Pragmatists,Clear & Human,58,45,57,62,56,1.177,TRUE
+R0310,18–29,žena,Severovýchod,Digital Pragmatists,Clear & Human,46,82,52,65,61,1.088,TRUE
+R0311,45–64,žena,Severozápad,Mobile Natives,Neo Future,53,53,79,37,56,0.792,TRUE
+R0312,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,36,88,77,78,70,0.922,TRUE
+R0313,45–64,žena,Severovýchod,Security First,Trusted Expert,63,82,73,44,66,0.909,TRUE
+R0314,18–29,muž,Severovýchod,Relationship Seekers,Clear & Human,61,84,55,48,62,1.241,TRUE
+R0315,18–29,muž,Jihozápad,Security First,Trusted Expert,49,64,73,84,68,1.084,TRUE
+R0316,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,52,52,45,50,50,0.895,TRUE
+R0317,45–64,žena,Praha,Digital Pragmatists,Clear & Human,47,63,64,51,56,0.91,TRUE
+R0318,45–64,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,42,62,53,90,62,1.222,TRUE
+R0319,18–29,žena,Jihozápad,Passive Traditionalists,Current,52,66,82,40,60,1.029,TRUE
+R0320,30–44,muž,Moravskoslezsko,Mobile Natives,Neo Future,44,86,75,43,62,1.023,TRUE
+R0321,45–64,žena,Střední Morava,Relationship Seekers,Clear & Human,36,48,74,68,56,1.14,TRUE
+R0322,45–64,žena,Jihozápad,Digital Pragmatists,Clear & Human,33,66,89,63,63,1.057,TRUE
+R0323,65+,muž,Moravskoslezsko,Mobile Natives,Neo Future,36,79,50,70,59,0.786,TRUE
+R0324,30–44,žena,Moravskoslezsko,Mobile Natives,Neo Future,42,81,55,73,63,1.102,TRUE
+R0325,30–44,žena,Moravskoslezsko,Security First,Trusted Expert,59,53,49,49,52,0.93,TRUE
+R0326,65+,muž,Střední Čechy,Digital Pragmatists,Clear & Human,53,73,58,78,66,0.902,TRUE
+R0327,30–44,muž,Severovýchod,Mobile Natives,Neo Future,38,66,74,38,54,0.918,TRUE
+R0328,45–64,muž,Severozápad,Digital Pragmatists,Clear & Human,37,89,61,35,56,0.858,TRUE
+R0329,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,41,49,76,90,64,1.156,TRUE
+R0330,30–44,muž,Střední Morava,Security First,Trusted Expert,42,62,87,52,61,0.914,TRUE
+R0331,45–64,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,29,80,73,55,59,0.79,TRUE
+R0332,30–44,muž,Severozápad,Digital Pragmatists,Clear & Human,59,60,45,59,56,0.843,TRUE
+R0333,18–29,muž,Severovýchod,Relationship Seekers,Clear & Human,50,49,77,80,64,1.2,TRUE
+R0334,45–64,muž,Praha,Relationship Seekers,Clear & Human,30,45,64,68,52,0.758,TRUE
+R0335,30–44,muž,Střední Čechy,Relationship Seekers,Clear & Human,60,70,57,68,64,1.101,TRUE
+R0336,45–64,muž,Střední Morava,Mobile Natives,Neo Future,62,60,62,54,60,1.241,TRUE
+R0337,65+,žena,Severozápad,Passive Traditionalists,Current,64,47,87,38,59,0.997,TRUE
+R0338,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,31,67,89,36,56,0.941,TRUE
+R0339,30–44,muž,Jihovýchod,Passive Traditionalists,Current,33,60,57,81,58,1.08,TRUE
+R0340,30–44,muž,Jihozápad,Relationship Seekers,Clear & Human,36,50,46,37,42,0.834,TRUE
+R0341,65+,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,41,69,87,62,65,1.052,TRUE
+R0342,45–64,muž,Jihozápad,Mobile Natives,Neo Future,55,46,76,59,59,0.942,TRUE
+R0343,65+,žena,Praha,Security First,Trusted Expert,46,50,51,66,53,0.801,TRUE
+R0344,65+,muž,Severozápad,Digital Pragmatists,Clear & Human,33,74,45,72,56,1.082,TRUE
+R0345,18–29,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,32,66,82,75,64,1.074,TRUE
+R0346,65+,muž,Střední Morava,Mobile Natives,Neo Future,37,84,54,67,60,0.972,TRUE
+R0347,30–44,muž,Střední Čechy,Digital Pragmatists,Clear & Human,49,58,45,52,51,0.998,TRUE
+R0348,65+,žena,Severovýchod,Digital Pragmatists,Clear & Human,49,61,69,53,58,0.907,TRUE
+R0349,18–29,žena,Střední Čechy,Mobile Natives,Neo Future,47,87,64,60,64,0.885,TRUE
+R0350,45–64,muž,Střední Čechy,Mobile Natives,Neo Future,39,83,46,63,58,0.752,TRUE
+R0351,65+,muž,Jihovýchod,Relationship Seekers,Clear & Human,46,79,45,46,54,1.011,TRUE
+R0352,65+,žena,Severozápad,Digital Pragmatists,Clear & Human,42,64,73,37,54,0.962,TRUE
+R0353,18–29,muž,Jihozápad,Passive Traditionalists,Current,58,52,65,73,62,1.103,TRUE
+R0354,65+,žena,Jihozápad,Relationship Seekers,Clear & Human,63,78,59,88,72,0.89,TRUE
+R0355,45–64,muž,Jihozápad,Mobile Natives,Neo Future,55,67,66,53,60,1.019,TRUE
+R0356,45–64,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,48,83,85,43,65,1.185,TRUE
+R0357,65+,muž,Severovýchod,Security First,Trusted Expert,61,69,74,51,64,0.758,TRUE
+R0358,65+,žena,Praha,Digital Pragmatists,Clear & Human,62,79,55,80,69,1.127,TRUE
+R0359,30–44,muž,Jihozápad,Relationship Seekers,Clear & Human,48,50,52,66,54,0.966,TRUE
+R0360,30–44,žena,Severozápad,Relationship Seekers,Clear & Human,42,48,77,54,55,0.993,TRUE
+R0361,45–64,žena,Jihozápad,Digital Pragmatists,Clear & Human,32,56,70,81,60,0.816,TRUE
+R0362,30–44,muž,Severovýchod,Mobile Natives,Neo Future,48,64,60,87,65,0.837,TRUE
+R0363,30–44,žena,Jihozápad,Digital Pragmatists,Clear & Human,46,45,46,54,48,0.767,TRUE
+R0364,45–64,žena,Jihovýchod,Relationship Seekers,Clear & Human,61,47,52,85,61,1.085,TRUE
+R0365,65+,žena,Střední Morava,Digital Pragmatists,Clear & Human,54,63,77,48,60,0.968,TRUE
+R0366,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,49,83,71,63,66,1.212,TRUE
+R0367,65+,žena,Jihovýchod,Security First,Trusted Expert,49,48,76,74,62,0.792,TRUE
+R0368,45–64,žena,Jihovýchod,Relationship Seekers,Clear & Human,45,78,45,51,55,1.064,TRUE
+R0369,65+,muž,Praha,Relationship Seekers,Clear & Human,45,60,60,36,50,0.776,TRUE
+R0370,65+,žena,Praha,Mobile Natives,Neo Future,56,65,76,37,58,0.939,TRUE
+R0371,18–29,žena,Jihovýchod,Relationship Seekers,Clear & Human,30,54,64,74,56,0.806,TRUE
+R0372,45–64,žena,Jihozápad,Mobile Natives,Neo Future,46,47,66,49,52,1.113,TRUE
+R0373,65+,žena,Jihozápad,Digital Pragmatists,Clear & Human,56,87,84,58,71,1.177,TRUE
+R0374,65+,žena,Střední Morava,Security First,Trusted Expert,39,62,80,83,66,1.203,TRUE
+R0375,18–29,muž,Jihovýchod,Security First,Trusted Expert,54,86,50,50,60,0.787,TRUE
+R0376,18–29,žena,Moravskoslezsko,Passive Traditionalists,Current,55,75,82,86,74,1.229,TRUE
+R0377,30–44,žena,Severovýchod,Mobile Natives,Neo Future,60,60,45,44,52,1.154,TRUE
+R0378,18–29,žena,Střední Čechy,Security First,Trusted Expert,51,67,63,77,64,0.968,TRUE
+R0379,30–44,muž,Severozápad,Digital Pragmatists,Clear & Human,50,55,77,80,66,0.979,TRUE
+R0380,30–44,žena,Severovýchod,Relationship Seekers,Clear & Human,47,63,62,84,64,1.122,TRUE
+R0381,30–44,muž,Praha,Digital Pragmatists,Clear & Human,37,54,84,37,53,0.863,TRUE
+R0382,18–29,žena,Střední Čechy,Relationship Seekers,Clear & Human,35,59,76,80,62,0.833,TRUE
+R0383,65+,muž,Severozápad,Digital Pragmatists,Clear & Human,62,55,67,83,67,1.183,TRUE
+R0384,45–64,muž,Moravskoslezsko,Mobile Natives,Neo Future,48,90,63,39,60,0.994,TRUE
+R0385,30–44,muž,Střední Čechy,Security First,Trusted Expert,34,89,70,46,60,1.207,TRUE
+R0386,18–29,muž,Praha,Relationship Seekers,Clear & Human,37,73,45,40,49,1.08,TRUE
+R0387,45–64,muž,Jihozápad,Digital Pragmatists,Clear & Human,34,46,74,62,54,0.773,TRUE
+R0388,45–64,muž,Jihovýchod,Digital Pragmatists,Clear & Human,37,52,58,77,56,0.831,TRUE
+R0389,30–44,muž,Střední Morava,Mobile Natives,Neo Future,28,55,70,38,48,1.026,TRUE
+R0390,45–64,muž,Střední Morava,Digital Pragmatists,Clear & Human,60,57,77,36,58,0.919,TRUE
+R0391,45–64,muž,Severovýchod,Digital Pragmatists,Clear & Human,44,86,72,88,72,0.751,TRUE
+R0392,18–29,muž,Jihozápad,Digital Pragmatists,Clear & Human,36,72,88,60,64,0.773,TRUE
+R0393,30–44,muž,Praha,Mobile Natives,Neo Future,55,63,54,52,56,0.765,TRUE
+R0394,18–29,muž,Střední Čechy,Digital Pragmatists,Clear & Human,62,70,58,86,69,0.847,TRUE
+R0395,65+,muž,Severozápad,Mobile Natives,Neo Future,50,57,48,68,56,0.839,TRUE
+R0396,18–29,žena,Severozápad,Digital Pragmatists,Clear & Human,55,65,81,88,72,1.181,TRUE
+R0397,65+,muž,Střední Morava,Digital Pragmatists,Clear & Human,28,58,88,79,63,0.856,TRUE
+R0398,45–64,muž,Severovýchod,Digital Pragmatists,Clear & Human,32,49,87,87,64,1.218,TRUE
+R0399,45–64,muž,Střední Morava,Relationship Seekers,Clear & Human,47,64,52,37,50,0.849,TRUE
+R0400,45–64,žena,Moravskoslezsko,Mobile Natives,Neo Future,44,48,75,89,64,1.074,TRUE
+R0401,65+,muž,Jihovýchod,Security First,Trusted Expert,61,60,58,59,60,1.141,TRUE
+R0402,30–44,muž,Jihovýchod,Relationship Seekers,Clear & Human,63,52,56,62,58,1.107,TRUE
+R0403,65+,muž,Jihovýchod,Digital Pragmatists,Clear & Human,53,51,71,84,65,0.922,TRUE
+R0404,45–64,žena,Praha,Relationship Seekers,Clear & Human,50,64,66,50,58,0.977,TRUE
+R0405,30–44,muž,Jihozápad,Mobile Natives,Neo Future,47,77,55,61,60,1.067,TRUE
+R0406,45–64,žena,Jihovýchod,Mobile Natives,Neo Future,36,58,74,47,54,0.802,TRUE
+R0407,18–29,žena,Severovýchod,Digital Pragmatists,Clear & Human,60,49,75,62,62,0.89,TRUE
+R0408,65+,muž,Jihozápad,Security First,Trusted Expert,35,88,68,51,60,0.79,TRUE
+R0409,65+,muž,Severovýchod,Relationship Seekers,Clear & Human,51,81,54,70,64,1.022,TRUE
+R0410,18–29,muž,Střední Morava,Security First,Trusted Expert,47,45,47,36,44,0.826,TRUE
+R0411,45–64,žena,Moravskoslezsko,Security First,Trusted Expert,34,72,62,74,60,1.084,TRUE
+R0412,18–29,muž,Jihovýchod,Digital Pragmatists,Clear & Human,34,79,79,42,58,1.13,TRUE
+R0413,45–64,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,45,65,78,68,64,0.943,TRUE
+R0414,65+,muž,Praha,Digital Pragmatists,Clear & Human,62,56,60,49,57,0.908,TRUE
+R0415,65+,žena,Severozápad,Digital Pragmatists,Clear & Human,58,61,79,51,62,0.875,TRUE
+R0416,18–29,muž,Jihovýchod,Security First,Trusted Expert,48,88,69,64,67,0.799,TRUE
+R0417,18–29,žena,Severozápad,Security First,Trusted Expert,54,61,86,77,70,1.049,TRUE
+R0418,30–44,muž,Jihozápad,Digital Pragmatists,Clear & Human,31,55,71,70,57,0.787,TRUE
+R0419,18–29,muž,Střední Čechy,Digital Pragmatists,Clear & Human,38,46,56,87,57,1.249,TRUE
+R0420,45–64,žena,Praha,Security First,Trusted Expert,28,57,66,43,48,0.775,TRUE
+R0421,30–44,muž,Střední Čechy,Digital Pragmatists,Clear & Human,61,51,55,37,51,0.859,TRUE
+R0422,18–29,muž,Praha,Security First,Trusted Expert,43,84,49,58,58,0.819,TRUE
+R0423,18–29,žena,Střední Čechy,Mobile Natives,Neo Future,62,48,49,36,49,1.18,TRUE
+R0424,18–29,muž,Jihozápad,Mobile Natives,Neo Future,32,89,70,63,64,1.176,TRUE
+R0425,18–29,žena,Severovýchod,Mobile Natives,Neo Future,49,69,60,37,54,1.091,TRUE
+R0426,65+,muž,Severovýchod,Security First,Trusted Expert,29,65,69,64,57,1.011,TRUE
+R0427,45–64,žena,Jihovýchod,Digital Pragmatists,Clear & Human,64,63,60,84,68,0.84,TRUE
+R0428,45–64,žena,Jihovýchod,Mobile Natives,Neo Future,55,90,69,83,74,0.987,TRUE
+R0429,18–29,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,42,75,50,57,56,1.096,TRUE
+R0430,65+,muž,Střední Čechy,Security First,Trusted Expert,41,86,66,84,69,1.095,TRUE
+R0431,18–29,žena,Moravskoslezsko,Mobile Natives,Neo Future,34,52,53,51,48,0.951,TRUE
+R0432,30–44,žena,Jihozápad,Relationship Seekers,Clear & Human,60,56,75,76,67,0.884,TRUE
+R0433,65+,žena,Střední Morava,Security First,Trusted Expert,38,54,51,71,54,1.239,TRUE
+R0434,45–64,muž,Střední Čechy,Digital Pragmatists,Clear & Human,46,79,52,43,55,1.036,TRUE
+R0435,65+,žena,Jihozápad,Relationship Seekers,Clear & Human,63,57,51,82,63,0.801,TRUE
+R0436,65+,muž,Severovýchod,Security First,Trusted Expert,47,65,86,50,62,1.157,TRUE
+R0437,45–64,žena,Střední Čechy,Mobile Natives,Neo Future,38,72,46,62,54,0.776,TRUE
+R0438,30–44,žena,Praha,Mobile Natives,Neo Future,35,56,70,43,51,1.236,TRUE
+R0439,30–44,žena,Severozápad,Relationship Seekers,Clear & Human,57,75,54,43,57,1.229,TRUE
+R0440,30–44,muž,Severozápad,Mobile Natives,Neo Future,46,85,45,90,66,0.959,TRUE
+R0441,18–29,žena,Severozápad,Relationship Seekers,Clear & Human,52,88,78,82,75,1.167,TRUE
+R0442,30–44,muž,Střední Čechy,Relationship Seekers,Clear & Human,56,46,47,35,46,0.822,TRUE
+R0443,30–44,žena,Jihozápad,Digital Pragmatists,Clear & Human,30,72,54,42,50,1.155,TRUE
+R0444,65+,muž,Střední Morava,Digital Pragmatists,Clear & Human,33,48,70,70,55,0.868,TRUE
+R0445,18–29,žena,Jihozápad,Relationship Seekers,Clear & Human,58,57,62,78,64,0.948,TRUE
+R0446,30–44,muž,Střední Čechy,Mobile Natives,Neo Future,44,58,84,39,56,0.889,TRUE
+R0447,45–64,žena,Střední Morava,Security First,Trusted Expert,62,72,46,87,67,1.175,TRUE
+R0448,30–44,žena,Střední Morava,Mobile Natives,Neo Future,60,72,69,56,64,1.073,TRUE
+R0449,45–64,žena,Jihozápad,Digital Pragmatists,Clear & Human,41,88,51,62,60,1.106,TRUE
+R0450,65+,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,56,63,90,79,72,1.129,TRUE
+R0451,30–44,muž,Praha,Digital Pragmatists,Clear & Human,58,72,79,54,66,1.176,TRUE
+R0452,65+,muž,Jihozápad,Mobile Natives,Neo Future,44,82,52,73,63,1.078,TRUE
+R0453,18–29,muž,Střední Morava,Security First,Trusted Expert,50,53,76,49,57,0.971,TRUE
+R0454,45–64,žena,Praha,Mobile Natives,Neo Future,52,74,57,88,68,0.775,TRUE
+R0455,45–64,muž,Jihozápad,Mobile Natives,Neo Future,43,45,64,51,51,1.099,TRUE
+R0456,30–44,žena,Jihovýchod,Digital Pragmatists,Clear & Human,32,60,71,36,50,1.12,TRUE
+R0457,18–29,muž,Praha,Mobile Natives,Neo Future,31,68,53,70,56,1.245,TRUE
+R0458,65+,žena,Severovýchod,Security First,Trusted Expert,33,69,66,43,53,1.042,TRUE
+R0459,45–64,muž,Severozápad,Security First,Trusted Expert,60,57,83,55,64,0.785,TRUE
+R0460,18–29,muž,Jihovýchod,Mobile Natives,Neo Future,37,58,54,76,56,1.176,TRUE
+R0461,45–64,žena,Severovýchod,Security First,Trusted Expert,50,62,54,72,60,0.826,TRUE
+R0462,65+,muž,Jihozápad,Digital Pragmatists,Clear & Human,58,75,45,45,56,0.88,TRUE
+R0463,65+,muž,Severozápad,Digital Pragmatists,Clear & Human,29,71,51,83,58,1.236,TRUE
+R0464,45–64,muž,Severozápad,Digital Pragmatists,Clear & Human,63,71,68,81,71,1.02,TRUE
+R0465,45–64,žena,Severozápad,Mobile Natives,Neo Future,45,54,72,70,60,0.976,TRUE
+R0466,65+,žena,Střední Morava,Mobile Natives,Neo Future,49,89,57,82,69,1.094,TRUE
+R0467,65+,žena,Severozápad,Security First,Trusted Expert,57,55,45,73,58,1.086,TRUE
+R0468,45–64,žena,Jihozápad,Digital Pragmatists,Clear & Human,57,69,57,60,61,1.015,TRUE
+R0469,65+,muž,Moravskoslezsko,Mobile Natives,Neo Future,28,57,59,81,56,0.807,TRUE
+R0470,18–29,muž,Moravskoslezsko,Security First,Trusted Expert,48,47,61,49,51,1.176,TRUE
+R0471,18–29,žena,Severovýchod,Digital Pragmatists,Clear & Human,50,85,89,82,76,1.208,TRUE
+R0472,30–44,muž,Praha,Digital Pragmatists,Clear & Human,46,69,78,55,62,1.043,TRUE
+R0473,45–64,žena,Severozápad,Mobile Natives,Neo Future,44,83,47,47,55,1.236,TRUE
+R0474,18–29,žena,Severozápad,Security First,Trusted Expert,46,68,78,43,59,1.233,TRUE
+R0475,30–44,žena,Severozápad,Security First,Trusted Expert,38,80,50,51,55,0.899,TRUE
+R0476,18–29,žena,Jihovýchod,Mobile Natives,Neo Future,35,73,68,37,53,1.028,TRUE
+R0477,45–64,muž,Moravskoslezsko,Passive Traditionalists,Current,59,49,56,89,63,1.19,TRUE
+R0478,65+,žena,Severozápad,Relationship Seekers,Clear & Human,63,67,65,46,60,0.849,TRUE
+R0479,30–44,muž,Střední Čechy,Mobile Natives,Neo Future,53,82,60,56,63,1.07,TRUE
+R0480,45–64,žena,Praha,Digital Pragmatists,Clear & Human,60,84,66,59,67,0.794,TRUE
+R0481,45–64,žena,Praha,Security First,Trusted Expert,40,82,64,37,56,0.938,TRUE
+R0482,30–44,muž,Praha,Mobile Natives,Neo Future,43,64,89,53,62,1.039,TRUE
+R0483,45–64,žena,Severovýchod,Security First,Trusted Expert,29,66,65,81,60,0.912,TRUE
+R0484,65+,žena,Praha,Digital Pragmatists,Clear & Human,52,48,86,90,69,0.918,TRUE
+R0485,18–29,muž,Střední Čechy,Passive Traditionalists,Current,61,60,63,66,62,0.919,TRUE
+R0486,65+,muž,Střední Morava,Digital Pragmatists,Clear & Human,31,84,72,40,57,1.155,TRUE
+R0487,30–44,žena,Praha,Mobile Natives,Neo Future,35,72,70,80,64,1.075,TRUE
+R0488,65+,žena,Střední Čechy,Passive Traditionalists,Current,61,46,68,73,62,0.857,TRUE
+R0489,45–64,žena,Severozápad,Digital Pragmatists,Clear & Human,59,70,86,62,69,0.775,TRUE
+R0490,18–29,žena,Střední Morava,Digital Pragmatists,Clear & Human,31,76,80,65,63,0.836,TRUE
+R0491,30–44,žena,Praha,Relationship Seekers,Clear & Human,44,61,47,61,53,0.791,TRUE
+R0492,65+,žena,Střední Čechy,Relationship Seekers,Clear & Human,32,62,74,84,63,1.072,TRUE
+R0493,45–64,muž,Severozápad,Digital Pragmatists,Clear & Human,40,60,51,35,46,1.139,TRUE
+R0494,45–64,žena,Moravskoslezsko,Security First,Trusted Expert,30,78,74,41,56,0.87,TRUE
+R0495,30–44,muž,Střední Čechy,Relationship Seekers,Clear & Human,50,48,87,56,60,0.824,TRUE
+R0496,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,41,60,57,72,58,0.862,TRUE
+R0497,65+,žena,Střední Čechy,Passive Traditionalists,Current,28,59,74,86,62,0.783,TRUE
+R0498,65+,muž,Severozápad,Security First,Trusted Expert,28,83,65,44,55,1.195,TRUE
+R0499,30–44,žena,Severozápad,Mobile Natives,Neo Future,32,49,45,66,48,1.022,TRUE
+R0500,45–64,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,51,81,83,46,65,0.812,TRUE
+R0501,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,41,53,46,75,54,0.93,TRUE
+R0502,65+,žena,Praha,Relationship Seekers,Clear & Human,30,83,80,90,71,0.926,TRUE
+R0503,45–64,muž,Severozápad,Digital Pragmatists,Clear & Human,41,45,83,42,53,0.813,TRUE
+R0504,18–29,žena,Severozápad,Relationship Seekers,Clear & Human,45,46,69,53,53,0.871,TRUE
+R0505,65+,muž,Praha,Digital Pragmatists,Clear & Human,63,48,65,78,64,1.199,TRUE
+R0506,45–64,žena,Severozápad,Mobile Natives,Neo Future,53,70,58,88,67,0.855,TRUE
+R0507,30–44,žena,Střední Morava,Relationship Seekers,Clear & Human,32,80,50,84,62,1.064,TRUE
+R0508,45–64,muž,Jihovýchod,Security First,Trusted Expert,61,46,78,86,68,0.806,TRUE
+R0509,45–64,muž,Praha,Digital Pragmatists,Clear & Human,47,64,65,79,64,0.769,TRUE
+R0510,65+,žena,Severozápad,Security First,Trusted Expert,52,64,72,63,63,0.941,TRUE
+R0511,45–64,muž,Severozápad,Mobile Natives,Neo Future,30,71,79,41,55,0.871,TRUE
+R0512,65+,žena,Jihovýchod,Relationship Seekers,Clear & Human,46,60,60,82,62,1.141,TRUE
+R0513,18–29,muž,Praha,Relationship Seekers,Clear & Human,45,71,79,59,64,1.165,TRUE
+R0514,65+,žena,Moravskoslezsko,Security First,Trusted Expert,45,51,50,70,54,1.081,TRUE
+R0515,30–44,muž,Severovýchod,Mobile Natives,Neo Future,39,48,53,70,52,0.831,TRUE
+R0516,18–29,žena,Jihovýchod,Security First,Trusted Expert,35,80,88,48,63,1.17,TRUE
+R0517,45–64,žena,Severovýchod,Mobile Natives,Neo Future,62,89,80,62,73,1.067,TRUE
+R0518,45–64,muž,Střední Čechy,Passive Traditionalists,Current,59,62,58,73,63,1.039,TRUE
+R0519,18–29,muž,Praha,Relationship Seekers,Clear & Human,50,80,60,51,60,1.138,TRUE
+R0520,30–44,žena,Severozápad,Mobile Natives,Neo Future,42,62,67,48,55,1.105,TRUE
+R0521,30–44,muž,Jihozápad,Passive Traditionalists,Current,50,48,53,81,58,0.933,TRUE
+R0522,45–64,žena,Střední Čechy,Security First,Trusted Expert,49,72,69,81,68,0.924,TRUE
+R0523,45–64,muž,Střední Čechy,Digital Pragmatists,Clear & Human,33,87,65,75,65,1.055,TRUE
+R0524,18–29,muž,Moravskoslezsko,Security First,Trusted Expert,47,45,56,79,57,1.199,TRUE
+R0525,18–29,muž,Praha,Passive Traditionalists,Current,57,88,50,61,64,0.806,TRUE
+R0526,45–64,muž,Střední Morava,Passive Traditionalists,Current,53,88,72,52,66,0.896,TRUE
+R0527,30–44,muž,Střední Čechy,Relationship Seekers,Clear & Human,44,65,70,48,57,1.154,TRUE
+R0528,65+,muž,Severovýchod,Security First,Trusted Expert,60,78,58,57,63,0.963,TRUE
+R0529,30–44,muž,Střední Morava,Digital Pragmatists,Clear & Human,44,85,70,52,63,0.9,TRUE
+R0530,30–44,muž,Jihovýchod,Digital Pragmatists,Clear & Human,43,75,75,55,62,0.833,TRUE
+R0531,65+,muž,Severozápad,Passive Traditionalists,Current,34,62,71,84,63,1.192,TRUE
+R0532,18–29,muž,Jihozápad,Relationship Seekers,Clear & Human,50,46,50,53,50,0.823,TRUE
+R0533,18–29,žena,Praha,Relationship Seekers,Clear & Human,30,61,61,69,55,1.003,TRUE
+R0534,18–29,žena,Moravskoslezsko,Security First,Trusted Expert,61,68,60,61,62,0.826,TRUE
+R0535,30–44,muž,Střední Čechy,Mobile Natives,Neo Future,38,67,59,57,55,0.961,TRUE
+R0536,45–64,žena,Jihozápad,Relationship Seekers,Clear & Human,58,88,64,41,63,1.144,TRUE
+R0537,30–44,muž,Praha,Mobile Natives,Neo Future,45,48,88,83,66,1.066,TRUE
+R0538,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,42,86,45,49,56,1.036,TRUE
+R0539,30–44,žena,Střední Čechy,Digital Pragmatists,Clear & Human,43,78,56,36,53,0.999,TRUE
+R0540,18–29,žena,Jihozápad,Relationship Seekers,Clear & Human,49,55,76,69,62,1.043,TRUE
+R0541,30–44,muž,Jihovýchod,Security First,Trusted Expert,35,76,57,66,58,1.141,TRUE
+R0542,65+,muž,Jihovýchod,Mobile Natives,Neo Future,35,68,51,67,55,0.829,TRUE
+R0543,18–29,muž,Jihovýchod,Digital Pragmatists,Clear & Human,50,86,51,59,62,0.803,TRUE
+R0544,18–29,muž,Praha,Digital Pragmatists,Clear & Human,46,48,71,70,59,0.777,TRUE
+R0545,30–44,žena,Jihozápad,Passive Traditionalists,Current,60,73,81,38,63,0.838,TRUE
+R0546,30–44,muž,Jihozápad,Digital Pragmatists,Clear & Human,38,47,59,80,56,0.986,TRUE
+R0547,45–64,žena,Jihozápad,Security First,Trusted Expert,43,64,55,81,61,0.954,TRUE
+R0548,65+,muž,Severovýchod,Passive Traditionalists,Current,53,72,48,51,56,1.012,TRUE
+R0549,18–29,muž,Jihozápad,Mobile Natives,Neo Future,39,72,71,66,62,1.101,TRUE
+R0550,30–44,muž,Severozápad,Mobile Natives,Neo Future,40,70,83,37,58,0.987,TRUE
+R0551,65+,žena,Střední Čechy,Security First,Trusted Expert,45,88,47,85,66,1.053,TRUE
+R0552,45–64,žena,Moravskoslezsko,Mobile Natives,Neo Future,46,58,61,75,60,0.854,TRUE
+R0553,65+,muž,Jihozápad,Digital Pragmatists,Clear & Human,39,80,64,48,58,0.79,TRUE
+R0554,30–44,žena,Jihovýchod,Mobile Natives,Neo Future,52,71,79,51,63,1.221,TRUE
+R0555,30–44,muž,Jihozápad,Mobile Natives,Neo Future,60,69,90,82,75,0.932,TRUE
+R0556,65+,žena,Jihovýchod,Mobile Natives,Neo Future,54,66,51,59,58,1.244,TRUE
+R0557,30–44,žena,Severovýchod,Security First,Trusted Expert,54,51,77,49,58,1.187,TRUE
+R0558,18–29,žena,Střední Čechy,Mobile Natives,Neo Future,52,81,46,56,59,1.06,TRUE
+R0559,30–44,muž,Moravskoslezsko,Passive Traditionalists,Current,43,74,90,68,69,0.906,TRUE
+R0560,30–44,muž,Praha,Mobile Natives,Neo Future,36,79,60,56,58,1.223,TRUE
+R0561,18–29,žena,Střední Morava,Digital Pragmatists,Clear & Human,46,87,58,61,63,1.073,TRUE
+R0562,30–44,žena,Praha,Passive Traditionalists,Current,57,58,68,35,54,1.075,TRUE
+R0563,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,28,45,79,74,56,0.98,TRUE
+R0564,30–44,žena,Jihovýchod,Digital Pragmatists,Clear & Human,29,74,86,82,68,0.812,TRUE
+R0565,65+,žena,Praha,Security First,Trusted Expert,50,67,86,54,64,0.845,TRUE
+R0566,18–29,muž,Moravskoslezsko,Security First,Trusted Expert,53,47,69,79,62,1.097,TRUE
+R0567,30–44,muž,Moravskoslezsko,Mobile Natives,Neo Future,47,69,53,83,63,1.228,TRUE
+R0568,65+,muž,Severovýchod,Relationship Seekers,Clear & Human,49,55,81,88,68,1.063,TRUE
+R0569,30–44,muž,Praha,Relationship Seekers,Clear & Human,44,58,54,56,53,0.806,TRUE
+R0570,18–29,žena,Severovýchod,Security First,Trusted Expert,57,45,78,81,65,0.754,TRUE
+R0571,18–29,muž,Jihozápad,Digital Pragmatists,Clear & Human,61,64,84,80,72,1.239,TRUE
+R0572,45–64,muž,Moravskoslezsko,Passive Traditionalists,Current,35,73,72,39,55,1.222,TRUE
+R0573,30–44,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,48,59,68,53,57,1.091,TRUE
+R0574,45–64,žena,Moravskoslezsko,Security First,Trusted Expert,62,50,61,72,61,0.88,TRUE
+R0575,30–44,žena,Severovýchod,Mobile Natives,Neo Future,52,52,64,50,54,0.794,TRUE
+R0576,30–44,muž,Severovýchod,Relationship Seekers,Clear & Human,62,56,46,44,52,0.995,TRUE
+R0577,18–29,muž,Praha,Digital Pragmatists,Clear & Human,39,88,59,60,62,0.936,TRUE
+R0578,45–64,muž,Severozápad,Security First,Trusted Expert,46,90,50,77,66,1.074,TRUE
+R0579,30–44,muž,Střední Morava,Relationship Seekers,Clear & Human,49,50,72,41,53,1.004,TRUE
+R0580,45–64,muž,Střední Čechy,Relationship Seekers,Clear & Human,50,82,64,82,70,0.941,TRUE
+R0581,18–29,muž,Severovýchod,Security First,Trusted Expert,61,85,57,88,73,1.214,TRUE
+R0582,18–29,muž,Severozápad,Passive Traditionalists,Current,64,68,59,66,64,0.858,TRUE
+R0583,18–29,žena,Praha,Security First,Trusted Expert,41,64,64,77,62,1.116,TRUE
+R0584,30–44,muž,Jihovýchod,Security First,Trusted Expert,58,80,70,44,63,1.214,TRUE
+R0585,30–44,muž,Jihozápad,Digital Pragmatists,Clear & Human,62,81,74,41,64,1.245,TRUE
+R0586,45–64,žena,Moravskoslezsko,Security First,Trusted Expert,39,51,60,40,48,0.929,TRUE
+R0587,45–64,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,39,71,67,60,59,0.781,TRUE
+R0588,18–29,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,58,47,57,68,58,1.2,TRUE
+R0589,65+,žena,Praha,Security First,Trusted Expert,40,59,64,77,60,1.162,TRUE
+R0590,18–29,žena,Severozápad,Relationship Seekers,Clear & Human,28,70,45,51,48,0.879,TRUE
+R0591,18–29,žena,Střední Čechy,Security First,Trusted Expert,35,70,69,59,58,0.776,TRUE
+R0592,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,31,90,84,62,67,0.931,TRUE
+R0593,30–44,žena,Jihovýchod,Relationship Seekers,Clear & Human,46,89,76,79,72,1.157,TRUE
+R0594,65+,muž,Střední Čechy,Digital Pragmatists,Clear & Human,38,82,87,63,68,1.082,TRUE
+R0595,45–64,muž,Jihozápad,Security First,Trusted Expert,62,81,59,47,62,1.23,TRUE
+R0596,18–29,žena,Střední Čechy,Mobile Natives,Neo Future,51,72,63,57,61,1.028,TRUE
+R0597,65+,žena,Jihozápad,Relationship Seekers,Clear & Human,53,68,63,73,64,0.914,TRUE
+R0598,65+,žena,Střední Čechy,Mobile Natives,Neo Future,44,56,87,53,60,1.177,TRUE
+R0599,18–29,žena,Praha,Security First,Trusted Expert,30,74,90,41,59,0.943,TRUE
+R0600,18–29,muž,Střední Čechy,Security First,Trusted Expert,57,50,51,39,49,1.171,TRUE
+R0601,65+,muž,Střední Čechy,Digital Pragmatists,Clear & Human,54,88,54,78,68,0.989,TRUE
+R0602,18–29,žena,Jihozápad,Digital Pragmatists,Clear & Human,54,74,86,79,73,0.997,TRUE
+R0603,18–29,muž,Střední Čechy,Security First,Trusted Expert,54,47,59,67,57,1.201,TRUE
+R0604,18–29,žena,Střední Čechy,Security First,Trusted Expert,45,76,56,58,59,1.128,TRUE
+R0605,18–29,muž,Severozápad,Mobile Natives,Neo Future,47,50,69,42,52,0.796,TRUE
+R0606,65+,muž,Střední Čechy,Security First,Trusted Expert,50,60,48,47,51,0.955,TRUE
+R0607,18–29,muž,Střední Čechy,Relationship Seekers,Clear & Human,57,56,74,49,59,1.019,TRUE
+R0608,45–64,muž,Jihovýchod,Security First,Trusted Expert,62,45,84,44,59,0.954,TRUE
+R0609,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,36,78,68,90,68,1.245,TRUE
+R0610,65+,muž,Jihovýchod,Passive Traditionalists,Current,30,68,56,35,47,0.757,TRUE
+R0611,30–44,muž,Severozápad,Security First,Trusted Expert,29,82,47,79,59,0.992,TRUE
+R0612,45–64,muž,Moravskoslezsko,Mobile Natives,Neo Future,49,78,74,89,72,1.111,TRUE
+R0613,30–44,žena,Jihovýchod,Digital Pragmatists,Clear & Human,53,51,83,78,66,1.003,TRUE
+R0614,18–29,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,52,73,46,35,52,1.245,TRUE
+R0615,30–44,žena,Praha,Mobile Natives,Neo Future,59,69,64,66,64,0.957,TRUE
+R0616,18–29,muž,Jihozápad,Passive Traditionalists,Current,57,74,53,75,65,1.086,TRUE
+R0617,30–44,muž,Střední Čechy,Digital Pragmatists,Clear & Human,41,86,90,83,75,1.039,TRUE
+R0618,30–44,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,50,75,60,48,58,0.794,TRUE
+R0619,45–64,muž,Jihozápad,Relationship Seekers,Clear & Human,30,57,76,52,54,1.085,TRUE
+R0620,65+,žena,Praha,Security First,Trusted Expert,31,56,76,44,52,0.757,TRUE
+R0621,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,42,76,70,75,66,1.235,TRUE
+R0622,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,49,78,61,36,56,1.013,TRUE
+R0623,65+,muž,Jihovýchod,Mobile Natives,Neo Future,58,84,58,39,60,1.09,TRUE
+R0624,45–64,žena,Jihozápad,Mobile Natives,Neo Future,56,59,74,66,64,1.143,TRUE
+R0625,30–44,žena,Střední Morava,Relationship Seekers,Clear & Human,53,75,73,88,72,1.109,TRUE
+R0626,30–44,žena,Střední Čechy,Digital Pragmatists,Clear & Human,57,69,54,76,64,1.002,TRUE
+R0627,65+,žena,Střední Čechy,Passive Traditionalists,Current,62,64,84,51,65,0.757,TRUE
+R0628,65+,muž,Severozápad,Security First,Trusted Expert,51,67,63,63,61,1.089,TRUE
+R0629,18–29,žena,Střední Čechy,Passive Traditionalists,Current,52,59,87,48,62,1.161,TRUE
+R0630,65+,žena,Jihovýchod,Security First,Trusted Expert,33,87,54,84,64,1.081,TRUE
+R0631,18–29,žena,Jihovýchod,Mobile Natives,Neo Future,54,64,49,54,55,1.047,TRUE
+R0632,65+,žena,Severozápad,Passive Traditionalists,Current,49,76,74,56,64,0.859,TRUE
+R0633,45–64,muž,Praha,Security First,Trusted Expert,40,80,53,89,66,0.919,TRUE
+R0634,30–44,muž,Severovýchod,Mobile Natives,Neo Future,63,71,74,60,67,1.242,TRUE
+R0635,45–64,žena,Střední Čechy,Digital Pragmatists,Clear & Human,30,47,69,86,58,0.974,TRUE
+R0636,18–29,žena,Střední Morava,Relationship Seekers,Clear & Human,29,79,82,43,58,1.103,TRUE
+R0637,18–29,žena,Jihozápad,Mobile Natives,Neo Future,34,48,77,86,61,1.124,TRUE
+R0638,65+,muž,Jihovýchod,Relationship Seekers,Clear & Human,44,47,88,63,60,1.169,TRUE
+R0639,45–64,žena,Praha,Relationship Seekers,Clear & Human,36,60,45,77,54,1.178,TRUE
+R0640,45–64,žena,Jihovýchod,Security First,Trusted Expert,59,67,82,88,74,0.943,TRUE
+R0641,30–44,žena,Jihovýchod,Security First,Trusted Expert,46,85,71,51,63,1.043,TRUE
+R0642,45–64,žena,Střední Čechy,Digital Pragmatists,Clear & Human,36,79,63,57,59,0.786,TRUE
+R0643,65+,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,56,54,69,49,57,0.912,TRUE
+R0644,30–44,žena,Severovýchod,Security First,Trusted Expert,46,49,71,36,50,1.168,TRUE
+R0645,18–29,muž,Praha,Digital Pragmatists,Clear & Human,57,49,75,87,67,0.793,TRUE
+R0646,30–44,muž,Střední Čechy,Digital Pragmatists,Clear & Human,54,54,48,86,60,1.239,TRUE
+R0647,18–29,žena,Jihozápad,Security First,Trusted Expert,49,47,52,61,52,1.222,TRUE
+R0648,45–64,žena,Severovýchod,Digital Pragmatists,Clear & Human,56,46,78,36,54,0.79,TRUE
+R0649,18–29,muž,Jihovýchod,Digital Pragmatists,Clear & Human,47,87,60,36,58,0.757,TRUE
+R0650,30–44,žena,Praha,Digital Pragmatists,Clear & Human,44,68,48,80,60,1.048,TRUE
+R0651,30–44,muž,Severovýchod,Security First,Trusted Expert,52,56,82,62,63,1.147,TRUE
+R0652,30–44,žena,Severozápad,Passive Traditionalists,Current,53,59,74,74,65,0.821,TRUE
+R0653,65+,žena,Jihovýchod,Digital Pragmatists,Clear & Human,59,67,66,69,65,0.865,TRUE
+R0654,18–29,žena,Jihovýchod,Mobile Natives,Neo Future,56,69,84,55,66,0.854,TRUE
+R0655,18–29,muž,Střední Čechy,Security First,Trusted Expert,52,45,47,80,56,1.017,TRUE
+R0656,65+,žena,Jihovýchod,Security First,Trusted Expert,44,68,68,84,66,0.812,TRUE
+R0657,45–64,žena,Jihozápad,Mobile Natives,Neo Future,30,57,62,66,54,0.835,TRUE
+R0658,65+,žena,Střední Morava,Security First,Trusted Expert,55,55,70,73,63,1.168,TRUE
+R0659,18–29,žena,Severozápad,Security First,Trusted Expert,62,45,70,53,58,1.069,TRUE
+R0660,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,47,51,80,78,64,0.868,TRUE
+R0661,18–29,žena,Severozápad,Mobile Natives,Neo Future,41,76,52,53,56,1.229,TRUE
+R0662,18–29,žena,Moravskoslezsko,Mobile Natives,Neo Future,57,78,80,50,66,0.857,TRUE
+R0663,18–29,žena,Střední Čechy,Mobile Natives,Neo Future,58,74,69,56,64,1.18,TRUE
+R0664,18–29,žena,Jihozápad,Digital Pragmatists,Clear & Human,39,52,46,38,44,1.009,TRUE
+R0665,45–64,muž,Jihozápad,Security First,Trusted Expert,37,89,59,80,66,0.966,TRUE
+R0666,30–44,muž,Střední Morava,Digital Pragmatists,Clear & Human,58,51,87,39,59,1.131,TRUE
+R0667,65+,muž,Jihozápad,Mobile Natives,Neo Future,37,52,69,53,53,1.072,TRUE
+R0668,30–44,žena,Praha,Passive Traditionalists,Current,42,79,52,90,66,0.876,TRUE
+R0669,18–29,žena,Střední Morava,Mobile Natives,Neo Future,55,85,50,54,61,0.771,TRUE
+R0670,18–29,muž,Střední Čechy,Digital Pragmatists,Clear & Human,63,76,45,42,56,0.912,TRUE
+R0671,65+,muž,Střední Morava,Digital Pragmatists,Clear & Human,64,56,45,39,51,1.09,TRUE
+R0672,45–64,žena,Moravskoslezsko,Mobile Natives,Neo Future,45,59,64,61,57,0.956,TRUE
+R0673,65+,žena,Jihovýchod,Security First,Trusted Expert,32,77,74,37,55,0.771,TRUE
+R0674,18–29,muž,Jihovýchod,Security First,Trusted Expert,55,56,70,76,64,0.8,TRUE
+R0675,45–64,muž,Jihozápad,Security First,Trusted Expert,60,73,81,38,63,0.84,TRUE
+R0676,30–44,muž,Střední Čechy,Passive Traditionalists,Current,39,90,53,50,58,1.037,TRUE
+R0677,65+,muž,Střední Morava,Relationship Seekers,Clear & Human,41,71,85,76,68,0.903,TRUE
+R0678,45–64,žena,Jihozápad,Passive Traditionalists,Current,48,74,59,46,57,0.786,TRUE
+R0679,65+,žena,Severozápad,Relationship Seekers,Clear & Human,42,84,90,42,64,0.961,TRUE
+R0680,45–64,muž,Praha,Security First,Trusted Expert,58,71,80,64,68,1.249,TRUE
+R0681,18–29,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,48,73,56,65,60,1.092,TRUE
+R0682,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,59,77,55,40,58,0.884,TRUE
+R0683,45–64,muž,Jihozápad,Mobile Natives,Neo Future,52,81,68,43,61,0.93,TRUE
+R0684,30–44,muž,Střední Čechy,Digital Pragmatists,Clear & Human,32,60,70,51,53,0.929,TRUE
+R0685,18–29,žena,Jihozápad,Mobile Natives,Neo Future,36,54,80,57,57,0.77,TRUE
+R0686,30–44,žena,Jihovýchod,Security First,Trusted Expert,54,46,73,60,58,0.796,TRUE
+R0687,18–29,muž,Praha,Digital Pragmatists,Clear & Human,28,87,84,48,62,0.992,TRUE
+R0688,65+,muž,Severozápad,Mobile Natives,Neo Future,48,62,76,85,68,1.041,TRUE
+R0689,30–44,muž,Severozápad,Security First,Trusted Expert,44,48,74,79,61,0.858,TRUE
+R0690,18–29,žena,Praha,Security First,Trusted Expert,56,87,47,73,66,1.168,TRUE
+R0691,30–44,muž,Severozápad,Digital Pragmatists,Clear & Human,31,84,65,69,62,1.079,TRUE
+R0692,30–44,muž,Jihozápad,Security First,Trusted Expert,34,51,52,89,56,1.028,TRUE
+R0693,18–29,muž,Moravskoslezsko,Security First,Trusted Expert,53,52,74,87,66,0.77,TRUE
+R0694,18–29,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,57,61,67,70,64,1.066,TRUE
+R0695,65+,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,35,87,50,65,59,0.912,TRUE
+R0696,65+,žena,Střední Morava,Mobile Natives,Neo Future,30,61,82,41,54,0.815,TRUE
+R0697,65+,muž,Jihovýchod,Relationship Seekers,Clear & Human,41,57,64,42,51,1.223,TRUE
+R0698,18–29,žena,Moravskoslezsko,Security First,Trusted Expert,32,46,59,49,46,0.94,TRUE
+R0699,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,30,70,45,90,59,1.075,TRUE
+R0700,30–44,žena,Severozápad,Relationship Seekers,Clear & Human,37,66,87,47,59,1.021,TRUE
+R0701,45–64,muž,Severovýchod,Relationship Seekers,Clear & Human,61,89,89,55,74,1.094,TRUE
+R0702,30–44,muž,Severozápad,Passive Traditionalists,Current,42,65,88,41,59,1.041,TRUE
+R0703,45–64,muž,Střední Čechy,Digital Pragmatists,Clear & Human,41,65,57,64,57,1.146,TRUE
+R0704,65+,žena,Střední Morava,Mobile Natives,Neo Future,64,71,80,89,76,1.127,TRUE
+R0705,30–44,žena,Jihovýchod,Digital Pragmatists,Clear & Human,37,77,56,46,54,1.047,TRUE
+R0706,30–44,žena,Jihovýchod,Digital Pragmatists,Clear & Human,42,90,89,46,67,1.219,TRUE
+R0707,30–44,muž,Severovýchod,Relationship Seekers,Clear & Human,41,49,85,80,64,1.034,TRUE
+R0708,18–29,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,59,51,70,66,62,0.858,TRUE
+R0709,18–29,muž,Jihovýchod,Passive Traditionalists,Current,39,75,68,82,66,1.009,TRUE
+R0710,30–44,žena,Jihozápad,Security First,Trusted Expert,38,54,70,46,52,0.797,TRUE
+R0711,18–29,muž,Praha,Relationship Seekers,Clear & Human,64,88,50,50,63,0.927,TRUE
+R0712,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,63,46,66,37,53,1.028,TRUE
+R0713,65+,muž,Střední Morava,Digital Pragmatists,Clear & Human,38,82,83,81,71,0.869,TRUE
+R0714,30–44,muž,Jihozápad,Security First,Trusted Expert,36,49,90,44,55,1.077,TRUE
+R0715,45–64,muž,Praha,Mobile Natives,Neo Future,42,53,73,81,62,0.906,TRUE
+R0716,65+,muž,Střední Morava,Digital Pragmatists,Clear & Human,38,71,57,37,51,0.876,TRUE
+R0717,65+,muž,Střední Čechy,Digital Pragmatists,Clear & Human,38,85,60,69,63,0.819,TRUE
+R0718,30–44,muž,Jihovýchod,Security First,Trusted Expert,54,57,88,51,62,1.13,TRUE
+R0719,30–44,muž,Severozápad,Relationship Seekers,Clear & Human,59,51,62,82,64,1.101,TRUE
+R0720,65+,muž,Praha,Mobile Natives,Neo Future,34,83,61,68,62,1.021,TRUE
+R0721,18–29,žena,Severozápad,Security First,Trusted Expert,46,65,53,56,55,0.775,TRUE
+R0722,65+,muž,Střední Morava,Mobile Natives,Neo Future,58,85,58,42,61,1.21,TRUE
+R0723,65+,žena,Praha,Digital Pragmatists,Clear & Human,64,56,49,46,54,0.87,TRUE
+R0724,45–64,žena,Střední Morava,Digital Pragmatists,Clear & Human,29,70,59,69,57,0.856,TRUE
+R0725,65+,muž,Moravskoslezsko,Mobile Natives,Neo Future,35,73,75,60,61,0.888,TRUE
+R0726,30–44,muž,Jihovýchod,Security First,Trusted Expert,61,69,62,86,70,0.817,TRUE
+R0727,30–44,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,47,58,76,64,61,0.821,TRUE
+R0728,30–44,muž,Střední Čechy,Security First,Trusted Expert,34,79,76,68,64,0.839,TRUE
+R0729,18–29,muž,Střední Čechy,Digital Pragmatists,Clear & Human,40,83,77,59,65,1.085,TRUE
+R0730,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,28,86,56,58,57,0.882,TRUE
+R0731,65+,muž,Severovýchod,Security First,Trusted Expert,31,86,74,82,68,0.972,TRUE
+R0732,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,38,68,84,50,60,1.212,TRUE
+R0733,18–29,muž,Střední Morava,Relationship Seekers,Clear & Human,43,83,80,40,62,1.032,TRUE
+R0734,45–64,muž,Severozápad,Digital Pragmatists,Clear & Human,40,76,82,63,65,0.952,TRUE
+R0735,18–29,muž,Severovýchod,Security First,Trusted Expert,34,72,85,50,60,1.076,TRUE
+R0736,65+,žena,Severozápad,Security First,Trusted Expert,28,62,71,78,60,0.896,TRUE
+R0737,45–64,žena,Jihovýchod,Mobile Natives,Neo Future,63,49,46,38,49,1.011,TRUE
+R0738,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,64,83,81,64,73,1.177,TRUE
+R0739,65+,žena,Střední Morava,Digital Pragmatists,Clear & Human,28,60,47,80,54,1.056,TRUE
+R0740,45–64,žena,Jihovýchod,Security First,Trusted Expert,61,69,56,44,58,1.033,TRUE
+R0741,18–29,muž,Střední Čechy,Relationship Seekers,Clear & Human,39,67,50,84,60,0.852,TRUE
+R0742,30–44,muž,Střední Morava,Mobile Natives,Neo Future,42,47,62,67,54,1.016,TRUE
+R0743,30–44,žena,Střední Morava,Digital Pragmatists,Clear & Human,41,52,84,76,63,1.037,TRUE
+R0744,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,31,55,76,39,50,1.222,TRUE
+R0745,65+,žena,Jihozápad,Digital Pragmatists,Clear & Human,60,83,50,62,64,1.031,TRUE
+R0746,18–29,muž,Severovýchod,Mobile Natives,Neo Future,35,59,66,53,53,1.115,TRUE
+R0747,30–44,žena,Severozápad,Relationship Seekers,Clear & Human,50,68,46,67,58,1.125,TRUE
+R0748,65+,muž,Severovýchod,Digital Pragmatists,Clear & Human,56,60,49,59,56,1.085,TRUE
+R0749,30–44,žena,Jihovýchod,Security First,Trusted Expert,33,66,68,77,61,1.194,TRUE
+R0750,45–64,muž,Střední Morava,Mobile Natives,Neo Future,28,67,50,54,50,0.845,TRUE
+R0751,30–44,žena,Jihozápad,Security First,Trusted Expert,57,53,49,89,62,0.954,TRUE
+R0752,18–29,žena,Střední Čechy,Relationship Seekers,Clear & Human,50,58,53,60,55,1.038,TRUE
+R0753,45–64,muž,Jihovýchod,Security First,Trusted Expert,55,67,82,90,74,0.952,TRUE
+R0754,18–29,muž,Střední Čechy,Passive Traditionalists,Current,35,88,88,50,65,0.884,TRUE
+R0755,65+,žena,Praha,Digital Pragmatists,Clear & Human,64,87,60,78,72,0.793,TRUE
+R0756,30–44,muž,Severovýchod,Security First,Trusted Expert,63,52,51,54,55,1.027,TRUE
+R0757,45–64,žena,Praha,Digital Pragmatists,Clear & Human,38,73,73,40,56,0.9,TRUE
+R0758,45–64,muž,Střední Čechy,Relationship Seekers,Clear & Human,63,46,45,65,55,1.032,TRUE
+R0759,18–29,muž,Střední Morava,Security First,Trusted Expert,41,54,70,55,55,0.782,TRUE
+R0760,45–64,muž,Severovýchod,Relationship Seekers,Clear & Human,34,67,86,90,69,1.21,TRUE
+R0761,18–29,žena,Praha,Mobile Natives,Neo Future,29,78,48,68,56,0.877,TRUE
+R0762,30–44,muž,Severozápad,Mobile Natives,Neo Future,63,62,63,55,61,1.021,TRUE
+R0763,45–64,žena,Severozápad,Security First,Trusted Expert,33,89,69,90,70,0.773,TRUE
+R0764,18–29,žena,Střední Čechy,Passive Traditionalists,Current,47,68,61,87,66,0.842,TRUE
+R0765,18–29,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,38,54,65,71,57,1.186,TRUE
+R0766,65+,žena,Severovýchod,Digital Pragmatists,Clear & Human,37,63,49,41,48,1.078,TRUE
+R0767,45–64,muž,Praha,Mobile Natives,Neo Future,44,73,54,45,54,0.822,TRUE
+R0768,30–44,muž,Moravskoslezsko,Mobile Natives,Neo Future,33,85,60,40,54,0.773,TRUE
+R0769,65+,muž,Střední Morava,Passive Traditionalists,Current,59,64,87,44,64,1.075,TRUE
+R0770,65+,žena,Střední Morava,Digital Pragmatists,Clear & Human,51,64,70,63,62,1.042,TRUE
+R0771,45–64,žena,Jihovýchod,Mobile Natives,Neo Future,29,55,66,50,50,0.792,TRUE
+R0772,30–44,muž,Severozápad,Relationship Seekers,Clear & Human,31,78,73,49,58,1.241,TRUE
+R0773,45–64,žena,Praha,Mobile Natives,Neo Future,46,56,52,84,60,1.029,TRUE
+R0774,18–29,žena,Střední Morava,Relationship Seekers,Clear & Human,53,45,64,83,61,0.962,TRUE
+R0775,30–44,žena,Severovýchod,Relationship Seekers,Clear & Human,61,52,45,64,56,0.877,TRUE
+R0776,18–29,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,57,71,45,48,55,1.04,TRUE
+R0777,18–29,muž,Střední Čechy,Mobile Natives,Neo Future,51,55,66,64,59,0.776,TRUE
+R0778,65+,žena,Moravskoslezsko,Passive Traditionalists,Current,63,46,85,39,58,0.962,TRUE
+R0779,18–29,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,63,81,47,90,70,0.965,TRUE
+R0780,18–29,žena,Jihozápad,Mobile Natives,Neo Future,37,45,87,36,51,1.017,TRUE
+R0781,65+,muž,Střední Čechy,Relationship Seekers,Clear & Human,28,69,77,68,60,1.204,TRUE
+R0782,30–44,žena,Střední Morava,Mobile Natives,Neo Future,49,67,89,39,61,0.787,TRUE
+R0783,18–29,žena,Severozápad,Passive Traditionalists,Current,32,45,49,47,43,0.981,TRUE
+R0784,45–64,muž,Jihozápad,Relationship Seekers,Clear & Human,28,68,75,43,54,1.004,TRUE
+R0785,45–64,muž,Praha,Security First,Trusted Expert,64,54,71,44,58,0.867,TRUE
+R0786,45–64,muž,Severozápad,Security First,Trusted Expert,50,59,58,55,56,1.147,TRUE
+R0787,45–64,muž,Praha,Security First,Trusted Expert,33,80,79,58,62,1.179,TRUE
+R0788,18–29,žena,Praha,Relationship Seekers,Clear & Human,33,56,62,37,47,0.806,TRUE
+R0789,45–64,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,56,51,87,37,58,0.797,TRUE
+R0790,30–44,žena,Střední Čechy,Digital Pragmatists,Clear & Human,39,83,57,54,58,0.863,TRUE
+R0791,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,56,68,75,86,71,0.976,TRUE
+R0792,45–64,muž,Střední Morava,Mobile Natives,Neo Future,47,87,58,70,66,0.754,TRUE
+R0793,65+,žena,Severozápad,Digital Pragmatists,Clear & Human,55,46,48,82,58,0.985,TRUE
+R0794,30–44,muž,Jihovýchod,Digital Pragmatists,Clear & Human,53,80,57,41,58,0.931,TRUE
+R0795,45–64,muž,Střední Morava,Digital Pragmatists,Clear & Human,51,77,68,52,62,1.096,TRUE
+R0796,18–29,muž,Severozápad,Mobile Natives,Neo Future,58,67,84,72,70,0.905,TRUE
+R0797,45–64,muž,Střední Čechy,Passive Traditionalists,Current,60,87,68,72,72,0.799,TRUE
+R0798,65+,žena,Severovýchod,Security First,Trusted Expert,62,67,86,42,64,0.997,TRUE
+R0799,45–64,muž,Severovýchod,Passive Traditionalists,Current,55,88,83,62,72,1.036,TRUE
+R0800,18–29,muž,Jihovýchod,Digital Pragmatists,Clear & Human,61,47,82,58,62,0.821,TRUE
+R0801,45–64,muž,Jihovýchod,Digital Pragmatists,Clear & Human,36,82,82,65,66,1.03,TRUE
+R0802,18–29,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,56,68,85,53,66,0.891,TRUE
+R0803,45–64,muž,Severovýchod,Passive Traditionalists,Current,52,79,90,79,75,0.93,TRUE
+R0804,45–64,žena,Jihozápad,Digital Pragmatists,Clear & Human,43,49,88,64,61,0.989,TRUE
+R0805,30–44,muž,Praha,Security First,Trusted Expert,36,80,74,36,56,0.967,TRUE
+R0806,45–64,muž,Severozápad,Security First,Trusted Expert,28,72,64,87,63,0.851,TRUE
+R0807,18–29,žena,Praha,Passive Traditionalists,Current,56,57,68,79,65,0.782,TRUE
+R0808,18–29,muž,Severovýchod,Security First,Trusted Expert,30,47,82,38,49,0.923,TRUE
+R0809,45–64,žena,Praha,Digital Pragmatists,Clear & Human,28,72,57,64,55,0.791,TRUE
+R0810,65+,žena,Praha,Digital Pragmatists,Clear & Human,50,49,61,66,56,0.86,TRUE
+R0811,65+,muž,Praha,Mobile Natives,Neo Future,46,56,87,75,66,1.08,TRUE
+R0812,18–29,muž,Severozápad,Digital Pragmatists,Clear & Human,64,77,63,38,60,0.987,TRUE
+R0813,18–29,muž,Jihovýchod,Relationship Seekers,Clear & Human,41,49,83,68,60,0.817,TRUE
+R0814,65+,muž,Jihovýchod,Digital Pragmatists,Clear & Human,58,58,55,74,61,0.948,TRUE
+R0815,30–44,muž,Jihozápad,Mobile Natives,Neo Future,48,82,88,71,72,0.954,TRUE
+R0816,30–44,žena,Moravskoslezsko,Security First,Trusted Expert,63,74,53,56,62,1.249,TRUE
+R0817,65+,muž,Moravskoslezsko,Security First,Trusted Expert,38,79,86,62,66,0.849,TRUE
+R0818,65+,muž,Střední Morava,Mobile Natives,Neo Future,56,72,59,66,63,1.059,TRUE
+R0819,65+,muž,Moravskoslezsko,Passive Traditionalists,Current,41,82,90,42,64,1.001,TRUE
+R0820,65+,žena,Praha,Digital Pragmatists,Clear & Human,64,87,81,67,75,0.847,TRUE
+R0821,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,63,73,64,48,62,1.044,TRUE
+R0822,30–44,žena,Jihozápad,Security First,Trusted Expert,56,56,65,73,62,0.891,TRUE
+R0823,30–44,žena,Střední Čechy,Digital Pragmatists,Clear & Human,46,55,52,74,57,0.822,TRUE
+R0824,45–64,žena,Severozápad,Relationship Seekers,Clear & Human,53,70,76,36,59,1.047,TRUE
+R0825,45–64,muž,Severozápad,Digital Pragmatists,Clear & Human,46,61,52,53,53,1.139,TRUE
+R0826,18–29,žena,Jihozápad,Security First,Trusted Expert,45,67,52,48,53,0.82,TRUE
+R0827,18–29,žena,Moravskoslezsko,Mobile Natives,Neo Future,29,89,78,38,58,1.092,TRUE
+R0828,45–64,muž,Praha,Relationship Seekers,Clear & Human,39,60,53,50,50,0.791,TRUE
+R0829,45–64,muž,Střední Morava,Passive Traditionalists,Current,28,78,58,87,63,1.046,TRUE
+R0830,65+,muž,Střední Morava,Digital Pragmatists,Clear & Human,40,70,50,52,53,0.77,TRUE
+R0831,65+,žena,Severozápad,Digital Pragmatists,Clear & Human,43,72,77,50,60,1.131,TRUE
+R0832,45–64,muž,Střední Morava,Relationship Seekers,Clear & Human,31,63,48,69,53,0.979,TRUE
+R0833,18–29,žena,Severozápad,Relationship Seekers,Clear & Human,60,73,77,59,67,1.052,TRUE
+R0834,18–29,muž,Praha,Digital Pragmatists,Clear & Human,42,84,56,38,55,0.933,TRUE
+R0835,65+,žena,Praha,Passive Traditionalists,Current,62,82,53,87,71,0.812,TRUE
+R0836,18–29,muž,Střední Čechy,Digital Pragmatists,Clear & Human,62,76,75,81,74,0.89,TRUE
+R0837,65+,muž,Moravskoslezsko,Passive Traditionalists,Current,58,47,65,65,59,0.945,TRUE
+R0838,45–64,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,61,53,69,76,65,0.787,TRUE
+R0839,45–64,muž,Jihozápad,Digital Pragmatists,Clear & Human,45,61,74,64,61,1.059,TRUE
+R0840,65+,žena,Jihovýchod,Security First,Trusted Expert,42,65,65,80,63,1.229,TRUE
+R0841,65+,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,54,52,65,50,55,1.086,TRUE
+R0842,18–29,žena,Jihovýchod,Security First,Trusted Expert,31,69,71,64,59,1.085,TRUE
+R0843,30–44,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,48,76,85,36,61,0.763,TRUE
+R0844,45–64,muž,Jihovýchod,Digital Pragmatists,Clear & Human,33,76,83,78,68,0.882,TRUE
+R0845,65+,žena,Střední Morava,Mobile Natives,Neo Future,46,85,72,79,70,0.832,TRUE
+R0846,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,37,76,63,61,59,1.113,TRUE
+R0847,45–64,žena,Střední Čechy,Relationship Seekers,Clear & Human,46,55,59,60,55,0.854,TRUE
+R0848,65+,žena,Střední Morava,Relationship Seekers,Clear & Human,40,54,54,45,48,0.828,TRUE
+R0849,65+,žena,Jihovýchod,Security First,Trusted Expert,56,60,86,43,61,0.829,TRUE
+R0850,45–64,muž,Jihozápad,Security First,Trusted Expert,33,47,54,77,53,1.181,TRUE
+R0851,65+,muž,Jihovýchod,Mobile Natives,Neo Future,44,53,52,67,54,1.054,TRUE
+R0852,18–29,žena,Jihozápad,Relationship Seekers,Clear & Human,56,48,82,67,63,1.12,TRUE
+R0853,65+,muž,Střední Morava,Mobile Natives,Neo Future,50,74,54,50,57,1.034,TRUE
+R0854,45–64,žena,Praha,Digital Pragmatists,Clear & Human,35,89,49,47,55,0.914,TRUE
+R0855,45–64,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,38,62,78,71,62,1.127,TRUE
+R0856,18–29,muž,Střední Čechy,Security First,Trusted Expert,43,74,47,81,61,0.862,TRUE
+R0857,65+,žena,Jihovýchod,Security First,Trusted Expert,41,67,48,54,52,1.229,TRUE
+R0858,65+,muž,Střední Morava,Mobile Natives,Neo Future,50,87,58,61,64,0.995,TRUE
+R0859,45–64,žena,Střední Čechy,Security First,Trusted Expert,59,65,66,74,66,0.89,TRUE
+R0860,30–44,žena,Severozápad,Passive Traditionalists,Current,64,90,55,74,71,0.762,TRUE
+R0861,18–29,muž,Severozápad,Mobile Natives,Neo Future,33,46,59,43,45,1.011,TRUE
+R0862,65+,muž,Střední Čechy,Security First,Trusted Expert,63,57,59,46,56,1.022,TRUE
+R0863,65+,žena,Střední Čechy,Digital Pragmatists,Clear & Human,64,74,86,75,75,1.129,TRUE
+R0864,65+,žena,Jihovýchod,Security First,Trusted Expert,41,50,68,83,60,1.151,TRUE
+R0865,45–64,muž,Severozápad,Digital Pragmatists,Clear & Human,46,71,87,65,67,1.106,TRUE
+R0866,18–29,žena,Střední Čechy,Relationship Seekers,Clear & Human,53,59,62,52,56,1.005,TRUE
+R0867,65+,žena,Moravskoslezsko,Mobile Natives,Neo Future,34,46,66,62,52,1.033,TRUE
+R0868,30–44,muž,Severovýchod,Digital Pragmatists,Clear & Human,54,76,50,38,54,1.127,TRUE
+R0869,65+,muž,Jihozápad,Mobile Natives,Neo Future,32,50,79,39,50,1.099,TRUE
+R0870,65+,muž,Severovýchod,Relationship Seekers,Clear & Human,62,73,83,64,70,0.961,TRUE
+R0871,18–29,muž,Jihovýchod,Relationship Seekers,Clear & Human,36,56,56,75,56,0.788,TRUE
+R0872,65+,muž,Střední Morava,Security First,Trusted Expert,60,78,48,86,68,0.811,TRUE
+R0873,45–64,žena,Praha,Relationship Seekers,Clear & Human,28,67,53,39,47,0.832,TRUE
+R0874,18–29,žena,Jihozápad,Digital Pragmatists,Clear & Human,43,69,56,35,51,0.9,TRUE
+R0875,45–64,muž,Střední Morava,Security First,Trusted Expert,36,61,87,78,66,1.048,TRUE
+R0876,18–29,žena,Severovýchod,Mobile Natives,Neo Future,51,58,62,55,56,1.147,TRUE
+R0877,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,55,54,64,36,52,1.021,TRUE
+R0878,45–64,muž,Praha,Mobile Natives,Neo Future,49,63,55,81,62,0.887,TRUE
+R0879,30–44,žena,Střední Čechy,Digital Pragmatists,Clear & Human,39,87,70,84,70,1.196,TRUE
+R0880,30–44,muž,Severovýchod,Security First,Trusted Expert,32,61,60,45,50,1.123,TRUE
+R0881,45–64,muž,Severozápad,Security First,Trusted Expert,59,90,66,48,66,0.949,TRUE
+R0882,18–29,muž,Jihozápad,Security First,Trusted Expert,33,52,56,37,44,0.898,TRUE
+R0883,30–44,žena,Praha,Digital Pragmatists,Clear & Human,57,79,79,82,74,0.991,TRUE
+R0884,65+,žena,Jihovýchod,Mobile Natives,Neo Future,33,47,60,90,58,1.158,TRUE
+R0885,65+,muž,Jihozápad,Relationship Seekers,Clear & Human,50,54,74,72,62,1.072,TRUE
+R0886,65+,žena,Jihozápad,Passive Traditionalists,Current,31,84,55,66,59,1.141,TRUE
+R0887,18–29,žena,Praha,Mobile Natives,Neo Future,41,76,76,41,58,0.906,TRUE
+R0888,65+,žena,Jihovýchod,Passive Traditionalists,Current,43,81,48,40,53,0.872,TRUE
+R0889,65+,žena,Střední Morava,Mobile Natives,Neo Future,48,78,72,90,72,0.846,TRUE
+R0890,45–64,žena,Severozápad,Mobile Natives,Neo Future,34,50,50,62,49,0.957,TRUE
+R0891,30–44,žena,Jihozápad,Relationship Seekers,Clear & Human,41,56,55,61,53,0.921,TRUE
+R0892,45–64,žena,Severozápad,Security First,Trusted Expert,42,68,59,90,65,0.761,TRUE
+R0893,30–44,muž,Střední Morava,Mobile Natives,Neo Future,48,65,58,67,60,1.189,TRUE
+R0894,30–44,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,30,87,78,36,58,0.907,TRUE
+R0895,45–64,muž,Praha,Relationship Seekers,Clear & Human,39,58,57,75,57,1.218,TRUE
+R0896,30–44,muž,Jihovýchod,Digital Pragmatists,Clear & Human,40,90,68,74,68,0.801,TRUE
+R0897,30–44,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,37,64,56,52,52,0.802,TRUE
+R0898,45–64,muž,Severovýchod,Mobile Natives,Neo Future,35,50,77,49,53,0.793,TRUE
+R0899,65+,žena,Severozápad,Mobile Natives,Neo Future,44,78,58,40,55,0.84,TRUE
+R0900,45–64,žena,Jihozápad,Mobile Natives,Neo Future,44,59,72,64,60,1.231,TRUE
+R0901,30–44,žena,Moravskoslezsko,Mobile Natives,Neo Future,29,79,68,85,65,0.884,TRUE
+R0902,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,47,72,83,68,68,0.913,TRUE
+R0903,30–44,žena,Jihozápad,Security First,Trusted Expert,40,86,56,36,54,0.953,TRUE
+R0904,30–44,muž,Moravskoslezsko,Security First,Trusted Expert,40,79,54,37,52,1.093,TRUE
+R0905,45–64,muž,Severovýchod,Mobile Natives,Neo Future,41,56,65,41,51,1.045,TRUE
+R0906,45–64,žena,Jihozápad,Passive Traditionalists,Current,36,86,61,55,60,1.006,TRUE
+R0907,30–44,žena,Jihozápad,Passive Traditionalists,Current,50,54,64,45,53,0.862,TRUE
+R0908,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,44,68,47,69,57,1.186,TRUE
+R0909,30–44,muž,Praha,Digital Pragmatists,Clear & Human,51,75,66,43,59,1.231,TRUE
+R0910,30–44,žena,Střední Čechy,Relationship Seekers,Clear & Human,37,85,59,78,65,1.207,TRUE
+R0911,30–44,muž,Praha,Mobile Natives,Neo Future,45,63,86,90,71,1.119,TRUE
+R0912,18–29,žena,Jihozápad,Relationship Seekers,Clear & Human,62,54,75,81,68,1.011,TRUE
+R0913,30–44,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,60,81,48,49,60,0.84,TRUE
+R0914,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,63,65,49,65,60,1.001,TRUE
+R0915,18–29,žena,Severovýchod,Security First,Trusted Expert,42,63,46,41,48,1.133,TRUE
+R0916,65+,muž,Jihozápad,Passive Traditionalists,Current,57,62,79,60,64,1.012,TRUE
+R0917,30–44,muž,Střední Morava,Security First,Trusted Expert,30,45,75,76,56,0.917,TRUE
+R0918,45–64,muž,Severozápad,Security First,Trusted Expert,50,53,75,48,56,0.93,TRUE
+R0919,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,39,79,87,50,64,0.782,TRUE
+R0920,30–44,muž,Jihovýchod,Digital Pragmatists,Clear & Human,41,81,90,58,68,1.037,TRUE
+R0921,65+,žena,Jihovýchod,Digital Pragmatists,Clear & Human,63,59,45,76,61,1.014,TRUE
+R0922,30–44,muž,Severovýchod,Digital Pragmatists,Clear & Human,45,52,66,42,51,1.052,TRUE
+R0923,18–29,muž,Praha,Relationship Seekers,Clear & Human,52,73,86,70,70,0.895,TRUE
+R0924,45–64,muž,Jihovýchod,Security First,Trusted Expert,53,56,64,72,61,1.064,TRUE
+R0925,30–44,žena,Střední Morava,Relationship Seekers,Clear & Human,58,80,61,57,64,0.756,TRUE
+R0926,45–64,žena,Jihovýchod,Security First,Trusted Expert,44,77,50,79,62,0.836,TRUE
+R0927,45–64,muž,Střední Čechy,Relationship Seekers,Clear & Human,48,80,59,56,61,0.853,TRUE
+R0928,45–64,žena,Jihozápad,Relationship Seekers,Clear & Human,52,81,86,75,74,1.15,TRUE
+R0929,18–29,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,37,81,89,74,70,1.138,TRUE
+R0930,65+,žena,Jihovýchod,Digital Pragmatists,Clear & Human,59,67,66,40,58,1.03,TRUE
+R0931,65+,žena,Severovýchod,Security First,Trusted Expert,59,89,82,83,78,1.22,TRUE
+R0932,65+,muž,Střední Čechy,Mobile Natives,Neo Future,49,56,89,89,71,0.846,TRUE
+R0933,30–44,žena,Střední Morava,Digital Pragmatists,Clear & Human,31,56,76,42,51,1.123,TRUE
+R0934,65+,muž,Jihovýchod,Security First,Trusted Expert,39,54,60,62,54,0.794,TRUE
+R0935,45–64,žena,Severozápad,Digital Pragmatists,Clear & Human,59,68,87,68,70,0.9,TRUE
+R0936,65+,žena,Severovýchod,Digital Pragmatists,Clear & Human,63,45,64,48,55,0.992,TRUE
+R0937,18–29,žena,Jihozápad,Digital Pragmatists,Clear & Human,59,74,55,62,62,1.101,TRUE
+R0938,45–64,žena,Severovýchod,Passive Traditionalists,Current,40,70,66,85,65,0.893,TRUE
+R0939,30–44,muž,Severozápad,Mobile Natives,Neo Future,63,75,60,43,60,1.1,TRUE
+R0940,45–64,žena,Jihovýchod,Security First,Trusted Expert,38,64,67,35,51,1.182,TRUE
+R0941,45–64,žena,Střední Morava,Mobile Natives,Neo Future,54,65,85,75,70,0.932,TRUE
+R0942,45–64,žena,Střední Morava,Security First,Trusted Expert,49,64,67,73,63,1.138,TRUE
+R0943,18–29,žena,Severozápad,Passive Traditionalists,Current,44,80,78,74,69,1.029,TRUE
+R0944,18–29,žena,Střední Morava,Mobile Natives,Neo Future,57,51,52,35,49,0.924,TRUE
+R0945,30–44,muž,Střední Morava,Mobile Natives,Neo Future,28,51,46,69,48,0.861,TRUE
+R0946,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,56,53,90,62,65,0.945,TRUE
+R0947,30–44,žena,Severovýchod,Mobile Natives,Neo Future,56,86,72,55,67,0.857,TRUE
+R0948,65+,žena,Severovýchod,Digital Pragmatists,Clear & Human,35,89,83,43,62,1.067,TRUE
+R0949,30–44,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,39,68,60,37,51,1.031,TRUE
+R0950,30–44,žena,Severovýchod,Digital Pragmatists,Clear & Human,32,69,48,86,59,0.801,TRUE
+R0951,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,53,76,57,37,56,0.922,TRUE
+R0952,18–29,muž,Střední Morava,Digital Pragmatists,Clear & Human,42,58,79,37,54,0.779,TRUE
+R0953,18–29,žena,Severozápad,Digital Pragmatists,Clear & Human,36,47,58,66,52,0.823,TRUE
+R0954,30–44,žena,Jihozápad,Digital Pragmatists,Clear & Human,37,81,46,40,51,1.021,TRUE
+R0955,30–44,muž,Střední Morava,Digital Pragmatists,Clear & Human,36,45,52,53,46,0.77,TRUE
+R0956,18–29,muž,Praha,Digital Pragmatists,Clear & Human,41,67,75,67,62,1.223,TRUE
+R0957,30–44,muž,Střední Morava,Mobile Natives,Neo Future,54,69,82,35,60,0.967,TRUE
+R0958,45–64,žena,Jihovýchod,Mobile Natives,Neo Future,54,72,61,43,58,1.157,TRUE
+R0959,18–29,žena,Severovýchod,Digital Pragmatists,Clear & Human,37,86,79,71,68,0.855,TRUE
+R0960,30–44,muž,Střední Čechy,Relationship Seekers,Clear & Human,40,50,90,60,60,1.06,TRUE
+R0961,65+,žena,Střední Morava,Mobile Natives,Neo Future,47,78,66,62,63,1.1,TRUE
+R0962,30–44,muž,Střední Morava,Security First,Trusted Expert,37,68,80,58,61,1.132,TRUE
+R0963,45–64,žena,Severozápad,Mobile Natives,Neo Future,34,82,61,82,65,0.972,TRUE
+R0964,18–29,žena,Jihozápad,Digital Pragmatists,Clear & Human,59,83,46,55,61,1.052,TRUE
+R0965,45–64,muž,Severozápad,Passive Traditionalists,Current,59,78,73,41,63,0.852,TRUE
+R0966,65+,muž,Moravskoslezsko,Security First,Trusted Expert,64,71,66,64,66,1.218,TRUE
+R0967,30–44,žena,Severovýchod,Security First,Trusted Expert,51,45,88,66,62,0.828,TRUE
+R0968,18–29,žena,Střední Morava,Digital Pragmatists,Clear & Human,37,76,89,37,60,0.787,TRUE
+R0969,65+,muž,Střední Čechy,Passive Traditionalists,Current,43,73,76,35,57,0.764,TRUE
+R0970,18–29,žena,Jihozápad,Digital Pragmatists,Clear & Human,57,61,62,73,63,0.874,TRUE
+R0971,45–64,žena,Jihozápad,Mobile Natives,Neo Future,36,66,76,77,64,1.047,TRUE
+R0972,45–64,žena,Střední Čechy,Mobile Natives,Neo Future,51,51,88,57,62,0.964,TRUE
+R0973,45–64,muž,Moravskoslezsko,Passive Traditionalists,Current,37,65,87,89,70,0.926,TRUE
+R0974,65+,žena,Praha,Digital Pragmatists,Clear & Human,33,86,50,67,59,0.978,TRUE
+R0975,65+,muž,Střední Čechy,Relationship Seekers,Clear & Human,35,49,48,66,50,1.175,TRUE
+R0976,65+,žena,Jihovýchod,Digital Pragmatists,Clear & Human,60,61,61,59,60,0.813,TRUE
+R0977,30–44,muž,Praha,Relationship Seekers,Clear & Human,57,52,51,37,49,0.901,TRUE
+R0978,18–29,muž,Severovýchod,Passive Traditionalists,Current,50,87,61,72,68,1.147,TRUE
+R0979,65+,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,35,67,58,61,55,0.872,TRUE
+R0980,18–29,muž,Jihozápad,Security First,Trusted Expert,43,74,45,61,56,1.1,TRUE
+R0981,30–44,muž,Praha,Security First,Trusted Expert,36,78,50,68,58,0.946,TRUE
+R0982,30–44,žena,Severovýchod,Mobile Natives,Neo Future,42,82,64,80,67,1.16,TRUE
+R0983,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,55,82,79,63,70,0.855,TRUE
+R0984,45–64,žena,Jihovýchod,Relationship Seekers,Clear & Human,35,83,89,63,68,0.797,TRUE
+R0985,65+,žena,Severovýchod,Relationship Seekers,Clear & Human,53,88,71,59,68,0.806,TRUE
+R0986,30–44,žena,Jihozápad,Relationship Seekers,Clear & Human,33,55,84,83,64,1.173,TRUE
+R0987,18–29,žena,Jihovýchod,Mobile Natives,Neo Future,28,60,61,45,48,0.809,TRUE
+R0988,18–29,žena,Moravskoslezsko,Security First,Trusted Expert,42,77,51,45,54,1.193,TRUE
+R0989,30–44,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,44,84,63,64,64,0.779,TRUE
+R0990,45–64,muž,Severovýchod,Relationship Seekers,Clear & Human,31,69,74,50,56,1.01,TRUE
+R0991,65+,žena,Střední Čechy,Mobile Natives,Neo Future,37,88,69,39,58,0.9,TRUE
+R0992,45–64,žena,Jihozápad,Digital Pragmatists,Clear & Human,48,52,84,54,60,0.958,TRUE
+R0993,30–44,žena,Praha,Security First,Trusted Expert,55,48,71,46,55,1.184,TRUE
+R0994,45–64,žena,Střední Morava,Security First,Trusted Expert,28,84,46,77,59,1.035,TRUE
+R0995,18–29,žena,Jihozápad,Mobile Natives,Neo Future,61,82,58,82,71,0.853,TRUE
+R0996,65+,žena,Střední Čechy,Digital Pragmatists,Clear & Human,52,50,48,49,50,1.249,TRUE
+R0997,30–44,žena,Jihozápad,Digital Pragmatists,Clear & Human,35,50,69,74,57,0.842,TRUE
+R0998,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,50,89,84,79,76,0.948,TRUE
+R0999,18–29,žena,Střední Čechy,Digital Pragmatists,Clear & Human,39,46,57,80,56,0.879,TRUE
+R1000,30–44,muž,Jihozápad,Passive Traditionalists,Current,48,81,58,57,61,0.874,TRUE
+R1001,45–64,žena,Střední Morava,Security First,Trusted Expert,54,74,86,68,70,0.77,TRUE
+R1002,65+,muž,Praha,Security First,Trusted Expert,61,45,46,78,58,0.87,TRUE
+R1003,65+,muž,Jihovýchod,Relationship Seekers,Clear & Human,36,84,50,77,62,0.93,TRUE
+R1004,65+,muž,Střední Čechy,Security First,Trusted Expert,58,80,79,58,69,1.199,TRUE
+R1005,65+,muž,Praha,Security First,Trusted Expert,44,90,56,47,59,0.796,TRUE
+R1006,45–64,muž,Střední Morava,Passive Traditionalists,Current,46,77,62,83,67,0.809,TRUE
+R1007,30–44,muž,Severozápad,Digital Pragmatists,Clear & Human,42,81,63,87,68,1.199,TRUE
+R1008,18–29,žena,Severozápad,Digital Pragmatists,Clear & Human,33,66,50,57,52,0.816,TRUE
+R1009,18–29,žena,Severozápad,Digital Pragmatists,Clear & Human,63,68,70,47,62,0.789,TRUE
+R1010,65+,muž,Moravskoslezsko,Mobile Natives,Neo Future,51,69,89,78,72,0.78,TRUE
+R1011,45–64,muž,Praha,Mobile Natives,Neo Future,60,79,74,52,66,0.833,TRUE
+R1012,45–64,muž,Severovýchod,Mobile Natives,Neo Future,58,76,60,36,58,1.228,TRUE
+R1013,65+,muž,Praha,Relationship Seekers,Clear & Human,45,74,51,46,54,0.942,TRUE
+R1014,30–44,žena,Jihozápad,Relationship Seekers,Clear & Human,54,82,72,44,63,0.824,TRUE
+R1015,30–44,žena,Jihozápad,Mobile Natives,Neo Future,30,50,72,57,52,1.122,TRUE
+R1016,45–64,žena,Severovýchod,Security First,Trusted Expert,46,55,81,80,66,1.225,TRUE
+R1017,45–64,žena,Jihovýchod,Digital Pragmatists,Clear & Human,29,64,74,79,62,1.171,TRUE
+R1018,45–64,muž,Severovýchod,Mobile Natives,Neo Future,39,87,51,62,60,1.041,TRUE
+R1019,30–44,muž,Střední Čechy,Digital Pragmatists,Clear & Human,46,81,73,62,66,1.099,TRUE
+R1020,30–44,muž,Jihovýchod,Passive Traditionalists,Current,41,74,69,74,64,0.884,TRUE
+R1021,18–29,žena,Střední Morava,Security First,Trusted Expert,55,58,73,50,59,0.957,TRUE
+R1022,65+,žena,Severovýchod,Digital Pragmatists,Clear & Human,42,73,46,90,63,0.993,TRUE
+R1023,65+,muž,Severovýchod,Relationship Seekers,Clear & Human,59,80,77,89,76,0.901,TRUE
+R1024,30–44,žena,Střední Morava,Digital Pragmatists,Clear & Human,39,67,67,74,62,0.806,TRUE
+R1025,18–29,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,63,83,75,52,68,0.931,TRUE
+R1026,30–44,žena,Střední Morava,Digital Pragmatists,Clear & Human,39,77,49,88,63,0.777,TRUE
+R1027,30–44,muž,Praha,Digital Pragmatists,Clear & Human,30,55,90,58,58,1.072,TRUE
+R1028,30–44,žena,Střední Morava,Mobile Natives,Neo Future,36,56,87,71,62,0.932,TRUE
+R1029,30–44,žena,Praha,Digital Pragmatists,Clear & Human,61,50,77,43,58,0.967,TRUE
+R1030,45–64,muž,Střední Čechy,Digital Pragmatists,Clear & Human,55,74,78,83,72,0.872,TRUE
+R1031,18–29,muž,Jihovýchod,Relationship Seekers,Clear & Human,32,56,89,81,64,0.876,TRUE
+R1032,30–44,muž,Severovýchod,Relationship Seekers,Clear & Human,63,65,64,47,60,1.142,TRUE
+R1033,45–64,muž,Severozápad,Security First,Trusted Expert,52,76,87,58,68,1.219,TRUE
+R1034,65+,muž,Střední Čechy,Mobile Natives,Neo Future,56,58,74,69,64,0.995,TRUE
+R1035,45–64,žena,Severozápad,Mobile Natives,Neo Future,60,61,73,37,58,1.249,TRUE
+R1036,18–29,muž,Severozápad,Relationship Seekers,Clear & Human,52,51,58,59,55,1.071,TRUE
+R1037,65+,žena,Praha,Relationship Seekers,Clear & Human,51,58,85,63,64,1.124,TRUE
+R1038,45–64,žena,Severozápad,Digital Pragmatists,Clear & Human,58,75,78,62,68,1.161,TRUE
+R1039,45–64,žena,Praha,Relationship Seekers,Clear & Human,47,88,89,67,73,0.976,TRUE
+R1040,45–64,muž,Severozápad,Digital Pragmatists,Clear & Human,36,79,62,44,55,0.937,TRUE
+R1041,18–29,muž,Jihozápad,Digital Pragmatists,Clear & Human,54,64,74,61,63,1.098,TRUE
+R1042,30–44,žena,Severovýchod,Mobile Natives,Neo Future,58,66,62,88,68,1.242,TRUE
+R1043,18–29,muž,Jihovýchod,Mobile Natives,Neo Future,59,69,69,84,70,0.777,TRUE
+R1044,45–64,žena,Moravskoslezsko,Security First,Trusted Expert,58,84,47,51,60,1.056,TRUE
+R1045,18–29,muž,Severozápad,Security First,Trusted Expert,49,56,58,69,58,1.024,TRUE
+R1046,45–64,žena,Severovýchod,Security First,Trusted Expert,45,59,72,80,64,0.952,TRUE
+R1047,65+,žena,Střední Čechy,Mobile Natives,Neo Future,32,47,80,41,50,0.914,TRUE
+R1048,30–44,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,54,47,48,43,48,0.802,TRUE
+R1049,45–64,žena,Praha,Passive Traditionalists,Current,42,73,89,53,64,1.001,TRUE
+R1050,45–64,muž,Moravskoslezsko,Security First,Trusted Expert,50,63,80,64,64,0.759,TRUE
+R1051,45–64,muž,Praha,Digital Pragmatists,Clear & Human,29,74,49,54,52,1.205,TRUE
+R1052,65+,žena,Severozápad,Digital Pragmatists,Clear & Human,47,53,48,64,53,0.836,TRUE
+R1053,45–64,žena,Praha,Digital Pragmatists,Clear & Human,34,68,71,66,60,0.967,TRUE
+R1054,18–29,žena,Jihozápad,Mobile Natives,Neo Future,46,67,78,78,67,1.152,TRUE
+R1055,30–44,muž,Střední Morava,Passive Traditionalists,Current,55,48,86,46,59,0.757,TRUE
+R1056,45–64,muž,Střední Čechy,Security First,Trusted Expert,48,79,71,77,69,0.815,TRUE
+R1057,45–64,žena,Jihovýchod,Relationship Seekers,Clear & Human,38,63,47,59,52,0.874,TRUE
+R1058,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,37,56,76,83,63,0.773,TRUE
+R1059,45–64,muž,Střední Morava,Security First,Trusted Expert,39,79,78,87,71,0.985,TRUE
+R1060,30–44,žena,Severozápad,Digital Pragmatists,Clear & Human,49,82,50,66,62,1.146,TRUE
+R1061,65+,žena,Praha,Passive Traditionalists,Current,34,75,73,70,63,1.231,TRUE
+R1062,45–64,žena,Moravskoslezsko,Security First,Trusted Expert,52,83,45,51,58,1.234,TRUE
+R1063,30–44,muž,Severovýchod,Digital Pragmatists,Clear & Human,50,90,77,55,68,1.023,TRUE
+R1064,30–44,muž,Severovýchod,Relationship Seekers,Clear & Human,59,80,55,78,68,0.859,TRUE
+R1065,18–29,muž,Praha,Passive Traditionalists,Current,45,59,84,60,62,1.213,TRUE
+R1066,45–64,žena,Severovýchod,Digital Pragmatists,Clear & Human,44,79,47,56,56,1.182,TRUE
+R1067,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,46,54,88,90,70,0.881,TRUE
+R1068,18–29,muž,Moravskoslezsko,Relationship Seekers,Clear & Human,52,64,47,35,50,0.989,TRUE
+R1069,65+,muž,Jihovýchod,Digital Pragmatists,Clear & Human,53,76,90,64,71,0.887,TRUE
+R1070,45–64,žena,Severovýchod,Mobile Natives,Neo Future,64,73,51,37,56,1.14,TRUE
+R1071,45–64,žena,Severozápad,Digital Pragmatists,Clear & Human,51,48,84,38,55,0.974,TRUE
+R1072,30–44,žena,Jihovýchod,Security First,Trusted Expert,45,83,45,39,53,1.069,TRUE
+R1073,65+,muž,Jihozápad,Mobile Natives,Neo Future,35,48,69,72,56,1.003,TRUE
+R1074,65+,žena,Praha,Mobile Natives,Neo Future,62,87,85,53,72,0.853,TRUE
+R1075,30–44,žena,Střední Čechy,Passive Traditionalists,Current,51,81,89,44,66,0.825,TRUE
+R1076,18–29,žena,Severozápad,Digital Pragmatists,Clear & Human,35,48,48,79,52,1.067,TRUE
+R1077,30–44,žena,Moravskoslezsko,Mobile Natives,Neo Future,42,53,52,70,54,1.094,TRUE
+R1078,45–64,žena,Jihovýchod,Security First,Trusted Expert,53,70,58,70,63,1.09,TRUE
+R1079,30–44,muž,Střední Čechy,Relationship Seekers,Clear & Human,49,65,48,54,54,1.245,TRUE
+R1080,45–64,žena,Jihozápad,Mobile Natives,Neo Future,63,47,89,36,59,0.895,TRUE
+R1081,18–29,muž,Severovýchod,Digital Pragmatists,Clear & Human,41,54,50,80,56,0.791,TRUE
+R1082,65+,žena,Moravskoslezsko,Mobile Natives,Neo Future,35,73,69,82,65,0.917,TRUE
+R1083,65+,muž,Severozápad,Security First,Trusted Expert,44,87,78,73,70,1.087,TRUE
+R1084,45–64,muž,Střední Čechy,Security First,Trusted Expert,49,85,67,58,65,1.215,TRUE
+R1085,45–64,žena,Praha,Mobile Natives,Neo Future,36,45,61,69,53,1.183,TRUE
+R1086,65+,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,28,58,75,70,58,0.77,TRUE
+R1087,45–64,žena,Severovýchod,Digital Pragmatists,Clear & Human,37,57,57,88,60,1.014,TRUE
+R1088,45–64,muž,Střední Morava,Security First,Trusted Expert,34,70,52,89,61,1.078,TRUE
+R1089,45–64,muž,Severovýchod,Digital Pragmatists,Clear & Human,54,68,87,35,61,0.814,TRUE
+R1090,45–64,žena,Moravskoslezsko,Passive Traditionalists,Current,45,62,86,66,65,0.827,TRUE
+R1091,18–29,žena,Moravskoslezsko,Relationship Seekers,Clear & Human,43,73,45,77,60,0.794,TRUE
+R1092,65+,muž,Střední Morava,Mobile Natives,Neo Future,53,68,89,48,64,0.86,TRUE
+R1093,18–29,žena,Moravskoslezsko,Digital Pragmatists,Clear & Human,54,69,64,45,58,1.044,TRUE
+R1094,18–29,žena,Střední Morava,Passive Traditionalists,Current,41,48,50,48,47,1.015,TRUE
+R1095,18–29,žena,Střední Čechy,Mobile Natives,Neo Future,32,58,75,76,60,1.125,TRUE
+R1096,18–29,muž,Severozápad,Security First,Trusted Expert,28,65,48,82,56,0.826,TRUE
+R1097,65+,muž,Jihozápad,Relationship Seekers,Clear & Human,34,57,45,46,46,0.772,TRUE
+R1098,18–29,žena,Praha,Relationship Seekers,Clear & Human,35,67,54,57,53,1.107,TRUE
+R1099,65+,muž,Moravskoslezsko,Digital Pragmatists,Clear & Human,45,85,82,66,70,1.014,TRUE
+R1100,65+,žena,Moravskoslezsko,Mobile Natives,Neo Future,37,47,75,39,50,1.01,TRUE

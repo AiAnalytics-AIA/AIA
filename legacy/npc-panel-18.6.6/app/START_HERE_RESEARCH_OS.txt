@@ -1,0 +1,11 @@
+NPC PANEL 17.2.0 — RESEARCH OS
+================================
+1. Rozbalte celý ZIP.
+2. Spusťte START_NPC.bat.
+3. První start může vytvořit .npc_runtime a nainstalovat Python závislosti.
+4. Výzkum po spuštění běží přes samostatný worker; browser můžete zavřít.
+5. Stav najdete v Command Center.
+
+Volitelně: INSTALL_NPC_AUTOSTART.bat vytvoří Windows Task Scheduler úlohu při přihlášení. Neznamená to cloud 24/7; PC musí být zapnuté.
+
+Claude Code edice: instalace CLI může proběhnout automaticky. Přihlášení do vašeho Claude Pro/Max účtu je osobní OAuth krok; pokud je potřeba, spusťte INSTALOVAT_CLAUDE_CODE.bat.

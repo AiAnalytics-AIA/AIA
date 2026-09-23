@@ -1,0 +1,17 @@
+{
+  "population": "České domácnosti odpovědné za rozhodování o energiích",
+  "n": 1200,
+  "persona_mode": "calibrated",
+  "dimensions": [
+    "věk",
+    "region",
+    "socioeconomics",
+    "media/digital behavior",
+    "values",
+    "category involvement",
+    "trust",
+    "price sensitivity",
+    "innovation adoption",
+    "context-specific dimensions"
+  ]
+}

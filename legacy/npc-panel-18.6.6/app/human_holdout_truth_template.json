@@ -1,0 +1,18 @@
+{
+  "questions": [
+    {
+      "id": "H001",
+      "text": "Přesné znění otázky",
+      "kategorie": ["Ano", "Ne"],
+      "domain": "retail",
+      "truth_pct": {"Ano": 42.1, "Ne": 57.9},
+      "human_n": 1000,
+      "human_moe_pp": 3.1,
+      "holdout_source": "Název skutečného lidského průzkumu",
+      "holdout_id": "UNIQUE-SURVEY-WAVE-ITEM-ID",
+      "fieldwork_start": "2026-01-01",
+      "fieldwork_end": "2026-01-10",
+      "methodology": "Probability/quality panel; weighted to CZ 18+"
+    }
+  ]
+}

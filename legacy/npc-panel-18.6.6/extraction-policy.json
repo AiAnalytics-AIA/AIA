@@ -1,0 +1,59 @@
+{
+  "description": "How tools/extract_legacy.py partitions the 18.6.6 tree. Every inventoried file lands in exactly one bucket; the decision and the reason are recorded per file in EXTRACTION.json. Categories are those of reference-file-inventory.json.",
+  "version": 1,
+
+  "buckets": {
+    "app": "Copied into <dest>/app: the code that runs, and the configuration it reads from ROOT. Versioned in Git.",
+    "data": "Not copied into app. Listed in <dest>/data-manifest.json with path and SHA256; hydrated into the tree at container start from a data mount or EU object storage. Never versioned in Git.",
+    "client_material": "Real-subject client work (publication-safety-report.md Result 3). Excluded unless --demos all.",
+    "debris": "Release-process artefacts, superseded generations, backups, Windows launchers, prose documentation. Stays in the archive."
+  },
+
+  "app_categories": [
+    "python_source", "python_test", "python_tooling", "python_data_build",
+    "frontend_html", "config", "methodology_policy", "packaging",
+    "build_release", "media", "sql", "spreadsheet", "document"
+  ],
+
+  "data_categories": [
+    "population_data", "data_asset"
+  ],
+
+  "debris_categories": [
+    "documentation", "generated_output", "backup", "launcher", "database"
+  ],
+
+  "debris_directories": [
+    "docs", "remediation", "_npc_update_backup", "tools", "diagnostics",
+    "prototype_outputs", "vystupy", "full_simulation_batches"
+  ],
+
+  "data_directories": [
+    "audit_reference", "SPECIAL_PANELS"
+  ],
+
+  "keep_empty_directories": [
+    "data", "data/audiences", "data/inbox", "data/inbox_archive",
+    "data/pending_confirmation", "diagnostics", "prototype_outputs", "runs",
+    "logs", "vystupy", "full_simulation_batches"
+  ],
+
+  "client_tokens": ["GEMO", "MMC"],
+  "client_directories": ["demo_library/canonical", "_npc_update_backup"],
+
+  "demo_library": {
+    "root": "demo_library",
+    "payload_extensions": [".sqlite", ".zip", ".docx", ".xlsx", ".png", ".gz"],
+    "note": "Demo seeds, loaders, catalogs and registries are code-like and go to app. Binary payloads (databases, exports, reports, images) go to data. demo_library/canonical is real-subject client material."
+  },
+
+  "root_state_files": {
+    "note": "Mutable application state shipped inside the archive. Excluded from app (the reference creates and migrates them on first use); listed in the data manifest as class state_seed so a demo-populated starting state can be restored deliberately.",
+    "paths": ["data/project_store.sqlite", "data/knowledge_library.sqlite", "data/population_registry.sqlite"]
+  },
+
+  "exposure_report_tokens": {
+    "real_clients": ["GEMO", "MMC", "Motol"],
+    "aia_guard_fictional": ["STREAMIO", "AURORA", "NEXORA", "RAILMOVE"]
+  }
+}

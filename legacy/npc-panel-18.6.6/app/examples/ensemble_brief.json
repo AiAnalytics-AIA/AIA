@@ -1,0 +1,9 @@
+{
+  "nazev":"ensemble_demo",
+  "n":300,
+  "mode":"dry",
+  "model":"haiku",
+  "research_context":{"enabled":false},
+  "ensemble":{"enabled":true,"runs":5,"temperatures":[0.9,1.0,1.1,0.95,1.05]},
+  "otazky":[{"id":"O1","text":"Koupil/a byste tento produkt?","typ":"vyber","kategorie":["Ano","Ne"],"povolit_nevim":true,"topics":["nakup"]}]
+}

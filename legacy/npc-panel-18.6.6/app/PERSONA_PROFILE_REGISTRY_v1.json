@@ -1,0 +1,612 @@
+{
+  "version": "persona-profile-v1-10.12.0",
+  "population_core_changed": false,
+  "purpose": "deepen persona conditioning without pretending derived traits are directly measured",
+  "media_time_scale": {
+    "1": {
+      "minutes_midpoint": 0,
+      "label": "vůbec / 0 min denně"
+    },
+    "2": {
+      "minutes_midpoint": 5,
+      "label": "do 5 min denně"
+    },
+    "3": {
+      "minutes_midpoint": 15,
+      "label": "cca 15 min denně"
+    },
+    "4": {
+      "minutes_midpoint": 30,
+      "label": "cca 30 min denně"
+    },
+    "5": {
+      "minutes_midpoint": 60,
+      "label": "cca 1 h denně"
+    },
+    "6": {
+      "minutes_midpoint": 90,
+      "label": "cca 1,5 h denně"
+    },
+    "7": {
+      "minutes_midpoint": 120,
+      "label": "cca 2 h denně"
+    },
+    "8": {
+      "minutes_midpoint": 180,
+      "label": "cca 3 h denně"
+    },
+    "9": {
+      "minutes_midpoint": 300,
+      "label": "cca 5 h denně"
+    },
+    "10": {
+      "minutes_midpoint": 480,
+      "label": "8+ h denně"
+    }
+  },
+  "media_time_warning": "1–10 has explicit time-reference anchors. Per-platform minutes are a budget-constrained modeled estimate, not observed device telemetry; non-social channels may overlap in real life.",
+  "fields": {
+    "P_buy_price_sensitivity_10": {
+      "label": "citlivost na cenu",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_cenova_citlivost"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "odvozeno z polštáře",
+      "scale": "1-10 relative intensity"
+    },
+    "P_buy_wtp_premium_10": {
+      "label": "ochota připlatit",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_ochota_priplatit"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "bez kotvy",
+      "scale": "1-10 relative intensity"
+    },
+    "P_buy_planned_10": {
+      "label": "plánovanost nákupu",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_planovitost_nakupu"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "bez kotvy",
+      "scale": "1-10 relative intensity"
+    },
+    "P_buy_private_label_10": {
+      "label": "otevřenost privátním značkám",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_privatni_znacky"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "YouGov Shopper 2025",
+      "scale": "1-10 relative intensity"
+    },
+    "P_buy_brand_loyalty_10": {
+      "label": "věrnost značkám",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_vernost_znacce"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "bez kotvy",
+      "scale": "1-10 relative intensity"
+    },
+    "P_buy_reviews_10": {
+      "label": "vliv recenzí",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_vliv_recenzi"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "Nielsen",
+      "scale": "1-10 relative intensity"
+    },
+    "P_buy_status_brand_10": {
+      "label": "statusová role značky",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_status_znacka"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "bez kotvy",
+      "scale": "1-10 relative intensity"
+    },
+    "P_buy_online_10": {
+      "label": "online nakupování",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_ecommerce"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "ČSÚ 2025",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_open_change_10": {
+      "label": "otevřenost změně",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_otevrenost_zmene"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "bez kotvy",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_environment_10": {
+      "label": "environmentální odpovědnost",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_klimaticka_odpovednost"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "CVVM 6/2025 (cítí osobní odpovědnost za klima)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_local_10": {
+      "label": "lokální ukotvení",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_lokalni_ukotveni"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "bez kotvy",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_social_trust_10": {
+      "label": "sociální důvěra",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_socialni_duvera"
+      ],
+      "inherited_source_role": "BRIDGE",
+      "inherited_confidence": 0.92,
+      "source": "OECD PIAAC 2023 CZ mikrodata (N=5057), škála důvěry 0-10, práh ≥6",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_institution_trust_10": {
+      "label": "důvěra institucím",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_duvera_instituce"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "CVVM 3–4/2026",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_firm_trust_10": {
+      "label": "důvěra firmám",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_duvera_firmam"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "bez kotvy",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_redistribution_10": {
+      "label": "podpora redistribuce",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_silna_podpora_redistribuce"
+      ],
+      "inherited_source_role": "BRIDGE",
+      "inherited_confidence": 0.92,
+      "source": "QoG EQI 2024 ČR mikrodata (N=5060), souhlas se zdaněním bohatých ≥8/10",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_liberal_10": {
+      "label": "liberální orientace",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_liberalni_orientace"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "CVVM 6/2025 (škála 0-10)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_value_traditional_10": {
+      "label": "tradiční orientace",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_tradicni_genderove_role"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "CVVM 2016 (muž má finančně zajistit domácnost)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_life_health_10": {
+      "label": "zdravý životní styl",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_zdravy_zivotni_styl"
+      ],
+      "inherited_source_role": "OWN_ESTIMATE",
+      "inherited_confidence": 0.35,
+      "source": "bez kotvy",
+      "scale": "1-10 relative intensity"
+    },
+    "P_life_activity_10": {
+      "label": "pohyb",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_aktivni_pohyb"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "ČSÚ Životní podmínky 2022 (denní pohyb)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_life_reading_10": {
+      "label": "čtení",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_cetba_knih"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "ČSÚ Životní podmínky 2022 (5+ knih/rok)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_life_travel_10": {
+      "label": "zahraniční cestování",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_cestovani_zahranici"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "ČSÚ VŠCR 2024 (5,7 mil. ze 12,2 mil. delších cest bylo do zahraničí)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_life_gaming_10": {
+      "label": "hraní her",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_hraje_hry_tydne"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "Česká spořitelna/NMS 2023 (N=1544, 15-64 let, hraje aspoň týdně)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_digital_ai_10": {
+      "label": "adopce AI",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_adopce_ai"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "ČSÚ 2025",
+      "scale": "1-10 relative intensity"
+    },
+    "P_digital_banking_10": {
+      "label": "internetové bankovnictví",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_internetove_bankovnictvi"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "ČSÚ VŠIT 2025 (16+)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_digital_egov_10": {
+      "label": "e-government",
+      "profile_role": "PANEL_DIMENSION_RESCALED",
+      "basis": [
+        "D_egovernment_use"
+      ],
+      "inherited_source_role": "SPECIALIST",
+      "inherited_confidence": 0.85,
+      "source": "ČSÚ/DESI 2024-25 (komunikace s úřady online)",
+      "scale": "1-10 relative intensity"
+    },
+    "P_media_tiktok_10": {
+      "label": "TikTok",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_instagram_10": {
+      "label": "Instagram",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_facebook_10": {
+      "label": "Facebook",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_youtube_10": {
+      "label": "YouTube",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_online_news_10": {
+      "label": "online zpravodajství",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_tv_10": {
+      "label": "televize",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_radio_10": {
+      "label": "rádio",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_podcasts_10": {
+      "label": "podcasty",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_streaming_10": {
+      "label": "streaming",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_media_print_10": {
+      "label": "tištěná média",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_socialni_site",
+        "D_media_online",
+        "D_digitalni_zivot",
+        "vek",
+        "+ deterministic residual"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_buy_impulse_10": {
+      "label": "impulzivnost nákupu",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_planovitost_nakupu",
+        "TCI_NS_Vyhledavani_noveho",
+        "X_Extraverze",
+        "D_casova_tisen"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_buy_deal_orientation_10": {
+      "label": "orientace na akce/slevy",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_cenova_citlivost",
+        "D_privatni_znacky",
+        "D_ochota_priplatit"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_buy_premium_orientation_10": {
+      "label": "prémiová orientace",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_ochota_priplatit",
+        "D_status_znacka",
+        "D_otevrenost_zmene",
+        "D_cenova_citlivost"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_buy_novelty_10": {
+      "label": "vyhledávání novinek",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "TCI_NS_Vyhledavani_noveho",
+        "D_otevrenost_zmene",
+        "D_digitalni_zivot"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_authenticity_10": {
+      "label": "autenticita a důvěryhodnost",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "H_Poctivost_pokora",
+        "D_duvera_firmam",
+        "D_lokalni_ukotveni",
+        "D_vliv_recenzi"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_innovation_10": {
+      "label": "inovativnost",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_otevrenost_zmene",
+        "TCI_NS_Vyhledavani_noveho",
+        "D_digitalni_zivot"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_sustainability_10": {
+      "label": "udržitelnost",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_klimaticka_odpovednost",
+        "D_zdravy_zivotni_styl",
+        "D_lokalni_ukotveni"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_social_proof_10": {
+      "label": "doporučení a sociální důkaz",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_vliv_recenzi",
+        "D_socialni_site",
+        "X_Extraverze"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_value_money_10": {
+      "label": "poměr cena/výkon",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_cenova_citlivost",
+        "D_privatni_znacky",
+        "D_ochota_priplatit"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_quality_premium_10": {
+      "label": "kvalita a ochota připlatit",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_ochota_priplatit",
+        "D_vernost_znacce",
+        "D_status_znacka",
+        "D_cenova_citlivost"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_design_status_10": {
+      "label": "design a status",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_status_znacka",
+        "D_ochota_priplatit",
+        "D_otevrenost_zmene"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_local_origin_10": {
+      "label": "lokální původ",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_lokalni_ukotveni",
+        "D_duvera_firmam"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_evidence_10": {
+      "label": "recenze a ověřitelné důkazy",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "D_vliv_recenzi",
+        "D_kognitivni_gramotnost",
+        "D_media_online"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    },
+    "P_brand_switch_readiness_10": {
+      "label": "ochota změnit značku",
+      "profile_role": "SYNTHETIC_DERIVED",
+      "basis": [
+        "TCI_NS_Vyhledavani_noveho",
+        "D_otevrenost_zmene",
+        "D_vernost_znacce"
+      ],
+      "scale": "1-10 modeled relative intensity",
+      "warning": "Not an observed individual diary/transaction. Use as persona conditioning and sensitivity layer."
+    }
+  }
+}

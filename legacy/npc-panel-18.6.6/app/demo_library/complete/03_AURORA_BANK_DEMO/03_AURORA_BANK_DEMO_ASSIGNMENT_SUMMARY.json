@@ -1,0 +1,32 @@
+{
+  "client_need": "Středně velká banka chce modernizovat značku bez ztráty důvěry stávajících klientů.",
+  "primary_decision": "Vybrat směr rebrandingu, který zvyšuje relevanci a modernitu, ale nepoškozuje důvěru a migrační komfort.",
+  "success_definition": "Vybraný směr má fungovat u mladších akvizičních skupin i u stávajícího mainstreamu.",
+  "questions": [
+    "Který rebranding nejlépe kombinuje důvěru, modernitu a diferenciaci?",
+    "Kde hrozí ztráta identity?",
+    "Které segmenty odmítají výraznou změnu?",
+    "Kdy se vyplatí evoluce a kdy radikálnější posun?"
+  ],
+  "inputs": [
+    "Čtyři vizuálně/verbálně odlišné brand směry.",
+    "Syntetický mix klientů a neklientů.",
+    "8 světů mění finanční nejistotu, digital-first očekávání, reputační citlivost a tlak fintechů."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Právní clearance názvu a identity.",
+    "Skutečný brand tracking.",
+    "Predikce akvizice v pobočkové síti."
+  ]
+}

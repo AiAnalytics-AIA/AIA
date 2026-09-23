@@ -1,0 +1,1501 @@
+﻿respondent_id,age_group,sex,region,segment,preferred_object,primary_metric,trust,clarity,appeal,overall,weight,demo
+R0001,45–64,muž,Jihozápad,Change Seekers,David Král,39,59,54,43,49,1.063,TRUE
+R0002,18–29,žena,Severozápad,Local Community,Jana Novotná,18,90,72,67,62,1.248,TRUE
+R0003,30–44,žena,Severovýchod,Civic Stabilizers,Jana Novotná,39,46,81,70,59,0.983,TRUE
+R0004,65+,muž,Střední Čechy,Local Community,Jana Novotná,30,50,78,72,58,0.801,TRUE
+R0005,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,18,86,49,60,53,0.784,TRUE
+R0006,18–29,žena,Střední Čechy,Change Seekers,David Král,18,78,80,46,56,1.132,TRUE
+R0007,18–29,žena,Severozápad,Civic Stabilizers,Jana Novotná,43,48,76,52,55,0.84,TRUE
+R0008,30–44,žena,Severozápad,Undecided / low info,Nerozhodnutí,20,82,50,40,48,1.146,TRUE
+R0009,65+,žena,Severovýchod,Cost-of-living voters,Petr Marek,44,65,85,60,64,1.195,TRUE
+R0010,30–44,žena,Střední Čechy,Cost-of-living voters,Petr Marek,47,46,83,62,60,0.887,TRUE
+R0011,65+,muž,Praha,Undecided / low info,Nerozhodnutí,34,71,47,70,56,0.808,TRUE
+R0012,18–29,muž,Střední Čechy,Change Seekers,David Král,40,50,72,43,51,0.766,TRUE
+R0013,45–64,muž,Moravskoslezsko,Local Community,Jana Novotná,37,72,63,88,65,1.118,TRUE
+R0014,65+,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,27,61,53,36,44,1.084,TRUE
+R0015,65+,žena,Jihovýchod,Local Community,Jana Novotná,33,79,64,59,59,1.162,TRUE
+R0016,18–29,žena,Jihozápad,Cost-of-living voters,Petr Marek,43,50,65,69,57,1.054,TRUE
+R0017,45–64,žena,Praha,Civic Stabilizers,Jana Novotná,24,67,70,52,53,1.051,TRUE
+R0018,30–44,žena,Praha,Undecided / low info,Nerozhodnutí,40,52,87,53,58,0.801,TRUE
+R0019,45–64,muž,Severozápad,Undecided / low info,Nerozhodnutí,28,65,70,75,60,1.038,TRUE
+R0020,45–64,žena,Střední Čechy,Change Seekers,David Král,13,66,88,71,60,1.218,TRUE
+R0021,30–44,muž,Střední Čechy,Change Seekers,David Král,34,83,53,70,60,0.982,TRUE
+R0022,30–44,žena,Jihovýchod,Change Seekers,David Král,23,58,73,64,54,1.043,TRUE
+R0023,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,49,70,59,36,54,0.981,TRUE
+R0024,18–29,muž,Jihovýchod,Change Seekers,David Král,15,73,57,86,58,0.876,TRUE
+R0025,65+,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,46,62,89,38,59,1.074,TRUE
+R0026,18–29,žena,Severozápad,Cost-of-living voters,Petr Marek,32,48,69,63,53,1.194,TRUE
+R0027,45–64,muž,Severozápad,Change Seekers,David Král,21,60,79,73,58,0.885,TRUE
+R0028,18–29,muž,Severovýchod,Cost-of-living voters,Petr Marek,16,83,56,40,49,0.764,TRUE
+R0029,30–44,muž,Střední Morava,Local Community,Jana Novotná,46,77,56,45,56,1.036,TRUE
+R0030,45–64,muž,Jihovýchod,Local Community,Jana Novotná,17,90,47,36,48,0.777,TRUE
+R0031,18–29,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,15,53,57,42,42,0.978,TRUE
+R0032,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,33,89,54,89,66,1.178,TRUE
+R0033,45–64,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,16,90,55,76,59,1.044,TRUE
+R0034,45–64,muž,Severovýchod,Local Community,Jana Novotná,20,70,72,69,58,1.157,TRUE
+R0035,18–29,žena,Praha,Undecided / low info,Nerozhodnutí,37,59,84,76,64,1.24,TRUE
+R0036,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,20,55,61,89,56,1.075,TRUE
+R0037,18–29,muž,Střední Čechy,Cost-of-living voters,Petr Marek,37,54,78,65,58,1.224,TRUE
+R0038,30–44,žena,Severozápad,Local Community,Jana Novotná,24,71,68,67,58,0.882,TRUE
+R0039,30–44,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,18,84,78,57,59,0.858,TRUE
+R0040,45–64,muž,Jihozápad,Civic Stabilizers,Jana Novotná,36,59,74,65,58,1.065,TRUE
+R0041,18–29,žena,Moravskoslezsko,Local Community,Jana Novotná,42,67,66,43,54,1.187,TRUE
+R0042,30–44,muž,Praha,Local Community,Jana Novotná,28,87,62,68,61,0.767,TRUE
+R0043,45–64,žena,Jihozápad,Change Seekers,David Král,41,57,64,70,58,1.08,TRUE
+R0044,45–64,muž,Praha,Civic Stabilizers,Jana Novotná,44,75,53,74,62,1.196,TRUE
+R0045,30–44,žena,Jihozápad,Change Seekers,David Král,30,90,76,64,65,0.878,TRUE
+R0046,65+,žena,Střední Čechy,Local Community,Jana Novotná,21,55,89,78,61,0.81,TRUE
+R0047,65+,muž,Jihozápad,Change Seekers,David Král,34,77,56,37,51,1.087,TRUE
+R0048,45–64,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,14,70,46,72,50,0.909,TRUE
+R0049,30–44,muž,Praha,Cost-of-living voters,Petr Marek,48,87,60,53,62,1.049,TRUE
+R0050,45–64,žena,Moravskoslezsko,Change Seekers,David Král,45,73,75,57,62,1.134,TRUE
+R0051,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,14,88,59,79,60,0.81,TRUE
+R0052,65+,žena,Střední Morava,Local Community,Jana Novotná,47,78,61,83,67,0.774,TRUE
+R0053,65+,muž,Moravskoslezsko,Change Seekers,David Král,33,66,77,56,58,1.105,TRUE
+R0054,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,31,86,69,84,68,1.242,TRUE
+R0055,30–44,muž,Jihozápad,Local Community,Jana Novotná,27,73,69,44,53,1.13,TRUE
+R0056,45–64,muž,Jihozápad,Local Community,Jana Novotná,46,84,65,70,66,0.834,TRUE
+R0057,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,23,63,51,46,46,0.911,TRUE
+R0058,45–64,muž,Severovýchod,Local Community,Jana Novotná,19,61,69,83,58,0.815,TRUE
+R0059,18–29,žena,Jihozápad,Cost-of-living voters,Petr Marek,43,88,60,54,61,0.859,TRUE
+R0060,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,44,45,56,50,49,0.908,TRUE
+R0061,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,41,52,86,35,54,1.091,TRUE
+R0062,65+,muž,Praha,Undecided / low info,Nerozhodnutí,47,69,87,56,65,0.836,TRUE
+R0063,18–29,muž,Jihozápad,Change Seekers,David Král,46,85,53,73,64,0.932,TRUE
+R0064,30–44,muž,Severovýchod,Undecided / low info,Nerozhodnutí,47,83,62,77,67,1.169,TRUE
+R0065,45–64,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,18,58,85,80,60,1.083,TRUE
+R0066,45–64,muž,Jihozápad,Change Seekers,David Král,35,88,61,55,60,0.875,TRUE
+R0067,18–29,žena,Jihozápad,Local Community,Jana Novotná,49,56,48,63,54,0.77,TRUE
+R0068,18–29,muž,Střední Morava,Cost-of-living voters,Petr Marek,38,62,79,60,60,1.063,TRUE
+R0069,30–44,muž,Severozápad,Change Seekers,David Král,44,74,65,64,62,0.965,TRUE
+R0070,45–64,muž,Jihozápad,Change Seekers,David Král,46,87,50,80,66,0.852,TRUE
+R0071,45–64,žena,Praha,Civic Stabilizers,Jana Novotná,43,82,77,38,60,1.103,TRUE
+R0072,65+,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,35,66,49,59,52,1.113,TRUE
+R0073,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,42,55,56,70,56,1.061,TRUE
+R0074,45–64,muž,Praha,Civic Stabilizers,Jana Novotná,20,67,54,66,52,0.824,TRUE
+R0075,65+,muž,Jihozápad,Undecided / low info,Nerozhodnutí,30,82,76,52,60,0.849,TRUE
+R0076,30–44,žena,Jihovýchod,Cost-of-living voters,Petr Marek,28,57,54,67,52,0.958,TRUE
+R0077,45–64,muž,Střední Čechy,Cost-of-living voters,Petr Marek,34,83,46,40,51,1.201,TRUE
+R0078,18–29,žena,Střední Čechy,Change Seekers,David Král,16,59,50,80,51,1.222,TRUE
+R0079,45–64,žena,Praha,Cost-of-living voters,Petr Marek,47,51,76,86,65,1.071,TRUE
+R0080,18–29,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,35,56,56,89,59,1.102,TRUE
+R0081,30–44,muž,Severozápad,Cost-of-living voters,Petr Marek,15,76,78,87,64,0.856,TRUE
+R0082,30–44,žena,Severozápad,Civic Stabilizers,Jana Novotná,46,61,64,43,54,1.213,TRUE
+R0083,45–64,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,21,54,87,40,50,1.097,TRUE
+R0084,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,38,61,47,40,46,1.09,TRUE
+R0085,18–29,muž,Střední Čechy,Change Seekers,David Král,30,69,82,52,58,0.808,TRUE
+R0086,18–29,žena,Jihovýchod,Local Community,Jana Novotná,36,87,68,53,61,1.11,TRUE
+R0087,30–44,muž,Severozápad,Change Seekers,David Král,36,66,58,40,50,1.115,TRUE
+R0088,18–29,žena,Moravskoslezsko,Local Community,Jana Novotná,32,75,57,54,54,0.997,TRUE
+R0089,65+,muž,Jihovýchod,Change Seekers,David Král,27,52,82,58,55,0.892,TRUE
+R0090,45–64,muž,Jihozápad,Undecided / low info,Nerozhodnutí,29,70,82,40,55,0.887,TRUE
+R0091,45–64,žena,Severovýchod,Change Seekers,David Král,36,45,86,56,56,1.131,TRUE
+R0092,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,38,90,84,59,68,1.085,TRUE
+R0093,65+,žena,Střední Morava,Undecided / low info,Nerozhodnutí,20,55,80,80,59,0.872,TRUE
+R0094,45–64,žena,Praha,Civic Stabilizers,Jana Novotná,15,70,80,69,58,1.199,TRUE
+R0095,30–44,muž,Jihozápad,Cost-of-living voters,Petr Marek,30,56,86,42,54,1.17,TRUE
+R0096,30–44,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,16,54,59,53,46,0.918,TRUE
+R0097,30–44,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,32,83,51,67,58,1.208,TRUE
+R0098,65+,muž,Střední Morava,Change Seekers,David Král,30,56,84,65,59,1.014,TRUE
+R0099,65+,žena,Jihovýchod,Cost-of-living voters,Petr Marek,32,60,50,49,48,0.979,TRUE
+R0100,18–29,muž,Jihozápad,Civic Stabilizers,Jana Novotná,42,62,48,87,60,1.1,TRUE
+R0101,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,39,60,71,63,58,1.134,TRUE
+R0102,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,41,78,70,74,66,1.07,TRUE
+R0103,18–29,muž,Severovýchod,Undecided / low info,Nerozhodnutí,30,89,54,61,58,0.906,TRUE
+R0104,45–64,muž,Střední Čechy,Cost-of-living voters,Petr Marek,34,87,77,66,66,1.095,TRUE
+R0105,30–44,žena,Střední Morava,Change Seekers,David Král,30,63,61,40,48,0.859,TRUE
+R0106,30–44,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,37,89,82,79,72,1.221,TRUE
+R0107,18–29,muž,Praha,Cost-of-living voters,Petr Marek,27,53,70,80,58,0.809,TRUE
+R0108,65+,muž,Střední Čechy,Cost-of-living voters,Petr Marek,39,66,90,83,70,1.14,TRUE
+R0109,45–64,muž,Severozápad,Local Community,Jana Novotná,16,88,57,81,60,0.968,TRUE
+R0110,45–64,muž,Severovýchod,Change Seekers,David Král,46,85,68,46,61,1.012,TRUE
+R0111,18–29,žena,Jihozápad,Undecided / low info,Nerozhodnutí,23,50,61,81,54,1.15,TRUE
+R0112,18–29,žena,Střední Morava,Local Community,Jana Novotná,14,58,80,90,60,0.884,TRUE
+R0113,65+,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,16,67,64,36,46,0.953,TRUE
+R0114,65+,žena,Jihovýchod,Local Community,Jana Novotná,46,68,90,69,68,1.165,TRUE
+R0115,30–44,muž,Severozápad,Change Seekers,David Král,28,86,63,80,64,0.795,TRUE
+R0116,45–64,muž,Severozápad,Change Seekers,David Král,22,47,80,54,51,1.0,TRUE
+R0117,65+,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,14,59,90,77,60,1.244,TRUE
+R0118,18–29,muž,Praha,Cost-of-living voters,Petr Marek,20,61,66,59,52,1.165,TRUE
+R0119,45–64,muž,Severovýchod,Civic Stabilizers,Jana Novotná,42,46,52,77,54,1.129,TRUE
+R0120,45–64,muž,Severozápad,Local Community,Jana Novotná,30,51,69,89,60,0.883,TRUE
+R0121,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,20,78,90,68,64,0.853,TRUE
+R0122,65+,muž,Jihovýchod,Local Community,Jana Novotná,37,70,83,55,61,1.018,TRUE
+R0123,30–44,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,39,53,82,47,55,1.05,TRUE
+R0124,18–29,muž,Praha,Cost-of-living voters,Petr Marek,42,77,79,69,67,1.143,TRUE
+R0125,18–29,muž,Jihozápad,Local Community,Jana Novotná,29,72,85,87,68,1.21,TRUE
+R0126,18–29,muž,Jihozápad,Cost-of-living voters,Petr Marek,45,51,46,51,48,1.07,TRUE
+R0127,18–29,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,46,57,67,79,62,0.931,TRUE
+R0128,45–64,žena,Střední Čechy,Change Seekers,David Král,28,45,77,56,52,1.119,TRUE
+R0129,30–44,muž,Jihozápad,Local Community,Jana Novotná,20,53,79,35,47,0.829,TRUE
+R0130,65+,muž,Jihovýchod,Cost-of-living voters,Petr Marek,19,60,71,54,51,0.831,TRUE
+R0131,45–64,žena,Moravskoslezsko,Local Community,Jana Novotná,43,85,84,87,75,1.103,TRUE
+R0132,65+,muž,Moravskoslezsko,Change Seekers,David Král,31,71,52,62,54,1.229,TRUE
+R0133,45–64,žena,Severozápad,Local Community,Jana Novotná,39,74,46,47,52,0.95,TRUE
+R0134,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,13,75,46,39,43,1.239,TRUE
+R0135,65+,žena,Jihozápad,Cost-of-living voters,Petr Marek,20,86,61,65,58,0.829,TRUE
+R0136,30–44,muž,Střední Čechy,Local Community,Jana Novotná,30,65,47,84,56,1.179,TRUE
+R0137,65+,muž,Severozápad,Undecided / low info,Nerozhodnutí,14,48,74,54,48,1.152,TRUE
+R0138,45–64,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,16,67,81,45,52,0.907,TRUE
+R0139,45–64,muž,Jihovýchod,Cost-of-living voters,Petr Marek,17,65,69,40,48,0.87,TRUE
+R0140,30–44,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,26,51,84,35,49,0.788,TRUE
+R0141,45–64,žena,Střední Morava,Change Seekers,David Král,40,79,69,43,58,0.974,TRUE
+R0142,30–44,žena,Severovýchod,Civic Stabilizers,Jana Novotná,42,81,52,58,58,0.88,TRUE
+R0143,30–44,muž,Severozápad,Undecided / low info,Nerozhodnutí,37,47,72,88,61,0.79,TRUE
+R0144,18–29,muž,Jihozápad,Undecided / low info,Nerozhodnutí,26,54,68,78,56,1.023,TRUE
+R0145,45–64,žena,Severovýchod,Local Community,Jana Novotná,34,46,76,49,51,0.801,TRUE
+R0146,30–44,žena,Severovýchod,Undecided / low info,Nerozhodnutí,36,57,81,80,64,1.124,TRUE
+R0147,45–64,žena,Střední Morava,Local Community,Jana Novotná,41,50,53,86,58,1.019,TRUE
+R0148,45–64,žena,Severozápad,Civic Stabilizers,Jana Novotná,15,53,64,78,52,0.8,TRUE
+R0149,30–44,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,14,70,60,38,46,1.158,TRUE
+R0150,30–44,muž,Praha,Cost-of-living voters,Petr Marek,41,73,88,71,68,1.133,TRUE
+R0151,18–29,muž,Střední Morava,Local Community,Jana Novotná,37,79,89,36,60,1.124,TRUE
+R0152,45–64,muž,Střední Morava,Local Community,Jana Novotná,19,57,68,87,58,1.059,TRUE
+R0153,18–29,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,22,67,71,61,55,1.117,TRUE
+R0154,18–29,muž,Praha,Cost-of-living voters,Petr Marek,39,65,79,63,62,1.075,TRUE
+R0155,65+,žena,Jihozápad,Cost-of-living voters,Petr Marek,39,64,45,38,46,0.863,TRUE
+R0156,18–29,muž,Severovýchod,Cost-of-living voters,Petr Marek,43,60,88,42,58,0.876,TRUE
+R0157,18–29,žena,Praha,Change Seekers,David Král,46,58,69,43,54,0.756,TRUE
+R0158,18–29,muž,Střední Čechy,Cost-of-living voters,Petr Marek,27,90,84,55,64,1.065,TRUE
+R0159,30–44,žena,Střední Čechy,Cost-of-living voters,Petr Marek,43,51,81,80,64,1.012,TRUE
+R0160,45–64,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,29,72,54,72,57,0.76,TRUE
+R0161,45–64,žena,Střední Morava,Civic Stabilizers,Jana Novotná,40,74,87,58,65,0.956,TRUE
+R0162,18–29,žena,Praha,Change Seekers,David Král,37,53,70,84,61,1.206,TRUE
+R0163,45–64,muž,Jihovýchod,Change Seekers,David Král,28,60,78,56,56,1.079,TRUE
+R0164,45–64,muž,Praha,Local Community,Jana Novotná,30,68,71,79,62,0.97,TRUE
+R0165,65+,žena,Střední Morava,Undecided / low info,Nerozhodnutí,34,73,79,46,58,1.201,TRUE
+R0166,30–44,muž,Jihozápad,Local Community,Jana Novotná,47,77,56,57,59,0.918,TRUE
+R0167,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,40,59,45,65,52,0.953,TRUE
+R0168,30–44,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,17,51,66,81,54,1.132,TRUE
+R0169,18–29,muž,Praha,Cost-of-living voters,Petr Marek,34,88,46,67,59,0.819,TRUE
+R0170,30–44,muž,Severozápad,Civic Stabilizers,Jana Novotná,21,73,63,58,54,1.144,TRUE
+R0171,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,33,52,75,37,49,0.885,TRUE
+R0172,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,28,75,77,77,64,0.852,TRUE
+R0173,65+,žena,Praha,Civic Stabilizers,Jana Novotná,15,59,56,77,52,1.065,TRUE
+R0174,45–64,žena,Praha,Local Community,Jana Novotná,17,73,78,43,53,0.966,TRUE
+R0175,18–29,muž,Jihozápad,Undecided / low info,Nerozhodnutí,35,80,51,44,52,0.808,TRUE
+R0176,30–44,muž,Severozápad,Local Community,Jana Novotná,22,51,83,76,58,0.803,TRUE
+R0177,65+,muž,Severozápad,Change Seekers,David Král,30,54,84,68,59,1.246,TRUE
+R0178,18–29,žena,Praha,Cost-of-living voters,Petr Marek,14,82,59,90,61,0.925,TRUE
+R0179,65+,muž,Praha,Cost-of-living voters,Petr Marek,47,58,68,64,59,1.01,TRUE
+R0180,45–64,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,29,77,56,60,56,1.046,TRUE
+R0181,18–29,muž,Severovýchod,Cost-of-living voters,Petr Marek,13,73,74,61,55,0.927,TRUE
+R0182,65+,žena,Praha,Undecided / low info,Nerozhodnutí,20,64,90,84,64,1.148,TRUE
+R0183,18–29,muž,Střední Čechy,Change Seekers,David Král,13,47,73,58,48,1.087,TRUE
+R0184,18–29,žena,Severovýchod,Change Seekers,David Král,22,64,61,90,59,0.76,TRUE
+R0185,30–44,žena,Praha,Civic Stabilizers,Jana Novotná,18,77,60,83,60,1.229,TRUE
+R0186,30–44,žena,Střední Čechy,Change Seekers,David Král,25,75,83,40,56,0.759,TRUE
+R0187,30–44,žena,Jihozápad,Civic Stabilizers,Jana Novotná,16,74,52,78,55,1.102,TRUE
+R0188,18–29,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,21,55,87,77,60,1.034,TRUE
+R0189,65+,muž,Jihovýchod,Cost-of-living voters,Petr Marek,49,75,87,54,66,0.796,TRUE
+R0190,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,14,65,70,87,59,0.861,TRUE
+R0191,45–64,žena,Jihozápad,Cost-of-living voters,Petr Marek,43,87,70,87,72,0.816,TRUE
+R0192,30–44,žena,Jihozápad,Local Community,Jana Novotná,26,85,51,85,62,0.939,TRUE
+R0193,65+,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,28,90,66,80,66,0.958,TRUE
+R0194,30–44,žena,Střední Morava,Undecided / low info,Nerozhodnutí,17,78,69,79,61,1.081,TRUE
+R0195,30–44,muž,Severozápad,Civic Stabilizers,Jana Novotná,16,53,82,57,52,1.231,TRUE
+R0196,18–29,muž,Severovýchod,Undecided / low info,Nerozhodnutí,14,79,63,82,60,0.946,TRUE
+R0197,45–64,muž,Jihovýchod,Cost-of-living voters,Petr Marek,23,48,69,83,56,1.0,TRUE
+R0198,18–29,žena,Praha,Civic Stabilizers,Jana Novotná,23,80,73,44,55,1.188,TRUE
+R0199,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,16,60,79,89,61,1.081,TRUE
+R0200,30–44,muž,Střední Morava,Cost-of-living voters,Petr Marek,21,63,67,75,56,0.815,TRUE
+R0201,18–29,žena,Severozápad,Civic Stabilizers,Jana Novotná,27,71,70,66,58,0.798,TRUE
+R0202,18–29,žena,Jihozápad,Undecided / low info,Nerozhodnutí,47,53,82,85,67,1.058,TRUE
+R0203,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,40,60,78,85,66,1.067,TRUE
+R0204,30–44,muž,Severozápad,Change Seekers,David Král,27,89,88,86,72,1.025,TRUE
+R0205,30–44,muž,Střední Čechy,Local Community,Jana Novotná,15,60,53,49,44,0.836,TRUE
+R0206,65+,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,40,83,63,60,62,0.93,TRUE
+R0207,45–64,žena,Praha,Local Community,Jana Novotná,48,49,59,58,54,0.904,TRUE
+R0208,18–29,muž,Praha,Local Community,Jana Novotná,21,90,84,67,66,1.034,TRUE
+R0209,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,16,77,67,76,59,1.125,TRUE
+R0210,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,38,83,68,80,67,1.153,TRUE
+R0211,18–29,žena,Praha,Civic Stabilizers,Jana Novotná,14,67,70,40,48,1.012,TRUE
+R0212,65+,žena,Severozápad,Change Seekers,David Král,38,82,84,48,63,1.234,TRUE
+R0213,65+,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,40,81,64,38,56,1.16,TRUE
+R0214,45–64,muž,Severozápad,Local Community,Jana Novotná,15,64,75,73,57,1.047,TRUE
+R0215,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,48,50,60,55,53,0.914,TRUE
+R0216,45–64,žena,Jihozápad,Change Seekers,David Král,24,64,86,67,60,0.853,TRUE
+R0217,30–44,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,41,88,61,87,69,1.193,TRUE
+R0218,45–64,žena,Praha,Change Seekers,David Král,48,56,74,53,58,1.086,TRUE
+R0219,65+,muž,Střední Morava,Cost-of-living voters,Petr Marek,21,86,85,50,60,1.146,TRUE
+R0220,65+,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,14,67,90,54,56,1.054,TRUE
+R0221,18–29,muž,Severozápad,Local Community,Jana Novotná,17,49,72,51,47,0.78,TRUE
+R0222,30–44,muž,Střední Morava,Change Seekers,David Král,39,62,88,49,60,0.865,TRUE
+R0223,65+,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,45,54,65,89,63,0.831,TRUE
+R0224,18–29,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,27,75,78,40,55,1.196,TRUE
+R0225,45–64,muž,Střední Čechy,Cost-of-living voters,Petr Marek,42,86,45,36,52,1.009,TRUE
+R0226,65+,muž,Jihozápad,Local Community,Jana Novotná,49,86,85,69,72,0.796,TRUE
+R0227,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,29,60,75,49,53,0.789,TRUE
+R0228,45–64,žena,Střední Morava,Local Community,Jana Novotná,39,58,45,40,46,1.001,TRUE
+R0229,65+,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,27,49,52,51,45,0.954,TRUE
+R0230,45–64,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,29,61,56,79,56,1.17,TRUE
+R0231,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,25,48,90,45,52,0.93,TRUE
+R0232,30–44,žena,Severovýchod,Cost-of-living voters,Petr Marek,24,72,59,50,51,0.967,TRUE
+R0233,65+,muž,Střední Čechy,Change Seekers,David Král,14,71,60,77,56,0.822,TRUE
+R0234,18–29,muž,Severovýchod,Undecided / low info,Nerozhodnutí,26,73,71,41,53,1.001,TRUE
+R0235,18–29,muž,Severozápad,Cost-of-living voters,Petr Marek,16,73,48,42,45,1.175,TRUE
+R0236,45–64,žena,Severozápad,Cost-of-living voters,Petr Marek,49,90,78,67,71,1.09,TRUE
+R0237,18–29,žena,Severozápad,Undecided / low info,Nerozhodnutí,30,70,86,81,67,0.97,TRUE
+R0238,30–44,muž,Severovýchod,Undecided / low info,Nerozhodnutí,46,69,62,44,55,1.154,TRUE
+R0239,18–29,žena,Jihozápad,Local Community,Jana Novotná,36,82,65,72,64,0.856,TRUE
+R0240,45–64,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,42,66,76,62,62,0.785,TRUE
+R0241,30–44,žena,Severozápad,Cost-of-living voters,Petr Marek,26,49,70,68,53,1.08,TRUE
+R0242,30–44,žena,Jihozápad,Civic Stabilizers,Jana Novotná,13,64,60,78,54,1.02,TRUE
+R0243,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,24,80,73,87,66,1.132,TRUE
+R0244,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,33,70,78,63,61,0.766,TRUE
+R0245,30–44,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,29,80,57,56,56,1.168,TRUE
+R0246,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,13,77,87,90,67,1.001,TRUE
+R0247,18–29,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,27,66,49,53,49,1.069,TRUE
+R0248,65+,žena,Střední Morava,Civic Stabilizers,Jana Novotná,20,86,64,72,60,1.059,TRUE
+R0249,65+,žena,Střední Morava,Change Seekers,David Král,14,73,80,37,51,0.873,TRUE
+R0250,18–29,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,41,73,87,46,62,0.801,TRUE
+R0251,45–64,žena,Střední Čechy,Change Seekers,David Král,27,65,89,89,68,1.003,TRUE
+R0252,45–64,muž,Moravskoslezsko,Change Seekers,David Král,48,86,82,89,76,1.245,TRUE
+R0253,18–29,muž,Jihovýchod,Local Community,Jana Novotná,26,50,60,59,49,1.201,TRUE
+R0254,45–64,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,25,46,90,69,58,0.83,TRUE
+R0255,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,43,66,59,37,51,0.828,TRUE
+R0256,65+,žena,Severovýchod,Undecided / low info,Nerozhodnutí,25,82,77,44,57,1.12,TRUE
+R0257,65+,žena,Jihozápad,Undecided / low info,Nerozhodnutí,18,60,64,55,49,0.755,TRUE
+R0258,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,34,76,78,84,68,1.211,TRUE
+R0259,65+,žena,Jihovýchod,Change Seekers,David Král,39,46,53,85,56,1.126,TRUE
+R0260,30–44,muž,Severovýchod,Change Seekers,David Král,32,66,51,70,55,0.863,TRUE
+R0261,65+,žena,Střední Morava,Cost-of-living voters,Petr Marek,20,51,80,80,58,0.78,TRUE
+R0262,65+,žena,Praha,Local Community,Jana Novotná,21,89,77,87,68,0.906,TRUE
+R0263,30–44,muž,Jihozápad,Undecided / low info,Nerozhodnutí,44,60,61,77,60,0.845,TRUE
+R0264,45–64,žena,Praha,Cost-of-living voters,Petr Marek,23,78,53,54,52,1.047,TRUE
+R0265,30–44,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,20,50,75,88,58,0.751,TRUE
+R0266,30–44,muž,Severozápad,Civic Stabilizers,Jana Novotná,47,49,67,36,50,1.162,TRUE
+R0267,30–44,muž,Severozápad,Change Seekers,David Král,30,83,47,85,61,0.753,TRUE
+R0268,45–64,muž,Severovýchod,Civic Stabilizers,Jana Novotná,40,67,86,86,70,0.795,TRUE
+R0269,18–29,žena,Severovýchod,Undecided / low info,Nerozhodnutí,31,51,59,67,52,1.087,TRUE
+R0270,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,35,62,76,76,62,0.769,TRUE
+R0271,65+,žena,Severozápad,Civic Stabilizers,Jana Novotná,45,45,64,66,55,1.066,TRUE
+R0272,45–64,žena,Střední Morava,Cost-of-living voters,Petr Marek,44,57,46,61,52,0.845,TRUE
+R0273,18–29,žena,Severozápad,Undecided / low info,Nerozhodnutí,37,83,54,45,55,0.791,TRUE
+R0274,45–64,muž,Jihozápad,Local Community,Jana Novotná,41,90,84,36,63,0.875,TRUE
+R0275,65+,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,41,49,59,90,60,1.167,TRUE
+R0276,30–44,muž,Praha,Undecided / low info,Nerozhodnutí,14,76,90,36,54,1.174,TRUE
+R0277,18–29,muž,Jihozápad,Cost-of-living voters,Petr Marek,18,87,77,77,65,1.142,TRUE
+R0278,18–29,muž,Praha,Cost-of-living voters,Petr Marek,20,52,63,46,45,0.871,TRUE
+R0279,45–64,žena,Jihovýchod,Cost-of-living voters,Petr Marek,15,77,55,81,57,1.052,TRUE
+R0280,65+,žena,Praha,Cost-of-living voters,Petr Marek,31,80,52,67,58,1.115,TRUE
+R0281,45–64,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,45,60,76,90,68,1.06,TRUE
+R0282,45–64,muž,Severozápad,Civic Stabilizers,Jana Novotná,13,49,84,69,54,0.984,TRUE
+R0283,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,37,80,79,65,65,1.101,TRUE
+R0284,18–29,žena,Jihovýchod,Cost-of-living voters,Petr Marek,49,88,56,61,64,0.85,TRUE
+R0285,65+,muž,Jihozápad,Undecided / low info,Nerozhodnutí,43,64,79,84,68,0.971,TRUE
+R0286,45–64,muž,Severovýchod,Cost-of-living voters,Petr Marek,32,90,77,69,67,0.794,TRUE
+R0287,18–29,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,46,52,79,50,57,1.038,TRUE
+R0288,30–44,muž,Severozápad,Cost-of-living voters,Petr Marek,36,66,60,36,50,1.06,TRUE
+R0289,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,31,62,90,81,66,1.061,TRUE
+R0290,30–44,žena,Severozápad,Civic Stabilizers,Jana Novotná,27,60,54,65,52,1.091,TRUE
+R0291,45–64,muž,Praha,Cost-of-living voters,Petr Marek,25,82,56,62,56,0.826,TRUE
+R0292,45–64,žena,Severovýchod,Civic Stabilizers,Jana Novotná,37,61,82,40,55,1.198,TRUE
+R0293,18–29,žena,Střední Morava,Undecided / low info,Nerozhodnutí,22,75,66,58,55,0.907,TRUE
+R0294,65+,žena,Jihozápad,Change Seekers,David Král,31,69,69,55,56,0.841,TRUE
+R0295,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,17,71,66,90,61,1.077,TRUE
+R0296,18–29,muž,Severozápad,Local Community,Jana Novotná,37,53,76,50,54,1.031,TRUE
+R0297,65+,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,17,54,85,90,62,1.007,TRUE
+R0298,30–44,muž,Severovýchod,Local Community,Jana Novotná,26,49,51,40,42,1.072,TRUE
+R0299,18–29,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,40,90,68,80,70,0.815,TRUE
+R0300,45–64,muž,Střední Morava,Civic Stabilizers,Jana Novotná,48,63,77,38,56,0.798,TRUE
+R0301,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,45,75,63,69,63,1.055,TRUE
+R0302,65+,žena,Severozápad,Undecided / low info,Nerozhodnutí,13,89,59,78,60,1.168,TRUE
+R0303,65+,muž,Praha,Civic Stabilizers,Jana Novotná,37,79,71,75,66,1.003,TRUE
+R0304,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,30,89,89,48,64,1.033,TRUE
+R0305,18–29,žena,Jihozápad,Cost-of-living voters,Petr Marek,34,49,81,53,54,0.98,TRUE
+R0306,45–64,žena,Severovýchod,Local Community,Jana Novotná,45,79,74,48,62,0.929,TRUE
+R0307,18–29,žena,Praha,Cost-of-living voters,Petr Marek,23,69,53,47,48,1.039,TRUE
+R0308,65+,muž,Severovýchod,Local Community,Jana Novotná,42,56,56,62,54,0.889,TRUE
+R0309,65+,žena,Severozápad,Undecided / low info,Nerozhodnutí,18,78,62,47,51,0.975,TRUE
+R0310,18–29,muž,Jihozápad,Change Seekers,David Král,17,85,79,38,55,1.192,TRUE
+R0311,65+,muž,Střední Čechy,Change Seekers,David Král,27,86,54,76,61,0.78,TRUE
+R0312,18–29,muž,Praha,Local Community,Jana Novotná,34,80,87,40,60,0.956,TRUE
+R0313,65+,muž,Střední Morava,Change Seekers,David Král,41,54,71,82,62,1.137,TRUE
+R0314,45–64,žena,Praha,Civic Stabilizers,Jana Novotná,13,83,79,75,62,1.187,TRUE
+R0315,65+,muž,Střední Morava,Civic Stabilizers,Jana Novotná,32,62,60,38,48,1.092,TRUE
+R0316,65+,muž,Střední Čechy,Local Community,Jana Novotná,17,60,47,42,42,1.015,TRUE
+R0317,18–29,žena,Střední Čechy,Change Seekers,David Král,17,79,87,63,62,0.972,TRUE
+R0318,30–44,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,48,50,85,53,59,0.961,TRUE
+R0319,30–44,žena,Praha,Local Community,Jana Novotná,13,59,79,81,58,0.791,TRUE
+R0320,18–29,žena,Severovýchod,Local Community,Jana Novotná,22,53,66,39,45,1.146,TRUE
+R0321,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,49,60,47,67,56,1.231,TRUE
+R0322,30–44,muž,Střední Morava,Change Seekers,David Král,43,62,89,50,61,0.766,TRUE
+R0323,45–64,muž,Praha,Civic Stabilizers,Jana Novotná,26,52,81,87,62,0.938,TRUE
+R0324,30–44,žena,Střední Morava,Cost-of-living voters,Petr Marek,35,72,71,76,64,0.799,TRUE
+R0325,45–64,muž,Praha,Change Seekers,David Král,29,67,54,40,48,0.969,TRUE
+R0326,18–29,žena,Severovýchod,Local Community,Jana Novotná,48,62,75,46,58,0.839,TRUE
+R0327,18–29,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,41,48,85,76,62,0.962,TRUE
+R0328,30–44,muž,Severozápad,Civic Stabilizers,Jana Novotná,21,81,80,48,58,1.186,TRUE
+R0329,18–29,žena,Praha,Change Seekers,David Král,18,69,63,49,50,0.924,TRUE
+R0330,45–64,muž,Severozápad,Civic Stabilizers,Jana Novotná,18,77,70,37,50,1.154,TRUE
+R0331,18–29,žena,Jihozápad,Cost-of-living voters,Petr Marek,29,88,59,80,64,1.213,TRUE
+R0332,30–44,muž,Severozápad,Civic Stabilizers,Jana Novotná,21,87,52,39,50,1.067,TRUE
+R0333,18–29,žena,Severozápad,Civic Stabilizers,Jana Novotná,27,67,64,75,58,1.1,TRUE
+R0334,30–44,žena,Praha,Civic Stabilizers,Jana Novotná,27,85,57,57,56,1.227,TRUE
+R0335,45–64,muž,Střední Čechy,Local Community,Jana Novotná,42,68,84,78,68,1.184,TRUE
+R0336,18–29,muž,Jihozápad,Civic Stabilizers,Jana Novotná,41,52,87,78,64,0.871,TRUE
+R0337,18–29,žena,Moravskoslezsko,Change Seekers,David Král,15,78,66,50,52,1.055,TRUE
+R0338,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,32,86,54,41,53,1.033,TRUE
+R0339,18–29,muž,Střední Morava,Change Seekers,David Král,36,64,74,86,65,1.119,TRUE
+R0340,65+,žena,Praha,Civic Stabilizers,Jana Novotná,40,72,50,53,54,0.764,TRUE
+R0341,18–29,muž,Severozápad,Civic Stabilizers,Jana Novotná,32,47,55,82,54,0.868,TRUE
+R0342,18–29,muž,Střední Morava,Civic Stabilizers,Jana Novotná,37,85,65,82,67,1.185,TRUE
+R0343,65+,žena,Praha,Cost-of-living voters,Petr Marek,19,88,50,45,50,1.08,TRUE
+R0344,65+,muž,Střední Morava,Change Seekers,David Král,29,81,79,79,67,0.883,TRUE
+R0345,45–64,muž,Jihozápad,Change Seekers,David Král,20,64,72,74,58,1.104,TRUE
+R0346,65+,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,31,80,73,74,64,0.776,TRUE
+R0347,65+,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,29,71,76,55,58,0.986,TRUE
+R0348,30–44,žena,Severozápad,Change Seekers,David Král,42,63,46,62,53,0.805,TRUE
+R0349,18–29,muž,Praha,Local Community,Jana Novotná,42,49,65,75,58,0.812,TRUE
+R0350,65+,žena,Moravskoslezsko,Local Community,Jana Novotná,17,62,48,83,52,0.882,TRUE
+R0351,30–44,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,41,54,62,47,51,1.07,TRUE
+R0352,18–29,žena,Jihozápad,Cost-of-living voters,Petr Marek,43,70,59,69,60,1.203,TRUE
+R0353,18–29,žena,Moravskoslezsko,Change Seekers,David Král,36,76,52,80,61,1.121,TRUE
+R0354,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,30,57,67,42,49,1.041,TRUE
+R0355,18–29,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,24,46,45,47,40,1.147,TRUE
+R0356,65+,žena,Severozápad,Local Community,Jana Novotná,32,63,58,43,49,1.011,TRUE
+R0357,65+,muž,Jihozápad,Civic Stabilizers,Jana Novotná,31,73,63,87,64,1.172,TRUE
+R0358,18–29,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,24,54,65,87,58,1.244,TRUE
+R0359,45–64,žena,Praha,Civic Stabilizers,Jana Novotná,37,69,68,50,56,1.117,TRUE
+R0360,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,49,81,78,76,71,1.223,TRUE
+R0361,65+,muž,Severozápad,Civic Stabilizers,Jana Novotná,29,85,66,65,61,1.03,TRUE
+R0362,45–64,muž,Střední Čechy,Change Seekers,David Král,31,56,50,78,54,1.188,TRUE
+R0363,30–44,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,45,50,61,50,52,1.042,TRUE
+R0364,65+,muž,Střední Čechy,Local Community,Jana Novotná,39,83,53,56,58,1.228,TRUE
+R0365,30–44,žena,Praha,Cost-of-living voters,Petr Marek,41,60,58,61,55,1.063,TRUE
+R0366,18–29,muž,Praha,Cost-of-living voters,Petr Marek,34,66,52,90,60,1.14,TRUE
+R0367,30–44,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,46,77,72,40,59,1.04,TRUE
+R0368,45–64,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,46,79,68,87,70,1.197,TRUE
+R0369,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,18,46,45,65,44,0.976,TRUE
+R0370,65+,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,19,77,68,58,56,0.933,TRUE
+R0371,65+,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,38,49,45,75,52,0.923,TRUE
+R0372,65+,muž,Jihozápad,Civic Stabilizers,Jana Novotná,23,68,87,86,66,0.817,TRUE
+R0373,30–44,žena,Jihozápad,Civic Stabilizers,Jana Novotná,32,89,57,81,65,0.771,TRUE
+R0374,65+,muž,Střední Morava,Civic Stabilizers,Jana Novotná,16,72,47,82,54,0.907,TRUE
+R0375,65+,žena,Jihozápad,Local Community,Jana Novotná,31,79,88,40,60,0.796,TRUE
+R0376,45–64,muž,Jihozápad,Cost-of-living voters,Petr Marek,25,81,75,39,55,0.891,TRUE
+R0377,30–44,žena,Střední Morava,Civic Stabilizers,Jana Novotná,37,76,71,73,64,0.754,TRUE
+R0378,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,17,60,51,72,50,1.25,TRUE
+R0379,45–64,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,26,59,70,37,48,1.002,TRUE
+R0380,18–29,žena,Střední Čechy,Local Community,Jana Novotná,20,86,67,37,52,1.082,TRUE
+R0381,45–64,muž,Praha,Change Seekers,David Král,27,70,88,46,58,1.18,TRUE
+R0382,30–44,muž,Jihovýchod,Local Community,Jana Novotná,27,70,77,52,56,1.115,TRUE
+R0383,30–44,muž,Praha,Undecided / low info,Nerozhodnutí,16,81,46,38,45,1.209,TRUE
+R0384,45–64,muž,Střední Morava,Civic Stabilizers,Jana Novotná,28,64,51,52,49,0.988,TRUE
+R0385,65+,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,13,81,62,88,61,1.061,TRUE
+R0386,65+,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,46,90,90,76,76,0.821,TRUE
+R0387,45–64,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,18,64,50,42,44,1.033,TRUE
+R0388,18–29,muž,Jihovýchod,Change Seekers,David Král,26,82,76,47,58,0.918,TRUE
+R0389,30–44,žena,Jihozápad,Undecided / low info,Nerozhodnutí,44,82,64,69,65,0.822,TRUE
+R0390,30–44,muž,Jihovýchod,Local Community,Jana Novotná,46,49,76,56,57,1.129,TRUE
+R0391,65+,muž,Severovýchod,Cost-of-living voters,Petr Marek,49,54,82,44,57,0.842,TRUE
+R0392,30–44,muž,Střední Čechy,Local Community,Jana Novotná,48,69,64,88,67,0.995,TRUE
+R0393,45–64,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,30,68,84,40,56,1.189,TRUE
+R0394,18–29,žena,Severovýchod,Civic Stabilizers,Jana Novotná,48,75,56,40,55,0.979,TRUE
+R0395,45–64,muž,Praha,Local Community,Jana Novotná,18,77,75,44,54,1.205,TRUE
+R0396,30–44,žena,Severovýchod,Local Community,Jana Novotná,35,78,60,36,52,1.137,TRUE
+R0397,65+,muž,Střední Čechy,Local Community,Jana Novotná,32,83,79,62,64,0.875,TRUE
+R0398,30–44,žena,Praha,Civic Stabilizers,Jana Novotná,27,70,78,66,60,1.12,TRUE
+R0399,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,32,63,87,70,63,1.128,TRUE
+R0400,30–44,muž,Střední Morava,Change Seekers,David Král,17,46,89,80,58,0.948,TRUE
+R0401,30–44,žena,Střední Morava,Local Community,Jana Novotná,29,79,51,76,59,1.067,TRUE
+R0402,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,41,80,54,71,62,1.01,TRUE
+R0403,65+,muž,Severozápad,Civic Stabilizers,Jana Novotná,48,59,69,51,57,1.062,TRUE
+R0404,18–29,žena,Praha,Cost-of-living voters,Petr Marek,21,88,46,67,56,0.96,TRUE
+R0405,18–29,žena,Moravskoslezsko,Local Community,Jana Novotná,28,80,55,46,52,0.751,TRUE
+R0406,65+,muž,Severozápad,Civic Stabilizers,Jana Novotná,20,53,74,42,47,0.991,TRUE
+R0407,30–44,muž,Severovýchod,Cost-of-living voters,Petr Marek,36,50,50,47,46,1.001,TRUE
+R0408,18–29,žena,Střední Morava,Local Community,Jana Novotná,19,73,79,56,57,0.839,TRUE
+R0409,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,32,69,87,40,57,1.204,TRUE
+R0410,65+,muž,Jihovýchod,Local Community,Jana Novotná,31,82,55,53,55,0.832,TRUE
+R0411,18–29,žena,Severozápad,Change Seekers,David Král,32,62,88,80,66,0.885,TRUE
+R0412,45–64,muž,Praha,Change Seekers,David Král,14,64,54,76,52,1.152,TRUE
+R0413,18–29,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,42,84,73,85,71,1.15,TRUE
+R0414,18–29,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,43,49,45,70,52,1.218,TRUE
+R0415,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,22,76,57,57,53,0.953,TRUE
+R0416,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,34,51,76,59,55,0.867,TRUE
+R0417,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,47,59,47,63,54,1.012,TRUE
+R0418,18–29,muž,Střední Morava,Undecided / low info,Nerozhodnutí,39,70,57,54,55,1.077,TRUE
+R0419,18–29,žena,Jihovýchod,Change Seekers,David Král,44,68,82,64,64,1.167,TRUE
+R0420,45–64,žena,Severozápad,Undecided / low info,Nerozhodnutí,29,71,89,44,58,0.83,TRUE
+R0421,45–64,žena,Severozápad,Civic Stabilizers,Jana Novotná,26,60,55,84,56,0.922,TRUE
+R0422,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,27,85,70,66,62,0.9,TRUE
+R0423,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,48,53,59,39,50,1.085,TRUE
+R0424,30–44,žena,Střední Čechy,Cost-of-living voters,Petr Marek,33,63,68,41,51,0.998,TRUE
+R0425,65+,žena,Střední Morava,Change Seekers,David Král,30,55,69,84,60,1.157,TRUE
+R0426,30–44,muž,Severozápad,Cost-of-living voters,Petr Marek,49,67,73,85,68,0.874,TRUE
+R0427,30–44,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,24,69,46,58,49,0.838,TRUE
+R0428,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,20,72,78,39,52,0.784,TRUE
+R0429,30–44,žena,Jihozápad,Civic Stabilizers,Jana Novotná,16,71,90,61,60,1.085,TRUE
+R0430,30–44,žena,Praha,Civic Stabilizers,Jana Novotná,32,58,46,47,46,0.801,TRUE
+R0431,45–64,žena,Severovýchod,Civic Stabilizers,Jana Novotná,42,64,65,69,60,1.245,TRUE
+R0432,65+,muž,Severozápad,Undecided / low info,Nerozhodnutí,40,56,58,44,50,1.034,TRUE
+R0433,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,17,69,75,58,55,0.779,TRUE
+R0434,18–29,žena,Střední Čechy,Local Community,Jana Novotná,48,55,50,74,57,0.929,TRUE
+R0435,45–64,muž,Jihozápad,Undecided / low info,Nerozhodnutí,13,74,56,90,58,0.964,TRUE
+R0436,18–29,muž,Severovýchod,Cost-of-living voters,Petr Marek,19,62,74,71,56,1.145,TRUE
+R0437,18–29,muž,Severozápad,Change Seekers,David Král,20,48,78,53,50,1.212,TRUE
+R0438,30–44,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,38,79,62,49,57,1.238,TRUE
+R0439,45–64,žena,Jihovýchod,Change Seekers,David Král,31,68,71,35,51,0.777,TRUE
+R0440,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,17,52,83,71,56,1.09,TRUE
+R0441,45–64,muž,Severovýchod,Change Seekers,David Král,48,79,53,45,56,1.04,TRUE
+R0442,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,16,54,74,38,46,0.964,TRUE
+R0443,65+,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,23,67,80,61,58,1.094,TRUE
+R0444,45–64,žena,Severovýchod,Civic Stabilizers,Jana Novotná,49,85,74,53,65,1.116,TRUE
+R0445,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,21,45,78,83,57,0.985,TRUE
+R0446,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,23,64,75,54,54,0.821,TRUE
+R0447,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,21,48,89,79,59,1.114,TRUE
+R0448,18–29,žena,Praha,Local Community,Jana Novotná,18,54,85,42,50,0.999,TRUE
+R0449,65+,žena,Severovýchod,Undecided / low info,Nerozhodnutí,36,54,64,74,57,0.902,TRUE
+R0450,18–29,muž,Severozápad,Local Community,Jana Novotná,17,62,63,39,45,1.003,TRUE
+R0451,65+,žena,Jihozápad,Local Community,Jana Novotná,28,48,78,75,57,0.818,TRUE
+R0452,45–64,žena,Jihozápad,Cost-of-living voters,Petr Marek,16,52,73,67,52,1.248,TRUE
+R0453,30–44,žena,Severozápad,Cost-of-living voters,Petr Marek,15,48,70,73,52,1.099,TRUE
+R0454,30–44,žena,Severozápad,Civic Stabilizers,Jana Novotná,38,75,64,78,64,1.202,TRUE
+R0455,30–44,žena,Jihovýchod,Local Community,Jana Novotná,45,83,76,64,67,1.048,TRUE
+R0456,30–44,muž,Severovýchod,Cost-of-living voters,Petr Marek,21,90,74,51,59,1.065,TRUE
+R0457,30–44,žena,Severozápad,Undecided / low info,Nerozhodnutí,26,75,90,42,58,0.812,TRUE
+R0458,18–29,muž,Severozápad,Local Community,Jana Novotná,29,54,55,53,48,0.877,TRUE
+R0459,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,18,57,53,86,54,0.795,TRUE
+R0460,18–29,žena,Severozápad,Undecided / low info,Nerozhodnutí,18,69,89,47,56,0.977,TRUE
+R0461,18–29,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,35,45,50,82,53,0.97,TRUE
+R0462,18–29,žena,Severozápad,Cost-of-living voters,Petr Marek,23,87,65,69,61,1.189,TRUE
+R0463,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,28,64,53,67,53,0.915,TRUE
+R0464,45–64,žena,Střední Čechy,Local Community,Jana Novotná,43,60,88,36,57,0.911,TRUE
+R0465,30–44,muž,Jihovýchod,Cost-of-living voters,Petr Marek,32,75,56,47,52,1.236,TRUE
+R0466,30–44,žena,Severovýchod,Change Seekers,David Král,24,80,77,36,54,0.961,TRUE
+R0467,65+,muž,Jihozápad,Change Seekers,David Král,45,66,83,83,69,0.847,TRUE
+R0468,30–44,žena,Střední Morava,Civic Stabilizers,Jana Novotná,25,66,52,63,52,0.882,TRUE
+R0469,30–44,žena,Severozápad,Undecided / low info,Nerozhodnutí,31,60,78,52,55,1.188,TRUE
+R0470,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,16,47,84,71,54,1.189,TRUE
+R0471,65+,muž,Jihozápad,Local Community,Jana Novotná,21,76,53,67,54,0.877,TRUE
+R0472,30–44,muž,Severovýchod,Undecided / low info,Nerozhodnutí,39,64,79,56,60,1.21,TRUE
+R0473,18–29,žena,Severozápad,Civic Stabilizers,Jana Novotná,35,82,58,76,63,1.069,TRUE
+R0474,65+,muž,Jihozápad,Undecided / low info,Nerozhodnutí,47,78,76,68,67,1.053,TRUE
+R0475,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,38,68,59,72,59,1.152,TRUE
+R0476,65+,žena,Severozápad,Civic Stabilizers,Jana Novotná,19,86,72,85,66,1.02,TRUE
+R0477,45–64,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,29,55,51,86,55,0.953,TRUE
+R0478,65+,žena,Severozápad,Civic Stabilizers,Jana Novotná,48,77,57,58,60,1.096,TRUE
+R0479,18–29,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,48,69,66,85,67,1.205,TRUE
+R0480,65+,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,13,52,86,46,49,0.774,TRUE
+R0481,65+,muž,Severozápad,Undecided / low info,Nerozhodnutí,43,83,84,62,68,1.101,TRUE
+R0482,30–44,muž,Praha,Local Community,Jana Novotná,15,86,73,58,58,1.042,TRUE
+R0483,65+,žena,Severozápad,Change Seekers,David Král,37,79,68,64,62,1.15,TRUE
+R0484,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,23,78,55,64,55,0.796,TRUE
+R0485,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,26,90,55,35,52,1.212,TRUE
+R0486,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,35,73,63,55,56,0.818,TRUE
+R0487,30–44,žena,Praha,Undecided / low info,Nerozhodnutí,23,50,57,67,49,0.861,TRUE
+R0488,65+,žena,Moravskoslezsko,Local Community,Jana Novotná,25,47,89,76,59,0.965,TRUE
+R0489,45–64,žena,Jihozápad,Cost-of-living voters,Petr Marek,46,61,53,73,58,1.1,TRUE
+R0490,18–29,muž,Praha,Undecided / low info,Nerozhodnutí,19,60,70,46,49,0.773,TRUE
+R0491,65+,žena,Severozápad,Cost-of-living voters,Petr Marek,25,73,62,38,50,0.872,TRUE
+R0492,65+,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,36,70,62,55,56,1.166,TRUE
+R0493,30–44,muž,Moravskoslezsko,Change Seekers,David Král,36,45,83,41,51,1.189,TRUE
+R0494,18–29,žena,Severovýchod,Cost-of-living voters,Petr Marek,48,74,62,49,58,1.099,TRUE
+R0495,45–64,muž,Jihozápad,Undecided / low info,Nerozhodnutí,21,54,53,86,54,0.751,TRUE
+R0496,18–29,muž,Střední Morava,Cost-of-living voters,Petr Marek,20,49,88,68,56,0.933,TRUE
+R0497,45–64,žena,Severozápad,Cost-of-living voters,Petr Marek,46,61,83,51,60,0.937,TRUE
+R0498,45–64,muž,Střední Čechy,Cost-of-living voters,Petr Marek,45,53,89,71,64,0.876,TRUE
+R0499,65+,žena,Střední Morava,Cost-of-living voters,Petr Marek,44,59,53,40,49,0.913,TRUE
+R0500,18–29,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,36,79,55,61,58,0.961,TRUE
+R0501,18–29,žena,Severovýchod,Cost-of-living voters,Petr Marek,15,71,75,37,50,1.223,TRUE
+R0502,65+,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,37,55,68,89,62,0.839,TRUE
+R0503,30–44,žena,Severovýchod,Change Seekers,David Král,24,64,81,77,62,1.064,TRUE
+R0504,65+,žena,Praha,Local Community,Jana Novotná,24,85,70,80,65,0.975,TRUE
+R0505,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,21,63,79,70,58,0.986,TRUE
+R0506,45–64,muž,Střední Morava,Cost-of-living voters,Petr Marek,49,63,58,43,53,1.103,TRUE
+R0507,18–29,žena,Severozápad,Cost-of-living voters,Petr Marek,41,89,79,65,68,0.866,TRUE
+R0508,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,48,49,50,74,55,1.086,TRUE
+R0509,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,40,78,69,90,69,0.806,TRUE
+R0510,65+,žena,Jihovýchod,Cost-of-living voters,Petr Marek,36,79,72,61,62,1.091,TRUE
+R0511,30–44,muž,Severozápad,Change Seekers,David Král,33,67,86,71,64,1.054,TRUE
+R0512,65+,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,41,61,81,73,64,1.043,TRUE
+R0513,45–64,žena,Střední Čechy,Cost-of-living voters,Petr Marek,36,71,82,51,60,1.025,TRUE
+R0514,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,32,81,52,78,61,0.78,TRUE
+R0515,65+,žena,Střední Morava,Change Seekers,David Král,38,61,57,46,50,1.074,TRUE
+R0516,18–29,žena,Střední Morava,Change Seekers,David Král,48,90,66,46,62,1.07,TRUE
+R0517,30–44,muž,Jihovýchod,Cost-of-living voters,Petr Marek,15,73,45,53,46,0.888,TRUE
+R0518,18–29,žena,Severozápad,Change Seekers,David Král,15,78,55,84,58,1.16,TRUE
+R0519,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,29,61,61,68,55,1.12,TRUE
+R0520,65+,muž,Moravskoslezsko,Local Community,Jana Novotná,20,83,77,57,59,0.93,TRUE
+R0521,45–64,muž,Střední Čechy,Cost-of-living voters,Petr Marek,45,53,68,61,57,0.781,TRUE
+R0522,65+,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,39,59,90,37,56,0.938,TRUE
+R0523,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,35,63,77,35,52,1.149,TRUE
+R0524,18–29,žena,Severovýchod,Change Seekers,David Král,42,80,73,47,60,1.011,TRUE
+R0525,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,40,78,81,64,66,0.95,TRUE
+R0526,18–29,muž,Jihovýchod,Local Community,Jana Novotná,19,60,50,83,53,0.935,TRUE
+R0527,30–44,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,19,85,85,89,70,1.214,TRUE
+R0528,45–64,žena,Moravskoslezsko,Local Community,Jana Novotná,19,80,80,69,62,0.984,TRUE
+R0529,30–44,žena,Střední Morava,Undecided / low info,Nerozhodnutí,15,60,51,70,49,0.939,TRUE
+R0530,30–44,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,40,89,87,79,74,0.886,TRUE
+R0531,18–29,žena,Jihozápad,Civic Stabilizers,Jana Novotná,29,74,48,39,48,0.891,TRUE
+R0532,45–64,žena,Severovýchod,Change Seekers,David Král,22,81,48,38,47,0.762,TRUE
+R0533,45–64,žena,Jihozápad,Civic Stabilizers,Jana Novotná,49,79,58,86,68,0.78,TRUE
+R0534,18–29,žena,Jihozápad,Local Community,Jana Novotná,46,48,53,45,48,1.007,TRUE
+R0535,30–44,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,48,81,78,35,60,0.929,TRUE
+R0536,65+,muž,Moravskoslezsko,Change Seekers,David Král,38,71,88,76,68,0.912,TRUE
+R0537,65+,žena,Střední Morava,Civic Stabilizers,Jana Novotná,35,90,59,58,60,1.04,TRUE
+R0538,18–29,muž,Severovýchod,Cost-of-living voters,Petr Marek,41,59,58,40,50,1.128,TRUE
+R0539,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,30,62,55,63,52,1.217,TRUE
+R0540,65+,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,28,65,67,49,52,0.768,TRUE
+R0541,30–44,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,35,46,78,37,49,1.102,TRUE
+R0542,65+,muž,Jihovýchod,Cost-of-living voters,Petr Marek,36,57,70,37,50,1.081,TRUE
+R0543,30–44,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,46,50,81,67,61,1.107,TRUE
+R0544,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,15,61,53,78,52,0.969,TRUE
+R0545,18–29,muž,Jihozápad,Local Community,Jana Novotná,41,75,50,65,58,1.112,TRUE
+R0546,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,17,65,65,35,46,1.02,TRUE
+R0547,18–29,muž,Jihozápad,Undecided / low info,Nerozhodnutí,27,53,79,45,51,1.159,TRUE
+R0548,65+,muž,Severozápad,Civic Stabilizers,Jana Novotná,39,74,60,66,60,1.108,TRUE
+R0549,18–29,žena,Moravskoslezsko,Change Seekers,David Král,21,68,77,68,58,0.978,TRUE
+R0550,30–44,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,44,87,71,82,71,0.958,TRUE
+R0551,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,32,78,47,83,60,1.182,TRUE
+R0552,30–44,žena,Střední Čechy,Cost-of-living voters,Petr Marek,32,49,56,54,48,1.156,TRUE
+R0553,65+,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,40,87,86,72,71,1.09,TRUE
+R0554,30–44,muž,Jihovýchod,Cost-of-living voters,Petr Marek,29,57,77,38,50,0.915,TRUE
+R0555,45–64,muž,Severovýchod,Civic Stabilizers,Jana Novotná,38,83,55,90,66,1.133,TRUE
+R0556,65+,muž,Jihovýchod,Cost-of-living voters,Petr Marek,26,63,69,69,57,0.93,TRUE
+R0557,45–64,žena,Severozápad,Local Community,Jana Novotná,20,47,55,68,48,0.905,TRUE
+R0558,18–29,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,15,67,69,36,47,1.04,TRUE
+R0559,45–64,muž,Severovýchod,Local Community,Jana Novotná,40,90,55,56,60,1.005,TRUE
+R0560,18–29,muž,Severovýchod,Local Community,Jana Novotná,23,67,51,80,55,1.098,TRUE
+R0561,30–44,muž,Severovýchod,Local Community,Jana Novotná,41,77,58,66,60,0.853,TRUE
+R0562,18–29,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,13,83,70,67,58,0.871,TRUE
+R0563,18–29,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,46,85,83,66,70,0.754,TRUE
+R0564,65+,muž,Střední Čechy,Change Seekers,David Král,35,79,89,74,69,0.816,TRUE
+R0565,18–29,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,34,87,55,75,63,0.804,TRUE
+R0566,45–64,žena,Severovýchod,Change Seekers,David Král,48,72,71,82,68,0.803,TRUE
+R0567,45–64,muž,Severovýchod,Cost-of-living voters,Petr Marek,13,45,66,82,52,0.789,TRUE
+R0568,65+,muž,Střední Morava,Civic Stabilizers,Jana Novotná,29,55,46,49,45,1.169,TRUE
+R0569,18–29,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,13,82,62,51,52,0.991,TRUE
+R0570,18–29,žena,Praha,Local Community,Jana Novotná,36,46,54,65,50,0.775,TRUE
+R0571,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,41,46,48,63,50,1.124,TRUE
+R0572,18–29,žena,Střední Čechy,Change Seekers,David Král,29,59,68,89,61,0.944,TRUE
+R0573,65+,muž,Střední Čechy,Local Community,Jana Novotná,23,79,81,47,58,0.767,TRUE
+R0574,30–44,žena,Střední Morava,Civic Stabilizers,Jana Novotná,46,58,77,70,63,0.961,TRUE
+R0575,30–44,žena,Střední Čechy,Local Community,Jana Novotná,18,81,76,74,62,1.087,TRUE
+R0576,65+,žena,Střední Morava,Change Seekers,David Král,21,64,81,38,51,0.754,TRUE
+R0577,18–29,muž,Jihozápad,Cost-of-living voters,Petr Marek,17,65,69,75,56,1.02,TRUE
+R0578,30–44,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,31,61,69,86,62,1.191,TRUE
+R0579,65+,žena,Střední Morava,Undecided / low info,Nerozhodnutí,17,88,57,79,60,0.827,TRUE
+R0580,30–44,žena,Moravskoslezsko,Local Community,Jana Novotná,13,90,58,44,51,0.772,TRUE
+R0581,45–64,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,16,54,45,77,48,0.986,TRUE
+R0582,30–44,muž,Severozápad,Undecided / low info,Nerozhodnutí,25,50,60,49,46,1.235,TRUE
+R0583,18–29,žena,Střední Morava,Undecided / low info,Nerozhodnutí,23,62,63,39,47,0.998,TRUE
+R0584,18–29,žena,Severovýchod,Civic Stabilizers,Jana Novotná,17,64,79,81,60,1.153,TRUE
+R0585,65+,muž,Severovýchod,Cost-of-living voters,Petr Marek,28,79,59,60,56,1.234,TRUE
+R0586,18–29,muž,Střední Morava,Local Community,Jana Novotná,49,61,77,41,57,1.108,TRUE
+R0587,30–44,žena,Jihozápad,Local Community,Jana Novotná,14,62,74,41,48,0.811,TRUE
+R0588,30–44,muž,Moravskoslezsko,Local Community,Jana Novotná,35,75,70,80,65,1.184,TRUE
+R0589,65+,žena,Jihozápad,Cost-of-living voters,Petr Marek,18,75,73,66,58,1.239,TRUE
+R0590,45–64,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,22,54,80,88,61,1.233,TRUE
+R0591,65+,žena,Jihozápad,Change Seekers,David Král,33,89,78,48,62,1.068,TRUE
+R0592,30–44,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,31,61,62,73,57,0.989,TRUE
+R0593,30–44,muž,Severovýchod,Undecided / low info,Nerozhodnutí,18,70,64,36,47,0.833,TRUE
+R0594,45–64,žena,Střední Morava,Change Seekers,David Král,23,51,81,39,48,0.795,TRUE
+R0595,18–29,žena,Jihozápad,Change Seekers,David Král,14,47,60,76,49,0.773,TRUE
+R0596,45–64,žena,Jihozápad,Change Seekers,David Král,24,55,57,63,50,1.108,TRUE
+R0597,65+,žena,Střední Morava,Cost-of-living voters,Petr Marek,19,69,75,48,53,1.197,TRUE
+R0598,30–44,muž,Střední Morava,Cost-of-living voters,Petr Marek,24,59,73,58,54,0.931,TRUE
+R0599,45–64,žena,Jihozápad,Civic Stabilizers,Jana Novotná,37,76,76,39,57,0.993,TRUE
+R0600,65+,žena,Severovýchod,Cost-of-living voters,Petr Marek,36,89,56,64,61,1.04,TRUE
+R0601,30–44,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,16,90,76,61,61,0.859,TRUE
+R0602,18–29,muž,Střední Morava,Local Community,Jana Novotná,43,62,87,66,64,0.909,TRUE
+R0603,65+,muž,Severovýchod,Change Seekers,David Král,33,81,50,47,53,0.777,TRUE
+R0604,30–44,muž,Jihovýchod,Change Seekers,David Král,22,55,74,85,59,1.089,TRUE
+R0605,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,47,59,58,56,55,1.045,TRUE
+R0606,65+,žena,Moravskoslezsko,Local Community,Jana Novotná,28,51,55,42,44,1.066,TRUE
+R0607,30–44,muž,Severovýchod,Change Seekers,David Král,33,60,61,65,55,0.773,TRUE
+R0608,65+,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,32,75,76,48,58,0.757,TRUE
+R0609,65+,muž,Střední Čechy,Local Community,Jana Novotná,44,49,51,52,49,0.896,TRUE
+R0610,65+,žena,Střední Morava,Local Community,Jana Novotná,17,87,88,41,58,0.895,TRUE
+R0611,45–64,muž,Jihovýchod,Cost-of-living voters,Petr Marek,27,66,65,70,57,1.136,TRUE
+R0612,65+,muž,Severovýchod,Undecided / low info,Nerozhodnutí,46,90,64,60,65,0.845,TRUE
+R0613,30–44,muž,Jihovýchod,Cost-of-living voters,Petr Marek,35,81,71,42,57,1.163,TRUE
+R0614,30–44,muž,Jihovýchod,Local Community,Jana Novotná,28,82,73,62,61,1.1,TRUE
+R0615,65+,muž,Střední Morava,Civic Stabilizers,Jana Novotná,35,51,59,38,46,1.192,TRUE
+R0616,18–29,žena,Jihozápad,Cost-of-living voters,Petr Marek,29,80,76,75,65,0.892,TRUE
+R0617,30–44,žena,Střední Morava,Civic Stabilizers,Jana Novotná,37,52,77,54,55,1.225,TRUE
+R0618,30–44,muž,Jihovýchod,Local Community,Jana Novotná,41,64,79,85,67,1.073,TRUE
+R0619,18–29,muž,Střední Morava,Undecided / low info,Nerozhodnutí,22,60,64,40,46,0.886,TRUE
+R0620,45–64,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,15,53,63,61,48,0.85,TRUE
+R0621,65+,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,29,48,80,66,56,1.224,TRUE
+R0622,65+,muž,Střední Morava,Civic Stabilizers,Jana Novotná,32,78,57,70,59,1.194,TRUE
+R0623,65+,muž,Střední Morava,Civic Stabilizers,Jana Novotná,28,63,86,54,58,1.12,TRUE
+R0624,30–44,muž,Severovýchod,Local Community,Jana Novotná,21,52,78,36,47,0.949,TRUE
+R0625,65+,muž,Jihovýchod,Change Seekers,David Král,45,84,66,56,63,0.777,TRUE
+R0626,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,38,57,81,48,56,1.03,TRUE
+R0627,18–29,žena,Moravskoslezsko,Change Seekers,David Král,36,84,66,79,66,0.939,TRUE
+R0628,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,28,51,82,71,58,1.205,TRUE
+R0629,30–44,muž,Severozápad,Civic Stabilizers,Jana Novotná,15,63,68,45,48,1.209,TRUE
+R0630,30–44,žena,Severovýchod,Civic Stabilizers,Jana Novotná,45,81,90,66,70,1.243,TRUE
+R0631,30–44,žena,Severovýchod,Civic Stabilizers,Jana Novotná,32,68,84,46,58,1.048,TRUE
+R0632,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,30,77,72,43,56,0.952,TRUE
+R0633,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,26,46,60,57,47,1.244,TRUE
+R0634,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,42,89,77,69,69,0.853,TRUE
+R0635,45–64,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,38,67,53,49,52,0.919,TRUE
+R0636,18–29,muž,Praha,Civic Stabilizers,Jana Novotná,41,69,69,44,56,1.226,TRUE
+R0637,45–64,žena,Severozápad,Civic Stabilizers,Jana Novotná,32,88,78,46,61,1.149,TRUE
+R0638,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,19,79,77,35,52,1.164,TRUE
+R0639,65+,muž,Jihozápad,Change Seekers,David Král,49,54,80,55,60,1.058,TRUE
+R0640,30–44,žena,Praha,Cost-of-living voters,Petr Marek,38,69,89,68,66,1.186,TRUE
+R0641,45–64,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,24,88,55,39,52,1.23,TRUE
+R0642,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,21,45,56,52,44,0.939,TRUE
+R0643,30–44,muž,Střední Čechy,Change Seekers,David Král,41,47,56,75,55,1.173,TRUE
+R0644,65+,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,26,81,49,76,58,0.946,TRUE
+R0645,18–29,muž,Severozápad,Civic Stabilizers,Jana Novotná,33,77,78,68,64,0.895,TRUE
+R0646,65+,muž,Střední Čechy,Change Seekers,David Král,23,62,78,38,50,0.995,TRUE
+R0647,45–64,žena,Severozápad,Change Seekers,David Král,41,46,76,40,51,1.098,TRUE
+R0648,45–64,žena,Jihovýchod,Cost-of-living voters,Petr Marek,49,54,76,60,60,0.852,TRUE
+R0649,65+,muž,Praha,Local Community,Jana Novotná,48,65,55,44,53,1.158,TRUE
+R0650,65+,žena,Moravskoslezsko,Change Seekers,David Král,28,77,87,88,70,1.182,TRUE
+R0651,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,21,55,86,52,54,0.751,TRUE
+R0652,45–64,muž,Moravskoslezsko,Change Seekers,David Král,18,80,83,50,58,1.025,TRUE
+R0653,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,16,47,90,70,56,1.038,TRUE
+R0654,18–29,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,27,56,66,65,54,0.999,TRUE
+R0655,30–44,muž,Jihovýchod,Local Community,Jana Novotná,14,54,83,68,55,0.855,TRUE
+R0656,30–44,muž,Střední Čechy,Local Community,Jana Novotná,47,81,52,52,58,0.805,TRUE
+R0657,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,43,53,45,45,46,0.754,TRUE
+R0658,45–64,muž,Severozápad,Change Seekers,David Král,41,83,51,52,57,1.174,TRUE
+R0659,65+,muž,Jihozápad,Undecided / low info,Nerozhodnutí,37,83,67,58,61,1.199,TRUE
+R0660,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,13,48,83,38,46,1.205,TRUE
+R0661,65+,žena,Jihovýchod,Cost-of-living voters,Petr Marek,28,79,80,43,58,1.047,TRUE
+R0662,65+,muž,Jihozápad,Cost-of-living voters,Petr Marek,41,61,62,41,51,0.989,TRUE
+R0663,65+,žena,Střední Čechy,Cost-of-living voters,Petr Marek,49,46,59,64,54,0.84,TRUE
+R0664,30–44,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,40,62,70,72,61,1.01,TRUE
+R0665,65+,žena,Praha,Cost-of-living voters,Petr Marek,44,87,57,78,66,1.248,TRUE
+R0666,65+,muž,Střední Morava,Undecided / low info,Nerozhodnutí,16,69,68,65,54,0.917,TRUE
+R0667,45–64,žena,Severozápad,Change Seekers,David Král,30,57,58,51,49,0.895,TRUE
+R0668,18–29,muž,Praha,Undecided / low info,Nerozhodnutí,38,80,65,79,66,0.9,TRUE
+R0669,30–44,žena,Střední Čechy,Cost-of-living voters,Petr Marek,23,64,65,55,52,1.18,TRUE
+R0670,45–64,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,37,79,85,38,60,0.979,TRUE
+R0671,65+,muž,Střední Morava,Cost-of-living voters,Petr Marek,13,74,90,42,55,1.022,TRUE
+R0672,18–29,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,17,82,50,35,46,0.813,TRUE
+R0673,45–64,muž,Střední Morava,Undecided / low info,Nerozhodnutí,19,86,54,74,58,1.035,TRUE
+R0674,30–44,muž,Jihozápad,Change Seekers,David Král,33,60,70,79,60,1.236,TRUE
+R0675,65+,žena,Severozápad,Undecided / low info,Nerozhodnutí,44,66,46,37,48,0.819,TRUE
+R0676,18–29,muž,Střední Čechy,Change Seekers,David Král,40,63,58,38,50,0.752,TRUE
+R0677,18–29,muž,Jihovýchod,Cost-of-living voters,Petr Marek,45,53,46,50,48,0.875,TRUE
+R0678,30–44,žena,Praha,Change Seekers,David Král,47,61,48,35,48,1.007,TRUE
+R0679,45–64,muž,Praha,Change Seekers,David Král,49,63,85,63,65,1.21,TRUE
+R0680,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,22,62,68,51,51,0.794,TRUE
+R0681,18–29,muž,Jihozápad,Change Seekers,David Král,30,84,87,45,62,1.24,TRUE
+R0682,30–44,žena,Jihovýchod,Cost-of-living voters,Petr Marek,18,82,67,52,55,0.833,TRUE
+R0683,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,37,89,59,44,57,0.948,TRUE
+R0684,18–29,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,21,85,72,47,56,1.176,TRUE
+R0685,65+,žena,Střední Morava,Undecided / low info,Nerozhodnutí,32,50,68,74,56,1.159,TRUE
+R0686,18–29,muž,Jihozápad,Undecided / low info,Nerozhodnutí,43,50,62,76,58,0.848,TRUE
+R0687,30–44,žena,Jihovýchod,Change Seekers,David Král,23,57,79,45,51,0.769,TRUE
+R0688,65+,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,27,64,84,84,65,1.148,TRUE
+R0689,45–64,žena,Jihozápad,Cost-of-living voters,Petr Marek,20,68,64,89,60,1.005,TRUE
+R0690,30–44,žena,Severovýchod,Cost-of-living voters,Petr Marek,37,49,75,68,57,1.214,TRUE
+R0691,45–64,žena,Střední Čechy,Change Seekers,David Král,44,50,87,74,64,1.074,TRUE
+R0692,30–44,muž,Jihovýchod,Local Community,Jana Novotná,31,47,53,63,48,1.113,TRUE
+R0693,18–29,žena,Praha,Change Seekers,David Král,28,56,64,89,59,1.236,TRUE
+R0694,65+,žena,Jihovýchod,Change Seekers,David Král,35,71,80,72,64,1.048,TRUE
+R0695,18–29,muž,Moravskoslezsko,Change Seekers,David Král,23,73,73,82,63,1.005,TRUE
+R0696,45–64,muž,Střední Čechy,Change Seekers,David Král,40,82,61,81,66,0.921,TRUE
+R0697,65+,žena,Severozápad,Cost-of-living voters,Petr Marek,35,75,62,71,61,1.23,TRUE
+R0698,45–64,žena,Střední Čechy,Cost-of-living voters,Petr Marek,15,49,55,46,41,0.875,TRUE
+R0699,30–44,žena,Jihozápad,Civic Stabilizers,Jana Novotná,24,72,58,55,52,0.904,TRUE
+R0700,65+,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,38,84,76,65,66,0.768,TRUE
+R0701,30–44,muž,Severovýchod,Local Community,Jana Novotná,29,59,47,90,56,0.875,TRUE
+R0702,65+,žena,Praha,Cost-of-living voters,Petr Marek,47,48,52,67,54,0.775,TRUE
+R0703,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,40,85,48,55,57,0.793,TRUE
+R0704,65+,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,20,57,55,38,42,0.902,TRUE
+R0705,65+,žena,Moravskoslezsko,Local Community,Jana Novotná,38,46,50,39,43,0.81,TRUE
+R0706,18–29,muž,Severovýchod,Cost-of-living voters,Petr Marek,22,71,84,63,60,0.903,TRUE
+R0707,18–29,muž,Severozápad,Local Community,Jana Novotná,24,61,59,35,45,1.184,TRUE
+R0708,65+,žena,Severovýchod,Change Seekers,David Král,32,51,54,84,55,1.164,TRUE
+R0709,45–64,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,38,54,86,46,56,1.127,TRUE
+R0710,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,36,75,73,68,63,1.15,TRUE
+R0711,45–64,žena,Severozápad,Cost-of-living voters,Petr Marek,28,82,58,54,56,1.245,TRUE
+R0712,45–64,muž,Střední Čechy,Cost-of-living voters,Petr Marek,29,65,88,55,59,1.049,TRUE
+R0713,30–44,muž,Střední Morava,Change Seekers,David Král,26,73,50,60,52,1.224,TRUE
+R0714,30–44,muž,Jihovýchod,Local Community,Jana Novotná,39,76,85,80,70,0.97,TRUE
+R0715,45–64,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,30,76,64,87,64,1.018,TRUE
+R0716,45–64,žena,Střední Morava,Civic Stabilizers,Jana Novotná,20,82,77,80,65,1.187,TRUE
+R0717,45–64,žena,Jihovýchod,Cost-of-living voters,Petr Marek,27,79,47,82,59,1.18,TRUE
+R0718,45–64,žena,Moravskoslezsko,Change Seekers,David Král,49,87,51,60,62,1.034,TRUE
+R0719,65+,žena,Jihozápad,Undecided / low info,Nerozhodnutí,21,70,65,46,50,0.913,TRUE
+R0720,65+,muž,Střední Čechy,Cost-of-living voters,Petr Marek,46,60,63,68,59,1.103,TRUE
+R0721,45–64,žena,Jihozápad,Civic Stabilizers,Jana Novotná,32,45,63,90,58,1.231,TRUE
+R0722,18–29,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,30,64,82,67,61,0.959,TRUE
+R0723,30–44,žena,Jihozápad,Change Seekers,David Král,29,83,51,71,58,1.021,TRUE
+R0724,65+,žena,Střední Morava,Undecided / low info,Nerozhodnutí,34,79,63,68,61,0.872,TRUE
+R0725,30–44,žena,Jihovýchod,Change Seekers,David Král,33,75,73,47,57,0.892,TRUE
+R0726,30–44,žena,Střední Morava,Civic Stabilizers,Jana Novotná,39,61,45,76,55,0.764,TRUE
+R0727,18–29,žena,Jihozápad,Change Seekers,David Král,49,45,50,43,47,1.165,TRUE
+R0728,65+,žena,Střední Morava,Cost-of-living voters,Petr Marek,45,89,85,78,74,0.988,TRUE
+R0729,45–64,muž,Praha,Cost-of-living voters,Petr Marek,29,62,67,46,51,1.224,TRUE
+R0730,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,33,90,75,68,66,0.81,TRUE
+R0731,45–64,žena,Střední Morava,Civic Stabilizers,Jana Novotná,49,63,81,44,59,0.865,TRUE
+R0732,18–29,žena,Praha,Cost-of-living voters,Petr Marek,37,47,83,84,63,0.753,TRUE
+R0733,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,30,78,89,73,68,0.75,TRUE
+R0734,30–44,muž,Praha,Change Seekers,David Král,13,51,45,39,37,1.011,TRUE
+R0735,30–44,žena,Severozápad,Civic Stabilizers,Jana Novotná,46,81,85,72,71,0.817,TRUE
+R0736,30–44,žena,Praha,Undecided / low info,Nerozhodnutí,14,81,74,74,61,1.214,TRUE
+R0737,30–44,žena,Moravskoslezsko,Change Seekers,David Král,46,46,67,84,61,0.806,TRUE
+R0738,18–29,muž,Severovýchod,Undecided / low info,Nerozhodnutí,39,70,69,42,55,0.913,TRUE
+R0739,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,35,46,55,46,46,0.757,TRUE
+R0740,45–64,muž,Střední Morava,Undecided / low info,Nerozhodnutí,17,55,46,44,40,1.133,TRUE
+R0741,65+,muž,Severozápad,Civic Stabilizers,Jana Novotná,40,71,65,51,57,0.915,TRUE
+R0742,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,44,85,62,56,62,1.019,TRUE
+R0743,30–44,muž,Praha,Change Seekers,David Král,38,65,72,46,55,1.139,TRUE
+R0744,45–64,muž,Jihozápad,Civic Stabilizers,Jana Novotná,19,77,48,81,56,0.801,TRUE
+R0745,45–64,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,15,87,77,88,67,0.965,TRUE
+R0746,30–44,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,39,72,46,50,52,1.052,TRUE
+R0747,65+,muž,Střední Čechy,Cost-of-living voters,Petr Marek,18,78,89,66,63,1.018,TRUE
+R0748,18–29,muž,Jihozápad,Cost-of-living voters,Petr Marek,22,74,82,73,63,1.24,TRUE
+R0749,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,19,53,65,41,44,0.781,TRUE
+R0750,45–64,muž,Střední Morava,Undecided / low info,Nerozhodnutí,17,71,55,78,55,0.964,TRUE
+R0751,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,36,51,49,55,48,0.969,TRUE
+R0752,30–44,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,36,90,47,89,66,1.071,TRUE
+R0753,18–29,muž,Severovýchod,Undecided / low info,Nerozhodnutí,38,58,76,55,57,1.16,TRUE
+R0754,18–29,žena,Severozápad,Cost-of-living voters,Petr Marek,31,69,86,86,68,0.757,TRUE
+R0755,65+,muž,Střední Čechy,Change Seekers,David Král,22,68,53,37,45,1.167,TRUE
+R0756,18–29,muž,Severovýchod,Change Seekers,David Král,36,88,71,59,64,1.103,TRUE
+R0757,65+,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,37,79,69,82,67,0.822,TRUE
+R0758,45–64,muž,Jihovýchod,Change Seekers,David Král,28,88,62,45,56,1.073,TRUE
+R0759,30–44,žena,Severozápad,Undecided / low info,Nerozhodnutí,23,63,58,42,46,1.154,TRUE
+R0760,30–44,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,28,45,72,67,53,0.788,TRUE
+R0761,18–29,žena,Praha,Change Seekers,David Král,28,63,47,86,56,1.234,TRUE
+R0762,65+,žena,Střední Morava,Cost-of-living voters,Petr Marek,31,84,81,47,61,1.22,TRUE
+R0763,30–44,žena,Severozápad,Civic Stabilizers,Jana Novotná,37,78,74,68,64,1.244,TRUE
+R0764,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,29,60,52,62,51,1.15,TRUE
+R0765,30–44,žena,Severovýchod,Cost-of-living voters,Petr Marek,44,88,85,67,71,1.023,TRUE
+R0766,18–29,žena,Jihovýchod,Local Community,Jana Novotná,34,58,86,89,67,1.124,TRUE
+R0767,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,21,89,79,65,64,0.954,TRUE
+R0768,30–44,muž,Jihozápad,Change Seekers,David Král,28,83,58,42,53,0.753,TRUE
+R0769,30–44,žena,Střední Morava,Local Community,Jana Novotná,30,85,82,50,62,0.763,TRUE
+R0770,30–44,muž,Severozápad,Civic Stabilizers,Jana Novotná,42,86,81,60,67,1.165,TRUE
+R0771,30–44,žena,Severovýchod,Civic Stabilizers,Jana Novotná,24,66,72,86,62,0.802,TRUE
+R0772,45–64,muž,Jihozápad,Cost-of-living voters,Petr Marek,40,48,65,69,56,0.915,TRUE
+R0773,45–64,žena,Severovýchod,Undecided / low info,Nerozhodnutí,39,69,65,51,56,1.225,TRUE
+R0774,45–64,muž,Praha,Cost-of-living voters,Petr Marek,41,62,86,46,59,1.09,TRUE
+R0775,18–29,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,33,62,52,60,52,1.218,TRUE
+R0776,45–64,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,26,52,59,49,46,0.797,TRUE
+R0777,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,34,84,51,84,63,1.237,TRUE
+R0778,65+,žena,Praha,Change Seekers,David Král,24,63,49,65,50,1.165,TRUE
+R0779,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,40,61,72,81,64,1.102,TRUE
+R0780,30–44,muž,Střední Morava,Cost-of-living voters,Petr Marek,38,81,58,42,55,0.937,TRUE
+R0781,45–64,žena,Jihozápad,Cost-of-living voters,Petr Marek,43,67,59,82,63,0.96,TRUE
+R0782,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,35,55,80,68,60,0.838,TRUE
+R0783,65+,žena,Jihovýchod,Cost-of-living voters,Petr Marek,46,86,74,67,68,0.788,TRUE
+R0784,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,22,47,87,83,60,1.014,TRUE
+R0785,45–64,muž,Střední Morava,Change Seekers,David Král,46,68,45,45,51,1.107,TRUE
+R0786,30–44,muž,Severovýchod,Change Seekers,David Král,35,85,85,82,72,0.948,TRUE
+R0787,45–64,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,48,83,67,47,61,0.89,TRUE
+R0788,18–29,muž,Praha,Civic Stabilizers,Jana Novotná,32,55,47,85,55,0.9,TRUE
+R0789,65+,žena,Střední Morava,Civic Stabilizers,Jana Novotná,45,70,75,42,58,0.802,TRUE
+R0790,45–64,žena,Praha,Change Seekers,David Král,41,86,63,87,69,0.921,TRUE
+R0791,65+,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,45,54,58,52,52,0.819,TRUE
+R0792,65+,muž,Severovýchod,Cost-of-living voters,Petr Marek,20,79,70,88,64,1.146,TRUE
+R0793,18–29,muž,Střední Morava,Civic Stabilizers,Jana Novotná,23,48,59,87,54,0.759,TRUE
+R0794,18–29,muž,Jihozápad,Undecided / low info,Nerozhodnutí,31,61,85,70,62,1.198,TRUE
+R0795,65+,muž,Severozápad,Undecided / low info,Nerozhodnutí,15,73,62,38,47,1.149,TRUE
+R0796,18–29,muž,Jihovýchod,Local Community,Jana Novotná,44,62,71,61,60,0.79,TRUE
+R0797,65+,muž,Praha,Undecided / low info,Nerozhodnutí,28,56,62,63,52,1.182,TRUE
+R0798,65+,muž,Severovýchod,Undecided / low info,Nerozhodnutí,22,63,62,62,52,1.143,TRUE
+R0799,30–44,žena,Praha,Local Community,Jana Novotná,22,71,69,85,62,0.88,TRUE
+R0800,30–44,muž,Jihovýchod,Cost-of-living voters,Petr Marek,37,78,45,71,58,1.01,TRUE
+R0801,18–29,muž,Jihozápad,Undecided / low info,Nerozhodnutí,41,58,67,61,57,0.757,TRUE
+R0802,18–29,muž,Praha,Civic Stabilizers,Jana Novotná,36,53,78,58,56,1.247,TRUE
+R0803,18–29,žena,Severovýchod,Cost-of-living voters,Petr Marek,20,68,73,62,56,1.057,TRUE
+R0804,65+,muž,Moravskoslezsko,Local Community,Jana Novotná,43,76,81,43,61,0.758,TRUE
+R0805,45–64,muž,Jihovýchod,Local Community,Jana Novotná,42,89,71,59,65,0.774,TRUE
+R0806,30–44,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,13,49,89,40,48,0.777,TRUE
+R0807,65+,žena,Jihozápad,Cost-of-living voters,Petr Marek,44,90,90,71,74,0.848,TRUE
+R0808,65+,muž,Praha,Local Community,Jana Novotná,40,90,70,61,65,0.992,TRUE
+R0809,65+,muž,Jihozápad,Undecided / low info,Nerozhodnutí,21,45,58,84,52,1.039,TRUE
+R0810,65+,žena,Střední Morava,Change Seekers,David Král,19,51,70,54,48,1.071,TRUE
+R0811,30–44,žena,Severovýchod,Cost-of-living voters,Petr Marek,23,69,69,54,54,1.096,TRUE
+R0812,45–64,žena,Severozápad,Local Community,Jana Novotná,41,64,66,58,57,0.877,TRUE
+R0813,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,29,57,55,35,44,0.937,TRUE
+R0814,45–64,muž,Praha,Change Seekers,David Král,40,58,64,56,54,1.249,TRUE
+R0815,18–29,žena,Severovýchod,Cost-of-living voters,Petr Marek,24,56,59,68,52,0.912,TRUE
+R0816,30–44,muž,Severovýchod,Cost-of-living voters,Petr Marek,37,76,51,58,56,1.242,TRUE
+R0817,45–64,muž,Jihovýchod,Cost-of-living voters,Petr Marek,31,59,80,72,60,1.198,TRUE
+R0818,45–64,muž,Střední Morava,Civic Stabilizers,Jana Novotná,30,52,80,41,51,0.826,TRUE
+R0819,30–44,muž,Praha,Local Community,Jana Novotná,26,60,54,35,44,0.922,TRUE
+R0820,45–64,muž,Praha,Change Seekers,David Král,34,47,58,66,51,0.982,TRUE
+R0821,45–64,muž,Severozápad,Civic Stabilizers,Jana Novotná,32,46,71,51,50,0.818,TRUE
+R0822,18–29,žena,Jihozápad,Change Seekers,David Král,32,82,58,54,56,0.794,TRUE
+R0823,45–64,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,40,72,54,49,54,0.795,TRUE
+R0824,65+,muž,Střední Morava,Change Seekers,David Král,15,61,73,90,60,0.934,TRUE
+R0825,45–64,žena,Moravskoslezsko,Local Community,Jana Novotná,21,52,48,77,50,1.223,TRUE
+R0826,18–29,muž,Praha,Local Community,Jana Novotná,39,49,87,89,66,0.897,TRUE
+R0827,65+,muž,Jihovýchod,Local Community,Jana Novotná,38,54,89,53,58,1.219,TRUE
+R0828,18–29,muž,Praha,Local Community,Jana Novotná,20,80,46,81,57,1.049,TRUE
+R0829,30–44,muž,Jihovýchod,Local Community,Jana Novotná,17,51,69,45,46,1.043,TRUE
+R0830,18–29,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,43,87,49,39,54,1.064,TRUE
+R0831,45–64,žena,Střední Morava,Local Community,Jana Novotná,38,60,61,76,59,0.768,TRUE
+R0832,18–29,žena,Praha,Civic Stabilizers,Jana Novotná,34,86,68,45,58,0.818,TRUE
+R0833,18–29,žena,Praha,Cost-of-living voters,Petr Marek,45,83,64,40,58,0.758,TRUE
+R0834,65+,muž,Jihovýchod,Change Seekers,David Král,15,49,71,64,50,0.895,TRUE
+R0835,45–64,žena,Severozápad,Civic Stabilizers,Jana Novotná,45,89,90,57,70,1.181,TRUE
+R0836,30–44,muž,Moravskoslezsko,Local Community,Jana Novotná,43,49,88,48,57,0.811,TRUE
+R0837,65+,muž,Jihozápad,Civic Stabilizers,Jana Novotná,20,75,50,44,47,1.104,TRUE
+R0838,30–44,žena,Střední Morava,Cost-of-living voters,Petr Marek,14,49,58,63,46,1.176,TRUE
+R0839,65+,žena,Jihozápad,Local Community,Jana Novotná,26,52,68,85,58,1.031,TRUE
+R0840,30–44,muž,Severovýchod,Change Seekers,David Král,48,70,78,48,61,1.209,TRUE
+R0841,30–44,muž,Střední Čechy,Cost-of-living voters,Petr Marek,32,61,54,60,52,1.108,TRUE
+R0842,45–64,žena,Jihozápad,Undecided / low info,Nerozhodnutí,16,90,76,58,60,0.929,TRUE
+R0843,30–44,žena,Praha,Local Community,Jana Novotná,46,76,66,67,64,0.939,TRUE
+R0844,18–29,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,40,65,86,86,69,0.897,TRUE
+R0845,45–64,žena,Střední Čechy,Cost-of-living voters,Petr Marek,31,52,84,39,52,1.12,TRUE
+R0846,45–64,žena,Praha,Change Seekers,David Král,40,46,52,81,55,1.076,TRUE
+R0847,65+,žena,Střední Čechy,Cost-of-living voters,Petr Marek,21,56,77,55,52,1.239,TRUE
+R0848,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,42,46,78,86,63,1.05,TRUE
+R0849,30–44,žena,Moravskoslezsko,Local Community,Jana Novotná,27,56,75,62,55,1.032,TRUE
+R0850,30–44,žena,Moravskoslezsko,Local Community,Jana Novotná,44,53,84,85,66,0.866,TRUE
+R0851,65+,žena,Severozápad,Cost-of-living voters,Petr Marek,16,86,78,73,63,0.834,TRUE
+R0852,30–44,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,40,58,71,66,59,1.074,TRUE
+R0853,30–44,muž,Jihovýchod,Change Seekers,David Král,16,66,54,83,55,0.975,TRUE
+R0854,65+,muž,Střední Morava,Change Seekers,David Král,22,60,57,87,56,0.843,TRUE
+R0855,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,16,86,53,60,54,0.818,TRUE
+R0856,45–64,muž,Jihozápad,Civic Stabilizers,Jana Novotná,46,48,56,52,50,0.759,TRUE
+R0857,30–44,žena,Severozápad,Cost-of-living voters,Petr Marek,42,58,84,56,60,1.067,TRUE
+R0858,30–44,muž,Praha,Cost-of-living voters,Petr Marek,14,76,75,67,58,0.948,TRUE
+R0859,45–64,muž,Jihozápad,Change Seekers,David Král,47,83,65,50,61,1.119,TRUE
+R0860,18–29,žena,Střední Morava,Undecided / low info,Nerozhodnutí,33,80,81,75,67,1.095,TRUE
+R0861,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,34,61,58,80,58,0.917,TRUE
+R0862,45–64,žena,Praha,Civic Stabilizers,Jana Novotná,29,64,86,49,57,1.112,TRUE
+R0863,65+,žena,Severozápad,Local Community,Jana Novotná,32,59,82,74,62,1.197,TRUE
+R0864,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,45,86,81,68,70,1.038,TRUE
+R0865,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,44,61,78,57,60,0.856,TRUE
+R0866,65+,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,37,46,45,64,48,0.845,TRUE
+R0867,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,44,58,58,80,60,0.991,TRUE
+R0868,65+,muž,Severozápad,Local Community,Jana Novotná,47,69,56,64,59,1.02,TRUE
+R0869,65+,žena,Střední Morava,Cost-of-living voters,Petr Marek,47,71,77,67,66,1.215,TRUE
+R0870,18–29,žena,Severovýchod,Cost-of-living voters,Petr Marek,36,51,46,84,54,0.909,TRUE
+R0871,45–64,muž,Severozápad,Civic Stabilizers,Jana Novotná,32,58,63,86,60,0.774,TRUE
+R0872,18–29,muž,Střední Čechy,Local Community,Jana Novotná,46,88,65,82,70,1.187,TRUE
+R0873,65+,žena,Jihozápad,Undecided / low info,Nerozhodnutí,38,46,81,76,60,1.162,TRUE
+R0874,45–64,žena,Praha,Cost-of-living voters,Petr Marek,35,65,80,42,56,1.216,TRUE
+R0875,30–44,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,30,53,49,73,51,0.956,TRUE
+R0876,30–44,muž,Jihovýchod,Change Seekers,David Král,47,55,55,45,50,0.913,TRUE
+R0877,65+,žena,Severozápad,Cost-of-living voters,Petr Marek,23,53,65,38,45,1.031,TRUE
+R0878,65+,žena,Střední Morava,Local Community,Jana Novotná,33,69,52,62,54,0.889,TRUE
+R0879,18–29,žena,Praha,Cost-of-living voters,Petr Marek,41,57,49,85,58,0.913,TRUE
+R0880,45–64,žena,Jihozápad,Change Seekers,David Král,45,57,78,78,64,0.982,TRUE
+R0881,65+,žena,Střední Morava,Civic Stabilizers,Jana Novotná,21,55,59,79,54,0.94,TRUE
+R0882,18–29,žena,Severovýchod,Change Seekers,David Král,22,48,81,72,56,0.869,TRUE
+R0883,45–64,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,32,46,56,82,54,1.107,TRUE
+R0884,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,33,84,45,43,51,0.862,TRUE
+R0885,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,43,66,61,39,52,1.148,TRUE
+R0886,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,32,89,53,71,61,1.21,TRUE
+R0887,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,37,75,55,66,58,1.1,TRUE
+R0888,45–64,muž,Jihozápad,Change Seekers,David Král,25,76,69,49,55,0.98,TRUE
+R0889,65+,muž,Severovýchod,Change Seekers,David Král,44,53,73,56,56,0.772,TRUE
+R0890,18–29,žena,Moravskoslezsko,Local Community,Jana Novotná,31,62,74,44,53,0.915,TRUE
+R0891,65+,muž,Severozápad,Change Seekers,David Král,19,69,86,75,62,0.77,TRUE
+R0892,30–44,žena,Praha,Local Community,Jana Novotná,45,68,45,38,49,0.987,TRUE
+R0893,18–29,žena,Severovýchod,Local Community,Jana Novotná,30,71,90,60,63,0.934,TRUE
+R0894,65+,muž,Jihovýchod,Local Community,Jana Novotná,13,79,72,55,55,1.085,TRUE
+R0895,45–64,žena,Střední Čechy,Local Community,Jana Novotná,22,51,80,41,48,1.126,TRUE
+R0896,30–44,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,41,73,85,50,62,0.913,TRUE
+R0897,65+,muž,Jihozápad,Undecided / low info,Nerozhodnutí,13,76,63,85,59,0.977,TRUE
+R0898,45–64,žena,Střední Morava,Local Community,Jana Novotná,24,46,59,62,48,0.805,TRUE
+R0899,18–29,žena,Severozápad,Local Community,Jana Novotná,35,87,77,74,68,0.769,TRUE
+R0900,18–29,muž,Praha,Cost-of-living voters,Petr Marek,36,64,69,72,60,1.104,TRUE
+R0901,18–29,žena,Střední Morava,Cost-of-living voters,Petr Marek,14,87,46,76,56,1.153,TRUE
+R0902,45–64,žena,Střední Morava,Cost-of-living voters,Petr Marek,22,86,73,87,67,0.911,TRUE
+R0903,30–44,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,46,70,49,85,62,1.172,TRUE
+R0904,45–64,muž,Jihozápad,Civic Stabilizers,Jana Novotná,16,58,46,89,52,1.244,TRUE
+R0905,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,36,74,51,76,59,0.909,TRUE
+R0906,30–44,žena,Jihovýchod,Local Community,Jana Novotná,31,48,89,43,53,0.854,TRUE
+R0907,18–29,žena,Severozápad,Local Community,Jana Novotná,44,81,82,38,61,1.156,TRUE
+R0908,45–64,žena,Střední Morava,Local Community,Jana Novotná,15,67,86,84,63,0.917,TRUE
+R0909,45–64,muž,Severozápad,Undecided / low info,Nerozhodnutí,47,80,70,81,70,0.898,TRUE
+R0910,45–64,muž,Střední Morava,Undecided / low info,Nerozhodnutí,37,60,84,72,63,0.84,TRUE
+R0911,65+,žena,Jihozápad,Undecided / low info,Nerozhodnutí,38,56,61,38,48,0.802,TRUE
+R0912,45–64,žena,Jihovýchod,Cost-of-living voters,Petr Marek,36,49,48,81,54,1.158,TRUE
+R0913,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,30,50,48,86,54,0.901,TRUE
+R0914,65+,žena,Severovýchod,Local Community,Jana Novotná,26,46,78,39,47,1.095,TRUE
+R0915,18–29,žena,Jihozápad,Civic Stabilizers,Jana Novotná,29,62,73,80,61,0.772,TRUE
+R0916,18–29,muž,Jihozápad,Cost-of-living voters,Petr Marek,18,56,45,42,40,1.18,TRUE
+R0917,18–29,muž,Střední Morava,Civic Stabilizers,Jana Novotná,22,54,70,89,59,1.128,TRUE
+R0918,18–29,žena,Praha,Change Seekers,David Král,32,51,67,56,52,1.193,TRUE
+R0919,45–64,muž,Jihovýchod,Local Community,Jana Novotná,38,55,68,65,56,1.202,TRUE
+R0920,18–29,muž,Střední Morava,Civic Stabilizers,Jana Novotná,17,66,47,38,42,1.053,TRUE
+R0921,65+,muž,Střední Morava,Cost-of-living voters,Petr Marek,33,82,84,72,68,1.213,TRUE
+R0922,45–64,muž,Severovýchod,Cost-of-living voters,Petr Marek,23,78,90,63,64,0.87,TRUE
+R0923,65+,muž,Praha,Cost-of-living voters,Petr Marek,26,48,60,79,53,1.236,TRUE
+R0924,45–64,muž,Severovýchod,Change Seekers,David Král,37,86,59,52,58,0.882,TRUE
+R0925,65+,žena,Praha,Local Community,Jana Novotná,47,80,84,52,66,0.836,TRUE
+R0926,18–29,muž,Severozápad,Change Seekers,David Král,33,87,73,35,57,0.791,TRUE
+R0927,18–29,žena,Jihozápad,Cost-of-living voters,Petr Marek,45,52,82,74,63,1.085,TRUE
+R0928,45–64,žena,Jihovýchod,Local Community,Jana Novotná,49,48,56,73,56,1.006,TRUE
+R0929,18–29,muž,Praha,Change Seekers,David Král,43,67,46,51,52,0.826,TRUE
+R0930,45–64,žena,Střední Čechy,Local Community,Jana Novotná,15,89,62,69,59,1.213,TRUE
+R0931,18–29,žena,Střední Morava,Cost-of-living voters,Petr Marek,35,51,61,68,54,1.136,TRUE
+R0932,65+,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,35,50,86,53,56,1.156,TRUE
+R0933,65+,muž,Moravskoslezsko,Change Seekers,David Král,24,45,52,64,46,0.938,TRUE
+R0934,30–44,muž,Střední Čechy,Cost-of-living voters,Petr Marek,34,88,54,79,64,0.807,TRUE
+R0935,45–64,žena,Střední Morava,Civic Stabilizers,Jana Novotná,44,65,70,37,54,1.237,TRUE
+R0936,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,15,71,68,85,60,1.168,TRUE
+R0937,18–29,muž,Severovýchod,Cost-of-living voters,Petr Marek,36,51,77,39,51,0.963,TRUE
+R0938,45–64,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,29,54,82,57,56,0.988,TRUE
+R0939,45–64,žena,Jihovýchod,Cost-of-living voters,Petr Marek,40,52,54,90,59,1.105,TRUE
+R0940,18–29,žena,Praha,Local Community,Jana Novotná,15,51,87,81,58,0.96,TRUE
+R0941,30–44,muž,Severovýchod,Cost-of-living voters,Petr Marek,34,82,74,36,56,1.028,TRUE
+R0942,18–29,žena,Střední Morava,Cost-of-living voters,Petr Marek,35,75,56,48,54,0.78,TRUE
+R0943,18–29,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,21,76,51,55,51,1.045,TRUE
+R0944,65+,žena,Střední Morava,Civic Stabilizers,Jana Novotná,47,84,82,62,69,1.183,TRUE
+R0945,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,18,76,77,71,60,0.817,TRUE
+R0946,18–29,muž,Severozápad,Civic Stabilizers,Jana Novotná,16,49,90,40,49,1.21,TRUE
+R0947,18–29,žena,Severozápad,Civic Stabilizers,Jana Novotná,26,61,61,54,50,1.206,TRUE
+R0948,18–29,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,40,55,54,84,58,0.771,TRUE
+R0949,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,40,86,58,72,64,0.758,TRUE
+R0950,30–44,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,40,71,68,40,55,1.022,TRUE
+R0951,65+,muž,Střední Morava,Cost-of-living voters,Petr Marek,37,54,62,43,49,1.191,TRUE
+R0952,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,32,60,73,41,52,1.072,TRUE
+R0953,65+,žena,Severozápad,Civic Stabilizers,Jana Novotná,27,65,67,36,49,1.11,TRUE
+R0954,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,28,84,52,69,58,1.237,TRUE
+R0955,18–29,muž,Jihozápad,Civic Stabilizers,Jana Novotná,16,55,81,55,52,1.225,TRUE
+R0956,30–44,muž,Střední Morava,Cost-of-living voters,Petr Marek,24,87,46,41,50,1.011,TRUE
+R0957,65+,žena,Jihozápad,Cost-of-living voters,Petr Marek,32,45,88,59,56,0.982,TRUE
+R0958,45–64,žena,Jihozápad,Cost-of-living voters,Petr Marek,48,49,74,89,65,0.849,TRUE
+R0959,65+,žena,Jihozápad,Change Seekers,David Král,25,63,48,81,54,0.97,TRUE
+R0960,65+,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,39,53,66,46,51,1.03,TRUE
+R0961,18–29,muž,Jihozápad,Civic Stabilizers,Jana Novotná,40,46,74,43,51,1.175,TRUE
+R0962,45–64,žena,Severozápad,Local Community,Jana Novotná,36,58,46,79,55,0.945,TRUE
+R0963,30–44,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,19,72,51,75,54,0.805,TRUE
+R0964,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,41,70,70,45,56,0.844,TRUE
+R0965,30–44,muž,Jihozápad,Local Community,Jana Novotná,36,52,76,90,64,0.85,TRUE
+R0966,30–44,žena,Jihozápad,Undecided / low info,Nerozhodnutí,37,53,67,77,58,0.936,TRUE
+R0967,45–64,žena,Střední Morava,Cost-of-living voters,Petr Marek,17,75,85,73,62,0.921,TRUE
+R0968,45–64,muž,Moravskoslezsko,Local Community,Jana Novotná,35,80,62,83,65,0.956,TRUE
+R0969,65+,muž,Střední Morava,Cost-of-living voters,Petr Marek,29,51,62,58,50,1.034,TRUE
+R0970,65+,muž,Severovýchod,Cost-of-living voters,Petr Marek,49,75,70,82,69,1.009,TRUE
+R0971,45–64,žena,Střední Morava,Local Community,Jana Novotná,36,68,48,57,52,1.041,TRUE
+R0972,45–64,žena,Moravskoslezsko,Change Seekers,David Král,37,45,88,60,58,0.939,TRUE
+R0973,18–29,žena,Jihovýchod,Cost-of-living voters,Petr Marek,35,60,46,90,58,0.785,TRUE
+R0974,45–64,žena,Střední Čechy,Cost-of-living voters,Petr Marek,35,71,86,89,70,1.06,TRUE
+R0975,45–64,žena,Praha,Cost-of-living voters,Petr Marek,17,65,45,63,48,1.054,TRUE
+R0976,30–44,muž,Severozápad,Local Community,Jana Novotná,35,65,82,60,60,1.249,TRUE
+R0977,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,15,61,84,41,50,0.889,TRUE
+R0978,18–29,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,24,51,54,54,46,1.002,TRUE
+R0979,18–29,muž,Střední Čechy,Change Seekers,David Král,43,73,46,36,50,1.124,TRUE
+R0980,18–29,muž,Praha,Civic Stabilizers,Jana Novotná,29,48,80,67,56,1.225,TRUE
+R0981,45–64,muž,Střední Morava,Civic Stabilizers,Jana Novotná,39,56,82,86,66,0.915,TRUE
+R0982,18–29,muž,Praha,Cost-of-living voters,Petr Marek,39,46,55,60,50,1.111,TRUE
+R0983,65+,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,35,84,75,85,70,1.191,TRUE
+R0984,18–29,muž,Jihozápad,Cost-of-living voters,Petr Marek,16,88,78,69,63,0.885,TRUE
+R0985,18–29,muž,Praha,Civic Stabilizers,Jana Novotná,24,46,57,73,50,0.81,TRUE
+R0986,30–44,muž,Praha,Local Community,Jana Novotná,26,50,81,47,51,1.076,TRUE
+R0987,65+,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,31,72,52,83,60,1.052,TRUE
+R0988,30–44,muž,Severovýchod,Undecided / low info,Nerozhodnutí,34,87,66,79,66,0.905,TRUE
+R0989,45–64,žena,Jihozápad,Cost-of-living voters,Petr Marek,37,55,73,52,54,1.19,TRUE
+R0990,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,24,79,69,36,52,1.181,TRUE
+R0991,45–64,žena,Jihovýchod,Cost-of-living voters,Petr Marek,20,51,73,47,48,0.962,TRUE
+R0992,18–29,muž,Jihozápad,Civic Stabilizers,Jana Novotná,17,61,87,56,55,1.044,TRUE
+R0993,45–64,žena,Severovýchod,Civic Stabilizers,Jana Novotná,15,88,87,74,66,1.185,TRUE
+R0994,45–64,muž,Jihozápad,Civic Stabilizers,Jana Novotná,48,74,71,86,70,1.059,TRUE
+R0995,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,17,90,58,74,60,1.075,TRUE
+R0996,65+,žena,Střední Morava,Local Community,Jana Novotná,27,78,77,56,60,1.114,TRUE
+R0997,45–64,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,43,53,81,47,56,1.094,TRUE
+R0998,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,18,89,45,85,59,0.99,TRUE
+R0999,30–44,žena,Střední Morava,Civic Stabilizers,Jana Novotná,36,55,85,75,63,1.194,TRUE
+R1000,18–29,žena,Střední Morava,Local Community,Jana Novotná,26,86,49,61,56,0.998,TRUE
+R1001,65+,muž,Praha,Cost-of-living voters,Petr Marek,46,65,54,74,60,1.211,TRUE
+R1002,30–44,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,48,47,78,59,58,0.993,TRUE
+R1003,45–64,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,33,63,63,65,56,1.082,TRUE
+R1004,45–64,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,19,81,53,87,60,1.079,TRUE
+R1005,45–64,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,32,57,72,87,62,0.799,TRUE
+R1006,65+,žena,Střední Morava,Undecided / low info,Nerozhodnutí,44,84,62,81,68,1.134,TRUE
+R1007,45–64,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,16,73,90,84,66,0.94,TRUE
+R1008,45–64,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,22,71,76,85,64,1.109,TRUE
+R1009,18–29,žena,Severovýchod,Civic Stabilizers,Jana Novotná,42,76,60,58,59,1.04,TRUE
+R1010,18–29,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,26,79,78,55,60,0.793,TRUE
+R1011,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,21,86,76,76,65,0.801,TRUE
+R1012,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,47,71,63,55,59,0.89,TRUE
+R1013,45–64,žena,Jihozápad,Civic Stabilizers,Jana Novotná,42,60,70,88,65,0.938,TRUE
+R1014,45–64,muž,Jihovýchod,Change Seekers,David Král,21,59,49,37,42,0.79,TRUE
+R1015,18–29,žena,Praha,Cost-of-living voters,Petr Marek,27,49,81,90,62,1.187,TRUE
+R1016,18–29,muž,Severozápad,Civic Stabilizers,Jana Novotná,41,90,59,75,66,1.023,TRUE
+R1017,30–44,žena,Praha,Civic Stabilizers,Jana Novotná,35,61,86,51,58,0.823,TRUE
+R1018,65+,žena,Severozápad,Undecided / low info,Nerozhodnutí,38,56,72,87,63,1.135,TRUE
+R1019,65+,žena,Střední Čechy,Cost-of-living voters,Petr Marek,22,90,75,64,63,0.914,TRUE
+R1020,30–44,žena,Střední Morava,Change Seekers,David Král,19,70,84,52,56,1.046,TRUE
+R1021,30–44,žena,Střední Čechy,Local Community,Jana Novotná,47,82,61,40,58,0.821,TRUE
+R1022,45–64,muž,Severozápad,Undecided / low info,Nerozhodnutí,30,80,61,77,62,0.938,TRUE
+R1023,65+,muž,Praha,Local Community,Jana Novotná,35,56,89,89,67,0.958,TRUE
+R1024,18–29,žena,Střední Čechy,Cost-of-living voters,Petr Marek,16,81,71,77,61,0.983,TRUE
+R1025,18–29,muž,Praha,Change Seekers,David Král,40,82,58,70,62,0.968,TRUE
+R1026,18–29,muž,Jihovýchod,Cost-of-living voters,Petr Marek,29,49,74,66,54,0.888,TRUE
+R1027,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,26,53,65,52,49,1.174,TRUE
+R1028,65+,žena,Jihozápad,Change Seekers,David Král,26,83,90,75,68,1.065,TRUE
+R1029,30–44,žena,Praha,Change Seekers,David Král,46,79,52,42,55,1.062,TRUE
+R1030,45–64,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,49,57,87,82,69,0.877,TRUE
+R1031,65+,muž,Severozápad,Undecided / low info,Nerozhodnutí,41,79,77,57,64,1.171,TRUE
+R1032,18–29,muž,Střední Morava,Change Seekers,David Král,27,80,89,59,64,0.804,TRUE
+R1033,45–64,muž,Praha,Cost-of-living voters,Petr Marek,15,90,82,74,65,0.844,TRUE
+R1034,30–44,muž,Praha,Local Community,Jana Novotná,42,77,77,50,62,0.877,TRUE
+R1035,65+,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,45,52,53,60,52,1.094,TRUE
+R1036,65+,žena,Střední Čechy,Cost-of-living voters,Petr Marek,30,49,52,88,55,1.186,TRUE
+R1037,30–44,žena,Jihozápad,Civic Stabilizers,Jana Novotná,23,78,56,64,55,1.06,TRUE
+R1038,18–29,žena,Praha,Undecided / low info,Nerozhodnutí,18,57,77,90,60,0.871,TRUE
+R1039,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,34,81,74,75,66,1.045,TRUE
+R1040,45–64,žena,Severozápad,Cost-of-living voters,Petr Marek,45,61,65,58,57,0.914,TRUE
+R1041,65+,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,43,45,78,79,61,1.183,TRUE
+R1042,65+,muž,Jihovýchod,Change Seekers,David Král,36,81,74,73,66,0.777,TRUE
+R1043,18–29,muž,Severovýchod,Local Community,Jana Novotná,13,46,62,65,46,0.777,TRUE
+R1044,65+,muž,Praha,Cost-of-living voters,Petr Marek,26,49,90,88,63,1.104,TRUE
+R1045,65+,žena,Střední Morava,Cost-of-living voters,Petr Marek,35,61,83,62,60,1.114,TRUE
+R1046,65+,žena,Severozápad,Change Seekers,David Král,49,90,50,81,68,0.939,TRUE
+R1047,65+,žena,Jihozápad,Cost-of-living voters,Petr Marek,25,64,48,37,44,0.771,TRUE
+R1048,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,31,58,80,48,54,1.131,TRUE
+R1049,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,37,72,80,78,67,0.794,TRUE
+R1050,30–44,muž,Střední Čechy,Local Community,Jana Novotná,42,80,80,46,62,0.925,TRUE
+R1051,45–64,žena,Moravskoslezsko,Change Seekers,David Král,47,88,65,63,66,1.183,TRUE
+R1052,45–64,žena,Střední Morava,Change Seekers,David Král,19,75,72,41,52,1.039,TRUE
+R1053,30–44,žena,Severozápad,Civic Stabilizers,Jana Novotná,33,68,77,87,66,1.057,TRUE
+R1054,65+,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,28,81,79,62,62,0.998,TRUE
+R1055,45–64,muž,Severozápad,Change Seekers,David Král,17,80,63,39,50,1.15,TRUE
+R1056,30–44,muž,Jihozápad,Undecided / low info,Nerozhodnutí,47,52,71,42,53,1.093,TRUE
+R1057,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,28,83,50,81,60,1.049,TRUE
+R1058,45–64,žena,Střední Morava,Civic Stabilizers,Jana Novotná,28,87,54,72,60,1.036,TRUE
+R1059,30–44,žena,Severozápad,Cost-of-living voters,Petr Marek,27,74,62,50,53,0.809,TRUE
+R1060,45–64,žena,Jihozápad,Undecided / low info,Nerozhodnutí,27,68,50,83,57,1.092,TRUE
+R1061,30–44,žena,Střední Morava,Local Community,Jana Novotná,18,54,79,66,54,1.204,TRUE
+R1062,65+,muž,Praha,Change Seekers,David Král,38,45,82,40,51,1.072,TRUE
+R1063,18–29,muž,Jihozápad,Cost-of-living voters,Petr Marek,36,58,74,60,57,1.117,TRUE
+R1064,18–29,muž,Střední Morava,Local Community,Jana Novotná,15,61,81,85,60,0.993,TRUE
+R1065,18–29,žena,Jihozápad,Local Community,Jana Novotná,46,71,57,35,52,1.141,TRUE
+R1066,45–64,muž,Jihovýchod,Cost-of-living voters,Petr Marek,42,87,83,60,68,1.124,TRUE
+R1067,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,45,79,58,73,64,1.063,TRUE
+R1068,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,21,46,61,48,44,0.943,TRUE
+R1069,65+,žena,Severozápad,Civic Stabilizers,Jana Novotná,19,59,59,75,53,1.035,TRUE
+R1070,45–64,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,17,77,86,45,56,1.147,TRUE
+R1071,65+,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,41,65,77,90,68,0.98,TRUE
+R1072,30–44,muž,Střední Morava,Change Seekers,David Král,28,79,89,40,59,1.223,TRUE
+R1073,18–29,muž,Severovýchod,Change Seekers,David Král,32,72,46,84,58,0.779,TRUE
+R1074,45–64,žena,Praha,Local Community,Jana Novotná,26,58,60,47,48,0.955,TRUE
+R1075,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,33,54,86,39,53,0.751,TRUE
+R1076,30–44,žena,Střední Morava,Change Seekers,David Král,36,81,83,75,69,1.013,TRUE
+R1077,30–44,muž,Střední Čechy,Cost-of-living voters,Petr Marek,33,70,82,89,68,1.062,TRUE
+R1078,30–44,žena,Severovýchod,Change Seekers,David Král,35,72,89,43,60,0.849,TRUE
+R1079,65+,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,22,68,49,36,44,1.219,TRUE
+R1080,65+,muž,Střední Morava,Change Seekers,David Král,39,58,70,64,58,1.236,TRUE
+R1081,30–44,muž,Praha,Cost-of-living voters,Petr Marek,23,90,81,64,64,0.877,TRUE
+R1082,65+,muž,Moravskoslezsko,Local Community,Jana Novotná,48,51,64,65,57,0.948,TRUE
+R1083,65+,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,26,88,60,45,55,1.116,TRUE
+R1084,30–44,žena,Jihozápad,Undecided / low info,Nerozhodnutí,25,59,66,65,54,0.793,TRUE
+R1085,45–64,žena,Střední Morava,Civic Stabilizers,Jana Novotná,30,72,50,82,58,0.927,TRUE
+R1086,18–29,muž,Střední Čechy,Cost-of-living voters,Petr Marek,24,65,76,39,51,1.139,TRUE
+R1087,18–29,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,48,70,88,89,74,1.11,TRUE
+R1088,30–44,žena,Jihozápad,Civic Stabilizers,Jana Novotná,47,74,78,72,68,0.937,TRUE
+R1089,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,33,58,76,53,55,1.127,TRUE
+R1090,18–29,žena,Severovýchod,Change Seekers,David Král,29,83,68,57,59,1.171,TRUE
+R1091,30–44,žena,Severovýchod,Civic Stabilizers,Jana Novotná,25,78,66,71,60,1.09,TRUE
+R1092,30–44,žena,Střední Čechy,Cost-of-living voters,Petr Marek,34,67,89,80,68,1.243,TRUE
+R1093,45–64,muž,Jihozápad,Local Community,Jana Novotná,13,82,65,39,50,1.171,TRUE
+R1094,30–44,žena,Praha,Local Community,Jana Novotná,33,70,71,38,53,0.978,TRUE
+R1095,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,19,61,59,84,56,0.877,TRUE
+R1096,30–44,muž,Střední Morava,Change Seekers,David Král,42,73,59,71,61,1.024,TRUE
+R1097,65+,muž,Severozápad,Undecided / low info,Nerozhodnutí,34,47,77,36,48,1.04,TRUE
+R1098,65+,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,37,53,51,62,51,0.772,TRUE
+R1099,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,24,61,66,46,49,1.076,TRUE
+R1100,30–44,žena,Severovýchod,Change Seekers,David Král,37,90,85,84,74,0.816,TRUE
+R1101,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,23,62,70,43,50,1.054,TRUE
+R1102,45–64,muž,Moravskoslezsko,Change Seekers,David Král,23,76,70,82,63,0.773,TRUE
+R1103,45–64,muž,Severovýchod,Civic Stabilizers,Jana Novotná,20,85,49,52,52,0.772,TRUE
+R1104,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,14,55,67,44,45,1.07,TRUE
+R1105,65+,žena,Jihozápad,Change Seekers,David Král,40,76,53,47,54,1.109,TRUE
+R1106,45–64,žena,Střední Morava,Civic Stabilizers,Jana Novotná,16,90,75,38,55,0.831,TRUE
+R1107,65+,žena,Jihozápad,Undecided / low info,Nerozhodnutí,44,79,89,71,71,1.166,TRUE
+R1108,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,22,76,82,64,61,1.144,TRUE
+R1109,18–29,žena,Praha,Local Community,Jana Novotná,48,82,59,53,60,0.79,TRUE
+R1110,65+,žena,Severozápad,Cost-of-living voters,Petr Marek,18,54,46,83,50,1.057,TRUE
+R1111,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,48,53,54,44,50,1.064,TRUE
+R1112,45–64,žena,Jihozápad,Local Community,Jana Novotná,22,77,51,55,51,0.793,TRUE
+R1113,45–64,žena,Praha,Cost-of-living voters,Petr Marek,34,61,64,48,52,0.994,TRUE
+R1114,65+,žena,Severovýchod,Cost-of-living voters,Petr Marek,48,78,56,37,55,0.846,TRUE
+R1115,18–29,muž,Jihovýchod,Cost-of-living voters,Petr Marek,15,86,82,63,62,1.046,TRUE
+R1116,45–64,žena,Praha,Change Seekers,David Král,22,56,85,49,53,0.937,TRUE
+R1117,18–29,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,36,46,80,86,62,1.129,TRUE
+R1118,45–64,muž,Střední Morava,Cost-of-living voters,Petr Marek,34,52,80,85,63,1.217,TRUE
+R1119,65+,muž,Střední Čechy,Cost-of-living voters,Petr Marek,20,50,46,80,49,1.089,TRUE
+R1120,18–29,muž,Severovýchod,Change Seekers,David Král,44,47,73,75,60,0.758,TRUE
+R1121,18–29,muž,Moravskoslezsko,Change Seekers,David Král,15,72,59,83,57,0.835,TRUE
+R1122,18–29,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,42,69,76,40,57,0.782,TRUE
+R1123,18–29,muž,Jihovýchod,Cost-of-living voters,Petr Marek,18,51,89,70,57,1.219,TRUE
+R1124,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,15,89,51,77,58,0.905,TRUE
+R1125,18–29,muž,Moravskoslezsko,Local Community,Jana Novotná,26,66,48,76,54,0.839,TRUE
+R1126,45–64,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,46,75,82,90,73,0.983,TRUE
+R1127,45–64,muž,Severovýchod,Cost-of-living voters,Petr Marek,14,48,53,44,40,0.931,TRUE
+R1128,45–64,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,18,74,49,67,52,0.919,TRUE
+R1129,30–44,muž,Střední Morava,Cost-of-living voters,Petr Marek,23,53,74,82,58,0.919,TRUE
+R1130,65+,žena,Severovýchod,Change Seekers,David Král,20,78,47,52,49,1.09,TRUE
+R1131,65+,muž,Jihovýchod,Cost-of-living voters,Petr Marek,49,63,62,80,64,0.923,TRUE
+R1132,45–64,muž,Střední Morava,Cost-of-living voters,Petr Marek,24,77,64,76,60,0.927,TRUE
+R1133,65+,muž,Severovýchod,Cost-of-living voters,Petr Marek,47,71,49,69,59,0.923,TRUE
+R1134,18–29,žena,Severovýchod,Civic Stabilizers,Jana Novotná,35,86,57,58,59,1.04,TRUE
+R1135,45–64,žena,Severovýchod,Local Community,Jana Novotná,27,80,72,76,64,0.763,TRUE
+R1136,65+,žena,Severozápad,Cost-of-living voters,Petr Marek,33,60,54,62,52,0.91,TRUE
+R1137,30–44,žena,Střední Morava,Undecided / low info,Nerozhodnutí,41,60,78,65,61,1.148,TRUE
+R1138,45–64,žena,Severozápad,Civic Stabilizers,Jana Novotná,17,68,75,67,57,0.856,TRUE
+R1139,30–44,muž,Střední Čechy,Change Seekers,David Král,27,51,55,60,48,0.884,TRUE
+R1140,30–44,muž,Jihovýchod,Cost-of-living voters,Petr Marek,45,69,52,78,61,0.754,TRUE
+R1141,65+,muž,Střední Morava,Cost-of-living voters,Petr Marek,28,59,83,65,59,1.248,TRUE
+R1142,65+,muž,Praha,Local Community,Jana Novotná,22,77,87,58,61,0.828,TRUE
+R1143,45–64,žena,Praha,Undecided / low info,Nerozhodnutí,33,70,59,51,53,1.007,TRUE
+R1144,65+,žena,Severovýchod,Local Community,Jana Novotná,14,66,62,73,54,0.888,TRUE
+R1145,65+,muž,Praha,Cost-of-living voters,Petr Marek,13,63,47,42,41,1.245,TRUE
+R1146,65+,žena,Praha,Civic Stabilizers,Jana Novotná,45,51,54,77,57,0.766,TRUE
+R1147,65+,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,41,73,61,48,56,1.2,TRUE
+R1148,45–64,muž,Praha,Local Community,Jana Novotná,17,84,47,90,60,0.87,TRUE
+R1149,18–29,muž,Střední Čechy,Cost-of-living voters,Petr Marek,28,45,55,87,54,0.963,TRUE
+R1150,45–64,žena,Severovýchod,Local Community,Jana Novotná,41,53,51,79,56,0.966,TRUE
+R1151,30–44,muž,Střední Morava,Local Community,Jana Novotná,44,52,86,76,64,0.853,TRUE
+R1152,45–64,muž,Praha,Civic Stabilizers,Jana Novotná,27,70,77,52,56,1.059,TRUE
+R1153,30–44,muž,Severovýchod,Local Community,Jana Novotná,21,49,58,89,54,1.068,TRUE
+R1154,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,26,86,62,64,60,1.133,TRUE
+R1155,30–44,muž,Jihozápad,Local Community,Jana Novotná,31,71,50,43,49,0.8,TRUE
+R1156,30–44,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,43,85,65,76,67,0.76,TRUE
+R1157,45–64,žena,Severozápad,Undecided / low info,Nerozhodnutí,15,66,57,76,54,0.786,TRUE
+R1158,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,31,53,56,38,44,0.969,TRUE
+R1159,65+,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,43,82,83,61,67,1.212,TRUE
+R1160,18–29,žena,Jihovýchod,Cost-of-living voters,Petr Marek,21,62,46,54,46,0.868,TRUE
+R1161,18–29,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,16,81,67,66,58,0.833,TRUE
+R1162,65+,žena,Severovýchod,Undecided / low info,Nerozhodnutí,39,57,77,50,56,1.111,TRUE
+R1163,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,38,59,85,59,60,1.201,TRUE
+R1164,30–44,muž,Moravskoslezsko,Change Seekers,David Král,24,77,90,73,66,0.781,TRUE
+R1165,18–29,žena,Severozápad,Civic Stabilizers,Jana Novotná,45,52,79,38,54,1.002,TRUE
+R1166,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,19,68,82,64,58,0.885,TRUE
+R1167,45–64,muž,Jihovýchod,Local Community,Jana Novotná,32,84,54,74,61,0.964,TRUE
+R1168,30–44,žena,Střední Čechy,Change Seekers,David Král,23,46,86,45,50,1.075,TRUE
+R1169,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,31,69,57,35,48,1.18,TRUE
+R1170,30–44,žena,Střední Čechy,Change Seekers,David Král,19,73,58,56,52,1.038,TRUE
+R1171,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,48,75,83,61,67,0.795,TRUE
+R1172,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,47,85,73,83,72,0.967,TRUE
+R1173,18–29,muž,Severovýchod,Local Community,Jana Novotná,37,59,87,82,66,0.945,TRUE
+R1174,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,27,66,53,57,51,1.197,TRUE
+R1175,30–44,žena,Praha,Undecided / low info,Nerozhodnutí,47,78,86,81,73,0.9,TRUE
+R1176,65+,muž,Střední Čechy,Cost-of-living voters,Petr Marek,48,88,59,69,66,1.055,TRUE
+R1177,18–29,žena,Severozápad,Change Seekers,David Král,43,74,88,81,72,0.827,TRUE
+R1178,30–44,muž,Jihozápad,Change Seekers,David Král,18,64,58,56,49,0.813,TRUE
+R1179,30–44,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,41,87,78,49,64,1.156,TRUE
+R1180,65+,muž,Jihozápad,Cost-of-living voters,Petr Marek,40,70,79,83,68,0.836,TRUE
+R1181,45–64,muž,Střední Morava,Civic Stabilizers,Jana Novotná,33,62,69,64,57,0.793,TRUE
+R1182,30–44,žena,Jihozápad,Undecided / low info,Nerozhodnutí,29,68,65,44,52,0.987,TRUE
+R1183,65+,muž,Střední Čechy,Cost-of-living voters,Petr Marek,42,87,90,40,65,0.905,TRUE
+R1184,65+,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,36,89,45,90,65,1.051,TRUE
+R1185,65+,muž,Střední Morava,Civic Stabilizers,Jana Novotná,31,77,66,60,58,0.913,TRUE
+R1186,18–29,muž,Střední Čechy,Change Seekers,David Král,28,53,72,37,48,0.848,TRUE
+R1187,18–29,žena,Střední Čechy,Cost-of-living voters,Petr Marek,42,78,45,39,51,1.057,TRUE
+R1188,45–64,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,24,80,60,60,56,1.011,TRUE
+R1189,65+,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,20,81,51,70,56,0.869,TRUE
+R1190,45–64,muž,Praha,Civic Stabilizers,Jana Novotná,46,49,66,35,49,1.107,TRUE
+R1191,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,23,84,71,61,60,0.758,TRUE
+R1192,65+,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,45,82,90,65,70,1.208,TRUE
+R1193,65+,muž,Severozápad,Civic Stabilizers,Jana Novotná,41,49,69,88,62,0.893,TRUE
+R1194,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,24,88,87,88,72,1.003,TRUE
+R1195,18–29,muž,Jihozápad,Civic Stabilizers,Jana Novotná,46,72,84,85,72,0.988,TRUE
+R1196,30–44,muž,Moravskoslezsko,Local Community,Jana Novotná,36,57,62,88,61,1.032,TRUE
+R1197,45–64,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,41,66,73,51,58,0.905,TRUE
+R1198,18–29,žena,Jihozápad,Local Community,Jana Novotná,19,46,74,38,44,0.932,TRUE
+R1199,30–44,muž,Severozápad,Cost-of-living voters,Petr Marek,16,52,70,78,54,1.149,TRUE
+R1200,65+,žena,Severozápad,Local Community,Jana Novotná,29,87,89,82,72,0.858,TRUE
+R1201,65+,žena,Střední Morava,Change Seekers,David Král,48,83,79,35,61,0.771,TRUE
+R1202,65+,žena,Jihozápad,Change Seekers,David Král,19,86,53,63,55,1.221,TRUE
+R1203,18–29,muž,Moravskoslezsko,Change Seekers,David Král,24,49,55,62,48,1.189,TRUE
+R1204,65+,muž,Jihozápad,Cost-of-living voters,Petr Marek,23,85,67,43,54,1.101,TRUE
+R1205,45–64,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,45,77,76,56,64,1.081,TRUE
+R1206,30–44,žena,Severovýchod,Undecided / low info,Nerozhodnutí,41,62,75,41,55,0.827,TRUE
+R1207,65+,žena,Praha,Cost-of-living voters,Petr Marek,30,70,62,46,52,0.915,TRUE
+R1208,65+,žena,Moravskoslezsko,Local Community,Jana Novotná,49,57,59,65,58,0.827,TRUE
+R1209,65+,žena,Střední Morava,Local Community,Jana Novotná,30,69,85,66,62,1.192,TRUE
+R1210,45–64,žena,Moravskoslezsko,Local Community,Jana Novotná,29,86,62,72,62,0.81,TRUE
+R1211,30–44,muž,Střední Morava,Undecided / low info,Nerozhodnutí,38,73,55,90,64,0.777,TRUE
+R1212,18–29,žena,Střední Morava,Undecided / low info,Nerozhodnutí,28,90,67,86,68,1.196,TRUE
+R1213,45–64,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,47,73,90,81,73,0.936,TRUE
+R1214,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,30,78,49,62,55,0.784,TRUE
+R1215,18–29,žena,Praha,Change Seekers,David Král,48,77,82,44,63,1.201,TRUE
+R1216,30–44,muž,Severovýchod,Cost-of-living voters,Petr Marek,14,69,51,54,47,0.982,TRUE
+R1217,30–44,muž,Střední Čechy,Local Community,Jana Novotná,17,83,72,64,59,1.12,TRUE
+R1218,18–29,muž,Jihovýchod,Change Seekers,David Král,18,48,48,65,45,0.965,TRUE
+R1219,65+,žena,Jihozápad,Local Community,Jana Novotná,15,75,51,53,48,1.095,TRUE
+R1220,65+,muž,Střední Morava,Change Seekers,David Král,19,58,46,50,43,0.785,TRUE
+R1221,30–44,žena,Praha,Civic Stabilizers,Jana Novotná,17,80,87,56,60,0.852,TRUE
+R1222,18–29,žena,Moravskoslezsko,Change Seekers,David Král,31,90,68,40,57,0.801,TRUE
+R1223,45–64,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,45,50,51,82,57,1.204,TRUE
+R1224,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,35,90,59,49,58,0.801,TRUE
+R1225,18–29,žena,Jihozápad,Undecided / low info,Nerozhodnutí,40,74,89,86,72,0.931,TRUE
+R1226,65+,žena,Severozápad,Undecided / low info,Nerozhodnutí,31,82,86,60,65,0.946,TRUE
+R1227,65+,žena,Střední Čechy,Change Seekers,David Král,16,64,57,68,51,1.076,TRUE
+R1228,65+,muž,Severozápad,Change Seekers,David Král,31,68,70,81,62,1.163,TRUE
+R1229,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,47,69,47,53,54,1.009,TRUE
+R1230,30–44,muž,Jihovýchod,Change Seekers,David Král,27,70,55,70,56,1.206,TRUE
+R1231,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,20,52,53,80,51,0.987,TRUE
+R1232,45–64,žena,Praha,Change Seekers,David Král,43,65,60,49,54,1.105,TRUE
+R1233,45–64,žena,Jihovýchod,Local Community,Jana Novotná,36,64,79,74,63,1.064,TRUE
+R1234,65+,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,17,88,83,84,68,0.966,TRUE
+R1235,45–64,muž,Střední Morava,Local Community,Jana Novotná,20,77,67,62,56,0.916,TRUE
+R1236,18–29,muž,Severozápad,Civic Stabilizers,Jana Novotná,41,79,70,53,61,0.932,TRUE
+R1237,45–64,muž,Jihozápad,Undecided / low info,Nerozhodnutí,32,46,80,42,50,0.96,TRUE
+R1238,65+,muž,Jihovýchod,Cost-of-living voters,Petr Marek,40,80,81,75,69,0.844,TRUE
+R1239,18–29,muž,Jihozápad,Undecided / low info,Nerozhodnutí,44,52,52,78,56,1.109,TRUE
+R1240,45–64,žena,Severozápad,Undecided / low info,Nerozhodnutí,31,47,78,88,61,0.957,TRUE
+R1241,30–44,muž,Severovýchod,Civic Stabilizers,Jana Novotná,16,53,53,41,41,0.757,TRUE
+R1242,30–44,žena,Moravskoslezsko,Change Seekers,David Král,24,79,76,62,60,1.147,TRUE
+R1243,30–44,muž,Jihovýchod,Change Seekers,David Král,17,77,47,43,46,1.083,TRUE
+R1244,30–44,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,23,49,87,79,60,1.159,TRUE
+R1245,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,31,54,60,82,57,0.774,TRUE
+R1246,65+,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,19,61,77,85,60,0.776,TRUE
+R1247,45–64,žena,Moravskoslezsko,Local Community,Jana Novotná,36,63,74,85,64,1.244,TRUE
+R1248,65+,žena,Střední Morava,Undecided / low info,Nerozhodnutí,35,83,84,61,66,0.976,TRUE
+R1249,18–29,žena,Praha,Undecided / low info,Nerozhodnutí,40,70,65,51,56,0.762,TRUE
+R1250,65+,žena,Střední Morava,Change Seekers,David Král,24,65,75,64,57,1.133,TRUE
+R1251,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,46,64,62,77,62,0.798,TRUE
+R1252,45–64,žena,Jihozápad,Change Seekers,David Král,19,74,80,55,57,0.891,TRUE
+R1253,65+,muž,Jihozápad,Civic Stabilizers,Jana Novotná,30,45,71,49,49,0.81,TRUE
+R1254,18–29,žena,Severozápad,Undecided / low info,Nerozhodnutí,14,66,68,51,50,1.075,TRUE
+R1255,18–29,žena,Jihovýchod,Change Seekers,David Král,36,63,62,55,54,0.806,TRUE
+R1256,65+,muž,Severovýchod,Change Seekers,David Král,37,74,55,80,62,0.753,TRUE
+R1257,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,30,53,76,53,53,0.913,TRUE
+R1258,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,39,70,75,81,66,0.868,TRUE
+R1259,30–44,žena,Jihozápad,Local Community,Jana Novotná,36,46,86,80,62,0.761,TRUE
+R1260,18–29,žena,Praha,Civic Stabilizers,Jana Novotná,40,58,80,85,66,0.877,TRUE
+R1261,65+,muž,Praha,Local Community,Jana Novotná,42,84,66,69,65,1.074,TRUE
+R1262,18–29,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,18,86,48,74,56,1.043,TRUE
+R1263,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,46,67,51,36,50,1.136,TRUE
+R1264,45–64,muž,Střední Čechy,Change Seekers,David Král,42,84,84,80,72,0.883,TRUE
+R1265,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,19,56,65,39,45,1.056,TRUE
+R1266,30–44,žena,Jihozápad,Undecided / low info,Nerozhodnutí,14,48,79,46,47,1.007,TRUE
+R1267,65+,žena,Severozápad,Change Seekers,David Král,20,74,69,62,56,1.138,TRUE
+R1268,18–29,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,17,64,52,46,45,1.003,TRUE
+R1269,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,44,76,79,86,71,0.787,TRUE
+R1270,45–64,žena,Praha,Civic Stabilizers,Jana Novotná,15,74,55,86,58,1.176,TRUE
+R1271,65+,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,33,85,76,83,69,0.814,TRUE
+R1272,45–64,žena,Jihovýchod,Change Seekers,David Král,39,61,65,40,51,1.024,TRUE
+R1273,30–44,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,48,71,65,86,68,0.867,TRUE
+R1274,30–44,žena,Jihovýchod,Local Community,Jana Novotná,31,83,87,52,63,0.823,TRUE
+R1275,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,43,63,76,84,66,0.834,TRUE
+R1276,65+,muž,Severozápad,Civic Stabilizers,Jana Novotná,20,69,60,87,59,1.086,TRUE
+R1277,18–29,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,17,88,51,58,54,0.829,TRUE
+R1278,30–44,žena,Střední Morava,Change Seekers,David Král,14,75,58,69,54,1.118,TRUE
+R1279,18–29,žena,Severovýchod,Undecided / low info,Nerozhodnutí,47,75,48,54,56,1.068,TRUE
+R1280,65+,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,19,64,77,44,51,1.047,TRUE
+R1281,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,41,88,82,81,73,1.134,TRUE
+R1282,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,19,75,57,41,48,1.22,TRUE
+R1283,30–44,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,45,87,61,56,62,1.208,TRUE
+R1284,18–29,žena,Jihozápad,Cost-of-living voters,Petr Marek,17,79,90,47,58,1.082,TRUE
+R1285,45–64,muž,Severovýchod,Undecided / low info,Nerozhodnutí,24,71,57,53,51,0.88,TRUE
+R1286,45–64,muž,Střední Čechy,Change Seekers,David Král,19,49,64,36,42,0.996,TRUE
+R1287,18–29,žena,Jihozápad,Local Community,Jana Novotná,39,54,57,46,49,0.794,TRUE
+R1288,45–64,žena,Severovýchod,Undecided / low info,Nerozhodnutí,43,51,50,47,48,0.998,TRUE
+R1289,18–29,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,37,75,78,48,60,0.771,TRUE
+R1290,18–29,žena,Praha,Cost-of-living voters,Petr Marek,26,87,70,58,60,0.933,TRUE
+R1291,18–29,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,45,90,81,77,73,1.046,TRUE
+R1292,45–64,muž,Praha,Change Seekers,David Král,20,47,50,58,44,0.988,TRUE
+R1293,65+,muž,Praha,Local Community,Jana Novotná,45,71,77,78,68,0.918,TRUE
+R1294,18–29,muž,Jihovýchod,Local Community,Jana Novotná,17,88,88,72,66,1.067,TRUE
+R1295,30–44,muž,Praha,Local Community,Jana Novotná,34,84,76,52,62,1.062,TRUE
+R1296,18–29,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,27,50,51,50,44,1.086,TRUE
+R1297,18–29,muž,Praha,Civic Stabilizers,Jana Novotná,45,67,89,71,68,1.16,TRUE
+R1298,65+,muž,Moravskoslezsko,Local Community,Jana Novotná,36,84,81,84,71,0.876,TRUE
+R1299,65+,muž,Severovýchod,Local Community,Jana Novotná,13,57,79,52,50,1.084,TRUE
+R1300,65+,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,19,78,86,78,65,0.903,TRUE
+R1301,18–29,žena,Jihovýchod,Local Community,Jana Novotná,17,85,89,74,66,1.188,TRUE
+R1302,65+,žena,Moravskoslezsko,Local Community,Jana Novotná,15,89,51,69,56,1.174,TRUE
+R1303,18–29,žena,Střední Čechy,Change Seekers,David Král,39,64,89,68,65,1.221,TRUE
+R1304,30–44,žena,Moravskoslezsko,Local Community,Jana Novotná,41,70,75,82,67,0.875,TRUE
+R1305,30–44,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,20,45,73,35,43,1.087,TRUE
+R1306,45–64,muž,Moravskoslezsko,Change Seekers,David Král,13,64,86,83,62,0.836,TRUE
+R1307,30–44,muž,Střední Čechy,Change Seekers,David Král,49,61,47,45,50,1.179,TRUE
+R1308,65+,žena,Střední Morava,Civic Stabilizers,Jana Novotná,41,80,77,78,69,1.158,TRUE
+R1309,65+,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,26,54,59,78,54,1.13,TRUE
+R1310,30–44,muž,Severovýchod,Local Community,Jana Novotná,47,56,80,56,60,0.927,TRUE
+R1311,45–64,žena,Jihovýchod,Cost-of-living voters,Petr Marek,34,78,53,72,59,0.899,TRUE
+R1312,45–64,muž,Jihozápad,Cost-of-living voters,Petr Marek,27,65,67,46,51,0.798,TRUE
+R1313,65+,muž,Jihozápad,Local Community,Jana Novotná,44,66,79,90,70,0.961,TRUE
+R1314,65+,žena,Jihozápad,Change Seekers,David Král,16,72,56,35,45,0.878,TRUE
+R1315,45–64,žena,Jihozápad,Cost-of-living voters,Petr Marek,44,79,71,55,62,0.858,TRUE
+R1316,18–29,žena,Severozápad,Civic Stabilizers,Jana Novotná,30,82,48,82,60,1.183,TRUE
+R1317,45–64,žena,Jihozápad,Local Community,Jana Novotná,18,60,46,51,44,0.803,TRUE
+R1318,18–29,muž,Střední Čechy,Cost-of-living voters,Petr Marek,17,63,89,67,59,0.798,TRUE
+R1319,30–44,žena,Jihovýchod,Change Seekers,David Král,40,61,74,39,54,1.187,TRUE
+R1320,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,34,83,54,54,56,1.23,TRUE
+R1321,30–44,muž,Jihozápad,Change Seekers,David Král,25,75,74,73,62,1.149,TRUE
+R1322,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,15,52,62,74,51,1.15,TRUE
+R1323,45–64,muž,Severozápad,Local Community,Jana Novotná,18,65,68,56,52,0.77,TRUE
+R1324,45–64,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,42,59,78,48,57,1.138,TRUE
+R1325,45–64,žena,Severovýchod,Change Seekers,David Král,33,71,79,42,56,1.135,TRUE
+R1326,18–29,žena,Střední Morava,Local Community,Jana Novotná,42,49,61,55,52,0.862,TRUE
+R1327,30–44,žena,Jihozápad,Civic Stabilizers,Jana Novotná,27,89,46,81,61,1.142,TRUE
+R1328,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,21,85,64,78,62,0.858,TRUE
+R1329,45–64,žena,Střední Čechy,Undecided / low info,Nerozhodnutí,30,90,49,57,56,1.189,TRUE
+R1330,18–29,žena,Moravskoslezsko,Change Seekers,David Král,46,81,65,45,59,1.082,TRUE
+R1331,45–64,muž,Střední Čechy,Cost-of-living voters,Petr Marek,30,74,61,74,60,1.07,TRUE
+R1332,45–64,žena,Praha,Undecided / low info,Nerozhodnutí,29,48,51,56,46,0.916,TRUE
+R1333,65+,muž,Severozápad,Change Seekers,David Král,15,76,47,79,54,0.982,TRUE
+R1334,18–29,muž,Severozápad,Undecided / low info,Nerozhodnutí,32,79,81,79,68,0.858,TRUE
+R1335,65+,muž,Jihovýchod,Undecided / low info,Nerozhodnutí,36,67,85,56,61,0.912,TRUE
+R1336,45–64,žena,Severovýchod,Undecided / low info,Nerozhodnutí,37,56,69,49,53,1.218,TRUE
+R1337,45–64,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,42,83,59,77,65,1.003,TRUE
+R1338,18–29,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,27,77,57,74,59,1.01,TRUE
+R1339,65+,muž,Severovýchod,Local Community,Jana Novotná,39,53,70,81,61,0.878,TRUE
+R1340,65+,žena,Střední Morava,Civic Stabilizers,Jana Novotná,16,50,59,46,43,1.064,TRUE
+R1341,30–44,muž,Moravskoslezsko,Local Community,Jana Novotná,29,82,66,55,58,1.195,TRUE
+R1342,65+,žena,Severozápad,Change Seekers,David Král,24,70,56,65,54,0.88,TRUE
+R1343,45–64,muž,Praha,Local Community,Jana Novotná,36,80,84,84,71,0.804,TRUE
+R1344,45–64,muž,Severovýchod,Local Community,Jana Novotná,25,45,64,69,51,0.89,TRUE
+R1345,18–29,muž,Střední Čechy,Local Community,Jana Novotná,29,57,51,70,52,1.016,TRUE
+R1346,30–44,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,44,90,48,73,64,1.215,TRUE
+R1347,18–29,žena,Jihovýchod,Change Seekers,David Král,19,45,90,53,52,1.101,TRUE
+R1348,30–44,muž,Jihovýchod,Cost-of-living voters,Petr Marek,28,63,57,52,50,1.02,TRUE
+R1349,45–64,žena,Severozápad,Undecided / low info,Nerozhodnutí,16,58,53,35,40,1.003,TRUE
+R1350,30–44,muž,Střední Morava,Local Community,Jana Novotná,36,75,57,39,52,1.218,TRUE
+R1351,18–29,muž,Jihovýchod,Local Community,Jana Novotná,28,57,61,46,48,1.121,TRUE
+R1352,30–44,muž,Jihozápad,Undecided / low info,Nerozhodnutí,46,69,64,41,55,1.124,TRUE
+R1353,65+,žena,Praha,Cost-of-living voters,Petr Marek,47,87,59,57,62,1.104,TRUE
+R1354,30–44,muž,Severozápad,Change Seekers,David Král,30,80,71,75,64,0.832,TRUE
+R1355,45–64,muž,Střední Morava,Civic Stabilizers,Jana Novotná,17,59,51,40,42,0.945,TRUE
+R1356,18–29,žena,Jihozápad,Local Community,Jana Novotná,38,77,57,69,60,1.213,TRUE
+R1357,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,27,48,65,54,48,0.834,TRUE
+R1358,45–64,žena,Severovýchod,Cost-of-living voters,Petr Marek,48,55,60,70,58,0.801,TRUE
+R1359,65+,žena,Severovýchod,Change Seekers,David Král,19,56,51,83,52,1.139,TRUE
+R1360,65+,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,46,52,83,71,63,1.015,TRUE
+R1361,65+,žena,Moravskoslezsko,Change Seekers,David Král,28,88,61,80,64,0.977,TRUE
+R1362,45–64,žena,Praha,Change Seekers,David Král,13,67,75,67,56,1.024,TRUE
+R1363,45–64,muž,Střední Morava,Change Seekers,David Král,23,51,65,50,47,1.107,TRUE
+R1364,18–29,muž,Jihozápad,Cost-of-living voters,Petr Marek,15,65,54,50,46,1.029,TRUE
+R1365,30–44,muž,Severovýchod,Change Seekers,David Král,20,46,52,35,38,0.933,TRUE
+R1366,65+,žena,Střední Čechy,Change Seekers,David Král,41,51,79,74,61,0.9,TRUE
+R1367,45–64,muž,Střední Čechy,Local Community,Jana Novotná,27,54,66,78,56,1.037,TRUE
+R1368,30–44,muž,Moravskoslezsko,Local Community,Jana Novotná,32,81,84,47,61,1.243,TRUE
+R1369,30–44,muž,Moravskoslezsko,Local Community,Jana Novotná,43,80,84,41,62,1.005,TRUE
+R1370,30–44,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,33,73,88,87,70,1.018,TRUE
+R1371,45–64,muž,Praha,Cost-of-living voters,Petr Marek,24,53,54,54,46,1.144,TRUE
+R1372,65+,muž,Severovýchod,Cost-of-living voters,Petr Marek,13,60,49,57,45,0.763,TRUE
+R1373,65+,žena,Moravskoslezsko,Local Community,Jana Novotná,44,57,75,75,63,0.952,TRUE
+R1374,30–44,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,43,51,65,50,52,0.909,TRUE
+R1375,30–44,žena,Jihozápad,Cost-of-living voters,Petr Marek,39,75,69,52,59,1.127,TRUE
+R1376,65+,muž,Severovýchod,Undecided / low info,Nerozhodnutí,44,64,79,52,60,1.136,TRUE
+R1377,30–44,žena,Střední Čechy,Change Seekers,David Král,32,90,78,66,66,1.157,TRUE
+R1378,30–44,žena,Jihovýchod,Civic Stabilizers,Jana Novotná,17,56,71,42,46,0.996,TRUE
+R1379,30–44,muž,Praha,Local Community,Jana Novotná,18,76,75,55,56,0.972,TRUE
+R1380,18–29,žena,Jihovýchod,Cost-of-living voters,Petr Marek,41,70,80,51,60,1.06,TRUE
+R1381,30–44,žena,Praha,Local Community,Jana Novotná,36,45,86,39,52,1.147,TRUE
+R1382,18–29,muž,Střední Morava,Change Seekers,David Král,14,45,71,65,49,0.954,TRUE
+R1383,45–64,žena,Střední Morava,Change Seekers,David Král,15,60,50,58,46,1.04,TRUE
+R1384,18–29,muž,Střední Morava,Civic Stabilizers,Jana Novotná,31,72,65,41,52,0.9,TRUE
+R1385,18–29,muž,Praha,Local Community,Jana Novotná,39,68,49,76,58,1.092,TRUE
+R1386,45–64,muž,Praha,Local Community,Jana Novotná,47,78,67,36,57,0.923,TRUE
+R1387,45–64,žena,Střední Morava,Cost-of-living voters,Petr Marek,18,71,53,67,52,0.944,TRUE
+R1388,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,34,82,50,63,57,0.924,TRUE
+R1389,18–29,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,40,69,69,86,66,1.224,TRUE
+R1390,30–44,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,37,76,74,65,63,0.976,TRUE
+R1391,45–64,žena,Praha,Cost-of-living voters,Petr Marek,36,81,76,44,59,0.998,TRUE
+R1392,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,14,61,60,51,46,0.912,TRUE
+R1393,18–29,žena,Severozápad,Cost-of-living voters,Petr Marek,39,86,84,68,69,1.117,TRUE
+R1394,65+,žena,Jihovýchod,Change Seekers,David Král,19,58,66,35,44,0.847,TRUE
+R1395,65+,muž,Moravskoslezsko,Local Community,Jana Novotná,34,60,58,84,59,1.201,TRUE
+R1396,30–44,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,40,63,79,48,58,0.961,TRUE
+R1397,45–64,muž,Jihozápad,Cost-of-living voters,Petr Marek,47,63,68,38,54,1.135,TRUE
+R1398,18–29,muž,Jihozápad,Change Seekers,David Král,25,72,84,43,56,1.229,TRUE
+R1399,65+,žena,Praha,Civic Stabilizers,Jana Novotná,25,56,80,88,62,1.094,TRUE
+R1400,65+,žena,Jihozápad,Local Community,Jana Novotná,36,62,62,45,51,0.901,TRUE
+R1401,45–64,muž,Střední Morava,Cost-of-living voters,Petr Marek,22,67,64,87,60,0.911,TRUE
+R1402,45–64,žena,Jihovýchod,Undecided / low info,Nerozhodnutí,29,65,53,80,57,1.086,TRUE
+R1403,45–64,žena,Severovýchod,Civic Stabilizers,Jana Novotná,43,55,81,47,56,1.009,TRUE
+R1404,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,19,73,77,72,60,0.856,TRUE
+R1405,65+,žena,Jihozápad,Undecided / low info,Nerozhodnutí,31,71,47,68,54,1.099,TRUE
+R1406,30–44,muž,Jihozápad,Civic Stabilizers,Jana Novotná,42,68,90,59,65,1.181,TRUE
+R1407,45–64,žena,Střední Čechy,Civic Stabilizers,Jana Novotná,25,67,84,37,53,1.164,TRUE
+R1408,45–64,žena,Praha,Undecided / low info,Nerozhodnutí,45,53,73,37,52,1.083,TRUE
+R1409,30–44,muž,Střední Čechy,Change Seekers,David Král,36,75,63,70,61,0.771,TRUE
+R1410,30–44,žena,Střední Čechy,Change Seekers,David Král,47,50,87,48,58,1.178,TRUE
+R1411,65+,žena,Jihozápad,Undecided / low info,Nerozhodnutí,33,89,58,76,64,0.796,TRUE
+R1412,30–44,žena,Severovýchod,Undecided / low info,Nerozhodnutí,19,90,75,53,59,1.119,TRUE
+R1413,45–64,žena,Jihozápad,Change Seekers,David Král,33,70,90,85,70,0.932,TRUE
+R1414,18–29,žena,Moravskoslezsko,Civic Stabilizers,Jana Novotná,27,52,76,73,57,0.978,TRUE
+R1415,65+,žena,Severozápad,Undecided / low info,Nerozhodnutí,23,62,77,39,50,1.181,TRUE
+R1416,45–64,muž,Severozápad,Cost-of-living voters,Petr Marek,40,51,87,61,60,0.953,TRUE
+R1417,30–44,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,31,51,82,43,52,0.875,TRUE
+R1418,30–44,muž,Střední Čechy,Change Seekers,David Král,27,56,84,43,52,1.061,TRUE
+R1419,65+,žena,Severozápad,Change Seekers,David Král,48,90,89,85,78,0.947,TRUE
+R1420,65+,muž,Praha,Civic Stabilizers,Jana Novotná,19,80,46,67,53,0.929,TRUE
+R1421,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,22,79,47,47,49,0.924,TRUE
+R1422,30–44,muž,Střední Čechy,Cost-of-living voters,Petr Marek,19,45,87,51,50,1.046,TRUE
+R1423,18–29,žena,Moravskoslezsko,Change Seekers,David Král,39,60,87,71,64,0.953,TRUE
+R1424,18–29,muž,Jihovýchod,Cost-of-living voters,Petr Marek,32,67,82,76,64,0.834,TRUE
+R1425,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,28,79,70,85,66,0.883,TRUE
+R1426,30–44,žena,Moravskoslezsko,Change Seekers,David Král,45,82,64,71,66,1.078,TRUE
+R1427,45–64,žena,Střední Morava,Civic Stabilizers,Jana Novotná,36,69,75,55,59,1.217,TRUE
+R1428,18–29,žena,Střední Morava,Civic Stabilizers,Jana Novotná,34,80,81,64,65,0.885,TRUE
+R1429,65+,muž,Severozápad,Civic Stabilizers,Jana Novotná,34,57,75,70,59,0.754,TRUE
+R1430,65+,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,30,73,69,42,54,1.1,TRUE
+R1431,30–44,muž,Střední Morava,Civic Stabilizers,Jana Novotná,32,56,90,84,66,1.096,TRUE
+R1432,45–64,muž,Severozápad,Local Community,Jana Novotná,47,59,78,39,56,1.101,TRUE
+R1433,30–44,muž,Střední Čechy,Local Community,Jana Novotná,13,48,61,88,52,0.992,TRUE
+R1434,65+,žena,Severovýchod,Change Seekers,David Král,42,51,80,80,63,0.844,TRUE
+R1435,65+,muž,Severovýchod,Change Seekers,David Král,45,81,78,55,65,1.16,TRUE
+R1436,65+,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,23,55,78,41,49,0.822,TRUE
+R1437,30–44,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,22,78,52,72,56,0.931,TRUE
+R1438,18–29,muž,Moravskoslezsko,Change Seekers,David Král,25,54,79,47,51,1.07,TRUE
+R1439,65+,žena,Severovýchod,Civic Stabilizers,Jana Novotná,41,59,66,68,58,0.811,TRUE
+R1440,30–44,žena,Střední Čechy,Cost-of-living voters,Petr Marek,13,54,85,79,58,1.234,TRUE
+R1441,30–44,muž,Jihovýchod,Cost-of-living voters,Petr Marek,32,73,46,55,52,0.851,TRUE
+R1442,18–29,žena,Střední Čechy,Change Seekers,David Král,20,83,53,55,53,0.79,TRUE
+R1443,45–64,žena,Praha,Cost-of-living voters,Petr Marek,47,76,79,72,68,0.977,TRUE
+R1444,18–29,muž,Střední Morava,Local Community,Jana Novotná,23,85,81,84,68,0.942,TRUE
+R1445,30–44,muž,Jihovýchod,Change Seekers,David Král,29,69,71,53,56,0.816,TRUE
+R1446,45–64,žena,Severozápad,Civic Stabilizers,Jana Novotná,34,56,77,67,58,0.853,TRUE
+R1447,18–29,žena,Severozápad,Local Community,Jana Novotná,39,56,62,49,52,0.786,TRUE
+R1448,45–64,žena,Střední Čechy,Local Community,Jana Novotná,20,67,78,79,61,1.032,TRUE
+R1449,30–44,žena,Praha,Civic Stabilizers,Jana Novotná,33,50,45,50,44,0.817,TRUE
+R1450,18–29,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,31,71,52,46,50,0.788,TRUE
+R1451,30–44,žena,Jihovýchod,Local Community,Jana Novotná,23,87,78,68,64,1.023,TRUE
+R1452,30–44,muž,Moravskoslezsko,Cost-of-living voters,Petr Marek,32,53,90,66,60,0.967,TRUE
+R1453,30–44,muž,Střední Čechy,Change Seekers,David Král,33,73,55,46,52,1.01,TRUE
+R1454,45–64,žena,Moravskoslezsko,Change Seekers,David Král,27,73,85,46,58,1.134,TRUE
+R1455,45–64,muž,Severozápad,Change Seekers,David Král,21,86,82,56,61,0.991,TRUE
+R1456,30–44,muž,Praha,Local Community,Jana Novotná,28,62,65,56,53,0.857,TRUE
+R1457,18–29,žena,Severovýchod,Civic Stabilizers,Jana Novotná,29,82,66,73,62,1.106,TRUE
+R1458,18–29,muž,Střední Morava,Cost-of-living voters,Petr Marek,14,76,66,65,55,0.934,TRUE
+R1459,30–44,žena,Severozápad,Civic Stabilizers,Jana Novotná,31,89,81,67,67,1.135,TRUE
+R1460,65+,muž,Jihovýchod,Local Community,Jana Novotná,37,73,59,82,63,0.989,TRUE
+R1461,45–64,žena,Severovýchod,Change Seekers,David Král,49,51,55,46,50,0.873,TRUE
+R1462,18–29,muž,Střední Čechy,Civic Stabilizers,Jana Novotná,41,63,75,84,66,1.243,TRUE
+R1463,30–44,žena,Střední Čechy,Cost-of-living voters,Petr Marek,41,78,88,82,72,1.243,TRUE
+R1464,45–64,žena,Praha,Cost-of-living voters,Petr Marek,13,54,86,71,56,1.051,TRUE
+R1465,65+,žena,Jihozápad,Cost-of-living voters,Petr Marek,16,78,70,52,54,0.836,TRUE
+R1466,45–64,žena,Moravskoslezsko,Cost-of-living voters,Petr Marek,29,54,57,48,47,0.991,TRUE
+R1467,65+,muž,Severovýchod,Civic Stabilizers,Jana Novotná,13,82,54,44,48,0.785,TRUE
+R1468,45–64,žena,Praha,Change Seekers,David Král,24,67,57,68,54,1.159,TRUE
+R1469,18–29,žena,Severozápad,Change Seekers,David Král,25,70,51,47,48,0.794,TRUE
+R1470,65+,muž,Moravskoslezsko,Undecided / low info,Nerozhodnutí,35,80,81,39,59,1.202,TRUE
+R1471,45–64,žena,Praha,Change Seekers,David Král,14,47,58,75,48,1.22,TRUE
+R1472,45–64,muž,Střední Čechy,Cost-of-living voters,Petr Marek,22,88,46,68,56,1.011,TRUE
+R1473,45–64,žena,Moravskoslezsko,Undecided / low info,Nerozhodnutí,17,82,54,82,59,0.943,TRUE
+R1474,18–29,žena,Severovýchod,Civic Stabilizers,Jana Novotná,16,53,58,81,52,0.914,TRUE
+R1475,30–44,žena,Střední Morava,Civic Stabilizers,Jana Novotná,39,78,89,35,60,1.202,TRUE
+R1476,45–64,muž,Střední Morava,Cost-of-living voters,Petr Marek,36,57,67,42,50,0.775,TRUE
+R1477,18–29,žena,Severovýchod,Undecided / low info,Nerozhodnutí,31,50,86,37,51,1.242,TRUE
+R1478,45–64,žena,Severovýchod,Local Community,Jana Novotná,43,80,64,47,58,1.216,TRUE
+R1479,30–44,muž,Střední Čechy,Local Community,Jana Novotná,24,64,89,39,54,0.939,TRUE
+R1480,18–29,muž,Jihovýchod,Local Community,Jana Novotná,15,65,80,82,60,1.208,TRUE
+R1481,45–64,muž,Jihozápad,Civic Stabilizers,Jana Novotná,21,46,66,77,52,0.935,TRUE
+R1482,45–64,muž,Střední Čechy,Undecided / low info,Nerozhodnutí,26,54,72,87,60,1.021,TRUE
+R1483,45–64,muž,Jihovýchod,Local Community,Jana Novotná,25,48,68,70,53,0.956,TRUE
+R1484,30–44,žena,Severozápad,Undecided / low info,Nerozhodnutí,42,53,55,67,54,0.779,TRUE
+R1485,65+,žena,Střední Čechy,Change Seekers,David Král,22,70,71,41,51,0.952,TRUE
+R1486,45–64,žena,Střední Morava,Undecided / low info,Nerozhodnutí,44,78,46,44,53,0.82,TRUE
+R1487,65+,muž,Severozápad,Cost-of-living voters,Petr Marek,49,64,84,50,62,1.166,TRUE
+R1488,45–64,muž,Jihovýchod,Civic Stabilizers,Jana Novotná,25,50,76,54,51,1.219,TRUE
+R1489,30–44,žena,Severovýchod,Change Seekers,David Král,25,72,59,89,61,1.117,TRUE
+R1490,65+,muž,Severovýchod,Local Community,Jana Novotná,17,55,47,71,48,0.806,TRUE
+R1491,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,42,54,75,46,54,1.066,TRUE
+R1492,65+,žena,Jihozápad,Civic Stabilizers,Jana Novotná,42,85,88,85,75,0.796,TRUE
+R1493,45–64,žena,Moravskoslezsko,Change Seekers,David Král,16,54,69,70,52,0.949,TRUE
+R1494,45–64,žena,Severozápad,Cost-of-living voters,Petr Marek,40,61,82,75,64,0.938,TRUE
+R1495,45–64,muž,Severovýchod,Cost-of-living voters,Petr Marek,48,84,80,43,64,0.834,TRUE
+R1496,30–44,muž,Praha,Civic Stabilizers,Jana Novotná,30,64,48,56,50,1.062,TRUE
+R1497,18–29,muž,Severovýchod,Civic Stabilizers,Jana Novotná,16,74,73,43,52,1.235,TRUE
+R1498,18–29,muž,Moravskoslezsko,Civic Stabilizers,Jana Novotná,21,52,59,75,52,0.874,TRUE
+R1499,45–64,muž,Střední Morava,Local Community,Jana Novotná,14,46,88,76,56,1.094,TRUE
+R1500,18–29,žena,Praha,Change Seekers,David Král,19,84,53,73,57,0.846,TRUE

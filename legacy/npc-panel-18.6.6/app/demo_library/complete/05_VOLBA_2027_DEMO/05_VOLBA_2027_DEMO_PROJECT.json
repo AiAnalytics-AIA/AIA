@@ -1,0 +1,433 @@
+{
+  "project": {
+    "title": "Volba 2027 — DEMO",
+    "type": "Politický výzkum – formát veřejné debaty",
+    "industry": "Politická komunikace / média",
+    "status": "COMPLETED",
+    "sample_n": 1600,
+    "world_count": 8,
+    "variant_count": 4
+  },
+  "assignment_summary": {
+    "client_need": "Neutrálně porovnat formáty veřejné předvolební debaty z hlediska důvěry, férovosti a informační hodnoty.",
+    "primary_decision": "Vybrat formát debaty pro veřejnoprávní/mediální použití, nikoli optimalizovat persuazi konkrétního kandidáta.",
+    "success_definition": "Formát má být vnímán jako férový, informačně přínosný, srozumitelný a dostatečně atraktivní pro sledování.",
+    "questions": [
+      "Který formát posiluje důvěru ve férovost debaty?",
+      "Jaký je trade-off mezi dynamikou a informační hloubkou?",
+      "Jak se liší preference formátu podle politického zájmu a věku?",
+      "Kdy fact-check zvyšuje vs. snižuje důvěru?"
+    ],
+    "inputs": [
+      "Čtyři neutrální formáty debaty.",
+      "Syntetický agregovaný vzorek dospělé populace.",
+      "8 světů mění polarizaci, důvěru v média, informační únavu, zájem o politiku a časovou dostupnost."
+    ],
+    "deliverables": [
+      "Executive answer",
+      "Porovnání variant",
+      "Segmentová analýza",
+      "8 detailních světů a breakpointy",
+      "Word report",
+      "Excel workbook",
+      "Respondent-level CSV",
+      "SQLite databáze",
+      "JSON + provenance + historie"
+    ],
+    "out_of_scope": [
+      "Targeting konkrétních voličů.",
+      "Doporučení, jak přesvědčit konkrétní segment.",
+      "Optimalizace volební kampaně kandidáta nebo strany."
+    ]
+  },
+  "variants": [
+    {
+      "id": "A",
+      "name": "Classic TV",
+      "price_or_fee": 0,
+      "positioning": "Moderovaná studiová debata",
+      "description": "Tradiční časově omezený formát."
+    },
+    {
+      "id": "B",
+      "name": "Fact-Checked Forum",
+      "price_or_fee": 0,
+      "positioning": "Moderace + průběžná fakta",
+      "description": "Strukturovaná debata s transparentním fact-check rámcem."
+    },
+    {
+      "id": "C",
+      "name": "Town Hall",
+      "price_or_fee": 0,
+      "positioning": "Otázky občanů",
+      "description": "Otázky publika a delší odpovědi kandidátů."
+    },
+    {
+      "id": "D",
+      "name": "Longform Hybrid",
+      "price_or_fee": 0,
+      "positioning": "Delší bloky + krátké konfrontace",
+      "description": "Více prostoru pro vysvětlení a méně zkratky."
+    }
+  ],
+  "variant_results": [
+    {
+      "variant_id": "A",
+      "variant_name": "Classic TV",
+      "price_or_fee": 0,
+      "decision_score_0_100": 68,
+      "watch_intent_pct": 64.3,
+      "trust_pct": 46.8,
+      "fairness": 6.54,
+      "information_value": 5.89,
+      "clarity": 6.71,
+      "engagement": 6.48,
+      "respondent_composite_avg": 61.2
+    },
+    {
+      "variant_id": "B",
+      "variant_name": "Fact-Checked Forum",
+      "price_or_fee": 0,
+      "decision_score_0_100": 79,
+      "watch_intent_pct": 70.1,
+      "trust_pct": 61.9,
+      "fairness": 7.5,
+      "information_value": 7.69,
+      "clarity": 7.13,
+      "engagement": 6.31,
+      "respondent_composite_avg": 69.7
+    },
+    {
+      "variant_id": "C",
+      "variant_name": "Town Hall",
+      "price_or_fee": 0,
+      "decision_score_0_100": 75,
+      "watch_intent_pct": 70.7,
+      "trust_pct": 55.2,
+      "fairness": 7.08,
+      "information_value": 6.85,
+      "clarity": 6.16,
+      "engagement": 7.2,
+      "respondent_composite_avg": 66.5
+    },
+    {
+      "variant_id": "D",
+      "variant_name": "Longform Hybrid",
+      "price_or_fee": 0,
+      "decision_score_0_100": 76,
+      "watch_intent_pct": 57.1,
+      "trust_pct": 59.6,
+      "fairness": 7.21,
+      "information_value": 7.48,
+      "clarity": 6.69,
+      "engagement": 5.88,
+      "respondent_composite_avg": 64.9
+    }
+  ],
+  "worlds": [
+    {
+      "world_id": "W1",
+      "name": "Base case",
+      "headline": "Vyrovnané podmínky bez extrémního šoku.",
+      "description": "Vyrovnané podmínky bez extrémního šoku.",
+      "assumptions": {
+        "price_pressure": 1.0,
+        "trust_pressure": 1.0,
+        "competition_pressure": 1.0,
+        "activation": 1.0
+      },
+      "primary_metric": {
+        "A": 48,
+        "B": 61,
+        "C": 55,
+        "D": 57
+      },
+      "decision_scores": {
+        "A": 76.4,
+        "B": 88,
+        "C": 80.2,
+        "D": 81.3
+      },
+      "winner": "B",
+      "risk": "LOW",
+      "implication": "Doporučení B drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W2",
+      "name": "Rozpočtový tlak",
+      "headline": "Lidé více řeší cenu, riziko a bezprostřední hodnotu.",
+      "description": "Lidé více řeší cenu, riziko a bezprostřední hodnotu.",
+      "assumptions": {
+        "price_pressure": 1.3,
+        "trust_pressure": 1.02,
+        "competition_pressure": 1.08,
+        "activation": 0.94
+      },
+      "primary_metric": {
+        "A": 46,
+        "B": 65,
+        "C": 50,
+        "D": 55
+      },
+      "decision_scores": {
+        "A": 75.3,
+        "B": 88,
+        "C": 77.5,
+        "D": 80.2
+      },
+      "winner": "B",
+      "risk": "MEDIUM",
+      "implication": "Doporučení B drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W3",
+      "name": "Promo / konkurenční tlak",
+      "headline": "Konkurence zvyšuje promo nebo agresivitu nabídky.",
+      "description": "Konkurence zvyšuje promo nebo agresivitu nabídky.",
+      "assumptions": {
+        "price_pressure": 1.22,
+        "trust_pressure": 0.96,
+        "competition_pressure": 1.35,
+        "activation": 0.98
+      },
+      "primary_metric": {
+        "A": 46,
+        "B": 67,
+        "C": 51,
+        "D": 54
+      },
+      "decision_scores": {
+        "A": 75.3,
+        "B": 88,
+        "C": 78.0,
+        "D": 79.7
+      },
+      "winner": "B",
+      "risk": "LOW",
+      "implication": "Doporučení B drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W4",
+      "name": "Vyšší skepticismus",
+      "headline": "Roste požadavek na důkaz, srozumitelnost a důvěryhodnost.",
+      "description": "Roste požadavek na důkaz, srozumitelnost a důvěryhodnost.",
+      "assumptions": {
+        "price_pressure": 1.03,
+        "trust_pressure": 1.3,
+        "competition_pressure": 1.02,
+        "activation": 0.95
+      },
+      "primary_metric": {
+        "A": 47,
+        "B": 59,
+        "C": 54,
+        "D": 62
+      },
+      "decision_scores": {
+        "A": 75.8,
+        "B": 87.5,
+        "C": 79.7,
+        "D": 84.1
+      },
+      "winner": "B",
+      "risk": "HIGH",
+      "implication": "Breakpoint: za těchto podmínek přebírá vedení D."
+    },
+    {
+      "world_id": "W5",
+      "name": "Silnější důvěra / relevance",
+      "headline": "Zesiluje faktor, na kterém stojí doporučený koncept.",
+      "description": "Zesiluje faktor, na kterém stojí doporučený koncept.",
+      "assumptions": {
+        "price_pressure": 0.96,
+        "trust_pressure": 0.88,
+        "competition_pressure": 0.95,
+        "activation": 1.02
+      },
+      "primary_metric": {
+        "A": 48,
+        "B": 62,
+        "C": 56,
+        "D": 60
+      },
+      "decision_scores": {
+        "A": 76.4,
+        "B": 88,
+        "C": 80.8,
+        "D": 83.0
+      },
+      "winner": "B",
+      "risk": "LOW",
+      "implication": "Doporučení B drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W6",
+      "name": "Kategorie se mění",
+      "headline": "Posouvají se potřeby a kontext používání.",
+      "description": "Posouvají se potřeby a kontext používání.",
+      "assumptions": {
+        "price_pressure": 1.0,
+        "trust_pressure": 1.05,
+        "competition_pressure": 1.04,
+        "activation": 1.05
+      },
+      "primary_metric": {
+        "A": 47,
+        "B": 61,
+        "C": 57,
+        "D": 59
+      },
+      "decision_scores": {
+        "A": 75.8,
+        "B": 88,
+        "C": 81.3,
+        "D": 82.5
+      },
+      "winner": "B",
+      "risk": "LOW",
+      "implication": "Doporučení B drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W7",
+      "name": "Opatrný trh",
+      "headline": "Klesá obecná ochota ke změně a roste potřeba jistoty.",
+      "description": "Klesá obecná ochota ke změně a roste potřeba jistoty.",
+      "assumptions": {
+        "price_pressure": 1.12,
+        "trust_pressure": 1.22,
+        "competition_pressure": 1.08,
+        "activation": 0.9
+      },
+      "primary_metric": {
+        "A": 44,
+        "B": 58,
+        "C": 51,
+        "D": 55
+      },
+      "decision_scores": {
+        "A": 74.2,
+        "B": 86.9,
+        "C": 78.0,
+        "D": 80.2
+      },
+      "winner": "B",
+      "risk": "MEDIUM",
+      "implication": "Doporučení B drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W8",
+      "name": "Silná aktivace",
+      "headline": "Vyšší dostupnost, informovanost nebo trial usnadní první krok.",
+      "description": "Vyšší dostupnost, informovanost nebo trial usnadní první krok.",
+      "assumptions": {
+        "price_pressure": 0.95,
+        "trust_pressure": 0.92,
+        "competition_pressure": 0.9,
+        "activation": 1.35
+      },
+      "primary_metric": {
+        "A": 51,
+        "B": 64,
+        "C": 58,
+        "D": 61
+      },
+      "decision_scores": {
+        "A": 78.0,
+        "B": 88,
+        "C": 81.9,
+        "D": 83.6
+      },
+      "winner": "B",
+      "risk": "LOW",
+      "implication": "Doporučení B drží; svět testuje odolnost závěru vůči změně podmínek."
+    }
+  ],
+  "history": [
+    {
+      "revision": 1,
+      "time": "20:10:04",
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní zadání uloženo do persistentního projektu."
+    },
+    {
+      "revision": 2,
+      "time": "20:10:22",
+      "stage": "RESEARCH_DESIGN",
+      "event": "Výzkumný rámec připraven",
+      "detail": "Rozhodovací otázky, KPI a varianty byly strukturovány."
+    },
+    {
+      "revision": 3,
+      "time": "20:12:15",
+      "stage": "AUDIENCE",
+      "event": "Audience a segmenty uzamčeny",
+      "detail": "Syntetická populace a segmentační logika připravena."
+    },
+    {
+      "revision": 4,
+      "time": "20:15:41",
+      "stage": "WORLDS",
+      "event": "8 světů dokončeno",
+      "detail": "Otestována robustnost doporučení napříč změnami podmínek."
+    },
+    {
+      "revision": 5,
+      "time": "20:18:54",
+      "stage": "ANALYSIS",
+      "event": "Analýza dokončena",
+      "detail": "Varianty, segmenty, breakpointy a rozhodovací implikace sestaveny."
+    },
+    {
+      "revision": 6,
+      "time": "20:20:03",
+      "stage": "DELIVERY",
+      "event": "Výstupy dokončeny",
+      "detail": "Word, Excel, SQLite, CSV, JSON, dashboard a provenance uzamčeny."
+    }
+  ],
+  "winner": "B",
+  "alternative": "D",
+  "takeaway": "Fact-Checked Forum je nejlepší agregovaný formát; při velmi nízké důvěře v média může méně intervenční Longform Hybrid působit důvěryhodněji.",
+  "next_steps": [
+    "Ověřit přesné načasování fact-check vstupů.",
+    "Testovat vizuální transparentnost zdrojů.",
+    "Měřit únavu a drop-off během delších bloků.",
+    "Zachovat stejné podmínky pro všechny účastníky."
+  ],
+  "metrics": [
+    [
+      "watch_intent_pct",
+      "Watch intent %"
+    ],
+    [
+      "trust_pct",
+      "Trust %"
+    ],
+    [
+      "fairness",
+      "Fairness /10"
+    ],
+    [
+      "information_value",
+      "Information value /10"
+    ],
+    [
+      "clarity",
+      "Clarity /10"
+    ],
+    [
+      "engagement",
+      "Engagement /10"
+    ]
+  ],
+  "primary": "trust_pct",
+  "primary_label": "Trust",
+  "segments": [
+    "Low Political Interest",
+    "News Regulars",
+    "Young Adults",
+    "High Polarization",
+    "Undecided/Low Attachment"
+  ]
+}

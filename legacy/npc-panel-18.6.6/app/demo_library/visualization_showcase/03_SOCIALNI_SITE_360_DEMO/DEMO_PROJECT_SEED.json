@@ -1,0 +1,222 @@
+{
+  "project_id": "PRJ-DEMO-VIS-SOCIAL-360",
+  "title": "Sociální sítě 360 — kdo je kde a proč",
+  "project_type": "research",
+  "study_type": "Platform usage / audience mapping",
+  "domain": "Média / sociální sítě",
+  "current_revision": 1,
+  "brief": {
+    "client_input": "Ilustrační komplexní výzkum vytvořený pro demonstraci Visualization Lab.",
+    "decision": "Na kterých sítích jsou různé typy lidí a co jejich volbu vysvětluje?"
+  },
+  "audience": {
+    "population": "Ilustrační česká populace 18+",
+    "n": 600,
+    "provenance": "DEMO_SYNTHETIC_DATASET"
+  },
+  "research_questions": [
+    "Na kterých sítích jsou různé typy lidí a co jejich volbu vysvětluje?",
+    "Které segmenty tvoří nejvýraznější shluky?",
+    "Jaké charakteristiky jednotlivé shluky odlišují?"
+  ],
+  "questionnaire": [
+    {
+      "id": "Q0",
+      "text": "Demografický a profilový blok"
+    },
+    {
+      "id": "QO1",
+      "text": "Jak blízko je vám Instagram? Hodnocení 1–10."
+    },
+    {
+      "id": "QO2",
+      "text": "Jak blízko je vám TikTok? Hodnocení 1–10."
+    },
+    {
+      "id": "QO3",
+      "text": "Jak blízko je vám Facebook? Hodnocení 1–10."
+    },
+    {
+      "id": "QO4",
+      "text": "Jak blízko je vám YouTube? Hodnocení 1–10."
+    },
+    {
+      "id": "QO5",
+      "text": "Jak blízko je vám LinkedIn? Hodnocení 1–10."
+    },
+    {
+      "id": "QO6",
+      "text": "Jak blízko je vám X? Hodnocení 1–10."
+    },
+    {
+      "id": "QO7",
+      "text": "Jak blízko je vám Reddit? Hodnocení 1–10."
+    },
+    {
+      "id": "QO8",
+      "text": "Jak blízko je vám Snapchat? Hodnocení 1–10."
+    },
+    {
+      "id": "QT1",
+      "text": "Video — škála 1–10"
+    },
+    {
+      "id": "QT2",
+      "text": "Professional — škála 1–10"
+    },
+    {
+      "id": "QT3",
+      "text": "Community — škála 1–10"
+    },
+    {
+      "id": "QT4",
+      "text": "News — škála 1–10"
+    },
+    {
+      "id": "QT5",
+      "text": "Privacy — škála 1–10"
+    },
+    {
+      "id": "QT6",
+      "text": "Creator — škála 1–10"
+    },
+    {
+      "id": "QT7",
+      "text": "Youth — škála 1–10"
+    }
+  ],
+  "segments": [
+    {
+      "segment": "Krátké video a trendy",
+      "n": 142,
+      "share": 0.237,
+      "top_objects": [
+        {
+          "object": "TikTok",
+          "mean": 7.68
+        },
+        {
+          "object": "Instagram",
+          "mean": 7.5
+        },
+        {
+          "object": "YouTube",
+          "mean": 7.05
+        }
+      ]
+    },
+    {
+      "segment": "Profesionálové",
+      "n": 109,
+      "share": 0.182,
+      "top_objects": [
+        {
+          "object": "LinkedIn",
+          "mean": 7.02
+        },
+        {
+          "object": "X",
+          "mean": 5.81
+        },
+        {
+          "object": "Reddit",
+          "mean": 5.54
+        }
+      ]
+    },
+    {
+      "segment": "Komunitní diskutéři",
+      "n": 87,
+      "share": 0.145,
+      "top_objects": [
+        {
+          "object": "X",
+          "mean": 7.08
+        },
+        {
+          "object": "Reddit",
+          "mean": 7.07
+        },
+        {
+          "object": "Facebook",
+          "mean": 6.43
+        }
+      ]
+    },
+    {
+      "segment": "Masový mainstream",
+      "n": 158,
+      "share": 0.263,
+      "top_objects": [
+        {
+          "object": "Reddit",
+          "mean": 5.89
+        },
+        {
+          "object": "X",
+          "mean": 5.72
+        },
+        {
+          "object": "YouTube",
+          "mean": 5.7
+        }
+      ]
+    },
+    {
+      "segment": "Soukromější pozorovatelé",
+      "n": 104,
+      "share": 0.173,
+      "top_objects": [
+        {
+          "object": "Snapchat",
+          "mean": 5.92
+        },
+        {
+          "object": "Reddit",
+          "mean": 5.74
+        },
+        {
+          "object": "YouTube",
+          "mean": 5.58
+        }
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "Instagram",
+      "mean": 5.78
+    },
+    {
+      "name": "TikTok",
+      "mean": 5.94
+    },
+    {
+      "name": "Facebook",
+      "mean": 5.35
+    },
+    {
+      "name": "YouTube",
+      "mean": 5.92
+    },
+    {
+      "name": "LinkedIn",
+      "mean": 5.57
+    },
+    {
+      "name": "X",
+      "mean": 5.74
+    },
+    {
+      "name": "Reddit",
+      "mean": 5.85
+    },
+    {
+      "name": "Snapchat",
+      "mean": 5.8
+    }
+  ],
+  "executive_answer": "Mapa odděluje krátké video, profesní sítě a komunitně-diskusní platformy a dovoluje prokliknout profil konkrétního uživatele.",
+  "recommendation": "Použijte Visualization Lab: filtrujte segmenty, klikněte na respondenty a porovnejte oblasti A/B.",
+  "demo_truth": "ILUSTRAČNÍ DEMO — data jsou synteticky vygenerována pro demonstraci funkce, nejde o reálný průzkum."
+}

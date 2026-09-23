@@ -1,0 +1,981 @@
+﻿respondent_id,age_group,sex,region,segment,preferred_object,primary_metric,trust,clarity,appeal,overall,weight,demo
+R0001,30–44,žena,Praha,Goal-driven Students,Coach,41,64,90,86,70,1.067,TRUE
+R0002,18–29,žena,Střední Morava,Structure Seekers,Coach,33,73,82,53,60,1.166,TRUE
+R0003,18–29,muž,Střední Morava,Curious Explorers,AI Tutor,34,52,87,90,66,0.897,TRUE
+R0004,18–29,žena,Praha,Curious Explorers,AI Tutor,31,66,81,55,58,0.775,TRUE
+R0005,65+,muž,Praha,Structure Seekers,Coach,37,74,70,53,58,0.938,TRUE
+R0006,65+,muž,Jihozápad,Structure Seekers,Coach,41,57,46,68,53,1.142,TRUE
+R0007,45–64,muž,Jihovýchod,Structure Seekers,Coach,42,52,60,39,48,0.754,TRUE
+R0008,65+,žena,Severovýchod,Structure Seekers,Coach,39,85,61,80,66,1.183,TRUE
+R0009,45–64,žena,Jihovýchod,Parent-guided Teens,Coach,46,48,59,46,50,1.146,TRUE
+R0010,65+,muž,Moravskoslezsko,Structure Seekers,Coach,37,74,74,85,68,1.194,TRUE
+R0011,30–44,žena,Moravskoslezsko,Gamified Learners,Challenge,34,63,85,72,64,0.886,TRUE
+R0012,30–44,žena,Severovýchod,Structure Seekers,Coach,46,66,78,65,64,0.761,TRUE
+R0013,65+,muž,Moravskoslezsko,Parent-guided Teens,Coach,44,64,51,79,60,0.88,TRUE
+R0014,30–44,žena,Jihozápad,Curious Explorers,AI Tutor,55,63,88,62,67,0.954,TRUE
+R0015,18–29,muž,Severozápad,Structure Seekers,Coach,39,52,80,41,53,1.039,TRUE
+R0016,30–44,muž,Praha,Curious Explorers,AI Tutor,54,76,53,52,59,0.833,TRUE
+R0017,18–29,žena,Jihovýchod,Curious Explorers,AI Tutor,63,45,60,82,62,0.846,TRUE
+R0018,18–29,muž,Jihozápad,Parent-guided Teens,Coach,59,47,45,48,50,0.98,TRUE
+R0019,30–44,žena,Severovýchod,Curious Explorers,AI Tutor,57,77,65,40,60,1.22,TRUE
+R0020,45–64,muž,Jihozápad,Parent-guided Teens,Coach,41,73,66,37,54,1.222,TRUE
+R0021,65+,žena,Jihozápad,Curious Explorers,AI Tutor,51,48,61,51,53,0.801,TRUE
+R0022,18–29,muž,Praha,Curious Explorers,AI Tutor,31,49,57,65,50,1.102,TRUE
+R0023,45–64,žena,Moravskoslezsko,Gamified Learners,Challenge,34,84,78,48,61,0.946,TRUE
+R0024,18–29,muž,Severovýchod,Curious Explorers,AI Tutor,55,66,84,79,71,0.833,TRUE
+R0025,65+,žena,Severozápad,Gamified Learners,Challenge,47,46,57,59,52,0.976,TRUE
+R0026,45–64,muž,Moravskoslezsko,Curious Explorers,AI Tutor,41,90,87,36,64,1.055,TRUE
+R0027,65+,žena,Střední Čechy,Gamified Learners,Challenge,60,87,47,52,62,1.159,TRUE
+R0028,45–64,muž,Severovýchod,Parent-guided Teens,Coach,32,50,66,46,48,1.144,TRUE
+R0029,45–64,muž,Praha,Structure Seekers,Coach,30,50,80,49,52,0.977,TRUE
+R0030,45–64,muž,Moravskoslezsko,Structure Seekers,Coach,36,50,76,85,62,0.974,TRUE
+R0031,30–44,muž,Jihovýchod,Curious Explorers,AI Tutor,44,81,69,38,58,1.245,TRUE
+R0032,30–44,žena,Praha,Curious Explorers,AI Tutor,63,88,62,56,67,1.181,TRUE
+R0033,45–64,žena,Střední Morava,Gamified Learners,Challenge,49,60,88,64,65,1.119,TRUE
+R0034,45–64,muž,Střední Morava,Parent-guided Teens,Coach,48,68,77,81,68,1.122,TRUE
+R0035,30–44,muž,Severozápad,Structure Seekers,Coach,44,78,70,70,66,1.213,TRUE
+R0036,65+,muž,Střední Morava,Gamified Learners,Challenge,58,66,75,50,62,1.101,TRUE
+R0037,45–64,muž,Střední Morava,Gamified Learners,Challenge,54,87,49,46,59,0.807,TRUE
+R0038,65+,muž,Praha,Curious Explorers,AI Tutor,63,87,55,48,63,0.88,TRUE
+R0039,65+,žena,Jihozápad,Structure Seekers,Coach,61,83,85,62,73,1.15,TRUE
+R0040,30–44,žena,Moravskoslezsko,Curious Explorers,AI Tutor,38,63,52,84,59,1.218,TRUE
+R0041,65+,muž,Jihozápad,Curious Explorers,AI Tutor,43,46,48,37,44,0.825,TRUE
+R0042,65+,muž,Jihovýchod,Curious Explorers,AI Tutor,55,50,75,42,56,0.963,TRUE
+R0043,30–44,muž,Severovýchod,Parent-guided Teens,Coach,63,55,68,75,65,1.045,TRUE
+R0044,45–64,žena,Severovýchod,Goal-driven Students,Coach,46,66,85,43,60,1.125,TRUE
+R0045,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,65,90,74,81,78,1.199,TRUE
+R0046,18–29,žena,Jihozápad,Parent-guided Teens,Coach,41,61,87,70,65,0.784,TRUE
+R0047,45–64,muž,Jihozápad,Parent-guided Teens,Coach,35,89,89,40,63,0.958,TRUE
+R0048,30–44,žena,Střední Čechy,Structure Seekers,Coach,52,62,84,61,65,1.246,TRUE
+R0049,65+,muž,Severozápad,Structure Seekers,Coach,62,62,89,74,72,1.231,TRUE
+R0050,18–29,žena,Praha,Goal-driven Students,Coach,50,57,64,56,57,1.132,TRUE
+R0051,65+,žena,Severozápad,Goal-driven Students,Coach,62,64,69,81,69,1.145,TRUE
+R0052,18–29,muž,Moravskoslezsko,Curious Explorers,AI Tutor,40,62,73,86,65,1.035,TRUE
+R0053,65+,žena,Jihovýchod,Structure Seekers,Coach,40,66,71,61,60,1.192,TRUE
+R0054,18–29,žena,Moravskoslezsko,Gamified Learners,Challenge,58,72,46,65,60,0.897,TRUE
+R0055,30–44,žena,Střední Čechy,Goal-driven Students,Coach,47,83,86,35,63,1.215,TRUE
+R0056,45–64,žena,Severovýchod,Structure Seekers,Coach,66,50,48,37,50,1.11,TRUE
+R0057,18–29,žena,Střední Morava,Goal-driven Students,Coach,41,79,64,68,63,1.114,TRUE
+R0058,18–29,žena,Jihozápad,Goal-driven Students,Coach,42,51,58,57,52,0.816,TRUE
+R0059,65+,muž,Moravskoslezsko,Curious Explorers,AI Tutor,33,69,58,53,53,0.933,TRUE
+R0060,30–44,muž,Střední Čechy,Gamified Learners,Challenge,54,73,71,69,67,1.052,TRUE
+R0061,65+,žena,Moravskoslezsko,Goal-driven Students,Coach,46,65,48,80,60,0.919,TRUE
+R0062,45–64,muž,Střední Čechy,Curious Explorers,AI Tutor,65,48,86,84,71,0.865,TRUE
+R0063,65+,muž,Severovýchod,Goal-driven Students,Coach,56,50,75,57,60,0.941,TRUE
+R0064,65+,žena,Jihozápad,Curious Explorers,AI Tutor,62,80,46,87,69,1.226,TRUE
+R0065,65+,muž,Střední Čechy,Parent-guided Teens,Coach,56,48,49,51,51,1.03,TRUE
+R0066,65+,muž,Praha,Gamified Learners,Challenge,59,72,55,62,62,0.992,TRUE
+R0067,18–29,muž,Střední Čechy,Structure Seekers,Coach,30,60,75,85,62,0.895,TRUE
+R0068,45–64,muž,Moravskoslezsko,Gamified Learners,Challenge,38,82,60,70,62,0.876,TRUE
+R0069,18–29,muž,Jihovýchod,Parent-guided Teens,Coach,53,74,83,42,63,1.128,TRUE
+R0070,65+,muž,Moravskoslezsko,Structure Seekers,Coach,39,89,80,54,66,1.013,TRUE
+R0071,18–29,žena,Jihovýchod,Gamified Learners,Challenge,58,87,56,86,72,0.854,TRUE
+R0072,18–29,muž,Střední Morava,Parent-guided Teens,Coach,48,71,46,76,60,1.008,TRUE
+R0073,65+,muž,Jihovýchod,Curious Explorers,AI Tutor,62,66,76,76,70,1.049,TRUE
+R0074,65+,žena,Moravskoslezsko,Goal-driven Students,Coach,40,80,57,48,56,1.229,TRUE
+R0075,65+,muž,Střední Čechy,Curious Explorers,AI Tutor,62,70,80,57,67,1.131,TRUE
+R0076,30–44,muž,Moravskoslezsko,Gamified Learners,Challenge,31,86,79,69,66,1.18,TRUE
+R0077,30–44,muž,Moravskoslezsko,Parent-guided Teens,Coach,37,52,69,59,54,0.823,TRUE
+R0078,65+,muž,Střední Morava,Structure Seekers,Coach,63,81,76,63,71,1.227,TRUE
+R0079,18–29,muž,Jihovýchod,Goal-driven Students,Coach,51,56,70,48,56,0.83,TRUE
+R0080,18–29,žena,Střední Čechy,Structure Seekers,Coach,45,56,90,90,70,1.167,TRUE
+R0081,18–29,žena,Praha,Gamified Learners,Challenge,60,75,66,79,70,1.211,TRUE
+R0082,30–44,muž,Moravskoslezsko,Goal-driven Students,Coach,44,75,86,69,68,1.056,TRUE
+R0083,18–29,muž,Severovýchod,Gamified Learners,Challenge,40,69,48,84,60,0.83,TRUE
+R0084,30–44,muž,Severozápad,Parent-guided Teens,Coach,49,60,51,72,58,1.208,TRUE
+R0085,30–44,žena,Jihovýchod,Goal-driven Students,Coach,34,84,85,55,64,0.873,TRUE
+R0086,18–29,muž,Severovýchod,Goal-driven Students,Coach,55,89,72,48,66,1.201,TRUE
+R0087,18–29,žena,Praha,Parent-guided Teens,Coach,51,85,78,37,63,1.088,TRUE
+R0088,18–29,žena,Střední Čechy,Structure Seekers,Coach,52,57,64,66,60,1.029,TRUE
+R0089,45–64,muž,Jihozápad,Goal-driven Students,Coach,43,78,69,85,69,0.911,TRUE
+R0090,45–64,muž,Střední Čechy,Parent-guided Teens,Coach,40,84,86,68,70,1.216,TRUE
+R0091,45–64,muž,Střední Čechy,Parent-guided Teens,Coach,49,89,84,61,71,0.799,TRUE
+R0092,45–64,žena,Praha,Structure Seekers,Coach,33,64,68,35,50,0.759,TRUE
+R0093,65+,muž,Střední Čechy,Parent-guided Teens,Coach,60,45,49,37,48,1.232,TRUE
+R0094,65+,muž,Jihovýchod,Gamified Learners,Challenge,37,56,68,51,53,1.025,TRUE
+R0095,18–29,muž,Jihovýchod,Curious Explorers,AI Tutor,54,79,59,74,66,1.015,TRUE
+R0096,18–29,žena,Severovýchod,Curious Explorers,AI Tutor,63,88,78,54,71,0.837,TRUE
+R0097,18–29,muž,Severovýchod,Goal-driven Students,Coach,49,61,55,64,57,0.778,TRUE
+R0098,30–44,muž,Severozápad,Structure Seekers,Coach,37,79,77,81,68,1.049,TRUE
+R0099,65+,žena,Moravskoslezsko,Curious Explorers,AI Tutor,52,90,47,80,67,0.763,TRUE
+R0100,65+,žena,Jihovýchod,Gamified Learners,Challenge,30,76,67,69,60,1.215,TRUE
+R0101,18–29,muž,Střední Morava,Gamified Learners,Challenge,45,84,60,41,58,1.069,TRUE
+R0102,65+,muž,Jihozápad,Structure Seekers,Coach,37,86,79,56,64,1.2,TRUE
+R0103,18–29,muž,Jihovýchod,Structure Seekers,Coach,30,49,46,49,44,1.152,TRUE
+R0104,65+,žena,Střední Čechy,Gamified Learners,Challenge,54,74,49,45,56,1.176,TRUE
+R0105,18–29,muž,Praha,Curious Explorers,AI Tutor,41,55,68,75,60,0.797,TRUE
+R0106,18–29,muž,Jihovýchod,Curious Explorers,AI Tutor,35,75,70,71,63,1.15,TRUE
+R0107,30–44,žena,Severozápad,Goal-driven Students,Coach,50,64,79,80,68,1.195,TRUE
+R0108,30–44,muž,Severozápad,Structure Seekers,Coach,48,80,47,67,60,0.81,TRUE
+R0109,45–64,žena,Moravskoslezsko,Structure Seekers,Coach,66,68,85,76,74,1.01,TRUE
+R0110,45–64,muž,Severovýchod,Structure Seekers,Coach,33,69,65,74,60,0.924,TRUE
+R0111,18–29,muž,Střední Morava,Parent-guided Teens,Coach,37,52,78,44,53,0.849,TRUE
+R0112,65+,žena,Jihovýchod,Gamified Learners,Challenge,65,57,55,44,55,0.988,TRUE
+R0113,18–29,muž,Moravskoslezsko,Structure Seekers,Coach,64,62,62,40,57,1.051,TRUE
+R0114,65+,žena,Jihovýchod,Structure Seekers,Coach,41,52,68,60,55,0.911,TRUE
+R0115,30–44,žena,Severovýchod,Parent-guided Teens,Coach,63,61,54,46,56,1.246,TRUE
+R0116,18–29,žena,Severovýchod,Structure Seekers,Coach,39,59,89,38,56,0.761,TRUE
+R0117,18–29,žena,Praha,Gamified Learners,Challenge,47,50,80,77,64,0.871,TRUE
+R0118,45–64,muž,Jihovýchod,Curious Explorers,AI Tutor,50,59,68,52,57,0.762,TRUE
+R0119,45–64,muž,Severozápad,Gamified Learners,Challenge,55,77,84,56,68,0.869,TRUE
+R0120,30–44,žena,Moravskoslezsko,Goal-driven Students,Coach,60,83,88,86,79,1.071,TRUE
+R0121,45–64,žena,Jihozápad,Parent-guided Teens,Coach,30,80,70,79,65,0.784,TRUE
+R0122,45–64,žena,Střední Morava,Goal-driven Students,Coach,51,58,54,90,63,0.954,TRUE
+R0123,65+,žena,Jihovýchod,Structure Seekers,Coach,30,66,71,64,58,0.818,TRUE
+R0124,65+,muž,Severozápad,Goal-driven Students,Coach,50,63,84,77,68,1.0,TRUE
+R0125,65+,žena,Jihovýchod,Goal-driven Students,Coach,48,50,50,77,56,1.101,TRUE
+R0126,45–64,žena,Střední Morava,Goal-driven Students,Coach,40,46,84,38,52,1.048,TRUE
+R0127,65+,žena,Střední Čechy,Structure Seekers,Coach,59,58,70,52,60,0.858,TRUE
+R0128,45–64,žena,Jihozápad,Goal-driven Students,Coach,63,72,63,40,60,0.839,TRUE
+R0129,65+,muž,Jihovýchod,Structure Seekers,Coach,48,59,79,50,59,0.912,TRUE
+R0130,30–44,muž,Severovýchod,Structure Seekers,Coach,30,77,83,72,66,0.761,TRUE
+R0131,65+,žena,Jihovýchod,Structure Seekers,Coach,41,87,67,68,66,1.162,TRUE
+R0132,18–29,žena,Moravskoslezsko,Parent-guided Teens,Coach,62,85,84,60,73,1.13,TRUE
+R0133,45–64,žena,Moravskoslezsko,Goal-driven Students,Coach,44,50,47,65,52,1.024,TRUE
+R0134,45–64,muž,Jihozápad,Gamified Learners,Challenge,58,70,60,37,56,1.041,TRUE
+R0135,45–64,žena,Praha,Structure Seekers,Coach,35,75,80,88,70,1.237,TRUE
+R0136,30–44,muž,Střední Morava,Goal-driven Students,Coach,56,76,73,46,63,1.129,TRUE
+R0137,18–29,žena,Severovýchod,Parent-guided Teens,Coach,38,67,50,69,56,1.001,TRUE
+R0138,65+,muž,Střední Morava,Curious Explorers,AI Tutor,52,80,51,53,59,0.872,TRUE
+R0139,45–64,muž,Severozápad,Gamified Learners,Challenge,42,75,60,69,62,1.176,TRUE
+R0140,65+,žena,Střední Morava,Goal-driven Students,Coach,61,62,73,50,62,1.178,TRUE
+R0141,45–64,muž,Severovýchod,Structure Seekers,Coach,39,48,72,71,58,1.195,TRUE
+R0142,65+,muž,Severovýchod,Structure Seekers,Coach,58,72,61,55,62,0.999,TRUE
+R0143,18–29,žena,Severovýchod,Curious Explorers,AI Tutor,36,47,66,56,51,0.952,TRUE
+R0144,30–44,muž,Střední Morava,Structure Seekers,Coach,44,81,50,45,55,1.146,TRUE
+R0145,65+,muž,Jihovýchod,Curious Explorers,AI Tutor,38,78,61,61,60,0.795,TRUE
+R0146,30–44,muž,Moravskoslezsko,Curious Explorers,AI Tutor,43,49,62,41,49,1.149,TRUE
+R0147,18–29,muž,Střední Čechy,Goal-driven Students,Coach,50,84,87,78,75,0.988,TRUE
+R0148,18–29,žena,Praha,Goal-driven Students,Coach,59,69,71,68,67,1.061,TRUE
+R0149,65+,muž,Střední Čechy,Gamified Learners,Challenge,58,49,68,61,59,1.099,TRUE
+R0150,30–44,žena,Střední Čechy,Curious Explorers,AI Tutor,38,72,57,61,57,1.238,TRUE
+R0151,30–44,muž,Jihozápad,Parent-guided Teens,Coach,60,78,46,81,66,1.09,TRUE
+R0152,30–44,žena,Severozápad,Curious Explorers,AI Tutor,41,85,49,81,64,1.134,TRUE
+R0153,45–64,žena,Severovýchod,Gamified Learners,Challenge,56,54,87,76,68,1.233,TRUE
+R0154,18–29,muž,Severovýchod,Parent-guided Teens,Coach,65,71,75,74,71,1.115,TRUE
+R0155,45–64,muž,Střední Morava,Parent-guided Teens,Coach,50,79,78,46,63,0.951,TRUE
+R0156,18–29,žena,Severovýchod,Structure Seekers,Coach,51,52,85,59,62,0.807,TRUE
+R0157,65+,žena,Jihovýchod,Goal-driven Students,Coach,57,63,47,78,61,1.051,TRUE
+R0158,30–44,muž,Severovýchod,Parent-guided Teens,Coach,44,48,63,44,50,0.975,TRUE
+R0159,45–64,žena,Praha,Goal-driven Students,Coach,63,62,80,41,62,1.053,TRUE
+R0160,30–44,muž,Střední Čechy,Goal-driven Students,Coach,57,87,73,69,72,1.076,TRUE
+R0161,30–44,muž,Střední Čechy,Curious Explorers,AI Tutor,53,79,90,72,74,0.807,TRUE
+R0162,45–64,muž,Střední Čechy,Goal-driven Students,Coach,55,72,89,45,65,0.855,TRUE
+R0163,45–64,žena,Praha,Goal-driven Students,Coach,40,45,68,52,51,0.92,TRUE
+R0164,65+,žena,Moravskoslezsko,Goal-driven Students,Coach,37,69,76,48,58,0.842,TRUE
+R0165,45–64,muž,Jihozápad,Goal-driven Students,Coach,53,68,65,59,61,1.187,TRUE
+R0166,18–29,žena,Moravskoslezsko,Structure Seekers,Coach,62,66,58,73,65,0.855,TRUE
+R0167,18–29,žena,Střední Čechy,Parent-guided Teens,Coach,40,63,80,79,66,1.009,TRUE
+R0168,65+,žena,Severozápad,Goal-driven Students,Coach,66,58,50,80,64,0.781,TRUE
+R0169,65+,žena,Střední Čechy,Gamified Learners,Challenge,43,66,83,86,70,0.965,TRUE
+R0170,65+,muž,Severovýchod,Curious Explorers,AI Tutor,53,53,87,71,66,1.161,TRUE
+R0171,18–29,žena,Jihovýchod,Goal-driven Students,Coach,66,76,72,71,71,1.225,TRUE
+R0172,45–64,muž,Moravskoslezsko,Gamified Learners,Challenge,31,87,68,62,62,1.006,TRUE
+R0173,18–29,žena,Severovýchod,Parent-guided Teens,Coach,39,78,49,54,55,1.221,TRUE
+R0174,45–64,žena,Střední Morava,Gamified Learners,Challenge,53,85,59,78,69,1.023,TRUE
+R0175,45–64,žena,Praha,Structure Seekers,Coach,36,50,85,68,60,0.902,TRUE
+R0176,18–29,žena,Praha,Curious Explorers,AI Tutor,44,75,75,60,64,1.185,TRUE
+R0177,18–29,žena,Moravskoslezsko,Goal-driven Students,Coach,65,57,49,54,56,1.222,TRUE
+R0178,18–29,muž,Jihozápad,Curious Explorers,AI Tutor,35,60,85,58,60,0.934,TRUE
+R0179,30–44,žena,Moravskoslezsko,Parent-guided Teens,Coach,60,83,64,40,62,0.944,TRUE
+R0180,65+,žena,Střední Morava,Curious Explorers,AI Tutor,36,90,49,49,56,0.965,TRUE
+R0181,18–29,žena,Střední Morava,Curious Explorers,AI Tutor,63,63,59,81,66,0.837,TRUE
+R0182,30–44,žena,Střední Čechy,Parent-guided Teens,Coach,63,50,53,45,53,0.895,TRUE
+R0183,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,66,53,59,35,53,0.919,TRUE
+R0184,18–29,žena,Moravskoslezsko,Parent-guided Teens,Coach,52,77,50,55,58,1.225,TRUE
+R0185,30–44,muž,Jihozápad,Structure Seekers,Coach,57,70,66,80,68,1.123,TRUE
+R0186,45–64,muž,Praha,Structure Seekers,Coach,63,50,85,83,70,0.858,TRUE
+R0187,18–29,žena,Praha,Goal-driven Students,Coach,60,83,88,44,69,1.054,TRUE
+R0188,65+,muž,Severovýchod,Gamified Learners,Challenge,35,60,76,73,61,0.825,TRUE
+R0189,18–29,muž,Praha,Goal-driven Students,Coach,30,60,51,52,48,1.129,TRUE
+R0190,18–29,žena,Severovýchod,Goal-driven Students,Coach,59,56,66,41,56,1.1,TRUE
+R0191,18–29,žena,Moravskoslezsko,Goal-driven Students,Coach,31,88,56,88,66,0.809,TRUE
+R0192,18–29,žena,Praha,Structure Seekers,Coach,32,74,88,35,57,1.071,TRUE
+R0193,65+,žena,Jihovýchod,Gamified Learners,Challenge,61,59,67,83,68,0.978,TRUE
+R0194,45–64,muž,Střední Čechy,Parent-guided Teens,Coach,43,69,73,54,60,1.036,TRUE
+R0195,18–29,muž,Severozápad,Structure Seekers,Coach,44,50,60,59,53,1.191,TRUE
+R0196,65+,žena,Jihozápad,Goal-driven Students,Coach,32,55,59,77,56,1.118,TRUE
+R0197,45–64,muž,Střední Čechy,Structure Seekers,Coach,46,83,88,67,71,0.941,TRUE
+R0198,65+,muž,Střední Čechy,Curious Explorers,AI Tutor,49,73,75,44,60,0.777,TRUE
+R0199,45–64,žena,Střední Čechy,Goal-driven Students,Coach,58,87,83,74,76,0.996,TRUE
+R0200,30–44,žena,Severovýchod,Parent-guided Teens,Coach,35,45,77,58,54,0.806,TRUE
+R0201,45–64,muž,Moravskoslezsko,Parent-guided Teens,Coach,50,52,55,49,52,0.94,TRUE
+R0202,45–64,žena,Střední Čechy,Goal-driven Students,Coach,37,73,48,36,48,0.919,TRUE
+R0203,30–44,muž,Střední Morava,Gamified Learners,Challenge,36,80,79,63,64,0.849,TRUE
+R0204,65+,muž,Moravskoslezsko,Structure Seekers,Coach,39,57,78,63,59,0.957,TRUE
+R0205,65+,žena,Střední Čechy,Parent-guided Teens,Coach,38,48,77,53,54,0.806,TRUE
+R0206,65+,žena,Jihozápad,Gamified Learners,Challenge,45,50,48,72,54,0.809,TRUE
+R0207,45–64,muž,Jihozápad,Structure Seekers,Coach,63,90,54,79,72,1.003,TRUE
+R0208,65+,muž,Střední Čechy,Gamified Learners,Challenge,65,89,70,84,77,0.762,TRUE
+R0209,18–29,žena,Moravskoslezsko,Curious Explorers,AI Tutor,47,58,89,81,69,0.914,TRUE
+R0210,45–64,muž,Severovýchod,Gamified Learners,Challenge,32,69,82,35,54,0.898,TRUE
+R0211,45–64,muž,Střední Morava,Goal-driven Students,Coach,38,61,84,85,67,0.964,TRUE
+R0212,45–64,muž,Střední Morava,Goal-driven Students,Coach,66,78,69,70,71,1.02,TRUE
+R0213,18–29,muž,Moravskoslezsko,Goal-driven Students,Coach,54,60,73,70,64,0.926,TRUE
+R0214,18–29,žena,Praha,Gamified Learners,Challenge,46,67,73,56,60,1.078,TRUE
+R0215,65+,muž,Střední Čechy,Structure Seekers,Coach,50,78,70,48,62,1.15,TRUE
+R0216,18–29,muž,Jihozápad,Gamified Learners,Challenge,39,84,67,78,67,1.156,TRUE
+R0217,45–64,muž,Střední Čechy,Curious Explorers,AI Tutor,30,58,54,64,52,0.754,TRUE
+R0218,45–64,muž,Severovýchod,Gamified Learners,Challenge,61,77,75,39,63,0.771,TRUE
+R0219,65+,muž,Severozápad,Goal-driven Students,Coach,55,69,69,50,61,0.995,TRUE
+R0220,30–44,muž,Praha,Gamified Learners,Challenge,49,48,57,64,54,0.87,TRUE
+R0221,30–44,žena,Moravskoslezsko,Structure Seekers,Coach,33,66,47,75,55,0.992,TRUE
+R0222,30–44,muž,Jihozápad,Parent-guided Teens,Coach,65,45,73,46,57,1.151,TRUE
+R0223,18–29,muž,Severozápad,Curious Explorers,AI Tutor,34,73,67,55,57,1.038,TRUE
+R0224,18–29,žena,Střední Morava,Structure Seekers,Coach,42,85,75,86,72,0.909,TRUE
+R0225,30–44,muž,Severozápad,Structure Seekers,Coach,65,67,73,53,64,1.079,TRUE
+R0226,18–29,žena,Severovýchod,Parent-guided Teens,Coach,48,73,77,67,66,0.846,TRUE
+R0227,65+,žena,Praha,Curious Explorers,AI Tutor,45,85,45,76,63,0.955,TRUE
+R0228,30–44,žena,Praha,Goal-driven Students,Coach,60,60,57,77,64,0.882,TRUE
+R0229,65+,žena,Jihovýchod,Gamified Learners,Challenge,30,59,83,90,66,1.185,TRUE
+R0230,30–44,muž,Praha,Curious Explorers,AI Tutor,53,51,88,64,64,0.799,TRUE
+R0231,18–29,žena,Praha,Gamified Learners,Challenge,50,47,58,47,50,0.854,TRUE
+R0232,30–44,žena,Střední Čechy,Curious Explorers,AI Tutor,34,85,71,85,69,0.976,TRUE
+R0233,18–29,žena,Praha,Curious Explorers,AI Tutor,30,46,63,36,44,0.88,TRUE
+R0234,65+,žena,Severozápad,Curious Explorers,AI Tutor,46,50,55,76,57,0.797,TRUE
+R0235,65+,žena,Střední Morava,Parent-guided Teens,Coach,51,46,61,63,55,0.841,TRUE
+R0236,30–44,muž,Střední Čechy,Gamified Learners,Challenge,57,61,88,73,70,0.805,TRUE
+R0237,30–44,muž,Moravskoslezsko,Curious Explorers,AI Tutor,58,47,87,46,60,1.053,TRUE
+R0238,30–44,muž,Jihozápad,Structure Seekers,Coach,36,82,64,43,56,1.101,TRUE
+R0239,18–29,muž,Severozápad,Parent-guided Teens,Coach,61,81,55,44,60,1.184,TRUE
+R0240,45–64,muž,Severozápad,Goal-driven Students,Coach,53,80,75,60,67,1.034,TRUE
+R0241,65+,žena,Severozápad,Gamified Learners,Challenge,44,51,51,65,53,0.916,TRUE
+R0242,18–29,žena,Praha,Structure Seekers,Coach,59,88,49,86,70,1.132,TRUE
+R0243,18–29,žena,Severovýchod,Curious Explorers,AI Tutor,58,52,46,42,50,1.228,TRUE
+R0244,30–44,muž,Severozápad,Structure Seekers,Coach,62,64,72,87,71,1.146,TRUE
+R0245,18–29,žena,Severovýchod,Goal-driven Students,Coach,34,49,80,85,62,0.759,TRUE
+R0246,65+,žena,Střední Čechy,Parent-guided Teens,Coach,57,90,55,73,69,1.201,TRUE
+R0247,18–29,žena,Střední Čechy,Curious Explorers,AI Tutor,41,63,83,71,64,0.779,TRUE
+R0248,30–44,muž,Střední Čechy,Goal-driven Students,Coach,45,71,76,73,66,0.877,TRUE
+R0249,30–44,muž,Jihovýchod,Curious Explorers,AI Tutor,44,74,81,45,61,0.869,TRUE
+R0250,45–64,žena,Praha,Parent-guided Teens,Coach,41,62,86,81,68,0.776,TRUE
+R0251,30–44,muž,Praha,Gamified Learners,Challenge,65,57,73,72,67,1.032,TRUE
+R0252,65+,muž,Střední Morava,Gamified Learners,Challenge,38,63,76,84,65,0.798,TRUE
+R0253,45–64,muž,Severovýchod,Gamified Learners,Challenge,30,45,63,83,55,1.214,TRUE
+R0254,18–29,žena,Jihovýchod,Structure Seekers,Coach,52,89,71,82,74,0.887,TRUE
+R0255,45–64,muž,Moravskoslezsko,Goal-driven Students,Coach,33,70,74,37,54,0.797,TRUE
+R0256,30–44,muž,Střední Čechy,Parent-guided Teens,Coach,49,86,76,45,64,0.888,TRUE
+R0257,65+,žena,Jihozápad,Gamified Learners,Challenge,43,78,73,67,65,1.004,TRUE
+R0258,65+,muž,Jihozápad,Goal-driven Students,Coach,58,75,51,75,65,0.922,TRUE
+R0259,30–44,muž,Střední Morava,Structure Seekers,Coach,59,64,65,63,63,0.844,TRUE
+R0260,30–44,žena,Střední Morava,Goal-driven Students,Coach,38,82,59,74,63,1.242,TRUE
+R0261,65+,žena,Severozápad,Structure Seekers,Coach,55,90,45,68,64,0.998,TRUE
+R0262,45–64,muž,Praha,Goal-driven Students,Coach,45,60,51,80,59,1.048,TRUE
+R0263,30–44,muž,Střední Čechy,Curious Explorers,AI Tutor,32,46,60,53,48,0.988,TRUE
+R0264,18–29,žena,Jihozápad,Structure Seekers,Coach,63,81,56,58,64,1.214,TRUE
+R0265,45–64,žena,Severovýchod,Gamified Learners,Challenge,52,45,78,50,56,0.912,TRUE
+R0266,45–64,žena,Střední Morava,Curious Explorers,AI Tutor,36,85,76,37,58,1.211,TRUE
+R0267,65+,muž,Střední Čechy,Goal-driven Students,Coach,49,78,85,38,62,1.059,TRUE
+R0268,30–44,žena,Střední Morava,Goal-driven Students,Coach,62,45,61,85,63,1.024,TRUE
+R0269,30–44,žena,Střední Morava,Gamified Learners,Challenge,63,59,90,51,66,1.227,TRUE
+R0270,65+,muž,Jihovýchod,Goal-driven Students,Coach,63,75,68,46,63,1.093,TRUE
+R0271,18–29,žena,Moravskoslezsko,Curious Explorers,AI Tutor,56,58,89,58,65,0.763,TRUE
+R0272,45–64,muž,Střední Čechy,Gamified Learners,Challenge,59,56,85,50,62,0.862,TRUE
+R0273,30–44,žena,Moravskoslezsko,Structure Seekers,Coach,54,89,59,56,64,0.877,TRUE
+R0274,65+,muž,Praha,Goal-driven Students,Coach,59,59,61,86,66,0.865,TRUE
+R0275,18–29,žena,Moravskoslezsko,Gamified Learners,Challenge,54,56,71,38,55,1.219,TRUE
+R0276,30–44,žena,Střední Čechy,Curious Explorers,AI Tutor,43,47,60,39,47,0.953,TRUE
+R0277,45–64,žena,Praha,Parent-guided Teens,Coach,59,60,45,40,51,0.821,TRUE
+R0278,65+,žena,Moravskoslezsko,Curious Explorers,AI Tutor,48,49,48,72,54,0.989,TRUE
+R0279,30–44,žena,Jihovýchod,Curious Explorers,AI Tutor,41,83,87,44,64,0.964,TRUE
+R0280,18–29,žena,Severozápad,Goal-driven Students,Coach,66,75,45,70,64,0.954,TRUE
+R0281,18–29,muž,Moravskoslezsko,Goal-driven Students,Coach,31,65,77,36,52,0.829,TRUE
+R0282,18–29,muž,Střední Morava,Gamified Learners,Challenge,44,58,81,43,56,0.896,TRUE
+R0283,30–44,muž,Severozápad,Structure Seekers,Coach,63,46,87,50,62,1.246,TRUE
+R0284,65+,žena,Střední Čechy,Curious Explorers,AI Tutor,32,47,64,76,55,0.981,TRUE
+R0285,18–29,žena,Jihozápad,Parent-guided Teens,Coach,34,68,51,47,50,0.948,TRUE
+R0286,45–64,žena,Jihozápad,Goal-driven Students,Coach,43,88,47,43,55,1.141,TRUE
+R0287,30–44,žena,Střední Čechy,Goal-driven Students,Coach,54,72,90,65,70,1.083,TRUE
+R0288,65+,žena,Střední Morava,Goal-driven Students,Coach,59,60,49,76,61,0.815,TRUE
+R0289,18–29,žena,Střední Morava,Parent-guided Teens,Coach,62,61,51,66,60,0.96,TRUE
+R0290,65+,muž,Střední Morava,Gamified Learners,Challenge,53,60,55,83,63,1.113,TRUE
+R0291,65+,žena,Střední Čechy,Gamified Learners,Challenge,64,69,55,76,66,0.886,TRUE
+R0292,45–64,žena,Praha,Structure Seekers,Coach,64,52,56,46,54,1.098,TRUE
+R0293,18–29,žena,Severozápad,Curious Explorers,AI Tutor,51,85,50,79,66,1.181,TRUE
+R0294,65+,žena,Střední Morava,Gamified Learners,Challenge,44,63,71,90,67,1.084,TRUE
+R0295,65+,žena,Střední Čechy,Curious Explorers,AI Tutor,31,73,64,43,53,0.803,TRUE
+R0296,18–29,muž,Jihozápad,Curious Explorers,AI Tutor,47,45,50,57,50,0.912,TRUE
+R0297,30–44,muž,Moravskoslezsko,Goal-driven Students,Coach,54,47,62,66,57,1.169,TRUE
+R0298,18–29,žena,Severovýchod,Structure Seekers,Coach,49,65,80,66,65,1.064,TRUE
+R0299,65+,žena,Jihozápad,Goal-driven Students,Coach,39,60,86,61,62,0.877,TRUE
+R0300,65+,žena,Moravskoslezsko,Curious Explorers,AI Tutor,61,51,78,51,60,0.821,TRUE
+R0301,45–64,muž,Moravskoslezsko,Goal-driven Students,Coach,60,50,62,62,58,0.795,TRUE
+R0302,18–29,žena,Jihovýchod,Structure Seekers,Coach,60,64,51,42,54,0.798,TRUE
+R0303,18–29,muž,Praha,Goal-driven Students,Coach,56,75,83,55,67,1.088,TRUE
+R0304,65+,žena,Moravskoslezsko,Goal-driven Students,Coach,65,52,60,62,60,1.213,TRUE
+R0305,30–44,žena,Jihovýchod,Goal-driven Students,Coach,60,89,72,89,78,0.958,TRUE
+R0306,18–29,muž,Praha,Gamified Learners,Challenge,46,64,57,38,51,1.051,TRUE
+R0307,65+,muž,Střední Morava,Structure Seekers,Coach,34,57,79,42,53,0.874,TRUE
+R0308,30–44,žena,Jihozápad,Curious Explorers,AI Tutor,38,68,70,58,58,1.197,TRUE
+R0309,65+,muž,Jihovýchod,Structure Seekers,Coach,33,87,62,58,60,1.187,TRUE
+R0310,45–64,muž,Severovýchod,Curious Explorers,AI Tutor,54,71,64,40,57,0.912,TRUE
+R0311,65+,žena,Střední Morava,Structure Seekers,Coach,52,57,74,61,61,1.179,TRUE
+R0312,18–29,žena,Střední Čechy,Curious Explorers,AI Tutor,51,58,48,67,56,1.211,TRUE
+R0313,18–29,žena,Severovýchod,Goal-driven Students,Coach,55,76,50,83,66,0.919,TRUE
+R0314,18–29,muž,Praha,Goal-driven Students,Coach,31,67,64,88,62,1.212,TRUE
+R0315,65+,muž,Praha,Structure Seekers,Coach,52,67,67,87,68,1.002,TRUE
+R0316,18–29,muž,Severovýchod,Curious Explorers,AI Tutor,48,69,78,78,68,0.769,TRUE
+R0317,18–29,žena,Jihovýchod,Curious Explorers,AI Tutor,36,55,65,63,55,1.176,TRUE
+R0318,65+,žena,Severovýchod,Parent-guided Teens,Coach,62,86,83,76,77,0.995,TRUE
+R0319,65+,žena,Střední Čechy,Gamified Learners,Challenge,57,81,73,50,65,0.796,TRUE
+R0320,30–44,muž,Severovýchod,Gamified Learners,Challenge,59,53,86,50,62,1.218,TRUE
+R0321,18–29,žena,Jihovýchod,Gamified Learners,Challenge,57,89,48,48,60,1.18,TRUE
+R0322,30–44,žena,Jihozápad,Curious Explorers,AI Tutor,32,45,52,72,50,1.182,TRUE
+R0323,30–44,muž,Střední Čechy,Goal-driven Students,Coach,58,65,80,82,71,1.122,TRUE
+R0324,45–64,žena,Praha,Curious Explorers,AI Tutor,55,80,74,65,68,0.926,TRUE
+R0325,45–64,žena,Jihozápad,Curious Explorers,AI Tutor,40,77,68,41,56,1.009,TRUE
+R0326,30–44,muž,Střední Morava,Gamified Learners,Challenge,61,90,57,76,71,1.136,TRUE
+R0327,18–29,žena,Jihozápad,Goal-driven Students,Coach,40,72,51,82,61,0.809,TRUE
+R0328,18–29,žena,Praha,Goal-driven Students,Coach,34,86,56,41,54,1.064,TRUE
+R0329,30–44,muž,Moravskoslezsko,Curious Explorers,AI Tutor,61,64,51,67,61,0.862,TRUE
+R0330,65+,žena,Jihovýchod,Structure Seekers,Coach,64,48,66,56,58,0.89,TRUE
+R0331,30–44,žena,Severovýchod,Structure Seekers,Coach,44,49,69,75,59,1.172,TRUE
+R0332,30–44,žena,Střední Morava,Gamified Learners,Challenge,64,56,64,62,62,1.239,TRUE
+R0333,65+,žena,Jihovýchod,Goal-driven Students,Coach,56,71,79,58,66,1.023,TRUE
+R0334,18–29,muž,Jihovýchod,Curious Explorers,AI Tutor,39,57,78,87,65,0.895,TRUE
+R0335,45–64,muž,Praha,Goal-driven Students,Coach,65,51,85,55,64,0.925,TRUE
+R0336,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,55,81,63,48,62,1.186,TRUE
+R0337,30–44,žena,Praha,Structure Seekers,Coach,40,74,57,62,58,1.147,TRUE
+R0338,18–29,muž,Severozápad,Curious Explorers,AI Tutor,63,87,90,84,81,0.962,TRUE
+R0339,18–29,muž,Střední Čechy,Gamified Learners,Challenge,55,69,56,82,66,0.883,TRUE
+R0340,30–44,muž,Střední Morava,Curious Explorers,AI Tutor,37,74,53,53,54,0.858,TRUE
+R0341,65+,muž,Jihovýchod,Structure Seekers,Coach,58,47,81,55,60,0.847,TRUE
+R0342,65+,žena,Moravskoslezsko,Goal-driven Students,Coach,50,51,61,84,62,1.039,TRUE
+R0343,65+,žena,Jihozápad,Structure Seekers,Coach,60,83,45,77,66,0.97,TRUE
+R0344,18–29,žena,Severovýchod,Goal-driven Students,Coach,46,78,69,36,57,1.088,TRUE
+R0345,45–64,muž,Severozápad,Goal-driven Students,Coach,60,61,51,42,54,0.918,TRUE
+R0346,45–64,muž,Moravskoslezsko,Goal-driven Students,Coach,35,50,48,42,44,0.951,TRUE
+R0347,30–44,muž,Moravskoslezsko,Parent-guided Teens,Coach,56,47,61,46,52,1.079,TRUE
+R0348,30–44,muž,Jihozápad,Structure Seekers,Coach,52,66,79,83,70,0.782,TRUE
+R0349,30–44,muž,Severozápad,Curious Explorers,AI Tutor,46,79,77,81,71,1.194,TRUE
+R0350,30–44,žena,Moravskoslezsko,Curious Explorers,AI Tutor,40,67,74,53,58,0.76,TRUE
+R0351,65+,muž,Jihovýchod,Goal-driven Students,Coach,50,89,58,87,71,0.969,TRUE
+R0352,65+,muž,Střední Čechy,Goal-driven Students,Coach,30,58,82,59,57,0.842,TRUE
+R0353,18–29,žena,Jihozápad,Structure Seekers,Coach,58,49,85,63,64,0.836,TRUE
+R0354,30–44,žena,Moravskoslezsko,Parent-guided Teens,Coach,66,72,82,45,66,1.184,TRUE
+R0355,45–64,muž,Praha,Parent-guided Teens,Coach,60,62,47,59,57,0.815,TRUE
+R0356,65+,muž,Severozápad,Structure Seekers,Coach,66,47,87,64,66,1.04,TRUE
+R0357,30–44,muž,Střední Čechy,Gamified Learners,Challenge,55,75,46,82,64,1.005,TRUE
+R0358,18–29,muž,Praha,Parent-guided Teens,Coach,60,54,70,46,58,1.033,TRUE
+R0359,45–64,žena,Střední Morava,Curious Explorers,AI Tutor,65,81,67,85,74,1.034,TRUE
+R0360,18–29,žena,Praha,Curious Explorers,AI Tutor,43,56,87,71,64,1.114,TRUE
+R0361,45–64,žena,Střední Morava,Curious Explorers,AI Tutor,55,61,84,66,66,1.029,TRUE
+R0362,65+,muž,Severozápad,Structure Seekers,Coach,41,67,45,78,58,0.876,TRUE
+R0363,18–29,žena,Severozápad,Gamified Learners,Challenge,60,70,73,41,61,1.228,TRUE
+R0364,45–64,muž,Severovýchod,Curious Explorers,AI Tutor,57,66,46,48,54,1.061,TRUE
+R0365,18–29,muž,Moravskoslezsko,Curious Explorers,AI Tutor,44,48,69,78,60,0.845,TRUE
+R0366,65+,muž,Praha,Curious Explorers,AI Tutor,40,63,52,37,48,1.002,TRUE
+R0367,45–64,žena,Jihovýchod,Structure Seekers,Coach,66,70,63,72,68,0.972,TRUE
+R0368,45–64,muž,Severozápad,Curious Explorers,AI Tutor,56,73,66,64,65,1.076,TRUE
+R0369,45–64,muž,Moravskoslezsko,Gamified Learners,Challenge,57,68,74,76,69,0.916,TRUE
+R0370,45–64,muž,Jihovýchod,Goal-driven Students,Coach,55,68,86,37,62,1.079,TRUE
+R0371,30–44,muž,Severovýchod,Gamified Learners,Challenge,38,65,88,81,68,0.993,TRUE
+R0372,45–64,muž,Střední Morava,Curious Explorers,AI Tutor,37,49,60,76,56,0.771,TRUE
+R0373,30–44,muž,Severovýchod,Goal-driven Students,Coach,65,62,47,71,61,0.911,TRUE
+R0374,65+,žena,Střední Čechy,Structure Seekers,Coach,33,86,90,39,62,0.827,TRUE
+R0375,65+,žena,Moravskoslezsko,Structure Seekers,Coach,57,57,62,58,58,0.761,TRUE
+R0376,30–44,muž,Moravskoslezsko,Curious Explorers,AI Tutor,45,90,56,59,62,1.127,TRUE
+R0377,65+,žena,Praha,Structure Seekers,Coach,45,90,51,74,65,1.012,TRUE
+R0378,65+,muž,Praha,Goal-driven Students,Coach,57,52,49,78,59,1.141,TRUE
+R0379,30–44,muž,Severovýchod,Goal-driven Students,Coach,45,85,62,49,60,1.093,TRUE
+R0380,45–64,žena,Praha,Structure Seekers,Coach,37,78,85,81,70,0.869,TRUE
+R0381,45–64,žena,Střední Čechy,Goal-driven Students,Coach,56,86,64,73,70,0.966,TRUE
+R0382,30–44,muž,Severovýchod,Curious Explorers,AI Tutor,35,49,79,45,52,0.959,TRUE
+R0383,45–64,žena,Jihozápad,Goal-driven Students,Coach,56,52,48,53,52,1.235,TRUE
+R0384,65+,muž,Střední Morava,Goal-driven Students,Coach,57,62,76,54,62,0.806,TRUE
+R0385,30–44,muž,Střední Morava,Goal-driven Students,Coach,57,88,82,85,78,1.24,TRUE
+R0386,18–29,žena,Střední Čechy,Goal-driven Students,Coach,48,77,46,38,52,0.957,TRUE
+R0387,65+,žena,Jihovýchod,Curious Explorers,AI Tutor,39,63,66,83,63,1.16,TRUE
+R0388,18–29,muž,Jihozápad,Structure Seekers,Coach,58,68,70,60,64,0.796,TRUE
+R0389,45–64,muž,Střední Čechy,Structure Seekers,Coach,50,72,75,56,63,1.189,TRUE
+R0390,30–44,muž,Praha,Structure Seekers,Coach,56,62,81,79,70,1.216,TRUE
+R0391,18–29,muž,Moravskoslezsko,Parent-guided Teens,Coach,31,65,71,36,51,0.86,TRUE
+R0392,65+,muž,Severozápad,Parent-guided Teens,Coach,30,68,54,87,60,0.889,TRUE
+R0393,45–64,muž,Střední Čechy,Structure Seekers,Coach,57,59,71,83,68,0.888,TRUE
+R0394,65+,žena,Střední Morava,Structure Seekers,Coach,30,77,66,62,59,1.199,TRUE
+R0395,30–44,muž,Jihozápad,Curious Explorers,AI Tutor,66,63,72,59,65,1.164,TRUE
+R0396,45–64,žena,Jihovýchod,Gamified Learners,Challenge,41,75,70,80,66,1.125,TRUE
+R0397,65+,muž,Střední Čechy,Gamified Learners,Challenge,63,62,76,39,60,1.102,TRUE
+R0398,45–64,muž,Severovýchod,Curious Explorers,AI Tutor,55,46,53,70,56,1.042,TRUE
+R0399,45–64,žena,Severovýchod,Goal-driven Students,Coach,52,74,53,53,58,1.142,TRUE
+R0400,18–29,žena,Střední Morava,Curious Explorers,AI Tutor,49,70,84,89,73,0.785,TRUE
+R0401,30–44,žena,Praha,Curious Explorers,AI Tutor,45,75,60,78,64,0.753,TRUE
+R0402,18–29,žena,Jihovýchod,Curious Explorers,AI Tutor,52,83,55,57,62,1.044,TRUE
+R0403,18–29,žena,Severozápad,Gamified Learners,Challenge,33,56,74,83,62,1.005,TRUE
+R0404,65+,muž,Severozápad,Goal-driven Students,Coach,63,72,63,85,71,1.16,TRUE
+R0405,30–44,žena,Moravskoslezsko,Structure Seekers,Coach,57,50,80,67,64,0.828,TRUE
+R0406,45–64,žena,Severovýchod,Structure Seekers,Coach,66,50,62,51,57,0.766,TRUE
+R0407,45–64,žena,Jihovýchod,Curious Explorers,AI Tutor,53,55,68,42,54,0.803,TRUE
+R0408,65+,muž,Moravskoslezsko,Curious Explorers,AI Tutor,40,53,45,88,56,0.869,TRUE
+R0409,65+,žena,Střední Čechy,Curious Explorers,AI Tutor,55,71,66,45,59,1.198,TRUE
+R0410,18–29,žena,Severovýchod,Goal-driven Students,Coach,58,62,69,87,69,0.823,TRUE
+R0411,30–44,muž,Praha,Gamified Learners,Challenge,63,72,69,50,64,0.98,TRUE
+R0412,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,38,63,70,35,52,0.836,TRUE
+R0413,45–64,muž,Moravskoslezsko,Curious Explorers,AI Tutor,57,87,54,90,72,1.126,TRUE
+R0414,30–44,žena,Střední Čechy,Gamified Learners,Challenge,38,78,70,62,62,0.937,TRUE
+R0415,45–64,muž,Jihovýchod,Curious Explorers,AI Tutor,35,45,69,62,53,0.906,TRUE
+R0416,18–29,muž,Moravskoslezsko,Structure Seekers,Coach,38,47,61,49,49,1.181,TRUE
+R0417,18–29,muž,Střední Morava,Goal-driven Students,Coach,31,67,79,76,63,1.005,TRUE
+R0418,65+,žena,Severozápad,Curious Explorers,AI Tutor,49,81,53,83,66,1.073,TRUE
+R0419,30–44,žena,Střední Čechy,Gamified Learners,Challenge,38,70,60,51,55,1.189,TRUE
+R0420,18–29,žena,Jihozápad,Goal-driven Students,Coach,42,67,75,39,56,1.221,TRUE
+R0421,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,32,84,50,85,63,0.908,TRUE
+R0422,30–44,žena,Jihozápad,Structure Seekers,Coach,32,50,68,88,60,0.998,TRUE
+R0423,30–44,muž,Severovýchod,Gamified Learners,Challenge,35,47,75,59,54,1.211,TRUE
+R0424,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,66,61,81,90,74,1.185,TRUE
+R0425,18–29,muž,Střední Čechy,Parent-guided Teens,Coach,39,60,81,81,65,1.124,TRUE
+R0426,65+,žena,Jihovýchod,Gamified Learners,Challenge,35,48,74,88,61,1.223,TRUE
+R0427,18–29,muž,Severozápad,Goal-driven Students,Coach,37,65,51,86,60,1.151,TRUE
+R0428,45–64,muž,Severozápad,Curious Explorers,AI Tutor,66,88,65,65,71,1.015,TRUE
+R0429,30–44,muž,Střední Morava,Goal-driven Students,Coach,56,86,57,37,59,1.049,TRUE
+R0430,45–64,žena,Severozápad,Goal-driven Students,Coach,66,65,85,63,70,0.775,TRUE
+R0431,45–64,žena,Střední Morava,Goal-driven Students,Coach,33,82,85,48,62,1.179,TRUE
+R0432,30–44,žena,Jihozápad,Gamified Learners,Challenge,47,80,76,52,64,1.114,TRUE
+R0433,30–44,muž,Moravskoslezsko,Goal-driven Students,Coach,31,77,80,57,61,1.054,TRUE
+R0434,30–44,muž,Severovýchod,Parent-guided Teens,Coach,59,72,89,87,77,0.8,TRUE
+R0435,30–44,žena,Střední Čechy,Curious Explorers,AI Tutor,36,84,82,46,62,1.025,TRUE
+R0436,45–64,muž,Střední Čechy,Curious Explorers,AI Tutor,45,89,74,41,62,0.858,TRUE
+R0437,45–64,žena,Střední Morava,Curious Explorers,AI Tutor,64,49,82,67,66,1.239,TRUE
+R0438,65+,žena,Jihovýchod,Structure Seekers,Coach,60,59,77,64,65,1.006,TRUE
+R0439,18–29,muž,Jihovýchod,Curious Explorers,AI Tutor,65,66,52,52,59,0.762,TRUE
+R0440,45–64,muž,Severovýchod,Goal-driven Students,Coach,44,56,53,53,52,1.167,TRUE
+R0441,18–29,žena,Jihovýchod,Gamified Learners,Challenge,55,52,75,61,61,0.898,TRUE
+R0442,45–64,žena,Jihovýchod,Goal-driven Students,Coach,33,89,50,66,60,0.803,TRUE
+R0443,18–29,muž,Jihozápad,Structure Seekers,Coach,58,90,58,45,63,1.1,TRUE
+R0444,45–64,muž,Praha,Goal-driven Students,Coach,57,58,60,46,55,1.158,TRUE
+R0445,18–29,žena,Střední Čechy,Gamified Learners,Challenge,61,87,51,55,64,1.199,TRUE
+R0446,65+,muž,Severozápad,Parent-guided Teens,Coach,35,52,64,37,47,0.968,TRUE
+R0447,30–44,muž,Praha,Gamified Learners,Challenge,42,65,63,53,56,0.854,TRUE
+R0448,18–29,žena,Praha,Structure Seekers,Coach,51,71,54,55,58,0.882,TRUE
+R0449,18–29,muž,Praha,Goal-driven Students,Coach,53,52,46,38,47,0.94,TRUE
+R0450,65+,žena,Praha,Goal-driven Students,Coach,44,76,78,35,58,0.872,TRUE
+R0451,65+,muž,Severovýchod,Gamified Learners,Challenge,41,71,84,43,60,1.035,TRUE
+R0452,30–44,muž,Jihovýchod,Structure Seekers,Coach,60,83,56,47,62,1.198,TRUE
+R0453,18–29,žena,Severozápad,Curious Explorers,AI Tutor,59,45,71,55,58,0.897,TRUE
+R0454,45–64,žena,Střední Čechy,Gamified Learners,Challenge,55,83,63,73,68,1.067,TRUE
+R0455,65+,žena,Severovýchod,Goal-driven Students,Coach,49,71,90,63,68,0.833,TRUE
+R0456,45–64,žena,Střední Morava,Goal-driven Students,Coach,50,47,53,82,58,0.899,TRUE
+R0457,65+,muž,Jihozápad,Goal-driven Students,Coach,65,72,65,54,64,0.919,TRUE
+R0458,18–29,muž,Praha,Goal-driven Students,Coach,61,77,57,40,59,0.826,TRUE
+R0459,18–29,žena,Jihozápad,Goal-driven Students,Coach,64,59,61,48,58,1.113,TRUE
+R0460,18–29,muž,Praha,Parent-guided Teens,Coach,57,57,66,74,64,0.8,TRUE
+R0461,65+,žena,Moravskoslezsko,Goal-driven Students,Coach,43,48,59,83,58,1.153,TRUE
+R0462,18–29,muž,Střední Morava,Curious Explorers,AI Tutor,43,48,72,58,55,0.877,TRUE
+R0463,65+,muž,Severovýchod,Gamified Learners,Challenge,42,78,86,46,63,0.811,TRUE
+R0464,45–64,žena,Jihozápad,Curious Explorers,AI Tutor,39,77,78,87,70,1.156,TRUE
+R0465,18–29,žena,Střední Čechy,Goal-driven Students,Coach,44,70,59,55,57,0.849,TRUE
+R0466,45–64,žena,Praha,Gamified Learners,Challenge,30,58,78,42,52,1.158,TRUE
+R0467,45–64,muž,Jihovýchod,Goal-driven Students,Coach,54,49,63,62,57,0.823,TRUE
+R0468,30–44,žena,Střední Čechy,Structure Seekers,Coach,33,74,66,89,66,0.962,TRUE
+R0469,18–29,žena,Praha,Goal-driven Students,Coach,63,86,88,81,80,0.837,TRUE
+R0470,18–29,muž,Moravskoslezsko,Goal-driven Students,Coach,33,59,48,47,47,0.76,TRUE
+R0471,18–29,muž,Moravskoslezsko,Structure Seekers,Coach,48,65,76,47,59,1.209,TRUE
+R0472,18–29,muž,Severovýchod,Structure Seekers,Coach,49,80,52,82,66,1.174,TRUE
+R0473,18–29,muž,Střední Čechy,Goal-driven Students,Coach,57,60,75,40,58,1.152,TRUE
+R0474,65+,žena,Praha,Goal-driven Students,Coach,65,69,86,54,68,0.812,TRUE
+R0475,45–64,žena,Moravskoslezsko,Structure Seekers,Coach,53,72,55,64,61,0.944,TRUE
+R0476,45–64,muž,Praha,Gamified Learners,Challenge,35,75,90,70,68,0.775,TRUE
+R0477,30–44,žena,Severozápad,Structure Seekers,Coach,35,87,74,70,66,1.247,TRUE
+R0478,30–44,muž,Severovýchod,Curious Explorers,AI Tutor,52,62,46,78,60,1.24,TRUE
+R0479,18–29,muž,Severovýchod,Parent-guided Teens,Coach,54,47,56,43,50,1.239,TRUE
+R0480,45–64,žena,Severozápad,Structure Seekers,Coach,62,88,57,46,63,1.002,TRUE
+R0481,18–29,žena,Jihovýchod,Goal-driven Students,Coach,53,90,46,50,60,1.216,TRUE
+R0482,30–44,muž,Severovýchod,Goal-driven Students,Coach,61,61,79,63,66,1.035,TRUE
+R0483,18–29,muž,Jihozápad,Goal-driven Students,Coach,37,76,85,72,68,0.927,TRUE
+R0484,18–29,žena,Severovýchod,Gamified Learners,Challenge,36,72,68,61,59,0.784,TRUE
+R0485,65+,muž,Severozápad,Gamified Learners,Challenge,66,68,76,46,64,1.004,TRUE
+R0486,45–64,muž,Střední Čechy,Structure Seekers,Coach,41,67,71,49,57,1.06,TRUE
+R0487,65+,muž,Střední Čechy,Curious Explorers,AI Tutor,57,64,66,73,65,0.92,TRUE
+R0488,18–29,žena,Moravskoslezsko,Curious Explorers,AI Tutor,37,87,70,38,58,0.819,TRUE
+R0489,45–64,žena,Jihovýchod,Goal-driven Students,Coach,43,82,62,53,60,1.046,TRUE
+R0490,18–29,žena,Střední Čechy,Parent-guided Teens,Coach,58,53,52,54,54,0.829,TRUE
+R0491,45–64,žena,Střední Morava,Parent-guided Teens,Coach,49,70,63,55,59,1.203,TRUE
+R0492,45–64,žena,Střední Čechy,Structure Seekers,Coach,38,75,63,73,62,1.195,TRUE
+R0493,18–29,muž,Praha,Gamified Learners,Challenge,54,51,67,58,58,0.832,TRUE
+R0494,30–44,muž,Moravskoslezsko,Structure Seekers,Coach,58,45,84,55,60,1.149,TRUE
+R0495,45–64,muž,Jihozápad,Curious Explorers,AI Tutor,51,89,74,47,65,1.118,TRUE
+R0496,30–44,žena,Jihovýchod,Curious Explorers,AI Tutor,44,53,60,48,51,1.048,TRUE
+R0497,45–64,muž,Praha,Structure Seekers,Coach,42,86,51,38,54,1.227,TRUE
+R0498,45–64,žena,Střední Čechy,Structure Seekers,Coach,56,84,50,56,62,0.856,TRUE
+R0499,45–64,muž,Střední Čechy,Structure Seekers,Coach,30,57,63,53,51,0.978,TRUE
+R0500,65+,muž,Jihozápad,Structure Seekers,Coach,66,46,73,61,62,0.882,TRUE
+R0501,30–44,žena,Jihozápad,Curious Explorers,AI Tutor,31,88,50,84,63,0.757,TRUE
+R0502,45–64,muž,Střední Čechy,Gamified Learners,Challenge,39,66,75,89,67,0.759,TRUE
+R0503,18–29,muž,Střední Čechy,Goal-driven Students,Coach,61,81,86,78,76,1.173,TRUE
+R0504,65+,žena,Jihovýchod,Goal-driven Students,Coach,57,66,85,69,69,1.034,TRUE
+R0505,18–29,muž,Moravskoslezsko,Curious Explorers,AI Tutor,59,71,81,68,70,1.123,TRUE
+R0506,65+,muž,Střední Čechy,Curious Explorers,AI Tutor,57,69,80,44,62,0.815,TRUE
+R0507,45–64,žena,Praha,Curious Explorers,AI Tutor,60,89,80,58,72,0.941,TRUE
+R0508,45–64,žena,Jihovýchod,Parent-guided Teens,Coach,41,79,66,90,69,1.002,TRUE
+R0509,45–64,žena,Severozápad,Goal-driven Students,Coach,32,62,88,52,58,1.222,TRUE
+R0510,30–44,žena,Střední Čechy,Goal-driven Students,Coach,43,74,83,53,63,1.183,TRUE
+R0511,45–64,muž,Severovýchod,Goal-driven Students,Coach,34,45,59,69,52,0.803,TRUE
+R0512,45–64,žena,Severovýchod,Structure Seekers,Coach,42,56,84,90,68,1.084,TRUE
+R0513,18–29,muž,Moravskoslezsko,Goal-driven Students,Coach,56,53,82,88,70,0.978,TRUE
+R0514,45–64,muž,Střední Čechy,Goal-driven Students,Coach,37,62,69,58,56,0.972,TRUE
+R0515,30–44,muž,Severovýchod,Parent-guided Teens,Coach,49,72,50,46,54,0.984,TRUE
+R0516,30–44,žena,Praha,Gamified Learners,Challenge,31,81,74,74,65,0.791,TRUE
+R0517,45–64,žena,Střední Morava,Goal-driven Students,Coach,65,79,79,86,77,0.816,TRUE
+R0518,45–64,muž,Jihozápad,Parent-guided Teens,Coach,65,54,71,51,60,0.902,TRUE
+R0519,45–64,žena,Moravskoslezsko,Curious Explorers,AI Tutor,49,64,48,84,61,1.222,TRUE
+R0520,30–44,muž,Střední Čechy,Structure Seekers,Coach,36,90,65,69,65,1.073,TRUE
+R0521,18–29,muž,Jihozápad,Goal-driven Students,Coach,57,56,58,49,55,0.907,TRUE
+R0522,30–44,muž,Praha,Goal-driven Students,Coach,43,45,70,47,51,1.156,TRUE
+R0523,45–64,muž,Jihovýchod,Goal-driven Students,Coach,55,90,75,35,64,1.089,TRUE
+R0524,30–44,žena,Severovýchod,Parent-guided Teens,Coach,36,47,49,88,55,1.019,TRUE
+R0525,30–44,žena,Střední Morava,Structure Seekers,Coach,35,49,58,86,57,1.001,TRUE
+R0526,45–64,muž,Severozápad,Structure Seekers,Coach,35,83,72,76,66,0.844,TRUE
+R0527,45–64,muž,Jihovýchod,Gamified Learners,Challenge,42,88,66,55,63,0.769,TRUE
+R0528,18–29,muž,Střední Čechy,Gamified Learners,Challenge,40,87,68,45,60,0.997,TRUE
+R0529,18–29,muž,Moravskoslezsko,Goal-driven Students,Coach,54,48,73,87,66,0.852,TRUE
+R0530,18–29,žena,Jihovýchod,Curious Explorers,AI Tutor,60,82,60,77,70,0.942,TRUE
+R0531,18–29,muž,Praha,Parent-guided Teens,Coach,39,81,70,55,61,0.844,TRUE
+R0532,65+,muž,Jihovýchod,Goal-driven Students,Coach,64,51,82,41,60,0.771,TRUE
+R0533,30–44,muž,Praha,Curious Explorers,AI Tutor,44,69,84,85,70,0.931,TRUE
+R0534,45–64,žena,Severozápad,Parent-guided Teens,Coach,42,79,63,52,59,1.092,TRUE
+R0535,18–29,muž,Střední Čechy,Gamified Learners,Challenge,40,48,79,89,64,1.152,TRUE
+R0536,45–64,žena,Severozápad,Parent-guided Teens,Coach,54,80,52,79,66,1.038,TRUE
+R0537,18–29,žena,Střední Čechy,Curious Explorers,AI Tutor,48,87,80,39,64,0.914,TRUE
+R0538,18–29,žena,Střední Morava,Curious Explorers,AI Tutor,43,49,63,72,57,1.159,TRUE
+R0539,45–64,žena,Praha,Parent-guided Teens,Coach,33,77,89,53,63,0.922,TRUE
+R0540,45–64,muž,Střední Čechy,Curious Explorers,AI Tutor,38,62,67,76,61,0.956,TRUE
+R0541,18–29,žena,Severozápad,Goal-driven Students,Coach,57,78,54,67,64,0.901,TRUE
+R0542,18–29,muž,Střední Čechy,Structure Seekers,Coach,54,75,69,69,67,1.077,TRUE
+R0543,18–29,žena,Jihozápad,Goal-driven Students,Coach,51,50,55,43,50,0.945,TRUE
+R0544,45–64,muž,Severozápad,Structure Seekers,Coach,48,72,69,60,62,1.001,TRUE
+R0545,30–44,žena,Střední Morava,Goal-driven Students,Coach,64,81,67,76,72,0.825,TRUE
+R0546,65+,žena,Jihovýchod,Goal-driven Students,Coach,58,71,64,42,59,0.903,TRUE
+R0547,30–44,žena,Moravskoslezsko,Structure Seekers,Coach,52,80,86,81,75,0.988,TRUE
+R0548,45–64,muž,Severovýchod,Goal-driven Students,Coach,50,70,78,67,66,1.143,TRUE
+R0549,65+,žena,Střední Morava,Structure Seekers,Coach,32,86,51,62,58,1.232,TRUE
+R0550,18–29,muž,Severozápad,Curious Explorers,AI Tutor,55,76,82,85,74,0.785,TRUE
+R0551,65+,muž,Jihovýchod,Gamified Learners,Challenge,39,88,84,87,74,0.767,TRUE
+R0552,30–44,muž,Jihozápad,Parent-guided Teens,Coach,54,46,50,84,58,0.939,TRUE
+R0553,30–44,muž,Severozápad,Goal-driven Students,Coach,62,90,60,66,70,1.174,TRUE
+R0554,45–64,muž,Moravskoslezsko,Structure Seekers,Coach,64,63,54,76,64,1.231,TRUE
+R0555,45–64,žena,Jihozápad,Curious Explorers,AI Tutor,60,88,74,86,77,0.787,TRUE
+R0556,30–44,žena,Střední Čechy,Goal-driven Students,Coach,48,46,75,87,64,1.171,TRUE
+R0557,65+,žena,Severovýchod,Structure Seekers,Coach,44,71,53,45,53,1.078,TRUE
+R0558,18–29,muž,Moravskoslezsko,Structure Seekers,Coach,43,90,85,82,75,0.838,TRUE
+R0559,18–29,muž,Jihovýchod,Structure Seekers,Coach,50,82,73,80,71,1.198,TRUE
+R0560,65+,muž,Jihozápad,Gamified Learners,Challenge,65,66,61,63,64,0.811,TRUE
+R0561,65+,žena,Jihozápad,Gamified Learners,Challenge,46,62,75,80,66,1.12,TRUE
+R0562,65+,žena,Střední Morava,Goal-driven Students,Coach,46,61,59,53,55,1.007,TRUE
+R0563,18–29,žena,Střední Morava,Goal-driven Students,Coach,61,75,52,56,61,0.8,TRUE
+R0564,18–29,žena,Střední Morava,Goal-driven Students,Coach,58,70,66,77,68,1.243,TRUE
+R0565,45–64,žena,Jihozápad,Goal-driven Students,Coach,60,82,69,55,66,0.958,TRUE
+R0566,45–64,žena,Severovýchod,Structure Seekers,Coach,43,46,84,87,65,1.072,TRUE
+R0567,45–64,muž,Jihovýchod,Structure Seekers,Coach,45,76,48,46,54,0.795,TRUE
+R0568,45–64,žena,Střední Morava,Curious Explorers,AI Tutor,64,74,82,43,66,1.074,TRUE
+R0569,45–64,žena,Severovýchod,Gamified Learners,Challenge,58,68,67,73,66,0.769,TRUE
+R0570,18–29,žena,Jihozápad,Goal-driven Students,Coach,56,61,59,52,57,1.149,TRUE
+R0571,65+,muž,Severozápad,Curious Explorers,AI Tutor,39,64,85,65,63,0.947,TRUE
+R0572,65+,muž,Praha,Goal-driven Students,Coach,32,88,57,42,55,1.149,TRUE
+R0573,30–44,muž,Jihovýchod,Curious Explorers,AI Tutor,52,47,46,84,57,0.977,TRUE
+R0574,65+,muž,Moravskoslezsko,Structure Seekers,Coach,51,82,54,78,66,1.241,TRUE
+R0575,18–29,žena,Jihozápad,Structure Seekers,Coach,41,72,87,45,61,1.164,TRUE
+R0576,45–64,žena,Severovýchod,Curious Explorers,AI Tutor,34,58,88,88,67,0.919,TRUE
+R0577,30–44,muž,Praha,Gamified Learners,Challenge,43,83,52,63,60,0.945,TRUE
+R0578,30–44,muž,Severozápad,Goal-driven Students,Coach,39,59,51,59,52,1.128,TRUE
+R0579,18–29,žena,Střední Čechy,Curious Explorers,AI Tutor,49,87,52,36,56,0.92,TRUE
+R0580,30–44,žena,Praha,Goal-driven Students,Coach,50,58,53,56,54,1.153,TRUE
+R0581,65+,muž,Jihozápad,Structure Seekers,Coach,50,46,69,48,53,1.062,TRUE
+R0582,18–29,žena,Praha,Curious Explorers,AI Tutor,44,69,64,66,61,0.881,TRUE
+R0583,45–64,žena,Střední Čechy,Curious Explorers,AI Tutor,64,87,74,55,70,0.772,TRUE
+R0584,18–29,muž,Střední Čechy,Goal-driven Students,Coach,40,83,86,57,66,1.214,TRUE
+R0585,65+,muž,Severozápad,Goal-driven Students,Coach,62,76,86,86,78,0.767,TRUE
+R0586,45–64,muž,Praha,Curious Explorers,AI Tutor,36,62,50,77,56,1.133,TRUE
+R0587,30–44,muž,Jihozápad,Goal-driven Students,Coach,37,65,45,74,55,1.014,TRUE
+R0588,18–29,žena,Severozápad,Curious Explorers,AI Tutor,50,79,58,47,58,1.153,TRUE
+R0589,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,64,79,56,61,65,0.944,TRUE
+R0590,18–29,muž,Severovýchod,Gamified Learners,Challenge,39,51,60,75,56,1.004,TRUE
+R0591,65+,muž,Jihovýchod,Gamified Learners,Challenge,43,77,90,66,69,1.043,TRUE
+R0592,30–44,muž,Praha,Parent-guided Teens,Coach,45,60,76,75,64,1.194,TRUE
+R0593,18–29,žena,Severovýchod,Goal-driven Students,Coach,59,79,90,69,74,0.902,TRUE
+R0594,65+,žena,Severovýchod,Curious Explorers,AI Tutor,47,72,84,65,67,0.907,TRUE
+R0595,18–29,žena,Moravskoslezsko,Structure Seekers,Coach,43,67,50,51,53,0.993,TRUE
+R0596,18–29,žena,Jihovýchod,Structure Seekers,Coach,57,82,49,66,64,1.195,TRUE
+R0597,18–29,muž,Střední Morava,Structure Seekers,Coach,56,52,64,82,64,1.105,TRUE
+R0598,45–64,žena,Moravskoslezsko,Curious Explorers,AI Tutor,49,75,51,87,66,1.08,TRUE
+R0599,18–29,žena,Severovýchod,Curious Explorers,AI Tutor,43,53,49,41,46,1.173,TRUE
+R0600,30–44,muž,Praha,Goal-driven Students,Coach,62,69,75,86,73,1.245,TRUE
+R0601,18–29,žena,Moravskoslezsko,Structure Seekers,Coach,30,72,82,70,64,0.94,TRUE
+R0602,45–64,žena,Severovýchod,Curious Explorers,AI Tutor,32,45,70,51,50,1.01,TRUE
+R0603,30–44,žena,Jihovýchod,Curious Explorers,AI Tutor,42,54,89,78,66,0.862,TRUE
+R0604,30–44,muž,Jihovýchod,Structure Seekers,Coach,64,51,59,78,63,1.113,TRUE
+R0605,18–29,žena,Jihovýchod,Structure Seekers,Coach,46,61,75,49,58,1.109,TRUE
+R0606,30–44,žena,Jihozápad,Structure Seekers,Coach,59,63,58,90,68,0.819,TRUE
+R0607,45–64,muž,Jihovýchod,Gamified Learners,Challenge,40,69,82,36,57,0.76,TRUE
+R0608,65+,žena,Jihozápad,Structure Seekers,Coach,43,82,84,81,72,1.093,TRUE
+R0609,45–64,žena,Jihozápad,Goal-driven Students,Coach,47,64,68,64,61,1.163,TRUE
+R0610,65+,muž,Střední Čechy,Parent-guided Teens,Coach,64,83,61,78,72,0.95,TRUE
+R0611,18–29,muž,Jihozápad,Gamified Learners,Challenge,40,83,88,78,72,1.161,TRUE
+R0612,30–44,muž,Praha,Parent-guided Teens,Coach,47,83,66,56,63,0.943,TRUE
+R0613,65+,muž,Praha,Curious Explorers,AI Tutor,46,52,55,65,54,0.761,TRUE
+R0614,30–44,žena,Střední Čechy,Gamified Learners,Challenge,45,46,63,44,50,0.797,TRUE
+R0615,30–44,muž,Praha,Curious Explorers,AI Tutor,62,66,85,51,66,1.24,TRUE
+R0616,30–44,muž,Jihozápad,Gamified Learners,Challenge,64,75,68,83,72,0.798,TRUE
+R0617,65+,muž,Střední Čechy,Structure Seekers,Coach,66,63,81,80,72,0.79,TRUE
+R0618,30–44,muž,Jihovýchod,Structure Seekers,Coach,60,74,82,50,66,1.074,TRUE
+R0619,65+,žena,Střední Morava,Curious Explorers,AI Tutor,51,55,83,87,69,1.072,TRUE
+R0620,18–29,muž,Severozápad,Structure Seekers,Coach,33,58,46,73,52,1.214,TRUE
+R0621,30–44,žena,Střední Morava,Gamified Learners,Challenge,60,47,61,65,58,1.135,TRUE
+R0622,18–29,muž,Praha,Curious Explorers,AI Tutor,51,55,82,68,64,1.035,TRUE
+R0623,65+,žena,Praha,Structure Seekers,Coach,56,49,59,61,56,0.912,TRUE
+R0624,30–44,muž,Jihovýchod,Structure Seekers,Coach,32,69,48,63,53,0.844,TRUE
+R0625,65+,žena,Praha,Curious Explorers,AI Tutor,56,52,75,36,55,0.888,TRUE
+R0626,45–64,žena,Moravskoslezsko,Curious Explorers,AI Tutor,41,68,52,66,57,1.024,TRUE
+R0627,45–64,muž,Moravskoslezsko,Gamified Learners,Challenge,62,52,57,90,65,1.205,TRUE
+R0628,30–44,muž,Moravskoslezsko,Gamified Learners,Challenge,42,70,58,74,61,0.844,TRUE
+R0629,65+,žena,Severozápad,Goal-driven Students,Coach,63,65,80,48,64,0.809,TRUE
+R0630,65+,muž,Jihozápad,Parent-guided Teens,Coach,63,78,69,46,64,0.972,TRUE
+R0631,18–29,žena,Severozápad,Structure Seekers,Coach,65,59,59,90,68,0.9,TRUE
+R0632,30–44,žena,Střední Čechy,Curious Explorers,AI Tutor,45,70,83,61,65,0.941,TRUE
+R0633,30–44,žena,Praha,Curious Explorers,AI Tutor,37,49,72,74,58,0.866,TRUE
+R0634,18–29,žena,Praha,Goal-driven Students,Coach,56,51,66,35,52,1.017,TRUE
+R0635,18–29,žena,Severozápad,Curious Explorers,AI Tutor,54,72,46,62,58,1.249,TRUE
+R0636,45–64,muž,Střední Morava,Gamified Learners,Challenge,56,82,55,66,65,1.045,TRUE
+R0637,18–29,žena,Jihozápad,Goal-driven Students,Coach,60,80,62,79,70,0.796,TRUE
+R0638,18–29,muž,Severozápad,Curious Explorers,AI Tutor,33,69,47,59,52,0.889,TRUE
+R0639,30–44,žena,Střední Morava,Goal-driven Students,Coach,33,66,46,73,54,1.18,TRUE
+R0640,30–44,muž,Jihovýchod,Structure Seekers,Coach,61,69,67,62,65,0.941,TRUE
+R0641,45–64,muž,Moravskoslezsko,Gamified Learners,Challenge,59,53,90,44,62,1.163,TRUE
+R0642,30–44,žena,Jihovýchod,Goal-driven Students,Coach,61,88,65,65,70,0.876,TRUE
+R0643,30–44,muž,Jihovýchod,Goal-driven Students,Coach,58,80,72,38,62,0.976,TRUE
+R0644,18–29,žena,Střední Čechy,Parent-guided Teens,Coach,30,84,72,47,58,1.072,TRUE
+R0645,30–44,žena,Střední Morava,Goal-driven Students,Coach,35,59,67,75,59,1.228,TRUE
+R0646,18–29,muž,Moravskoslezsko,Goal-driven Students,Coach,43,45,57,77,56,0.993,TRUE
+R0647,18–29,muž,Moravskoslezsko,Structure Seekers,Coach,37,59,53,85,58,0.99,TRUE
+R0648,18–29,muž,Jihovýchod,Structure Seekers,Coach,61,81,58,64,66,1.091,TRUE
+R0649,18–29,žena,Střední Čechy,Goal-driven Students,Coach,42,78,53,71,61,0.892,TRUE
+R0650,65+,muž,Moravskoslezsko,Structure Seekers,Coach,49,46,50,47,48,1.243,TRUE
+R0651,65+,žena,Severovýchod,Curious Explorers,AI Tutor,30,86,57,56,57,0.869,TRUE
+R0652,45–64,žena,Severovýchod,Curious Explorers,AI Tutor,34,64,89,62,62,1.218,TRUE
+R0653,18–29,muž,Severovýchod,Curious Explorers,AI Tutor,66,76,89,56,72,1.023,TRUE
+R0654,18–29,žena,Jihovýchod,Curious Explorers,AI Tutor,50,51,81,43,56,1.099,TRUE
+R0655,65+,muž,Střední Morava,Goal-driven Students,Coach,37,50,50,65,50,1.017,TRUE
+R0656,30–44,žena,Moravskoslezsko,Parent-guided Teens,Coach,65,58,81,60,66,0.971,TRUE
+R0657,18–29,žena,Severozápad,Curious Explorers,AI Tutor,50,74,78,47,62,0.791,TRUE
+R0658,18–29,žena,Severovýchod,Curious Explorers,AI Tutor,54,70,67,64,64,1.127,TRUE
+R0659,18–29,muž,Jihozápad,Structure Seekers,Coach,49,66,57,69,60,1.048,TRUE
+R0660,18–29,žena,Střední Čechy,Structure Seekers,Coach,38,89,63,76,66,1.082,TRUE
+R0661,18–29,žena,Moravskoslezsko,Parent-guided Teens,Coach,33,66,74,84,64,0.807,TRUE
+R0662,65+,muž,Severozápad,Structure Seekers,Coach,53,80,53,61,62,0.961,TRUE
+R0663,18–29,žena,Jihozápad,Parent-guided Teens,Coach,55,51,47,66,55,0.868,TRUE
+R0664,65+,žena,Praha,Goal-driven Students,Coach,62,70,78,76,72,0.871,TRUE
+R0665,65+,žena,Severovýchod,Gamified Learners,Challenge,43,88,60,35,56,0.929,TRUE
+R0666,65+,muž,Moravskoslezsko,Gamified Learners,Challenge,46,64,84,52,62,1.079,TRUE
+R0667,65+,žena,Střední Morava,Gamified Learners,Challenge,50,53,65,60,57,1.106,TRUE
+R0668,30–44,žena,Jihozápad,Goal-driven Students,Coach,63,49,81,79,68,1.105,TRUE
+R0669,45–64,žena,Jihovýchod,Curious Explorers,AI Tutor,52,60,63,86,65,1.008,TRUE
+R0670,30–44,žena,Jihovýchod,Gamified Learners,Challenge,63,61,49,78,63,1.114,TRUE
+R0671,30–44,žena,Střední Morava,Parent-guided Teens,Coach,48,82,68,81,70,1.192,TRUE
+R0672,65+,žena,Praha,Curious Explorers,AI Tutor,58,53,67,84,66,0.834,TRUE
+R0673,18–29,žena,Střední Čechy,Gamified Learners,Challenge,57,69,63,54,61,1.148,TRUE
+R0674,45–64,žena,Severovýchod,Curious Explorers,AI Tutor,48,55,75,85,66,0.907,TRUE
+R0675,45–64,žena,Střední Čechy,Goal-driven Students,Coach,30,62,47,48,47,0.767,TRUE
+R0676,30–44,žena,Střední Čechy,Goal-driven Students,Coach,63,78,49,36,56,1.228,TRUE
+R0677,18–29,muž,Severovýchod,Goal-driven Students,Coach,31,90,86,80,72,1.201,TRUE
+R0678,30–44,žena,Střední Čechy,Gamified Learners,Challenge,53,88,81,47,67,1.061,TRUE
+R0679,45–64,žena,Střední Čechy,Curious Explorers,AI Tutor,44,87,63,68,66,1.183,TRUE
+R0680,45–64,muž,Moravskoslezsko,Goal-driven Students,Coach,50,71,62,76,65,1.158,TRUE
+R0681,65+,žena,Moravskoslezsko,Parent-guided Teens,Coach,59,46,64,88,64,1.015,TRUE
+R0682,30–44,muž,Severozápad,Goal-driven Students,Coach,64,59,62,72,64,0.775,TRUE
+R0683,65+,muž,Střední Čechy,Goal-driven Students,Coach,61,51,89,75,69,1.173,TRUE
+R0684,18–29,žena,Střední Čechy,Goal-driven Students,Coach,58,71,84,90,76,1.246,TRUE
+R0685,65+,žena,Praha,Curious Explorers,AI Tutor,51,63,84,73,68,0.956,TRUE
+R0686,18–29,muž,Praha,Structure Seekers,Coach,63,78,57,54,63,1.184,TRUE
+R0687,45–64,muž,Střední Morava,Curious Explorers,AI Tutor,52,64,46,68,58,0.829,TRUE
+R0688,45–64,žena,Střední Morava,Goal-driven Students,Coach,43,59,89,60,63,0.939,TRUE
+R0689,30–44,muž,Střední Morava,Gamified Learners,Challenge,40,51,89,56,59,1.083,TRUE
+R0690,65+,muž,Střední Morava,Goal-driven Students,Coach,47,67,83,47,61,1.009,TRUE
+R0691,18–29,žena,Severozápad,Goal-driven Students,Coach,35,76,70,90,68,0.998,TRUE
+R0692,45–64,muž,Praha,Structure Seekers,Coach,33,79,53,35,50,1.069,TRUE
+R0693,65+,muž,Severovýchod,Goal-driven Students,Coach,35,85,85,79,71,0.791,TRUE
+R0694,18–29,muž,Jihozápad,Structure Seekers,Coach,41,45,49,64,50,0.956,TRUE
+R0695,30–44,žena,Střední Čechy,Curious Explorers,AI Tutor,33,75,50,35,48,0.753,TRUE
+R0696,65+,muž,Praha,Goal-driven Students,Coach,36,82,74,77,67,1.046,TRUE
+R0697,65+,muž,Severovýchod,Curious Explorers,AI Tutor,35,63,77,61,59,0.907,TRUE
+R0698,65+,žena,Střední Čechy,Goal-driven Students,Coach,56,74,70,80,70,0.905,TRUE
+R0699,45–64,žena,Jihovýchod,Goal-driven Students,Coach,34,89,45,80,62,1.096,TRUE
+R0700,45–64,muž,Jihozápad,Goal-driven Students,Coach,58,60,57,52,57,0.94,TRUE
+R0701,65+,žena,Střední Čechy,Gamified Learners,Challenge,59,82,89,38,67,0.927,TRUE
+R0702,30–44,žena,Jihozápad,Structure Seekers,Coach,46,90,60,70,66,0.763,TRUE
+R0703,30–44,žena,Jihozápad,Structure Seekers,Coach,56,54,48,80,60,1.136,TRUE
+R0704,18–29,žena,Severovýchod,Goal-driven Students,Coach,34,74,83,73,66,0.877,TRUE
+R0705,30–44,muž,Jihozápad,Goal-driven Students,Coach,56,56,90,76,70,1.03,TRUE
+R0706,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,63,87,74,51,69,0.824,TRUE
+R0707,18–29,žena,Střední Morava,Curious Explorers,AI Tutor,64,80,82,81,77,0.809,TRUE
+R0708,18–29,muž,Moravskoslezsko,Goal-driven Students,Coach,36,75,69,77,64,1.088,TRUE
+R0709,65+,muž,Střední Čechy,Structure Seekers,Coach,62,57,60,85,66,1.217,TRUE
+R0710,45–64,žena,Severovýchod,Structure Seekers,Coach,64,45,75,45,57,1.17,TRUE
+R0711,30–44,žena,Moravskoslezsko,Curious Explorers,AI Tutor,52,86,57,84,70,1.135,TRUE
+R0712,30–44,žena,Severovýchod,Parent-guided Teens,Coach,64,59,46,86,64,0.779,TRUE
+R0713,30–44,muž,Jihozápad,Curious Explorers,AI Tutor,59,84,48,85,69,1.159,TRUE
+R0714,30–44,žena,Severovýchod,Goal-driven Students,Coach,50,89,84,45,67,1.112,TRUE
+R0715,18–29,muž,Jihovýchod,Curious Explorers,AI Tutor,64,87,46,69,66,1.014,TRUE
+R0716,18–29,muž,Jihovýchod,Parent-guided Teens,Coach,34,81,68,75,64,0.989,TRUE
+R0717,30–44,žena,Jihovýchod,Goal-driven Students,Coach,45,68,54,80,62,0.784,TRUE
+R0718,45–64,žena,Severovýchod,Curious Explorers,AI Tutor,55,89,85,39,67,1.001,TRUE
+R0719,18–29,muž,Praha,Gamified Learners,Challenge,59,46,50,47,50,0.827,TRUE
+R0720,30–44,žena,Jihozápad,Parent-guided Teens,Coach,48,67,80,39,58,0.871,TRUE
+R0721,30–44,žena,Střední Morava,Structure Seekers,Coach,52,61,89,63,66,1.072,TRUE
+R0722,65+,muž,Praha,Gamified Learners,Challenge,34,86,54,53,57,1.248,TRUE
+R0723,65+,žena,Moravskoslezsko,Parent-guided Teens,Coach,32,62,65,45,51,0.887,TRUE
+R0724,18–29,žena,Severozápad,Goal-driven Students,Coach,39,56,60,82,59,1.134,TRUE
+R0725,45–64,žena,Střední Čechy,Goal-driven Students,Coach,61,62,83,87,73,0.815,TRUE
+R0726,30–44,žena,Praha,Curious Explorers,AI Tutor,52,73,77,83,71,0.829,TRUE
+R0727,65+,žena,Střední Morava,Goal-driven Students,Coach,49,78,71,78,69,0.862,TRUE
+R0728,65+,muž,Moravskoslezsko,Goal-driven Students,Coach,46,81,88,77,73,1.11,TRUE
+R0729,65+,muž,Moravskoslezsko,Structure Seekers,Coach,63,64,52,36,54,0.897,TRUE
+R0730,30–44,žena,Moravskoslezsko,Parent-guided Teens,Coach,36,75,57,69,59,0.802,TRUE
+R0731,18–29,muž,Severovýchod,Structure Seekers,Coach,47,59,58,37,50,0.801,TRUE
+R0732,30–44,muž,Jihovýchod,Goal-driven Students,Coach,57,73,84,39,63,1.147,TRUE
+R0733,45–64,muž,Jihovýchod,Curious Explorers,AI Tutor,64,86,87,84,80,1.204,TRUE
+R0734,65+,žena,Jihozápad,Goal-driven Students,Coach,55,86,73,86,75,0.804,TRUE
+R0735,45–64,muž,Střední Morava,Goal-driven Students,Coach,56,72,82,80,72,1.232,TRUE
+R0736,18–29,muž,Střední Čechy,Goal-driven Students,Coach,38,66,55,74,58,0.978,TRUE
+R0737,30–44,žena,Jihozápad,Gamified Learners,Challenge,56,48,58,37,50,0.75,TRUE
+R0738,65+,žena,Jihozápad,Curious Explorers,AI Tutor,58,55,59,77,62,1.11,TRUE
+R0739,30–44,žena,Moravskoslezsko,Structure Seekers,Coach,53,84,83,49,67,1.022,TRUE
+R0740,65+,žena,Střední Morava,Goal-driven Students,Coach,51,64,66,38,55,1.04,TRUE
+R0741,18–29,žena,Jihovýchod,Goal-driven Students,Coach,38,90,64,85,69,0.983,TRUE
+R0742,30–44,muž,Severovýchod,Parent-guided Teens,Coach,63,62,85,89,75,1.232,TRUE
+R0743,30–44,žena,Moravskoslezsko,Goal-driven Students,Coach,51,46,66,44,52,1.106,TRUE
+R0744,30–44,muž,Jihovýchod,Structure Seekers,Coach,47,59,49,75,58,0.96,TRUE
+R0745,45–64,muž,Moravskoslezsko,Curious Explorers,AI Tutor,35,74,48,37,48,0.792,TRUE
+R0746,18–29,muž,Severozápad,Structure Seekers,Coach,36,90,76,89,73,0.815,TRUE
+R0747,45–64,žena,Jihovýchod,Goal-driven Students,Coach,43,81,68,47,60,0.892,TRUE
+R0748,65+,žena,Jihozápad,Goal-driven Students,Coach,54,85,62,64,66,1.112,TRUE
+R0749,65+,žena,Jihovýchod,Structure Seekers,Coach,63,79,47,88,69,0.928,TRUE
+R0750,18–29,žena,Střední Morava,Curious Explorers,AI Tutor,59,79,70,76,71,1.006,TRUE
+R0751,18–29,muž,Střední Čechy,Goal-driven Students,Coach,45,76,57,35,53,1.059,TRUE
+R0752,65+,žena,Střední Morava,Curious Explorers,AI Tutor,50,70,85,45,62,0.78,TRUE
+R0753,65+,muž,Jihovýchod,Curious Explorers,AI Tutor,49,52,86,65,63,1.115,TRUE
+R0754,45–64,žena,Jihovýchod,Structure Seekers,Coach,59,59,87,53,64,0.968,TRUE
+R0755,65+,žena,Moravskoslezsko,Goal-driven Students,Coach,44,52,67,61,56,0.768,TRUE
+R0756,45–64,žena,Praha,Goal-driven Students,Coach,66,58,73,46,61,1.2,TRUE
+R0757,65+,žena,Střední Morava,Structure Seekers,Coach,37,68,78,59,60,1.015,TRUE
+R0758,18–29,žena,Střední Morava,Gamified Learners,Challenge,36,52,71,72,58,1.239,TRUE
+R0759,30–44,muž,Severovýchod,Structure Seekers,Coach,65,78,59,62,66,0.904,TRUE
+R0760,65+,žena,Jihozápad,Structure Seekers,Coach,34,74,55,81,61,0.844,TRUE
+R0761,45–64,muž,Střední Morava,Structure Seekers,Coach,47,62,63,46,54,0.975,TRUE
+R0762,30–44,žena,Moravskoslezsko,Goal-driven Students,Coach,47,59,55,52,53,0.879,TRUE
+R0763,18–29,žena,Severozápad,Goal-driven Students,Coach,50,87,71,73,70,0.945,TRUE
+R0764,65+,žena,Střední Čechy,Goal-driven Students,Coach,49,76,88,73,72,0.803,TRUE
+R0765,18–29,muž,Severozápad,Goal-driven Students,Coach,57,80,60,60,64,0.807,TRUE
+R0766,65+,žena,Střední Čechy,Structure Seekers,Coach,51,87,49,48,59,0.842,TRUE
+R0767,18–29,muž,Střední Čechy,Curious Explorers,AI Tutor,54,52,50,76,58,1.099,TRUE
+R0768,18–29,žena,Praha,Structure Seekers,Coach,65,73,67,77,70,0.999,TRUE
+R0769,30–44,žena,Praha,Parent-guided Teens,Coach,61,46,75,46,57,1.228,TRUE
+R0770,30–44,muž,Moravskoslezsko,Parent-guided Teens,Coach,62,54,83,58,64,1.07,TRUE
+R0771,65+,žena,Jihozápad,Goal-driven Students,Coach,65,64,73,78,70,1.158,TRUE
+R0772,30–44,muž,Střední Čechy,Curious Explorers,AI Tutor,32,84,84,43,61,0.899,TRUE
+R0773,45–64,muž,Severozápad,Goal-driven Students,Coach,48,86,90,87,78,0.972,TRUE
+R0774,45–64,žena,Střední Morava,Structure Seekers,Coach,48,56,85,39,57,1.081,TRUE
+R0775,18–29,muž,Jihozápad,Structure Seekers,Coach,64,74,71,78,72,0.884,TRUE
+R0776,45–64,muž,Jihovýchod,Structure Seekers,Coach,64,67,61,59,63,0.852,TRUE
+R0777,65+,žena,Severovýchod,Structure Seekers,Coach,35,55,68,55,53,1.172,TRUE
+R0778,30–44,muž,Jihozápad,Structure Seekers,Coach,30,50,69,61,52,1.021,TRUE
+R0779,30–44,žena,Moravskoslezsko,Goal-driven Students,Coach,34,78,51,65,57,1.174,TRUE
+R0780,18–29,muž,Praha,Structure Seekers,Coach,64,62,72,88,72,1.102,TRUE
+R0781,18–29,muž,Střední Čechy,Goal-driven Students,Coach,33,52,55,55,49,1.091,TRUE
+R0782,18–29,žena,Praha,Structure Seekers,Coach,38,52,51,80,55,0.937,TRUE
+R0783,18–29,muž,Střední Čechy,Curious Explorers,AI Tutor,38,73,70,72,63,0.763,TRUE
+R0784,65+,žena,Jihovýchod,Curious Explorers,AI Tutor,35,78,86,59,64,1.112,TRUE
+R0785,45–64,muž,Jihovýchod,Goal-driven Students,Coach,53,50,88,35,56,0.811,TRUE
+R0786,45–64,žena,Moravskoslezsko,Gamified Learners,Challenge,57,72,56,58,61,0.864,TRUE
+R0787,30–44,žena,Jihovýchod,Goal-driven Students,Coach,31,56,82,58,57,0.828,TRUE
+R0788,18–29,muž,Severozápad,Structure Seekers,Coach,39,70,57,72,60,0.921,TRUE
+R0789,18–29,muž,Střední Morava,Goal-driven Students,Coach,63,45,73,85,66,1.148,TRUE
+R0790,18–29,žena,Severovýchod,Goal-driven Students,Coach,46,80,52,84,66,1.0,TRUE
+R0791,18–29,žena,Severovýchod,Gamified Learners,Challenge,51,68,55,84,64,1.162,TRUE
+R0792,65+,muž,Moravskoslezsko,Parent-guided Teens,Coach,34,58,55,46,48,0.989,TRUE
+R0793,65+,žena,Praha,Structure Seekers,Coach,56,69,64,52,60,0.999,TRUE
+R0794,30–44,žena,Střední Čechy,Curious Explorers,AI Tutor,59,66,62,44,58,1.133,TRUE
+R0795,65+,muž,Severovýchod,Structure Seekers,Coach,53,51,74,49,57,1.065,TRUE
+R0796,45–64,žena,Střední Morava,Curious Explorers,AI Tutor,47,85,50,65,62,1.05,TRUE
+R0797,65+,žena,Moravskoslezsko,Parent-guided Teens,Coach,38,65,73,40,54,0.966,TRUE
+R0798,30–44,muž,Střední Morava,Structure Seekers,Coach,44,90,59,78,68,1.045,TRUE
+R0799,65+,muž,Praha,Structure Seekers,Coach,43,65,67,75,62,1.112,TRUE
+R0800,30–44,žena,Jihozápad,Parent-guided Teens,Coach,53,65,63,75,64,0.852,TRUE
+R0801,18–29,muž,Jihozápad,Gamified Learners,Challenge,45,90,76,83,74,1.086,TRUE
+R0802,65+,žena,Jihovýchod,Parent-guided Teens,Coach,58,78,80,90,76,1.242,TRUE
+R0803,30–44,muž,Severovýchod,Gamified Learners,Challenge,34,50,83,86,63,0.996,TRUE
+R0804,18–29,muž,Jihovýchod,Curious Explorers,AI Tutor,57,51,71,75,64,1.205,TRUE
+R0805,45–64,muž,Střední Čechy,Parent-guided Teens,Coach,41,60,65,48,54,1.185,TRUE
+R0806,18–29,muž,Střední Morava,Goal-driven Students,Coach,51,71,76,59,64,1.241,TRUE
+R0807,18–29,žena,Střední Morava,Curious Explorers,AI Tutor,37,79,66,77,65,1.138,TRUE
+R0808,30–44,muž,Moravskoslezsko,Gamified Learners,Challenge,30,73,49,52,51,0.979,TRUE
+R0809,30–44,žena,Severozápad,Gamified Learners,Challenge,53,60,87,68,67,1.175,TRUE
+R0810,18–29,žena,Severozápad,Gamified Learners,Challenge,44,60,60,69,58,0.999,TRUE
+R0811,30–44,žena,Moravskoslezsko,Goal-driven Students,Coach,44,83,88,42,64,0.864,TRUE
+R0812,45–64,muž,Severovýchod,Goal-driven Students,Coach,54,49,59,86,62,1.202,TRUE
+R0813,30–44,žena,Jihozápad,Curious Explorers,AI Tutor,64,68,77,53,66,0.958,TRUE
+R0814,65+,žena,Moravskoslezsko,Curious Explorers,AI Tutor,56,61,74,51,60,1.019,TRUE
+R0815,65+,žena,Střední Čechy,Curious Explorers,AI Tutor,36,50,60,52,50,1.246,TRUE
+R0816,45–64,muž,Střední Čechy,Gamified Learners,Challenge,46,89,60,53,62,1.187,TRUE
+R0817,45–64,muž,Jihozápad,Gamified Learners,Challenge,56,73,79,68,69,1.077,TRUE
+R0818,45–64,muž,Jihovýchod,Curious Explorers,AI Tutor,65,82,66,69,70,0.834,TRUE
+R0819,18–29,žena,Střední Morava,Goal-driven Students,Coach,37,63,55,75,58,1.231,TRUE
+R0820,30–44,muž,Jihozápad,Gamified Learners,Challenge,62,75,52,52,60,0.838,TRUE
+R0821,30–44,muž,Moravskoslezsko,Goal-driven Students,Coach,53,66,72,87,70,1.152,TRUE
+R0822,30–44,žena,Střední Morava,Structure Seekers,Coach,49,83,88,36,64,0.848,TRUE
+R0823,30–44,žena,Jihozápad,Structure Seekers,Coach,44,87,57,58,62,1.048,TRUE
+R0824,30–44,žena,Severozápad,Goal-driven Students,Coach,34,84,58,36,53,1.019,TRUE
+R0825,18–29,muž,Severovýchod,Curious Explorers,AI Tutor,40,56,73,77,62,0.928,TRUE
+R0826,65+,žena,Jihovýchod,Curious Explorers,AI Tutor,51,50,69,85,64,1.041,TRUE
+R0827,65+,muž,Jihozápad,Gamified Learners,Challenge,47,49,88,66,62,1.028,TRUE
+R0828,30–44,žena,Střední Čechy,Gamified Learners,Challenge,52,48,56,61,54,1.06,TRUE
+R0829,65+,muž,Střední Morava,Structure Seekers,Coach,42,61,57,39,50,0.844,TRUE
+R0830,45–64,muž,Praha,Structure Seekers,Coach,52,51,67,47,54,0.959,TRUE
+R0831,30–44,muž,Střední Čechy,Goal-driven Students,Coach,47,49,70,79,61,0.806,TRUE
+R0832,30–44,muž,Severozápad,Structure Seekers,Coach,42,50,66,65,56,0.774,TRUE
+R0833,45–64,žena,Střední Čechy,Goal-driven Students,Coach,64,50,81,90,71,1.227,TRUE
+R0834,45–64,žena,Moravskoslezsko,Goal-driven Students,Coach,48,71,45,67,58,1.065,TRUE
+R0835,30–44,muž,Jihozápad,Goal-driven Students,Coach,46,47,62,67,56,1.213,TRUE
+R0836,45–64,žena,Střední Morava,Gamified Learners,Challenge,65,80,76,42,66,0.835,TRUE
+R0837,30–44,žena,Severovýchod,Goal-driven Students,Coach,56,75,89,68,72,0.851,TRUE
+R0838,45–64,žena,Severovýchod,Structure Seekers,Coach,66,76,48,37,57,1.14,TRUE
+R0839,45–64,muž,Praha,Structure Seekers,Coach,34,84,46,56,55,1.125,TRUE
+R0840,30–44,muž,Střední Čechy,Structure Seekers,Coach,49,47,65,87,62,0.868,TRUE
+R0841,18–29,žena,Praha,Gamified Learners,Challenge,61,68,51,83,66,0.8,TRUE
+R0842,45–64,muž,Jihovýchod,Curious Explorers,AI Tutor,65,46,79,51,60,1.234,TRUE
+R0843,18–29,muž,Jihozápad,Gamified Learners,Challenge,55,77,84,36,63,0.987,TRUE
+R0844,45–64,žena,Střední Čechy,Goal-driven Students,Coach,35,51,48,43,44,0.861,TRUE
+R0845,30–44,žena,Moravskoslezsko,Curious Explorers,AI Tutor,55,79,86,59,70,0.755,TRUE
+R0846,45–64,muž,Jihozápad,Goal-driven Students,Coach,39,52,82,51,56,1.107,TRUE
+R0847,30–44,žena,Jihozápad,Goal-driven Students,Coach,42,65,65,84,64,0.889,TRUE
+R0848,65+,žena,Střední Čechy,Curious Explorers,AI Tutor,49,90,47,46,58,1.064,TRUE
+R0849,30–44,muž,Střední Čechy,Gamified Learners,Challenge,51,74,48,80,63,0.865,TRUE
+R0850,18–29,žena,Jihozápad,Parent-guided Teens,Coach,50,58,68,45,55,0.808,TRUE
+R0851,18–29,muž,Jihovýchod,Curious Explorers,AI Tutor,57,79,71,81,72,0.869,TRUE
+R0852,65+,muž,Severovýchod,Goal-driven Students,Coach,42,89,76,71,70,0.818,TRUE
+R0853,18–29,žena,Severozápad,Parent-guided Teens,Coach,63,72,65,71,68,1.207,TRUE
+R0854,18–29,žena,Střední Morava,Curious Explorers,AI Tutor,65,79,48,52,61,0.844,TRUE
+R0855,65+,muž,Severovýchod,Structure Seekers,Coach,63,51,64,89,67,1.16,TRUE
+R0856,45–64,žena,Severozápad,Curious Explorers,AI Tutor,38,65,70,61,58,1.212,TRUE
+R0857,45–64,muž,Střední Morava,Structure Seekers,Coach,41,69,52,52,54,1.016,TRUE
+R0858,65+,žena,Severovýchod,Goal-driven Students,Coach,33,48,47,51,45,0.94,TRUE
+R0859,45–64,muž,Střední Čechy,Structure Seekers,Coach,63,75,48,45,58,1.07,TRUE
+R0860,65+,muž,Moravskoslezsko,Curious Explorers,AI Tutor,43,78,55,74,62,1.021,TRUE
+R0861,65+,žena,Praha,Goal-driven Students,Coach,31,65,75,67,60,0.813,TRUE
+R0862,18–29,muž,Střední Morava,Goal-driven Students,Coach,63,90,85,36,68,0.813,TRUE
+R0863,18–29,muž,Střední Čechy,Goal-driven Students,Coach,37,90,54,64,61,1.097,TRUE
+R0864,65+,žena,Jihovýchod,Parent-guided Teens,Coach,40,61,48,39,47,0.959,TRUE
+R0865,18–29,žena,Jihovýchod,Goal-driven Students,Coach,36,49,75,76,59,0.939,TRUE
+R0866,18–29,muž,Severozápad,Curious Explorers,AI Tutor,60,71,59,73,66,0.926,TRUE
+R0867,45–64,muž,Moravskoslezsko,Gamified Learners,Challenge,41,48,46,81,54,1.179,TRUE
+R0868,65+,žena,Jihozápad,Goal-driven Students,Coach,39,74,54,80,62,1.25,TRUE
+R0869,18–29,žena,Jihovýchod,Parent-guided Teens,Coach,40,90,68,50,62,1.214,TRUE
+R0870,45–64,žena,Moravskoslezsko,Goal-driven Students,Coach,44,65,79,86,68,0.959,TRUE
+R0871,65+,muž,Jihovýchod,Goal-driven Students,Coach,65,71,51,71,64,1.063,TRUE
+R0872,30–44,muž,Jihozápad,Structure Seekers,Coach,65,87,81,57,72,0.942,TRUE
+R0873,18–29,žena,Jihovýchod,Gamified Learners,Challenge,39,69,54,75,59,0.78,TRUE
+R0874,45–64,žena,Střední Čechy,Goal-driven Students,Coach,32,56,76,61,56,1.093,TRUE
+R0875,30–44,muž,Severozápad,Structure Seekers,Coach,62,77,49,89,69,1.117,TRUE
+R0876,18–29,muž,Severovýchod,Structure Seekers,Coach,63,61,64,57,61,1.021,TRUE
+R0877,65+,muž,Severozápad,Curious Explorers,AI Tutor,31,67,89,50,59,1.231,TRUE
+R0878,18–29,muž,Praha,Parent-guided Teens,Coach,54,72,66,51,61,1.092,TRUE
+R0879,65+,žena,Jihozápad,Goal-driven Students,Coach,50,69,88,65,68,0.913,TRUE
+R0880,18–29,muž,Moravskoslezsko,Goal-driven Students,Coach,60,56,58,63,59,1.122,TRUE
+R0881,30–44,muž,Střední Morava,Goal-driven Students,Coach,62,55,69,39,56,0.886,TRUE
+R0882,18–29,žena,Jihovýchod,Parent-guided Teens,Coach,61,84,68,38,63,0.812,TRUE
+R0883,65+,žena,Severovýchod,Gamified Learners,Challenge,31,59,52,70,53,1.071,TRUE
+R0884,45–64,žena,Jihozápad,Goal-driven Students,Coach,48,72,51,45,54,1.189,TRUE
+R0885,18–29,žena,Moravskoslezsko,Structure Seekers,Coach,37,82,51,62,58,0.826,TRUE
+R0886,45–64,muž,Jihozápad,Structure Seekers,Coach,44,61,68,59,58,0.903,TRUE
+R0887,65+,muž,Praha,Curious Explorers,AI Tutor,65,62,80,90,74,0.768,TRUE
+R0888,18–29,muž,Jihovýchod,Goal-driven Students,Coach,59,56,68,44,57,0.769,TRUE
+R0889,65+,muž,Jihovýchod,Curious Explorers,AI Tutor,32,52,87,83,64,1.011,TRUE
+R0890,18–29,žena,Střední Čechy,Curious Explorers,AI Tutor,39,64,78,56,59,0.805,TRUE
+R0891,30–44,žena,Moravskoslezsko,Curious Explorers,AI Tutor,38,84,88,48,64,0.768,TRUE
+R0892,65+,žena,Jihovýchod,Curious Explorers,AI Tutor,37,72,58,68,59,1.053,TRUE
+R0893,45–64,muž,Moravskoslezsko,Curious Explorers,AI Tutor,60,45,52,65,56,1.079,TRUE
+R0894,18–29,muž,Praha,Gamified Learners,Challenge,42,66,52,42,50,0.956,TRUE
+R0895,30–44,žena,Severovýchod,Parent-guided Teens,Coach,30,61,78,60,57,1.218,TRUE
+R0896,65+,muž,Moravskoslezsko,Curious Explorers,AI Tutor,60,57,63,86,66,1.123,TRUE
+R0897,45–64,žena,Moravskoslezsko,Goal-driven Students,Coach,49,67,45,64,56,0.931,TRUE
+R0898,30–44,žena,Severozápad,Gamified Learners,Challenge,49,90,49,35,56,1.15,TRUE
+R0899,45–64,muž,Praha,Goal-driven Students,Coach,55,47,79,49,58,0.969,TRUE
+R0900,30–44,žena,Severovýchod,Gamified Learners,Challenge,33,63,75,49,55,1.079,TRUE
+R0901,65+,muž,Severozápad,Gamified Learners,Challenge,49,49,89,78,66,0.997,TRUE
+R0902,45–64,žena,Jihovýchod,Parent-guided Teens,Coach,62,84,79,70,74,0.983,TRUE
+R0903,65+,žena,Střední Čechy,Curious Explorers,AI Tutor,60,46,54,79,60,0.76,TRUE
+R0904,65+,žena,Severovýchod,Parent-guided Teens,Coach,40,52,73,87,63,0.77,TRUE
+R0905,45–64,žena,Jihovýchod,Structure Seekers,Coach,32,81,60,77,62,1.078,TRUE
+R0906,45–64,žena,Střední Čechy,Structure Seekers,Coach,35,63,48,35,45,0.86,TRUE
+R0907,65+,muž,Praha,Gamified Learners,Challenge,51,72,76,74,68,1.017,TRUE
+R0908,45–64,žena,Moravskoslezsko,Curious Explorers,AI Tutor,32,53,50,48,46,0.92,TRUE
+R0909,65+,žena,Praha,Goal-driven Students,Coach,65,75,89,43,68,1.051,TRUE
+R0910,45–64,žena,Jihovýchod,Curious Explorers,AI Tutor,64,88,82,80,78,0.907,TRUE
+R0911,30–44,žena,Střední Morava,Curious Explorers,AI Tutor,52,47,84,51,58,0.825,TRUE
+R0912,65+,žena,Jihovýchod,Goal-driven Students,Coach,39,48,60,53,50,1.203,TRUE
+R0913,45–64,muž,Praha,Curious Explorers,AI Tutor,31,83,47,48,52,0.856,TRUE
+R0914,65+,muž,Severozápad,Structure Seekers,Coach,32,73,52,84,60,1.201,TRUE
+R0915,18–29,žena,Jihovýchod,Parent-guided Teens,Coach,63,65,76,57,65,1.228,TRUE
+R0916,45–64,žena,Jihovýchod,Structure Seekers,Coach,59,85,62,77,71,1.167,TRUE
+R0917,45–64,žena,Střední Morava,Goal-driven Students,Coach,54,54,80,82,68,1.113,TRUE
+R0918,65+,muž,Moravskoslezsko,Goal-driven Students,Coach,33,70,71,58,58,1.157,TRUE
+R0919,30–44,muž,Jihozápad,Structure Seekers,Coach,49,67,87,39,60,1.221,TRUE
+R0920,30–44,žena,Jihovýchod,Curious Explorers,AI Tutor,60,64,55,40,55,1.085,TRUE
+R0921,30–44,muž,Severovýchod,Gamified Learners,Challenge,48,83,56,58,61,0.855,TRUE
+R0922,45–64,žena,Jihovýchod,Gamified Learners,Challenge,53,67,69,68,64,0.797,TRUE
+R0923,45–64,muž,Střední Morava,Curious Explorers,AI Tutor,38,63,49,43,48,0.975,TRUE
+R0924,30–44,žena,Střední Čechy,Curious Explorers,AI Tutor,34,90,83,55,66,1.118,TRUE
+R0925,65+,muž,Jihovýchod,Structure Seekers,Coach,53,46,62,66,57,0.931,TRUE
+R0926,65+,muž,Střední Čechy,Goal-driven Students,Coach,63,78,84,41,66,0.865,TRUE
+R0927,45–64,žena,Jihozápad,Structure Seekers,Coach,41,83,72,59,64,0.883,TRUE
+R0928,45–64,muž,Jihozápad,Parent-guided Teens,Coach,56,79,49,85,67,0.841,TRUE
+R0929,18–29,muž,Střední Morava,Parent-guided Teens,Coach,36,55,47,35,43,1.139,TRUE
+R0930,18–29,muž,Střední Čechy,Structure Seekers,Coach,50,53,75,90,67,1.106,TRUE
+R0931,18–29,muž,Jihovýchod,Goal-driven Students,Coach,37,84,84,61,66,1.064,TRUE
+R0932,65+,muž,Praha,Curious Explorers,AI Tutor,41,82,85,37,61,0.756,TRUE
+R0933,30–44,žena,Jihozápad,Gamified Learners,Challenge,41,58,82,69,62,1.046,TRUE
+R0934,45–64,žena,Jihozápad,Goal-driven Students,Coach,42,67,61,59,57,1.148,TRUE
+R0935,18–29,muž,Severovýchod,Gamified Learners,Challenge,42,68,61,78,62,1.121,TRUE
+R0936,18–29,muž,Střední Morava,Structure Seekers,Coach,36,45,76,76,58,1.036,TRUE
+R0937,18–29,muž,Severozápad,Goal-driven Students,Coach,54,74,60,51,60,0.993,TRUE
+R0938,45–64,muž,Jihozápad,Curious Explorers,AI Tutor,42,66,90,63,65,1.179,TRUE
+R0939,65+,žena,Moravskoslezsko,Parent-guided Teens,Coach,40,80,50,56,56,1.212,TRUE
+R0940,45–64,muž,Střední Čechy,Gamified Learners,Challenge,44,57,84,87,68,1.233,TRUE
+R0941,65+,žena,Severozápad,Goal-driven Students,Coach,52,50,89,45,59,0.995,TRUE
+R0942,18–29,muž,Střední Čechy,Curious Explorers,AI Tutor,63,67,79,90,75,1.2,TRUE
+R0943,65+,muž,Jihozápad,Gamified Learners,Challenge,56,73,74,50,63,0.963,TRUE
+R0944,45–64,žena,Moravskoslezsko,Curious Explorers,AI Tutor,54,62,76,87,70,1.107,TRUE
+R0945,30–44,muž,Jihozápad,Gamified Learners,Challenge,47,65,52,67,58,0.81,TRUE
+R0946,65+,muž,Jihovýchod,Parent-guided Teens,Coach,30,85,55,62,58,1.204,TRUE
+R0947,18–29,žena,Severovýchod,Structure Seekers,Coach,58,72,64,81,69,1.008,TRUE
+R0948,65+,žena,Jihovýchod,Goal-driven Students,Coach,34,86,81,55,64,1.0,TRUE
+R0949,30–44,muž,Severovýchod,Goal-driven Students,Coach,49,71,75,43,60,0.904,TRUE
+R0950,18–29,žena,Střední Čechy,Curious Explorers,AI Tutor,37,49,84,83,63,0.972,TRUE
+R0951,30–44,muž,Severovýchod,Curious Explorers,AI Tutor,65,49,87,68,67,1.185,TRUE
+R0952,30–44,žena,Jihovýchod,Gamified Learners,Challenge,37,81,53,60,58,1.027,TRUE
+R0953,45–64,muž,Jihovýchod,Curious Explorers,AI Tutor,51,84,65,48,62,0.856,TRUE
+R0954,65+,žena,Střední Čechy,Goal-driven Students,Coach,64,75,60,49,62,0.955,TRUE
+R0955,30–44,muž,Jihozápad,Goal-driven Students,Coach,47,59,61,87,64,0.954,TRUE
+R0956,45–64,žena,Severozápad,Curious Explorers,AI Tutor,33,53,81,56,56,0.806,TRUE
+R0957,18–29,muž,Střední Čechy,Curious Explorers,AI Tutor,43,89,73,49,64,0.989,TRUE
+R0958,65+,muž,Jihozápad,Structure Seekers,Coach,46,69,82,80,69,0.765,TRUE
+R0959,18–29,muž,Severovýchod,Structure Seekers,Coach,61,49,46,37,48,0.981,TRUE
+R0960,30–44,žena,Jihovýchod,Curious Explorers,AI Tutor,50,90,59,69,67,0.874,TRUE
+R0961,45–64,žena,Střední Morava,Structure Seekers,Coach,62,54,68,39,56,1.218,TRUE
+R0962,65+,žena,Jihozápad,Gamified Learners,Challenge,62,53,88,90,73,1.082,TRUE
+R0963,18–29,muž,Střední Morava,Structure Seekers,Coach,65,90,85,84,81,0.884,TRUE
+R0964,30–44,muž,Praha,Structure Seekers,Coach,61,57,72,58,62,1.083,TRUE
+R0965,65+,žena,Střední Čechy,Goal-driven Students,Coach,62,61,45,53,55,0.915,TRUE
+R0966,18–29,muž,Praha,Goal-driven Students,Coach,65,64,74,67,68,1.052,TRUE
+R0967,65+,muž,Severovýchod,Structure Seekers,Coach,50,65,90,79,71,1.058,TRUE
+R0968,30–44,žena,Střední Čechy,Gamified Learners,Challenge,33,89,57,37,54,1.156,TRUE
+R0969,30–44,muž,Jihovýchod,Structure Seekers,Coach,36,63,73,61,58,1.049,TRUE
+R0970,30–44,muž,Jihozápad,Gamified Learners,Challenge,46,50,90,47,58,0.888,TRUE
+R0971,45–64,žena,Moravskoslezsko,Goal-driven Students,Coach,51,51,76,47,56,0.829,TRUE
+R0972,18–29,muž,Jihovýchod,Curious Explorers,AI Tutor,31,63,63,90,62,1.244,TRUE
+R0973,18–29,muž,Střední Čechy,Curious Explorers,AI Tutor,33,88,57,60,60,0.814,TRUE
+R0974,18–29,žena,Jihozápad,Gamified Learners,Challenge,44,74,75,42,59,0.867,TRUE
+R0975,45–64,muž,Střední Čechy,Parent-guided Teens,Coach,42,88,66,70,66,0.961,TRUE
+R0976,30–44,muž,Severovýchod,Structure Seekers,Coach,48,79,67,76,68,0.946,TRUE
+R0977,65+,žena,Jihozápad,Curious Explorers,AI Tutor,57,65,83,63,67,0.87,TRUE
+R0978,18–29,muž,Jihovýchod,Parent-guided Teens,Coach,43,75,67,59,61,0.837,TRUE
+R0979,30–44,muž,Jihozápad,Structure Seekers,Coach,34,78,85,70,67,1.175,TRUE
+R0980,30–44,žena,Střední Čechy,Structure Seekers,Coach,52,83,89,37,65,0.97,TRUE

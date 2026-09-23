@@ -1,0 +1,194 @@
+[
+  {
+    "path": "AUDIENCE_DESIGN_DEMO.json",
+    "stage": "AUDIENCE",
+    "sha256": "f402c98de2cd85124aac7d6b51aa567979149b871a05f1dcbdc149b77af13f87",
+    "bytes": 382
+  },
+  {
+    "path": "CLIENT_REPORT_VOLBA_MESTA_DEMO.docx",
+    "stage": "DELIVERY",
+    "sha256": "ca312f7c71771524e203c06b56f8e670f86b8e3c6ca8d6d1324b949364c5e031",
+    "bytes": 51433
+  },
+  {
+    "path": "DEMO_PREVIEW.html",
+    "stage": "DELIVERY",
+    "sha256": "b9531314f429f9c3475f4ebd4f359210156719cbc9cc732b4f049aed4caa725b",
+    "bytes": 3190
+  },
+  {
+    "path": "DEMO_PROJECT_SEED.json",
+    "stage": "DELIVERY",
+    "sha256": "5ec977b2361cc1287f7e4745a311fa72dc8fc7318f0ac28651cac64f6a6b1957",
+    "bytes": 10314
+  },
+  {
+    "path": "EXECUTIVE_XLSX_PREVIEW.png",
+    "stage": "DELIVERY",
+    "sha256": "7290bc0d8a436669557d8c33a640b102420ce05938828579743a049d4d4db500",
+    "bytes": 99175
+  },
+  {
+    "path": "IMPLEMENTACE_DO_PANELU.md",
+    "stage": "DELIVERY",
+    "sha256": "54738b860a77592cab05d791375252b35334fb6340e1f8025b20e0f174da83e3",
+    "bytes": 2662
+  },
+  {
+    "path": "OBJECTS_SOCIOMAP_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "c0b8fc819bf5fa610a237a598af0a8ac055c5da1cac704299621ecd0c3a77471",
+    "bytes": 1690
+  },
+  {
+    "path": "PROJECT_HISTORY_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "cbf03c587463eeb2fa80d18a18f0208155d5aa3f8058972d7e6937318cf3ccc8",
+    "bytes": 1068
+  },
+  {
+    "path": "QUESTIONNAIRE_DEMO.json",
+    "stage": "QUESTIONNAIRE",
+    "sha256": "92cf9e27c831e9725645c7f6614411f1adf16d1f7a640bbd666ba5a840b4b36f",
+    "bytes": 1059
+  },
+  {
+    "path": "REPORT_TEXT_DEMO.md",
+    "stage": "DELIVERY",
+    "sha256": "348f39ec1c8c497ea3f16089edba4dada7c6ad433a1df34b81ac4a4229928640",
+    "bytes": 1024
+  },
+  {
+    "path": "RESEARCH_DESIGN_DEMO.json",
+    "stage": "RESEARCH_DESIGN",
+    "sha256": "695bdb38be678ecd077fb27b80f20013dc9c0723874e224d6a8583c42a6cede5",
+    "bytes": 1564
+  },
+  {
+    "path": "RESPONDENT_DATABASE_DEMO.csv",
+    "stage": "FIELDWORK",
+    "sha256": "52240529c81af5029c087c791de9add7687eb7ae916b04a4533ec3e6b2de7b5b",
+    "bytes": 135296
+  },
+  {
+    "path": "RESULTS_TABLES_VOLBA_MESTA_DEMO.xlsx",
+    "stage": "DELIVERY",
+    "sha256": "4e90c43216371645938f2fdbe8d3c1ce2e472386012c61d304ecc6e17e40d714",
+    "bytes": 103880
+  },
+  {
+    "path": "analysis/ANALYSIS_01_EXECUTIVE.json",
+    "stage": "ANALYSIS",
+    "sha256": "c48952baad0d5e677235b8e355f23b1d674ef6803868069e748c216f615c0c2d",
+    "bytes": 375
+  },
+  {
+    "path": "analysis/ANALYSIS_02_RESEARCH_QUESTIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "c793bdde655da632ea684289e566939c9ac6d50b5484ffbf0118b6bdf9599c83",
+    "bytes": 422
+  },
+  {
+    "path": "analysis/ANALYSIS_03_OBJECTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "a051f67fd144e9876a0bb82b80b163b06d5095c19007bf18f50553412ec5a890",
+    "bytes": 137
+  },
+  {
+    "path": "analysis/ANALYSIS_04_AUDIENCE.json",
+    "stage": "ANALYSIS",
+    "sha256": "a62e555bb5d6df2dd1f52ad74bd4939e36467aa90f632e86ebb1c7ec2717d5f8",
+    "bytes": 157
+  },
+  {
+    "path": "analysis/ANALYSIS_05_SEGMENTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "83dce252707fa99841a50f7fca936ee946414d61a6d6cd09e817eeaf96621bd3",
+    "bytes": 180
+  },
+  {
+    "path": "analysis/ANALYSIS_06_HYPOTHESES.json",
+    "stage": "ANALYSIS",
+    "sha256": "fd66ae160d8e4ba697df7eadb5ec13181256504f1f724f694d56384c540ff2c0",
+    "bytes": 150
+  },
+  {
+    "path": "analysis/ANALYSIS_07_IMPLICATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "67b4c43f81dae997c4052d9c0f1091e9f1f5997472e2fb2b62b2d86142afadda",
+    "bytes": 219
+  },
+  {
+    "path": "analysis/ANALYSIS_08_LIMITATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "28d17e999213d292e565f3a8aa8de4e408949856e0a0c8024c82d5f220536c1f",
+    "bytes": 288
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.png",
+    "stage": "ANALYSIS",
+    "sha256": "f5868b4c7cf60d98d64ec0aa0ced7c58abd02369dc7c4d7a54226a5a02688217",
+    "bytes": 12731
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.svg",
+    "stage": "ANALYSIS",
+    "sha256": "78338b97e4435a04ada729e84745c0d5ab0cb00d9d3b6c520f4c34b06c4da373",
+    "bytes": 2342
+  },
+  {
+    "path": "demo_project_loader.py",
+    "stage": "DELIVERY",
+    "sha256": "798148464527372b53f55c01080f7617a942dc3bbfd63b4f7dafb5f7190669c9",
+    "bytes": 1018
+  },
+  {
+    "path": "worlds/WORLD_1_BASE_TURNOUT.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "3b044856cea129956b721abecaa4c09546a663ded718d6800615f0126b80f0db",
+    "bytes": 152
+  },
+  {
+    "path": "worlds/WORLD_2_HIGH_TURNOUT.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "7c2930996054a45ffa33043428cf58e8e7e31bd3d736a333f29cd5171464aaec",
+    "bytes": 160
+  },
+  {
+    "path": "worlds/WORLD_3_LOW_TURNOUT.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "2666498ef85cffd3e71e84066fceaaf0a018e48251abca078c44cc601a15c370",
+    "bytes": 160
+  },
+  {
+    "path": "worlds/WORLD_4_HOUSING_SALIENCE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "cc99d084dc47dd2254d302053a3775d3bc15324bbb14efcb30b6f46c9690508e",
+    "bytes": 160
+  },
+  {
+    "path": "worlds/WORLD_5_TRANSPORT_SALIENCE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "93ea2ca5d2031f7e88260b41c2fb3c5669e7b6ebda91f44fd404a282df65c7f2",
+    "bytes": 164
+  },
+  {
+    "path": "worlds/WORLD_6_LATE_UNDECIDED_SHIFT.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "3a6b32d28eb7baf3aede97802fa5d6991e8a383c9cf53fdbbf80f4694cd1339e",
+    "bytes": 173
+  },
+  {
+    "path": "worlds/WORLD_7_ANTI_INCUMBENT_MOOD.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "6cf97ad7e045f24a6665a31b8c28f4fdc1dc34ed7b1027c0c543d90530fe90b0",
+    "bytes": 168
+  },
+  {
+    "path": "worlds/WORLD_8_STABILITY_MOOD.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "fe8d73c7cbd6291a1bfc77350ce663b8c4de4c3cbafcfb44e26c66b704ac081c",
+    "bytes": 164
+  }
+]

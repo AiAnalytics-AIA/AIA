@@ -1,0 +1,14 @@
+{
+  "version": "17.8.1",
+  "handoff": "NPC_PANEL_17.8.1_STARTUP_HOTFIX.zip",
+  "checks": {
+    "version_identity": "PASS",
+    "startup_dom_contract": "PASS",
+    "backend_smoke": "PASS",
+    "runtime_import_smoke": "PASS",
+    "test_runtime_artifacts_removed": true,
+    "full_simulation_runs_clean": true,
+    "full_simulation_benchmarks_clean": true,
+    "prototype_outputs_clean": true
+  }
+}

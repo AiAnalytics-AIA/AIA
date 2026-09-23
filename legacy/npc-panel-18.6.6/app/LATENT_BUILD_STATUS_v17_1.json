@@ -1,0 +1,16 @@
+{
+  "version": "17.1.2",
+  "base_version": "17.0.1",
+  "rows": 18766,
+  "columns": 400,
+  "seed": 20260819,
+  "fields_restructured": 46,
+  "social_style_fields_preserved": [
+    "social_passive_consumption_1_10",
+    "social_public_interaction_1_10",
+    "social_private_sharing_1_10",
+    "social_algorithm_discovery_1_10",
+    "social_relaxation_use_1_10"
+  ],
+  "panel_sha256": "2a984cd6d5314f64a8420800e0fb3c14624fdbd9a98bfd1a95c1c3df08272a6c"
+}

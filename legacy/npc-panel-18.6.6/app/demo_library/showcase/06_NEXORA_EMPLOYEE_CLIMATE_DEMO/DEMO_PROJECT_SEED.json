@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "06_NEXORA_EMPLOYEE_CLIMATE_DEMO",
+  "project_id": "PRJ-DEMO-NEXORA-EMPLOYEE",
+  "title": "Nexora Employee Climate DEMO",
+  "domain": "HR / organizace",
+  "study_type": "Employee climate, leadership a týmová sociomapa",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Chci pochopit, proč se firmě zpomaluje spolupráce mezi týmy, kde jsou bottlenecks a jak lidé vnímají leadership, psychologické bezpečí a rozhodování.",
+    "decision": "Určit organizační priority a týmy/vztahy, které vyžadují zásah do procesu, nikoli hodnocení jednotlivců."
+  },
+  "executive_answer": "Hlavní problém není motivace, ale koordinace: Product a Sales jsou centrální uzly s přetíženými vazbami, zatímco Operations je izolovanější. Nejvyšší dopad má jasnější decision ownership a pravidelný cross-team operating rhythm.",
+  "recommendation": "Zavést jasné decision rights, cross-team cadenci a sledovat psychologické bezpečí; nepoužívat výstup k automatizovanému hodnocení jednotlivců.",
+  "audience": {
+    "population": "Fiktivní technologická firma, zaměstnanci napříč funkcemi a senioritou",
+    "n": 640,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jak jasné jsou vaše priority a rozhodovací pravomoci?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Jak bezpečné je otevřeně nesouhlasit nebo přiznat chybu?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "S kterými týmy nejčastěji spolupracujete?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Jak hodnotíte kvalitu vztahů mezi hlavními funkcemi?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Kde vznikají nejčastější zdržení rozhodování?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Jaké změny by nejvíce zlepšily každodenní spolupráci?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Product",
+      "description": "Tým / funkce",
+      "type": "tracked_object",
+      "score": 74,
+      "x": 390,
+      "y": 185
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Sales",
+      "description": "Tým / funkce",
+      "type": "tracked_object",
+      "score": 70,
+      "x": 270,
+      "y": 265
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Operations",
+      "description": "Tým / funkce",
+      "type": "tracked_object",
+      "score": 56,
+      "x": 565,
+      "y": 300
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Leadership",
+      "description": "Řídicí vrstva",
+      "type": "tracked_object",
+      "score": 68,
+      "x": 420,
+      "y": 320
+    }
+  ],
+  "metrics": [
+    "Collaboration",
+    "Trust",
+    "Clarity",
+    "Psych safety",
+    "Decision speed",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      72,
+      76,
+      64,
+      71,
+      58,
+      74
+    ],
+    [
+      68,
+      66,
+      59,
+      63,
+      55,
+      70
+    ],
+    [
+      51,
+      61,
+      57,
+      60,
+      62,
+      56
+    ],
+    [
+      64,
+      69,
+      55,
+      60,
+      49,
+      68
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Builders",
+      "share_pct": 29,
+      "description": "Autonomie a vysoké tempo",
+      "best_object": "Product"
+    },
+    {
+      "id": "SEG2",
+      "name": "Client Drivers",
+      "share_pct": 24,
+      "description": "Externí orientace a cíle",
+      "best_object": "Sales"
+    },
+    {
+      "id": "SEG3",
+      "name": "Process Keepers",
+      "share_pct": 20,
+      "description": "Stabilita a kvalita procesu",
+      "best_object": "Operations"
+    },
+    {
+      "id": "SEG4",
+      "name": "New Joiners",
+      "share_pct": 15,
+      "description": "Nízká síťová integrace",
+      "best_object": "Leadership"
+    },
+    {
+      "id": "SEG5",
+      "name": "Cross-team Connectors",
+      "share_pct": 12,
+      "description": "Silné vazby napříč funkcemi",
+      "best_object": "Product"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base org",
+      "winner": "Product",
+      "primary_metric": 64,
+      "overall": 74,
+      "assumption": "Současná struktura"
+    },
+    {
+      "id": "W2",
+      "name": "Growth pressure",
+      "winner": "Product",
+      "primary_metric": 61,
+      "overall": 71,
+      "assumption": "Vyšší tempo růstu"
+    },
+    {
+      "id": "W3",
+      "name": "Leadership clarity",
+      "winner": "Product",
+      "primary_metric": 69,
+      "overall": 79,
+      "assumption": "Jasnější decision rights"
+    },
+    {
+      "id": "W4",
+      "name": "Remote heavy",
+      "winner": "Product",
+      "primary_metric": 60,
+      "overall": 70,
+      "assumption": "Vyšší remote podíl"
+    },
+    {
+      "id": "W5",
+      "name": "Office rhythm",
+      "winner": "Product",
+      "primary_metric": 66,
+      "overall": 76,
+      "assumption": "Pravidelná cross-team cadance"
+    },
+    {
+      "id": "W6",
+      "name": "Sales pressure",
+      "winner": "Sales",
+      "primary_metric": 63,
+      "overall": 72,
+      "assumption": "Vyšší revenue tlak"
+    },
+    {
+      "id": "W7",
+      "name": "Ops integration",
+      "winner": "Product",
+      "primary_metric": 68,
+      "overall": 78,
+      "assumption": "Silnější vazby Operations"
+    },
+    {
+      "id": "W8",
+      "name": "Psych safety up",
+      "winner": "Product",
+      "primary_metric": 69,
+      "overall": 80,
+      "assumption": "Vyšší psychologické bezpečí"
+    }
+  ],
+  "findings": [
+    "Product a Sales mají nejvyšší síťovou centralitu a nejvíce dependency vazeb.",
+    "Psychological safety je průměrná, ale výrazně nižší u nových zaměstnanců.",
+    "Decision ownership je nejslabší hodnocená dimenze.",
+    "Operations nepotřebuje více meetingů, ale kvalitnější rozhraní s Product/Sales."
+  ],
+  "risks": [
+    "Výstup nesmí sloužit k automatizovanému hodnocení či sankcionování jednotlivců.",
+    "Sociomapa ukazuje vztahové vzorce, ne příčinné viny.",
+    "Citlivé HR závěry vyžadují anonymitu a minimální velikost segmentů."
+  ],
+  "primary_metric": "Collaboration index",
+  "primary_value": 64,
+  "world_range": "60–69",
+  "winner_stability": "8/8",
+  "overall": 74,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Product",
+        "type": "object",
+        "score": 74,
+        "x": 390,
+        "y": 185,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Sales",
+        "type": "object",
+        "score": 70,
+        "x": 270,
+        "y": 265,
+        "color": "#3c9890"
+      },
+      {
+        "name": "Operations",
+        "type": "object",
+        "score": 56,
+        "x": 565,
+        "y": 300,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Leadership",
+        "type": "object",
+        "score": 68,
+        "x": 420,
+        "y": 320,
+        "color": "#299764"
+      },
+      {
+        "name": "Důvěra",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Spolupráce",
+        "type": "anchor",
+        "x": 520,
+        "y": 225,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Decision speed",
+        "type": "anchor",
+        "x": 160,
+        "y": 210,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Psych safety",
+        "type": "anchor",
+        "x": 350,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 4,
+        "weight": 0.82
+      },
+      {
+        "from": 0,
+        "to": 5,
+        "weight": 0.66
+      },
+      {
+        "from": 1,
+        "to": 7,
+        "weight": 0.7
+      },
+      {
+        "from": 1,
+        "to": 6,
+        "weight": 0.69
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.78
+      },
+      {
+        "from": 2,
+        "to": 7,
+        "weight": 0.45
+      },
+      {
+        "from": 3,
+        "to": 7,
+        "weight": 0.8
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.66
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

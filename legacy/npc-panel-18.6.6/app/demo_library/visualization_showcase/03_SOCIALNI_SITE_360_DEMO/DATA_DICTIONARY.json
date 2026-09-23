@@ -1,0 +1,122 @@
+[
+  {
+    "column": "respondent_id",
+    "kind": "profile",
+    "description": "respondent id"
+  },
+  {
+    "column": "segment",
+    "kind": "profile",
+    "description": "segment"
+  },
+  {
+    "column": "dem_gender",
+    "kind": "profile",
+    "description": "dem gender"
+  },
+  {
+    "column": "dem_age",
+    "kind": "profile",
+    "description": "dem age"
+  },
+  {
+    "column": "dem_region",
+    "kind": "profile",
+    "description": "dem region"
+  },
+  {
+    "column": "dem_education",
+    "kind": "profile",
+    "description": "dem education"
+  },
+  {
+    "column": "dem_income",
+    "kind": "profile",
+    "description": "dem income"
+  },
+  {
+    "column": "att_video",
+    "kind": "profile",
+    "description": "att video"
+  },
+  {
+    "column": "att_professional",
+    "kind": "profile",
+    "description": "att professional"
+  },
+  {
+    "column": "att_community",
+    "kind": "profile",
+    "description": "att community"
+  },
+  {
+    "column": "att_news",
+    "kind": "profile",
+    "description": "att news"
+  },
+  {
+    "column": "att_privacy",
+    "kind": "profile",
+    "description": "att privacy"
+  },
+  {
+    "column": "att_creator",
+    "kind": "profile",
+    "description": "att creator"
+  },
+  {
+    "column": "att_youth",
+    "kind": "profile",
+    "description": "att youth"
+  },
+  {
+    "column": "beh_sport_frequency",
+    "kind": "profile",
+    "description": "beh sport frequency"
+  },
+  {
+    "column": "beh_novelty_openness",
+    "kind": "profile",
+    "description": "beh novelty openness"
+  },
+  {
+    "column": "obj_Instagram",
+    "kind": "object_rating",
+    "description": "obj Instagram"
+  },
+  {
+    "column": "obj_TikTok",
+    "kind": "object_rating",
+    "description": "obj TikTok"
+  },
+  {
+    "column": "obj_Facebook",
+    "kind": "object_rating",
+    "description": "obj Facebook"
+  },
+  {
+    "column": "obj_YouTube",
+    "kind": "object_rating",
+    "description": "obj YouTube"
+  },
+  {
+    "column": "obj_LinkedIn",
+    "kind": "object_rating",
+    "description": "obj LinkedIn"
+  },
+  {
+    "column": "obj_X",
+    "kind": "object_rating",
+    "description": "obj X"
+  },
+  {
+    "column": "obj_Reddit",
+    "kind": "object_rating",
+    "description": "obj Reddit"
+  },
+  {
+    "column": "obj_Snapchat",
+    "kind": "object_rating",
+    "description": "obj Snapchat"
+  }
+]

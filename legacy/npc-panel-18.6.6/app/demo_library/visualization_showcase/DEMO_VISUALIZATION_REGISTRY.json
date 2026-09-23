@@ -1,0 +1,52 @@
+[
+  {
+    "project_id": "PRJ-DEMO-VIS-NAPOJE-360",
+    "demo_seed_key": "01_NAPOJE_360_DEMO",
+    "title": "Nápoje 360 — preference a segmenty",
+    "domain": "FMCG / nápoje",
+    "study_type": "Komplexní preference a segmentace",
+    "sample": 600,
+    "relative_path": "01_NAPOJE_360_DEMO",
+    "takeaway": "Výrazný shluk aktivních spotřebitelů odmítá cukr a koncentruje se kolem Coca-Coly Zero, Pepsi Max a minerálních vod — to je nejjasnější prostor pro nízkocukernou/bezcukrou variantu, kterou má smysl stavět na atributech zdraví a energie, ne jen na značce."
+  },
+  {
+    "project_id": "PRJ-DEMO-VIS-AEROLINKY-360",
+    "demo_seed_key": "02_AEROLINKY_360_DEMO",
+    "title": "Aerolinky 360 — bezpečnost, komfort a cena",
+    "domain": "Cestování / aerolinky",
+    "study_type": "Brand preference / positioning",
+    "sample": 600,
+    "relative_path": "02_AEROLINKY_360_DEMO",
+    "takeaway": "Bezpečnostní segment tíhne k British Airways, Air France a Lufthanse; komfortní k Qatar Airways a Emirates; cenový k Ryanairu a Wizz Air."
+  },
+  {
+    "project_id": "PRJ-DEMO-VIS-SOCIAL-360",
+    "demo_seed_key": "03_SOCIALNI_SITE_360_DEMO",
+    "title": "Sociální sítě 360 — kdo je kde a proč",
+    "domain": "Média / sociální sítě",
+    "study_type": "Platform usage / audience mapping",
+    "sample": 600,
+    "relative_path": "03_SOCIALNI_SITE_360_DEMO",
+    "takeaway": "Mapa odděluje krátké video, profesní sítě a komunitně-diskusní platformy a dovoluje prokliknout profil konkrétního uživatele."
+  },
+  {
+    "project_id": "PRJ-DEMO-VIS-HRY-360",
+    "demo_seed_key": "04_HERNI_TITULY_360_DEMO",
+    "title": "Herní tituly 360 — hráčské světy",
+    "domain": "Gaming",
+    "study_type": "Player segmentation / title affinities",
+    "sample": 600,
+    "relative_path": "04_HERNI_TITULY_360_DEMO",
+    "takeaway": "Kompetitivní hráči se shlukují kolem Call of Duty a League of Legends; kreativní kolem Minecraftu a The Sims; příběhoví kolem Baldur’s Gate 3."
+  },
+  {
+    "project_id": "PRJ-DEMO-VIS-MODA-360",
+    "demo_seed_key": "05_MODNI_ZNACKY_360_DEMO",
+    "title": "Módní značky 360 — styl, cena a hodnoty",
+    "domain": "Móda / retail",
+    "study_type": "Brand map / lifestyle segmentation",
+    "sample": 600,
+    "relative_path": "05_MODNI_ZNACKY_360_DEMO",
+    "takeaway": "Sportovní lifestyle se soustředí kolem Nike/Adidas, udržitelnost kolem Patagonie, status kolem Gucci a cenový trend kolem Zara/H&M."
+  }
+]

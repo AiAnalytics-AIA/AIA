@@ -1,0 +1,44 @@
+[
+  {
+    "id": "Q1",
+    "section": "Context",
+    "text": "Jak jasné jsou vaše priority a rozhodovací pravomoci?",
+    "type": "frequency",
+    "purpose": "context"
+  },
+  {
+    "id": "Q2",
+    "section": "Needs",
+    "text": "Jak bezpečné je otevřeně nesouhlasit nebo přiznat chybu?",
+    "type": "battery",
+    "purpose": "drivers"
+  },
+  {
+    "id": "Q3",
+    "section": "Objects",
+    "text": "S kterými týmy nejčastěji spolupracujete?",
+    "type": "object_battery",
+    "purpose": "comparison + sociomap"
+  },
+  {
+    "id": "Q4",
+    "section": "Emotions",
+    "text": "Jak hodnotíte kvalitu vztahů mezi hlavními funkcemi?",
+    "type": "emotion_battery",
+    "purpose": "emotional map"
+  },
+  {
+    "id": "Q5",
+    "section": "Decision",
+    "text": "Kde vznikají nejčastější zdržení rozhodování?",
+    "type": "choice",
+    "purpose": "decision KPI"
+  },
+  {
+    "id": "Q6",
+    "section": "Validation",
+    "text": "Jaké změny by nejvíce zlepšily každodenní spolupráci?",
+    "type": "certainty",
+    "purpose": "robustness"
+  }
+]

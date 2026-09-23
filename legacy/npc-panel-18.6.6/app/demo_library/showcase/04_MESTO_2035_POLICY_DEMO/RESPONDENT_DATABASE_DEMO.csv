@@ -1,0 +1,1301 @@
+﻿respondent_id,age_group,sex,region,segment,preferred_object,primary_metric,trust,clarity,appeal,overall,weight,demo
+R0001,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,75,68,59,81,71,0.952,TRUE
+R0002,65+,žena,Severovýchod,Outer District Residents,Invest & Manage,61,49,75,67,63,1.187,TRUE
+R0003,18–29,žena,Praha,Urban Greens,Invest & Manage,72,90,87,79,82,0.91,TRUE
+R0004,65+,muž,Praha,Urban Greens,Invest & Manage,75,80,45,43,61,1.02,TRUE
+R0005,30–44,muž,Střední Morava,Outer District Residents,Invest & Manage,64,48,62,60,58,0.964,TRUE
+R0006,30–44,žena,Jihozápad,Daily Drivers,Status quo,52,61,74,87,68,1.041,TRUE
+R0007,65+,žena,Jihovýchod,Urban Greens,Invest & Manage,56,56,46,89,62,0.974,TRUE
+R0008,65+,muž,Střední Čechy,Multimodal Families,Invest & Manage,49,80,77,89,74,0.85,TRUE
+R0009,30–44,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,67,56,77,52,63,0.966,TRUE
+R0010,30–44,žena,Moravskoslezsko,Urban Greens,Invest & Manage,60,89,70,73,73,0.756,TRUE
+R0011,65+,muž,Praha,Multimodal Families,Invest & Manage,50,60,69,67,62,0.854,TRUE
+R0012,65+,muž,Střední Morava,Transit Dependents,Transit first,76,85,67,78,76,1.221,TRUE
+R0013,45–64,žena,Praha,Multimodal Families,Invest & Manage,44,82,66,69,65,0.932,TRUE
+R0014,30–44,žena,Střední Morava,Transit Dependents,Transit first,43,51,77,85,64,1.041,TRUE
+R0015,45–64,muž,Praha,Multimodal Families,Invest & Manage,72,51,75,56,64,1.09,TRUE
+R0016,65+,žena,Střední Morava,Multimodal Families,Invest & Manage,58,83,66,44,63,0.905,TRUE
+R0017,18–29,muž,Severovýchod,Transit Dependents,Transit first,51,75,51,59,59,0.865,TRUE
+R0018,45–64,žena,Jihozápad,Daily Drivers,Status quo,42,60,75,78,64,1.07,TRUE
+R0019,30–44,žena,Střední Čechy,Daily Drivers,Status quo,59,50,60,85,64,0.934,TRUE
+R0020,18–29,muž,Jihovýchod,Transit Dependents,Transit first,70,46,58,36,52,0.78,TRUE
+R0021,30–44,muž,Střední Morava,Daily Drivers,Status quo,48,69,55,49,55,0.954,TRUE
+R0022,18–29,žena,Praha,Urban Greens,Invest & Manage,60,56,53,62,58,1.065,TRUE
+R0023,45–64,muž,Severozápad,Urban Greens,Invest & Manage,69,88,46,50,63,0.93,TRUE
+R0024,30–44,žena,Střední Morava,Urban Greens,Invest & Manage,53,53,52,45,51,0.923,TRUE
+R0025,45–64,muž,Severovýchod,Transit Dependents,Transit first,51,86,78,55,68,0.986,TRUE
+R0026,65+,muž,Střední Čechy,Multimodal Families,Invest & Manage,59,89,51,71,68,1.182,TRUE
+R0027,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,74,45,68,56,61,0.965,TRUE
+R0028,65+,muž,Praha,Transit Dependents,Transit first,74,79,70,66,72,1.2,TRUE
+R0029,65+,žena,Střední Morava,Multimodal Families,Invest & Manage,44,78,54,76,63,1.011,TRUE
+R0030,18–29,muž,Jihozápad,Outer District Residents,Invest & Manage,52,75,65,86,70,0.908,TRUE
+R0031,45–64,muž,Střední Čechy,Multimodal Families,Invest & Manage,63,85,90,41,70,0.79,TRUE
+R0032,45–64,žena,Praha,Transit Dependents,Transit first,48,64,67,85,66,1.021,TRUE
+R0033,18–29,muž,Severovýchod,Outer District Residents,Invest & Manage,74,51,76,65,66,1.225,TRUE
+R0034,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,56,66,70,56,62,1.183,TRUE
+R0035,18–29,muž,Jihozápad,Urban Greens,Invest & Manage,66,47,90,51,64,0.893,TRUE
+R0036,18–29,žena,Jihozápad,Urban Greens,Invest & Manage,67,90,61,87,76,0.817,TRUE
+R0037,45–64,muž,Moravskoslezsko,Daily Drivers,Status quo,52,46,51,56,51,0.832,TRUE
+R0038,65+,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,64,67,56,68,64,1.249,TRUE
+R0039,30–44,žena,Střední Morava,Transit Dependents,Transit first,41,54,83,48,56,1.191,TRUE
+R0040,65+,muž,Jihozápad,Urban Greens,Invest & Manage,57,76,78,69,70,1.185,TRUE
+R0041,18–29,muž,Jihozápad,Daily Drivers,Status quo,42,61,63,50,54,0.766,TRUE
+R0042,65+,muž,Jihovýchod,Multimodal Families,Invest & Manage,44,82,64,39,57,0.758,TRUE
+R0043,65+,žena,Jihovýchod,Daily Drivers,Status quo,71,72,83,62,72,1.085,TRUE
+R0044,45–64,muž,Severozápad,Outer District Residents,Invest & Manage,42,73,82,45,60,0.881,TRUE
+R0045,45–64,muž,Severozápad,Urban Greens,Invest & Manage,40,54,70,55,55,0.982,TRUE
+R0046,30–44,muž,Střední Čechy,Multimodal Families,Invest & Manage,40,46,52,66,51,0.862,TRUE
+R0047,45–64,žena,Severozápad,Daily Drivers,Status quo,70,87,45,89,73,0.759,TRUE
+R0048,18–29,žena,Severovýchod,Multimodal Families,Invest & Manage,61,56,70,45,58,0.948,TRUE
+R0049,45–64,muž,Praha,Daily Drivers,Status quo,51,55,50,35,48,0.884,TRUE
+R0050,45–64,žena,Jihovýchod,Multimodal Families,Invest & Manage,50,62,49,43,51,0.954,TRUE
+R0051,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,65,87,65,41,64,1.117,TRUE
+R0052,65+,muž,Severozápad,Transit Dependents,Transit first,45,49,81,79,64,0.807,TRUE
+R0053,45–64,žena,Jihovýchod,Urban Greens,Invest & Manage,71,90,63,61,71,0.803,TRUE
+R0054,30–44,muž,Jihovýchod,Daily Drivers,Status quo,51,66,80,75,68,0.769,TRUE
+R0055,18–29,muž,Severovýchod,Urban Greens,Invest & Manage,51,53,72,45,55,0.879,TRUE
+R0056,18–29,žena,Jihovýchod,Daily Drivers,Status quo,61,85,57,73,69,1.05,TRUE
+R0057,65+,muž,Střední Čechy,Urban Greens,Invest & Manage,45,53,46,80,56,0.963,TRUE
+R0058,45–64,muž,Jihovýchod,Multimodal Families,Invest & Manage,57,60,61,79,64,1.051,TRUE
+R0059,45–64,muž,Jihovýchod,Transit Dependents,Transit first,67,83,82,48,70,1.067,TRUE
+R0060,30–44,muž,Střední Morava,Transit Dependents,Transit first,70,65,48,41,56,1.143,TRUE
+R0061,18–29,muž,Jihozápad,Urban Greens,Invest & Manage,74,65,53,52,61,0.857,TRUE
+R0062,65+,muž,Jihozápad,Daily Drivers,Status quo,44,70,48,83,61,0.787,TRUE
+R0063,30–44,žena,Jihovýchod,Multimodal Families,Invest & Manage,61,62,59,69,63,1.143,TRUE
+R0064,65+,muž,Moravskoslezsko,Urban Greens,Invest & Manage,75,86,82,43,72,0.831,TRUE
+R0065,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,76,77,62,88,76,0.9,TRUE
+R0066,65+,žena,Střední Čechy,Outer District Residents,Invest & Manage,58,88,62,54,66,0.825,TRUE
+R0067,65+,žena,Střední Čechy,Outer District Residents,Invest & Manage,48,84,60,84,69,0.809,TRUE
+R0068,45–64,žena,Jihozápad,Outer District Residents,Invest & Manage,66,46,80,74,66,1.168,TRUE
+R0069,65+,muž,Praha,Transit Dependents,Transit first,46,56,83,44,57,1.152,TRUE
+R0070,30–44,muž,Jihovýchod,Outer District Residents,Invest & Manage,60,67,53,57,59,1.019,TRUE
+R0071,65+,žena,Střední Morava,Daily Drivers,Status quo,44,87,84,80,74,1.15,TRUE
+R0072,45–64,muž,Moravskoslezsko,Transit Dependents,Transit first,57,72,68,79,69,0.781,TRUE
+R0073,30–44,žena,Střední Čechy,Transit Dependents,Transit first,58,89,63,59,67,1.13,TRUE
+R0074,45–64,muž,Severovýchod,Transit Dependents,Transit first,71,48,82,79,70,0.899,TRUE
+R0075,18–29,žena,Střední Čechy,Daily Drivers,Status quo,55,86,74,52,67,0.861,TRUE
+R0076,30–44,žena,Severozápad,Outer District Residents,Invest & Manage,52,45,78,73,62,0.911,TRUE
+R0077,18–29,muž,Střední Morava,Multimodal Families,Invest & Manage,72,45,68,70,64,0.869,TRUE
+R0078,65+,žena,Střední Morava,Daily Drivers,Status quo,76,45,54,54,57,1.089,TRUE
+R0079,18–29,žena,Jihozápad,Transit Dependents,Transit first,48,51,45,44,47,1.033,TRUE
+R0080,18–29,žena,Střední Čechy,Daily Drivers,Status quo,41,50,45,59,49,0.961,TRUE
+R0081,65+,žena,Střední Morava,Daily Drivers,Status quo,65,82,78,54,70,1.117,TRUE
+R0082,65+,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,40,82,64,44,58,1.014,TRUE
+R0083,30–44,žena,Severozápad,Multimodal Families,Invest & Manage,43,89,88,46,66,0.97,TRUE
+R0084,18–29,muž,Střední Morava,Daily Drivers,Status quo,50,57,53,72,58,0.76,TRUE
+R0085,30–44,muž,Střední Morava,Transit Dependents,Transit first,41,49,60,66,54,0.848,TRUE
+R0086,30–44,muž,Střední Morava,Daily Drivers,Status quo,75,62,65,37,60,1.098,TRUE
+R0087,18–29,žena,Střední Morava,Daily Drivers,Status quo,49,63,51,82,61,1.196,TRUE
+R0088,65+,žena,Střední Čechy,Urban Greens,Invest & Manage,43,60,74,38,54,0.924,TRUE
+R0089,65+,žena,Severozápad,Outer District Residents,Invest & Manage,59,75,46,79,65,1.235,TRUE
+R0090,45–64,muž,Severozápad,Urban Greens,Invest & Manage,59,61,87,78,71,1.032,TRUE
+R0091,30–44,muž,Severovýchod,Multimodal Families,Invest & Manage,60,61,61,86,67,1.031,TRUE
+R0092,65+,žena,Severovýchod,Daily Drivers,Status quo,46,52,46,86,58,0.78,TRUE
+R0093,65+,žena,Jihovýchod,Outer District Residents,Invest & Manage,66,67,85,56,68,0.976,TRUE
+R0094,18–29,žena,Jihovýchod,Daily Drivers,Status quo,61,53,73,54,60,0.958,TRUE
+R0095,30–44,žena,Střední Čechy,Outer District Residents,Invest & Manage,40,49,85,57,58,0.904,TRUE
+R0096,45–64,žena,Jihozápad,Daily Drivers,Status quo,73,59,70,84,72,1.195,TRUE
+R0097,18–29,muž,Severovýchod,Daily Drivers,Status quo,68,85,90,62,76,1.176,TRUE
+R0098,30–44,muž,Severozápad,Multimodal Families,Invest & Manage,59,90,62,72,71,1.074,TRUE
+R0099,65+,žena,Střední Morava,Daily Drivers,Status quo,71,76,65,47,65,1.017,TRUE
+R0100,30–44,žena,Střední Morava,Outer District Residents,Invest & Manage,61,56,87,56,65,0.801,TRUE
+R0101,45–64,muž,Střední Čechy,Urban Greens,Invest & Manage,44,79,75,38,59,0.756,TRUE
+R0102,45–64,muž,Severovýchod,Transit Dependents,Transit first,61,85,64,71,70,1.113,TRUE
+R0103,18–29,muž,Jihovýchod,Multimodal Families,Invest & Manage,57,55,77,84,68,0.91,TRUE
+R0104,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,75,46,50,64,59,1.102,TRUE
+R0105,65+,žena,Střední Morava,Outer District Residents,Invest & Manage,49,73,83,51,64,1.006,TRUE
+R0106,18–29,žena,Severovýchod,Daily Drivers,Status quo,62,53,53,46,54,1.017,TRUE
+R0107,30–44,žena,Jihovýchod,Transit Dependents,Transit first,49,52,71,89,65,1.112,TRUE
+R0108,65+,muž,Střední Čechy,Multimodal Families,Invest & Manage,69,50,64,80,66,1.242,TRUE
+R0109,65+,muž,Moravskoslezsko,Daily Drivers,Status quo,48,73,66,81,67,1.026,TRUE
+R0110,65+,muž,Severozápad,Daily Drivers,Status quo,56,90,63,90,75,1.174,TRUE
+R0111,65+,žena,Jihozápad,Outer District Residents,Invest & Manage,74,57,70,85,72,0.883,TRUE
+R0112,45–64,muž,Jihovýchod,Urban Greens,Invest & Manage,70,62,70,53,64,0.914,TRUE
+R0113,30–44,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,51,71,64,84,68,0.781,TRUE
+R0114,18–29,žena,Jihozápad,Multimodal Families,Invest & Manage,60,49,56,80,61,1.113,TRUE
+R0115,30–44,žena,Střední Morava,Outer District Residents,Invest & Manage,75,73,85,68,75,1.157,TRUE
+R0116,30–44,žena,Severovýchod,Daily Drivers,Status quo,61,58,87,73,70,1.071,TRUE
+R0117,65+,žena,Severovýchod,Multimodal Families,Invest & Manage,49,88,48,58,61,1.052,TRUE
+R0118,18–29,muž,Jihovýchod,Outer District Residents,Invest & Manage,71,52,73,48,61,1.096,TRUE
+R0119,65+,muž,Jihozápad,Daily Drivers,Status quo,53,63,73,44,58,0.825,TRUE
+R0120,18–29,žena,Severovýchod,Multimodal Families,Invest & Manage,71,80,78,43,68,1.235,TRUE
+R0121,30–44,žena,Praha,Multimodal Families,Invest & Manage,54,67,47,85,63,0.807,TRUE
+R0122,30–44,žena,Praha,Multimodal Families,Invest & Manage,62,54,89,78,71,1.098,TRUE
+R0123,45–64,žena,Střední Morava,Multimodal Families,Invest & Manage,75,54,52,64,61,1.123,TRUE
+R0124,18–29,muž,Jihozápad,Daily Drivers,Status quo,74,88,75,36,68,1.196,TRUE
+R0125,30–44,muž,Jihozápad,Transit Dependents,Transit first,59,79,84,43,66,0.844,TRUE
+R0126,45–64,muž,Střední Morava,Daily Drivers,Status quo,74,62,71,60,67,1.232,TRUE
+R0127,65+,muž,Střední Čechy,Transit Dependents,Transit first,43,49,87,57,59,1.148,TRUE
+R0128,65+,muž,Jihozápad,Transit Dependents,Transit first,62,90,52,71,69,0.838,TRUE
+R0129,18–29,žena,Severovýchod,Daily Drivers,Status quo,72,70,89,69,75,0.87,TRUE
+R0130,65+,muž,Jihozápad,Transit Dependents,Transit first,48,63,48,52,53,1.121,TRUE
+R0131,18–29,žena,Praha,Daily Drivers,Status quo,58,47,53,88,62,0.792,TRUE
+R0132,18–29,žena,Moravskoslezsko,Transit Dependents,Transit first,76,61,81,67,71,1.183,TRUE
+R0133,65+,žena,Praha,Transit Dependents,Transit first,58,45,65,86,64,0.838,TRUE
+R0134,18–29,žena,Moravskoslezsko,Transit Dependents,Transit first,53,56,76,66,63,1.015,TRUE
+R0135,65+,žena,Praha,Transit Dependents,Transit first,65,76,76,61,70,1.211,TRUE
+R0136,30–44,žena,Střední Čechy,Multimodal Families,Invest & Manage,69,53,90,85,74,0.843,TRUE
+R0137,18–29,muž,Jihovýchod,Multimodal Families,Invest & Manage,76,51,60,62,62,0.921,TRUE
+R0138,18–29,žena,Střední Morava,Daily Drivers,Status quo,65,69,76,48,64,0.992,TRUE
+R0139,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,76,63,66,74,70,1.217,TRUE
+R0140,45–64,muž,Severozápad,Multimodal Families,Invest & Manage,42,46,48,68,51,1.239,TRUE
+R0141,18–29,žena,Praha,Outer District Residents,Invest & Manage,50,76,56,43,56,1.151,TRUE
+R0142,30–44,žena,Střední Morava,Transit Dependents,Transit first,62,54,59,38,53,0.799,TRUE
+R0143,45–64,žena,Moravskoslezsko,Urban Greens,Invest & Manage,45,48,53,76,56,0.853,TRUE
+R0144,65+,žena,Jihovýchod,Multimodal Families,Invest & Manage,65,72,59,76,68,0.807,TRUE
+R0145,65+,žena,Jihovýchod,Transit Dependents,Transit first,49,48,78,54,57,1.118,TRUE
+R0146,65+,muž,Střední Čechy,Outer District Residents,Invest & Manage,43,53,51,62,52,1.046,TRUE
+R0147,65+,žena,Střední Čechy,Urban Greens,Invest & Manage,40,63,46,49,50,1.063,TRUE
+R0148,30–44,muž,Jihozápad,Daily Drivers,Status quo,50,88,64,86,72,0.969,TRUE
+R0149,30–44,žena,Severozápad,Multimodal Families,Invest & Manage,59,71,90,40,65,1.047,TRUE
+R0150,45–64,žena,Střední Čechy,Outer District Residents,Invest & Manage,53,54,57,74,60,0.937,TRUE
+R0151,18–29,muž,Střední Čechy,Multimodal Families,Invest & Manage,43,63,46,39,48,0.842,TRUE
+R0152,18–29,muž,Střední Morava,Daily Drivers,Status quo,58,54,68,41,55,0.918,TRUE
+R0153,30–44,žena,Praha,Outer District Residents,Invest & Manage,62,47,54,56,55,1.016,TRUE
+R0154,65+,muž,Severozápad,Transit Dependents,Transit first,58,66,71,39,58,0.863,TRUE
+R0155,18–29,muž,Střední Čechy,Transit Dependents,Transit first,72,60,67,41,60,1.144,TRUE
+R0156,65+,muž,Praha,Multimodal Families,Invest & Manage,69,79,54,47,62,0.958,TRUE
+R0157,65+,žena,Střední Morava,Daily Drivers,Status quo,40,73,62,56,58,1.181,TRUE
+R0158,45–64,žena,Jihozápad,Outer District Residents,Invest & Manage,71,53,71,72,67,0.769,TRUE
+R0159,45–64,muž,Severozápad,Multimodal Families,Invest & Manage,67,77,47,47,60,0.836,TRUE
+R0160,18–29,muž,Střední Morava,Transit Dependents,Transit first,43,83,49,80,64,1.173,TRUE
+R0161,18–29,muž,Praha,Daily Drivers,Status quo,68,63,49,72,63,0.799,TRUE
+R0162,18–29,muž,Praha,Multimodal Families,Invest & Manage,41,54,81,52,57,0.906,TRUE
+R0163,30–44,muž,Moravskoslezsko,Daily Drivers,Status quo,62,82,46,57,62,1.21,TRUE
+R0164,45–64,muž,Jihozápad,Outer District Residents,Invest & Manage,48,64,72,55,60,0.873,TRUE
+R0165,30–44,muž,Jihovýchod,Multimodal Families,Invest & Manage,70,57,57,50,58,0.921,TRUE
+R0166,45–64,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,45,75,76,71,67,0.814,TRUE
+R0167,18–29,žena,Střední Morava,Outer District Residents,Invest & Manage,57,85,82,56,70,0.891,TRUE
+R0168,18–29,žena,Jihozápad,Daily Drivers,Status quo,73,49,83,50,64,1.231,TRUE
+R0169,30–44,muž,Severozápad,Daily Drivers,Status quo,61,69,45,86,65,1.186,TRUE
+R0170,45–64,muž,Střední Čechy,Daily Drivers,Status quo,50,60,46,67,56,0.76,TRUE
+R0171,18–29,muž,Jihozápad,Multimodal Families,Invest & Manage,75,62,79,49,66,1.052,TRUE
+R0172,65+,muž,Jihovýchod,Urban Greens,Invest & Manage,44,45,56,70,54,0.824,TRUE
+R0173,30–44,muž,Jihozápad,Multimodal Families,Invest & Manage,70,77,82,77,76,1.146,TRUE
+R0174,30–44,žena,Praha,Multimodal Families,Invest & Manage,62,81,49,80,68,0.849,TRUE
+R0175,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,45,67,60,49,55,0.882,TRUE
+R0176,45–64,muž,Jihozápad,Daily Drivers,Status quo,51,50,52,52,51,1.068,TRUE
+R0177,45–64,žena,Praha,Multimodal Families,Invest & Manage,43,63,81,68,64,1.068,TRUE
+R0178,30–44,muž,Jihozápad,Multimodal Families,Invest & Manage,43,87,45,59,58,0.776,TRUE
+R0179,30–44,muž,Moravskoslezsko,Daily Drivers,Status quo,70,62,54,72,64,0.932,TRUE
+R0180,45–64,muž,Severovýchod,Multimodal Families,Invest & Manage,42,76,45,71,58,1.193,TRUE
+R0181,45–64,muž,Jihovýchod,Urban Greens,Invest & Manage,47,47,48,77,55,1.23,TRUE
+R0182,18–29,muž,Jihovýchod,Transit Dependents,Transit first,54,83,53,47,59,1.08,TRUE
+R0183,65+,žena,Jihozápad,Urban Greens,Invest & Manage,47,83,70,38,60,0.791,TRUE
+R0184,18–29,muž,Severozápad,Daily Drivers,Status quo,57,87,57,60,65,1.184,TRUE
+R0185,18–29,žena,Jihozápad,Transit Dependents,Transit first,65,68,70,56,65,1.107,TRUE
+R0186,65+,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,60,73,77,66,69,1.084,TRUE
+R0187,18–29,žena,Střední Morava,Multimodal Families,Invest & Manage,64,76,66,73,70,0.987,TRUE
+R0188,18–29,muž,Severovýchod,Multimodal Families,Invest & Manage,63,82,58,64,67,1.223,TRUE
+R0189,45–64,muž,Severozápad,Outer District Residents,Invest & Manage,47,78,46,50,55,1.099,TRUE
+R0190,18–29,muž,Střední Morava,Outer District Residents,Invest & Manage,43,66,90,65,66,1.088,TRUE
+R0191,30–44,muž,Jihozápad,Daily Drivers,Status quo,59,49,81,51,60,0.951,TRUE
+R0192,18–29,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,46,87,79,58,68,0.924,TRUE
+R0193,45–64,muž,Severovýchod,Daily Drivers,Status quo,55,72,90,76,73,1.065,TRUE
+R0194,18–29,žena,Střední Čechy,Multimodal Families,Invest & Manage,40,50,78,44,53,0.768,TRUE
+R0195,18–29,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,74,84,88,69,79,1.095,TRUE
+R0196,45–64,žena,Severovýchod,Urban Greens,Invest & Manage,64,73,77,70,71,1.055,TRUE
+R0197,45–64,muž,Severovýchod,Transit Dependents,Transit first,47,45,65,48,51,0.905,TRUE
+R0198,45–64,muž,Jihovýchod,Multimodal Families,Invest & Manage,72,83,65,58,70,1.059,TRUE
+R0199,45–64,žena,Jihozápad,Transit Dependents,Transit first,54,53,60,85,63,1.191,TRUE
+R0200,45–64,žena,Jihovýchod,Daily Drivers,Status quo,71,84,80,89,81,0.935,TRUE
+R0201,30–44,žena,Praha,Outer District Residents,Invest & Manage,60,83,85,62,72,0.9,TRUE
+R0202,65+,žena,Severozápad,Transit Dependents,Transit first,52,88,50,80,68,1.159,TRUE
+R0203,65+,žena,Jihozápad,Multimodal Families,Invest & Manage,64,66,46,72,62,0.965,TRUE
+R0204,18–29,muž,Střední Morava,Multimodal Families,Invest & Manage,55,80,73,43,63,0.757,TRUE
+R0205,65+,muž,Střední Morava,Daily Drivers,Status quo,42,78,52,39,53,1.09,TRUE
+R0206,65+,muž,Střední Čechy,Urban Greens,Invest & Manage,41,49,59,70,55,0.861,TRUE
+R0207,45–64,muž,Severozápad,Urban Greens,Invest & Manage,54,78,72,58,66,1.208,TRUE
+R0208,65+,muž,Severozápad,Urban Greens,Invest & Manage,68,88,85,62,76,1.09,TRUE
+R0209,30–44,žena,Severovýchod,Daily Drivers,Status quo,51,87,61,58,64,0.922,TRUE
+R0210,18–29,žena,Jihovýchod,Transit Dependents,Transit first,63,80,48,63,64,0.858,TRUE
+R0211,45–64,muž,Severozápad,Urban Greens,Invest & Manage,56,62,81,60,65,0.908,TRUE
+R0212,65+,žena,Jihozápad,Multimodal Families,Invest & Manage,72,87,50,87,74,0.943,TRUE
+R0213,30–44,muž,Severozápad,Transit Dependents,Transit first,43,78,62,41,56,0.957,TRUE
+R0214,45–64,muž,Moravskoslezsko,Transit Dependents,Transit first,69,48,60,44,55,0.909,TRUE
+R0215,65+,muž,Jihovýchod,Daily Drivers,Status quo,72,45,82,79,70,1.149,TRUE
+R0216,45–64,muž,Střední Čechy,Transit Dependents,Transit first,59,70,77,79,71,0.898,TRUE
+R0217,45–64,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,42,52,52,48,48,1.247,TRUE
+R0218,45–64,muž,Střední Čechy,Urban Greens,Invest & Manage,47,65,83,49,61,0.873,TRUE
+R0219,18–29,muž,Severovýchod,Daily Drivers,Status quo,48,71,76,55,62,0.774,TRUE
+R0220,18–29,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,74,59,65,77,69,0.85,TRUE
+R0221,18–29,žena,Praha,Daily Drivers,Status quo,63,64,75,79,70,0.911,TRUE
+R0222,30–44,muž,Praha,Daily Drivers,Status quo,55,53,61,72,60,1.119,TRUE
+R0223,30–44,muž,Jihozápad,Daily Drivers,Status quo,42,80,47,65,58,0.781,TRUE
+R0224,45–64,muž,Moravskoslezsko,Transit Dependents,Transit first,64,90,83,40,69,0.878,TRUE
+R0225,45–64,žena,Jihozápad,Daily Drivers,Status quo,40,48,77,41,52,1.205,TRUE
+R0226,30–44,žena,Praha,Daily Drivers,Status quo,44,60,45,48,49,1.0,TRUE
+R0227,18–29,muž,Praha,Daily Drivers,Status quo,66,64,62,66,64,0.811,TRUE
+R0228,65+,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,52,57,50,71,58,1.062,TRUE
+R0229,65+,žena,Střední Čechy,Multimodal Families,Invest & Manage,68,49,86,75,70,0.966,TRUE
+R0230,18–29,žena,Jihovýchod,Outer District Residents,Invest & Manage,45,60,87,48,60,1.125,TRUE
+R0231,18–29,žena,Moravskoslezsko,Daily Drivers,Status quo,63,64,81,40,62,1.109,TRUE
+R0232,45–64,muž,Jihozápad,Daily Drivers,Status quo,48,57,59,89,63,0.898,TRUE
+R0233,30–44,muž,Severovýchod,Daily Drivers,Status quo,64,67,61,42,58,0.903,TRUE
+R0234,45–64,muž,Střední Čechy,Urban Greens,Invest & Manage,57,73,75,48,63,1.226,TRUE
+R0235,18–29,žena,Praha,Outer District Residents,Invest & Manage,40,68,88,77,68,0.985,TRUE
+R0236,18–29,muž,Jihozápad,Transit Dependents,Transit first,42,69,71,59,60,0.923,TRUE
+R0237,18–29,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,68,72,50,43,58,1.165,TRUE
+R0238,65+,muž,Severovýchod,Multimodal Families,Invest & Manage,47,75,48,46,54,0.819,TRUE
+R0239,65+,žena,Severozápad,Urban Greens,Invest & Manage,52,64,55,90,65,0.91,TRUE
+R0240,45–64,žena,Severozápad,Outer District Residents,Invest & Manage,46,66,66,90,67,0.783,TRUE
+R0241,30–44,žena,Střední Čechy,Urban Greens,Invest & Manage,59,47,86,75,67,0.799,TRUE
+R0242,45–64,žena,Praha,Transit Dependents,Transit first,62,59,59,83,66,1.058,TRUE
+R0243,45–64,muž,Střední Čechy,Urban Greens,Invest & Manage,62,87,88,39,69,1.023,TRUE
+R0244,45–64,žena,Jihovýchod,Daily Drivers,Status quo,44,61,64,45,54,1.134,TRUE
+R0245,30–44,žena,Praha,Urban Greens,Invest & Manage,66,50,71,36,56,0.957,TRUE
+R0246,30–44,muž,Jihovýchod,Multimodal Families,Invest & Manage,40,67,52,85,61,0.99,TRUE
+R0247,30–44,muž,Jihozápad,Transit Dependents,Transit first,55,64,84,48,63,0.847,TRUE
+R0248,45–64,muž,Střední Čechy,Daily Drivers,Status quo,69,48,73,39,57,1.187,TRUE
+R0249,18–29,žena,Severozápad,Outer District Residents,Invest & Manage,56,54,89,88,72,1.152,TRUE
+R0250,65+,žena,Střední Čechy,Urban Greens,Invest & Manage,42,80,79,69,68,0.779,TRUE
+R0251,30–44,žena,Severovýchod,Urban Greens,Invest & Manage,40,68,71,86,66,1.099,TRUE
+R0252,45–64,žena,Jihovýchod,Transit Dependents,Transit first,51,57,90,52,62,1.001,TRUE
+R0253,30–44,žena,Jihovýchod,Multimodal Families,Invest & Manage,61,87,74,90,78,1.067,TRUE
+R0254,30–44,žena,Severovýchod,Daily Drivers,Status quo,46,59,72,37,54,0.802,TRUE
+R0255,30–44,žena,Jihozápad,Daily Drivers,Status quo,76,48,46,68,60,0.941,TRUE
+R0256,30–44,žena,Střední Čechy,Outer District Residents,Invest & Manage,55,58,50,57,55,0.967,TRUE
+R0257,30–44,muž,Jihovýchod,Multimodal Families,Invest & Manage,67,88,85,58,74,0.956,TRUE
+R0258,18–29,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,47,51,52,42,48,1.147,TRUE
+R0259,65+,muž,Jihozápad,Daily Drivers,Status quo,51,80,61,54,62,1.181,TRUE
+R0260,18–29,žena,Severozápad,Multimodal Families,Invest & Manage,41,65,58,51,54,1.226,TRUE
+R0261,45–64,žena,Moravskoslezsko,Daily Drivers,Status quo,58,78,70,73,70,0.993,TRUE
+R0262,65+,žena,Střední Morava,Urban Greens,Invest & Manage,69,54,51,90,66,0.9,TRUE
+R0263,18–29,žena,Střední Čechy,Multimodal Families,Invest & Manage,42,55,70,48,54,1.064,TRUE
+R0264,18–29,žena,Střední Čechy,Transit Dependents,Transit first,65,78,51,42,59,0.971,TRUE
+R0265,65+,muž,Severozápad,Daily Drivers,Status quo,43,59,52,48,50,1.16,TRUE
+R0266,30–44,muž,Jihozápad,Multimodal Families,Invest & Manage,58,58,85,38,60,0.891,TRUE
+R0267,45–64,muž,Jihovýchod,Multimodal Families,Invest & Manage,72,45,53,80,62,0.912,TRUE
+R0268,18–29,žena,Moravskoslezsko,Urban Greens,Invest & Manage,67,81,45,43,59,1.127,TRUE
+R0269,65+,muž,Střední Čechy,Multimodal Families,Invest & Manage,58,80,82,88,77,0.771,TRUE
+R0270,45–64,muž,Jihozápad,Daily Drivers,Status quo,52,67,51,69,60,1.112,TRUE
+R0271,65+,žena,Severozápad,Transit Dependents,Transit first,70,48,58,59,59,1.132,TRUE
+R0272,18–29,muž,Severovýchod,Daily Drivers,Status quo,41,79,61,74,64,0.96,TRUE
+R0273,45–64,žena,Severozápad,Multimodal Families,Invest & Manage,46,49,55,68,54,1.079,TRUE
+R0274,65+,žena,Střední Morava,Daily Drivers,Status quo,42,64,66,85,64,1.099,TRUE
+R0275,18–29,žena,Jihovýchod,Daily Drivers,Status quo,62,80,84,87,78,0.913,TRUE
+R0276,18–29,muž,Střední Morava,Multimodal Families,Invest & Manage,66,74,67,56,66,0.92,TRUE
+R0277,65+,žena,Jihovýchod,Multimodal Families,Invest & Manage,61,50,71,53,59,1.084,TRUE
+R0278,18–29,muž,Jihozápad,Outer District Residents,Invest & Manage,71,55,76,54,64,1.235,TRUE
+R0279,65+,muž,Střední Morava,Daily Drivers,Status quo,69,66,62,72,67,1.236,TRUE
+R0280,18–29,muž,Severovýchod,Daily Drivers,Status quo,41,81,76,73,68,0.799,TRUE
+R0281,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,64,69,51,37,55,0.967,TRUE
+R0282,45–64,žena,Střední Morava,Outer District Residents,Invest & Manage,45,65,55,61,56,0.769,TRUE
+R0283,18–29,žena,Severovýchod,Daily Drivers,Status quo,72,87,76,68,76,0.954,TRUE
+R0284,45–64,žena,Severozápad,Transit Dependents,Transit first,73,89,53,56,68,0.876,TRUE
+R0285,45–64,žena,Severozápad,Multimodal Families,Invest & Manage,40,58,54,71,56,0.814,TRUE
+R0286,30–44,žena,Moravskoslezsko,Daily Drivers,Status quo,67,48,54,64,58,1.219,TRUE
+R0287,65+,muž,Střední Morava,Transit Dependents,Transit first,75,78,76,58,72,0.85,TRUE
+R0288,65+,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,60,68,72,42,60,1.176,TRUE
+R0289,65+,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,59,59,54,75,62,0.908,TRUE
+R0290,30–44,žena,Jihovýchod,Daily Drivers,Status quo,71,88,86,49,74,1.247,TRUE
+R0291,45–64,žena,Jihovýchod,Multimodal Families,Invest & Manage,71,79,80,73,76,0.846,TRUE
+R0292,65+,žena,Jihozápad,Daily Drivers,Status quo,43,57,53,38,48,0.872,TRUE
+R0293,30–44,muž,Jihozápad,Transit Dependents,Transit first,70,72,52,63,64,0.813,TRUE
+R0294,45–64,žena,Jihovýchod,Daily Drivers,Status quo,49,61,74,74,64,0.783,TRUE
+R0295,18–29,muž,Praha,Daily Drivers,Status quo,74,61,74,48,64,0.907,TRUE
+R0296,18–29,žena,Severovýchod,Multimodal Families,Invest & Manage,56,87,67,41,63,0.892,TRUE
+R0297,30–44,žena,Praha,Multimodal Families,Invest & Manage,44,71,57,71,61,0.761,TRUE
+R0298,30–44,žena,Severovýchod,Outer District Residents,Invest & Manage,54,88,54,90,72,0.925,TRUE
+R0299,30–44,žena,Střední Čechy,Multimodal Families,Invest & Manage,71,87,51,81,72,1.168,TRUE
+R0300,30–44,žena,Severovýchod,Transit Dependents,Transit first,58,79,73,90,75,0.997,TRUE
+R0301,45–64,žena,Jihozápad,Daily Drivers,Status quo,64,88,84,49,71,1.143,TRUE
+R0302,65+,žena,Severozápad,Outer District Residents,Invest & Manage,47,70,74,73,66,1.1,TRUE
+R0303,65+,žena,Jihovýchod,Transit Dependents,Transit first,63,74,81,44,66,1.105,TRUE
+R0304,65+,žena,Severovýchod,Daily Drivers,Status quo,75,71,79,62,72,1.122,TRUE
+R0305,45–64,žena,Jihovýchod,Transit Dependents,Transit first,65,87,88,68,77,1.114,TRUE
+R0306,30–44,žena,Severovýchod,Multimodal Families,Invest & Manage,73,47,57,41,54,0.96,TRUE
+R0307,45–64,muž,Jihozápad,Daily Drivers,Status quo,73,71,49,58,63,1.2,TRUE
+R0308,18–29,žena,Moravskoslezsko,Daily Drivers,Status quo,41,89,88,85,76,1.226,TRUE
+R0309,30–44,žena,Střední Čechy,Daily Drivers,Status quo,60,80,72,87,75,1.143,TRUE
+R0310,65+,muž,Severovýchod,Daily Drivers,Status quo,56,62,82,60,65,1.152,TRUE
+R0311,45–64,muž,Jihozápad,Multimodal Families,Invest & Manage,76,74,89,45,71,1.158,TRUE
+R0312,65+,žena,Severovýchod,Daily Drivers,Status quo,66,83,83,61,73,1.048,TRUE
+R0313,45–64,muž,Praha,Transit Dependents,Transit first,46,80,73,85,71,0.778,TRUE
+R0314,65+,žena,Střední Čechy,Multimodal Families,Invest & Manage,41,45,90,51,57,0.829,TRUE
+R0315,45–64,žena,Praha,Outer District Residents,Invest & Manage,43,68,81,82,68,0.787,TRUE
+R0316,18–29,žena,Jihozápad,Urban Greens,Invest & Manage,71,63,74,54,66,1.089,TRUE
+R0317,18–29,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,67,68,76,45,64,0.931,TRUE
+R0318,18–29,muž,Moravskoslezsko,Daily Drivers,Status quo,66,60,76,66,67,0.755,TRUE
+R0319,45–64,muž,Jihozápad,Daily Drivers,Status quo,64,84,45,69,66,0.864,TRUE
+R0320,30–44,muž,Jihovýchod,Transit Dependents,Transit first,55,86,62,56,65,1.154,TRUE
+R0321,30–44,muž,Praha,Daily Drivers,Status quo,52,69,53,42,54,0.913,TRUE
+R0322,45–64,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,47,51,72,62,58,0.795,TRUE
+R0323,18–29,muž,Praha,Transit Dependents,Transit first,45,66,59,65,59,1.036,TRUE
+R0324,45–64,žena,Praha,Transit Dependents,Transit first,53,64,57,78,63,0.827,TRUE
+R0325,45–64,muž,Střední Morava,Urban Greens,Invest & Manage,56,70,59,89,68,1.055,TRUE
+R0326,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,63,80,54,45,60,0.91,TRUE
+R0327,18–29,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,42,49,71,67,57,1.148,TRUE
+R0328,45–64,muž,Praha,Urban Greens,Invest & Manage,59,62,78,59,64,1.082,TRUE
+R0329,18–29,muž,Severovýchod,Multimodal Families,Invest & Manage,72,84,84,77,79,1.009,TRUE
+R0330,65+,žena,Střední Čechy,Daily Drivers,Status quo,48,47,90,42,57,0.941,TRUE
+R0331,65+,muž,Moravskoslezsko,Daily Drivers,Status quo,54,54,70,86,66,1.066,TRUE
+R0332,65+,žena,Praha,Transit Dependents,Transit first,76,61,59,50,62,1.115,TRUE
+R0333,30–44,muž,Praha,Multimodal Families,Invest & Manage,71,49,80,82,70,0.816,TRUE
+R0334,18–29,muž,Severovýchod,Multimodal Families,Invest & Manage,67,81,90,65,76,0.816,TRUE
+R0335,65+,muž,Střední Čechy,Outer District Residents,Invest & Manage,60,86,48,90,71,0.974,TRUE
+R0336,30–44,muž,Jihovýchod,Transit Dependents,Transit first,55,51,83,74,66,1.175,TRUE
+R0337,18–29,muž,Severozápad,Daily Drivers,Status quo,74,72,65,44,64,0.822,TRUE
+R0338,65+,žena,Střední Čechy,Multimodal Families,Invest & Manage,51,69,62,81,66,1.177,TRUE
+R0339,45–64,žena,Střední Morava,Transit Dependents,Transit first,67,53,47,81,62,0.843,TRUE
+R0340,18–29,žena,Střední Morava,Multimodal Families,Invest & Manage,47,86,64,90,72,0.993,TRUE
+R0341,18–29,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,60,57,87,51,64,1.077,TRUE
+R0342,45–64,muž,Severozápad,Daily Drivers,Status quo,69,49,67,58,61,1.149,TRUE
+R0343,45–64,žena,Severovýchod,Daily Drivers,Status quo,53,51,54,48,52,1.082,TRUE
+R0344,45–64,muž,Praha,Outer District Residents,Invest & Manage,52,69,59,44,56,1.193,TRUE
+R0345,65+,muž,Severozápad,Daily Drivers,Status quo,49,50,50,53,50,1.12,TRUE
+R0346,65+,žena,Jihovýchod,Outer District Residents,Invest & Manage,49,68,53,54,56,0.891,TRUE
+R0347,30–44,muž,Střední Morava,Daily Drivers,Status quo,58,61,82,84,71,0.849,TRUE
+R0348,45–64,žena,Severozápad,Multimodal Families,Invest & Manage,55,83,90,54,70,0.962,TRUE
+R0349,65+,muž,Praha,Transit Dependents,Transit first,52,53,82,52,60,1.067,TRUE
+R0350,45–64,žena,Jihovýchod,Daily Drivers,Status quo,50,83,63,70,66,1.135,TRUE
+R0351,65+,muž,Severovýchod,Multimodal Families,Invest & Manage,74,76,88,68,76,0.992,TRUE
+R0352,65+,muž,Jihozápad,Outer District Residents,Invest & Manage,61,64,60,38,56,0.87,TRUE
+R0353,18–29,žena,Jihozápad,Daily Drivers,Status quo,48,77,66,49,60,0.755,TRUE
+R0354,30–44,muž,Jihozápad,Urban Greens,Invest & Manage,53,64,67,80,66,1.029,TRUE
+R0355,45–64,muž,Jihozápad,Transit Dependents,Transit first,55,89,87,38,67,0.931,TRUE
+R0356,18–29,žena,Praha,Daily Drivers,Status quo,67,82,52,65,66,0.751,TRUE
+R0357,65+,žena,Severozápad,Daily Drivers,Status quo,65,48,73,61,62,1.082,TRUE
+R0358,45–64,muž,Severozápad,Multimodal Families,Invest & Manage,51,87,87,54,70,1.108,TRUE
+R0359,30–44,muž,Moravskoslezsko,Urban Greens,Invest & Manage,51,78,64,36,57,0.887,TRUE
+R0360,65+,žena,Střední Morava,Daily Drivers,Status quo,66,53,85,61,66,0.98,TRUE
+R0361,45–64,muž,Jihovýchod,Outer District Residents,Invest & Manage,70,65,78,55,67,0.866,TRUE
+R0362,65+,muž,Střední Morava,Urban Greens,Invest & Manage,47,56,80,74,64,1.099,TRUE
+R0363,45–64,muž,Střední Čechy,Daily Drivers,Status quo,74,78,58,71,70,0.852,TRUE
+R0364,30–44,muž,Moravskoslezsko,Urban Greens,Invest & Manage,58,57,59,50,56,0.953,TRUE
+R0365,45–64,muž,Jihozápad,Transit Dependents,Transit first,49,85,84,47,66,1.003,TRUE
+R0366,65+,muž,Jihovýchod,Daily Drivers,Status quo,74,62,55,65,64,1.112,TRUE
+R0367,18–29,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,51,70,60,75,64,0.828,TRUE
+R0368,30–44,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,65,81,89,48,71,0.872,TRUE
+R0369,45–64,žena,Jihozápad,Multimodal Families,Invest & Manage,70,82,45,39,59,0.93,TRUE
+R0370,65+,žena,Střední Čechy,Outer District Residents,Invest & Manage,45,77,57,64,61,1.049,TRUE
+R0371,45–64,muž,Severovýchod,Multimodal Families,Invest & Manage,55,83,54,80,68,1.177,TRUE
+R0372,18–29,žena,Moravskoslezsko,Daily Drivers,Status quo,76,65,84,37,66,1.187,TRUE
+R0373,18–29,muž,Severozápad,Transit Dependents,Transit first,51,88,63,48,62,0.996,TRUE
+R0374,45–64,žena,Praha,Multimodal Families,Invest & Manage,48,51,47,47,48,0.958,TRUE
+R0375,30–44,žena,Severozápad,Daily Drivers,Status quo,74,86,73,50,71,0.881,TRUE
+R0376,65+,muž,Jihozápad,Urban Greens,Invest & Manage,61,75,55,36,57,0.882,TRUE
+R0377,30–44,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,55,64,57,64,60,1.059,TRUE
+R0378,30–44,žena,Moravskoslezsko,Urban Greens,Invest & Manage,40,90,59,45,58,1.044,TRUE
+R0379,45–64,žena,Severovýchod,Daily Drivers,Status quo,43,60,53,48,51,1.19,TRUE
+R0380,18–29,žena,Jihovýchod,Daily Drivers,Status quo,65,66,84,49,66,0.844,TRUE
+R0381,18–29,žena,Střední Morava,Transit Dependents,Transit first,70,69,85,80,76,1.038,TRUE
+R0382,65+,žena,Střední Morava,Daily Drivers,Status quo,59,83,69,48,65,0.761,TRUE
+R0383,18–29,žena,Severozápad,Daily Drivers,Status quo,61,66,88,59,68,0.911,TRUE
+R0384,18–29,muž,Střední Morava,Daily Drivers,Status quo,48,45,78,38,52,0.868,TRUE
+R0385,45–64,muž,Jihozápad,Outer District Residents,Invest & Manage,66,51,67,37,55,1.147,TRUE
+R0386,45–64,muž,Jihozápad,Multimodal Families,Invest & Manage,72,71,62,40,61,0.77,TRUE
+R0387,45–64,žena,Moravskoslezsko,Transit Dependents,Transit first,75,78,70,53,69,1.056,TRUE
+R0388,65+,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,76,52,86,40,64,0.792,TRUE
+R0389,18–29,muž,Moravskoslezsko,Urban Greens,Invest & Manage,57,57,48,86,62,1.22,TRUE
+R0390,18–29,muž,Střední Morava,Transit Dependents,Transit first,40,69,82,74,66,0.951,TRUE
+R0391,30–44,žena,Jihozápad,Daily Drivers,Status quo,45,70,83,67,66,0.821,TRUE
+R0392,30–44,muž,Severozápad,Daily Drivers,Status quo,70,70,61,88,72,1.154,TRUE
+R0393,65+,žena,Střední Čechy,Outer District Residents,Invest & Manage,59,65,71,80,69,0.909,TRUE
+R0394,18–29,muž,Jihovýchod,Daily Drivers,Status quo,66,79,79,66,72,1.068,TRUE
+R0395,65+,muž,Praha,Urban Greens,Invest & Manage,50,54,49,87,60,0.756,TRUE
+R0396,18–29,žena,Praha,Daily Drivers,Status quo,52,79,83,72,72,1.141,TRUE
+R0397,65+,muž,Střední Morava,Transit Dependents,Transit first,41,58,61,71,58,0.939,TRUE
+R0398,45–64,muž,Praha,Transit Dependents,Transit first,42,81,89,88,75,1.119,TRUE
+R0399,45–64,žena,Praha,Urban Greens,Invest & Manage,55,61,62,47,56,0.978,TRUE
+R0400,18–29,žena,Severozápad,Transit Dependents,Transit first,46,69,55,49,55,0.846,TRUE
+R0401,45–64,muž,Střední Morava,Multimodal Families,Invest & Manage,50,55,55,61,55,1.082,TRUE
+R0402,45–64,žena,Severovýchod,Daily Drivers,Status quo,76,70,87,83,79,1.11,TRUE
+R0403,18–29,muž,Jihozápad,Daily Drivers,Status quo,49,67,58,55,57,0.909,TRUE
+R0404,30–44,žena,Jihozápad,Transit Dependents,Transit first,68,82,55,36,60,0.865,TRUE
+R0405,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,50,86,69,67,68,0.935,TRUE
+R0406,18–29,žena,Moravskoslezsko,Transit Dependents,Transit first,42,56,55,69,56,1.249,TRUE
+R0407,18–29,žena,Severovýchod,Daily Drivers,Status quo,69,73,56,62,65,0.78,TRUE
+R0408,45–64,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,55,59,48,55,54,1.039,TRUE
+R0409,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,57,49,56,66,57,1.089,TRUE
+R0410,30–44,žena,Střední Čechy,Transit Dependents,Transit first,74,83,86,53,74,1.159,TRUE
+R0411,30–44,žena,Severozápad,Transit Dependents,Transit first,56,58,75,71,65,0.986,TRUE
+R0412,18–29,žena,Střední Čechy,Multimodal Families,Invest & Manage,51,84,68,48,63,0.92,TRUE
+R0413,45–64,muž,Praha,Outer District Residents,Invest & Manage,54,78,82,68,70,1.185,TRUE
+R0414,65+,žena,Střední Čechy,Transit Dependents,Transit first,64,66,49,56,59,0.752,TRUE
+R0415,18–29,žena,Praha,Multimodal Families,Invest & Manage,48,72,54,55,57,1.222,TRUE
+R0416,30–44,žena,Střední Čechy,Multimodal Families,Invest & Manage,57,89,46,74,66,1.004,TRUE
+R0417,45–64,žena,Střední Čechy,Transit Dependents,Transit first,48,60,71,49,57,1.099,TRUE
+R0418,65+,muž,Jihozápad,Daily Drivers,Status quo,73,88,67,46,68,0.762,TRUE
+R0419,45–64,muž,Severozápad,Daily Drivers,Status quo,57,60,78,74,67,0.889,TRUE
+R0420,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,71,47,69,41,57,0.851,TRUE
+R0421,65+,muž,Střední Morava,Outer District Residents,Invest & Manage,52,67,83,65,67,1.197,TRUE
+R0422,65+,žena,Jihozápad,Urban Greens,Invest & Manage,46,61,52,80,60,1.231,TRUE
+R0423,65+,muž,Jihozápad,Transit Dependents,Transit first,76,76,46,76,68,1.204,TRUE
+R0424,30–44,žena,Střední Čechy,Multimodal Families,Invest & Manage,68,56,46,74,61,0.835,TRUE
+R0425,45–64,žena,Střední Morava,Transit Dependents,Transit first,50,80,57,66,63,1.031,TRUE
+R0426,18–29,muž,Jihozápad,Daily Drivers,Status quo,53,84,81,60,70,0.872,TRUE
+R0427,30–44,muž,Severovýchod,Transit Dependents,Transit first,48,87,79,71,71,1.143,TRUE
+R0428,18–29,žena,Jihozápad,Daily Drivers,Status quo,50,71,63,47,58,1.101,TRUE
+R0429,30–44,žena,Praha,Daily Drivers,Status quo,65,51,47,43,52,0.822,TRUE
+R0430,65+,žena,Severozápad,Transit Dependents,Transit first,63,82,75,52,68,0.796,TRUE
+R0431,30–44,muž,Severovýchod,Transit Dependents,Transit first,57,53,73,82,66,0.772,TRUE
+R0432,65+,žena,Střední Čechy,Multimodal Families,Invest & Manage,51,87,66,47,63,1.14,TRUE
+R0433,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,70,63,60,55,62,0.771,TRUE
+R0434,45–64,žena,Praha,Transit Dependents,Transit first,55,59,75,66,64,0.782,TRUE
+R0435,45–64,žena,Severozápad,Daily Drivers,Status quo,40,76,53,73,60,0.925,TRUE
+R0436,18–29,žena,Severovýchod,Daily Drivers,Status quo,61,50,58,55,56,1.14,TRUE
+R0437,30–44,žena,Jihozápad,Urban Greens,Invest & Manage,73,56,83,84,74,1.156,TRUE
+R0438,18–29,žena,Severovýchod,Urban Greens,Invest & Manage,71,49,64,53,59,0.767,TRUE
+R0439,65+,muž,Střední Morava,Transit Dependents,Transit first,40,66,59,85,62,1.118,TRUE
+R0440,45–64,žena,Severozápad,Transit Dependents,Transit first,68,86,57,47,64,0.858,TRUE
+R0441,30–44,žena,Střední Morava,Outer District Residents,Invest & Manage,54,68,58,45,56,1.029,TRUE
+R0442,65+,žena,Střední Čechy,Transit Dependents,Transit first,58,74,49,69,62,1.131,TRUE
+R0443,18–29,muž,Severovýchod,Multimodal Families,Invest & Manage,49,84,86,81,75,1.209,TRUE
+R0444,45–64,muž,Střední Morava,Daily Drivers,Status quo,49,84,74,78,71,1.056,TRUE
+R0445,30–44,muž,Jihovýchod,Daily Drivers,Status quo,72,53,51,45,55,1.194,TRUE
+R0446,65+,muž,Severozápad,Multimodal Families,Invest & Manage,55,67,65,42,57,1.19,TRUE
+R0447,18–29,žena,Severovýchod,Urban Greens,Invest & Manage,73,67,45,47,58,0.902,TRUE
+R0448,45–64,muž,Jihozápad,Transit Dependents,Transit first,55,77,54,41,57,0.775,TRUE
+R0449,65+,muž,Jihozápad,Daily Drivers,Status quo,70,64,73,50,64,1.088,TRUE
+R0450,30–44,muž,Střední Čechy,Urban Greens,Invest & Manage,58,56,86,53,63,0.894,TRUE
+R0451,18–29,žena,Střední Morava,Multimodal Families,Invest & Manage,63,87,62,59,68,1.196,TRUE
+R0452,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,75,79,47,84,71,0.859,TRUE
+R0453,45–64,muž,Moravskoslezsko,Transit Dependents,Transit first,70,72,61,66,67,1.196,TRUE
+R0454,30–44,žena,Moravskoslezsko,Daily Drivers,Status quo,45,66,56,73,60,0.778,TRUE
+R0455,65+,muž,Severozápad,Daily Drivers,Status quo,70,54,61,76,65,1.026,TRUE
+R0456,30–44,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,64,85,50,80,70,0.99,TRUE
+R0457,65+,žena,Praha,Daily Drivers,Status quo,51,81,84,54,68,0.772,TRUE
+R0458,30–44,žena,Jihovýchod,Transit Dependents,Transit first,64,53,78,49,61,1.126,TRUE
+R0459,65+,muž,Severovýchod,Transit Dependents,Transit first,46,65,77,37,56,1.013,TRUE
+R0460,65+,muž,Jihozápad,Outer District Residents,Invest & Manage,50,80,78,90,74,0.832,TRUE
+R0461,65+,muž,Severozápad,Outer District Residents,Invest & Manage,51,79,54,82,66,1.159,TRUE
+R0462,45–64,muž,Jihovýchod,Daily Drivers,Status quo,50,71,81,50,63,0.882,TRUE
+R0463,65+,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,70,74,79,59,70,0.968,TRUE
+R0464,30–44,žena,Jihozápad,Daily Drivers,Status quo,73,90,90,60,78,0.855,TRUE
+R0465,65+,muž,Jihozápad,Multimodal Families,Invest & Manage,42,53,89,82,66,0.95,TRUE
+R0466,45–64,muž,Jihovýchod,Urban Greens,Invest & Manage,50,72,55,66,61,0.84,TRUE
+R0467,65+,žena,Severovýchod,Multimodal Families,Invest & Manage,64,90,53,50,64,1.206,TRUE
+R0468,30–44,žena,Moravskoslezsko,Urban Greens,Invest & Manage,75,71,49,71,66,0.898,TRUE
+R0469,65+,žena,Severozápad,Multimodal Families,Invest & Manage,49,46,70,57,56,0.824,TRUE
+R0470,65+,žena,Praha,Multimodal Families,Invest & Manage,41,68,77,86,68,1.098,TRUE
+R0471,30–44,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,59,62,63,53,59,1.144,TRUE
+R0472,30–44,žena,Praha,Multimodal Families,Invest & Manage,54,83,46,80,66,0.958,TRUE
+R0473,45–64,muž,Praha,Transit Dependents,Transit first,54,66,74,62,64,1.041,TRUE
+R0474,30–44,žena,Severozápad,Daily Drivers,Status quo,42,64,88,58,63,1.105,TRUE
+R0475,18–29,žena,Jihozápad,Transit Dependents,Transit first,65,74,73,52,66,0.864,TRUE
+R0476,30–44,žena,Střední Morava,Outer District Residents,Invest & Manage,59,90,55,59,66,1.055,TRUE
+R0477,45–64,muž,Střední Morava,Transit Dependents,Transit first,49,66,58,80,63,1.139,TRUE
+R0478,30–44,žena,Severovýchod,Transit Dependents,Transit first,44,67,56,86,63,0.783,TRUE
+R0479,65+,muž,Střední Čechy,Daily Drivers,Status quo,44,68,71,87,68,0.816,TRUE
+R0480,30–44,žena,Střední Čechy,Daily Drivers,Status quo,75,73,72,46,66,1.182,TRUE
+R0481,65+,žena,Jihozápad,Multimodal Families,Invest & Manage,44,64,61,35,51,0.941,TRUE
+R0482,30–44,žena,Severozápad,Daily Drivers,Status quo,72,79,54,64,67,0.941,TRUE
+R0483,65+,muž,Jihovýchod,Transit Dependents,Transit first,53,53,68,63,59,0.959,TRUE
+R0484,65+,muž,Střední Morava,Transit Dependents,Transit first,62,70,80,56,67,1.074,TRUE
+R0485,45–64,muž,Severozápad,Outer District Residents,Invest & Manage,52,74,56,51,58,0.91,TRUE
+R0486,45–64,muž,Jihovýchod,Daily Drivers,Status quo,40,49,67,62,54,1.226,TRUE
+R0487,45–64,žena,Severozápad,Urban Greens,Invest & Manage,53,53,62,42,52,1.193,TRUE
+R0488,45–64,žena,Střední Morava,Transit Dependents,Transit first,47,83,49,55,58,0.884,TRUE
+R0489,45–64,žena,Praha,Daily Drivers,Status quo,72,68,47,82,67,1.083,TRUE
+R0490,45–64,muž,Jihovýchod,Urban Greens,Invest & Manage,59,89,45,81,68,0.954,TRUE
+R0491,30–44,žena,Praha,Urban Greens,Invest & Manage,69,52,64,57,60,1.233,TRUE
+R0492,65+,muž,Střední Morava,Daily Drivers,Status quo,51,54,63,60,57,1.028,TRUE
+R0493,45–64,žena,Střední Čechy,Multimodal Families,Invest & Manage,69,51,71,90,70,1.057,TRUE
+R0494,65+,muž,Střední Morava,Transit Dependents,Transit first,70,54,75,38,59,1.045,TRUE
+R0495,65+,muž,Severozápad,Transit Dependents,Transit first,72,50,59,40,55,1.239,TRUE
+R0496,45–64,muž,Střední Morava,Multimodal Families,Invest & Manage,46,82,53,85,66,1.138,TRUE
+R0497,45–64,muž,Severozápad,Urban Greens,Invest & Manage,56,89,67,67,70,0.88,TRUE
+R0498,45–64,žena,Severozápad,Multimodal Families,Invest & Manage,56,71,83,69,70,1.09,TRUE
+R0499,45–64,žena,Praha,Multimodal Families,Invest & Manage,60,85,69,51,66,1.104,TRUE
+R0500,30–44,muž,Severovýchod,Multimodal Families,Invest & Manage,60,61,74,39,58,0.813,TRUE
+R0501,45–64,žena,Střední Morava,Outer District Residents,Invest & Manage,70,67,80,85,76,0.97,TRUE
+R0502,45–64,muž,Severovýchod,Multimodal Families,Invest & Manage,48,88,82,50,67,1.155,TRUE
+R0503,65+,muž,Jihozápad,Outer District Residents,Invest & Manage,50,76,47,45,54,1.248,TRUE
+R0504,45–64,muž,Jihovýchod,Transit Dependents,Transit first,60,66,68,53,62,0.989,TRUE
+R0505,30–44,muž,Moravskoslezsko,Urban Greens,Invest & Manage,54,85,88,89,79,1.145,TRUE
+R0506,18–29,muž,Jihovýchod,Daily Drivers,Status quo,50,54,66,35,51,1.001,TRUE
+R0507,18–29,muž,Severozápad,Daily Drivers,Status quo,55,61,74,81,68,1.159,TRUE
+R0508,18–29,muž,Jihozápad,Transit Dependents,Transit first,64,64,66,82,69,1.196,TRUE
+R0509,65+,muž,Střední Čechy,Transit Dependents,Transit first,40,86,60,74,65,1.041,TRUE
+R0510,18–29,žena,Střední Morava,Multimodal Families,Invest & Manage,56,56,83,70,66,1.181,TRUE
+R0511,30–44,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,63,78,63,44,62,0.795,TRUE
+R0512,18–29,muž,Moravskoslezsko,Urban Greens,Invest & Manage,75,47,48,79,62,1.187,TRUE
+R0513,65+,žena,Severovýchod,Daily Drivers,Status quo,48,67,84,50,62,1.247,TRUE
+R0514,18–29,muž,Praha,Daily Drivers,Status quo,44,81,53,58,59,0.802,TRUE
+R0515,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,74,65,59,78,69,1.151,TRUE
+R0516,18–29,muž,Praha,Daily Drivers,Status quo,74,87,57,39,64,0.82,TRUE
+R0517,45–64,muž,Severovýchod,Outer District Residents,Invest & Manage,59,59,51,65,58,1.113,TRUE
+R0518,45–64,žena,Severozápad,Urban Greens,Invest & Manage,75,87,60,43,66,1.079,TRUE
+R0519,30–44,muž,Severovýchod,Outer District Residents,Invest & Manage,55,84,65,49,63,0.945,TRUE
+R0520,65+,muž,Jihovýchod,Multimodal Families,Invest & Manage,43,53,90,48,58,1.119,TRUE
+R0521,65+,muž,Praha,Daily Drivers,Status quo,53,60,80,70,66,1.123,TRUE
+R0522,30–44,muž,Praha,Daily Drivers,Status quo,42,75,64,47,57,1.073,TRUE
+R0523,65+,muž,Praha,Daily Drivers,Status quo,68,65,89,39,65,0.884,TRUE
+R0524,18–29,muž,Jihovýchod,Transit Dependents,Transit first,58,49,54,72,58,1.106,TRUE
+R0525,45–64,žena,Jihovýchod,Daily Drivers,Status quo,62,60,89,51,66,1.167,TRUE
+R0526,30–44,muž,Severozápad,Daily Drivers,Status quo,52,85,51,59,62,0.998,TRUE
+R0527,30–44,muž,Severozápad,Transit Dependents,Transit first,45,57,69,66,59,1.088,TRUE
+R0528,45–64,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,60,72,73,90,74,0.778,TRUE
+R0529,65+,muž,Severozápad,Daily Drivers,Status quo,52,56,60,73,60,0.995,TRUE
+R0530,65+,muž,Severovýchod,Outer District Residents,Invest & Manage,40,49,80,68,59,1.152,TRUE
+R0531,45–64,muž,Střední Čechy,Transit Dependents,Transit first,64,58,84,36,60,0.795,TRUE
+R0532,30–44,žena,Severozápad,Daily Drivers,Status quo,73,50,79,84,72,0.99,TRUE
+R0533,30–44,muž,Jihozápad,Multimodal Families,Invest & Manage,50,69,46,60,56,1.208,TRUE
+R0534,45–64,žena,Severovýchod,Urban Greens,Invest & Manage,55,49,61,71,59,1.008,TRUE
+R0535,45–64,muž,Jihozápad,Multimodal Families,Invest & Manage,51,74,57,37,55,0.97,TRUE
+R0536,65+,muž,Jihovýchod,Multimodal Families,Invest & Manage,53,57,72,75,64,0.927,TRUE
+R0537,65+,žena,Moravskoslezsko,Transit Dependents,Transit first,66,77,90,73,76,0.835,TRUE
+R0538,65+,žena,Střední Morava,Transit Dependents,Transit first,59,84,51,71,66,0.859,TRUE
+R0539,45–64,žena,Praha,Daily Drivers,Status quo,40,66,76,39,55,1.023,TRUE
+R0540,18–29,žena,Severovýchod,Transit Dependents,Transit first,49,88,49,73,65,1.096,TRUE
+R0541,65+,muž,Jihozápad,Multimodal Families,Invest & Manage,65,84,75,73,74,0.932,TRUE
+R0542,30–44,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,72,54,85,65,69,1.191,TRUE
+R0543,30–44,muž,Střední Čechy,Multimodal Families,Invest & Manage,49,87,72,39,62,0.787,TRUE
+R0544,30–44,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,75,58,81,36,62,0.979,TRUE
+R0545,30–44,žena,Severozápad,Transit Dependents,Transit first,64,70,70,80,71,0.919,TRUE
+R0546,30–44,muž,Střední Čechy,Transit Dependents,Transit first,40,63,50,70,56,1.23,TRUE
+R0547,45–64,žena,Jihovýchod,Outer District Residents,Invest & Manage,73,53,90,41,64,0.975,TRUE
+R0548,30–44,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,49,50,55,60,54,0.951,TRUE
+R0549,65+,žena,Praha,Outer District Residents,Invest & Manage,61,51,60,78,62,0.838,TRUE
+R0550,30–44,žena,Střední Morava,Daily Drivers,Status quo,49,72,67,49,59,0.964,TRUE
+R0551,30–44,muž,Severovýchod,Daily Drivers,Status quo,74,74,76,58,70,0.866,TRUE
+R0552,65+,žena,Severovýchod,Daily Drivers,Status quo,40,65,73,43,55,0.878,TRUE
+R0553,18–29,muž,Praha,Transit Dependents,Transit first,49,50,59,77,59,0.855,TRUE
+R0554,18–29,žena,Severovýchod,Transit Dependents,Transit first,71,85,49,72,69,0.837,TRUE
+R0555,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,60,55,50,79,61,1.228,TRUE
+R0556,45–64,žena,Severozápad,Transit Dependents,Transit first,66,85,68,75,74,0.77,TRUE
+R0557,18–29,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,76,86,55,67,71,1.197,TRUE
+R0558,30–44,žena,Střední Čechy,Transit Dependents,Transit first,50,71,66,89,69,1.084,TRUE
+R0559,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,48,88,70,57,66,0.971,TRUE
+R0560,18–29,muž,Severovýchod,Multimodal Families,Invest & Manage,43,90,86,77,74,0.863,TRUE
+R0561,65+,žena,Severovýchod,Daily Drivers,Status quo,49,69,50,64,58,0.8,TRUE
+R0562,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,65,86,46,37,58,1.242,TRUE
+R0563,30–44,muž,Jihovýchod,Multimodal Families,Invest & Manage,60,81,54,60,64,1.109,TRUE
+R0564,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,47,67,49,80,61,1.17,TRUE
+R0565,65+,žena,Střední Morava,Transit Dependents,Transit first,49,47,73,61,58,0.975,TRUE
+R0566,65+,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,46,45,60,70,55,1.178,TRUE
+R0567,65+,muž,Severozápad,Transit Dependents,Transit first,70,64,63,70,67,1.027,TRUE
+R0568,45–64,muž,Střední Čechy,Multimodal Families,Invest & Manage,59,67,45,51,56,1.09,TRUE
+R0569,65+,muž,Severozápad,Daily Drivers,Status quo,57,55,79,71,66,1.126,TRUE
+R0570,45–64,muž,Jihovýchod,Transit Dependents,Transit first,76,89,62,87,78,1.027,TRUE
+R0571,18–29,žena,Severovýchod,Transit Dependents,Transit first,51,56,84,81,68,0.93,TRUE
+R0572,18–29,žena,Severozápad,Multimodal Families,Invest & Manage,47,78,75,64,66,1.245,TRUE
+R0573,30–44,žena,Střední Morava,Daily Drivers,Status quo,67,73,49,78,67,0.888,TRUE
+R0574,18–29,muž,Střední Morava,Multimodal Families,Invest & Manage,48,56,82,78,66,1.127,TRUE
+R0575,45–64,muž,Jihozápad,Transit Dependents,Transit first,47,75,67,66,64,0.834,TRUE
+R0576,30–44,muž,Praha,Multimodal Families,Invest & Manage,47,71,57,45,55,1.235,TRUE
+R0577,65+,muž,Jihozápad,Transit Dependents,Transit first,57,56,80,71,66,1.12,TRUE
+R0578,45–64,muž,Jihozápad,Multimodal Families,Invest & Manage,68,46,63,58,59,0.804,TRUE
+R0579,65+,žena,Střední Čechy,Multimodal Families,Invest & Manage,63,61,57,52,58,0.864,TRUE
+R0580,65+,muž,Jihozápad,Transit Dependents,Transit first,66,58,89,87,75,1.203,TRUE
+R0581,30–44,muž,Severozápad,Daily Drivers,Status quo,71,75,75,81,76,0.974,TRUE
+R0582,18–29,žena,Jihozápad,Transit Dependents,Transit first,65,53,87,60,66,1.177,TRUE
+R0583,30–44,žena,Jihovýchod,Transit Dependents,Transit first,50,59,67,38,54,0.923,TRUE
+R0584,65+,žena,Praha,Daily Drivers,Status quo,59,67,52,64,60,1.239,TRUE
+R0585,65+,muž,Střední Morava,Multimodal Families,Invest & Manage,55,71,59,52,59,1.181,TRUE
+R0586,45–64,žena,Severozápad,Transit Dependents,Transit first,72,54,78,39,61,1.049,TRUE
+R0587,45–64,muž,Střední Čechy,Daily Drivers,Status quo,55,67,87,86,74,1.008,TRUE
+R0588,18–29,žena,Jihovýchod,Urban Greens,Invest & Manage,47,85,73,45,62,1.245,TRUE
+R0589,30–44,muž,Jihozápad,Outer District Residents,Invest & Manage,74,75,87,53,72,0.851,TRUE
+R0590,45–64,žena,Jihozápad,Multimodal Families,Invest & Manage,66,65,54,87,68,1.193,TRUE
+R0591,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,46,47,70,71,58,1.123,TRUE
+R0592,45–64,muž,Praha,Multimodal Families,Invest & Manage,71,81,73,71,74,0.894,TRUE
+R0593,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,40,47,47,82,54,0.93,TRUE
+R0594,18–29,žena,Střední Čechy,Outer District Residents,Invest & Manage,55,65,66,57,61,1.011,TRUE
+R0595,30–44,muž,Severovýchod,Urban Greens,Invest & Manage,48,84,86,49,67,0.825,TRUE
+R0596,45–64,muž,Jihovýchod,Daily Drivers,Status quo,76,86,52,81,74,1.233,TRUE
+R0597,65+,žena,Severovýchod,Daily Drivers,Status quo,50,75,90,88,76,0.834,TRUE
+R0598,65+,muž,Praha,Urban Greens,Invest & Manage,40,78,86,62,66,0.873,TRUE
+R0599,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,45,82,74,89,72,1.183,TRUE
+R0600,18–29,žena,Moravskoslezsko,Transit Dependents,Transit first,68,62,47,62,60,1.067,TRUE
+R0601,45–64,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,67,88,46,71,68,0.849,TRUE
+R0602,65+,muž,Jihovýchod,Daily Drivers,Status quo,72,84,50,76,70,0.799,TRUE
+R0603,30–44,muž,Praha,Daily Drivers,Status quo,68,64,52,62,62,0.88,TRUE
+R0604,30–44,muž,Praha,Daily Drivers,Status quo,67,88,48,82,71,0.877,TRUE
+R0605,45–64,žena,Střední Morava,Transit Dependents,Transit first,74,52,55,50,58,1.1,TRUE
+R0606,18–29,žena,Jihozápad,Urban Greens,Invest & Manage,46,56,80,81,66,0.961,TRUE
+R0607,45–64,muž,Střední Morava,Daily Drivers,Status quo,61,70,82,51,66,1.128,TRUE
+R0608,30–44,muž,Severovýchod,Daily Drivers,Status quo,67,61,52,60,60,0.849,TRUE
+R0609,30–44,muž,Střední Čechy,Daily Drivers,Status quo,54,76,72,90,73,0.94,TRUE
+R0610,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,43,77,66,43,57,1.043,TRUE
+R0611,30–44,žena,Severozápad,Multimodal Families,Invest & Manage,41,54,75,42,53,1.009,TRUE
+R0612,65+,muž,Severozápad,Multimodal Families,Invest & Manage,72,45,59,45,55,0.874,TRUE
+R0613,65+,žena,Severozápad,Daily Drivers,Status quo,65,74,69,82,72,1.123,TRUE
+R0614,18–29,muž,Jihozápad,Daily Drivers,Status quo,48,58,47,84,59,1.233,TRUE
+R0615,18–29,žena,Severozápad,Multimodal Families,Invest & Manage,57,47,78,38,55,1.119,TRUE
+R0616,30–44,žena,Jihozápad,Outer District Residents,Invest & Manage,47,76,86,47,64,1.033,TRUE
+R0617,65+,žena,Střední Morava,Daily Drivers,Status quo,71,74,51,41,59,0.759,TRUE
+R0618,45–64,muž,Střední Čechy,Daily Drivers,Status quo,76,57,77,83,73,0.794,TRUE
+R0619,30–44,muž,Severovýchod,Multimodal Families,Invest & Manage,55,53,53,78,60,1.214,TRUE
+R0620,30–44,muž,Jihozápad,Daily Drivers,Status quo,60,48,68,81,64,1.196,TRUE
+R0621,65+,muž,Praha,Multimodal Families,Invest & Manage,68,68,60,74,68,0.816,TRUE
+R0622,18–29,muž,Střední Morava,Multimodal Families,Invest & Manage,61,82,76,70,72,0.789,TRUE
+R0623,18–29,žena,Jihozápad,Urban Greens,Invest & Manage,59,57,46,76,60,1.057,TRUE
+R0624,65+,muž,Jihozápad,Daily Drivers,Status quo,40,80,48,60,57,1.094,TRUE
+R0625,65+,žena,Severovýchod,Urban Greens,Invest & Manage,57,60,81,71,67,1.043,TRUE
+R0626,18–29,žena,Střední Čechy,Outer District Residents,Invest & Manage,57,82,86,67,73,0.904,TRUE
+R0627,30–44,žena,Střední Čechy,Outer District Residents,Invest & Manage,65,62,63,78,67,0.798,TRUE
+R0628,45–64,muž,Severozápad,Daily Drivers,Status quo,43,61,76,43,56,1.188,TRUE
+R0629,30–44,žena,Severovýchod,Transit Dependents,Transit first,74,48,54,58,58,0.759,TRUE
+R0630,30–44,žena,Střední Čechy,Daily Drivers,Status quo,75,87,66,77,76,1.22,TRUE
+R0631,45–64,muž,Moravskoslezsko,Transit Dependents,Transit first,61,50,83,67,65,0.909,TRUE
+R0632,18–29,muž,Jihozápad,Transit Dependents,Transit first,52,64,78,41,59,1.002,TRUE
+R0633,18–29,muž,Severovýchod,Urban Greens,Invest & Manage,46,84,61,57,62,0.823,TRUE
+R0634,18–29,žena,Jihovýchod,Multimodal Families,Invest & Manage,53,55,73,41,56,0.819,TRUE
+R0635,30–44,muž,Praha,Multimodal Families,Invest & Manage,60,74,53,63,62,1.046,TRUE
+R0636,30–44,muž,Střední Čechy,Daily Drivers,Status quo,64,76,50,49,60,0.929,TRUE
+R0637,45–64,žena,Jihovýchod,Transit Dependents,Transit first,41,72,64,89,66,0.994,TRUE
+R0638,45–64,žena,Střední Čechy,Transit Dependents,Transit first,48,68,83,85,71,0.766,TRUE
+R0639,65+,žena,Severozápad,Daily Drivers,Status quo,54,86,53,40,58,0.883,TRUE
+R0640,65+,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,41,59,69,66,59,0.992,TRUE
+R0641,45–64,žena,Střední Čechy,Urban Greens,Invest & Manage,55,81,61,39,59,0.779,TRUE
+R0642,45–64,muž,Jihozápad,Daily Drivers,Status quo,56,57,77,56,62,0.813,TRUE
+R0643,30–44,muž,Střední Morava,Multimodal Families,Invest & Manage,55,74,59,53,60,0.905,TRUE
+R0644,30–44,žena,Severovýchod,Multimodal Families,Invest & Manage,57,48,84,71,65,0.936,TRUE
+R0645,18–29,muž,Střední Morava,Daily Drivers,Status quo,52,67,86,39,61,0.97,TRUE
+R0646,18–29,muž,Praha,Multimodal Families,Invest & Manage,69,73,73,84,75,0.945,TRUE
+R0647,30–44,žena,Praha,Outer District Residents,Invest & Manage,54,57,59,80,62,1.199,TRUE
+R0648,18–29,muž,Jihozápad,Daily Drivers,Status quo,68,88,54,52,66,0.876,TRUE
+R0649,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,61,76,54,41,58,0.946,TRUE
+R0650,30–44,muž,Moravskoslezsko,Transit Dependents,Transit first,44,89,57,43,58,1.141,TRUE
+R0651,45–64,žena,Jihovýchod,Daily Drivers,Status quo,73,86,45,80,71,0.834,TRUE
+R0652,30–44,žena,Severovýchod,Daily Drivers,Status quo,67,75,64,48,64,0.933,TRUE
+R0653,30–44,muž,Střední Morava,Daily Drivers,Status quo,67,49,58,84,64,1.229,TRUE
+R0654,30–44,žena,Střední Morava,Daily Drivers,Status quo,64,79,71,75,72,1.197,TRUE
+R0655,30–44,žena,Jihozápad,Outer District Residents,Invest & Manage,75,79,60,84,74,0.804,TRUE
+R0656,18–29,žena,Jihozápad,Multimodal Families,Invest & Manage,65,45,69,83,66,1.134,TRUE
+R0657,18–29,muž,Severovýchod,Transit Dependents,Transit first,54,90,69,73,72,1.18,TRUE
+R0658,65+,muž,Moravskoslezsko,Daily Drivers,Status quo,44,63,90,61,64,1.092,TRUE
+R0659,18–29,žena,Moravskoslezsko,Daily Drivers,Status quo,73,68,60,82,71,1.02,TRUE
+R0660,30–44,žena,Střední Čechy,Outer District Residents,Invest & Manage,58,78,77,43,64,1.185,TRUE
+R0661,65+,muž,Střední Morava,Transit Dependents,Transit first,69,80,74,36,65,0.884,TRUE
+R0662,45–64,žena,Moravskoslezsko,Daily Drivers,Status quo,52,81,90,60,71,1.115,TRUE
+R0663,30–44,muž,Střední Morava,Daily Drivers,Status quo,68,56,61,69,64,0.817,TRUE
+R0664,45–64,muž,Jihovýchod,Multimodal Families,Invest & Manage,52,75,54,36,54,0.977,TRUE
+R0665,45–64,muž,Jihovýchod,Urban Greens,Invest & Manage,40,69,76,45,58,0.918,TRUE
+R0666,18–29,muž,Střední Čechy,Transit Dependents,Transit first,49,49,45,65,52,0.911,TRUE
+R0667,45–64,žena,Praha,Urban Greens,Invest & Manage,67,65,57,83,68,0.901,TRUE
+R0668,65+,žena,Severozápad,Transit Dependents,Transit first,56,65,76,80,69,1.135,TRUE
+R0669,45–64,žena,Střední Čechy,Outer District Residents,Invest & Manage,50,74,65,67,64,0.864,TRUE
+R0670,30–44,žena,Střední Čechy,Daily Drivers,Status quo,50,64,58,87,65,0.927,TRUE
+R0671,45–64,žena,Severovýchod,Daily Drivers,Status quo,62,59,47,68,59,1.071,TRUE
+R0672,45–64,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,55,88,83,39,66,1.232,TRUE
+R0673,18–29,žena,Praha,Transit Dependents,Transit first,47,72,65,80,66,1.048,TRUE
+R0674,65+,žena,Jihozápad,Daily Drivers,Status quo,47,59,75,83,66,1.109,TRUE
+R0675,30–44,žena,Severovýchod,Transit Dependents,Transit first,52,55,54,64,56,1.139,TRUE
+R0676,18–29,muž,Střední Čechy,Multimodal Families,Invest & Manage,75,79,48,78,70,1.05,TRUE
+R0677,18–29,žena,Jihovýchod,Daily Drivers,Status quo,73,60,58,38,57,0.806,TRUE
+R0678,45–64,muž,Moravskoslezsko,Urban Greens,Invest & Manage,52,68,49,81,62,0.915,TRUE
+R0679,30–44,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,67,87,46,52,63,1.064,TRUE
+R0680,65+,žena,Střední Čechy,Transit Dependents,Transit first,61,83,50,66,65,1.134,TRUE
+R0681,65+,muž,Severozápad,Daily Drivers,Status quo,49,46,63,75,58,0.88,TRUE
+R0682,45–64,muž,Praha,Multimodal Families,Invest & Manage,57,81,56,62,64,0.883,TRUE
+R0683,65+,muž,Střední Čechy,Multimodal Families,Invest & Manage,52,80,60,59,63,1.13,TRUE
+R0684,65+,muž,Severozápad,Transit Dependents,Transit first,70,86,60,64,70,0.889,TRUE
+R0685,45–64,muž,Střední Čechy,Daily Drivers,Status quo,52,55,64,88,65,0.881,TRUE
+R0686,45–64,muž,Praha,Transit Dependents,Transit first,55,62,52,51,55,0.951,TRUE
+R0687,18–29,muž,Střední Morava,Multimodal Families,Invest & Manage,72,85,76,69,76,1.147,TRUE
+R0688,45–64,žena,Střední Morava,Daily Drivers,Status quo,62,76,85,48,68,1.111,TRUE
+R0689,18–29,muž,Jihozápad,Multimodal Families,Invest & Manage,59,89,65,85,74,1.204,TRUE
+R0690,65+,žena,Střední Morava,Transit Dependents,Transit first,63,73,64,80,70,1.247,TRUE
+R0691,18–29,muž,Praha,Daily Drivers,Status quo,69,70,56,65,65,0.908,TRUE
+R0692,65+,muž,Praha,Multimodal Families,Invest & Manage,46,52,78,80,64,0.94,TRUE
+R0693,30–44,žena,Jihovýchod,Transit Dependents,Transit first,68,77,47,83,69,0.885,TRUE
+R0694,30–44,muž,Jihozápad,Daily Drivers,Status quo,60,50,66,45,55,1.223,TRUE
+R0695,65+,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,62,58,60,67,62,1.117,TRUE
+R0696,30–44,muž,Severozápad,Multimodal Families,Invest & Manage,54,57,59,36,52,0.866,TRUE
+R0697,18–29,žena,Jihozápad,Daily Drivers,Status quo,58,88,90,44,70,1.171,TRUE
+R0698,65+,žena,Jihovýchod,Urban Greens,Invest & Manage,69,88,47,53,64,1.022,TRUE
+R0699,45–64,žena,Severozápad,Multimodal Families,Invest & Manage,64,68,75,46,63,0.772,TRUE
+R0700,45–64,žena,Moravskoslezsko,Daily Drivers,Status quo,47,62,51,62,56,0.973,TRUE
+R0701,30–44,muž,Střední Morava,Urban Greens,Invest & Manage,46,82,61,64,63,0.88,TRUE
+R0702,65+,žena,Střední Čechy,Transit Dependents,Transit first,60,57,76,36,57,0.836,TRUE
+R0703,65+,muž,Střední Morava,Multimodal Families,Invest & Manage,59,56,86,64,66,1.234,TRUE
+R0704,18–29,muž,Praha,Transit Dependents,Transit first,56,68,61,60,61,1.102,TRUE
+R0705,30–44,žena,Moravskoslezsko,Daily Drivers,Status quo,42,77,48,65,58,0.811,TRUE
+R0706,45–64,muž,Jihovýchod,Transit Dependents,Transit first,66,82,90,63,75,1.048,TRUE
+R0707,65+,žena,Severovýchod,Multimodal Families,Invest & Manage,49,53,90,36,57,1.142,TRUE
+R0708,30–44,muž,Střední Čechy,Multimodal Families,Invest & Manage,68,81,80,46,69,0.902,TRUE
+R0709,65+,žena,Střední Čechy,Multimodal Families,Invest & Manage,46,48,63,90,62,1.12,TRUE
+R0710,18–29,muž,Střední Morava,Transit Dependents,Transit first,64,87,45,43,60,1.182,TRUE
+R0711,65+,muž,Severovýchod,Outer District Residents,Invest & Manage,73,69,84,59,71,1.023,TRUE
+R0712,18–29,muž,Střední Čechy,Outer District Residents,Invest & Manage,66,67,84,77,74,0.758,TRUE
+R0713,65+,muž,Severovýchod,Multimodal Families,Invest & Manage,61,56,65,43,56,1.081,TRUE
+R0714,18–29,muž,Jihozápad,Daily Drivers,Status quo,67,63,47,37,54,0.999,TRUE
+R0715,30–44,muž,Jihovýchod,Multimodal Families,Invest & Manage,60,86,55,55,64,1.129,TRUE
+R0716,30–44,žena,Střední Čechy,Daily Drivers,Status quo,64,87,51,73,69,1.028,TRUE
+R0717,45–64,žena,Moravskoslezsko,Urban Greens,Invest & Manage,75,47,85,39,62,0.917,TRUE
+R0718,18–29,muž,Severovýchod,Daily Drivers,Status quo,42,86,83,83,74,0.944,TRUE
+R0719,65+,žena,Jihovýchod,Multimodal Families,Invest & Manage,49,66,73,52,60,0.808,TRUE
+R0720,30–44,muž,Střední Morava,Urban Greens,Invest & Manage,49,65,65,84,66,0.772,TRUE
+R0721,65+,žena,Jihozápad,Transit Dependents,Transit first,58,58,54,53,56,0.947,TRUE
+R0722,65+,žena,Praha,Multimodal Families,Invest & Manage,70,56,73,61,65,0.847,TRUE
+R0723,18–29,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,68,49,78,82,69,0.83,TRUE
+R0724,30–44,žena,Severovýchod,Transit Dependents,Transit first,52,70,84,90,74,1.07,TRUE
+R0725,18–29,žena,Střední Morava,Urban Greens,Invest & Manage,54,75,74,56,65,0.96,TRUE
+R0726,30–44,žena,Severozápad,Daily Drivers,Status quo,52,50,69,50,55,1.227,TRUE
+R0727,65+,muž,Severovýchod,Daily Drivers,Status quo,57,47,51,43,50,1.237,TRUE
+R0728,45–64,žena,Střední Čechy,Multimodal Families,Invest & Manage,68,54,61,63,62,1.194,TRUE
+R0729,65+,žena,Jihovýchod,Multimodal Families,Invest & Manage,50,49,64,46,52,0.782,TRUE
+R0730,30–44,žena,Moravskoslezsko,Daily Drivers,Status quo,53,67,85,55,65,1.118,TRUE
+R0731,18–29,žena,Severovýchod,Urban Greens,Invest & Manage,56,52,89,84,70,1.016,TRUE
+R0732,18–29,muž,Severovýchod,Multimodal Families,Invest & Manage,40,82,81,71,68,1.181,TRUE
+R0733,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,64,52,82,60,64,1.207,TRUE
+R0734,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,44,89,85,43,65,1.027,TRUE
+R0735,30–44,žena,Moravskoslezsko,Urban Greens,Invest & Manage,70,74,72,70,72,0.898,TRUE
+R0736,18–29,muž,Severovýchod,Daily Drivers,Status quo,43,84,46,70,61,1.002,TRUE
+R0737,45–64,žena,Střední Čechy,Transit Dependents,Transit first,50,46,70,64,58,0.787,TRUE
+R0738,30–44,žena,Severovýchod,Daily Drivers,Status quo,72,65,80,65,70,1.127,TRUE
+R0739,45–64,muž,Praha,Multimodal Families,Invest & Manage,40,49,78,90,64,1.058,TRUE
+R0740,30–44,muž,Praha,Outer District Residents,Invest & Manage,42,52,54,67,54,0.972,TRUE
+R0741,30–44,žena,Severovýchod,Transit Dependents,Transit first,61,53,74,50,60,1.088,TRUE
+R0742,30–44,muž,Střední Čechy,Daily Drivers,Status quo,43,70,75,67,64,1.058,TRUE
+R0743,65+,žena,Praha,Outer District Residents,Invest & Manage,49,49,77,80,64,0.981,TRUE
+R0744,65+,žena,Střední Čechy,Daily Drivers,Status quo,41,51,88,48,57,1.217,TRUE
+R0745,65+,muž,Jihovýchod,Multimodal Families,Invest & Manage,55,79,45,48,57,0.836,TRUE
+R0746,30–44,žena,Jihovýchod,Daily Drivers,Status quo,49,57,77,41,56,0.754,TRUE
+R0747,30–44,žena,Severovýchod,Outer District Residents,Invest & Manage,74,47,52,54,57,0.933,TRUE
+R0748,30–44,muž,Střední Morava,Multimodal Families,Invest & Manage,46,47,84,51,57,1.169,TRUE
+R0749,45–64,žena,Moravskoslezsko,Transit Dependents,Transit first,57,67,66,70,65,0.888,TRUE
+R0750,65+,žena,Severovýchod,Outer District Residents,Invest & Manage,49,83,78,50,65,1.085,TRUE
+R0751,30–44,muž,Moravskoslezsko,Daily Drivers,Status quo,53,86,50,89,70,0.93,TRUE
+R0752,18–29,žena,Střední Čechy,Transit Dependents,Transit first,75,46,64,62,62,0.872,TRUE
+R0753,30–44,muž,Praha,Daily Drivers,Status quo,53,58,50,39,50,1.037,TRUE
+R0754,30–44,žena,Severovýchod,Daily Drivers,Status quo,66,68,74,44,63,0.981,TRUE
+R0755,45–64,žena,Střední Čechy,Transit Dependents,Transit first,58,48,68,88,66,0.897,TRUE
+R0756,45–64,žena,Severovýchod,Urban Greens,Invest & Manage,52,46,54,53,51,1.241,TRUE
+R0757,18–29,žena,Střední Morava,Transit Dependents,Transit first,66,85,76,78,76,1.184,TRUE
+R0758,65+,žena,Severovýchod,Outer District Residents,Invest & Manage,49,66,67,44,56,0.924,TRUE
+R0759,18–29,žena,Severozápad,Daily Drivers,Status quo,54,77,59,70,65,0.78,TRUE
+R0760,65+,žena,Střední Čechy,Outer District Residents,Invest & Manage,41,63,48,45,49,1.116,TRUE
+R0761,45–64,muž,Střední Čechy,Multimodal Families,Invest & Manage,56,90,89,57,73,0.855,TRUE
+R0762,30–44,žena,Praha,Transit Dependents,Transit first,65,62,75,70,68,0.948,TRUE
+R0763,30–44,žena,Jihozápad,Daily Drivers,Status quo,51,51,84,80,66,0.999,TRUE
+R0764,18–29,žena,Jihovýchod,Transit Dependents,Transit first,71,54,77,44,62,0.809,TRUE
+R0765,65+,žena,Střední Morava,Multimodal Families,Invest & Manage,64,49,54,48,54,0.937,TRUE
+R0766,45–64,muž,Střední Morava,Daily Drivers,Status quo,56,88,50,44,60,0.972,TRUE
+R0767,45–64,muž,Střední Morava,Daily Drivers,Status quo,69,49,63,51,58,0.987,TRUE
+R0768,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,45,86,71,66,67,0.773,TRUE
+R0769,18–29,muž,Severovýchod,Urban Greens,Invest & Manage,72,82,54,66,68,1.133,TRUE
+R0770,18–29,žena,Střední Morava,Daily Drivers,Status quo,72,74,59,70,69,0.761,TRUE
+R0771,65+,žena,Severozápad,Daily Drivers,Status quo,60,73,50,49,58,0.822,TRUE
+R0772,45–64,muž,Střední Čechy,Multimodal Families,Invest & Manage,61,62,57,50,58,0.988,TRUE
+R0773,18–29,žena,Střední Čechy,Multimodal Families,Invest & Manage,75,53,61,58,62,0.881,TRUE
+R0774,45–64,žena,Jihovýchod,Daily Drivers,Status quo,62,57,55,89,66,0.945,TRUE
+R0775,18–29,muž,Severozápad,Multimodal Families,Invest & Manage,62,87,75,45,67,1.079,TRUE
+R0776,18–29,žena,Praha,Outer District Residents,Invest & Manage,52,73,67,84,69,1.036,TRUE
+R0777,65+,muž,Jihozápad,Transit Dependents,Transit first,66,55,85,64,68,1.044,TRUE
+R0778,65+,muž,Střední Čechy,Daily Drivers,Status quo,56,80,84,69,72,1.108,TRUE
+R0779,18–29,žena,Severozápad,Daily Drivers,Status quo,43,58,81,86,67,0.809,TRUE
+R0780,45–64,muž,Severovýchod,Multimodal Families,Invest & Manage,75,71,56,74,69,1.007,TRUE
+R0781,45–64,žena,Moravskoslezsko,Daily Drivers,Status quo,46,57,85,58,62,1.187,TRUE
+R0782,65+,muž,Praha,Daily Drivers,Status quo,42,83,70,67,66,1.091,TRUE
+R0783,45–64,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,56,88,68,42,64,1.177,TRUE
+R0784,18–29,muž,Severozápad,Daily Drivers,Status quo,44,58,47,50,50,0.95,TRUE
+R0785,30–44,muž,Jihovýchod,Outer District Residents,Invest & Manage,71,80,68,65,71,1.174,TRUE
+R0786,30–44,muž,Střední Morava,Outer District Residents,Invest & Manage,63,71,80,41,64,1.056,TRUE
+R0787,65+,muž,Střední Morava,Multimodal Families,Invest & Manage,61,83,78,81,76,0.828,TRUE
+R0788,65+,žena,Praha,Urban Greens,Invest & Manage,51,45,57,77,58,0.753,TRUE
+R0789,30–44,muž,Jihozápad,Daily Drivers,Status quo,70,45,51,48,54,0.822,TRUE
+R0790,65+,žena,Střední Čechy,Multimodal Families,Invest & Manage,57,71,80,52,65,1.016,TRUE
+R0791,30–44,žena,Střední Morava,Multimodal Families,Invest & Manage,49,72,82,47,62,0.777,TRUE
+R0792,65+,muž,Moravskoslezsko,Urban Greens,Invest & Manage,69,60,45,45,55,0.918,TRUE
+R0793,18–29,žena,Střední Morava,Daily Drivers,Status quo,58,78,84,56,69,0.995,TRUE
+R0794,45–64,muž,Jihozápad,Urban Greens,Invest & Manage,59,46,48,57,52,0.877,TRUE
+R0795,45–64,muž,Moravskoslezsko,Daily Drivers,Status quo,57,55,69,56,59,1.018,TRUE
+R0796,30–44,muž,Jihozápad,Daily Drivers,Status quo,60,58,63,58,60,1.01,TRUE
+R0797,45–64,muž,Jihozápad,Daily Drivers,Status quo,72,65,82,68,72,1.159,TRUE
+R0798,30–44,muž,Střední Morava,Transit Dependents,Transit first,66,66,72,85,72,1.202,TRUE
+R0799,45–64,žena,Praha,Transit Dependents,Transit first,44,45,65,82,59,1.201,TRUE
+R0800,30–44,žena,Severovýchod,Urban Greens,Invest & Manage,52,59,51,89,63,1.041,TRUE
+R0801,45–64,žena,Jihozápad,Urban Greens,Invest & Manage,54,68,80,37,60,1.06,TRUE
+R0802,65+,muž,Severozápad,Multimodal Families,Invest & Manage,43,66,55,40,51,0.99,TRUE
+R0803,45–64,žena,Jihozápad,Transit Dependents,Transit first,50,61,83,51,61,0.76,TRUE
+R0804,45–64,muž,Severovýchod,Daily Drivers,Status quo,60,63,70,60,63,1.132,TRUE
+R0805,45–64,žena,Severovýchod,Multimodal Families,Invest & Manage,40,77,73,74,66,0.797,TRUE
+R0806,45–64,žena,Jihovýchod,Transit Dependents,Transit first,45,50,90,46,58,1.167,TRUE
+R0807,45–64,žena,Střední Čechy,Urban Greens,Invest & Manage,72,50,88,73,71,1.097,TRUE
+R0808,18–29,muž,Jihovýchod,Outer District Residents,Invest & Manage,74,47,64,60,61,0.912,TRUE
+R0809,30–44,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,73,82,79,57,73,0.947,TRUE
+R0810,18–29,žena,Moravskoslezsko,Transit Dependents,Transit first,72,79,46,87,71,0.955,TRUE
+R0811,45–64,žena,Jihozápad,Transit Dependents,Transit first,40,85,59,44,57,1.168,TRUE
+R0812,30–44,muž,Jihozápad,Multimodal Families,Invest & Manage,57,67,54,66,61,1.033,TRUE
+R0813,45–64,žena,Střední Morava,Daily Drivers,Status quo,55,48,62,90,64,1.153,TRUE
+R0814,18–29,muž,Severozápad,Urban Greens,Invest & Manage,51,77,57,67,63,0.803,TRUE
+R0815,30–44,žena,Severovýchod,Multimodal Families,Invest & Manage,58,48,75,85,66,0.933,TRUE
+R0816,30–44,žena,Jihovýchod,Outer District Residents,Invest & Manage,44,69,81,58,63,0.751,TRUE
+R0817,30–44,žena,Střední Morava,Transit Dependents,Transit first,69,67,52,67,64,1.055,TRUE
+R0818,45–64,muž,Střední Čechy,Outer District Residents,Invest & Manage,45,79,80,55,65,0.775,TRUE
+R0819,18–29,muž,Severozápad,Daily Drivers,Status quo,53,88,54,83,70,1.139,TRUE
+R0820,18–29,muž,Praha,Outer District Residents,Invest & Manage,70,58,45,52,56,0.753,TRUE
+R0821,65+,muž,Střední Čechy,Daily Drivers,Status quo,55,86,45,46,58,0.888,TRUE
+R0822,18–29,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,57,46,57,44,51,0.819,TRUE
+R0823,65+,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,75,74,76,76,75,1.104,TRUE
+R0824,65+,žena,Praha,Daily Drivers,Status quo,44,47,62,40,48,0.8,TRUE
+R0825,45–64,muž,Severozápad,Multimodal Families,Invest & Manage,71,67,51,57,62,1.199,TRUE
+R0826,45–64,žena,Jihozápad,Daily Drivers,Status quo,64,77,59,62,66,1.217,TRUE
+R0827,30–44,muž,Praha,Outer District Residents,Invest & Manage,70,69,57,68,66,1.031,TRUE
+R0828,30–44,žena,Severozápad,Outer District Residents,Invest & Manage,57,61,50,71,60,1.23,TRUE
+R0829,65+,žena,Praha,Outer District Residents,Invest & Manage,54,75,67,62,64,0.785,TRUE
+R0830,30–44,muž,Severovýchod,Transit Dependents,Transit first,57,51,58,45,53,0.924,TRUE
+R0831,30–44,žena,Jihovýchod,Urban Greens,Invest & Manage,48,45,85,45,56,1.164,TRUE
+R0832,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,71,47,62,84,66,0.76,TRUE
+R0833,18–29,žena,Severozápad,Daily Drivers,Status quo,53,73,60,59,61,0.834,TRUE
+R0834,30–44,muž,Střední Morava,Outer District Residents,Invest & Manage,49,65,50,43,52,0.846,TRUE
+R0835,65+,žena,Moravskoslezsko,Transit Dependents,Transit first,65,59,61,83,67,1.244,TRUE
+R0836,45–64,žena,Severozápad,Urban Greens,Invest & Manage,41,77,87,55,65,0.76,TRUE
+R0837,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,47,90,82,63,70,1.155,TRUE
+R0838,30–44,žena,Jihozápad,Urban Greens,Invest & Manage,76,55,53,81,66,0.842,TRUE
+R0839,65+,žena,Severovýchod,Daily Drivers,Status quo,63,79,58,77,69,0.904,TRUE
+R0840,18–29,žena,Moravskoslezsko,Daily Drivers,Status quo,47,53,56,43,50,0.888,TRUE
+R0841,18–29,muž,Střední Čechy,Multimodal Families,Invest & Manage,40,56,81,83,65,0.828,TRUE
+R0842,18–29,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,73,59,52,50,58,1.142,TRUE
+R0843,30–44,žena,Severozápad,Daily Drivers,Status quo,43,65,61,83,63,0.769,TRUE
+R0844,30–44,žena,Střední Čechy,Multimodal Families,Invest & Manage,63,66,87,41,64,1.03,TRUE
+R0845,30–44,muž,Praha,Daily Drivers,Status quo,70,74,67,53,66,1.163,TRUE
+R0846,30–44,žena,Jihozápad,Transit Dependents,Transit first,69,81,90,41,70,1.002,TRUE
+R0847,18–29,muž,Jihozápad,Transit Dependents,Transit first,60,87,73,65,71,1.167,TRUE
+R0848,45–64,muž,Severovýchod,Daily Drivers,Status quo,43,87,74,56,65,0.914,TRUE
+R0849,45–64,muž,Střední Morava,Daily Drivers,Status quo,48,53,67,88,64,1.053,TRUE
+R0850,45–64,žena,Severovýchod,Outer District Residents,Invest & Manage,67,48,90,88,73,0.802,TRUE
+R0851,18–29,žena,Jihozápad,Transit Dependents,Transit first,68,81,73,70,73,1.149,TRUE
+R0852,30–44,žena,Střední Morava,Outer District Residents,Invest & Manage,47,87,55,35,56,0.837,TRUE
+R0853,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,60,88,87,61,74,0.872,TRUE
+R0854,45–64,muž,Severozápad,Daily Drivers,Status quo,50,73,75,44,60,0.902,TRUE
+R0855,18–29,muž,Jihovýchod,Multimodal Families,Invest & Manage,58,79,55,38,58,1.012,TRUE
+R0856,30–44,žena,Jihovýchod,Daily Drivers,Status quo,53,58,86,42,60,1.017,TRUE
+R0857,18–29,žena,Severozápad,Outer District Residents,Invest & Manage,70,47,86,48,63,1.079,TRUE
+R0858,30–44,muž,Jihovýchod,Transit Dependents,Transit first,58,46,78,86,67,0.829,TRUE
+R0859,65+,žena,Severozápad,Transit Dependents,Transit first,70,48,53,43,54,1.166,TRUE
+R0860,30–44,muž,Střední Čechy,Daily Drivers,Status quo,49,73,55,63,60,0.779,TRUE
+R0861,65+,muž,Jihozápad,Daily Drivers,Status quo,50,63,64,48,56,1.132,TRUE
+R0862,18–29,žena,Moravskoslezsko,Transit Dependents,Transit first,48,84,57,89,70,1.234,TRUE
+R0863,65+,žena,Severozápad,Daily Drivers,Status quo,41,60,81,82,66,1.016,TRUE
+R0864,30–44,muž,Jihovýchod,Multimodal Families,Invest & Manage,46,78,81,76,70,1.243,TRUE
+R0865,45–64,žena,Praha,Urban Greens,Invest & Manage,72,47,59,43,55,1.124,TRUE
+R0866,45–64,žena,Jihozápad,Daily Drivers,Status quo,65,47,76,44,58,0.778,TRUE
+R0867,18–29,muž,Praha,Daily Drivers,Status quo,72,76,60,80,72,1.009,TRUE
+R0868,45–64,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,57,81,52,39,57,1.098,TRUE
+R0869,30–44,žena,Střední Čechy,Urban Greens,Invest & Manage,47,46,72,48,53,1.046,TRUE
+R0870,65+,žena,Jihovýchod,Multimodal Families,Invest & Manage,59,64,77,66,66,1.185,TRUE
+R0871,18–29,muž,Střední Morava,Multimodal Families,Invest & Manage,53,89,64,79,71,1.088,TRUE
+R0872,45–64,muž,Střední Morava,Daily Drivers,Status quo,41,65,54,89,62,0.813,TRUE
+R0873,30–44,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,45,86,48,67,62,0.882,TRUE
+R0874,65+,žena,Severovýchod,Daily Drivers,Status quo,67,52,87,44,62,1.126,TRUE
+R0875,30–44,muž,Střední Čechy,Outer District Residents,Invest & Manage,74,79,90,74,79,1.025,TRUE
+R0876,30–44,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,57,76,77,54,66,0.889,TRUE
+R0877,30–44,muž,Střední Čechy,Multimodal Families,Invest & Manage,67,74,73,41,64,1.055,TRUE
+R0878,45–64,muž,Severovýchod,Multimodal Families,Invest & Manage,60,87,75,59,70,0.762,TRUE
+R0879,30–44,muž,Praha,Outer District Residents,Invest & Manage,68,84,70,36,64,1.117,TRUE
+R0880,30–44,muž,Jihozápad,Daily Drivers,Status quo,70,45,50,85,62,0.8,TRUE
+R0881,30–44,muž,Jihozápad,Transit Dependents,Transit first,47,50,84,70,63,1.047,TRUE
+R0882,45–64,muž,Střední Morava,Multimodal Families,Invest & Manage,68,60,64,88,70,0.956,TRUE
+R0883,65+,žena,Jihozápad,Multimodal Families,Invest & Manage,50,70,69,89,70,0.936,TRUE
+R0884,45–64,muž,Jihozápad,Urban Greens,Invest & Manage,67,68,90,59,71,0.767,TRUE
+R0885,30–44,muž,Severovýchod,Daily Drivers,Status quo,64,69,65,39,59,1.124,TRUE
+R0886,30–44,muž,Jihovýchod,Urban Greens,Invest & Manage,45,72,63,80,65,1.245,TRUE
+R0887,65+,žena,Severovýchod,Urban Greens,Invest & Manage,57,90,57,73,69,1.17,TRUE
+R0888,18–29,žena,Střední Čechy,Outer District Residents,Invest & Manage,47,78,46,36,52,0.866,TRUE
+R0889,18–29,žena,Praha,Transit Dependents,Transit first,71,80,72,43,66,0.758,TRUE
+R0890,45–64,muž,Jihovýchod,Transit Dependents,Transit first,68,90,87,65,78,1.162,TRUE
+R0891,65+,žena,Jihovýchod,Multimodal Families,Invest & Manage,49,47,82,64,60,0.933,TRUE
+R0892,18–29,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,54,67,77,59,64,0.963,TRUE
+R0893,30–44,muž,Praha,Multimodal Families,Invest & Manage,53,78,61,86,70,0.861,TRUE
+R0894,65+,žena,Jihozápad,Daily Drivers,Status quo,74,81,65,77,74,1.075,TRUE
+R0895,65+,muž,Severozápad,Outer District Residents,Invest & Manage,46,70,67,63,62,1.005,TRUE
+R0896,45–64,muž,Severovýchod,Multimodal Families,Invest & Manage,63,56,45,71,59,0.827,TRUE
+R0897,45–64,žena,Severozápad,Daily Drivers,Status quo,71,77,45,38,58,1.057,TRUE
+R0898,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,40,53,89,61,61,1.193,TRUE
+R0899,18–29,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,76,72,75,75,74,0.888,TRUE
+R0900,30–44,muž,Praha,Daily Drivers,Status quo,53,78,83,40,64,1.193,TRUE
+R0901,45–64,žena,Jihozápad,Transit Dependents,Transit first,70,67,90,64,73,1.126,TRUE
+R0902,30–44,muž,Střední Čechy,Urban Greens,Invest & Manage,42,82,83,72,70,0.76,TRUE
+R0903,65+,žena,Jihovýchod,Outer District Residents,Invest & Manage,47,54,48,54,51,0.927,TRUE
+R0904,30–44,žena,Jihozápad,Daily Drivers,Status quo,70,71,77,43,65,0.806,TRUE
+R0905,45–64,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,67,66,67,56,64,1.063,TRUE
+R0906,45–64,žena,Severovýchod,Multimodal Families,Invest & Manage,52,64,60,71,62,1.054,TRUE
+R0907,18–29,muž,Praha,Transit Dependents,Transit first,72,79,48,77,69,1.21,TRUE
+R0908,45–64,muž,Jihovýchod,Daily Drivers,Status quo,67,82,47,36,58,0.838,TRUE
+R0909,18–29,muž,Jihozápad,Multimodal Families,Invest & Manage,57,59,81,75,68,0.838,TRUE
+R0910,65+,žena,Jihozápad,Daily Drivers,Status quo,52,89,63,58,66,0.835,TRUE
+R0911,65+,žena,Střední Čechy,Daily Drivers,Status quo,49,80,55,70,64,1.047,TRUE
+R0912,30–44,žena,Jihovýchod,Urban Greens,Invest & Manage,72,55,59,40,56,1.03,TRUE
+R0913,65+,muž,Praha,Outer District Residents,Invest & Manage,62,64,53,87,66,1.208,TRUE
+R0914,30–44,žena,Střední Morava,Multimodal Families,Invest & Manage,57,84,75,44,65,0.928,TRUE
+R0915,65+,žena,Praha,Daily Drivers,Status quo,55,86,48,79,67,1.086,TRUE
+R0916,30–44,muž,Moravskoslezsko,Urban Greens,Invest & Manage,41,69,55,65,58,0.915,TRUE
+R0917,65+,žena,Praha,Transit Dependents,Transit first,60,60,46,35,50,1.232,TRUE
+R0918,65+,žena,Střední Čechy,Outer District Residents,Invest & Manage,61,45,66,39,53,0.764,TRUE
+R0919,45–64,muž,Střední Morava,Daily Drivers,Status quo,76,67,85,74,76,1.239,TRUE
+R0920,45–64,žena,Praha,Daily Drivers,Status quo,60,85,68,64,69,1.218,TRUE
+R0921,45–64,muž,Střední Čechy,Urban Greens,Invest & Manage,44,73,89,40,62,0.818,TRUE
+R0922,45–64,žena,Jihozápad,Daily Drivers,Status quo,50,67,66,43,56,0.848,TRUE
+R0923,45–64,muž,Jihozápad,Transit Dependents,Transit first,47,67,46,45,51,0.95,TRUE
+R0924,45–64,žena,Severovýchod,Outer District Residents,Invest & Manage,51,70,45,50,54,0.912,TRUE
+R0925,18–29,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,42,78,50,81,63,1.096,TRUE
+R0926,18–29,žena,Severozápad,Multimodal Families,Invest & Manage,61,66,51,50,57,0.938,TRUE
+R0927,18–29,muž,Střední Čechy,Multimodal Families,Invest & Manage,66,86,58,57,67,1.155,TRUE
+R0928,45–64,žena,Jihovýchod,Transit Dependents,Transit first,45,60,55,86,62,1.202,TRUE
+R0929,30–44,žena,Střední Morava,Daily Drivers,Status quo,71,55,61,63,62,0.876,TRUE
+R0930,30–44,muž,Severozápad,Daily Drivers,Status quo,64,65,75,85,72,0.901,TRUE
+R0931,18–29,muž,Jihozápad,Outer District Residents,Invest & Manage,44,84,60,71,65,1.022,TRUE
+R0932,45–64,žena,Jihozápad,Transit Dependents,Transit first,45,45,63,43,49,1.191,TRUE
+R0933,65+,muž,Jihozápad,Multimodal Families,Invest & Manage,55,63,64,43,56,1.177,TRUE
+R0934,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,69,75,48,56,62,0.82,TRUE
+R0935,18–29,žena,Střední Morava,Outer District Residents,Invest & Manage,57,86,56,80,70,0.897,TRUE
+R0936,45–64,žena,Severozápad,Multimodal Families,Invest & Manage,49,52,45,37,46,0.978,TRUE
+R0937,45–64,muž,Jihovýchod,Multimodal Families,Invest & Manage,52,83,57,38,58,0.935,TRUE
+R0938,45–64,žena,Jihozápad,Urban Greens,Invest & Manage,42,47,69,51,52,1.065,TRUE
+R0939,30–44,muž,Praha,Transit Dependents,Transit first,72,78,75,52,69,0.825,TRUE
+R0940,65+,žena,Střední Morava,Multimodal Families,Invest & Manage,46,61,50,57,54,0.911,TRUE
+R0941,18–29,žena,Jihovýchod,Outer District Residents,Invest & Manage,40,87,52,56,59,0.952,TRUE
+R0942,18–29,muž,Jihozápad,Multimodal Families,Invest & Manage,52,71,61,71,64,1.248,TRUE
+R0943,45–64,žena,Střední Čechy,Daily Drivers,Status quo,60,55,46,62,56,0.8,TRUE
+R0944,30–44,žena,Střední Čechy,Multimodal Families,Invest & Manage,69,61,76,75,70,0.83,TRUE
+R0945,65+,žena,Střední Morava,Multimodal Families,Invest & Manage,54,87,88,41,68,1.142,TRUE
+R0946,18–29,žena,Praha,Urban Greens,Invest & Manage,43,81,64,84,68,1.042,TRUE
+R0947,30–44,muž,Střední Čechy,Urban Greens,Invest & Manage,68,75,53,79,69,0.903,TRUE
+R0948,45–64,žena,Střední Morava,Multimodal Families,Invest & Manage,59,64,79,48,62,1.223,TRUE
+R0949,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,54,67,50,70,60,0.938,TRUE
+R0950,65+,muž,Jihozápad,Urban Greens,Invest & Manage,41,66,70,50,57,0.815,TRUE
+R0951,18–29,muž,Střední Morava,Daily Drivers,Status quo,46,71,74,45,59,1.17,TRUE
+R0952,65+,žena,Střední Morava,Transit Dependents,Transit first,69,80,51,74,68,0.77,TRUE
+R0953,18–29,muž,Severovýchod,Transit Dependents,Transit first,46,61,50,82,60,1.142,TRUE
+R0954,30–44,žena,Severovýchod,Multimodal Families,Invest & Manage,67,68,79,43,64,1.071,TRUE
+R0955,30–44,žena,Severozápad,Daily Drivers,Status quo,62,60,69,67,64,0.925,TRUE
+R0956,65+,muž,Střední Morava,Multimodal Families,Invest & Manage,52,73,70,53,62,0.788,TRUE
+R0957,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,53,64,68,54,60,1.249,TRUE
+R0958,18–29,žena,Moravskoslezsko,Daily Drivers,Status quo,40,70,61,90,65,1.094,TRUE
+R0959,30–44,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,54,79,80,72,71,0.973,TRUE
+R0960,18–29,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,72,78,81,80,78,0.826,TRUE
+R0961,18–29,muž,Jihozápad,Urban Greens,Invest & Manage,69,81,52,89,73,1.066,TRUE
+R0962,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,59,74,71,61,66,0.844,TRUE
+R0963,45–64,muž,Severozápad,Multimodal Families,Invest & Manage,64,74,68,65,68,1.132,TRUE
+R0964,30–44,muž,Severovýchod,Urban Greens,Invest & Manage,72,72,88,79,78,0.947,TRUE
+R0965,30–44,žena,Jihovýchod,Daily Drivers,Status quo,66,88,80,68,76,0.989,TRUE
+R0966,18–29,muž,Praha,Transit Dependents,Transit first,43,49,86,54,58,0.844,TRUE
+R0967,45–64,muž,Praha,Daily Drivers,Status quo,70,55,68,86,70,1.082,TRUE
+R0968,30–44,muž,Praha,Multimodal Families,Invest & Manage,73,83,83,60,75,0.755,TRUE
+R0969,45–64,žena,Moravskoslezsko,Transit Dependents,Transit first,71,52,79,83,71,1.105,TRUE
+R0970,30–44,žena,Střední Čechy,Urban Greens,Invest & Manage,75,71,47,89,70,1.102,TRUE
+R0971,45–64,muž,Praha,Daily Drivers,Status quo,55,45,75,60,59,0.87,TRUE
+R0972,18–29,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,59,72,86,88,76,1.214,TRUE
+R0973,65+,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,71,90,56,84,75,1.115,TRUE
+R0974,45–64,muž,Praha,Urban Greens,Invest & Manage,68,64,51,81,66,0.977,TRUE
+R0975,45–64,žena,Praha,Daily Drivers,Status quo,58,71,63,40,58,0.986,TRUE
+R0976,30–44,muž,Moravskoslezsko,Daily Drivers,Status quo,47,61,73,55,59,1.097,TRUE
+R0977,65+,žena,Severozápad,Transit Dependents,Transit first,48,86,90,53,69,1.201,TRUE
+R0978,45–64,žena,Moravskoslezsko,Daily Drivers,Status quo,51,76,85,71,71,0.793,TRUE
+R0979,18–29,žena,Střední Čechy,Outer District Residents,Invest & Manage,48,49,66,51,54,0.93,TRUE
+R0980,65+,muž,Praha,Daily Drivers,Status quo,66,76,82,86,78,0.886,TRUE
+R0981,18–29,žena,Střední Morava,Multimodal Families,Invest & Manage,40,83,81,62,66,0.949,TRUE
+R0982,45–64,muž,Jihovýchod,Outer District Residents,Invest & Manage,58,82,89,52,70,1.025,TRUE
+R0983,45–64,muž,Jihovýchod,Multimodal Families,Invest & Manage,71,54,89,63,69,1.073,TRUE
+R0984,45–64,muž,Jihovýchod,Daily Drivers,Status quo,71,56,63,56,62,1.118,TRUE
+R0985,65+,žena,Jihozápad,Urban Greens,Invest & Manage,52,63,72,64,63,1.005,TRUE
+R0986,45–64,žena,Severozápad,Multimodal Families,Invest & Manage,74,67,61,55,64,1.068,TRUE
+R0987,65+,muž,Praha,Transit Dependents,Transit first,54,53,63,80,62,1.068,TRUE
+R0988,18–29,žena,Střední Čechy,Daily Drivers,Status quo,51,74,65,78,67,1.05,TRUE
+R0989,65+,muž,Střední Morava,Transit Dependents,Transit first,73,71,59,56,65,0.802,TRUE
+R0990,45–64,muž,Jihozápad,Transit Dependents,Transit first,76,89,82,44,73,0.824,TRUE
+R0991,65+,muž,Severozápad,Daily Drivers,Status quo,75,70,55,77,69,0.916,TRUE
+R0992,65+,muž,Moravskoslezsko,Urban Greens,Invest & Manage,72,70,84,66,73,1.117,TRUE
+R0993,65+,muž,Jihozápad,Daily Drivers,Status quo,54,67,77,87,71,1.178,TRUE
+R0994,30–44,žena,Praha,Multimodal Families,Invest & Manage,73,66,49,65,63,0.842,TRUE
+R0995,18–29,žena,Moravskoslezsko,Urban Greens,Invest & Manage,75,65,75,55,68,1.108,TRUE
+R0996,18–29,žena,Praha,Multimodal Families,Invest & Manage,42,81,58,57,60,1.204,TRUE
+R0997,30–44,žena,Střední Morava,Transit Dependents,Transit first,40,88,74,65,67,1.185,TRUE
+R0998,45–64,muž,Severovýchod,Daily Drivers,Status quo,64,63,78,43,62,0.782,TRUE
+R0999,45–64,žena,Jihozápad,Multimodal Families,Invest & Manage,71,66,84,69,72,1.073,TRUE
+R1000,18–29,žena,Střední Morava,Transit Dependents,Transit first,45,52,89,45,58,1.245,TRUE
+R1001,65+,žena,Střední Čechy,Transit Dependents,Transit first,52,90,85,45,68,1.157,TRUE
+R1002,65+,muž,Severozápad,Urban Greens,Invest & Manage,43,66,72,55,59,1.144,TRUE
+R1003,45–64,muž,Jihozápad,Urban Greens,Invest & Manage,63,51,78,44,59,0.968,TRUE
+R1004,18–29,muž,Jihozápad,Transit Dependents,Transit first,41,63,54,82,60,0.867,TRUE
+R1005,45–64,žena,Jihozápad,Daily Drivers,Status quo,42,64,77,73,64,0.823,TRUE
+R1006,18–29,muž,Praha,Transit Dependents,Transit first,61,52,60,66,60,0.763,TRUE
+R1007,30–44,žena,Severovýchod,Urban Greens,Invest & Manage,49,63,61,75,62,1.141,TRUE
+R1008,30–44,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,67,51,62,49,57,0.932,TRUE
+R1009,30–44,muž,Jihovýchod,Multimodal Families,Invest & Manage,74,85,61,57,69,1.172,TRUE
+R1010,18–29,žena,Střední Čechy,Transit Dependents,Transit first,66,70,74,37,62,1.202,TRUE
+R1011,30–44,žena,Střední Morava,Multimodal Families,Invest & Manage,53,55,75,86,67,1.143,TRUE
+R1012,65+,muž,Jihozápad,Daily Drivers,Status quo,68,56,88,53,66,1.219,TRUE
+R1013,65+,muž,Jihovýchod,Urban Greens,Invest & Manage,46,54,74,60,58,1.152,TRUE
+R1014,18–29,muž,Jihozápad,Urban Greens,Invest & Manage,43,57,53,36,47,1.055,TRUE
+R1015,30–44,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,63,62,70,79,68,0.828,TRUE
+R1016,18–29,žena,Severovýchod,Transit Dependents,Transit first,67,65,83,46,65,0.967,TRUE
+R1017,65+,muž,Střední Morava,Daily Drivers,Status quo,66,90,52,58,66,0.943,TRUE
+R1018,45–64,žena,Střední Morava,Transit Dependents,Transit first,76,88,45,75,71,0.856,TRUE
+R1019,30–44,muž,Jihovýchod,Daily Drivers,Status quo,66,46,84,72,67,0.827,TRUE
+R1020,18–29,muž,Praha,Urban Greens,Invest & Manage,56,66,47,48,54,0.906,TRUE
+R1021,65+,muž,Střední Čechy,Outer District Residents,Invest & Manage,61,63,61,54,60,1.185,TRUE
+R1022,45–64,muž,Severozápad,Transit Dependents,Transit first,69,66,72,45,63,0.841,TRUE
+R1023,30–44,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,63,62,73,42,60,1.212,TRUE
+R1024,45–64,muž,Jihovýchod,Daily Drivers,Status quo,63,54,53,41,53,0.795,TRUE
+R1025,45–64,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,48,47,84,44,56,1.131,TRUE
+R1026,65+,muž,Moravskoslezsko,Daily Drivers,Status quo,45,90,53,37,56,0.859,TRUE
+R1027,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,75,74,70,78,74,1.021,TRUE
+R1028,18–29,muž,Moravskoslezsko,Urban Greens,Invest & Manage,45,49,80,53,57,1.024,TRUE
+R1029,30–44,žena,Jihovýchod,Transit Dependents,Transit first,68,58,70,53,62,0.844,TRUE
+R1030,30–44,muž,Střední Čechy,Multimodal Families,Invest & Manage,67,70,77,56,68,0.979,TRUE
+R1031,18–29,muž,Severozápad,Multimodal Families,Invest & Manage,72,75,83,87,79,1.171,TRUE
+R1032,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,64,78,59,66,67,1.235,TRUE
+R1033,65+,muž,Severovýchod,Urban Greens,Invest & Manage,67,75,58,70,68,0.797,TRUE
+R1034,30–44,žena,Severozápad,Urban Greens,Invest & Manage,41,46,79,58,56,1.079,TRUE
+R1035,18–29,žena,Praha,Urban Greens,Invest & Manage,68,78,49,68,66,1.228,TRUE
+R1036,18–29,muž,Praha,Outer District Residents,Invest & Manage,69,80,53,38,60,0.915,TRUE
+R1037,30–44,muž,Jihovýchod,Daily Drivers,Status quo,73,84,89,83,82,0.896,TRUE
+R1038,18–29,žena,Střední Morava,Urban Greens,Invest & Manage,64,84,61,61,68,0.933,TRUE
+R1039,65+,muž,Severovýchod,Daily Drivers,Status quo,69,45,63,82,65,1.181,TRUE
+R1040,65+,muž,Střední Morava,Transit Dependents,Transit first,51,66,65,40,56,0.836,TRUE
+R1041,65+,žena,Severovýchod,Daily Drivers,Status quo,42,78,70,78,67,0.939,TRUE
+R1042,65+,muž,Jihozápad,Transit Dependents,Transit first,60,74,50,88,68,1.234,TRUE
+R1043,30–44,muž,Jihovýchod,Daily Drivers,Status quo,41,86,74,67,67,0.786,TRUE
+R1044,30–44,žena,Praha,Transit Dependents,Transit first,46,79,84,82,73,0.822,TRUE
+R1045,18–29,muž,Severovýchod,Daily Drivers,Status quo,51,49,52,72,56,1.208,TRUE
+R1046,65+,muž,Jihovýchod,Transit Dependents,Transit first,56,68,60,71,64,1.122,TRUE
+R1047,30–44,muž,Severovýchod,Urban Greens,Invest & Manage,62,56,47,72,59,1.187,TRUE
+R1048,30–44,žena,Moravskoslezsko,Daily Drivers,Status quo,70,83,58,57,67,1.184,TRUE
+R1049,45–64,žena,Praha,Multimodal Families,Invest & Manage,55,89,70,67,70,1.018,TRUE
+R1050,18–29,muž,Severozápad,Outer District Residents,Invest & Manage,44,63,56,38,50,1.208,TRUE
+R1051,65+,muž,Jihozápad,Multimodal Families,Invest & Manage,71,84,90,49,74,1.023,TRUE
+R1052,30–44,muž,Praha,Outer District Residents,Invest & Manage,52,70,70,78,68,0.92,TRUE
+R1053,18–29,muž,Praha,Transit Dependents,Transit first,54,45,68,35,50,1.021,TRUE
+R1054,45–64,muž,Jihozápad,Multimodal Families,Invest & Manage,72,89,71,73,76,0.833,TRUE
+R1055,65+,žena,Severovýchod,Transit Dependents,Transit first,45,63,75,90,68,0.969,TRUE
+R1056,30–44,žena,Severovýchod,Transit Dependents,Transit first,53,47,61,76,59,1.093,TRUE
+R1057,65+,muž,Jihozápad,Transit Dependents,Transit first,65,60,68,51,61,1.066,TRUE
+R1058,45–64,žena,Střední Čechy,Multimodal Families,Invest & Manage,75,56,56,84,68,1.186,TRUE
+R1059,45–64,žena,Severozápad,Outer District Residents,Invest & Manage,47,51,66,63,57,0.81,TRUE
+R1060,18–29,muž,Střední Morava,Urban Greens,Invest & Manage,73,45,78,73,67,0.893,TRUE
+R1061,45–64,muž,Praha,Transit Dependents,Transit first,76,88,57,77,74,0.996,TRUE
+R1062,65+,muž,Jihozápad,Multimodal Families,Invest & Manage,61,46,83,38,57,1.14,TRUE
+R1063,45–64,muž,Praha,Multimodal Families,Invest & Manage,66,67,63,54,62,0.926,TRUE
+R1064,45–64,muž,Praha,Multimodal Families,Invest & Manage,40,45,85,84,64,1.143,TRUE
+R1065,65+,žena,Jihozápad,Daily Drivers,Status quo,56,51,65,56,57,0.998,TRUE
+R1066,30–44,žena,Severozápad,Daily Drivers,Status quo,55,63,56,42,54,0.966,TRUE
+R1067,45–64,žena,Jihovýchod,Outer District Residents,Invest & Manage,72,87,45,84,72,1.019,TRUE
+R1068,18–29,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,66,79,60,36,60,1.021,TRUE
+R1069,65+,muž,Střední Morava,Daily Drivers,Status quo,43,89,75,44,63,1.074,TRUE
+R1070,45–64,muž,Jihozápad,Multimodal Families,Invest & Manage,44,45,61,62,53,1.146,TRUE
+R1071,18–29,žena,Severozápad,Urban Greens,Invest & Manage,50,86,70,68,68,1.055,TRUE
+R1072,30–44,muž,Jihozápad,Transit Dependents,Transit first,69,59,78,84,72,1.121,TRUE
+R1073,45–64,muž,Severozápad,Urban Greens,Invest & Manage,51,70,70,42,58,1.026,TRUE
+R1074,18–29,žena,Jihovýchod,Transit Dependents,Transit first,58,89,65,63,69,1.181,TRUE
+R1075,30–44,žena,Moravskoslezsko,Daily Drivers,Status quo,47,56,74,75,63,1.18,TRUE
+R1076,65+,muž,Severovýchod,Urban Greens,Invest & Manage,52,53,59,40,51,1.233,TRUE
+R1077,30–44,muž,Severovýchod,Multimodal Families,Invest & Manage,73,79,87,67,76,1.222,TRUE
+R1078,30–44,muž,Moravskoslezsko,Transit Dependents,Transit first,42,77,82,78,70,1.01,TRUE
+R1079,30–44,muž,Severozápad,Transit Dependents,Transit first,65,53,60,54,58,0.903,TRUE
+R1080,65+,muž,Střední Čechy,Multimodal Families,Invest & Manage,40,89,87,47,66,0.771,TRUE
+R1081,18–29,muž,Severozápad,Outer District Residents,Invest & Manage,57,65,76,87,71,1.05,TRUE
+R1082,30–44,muž,Jihozápad,Transit Dependents,Transit first,72,73,68,62,69,1.156,TRUE
+R1083,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,67,48,84,81,70,1.099,TRUE
+R1084,45–64,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,71,46,60,50,57,0.798,TRUE
+R1085,45–64,žena,Jihozápad,Multimodal Families,Invest & Manage,73,68,58,45,61,1.055,TRUE
+R1086,65+,muž,Moravskoslezsko,Daily Drivers,Status quo,52,85,64,63,66,0.955,TRUE
+R1087,45–64,žena,Severozápad,Urban Greens,Invest & Manage,42,81,68,84,69,0.757,TRUE
+R1088,45–64,muž,Střední Čechy,Daily Drivers,Status quo,61,71,65,85,70,0.875,TRUE
+R1089,45–64,muž,Praha,Daily Drivers,Status quo,45,70,52,74,60,1.119,TRUE
+R1090,18–29,muž,Praha,Multimodal Families,Invest & Manage,57,81,46,71,64,0.969,TRUE
+R1091,65+,muž,Praha,Daily Drivers,Status quo,58,67,89,65,70,0.997,TRUE
+R1092,45–64,muž,Střední Čechy,Multimodal Families,Invest & Manage,59,51,84,40,58,1.212,TRUE
+R1093,18–29,žena,Praha,Outer District Residents,Invest & Manage,64,75,57,52,62,1.109,TRUE
+R1094,65+,žena,Severozápad,Urban Greens,Invest & Manage,45,48,75,39,52,1.053,TRUE
+R1095,30–44,žena,Severovýchod,Transit Dependents,Transit first,58,52,47,63,55,1.208,TRUE
+R1096,65+,muž,Severozápad,Multimodal Families,Invest & Manage,65,52,65,87,67,0.777,TRUE
+R1097,30–44,žena,Střední Čechy,Daily Drivers,Status quo,63,85,51,77,69,1.04,TRUE
+R1098,65+,muž,Střední Čechy,Urban Greens,Invest & Manage,40,62,86,70,64,1.121,TRUE
+R1099,65+,muž,Severovýchod,Daily Drivers,Status quo,40,88,47,35,52,1.098,TRUE
+R1100,65+,žena,Střední Morava,Transit Dependents,Transit first,76,73,62,51,66,1.075,TRUE
+R1101,18–29,žena,Jihovýchod,Urban Greens,Invest & Manage,40,63,82,59,61,0.877,TRUE
+R1102,65+,muž,Jihovýchod,Urban Greens,Invest & Manage,49,66,60,45,55,0.884,TRUE
+R1103,18–29,žena,Střední Čechy,Outer District Residents,Invest & Manage,62,55,72,51,60,1.078,TRUE
+R1104,18–29,žena,Jihovýchod,Multimodal Families,Invest & Manage,68,62,53,68,63,1.173,TRUE
+R1105,65+,žena,Jihozápad,Daily Drivers,Status quo,40,56,67,82,61,1.141,TRUE
+R1106,30–44,žena,Jihozápad,Transit Dependents,Transit first,57,56,81,80,68,0.918,TRUE
+R1107,45–64,žena,Jihozápad,Transit Dependents,Transit first,45,55,53,55,52,1.038,TRUE
+R1108,30–44,muž,Severozápad,Daily Drivers,Status quo,50,66,85,63,66,1.037,TRUE
+R1109,45–64,žena,Jihovýchod,Urban Greens,Invest & Manage,66,72,72,39,62,1.154,TRUE
+R1110,30–44,muž,Severovýchod,Multimodal Families,Invest & Manage,45,67,53,57,56,0.781,TRUE
+R1111,18–29,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,45,71,49,49,54,1.101,TRUE
+R1112,30–44,žena,Střední Čechy,Urban Greens,Invest & Manage,69,50,49,86,64,0.839,TRUE
+R1113,45–64,muž,Praha,Outer District Residents,Invest & Manage,68,89,49,63,67,0.987,TRUE
+R1114,65+,muž,Střední Čechy,Transit Dependents,Transit first,67,70,48,71,64,1.087,TRUE
+R1115,65+,žena,Severozápad,Transit Dependents,Transit first,75,82,70,67,74,1.032,TRUE
+R1116,18–29,žena,Střední Morava,Daily Drivers,Status quo,47,86,78,78,72,1.004,TRUE
+R1117,65+,muž,Praha,Daily Drivers,Status quo,47,66,48,53,54,1.002,TRUE
+R1118,18–29,žena,Severovýchod,Multimodal Families,Invest & Manage,75,80,74,62,73,1.184,TRUE
+R1119,65+,muž,Severovýchod,Daily Drivers,Status quo,71,72,69,80,73,0.806,TRUE
+R1120,18–29,žena,Střední Morava,Transit Dependents,Transit first,70,73,66,77,72,1.182,TRUE
+R1121,30–44,žena,Severovýchod,Multimodal Families,Invest & Manage,67,72,45,90,68,1.141,TRUE
+R1122,45–64,muž,Severozápad,Transit Dependents,Transit first,74,81,85,36,69,1.208,TRUE
+R1123,30–44,muž,Střední Čechy,Multimodal Families,Invest & Manage,59,47,70,88,66,1.16,TRUE
+R1124,65+,muž,Jihovýchod,Outer District Residents,Invest & Manage,42,75,72,85,68,1.206,TRUE
+R1125,45–64,muž,Střední Morava,Daily Drivers,Status quo,54,48,69,56,57,1.231,TRUE
+R1126,65+,žena,Severozápad,Outer District Residents,Invest & Manage,71,64,78,35,62,1.216,TRUE
+R1127,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,48,50,83,37,54,0.818,TRUE
+R1128,18–29,žena,Severozápad,Daily Drivers,Status quo,73,59,73,90,74,1.15,TRUE
+R1129,18–29,žena,Severovýchod,Multimodal Families,Invest & Manage,63,62,62,60,62,0.845,TRUE
+R1130,30–44,muž,Střední Čechy,Transit Dependents,Transit first,76,69,78,37,65,0.751,TRUE
+R1131,45–64,žena,Praha,Daily Drivers,Status quo,75,47,74,71,67,0.89,TRUE
+R1132,65+,žena,Jihozápad,Daily Drivers,Status quo,56,76,60,68,65,0.814,TRUE
+R1133,18–29,žena,Moravskoslezsko,Outer District Residents,Invest & Manage,76,73,66,77,73,0.968,TRUE
+R1134,18–29,žena,Praha,Transit Dependents,Transit first,65,84,84,40,68,1.146,TRUE
+R1135,18–29,žena,Střední Čechy,Outer District Residents,Invest & Manage,50,46,67,64,57,1.183,TRUE
+R1136,30–44,žena,Moravskoslezsko,Daily Drivers,Status quo,61,73,81,43,64,0.878,TRUE
+R1137,18–29,žena,Střední Morava,Daily Drivers,Status quo,42,76,60,82,65,1.096,TRUE
+R1138,65+,muž,Střední Morava,Transit Dependents,Transit first,76,78,64,65,71,1.189,TRUE
+R1139,45–64,žena,Jihovýchod,Urban Greens,Invest & Manage,65,51,55,41,53,0.901,TRUE
+R1140,65+,muž,Severovýchod,Multimodal Families,Invest & Manage,61,64,71,51,62,1.152,TRUE
+R1141,65+,žena,Praha,Urban Greens,Invest & Manage,63,79,64,53,65,1.132,TRUE
+R1142,30–44,žena,Jihovýchod,Daily Drivers,Status quo,58,76,48,84,66,1.216,TRUE
+R1143,45–64,žena,Střední Čechy,Multimodal Families,Invest & Manage,65,83,50,48,62,1.003,TRUE
+R1144,65+,žena,Jihozápad,Transit Dependents,Transit first,73,72,61,48,64,0.995,TRUE
+R1145,30–44,žena,Jihozápad,Transit Dependents,Transit first,47,68,54,39,52,1.15,TRUE
+R1146,45–64,žena,Praha,Outer District Residents,Invest & Manage,50,53,59,61,56,0.808,TRUE
+R1147,65+,muž,Střední Morava,Daily Drivers,Status quo,49,81,59,52,60,1.128,TRUE
+R1148,30–44,žena,Praha,Daily Drivers,Status quo,46,86,55,85,68,1.068,TRUE
+R1149,45–64,muž,Severovýchod,Outer District Residents,Invest & Manage,71,58,74,63,66,0.763,TRUE
+R1150,30–44,žena,Jihovýchod,Urban Greens,Invest & Manage,63,73,66,51,63,0.762,TRUE
+R1151,30–44,muž,Střední Morava,Multimodal Families,Invest & Manage,76,46,89,88,75,1.172,TRUE
+R1152,45–64,muž,Praha,Urban Greens,Invest & Manage,60,85,71,69,71,1.081,TRUE
+R1153,65+,žena,Moravskoslezsko,Daily Drivers,Status quo,67,86,88,36,69,0.809,TRUE
+R1154,45–64,žena,Moravskoslezsko,Daily Drivers,Status quo,41,61,62,85,62,1.242,TRUE
+R1155,45–64,žena,Moravskoslezsko,Urban Greens,Invest & Manage,62,76,63,87,72,0.801,TRUE
+R1156,18–29,muž,Jihovýchod,Transit Dependents,Transit first,62,70,87,61,70,0.994,TRUE
+R1157,45–64,žena,Střední Čechy,Urban Greens,Invest & Manage,72,89,86,57,76,0.942,TRUE
+R1158,45–64,muž,Jihovýchod,Multimodal Families,Invest & Manage,57,56,61,78,63,1.17,TRUE
+R1159,30–44,žena,Jihovýchod,Multimodal Families,Invest & Manage,58,57,66,71,63,0.754,TRUE
+R1160,18–29,muž,Střední Čechy,Daily Drivers,Status quo,65,84,66,65,70,1.121,TRUE
+R1161,30–44,žena,Severovýchod,Daily Drivers,Status quo,72,71,47,61,63,1.155,TRUE
+R1162,65+,žena,Jihovýchod,Daily Drivers,Status quo,47,48,60,67,56,0.792,TRUE
+R1163,18–29,žena,Praha,Outer District Residents,Invest & Manage,75,83,50,38,62,1.087,TRUE
+R1164,30–44,žena,Severozápad,Transit Dependents,Transit first,42,81,67,82,68,1.132,TRUE
+R1165,45–64,žena,Jihozápad,Multimodal Families,Invest & Manage,49,69,69,44,58,1.09,TRUE
+R1166,30–44,muž,Jihozápad,Daily Drivers,Status quo,60,87,62,59,67,0.852,TRUE
+R1167,45–64,žena,Severovýchod,Daily Drivers,Status quo,74,58,46,37,54,1.058,TRUE
+R1168,65+,muž,Střední Čechy,Outer District Residents,Invest & Manage,60,82,73,52,67,1.015,TRUE
+R1169,45–64,žena,Jihovýchod,Multimodal Families,Invest & Manage,74,58,90,61,71,0.805,TRUE
+R1170,65+,muž,Severozápad,Outer District Residents,Invest & Manage,67,67,49,76,65,1.084,TRUE
+R1171,30–44,muž,Jihovýchod,Outer District Residents,Invest & Manage,57,54,86,59,64,0.799,TRUE
+R1172,45–64,žena,Střední Čechy,Urban Greens,Invest & Manage,52,89,70,39,62,1.061,TRUE
+R1173,18–29,muž,Severovýchod,Daily Drivers,Status quo,58,89,58,83,72,0.961,TRUE
+R1174,65+,muž,Střední Čechy,Daily Drivers,Status quo,63,78,70,60,68,1.147,TRUE
+R1175,45–64,žena,Střední Morava,Daily Drivers,Status quo,64,55,64,75,64,0.865,TRUE
+R1176,18–29,muž,Střední Morava,Outer District Residents,Invest & Manage,52,63,73,88,69,0.971,TRUE
+R1177,45–64,muž,Praha,Multimodal Families,Invest & Manage,54,61,84,52,63,0.992,TRUE
+R1178,65+,muž,Střední Čechy,Daily Drivers,Status quo,53,57,55,67,58,1.148,TRUE
+R1179,45–64,muž,Jihovýchod,Multimodal Families,Invest & Manage,53,74,62,89,70,0.882,TRUE
+R1180,65+,žena,Severovýchod,Daily Drivers,Status quo,51,54,68,62,59,0.854,TRUE
+R1181,65+,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,75,85,72,56,72,0.984,TRUE
+R1182,65+,žena,Severovýchod,Transit Dependents,Transit first,58,86,70,77,73,0.952,TRUE
+R1183,18–29,žena,Severozápad,Transit Dependents,Transit first,65,67,86,72,72,1.25,TRUE
+R1184,45–64,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,50,58,89,76,68,0.887,TRUE
+R1185,65+,žena,Severozápad,Daily Drivers,Status quo,52,49,49,36,46,1.163,TRUE
+R1186,65+,muž,Střední Morava,Multimodal Families,Invest & Manage,62,82,47,78,67,1.186,TRUE
+R1187,65+,muž,Jihovýchod,Daily Drivers,Status quo,40,65,68,40,53,0.904,TRUE
+R1188,45–64,muž,Moravskoslezsko,Daily Drivers,Status quo,66,80,63,82,73,1.246,TRUE
+R1189,18–29,muž,Jihozápad,Urban Greens,Invest & Manage,66,52,50,67,59,0.871,TRUE
+R1190,45–64,žena,Praha,Multimodal Families,Invest & Manage,45,64,73,58,60,0.776,TRUE
+R1191,65+,muž,Moravskoslezsko,Daily Drivers,Status quo,51,63,50,48,53,1.021,TRUE
+R1192,18–29,muž,Jihovýchod,Transit Dependents,Transit first,56,87,78,68,72,1.219,TRUE
+R1193,18–29,žena,Jihozápad,Daily Drivers,Status quo,51,81,74,44,62,0.898,TRUE
+R1194,18–29,muž,Praha,Transit Dependents,Transit first,76,81,88,36,70,1.196,TRUE
+R1195,18–29,žena,Severozápad,Transit Dependents,Transit first,73,72,56,67,67,0.866,TRUE
+R1196,18–29,žena,Jihovýchod,Urban Greens,Invest & Manage,64,55,52,59,58,1.055,TRUE
+R1197,30–44,žena,Severovýchod,Daily Drivers,Status quo,45,47,74,41,52,1.152,TRUE
+R1198,65+,žena,Moravskoslezsko,Transit Dependents,Transit first,43,89,77,72,70,1.191,TRUE
+R1199,65+,muž,Praha,Daily Drivers,Status quo,55,76,58,39,57,0.87,TRUE
+R1200,65+,muž,Moravskoslezsko,Daily Drivers,Status quo,74,89,61,66,72,1.041,TRUE
+R1201,30–44,žena,Jihozápad,Multimodal Families,Invest & Manage,51,59,83,49,60,1.168,TRUE
+R1202,18–29,žena,Střední Čechy,Daily Drivers,Status quo,56,48,87,90,70,1.022,TRUE
+R1203,65+,žena,Severozápad,Urban Greens,Invest & Manage,50,48,84,67,62,0.96,TRUE
+R1204,45–64,žena,Severozápad,Urban Greens,Invest & Manage,43,51,73,45,53,0.861,TRUE
+R1205,18–29,žena,Moravskoslezsko,Daily Drivers,Status quo,76,50,47,73,62,0.891,TRUE
+R1206,45–64,muž,Jihovýchod,Outer District Residents,Invest & Manage,55,51,58,60,56,0.821,TRUE
+R1207,30–44,žena,Jihozápad,Daily Drivers,Status quo,56,50,70,36,53,1.122,TRUE
+R1208,18–29,žena,Střední Čechy,Outer District Residents,Invest & Manage,59,81,56,90,72,1.019,TRUE
+R1209,18–29,muž,Jihovýchod,Daily Drivers,Status quo,48,72,70,60,62,0.854,TRUE
+R1210,30–44,žena,Praha,Transit Dependents,Transit first,54,50,48,79,58,0.784,TRUE
+R1211,30–44,muž,Severovýchod,Multimodal Families,Invest & Manage,75,47,76,59,64,1.043,TRUE
+R1212,30–44,žena,Jihovýchod,Outer District Residents,Invest & Manage,53,82,65,76,69,0.909,TRUE
+R1213,30–44,muž,Střední Morava,Daily Drivers,Status quo,63,66,85,70,71,0.796,TRUE
+R1214,18–29,muž,Moravskoslezsko,Daily Drivers,Status quo,49,72,80,82,71,0.996,TRUE
+R1215,45–64,žena,Jihovýchod,Transit Dependents,Transit first,61,45,50,47,51,1.248,TRUE
+R1216,45–64,muž,Střední Morava,Daily Drivers,Status quo,71,70,57,67,66,1.045,TRUE
+R1217,18–29,žena,Severovýchod,Daily Drivers,Status quo,72,52,79,60,66,0.925,TRUE
+R1218,65+,žena,Moravskoslezsko,Multimodal Families,Invest & Manage,57,50,61,71,60,1.158,TRUE
+R1219,45–64,žena,Severozápad,Daily Drivers,Status quo,49,64,45,68,56,0.857,TRUE
+R1220,45–64,muž,Střední Čechy,Daily Drivers,Status quo,67,80,53,90,72,1.211,TRUE
+R1221,18–29,muž,Střední Morava,Transit Dependents,Transit first,74,58,49,72,63,0.991,TRUE
+R1222,65+,muž,Jihozápad,Outer District Residents,Invest & Manage,46,49,47,85,57,1.062,TRUE
+R1223,65+,žena,Severozápad,Outer District Residents,Invest & Manage,57,74,47,45,56,0.789,TRUE
+R1224,65+,muž,Střední Morava,Daily Drivers,Status quo,64,67,90,77,74,1.19,TRUE
+R1225,45–64,muž,Praha,Multimodal Families,Invest & Manage,43,63,59,89,64,1.024,TRUE
+R1226,18–29,žena,Jihovýchod,Transit Dependents,Transit first,62,79,45,71,64,1.046,TRUE
+R1227,45–64,žena,Střední Čechy,Daily Drivers,Status quo,47,52,48,43,48,1.023,TRUE
+R1228,45–64,žena,Jihozápad,Urban Greens,Invest & Manage,56,89,50,54,62,0.89,TRUE
+R1229,30–44,muž,Praha,Daily Drivers,Status quo,52,78,74,78,70,0.952,TRUE
+R1230,45–64,muž,Severovýchod,Daily Drivers,Status quo,54,53,64,57,57,1.051,TRUE
+R1231,18–29,žena,Střední Čechy,Daily Drivers,Status quo,58,54,61,76,62,1.179,TRUE
+R1232,18–29,žena,Střední Čechy,Transit Dependents,Transit first,53,61,60,65,60,1.075,TRUE
+R1233,18–29,žena,Jihovýchod,Multimodal Families,Invest & Manage,75,57,60,84,69,0.943,TRUE
+R1234,30–44,muž,Severovýchod,Outer District Residents,Invest & Manage,52,54,89,54,62,1.008,TRUE
+R1235,18–29,žena,Jihovýchod,Multimodal Families,Invest & Manage,70,60,60,75,66,0.81,TRUE
+R1236,30–44,muž,Moravskoslezsko,Multimodal Families,Invest & Manage,52,50,65,75,60,1.178,TRUE
+R1237,30–44,muž,Severozápad,Outer District Residents,Invest & Manage,47,48,84,75,64,1.243,TRUE
+R1238,65+,žena,Střední Morava,Multimodal Families,Invest & Manage,47,65,69,73,64,1.105,TRUE
+R1239,30–44,žena,Praha,Daily Drivers,Status quo,53,83,69,41,62,0.797,TRUE
+R1240,30–44,žena,Moravskoslezsko,Daily Drivers,Status quo,43,89,61,90,71,1.216,TRUE
+R1241,18–29,muž,Střední Morava,Daily Drivers,Status quo,76,67,64,61,67,1.017,TRUE
+R1242,45–64,muž,Jihozápad,Transit Dependents,Transit first,52,61,68,87,67,1.22,TRUE
+R1243,45–64,žena,Jihovýchod,Daily Drivers,Status quo,63,76,68,73,70,0.837,TRUE
+R1244,18–29,muž,Moravskoslezsko,Transit Dependents,Transit first,61,81,84,79,76,0.817,TRUE
+R1245,18–29,žena,Severovýchod,Multimodal Families,Invest & Manage,64,86,50,38,60,0.921,TRUE
+R1246,45–64,žena,Moravskoslezsko,Daily Drivers,Status quo,60,50,87,35,58,0.953,TRUE
+R1247,18–29,muž,Střední Čechy,Outer District Residents,Invest & Manage,52,72,67,49,60,1.122,TRUE
+R1248,65+,muž,Střední Morava,Urban Greens,Invest & Manage,53,70,65,75,66,1.068,TRUE
+R1249,65+,žena,Jihovýchod,Daily Drivers,Status quo,59,54,63,53,57,0.956,TRUE
+R1250,18–29,žena,Střední Čechy,Multimodal Families,Invest & Manage,72,77,54,69,68,0.755,TRUE
+R1251,18–29,muž,Střední Čechy,Daily Drivers,Status quo,57,68,58,90,68,1.027,TRUE
+R1252,45–64,žena,Severovýchod,Multimodal Families,Invest & Manage,44,71,69,89,68,0.901,TRUE
+R1253,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,73,56,70,51,62,1.05,TRUE
+R1254,30–44,muž,Střední Čechy,Outer District Residents,Invest & Manage,49,46,73,44,53,0.929,TRUE
+R1255,65+,muž,Moravskoslezsko,Daily Drivers,Status quo,76,83,86,59,76,1.125,TRUE
+R1256,18–29,žena,Jihovýchod,Urban Greens,Invest & Manage,44,78,54,37,53,1.132,TRUE
+R1257,45–64,muž,Jihozápad,Outer District Residents,Invest & Manage,43,54,50,83,58,0.858,TRUE
+R1258,45–64,žena,Praha,Outer District Residents,Invest & Manage,66,61,67,55,62,0.942,TRUE
+R1259,30–44,žena,Střední Morava,Daily Drivers,Status quo,51,71,84,61,67,0.867,TRUE
+R1260,45–64,muž,Jihozápad,Urban Greens,Invest & Manage,69,72,47,66,64,0.912,TRUE
+R1261,45–64,žena,Jihovýchod,Daily Drivers,Status quo,59,49,57,80,61,0.971,TRUE
+R1262,65+,muž,Střední Čechy,Multimodal Families,Invest & Manage,58,63,60,59,60,1.144,TRUE
+R1263,30–44,žena,Severozápad,Transit Dependents,Transit first,55,79,80,50,66,1.061,TRUE
+R1264,30–44,muž,Severozápad,Urban Greens,Invest & Manage,56,65,83,54,64,1.074,TRUE
+R1265,30–44,žena,Severozápad,Daily Drivers,Status quo,57,81,72,90,75,0.823,TRUE
+R1266,65+,muž,Jihozápad,Transit Dependents,Transit first,40,69,59,78,62,1.013,TRUE
+R1267,30–44,žena,Jihovýchod,Urban Greens,Invest & Manage,66,56,78,81,70,1.099,TRUE
+R1268,45–64,muž,Jihozápad,Urban Greens,Invest & Manage,76,60,64,71,68,1.06,TRUE
+R1269,65+,muž,Střední Morava,Transit Dependents,Transit first,47,75,59,50,58,0.768,TRUE
+R1270,18–29,žena,Střední Morava,Daily Drivers,Status quo,62,85,45,44,59,0.819,TRUE
+R1271,30–44,muž,Praha,Daily Drivers,Status quo,49,63,74,85,68,1.071,TRUE
+R1272,30–44,muž,Severozápad,Daily Drivers,Status quo,50,52,57,39,50,0.869,TRUE
+R1273,45–64,muž,Střední Čechy,Transit Dependents,Transit first,59,51,54,55,55,0.77,TRUE
+R1274,45–64,žena,Jihovýchod,Daily Drivers,Status quo,71,89,85,55,75,0.918,TRUE
+R1275,30–44,žena,Praha,Outer District Residents,Invest & Manage,70,54,56,71,63,1.243,TRUE
+R1276,65+,muž,Moravskoslezsko,Outer District Residents,Invest & Manage,49,62,51,40,50,1.193,TRUE
+R1277,30–44,muž,Moravskoslezsko,Transit Dependents,Transit first,70,69,86,61,72,1.071,TRUE
+R1278,18–29,žena,Severozápad,Urban Greens,Invest & Manage,68,45,56,79,62,1.124,TRUE
+R1279,30–44,muž,Moravskoslezsko,Daily Drivers,Status quo,50,88,66,55,65,0.761,TRUE
+R1280,30–44,muž,Střední Morava,Daily Drivers,Status quo,46,51,59,58,54,0.844,TRUE
+R1281,45–64,žena,Praha,Daily Drivers,Status quo,72,53,70,65,65,0.822,TRUE
+R1282,30–44,muž,Praha,Daily Drivers,Status quo,62,70,82,80,74,0.867,TRUE
+R1283,65+,muž,Střední Čechy,Transit Dependents,Transit first,55,83,88,53,70,0.773,TRUE
+R1284,65+,muž,Moravskoslezsko,Transit Dependents,Transit first,71,49,79,37,59,1.155,TRUE
+R1285,65+,žena,Jihovýchod,Outer District Residents,Invest & Manage,40,60,64,87,63,1.136,TRUE
+R1286,30–44,muž,Střední Čechy,Outer District Residents,Invest & Manage,62,90,48,73,68,0.953,TRUE
+R1287,65+,muž,Severozápad,Multimodal Families,Invest & Manage,49,89,76,74,72,1.225,TRUE
+R1288,65+,muž,Střední Morava,Daily Drivers,Status quo,51,72,76,60,65,0.825,TRUE
+R1289,65+,žena,Střední Morava,Daily Drivers,Status quo,67,79,85,78,77,1.157,TRUE
+R1290,45–64,muž,Praha,Urban Greens,Invest & Manage,61,80,50,43,58,1.173,TRUE
+R1291,18–29,žena,Střední Čechy,Daily Drivers,Status quo,46,69,80,58,63,0.826,TRUE
+R1292,18–29,žena,Střední Morava,Multimodal Families,Invest & Manage,70,49,85,71,69,0.997,TRUE
+R1293,18–29,žena,Jihovýchod,Daily Drivers,Status quo,50,81,64,69,66,1.027,TRUE
+R1294,45–64,muž,Praha,Daily Drivers,Status quo,46,75,56,38,54,0.815,TRUE
+R1295,45–64,žena,Severozápad,Urban Greens,Invest & Manage,49,88,89,58,71,1.169,TRUE
+R1296,45–64,muž,Střední Morava,Daily Drivers,Status quo,65,58,82,58,66,1.064,TRUE
+R1297,45–64,muž,Severovýchod,Daily Drivers,Status quo,66,72,49,79,66,0.771,TRUE
+R1298,45–64,žena,Střední Morava,Daily Drivers,Status quo,58,51,68,37,54,0.923,TRUE
+R1299,30–44,muž,Severozápad,Daily Drivers,Status quo,61,76,76,79,73,0.878,TRUE
+R1300,30–44,muž,Jihozápad,Daily Drivers,Status quo,62,57,87,79,71,0.774,TRUE

@@ -1,0 +1,1796 @@
+{
+  "schema_version": 1,
+  "library_version": "17.0.0-instruments-v1.1",
+  "principles": [
+    "Standard constructs are selected from versioned instruments; AI maps a brief to instruments instead of inventing wording.",
+    "Client-specific brand, concept, product and scenario text is parameterized through explicit slots.",
+    "An instrument may be method-locked before external source binding. source_status makes that distinction explicit.",
+    "Anchor eligibility never creates truth: a benchmark is usable only when an explicit external or audience-scoped target exists."
+  ],
+  "study_types": {
+    "elections": {
+      "label": "Volební preference / politický výzkum",
+      "required_slots": [
+        "party_list"
+      ],
+      "recommended_instruments": [
+        "election_turnout_v1",
+        "election_party_choice_v1",
+        "party_rating_battery_v1"
+      ],
+      "optional_instruments": [
+        "public_direction_v1",
+        "political_interest_v1",
+        "issue_salience_v1",
+        "leader_rating_battery_v1"
+      ]
+    },
+    "public_opinion": {
+      "label": "Veřejné mínění",
+      "required_slots": [],
+      "recommended_instruments": [
+        "public_direction_v1",
+        "political_interest_v1",
+        "issue_salience_v1"
+      ],
+      "optional_instruments": [
+        "institution_trust_battery_v1"
+      ]
+    },
+    "policy_test": {
+      "label": "Test veřejného opatření / policy",
+      "required_slots": [
+        "policy_statement"
+      ],
+      "recommended_instruments": [
+        "policy_support_v1",
+        "policy_priority_v1"
+      ],
+      "optional_instruments": [
+        "political_interest_v1"
+      ]
+    },
+    "brand": {
+      "label": "Značková studie",
+      "required_slots": [
+        "brand_name"
+      ],
+      "recommended_instruments": [
+        "brand_awareness_v1",
+        "brand_usage_v1",
+        "brand_overall_v1",
+        "brand_consideration_v1"
+      ],
+      "optional_instruments": [
+        "brand_recommend_v1",
+        "brand_preference_v1",
+        "brand_attribute_battery_v1",
+        "brand_competitor_rating_v1"
+      ]
+    },
+    "communications_test": {
+      "label": "Test reklamy / komunikace",
+      "required_slots": [
+        "stimulus_name"
+      ],
+      "recommended_instruments": [
+        "ad_attention_v1",
+        "ad_clarity_v1",
+        "ad_relevance_v1",
+        "ad_action_intent_v1"
+      ],
+      "optional_instruments": [
+        "ad_brand_linkage_v1"
+      ]
+    },
+    "concept_test": {
+      "label": "Test konceptu / nového produktu",
+      "required_slots": [
+        "concept_name",
+        "concept_description"
+      ],
+      "recommended_instruments": [
+        "concept_appeal_v1",
+        "concept_relevance_v1",
+        "concept_purchase_intent_v1",
+        "concept_uniqueness_v1",
+        "concept_credibility_v1"
+      ],
+      "optional_instruments": [
+        "concept_value_v1",
+        "concept_open_reason_v1"
+      ]
+    },
+    "product_test": {
+      "label": "Test existujícího produktu / služby",
+      "required_slots": [
+        "product_name"
+      ],
+      "recommended_instruments": [
+        "product_overall_v1",
+        "product_fit_v1",
+        "product_switch_intent_v1"
+      ],
+      "optional_instruments": [
+        "category_usage_frequency_v1"
+      ]
+    },
+    "pricing": {
+      "label": "Cenový výzkum",
+      "required_slots": [
+        "product_name"
+      ],
+      "recommended_instruments": [
+        "price_too_cheap_v1",
+        "price_bargain_v1",
+        "price_expensive_v1",
+        "price_too_expensive_v1"
+      ],
+      "optional_instruments": [
+        "price_point_acceptability_v1"
+      ]
+    },
+    "satisfaction": {
+      "label": "Spokojenost",
+      "required_slots": [
+        "subject_name"
+      ],
+      "recommended_instruments": [
+        "satisfaction_overall_v1",
+        "satisfaction_recommend_v1",
+        "satisfaction_open_reason_v1"
+      ],
+      "optional_instruments": [
+        "retention_intent_v1"
+      ]
+    },
+    "customer_experience": {
+      "label": "Customer Experience / vztah se zákazníkem",
+      "required_slots": [
+        "subject_name"
+      ],
+      "recommended_instruments": [
+        "satisfaction_overall_v1",
+        "customer_effort_v1",
+        "issue_resolution_v1",
+        "retention_intent_v1"
+      ],
+      "optional_instruments": [
+        "satisfaction_recommend_v1",
+        "cx_driver_battery_v1"
+      ]
+    },
+    "employee": {
+      "label": "Employee / interní výzkum",
+      "required_slots": [
+        "organization_name"
+      ],
+      "recommended_instruments": [
+        "employee_satisfaction_v1",
+        "employee_recommend_v1",
+        "employee_stay_intent_v1",
+        "management_trust_v1"
+      ],
+      "optional_instruments": []
+    },
+    "b2b_decision": {
+      "label": "B2B nákupní a rozhodovací výzkum",
+      "required_slots": [
+        "category_name"
+      ],
+      "recommended_instruments": [
+        "b2b_decision_role_v1"
+      ],
+      "optional_instruments": [
+        "b2b_selection_criteria_v1",
+        "b2b_supplier_satisfaction_v1",
+        "b2b_renewal_intent_v1"
+      ]
+    },
+    "media_habits": {
+      "label": "Média / informační chování",
+      "required_slots": [
+        "channel_list"
+      ],
+      "recommended_instruments": [
+        "media_use_battery_v1"
+      ],
+      "optional_instruments": [
+        "media_trust_battery_v1"
+      ]
+    },
+    "segmentation": {
+      "label": "Segmentace / potřeby",
+      "required_slots": [
+        "segmentation_goal"
+      ],
+      "recommended_instruments": [],
+      "optional_instruments": [
+        "need_importance_battery_v1",
+        "barrier_battery_v1"
+      ]
+    },
+    "scenario": {
+      "label": "Scénář / změna kontextu",
+      "required_slots": [
+        "scenario_baseline",
+        "scenario_event"
+      ],
+      "recommended_instruments": [],
+      "optional_instruments": []
+    },
+    "custom": {
+      "label": "Vlastní výzkum",
+      "required_slots": [],
+      "recommended_instruments": [],
+      "optional_instruments": []
+    }
+  },
+  "instruments": {
+    "election_turnout_v1": {
+      "kind": "questions",
+      "title": "Volební účast",
+      "questions": [
+        {
+          "id": "vote_turnout",
+          "construct": "voting_intention_turnout",
+          "text": "Pokud by se volby konaly v nejbližší době, jak pravděpodobné je, že byste šel/šla volit?",
+          "typ": "vyber",
+          "kategorie": [
+            "Určitě bych šel/šla volit",
+            "Spíše bych šel/šla volit",
+            "Spíše bych nešel/nešla volit",
+            "Určitě bych nešel/nešla volit"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "politika",
+            "volby"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": true
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "election_party_choice_v1": {
+      "kind": "questions",
+      "title": "Stranická volba",
+      "requires_slots": [
+        "party_list"
+      ],
+      "questions": [
+        {
+          "id": "vote_party",
+          "construct": "party_choice",
+          "text": "Kterou stranu nebo hnutí byste v takových volbách nejspíše volil/a?",
+          "typ": "vyber",
+          "categories_from": "party_list",
+          "append_categories": [
+            "Jinou stranu / hnutí",
+            "Zatím nevím"
+          ],
+          "povolit_nevim": false,
+          "topics": [
+            "politika",
+            "volby",
+            "strany"
+          ],
+          "measurement_level": "nominal",
+          "anchor_eligible": true
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "party_rating_battery_v1": {
+      "kind": "object_battery",
+      "title": "Hodnocení politických stran",
+      "requires_slots": [
+        "party_list"
+      ],
+      "object_family": "politické strany",
+      "objects_from": "party_list",
+      "object_question": "Jak celkově hodnotíte politickou stranu nebo hnutí {object}?",
+      "scale_labels": [
+        "velmi negativně",
+        "velmi pozitivně"
+      ],
+      "familiarity_required": true,
+      "output_type": "pozicni_mapa",
+      "construct": "party_evaluation",
+      "anchor_eligible": false,
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "public_direction_v1": {
+      "kind": "questions",
+      "title": "Nálada ve společnosti",
+      "questions": [
+        {
+          "id": "country_direction",
+          "construct": "country_direction",
+          "text": "Myslíte si, že se věci v České republice obecně ubírají správným, nebo špatným směrem?",
+          "typ": "vyber",
+          "kategorie": [
+            "Rozhodně správným směrem",
+            "Spíše správným směrem",
+            "Spíše špatným směrem",
+            "Rozhodně špatným směrem"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "politika",
+            "verejne",
+            "spolecnost"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": true
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "political_interest_v1": {
+      "kind": "questions",
+      "title": "Zájem o politiku",
+      "questions": [
+        {
+          "id": "political_interest",
+          "construct": "political_interest",
+          "text": "Jak moc se obecně zajímáte o politické dění?",
+          "typ": "vyber",
+          "kategorie": [
+            "Velmi se zajímám",
+            "Spíše se zajímám",
+            "Spíše se nezajímám",
+            "Vůbec se nezajímám"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "politika",
+            "media"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": true
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "brand_awareness_v1": {
+      "kind": "questions",
+      "title": "Znalost značky",
+      "questions": [
+        {
+          "id": "brand_awareness",
+          "construct": "brand_awareness",
+          "text": "Znáte alespoň podle názvu značku {brand_name}?",
+          "typ": "vyber",
+          "kategorie": [
+            "Ano",
+            "Ne"
+          ],
+          "povolit_nevim": false,
+          "topics": [
+            "znacka",
+            "reklama"
+          ],
+          "measurement_level": "nominal",
+          "anchor_eligible": false
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "brand_usage_v1": {
+      "kind": "questions",
+      "title": "Zkušenost se značkou",
+      "questions": [
+        {
+          "id": "brand_usage",
+          "construct": "brand_usage",
+          "text": "Použil/a nebo koupil/a jste někdy produkt či službu značky {brand_name}?",
+          "typ": "vyber",
+          "kategorie": [
+            "Ano, v posledních 3 měsících",
+            "Ano, ale před více než 3 měsíci",
+            "Ne"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "znacka",
+            "nakup",
+            "sluzby"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "brand_overall_v1": {
+      "kind": "questions",
+      "title": "Celkové hodnocení značky",
+      "questions": [
+        {
+          "id": "brand_overall",
+          "construct": "brand_evaluation",
+          "text": "Jak celkově hodnotíte značku {brand_name}?",
+          "typ": "skala",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "velmi negativně",
+            "velmi pozitivně"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "znacka"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "brand_recommend_v1": {
+      "kind": "questions",
+      "title": "Doporučení značky",
+      "questions": [
+        {
+          "id": "brand_recommend",
+          "construct": "recommendation_intent",
+          "text": "Jak pravděpodobné je, že byste značku {brand_name} doporučil/a někomu známému?",
+          "typ": "skala",
+          "skala": [
+            0,
+            10
+          ],
+          "popisky_skaly": [
+            "zcela nepravděpodobné",
+            "zcela pravděpodobné"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "znacka",
+            "loajalita"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "concept_appeal_v1": {
+      "kind": "questions",
+      "title": "Atraktivita konceptu",
+      "questions": [
+        {
+          "id": "concept_appeal",
+          "construct": "concept_appeal",
+          "text": "Po přečtení popisu konceptu „{concept_name}“: jak atraktivní vám tento koncept připadá?",
+          "typ": "skala",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec neatraktivní",
+            "velmi atraktivní"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "produkt",
+            "novinka",
+            "znacka"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "directional"
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "concept_relevance_v1": {
+      "kind": "questions",
+      "title": "Relevance konceptu",
+      "questions": [
+        {
+          "id": "concept_relevance",
+          "construct": "concept_relevance",
+          "text": "Nakolik by pro vás osobně mohl být koncept „{concept_name}“ relevantní?",
+          "typ": "skala",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec nerelevantní",
+            "velmi relevantní"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "produkt",
+            "potreby"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "directional"
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "concept_purchase_intent_v1": {
+      "kind": "questions",
+      "title": "Deklarovaný zájem",
+      "questions": [
+        {
+          "id": "concept_purchase_intent",
+          "construct": "purchase_intent",
+          "text": "Pokud by byl koncept „{concept_name}“ dostupný za podmínek popsaných výše, jak pravděpodobné je, že byste ho vyzkoušel/a nebo koupil/a?",
+          "typ": "vyber",
+          "kategorie": [
+            "Určitě ano",
+            "Spíše ano",
+            "Nevím / záleží na okolnostech",
+            "Spíše ne",
+            "Určitě ne"
+          ],
+          "povolit_nevim": false,
+          "topics": [
+            "produkt",
+            "nakup",
+            "novinka"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "directional_not_absolute_demand"
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "concept_open_reason_v1": {
+      "kind": "questions",
+      "title": "Důvod reakce",
+      "questions": [
+        {
+          "id": "concept_open_reason",
+          "construct": "concept_reason",
+          "text": "Co je hlavní důvod, proč na vás koncept „{concept_name}“ působí právě takto?",
+          "typ": "otevrena",
+          "max_slov": 35,
+          "topics": [
+            "produkt",
+            "novinka"
+          ],
+          "measurement_level": "text",
+          "anchor_eligible": false
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "satisfaction_overall_v1": {
+      "kind": "questions",
+      "title": "Celková spokojenost",
+      "questions": [
+        {
+          "id": "satisfaction_overall",
+          "construct": "overall_satisfaction",
+          "text": "Jak jste celkově spokojen/a s {subject_name}?",
+          "typ": "skala",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "zcela nespokojen/a",
+            "zcela spokojen/a"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "spokojenost",
+            "sluzby"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "satisfaction_recommend_v1": {
+      "kind": "questions",
+      "title": "Doporučení",
+      "questions": [
+        {
+          "id": "satisfaction_recommend",
+          "construct": "recommendation_intent",
+          "text": "Jak pravděpodobné je, že byste {subject_name} doporučil/a někomu známému?",
+          "typ": "skala",
+          "skala": [
+            0,
+            10
+          ],
+          "popisky_skaly": [
+            "zcela nepravděpodobné",
+            "zcela pravděpodobné"
+          ],
+          "povolit_nevim": true,
+          "topics": [
+            "spokojenost",
+            "loajalita"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "satisfaction_open_reason_v1": {
+      "kind": "questions",
+      "title": "Co stojí za hodnocením",
+      "questions": [
+        {
+          "id": "satisfaction_open_reason",
+          "construct": "satisfaction_reason",
+          "text": "Co je hlavní důvod vašeho hodnocení {subject_name}?",
+          "typ": "otevrena",
+          "max_slov": 35,
+          "topics": [
+            "spokojenost",
+            "sluzby"
+          ],
+          "measurement_level": "text",
+          "anchor_eligible": false
+        }
+      ],
+      "source_status": "PENDING_SOURCE_BINDING"
+    },
+    "institution_trust_battery_v1": {
+      "kind": "object_battery",
+      "title": "Důvěra v instituce",
+      "requires_slots": [
+        "institution_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "instituce",
+      "objects_from": "institution_list",
+      "object_question": "Nakolik osobně důvěřujete instituci {object}?",
+      "scale_labels": [
+        "vůbec nedůvěřuji",
+        "zcela důvěřuji"
+      ],
+      "familiarity_required": false,
+      "output_type": "pozicni_mapa",
+      "construct": "institutional_trust",
+      "anchor_eligible": false
+    },
+    "leader_rating_battery_v1": {
+      "kind": "object_battery",
+      "title": "Hodnocení politických osobností",
+      "requires_slots": [
+        "leader_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "politické osobnosti",
+      "objects_from": "leader_list",
+      "object_question": "Jak celkově hodnotíte osobnost {object}?",
+      "scale_labels": [
+        "velmi negativně",
+        "velmi pozitivně"
+      ],
+      "familiarity_required": true,
+      "output_type": "pozicni_mapa",
+      "construct": "leader_evaluation",
+      "anchor_eligible": false
+    },
+    "issue_salience_v1": {
+      "kind": "questions",
+      "title": "Nejdůležitější problém",
+      "requires_slots": [],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "issue_salience",
+          "construct": "issue_salience",
+          "text": "Které téma nebo problém považujete v tuto chvíli za nejdůležitější?",
+          "typ": "otevrena",
+          "povolit_nevim": false,
+          "topics": [
+            "verejne",
+            "politika"
+          ],
+          "measurement_level": "text",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "max_slov": 25
+        }
+      ]
+    },
+    "policy_support_v1": {
+      "kind": "questions",
+      "title": "Podpora opatření",
+      "requires_slots": [
+        "policy_statement"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "policy_support",
+          "construct": "policy_support",
+          "text": "Do jaké míry podporujete, nebo odmítáte následující návrh: {policy_statement}",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "verejne",
+            "politika"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "kategorie": [
+            "Rozhodně podporuji",
+            "Spíše podporuji",
+            "Ani podporuji, ani odmítám",
+            "Spíše odmítám",
+            "Rozhodně odmítám"
+          ]
+        }
+      ]
+    },
+    "policy_priority_v1": {
+      "kind": "questions",
+      "title": "Priorita opatření",
+      "requires_slots": [
+        "policy_statement"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "policy_priority",
+          "construct": "policy_priority",
+          "text": "Jak vysokou prioritu by podle vás měl mít návrh „{policy_statement}“?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "verejne",
+            "politika"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "kategorie": [
+            "Velmi vysokou",
+            "Spíše vysokou",
+            "Spíše nízkou",
+            "Velmi nízkou"
+          ]
+        }
+      ]
+    },
+    "brand_consideration_v1": {
+      "kind": "questions",
+      "title": "Zvažování značky",
+      "requires_slots": [
+        "brand_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "brand_consideration",
+          "construct": "brand_consideration",
+          "text": "Pokud byste dnes vybíral/a v této kategorii, nakolik byste zvažoval/a značku {brand_name}?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "znacka",
+            "nakup"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "kategorie": [
+            "Určitě bych ji zvažoval/a",
+            "Spíše bych ji zvažoval/a",
+            "Spíše bych ji nezvažoval/a",
+            "Určitě bych ji nezvažoval/a"
+          ]
+        }
+      ]
+    },
+    "brand_preference_v1": {
+      "kind": "questions",
+      "title": "Preference značky",
+      "requires_slots": [
+        "brand_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "brand_preference",
+          "construct": "brand_preference",
+          "text": "Kdybyste měl/a vybírat pouze podle své současné preference, jak blízko je značka {brand_name} vaší první volbě?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "znacka",
+            "nakup"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec není mezi preferovanými",
+            "je moje první volba"
+          ]
+        }
+      ]
+    },
+    "brand_attribute_battery_v1": {
+      "kind": "object_battery",
+      "title": "Asociace se značkou",
+      "requires_slots": [
+        "brand_attribute_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "atributy značky",
+      "objects_from": "brand_attribute_list",
+      "object_question": "Nakolik podle vás na značku platí: {object}?",
+      "scale_labels": [
+        "vůbec neplatí",
+        "zcela platí"
+      ],
+      "familiarity_required": true,
+      "output_type": "pozicni_mapa",
+      "construct": "brand_associations",
+      "anchor_eligible": false
+    },
+    "brand_competitor_rating_v1": {
+      "kind": "object_battery",
+      "title": "Srovnání značek",
+      "requires_slots": [
+        "brand_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "značky",
+      "objects_from": "brand_list",
+      "object_question": "Jak celkově hodnotíte značku {object}?",
+      "scale_labels": [
+        "velmi negativně",
+        "velmi pozitivně"
+      ],
+      "familiarity_required": true,
+      "output_type": "pozicni_mapa",
+      "construct": "brand_comparison",
+      "anchor_eligible": false
+    },
+    "category_usage_frequency_v1": {
+      "kind": "questions",
+      "title": "Frekvence používání kategorie",
+      "requires_slots": [
+        "category_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "category_usage_frequency",
+          "construct": "category_usage_frequency",
+          "text": "Jak často používáte nebo nakupujete produkty či služby v kategorii {category_name}?",
+          "typ": "vyber",
+          "povolit_nevim": false,
+          "topics": [
+            "nakup",
+            "produkt"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "kategorie": [
+            "Denně nebo téměř denně",
+            "Několikrát týdně",
+            "Několikrát měsíčně",
+            "Méně často",
+            "Vůbec"
+          ]
+        }
+      ]
+    },
+    "ad_attention_v1": {
+      "kind": "questions",
+      "title": "Schopnost zaujmout",
+      "requires_slots": [
+        "stimulus_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "ad_attention",
+          "construct": "ad_attention",
+          "text": "Nakolik vás materiál „{stimulus_name}“ dokázal zaujmout?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "reklama",
+            "komunikace"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec nezaujal",
+            "velmi zaujal"
+          ]
+        }
+      ]
+    },
+    "ad_clarity_v1": {
+      "kind": "questions",
+      "title": "Srozumitelnost sdělení",
+      "requires_slots": [
+        "stimulus_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "ad_clarity",
+          "construct": "ad_clarity",
+          "text": "Nakolik je podle vás hlavní sdělení materiálu „{stimulus_name}“ jasné a srozumitelné?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "reklama",
+            "komunikace"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec není jasné",
+            "zcela jasné"
+          ]
+        }
+      ]
+    },
+    "ad_relevance_v1": {
+      "kind": "questions",
+      "title": "Osobní relevance",
+      "requires_slots": [
+        "stimulus_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "ad_relevance",
+          "construct": "ad_relevance",
+          "text": "Nakolik je pro vás osobně sdělení materiálu „{stimulus_name}“ relevantní?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "reklama",
+            "komunikace"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec nerelevantní",
+            "velmi relevantní"
+          ]
+        }
+      ]
+    },
+    "ad_brand_linkage_v1": {
+      "kind": "questions",
+      "title": "Přiřazení ke značce",
+      "requires_slots": [
+        "brand_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "ad_brand_linkage",
+          "construct": "ad_brand_linkage",
+          "text": "Ke které značce byste tento materiál přiřadil/a?",
+          "typ": "vyber",
+          "povolit_nevim": false,
+          "topics": [
+            "reklama",
+            "znacka"
+          ],
+          "measurement_level": "nominal",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "categories_from": "brand_list",
+          "append_categories": [
+            "Nevím / nedokážu přiřadit"
+          ]
+        }
+      ]
+    },
+    "ad_action_intent_v1": {
+      "kind": "questions",
+      "title": "Deklarovaný efekt komunikace",
+      "requires_slots": [
+        "stimulus_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "ad_action_intent",
+          "construct": "ad_action_intent",
+          "text": "Po zhlédnutí materiálu „{stimulus_name}“: jak pravděpodobné je, že byste si o nabídce zjistil/a více?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "reklama",
+            "produkt"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "kategorie": [
+            "Určitě ano",
+            "Spíše ano",
+            "Spíše ne",
+            "Určitě ne"
+          ]
+        }
+      ]
+    },
+    "concept_uniqueness_v1": {
+      "kind": "questions",
+      "title": "Odlišnost konceptu",
+      "requires_slots": [
+        "concept_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "concept_uniqueness",
+          "construct": "concept_uniqueness",
+          "text": "Nakolik vám koncept „{concept_name}“ připadá odlišný od toho, co je dnes běžně dostupné?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "produkt",
+            "novinka"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec není odlišný",
+            "velmi odlišný"
+          ]
+        }
+      ]
+    },
+    "concept_credibility_v1": {
+      "kind": "questions",
+      "title": "Důvěryhodnost konceptu",
+      "requires_slots": [
+        "concept_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "concept_credibility",
+          "construct": "concept_credibility",
+          "text": "Nakolik vám tvrzení a přínosy konceptu „{concept_name}“ připadají uvěřitelné?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "produkt",
+            "novinka",
+            "duvera"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec neuvěřitelné",
+            "zcela uvěřitelné"
+          ]
+        }
+      ]
+    },
+    "concept_value_v1": {
+      "kind": "questions",
+      "title": "Vnímaná hodnota",
+      "requires_slots": [
+        "concept_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "concept_value",
+          "construct": "concept_value",
+          "text": "Jak hodnotíte poměr očekávaného přínosu a ceny u konceptu „{concept_name}“?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "produkt",
+            "cena"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "velmi nevýhodný",
+            "velmi výhodný"
+          ]
+        }
+      ]
+    },
+    "product_overall_v1": {
+      "kind": "questions",
+      "title": "Celkové hodnocení produktu",
+      "requires_slots": [
+        "product_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "product_overall",
+          "construct": "product_evaluation",
+          "text": "Jak celkově hodnotíte produkt „{product_name}“?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "produkt"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "velmi negativně",
+            "velmi pozitivně"
+          ]
+        }
+      ]
+    },
+    "product_fit_v1": {
+      "kind": "questions",
+      "title": "Fit s potřebami",
+      "requires_slots": [
+        "product_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "product_fit",
+          "construct": "product_need_fit",
+          "text": "Nakolik produkt „{product_name}“ odpovídá vašim potřebám?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "produkt",
+            "potreby"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec neodpovídá",
+            "zcela odpovídá"
+          ]
+        }
+      ]
+    },
+    "product_switch_intent_v1": {
+      "kind": "questions",
+      "title": "Ochota přejít",
+      "requires_slots": [
+        "product_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "product_switch_intent",
+          "construct": "switch_intent",
+          "text": "Pokud by byl produkt „{product_name}“ dostupný, nakolik byste zvažoval/a přechod od řešení, které používáte dnes?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "produkt",
+            "nakup"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "kategorie": [
+            "Určitě bych zvažoval/a",
+            "Spíše bych zvažoval/a",
+            "Spíše bych nezvažoval/a",
+            "Určitě bych nezvažoval/a"
+          ]
+        }
+      ]
+    },
+    "price_too_cheap_v1": {
+      "kind": "questions",
+      "title": "Cena příliš nízká",
+      "requires_slots": [
+        "product_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "price_too_cheap",
+          "construct": "price_too_cheap",
+          "text": "Při jaké ceně by vám produkt „{product_name}“ připadal už tak levný, že byste pochyboval/a o jeho kvalitě?",
+          "typ": "otevrena",
+          "povolit_nevim": true,
+          "topics": [
+            "cena",
+            "produkt"
+          ],
+          "measurement_level": "numeric_open",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "max_slov": 8
+        }
+      ]
+    },
+    "price_bargain_v1": {
+      "kind": "questions",
+      "title": "Výhodná cena",
+      "requires_slots": [
+        "product_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "price_bargain",
+          "construct": "price_bargain",
+          "text": "Při jaké ceně by vám produkt „{product_name}“ připadal levný, ale stále důvěryhodný a výhodný?",
+          "typ": "otevrena",
+          "povolit_nevim": true,
+          "topics": [
+            "cena",
+            "produkt"
+          ],
+          "measurement_level": "numeric_open",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "max_slov": 8
+        }
+      ]
+    },
+    "price_expensive_v1": {
+      "kind": "questions",
+      "title": "Drahá cena",
+      "requires_slots": [
+        "product_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "price_expensive",
+          "construct": "price_expensive",
+          "text": "Při jaké ceně by vám produkt „{product_name}“ začal připadat drahý, ale ještě byste jeho koupi zvažoval/a?",
+          "typ": "otevrena",
+          "povolit_nevim": true,
+          "topics": [
+            "cena",
+            "produkt"
+          ],
+          "measurement_level": "numeric_open",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "max_slov": 8
+        }
+      ]
+    },
+    "price_too_expensive_v1": {
+      "kind": "questions",
+      "title": "Cena příliš vysoká",
+      "requires_slots": [
+        "product_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "price_too_expensive",
+          "construct": "price_too_expensive",
+          "text": "Při jaké ceně by pro vás byl produkt „{product_name}“ už příliš drahý na to, abyste jeho koupi zvažoval/a?",
+          "typ": "otevrena",
+          "povolit_nevim": true,
+          "topics": [
+            "cena",
+            "produkt"
+          ],
+          "measurement_level": "numeric_open",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "max_slov": 8
+        }
+      ]
+    },
+    "price_point_acceptability_v1": {
+      "kind": "questions",
+      "title": "Přijatelnost konkrétní ceny",
+      "requires_slots": [
+        "product_name",
+        "price_point"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "price_acceptability",
+          "construct": "price_acceptability",
+          "text": "Pokud by produkt „{product_name}“ stál {price_point}, jak byste tuto cenu vnímal/a?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "cena",
+            "produkt"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "kategorie": [
+            "Velmi výhodná",
+            "Spíše výhodná",
+            "Přiměřená",
+            "Spíše drahá",
+            "Velmi drahá"
+          ]
+        }
+      ]
+    },
+    "customer_effort_v1": {
+      "kind": "questions",
+      "title": "Náročnost vyřízení",
+      "requires_slots": [
+        "subject_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "customer_effort",
+          "construct": "customer_effort",
+          "text": "Jak snadné, nebo obtížné pro vás bylo vyřídit záležitost týkající se {subject_name}?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "spokojenost",
+            "sluzby"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "kategorie": [
+            "Velmi snadné",
+            "Spíše snadné",
+            "Ani snadné, ani obtížné",
+            "Spíše obtížné",
+            "Velmi obtížné"
+          ]
+        }
+      ]
+    },
+    "issue_resolution_v1": {
+      "kind": "questions",
+      "title": "Vyřešení problému",
+      "requires_slots": [
+        "subject_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "issue_resolution",
+          "construct": "issue_resolution",
+          "text": "Byla vaše poslední záležitost týkající se {subject_name} vyřešena?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "spokojenost",
+            "sluzby"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "kategorie": [
+            "Ano, zcela",
+            "Ano, částečně",
+            "Ne"
+          ]
+        }
+      ]
+    },
+    "retention_intent_v1": {
+      "kind": "questions",
+      "title": "Záměr pokračovat",
+      "requires_slots": [
+        "subject_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "retention_intent",
+          "construct": "retention_intent",
+          "text": "Jak pravděpodobné je, že budete {subject_name} využívat i v příštích 12 měsících?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "loajalita",
+            "sluzby"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "kategorie": [
+            "Určitě ano",
+            "Spíše ano",
+            "Spíše ne",
+            "Určitě ne"
+          ]
+        }
+      ]
+    },
+    "cx_driver_battery_v1": {
+      "kind": "object_battery",
+      "title": "Hodnocení atributů zkušenosti",
+      "requires_slots": [
+        "experience_attribute_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "atributy zkušenosti",
+      "objects_from": "experience_attribute_list",
+      "object_question": "Jak hodnotíte {object}?",
+      "scale_labels": [
+        "velmi špatně",
+        "velmi dobře"
+      ],
+      "familiarity_required": false,
+      "output_type": "pozicni_mapa",
+      "construct": "experience_attributes",
+      "anchor_eligible": false
+    },
+    "employee_satisfaction_v1": {
+      "kind": "questions",
+      "title": "Celková spokojenost v práci",
+      "requires_slots": [
+        "organization_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "employee_satisfaction",
+          "construct": "employee_satisfaction",
+          "text": "Jak jste celkově spokojen/a se svou současnou pracovní zkušeností v {organization_name}?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "prace"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "velmi nespokojen/a",
+            "velmi spokojen/a"
+          ]
+        }
+      ]
+    },
+    "employee_recommend_v1": {
+      "kind": "questions",
+      "title": "Doporučení zaměstnavatele",
+      "requires_slots": [
+        "organization_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "employee_recommend",
+          "construct": "employee_recommend",
+          "text": "Jak pravděpodobné je, že byste {organization_name} doporučil/a jako dobré místo pro práci?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "prace"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            0,
+            10
+          ],
+          "popisky_skaly": [
+            "zcela nepravděpodobné",
+            "zcela pravděpodobné"
+          ]
+        }
+      ]
+    },
+    "employee_stay_intent_v1": {
+      "kind": "questions",
+      "title": "Záměr zůstat",
+      "requires_slots": [
+        "organization_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "employee_stay_intent",
+          "construct": "employee_stay_intent",
+          "text": "Jak pravděpodobné je, že budete v {organization_name} pracovat i za 12 měsíců?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "prace"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "kategorie": [
+            "Určitě ano",
+            "Spíše ano",
+            "Spíše ne",
+            "Určitě ne"
+          ]
+        }
+      ]
+    },
+    "management_trust_v1": {
+      "kind": "questions",
+      "title": "Důvěra ve vedení",
+      "requires_slots": [
+        "organization_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "management_trust",
+          "construct": "management_trust",
+          "text": "Nakolik důvěřujete vedení {organization_name}, že dělá rozhodnutí v dlouhodobém zájmu organizace a jejích lidí?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "prace",
+            "duvera"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "vůbec nedůvěřuji",
+            "zcela důvěřuji"
+          ]
+        }
+      ]
+    },
+    "b2b_decision_role_v1": {
+      "kind": "questions",
+      "title": "Role v nákupním rozhodování",
+      "requires_slots": [
+        "category_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "b2b_decision_role",
+          "construct": "b2b_decision_role",
+          "text": "Jakou roli obvykle máte při rozhodování o nákupu v kategorii {category_name}?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "b2b",
+            "nakup"
+          ],
+          "measurement_level": "nominal",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "kategorie": [
+            "Finální rozhodovatel/ka",
+            "Spolurozhodovatel/ka",
+            "Doporučuji / ovlivňuji",
+            "Uživatel/ka bez rozhodovací pravomoci",
+            "Do rozhodování se nezapojuji"
+          ]
+        }
+      ]
+    },
+    "b2b_supplier_satisfaction_v1": {
+      "kind": "questions",
+      "title": "Spokojenost s dodavatelem",
+      "requires_slots": [
+        "supplier_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "b2b_supplier_satisfaction",
+          "construct": "supplier_satisfaction",
+          "text": "Jak jste celkově spokojen/a s dodavatelem {supplier_name}?",
+          "typ": "skala",
+          "povolit_nevim": true,
+          "topics": [
+            "b2b",
+            "sluzby"
+          ],
+          "measurement_level": "interval_like",
+          "anchor_eligible": false,
+          "claim_mode": "standard",
+          "skala": [
+            1,
+            10
+          ],
+          "popisky_skaly": [
+            "velmi nespokojen/a",
+            "velmi spokojen/a"
+          ]
+        }
+      ]
+    },
+    "b2b_renewal_intent_v1": {
+      "kind": "questions",
+      "title": "Záměr obnovit spolupráci",
+      "requires_slots": [
+        "supplier_name"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "questions": [
+        {
+          "id": "b2b_renewal_intent",
+          "construct": "renewal_intent",
+          "text": "Jak pravděpodobné je, že vaše organizace bude se {supplier_name} spolupracovat i v příštím období?",
+          "typ": "vyber",
+          "povolit_nevim": true,
+          "topics": [
+            "b2b",
+            "loajalita"
+          ],
+          "measurement_level": "ordinal",
+          "anchor_eligible": false,
+          "claim_mode": "directional",
+          "kategorie": [
+            "Určitě ano",
+            "Spíše ano",
+            "Spíše ne",
+            "Určitě ne"
+          ]
+        }
+      ]
+    },
+    "b2b_selection_criteria_v1": {
+      "kind": "object_battery",
+      "title": "Kritéria výběru dodavatele",
+      "requires_slots": [
+        "decision_criteria_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "rozhodovací kritéria",
+      "objects_from": "decision_criteria_list",
+      "object_question": "Jak důležité je pro vás při výběru dodavatele: {object}?",
+      "scale_labels": [
+        "vůbec nedůležité",
+        "zcela zásadní"
+      ],
+      "familiarity_required": false,
+      "output_type": "pozicni_mapa",
+      "construct": "b2b_selection_criteria",
+      "anchor_eligible": false
+    },
+    "media_use_battery_v1": {
+      "kind": "object_battery",
+      "title": "Používání informačních kanálů",
+      "requires_slots": [
+        "channel_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "kanály",
+      "objects_from": "channel_list",
+      "object_question": "Jak často používáte {object} pro informace o tématu, které zkoumáme?",
+      "scale_labels": [
+        "nikdy",
+        "velmi často"
+      ],
+      "familiarity_required": false,
+      "output_type": "pozicni_mapa",
+      "construct": "media_use_frequency",
+      "anchor_eligible": false
+    },
+    "media_trust_battery_v1": {
+      "kind": "object_battery",
+      "title": "Důvěra informačním zdrojům",
+      "requires_slots": [
+        "channel_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "zdroje / kanály",
+      "objects_from": "channel_list",
+      "object_question": "Nakolik důvěřujete informacím ze zdroje {object}?",
+      "scale_labels": [
+        "vůbec nedůvěřuji",
+        "zcela důvěřuji"
+      ],
+      "familiarity_required": true,
+      "output_type": "pozicni_mapa",
+      "construct": "media_trust",
+      "anchor_eligible": false
+    },
+    "need_importance_battery_v1": {
+      "kind": "object_battery",
+      "title": "Důležitost potřeb",
+      "requires_slots": [
+        "need_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "potřeby",
+      "objects_from": "need_list",
+      "object_question": "Jak důležité je pro vás: {object}?",
+      "scale_labels": [
+        "vůbec nedůležité",
+        "velmi důležité"
+      ],
+      "familiarity_required": false,
+      "output_type": "pozicni_mapa",
+      "construct": "need_importance",
+      "anchor_eligible": false
+    },
+    "barrier_battery_v1": {
+      "kind": "object_battery",
+      "title": "Bariéry",
+      "requires_slots": [
+        "barrier_list"
+      ],
+      "source_status": "PENDING_SOURCE_BINDING",
+      "object_family": "bariéry",
+      "objects_from": "barrier_list",
+      "object_question": "Nakolik vás omezuje nebo odrazuje: {object}?",
+      "scale_labels": [
+        "vůbec",
+        "velmi silně"
+      ],
+      "familiarity_required": false,
+      "output_type": "pozicni_mapa",
+      "construct": "barriers",
+      "anchor_eligible": false
+    }
+  }
+}

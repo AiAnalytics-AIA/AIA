@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "09_STREAMIO_BRAND_CONTENT_DEMO",
+  "project_id": "PRJ-DEMO-STREAMIO",
+  "title": "Streamio Brand & Content DEMO",
+  "domain": "Média / streaming",
+  "study_type": "Brand positioning + content portfolio",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Streamio zvažuje nový positioning a chce zjistit, jaké obsahové pilíře mají největší potenciál a zda má značka komunikovat lokálnost, exkluzivitu nebo jednoduchost.",
+    "decision": "Vybrat brand platformu a obsahové priority pro další rok."
+  },
+  "executive_answer": "Nejlépe funguje positioning „Local First, Easy Choice“: český a evropský obsah, jednoduchá orientace a méně zahlcení. Čistá „Premium Exclusives“ platforma je atraktivní, ale dražší a méně inkluzivní.",
+  "recommendation": "GO — Local First jako brand platforma; investovat do české tvorby a discovery UX, ne jen do počtu titulů.",
+  "audience": {
+    "population": "ČR 15–69, uživatelé alespoň jedné placené nebo bezplatné streaming služby",
+    "n": 1400,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jaké streaming služby používáte?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Co vás nejčastěji vede ke spuštění konkrétní služby?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Jak hodnotíte čtyři positioning platformy?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Jaké obsahové pilíře jsou pro vás nejrelevantnější?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Jak moc vás frustruje obtížné hledání obsahu?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Který směr by nejvíce zvýšil vaši preferenci Streamio?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Current",
+      "description": "Současný Streamio",
+      "type": "tracked_object",
+      "score": 60,
+      "x": 250,
+      "y": 285
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Local First",
+      "description": "Lokální obsah + jednoduchost",
+      "type": "tracked_object",
+      "score": 77,
+      "x": 405,
+      "y": 215
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Premium Exclusives",
+      "description": "Velké exkluzivní tituly",
+      "type": "tracked_object",
+      "score": 73,
+      "x": 565,
+      "y": 135
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Smart Discovery",
+      "description": "Personalizace a objevování",
+      "type": "tracked_object",
+      "score": 75,
+      "x": 350,
+      "y": 330
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Relevance",
+    "Distinctiveness",
+    "Ease",
+    "Content fit",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      26,
+      58,
+      44,
+      63,
+      57,
+      60
+    ],
+    [
+      42,
+      79,
+      69,
+      81,
+      78,
+      77
+    ],
+    [
+      39,
+      70,
+      81,
+      58,
+      75,
+      73
+    ],
+    [
+      40,
+      74,
+      72,
+      88,
+      73,
+      75
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Local Story Fans",
+      "share_pct": 27,
+      "description": "Česká a evropská tvorba",
+      "best_object": "Local First"
+    },
+    {
+      "id": "SEG2",
+      "name": "Franchise Hunters",
+      "share_pct": 23,
+      "description": "Velké známé tituly",
+      "best_object": "Premium Exclusives"
+    },
+    {
+      "id": "SEG3",
+      "name": "Choice Overload",
+      "share_pct": 21,
+      "description": "Chtějí jednoduchost",
+      "best_object": "Smart Discovery"
+    },
+    {
+      "id": "SEG4",
+      "name": "Family Viewers",
+      "share_pct": 18,
+      "description": "Sdílené domácí sledování",
+      "best_object": "Local First"
+    },
+    {
+      "id": "SEG5",
+      "name": "Light Streamers",
+      "share_pct": 11,
+      "description": "Nízká frekvence",
+      "best_object": "Smart Discovery"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base streaming",
+      "winner": "Local First",
+      "primary_metric": 42,
+      "overall": 77,
+      "assumption": "Současný content mix"
+    },
+    {
+      "id": "W2",
+      "name": "Local hit year",
+      "winner": "Local First",
+      "primary_metric": 46,
+      "overall": 81,
+      "assumption": "Silná lokální tvorba"
+    },
+    {
+      "id": "W3",
+      "name": "Global franchise boom",
+      "winner": "Premium Exclusives",
+      "primary_metric": 44,
+      "overall": 78,
+      "assumption": "Silné globální franšízy"
+    },
+    {
+      "id": "W4",
+      "name": "Subscription squeeze",
+      "winner": "Local First",
+      "primary_metric": 40,
+      "overall": 75,
+      "assumption": "Vyšší tlak na rozpočet"
+    },
+    {
+      "id": "W5",
+      "name": "Ad-tier growth",
+      "winner": "Local First",
+      "primary_metric": 41,
+      "overall": 76,
+      "assumption": "Více levnějších tarifů"
+    },
+    {
+      "id": "W6",
+      "name": "Choice overload up",
+      "winner": "Local First",
+      "primary_metric": 43,
+      "overall": 79,
+      "assumption": "Vyšší únava z výběru"
+    },
+    {
+      "id": "W7",
+      "name": "Family viewing",
+      "winner": "Local First",
+      "primary_metric": 44,
+      "overall": 80,
+      "assumption": "Více family use"
+    },
+    {
+      "id": "W8",
+      "name": "Light users",
+      "winner": "Local First",
+      "primary_metric": 39,
+      "overall": 74,
+      "assumption": "Vyšší podíl light users"
+    }
+  ],
+  "findings": [
+    "Lokální obsah funguje jako relevance driver, ne jen niche preference.",
+    "Choice overload je významný pain point napříč segmenty.",
+    "Premium Exclusives vyhrává pouze při extrémně silné globální content nabídce.",
+    "Brand distinctiveness lze stavět na kombinaci lokálnosti a jednoduchosti."
+  ],
+  "risks": [
+    "Content preference je silně ovlivněná konkrétními tituly.",
+    "Ekonomika lokální produkce není součástí tohoto výstupu.",
+    "Reálný churn vyžaduje behaviorální data."
+  ],
+  "primary_metric": "Brand preference",
+  "primary_value": 42,
+  "world_range": "39–46 %",
+  "winner_stability": "7/8",
+  "overall": 77,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Current",
+        "type": "object",
+        "score": 60,
+        "x": 250,
+        "y": 285,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Local First",
+        "type": "object",
+        "score": 77,
+        "x": 405,
+        "y": 215,
+        "color": "#3c9890"
+      },
+      {
+        "name": "Premium Exclusives",
+        "type": "object",
+        "score": 73,
+        "x": 565,
+        "y": 135,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Smart Discovery",
+        "type": "object",
+        "score": 75,
+        "x": 350,
+        "y": 330,
+        "color": "#299764"
+      },
+      {
+        "name": "Relevance",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Distinctiveness",
+        "type": "anchor",
+        "x": 520,
+        "y": 225,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Ease",
+        "type": "anchor",
+        "x": 160,
+        "y": 210,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Content fit",
+        "type": "anchor",
+        "x": 350,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 6,
+        "weight": 0.71
+      },
+      {
+        "from": 0,
+        "to": 7,
+        "weight": 0.69
+      },
+      {
+        "from": 1,
+        "to": 4,
+        "weight": 0.74
+      },
+      {
+        "from": 1,
+        "to": 5,
+        "weight": 0.71
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.75
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "weight": 0.53
+      },
+      {
+        "from": 3,
+        "to": 7,
+        "weight": 0.94
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.5
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

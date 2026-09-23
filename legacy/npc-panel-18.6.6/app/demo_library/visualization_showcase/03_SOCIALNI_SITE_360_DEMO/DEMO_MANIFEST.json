@@ -1,0 +1,56 @@
+{
+  "project_id": "PRJ-DEMO-VIS-SOCIAL-360",
+  "slug": "03_SOCIALNI_SITE_360_DEMO",
+  "files": [
+    {
+      "name": "ANALYSIS.json",
+      "size_bytes": 2235,
+      "sha256": "4a9f76ebba81e6de355f06db097706891332053ba573b9e13470fecd0b8f3887"
+    },
+    {
+      "name": "DATA_DICTIONARY.json",
+      "size_bytes": 2320,
+      "sha256": "673b5e92af2e3b26f40ea3695612a59ac074d657dd762862f829cec8103f093a"
+    },
+    {
+      "name": "DEMO_PROJECT_SEED.json",
+      "size_bytes": 4849,
+      "sha256": "17212c9376b1823926422ce471a9ac600c023accb914a154bf9274f426799869"
+    },
+    {
+      "name": "DEMO_REPORT.html",
+      "size_bytes": 1366,
+      "sha256": "926fcc35488d1338796d59a17258e5fb0e2a694e55ccedb81053b79b8c1c68f3"
+    },
+    {
+      "name": "OBJECTS_SOCIOMAP_DEMO.json",
+      "size_bytes": 5000,
+      "sha256": "b1e86eff74d1677aa01294f0fd3603af63fbceda7c336053ac7eab55d1f0e2ef"
+    },
+    {
+      "name": "OBJECT_MAP_3D.html",
+      "size_bytes": 13564,
+      "sha256": "53cd7b609120bf5b8f24d60faa6ed32bebe008cab716deda961b3779fce188ad"
+    },
+    {
+      "name": "QUESTIONNAIRE.json",
+      "size_bytes": 1243,
+      "sha256": "6113d61ca2a79745da42423c7af314336100d540c89984e7c99cfeec8f03dc12"
+    },
+    {
+      "name": "README.md",
+      "size_bytes": 150,
+      "sha256": "241c8d4c188c32c8d18a1faaea8efa646a9a56118166853b53d4690eb86fe54f"
+    },
+    {
+      "name": "RESPONDENTS.csv",
+      "size_bytes": 66121,
+      "sha256": "9a5be76049c2efaa88145a6d7661e5a8c30e99c4b882223aef0347e561794d88"
+    },
+    {
+      "name": "RESULTS.xlsx",
+      "size_bytes": 60014,
+      "sha256": "d5a123b9cbf54713e41734b82f446fb4b8883a594b25f1932dcce6d3a8b92b81"
+    }
+  ]
+}

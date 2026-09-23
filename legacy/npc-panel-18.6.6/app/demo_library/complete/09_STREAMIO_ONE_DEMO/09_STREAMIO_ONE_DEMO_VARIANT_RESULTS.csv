@@ -1,0 +1,5 @@
+﻿variant_id,variant_name,price_or_fee,decision_score_0_100,subscribe_intent_pct,preference_pct,perceived_value,simplicity,content_fit,price_acceptance,respondent_composite_avg
+A,Basic,199,70,59.0,33.9,6.51,7.57,5.7,7.36,60.7
+B,Duo,249,76,67.6,46.4,7.12,7.62,6.61,6.99,66.2
+C,Family,329,74,62.1,38.6,7.17,6.76,7.33,5.71,61.7
+D,Flex,279,81,73.1,50.4,7.87,7.33,7.67,6.71,69.9

@@ -1,0 +1,20 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "status": "PASS",
+  "checks": {
+    "project_created_immediately": "PASS",
+    "research_stage_count_13": "PASS",
+    "simulation_stage_count_13": "PASS",
+    "atomic_artifact_commit": "PASS",
+    "artifact_sha_verify": "PASS",
+    "same_fingerprint_reuse": "PASS",
+    "cross_revision_reuse": "PASS",
+    "report_only_invalidation": "PASS",
+    "questionnaire_downstream_invalidation": "PASS",
+    "eight_analysis_modules": "PASS",
+    "deterministic_analysis_assembly": "PASS",
+    "job_project_revision_stage_linkage": "PASS"
+  }
+}

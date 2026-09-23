@@ -1,0 +1,327 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "name": "EA Sports FC",
+      "type": "object",
+      "x": -0.5594,
+      "y": 0.168,
+      "score": 5.842
+    },
+    {
+      "id": 1,
+      "name": "Fortnite",
+      "type": "object",
+      "x": -0.5594,
+      "y": 0.3354,
+      "score": 5.975
+    },
+    {
+      "id": 2,
+      "name": "Minecraft",
+      "type": "object",
+      "x": -0.5594,
+      "y": -0.8035,
+      "score": 5.84
+    },
+    {
+      "id": 3,
+      "name": "GTA Online",
+      "type": "object",
+      "x": -0.5594,
+      "y": 0.0768,
+      "score": 5.797
+    },
+    {
+      "id": 4,
+      "name": "Call of Duty",
+      "type": "object",
+      "x": -0.5594,
+      "y": 0.6834,
+      "score": 5.957
+    },
+    {
+      "id": 5,
+      "name": "League of Legends",
+      "type": "object",
+      "x": -0.5594,
+      "y": 0.6835,
+      "score": 5.918
+    },
+    {
+      "id": 6,
+      "name": "The Sims",
+      "type": "object",
+      "x": -0.5594,
+      "y": -0.82,
+      "score": 5.747
+    },
+    {
+      "id": 7,
+      "name": "Baldur’s Gate 3",
+      "type": "object",
+      "x": -0.5594,
+      "y": -0.3236,
+      "score": 5.585
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 1,
+      "relation_1_10": 4.788,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 2,
+      "relation_1_10": 4.359,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 3,
+      "relation_1_10": 4.403,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 4,
+      "relation_1_10": 5.371,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 5,
+      "relation_1_10": 5.37,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 6,
+      "relation_1_10": 4.522,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "relation_1_10": 4.805,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "relation_1_10": 4.647,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 3,
+      "relation_1_10": 5.854,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "relation_1_10": 5.959,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "relation_1_10": 5.62,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "relation_1_10": 4.252,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "relation_1_10": 3.95,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "relation_1_10": 4.873,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "relation_1_10": 3.451,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "relation_1_10": 3.511,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "relation_1_10": 7.339,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 7,
+      "relation_1_10": 5.09,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "relation_1_10": 5.005,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "relation_1_10": 5.229,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 6,
+      "relation_1_10": 4.482,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "relation_1_10": 4.974,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "relation_1_10": 6.953,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 6,
+      "relation_1_10": 3.627,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 7,
+      "relation_1_10": 4.478,
+      "directed": false
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "relation_1_10": 3.447,
+      "directed": false
+    },
+    {
+      "from": 5,
+      "to": 7,
+      "relation_1_10": 4.612,
+      "directed": false
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "relation_1_10": 5.328,
+      "directed": false
+    }
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      4.788,
+      4.359,
+      4.403,
+      5.371,
+      5.37,
+      4.522,
+      4.805
+    ],
+    [
+      4.788,
+      0.0,
+      4.647,
+      5.854,
+      5.959,
+      5.62,
+      4.252,
+      3.95
+    ],
+    [
+      4.359,
+      4.647,
+      0.0,
+      4.873,
+      3.451,
+      3.511,
+      7.339,
+      5.09
+    ],
+    [
+      4.403,
+      5.854,
+      4.873,
+      0.0,
+      5.005,
+      5.229,
+      4.482,
+      4.974
+    ],
+    [
+      5.371,
+      5.959,
+      3.451,
+      5.005,
+      0.0,
+      6.953,
+      3.627,
+      4.478
+    ],
+    [
+      5.37,
+      5.62,
+      3.511,
+      5.229,
+      6.953,
+      0.0,
+      3.447,
+      4.612
+    ],
+    [
+      4.522,
+      4.252,
+      7.339,
+      4.482,
+      3.627,
+      3.447,
+      0.0,
+      5.328
+    ],
+    [
+      4.805,
+      3.95,
+      5.09,
+      4.974,
+      4.478,
+      4.612,
+      5.328,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SYNTHETIC_RESPONDENT_CORRELATIONS",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": false
+  }
+}

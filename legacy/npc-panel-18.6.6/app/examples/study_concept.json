@@ -1,0 +1,23 @@
+{
+  "name": "concept_test",
+  "research_question": "Kde je nový koncept X vůči existujícím alternativám a kdo jej chce vyzkoušet?",
+  "output_type": "test_konceptu",
+  "objects": [
+    "Koncept A",
+    "Koncept B",
+    "Koncept C",
+    "Koncept X"
+  ],
+  "metadata": {
+    "test_object": "Koncept X",
+    "price_bands": [
+      "do 99 Kč",
+      "100–149 Kč",
+      "150–199 Kč",
+      "200 Kč a více"
+    ]
+  },
+  "n": 500,
+  "seed": 20260814,
+  "object_family": "koncepty nealkoholických nápojů"
+}

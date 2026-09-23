@@ -1,0 +1,113 @@
+{
+  "version": "17.1.2",
+  "status": "PRODUCTION_V17_PRESERVED_WHOLE_DONOR_BLOCKS",
+  "population_backbone": {
+    "18_65": "PIAAC_2023_CZ",
+    "66_plus": "ISSP_2022_CZ",
+    "calibration": [
+      "Census_2021_exact_age_sex_kraj",
+      "Census_labour_ageband_sex"
+    ]
+  },
+  "blocks": [
+    {
+      "id": "mental_health",
+      "enabled": true,
+      "source": "NUDZ_CAPI",
+      "wave": "2022",
+      "method": "STEP2 constrained whole-respondent hot-deck",
+      "donor_n": 3063,
+      "matched": 18766,
+      "rejected": 0,
+      "match_rate": 1.0,
+      "unique_donors": 3009,
+      "effective_donors": 2239.7,
+      "max_reuse": 36,
+      "mean_distance": 2.1782,
+      "p95_distance": 4.1018
+    },
+    {
+      "id": "social_network",
+      "enabled": true,
+      "source": "JRC_Loneliness_CZ",
+      "wave": "2022",
+      "method": "STEP2 constrained whole-respondent hot-deck",
+      "donor_n": 1000,
+      "matched": 18757,
+      "rejected": 9,
+      "match_rate": 0.9995204092507728,
+      "unique_donors": 988,
+      "effective_donors": 564.0,
+      "max_reuse": 80,
+      "mean_distance": 3.107,
+      "p95_distance": 5.2187
+    },
+    {
+      "id": "institutions",
+      "enabled": true,
+      "source": "QoG_EQI_CZ",
+      "wave": "2024",
+      "method": "STEP2 constrained whole-respondent hot-deck",
+      "donor_n": 5033,
+      "matched": 18766,
+      "rejected": 0,
+      "match_rate": 1.0,
+      "unique_donors": 4963,
+      "effective_donors": 3884.1,
+      "max_reuse": 23,
+      "mean_distance": 0.3476,
+      "p95_distance": 1.0332
+    },
+    {
+      "id": "rule_of_law",
+      "enabled": true,
+      "source": "CSDA_Rule_of_Law",
+      "wave": "2024",
+      "method": "STEP2 constrained whole-respondent hot-deck",
+      "donor_n": 981,
+      "matched": 18766,
+      "rejected": 0,
+      "match_rate": 1.0,
+      "unique_donors": 969,
+      "effective_donors": 510.8,
+      "max_reuse": 80,
+      "mean_distance": 0.5416,
+      "p95_distance": 1.2877
+    },
+    {
+      "id": "politics",
+      "enabled": true,
+      "source": "CSES_Module5_CZE",
+      "wave": "2021",
+      "method": "STEP2 constrained whole-respondent hot-deck",
+      "donor_n": 1451,
+      "matched": 18766,
+      "rejected": 0,
+      "match_rate": 1.0,
+      "unique_donors": 1449,
+      "effective_donors": 1123.0,
+      "max_reuse": 71,
+      "mean_distance": 0.89,
+      "p95_distance": 1.7285,
+      "note": "Whole matched CSES Czech 2021 donor block; party/turnout outputs remain labelled statistical matches except measured ISSP senior turnout override."
+    },
+    {
+      "id": "family_health",
+      "enabled": true,
+      "source": "ISSP_CZ",
+      "wave": "2022",
+      "method": "STEP2 constrained whole-respondent hot-deck",
+      "donor_n": 1243,
+      "matched": 18766,
+      "rejected": 0,
+      "match_rate": 1.0,
+      "unique_donors": 1243,
+      "effective_donors": 830.5,
+      "max_reuse": 142,
+      "mean_distance": 1.9467,
+      "p95_distance": 4.4731
+    }
+  ],
+  "cross_block_same_person_joint": false,
+  "note": "Původní whole-donor assignmenty jsou zachované; v17 nad nimi přidává pouze explicitně označené kalibrované/modelové behaviorální, hodnotové a finanční vrstvy. Cross-block same-person joint zůstává false."
+}

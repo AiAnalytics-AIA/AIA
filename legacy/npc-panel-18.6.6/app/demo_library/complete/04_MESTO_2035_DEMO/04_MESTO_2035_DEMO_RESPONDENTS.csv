@@ -1,0 +1,1801 @@
+﻿respondent_id,age,gender,region,education,segment,price_sensitivity_1_10,digital_confidence_1_10,change_openness_1_10,institutional_trust_1_10,category_involvement_1_10
+1,36,Muž,Severovýchod,SŠ s maturitou,Young Urban,6,4,6,2,7
+2,50,Žena,Moravskoslezsko,VŠ,Daily Drivers,3,7,3,7,8
+3,20,Žena,Severozápad,SŠ s maturitou,Senior Residents,6,7,9,5,5
+4,23,Muž,Střední Čechy,VŠ,Outer District Families,4,10,5,6,3
+5,35,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,6,8,8,1,2
+6,35,Muž,Severozápad,SŠ s maturitou,Senior Residents,7,9,7,6,3
+7,36,Muž,Moravskoslezsko,SŠ s maturitou,Senior Residents,6,6,6,9,9
+8,38,Žena,Jihovýchod,VŠ,Young Urban,2,7,5,5,8
+9,51,Žena,Moravskoslezsko,SŠ s maturitou,Transit Core,5,3,6,6,3
+10,25,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,6,6,4,3,5
+11,33,Muž,Moravskoslezsko,ZŠ / bez maturity,Transit Core,6,6,5,2,10
+12,25,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,6,4,5,3,4
+13,33,Muž,Severovýchod,SŠ s maturitou,Transit Core,3,6,6,4,7
+14,44,Muž,Střední Čechy,VŠ,Transit Core,2,6,6,5,6
+15,48,Muž,Moravskoslezsko,VŠ,Daily Drivers,5,6,6,6,4
+16,60,Žena,Praha,SŠ s maturitou,Outer District Families,7,8,5,6,7
+17,42,Muž,Jihozápad,SŠ s maturitou,Transit Core,4,4,3,8,7
+18,61,Muž,Jihozápad,SŠ s maturitou,Outer District Families,5,9,8,5,6
+19,35,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,7,6,6,4,5
+20,39,Muž,Praha,SŠ s maturitou,Senior Residents,6,6,7,6,8
+21,42,Muž,Severovýchod,SŠ s maturitou,Daily Drivers,5,8,10,7,6
+22,53,Žena,Moravskoslezsko,SŠ s maturitou,Outer District Families,6,5,5,4,3
+23,21,Žena,Severozápad,VŠ,Daily Drivers,4,7,4,6,6
+24,60,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,4,5,6,6,5
+25,57,Muž,Praha,SŠ s maturitou,Transit Core,6,9,6,8,10
+26,45,Žena,Jihozápad,VŠ,Transit Core,4,7,5,2,7
+27,48,Muž,Praha,SŠ s maturitou,Transit Core,6,6,2,4,4
+28,49,Žena,Jihovýchod,ZŠ / bez maturity,Daily Drivers,8,6,7,3,7
+29,39,Žena,Severovýchod,SŠ s maturitou,Senior Residents,4,9,3,4,10
+30,46,Muž,Severovýchod,SŠ s maturitou,Senior Residents,7,10,6,3,6
+31,19,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,7,8,7,8,6
+32,35,Žena,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,4,7,6,3,6
+33,42,Muž,Praha,VŠ,Senior Residents,6,6,4,5,2
+34,60,Muž,Střední Čechy,ZŠ / bez maturity,Outer District Families,2,5,6,6,6
+35,39,Muž,Jihovýchod,VŠ,Daily Drivers,7,8,8,8,5
+36,42,Muž,Střední Čechy,SŠ s maturitou,Daily Drivers,4,5,9,4,7
+37,36,Muž,Střední Čechy,ZŠ / bez maturity,Transit Core,6,4,6,2,7
+38,54,Žena,Moravskoslezsko,VŠ,Young Urban,5,6,9,6,5
+39,37,Muž,Jihovýchod,SŠ s maturitou,Young Urban,4,3,8,4,3
+40,23,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,3,5,7,6,4
+41,39,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,9,10,5,6,4
+42,35,Muž,Severozápad,ZŠ / bez maturity,Transit Core,5,8,7,7,8
+43,49,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,5,5,5,3,6
+44,31,Žena,Praha,ZŠ / bez maturity,Senior Residents,8,7,10,7,6
+45,41,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,6,7,6,2,3
+46,20,Muž,Jihovýchod,SŠ s maturitou,Transit Core,6,7,9,3,3
+47,38,Žena,Jihovýchod,SŠ s maturitou,Young Urban,4,8,9,7,8
+48,50,Muž,Jihozápad,SŠ s maturitou,Young Urban,3,6,7,4,4
+49,57,Žena,Jihozápad,VŠ,Daily Drivers,10,4,6,10,5
+50,37,Žena,Moravskoslezsko,SŠ s maturitou,Outer District Families,8,6,7,7,7
+51,32,Žena,Jihovýchod,VŠ,Young Urban,9,7,5,6,9
+52,21,Muž,Praha,ZŠ / bez maturity,Daily Drivers,7,7,7,3,6
+53,63,Žena,Severozápad,ZŠ / bez maturity,Transit Core,3,2,3,4,7
+54,24,Muž,Jihozápad,ZŠ / bez maturity,Senior Residents,6,8,10,1,7
+55,24,Muž,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,8,5,8,6,6
+56,68,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,4,5,6,7,5
+57,20,Žena,Severozápad,SŠ s maturitou,Young Urban,5,5,8,7,2
+58,44,Muž,Střední Čechy,SŠ s maturitou,Daily Drivers,4,4,7,9,6
+59,22,Muž,Jihozápad,VŠ,Daily Drivers,9,1,7,6,4
+60,43,Žena,Severovýchod,VŠ,Daily Drivers,2,7,7,1,5
+61,63,Muž,Moravskoslezsko,SŠ s maturitou,Senior Residents,5,6,6,6,7
+62,35,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,5,8,4,5,9
+63,23,Muž,Jihozápad,ZŠ / bez maturity,Senior Residents,4,2,4,3,6
+64,18,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,1,6,9,7,8
+65,54,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,7,9,5,5,5
+66,60,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,4,10,7,6,3
+67,43,Muž,Severovýchod,SŠ s maturitou,Daily Drivers,2,6,5,2,7
+68,41,Žena,Praha,ZŠ / bez maturity,Transit Core,8,7,4,7,5
+69,38,Žena,Moravskoslezsko,SŠ s maturitou,Outer District Families,1,7,5,2,6
+70,21,Muž,Severozápad,SŠ s maturitou,Outer District Families,5,7,7,6,8
+71,50,Muž,Severozápad,SŠ s maturitou,Transit Core,7,7,5,4,3
+72,44,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,5,4,7,3,8
+73,49,Žena,Jihozápad,SŠ s maturitou,Young Urban,6,8,8,6,7
+74,30,Žena,Praha,VŠ,Daily Drivers,1,7,8,6,2
+75,34,Žena,Střední Čechy,VŠ,Transit Core,5,7,8,6,3
+76,42,Muž,Praha,VŠ,Senior Residents,4,4,8,2,6
+77,22,Muž,Střední Čechy,SŠ s maturitou,Young Urban,5,7,4,5,6
+78,21,Žena,Jihovýchod,SŠ s maturitou,Transit Core,9,7,6,6,10
+79,31,Muž,Severozápad,ZŠ / bez maturity,Transit Core,3,8,5,6,7
+80,45,Žena,Moravskoslezsko,VŠ,Outer District Families,5,3,6,5,4
+81,18,Muž,Střední Čechy,SŠ s maturitou,Young Urban,2,4,5,4,4
+82,19,Muž,Jihozápad,VŠ,Daily Drivers,6,5,5,6,9
+83,54,Žena,Jihovýchod,SŠ s maturitou,Transit Core,4,6,6,9,10
+84,44,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,1,6,3,5,3
+85,74,Muž,Jihovýchod,VŠ,Outer District Families,6,4,5,7,1
+86,42,Žena,Jihovýchod,ZŠ / bez maturity,Daily Drivers,5,4,8,4,2
+87,20,Žena,Jihozápad,SŠ s maturitou,Senior Residents,5,8,6,6,1
+88,40,Muž,Severozápad,ZŠ / bez maturity,Outer District Families,7,9,4,1,2
+89,29,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,5,7,7,5,5
+90,23,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,5,8,6,7,10
+91,31,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,5,6,3,6,4
+92,56,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,3,7,5,2,2
+93,47,Muž,Střední Čechy,VŠ,Transit Core,4,3,4,4,4
+94,49,Muž,Jihozápad,SŠ s maturitou,Young Urban,7,8,8,6,8
+95,29,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,5,4,6,1,3
+96,58,Muž,Severovýchod,SŠ s maturitou,Young Urban,3,7,5,8,6
+97,36,Žena,Severovýchod,SŠ s maturitou,Senior Residents,6,4,5,8,6
+98,63,Žena,Severozápad,VŠ,Young Urban,6,5,3,2,5
+99,28,Muž,Praha,VŠ,Daily Drivers,3,4,6,6,6
+100,62,Žena,Moravskoslezsko,SŠ s maturitou,Daily Drivers,6,8,2,4,7
+101,29,Žena,Praha,VŠ,Young Urban,8,9,4,7,4
+102,49,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,5,6,5,6,5
+103,18,Žena,Jihozápad,SŠ s maturitou,Outer District Families,4,7,5,6,9
+104,52,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,5,7,6,5,6
+105,32,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,7,8,8,4,4
+106,49,Muž,Severozápad,SŠ s maturitou,Outer District Families,8,8,5,7,5
+107,61,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,8,6,7,7,4
+108,18,Muž,Severozápad,SŠ s maturitou,Transit Core,5,8,5,6,5
+109,46,Muž,Severovýchod,SŠ s maturitou,Transit Core,5,2,7,8,7
+110,43,Muž,Moravskoslezsko,VŠ,Outer District Families,6,3,6,5,8
+111,38,Žena,Severozápad,VŠ,Transit Core,7,5,9,5,3
+112,49,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,6,7,5,5,8
+113,39,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,3,10,5,3,6
+114,31,Žena,Severozápad,SŠ s maturitou,Young Urban,5,7,7,6,3
+115,63,Muž,Střední Čechy,VŠ,Daily Drivers,6,2,3,6,4
+116,67,Muž,Jihozápad,VŠ,Outer District Families,6,3,3,4,1
+117,27,Muž,Střední Čechy,VŠ,Transit Core,7,10,8,3,5
+118,55,Žena,Praha,ZŠ / bez maturity,Young Urban,3,2,5,4,6
+119,52,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,5,6,7,3,5
+120,21,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,2,8,7,5,2
+121,50,Muž,Severovýchod,ZŠ / bez maturity,Transit Core,10,6,5,7,1
+122,54,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,4,7,5,6,5
+123,38,Muž,Střední Čechy,ZŠ / bez maturity,Young Urban,5,6,10,5,2
+124,55,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,2,7,4,5,6
+125,34,Muž,Střední Čechy,ZŠ / bez maturity,Outer District Families,3,6,3,9,6
+126,65,Muž,Praha,VŠ,Daily Drivers,5,4,6,8,6
+127,48,Žena,Severozápad,VŠ,Daily Drivers,8,3,7,4,4
+128,40,Muž,Střední Čechy,ZŠ / bez maturity,Outer District Families,9,10,2,3,3
+129,34,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,6,3,3,5,7
+130,40,Žena,Jihovýchod,ZŠ / bez maturity,Daily Drivers,6,3,3,4,3
+131,51,Žena,Severovýchod,VŠ,Senior Residents,4,6,3,8,4
+132,64,Muž,Střední Čechy,ZŠ / bez maturity,Senior Residents,5,7,5,5,7
+133,43,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,8,5,5,3,4
+134,31,Muž,Jihozápad,SŠ s maturitou,Transit Core,3,5,8,6,7
+135,25,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,6,10,6,3,2
+136,36,Žena,Severozápad,ZŠ / bez maturity,Senior Residents,3,7,6,5,3
+137,40,Žena,Jihovýchod,SŠ s maturitou,Transit Core,4,5,8,8,3
+138,51,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,5,4,2,5,5
+139,39,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,7,4,7,8,7
+140,25,Žena,Střední Čechy,SŠ s maturitou,Transit Core,9,7,5,4,6
+141,63,Žena,Praha,SŠ s maturitou,Daily Drivers,5,6,8,3,8
+142,44,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,9,6,6,9,9
+143,46,Žena,Jihozápad,VŠ,Young Urban,3,3,4,5,6
+144,29,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,4,9,8,8,5
+145,38,Muž,Střední Čechy,VŠ,Senior Residents,7,5,8,3,4
+146,56,Muž,Jihozápad,ZŠ / bez maturity,Senior Residents,10,8,6,4,9
+147,35,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,7,5,3,7,7
+148,32,Muž,Severovýchod,SŠ s maturitou,Daily Drivers,9,4,5,6,2
+149,37,Muž,Severozápad,VŠ,Outer District Families,7,5,6,8,8
+150,51,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,5,8,10,8,5
+151,50,Muž,Jihozápad,SŠ s maturitou,Senior Residents,3,8,5,2,2
+152,30,Žena,Severozápad,VŠ,Young Urban,4,7,6,7,5
+153,18,Muž,Střední Čechy,VŠ,Outer District Families,6,3,6,7,6
+154,62,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,3,8,4,2,6
+155,38,Muž,Severozápad,SŠ s maturitou,Young Urban,6,4,5,7,6
+156,33,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,5,4,7,3,4
+157,35,Žena,Jihozápad,SŠ s maturitou,Outer District Families,5,6,5,2,4
+158,47,Žena,Severovýchod,VŠ,Transit Core,6,3,10,3,8
+159,27,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,3,5,6,9,5
+160,35,Žena,Moravskoslezsko,VŠ,Transit Core,3,5,5,7,6
+161,31,Žena,Jihozápad,ZŠ / bez maturity,Senior Residents,5,6,6,7,4
+162,37,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,2,5,8,6,6
+163,62,Muž,Praha,ZŠ / bez maturity,Daily Drivers,5,8,7,5,8
+164,39,Muž,Střední Čechy,ZŠ / bez maturity,Daily Drivers,7,10,10,4,5
+165,60,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,6,6,7,5,8
+166,30,Muž,Severozápad,SŠ s maturitou,Young Urban,2,9,10,5,6
+167,25,Žena,Severozápad,ZŠ / bez maturity,Outer District Families,5,3,5,6,7
+168,39,Žena,Jihovýchod,ZŠ / bez maturity,Daily Drivers,3,6,7,8,6
+169,55,Žena,Severovýchod,VŠ,Young Urban,8,7,5,5,2
+170,52,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,3,7,6,6,7
+171,51,Muž,Praha,SŠ s maturitou,Young Urban,7,8,7,7,7
+172,56,Žena,Jihozápad,VŠ,Daily Drivers,5,3,5,5,8
+173,19,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,6,6,7,6,5
+174,40,Muž,Jihozápad,ZŠ / bez maturity,Senior Residents,5,7,2,7,6
+175,58,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,5,10,4,7,6
+176,26,Žena,Praha,SŠ s maturitou,Young Urban,9,8,7,6,4
+177,48,Žena,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,5,5,3,3,4
+178,18,Žena,Severovýchod,SŠ s maturitou,Senior Residents,4,1,4,4,5
+179,44,Žena,Severozápad,VŠ,Outer District Families,4,5,2,7,3
+180,36,Žena,Severozápad,VŠ,Daily Drivers,6,7,8,9,4
+181,53,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,4,1,6,6,3
+182,36,Muž,Severozápad,VŠ,Outer District Families,6,5,8,6,5
+183,74,Žena,Moravskoslezsko,SŠ s maturitou,Outer District Families,9,6,6,5,5
+184,34,Muž,Severozápad,SŠ s maturitou,Young Urban,5,10,1,4,7
+185,52,Muž,Jihovýchod,ZŠ / bez maturity,Transit Core,5,6,9,5,7
+186,51,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,3,6,6,3,5
+187,18,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,7,5,5,3,5
+188,43,Žena,Severozápad,VŠ,Young Urban,5,9,7,7,6
+189,56,Žena,Jihozápad,SŠ s maturitou,Outer District Families,5,3,7,8,8
+190,48,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,2,10,2,8,7
+191,37,Muž,Jihovýchod,VŠ,Outer District Families,5,4,8,4,5
+192,54,Žena,Severozápad,SŠ s maturitou,Young Urban,6,8,8,6,6
+193,35,Muž,Praha,SŠ s maturitou,Young Urban,3,7,6,6,7
+194,18,Muž,Jihozápad,ZŠ / bez maturity,Daily Drivers,4,8,8,3,5
+195,21,Žena,Severovýchod,SŠ s maturitou,Young Urban,4,7,2,1,7
+196,34,Muž,Střední Čechy,ZŠ / bez maturity,Young Urban,5,9,8,7,4
+197,43,Muž,Jihovýchod,VŠ,Outer District Families,9,6,7,8,3
+198,53,Žena,Jihovýchod,SŠ s maturitou,Young Urban,7,3,6,6,7
+199,49,Žena,Severozápad,VŠ,Young Urban,5,6,9,5,5
+200,29,Muž,Jihozápad,SŠ s maturitou,Young Urban,5,7,6,6,8
+201,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,8,7,7,4,5
+202,68,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,7,10,5,4,7
+203,74,Žena,Jihovýchod,VŠ,Outer District Families,5,6,5,9,9
+204,38,Muž,Severozápad,ZŠ / bez maturity,Transit Core,9,4,7,5,10
+205,45,Žena,Severozápad,SŠ s maturitou,Outer District Families,7,6,1,7,7
+206,21,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,6,7,7,5,6
+207,36,Muž,Moravskoslezsko,ZŠ / bez maturity,Transit Core,6,5,3,10,1
+208,61,Žena,Severovýchod,VŠ,Daily Drivers,8,9,8,2,7
+209,18,Muž,Severovýchod,VŠ,Young Urban,4,5,7,6,5
+210,41,Muž,Jihozápad,SŠ s maturitou,Outer District Families,8,7,8,2,8
+211,28,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,4,6,5,5,7
+212,40,Žena,Jihozápad,ZŠ / bez maturity,Senior Residents,4,8,5,3,10
+213,40,Žena,Jihozápad,ZŠ / bez maturity,Outer District Families,8,7,4,4,10
+214,24,Žena,Střední Čechy,VŠ,Transit Core,6,3,4,1,7
+215,57,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,3,7,6,6,7
+216,55,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,5,5,8,5,7
+217,32,Žena,Jihovýchod,ZŠ / bez maturity,Outer District Families,9,8,4,5,9
+218,29,Žena,Praha,VŠ,Daily Drivers,7,7,5,8,7
+219,41,Muž,Jihozápad,VŠ,Young Urban,8,6,4,6,6
+220,51,Muž,Střední Čechy,VŠ,Daily Drivers,6,5,6,8,6
+221,42,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,6,8,5,4,9
+222,32,Žena,Jihovýchod,VŠ,Senior Residents,8,3,7,3,3
+223,55,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,5,6,9,6,8
+224,35,Žena,Jihozápad,VŠ,Young Urban,7,4,7,5,8
+225,44,Muž,Praha,SŠ s maturitou,Senior Residents,4,2,7,2,4
+226,52,Žena,Jihozápad,SŠ s maturitou,Transit Core,6,8,3,2,7
+227,35,Muž,Severozápad,SŠ s maturitou,Senior Residents,3,5,4,6,4
+228,61,Žena,Jihozápad,SŠ s maturitou,Outer District Families,3,5,8,8,7
+229,32,Žena,Jihozápad,ZŠ / bez maturity,Young Urban,4,6,6,3,6
+230,18,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,5,4,6,6,6
+231,42,Muž,Moravskoslezsko,VŠ,Transit Core,4,8,6,5,6
+232,58,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,5,5,8,10,5
+233,33,Muž,Jihovýchod,SŠ s maturitou,Transit Core,8,10,4,5,7
+234,63,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,8,8,5,5,6
+235,34,Muž,Moravskoslezsko,VŠ,Outer District Families,7,7,4,9,8
+236,70,Muž,Jihovýchod,VŠ,Outer District Families,6,10,5,4,6
+237,30,Muž,Severozápad,ZŠ / bez maturity,Transit Core,4,3,3,3,9
+238,37,Žena,Severovýchod,ZŠ / bez maturity,Outer District Families,5,7,6,5,7
+239,44,Muž,Střední Čechy,ZŠ / bez maturity,Transit Core,8,6,4,8,6
+240,31,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,8,6,5,4,4
+241,34,Muž,Severozápad,VŠ,Transit Core,6,5,4,2,5
+242,40,Žena,Severovýchod,SŠ s maturitou,Transit Core,7,8,5,9,8
+243,47,Žena,Střední Čechy,SŠ s maturitou,Young Urban,10,3,6,5,6
+244,41,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,5,5,2,9,4
+245,50,Muž,Praha,VŠ,Outer District Families,2,6,9,7,6
+246,42,Žena,Moravskoslezsko,SŠ s maturitou,Daily Drivers,5,3,6,9,8
+247,18,Muž,Praha,SŠ s maturitou,Outer District Families,6,8,10,5,6
+248,45,Muž,Jihovýchod,SŠ s maturitou,Transit Core,3,6,6,3,9
+249,38,Muž,Jihovýchod,VŠ,Young Urban,8,9,1,4,9
+250,46,Žena,Severovýchod,SŠ s maturitou,Outer District Families,6,7,7,5,8
+251,34,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,4,10,3,7,5
+252,69,Žena,Moravskoslezsko,VŠ,Young Urban,6,4,3,6,6
+253,34,Muž,Severovýchod,ZŠ / bez maturity,Transit Core,5,7,4,5,9
+254,29,Muž,Praha,VŠ,Daily Drivers,8,7,8,1,7
+255,18,Žena,Jihovýchod,VŠ,Senior Residents,8,3,8,4,6
+256,47,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,4,4,7,3,6
+257,30,Muž,Jihozápad,VŠ,Senior Residents,5,7,8,6,10
+258,34,Žena,Severovýchod,SŠ s maturitou,Outer District Families,2,4,5,8,5
+259,37,Žena,Moravskoslezsko,VŠ,Transit Core,6,3,4,3,7
+260,32,Žena,Severovýchod,ZŠ / bez maturity,Outer District Families,8,3,4,7,7
+261,41,Muž,Jihovýchod,VŠ,Transit Core,6,7,4,4,6
+262,72,Žena,Jihovýchod,SŠ s maturitou,Young Urban,5,7,7,7,4
+263,71,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,5,6,6,3,6
+264,33,Muž,Moravskoslezsko,ZŠ / bez maturity,Outer District Families,5,5,7,4,7
+265,51,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,2,6,5,5,6
+266,39,Žena,Severozápad,SŠ s maturitou,Daily Drivers,8,7,4,5,5
+267,56,Žena,Severovýchod,VŠ,Senior Residents,7,8,4,3,10
+268,38,Žena,Jihozápad,SŠ s maturitou,Senior Residents,8,3,5,6,3
+269,39,Muž,Praha,SŠ s maturitou,Young Urban,4,5,7,3,6
+270,44,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,4,7,6,4,3
+271,38,Muž,Severovýchod,VŠ,Transit Core,5,7,6,9,3
+272,31,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,6,9,5,4,7
+273,57,Žena,Severozápad,VŠ,Daily Drivers,7,6,7,6,8
+274,60,Žena,Severozápad,ZŠ / bez maturity,Senior Residents,6,7,7,2,7
+275,48,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,7,5,6,5,7
+276,60,Žena,Praha,ZŠ / bez maturity,Transit Core,8,7,3,7,8
+277,48,Muž,Jihozápad,SŠ s maturitou,Outer District Families,7,2,4,6,3
+278,31,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,6,4,4,7,4
+279,18,Muž,Severozápad,SŠ s maturitou,Transit Core,7,9,6,6,7
+280,52,Žena,Jihovýchod,ZŠ / bez maturity,Daily Drivers,7,7,4,7,3
+281,44,Žena,Severozápad,SŠ s maturitou,Daily Drivers,1,4,4,3,4
+282,33,Muž,Severozápad,SŠ s maturitou,Daily Drivers,6,6,10,5,3
+283,44,Žena,Jihozápad,VŠ,Daily Drivers,3,4,9,5,2
+284,36,Muž,Praha,VŠ,Senior Residents,8,4,4,8,6
+285,34,Žena,Jihozápad,ZŠ / bez maturity,Senior Residents,5,6,5,9,5
+286,18,Žena,Severozápad,SŠ s maturitou,Transit Core,4,5,3,5,7
+287,41,Muž,Jihovýchod,SŠ s maturitou,Transit Core,6,6,6,4,5
+288,43,Žena,Praha,SŠ s maturitou,Daily Drivers,10,6,4,8,5
+289,66,Muž,Severozápad,SŠ s maturitou,Young Urban,6,7,8,2,9
+290,39,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,6,6,7,5,3
+291,34,Muž,Moravskoslezsko,VŠ,Daily Drivers,5,7,3,2,6
+292,23,Muž,Severozápad,SŠ s maturitou,Young Urban,7,8,6,6,6
+293,57,Muž,Severovýchod,VŠ,Outer District Families,5,7,7,4,7
+294,50,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,6,6,3,5,4
+295,41,Žena,Jihozápad,ZŠ / bez maturity,Daily Drivers,6,6,8,1,6
+296,39,Muž,Jihozápad,ZŠ / bez maturity,Daily Drivers,4,7,4,5,3
+297,45,Muž,Severovýchod,VŠ,Senior Residents,7,5,7,8,7
+298,43,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,5,5,4,8,9
+299,59,Žena,Střední Čechy,VŠ,Young Urban,8,4,5,6,9
+300,48,Žena,Jihovýchod,SŠ s maturitou,Transit Core,3,6,7,8,6
+301,18,Muž,Jihovýchod,SŠ s maturitou,Transit Core,4,3,1,9,8
+302,29,Žena,Severovýchod,SŠ s maturitou,Senior Residents,3,7,1,5,9
+303,39,Muž,Jihozápad,SŠ s maturitou,Outer District Families,6,5,4,2,3
+304,45,Muž,Praha,ZŠ / bez maturity,Transit Core,3,4,7,6,8
+305,46,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,3,6,3,5,6
+306,40,Muž,Severozápad,ZŠ / bez maturity,Young Urban,8,8,9,8,5
+307,45,Muž,Jihozápad,ZŠ / bez maturity,Senior Residents,4,9,6,3,5
+308,31,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,9,5,5,4,4
+309,18,Žena,Moravskoslezsko,VŠ,Young Urban,8,6,9,6,3
+310,40,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,5,4,5,3,5
+311,43,Muž,Severovýchod,SŠ s maturitou,Senior Residents,1,7,5,7,5
+312,50,Muž,Jihozápad,VŠ,Transit Core,7,7,5,4,8
+313,57,Muž,Severovýchod,SŠ s maturitou,Outer District Families,3,6,3,4,4
+314,43,Žena,Severozápad,VŠ,Transit Core,6,5,5,6,4
+315,40,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,4,5,8,4,9
+316,64,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,7,8,4,7,8
+317,27,Žena,Jihozápad,ZŠ / bez maturity,Senior Residents,5,4,9,4,4
+318,36,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,6,10,7,6,4
+319,56,Žena,Praha,ZŠ / bez maturity,Young Urban,7,7,2,8,7
+320,58,Muž,Jihovýchod,SŠ s maturitou,Young Urban,6,6,9,4,6
+321,41,Žena,Severozápad,SŠ s maturitou,Senior Residents,2,4,6,6,7
+322,45,Žena,Praha,ZŠ / bez maturity,Senior Residents,5,6,3,6,4
+323,32,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,8,6,4,5,4
+324,52,Muž,Severovýchod,VŠ,Transit Core,4,7,6,5,3
+325,50,Muž,Praha,SŠ s maturitou,Outer District Families,3,10,6,5,3
+326,70,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,5,6,4,4,5
+327,56,Muž,Jihozápad,SŠ s maturitou,Outer District Families,8,5,6,4,6
+328,39,Muž,Střední Čechy,VŠ,Transit Core,5,6,3,4,7
+329,46,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,7,5,6,8,4
+330,52,Žena,Střední Čechy,VŠ,Transit Core,5,7,3,2,6
+331,59,Muž,Severozápad,ZŠ / bez maturity,Senior Residents,4,4,5,6,8
+332,42,Muž,Severovýchod,SŠ s maturitou,Transit Core,5,7,6,5,5
+333,40,Muž,Střední Čechy,VŠ,Daily Drivers,5,7,8,2,6
+334,31,Muž,Severozápad,SŠ s maturitou,Young Urban,4,5,8,6,2
+335,36,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,1,7,4,2,3
+336,71,Žena,Praha,SŠ s maturitou,Transit Core,4,6,1,5,9
+337,43,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,7,4,3,6,6
+338,40,Žena,Jihovýchod,SŠ s maturitou,Daily Drivers,6,6,4,3,9
+339,37,Žena,Jihozápad,ZŠ / bez maturity,Daily Drivers,7,5,5,6,4
+340,39,Žena,Jihozápad,ZŠ / bez maturity,Outer District Families,10,10,3,3,7
+341,33,Muž,Severovýchod,ZŠ / bez maturity,Senior Residents,5,6,5,2,4
+342,21,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,7,5,2,3,3
+343,18,Muž,Jihozápad,VŠ,Transit Core,6,8,2,10,6
+344,40,Muž,Praha,SŠ s maturitou,Transit Core,4,7,6,5,8
+345,29,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,7,8,3,7,6
+346,38,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,8,6,6,4,4
+347,43,Muž,Moravskoslezsko,VŠ,Daily Drivers,9,2,6,1,3
+348,50,Žena,Severozápad,VŠ,Daily Drivers,5,8,3,6,4
+349,32,Muž,Severozápad,SŠ s maturitou,Outer District Families,7,9,6,4,3
+350,35,Muž,Jihovýchod,VŠ,Senior Residents,9,10,4,4,5
+351,72,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,7,7,2,3,6
+352,39,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,4,6,6,7,8
+353,56,Muž,Severovýchod,ZŠ / bez maturity,Senior Residents,3,5,8,5,7
+354,30,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,7,7,4,4,6
+355,45,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,4,5,7,2,3
+356,24,Žena,Severovýchod,SŠ s maturitou,Transit Core,4,8,5,8,5
+357,50,Muž,Moravskoslezsko,VŠ,Daily Drivers,4,5,9,7,3
+358,35,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,3,5,7,4,6
+359,49,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,3,4,2,6,9
+360,50,Žena,Jihozápad,VŠ,Transit Core,5,7,8,6,5
+361,70,Žena,Moravskoslezsko,SŠ s maturitou,Daily Drivers,10,4,8,3,5
+362,26,Muž,Jihovýchod,VŠ,Young Urban,6,5,5,6,4
+363,18,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,8,5,7,6,3
+364,39,Žena,Severozápad,ZŠ / bez maturity,Young Urban,4,5,6,9,6
+365,51,Žena,Jihovýchod,SŠ s maturitou,Daily Drivers,6,7,5,4,4
+366,39,Muž,Praha,SŠ s maturitou,Daily Drivers,6,8,6,5,5
+367,45,Muž,Jihovýchod,VŠ,Outer District Families,10,9,8,8,4
+368,56,Žena,Severovýchod,VŠ,Outer District Families,7,4,4,5,9
+369,50,Muž,Severovýchod,SŠ s maturitou,Senior Residents,8,6,4,1,5
+370,52,Žena,Severovýchod,VŠ,Outer District Families,3,5,4,8,8
+371,49,Žena,Severovýchod,VŠ,Outer District Families,10,6,8,6,4
+372,61,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,3,8,3,5,6
+373,50,Muž,Severozápad,SŠ s maturitou,Senior Residents,8,9,10,3,7
+374,45,Žena,Moravskoslezsko,VŠ,Daily Drivers,6,10,7,9,9
+375,40,Muž,Severovýchod,VŠ,Transit Core,7,6,6,2,4
+376,47,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,4,8,6,7,4
+377,49,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,7,2,5,8,7
+378,49,Muž,Jihovýchod,SŠ s maturitou,Young Urban,5,6,4,8,5
+379,23,Žena,Jihozápad,VŠ,Senior Residents,6,8,2,4,8
+380,34,Muž,Severovýchod,VŠ,Senior Residents,9,1,10,3,6
+381,41,Žena,Jihozápad,VŠ,Daily Drivers,7,7,4,7,3
+382,39,Žena,Praha,SŠ s maturitou,Daily Drivers,7,5,4,7,7
+383,44,Muž,Moravskoslezsko,SŠ s maturitou,Senior Residents,5,8,7,6,4
+384,35,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,7,6,7,4,1
+385,39,Žena,Jihovýchod,SŠ s maturitou,Transit Core,8,5,7,3,6
+386,30,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,4,4,5,3,6
+387,44,Muž,Severozápad,VŠ,Transit Core,2,4,8,6,8
+388,43,Muž,Střední Čechy,SŠ s maturitou,Young Urban,2,4,6,4,9
+389,55,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,5,6,5,5,7
+390,18,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,4,8,5,8,5
+391,48,Žena,Severozápad,VŠ,Young Urban,6,7,10,10,5
+392,61,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,9,10,4,5,5
+393,28,Žena,Severovýchod,VŠ,Transit Core,4,6,8,5,7
+394,38,Muž,Severovýchod,VŠ,Senior Residents,7,8,3,8,8
+395,46,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,6,7,6,3,8
+396,63,Žena,Jihozápad,VŠ,Young Urban,3,5,7,4,6
+397,37,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,5,8,4,6,5
+398,35,Žena,Jihozápad,ZŠ / bez maturity,Daily Drivers,4,4,4,3,6
+399,21,Žena,Severovýchod,ZŠ / bez maturity,Senior Residents,5,5,5,7,7
+400,38,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,6,7,5,1,4
+401,41,Muž,Praha,SŠ s maturitou,Senior Residents,8,7,5,4,5
+402,39,Žena,Praha,SŠ s maturitou,Senior Residents,4,5,4,7,7
+403,36,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,4,6,5,6,2
+404,34,Žena,Jihovýchod,SŠ s maturitou,Outer District Families,7,4,8,4,6
+405,54,Žena,Moravskoslezsko,VŠ,Transit Core,2,5,5,4,9
+406,45,Žena,Jihozápad,SŠ s maturitou,Outer District Families,5,4,1,3,6
+407,45,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,1,3,7,7,8
+408,37,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,6,4,6,6,5
+409,21,Muž,Jihozápad,ZŠ / bez maturity,Senior Residents,10,4,4,5,6
+410,18,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,6,5,6,7,8
+411,48,Muž,Moravskoslezsko,ZŠ / bez maturity,Outer District Families,5,6,3,3,4
+412,45,Žena,Severovýchod,VŠ,Young Urban,2,4,8,4,6
+413,45,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,7,6,3,5,5
+414,61,Muž,Severovýchod,SŠ s maturitou,Senior Residents,4,7,6,5,6
+415,34,Muž,Střední Čechy,SŠ s maturitou,Transit Core,8,6,9,4,4
+416,26,Žena,Severovýchod,VŠ,Transit Core,8,9,8,6,5
+417,63,Muž,Střední Čechy,SŠ s maturitou,Young Urban,6,7,6,5,4
+418,18,Muž,Severovýchod,SŠ s maturitou,Outer District Families,9,5,8,7,4
+419,41,Muž,Střední Čechy,VŠ,Senior Residents,7,3,7,5,6
+420,47,Muž,Severozápad,SŠ s maturitou,Young Urban,6,6,5,6,8
+421,39,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,8,4,5,4,6
+422,38,Muž,Severovýchod,SŠ s maturitou,Senior Residents,6,4,8,8,7
+423,34,Žena,Severovýchod,VŠ,Young Urban,5,8,5,5,2
+424,57,Žena,Střední Čechy,SŠ s maturitou,Transit Core,6,8,6,7,6
+425,43,Muž,Praha,ZŠ / bez maturity,Transit Core,2,3,4,5,6
+426,59,Žena,Střední Čechy,VŠ,Daily Drivers,8,4,6,7,4
+427,40,Muž,Střední Čechy,ZŠ / bez maturity,Senior Residents,9,3,8,3,9
+428,31,Muž,Praha,ZŠ / bez maturity,Young Urban,6,9,6,6,8
+429,43,Muž,Praha,SŠ s maturitou,Daily Drivers,6,7,9,6,7
+430,27,Žena,Severozápad,SŠ s maturitou,Young Urban,5,6,5,1,10
+431,43,Muž,Severozápad,ZŠ / bez maturity,Senior Residents,3,5,6,3,4
+432,42,Žena,Jihozápad,ZŠ / bez maturity,Transit Core,8,2,7,7,6
+433,52,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,8,6,4,6,7
+434,32,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,5,9,4,6,5
+435,74,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,7,3,4,6,8
+436,34,Muž,Severozápad,ZŠ / bez maturity,Outer District Families,2,6,4,6,9
+437,40,Muž,Severovýchod,ZŠ / bez maturity,Senior Residents,6,4,6,6,7
+438,52,Žena,Praha,VŠ,Young Urban,6,5,7,4,5
+439,33,Žena,Jihozápad,VŠ,Daily Drivers,9,8,2,1,6
+440,30,Muž,Jihozápad,SŠ s maturitou,Outer District Families,4,9,7,8,5
+441,45,Muž,Jihozápad,SŠ s maturitou,Outer District Families,6,7,3,6,6
+442,40,Muž,Střední Čechy,SŠ s maturitou,Transit Core,7,3,8,1,5
+443,38,Muž,Praha,ZŠ / bez maturity,Outer District Families,8,10,5,6,6
+444,53,Žena,Severozápad,SŠ s maturitou,Outer District Families,8,9,4,5,9
+445,62,Žena,Jihozápad,ZŠ / bez maturity,Transit Core,10,4,8,7,5
+446,33,Žena,Severovýchod,VŠ,Senior Residents,5,7,6,4,9
+447,60,Muž,Střední Čechy,VŠ,Daily Drivers,8,7,2,8,6
+448,30,Žena,Severozápad,VŠ,Senior Residents,5,6,4,9,8
+449,33,Žena,Praha,ZŠ / bez maturity,Outer District Families,6,4,2,4,1
+450,41,Žena,Severovýchod,SŠ s maturitou,Transit Core,6,7,6,4,6
+451,28,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,7,6,7,3,7
+452,43,Žena,Moravskoslezsko,VŠ,Young Urban,4,7,3,4,3
+453,40,Žena,Jihozápad,VŠ,Senior Residents,5,8,9,2,4
+454,69,Žena,Severozápad,VŠ,Outer District Families,3,6,5,5,1
+455,24,Muž,Jihovýchod,ZŠ / bez maturity,Senior Residents,9,9,6,4,5
+456,37,Žena,Praha,ZŠ / bez maturity,Young Urban,4,2,8,1,8
+457,52,Muž,Severovýchod,SŠ s maturitou,Senior Residents,2,7,5,10,4
+458,39,Žena,Jihozápad,SŠ s maturitou,Outer District Families,10,5,7,7,8
+459,34,Žena,Severovýchod,SŠ s maturitou,Transit Core,7,6,6,4,2
+460,48,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,4,4,6,4,6
+461,46,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,4,6,5,5,7
+462,42,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,7,7,8,6,6
+463,33,Muž,Severovýchod,ZŠ / bez maturity,Senior Residents,6,6,4,3,3
+464,36,Muž,Praha,VŠ,Transit Core,8,7,5,6,6
+465,42,Muž,Severozápad,SŠ s maturitou,Young Urban,3,6,7,8,5
+466,50,Žena,Jihozápad,VŠ,Young Urban,4,5,1,8,2
+467,18,Žena,Jihovýchod,SŠ s maturitou,Transit Core,6,6,7,4,8
+468,67,Muž,Střední Čechy,VŠ,Senior Residents,5,5,5,5,7
+469,62,Muž,Praha,VŠ,Transit Core,9,7,7,8,5
+470,46,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,8,5,8,6,8
+471,44,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,8,4,10,3,6
+472,51,Muž,Praha,ZŠ / bez maturity,Daily Drivers,7,5,6,5,7
+473,38,Muž,Severovýchod,SŠ s maturitou,Outer District Families,5,5,9,7,8
+474,20,Žena,Jihozápad,VŠ,Outer District Families,5,5,7,3,5
+475,38,Muž,Praha,VŠ,Senior Residents,4,6,7,4,10
+476,57,Muž,Jihozápad,VŠ,Young Urban,5,9,6,7,6
+477,62,Žena,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,4,6,5,3,4
+478,42,Muž,Jihovýchod,VŠ,Young Urban,4,1,5,7,8
+479,54,Žena,Střední Čechy,VŠ,Senior Residents,3,7,4,6,9
+480,44,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,6,10,7,7,6
+481,18,Žena,Praha,SŠ s maturitou,Daily Drivers,3,4,5,6,7
+482,36,Žena,Střední Čechy,SŠ s maturitou,Transit Core,5,6,8,1,8
+483,68,Žena,Jihozápad,SŠ s maturitou,Transit Core,5,8,8,4,9
+484,41,Žena,Moravskoslezsko,ZŠ / bez maturity,Outer District Families,8,1,7,5,7
+485,45,Muž,Jihovýchod,VŠ,Outer District Families,3,7,7,3,2
+486,45,Žena,Střední Čechy,VŠ,Outer District Families,5,2,9,7,8
+487,52,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,3,4,4,5,6
+488,34,Žena,Severozápad,ZŠ / bez maturity,Outer District Families,7,6,7,6,5
+489,49,Žena,Jihovýchod,VŠ,Daily Drivers,4,6,4,2,4
+490,55,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,7,2,5,1,7
+491,22,Žena,Jihovýchod,SŠ s maturitou,Transit Core,4,7,2,4,4
+492,34,Muž,Jihozápad,SŠ s maturitou,Senior Residents,5,7,6,1,4
+493,32,Muž,Severozápad,SŠ s maturitou,Outer District Families,6,1,4,7,6
+494,38,Žena,Severozápad,SŠ s maturitou,Senior Residents,6,7,9,9,6
+495,55,Muž,Jihozápad,SŠ s maturitou,Daily Drivers,7,7,5,4,2
+496,47,Žena,Severovýchod,SŠ s maturitou,Young Urban,6,3,4,9,5
+497,72,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,6,4,8,3,7
+498,71,Muž,Praha,SŠ s maturitou,Senior Residents,10,8,6,6,8
+499,60,Muž,Jihozápad,SŠ s maturitou,Young Urban,4,4,5,4,7
+500,51,Muž,Severozápad,SŠ s maturitou,Transit Core,4,4,9,5,1
+501,26,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,7,2,8,4,3
+502,46,Žena,Jihozápad,SŠ s maturitou,Transit Core,8,6,6,3,9
+503,51,Žena,Střední Čechy,VŠ,Senior Residents,8,3,5,5,6
+504,28,Žena,Střední Čechy,SŠ s maturitou,Transit Core,4,5,5,3,8
+505,18,Muž,Jihozápad,SŠ s maturitou,Senior Residents,8,4,4,9,4
+506,30,Žena,Jihovýchod,VŠ,Outer District Families,9,5,6,5,6
+507,43,Žena,Praha,ZŠ / bez maturity,Transit Core,6,7,3,3,7
+508,45,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,8,10,7,6,4
+509,40,Muž,Praha,SŠ s maturitou,Senior Residents,6,3,6,8,8
+510,32,Žena,Severovýchod,ZŠ / bez maturity,Outer District Families,8,7,7,5,7
+511,22,Žena,Praha,VŠ,Outer District Families,5,7,5,5,8
+512,44,Žena,Severovýchod,SŠ s maturitou,Senior Residents,1,4,5,6,7
+513,18,Žena,Jihovýchod,VŠ,Senior Residents,4,4,7,1,10
+514,44,Muž,Severozápad,SŠ s maturitou,Outer District Families,8,3,6,4,3
+515,57,Muž,Jihozápad,SŠ s maturitou,Transit Core,7,3,6,3,7
+516,39,Muž,Jihozápad,SŠ s maturitou,Transit Core,5,4,7,2,3
+517,20,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,8,3,7,5,8
+518,38,Muž,Severozápad,VŠ,Young Urban,6,5,4,7,7
+519,28,Muž,Střední Čechy,VŠ,Daily Drivers,7,5,4,5,5
+520,41,Muž,Jihozápad,VŠ,Young Urban,4,8,5,5,8
+521,38,Muž,Jihozápad,SŠ s maturitou,Transit Core,6,3,6,4,8
+522,55,Žena,Moravskoslezsko,VŠ,Transit Core,5,6,6,6,8
+523,29,Žena,Severovýchod,ZŠ / bez maturity,Senior Residents,6,6,6,6,8
+524,50,Muž,Severozápad,VŠ,Outer District Families,5,10,4,1,7
+525,37,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,5,2,6,4,7
+526,49,Žena,Jihovýchod,ZŠ / bez maturity,Young Urban,2,7,2,4,6
+527,42,Žena,Severovýchod,SŠ s maturitou,Transit Core,6,7,2,4,6
+528,37,Žena,Jihovýchod,VŠ,Outer District Families,6,9,5,7,3
+529,61,Žena,Moravskoslezsko,SŠ s maturitou,Transit Core,7,5,7,6,7
+530,28,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,5,6,7,4,4
+531,24,Muž,Praha,VŠ,Transit Core,8,5,4,6,6
+532,46,Muž,Praha,ZŠ / bez maturity,Senior Residents,5,9,7,7,4
+533,24,Žena,Jihozápad,VŠ,Young Urban,7,9,1,7,4
+534,38,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,6,6,5,4,5
+535,25,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,7,4,9,5,4
+536,46,Žena,Praha,VŠ,Senior Residents,4,6,4,9,3
+537,54,Žena,Praha,VŠ,Senior Residents,7,6,6,10,5
+538,51,Muž,Střední Čechy,VŠ,Transit Core,3,2,5,9,4
+539,23,Muž,Jihovýchod,SŠ s maturitou,Young Urban,10,7,4,3,4
+540,36,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,5,5,8,4,8
+541,46,Žena,Jihovýchod,VŠ,Senior Residents,8,10,6,6,5
+542,34,Muž,Jihovýchod,SŠ s maturitou,Young Urban,8,8,5,5,3
+543,65,Muž,Praha,ZŠ / bez maturity,Senior Residents,7,7,4,3,5
+544,31,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,5,8,8,2,3
+545,53,Žena,Střední Čechy,SŠ s maturitou,Young Urban,5,6,8,4,3
+546,33,Muž,Moravskoslezsko,SŠ s maturitou,Senior Residents,4,7,6,5,6
+547,41,Žena,Moravskoslezsko,VŠ,Outer District Families,3,7,8,4,10
+548,51,Muž,Jihozápad,ZŠ / bez maturity,Daily Drivers,5,5,8,4,5
+549,38,Muž,Střední Čechy,VŠ,Outer District Families,5,6,7,5,8
+550,31,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,9,5,4,5,6
+551,32,Muž,Střední Čechy,VŠ,Young Urban,4,6,1,6,4
+552,42,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,3,6,6,3,6
+553,58,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,7,9,4,4,10
+554,24,Muž,Moravskoslezsko,ZŠ / bez maturity,Transit Core,5,6,6,10,7
+555,20,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,6,5,7,3,6
+556,44,Muž,Praha,SŠ s maturitou,Senior Residents,8,10,3,4,4
+557,36,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,6,7,7,3,5
+558,47,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,9,4,8,6,7
+559,37,Muž,Praha,VŠ,Daily Drivers,9,4,6,6,8
+560,41,Žena,Severovýchod,SŠ s maturitou,Senior Residents,7,7,3,6,7
+561,42,Muž,Střední Čechy,SŠ s maturitou,Daily Drivers,4,4,5,5,7
+562,32,Muž,Severozápad,VŠ,Senior Residents,5,4,7,6,5
+563,46,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,5,4,6,2,5
+564,18,Muž,Praha,ZŠ / bez maturity,Outer District Families,9,4,6,8,6
+565,59,Muž,Střední Čechy,ZŠ / bez maturity,Young Urban,9,4,8,8,8
+566,43,Muž,Střední Čechy,VŠ,Transit Core,7,4,5,6,5
+567,50,Žena,Severozápad,SŠ s maturitou,Daily Drivers,6,8,6,6,3
+568,74,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,9,4,4,2,7
+569,52,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,7,9,8,9,10
+570,49,Muž,Střední Čechy,ZŠ / bez maturity,Daily Drivers,5,6,7,4,4
+571,52,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,7,3,6,6,6
+572,49,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,4,2,8,6,5
+573,41,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,5,5,7,8,6
+574,35,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,6,4,4,6,4
+575,19,Muž,Jihovýchod,VŠ,Senior Residents,1,4,5,5,7
+576,36,Muž,Severozápad,SŠ s maturitou,Senior Residents,5,7,6,3,7
+577,46,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,3,5,5,8,3
+578,36,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,5,3,5,7,5
+579,34,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,6,7,3,4,3
+580,30,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,5,5,5,4,7
+581,27,Muž,Jihozápad,SŠ s maturitou,Senior Residents,7,6,6,7,5
+582,30,Muž,Jihozápad,SŠ s maturitou,Daily Drivers,6,5,5,5,6
+583,31,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,7,6,7,4,5
+584,68,Muž,Severovýchod,SŠ s maturitou,Daily Drivers,2,6,6,2,10
+585,34,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,3,8,6,2,5
+586,31,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,7,9,5,3,8
+587,64,Žena,Jihozápad,SŠ s maturitou,Young Urban,6,1,1,5,4
+588,66,Muž,Praha,VŠ,Daily Drivers,2,7,6,7,6
+589,35,Muž,Jihozápad,SŠ s maturitou,Daily Drivers,6,3,5,6,1
+590,44,Muž,Jihozápad,SŠ s maturitou,Outer District Families,6,4,4,3,5
+591,24,Žena,Jihozápad,VŠ,Daily Drivers,3,7,6,5,5
+592,71,Muž,Střední Čechy,ZŠ / bez maturity,Transit Core,5,3,10,6,3
+593,48,Žena,Severovýchod,VŠ,Transit Core,5,6,7,3,8
+594,20,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,5,7,6,6,6
+595,53,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,5,3,7,3,9
+596,60,Žena,Severozápad,VŠ,Senior Residents,7,2,4,4,7
+597,58,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,4,7,5,8,6
+598,36,Muž,Střední Čechy,VŠ,Young Urban,3,9,6,1,7
+599,37,Muž,Střední Čechy,ZŠ / bez maturity,Outer District Families,6,8,7,8,5
+600,28,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,5,8,10,4,8
+601,52,Žena,Severovýchod,SŠ s maturitou,Young Urban,10,9,4,7,5
+602,56,Žena,Severovýchod,VŠ,Daily Drivers,9,6,6,5,5
+603,34,Žena,Jihovýchod,ZŠ / bez maturity,Young Urban,5,8,7,7,5
+604,24,Muž,Jihozápad,VŠ,Daily Drivers,5,6,5,6,7
+605,51,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,6,4,7,9,10
+606,28,Muž,Jihovýchod,VŠ,Transit Core,6,6,4,5,6
+607,34,Žena,Severovýchod,ZŠ / bez maturity,Outer District Families,4,2,6,2,6
+608,50,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,5,7,6,2,4
+609,60,Muž,Severozápad,VŠ,Transit Core,3,5,6,6,5
+610,40,Muž,Severozápad,SŠ s maturitou,Outer District Families,2,10,8,5,6
+611,28,Muž,Severozápad,SŠ s maturitou,Transit Core,7,5,4,6,5
+612,52,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,4,10,6,7,7
+613,34,Žena,Praha,SŠ s maturitou,Outer District Families,6,6,6,5,7
+614,24,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,8,4,5,10,8
+615,53,Muž,Praha,SŠ s maturitou,Transit Core,6,4,8,6,5
+616,18,Muž,Jihozápad,VŠ,Senior Residents,5,6,9,8,5
+617,22,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,5,5,1,6,6
+618,35,Žena,Severovýchod,SŠ s maturitou,Young Urban,6,6,7,6,7
+619,18,Žena,Severozápad,SŠ s maturitou,Young Urban,5,7,5,4,8
+620,35,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,6,5,7,1,7
+621,34,Muž,Jihozápad,VŠ,Senior Residents,3,8,8,3,8
+622,63,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,8,7,8,5,5
+623,19,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,7,7,3,2,4
+624,56,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,6,5,5,7,5
+625,67,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,8,5,9,6,4
+626,27,Žena,Severozápad,SŠ s maturitou,Senior Residents,8,5,6,7,6
+627,33,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,6,6,8,6,7
+628,53,Žena,Severozápad,VŠ,Senior Residents,4,6,7,6,7
+629,24,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,8,7,8,8,6
+630,32,Žena,Severozápad,SŠ s maturitou,Outer District Families,6,6,3,6,3
+631,56,Muž,Severovýchod,SŠ s maturitou,Transit Core,10,7,6,7,5
+632,36,Žena,Severozápad,SŠ s maturitou,Daily Drivers,7,5,8,5,7
+633,48,Žena,Jihovýchod,SŠ s maturitou,Young Urban,8,7,6,6,5
+634,56,Muž,Severovýchod,ZŠ / bez maturity,Transit Core,4,6,5,4,7
+635,32,Muž,Jihozápad,SŠ s maturitou,Senior Residents,5,8,6,3,6
+636,18,Žena,Jihovýchod,SŠ s maturitou,Transit Core,6,7,4,4,7
+637,36,Muž,Jihozápad,SŠ s maturitou,Young Urban,7,7,8,7,1
+638,49,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,5,7,8,5,2
+639,41,Muž,Severozápad,VŠ,Daily Drivers,6,3,9,3,8
+640,59,Muž,Jihovýchod,VŠ,Outer District Families,5,5,7,4,5
+641,44,Muž,Severozápad,SŠ s maturitou,Daily Drivers,6,8,4,3,10
+642,65,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,1,10,8,6,5
+643,69,Muž,Severozápad,ZŠ / bez maturity,Senior Residents,5,7,6,4,5
+644,64,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,5,7,7,8,7
+645,43,Muž,Praha,ZŠ / bez maturity,Outer District Families,3,7,5,7,6
+646,53,Muž,Praha,SŠ s maturitou,Senior Residents,7,7,8,5,9
+647,53,Žena,Jihovýchod,VŠ,Daily Drivers,3,8,5,6,1
+648,35,Muž,Jihovýchod,ZŠ / bez maturity,Senior Residents,6,4,5,6,9
+649,49,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,8,5,6,4,7
+650,18,Muž,Jihozápad,SŠ s maturitou,Young Urban,7,2,6,4,5
+651,68,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,4,6,6,3,6
+652,47,Žena,Jihozápad,VŠ,Outer District Families,3,4,9,7,5
+653,44,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,6,6,4,6,2
+654,33,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,8,5,1,5,1
+655,52,Žena,Praha,ZŠ / bez maturity,Transit Core,6,5,5,6,8
+656,30,Muž,Jihovýchod,VŠ,Senior Residents,5,4,7,4,4
+657,41,Muž,Praha,ZŠ / bez maturity,Outer District Families,8,8,7,7,2
+658,56,Muž,Jihovýchod,SŠ s maturitou,Transit Core,5,6,7,8,4
+659,74,Žena,Severozápad,SŠ s maturitou,Daily Drivers,4,3,7,8,4
+660,45,Žena,Jihovýchod,SŠ s maturitou,Young Urban,1,10,3,9,8
+661,30,Muž,Praha,VŠ,Young Urban,2,6,7,5,3
+662,42,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,6,8,6,6,1
+663,47,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,5,10,4,8,4
+664,40,Žena,Střední Čechy,VŠ,Senior Residents,4,6,5,7,6
+665,41,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,6,6,6,6,9
+666,25,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,8,10,7,4,1
+667,42,Žena,Jihozápad,ZŠ / bez maturity,Outer District Families,7,7,6,5,5
+668,34,Muž,Severovýchod,ZŠ / bez maturity,Senior Residents,6,3,7,6,8
+669,40,Muž,Jihozápad,VŠ,Young Urban,5,5,6,3,6
+670,46,Muž,Severovýchod,ZŠ / bez maturity,Transit Core,4,6,5,3,5
+671,32,Žena,Severovýchod,SŠ s maturitou,Senior Residents,4,8,4,2,6
+672,39,Muž,Severovýchod,SŠ s maturitou,Outer District Families,5,7,6,4,8
+673,48,Žena,Jihovýchod,VŠ,Daily Drivers,1,7,8,3,4
+674,37,Žena,Praha,SŠ s maturitou,Young Urban,6,8,3,6,3
+675,73,Muž,Severozápad,SŠ s maturitou,Daily Drivers,7,5,4,6,2
+676,38,Žena,Praha,VŠ,Young Urban,5,5,4,4,4
+677,52,Žena,Severozápad,SŠ s maturitou,Young Urban,7,6,3,6,6
+678,34,Žena,Jihovýchod,VŠ,Young Urban,8,6,6,2,9
+679,35,Žena,Jihovýchod,SŠ s maturitou,Young Urban,6,8,6,6,3
+680,37,Muž,Severovýchod,VŠ,Senior Residents,8,7,2,4,5
+681,59,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,4,8,7,8,7
+682,43,Žena,Severozápad,ZŠ / bez maturity,Senior Residents,5,7,6,5,9
+683,30,Žena,Severozápad,SŠ s maturitou,Outer District Families,2,3,5,2,7
+684,46,Muž,Praha,SŠ s maturitou,Young Urban,4,2,3,6,6
+685,25,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,4,5,6,5,9
+686,60,Muž,Severozápad,SŠ s maturitou,Senior Residents,8,7,5,1,9
+687,50,Muž,Severovýchod,SŠ s maturitou,Outer District Families,5,5,7,6,7
+688,28,Žena,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,4,6,7,6,8
+689,35,Muž,Střední Čechy,ZŠ / bez maturity,Daily Drivers,5,3,4,8,6
+690,38,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,5,7,5,4,5
+691,38,Muž,Severovýchod,VŠ,Senior Residents,5,6,4,2,5
+692,44,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,3,9,3,10,8
+693,48,Žena,Praha,ZŠ / bez maturity,Daily Drivers,4,10,8,6,7
+694,74,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,7,1,8,4,7
+695,49,Žena,Severovýchod,VŠ,Senior Residents,5,6,5,5,9
+696,37,Žena,Praha,SŠ s maturitou,Daily Drivers,4,9,5,7,2
+697,51,Muž,Střední Čechy,ZŠ / bez maturity,Daily Drivers,8,5,5,3,9
+698,37,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,4,9,4,8,6
+699,45,Žena,Praha,VŠ,Outer District Families,6,8,7,4,5
+700,26,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,9,8,5,8,4
+701,33,Žena,Severozápad,SŠ s maturitou,Outer District Families,5,9,4,5,6
+702,41,Muž,Severozápad,SŠ s maturitou,Young Urban,5,4,5,2,6
+703,56,Muž,Jihozápad,VŠ,Senior Residents,3,9,3,3,5
+704,49,Muž,Severozápad,VŠ,Transit Core,8,4,8,4,6
+705,21,Žena,Jihozápad,SŠ s maturitou,Senior Residents,6,6,7,4,2
+706,46,Žena,Moravskoslezsko,VŠ,Transit Core,10,5,5,7,4
+707,59,Žena,Praha,ZŠ / bez maturity,Daily Drivers,6,8,8,6,4
+708,35,Žena,Moravskoslezsko,VŠ,Transit Core,4,6,5,6,6
+709,67,Muž,Severovýchod,SŠ s maturitou,Transit Core,2,7,5,7,6
+710,54,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,4,7,7,6,10
+711,33,Muž,Střední Čechy,VŠ,Senior Residents,4,8,2,4,3
+712,50,Žena,Jihozápad,SŠ s maturitou,Young Urban,5,5,4,5,6
+713,32,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,4,4,6,5,5
+714,24,Muž,Střední Čechy,VŠ,Outer District Families,3,5,6,4,4
+715,35,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,6,5,7,2,5
+716,46,Muž,Praha,SŠ s maturitou,Transit Core,5,5,5,5,5
+717,46,Muž,Praha,VŠ,Transit Core,2,6,8,7,6
+718,41,Žena,Praha,ZŠ / bez maturity,Outer District Families,5,5,5,4,4
+719,42,Žena,Severozápad,VŠ,Outer District Families,5,6,2,3,10
+720,23,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,4,9,6,6,5
+721,18,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,4,6,4,4,6
+722,65,Žena,Severozápad,VŠ,Young Urban,9,2,8,6,8
+723,48,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,6,4,4,7,8
+724,56,Žena,Severozápad,ZŠ / bez maturity,Outer District Families,7,10,8,7,2
+725,30,Muž,Jihozápad,SŠ s maturitou,Outer District Families,6,5,7,4,4
+726,23,Muž,Střední Čechy,VŠ,Daily Drivers,7,6,7,5,4
+727,47,Muž,Severozápad,VŠ,Young Urban,4,6,7,6,9
+728,18,Žena,Severovýchod,VŠ,Senior Residents,3,10,6,3,9
+729,50,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,7,6,4,7,5
+730,49,Žena,Severozápad,SŠ s maturitou,Senior Residents,5,7,10,6,7
+731,29,Muž,Jihozápad,ZŠ / bez maturity,Outer District Families,7,5,5,4,8
+732,48,Žena,Jihovýchod,VŠ,Transit Core,6,7,3,4,1
+733,51,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,5,1,5,5,10
+734,18,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,5,8,5,6,6
+735,54,Žena,Severozápad,SŠ s maturitou,Daily Drivers,5,3,4,6,6
+736,32,Žena,Praha,ZŠ / bez maturity,Daily Drivers,6,4,6,9,4
+737,37,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,5,4,6,3,5
+738,65,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,3,7,6,7,3
+739,64,Žena,Severozápad,ZŠ / bez maturity,Young Urban,4,6,8,5,4
+740,59,Žena,Severozápad,VŠ,Young Urban,4,5,3,6,5
+741,30,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,7,6,7,9,5
+742,24,Muž,Severozápad,SŠ s maturitou,Transit Core,5,9,7,2,4
+743,37,Žena,Praha,ZŠ / bez maturity,Transit Core,4,4,7,6,4
+744,32,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,6,4,6,6,8
+745,31,Žena,Střední Čechy,SŠ s maturitou,Transit Core,5,10,6,8,1
+746,32,Muž,Severozápad,VŠ,Transit Core,10,2,5,6,5
+747,45,Žena,Jihozápad,SŠ s maturitou,Senior Residents,7,4,6,9,7
+748,26,Žena,Severozápad,ZŠ / bez maturity,Outer District Families,4,9,7,1,1
+749,18,Muž,Praha,SŠ s maturitou,Senior Residents,4,7,7,10,4
+750,41,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,10,3,10,6,3
+751,46,Žena,Severozápad,ZŠ / bez maturity,Young Urban,6,5,2,6,6
+752,48,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,8,4,2,3,6
+753,36,Žena,Jihovýchod,VŠ,Transit Core,8,4,9,5,2
+754,20,Žena,Praha,VŠ,Transit Core,5,3,6,5,7
+755,44,Žena,Moravskoslezsko,VŠ,Outer District Families,5,6,2,3,3
+756,32,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,6,6,7,5,3
+757,51,Muž,Jihozápad,VŠ,Young Urban,10,4,4,6,7
+758,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,6,9,3,5,5
+759,24,Žena,Jihozápad,ZŠ / bez maturity,Daily Drivers,4,6,9,3,4
+760,55,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,4,6,3,9,5
+761,32,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,4,5,4,4,6
+762,47,Žena,Jihovýchod,ZŠ / bez maturity,Outer District Families,3,6,4,8,9
+763,52,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,3,9,2,8,3
+764,48,Žena,Praha,SŠ s maturitou,Senior Residents,4,4,4,6,7
+765,29,Žena,Moravskoslezsko,VŠ,Senior Residents,7,7,5,7,8
+766,55,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,5,5,5,4,3
+767,43,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,6,9,7,7,6
+768,42,Žena,Střední Čechy,VŠ,Senior Residents,4,6,6,3,7
+769,34,Žena,Jihozápad,VŠ,Young Urban,8,6,7,4,7
+770,63,Žena,Severovýchod,SŠ s maturitou,Outer District Families,4,7,10,7,1
+771,45,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,9,4,7,2,4
+772,53,Muž,Severozápad,VŠ,Daily Drivers,8,6,4,3,8
+773,44,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,1,3,5,5,9
+774,22,Žena,Jihovýchod,ZŠ / bez maturity,Outer District Families,5,4,8,8,4
+775,34,Žena,Jihozápad,ZŠ / bez maturity,Senior Residents,9,5,4,4,3
+776,52,Muž,Jihozápad,SŠ s maturitou,Young Urban,5,4,6,2,4
+777,60,Žena,Severozápad,ZŠ / bez maturity,Outer District Families,5,3,6,4,4
+778,60,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,6,8,6,8,6
+779,54,Žena,Jihozápad,VŠ,Senior Residents,10,10,5,6,8
+780,43,Žena,Jihozápad,SŠ s maturitou,Senior Residents,6,5,3,7,5
+781,64,Žena,Severovýchod,SŠ s maturitou,Senior Residents,6,4,8,6,6
+782,52,Muž,Jihovýchod,VŠ,Senior Residents,7,6,7,5,3
+783,47,Žena,Střední Čechy,SŠ s maturitou,Transit Core,5,7,6,4,9
+784,55,Žena,Severozápad,SŠ s maturitou,Senior Residents,4,8,7,9,9
+785,70,Muž,Moravskoslezsko,VŠ,Senior Residents,8,5,7,4,5
+786,44,Žena,Jihovýchod,ZŠ / bez maturity,Outer District Families,9,6,6,6,8
+787,49,Muž,Jihovýchod,SŠ s maturitou,Young Urban,6,4,5,4,8
+788,48,Žena,Jihozápad,ZŠ / bez maturity,Young Urban,7,8,5,3,5
+789,32,Žena,Střední Čechy,VŠ,Outer District Families,6,7,3,6,7
+790,74,Žena,Praha,VŠ,Transit Core,6,6,4,6,4
+791,55,Muž,Střední Čechy,VŠ,Senior Residents,4,5,6,6,6
+792,26,Muž,Praha,VŠ,Senior Residents,10,7,6,1,4
+793,23,Muž,Praha,SŠ s maturitou,Young Urban,5,3,6,6,8
+794,62,Žena,Střední Čechy,SŠ s maturitou,Young Urban,6,5,5,5,2
+795,36,Žena,Moravskoslezsko,SŠ s maturitou,Outer District Families,7,7,7,4,7
+796,47,Žena,Severovýchod,SŠ s maturitou,Senior Residents,5,9,6,7,6
+797,19,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,5,2,6,7,6
+798,50,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,6,5,3,5,7
+799,32,Muž,Praha,SŠ s maturitou,Young Urban,7,2,4,6,7
+800,56,Muž,Praha,SŠ s maturitou,Daily Drivers,3,4,7,6,7
+801,18,Žena,Severovýchod,SŠ s maturitou,Senior Residents,3,8,3,5,5
+802,44,Muž,Moravskoslezsko,ZŠ / bez maturity,Transit Core,3,6,5,6,6
+803,43,Muž,Severovýchod,VŠ,Senior Residents,8,6,4,6,5
+804,32,Muž,Jihozápad,VŠ,Transit Core,7,3,7,7,10
+805,31,Žena,Severozápad,VŠ,Daily Drivers,7,1,7,4,5
+806,28,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,7,7,10,4,7
+807,40,Žena,Moravskoslezsko,ZŠ / bez maturity,Outer District Families,5,8,3,5,8
+808,58,Muž,Jihovýchod,ZŠ / bez maturity,Senior Residents,4,8,4,4,7
+809,31,Muž,Jihozápad,VŠ,Transit Core,10,5,5,4,2
+810,52,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,7,5,7,5,9
+811,29,Žena,Střední Čechy,VŠ,Daily Drivers,2,4,4,5,7
+812,33,Muž,Praha,ZŠ / bez maturity,Senior Residents,8,5,4,6,9
+813,37,Žena,Jihozápad,VŠ,Daily Drivers,2,10,3,6,9
+814,51,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,3,5,7,9,8
+815,61,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,5,6,6,5,5
+816,58,Žena,Střední Čechy,VŠ,Transit Core,5,5,5,7,3
+817,27,Muž,Praha,VŠ,Outer District Families,6,7,5,4,7
+818,35,Žena,Severovýchod,VŠ,Young Urban,7,4,4,4,6
+819,38,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,9,3,5,5,8
+820,61,Muž,Střední Čechy,SŠ s maturitou,Transit Core,6,5,5,5,5
+821,33,Muž,Severovýchod,SŠ s maturitou,Daily Drivers,3,8,3,4,7
+822,47,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,7,3,7,4,4
+823,64,Žena,Jihozápad,VŠ,Transit Core,8,2,6,5,6
+824,44,Žena,Severozápad,ZŠ / bez maturity,Young Urban,8,6,9,6,7
+825,50,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,7,4,4,7,2
+826,18,Muž,Severozápad,SŠ s maturitou,Senior Residents,3,9,6,6,7
+827,30,Muž,Jihozápad,SŠ s maturitou,Senior Residents,5,9,4,6,5
+828,53,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,6,2,5,3,8
+829,38,Muž,Střední Čechy,ZŠ / bez maturity,Senior Residents,1,9,3,4,7
+830,18,Žena,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,10,4,6,5,8
+831,58,Žena,Moravskoslezsko,SŠ s maturitou,Daily Drivers,6,5,7,7,5
+832,43,Muž,Jihozápad,ZŠ / bez maturity,Senior Residents,3,7,5,6,5
+833,33,Žena,Jihozápad,VŠ,Senior Residents,5,5,6,4,4
+834,39,Muž,Praha,SŠ s maturitou,Young Urban,4,3,7,5,6
+835,58,Muž,Jihovýchod,VŠ,Senior Residents,7,9,4,8,4
+836,33,Žena,Severozápad,ZŠ / bez maturity,Young Urban,3,6,5,6,4
+837,43,Muž,Praha,SŠ s maturitou,Transit Core,4,7,5,6,7
+838,35,Muž,Praha,SŠ s maturitou,Outer District Families,8,7,5,5,6
+839,41,Žena,Praha,VŠ,Young Urban,7,9,5,5,5
+840,58,Muž,Praha,SŠ s maturitou,Outer District Families,8,4,6,7,7
+841,52,Žena,Moravskoslezsko,VŠ,Outer District Families,4,7,5,7,9
+842,31,Žena,Severovýchod,VŠ,Young Urban,4,6,5,8,5
+843,49,Muž,Jihozápad,SŠ s maturitou,Outer District Families,5,5,6,7,5
+844,18,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,5,7,7,8,8
+845,62,Muž,Severovýchod,ZŠ / bez maturity,Transit Core,5,6,6,4,6
+846,48,Žena,Praha,SŠ s maturitou,Daily Drivers,5,5,6,6,4
+847,60,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,4,6,5,6,4
+848,53,Muž,Moravskoslezsko,VŠ,Daily Drivers,6,3,4,9,6
+849,53,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,5,7,4,5,7
+850,67,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,6,6,8,5,8
+851,34,Žena,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,5,9,7,6,5
+852,26,Žena,Moravskoslezsko,SŠ s maturitou,Outer District Families,7,9,8,4,8
+853,50,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,5,8,8,6,10
+854,61,Muž,Severovýchod,VŠ,Young Urban,8,5,3,8,4
+855,23,Žena,Severozápad,ZŠ / bez maturity,Young Urban,6,9,3,2,5
+856,35,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,3,6,7,6,5
+857,18,Žena,Moravskoslezsko,VŠ,Daily Drivers,6,5,5,3,5
+858,40,Muž,Jihozápad,VŠ,Transit Core,5,2,4,10,5
+859,37,Žena,Severozápad,ZŠ / bez maturity,Senior Residents,4,2,5,5,2
+860,50,Žena,Praha,SŠ s maturitou,Young Urban,6,5,5,5,6
+861,43,Žena,Severozápad,VŠ,Transit Core,5,3,6,5,2
+862,39,Muž,Severozápad,VŠ,Transit Core,7,5,5,9,4
+863,39,Žena,Praha,VŠ,Outer District Families,5,7,1,7,4
+864,18,Muž,Praha,VŠ,Young Urban,4,7,5,4,6
+865,30,Muž,Praha,SŠ s maturitou,Transit Core,5,6,5,8,4
+866,44,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,2,5,5,5,6
+867,74,Muž,Severovýchod,SŠ s maturitou,Transit Core,7,7,6,5,8
+868,62,Žena,Jihovýchod,ZŠ / bez maturity,Young Urban,7,5,7,8,8
+869,27,Žena,Jihozápad,VŠ,Daily Drivers,6,3,4,6,6
+870,48,Žena,Praha,SŠ s maturitou,Young Urban,6,9,8,4,6
+871,46,Muž,Severovýchod,VŠ,Outer District Families,3,7,5,1,10
+872,50,Muž,Praha,SŠ s maturitou,Young Urban,6,7,8,7,7
+873,55,Muž,Praha,ZŠ / bez maturity,Transit Core,2,6,6,4,7
+874,42,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,6,4,4,5,6
+875,51,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,3,6,3,1,9
+876,68,Muž,Severovýchod,SŠ s maturitou,Senior Residents,4,4,10,5,4
+877,27,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,5,7,8,3,5
+878,56,Žena,Jihozápad,SŠ s maturitou,Senior Residents,8,9,7,3,8
+879,32,Žena,Severozápad,VŠ,Senior Residents,7,5,10,6,3
+880,26,Žena,Praha,ZŠ / bez maturity,Senior Residents,1,5,2,3,10
+881,22,Muž,Střední Čechy,ZŠ / bez maturity,Outer District Families,5,5,3,7,5
+882,35,Muž,Severozápad,VŠ,Daily Drivers,7,4,3,1,5
+883,34,Žena,Jihovýchod,ZŠ / bez maturity,Young Urban,5,7,6,7,4
+884,24,Žena,Praha,VŠ,Senior Residents,3,10,9,4,10
+885,33,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,6,3,7,6,6
+886,25,Muž,Střední Čechy,SŠ s maturitou,Young Urban,4,7,4,6,8
+887,56,Muž,Praha,ZŠ / bez maturity,Daily Drivers,7,6,7,5,8
+888,71,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,8,8,6,7,4
+889,47,Žena,Moravskoslezsko,SŠ s maturitou,Daily Drivers,9,7,7,4,1
+890,50,Žena,Severozápad,VŠ,Senior Residents,2,7,7,6,3
+891,45,Muž,Střední Čechy,VŠ,Transit Core,6,5,6,6,7
+892,54,Muž,Střední Čechy,SŠ s maturitou,Transit Core,4,7,3,6,7
+893,57,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,5,6,5,6,3
+894,53,Muž,Praha,SŠ s maturitou,Transit Core,7,7,7,2,5
+895,42,Muž,Praha,SŠ s maturitou,Young Urban,4,8,8,6,2
+896,41,Muž,Střední Čechy,VŠ,Senior Residents,7,4,5,7,4
+897,40,Žena,Severozápad,SŠ s maturitou,Senior Residents,2,4,2,1,4
+898,42,Muž,Jihozápad,SŠ s maturitou,Daily Drivers,7,6,9,8,6
+899,36,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,5,2,7,8,5
+900,42,Muž,Praha,VŠ,Young Urban,6,7,7,3,5
+901,47,Muž,Severovýchod,VŠ,Young Urban,5,7,6,9,5
+902,21,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,7,7,6,7,3
+903,59,Žena,Severovýchod,VŠ,Senior Residents,5,7,2,2,5
+904,21,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,7,4,7,5,5
+905,43,Muž,Praha,VŠ,Young Urban,7,1,5,3,6
+906,41,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,2,4,4,8,4
+907,50,Žena,Praha,SŠ s maturitou,Transit Core,6,7,10,6,7
+908,53,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,5,8,7,5,6
+909,29,Žena,Jihozápad,SŠ s maturitou,Outer District Families,8,6,8,5,4
+910,34,Žena,Moravskoslezsko,VŠ,Daily Drivers,7,5,7,1,5
+911,34,Žena,Střední Čechy,VŠ,Outer District Families,2,7,4,5,5
+912,48,Muž,Jihovýchod,VŠ,Daily Drivers,6,2,7,4,7
+913,30,Muž,Praha,VŠ,Outer District Families,8,5,8,4,4
+914,40,Žena,Severovýchod,SŠ s maturitou,Senior Residents,2,5,6,6,4
+915,34,Žena,Praha,SŠ s maturitou,Outer District Families,7,9,5,3,7
+916,55,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,6,4,9,4,8
+917,49,Muž,Jihozápad,SŠ s maturitou,Daily Drivers,6,7,5,1,3
+918,32,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,5,8,6,5,2
+919,30,Muž,Střední Čechy,SŠ s maturitou,Young Urban,5,9,6,4,5
+920,28,Žena,Jihozápad,SŠ s maturitou,Outer District Families,8,5,4,9,4
+921,43,Muž,Moravskoslezsko,VŠ,Daily Drivers,2,1,8,4,6
+922,36,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,6,8,3,7,1
+923,37,Muž,Střední Čechy,ZŠ / bez maturity,Young Urban,5,6,3,8,6
+924,30,Žena,Severozápad,ZŠ / bez maturity,Young Urban,7,9,4,4,6
+925,42,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,6,8,7,3,10
+926,25,Muž,Praha,ZŠ / bez maturity,Transit Core,6,7,6,7,6
+927,41,Muž,Praha,ZŠ / bez maturity,Outer District Families,8,4,6,5,8
+928,55,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,10,9,3,3,9
+929,52,Muž,Severozápad,VŠ,Daily Drivers,2,5,6,1,4
+930,45,Muž,Jihozápad,SŠ s maturitou,Young Urban,7,7,9,4,7
+931,35,Muž,Severovýchod,VŠ,Senior Residents,7,10,6,9,6
+932,30,Muž,Jihozápad,SŠ s maturitou,Senior Residents,6,6,4,6,5
+933,31,Žena,Praha,SŠ s maturitou,Daily Drivers,5,4,5,2,5
+934,30,Žena,Severozápad,SŠ s maturitou,Daily Drivers,7,6,7,5,5
+935,42,Žena,Střední Čechy,SŠ s maturitou,Young Urban,8,2,9,6,8
+936,34,Muž,Jihovýchod,ZŠ / bez maturity,Senior Residents,4,7,6,4,8
+937,37,Muž,Střední Čechy,SŠ s maturitou,Young Urban,8,7,4,6,2
+938,74,Žena,Severovýchod,SŠ s maturitou,Young Urban,3,5,9,4,10
+939,36,Muž,Moravskoslezsko,ZŠ / bez maturity,Transit Core,3,10,3,10,8
+940,54,Muž,Moravskoslezsko,ZŠ / bez maturity,Transit Core,7,6,5,4,8
+941,28,Muž,Severovýchod,VŠ,Outer District Families,5,6,4,8,7
+942,26,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,3,5,7,7,8
+943,23,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,8,8,7,3,3
+944,47,Muž,Praha,ZŠ / bez maturity,Young Urban,5,6,5,2,9
+945,54,Muž,Jihozápad,SŠ s maturitou,Senior Residents,4,9,7,6,6
+946,49,Muž,Severovýchod,VŠ,Young Urban,8,3,5,4,5
+947,54,Žena,Střední Čechy,VŠ,Outer District Families,7,6,8,7,6
+948,54,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,2,9,7,9,5
+949,45,Žena,Moravskoslezsko,SŠ s maturitou,Daily Drivers,8,5,7,8,5
+950,26,Muž,Severozápad,SŠ s maturitou,Outer District Families,3,8,4,9,2
+951,39,Žena,Severozápad,SŠ s maturitou,Young Urban,10,7,4,4,4
+952,35,Muž,Praha,SŠ s maturitou,Young Urban,5,5,9,4,2
+953,65,Muž,Střední Čechy,SŠ s maturitou,Transit Core,8,9,2,4,6
+954,72,Muž,Střední Čechy,SŠ s maturitou,Young Urban,6,6,6,4,6
+955,48,Žena,Praha,SŠ s maturitou,Young Urban,7,6,9,2,10
+956,61,Muž,Střední Čechy,SŠ s maturitou,Young Urban,3,7,4,7,6
+957,41,Žena,Praha,ZŠ / bez maturity,Daily Drivers,5,7,6,3,10
+958,45,Žena,Moravskoslezsko,VŠ,Daily Drivers,5,7,6,4,6
+959,49,Muž,Severozápad,SŠ s maturitou,Transit Core,4,6,10,7,5
+960,22,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,5,3,3,6,3
+961,42,Žena,Jihovýchod,VŠ,Senior Residents,8,6,7,8,4
+962,42,Muž,Střední Čechy,SŠ s maturitou,Young Urban,6,6,4,5,4
+963,54,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,3,4,8,9,7
+964,34,Žena,Střední Čechy,VŠ,Outer District Families,5,3,4,5,7
+965,41,Muž,Severozápad,ZŠ / bez maturity,Outer District Families,10,4,4,8,6
+966,47,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,6,7,5,4,3
+967,25,Žena,Severovýchod,SŠ s maturitou,Outer District Families,6,8,8,9,6
+968,35,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,8,5,4,6,6
+969,33,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,4,7,5,1,9
+970,47,Muž,Střední Čechy,SŠ s maturitou,Transit Core,3,6,6,5,1
+971,35,Muž,Severovýchod,ZŠ / bez maturity,Senior Residents,5,7,5,9,10
+972,37,Muž,Střední Čechy,VŠ,Young Urban,4,9,3,8,4
+973,38,Muž,Praha,ZŠ / bez maturity,Young Urban,6,3,2,7,4
+974,21,Muž,Moravskoslezsko,SŠ s maturitou,Senior Residents,9,9,7,8,7
+975,23,Žena,Jihozápad,SŠ s maturitou,Transit Core,5,9,9,7,6
+976,43,Muž,Jihozápad,SŠ s maturitou,Outer District Families,6,5,4,9,5
+977,29,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,7,9,8,6,7
+978,43,Žena,Jihovýchod,ZŠ / bez maturity,Outer District Families,5,3,3,3,8
+979,46,Žena,Jihovýchod,ZŠ / bez maturity,Outer District Families,4,3,4,2,5
+980,25,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,6,6,4,6,4
+981,47,Muž,Jihozápad,SŠ s maturitou,Senior Residents,7,7,7,8,4
+982,35,Žena,Střední Čechy,SŠ s maturitou,Young Urban,8,7,7,6,6
+983,43,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,7,4,6,5,7
+984,18,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,7,6,8,5,5
+985,51,Muž,Střední Čechy,SŠ s maturitou,Young Urban,8,9,8,7,10
+986,18,Žena,Praha,VŠ,Young Urban,10,3,7,7,4
+987,21,Muž,Severovýchod,VŠ,Daily Drivers,6,6,5,9,10
+988,55,Muž,Střední Čechy,VŠ,Senior Residents,3,6,9,5,6
+989,33,Muž,Střední Čechy,ZŠ / bez maturity,Daily Drivers,7,4,6,3,10
+990,39,Muž,Střední Čechy,ZŠ / bez maturity,Outer District Families,7,9,3,5,5
+991,39,Muž,Střední Čechy,SŠ s maturitou,Young Urban,10,6,9,3,6
+992,22,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,7,7,4,6,5
+993,40,Žena,Praha,VŠ,Senior Residents,10,8,8,6,8
+994,36,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,5,4,7,10,8
+995,50,Muž,Jihovýchod,SŠ s maturitou,Young Urban,4,5,7,7,5
+996,33,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,7,10,7,5,4
+997,29,Žena,Jihovýchod,VŠ,Outer District Families,4,5,7,9,3
+998,19,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,3,7,6,6,5
+999,51,Žena,Moravskoslezsko,VŠ,Senior Residents,8,8,5,5,6
+1000,23,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,5,8,6,5,6
+1001,23,Muž,Praha,SŠ s maturitou,Young Urban,2,7,6,3,8
+1002,22,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,6,4,5,7,7
+1003,43,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,3,10,4,6,5
+1004,38,Žena,Praha,SŠ s maturitou,Daily Drivers,8,3,4,3,5
+1005,50,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,5,5,6,6,4
+1006,57,Žena,Jihovýchod,SŠ s maturitou,Transit Core,2,1,6,6,3
+1007,24,Muž,Jihovýchod,SŠ s maturitou,Young Urban,4,7,6,5,9
+1008,34,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,6,7,7,7,8
+1009,55,Muž,Severovýchod,SŠ s maturitou,Outer District Families,1,8,5,7,4
+1010,46,Muž,Praha,SŠ s maturitou,Outer District Families,4,8,7,9,7
+1011,19,Muž,Severovýchod,SŠ s maturitou,Young Urban,5,9,6,6,7
+1012,62,Muž,Severozápad,SŠ s maturitou,Outer District Families,8,9,6,9,9
+1013,43,Muž,Severozápad,ZŠ / bez maturity,Young Urban,5,6,3,5,5
+1014,43,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,3,7,7,5,7
+1015,48,Žena,Jihovýchod,SŠ s maturitou,Young Urban,5,6,7,6,7
+1016,43,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,4,7,2,10,8
+1017,47,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,6,6,8,4,4
+1018,42,Muž,Jihozápad,SŠ s maturitou,Daily Drivers,2,9,3,8,5
+1019,32,Žena,Jihovýchod,SŠ s maturitou,Daily Drivers,5,6,2,5,6
+1020,53,Žena,Severovýchod,VŠ,Senior Residents,4,7,1,3,8
+1021,26,Muž,Jihozápad,SŠ s maturitou,Outer District Families,6,3,10,4,7
+1022,53,Muž,Jihozápad,SŠ s maturitou,Senior Residents,7,10,9,5,10
+1023,26,Muž,Severovýchod,SŠ s maturitou,Senior Residents,6,8,5,4,7
+1024,39,Žena,Severovýchod,SŠ s maturitou,Senior Residents,5,5,6,4,5
+1025,18,Muž,Jihovýchod,ZŠ / bez maturity,Senior Residents,5,7,3,10,4
+1026,60,Muž,Moravskoslezsko,VŠ,Transit Core,6,6,6,7,6
+1027,50,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,7,6,8,5,5
+1028,27,Žena,Střední Čechy,VŠ,Outer District Families,4,4,6,6,5
+1029,46,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,8,10,6,4,7
+1030,58,Žena,Severovýchod,ZŠ / bez maturity,Daily Drivers,3,5,6,3,6
+1031,36,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,3,6,9,8,7
+1032,46,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,3,6,8,4,6
+1033,18,Žena,Severozápad,ZŠ / bez maturity,Transit Core,4,8,3,5,7
+1034,44,Žena,Severozápad,VŠ,Young Urban,6,4,8,8,6
+1035,30,Muž,Střední Čechy,VŠ,Outer District Families,4,7,6,7,6
+1036,47,Muž,Střední Čechy,SŠ s maturitou,Young Urban,6,4,6,8,7
+1037,48,Žena,Severovýchod,SŠ s maturitou,Senior Residents,8,8,9,6,3
+1038,48,Muž,Jihozápad,SŠ s maturitou,Outer District Families,4,8,5,8,9
+1039,56,Muž,Severovýchod,VŠ,Daily Drivers,7,9,8,6,5
+1040,39,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,3,6,7,7,9
+1041,59,Žena,Praha,VŠ,Daily Drivers,6,5,3,5,3
+1042,52,Žena,Moravskoslezsko,SŠ s maturitou,Transit Core,5,6,9,5,6
+1043,46,Muž,Praha,VŠ,Daily Drivers,1,5,2,5,6
+1044,45,Žena,Praha,SŠ s maturitou,Senior Residents,5,9,3,4,4
+1045,46,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,5,8,8,9,3
+1046,38,Muž,Severozápad,SŠ s maturitou,Senior Residents,5,6,6,5,8
+1047,52,Muž,Severozápad,SŠ s maturitou,Young Urban,5,6,4,6,6
+1048,37,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,7,4,9,8,7
+1049,53,Žena,Jihozápad,SŠ s maturitou,Transit Core,6,7,7,9,4
+1050,45,Žena,Severovýchod,ZŠ / bez maturity,Outer District Families,8,4,1,6,4
+1051,62,Muž,Severovýchod,SŠ s maturitou,Senior Residents,6,6,6,5,5
+1052,49,Muž,Praha,ZŠ / bez maturity,Transit Core,5,7,7,7,6
+1053,18,Žena,Moravskoslezsko,VŠ,Senior Residents,3,10,2,6,9
+1054,38,Muž,Střední Čechy,VŠ,Transit Core,6,4,4,5,6
+1055,34,Žena,Jihozápad,ZŠ / bez maturity,Transit Core,7,9,9,7,4
+1056,33,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,6,6,7,5,6
+1057,38,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,5,3,8,5,4
+1058,36,Žena,Jihovýchod,SŠ s maturitou,Young Urban,5,5,5,5,6
+1059,20,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,4,5,3,7,3
+1060,22,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,4,6,5,7,6
+1061,39,Žena,Severozápad,VŠ,Senior Residents,5,4,7,6,8
+1062,50,Muž,Jihovýchod,VŠ,Senior Residents,6,8,6,5,5
+1063,30,Žena,Severozápad,VŠ,Young Urban,3,6,3,7,7
+1064,54,Muž,Severozápad,SŠ s maturitou,Senior Residents,4,5,6,5,1
+1065,38,Žena,Střední Čechy,VŠ,Transit Core,5,9,6,2,4
+1066,41,Muž,Severozápad,SŠ s maturitou,Young Urban,6,4,6,6,7
+1067,51,Muž,Severozápad,SŠ s maturitou,Transit Core,6,6,6,4,3
+1068,67,Žena,Jihozápad,ZŠ / bez maturity,Young Urban,4,5,6,6,5
+1069,45,Žena,Střední Čechy,SŠ s maturitou,Young Urban,7,5,7,9,5
+1070,37,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,4,6,4,8,3
+1071,33,Muž,Střední Čechy,SŠ s maturitou,Daily Drivers,1,3,4,8,6
+1072,29,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,3,8,6,7,8
+1073,23,Žena,Střední Čechy,VŠ,Senior Residents,4,4,5,5,5
+1074,46,Muž,Moravskoslezsko,SŠ s maturitou,Senior Residents,7,9,6,5,8
+1075,68,Žena,Jihozápad,VŠ,Outer District Families,4,5,4,6,7
+1076,50,Žena,Jihovýchod,SŠ s maturitou,Young Urban,4,4,4,5,7
+1077,53,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,8,3,6,2,9
+1078,48,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,8,7,6,7,10
+1079,33,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,4,5,3,3,9
+1080,51,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,4,4,7,8,8
+1081,29,Žena,Moravskoslezsko,VŠ,Daily Drivers,8,7,5,2,4
+1082,34,Muž,Praha,VŠ,Senior Residents,7,6,3,9,5
+1083,74,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,5,4,7,8,6
+1084,34,Žena,Střední Čechy,SŠ s maturitou,Transit Core,4,5,3,4,4
+1085,60,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,7,5,8,4,6
+1086,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,6,4,8,5,6
+1087,35,Žena,Severovýchod,SŠ s maturitou,Young Urban,4,9,10,6,8
+1088,18,Muž,Jihovýchod,SŠ s maturitou,Young Urban,3,6,3,2,2
+1089,50,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,6,6,7,6,6
+1090,59,Muž,Severovýchod,ZŠ / bez maturity,Transit Core,5,5,7,7,9
+1091,42,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,2,5,7,6,4
+1092,39,Žena,Praha,ZŠ / bez maturity,Outer District Families,4,9,4,7,8
+1093,46,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,4,6,8,6,4
+1094,22,Žena,Jihovýchod,VŠ,Transit Core,7,8,1,2,3
+1095,38,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,4,9,7,2,4
+1096,59,Žena,Praha,VŠ,Outer District Families,5,7,7,5,4
+1097,42,Žena,Jihozápad,SŠ s maturitou,Senior Residents,6,4,7,4,4
+1098,18,Žena,Severozápad,VŠ,Young Urban,5,7,5,3,10
+1099,34,Žena,Severozápad,VŠ,Young Urban,7,6,7,5,6
+1100,64,Muž,Severozápad,VŠ,Daily Drivers,2,4,4,3,4
+1101,21,Žena,Severovýchod,VŠ,Daily Drivers,5,7,7,5,2
+1102,35,Muž,Praha,SŠ s maturitou,Transit Core,6,4,6,5,6
+1103,32,Žena,Severozápad,SŠ s maturitou,Transit Core,6,4,5,3,5
+1104,38,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,6,10,6,5,6
+1105,53,Žena,Praha,ZŠ / bez maturity,Transit Core,3,6,4,4,7
+1106,52,Žena,Severovýchod,VŠ,Senior Residents,5,4,6,4,7
+1107,23,Muž,Severozápad,SŠ s maturitou,Daily Drivers,2,6,6,2,7
+1108,36,Muž,Jihozápad,VŠ,Outer District Families,8,5,5,6,9
+1109,32,Muž,Severozápad,SŠ s maturitou,Daily Drivers,6,5,6,6,5
+1110,54,Muž,Střední Čechy,SŠ s maturitou,Transit Core,4,9,4,3,8
+1111,47,Žena,Jihozápad,SŠ s maturitou,Young Urban,4,7,5,5,8
+1112,57,Žena,Severozápad,SŠ s maturitou,Senior Residents,3,6,5,6,4
+1113,69,Muž,Severovýchod,VŠ,Transit Core,7,5,4,10,5
+1114,65,Muž,Moravskoslezsko,VŠ,Young Urban,6,9,9,5,6
+1115,41,Muž,Praha,ZŠ / bez maturity,Young Urban,6,8,8,6,4
+1116,42,Muž,Severovýchod,VŠ,Transit Core,3,3,6,8,7
+1117,41,Žena,Jihovýchod,ZŠ / bez maturity,Young Urban,6,8,6,7,8
+1118,38,Žena,Severovýchod,VŠ,Outer District Families,7,5,5,2,10
+1119,28,Žena,Střední Čechy,VŠ,Outer District Families,5,7,7,2,5
+1120,52,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,5,8,3,7,4
+1121,30,Žena,Severozápad,SŠ s maturitou,Transit Core,6,3,3,6,7
+1122,37,Žena,Severozápad,SŠ s maturitou,Transit Core,3,3,9,6,4
+1123,65,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,6,3,5,9,9
+1124,50,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,6,5,2,1,8
+1125,46,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,5,7,4,2,5
+1126,32,Muž,Severovýchod,VŠ,Young Urban,6,7,9,6,7
+1127,49,Žena,Praha,ZŠ / bez maturity,Young Urban,6,7,4,6,2
+1128,53,Žena,Moravskoslezsko,SŠ s maturitou,Transit Core,10,1,4,6,6
+1129,61,Žena,Severovýchod,SŠ s maturitou,Young Urban,10,7,2,4,5
+1130,68,Muž,Jihozápad,VŠ,Senior Residents,10,8,6,5,7
+1131,41,Muž,Střední Čechy,ZŠ / bez maturity,Senior Residents,7,8,3,7,2
+1132,23,Žena,Praha,SŠ s maturitou,Transit Core,1,6,6,8,2
+1133,41,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,3,6,7,4,6
+1134,59,Žena,Jihovýchod,VŠ,Daily Drivers,5,4,5,3,8
+1135,23,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,7,4,7,7,7
+1136,22,Muž,Jihozápad,SŠ s maturitou,Transit Core,6,7,10,5,10
+1137,23,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,7,9,7,5,2
+1138,34,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,6,5,5,5,7
+1139,39,Žena,Praha,SŠ s maturitou,Daily Drivers,5,5,5,6,7
+1140,39,Žena,Praha,ZŠ / bez maturity,Young Urban,5,5,9,5,2
+1141,32,Muž,Severovýchod,SŠ s maturitou,Senior Residents,5,5,7,6,4
+1142,41,Žena,Moravskoslezsko,SŠ s maturitou,Transit Core,7,5,5,7,4
+1143,50,Muž,Praha,VŠ,Daily Drivers,3,6,7,4,9
+1144,38,Muž,Praha,ZŠ / bez maturity,Transit Core,10,6,6,5,4
+1145,53,Žena,Jihozápad,ZŠ / bez maturity,Young Urban,7,5,7,6,4
+1146,40,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,3,5,6,7,9
+1147,29,Žena,Praha,VŠ,Transit Core,6,9,9,4,6
+1148,27,Muž,Jihozápad,VŠ,Senior Residents,6,4,6,5,6
+1149,47,Žena,Jihozápad,ZŠ / bez maturity,Transit Core,8,9,6,4,4
+1150,41,Muž,Jihozápad,SŠ s maturitou,Outer District Families,4,9,7,4,8
+1151,50,Muž,Praha,ZŠ / bez maturity,Senior Residents,7,8,6,2,2
+1152,46,Žena,Moravskoslezsko,VŠ,Outer District Families,3,3,7,3,7
+1153,52,Muž,Severovýchod,VŠ,Senior Residents,4,6,1,8,5
+1154,29,Žena,Jihovýchod,SŠ s maturitou,Daily Drivers,5,6,7,1,3
+1155,39,Muž,Praha,SŠ s maturitou,Daily Drivers,4,10,4,8,8
+1156,43,Žena,Jihozápad,SŠ s maturitou,Transit Core,4,9,5,7,4
+1157,36,Žena,Severovýchod,ZŠ / bez maturity,Daily Drivers,5,10,10,7,5
+1158,38,Muž,Severozápad,SŠ s maturitou,Young Urban,5,6,5,7,7
+1159,49,Muž,Praha,ZŠ / bez maturity,Outer District Families,2,5,5,2,8
+1160,63,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,10,5,5,5,6
+1161,71,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,8,9,7,8,3
+1162,54,Žena,Jihozápad,SŠ s maturitou,Transit Core,6,7,10,5,8
+1163,31,Žena,Praha,ZŠ / bez maturity,Transit Core,8,5,7,5,6
+1164,18,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,5,7,9,8,6
+1165,44,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,8,7,7,4,6
+1166,28,Muž,Střední Čechy,SŠ s maturitou,Transit Core,5,4,4,10,5
+1167,46,Muž,Jihozápad,SŠ s maturitou,Senior Residents,5,5,10,6,5
+1168,49,Muž,Jihovýchod,VŠ,Senior Residents,7,4,6,4,10
+1169,55,Muž,Jihozápad,VŠ,Outer District Families,7,3,5,3,4
+1170,39,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,6,7,3,1,7
+1171,45,Žena,Praha,SŠ s maturitou,Transit Core,6,6,8,3,5
+1172,26,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,8,4,4,9,5
+1173,22,Žena,Praha,VŠ,Young Urban,7,7,5,4,7
+1174,25,Žena,Střední Čechy,VŠ,Transit Core,10,4,3,4,8
+1175,53,Žena,Severozápad,VŠ,Transit Core,6,3,7,5,10
+1176,34,Žena,Severovýchod,SŠ s maturitou,Outer District Families,2,7,6,6,6
+1177,37,Žena,Praha,VŠ,Daily Drivers,4,5,3,7,3
+1178,42,Muž,Jihovýchod,VŠ,Daily Drivers,5,3,7,8,9
+1179,54,Žena,Praha,ZŠ / bez maturity,Young Urban,6,4,8,6,4
+1180,39,Muž,Severozápad,SŠ s maturitou,Transit Core,8,3,7,8,4
+1181,51,Muž,Severovýchod,SŠ s maturitou,Senior Residents,1,6,5,4,8
+1182,62,Žena,Jihozápad,VŠ,Outer District Families,3,7,7,3,6
+1183,48,Žena,Severozápad,SŠ s maturitou,Daily Drivers,4,4,8,6,8
+1184,28,Žena,Střední Čechy,SŠ s maturitou,Transit Core,5,8,5,5,5
+1185,58,Muž,Severozápad,VŠ,Young Urban,8,5,5,4,8
+1186,45,Muž,Střední Čechy,ZŠ / bez maturity,Outer District Families,7,2,6,7,7
+1187,41,Žena,Moravskoslezsko,VŠ,Young Urban,7,7,7,5,7
+1188,63,Muž,Praha,SŠ s maturitou,Daily Drivers,3,8,7,3,5
+1189,27,Muž,Jihovýchod,VŠ,Senior Residents,8,5,4,3,4
+1190,43,Muž,Střední Čechy,ZŠ / bez maturity,Senior Residents,7,9,3,7,7
+1191,38,Žena,Praha,SŠ s maturitou,Young Urban,3,8,3,2,6
+1192,34,Muž,Severovýchod,SŠ s maturitou,Outer District Families,2,5,3,9,3
+1193,34,Muž,Severozápad,ZŠ / bez maturity,Young Urban,6,7,3,5,7
+1194,49,Žena,Střední Čechy,VŠ,Daily Drivers,5,8,6,5,7
+1195,53,Žena,Praha,ZŠ / bez maturity,Senior Residents,8,8,5,10,9
+1196,56,Žena,Jihozápad,SŠ s maturitou,Transit Core,5,6,7,5,5
+1197,18,Muž,Jihozápad,SŠ s maturitou,Outer District Families,9,7,6,6,5
+1198,32,Muž,Jihozápad,SŠ s maturitou,Transit Core,5,3,7,3,8
+1199,30,Žena,Severozápad,VŠ,Young Urban,6,7,6,7,4
+1200,39,Muž,Jihovýchod,VŠ,Daily Drivers,7,6,7,6,8
+1201,21,Žena,Praha,ZŠ / bez maturity,Young Urban,6,5,6,6,4
+1202,72,Muž,Severovýchod,SŠ s maturitou,Senior Residents,7,9,4,6,7
+1203,18,Muž,Severozápad,SŠ s maturitou,Daily Drivers,7,4,4,7,8
+1204,36,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,7,5,3,9,2
+1205,26,Žena,Jihozápad,SŠ s maturitou,Young Urban,8,8,6,4,6
+1206,44,Žena,Jihozápad,ZŠ / bez maturity,Outer District Families,4,4,5,7,3
+1207,50,Žena,Praha,SŠ s maturitou,Transit Core,5,4,4,5,1
+1208,58,Žena,Praha,VŠ,Young Urban,7,7,6,6,7
+1209,49,Žena,Praha,ZŠ / bez maturity,Outer District Families,3,6,7,8,6
+1210,32,Muž,Praha,SŠ s maturitou,Senior Residents,4,8,4,4,9
+1211,27,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,9,7,6,7,4
+1212,31,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,7,9,7,4,9
+1213,63,Muž,Střední Čechy,VŠ,Daily Drivers,7,5,8,2,7
+1214,41,Muž,Severozápad,VŠ,Outer District Families,5,6,10,5,4
+1215,59,Žena,Jihovýchod,VŠ,Senior Residents,5,7,5,9,3
+1216,45,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,3,10,1,6,7
+1217,50,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,9,7,6,3,7
+1218,24,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,4,6,5,4,8
+1219,25,Žena,Praha,ZŠ / bez maturity,Transit Core,3,7,1,6,6
+1220,38,Muž,Jihozápad,SŠ s maturitou,Senior Residents,5,5,9,5,8
+1221,60,Muž,Severozápad,SŠ s maturitou,Young Urban,6,7,5,1,8
+1222,64,Žena,Severovýchod,ZŠ / bez maturity,Senior Residents,6,4,7,8,8
+1223,45,Žena,Jihovýchod,ZŠ / bez maturity,Daily Drivers,4,7,9,7,4
+1224,53,Žena,Moravskoslezsko,VŠ,Young Urban,4,3,4,7,3
+1225,35,Muž,Severozápad,VŠ,Senior Residents,5,6,5,6,9
+1226,53,Muž,Severovýchod,ZŠ / bez maturity,Transit Core,6,5,6,7,9
+1227,60,Žena,Praha,ZŠ / bez maturity,Young Urban,10,7,4,4,7
+1228,28,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,4,8,4,7,7
+1229,47,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,6,5,6,4,10
+1230,55,Muž,Severovýchod,SŠ s maturitou,Daily Drivers,7,3,6,6,9
+1231,53,Muž,Severozápad,ZŠ / bez maturity,Young Urban,7,8,4,4,6
+1232,39,Žena,Jihovýchod,VŠ,Outer District Families,2,8,6,5,7
+1233,31,Muž,Střední Čechy,VŠ,Senior Residents,5,9,9,4,5
+1234,29,Muž,Jihozápad,SŠ s maturitou,Senior Residents,5,4,9,6,1
+1235,36,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,6,10,1,4,5
+1236,42,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,5,9,6,7,6
+1237,18,Muž,Jihozápad,SŠ s maturitou,Young Urban,2,8,3,6,5
+1238,37,Muž,Střední Čechy,VŠ,Transit Core,8,3,1,4,5
+1239,36,Žena,Jihozápad,SŠ s maturitou,Young Urban,7,7,8,4,8
+1240,47,Žena,Střední Čechy,VŠ,Senior Residents,5,5,4,8,10
+1241,24,Žena,Severozápad,SŠ s maturitou,Daily Drivers,5,3,6,7,5
+1242,18,Muž,Severovýchod,SŠ s maturitou,Young Urban,8,5,8,6,4
+1243,41,Muž,Praha,SŠ s maturitou,Outer District Families,4,5,8,4,9
+1244,59,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,4,6,6,3,2
+1245,30,Muž,Střední Čechy,VŠ,Young Urban,6,5,6,7,6
+1246,23,Muž,Střední Čechy,VŠ,Daily Drivers,4,8,6,7,7
+1247,48,Muž,Praha,SŠ s maturitou,Outer District Families,4,6,2,6,6
+1248,39,Muž,Střední Čechy,ZŠ / bez maturity,Senior Residents,7,5,7,7,4
+1249,51,Žena,Severovýchod,VŠ,Outer District Families,3,7,8,9,7
+1250,36,Muž,Praha,SŠ s maturitou,Outer District Families,8,7,3,4,6
+1251,29,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,5,7,7,8,9
+1252,30,Muž,Praha,VŠ,Daily Drivers,7,7,5,7,4
+1253,47,Žena,Jihozápad,SŠ s maturitou,Outer District Families,9,2,7,8,9
+1254,57,Žena,Severovýchod,VŠ,Outer District Families,7,10,3,8,3
+1255,43,Žena,Praha,VŠ,Outer District Families,7,8,8,6,5
+1256,26,Žena,Střední Čechy,VŠ,Outer District Families,4,5,1,4,7
+1257,53,Muž,Severozápad,VŠ,Transit Core,5,6,7,7,4
+1258,35,Žena,Moravskoslezsko,VŠ,Senior Residents,6,5,3,8,6
+1259,65,Žena,Severozápad,ZŠ / bez maturity,Transit Core,4,5,8,6,5
+1260,36,Muž,Praha,ZŠ / bez maturity,Senior Residents,6,10,6,6,4
+1261,31,Žena,Severovýchod,VŠ,Senior Residents,6,7,4,6,7
+1262,24,Muž,Severovýchod,SŠ s maturitou,Senior Residents,2,8,3,7,6
+1263,23,Muž,Severovýchod,VŠ,Young Urban,8,6,7,6,1
+1264,56,Žena,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,5,7,6,7,6
+1265,37,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,7,8,4,9,5
+1266,58,Muž,Střední Čechy,SŠ s maturitou,Transit Core,8,4,7,4,2
+1267,35,Muž,Severozápad,SŠ s maturitou,Daily Drivers,5,7,9,1,5
+1268,43,Žena,Praha,ZŠ / bez maturity,Senior Residents,6,6,8,6,7
+1269,53,Muž,Praha,ZŠ / bez maturity,Senior Residents,4,7,7,2,5
+1270,38,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,1,9,3,6,2
+1271,39,Žena,Severovýchod,ZŠ / bez maturity,Outer District Families,4,6,7,1,5
+1272,60,Muž,Praha,SŠ s maturitou,Transit Core,5,4,4,5,7
+1273,45,Žena,Severozápad,SŠ s maturitou,Outer District Families,7,7,8,3,8
+1274,50,Žena,Jihovýchod,SŠ s maturitou,Young Urban,8,8,5,4,3
+1275,36,Žena,Jihozápad,ZŠ / bez maturity,Young Urban,6,6,7,5,7
+1276,37,Žena,Severozápad,VŠ,Daily Drivers,8,8,6,5,6
+1277,43,Žena,Moravskoslezsko,VŠ,Young Urban,5,9,7,6,6
+1278,30,Muž,Jihozápad,SŠ s maturitou,Transit Core,5,7,6,6,3
+1279,73,Žena,Severozápad,SŠ s maturitou,Transit Core,6,9,6,3,3
+1280,33,Žena,Jihovýchod,ZŠ / bez maturity,Young Urban,5,7,4,10,6
+1281,18,Žena,Střední Čechy,SŠ s maturitou,Young Urban,3,4,7,6,7
+1282,50,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,4,4,8,9,7
+1283,18,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,8,5,4,8,6
+1284,46,Muž,Severozápad,VŠ,Senior Residents,3,6,7,3,1
+1285,39,Žena,Severozápad,SŠ s maturitou,Outer District Families,3,5,5,3,10
+1286,49,Žena,Praha,SŠ s maturitou,Outer District Families,5,8,10,8,9
+1287,28,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,3,7,6,6,9
+1288,39,Muž,Jihozápad,VŠ,Daily Drivers,6,8,4,5,7
+1289,63,Muž,Jihozápad,SŠ s maturitou,Young Urban,5,6,6,6,7
+1290,55,Muž,Severozápad,ZŠ / bez maturity,Young Urban,5,8,5,3,6
+1291,49,Žena,Moravskoslezsko,VŠ,Outer District Families,1,2,5,6,6
+1292,46,Muž,Jihozápad,ZŠ / bez maturity,Daily Drivers,7,7,5,5,3
+1293,52,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,6,10,4,6,5
+1294,51,Žena,Severozápad,ZŠ / bez maturity,Outer District Families,10,9,6,5,6
+1295,35,Muž,Střední Čechy,VŠ,Daily Drivers,2,3,6,5,4
+1296,33,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,5,10,1,7,9
+1297,46,Muž,Severovýchod,VŠ,Transit Core,6,4,6,6,5
+1298,49,Muž,Jihovýchod,ZŠ / bez maturity,Transit Core,6,5,4,6,6
+1299,31,Muž,Severovýchod,VŠ,Outer District Families,2,9,7,7,7
+1300,45,Muž,Jihovýchod,VŠ,Senior Residents,5,8,5,6,7
+1301,29,Muž,Střední Čechy,ZŠ / bez maturity,Transit Core,9,4,5,6,6
+1302,34,Muž,Severovýchod,SŠ s maturitou,Transit Core,8,8,4,3,7
+1303,41,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,4,5,5,4,7
+1304,48,Žena,Jihozápad,SŠ s maturitou,Outer District Families,8,5,6,5,7
+1305,55,Muž,Praha,ZŠ / bez maturity,Outer District Families,8,6,5,6,5
+1306,37,Muž,Severovýchod,ZŠ / bez maturity,Senior Residents,4,1,7,6,7
+1307,36,Muž,Praha,VŠ,Young Urban,7,6,5,7,2
+1308,26,Muž,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,6,7,10,3,7
+1309,46,Žena,Jihovýchod,VŠ,Daily Drivers,6,8,9,5,4
+1310,31,Žena,Jihovýchod,SŠ s maturitou,Young Urban,6,6,7,3,8
+1311,45,Žena,Praha,SŠ s maturitou,Daily Drivers,3,4,4,4,8
+1312,53,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,5,4,5,7,7
+1313,35,Muž,Severozápad,VŠ,Transit Core,6,6,6,5,7
+1314,44,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,4,6,5,7,6
+1315,52,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,5,10,5,3,4
+1316,43,Žena,Moravskoslezsko,VŠ,Daily Drivers,3,5,10,8,10
+1317,47,Žena,Praha,SŠ s maturitou,Daily Drivers,10,3,6,8,6
+1318,33,Žena,Severovýchod,ZŠ / bez maturity,Outer District Families,7,6,3,2,1
+1319,43,Muž,Severovýchod,VŠ,Outer District Families,8,7,9,3,4
+1320,43,Žena,Jihovýchod,SŠ s maturitou,Transit Core,8,7,7,5,3
+1321,56,Muž,Jihozápad,VŠ,Young Urban,8,9,6,8,7
+1322,35,Muž,Severovýchod,VŠ,Senior Residents,5,2,2,7,5
+1323,50,Muž,Severozápad,SŠ s maturitou,Young Urban,6,7,5,4,9
+1324,43,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,3,7,6,5,8
+1325,35,Muž,Severozápad,VŠ,Daily Drivers,6,2,6,3,3
+1326,27,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,6,10,8,7,6
+1327,40,Muž,Jihovýchod,SŠ s maturitou,Transit Core,5,8,8,5,6
+1328,18,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,3,4,1,4,3
+1329,54,Muž,Praha,ZŠ / bez maturity,Daily Drivers,5,8,3,3,10
+1330,45,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,5,7,5,10,6
+1331,55,Žena,Severovýchod,SŠ s maturitou,Young Urban,8,6,3,3,4
+1332,51,Žena,Praha,ZŠ / bez maturity,Senior Residents,5,5,8,5,7
+1333,29,Žena,Severovýchod,ZŠ / bez maturity,Senior Residents,5,9,5,5,5
+1334,59,Žena,Jihozápad,SŠ s maturitou,Transit Core,6,8,6,4,2
+1335,41,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,5,5,7,6,3
+1336,59,Žena,Jihozápad,VŠ,Transit Core,3,4,4,6,8
+1337,34,Žena,Jihovýchod,ZŠ / bez maturity,Young Urban,7,6,4,7,4
+1338,63,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,8,10,6,8,8
+1339,48,Muž,Praha,SŠ s maturitou,Transit Core,6,8,7,8,8
+1340,44,Žena,Severovýchod,SŠ s maturitou,Senior Residents,3,5,5,8,4
+1341,48,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,6,5,4,5,4
+1342,44,Žena,Severozápad,SŠ s maturitou,Daily Drivers,4,5,7,6,4
+1343,31,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,1,4,2,5,9
+1344,52,Žena,Jihozápad,ZŠ / bez maturity,Daily Drivers,5,10,3,5,6
+1345,24,Žena,Praha,SŠ s maturitou,Outer District Families,8,4,4,10,4
+1346,43,Žena,Praha,VŠ,Outer District Families,7,4,7,6,3
+1347,35,Žena,Jihovýchod,SŠ s maturitou,Outer District Families,5,7,6,9,8
+1348,24,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,5,3,5,4,6
+1349,40,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,3,6,3,8,2
+1350,18,Žena,Moravskoslezsko,VŠ,Outer District Families,8,5,8,3,8
+1351,23,Žena,Praha,VŠ,Daily Drivers,8,5,4,5,7
+1352,38,Muž,Praha,SŠ s maturitou,Transit Core,5,2,6,2,6
+1353,41,Muž,Severovýchod,SŠ s maturitou,Outer District Families,4,9,9,6,3
+1354,49,Žena,Severozápad,VŠ,Daily Drivers,7,6,7,2,2
+1355,56,Muž,Severozápad,SŠ s maturitou,Outer District Families,4,6,10,4,3
+1356,63,Muž,Praha,SŠ s maturitou,Young Urban,9,7,4,8,9
+1357,46,Žena,Jihovýchod,SŠ s maturitou,Transit Core,8,5,5,3,4
+1358,67,Žena,Praha,SŠ s maturitou,Senior Residents,5,6,7,1,4
+1359,52,Muž,Jihozápad,VŠ,Senior Residents,4,4,2,8,7
+1360,53,Žena,Severovýchod,ZŠ / bez maturity,Senior Residents,3,5,6,6,5
+1361,31,Muž,Jihovýchod,SŠ s maturitou,Transit Core,4,5,7,5,6
+1362,32,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,7,3,8,7,6
+1363,43,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,5,8,4,7,1
+1364,46,Muž,Jihovýchod,SŠ s maturitou,Young Urban,3,7,8,5,1
+1365,44,Žena,Praha,ZŠ / bez maturity,Transit Core,2,8,7,7,8
+1366,46,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,8,5,6,3,4
+1367,22,Žena,Střední Čechy,SŠ s maturitou,Transit Core,7,5,8,4,8
+1368,37,Muž,Severozápad,SŠ s maturitou,Senior Residents,5,5,5,6,6
+1369,47,Žena,Severozápad,SŠ s maturitou,Senior Residents,6,7,6,4,9
+1370,34,Muž,Severozápad,VŠ,Senior Residents,4,3,6,3,2
+1371,51,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,7,3,10,4,6
+1372,42,Muž,Jihovýchod,ZŠ / bez maturity,Senior Residents,6,6,4,6,5
+1373,52,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,8,5,5,6,5
+1374,39,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,5,5,6,6,5
+1375,32,Žena,Praha,SŠ s maturitou,Daily Drivers,5,10,5,8,4
+1376,43,Žena,Moravskoslezsko,SŠ s maturitou,Transit Core,6,6,6,6,8
+1377,65,Žena,Severovýchod,ZŠ / bez maturity,Senior Residents,4,8,4,5,4
+1378,29,Muž,Moravskoslezsko,ZŠ / bez maturity,Outer District Families,4,9,7,3,10
+1379,31,Žena,Severozápad,SŠ s maturitou,Transit Core,7,6,4,6,3
+1380,44,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,5,2,5,5,7
+1381,36,Muž,Jihozápad,SŠ s maturitou,Young Urban,9,7,7,7,1
+1382,28,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,5,9,7,7,7
+1383,48,Žena,Severovýchod,ZŠ / bez maturity,Senior Residents,5,7,7,8,3
+1384,31,Muž,Moravskoslezsko,VŠ,Transit Core,8,3,5,9,8
+1385,31,Žena,Severovýchod,SŠ s maturitou,Young Urban,3,5,5,6,6
+1386,56,Žena,Praha,SŠ s maturitou,Daily Drivers,4,7,7,4,7
+1387,51,Žena,Praha,SŠ s maturitou,Senior Residents,7,7,7,4,6
+1388,61,Muž,Severovýchod,SŠ s maturitou,Transit Core,5,3,7,4,2
+1389,35,Žena,Střední Čechy,ZŠ / bez maturity,Senior Residents,5,4,8,2,2
+1390,53,Žena,Moravskoslezsko,VŠ,Transit Core,5,5,4,1,7
+1391,54,Žena,Praha,ZŠ / bez maturity,Young Urban,3,4,9,4,5
+1392,30,Žena,Severovýchod,ZŠ / bez maturity,Daily Drivers,4,4,5,8,8
+1393,21,Muž,Střední Čechy,SŠ s maturitou,Young Urban,1,6,5,7,9
+1394,47,Žena,Severozápad,ZŠ / bez maturity,Transit Core,6,5,5,8,5
+1395,44,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,6,2,5,3,7
+1396,30,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,7,6,7,9,4
+1397,40,Muž,Severozápad,SŠ s maturitou,Young Urban,7,7,5,6,7
+1398,44,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,4,3,9,7,7
+1399,58,Muž,Střední Čechy,VŠ,Daily Drivers,4,8,4,7,6
+1400,60,Muž,Moravskoslezsko,VŠ,Transit Core,9,7,5,6,8
+1401,20,Muž,Praha,ZŠ / bez maturity,Young Urban,5,10,7,4,5
+1402,34,Žena,Praha,ZŠ / bez maturity,Senior Residents,7,4,6,4,5
+1403,45,Muž,Praha,SŠ s maturitou,Transit Core,8,7,5,4,6
+1404,30,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,4,5,6,6,4
+1405,57,Žena,Severozápad,ZŠ / bez maturity,Young Urban,6,5,7,6,5
+1406,20,Žena,Jihozápad,ZŠ / bez maturity,Daily Drivers,6,6,8,4,7
+1407,30,Žena,Praha,VŠ,Senior Residents,6,9,3,5,5
+1408,51,Žena,Praha,VŠ,Senior Residents,6,9,4,6,6
+1409,48,Muž,Severozápad,ZŠ / bez maturity,Outer District Families,3,7,9,9,6
+1410,40,Muž,Praha,SŠ s maturitou,Outer District Families,5,6,7,6,7
+1411,32,Muž,Střední Čechy,ZŠ / bez maturity,Senior Residents,4,4,4,8,7
+1412,24,Muž,Střední Čechy,VŠ,Transit Core,8,4,7,1,8
+1413,42,Muž,Severovýchod,SŠ s maturitou,Outer District Families,4,4,8,7,1
+1414,26,Muž,Severozápad,ZŠ / bez maturity,Outer District Families,6,7,4,6,10
+1415,49,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,8,8,8,3,3
+1416,56,Žena,Severozápad,VŠ,Transit Core,4,6,6,4,3
+1417,45,Žena,Moravskoslezsko,SŠ s maturitou,Outer District Families,6,5,6,6,6
+1418,42,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,10,7,10,5,4
+1419,18,Muž,Severozápad,SŠ s maturitou,Daily Drivers,4,6,4,2,5
+1420,26,Muž,Jihozápad,ZŠ / bez maturity,Daily Drivers,9,6,8,7,5
+1421,30,Žena,Jihozápad,VŠ,Senior Residents,2,4,3,4,6
+1422,38,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,4,10,6,6,5
+1423,31,Muž,Jihozápad,ZŠ / bez maturity,Transit Core,7,10,5,7,5
+1424,25,Muž,Jihozápad,VŠ,Transit Core,4,7,8,5,6
+1425,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,1,5,6,4,7
+1426,19,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,10,6,10,9,4
+1427,40,Muž,Střední Čechy,SŠ s maturitou,Daily Drivers,1,4,8,5,3
+1428,27,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,7,5,7,7,8
+1429,51,Muž,Severovýchod,SŠ s maturitou,Young Urban,8,4,5,5,3
+1430,48,Muž,Severovýchod,ZŠ / bez maturity,Transit Core,2,6,8,3,8
+1431,50,Žena,Jihovýchod,SŠ s maturitou,Young Urban,4,7,4,3,2
+1432,38,Muž,Praha,ZŠ / bez maturity,Daily Drivers,6,4,6,3,5
+1433,32,Žena,Jihovýchod,SŠ s maturitou,Daily Drivers,7,10,7,5,7
+1434,43,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,7,5,6,5,10
+1435,62,Muž,Praha,VŠ,Daily Drivers,6,9,8,4,6
+1436,55,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,3,9,6,7,6
+1437,23,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,4,5,9,8,8
+1438,31,Žena,Praha,SŠ s maturitou,Young Urban,8,5,8,4,7
+1439,48,Muž,Střední Čechy,ZŠ / bez maturity,Outer District Families,4,9,4,5,9
+1440,37,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,7,3,2,8,7
+1441,42,Žena,Severovýchod,SŠ s maturitou,Transit Core,5,4,3,2,6
+1442,64,Žena,Jihovýchod,SŠ s maturitou,Young Urban,4,9,8,4,8
+1443,58,Muž,Severovýchod,SŠ s maturitou,Transit Core,6,8,6,4,5
+1444,46,Žena,Moravskoslezsko,VŠ,Outer District Families,4,9,6,6,8
+1445,36,Žena,Střední Čechy,ZŠ / bez maturity,Transit Core,4,6,5,5,10
+1446,39,Žena,Praha,SŠ s maturitou,Transit Core,4,4,8,6,5
+1447,58,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,6,6,7,7,4
+1448,46,Žena,Praha,SŠ s maturitou,Daily Drivers,3,6,5,2,4
+1449,40,Muž,Severozápad,VŠ,Young Urban,5,10,3,6,4
+1450,33,Žena,Moravskoslezsko,VŠ,Outer District Families,6,6,4,5,7
+1451,32,Muž,Severovýchod,VŠ,Outer District Families,7,8,1,2,8
+1452,35,Muž,Jihovýchod,SŠ s maturitou,Transit Core,6,10,6,3,6
+1453,54,Žena,Praha,ZŠ / bez maturity,Transit Core,6,4,7,4,5
+1454,23,Muž,Praha,ZŠ / bez maturity,Daily Drivers,7,7,7,10,10
+1455,29,Žena,Praha,SŠ s maturitou,Daily Drivers,7,6,7,8,5
+1456,24,Muž,Jihovýchod,SŠ s maturitou,Young Urban,5,4,10,1,5
+1457,35,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,4,7,4,6,6
+1458,33,Žena,Severovýchod,VŠ,Senior Residents,2,7,4,8,7
+1459,33,Muž,Jihozápad,SŠ s maturitou,Young Urban,5,6,7,4,7
+1460,37,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,4,7,6,2,7
+1461,29,Muž,Jihovýchod,SŠ s maturitou,Young Urban,7,6,4,7,5
+1462,52,Žena,Jihovýchod,VŠ,Transit Core,6,8,5,5,7
+1463,42,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,4,9,5,1,3
+1464,73,Muž,Jihovýchod,ZŠ / bez maturity,Young Urban,2,6,7,7,9
+1465,39,Žena,Praha,SŠ s maturitou,Young Urban,1,7,4,8,5
+1466,61,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,9,7,5,8,6
+1467,32,Žena,Střední Čechy,SŠ s maturitou,Outer District Families,6,5,3,5,3
+1468,47,Muž,Severovýchod,SŠ s maturitou,Transit Core,7,7,8,6,8
+1469,52,Muž,Severovýchod,SŠ s maturitou,Senior Residents,5,3,6,8,4
+1470,40,Muž,Praha,SŠ s maturitou,Young Urban,6,1,5,4,5
+1471,62,Muž,Praha,SŠ s maturitou,Outer District Families,4,5,6,6,5
+1472,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Outer District Families,1,7,5,4,4
+1473,50,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,8,5,7,7,4
+1474,50,Muž,Severozápad,VŠ,Young Urban,4,7,5,5,5
+1475,55,Muž,Praha,ZŠ / bez maturity,Transit Core,3,7,8,5,7
+1476,46,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,3,8,8,5,3
+1477,55,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,5,7,2,9,7
+1478,64,Muž,Jihovýchod,SŠ s maturitou,Transit Core,3,6,7,5,7
+1479,48,Muž,Jihovýchod,VŠ,Transit Core,5,7,6,8,5
+1480,21,Žena,Praha,ZŠ / bez maturity,Daily Drivers,7,8,5,6,9
+1481,61,Žena,Severozápad,VŠ,Transit Core,2,6,8,5,7
+1482,22,Žena,Jihozápad,SŠ s maturitou,Senior Residents,5,6,1,4,2
+1483,29,Muž,Praha,ZŠ / bez maturity,Transit Core,4,5,5,6,6
+1484,62,Žena,Jihovýchod,VŠ,Transit Core,5,6,6,5,6
+1485,56,Žena,Jihozápad,SŠ s maturitou,Transit Core,8,2,4,8,3
+1486,18,Žena,Moravskoslezsko,VŠ,Outer District Families,10,4,6,2,3
+1487,30,Muž,Praha,VŠ,Senior Residents,8,3,8,4,7
+1488,54,Muž,Jihozápad,SŠ s maturitou,Outer District Families,8,7,1,3,5
+1489,24,Žena,Jihovýchod,SŠ s maturitou,Young Urban,7,4,3,8,6
+1490,40,Muž,Jihozápad,VŠ,Outer District Families,8,4,6,9,9
+1491,29,Muž,Praha,ZŠ / bez maturity,Transit Core,4,7,5,6,5
+1492,47,Žena,Střední Čechy,SŠ s maturitou,Young Urban,5,7,7,7,6
+1493,26,Žena,Jihozápad,VŠ,Daily Drivers,5,7,7,4,4
+1494,23,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,7,8,5,6,7
+1495,41,Žena,Severozápad,ZŠ / bez maturity,Transit Core,4,7,5,5,4
+1496,40,Žena,Severovýchod,ZŠ / bez maturity,Outer District Families,5,5,6,5,6
+1497,37,Žena,Praha,VŠ,Outer District Families,4,6,4,10,5
+1498,32,Žena,Severovýchod,SŠ s maturitou,Young Urban,5,6,6,4,7
+1499,37,Žena,Jihovýchod,VŠ,Transit Core,7,7,4,2,5
+1500,25,Muž,Jihozápad,SŠ s maturitou,Young Urban,6,6,10,7,10
+1501,22,Muž,Střední Čechy,VŠ,Transit Core,6,10,5,9,9
+1502,27,Žena,Severozápad,SŠ s maturitou,Senior Residents,7,5,5,5,8
+1503,26,Muž,Severovýchod,SŠ s maturitou,Outer District Families,3,6,4,1,7
+1504,37,Muž,Střední Čechy,ZŠ / bez maturity,Daily Drivers,8,4,3,4,3
+1505,62,Muž,Praha,ZŠ / bez maturity,Young Urban,4,3,5,6,4
+1506,43,Muž,Moravskoslezsko,SŠ s maturitou,Senior Residents,1,6,8,4,8
+1507,34,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,7,4,9,4,6
+1508,62,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,5,6,6,3,3
+1509,40,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,5,6,8,6,7
+1510,29,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,7,5,3,9,7
+1511,43,Muž,Jihovýchod,ZŠ / bez maturity,Senior Residents,6,7,5,3,5
+1512,29,Muž,Severozápad,SŠ s maturitou,Senior Residents,5,8,4,7,4
+1513,47,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,5,8,6,4,6
+1514,41,Žena,Jihovýchod,SŠ s maturitou,Young Urban,6,7,9,5,8
+1515,40,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,2,2,8,8,7
+1516,18,Muž,Střední Čechy,SŠ s maturitou,Young Urban,5,5,9,4,9
+1517,44,Žena,Jihovýchod,ZŠ / bez maturity,Senior Residents,5,7,4,4,8
+1518,49,Žena,Jihovýchod,VŠ,Transit Core,7,5,3,6,6
+1519,56,Žena,Střední Čechy,SŠ s maturitou,Young Urban,6,5,6,1,9
+1520,55,Žena,Jihovýchod,ZŠ / bez maturity,Outer District Families,6,6,6,9,6
+1521,39,Žena,Severozápad,SŠ s maturitou,Transit Core,4,6,6,2,3
+1522,43,Muž,Střední Čechy,VŠ,Senior Residents,7,4,4,8,1
+1523,41,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,7,8,5,4,3
+1524,29,Žena,Praha,ZŠ / bez maturity,Outer District Families,3,5,4,4,7
+1525,21,Muž,Praha,SŠ s maturitou,Outer District Families,7,8,3,4,5
+1526,36,Muž,Jihozápad,SŠ s maturitou,Transit Core,1,1,7,4,6
+1527,32,Žena,Severovýchod,VŠ,Transit Core,6,5,4,5,7
+1528,31,Žena,Praha,SŠ s maturitou,Daily Drivers,4,6,6,5,6
+1529,45,Muž,Praha,SŠ s maturitou,Transit Core,2,6,4,4,10
+1530,47,Žena,Moravskoslezsko,SŠ s maturitou,Transit Core,7,6,6,5,10
+1531,37,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,7,9,6,8,3
+1532,68,Muž,Severovýchod,VŠ,Daily Drivers,2,9,7,7,7
+1533,66,Muž,Severozápad,VŠ,Young Urban,8,6,9,6,8
+1534,18,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,1,6,6,6,7
+1535,34,Žena,Praha,ZŠ / bez maturity,Senior Residents,9,3,5,4,6
+1536,41,Žena,Střední Čechy,VŠ,Senior Residents,5,8,5,2,7
+1537,50,Muž,Jihozápad,ZŠ / bez maturity,Young Urban,7,6,7,6,10
+1538,74,Žena,Severovýchod,SŠ s maturitou,Young Urban,8,5,4,5,10
+1539,27,Muž,Severozápad,SŠ s maturitou,Transit Core,8,5,5,7,6
+1540,59,Žena,Severovýchod,VŠ,Young Urban,3,4,9,4,8
+1541,29,Žena,Severozápad,SŠ s maturitou,Transit Core,7,8,4,6,5
+1542,23,Žena,Praha,SŠ s maturitou,Outer District Families,4,8,5,5,7
+1543,18,Žena,Střední Čechy,ZŠ / bez maturity,Outer District Families,7,6,9,5,8
+1544,32,Žena,Praha,SŠ s maturitou,Young Urban,7,8,3,4,3
+1545,45,Žena,Severovýchod,ZŠ / bez maturity,Daily Drivers,4,7,4,5,2
+1546,54,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,5,6,4,8,6
+1547,48,Muž,Severovýchod,SŠ s maturitou,Outer District Families,6,10,6,10,4
+1548,39,Žena,Praha,ZŠ / bez maturity,Young Urban,9,9,8,6,6
+1549,56,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,6,8,7,4,7
+1550,18,Žena,Praha,SŠ s maturitou,Outer District Families,5,8,6,8,8
+1551,44,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,3,5,6,5,6
+1552,29,Muž,Severozápad,SŠ s maturitou,Transit Core,5,8,8,4,6
+1553,33,Žena,Jihovýchod,SŠ s maturitou,Daily Drivers,7,10,7,7,2
+1554,33,Muž,Jihozápad,ZŠ / bez maturity,Daily Drivers,4,6,6,5,7
+1555,50,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,4,4,6,7,7
+1556,24,Muž,Jihovýchod,SŠ s maturitou,Transit Core,6,4,4,5,4
+1557,27,Muž,Praha,ZŠ / bez maturity,Young Urban,7,9,7,2,4
+1558,61,Žena,Severovýchod,SŠ s maturitou,Young Urban,6,4,6,1,3
+1559,57,Muž,Moravskoslezsko,SŠ s maturitou,Transit Core,5,9,7,4,6
+1560,34,Muž,Severozápad,ZŠ / bez maturity,Outer District Families,4,4,4,5,5
+1561,18,Muž,Severozápad,VŠ,Transit Core,7,5,8,4,3
+1562,41,Muž,Severovýchod,SŠ s maturitou,Young Urban,5,6,8,7,10
+1563,54,Žena,Severovýchod,SŠ s maturitou,Young Urban,8,5,3,2,6
+1564,67,Žena,Praha,SŠ s maturitou,Outer District Families,4,5,9,5,6
+1565,53,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,6,4,9,4,7
+1566,29,Žena,Jihovýchod,SŠ s maturitou,Young Urban,4,5,5,7,9
+1567,50,Žena,Severovýchod,ZŠ / bez maturity,Senior Residents,5,8,5,5,5
+1568,46,Žena,Severozápad,VŠ,Outer District Families,6,5,3,6,2
+1569,26,Žena,Severozápad,SŠ s maturitou,Young Urban,4,5,5,5,4
+1570,70,Žena,Severovýchod,VŠ,Young Urban,3,10,3,8,6
+1571,63,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,7,5,6,2,1
+1572,34,Žena,Jihozápad,ZŠ / bez maturity,Senior Residents,2,9,4,3,9
+1573,62,Muž,Jihozápad,VŠ,Young Urban,9,4,7,4,6
+1574,41,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,5,7,6,7,8
+1575,34,Muž,Střední Čechy,SŠ s maturitou,Transit Core,7,7,5,4,3
+1576,42,Muž,Moravskoslezsko,SŠ s maturitou,Senior Residents,9,6,5,4,5
+1577,72,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,6,5,7,8,8
+1578,52,Žena,Praha,VŠ,Senior Residents,6,6,7,6,5
+1579,18,Žena,Severozápad,SŠ s maturitou,Young Urban,3,2,9,4,9
+1580,60,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,5,8,1,4,7
+1581,72,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Urban,5,9,6,5,6
+1582,59,Muž,Severovýchod,VŠ,Young Urban,4,10,5,5,2
+1583,61,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,3,1,2,5,7
+1584,29,Muž,Severozápad,SŠ s maturitou,Senior Residents,5,5,6,3,5
+1585,33,Muž,Severozápad,ZŠ / bez maturity,Young Urban,7,8,3,8,9
+1586,47,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,5,7,5,2,7
+1587,34,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,5,4,4,6,2
+1588,42,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,10,6,7,9,7
+1589,72,Žena,Jihovýchod,ZŠ / bez maturity,Young Urban,6,4,8,6,10
+1590,31,Žena,Jihovýchod,VŠ,Daily Drivers,6,6,5,4,6
+1591,36,Žena,Jihozápad,VŠ,Daily Drivers,6,6,7,4,4
+1592,28,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,6,5,6,6,4
+1593,50,Žena,Severozápad,ZŠ / bez maturity,Senior Residents,6,7,4,5,5
+1594,46,Muž,Jihovýchod,VŠ,Senior Residents,9,6,5,4,6
+1595,22,Žena,Jihozápad,SŠ s maturitou,Young Urban,4,6,5,7,2
+1596,34,Muž,Střední Čechy,VŠ,Young Urban,8,7,6,4,7
+1597,39,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,3,5,8,1,4
+1598,30,Žena,Praha,ZŠ / bez maturity,Outer District Families,1,3,9,10,9
+1599,18,Žena,Moravskoslezsko,VŠ,Senior Residents,7,5,8,6,7
+1600,57,Žena,Severovýchod,SŠ s maturitou,Transit Core,3,6,7,6,5
+1601,41,Muž,Jihovýchod,SŠ s maturitou,Transit Core,8,8,5,4,8
+1602,28,Muž,Moravskoslezsko,VŠ,Young Urban,5,6,4,6,6
+1603,66,Žena,Moravskoslezsko,SŠ s maturitou,Transit Core,5,7,7,8,7
+1604,39,Muž,Severozápad,ZŠ / bez maturity,Young Urban,8,6,10,10,10
+1605,44,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,5,6,6,5,7
+1606,39,Žena,Severovýchod,SŠ s maturitou,Transit Core,4,6,3,4,7
+1607,25,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,7,5,6,9,1
+1608,27,Muž,Jihozápad,VŠ,Senior Residents,7,8,6,3,10
+1609,18,Muž,Střední Čechy,SŠ s maturitou,Transit Core,8,8,7,10,5
+1610,35,Žena,Moravskoslezsko,ZŠ / bez maturity,Outer District Families,5,9,2,5,10
+1611,46,Muž,Jihovýchod,ZŠ / bez maturity,Transit Core,4,5,3,6,7
+1612,24,Žena,Jihozápad,SŠ s maturitou,Outer District Families,7,9,5,3,4
+1613,55,Žena,Severozápad,SŠ s maturitou,Senior Residents,2,10,5,7,5
+1614,46,Žena,Praha,SŠ s maturitou,Outer District Families,5,7,9,10,5
+1615,58,Žena,Jihozápad,VŠ,Daily Drivers,7,8,2,7,4
+1616,32,Žena,Severovýchod,VŠ,Daily Drivers,4,6,8,8,6
+1617,43,Žena,Severovýchod,SŠ s maturitou,Young Urban,2,8,7,7,4
+1618,18,Žena,Severozápad,VŠ,Daily Drivers,4,3,5,5,9
+1619,34,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,6,5,2,6,8
+1620,62,Žena,Severovýchod,SŠ s maturitou,Daily Drivers,7,8,4,6,5
+1621,25,Žena,Severovýchod,VŠ,Young Urban,5,3,6,7,3
+1622,38,Žena,Praha,ZŠ / bez maturity,Young Urban,5,10,8,6,5
+1623,19,Muž,Severozápad,SŠ s maturitou,Transit Core,4,9,5,7,6
+1624,31,Muž,Praha,ZŠ / bez maturity,Senior Residents,9,4,3,1,6
+1625,44,Žena,Praha,VŠ,Outer District Families,8,6,7,6,4
+1626,41,Žena,Střední Čechy,SŠ s maturitou,Young Urban,6,6,8,3,7
+1627,31,Žena,Severozápad,VŠ,Senior Residents,4,8,5,8,6
+1628,54,Muž,Severovýchod,SŠ s maturitou,Outer District Families,4,5,5,6,7
+1629,52,Žena,Moravskoslezsko,SŠ s maturitou,Daily Drivers,7,10,10,3,5
+1630,30,Žena,Severozápad,SŠ s maturitou,Daily Drivers,4,9,5,8,6
+1631,49,Žena,Jihozápad,ZŠ / bez maturity,Young Urban,5,4,5,2,4
+1632,31,Muž,Jihozápad,SŠ s maturitou,Senior Residents,5,6,8,4,5
+1633,36,Muž,Střední Čechy,SŠ s maturitou,Daily Drivers,4,7,4,6,5
+1634,43,Žena,Severozápad,ZŠ / bez maturity,Senior Residents,9,6,2,2,8
+1635,62,Muž,Jihovýchod,SŠ s maturitou,Young Urban,6,8,4,7,6
+1636,27,Žena,Jihozápad,VŠ,Young Urban,10,9,6,6,7
+1637,51,Muž,Praha,SŠ s maturitou,Outer District Families,5,3,9,5,6
+1638,61,Muž,Jihozápad,SŠ s maturitou,Daily Drivers,5,6,7,7,8
+1639,38,Muž,Severozápad,ZŠ / bez maturity,Senior Residents,6,7,8,6,3
+1640,28,Muž,Jihovýchod,VŠ,Young Urban,6,7,5,5,5
+1641,40,Žena,Moravskoslezsko,VŠ,Senior Residents,4,9,6,4,8
+1642,37,Muž,Jihozápad,SŠ s maturitou,Transit Core,3,8,5,5,6
+1643,18,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,6,6,5,8,6
+1644,24,Muž,Severozápad,SŠ s maturitou,Young Urban,8,7,8,2,5
+1645,32,Žena,Severovýchod,VŠ,Transit Core,5,8,7,7,8
+1646,22,Muž,Severovýchod,SŠ s maturitou,Senior Residents,6,6,10,6,4
+1647,31,Žena,Severozápad,ZŠ / bez maturity,Outer District Families,7,8,2,6,4
+1648,74,Žena,Jihovýchod,VŠ,Young Urban,7,10,8,4,3
+1649,41,Muž,Praha,SŠ s maturitou,Senior Residents,4,4,2,6,3
+1650,24,Žena,Jihozápad,SŠ s maturitou,Young Urban,8,7,5,7,5
+1651,64,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,6,8,9,4,7
+1652,38,Žena,Moravskoslezsko,VŠ,Daily Drivers,5,5,6,5,4
+1653,62,Muž,Jihovýchod,ZŠ / bez maturity,Outer District Families,3,6,6,7,7
+1654,74,Muž,Severozápad,SŠ s maturitou,Outer District Families,4,5,5,7,8
+1655,44,Žena,Jihozápad,SŠ s maturitou,Outer District Families,4,9,7,7,6
+1656,18,Žena,Střední Čechy,SŠ s maturitou,Transit Core,4,6,8,1,9
+1657,40,Muž,Moravskoslezsko,SŠ s maturitou,Outer District Families,6,4,3,5,6
+1658,48,Žena,Moravskoslezsko,SŠ s maturitou,Daily Drivers,5,6,8,7,5
+1659,47,Žena,Střední Čechy,SŠ s maturitou,Senior Residents,8,6,7,3,5
+1660,36,Muž,Střední Čechy,SŠ s maturitou,Outer District Families,8,8,8,6,7
+1661,31,Žena,Praha,SŠ s maturitou,Daily Drivers,7,8,10,5,6
+1662,43,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,6,7,9,4,10
+1663,40,Muž,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,8,5,3,8,7
+1664,32,Muž,Severozápad,ZŠ / bez maturity,Young Urban,7,8,8,3,3
+1665,57,Muž,Jihovýchod,SŠ s maturitou,Daily Drivers,5,4,7,5,5
+1666,23,Muž,Jihozápad,VŠ,Senior Residents,10,3,10,7,5
+1667,50,Žena,Severovýchod,ZŠ / bez maturity,Transit Core,7,6,6,5,5
+1668,53,Muž,Severozápad,SŠ s maturitou,Senior Residents,8,5,6,6,9
+1669,27,Žena,Střední Čechy,VŠ,Senior Residents,9,3,2,6,5
+1670,54,Muž,Praha,VŠ,Daily Drivers,7,2,7,1,5
+1671,57,Muž,Jihozápad,SŠ s maturitou,Transit Core,3,6,6,2,5
+1672,44,Žena,Jihovýchod,VŠ,Transit Core,1,7,3,5,4
+1673,38,Žena,Moravskoslezsko,SŠ s maturitou,Young Urban,3,4,6,8,4
+1674,28,Muž,Severozápad,VŠ,Transit Core,7,7,5,2,4
+1675,54,Žena,Praha,SŠ s maturitou,Senior Residents,4,5,3,7,4
+1676,64,Žena,Severovýchod,SŠ s maturitou,Young Urban,6,10,8,2,5
+1677,35,Žena,Jihovýchod,ZŠ / bez maturity,Outer District Families,5,6,6,6,2
+1678,66,Žena,Jihovýchod,SŠ s maturitou,Senior Residents,2,7,5,6,4
+1679,28,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,7,7,4,6,6
+1680,54,Žena,Praha,ZŠ / bez maturity,Daily Drivers,6,6,9,5,9
+1681,38,Žena,Severovýchod,SŠ s maturitou,Senior Residents,4,6,6,3,3
+1682,18,Žena,Moravskoslezsko,VŠ,Outer District Families,5,5,5,5,6
+1683,43,Žena,Praha,VŠ,Transit Core,6,7,4,9,6
+1684,49,Žena,Jihovýchod,SŠ s maturitou,Young Urban,6,5,6,7,10
+1685,34,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,5,8,6,5,6
+1686,35,Muž,Jihovýchod,SŠ s maturitou,Outer District Families,3,6,4,8,4
+1687,39,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,9,8,8,5,6
+1688,64,Žena,Praha,VŠ,Transit Core,4,7,3,6,5
+1689,53,Žena,Praha,ZŠ / bez maturity,Young Urban,9,4,6,6,6
+1690,29,Muž,Jihozápad,SŠ s maturitou,Outer District Families,3,4,7,3,5
+1691,30,Žena,Severovýchod,SŠ s maturitou,Senior Residents,5,7,3,9,5
+1692,51,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,4,5,5,5,6
+1693,36,Žena,Střední Čechy,ZŠ / bez maturity,Daily Drivers,3,6,5,4,8
+1694,29,Muž,Jihozápad,VŠ,Senior Residents,8,8,10,5,6
+1695,38,Žena,Praha,SŠ s maturitou,Daily Drivers,7,7,4,5,10
+1696,54,Muž,Moravskoslezsko,ZŠ / bez maturity,Outer District Families,8,4,8,4,2
+1697,29,Žena,Severozápad,ZŠ / bez maturity,Daily Drivers,5,6,7,7,6
+1698,32,Muž,Praha,ZŠ / bez maturity,Senior Residents,4,6,5,3,5
+1699,40,Muž,Praha,ZŠ / bez maturity,Senior Residents,4,6,5,5,3
+1700,36,Muž,Střední Čechy,VŠ,Senior Residents,4,6,5,6,6
+1701,30,Muž,Moravskoslezsko,SŠ s maturitou,Young Urban,8,9,7,4,6
+1702,44,Muž,Severovýchod,ZŠ / bez maturity,Daily Drivers,5,5,6,5,4
+1703,45,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,6,3,4,4,7
+1704,18,Muž,Severovýchod,VŠ,Young Urban,6,9,6,7,6
+1705,30,Žena,Jihozápad,ZŠ / bez maturity,Outer District Families,8,4,5,4,10
+1706,40,Muž,Praha,VŠ,Senior Residents,6,6,6,6,7
+1707,56,Muž,Jihozápad,ZŠ / bez maturity,Outer District Families,4,5,7,5,4
+1708,22,Muž,Moravskoslezsko,VŠ,Daily Drivers,6,6,7,4,1
+1709,68,Žena,Jihovýchod,VŠ,Outer District Families,8,7,5,6,8
+1710,60,Žena,Jihovýchod,SŠ s maturitou,Outer District Families,1,6,5,4,2
+1711,18,Žena,Moravskoslezsko,ZŠ / bez maturity,Transit Core,8,3,8,8,5
+1712,34,Muž,Střední Čechy,ZŠ / bez maturity,Daily Drivers,9,10,8,6,6
+1713,40,Muž,Střední Čechy,SŠ s maturitou,Daily Drivers,5,9,3,6,5
+1714,50,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Urban,7,6,3,4,7
+1715,51,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,6,2,8,7,5
+1716,30,Muž,Střední Čechy,VŠ,Transit Core,7,6,5,5,8
+1717,60,Muž,Severozápad,VŠ,Young Urban,3,9,7,6,8
+1718,43,Žena,Jihozápad,VŠ,Outer District Families,3,6,5,8,9
+1719,23,Žena,Praha,VŠ,Outer District Families,3,5,8,3,5
+1720,42,Žena,Praha,SŠ s maturitou,Young Urban,6,6,4,6,5
+1721,25,Žena,Střední Čechy,SŠ s maturitou,Young Urban,6,6,10,5,8
+1722,35,Žena,Střední Čechy,ZŠ / bez maturity,Young Urban,8,6,8,4,4
+1723,29,Žena,Severovýchod,VŠ,Senior Residents,8,6,7,5,6
+1724,35,Žena,Severozápad,ZŠ / bez maturity,Outer District Families,5,5,6,6,8
+1725,40,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,5,7,10,8,5
+1726,44,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,5,4,8,7,8
+1727,33,Žena,Severozápad,SŠ s maturitou,Senior Residents,3,10,5,3,6
+1728,22,Žena,Moravskoslezsko,VŠ,Daily Drivers,3,5,5,5,7
+1729,29,Muž,Severovýchod,VŠ,Daily Drivers,8,8,10,2,9
+1730,37,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,7,7,5,6,6
+1731,29,Muž,Severozápad,SŠ s maturitou,Young Urban,3,3,7,9,3
+1732,27,Žena,Severozápad,SŠ s maturitou,Outer District Families,5,3,7,5,6
+1733,33,Žena,Jihozápad,SŠ s maturitou,Outer District Families,1,6,6,6,8
+1734,42,Muž,Severozápad,ZŠ / bez maturity,Transit Core,8,10,7,7,3
+1735,53,Žena,Praha,SŠ s maturitou,Daily Drivers,4,5,2,5,9
+1736,56,Muž,Jihovýchod,SŠ s maturitou,Senior Residents,5,6,4,5,3
+1737,31,Muž,Severozápad,ZŠ / bez maturity,Transit Core,4,7,7,7,5
+1738,32,Žena,Praha,VŠ,Transit Core,4,5,9,7,5
+1739,62,Žena,Jihozápad,VŠ,Transit Core,5,7,3,7,4
+1740,41,Muž,Severovýchod,ZŠ / bez maturity,Outer District Families,4,8,6,6,10
+1741,28,Muž,Jihozápad,SŠ s maturitou,Daily Drivers,7,4,3,7,6
+1742,57,Žena,Střední Čechy,VŠ,Daily Drivers,8,7,9,2,5
+1743,49,Žena,Severovýchod,ZŠ / bez maturity,Daily Drivers,7,6,3,5,3
+1744,25,Muž,Severozápad,VŠ,Young Urban,5,4,6,4,8
+1745,34,Žena,Jihozápad,SŠ s maturitou,Outer District Families,7,7,8,5,5
+1746,73,Žena,Jihozápad,SŠ s maturitou,Young Urban,6,5,5,5,4
+1747,64,Žena,Severovýchod,SŠ s maturitou,Transit Core,10,7,5,5,8
+1748,38,Muž,Severovýchod,VŠ,Senior Residents,4,5,8,3,8
+1749,46,Muž,Moravskoslezsko,ZŠ / bez maturity,Senior Residents,5,8,8,5,9
+1750,74,Muž,Střední Čechy,SŠ s maturitou,Transit Core,4,5,6,9,5
+1751,35,Muž,Severozápad,SŠ s maturitou,Outer District Families,3,2,8,4,5
+1752,53,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,4,7,4,6,8
+1753,54,Muž,Jihozápad,SŠ s maturitou,Outer District Families,3,5,1,3,5
+1754,26,Muž,Jihozápad,VŠ,Daily Drivers,4,10,1,6,8
+1755,24,Žena,Střední Čechy,SŠ s maturitou,Daily Drivers,4,7,7,3,3
+1756,24,Žena,Praha,ZŠ / bez maturity,Transit Core,9,4,8,5,8
+1757,54,Muž,Severozápad,SŠ s maturitou,Senior Residents,6,6,7,3,8
+1758,30,Muž,Severovýchod,VŠ,Transit Core,4,4,5,7,5
+1759,35,Žena,Střední Čechy,SŠ s maturitou,Young Urban,8,7,4,8,5
+1760,32,Muž,Praha,SŠ s maturitou,Transit Core,5,6,4,4,7
+1761,45,Muž,Jihozápad,VŠ,Outer District Families,4,9,4,3,4
+1762,47,Muž,Jihovýchod,ZŠ / bez maturity,Senior Residents,4,7,6,4,7
+1763,54,Muž,Praha,ZŠ / bez maturity,Senior Residents,5,6,1,2,3
+1764,40,Žena,Jihozápad,ZŠ / bez maturity,Daily Drivers,2,3,2,7,4
+1765,37,Muž,Severozápad,SŠ s maturitou,Senior Residents,5,6,5,6,6
+1766,55,Muž,Severozápad,VŠ,Daily Drivers,5,6,2,5,7
+1767,36,Muž,Praha,VŠ,Senior Residents,7,10,7,6,6
+1768,42,Muž,Severovýchod,SŠ s maturitou,Young Urban,2,5,5,8,6
+1769,39,Muž,Moravskoslezsko,VŠ,Senior Residents,6,6,3,2,6
+1770,35,Žena,Praha,ZŠ / bez maturity,Outer District Families,4,3,3,4,3
+1771,45,Muž,Jihozápad,ZŠ / bez maturity,Daily Drivers,4,8,7,7,5
+1772,18,Muž,Jihozápad,SŠ s maturitou,Transit Core,6,2,10,6,1
+1773,74,Žena,Severozápad,SŠ s maturitou,Daily Drivers,6,6,4,6,4
+1774,54,Muž,Střední Čechy,SŠ s maturitou,Senior Residents,9,4,4,4,7
+1775,52,Žena,Jihovýchod,SŠ s maturitou,Daily Drivers,7,8,9,6,7
+1776,34,Muž,Moravskoslezsko,SŠ s maturitou,Daily Drivers,3,9,6,4,7
+1777,30,Muž,Jihovýchod,ZŠ / bez maturity,Daily Drivers,10,8,5,5,5
+1778,52,Muž,Severozápad,VŠ,Senior Residents,9,7,1,4,7
+1779,58,Muž,Severozápad,ZŠ / bez maturity,Daily Drivers,6,7,9,6,7
+1780,30,Muž,Střední Čechy,ZŠ / bez maturity,Young Urban,4,7,7,4,4
+1781,28,Žena,Praha,VŠ,Outer District Families,4,6,5,8,6
+1782,48,Muž,Moravskoslezsko,ZŠ / bez maturity,Daily Drivers,5,5,10,3,4
+1783,38,Žena,Praha,VŠ,Young Urban,9,5,6,2,7
+1784,59,Žena,Jihozápad,SŠ s maturitou,Daily Drivers,6,7,6,5,5
+1785,18,Muž,Severovýchod,SŠ s maturitou,Senior Residents,8,5,4,8,7
+1786,25,Muž,Praha,SŠ s maturitou,Young Urban,2,7,8,4,7
+1787,25,Žena,Jihozápad,VŠ,Outer District Families,5,6,4,7,7
+1788,38,Muž,Severovýchod,SŠ s maturitou,Young Urban,7,6,6,4,4
+1789,38,Muž,Moravskoslezsko,VŠ,Outer District Families,7,7,5,5,10
+1790,49,Muž,Severozápad,VŠ,Senior Residents,3,7,4,3,7
+1791,59,Žena,Jihozápad,ZŠ / bez maturity,Senior Residents,6,9,8,3,5
+1792,55,Muž,Severovýchod,ZŠ / bez maturity,Young Urban,7,7,7,9,5
+1793,35,Žena,Jihovýchod,SŠ s maturitou,Young Urban,7,4,4,4,8
+1794,47,Muž,Jihozápad,ZŠ / bez maturity,Daily Drivers,5,7,4,7,7
+1795,28,Žena,Jihozápad,SŠ s maturitou,Senior Residents,5,4,7,3,2
+1796,27,Žena,Severovýchod,ZŠ / bez maturity,Young Urban,10,4,7,6,10
+1797,31,Žena,Moravskoslezsko,SŠ s maturitou,Senior Residents,5,5,8,4,4
+1798,74,Žena,Severozápad,VŠ,Daily Drivers,8,6,10,4,2
+1799,47,Muž,Praha,SŠ s maturitou,Senior Residents,7,7,4,3,6
+1800,29,Žena,Jihovýchod,ZŠ / bez maturity,Transit Core,5,5,2,7,3

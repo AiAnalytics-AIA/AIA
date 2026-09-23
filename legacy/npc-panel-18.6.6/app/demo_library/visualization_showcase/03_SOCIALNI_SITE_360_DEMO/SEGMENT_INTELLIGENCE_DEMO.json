@@ -1,0 +1,62 @@
+{
+  "status": "AI_READY",
+  "provider": "build_time_ai",
+  "model": "GPT-5.6 Sol",
+  "fallback_used": false,
+  "summary": "Mapa sociálních sítí neukazuje jednu univerzální platformu, ale několik odlišných mediálních režimů: krátké video, profesní použití, komunitní diskusi, soukromější konzumaci a masový mainstream.",
+  "insights": [
+    {
+      "candidate_id": "SG-2A77A151D2",
+      "title": "Krátké video a trendy",
+      "why_interesting": "Nejčitelnější mladší růstový shluk.",
+      "characterization": "Vyšší mladost, video orientace a creator profil se pojí především s TikTokem a Instagramem.",
+      "business_meaning": "Je vhodný pro krátký obrazový obsah, trendy a creator spolupráce.",
+      "map_cta": "Zobrazit skupinu A na mapě",
+      "confidence_note": "Skupina má 142 respondentů (23.7 %) a datové skóre odlišnosti 100.0/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-95CC2E3A30",
+      "title": "Profesionálové",
+      "why_interesting": "Jasně oddělený profesní use-case.",
+      "characterization": "Silná profesní orientace se pojí s LinkedInem a relativně nižší potřebou krátkého videa.",
+      "business_meaning": "Je relevantní pro B2B, kariérní a expertní komunikaci.",
+      "map_cta": "Zobrazit skupinu B na mapě",
+      "confidence_note": "Skupina má 109 respondentů (18.2 %) a datové skóre odlišnosti 84.9/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-6987310E17",
+      "title": "Komunitní diskutéři",
+      "why_interesting": "Menší, ale výrazně zapojený diskusní shluk.",
+      "characterization": "Komunitnost a zájem o zprávy se v této skupině pojí s X, Reddit a částečně Facebookem.",
+      "business_meaning": "Je vhodný pro témata vyžadující diskusi, argumentaci a komunitní zapojení.",
+      "map_cta": "Zobrazit skupinu C na mapě",
+      "confidence_note": "Skupina má 87 respondentů (14.5 %) a datové skóre odlišnosti 90.4/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-84F8F54728",
+      "title": "Soukromější pozorovatelé",
+      "why_interesting": "Odlišný segment s vyšší preferencí soukromí a nižší tvorbou obsahu.",
+      "characterization": "Vyšší privacy orientace se pojí se slabším vztahem k Instagramu a TikToku a nižší creator rolí.",
+      "business_meaning": "Je důležitý při hodnocení reachu: část publika obsah sleduje, ale aktivně nevystupuje.",
+      "map_cta": "Zobrazit skupinu D na mapě",
+      "confidence_note": "Skupina má 104 respondentů (17.3 %) a datové skóre odlišnosti 83.9/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-8734C1E05F",
+      "title": "Masový mainstream",
+      "why_interesting": "Široký zásahový segment bez jediné extrémní identity.",
+      "characterization": "Používá více běžných platforem a není tak ostře profilovaný jako specializované shluky.",
+      "business_meaning": "Je vhodný pro reach, ale pro přesnější message targeting je méně specifický.",
+      "map_cta": "Zobrazit skupinu E na mapě",
+      "confidence_note": "Skupina má 158 respondentů (26.3 %) a datové skóre odlišnosti 60.6/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    }
+  ],
+  "privacy_contract": "Interpretace vznikla nad agregovanými profily DEMO skupin; individuální respondentní řádky nebyly součástí interpretačního promptu.",
+  "provenance": "BUILD_TIME_AI_DEMO",
+  "demo_truth": "ILUSTRAČNÍ DEMO — syntetický dataset, nikoli reálný průzkum."
+}

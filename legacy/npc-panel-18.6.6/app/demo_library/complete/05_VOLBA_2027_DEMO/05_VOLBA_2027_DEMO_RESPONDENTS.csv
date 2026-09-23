@@ -1,0 +1,1601 @@
+﻿respondent_id,age,gender,region,education,segment,price_sensitivity_1_10,digital_confidence_1_10,change_openness_1_10,institutional_trust_1_10,category_involvement_1_10
+1,59,Žena,Severovýchod,VŠ,Undecided/Low Attachment,5,4,5,4,4
+2,26,Muž,Severozápad,ZŠ / bez maturity,Young Adults,4,6,5,8,6
+3,66,Žena,Severovýchod,ZŠ / bez maturity,High Polarization,6,6,9,5,4
+4,53,Žena,Moravskoslezsko,ZŠ / bez maturity,High Polarization,3,3,6,8,9
+5,31,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,7,5,8,8,5
+6,38,Muž,Jihozápad,VŠ,Young Adults,3,9,5,3,3
+7,68,Muž,Severovýchod,VŠ,Young Adults,2,4,2,4,9
+8,43,Žena,Jihozápad,SŠ s maturitou,High Polarization,6,7,6,5,4
+9,67,Muž,Praha,ZŠ / bez maturity,Low Political Interest,7,4,4,2,10
+10,38,Žena,Severozápad,SŠ s maturitou,News Regulars,6,4,3,5,7
+11,22,Muž,Praha,ZŠ / bez maturity,Low Political Interest,6,5,6,5,4
+12,36,Žena,Severovýchod,SŠ s maturitou,Young Adults,6,8,6,7,5
+13,56,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,8,7,7,3,7
+14,42,Muž,Severozápad,ZŠ / bez maturity,Young Adults,5,6,8,7,3
+15,18,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,6,7,7,6,6
+16,42,Žena,Moravskoslezsko,VŠ,High Polarization,1,7,4,6,7
+17,50,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,5,3,6,6,7
+18,41,Muž,Severozápad,SŠ s maturitou,Young Adults,6,8,7,6,6
+19,74,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,8,5,7,5,5
+20,47,Muž,Jihozápad,ZŠ / bez maturity,Undecided/Low Attachment,5,6,5,7,6
+21,26,Muž,Severozápad,SŠ s maturitou,News Regulars,7,10,5,7,5
+22,47,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,5,9,6,8,5
+23,49,Žena,Severozápad,SŠ s maturitou,Young Adults,6,6,3,8,6
+24,40,Muž,Střední Čechy,SŠ s maturitou,News Regulars,8,5,7,5,10
+25,25,Muž,Jihovýchod,SŠ s maturitou,News Regulars,4,8,5,8,4
+26,42,Žena,Jihozápad,SŠ s maturitou,Young Adults,3,8,7,5,5
+27,31,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,5,10,8,6,4
+28,60,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,5,10,6,4,6
+29,39,Žena,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,6,4,6,3,7
+30,44,Muž,Střední Čechy,VŠ,News Regulars,7,8,6,7,6
+31,36,Muž,Praha,ZŠ / bez maturity,Undecided/Low Attachment,7,8,4,5,10
+32,27,Muž,Severozápad,SŠ s maturitou,News Regulars,7,3,4,6,3
+33,46,Muž,Severozápad,SŠ s maturitou,News Regulars,6,8,6,4,6
+34,18,Muž,Střední Čechy,VŠ,Low Political Interest,4,7,8,4,2
+35,41,Muž,Severovýchod,VŠ,High Polarization,3,6,2,8,7
+36,18,Muž,Jihozápad,ZŠ / bez maturity,Young Adults,2,7,6,3,5
+37,65,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,6,9,7,2,6
+38,60,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,9,7,3,7,5
+39,30,Žena,Jihozápad,VŠ,Low Political Interest,8,6,1,4,6
+40,18,Žena,Střední Čechy,VŠ,Young Adults,4,10,4,5,5
+41,45,Muž,Praha,VŠ,News Regulars,6,7,4,5,7
+42,39,Žena,Severovýchod,ZŠ / bez maturity,Young Adults,6,5,9,4,3
+43,32,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,4,6,7,5,3
+44,46,Muž,Praha,VŠ,News Regulars,7,6,8,8,8
+45,42,Žena,Severozápad,SŠ s maturitou,News Regulars,6,6,6,7,10
+46,22,Muž,Praha,VŠ,News Regulars,7,3,5,9,6
+47,60,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,3,3,4,3,6
+48,38,Muž,Jihovýchod,VŠ,News Regulars,7,3,6,6,1
+49,30,Muž,Jihozápad,VŠ,Young Adults,5,6,4,4,6
+50,44,Žena,Severovýchod,SŠ s maturitou,High Polarization,3,7,4,7,9
+51,23,Žena,Jihozápad,SŠ s maturitou,News Regulars,4,8,5,5,4
+52,30,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,7,8,7,4,6
+53,35,Muž,Severozápad,SŠ s maturitou,High Polarization,5,4,5,5,7
+54,57,Muž,Střední Čechy,ZŠ / bez maturity,Low Political Interest,6,6,7,8,7
+55,46,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,10,4,6,7,4
+56,52,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,6,5,8,7,6
+57,29,Muž,Jihozápad,SŠ s maturitou,High Polarization,5,10,8,6,3
+58,40,Žena,Severovýchod,ZŠ / bez maturity,High Polarization,7,10,5,4,5
+59,67,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,2,2,1,9,4
+60,43,Muž,Praha,VŠ,Young Adults,10,6,4,7,4
+61,19,Žena,Jihozápad,SŠ s maturitou,News Regulars,2,7,6,7,7
+62,28,Muž,Severozápad,SŠ s maturitou,Young Adults,8,4,6,10,8
+63,36,Žena,Jihozápad,ZŠ / bez maturity,Young Adults,6,5,4,5,8
+64,27,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,3,5,4,4,7
+65,41,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,3,8,7,6,7
+66,53,Muž,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,5,4,6,5,6
+67,29,Muž,Severovýchod,SŠ s maturitou,News Regulars,6,7,2,8,6
+68,26,Žena,Severozápad,ZŠ / bez maturity,Young Adults,3,7,2,3,7
+69,43,Žena,Jihozápad,VŠ,News Regulars,5,5,8,5,4
+70,74,Muž,Praha,VŠ,Young Adults,6,7,5,6,7
+71,34,Muž,Jihozápad,ZŠ / bez maturity,High Polarization,5,10,2,6,7
+72,57,Žena,Praha,ZŠ / bez maturity,Undecided/Low Attachment,4,8,7,4,5
+73,51,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,7,4,6,3,9
+74,43,Žena,Severozápad,SŠ s maturitou,Low Political Interest,3,2,9,7,8
+75,55,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Adults,3,4,7,6,4
+76,18,Žena,Severovýchod,SŠ s maturitou,News Regulars,7,3,6,3,6
+77,54,Žena,Praha,SŠ s maturitou,Young Adults,9,7,4,5,5
+78,67,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,6,5,2,8,1
+79,51,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,2,6,6,5,7
+80,36,Žena,Moravskoslezsko,VŠ,Low Political Interest,6,8,6,5,7
+81,37,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,6,4,9,8,4
+82,52,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Adults,1,7,7,6,8
+83,46,Muž,Praha,VŠ,Undecided/Low Attachment,5,8,7,3,9
+84,44,Muž,Severovýchod,SŠ s maturitou,Young Adults,6,3,1,1,3
+85,46,Muž,Střední Čechy,SŠ s maturitou,Young Adults,3,7,8,6,7
+86,65,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,4,5,4,3,8
+87,45,Žena,Severozápad,SŠ s maturitou,Low Political Interest,6,6,3,5,5
+88,35,Žena,Jihozápad,SŠ s maturitou,Young Adults,7,3,10,6,7
+89,23,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,7,7,10,7,2
+90,18,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,8,5,4,6,6
+91,34,Žena,Severovýchod,SŠ s maturitou,Young Adults,4,3,8,3,6
+92,50,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,9,6,8,7,8
+93,31,Žena,Jihovýchod,ZŠ / bez maturity,Low Political Interest,8,3,4,3,8
+94,45,Muž,Severovýchod,VŠ,News Regulars,4,5,6,5,5
+95,35,Muž,Severozápad,SŠ s maturitou,News Regulars,5,5,8,6,8
+96,23,Muž,Severovýchod,SŠ s maturitou,Young Adults,6,7,1,6,4
+97,24,Žena,Severovýchod,VŠ,Undecided/Low Attachment,5,8,2,4,6
+98,26,Muž,Jihozápad,SŠ s maturitou,Young Adults,7,4,8,7,7
+99,40,Muž,Severovýchod,ZŠ / bez maturity,High Polarization,9,7,5,5,2
+100,54,Žena,Jihozápad,SŠ s maturitou,High Polarization,4,7,6,6,5
+101,58,Muž,Jihovýchod,SŠ s maturitou,High Polarization,3,7,9,5,7
+102,30,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,8,5,6,3,8
+103,39,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,8,5,4,9,7
+104,39,Žena,Jihovýchod,SŠ s maturitou,High Polarization,5,6,6,2,8
+105,37,Muž,Praha,SŠ s maturitou,Young Adults,4,6,9,10,4
+106,33,Muž,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,6,8,6,7,8
+107,18,Žena,Moravskoslezsko,ZŠ / bez maturity,High Polarization,6,8,7,4,5
+108,46,Žena,Severozápad,VŠ,Undecided/Low Attachment,4,8,6,6,7
+109,40,Muž,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,6,6,8,4,6
+110,18,Žena,Jihovýchod,SŠ s maturitou,High Polarization,7,6,8,2,6
+111,30,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,4,7,3,8,4
+112,51,Žena,Jihovýchod,SŠ s maturitou,Young Adults,7,9,6,3,5
+113,60,Žena,Moravskoslezsko,VŠ,News Regulars,2,6,5,9,7
+114,55,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,9,9,5,2,5
+115,52,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,4,5,6,6,3
+116,55,Muž,Střední Čechy,VŠ,High Polarization,3,3,5,6,4
+117,66,Žena,Severozápad,VŠ,News Regulars,8,6,5,5,6
+118,36,Muž,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,6,9,6,3,2
+119,43,Muž,Praha,SŠ s maturitou,Young Adults,6,9,5,3,5
+120,28,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,1,7,8,5,9
+121,53,Muž,Severovýchod,SŠ s maturitou,Young Adults,3,3,5,7,5
+122,52,Muž,Severovýchod,VŠ,Young Adults,5,4,4,5,9
+123,31,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,7,8,4,6,7
+124,71,Žena,Praha,VŠ,Undecided/Low Attachment,6,6,4,5,7
+125,50,Žena,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,9,7,4,5,5
+126,26,Žena,Severovýchod,VŠ,Low Political Interest,5,6,4,4,6
+127,52,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Adults,5,6,5,6,6
+128,24,Muž,Jihozápad,ZŠ / bez maturity,Low Political Interest,4,3,3,6,4
+129,48,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,4,3,7,2,4
+130,32,Žena,Praha,SŠ s maturitou,News Regulars,4,7,8,8,5
+131,64,Muž,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,7,5,10,8,5
+132,33,Žena,Severovýchod,SŠ s maturitou,News Regulars,4,9,8,3,7
+133,42,Žena,Jihovýchod,VŠ,High Polarization,6,8,6,4,5
+134,18,Muž,Jihozápad,SŠ s maturitou,Low Political Interest,9,4,4,4,8
+135,45,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,3,9,5,7,6
+136,49,Muž,Jihozápad,SŠ s maturitou,Young Adults,5,6,2,4,6
+137,24,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,7,6,2,8,5
+138,40,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,8,8,3,3,3
+139,40,Muž,Severozápad,SŠ s maturitou,Young Adults,8,6,5,6,7
+140,55,Muž,Jihozápad,VŠ,Young Adults,3,7,5,4,7
+141,38,Muž,Praha,ZŠ / bez maturity,Low Political Interest,4,5,6,6,8
+142,40,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,6,5,6,5,3
+143,39,Žena,Jihozápad,SŠ s maturitou,High Polarization,1,8,7,3,6
+144,53,Žena,Severozápad,SŠ s maturitou,Young Adults,6,8,7,1,5
+145,50,Muž,Praha,ZŠ / bez maturity,Young Adults,3,5,7,7,3
+146,53,Muž,Střední Čechy,ZŠ / bez maturity,Low Political Interest,4,6,8,10,3
+147,44,Žena,Moravskoslezsko,VŠ,Young Adults,6,2,8,8,3
+148,26,Žena,Praha,VŠ,News Regulars,6,6,6,4,4
+149,48,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,5,7,5,4,3
+150,40,Muž,Střední Čechy,SŠ s maturitou,News Regulars,6,4,4,6,6
+151,72,Muž,Jihovýchod,ZŠ / bez maturity,High Polarization,4,6,5,3,7
+152,45,Muž,Praha,ZŠ / bez maturity,Low Political Interest,7,7,5,2,2
+153,65,Žena,Jihovýchod,ZŠ / bez maturity,High Polarization,10,5,4,6,8
+154,31,Žena,Praha,VŠ,High Polarization,3,5,7,6,6
+155,43,Muž,Severovýchod,ZŠ / bez maturity,News Regulars,4,8,9,5,5
+156,58,Muž,Střední Čechy,SŠ s maturitou,Young Adults,6,3,6,6,7
+157,72,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,6,5,4,5,10
+158,35,Žena,Střední Čechy,VŠ,Low Political Interest,2,7,6,9,2
+159,45,Žena,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,9,4,1,6,7
+160,49,Muž,Jihovýchod,VŠ,Young Adults,4,5,6,5,3
+161,65,Žena,Jihozápad,SŠ s maturitou,High Polarization,6,7,4,5,4
+162,40,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,7,4,10,5,7
+163,74,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,8,8,7,5,5
+164,20,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,3,7,8,6,3
+165,34,Žena,Střední Čechy,VŠ,News Regulars,4,8,7,4,4
+166,31,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,7,6,4,10,7
+167,73,Muž,Jihovýchod,ZŠ / bez maturity,Young Adults,6,4,4,2,4
+168,58,Muž,Praha,VŠ,Young Adults,6,3,9,9,9
+169,41,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,7,7,7,6,4
+170,65,Žena,Severozápad,ZŠ / bez maturity,News Regulars,5,6,2,7,5
+171,18,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,7,8,7,6,6
+172,43,Žena,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,5,5,3,9,3
+173,57,Muž,Praha,SŠ s maturitou,News Regulars,8,9,6,9,7
+174,18,Muž,Severozápad,SŠ s maturitou,Low Political Interest,7,3,6,6,8
+175,35,Žena,Jihovýchod,VŠ,High Polarization,7,5,3,8,5
+176,41,Žena,Jihozápad,SŠ s maturitou,News Regulars,8,6,6,6,2
+177,44,Muž,Jihozápad,ZŠ / bez maturity,Low Political Interest,6,9,9,5,8
+178,57,Muž,Severovýchod,SŠ s maturitou,Young Adults,6,6,6,8,7
+179,37,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,7,7,7,5,6
+180,45,Muž,Střední Čechy,VŠ,News Regulars,2,9,7,7,3
+181,56,Muž,Severovýchod,VŠ,Low Political Interest,3,5,8,5,3
+182,56,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,7,8,5,4,6
+183,18,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,5,9,5,5,5
+184,34,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,3,8,5,3,7
+185,27,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,4,7,7,9,9
+186,74,Žena,Jihovýchod,SŠ s maturitou,Young Adults,5,10,10,8,9
+187,26,Muž,Jihozápad,VŠ,News Regulars,7,6,6,6,7
+188,37,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,4,4,6,6,6
+189,27,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,7,10,10,6,6
+190,63,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,4,6,6,3,7
+191,36,Žena,Severozápad,SŠ s maturitou,News Regulars,6,3,3,5,6
+192,28,Žena,Severozápad,SŠ s maturitou,Low Political Interest,6,6,8,6,7
+193,36,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,2,6,5,7,7
+194,45,Muž,Moravskoslezsko,SŠ s maturitou,News Regulars,5,8,1,5,6
+195,48,Muž,Severozápad,SŠ s maturitou,High Polarization,6,5,9,3,5
+196,46,Žena,Střední Čechy,SŠ s maturitou,News Regulars,8,5,5,4,4
+197,53,Žena,Praha,SŠ s maturitou,High Polarization,9,9,5,5,7
+198,49,Muž,Severovýchod,VŠ,Young Adults,6,6,5,5,9
+199,30,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,5,4,6,7,7
+200,42,Muž,Severovýchod,VŠ,Undecided/Low Attachment,6,5,7,6,1
+201,25,Muž,Severovýchod,SŠ s maturitou,News Regulars,4,6,6,3,6
+202,27,Žena,Jihovýchod,VŠ,Young Adults,5,4,5,6,7
+203,35,Žena,Severozápad,ZŠ / bez maturity,News Regulars,6,10,6,3,6
+204,69,Žena,Praha,ZŠ / bez maturity,Undecided/Low Attachment,3,3,5,7,4
+205,50,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,5,7,7,4,5
+206,35,Muž,Jihozápad,VŠ,High Polarization,7,5,5,8,9
+207,53,Žena,Jihozápad,ZŠ / bez maturity,Young Adults,5,3,6,6,3
+208,45,Žena,Severovýchod,VŠ,Young Adults,8,5,7,6,7
+209,23,Muž,Severovýchod,VŠ,News Regulars,3,5,6,7,7
+210,64,Muž,Jihozápad,SŠ s maturitou,Low Political Interest,10,9,7,8,4
+211,45,Žena,Praha,ZŠ / bez maturity,Young Adults,3,6,4,6,5
+212,18,Žena,Jihovýchod,VŠ,News Regulars,10,6,4,3,8
+213,41,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,3,7,5,5,3
+214,43,Muž,Střední Čechy,VŠ,Low Political Interest,8,10,9,5,2
+215,32,Muž,Severozápad,ZŠ / bez maturity,High Polarization,7,6,6,4,9
+216,27,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,4,4,7,7,5
+217,47,Žena,Jihovýchod,SŠ s maturitou,Low Political Interest,4,8,5,4,3
+218,44,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,5,1,10,5,3
+219,55,Muž,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,6,7,6,7,4
+220,44,Žena,Praha,ZŠ / bez maturity,Low Political Interest,6,4,6,8,4
+221,38,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,4,7,8,4,8
+222,64,Muž,Jihovýchod,VŠ,Young Adults,9,4,5,3,3
+223,18,Žena,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,6,6,9,3,5
+224,69,Žena,Jihozápad,SŠ s maturitou,Young Adults,7,5,7,7,5
+225,18,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,8,7,4,6,8
+226,44,Muž,Severovýchod,SŠ s maturitou,High Polarization,5,5,4,3,9
+227,58,Muž,Severozápad,VŠ,Young Adults,3,7,5,6,6
+228,36,Muž,Střední Čechy,SŠ s maturitou,Young Adults,6,8,9,4,5
+229,24,Muž,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,4,5,5,7,6
+230,23,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,6,6,5,6,2
+231,42,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,6,10,5,5,7
+232,32,Žena,Jihovýchod,VŠ,Young Adults,4,8,6,6,3
+233,42,Muž,Moravskoslezsko,SŠ s maturitou,High Polarization,5,8,6,7,8
+234,47,Žena,Jihovýchod,ZŠ / bez maturity,News Regulars,10,3,6,4,5
+235,18,Žena,Severovýchod,SŠ s maturitou,Young Adults,6,7,8,3,6
+236,56,Žena,Praha,VŠ,Young Adults,3,7,4,3,5
+237,50,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,4,3,5,7,8
+238,36,Žena,Střední Čechy,SŠ s maturitou,News Regulars,8,3,6,8,8
+239,54,Žena,Severozápad,VŠ,News Regulars,5,3,7,4,8
+240,61,Muž,Moravskoslezsko,SŠ s maturitou,Young Adults,7,3,6,6,3
+241,52,Muž,Jihovýchod,VŠ,Undecided/Low Attachment,4,3,9,9,9
+242,26,Žena,Střední Čechy,VŠ,News Regulars,6,3,9,5,8
+243,66,Muž,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,6,8,3,7,6
+244,57,Muž,Severozápad,ZŠ / bez maturity,Young Adults,7,3,5,7,10
+245,49,Muž,Praha,SŠ s maturitou,Low Political Interest,3,5,1,6,6
+246,39,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,4,8,4,6,4
+247,39,Muž,Severozápad,VŠ,Low Political Interest,5,6,6,6,7
+248,36,Muž,Praha,SŠ s maturitou,Low Political Interest,4,6,7,6,1
+249,36,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,6,5,5,7,8
+250,71,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,6,4,4,6,7
+251,37,Muž,Praha,ZŠ / bez maturity,News Regulars,6,5,3,7,5
+252,62,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,3,2,8,5,5
+253,18,Žena,Praha,VŠ,High Polarization,4,6,4,4,9
+254,38,Muž,Jihozápad,VŠ,Young Adults,5,4,7,6,10
+255,57,Muž,Střední Čechy,ZŠ / bez maturity,Low Political Interest,7,9,1,10,8
+256,35,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,4,4,6,6,9
+257,49,Muž,Střední Čechy,SŠ s maturitou,High Polarization,6,7,6,4,6
+258,60,Žena,Severozápad,VŠ,Young Adults,2,6,1,1,5
+259,54,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,10,8,5,6,8
+260,32,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,5,7,5,5,10
+261,47,Muž,Praha,SŠ s maturitou,News Regulars,4,7,3,4,6
+262,41,Muž,Střední Čechy,VŠ,Young Adults,4,5,10,2,8
+263,51,Žena,Severozápad,ZŠ / bez maturity,High Polarization,3,9,8,4,8
+264,68,Muž,Jihozápad,SŠ s maturitou,Young Adults,7,6,5,4,3
+265,43,Žena,Jihozápad,VŠ,Undecided/Low Attachment,7,6,8,7,6
+266,22,Muž,Jihozápad,ZŠ / bez maturity,High Polarization,5,5,3,10,6
+267,30,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,4,10,5,5,4
+268,74,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,10,5,8,4,3
+269,36,Muž,Severovýchod,VŠ,Young Adults,4,4,8,8,10
+270,61,Žena,Střední Čechy,VŠ,Low Political Interest,6,9,6,4,5
+271,25,Žena,Střední Čechy,SŠ s maturitou,Young Adults,4,7,7,7,9
+272,56,Muž,Jihozápad,VŠ,High Polarization,5,5,7,4,8
+273,18,Muž,Moravskoslezsko,VŠ,Undecided/Low Attachment,6,6,2,4,7
+274,54,Muž,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,4,5,5,7,6
+275,52,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,5,6,3,5,6
+276,61,Žena,Jihovýchod,SŠ s maturitou,Low Political Interest,5,5,5,2,5
+277,52,Muž,Střední Čechy,SŠ s maturitou,Young Adults,6,4,1,4,1
+278,28,Žena,Severozápad,SŠ s maturitou,High Polarization,8,7,6,6,2
+279,51,Žena,Severozápad,VŠ,High Polarization,4,6,6,3,10
+280,39,Žena,Jihovýchod,ZŠ / bez maturity,Low Political Interest,9,8,6,9,3
+281,33,Žena,Severozápad,VŠ,High Polarization,8,6,9,4,6
+282,38,Muž,Severozápad,ZŠ / bez maturity,Low Political Interest,4,8,5,7,5
+283,52,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,5,7,4,4,7
+284,72,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,4,6,7,7,3
+285,34,Žena,Jihovýchod,ZŠ / bez maturity,News Regulars,5,6,8,7,7
+286,27,Žena,Praha,ZŠ / bez maturity,Undecided/Low Attachment,3,10,2,6,5
+287,29,Muž,Moravskoslezsko,SŠ s maturitou,Young Adults,10,5,3,5,5
+288,24,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,7,6,6,9,9
+289,22,Žena,Severovýchod,VŠ,Low Political Interest,6,6,4,6,8
+290,37,Muž,Střední Čechy,ZŠ / bez maturity,High Polarization,4,6,4,4,8
+291,53,Muž,Severozápad,SŠ s maturitou,News Regulars,2,3,7,4,5
+292,37,Žena,Střední Čechy,ZŠ / bez maturity,News Regulars,5,5,2,2,8
+293,18,Žena,Severozápad,ZŠ / bez maturity,News Regulars,5,4,8,1,5
+294,38,Muž,Severovýchod,VŠ,Undecided/Low Attachment,6,3,4,3,5
+295,48,Muž,Severovýchod,VŠ,News Regulars,5,7,3,5,2
+296,35,Muž,Jihovýchod,ZŠ / bez maturity,Young Adults,4,4,6,4,8
+297,56,Muž,Jihozápad,VŠ,High Polarization,6,1,4,4,7
+298,37,Muž,Severozápad,SŠ s maturitou,Young Adults,5,5,3,2,8
+299,44,Žena,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,5,8,5,5,4
+300,44,Žena,Jihovýchod,SŠ s maturitou,Young Adults,3,4,9,5,5
+301,26,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,5,3,7,2,9
+302,36,Žena,Praha,VŠ,Young Adults,6,3,8,7,3
+303,54,Muž,Jihovýchod,VŠ,Undecided/Low Attachment,9,3,5,6,5
+304,53,Žena,Jihovýchod,ZŠ / bez maturity,News Regulars,7,8,4,6,9
+305,70,Muž,Severozápad,ZŠ / bez maturity,Young Adults,5,2,4,2,8
+306,41,Muž,Severozápad,SŠ s maturitou,News Regulars,3,4,6,7,9
+307,42,Žena,Praha,SŠ s maturitou,Young Adults,7,4,6,4,5
+308,42,Žena,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,10,9,7,8,5
+309,26,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,6,6,9,3,5
+310,18,Muž,Jihozápad,ZŠ / bez maturity,High Polarization,7,4,6,5,8
+311,18,Muž,Severovýchod,VŠ,News Regulars,7,6,4,5,8
+312,29,Muž,Severozápad,ZŠ / bez maturity,News Regulars,7,10,1,5,7
+313,41,Žena,Praha,ZŠ / bez maturity,High Polarization,6,4,3,5,7
+314,41,Muž,Jihozápad,VŠ,News Regulars,3,7,5,6,7
+315,60,Muž,Jihovýchod,ZŠ / bez maturity,Low Political Interest,6,3,7,3,7
+316,40,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,5,7,6,4,8
+317,30,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,7,5,4,5,5
+318,46,Muž,Severozápad,ZŠ / bez maturity,News Regulars,4,4,6,5,6
+319,70,Muž,Jihovýchod,VŠ,News Regulars,10,6,5,5,5
+320,47,Muž,Severozápad,ZŠ / bez maturity,News Regulars,10,9,6,1,4
+321,65,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,8,8,8,4,6
+322,55,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,7,7,9,2,5
+323,56,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,5,7,9,6,7
+324,41,Žena,Jihozápad,VŠ,High Polarization,3,3,7,6,5
+325,28,Muž,Střední Čechy,VŠ,High Polarization,3,10,4,5,9
+326,46,Žena,Moravskoslezsko,VŠ,Young Adults,7,4,5,5,5
+327,67,Muž,Severozápad,VŠ,News Regulars,5,4,5,8,2
+328,49,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,4,3,6,7,9
+329,33,Žena,Jihozápad,VŠ,High Polarization,4,1,2,4,7
+330,48,Muž,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,7,3,7,9,7
+331,39,Muž,Střední Čechy,SŠ s maturitou,High Polarization,6,4,7,5,7
+332,59,Žena,Moravskoslezsko,VŠ,Low Political Interest,6,6,6,6,4
+333,44,Žena,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,4,3,7,4,4
+334,35,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,7,6,7,7,5
+335,36,Žena,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,2,7,10,6,4
+336,38,Muž,Moravskoslezsko,ZŠ / bez maturity,High Polarization,7,5,6,3,7
+337,72,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,7,6,5,7,5
+338,43,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,3,6,1,8,4
+339,51,Muž,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,9,8,4,3,7
+340,27,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,3,4,7,5,5
+341,37,Muž,Jihovýchod,VŠ,Low Political Interest,5,6,6,3,6
+342,54,Žena,Jihovýchod,SŠ s maturitou,High Polarization,6,8,7,5,7
+343,42,Žena,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,7,4,8,7,5
+344,37,Muž,Jihozápad,SŠ s maturitou,Young Adults,7,6,5,5,5
+345,28,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,6,5,4,4,4
+346,30,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,5,3,6,6,8
+347,41,Žena,Severovýchod,VŠ,Low Political Interest,7,8,7,3,5
+348,41,Muž,Jihovýchod,VŠ,Young Adults,5,4,5,3,10
+349,74,Žena,Jihozápad,VŠ,Low Political Interest,4,8,5,7,6
+350,41,Muž,Severozápad,SŠ s maturitou,High Polarization,8,4,6,4,9
+351,48,Muž,Střední Čechy,SŠ s maturitou,News Regulars,4,7,2,7,5
+352,62,Muž,Praha,ZŠ / bez maturity,Young Adults,3,4,4,7,8
+353,38,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,4,5,5,7,7
+354,33,Muž,Střední Čechy,VŠ,Young Adults,9,4,6,3,2
+355,41,Žena,Jihozápad,SŠ s maturitou,High Polarization,8,6,6,1,5
+356,61,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,6,5,8,4,10
+357,49,Muž,Severovýchod,ZŠ / bez maturity,High Polarization,7,3,7,5,5
+358,43,Muž,Jihozápad,SŠ s maturitou,High Polarization,7,8,6,6,7
+359,47,Muž,Jihovýchod,ZŠ / bez maturity,High Polarization,8,3,7,4,6
+360,35,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,9,7,4,6,6
+361,31,Muž,Střední Čechy,SŠ s maturitou,Low Political Interest,4,7,6,7,9
+362,45,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,7,5,3,5,7
+363,28,Muž,Jihozápad,ZŠ / bez maturity,High Polarization,7,8,3,6,5
+364,72,Muž,Moravskoslezsko,VŠ,Undecided/Low Attachment,7,3,7,1,5
+365,46,Muž,Jihozápad,SŠ s maturitou,News Regulars,4,6,9,4,5
+366,36,Žena,Jihozápad,VŠ,High Polarization,6,10,7,7,9
+367,36,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,3,5,5,6,3
+368,40,Žena,Severovýchod,VŠ,High Polarization,4,7,8,5,8
+369,64,Žena,Praha,SŠ s maturitou,High Polarization,7,9,9,6,7
+370,18,Žena,Střední Čechy,VŠ,Undecided/Low Attachment,4,9,7,2,5
+371,72,Muž,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,1,6,5,8,6
+372,36,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,5,5,5,5,1
+373,47,Žena,Jihozápad,ZŠ / bez maturity,Young Adults,4,9,4,8,10
+374,59,Muž,Praha,ZŠ / bez maturity,Low Political Interest,2,6,5,7,6
+375,34,Žena,Severovýchod,VŠ,Low Political Interest,7,8,7,7,2
+376,27,Muž,Severovýchod,SŠ s maturitou,News Regulars,4,8,8,5,10
+377,29,Muž,Severovýchod,VŠ,Young Adults,4,4,4,6,5
+378,72,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,4,1,7,5,5
+379,38,Muž,Praha,SŠ s maturitou,Young Adults,2,4,4,6,8
+380,28,Muž,Moravskoslezsko,VŠ,High Polarization,5,9,5,8,5
+381,40,Muž,Jihozápad,SŠ s maturitou,Low Political Interest,5,6,4,4,5
+382,35,Muž,Jihozápad,SŠ s maturitou,Young Adults,8,3,6,7,7
+383,25,Žena,Jihovýchod,SŠ s maturitou,Young Adults,8,5,5,8,6
+384,34,Žena,Jihozápad,VŠ,High Polarization,4,10,9,5,7
+385,53,Žena,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,6,6,6,5,4
+386,36,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,9,6,7,7,5
+387,26,Muž,Severozápad,SŠ s maturitou,News Regulars,8,6,2,4,6
+388,23,Muž,Severozápad,ZŠ / bez maturity,Low Political Interest,6,9,3,3,9
+389,57,Muž,Praha,VŠ,News Regulars,2,8,5,2,6
+390,49,Žena,Praha,VŠ,High Polarization,5,3,4,6,8
+391,48,Žena,Jihozápad,VŠ,Low Political Interest,5,6,6,7,6
+392,62,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,7,5,9,6,4
+393,47,Muž,Severovýchod,VŠ,Undecided/Low Attachment,4,8,3,7,4
+394,47,Muž,Jihovýchod,ZŠ / bez maturity,High Polarization,6,6,5,7,10
+395,36,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,3,4,6,5,3
+396,62,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,8,6,8,5,8
+397,37,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,6,5,7,6,7
+398,41,Muž,Střední Čechy,ZŠ / bez maturity,High Polarization,5,8,7,5,6
+399,68,Muž,Severozápad,ZŠ / bez maturity,News Regulars,3,5,4,4,6
+400,66,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,2,7,5,2,7
+401,32,Žena,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,3,8,9,6,10
+402,45,Žena,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,7,8,5,5,4
+403,18,Muž,Severozápad,VŠ,Low Political Interest,6,5,5,10,5
+404,24,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,5,5,6,6,2
+405,57,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,4,6,4,6,8
+406,18,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,6,5,8,6,4
+407,37,Muž,Praha,ZŠ / bez maturity,Undecided/Low Attachment,5,5,5,7,8
+408,36,Muž,Střední Čechy,ZŠ / bez maturity,High Polarization,7,7,2,7,3
+409,48,Muž,Praha,ZŠ / bez maturity,Undecided/Low Attachment,7,6,2,8,3
+410,43,Žena,Jihozápad,ZŠ / bez maturity,Young Adults,5,3,7,8,6
+411,37,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,5,8,7,1,4
+412,47,Muž,Moravskoslezsko,VŠ,Low Political Interest,5,7,7,4,6
+413,49,Muž,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,6,6,7,4,8
+414,28,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Adults,7,7,4,6,7
+415,31,Žena,Severozápad,ZŠ / bez maturity,High Polarization,6,8,5,5,5
+416,40,Muž,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,3,4,4,4,4
+417,21,Muž,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,7,4,4,5,10
+418,18,Muž,Jihovýchod,SŠ s maturitou,News Regulars,5,7,8,6,5
+419,61,Žena,Severovýchod,VŠ,News Regulars,7,8,8,8,1
+420,34,Muž,Severozápad,SŠ s maturitou,High Polarization,6,5,4,9,7
+421,54,Žena,Severovýchod,ZŠ / bez maturity,Low Political Interest,8,10,7,8,7
+422,57,Žena,Severozápad,VŠ,Young Adults,6,3,5,4,6
+423,49,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,5,5,7,6,6
+424,42,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,7,9,3,4,4
+425,31,Muž,Severovýchod,SŠ s maturitou,High Polarization,6,5,5,3,7
+426,21,Žena,Praha,ZŠ / bez maturity,Young Adults,3,8,5,2,4
+427,61,Žena,Jihozápad,SŠ s maturitou,News Regulars,8,7,8,7,4
+428,32,Žena,Severovýchod,VŠ,Undecided/Low Attachment,5,4,6,7,8
+429,49,Muž,Severozápad,SŠ s maturitou,Young Adults,6,5,5,7,1
+430,73,Muž,Střední Čechy,ZŠ / bez maturity,High Polarization,6,7,5,7,9
+431,44,Muž,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,1,4,7,6,5
+432,38,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,3,8,3,6,4
+433,66,Muž,Moravskoslezsko,VŠ,News Regulars,3,8,5,6,3
+434,68,Žena,Praha,ZŠ / bez maturity,High Polarization,3,5,8,6,5
+435,61,Žena,Severovýchod,VŠ,High Polarization,5,6,5,9,4
+436,28,Muž,Jihovýchod,VŠ,High Polarization,5,4,5,8,6
+437,39,Muž,Severozápad,VŠ,News Regulars,4,6,10,7,8
+438,42,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,5,5,10,6,7
+439,41,Muž,Praha,SŠ s maturitou,Low Political Interest,7,5,7,6,4
+440,33,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,6,4,5,6,4
+441,44,Muž,Severozápad,ZŠ / bez maturity,News Regulars,2,4,6,5,8
+442,49,Žena,Jihozápad,SŠ s maturitou,High Polarization,4,1,6,4,6
+443,47,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,5,7,6,5,6
+444,57,Muž,Severozápad,SŠ s maturitou,Young Adults,4,6,8,4,3
+445,50,Žena,Praha,SŠ s maturitou,Low Political Interest,4,6,5,4,3
+446,38,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,4,7,7,7,7
+447,74,Muž,Praha,VŠ,Low Political Interest,7,2,4,3,5
+448,49,Žena,Jihovýchod,ZŠ / bez maturity,High Polarization,6,6,8,7,6
+449,44,Muž,Jihovýchod,VŠ,News Regulars,7,4,5,9,8
+450,47,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,7,6,5,9,6
+451,37,Žena,Praha,SŠ s maturitou,High Polarization,2,3,4,5,10
+452,38,Muž,Severovýchod,SŠ s maturitou,Young Adults,10,3,8,6,8
+453,72,Muž,Jihovýchod,SŠ s maturitou,News Regulars,5,7,7,7,3
+454,52,Muž,Jihovýchod,VŠ,News Regulars,4,6,6,6,9
+455,74,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,3,3,4,4,6
+456,47,Muž,Střední Čechy,SŠ s maturitou,High Polarization,1,6,7,3,6
+457,41,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,4,4,7,10,7
+458,37,Muž,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,5,7,1,4,5
+459,18,Žena,Praha,ZŠ / bez maturity,High Polarization,9,8,7,3,5
+460,48,Muž,Severozápad,VŠ,High Polarization,7,7,4,5,8
+461,52,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,7,6,5,4,5
+462,25,Žena,Střední Čechy,VŠ,Young Adults,8,3,4,4,5
+463,32,Muž,Jihovýchod,ZŠ / bez maturity,Young Adults,7,5,6,3,2
+464,72,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,1,10,8,5,10
+465,36,Žena,Moravskoslezsko,VŠ,High Polarization,5,5,5,5,5
+466,50,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,6,9,1,5,9
+467,62,Žena,Severovýchod,VŠ,News Regulars,6,8,5,5,7
+468,41,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,6,7,6,6,8
+469,34,Muž,Severozápad,SŠ s maturitou,Low Political Interest,4,4,7,8,7
+470,38,Muž,Moravskoslezsko,VŠ,High Polarization,4,9,5,2,2
+471,73,Muž,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,6,5,8,6,8
+472,41,Muž,Praha,VŠ,High Polarization,9,7,5,4,6
+473,37,Muž,Jihozápad,SŠ s maturitou,Young Adults,2,5,8,6,7
+474,36,Muž,Střední Čechy,VŠ,Young Adults,6,7,6,1,7
+475,47,Muž,Jihovýchod,SŠ s maturitou,High Polarization,3,6,7,10,8
+476,31,Žena,Jihozápad,SŠ s maturitou,News Regulars,3,9,5,5,6
+477,30,Žena,Jihovýchod,ZŠ / bez maturity,Low Political Interest,4,4,5,8,4
+478,33,Žena,Severovýchod,VŠ,News Regulars,4,6,6,9,8
+479,26,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,7,7,4,6,6
+480,53,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,5,9,4,3,6
+481,48,Žena,Severovýchod,SŠ s maturitou,Young Adults,4,8,7,3,6
+482,69,Muž,Praha,VŠ,News Regulars,4,10,4,4,7
+483,59,Muž,Střední Čechy,ZŠ / bez maturity,Young Adults,6,5,7,4,6
+484,62,Žena,Severozápad,SŠ s maturitou,Low Political Interest,4,3,5,3,6
+485,50,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,5,5,5,5,4
+486,39,Muž,Praha,SŠ s maturitou,High Polarization,4,4,6,9,7
+487,58,Muž,Praha,SŠ s maturitou,News Regulars,3,8,5,5,6
+488,36,Muž,Moravskoslezsko,SŠ s maturitou,Young Adults,4,5,6,6,6
+489,48,Žena,Střední Čechy,SŠ s maturitou,High Polarization,5,4,7,2,9
+490,38,Žena,Střední Čechy,VŠ,High Polarization,4,7,5,2,7
+491,24,Muž,Severozápad,SŠ s maturitou,High Polarization,5,7,6,2,8
+492,60,Žena,Střední Čechy,SŠ s maturitou,High Polarization,5,7,9,6,6
+493,33,Žena,Střední Čechy,SŠ s maturitou,Young Adults,1,8,5,5,9
+494,56,Žena,Jihozápad,VŠ,High Polarization,9,4,5,3,4
+495,25,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,8,3,8,8,3
+496,49,Žena,Střední Čechy,SŠ s maturitou,High Polarization,8,7,7,6,9
+497,32,Muž,Praha,SŠ s maturitou,Low Political Interest,4,4,5,3,9
+498,33,Žena,Střední Čechy,VŠ,Undecided/Low Attachment,8,8,5,4,7
+499,41,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,5,1,7,7,9
+500,52,Žena,Jihovýchod,SŠ s maturitou,News Regulars,6,6,7,7,7
+501,56,Žena,Praha,SŠ s maturitou,Low Political Interest,6,6,6,6,3
+502,44,Muž,Jihozápad,VŠ,High Polarization,6,4,7,6,7
+503,36,Žena,Jihozápad,VŠ,High Polarization,7,6,5,2,5
+504,40,Žena,Moravskoslezsko,VŠ,High Polarization,4,5,7,8,6
+505,74,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,8,9,3,6,7
+506,18,Muž,Praha,VŠ,Undecided/Low Attachment,4,4,5,5,6
+507,60,Muž,Moravskoslezsko,VŠ,High Polarization,6,10,6,6,7
+508,50,Muž,Jihozápad,VŠ,News Regulars,7,9,7,9,5
+509,54,Muž,Severozápad,VŠ,News Regulars,6,3,9,8,6
+510,26,Žena,Jihovýchod,SŠ s maturitou,Low Political Interest,6,5,6,5,5
+511,43,Muž,Praha,VŠ,High Polarization,5,4,5,7,4
+512,55,Žena,Severovýchod,VŠ,Young Adults,4,5,4,5,6
+513,26,Muž,Severozápad,VŠ,High Polarization,7,4,3,8,6
+514,24,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,9,4,7,4,7
+515,50,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,4,6,7,9,4
+516,50,Žena,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,6,5,9,7,7
+517,40,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Adults,4,7,10,5,5
+518,54,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,5,6,9,5,10
+519,36,Žena,Střední Čechy,SŠ s maturitou,Young Adults,6,7,7,6,8
+520,54,Žena,Praha,SŠ s maturitou,News Regulars,5,8,5,6,7
+521,38,Žena,Jihozápad,SŠ s maturitou,News Regulars,6,5,3,5,6
+522,37,Žena,Jihovýchod,SŠ s maturitou,News Regulars,5,4,8,6,3
+523,49,Muž,Severozápad,SŠ s maturitou,News Regulars,4,8,6,8,6
+524,56,Žena,Praha,VŠ,Young Adults,7,9,7,6,2
+525,47,Žena,Jihozápad,SŠ s maturitou,News Regulars,4,6,6,6,2
+526,54,Muž,Jihozápad,SŠ s maturitou,High Polarization,5,6,3,6,9
+527,32,Žena,Střední Čechy,VŠ,Undecided/Low Attachment,3,6,4,5,5
+528,30,Žena,Jihozápad,VŠ,Undecided/Low Attachment,6,8,1,4,8
+529,44,Žena,Moravskoslezsko,ZŠ / bez maturity,High Polarization,4,5,2,2,7
+530,32,Žena,Jihovýchod,SŠ s maturitou,High Polarization,9,6,4,9,8
+531,59,Muž,Severovýchod,VŠ,Young Adults,6,5,4,9,6
+532,38,Muž,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,6,7,7,7,8
+533,46,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,9,9,4,3,7
+534,40,Žena,Praha,VŠ,Undecided/Low Attachment,2,5,9,5,8
+535,31,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,7,10,4,6,7
+536,40,Muž,Severovýchod,SŠ s maturitou,News Regulars,5,7,10,4,8
+537,27,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,9,6,7,6,9
+538,29,Žena,Severovýchod,SŠ s maturitou,High Polarization,4,8,7,5,7
+539,49,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,7,8,6,4,5
+540,33,Muž,Jihovýchod,SŠ s maturitou,News Regulars,8,3,4,10,2
+541,32,Žena,Severozápad,SŠ s maturitou,Low Political Interest,5,6,4,6,10
+542,19,Žena,Jihovýchod,SŠ s maturitou,Young Adults,7,7,7,7,4
+543,61,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,7,10,7,10,6
+544,42,Žena,Střední Čechy,SŠ s maturitou,High Polarization,4,6,8,2,3
+545,31,Muž,Severovýchod,VŠ,Low Political Interest,7,8,10,7,7
+546,31,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,3,5,8,4,4
+547,48,Muž,Jihozápad,SŠ s maturitou,Young Adults,3,6,4,4,2
+548,43,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,7,9,5,6,8
+549,60,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,7,5,6,4,5
+550,63,Žena,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,4,9,7,9,10
+551,22,Žena,Jihovýchod,VŠ,News Regulars,6,7,5,9,2
+552,52,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,9,7,7,2,7
+553,29,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,4,4,8,7,4
+554,69,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,8,10,6,9,3
+555,54,Žena,Praha,ZŠ / bez maturity,High Polarization,6,8,4,5,3
+556,52,Muž,Severozápad,SŠ s maturitou,Young Adults,5,4,4,5,5
+557,42,Muž,Jihozápad,ZŠ / bez maturity,News Regulars,7,7,7,3,8
+558,34,Žena,Praha,SŠ s maturitou,Low Political Interest,8,5,4,7,4
+559,19,Žena,Praha,VŠ,Undecided/Low Attachment,8,4,6,5,3
+560,56,Žena,Severovýchod,VŠ,Undecided/Low Attachment,4,7,7,5,8
+561,51,Muž,Jihovýchod,SŠ s maturitou,Young Adults,5,5,4,5,3
+562,31,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,5,4,2,4,5
+563,24,Muž,Praha,VŠ,News Regulars,6,6,5,5,8
+564,41,Muž,Severozápad,VŠ,News Regulars,2,7,5,7,10
+565,38,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,8,5,4,5,10
+566,20,Žena,Jihovýchod,SŠ s maturitou,News Regulars,10,5,5,9,9
+567,48,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,5,3,7,5,4
+568,55,Muž,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,3,8,6,4,3
+569,34,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,5,10,6,5,5
+570,41,Žena,Jihovýchod,ZŠ / bez maturity,News Regulars,6,5,5,4,9
+571,31,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,5,5,4,7,8
+572,65,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,7,8,3,8,7
+573,44,Muž,Jihovýchod,SŠ s maturitou,Young Adults,7,5,5,5,5
+574,61,Muž,Severozápad,SŠ s maturitou,Young Adults,6,5,6,9,2
+575,54,Muž,Moravskoslezsko,VŠ,Undecided/Low Attachment,5,7,3,7,1
+576,18,Žena,Severovýchod,VŠ,Undecided/Low Attachment,8,5,2,4,4
+577,42,Žena,Severovýchod,ZŠ / bez maturity,Young Adults,6,9,4,6,4
+578,36,Muž,Severozápad,SŠ s maturitou,Low Political Interest,5,5,8,5,7
+579,59,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,10,7,5,7,7
+580,41,Muž,Severovýchod,VŠ,High Polarization,3,8,4,5,4
+581,55,Žena,Jihovýchod,ZŠ / bez maturity,Low Political Interest,6,6,6,6,3
+582,46,Žena,Střední Čechy,ZŠ / bez maturity,News Regulars,4,8,8,7,9
+583,34,Muž,Praha,ZŠ / bez maturity,Low Political Interest,6,8,4,5,6
+584,41,Žena,Severovýchod,VŠ,High Polarization,5,8,6,5,7
+585,20,Žena,Jihozápad,SŠ s maturitou,Young Adults,4,4,5,7,9
+586,29,Muž,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,8,5,6,4,6
+587,43,Muž,Praha,VŠ,News Regulars,5,6,7,7,5
+588,46,Žena,Jihozápad,SŠ s maturitou,Young Adults,2,10,2,6,9
+589,36,Žena,Severovýchod,VŠ,News Regulars,3,4,9,4,4
+590,34,Žena,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,8,6,5,2,4
+591,18,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,5,6,7,8,6
+592,56,Muž,Jihovýchod,VŠ,Young Adults,5,7,4,5,10
+593,41,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,7,1,5,5,4
+594,45,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,5,9,5,6,4
+595,42,Muž,Jihozápad,SŠ s maturitou,News Regulars,5,8,5,8,4
+596,44,Žena,Moravskoslezsko,VŠ,News Regulars,3,5,4,4,5
+597,26,Muž,Severovýchod,ZŠ / bez maturity,High Polarization,5,9,10,5,10
+598,47,Žena,Střední Čechy,SŠ s maturitou,News Regulars,8,4,5,5,5
+599,43,Žena,Severozápad,VŠ,High Polarization,9,6,6,6,3
+600,52,Žena,Severovýchod,VŠ,Young Adults,5,7,5,6,6
+601,62,Muž,Jihovýchod,SŠ s maturitou,Young Adults,5,6,5,6,7
+602,30,Žena,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,9,8,7,7,8
+603,21,Muž,Praha,ZŠ / bez maturity,Young Adults,7,5,9,5,9
+604,44,Muž,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,4,6,8,6,4
+605,41,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,5,7,4,6,8
+606,36,Žena,Severozápad,SŠ s maturitou,Young Adults,5,7,4,6,7
+607,46,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,4,5,5,3,8
+608,36,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,8,6,8,7,3
+609,62,Žena,Praha,ZŠ / bez maturity,Undecided/Low Attachment,4,8,8,3,2
+610,32,Muž,Praha,VŠ,Low Political Interest,9,5,5,7,3
+611,52,Žena,Severozápad,SŠ s maturitou,Young Adults,8,4,2,7,4
+612,49,Žena,Jihozápad,SŠ s maturitou,Young Adults,5,4,8,3,8
+613,63,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,5,5,9,5,3
+614,45,Žena,Jihovýchod,SŠ s maturitou,High Polarization,2,6,6,7,8
+615,62,Muž,Jihozápad,ZŠ / bez maturity,High Polarization,7,7,8,6,7
+616,48,Muž,Severozápad,SŠ s maturitou,Young Adults,2,7,5,4,10
+617,26,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,2,5,4,8,5
+618,55,Muž,Severozápad,ZŠ / bez maturity,High Polarization,7,4,6,6,2
+619,42,Žena,Jihovýchod,SŠ s maturitou,News Regulars,5,6,8,6,4
+620,48,Žena,Severozápad,VŠ,Undecided/Low Attachment,7,6,5,8,6
+621,47,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,8,5,5,7,6
+622,40,Muž,Střední Čechy,VŠ,Undecided/Low Attachment,7,6,9,2,3
+623,45,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,6,5,5,10,7
+624,18,Žena,Jihovýchod,SŠ s maturitou,Young Adults,3,8,6,3,5
+625,45,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,6,4,10,6,7
+626,48,Žena,Severovýchod,SŠ s maturitou,High Polarization,6,3,8,2,9
+627,51,Žena,Jihozápad,VŠ,Undecided/Low Attachment,5,5,3,8,6
+628,23,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,4,8,9,8,4
+629,52,Žena,Moravskoslezsko,VŠ,Low Political Interest,5,7,5,3,7
+630,40,Žena,Praha,VŠ,High Polarization,5,9,9,6,7
+631,18,Muž,Moravskoslezsko,VŠ,News Regulars,3,6,5,5,4
+632,37,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,6,7,6,5,5
+633,31,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,4,6,5,4,6
+634,40,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,4,5,5,4,5
+635,24,Muž,Severozápad,ZŠ / bez maturity,Young Adults,6,5,4,5,3
+636,32,Muž,Severovýchod,SŠ s maturitou,High Polarization,5,3,8,6,5
+637,44,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,4,4,7,5,8
+638,36,Žena,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,4,6,3,5,5
+639,23,Muž,Jihovýchod,SŠ s maturitou,Young Adults,7,2,5,4,5
+640,54,Muž,Střední Čechy,VŠ,Young Adults,7,6,7,6,6
+641,57,Muž,Praha,ZŠ / bez maturity,Undecided/Low Attachment,5,7,5,4,4
+642,42,Žena,Severozápad,SŠ s maturitou,News Regulars,5,5,4,6,4
+643,25,Žena,Střední Čechy,SŠ s maturitou,Young Adults,3,9,10,6,6
+644,63,Muž,Střední Čechy,SŠ s maturitou,News Regulars,5,5,4,4,5
+645,65,Žena,Jihozápad,SŠ s maturitou,News Regulars,6,8,6,6,6
+646,25,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,4,6,3,9,7
+647,18,Muž,Moravskoslezsko,SŠ s maturitou,High Polarization,7,5,8,6,4
+648,40,Muž,Severovýchod,SŠ s maturitou,Young Adults,1,7,5,6,9
+649,43,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,6,4,7,8,8
+650,21,Muž,Severozápad,VŠ,Low Political Interest,3,7,6,4,7
+651,21,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,8,2,5,5,6
+652,40,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,6,1,3,3,8
+653,54,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,8,3,8,6,6
+654,45,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,6,5,7,1,6
+655,32,Žena,Moravskoslezsko,VŠ,Low Political Interest,1,6,8,5,3
+656,25,Muž,Střední Čechy,SŠ s maturitou,Young Adults,6,10,7,8,9
+657,32,Muž,Severozápad,VŠ,Low Political Interest,3,6,6,7,5
+658,52,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,5,5,8,5,7
+659,34,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,5,8,8,4,10
+660,40,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,9,7,3,8,8
+661,59,Žena,Střední Čechy,SŠ s maturitou,News Regulars,2,5,7,9,6
+662,49,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,6,5,8,2,4
+663,52,Muž,Moravskoslezsko,VŠ,High Polarization,4,8,6,8,2
+664,36,Žena,Střední Čechy,VŠ,Low Political Interest,7,3,4,5,9
+665,24,Žena,Severozápad,VŠ,Young Adults,6,8,8,2,4
+666,62,Žena,Jihovýchod,ZŠ / bez maturity,Low Political Interest,10,5,9,4,6
+667,42,Žena,Severozápad,ZŠ / bez maturity,Young Adults,2,7,1,5,3
+668,66,Muž,Jihozápad,VŠ,Young Adults,3,7,6,5,4
+669,44,Muž,Jihovýchod,ZŠ / bez maturity,Low Political Interest,6,6,3,7,3
+670,52,Muž,Jihovýchod,SŠ s maturitou,Young Adults,6,7,4,3,5
+671,42,Muž,Praha,SŠ s maturitou,High Polarization,4,3,4,5,10
+672,28,Žena,Severozápad,SŠ s maturitou,Low Political Interest,8,5,5,6,3
+673,26,Žena,Severozápad,VŠ,Low Political Interest,5,7,10,4,6
+674,66,Žena,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,4,6,5,6,2
+675,39,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,3,8,5,4,2
+676,59,Muž,Praha,VŠ,Low Political Interest,5,4,4,9,6
+677,55,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,6,3,4,8,4
+678,59,Muž,Jihozápad,SŠ s maturitou,High Polarization,6,7,6,7,7
+679,48,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,5,8,4,4,5
+680,59,Muž,Praha,SŠ s maturitou,Low Political Interest,2,5,7,3,8
+681,38,Žena,Střední Čechy,VŠ,Young Adults,5,7,7,5,5
+682,52,Muž,Severovýchod,VŠ,Undecided/Low Attachment,3,7,6,2,4
+683,40,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,4,6,9,3,5
+684,33,Muž,Jihovýchod,ZŠ / bez maturity,High Polarization,6,8,7,6,3
+685,57,Muž,Severozápad,SŠ s maturitou,News Regulars,2,5,7,7,4
+686,48,Muž,Střední Čechy,VŠ,Low Political Interest,5,1,5,4,6
+687,20,Muž,Severozápad,ZŠ / bez maturity,News Regulars,8,6,5,4,8
+688,68,Muž,Střední Čechy,SŠ s maturitou,News Regulars,6,5,5,4,3
+689,52,Muž,Praha,ZŠ / bez maturity,Low Political Interest,5,8,7,6,2
+690,29,Žena,Severovýchod,ZŠ / bez maturity,High Polarization,6,5,9,4,7
+691,31,Žena,Jihozápad,VŠ,High Polarization,2,8,5,5,2
+692,43,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,9,7,5,9,2
+693,34,Žena,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,3,10,3,6,9
+694,48,Žena,Jihovýchod,SŠ s maturitou,News Regulars,4,8,6,5,6
+695,18,Žena,Jihovýchod,SŠ s maturitou,News Regulars,8,10,1,4,9
+696,39,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,6,8,6,6,7
+697,46,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,7,6,9,3,4
+698,28,Muž,Praha,ZŠ / bez maturity,High Polarization,4,9,6,4,10
+699,49,Muž,Severozápad,ZŠ / bez maturity,High Polarization,6,7,2,7,3
+700,42,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,2,10,5,1,5
+701,24,Muž,Severovýchod,SŠ s maturitou,News Regulars,8,5,9,6,7
+702,59,Muž,Severovýchod,SŠ s maturitou,News Regulars,7,7,5,3,4
+703,42,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,3,5,7,6,3
+704,74,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,6,7,7,7,5
+705,29,Muž,Střední Čechy,VŠ,Undecided/Low Attachment,8,4,10,6,5
+706,62,Žena,Jihovýchod,SŠ s maturitou,Young Adults,7,4,6,3,3
+707,35,Muž,Praha,VŠ,Young Adults,6,7,8,5,5
+708,27,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,4,3,3,5,4
+709,35,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,7,6,6,7,6
+710,48,Muž,Jihozápad,ZŠ / bez maturity,Low Political Interest,7,8,8,8,5
+711,34,Žena,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,6,1,7,10,8
+712,32,Žena,Střední Čechy,SŠ s maturitou,Young Adults,4,9,5,4,5
+713,60,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,6,8,8,5,5
+714,55,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,6,6,4,7,6
+715,62,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,4,7,4,6,7
+716,64,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,8,10,10,5,4
+717,50,Muž,Severovýchod,VŠ,Undecided/Low Attachment,5,8,1,9,4
+718,38,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,4,8,5,6,6
+719,38,Žena,Jihozápad,ZŠ / bez maturity,Undecided/Low Attachment,5,9,7,6,9
+720,37,Žena,Střední Čechy,SŠ s maturitou,High Polarization,3,9,2,8,8
+721,61,Muž,Severovýchod,ZŠ / bez maturity,News Regulars,4,4,4,1,4
+722,47,Muž,Jihovýchod,ZŠ / bez maturity,High Polarization,7,3,3,6,5
+723,26,Žena,Jihozápad,SŠ s maturitou,High Polarization,6,5,6,5,4
+724,47,Muž,Střední Čechy,SŠ s maturitou,High Polarization,7,5,6,4,3
+725,41,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,4,7,9,2,4
+726,43,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,7,7,3,1,7
+727,35,Žena,Praha,ZŠ / bez maturity,News Regulars,6,4,7,8,9
+728,45,Žena,Praha,ZŠ / bez maturity,High Polarization,7,7,9,5,4
+729,46,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,7,4,4,5,6
+730,53,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,7,9,2,6,6
+731,52,Žena,Severozápad,ZŠ / bez maturity,News Regulars,10,6,8,6,3
+732,28,Žena,Praha,ZŠ / bez maturity,News Regulars,9,3,8,8,5
+733,52,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,7,8,9,6,8
+734,18,Muž,Jihovýchod,SŠ s maturitou,High Polarization,4,4,5,8,5
+735,46,Muž,Severovýchod,VŠ,Undecided/Low Attachment,4,9,5,6,6
+736,62,Žena,Jihovýchod,SŠ s maturitou,High Polarization,8,6,8,8,10
+737,25,Žena,Jihozápad,SŠ s maturitou,News Regulars,6,7,7,1,5
+738,28,Muž,Jihozápad,VŠ,High Polarization,7,10,2,2,5
+739,74,Muž,Střední Čechy,SŠ s maturitou,High Polarization,4,4,6,8,5
+740,67,Muž,Severozápad,SŠ s maturitou,Young Adults,6,6,7,6,6
+741,58,Žena,Střední Čechy,SŠ s maturitou,News Regulars,3,7,5,6,10
+742,47,Muž,Praha,VŠ,Low Political Interest,6,9,5,7,3
+743,58,Muž,Jihovýchod,ZŠ / bez maturity,Young Adults,4,5,4,5,4
+744,46,Muž,Jihozápad,ZŠ / bez maturity,News Regulars,5,5,6,3,7
+745,50,Žena,Jihovýchod,VŠ,Young Adults,4,7,4,5,6
+746,44,Muž,Severovýchod,VŠ,Low Political Interest,6,5,4,7,2
+747,62,Muž,Jihovýchod,SŠ s maturitou,News Regulars,5,8,7,6,9
+748,40,Žena,Praha,SŠ s maturitou,Low Political Interest,8,1,8,4,7
+749,41,Žena,Střední Čechy,SŠ s maturitou,News Regulars,4,6,5,1,8
+750,53,Muž,Severovýchod,SŠ s maturitou,News Regulars,4,5,7,6,3
+751,40,Žena,Severovýchod,SŠ s maturitou,News Regulars,5,6,5,4,6
+752,18,Muž,Severozápad,VŠ,Low Political Interest,6,7,3,3,7
+753,33,Žena,Severozápad,SŠ s maturitou,High Polarization,7,9,5,9,5
+754,38,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,6,5,2,5,4
+755,18,Žena,Severovýchod,ZŠ / bez maturity,Young Adults,5,7,4,6,9
+756,21,Muž,Severovýchod,SŠ s maturitou,News Regulars,4,8,3,3,4
+757,58,Žena,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,7,7,2,6,3
+758,38,Žena,Jihovýchod,VŠ,News Regulars,8,4,10,8,5
+759,56,Žena,Střední Čechy,SŠ s maturitou,News Regulars,8,3,8,6,4
+760,25,Žena,Praha,ZŠ / bez maturity,High Polarization,6,5,9,7,10
+761,34,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,3,7,3,3,1
+762,36,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,6,9,6,4,5
+763,48,Žena,Severovýchod,VŠ,News Regulars,7,7,8,8,8
+764,32,Muž,Střední Čechy,VŠ,High Polarization,5,3,4,4,6
+765,27,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,10,3,4,9,5
+766,27,Žena,Střední Čechy,VŠ,Young Adults,3,4,4,3,4
+767,45,Muž,Praha,SŠ s maturitou,Low Political Interest,5,7,4,4,10
+768,57,Žena,Střední Čechy,SŠ s maturitou,Young Adults,2,7,5,4,6
+769,58,Žena,Severovýchod,VŠ,High Polarization,1,5,4,8,4
+770,18,Žena,Jihovýchod,VŠ,Low Political Interest,8,2,7,2,4
+771,54,Muž,Severozápad,SŠ s maturitou,Low Political Interest,7,6,2,8,1
+772,55,Žena,Praha,VŠ,Young Adults,5,3,8,9,9
+773,46,Muž,Jihozápad,SŠ s maturitou,Low Political Interest,4,6,6,5,9
+774,27,Žena,Jihovýchod,ZŠ / bez maturity,News Regulars,8,4,8,1,5
+775,37,Muž,Jihozápad,ZŠ / bez maturity,News Regulars,5,5,3,4,6
+776,48,Žena,Jihozápad,VŠ,Young Adults,10,2,7,8,3
+777,37,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,2,9,8,6,6
+778,51,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,2,4,4,5,5
+779,63,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,8,10,6,5,7
+780,54,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,6,6,7,7,6
+781,47,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,8,7,3,7,4
+782,58,Žena,Moravskoslezsko,VŠ,Young Adults,2,8,6,6,6
+783,43,Muž,Střední Čechy,VŠ,High Polarization,7,10,2,6,8
+784,49,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,1,6,7,2,6
+785,47,Žena,Jihozápad,ZŠ / bez maturity,Undecided/Low Attachment,4,5,5,4,10
+786,24,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,3,8,2,5,9
+787,43,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,7,3,6,5,9
+788,42,Žena,Jihozápad,VŠ,High Polarization,2,5,5,6,10
+789,22,Žena,Jihovýchod,VŠ,Low Political Interest,2,7,4,4,10
+790,40,Muž,Jihovýchod,SŠ s maturitou,News Regulars,7,6,6,4,7
+791,37,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,8,6,4,6,7
+792,21,Muž,Střední Čechy,SŠ s maturitou,High Polarization,5,6,9,3,5
+793,45,Muž,Jihovýchod,ZŠ / bez maturity,Low Political Interest,7,6,3,5,2
+794,37,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,5,6,8,4,2
+795,34,Žena,Praha,VŠ,News Regulars,7,4,10,5,8
+796,49,Muž,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,6,8,9,3,9
+797,37,Muž,Jihovýchod,SŠ s maturitou,News Regulars,1,5,7,5,7
+798,29,Žena,Severozápad,VŠ,Young Adults,6,8,3,2,5
+799,51,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,3,5,3,5,6
+800,35,Muž,Střední Čechy,ZŠ / bez maturity,Young Adults,5,7,7,3,8
+801,63,Žena,Jihovýchod,SŠ s maturitou,Young Adults,5,8,5,2,5
+802,18,Muž,Jihovýchod,SŠ s maturitou,High Polarization,5,9,4,7,8
+803,44,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,6,4,6,5,7
+804,52,Muž,Jihovýchod,VŠ,High Polarization,9,4,6,8,8
+805,55,Muž,Jihovýchod,VŠ,News Regulars,8,6,5,2,6
+806,65,Žena,Praha,ZŠ / bez maturity,Undecided/Low Attachment,5,8,6,5,9
+807,18,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,9,6,2,6,7
+808,34,Žena,Střední Čechy,ZŠ / bez maturity,News Regulars,3,7,9,7,5
+809,34,Žena,Praha,ZŠ / bez maturity,News Regulars,4,5,3,5,5
+810,22,Žena,Praha,VŠ,Undecided/Low Attachment,6,6,3,7,10
+811,40,Muž,Praha,VŠ,Low Political Interest,3,7,5,6,6
+812,39,Muž,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,10,6,5,3,5
+813,67,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,6,5,7,5,8
+814,55,Žena,Praha,SŠ s maturitou,News Regulars,3,4,6,4,6
+815,61,Žena,Severovýchod,VŠ,Low Political Interest,7,8,7,5,5
+816,32,Žena,Jihovýchod,SŠ s maturitou,Young Adults,5,5,8,4,4
+817,43,Muž,Jihovýchod,SŠ s maturitou,News Regulars,3,4,6,2,7
+818,30,Žena,Severovýchod,SŠ s maturitou,Young Adults,2,4,6,7,4
+819,33,Žena,Jihozápad,SŠ s maturitou,Young Adults,4,7,10,6,8
+820,41,Žena,Střední Čechy,VŠ,High Polarization,7,5,5,5,7
+821,35,Muž,Praha,VŠ,Young Adults,6,5,8,5,7
+822,28,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,3,9,6,5,5
+823,28,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,6,7,6,3,3
+824,28,Muž,Střední Čechy,SŠ s maturitou,High Polarization,9,5,6,6,3
+825,28,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,4,8,10,8,5
+826,33,Žena,Střední Čechy,VŠ,Young Adults,4,5,8,5,9
+827,65,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Adults,7,8,3,2,7
+828,18,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Adults,9,7,5,5,5
+829,35,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,4,6,6,4,1
+830,34,Muž,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,4,9,6,5,1
+831,36,Muž,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,3,2,8,5,4
+832,38,Muž,Jihozápad,SŠ s maturitou,High Polarization,4,8,6,4,4
+833,43,Muž,Jihozápad,SŠ s maturitou,High Polarization,4,5,8,1,6
+834,53,Žena,Praha,SŠ s maturitou,News Regulars,3,4,7,7,8
+835,49,Muž,Praha,VŠ,News Regulars,5,7,6,9,4
+836,57,Žena,Severozápad,SŠ s maturitou,Low Political Interest,3,8,7,5,7
+837,43,Muž,Moravskoslezsko,SŠ s maturitou,News Regulars,5,5,8,3,5
+838,39,Žena,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,4,7,6,10,10
+839,24,Muž,Jihovýchod,SŠ s maturitou,High Polarization,7,5,5,3,7
+840,18,Muž,Severovýchod,SŠ s maturitou,Young Adults,7,7,6,4,6
+841,40,Muž,Praha,VŠ,Low Political Interest,9,7,6,3,5
+842,34,Muž,Severozápad,VŠ,Low Political Interest,5,7,4,10,7
+843,62,Muž,Jihozápad,ZŠ / bez maturity,Young Adults,4,4,8,7,5
+844,50,Muž,Jihozápad,SŠ s maturitou,Young Adults,3,6,4,3,5
+845,48,Muž,Severovýchod,SŠ s maturitou,News Regulars,5,4,2,3,6
+846,29,Žena,Jihozápad,VŠ,Young Adults,2,7,3,4,4
+847,37,Muž,Severozápad,SŠ s maturitou,High Polarization,6,7,5,5,5
+848,65,Žena,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,5,3,9,6,8
+849,24,Žena,Severozápad,VŠ,Young Adults,3,5,7,6,6
+850,39,Muž,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,6,4,6,5,7
+851,26,Žena,Jihozápad,VŠ,Low Political Interest,5,4,5,3,5
+852,33,Muž,Severozápad,SŠ s maturitou,News Regulars,3,2,6,9,5
+853,26,Muž,Jihovýchod,SŠ s maturitou,News Regulars,7,8,6,3,2
+854,40,Žena,Moravskoslezsko,ZŠ / bez maturity,High Polarization,4,8,3,4,7
+855,34,Muž,Střední Čechy,SŠ s maturitou,News Regulars,6,4,7,7,4
+856,51,Muž,Střední Čechy,ZŠ / bez maturity,High Polarization,7,8,4,3,7
+857,29,Žena,Praha,ZŠ / bez maturity,High Polarization,4,7,3,4,8
+858,64,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,6,7,5,2,2
+859,36,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,6,7,7,2,7
+860,28,Muž,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,2,7,7,4,5
+861,37,Muž,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,8,7,5,6,10
+862,18,Žena,Jihozápad,VŠ,Young Adults,7,5,8,7,4
+863,33,Muž,Střední Čechy,ZŠ / bez maturity,High Polarization,8,8,9,4,8
+864,46,Žena,Moravskoslezsko,VŠ,News Regulars,8,5,6,6,6
+865,29,Žena,Jihovýchod,SŠ s maturitou,Low Political Interest,7,5,5,6,8
+866,51,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,4,7,4,6,7
+867,34,Muž,Střední Čechy,SŠ s maturitou,News Regulars,4,7,9,4,5
+868,28,Muž,Střední Čechy,SŠ s maturitou,Young Adults,6,3,7,4,4
+869,18,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,3,8,5,4,4
+870,38,Žena,Střední Čechy,VŠ,News Regulars,4,6,8,6,8
+871,51,Muž,Jihovýchod,ZŠ / bez maturity,Low Political Interest,9,7,5,6,5
+872,32,Muž,Střední Čechy,SŠ s maturitou,Low Political Interest,1,8,7,4,5
+873,35,Žena,Severovýchod,ZŠ / bez maturity,Young Adults,7,7,5,4,6
+874,50,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,3,6,1,6,5
+875,72,Žena,Jihovýchod,VŠ,Young Adults,7,7,5,4,7
+876,31,Muž,Moravskoslezsko,SŠ s maturitou,High Polarization,5,7,9,8,4
+877,59,Žena,Střední Čechy,SŠ s maturitou,Young Adults,7,6,7,7,8
+878,48,Žena,Severovýchod,SŠ s maturitou,High Polarization,9,7,5,7,6
+879,18,Muž,Jihovýchod,ZŠ / bez maturity,Young Adults,4,7,9,7,7
+880,48,Žena,Moravskoslezsko,VŠ,News Regulars,8,6,3,6,6
+881,40,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,3,5,7,6,8
+882,41,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,4,7,7,6,8
+883,58,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Adults,6,7,4,4,7
+884,40,Žena,Severovýchod,SŠ s maturitou,News Regulars,4,4,6,3,3
+885,32,Žena,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,7,6,5,5,6
+886,38,Muž,Jihozápad,VŠ,Low Political Interest,5,6,7,5,4
+887,38,Muž,Střední Čechy,VŠ,News Regulars,7,5,3,7,4
+888,29,Žena,Severozápad,VŠ,Low Political Interest,7,6,10,4,5
+889,38,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,7,7,4,7,4
+890,45,Muž,Severozápad,ZŠ / bez maturity,Young Adults,9,6,8,5,7
+891,74,Muž,Jihovýchod,SŠ s maturitou,Young Adults,5,6,7,5,7
+892,57,Muž,Severovýchod,SŠ s maturitou,Young Adults,5,5,8,6,4
+893,52,Muž,Severovýchod,VŠ,Young Adults,6,4,4,4,3
+894,39,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,1,8,3,8,6
+895,51,Žena,Střední Čechy,SŠ s maturitou,News Regulars,6,8,5,1,7
+896,18,Žena,Praha,ZŠ / bez maturity,News Regulars,5,6,8,8,9
+897,42,Žena,Severozápad,SŠ s maturitou,News Regulars,4,8,7,4,3
+898,40,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,5,4,6,9,6
+899,48,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,5,8,6,6,4
+900,35,Žena,Jihovýchod,ZŠ / bez maturity,News Regulars,6,7,7,4,7
+901,18,Žena,Střední Čechy,SŠ s maturitou,News Regulars,7,7,5,4,9
+902,30,Muž,Jihovýchod,SŠ s maturitou,High Polarization,6,8,9,3,6
+903,49,Žena,Jihovýchod,SŠ s maturitou,Young Adults,6,6,3,5,6
+904,39,Žena,Jihovýchod,SŠ s maturitou,News Regulars,6,10,6,1,4
+905,18,Žena,Moravskoslezsko,VŠ,High Polarization,10,7,7,7,2
+906,35,Muž,Severovýchod,SŠ s maturitou,High Polarization,6,7,4,3,4
+907,56,Muž,Jihozápad,SŠ s maturitou,News Regulars,3,3,4,8,6
+908,26,Muž,Jihozápad,SŠ s maturitou,News Regulars,4,8,5,4,10
+909,25,Žena,Severozápad,ZŠ / bez maturity,High Polarization,6,5,6,6,3
+910,38,Žena,Severozápad,VŠ,High Polarization,8,9,6,1,5
+911,27,Muž,Severozápad,SŠ s maturitou,High Polarization,6,8,4,3,8
+912,57,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Adults,7,7,4,8,2
+913,28,Žena,Střední Čechy,SŠ s maturitou,High Polarization,6,4,5,4,7
+914,45,Muž,Střední Čechy,SŠ s maturitou,Low Political Interest,3,6,5,6,6
+915,32,Žena,Severovýchod,SŠ s maturitou,News Regulars,8,4,4,4,5
+916,45,Žena,Jihovýchod,SŠ s maturitou,Young Adults,8,5,3,5,7
+917,29,Muž,Severozápad,VŠ,News Regulars,6,5,7,7,7
+918,18,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,5,7,8,1,3
+919,37,Muž,Střední Čechy,SŠ s maturitou,News Regulars,6,3,5,10,6
+920,26,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,7,4,6,6,8
+921,28,Muž,Jihozápad,VŠ,News Regulars,9,7,8,3,4
+922,42,Muž,Severovýchod,VŠ,Undecided/Low Attachment,8,6,7,8,2
+923,49,Žena,Severozápad,SŠ s maturitou,Young Adults,1,6,8,7,4
+924,40,Muž,Praha,VŠ,High Polarization,10,9,6,4,6
+925,42,Muž,Jihozápad,SŠ s maturitou,Young Adults,7,9,6,7,7
+926,34,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,5,8,2,4,7
+927,34,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,7,3,10,5,6
+928,37,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Adults,5,4,1,4,6
+929,38,Žena,Praha,SŠ s maturitou,News Regulars,6,6,5,5,7
+930,56,Muž,Praha,ZŠ / bez maturity,News Regulars,10,6,7,7,2
+931,34,Muž,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,6,6,9,7,3
+932,23,Muž,Severozápad,VŠ,Undecided/Low Attachment,5,5,6,6,6
+933,43,Muž,Jihovýchod,SŠ s maturitou,High Polarization,6,6,5,5,8
+934,48,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,1,8,3,5,3
+935,23,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,4,6,6,7,7
+936,27,Žena,Jihovýchod,ZŠ / bez maturity,High Polarization,7,7,9,3,8
+937,40,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,4,9,6,5,5
+938,34,Žena,Střední Čechy,VŠ,High Polarization,5,5,9,2,5
+939,45,Žena,Jihovýchod,SŠ s maturitou,Young Adults,9,3,4,7,5
+940,26,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Adults,8,5,5,6,4
+941,63,Žena,Severozápad,SŠ s maturitou,News Regulars,5,9,10,4,4
+942,45,Žena,Praha,ZŠ / bez maturity,News Regulars,7,2,2,8,7
+943,20,Muž,Střední Čechy,SŠ s maturitou,News Regulars,6,10,4,4,8
+944,29,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,6,10,6,3,4
+945,68,Žena,Jihozápad,ZŠ / bez maturity,Undecided/Low Attachment,6,4,7,9,5
+946,23,Žena,Střední Čechy,SŠ s maturitou,Young Adults,7,6,8,3,3
+947,73,Žena,Jihozápad,VŠ,High Polarization,2,5,7,6,4
+948,18,Žena,Severovýchod,SŠ s maturitou,News Regulars,7,5,5,4,5
+949,28,Žena,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,6,5,6,6,4
+950,65,Žena,Severozápad,VŠ,Young Adults,3,7,8,6,3
+951,63,Žena,Praha,SŠ s maturitou,High Polarization,6,4,4,6,6
+952,61,Žena,Severovýchod,ZŠ / bez maturity,Young Adults,5,7,2,6,6
+953,38,Žena,Severozápad,SŠ s maturitou,High Polarization,6,8,7,8,2
+954,33,Muž,Praha,SŠ s maturitou,Low Political Interest,5,7,5,6,8
+955,34,Muž,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,2,5,5,8,5
+956,31,Žena,Jihovýchod,SŠ s maturitou,High Polarization,5,4,5,5,5
+957,55,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,10,5,8,6,6
+958,19,Žena,Severozápad,VŠ,High Polarization,4,5,5,2,4
+959,59,Muž,Severovýchod,ZŠ / bez maturity,News Regulars,7,8,6,3,5
+960,45,Muž,Moravskoslezsko,ZŠ / bez maturity,High Polarization,7,7,10,3,4
+961,52,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,8,6,6,10,5
+962,42,Muž,Moravskoslezsko,ZŠ / bez maturity,High Polarization,1,8,7,3,6
+963,19,Muž,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,6,6,9,8,4
+964,60,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,4,4,3,6,8
+965,38,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,3,5,2,7,9
+966,58,Žena,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,5,7,5,7,5
+967,42,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,6,8,6,2,9
+968,42,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,9,4,4,7,6
+969,74,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,7,5,7,8,4
+970,32,Muž,Jihozápad,SŠ s maturitou,High Polarization,6,3,4,6,1
+971,43,Muž,Praha,ZŠ / bez maturity,High Polarization,5,9,7,5,4
+972,18,Muž,Moravskoslezsko,SŠ s maturitou,High Polarization,7,4,4,6,6
+973,38,Žena,Severovýchod,SŠ s maturitou,News Regulars,4,5,7,4,5
+974,47,Žena,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,10,5,3,5,5
+975,48,Muž,Jihozápad,SŠ s maturitou,News Regulars,8,4,5,4,9
+976,35,Muž,Jihozápad,ZŠ / bez maturity,News Regulars,4,7,3,4,6
+977,56,Žena,Severozápad,SŠ s maturitou,Young Adults,2,6,4,7,6
+978,18,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,7,5,4,6,9
+979,18,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,10,4,5,6,4
+980,18,Žena,Jihozápad,VŠ,News Regulars,8,5,10,10,1
+981,44,Muž,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,2,7,4,9,9
+982,18,Muž,Moravskoslezsko,VŠ,High Polarization,7,4,4,5,3
+983,38,Žena,Jihozápad,VŠ,News Regulars,8,5,9,7,5
+984,35,Muž,Severovýchod,SŠ s maturitou,High Polarization,5,6,5,6,5
+985,55,Muž,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,7,2,5,5,4
+986,27,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,5,7,9,5,5
+987,46,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,4,2,1,5,6
+988,22,Žena,Jihovýchod,SŠ s maturitou,News Regulars,7,5,5,6,4
+989,44,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,5,3,4,4,5
+990,47,Muž,Jihovýchod,ZŠ / bez maturity,Young Adults,10,6,4,4,4
+991,23,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,5,7,7,5,7
+992,33,Muž,Severozápad,SŠ s maturitou,News Regulars,2,5,5,6,9
+993,42,Žena,Střední Čechy,ZŠ / bez maturity,News Regulars,5,7,5,8,8
+994,32,Žena,Jihovýchod,VŠ,High Polarization,4,7,6,3,7
+995,31,Žena,Střední Čechy,VŠ,Young Adults,9,6,6,7,5
+996,53,Muž,Praha,ZŠ / bez maturity,Undecided/Low Attachment,8,4,4,4,1
+997,23,Muž,Jihozápad,ZŠ / bez maturity,Undecided/Low Attachment,4,6,4,9,4
+998,55,Muž,Moravskoslezsko,VŠ,Undecided/Low Attachment,8,7,8,2,9
+999,46,Muž,Praha,SŠ s maturitou,Low Political Interest,6,8,6,6,6
+1000,64,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,7,5,7,7,8
+1001,37,Muž,Střední Čechy,SŠ s maturitou,News Regulars,7,6,6,4,4
+1002,34,Muž,Moravskoslezsko,SŠ s maturitou,News Regulars,7,8,5,7,7
+1003,49,Muž,Jihozápad,VŠ,Undecided/Low Attachment,5,6,8,6,9
+1004,31,Muž,Střední Čechy,VŠ,Undecided/Low Attachment,9,5,6,4,7
+1005,53,Muž,Jihozápad,SŠ s maturitou,Low Political Interest,3,8,5,3,7
+1006,41,Muž,Jihozápad,SŠ s maturitou,Young Adults,6,8,6,3,6
+1007,36,Žena,Severovýchod,SŠ s maturitou,Young Adults,4,5,3,4,6
+1008,53,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,5,8,6,6,6
+1009,52,Muž,Praha,VŠ,News Regulars,5,5,7,3,7
+1010,18,Muž,Moravskoslezsko,ZŠ / bez maturity,High Polarization,3,1,2,4,5
+1011,31,Muž,Severozápad,ZŠ / bez maturity,Young Adults,3,5,9,4,8
+1012,22,Žena,Praha,ZŠ / bez maturity,News Regulars,3,7,3,3,9
+1013,45,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,3,7,7,6,4
+1014,50,Muž,Praha,SŠ s maturitou,Low Political Interest,5,5,6,7,9
+1015,43,Žena,Jihovýchod,VŠ,High Polarization,6,5,5,6,7
+1016,56,Žena,Severozápad,SŠ s maturitou,Low Political Interest,7,6,6,3,8
+1017,36,Muž,Střední Čechy,ZŠ / bez maturity,Low Political Interest,6,5,3,3,5
+1018,42,Žena,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,5,6,4,3,5
+1019,48,Muž,Severozápad,VŠ,Young Adults,7,7,5,4,4
+1020,60,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,5,8,6,4,7
+1021,48,Muž,Praha,SŠ s maturitou,Young Adults,6,7,4,7,6
+1022,30,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,8,5,3,6,7
+1023,54,Žena,Praha,SŠ s maturitou,Young Adults,6,7,5,5,8
+1024,39,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,6,4,6,6,6
+1025,43,Muž,Severovýchod,VŠ,Undecided/Low Attachment,7,6,7,6,8
+1026,35,Žena,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,3,1,7,4,3
+1027,63,Muž,Severozápad,VŠ,High Polarization,10,10,5,5,6
+1028,34,Muž,Severozápad,ZŠ / bez maturity,High Polarization,6,5,8,10,5
+1029,18,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,7,8,4,8,5
+1030,62,Žena,Jihozápad,ZŠ / bez maturity,News Regulars,5,8,6,4,3
+1031,42,Žena,Moravskoslezsko,VŠ,High Polarization,5,5,5,7,4
+1032,41,Muž,Jihovýchod,SŠ s maturitou,High Polarization,7,4,8,8,6
+1033,60,Žena,Jihovýchod,SŠ s maturitou,News Regulars,8,6,8,7,7
+1034,28,Žena,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,3,8,5,8,6
+1035,18,Muž,Praha,ZŠ / bez maturity,Young Adults,4,7,3,6,5
+1036,18,Muž,Praha,VŠ,High Polarization,4,7,3,7,4
+1037,49,Žena,Praha,VŠ,Undecided/Low Attachment,6,7,5,3,8
+1038,56,Muž,Jihovýchod,SŠ s maturitou,News Regulars,6,7,8,9,4
+1039,63,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,4,5,4,7,7
+1040,48,Žena,Jihozápad,VŠ,Undecided/Low Attachment,8,3,4,5,5
+1041,35,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,6,8,4,5,9
+1042,38,Žena,Severovýchod,SŠ s maturitou,News Regulars,6,6,5,1,7
+1043,40,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,5,9,8,6,2
+1044,60,Žena,Moravskoslezsko,ZŠ / bez maturity,High Polarization,4,5,7,7,5
+1045,29,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,4,5,9,4,7
+1046,29,Žena,Praha,SŠ s maturitou,Low Political Interest,4,9,5,8,7
+1047,45,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,5,6,9,2,8
+1048,55,Žena,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,5,8,5,4,9
+1049,31,Žena,Severozápad,SŠ s maturitou,News Regulars,5,3,5,6,4
+1050,21,Muž,Severozápad,SŠ s maturitou,News Regulars,2,6,4,7,3
+1051,28,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,6,6,6,5,6
+1052,31,Žena,Jihovýchod,SŠ s maturitou,Young Adults,7,7,7,6,5
+1053,30,Žena,Severovýchod,VŠ,Low Political Interest,6,6,5,5,6
+1054,41,Muž,Praha,ZŠ / bez maturity,Low Political Interest,7,7,2,8,8
+1055,18,Žena,Střední Čechy,ZŠ / bez maturity,News Regulars,5,8,9,3,7
+1056,62,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,5,6,7,6,8
+1057,24,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,9,9,5,5,6
+1058,26,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,2,7,7,6,7
+1059,30,Muž,Střední Čechy,SŠ s maturitou,Low Political Interest,4,6,4,5,3
+1060,42,Muž,Jihozápad,VŠ,News Regulars,7,4,5,5,6
+1061,25,Muž,Praha,SŠ s maturitou,Young Adults,7,6,8,4,10
+1062,33,Žena,Střední Čechy,VŠ,Undecided/Low Attachment,3,6,6,8,10
+1063,38,Žena,Jihozápad,SŠ s maturitou,News Regulars,3,6,5,3,8
+1064,43,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,10,7,4,2,5
+1065,73,Muž,Střední Čechy,SŠ s maturitou,High Polarization,3,5,4,3,5
+1066,55,Žena,Severovýchod,VŠ,News Regulars,6,5,2,6,5
+1067,26,Muž,Praha,ZŠ / bez maturity,High Polarization,3,1,3,5,5
+1068,38,Žena,Jihovýchod,SŠ s maturitou,News Regulars,10,10,5,6,8
+1069,39,Žena,Severovýchod,SŠ s maturitou,Young Adults,5,6,6,8,8
+1070,36,Žena,Jihovýchod,SŠ s maturitou,Low Political Interest,5,7,3,2,7
+1071,57,Muž,Střední Čechy,SŠ s maturitou,High Polarization,4,4,8,7,9
+1072,51,Muž,Střední Čechy,VŠ,Undecided/Low Attachment,7,6,6,5,3
+1073,62,Muž,Severozápad,SŠ s maturitou,Low Political Interest,6,6,5,5,7
+1074,54,Muž,Jihozápad,VŠ,News Regulars,4,9,6,5,8
+1075,45,Žena,Jihozápad,SŠ s maturitou,High Polarization,4,3,7,5,5
+1076,49,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,5,5,6,4,7
+1077,68,Muž,Severovýchod,ZŠ / bez maturity,News Regulars,5,8,5,3,2
+1078,39,Žena,Severovýchod,SŠ s maturitou,High Polarization,3,6,7,4,3
+1079,47,Žena,Praha,ZŠ / bez maturity,Undecided/Low Attachment,6,5,3,5,5
+1080,48,Muž,Jihozápad,SŠ s maturitou,Low Political Interest,9,5,6,7,5
+1081,65,Žena,Severozápad,SŠ s maturitou,Young Adults,8,5,4,6,6
+1082,57,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,4,5,6,6,3
+1083,21,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,3,7,7,7,6
+1084,32,Žena,Praha,ZŠ / bez maturity,High Polarization,3,4,5,4,4
+1085,40,Muž,Severovýchod,VŠ,Low Political Interest,4,8,8,8,4
+1086,53,Muž,Moravskoslezsko,VŠ,High Polarization,3,2,3,2,10
+1087,31,Žena,Praha,VŠ,News Regulars,6,6,5,3,6
+1088,33,Muž,Střední Čechy,SŠ s maturitou,Low Political Interest,5,8,3,6,10
+1089,36,Muž,Praha,ZŠ / bez maturity,Undecided/Low Attachment,2,3,5,7,6
+1090,35,Žena,Praha,VŠ,Low Political Interest,7,4,7,4,4
+1091,41,Žena,Jihozápad,ZŠ / bez maturity,Young Adults,5,5,3,8,4
+1092,26,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,8,7,7,7,7
+1093,18,Žena,Jihovýchod,VŠ,Low Political Interest,4,6,9,4,3
+1094,20,Muž,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,9,6,5,6,8
+1095,45,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,5,5,4,6,7
+1096,54,Žena,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,5,8,6,5,3
+1097,44,Žena,Moravskoslezsko,VŠ,News Regulars,2,7,9,4,6
+1098,43,Muž,Severozápad,VŠ,News Regulars,4,9,6,7,8
+1099,31,Muž,Jihozápad,SŠ s maturitou,High Polarization,7,6,5,6,6
+1100,42,Muž,Severovýchod,ZŠ / bez maturity,News Regulars,5,7,6,1,5
+1101,43,Muž,Severozápad,VŠ,Undecided/Low Attachment,9,9,5,4,1
+1102,42,Muž,Jihozápad,ZŠ / bez maturity,Low Political Interest,5,4,7,5,6
+1103,42,Žena,Střední Čechy,ZŠ / bez maturity,News Regulars,4,9,7,8,10
+1104,64,Žena,Praha,SŠ s maturitou,Low Political Interest,6,6,2,5,6
+1105,45,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,6,6,4,4,4
+1106,61,Žena,Střední Čechy,SŠ s maturitou,Young Adults,7,4,4,10,8
+1107,45,Žena,Severovýchod,ZŠ / bez maturity,High Polarization,7,7,6,4,2
+1108,37,Žena,Severozápad,VŠ,High Polarization,3,3,8,6,4
+1109,24,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,6,7,5,7,6
+1110,37,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,5,4,6,3,3
+1111,63,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,7,7,7,6,8
+1112,42,Žena,Severozápad,SŠ s maturitou,Young Adults,2,8,7,9,7
+1113,71,Žena,Jihovýchod,ZŠ / bez maturity,Low Political Interest,7,5,4,2,8
+1114,18,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,3,7,6,6,6
+1115,41,Muž,Praha,SŠ s maturitou,Young Adults,5,9,3,6,3
+1116,63,Muž,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,5,8,7,6,5
+1117,50,Žena,Jihovýchod,SŠ s maturitou,Low Political Interest,7,5,4,4,7
+1118,25,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,7,9,7,6,7
+1119,50,Žena,Praha,SŠ s maturitou,Low Political Interest,4,4,5,5,8
+1120,50,Žena,Severozápad,ZŠ / bez maturity,High Polarization,6,5,7,5,7
+1121,51,Muž,Jihovýchod,ZŠ / bez maturity,Low Political Interest,5,5,6,4,8
+1122,21,Žena,Praha,VŠ,Young Adults,7,8,6,5,6
+1123,74,Žena,Severozápad,VŠ,High Polarization,1,8,6,4,10
+1124,31,Muž,Střední Čechy,SŠ s maturitou,Young Adults,3,5,7,6,6
+1125,44,Muž,Severovýchod,SŠ s maturitou,News Regulars,7,5,3,6,6
+1126,55,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,8,9,5,3,6
+1127,18,Muž,Moravskoslezsko,VŠ,News Regulars,3,2,7,3,1
+1128,45,Žena,Severovýchod,VŠ,High Polarization,6,4,4,10,5
+1129,62,Žena,Praha,SŠ s maturitou,Young Adults,6,9,5,4,6
+1130,47,Žena,Praha,SŠ s maturitou,Young Adults,7,8,4,4,10
+1131,32,Žena,Praha,SŠ s maturitou,News Regulars,5,4,5,9,7
+1132,59,Žena,Severovýchod,ZŠ / bez maturity,High Polarization,9,8,8,3,8
+1133,53,Muž,Střední Čechy,SŠ s maturitou,News Regulars,5,6,8,7,4
+1134,43,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,3,7,9,5,7
+1135,56,Žena,Jihovýchod,SŠ s maturitou,News Regulars,4,7,2,6,7
+1136,64,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,4,9,5,6,2
+1137,37,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,8,5,2,7,4
+1138,61,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,7,6,5,8,7
+1139,30,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,4,6,6,6,6
+1140,40,Muž,Severozápad,ZŠ / bez maturity,Low Political Interest,5,8,8,8,6
+1141,28,Muž,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,2,8,5,5,7
+1142,46,Muž,Severovýchod,VŠ,Undecided/Low Attachment,5,3,8,6,5
+1143,38,Muž,Severozápad,VŠ,News Regulars,5,5,9,4,8
+1144,43,Žena,Severozápad,VŠ,Low Political Interest,5,6,7,5,4
+1145,22,Muž,Jihozápad,SŠ s maturitou,News Regulars,10,5,5,4,5
+1146,18,Muž,Praha,SŠ s maturitou,Young Adults,7,8,5,10,5
+1147,56,Muž,Jihovýchod,ZŠ / bez maturity,High Polarization,7,6,6,6,5
+1148,49,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,5,7,5,4,3
+1149,26,Muž,Severozápad,ZŠ / bez maturity,High Polarization,7,8,7,6,6
+1150,38,Muž,Jihovýchod,SŠ s maturitou,Young Adults,4,4,4,6,6
+1151,20,Žena,Severozápad,ZŠ / bez maturity,News Regulars,10,6,8,10,8
+1152,18,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,5,4,2,3,7
+1153,54,Muž,Jihovýchod,VŠ,Young Adults,6,4,8,4,5
+1154,32,Žena,Jihozápad,SŠ s maturitou,High Polarization,7,6,6,6,7
+1155,38,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,5,4,5,5,2
+1156,69,Žena,Střední Čechy,VŠ,Undecided/Low Attachment,4,5,6,3,4
+1157,42,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,8,4,3,5,9
+1158,68,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,6,9,8,5,3
+1159,29,Žena,Střední Čechy,ZŠ / bez maturity,Young Adults,6,5,5,5,9
+1160,48,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,5,7,9,7,5
+1161,31,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,7,7,3,5,5
+1162,23,Žena,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,4,7,9,4,5
+1163,22,Žena,Střední Čechy,VŠ,News Regulars,5,6,4,2,3
+1164,45,Muž,Jihovýchod,ZŠ / bez maturity,Low Political Interest,4,8,7,7,9
+1165,57,Muž,Praha,SŠ s maturitou,News Regulars,5,5,9,5,5
+1166,40,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,6,6,3,3,5
+1167,39,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,4,7,10,6,6
+1168,39,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,3,7,9,5,5
+1169,39,Žena,Severovýchod,SŠ s maturitou,High Polarization,8,3,6,6,4
+1170,28,Žena,Severozápad,ZŠ / bez maturity,Young Adults,1,6,6,5,9
+1171,39,Žena,Praha,SŠ s maturitou,Young Adults,7,6,4,4,8
+1172,48,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,6,5,3,7,5
+1173,18,Muž,Střední Čechy,ZŠ / bez maturity,Low Political Interest,4,5,6,3,6
+1174,30,Muž,Severozápad,SŠ s maturitou,High Polarization,5,6,6,2,2
+1175,49,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,7,3,8,7,9
+1176,18,Žena,Moravskoslezsko,ZŠ / bez maturity,High Polarization,5,5,6,9,5
+1177,24,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,1,1,5,6,8
+1178,47,Žena,Praha,SŠ s maturitou,Low Political Interest,6,5,8,7,6
+1179,19,Žena,Severozápad,VŠ,News Regulars,5,7,4,4,8
+1180,38,Muž,Praha,VŠ,News Regulars,4,6,7,6,4
+1181,30,Žena,Střední Čechy,SŠ s maturitou,Young Adults,7,6,7,5,8
+1182,46,Muž,Střední Čechy,SŠ s maturitou,Young Adults,5,5,4,6,8
+1183,30,Muž,Moravskoslezsko,SŠ s maturitou,Young Adults,9,5,7,5,6
+1184,27,Muž,Severozápad,SŠ s maturitou,News Regulars,5,5,7,6,5
+1185,34,Muž,Praha,VŠ,Undecided/Low Attachment,6,7,6,5,6
+1186,41,Muž,Severozápad,ZŠ / bez maturity,News Regulars,6,6,7,4,4
+1187,22,Žena,Jihovýchod,SŠ s maturitou,News Regulars,4,6,5,5,7
+1188,24,Žena,Moravskoslezsko,ZŠ / bez maturity,News Regulars,4,6,7,9,4
+1189,31,Muž,Jihovýchod,SŠ s maturitou,High Polarization,2,3,4,5,7
+1190,23,Žena,Praha,SŠ s maturitou,Low Political Interest,4,7,9,4,8
+1191,38,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,4,4,9,5,10
+1192,44,Muž,Severozápad,ZŠ / bez maturity,Low Political Interest,6,8,6,2,7
+1193,43,Žena,Severozápad,VŠ,News Regulars,3,5,6,5,8
+1194,23,Muž,Jihozápad,ZŠ / bez maturity,Low Political Interest,4,8,5,6,8
+1195,47,Muž,Praha,VŠ,High Polarization,6,6,5,8,2
+1196,25,Žena,Jihozápad,SŠ s maturitou,News Regulars,5,3,1,4,6
+1197,45,Muž,Jihovýchod,SŠ s maturitou,Young Adults,10,8,8,6,10
+1198,21,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,4,5,6,5,4
+1199,45,Muž,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,5,7,8,6,6
+1200,48,Muž,Jihovýchod,SŠ s maturitou,News Regulars,6,2,7,4,4
+1201,29,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,4,8,4,5,6
+1202,49,Muž,Jihozápad,SŠ s maturitou,Low Political Interest,5,8,5,3,5
+1203,25,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,5,5,2,9,6
+1204,48,Žena,Jihovýchod,SŠ s maturitou,News Regulars,6,5,6,3,5
+1205,32,Muž,Praha,SŠ s maturitou,High Polarization,2,6,5,8,2
+1206,22,Muž,Jihozápad,SŠ s maturitou,News Regulars,5,7,5,7,7
+1207,53,Žena,Severovýchod,SŠ s maturitou,News Regulars,4,7,8,7,9
+1208,74,Muž,Praha,VŠ,Young Adults,8,3,2,9,5
+1209,43,Žena,Praha,ZŠ / bez maturity,High Polarization,8,5,5,7,7
+1210,56,Žena,Jihovýchod,SŠ s maturitou,High Polarization,2,9,4,7,4
+1211,47,Žena,Severovýchod,ZŠ / bez maturity,High Polarization,4,7,6,7,6
+1212,26,Muž,Praha,VŠ,Young Adults,7,9,7,5,7
+1213,64,Muž,Severozápad,ZŠ / bez maturity,High Polarization,4,5,7,7,6
+1214,44,Muž,Severovýchod,SŠ s maturitou,News Regulars,6,2,5,4,5
+1215,38,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,4,4,6,5,5
+1216,42,Muž,Praha,ZŠ / bez maturity,News Regulars,7,7,7,4,5
+1217,47,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,8,4,7,5,8
+1218,33,Žena,Jihovýchod,SŠ s maturitou,High Polarization,6,9,3,3,9
+1219,53,Žena,Severozápad,SŠ s maturitou,Low Political Interest,9,4,4,6,2
+1220,36,Muž,Moravskoslezsko,SŠ s maturitou,Low Political Interest,4,6,8,6,9
+1221,34,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,8,7,9,7,5
+1222,34,Žena,Jihovýchod,VŠ,Low Political Interest,8,6,7,2,7
+1223,60,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,5,8,4,8,8
+1224,31,Žena,Severovýchod,ZŠ / bez maturity,News Regulars,9,3,7,6,3
+1225,19,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,10,5,7,8,5
+1226,52,Žena,Severozápad,SŠ s maturitou,News Regulars,6,6,6,7,5
+1227,51,Muž,Jihozápad,SŠ s maturitou,News Regulars,4,5,1,4,6
+1228,34,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,6,1,3,9,2
+1229,42,Žena,Severozápad,ZŠ / bez maturity,Young Adults,6,7,5,4,5
+1230,46,Žena,Jihovýchod,SŠ s maturitou,High Polarization,4,7,6,7,6
+1231,36,Muž,Praha,SŠ s maturitou,News Regulars,7,5,6,6,5
+1232,32,Muž,Severozápad,VŠ,Young Adults,6,10,8,5,6
+1233,37,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,10,6,4,7,7
+1234,32,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,7,8,5,4,9
+1235,43,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,7,5,6,5,3
+1236,45,Muž,Jihozápad,ZŠ / bez maturity,Young Adults,5,7,7,6,6
+1237,56,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,8,6,1,9,3
+1238,40,Muž,Jihozápad,SŠ s maturitou,News Regulars,5,5,10,7,3
+1239,33,Muž,Jihovýchod,ZŠ / bez maturity,High Polarization,7,5,5,6,3
+1240,18,Muž,Jihovýchod,ZŠ / bez maturity,Low Political Interest,6,9,8,4,4
+1241,34,Muž,Střední Čechy,VŠ,Low Political Interest,1,9,5,3,9
+1242,31,Žena,Jihovýchod,SŠ s maturitou,High Polarization,6,7,9,7,4
+1243,35,Žena,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,5,6,5,6,2
+1244,41,Žena,Střední Čechy,VŠ,Young Adults,6,10,4,4,6
+1245,57,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,8,9,8,7,4
+1246,39,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,8,8,6,8,9
+1247,35,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,7,4,2,4,5
+1248,50,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,6,2,2,3,6
+1249,36,Žena,Moravskoslezsko,SŠ s maturitou,High Polarization,8,8,10,4,7
+1250,30,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,7,6,4,4,5
+1251,43,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,6,4,9,5,5
+1252,38,Žena,Jihovýchod,SŠ s maturitou,Low Political Interest,4,7,8,8,4
+1253,31,Muž,Jihozápad,VŠ,Undecided/Low Attachment,5,8,8,3,6
+1254,51,Žena,Praha,ZŠ / bez maturity,Undecided/Low Attachment,10,7,6,6,10
+1255,57,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,1,6,4,5,6
+1256,46,Žena,Jihovýchod,SŠ s maturitou,Young Adults,5,8,6,9,9
+1257,32,Žena,Praha,ZŠ / bez maturity,Young Adults,10,2,6,7,7
+1258,52,Muž,Jihovýchod,VŠ,News Regulars,5,4,6,4,10
+1259,38,Muž,Severovýchod,VŠ,News Regulars,6,3,7,4,7
+1260,40,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,8,2,6,7,6
+1261,69,Muž,Jihozápad,VŠ,High Polarization,3,6,10,6,5
+1262,52,Žena,Střední Čechy,SŠ s maturitou,News Regulars,9,7,6,8,7
+1263,28,Muž,Praha,SŠ s maturitou,High Polarization,1,2,6,6,10
+1264,69,Žena,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,7,5,4,2,7
+1265,46,Žena,Střední Čechy,VŠ,Low Political Interest,7,6,4,3,6
+1266,42,Muž,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,4,2,9,5,8
+1267,52,Muž,Severovýchod,SŠ s maturitou,News Regulars,10,3,7,6,8
+1268,54,Žena,Jihovýchod,ZŠ / bez maturity,News Regulars,1,6,3,6,6
+1269,18,Muž,Jihovýchod,SŠ s maturitou,Young Adults,4,8,8,5,5
+1270,23,Muž,Severovýchod,SŠ s maturitou,Young Adults,7,7,5,5,4
+1271,33,Žena,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,7,6,7,3,4
+1272,32,Žena,Střední Čechy,SŠ s maturitou,News Regulars,6,6,8,7,7
+1273,46,Žena,Moravskoslezsko,VŠ,Young Adults,4,8,9,6,5
+1274,35,Muž,Praha,SŠ s maturitou,News Regulars,5,4,5,7,7
+1275,26,Muž,Praha,SŠ s maturitou,High Polarization,2,6,7,3,3
+1276,21,Žena,Jihovýchod,VŠ,Young Adults,3,10,4,5,10
+1277,50,Žena,Jihovýchod,SŠ s maturitou,Young Adults,5,8,5,7,10
+1278,44,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,3,8,4,4,7
+1279,22,Muž,Moravskoslezsko,ZŠ / bez maturity,High Polarization,3,6,10,1,6
+1280,41,Žena,Praha,SŠ s maturitou,Low Political Interest,7,5,5,6,1
+1281,45,Muž,Moravskoslezsko,VŠ,Undecided/Low Attachment,9,7,5,7,5
+1282,34,Žena,Střední Čechy,SŠ s maturitou,High Polarization,6,8,5,5,10
+1283,38,Muž,Praha,SŠ s maturitou,News Regulars,5,7,4,8,5
+1284,32,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,1,9,5,4,5
+1285,40,Muž,Střední Čechy,SŠ s maturitou,High Polarization,4,7,5,6,2
+1286,46,Muž,Praha,SŠ s maturitou,News Regulars,6,6,8,6,6
+1287,44,Muž,Střední Čechy,VŠ,High Polarization,4,6,5,4,9
+1288,50,Muž,Moravskoslezsko,VŠ,Undecided/Low Attachment,4,5,7,4,3
+1289,55,Muž,Praha,SŠ s maturitou,Low Political Interest,5,6,7,3,4
+1290,42,Žena,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,4,6,6,8,4
+1291,48,Žena,Severozápad,SŠ s maturitou,High Polarization,8,3,2,9,7
+1292,56,Muž,Praha,SŠ s maturitou,News Regulars,9,10,8,5,8
+1293,37,Muž,Severozápad,SŠ s maturitou,Young Adults,3,3,4,6,6
+1294,18,Žena,Střední Čechy,VŠ,Young Adults,6,6,5,7,6
+1295,52,Muž,Jihovýchod,VŠ,News Regulars,9,8,5,7,4
+1296,50,Žena,Praha,ZŠ / bez maturity,Young Adults,7,5,8,9,4
+1297,58,Žena,Moravskoslezsko,VŠ,News Regulars,5,4,8,4,7
+1298,48,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,7,8,3,4,4
+1299,70,Žena,Střední Čechy,VŠ,News Regulars,3,3,6,6,8
+1300,44,Muž,Střední Čechy,SŠ s maturitou,Young Adults,8,9,5,8,9
+1301,36,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,4,8,6,7,6
+1302,59,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,7,2,6,6,4
+1303,47,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,3,9,5,4,5
+1304,48,Žena,Jihovýchod,ZŠ / bez maturity,Young Adults,5,9,7,3,5
+1305,25,Žena,Jihovýchod,SŠ s maturitou,Low Political Interest,4,9,6,2,6
+1306,33,Žena,Praha,SŠ s maturitou,News Regulars,7,3,5,3,8
+1307,43,Žena,Jihovýchod,VŠ,Young Adults,6,7,2,6,9
+1308,58,Muž,Severozápad,VŠ,News Regulars,5,3,6,7,5
+1309,24,Žena,Jihovýchod,VŠ,Low Political Interest,4,2,4,7,3
+1310,59,Muž,Střední Čechy,VŠ,High Polarization,5,10,3,7,5
+1311,64,Žena,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,3,10,8,4,3
+1312,47,Muž,Moravskoslezsko,SŠ s maturitou,Young Adults,7,3,8,5,7
+1313,55,Muž,Severovýchod,SŠ s maturitou,News Regulars,1,10,8,3,5
+1314,66,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,6,8,9,3,7
+1315,34,Muž,Severozápad,SŠ s maturitou,News Regulars,7,10,4,2,9
+1316,44,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,4,8,6,6,7
+1317,43,Žena,Severovýchod,ZŠ / bez maturity,Young Adults,4,7,8,2,7
+1318,62,Žena,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,7,6,8,6,10
+1319,48,Muž,Moravskoslezsko,VŠ,High Polarization,7,6,3,6,8
+1320,62,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,3,9,9,6,6
+1321,41,Muž,Moravskoslezsko,ZŠ / bez maturity,News Regulars,8,8,5,2,6
+1322,46,Muž,Jihozápad,ZŠ / bez maturity,High Polarization,5,6,7,5,8
+1323,36,Žena,Střední Čechy,SŠ s maturitou,High Polarization,5,6,7,3,2
+1324,65,Žena,Střední Čechy,SŠ s maturitou,News Regulars,5,7,6,8,8
+1325,61,Žena,Střední Čechy,VŠ,Low Political Interest,8,7,4,5,10
+1326,51,Žena,Střední Čechy,VŠ,News Regulars,7,6,4,8,5
+1327,20,Žena,Severovýchod,SŠ s maturitou,Young Adults,5,6,8,7,5
+1328,40,Žena,Severovýchod,SŠ s maturitou,High Polarization,7,8,4,4,7
+1329,50,Žena,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,8,3,7,4,9
+1330,56,Muž,Jihovýchod,SŠ s maturitou,High Polarization,7,6,7,3,5
+1331,18,Žena,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,7,8,9,4,8
+1332,43,Žena,Moravskoslezsko,VŠ,Young Adults,6,7,5,6,9
+1333,58,Muž,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,7,6,8,5,8
+1334,47,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,7,8,7,6,7
+1335,32,Muž,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,8,7,5,5,8
+1336,45,Muž,Praha,VŠ,High Polarization,5,4,7,7,10
+1337,27,Muž,Střední Čechy,SŠ s maturitou,Low Political Interest,10,8,5,4,1
+1338,42,Muž,Severozápad,SŠ s maturitou,Low Political Interest,5,8,6,7,1
+1339,58,Muž,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,6,2,4,6,4
+1340,24,Žena,Jihovýchod,SŠ s maturitou,News Regulars,4,7,5,9,5
+1341,26,Žena,Střední Čechy,SŠ s maturitou,Young Adults,7,9,5,5,5
+1342,21,Muž,Praha,ZŠ / bez maturity,Undecided/Low Attachment,8,7,4,4,3
+1343,39,Žena,Jihozápad,VŠ,Low Political Interest,6,6,6,3,7
+1344,41,Žena,Severozápad,ZŠ / bez maturity,Young Adults,8,5,5,3,7
+1345,32,Muž,Severovýchod,SŠ s maturitou,High Polarization,6,10,5,2,3
+1346,54,Muž,Jihozápad,SŠ s maturitou,Young Adults,4,5,8,1,6
+1347,37,Žena,Severozápad,ZŠ / bez maturity,Young Adults,8,4,5,4,7
+1348,57,Muž,Střední Čechy,ZŠ / bez maturity,Undecided/Low Attachment,10,6,4,3,5
+1349,41,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,5,8,5,5,7
+1350,55,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,3,5,7,8,5
+1351,53,Muž,Střední Čechy,SŠ s maturitou,Young Adults,7,5,6,6,5
+1352,28,Muž,Severovýchod,ZŠ / bez maturity,Low Political Interest,4,4,7,5,6
+1353,41,Žena,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,6,8,6,3,7
+1354,32,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,4,6,8,5,5
+1355,59,Žena,Severovýchod,ZŠ / bez maturity,Low Political Interest,5,4,4,7,2
+1356,29,Žena,Severovýchod,SŠ s maturitou,Young Adults,4,7,7,7,5
+1357,45,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,7,5,5,5,6
+1358,62,Muž,Střední Čechy,ZŠ / bez maturity,Young Adults,6,7,4,6,3
+1359,18,Muž,Střední Čechy,ZŠ / bez maturity,High Polarization,4,7,4,6,4
+1360,32,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,7,8,5,8,7
+1361,40,Muž,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,9,7,3,7,3
+1362,18,Žena,Střední Čechy,VŠ,Young Adults,8,9,4,5,2
+1363,41,Žena,Severovýchod,ZŠ / bez maturity,Low Political Interest,5,4,5,2,8
+1364,37,Muž,Střední Čechy,ZŠ / bez maturity,Young Adults,7,7,9,5,7
+1365,57,Žena,Jihozápad,SŠ s maturitou,Young Adults,6,8,4,5,8
+1366,49,Muž,Jihozápad,ZŠ / bez maturity,News Regulars,6,4,5,8,6
+1367,18,Žena,Praha,ZŠ / bez maturity,High Polarization,5,3,6,7,6
+1368,39,Muž,Severovýchod,SŠ s maturitou,News Regulars,6,6,5,6,6
+1369,51,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,1,5,9,6,6
+1370,36,Muž,Praha,VŠ,News Regulars,5,7,6,2,4
+1371,36,Žena,Střední Čechy,SŠ s maturitou,News Regulars,7,4,4,1,3
+1372,54,Muž,Moravskoslezsko,SŠ s maturitou,High Polarization,6,8,5,10,4
+1373,40,Muž,Severozápad,ZŠ / bez maturity,Young Adults,8,4,5,6,10
+1374,29,Muž,Severozápad,SŠ s maturitou,News Regulars,7,2,7,4,6
+1375,30,Muž,Severozápad,SŠ s maturitou,Low Political Interest,5,5,6,6,4
+1376,33,Muž,Jihovýchod,VŠ,News Regulars,9,2,5,3,4
+1377,42,Žena,Moravskoslezsko,ZŠ / bez maturity,Young Adults,4,10,6,4,1
+1378,24,Muž,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,4,7,3,3,5
+1379,38,Žena,Severozápad,SŠ s maturitou,High Polarization,6,9,5,8,9
+1380,18,Žena,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,7,6,7,3,10
+1381,27,Muž,Severovýchod,VŠ,Young Adults,7,6,5,5,7
+1382,24,Muž,Severovýchod,SŠ s maturitou,Young Adults,5,6,5,9,5
+1383,71,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,1,2,3,7,8
+1384,21,Žena,Moravskoslezsko,VŠ,High Polarization,7,8,2,5,4
+1385,50,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,3,6,5,6,2
+1386,24,Žena,Praha,SŠ s maturitou,High Polarization,3,7,9,7,7
+1387,51,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,5,5,8,5,8
+1388,59,Žena,Severovýchod,SŠ s maturitou,Young Adults,6,6,3,3,4
+1389,21,Muž,Jihozápad,ZŠ / bez maturity,Low Political Interest,6,7,6,6,7
+1390,44,Muž,Moravskoslezsko,SŠ s maturitou,News Regulars,7,10,7,6,7
+1391,50,Muž,Střední Čechy,SŠ s maturitou,High Polarization,4,6,5,3,5
+1392,49,Žena,Severozápad,SŠ s maturitou,High Polarization,6,4,7,4,10
+1393,35,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,2,8,6,7,9
+1394,47,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,6,3,8,2,3
+1395,34,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,10,4,5,6,7
+1396,47,Muž,Severovýchod,VŠ,News Regulars,7,5,9,4,8
+1397,34,Muž,Severozápad,ZŠ / bez maturity,Low Political Interest,4,5,5,5,3
+1398,50,Žena,Střední Čechy,ZŠ / bez maturity,High Polarization,1,7,5,5,8
+1399,39,Žena,Jihozápad,VŠ,Undecided/Low Attachment,7,4,2,4,7
+1400,44,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,7,5,10,3,7
+1401,23,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,6,6,9,7,5
+1402,36,Žena,Severozápad,SŠ s maturitou,High Polarization,9,3,5,7,7
+1403,20,Muž,Severozápad,SŠ s maturitou,Young Adults,5,6,7,4,7
+1404,54,Žena,Střední Čechy,ZŠ / bez maturity,News Regulars,3,4,6,9,4
+1405,43,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,5,8,8,6,6
+1406,69,Muž,Moravskoslezsko,ZŠ / bez maturity,Low Political Interest,7,7,7,7,6
+1407,40,Muž,Jihovýchod,VŠ,Undecided/Low Attachment,6,6,4,7,7
+1408,48,Žena,Jihovýchod,SŠ s maturitou,High Polarization,6,10,6,8,3
+1409,51,Muž,Severovýchod,VŠ,Undecided/Low Attachment,3,1,8,5,9
+1410,37,Muž,Severozápad,ZŠ / bez maturity,Young Adults,1,5,6,6,6
+1411,34,Muž,Severozápad,SŠ s maturitou,High Polarization,8,6,5,8,8
+1412,18,Muž,Moravskoslezsko,ZŠ / bez maturity,Young Adults,7,7,8,8,5
+1413,63,Muž,Jihozápad,ZŠ / bez maturity,Young Adults,3,5,5,7,8
+1414,58,Žena,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,5,4,6,4,7
+1415,55,Žena,Severozápad,SŠ s maturitou,Undecided/Low Attachment,6,5,7,6,6
+1416,50,Žena,Praha,SŠ s maturitou,Young Adults,4,9,8,5,7
+1417,47,Žena,Severovýchod,VŠ,Low Political Interest,6,6,3,7,6
+1418,40,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,6,6,6,7,2
+1419,29,Muž,Praha,ZŠ / bez maturity,Young Adults,5,7,7,4,5
+1420,48,Žena,Jihozápad,ZŠ / bez maturity,Low Political Interest,7,1,10,6,7
+1421,34,Žena,Jihovýchod,VŠ,High Polarization,10,6,3,4,8
+1422,32,Žena,Severovýchod,VŠ,High Polarization,8,4,3,8,6
+1423,32,Muž,Střední Čechy,ZŠ / bez maturity,Low Political Interest,5,2,7,6,9
+1424,36,Žena,Moravskoslezsko,VŠ,Low Political Interest,4,7,9,7,8
+1425,31,Žena,Severovýchod,SŠ s maturitou,High Polarization,7,3,5,7,8
+1426,43,Muž,Severovýchod,ZŠ / bez maturity,Undecided/Low Attachment,6,9,1,6,6
+1427,35,Žena,Moravskoslezsko,VŠ,Young Adults,6,6,9,6,6
+1428,52,Žena,Střední Čechy,ZŠ / bez maturity,Low Political Interest,4,7,8,4,7
+1429,63,Žena,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,6,5,3,7,6
+1430,54,Žena,Jihovýchod,ZŠ / bez maturity,High Polarization,3,6,6,5,2
+1431,39,Muž,Střední Čechy,ZŠ / bez maturity,Young Adults,7,4,10,4,4
+1432,28,Muž,Praha,ZŠ / bez maturity,High Polarization,6,9,4,3,1
+1433,47,Muž,Severozápad,ZŠ / bez maturity,Young Adults,4,8,6,5,9
+1434,36,Muž,Severozápad,VŠ,Undecided/Low Attachment,6,6,5,5,4
+1435,59,Muž,Severovýchod,VŠ,High Polarization,4,6,6,4,7
+1436,52,Muž,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,4,6,4,4,4
+1437,46,Muž,Jihovýchod,SŠ s maturitou,High Polarization,4,10,8,1,10
+1438,67,Muž,Praha,ZŠ / bez maturity,High Polarization,4,8,5,6,5
+1439,18,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,5,8,4,6,6
+1440,18,Muž,Severozápad,ZŠ / bez maturity,News Regulars,2,5,6,4,7
+1441,38,Žena,Jihovýchod,SŠ s maturitou,High Polarization,6,6,5,5,8
+1442,51,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,6,4,8,6,6
+1443,28,Muž,Moravskoslezsko,SŠ s maturitou,Young Adults,10,8,8,6,10
+1444,55,Žena,Severovýchod,VŠ,Undecided/Low Attachment,6,5,6,3,10
+1445,26,Muž,Jihozápad,VŠ,Undecided/Low Attachment,3,7,5,4,5
+1446,28,Muž,Praha,VŠ,Undecided/Low Attachment,9,10,9,8,4
+1447,18,Žena,Jihovýchod,VŠ,News Regulars,2,3,5,6,5
+1448,53,Žena,Moravskoslezsko,VŠ,News Regulars,7,3,4,6,2
+1449,49,Žena,Střední Čechy,SŠ s maturitou,Low Political Interest,7,6,4,4,4
+1450,48,Žena,Severozápad,SŠ s maturitou,Low Political Interest,4,2,7,6,4
+1451,53,Muž,Praha,VŠ,Low Political Interest,4,5,7,6,5
+1452,49,Žena,Jihozápad,SŠ s maturitou,News Regulars,9,8,3,8,6
+1453,20,Muž,Jihozápad,VŠ,Undecided/Low Attachment,2,5,6,8,10
+1454,30,Žena,Severovýchod,VŠ,Low Political Interest,6,5,3,7,4
+1455,56,Žena,Praha,SŠ s maturitou,High Polarization,1,8,4,8,6
+1456,39,Muž,Praha,VŠ,Undecided/Low Attachment,2,8,7,7,8
+1457,44,Žena,Střední Čechy,SŠ s maturitou,Young Adults,5,6,4,3,9
+1458,46,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,6,6,6,4,5
+1459,36,Muž,Střední Čechy,SŠ s maturitou,News Regulars,5,7,6,7,9
+1460,35,Muž,Jihozápad,ZŠ / bez maturity,High Polarization,5,8,7,4,6
+1461,29,Muž,Jihozápad,SŠ s maturitou,News Regulars,4,6,6,6,3
+1462,30,Muž,Praha,SŠ s maturitou,News Regulars,4,6,4,5,4
+1463,51,Žena,Střední Čechy,VŠ,News Regulars,5,10,6,5,7
+1464,33,Žena,Jihozápad,VŠ,Undecided/Low Attachment,7,6,3,3,5
+1465,41,Muž,Střední Čechy,SŠ s maturitou,High Polarization,6,7,4,8,5
+1466,46,Žena,Severozápad,VŠ,High Polarization,6,7,3,3,9
+1467,47,Muž,Jihozápad,SŠ s maturitou,Young Adults,5,4,4,6,7
+1468,23,Muž,Moravskoslezsko,SŠ s maturitou,Young Adults,8,4,5,3,4
+1469,34,Muž,Moravskoslezsko,ZŠ / bez maturity,High Polarization,9,5,6,5,6
+1470,42,Žena,Severozápad,VŠ,High Polarization,6,7,6,4,3
+1471,34,Muž,Jihovýchod,VŠ,Low Political Interest,3,4,6,2,8
+1472,47,Muž,Severozápad,SŠ s maturitou,News Regulars,7,3,5,4,6
+1473,35,Žena,Severovýchod,VŠ,Young Adults,8,4,6,7,7
+1474,34,Muž,Moravskoslezsko,VŠ,News Regulars,6,6,5,3,7
+1475,20,Muž,Severovýchod,VŠ,Low Political Interest,6,6,7,8,2
+1476,50,Muž,Jihovýchod,VŠ,News Regulars,4,5,2,4,4
+1477,45,Žena,Severozápad,SŠ s maturitou,High Polarization,6,3,4,5,3
+1478,55,Žena,Jihovýchod,SŠ s maturitou,News Regulars,6,6,6,2,3
+1479,33,Muž,Severovýchod,ZŠ / bez maturity,News Regulars,4,7,5,4,7
+1480,74,Muž,Severozápad,SŠ s maturitou,High Polarization,6,4,4,8,6
+1481,52,Žena,Moravskoslezsko,SŠ s maturitou,Low Political Interest,8,10,4,5,7
+1482,44,Žena,Moravskoslezsko,VŠ,Low Political Interest,6,9,10,6,7
+1483,29,Žena,Střední Čechy,ZŠ / bez maturity,News Regulars,6,4,4,1,8
+1484,52,Muž,Střední Čechy,SŠ s maturitou,High Polarization,6,1,8,5,7
+1485,44,Muž,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,9,6,7,7,9
+1486,64,Muž,Severovýchod,SŠ s maturitou,Young Adults,6,6,5,6,10
+1487,54,Muž,Severovýchod,ZŠ / bez maturity,High Polarization,7,4,6,7,3
+1488,30,Muž,Střední Čechy,SŠ s maturitou,Undecided/Low Attachment,7,4,6,5,2
+1489,35,Žena,Jihozápad,SŠ s maturitou,News Regulars,6,4,4,7,8
+1490,50,Muž,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,4,7,6,6,6
+1491,18,Muž,Praha,SŠ s maturitou,Undecided/Low Attachment,8,5,9,4,7
+1492,35,Žena,Severozápad,SŠ s maturitou,Young Adults,9,7,8,5,3
+1493,34,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,4,3,8,7,8
+1494,34,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,6,4,5,3,4
+1495,38,Žena,Střední Čechy,SŠ s maturitou,High Polarization,9,9,6,4,3
+1496,18,Žena,Jihovýchod,SŠ s maturitou,Young Adults,3,6,3,6,5
+1497,52,Žena,Střední Čechy,SŠ s maturitou,High Polarization,5,9,6,2,5
+1498,74,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,8,6,9,3,1
+1499,40,Muž,Severozápad,SŠ s maturitou,News Regulars,5,7,3,5,10
+1500,62,Žena,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,5,5,5,4,3
+1501,59,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,8,5,6,3,7
+1502,18,Muž,Praha,SŠ s maturitou,Young Adults,8,7,5,7,4
+1503,39,Muž,Jihovýchod,SŠ s maturitou,News Regulars,7,3,6,5,4
+1504,56,Muž,Jihozápad,ZŠ / bez maturity,Young Adults,6,9,6,4,6
+1505,41,Žena,Moravskoslezsko,VŠ,High Polarization,6,7,10,8,6
+1506,18,Žena,Praha,SŠ s maturitou,Undecided/Low Attachment,5,6,4,5,8
+1507,50,Muž,Severozápad,SŠ s maturitou,High Polarization,7,7,5,8,1
+1508,51,Muž,Střední Čechy,SŠ s maturitou,News Regulars,5,5,6,7,7
+1509,41,Žena,Jihovýchod,ZŠ / bez maturity,Low Political Interest,5,7,7,6,4
+1510,55,Muž,Severozápad,SŠ s maturitou,Low Political Interest,5,10,5,2,1
+1511,41,Žena,Severozápad,SŠ s maturitou,News Regulars,2,9,5,5,5
+1512,53,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,4,8,4,7,7
+1513,30,Muž,Moravskoslezsko,VŠ,Undecided/Low Attachment,6,6,9,5,8
+1514,50,Žena,Jihovýchod,VŠ,High Polarization,5,6,5,9,7
+1515,28,Muž,Praha,SŠ s maturitou,Low Political Interest,7,4,7,5,6
+1516,52,Muž,Střední Čechy,VŠ,Young Adults,7,10,5,6,6
+1517,52,Žena,Jihovýchod,SŠ s maturitou,Undecided/Low Attachment,6,6,6,8,5
+1518,41,Muž,Jihozápad,SŠ s maturitou,Young Adults,7,9,4,4,6
+1519,49,Muž,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,8,7,6,8,7
+1520,21,Muž,Jihozápad,ZŠ / bez maturity,High Polarization,10,8,4,5,8
+1521,44,Muž,Střední Čechy,SŠ s maturitou,News Regulars,6,5,4,6,3
+1522,38,Muž,Severozápad,VŠ,Undecided/Low Attachment,4,5,6,4,5
+1523,40,Žena,Střední Čechy,VŠ,Low Political Interest,6,4,3,5,3
+1524,35,Žena,Jihovýchod,SŠ s maturitou,Young Adults,6,4,5,4,4
+1525,62,Žena,Severovýchod,SŠ s maturitou,News Regulars,5,7,2,6,9
+1526,46,Žena,Severozápad,SŠ s maturitou,Young Adults,4,7,6,3,7
+1527,49,Žena,Praha,ZŠ / bez maturity,News Regulars,6,4,7,3,7
+1528,39,Muž,Severozápad,SŠ s maturitou,High Polarization,4,4,7,4,7
+1529,65,Žena,Severovýchod,VŠ,Undecided/Low Attachment,7,8,3,3,8
+1530,38,Muž,Moravskoslezsko,SŠ s maturitou,News Regulars,7,8,5,7,5
+1531,30,Žena,Jihovýchod,SŠ s maturitou,Young Adults,2,5,8,7,4
+1532,43,Muž,Jihozápad,SŠ s maturitou,News Regulars,4,10,6,4,9
+1533,23,Muž,Jihozápad,ZŠ / bez maturity,Low Political Interest,9,6,8,5,8
+1534,59,Žena,Praha,ZŠ / bez maturity,High Polarization,3,6,10,5,6
+1535,39,Žena,Jihovýchod,SŠ s maturitou,High Polarization,6,8,5,6,6
+1536,67,Muž,Severozápad,SŠ s maturitou,Young Adults,8,9,8,5,4
+1537,66,Muž,Severovýchod,SŠ s maturitou,News Regulars,6,3,6,3,4
+1538,29,Muž,Moravskoslezsko,ZŠ / bez maturity,High Polarization,6,4,5,6,7
+1539,36,Muž,Moravskoslezsko,SŠ s maturitou,News Regulars,4,8,1,3,4
+1540,27,Žena,Severozápad,SŠ s maturitou,Young Adults,5,4,7,9,5
+1541,18,Muž,Jihozápad,VŠ,High Polarization,4,2,5,5,8
+1542,49,Muž,Praha,ZŠ / bez maturity,Undecided/Low Attachment,9,5,4,4,7
+1543,22,Žena,Praha,SŠ s maturitou,News Regulars,3,4,7,7,3
+1544,57,Muž,Jihovýchod,ZŠ / bez maturity,Young Adults,9,8,1,5,7
+1545,36,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,4,5,3,4,4
+1546,52,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,3,4,4,7,4
+1547,36,Muž,Moravskoslezsko,SŠ s maturitou,Young Adults,10,4,6,9,4
+1548,57,Žena,Moravskoslezsko,ZŠ / bez maturity,Undecided/Low Attachment,4,5,9,5,8
+1549,34,Muž,Severozápad,VŠ,Young Adults,6,7,4,8,7
+1550,41,Žena,Jihozápad,SŠ s maturitou,Low Political Interest,4,2,10,6,5
+1551,40,Muž,Jihovýchod,VŠ,Undecided/Low Attachment,6,3,8,6,7
+1552,27,Žena,Jihozápad,VŠ,High Polarization,5,7,7,8,7
+1553,40,Muž,Moravskoslezsko,VŠ,Low Political Interest,6,6,5,7,4
+1554,35,Muž,Jihovýchod,ZŠ / bez maturity,News Regulars,5,5,6,3,9
+1555,69,Žena,Jihovýchod,VŠ,Undecided/Low Attachment,6,5,5,5,5
+1556,23,Muž,Severozápad,ZŠ / bez maturity,Undecided/Low Attachment,7,10,6,4,6
+1557,46,Muž,Praha,SŠ s maturitou,High Polarization,6,5,5,6,10
+1558,30,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,9,3,6,3,10
+1559,26,Žena,Severozápad,ZŠ / bez maturity,Low Political Interest,4,7,9,4,6
+1560,45,Muž,Praha,ZŠ / bez maturity,Young Adults,2,7,3,8,6
+1561,35,Žena,Jihovýchod,ZŠ / bez maturity,Undecided/Low Attachment,9,4,5,7,5
+1562,32,Muž,Jihovýchod,ZŠ / bez maturity,High Polarization,8,8,5,3,5
+1563,34,Žena,Moravskoslezsko,SŠ s maturitou,News Regulars,5,10,6,8,4
+1564,18,Muž,Severozápad,ZŠ / bez maturity,Low Political Interest,6,4,6,2,4
+1565,48,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,2,5,7,5,10
+1566,42,Žena,Praha,SŠ s maturitou,Low Political Interest,7,4,8,6,6
+1567,55,Muž,Severovýchod,ZŠ / bez maturity,High Polarization,3,3,5,5,7
+1568,35,Muž,Severovýchod,SŠ s maturitou,Undecided/Low Attachment,5,7,5,5,8
+1569,25,Muž,Severozápad,SŠ s maturitou,Undecided/Low Attachment,6,6,7,8,4
+1570,64,Žena,Jihovýchod,SŠ s maturitou,High Polarization,3,6,8,4,3
+1571,52,Muž,Jihozápad,SŠ s maturitou,Undecided/Low Attachment,6,6,5,4,5
+1572,56,Muž,Praha,SŠ s maturitou,High Polarization,4,4,3,1,6
+1573,29,Žena,Praha,VŠ,Low Political Interest,9,9,6,6,6
+1574,61,Žena,Moravskoslezsko,SŠ s maturitou,Young Adults,6,6,8,8,4
+1575,30,Muž,Jihozápad,SŠ s maturitou,High Polarization,8,1,4,8,8
+1576,19,Muž,Střední Čechy,ZŠ / bez maturity,News Regulars,7,8,7,3,4
+1577,40,Muž,Praha,SŠ s maturitou,News Regulars,5,5,2,8,5
+1578,46,Muž,Střední Čechy,VŠ,Undecided/Low Attachment,5,7,8,7,1
+1579,18,Muž,Severozápad,ZŠ / bez maturity,Young Adults,4,6,4,3,6
+1580,46,Žena,Severovýchod,SŠ s maturitou,News Regulars,5,4,9,4,6
+1581,43,Žena,Moravskoslezsko,SŠ s maturitou,Undecided/Low Attachment,5,5,8,4,9
+1582,59,Muž,Severovýchod,ZŠ / bez maturity,News Regulars,3,8,10,9,10
+1583,40,Muž,Jihovýchod,VŠ,Low Political Interest,6,8,5,5,4
+1584,38,Žena,Severovýchod,SŠ s maturitou,Low Political Interest,8,8,10,6,4
+1585,38,Muž,Jihozápad,VŠ,News Regulars,1,8,7,8,7
+1586,46,Žena,Jihozápad,ZŠ / bez maturity,Young Adults,3,7,4,7,6
+1587,37,Muž,Střední Čechy,SŠ s maturitou,News Regulars,4,4,8,6,6
+1588,39,Žena,Moravskoslezsko,VŠ,News Regulars,6,6,2,3,10
+1589,35,Muž,Severovýchod,SŠ s maturitou,Low Political Interest,6,6,4,3,6
+1590,46,Muž,Praha,ZŠ / bez maturity,High Polarization,5,8,6,7,8
+1591,24,Žena,Moravskoslezsko,VŠ,Low Political Interest,3,5,5,3,3
+1592,18,Muž,Severozápad,VŠ,Undecided/Low Attachment,8,3,6,6,7
+1593,51,Žena,Jihozápad,SŠ s maturitou,News Regulars,9,4,3,4,8
+1594,55,Žena,Moravskoslezsko,VŠ,Undecided/Low Attachment,8,4,8,3,9
+1595,42,Žena,Jihovýchod,SŠ s maturitou,Young Adults,5,6,1,4,7
+1596,59,Muž,Jihozápad,ZŠ / bez maturity,Undecided/Low Attachment,6,5,2,4,6
+1597,39,Muž,Severovýchod,ZŠ / bez maturity,Young Adults,4,5,2,7,4
+1598,46,Muž,Jihovýchod,SŠ s maturitou,Low Political Interest,5,7,8,6,5
+1599,44,Muž,Moravskoslezsko,SŠ s maturitou,News Regulars,5,3,3,8,6
+1600,34,Žena,Jihozápad,ZŠ / bez maturity,High Polarization,7,5,5,5,6

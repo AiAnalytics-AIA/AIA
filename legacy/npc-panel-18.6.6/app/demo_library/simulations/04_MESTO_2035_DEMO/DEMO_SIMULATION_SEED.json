@@ -1,0 +1,244 @@
+{
+  "schema_version": "demo-simulation-v1",
+  "title": "Město 2035 — — DEMO simulace",
+  "project_type": "simulation",
+  "study_type": "Policy scénáře",
+  "source_research_project_id": "PRJ-DEMO-COMPLETE-04-MESTO-2035-DEMO",
+  "brief": {
+    "client_input": "Město chce porovnat čtyři balíčky dopravních opatření a pochopit podporu, vnímanou férovost a breakpointy veřejné přijatelnosti.",
+    "decision": "Vybrat balíček, který má nejlepší kombinaci podpory, účinnosti a legitimity pro veřejnou diskusi."
+  },
+  "baseline": "Město chce porovnat čtyři balíčky dopravních opatření a pochopit podporu, vnímanou férovost a breakpointy veřejné přijatelnosti.",
+  "change": "Navazující scénářový stress-test doporučení",
+  "audience": {
+    "population": "ČR 18+",
+    "n": 0
+  },
+  "worlds": [
+    {
+      "world_id": "W1",
+      "name": "Base case",
+      "headline": "Vyrovnané podmínky bez extrémního šoku.",
+      "description": "Vyrovnané podmínky bez extrémního šoku.",
+      "assumptions": {
+        "price_pressure": 1.0,
+        "trust_pressure": 1.0,
+        "competition_pressure": 1.0,
+        "activation": 1.0
+      },
+      "primary_metric": {
+        "A": 38,
+        "B": 54,
+        "C": 35,
+        "D": 59
+      },
+      "decision_scores": {
+        "A": 70.9,
+        "B": 79.7,
+        "C": 69.2,
+        "D": 87.5
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W2",
+      "name": "Rozpočtový tlak",
+      "headline": "Lidé více řeší cenu, riziko a bezprostřední hodnotu.",
+      "description": "Lidé více řeší cenu, riziko a bezprostřední hodnotu.",
+      "assumptions": {
+        "price_pressure": 1.3,
+        "trust_pressure": 1.02,
+        "competition_pressure": 1.08,
+        "activation": 0.94
+      },
+      "primary_metric": {
+        "A": 36,
+        "B": 61,
+        "C": 30,
+        "D": 57
+      },
+      "decision_scores": {
+        "A": 69.8,
+        "B": 83.6,
+        "C": 66.5,
+        "D": 86.3
+      },
+      "winner": "D",
+      "risk": "HIGH",
+      "implication": "Breakpoint: za těchto podmínek přebírá vedení B."
+    },
+    {
+      "world_id": "W3",
+      "name": "Promo / konkurenční tlak",
+      "headline": "Konkurence zvyšuje promo nebo agresivitu nabídky.",
+      "description": "Konkurence zvyšuje promo nebo agresivitu nabídky.",
+      "assumptions": {
+        "price_pressure": 1.22,
+        "trust_pressure": 0.96,
+        "competition_pressure": 1.35,
+        "activation": 0.98
+      },
+      "primary_metric": {
+        "A": 36,
+        "B": 60,
+        "C": 31,
+        "D": 61
+      },
+      "decision_scores": {
+        "A": 69.8,
+        "B": 83.0,
+        "C": 67.0,
+        "D": 88
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W4",
+      "name": "Vyšší skepticismus",
+      "headline": "Roste požadavek na důkaz, srozumitelnost a důvěryhodnost.",
+      "description": "Roste požadavek na důkaz, srozumitelnost a důvěryhodnost.",
+      "assumptions": {
+        "price_pressure": 1.03,
+        "trust_pressure": 1.3,
+        "competition_pressure": 1.02,
+        "activation": 0.95
+      },
+      "primary_metric": {
+        "A": 37,
+        "B": 52,
+        "C": 34,
+        "D": 60
+      },
+      "decision_scores": {
+        "A": 70.3,
+        "B": 78.6,
+        "C": 68.7,
+        "D": 88
+      },
+      "winner": "D",
+      "risk": "MEDIUM",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W5",
+      "name": "Silnější důvěra / relevance",
+      "headline": "Zesiluje faktor, na kterém stojí doporučený koncept.",
+      "description": "Zesiluje faktor, na kterém stojí doporučený koncept.",
+      "assumptions": {
+        "price_pressure": 0.96,
+        "trust_pressure": 0.88,
+        "competition_pressure": 0.95,
+        "activation": 1.02
+      },
+      "primary_metric": {
+        "A": 38,
+        "B": 55,
+        "C": 36,
+        "D": 62
+      },
+      "decision_scores": {
+        "A": 70.9,
+        "B": 80.2,
+        "C": 69.8,
+        "D": 88
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W6",
+      "name": "Kategorie se mění",
+      "headline": "Posouvají se potřeby a kontext používání.",
+      "description": "Posouvají se potřeby a kontext používání.",
+      "assumptions": {
+        "price_pressure": 1.0,
+        "trust_pressure": 1.05,
+        "competition_pressure": 1.04,
+        "activation": 1.05
+      },
+      "primary_metric": {
+        "A": 37,
+        "B": 54,
+        "C": 37,
+        "D": 61
+      },
+      "decision_scores": {
+        "A": 70.3,
+        "B": 79.7,
+        "C": 70.3,
+        "D": 88
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W7",
+      "name": "Opatrný trh",
+      "headline": "Klesá obecná ochota ke změně a roste potřeba jistoty.",
+      "description": "Klesá obecná ochota ke změně a roste potřeba jistoty.",
+      "assumptions": {
+        "price_pressure": 1.12,
+        "trust_pressure": 1.22,
+        "competition_pressure": 1.08,
+        "activation": 0.9
+      },
+      "primary_metric": {
+        "A": 34,
+        "B": 51,
+        "C": 31,
+        "D": 57
+      },
+      "decision_scores": {
+        "A": 68.7,
+        "B": 78.0,
+        "C": 67.0,
+        "D": 86.3
+      },
+      "winner": "D",
+      "risk": "MEDIUM",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W8",
+      "name": "Silná aktivace",
+      "headline": "Vyšší dostupnost, informovanost nebo trial usnadní první krok.",
+      "description": "Vyšší dostupnost, informovanost nebo trial usnadní první krok.",
+      "assumptions": {
+        "price_pressure": 0.95,
+        "trust_pressure": 0.92,
+        "competition_pressure": 0.9,
+        "activation": 1.35
+      },
+      "primary_metric": {
+        "A": 41,
+        "B": 57,
+        "C": 38,
+        "D": 63
+      },
+      "decision_scores": {
+        "A": 72.5,
+        "B": 81.3,
+        "C": 70.9,
+        "D": 88
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    }
+  ],
+  "executive_answer": "Balanced Mobility má nejvyšší agregovanou podporu; při silném životním nákladovém tlaku se veřejnost posouvá k Transit First.",
+  "recommendation": "Balanced Mobility má nejvyšší agregovanou podporu; při silném životním nákladovém tlaku se veřejnost posouvá k Transit First.",
+  "winner": "D",
+  "scenario_contract": {
+    "baseline": "současný stav ze zdrojového výzkumu",
+    "change": "vybraná změna/scénář",
+    "worlds_count": 8,
+    "interpretation": "porovnání stability výsledku napříč světy"
+  }
+}

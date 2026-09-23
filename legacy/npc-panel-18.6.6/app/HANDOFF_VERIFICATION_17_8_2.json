@@ -1,0 +1,17 @@
+{
+  "version": "17.8.2",
+  "handoff": "NPC_PANEL_17.8.2_AI_ANALYTICS_REDESIGN_LATEST_FINAL.zip",
+  "base_upload": "8f668f20-2caf-4381-b1ea-04e12d6a349a.zip",
+  "checks": {
+    "functional_python_hash_diff_count": 0,
+    "visual_regression": "PASS",
+    "startup_dom_contract": "PASS",
+    "backend_http_smoke": "PASS",
+    "runtime_import_smoke": "PASS",
+    "pytest_passed": 161,
+    "pytest_skipped": 1,
+    "pytest_failed": 0,
+    "brand_assets_present": true,
+    "right_ai_partner_restored": false
+  }
+}

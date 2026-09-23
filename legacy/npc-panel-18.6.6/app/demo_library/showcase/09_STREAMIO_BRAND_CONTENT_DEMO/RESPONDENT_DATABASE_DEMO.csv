@@ -1,0 +1,1401 @@
+﻿respondent_id,age_group,sex,region,segment,preferred_object,primary_metric,trust,clarity,appeal,overall,weight,demo
+R0001,18–29,žena,Jihozápad,Choice Overload,Smart Discovery,52,66,50,80,62,1.187,TRUE
+R0002,18–29,muž,Severovýchod,Family Viewers,Local First,31,82,67,77,64,0.861,TRUE
+R0003,18–29,žena,Střední Morava,Local Story Fans,Local First,58,47,58,44,52,0.925,TRUE
+R0004,30–44,žena,Moravskoslezsko,Local Story Fans,Local First,33,59,68,50,52,1.111,TRUE
+R0005,65+,muž,Střední Morava,Franchise Hunters,Premium Exclusives,45,53,73,58,57,1.08,TRUE
+R0006,45–64,žena,Severozápad,Franchise Hunters,Premium Exclusives,60,67,71,83,70,1.0,TRUE
+R0007,45–64,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,27,59,76,52,54,0.995,TRUE
+R0008,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,58,86,47,79,68,0.882,TRUE
+R0009,65+,muž,Jihovýchod,Local Story Fans,Local First,33,48,77,45,51,0.872,TRUE
+R0010,30–44,muž,Severozápad,Choice Overload,Smart Discovery,42,88,51,45,56,0.956,TRUE
+R0011,30–44,žena,Střední Morava,Local Story Fans,Local First,46,85,87,79,74,1.112,TRUE
+R0012,45–64,žena,Jihovýchod,Local Story Fans,Local First,45,72,79,81,69,0.875,TRUE
+R0013,30–44,muž,Střední Morava,Franchise Hunters,Premium Exclusives,55,60,77,80,68,0.756,TRUE
+R0014,18–29,žena,Severovýchod,Family Viewers,Local First,53,55,77,62,62,0.868,TRUE
+R0015,18–29,muž,Praha,Family Viewers,Local First,40,75,55,48,54,1.011,TRUE
+R0016,18–29,žena,Střední Čechy,Family Viewers,Local First,24,77,54,81,59,1.154,TRUE
+R0017,65+,muž,Moravskoslezsko,Family Viewers,Local First,46,48,73,78,61,0.807,TRUE
+R0018,45–64,muž,Moravskoslezsko,Local Story Fans,Local First,35,56,62,56,52,0.873,TRUE
+R0019,18–29,muž,Střední Čechy,Light Streamers,Smart Discovery,25,47,66,61,50,0.9,TRUE
+R0020,65+,muž,Praha,Local Story Fans,Local First,59,54,48,67,57,1.001,TRUE
+R0021,45–64,muž,Jihozápad,Light Streamers,Smart Discovery,35,90,62,52,60,0.772,TRUE
+R0022,45–64,muž,Střední Čechy,Local Story Fans,Local First,32,77,56,73,60,1.236,TRUE
+R0023,30–44,muž,Severozápad,Local Story Fans,Local First,55,90,87,35,67,0.75,TRUE
+R0024,45–64,žena,Severovýchod,Local Story Fans,Local First,25,48,58,37,42,1.233,TRUE
+R0025,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,55,50,55,62,56,1.042,TRUE
+R0026,45–64,muž,Střední Čechy,Local Story Fans,Local First,54,88,60,64,66,0.822,TRUE
+R0027,30–44,muž,Severozápad,Light Streamers,Smart Discovery,27,87,61,36,53,1.205,TRUE
+R0028,18–29,žena,Jihozápad,Family Viewers,Local First,35,79,87,48,62,0.777,TRUE
+R0029,18–29,muž,Střední Čechy,Choice Overload,Smart Discovery,55,47,88,60,62,1.007,TRUE
+R0030,18–29,žena,Střední Čechy,Light Streamers,Smart Discovery,52,87,78,70,72,0.831,TRUE
+R0031,65+,žena,Praha,Franchise Hunters,Premium Exclusives,26,54,58,81,55,0.958,TRUE
+R0032,30–44,muž,Jihozápad,Local Story Fans,Local First,32,89,65,49,59,1.074,TRUE
+R0033,65+,muž,Jihovýchod,Choice Overload,Smart Discovery,39,45,68,81,58,0.978,TRUE
+R0034,45–64,muž,Severozápad,Local Story Fans,Local First,39,56,89,62,62,1.035,TRUE
+R0035,30–44,žena,Severovýchod,Local Story Fans,Local First,60,65,87,53,66,0.823,TRUE
+R0036,30–44,žena,Severozápad,Franchise Hunters,Premium Exclusives,44,85,74,53,64,0.785,TRUE
+R0037,45–64,žena,Střední Morava,Local Story Fans,Local First,45,70,81,77,68,0.759,TRUE
+R0038,30–44,muž,Střední Morava,Choice Overload,Smart Discovery,28,75,75,52,58,1.068,TRUE
+R0039,65+,muž,Severovýchod,Family Viewers,Local First,50,79,77,48,64,1.016,TRUE
+R0040,45–64,muž,Střední Čechy,Family Viewers,Local First,51,86,45,82,66,1.178,TRUE
+R0041,45–64,žena,Střední Morava,Local Story Fans,Local First,56,90,88,79,78,0.84,TRUE
+R0042,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,25,71,80,44,55,1.064,TRUE
+R0043,18–29,žena,Severovýchod,Light Streamers,Smart Discovery,29,77,47,50,51,0.764,TRUE
+R0044,18–29,muž,Severovýchod,Local Story Fans,Local First,41,79,57,44,55,0.956,TRUE
+R0045,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,27,84,83,47,60,0.897,TRUE
+R0046,30–44,muž,Praha,Choice Overload,Smart Discovery,40,49,87,87,66,0.914,TRUE
+R0047,18–29,muž,Jihozápad,Local Story Fans,Local First,57,84,84,77,76,1.202,TRUE
+R0048,18–29,muž,Jihozápad,Local Story Fans,Local First,42,87,73,83,71,1.168,TRUE
+R0049,45–64,muž,Severovýchod,Family Viewers,Local First,28,84,61,39,53,0.948,TRUE
+R0050,65+,muž,Moravskoslezsko,Family Viewers,Local First,32,48,55,77,53,0.751,TRUE
+R0051,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,39,74,70,52,59,0.949,TRUE
+R0052,18–29,muž,Praha,Choice Overload,Smart Discovery,53,60,86,51,62,0.987,TRUE
+R0053,45–64,žena,Praha,Family Viewers,Local First,52,75,47,81,64,0.816,TRUE
+R0054,65+,žena,Jihovýchod,Local Story Fans,Local First,46,68,50,40,51,0.87,TRUE
+R0055,65+,muž,Severozápad,Light Streamers,Smart Discovery,55,70,80,77,70,1.034,TRUE
+R0056,45–64,žena,Severozápad,Franchise Hunters,Premium Exclusives,25,68,71,49,53,1.205,TRUE
+R0057,18–29,žena,Severozápad,Family Viewers,Local First,32,66,67,50,54,0.763,TRUE
+R0058,45–64,muž,Střední Morava,Franchise Hunters,Premium Exclusives,26,55,58,79,54,0.781,TRUE
+R0059,45–64,muž,Střední Morava,Family Viewers,Local First,58,90,88,89,81,1.249,TRUE
+R0060,65+,žena,Severozápad,Choice Overload,Smart Discovery,58,62,50,46,54,0.971,TRUE
+R0061,45–64,muž,Jihovýchod,Light Streamers,Smart Discovery,56,68,47,79,62,0.909,TRUE
+R0062,65+,žena,Severovýchod,Light Streamers,Smart Discovery,47,84,80,90,75,0.883,TRUE
+R0063,65+,žena,Moravskoslezsko,Local Story Fans,Local First,39,54,81,41,54,1.208,TRUE
+R0064,30–44,žena,Praha,Light Streamers,Smart Discovery,43,87,69,80,70,0.966,TRUE
+R0065,45–64,muž,Jihozápad,Choice Overload,Smart Discovery,35,74,52,45,52,0.949,TRUE
+R0066,18–29,muž,Střední Morava,Choice Overload,Smart Discovery,58,51,57,57,56,1.081,TRUE
+R0067,18–29,muž,Severovýchod,Choice Overload,Smart Discovery,24,86,47,41,50,1.21,TRUE
+R0068,65+,muž,Severozápad,Local Story Fans,Local First,44,69,62,79,64,1.049,TRUE
+R0069,30–44,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,35,67,65,35,50,0.9,TRUE
+R0070,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,39,59,69,38,51,1.056,TRUE
+R0071,65+,muž,Praha,Choice Overload,Smart Discovery,53,71,85,36,61,0.82,TRUE
+R0072,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,30,70,83,78,65,0.815,TRUE
+R0073,18–29,žena,Jihozápad,Family Viewers,Local First,37,53,74,69,58,1.079,TRUE
+R0074,18–29,muž,Jihozápad,Local Story Fans,Local First,37,63,90,49,60,1.085,TRUE
+R0075,65+,muž,Moravskoslezsko,Local Story Fans,Local First,32,79,79,71,65,1.023,TRUE
+R0076,65+,žena,Střední Morava,Light Streamers,Smart Discovery,44,68,77,60,62,1.026,TRUE
+R0077,18–29,žena,Střední Morava,Light Streamers,Smart Discovery,25,75,73,58,58,0.813,TRUE
+R0078,18–29,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,52,62,61,58,58,0.962,TRUE
+R0079,65+,žena,Moravskoslezsko,Family Viewers,Local First,37,56,47,39,45,0.833,TRUE
+R0080,18–29,žena,Severovýchod,Local Story Fans,Local First,29,71,68,43,53,0.967,TRUE
+R0081,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,25,72,46,40,46,0.833,TRUE
+R0082,18–29,muž,Moravskoslezsko,Local Story Fans,Local First,45,71,67,76,65,1.243,TRUE
+R0083,45–64,muž,Moravskoslezsko,Light Streamers,Smart Discovery,45,70,53,82,62,1.188,TRUE
+R0084,30–44,žena,Severozápad,Family Viewers,Local First,50,51,48,82,58,0.996,TRUE
+R0085,30–44,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,46,67,45,66,56,0.785,TRUE
+R0086,18–29,muž,Praha,Local Story Fans,Local First,46,54,72,40,53,0.785,TRUE
+R0087,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,34,66,50,63,53,0.931,TRUE
+R0088,65+,žena,Severovýchod,Local Story Fans,Local First,50,88,45,49,58,0.775,TRUE
+R0089,65+,muž,Jihozápad,Local Story Fans,Local First,26,83,66,63,60,1.155,TRUE
+R0090,45–64,žena,Severozápad,Light Streamers,Smart Discovery,40,70,81,74,66,1.132,TRUE
+R0091,30–44,muž,Praha,Choice Overload,Smart Discovery,35,73,74,58,60,0.786,TRUE
+R0092,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,38,63,69,44,54,0.988,TRUE
+R0093,18–29,muž,Střední Morava,Local Story Fans,Local First,59,71,51,45,56,1.003,TRUE
+R0094,65+,muž,Střední Morava,Local Story Fans,Local First,32,56,62,72,56,1.23,TRUE
+R0095,18–29,žena,Severozápad,Light Streamers,Smart Discovery,40,84,63,83,68,0.933,TRUE
+R0096,45–64,žena,Střední Morava,Family Viewers,Local First,35,77,78,84,68,0.999,TRUE
+R0097,65+,muž,Moravskoslezsko,Family Viewers,Local First,32,62,84,63,60,1.11,TRUE
+R0098,45–64,muž,Jihovýchod,Local Story Fans,Local First,47,47,66,36,49,0.795,TRUE
+R0099,45–64,muž,Praha,Franchise Hunters,Premium Exclusives,36,75,87,69,67,0.887,TRUE
+R0100,18–29,muž,Severozápad,Choice Overload,Smart Discovery,46,47,69,41,51,0.999,TRUE
+R0101,45–64,muž,Střední Morava,Family Viewers,Local First,42,66,75,73,64,0.896,TRUE
+R0102,30–44,žena,Moravskoslezsko,Light Streamers,Smart Discovery,30,90,56,60,59,1.191,TRUE
+R0103,30–44,žena,Praha,Choice Overload,Smart Discovery,45,64,89,36,58,1.208,TRUE
+R0104,18–29,žena,Moravskoslezsko,Choice Overload,Smart Discovery,46,53,63,60,56,0.884,TRUE
+R0105,65+,muž,Praha,Choice Overload,Smart Discovery,28,73,62,47,52,0.809,TRUE
+R0106,30–44,muž,Jihozápad,Family Viewers,Local First,32,56,83,81,63,1.128,TRUE
+R0107,65+,muž,Praha,Franchise Hunters,Premium Exclusives,38,66,78,75,64,1.24,TRUE
+R0108,18–29,muž,Střední Morava,Light Streamers,Smart Discovery,49,59,51,37,49,0.821,TRUE
+R0109,45–64,žena,Střední Morava,Franchise Hunters,Premium Exclusives,55,56,84,59,64,0.764,TRUE
+R0110,65+,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,26,61,62,38,47,1.008,TRUE
+R0111,65+,muž,Severovýchod,Light Streamers,Smart Discovery,54,53,85,72,66,1.064,TRUE
+R0112,45–64,muž,Střední Morava,Choice Overload,Smart Discovery,55,53,73,36,54,0.869,TRUE
+R0113,45–64,žena,Střední Čechy,Local Story Fans,Local First,33,75,50,39,49,1.207,TRUE
+R0114,30–44,muž,Severovýchod,Franchise Hunters,Premium Exclusives,58,56,49,67,58,0.845,TRUE
+R0115,18–29,muž,Severozápad,Choice Overload,Smart Discovery,30,45,62,52,47,0.866,TRUE
+R0116,18–29,žena,Moravskoslezsko,Choice Overload,Smart Discovery,24,86,82,66,64,0.811,TRUE
+R0117,65+,muž,Střední Morava,Franchise Hunters,Premium Exclusives,28,84,58,57,57,0.764,TRUE
+R0118,18–29,muž,Severovýchod,Franchise Hunters,Premium Exclusives,49,56,52,42,50,0.902,TRUE
+R0119,65+,muž,Praha,Choice Overload,Smart Discovery,60,88,88,84,80,0.819,TRUE
+R0120,45–64,žena,Moravskoslezsko,Local Story Fans,Local First,46,77,70,70,66,1.236,TRUE
+R0121,18–29,žena,Jihovýchod,Family Viewers,Local First,55,85,47,90,69,1.076,TRUE
+R0122,18–29,žena,Severovýchod,Family Viewers,Local First,40,59,64,66,57,0.984,TRUE
+R0123,30–44,muž,Severozápad,Light Streamers,Smart Discovery,25,66,57,72,55,0.964,TRUE
+R0124,18–29,žena,Jihozápad,Choice Overload,Smart Discovery,25,69,47,63,51,1.178,TRUE
+R0125,45–64,muž,Praha,Choice Overload,Smart Discovery,50,56,77,72,64,0.767,TRUE
+R0126,45–64,muž,Severozápad,Choice Overload,Smart Discovery,34,46,73,35,47,0.878,TRUE
+R0127,18–29,muž,Praha,Choice Overload,Smart Discovery,29,56,54,40,45,1.091,TRUE
+R0128,18–29,muž,Jihozápad,Local Story Fans,Local First,56,76,66,53,63,0.89,TRUE
+R0129,65+,muž,Severovýchod,Light Streamers,Smart Discovery,49,85,59,83,69,0.938,TRUE
+R0130,45–64,muž,Praha,Choice Overload,Smart Discovery,43,61,80,76,65,1.113,TRUE
+R0131,45–64,žena,Praha,Franchise Hunters,Premium Exclusives,55,81,76,35,62,1.02,TRUE
+R0132,45–64,žena,Jihovýchod,Family Viewers,Local First,47,58,49,57,53,1.174,TRUE
+R0133,45–64,žena,Severovýchod,Local Story Fans,Local First,57,68,71,49,61,1.011,TRUE
+R0134,45–64,muž,Severovýchod,Franchise Hunters,Premium Exclusives,53,77,87,87,76,1.096,TRUE
+R0135,30–44,muž,Jihozápad,Family Viewers,Local First,41,64,50,64,55,1.013,TRUE
+R0136,65+,žena,Praha,Choice Overload,Smart Discovery,60,89,88,85,80,1.03,TRUE
+R0137,30–44,žena,Praha,Local Story Fans,Local First,56,59,65,77,64,1.22,TRUE
+R0138,65+,žena,Jihovýchod,Family Viewers,Local First,52,80,80,87,75,0.948,TRUE
+R0139,18–29,muž,Severovýchod,Local Story Fans,Local First,26,85,85,70,66,1.21,TRUE
+R0140,18–29,muž,Severovýchod,Local Story Fans,Local First,45,83,69,52,62,0.937,TRUE
+R0141,45–64,žena,Severovýchod,Light Streamers,Smart Discovery,48,78,78,89,73,0.803,TRUE
+R0142,65+,muž,Střední Čechy,Local Story Fans,Local First,31,47,66,88,58,0.944,TRUE
+R0143,65+,žena,Střední Morava,Light Streamers,Smart Discovery,30,83,79,66,64,0.849,TRUE
+R0144,18–29,žena,Jihovýchod,Local Story Fans,Local First,38,70,84,44,59,1.02,TRUE
+R0145,65+,žena,Praha,Local Story Fans,Local First,56,57,71,79,66,1.163,TRUE
+R0146,18–29,žena,Střední Morava,Local Story Fans,Local First,52,54,76,82,66,0.829,TRUE
+R0147,65+,muž,Moravskoslezsko,Light Streamers,Smart Discovery,59,79,84,88,78,1.122,TRUE
+R0148,45–64,žena,Střední Morava,Local Story Fans,Local First,53,51,86,79,67,0.969,TRUE
+R0149,18–29,žena,Střední Morava,Light Streamers,Smart Discovery,28,79,81,37,56,0.847,TRUE
+R0150,65+,žena,Praha,Choice Overload,Smart Discovery,35,52,59,74,55,0.804,TRUE
+R0151,30–44,muž,Praha,Family Viewers,Local First,45,88,75,41,62,0.758,TRUE
+R0152,65+,muž,Jihovýchod,Light Streamers,Smart Discovery,53,63,86,58,65,0.909,TRUE
+R0153,65+,muž,Střední Čechy,Family Viewers,Local First,33,64,71,37,51,1.013,TRUE
+R0154,45–64,muž,Střední Morava,Family Viewers,Local First,46,64,87,83,70,0.752,TRUE
+R0155,45–64,žena,Severovýchod,Local Story Fans,Local First,41,55,89,46,58,1.05,TRUE
+R0156,18–29,muž,Jihovýchod,Family Viewers,Local First,31,69,54,69,56,0.77,TRUE
+R0157,45–64,žena,Moravskoslezsko,Choice Overload,Smart Discovery,59,78,50,36,56,1.095,TRUE
+R0158,65+,muž,Jihovýchod,Family Viewers,Local First,32,75,51,43,50,0.922,TRUE
+R0159,45–64,žena,Severozápad,Franchise Hunters,Premium Exclusives,49,67,81,88,71,0.86,TRUE
+R0160,30–44,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,24,69,49,57,50,1.009,TRUE
+R0161,30–44,muž,Střední Morava,Franchise Hunters,Premium Exclusives,39,90,71,68,67,0.847,TRUE
+R0162,45–64,žena,Jihozápad,Franchise Hunters,Premium Exclusives,34,47,45,68,48,1.238,TRUE
+R0163,45–64,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,24,78,47,41,48,1.012,TRUE
+R0164,45–64,žena,Moravskoslezsko,Local Story Fans,Local First,49,61,49,85,61,1.042,TRUE
+R0165,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,60,49,56,89,64,0.8,TRUE
+R0166,18–29,žena,Severozápad,Family Viewers,Local First,36,68,85,55,61,0.844,TRUE
+R0167,18–29,muž,Střední Morava,Choice Overload,Smart Discovery,45,77,83,53,64,0.784,TRUE
+R0168,65+,žena,Jihovýchod,Family Viewers,Local First,54,54,59,66,58,1.074,TRUE
+R0169,30–44,žena,Praha,Light Streamers,Smart Discovery,30,61,69,86,62,0.854,TRUE
+R0170,30–44,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,32,85,51,66,58,0.907,TRUE
+R0171,45–64,žena,Praha,Family Viewers,Local First,54,58,60,37,52,0.995,TRUE
+R0172,30–44,žena,Severozápad,Family Viewers,Local First,25,69,48,54,49,1.055,TRUE
+R0173,18–29,muž,Jihovýchod,Light Streamers,Smart Discovery,58,83,45,89,69,0.862,TRUE
+R0174,18–29,muž,Střední Morava,Local Story Fans,Local First,38,50,48,86,56,0.807,TRUE
+R0175,45–64,muž,Praha,Franchise Hunters,Premium Exclusives,52,56,55,48,53,1.071,TRUE
+R0176,65+,žena,Severozápad,Light Streamers,Smart Discovery,48,45,55,46,48,1.193,TRUE
+R0177,65+,žena,Praha,Choice Overload,Smart Discovery,43,46,58,79,56,0.869,TRUE
+R0178,30–44,muž,Moravskoslezsko,Family Viewers,Local First,48,62,64,48,56,0.957,TRUE
+R0179,45–64,žena,Střední Morava,Choice Overload,Smart Discovery,24,64,57,85,58,0.942,TRUE
+R0180,18–29,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,28,79,45,90,60,0.8,TRUE
+R0181,65+,muž,Praha,Local Story Fans,Local First,49,77,61,37,56,0.781,TRUE
+R0182,18–29,muž,Severozápad,Choice Overload,Smart Discovery,46,78,59,67,62,1.147,TRUE
+R0183,45–64,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,52,88,70,47,64,1.22,TRUE
+R0184,65+,žena,Severovýchod,Light Streamers,Smart Discovery,52,81,88,82,76,0.951,TRUE
+R0185,45–64,muž,Moravskoslezsko,Choice Overload,Smart Discovery,44,90,73,75,70,0.798,TRUE
+R0186,18–29,žena,Jihozápad,Light Streamers,Smart Discovery,57,48,76,36,54,1.077,TRUE
+R0187,45–64,muž,Praha,Local Story Fans,Local First,41,56,74,73,61,0.934,TRUE
+R0188,30–44,žena,Střední Morava,Local Story Fans,Local First,55,76,86,76,73,0.979,TRUE
+R0189,45–64,muž,Severovýchod,Franchise Hunters,Premium Exclusives,51,45,73,53,56,1.025,TRUE
+R0190,45–64,muž,Praha,Franchise Hunters,Premium Exclusives,29,72,76,71,62,1.144,TRUE
+R0191,18–29,muž,Moravskoslezsko,Choice Overload,Smart Discovery,45,56,88,80,67,0.825,TRUE
+R0192,65+,muž,Severovýchod,Local Story Fans,Local First,40,57,48,70,54,0.934,TRUE
+R0193,65+,muž,Jihozápad,Local Story Fans,Local First,35,79,46,75,59,0.873,TRUE
+R0194,65+,žena,Severozápad,Family Viewers,Local First,26,88,49,80,61,0.987,TRUE
+R0195,65+,muž,Severozápad,Light Streamers,Smart Discovery,51,82,59,90,70,1.119,TRUE
+R0196,45–64,žena,Střední Morava,Franchise Hunters,Premium Exclusives,24,48,83,47,50,1.176,TRUE
+R0197,18–29,muž,Střední Čechy,Family Viewers,Local First,24,65,58,35,46,1.222,TRUE
+R0198,45–64,muž,Moravskoslezsko,Local Story Fans,Local First,54,73,51,35,53,1.182,TRUE
+R0199,30–44,žena,Střední Morava,Choice Overload,Smart Discovery,32,76,46,74,57,0.906,TRUE
+R0200,65+,muž,Jihovýchod,Choice Overload,Smart Discovery,57,61,55,52,56,0.951,TRUE
+R0201,65+,muž,Severozápad,Franchise Hunters,Premium Exclusives,43,74,72,49,60,0.899,TRUE
+R0202,18–29,žena,Moravskoslezsko,Family Viewers,Local First,34,64,85,37,55,0.926,TRUE
+R0203,45–64,muž,Jihovýchod,Local Story Fans,Local First,46,46,59,84,59,0.76,TRUE
+R0204,45–64,muž,Střední Morava,Choice Overload,Smart Discovery,46,66,80,83,69,0.83,TRUE
+R0205,65+,žena,Severozápad,Family Viewers,Local First,46,77,51,83,64,0.883,TRUE
+R0206,65+,muž,Severozápad,Family Viewers,Local First,25,59,65,70,55,1.063,TRUE
+R0207,30–44,muž,Jihozápad,Franchise Hunters,Premium Exclusives,27,73,45,79,56,1.011,TRUE
+R0208,45–64,muž,Severozápad,Franchise Hunters,Premium Exclusives,35,55,74,35,50,0.906,TRUE
+R0209,18–29,muž,Severovýchod,Franchise Hunters,Premium Exclusives,38,70,79,73,65,0.976,TRUE
+R0210,45–64,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,51,73,89,72,71,0.808,TRUE
+R0211,30–44,muž,Severovýchod,Choice Overload,Smart Discovery,56,90,61,58,66,0.866,TRUE
+R0212,45–64,žena,Střední Čechy,Family Viewers,Local First,43,59,71,38,53,0.995,TRUE
+R0213,45–64,žena,Jihozápad,Light Streamers,Smart Discovery,46,53,58,80,59,0.912,TRUE
+R0214,30–44,žena,Praha,Franchise Hunters,Premium Exclusives,27,87,54,70,60,1.188,TRUE
+R0215,65+,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,28,70,46,41,46,0.939,TRUE
+R0216,45–64,muž,Severozápad,Family Viewers,Local First,49,45,71,72,59,0.83,TRUE
+R0217,45–64,žena,Praha,Family Viewers,Local First,55,84,61,58,64,1.082,TRUE
+R0218,18–29,žena,Moravskoslezsko,Light Streamers,Smart Discovery,38,85,83,56,66,1.006,TRUE
+R0219,18–29,žena,Jihozápad,Franchise Hunters,Premium Exclusives,48,70,58,43,55,1.059,TRUE
+R0220,45–64,žena,Severozápad,Franchise Hunters,Premium Exclusives,46,62,63,81,63,1.181,TRUE
+R0221,30–44,muž,Severovýchod,Family Viewers,Local First,28,69,58,45,50,1.219,TRUE
+R0222,45–64,žena,Jihozápad,Choice Overload,Smart Discovery,46,89,82,48,66,0.943,TRUE
+R0223,65+,žena,Jihovýchod,Choice Overload,Smart Discovery,32,45,85,73,59,0.844,TRUE
+R0224,18–29,žena,Jihovýchod,Choice Overload,Smart Discovery,32,46,68,65,53,0.791,TRUE
+R0225,18–29,muž,Střední Morava,Franchise Hunters,Premium Exclusives,44,53,75,86,64,1.214,TRUE
+R0226,45–64,žena,Střední Morava,Local Story Fans,Local First,46,66,46,57,54,0.942,TRUE
+R0227,45–64,muž,Severovýchod,Franchise Hunters,Premium Exclusives,25,75,64,37,50,0.867,TRUE
+R0228,18–29,muž,Jihozápad,Choice Overload,Smart Discovery,46,87,76,64,68,1.167,TRUE
+R0229,45–64,muž,Střední Morava,Local Story Fans,Local First,47,57,57,44,51,1.118,TRUE
+R0230,65+,muž,Střední Čechy,Choice Overload,Smart Discovery,43,51,69,40,51,1.142,TRUE
+R0231,65+,muž,Severovýchod,Local Story Fans,Local First,30,72,68,71,60,1.249,TRUE
+R0232,18–29,žena,Střední Čechy,Local Story Fans,Local First,50,48,65,43,52,1.082,TRUE
+R0233,18–29,žena,Jihozápad,Franchise Hunters,Premium Exclusives,58,58,57,55,57,1.043,TRUE
+R0234,45–64,muž,Střední Čechy,Local Story Fans,Local First,54,69,66,53,60,1.063,TRUE
+R0235,18–29,muž,Severovýchod,Franchise Hunters,Premium Exclusives,33,72,88,81,68,1.079,TRUE
+R0236,30–44,muž,Severovýchod,Light Streamers,Smart Discovery,55,78,74,58,66,0.951,TRUE
+R0237,65+,muž,Jihozápad,Local Story Fans,Local First,39,85,78,87,72,0.986,TRUE
+R0238,45–64,žena,Jihovýchod,Family Viewers,Local First,47,72,64,59,60,0.919,TRUE
+R0239,30–44,žena,Praha,Choice Overload,Smart Discovery,42,77,46,85,62,0.84,TRUE
+R0240,30–44,žena,Střední Morava,Local Story Fans,Local First,44,56,80,82,66,1.236,TRUE
+R0241,30–44,žena,Praha,Choice Overload,Smart Discovery,58,68,71,37,58,0.866,TRUE
+R0242,30–44,žena,Jihozápad,Local Story Fans,Local First,31,78,82,74,66,1.05,TRUE
+R0243,45–64,muž,Severozápad,Choice Overload,Smart Discovery,57,49,75,46,57,0.761,TRUE
+R0244,45–64,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,29,90,60,71,62,0.837,TRUE
+R0245,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,31,64,65,40,50,0.924,TRUE
+R0246,65+,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,33,84,75,35,57,0.97,TRUE
+R0247,18–29,muž,Střední Čechy,Choice Overload,Smart Discovery,53,45,83,44,56,0.887,TRUE
+R0248,65+,žena,Střední Čechy,Light Streamers,Smart Discovery,46,71,60,59,59,0.834,TRUE
+R0249,18–29,muž,Střední Morava,Local Story Fans,Local First,29,74,82,83,67,1.066,TRUE
+R0250,65+,žena,Jihozápad,Franchise Hunters,Premium Exclusives,36,63,90,45,58,1.006,TRUE
+R0251,30–44,žena,Moravskoslezsko,Local Story Fans,Local First,45,51,49,69,54,0.882,TRUE
+R0252,45–64,muž,Střední Morava,Family Viewers,Local First,43,65,65,51,56,0.91,TRUE
+R0253,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,57,86,53,57,63,0.846,TRUE
+R0254,65+,žena,Jihozápad,Family Viewers,Local First,54,72,69,52,62,0.945,TRUE
+R0255,45–64,žena,Moravskoslezsko,Choice Overload,Smart Discovery,55,67,79,38,60,1.236,TRUE
+R0256,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,57,72,62,89,70,1.231,TRUE
+R0257,65+,žena,Střední Čechy,Local Story Fans,Local First,29,74,59,86,62,1.229,TRUE
+R0258,65+,žena,Jihozápad,Choice Overload,Smart Discovery,49,60,70,49,57,0.874,TRUE
+R0259,45–64,žena,Jihozápad,Choice Overload,Smart Discovery,31,66,68,63,57,0.961,TRUE
+R0260,30–44,žena,Střední Morava,Local Story Fans,Local First,35,71,74,42,56,0.891,TRUE
+R0261,30–44,muž,Praha,Franchise Hunters,Premium Exclusives,50,75,82,85,73,0.952,TRUE
+R0262,30–44,žena,Severovýchod,Franchise Hunters,Premium Exclusives,55,88,77,44,66,0.819,TRUE
+R0263,30–44,muž,Střední Morava,Choice Overload,Smart Discovery,55,66,47,37,51,0.957,TRUE
+R0264,65+,muž,Střední Morava,Franchise Hunters,Premium Exclusives,32,53,72,70,57,1.151,TRUE
+R0265,65+,žena,Severozápad,Local Story Fans,Local First,35,88,49,73,61,1.243,TRUE
+R0266,45–64,muž,Jihovýchod,Family Viewers,Local First,41,48,60,74,56,1.017,TRUE
+R0267,65+,muž,Praha,Family Viewers,Local First,45,46,54,55,50,1.002,TRUE
+R0268,45–64,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,49,90,79,87,76,1.066,TRUE
+R0269,65+,muž,Severovýchod,Choice Overload,Smart Discovery,48,90,60,46,61,1.015,TRUE
+R0270,65+,žena,Střední Čechy,Family Viewers,Local First,34,51,53,71,52,0.826,TRUE
+R0271,30–44,muž,Severozápad,Family Viewers,Local First,44,83,88,85,75,0.958,TRUE
+R0272,18–29,muž,Severovýchod,Family Viewers,Local First,44,59,62,63,57,1.168,TRUE
+R0273,30–44,muž,Severovýchod,Choice Overload,Smart Discovery,60,64,70,87,70,0.765,TRUE
+R0274,30–44,žena,Severovýchod,Franchise Hunters,Premium Exclusives,50,70,64,57,60,0.918,TRUE
+R0275,18–29,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,59,80,58,37,58,0.766,TRUE
+R0276,45–64,muž,Jihozápad,Choice Overload,Smart Discovery,34,65,88,47,58,1.031,TRUE
+R0277,45–64,žena,Jihozápad,Choice Overload,Smart Discovery,53,47,61,43,51,0.885,TRUE
+R0278,65+,muž,Severovýchod,Choice Overload,Smart Discovery,58,51,64,46,55,1.19,TRUE
+R0279,45–64,žena,Moravskoslezsko,Family Viewers,Local First,26,71,80,46,56,1.137,TRUE
+R0280,30–44,žena,Severovýchod,Choice Overload,Smart Discovery,57,45,80,80,66,0.871,TRUE
+R0281,18–29,žena,Střední Morava,Local Story Fans,Local First,33,47,51,55,46,1.022,TRUE
+R0282,30–44,žena,Jihovýchod,Local Story Fans,Local First,49,84,68,78,70,0.8,TRUE
+R0283,45–64,žena,Severozápad,Choice Overload,Smart Discovery,55,76,73,89,73,0.884,TRUE
+R0284,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,45,70,67,35,54,0.751,TRUE
+R0285,45–64,žena,Jihovýchod,Local Story Fans,Local First,39,47,76,39,50,1.209,TRUE
+R0286,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,39,90,59,90,70,0.935,TRUE
+R0287,65+,žena,Jihozápad,Local Story Fans,Local First,52,90,49,57,62,0.967,TRUE
+R0288,30–44,muž,Moravskoslezsko,Choice Overload,Smart Discovery,30,50,46,42,42,0.91,TRUE
+R0289,30–44,žena,Střední Čechy,Light Streamers,Smart Discovery,53,48,47,54,50,1.003,TRUE
+R0290,65+,muž,Severozápad,Local Story Fans,Local First,31,48,74,55,52,1.041,TRUE
+R0291,30–44,muž,Moravskoslezsko,Light Streamers,Smart Discovery,56,83,59,62,65,1.013,TRUE
+R0292,30–44,muž,Střední Morava,Choice Overload,Smart Discovery,33,77,80,62,63,1.057,TRUE
+R0293,30–44,žena,Střední Morava,Light Streamers,Smart Discovery,52,46,54,73,56,1.099,TRUE
+R0294,18–29,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,44,89,74,56,66,0.764,TRUE
+R0295,18–29,muž,Jihozápad,Local Story Fans,Local First,60,68,69,50,62,1.107,TRUE
+R0296,65+,muž,Severovýchod,Franchise Hunters,Premium Exclusives,47,81,67,63,64,1.225,TRUE
+R0297,65+,žena,Praha,Local Story Fans,Local First,57,49,51,68,56,0.902,TRUE
+R0298,65+,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,33,80,71,66,62,0.874,TRUE
+R0299,18–29,žena,Severozápad,Franchise Hunters,Premium Exclusives,25,48,54,88,54,0.808,TRUE
+R0300,45–64,muž,Střední Morava,Franchise Hunters,Premium Exclusives,26,74,79,68,62,1.164,TRUE
+R0301,45–64,žena,Střední Morava,Franchise Hunters,Premium Exclusives,37,51,67,68,56,0.977,TRUE
+R0302,45–64,muž,Severozápad,Light Streamers,Smart Discovery,59,58,48,38,51,0.849,TRUE
+R0303,30–44,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,48,66,46,68,57,1.197,TRUE
+R0304,65+,muž,Střední Morava,Family Viewers,Local First,35,51,47,43,44,1.207,TRUE
+R0305,45–64,žena,Severovýchod,Local Story Fans,Local First,29,56,66,72,56,1.076,TRUE
+R0306,18–29,žena,Střední Morava,Light Streamers,Smart Discovery,42,84,58,76,65,1.038,TRUE
+R0307,30–44,muž,Severozápad,Family Viewers,Local First,42,89,87,41,65,1.027,TRUE
+R0308,45–64,muž,Střední Morava,Light Streamers,Smart Discovery,56,64,80,57,64,0.939,TRUE
+R0309,65+,muž,Střední Morava,Choice Overload,Smart Discovery,41,82,52,39,54,1.06,TRUE
+R0310,65+,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,43,54,68,73,60,1.186,TRUE
+R0311,30–44,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,55,75,48,59,59,0.854,TRUE
+R0312,30–44,muž,Střední Morava,Local Story Fans,Local First,28,65,45,78,54,0.868,TRUE
+R0313,45–64,žena,Jihozápad,Family Viewers,Local First,40,86,61,79,66,1.026,TRUE
+R0314,18–29,muž,Severovýchod,Choice Overload,Smart Discovery,24,76,48,80,57,0.949,TRUE
+R0315,18–29,žena,Severozápad,Family Viewers,Local First,44,51,47,56,50,1.133,TRUE
+R0316,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,26,90,77,74,67,1.211,TRUE
+R0317,30–44,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,35,88,63,43,57,0.966,TRUE
+R0318,65+,muž,Střední Čechy,Family Viewers,Local First,39,57,59,49,51,1.112,TRUE
+R0319,65+,žena,Severozápad,Choice Overload,Smart Discovery,52,69,54,54,57,0.774,TRUE
+R0320,18–29,muž,Moravskoslezsko,Local Story Fans,Local First,46,64,72,67,62,0.768,TRUE
+R0321,45–64,muž,Severozápad,Choice Overload,Smart Discovery,24,86,59,47,54,1.243,TRUE
+R0322,65+,muž,Střední Čechy,Family Viewers,Local First,46,78,81,79,71,0.995,TRUE
+R0323,30–44,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,53,83,71,53,65,0.833,TRUE
+R0324,18–29,muž,Střední Morava,Local Story Fans,Local First,53,90,54,70,67,1.042,TRUE
+R0325,30–44,muž,Severovýchod,Franchise Hunters,Premium Exclusives,24,54,79,54,53,1.028,TRUE
+R0326,45–64,žena,Praha,Light Streamers,Smart Discovery,31,47,87,80,61,1.095,TRUE
+R0327,65+,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,35,48,60,58,50,1.166,TRUE
+R0328,45–64,muž,Střední Čechy,Local Story Fans,Local First,32,48,82,52,54,1.023,TRUE
+R0329,65+,muž,Severovýchod,Franchise Hunters,Premium Exclusives,39,45,74,52,52,0.859,TRUE
+R0330,65+,žena,Jihozápad,Choice Overload,Smart Discovery,57,46,85,86,68,0.941,TRUE
+R0331,30–44,žena,Severovýchod,Franchise Hunters,Premium Exclusives,27,53,88,58,56,0.999,TRUE
+R0332,30–44,muž,Střední Morava,Franchise Hunters,Premium Exclusives,56,48,47,56,52,1.105,TRUE
+R0333,30–44,žena,Severozápad,Local Story Fans,Local First,60,70,87,79,74,0.81,TRUE
+R0334,45–64,muž,Jihovýchod,Choice Overload,Smart Discovery,57,74,57,68,64,0.859,TRUE
+R0335,45–64,muž,Severozápad,Franchise Hunters,Premium Exclusives,42,60,47,55,51,1.095,TRUE
+R0336,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,56,53,70,69,62,0.806,TRUE
+R0337,18–29,žena,Severovýchod,Choice Overload,Smart Discovery,57,56,72,89,68,1.063,TRUE
+R0338,65+,muž,Jihovýchod,Family Viewers,Local First,42,70,54,60,56,0.819,TRUE
+R0339,18–29,muž,Praha,Choice Overload,Smart Discovery,55,74,78,75,70,1.178,TRUE
+R0340,18–29,žena,Severozápad,Family Viewers,Local First,59,84,55,77,69,1.196,TRUE
+R0341,45–64,muž,Střední Morava,Light Streamers,Smart Discovery,48,69,81,38,59,1.199,TRUE
+R0342,18–29,žena,Severozápad,Franchise Hunters,Premium Exclusives,37,73,57,63,58,1.086,TRUE
+R0343,18–29,muž,Střední Čechy,Choice Overload,Smart Discovery,25,68,66,80,60,0.986,TRUE
+R0344,18–29,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,44,80,61,48,58,0.941,TRUE
+R0345,30–44,žena,Severovýchod,Family Viewers,Local First,27,75,67,59,57,1.2,TRUE
+R0346,30–44,muž,Jihozápad,Local Story Fans,Local First,46,60,88,59,63,0.892,TRUE
+R0347,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,55,66,62,53,59,0.948,TRUE
+R0348,18–29,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,33,48,81,68,58,0.986,TRUE
+R0349,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,43,86,52,56,59,1.232,TRUE
+R0350,65+,žena,Severozápad,Choice Overload,Smart Discovery,41,61,81,74,64,0.819,TRUE
+R0351,45–64,žena,Moravskoslezsko,Family Viewers,Local First,55,75,88,61,70,1.083,TRUE
+R0352,45–64,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,53,70,48,39,52,1.063,TRUE
+R0353,18–29,muž,Střední Morava,Franchise Hunters,Premium Exclusives,47,78,49,44,54,1.053,TRUE
+R0354,45–64,žena,Střední Čechy,Light Streamers,Smart Discovery,24,85,60,51,55,0.868,TRUE
+R0355,18–29,žena,Moravskoslezsko,Family Viewers,Local First,49,73,59,68,62,0.883,TRUE
+R0356,65+,muž,Severozápad,Light Streamers,Smart Discovery,49,78,70,66,66,1.23,TRUE
+R0357,65+,muž,Severovýchod,Family Viewers,Local First,26,74,60,73,58,1.033,TRUE
+R0358,18–29,žena,Jihozápad,Local Story Fans,Local First,38,50,80,59,57,0.861,TRUE
+R0359,45–64,muž,Severovýchod,Franchise Hunters,Premium Exclusives,30,54,57,68,52,0.863,TRUE
+R0360,18–29,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,25,67,72,45,52,1.065,TRUE
+R0361,18–29,muž,Moravskoslezsko,Choice Overload,Smart Discovery,30,84,52,87,63,1.166,TRUE
+R0362,18–29,žena,Jihozápad,Choice Overload,Smart Discovery,53,84,65,71,68,1.036,TRUE
+R0363,45–64,muž,Střední Čechy,Local Story Fans,Local First,51,70,50,64,59,1.181,TRUE
+R0364,30–44,muž,Jihozápad,Choice Overload,Smart Discovery,29,70,85,71,64,1.007,TRUE
+R0365,30–44,muž,Severovýchod,Family Viewers,Local First,37,68,70,73,62,1.205,TRUE
+R0366,18–29,žena,Jihovýchod,Family Viewers,Local First,46,49,61,54,52,0.854,TRUE
+R0367,65+,žena,Moravskoslezsko,Local Story Fans,Local First,38,72,74,73,64,0.774,TRUE
+R0368,18–29,muž,Praha,Choice Overload,Smart Discovery,50,49,61,44,51,1.1,TRUE
+R0369,65+,žena,Jihovýchod,Family Viewers,Local First,58,74,90,63,71,1.247,TRUE
+R0370,30–44,žena,Praha,Franchise Hunters,Premium Exclusives,38,59,45,41,46,1.246,TRUE
+R0371,65+,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,55,63,79,43,60,0.873,TRUE
+R0372,65+,muž,Jihovýchod,Light Streamers,Smart Discovery,30,58,48,85,55,0.844,TRUE
+R0373,65+,žena,Severozápad,Local Story Fans,Local First,43,58,87,38,56,0.965,TRUE
+R0374,65+,žena,Severozápad,Local Story Fans,Local First,42,56,71,78,62,1.163,TRUE
+R0375,18–29,muž,Moravskoslezsko,Light Streamers,Smart Discovery,54,58,54,74,60,0.952,TRUE
+R0376,65+,žena,Střední Čechy,Choice Overload,Smart Discovery,43,65,51,54,53,1.011,TRUE
+R0377,45–64,muž,Moravskoslezsko,Choice Overload,Smart Discovery,37,80,56,35,52,0.798,TRUE
+R0378,18–29,žena,Jihovýchod,Choice Overload,Smart Discovery,29,50,45,52,44,1.034,TRUE
+R0379,65+,muž,Praha,Family Viewers,Local First,32,79,86,44,60,0.933,TRUE
+R0380,45–64,žena,Jihozápad,Family Viewers,Local First,34,49,81,58,56,0.862,TRUE
+R0381,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,31,57,76,35,50,1.205,TRUE
+R0382,45–64,muž,Střední Morava,Local Story Fans,Local First,55,79,49,38,55,1.06,TRUE
+R0383,30–44,žena,Střední Morava,Family Viewers,Local First,26,72,53,40,48,0.962,TRUE
+R0384,30–44,žena,Střední Morava,Choice Overload,Smart Discovery,57,69,89,61,69,0.901,TRUE
+R0385,45–64,muž,Severozápad,Franchise Hunters,Premium Exclusives,34,63,58,60,54,0.947,TRUE
+R0386,30–44,žena,Moravskoslezsko,Light Streamers,Smart Discovery,59,87,73,71,72,1.157,TRUE
+R0387,18–29,žena,Severovýchod,Family Viewers,Local First,52,50,88,90,70,1.032,TRUE
+R0388,65+,muž,Praha,Local Story Fans,Local First,52,85,89,55,70,0.891,TRUE
+R0389,65+,žena,Praha,Franchise Hunters,Premium Exclusives,46,82,89,42,65,1.138,TRUE
+R0390,65+,muž,Moravskoslezsko,Light Streamers,Smart Discovery,28,61,73,56,54,1.089,TRUE
+R0391,30–44,muž,Moravskoslezsko,Family Viewers,Local First,36,77,48,69,58,1.227,TRUE
+R0392,18–29,muž,Moravskoslezsko,Local Story Fans,Local First,31,82,85,66,66,1.155,TRUE
+R0393,18–29,žena,Jihovýchod,Local Story Fans,Local First,37,59,87,65,62,0.918,TRUE
+R0394,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,37,54,54,61,52,0.751,TRUE
+R0395,18–29,žena,Moravskoslezsko,Local Story Fans,Local First,38,75,85,77,69,1.006,TRUE
+R0396,45–64,muž,Jihozápad,Choice Overload,Smart Discovery,52,50,86,65,63,0.787,TRUE
+R0397,45–64,muž,Jihozápad,Choice Overload,Smart Discovery,34,80,67,52,58,0.802,TRUE
+R0398,45–64,muž,Střední Morava,Franchise Hunters,Premium Exclusives,30,53,66,48,49,0.751,TRUE
+R0399,18–29,žena,Střední Morava,Family Viewers,Local First,45,83,84,72,71,0.755,TRUE
+R0400,30–44,muž,Střední Morava,Family Viewers,Local First,32,75,62,75,61,0.853,TRUE
+R0401,65+,muž,Střední Čechy,Choice Overload,Smart Discovery,58,81,76,83,74,0.981,TRUE
+R0402,30–44,muž,Severovýchod,Light Streamers,Smart Discovery,52,85,77,55,67,0.844,TRUE
+R0403,30–44,žena,Jihozápad,Choice Overload,Smart Discovery,50,55,72,60,59,0.919,TRUE
+R0404,45–64,muž,Severovýchod,Family Viewers,Local First,53,79,48,75,64,0.97,TRUE
+R0405,65+,muž,Moravskoslezsko,Family Viewers,Local First,51,49,65,73,60,1.246,TRUE
+R0406,30–44,muž,Moravskoslezsko,Family Viewers,Local First,44,81,52,67,61,0.771,TRUE
+R0407,65+,muž,Moravskoslezsko,Light Streamers,Smart Discovery,37,48,73,70,57,0.819,TRUE
+R0408,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,49,61,46,62,54,0.779,TRUE
+R0409,18–29,muž,Moravskoslezsko,Local Story Fans,Local First,26,73,72,65,59,1.075,TRUE
+R0410,65+,muž,Moravskoslezsko,Choice Overload,Smart Discovery,40,90,59,71,65,0.994,TRUE
+R0411,65+,muž,Moravskoslezsko,Local Story Fans,Local First,57,88,62,88,74,0.875,TRUE
+R0412,30–44,žena,Moravskoslezsko,Light Streamers,Smart Discovery,52,76,53,53,58,1.11,TRUE
+R0413,18–29,muž,Severovýchod,Franchise Hunters,Premium Exclusives,34,86,52,76,62,1.099,TRUE
+R0414,45–64,žena,Jihozápad,Franchise Hunters,Premium Exclusives,58,84,61,71,68,0.971,TRUE
+R0415,30–44,žena,Jihovýchod,Family Viewers,Local First,39,83,72,64,64,1.046,TRUE
+R0416,45–64,muž,Střední Morava,Local Story Fans,Local First,43,61,63,50,54,1.153,TRUE
+R0417,65+,muž,Jihozápad,Family Viewers,Local First,45,59,85,83,68,0.829,TRUE
+R0418,18–29,muž,Severozápad,Franchise Hunters,Premium Exclusives,31,57,61,89,60,1.163,TRUE
+R0419,65+,žena,Severovýchod,Choice Overload,Smart Discovery,33,56,51,85,56,0.946,TRUE
+R0420,65+,žena,Severozápad,Franchise Hunters,Premium Exclusives,38,80,85,72,69,1.016,TRUE
+R0421,45–64,muž,Střední Morava,Local Story Fans,Local First,27,66,56,81,58,0.792,TRUE
+R0422,30–44,muž,Střední Čechy,Family Viewers,Local First,51,82,82,61,69,0.76,TRUE
+R0423,45–64,muž,Jihovýchod,Light Streamers,Smart Discovery,25,49,82,86,60,0.819,TRUE
+R0424,18–29,muž,Jihovýchod,Choice Overload,Smart Discovery,49,45,60,79,58,1.079,TRUE
+R0425,30–44,muž,Severozápad,Local Story Fans,Local First,60,78,84,37,65,0.885,TRUE
+R0426,45–64,muž,Jihozápad,Family Viewers,Local First,47,80,65,82,68,0.99,TRUE
+R0427,65+,muž,Střední Morava,Local Story Fans,Local First,41,87,57,43,57,1.114,TRUE
+R0428,45–64,muž,Jihovýchod,Family Viewers,Local First,60,62,48,55,56,1.2,TRUE
+R0429,45–64,žena,Střední Morava,Franchise Hunters,Premium Exclusives,31,65,56,65,54,1.065,TRUE
+R0430,18–29,žena,Severovýchod,Local Story Fans,Local First,37,53,86,65,60,0.925,TRUE
+R0431,30–44,žena,Severozápad,Light Streamers,Smart Discovery,60,71,70,39,60,0.87,TRUE
+R0432,65+,žena,Severovýchod,Family Viewers,Local First,60,55,59,52,56,1.088,TRUE
+R0433,45–64,žena,Jihozápad,Local Story Fans,Local First,38,71,53,88,62,1.237,TRUE
+R0434,18–29,muž,Moravskoslezsko,Family Viewers,Local First,35,87,56,66,61,0.962,TRUE
+R0435,65+,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,53,47,54,82,59,1.242,TRUE
+R0436,65+,muž,Moravskoslezsko,Local Story Fans,Local First,36,87,47,45,54,1.245,TRUE
+R0437,30–44,žena,Praha,Choice Overload,Smart Discovery,25,59,73,51,52,0.971,TRUE
+R0438,18–29,žena,Praha,Franchise Hunters,Premium Exclusives,32,68,88,41,57,1.123,TRUE
+R0439,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,29,78,76,42,56,1.132,TRUE
+R0440,65+,žena,Moravskoslezsko,Choice Overload,Smart Discovery,57,81,89,81,77,1.088,TRUE
+R0441,45–64,žena,Severozápad,Choice Overload,Smart Discovery,47,87,48,35,54,0.87,TRUE
+R0442,30–44,muž,Jihovýchod,Local Story Fans,Local First,57,86,61,82,72,1.232,TRUE
+R0443,30–44,žena,Střední Morava,Light Streamers,Smart Discovery,37,53,68,40,50,0.798,TRUE
+R0444,65+,muž,Severozápad,Local Story Fans,Local First,32,84,73,68,64,1.055,TRUE
+R0445,30–44,muž,Praha,Choice Overload,Smart Discovery,24,90,47,83,61,0.81,TRUE
+R0446,45–64,muž,Střední Čechy,Local Story Fans,Local First,34,77,72,44,57,0.938,TRUE
+R0447,18–29,žena,Střední Čechy,Local Story Fans,Local First,56,86,69,76,72,1.239,TRUE
+R0448,18–29,muž,Střední Morava,Local Story Fans,Local First,31,89,76,58,64,1.029,TRUE
+R0449,45–64,žena,Jihovýchod,Local Story Fans,Local First,46,73,72,64,64,1.05,TRUE
+R0450,30–44,žena,Praha,Local Story Fans,Local First,39,62,51,57,52,1.067,TRUE
+R0451,65+,muž,Praha,Light Streamers,Smart Discovery,58,53,82,70,66,1.029,TRUE
+R0452,30–44,žena,Severovýchod,Family Viewers,Local First,26,76,63,72,59,0.85,TRUE
+R0453,30–44,muž,Severovýchod,Choice Overload,Smart Discovery,39,74,58,85,64,0.992,TRUE
+R0454,45–64,žena,Jihovýchod,Choice Overload,Smart Discovery,25,54,73,68,55,0.986,TRUE
+R0455,45–64,žena,Střední Morava,Choice Overload,Smart Discovery,49,64,53,36,50,0.85,TRUE
+R0456,45–64,žena,Severozápad,Local Story Fans,Local First,48,84,76,74,70,0.941,TRUE
+R0457,45–64,žena,Střední Čechy,Choice Overload,Smart Discovery,30,87,61,83,65,0.983,TRUE
+R0458,30–44,muž,Severozápad,Local Story Fans,Local First,42,65,45,64,54,1.007,TRUE
+R0459,45–64,žena,Jihovýchod,Family Viewers,Local First,35,45,75,35,48,1.03,TRUE
+R0460,30–44,žena,Jihovýchod,Family Viewers,Local First,51,77,61,48,59,1.019,TRUE
+R0461,65+,muž,Jihozápad,Franchise Hunters,Premium Exclusives,24,88,80,84,69,0.951,TRUE
+R0462,45–64,muž,Severozápad,Family Viewers,Local First,30,60,47,42,45,0.823,TRUE
+R0463,18–29,žena,Jihozápad,Light Streamers,Smart Discovery,57,56,87,60,65,1.077,TRUE
+R0464,30–44,žena,Jihozápad,Choice Overload,Smart Discovery,39,90,70,63,66,1.209,TRUE
+R0465,30–44,žena,Severovýchod,Choice Overload,Smart Discovery,55,82,52,60,62,1.056,TRUE
+R0466,45–64,žena,Střední Morava,Franchise Hunters,Premium Exclusives,31,46,70,77,56,1.213,TRUE
+R0467,18–29,muž,Střední Morava,Franchise Hunters,Premium Exclusives,58,75,73,47,63,1.237,TRUE
+R0468,30–44,muž,Střední Čechy,Light Streamers,Smart Discovery,45,59,64,41,52,0.92,TRUE
+R0469,30–44,muž,Jihozápad,Choice Overload,Smart Discovery,29,75,47,75,56,0.89,TRUE
+R0470,65+,žena,Střední Morava,Local Story Fans,Local First,52,62,64,77,64,0.799,TRUE
+R0471,45–64,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,32,56,69,55,53,1.055,TRUE
+R0472,65+,žena,Jihozápad,Franchise Hunters,Premium Exclusives,25,85,50,36,49,1.099,TRUE
+R0473,30–44,žena,Jihovýchod,Family Viewers,Local First,57,63,55,77,63,0.893,TRUE
+R0474,45–64,žena,Severovýchod,Local Story Fans,Local First,57,64,79,35,59,1.226,TRUE
+R0475,65+,muž,Jihozápad,Choice Overload,Smart Discovery,27,81,85,76,67,0.77,TRUE
+R0476,18–29,žena,Severozápad,Local Story Fans,Local First,30,81,68,58,59,1.185,TRUE
+R0477,18–29,muž,Severozápad,Family Viewers,Local First,43,81,77,76,69,1.043,TRUE
+R0478,65+,žena,Severozápad,Franchise Hunters,Premium Exclusives,56,65,65,75,65,0.836,TRUE
+R0479,65+,žena,Severovýchod,Choice Overload,Smart Discovery,48,77,49,54,57,0.901,TRUE
+R0480,30–44,muž,Střední Čechy,Local Story Fans,Local First,24,69,61,59,53,0.813,TRUE
+R0481,65+,žena,Jihozápad,Franchise Hunters,Premium Exclusives,46,61,78,45,58,0.921,TRUE
+R0482,65+,muž,Severozápad,Choice Overload,Smart Discovery,47,52,85,86,68,1.236,TRUE
+R0483,45–64,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,39,88,65,39,58,0.876,TRUE
+R0484,45–64,žena,Střední Morava,Franchise Hunters,Premium Exclusives,35,76,54,80,61,0.842,TRUE
+R0485,18–29,muž,Jihovýchod,Local Story Fans,Local First,47,80,69,66,66,1.097,TRUE
+R0486,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,43,58,67,47,54,0.965,TRUE
+R0487,65+,muž,Střední Čechy,Choice Overload,Smart Discovery,60,71,71,84,72,0.924,TRUE
+R0488,45–64,žena,Střední Morava,Family Viewers,Local First,26,48,67,37,44,0.893,TRUE
+R0489,65+,žena,Jihovýchod,Light Streamers,Smart Discovery,32,54,57,82,56,1.008,TRUE
+R0490,45–64,žena,Severovýchod,Franchise Hunters,Premium Exclusives,54,56,84,88,70,1.051,TRUE
+R0491,18–29,žena,Střední Morava,Local Story Fans,Local First,25,58,84,57,56,0.785,TRUE
+R0492,30–44,žena,Jihovýchod,Local Story Fans,Local First,25,82,74,87,67,1.115,TRUE
+R0493,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,52,58,73,63,62,1.229,TRUE
+R0494,30–44,muž,Jihovýchod,Choice Overload,Smart Discovery,32,75,51,86,61,0.994,TRUE
+R0495,30–44,žena,Severozápad,Local Story Fans,Local First,40,81,57,36,54,0.83,TRUE
+R0496,30–44,žena,Střední Morava,Local Story Fans,Local First,51,51,45,79,56,0.813,TRUE
+R0497,45–64,muž,Severovýchod,Choice Overload,Smart Discovery,43,66,49,83,60,0.85,TRUE
+R0498,30–44,žena,Střední Morava,Local Story Fans,Local First,45,83,49,41,54,1.092,TRUE
+R0499,18–29,muž,Moravskoslezsko,Local Story Fans,Local First,29,81,56,45,53,1.096,TRUE
+R0500,65+,žena,Severozápad,Local Story Fans,Local First,37,71,85,65,64,1.209,TRUE
+R0501,65+,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,32,50,72,50,51,1.136,TRUE
+R0502,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,54,59,76,64,63,1.045,TRUE
+R0503,45–64,muž,Severovýchod,Franchise Hunters,Premium Exclusives,27,67,68,55,54,1.068,TRUE
+R0504,30–44,žena,Střední Morava,Franchise Hunters,Premium Exclusives,31,89,53,88,65,0.885,TRUE
+R0505,30–44,žena,Střední Čechy,Local Story Fans,Local First,53,64,78,86,70,0.773,TRUE
+R0506,65+,muž,Střední Morava,Family Viewers,Local First,36,72,78,86,68,0.895,TRUE
+R0507,30–44,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,57,74,86,72,72,0.95,TRUE
+R0508,45–64,žena,Praha,Choice Overload,Smart Discovery,29,63,75,66,58,0.864,TRUE
+R0509,18–29,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,29,60,85,66,60,0.814,TRUE
+R0510,65+,muž,Severovýchod,Franchise Hunters,Premium Exclusives,33,66,47,87,58,1.096,TRUE
+R0511,65+,žena,Praha,Local Story Fans,Local First,27,79,73,84,66,1.213,TRUE
+R0512,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,34,73,61,82,62,0.863,TRUE
+R0513,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,33,55,81,54,56,0.85,TRUE
+R0514,30–44,muž,Jihozápad,Family Viewers,Local First,37,62,53,46,50,1.008,TRUE
+R0515,65+,muž,Střední Čechy,Local Story Fans,Local First,28,46,71,50,49,0.867,TRUE
+R0516,45–64,žena,Střední Čechy,Light Streamers,Smart Discovery,39,56,65,48,52,0.963,TRUE
+R0517,65+,muž,Jihovýchod,Local Story Fans,Local First,39,47,50,86,56,1.243,TRUE
+R0518,18–29,muž,Střední Morava,Local Story Fans,Local First,32,73,60,75,60,0.881,TRUE
+R0519,18–29,muž,Praha,Local Story Fans,Local First,43,45,81,87,64,1.174,TRUE
+R0520,65+,muž,Střední Morava,Family Viewers,Local First,44,50,85,44,56,0.824,TRUE
+R0521,65+,muž,Jihozápad,Light Streamers,Smart Discovery,32,66,49,88,59,1.215,TRUE
+R0522,18–29,muž,Severozápad,Light Streamers,Smart Discovery,59,65,85,53,66,0.8,TRUE
+R0523,18–29,žena,Střední Morava,Family Viewers,Local First,60,53,61,79,63,0.886,TRUE
+R0524,30–44,žena,Praha,Choice Overload,Smart Discovery,35,71,56,67,57,0.913,TRUE
+R0525,18–29,muž,Praha,Local Story Fans,Local First,47,87,49,90,68,0.917,TRUE
+R0526,45–64,muž,Jihovýchod,Local Story Fans,Local First,38,85,66,57,62,1.139,TRUE
+R0527,30–44,muž,Jihozápad,Choice Overload,Smart Discovery,36,72,61,59,57,0.793,TRUE
+R0528,45–64,muž,Střední Čechy,Local Story Fans,Local First,60,69,52,37,54,0.903,TRUE
+R0529,45–64,žena,Severozápad,Choice Overload,Smart Discovery,48,73,56,62,60,0.85,TRUE
+R0530,45–64,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,60,83,47,53,61,0.86,TRUE
+R0531,45–64,muž,Severovýchod,Local Story Fans,Local First,58,72,74,82,72,1.072,TRUE
+R0532,45–64,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,56,65,48,51,55,0.954,TRUE
+R0533,45–64,žena,Praha,Light Streamers,Smart Discovery,53,90,74,77,74,1.219,TRUE
+R0534,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,60,88,63,68,70,0.984,TRUE
+R0535,45–64,žena,Střední Čechy,Local Story Fans,Local First,58,63,56,51,57,0.904,TRUE
+R0536,45–64,žena,Severozápad,Local Story Fans,Local First,56,47,51,60,54,0.775,TRUE
+R0537,18–29,muž,Střední Čechy,Family Viewers,Local First,42,49,70,62,56,1.052,TRUE
+R0538,45–64,žena,Jihozápad,Local Story Fans,Local First,53,89,52,64,64,0.888,TRUE
+R0539,45–64,muž,Střední Morava,Franchise Hunters,Premium Exclusives,49,46,81,79,64,0.952,TRUE
+R0540,30–44,muž,Jihovýchod,Light Streamers,Smart Discovery,58,85,85,62,72,0.956,TRUE
+R0541,18–29,žena,Severovýchod,Local Story Fans,Local First,46,63,81,90,70,1.15,TRUE
+R0542,45–64,žena,Severovýchod,Light Streamers,Smart Discovery,59,68,61,51,60,0.772,TRUE
+R0543,65+,žena,Praha,Local Story Fans,Local First,27,90,57,78,63,1.062,TRUE
+R0544,18–29,muž,Jihozápad,Franchise Hunters,Premium Exclusives,27,90,53,38,52,1.069,TRUE
+R0545,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,51,69,89,59,67,1.188,TRUE
+R0546,18–29,žena,Severovýchod,Family Viewers,Local First,32,84,80,79,69,0.914,TRUE
+R0547,18–29,muž,Severozápad,Choice Overload,Smart Discovery,49,71,88,90,74,0.936,TRUE
+R0548,30–44,žena,Jihozápad,Local Story Fans,Local First,38,74,57,75,61,0.761,TRUE
+R0549,18–29,muž,Praha,Light Streamers,Smart Discovery,49,80,55,51,59,1.079,TRUE
+R0550,18–29,žena,Severovýchod,Local Story Fans,Local First,44,75,79,43,60,0.995,TRUE
+R0551,45–64,muž,Severozápad,Local Story Fans,Local First,41,74,90,59,66,1.164,TRUE
+R0552,45–64,muž,Severozápad,Franchise Hunters,Premium Exclusives,29,79,90,89,72,1.221,TRUE
+R0553,18–29,muž,Praha,Choice Overload,Smart Discovery,25,57,58,42,46,0.937,TRUE
+R0554,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,37,88,55,61,60,0.854,TRUE
+R0555,45–64,žena,Praha,Franchise Hunters,Premium Exclusives,48,52,79,77,64,1.084,TRUE
+R0556,30–44,muž,Praha,Franchise Hunters,Premium Exclusives,49,61,54,44,52,1.125,TRUE
+R0557,18–29,muž,Severovýchod,Choice Overload,Smart Discovery,57,55,48,58,54,1.038,TRUE
+R0558,45–64,muž,Jihovýchod,Family Viewers,Local First,46,76,59,90,68,0.887,TRUE
+R0559,30–44,muž,Severovýchod,Family Viewers,Local First,60,83,58,42,61,1.083,TRUE
+R0560,30–44,muž,Moravskoslezsko,Choice Overload,Smart Discovery,49,90,76,36,63,1.083,TRUE
+R0561,30–44,žena,Severovýchod,Family Viewers,Local First,38,72,65,64,60,1.077,TRUE
+R0562,30–44,žena,Severozápad,Franchise Hunters,Premium Exclusives,50,82,54,72,64,1.144,TRUE
+R0563,45–64,muž,Střední Čechy,Family Viewers,Local First,40,68,82,83,68,1.155,TRUE
+R0564,45–64,žena,Jihovýchod,Light Streamers,Smart Discovery,57,57,49,64,57,0.897,TRUE
+R0565,30–44,žena,Střední Morava,Family Viewers,Local First,34,56,78,87,64,0.852,TRUE
+R0566,65+,muž,Praha,Franchise Hunters,Premium Exclusives,46,57,78,54,59,1.062,TRUE
+R0567,30–44,žena,Severovýchod,Local Story Fans,Local First,36,83,70,84,68,0.828,TRUE
+R0568,45–64,žena,Střední Morava,Choice Overload,Smart Discovery,57,77,71,89,74,1.144,TRUE
+R0569,45–64,muž,Jihovýchod,Choice Overload,Smart Discovery,58,71,78,77,71,0.819,TRUE
+R0570,65+,muž,Jihovýchod,Local Story Fans,Local First,57,58,64,62,60,1.131,TRUE
+R0571,65+,žena,Jihozápad,Local Story Fans,Local First,59,60,79,44,60,0.903,TRUE
+R0572,65+,žena,Jihovýchod,Choice Overload,Smart Discovery,25,52,69,56,50,1.204,TRUE
+R0573,30–44,muž,Praha,Local Story Fans,Local First,53,56,69,67,61,1.094,TRUE
+R0574,30–44,žena,Severovýchod,Franchise Hunters,Premium Exclusives,42,81,73,52,62,0.929,TRUE
+R0575,18–29,žena,Jihozápad,Local Story Fans,Local First,57,53,57,56,56,0.962,TRUE
+R0576,65+,žena,Severovýchod,Family Viewers,Local First,60,65,60,72,64,1.05,TRUE
+R0577,30–44,žena,Jihozápad,Local Story Fans,Local First,33,67,57,59,54,1.125,TRUE
+R0578,30–44,žena,Praha,Family Viewers,Local First,41,90,48,51,58,0.922,TRUE
+R0579,18–29,žena,Severovýchod,Choice Overload,Smart Discovery,29,62,83,52,56,1.013,TRUE
+R0580,30–44,žena,Střední Čechy,Local Story Fans,Local First,27,59,79,78,61,0.796,TRUE
+R0581,18–29,muž,Jihozápad,Local Story Fans,Local First,48,89,55,69,65,1.06,TRUE
+R0582,65+,muž,Praha,Local Story Fans,Local First,41,50,57,42,48,1.038,TRUE
+R0583,30–44,žena,Moravskoslezsko,Choice Overload,Smart Discovery,31,56,79,37,51,1.145,TRUE
+R0584,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,33,55,66,74,57,1.181,TRUE
+R0585,65+,žena,Severozápad,Choice Overload,Smart Discovery,48,82,66,58,64,1.089,TRUE
+R0586,30–44,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,46,87,84,71,72,1.176,TRUE
+R0587,65+,žena,Moravskoslezsko,Local Story Fans,Local First,34,51,73,87,61,1.23,TRUE
+R0588,18–29,muž,Jihovýchod,Light Streamers,Smart Discovery,48,47,48,76,55,0.969,TRUE
+R0589,18–29,muž,Praha,Local Story Fans,Local First,42,57,89,51,60,1.214,TRUE
+R0590,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,41,54,56,73,56,1.092,TRUE
+R0591,18–29,muž,Severovýchod,Family Viewers,Local First,29,88,89,52,64,1.122,TRUE
+R0592,30–44,žena,Jihozápad,Local Story Fans,Local First,50,90,75,71,72,1.202,TRUE
+R0593,65+,muž,Severozápad,Local Story Fans,Local First,25,67,62,57,53,0.873,TRUE
+R0594,30–44,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,29,89,60,67,61,1.231,TRUE
+R0595,45–64,žena,Jihozápad,Local Story Fans,Local First,35,57,67,89,62,1.214,TRUE
+R0596,18–29,muž,Praha,Choice Overload,Smart Discovery,37,77,77,72,66,1.133,TRUE
+R0597,65+,muž,Jihovýchod,Choice Overload,Smart Discovery,33,89,53,61,59,1.029,TRUE
+R0598,30–44,muž,Střední Morava,Local Story Fans,Local First,35,63,70,48,54,1.212,TRUE
+R0599,65+,žena,Střední Morava,Franchise Hunters,Premium Exclusives,24,58,51,72,51,1.105,TRUE
+R0600,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,60,50,50,36,49,0.845,TRUE
+R0601,65+,žena,Střední Morava,Family Viewers,Local First,53,72,83,49,64,0.88,TRUE
+R0602,45–64,muž,Střední Morava,Franchise Hunters,Premium Exclusives,48,73,83,72,69,1.222,TRUE
+R0603,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,58,64,59,73,64,0.828,TRUE
+R0604,30–44,muž,Jihovýchod,Family Viewers,Local First,50,67,52,40,52,0.856,TRUE
+R0605,30–44,žena,Praha,Local Story Fans,Local First,38,80,56,72,62,1.011,TRUE
+R0606,45–64,žena,Střední Morava,Local Story Fans,Local First,39,87,54,67,62,0.79,TRUE
+R0607,30–44,žena,Severozápad,Local Story Fans,Local First,28,85,81,85,70,1.084,TRUE
+R0608,65+,muž,Praha,Light Streamers,Smart Discovery,51,46,66,89,63,1.216,TRUE
+R0609,45–64,muž,Praha,Local Story Fans,Local First,55,78,78,88,75,1.127,TRUE
+R0610,30–44,žena,Moravskoslezsko,Light Streamers,Smart Discovery,33,56,73,90,63,0.779,TRUE
+R0611,65+,muž,Jihozápad,Franchise Hunters,Premium Exclusives,56,84,74,60,68,0.987,TRUE
+R0612,65+,žena,Střední Čechy,Family Viewers,Local First,36,87,51,84,64,1.01,TRUE
+R0613,30–44,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,51,65,90,71,69,1.09,TRUE
+R0614,18–29,žena,Praha,Local Story Fans,Local First,33,56,85,50,56,0.995,TRUE
+R0615,30–44,žena,Praha,Local Story Fans,Local First,30,74,90,72,66,0.822,TRUE
+R0616,18–29,žena,Praha,Franchise Hunters,Premium Exclusives,34,45,64,46,47,1.15,TRUE
+R0617,65+,žena,Praha,Local Story Fans,Local First,48,51,59,48,52,0.828,TRUE
+R0618,45–64,žena,Severovýchod,Local Story Fans,Local First,55,68,71,58,63,1.022,TRUE
+R0619,45–64,muž,Praha,Light Streamers,Smart Discovery,31,80,46,75,58,1.017,TRUE
+R0620,18–29,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,30,84,66,40,55,0.965,TRUE
+R0621,18–29,muž,Severovýchod,Franchise Hunters,Premium Exclusives,46,82,73,75,69,1.058,TRUE
+R0622,65+,žena,Jihozápad,Franchise Hunters,Premium Exclusives,29,69,69,87,64,0.866,TRUE
+R0623,30–44,žena,Jihozápad,Family Viewers,Local First,51,48,77,45,55,0.901,TRUE
+R0624,45–64,muž,Severozápad,Franchise Hunters,Premium Exclusives,36,88,45,72,60,0.97,TRUE
+R0625,65+,žena,Střední Čechy,Choice Overload,Smart Discovery,49,88,47,37,55,0.862,TRUE
+R0626,30–44,žena,Severozápad,Choice Overload,Smart Discovery,55,71,73,37,59,1.142,TRUE
+R0627,65+,muž,Střední Čechy,Light Streamers,Smart Discovery,33,67,62,90,63,1.056,TRUE
+R0628,18–29,žena,Střední Čechy,Choice Overload,Smart Discovery,26,59,63,51,50,1.17,TRUE
+R0629,45–64,muž,Jihovýchod,Light Streamers,Smart Discovery,44,80,74,44,60,0.961,TRUE
+R0630,45–64,muž,Moravskoslezsko,Local Story Fans,Local First,50,70,70,71,65,1.039,TRUE
+R0631,65+,žena,Jihozápad,Local Story Fans,Local First,31,77,52,41,50,1.224,TRUE
+R0632,45–64,žena,Moravskoslezsko,Choice Overload,Smart Discovery,54,87,77,41,65,1.123,TRUE
+R0633,30–44,muž,Severovýchod,Light Streamers,Smart Discovery,49,80,48,78,64,0.96,TRUE
+R0634,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,37,55,77,44,53,1.133,TRUE
+R0635,45–64,žena,Jihozápad,Local Story Fans,Local First,30,59,74,64,57,1.093,TRUE
+R0636,65+,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,40,67,71,81,65,0.834,TRUE
+R0637,18–29,žena,Severovýchod,Family Viewers,Local First,27,53,57,49,46,1.046,TRUE
+R0638,45–64,žena,Střední Čechy,Local Story Fans,Local First,44,45,64,81,58,1.166,TRUE
+R0639,65+,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,37,71,46,58,53,0.808,TRUE
+R0640,30–44,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,33,46,80,79,60,0.869,TRUE
+R0641,30–44,žena,Moravskoslezsko,Family Viewers,Local First,32,52,50,53,47,0.812,TRUE
+R0642,65+,muž,Jihozápad,Franchise Hunters,Premium Exclusives,29,48,89,74,60,0.909,TRUE
+R0643,65+,muž,Severozápad,Family Viewers,Local First,29,87,74,60,62,0.9,TRUE
+R0644,18–29,muž,Severovýchod,Franchise Hunters,Premium Exclusives,41,88,51,53,58,0.783,TRUE
+R0645,30–44,žena,Severovýchod,Family Viewers,Local First,49,58,62,43,53,0.863,TRUE
+R0646,45–64,žena,Jihozápad,Choice Overload,Smart Discovery,25,71,53,86,59,0.944,TRUE
+R0647,30–44,žena,Jihovýchod,Local Story Fans,Local First,55,67,74,84,70,0.806,TRUE
+R0648,30–44,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,42,89,78,47,64,1.1,TRUE
+R0649,65+,žena,Praha,Family Viewers,Local First,31,71,68,83,63,0.879,TRUE
+R0650,30–44,muž,Praha,Local Story Fans,Local First,49,63,64,63,60,0.819,TRUE
+R0651,65+,muž,Severozápad,Choice Overload,Smart Discovery,57,84,53,47,60,0.779,TRUE
+R0652,30–44,muž,Jihovýchod,Choice Overload,Smart Discovery,36,66,55,57,54,1.032,TRUE
+R0653,45–64,žena,Praha,Choice Overload,Smart Discovery,44,67,58,84,63,1.163,TRUE
+R0654,45–64,žena,Jihovýchod,Choice Overload,Smart Discovery,56,90,53,60,65,0.987,TRUE
+R0655,45–64,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,31,80,50,58,55,0.918,TRUE
+R0656,65+,muž,Jihozápad,Local Story Fans,Local First,25,76,51,81,58,0.814,TRUE
+R0657,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,26,80,84,84,68,1.203,TRUE
+R0658,30–44,muž,Jihovýchod,Choice Overload,Smart Discovery,50,88,69,44,63,1.056,TRUE
+R0659,18–29,muž,Praha,Family Viewers,Local First,50,46,48,47,48,1.112,TRUE
+R0660,65+,muž,Střední Čechy,Choice Overload,Smart Discovery,42,75,53,78,62,1.124,TRUE
+R0661,30–44,muž,Střední Čechy,Light Streamers,Smart Discovery,57,66,70,66,65,1.041,TRUE
+R0662,30–44,žena,Střední Morava,Choice Overload,Smart Discovery,44,77,86,75,70,1.202,TRUE
+R0663,18–29,žena,Jihovýchod,Local Story Fans,Local First,42,87,84,88,75,0.764,TRUE
+R0664,18–29,žena,Jihovýchod,Family Viewers,Local First,51,83,48,37,55,0.836,TRUE
+R0665,65+,muž,Severovýchod,Family Viewers,Local First,50,74,82,78,71,1.188,TRUE
+R0666,18–29,muž,Severozápad,Choice Overload,Smart Discovery,55,82,51,70,64,0.754,TRUE
+R0667,30–44,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,52,88,66,44,62,1.061,TRUE
+R0668,30–44,muž,Severozápad,Local Story Fans,Local First,37,59,58,37,48,0.78,TRUE
+R0669,30–44,žena,Severozápad,Franchise Hunters,Premium Exclusives,41,66,76,73,64,0.898,TRUE
+R0670,65+,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,54,85,46,89,68,1.215,TRUE
+R0671,65+,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,52,50,83,88,68,0.907,TRUE
+R0672,18–29,muž,Severovýchod,Choice Overload,Smart Discovery,34,65,63,86,62,0.927,TRUE
+R0673,18–29,muž,Střední Čechy,Local Story Fans,Local First,35,57,57,80,57,0.905,TRUE
+R0674,18–29,muž,Střední Morava,Franchise Hunters,Premium Exclusives,35,88,77,39,60,1.145,TRUE
+R0675,30–44,muž,Jihozápad,Local Story Fans,Local First,32,48,88,81,62,1.121,TRUE
+R0676,30–44,žena,Severozápad,Family Viewers,Local First,57,60,76,42,59,0.972,TRUE
+R0677,45–64,muž,Střední Čechy,Light Streamers,Smart Discovery,51,76,86,80,73,0.82,TRUE
+R0678,45–64,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,37,52,81,67,59,1.211,TRUE
+R0679,18–29,žena,Severovýchod,Local Story Fans,Local First,28,74,65,81,62,0.862,TRUE
+R0680,30–44,muž,Střední Čechy,Choice Overload,Smart Discovery,39,65,66,51,55,1.204,TRUE
+R0681,18–29,žena,Severovýchod,Choice Overload,Smart Discovery,30,60,79,88,64,0.945,TRUE
+R0682,45–64,žena,Moravskoslezsko,Local Story Fans,Local First,25,57,79,41,50,1.216,TRUE
+R0683,18–29,muž,Jihozápad,Light Streamers,Smart Discovery,54,64,64,46,57,0.8,TRUE
+R0684,65+,muž,Střední Morava,Local Story Fans,Local First,31,75,80,90,69,0.963,TRUE
+R0685,18–29,muž,Moravskoslezsko,Choice Overload,Smart Discovery,33,64,58,68,56,1.171,TRUE
+R0686,30–44,muž,Střední Morava,Local Story Fans,Local First,35,84,84,46,62,1.149,TRUE
+R0687,45–64,žena,Severovýchod,Franchise Hunters,Premium Exclusives,35,45,89,58,57,1.109,TRUE
+R0688,65+,žena,Jihozápad,Local Story Fans,Local First,41,82,76,61,65,0.99,TRUE
+R0689,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,27,47,51,46,43,1.198,TRUE
+R0690,45–64,muž,Jihovýchod,Family Viewers,Local First,34,68,72,83,64,1.109,TRUE
+R0691,45–64,muž,Severozápad,Family Viewers,Local First,26,80,67,78,63,0.955,TRUE
+R0692,45–64,žena,Severovýchod,Light Streamers,Smart Discovery,25,55,80,39,50,1.214,TRUE
+R0693,45–64,žena,Střední Čechy,Choice Overload,Smart Discovery,30,83,74,52,60,1.163,TRUE
+R0694,45–64,muž,Střední Morava,Local Story Fans,Local First,30,75,83,48,59,0.913,TRUE
+R0695,18–29,žena,Střední Morava,Choice Overload,Smart Discovery,32,72,82,53,60,1.092,TRUE
+R0696,65+,muž,Jihovýchod,Choice Overload,Smart Discovery,52,78,47,64,60,1.218,TRUE
+R0697,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,34,48,85,66,58,0.98,TRUE
+R0698,65+,žena,Střední Morava,Choice Overload,Smart Discovery,33,68,55,70,56,1.134,TRUE
+R0699,30–44,žena,Praha,Local Story Fans,Local First,57,55,72,83,67,1.01,TRUE
+R0700,45–64,muž,Jihozápad,Choice Overload,Smart Discovery,49,45,83,48,56,0.861,TRUE
+R0701,18–29,muž,Moravskoslezsko,Choice Overload,Smart Discovery,30,59,79,42,52,1.016,TRUE
+R0702,30–44,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,45,68,78,45,59,1.181,TRUE
+R0703,65+,žena,Severozápad,Franchise Hunters,Premium Exclusives,51,47,50,49,49,0.973,TRUE
+R0704,18–29,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,60,79,52,35,56,0.832,TRUE
+R0705,30–44,muž,Moravskoslezsko,Choice Overload,Smart Discovery,29,57,66,36,47,1.067,TRUE
+R0706,18–29,žena,Jihozápad,Choice Overload,Smart Discovery,36,73,45,61,54,0.851,TRUE
+R0707,45–64,žena,Jihozápad,Family Viewers,Local First,54,53,76,79,66,0.818,TRUE
+R0708,45–64,žena,Severovýchod,Local Story Fans,Local First,55,54,79,70,64,0.889,TRUE
+R0709,30–44,muž,Jihozápad,Choice Overload,Smart Discovery,47,77,81,65,68,0.997,TRUE
+R0710,18–29,žena,Střední Čechy,Family Viewers,Local First,38,85,79,45,62,0.841,TRUE
+R0711,45–64,žena,Střední Morava,Franchise Hunters,Premium Exclusives,45,56,53,43,49,1.15,TRUE
+R0712,18–29,žena,Severovýchod,Choice Overload,Smart Discovery,51,50,78,49,57,0.861,TRUE
+R0713,45–64,muž,Jihovýchod,Family Viewers,Local First,30,77,55,46,52,1.215,TRUE
+R0714,65+,žena,Severozápad,Local Story Fans,Local First,45,67,81,74,67,1.043,TRUE
+R0715,45–64,muž,Jihozápad,Local Story Fans,Local First,24,73,50,64,53,0.905,TRUE
+R0716,65+,žena,Střední Morava,Local Story Fans,Local First,49,87,47,58,60,1.042,TRUE
+R0717,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,24,56,82,52,54,0.89,TRUE
+R0718,45–64,muž,Moravskoslezsko,Choice Overload,Smart Discovery,38,64,53,67,56,0.963,TRUE
+R0719,30–44,žena,Moravskoslezsko,Local Story Fans,Local First,38,56,90,78,66,0.968,TRUE
+R0720,65+,žena,Jihovýchod,Local Story Fans,Local First,43,71,69,54,59,0.948,TRUE
+R0721,45–64,muž,Severovýchod,Franchise Hunters,Premium Exclusives,36,72,51,66,56,0.956,TRUE
+R0722,65+,muž,Severovýchod,Local Story Fans,Local First,24,68,67,38,49,0.821,TRUE
+R0723,18–29,žena,Jihozápad,Franchise Hunters,Premium Exclusives,37,79,86,75,69,0.855,TRUE
+R0724,65+,žena,Severozápad,Franchise Hunters,Premium Exclusives,57,51,45,64,54,1.153,TRUE
+R0725,30–44,muž,Praha,Local Story Fans,Local First,28,69,58,70,56,1.046,TRUE
+R0726,30–44,žena,Jihozápad,Local Story Fans,Local First,29,68,70,90,64,1.243,TRUE
+R0727,45–64,muž,Jihozápad,Franchise Hunters,Premium Exclusives,31,57,47,36,43,0.795,TRUE
+R0728,65+,muž,Severozápad,Franchise Hunters,Premium Exclusives,35,82,63,48,57,1.174,TRUE
+R0729,65+,žena,Jihovýchod,Choice Overload,Smart Discovery,38,87,49,65,60,1.219,TRUE
+R0730,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,59,76,50,48,58,1.041,TRUE
+R0731,18–29,muž,Střední Morava,Family Viewers,Local First,48,53,53,42,49,1.038,TRUE
+R0732,45–64,žena,Praha,Franchise Hunters,Premium Exclusives,24,52,89,40,51,0.84,TRUE
+R0733,18–29,žena,Střední Morava,Light Streamers,Smart Discovery,50,45,64,50,52,0.768,TRUE
+R0734,45–64,muž,Střední Morava,Choice Overload,Smart Discovery,24,53,50,50,44,1.195,TRUE
+R0735,18–29,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,27,84,67,54,58,0.789,TRUE
+R0736,65+,žena,Střední Morava,Choice Overload,Smart Discovery,51,55,65,53,56,0.876,TRUE
+R0737,45–64,muž,Moravskoslezsko,Family Viewers,Local First,25,60,73,64,56,0.757,TRUE
+R0738,30–44,muž,Střední Morava,Light Streamers,Smart Discovery,45,69,71,37,56,1.221,TRUE
+R0739,18–29,žena,Severovýchod,Choice Overload,Smart Discovery,49,66,81,47,61,0.752,TRUE
+R0740,65+,žena,Střední Morava,Local Story Fans,Local First,59,57,84,36,59,1.21,TRUE
+R0741,65+,žena,Jihozápad,Light Streamers,Smart Discovery,32,59,62,44,49,1.128,TRUE
+R0742,65+,žena,Střední Čechy,Local Story Fans,Local First,60,86,50,35,58,1.121,TRUE
+R0743,45–64,muž,Severovýchod,Family Viewers,Local First,45,78,59,64,62,0.837,TRUE
+R0744,65+,muž,Praha,Local Story Fans,Local First,46,60,49,83,60,0.754,TRUE
+R0745,45–64,muž,Severovýchod,Local Story Fans,Local First,26,56,65,82,57,0.818,TRUE
+R0746,18–29,muž,Praha,Franchise Hunters,Premium Exclusives,38,62,87,55,60,1.188,TRUE
+R0747,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,30,64,72,70,59,0.791,TRUE
+R0748,30–44,žena,Severovýchod,Choice Overload,Smart Discovery,29,66,78,42,54,0.911,TRUE
+R0749,45–64,muž,Jihovýchod,Choice Overload,Smart Discovery,39,60,88,70,64,1.151,TRUE
+R0750,18–29,muž,Střední Morava,Light Streamers,Smart Discovery,43,77,75,76,68,0.772,TRUE
+R0751,30–44,žena,Severovýchod,Local Story Fans,Local First,60,71,88,61,70,0.828,TRUE
+R0752,65+,žena,Střední Čechy,Local Story Fans,Local First,45,86,55,79,66,1.08,TRUE
+R0753,18–29,žena,Severozápad,Franchise Hunters,Premium Exclusives,57,52,81,39,57,1.047,TRUE
+R0754,65+,žena,Praha,Franchise Hunters,Premium Exclusives,59,67,66,54,62,1.122,TRUE
+R0755,65+,žena,Střední Čechy,Choice Overload,Smart Discovery,24,78,55,38,49,0.959,TRUE
+R0756,18–29,žena,Praha,Choice Overload,Smart Discovery,54,82,83,36,64,0.92,TRUE
+R0757,45–64,muž,Moravskoslezsko,Family Viewers,Local First,47,47,47,42,46,1.084,TRUE
+R0758,18–29,muž,Jihozápad,Local Story Fans,Local First,28,86,46,49,52,1.16,TRUE
+R0759,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,39,45,63,73,55,1.215,TRUE
+R0760,30–44,muž,Střední Morava,Family Viewers,Local First,58,55,76,38,57,1.077,TRUE
+R0761,18–29,muž,Jihovýchod,Local Story Fans,Local First,44,80,84,45,63,1.015,TRUE
+R0762,45–64,muž,Praha,Choice Overload,Smart Discovery,29,64,76,48,54,1.239,TRUE
+R0763,65+,žena,Jihozápad,Local Story Fans,Local First,28,87,70,85,68,1.115,TRUE
+R0764,30–44,žena,Střední Morava,Choice Overload,Smart Discovery,40,82,74,52,62,1.121,TRUE
+R0765,30–44,žena,Jihozápad,Choice Overload,Smart Discovery,30,57,85,56,57,1.199,TRUE
+R0766,30–44,žena,Praha,Choice Overload,Smart Discovery,34,76,64,46,55,0.872,TRUE
+R0767,30–44,muž,Praha,Local Story Fans,Local First,32,47,74,86,60,0.81,TRUE
+R0768,65+,muž,Praha,Local Story Fans,Local First,30,58,75,80,61,1.042,TRUE
+R0769,45–64,muž,Střední Morava,Family Viewers,Local First,59,50,79,63,63,1.202,TRUE
+R0770,45–64,žena,Jihovýchod,Local Story Fans,Local First,55,73,65,81,68,1.178,TRUE
+R0771,30–44,muž,Severovýchod,Light Streamers,Smart Discovery,25,55,53,58,48,1.066,TRUE
+R0772,45–64,muž,Střední Morava,Choice Overload,Smart Discovery,45,80,63,82,68,1.219,TRUE
+R0773,30–44,žena,Severovýchod,Franchise Hunters,Premium Exclusives,25,53,79,88,61,0.87,TRUE
+R0774,45–64,žena,Praha,Family Viewers,Local First,39,85,66,88,70,1.043,TRUE
+R0775,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,35,55,86,58,58,1.175,TRUE
+R0776,18–29,žena,Moravskoslezsko,Choice Overload,Smart Discovery,43,79,89,75,72,0.889,TRUE
+R0777,30–44,žena,Severozápad,Franchise Hunters,Premium Exclusives,35,54,90,59,60,1.159,TRUE
+R0778,45–64,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,38,64,60,57,55,1.141,TRUE
+R0779,65+,žena,Střední Morava,Light Streamers,Smart Discovery,28,74,53,35,48,1.069,TRUE
+R0780,18–29,žena,Moravskoslezsko,Choice Overload,Smart Discovery,30,46,66,45,47,1.183,TRUE
+R0781,18–29,muž,Moravskoslezsko,Choice Overload,Smart Discovery,56,84,82,59,70,1.138,TRUE
+R0782,45–64,žena,Jihozápad,Choice Overload,Smart Discovery,35,74,52,72,58,0.789,TRUE
+R0783,18–29,muž,Jihozápad,Light Streamers,Smart Discovery,46,65,47,70,57,1.101,TRUE
+R0784,65+,žena,Střední Morava,Local Story Fans,Local First,48,50,53,66,54,1.0,TRUE
+R0785,45–64,žena,Jihovýchod,Family Viewers,Local First,29,77,54,48,52,1.028,TRUE
+R0786,30–44,muž,Praha,Light Streamers,Smart Discovery,60,87,47,74,67,0.806,TRUE
+R0787,18–29,muž,Střední Morava,Light Streamers,Smart Discovery,30,68,49,51,50,1.185,TRUE
+R0788,45–64,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,60,73,68,46,62,0.83,TRUE
+R0789,45–64,žena,Střední Čechy,Local Story Fans,Local First,53,49,64,62,57,1.245,TRUE
+R0790,65+,muž,Střední Morava,Choice Overload,Smart Discovery,27,54,82,76,60,0.917,TRUE
+R0791,18–29,žena,Severozápad,Local Story Fans,Local First,36,82,65,48,58,0.793,TRUE
+R0792,18–29,muž,Moravskoslezsko,Choice Overload,Smart Discovery,32,72,48,83,59,1.108,TRUE
+R0793,65+,muž,Severovýchod,Franchise Hunters,Premium Exclusives,33,82,46,55,54,1.205,TRUE
+R0794,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,59,80,49,60,62,1.174,TRUE
+R0795,45–64,žena,Praha,Franchise Hunters,Premium Exclusives,50,55,87,59,63,0.929,TRUE
+R0796,18–29,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,28,47,51,73,50,1.08,TRUE
+R0797,65+,muž,Střední Morava,Choice Overload,Smart Discovery,31,75,55,65,56,1.09,TRUE
+R0798,65+,žena,Jihozápad,Franchise Hunters,Premium Exclusives,50,51,71,37,52,0.902,TRUE
+R0799,45–64,muž,Praha,Franchise Hunters,Premium Exclusives,26,56,82,70,58,0.957,TRUE
+R0800,65+,muž,Praha,Local Story Fans,Local First,56,64,62,63,61,0.999,TRUE
+R0801,65+,muž,Moravskoslezsko,Light Streamers,Smart Discovery,51,87,83,42,66,0.769,TRUE
+R0802,45–64,muž,Střední Čechy,Local Story Fans,Local First,47,47,86,65,61,0.938,TRUE
+R0803,18–29,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,38,59,46,74,54,1.004,TRUE
+R0804,18–29,žena,Střední Čechy,Light Streamers,Smart Discovery,57,47,70,54,57,1.148,TRUE
+R0805,65+,žena,Moravskoslezsko,Family Viewers,Local First,29,57,67,69,56,0.782,TRUE
+R0806,45–64,žena,Severozápad,Local Story Fans,Local First,36,53,71,73,58,0.893,TRUE
+R0807,45–64,žena,Jihozápad,Franchise Hunters,Premium Exclusives,24,70,87,51,58,0.945,TRUE
+R0808,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,43,76,56,81,64,0.868,TRUE
+R0809,65+,žena,Jihozápad,Local Story Fans,Local First,32,46,76,77,58,1.094,TRUE
+R0810,65+,muž,Jihovýchod,Family Viewers,Local First,28,74,69,64,59,1.169,TRUE
+R0811,18–29,muž,Praha,Franchise Hunters,Premium Exclusives,28,70,81,88,67,0.885,TRUE
+R0812,65+,žena,Jihozápad,Light Streamers,Smart Discovery,38,79,81,81,70,1.013,TRUE
+R0813,30–44,žena,Střední Morava,Franchise Hunters,Premium Exclusives,53,89,73,60,69,0.943,TRUE
+R0814,18–29,muž,Severozápad,Local Story Fans,Local First,56,61,72,74,66,1.069,TRUE
+R0815,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,48,84,62,44,60,1.029,TRUE
+R0816,30–44,muž,Moravskoslezsko,Family Viewers,Local First,54,46,59,79,60,0.793,TRUE
+R0817,45–64,muž,Jihovýchod,Choice Overload,Smart Discovery,50,81,85,55,68,0.866,TRUE
+R0818,18–29,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,35,72,51,40,50,1.137,TRUE
+R0819,30–44,muž,Jihozápad,Franchise Hunters,Premium Exclusives,34,72,56,81,61,1.002,TRUE
+R0820,45–64,muž,Střední Morava,Family Viewers,Local First,24,53,54,85,54,0.97,TRUE
+R0821,45–64,muž,Moravskoslezsko,Light Streamers,Smart Discovery,52,56,54,83,61,1.013,TRUE
+R0822,18–29,žena,Praha,Franchise Hunters,Premium Exclusives,44,70,57,49,55,1.128,TRUE
+R0823,30–44,muž,Praha,Light Streamers,Smart Discovery,36,47,88,53,56,1.167,TRUE
+R0824,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,51,81,70,39,60,1.061,TRUE
+R0825,18–29,žena,Jihovýchod,Family Viewers,Local First,49,63,48,81,60,1.15,TRUE
+R0826,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,46,78,89,37,62,1.143,TRUE
+R0827,65+,žena,Střední Čechy,Choice Overload,Smart Discovery,55,59,69,52,59,1.136,TRUE
+R0828,30–44,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,25,83,54,59,55,1.214,TRUE
+R0829,65+,muž,Střední Morava,Family Viewers,Local First,49,53,47,62,53,0.777,TRUE
+R0830,45–64,muž,Jihozápad,Local Story Fans,Local First,29,51,62,76,54,0.821,TRUE
+R0831,18–29,žena,Severovýchod,Local Story Fans,Local First,29,53,73,79,58,1.139,TRUE
+R0832,18–29,žena,Jihozápad,Family Viewers,Local First,57,63,73,54,62,1.198,TRUE
+R0833,30–44,žena,Praha,Choice Overload,Smart Discovery,27,73,67,50,54,0.921,TRUE
+R0834,65+,muž,Severovýchod,Franchise Hunters,Premium Exclusives,25,85,75,53,60,1.002,TRUE
+R0835,65+,muž,Severozápad,Family Viewers,Local First,29,57,70,81,59,1.231,TRUE
+R0836,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,58,84,62,55,65,0.822,TRUE
+R0837,45–64,muž,Jihozápad,Local Story Fans,Local First,37,53,59,35,46,0.908,TRUE
+R0838,65+,muž,Jihovýchod,Family Viewers,Local First,42,80,70,77,67,0.775,TRUE
+R0839,18–29,žena,Severozápad,Local Story Fans,Local First,56,55,79,36,56,1.199,TRUE
+R0840,30–44,muž,Střední Čechy,Light Streamers,Smart Discovery,33,77,72,73,64,0.869,TRUE
+R0841,65+,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,37,81,69,61,62,1.215,TRUE
+R0842,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,34,51,73,83,60,1.148,TRUE
+R0843,45–64,muž,Jihovýchod,Family Viewers,Local First,40,83,61,36,55,0.945,TRUE
+R0844,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,32,84,86,49,63,0.802,TRUE
+R0845,30–44,žena,Severozápad,Local Story Fans,Local First,49,82,50,72,63,0.834,TRUE
+R0846,45–64,žena,Jihovýchod,Family Viewers,Local First,39,46,59,72,54,0.865,TRUE
+R0847,30–44,žena,Jihozápad,Choice Overload,Smart Discovery,54,76,56,47,58,0.933,TRUE
+R0848,45–64,muž,Jihozápad,Light Streamers,Smart Discovery,49,55,61,82,62,1.207,TRUE
+R0849,30–44,muž,Střední Čechy,Family Viewers,Local First,36,71,70,63,60,1.164,TRUE
+R0850,45–64,muž,Jihovýchod,Light Streamers,Smart Discovery,39,62,67,77,61,0.982,TRUE
+R0851,18–29,žena,Severovýchod,Family Viewers,Local First,42,75,68,68,63,1.028,TRUE
+R0852,30–44,muž,Severovýchod,Family Viewers,Local First,44,84,68,81,69,1.211,TRUE
+R0853,45–64,žena,Jihozápad,Choice Overload,Smart Discovery,40,69,89,75,68,1.242,TRUE
+R0854,45–64,žena,Severovýchod,Family Viewers,Local First,52,56,90,85,71,0.972,TRUE
+R0855,18–29,žena,Praha,Franchise Hunters,Premium Exclusives,53,49,89,37,57,1.023,TRUE
+R0856,65+,žena,Praha,Franchise Hunters,Premium Exclusives,41,45,59,84,57,1.044,TRUE
+R0857,65+,žena,Jihovýchod,Choice Overload,Smart Discovery,57,56,83,43,60,1.179,TRUE
+R0858,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,35,66,50,74,56,1.098,TRUE
+R0859,18–29,žena,Praha,Family Viewers,Local First,35,78,82,79,68,0.966,TRUE
+R0860,45–64,žena,Jihozápad,Family Viewers,Local First,30,84,60,82,64,0.972,TRUE
+R0861,45–64,žena,Praha,Local Story Fans,Local First,33,81,75,87,69,1.187,TRUE
+R0862,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,49,88,82,49,67,1.167,TRUE
+R0863,30–44,žena,Severozápad,Choice Overload,Smart Discovery,26,60,64,71,55,0.765,TRUE
+R0864,65+,muž,Moravskoslezsko,Choice Overload,Smart Discovery,38,49,79,41,52,0.838,TRUE
+R0865,18–29,muž,Střední Čechy,Choice Overload,Smart Discovery,33,88,88,81,72,1.219,TRUE
+R0866,30–44,muž,Severozápad,Family Viewers,Local First,51,64,80,39,58,1.118,TRUE
+R0867,45–64,žena,Severovýchod,Family Viewers,Local First,45,75,71,41,58,0.95,TRUE
+R0868,45–64,muž,Severovýchod,Choice Overload,Smart Discovery,47,52,82,71,63,0.77,TRUE
+R0869,18–29,žena,Jihozápad,Local Story Fans,Local First,35,52,52,70,52,0.927,TRUE
+R0870,30–44,žena,Praha,Family Viewers,Local First,50,54,52,84,60,1.194,TRUE
+R0871,65+,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,41,54,45,80,55,1.221,TRUE
+R0872,45–64,muž,Střední Morava,Franchise Hunters,Premium Exclusives,33,57,52,70,53,0.952,TRUE
+R0873,45–64,muž,Severozápad,Local Story Fans,Local First,55,47,59,79,60,1.003,TRUE
+R0874,30–44,muž,Severozápad,Family Viewers,Local First,25,50,88,89,63,1.221,TRUE
+R0875,45–64,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,26,76,86,71,65,1.184,TRUE
+R0876,30–44,žena,Jihozápad,Local Story Fans,Local First,49,46,88,69,63,1.206,TRUE
+R0877,45–64,muž,Severovýchod,Choice Overload,Smart Discovery,29,54,75,56,54,1.049,TRUE
+R0878,18–29,žena,Praha,Choice Overload,Smart Discovery,44,49,74,80,62,1.009,TRUE
+R0879,30–44,žena,Jihovýchod,Family Viewers,Local First,49,81,72,84,72,0.954,TRUE
+R0880,30–44,žena,Střední Čechy,Local Story Fans,Local First,51,60,49,87,62,0.863,TRUE
+R0881,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,30,64,89,51,58,0.941,TRUE
+R0882,18–29,žena,Střední Morava,Local Story Fans,Local First,46,48,74,64,58,1.199,TRUE
+R0883,65+,muž,Severozápad,Franchise Hunters,Premium Exclusives,44,81,75,58,64,1.146,TRUE
+R0884,18–29,žena,Severovýchod,Family Viewers,Local First,54,77,47,58,59,0.762,TRUE
+R0885,30–44,muž,Severozápad,Local Story Fans,Local First,40,63,53,53,52,0.882,TRUE
+R0886,30–44,muž,Střední Morava,Local Story Fans,Local First,33,86,76,69,66,1.095,TRUE
+R0887,65+,muž,Střední Morava,Family Viewers,Local First,51,61,47,38,49,1.058,TRUE
+R0888,65+,muž,Severovýchod,Choice Overload,Smart Discovery,28,69,54,56,52,0.771,TRUE
+R0889,65+,muž,Moravskoslezsko,Local Story Fans,Local First,49,61,81,58,62,0.777,TRUE
+R0890,65+,žena,Střední Morava,Local Story Fans,Local First,34,64,45,51,48,1.229,TRUE
+R0891,45–64,muž,Jihovýchod,Choice Overload,Smart Discovery,47,55,63,42,52,1.012,TRUE
+R0892,65+,žena,Praha,Family Viewers,Local First,54,74,77,69,68,1.162,TRUE
+R0893,65+,žena,Severovýchod,Choice Overload,Smart Discovery,41,70,69,80,65,1.161,TRUE
+R0894,45–64,žena,Jihovýchod,Local Story Fans,Local First,40,86,79,62,67,1.16,TRUE
+R0895,45–64,žena,Moravskoslezsko,Family Viewers,Local First,38,78,70,56,60,1.028,TRUE
+R0896,45–64,muž,Severozápad,Family Viewers,Local First,29,84,87,66,66,1.157,TRUE
+R0897,18–29,žena,Jihovýchod,Family Viewers,Local First,49,55,87,75,66,1.019,TRUE
+R0898,30–44,žena,Moravskoslezsko,Choice Overload,Smart Discovery,52,83,85,62,70,1.18,TRUE
+R0899,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,44,69,49,71,58,1.049,TRUE
+R0900,45–64,žena,Jihozápad,Light Streamers,Smart Discovery,52,67,88,78,71,0.959,TRUE
+R0901,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,30,83,47,80,60,1.136,TRUE
+R0902,30–44,žena,Moravskoslezsko,Family Viewers,Local First,43,84,75,73,69,1.12,TRUE
+R0903,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,56,46,69,80,63,1.214,TRUE
+R0904,30–44,muž,Praha,Choice Overload,Smart Discovery,26,88,86,78,70,0.784,TRUE
+R0905,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,59,82,70,68,70,0.817,TRUE
+R0906,65+,muž,Jihovýchod,Local Story Fans,Local First,24,50,57,75,52,1.119,TRUE
+R0907,45–64,muž,Jihovýchod,Family Viewers,Local First,27,89,75,73,66,0.827,TRUE
+R0908,45–64,muž,Střední Čechy,Local Story Fans,Local First,51,50,85,53,60,1.216,TRUE
+R0909,45–64,žena,Střední Čechy,Family Viewers,Local First,28,64,51,69,53,1.239,TRUE
+R0910,65+,muž,Severozápad,Local Story Fans,Local First,46,90,75,89,75,0.99,TRUE
+R0911,18–29,žena,Střední Čechy,Local Story Fans,Local First,60,54,68,53,59,0.822,TRUE
+R0912,65+,muž,Střední Morava,Family Viewers,Local First,24,80,65,51,55,0.971,TRUE
+R0913,30–44,muž,Střední Morava,Franchise Hunters,Premium Exclusives,59,73,84,73,72,0.803,TRUE
+R0914,45–64,žena,Praha,Light Streamers,Smart Discovery,31,82,70,80,66,0.811,TRUE
+R0915,65+,muž,Jihozápad,Local Story Fans,Local First,26,83,68,86,66,0.834,TRUE
+R0916,65+,muž,Jihozápad,Franchise Hunters,Premium Exclusives,29,69,50,35,46,0.86,TRUE
+R0917,45–64,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,58,65,62,47,58,1.174,TRUE
+R0918,30–44,muž,Střední Morava,Franchise Hunters,Premium Exclusives,36,49,81,36,50,1.234,TRUE
+R0919,18–29,muž,Střední Morava,Choice Overload,Smart Discovery,56,50,74,37,54,1.144,TRUE
+R0920,18–29,žena,Praha,Choice Overload,Smart Discovery,41,52,84,63,60,0.928,TRUE
+R0921,45–64,žena,Střední Čechy,Family Viewers,Local First,56,86,79,42,66,1.245,TRUE
+R0922,65+,muž,Jihozápad,Light Streamers,Smart Discovery,24,54,71,58,52,1.178,TRUE
+R0923,30–44,žena,Moravskoslezsko,Local Story Fans,Local First,33,89,75,79,69,0.991,TRUE
+R0924,45–64,muž,Moravskoslezsko,Choice Overload,Smart Discovery,56,81,74,49,65,0.768,TRUE
+R0925,65+,muž,Severozápad,Light Streamers,Smart Discovery,40,70,72,61,61,1.056,TRUE
+R0926,30–44,muž,Střední Morava,Family Viewers,Local First,43,65,62,81,63,0.774,TRUE
+R0927,30–44,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,42,54,67,47,52,1.197,TRUE
+R0928,45–64,žena,Střední Morava,Local Story Fans,Local First,27,51,86,54,54,0.877,TRUE
+R0929,65+,muž,Praha,Family Viewers,Local First,33,61,72,55,55,0.979,TRUE
+R0930,30–44,žena,Praha,Light Streamers,Smart Discovery,42,81,61,75,65,0.816,TRUE
+R0931,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,44,78,73,86,70,0.901,TRUE
+R0932,18–29,žena,Střední Čechy,Local Story Fans,Local First,57,67,60,81,66,0.948,TRUE
+R0933,65+,muž,Střední Čechy,Family Viewers,Local First,37,50,66,76,57,1.021,TRUE
+R0934,45–64,muž,Severozápad,Franchise Hunters,Premium Exclusives,35,88,61,87,68,1.125,TRUE
+R0935,45–64,žena,Jihovýchod,Family Viewers,Local First,28,47,52,65,48,1.154,TRUE
+R0936,30–44,žena,Severozápad,Light Streamers,Smart Discovery,60,53,78,87,70,0.998,TRUE
+R0937,65+,muž,Střední Čechy,Local Story Fans,Local First,28,58,48,69,51,1.234,TRUE
+R0938,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,24,85,54,38,50,1.018,TRUE
+R0939,65+,muž,Jihovýchod,Choice Overload,Smart Discovery,49,72,83,35,60,1.215,TRUE
+R0940,45–64,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,41,76,46,54,54,0.827,TRUE
+R0941,45–64,muž,Severovýchod,Local Story Fans,Local First,28,73,85,82,67,0.918,TRUE
+R0942,45–64,žena,Střední Morava,Local Story Fans,Local First,54,84,73,54,66,0.877,TRUE
+R0943,30–44,muž,Severovýchod,Local Story Fans,Local First,47,64,68,40,55,1.108,TRUE
+R0944,18–29,žena,Jihozápad,Franchise Hunters,Premium Exclusives,26,68,57,64,54,0.995,TRUE
+R0945,45–64,žena,Praha,Choice Overload,Smart Discovery,31,59,84,83,64,0.84,TRUE
+R0946,45–64,muž,Střední Morava,Franchise Hunters,Premium Exclusives,60,73,51,40,56,1.039,TRUE
+R0947,45–64,žena,Jihovýchod,Family Viewers,Local First,42,83,77,63,66,0.772,TRUE
+R0948,30–44,muž,Jihovýchod,Local Story Fans,Local First,34,65,86,36,55,1.139,TRUE
+R0949,30–44,muž,Severovýchod,Franchise Hunters,Premium Exclusives,47,47,88,38,55,1.033,TRUE
+R0950,30–44,muž,Jihovýchod,Choice Overload,Smart Discovery,44,65,86,51,62,0.996,TRUE
+R0951,45–64,žena,Moravskoslezsko,Family Viewers,Local First,59,45,75,80,65,0.918,TRUE
+R0952,65+,žena,Jihovýchod,Family Viewers,Local First,35,90,82,76,71,1.202,TRUE
+R0953,65+,muž,Severovýchod,Local Story Fans,Local First,28,53,78,80,60,1.058,TRUE
+R0954,30–44,žena,Střední Morava,Choice Overload,Smart Discovery,41,79,51,51,56,1.189,TRUE
+R0955,45–64,muž,Střední Morava,Franchise Hunters,Premium Exclusives,47,57,49,53,52,1.088,TRUE
+R0956,30–44,žena,Severozápad,Choice Overload,Smart Discovery,58,56,64,52,58,1.19,TRUE
+R0957,45–64,žena,Severozápad,Local Story Fans,Local First,43,63,89,62,64,0.76,TRUE
+R0958,30–44,muž,Jihozápad,Franchise Hunters,Premium Exclusives,57,63,87,43,62,0.833,TRUE
+R0959,65+,muž,Jihovýchod,Choice Overload,Smart Discovery,32,58,59,79,57,0.892,TRUE
+R0960,65+,žena,Jihozápad,Choice Overload,Smart Discovery,59,90,70,59,70,1.04,TRUE
+R0961,18–29,žena,Moravskoslezsko,Family Viewers,Local First,49,61,82,71,66,0.855,TRUE
+R0962,45–64,žena,Severovýchod,Family Viewers,Local First,30,70,82,46,57,0.751,TRUE
+R0963,65+,žena,Střední Morava,Family Viewers,Local First,25,55,88,60,57,0.926,TRUE
+R0964,45–64,žena,Severovýchod,Local Story Fans,Local First,48,83,84,52,67,1.049,TRUE
+R0965,45–64,žena,Praha,Choice Overload,Smart Discovery,36,57,73,84,62,0.923,TRUE
+R0966,65+,muž,Severovýchod,Local Story Fans,Local First,55,47,69,80,63,1.176,TRUE
+R0967,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,32,45,76,83,59,0.766,TRUE
+R0968,18–29,žena,Střední Čechy,Choice Overload,Smart Discovery,28,71,52,47,50,1.133,TRUE
+R0969,65+,muž,Jihovýchod,Local Story Fans,Local First,48,66,83,55,63,0.795,TRUE
+R0970,30–44,muž,Moravskoslezsko,Choice Overload,Smart Discovery,57,50,66,70,61,0.988,TRUE
+R0971,65+,žena,Praha,Franchise Hunters,Premium Exclusives,31,77,53,71,58,0.91,TRUE
+R0972,30–44,muž,Severovýchod,Local Story Fans,Local First,54,69,65,74,66,0.757,TRUE
+R0973,30–44,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,41,50,80,44,54,1.006,TRUE
+R0974,65+,muž,Střední Čechy,Choice Overload,Smart Discovery,42,60,69,48,55,1.144,TRUE
+R0975,30–44,žena,Severovýchod,Franchise Hunters,Premium Exclusives,31,76,47,43,49,0.828,TRUE
+R0976,65+,žena,Střední Morava,Family Viewers,Local First,52,59,84,54,62,0.807,TRUE
+R0977,65+,žena,Střední Čechy,Family Viewers,Local First,36,72,57,87,63,0.785,TRUE
+R0978,30–44,muž,Jihozápad,Local Story Fans,Local First,34,77,63,41,54,0.982,TRUE
+R0979,45–64,žena,Severovýchod,Light Streamers,Smart Discovery,40,84,76,63,66,0.955,TRUE
+R0980,18–29,muž,Jihovýchod,Family Viewers,Local First,25,50,62,51,47,1.154,TRUE
+R0981,65+,muž,Severovýchod,Choice Overload,Smart Discovery,24,88,86,70,67,0.809,TRUE
+R0982,18–29,muž,Severovýchod,Local Story Fans,Local First,40,83,81,78,70,0.78,TRUE
+R0983,18–29,muž,Moravskoslezsko,Choice Overload,Smart Discovery,58,70,68,67,66,1.189,TRUE
+R0984,65+,žena,Praha,Family Viewers,Local First,45,52,64,44,51,1.087,TRUE
+R0985,45–64,žena,Praha,Franchise Hunters,Premium Exclusives,24,75,69,85,63,0.92,TRUE
+R0986,18–29,muž,Severozápad,Light Streamers,Smart Discovery,35,84,62,51,58,0.972,TRUE
+R0987,18–29,muž,Jihovýchod,Local Story Fans,Local First,28,71,63,39,50,1.027,TRUE
+R0988,65+,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,45,75,56,68,61,1.083,TRUE
+R0989,30–44,žena,Střední Čechy,Family Viewers,Local First,29,80,56,67,58,0.968,TRUE
+R0990,18–29,muž,Střední Morava,Local Story Fans,Local First,32,85,47,73,59,1.242,TRUE
+R0991,30–44,muž,Severovýchod,Local Story Fans,Local First,47,47,73,73,60,0.786,TRUE
+R0992,18–29,muž,Jihozápad,Franchise Hunters,Premium Exclusives,59,77,49,40,56,0.955,TRUE
+R0993,65+,žena,Jihovýchod,Family Viewers,Local First,53,56,80,68,64,1.197,TRUE
+R0994,18–29,muž,Praha,Franchise Hunters,Premium Exclusives,45,64,57,58,56,1.107,TRUE
+R0995,30–44,muž,Moravskoslezsko,Family Viewers,Local First,31,71,52,62,54,1.065,TRUE
+R0996,18–29,žena,Střední Čechy,Choice Overload,Smart Discovery,36,55,89,63,61,0.898,TRUE
+R0997,65+,muž,Severovýchod,Local Story Fans,Local First,44,49,55,90,60,1.156,TRUE
+R0998,45–64,žena,Jihozápad,Local Story Fans,Local First,40,52,77,48,54,0.961,TRUE
+R0999,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,33,71,83,88,69,1.236,TRUE
+R1000,45–64,žena,Praha,Franchise Hunters,Premium Exclusives,52,89,75,62,70,0.941,TRUE
+R1001,18–29,muž,Severozápad,Family Viewers,Local First,49,89,77,74,72,1.005,TRUE
+R1002,45–64,muž,Moravskoslezsko,Local Story Fans,Local First,32,72,66,60,58,1.037,TRUE
+R1003,18–29,žena,Severozápad,Local Story Fans,Local First,53,86,73,74,72,1.248,TRUE
+R1004,30–44,žena,Severovýchod,Local Story Fans,Local First,41,88,75,35,60,1.112,TRUE
+R1005,45–64,žena,Moravskoslezsko,Choice Overload,Smart Discovery,45,66,74,57,60,1.172,TRUE
+R1006,45–64,muž,Střední Morava,Local Story Fans,Local First,44,47,73,75,60,0.846,TRUE
+R1007,30–44,žena,Praha,Choice Overload,Smart Discovery,44,49,78,43,54,0.824,TRUE
+R1008,45–64,žena,Severovýchod,Local Story Fans,Local First,31,76,54,54,54,0.913,TRUE
+R1009,45–64,žena,Moravskoslezsko,Choice Overload,Smart Discovery,47,68,89,52,64,0.878,TRUE
+R1010,18–29,muž,Severovýchod,Local Story Fans,Local First,39,48,51,76,54,1.031,TRUE
+R1011,45–64,muž,Střední Morava,Local Story Fans,Local First,27,56,50,63,49,1.117,TRUE
+R1012,45–64,žena,Jihozápad,Franchise Hunters,Premium Exclusives,46,50,73,38,52,0.83,TRUE
+R1013,45–64,muž,Jihovýchod,Local Story Fans,Local First,34,89,52,35,52,0.873,TRUE
+R1014,30–44,žena,Střední Čechy,Local Story Fans,Local First,33,59,54,68,54,0.952,TRUE
+R1015,65+,žena,Severovýchod,Local Story Fans,Local First,36,84,84,38,60,0.863,TRUE
+R1016,18–29,žena,Praha,Franchise Hunters,Premium Exclusives,32,67,48,67,54,1.153,TRUE
+R1017,45–64,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,34,51,78,69,58,1.218,TRUE
+R1018,65+,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,36,62,48,84,58,0.827,TRUE
+R1019,18–29,muž,Střední Čechy,Family Viewers,Local First,26,62,49,67,51,1.091,TRUE
+R1020,18–29,muž,Praha,Family Viewers,Local First,34,47,75,71,57,1.205,TRUE
+R1021,30–44,žena,Střední Čechy,Choice Overload,Smart Discovery,56,59,90,50,64,0.821,TRUE
+R1022,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,53,46,53,62,54,0.972,TRUE
+R1023,45–64,muž,Praha,Choice Overload,Smart Discovery,40,45,80,81,62,0.987,TRUE
+R1024,45–64,žena,Střední Čechy,Family Viewers,Local First,27,86,84,49,62,0.786,TRUE
+R1025,30–44,žena,Moravskoslezsko,Local Story Fans,Local First,34,87,62,71,64,0.995,TRUE
+R1026,65+,žena,Severozápad,Local Story Fans,Local First,49,87,82,54,68,0.978,TRUE
+R1027,65+,muž,Praha,Choice Overload,Smart Discovery,32,81,72,89,68,0.839,TRUE
+R1028,65+,muž,Severozápad,Local Story Fans,Local First,37,88,65,72,66,0.88,TRUE
+R1029,30–44,muž,Střední Čechy,Choice Overload,Smart Discovery,29,80,87,80,69,1.074,TRUE
+R1030,65+,žena,Jihozápad,Franchise Hunters,Premium Exclusives,60,71,81,85,74,1.215,TRUE
+R1031,18–29,žena,Praha,Franchise Hunters,Premium Exclusives,55,47,60,41,51,1.006,TRUE
+R1032,65+,muž,Moravskoslezsko,Family Viewers,Local First,29,86,58,42,54,1.13,TRUE
+R1033,65+,muž,Severozápad,Family Viewers,Local First,41,83,69,63,64,0.87,TRUE
+R1034,45–64,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,31,65,50,78,56,1.111,TRUE
+R1035,18–29,muž,Severozápad,Choice Overload,Smart Discovery,52,56,63,60,58,0.958,TRUE
+R1036,18–29,žena,Střední Morava,Family Viewers,Local First,58,81,69,42,62,0.895,TRUE
+R1037,18–29,muž,Jihovýchod,Choice Overload,Smart Discovery,27,49,62,52,48,0.857,TRUE
+R1038,45–64,muž,Praha,Local Story Fans,Local First,59,68,67,61,64,0.914,TRUE
+R1039,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,37,89,90,89,76,0.86,TRUE
+R1040,45–64,muž,Střední Morava,Light Streamers,Smart Discovery,53,85,65,61,66,1.08,TRUE
+R1041,18–29,muž,Praha,Family Viewers,Local First,45,69,65,74,63,1.103,TRUE
+R1042,18–29,žena,Jihozápad,Choice Overload,Smart Discovery,31,69,53,45,50,1.085,TRUE
+R1043,65+,muž,Střední Čechy,Choice Overload,Smart Discovery,54,63,76,76,67,1.248,TRUE
+R1044,45–64,muž,Praha,Local Story Fans,Local First,52,77,61,90,70,0.997,TRUE
+R1045,18–29,muž,Jihozápad,Local Story Fans,Local First,31,80,55,58,56,0.834,TRUE
+R1046,30–44,žena,Jihozápad,Franchise Hunters,Premium Exclusives,60,72,48,65,61,1.127,TRUE
+R1047,65+,muž,Střední Morava,Local Story Fans,Local First,28,54,87,81,62,0.944,TRUE
+R1048,18–29,muž,Jihovýchod,Choice Overload,Smart Discovery,35,90,49,83,64,0.859,TRUE
+R1049,30–44,muž,Střední Morava,Choice Overload,Smart Discovery,42,48,60,74,56,0.813,TRUE
+R1050,65+,muž,Jihozápad,Franchise Hunters,Premium Exclusives,44,69,55,82,62,1.194,TRUE
+R1051,18–29,muž,Moravskoslezsko,Local Story Fans,Local First,31,89,84,83,72,1.005,TRUE
+R1052,18–29,žena,Jihozápad,Choice Overload,Smart Discovery,60,45,49,60,54,1.06,TRUE
+R1053,65+,žena,Severozápad,Family Viewers,Local First,24,67,61,51,51,1.147,TRUE
+R1054,30–44,žena,Jihovýchod,Family Viewers,Local First,44,74,53,58,57,1.008,TRUE
+R1055,45–64,žena,Praha,Family Viewers,Local First,39,75,62,35,53,0.786,TRUE
+R1056,30–44,muž,Jihovýchod,Local Story Fans,Local First,28,76,82,39,56,0.966,TRUE
+R1057,45–64,žena,Severovýchod,Family Viewers,Local First,30,78,46,60,54,0.845,TRUE
+R1058,18–29,žena,Jihozápad,Franchise Hunters,Premium Exclusives,41,71,90,55,64,1.209,TRUE
+R1059,18–29,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,32,66,67,82,62,0.785,TRUE
+R1060,18–29,žena,Střední Morava,Family Viewers,Local First,51,65,55,38,52,0.779,TRUE
+R1061,65+,žena,Moravskoslezsko,Family Viewers,Local First,47,52,84,75,64,0.998,TRUE
+R1062,18–29,muž,Jihovýchod,Local Story Fans,Local First,28,82,61,79,62,0.991,TRUE
+R1063,45–64,muž,Praha,Family Viewers,Local First,45,49,81,53,57,0.948,TRUE
+R1064,45–64,muž,Praha,Local Story Fans,Local First,34,51,86,61,58,1.157,TRUE
+R1065,30–44,žena,Jihozápad,Family Viewers,Local First,29,83,62,88,66,1.086,TRUE
+R1066,30–44,žena,Praha,Franchise Hunters,Premium Exclusives,27,79,89,53,62,0.801,TRUE
+R1067,30–44,muž,Jihozápad,Franchise Hunters,Premium Exclusives,26,80,58,72,59,0.928,TRUE
+R1068,30–44,žena,Střední Čechy,Local Story Fans,Local First,48,85,62,49,61,1.04,TRUE
+R1069,65+,muž,Střední Čechy,Local Story Fans,Local First,38,70,54,44,52,1.16,TRUE
+R1070,65+,muž,Praha,Choice Overload,Smart Discovery,38,73,89,59,65,0.807,TRUE
+R1071,18–29,muž,Moravskoslezsko,Family Viewers,Local First,39,51,74,60,56,1.121,TRUE
+R1072,18–29,muž,Moravskoslezsko,Local Story Fans,Local First,53,50,69,47,55,0.883,TRUE
+R1073,30–44,muž,Praha,Family Viewers,Local First,39,72,56,66,58,1.046,TRUE
+R1074,45–64,žena,Jihozápad,Franchise Hunters,Premium Exclusives,30,69,59,43,50,1.1,TRUE
+R1075,65+,muž,Praha,Family Viewers,Local First,37,53,87,36,53,1.179,TRUE
+R1076,30–44,žena,Střední Morava,Light Streamers,Smart Discovery,28,80,76,85,67,0.864,TRUE
+R1077,30–44,žena,Jihozápad,Family Viewers,Local First,48,85,90,39,66,1.246,TRUE
+R1078,18–29,žena,Severovýchod,Choice Overload,Smart Discovery,29,48,89,55,55,0.89,TRUE
+R1079,65+,žena,Moravskoslezsko,Choice Overload,Smart Discovery,28,59,69,54,52,1.088,TRUE
+R1080,65+,muž,Jihovýchod,Light Streamers,Smart Discovery,39,81,59,42,55,1.081,TRUE
+R1081,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,24,73,78,74,62,0.799,TRUE
+R1082,18–29,žena,Jihovýchod,Local Story Fans,Local First,60,76,45,85,66,1.196,TRUE
+R1083,18–29,muž,Střední Morava,Light Streamers,Smart Discovery,48,49,67,80,61,0.787,TRUE
+R1084,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,44,86,65,84,70,0.824,TRUE
+R1085,30–44,žena,Jihozápad,Local Story Fans,Local First,44,71,72,40,57,1.232,TRUE
+R1086,30–44,muž,Severozápad,Local Story Fans,Local First,26,56,79,61,56,0.893,TRUE
+R1087,18–29,žena,Jihozápad,Local Story Fans,Local First,41,65,53,60,55,1.114,TRUE
+R1088,45–64,žena,Střední Morava,Local Story Fans,Local First,27,68,89,55,60,1.134,TRUE
+R1089,65+,žena,Střední Morava,Franchise Hunters,Premium Exclusives,43,55,80,86,66,1.006,TRUE
+R1090,30–44,muž,Severovýchod,Franchise Hunters,Premium Exclusives,37,89,76,89,73,1.029,TRUE
+R1091,65+,muž,Střední Čechy,Local Story Fans,Local First,28,80,68,58,58,0.877,TRUE
+R1092,18–29,žena,Severozápad,Choice Overload,Smart Discovery,52,80,48,46,56,0.862,TRUE
+R1093,30–44,muž,Moravskoslezsko,Family Viewers,Local First,40,84,57,54,59,1.089,TRUE
+R1094,45–64,žena,Moravskoslezsko,Choice Overload,Smart Discovery,40,86,51,50,57,1.21,TRUE
+R1095,18–29,muž,Severovýchod,Local Story Fans,Local First,57,68,79,63,67,0.82,TRUE
+R1096,18–29,žena,Střední Čechy,Light Streamers,Smart Discovery,59,71,47,72,62,0.794,TRUE
+R1097,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,37,55,58,44,48,1.167,TRUE
+R1098,18–29,muž,Severovýchod,Local Story Fans,Local First,41,57,81,38,54,1.174,TRUE
+R1099,30–44,muž,Jihovýchod,Local Story Fans,Local First,43,57,65,61,56,0.787,TRUE
+R1100,30–44,muž,Praha,Local Story Fans,Local First,53,50,74,83,65,1.127,TRUE
+R1101,65+,muž,Jihovýchod,Local Story Fans,Local First,32,82,60,83,64,0.777,TRUE
+R1102,18–29,muž,Praha,Franchise Hunters,Premium Exclusives,50,53,58,62,56,1.024,TRUE
+R1103,45–64,muž,Severovýchod,Franchise Hunters,Premium Exclusives,46,58,73,62,60,1.208,TRUE
+R1104,18–29,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,52,79,77,74,70,1.229,TRUE
+R1105,18–29,muž,Praha,Light Streamers,Smart Discovery,58,80,78,57,68,0.954,TRUE
+R1106,18–29,muž,Jihovýchod,Family Viewers,Local First,56,78,79,90,76,1.236,TRUE
+R1107,18–29,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,52,57,67,39,54,1.176,TRUE
+R1108,30–44,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,46,47,62,83,60,1.217,TRUE
+R1109,18–29,muž,Střední Morava,Local Story Fans,Local First,58,84,81,54,69,0.933,TRUE
+R1110,45–64,žena,Jihovýchod,Choice Overload,Smart Discovery,29,86,57,58,58,1.036,TRUE
+R1111,30–44,žena,Jihovýchod,Local Story Fans,Local First,28,59,52,41,45,0.957,TRUE
+R1112,45–64,žena,Praha,Light Streamers,Smart Discovery,51,69,86,61,67,0.801,TRUE
+R1113,65+,žena,Jihozápad,Franchise Hunters,Premium Exclusives,52,53,51,76,58,0.921,TRUE
+R1114,18–29,žena,Praha,Franchise Hunters,Premium Exclusives,24,68,87,66,61,0.801,TRUE
+R1115,30–44,žena,Střední Morava,Local Story Fans,Local First,24,87,80,55,62,1.141,TRUE
+R1116,30–44,žena,Jihozápad,Family Viewers,Local First,30,47,54,69,50,0.971,TRUE
+R1117,65+,žena,Jihozápad,Local Story Fans,Local First,43,59,69,84,64,0.879,TRUE
+R1118,65+,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,35,50,45,46,44,0.991,TRUE
+R1119,30–44,žena,Severozápad,Local Story Fans,Local First,45,76,72,62,64,1.062,TRUE
+R1120,30–44,žena,Jihovýchod,Light Streamers,Smart Discovery,56,50,82,87,69,1.11,TRUE
+R1121,30–44,žena,Střední Morava,Light Streamers,Smart Discovery,59,63,55,78,64,0.905,TRUE
+R1122,65+,žena,Jihozápad,Family Viewers,Local First,52,65,79,59,64,0.784,TRUE
+R1123,65+,muž,Praha,Franchise Hunters,Premium Exclusives,59,84,69,56,67,1.132,TRUE
+R1124,30–44,žena,Praha,Family Viewers,Local First,32,61,80,35,52,0.967,TRUE
+R1125,65+,muž,Praha,Choice Overload,Smart Discovery,58,58,77,59,63,0.991,TRUE
+R1126,45–64,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,46,70,63,70,62,0.791,TRUE
+R1127,18–29,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,26,82,50,70,57,1.039,TRUE
+R1128,30–44,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,26,59,87,82,64,1.177,TRUE
+R1129,65+,muž,Severovýchod,Franchise Hunters,Premium Exclusives,45,49,48,51,48,0.757,TRUE
+R1130,18–29,žena,Severovýchod,Light Streamers,Smart Discovery,46,63,71,76,64,0.935,TRUE
+R1131,45–64,žena,Severozápad,Family Viewers,Local First,55,50,82,50,59,0.782,TRUE
+R1132,45–64,žena,Praha,Family Viewers,Local First,46,80,54,89,67,0.799,TRUE
+R1133,18–29,muž,Střední Čechy,Light Streamers,Smart Discovery,55,83,64,77,70,1.128,TRUE
+R1134,45–64,muž,Severozápad,Local Story Fans,Local First,57,47,57,81,60,1.183,TRUE
+R1135,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,30,88,46,55,55,1.241,TRUE
+R1136,30–44,muž,Jihozápad,Franchise Hunters,Premium Exclusives,43,76,79,68,66,0.808,TRUE
+R1137,65+,muž,Střední Morava,Choice Overload,Smart Discovery,59,59,76,37,58,0.909,TRUE
+R1138,65+,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,49,51,61,43,51,1.066,TRUE
+R1139,45–64,muž,Jihozápad,Franchise Hunters,Premium Exclusives,50,86,60,87,71,1.211,TRUE
+R1140,18–29,muž,Severozápad,Local Story Fans,Local First,59,67,64,73,66,1.083,TRUE
+R1141,30–44,muž,Střední Čechy,Choice Overload,Smart Discovery,40,68,46,52,52,1.188,TRUE
+R1142,18–29,muž,Praha,Light Streamers,Smart Discovery,55,72,83,51,65,0.897,TRUE
+R1143,65+,muž,Praha,Franchise Hunters,Premium Exclusives,28,61,55,40,46,1.069,TRUE
+R1144,30–44,muž,Střední Morava,Local Story Fans,Local First,53,78,70,89,72,0.927,TRUE
+R1145,65+,žena,Střední Čechy,Choice Overload,Smart Discovery,36,81,53,62,58,1.21,TRUE
+R1146,45–64,muž,Severozápad,Choice Overload,Smart Discovery,26,58,57,41,46,0.804,TRUE
+R1147,30–44,žena,Severozápad,Franchise Hunters,Premium Exclusives,41,53,59,50,51,0.922,TRUE
+R1148,45–64,muž,Jihozápad,Local Story Fans,Local First,46,65,53,74,60,1.111,TRUE
+R1149,45–64,žena,Moravskoslezsko,Local Story Fans,Local First,60,62,68,61,63,0.901,TRUE
+R1150,65+,žena,Moravskoslezsko,Local Story Fans,Local First,57,45,69,67,60,0.869,TRUE
+R1151,18–29,muž,Jihozápad,Light Streamers,Smart Discovery,53,82,51,73,65,0.842,TRUE
+R1152,45–64,žena,Jihozápad,Family Viewers,Local First,33,72,72,69,62,1.199,TRUE
+R1153,45–64,muž,Moravskoslezsko,Family Viewers,Local First,46,50,81,74,63,0.807,TRUE
+R1154,18–29,žena,Jihovýchod,Local Story Fans,Local First,25,65,62,62,54,0.913,TRUE
+R1155,45–64,žena,Severovýchod,Light Streamers,Smart Discovery,34,68,54,82,60,1.176,TRUE
+R1156,65+,muž,Praha,Local Story Fans,Local First,47,85,80,83,74,1.027,TRUE
+R1157,30–44,žena,Praha,Franchise Hunters,Premium Exclusives,37,56,47,47,47,0.872,TRUE
+R1158,65+,muž,Severozápad,Family Viewers,Local First,39,77,72,66,64,0.817,TRUE
+R1159,65+,muž,Jihozápad,Family Viewers,Local First,33,61,87,64,61,0.992,TRUE
+R1160,18–29,muž,Jihozápad,Franchise Hunters,Premium Exclusives,55,82,50,53,60,0.782,TRUE
+R1161,30–44,muž,Severozápad,Franchise Hunters,Premium Exclusives,60,56,80,86,70,1.04,TRUE
+R1162,45–64,žena,Střední Čechy,Family Viewers,Local First,29,85,77,61,63,0.761,TRUE
+R1163,30–44,muž,Střední Morava,Franchise Hunters,Premium Exclusives,43,47,82,38,52,0.896,TRUE
+R1164,65+,muž,Moravskoslezsko,Local Story Fans,Local First,39,70,46,90,61,0.863,TRUE
+R1165,18–29,muž,Jihovýchod,Choice Overload,Smart Discovery,50,90,72,47,65,1.113,TRUE
+R1166,45–64,žena,Jihozápad,Choice Overload,Smart Discovery,27,54,46,83,52,0.942,TRUE
+R1167,30–44,žena,Střední Morava,Local Story Fans,Local First,54,52,59,50,54,1.065,TRUE
+R1168,65+,žena,Severozápad,Light Streamers,Smart Discovery,33,73,64,76,62,0.764,TRUE
+R1169,30–44,žena,Jihozápad,Light Streamers,Smart Discovery,59,47,68,55,57,0.78,TRUE
+R1170,65+,muž,Praha,Choice Overload,Smart Discovery,33,48,45,64,48,1.068,TRUE
+R1171,65+,muž,Moravskoslezsko,Choice Overload,Smart Discovery,60,45,50,85,60,0.858,TRUE
+R1172,30–44,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,60,63,75,44,60,0.766,TRUE
+R1173,65+,žena,Jihozápad,Family Viewers,Local First,30,51,79,40,50,1.073,TRUE
+R1174,45–64,muž,Jihovýchod,Local Story Fans,Local First,34,60,50,73,54,1.027,TRUE
+R1175,65+,žena,Severovýchod,Local Story Fans,Local First,34,66,56,56,53,1.008,TRUE
+R1176,30–44,žena,Střední Morava,Local Story Fans,Local First,28,74,88,63,63,1.191,TRUE
+R1177,45–64,žena,Moravskoslezsko,Choice Overload,Smart Discovery,56,62,86,49,63,0.927,TRUE
+R1178,45–64,muž,Severovýchod,Local Story Fans,Local First,42,63,83,44,58,0.998,TRUE
+R1179,65+,žena,Jihozápad,Family Viewers,Local First,56,90,46,87,70,0.794,TRUE
+R1180,18–29,muž,Jihozápad,Local Story Fans,Local First,31,78,81,78,67,1.009,TRUE
+R1181,30–44,muž,Jihozápad,Family Viewers,Local First,59,84,49,47,60,1.163,TRUE
+R1182,45–64,muž,Severozápad,Light Streamers,Smart Discovery,49,60,81,57,62,0.966,TRUE
+R1183,30–44,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,60,45,70,77,63,0.872,TRUE
+R1184,65+,muž,Střední Čechy,Light Streamers,Smart Discovery,46,59,62,48,54,0.846,TRUE
+R1185,30–44,žena,Severovýchod,Franchise Hunters,Premium Exclusives,31,72,86,68,64,1.085,TRUE
+R1186,18–29,muž,Jihovýchod,Local Story Fans,Local First,41,69,62,54,56,1.026,TRUE
+R1187,65+,muž,Severozápad,Choice Overload,Smart Discovery,58,87,61,80,72,1.009,TRUE
+R1188,65+,muž,Střední Čechy,Family Viewers,Local First,26,51,86,50,53,1.163,TRUE
+R1189,45–64,muž,Moravskoslezsko,Choice Overload,Smart Discovery,26,60,51,88,56,0.791,TRUE
+R1190,45–64,žena,Střední Morava,Franchise Hunters,Premium Exclusives,54,90,51,80,69,1.001,TRUE
+R1191,30–44,žena,Střední Morava,Light Streamers,Smart Discovery,47,61,81,63,63,0.958,TRUE
+R1192,18–29,žena,Jihozápad,Local Story Fans,Local First,43,74,88,76,70,0.999,TRUE
+R1193,18–29,žena,Střední Čechy,Local Story Fans,Local First,45,89,69,59,66,0.802,TRUE
+R1194,18–29,muž,Praha,Local Story Fans,Local First,56,61,78,84,70,0.846,TRUE
+R1195,45–64,žena,Jihovýchod,Choice Overload,Smart Discovery,48,67,68,66,62,1.186,TRUE
+R1196,65+,muž,Praha,Choice Overload,Smart Discovery,24,82,88,37,58,1.102,TRUE
+R1197,65+,žena,Střední Morava,Family Viewers,Local First,50,58,90,41,60,1.238,TRUE
+R1198,18–29,žena,Jihozápad,Franchise Hunters,Premium Exclusives,26,87,53,42,52,0.883,TRUE
+R1199,65+,muž,Jihozápad,Light Streamers,Smart Discovery,27,80,72,79,64,0.854,TRUE
+R1200,18–29,muž,Severovýchod,Franchise Hunters,Premium Exclusives,24,77,85,83,67,1.2,TRUE
+R1201,30–44,žena,Moravskoslezsko,Choice Overload,Smart Discovery,54,73,53,79,65,1.022,TRUE
+R1202,18–29,žena,Střední Morava,Local Story Fans,Local First,40,81,70,42,58,1.033,TRUE
+R1203,65+,muž,Střední Morava,Choice Overload,Smart Discovery,59,71,80,41,63,0.754,TRUE
+R1204,45–64,žena,Severozápad,Family Viewers,Local First,53,83,85,77,74,0.971,TRUE
+R1205,65+,žena,Jihovýchod,Local Story Fans,Local First,46,71,79,41,59,1.073,TRUE
+R1206,45–64,žena,Severozápad,Local Story Fans,Local First,30,77,74,65,62,1.249,TRUE
+R1207,30–44,žena,Střední Čechy,Choice Overload,Smart Discovery,33,62,58,86,60,1.139,TRUE
+R1208,18–29,žena,Moravskoslezsko,Local Story Fans,Local First,30,88,53,78,62,1.207,TRUE
+R1209,30–44,muž,Jihozápad,Local Story Fans,Local First,35,64,54,86,60,0.962,TRUE
+R1210,18–29,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,24,90,60,65,60,1.102,TRUE
+R1211,65+,muž,Praha,Family Viewers,Local First,48,66,76,75,66,0.826,TRUE
+R1212,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,30,47,87,78,60,0.981,TRUE
+R1213,65+,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,59,71,57,50,59,1.135,TRUE
+R1214,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,33,74,54,65,56,0.956,TRUE
+R1215,30–44,žena,Střední Čechy,Local Story Fans,Local First,28,83,86,80,69,1.072,TRUE
+R1216,45–64,muž,Jihovýchod,Franchise Hunters,Premium Exclusives,42,51,58,60,53,1.166,TRUE
+R1217,45–64,muž,Moravskoslezsko,Light Streamers,Smart Discovery,35,55,75,72,59,1.158,TRUE
+R1218,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,59,81,49,65,64,1.21,TRUE
+R1219,45–64,žena,Jihovýchod,Family Viewers,Local First,43,72,64,63,60,1.16,TRUE
+R1220,18–29,muž,Jihovýchod,Choice Overload,Smart Discovery,33,88,57,75,63,0.803,TRUE
+R1221,65+,žena,Jihovýchod,Choice Overload,Smart Discovery,56,77,66,57,64,0.761,TRUE
+R1222,18–29,muž,Jihovýchod,Light Streamers,Smart Discovery,52,53,55,85,61,0.872,TRUE
+R1223,65+,žena,Jihovýchod,Local Story Fans,Local First,60,88,80,80,77,1.078,TRUE
+R1224,45–64,muž,Severozápad,Family Viewers,Local First,57,72,59,55,61,1.181,TRUE
+R1225,18–29,muž,Jihozápad,Local Story Fans,Local First,59,64,63,66,63,0.978,TRUE
+R1226,65+,muž,Severovýchod,Family Viewers,Local First,59,61,70,60,62,0.998,TRUE
+R1227,18–29,žena,Moravskoslezsko,Local Story Fans,Local First,43,55,60,41,50,0.91,TRUE
+R1228,30–44,muž,Střední Čechy,Family Viewers,Local First,38,46,84,40,52,0.956,TRUE
+R1229,30–44,žena,Střední Čechy,Local Story Fans,Local First,52,84,60,79,69,0.771,TRUE
+R1230,45–64,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,45,48,53,70,54,0.987,TRUE
+R1231,18–29,muž,Jihovýchod,Choice Overload,Smart Discovery,36,83,74,60,63,1.168,TRUE
+R1232,30–44,žena,Severovýchod,Local Story Fans,Local First,48,76,61,60,61,1.169,TRUE
+R1233,45–64,žena,Střední Morava,Choice Overload,Smart Discovery,27,90,87,78,70,1.133,TRUE
+R1234,65+,muž,Severovýchod,Choice Overload,Smart Discovery,38,57,52,48,49,1.001,TRUE
+R1235,45–64,muž,Moravskoslezsko,Local Story Fans,Local First,56,76,85,60,69,0.946,TRUE
+R1236,30–44,muž,Střední Čechy,Local Story Fans,Local First,48,84,78,45,64,0.928,TRUE
+R1237,65+,muž,Jihozápad,Choice Overload,Smart Discovery,30,60,59,38,47,0.998,TRUE
+R1238,65+,muž,Severozápad,Family Viewers,Local First,38,86,75,52,63,0.982,TRUE
+R1239,30–44,muž,Severozápad,Local Story Fans,Local First,57,74,51,75,64,0.818,TRUE
+R1240,65+,žena,Jihozápad,Choice Overload,Smart Discovery,25,66,48,74,53,0.91,TRUE
+R1241,65+,muž,Střední Morava,Local Story Fans,Local First,44,61,50,49,51,0.813,TRUE
+R1242,65+,žena,Severozápad,Franchise Hunters,Premium Exclusives,49,73,73,85,70,1.16,TRUE
+R1243,65+,žena,Jihozápad,Family Viewers,Local First,38,89,80,79,72,1.126,TRUE
+R1244,30–44,muž,Praha,Light Streamers,Smart Discovery,45,47,54,72,54,0.908,TRUE
+R1245,65+,muž,Střední Morava,Light Streamers,Smart Discovery,26,82,66,66,60,1.182,TRUE
+R1246,18–29,muž,Střední Čechy,Choice Overload,Smart Discovery,26,66,78,89,65,0.764,TRUE
+R1247,30–44,muž,Severovýchod,Choice Overload,Smart Discovery,56,71,68,42,59,0.826,TRUE
+R1248,18–29,žena,Severozápad,Family Viewers,Local First,27,90,70,43,58,0.756,TRUE
+R1249,45–64,žena,Jihovýchod,Choice Overload,Smart Discovery,56,53,63,50,56,1.03,TRUE
+R1250,45–64,muž,Moravskoslezsko,Local Story Fans,Local First,49,90,61,48,62,0.991,TRUE
+R1251,30–44,žena,Praha,Local Story Fans,Local First,53,45,59,38,49,0.98,TRUE
+R1252,65+,muž,Střední Čechy,Local Story Fans,Local First,28,88,90,39,61,1.148,TRUE
+R1253,65+,muž,Střední Čechy,Family Viewers,Local First,41,47,78,88,64,1.131,TRUE
+R1254,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,24,74,48,56,50,0.869,TRUE
+R1255,65+,muž,Severovýchod,Local Story Fans,Local First,44,82,79,42,62,1.18,TRUE
+R1256,65+,žena,Jihozápad,Family Viewers,Local First,29,76,90,42,59,0.783,TRUE
+R1257,18–29,muž,Střední Čechy,Light Streamers,Smart Discovery,32,82,76,49,60,0.983,TRUE
+R1258,18–29,žena,Střední Čechy,Choice Overload,Smart Discovery,46,76,71,85,70,0.984,TRUE
+R1259,45–64,muž,Jihozápad,Family Viewers,Local First,58,65,87,55,66,0.957,TRUE
+R1260,18–29,muž,Střední Čechy,Choice Overload,Smart Discovery,27,49,89,85,62,1.147,TRUE
+R1261,45–64,muž,Střední Čechy,Local Story Fans,Local First,53,78,62,88,70,1.148,TRUE
+R1262,65+,muž,Střední Morava,Choice Overload,Smart Discovery,24,65,61,43,48,1.001,TRUE
+R1263,30–44,žena,Střední Čechy,Light Streamers,Smart Discovery,43,67,71,75,64,1.224,TRUE
+R1264,65+,muž,Severozápad,Choice Overload,Smart Discovery,39,51,84,50,56,1.049,TRUE
+R1265,30–44,žena,Střední Morava,Choice Overload,Smart Discovery,46,81,52,42,55,1.117,TRUE
+R1266,45–64,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,34,88,51,78,63,0.996,TRUE
+R1267,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,29,77,54,57,54,0.754,TRUE
+R1268,65+,muž,Severovýchod,Light Streamers,Smart Discovery,49,89,57,72,67,0.938,TRUE
+R1269,30–44,muž,Praha,Family Viewers,Local First,56,83,62,47,62,0.793,TRUE
+R1270,45–64,muž,Severovýchod,Family Viewers,Local First,44,49,61,90,61,0.834,TRUE
+R1271,45–64,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,54,55,73,68,62,0.967,TRUE
+R1272,18–29,žena,Severovýchod,Franchise Hunters,Premium Exclusives,46,49,49,81,56,0.935,TRUE
+R1273,18–29,žena,Praha,Light Streamers,Smart Discovery,59,73,84,72,72,0.942,TRUE
+R1274,45–64,muž,Severovýchod,Local Story Fans,Local First,25,88,79,89,70,0.818,TRUE
+R1275,18–29,žena,Jihovýchod,Light Streamers,Smart Discovery,40,86,63,39,57,0.867,TRUE
+R1276,65+,muž,Severozápad,Local Story Fans,Local First,56,69,49,90,66,0.778,TRUE
+R1277,18–29,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,41,60,65,43,52,1.075,TRUE
+R1278,18–29,muž,Severozápad,Choice Overload,Smart Discovery,26,78,80,78,66,1.229,TRUE
+R1279,45–64,žena,Praha,Choice Overload,Smart Discovery,24,52,78,38,48,0.87,TRUE
+R1280,65+,žena,Praha,Local Story Fans,Local First,55,46,53,50,51,1.09,TRUE
+R1281,30–44,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,47,74,62,57,60,0.805,TRUE
+R1282,30–44,žena,Praha,Light Streamers,Smart Discovery,57,49,55,80,60,0.897,TRUE
+R1283,18–29,muž,Praha,Light Streamers,Smart Discovery,56,62,86,35,60,1.229,TRUE
+R1284,65+,žena,Střední Morava,Light Streamers,Smart Discovery,35,73,67,48,56,0.858,TRUE
+R1285,65+,muž,Jihovýchod,Choice Overload,Smart Discovery,33,65,84,77,65,0.951,TRUE
+R1286,18–29,muž,Jihozápad,Light Streamers,Smart Discovery,47,50,78,48,56,1.005,TRUE
+R1287,45–64,muž,Moravskoslezsko,Family Viewers,Local First,54,89,70,53,66,0.937,TRUE
+R1288,65+,žena,Střední Morava,Local Story Fans,Local First,47,59,49,73,57,0.797,TRUE
+R1289,45–64,žena,Jihovýchod,Choice Overload,Smart Discovery,59,65,65,39,57,1.134,TRUE
+R1290,18–29,muž,Střední Čechy,Choice Overload,Smart Discovery,37,86,83,83,72,0.952,TRUE
+R1291,65+,žena,Praha,Local Story Fans,Local First,44,85,61,73,66,1.182,TRUE
+R1292,18–29,muž,Severozápad,Choice Overload,Smart Discovery,30,80,75,44,57,1.072,TRUE
+R1293,65+,muž,Severozápad,Local Story Fans,Local First,39,60,52,80,58,1.119,TRUE
+R1294,45–64,muž,Jihozápad,Choice Overload,Smart Discovery,41,90,46,43,55,0.961,TRUE
+R1295,18–29,muž,Moravskoslezsko,Local Story Fans,Local First,53,78,65,66,66,0.961,TRUE
+R1296,30–44,žena,Jihovýchod,Local Story Fans,Local First,24,47,69,66,52,1.249,TRUE
+R1297,18–29,muž,Střední Morava,Local Story Fans,Local First,54,61,63,58,59,0.85,TRUE
+R1298,18–29,žena,Střední Morava,Local Story Fans,Local First,25,64,68,67,56,1.232,TRUE
+R1299,30–44,žena,Severozápad,Choice Overload,Smart Discovery,58,66,70,55,62,0.916,TRUE
+R1300,45–64,žena,Severozápad,Choice Overload,Smart Discovery,44,48,82,75,62,0.815,TRUE
+R1301,45–64,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,26,67,78,68,60,0.844,TRUE
+R1302,18–29,muž,Střední Čechy,Choice Overload,Smart Discovery,36,87,72,77,68,1.015,TRUE
+R1303,30–44,muž,Severovýchod,Family Viewers,Local First,50,79,48,57,58,0.977,TRUE
+R1304,30–44,žena,Praha,Franchise Hunters,Premium Exclusives,59,78,86,42,66,0.973,TRUE
+R1305,30–44,muž,Severovýchod,Local Story Fans,Local First,38,58,49,89,58,0.888,TRUE
+R1306,65+,žena,Severozápad,Choice Overload,Smart Discovery,29,73,46,87,59,1.175,TRUE
+R1307,65+,muž,Střední Čechy,Light Streamers,Smart Discovery,25,86,59,73,61,1.122,TRUE
+R1308,30–44,žena,Severovýchod,Local Story Fans,Local First,38,82,50,84,64,1.198,TRUE
+R1309,45–64,žena,Moravskoslezsko,Local Story Fans,Local First,51,72,88,67,70,1.206,TRUE
+R1310,30–44,žena,Střední Morava,Family Viewers,Local First,46,69,79,43,59,1.1,TRUE
+R1311,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,26,70,82,55,58,1.218,TRUE
+R1312,45–64,žena,Jihovýchod,Light Streamers,Smart Discovery,40,64,56,79,60,0.94,TRUE
+R1313,45–64,žena,Jihovýchod,Light Streamers,Smart Discovery,39,50,68,75,58,1.027,TRUE
+R1314,65+,žena,Moravskoslezsko,Family Viewers,Local First,41,53,49,69,53,1.12,TRUE
+R1315,18–29,muž,Severovýchod,Franchise Hunters,Premium Exclusives,29,81,50,72,58,1.006,TRUE
+R1316,18–29,žena,Střední Morava,Franchise Hunters,Premium Exclusives,43,71,54,46,54,0.897,TRUE
+R1317,65+,žena,Střední Morava,Local Story Fans,Local First,32,84,53,55,56,1.135,TRUE
+R1318,45–64,žena,Praha,Franchise Hunters,Premium Exclusives,47,86,55,81,67,0.942,TRUE
+R1319,45–64,muž,Střední Čechy,Local Story Fans,Local First,50,53,48,42,48,1.091,TRUE
+R1320,45–64,muž,Moravskoslezsko,Choice Overload,Smart Discovery,49,46,64,83,60,1.239,TRUE
+R1321,45–64,muž,Severovýchod,Local Story Fans,Local First,34,58,54,53,50,0.895,TRUE
+R1322,18–29,muž,Jihovýchod,Local Story Fans,Local First,35,77,76,46,58,0.941,TRUE
+R1323,18–29,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,32,62,82,72,62,1.149,TRUE
+R1324,65+,muž,Jihozápad,Local Story Fans,Local First,37,50,61,54,50,1.13,TRUE
+R1325,65+,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,58,63,66,85,68,0.761,TRUE
+R1326,65+,muž,Praha,Choice Overload,Smart Discovery,38,64,51,77,58,1.192,TRUE
+R1327,18–29,muž,Střední Morava,Local Story Fans,Local First,29,84,52,66,58,0.959,TRUE
+R1328,18–29,žena,Severovýchod,Family Viewers,Local First,38,54,88,86,66,1.13,TRUE
+R1329,30–44,žena,Střední Čechy,Franchise Hunters,Premium Exclusives,59,49,46,77,58,0.998,TRUE
+R1330,45–64,žena,Jihovýchod,Local Story Fans,Local First,49,46,81,52,57,0.85,TRUE
+R1331,30–44,žena,Jihozápad,Choice Overload,Smart Discovery,53,77,57,56,61,0.827,TRUE
+R1332,18–29,žena,Praha,Light Streamers,Smart Discovery,44,66,87,80,69,0.818,TRUE
+R1333,45–64,muž,Praha,Choice Overload,Smart Discovery,38,69,54,80,60,1.102,TRUE
+R1334,18–29,žena,Jihovýchod,Choice Overload,Smart Discovery,58,74,79,54,66,0.893,TRUE
+R1335,65+,žena,Moravskoslezsko,Choice Overload,Smart Discovery,59,90,56,70,69,1.139,TRUE
+R1336,65+,žena,Severovýchod,Franchise Hunters,Premium Exclusives,26,89,61,70,62,1.22,TRUE
+R1337,18–29,žena,Jihovýchod,Local Story Fans,Local First,58,79,55,57,62,1.09,TRUE
+R1338,18–29,muž,Severozápad,Light Streamers,Smart Discovery,24,77,88,46,59,1.03,TRUE
+R1339,65+,žena,Jihovýchod,Choice Overload,Smart Discovery,43,70,61,69,61,0.891,TRUE
+R1340,18–29,žena,Střední Čechy,Family Viewers,Local First,37,80,46,73,59,0.78,TRUE
+R1341,18–29,žena,Jihovýchod,Choice Overload,Smart Discovery,53,89,83,89,78,1.049,TRUE
+R1342,45–64,žena,Střední Morava,Choice Overload,Smart Discovery,60,73,89,62,71,0.841,TRUE
+R1343,30–44,žena,Severovýchod,Choice Overload,Smart Discovery,60,77,76,71,71,1.184,TRUE
+R1344,18–29,žena,Jihovýchod,Family Viewers,Local First,49,47,60,73,57,0.882,TRUE
+R1345,45–64,muž,Moravskoslezsko,Light Streamers,Smart Discovery,41,58,86,69,64,1.225,TRUE
+R1346,65+,muž,Střední Morava,Local Story Fans,Local First,33,55,85,53,56,1.134,TRUE
+R1347,65+,muž,Praha,Franchise Hunters,Premium Exclusives,39,65,63,62,57,1.12,TRUE
+R1348,18–29,žena,Střední Čechy,Local Story Fans,Local First,34,48,61,64,52,0.98,TRUE
+R1349,45–64,muž,Střední Čechy,Family Viewers,Local First,46,87,52,37,56,0.839,TRUE
+R1350,18–29,muž,Jihozápad,Local Story Fans,Local First,31,89,66,49,59,0.861,TRUE
+R1351,30–44,žena,Střední Čechy,Local Story Fans,Local First,39,70,63,68,60,1.068,TRUE
+R1352,45–64,muž,Jihozápad,Local Story Fans,Local First,41,59,70,55,56,0.994,TRUE
+R1353,45–64,muž,Střední Čechy,Choice Overload,Smart Discovery,58,62,49,63,58,0.938,TRUE
+R1354,65+,muž,Severovýchod,Family Viewers,Local First,53,48,79,68,62,0.813,TRUE
+R1355,30–44,žena,Jihovýchod,Choice Overload,Smart Discovery,31,45,51,45,43,1.066,TRUE
+R1356,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,35,76,58,78,62,1.224,TRUE
+R1357,65+,žena,Severovýchod,Family Viewers,Local First,50,84,62,38,58,0.888,TRUE
+R1358,45–64,muž,Severovýchod,Family Viewers,Local First,59,47,69,52,57,0.903,TRUE
+R1359,18–29,žena,Severozápad,Family Viewers,Local First,35,60,45,55,49,0.782,TRUE
+R1360,18–29,žena,Střední Čechy,Choice Overload,Smart Discovery,25,71,70,56,56,1.017,TRUE
+R1361,18–29,žena,Střední Čechy,Local Story Fans,Local First,60,81,80,76,74,0.937,TRUE
+R1362,65+,žena,Praha,Franchise Hunters,Premium Exclusives,46,90,59,61,64,1.169,TRUE
+R1363,65+,žena,Severovýchod,Local Story Fans,Local First,50,70,84,87,73,1.244,TRUE
+R1364,65+,žena,Severozápad,Choice Overload,Smart Discovery,30,84,58,65,59,1.048,TRUE
+R1365,65+,žena,Severovýchod,Choice Overload,Smart Discovery,42,54,76,81,63,1.088,TRUE
+R1366,65+,žena,Severozápad,Local Story Fans,Local First,27,71,83,63,61,0.986,TRUE
+R1367,45–64,žena,Střední Čechy,Choice Overload,Smart Discovery,60,73,73,58,66,1.071,TRUE
+R1368,18–29,žena,Severozápad,Light Streamers,Smart Discovery,57,79,88,76,75,0.878,TRUE
+R1369,45–64,žena,Jihozápad,Light Streamers,Smart Discovery,59,73,53,35,55,0.889,TRUE
+R1370,65+,žena,Severovýchod,Family Viewers,Local First,59,68,63,51,60,1.115,TRUE
+R1371,45–64,žena,Severovýchod,Choice Overload,Smart Discovery,54,51,70,87,66,1.06,TRUE
+R1372,18–29,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,44,70,87,64,66,0.762,TRUE
+R1373,30–44,muž,Moravskoslezsko,Local Story Fans,Local First,51,85,82,41,65,0.784,TRUE
+R1374,18–29,žena,Střední Morava,Light Streamers,Smart Discovery,57,49,53,76,59,1.221,TRUE
+R1375,18–29,muž,Severozápad,Choice Overload,Smart Discovery,57,55,63,54,57,1.203,TRUE
+R1376,30–44,muž,Jihovýchod,Choice Overload,Smart Discovery,24,74,86,85,67,0.907,TRUE
+R1377,65+,muž,Moravskoslezsko,Choice Overload,Smart Discovery,53,88,76,72,72,0.837,TRUE
+R1378,30–44,muž,Moravskoslezsko,Franchise Hunters,Premium Exclusives,47,69,54,43,53,0.893,TRUE
+R1379,30–44,žena,Moravskoslezsko,Family Viewers,Local First,30,56,64,85,59,1.072,TRUE
+R1380,65+,žena,Jihozápad,Choice Overload,Smart Discovery,51,53,56,38,50,0.77,TRUE
+R1381,65+,žena,Jihovýchod,Local Story Fans,Local First,45,68,81,68,66,1.103,TRUE
+R1382,18–29,muž,Střední Morava,Family Viewers,Local First,36,73,79,41,57,1.008,TRUE
+R1383,65+,žena,Severozápad,Franchise Hunters,Premium Exclusives,31,85,73,69,64,1.089,TRUE
+R1384,18–29,žena,Severovýchod,Family Viewers,Local First,45,73,53,56,57,1.221,TRUE
+R1385,18–29,muž,Jihozápad,Light Streamers,Smart Discovery,46,68,54,43,53,0.959,TRUE
+R1386,45–64,žena,Jihovýchod,Franchise Hunters,Premium Exclusives,24,71,53,57,51,0.953,TRUE
+R1387,18–29,muž,Střední Morava,Franchise Hunters,Premium Exclusives,26,84,70,44,56,0.975,TRUE
+R1388,30–44,žena,Severozápad,Local Story Fans,Local First,27,52,53,45,44,0.781,TRUE
+R1389,45–64,muž,Střední Čechy,Franchise Hunters,Premium Exclusives,56,45,71,36,52,1.092,TRUE
+R1390,65+,muž,Praha,Franchise Hunters,Premium Exclusives,40,79,54,35,52,1.249,TRUE
+R1391,18–29,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,34,52,78,70,58,1.217,TRUE
+R1392,18–29,žena,Střední Čechy,Family Viewers,Local First,36,49,56,72,53,1.092,TRUE
+R1393,18–29,žena,Praha,Choice Overload,Smart Discovery,58,64,79,62,66,0.858,TRUE
+R1394,65+,žena,Praha,Local Story Fans,Local First,59,63,72,89,71,0.877,TRUE
+R1395,30–44,žena,Moravskoslezsko,Franchise Hunters,Premium Exclusives,49,82,74,83,72,1.241,TRUE
+R1396,45–64,žena,Praha,Family Viewers,Local First,40,46,60,63,52,0.779,TRUE
+R1397,30–44,muž,Střední Morava,Choice Overload,Smart Discovery,28,56,56,44,46,0.921,TRUE
+R1398,18–29,muž,Střední Morava,Choice Overload,Smart Discovery,47,67,48,81,61,1.143,TRUE
+R1399,18–29,muž,Střední Morava,Family Viewers,Local First,54,45,47,80,56,0.869,TRUE
+R1400,65+,žena,Severovýchod,Choice Overload,Smart Discovery,56,62,45,78,60,1.06,TRUE

@@ -1,0 +1,5 @@
+﻿variant_id,variant_name,price_or_fee,decision_score_0_100,visit_intent_pct,basket_intent_pct,convenience,differentiation,value,trust,respondent_composite_avg
+A,Express,0,69,57.4,37.5,8.07,4.89,5.68,6.19,57.2
+B,Fresh Local,0,78,68.5,48.6,6.94,7.77,6.28,7.31,66.7
+C,Value Max,0,75,65.3,46.6,6.34,5.09,7.96,6.28,61.4
+D,Neighborhood Smart,0,82,72.5,51.7,7.62,7.28,7.28,7.46,70.1

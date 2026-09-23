@@ -1,0 +1,194 @@
+[
+  {
+    "path": "AUDIENCE_DESIGN_DEMO.json",
+    "stage": "AUDIENCE",
+    "sha256": "712cf57201690f21afe9206562c99818e1a082b9e29619962cce292f4317d21f",
+    "bytes": 391
+  },
+  {
+    "path": "CLIENT_REPORT_EDUNOVA_DEMO.docx",
+    "stage": "DELIVERY",
+    "sha256": "322235800a9601170d6f92bef61570ad0acc320d7c8e56a4eeb034a2a84f50da",
+    "bytes": 51172
+  },
+  {
+    "path": "DEMO_PREVIEW.html",
+    "stage": "DELIVERY",
+    "sha256": "1a09af02c670401199e457bf9a321bdbde3ec678e7e0fa31ebb4258b8bdee737",
+    "bytes": 2930
+  },
+  {
+    "path": "DEMO_PROJECT_SEED.json",
+    "stage": "DELIVERY",
+    "sha256": "1d1818b583f4580be6d09789e17810a86f35cd841cfb8ccbc62fb41d3129b78e",
+    "bytes": 9981
+  },
+  {
+    "path": "EXECUTIVE_XLSX_PREVIEW.png",
+    "stage": "DELIVERY",
+    "sha256": "b06c7db7f03f196e68a3178333dc7eb451c464bb94cf137d3fbdc4a5416c377e",
+    "bytes": 97433
+  },
+  {
+    "path": "IMPLEMENTACE_DO_PANELU.md",
+    "stage": "DELIVERY",
+    "sha256": "2e7eeea8228001d175bc91f0d71febc7c720f0727d06861cd2014f8696b90654",
+    "bytes": 2542
+  },
+  {
+    "path": "OBJECTS_SOCIOMAP_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "2fb04742eb1b56d9efa432bebf0e3f2f22667b624b3b4a87c9c331046931055c",
+    "bytes": 1683
+  },
+  {
+    "path": "PROJECT_HISTORY_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "cbf03c587463eeb2fa80d18a18f0208155d5aa3f8058972d7e6937318cf3ccc8",
+    "bytes": 1068
+  },
+  {
+    "path": "QUESTIONNAIRE_DEMO.json",
+    "stage": "QUESTIONNAIRE",
+    "sha256": "000fe9eb130291267523a918053cc5352597d576fb76d0cfcab16eae000bfd9e",
+    "bytes": 1042
+  },
+  {
+    "path": "REPORT_TEXT_DEMO.md",
+    "stage": "DELIVERY",
+    "sha256": "b07df94eb8fcb7579fccfc3e3fe5808f3c0425280c576bdb7a671d34327ee254",
+    "bytes": 864
+  },
+  {
+    "path": "RESEARCH_DESIGN_DEMO.json",
+    "stage": "RESEARCH_DESIGN",
+    "sha256": "d3a8d24400258dd50fc9f358cbe651ee6a8762a3b7f197e4ae8d6f56d8524680",
+    "bytes": 1446
+  },
+  {
+    "path": "RESPONDENT_DATABASE_DEMO.csv",
+    "stage": "FIELDWORK",
+    "sha256": "586def3b72dcc8889bd4fd08cf1e6803ec440fadfcf5e459f643bf98826f7979",
+    "bytes": 83571
+  },
+  {
+    "path": "RESULTS_TABLES_EDUNOVA_PLATFORM_UX_DEMO.xlsx",
+    "stage": "DELIVERY",
+    "sha256": "fc27a73d65939f203bff1bce063313616d52367b21af48221ffe9d38b8e08bb4",
+    "bytes": 73211
+  },
+  {
+    "path": "analysis/ANALYSIS_01_EXECUTIVE.json",
+    "stage": "ANALYSIS",
+    "sha256": "61eab206f7c80d11484804489255b82707c76cf6f33abe3340c1df2ab162ae97",
+    "bytes": 310
+  },
+  {
+    "path": "analysis/ANALYSIS_02_RESEARCH_QUESTIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "4caf25ea7c2019fd5dba6d36143120a8d1d279c7a70377e7cf754264857cbfff",
+    "bytes": 405
+  },
+  {
+    "path": "analysis/ANALYSIS_03_OBJECTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "f906cac08a801d953682ad2b4cd450f98c7db03d1c6f199c658280ce98066631",
+    "bytes": 119
+  },
+  {
+    "path": "analysis/ANALYSIS_04_AUDIENCE.json",
+    "stage": "ANALYSIS",
+    "sha256": "36cabe6228930da9b8efc2b9cb6c54fa7d1cc44d84346647d39d6b526ecad2b8",
+    "bytes": 167
+  },
+  {
+    "path": "analysis/ANALYSIS_05_SEGMENTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "73b78c14bb941619bd281583b8cd73221b2d2226dd1b75a2269ee539962de880",
+    "bytes": 183
+  },
+  {
+    "path": "analysis/ANALYSIS_06_HYPOTHESES.json",
+    "stage": "ANALYSIS",
+    "sha256": "fd66ae160d8e4ba697df7eadb5ec13181256504f1f724f694d56384c540ff2c0",
+    "bytes": 150
+  },
+  {
+    "path": "analysis/ANALYSIS_07_IMPLICATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "b205e752fcb9fbd8ca50c7e34062acdc9a5c9a12fc3f733b304b0e7eab4bf117",
+    "bytes": 191
+  },
+  {
+    "path": "analysis/ANALYSIS_08_LIMITATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "8512a3d7be78b196989e2487b010ccf81817045fb0c842c1041fcb768463d1fb",
+    "bytes": 251
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.png",
+    "stage": "ANALYSIS",
+    "sha256": "3312a84bfdb35d7b06087a75b948141d76e034db93847b4c9d117dea6a7d1182",
+    "bytes": 12300
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.svg",
+    "stage": "ANALYSIS",
+    "sha256": "2977c1da4b2e0aa4e8c29bbf1c2ba7dd3148e0ef092b30916c256644af329e72",
+    "bytes": 2334
+  },
+  {
+    "path": "demo_project_loader.py",
+    "stage": "DELIVERY",
+    "sha256": "ca78c99a9fd8c8c9b790e6164d70a0d60dd519ca4cf42376571e0e8204ebb86a",
+    "bytes": 1040
+  },
+  {
+    "path": "worlds/WORLD_1_BASE_LEARNERS.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "4e76bb429907457769813205b6b4c082b43bc8cd314af7f5b388d7bee4cdaca9",
+    "bytes": 149
+  },
+  {
+    "path": "worlds/WORLD_2_EXAM_SEASON.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "34ae2940797d8eb9b389fd626921d5e3dec866fa9a24b8314f4df3c48314982f",
+    "bytes": 149
+  },
+  {
+    "path": "worlds/WORLD_3_AI_ENTHUSIASM.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "62eb1839200d3555fddf26385ff0d9e7054da0727cddec701494c5543bd9671b",
+    "bytes": 146
+  },
+  {
+    "path": "worlds/WORLD_4_AI_SKEPTICISM.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "5646b2ab1c961edc4220fa583a8fdd2a284ff5bc26e98cb5f80276628234b16e",
+    "bytes": 148
+  },
+  {
+    "path": "worlds/WORLD_5_LOW_MOTIVATION.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "3903f4a1252edb9d12aa0005402a391e6a4da0fdd389a2cbb60974db77a60fbf",
+    "bytes": 148
+  },
+  {
+    "path": "worlds/WORLD_6_PARENT_INFLUENCE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "027ea1f0377ae1553a63cfaaf8f9a8b8b7bd0c1294c3bd10fb71e3486f80dbe4",
+    "bytes": 152
+  },
+  {
+    "path": "worlds/WORLD_7_ADULT_LEARNERS.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "c8b076214e599e44db958ad02798a0f37598bf34a53cf8ea681145d72e51afc6",
+    "bytes": 147
+  },
+  {
+    "path": "worlds/WORLD_8_GAMIFICATION_TREND.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "db58879c93182f6ba8cf6053a487780dbe89e80dbd4f259cbe2336d5b0ea9fdd",
+    "bytes": 163
+  }
+]

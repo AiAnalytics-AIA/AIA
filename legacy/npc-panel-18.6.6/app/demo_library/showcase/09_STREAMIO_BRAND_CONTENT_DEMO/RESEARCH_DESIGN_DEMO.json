@@ -1,0 +1,59 @@
+{
+  "study_type": "Brand positioning + content portfolio",
+  "decision": "Vybrat brand platformu a obsahové priority pro další rok.",
+  "research_questions": [
+    "Jaké streaming služby používáte?",
+    "Co vás nejčastěji vede ke spuštění konkrétní služby?",
+    "Jak hodnotíte čtyři positioning platformy?",
+    "Jaké obsahové pilíře jsou pro vás nejrelevantnější?",
+    "Jak moc vás frustruje obtížné hledání obsahu?",
+    "Který směr by nejvíce zvýšil vaši preferenci Streamio?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Current",
+      "description": "Současný Streamio",
+      "type": "tracked_object",
+      "score": 60,
+      "x": 250,
+      "y": 285
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Local First",
+      "description": "Lokální obsah + jednoduchost",
+      "type": "tracked_object",
+      "score": 77,
+      "x": 405,
+      "y": 215
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Premium Exclusives",
+      "description": "Velké exkluzivní tituly",
+      "type": "tracked_object",
+      "score": 73,
+      "x": 565,
+      "y": 135
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Smart Discovery",
+      "description": "Personalizace a objevování",
+      "type": "tracked_object",
+      "score": 75,
+      "x": 350,
+      "y": 330
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Relevance",
+    "Distinctiveness",
+    "Ease",
+    "Content fit",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

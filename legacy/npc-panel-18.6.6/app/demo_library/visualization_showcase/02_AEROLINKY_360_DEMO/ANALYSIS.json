@@ -1,0 +1,111 @@
+{
+  "executive_summary": "Bezpečnostní segment tíhne k British Airways, Air France a Lufthansa; komfortní k Qatar Airways a Emirates; cenový k Ryanair a Wizz Air.",
+  "segment_profiles": [
+    {
+      "segment": "Bezpečnost na prvním místě",
+      "n": 125,
+      "share": 0.208,
+      "top_objects": [
+        {
+          "object": "British Airways",
+          "mean": 7.0
+        },
+        {
+          "object": "Air France",
+          "mean": 6.91
+        },
+        {
+          "object": "Lufthansa",
+          "mean": 6.9
+        }
+      ]
+    },
+    {
+      "segment": "Komfort a servis",
+      "n": 113,
+      "share": 0.188,
+      "top_objects": [
+        {
+          "object": "Qatar Airways",
+          "mean": 7.67
+        },
+        {
+          "object": "Emirates",
+          "mean": 7.46
+        },
+        {
+          "object": "British Airways",
+          "mean": 5.88
+        }
+      ]
+    },
+    {
+      "segment": "Lovci nejnižší ceny",
+      "n": 156,
+      "share": 0.26,
+      "top_objects": [
+        {
+          "object": "Wizz Air",
+          "mean": 7.39
+        },
+        {
+          "object": "Ryanair",
+          "mean": 7.16
+        },
+        {
+          "object": "easyJet",
+          "mean": 7.04
+        }
+      ]
+    },
+    {
+      "segment": "Síť a spolehlivost",
+      "n": 119,
+      "share": 0.198,
+      "top_objects": [
+        {
+          "object": "Air France",
+          "mean": 6.74
+        },
+        {
+          "object": "British Airways",
+          "mean": 6.72
+        },
+        {
+          "object": "Lufthansa",
+          "mean": 6.72
+        }
+      ]
+    },
+    {
+      "segment": "Prémioví cestující",
+      "n": 87,
+      "share": 0.145,
+      "top_objects": [
+        {
+          "object": "Qatar Airways",
+          "mean": 7.02
+        },
+        {
+          "object": "Emirates",
+          "mean": 7.0
+        },
+        {
+          "object": "Air France",
+          "mean": 5.38
+        }
+      ]
+    }
+  ],
+  "object_means": {
+    "British Airways": 6.033,
+    "Air France": 6.01,
+    "Qatar Airways": 5.825,
+    "Emirates": 5.797,
+    "Ryanair": 5.46,
+    "Wizz Air": 5.447,
+    "Lufthansa": 5.942,
+    "easyJet": 5.78
+  },
+  "method_note": "Ilustrační syntetický dataset; výsledky demonstrují schopnosti mapování, nejsou tržním měřením."
+}

@@ -1,0 +1,1201 @@
+﻿respondent_id,age_group,sex,region,segment,preferred_object,primary_metric,trust,clarity,appeal,overall,weight,demo
+R0001,65+,žena,Severozápad,Security Seekers,Fixed,27,76,49,82,58,0.857,TRUE
+R0002,18–29,muž,Jihozápad,Security Seekers,Fixed,29,58,57,72,54,1.005,TRUE
+R0003,30–44,muž,Jihozápad,Security Seekers,Fixed,63,66,74,35,60,0.82,TRUE
+R0004,30–44,muž,Moravskoslezsko,Green Motivated,Green Plus,56,58,72,36,56,0.9,TRUE
+R0005,45–64,žena,Moravskoslezsko,Active Savers,Secure Flex,40,71,68,56,59,1.017,TRUE
+R0006,45–64,muž,Střední Čechy,Active Savers,Secure Flex,39,88,53,43,56,0.755,TRUE
+R0007,45–64,žena,Severozápad,Low Involvement,Secure Flex,42,73,72,86,68,1.021,TRUE
+R0008,45–64,muž,Jihozápad,Active Savers,Secure Flex,33,78,78,90,70,0.948,TRUE
+R0009,45–64,muž,Jihozápad,Smart Home Users,Dynamic,28,71,63,87,62,0.827,TRUE
+R0010,65+,žena,Severozápad,Security Seekers,Fixed,52,65,84,73,68,0.883,TRUE
+R0011,65+,žena,Praha,Active Savers,Secure Flex,31,53,79,38,50,0.989,TRUE
+R0012,65+,muž,Severovýchod,Smart Home Users,Dynamic,61,79,48,69,64,1.233,TRUE
+R0013,18–29,muž,Severozápad,Low Involvement,Secure Flex,47,89,81,89,76,1.096,TRUE
+R0014,45–64,muž,Moravskoslezsko,Green Motivated,Green Plus,59,89,47,88,71,1.174,TRUE
+R0015,30–44,žena,Střední Čechy,Security Seekers,Fixed,41,83,45,88,64,1.183,TRUE
+R0016,65+,žena,Střední Čechy,Security Seekers,Fixed,29,77,50,62,54,1.049,TRUE
+R0017,45–64,muž,Střední Čechy,Security Seekers,Fixed,55,80,59,35,57,1.065,TRUE
+R0018,45–64,žena,Praha,Security Seekers,Fixed,34,46,62,49,48,0.805,TRUE
+R0019,65+,muž,Severovýchod,Active Savers,Secure Flex,58,49,47,47,50,0.881,TRUE
+R0020,65+,žena,Moravskoslezsko,Green Motivated,Green Plus,44,55,79,36,54,1.017,TRUE
+R0021,30–44,muž,Střední Čechy,Security Seekers,Fixed,29,69,83,62,61,1.2,TRUE
+R0022,18–29,muž,Střední Morava,Smart Home Users,Dynamic,47,87,82,51,67,1.166,TRUE
+R0023,65+,žena,Střední Čechy,Security Seekers,Fixed,45,52,74,80,63,1.137,TRUE
+R0024,45–64,žena,Střední Morava,Security Seekers,Fixed,45,80,68,65,64,1.079,TRUE
+R0025,65+,muž,Jihozápad,Security Seekers,Fixed,28,58,62,55,51,0.96,TRUE
+R0026,65+,žena,Severovýchod,Active Savers,Secure Flex,40,86,69,56,63,1.014,TRUE
+R0027,18–29,muž,Jihozápad,Green Motivated,Green Plus,60,79,73,87,75,1.132,TRUE
+R0028,45–64,muž,Střední Čechy,Smart Home Users,Dynamic,48,72,54,78,63,1.079,TRUE
+R0029,30–44,muž,Jihovýchod,Active Savers,Secure Flex,27,67,46,83,56,0.813,TRUE
+R0030,30–44,muž,Střední Čechy,Active Savers,Secure Flex,50,76,72,86,71,1.225,TRUE
+R0031,18–29,muž,Praha,Active Savers,Secure Flex,35,76,58,40,52,1.214,TRUE
+R0032,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,62,63,64,40,57,1.017,TRUE
+R0033,65+,muž,Severovýchod,Security Seekers,Fixed,43,72,51,81,62,1.168,TRUE
+R0034,18–29,žena,Severozápad,Active Savers,Secure Flex,34,73,60,64,58,1.069,TRUE
+R0035,45–64,žena,Jihozápad,Active Savers,Secure Flex,50,53,73,78,64,0.91,TRUE
+R0036,45–64,žena,Střední Morava,Smart Home Users,Dynamic,61,45,75,45,56,0.757,TRUE
+R0037,45–64,muž,Severozápad,Active Savers,Secure Flex,40,51,75,65,58,1.091,TRUE
+R0038,65+,muž,Moravskoslezsko,Security Seekers,Fixed,46,71,75,36,57,0.828,TRUE
+R0039,45–64,žena,Praha,Smart Home Users,Dynamic,48,47,70,53,54,0.89,TRUE
+R0040,65+,žena,Střední Čechy,Smart Home Users,Dynamic,59,67,58,65,62,0.938,TRUE
+R0041,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,58,75,55,53,60,0.921,TRUE
+R0042,65+,žena,Jihozápad,Smart Home Users,Dynamic,42,73,85,62,66,0.814,TRUE
+R0043,45–64,žena,Severozápad,Active Savers,Secure Flex,29,64,78,56,57,1.068,TRUE
+R0044,45–64,muž,Praha,Security Seekers,Fixed,46,50,73,89,64,1.088,TRUE
+R0045,30–44,muž,Severovýchod,Active Savers,Secure Flex,28,66,47,66,52,1.143,TRUE
+R0046,30–44,muž,Střední Čechy,Security Seekers,Fixed,51,83,68,71,68,1.093,TRUE
+R0047,18–29,muž,Jihozápad,Smart Home Users,Dynamic,57,74,67,48,62,0.934,TRUE
+R0048,30–44,žena,Jihovýchod,Smart Home Users,Dynamic,48,73,85,43,62,1.037,TRUE
+R0049,45–64,žena,Severovýchod,Active Savers,Secure Flex,59,74,80,82,74,0.828,TRUE
+R0050,30–44,žena,Praha,Low Involvement,Secure Flex,55,84,61,41,60,1.193,TRUE
+R0051,18–29,muž,Severozápad,Low Involvement,Secure Flex,47,60,81,38,56,0.929,TRUE
+R0052,18–29,muž,Střední Čechy,Smart Home Users,Dynamic,52,79,82,40,63,0.78,TRUE
+R0053,18–29,žena,Jihovýchod,Security Seekers,Fixed,51,80,54,87,68,1.211,TRUE
+R0054,45–64,muž,Jihovýchod,Green Motivated,Green Plus,28,53,77,89,62,0.974,TRUE
+R0055,30–44,žena,Jihovýchod,Active Savers,Secure Flex,55,88,85,81,77,1.027,TRUE
+R0056,30–44,žena,Severozápad,Low Involvement,Secure Flex,29,87,58,72,62,0.832,TRUE
+R0057,65+,muž,Moravskoslezsko,Smart Home Users,Dynamic,39,53,69,79,60,0.763,TRUE
+R0058,65+,muž,Jihovýchod,Smart Home Users,Dynamic,36,62,88,53,60,0.849,TRUE
+R0059,45–64,žena,Jihovýchod,Green Motivated,Green Plus,59,54,60,58,58,0.963,TRUE
+R0060,65+,žena,Střední Morava,Active Savers,Secure Flex,58,86,45,75,66,1.104,TRUE
+R0061,18–29,žena,Severovýchod,Active Savers,Secure Flex,62,60,85,87,74,0.911,TRUE
+R0062,18–29,žena,Jihovýchod,Low Involvement,Secure Flex,39,45,75,55,54,1.153,TRUE
+R0063,65+,muž,Praha,Green Motivated,Green Plus,30,48,47,78,51,0.766,TRUE
+R0064,45–64,žena,Střední Čechy,Security Seekers,Fixed,48,78,73,59,64,0.86,TRUE
+R0065,18–29,žena,Jihozápad,Security Seekers,Fixed,38,71,64,68,60,1.069,TRUE
+R0066,30–44,žena,Střední Morava,Security Seekers,Fixed,28,47,52,41,42,1.091,TRUE
+R0067,45–64,muž,Moravskoslezsko,Smart Home Users,Dynamic,63,52,62,80,64,0.848,TRUE
+R0068,18–29,žena,Moravskoslezsko,Low Involvement,Secure Flex,41,70,59,38,52,1.227,TRUE
+R0069,65+,muž,Praha,Security Seekers,Fixed,56,67,84,90,74,1.09,TRUE
+R0070,45–64,žena,Severozápad,Security Seekers,Fixed,48,58,86,89,70,1.176,TRUE
+R0071,45–64,žena,Střední Čechy,Active Savers,Secure Flex,55,79,55,72,65,1.067,TRUE
+R0072,45–64,žena,Severovýchod,Smart Home Users,Dynamic,35,68,64,74,60,1.076,TRUE
+R0073,45–64,žena,Jihovýchod,Smart Home Users,Dynamic,29,83,83,42,59,0.822,TRUE
+R0074,18–29,žena,Moravskoslezsko,Low Involvement,Secure Flex,30,62,77,73,60,1.043,TRUE
+R0075,65+,žena,Střední Čechy,Low Involvement,Secure Flex,61,71,62,39,58,1.189,TRUE
+R0076,18–29,muž,Severovýchod,Smart Home Users,Dynamic,30,75,49,43,49,1.18,TRUE
+R0077,45–64,muž,Střední Čechy,Green Motivated,Green Plus,45,83,59,36,56,0.949,TRUE
+R0078,45–64,žena,Střední Morava,Active Savers,Secure Flex,55,80,86,42,66,1.153,TRUE
+R0079,65+,žena,Střední Morava,Green Motivated,Green Plus,59,80,50,72,65,1.082,TRUE
+R0080,45–64,žena,Moravskoslezsko,Low Involvement,Secure Flex,29,77,84,60,62,1.249,TRUE
+R0081,30–44,žena,Jihozápad,Smart Home Users,Dynamic,28,66,64,82,60,1.089,TRUE
+R0082,18–29,žena,Moravskoslezsko,Active Savers,Secure Flex,60,74,67,62,66,0.947,TRUE
+R0083,65+,muž,Severozápad,Active Savers,Secure Flex,45,65,77,56,61,1.001,TRUE
+R0084,65+,žena,Střední Čechy,Security Seekers,Fixed,55,87,89,44,69,1.195,TRUE
+R0085,45–64,muž,Severozápad,Active Savers,Secure Flex,39,67,73,38,54,0.961,TRUE
+R0086,30–44,muž,Střední Morava,Green Motivated,Green Plus,36,59,69,45,52,1.114,TRUE
+R0087,30–44,muž,Severozápad,Security Seekers,Fixed,61,65,82,43,63,1.089,TRUE
+R0088,30–44,muž,Jihozápad,Security Seekers,Fixed,50,75,67,51,61,0.804,TRUE
+R0089,30–44,muž,Střední Čechy,Smart Home Users,Dynamic,58,73,70,54,64,0.971,TRUE
+R0090,45–64,muž,Severozápad,Green Motivated,Green Plus,60,81,79,57,69,0.973,TRUE
+R0091,30–44,muž,Praha,Security Seekers,Fixed,27,58,69,82,59,0.752,TRUE
+R0092,30–44,žena,Střední Čechy,Low Involvement,Secure Flex,47,46,47,65,51,1.044,TRUE
+R0093,30–44,žena,Severovýchod,Smart Home Users,Dynamic,55,80,49,37,55,1.018,TRUE
+R0094,45–64,žena,Jihovýchod,Active Savers,Secure Flex,45,75,56,43,55,0.812,TRUE
+R0095,18–29,žena,Praha,Security Seekers,Fixed,57,71,84,71,71,1.189,TRUE
+R0096,30–44,žena,Střední Morava,Active Savers,Secure Flex,41,54,86,69,62,0.827,TRUE
+R0097,45–64,žena,Střední Čechy,Low Involvement,Secure Flex,62,82,78,65,72,0.894,TRUE
+R0098,65+,žena,Střední Čechy,Smart Home Users,Dynamic,27,79,80,39,56,1.083,TRUE
+R0099,65+,žena,Moravskoslezsko,Security Seekers,Fixed,55,82,87,51,69,0.989,TRUE
+R0100,30–44,muž,Severozápad,Smart Home Users,Dynamic,41,85,73,44,61,0.831,TRUE
+R0101,65+,muž,Jihozápad,Green Motivated,Green Plus,33,87,78,90,72,1.058,TRUE
+R0102,45–64,muž,Praha,Low Involvement,Secure Flex,33,66,67,72,60,1.008,TRUE
+R0103,18–29,muž,Střední Morava,Smart Home Users,Dynamic,60,89,73,87,77,1.197,TRUE
+R0104,65+,muž,Praha,Security Seekers,Fixed,35,90,84,74,71,1.117,TRUE
+R0105,65+,žena,Jihovýchod,Green Motivated,Green Plus,40,88,62,37,57,1.156,TRUE
+R0106,65+,žena,Moravskoslezsko,Green Motivated,Green Plus,58,70,52,43,56,1.062,TRUE
+R0107,30–44,žena,Praha,Security Seekers,Fixed,57,66,65,50,60,0.906,TRUE
+R0108,65+,muž,Střední Morava,Active Savers,Secure Flex,59,61,57,48,56,1.034,TRUE
+R0109,65+,žena,Severozápad,Active Savers,Secure Flex,58,78,87,69,73,0.752,TRUE
+R0110,65+,muž,Moravskoslezsko,Smart Home Users,Dynamic,49,69,70,56,61,1.209,TRUE
+R0111,45–64,žena,Praha,Active Savers,Secure Flex,53,66,83,56,64,1.192,TRUE
+R0112,65+,žena,Jihozápad,Active Savers,Secure Flex,58,59,49,62,57,0.866,TRUE
+R0113,18–29,žena,Praha,Security Seekers,Fixed,40,45,83,86,64,1.012,TRUE
+R0114,18–29,žena,Moravskoslezsko,Green Motivated,Green Plus,47,90,70,48,64,1.053,TRUE
+R0115,30–44,muž,Střední Morava,Smart Home Users,Dynamic,63,84,70,62,70,1.192,TRUE
+R0116,65+,muž,Praha,Security Seekers,Fixed,27,65,75,82,62,0.765,TRUE
+R0117,65+,muž,Střední Morava,Low Involvement,Secure Flex,60,52,77,44,58,0.935,TRUE
+R0118,30–44,muž,Severovýchod,Smart Home Users,Dynamic,59,73,60,87,70,1.195,TRUE
+R0119,30–44,muž,Střední Čechy,Security Seekers,Fixed,53,45,77,76,63,1.013,TRUE
+R0120,18–29,muž,Střední Čechy,Active Savers,Secure Flex,42,52,79,90,66,1.228,TRUE
+R0121,65+,žena,Moravskoslezsko,Security Seekers,Fixed,35,64,78,59,59,0.971,TRUE
+R0122,30–44,žena,Severozápad,Active Savers,Secure Flex,39,58,84,45,56,0.917,TRUE
+R0123,18–29,žena,Jihozápad,Smart Home Users,Dynamic,43,77,48,37,51,1.238,TRUE
+R0124,45–64,žena,Střední Morava,Active Savers,Secure Flex,33,66,55,36,48,0.873,TRUE
+R0125,30–44,muž,Severovýchod,Low Involvement,Secure Flex,34,45,82,82,61,0.799,TRUE
+R0126,18–29,žena,Praha,Security Seekers,Fixed,42,86,73,84,71,1.209,TRUE
+R0127,18–29,muž,Střední Morava,Security Seekers,Fixed,53,74,83,44,64,1.048,TRUE
+R0128,65+,žena,Jihozápad,Smart Home Users,Dynamic,40,72,77,61,62,0.909,TRUE
+R0129,30–44,žena,Severovýchod,Active Savers,Secure Flex,54,71,70,41,59,1.211,TRUE
+R0130,45–64,žena,Moravskoslezsko,Active Savers,Secure Flex,41,66,55,62,56,1.119,TRUE
+R0131,65+,žena,Střední Morava,Active Savers,Secure Flex,55,78,57,52,60,0.809,TRUE
+R0132,30–44,žena,Severovýchod,Security Seekers,Fixed,33,73,63,66,59,1.029,TRUE
+R0133,30–44,muž,Severozápad,Low Involvement,Secure Flex,42,63,62,75,60,0.86,TRUE
+R0134,30–44,žena,Jihovýchod,Green Motivated,Green Plus,29,76,52,51,52,0.776,TRUE
+R0135,18–29,muž,Střední Čechy,Smart Home Users,Dynamic,48,65,81,81,69,0.755,TRUE
+R0136,45–64,muž,Jihozápad,Security Seekers,Fixed,50,84,56,67,64,0.764,TRUE
+R0137,30–44,žena,Praha,Active Savers,Secure Flex,30,66,71,45,53,1.055,TRUE
+R0138,65+,muž,Jihozápad,Low Involvement,Secure Flex,51,56,45,52,51,0.95,TRUE
+R0139,30–44,žena,Severozápad,Active Savers,Secure Flex,35,56,60,75,56,1.226,TRUE
+R0140,65+,žena,Střední Morava,Smart Home Users,Dynamic,44,57,48,82,58,0.826,TRUE
+R0141,65+,žena,Praha,Security Seekers,Fixed,63,80,55,53,63,0.877,TRUE
+R0142,30–44,muž,Střední Čechy,Security Seekers,Fixed,50,57,47,69,56,0.774,TRUE
+R0143,45–64,muž,Střední Morava,Security Seekers,Fixed,63,52,57,58,58,0.769,TRUE
+R0144,18–29,žena,Střední Morava,Smart Home Users,Dynamic,55,56,59,82,63,1.105,TRUE
+R0145,18–29,muž,Severozápad,Active Savers,Secure Flex,36,52,76,64,57,0.98,TRUE
+R0146,65+,žena,Střední Morava,Green Motivated,Green Plus,29,66,57,35,47,0.777,TRUE
+R0147,65+,muž,Severovýchod,Security Seekers,Fixed,27,68,59,56,52,1.169,TRUE
+R0148,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,44,89,45,45,56,0.887,TRUE
+R0149,18–29,muž,Jihozápad,Smart Home Users,Dynamic,35,74,75,48,58,1.078,TRUE
+R0150,45–64,muž,Severozápad,Security Seekers,Fixed,27,56,46,82,53,1.087,TRUE
+R0151,45–64,muž,Praha,Security Seekers,Fixed,34,86,84,90,74,1.108,TRUE
+R0152,65+,muž,Severozápad,Active Savers,Secure Flex,33,67,86,72,64,1.153,TRUE
+R0153,18–29,žena,Praha,Active Savers,Secure Flex,44,85,61,76,66,1.173,TRUE
+R0154,18–29,žena,Severovýchod,Security Seekers,Fixed,38,84,50,64,59,0.996,TRUE
+R0155,65+,žena,Střední Čechy,Smart Home Users,Dynamic,40,58,57,67,56,0.843,TRUE
+R0156,65+,muž,Střední Morava,Active Savers,Secure Flex,46,48,82,77,63,1.115,TRUE
+R0157,65+,muž,Moravskoslezsko,Smart Home Users,Dynamic,30,57,53,88,57,1.193,TRUE
+R0158,45–64,muž,Severozápad,Active Savers,Secure Flex,44,89,81,85,75,0.964,TRUE
+R0159,65+,muž,Severovýchod,Smart Home Users,Dynamic,39,52,88,67,62,0.996,TRUE
+R0160,18–29,žena,Severozápad,Active Savers,Secure Flex,52,69,46,49,54,1.237,TRUE
+R0161,65+,žena,Jihovýchod,Active Savers,Secure Flex,44,59,65,35,51,1.228,TRUE
+R0162,18–29,žena,Střední Čechy,Active Savers,Secure Flex,31,73,69,84,64,1.186,TRUE
+R0163,45–64,žena,Moravskoslezsko,Green Motivated,Green Plus,54,65,51,54,56,1.23,TRUE
+R0164,65+,žena,Praha,Security Seekers,Fixed,37,45,54,37,43,1.075,TRUE
+R0165,30–44,muž,Střední Čechy,Low Involvement,Secure Flex,36,72,55,78,60,1.087,TRUE
+R0166,18–29,žena,Jihovýchod,Green Motivated,Green Plus,57,89,68,90,76,1.159,TRUE
+R0167,18–29,žena,Jihozápad,Active Savers,Secure Flex,63,50,55,88,64,1.062,TRUE
+R0168,45–64,žena,Jihovýchod,Security Seekers,Fixed,50,58,68,64,60,1.131,TRUE
+R0169,18–29,žena,Jihovýchod,Low Involvement,Secure Flex,42,78,60,80,65,0.808,TRUE
+R0170,18–29,žena,Jihovýchod,Security Seekers,Fixed,55,72,46,83,64,1.064,TRUE
+R0171,18–29,žena,Jihovýchod,Low Involvement,Secure Flex,30,68,55,83,59,0.916,TRUE
+R0172,30–44,muž,Severozápad,Smart Home Users,Dynamic,29,60,54,72,54,1.169,TRUE
+R0173,65+,muž,Jihozápad,Active Savers,Secure Flex,29,50,82,67,57,0.937,TRUE
+R0174,45–64,žena,Severozápad,Active Savers,Secure Flex,47,82,61,49,60,1.014,TRUE
+R0175,65+,muž,Střední Morava,Smart Home Users,Dynamic,59,50,87,83,70,1.113,TRUE
+R0176,65+,muž,Střední Morava,Security Seekers,Fixed,36,73,57,71,59,1.187,TRUE
+R0177,45–64,muž,Střední Morava,Active Savers,Secure Flex,30,46,88,62,56,1.069,TRUE
+R0178,45–64,muž,Jihovýchod,Active Savers,Secure Flex,29,58,86,60,58,0.873,TRUE
+R0179,65+,žena,Jihozápad,Security Seekers,Fixed,38,57,88,38,55,0.842,TRUE
+R0180,45–64,žena,Střední Morava,Security Seekers,Fixed,59,59,48,76,60,0.856,TRUE
+R0181,30–44,žena,Severozápad,Security Seekers,Fixed,27,85,84,75,68,1.231,TRUE
+R0182,18–29,muž,Severovýchod,Security Seekers,Fixed,54,86,87,42,67,0.96,TRUE
+R0183,45–64,muž,Jihovýchod,Active Savers,Secure Flex,43,51,73,77,61,1.114,TRUE
+R0184,65+,muž,Jihozápad,Security Seekers,Fixed,35,60,48,72,54,0.996,TRUE
+R0185,30–44,muž,Severozápad,Active Savers,Secure Flex,44,64,54,43,51,1.127,TRUE
+R0186,45–64,žena,Severozápad,Smart Home Users,Dynamic,58,89,83,83,78,1.182,TRUE
+R0187,30–44,žena,Severozápad,Low Involvement,Secure Flex,36,66,66,85,63,0.78,TRUE
+R0188,18–29,muž,Střední Morava,Security Seekers,Fixed,28,82,77,38,56,1.197,TRUE
+R0189,30–44,žena,Střední Morava,Security Seekers,Fixed,58,53,62,44,54,1.14,TRUE
+R0190,18–29,žena,Jihozápad,Security Seekers,Fixed,56,47,85,45,58,0.762,TRUE
+R0191,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,58,83,88,71,75,0.833,TRUE
+R0192,30–44,muž,Střední Čechy,Security Seekers,Fixed,49,88,71,85,73,0.771,TRUE
+R0193,45–64,muž,Severozápad,Smart Home Users,Dynamic,44,69,86,57,64,1.005,TRUE
+R0194,65+,žena,Severovýchod,Smart Home Users,Dynamic,47,58,62,45,53,0.782,TRUE
+R0195,30–44,muž,Střední Morava,Security Seekers,Fixed,28,82,86,63,65,1.13,TRUE
+R0196,65+,muž,Severozápad,Smart Home Users,Dynamic,54,62,70,55,60,0.894,TRUE
+R0197,45–64,žena,Severozápad,Security Seekers,Fixed,35,52,69,72,57,1.108,TRUE
+R0198,30–44,žena,Střední Morava,Green Motivated,Green Plus,54,76,80,35,61,1.086,TRUE
+R0199,45–64,muž,Severovýchod,Smart Home Users,Dynamic,35,90,86,58,67,1.212,TRUE
+R0200,30–44,žena,Střední Čechy,Active Savers,Secure Flex,47,81,85,88,75,1.049,TRUE
+R0201,45–64,žena,Moravskoslezsko,Low Involvement,Secure Flex,61,74,58,53,62,1.05,TRUE
+R0202,45–64,muž,Střední Čechy,Low Involvement,Secure Flex,53,61,86,50,62,1.114,TRUE
+R0203,18–29,muž,Střední Čechy,Low Involvement,Secure Flex,59,69,89,52,67,0.991,TRUE
+R0204,30–44,žena,Severozápad,Security Seekers,Fixed,33,70,73,67,61,1.141,TRUE
+R0205,18–29,žena,Praha,Security Seekers,Fixed,61,55,89,38,61,0.936,TRUE
+R0206,45–64,žena,Jihozápad,Security Seekers,Fixed,54,82,50,61,62,1.101,TRUE
+R0207,30–44,muž,Jihovýchod,Security Seekers,Fixed,52,71,79,42,61,1.227,TRUE
+R0208,45–64,žena,Jihovýchod,Green Motivated,Green Plus,51,51,89,45,59,1.082,TRUE
+R0209,65+,žena,Střední Morava,Active Savers,Secure Flex,55,76,84,84,75,0.825,TRUE
+R0210,65+,žena,Praha,Security Seekers,Fixed,42,57,64,57,55,1.07,TRUE
+R0211,30–44,žena,Severovýchod,Active Savers,Secure Flex,57,47,88,90,70,0.864,TRUE
+R0212,18–29,žena,Střední Morava,Active Savers,Secure Flex,48,67,45,84,61,1.16,TRUE
+R0213,45–64,žena,Střední Morava,Security Seekers,Fixed,58,84,50,57,62,0.779,TRUE
+R0214,30–44,žena,Jihovýchod,Active Savers,Secure Flex,51,53,78,66,62,1.2,TRUE
+R0215,45–64,žena,Střední Čechy,Smart Home Users,Dynamic,40,82,48,37,52,1.195,TRUE
+R0216,30–44,muž,Severovýchod,Smart Home Users,Dynamic,28,50,55,42,44,0.809,TRUE
+R0217,18–29,muž,Moravskoslezsko,Smart Home Users,Dynamic,57,70,85,52,66,0.847,TRUE
+R0218,65+,žena,Severovýchod,Security Seekers,Fixed,52,57,62,71,60,0.824,TRUE
+R0219,65+,muž,Střední Čechy,Green Motivated,Green Plus,58,86,55,83,70,1.073,TRUE
+R0220,30–44,muž,Severovýchod,Security Seekers,Fixed,40,87,86,59,68,0.786,TRUE
+R0221,45–64,muž,Severovýchod,Green Motivated,Green Plus,61,62,76,41,60,0.888,TRUE
+R0222,45–64,žena,Severovýchod,Active Savers,Secure Flex,36,60,51,64,53,1.151,TRUE
+R0223,30–44,muž,Severozápad,Security Seekers,Fixed,47,47,62,60,54,1.051,TRUE
+R0224,18–29,muž,Střední Morava,Green Motivated,Green Plus,31,45,51,49,44,1.121,TRUE
+R0225,18–29,muž,Severovýchod,Security Seekers,Fixed,28,55,58,43,46,0.969,TRUE
+R0226,65+,muž,Severozápad,Security Seekers,Fixed,31,62,90,42,56,1.035,TRUE
+R0227,30–44,žena,Jihovýchod,Active Savers,Secure Flex,56,80,71,88,74,1.166,TRUE
+R0228,45–64,žena,Praha,Security Seekers,Fixed,43,64,64,64,59,1.191,TRUE
+R0229,18–29,žena,Praha,Active Savers,Secure Flex,49,62,86,41,60,1.071,TRUE
+R0230,45–64,žena,Střední Morava,Active Savers,Secure Flex,28,75,86,38,57,0.974,TRUE
+R0231,30–44,žena,Severozápad,Security Seekers,Fixed,39,52,79,73,61,0.955,TRUE
+R0232,45–64,muž,Jihozápad,Security Seekers,Fixed,34,56,58,59,52,0.757,TRUE
+R0233,18–29,muž,Severozápad,Security Seekers,Fixed,41,85,84,64,68,1.24,TRUE
+R0234,30–44,žena,Severozápad,Active Savers,Secure Flex,43,45,85,42,54,1.114,TRUE
+R0235,30–44,žena,Střední Morava,Low Involvement,Secure Flex,56,56,81,60,63,0.79,TRUE
+R0236,18–29,muž,Severozápad,Low Involvement,Secure Flex,48,65,63,86,66,1.146,TRUE
+R0237,65+,muž,Moravskoslezsko,Security Seekers,Fixed,36,83,84,64,67,1.056,TRUE
+R0238,45–64,muž,Praha,Low Involvement,Secure Flex,41,57,51,83,58,0.805,TRUE
+R0239,30–44,žena,Severozápad,Active Savers,Secure Flex,32,45,70,48,49,1.042,TRUE
+R0240,45–64,žena,Střední Čechy,Green Motivated,Green Plus,39,51,90,37,54,0.947,TRUE
+R0241,18–29,muž,Střední Čechy,Security Seekers,Fixed,45,58,62,46,53,0.797,TRUE
+R0242,18–29,žena,Moravskoslezsko,Smart Home Users,Dynamic,57,47,63,84,63,1.066,TRUE
+R0243,65+,muž,Střední Čechy,Smart Home Users,Dynamic,58,49,70,64,60,1.174,TRUE
+R0244,30–44,žena,Jihozápad,Active Savers,Secure Flex,53,65,59,40,54,0.966,TRUE
+R0245,45–64,žena,Jihovýchod,Security Seekers,Fixed,52,82,65,59,64,1.165,TRUE
+R0246,45–64,muž,Severovýchod,Security Seekers,Fixed,62,59,77,89,72,1.038,TRUE
+R0247,65+,žena,Střední Čechy,Active Savers,Secure Flex,37,80,73,58,62,0.895,TRUE
+R0248,65+,žena,Jihozápad,Security Seekers,Fixed,29,84,83,50,62,1.133,TRUE
+R0249,65+,žena,Moravskoslezsko,Security Seekers,Fixed,49,52,71,76,62,0.961,TRUE
+R0250,65+,muž,Střední Čechy,Active Savers,Secure Flex,47,54,72,55,57,0.845,TRUE
+R0251,30–44,žena,Střední Morava,Security Seekers,Fixed,46,69,69,69,63,0.942,TRUE
+R0252,45–64,žena,Severozápad,Low Involvement,Secure Flex,63,53,77,56,62,1.226,TRUE
+R0253,30–44,muž,Střední Morava,Security Seekers,Fixed,60,83,83,83,77,1.247,TRUE
+R0254,30–44,žena,Jihovýchod,Active Savers,Secure Flex,54,85,48,50,59,1.102,TRUE
+R0255,65+,žena,Jihozápad,Smart Home Users,Dynamic,41,55,89,39,56,0.778,TRUE
+R0256,18–29,muž,Severovýchod,Green Motivated,Green Plus,49,77,82,38,62,0.844,TRUE
+R0257,18–29,žena,Moravskoslezsko,Active Savers,Secure Flex,59,55,78,67,65,0.868,TRUE
+R0258,18–29,žena,Jihovýchod,Active Savers,Secure Flex,50,84,87,40,65,0.847,TRUE
+R0259,18–29,muž,Severozápad,Green Motivated,Green Plus,27,59,76,80,60,0.909,TRUE
+R0260,45–64,žena,Severovýchod,Green Motivated,Green Plus,35,55,85,59,58,0.912,TRUE
+R0261,65+,žena,Severovýchod,Green Motivated,Green Plus,52,84,88,64,72,1.067,TRUE
+R0262,30–44,žena,Jihozápad,Green Motivated,Green Plus,62,51,49,41,51,0.92,TRUE
+R0263,65+,muž,Moravskoslezsko,Security Seekers,Fixed,31,45,56,75,52,1.018,TRUE
+R0264,65+,muž,Střední Morava,Security Seekers,Fixed,55,60,53,71,60,1.107,TRUE
+R0265,30–44,muž,Moravskoslezsko,Smart Home Users,Dynamic,27,82,84,44,59,0.944,TRUE
+R0266,18–29,muž,Střední Čechy,Active Savers,Secure Flex,27,49,72,63,53,0.768,TRUE
+R0267,45–64,žena,Střední Čechy,Green Motivated,Green Plus,48,64,71,90,68,0.871,TRUE
+R0268,45–64,žena,Severovýchod,Active Savers,Secure Flex,32,88,88,43,63,1.158,TRUE
+R0269,18–29,žena,Severovýchod,Green Motivated,Green Plus,29,48,76,79,58,1.189,TRUE
+R0270,65+,muž,Jihovýchod,Security Seekers,Fixed,34,49,79,51,53,0.917,TRUE
+R0271,65+,muž,Střední Čechy,Security Seekers,Fixed,45,86,48,83,66,1.163,TRUE
+R0272,65+,muž,Severozápad,Security Seekers,Fixed,28,75,45,68,54,1.102,TRUE
+R0273,65+,muž,Severovýchod,Low Involvement,Secure Flex,35,63,47,56,50,0.778,TRUE
+R0274,18–29,muž,Praha,Smart Home Users,Dynamic,32,80,85,71,67,0.98,TRUE
+R0275,30–44,muž,Moravskoslezsko,Smart Home Users,Dynamic,54,77,70,70,68,1.112,TRUE
+R0276,30–44,žena,Střední Čechy,Active Savers,Secure Flex,32,84,54,58,57,1.11,TRUE
+R0277,30–44,muž,Střední Čechy,Low Involvement,Secure Flex,38,62,54,73,57,0.774,TRUE
+R0278,65+,muž,Střední Morava,Smart Home Users,Dynamic,58,82,68,39,62,0.88,TRUE
+R0279,18–29,žena,Severovýchod,Low Involvement,Secure Flex,51,51,61,66,57,0.9,TRUE
+R0280,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,62,72,89,36,65,1.16,TRUE
+R0281,18–29,muž,Jihozápad,Green Motivated,Green Plus,57,52,57,53,55,0.804,TRUE
+R0282,65+,žena,Moravskoslezsko,Active Savers,Secure Flex,63,60,56,45,56,1.02,TRUE
+R0283,30–44,žena,Severozápad,Security Seekers,Fixed,57,65,77,48,62,1.25,TRUE
+R0284,30–44,žena,Praha,Security Seekers,Fixed,49,56,78,57,60,1.133,TRUE
+R0285,18–29,muž,Praha,Security Seekers,Fixed,43,45,76,70,58,1.205,TRUE
+R0286,18–29,žena,Jihovýchod,Smart Home Users,Dynamic,48,76,53,66,61,1.14,TRUE
+R0287,65+,žena,Praha,Security Seekers,Fixed,32,79,64,41,54,0.968,TRUE
+R0288,65+,muž,Severozápad,Security Seekers,Fixed,42,69,74,50,59,0.786,TRUE
+R0289,30–44,muž,Střední Čechy,Active Savers,Secure Flex,39,68,58,84,62,1.154,TRUE
+R0290,30–44,žena,Střední Čechy,Active Savers,Secure Flex,51,48,48,37,46,1.139,TRUE
+R0291,45–64,muž,Střední Čechy,Green Motivated,Green Plus,27,53,74,54,52,1.033,TRUE
+R0292,18–29,žena,Severovýchod,Security Seekers,Fixed,35,46,69,72,56,1.098,TRUE
+R0293,65+,muž,Jihozápad,Active Savers,Secure Flex,44,59,60,51,54,1.026,TRUE
+R0294,30–44,muž,Praha,Low Involvement,Secure Flex,52,46,78,79,64,1.135,TRUE
+R0295,65+,muž,Severozápad,Smart Home Users,Dynamic,34,86,82,57,65,1.205,TRUE
+R0296,65+,žena,Praha,Green Motivated,Green Plus,53,52,45,89,60,1.01,TRUE
+R0297,18–29,žena,Jihozápad,Smart Home Users,Dynamic,42,78,70,61,63,0.763,TRUE
+R0298,45–64,žena,Střední Čechy,Security Seekers,Fixed,33,45,90,65,58,0.767,TRUE
+R0299,65+,žena,Střední Morava,Low Involvement,Secure Flex,31,81,47,78,59,1.105,TRUE
+R0300,45–64,žena,Střední Morava,Green Motivated,Green Plus,51,50,88,40,57,1.069,TRUE
+R0301,45–64,žena,Praha,Low Involvement,Secure Flex,61,62,69,74,66,0.97,TRUE
+R0302,65+,žena,Střední Čechy,Smart Home Users,Dynamic,31,63,90,38,56,1.024,TRUE
+R0303,45–64,žena,Jihozápad,Security Seekers,Fixed,37,70,49,79,59,0.816,TRUE
+R0304,45–64,muž,Severozápad,Active Savers,Secure Flex,42,81,48,65,59,1.061,TRUE
+R0305,65+,muž,Praha,Active Savers,Secure Flex,43,52,85,65,61,0.884,TRUE
+R0306,45–64,muž,Severozápad,Green Motivated,Green Plus,36,67,59,84,62,0.792,TRUE
+R0307,30–44,muž,Praha,Low Involvement,Secure Flex,56,54,58,80,62,1.236,TRUE
+R0308,65+,žena,Jihovýchod,Security Seekers,Fixed,29,85,90,65,67,0.972,TRUE
+R0309,30–44,žena,Moravskoslezsko,Smart Home Users,Dynamic,39,77,58,74,62,0.813,TRUE
+R0310,45–64,muž,Střední Čechy,Security Seekers,Fixed,60,64,79,49,63,0.867,TRUE
+R0311,45–64,žena,Jihozápad,Security Seekers,Fixed,28,60,87,80,64,0.997,TRUE
+R0312,65+,žena,Střední Morava,Green Motivated,Green Plus,60,49,63,51,56,1.037,TRUE
+R0313,45–64,muž,Severovýchod,Active Savers,Secure Flex,42,80,55,82,65,0.932,TRUE
+R0314,65+,muž,Střední Morava,Active Savers,Secure Flex,63,62,52,50,57,1.167,TRUE
+R0315,65+,žena,Praha,Active Savers,Secure Flex,27,81,64,74,62,0.937,TRUE
+R0316,18–29,muž,Jihozápad,Active Savers,Secure Flex,51,66,65,44,56,0.9,TRUE
+R0317,30–44,muž,Severovýchod,Active Savers,Secure Flex,32,76,50,40,50,0.843,TRUE
+R0318,45–64,muž,Praha,Active Savers,Secure Flex,43,74,90,88,74,1.0,TRUE
+R0319,65+,muž,Střední Morava,Low Involvement,Secure Flex,27,56,53,44,45,0.928,TRUE
+R0320,30–44,žena,Moravskoslezsko,Security Seekers,Fixed,43,53,90,37,56,0.901,TRUE
+R0321,30–44,žena,Praha,Security Seekers,Fixed,63,78,89,38,67,0.842,TRUE
+R0322,65+,žena,Moravskoslezsko,Low Involvement,Secure Flex,37,63,49,56,51,1.009,TRUE
+R0323,45–64,muž,Severovýchod,Active Savers,Secure Flex,50,74,45,44,53,0.793,TRUE
+R0324,65+,muž,Střední Morava,Security Seekers,Fixed,59,82,80,55,69,1.106,TRUE
+R0325,65+,muž,Střední Čechy,Smart Home Users,Dynamic,56,87,53,66,66,1.003,TRUE
+R0326,30–44,žena,Jihovýchod,Security Seekers,Fixed,30,80,68,90,67,0.86,TRUE
+R0327,30–44,muž,Střední Morava,Smart Home Users,Dynamic,34,79,87,77,69,0.804,TRUE
+R0328,18–29,muž,Praha,Security Seekers,Fixed,32,75,71,62,60,0.76,TRUE
+R0329,65+,muž,Praha,Active Savers,Secure Flex,54,77,66,75,68,1.078,TRUE
+R0330,18–29,muž,Praha,Active Savers,Secure Flex,43,55,90,36,56,0.948,TRUE
+R0331,65+,žena,Severovýchod,Low Involvement,Secure Flex,45,85,77,41,62,0.995,TRUE
+R0332,18–29,muž,Jihozápad,Green Motivated,Green Plus,53,74,78,74,70,0.821,TRUE
+R0333,45–64,žena,Střední Čechy,Green Motivated,Green Plus,41,79,89,48,64,1.244,TRUE
+R0334,45–64,muž,Severozápad,Active Savers,Secure Flex,37,65,47,49,50,0.864,TRUE
+R0335,45–64,žena,Jihovýchod,Active Savers,Secure Flex,32,82,69,57,60,0.913,TRUE
+R0336,45–64,muž,Jihovýchod,Active Savers,Secure Flex,29,67,79,82,64,1.129,TRUE
+R0337,65+,muž,Jihozápad,Green Motivated,Green Plus,43,54,69,41,52,1.003,TRUE
+R0338,65+,žena,Moravskoslezsko,Smart Home Users,Dynamic,49,70,77,55,63,1.03,TRUE
+R0339,65+,muž,Střední Morava,Active Savers,Secure Flex,36,48,86,68,60,1.239,TRUE
+R0340,18–29,žena,Severovýchod,Smart Home Users,Dynamic,27,74,73,72,62,1.113,TRUE
+R0341,45–64,žena,Střední Morava,Smart Home Users,Dynamic,60,52,75,72,65,0.761,TRUE
+R0342,65+,žena,Severozápad,Security Seekers,Fixed,37,57,65,52,53,1.065,TRUE
+R0343,30–44,žena,Praha,Security Seekers,Fixed,54,61,56,71,60,0.971,TRUE
+R0344,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,40,86,68,74,67,0.834,TRUE
+R0345,18–29,žena,Střední Morava,Security Seekers,Fixed,44,89,49,53,59,0.991,TRUE
+R0346,65+,žena,Jihovýchod,Security Seekers,Fixed,46,62,61,75,61,0.885,TRUE
+R0347,18–29,žena,Severovýchod,Smart Home Users,Dynamic,45,46,90,59,60,0.868,TRUE
+R0348,65+,muž,Střední Morava,Smart Home Users,Dynamic,44,79,61,62,62,0.754,TRUE
+R0349,18–29,žena,Jihozápad,Smart Home Users,Dynamic,35,78,66,61,60,0.916,TRUE
+R0350,45–64,muž,Praha,Smart Home Users,Dynamic,30,70,61,59,55,1.096,TRUE
+R0351,45–64,muž,Severozápad,Active Savers,Secure Flex,37,68,75,83,66,0.947,TRUE
+R0352,65+,žena,Střední Morava,Security Seekers,Fixed,47,86,53,64,62,0.909,TRUE
+R0353,65+,muž,Jihovýchod,Low Involvement,Secure Flex,37,61,78,40,54,1.165,TRUE
+R0354,45–64,muž,Jihozápad,Smart Home Users,Dynamic,28,46,80,41,49,1.001,TRUE
+R0355,65+,muž,Střední Čechy,Security Seekers,Fixed,50,79,58,38,56,1.041,TRUE
+R0356,18–29,žena,Severozápad,Active Savers,Secure Flex,55,78,64,73,68,1.132,TRUE
+R0357,45–64,žena,Moravskoslezsko,Security Seekers,Fixed,33,87,73,49,60,0.91,TRUE
+R0358,45–64,žena,Jihozápad,Security Seekers,Fixed,44,48,83,45,55,0.821,TRUE
+R0359,18–29,žena,Jihovýchod,Active Savers,Secure Flex,41,90,59,62,63,0.844,TRUE
+R0360,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,42,67,50,40,50,0.897,TRUE
+R0361,65+,žena,Praha,Active Savers,Secure Flex,37,68,68,84,64,1.142,TRUE
+R0362,45–64,žena,Jihozápad,Active Savers,Secure Flex,35,79,73,67,64,1.098,TRUE
+R0363,45–64,žena,Jihovýchod,Active Savers,Secure Flex,34,59,57,48,50,0.927,TRUE
+R0364,65+,muž,Moravskoslezsko,Security Seekers,Fixed,38,66,67,38,52,0.903,TRUE
+R0365,45–64,muž,Severovýchod,Security Seekers,Fixed,30,89,86,44,62,0.929,TRUE
+R0366,45–64,muž,Moravskoslezsko,Security Seekers,Fixed,60,63,72,52,62,1.04,TRUE
+R0367,45–64,žena,Jihovýchod,Smart Home Users,Dynamic,63,64,75,71,68,1.214,TRUE
+R0368,45–64,žena,Střední Čechy,Green Motivated,Green Plus,45,66,88,55,64,0.997,TRUE
+R0369,30–44,žena,Jihozápad,Security Seekers,Fixed,54,61,47,41,51,0.818,TRUE
+R0370,65+,žena,Severozápad,Low Involvement,Secure Flex,38,62,50,38,47,1.033,TRUE
+R0371,45–64,muž,Střední Morava,Green Motivated,Green Plus,37,87,87,38,62,0.833,TRUE
+R0372,30–44,žena,Severovýchod,Smart Home Users,Dynamic,28,74,74,46,56,1.065,TRUE
+R0373,18–29,žena,Severozápad,Low Involvement,Secure Flex,51,46,45,64,52,1.159,TRUE
+R0374,45–64,muž,Praha,Green Motivated,Green Plus,39,63,74,51,57,0.953,TRUE
+R0375,30–44,muž,Jihovýchod,Smart Home Users,Dynamic,27,45,90,87,62,1.106,TRUE
+R0376,18–29,muž,Severovýchod,Security Seekers,Fixed,39,68,51,81,60,1.124,TRUE
+R0377,18–29,žena,Jihovýchod,Security Seekers,Fixed,50,47,65,47,52,1.114,TRUE
+R0378,45–64,muž,Moravskoslezsko,Active Savers,Secure Flex,61,73,66,66,66,0.933,TRUE
+R0379,18–29,žena,Střední Čechy,Active Savers,Secure Flex,46,79,59,84,67,0.989,TRUE
+R0380,65+,žena,Jihozápad,Smart Home Users,Dynamic,31,76,60,88,64,1.204,TRUE
+R0381,30–44,žena,Jihozápad,Security Seekers,Fixed,51,84,50,81,66,1.078,TRUE
+R0382,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,54,55,75,41,56,0.903,TRUE
+R0383,18–29,žena,Střední Čechy,Active Savers,Secure Flex,55,88,64,65,68,0.961,TRUE
+R0384,30–44,muž,Jihovýchod,Smart Home Users,Dynamic,63,73,48,44,57,1.172,TRUE
+R0385,30–44,žena,Jihovýchod,Active Savers,Secure Flex,53,79,77,55,66,1.219,TRUE
+R0386,30–44,muž,Severovýchod,Security Seekers,Fixed,54,58,63,55,58,1.048,TRUE
+R0387,65+,žena,Střední Čechy,Security Seekers,Fixed,41,68,60,44,53,0.819,TRUE
+R0388,30–44,muž,Severovýchod,Low Involvement,Secure Flex,34,72,78,46,58,1.158,TRUE
+R0389,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,60,51,81,78,68,0.844,TRUE
+R0390,45–64,muž,Jihozápad,Low Involvement,Secure Flex,35,50,64,79,57,0.775,TRUE
+R0391,30–44,žena,Jihozápad,Smart Home Users,Dynamic,63,59,55,66,61,1.056,TRUE
+R0392,45–64,muž,Jihozápad,Smart Home Users,Dynamic,35,63,52,63,53,1.232,TRUE
+R0393,45–64,muž,Jihovýchod,Active Savers,Secure Flex,60,57,83,65,66,0.769,TRUE
+R0394,18–29,žena,Praha,Active Savers,Secure Flex,43,80,58,54,59,1.094,TRUE
+R0395,45–64,žena,Moravskoslezsko,Smart Home Users,Dynamic,32,89,89,35,61,1.049,TRUE
+R0396,30–44,muž,Praha,Security Seekers,Fixed,57,61,82,53,63,1.201,TRUE
+R0397,65+,žena,Střední Čechy,Security Seekers,Fixed,43,69,57,66,59,0.972,TRUE
+R0398,65+,muž,Střední Čechy,Low Involvement,Secure Flex,45,87,62,78,68,1.12,TRUE
+R0399,45–64,muž,Střední Čechy,Active Savers,Secure Flex,45,77,88,79,72,1.131,TRUE
+R0400,65+,muž,Severozápad,Green Motivated,Green Plus,33,87,64,61,61,1.189,TRUE
+R0401,45–64,žena,Jihozápad,Green Motivated,Green Plus,29,56,72,71,57,1.133,TRUE
+R0402,65+,muž,Severovýchod,Security Seekers,Fixed,33,60,80,38,53,1.085,TRUE
+R0403,45–64,žena,Praha,Security Seekers,Fixed,57,72,49,85,66,1.001,TRUE
+R0404,45–64,žena,Jihovýchod,Security Seekers,Fixed,44,56,80,83,66,1.203,TRUE
+R0405,65+,žena,Jihozápad,Green Motivated,Green Plus,35,51,71,51,52,0.832,TRUE
+R0406,30–44,muž,Praha,Security Seekers,Fixed,36,77,81,51,61,1.215,TRUE
+R0407,18–29,muž,Jihozápad,Active Savers,Secure Flex,28,88,79,51,62,0.784,TRUE
+R0408,45–64,muž,Jihozápad,Smart Home Users,Dynamic,51,83,47,87,67,1.01,TRUE
+R0409,65+,žena,Střední Čechy,Smart Home Users,Dynamic,56,66,74,67,66,0.969,TRUE
+R0410,45–64,muž,Severovýchod,Security Seekers,Fixed,28,88,61,62,60,1.182,TRUE
+R0411,18–29,žena,Severozápad,Green Motivated,Green Plus,36,45,67,53,50,1.224,TRUE
+R0412,65+,muž,Jihozápad,Low Involvement,Secure Flex,37,62,87,79,66,1.231,TRUE
+R0413,18–29,muž,Severozápad,Security Seekers,Fixed,34,58,60,43,49,1.051,TRUE
+R0414,65+,muž,Severovýchod,Security Seekers,Fixed,40,72,67,41,55,1.063,TRUE
+R0415,30–44,muž,Severozápad,Security Seekers,Fixed,42,52,80,73,62,1.117,TRUE
+R0416,45–64,žena,Praha,Security Seekers,Fixed,58,50,73,71,63,1.038,TRUE
+R0417,45–64,žena,Severovýchod,Security Seekers,Fixed,47,52,75,69,61,1.229,TRUE
+R0418,45–64,muž,Střední Morava,Security Seekers,Fixed,34,61,77,89,65,0.814,TRUE
+R0419,18–29,muž,Moravskoslezsko,Security Seekers,Fixed,41,53,83,48,56,1.062,TRUE
+R0420,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,53,48,86,70,64,0.825,TRUE
+R0421,30–44,muž,Severozápad,Smart Home Users,Dynamic,37,63,48,65,53,1.104,TRUE
+R0422,30–44,muž,Jihozápad,Security Seekers,Fixed,27,89,61,79,64,1.155,TRUE
+R0423,65+,muž,Moravskoslezsko,Smart Home Users,Dynamic,34,69,54,56,53,1.148,TRUE
+R0424,30–44,muž,Praha,Green Motivated,Green Plus,55,89,75,77,74,0.871,TRUE
+R0425,45–64,žena,Severozápad,Green Motivated,Green Plus,28,65,53,87,58,0.863,TRUE
+R0426,65+,muž,Střední Čechy,Active Savers,Secure Flex,36,74,85,82,69,1.219,TRUE
+R0427,65+,žena,Moravskoslezsko,Low Involvement,Secure Flex,51,84,48,50,58,1.149,TRUE
+R0428,18–29,žena,Severozápad,Active Savers,Secure Flex,32,89,74,72,67,1.186,TRUE
+R0429,45–64,muž,Jihovýchod,Security Seekers,Fixed,27,45,68,62,50,0.953,TRUE
+R0430,18–29,žena,Jihovýchod,Security Seekers,Fixed,36,81,58,63,60,1.159,TRUE
+R0431,45–64,žena,Jihozápad,Green Motivated,Green Plus,44,57,79,77,64,0.992,TRUE
+R0432,65+,žena,Severovýchod,Low Involvement,Secure Flex,29,58,82,64,58,1.079,TRUE
+R0433,45–64,muž,Střední Morava,Security Seekers,Fixed,57,87,75,76,74,1.15,TRUE
+R0434,65+,žena,Střední Čechy,Low Involvement,Secure Flex,27,87,56,49,55,0.754,TRUE
+R0435,45–64,muž,Jihozápad,Security Seekers,Fixed,57,76,60,69,66,1.032,TRUE
+R0436,45–64,žena,Severovýchod,Green Motivated,Green Plus,29,75,85,71,65,0.877,TRUE
+R0437,45–64,žena,Severovýchod,Smart Home Users,Dynamic,59,84,74,87,76,1.154,TRUE
+R0438,18–29,muž,Jihovýchod,Smart Home Users,Dynamic,40,80,64,52,59,0.905,TRUE
+R0439,65+,žena,Severozápad,Low Involvement,Secure Flex,45,61,76,57,60,0.903,TRUE
+R0440,65+,muž,Moravskoslezsko,Security Seekers,Fixed,60,60,64,37,55,0.99,TRUE
+R0441,18–29,muž,Severovýchod,Security Seekers,Fixed,31,51,49,61,48,0.873,TRUE
+R0442,18–29,muž,Severovýchod,Security Seekers,Fixed,49,70,64,56,60,0.809,TRUE
+R0443,30–44,žena,Střední Čechy,Smart Home Users,Dynamic,38,63,71,84,64,1.045,TRUE
+R0444,30–44,žena,Moravskoslezsko,Active Savers,Secure Flex,50,80,60,88,70,0.908,TRUE
+R0445,45–64,žena,Střední Morava,Active Savers,Secure Flex,57,58,48,90,63,1.219,TRUE
+R0446,18–29,žena,Střední Čechy,Active Savers,Secure Flex,54,59,67,66,62,1.125,TRUE
+R0447,18–29,žena,Jihozápad,Security Seekers,Fixed,60,65,87,42,64,1.13,TRUE
+R0448,18–29,muž,Střední Morava,Security Seekers,Fixed,53,58,89,43,61,1.016,TRUE
+R0449,65+,muž,Střední Čechy,Smart Home Users,Dynamic,49,68,64,39,55,0.944,TRUE
+R0450,18–29,muž,Severovýchod,Active Savers,Secure Flex,36,67,59,71,58,0.917,TRUE
+R0451,30–44,muž,Moravskoslezsko,Smart Home Users,Dynamic,32,67,55,43,49,1.038,TRUE
+R0452,30–44,muž,Moravskoslezsko,Green Motivated,Green Plus,30,69,46,49,48,1.191,TRUE
+R0453,45–64,muž,Severovýchod,Security Seekers,Fixed,27,84,63,41,54,0.765,TRUE
+R0454,18–29,žena,Střední Čechy,Low Involvement,Secure Flex,32,78,73,39,56,0.998,TRUE
+R0455,45–64,žena,Jihovýchod,Low Involvement,Secure Flex,35,82,45,55,54,1.101,TRUE
+R0456,18–29,žena,Střední Čechy,Active Savers,Secure Flex,61,47,50,39,49,1.046,TRUE
+R0457,18–29,žena,Střední Čechy,Smart Home Users,Dynamic,61,69,74,89,73,0.964,TRUE
+R0458,45–64,žena,Jihovýchod,Security Seekers,Fixed,28,47,56,63,48,1.11,TRUE
+R0459,18–29,muž,Severozápad,Security Seekers,Fixed,55,53,59,67,58,1.174,TRUE
+R0460,45–64,muž,Praha,Smart Home Users,Dynamic,31,54,52,57,48,0.897,TRUE
+R0461,18–29,muž,Jihozápad,Green Motivated,Green Plus,50,88,57,47,60,0.948,TRUE
+R0462,18–29,žena,Jihozápad,Security Seekers,Fixed,53,60,86,69,67,0.788,TRUE
+R0463,18–29,muž,Střední Čechy,Active Savers,Secure Flex,31,74,62,87,64,1.053,TRUE
+R0464,65+,žena,Praha,Active Savers,Secure Flex,51,84,47,72,64,1.158,TRUE
+R0465,18–29,žena,Moravskoslezsko,Smart Home Users,Dynamic,32,64,85,63,61,1.027,TRUE
+R0466,45–64,žena,Jihozápad,Smart Home Users,Dynamic,56,80,53,85,68,0.823,TRUE
+R0467,30–44,žena,Praha,Security Seekers,Fixed,63,59,68,46,59,0.86,TRUE
+R0468,18–29,muž,Severozápad,Security Seekers,Fixed,48,58,71,87,66,0.901,TRUE
+R0469,65+,žena,Moravskoslezsko,Green Motivated,Green Plus,48,71,73,43,59,1.088,TRUE
+R0470,18–29,žena,Severovýchod,Active Savers,Secure Flex,30,47,72,48,49,1.01,TRUE
+R0471,18–29,muž,Jihozápad,Low Involvement,Secure Flex,36,78,65,36,54,1.06,TRUE
+R0472,18–29,žena,Moravskoslezsko,Green Motivated,Green Plus,51,56,90,69,66,1.224,TRUE
+R0473,18–29,žena,Severozápad,Smart Home Users,Dynamic,58,87,66,62,68,1.195,TRUE
+R0474,45–64,žena,Praha,Active Savers,Secure Flex,38,89,58,73,64,0.992,TRUE
+R0475,65+,muž,Severovýchod,Green Motivated,Green Plus,27,70,58,85,60,1.198,TRUE
+R0476,18–29,muž,Střední Čechy,Smart Home Users,Dynamic,44,88,59,48,60,0.909,TRUE
+R0477,30–44,muž,Střední Čechy,Green Motivated,Green Plus,49,72,52,73,62,1.058,TRUE
+R0478,65+,muž,Střední Morava,Security Seekers,Fixed,30,46,47,55,44,1.061,TRUE
+R0479,30–44,muž,Jihozápad,Green Motivated,Green Plus,58,90,68,85,75,0.872,TRUE
+R0480,18–29,muž,Jihozápad,Green Motivated,Green Plus,48,63,70,80,65,0.824,TRUE
+R0481,45–64,žena,Jihovýchod,Security Seekers,Fixed,47,64,75,64,62,0.763,TRUE
+R0482,18–29,muž,Střední Morava,Active Savers,Secure Flex,34,52,76,49,53,1.219,TRUE
+R0483,45–64,žena,Střední Morava,Smart Home Users,Dynamic,61,71,73,86,73,0.763,TRUE
+R0484,30–44,žena,Jihozápad,Active Savers,Secure Flex,34,75,84,88,70,1.142,TRUE
+R0485,65+,muž,Střední Čechy,Active Savers,Secure Flex,49,46,50,81,56,0.907,TRUE
+R0486,45–64,muž,Jihovýchod,Security Seekers,Fixed,52,78,60,61,63,1.212,TRUE
+R0487,65+,muž,Severovýchod,Active Savers,Secure Flex,54,83,50,41,57,1.237,TRUE
+R0488,65+,muž,Střední Čechy,Security Seekers,Fixed,57,60,60,36,53,1.185,TRUE
+R0489,45–64,muž,Severozápad,Active Savers,Secure Flex,54,88,80,57,70,1.024,TRUE
+R0490,65+,muž,Střední Čechy,Active Savers,Secure Flex,55,85,71,56,67,1.005,TRUE
+R0491,30–44,žena,Severozápad,Security Seekers,Fixed,30,51,56,64,50,0.799,TRUE
+R0492,65+,muž,Střední Čechy,Security Seekers,Fixed,57,46,75,85,66,1.115,TRUE
+R0493,45–64,muž,Severozápad,Security Seekers,Fixed,39,71,72,81,66,1.228,TRUE
+R0494,45–64,žena,Jihozápad,Security Seekers,Fixed,43,56,61,53,53,1.09,TRUE
+R0495,18–29,muž,Střední Morava,Security Seekers,Fixed,52,87,67,89,74,0.936,TRUE
+R0496,65+,žena,Praha,Security Seekers,Fixed,50,66,60,38,54,0.839,TRUE
+R0497,65+,muž,Praha,Security Seekers,Fixed,51,87,66,52,64,0.948,TRUE
+R0498,65+,muž,Moravskoslezsko,Low Involvement,Secure Flex,48,59,75,67,62,1.154,TRUE
+R0499,45–64,muž,Jihozápad,Security Seekers,Fixed,33,82,48,77,60,1.203,TRUE
+R0500,65+,muž,Střední Morava,Active Savers,Secure Flex,57,82,71,48,64,0.836,TRUE
+R0501,65+,muž,Střední Morava,Green Motivated,Green Plus,63,67,81,89,75,0.925,TRUE
+R0502,65+,žena,Jihovýchod,Active Savers,Secure Flex,52,47,73,61,58,0.775,TRUE
+R0503,65+,muž,Severozápad,Low Involvement,Secure Flex,52,59,66,49,56,1.169,TRUE
+R0504,18–29,žena,Severovýchod,Security Seekers,Fixed,53,78,50,44,56,1.138,TRUE
+R0505,45–64,muž,Praha,Security Seekers,Fixed,35,60,61,43,50,0.782,TRUE
+R0506,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,59,68,80,35,60,0.929,TRUE
+R0507,45–64,žena,Severovýchod,Smart Home Users,Dynamic,43,67,87,84,70,0.881,TRUE
+R0508,65+,muž,Moravskoslezsko,Active Savers,Secure Flex,52,58,63,75,62,1.203,TRUE
+R0509,45–64,muž,Severozápad,Security Seekers,Fixed,31,55,89,37,53,0.881,TRUE
+R0510,18–29,žena,Jihozápad,Smart Home Users,Dynamic,34,76,47,53,52,0.971,TRUE
+R0511,30–44,žena,Jihovýchod,Security Seekers,Fixed,60,54,90,82,72,1.215,TRUE
+R0512,45–64,žena,Praha,Smart Home Users,Dynamic,57,89,73,39,64,1.12,TRUE
+R0513,30–44,žena,Jihozápad,Active Savers,Secure Flex,34,46,47,88,54,1.087,TRUE
+R0514,30–44,muž,Jihozápad,Green Motivated,Green Plus,61,83,69,66,70,0.95,TRUE
+R0515,65+,žena,Střední Čechy,Security Seekers,Fixed,27,85,90,43,61,0.955,TRUE
+R0516,45–64,muž,Střední Čechy,Active Savers,Secure Flex,34,50,52,77,53,0.871,TRUE
+R0517,65+,muž,Severozápad,Smart Home Users,Dynamic,45,60,57,90,63,0.752,TRUE
+R0518,30–44,žena,Střední Morava,Security Seekers,Fixed,38,84,74,81,69,0.784,TRUE
+R0519,65+,muž,Severovýchod,Smart Home Users,Dynamic,45,58,65,80,62,1.215,TRUE
+R0520,18–29,žena,Střední Morava,Smart Home Users,Dynamic,40,88,84,67,70,0.872,TRUE
+R0521,18–29,muž,Jihovýchod,Smart Home Users,Dynamic,45,58,48,89,60,0.808,TRUE
+R0522,45–64,žena,Jihozápad,Low Involvement,Secure Flex,46,57,76,53,58,1.026,TRUE
+R0523,30–44,muž,Střední Čechy,Security Seekers,Fixed,27,88,88,68,68,0.933,TRUE
+R0524,30–44,muž,Praha,Security Seekers,Fixed,42,54,52,72,55,1.142,TRUE
+R0525,18–29,muž,Praha,Low Involvement,Secure Flex,48,49,74,65,59,0.866,TRUE
+R0526,18–29,muž,Severozápad,Security Seekers,Fixed,62,67,60,70,65,1.178,TRUE
+R0527,18–29,žena,Střední Morava,Security Seekers,Fixed,63,90,60,76,72,1.06,TRUE
+R0528,65+,muž,Jihozápad,Security Seekers,Fixed,52,68,58,52,58,0.801,TRUE
+R0529,18–29,muž,Severozápad,Active Savers,Secure Flex,37,68,76,41,56,0.898,TRUE
+R0530,18–29,žena,Střední Morava,Smart Home Users,Dynamic,35,62,55,87,60,0.865,TRUE
+R0531,45–64,žena,Praha,Active Savers,Secure Flex,55,63,70,40,57,1.123,TRUE
+R0532,65+,žena,Střední Čechy,Active Savers,Secure Flex,37,79,87,35,60,1.193,TRUE
+R0533,30–44,žena,Jihozápad,Security Seekers,Fixed,46,67,60,52,56,0.928,TRUE
+R0534,30–44,žena,Moravskoslezsko,Low Involvement,Secure Flex,57,77,86,35,64,1.175,TRUE
+R0535,45–64,žena,Severovýchod,Security Seekers,Fixed,32,63,54,74,56,0.776,TRUE
+R0536,45–64,žena,Praha,Green Motivated,Green Plus,40,53,64,60,54,0.942,TRUE
+R0537,30–44,žena,Severovýchod,Active Savers,Secure Flex,53,67,84,64,67,0.892,TRUE
+R0538,65+,žena,Střední Morava,Security Seekers,Fixed,62,80,52,84,70,1.076,TRUE
+R0539,30–44,žena,Praha,Active Savers,Secure Flex,46,51,48,76,55,1.09,TRUE
+R0540,30–44,muž,Střední Čechy,Security Seekers,Fixed,40,80,49,51,55,1.112,TRUE
+R0541,45–64,muž,Jihozápad,Green Motivated,Green Plus,33,48,85,35,50,1.248,TRUE
+R0542,65+,muž,Severovýchod,Smart Home Users,Dynamic,41,79,73,71,66,0.943,TRUE
+R0543,45–64,muž,Střední Morava,Security Seekers,Fixed,51,65,64,86,66,0.977,TRUE
+R0544,30–44,žena,Jihozápad,Green Motivated,Green Plus,51,69,72,62,64,1.123,TRUE
+R0545,45–64,muž,Severozápad,Security Seekers,Fixed,53,89,85,60,72,0.95,TRUE
+R0546,30–44,žena,Severozápad,Active Savers,Secure Flex,59,69,62,86,69,0.854,TRUE
+R0547,65+,muž,Severozápad,Active Savers,Secure Flex,51,49,68,35,51,0.94,TRUE
+R0548,30–44,muž,Jihozápad,Green Motivated,Green Plus,36,83,47,54,55,1.186,TRUE
+R0549,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,41,73,57,44,54,1.173,TRUE
+R0550,45–64,muž,Severozápad,Smart Home Users,Dynamic,53,50,69,90,66,1.232,TRUE
+R0551,30–44,žena,Praha,Active Savers,Secure Flex,33,61,87,37,54,1.112,TRUE
+R0552,65+,muž,Praha,Green Motivated,Green Plus,36,47,78,81,60,0.975,TRUE
+R0553,45–64,muž,Severozápad,Security Seekers,Fixed,40,83,52,53,57,1.2,TRUE
+R0554,18–29,žena,Severovýchod,Security Seekers,Fixed,61,48,55,60,56,1.234,TRUE
+R0555,30–44,muž,Moravskoslezsko,Smart Home Users,Dynamic,61,77,82,78,74,1.163,TRUE
+R0556,18–29,žena,Střední Morava,Security Seekers,Fixed,28,57,54,45,46,0.898,TRUE
+R0557,18–29,žena,Jihovýchod,Security Seekers,Fixed,58,67,84,86,74,1.093,TRUE
+R0558,30–44,muž,Jihozápad,Active Savers,Secure Flex,41,46,80,82,62,1.246,TRUE
+R0559,18–29,muž,Střední Morava,Security Seekers,Fixed,39,59,57,47,50,0.885,TRUE
+R0560,30–44,žena,Jihozápad,Security Seekers,Fixed,61,48,73,41,56,0.943,TRUE
+R0561,18–29,muž,Jihozápad,Security Seekers,Fixed,61,84,63,50,64,1.208,TRUE
+R0562,18–29,žena,Severozápad,Active Savers,Secure Flex,62,75,54,82,68,1.068,TRUE
+R0563,18–29,muž,Praha,Security Seekers,Fixed,59,56,47,60,56,0.874,TRUE
+R0564,18–29,žena,Střední Čechy,Smart Home Users,Dynamic,63,55,46,74,60,0.921,TRUE
+R0565,18–29,žena,Severozápad,Smart Home Users,Dynamic,54,51,54,45,51,0.952,TRUE
+R0566,30–44,žena,Praha,Security Seekers,Fixed,52,48,53,76,57,0.778,TRUE
+R0567,30–44,muž,Střední Čechy,Security Seekers,Fixed,31,52,90,57,58,1.172,TRUE
+R0568,30–44,muž,Moravskoslezsko,Security Seekers,Fixed,28,58,66,84,59,0.979,TRUE
+R0569,18–29,muž,Moravskoslezsko,Security Seekers,Fixed,61,66,76,73,69,1.092,TRUE
+R0570,18–29,žena,Severozápad,Security Seekers,Fixed,37,65,78,61,60,1.103,TRUE
+R0571,18–29,muž,Severozápad,Green Motivated,Green Plus,62,57,64,76,65,0.942,TRUE
+R0572,30–44,muž,Severovýchod,Smart Home Users,Dynamic,39,48,87,77,63,1.108,TRUE
+R0573,65+,muž,Střední Čechy,Green Motivated,Green Plus,45,64,58,64,58,0.817,TRUE
+R0574,18–29,žena,Jihozápad,Smart Home Users,Dynamic,61,83,46,88,70,0.977,TRUE
+R0575,45–64,žena,Severovýchod,Security Seekers,Fixed,35,80,57,81,63,1.238,TRUE
+R0576,65+,muž,Jihovýchod,Active Savers,Secure Flex,48,78,56,66,62,1.182,TRUE
+R0577,18–29,žena,Severovýchod,Green Motivated,Green Plus,27,53,71,70,55,0.943,TRUE
+R0578,18–29,muž,Severovýchod,Security Seekers,Fixed,56,75,66,69,66,1.129,TRUE
+R0579,18–29,muž,Severovýchod,Active Savers,Secure Flex,48,69,64,62,61,1.203,TRUE
+R0580,30–44,žena,Jihozápad,Security Seekers,Fixed,58,58,73,70,65,0.858,TRUE
+R0581,65+,žena,Praha,Active Savers,Secure Flex,38,78,46,65,57,0.94,TRUE
+R0582,18–29,žena,Severovýchod,Security Seekers,Fixed,54,46,76,61,59,0.9,TRUE
+R0583,30–44,žena,Moravskoslezsko,Smart Home Users,Dynamic,51,71,80,69,68,0.98,TRUE
+R0584,65+,žena,Severozápad,Security Seekers,Fixed,53,90,65,74,70,1.002,TRUE
+R0585,45–64,muž,Moravskoslezsko,Green Motivated,Green Plus,28,61,86,82,64,1.178,TRUE
+R0586,18–29,muž,Jihovýchod,Green Motivated,Green Plus,53,81,47,38,55,0.909,TRUE
+R0587,30–44,muž,Severovýchod,Smart Home Users,Dynamic,60,76,77,71,71,1.19,TRUE
+R0588,18–29,muž,Praha,Smart Home Users,Dynamic,28,89,87,45,62,1.118,TRUE
+R0589,45–64,muž,Jihovýchod,Smart Home Users,Dynamic,58,54,71,58,60,0.789,TRUE
+R0590,65+,muž,Střední Čechy,Security Seekers,Fixed,51,75,57,55,60,1.194,TRUE
+R0591,18–29,žena,Jihovýchod,Active Savers,Secure Flex,47,82,55,80,66,0.937,TRUE
+R0592,30–44,žena,Severovýchod,Active Savers,Secure Flex,38,74,50,37,50,1.064,TRUE
+R0593,30–44,žena,Praha,Security Seekers,Fixed,58,50,60,56,56,1.017,TRUE
+R0594,65+,muž,Praha,Security Seekers,Fixed,49,62,77,42,58,0.987,TRUE
+R0595,30–44,žena,Severozápad,Smart Home Users,Dynamic,47,51,51,88,59,1.029,TRUE
+R0596,45–64,muž,Jihovýchod,Security Seekers,Fixed,38,61,73,48,55,0.908,TRUE
+R0597,18–29,muž,Moravskoslezsko,Low Involvement,Secure Flex,39,46,86,59,58,1.214,TRUE
+R0598,30–44,žena,Jihozápad,Security Seekers,Fixed,48,48,62,83,60,1.072,TRUE
+R0599,45–64,muž,Střední Čechy,Active Savers,Secure Flex,31,50,45,73,50,0.891,TRUE
+R0600,45–64,muž,Střední Morava,Green Motivated,Green Plus,36,78,50,61,56,1.199,TRUE
+R0601,65+,žena,Severovýchod,Security Seekers,Fixed,35,88,90,63,69,0.75,TRUE
+R0602,30–44,muž,Severozápad,Security Seekers,Fixed,50,88,89,61,72,1.12,TRUE
+R0603,30–44,žena,Severozápad,Green Motivated,Green Plus,43,49,63,85,60,1.097,TRUE
+R0604,18–29,žena,Jihozápad,Smart Home Users,Dynamic,50,55,54,73,58,1.245,TRUE
+R0605,30–44,žena,Jihovýchod,Security Seekers,Fixed,53,66,90,80,72,1.191,TRUE
+R0606,30–44,muž,Jihozápad,Security Seekers,Fixed,39,60,84,79,66,0.899,TRUE
+R0607,18–29,žena,Praha,Active Savers,Secure Flex,59,56,55,54,56,0.853,TRUE
+R0608,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,47,65,61,41,54,0.893,TRUE
+R0609,30–44,žena,Střední Čechy,Active Savers,Secure Flex,32,78,63,86,65,0.812,TRUE
+R0610,65+,muž,Střední Morava,Security Seekers,Fixed,28,89,50,78,61,0.791,TRUE
+R0611,30–44,muž,Jihozápad,Active Savers,Secure Flex,34,47,46,60,47,1.208,TRUE
+R0612,45–64,muž,Jihozápad,Smart Home Users,Dynamic,50,56,82,79,67,0.906,TRUE
+R0613,30–44,muž,Střední Morava,Green Motivated,Green Plus,36,77,70,46,57,1.002,TRUE
+R0614,18–29,muž,Jihozápad,Security Seekers,Fixed,44,70,73,89,69,0.874,TRUE
+R0615,45–64,žena,Střední Čechy,Active Savers,Secure Flex,32,88,74,46,60,1.218,TRUE
+R0616,45–64,muž,Střední Čechy,Active Savers,Secure Flex,38,59,53,78,57,0.992,TRUE
+R0617,18–29,muž,Střední Čechy,Green Motivated,Green Plus,63,58,87,82,72,0.755,TRUE
+R0618,65+,muž,Moravskoslezsko,Security Seekers,Fixed,45,69,49,66,57,1.202,TRUE
+R0619,45–64,muž,Severozápad,Green Motivated,Green Plus,35,80,82,36,58,0.752,TRUE
+R0620,18–29,muž,Střední Morava,Low Involvement,Secure Flex,36,82,71,50,60,0.984,TRUE
+R0621,65+,žena,Severovýchod,Active Savers,Secure Flex,60,63,68,44,59,1.196,TRUE
+R0622,18–29,muž,Střední Čechy,Security Seekers,Fixed,49,78,54,73,64,0.984,TRUE
+R0623,45–64,žena,Střední Čechy,Security Seekers,Fixed,33,82,86,84,71,0.771,TRUE
+R0624,45–64,žena,Střední Čechy,Active Savers,Secure Flex,59,50,90,81,70,1.211,TRUE
+R0625,65+,žena,Severozápad,Active Savers,Secure Flex,61,62,86,84,73,0.803,TRUE
+R0626,65+,muž,Střední Morava,Green Motivated,Green Plus,62,73,47,37,55,1.19,TRUE
+R0627,65+,muž,Severozápad,Active Savers,Secure Flex,38,62,72,77,62,1.121,TRUE
+R0628,45–64,žena,Severovýchod,Active Savers,Secure Flex,47,46,69,75,59,1.123,TRUE
+R0629,30–44,žena,Jihovýchod,Green Motivated,Green Plus,42,66,52,68,57,0.868,TRUE
+R0630,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,61,45,78,60,61,1.032,TRUE
+R0631,45–64,muž,Severozápad,Security Seekers,Fixed,52,55,50,51,52,0.804,TRUE
+R0632,65+,muž,Jihozápad,Active Savers,Secure Flex,61,75,86,40,66,1.002,TRUE
+R0633,18–29,žena,Jihozápad,Green Motivated,Green Plus,48,52,47,74,55,0.929,TRUE
+R0634,18–29,žena,Severozápad,Security Seekers,Fixed,59,70,76,56,65,1.061,TRUE
+R0635,65+,muž,Jihovýchod,Active Savers,Secure Flex,62,57,85,36,60,0.827,TRUE
+R0636,18–29,muž,Severovýchod,Low Involvement,Secure Flex,61,65,73,46,61,1.036,TRUE
+R0637,65+,muž,Střední Morava,Smart Home Users,Dynamic,39,87,64,71,65,0.779,TRUE
+R0638,65+,muž,Střední Čechy,Security Seekers,Fixed,49,82,84,86,75,0.901,TRUE
+R0639,65+,žena,Jihozápad,Security Seekers,Fixed,46,52,89,48,59,1.183,TRUE
+R0640,45–64,žena,Severovýchod,Green Motivated,Green Plus,58,74,54,40,56,0.822,TRUE
+R0641,18–29,žena,Střední Čechy,Smart Home Users,Dynamic,41,61,67,69,60,1.04,TRUE
+R0642,65+,muž,Severozápad,Active Savers,Secure Flex,58,62,79,76,69,1.063,TRUE
+R0643,18–29,muž,Jihovýchod,Active Savers,Secure Flex,55,61,64,84,66,1.235,TRUE
+R0644,65+,muž,Střední Čechy,Security Seekers,Fixed,30,74,73,82,65,0.755,TRUE
+R0645,30–44,muž,Severovýchod,Security Seekers,Fixed,28,74,68,47,54,0.824,TRUE
+R0646,45–64,žena,Praha,Active Savers,Secure Flex,28,68,86,50,58,0.84,TRUE
+R0647,45–64,žena,Moravskoslezsko,Active Savers,Secure Flex,49,71,86,41,62,0.975,TRUE
+R0648,30–44,žena,Střední Čechy,Green Motivated,Green Plus,41,62,81,89,68,1.17,TRUE
+R0649,18–29,muž,Moravskoslezsko,Security Seekers,Fixed,30,63,72,56,55,0.894,TRUE
+R0650,30–44,žena,Střední Čechy,Green Motivated,Green Plus,32,68,68,39,52,1.083,TRUE
+R0651,30–44,žena,Jihozápad,Active Savers,Secure Flex,56,90,87,43,69,1.192,TRUE
+R0652,65+,muž,Střední Čechy,Smart Home Users,Dynamic,29,75,50,67,55,1.088,TRUE
+R0653,45–64,muž,Severovýchod,Security Seekers,Fixed,31,79,77,52,60,1.25,TRUE
+R0654,45–64,muž,Praha,Green Motivated,Green Plus,55,53,76,88,68,0.991,TRUE
+R0655,45–64,muž,Střední Čechy,Green Motivated,Green Plus,60,73,66,85,71,1.066,TRUE
+R0656,45–64,žena,Střední Čechy,Low Involvement,Secure Flex,31,53,46,71,50,1.098,TRUE
+R0657,65+,žena,Praha,Green Motivated,Green Plus,34,53,85,85,64,1.015,TRUE
+R0658,65+,žena,Severozápad,Smart Home Users,Dynamic,56,46,83,40,56,1.071,TRUE
+R0659,30–44,žena,Jihozápad,Green Motivated,Green Plus,40,74,86,63,66,1.194,TRUE
+R0660,18–29,žena,Praha,Smart Home Users,Dynamic,56,46,90,86,70,0.982,TRUE
+R0661,65+,muž,Severovýchod,Security Seekers,Fixed,47,48,45,69,52,1.137,TRUE
+R0662,18–29,žena,Jihozápad,Security Seekers,Fixed,42,69,57,81,62,1.07,TRUE
+R0663,30–44,muž,Jihovýchod,Smart Home Users,Dynamic,37,50,89,37,53,1.167,TRUE
+R0664,45–64,žena,Moravskoslezsko,Green Motivated,Green Plus,49,74,80,67,68,0.816,TRUE
+R0665,45–64,žena,Praha,Smart Home Users,Dynamic,59,70,85,88,76,0.789,TRUE
+R0666,18–29,žena,Severozápad,Active Savers,Secure Flex,54,46,78,74,63,1.11,TRUE
+R0667,30–44,muž,Praha,Security Seekers,Fixed,61,47,89,78,69,0.824,TRUE
+R0668,18–29,žena,Střední Čechy,Active Savers,Secure Flex,62,51,45,44,50,1.218,TRUE
+R0669,18–29,žena,Jihozápad,Green Motivated,Green Plus,35,88,66,35,56,1.012,TRUE
+R0670,18–29,žena,Střední Morava,Green Motivated,Green Plus,42,67,77,48,58,0.803,TRUE
+R0671,18–29,žena,Jihozápad,Active Savers,Secure Flex,62,79,84,76,75,0.792,TRUE
+R0672,45–64,žena,Severovýchod,Active Savers,Secure Flex,40,59,63,45,52,0.903,TRUE
+R0673,30–44,muž,Jihozápad,Active Savers,Secure Flex,41,67,78,89,69,1.199,TRUE
+R0674,30–44,muž,Střední Čechy,Security Seekers,Fixed,58,54,84,47,61,1.171,TRUE
+R0675,65+,žena,Jihovýchod,Low Involvement,Secure Flex,63,51,53,80,62,0.751,TRUE
+R0676,30–44,žena,Jihozápad,Smart Home Users,Dynamic,27,67,72,57,56,1.054,TRUE
+R0677,30–44,žena,Střední Morava,Active Savers,Secure Flex,39,83,85,46,63,1.055,TRUE
+R0678,30–44,žena,Moravskoslezsko,Security Seekers,Fixed,53,57,59,82,63,0.824,TRUE
+R0679,18–29,žena,Jihovýchod,Active Savers,Secure Flex,38,53,54,73,54,1.077,TRUE
+R0680,65+,muž,Jihozápad,Security Seekers,Fixed,40,76,61,62,60,1.199,TRUE
+R0681,45–64,žena,Moravskoslezsko,Smart Home Users,Dynamic,62,71,77,46,64,0.881,TRUE
+R0682,45–64,muž,Jihozápad,Green Motivated,Green Plus,62,52,81,90,71,1.094,TRUE
+R0683,45–64,muž,Jihozápad,Smart Home Users,Dynamic,28,76,67,48,55,1.032,TRUE
+R0684,65+,muž,Severozápad,Smart Home Users,Dynamic,27,85,83,38,58,1.08,TRUE
+R0685,30–44,žena,Moravskoslezsko,Active Savers,Secure Flex,33,82,62,80,64,1.075,TRUE
+R0686,30–44,muž,Severovýchod,Smart Home Users,Dynamic,60,62,66,38,56,1.067,TRUE
+R0687,65+,muž,Střední Morava,Security Seekers,Fixed,52,66,71,70,65,1.103,TRUE
+R0688,30–44,žena,Severovýchod,Smart Home Users,Dynamic,31,83,80,66,65,0.808,TRUE
+R0689,45–64,muž,Moravskoslezsko,Active Savers,Secure Flex,46,64,67,47,56,1.214,TRUE
+R0690,30–44,žena,Severovýchod,Security Seekers,Fixed,30,85,46,47,52,1.131,TRUE
+R0691,65+,muž,Střední Morava,Security Seekers,Fixed,35,66,47,67,54,0.967,TRUE
+R0692,45–64,muž,Jihovýchod,Active Savers,Secure Flex,49,55,69,81,64,0.84,TRUE
+R0693,65+,muž,Severovýchod,Security Seekers,Fixed,62,80,75,39,64,0.824,TRUE
+R0694,18–29,žena,Moravskoslezsko,Active Savers,Secure Flex,53,68,60,66,62,0.762,TRUE
+R0695,65+,žena,Praha,Smart Home Users,Dynamic,55,68,82,73,70,1.12,TRUE
+R0696,18–29,žena,Střední Morava,Low Involvement,Secure Flex,42,67,50,78,59,0.916,TRUE
+R0697,18–29,muž,Střední Morava,Active Savers,Secure Flex,37,77,54,90,64,0.764,TRUE
+R0698,45–64,muž,Severovýchod,Security Seekers,Fixed,48,55,61,66,58,0.888,TRUE
+R0699,30–44,žena,Střední Čechy,Low Involvement,Secure Flex,44,83,85,76,72,0.944,TRUE
+R0700,30–44,muž,Jihovýchod,Active Savers,Secure Flex,49,69,81,86,71,1.208,TRUE
+R0701,18–29,žena,Moravskoslezsko,Smart Home Users,Dynamic,40,74,55,38,52,0.776,TRUE
+R0702,45–64,žena,Severovýchod,Green Motivated,Green Plus,60,77,61,90,72,1.171,TRUE
+R0703,30–44,žena,Moravskoslezsko,Low Involvement,Secure Flex,32,81,54,87,64,0.847,TRUE
+R0704,65+,muž,Střední Morava,Security Seekers,Fixed,42,56,46,65,52,1.129,TRUE
+R0705,18–29,žena,Jihozápad,Low Involvement,Secure Flex,32,84,52,38,52,0.895,TRUE
+R0706,45–64,žena,Střední Čechy,Green Motivated,Green Plus,53,79,69,66,67,0.844,TRUE
+R0707,45–64,muž,Jihozápad,Security Seekers,Fixed,29,65,48,55,49,1.023,TRUE
+R0708,45–64,muž,Střední Morava,Security Seekers,Fixed,53,79,82,84,74,1.149,TRUE
+R0709,30–44,žena,Severovýchod,Active Savers,Secure Flex,37,83,62,45,57,1.203,TRUE
+R0710,30–44,muž,Severozápad,Green Motivated,Green Plus,47,65,50,38,50,1.116,TRUE
+R0711,45–64,muž,Jihovýchod,Security Seekers,Fixed,54,70,60,74,64,0.802,TRUE
+R0712,65+,muž,Střední Čechy,Security Seekers,Fixed,44,66,60,36,52,1.195,TRUE
+R0713,45–64,muž,Moravskoslezsko,Active Savers,Secure Flex,54,81,59,53,62,0.783,TRUE
+R0714,45–64,žena,Jihozápad,Security Seekers,Fixed,59,72,70,40,60,0.854,TRUE
+R0715,30–44,žena,Jihovýchod,Security Seekers,Fixed,27,65,53,67,53,1.226,TRUE
+R0716,45–64,muž,Praha,Green Motivated,Green Plus,63,48,85,81,69,1.13,TRUE
+R0717,18–29,muž,Moravskoslezsko,Security Seekers,Fixed,29,53,87,42,53,1.172,TRUE
+R0718,65+,žena,Střední Čechy,Security Seekers,Fixed,27,57,87,64,59,1.162,TRUE
+R0719,45–64,žena,Střední Čechy,Security Seekers,Fixed,37,62,77,88,66,0.779,TRUE
+R0720,65+,žena,Jihovýchod,Security Seekers,Fixed,46,52,67,81,62,0.976,TRUE
+R0721,18–29,muž,Severozápad,Smart Home Users,Dynamic,61,56,73,81,68,1.207,TRUE
+R0722,30–44,muž,Jihovýchod,Security Seekers,Fixed,27,60,62,39,47,0.782,TRUE
+R0723,30–44,muž,Praha,Security Seekers,Fixed,45,86,68,78,69,1.17,TRUE
+R0724,65+,muž,Střední Morava,Active Savers,Secure Flex,46,82,49,53,58,0.832,TRUE
+R0725,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,32,50,60,62,51,1.18,TRUE
+R0726,18–29,žena,Severozápad,Security Seekers,Fixed,53,46,53,64,54,1.188,TRUE
+R0727,30–44,žena,Severozápad,Green Motivated,Green Plus,27,85,72,68,63,1.109,TRUE
+R0728,45–64,muž,Střední Čechy,Green Motivated,Green Plus,58,86,51,65,65,1.085,TRUE
+R0729,45–64,muž,Jihozápad,Smart Home Users,Dynamic,53,62,74,88,69,1.054,TRUE
+R0730,45–64,žena,Střední Morava,Green Motivated,Green Plus,50,48,80,80,64,0.87,TRUE
+R0731,30–44,muž,Severozápad,Security Seekers,Fixed,53,68,70,55,62,0.887,TRUE
+R0732,65+,žena,Severovýchod,Active Savers,Secure Flex,57,52,84,82,69,0.787,TRUE
+R0733,30–44,žena,Střední Morava,Smart Home Users,Dynamic,32,47,61,90,58,1.208,TRUE
+R0734,65+,muž,Severovýchod,Green Motivated,Green Plus,47,86,45,66,61,1.142,TRUE
+R0735,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,58,47,86,74,66,1.199,TRUE
+R0736,45–64,žena,Severovýchod,Active Savers,Secure Flex,30,59,76,70,59,1.199,TRUE
+R0737,18–29,muž,Severozápad,Security Seekers,Fixed,38,67,55,89,62,0.926,TRUE
+R0738,18–29,žena,Praha,Green Motivated,Green Plus,41,57,68,88,64,0.981,TRUE
+R0739,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,63,79,85,86,78,0.977,TRUE
+R0740,18–29,muž,Severovýchod,Security Seekers,Fixed,38,74,49,61,56,0.922,TRUE
+R0741,18–29,žena,Praha,Active Savers,Secure Flex,34,56,45,37,43,1.236,TRUE
+R0742,65+,žena,Jihozápad,Green Motivated,Green Plus,36,62,73,88,65,1.151,TRUE
+R0743,45–64,žena,Střední Čechy,Active Savers,Secure Flex,49,69,69,54,60,0.837,TRUE
+R0744,45–64,muž,Severovýchod,Smart Home Users,Dynamic,57,47,60,77,60,0.918,TRUE
+R0745,45–64,žena,Střední Morava,Active Savers,Secure Flex,47,65,64,71,62,0.999,TRUE
+R0746,45–64,muž,Praha,Smart Home Users,Dynamic,43,86,90,43,66,0.817,TRUE
+R0747,18–29,muž,Severovýchod,Green Motivated,Green Plus,28,64,52,65,52,0.895,TRUE
+R0748,65+,žena,Severozápad,Security Seekers,Fixed,32,60,89,87,67,0.895,TRUE
+R0749,45–64,muž,Střední Čechy,Security Seekers,Fixed,31,51,73,53,52,1.096,TRUE
+R0750,65+,žena,Střední Čechy,Security Seekers,Fixed,41,67,90,47,61,1.17,TRUE
+R0751,18–29,muž,Moravskoslezsko,Security Seekers,Fixed,38,65,69,90,66,0.781,TRUE
+R0752,65+,žena,Severozápad,Low Involvement,Secure Flex,30,73,72,70,61,0.813,TRUE
+R0753,65+,žena,Střední Čechy,Active Savers,Secure Flex,50,62,78,57,62,0.84,TRUE
+R0754,45–64,žena,Severozápad,Low Involvement,Secure Flex,32,45,72,46,49,0.9,TRUE
+R0755,30–44,žena,Severovýchod,Active Savers,Secure Flex,40,50,48,48,46,1.158,TRUE
+R0756,65+,muž,Severovýchod,Smart Home Users,Dynamic,27,69,76,38,52,1.011,TRUE
+R0757,18–29,žena,Střední Čechy,Security Seekers,Fixed,36,87,61,38,56,1.185,TRUE
+R0758,65+,žena,Severovýchod,Security Seekers,Fixed,37,52,79,38,52,0.75,TRUE
+R0759,45–64,muž,Střední Čechy,Low Involvement,Secure Flex,53,57,71,39,55,0.963,TRUE
+R0760,45–64,muž,Praha,Security Seekers,Fixed,50,73,74,77,68,1.166,TRUE
+R0761,45–64,žena,Severovýchod,Security Seekers,Fixed,53,76,67,60,64,0.762,TRUE
+R0762,45–64,muž,Jihovýchod,Smart Home Users,Dynamic,31,76,49,85,60,1.145,TRUE
+R0763,30–44,muž,Střední Morava,Security Seekers,Fixed,35,90,46,63,58,0.941,TRUE
+R0764,30–44,muž,Moravskoslezsko,Smart Home Users,Dynamic,28,56,86,45,54,0.92,TRUE
+R0765,30–44,žena,Praha,Smart Home Users,Dynamic,41,51,70,39,50,0.929,TRUE
+R0766,45–64,žena,Střední Morava,Green Motivated,Green Plus,41,51,75,54,55,0.815,TRUE
+R0767,45–64,žena,Střední Morava,Low Involvement,Secure Flex,44,49,55,57,51,1.114,TRUE
+R0768,18–29,žena,Jihozápad,Smart Home Users,Dynamic,30,81,80,84,69,1.23,TRUE
+R0769,65+,muž,Jihozápad,Active Savers,Secure Flex,47,88,53,80,67,0.943,TRUE
+R0770,65+,muž,Praha,Smart Home Users,Dynamic,62,59,86,64,68,0.851,TRUE
+R0771,45–64,muž,Jihozápad,Green Motivated,Green Plus,45,72,70,82,67,1.009,TRUE
+R0772,65+,muž,Severozápad,Active Savers,Secure Flex,30,67,76,41,54,1.197,TRUE
+R0773,65+,žena,Jihozápad,Active Savers,Secure Flex,50,87,88,82,77,0.813,TRUE
+R0774,65+,muž,Střední Čechy,Low Involvement,Secure Flex,44,47,62,69,56,1.191,TRUE
+R0775,30–44,žena,Moravskoslezsko,Low Involvement,Secure Flex,28,79,48,83,60,0.872,TRUE
+R0776,18–29,žena,Jihozápad,Green Motivated,Green Plus,50,63,87,38,60,0.825,TRUE
+R0777,45–64,žena,Severozápad,Active Savers,Secure Flex,60,72,63,75,68,0.809,TRUE
+R0778,65+,muž,Severozápad,Security Seekers,Fixed,57,69,81,44,63,1.215,TRUE
+R0779,18–29,muž,Severozápad,Active Savers,Secure Flex,48,80,67,73,67,1.118,TRUE
+R0780,45–64,muž,Severovýchod,Green Motivated,Green Plus,40,88,60,63,63,1.138,TRUE
+R0781,65+,muž,Severozápad,Smart Home Users,Dynamic,59,48,60,59,56,1.213,TRUE
+R0782,30–44,žena,Praha,Smart Home Users,Dynamic,42,68,65,62,59,1.02,TRUE
+R0783,45–64,muž,Praha,Active Savers,Secure Flex,47,57,83,47,58,1.086,TRUE
+R0784,65+,muž,Severovýchod,Green Motivated,Green Plus,31,70,70,90,65,0.917,TRUE
+R0785,65+,muž,Jihozápad,Low Involvement,Secure Flex,31,84,53,40,52,0.976,TRUE
+R0786,18–29,žena,Severozápad,Low Involvement,Secure Flex,41,84,82,77,71,0.945,TRUE
+R0787,65+,muž,Severozápad,Smart Home Users,Dynamic,54,67,65,68,64,1.061,TRUE
+R0788,30–44,žena,Moravskoslezsko,Smart Home Users,Dynamic,45,87,80,66,70,0.892,TRUE
+R0789,45–64,žena,Severozápad,Smart Home Users,Dynamic,38,77,68,58,60,1.114,TRUE
+R0790,65+,žena,Střední Čechy,Security Seekers,Fixed,40,59,82,36,54,1.082,TRUE
+R0791,45–64,žena,Severozápad,Active Savers,Secure Flex,45,63,61,56,56,1.236,TRUE
+R0792,45–64,muž,Střední Morava,Active Savers,Secure Flex,57,71,57,59,61,1.097,TRUE
+R0793,65+,muž,Jihozápad,Security Seekers,Fixed,56,56,62,59,58,0.893,TRUE
+R0794,18–29,muž,Střední Čechy,Active Savers,Secure Flex,50,46,56,53,51,1.006,TRUE
+R0795,45–64,žena,Severovýchod,Low Involvement,Secure Flex,37,79,47,51,54,0.984,TRUE
+R0796,18–29,žena,Praha,Green Motivated,Green Plus,58,78,88,77,75,1.158,TRUE
+R0797,65+,muž,Střední Morava,Security Seekers,Fixed,44,83,90,55,68,1.068,TRUE
+R0798,45–64,žena,Severovýchod,Green Motivated,Green Plus,43,86,68,69,66,1.145,TRUE
+R0799,18–29,žena,Severozápad,Security Seekers,Fixed,40,82,90,56,67,0.834,TRUE
+R0800,45–64,muž,Střední Čechy,Smart Home Users,Dynamic,43,56,69,63,58,0.977,TRUE
+R0801,65+,žena,Jihozápad,Security Seekers,Fixed,46,73,70,79,67,0.801,TRUE
+R0802,30–44,žena,Střední Morava,Active Savers,Secure Flex,33,71,45,44,48,1.131,TRUE
+R0803,45–64,žena,Jihovýchod,Active Savers,Secure Flex,54,68,66,51,60,0.965,TRUE
+R0804,18–29,muž,Praha,Active Savers,Secure Flex,45,87,56,68,64,0.896,TRUE
+R0805,30–44,muž,Severozápad,Security Seekers,Fixed,42,63,58,35,50,1.102,TRUE
+R0806,45–64,muž,Jihovýchod,Low Involvement,Secure Flex,61,89,47,66,66,1.209,TRUE
+R0807,65+,žena,Moravskoslezsko,Active Savers,Secure Flex,57,49,70,75,63,1.242,TRUE
+R0808,30–44,muž,Praha,Security Seekers,Fixed,62,62,71,46,60,0.98,TRUE
+R0809,18–29,muž,Střední Morava,Low Involvement,Secure Flex,34,80,84,35,58,0.98,TRUE
+R0810,65+,žena,Střední Morava,Active Savers,Secure Flex,35,83,79,83,70,1.166,TRUE
+R0811,65+,muž,Severovýchod,Security Seekers,Fixed,50,53,85,39,57,1.241,TRUE
+R0812,30–44,muž,Jihozápad,Active Savers,Secure Flex,48,85,71,35,60,1.12,TRUE
+R0813,45–64,žena,Severozápad,Smart Home Users,Dynamic,46,67,53,41,52,0.787,TRUE
+R0814,30–44,žena,Severovýchod,Active Savers,Secure Flex,45,50,74,62,58,0.989,TRUE
+R0815,45–64,muž,Severovýchod,Active Savers,Secure Flex,34,64,60,87,61,0.973,TRUE
+R0816,30–44,žena,Praha,Security Seekers,Fixed,52,55,56,38,50,0.764,TRUE
+R0817,18–29,muž,Jihozápad,Active Savers,Secure Flex,50,62,51,40,51,1.039,TRUE
+R0818,18–29,muž,Střední Morava,Security Seekers,Fixed,62,84,58,86,72,1.052,TRUE
+R0819,65+,žena,Moravskoslezsko,Green Motivated,Green Plus,58,52,79,79,67,1.135,TRUE
+R0820,65+,žena,Moravskoslezsko,Smart Home Users,Dynamic,29,75,46,55,51,0.872,TRUE
+R0821,18–29,žena,Moravskoslezsko,Low Involvement,Secure Flex,40,49,79,44,53,1.119,TRUE
+R0822,30–44,muž,Střední Morava,Active Savers,Secure Flex,52,69,50,88,65,0.935,TRUE
+R0823,30–44,muž,Severovýchod,Security Seekers,Fixed,38,50,61,48,49,0.977,TRUE
+R0824,18–29,muž,Severozápad,Security Seekers,Fixed,36,55,86,89,66,1.1,TRUE
+R0825,65+,muž,Severovýchod,Active Savers,Secure Flex,40,88,89,88,76,0.807,TRUE
+R0826,18–29,muž,Střední Morava,Security Seekers,Fixed,41,86,89,72,72,0.782,TRUE
+R0827,30–44,žena,Jihovýchod,Green Motivated,Green Plus,49,81,51,67,62,1.122,TRUE
+R0828,65+,žena,Jihozápad,Smart Home Users,Dynamic,35,65,46,61,52,0.846,TRUE
+R0829,45–64,muž,Moravskoslezsko,Smart Home Users,Dynamic,45,80,66,61,63,0.992,TRUE
+R0830,65+,muž,Jihovýchod,Green Motivated,Green Plus,45,84,76,70,69,1.103,TRUE
+R0831,18–29,muž,Praha,Green Motivated,Green Plus,43,69,49,54,54,0.916,TRUE
+R0832,65+,žena,Jihovýchod,Security Seekers,Fixed,41,79,67,43,58,0.948,TRUE
+R0833,65+,žena,Praha,Active Savers,Secure Flex,37,88,56,58,60,1.167,TRUE
+R0834,45–64,muž,Severovýchod,Low Involvement,Secure Flex,30,86,66,37,55,1.233,TRUE
+R0835,18–29,žena,Moravskoslezsko,Active Savers,Secure Flex,33,46,57,70,52,1.135,TRUE
+R0836,65+,žena,Moravskoslezsko,Smart Home Users,Dynamic,53,67,71,79,68,0.998,TRUE
+R0837,18–29,muž,Severovýchod,Security Seekers,Fixed,36,70,85,44,59,0.77,TRUE
+R0838,45–64,žena,Střední Morava,Active Savers,Secure Flex,30,46,49,53,44,0.821,TRUE
+R0839,30–44,žena,Praha,Security Seekers,Fixed,40,58,74,54,56,0.869,TRUE
+R0840,30–44,žena,Severozápad,Security Seekers,Fixed,33,65,74,85,64,1.061,TRUE
+R0841,30–44,muž,Jihozápad,Green Motivated,Green Plus,47,56,81,85,67,0.899,TRUE
+R0842,18–29,žena,Severovýchod,Smart Home Users,Dynamic,40,57,88,80,66,1.103,TRUE
+R0843,30–44,muž,Jihovýchod,Security Seekers,Fixed,37,88,85,79,72,0.957,TRUE
+R0844,18–29,žena,Jihozápad,Security Seekers,Fixed,57,48,82,78,66,0.892,TRUE
+R0845,65+,žena,Jihovýchod,Active Savers,Secure Flex,63,49,57,78,62,1.045,TRUE
+R0846,18–29,žena,Severovýchod,Active Savers,Secure Flex,37,65,45,39,46,0.778,TRUE
+R0847,18–29,muž,Střední Morava,Smart Home Users,Dynamic,31,80,76,66,63,1.158,TRUE
+R0848,30–44,muž,Střední Čechy,Smart Home Users,Dynamic,33,60,85,74,63,1.154,TRUE
+R0849,45–64,žena,Jihovýchod,Low Involvement,Secure Flex,58,61,59,73,63,1.146,TRUE
+R0850,30–44,muž,Jihovýchod,Security Seekers,Fixed,49,77,75,74,69,1.138,TRUE
+R0851,45–64,muž,Střední Čechy,Low Involvement,Secure Flex,62,54,65,85,66,0.973,TRUE
+R0852,65+,muž,Střední Morava,Active Savers,Secure Flex,63,62,62,89,69,1.017,TRUE
+R0853,65+,žena,Severovýchod,Security Seekers,Fixed,54,61,57,78,62,0.907,TRUE
+R0854,18–29,muž,Střední Čechy,Security Seekers,Fixed,60,68,68,43,60,0.833,TRUE
+R0855,45–64,žena,Jihovýchod,Security Seekers,Fixed,61,63,85,89,74,1.026,TRUE
+R0856,65+,žena,Severovýchod,Security Seekers,Fixed,52,57,74,88,68,0.819,TRUE
+R0857,45–64,žena,Jihozápad,Active Savers,Secure Flex,60,65,88,79,73,0.864,TRUE
+R0858,18–29,žena,Jihozápad,Active Savers,Secure Flex,50,68,65,64,62,1.006,TRUE
+R0859,30–44,žena,Jihozápad,Low Involvement,Secure Flex,35,52,90,40,54,1.095,TRUE
+R0860,18–29,žena,Severovýchod,Active Savers,Secure Flex,41,48,54,42,46,0.833,TRUE
+R0861,18–29,žena,Jihovýchod,Security Seekers,Fixed,36,75,60,69,60,0.788,TRUE
+R0862,45–64,žena,Jihozápad,Active Savers,Secure Flex,41,56,86,79,66,0.981,TRUE
+R0863,30–44,muž,Jihovýchod,Active Savers,Secure Flex,54,78,74,54,65,1.108,TRUE
+R0864,45–64,žena,Střední Čechy,Active Savers,Secure Flex,51,61,87,44,61,0.964,TRUE
+R0865,30–44,muž,Severovýchod,Security Seekers,Fixed,60,50,53,71,58,1.086,TRUE
+R0866,45–64,žena,Jihozápad,Active Savers,Secure Flex,48,73,62,42,56,1.241,TRUE
+R0867,65+,žena,Střední Morava,Smart Home Users,Dynamic,55,70,62,71,64,1.231,TRUE
+R0868,18–29,muž,Jihovýchod,Active Savers,Secure Flex,54,48,75,66,61,0.992,TRUE
+R0869,30–44,žena,Jihozápad,Security Seekers,Fixed,41,53,80,61,59,0.77,TRUE
+R0870,45–64,žena,Střední Morava,Security Seekers,Fixed,40,80,56,63,60,0.932,TRUE
+R0871,65+,muž,Moravskoslezsko,Smart Home Users,Dynamic,60,48,65,60,58,1.104,TRUE
+R0872,18–29,žena,Jihovýchod,Active Savers,Secure Flex,50,89,60,48,62,1.214,TRUE
+R0873,30–44,muž,Praha,Security Seekers,Fixed,52,73,57,61,61,1.156,TRUE
+R0874,18–29,muž,Střední Morava,Smart Home Users,Dynamic,40,89,66,68,66,1.206,TRUE
+R0875,65+,muž,Moravskoslezsko,Smart Home Users,Dynamic,55,90,54,81,70,0.876,TRUE
+R0876,65+,muž,Severozápad,Active Savers,Secure Flex,46,86,87,90,77,0.891,TRUE
+R0877,65+,muž,Moravskoslezsko,Smart Home Users,Dynamic,48,80,81,61,68,0.959,TRUE
+R0878,45–64,muž,Severovýchod,Low Involvement,Secure Flex,61,75,61,75,68,0.905,TRUE
+R0879,65+,žena,Jihozápad,Security Seekers,Fixed,59,62,73,61,64,1.226,TRUE
+R0880,18–29,žena,Střední Morava,Active Savers,Secure Flex,58,88,60,46,63,0.944,TRUE
+R0881,45–64,žena,Moravskoslezsko,Smart Home Users,Dynamic,39,68,74,63,61,0.984,TRUE
+R0882,45–64,žena,Severozápad,Security Seekers,Fixed,34,60,45,87,56,1.183,TRUE
+R0883,45–64,muž,Moravskoslezsko,Green Motivated,Green Plus,62,71,70,53,64,1.095,TRUE
+R0884,18–29,žena,Severovýchod,Low Involvement,Secure Flex,57,65,79,68,67,0.908,TRUE
+R0885,45–64,muž,Střední Čechy,Smart Home Users,Dynamic,29,69,85,66,62,1.203,TRUE
+R0886,45–64,žena,Jihozápad,Active Savers,Secure Flex,27,58,70,80,59,0.827,TRUE
+R0887,18–29,žena,Střední Morava,Security Seekers,Fixed,63,55,66,58,60,1.235,TRUE
+R0888,45–64,žena,Střední Čechy,Security Seekers,Fixed,54,90,76,38,64,1.118,TRUE
+R0889,65+,žena,Jihozápad,Active Savers,Secure Flex,54,79,70,37,60,1.048,TRUE
+R0890,45–64,muž,Střední Morava,Security Seekers,Fixed,35,53,56,65,52,0.944,TRUE
+R0891,65+,žena,Severozápad,Active Savers,Secure Flex,39,64,83,53,60,0.804,TRUE
+R0892,30–44,muž,Střední Čechy,Green Motivated,Green Plus,33,50,69,35,47,1.245,TRUE
+R0893,30–44,žena,Moravskoslezsko,Active Savers,Secure Flex,34,61,51,59,51,1.06,TRUE
+R0894,18–29,žena,Severovýchod,Security Seekers,Fixed,50,57,51,59,54,0.825,TRUE
+R0895,65+,muž,Střední Morava,Green Motivated,Green Plus,38,55,57,74,56,1.105,TRUE
+R0896,45–64,žena,Severozápad,Low Involvement,Secure Flex,51,79,67,65,66,0.874,TRUE
+R0897,18–29,žena,Střední Čechy,Active Savers,Secure Flex,41,83,66,55,61,0.959,TRUE
+R0898,30–44,muž,Moravskoslezsko,Smart Home Users,Dynamic,50,83,56,75,66,1.227,TRUE
+R0899,45–64,žena,Střední Čechy,Smart Home Users,Dynamic,49,72,90,80,73,1.237,TRUE
+R0900,45–64,muž,Moravskoslezsko,Smart Home Users,Dynamic,36,90,73,58,64,0.959,TRUE
+R0901,65+,muž,Moravskoslezsko,Active Savers,Secure Flex,56,49,69,53,57,0.987,TRUE
+R0902,65+,muž,Severovýchod,Smart Home Users,Dynamic,30,71,45,36,46,0.862,TRUE
+R0903,30–44,muž,Jihozápad,Low Involvement,Secure Flex,27,88,50,59,56,0.787,TRUE
+R0904,45–64,žena,Praha,Green Motivated,Green Plus,60,85,56,86,72,0.921,TRUE
+R0905,18–29,žena,Střední Čechy,Green Motivated,Green Plus,49,84,49,73,64,0.911,TRUE
+R0906,30–44,žena,Střední Morava,Green Motivated,Green Plus,42,83,75,69,67,1.158,TRUE
+R0907,45–64,žena,Střední Čechy,Security Seekers,Fixed,41,83,74,42,60,1.014,TRUE
+R0908,30–44,žena,Střední Čechy,Security Seekers,Fixed,38,77,76,36,57,0.851,TRUE
+R0909,30–44,žena,Praha,Active Savers,Secure Flex,55,70,67,76,67,1.139,TRUE
+R0910,30–44,muž,Střední Čechy,Green Motivated,Green Plus,52,47,59,45,51,1.209,TRUE
+R0911,30–44,žena,Severozápad,Security Seekers,Fixed,46,65,54,50,54,1.126,TRUE
+R0912,30–44,žena,Jihovýchod,Security Seekers,Fixed,32,68,66,69,59,1.219,TRUE
+R0913,30–44,žena,Moravskoslezsko,Green Motivated,Green Plus,30,60,85,51,56,1.118,TRUE
+R0914,30–44,muž,Severozápad,Active Savers,Secure Flex,57,53,47,50,52,0.814,TRUE
+R0915,65+,žena,Praha,Green Motivated,Green Plus,48,88,67,88,73,1.106,TRUE
+R0916,65+,muž,Severovýchod,Active Savers,Secure Flex,47,57,82,70,64,0.78,TRUE
+R0917,18–29,muž,Jihozápad,Smart Home Users,Dynamic,44,81,47,77,62,0.756,TRUE
+R0918,30–44,žena,Praha,Smart Home Users,Dynamic,57,73,89,76,74,0.831,TRUE
+R0919,65+,žena,Praha,Smart Home Users,Dynamic,62,81,67,43,63,1.011,TRUE
+R0920,45–64,žena,Severovýchod,Smart Home Users,Dynamic,32,63,61,70,56,1.245,TRUE
+R0921,65+,žena,Severozápad,Security Seekers,Fixed,49,50,71,60,58,1.001,TRUE
+R0922,45–64,žena,Střední Morava,Security Seekers,Fixed,37,65,75,49,56,1.249,TRUE
+R0923,45–64,muž,Praha,Security Seekers,Fixed,55,61,72,78,66,1.186,TRUE
+R0924,45–64,muž,Severovýchod,Active Savers,Secure Flex,46,79,68,85,70,1.025,TRUE
+R0925,45–64,muž,Praha,Active Savers,Secure Flex,41,62,76,55,58,0.843,TRUE
+R0926,45–64,muž,Praha,Low Involvement,Secure Flex,62,50,83,66,65,1.009,TRUE
+R0927,30–44,žena,Moravskoslezsko,Security Seekers,Fixed,62,79,78,73,73,1.098,TRUE
+R0928,30–44,žena,Střední Morava,Low Involvement,Secure Flex,38,77,77,83,69,0.937,TRUE
+R0929,45–64,žena,Střední Morava,Active Savers,Secure Flex,62,71,75,58,66,0.891,TRUE
+R0930,18–29,muž,Jihozápad,Security Seekers,Fixed,40,50,87,36,53,1.197,TRUE
+R0931,18–29,muž,Moravskoslezsko,Smart Home Users,Dynamic,61,75,69,72,69,1.07,TRUE
+R0932,30–44,muž,Jihovýchod,Security Seekers,Fixed,61,63,58,75,64,0.792,TRUE
+R0933,30–44,muž,Praha,Low Involvement,Secure Flex,55,53,72,35,54,0.927,TRUE
+R0934,65+,muž,Praha,Security Seekers,Fixed,31,45,64,40,45,1.032,TRUE
+R0935,65+,muž,Jihovýchod,Security Seekers,Fixed,40,60,76,51,57,1.071,TRUE
+R0936,45–64,žena,Střední Čechy,Smart Home Users,Dynamic,51,84,80,68,71,0.978,TRUE
+R0937,30–44,žena,Střední Morava,Smart Home Users,Dynamic,28,89,54,42,53,0.849,TRUE
+R0938,45–64,žena,Jihovýchod,Green Motivated,Green Plus,47,54,75,67,61,1.218,TRUE
+R0939,30–44,žena,Severovýchod,Green Motivated,Green Plus,47,72,81,48,62,0.841,TRUE
+R0940,45–64,muž,Střední Morava,Security Seekers,Fixed,62,85,88,47,70,1.018,TRUE
+R0941,45–64,muž,Severozápad,Security Seekers,Fixed,60,60,87,36,61,0.894,TRUE
+R0942,18–29,muž,Praha,Security Seekers,Fixed,44,45,54,89,58,0.845,TRUE
+R0943,45–64,žena,Praha,Smart Home Users,Dynamic,48,84,45,48,56,1.171,TRUE
+R0944,45–64,žena,Severozápad,Green Motivated,Green Plus,49,62,74,50,59,0.907,TRUE
+R0945,45–64,muž,Praha,Active Savers,Secure Flex,61,83,64,47,64,0.961,TRUE
+R0946,30–44,žena,Střední Morava,Active Savers,Secure Flex,61,47,59,68,59,0.784,TRUE
+R0947,65+,muž,Střední Morava,Green Motivated,Green Plus,61,69,77,57,66,0.912,TRUE
+R0948,65+,žena,Severozápad,Active Savers,Secure Flex,51,52,71,39,53,1.098,TRUE
+R0949,30–44,muž,Praha,Security Seekers,Fixed,43,79,45,59,56,1.16,TRUE
+R0950,18–29,muž,Praha,Smart Home Users,Dynamic,51,52,81,61,61,1.226,TRUE
+R0951,65+,muž,Střední Morava,Smart Home Users,Dynamic,55,73,61,61,62,1.092,TRUE
+R0952,65+,žena,Moravskoslezsko,Smart Home Users,Dynamic,42,46,69,80,59,0.778,TRUE
+R0953,65+,muž,Moravskoslezsko,Smart Home Users,Dynamic,41,87,70,48,62,1.091,TRUE
+R0954,30–44,muž,Střední Morava,Active Savers,Secure Flex,32,62,59,79,58,1.057,TRUE
+R0955,65+,žena,Střední Čechy,Smart Home Users,Dynamic,31,90,46,58,56,0.985,TRUE
+R0956,18–29,muž,Jihovýchod,Security Seekers,Fixed,59,83,68,89,75,1.064,TRUE
+R0957,18–29,muž,Střední Čechy,Security Seekers,Fixed,41,65,63,89,64,0.981,TRUE
+R0958,18–29,žena,Moravskoslezsko,Security Seekers,Fixed,46,73,87,36,60,0.888,TRUE
+R0959,30–44,žena,Jihozápad,Security Seekers,Fixed,50,59,85,45,60,1.065,TRUE
+R0960,30–44,žena,Jihovýchod,Active Savers,Secure Flex,54,77,46,58,59,1.196,TRUE
+R0961,30–44,muž,Jihozápad,Smart Home Users,Dynamic,38,60,48,50,49,1.091,TRUE
+R0962,45–64,muž,Střední Morava,Smart Home Users,Dynamic,55,87,53,77,68,1.168,TRUE
+R0963,45–64,muž,Severozápad,Smart Home Users,Dynamic,53,49,72,49,56,1.077,TRUE
+R0964,45–64,muž,Střední Čechy,Security Seekers,Fixed,29,86,73,80,67,0.799,TRUE
+R0965,65+,žena,Severozápad,Smart Home Users,Dynamic,55,52,84,56,62,1.184,TRUE
+R0966,65+,muž,Střední Čechy,Smart Home Users,Dynamic,57,62,53,41,53,1.243,TRUE
+R0967,18–29,muž,Jihozápad,Active Savers,Secure Flex,28,74,52,56,52,1.071,TRUE
+R0968,18–29,muž,Moravskoslezsko,Smart Home Users,Dynamic,46,83,75,74,70,1.078,TRUE
+R0969,45–64,muž,Jihovýchod,Active Savers,Secure Flex,30,49,79,53,53,1.16,TRUE
+R0970,45–64,žena,Moravskoslezsko,Smart Home Users,Dynamic,51,75,74,49,62,1.149,TRUE
+R0971,65+,žena,Jihovýchod,Active Savers,Secure Flex,47,54,74,83,64,1.188,TRUE
+R0972,45–64,žena,Severovýchod,Security Seekers,Fixed,58,70,71,41,60,0.816,TRUE
+R0973,65+,muž,Moravskoslezsko,Green Motivated,Green Plus,39,53,49,36,44,0.903,TRUE
+R0974,30–44,muž,Praha,Green Motivated,Green Plus,46,75,69,62,63,1.219,TRUE
+R0975,65+,muž,Severovýchod,Security Seekers,Fixed,40,46,54,39,45,0.789,TRUE
+R0976,45–64,žena,Severovýchod,Active Savers,Secure Flex,30,78,66,46,55,0.999,TRUE
+R0977,45–64,muž,Jihovýchod,Active Savers,Secure Flex,50,45,89,56,60,1.065,TRUE
+R0978,65+,žena,Praha,Smart Home Users,Dynamic,56,77,67,48,62,0.782,TRUE
+R0979,45–64,žena,Severovýchod,Smart Home Users,Dynamic,38,76,88,35,59,0.88,TRUE
+R0980,30–44,muž,Moravskoslezsko,Security Seekers,Fixed,50,50,65,53,54,1.043,TRUE
+R0981,30–44,žena,Severovýchod,Security Seekers,Fixed,49,62,75,53,60,1.043,TRUE
+R0982,65+,muž,Praha,Green Motivated,Green Plus,31,77,72,87,67,1.096,TRUE
+R0983,18–29,muž,Jihozápad,Smart Home Users,Dynamic,60,52,57,43,53,1.196,TRUE
+R0984,65+,žena,Severozápad,Smart Home Users,Dynamic,28,67,86,77,64,0.828,TRUE
+R0985,65+,žena,Střední Čechy,Green Motivated,Green Plus,28,83,47,50,52,1.125,TRUE
+R0986,18–29,žena,Střední Čechy,Active Savers,Secure Flex,32,49,50,63,48,1.246,TRUE
+R0987,45–64,žena,Střední Morava,Active Savers,Secure Flex,50,55,46,54,51,0.8,TRUE
+R0988,45–64,žena,Praha,Low Involvement,Secure Flex,56,80,73,78,72,1.119,TRUE
+R0989,18–29,muž,Severovýchod,Security Seekers,Fixed,55,67,77,72,68,0.954,TRUE
+R0990,65+,žena,Jihovýchod,Smart Home Users,Dynamic,57,66,61,63,62,1.214,TRUE
+R0991,65+,žena,Severozápad,Smart Home Users,Dynamic,32,80,48,74,58,0.841,TRUE
+R0992,18–29,muž,Moravskoslezsko,Green Motivated,Green Plus,28,63,56,52,50,1.223,TRUE
+R0993,45–64,žena,Moravskoslezsko,Smart Home Users,Dynamic,40,66,85,82,68,0.979,TRUE
+R0994,45–64,žena,Severovýchod,Smart Home Users,Dynamic,35,79,50,62,56,1.004,TRUE
+R0995,18–29,žena,Jihovýchod,Security Seekers,Fixed,31,77,62,61,58,0.863,TRUE
+R0996,18–29,muž,Střední Čechy,Security Seekers,Fixed,41,57,55,88,60,1.092,TRUE
+R0997,45–64,žena,Praha,Security Seekers,Fixed,45,79,89,65,70,1.024,TRUE
+R0998,18–29,žena,Střední Morava,Low Involvement,Secure Flex,45,78,81,87,73,0.968,TRUE
+R0999,18–29,žena,Jihovýchod,Security Seekers,Fixed,36,69,54,36,49,0.784,TRUE
+R1000,18–29,muž,Jihozápad,Low Involvement,Secure Flex,51,70,55,52,57,0.967,TRUE
+R1001,18–29,muž,Severozápad,Smart Home Users,Dynamic,34,57,82,37,52,1.164,TRUE
+R1002,45–64,žena,Severovýchod,Smart Home Users,Dynamic,28,89,87,55,65,0.975,TRUE
+R1003,45–64,muž,Střední Morava,Active Savers,Secure Flex,33,67,88,84,68,0.873,TRUE
+R1004,30–44,žena,Jihozápad,Security Seekers,Fixed,45,64,63,56,57,0.829,TRUE
+R1005,30–44,muž,Jihovýchod,Security Seekers,Fixed,55,47,64,75,60,1.091,TRUE
+R1006,18–29,muž,Jihovýchod,Active Savers,Secure Flex,48,72,88,44,63,1.144,TRUE
+R1007,65+,muž,Moravskoslezsko,Security Seekers,Fixed,62,50,58,67,59,0.77,TRUE
+R1008,18–29,muž,Praha,Active Savers,Secure Flex,62,53,76,45,59,1.228,TRUE
+R1009,30–44,muž,Praha,Security Seekers,Fixed,54,75,55,40,56,1.015,TRUE
+R1010,30–44,muž,Severozápad,Security Seekers,Fixed,40,82,58,67,62,0.922,TRUE
+R1011,18–29,žena,Jihozápad,Security Seekers,Fixed,54,53,54,36,49,1.145,TRUE
+R1012,18–29,muž,Moravskoslezsko,Active Savers,Secure Flex,31,55,48,69,51,1.136,TRUE
+R1013,18–29,žena,Jihovýchod,Active Savers,Secure Flex,58,79,65,89,73,1.091,TRUE
+R1014,30–44,muž,Severozápad,Security Seekers,Fixed,60,55,59,80,64,1.228,TRUE
+R1015,18–29,muž,Praha,Low Involvement,Secure Flex,27,50,72,72,55,0.8,TRUE
+R1016,65+,muž,Severozápad,Smart Home Users,Dynamic,33,55,72,76,59,0.906,TRUE
+R1017,30–44,žena,Praha,Smart Home Users,Dynamic,60,84,69,86,75,1.146,TRUE
+R1018,45–64,žena,Jihozápad,Smart Home Users,Dynamic,58,64,83,39,61,0.861,TRUE
+R1019,45–64,žena,Severozápad,Low Involvement,Secure Flex,31,62,88,79,65,0.914,TRUE
+R1020,45–64,muž,Praha,Active Savers,Secure Flex,36,81,83,41,60,1.167,TRUE
+R1021,18–29,žena,Severozápad,Active Savers,Secure Flex,33,80,74,66,63,0.885,TRUE
+R1022,30–44,žena,Jihozápad,Smart Home Users,Dynamic,57,84,89,75,76,0.8,TRUE
+R1023,45–64,žena,Jihozápad,Security Seekers,Fixed,30,76,87,74,67,0.982,TRUE
+R1024,18–29,muž,Jihozápad,Smart Home Users,Dynamic,59,50,55,87,63,0.973,TRUE
+R1025,65+,žena,Severozápad,Green Motivated,Green Plus,47,50,78,45,55,1.095,TRUE
+R1026,65+,muž,Střední Čechy,Green Motivated,Green Plus,40,77,63,76,64,0.992,TRUE
+R1027,18–29,muž,Moravskoslezsko,Active Savers,Secure Flex,37,86,63,49,59,0.817,TRUE
+R1028,65+,muž,Severozápad,Active Savers,Secure Flex,55,69,52,83,65,1.204,TRUE
+R1029,45–64,žena,Moravskoslezsko,Green Motivated,Green Plus,31,78,83,85,69,1.172,TRUE
+R1030,65+,žena,Jihozápad,Low Involvement,Secure Flex,56,77,77,82,73,0.854,TRUE
+R1031,45–64,žena,Jihovýchod,Green Motivated,Green Plus,45,67,84,65,65,1.183,TRUE
+R1032,30–44,muž,Severozápad,Smart Home Users,Dynamic,55,50,45,74,56,1.161,TRUE
+R1033,45–64,žena,Střední Čechy,Security Seekers,Fixed,51,67,67,75,65,0.779,TRUE
+R1034,30–44,žena,Jihovýchod,Security Seekers,Fixed,32,77,76,57,60,0.761,TRUE
+R1035,45–64,žena,Střední Morava,Green Motivated,Green Plus,27,75,86,90,70,1.04,TRUE
+R1036,18–29,žena,Střední Čechy,Security Seekers,Fixed,61,47,78,44,58,1.179,TRUE
+R1037,18–29,muž,Severovýchod,Active Savers,Secure Flex,31,81,64,51,57,1.159,TRUE
+R1038,65+,muž,Střední Morava,Active Savers,Secure Flex,62,49,73,43,57,0.94,TRUE
+R1039,65+,muž,Střední Morava,Smart Home Users,Dynamic,27,70,74,70,60,1.051,TRUE
+R1040,18–29,žena,Severovýchod,Active Savers,Secure Flex,28,51,83,87,62,0.884,TRUE
+R1041,45–64,žena,Střední Čechy,Smart Home Users,Dynamic,54,77,65,60,64,0.998,TRUE
+R1042,65+,žena,Praha,Smart Home Users,Dynamic,50,78,61,55,61,1.235,TRUE
+R1043,65+,muž,Střední Morava,Security Seekers,Fixed,38,84,70,70,66,0.751,TRUE
+R1044,45–64,muž,Severovýchod,Security Seekers,Fixed,48,82,67,63,65,1.218,TRUE
+R1045,65+,muž,Severovýchod,Active Savers,Secure Flex,44,45,89,67,61,0.843,TRUE
+R1046,18–29,muž,Jihovýchod,Green Motivated,Green Plus,38,68,71,72,62,0.814,TRUE
+R1047,18–29,žena,Jihovýchod,Low Involvement,Secure Flex,60,65,56,67,62,1.091,TRUE
+R1048,65+,žena,Moravskoslezsko,Smart Home Users,Dynamic,42,49,79,81,63,1.232,TRUE
+R1049,65+,žena,Střední Morava,Low Involvement,Secure Flex,54,83,84,90,78,1.046,TRUE
+R1050,45–64,muž,Severovýchod,Green Motivated,Green Plus,40,65,80,80,66,1.082,TRUE
+R1051,18–29,muž,Střední Morava,Security Seekers,Fixed,36,55,75,62,57,0.908,TRUE
+R1052,30–44,muž,Severozápad,Security Seekers,Fixed,29,68,55,53,51,1.052,TRUE
+R1053,30–44,muž,Praha,Active Savers,Secure Flex,41,83,86,79,72,0.884,TRUE
+R1054,45–64,žena,Střední Morava,Security Seekers,Fixed,63,71,87,83,76,0.938,TRUE
+R1055,30–44,žena,Střední Čechy,Low Involvement,Secure Flex,53,73,78,66,68,1.175,TRUE
+R1056,65+,muž,Jihozápad,Security Seekers,Fixed,60,78,69,41,62,0.855,TRUE
+R1057,30–44,žena,Jihozápad,Security Seekers,Fixed,55,50,58,37,50,1.039,TRUE
+R1058,45–64,muž,Praha,Security Seekers,Fixed,34,65,68,59,56,1.094,TRUE
+R1059,45–64,muž,Praha,Green Motivated,Green Plus,50,74,48,54,56,0.859,TRUE
+R1060,65+,žena,Střední Morava,Active Savers,Secure Flex,61,82,79,87,77,0.907,TRUE
+R1061,45–64,žena,Jihozápad,Low Involvement,Secure Flex,30,70,63,61,56,1.028,TRUE
+R1062,18–29,muž,Střední Čechy,Low Involvement,Secure Flex,55,63,55,43,54,0.898,TRUE
+R1063,30–44,muž,Moravskoslezsko,Smart Home Users,Dynamic,44,66,51,65,56,0.804,TRUE
+R1064,45–64,žena,Střední Morava,Smart Home Users,Dynamic,46,70,48,41,51,1.026,TRUE
+R1065,45–64,muž,Jihovýchod,Green Motivated,Green Plus,55,90,49,84,70,1.033,TRUE
+R1066,30–44,žena,Severozápad,Active Savers,Secure Flex,39,90,76,54,65,1.05,TRUE
+R1067,30–44,žena,Jihovýchod,Green Motivated,Green Plus,34,77,52,59,56,1.168,TRUE
+R1068,18–29,žena,Jihovýchod,Low Involvement,Secure Flex,55,74,74,66,67,1.042,TRUE
+R1069,65+,muž,Severozápad,Active Savers,Secure Flex,60,76,58,70,66,1.045,TRUE
+R1070,30–44,žena,Severovýchod,Green Motivated,Green Plus,56,47,79,67,62,1.16,TRUE
+R1071,18–29,žena,Jihovýchod,Security Seekers,Fixed,63,61,69,67,65,1.066,TRUE
+R1072,18–29,muž,Jihovýchod,Security Seekers,Fixed,58,67,51,41,54,1.175,TRUE
+R1073,45–64,žena,Střední Čechy,Smart Home Users,Dynamic,31,89,88,61,67,1.035,TRUE
+R1074,65+,žena,Severovýchod,Active Savers,Secure Flex,52,49,72,74,62,1.107,TRUE
+R1075,18–29,žena,Severovýchod,Smart Home Users,Dynamic,56,81,62,36,59,1.206,TRUE
+R1076,65+,muž,Střední Morava,Green Motivated,Green Plus,55,63,80,61,65,1.163,TRUE
+R1077,65+,žena,Jihovýchod,Green Motivated,Green Plus,30,62,53,44,47,1.218,TRUE
+R1078,65+,muž,Střední Morava,Smart Home Users,Dynamic,39,64,57,49,52,0.797,TRUE
+R1079,45–64,muž,Moravskoslezsko,Active Savers,Secure Flex,50,68,53,37,52,1.016,TRUE
+R1080,65+,žena,Střední Morava,Smart Home Users,Dynamic,49,45,52,50,49,1.053,TRUE
+R1081,65+,žena,Jihovýchod,Smart Home Users,Dynamic,33,63,46,72,54,0.883,TRUE
+R1082,45–64,muž,Jihovýchod,Security Seekers,Fixed,62,62,62,80,66,1.112,TRUE
+R1083,18–29,žena,Jihozápad,Security Seekers,Fixed,42,72,87,41,60,1.236,TRUE
+R1084,30–44,žena,Střední Čechy,Security Seekers,Fixed,34,60,82,59,59,0.939,TRUE
+R1085,45–64,žena,Severovýchod,Smart Home Users,Dynamic,60,54,67,81,66,0.771,TRUE
+R1086,65+,žena,Jihovýchod,Security Seekers,Fixed,55,77,49,57,60,1.079,TRUE
+R1087,65+,muž,Severovýchod,Security Seekers,Fixed,35,76,89,51,63,0.93,TRUE
+R1088,30–44,žena,Střední Morava,Security Seekers,Fixed,31,53,54,70,52,1.029,TRUE
+R1089,18–29,žena,Praha,Security Seekers,Fixed,31,69,58,70,57,1.002,TRUE
+R1090,30–44,žena,Jihozápad,Security Seekers,Fixed,38,65,77,35,54,0.949,TRUE
+R1091,18–29,muž,Severozápad,Low Involvement,Secure Flex,43,58,73,37,53,1.247,TRUE
+R1092,65+,žena,Střední Morava,Low Involvement,Secure Flex,40,79,49,35,51,0.849,TRUE
+R1093,30–44,muž,Střední Čechy,Smart Home Users,Dynamic,27,51,86,54,54,0.866,TRUE
+R1094,65+,muž,Severozápad,Active Savers,Secure Flex,56,45,74,46,55,0.809,TRUE
+R1095,45–64,žena,Praha,Active Savers,Secure Flex,41,64,62,64,58,0.9,TRUE
+R1096,65+,žena,Severovýchod,Security Seekers,Fixed,40,55,81,75,63,0.775,TRUE
+R1097,30–44,muž,Střední Čechy,Active Savers,Secure Flex,56,86,47,41,58,1.164,TRUE
+R1098,45–64,muž,Moravskoslezsko,Security Seekers,Fixed,48,88,66,65,67,0.926,TRUE
+R1099,45–64,muž,Severozápad,Active Savers,Secure Flex,56,52,75,50,58,1.198,TRUE
+R1100,65+,žena,Jihozápad,Active Savers,Secure Flex,30,47,56,71,51,1.016,TRUE
+R1101,65+,muž,Severovýchod,Security Seekers,Fixed,40,65,89,76,68,1.061,TRUE
+R1102,30–44,žena,Střední Morava,Active Savers,Secure Flex,33,47,52,71,51,0.932,TRUE
+R1103,65+,žena,Střední Čechy,Security Seekers,Fixed,60,78,81,54,68,1.241,TRUE
+R1104,45–64,žena,Moravskoslezsko,Low Involvement,Secure Flex,40,80,74,57,63,0.883,TRUE
+R1105,18–29,muž,Střední Morava,Security Seekers,Fixed,40,75,87,53,64,0.751,TRUE
+R1106,30–44,žena,Jihozápad,Green Motivated,Green Plus,27,76,74,65,60,1.194,TRUE
+R1107,18–29,muž,Jihovýchod,Active Savers,Secure Flex,36,90,71,42,60,1.03,TRUE
+R1108,18–29,muž,Jihozápad,Green Motivated,Green Plus,61,56,81,38,59,1.208,TRUE
+R1109,45–64,žena,Severovýchod,Security Seekers,Fixed,51,45,78,70,61,1.167,TRUE
+R1110,65+,muž,Severozápad,Security Seekers,Fixed,54,45,86,65,62,1.186,TRUE
+R1111,18–29,muž,Střední Morava,Green Motivated,Green Plus,50,60,58,43,53,0.881,TRUE
+R1112,45–64,žena,Střední Čechy,Green Motivated,Green Plus,62,81,71,74,72,0.822,TRUE
+R1113,45–64,žena,Střední Morava,Active Savers,Secure Flex,45,74,76,43,60,0.977,TRUE
+R1114,65+,žena,Jihovýchod,Smart Home Users,Dynamic,30,63,58,87,60,1.02,TRUE
+R1115,18–29,žena,Jihovýchod,Active Savers,Secure Flex,56,67,61,50,58,1.185,TRUE
+R1116,45–64,žena,Severozápad,Green Motivated,Green Plus,63,83,84,78,77,0.895,TRUE
+R1117,45–64,muž,Střední Morava,Smart Home Users,Dynamic,53,61,49,84,62,0.779,TRUE
+R1118,18–29,žena,Praha,Security Seekers,Fixed,44,55,68,41,52,1.081,TRUE
+R1119,65+,žena,Střední Čechy,Active Savers,Secure Flex,52,57,75,75,65,1.016,TRUE
+R1120,45–64,žena,Jihovýchod,Active Savers,Secure Flex,42,75,75,38,58,0.771,TRUE
+R1121,18–29,žena,Moravskoslezsko,Smart Home Users,Dynamic,30,46,76,70,56,0.76,TRUE
+R1122,65+,žena,Severovýchod,Active Savers,Secure Flex,43,51,45,60,50,0.8,TRUE
+R1123,45–64,muž,Střední Čechy,Security Seekers,Fixed,48,89,66,53,64,1.124,TRUE
+R1124,45–64,muž,Střední Čechy,Security Seekers,Fixed,39,68,51,58,54,0.839,TRUE
+R1125,65+,muž,Střední Morava,Security Seekers,Fixed,35,74,68,46,56,0.78,TRUE
+R1126,65+,muž,Moravskoslezsko,Security Seekers,Fixed,30,71,88,78,67,1.231,TRUE
+R1127,65+,muž,Praha,Smart Home Users,Dynamic,40,64,70,88,66,0.911,TRUE
+R1128,45–64,muž,Severozápad,Security Seekers,Fixed,31,73,52,74,58,0.934,TRUE
+R1129,45–64,žena,Jihozápad,Active Savers,Secure Flex,32,67,64,53,54,1.229,TRUE
+R1130,65+,žena,Jihovýchod,Security Seekers,Fixed,46,46,46,82,55,0.753,TRUE
+R1131,45–64,žena,Severovýchod,Smart Home Users,Dynamic,30,76,67,36,52,1.203,TRUE
+R1132,65+,muž,Moravskoslezsko,Low Involvement,Secure Flex,40,90,51,61,60,0.929,TRUE
+R1133,30–44,muž,Praha,Green Motivated,Green Plus,49,87,64,41,60,1.116,TRUE
+R1134,45–64,žena,Jihozápad,Security Seekers,Fixed,58,47,75,57,59,0.78,TRUE
+R1135,30–44,muž,Jihovýchod,Active Savers,Secure Flex,42,50,46,57,49,1.134,TRUE
+R1136,65+,žena,Moravskoslezsko,Green Motivated,Green Plus,41,48,90,80,65,1.029,TRUE
+R1137,18–29,muž,Severozápad,Security Seekers,Fixed,44,69,82,59,64,0.923,TRUE
+R1138,18–29,žena,Moravskoslezsko,Active Savers,Secure Flex,29,64,48,45,46,0.846,TRUE
+R1139,65+,muž,Střední Čechy,Active Savers,Secure Flex,38,72,89,77,69,1.157,TRUE
+R1140,45–64,žena,Moravskoslezsko,Smart Home Users,Dynamic,28,75,79,58,60,1.204,TRUE
+R1141,18–29,muž,Moravskoslezsko,Green Motivated,Green Plus,31,85,90,84,72,1.003,TRUE
+R1142,30–44,muž,Jihovýchod,Low Involvement,Secure Flex,57,46,76,41,55,0.982,TRUE
+R1143,18–29,žena,Jihovýchod,Active Savers,Secure Flex,55,49,55,42,50,1.242,TRUE
+R1144,18–29,muž,Střední Čechy,Active Savers,Secure Flex,31,45,48,64,47,1.074,TRUE
+R1145,45–64,žena,Jihozápad,Active Savers,Secure Flex,35,57,62,74,57,0.95,TRUE
+R1146,18–29,muž,Moravskoslezsko,Security Seekers,Fixed,28,76,67,61,58,0.823,TRUE
+R1147,45–64,muž,Praha,Smart Home Users,Dynamic,42,74,61,55,58,1.151,TRUE
+R1148,30–44,muž,Severozápad,Security Seekers,Fixed,56,78,46,63,61,0.946,TRUE
+R1149,18–29,žena,Moravskoslezsko,Green Motivated,Green Plus,59,76,83,87,76,1.141,TRUE
+R1150,18–29,muž,Střední Morava,Active Savers,Secure Flex,41,68,58,50,54,0.949,TRUE
+R1151,18–29,muž,Praha,Green Motivated,Green Plus,43,70,84,75,68,0.984,TRUE
+R1152,30–44,muž,Jihozápad,Active Savers,Secure Flex,50,71,83,44,62,0.84,TRUE
+R1153,45–64,žena,Praha,Security Seekers,Fixed,42,71,72,38,56,0.858,TRUE
+R1154,30–44,muž,Jihozápad,Security Seekers,Fixed,60,60,49,39,52,1.038,TRUE
+R1155,30–44,muž,Severovýchod,Security Seekers,Fixed,28,67,60,83,60,1.067,TRUE
+R1156,30–44,muž,Severovýchod,Security Seekers,Fixed,40,45,45,75,51,0.868,TRUE
+R1157,30–44,muž,Severozápad,Smart Home Users,Dynamic,41,55,54,90,60,1.083,TRUE
+R1158,30–44,žena,Moravskoslezsko,Green Motivated,Green Plus,57,90,65,67,70,1.064,TRUE
+R1159,65+,žena,Severozápad,Active Savers,Secure Flex,28,60,77,76,60,0.751,TRUE
+R1160,45–64,muž,Střední Čechy,Smart Home Users,Dynamic,44,89,45,49,57,0.814,TRUE
+R1161,30–44,žena,Jihozápad,Smart Home Users,Dynamic,27,80,76,37,55,0.938,TRUE
+R1162,65+,žena,Jihozápad,Active Savers,Secure Flex,56,48,81,54,60,1.099,TRUE
+R1163,18–29,muž,Severozápad,Security Seekers,Fixed,27,57,62,39,46,0.929,TRUE
+R1164,30–44,muž,Severozápad,Active Savers,Secure Flex,47,54,65,50,54,0.966,TRUE
+R1165,30–44,muž,Praha,Active Savers,Secure Flex,45,54,69,57,56,0.972,TRUE
+R1166,18–29,žena,Jihozápad,Smart Home Users,Dynamic,34,61,57,39,48,0.956,TRUE
+R1167,18–29,muž,Praha,Active Savers,Secure Flex,51,88,77,88,76,0.897,TRUE
+R1168,18–29,muž,Praha,Green Motivated,Green Plus,52,65,81,79,69,1.094,TRUE
+R1169,18–29,muž,Praha,Security Seekers,Fixed,59,81,64,45,62,1.088,TRUE
+R1170,45–64,žena,Severovýchod,Green Motivated,Green Plus,49,46,62,68,56,1.148,TRUE
+R1171,45–64,žena,Střední Čechy,Security Seekers,Fixed,53,87,49,38,57,0.863,TRUE
+R1172,45–64,muž,Moravskoslezsko,Security Seekers,Fixed,31,75,54,89,62,1.231,TRUE
+R1173,45–64,žena,Moravskoslezsko,Low Involvement,Secure Flex,31,51,78,75,59,0.975,TRUE
+R1174,65+,muž,Střední Čechy,Green Motivated,Green Plus,61,84,77,58,70,0.845,TRUE
+R1175,18–29,žena,Jihozápad,Security Seekers,Fixed,58,47,64,35,51,0.943,TRUE
+R1176,30–44,muž,Jihovýchod,Active Savers,Secure Flex,63,45,59,66,58,0.944,TRUE
+R1177,45–64,žena,Severovýchod,Green Motivated,Green Plus,38,68,47,43,49,0.818,TRUE
+R1178,18–29,žena,Střední Čechy,Active Savers,Secure Flex,63,59,62,74,64,1.042,TRUE
+R1179,18–29,muž,Moravskoslezsko,Smart Home Users,Dynamic,57,89,79,36,65,0.937,TRUE
+R1180,45–64,muž,Severovýchod,Security Seekers,Fixed,49,88,56,83,69,1.064,TRUE
+R1181,30–44,muž,Severovýchod,Green Motivated,Green Plus,58,85,84,82,77,0.941,TRUE
+R1182,45–64,žena,Severozápad,Active Savers,Secure Flex,40,64,63,37,51,1.157,TRUE
+R1183,18–29,žena,Jihozápad,Green Motivated,Green Plus,57,65,78,72,68,1.113,TRUE
+R1184,45–64,muž,Jihovýchod,Active Savers,Secure Flex,51,61,78,68,64,0.857,TRUE
+R1185,18–29,muž,Praha,Security Seekers,Fixed,36,73,83,76,67,0.986,TRUE
+R1186,45–64,muž,Moravskoslezsko,Green Motivated,Green Plus,42,79,86,65,68,1.148,TRUE
+R1187,30–44,muž,Moravskoslezsko,Active Savers,Secure Flex,41,90,52,64,62,1.202,TRUE
+R1188,18–29,žena,Střední Morava,Security Seekers,Fixed,34,56,58,83,58,1.055,TRUE
+R1189,30–44,muž,Severovýchod,Security Seekers,Fixed,46,84,88,62,70,1.139,TRUE
+R1190,65+,muž,Střední Čechy,Security Seekers,Fixed,60,67,51,38,54,0.807,TRUE
+R1191,30–44,žena,Severozápad,Smart Home Users,Dynamic,61,64,47,74,62,1.134,TRUE
+R1192,45–64,žena,Severovýchod,Security Seekers,Fixed,54,46,75,72,62,1.224,TRUE
+R1193,45–64,muž,Jihovýchod,Smart Home Users,Dynamic,32,54,88,82,64,0.944,TRUE
+R1194,18–29,muž,Severozápad,Active Savers,Secure Flex,63,84,56,79,70,0.845,TRUE
+R1195,45–64,žena,Severozápad,Smart Home Users,Dynamic,63,89,87,73,78,0.955,TRUE
+R1196,65+,žena,Střední Čechy,Active Savers,Secure Flex,37,45,60,55,49,1.216,TRUE
+R1197,18–29,muž,Jihovýchod,Active Savers,Secure Flex,34,75,55,42,52,1.164,TRUE
+R1198,65+,muž,Severovýchod,Smart Home Users,Dynamic,50,48,84,60,60,0.76,TRUE
+R1199,45–64,muž,Jihovýchod,Active Savers,Secure Flex,58,86,67,44,64,1.086,TRUE
+R1200,18–29,muž,Jihozápad,Security Seekers,Fixed,46,45,48,71,52,1.248,TRUE

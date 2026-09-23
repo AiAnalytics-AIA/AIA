@@ -1,0 +1,200 @@
+{
+  "nodes": [
+    {
+      "name": "Current journey",
+      "type": "object",
+      "score": 55,
+      "x": 250,
+      "y": 285,
+      "color": "#537bd7"
+    },
+    {
+      "name": "Digital only",
+      "type": "object",
+      "score": 68,
+      "x": 555,
+      "y": 180,
+      "color": "#3c9890"
+    },
+    {
+      "name": "Guided Care",
+      "type": "object",
+      "score": 82,
+      "x": 395,
+      "y": 205,
+      "color": "#7961c5"
+    },
+    {
+      "name": "Concierge",
+      "type": "object",
+      "score": 73,
+      "x": 350,
+      "y": 330,
+      "color": "#299764"
+    },
+    {
+      "name": "Důvěra",
+      "type": "anchor",
+      "x": 380,
+      "y": 115,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Jasnost",
+      "type": "anchor",
+      "x": 520,
+      "y": 225,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Ease",
+      "type": "anchor",
+      "x": 160,
+      "y": 210,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Lidská podpora",
+      "type": "anchor",
+      "x": 350,
+      "y": 355,
+      "color": "#9ba3af"
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 6,
+      "weight": 0.71
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "weight": 0.69
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "weight": 0.86
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "weight": 0.53
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "weight": 0.77
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "weight": 0.68
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "weight": 0.94
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "weight": 0.5
+    }
+  ],
+  "layers": [
+    "perception",
+    "emotion",
+    "segment_resonance"
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      2.67,
+      6.24,
+      7.51,
+      5.14,
+      3.72,
+      7.39,
+      7.209999999999999
+    ],
+    [
+      2.67,
+      0.0,
+      6.32,
+      4.23,
+      5.7700000000000005,
+      8.74,
+      1.0,
+      3.88
+    ],
+    [
+      6.24,
+      6.32,
+      0.0,
+      6.98,
+      7.93,
+      7.12,
+      4.66,
+      6.44
+    ],
+    [
+      7.51,
+      4.23,
+      6.98,
+      0.0,
+      5.07,
+      5.5,
+      4.89,
+      9.459999999999999
+    ],
+    [
+      5.14,
+      5.7700000000000005,
+      7.93,
+      5.07,
+      0.0,
+      5.95,
+      4.56,
+      4.5
+    ],
+    [
+      3.72,
+      8.74,
+      7.12,
+      5.5,
+      5.95,
+      0.0,
+      1.81,
+      5.14
+    ],
+    [
+      7.39,
+      1.0,
+      4.66,
+      4.89,
+      4.56,
+      1.81,
+      0.0,
+      4.57
+    ],
+    [
+      7.209999999999999,
+      3.88,
+      6.44,
+      9.459999999999999,
+      4.5,
+      5.14,
+      4.57,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SEED_RELATIONS_WITH_GEOMETRY_FILL; LIVE uses respondent correlations or explicit directional relations",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": true
+  }
+}

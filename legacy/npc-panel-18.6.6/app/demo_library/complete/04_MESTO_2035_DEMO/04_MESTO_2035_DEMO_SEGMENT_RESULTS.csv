@@ -1,0 +1,21 @@
+﻿dimension,segment_value,variant_id,n,consideration_pct,support_pct,fairness,effectiveness,clarity,institutional_trust
+segment,Daily Drivers,A,344,56.4,38.1,6.59,4.71,7.23,5.94
+segment,Daily Drivers,B,344,69.2,59.6,7.25,7.53,7.17,6.54
+segment,Daily Drivers,C,344,47.4,35.2,4.53,7.74,6.08,5.01
+segment,Daily Drivers,D,344,74.7,59.9,7.25,7.76,7.06,6.84
+segment,Transit Core,A,343,60.3,37.6,6.65,4.61,7.42,5.92
+segment,Transit Core,B,343,65.9,56.9,6.85,7.27,6.63,6.12
+segment,Transit Core,C,343,44.9,33.5,4.46,7.61,6.09,4.88
+segment,Transit Core,D,343,75.8,62.7,7.31,7.72,6.98,6.49
+segment,Outer District Families,A,325,54.2,36.9,6.61,4.58,7.3,5.85
+segment,Outer District Families,B,325,69.5,54.5,6.71,7.33,6.69,6.2
+segment,Outer District Families,C,325,50.8,39.4,4.69,7.96,6.19,5.05
+segment,Outer District Families,D,325,69.5,61.8,7.11,7.46,6.64,6.4
+segment,Young Urban,A,403,53.8,36.5,6.25,4.37,6.89,5.54
+segment,Young Urban,B,403,63.8,54.1,6.91,7.3,6.69,6.27
+segment,Young Urban,C,403,47.9,38.2,4.51,7.79,6.19,4.94
+segment,Young Urban,D,403,74.4,61.0,7.17,7.64,6.87,6.27
+segment,Senior Residents,A,385,55.1,40.8,6.57,4.61,7.24,5.83
+segment,Senior Residents,B,385,71.7,57.4,6.85,7.34,6.72,6.15
+segment,Senior Residents,C,385,50.4,35.1,4.75,7.99,6.48,5.11
+segment,Senior Residents,D,385,72.7,60.5,7.36,7.72,7.06,6.67

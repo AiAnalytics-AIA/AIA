@@ -1,0 +1,31 @@
+{
+  "version": "17.9.5",
+  "project_id": "PRJ-DEMO-COMPLETE-06-WORKNEST-DEMO",
+  "title": "WorkNest — DEMO",
+  "project_type": "research",
+  "primary_outputs": {
+    "overview_html": "FINAL_CLIENT_REPORT_OVERVIEW.html",
+    "main_report": "06_WORKNEST_DEMO_REPORT.docx",
+    "results_workbook": "06_WORKNEST_DEMO_RESULTS.xlsx",
+    "project_export_zip": "PROJECT_EXPORT_06_WORKNEST_DEMO.zip",
+    "dashboard_or_preview": "06_WORKNEST_DEMO_DASHBOARD.html"
+  },
+  "narrative_contract": [
+    "context",
+    "market situation",
+    "methodology",
+    "results",
+    "segmentation",
+    "risks",
+    "opportunities",
+    "recommendations",
+    "next steps"
+  ],
+  "counts": {
+    "artifacts": 20,
+    "worlds": 8,
+    "questionnaire_items": 0,
+    "segments": 20
+  },
+  "notes": "Generated overview that mirrors the reading order of real NPC Panel outputs."
+}
