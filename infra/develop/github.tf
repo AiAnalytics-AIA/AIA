@@ -29,6 +29,12 @@ variable "create_github_oidc_provider" {
   default     = true
 }
 
+variable "github_oidc_subject" {
+  description = "Exact GitHub OIDC sub for this repository's develop environment. Set this when the organization enables immutable OIDC subjects; otherwise the default repository-name subject is used."
+  type        = string
+  default     = null
+}
+
 locals {
   github_oidc_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
 }
@@ -51,7 +57,7 @@ data "aws_iam_policy_document" "github_assume" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:environment:${var.github_environment}"]
+      values   = [var.github_oidc_subject != null ? var.github_oidc_subject : "repo:${var.github_repository}:environment:${var.github_environment}"]
     }
   }
 }

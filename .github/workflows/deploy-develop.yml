@@ -171,12 +171,17 @@ jobs:
           bin/deploy.sh "$SHA" $flag
           EOF
           )
+          # AWS-RunShellScript starts commands with /bin/sh. Pass one POSIX
+          # command that decodes and launches the multiline deploy script in
+          # Bash, where pipefail and process substitution are supported.
+          encoded_script=$(printf '%s' "$script" | base64 -w0)
+          launcher="printf '%s' '$encoded_script' | base64 -d | /bin/bash"
           command_id=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name AWS-RunShellScript \
             --comment "aia develop deploy $SHA" \
             --timeout-seconds 600 \
-            --parameters "commands=$(jq -Rn --arg s "$script" '[$s]')" \
+            --parameters "commands=$(jq -n --arg s "$launcher" '[$s]')" \
             --query 'Command.CommandId' --output text)
           echo "ssm command $command_id"
 

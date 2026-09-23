@@ -85,6 +85,11 @@ These need account control an agent does not have. In order.
      | `AIA_PUBLIC_HOSTNAME` | `public_hostname` |
    - Protection: *Deployment branches and tags* → selected branches → `develop`
      only. Optional: required reviewers, once more than one person deploys.
+   - If the organization uses immutable OIDC subjects, set
+     `github_oidc_subject` in `terraform.tfvars` to the exact subject from
+     GitHub's OIDC customization settings. The role trusts that single subject,
+     including the immutable organization and repository IDs and `develop`
+     environment. The classic repository-name subject is the default otherwise.
 10. **Branch `develop`**: create it from `main` if the deploy PR did not. Then
     protect it (Settings → Branches, or a ruleset): require a pull request,
     require the `CI` checks (`Backend`, `API contract`, `Frontend`, `Application
