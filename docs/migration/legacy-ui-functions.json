@@ -34,7 +34,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 9,
+   "slice": 10,
    "notes": ""
   },
   {
@@ -51,7 +51,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 9,
+   "slice": 10,
    "notes": ""
   },
   {
@@ -75,7 +75,7 @@
    "fixtures": [
     "U01_normalizer66"
    ],
-   "slice": 6,
+   "slice": 7,
    "notes": "The reference's own golden fixture F5 (ui_app.html::normalizer66) and its UI-only methodology table ('Four normalisation modes with a population-variance sd') treat this function as methodology, but its function classifier placed it in another class, so it is absent from the 88. Carried here as an AIA addition; discrepancy REF-DISC-3 in docs/migration/parity-matrix.json. Ported as build_normalizer; parity not yet PASS for the whole function."
   },
   {
@@ -90,7 +90,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 6,
+   "slice": 7,
    "notes": ""
   },
   {
@@ -105,7 +105,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 6,
+   "slice": 7,
    "notes": ""
   },
   {
@@ -122,7 +122,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 6,
+   "slice": 7,
    "notes": ""
   },
   {
@@ -137,7 +137,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 6,
+   "slice": 7,
    "notes": ""
   },
   {
@@ -154,7 +154,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 6,
+   "slice": 7,
    "notes": ""
   },
   {
@@ -171,7 +171,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 6,
+   "slice": 7,
    "notes": ""
   },
   {
@@ -188,7 +188,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 6,
+   "slice": 7,
    "notes": ""
   },
   {
@@ -205,7 +205,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 11,
+   "slice": 12,
    "notes": ""
   },
   {
@@ -222,7 +222,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 11,
+   "slice": 12,
    "notes": ""
   },
   {
@@ -239,7 +239,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 11,
+   "slice": 12,
    "notes": ""
   },
   {
@@ -256,7 +256,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 11,
+   "slice": 12,
    "notes": ""
   },
   {
@@ -273,7 +273,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 11,
+   "slice": 12,
    "notes": ""
   },
   {
@@ -290,7 +290,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 8,
+   "slice": 9,
    "notes": ""
   },
   {
@@ -307,7 +307,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 8,
+   "slice": 9,
    "notes": ""
   },
   {
@@ -322,7 +322,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 8,
+   "slice": 9,
    "notes": ""
   },
   {
@@ -337,7 +337,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 8,
+   "slice": 9,
    "notes": ""
   },
   {
@@ -352,7 +352,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 8,
+   "slice": 9,
    "notes": ""
   },
   {
@@ -367,7 +367,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 9,
+   "slice": 10,
    "notes": ""
   },
   {
@@ -384,7 +384,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 9,
+   "slice": 10,
    "notes": ""
   },
   {
@@ -401,7 +401,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 9,
+   "slice": 10,
    "notes": ""
   },
   {
@@ -419,7 +419,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -436,7 +436,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -453,7 +453,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -471,7 +471,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -488,7 +488,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -510,7 +510,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -533,7 +533,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -550,7 +550,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -567,7 +567,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -585,7 +585,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -602,7 +602,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -617,7 +617,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -635,7 +635,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -653,7 +653,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -668,7 +668,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -686,7 +686,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -703,7 +703,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -720,7 +720,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -737,7 +737,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 15,
+   "slice": 16,
    "notes": ""
   },
   {
@@ -752,7 +752,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -769,7 +769,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -784,7 +784,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -799,7 +799,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -816,7 +816,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -831,7 +831,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -848,7 +848,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -863,7 +863,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -878,7 +878,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -893,7 +893,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -910,7 +910,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 10,
+   "slice": 11,
    "notes": ""
   },
   {
@@ -925,7 +925,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -940,7 +940,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -960,7 +960,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -975,7 +975,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -990,7 +990,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1007,7 +1007,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1025,7 +1025,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1042,7 +1042,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1062,7 +1062,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1077,7 +1077,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1092,7 +1092,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1107,7 +1107,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1122,7 +1122,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1137,7 +1137,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1152,7 +1152,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1173,7 +1173,7 @@
    "fixtures": [
     "U02_objectMetricArray66"
    ],
-   "slice": 7,
+   "slice": 8,
    "notes": "Ported as object_metric; parity not yet PASS for the whole function."
   },
   {
@@ -1188,7 +1188,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1205,7 +1205,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1222,7 +1222,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1239,7 +1239,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1256,7 +1256,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1271,7 +1271,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1286,7 +1286,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1301,7 +1301,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1318,7 +1318,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1337,7 +1337,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1357,7 +1357,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1374,7 +1374,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1389,7 +1389,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1407,7 +1407,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1424,7 +1424,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1441,7 +1441,7 @@
     "packages/aia_core/src/aia_core/domain/sociomap/terrain.py"
    ],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": "Ported as terrain fields F7/F8; parity not yet PASS for the whole function."
   },
   {
@@ -1456,7 +1456,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1471,7 +1471,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {
@@ -1486,7 +1486,7 @@
    "status": "LEGACY",
    "implementation": [],
    "fixtures": [],
-   "slice": 7,
+   "slice": 8,
    "notes": ""
   },
   {

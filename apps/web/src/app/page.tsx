@@ -1,15 +1,21 @@
 "use client";
 
+// AIA's own front page. On the develop host `/` is the NPC Panel 18.6.6
+// interface, served by the unit behind the gate (ADR 0012), so this page is
+// what a local `make dev` shows; the sign-in the gate uses is /login.
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 import { login, useSession } from "@/lib/auth";
+import { localPath } from "@/lib/panel";
 import { t } from "@/i18n/t";
 
 function Home() {
   const params = useSearchParams();
-  const next = params.get("next") ?? "/studies";
+  const requested = params.get("next");
+  const next = requested ? localPath(requested) : "/studies";
   const signedIn = useSession() !== null;
 
   return (
@@ -35,18 +41,6 @@ function Home() {
                 {t("home.signInGoogle")}
               </button>
             )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-zinc-200 bg-white p-4">
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {t("home.demoBadge")}
-          </div>
-          <p className="text-sm text-zinc-600">{t("home.intro")}</p>
-          <div className="mt-3">
-            <Link className="font-medium text-blue-700 hover:underline" href="/org/aia-demo/dashboard">
-              {t("home.goToDemo")}
-            </Link>
           </div>
         </div>
       </div>

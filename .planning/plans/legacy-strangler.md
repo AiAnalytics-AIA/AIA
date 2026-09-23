@@ -1,7 +1,17 @@
 # Legacy strangler — 18.6.6 as the AIA product, behind the running oracle
 
-**Status:** in progress · **Owner:** parity-quality + api (slice 1); one owner per
-slice below · **Started:** 2026-09-23
+**Status:** in progress · **Owner:** parity-quality + api (slices 1–2); one owner per
+slice below · **Started:** 2026-09-23 · **Revised:** 2026-09-23 (facade first,
+[ADR 0012](../../docs/architecture/adr/0012-legacy-interface-as-product-facade.md))
+
+> **Revision, 2026-09-23 — the screens come first.** The first version of this
+> plan re-homed the interface last, so the develop site would have shown an old
+> mock-up for months. The data owner decided to reverse that: the develop site
+> serves the 18.6.6 interface from slice 2, behind AIA's Google sign-in, first on
+> the original engine; each later slice rebuilds one feature on AIA **behind the
+> same screens** by moving that feature's paths from the unit to AIA. ADR 0012
+> records the decision. The slice table below is the revised order; slice 1
+> (the harnesses, PR #40) is unchanged and done.
 
 Decision: [ADR 0011](../../docs/architecture/adr/0011-vendor-legacy-product-unit.md).
 The working NPC Panel 18.6.6 product is the canonical baseline. AIA delivers
@@ -123,22 +133,33 @@ the only server of that capability.
 
 | # | Slice | Capability ids | Routes / functions | Parity gate | Owner |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **Prove the oracle; build both harnesses** (this PR) | `api.http` (ledger only), `sociomapping.core` (harness proven on `normalizer66`, `objectMetricArray66` with fresh inputs) | route ledger 153/153; UI ledger 88/88; first unit-captured fixtures | function-level fixtures gated against `aia_core.domain.sociomap`; oracle gate `NOT_EXECUTED` until credentials exist | parity-quality + api |
-| 2 | **Platform reads** | `config.edition` (R17 → fail closed), `config.environment`, `operability.integrity`, `ai.provider_parity`, `api.http` | `GET /health`, `GET /api/bootstrap`, `GET /api/providers/parity/status`, `GET /api/providers/claude-code/status`, `GET /api/command-center` | HTTP differential on the oracle (`SEMANTIC`, volatile fields masked); production tests for the two intentional differences | platform |
-| 3 | **Projects** onto AIA's study-scoped project model | `project.persistence`, `project.memory`, `pipeline.stages` | 13 `/api/projects*` + 4 `/api/project/*` + `GET /api/history` | HTTP differential on the seeded fictional demo (D4 default set); `pipeline.stages` stays `EXACT` | project |
+| 1 | **Prove the oracle; build both harnesses** — done, PR #40 | `api.http` (ledger only), `sociomapping.core` (harness proven on `normalizer66`, `objectMetricArray66`) | route ledger 153/153; UI ledger 88/88 (+1 addition); fixtures U01–U10 | U01/U02 gated; oracle gate `NOT_EXECUTED` until credentials exist | parity-quality + api |
+| 2 | **The 18.6.6 interface on the develop site, behind AIA sign-in** (ADR 0012) | `api.http` (the facade), `config.environment` | product hostname `/` and every unit path through Caddy `forward_auth` → `GET /api/v1/panel/gate`; `POST`/`DELETE /api/v1/panel/session`; `/login`, `/logout`; mock-up `/org/*` deleted | production tests of the gate (session, admin-only, origin, kill switch); smoke: anonymous `/` → `/login`, anonymous unit API → 401; **seen working in a browser** | api + web + platform |
+| 3 | **Projects** — the first feature rebuilt behind the screens | `project.persistence`, `project.memory`, `pipeline.stages` | 13 `/api/projects*` + 4 `/api/project/*` + `GET /api/history` move from the unit to AIA compatibility routes over the study-scoped project model | HTTP differential against the oracle on the seeded fictional demo; `pipeline.stages` stays `EXACT`; **decide first how a legacy-shaped request gets its study** (open question below) | project |
 | 4 | **Workflows and jobs** onto `WorkflowRun/StepRun/StepAttempt` | `workflow.engine`, `workflow.step_execution`, `workflow.config` (`COST_MODES` `EXACT`), `workflow.dispatch`, `workflow.legacy_dispatch` | 6 `/api/workflows*`, 6 `/api/jobs*`, 2 `/api/approvals*`, 4 `/api/schedules*` | HTTP differential + the 24-node DAG shape `EXACT` | workflow |
-| 5 | **Demo library** | `data_library.demos` (R15: no AI on open) | `GET /api/demos`, `POST /api/demos/copy` | `EXACT` on the demo registry and the seeded project shape; **D4 decides which demos** (default: the ten fictional showcase demos) | data-library |
-| 6 | **Population and audience** through `PopulationRuntime` | `population.core`, `population.panel_loader`, `population.weighting`, `population.readiness`, `audience.definition`, `audience.segments` | `GET /api/panel_values`, 3 `/api/audience*`, 5 `/api/audiences*`, `GET /api/populations`, `POST /api/segment/preview` | F10/F11 (already gated) + HTTP differential; `audience.segments` `NUMERICAL` 1e-9; **D3 (licence) decides storage** | population-data + audience |
-| 7 | **Sociomapping server-side** — the 35 research functions of the `sociomapping` area, terrain ported *from the JavaScript* | `sociomapping.core`, `sociomapping.study_module` | 8 `/api/visualization*`, 2 `/api/study*`; functions `terrain66`, `terrainData1865`, `renderTerrain1796`, `draw66`, `projection66`, `baseObjectLayout66`, `forceLayout27`, … | unit-captured fixtures at 1e-9 for every pure function; F1–F9; **D6 decides the generation** where several ship | A8 sociomapa-deterministic |
-| 8 | **Questionnaire and research, deterministic parts first** | `questionnaire.instruments` (`EXACT`), `questionnaire.conditionals` (1e-9), `questionnaire.engine`, `research.design` | `GET /api/instruments`, 4 `/api/questionnaire*`, 6 `/api/research*`, `POST /api/navrh`, `POST /api/preflight` | HTTP differential for the deterministic routes; AI-backed routes need the governed `ModelGateway` live transport (D6/D7/D8 in PROGRESS) and a **recorded decision before any live-AI run on the oracle** | research |
-| 9 | **Results, analysis, statistics, governance** | `results.registry`, `results.verification`, `results.dialogue`, `analysis.qc`, `statistics.*`, `governance.validation_state`, `governance.evidence_audit`, `governance.legal`, `governance.anchors` | 3 `/api/results*`, 2 `/api/results-registry*`, `GET /api/validation`, 5 `/api/persona*` | `NUMERICAL` 1e-9 via unit/oracle fixtures; gate decisions `EXACT` | analysis + governance |
-| 10 | **Simulation** onto the deterministic core | `simulation.engine`, `simulation.scenarios` | 10 `/api/fullsim*`, 6 `/api/scenario*`, 3 `/api/simulation/context*` | F13 when captured (OI-27); HTTP differential for the deterministic routes; reject-not-clip as intentional difference | A7 simulation-engine |
-| 11 | **Data library ingestion** | `data_library.ingestion` (`EXACT` ordering), `data_library.ingest_subsystem`, `data_library.panel_tools` | 18 `/api/library*`, `POST /api/ingest`, 3 `/api/population/calibration*` | HTTP differential; leakage decision `EXACT` | data-library |
-| 12 | **Reports** | `reports.generation` | `POST /api/projects/export`, `POST /api/results/final_report` | report *data* `EXACT`, prose `SEMANTIC`; **D5 decides the authoritative generation** | reporting |
-| 13 | **AI runtime settings and assistants** | `ai.provider_diagnostics`, `ai.provider_setup`, `ai.credentials`, `research.copilot` | 4 `/api/settings*`, `POST /api/providers/claude-code/setup`, 2 `/api/assistant*`, `POST /api/copilot/chat`, `POST /api/discovery*` | intentional differences with production tests (Secrets Manager, no local keystore) | ai-runtime |
-| 14 | **Second HTTP server's four routes and the static arms** | `population.panel_loader` (loader already ported), `operability.support` | `prototype_server.py` `GET /`, `/health`, `/files/`, `/cancel`; `ui_server` `/artifacts/`, `/brand/`, `/project-attachments/`, `/api/support*` | **D9 decides** retain or retire; until then `LEGACY` | platform |
-| 15+ | **Frontend re-homing**, one product area per slice after its backend: `shell`, `project`, `workflow`, `data_library`, `audience`, `questionnaire`, `results`, `sociomapping`, `simulation`, `analysis`, `population`, `reports`, `ai_runtime`, `governance`, `settings` | the same ids, per area | 247 presentation + 291 orchestration functions restructured freely; the 88 research functions already server-side | screens look and behave the same (browser tests against both); `discoverBackend()`, the origin guard and build-suffixed ids dropped by decision | web |
-| last | **Retire** `legacy-panel` by ADR when every row is `PASS` and every area is re-homed | — | — | — | data owner |
+| 5 | **Platform reads** | `config.edition` (R17 → fail closed), `operability.integrity`, `ai.provider_parity` | `GET /api/bootstrap`, `GET /api/providers/parity/status`, `GET /api/providers/claude-code/status`, `GET /api/command-center` | HTTP differential (`SEMANTIC`, volatile fields masked); production tests for the intentional differences | platform |
+| 6 | **Demo library** | `data_library.demos` (R15: no AI on open) | `GET /api/demos`, `POST /api/demos/copy` | `EXACT` on the registry and the seeded project shape; **D4 decides which demos** (default: the ten fictional showcase demos) | data-library |
+| 7 | **Population and audience** through `PopulationRuntime` | `population.core`, `population.panel_loader`, `population.weighting`, `population.readiness`, `audience.definition`, `audience.segments` | `GET /api/panel_values`, 3 `/api/audience*`, 5 `/api/audiences*`, `GET /api/populations`, `POST /api/segment/preview` | F10/F11 + HTTP differential; `audience.segments` `NUMERICAL` 1e-9; **D3 (licence) decides storage** | population-data + audience |
+| 8 | **Sociomapping server-side** — the 35 research functions of the `sociomapping` area, terrain ported *from the JavaScript* | `sociomapping.core`, `sociomapping.study_module` | 8 `/api/visualization*`, 2 `/api/study*`; `terrain66`, `terrainData1865`, `renderTerrain1796`, `draw66`, `projection66`, `baseObjectLayout66`, `forceLayout27`, … | unit-captured fixtures at 1e-9 for every pure function; F1–F9; **D6 decides the generation** | A8 sociomapa-deterministic |
+| 9 | **Questionnaire and research, deterministic parts first** | `questionnaire.instruments` (`EXACT`), `questionnaire.conditionals` (1e-9), `questionnaire.engine`, `research.design` | `GET /api/instruments`, 4 `/api/questionnaire*`, 6 `/api/research*`, `POST /api/navrh`, `POST /api/preflight` | HTTP differential for the deterministic routes; AI-backed routes need the governed `ModelGateway` live transport and a **recorded decision before any live-AI run on the oracle** | research |
+| 10 | **Results, analysis, statistics, governance** | `results.*`, `analysis.qc`, `statistics.*`, `governance.validation_state`, `governance.evidence_audit`, `governance.legal`, `governance.anchors` | 3 `/api/results*`, 2 `/api/results-registry*`, `GET /api/validation`, 5 `/api/persona*` | `NUMERICAL` 1e-9 via unit/oracle fixtures; gate decisions `EXACT` | analysis + governance |
+| 11 | **Simulation** onto the deterministic core | `simulation.engine`, `simulation.scenarios` | 10 `/api/fullsim*`, 6 `/api/scenario*`, 3 `/api/simulation/context*` | F13 when captured (OI-27); reject-not-clip as intentional difference | A7 simulation-engine |
+| 12 | **Data library ingestion** | `data_library.ingestion` (`EXACT` ordering), `data_library.ingest_subsystem`, `data_library.panel_tools` | 18 `/api/library*`, `POST /api/ingest`, 3 `/api/population/calibration*` | HTTP differential; leakage decision `EXACT` | data-library |
+| 13 | **Reports** | `reports.generation` | `POST /api/projects/export`, `POST /api/results/final_report` | report *data* `EXACT`, prose `SEMANTIC`; **D5 decides the authoritative generation** | reporting |
+| 14 | **AI runtime settings and assistants** | `ai.provider_diagnostics`, `ai.provider_setup`, `ai.credentials`, `research.copilot` | 4 `/api/settings*`, `POST /api/providers/claude-code/setup`, 2 `/api/assistant*`, `POST /api/copilot/chat`, `POST /api/discovery*` | intentional differences with production tests (Secrets Manager, no local keystore) | ai-runtime |
+| 15 | **The static arms and the second server's routes** | `operability.support`, `artifacts.*` | `/files/`, `/artifacts/`, `/project-attachments/`, `/brand/`, `/api/support*`; `prototype_server.py` routes | files served from S3 through AIA; **D9 decides** the second server | platform |
+| 16+ | **Re-home the screens**, one product area per slice, once its paths are all on AIA: `shell`, `project`, `workflow`, `data_library`, `audience`, `questionnaire`, `results`, `sociomapping`, `simulation`, `analysis`, `population`, `reports`, `ai_runtime`, `governance`, `settings` | the same ids, per area | 247 presentation + 291 orchestration functions restructured freely; the 88 research functions already server-side | screens look and behave the same (browser tests against both); `discoverBackend()`, the origin guard and build-suffixed ids dropped | web |
+| last | **Retire** `legacy-panel` by ADR when every path is on AIA and every area is re-homed | — | — | — | data owner |
+
+### Open question before slice 3 — where a legacy-shaped request gets its study
+
+Every AIA project route is study-scoped (`/api/v1/studies/{study_id}/…`); the
+interface's requests (`POST /api/projects/save`) carry no study, because the
+unit has one global store. A compatibility route must get its study from
+somewhere that is *decided*, never inferred (D8). Recommendation, to confirm
+when slice 3 starts: the panel session carries a working study chosen at sign-in
+(one study per session, switchable from a small AIA bar), recorded in the access
+audit like any other scope decision.
 
 ## Decisions not taken here (asked, not resolved in code)
 
@@ -180,11 +201,48 @@ any live-AI run on the oracle (a provider credential through the governed
       `layoutFromMatrix1797`, `layoutStatic1798`, `forceLayout27`,
       `keyInsights`, `workflowStepLabel`, `sampleRecommendation1785`) awaiting
       their port; `index.json` pins — lands: fixtures, `test_legacy_ui_functions.py`.
-- [ ] 6. **Matrix, CI and documents** — `legacy_unit` fixture source and
+- [x] 6. **Matrix, CI and documents** — `legacy_unit` fixture source and
       `legacy_oracle` requirement in `parity-matrix.json` and its tests; new
       gate on `sociomapping.core`; CI `oracle-parity` job (secrets-gated, JUnit
       into `parity-status`); `CLAUDE.md` map and commands, `ARCHITECTURE.md`
       CI tier, `parity-matrix.md` rules, `PROGRESS.md`, OI-39.
+
+## Chunks — slice 2 (ADR 0012)
+
+- [x] 0. This revision and ADR 0012.
+- [x] 1. **Gate and session in the API** — `POST`/`DELETE /api/v1/panel/session`,
+      `GET /api/v1/panel/gate`; `AIA_LEGACY_PANEL_ENABLED` (off by default, refused
+      in production); organization `OWNER`/`ADMIN` only; state-changing requests
+      need the product `Origin`; the principal from a cookie through the same path
+      as a bearer token (`principal_from_credential`). Landed `ab41c6a`, `2326bef`:
+      `routers/panel.py`, `ScopeResolver.authorize_legacy_panel` (in
+      `application/scope.py`, not a new module: admission is a scope decision),
+      `test_panel_api.py` (25), `test_legacy_panel_access.py` (7). Found on the way:
+      the settings dependency re-read the environment instead of the app's
+      settings (fixed), and refusals' audit rows roll back with the request (OI-42).
+- [x] 2. **Web: `/login`, `/logout`, no mock-up** — `/login` turns the Cognito
+      session into the panel cookie and returns to the interface; `/logout` clears
+      both; `/org/*`, `components/aia/*`, `lib/mock*.ts`, `lib/doc.ts`,
+      `lib/storage.ts` and the nine `@tiptap` packages deleted. `/login` never
+      starts the sign-in by itself (Cognito's sign-out lands on `/`) and stops
+      rather than loops if the cookie does not stick. Landed `297b573`.
+- [x] 3. **Develop host** — Caddy product site routes (`/api/v1/*` → api; AIA pages
+      → web; everything else → `forward_auth` + `legacy-panel`, Cookie stripped),
+      `X-Frame-Options: SAMEORIGIN`, `AIA_LEGACY_PANEL_ENABLED=true` for the api
+      service, smoke checks, CI job `develop-host-config`, runbook. Landed `94c0ff2`.
+      Proven locally with Caddy 2.11.4, the real API, the web client and the real
+      18.6.6 `ui_server.py` (run from a scratch copy, no data bundle): in Chromium
+      an anonymous visit lands on `/login`; an admin's session returns to
+      `/?tab=projects` and the 18.6.6 page loads and calls only its own origin
+      (`API_BASE` empty, `GET /api/bootstrap` through the gate); a member sees the
+      admins-only message; `/logout` clears the cookie.
+- [x] 4. **Documents** — CLAUDE.md, ARCHITECTURE.md (§8 CI tier, §9), the runbook,
+      PROGRESS.md, OI-42, OI-43.
+
+**Still needed to see it live:** `terraform apply` for the fourth image
+repository (OI-41), a green *Deploy develop* run, and the unit's data bundle
+(OI-39). Without the bundle the page loads and its bootstrap call
+fails, as it did locally.
 
 ## Review outcome
 

@@ -2,15 +2,15 @@
 
 // The shell for the live pages: who is signed in, sign out, and the build that
 // answered -- the browser's and the API's. Everything inside is real
-// application state read from the API; the demo pages under /org/* are not and
-// say so in their own header.
+// application state read from the API.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { api, type Health } from "@/lib/api";
-import { loadConfig, logout, useSession } from "@/lib/auth";
+import { loadConfig, useSession } from "@/lib/auth";
+import { signOut } from "@/lib/panel";
 import { t } from "@/i18n/t";
 
 export function LiveShell({ children }: { children: ReactNode }) {
@@ -20,9 +20,10 @@ export function LiveShell({ children }: { children: ReactNode }) {
   const [health, setHealth] = useState<Health | null>(null);
 
   useEffect(() => {
-    // Not signed in: back to the front door, remembering where to return.
+    // Not signed in: to the front door, remembering where to return. Not `/`,
+    // which on the develop host is the NPC Panel interface (ADR 0012).
     if (session === null && typeof window !== "undefined" && !sessionStorage.getItem("aia.session")) {
-      router.replace(`/?next=${encodeURIComponent(window.location.pathname)}`);
+      router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
     }
   }, [session, router]);
 
@@ -50,7 +51,7 @@ export function LiveShell({ children }: { children: ReactNode }) {
             <span title={session.subject ?? undefined}>{session.email ?? t("live.signedIn")}</span>
             <button
               className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-semibold hover:bg-zinc-50"
-              onClick={() => void logout()}
+              onClick={() => void signOut()}
             >
               {t("live.signOut")}
             </button>

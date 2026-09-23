@@ -461,6 +461,39 @@ test "$(curl -s -o /dev/null -w '%{http_code}' "$BASE")" = "401"
 decision. `dependencies.py` is the composition root and the only place that wires
 engine, sessions, identity and scope.
 
+**A dependency must read the settings the app was built with, not the
+environment.** `create_app(settings)` takes an explicit, validated `Settings`
+and stores it on `app.state`; a `Depends(get_settings)` constructs a fresh one
+from the process environment. The two agree in a deployment and disagree in
+every test that builds its own settings, so a route gated on a flag answers as
+if the flag were unset. Found when the legacy-panel gate returned 404 in all its
+tests with `legacy_panel_enabled=True`.
+
+```python
+# WRONG -- re-reads os.environ; ignores the Settings passed to create_app
+SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+# RIGHT -- the validated instance the application was built with
+SettingsDep = Annotated[Settings, Depends(get_app_settings)]   # request.app.state.settings
+```
+
+**An error raised after a write rolls the write back, audit rows included.**
+`get_session` is a `yield` dependency that commits on success and rolls back on
+any exception, and FastAPI propagates an `HTTPException` raised in the handler
+or a later dependency into it. A refusal that writes an audit row and then
+raises a 403 therefore records nothing (OI-42). Commit the row you mean to keep
+before raising, or write it in a session of its own.
+
+```python
+# WRONG -- the LEGACY_PANEL_DENIED row is rolled back with the 403
+resolver.authorize_legacy_panel(principal, audit=True)   # adds the row, raises
+
+# RIGHT
+except ScopeDenied as exc:
+    session.commit()          # keep the refusal's audit row
+    raise _forbidden(...) from exc
+```
+
 ## Pydantic strict mode
 
 **Strict *Python* mode rejects what JSON can express.** `model_validate(data,

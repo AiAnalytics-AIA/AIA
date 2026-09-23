@@ -420,6 +420,10 @@ jobs:
               "/api/v1/studies/{study_id}/projects/{project_id}/runs/{run_id}/events",
               "/api/v1/studies/{study_id}/projects/{project_id}/artifacts/{artifact_id}",
               "/api/v1/access-audit",
+              # The gate in front of the 18.6.6 interface (ADR 0012); Caddy's
+              # forward_auth names /panel/gate, so a rename breaks the site.
+              "/api/v1/panel/session",
+              "/api/v1/panel/gate",
           ]
           missing = [p for p in required if p not in paths]
           if missing:
@@ -598,6 +602,96 @@ jobs:
           # database error by design, so an unmigrated schema would still exit 0.
           ! grep -q '"level": "ERROR"' worker.log
 
+  develop-host-config:
+    name: Develop host configuration (Caddy, Compose, scripts)
+    # The Caddyfile decides who reaches the 18.6.6 unit on the product hostname
+    # (ADR 0012) and ships in the deploy bundle; a syntax error would first show
+    # as a failed deployment on the host. Validated here with the Caddy image the
+    # host runs and placeholder values, never real configuration.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate the Caddyfile
+        run: |
+          hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext placeholder)"
+          docker run --rm \
+            -e AIA_PUBLIC_HOSTNAME=aia.example.test \
+            -e AIA_LEGACY_HOSTNAME=legacy.example.test \
+            -e AIA_ACME_EMAIL=ops@example.test \
+            -e AIA_LEGACY_BASIC_USER=oracle \
+            -e AIA_LEGACY_BASIC_HASH="$hash" \
+            -v "$PWD/deploy/develop/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: The product hostname routes the unit only through the gate
+        run: |
+          # The one line that must never go missing: without it the unit's
+          # unauthenticated API (reference R14) is public on the product hostname.
+          docker run --rm \
+            -e AIA_PUBLIC_HOSTNAME=aia.example.test -e AIA_LEGACY_HOSTNAME=legacy.example.test \
+            -e AIA_ACME_EMAIL=ops@example.test -e AIA_LEGACY_BASIC_USER=oracle -e AIA_LEGACY_BASIC_HASH=x \
+            -v "$PWD/deploy/develop/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile > caddy.json
+          python3 - <<'PY'
+          import json
+          config = json.load(open("caddy.json"))
+
+          def walk(node):
+              if isinstance(node, dict):
+                  yield node
+                  for value in node.values():
+                      yield from walk(value)
+              elif isinstance(node, list):
+                  for value in node:
+                      yield from walk(value)
+
+          servers = config["apps"]["http"]["servers"]
+          for name, server in servers.items():
+              for route in server.get("routes", []):
+                  hosts = [h for m in route.get("match", []) for h in m.get("host", [])]
+                  if "aia.example.test" not in hosts:
+                      continue
+                  nodes = list(walk(route))
+                  unit = [n for n in nodes if n.get("handler") == "reverse_proxy"
+                          and any(u.get("dial") == "legacy-panel:8765" for u in n.get("upstreams", []))]
+                  gates = [n for n in nodes if n.get("handler") == "reverse_proxy"
+                           and n.get("rewrite", {}).get("uri") == "/api/v1/panel/gate"]
+                  assert unit, "the product hostname no longer reaches the unit"
+                  assert gates, "the product hostname reaches the unit without the gate"
+                  assert all("Cookie" in u.get("headers", {}).get("request", {}).get("delete", [])
+                             for u in unit), "the session cookie (an id token) reaches the unit"
+                  print(f"{name}: unit behind /api/v1/panel/gate")
+                  break
+              else:
+                  continue
+              break
+          else:
+              raise SystemExit("no route for the product hostname")
+          PY
+
+      - name: Validate the Compose file
+        run: |
+          cat > placeholder.env <<'ENV'
+          AIA_ACME_EMAIL=ops@example.test
+          AIA_COGNITO_CLIENT_ID=placeholder
+          AIA_COGNITO_DOMAIN=auth.example.test
+          AIA_COGNITO_USER_POOL_ID=eu-central-1_placeholder
+          AIA_IMAGE_REGISTRY=registry.example.test
+          AIA_IMAGE_TAG=0000000000000000000000000000000000000000
+          AIA_LEGACY_BASIC_HASH=placeholder
+          AIA_LEGACY_BASIC_USER=oracle
+          AIA_LEGACY_HOSTNAME=legacy.example.test
+          AIA_PUBLIC_HOSTNAME=aia.example.test
+          AIA_STORAGE_BUCKET=placeholder
+          AWS_REGION=eu-central-1
+          POSTGRES_PASSWORD=placeholder
+          ENV
+          docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config -q
+
+      - name: Shell scripts parse
+        run: for f in deploy/develop/bin/*.sh; do bash -n "$f"; done
+
   security:
     name: Security and dependency scan
     runs-on: ubuntu-latest
@@ -647,7 +741,7 @@ jobs:
 
   dispatch-develop:
     name: Dispatch verified develop deployment
-    needs: [backend, parity, golden-fixtures, oracle-parity, parity-status, api-contract, frontend, startup-smoke, security]
+    needs: [backend, parity, golden-fixtures, oracle-parity, parity-status, api-contract, frontend, startup-smoke, develop-host-config, security]
     if: success() && github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     permissions:

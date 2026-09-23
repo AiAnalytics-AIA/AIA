@@ -81,6 +81,16 @@ class Settings(BaseSettings):
     cognito_client_id: str = ""
     cognito_token_use: Literal["id", "access"] = "id"
 
+    # --------------------------------------------------------- legacy panel --
+    # The vendored 18.6.6 interface on the product hostname (ADR 0012). Off by
+    # default: with it off the gate answers 404 and Caddy forwards nothing to the
+    # unit. Refused in production by validate_for_production(). ``legacy_panel_origin``
+    # is the product origin a state-changing request must name in ``Origin``
+    # (e.g. https://aia-develop.art-chain.io); with it unset every such request is
+    # refused, never waved through.
+    legacy_panel_enabled: bool = False
+    legacy_panel_origin: str = ""
+
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
 
@@ -189,6 +199,16 @@ class Settings(BaseSettings):
             ]
             if missing:
                 problems.append("Cognito configuration is incomplete: " + ", ".join(missing))
+
+        # The vendored unit is single-tenant and holds no study scope: it may be a
+        # develop facade (ADR 0012), never a production surface.
+        if self.legacy_panel_enabled:
+            if self.env == Environment.PRODUCTION:
+                problems.append("AIA_LEGACY_PANEL_ENABLED is refused in production (ADR 0012)")
+            if not self.legacy_panel_origin:
+                problems.append(
+                    "AIA_LEGACY_PANEL_ORIGIN is required when the legacy panel is enabled"
+                )
 
         if problems:
             raise RuntimeError("invalid production configuration: " + "; ".join(problems))
