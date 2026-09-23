@@ -218,7 +218,7 @@ ungated fixture.
 | Tests | `make test` (core + API + worker + executors) |
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
 | Executor tests | `make test-executors` (the snapshot step under the real worker loop; seed; smoke module) |
-| Deploy `develop` | Merge to `develop`; [`deploy/develop/README.md`](deploy/develop/README.md) is the runbook |
+| Deploy `develop` | Merge to `develop`; [`deploy/develop/README.md`](deploy/develop/README.md) is the runbook. Live at <https://aia-develop.art-chain.io/> |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
 | Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |

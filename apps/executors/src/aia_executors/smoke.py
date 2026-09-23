@@ -8,8 +8,11 @@ running deployment. It proves, in order:
 2. **Seed** -- the develop world exists (idempotent; creates it on first run).
 3. **Worker + slice** -- a fresh ``develop_snapshot`` run is created as the seeded
    operator through the same use case the API calls; the *running* worker
-   claims and executes it; the artifact it wrote is read back from the store,
-   hash-verified, and carries the deployed build as its ``runtime_version``.
+   claims and executes it, and its step output names the deployed build; the
+   artifact is read back from the store and hash-verified. A freshly stored
+   artifact carries the deployed build as its ``runtime_version``; one reused
+   by content fingerprint keeps the build that first produced it, and the
+   check says so instead of failing (reuse is the design, ``snapshot.py``).
 4. **AI** -- reported ``NOT_RUNNABLE`` until a Bedrock adapter and governed
    route are wired into the deployed revision (ADR 0010). Printed, never
    counted as a pass.
@@ -170,7 +173,25 @@ def slice_check(
         payload = artifacts.read_json(artifact_id)
     report.ok(f"slice: artifact {artifact_id} read back from the store, hash verified")
 
-    if expect_build is not None and artifact.runtime_version != expect_build:
+    # Two different facts, checked separately. The step output names the build
+    # that *executed* this run: that must be the deployed one. The artifact names
+    # the build that *produced* its bytes, which is older whenever the content
+    # fingerprint already had a VALID artifact -- reuse is the design
+    # (snapshot.py), and a second deploy over the unchanged seed hits it every
+    # time. Run 35869042785 failed by conflating the two.
+    executed_by = output.get("runtime_version")
+    reused = bool(output.get("reused"))
+    if expect_build is not None and executed_by != expect_build:
+        report.fail(
+            "slice: the run was executed by the deployed build",
+            f"step output runtime_version {executed_by!r}, expected {expect_build!r}",
+        )
+    elif reused:
+        report.ok(
+            f"slice: artifact reused from build {artifact.runtime_version} "
+            f"(same content fingerprint); executed by build {executed_by}"
+        )
+    elif expect_build is not None and artifact.runtime_version != expect_build:
         report.fail(
             "slice: the artifact was produced by the deployed build",
             f"runtime_version {artifact.runtime_version!r}, expected {expect_build!r}",

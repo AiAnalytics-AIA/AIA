@@ -148,8 +148,15 @@ def test_slice_check_passes_when_a_worker_executes_the_run(
 
     assert report.failed is False, lines
     assert any(line.startswith("ok    slice: the running worker claimed") for line in lines)
-    assert any("artifact provenance names build a15be650937aacaa" in line for line in lines)
-    # The seeded run and the smoke's own run both exist; only the smoke's executed here.
+    # Whichever run the worker claimed first (the seed's own run is claimable too)
+    # produced the artifact; the other reused it. Either way the executing build
+    # is the one under test, and that is the fact the check reports.
+    assert any(
+        "artifact provenance names build a15be650937aacaa" in line
+        or "executed by build a15be650937aacaa" in line
+        for line in lines
+    ), lines
+    # The seeded run and the smoke's own run both exist.
     with sessions() as session:
         scope = seeded_study_scope(session, owner_email=OWNER)
         runs = WorkflowRepository(session, scope).list_runs(project_id=scope_project(session))
@@ -203,7 +210,93 @@ def test_slice_check_fails_when_the_artifact_names_another_build(
     finally:
         smoke.wait_for_snapshot = original_wait  # type: ignore[assignment]
     assert report.failed is True
-    assert any("produced by the deployed build" in line for line in lines)
+    assert any("executed by the deployed build" in line for line in lines)
+
+
+def test_slice_check_accepts_an_artifact_reused_from_an_earlier_build(
+    sessions: sessionmaker[Session],
+    store: InMemoryArtifactStore,
+    database_url: str,
+    make_worker: Callable[..., Worker],
+) -> None:
+    """The second deploy over unchanged content reuses the first deploy's artifact.
+
+    Reuse by content fingerprint is the design (``snapshot.py``), so the artifact
+    keeps the provenance of the build that first produced it. What the smoke
+    check must prove is that the *deployed* build executed the run; it must not
+    fail because the bytes already existed. Deploy develop run 35869042785 failed
+    exactly this way at ``848ec11`` after ``b5c331f`` had produced the artifact.
+    """
+    from aia_core.infrastructure.build_identity import BuildIdentity
+    from aia_executors.registry import registry_for
+    from aia_worker.settings import WorkerSettings
+
+    previous_build = "b5c331fa4031f276"
+    previous_worker = Worker(
+        session_factory=sessions,
+        executors=registry_for(
+            store=store, build=BuildIdentity(sha=previous_build, built_at="2026-09-23T13:00:00Z")
+        ),
+        settings=WorkerSettings(
+            database_url=database_url,
+            executors="aia_executors.registry:build_registry",
+            worker_id="worker-previous",
+            lease_seconds=30,
+            heartbeat_seconds=0.1,
+            poll_seconds=0.05,
+            maintenance_seconds=0.2,
+        ),
+    )
+    current_worker = make_worker()  # BUILD is a15be650937aacaa
+    original_wait = smoke.wait_for_snapshot
+
+    def drain_with(worker: Worker) -> Callable[..., dict[str, Any]]:
+        def wait(sess: sessionmaker[Session], **kwargs: Any) -> dict[str, Any]:
+            while worker.run_once() is not None:
+                pass
+            return original_wait(sess, **{**kwargs, "poll_s": 0.0})
+
+        return wait
+
+    # First deploy: the previous build produces the artifact.
+    first: list[str] = []
+    smoke.wait_for_snapshot = drain_with(previous_worker)  # type: ignore[assignment]
+    try:
+        smoke.slice_check(
+            sessions,
+            store=store,
+            owner_email=OWNER,
+            expect_build=previous_build,
+            timeout_s=5.0,
+            report=smoke.Report(first.append),
+        )
+    finally:
+        smoke.wait_for_snapshot = original_wait  # type: ignore[assignment]
+    assert not any(line.startswith("FAIL") for line in first), first
+    assert len(store.keys) == 1
+
+    # Second deploy, same content: the current build executes, the artifact is reused.
+    second: list[str] = []
+    report = smoke.Report(second.append)
+    smoke.wait_for_snapshot = drain_with(current_worker)  # type: ignore[assignment]
+    try:
+        smoke.slice_check(
+            sessions,
+            store=store,
+            owner_email=OWNER,
+            expect_build="a15be650937aacaa",
+            timeout_s=5.0,
+            report=report,
+        )
+    finally:
+        smoke.wait_for_snapshot = original_wait  # type: ignore[assignment]
+    assert report.failed is False, second
+    assert any(
+        f"reused from build {previous_build}" in line
+        and "executed by build a15be650937aacaa" in line
+        for line in second
+    ), second
+    assert len(store.keys) == 1, "reuse must not upload a second copy"
 
 
 def test_start_workflow_for_the_seed_is_visible_to_the_seeded_scope(

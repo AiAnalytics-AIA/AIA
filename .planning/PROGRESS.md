@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-23 · **Branch:** `claude/kind-sagan-sh1w3q` ·
+**Updated:** 2026-09-23 · **Branch:** `claude/gracious-fermi-m87evt` ·
 **Trunk:** `main` (release) · **Integration:** `develop` (deployed, ADR 0009)
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -36,7 +36,7 @@ entry is a **hypothesis**, not a finding.
 | 9 (core) | **Sociomap deterministic engine**: spec + artifact contract v2; relation coercion, mutual projection, ipsatization, normaliser, object metrics / T-score and both terrain fields ported from the browser and the reference backend; layout **declared** (legacy algorithms refused, AIA row-conditional unfolding implemented, no parity claimed); drag and what-if as layers. F1–F9 vendored and run in every CI job | `packages/aia_core/src/aia_core/domain/sociomap/` · `test_sociomap_{relations,metrics,terrain,layout,engine,contracts,golden_fixtures}.py` · `docs/architecture/sociomapa-deterministic-engine.md` · `.planning/plans/done/sociomap-deterministic-engine.md` |
 | 6 | **Evidence governance foundation**: field dictionary as enforced policy (all 400 fields re-derive identically to the reference export), `CORE_JOINT_STATUS` hash-bound certificate, permissible-claim policy, effective-n `SUPPRESS`-by-default support, allowed-metric enum, validation bound to system fingerprint, tier gate, factual layer, `AdmittedClaim` capability enforced by `layer_check` | `packages/aia_core/src/aia_core/domain/evidence/` · `tests/test_evidence_gate_parity.py` · `.planning/plans/done/evidence-governance-foundation.md` |
 | 6 | **The eight analysis modules** against those contracts: order, input fingerprints and resume, closed draft schema, 100% prose number coverage, prompts rendered from the enums, results that hold only admitted claims; runner with repair ≤ 2 and pre-flight blocking | `packages/aia_core/src/aia_core/domain/analysis/`, `application/analysis.py` · `tests/test_analysis_runner.py` |
-| — | **The `develop` environment (code and infrastructure declared; apply and first deploy are human actions).** Build identity (`AIA_BUILD_SHA`) and typed `AIA_STORAGE_*` in every process, deployed-environment guards extended (build SHA required, S3 only); api/worker/web images; one-host Compose with Caddy, deploy/backup/restore/smoke scripts and runbook; Terraform root (EC2 + instance role, S3 ×2, ECR ×3, SSM, Cognito + Google, GitHub OIDC role, DLM, alarms, budget); the vertical slice `develop_snapshot` (template → `start_workflow` → `apps/executors` → `ArtifactRepository` → run/artifact routes → `/studies` pages with Cognito PKCE login); idempotent seed; CI on `develop`; `deploy-develop.yml` (**inert until it is on `main`**, OI-37). ADR 0009 accepted (develop only), ADR 0010 proposed. **No model call**: the gateway is PR #28, unmerged | `deploy/develop/`, `infra/develop/`, `apps/executors/`, `.github/workflows/deploy-develop.yml` · `apps/executors/tests/`, `apps/api/tests/test_runs_api.py` · `.planning/plans/develop-deployment.md` |
+| — | **The `develop` environment — live at <https://aia-develop.art-chain.io/>.** Build identity (`AIA_BUILD_SHA`) and typed `AIA_STORAGE_*` in every process, deployed-environment guards extended (build SHA required, S3 only); api/worker/web images; one-host Compose with Caddy, deploy/backup/restore/smoke scripts and runbook; Terraform root (EC2 + instance role, S3 ×2, ECR ×3, SSM, Cognito + Google, GitHub OIDC role, DLM, alarms, budget); the vertical slice `develop_snapshot` (template → `start_workflow` → `apps/executors` → `ArtifactRepository` → run/artifact routes → `/studies` pages with Cognito PKCE login); idempotent seed; CI on `develop`; `deploy-develop.yml` registered on `main` (PR #32 @ `7f8cb2a`, OI-37 closed) and dispatched by CI after every green `develop` push. Applied 2026-09-23: the host runs `develop` @ `848ec11`; the live smoke passed HTTPS, build SHA, staging guards, readiness, 401s, schema head, worker, S3 round-trip and one completed vertical slice with provenance (PR #35 body). **Not yet green end to end:** the first four *Deploy develop* runs failed, each one step further along (OIDC trust → PR #34; API startup on `AIA_CORS_ORIGINS=""` → PR #35, merged; the smoke check conflating the executing build with a reused artifact's producer → OI-38, fixed in this change); the host runs `848ec11` after run 4 deployed it and only the smoke verdict failed. ADR 0009 accepted (develop only), ADR 0010 proposed. **No model call yet**: the gateway is merged (D12), the Bedrock adapter is Next #5c | `deploy/develop/`, `infra/develop/`, `apps/executors/`, `.github/workflows/deploy-develop.yml` · `apps/executors/tests/`, `apps/api/tests/test_runs_api.py` · `.planning/plans/done/develop-deployment.md` |
 
 **Verified state, evidence governance merged with main @ `121b746` (population,
 Sociomap, worker, population readiness) plus the four review fixes (2026-09-23).**
@@ -91,14 +91,17 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 ## In progress
 
-**The `develop` environment** — owner integration-architecture. Plan:
-[`plans/develop-deployment.md`](plans/develop-deployment.md). Chunks 1–8 are
-committed on `claude/kind-sagan-sh1w3q`; chunk 9 (this sync, the `develop`
-branch, the PR) completes with the PR. What remains is not code:
-`terraform apply`, the Google OAuth client, the GitHub environment and the
-first deploy — listed in `infra/develop/README.md` § Human actions. The
-governed Bedrock call (brief items 11–13) waits on PR #28 (contradiction C1
-in the plan); ADR 0010 records the route as *Proposed*. Decision D12.
+**The `develop` environment is live** (Completed, above; plan archived at
+[`plans/done/develop-deployment.md`](plans/done/develop-deployment.md)). What
+remains in flight is the first dispatched *Deploy develop* run that ends green.
+Run 4 (35869042785, `848ec11`, after PR #35 merged) built, pushed, migrated and
+replaced the containers, and 21 of 22 smoke checks passed; the one failure is
+the smoke module's own (OI-38): it required the artifact's `runtime_version` to
+be the deployed build, while the snapshot executor reuses the artifact by
+content fingerprint by design, so the second deploy over the unchanged seed
+read back `b5c331f`. This change fixes the check (`apps/executors/smoke.py`,
+`test_slice_check_accepts_an_artifact_reused_from_an_earlier_build`); the run
+its merge dispatches is the next chance.
 
 | What | State | Anchor |
 |---|---|---|
@@ -255,11 +258,13 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
   process-wide cache for workers. population-data, when the research engine needs
   them.
 
-0. **Release once, so the deploy workflow exists** (OI-37). GitHub registers
-   `workflow_run`/`workflow_dispatch` only from `main`; `deploy-develop.yml` is
-   on `develop` alone, so the first green `develop` head (`262a6dd`) deployed
-   nothing. A release PR `develop → main` — `develop ⊇ main` after the merge of
-   PR #28 into `develop` — is the fix, then every CI-green head deploys. Human.
+0. ~~**Release once, so the deploy workflow exists** (OI-37).~~ — **done
+   2026-09-23.** PR #32 put `deploy-develop.yml` on `main` (`7f8cb2a`, merged
+   12:41 UTC); CI on `develop` has dispatched it on every green push since
+   (first run 35863981545 at 12:59 UTC). What is still open is the first
+   *green* dispatched run (see In progress; OI-38). Then the change to the
+   workflow file itself remains inert until released, as a standing rule
+   (`AGENTS.md` § GitHub Actions).
 1. **Classify the ambiguous legacy brand tokens** (data owner, D4 below). Blocks
    the manifest reduction in
    [`public-exposure-remediation.md`](../docs/migration/public-exposure-remediation.md)
@@ -366,7 +371,7 @@ left to build.
 | D9 | **Is the Simulation lifecycle in the MVP?** `MVP-ACCEPT-1` is scoped to one Research study. Bringing Simulation in adds `simulation.*` to the blockers and makes OI-27 release-blocking | MVP scope | `docs/migration/mvp-acceptance.md` §6 |
 | D10 | **Minimum factors in a world model: 6 or 4.** The reference prompt asks for 6–12, its schema allows 4, and its code tops anything under 4 up to 6. Production declares **6** and rejects fewer. Data owner to confirm or change it; a change bumps `SIMULATION_CONSTANTS_VERSION` | Confirming the simulation bounds as final | `packages/aia_core/src/aia_core/domain/simulation/reference.py` `WorldModelBounds.min_factors` · `test_bounds_are_pinned_to_the_constants_version` |
 | D11 | **Port the reference simulation numerics exactly, or accept production-defined v1 as an intentional difference.** Exact `FS_*` parity needs the reference formula bodies (withheld) *and* numpy's PCG64 stream, which the stdlib-only domain layer (`ARCHITECTURE.md §2`) cannot hold without a named exception. Decide once the source is readable | The NUMERICAL half of F13 parity | `docs/architecture/simulation-deterministic-engine.md` §4.3, §5 |
-| D12 | ~~**Merge order for the AI runtime.**~~ — **resolved 2026-09-23.** PR #28 (the `ModelGateway` contract) merged into `main` at `676bc1f`, and this change merges `main` into `develop`, so the gateway, its three recorded-exchange adapters and the `ai_usage_events` ledger are on both branches. Next #5c (the Bedrock adapter) is unblocked. Nothing forked ADR 0005 A | Brief items 11–13; Next #5c; ADR 0010 → Accepted | `.planning/plans/develop-deployment.md` § Contradictions, C1 |
+| D12 | ~~**Merge order for the AI runtime.**~~ — **resolved 2026-09-23.** PR #28 (the `ModelGateway` contract) merged into `main` at `676bc1f`, and this change merges `main` into `develop`, so the gateway, its three recorded-exchange adapters and the `ai_usage_events` ledger are on both branches. Next #5c (the Bedrock adapter) is unblocked. Nothing forked ADR 0005 A | Brief items 11–13; Next #5c; ADR 0010 → Accepted | `.planning/plans/done/develop-deployment.md` § Contradictions, C1 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);

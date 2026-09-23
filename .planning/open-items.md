@@ -1125,5 +1125,55 @@ fails, correctly, for the window between merging a workflow change to `develop`
 and releasing it; whether that noise is wanted is a human decision, so it is
 proposed here and not added.
 
-**Status.** Open. Blocks the first automatic deployment. Owner: the person doing
-the human actions; the fix is one merge.
+**Status.** **Closed 2026-09-23.** PR #32 (`fix/register-develop-workflow`)
+put the file on `main` at `7f8cb2a`, merged 12:41 UTC;
+`GET /repos/AiAnalytics-AIA/AIA/actions/workflows/deploy-develop.yml/runs`
+now lists runs, the first (35863981545) dispatched by CI at 12:59 UTC from the
+next `develop` merge (PR #33). The standing rule stays in `AGENTS.md` § GitHub
+Actions. The first *green* dispatched run is still owed: runs 1–3 failed at
+the OIDC trust (fixed by PR #34), the SSM script launch (same PR) and the API's
+start-up on `AIA_CORS_ORIGINS=""` (PR #35, merged at `848ec11`). Run 4 on
+`848ec11` deployed and failed only its smoke verdict (OI-38). The host is live
+at <https://aia-develop.art-chain.io/>.
+
+---
+
+## OI-38 · Finding · The smoke check failed a reused artifact for naming its real producer
+
+**Claim.** `slice_check` required the snapshot artifact's `runtime_version` to
+equal the deployed build, but the snapshot executor reuses a VALID artifact
+with the same content fingerprint by design, so every second deploy over the
+unchanged develop seed reads back the *previous* build's artifact and the smoke
+test fails a deployment that worked.
+
+**Anchor.** `apps/executors/src/aia_executors/smoke.py:173-179 @ 848ec11` (the
+single check); `apps/executors/src/aia_executors/snapshot.py:88-96 @ 848ec11`
+(`put_json(..., input_fingerprint=..., runtime_version=self._build.sha)`, reuse
+on) and `packages/aia_core/src/aia_core/infrastructure/artifact_repository.py:287-295 @ 848ec11`
+(`find_reusable` returns the existing row, provenance untouched).
+
+**Reproduction.** *Deploy develop* run 35869042785 on `848ec11`: 21 `ok` lines,
+then `FAIL slice: the artifact was produced by the deployed build —
+runtime_version 'b5c331f…', expected '848ec11…'`. Locally:
+`test_slice_check_accepts_an_artifact_reused_from_an_earlier_build` in
+`apps/executors/tests/test_seed_and_smoke.py` runs the check under a worker at
+one build, then under a worker at another; it failed before the fix.
+
+**Consequence.** The deploy is reported failed although the images, migration,
+container replacement and every other check succeeded, and the host already
+serves the new build. Operators learn to distrust the verdict; the *Confirm
+from outside* step is skipped; the first green automatic deploy is postponed by
+a check, not by the system.
+
+**Smallest fix.** Check two facts separately: the step output's
+`runtime_version` (the build that *executed* the run) must be the deployed one;
+the artifact's `runtime_version` (the build that *produced* the bytes) must
+match only when the output says `reused: false`, and otherwise the line reports
+the reuse and both builds. Done in this change; the docstring says the same.
+
+**Test that would have caught it.** The test above: two `slice_check` passes
+over unchanged content with workers at different builds, the second expecting
+its own build and asserting one stored object.
+
+**Status.** Fixed in this change (`apps/executors/src/aia_executors/smoke.py`).
+Verified by the dispatched run its merge triggers, not before.

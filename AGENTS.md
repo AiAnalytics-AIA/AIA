@@ -460,6 +460,32 @@ raise RuntimeError("invalid production configuration: " + "; ".join(problems))
 An empty `cors_origins` means same-origin only, which is the correct default.
 **Never `*`.**
 
+**A list-typed setting is JSON-decoded from the environment before any
+validator runs.** pydantic-settings treats `list[str]` as a complex field and
+calls `json.loads` on the raw environment value itself; only the result reaches
+a `mode="before"` validator. So the comma-splitting validator on `cors_origins`
+never sees a bare string from the environment, and an empty value is a parse
+error at start-up, not an empty list. This took the API container down on the
+first develop deployment (run 35866350052; PR #35). Measured with
+pydantic-settings 2.15.0: `""` and `"a,b"` both raise `SettingsError`; `"[]"`
+and `'["a","b"]'` parse.
+
+```yaml
+# WRONG -- "" is not JSON; Settings() raises SettingsError before any validator
+AIA_CORS_ORIGINS: ""
+AIA_CORS_ORIGINS: "https://a.example,https://b.example"   # also not JSON
+
+# RIGHT -- a JSON list, the empty one included
+AIA_CORS_ORIGINS: "[]"
+AIA_CORS_ORIGINS: '["https://a.example","https://b.example"]'
+```
+
+The alternative is `Annotated[list[str], NoDecode]` on the field, which hands
+the raw string to the validator; it was not taken, so that `.env.example`,
+Compose and the validator all agree on one shape. Note that constructing
+`Settings(cors_origins="a,b")` in a test bypasses the environment decoding and
+*does* reach the validator, which is why a unit test does not catch this.
+
 ## GitHub Actions
 
 **A `workflow_dispatch` workflow must be registered on the default branch.**

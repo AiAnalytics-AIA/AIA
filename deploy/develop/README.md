@@ -5,14 +5,15 @@ running Caddy, the Next.js client, the FastAPI API, the worker and PostgreSQL 16
 under Docker Compose, with S3, Cognito, ECR, SSM and IAM used for real.
 Decision record: [ADR 0009](../../docs/architecture/adr/0009-single-host-develop-environment.md).
 Infrastructure: [`infra/develop/`](../../infra/develop/). Plan and audit:
-[`.planning/plans/develop-deployment.md`](../../.planning/plans/develop-deployment.md).
+[`.planning/plans/done/develop-deployment.md`](../../.planning/plans/done/develop-deployment.md).
+Live at <https://aia-develop.art-chain.io/> since 2026-09-23.
 
 The application runs with **`AIA_ENV=staging`**. That is deliberate: `staging`
 is a deployed environment to the code, so every guard is active — Cognito only,
 S3 only, no debug, no wildcard CORS, no header identity, a known build SHA.
 
 ```
-feature/* ──PR──▶ develop ──CI green──▶ deploy-develop.yml ──▶ https://<hostname>/
+feature/* ──PR──▶ develop ──CI green──▶ deploy-develop.yml ──▶ https://aia-develop.art-chain.io/
                                           build ▸ push to ECR ▸ SSM Run Command ▸ bin/deploy.sh
 ```
 
@@ -75,7 +76,7 @@ Done once, by a person with AWS access. Everything after this is automatic.
    Idempotent. Creates the organization, the operator named in
    `AIA_SEED_OWNER_EMAIL` as its owner, a synthetic client and study with a
    budget, a project, and one example workflow run. Re-running changes nothing.
-9. **Sign in.** Open `https://dev.<domain>/`, choose *Sign in*, authenticate with
+9. **Sign in.** Open the public hostname (`https://aia-develop.art-chain.io/`), choose *Sign in*, authenticate with
    the Google Workspace account from step 8, and open *Studies*. That page is the
    real API; the *demo* pages are labelled as mock.
 
@@ -87,7 +88,8 @@ Merge a pull request into `develop`. Then:
    job dispatches only when they all succeed on a push to `develop`.
 2. The dispatch runs `deploy-develop.yml` on the `develop` ref. GitHub requires
    the dispatchable workflow file to exist on the default branch (`main`) too,
-   so register a compatible copy there before relying on it. Keeping the run
+   so register a compatible copy there before relying on it (done: PR #32,
+   `7f8cb2a`; a later edit to the file is inert until released). Keeping the run
    on `develop` lets the environment's develop-only branch rule apply. It
    runs in the `develop` GitHub environment,
    assumes the deploy role through OIDC (no stored AWS keys), builds
@@ -99,7 +101,7 @@ Merge a pull request into `develop`. Then:
 4. The workflow waits for the command, prints its output, and fails if any step
    or smoke check failed.
 
-Refresh `https://dev.<domain>/` — the footer and `/version` show the SHA;
+Refresh `https://aia-develop.art-chain.io/` — the footer and `/version` show the SHA;
 `/api/v1/health` shows the same SHA under `build.sha`.
 
 ## Logs
