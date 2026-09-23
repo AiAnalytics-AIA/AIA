@@ -83,12 +83,13 @@ Done once, by a person with AWS access. Everything after this is automatic.
 
 Merge a pull request into `develop`. Then:
 
-1. CI runs (`.github/workflows/ci.yml`) — unchanged, and not weakened.
-2. On CI success, `deploy-develop.yml` — **`main`'s copy of it**: GitHub
-   registers `workflow_run` and `workflow_dispatch` only from the default
-   branch, so the file must have reached `main` through a release PR before
-   anything deploys, and an edit to it deploys nothing new until it is released
-   too (`AGENTS.md` § GitHub Actions) — runs in the `develop` GitHub environment,
+1. CI runs (`.github/workflows/ci.yml`) with every existing check. Its final
+   job dispatches only when they all succeed on a push to `develop`.
+2. The dispatch runs `deploy-develop.yml` on the `develop` ref. GitHub requires
+   the dispatchable workflow file to exist on the default branch (`main`) too,
+   so register a compatible copy there before relying on it. Keeping the run
+   on `develop` lets the environment's develop-only branch rule apply. It
+   runs in the `develop` GitHub environment,
    assumes the deploy role through OIDC (no stored AWS keys), builds
    `aia-api`, `aia-worker` and `aia-web` at the verified SHA, pushes them to ECR
    tagged `<sha>` (and `develop` as a convenience alias), uploads this directory

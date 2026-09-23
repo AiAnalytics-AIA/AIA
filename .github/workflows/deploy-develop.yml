@@ -1,20 +1,18 @@
 name: Deploy develop
 
-# Deploy only what CI verified (ARCHITECTURE.md §9): this runs when the CI
-# workflow *completes successfully* on `develop`, checks out the exact SHA CI
-# verified, builds the three images tagged by that SHA, pushes them to ECR,
+# Deploy only what CI verified (ARCHITECTURE.md §9): CI dispatches this workflow
+# on `develop` after every required check succeeds. It checks out that exact SHA,
+# builds the three images tagged by that SHA, pushes them to ECR,
 # ships deploy/develop as a versioned bundle, and runs bin/deploy.sh on the host
 # through SSM Run Command. No SSH, no stored AWS keys: the job assumes an IAM
 # role through GitHub's OIDC provider, and only from the `develop` environment.
 #
-# `workflow_dispatch` lets a person deploy a specific SHA by hand, which is also
-# how a rollback is done (deploy/develop/README.md § Rollback).
+# A person can also dispatch a specific SHA by hand for rollback
+# (deploy/develop/README.md § Rollback). GitHub requires this file on the
+# default branch for dispatch, while the run uses the develop ref so the
+# environment's develop-only branch protection still applies.
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [develop]
   workflow_dispatch:
     inputs:
       sha:
@@ -36,32 +34,19 @@ permissions:
   contents: read
   id-token: write
 
-env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
-
 jobs:
   resolve:
     name: Resolve the SHA to deploy
     runs-on: ubuntu-latest
-    # workflow_run fires for failures and cancellations too; deploy only on success.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'develop')
     outputs:
       sha: ${{ steps.pick.outputs.sha }}
       migrate: ${{ steps.pick.outputs.migrate }}
     steps:
       - id: pick
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            sha="${{ github.event.workflow_run.head_sha }}"
-            migrate="true"
-          else
-            sha="${{ inputs.sha }}"
-            migrate="${{ inputs.migrate }}"
-            if [ -z "$sha" ]; then sha="${{ github.sha }}"; fi
-          fi
+          sha="${{ inputs.sha }}"
+          migrate="${{ inputs.migrate }}"
+          if [ -z "$sha" ]; then sha="${{ github.sha }}"; fi
           if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::expected a full 40-character SHA, got '$sha'"; exit 1
           fi
@@ -80,6 +65,7 @@ jobs:
       url: https://${{ vars.AIA_PUBLIC_HOSTNAME }}/
     timeout-minutes: 45
     env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
       SHA: ${{ needs.resolve.outputs.sha }}
       REGISTRY: ${{ vars.AIA_ECR_REGISTRY }}
       OPS_BUCKET: ${{ vars.AIA_OPS_BUCKET }}
@@ -117,7 +103,7 @@ jobs:
             ${{ env.REGISTRY }}/aia-api:develop
           build-args: |
             AIA_BUILD_SHA=${{ env.SHA }}
-            AIA_BUILD_TIME=${{ github.event.workflow_run.updated_at || github.run_started_at }}
+            AIA_BUILD_TIME=${{ github.run_started_at }}
           cache-from: type=gha,scope=python
           cache-to: type=gha,scope=python,mode=max
           provenance: false
@@ -134,7 +120,7 @@ jobs:
             ${{ env.REGISTRY }}/aia-worker:develop
           build-args: |
             AIA_BUILD_SHA=${{ env.SHA }}
-            AIA_BUILD_TIME=${{ github.event.workflow_run.updated_at || github.run_started_at }}
+            AIA_BUILD_TIME=${{ github.run_started_at }}
           cache-from: type=gha,scope=python
           cache-to: type=gha,scope=python,mode=max
           provenance: false
