@@ -920,3 +920,41 @@ document and upstream; the matrix keeps the reference's F12.
 fixture id; a document outside the matrix is not covered.
 
 **Status.** Open. Owner: population-data, with parity-quality.
+
+---
+
+## OI-32 · Finding · `main` accepts a merge before its blocking checks have run
+
+**Claim.** Nothing stops a pull request merging into `main` while its blocking
+checks are red or have not started, so a rule that fails correctly still lets
+the regression land.
+
+**Anchor.** PR #26 (`coordination/agent-status`): opened 2026-09-23T00:43:20Z,
+merged 00:43:31Z, eleven seconds later. Its *Backend (lint, types, tests)* job
+started at 00:43:30Z and failed at 00:44:15Z on `exposure_check` rule 4
+(`tools/exposure_check.sh`, "No agent coordination state in product history"),
+job 106998296094. Merge commit `2dbe2cf`; removed again by `7a022b3`.
+
+**Reproduction.** `./tools/exposure_check.sh` in a worktree of `2dbe2cf` fails
+rule 4 on four `.agent-status/*.md` files. The PR's check runs show the failure
+landing after `merged_at`.
+
+**Consequence.** Every branch that merged `main` between `2dbe2cf` and
+`7a022b3` went red on a failure that was not its own. That included this
+simulation PR (#27, CI run 35803607692). The same thing had happened once
+before, removed in `026577e`. A guard that is not required is advice.
+
+**Smallest fix.** Branch protection on `main`: require the blocking jobs in
+`ARCHITECTURE.md §8`, at least *Backend (lint, types, tests)*, before merge.
+This is a repository setting. An agent session cannot apply it (the proxy
+refuses settings writes, as with D5), so a human must.
+
+**Test that would have caught it.** None can, from inside the repository: a
+test runs in the check that the merge ignored. What a test can prevent is the
+other silent path, the rule itself being weakened.
+`packages/aia_core/tests/test_exposure_check_tool.py` runs the real script
+against a scratch repository and fails if a tracked `.agent-status/` stops
+failing the build.
+
+**Status.** Open. Needs a repository admin.
+
