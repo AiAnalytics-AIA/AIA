@@ -2,10 +2,13 @@
 
 How the supplied prototype works, what is worth keeping, and what is accidental.
 
-The prototype is **not vendored into this repository**. It lives beside it at
+The prototype's **archive** is not in this repository. It lives beside it at
 `../npc-panel-reference` and is referenced by the parity test suite via
 `AIA_LEGACY_REFERENCE`. It has no `.git` directory — it is a snapshot, so there
-is no history to migrate, only behaviour.
+is no history to migrate, only behaviour. Since
+[ADR 0011](../architecture/adr/0011-vendor-legacy-product-unit.md) its **product
+code** is vendored, frozen, at `legacy/npc-panel-18.6.6/` and runs on the develop
+host as the baseline; the map below still describes what that code does.
 
 ## Measured inventory
 

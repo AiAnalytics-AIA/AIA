@@ -50,6 +50,7 @@ point; nothing outside it touches its internals.
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
 | — | **Legacy stub** | `src/server.js` | Frozen. The sole surviving login path. | Nothing. Receives no new features. |
+| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited.** Outside every code-quality gate by construction; deployed as its own service on its own hostname behind a gate. | Nothing. Nothing depends on it in code; parity tests reach it over HTTP. |
 
 Dependencies point inward only. `infrastructure → domain` is allowed;
 `domain → infrastructure` is not. The domain layer must stay importable with
