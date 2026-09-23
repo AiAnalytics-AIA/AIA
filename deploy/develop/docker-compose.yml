@@ -46,9 +46,13 @@ services:
     environment:
       AIA_PUBLIC_HOSTNAME: ${AIA_PUBLIC_HOSTNAME}
       AIA_ACME_EMAIL: ${AIA_ACME_EMAIL}
-      AIA_LEGACY_HOSTNAME: ${AIA_LEGACY_HOSTNAME}
-      AIA_LEGACY_BASIC_USER: ${AIA_LEGACY_BASIC_USER}
-      AIA_LEGACY_BASIC_HASH: ${AIA_LEGACY_BASIC_HASH}
+      # The oracle hostname is optional configuration; unset or empty, these
+      # defaults keep the Caddyfile loadable and its gate shut (see the
+      # Caddyfile's legacy block). The hash is of a random value discarded when
+      # it was generated; `$$` is Compose's escape for a literal `$`.
+      AIA_LEGACY_HOSTNAME: ${AIA_LEGACY_HOSTNAME:-legacy-unconfigured.localhost}
+      AIA_LEGACY_BASIC_USER: ${AIA_LEGACY_BASIC_USER:-unconfigured}
+      AIA_LEGACY_BASIC_HASH: ${AIA_LEGACY_BASIC_HASH:-$$2a$$14$$sy9kBdx8X2CPlJ78PHv3rea2RaYWuDCXnWR/wUpzucd5aARTiUnKa}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -58,8 +62,9 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
-      legacy-panel:
-        condition: service_healthy
+      # Not legacy-panel: the product hostname serves AIA's own pages and the API
+      # whatever state the 18.6.6 unit is in. An unhealthy unit answers 502 on its
+      # own paths; it must never keep Caddy from starting (run 10, 2026-09-23).
     networks: [edge, internal]
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/metrics"]

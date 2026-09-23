@@ -1376,3 +1376,47 @@ production until then.
 `test_panel_api.py::test_production_refuses_the_panel`.
 
 **Status.** Open — data owner (D8), then deployment work.
+
+## OI-44 · Finding · The first deploy with the legacy unit took the whole develop site down
+
+**Claim.** *Deploy develop* run 10 @ `9e42f24` replaced every service and left
+Caddy unable to start, so nothing answered on the product hostname: the host's
+env file had no `AIA_LEGACY_*` values, which made the Caddyfile's legacy site
+address empty and the file unparseable, and Caddy also waited for the unit to be
+healthy, which it never is without its data bundle.
+
+**Anchor.** `deploy/develop/Caddyfile` legacy site `{$AIA_LEGACY_HOSTNAME} {`,
+`deploy/develop/docker-compose.yml` caddy `depends_on: legacy-panel:
+condition: service_healthy`, and `deploy/develop/bin/deploy.sh`
+`up -d --remove-orphans --wait` @ `9e42f24` (the first two from PR #38, ADR 0011;
+the host never ran them before run 10 because runs 6 to 9 failed earlier).
+
+**Reproduction.** Run 10 (`35925591868`) log: `AIA_LEGACY_DATA_PREFIX is unset`,
+`The "AIA_LEGACY_HOSTNAME" variable is not set`, `Container
+aia-develop-legacy-panel-1 Error`, `dependency failed to start: container
+aia-develop-legacy-panel-1 is unhealthy`; Caddy is `Recreated` and never
+`Started`. Locally, Caddy 2.11.4 with `AIA_LEGACY_HOSTNAME` empty:
+`caddy adapt --config deploy/develop/Caddyfile` → `Error: server block without
+any key is global configuration, and if used, it must be first`.
+
+**Consequence.** https://aia-develop.art-chain.io/ down from 22:03 UTC on
+2026-09-23 until a deploy carrying the fix. The develop-host-config CI job did
+not catch it because it validated the Caddyfile with every value supplied.
+
+**Smallest fix.** Landed on `claude/stoic-fermi-qiw3g1`: Compose defaults the
+three values when unset or empty (a `*.localhost` name, a hash of a discarded
+random value); Caddy no longer depends on the unit; `bin/deploy.sh` validates
+the Caddyfile with the host's `.env` before touching anything and waits only on
+AIA's services, with the unit's health as a smoke check; `write-env.sh` quotes
+every value, because an unquoted bcrypt hash is mangled by both Compose and the
+shell. Still open: Terraform should own the four `aia_legacy_*` parameters
+(hostname, user, hash, data prefix) and the oracle's DNS record; until then the
+runbook (§ Switching the unit on) gives the commands.
+
+**Test that would have caught it.**
+`packages/aia_core/tests/test_develop_host_resilience.py` (fails on the files at
+`9e42f24`) and the CI step *Caddy loads through Compose without the oracle's
+settings*.
+
+**Status.** Code fix open for review; Terraform ownership of the parameters open.
+

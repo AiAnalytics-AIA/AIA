@@ -77,6 +77,13 @@
 	}
 }
 
+# Unconfigured, this block must not take the product hostname down with it: an
+# empty site address makes the whole file unparseable, which is how the first
+# deploy to reach the host with it (run 10, 2026-09-23) left Caddy stopped.
+# docker-compose.yml therefore defaults all three values when they are unset or
+# empty (Caddy's own `{$VAR:default}` does not apply to an empty value): a
+# *.localhost name (internal CA, never ACME) and a hash of a random value that
+# was discarded when it was generated, so the gate stays shut.
 {$AIA_LEGACY_HOSTNAME} {
 	encode zstd gzip
 

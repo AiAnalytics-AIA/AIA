@@ -62,7 +62,14 @@ redirect="$(code "http://${AIA_PUBLIC_HOSTNAME}/")"
 case "$redirect" in 301|308) pass "web: HTTP redirects to HTTPS ($redirect)" ;;
   *) fail "web: HTTP redirects to HTTPS" "got $redirect" ;; esac
 
-# --- legacy unit (ADR 0011) --------------------------------------------------
+# --- legacy unit (ADR 0011, ADR 0012) ----------------------------------------
+# Its health is checked here rather than by `compose up --wait`, so an unhealthy
+# unit fails the deploy without keeping the product hostname down.
+legacy_id="$("${COMPOSE[@]}" ps -q legacy-panel 2>/dev/null || true)"
+legacy_health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$legacy_id" 2>/dev/null || echo missing)"
+if [ "$legacy_health" = "healthy" ]; then pass "legacy: the 18.6.6 unit is healthy"
+else fail "legacy: the 18.6.6 unit is healthy" "state '${legacy_health}'; it needs AIA_LEGACY_DATA_PREFIX and its data bundle in the ops bucket (runbook § The 18.6.6 interface)"; fi
+
 # The gate is the check: the reference API is unauthenticated, so an anonymous
 # request to the legacy hostname must be refused by Caddy before it reaches it.
 if [ -n "${AIA_LEGACY_HOSTNAME:-}" ]; then

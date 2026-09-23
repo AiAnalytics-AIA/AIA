@@ -4,11 +4,14 @@
 #   bin/deploy.sh <git-sha> [--no-migrate]
 #
 #   pull images          immutable <sha> tags from ECR, with the instance role
+#   check Caddy          the Caddyfile loaded with this host's .env; a failure stops
+#                        here and the running services are untouched
 #   backup               pg_dump to S3, labelled pre-deploy-<sha> (skipped only on
 #                        the very first deploy, when there is no database yet)
 #   migrate              `alembic upgrade head` once, from the api image at <sha>;
 #                        a failure stops here and the running services are untouched
-#   switch               AIA_IMAGE_TAG=<sha> written to .env, then compose up --wait
+#   switch               AIA_IMAGE_TAG=<sha> written to .env, then compose up; waits
+#                        on AIA's services only (the 18.6.6 unit is a smoke check)
 #   smoke                bin/smoke.sh against the public hostname
 #
 # --no-migrate is for rolling back to a previous SHA whose schema is already
@@ -48,6 +51,16 @@ else
   log "AIA_LEGACY_DATA_PREFIX is unset; the legacy unit will refuse to start without its data"
 fi
 
+# The Caddyfile decides whether anyone reaches the site. Load it with this host's
+# configuration before anything is touched: run 10 (2026-09-23) replaced every
+# service and only then found Caddy could not parse its file, and the site was
+# down until the next deploy.
+log "validating the Caddyfile against this host's configuration"
+if ! caddy_check="$("${COMPOSE[@]}" run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1)"; then
+  printf '%s\n' "$caddy_check" | grep -v '"level":"info"' | tail -5 >&2
+  die "the Caddyfile does not load with this host's configuration; the running services were not replaced"
+fi
+
 log "starting postgres"
 "${COMPOSE[@]}" up -d --wait postgres
 
@@ -77,7 +90,12 @@ else
 fi
 
 log "replacing services"
-"${COMPOSE[@]}" up -d --remove-orphans --wait --wait-timeout 180
+# Every service is (re)created, but the deploy waits only on AIA's own: the
+# product hostname must come up whatever state the 18.6.6 unit is in. The
+# unit's health is a smoke check below, so an unhealthy unit still fails the
+# deploy, with every other check reported, instead of keeping Caddy down.
+"${COMPOSE[@]}" up -d --remove-orphans
+"${COMPOSE[@]}" up -d --wait --wait-timeout 180 postgres api worker web caddy
 
 log "pruning images older than the previous deployment"
 docker image prune -f --filter "until=168h" >/dev/null || true
