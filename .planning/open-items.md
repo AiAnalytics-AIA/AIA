@@ -1256,3 +1256,72 @@ functions with a `compute` signal before slice 7.
 pins the addition; the sweep above would be its widening.
 
 **Status.** Open — upstream (AIA-reference). Carried here as an addition.
+
+## OI-41 · Finding · A refused study request's audit row is rolled back with the request
+
+**Claim.** `ScopeResolver` writes `ACCESS_DENIED` and `PERMISSION_DENIED` rows
+into the request's session and then raises; the API turns that into a 404 or 403,
+and `get_session` rolls the whole transaction back on the error, so no refusal
+made through the API is ever recorded.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/scope.py:244` and `:281`
+(`self._record(... action="ACCESS_DENIED" / "PERMISSION_DENIED")` before
+`raise`) and `apps/api/src/aia_api/dependencies.py:130` (`session.rollback()` in
+`get_session`) @ `764f9f7`.
+
+**Reproduction.** In `apps/api/tests`, as the `outsider` of the conftest world:
+`GET /api/v1/studies/{primary}/projects` → 404, then
+`select(AccessAuditRow).where(action == "ACCESS_DENIED")` → `[]`. Run on this
+branch on 2026-09-23 (scratch test, not committed): the assertion failed with `[]`.
+
+**Consequence.** The access audit shows who got in but never who was refused,
+though the resolver's own comment says a member reaching for a study they hold
+no grant on "is worth seeing". An operator investigating probing would find
+nothing.
+
+**Smallest fix.** Record refusals in their own short transaction (a separate
+session from the factory, committed before the raise), or have the dependency
+commit the audit row before translating `ScopeDenied`. The legacy-panel
+session route does the latter for its one refusal
+(`apps/api/src/aia_api/routers/panel.py`, `open_session`), which is why its test
+passes.
+
+**Test that would have caught it.** The reproduction above as
+`apps/api/tests/test_projects_api.py::test_a_refused_study_request_is_audited`,
+with its `PERMISSION_DENIED` twin.
+
+**Status.** Open. Found while building ADR 0012's gate; not fixed here because it
+changes the transaction shape of every scoped route.
+
+## OI-42 · Question · Three develop-only choices in the 18.6.6 gate need a decision before production
+
+**Claim.** The gate in front of the 18.6.6 interface (ADR 0012) makes three
+choices that are right for a handful of develop users and are not a production
+design: only organization owners and admins pass; the cookie carries the Cognito
+id token itself; and every request to the unit costs one gate round trip with a
+user upsert and a membership read.
+
+**Anchor.** `LEGACY_PANEL_ROLES` in `packages/aia_core/src/aia_core/domain/scope.py`,
+`_set_cookie` and `gate` in `apps/api/src/aia_api/routers/panel.py`, and the
+`forward_auth` block of `deploy/develop/Caddyfile` @ `2326bef`.
+
+**Reproduction.** `apps/api/tests/test_panel_api.py` pins all three:
+`test_a_members_session_is_refused_by_the_gate`,
+`test_an_administrator_gets_an_httponly_lax_session_cookie` (the cookie value is
+the token), `test_the_gate_writes_no_audit_row_per_request`.
+
+**Consequence.** None on develop. In production: researchers without an admin
+role could not use the interface; a stolen cookie is a bearer token for an hour;
+the gate's cost scales with the interface's request rate (map tiles, polling).
+
+**Smallest fix.** Decide per item when production is planned: the role rule is
+reference decision D8 ("default to the most restrictive role and relax
+deliberately"); a signed server-side session id replaces the token in the cookie;
+the gate's cost is measured on develop first (Caddy access log durations for
+`/api/v1/panel/gate`). `Settings.validate_for_production` refuses the panel in
+production until then.
+
+**Test that would have caught it.** Not a defect; the production guard is
+`test_panel_api.py::test_production_refuses_the_panel`.
+
+**Status.** Open — data owner (D8), then deployment work.

@@ -210,20 +210,38 @@ any live-AI run on the oracle (a provider credential through the governed
 ## Chunks — slice 2 (ADR 0012)
 
 - [x] 0. This revision and ADR 0012.
-- [ ] 1. **Gate and session in the API** — `POST`/`DELETE /api/v1/panel/session`,
+- [x] 1. **Gate and session in the API** — `POST`/`DELETE /api/v1/panel/session`,
       `GET /api/v1/panel/gate`; `AIA_LEGACY_PANEL_ENABLED` (off by default, refused
       in production); organization `OWNER`/`ADMIN` only; state-changing requests
       need the product `Origin`; the principal from a cookie through the same path
-      as a bearer token — lands: `routers/panel.py`, `application/legacy_panel.py`,
-      `test_panel_api.py`, `test_legacy_panel_access.py`.
-- [ ] 2. **Web: `/login`, `/logout`, no mock-up** — `/login` turns the Cognito
+      as a bearer token (`principal_from_credential`). Landed `ab41c6a`, `2326bef`:
+      `routers/panel.py`, `ScopeResolver.authorize_legacy_panel` (in
+      `application/scope.py`, not a new module: admission is a scope decision),
+      `test_panel_api.py` (25), `test_legacy_panel_access.py` (7). Found on the way:
+      the settings dependency re-read the environment instead of the app's
+      settings (fixed), and refusals' audit rows roll back with the request (OI-41).
+- [x] 2. **Web: `/login`, `/logout`, no mock-up** — `/login` turns the Cognito
       session into the panel cookie and returns to the interface; `/logout` clears
-      both; `/org/*`, `components/aia/*`, `lib/mock*.ts`, `lib/doc.ts` deleted.
-- [ ] 3. **Develop host** — Caddy product site routes (`/api/v1/*` → api; AIA pages
-      → web; everything else → `forward_auth` + `legacy-panel`), `X-Frame-Options:
-      SAMEORIGIN`, `AIA_LEGACY_PANEL_ENABLED=true` for the api service, smoke checks,
-      CI validates the Caddyfile, runbook.
-- [ ] 4. **Documents** — CLAUDE.md, ARCHITECTURE.md, PROGRESS.md, open items.
+      both; `/org/*`, `components/aia/*`, `lib/mock*.ts`, `lib/doc.ts`,
+      `lib/storage.ts` and the nine `@tiptap` packages deleted. `/login` never
+      starts the sign-in by itself (Cognito's sign-out lands on `/`) and stops
+      rather than loops if the cookie does not stick. Landed `297b573`.
+- [x] 3. **Develop host** — Caddy product site routes (`/api/v1/*` → api; AIA pages
+      → web; everything else → `forward_auth` + `legacy-panel`, Cookie stripped),
+      `X-Frame-Options: SAMEORIGIN`, `AIA_LEGACY_PANEL_ENABLED=true` for the api
+      service, smoke checks, CI job `develop-host-config`, runbook. Landed `94c0ff2`.
+      Proven locally with Caddy 2.11.4, the real API, the web client and the real
+      18.6.6 `ui_server.py` (run from a scratch copy, no data bundle): in Chromium
+      an anonymous visit lands on `/login`; an admin's session returns to
+      `/?tab=projects` and the 18.6.6 page loads and calls only its own origin
+      (`API_BASE` empty, `GET /api/bootstrap` through the gate); a member sees the
+      admins-only message; `/logout` clears the cookie.
+- [x] 4. **Documents** — CLAUDE.md, ARCHITECTURE.md (§8 CI tier, §9), the runbook,
+      PROGRESS.md, OI-41, OI-42.
+
+**Still needed to see it live:** the *Deploy develop* approval and the unit's
+data bundle (OI-39). Without the bundle the page loads and its bootstrap call
+fails, as it did locally.
 
 ## Review outcome
 

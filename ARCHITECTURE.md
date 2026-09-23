@@ -333,6 +333,7 @@ declared tier.
 | API contract (OpenAPI paths + study-scoping assertion, now covering `/runs` and `/artifacts` too) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
 | Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
+| Develop host configuration: `caddy validate` on the Caddyfile, the product hostname reaching the 18.6.6 unit only through the gate and without the session cookie (from `caddy adapt`), `docker compose config`, `bash -n` on the host scripts | **blocking** |
 | Committed-provider-key scan | **blocking** |
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |
@@ -354,7 +355,7 @@ running backwards.
 | Advisory check | Promotion condition |
 |---|---|
 | `pip-audit` | Drop `|| true`, and replace the placeholder `--ignore-vuln GHSA-0000-0000-0000` with a real, dated, individually justified allowlist. Blocked on: a first clean run to establish the baseline. |
-| `npm audit` | Drop `|| true` once `apps/web` transitive advisories are at zero or explicitly waived. Blocked on: the `apps/web` rewire (it is still mock-backed). |
+| `npm audit` | Drop `|| true` once `apps/web` transitive advisories are at zero or explicitly waived. The mock-up and its editor dependencies are gone (ADR 0012); blocked on: a first clean run to establish the baseline. |
 | Parity suite | 94 parity and characterization tests report as skipped in CI because they execute the legacy code, which exists only inside the withheld archive. **The archive is deliberately not a CI dependency.** Promotion needs the archive's licence decision and an EU-resident home (`REF-WITHHELD-REFERENCE-ARCHIVE`). Until then **anyone changing domain logic runs them locally against `AIA_LEGACY_REFERENCE`**, and `parity-status` reports them as `NOT_EXECUTED` — never as a pass. |
 | Golden fixtures | A human provisions a read-only deploy key on `AiAnalytics-AIA/AIA-reference` as the `AIA_REFERENCE_DEPLOY_KEY` secret, then sets the repository variable `AIA_REQUIRE_REFERENCE_REPO=1`. From then on a missing checkout fails the job instead of skipping. |
 | Oracle parity | A human provisions `AIA_LEGACY_REFERENCE_URL`, `AIA_LEGACY_REFERENCE_USER` and `AIA_LEGACY_REFERENCE_PASSWORD` (the legacy hostname and its Caddy basic-auth credentials from SSM) as repository secrets, after *Deploy develop* has run green with `legacy-panel` healthy. The job then sets `AIA_REQUIRE_LEGACY_ORACLE=1` itself, so an unreachable oracle fails rather than skips (OI-39). |
@@ -372,6 +373,19 @@ its `README.md` is the runbook; `infra/develop/` is the Terraform. The running
 revision is always visible: `/api/v1/health` reports `build.sha`, the web
 client's `/version` reports the same, and every artifact records it as its
 `runtime_version`. Production compute remains undecided.
+
+**The product hostname is the 18.6.6 interface, with AIA in front
+([ADR 0012](docs/architecture/adr/0012-legacy-interface-as-product-facade.md)).**
+Caddy sends `/api/v1/*` to the API, AIA's own pages (`/login`, `/logout`,
+`/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`) to the web client,
+and everything else to the vendored unit only after `forward_auth` to
+`GET /api/v1/panel/gate`. The gate is the whole of the unit's access control:
+it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as every
+API call, admits only what `ScopeResolver.authorize_legacy_panel` admits
+(organization owners and admins), and refuses a state-changing request whose
+`Origin` is not the product origin. Rebuilding a feature moves its paths from
+the unit to the API; it never removes the gate from what remains.
+`AIA_LEGACY_PANEL_ENABLED` is off by default and refused in production.
 
 - Deploy only what CI verified: chain CD to CI's *completion* and guard on
   `workflow_run.conclusion == 'success'`, checking out
