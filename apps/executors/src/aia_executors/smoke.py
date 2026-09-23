@@ -10,8 +10,9 @@ running deployment. It proves, in order:
    operator through the same use case the API calls; the *running* worker
    claims and executes it; the artifact it wrote is read back from the store,
    hash-verified, and carries the deployed build as its ``runtime_version``.
-4. **AI** -- reported ``NOT_RUNNABLE`` while no ``ModelGateway`` exists on the
-   deployed revision (ADR 0010). Printed, never counted as a pass.
+4. **AI** -- reported ``NOT_RUNNABLE`` until a Bedrock adapter and governed
+   route are wired into the deployed revision (ADR 0010). Printed, never
+   counted as a pass.
 
 Output is one ``ok``/``FAIL``/``NOT_RUNNABLE`` line per check, in the same shape
 as ``smoke.sh``; exit status is non-zero on any ``FAIL``.
@@ -219,7 +220,8 @@ def main(argv: list[str] | None = None) -> int:
 
     report.not_runnable(
         "ai: governed model call through ModelGateway -> bedrock-eu-primary",
-        "no ModelGateway exists on this revision (ADR 0010 is Proposed; the contract is PR #28)",
+        "ModelGateway exists, but no Bedrock adapter or live governed route "
+        "is wired (ADR 0010 is Proposed)",
     )
     return 1 if report.failed else 0
 

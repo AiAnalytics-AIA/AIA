@@ -462,28 +462,30 @@ An empty `cors_origins` means same-origin only, which is the correct default.
 
 ## GitHub Actions
 
-**A `workflow_run` or `workflow_dispatch` workflow exists only on the default
-branch.** GitHub registers those two triggers from the workflow files on the
-default branch (`main` here) and nowhere else. A workflow that lives only on
-`develop` is not listed under *Actions*, never fires when CI completes, and has
-no *Run workflow* button — with no error anywhere. `push` and `pull_request`
-triggers behave differently: they run the file from the pushed branch, which is
-why `ci.yml` ran on `develop` while `deploy-develop.yml`, beside it, did not.
+**A `workflow_dispatch` workflow must be registered on the default branch.**
+GitHub registers it from `main` here. A workflow that lives only on `develop`
+is not listed under *Actions* and has no *Run workflow* button. `push` and
+`pull_request` triggers behave differently: they run the file from the pushed
+branch, which is why `ci.yml` ran on `develop` while `deploy-develop.yml`, beside
+it, did not. A `workflow_run` event also uses the default-branch ref; that
+cannot enter our `develop` Environment, whose branch rule accepts only develop.
 
 ```
 # WRONG -- merged to develop only; CI went green there and nothing deployed
-.github/workflows/deploy-develop.yml   on: workflow_run: {workflows: [CI], branches: [develop]}
+.github/workflows/deploy-develop.yml   on: workflow_dispatch
 
-# RIGHT -- the same file also on main (a release PR develop -> main, or a chore
-# PR carrying only that file); GitHub then runs main's copy when CI on develop
-# completes, and checks out the develop SHA it names
+# RIGHT -- register the dispatchable workflow on main with a workflow-only PR.
+# After every required CI check succeeds on a develop push, CI dispatches the
+# workflow using ref=develop and sha=$GITHUB_SHA. GitHub's environment branch
+# rule then sees develop, and the deploy checks out the exact verified SHA.
 ```
 
 Two consequences to carry:
 
-- The copy that runs is **`main`'s**. An edit to the deploy workflow merged to
-  `develop` takes effect only when it reaches `main`; until then the old copy
-  deploys the new code. Release the workflow change before relying on it.
+- Keep the registered copy on `main` and the selected-ref copy on `develop`
+  compatible. Dispatch uses the `develop` ref, so test a workflow edit there
+  before relying on it and update `main`'s registration when its trigger or
+  inputs change.
 - Verify a registration, do not assume it:
   `GET /repos/<owner>/<repo>/actions/workflows` lists what GitHub will run; a
   file missing from that list will not fire. OI-37 records the first time this

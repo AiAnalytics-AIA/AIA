@@ -83,12 +83,13 @@ Done once, by a person with AWS access. Everything after this is automatic.
 
 Merge a pull request into `develop`. Then:
 
-1. CI runs (`.github/workflows/ci.yml`) — unchanged, and not weakened.
-2. On CI success, `deploy-develop.yml` — **`main`'s copy of it**: GitHub
-   registers `workflow_run` and `workflow_dispatch` only from the default
-   branch, so the file must have reached `main` through a release PR before
-   anything deploys, and an edit to it deploys nothing new until it is released
-   too (`AGENTS.md` § GitHub Actions) — runs in the `develop` GitHub environment,
+1. CI runs (`.github/workflows/ci.yml`) with every existing check. Its final
+   job dispatches only when they all succeed on a push to `develop`.
+2. The dispatch runs `deploy-develop.yml` on the `develop` ref. GitHub requires
+   the dispatchable workflow file to exist on the default branch (`main`) too,
+   so register a compatible copy there before relying on it. Keeping the run
+   on `develop` lets the environment's develop-only branch rule apply. It
+   runs in the `develop` GitHub environment,
    assumes the deploy role through OIDC (no stored AWS keys), builds
    `aia-api`, `aia-worker` and `aia-web` at the verified SHA, pushes them to ECR
    tagged `<sha>` (and `develop` as a convenience alias), uploads this directory
@@ -159,10 +160,11 @@ replaces the `aia` database, starts them, runs the smoke test.
 
 ## AI
 
-There is **no live model call on this revision**: the `ModelGateway` contract is
-not on `main` (PR #28), so the egress policy is empty and fails closed. The
-smoke test reports the AI check as `NOT_RUNNABLE`, never as a pass. What the
-environment already provides for it:
+There is **no live model call on this revision**. The `ModelGateway` contract
+and provider adapter interfaces exist, but no Bedrock adapter, live transport
+or governed EU route is wired into the API or worker. The smoke test reports
+the AI check as `NOT_RUNNABLE`, never as a pass. What the environment already
+provides for it:
 
 - the instance role may call `bedrock:InvokeModel` on the one pinned EU model
   in `infra/develop/terraform.tfvars` (`bedrock_model_id`), and nothing else;
@@ -170,7 +172,7 @@ environment already provides for it:
 - [ADR 0010](../../docs/architecture/adr/0010-bedrock-eu-inference-route.md)
   records the proposed route `bedrock-eu-primary` and the checks a human performs.
 
-When the gateway and the Bedrock adapter land, inspect: the model policy and
+When the Bedrock adapter and its governed route land, inspect: the model policy and
 route in the api/worker environment (`AIA_MODEL_POLICY_*`, `AIA_EGRESS_ROUTES_*`
 as that change defines them), usage in the `ai_usage_events` table (`provider`,
 `route_id`, `model`, `provider_request_id`, tokens, `cost_usd`, `input_fingerprint`,

@@ -10,8 +10,8 @@
 # Google credentials would be worse than the gap it closes.
 #
 # Exit status: 0 only when every check passed. The AI check reports
-# NOT_RUNNABLE while no ModelGateway exists on the deployed revision; that is
-# printed as such and is never counted as a pass.
+# NOT_RUNNABLE while no Bedrock adapter and governed EU route are wired into
+# the deployed revision; that is printed as such and never counted as a pass.
 
 # shellcheck source=deploy/develop/bin/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
