@@ -32,11 +32,14 @@ services:
   minio:
     # S3-compatible artifact storage, so the storage adapter exercises the real
     # API locally instead of a filesystem stub that hides bugs.
-    image: minio/minio:latest
+    image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: aia_local
       MINIO_ROOT_PASSWORD: aia_local_dev
+      # Local synthetic data only. The static test key lets MinIO honor the
+      # application's SSE-S3 writes without changing production storage rules.
+      MINIO_KMS_SECRET_KEY: local-dev-only:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     ports:
       - "9000:9000"
       - "9001:9001"

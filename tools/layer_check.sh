@@ -27,7 +27,8 @@ PASSED=0
 # forbid <rule-name> <pattern> <path> [excluded-basename ...]
 forbid() {
   local rule="$1" pattern="$2" path="$3"; shift 3
-  local excludes=()
+  local excludes=(--exclude-dir=node_modules --exclude-dir=.next
+                  --exclude-dir=__pycache__ --exclude-dir=.venv)
   while [ $# -gt 0 ]; do excludes+=(--exclude="$1"); shift; done
 
   if [ ! -e "$path" ]; then
@@ -36,10 +37,7 @@ forbid() {
   fi
 
   local hits
-  hits=$(grep -rn "${excludes[@]}" \
-           --exclude-dir=node_modules --exclude-dir=.next \
-           --exclude-dir=__pycache__ --exclude-dir=.venv \
-           -E "$pattern" "$path" 2>/dev/null || true)
+  hits=$(grep -rn "${excludes[@]}" -E "$pattern" "$path" 2>/dev/null || true)
 
   if [ -n "$hits" ]; then
     printf 'FAIL  %s\n' "$rule"

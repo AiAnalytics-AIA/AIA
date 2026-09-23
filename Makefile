@@ -27,17 +27,21 @@ setup: deps ## One-time setup: Python venv, dependencies, web packages
 
 deps: ## Create the venv and install Python packages in editable mode
 	@test -d $(VENV) || python3 -m venv $(VENV)
-	@$(PIP) install -q --upgrade pip
-	@$(PIP) install -q -e "packages/aia_core[dev,postgres]"
-	@$(PIP) install -q -e "apps/api[dev]"
-	@$(PIP) install -q -e "apps/worker[dev]"
-	@$(PIP) install -q -e "apps/executors[dev]"
+	@$(VENV)/bin/python -m pip install -q --upgrade pip
+	@$(VENV)/bin/python -m pip install -q -e "packages/aia_core[dev,postgres,s3]"
+	@$(VENV)/bin/python -m pip install -q -e "apps/worker[dev]"
+	@$(VENV)/bin/python -m pip install -q -e "apps/executors[dev]"
+	@$(VENV)/bin/python -m pip install -q -e "apps/api[dev]"
 
 services: ## Start Postgres and MinIO, and wait until healthy
 	@docker compose up -d --wait
 
 migrate: ## Apply database migrations
-	@$(PY) -m alembic upgrade head
+	@if [ -n "$$DATABASE_URL" ] || [ ! -f .env ]; then \
+	  $(PY) -m alembic upgrade head; \
+	else \
+	  set -a; . ./.env; set +a; $(PY) -m alembic upgrade head; \
+	fi
 
 migration: ## Create a migration from model changes: make migration m="add jobs"
 	@test -n "$(m)" || (echo 'Usage: make migration m="description"' && exit 1)
