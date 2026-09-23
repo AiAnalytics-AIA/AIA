@@ -119,12 +119,14 @@ packages/aia_core/src/aia_core/
 migrations/                 Alembic
 docs/architecture/          System design + 7 ADRs
 docs/design/                Brand and UI direction; the design-system brief
-docs/migration/             Plan, status, parity matrix, legacy map
+docs/migration/             Plan, status, legacy map, MVP acceptance test
+  parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
+tools/parity_status.py      Parity verdict per capability, from JUnit XML
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 ```
@@ -164,6 +166,14 @@ as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,
 joint structure, support, interval and tier have all passed. Prompts state the
 rules; they never enforce them.
 
+**The golden fixtures need no archive.** F1–F9 are vendored, byte for byte,
+under `packages/aia_core/tests/fixtures/sociomap/`; F10–F11 are read from a
+checkout of the private `AiAnalytics-AIA/AIA-reference` at `../aia-reference` or
+`AIA_REFERENCE_REPO`. Every fixture is pinned by SHA256 in
+`docs/migration/parity-matrix.json`. When a capability lands, its fixture gate
+lands with it — `test_parity_matrix.py` fails an `IMPLEMENTED` capability with an
+ungated fixture.
+
 ## 3. Commands
 
 | Purpose | Command |
@@ -177,6 +187,8 @@ rules; they never enforce them.
 | Tests | `make test` (core + API + worker) |
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
+| Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
+| **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` |
 | Format | `make format` |
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |

@@ -52,4 +52,5 @@ addopts = "-ra --strict-markers"
 markers = [
     "parity: compares this implementation against the legacy prototype (needs AIA_LEGACY_REFERENCE) or the reference repository's contracts (needs AIA_REFERENCE_REPO)",
     "postgres: requires a live PostgreSQL instance via DATABASE_URL",
+    "golden: compares production against a golden fixture from the reference repository (needs AIA_REFERENCE_REPO)",
 ]

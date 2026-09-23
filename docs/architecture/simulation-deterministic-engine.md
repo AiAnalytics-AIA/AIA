@@ -97,7 +97,7 @@ Some decisions sit beside the table:
 
 | Field | Reference | Production | Why |
 | --- | --- | --- | --- |
-| Minimum factors | prompt 6, schema 4, code tops `< 4` up to 6 | **6**, declared | The only count the model is asked for, and the reference's own top-up target. Decision **D9** in `PROGRESS.md` |
+| Minimum factors | prompt 6, schema 4, code tops `< 4` up to 6 | **6**, declared | The only count the model is asked for, and the reference's own top-up target. Decision **D10** in `PROGRESS.md` |
 | Minimum drivers | prompt 1, code accepts 0 | **1** | A factor with no driver is pure noise dressed as a hypothesis |
 | Missing mean / SD / confidence | defaults 5.0 / 2.0 / 0.3 | reject | Never stamp a guess (`CLAUDE.md §8`) |
 | Epistemic status | stamped over whatever the model said | may be omitted, then stamped; a *different* value is rejected | A model claiming its factor is measured is misbehaving |
@@ -128,7 +128,7 @@ computed as `NormalDist().inv_cdf(u)`, where `u` comes from
 
 The seed *derivation* matches the reference. The streams do not. Bit parity
 would need PCG64 and the reference formula bodies together, so it is decision
-**D10**.
+**D11**.
 
 ## 5. Production-defined algorithms (versioned, parity pending)
 
@@ -213,7 +213,7 @@ When F13 lands:
    fit it.
 3. The NUMERICAL comparison of `FS_*` columns, the correlation matrix and the
    factor statistics becomes meaningful once the reference formula bodies are
-   readable and **D10** is decided. It is deliberately not written before then,
+   readable and **D11** is decided. It is deliberately not written before then,
    because it would fail by construction.
 
 ## 8. Not built

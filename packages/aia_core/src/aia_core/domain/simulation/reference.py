@@ -128,7 +128,7 @@ class WorldModelBounds:
     # its code tops up anything under 4 to 6 from fallback factors. The contract
     # requires one declared value. 6 is chosen: it is the only count the model
     # is ever asked for, and it is what the reference's own top-up restores.
-    # Recorded as decision D9 in .planning/PROGRESS.md for data-owner sign-off.
+    # Recorded as decision D10 in .planning/PROGRESS.md for data-owner sign-off.
     min_factors: int = 6
     max_factors: int = 12
     target_mean_10: tuple[float, float] = (1.2, 9.8)

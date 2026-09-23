@@ -39,8 +39,16 @@ changing domain logic runs `make test-parity` locally against
 **Test that would catch it.** A CI assertion that the parity job collected more
 than zero tests, rather than that it exited zero.
 
-**Status.** Open. Mitigated, honestly reported by the workflow itself, promotion
-condition recorded in `ARCHITECTURE.md §8`.
+**Status.** **Reporting half closed** by the parity-matrix work
+(`.planning/plans/parity-matrix-and-gates.md`): the `|| true` is gone, every CI
+pytest step writes JUnit, and the `parity-status` job reports each of these
+tests' gates as `NOT_EXECUTED` — a skip can no longer read as a pass
+(`packages/aia_core/tests/test_parity_status_tool.py::test_a_skipped_gate_is_not_executed_never_passed`,
+`test_parity_matrix.py::test_every_ci_pytest_step_writes_junit`). The
+*execution* half stays open and is now narrower than D3 implied: the golden
+fixtures reach CI through the reference repository with no archive, so what
+remains blocked is only the legacy-code comparison, which needs the withheld
+archive (`REF-WITHHELD-REFERENCE-ARCHIVE`).
 
 **Widened 2026-09-22.** The evidence-governance parity cases that read the private
 reference repository (`AIA_REFERENCE_REPO`, e.g.
@@ -753,3 +761,162 @@ retargeted. Then drop the `companions.py` exemption.
 field for client measured claims, and `layer_check` green with no exemption.
 
 **Status.** Open, needs a decision from the owner of both.
+
+---
+
+## OI-27 · Gap · `REF-GAP-SIMULATION-WORLD-MODEL` — no fixture for world-model inoculation
+
+**Owners.** parity-quality + A7 simulation-engine.
+
+**Claim.** The simulation engine's only numerical fixture (F13) is uncaptured,
+so `simulation.engine` has no gate that could ever pass.
+
+**Anchor.** AIA-reference `reference-gaps.md` "REF-GAP-SIMULATION-WORLD-MODEL"
+@ 678e298; fixture `F13_simulation_world_inoculation` in
+`docs/migration/parity-matrix.json`.
+
+**Blocker — wider than the reference records.** The reference lists only a
+provider credential. The recipe also runs the legacy `build_world_model` and
+`inoculate_population` (withheld archive) against population `v17_4_0`, and the
+provider call must leave through an egress route approved under
+[ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) — the boundary
+currently approves nothing.
+
+**Consequence.** Simulation is off the MVP path (decision D9 in `PROGRESS.md`), so this
+blocks no release today; it blocks the first release that ships the Simulation
+lifecycle.
+
+**Smallest path.** Freeze one sanitised world model (with its sha256) as fixture
+*input* so deterministic parity never depends on a model reproducing tokens;
+then capture F13 deterministically. The model call happens once, not per CI run.
+A7 decides in the meantime whether production **rejects** out-of-range model
+output (the intentional difference `SUB-SIM-BOUNDS`) — that decision needs no
+fixture.
+
+**Definition of done.** As in `parity-matrix.json` `reference_gaps`.
+
+**Status.** Open, blocked on credential, egress route and archive. The
+deterministic core the fixture would test now exists without it (PR #27,
+`aia_core.domain.simulation`), and `test_simulation_parity.py` is the scaffold
+that reads F13 through `AIA_REFERENCE_REPO` and skips until it is captured.
+The `SUB-SIM-BOUNDS` question above is **decided: production rejects**, one row
+per field in `reference.FIELD_POLICY`, gated by `simulation.engine/contract`
+(`test_production_rejects_what_the_reference_corrected`,
+`test_every_recorded_difference_is_exercised`). Full status:
+`docs/architecture/simulation-deterministic-engine.md` §7.
+
+---
+
+## OI-28 · Finding · The reference links a weighting fixture to cost reservations
+
+**Claim.** The reference parity plan lists `F11_analysis_weight_fallback_chains`
+as a fixture of `cost.reservations`; F11 exercises no reservation.
+
+**Anchor.** AIA-reference `parity-plan.json`, capability `cost.reservations`,
+`fixtures` @ 678e298. Recorded as `REF-DISC-1` in
+`docs/migration/parity-matrix.json`.
+
+**Reproduction.**
+`python3 -c "import json;print([c['fixtures'] for c in json.load(open('../aia-reference/parity-plan.json'))['capabilities'] if c['capability']=='cost.reservations'])"`
+→ `[['F11_analysis_weight_fallback_chains']]`, while
+`golden-fixtures/manifest.json` names F11's capability `population.weighting`.
+
+**Consequence.** Carried verbatim, a passing weighting gate would count as
+parity evidence for a money control.
+
+**Smallest fix.** Correct the link upstream and re-run
+`tools/build_parity_plan.py`; then drop `REF-DISC-1` here.
+
+**Test that would have caught it.** `test_golden_fixtures.py::test_matrix_agrees_with_the_reference_parity_plan`
+now asserts every link except the recorded rejection.
+
+**Status.** Open upstream; not carried here.
+
+---
+
+## OI-29 · Finding · `cost.reservations` ships with no reference-backed parity gate
+
+**Claim.** Study budget reservations are `IMPLEMENTED` and owe **EXACT** parity
+with the reference's `cost_controller`, but every test of them is
+production-only; nothing compares a reservation decision with the reference's.
+
+**Anchor.** `docs/migration/parity-matrix.json` capability `cost.reservations`
+(gates `cost.reservations/contract`, `cost.reservations/contention`, both
+`production_contract`).
+
+**Reproduction.** `python tools/parity_status.py --markdown /dev/stdout` → the
+highest-risk list names `cost.reservations: IMPLEMENTED, EXACT parity, verdict
+NOT_RUNNABLE … no reference-backed gate`.
+
+**Consequence.** A divergence in the decision at the limit, in settlement, or in
+uncertain-settlement charging would merge green. This is money (high-risk R10)
+on the MVP path, which is why the verdict tool ranks it in its top two.
+
+**Smallest fix.** A characterization suite for the legacy `cost_controller`
+(as `test_legacy_job_store_characterization.py` did for `job_store`), then
+comparison tests over the same decision matrix — a `reference_characterization`
+and a `reference_comparison` gate. Both need the legacy tree, so they run
+locally until the archive question is settled.
+
+**Test that would have caught it.** Those gates.
+
+**Status.** Open. Owner unconfirmed (matrix workstream `cost`), with parity-quality.
+
+---
+
+## OI-30 · Finding · The module inventory lags the ports that landed
+
+**Claim.** `docs/migration/module-dispositions.json` still records modules as
+`not-started` whose behaviour is now ported, so the inventory and the parity
+matrix disagree about what exists.
+
+**Anchor.** `docs/migration/module-dispositions.json` entries `sociomap.py`,
+`study_validation.py`, `kalibrace.py`, `mrp.py`, `scheduler.py`,
+`worker_daemon.py`, `worker_job.py` (`state: not-started`) @ 8978b99; against
+`packages/aia_core/src/aia_core/domain/sociomap/`,
+`packages/aia_core/src/aia_core/domain/population/`, `apps/worker/`.
+
+**Reproduction.**
+`python3 -c "import json;d={m['module']:m['state'] for m in json.load(open('docs/migration/module-dispositions.json'))['modules']};print({k:d[k] for k in ['sociomap.py','worker_job.py','scheduler.py']})"`
+→ all `not-started`.
+
+**Consequence.** `test_parity_matrix.py` refuses to call a capability
+`IMPLEMENTED` while its modules read `not-started`, so `population.weighting` and
+`workflow.dispatch` stay `PARTIAL` although their targets are met; and the
+inventory's own completeness guard no longer tells anyone what is done.
+
+**Smallest fix.** Each owning workstream updates its modules' `state` (and
+`note`) in the same change that ports them; for these, one catch-up edit per
+owner.
+
+**Test that would catch it.** `test_parity_matrix.py::test_implementation_state_agrees_with_the_module_inventory`
+already enforces one direction; the other direction needs the ports to name
+their modules.
+
+**Status.** Open. Owners: sociomapa-deterministic, population-data, and the
+worker's owner, each for its own modules.
+
+---
+
+## OI-31 · Finding · Two different fixtures are both called F12
+
+**Claim.** The reference names F12 the R smacof layout fixture, and this
+repository's population enrichment document names a different fixture F12.
+
+**Anchor.** AIA-reference `reference-gaps.md` "REF-GAP-SOCIO-R-SMACOF" step 5
+(`F12_r_smacof_unfolding_layout.json`) @ 678e298, and OI-15 here;
+`docs/migration/population-enrichment-archive-dependency.md` ("F12 —
+`population.enrichment`"). Recorded as `REF-DISC-2` in `parity-matrix.json`.
+
+**Reproduction.** `grep -rn "F12" docs/migration/population-enrichment-archive-dependency.md .planning/open-items.md`.
+
+**Consequence.** Whichever is captured first takes the id, and a gate or pin
+naming "F12" then points at the wrong fixture.
+
+**Smallest fix.** Give the enrichment fixture an unused id (F14 or later) in that
+document and upstream; the matrix keeps the reference's F12.
+
+**Test that would have caught it.** `test_parity_matrix.py` rejects an unknown
+fixture id; a document outside the matrix is not covered.
+
+**Status.** Open. Owner: population-data, with parity-quality.

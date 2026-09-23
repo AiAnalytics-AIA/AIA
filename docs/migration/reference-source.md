@@ -163,16 +163,35 @@ schema gate and the committed artifact are all asserted by
 | Open product decisions | `open-decisions.md` |
 | Outstanding fixture gaps | `reference-gaps.md` |
 
+## Golden fixtures in CI — no archive needed
+
+The eleven golden fixtures are committed JSON in the reference repository and
+**do not need the archive**. Two routes carry them into CI:
+
+- **F1–F9 are vendored** (next section) and run in every backend job.
+- **F10–F11 are read from a reference checkout.** CI's `golden-fixtures` job
+  checks the reference repository out at the commit pinned in
+  [`parity-matrix.json`](parity-matrix.json) (`reference.commit`) with a
+  read-only deploy key held as the `AIA_REFERENCE_DEPLOY_KEY` secret. The same
+  job checks that the reference's fixture manifest and parity plan hash to their
+  pins, and that every vendored copy is byte-identical to the fixture it copies.
+
+Locally, a sibling clone at `../aia-reference` or `AIA_REFERENCE_REPO` does the
+same: `make test-golden`.
+
+The pin is a **commit**, not the tag: the tag points at `90d4c5b`, two commits
+behind `678e298`, and differs from it only in two tool scripts.
+
 ## Known open items owned elsewhere
 
 | Item | Owner |
 | --- | --- |
-| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and** the reference's withheld R wrapper; open as OI-15, no R parity claimed | parity-quality + sociomapa-deterministic |
-| `REF-GAP-SIMULATION-WORLD-MODEL` — needs the reference source, a provider credential and an ADR 0008 egress route; status in [simulation-deterministic-engine.md](../architecture/simulation-deterministic-engine.md) §7 | parity-quality + simulation-engine |
+| `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and** the reference's withheld R wrapper; open as OI-15, no R parity claimed | parity-quality + A8 sociomapa-deterministic |
+| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential, an ADR 0008 egress route **and** the withheld `full_simulation.py`; open as OI-27; status in [simulation-deterministic-engine.md](../architecture/simulation-deterministic-engine.md) §7 | parity-quality + A7 simulation-engine |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` — needs a licence decision | data owner |
 
 Neither fixture gap is unknown behaviour: code paths, constants and seeds are
-recovered. The simulation gap needs a different environment. The Sociomapping
+recovered. The simulation gap needs a different environment and, like the Sociomapping gap, the archive: its recipe runs the reference's `build_world_model` and `inoculate_population` (OI-27). The Sociomapping
 gap turned out to need more than that: the R *recipe* runs the reference's own
 `fit_unfolding` wrapper, which is in the withheld archive
 (`.planning/open-items.md` OI-15).
