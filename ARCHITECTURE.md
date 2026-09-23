@@ -14,10 +14,11 @@ It deliberately does not describe the product. That lives in
 | [data-model.md](docs/architecture/data-model.md) | Production data model |
 | [workflows.md](docs/architecture/workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](docs/architecture/ai-runtime.md) | Providers, provenance, budgets, failure behaviour |
+| [ai-step-executor-contract.md](docs/architecture/ai-step-executor-contract.md) | The one seam between the model gateway and the workflow worker |
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](docs/architecture/scope-and-authorization.md) | Client/Study isolation |
 | [security.md](docs/architecture/security.md) | Threat model |
-| [adr/](docs/architecture/adr/README.md) | Seven decision records, with the reasoning |
+| [adr/](docs/architecture/adr/README.md) | Eight decision records, with the reasoning |
 
 ---
 
@@ -78,6 +79,7 @@ Run it before every commit. It is blocking in CI.
 | no database access in the HTTP layer | A handler opening a Session, and deciding something the domain never saw |
 | no ORM tables in the HTTP layer | Queries written where they cannot be tested without the whole stack |
 | scope contexts are issued only by `ScopeResolver` | A request body, tool payload or model-generated argument widening its own scope |
+| provider SDKs and gateway libraries are not imported (core or API) | A second model-call path that can retry, fall back or substitute without `GovernedModelGateway` deciding to (ADR 0005) |
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
 | no statically skipped or xfailed tests | Deleting the signal instead of fixing the defect |
 | the web client does not talk to a database | The presentation boundary crossed in the most expensive possible way |
@@ -102,7 +104,9 @@ script, then confirm it passes before committing.
   at least one real implementation and a test double. The active implementation
   is resolved from typed configuration — never from an `if env == "test"` branch
   inside the service. Live examples: `ArtifactStore` (S3 / filesystem / memory),
-  `IdentityProvider` (Cognito / testing / development).
+  `IdentityProvider` (Cognito / testing / development), `ProviderAdapter`
+  (Anthropic / OpenAI / Claude Code, over `HttpTransport` / `CliRunner` with
+  recorded doubles), `CallJournal` (workflow-backed / in-memory).
 - **Typed objects across boundaries**, not raw dicts. Pydantic models or
   dataclasses in, Pydantic response schemas out.
 - **Type signatures on every public function** in the domain and application
@@ -135,6 +139,9 @@ What are you building?
 ├─ A call to something outside this process (HTTP, LLM, S3, SMS)?
 │    → infrastructure/<name>.py behind a Protocol
 │      + a test double + config-resolved selection. Never an env check inside.
+│    A model call specifically: never directly. Build a ModelRequest naming a
+│      capability and a data class, and call ModelGateway.invoke. A new provider
+│      is a ProviderAdapter in infrastructure/model_adapters/ + recorded fixtures.
 │
 ├─ An HTTP route?
 │    → apps/api/src/aia_api/routers/<resource>.py   (validate, delegate, serialise)
@@ -248,7 +255,7 @@ deliberately; a static `@pytest.mark.skip` is not, and `layer_check` rejects it.
 | Domain | Every public function, happy + error paths. Valid, invalid, edge |
 | Application | Every use case; every authorization refusal, by type |
 | Infrastructure / repositories | Round-trip, isolation predicate, concurrent access |
-| Adapters (storage, identity, providers) | Mocked transport; ≥3 real fixtures per parser, asserting every field |
+| Adapters (storage, identity, providers) | Mocked transport; ≥3 real fixtures per parser, asserting every field. Model adapters: one recorded exchange per error class, and every fixture states whether it is a live capture |
 | Workflow / jobs | Success, missing record, upstream failure, retry, cancellation |
 | API | Response shape, auth guards, error cases, and the path in the contract check |
 | Web | Mount, events, auth guards |
@@ -325,8 +332,9 @@ Product requirements expressed as architecture, not preferences. Restated here
 because they are the constraints most likely to be "simplified" away by a change
 that looks local:
 
-- **No silent provider fallback.** Work parks in `WAITING_CREDITS` or
-  `WAITING_CAPACITY` and asks. It never quietly moves to a provider that costs
+- **No silent provider fallback.** Work parks in `WAITING_PROVIDER` (the
+  reference called the quota case `WAITING_CREDITS`) or `WAITING_CAPACITY` and
+  asks. It never quietly moves to a provider that costs
   money or changes provenance.
 - **No spending past a budget.** A paid call is checked against the ceiling
   *before* it is made. Over budget means park and ask.

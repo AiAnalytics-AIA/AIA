@@ -130,16 +130,28 @@ artifact sign-off. Every field is denormalised onto the row on purpose: resolvin
 the policy again at read time would answer what the policy is *now*, not what it
 was when somebody cleared a client deliverable.
 
+**AI usage ledger.** `ai_usage_events`, append-only. Every model call writes a
+`DISPATCHED` row **before** it is sent and a terminal row (`SUCCEEDED`, `FAILED`,
+`UNCERTAIN`) after; a resolved uncertain call gains a `RESOLVED_*` row with
+`cost_basis = COMPENSATION` naming what it `supersedes`. `(call_id, outcome)` is
+unique, so no entry can be counted twice. A check constraint allows a negative
+`cost_usd` only on a compensation. Token columns are nullable because "not
+reported" is not zero. The study foreign key deliberately does **not** cascade: a
+study with ledger entries cannot be deleted out from under its accounting record.
+Attribution columns come from the egress decision, computed from an issued
+`StudyContext`. See [ai-runtime.md](ai-runtime.md).
+
 ## Planned tables
 
 Sequenced by phase; see [../migration/migration-plan.md](../migration/migration-plan.md).
 
 **Phase 4 — AI runtime**
 `api_credentials` (provider keys, encrypted at rest, never returned by any API),
-`ai_usage_events`, and the generalized metered-cost ledger described in
-[ai-runtime.md](ai-runtime.md) § Cost accounting — the one that has to attribute
-every metered source down to `Client → Study → Revision → WorkflowRun → Step →
-Agent/Tool/Call`, with corrections as compensating entries rather than edits.
+and the extension of the metered-cost ledger from model calls (`ai_usage_events`,
+implemented) to every other metered source — research, search and retrieval APIs,
+paid datasets — attributed down to `Client → Study → Revision → WorkflowRun →
+Step → Agent/Tool/Call`, with corrections as compensating entries rather than
+edits.
 `egress_decisions`, recording what left AIA, under which classification and over
 which approved route, per [adr/0008](adr/0008-eu-data-residency.md).
 

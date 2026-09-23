@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-22 · **Branch:** `remediation/public-reference-exposure` ·
+**Updated:** 2026-09-22 · **Branch:** `claude/eager-mendel-3bom5p` ·
 **Trunk:** `main`
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -43,7 +43,9 @@ skips (`.github/workflows/ci.yml:99-108` @ df294e2).
 
 ## In progress
 
-Nothing. The tree is green.
+| What | State | Anchor |
+|---|---|---|
+| **Phase 4 — AI runtime contract** ([plan](plans/ai-runtime-contract.md)) | All 7 chunks implemented and verified in the working tree; **not yet committed** (awaiting permission, `CLAUDE.md §5`). SQLite 829 passed / 117 skipped (baseline 546); PostgreSQL 16 846 passed / 100 skipped with `AIA_REQUIRE_POSTGRES=1`; `mypy --strict` clean (49 files, core + API); `layer_check` 14/14; `exposure_check` 7/7; migration `1cd2a5acd29f` upgrades, `alembic check` clean, reversible to base | `application/model_gateway.py` · `tests/test_model_gateway.py`, `test_model_adapters.py`, `test_ai_usage_ledger.py` |
 
 ## Repository visibility — D5, frozen
 
@@ -110,12 +112,11 @@ Ordered. Take the top item unless told otherwise, and **write the plan to
 2. **A worker process.** `claim_next` → execute → `complete_attempt` /
    `fail_attempt`, with heartbeats and a cancellation poll at checkpoints.
    Creates `apps/worker/` — layer 4 in `ARCHITECTURE.md §2`.
-3. **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`, `ModelPolicy`,
-   `ModelRegistry`, `LLMGateway`, `ToolRegistry`, `AIUsageEvent`.
-   **No longer blocked.** [ADR 0005](../docs/architecture/adr/0005-llm-gateway.md)
-   decision A — AIA owns the `ModelGateway` contract — is *Accepted*; only
-   decision B (LiteLLM as the transport) is still *Proposed*, and the contract
-   can be built against without it.
+3. **Phase 4, second slice — live transport.** The contract, registry, gateway,
+   ledger and three adapters exist (In progress, above). What remains before any
+   model call is real: an approved route per data class (D6), a transport (D7), a
+   credential store (D8) and a published catalog/policy (D9). The step executor
+   in #2 consumes [the contract](../docs/architecture/ai-step-executor-contract.md).
 4. **Wire `apps/web` to the real API** and delete `lib/mock.ts`.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
    long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
@@ -138,6 +139,11 @@ left to build.
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
 | D3 | How the legacy prototype reaches CI so the 94 parity tests stop reporting as skipped — private submodule, or a published fixture pack. The reference repository being private makes a submodule viable now | Promoting the parity tier to blocking | `.planning/open-items.md` OI-1 |
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
+| D6 | **Which provider route is approved for which data class.** A vendor/route ADR judged against ADR 0008. Until one exists every route is Class C only, and no client material may reach a model | Any live call on client material | `docs/architecture/adr/0008-eu-data-residency.md` |
+| D7 | **Live transport.** An HTTP client in the core package (new dependency), provider SDKs behind the adapters, or LiteLLM if ADR 0005 B's seven conditions are proved. The adapters already take a transport protocol, so this is additive | Any live call | `infrastructure/model_adapters/transport.py` @ this change |
+| D8 | **Credential storage.** Secrets Manager reference scheme and/or the planned `api_credentials` table; adapters already hold a reference, never a secret | Live metered calls | `infrastructure/model_adapters/transport.py` `CredentialSource` @ this change |
+| D9 | **Who publishes the model catalog, prices and policy versions**, and where the document lives. `parse_model_config` fails closed; there is deliberately no default | research-engine running anything | `domain/ai_models.py` `parse_model_config` @ this change |
+| D10 | **Capacity backoff and the per-run hard cap.** The reference retried capacity 5/15/45 s in-call (not ported) and capped per run (`budget_guard.py`, R10, not ported). Both are scheduler/budget semantics — platform-runtime | Parity for `cost.hard_cap` | `docs/architecture/ai-runtime.md` *Failure classification* |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 
 Open defects and questions live in

@@ -56,12 +56,19 @@ apps/
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
+    ai_models.py            ModelCapability, catalog, ModelPolicy, ModelRegistry (fails closed)
+    ai_contracts.py         ModelRequest/Result, AIUsageEvent, 10-way error taxonomy,
+                            structured-output validation, AgentDefinition, FallbackPolicy
+    ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
+    ai_tools.py             ToolRegistry — scope never from model arguments
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics
+    residency.py            EU residency, data classes, the fail-closed egress boundary
     scope.py                Organization/Client/Study vocabulary, roles, permissions
     workflow.py             Workflow DAG, job states, retry classification
   application/
+    model_gateway.py        GovernedModelGateway — the ONLY model call path (ADR 0005)
     scope.py                ScopeResolver — the ONLY issuer of a scope context
   infrastructure/
     tables.py               SQLAlchemy tables
@@ -70,10 +77,13 @@ packages/aia_core/src/aia_core/
     scope_repository.py     Organizations, clients, studies, grants
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
     workflow_repository.py  Durable jobs, leases, heartbeats, cost reservations
+    ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
+    ai_call_journal.py      CallJournal over the workflow attempt + ledger
+    model_adapters/         Anthropic / OpenAI / Claude Code adapters, transports, recorded doubles
     storage.py              ArtifactStore: S3 / filesystem / memory
 
 migrations/                 Alembic
-docs/architecture/          System design + 7 ADRs
+docs/architecture/          System design + 8 ADRs; ai-step-executor-contract.md
 docs/migration/             Plan, status, parity matrix, legacy map
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
@@ -88,6 +98,11 @@ PostgreSQL 16, Next.js 16, TypeScript, Tailwind 4.
 **Target:** AWS — Amplify, ECS Fargate, RDS, S3, SQS, Secrets Manager, KMS,
 CloudWatch, Terraform, GitHub Actions. No Kubernetes, no Redis
 ([ADR 0002](docs/architecture/adr/0002-postgresql-authoritative-store.md)).
+
+**Model calls.** Nothing calls a provider except through
+`GovernedModelGateway.invoke`; `make layer_check` forbids a provider SDK or gateway
+library anywhere in the core or API. Domain code names a `ModelCapability` and a
+`DataClass`, never a model.
 
 **Routes.** Every project route is study-scoped:
 `/api/v1/studies/{study_id}/projects/…`. A project route outside a study prefix

@@ -86,8 +86,11 @@ Legacy source: `artifact_store.py`, `project_artifact_sync.py`, `output_pack.py`
 error classification, quota and capacity semantics, token and cost accounting,
 budget enforcement, the audit trail of every provider switch.
 
-**Status:** domain rules implemented (`aia_core.domain.providers`); the gateway
-and SDK adapters are not (Phase 4). Legacy source: `ai_router.py`,
+**Status:** domain rules implemented (`aia_core.domain.providers`); the model
+gateway contract, registry, tool registry, usage ledger and three adapters are
+implemented against recorded exchanges (`domain/ai_*.py`,
+`application/model_gateway.py`, `infrastructure/model_adapters/`). Live
+transports are not. See [ai-runtime.md](ai-runtime.md). Legacy source: `ai_router.py`,
 `provider_runtime.py`, `provider_auth.py`, `claude_code_provider.py`,
 `ai_runtime.py`, `cost_estimator.py`, `pricing_engine.py`.
 
