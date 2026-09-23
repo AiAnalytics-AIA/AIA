@@ -189,7 +189,8 @@ jobs:
     # backend job; this job checks out the reference at the commit pinned in
     # docs/migration/parity-matrix.json, refuses any fixture that does not hash
     # to its pin, proves each vendored copy is byte-identical to its original,
-    # and runs the F10/F11 and population-contract gates that read the checkout.
+    # and runs the F10/F11, population-contract and evidence-contract gates
+    # that read the checkout.
     #
     # Access is a read-only deploy key on AiAnalytics-AIA/AIA-reference, stored
     # as the AIA_REFERENCE_DEPLOY_KEY secret. Without it (forks, or before it is
@@ -240,12 +241,13 @@ jobs:
       - name: Run golden-fixture gates
         # F1-F9 are vendored and run in the backend job with no checkout; what
         # needs the reference repository is the pin check against its manifest
-        # and parity plan, and F10/F11 plus the population contract parity.
+        # and parity plan, F10/F11, and the population and evidence contract parity.
         env:
           AIA_REFERENCE_REPO: ${{ github.workspace }}/.reference/aia-reference
         run: >-
           pytest packages/aia_core/tests/test_golden_fixtures.py
-          packages/aia_core/tests/test_population_reference_parity.py -q -rs
+          packages/aia_core/tests/test_population_reference_parity.py
+          packages/aia_core/tests/test_evidence_gate_parity.py -q -rs
           --junit-xml=tmp/junit/golden.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4

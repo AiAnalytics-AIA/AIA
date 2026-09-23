@@ -18,7 +18,7 @@ each needs to run; whether a gate passed is a property of a run, not of a file.
 
 | Term | Meaning |
 | --- | --- |
-| **Gate** | A set of tests that establishes parity for a capability. Kinds: `reference_comparison` (runs the legacy code — needs the extracted archive), `reference_characterization` (pins down legacy behaviour — needs the extracted archive), `reference_contract` (compares against a committed reference contract or ledger — needs the reference repository), `golden_fixture` (compares against a golden fixture — vendored F1–F9 need nothing, F10–F11 need the reference repository, none needs the archive), `production_contract` (production-only; proves an intentional difference or an equivalence criterion) |
+| **Gate** | A set of tests that establishes parity for a capability. Kinds: `reference_comparison` (runs the legacy code — needs the extracted archive), `reference_characterization` (pins down legacy behaviour — needs the extracted archive), `reference_contract` (compares against a committed reference contract or ledger — needs the reference repository, or nothing when the test carries the reference's recovered decision table itself), `golden_fixture` (compares against a golden fixture — vendored F1–F9 need nothing, F10–F11 need the reference repository, none needs the archive), `production_contract` (production-only; proves an intentional difference or an equivalence criterion) |
 | **Fixture gate state** | `GATED`, `PARTIALLY_GATED` (some of the fixture's facts are asserted; the capability cannot pass until all are), `AWAITING_IMPLEMENTATION`, `AWAITING_CAPTURE` — each fixture names the gate that covers it (`gate.gate_id`) |
 | **Release blocker** | Exactly the capabilities an MVP acceptance criterion names. Off-path high-risk capabilities say why they are off the path |
 | **Implementation state** | `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `RETIRED` — checked against `module-dispositions.json` in both directions |
@@ -45,7 +45,7 @@ job's summary in CI.
 | `ai.runtime_policy` | ai-runtime *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
 | `ai.single_provider_mode` | ai-runtime *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `ai.usage_ledger` | ai-runtime *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
-| `analysis.modules` | analysis *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | R5 | yes |
+| `analysis.modules` | analysis *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x1 | R5 | yes |
 | `analysis.qc` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | F11 | — | — | yes |
 | `api.http` | api *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | R14 | yes |
 | `artifacts.registration` | artifacts *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
@@ -65,11 +65,11 @@ job's summary in CI.
 | `governance.anchors` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R13 | yes |
 | `governance.benchmarks` | governance *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | no |
 | `governance.evidence_audit` | governance *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
-| `governance.evidence_gates` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
+| `governance.evidence_gates` | governance *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1, reference_comparison x1, reference_contract x2 | — | yes |
 | `governance.holdout` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R12 | no |
 | `governance.legal` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
 | `governance.product_policy` | governance *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1, reference_contract x1 | R5, R6 | yes |
-| `governance.validation_state` | governance *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R12 | yes |
+| `governance.validation_state` | governance *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1 | R12 | yes |
 | `operability.diagnostics` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `operability.integrity` | platform *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1, reference_contract x1 | — | yes |
 | `operability.release` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
@@ -94,7 +94,7 @@ job's summary in CI.
 | `research.design` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `respondents.context` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `respondents.engine` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
-| `respondents.factual_layer` | research *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
+| `respondents.factual_layer` | research *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1 | — | yes |
 | `respondents.layers` | research *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
 | `results.dialogue` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | no |
 | `results.registry` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
@@ -106,7 +106,7 @@ job's summary in CI.
 | `sociomapping.study_module` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-12` | F3 | golden_fixture x1 | — | yes |
 | `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
 | `statistics.diagnostics` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
-| `statistics.uncertainty` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
+| `statistics.uncertainty` | analysis *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x1, reference_contract x1 | R5 | yes |
 | `tests` | verification *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `workflow.config` | workflow *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R10 | yes |
 | `workflow.dispatch` | workflow *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
@@ -189,9 +189,15 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | `cost_controller.py` | Reservations | `WorkflowRepository.reserve_budget` | Done | ◐ | Blocking `FOR UPDATE` on the study row; concurrent-overspend regression test |
 | `dotaznik.py`, `pipeline.py` | Questionnaire + respondents | Phase 5 | ○ | ○ | Needs seeded parity tests |
 | `research_designer.py` | Research design | Phase 5 | ○ | ○ | |
-| `analysis_agent.py` | 8 analysis modules | Phase 6 | ○ | ○ | |
-| `validation_gate.py`, `evidence_validator.py`, `holdout_protocol.py`, `legal_gate.py` | Governance | Phase 6 | ○ | ○ | **Must fail closed** where the prototype does |
-| `PRODUCT_POLICY.json`, `DATA_CONTRACT_v17.json` | Methodology contract | Phase 6 | ○ | ○ | Become enforced backend rules |
+| `analysis_agent.py` | 8 analysis modules | `domain.analysis` + `application.analysis` | Done | ◐ | Order, fingerprints, one draft schema, repair ≤ 2. Evidence discipline EXACT; prose SEMANTIC. Stricter: 100% number coverage, not 95% |
+| `FIELD_DICTIONARY_v17_1.csv` (M02) | Per-field claim policy | `domain.evidence.field_policy` | Done | ✅ | All 400 fields re-derive identically to the reference export; the reference enforced none of it |
+| `CORE_JOINT_STATUS.json`, `core_joint.py` (M03) | Joint-structure claim gate | `domain.evidence.joint_status` | Done | ✅ ◐ | Restrictions and hash binding EXACT; fallback values are a fail-closed reading (OI-18) |
+| `dotaznik.agreguj_otazku`, `uncertainty.py` (M16) | Effective-n suppression | `domain.evidence.support` | Done | ✅ ◐ | Thresholds and `SUPPRESS` default EXACT; state names and the donor-layer 50 line are readings (OI-18); intervals are inputs, not yet computed |
+| `analysis_agent.py` prompt, `evidence_validator.py` (M17) | Allowed metrics, evidence refs | `domain.evidence.metrics`, `.admission` | Done | ✅ | The metric set is an enum, not prompt text; admission is all-or-nothing |
+| `tier_gate.py`, `validation_status.py`, `smoke_validation.py` (M10, R12) | Tiers, validation state | `domain.evidence.validation` | Done | ◐ | Smoke never unlocks; fingerprint binding EXACT; Tier B/C permissions are readings (OI-18) |
+| `factual_layer.py` | Panel facts never invented | `domain.evidence.factual` | ◐ | ◐ | Explicit metadata contract only; keyword detection not ported (OI-20) |
+| `validation_gate.py` thresholds, `holdout_protocol.py`, `legal_gate.py` | Holdout, legal | Phase 6 | ○ | ○ | **Must fail closed** where the prototype does |
+| `PRODUCT_POLICY.json`, `DATA_CONTRACT_v17.json` | Methodology contract | Phase 6 | ◐ | ◐ | Field dictionary and joint certificate enforced; weights and brand knowledge not yet |
 | `client_report_v2.py`, `output_pack.py` | Reports and exports | Phase 6 | ○ | ○ | |
 | `full_simulation.py`, `scenario_compiler.py` | Simulation | Phase 7 | ○ | ○ | Seeded reproduction required |
 | `data_library.py`, `society_insights.py` | Data Library | Phase 8 | ○ | ○ | Approval ordering must hold |

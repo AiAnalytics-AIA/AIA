@@ -90,8 +90,8 @@ def reference_repo() -> Path:
     if root is None:
         message = (
             "AIA-reference not available; clone AiAnalytics-AIA/AIA-reference beside "
-            "this repository or set AIA_REFERENCE_REPO to enable golden-fixture and "
-            "population parity tests"
+            "this repository or set AIA_REFERENCE_REPO to enable golden-fixture, "
+            "population and evidence parity tests"
         )
         if os.environ.get("AIA_REQUIRE_REFERENCE_REPO") == "1":
             pytest.fail("AIA_REQUIRE_REFERENCE_REPO=1 but " + message)
@@ -386,6 +386,276 @@ def scope_builder() -> Any:
     imports between their modules collide.
     """
     return build_scope_fixture
+
+
+# --- Evidence governance ------------------------------------------------------
+#
+# The real field dictionary is reference material and is not vendored (see
+# .planning/plans/done/evidence-governance-foundation.md). Unit tests use this small
+# synthetic dictionary, one row per policy shape the gates must distinguish. The
+# parity suite reads the real export from the private reference repository
+# through the shared ``reference_repo`` fixture above.
+
+SYNTHETIC_DICTIONARY_SHA256 = "0" * 63 + "1"
+
+SYNTHETIC_DICTIONARY_ROWS: tuple[dict[str, str], ...] = (
+    {
+        "field": "vek",
+        "block": "population_anchor",
+        "source": "Census 2021",
+        "evidence_status": "POPULATION_ANCHOR",
+        "production_grade": "A",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "vzdelani",
+        "block": "core",
+        "source": "matching/core",
+        "evidence_status": "CANONICAL_CORE",
+        "production_grade": "A",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "numeracy_score",
+        "block": "piaac_core",
+        "source": "PIAAC",
+        "evidence_status": "MEASURED_CORE_PIAAC",
+        "production_grade": "B",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "wellbeing_index",
+        "block": "mental_health",
+        "source": "donor",
+        "evidence_status": "MATCHED_WHOLE_BLOCK",
+        "production_grade": "B",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "trust_courts",
+        "block": "rule_of_law",
+        "source": "donor",
+        "evidence_status": "MATCHED_WHOLE_BLOCK",
+        "production_grade": "B",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "vote_2021",
+        "block": "politics",
+        "source": "donor",
+        "evidence_status": "MATCHED_POLITICS_CANONICAL",
+        "production_grade": "C",
+        "recommended_use": "HISTORICAL_OR_EXPLORATORY",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "religious_affiliation",
+        "block": "RELIGION",
+        "source": "donor",
+        "evidence_status": "MATCHED_WHOLE_BLOCK_CANONICAL",
+        "production_grade": "B",
+        "recommended_use": "persona/context with provenance",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "deal_seeking_1_10",
+        "block": "marketing_behavior",
+        "source": "latent",
+        "evidence_status": "MODELED_MARKETING_PRIOR",
+        "production_grade": "D",
+        "recommended_use": "behavioral prior / simulation modifier, never measured fact",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "value_security",
+        "block": "VALUES",
+        "source": "proxy",
+        "evidence_status": "MODELED_VALUE_PROXY",
+        "production_grade": "C",
+        "recommended_use": "simulation prior; never claim direct Schwartz measurement",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "has_savings",
+        "block": "FINANCIAL_CAPABILITY",
+        "source": "calibrated",
+        "evidence_status": "CALIBRATED_MODELED_BINARY",
+        "production_grade": "C",
+        "recommended_use": "segmentation/aggregate; individual value modeled",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "tv_daily_minutes",
+        "block": "media",
+        "source": "benchmark",
+        "evidence_status": "CALIBRATED_BENCHMARK",
+        "production_grade": "B",
+        "recommended_use": (
+            "aggregate planning and persona background with modeled-value disclosure"
+        ),
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "life_stage",
+        "block": "derived",
+        "source": "derived",
+        "evidence_status": "DERIVED_TRANSPARENT",
+        "production_grade": "B",
+        "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "is_procurement_buyer_current",
+        "block": "SPECIAL_PANEL_FLAG",
+        "source": "derived",
+        "evidence_status": "DERIVED_TRANSPARENT",
+        "production_grade": "C",
+        "recommended_use": "audience selection; use vaha_strukturalni_2025",
+        "persona_eligible": "yes",
+    },
+    {
+        "field": "panel_row_id",
+        "block": "provenance",
+        "source": "matching/core",
+        "evidence_status": "POPULATION_ANCHOR",
+        "production_grade": "T",
+        "recommended_use": "AUDIT_ONLY",
+        "persona_eligible": "no",
+    },
+    {
+        "field": "vaha_strukturalni_2025",
+        "block": "weight",
+        "source": "raking",
+        "evidence_status": "NEW_WEIGHT",
+        "production_grade": "T",
+        "recommended_use": "AUDIT_ONLY",
+        "persona_eligible": "no",
+    },
+    {
+        "field": "donor_id_mental_health",
+        "block": "provenance",
+        "source": "matching",
+        "evidence_status": "PROVENANCE_OR_CORE",
+        "production_grade": "T",
+        "recommended_use": "technical/provenance only",
+        "persona_eligible": "no",
+    },
+)
+
+SYNTHETIC_RUNTIME_ONLY_COLUMNS = ("life_stage_derived", "_analysis_weight")
+
+
+@pytest.fixture
+def dictionary_rows() -> list[dict[str, str]]:
+    return [dict(row, description=f"synthetic {row['field']}") for row in SYNTHETIC_DICTIONARY_ROWS]
+
+
+@pytest.fixture
+def field_book(dictionary_rows: list[dict[str, str]]) -> Any:
+    from aia_core.domain.evidence import FieldPolicyBook
+
+    return FieldPolicyBook.from_dictionary_rows(
+        dictionary_rows,
+        source_sha256=SYNTHETIC_DICTIONARY_SHA256,
+        runtime_columns=[r["field"] for r in dictionary_rows]
+        + list(SYNTHETIC_RUNTIME_ONLY_COLUMNS),
+    )
+
+
+SYNTHETIC_PANEL_SHA256 = "b" * 64
+
+# Shaped like the reference certificate (population-subsystem.md §10), with a
+# synthetic panel name and hash.
+SYNTHETIC_JOINT_CERTIFICATE: dict[str, Any] = {
+    "production_panel": "synthetic_panel.csv.gz",
+    "panel_sha256": SYNTHETIC_PANEL_SHA256,
+    "structure_status": "QC_PASSED",
+    "prediction_validation_status": "EXTERNAL_HOLDOUT_PENDING",
+    "matched_blocks": [
+        "mental_health",
+        "social_network",
+        "institutions",
+        "rule_of_law",
+        "politics",
+        "family_health",
+    ],
+    "core_same_person_joint": True,
+    "cross_block_same_person_joint": False,
+    "client_joint_outputs_allowed": False,
+    "descriptive_core_outputs_allowed": True,
+    "matched_block_outputs_allowed": True,
+    "cross_block_joint_claims_allowed": False,
+    "runtime_identity_contract": (
+        "single authoritative core; specialist donor demographics and party identity are audit-only"
+    ),
+}
+
+
+@pytest.fixture
+def certificate_bytes() -> Any:
+    """Build certificate bytes from the synthetic certificate plus overrides."""
+    import json
+
+    def build(**overrides: Any) -> bytes:
+        return json.dumps({**SYNTHETIC_JOINT_CERTIFICATE, **overrides}).encode("utf-8")
+
+    return build
+
+
+@pytest.fixture
+def joint_status(certificate_bytes: Any) -> Any:
+    """The certified status: the synthetic certificate bound to the synthetic panel."""
+    from aia_core.domain.evidence import load_joint_status
+
+    return load_joint_status(certificate_bytes(), measured_panel_sha256=SYNTHETIC_PANEL_SHA256)
+
+
+@pytest.fixture
+def degraded_joint_status() -> Any:
+    from aia_core.domain.evidence import load_joint_status
+
+    return load_joint_status(None, measured_panel_sha256=SYNTHETIC_PANEL_SHA256)
+
+
+@pytest.fixture
+def evidence_row() -> Any:
+    """Build an EvidenceRow with sensible, fully supported defaults plus overrides."""
+    from aia_core.domain.evidence import (
+        ClaimBasis,
+        ClaimLevel,
+        Disclosure,
+        EvidenceRow,
+        Interval,
+        SupportEvidence,
+        assess_support,
+        parse_metric,
+    )
+
+    def build(ref: str = "E1", **overrides: Any) -> Any:
+        metric = overrides.pop("metric", "top2box_pct")
+        args: dict[str, Any] = {
+            "evidence_ref": ref,
+            "metric": parse_metric(metric) if isinstance(metric, str) else metric,
+            "value": 42.5,
+            "decimals": 1,
+            "support": assess_support(SupportEvidence(n=600, effective_n=480.0)),
+            "fields": ("vek",),
+            "basis": ClaimBasis.MEASURED,
+            "level": ClaimLevel.AGGREGATE,
+            "cell": "total",
+            "question_id": "q1",
+            "interval": Interval(38.1, 46.9, 0.95),
+            "disclosures": frozenset({Disclosure.SCOPE}),
+        }
+        args.update(overrides)
+        return EvidenceRow(**args)
+
+    return build
 
 
 # --------------------------------------------------------------------------- #

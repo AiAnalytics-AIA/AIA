@@ -26,7 +26,7 @@
       "reference_claim": "reference-gaps.md names F12 as the R smacof layout fixture (F12_r_smacof_unfolding_layout)",
       "production_position": "docs/migration/population-enrichment-archive-dependency.md on main also names an 'F12' for population.enrichment. The reference's id is carried here; the enrichment fixture needs its own id before either is captured.",
       "anchor": "AIA-reference reference-gaps.md 'REF-GAP-SOCIO-R-SMACOF' step 5 @ 678e298; docs/migration/population-enrichment-archive-dependency.md",
-      "resolution": "Give the enrichment fixture an unused id (F14 or later) and record it upstream (OI-28)."
+      "resolution": "Give the enrichment fixture an unused id (F14 or later) and record it upstream (OI-31)."
     }
   ],
   "reference_gaps": {
@@ -67,7 +67,7 @@
         "Population v17_4_0, which the inoculation step reads."
       ],
       "definition_of_done": "The sanitised world model is frozen once, with its sha256, as fixture input; F13 captures the FS_* columns, factor_stats, correlation_matrix and the _nearest_psd_corr / _calibrate_intercept / _driver_vector outputs at tolerance 1e-9 on v17_4_0; F13 manifested upstream and pinned here. World-model generation itself stays SEMANTIC.",
-      "register": ".planning/open-items.md OI-24",
+      "register": ".planning/open-items.md OI-27",
       "anchor": "AIA-reference reference-gaps.md 'REF-GAP-SIMULATION-WORLD-MODEL' @ 678e298"
     }
   },
@@ -717,8 +717,11 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/analysis/",
+        "packages/aia_core/src/aia_core/application/analysis.py"
+      ],
       "reference_modules": [
         "analysis_agent.py"
       ],
@@ -726,7 +729,18 @@
       "tolerance": null,
       "parity_reason": "Eight analysis modules; evidence-reference discipline is EXACT, prose is SEMANTIC",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "analysis.modules/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_analysis_draft.py",
+            "packages/aia_core/tests/test_analysis_modules.py",
+            "packages/aia_core/tests/test_analysis_runner.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -738,7 +752,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-09)."
       },
-      "notes": ""
+      "notes": "The eight module definitions, draft checking and admitted-claim results are ported; no module body calls a model yet, and no reference-backed gate compares module outputs."
     },
     "analysis.qc": {
       "family": "analysis",
@@ -1412,8 +1426,10 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/evidence/"
+      ],
       "reference_modules": [
         "evidence_validator.py",
         "fidelity.py",
@@ -1424,7 +1440,54 @@
       "tolerance": null,
       "parity_reason": "Fail-closed gate decisions; a different decision is a product defect",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "governance.evidence_gates/reference-contract",
+          "kind": "reference_contract",
+          "requires": [
+            "reference_repo"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_every_reference_field_rederives_identically",
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_reference_counts_match",
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_methodology_ledger_m02_headline_numbers",
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_runtime_columns_without_an_entry_stay_undeclared",
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_certificate_restrictions_are_the_ledgers",
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_claim_gate_never_permits_what_the_reference_policy_forbids"
+          ]
+        },
+        {
+          "id": "governance.evidence_gates/recovered-decisions",
+          "kind": "reference_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_recovered_gate_decision",
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_every_case_names_its_source_and_parity",
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_degraded_certificate_blocks_every_client_claim"
+          ]
+        },
+        {
+          "id": "governance.evidence_gates/legacy-certificate",
+          "kind": "reference_comparison",
+          "requires": [
+            "legacy_tree"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_the_real_certificate_is_honoured_against_the_real_panel"
+          ]
+        },
+        {
+          "id": "governance.evidence_gates/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_evidence_claims.py",
+            "packages/aia_core/tests/test_evidence_admission.py",
+            "packages/aia_core/tests/test_evidence_joint_status.py",
+            "packages/aia_core/tests/test_evidence_field_policy.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -1434,7 +1497,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-09)."
       },
-      "notes": ""
+      "notes": "Claim policy, the hash-bound joint certificate and AdmittedClaim admission are ported, fail closed (.planning/plans/done/evidence-governance-foundation.md). Decisions only the withheld legacy source states are OI-18. A second field-policy authority exists in domain.population (D8, OI-24)."
     },
     "governance.holdout": {
       "family": "governance",
@@ -1508,8 +1571,10 @@
       "parity_owner": "parity-quality",
       "implementation_state": "PARTIAL",
       "implementation": [
-        "packages/aia_core/src/aia_core/domain/population/policy.py",
-        "packages/aia_core/src/aia_core/domain/population/companions.py"
+        "packages/aia_core/src/aia_core/domain/evidence/field_policy.py",
+        "packages/aia_core/src/aia_core/domain/evidence/joint_status.py",
+        "packages/aia_core/src/aia_core/domain/population/companions.py",
+        "packages/aia_core/src/aia_core/domain/population/policy.py"
       ],
       "reference_modules": [
         "data_contract.py",
@@ -1561,7 +1626,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-09)."
       },
-      "notes": "The field dictionary's claim rules (R5) and the CORE_JOINT_STATUS certificate gate (R6) are enforced as closed policy over the population. The wider methodology contract (PRODUCT_POLICY.json, DATA_CONTRACT_v17.json) is not ported."
+      "notes": "The field dictionary's claim rules (R5) and the CORE_JOINT_STATUS certificate gate (R6) are enforced as closed policy over the population. The wider methodology contract (PRODUCT_POLICY.json, DATA_CONTRACT_v17.json) is not ported. Two authorities implement it today, domain.population and domain.evidence, with different client measured-claim eligibility (287 vs 115 fields): D8, OI-24."
     },
     "governance.validation_state": {
       "family": "governance",
@@ -1571,8 +1636,10 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/evidence/validation.py"
+      ],
       "reference_modules": [
         "smoke_validation.py",
         "system_fingerprint.py",
@@ -1582,7 +1649,16 @@
       "tolerance": null,
       "parity_reason": "State machine bound to a system fingerprint",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "governance.validation_state/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_evidence_validation.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -1594,7 +1670,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-09)."
       },
-      "notes": ""
+      "notes": "Validation state bound to the system fingerprint, and smoke never unlocking holdout, are ported; no reference-backed gate compares the state machine's transitions."
     },
     "operability.diagnostics": {
       "family": "operability",
@@ -2234,7 +2310,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-04)."
       },
-      "notes": "Weight resolution fails explicitly and the binding records the resolved weight. PARTIAL until research execution derives its fingerprints from the binding (OI-6), and because module-dispositions.json still records kalibrace.py and mrp.py as not started (OI-27)."
+      "notes": "Weight resolution fails explicitly and the binding records the resolved weight. PARTIAL until research execution derives its fingerprints from the binding (OI-6), and because module-dispositions.json still records kalibrace.py and mrp.py as not started (OI-30)."
     },
     "project.memory": {
       "family": "project",
@@ -2593,8 +2669,10 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/evidence/factual.py"
+      ],
       "reference_modules": [
         "factual_layer.py"
       ],
@@ -2602,7 +2680,20 @@
       "tolerance": null,
       "parity_reason": "Panel facts must never be re-invented by an LLM; the classification decision must match",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "respondents.factual_layer/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_evidence_claims.py::test_factual_field_that_is_modelled_reports_a_modelled_basis",
+            "packages/aia_core/tests/test_evidence_claims.py::test_attitude_is_never_factual",
+            "packages/aia_core/tests/test_evidence_claims.py::test_no_metadata_is_undeclared_not_factual",
+            "packages/aia_core/tests/test_evidence_claims.py::test_metadata_that_would_need_an_invented_fact_is_refused",
+            "packages/aia_core/tests/test_evidence_claims.py::test_factual_answer_is_the_panel_value_and_missing_stays_missing"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -2612,7 +2703,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-06)."
       },
-      "notes": ""
+      "notes": "Explicit factual metadata resolves to the panel value; automatic factual-question detection is not ported (OI-20)."
     },
     "respondents.layers": {
       "family": "respondents",
@@ -3115,8 +3206,11 @@
         "confirmed": false
       },
       "parity_owner": "parity-quality",
-      "implementation_state": "NOT_STARTED",
-      "implementation": [],
+      "implementation_state": "PARTIAL",
+      "implementation": [
+        "packages/aia_core/src/aia_core/domain/evidence/support.py",
+        "packages/aia_core/src/aia_core/domain/evidence/metrics.py"
+      ],
       "reference_modules": [
         "ensemble.py",
         "uncertainty.py",
@@ -3126,7 +3220,28 @@
       "tolerance": 1e-09,
       "parity_reason": "Kish effective N, donor support and bootstrap intervals reach clients directly",
       "fixtures": [],
-      "gates": [],
+      "gates": [
+        {
+          "id": "statistics.uncertainty/reference-contract",
+          "kind": "reference_contract",
+          "requires": [
+            "reference_repo"
+          ],
+          "tests": [
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_suppression_constants_are_the_ledgers",
+            "packages/aia_core/tests/test_evidence_gate_parity.py::test_allowed_metric_set_is_the_ledgers"
+          ]
+        },
+        {
+          "id": "statistics.uncertainty/contract",
+          "kind": "production_contract",
+          "requires": [],
+          "tests": [
+            "packages/aia_core/tests/test_evidence_support.py",
+            "packages/aia_core/tests/test_evidence_metrics.py"
+          ]
+        }
+      ],
       "recorded_evidence": [],
       "intentional_difference": null,
       "documented_deviations": [],
@@ -3138,7 +3253,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-09)."
       },
-      "notes": ""
+      "notes": "Effective-n SUPPRESS-by-default support and the allowed-metric enum are ported; interval computation itself (uncertainty.py) is not."
     },
     "tests": {
       "family": "tests",
@@ -3245,7 +3360,7 @@
         "blocking": true,
         "reason": "On the MVP acceptance path (AC-07)."
       },
-      "notes": "PostgreSQL queue drained by the worker process (apps/worker). PARTIAL only because module-dispositions.json still records scheduler.py and worker_daemon.py as not started (OI-27)."
+      "notes": "PostgreSQL queue drained by the worker process (apps/worker). PARTIAL only because module-dispositions.json still records scheduler.py and worker_daemon.py as not started (OI-30)."
     },
     "workflow.engine": {
       "family": "workflow",

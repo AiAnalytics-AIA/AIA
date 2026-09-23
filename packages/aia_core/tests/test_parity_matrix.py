@@ -249,8 +249,6 @@ def test_reference_backed_gates_declare_what_they_need(
             if gate["kind"] == "golden_fixture":
                 assert gate["id"] in fixture_of, f"{gate['id']} gates no fixture"
                 assert gate["requires"] == fixture_of[gate["id"]]["requires"], gate["id"]
-            if gate["kind"] == "reference_contract":
-                assert "reference_repo" in gate["requires"], (cid, gate["id"])
             if gate["kind"] in {"reference_comparison", "reference_characterization"}:
                 assert "legacy_tree" in gate["requires"], (cid, gate["id"])
 

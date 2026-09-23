@@ -107,8 +107,8 @@ Until a human provisions the deploy key, CI reports golden fixtures as
   `AGENTS.md`.
 - **The reference gap records understate their blockers.** Both F12 and F13
   recipes execute legacy code that exists only in the withheld archive (OI-15,
-  OI-24).
-- **A reference mis-link** — F11 listed under `cost.reservations` (OI-25,
+  OI-27).
+- **A reference mis-link** — F11 listed under `cost.reservations` (OI-28,
   `REF-DISC-1`).
 
 ## Merge with `main` @ 8978b99
@@ -129,10 +129,11 @@ branch was open. What changed here as a result:
 - **Fifteen capabilities changed state** (Sociomap core and study module, four
   population capabilities, product policy, integrity, four workflow and
   orchestration capabilities); the `IMPLEMENTED` ceiling is the stale module
-  inventory (OI-27).
+  inventory (OI-30).
 - **Numbering collisions resolved**: my SMACOF entry folded into OI-15; the other
-  findings renumbered OI-24 to OI-26; the Simulation-scope decision is D7; the
-  two fixtures named F12 are OI-28.
+  findings renumbered OI-27 to OI-29; the Simulation-scope decision is D9; the
+  two fixtures named F12 are OI-31 (a second merge of `main` took OI-24 to
+  OI-26 and D7/D8 first).
 - **Ranking tightened**: a capability whose gates pass but whose port is
   unfinished ranks below one with no passing evidence.
 

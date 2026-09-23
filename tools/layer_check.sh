@@ -169,6 +169,34 @@ forbid "the worker never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$WORKER"
 
+# --- Evidence: admission and certificates are issued, never constructed ------
+#
+# The same capability pattern as scope. An AdmittedClaim is the only form in
+# which a number may sit in an analysis result, and only admit_numeric_claims
+# can mint one, after field policy, joint structure, support, interval and tier
+# have all passed. A JointStatus is the only way the claim gate learns what the
+# population's joint structure supports, and only load_joint_status can issue
+# one, after checking the certificate against the loaded panel's hash. If any
+# other module can build either, a prompt is the enforcement mechanism again.
+# See .planning/plans/done/evidence-governance-foundation.md.
+forbid "claims are admitted only by the evidence admission gate" \
+  '^[^#]*\bAdmittedClaim\(' \
+  "$CORE" \
+  admission.py
+
+forbid "the API never admits its own claims" \
+  '^[^#]*\bAdmittedClaim\(' \
+  "$API"
+
+# companions.py is exempt by name, and only for now: it defines a *second*
+# JointStatus -- the population loader's own certificate evaluator -- which is a
+# duplicate of the evidence one, not a bypass of it. Which of the two is the single
+# authority is an open decision (.planning/open-items.md OI-24); this exemption goes
+# when that decision lands, not before.
+forbid "a joint status is issued only by its loader" \
+  '^[^#]*\bJointStatus\(' \
+  "$CORE" \
+  joint_status.py companions.py
 
 # --- Population: one resolver, one loader ----------------------------------
 #

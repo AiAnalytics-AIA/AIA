@@ -34,6 +34,16 @@ entry is a **hypothesis**, not a finding.
 
 
 | 9 (core) | **Sociomap deterministic engine**: spec + artifact contract v2; relation coercion, mutual projection, ipsatization, normaliser, object metrics / T-score and both terrain fields ported from the browser and the reference backend; layout **declared** (legacy algorithms refused, AIA row-conditional unfolding implemented, no parity claimed); drag and what-if as layers. F1–F9 vendored and run in every CI job | `packages/aia_core/src/aia_core/domain/sociomap/` · `test_sociomap_{relations,metrics,terrain,layout,engine,contracts,golden_fixtures}.py` · `docs/architecture/sociomapa-deterministic-engine.md` · `.planning/plans/done/sociomap-deterministic-engine.md` |
+| 6 | **Evidence governance foundation**: field dictionary as enforced policy (all 400 fields re-derive identically to the reference export), `CORE_JOINT_STATUS` hash-bound certificate, permissible-claim policy, effective-n `SUPPRESS`-by-default support, allowed-metric enum, validation bound to system fingerprint, tier gate, factual layer, `AdmittedClaim` capability enforced by `layer_check` | `packages/aia_core/src/aia_core/domain/evidence/` · `tests/test_evidence_gate_parity.py` · `.planning/plans/done/evidence-governance-foundation.md` |
+| 6 | **The eight analysis modules** against those contracts: order, input fingerprints and resume, closed draft schema, 100% prose number coverage, prompts rendered from the enums, results that hold only admitted claims; runner with repair ≤ 2 and pre-flight blocking | `packages/aia_core/src/aia_core/domain/analysis/`, `application/analysis.py` · `tests/test_analysis_runner.py` |
+
+**Verified state, evidence governance merged with main @ `121b746` (population,
+Sociomap, worker, population readiness) plus the four review fixes (2026-09-23).**
+PostgreSQL 16.13 / Python 3.12: **1592 passed / 101 skipped** across core, API and
+worker; SQLite: **1564 passed / 129 skipped**; concurrency 22/22 with
+`AIA_REQUIRE_POSTGRES=1`; migrations upgrade, `alembic check` no drift, downgrade
+to base and back; `mypy --strict` clean across 86 source files; `ruff` clean;
+`layer_check` 34/34 (one named exemption pending D8 / OI-24); `exposure_check` 7/7.
 
 **Verified state, population consumption readiness** (PostgreSQL 16.13, Python
 3.12.3, core + API): **911 passed / 100 skipped** on PostgreSQL with
@@ -99,40 +109,46 @@ CI has run the new jobs once.
 - [x] CI: JUnit from every pytest step, `golden-fixtures` and `parity-status`
       jobs, `|| true` removed from the legacy parity job
 - [x] `REF-GAP-SOCIO-R-SMACOF` / `REF-GAP-SIMULATION-WORLD-MODEL` owned —
-      OI-15 (already open on `main`, now also in the matrix) / OI-24, `reference_gaps` in the matrix
-- [x] Parity status below; findings OI-25, OI-26
+      OI-15 (already open on `main`, now also in the matrix) / OI-27, `reference_gaps` in the matrix
+- [x] Parity status below; findings OI-28, OI-29
 
 ## Parity status — this cycle
 
-**Highest-risk unverified capability: `cost.reservations`.** It is
-`IMPLEMENTED`, moves money (high-risk R10), owes **EXACT** parity, sits on the
-MVP path — and has **no reference-backed gate at all**: every test of it is
-production-only, so a divergence from the reference's reservation decisions
-would merge green. OI-26 carries the fix.
+**Highest-risk unverified capability: `analysis.modules`.** It is on the MVP
+path, turns population data into client-facing claims (high-risk R5), and its
+eight modules, draft check and admitted-claim results are ported — with **no
+reference-backed gate**: nothing compares a module's output, or its
+evidence-reference discipline, with the reference. The evidence layer beneath it
+*is* reference-backed (`governance.evidence_gates`); the modules on top are not.
+The smallest fix is a recovered decision table for the reference's analysis
+evidence integrity check (methodology-ledger M17), as
+`test_evidence_gate_parity.py` already does for the gates.
+
+Second is `cost.reservations` (implemented, money, R10, no reference-backed gate;
+OI-29).
 
 Measured 2026-09-23 in a cloud session (Python 3.12, PostgreSQL 16 and SQLite,
 reference repository @ 678e298, **no legacy tree**), on this branch after merging
-`main` @ 8978b99 (Sociomap engine, population readiness, worker), by running the
-CI pytest sequence and then
+`main` @ 2dbe2cf (Sociomap engine, population readiness, worker, evidence
+governance), by running the CI pytest sequence and then
 `tools/parity_status.py --available postgres reference_repo`:
 
 | Verdict | All 78 | MVP blockers (52) |
 | --- | ---: | ---: |
-| `PASS` | 10 — all `PARTIAL` except `workflow.legacy_dispatch` | 10 |
-| `NOT_EXECUTED` | 3 (`pipeline.stages`, `ai.provider_policy`, `workflow.engine` — their legacy-tree gates skip) | 3 |
-| `NOT_RUNNABLE` | 56 | 39 |
+| `PASS` | 11 — all `PARTIAL` except `workflow.legacy_dispatch` | 11 |
+| `NOT_EXECUTED` | 4 (`pipeline.stages`, `ai.provider_policy`, `workflow.engine`, `governance.evidence_gates` — their legacy-tree gates skip) | 4 |
+| `NOT_RUNNABLE` | 54 | 37 |
 | `FAIL` | 0 | 0 |
 | `NOT_REQUIRED` | 9 | — |
 
 **One MVP blocker is release-ready** (`workflow.legacy_dispatch`), so
 `MVP-ACCEPT-1` is `NOT_RUNNABLE`. Golden fixtures: F1–F3, F5–F7, F9–F11 gated
 and passing; F8 partially gated (OI-14); F4 refused (OI-13); F12/F13 uncaptured.
-Next four by risk: `ai.provider_policy` (R11, legacy gates not executed),
-`sociomapping.core` (R16; F4 and F8), `pipeline.stages` (legacy gates not
-executed), `config.environment` (no test of the new behaviour). 68 of 78
-capabilities have no confirmed owner — only A7, A8 and population-data are
-named anywhere durable; the rest carry their bounded context as an
-*unconfirmed* workstream.
+Next by risk after the top two: `ai.provider_policy` (R11, legacy gates not
+executed), `governance.validation_state` (R12, no reference-backed gate),
+`sociomapping.core` (R16; F4 and F8). 68 of 78 capabilities have no confirmed
+owner — only A7, A8 and population-data are named in the matrix; the rest carry
+their bounded context as an *unconfirmed* workstream.
 
 Re-run each cycle with `make parity-status`, or read the `parity-status` job's
 summary; update this section from it, anchored.
@@ -191,7 +207,7 @@ it is not answered. "The local agent said so" is not an anchor.
 | Item | Owner |
 |---|---|
 | `REF-GAP-SOCIO-R-SMACOF` | parity-quality + A8 sociomapa-deterministic — **open, OI-15.** R installs in cloud sessions but CRAN is blocked there, and the recipe needs the reference's withheld R wrapper. `r_smacof_unfolding` is refused; no R parity is claimed |
-| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + A7 simulation-engine — **open, OI-24.** Blocked on a credential, an ADR 0008 egress route **and** the withheld archive |
+| `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + A7 simulation-engine — **open, OI-27.** Blocked on a credential, an ADR 0008 egress route **and** the withheld archive |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` | data owner / population-data, after the licensing decision. Its destination must satisfy EU residency — [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) |
 
 ## Next
@@ -266,6 +282,13 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
    dependencies: OI-9 to OI-12.
 5. **Terraform for the AWS baseline**, with OIDC federation rather than
    long-lived keys (`ARCHITECTURE.md §9`), once the compute service is chosen.
+5a. **Reporting on admitted claims** — `client_report_v2` + `output_pack`
+   (authoritative, `report-export-inventory.md` in the reference repository),
+   consuming only `AnalysisModuleResult`. Now unblocked: the evidence layer is
+   enforceable. Needs the worker (2) and the gateway (3) to run for real.
+5b. **`statistics.uncertainty`** — Kish n, donor support and bootstrap intervals
+   computed rather than supplied; `EvidenceRow` already refuses a client
+   estimate without one. NUMERICAL parity, tolerance 1e-9, needs the archive.
 
 **Removed: "A worker process"** — done; see Completed.
 
@@ -298,7 +321,9 @@ left to build.
 | D4 | **Which legacy brand tokens name real clients**, and whether the confirmed ones may remain even in a private repository. The candidate list is enumerated in the remediation document, deliberately not duplicated here. Not an engineering judgement | Manifest reduction | `docs/migration/public-exposure-remediation.md` §2 |
 | D5 | ~~Rewrite history, go private, or accept~~ — **RESOLVED and APPLIED 2026-09-22T20:21:38Z: the repository is PRIVATE, history PRESERVED.** Frozen. Verified `private: true` via the API | — | `docs/migration/public-exposure-remediation.md` § D5, §8 |
 | D6 | **Accept, replace or defer the four AIA Sociomap declarations** — dissimilarity target, `aia_rowcond_unfolding_v1`, the map frame, relation-missing `refuse`. Decision package ready with approval fields; methodology owner, not engineering. **The only methodology decision preventing client use** | Any client-facing Sociomap | `docs/architecture/sociomapa-methodology-decision.md` · OI-16 |
-| D7 | **Is the Simulation lifecycle in the MVP?** `MVP-ACCEPT-1` is scoped to one Research study. Bringing Simulation in adds `simulation.*` to the blockers and makes OI-24 release-blocking | MVP scope | `docs/migration/mvp-acceptance.md` §6 |
+| D7 | **Is `RELIGION` a certified matched block?** It is donor-matched and dictionary-eligible, but absent from the certificate's `matched_blocks`, so the claim gate refuses it client-facing. Data owner | Client claims on the five religion fields | `.planning/open-items.md` OI-19 |
+| D8 | **One authority for field policy and the joint certificate.** `domain.evidence` and `domain.population` each implement both, with different eligibility (287 vs 115 client measured-claim fields). Pick one; the other consumes it | Consistent claim decisions between a run's recorded policy and the claims admitted from it | `.planning/open-items.md` OI-24 |
+| D9 | **Is the Simulation lifecycle in the MVP?** `MVP-ACCEPT-1` is scoped to one Research study. Bringing Simulation in adds `simulation.*` to the blockers and makes OI-27 release-blocking | MVP scope | `docs/migration/mvp-acceptance.md` §6 |
 
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);

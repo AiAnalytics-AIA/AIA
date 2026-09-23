@@ -94,6 +94,22 @@ copied here. The production contract (`aia_core.domain.population.czech`) pins t
 field dictionary by SHA256 and the ordered field names by fingerprint instead of
 carrying the 400 names, and this suite is what proves the pins still match.
 
+The evidence-governance parity suite
+(`packages/aia_core/tests/test_evidence_gate_parity.py`) reads the machine-readable
+exports of the private reference *repository* — `field-policy.json` and
+`methodology-ledger.json` — from this variable:
+
+```bash
+git clone https://github.com/AiAnalytics-AIA/AIA-reference.git ../aia-reference
+export AIA_REFERENCE_REPO=../aia-reference     # the default when unset
+pytest packages/aia_core/tests/test_evidence_gate_parity.py
+```
+
+Same rules again: absent is valid and skips cleanly, the
+checkout is read-only, and nothing from it is committed here. The field policy in
+particular is **supplied at runtime** with the population version it describes; it
+is never vendored.
+
 ## Do not duplicate raw assets into this repository
 
 This repository is the clean production rebuild. It must not absorb:
@@ -166,11 +182,11 @@ behind `678e298`, and differs from it only in two tool scripts.
 | Item | Owner |
 | --- | --- |
 | `REF-GAP-SOCIO-R-SMACOF` — needs R + `smacof` **and** the reference's withheld R wrapper; open as OI-15, no R parity claimed | parity-quality + A8 sociomapa-deterministic |
-| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential, an ADR 0008 egress route **and** the withheld `full_simulation.py`; open as OI-24 | parity-quality + A7 simulation-engine |
+| `REF-GAP-SIMULATION-WORLD-MODEL` — needs a provider credential, an ADR 0008 egress route **and** the withheld `full_simulation.py`; open as OI-27 | parity-quality + A7 simulation-engine |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` — needs a licence decision | data owner |
 
 Neither fixture gap is unknown behaviour: code paths, constants and seeds are
-recovered. The simulation gap needs a different environment and, like the Sociomapping gap, the archive: its recipe runs the reference's `build_world_model` and `inoculate_population` (OI-24). The Sociomapping
+recovered. The simulation gap needs a different environment and, like the Sociomapping gap, the archive: its recipe runs the reference's `build_world_model` and `inoculate_population` (OI-27). The Sociomapping
 gap turned out to need more than that: the R *recipe* runs the reference's own
 `fit_unfolding` wrapper, which is in the withheld archive
 (`.planning/open-items.md` OI-15).
