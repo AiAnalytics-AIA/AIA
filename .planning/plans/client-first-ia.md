@@ -150,6 +150,15 @@ be served at a path other than `/`.
    resolves it; once stage state is AIA-scoped, researchers with the right grants use `/app`.
    Nothing in the client shell may depend on the caller being an owner or admin.
 
+## Decisions taken on review (data owner, 2026-09-24)
+
+| # | Decision | Where it is enforced or recorded |
+|---|---|---|
+| D1 | A client-level `RESEARCHER` or `LEAD` may start a study (research or simulation); nobody else | `CLIENT_ROLE_PERMISSIONS` (`CREATE_STUDY`), `POST /api/v1/clients/{client_id}/studies`; ADR 0015 decision 6 |
+| D2 | Follow-up order: PR C (under the client) → OI-58 → OI-59 | `PROGRESS.md` *Next* |
+| D3 | This PR becomes the canonical develop interface once its checks are green; `/classic` stays the temporary 18.6.6 escape hatch and reference | ADR 0015; `deploy/develop/README.md` |
+| D4 | The files `next dev` regenerates (`apps/web/AGENTS.md`, `apps/web/CLAUDE.md`) are not committed unless their diff carries an intentional canonical instruction change | `AGENTS.md` § Next.js |
+
 ## Target route tree
 
 ```

@@ -240,8 +240,9 @@ it is not answered. "The local agent said so" is not an anchor.
 Ordered. Take the top item unless told otherwise, and **write the plan to
 `.planning/plans/<feature>.md` with its chunks before writing code**.
 
-**After the client-first IA (ADR 0015) is reviewed.** Its PR is the next thing
-to merge; nothing below starts on the interface until it has.
+**After the client-first IA (ADR 0015) merges.** Its PR is the next thing to
+merge; nothing below starts on the interface until it has. **Order confirmed by
+the data owner, 2026-09-24: PR C → OI-58 → OI-59.**
 
 - **PR C of the research flow**, under the client: *Kontrola & spuštění*,
   progress, results ([plan](plans/research-flow-rehome.md), chunks 7–9). The
@@ -381,6 +382,10 @@ left to build.
 
 | # | Decision | Blocks | Anchor |
 |---|---|---|---|
+| IA-1 | ~~Who may start a study~~ — **resolved 2026-09-24**: a client-level `RESEARCHER` or `LEAD` (`CREATE_STUDY`); nobody else | — | ADR 0015 decision 6 · `test_client_api.py` |
+| IA-2 | ~~Order after the client-first IA~~ — **resolved 2026-09-24**: PR C → OI-58 → OI-59 | — | *Next*, above |
+| IA-3 | ~~Does the client-first shell become the develop interface~~ — **resolved 2026-09-24**: yes, once its checks are green; `/classic` stays the temporary 18.6.6 escape hatch and reference | — | [plan](plans/client-first-ia.md) · ADR 0015 |
+| IA-4 | ~~Commit the files `next dev` regenerates~~ — **resolved 2026-09-24**: only when their diff carries an intentional canonical instruction change | — | `AGENTS.md` § Next.js |
 | D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
 | D3 | ~~How the reference reaches CI~~ — **split.** Golden fixtures: CI checks out `AiAnalytics-AIA/AIA-reference` at the pinned commit; **needs a human to add a read-only deploy key as the `AIA_REFERENCE_DEPLOY_KEY` secret, then set the variable `AIA_REQUIRE_REFERENCE_REPO=1`**. Legacy-code comparison (the 94 tests): needs the withheld archive, which stays out of CI until its licence decision and an EU-resident home | Golden gates running in CI; the legacy parity tier | `ARCHITECTURE.md §8`, OI-1 |

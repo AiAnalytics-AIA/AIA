@@ -673,6 +673,20 @@ existed. Two habits fix it:
 
 ## Next.js / TypeScript
 
+**`next dev` writes `apps/web/AGENTS.md` and `apps/web/CLAUDE.md`.** Next.js 16.3
+generates both on every dev start (`node_modules/next/dist/server/lib/generate-agent-files.js`):
+a boilerplate "this is NOT the Next.js you know" block and an `@AGENTS.md` include. They are
+**not committed** unless their diff carries an intentional canonical instruction change (data
+owner, 2026-09-24); the project's instructions live in the root `CLAUDE.md` and this file.
+Keep them out of `git add` by path, or list them in your checkout's `.git/info/exclude`:
+
+```bash
+# WRONG — sweeps the regenerated files into a commit
+git add -A
+# RIGHT — stage named paths; the generated pair stays untracked
+git add apps/web/src/... docs/...
+```
+
 `npm run lint`, `npx tsc --noEmit` and `npm run build` are three different
 gates and all three are blocking.
 

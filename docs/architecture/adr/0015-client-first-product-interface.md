@@ -86,7 +86,10 @@ that client.
    `ClientContext`: an active member, a client of their organization that is not archived, and
    either a client-level grant (its role and permissions) or at least one study grant within the
    client (study-only access: those studies, and no client knowledge). Anything else raises
-   `ScopeDenied` and the API answers 404, as for studies.
+   `ScopeDenied` and the API answers 404, as for studies. **Starting a study** -- a research or a
+   simulation -- under a client needs `CREATE_STUDY`, which a client-level `RESEARCHER` or `LEAD`
+   holds (`CLIENT_ROLE_PERMISSIONS`); a `VIEWER`, a `REVIEWER` or study-only access cannot, and
+   an organization role alone grants nothing (data owner, 2026-09-24).
 
 7. **Client Knowledge — amends ADR 0004 rule 1.** Some client-derived objects belong to the client,
    not to one study: its sources, documents, datasets, approved facts and findings, terminology
