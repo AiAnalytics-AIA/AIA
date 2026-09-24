@@ -39,7 +39,7 @@ fills with content so the rebuild can be seen, go first; the heaviest go last:
 |---|---|---|
 | 0 | ADR 0014, this plan, the screen ledger generated from the first capture | done: 28 ledger rows (24 routes, 4 DEMO collections), all `CLASSIC`; `interface-screens.test.ts` 3 passed |
 | 1 | Routing: Caddy `/app` gated like `/`; the workbench facade follows the Caddyfile; `AIA_INTERFACE_REHOME_ENABLED`; smoke check; CI config test | done: `@rehome` gate → web with the cookie dropped (CI's adapt assertion run locally against the real Caddyfile: pass); the facade picks every matcher that proxies to web:3000 (18 passed); `/app` 200 through the workbench; smoke: anonymous `/app` → `302 /login?next=%2Fapp` |
-| 2 | Foundation: the typed unit client (`src/unit/`, every call ledger-checked), the UI primitives on tokens, the catalogue | pending |
+| 2 | Foundation: the typed unit client (`src/unit/`, every call ledger-checked), the UI primitives on tokens, the catalogue | client done: `unit()` + `UNIT_ROUTES` (5 routes, all ledger rows), Projects parse and logic ported from 14 classic functions, **220 parity checks against the originals run under Node** (`projects.parity.test.ts`), 225 tests in `src/unit/`. Primitives and catalogue land with the shell (3) |
 | 3 | A1 Shell | pending |
 | 4 | A2 Projects | pending |
 | 5+ | A3–A8, one chunk per area, each: capture pair, tests, ledger row `REBUILT` | pending |

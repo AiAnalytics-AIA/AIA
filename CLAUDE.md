@@ -57,6 +57,8 @@ apps/
                             to the 18.6.6 interface), the live /studies pages, and /app: the
                             interface rebuilt in React, area by area (ADR 0014); no mock data.
     src/app/app/            The rebuilt interface, gated like `/`, AIA_INTERFACE_REHOME_ENABLED
+    src/unit/               The ONLY way it reaches the unit: routes named by ledger row, parsers,
+                            and each area's logic ported from the JS (parity-tested under Node)
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
