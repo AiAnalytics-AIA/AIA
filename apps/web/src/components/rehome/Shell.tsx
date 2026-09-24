@@ -12,6 +12,7 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { classicHref, type ClassicTarget } from "@/lib/interface-handoff";
 import { t } from "@/i18n/t";
+import { loadBoot } from "@/unit/boot";
 import { unit } from "@/unit/client";
 import { type RailStatus, parseBootstrap, parseClaudeCode } from "@/unit/shell";
 import { Icon, type IconName } from "./icons";
@@ -72,7 +73,7 @@ function RailLink({ item, path }: { item: Item; path: string }) {
 let railStatus: Promise<RailStatus> | null = null;
 function loadRailStatus(): Promise<RailStatus> {
   railStatus ??= Promise.all([
-    unit("bootstrap").then(parseBootstrap, () => ({ release: null, jointCore: null })),
+    loadBoot().then((b) => parseBootstrap(b.raw), () => ({ release: null, jointCore: null })),
     unit("claudeCodeStatus").then(parseClaudeCode, () => null),
   ]).then(([b, claudeCode]) => ({ ...b, claudeCode }));
   return railStatus;
