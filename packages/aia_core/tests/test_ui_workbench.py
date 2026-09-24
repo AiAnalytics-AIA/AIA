@@ -189,3 +189,42 @@ def test_a_websocket_upgrade_is_tunnelled_to_the_web_client() -> None:
     assert seen["head"].startswith("GET /_next/webpack-hmr?id=1 HTTP/1.1")
     assert "Upgrade: websocket" in seen["head"]
     assert echoed == b"gnip"
+
+
+def _standin() -> ModuleType:
+    path = REPO / "tools" / "ui_workbench" / "unit_standin.py"
+    spec = importlib.util.spec_from_file_location("ui_workbench_unit_standin", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_workbench_unit_can_reach_no_ai_provider(tmp_path: Path) -> None:
+    """A signed-in CLI or an API key on the machine must never be used by the workbench."""
+    standin = _standin()
+    (tmp_path / "BUILD_EDITION.json").write_text(
+        json.dumps({"version": "18.6.6", "claude_code_enabled": True}), encoding="utf-8"
+    )
+    cli = tmp_path / "bin-with-claude"
+    cli.mkdir()
+    (cli / "claude").write_text("#!/bin/sh\n")
+    other = tmp_path / "bin"
+    other.mkdir()
+    env = {
+        "PATH": f"{cli}:{other}",
+        "ANTHROPIC_API_KEY": "sk-test",
+        "OPENAI_API_KEY": "sk-test",
+        "CLAUDE_CODE_OAUTH_TOKEN": "t",
+        "HOME": "/root",
+    }
+    standin.no_ai(tmp_path, env)
+
+    edition = json.loads((tmp_path / "BUILD_EDITION.json").read_text(encoding="utf-8"))
+    assert edition["version"] == "18.6.6"  # the rest of the edition is kept
+    assert not edition["claude_code_enabled"]
+    assert not edition["claude_api_enabled"]
+    assert not edition["openai_api_enabled"]
+    # An empty list would mean "all three" to edition_config.allowed_providers.
+    assert edition["allowed_live_providers"] == ["workbench_no_ai"]
+    assert env == {"PATH": str(other), "HOME": "/root"}

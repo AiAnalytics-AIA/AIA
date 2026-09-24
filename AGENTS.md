@@ -802,3 +802,23 @@ import prototype_server as core
 on a frame without the column that is the int `0`, and `pd.to_numeric(0)` has no
 `.fillna`. A stand-in frame needs every column the unit reads that way
 (`tools/ui_workbench/unit_standin.py` lists them), invented values only.
+
+**It uses whatever AI the machine it runs on has.** `claude_code_setup.executable`
+finds any `claude` on `PATH`, and `claude_code_provider.health` then reports
+`SUBSCRIPTION_READY` for the signed-in account, so a local copy of the unit on a
+developer's machine or in an agent session will spend that account on the first
+AI step anyone clicks. An `ANTHROPIC_API_KEY` in the environment is the same, billed
+per token. A copy that is not meant to reach a model has to be told so, and in
+more than one place, because the unit's edition flags, its CLI lookup and its
+children's environment are read by different code:
+
+```python
+# WRONG: the unit's default edition allows all three providers
+runpy.run_path("ui_server.py", run_name="__main__")
+
+# RIGHT (tools/ui_workbench/unit_standin.py no_ai): edition flags off, with a
+# provider list that is not empty (empty means "all" to allowed_providers),
+# credentials and the CLI's directory out of the environment, the lookup stubbed
+no_ai(here, os.environ)
+claude_code_setup.executable = claude_code_provider.executable = lambda: None
+```

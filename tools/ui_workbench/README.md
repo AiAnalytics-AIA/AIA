@@ -39,6 +39,18 @@ value is invented. **Nothing it shows is data, and it is never used for parity**
 that need the real panel show their empty states. The DEMO library ships in
 `app/` and fills the project screens.
 
+## No AI, ever
+
+The workbench never reaches a model, even on a machine with a signed-in Claude
+Code CLI or an API key (an agent session has both). `unit_standin.py` switches
+every provider off three ways: the scratch copy's `BUILD_EDITION.json`, which
+every part of the unit reads; provider credentials and the CLI's directory
+removed from the unit's environment; and the unit's CLI lookup finding nothing.
+No job worker runs either, so an AI step started here stays queued until it is
+cancelled. `GET /api/providers/claude-code/status` answers
+`DISABLED_IN_EDITION`, and the rebuilt screens show their "not ready" notice.
+Screens that show an AI answer are seen from fixture projects.
+
 ## Fixture research projects
 
 The workbench never calls a model, so a research step that shows an AI answer
