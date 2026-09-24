@@ -34,6 +34,7 @@ export const UNIT_ROUTES = {
   supportBundle: "POST /api/support/bundle",
   researchAnalyze: "POST /api/research/analyze",
   projectAttachment: "POST /api/project/attachment",
+  settingsAiCheck: "POST /api/settings/ai_check",
 } as const satisfies Record<string, Entry>;
 
 export type UnitRouteKey = keyof typeof UNIT_ROUTES;

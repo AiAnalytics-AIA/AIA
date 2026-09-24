@@ -7,6 +7,7 @@
 
 import {
   type ButtonHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type InputHTMLAttributes,
+  type TextareaHTMLAttributes,
   useEffect, useRef, useState,
 } from "react";
 
@@ -113,6 +114,10 @@ export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${CONTROL} ${props.className ?? "w-full"}`} />;
+}
+
+export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} className={`${CONTROL} min-h-24 py-2 leading-6 ${props.className ?? "w-full"}`} />;
 }
 
 export type Ask =

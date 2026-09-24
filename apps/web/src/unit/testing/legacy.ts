@@ -18,6 +18,11 @@ export function effective(name: string): string {
   return execFileSync("python3", [join(REPO, "tools/ui_functions.py"), "effective", name], { encoding: "utf8" });
 }
 
+/** The source of `name`'s declaration: the binding a later reassignment wraps as `old`. */
+export function declaration(name: string): string {
+  return execFileSync("python3", [join(REPO, "tools/ui_functions.py"), "show", name], { encoding: "utf8" });
+}
+
 /** A statement of ui_app.html, from `start` to the first `end` after it, verbatim; the last occurrence with `last`. */
 export function statement(start: string, end: string, { last = false }: { last?: boolean } = {}): string {
   const i = last ? UI_APP.lastIndexOf(start) : UI_APP.indexOf(start);
@@ -32,9 +37,13 @@ export type Legacy = {
   run: <T>(expr: string, globals?: Record<string, unknown>) => T;
 };
 
-/** A context holding `prelude` (verbatim statements) and the named functions. */
-export function legacyContext(opts: { prelude?: string[]; functions: string[]; now?: number }): Legacy {
-  const ctx = vm.createContext({});
+/**
+ * A context holding `prelude` (verbatim statements) and the named functions.
+ * `host` lends it the platform functions a browser has and a bare context lacks
+ * (btoa), by reference; everything passed to `run` is copied.
+ */
+export function legacyContext(opts: { prelude?: string[]; functions: string[]; now?: number; host?: Record<string, unknown> }): Legacy {
+  const ctx = vm.createContext({ ...opts.host });
   if (opts.now !== undefined) {
     vm.runInContext(`const __RealDate=Date;Date=class extends __RealDate{static now(){return ${opts.now}}};`, ctx);
   }

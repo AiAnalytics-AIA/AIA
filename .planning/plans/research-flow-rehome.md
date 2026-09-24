@@ -106,7 +106,7 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 |---|---|---|---|
 | 0 | This plan; OI-47, OI-48 | A | done @ `3c5bd21`, `b3fd59f` |
 | 1 | Foundation: research routes (+ the ledger addendum for OI-48), the model and `defaultsMerge` / `briefFingerprint1780` ports, the project store with visible save state, the job runner and panel, the research rail and `/app/research/<id>/<step>`, the `open@step` hand-off, the workbench fixture project | A | done — see below |
-| 2 | brief: problem types, title, goal, attachments and links, further context, AI analysis | A | pending |
+| 2 | brief: problem types, title, goal, attachments and links, further context, AI analysis | A | done — see below |
 | 3 | plan: variants, understanding, objectives, hypotheses, comparable sets, questions for the user, text-selection comments | A | pending |
 | 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | pending |
 | 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | pending |
@@ -148,6 +148,40 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 100 tests across the seven files; seen in the workbench at
 `/app/research/<id>/questionnaire` (eyebrow *VÝZKUM · KROK 3 / 7*, *Uloženo*).
 
+### Chunk 2 — what landed
+
+- **Logic.** `src/unit/research/brief.ts`, ported from `setProblemType1785`,
+  `updateTop` / `updateBrief` (the analysis is dropped by every briefing edit and
+  by the goal and decision, not by the title), `addBriefLink1785`,
+  `removeBriefAttachment1785`, `briefAttachmentContext1785` (22 000 characters),
+  `fileToB64`, and `ensureAnalysis1776` with its wrapper @412858: the fingerprint
+  reuse, the empty-brief refusal, the payload, and the merge that keeps the
+  person's title, goal, decision, briefing and screen state
+  (`brief.parity.test.ts`, 46 checks, each against the original under Node;
+  four deliberate mutations of the port each caught).
+- **Provider readiness.** `src/unit/research/provider.ts`: `ensureClaudeReady1776`
+  (the edition switch, `GET /api/providers/claude-code/status`,
+  `POST /api/settings/ai_check`), `activeProvider1790`, the effective
+  `providerLabel1790` (`provider.test.ts`). `settingsAiCheck` added to the routes.
+- **Diagnostika.** `src/unit/support.ts`: `createSupportBundle` with the failed
+  job's id (`support.test.ts`).
+- **Screen.** `BriefStep.tsx` at `/app/research/<id>/brief` and
+  `/app/research/new` (`BriefStep.test.tsx`, 9 tests: the classic blocks, the
+  toggle and its default goal, links, a file upload as base64, the analysis job
+  to the plan, reuse without a job, the provider notice, the error card, the
+  empty-brief refusal).
+- **Frame fixes.** The project loads once per id, not once per router object
+  ("loads a project once, however often the screen re-renders"); a new project
+  says *Nový projekt · uloží se po první změně* instead of *Uloženo*.
+- **Workbench, found here.** The workbench unit reported Claude Code *READY*: it
+  found this session's signed-in CLI. An analysis job was created and cancelled
+  while still queued (the workbench runs no job worker; no model was called).
+  `unit_standin.py` now switches every provider off three ways
+  (`test_the_workbench_unit_can_reach_no_ai_provider`; AGENTS.md § The 18.6.6
+  unit).
+- **Capture pair.** `route-brief` at `/app/research/new`: 0 classic texts
+  missing at 1440 and 1024.
+
 ## Deliberate differences (added to as chunks land)
 
 | Step | Classic | Rebuilt | Why |
@@ -155,4 +189,9 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | all | no URL per project or step | `/app/research/<id>/<step>` | a step can be linked and reloaded |
 | all | save failure only in the console | visible save state with retry | never let a person believe unsaved work is saved |
 | all | job overlay text | phase, elapsed, heartbeat, waiting-on, cancel | design brief §4.3: no fake progress |
+| brief | provider not ready: jump to Nastavení and `alert()` | a notice where the person is, with *Zkusit znovu* and a link to Nastavení | the brief they were writing stays in view |
+| brief | the error card says only *AI analýza se nedokončila* | the same card, plus what failed, in the unit's words | a person can tell a timeout from a refusal |
+| brief | a file input and a separate *Přidat soubory* button | one *Přidat soubory* button that opens the picker and uploads | one step, not two; the classic 📎 / 🔗 are icons |
+| brief | *Přidávám přílohy* as a full-screen overlay | the same words inline in the attachments card | the rest of the brief stays usable |
+| brief | a job starts against whatever was last saved | a new or edited brief is saved before the analysis job starts | the job is addressed to the saved revision |
 | audience | range filter shown as `[object Object]` | `od–do` | defect |

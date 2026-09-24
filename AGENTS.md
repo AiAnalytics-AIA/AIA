@@ -769,6 +769,13 @@ log says *Ready*. CI never runs `next dev`, so it never sees this.
 **jsdom has no `<dialog>` modality.** `HTMLDialogElement.prototype.showModal` is
 missing; a component test stubs it to set `open` (`ProjectsScreen.test.tsx`).
 
+**jsdom's `Blob` has no `arrayBuffer()`.** Every current browser has it, so app
+code calls `file.arrayBuffer()` directly (`fileToBase64` in
+`src/unit/research/brief.ts`); a component test that uploads a `File` fails with
+an error the screen then shows, not a thrown one, which reads as a rendering
+bug. Polyfill it in the test through `FileReader`, never in app code
+(`BriefStep.test.tsx`).
+
 **Don't list the router in a load effect's dependencies.** A test's
 `vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))` returns a
 new object on every render, so an effect keyed on `router` re-runs on every

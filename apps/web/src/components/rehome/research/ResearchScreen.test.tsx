@@ -67,9 +67,9 @@ describe("ResearchScreen", () => {
     expect(await screen.findByText(/Tento krok zatím běží v klasickém rozhraní/)).toBeTruthy();
   });
 
-  it("starts a new project unsaved, with nowhere to hand off to yet", async () => {
+  it("says a project with no saved version has nowhere to hand off to yet", async () => {
     unitStub(() => ({}));
-    render(<ResearchScreen projectId={null} step="brief" />);
+    render(<ResearchScreen projectId={null} step="questionnaire" />);
     const note = await screen.findByText(/Projekt ještě nemá uloženou verzi/);
     expect(note).toBeTruthy();
   });

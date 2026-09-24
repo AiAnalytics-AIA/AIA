@@ -12,6 +12,7 @@ import { classicHref } from "@/lib/interface-handoff";
 import { t, tv } from "@/i18n/t";
 import { type BootInfo, loadBoot } from "@/unit/boot";
 import { CANCEL_CONFIRM, JobError, type JobUpdate, cancelJob, runJob as runUnitJob } from "@/unit/research/jobs";
+import { activeProvider } from "@/unit/research/provider";
 import { type StepKey, stepEyebrow } from "@/unit/research/steps";
 import { type ResearchState, ResearchStore, loadResearch, newResearch } from "@/unit/research/store";
 import { Shell } from "../Shell";
@@ -126,7 +127,7 @@ function Ready({ store, boot, step, title, sub }: { store: ResearchStore; boot: 
           ctx: {
             projectId: s.projectId,
             revision: s.revision,
-            provider: s.preferredProvider || String(s.project.run_policy?.provider || "") || boot.ai_provider || "claude_code_subscription",
+            provider: activeProvider(s.preferredProvider, s.project.run_policy?.provider, boot),
           },
           onUpdate: (u) => {
             setJob(u);
