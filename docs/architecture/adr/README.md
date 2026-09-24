@@ -22,6 +22,7 @@ revisit it.
 | [0012](0012-legacy-interface-as-product-facade.md) | Serve the 18.6.6 interface on the product hostname behind AIA sign-in (org owners/admins), and rebuild each feature behind it; supersedes ADR 0011's "never user-facing" | **Accepted — develop only** |
 | [0013](0013-interface-skin-at-the-facade.md) | Restyle the 18.6.6 interface with an AIA skin: the web client adds one token-generated stylesheet to the document at `/`, only when its SHA256 is the pinned one; the unit stays byte-identical and the oracle hostname unskinned | **Accepted — develop only** |
 | [0014](0014-rebuild-the-interface-in-react.md) | Rebuild the interface in React under `/app`, area by area, behind the same gate, over the unit's API through one ledger-checked client; the classic interface stays at `/` until the rebuild covers it, reached by a fragment hand-off that calls its own functions; D-L1 extends to rebuilt screens | **Proposed — develop only** |
+| [0015](0015-client-first-product-interface.md) | The React AIA client-first shell is the product on develop: `/` → `/app/clients`, Clients → workspace → study → stages; the classic interface is an explicit hand-off at `/classic` and the legacy hostname stays the oracle; `ClientContext` and Client Knowledge (proposals → approval → revision) | **Accepted — develop; supersedes the facade parts of 0012–0014** |
 
 ADR 0005 is deliberately two rows. The gateway contract and the library that might
 implement it are independent decisions, and collapsing them into one status blocked
