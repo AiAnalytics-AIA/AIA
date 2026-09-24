@@ -100,6 +100,7 @@ class StudyResponse(BaseModel):
     client_id: str
     slug: str
     name: str
+    kind: Literal["RESEARCH", "SIMULATION"] = "RESEARCH"
     status: str
     accepts_work: bool
     your_role: str | None = None
@@ -198,6 +199,7 @@ def _study_response(study: Any, *, role: str | None, include_costs: bool) -> Stu
         client_id=study.client_id,
         slug=study.slug,
         name=study.name,
+        kind=study.kind.value,
         status=study.status.value,
         accepts_work=study.status.accepts_work,
         your_role=role,

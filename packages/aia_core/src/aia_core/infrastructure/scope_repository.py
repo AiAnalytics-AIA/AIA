@@ -429,6 +429,18 @@ class ScopeRepository:
             raise ScopeDenied("not found", reason="unknown_client")
         return _client_to_domain(row)
 
+    def client_of_study(self, scope: StudyContext) -> Client:
+        """The client of the study in scope: from the context, never from an argument."""
+        row = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == scope.client_id,
+                ClientRow.organization_id == scope.organization_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        return _client_to_domain(row)
+
     def studies_in_client(
         self,
         scope: ClientContext,

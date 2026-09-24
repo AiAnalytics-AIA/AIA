@@ -411,6 +411,22 @@ class ArtifactRepository:
         row = self._row(artifact_id)
         return self._store.presigned_url(row.storage_key, expires_seconds=expires_seconds)
 
+    def recent(self, *, limit: int = 5) -> list[Artifact]:
+        """The study's most recent artifacts, newest first: metadata only, for an overview."""
+        self._scope.require(Permission.VIEW_RESULTS)
+        rows = self._session.scalars(
+            select(ProjectArtifactRow)
+            .join(ProjectRow, ProjectRow.project_id == ProjectArtifactRow.project_id)
+            .where(
+                ProjectRow.organization_id == self._scope.organization_id,
+                ProjectRow.client_id == self._scope.client_id,
+                ProjectRow.study_id == self._scope.study_id,
+            )
+            .order_by(ProjectArtifactRow.created_at.desc())
+            .limit(max(1, min(limit, 50)))
+        ).all()
+        return [_to_domain(r) for r in rows]
+
     def list_for_stage(self, *, project_id: str, revision: int, stage_type: str) -> list[Artifact]:
         """Return the artifacts a stage produced in one revision."""
         self._owned_project(project_id)
