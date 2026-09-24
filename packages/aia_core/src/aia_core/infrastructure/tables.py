@@ -484,6 +484,11 @@ class StudyRow(Base):
     client_id: Mapped[str] = mapped_column(String(64), nullable=False)
     slug: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # RESEARCH or SIMULATION (ADR 0015): the same object either way; only the
+    # workflow beneath the study differs.
+    kind: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="RESEARCH", server_default="RESEARCH"
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="DRAFT")
 
     # Budget lives here because a study is what gets quoted to a client.
@@ -516,6 +521,7 @@ class StudyRow(Base):
             "status in ('DRAFT','ACTIVE','IN_REVIEW','DELIVERED','ARCHIVED','CANCELLED')",
             name="study_status_known",
         ),
+        CheckConstraint("kind in ('RESEARCH','SIMULATION')", name="study_kind_known"),
         Index("ix_studies_client", "client_id", "status"),
         Index("ix_studies_org_modified", "organization_id", "modified_at"),
     )
@@ -596,6 +602,43 @@ class AccessAuditRow(Base):
     )
 
     __table_args__ = (Index("ix_access_audit_org", "organization_id", "event_id"),)
+
+
+class StudyWorkspaceRow(Base):
+    """The unit project holding a study's working content -- a migration bridge.
+
+    ADR 0015 decision 5, open item OI-58. The rebuilt research stages still keep
+    their working content in the 18.6.6 unit's single-tenant project store; this
+    row is the AIA-owned binding from a study to that unit project. It is read
+    and written only under an issued ``StudyContext`` (the study's client comes
+    from the study row), written once per study, and ``unit_project_id`` is
+    unique, so one unit project can never be reached through two studies. No
+    query looks a study up by ``unit_project_id``: a unit id is never a way in.
+    Dropped when stage state moves into AIA's own study-scoped storage.
+    """
+
+    __tablename__ = "study_workspaces"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    unit_project_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    # The stage the study was last opened on, for "continue where you left off".
+    last_stage: Mapped[str | None] = mapped_column(String(32))
+    bound_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    bound_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    modified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint("unit_project_id", name="study_workspace_unit_project_unique"),
+        Index("ix_study_workspaces_client", "client_id", "modified_at"),
+    )
 
 
 # --------------------------------------------------------------------------- #
