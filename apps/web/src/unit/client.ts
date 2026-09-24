@@ -5,7 +5,7 @@
 // reads (src/unit/projects.ts), so a unit that changes shape fails a parse, not
 // a render.
 
-import { UNIT_ROUTES, splitRoute, type UnitRouteKey } from "./routes";
+import { type UnitRouteKey, resolveRoute } from "./routes";
 
 export class UnitError extends Error {
   constructor(
@@ -21,14 +21,29 @@ export class UnitError extends Error {
 export const TIMEOUT_MESSAGE =
   "Operace překročila časový limit. Backend nevrátil výsledek; zkuste ji znovu nebo otevřete diagnostiku.";
 
-type Options = { body?: unknown; timeoutMs?: number; fetchImpl?: typeof fetch };
+type Options = {
+  body?: unknown;
+  /** The id an id route is addressed by (a job, a workflow). */
+  id?: string;
+  /** Query parameters, e.g. { id } for GET /api/job. */
+  query?: Record<string, string>;
+  timeoutMs?: number;
+  fetchImpl?: typeof fetch;
+  /** Aborts the call from outside, e.g. when the screen that asked goes away. */
+  signal?: AbortSignal;
+};
 
-export async function unit(key: UnitRouteKey, { body, timeoutMs = 120_000, fetchImpl = fetch }: Options = {}): Promise<unknown> {
-  const { verb, path } = splitRoute(UNIT_ROUTES[key]);
+export async function unit(
+  key: UnitRouteKey,
+  { body, id, query, timeoutMs = 120_000, fetchImpl = fetch, signal }: Options = {},
+): Promise<unknown> {
+  const { verb, path } = resolveRoute(key, id);
+  const url = query ? `${path}?${new URLSearchParams(query).toString()}` : path;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  signal?.addEventListener("abort", () => ctl.abort(), { once: true });
   try {
-    const res = await fetchImpl(path, {
+    const res = await fetchImpl(url, {
       method: verb,
       headers: verb === "POST" ? { "Content-Type": "application/json" } : undefined,
       body: verb === "POST" ? JSON.stringify(body ?? {}) : undefined,

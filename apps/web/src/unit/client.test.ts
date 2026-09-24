@@ -21,6 +21,13 @@ describe("unit()", () => {
     expect(init.headers).toEqual({ "Content-Type": "application/json" });
   });
 
+  it("addresses an id route and adds the query", async () => {
+    const f = answer(200, "{}");
+    await unit("jobCancel", { id: "J 1", body: {}, fetchImpl: f });
+    await unit("job", { query: { id: "J1" }, fetchImpl: f });
+    expect(f.mock.calls.map((c) => c[0])).toEqual(["/api/jobs/J%201/cancel", "/api/job?id=J1"]);
+  });
+
   it("raises the unit's own error message with the status", async () => {
     const f = answer(403, '{"error":"Cross-origin request blocked."}');
     const err = await unit("projects", { fetchImpl: f }).catch((e: unknown) => e);
