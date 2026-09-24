@@ -1503,3 +1503,67 @@ moves.
 
 **Status.** Fixed in the rebuilt interface; standing in the classic one.
 
+
+## OI-47 · Finding · The classic "Ověření & kontext" step never renders, and nothing links to it or to "Další krok"
+
+**Claim.** `renderVerify` awaits `loadVerifyTargets(false)`, which is defined
+nowhere in the document, so the step throws a `ReferenceError` before drawing;
+and no rail entry, button or `go('verify')` / `go('next')` call reaches either
+`verify` or `next`.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:447-448 @ 0932c5d` (the
+two `renderVerify` / helper declarations calling `loadVerifyTargets`); the final
+`RESEARCH_STEPS` splice lists seven steps without either (char offset 417490).
+`grep -c "function loadVerifyTargets\|loadVerifyTargets=" ui_app.html` → `0`.
+
+**Reproduction.** `make ui-workbench`, open `127.0.0.1:8780/`, and in the
+console: `LAST_RESULT={main:{summary:{mode:'live',run_id:'x'}}}; go('verify')`.
+The title becomes *8. Ověření & kontext*, the previous screen's content stays,
+and the page throws `ReferenceError: loadVerifyTargets is not defined`
+(verified 2026-09-24; without a result it shows *Nejdřív potřebujete výsledek*).
+`grep -c "go('verify')\|go('next')" ui_app.html` → `0`.
+
+**Consequence.** External verification and the "ideal group from results"
+step, both backed by working unit routes (`/api/results/verify`,
+`/api/discovery/strategy`), are unreachable in the product.
+
+**Smallest fix.** The unit is frozen. The rebuild (research-flow-rehome.md,
+chunks 10–11) links both from the results step and draws verify's intended
+screen against its routes — new behaviour for users, shown to the data owner
+before it merges.
+
+**Test that would have caught it.** A reachability check over the router: every
+route in `RESEARCH_ROUTE_SET_1776` is the target of some control. The rebuild's
+equivalent is the screen ledger plus a component test per step.
+
+**Status.** Open in the classic interface; to be fixed by the rebuild.
+
+## OI-48 · Finding · The route ledger misses four paths the unit serves as `path in {…}` sets
+
+**Claim.** `docs/migration/legacy-route-ledger.json` has no row for
+`POST /api/audience/navrh`, `/api/audience/propose`,
+`/api/results/contextual_calibration` or `/api/results/contextual_scenario`,
+all served by the unit and two of them called by the classic interface.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_server.py:2108` and `:2120 @ 0932c5d`
+(`if path in {"…","…"}:`); the ledger mirrors the reference's
+`api-ledger.json` byte for byte (`test_legacy_route_ledger.py`), whose parser
+recognised `path ==`, `startswith` and `endswith` arms but not set membership.
+
+**Reproduction.** `grep -n 'path in {' legacy/npc-panel-18.6.6/app/ui_server.py`
+→ 2 lines; `python3 -c "import json;print([r['route'] for r in json.load(open('docs/migration/legacy-route-ledger.json'))['routes'] if 'propose' in r['route'] or 'contextual' in r['route']])"` → `[]`.
+
+**Consequence.** The strangler's state omits two live capabilities (AI audience
+proposal, contextual scenario), and the rebuilt interface's client — which may
+call only ledger rows — could not reach them.
+
+**Smallest fix.** An `addenda` section in the ledger: each missed path with its
+`ui_server.py` line, verified against the unit by the ledger test, kept apart
+from the pinned 153 rows until the reference's parser is fixed upstream
+(`AiAnalytics-AIA/AIA-reference`, not reachable from this session).
+
+**Test that would have caught it.** `test_legacy_route_ledger.py`: every
+`path ==` / `path in {…}` literal in `ui_server.py`'s dispatch is a row or an
+addendum.
+
+**Status.** Fix in research-flow-rehome.md chunk 1.

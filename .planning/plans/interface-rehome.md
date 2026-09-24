@@ -27,7 +27,7 @@ fills with content so the rebuild can be seen, go first; the heaviest go last:
 | A1 | Shell: navigation, identity, build, the link to the classic interface | the sidebar, `home` | Every screen sits in it |
 | A2 | Projects — *Správa projektů* | `projects` | The working landing page; filters, views, 30 DEMO cards |
 | A3 | DEMO project | `demos`, `demo_project` and its tabs | Read-only, full content, no AI |
-| A4 | Research flow | `brief`, `plan`, `questionnaire`, `audience`, `persona`, `run`, `research_progress`, `results`, `verify`, `next` | The core path, step by step |
+| A4 | Research flow ([plan](research-flow-rehome.md), in progress) | `brief`, `plan`, `questionnaire`, `audience`, `persona`, `run`, `research_progress`, `results`, `verify`, `next` | The core path, step by step |
 | A5 | Simulation flow | `sim_context`, `sim_change`, `sim_people`, `sim_run`, `sim_results` | Second product path |
 | A6 | Project overview | `project_overview` | Joins A4/A5 |
 | A7 | Data Library, Settings, AI assistant | `data`, `settings`, `command` | Operator areas |
