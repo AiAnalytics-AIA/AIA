@@ -1753,3 +1753,33 @@ starts, with the provider's error; a caller's stated limit is not a limit.
 Worth deciding when the AI steps move behind the governed gateway.
 
 **Status.** Open; **question**, no decision needed for PR B.
+
+## OI-56 · Finding, fixed · A change made just before moving to another research step was lost
+
+**Claim.** Each research step was its own page with its own project store, and
+leaving a page disposed its store by cancelling the pending debounced save; the
+next step then loaded the project from the unit without that change.
+
+**Anchor.** `apps/web/src/unit/research/store.ts` `dispose()` and
+`apps/web/src/components/rehome/research/ResearchScreen.tsx` (one
+`ResearchStore` per page) `@ 8444bda`.
+
+**Reproduction.** In the workbench, open `/app/research/<planned>/plan` and
+click *Další · dotazník* (it sets `questionnaire_path` and moves on at once):
+`/api/projects/load` is requested again and no `/api/projects/save` is sent
+(Playwright, 2026-09-24: loads 2 → 4, saves `[]`). Tests:
+`store.test.ts` › *saves a change still waiting for its debounce when the person
+leaves the project*; `ResearchScreen.test.tsx` › *keeps one project session
+while each step's page mounts afresh, as Next mounts them*.
+
+**Consequence.** Any edit made less than 1.8 s before a step change (a rail
+link, a *Další* button) silently disappeared, and the save indicator had said
+*Změny se uloží za chvíli*.
+
+**Fix.** The `/app/research/<id>` layout holds one `ResearchSession` (store and
+page memory) for all the project's steps, since a layout is not re-rendered when
+only the step changes; a new project's store is handed to its new route instead
+of reloaded; `dispose()` saves a pending change instead of dropping it. After
+the fix: loads stay 2, saves `["questionnaire_path"]`.
+
+**Status.** Fixed in PR B (`feature/research-flow-b`).

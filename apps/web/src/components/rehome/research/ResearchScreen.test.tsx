@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetBootCache } from "@/unit/boot";
 import { REBUILT_STEPS, STEP_KEYS } from "@/unit/research/steps";
-import { ResearchScreen } from "./ResearchScreen";
+import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { STEP_SCREENS } from "./steps";
 
 const replace = vi.fn();
@@ -81,6 +81,21 @@ describe("ResearchScreen", () => {
     rerender(<ResearchScreen projectId="PRJ-1" step="audience" />);
     rerender(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
     await screen.findByText("Uloženo");
+    const loads = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => String(c[0]) === "/api/projects/load");
+    expect(loads.length).toBe(1);
+  });
+
+  it("keeps one project session while each step's page mounts afresh, as Next mounts them", async () => {
+    unitStub(() => ({ project_id: "PRJ-1", revision: 2, project_type: "research", project: {}, analysis: null }));
+    const page = (step: "run" | "results") => (
+      <ResearchSession projectId="PRJ-1">
+        <ResearchScreen key={step} projectId="PRJ-1" step={step} />
+      </ResearchSession>
+    );
+    const { rerender } = render(page("run"));
+    await screen.findByText("Uloženo");
+    rerender(page("results"));
+    expect(await screen.findByRole("heading", { name: "7. Výsledky" })).toBeTruthy();
     const loads = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => String(c[0]) === "/api/projects/load");
     expect(loads.length).toBe(1);
   });

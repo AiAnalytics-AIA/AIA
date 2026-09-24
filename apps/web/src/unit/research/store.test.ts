@@ -100,6 +100,26 @@ describe("ResearchStore", () => {
     expect(store.get()).toMatchObject({ revision: 2, save: { kind: "saved" } });
   });
 
+  it("saves a change still waiting for its debounce when the person leaves the project", async () => {
+    const { calls, fetchImpl } = unitStub({ "/api/projects/save": () => ({ project_id: "PRJ-1", revision: 3 }) });
+    const store = new ResearchStore({ ...newResearch(BOOT), projectId: "PRJ-1", revision: 2 }, BOOT, { fetchImpl });
+    store.update(({ project }) => ({ project: { ...project, ui_state: { ...project.ui_state, questionnaire_path: "choose" } } }), { reason: "questionnaire_path" });
+    store.dispose();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(calls.map((c) => [c.url, c.body.reason])).toEqual([["/api/projects/save", "questionnaire_path"]]);
+    // The debounce does not save it a second time.
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("leaves nothing to save when nothing changed", async () => {
+    const { calls, fetchImpl } = unitStub({});
+    const store = new ResearchStore({ ...newResearch(BOOT), projectId: "PRJ-1", revision: 2, save: { kind: "saved" } }, BOOT, { fetchImpl });
+    store.dispose();
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+    expect(calls).toHaveLength(0);
+  });
+
   it("counts the changes that invalidate the technical check, and not the others", () => {
     const store = new ResearchStore(newResearch(BOOT), BOOT, { fetchImpl: unitStub({}).fetchImpl });
     store.update(({ project }) => ({ project }), { invalidateCheck: false });
