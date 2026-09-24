@@ -53,6 +53,13 @@ export type ResearchProject = Obj & {
   ai_panel_profile?: Obj;
 };
 
+/**
+ * The provider the classic interface writes into every AI payload and forces
+ * into the run policy after an AI step, whatever the project prefers. The job
+ * wrapper then replaces it with the project's provider (src/unit/research/jobs.ts).
+ */
+export const PROVIDER_FORCED = "claude_code_subscription";
+
 /** The unit's template for a new project and its default provider (GET /api/bootstrap). */
 export type Boot = { empty_project: Obj; ai_provider?: string };
 
