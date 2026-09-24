@@ -94,6 +94,8 @@ export function jobMeta(j: JobRead, fallback: { model?: string; elapsed: number 
     elapsed: fmtTime(t.elapsed_seconds ?? fallback.elapsed),
     usual: t.usual_seconds ? usualRange(t.usual_seconds) : "",
     hardStop: t.hard_seconds ? fmtTime(t.hard_seconds) : "",
+    /** The server's own stop, in seconds (0 when it states none): the notice's threshold. */
+    hardSeconds: Number(t.hard_seconds || 0),
     providerStage: t.provider_stage || "",
     heartbeat: t.heartbeat_age_seconds == null ? "—" : fmtTime(t.heartbeat_age_seconds),
     provider,

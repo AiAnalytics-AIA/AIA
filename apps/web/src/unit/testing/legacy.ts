@@ -18,9 +18,9 @@ export function effective(name: string): string {
   return execFileSync("python3", [join(REPO, "tools/ui_functions.py"), "effective", name], { encoding: "utf8" });
 }
 
-/** A statement of ui_app.html, from `start` to the first `end` after it, verbatim. */
-export function statement(start: string, end: string): string {
-  const i = UI_APP.indexOf(start);
+/** A statement of ui_app.html, from `start` to the first `end` after it, verbatim; the last occurrence with `last`. */
+export function statement(start: string, end: string, { last = false }: { last?: boolean } = {}): string {
+  const i = last ? UI_APP.lastIndexOf(start) : UI_APP.indexOf(start);
   if (i < 0) throw new Error(`not in ui_app.html: ${start}`);
   const j = UI_APP.indexOf(end, i);
   if (j < 0) throw new Error(`no ${JSON.stringify(end)} after ${start}`);
