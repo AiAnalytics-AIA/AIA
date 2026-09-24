@@ -7,8 +7,7 @@
 
 import { useState } from "react";
 
-import { classicHref } from "@/lib/interface-handoff";
-import { t, tv } from "@/i18n/t";
+import { t } from "@/i18n/t";
 import {
   ANALYSIS_JOB_TITLE,
   ANALYSIS_REUSED,
@@ -22,10 +21,8 @@ import {
 } from "@/unit/research/brief";
 import { JobError } from "@/unit/research/jobs";
 import { activeProvider, notReadyMessage, providerReady } from "@/unit/research/provider";
-import { createSupportBundle } from "@/unit/support";
-import { Icon } from "../icons";
-import { Button, ClassicLink } from "../ui";
 import { useResearch } from "./context";
+import { AiFailureCard } from "./useAiStep";
 
 export type AnalysisFailure = { kind: "analysis"; message: string; jobId: string | null } | { kind: "provider"; message: string };
 
@@ -80,43 +77,14 @@ export function useAnalysis() {
   return { analyse, failure, clearFailure: () => setFailure(null), busy };
 }
 
-/** The classic error card, with what failed said in words, or the provider notice. */
+/** The classic analysis error card, with what failed said in words, or the provider notice. */
 export function AnalysisFailureCard({ failure, onRetry }: { failure: AnalysisFailure; onRetry: () => void }) {
-  const { toast } = useResearch();
-  if (failure.kind === "provider") {
-    return (
-      <section role="alert" className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-5">
-        <p className="flex items-center gap-2 text-sm font-semibold text-status-you-ink">
-          <Icon name="you" size={14} />
-          {failure.message}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button onClick={onRetry}>{t("research.retry")}</Button>
-          <ClassicLink href={classicHref({ go: "settings" })}>{t("research.openSettings")}</ClassicLink>
-        </div>
-      </section>
-    );
-  }
-  const diagnostics = () =>
-    createSupportBundle(failure.jobId).then(
-      (url) => {
-        toast(t("research.supportCreated"));
-        window.location.href = url;
-      },
-      (e: unknown) => toast(tv("research.supportFailed", { message: message(e) })),
-    );
   return (
-    <section role="alert" className="rounded-md border border-status-fault/40 bg-status-fault-wash p-5">
-      <h2 className="flex items-center gap-2 font-semibold text-status-fault">
-        <Icon name="fault" size={14} />
-        {t("research.brief.failedTitle")}
-      </h2>
-      <p className="mt-1 text-sm text-ink">{t("research.brief.failedSub")}</p>
-      {failure.message ? <p className="mt-1 text-xs text-ink-muted">{failure.message}</p> : null}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="primary" onClick={onRetry}>{t("research.retry")}</Button>
-        <Button onClick={() => void diagnostics()}>{t("research.diagnostics")}</Button>
-      </div>
-    </section>
+    <AiFailureCard
+      failure={failure.kind === "analysis" ? { kind: "job", message: failure.message, jobId: failure.jobId } : failure}
+      title={t("research.brief.failedTitle")}
+      sub={t("research.brief.failedSub")}
+      onRetry={onRetry}
+    />
   );
 }
