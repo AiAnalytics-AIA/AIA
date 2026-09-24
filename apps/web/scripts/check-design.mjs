@@ -51,6 +51,11 @@ const TEXT = [
   ["ink-muted", "signal-wash", 4.5, "secondary on selection"],
   ...["surface", "surface-raised", "surface-sunken", "signal-wash"].map((bg) => ["signal", bg, 4.5, "link / running label"]),
   ["on-signal", "signal", 4.5, "text on signal fill"],
+  ["on-signal", "signal-hover", 4.5, "text on primary action hover"],
+  ...["signal-wash-strong", "signal-tint"].map((bg) => ["ink", bg, 7, "text on a signal ground"]),
+  ...["signal-wash-strong", "signal-tint"].map((bg) => ["signal", bg, 4.5, "link / action label on a signal ground"]),
+  ["ink-muted", "signal-tint", 4.5, "secondary text on an informational panel"],
+  ["status-you-ink", "status-you-wash", 4.5, "waiting-on-person text on its own wash (the 18.6.6 skin's warnings)"],
   ...["surface", "surface-raised", "surface-sunken"].map((bg) => ["status-you-ink", bg, 4.5, "waiting-on-person text"]),
   ["on-status-you", "status-you", 7, "label on parked-on-you fill"],
   ...["surface", "surface-raised", "surface-sunken", "status-world-wash"].map((bg) => ["status-world", bg, 4.5, "waiting-on-world text"]),
@@ -63,7 +68,7 @@ const TEXT = [
 ];
 const NONTEXT = [
   ...["surface", "surface-raised", "surface-sunken"].map((bg) => ["border-strong", bg, 3, "control border"]),
-  ...[...surfaces, "signal-wash", "status-you-wash", "status-fault-wash"].map((bg) => ["focus-ring", bg, 3, "focus ring"]),
+  ...[...surfaces, "signal-wash", "signal-wash-strong", "signal-tint", "status-you-wash", "status-fault-wash"].map((bg) => ["focus-ring", bg, 3, "focus ring"]),
   ["status-you", "surface", 1, "parked fill (shape carries it)"],
   ["status-recovery-hatch", "status-recovery", 3, "recovery hatch"],
   ...[1, 2, 3, 4, 5, 6].flatMap((i) => ["surface", "surface-raised"].map((bg) => [`client-${i}`, bg, 3, "client band on surface"])),

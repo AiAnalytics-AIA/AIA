@@ -58,7 +58,10 @@ apps/
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
-    public/skin/            Self-hosted fonts (OFL) and identity, served at /skin/ (ADR 0013)
+    public/skin/            Self-hosted fonts (OFL), identity and skin.css, served at /skin/ (ADR 0013)
+    src/skin/               The 18.6.6 skin's sources: legacy-variables.json (each 18.6.6 variable ->
+                            a token, with why) and components.css (token-only rules, linted)
+    scripts/build-skin.mjs  -> public/skin/skin.css; refuses raw colour/radius/shadow/font values
     src/lib/interface-skin.ts  The skin decision: pinned SHA256 -> two tags, else byte-for-byte
     src/app/interface-document/  The gated `/` document: fetch the unit, apply the skin
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
@@ -269,7 +272,8 @@ ungated fixture.
 | Format | `make format` |
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
 | Web tests | `make test-web` (Vitest, pure functions) |
-| **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, `npm run tokens` |
+| **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, `npm run tokens`, `npm run skin` |
+| **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |

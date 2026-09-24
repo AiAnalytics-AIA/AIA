@@ -97,8 +97,8 @@ parity-status: ## Parity verdict per capability, from a fresh run of every suite
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
 
-web_design: ## Design tokens: generated files current, contrast / palette / accent evidence holds
-	@cd apps/web && npm run tokens:check && npm run check:design
+web_design: ## Design tokens and the 18.6.6 skin: generated files current, contrast / palette / accent evidence holds
+	@cd apps/web && npm run tokens:check && npm run skin:check && npm run check:design
 
 lint: ## Lint Python and the web client
 	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations

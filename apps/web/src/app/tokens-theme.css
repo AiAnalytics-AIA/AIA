@@ -14,6 +14,10 @@
   --color-ink-inverse: var(--ink-inverse);
   --color-signal: var(--signal);
   --color-signal-wash: var(--signal-wash);
+  --color-signal-hover: var(--signal-hover);
+  --color-signal-wash-strong: var(--signal-wash-strong);
+  --color-signal-tint: var(--signal-tint);
+  --color-signal-edge: var(--signal-edge);
   --color-on-signal: var(--on-signal);
   --color-focus-ring: var(--focus-ring);
   --color-status-running: var(--status-running);

@@ -16,6 +16,10 @@
   --ink-inverse: #f9f6f2;
   --signal: #006b9f;
   --signal-wash: #d7edfb;
+  --signal-hover: #005a86;
+  --signal-wash-strong: #cde8f8;
+  --signal-tint: #eef6fb;
+  --signal-edge: #9ccbe8;
   --on-signal: #fefcf9;
   --focus-ring: #006b9f;
   --status-running: #006b9f;
@@ -95,6 +99,10 @@
   --ink-inverse: #0f1215;
   --signal: #6ac5e8;
   --signal-wash: #123144;
+  --signal-hover: #8fd3ee;
+  --signal-wash-strong: #183d55;
+  --signal-tint: #152530;
+  --signal-edge: #2e5f7c;
   --on-signal: #090b0f;
   --focus-ring: #6ac5e8;
   --status-running: #6ac5e8;
@@ -176,6 +184,10 @@
     --ink-inverse: #0f1215;
     --signal: #6ac5e8;
     --signal-wash: #123144;
+    --signal-hover: #8fd3ee;
+    --signal-wash-strong: #183d55;
+    --signal-tint: #152530;
+    --signal-edge: #2e5f7c;
     --on-signal: #090b0f;
     --focus-ring: #6ac5e8;
     --status-running: #6ac5e8;

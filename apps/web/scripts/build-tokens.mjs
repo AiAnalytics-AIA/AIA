@@ -6,7 +6,7 @@
  * regenerates in memory and exits 1 if either committed file differs, so a
  * hand-edited output or a stale one fails CI.
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,28 +17,7 @@ const TS = join(root, "src/design/tokens.ts");
 const THEME = join(root, "src/app/tokens-theme.css");
 const FONTS = join(root, "src/app/fonts.css");
 
-/**
- * The self-hosted faces, served from public/skin/fonts/ at /skin/fonts/. One list:
- * AIA's own pages import the generated fonts.css, and the 18.6.6 interface skin
- * (ADR 0013) is built from the same entries. The family names must match the
- * first entry of each stack in tokens.type.families.
- */
-const FACES = [
-  { family: "IBM Plex Sans", file: "IBMPlexSans-Regular.woff2", weight: 400, style: "normal" },
-  { family: "IBM Plex Sans", file: "IBMPlexSans-Italic.woff2", weight: 400, style: "italic" },
-  { family: "IBM Plex Sans", file: "IBMPlexSans-Medium.woff2", weight: 500, style: "normal" },
-  { family: "IBM Plex Sans", file: "IBMPlexSans-SemiBold.woff2", weight: 600, style: "normal" },
-  { family: "IBM Plex Mono", file: "IBMPlexMono-Regular.woff2", weight: 400, style: "normal" },
-  { family: "IBM Plex Mono", file: "IBMPlexMono-Medium.woff2", weight: 500, style: "normal" },
-  { family: "Source Serif 4", file: "SourceSerif4-Regular.woff2", weight: 400, style: "normal" },
-  { family: "Source Serif 4", file: "SourceSerif4-Italic.woff2", weight: 400, style: "italic" },
-  { family: "Source Serif 4", file: "SourceSerif4-Semibold.woff2", weight: 600, style: "normal" },
-  { family: "Source Serif 4 Display", file: "SourceSerif4Display-Semibold.woff2", weight: 600, style: "normal" },
-];
-const FONT_URL_BASE = "/skin/fonts/";
-for (const f of FACES) {
-  if (!existsSync(join(root, "public/skin/fonts", f.file))) throw new Error(`FACES names ${f.file}, which is not in public/skin/fonts/`);
-}
+import { FACES, fontFaceCss } from "./faces.mjs";
 
 const tokens = JSON.parse(readFileSync(SRC, "utf8"));
 const themes = tokens.color.themes.map((t) => t.id);
@@ -113,7 +92,7 @@ const themeCss = [
 const fontsCss = [
   header,
   "/* Self-hosted faces (SIL OFL 1.1; licences beside the files in public/skin/fonts/). */",
-  ...FACES.map((f) => `@font-face { font-family: "${f.family}"; src: url("${FONT_URL_BASE}${f.file}") format("woff2"); font-weight: ${f.weight}; font-style: ${f.style}; font-display: swap; }`),
+  ...fontFaceCss(),
   "",
 ].join("\n");
 

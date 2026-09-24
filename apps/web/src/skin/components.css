@@ -1,0 +1,51 @@
+/*
+ * The skin's hand-written layer (ADR 0013). Rules here restyle 18.6.6's own
+ * selectors; every colour, radius, shadow and font is a design-system token
+ * (var(--aia-…)) or one of 18.6.6's variables that legacy-variables.json has
+ * already re-pointed. scripts/skin-lint.mjs refuses anything else.
+ *
+ * This file loads after every stylesheet in the document (the link sits before
+ * </body>), so a rule of equal specificity wins without !important. Where an
+ * inline style="" has to be beaten, !important is used and the override is
+ * listed in .planning/plans/interface-skin.md § Hard-coded overrides.
+ */
+
+/* ---- Base ---------------------------------------------------------------- */
+
+html {
+  background: var(--aia-surface);
+}
+
+body {
+  background: var(--aia-surface);
+  color: var(--aia-ink);
+  font-family: var(--aia-font-sans-stack);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--aia-font-mono-stack);
+}
+
+::selection {
+  background: var(--aia-selection);
+  color: var(--aia-ink);
+}
+
+/* One focus treatment everywhere: 2px ring on a 2px gap, >= 3:1 on every ground. */
+:focus-visible {
+  outline: 2px solid var(--aia-focus-ring);
+  outline-offset: 2px;
+}

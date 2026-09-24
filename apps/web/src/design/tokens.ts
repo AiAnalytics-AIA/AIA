@@ -54,6 +54,22 @@ export const colors = {
     "light": "#d7edfb",
     "dark": "#123144"
   },
+  "signal-hover": {
+    "light": "#005a86",
+    "dark": "#8fd3ee"
+  },
+  "signal-wash-strong": {
+    "light": "#cde8f8",
+    "dark": "#183d55"
+  },
+  "signal-tint": {
+    "light": "#eef6fb",
+    "dark": "#152530"
+  },
+  "signal-edge": {
+    "light": "#9ccbe8",
+    "dark": "#2e5f7c"
+  },
   "on-signal": {
     "light": "#fefcf9",
     "dark": "#090b0f"

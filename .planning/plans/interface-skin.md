@@ -107,12 +107,29 @@ area is re-homed.
       `/`; signed-in `/` 200 `X-AIA-Skin: applied`, 896 591 → 896 758 bytes;
       direct injector 404; fonts and favicon ungated; unit paths gated. The
       CI check fails on the swapped order and on the bare-`handle` form.
-- [ ] 3. **The variable layer.** `skin.css` generated from `tokens.json`:
-      18.6.6's variables (`--bg`, `--card`, `--soft`, `--rail`, `--line`,
-      `--line-strong`, `--ink`, `--mut`, `--faint`, `--brand*`, `--ok*`,
-      `--warn*`, `--bad*`, `--shadow`, `--r`, `--font-sans`, `--font-mono`)
-      mapped onto design-system tokens, for light and dark. — verify: the
-      contrast check covers every pair the mapping creates; drift check.
+- [x] 3. **The variable layer.** `scripts/build-skin.mjs` → `public/skin/skin.css`:
+      the self-hosted faces (`scripts/faces.mjs`, shared with AIA's pages), the
+      tokens as `--aia-*` (18.6.6 already defines `--ink` and a `--space-*` scale
+      with other values), then `src/skin/legacy-variables.json`: 29 of 18.6.6's
+      variables re-pointed at tokens, each with its reason, and 13 deliberately
+      left (`--claude`, layout widths, spacing, component-local variables).
+      `src/skin/components.css` is the hand-written layer, linted by
+      `scripts/skin-lint.mjs` for raw colour, radius, shadow and font values.
+      Decisions taken here, recorded in the mapping: **light only**, as 18.6.6
+      is (its last variable block forces light under a dark preference, and 328
+      hard-coded colours would leave a dark theme half dark); **`--ok` is quiet
+      ink** — the design system has no green; **`--warn` is the "waiting on a
+      person" family**, amber ink and wash only, because each 18.6.6 WARNING names
+      a fix step a person must take — the solid amber stays reserved (OI-11).
+      Four tokens added to `tokens.json`: `signal-hover`, `signal-wash-strong`,
+      `signal-tint`, `signal-edge`, with their contrast pairs; the check caught
+      `signal` on the first `signal-wash-strong` at 4.31:1 and the value moved to
+      `#cde8f8` (4.58:1). — measured: contrast 164 checks, 0 failures; 36 web
+      tests, including that every variable 18.6.6 defines or uses is mapped or
+      left with a reason; in Chromium against the real document (bootstrap held,
+      shell only): body and buttons in IBM Plex Sans (loaded 400/500/600, Mono
+      400/500), page on `surface`, soft actions on `signal-wash`. Still 18.6.6's:
+      the white workspace and 3 px radii, which are hard-coded (chunk 4).
 - [ ] 4. **Shared components.** Shell (header, product tabs, step rail, page
       title), buttons, cards and panels, forms, tables, badges and pills,
       dialogs and drawers, the assistant panel, focus rings, scrollbars. Hard
@@ -138,6 +155,11 @@ replaces, the token it uses, and why the variable layer could not reach it.
 ## Needs structure — waits for re-homing
 
 Design changes the skin cannot make, recorded as they are found, per area.
+
+- **Dark theme.** Not a structural change, but out of reach until every
+  hard-coded colour the interface uses is overridden or re-homed; 18.6.6 itself
+  forces light. Chunk 4 onwards reduces the count; dark is turned on when it is
+  zero for an area, not before.
 
 ## Review outcome
 
