@@ -228,6 +228,18 @@ describe("a research, re-homed under its client", () => {
     expect(await screen.findByRole("heading", { name: "Tady nic není" })).toBeTruthy();
     expect(called("POST", "/api/projects/load")).toEqual([]);
   });
+
+  it("finds nothing by a unit project id in the study's place", async () => {
+    path = "/app/clients/CLI-a/research/PRJ-bound/brief";
+    api({
+      "GET /api/v1/studies/PRJ-bound/workspace": () =>
+        new Response('{"code":"validation_error","message":"The request body or parameters are invalid."}', { status: 422 }),
+    });
+    render(inClient("CLI-a", <ResearchStudy studyId="PRJ-bound"><ResearchStage slug="brief" /></ResearchStudy>));
+    expect(await screen.findByRole("heading", { name: "Tady nic není" })).toBeTruthy();
+    expect(screen.queryByText(/parameters are invalid/)).toBeNull();
+    expect(called("POST", "/api/projects/load")).toEqual([]);
+  });
 });
 
 describe("Nastavení", () => {

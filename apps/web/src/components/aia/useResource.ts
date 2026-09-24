@@ -3,6 +3,8 @@
 // One read from the AIA API for a page: loading, the data, a failure said in
 // words, and a way to read it again. A 404 is its own state -- scope denial is
 // always 404 (ADR 0004), and the page says "nothing here" rather than an error.
+// So is a 422: a page reads by the ids in its own URL, and an id the API refuses
+// as malformed (a unit project id where a study id belongs, OI-58) names nothing.
 // A missing session sends the person to sign in and back.
 
 import { useRouter } from "next/navigation";
@@ -37,7 +39,7 @@ export function useResource<T>(load: () => Promise<T>, deps: readonly unknown[])
         if (e instanceof Unauthenticated) {
           return routerRef.current.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         }
-        if (e instanceof ApiError && e.status === 404) return setRes({ state: "not-found" });
+        if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return setRes({ state: "not-found" });
         setRes({ state: "failed", message: e instanceof Error ? e.message : String(e) });
       },
     );
