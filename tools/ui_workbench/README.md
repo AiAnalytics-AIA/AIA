@@ -1,33 +1,49 @@
 # UI workbench
 
-The real 18.6.6 interface and AIA's web client on one machine, for UI work: the
-classic screens with the AIA skin (ADR 0013), the React screens that replace
-them (ADR 0014), and a capture of every screen. Plan:
+AIA's client-first interface (ADR 0015) and the classic 18.6.6 one on one
+machine, for UI work: the client workspaces and the re-homed research stages,
+the classic screens with the AIA skin (ADR 0013) behind `/classic`, and a
+capture of every screen. Plan:
 [`.planning/plans/ui-workbench.md`](../../.planning/plans/ui-workbench.md).
 
 ```bash
 make ui-workbench          # start, or confirm running
 make ui-capture            # screenshot every screen -> tmp/ui-workbench/shots/<time>/index.html
-make ui-fixtures           # the fictional research projects; prints their /app links
+make ui-fixtures           # the fictional research projects, bound to AIA studies; prints their links
 make ui-workbench-status
 make ui-workbench-down
-python3 tools/ui_workbench/workbench.py up --fresh   # also reset the unit's state
+python3 tools/ui_workbench/workbench.py up --fresh   # also reset the unit's and the API's state
 ```
 
 | URL | What |
 |---|---|
-| <http://127.0.0.1:8780/> | The classic interface as develop serves it after sign-in: skinned |
-| <http://127.0.0.1:8780/app> | The rebuilt interface (React, `next dev`: saves show at once) |
+| <http://127.0.0.1:8780/workbench/sign-in> | Sign in as the seeded operator; opens the client directory |
+| <http://127.0.0.1:8780/> | 302 to `/app/clients`, as on develop |
+| <http://127.0.0.1:8780/app/clients> | AIA (React, `next dev`: saves show at once) |
+| <http://127.0.0.1:8780/classic> | The classic interface as develop hands off to it: skinned, with the bar back to AIA |
 | <http://127.0.0.1:8767/> | The same unit, bare, byte for byte |
+
+Routing is read from the committed Caddyfile (`facade.py`): the web client's
+matchers, the unit's `@unit` paths, `/api/v1/*` to the API, and every other
+path to the web client -- never to the unit, as on develop.
 
 ## What runs
 
 | Process | What | Log |
 |---|---|---|
 | `unit` | the vendored `ui_server.py` on a scratch copy of `app/` (`tmp/ui-workbench/unit/`), `unit_standin.py` | `tmp/ui-workbench/logs/unit.log` |
+| `api` | the real `aia_api` on a scratch SQLite file (`tmp/ui-workbench/aia.sqlite`), the `local` environment's development identity, the develop seed for `workbench@example.invalid` (`api_standin.py`); no model is configured and no worker runs | `…/api.log` |
 | `web` | `next dev` for `apps/web`, skin and re-home switched on | `…/web.log` |
 | `skin` | `build-skin.mjs --watch`: `skin.css` rebuilt on every save of `src/skin/*` or `tokens.json` | `…/skin.log` |
 | `facade` | one origin, routed like the develop Caddyfile minus the gate (`facade.py`) | `…/facade.log` |
+
+The API needs the repository's Python environment (`make setup`): `make
+ui-workbench` passes it as `AIA_API_PYTHON`. The sign-in page puts the
+operator's e-mail into the tab's session as the bearer credential; the
+development identity provider trusts that only in the `local` environment and
+refuses to exist anywhere else. The seed gives the operator the synthetic
+client and the two fictional clients (Horizont Mobility, Lumen pojišťovna), each
+with studies, knowledge and one pending proposal.
 
 ## The fictional panel
 
@@ -57,8 +73,12 @@ The workbench never calls a model, so a research step that shows an AI answer
 (the plan's understanding, a built questionnaire, a proposed audience) is seen
 from a project that already holds one. `make ui-fixtures`
 (`fixture_project.py`) writes them through the unit's own
-`POST /api/projects/save`, with the classic save's body; their ids are kept in
-`tmp/ui-workbench/fixtures.json`, so a second run updates the same projects.
+`POST /api/projects/save`, with the classic save's body, then binds each to a
+new research study of Horizont Mobility through the API
+(`POST /api/v1/clients/<client>/studies`, `PUT /api/v1/studies/<study>/workspace`,
+OI-58). Unit ids are kept in `tmp/ui-workbench/fixtures.json` and bindings in
+`tmp/ui-workbench/studies.json`, so a second run updates the same projects and
+studies.
 Every word is written in the script and fictional. The projects grow as the
 research chunks land ([research-flow-rehome.md](../../.planning/plans/research-flow-rehome.md)):
 
@@ -72,8 +92,10 @@ research chunks land ([research-flow-rehome.md](../../.planning/plans/research-f
 
 A ledger screen in `docs/migration/interface-screens.json` that names a
 `fixture` is captured a second time on that project: the classic step opened
-on it, beside the rebuilt one at its `react_path` with the project's id for
-`<id>` (`<screen>@<fixture>` in the contact sheet).
+on it (`/classic#aia:open=<unit>@<route>`), beside the rebuilt one at its
+`react_path` with the bound study for `<id>` and its client for `<client>`
+(`<screen>@<fixture>` in the contact sheet). Every AIA screen of the ledger's
+`aia_screens` is captured too, under the same client.
 
 ## Requirements
 

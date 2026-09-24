@@ -15,8 +15,16 @@ research chunks land; each stage says which screen it exists for.
     python tools/ui_workbench/fixture_project.py          # write or refresh them
     python tools/ui_workbench/fixture_project.py --list   # print their /app links
 
-The ids are kept in ``tmp/ui-workbench/fixtures.json`` so a second run updates
-the same projects instead of adding more. Stdlib only.
+Each project is then bound to an AIA study of the seeded fictional client
+Horizont Mobility, through the workbench's AIA API as the seeded operator:
+``POST /api/v1/clients/<client>/studies``, then ``PUT
+/api/v1/studies/<study>/workspace`` (ADR 0015, OI-58) -- so a research stage is
+opened at ``/app/clients/<client>/research/<study>/<stage>``, as on develop, and
+the browser never names a unit project to find a study.
+
+The unit ids are kept in ``tmp/ui-workbench/fixtures.json`` and the bindings in
+``tmp/ui-workbench/studies.json`` so a second run updates the same projects and
+studies instead of adding more. Stdlib only.
 """
 
 from __future__ import annotations
@@ -32,6 +40,10 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / "tmp" / "ui-workbench" / "fixtures.json"
+STUDIES = ROOT / "tmp" / "ui-workbench" / "studies.json"
+# The workbench's operator: the local API's development credential (api_standin.py).
+OPERATOR = "workbench@example.invalid"
+CLIENT = "Horizont Mobility"
 UNIT = "http://127.0.0.1:8767"
 FACADE = "http://127.0.0.1:8780"
 
@@ -268,6 +280,47 @@ def _post(path: str, body: dict[str, Any]) -> dict[str, Any]:
         return out
 
 
+def _api(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
+    req = urllib.request.Request(
+        FACADE + "/api/v1" + path,
+        data=json.dumps(body, ensure_ascii=False).encode() if body is not None else None,
+        headers={"content-type": "application/json", "authorization": f"Bearer {OPERATOR}"},
+        method=method,
+    )
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.load(r)
+
+
+def bind(ids: dict[str, str]) -> dict[str, dict[str, str]]:
+    """Each fixture's AIA study under the workbench client, bound to its unit project."""
+    clients = [c for c in _api("GET", "/workspace/clients") if c["name"].startswith(CLIENT)]
+    if not clients:
+        raise SystemExit(f"The workbench's API has no client named {CLIENT!r}; is it seeded?")
+    client = clients[0]["client_id"]
+    known: dict[str, dict[str, str]] = json.loads(STUDIES.read_text()) if STUDIES.exists() else {}
+    out: dict[str, dict[str, str]] = {}
+    for key, unit in ids.items():
+        study = (known.get(key) or {}).get("study")
+        if study:
+            try:
+                bound = _api("GET", f"/studies/{study}/workspace").get("unit_project_id")
+            except urllib.error.HTTPError:
+                bound = None
+            if bound != unit:
+                study = None  # a fresh API, or a fresh unit: a new study for the project
+        if not study:
+            made = _api(
+                "POST",
+                f"/clients/{client}/studies",
+                {"name": f"Workbench · {key}", "kind": "RESEARCH"},
+            )
+            study = made["study_id"]
+            _api("PUT", f"/studies/{study}/workspace", {"unit_project_id": unit})
+        out[key] = {"client": client, "study": study, "unit": unit}
+    STUDIES.write_text(json.dumps(out, indent=2) + "\n")
+    return out
+
+
 def _boot() -> tuple[dict[str, Any], str]:
     """BOOT.empty_project and BOOT.panel.version, as the classic save reads them."""
     with urllib.request.urlopen(UNIT + "/api/bootstrap", timeout=30) as r:
@@ -323,16 +376,18 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--list", action="store_true", help="print the fixtures' links, write nothing")
     a = ap.parse_args(argv)
     if a.list:
-        ids = json.loads(STATE.read_text()) if STATE.exists() else {}
+        studies = json.loads(STUDIES.read_text()) if STUDIES.exists() else {}
     else:
         try:
-            ids = write()
+            studies = bind(write())
         except urllib.error.URLError as e:
-            print(f"The workbench's unit is not reachable at {UNIT} ({e.reason}).")
+            print(f"The workbench is not reachable at {UNIT} / {FACADE} ({e.reason}).")
             print("Start it with `make ui-workbench`.")
             return 1
-    for key, pid in ids.items():
-        print(f"{key:8} {pid}  {FACADE}/app/research/{pid}/brief")
+    print(f"Sign in first: {FACADE}/workbench/sign-in")
+    for key, s in studies.items():
+        where = f"/app/clients/{s['client']}/research/{s['study']}/brief"
+        print(f"{key:13} {s['unit']}  {FACADE}{where}")
     return 0
 
 
