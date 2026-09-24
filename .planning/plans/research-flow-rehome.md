@@ -108,8 +108,8 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | 1 | Foundation: research routes (+ the ledger addendum for OI-48), the model and `defaultsMerge` / `briefFingerprint1780` ports, the project store with visible save state, the job runner and panel, the research rail and `/app/research/<id>/<step>`, the `open@step` hand-off, the workbench fixture project | A | done — see below |
 | 2 | brief: problem types, title, goal, attachments and links, further context, AI analysis | A | done — see below |
 | 3 | plan: variants, understanding, objectives, hypotheses, comparable sets, questions for the user, text-selection comments | A | done — see below |
-| 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | pending |
-| 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | pending |
+| 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | done — see below |
+| 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | done — see below |
 | 6 | persona: fixed base, catalog, AI suggestions, custom dimension request, sample size, society factors | B | pending |
 | 7 | run: technical check and issues, final AI review, overrides, AI repair, start | C | pending |
 | 8 | progress: workflow status, active job, failure and resume, reconnect | C | pending |
@@ -213,6 +213,235 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 - **Found here.** The `open@step` hand-off landed on the overview: the classic
   overview draws itself asynchronously over the step (fixed @ `7d74069`).
 
+### PR B survey — Dotazník, Audience, Dimenze (before any code)
+
+Read from `ui_app.html` @ `8444bda` (unchanged since 18.6.6: same SHA256),
+following each renderer's **effective** chain. `tools/ui_functions.py effective`
+picks the later of a name's last declaration and last assignment; a declaration
+is hoisted to the start of its `<script>` block, so that is exact only if no
+assignment follows a declaration inside the same block. None of the 13 blocks
+does (pinned by `test_legacy_ui_functions.py::test_no_declaration_is_overridden_within_its_script_block`).
+Line numbers are `ui_app.html:<line>`; `N.` marks what a step writes to the
+project (`save(reason, invalidateCheck)`).
+
+#### Dotazník (`renderQuestionnaire`)
+
+**Chain.** Declaration `:341` → wizard wrapper `:960` (*Další · cílová
+skupina*, disabled unless `questionnaireHasQuestions1789` `:955`, hint *Nejdřív
+vytvořte nebo nahrajte dotazník.*). Two bindings only.
+
+**Screens.** `ui_state.questionnaire_path`: `choose` (three paths; the AI tile
+shows `aiProviderLabel() · PROJECT.model`) → `upload` (template, methodology
+link, file, then the editor below if sections exist) · `manual` (editor) · `ai`
+(an AI card while there are no sections, else the editor). Every non-choose
+view has *← změnit způsob vytvoření*.
+
+**Editor** (`questionnaireEditorHtml`): a respondent preview (first 14 items:
+questions with up to 8 options or the scale's end labels, batteries with up to
+8 object rows), the guided editor (`N otázek · M sledovaných sad`; quick add:
+one answer / scale 1–10 / open / tracked set), one card per section (question
+blocks: title, purpose, question cards; batteries: title, purpose, object
+family, the `{object}` question, 4–15 objects one per line, scale ends,
+familiarity check, price bands only for `output_type==='test_konceptu'`),
+*+ nový blok*, *+ sledovaná sada*, and *Finální optimalizace* with the research
+state (`pre_research.accepted`) and *Dotazník mám → Koho se ptát*.
+
+**State transformations (deterministic).** `addGuidedQuestion` (2 prompts for a
+choice question; creates *Hlavní otázky* if no question block), `addQuestion`,
+`removeQuestion` (no confirm), `changeQType` (defaults: `Ano/Ne`; scale `[1,10]`,
+`vůbec/zcela`), options / scale min–max (`+value`, the other bound `||`
+defaulted) / scale labels, `addQuestionSection`, `addTrackedSet` (2 prompts;
+4–15 or an alert), `removeSection` (confirm), `updateObjects` (lines, trimmed,
+15 max, a toast under 4), `setObjLabel`, `setPriceBands`, inline title /
+purpose / family / question / familiarity edits. Ids: `secId()` / `qId()`
+(time + random). All save `save()` or `save('guided_question')`.
+
+**Deterministic server calls.** `POST /api/questionnaire/upload`
+(`{filename,data_b64,project}`, 180 s): the unit parses the XLSX / CSV and
+returns the project with its sections; the client takes it whole
+(`defaultsMerge`), sets the path to `manual`, `save('questionnaire_import')`,
+toast *Načteno: N otázek · M sledovaných sad*. `GET /api/questionnaire/template`
+(a download). Verified in the workbench: the template uploads back as 3
+sections, 2 questions, 1 set.
+
+**AI jobs.** `buildQuestionnaire` (`/api/research/build_questionnaire`, *AI
+tvoří dotazník*, warn 50 s): first `ensureAnalysis1776()` (may run its own
+analysis job), then the provider check; the result's project replaces the
+project, provider forced to `claude_code_subscription`, path `manual`,
+`save('questionnaire_ai_1776')`. `optimizeQuestionnaireAI`
+(`/api/questionnaire/optimize`, *Hloubkový research + optimalizace dotazníku*):
+**no provider check**; project replaced, `pre_research` and the analysis taken
+if returned, `save('questionnaire_optimized')`. `runProjectDeepResearch`
+(`/api/research/deep`, only offered once research exists): **no provider
+check**; `pre_research` replaced, `save('deep_research')`, toast with the
+accepted / quarantined counts.
+
+**Transition.** `continueQuestionnaireToAudience` `:588`: clears the run
+check and the final review, `audience_entry ||= 'choose'`,
+`save('questionnaire_done', false)`, to audience. The editor's own button calls
+it with no condition; the wizard's is disabled without a regular question
+(OI-52).
+
+**Dead.** *AI: zlepšit blok* (`quickClaude` `:579`) needs `#chatInput`, which
+no code creates (OI-49).
+
+#### Audience (`renderAudience`)
+
+**Chain.** Declaration `:374` → 1785 `:899` (title *4. Audience / Cílová
+skupina*; a banner for `audience_entry==='analytics'`) → 1789 `:961` (*Další ·
+dimenze*, disabled unless `audienceReady1789`, hint *Nejdřív vyberte zdroj
+audience.*) → 1795 `:1173` (appends *Čitelný souhrn cílové skupiny* after the
+wizard button, on every audience screen).
+
+**Screens.** `ui_state.audience_entry`: `choose` (own / AI Analytics) → `own`
+(template, instructions, saved customer audiences, upload, check, *Audience mám
+→ Persony* disabled until a dataset) · `analytics` with `analytics_choice`: none
+(three branches) → `cz_coming` (a warning) · `special` (six presets,
+`SPECIAL_AUDIENCE_PRESETS` `:362`; *Vybráno*, check, continue) · `cz18` (whole
+ČR 18+ / narrow by factors / find the ideal group from results).
+
+**State transformations.** `setAudienceEntry` (own → `source_mode customer`,
+dataset cleared), `setAnalyticsChoice` (cz18 → `chooseAudience('population')`;
+special → dataset, subpanel and keys cleared, **filters kept**),
+`chooseAudience(population|filters|discover)`, `chooseSpecialPreset`
+(population kind → `usePopulationSubpanel`, whose filters come from the
+bootstrap's subpanel; special kind → `builtin_special:<key>`; coming-soon →
+name only; **neither of the last two clears `builtin_subpanel` or the filters**,
+OI-51), `selectAudienceDataset`, the factor editor's categorical multi-select
+(`setAudienceCategory1793`, then an automatic preview) and numeric range
+(`setAudienceRange1793` `:1053`: **an empty bound is stored as 0**, OI-50),
+`removeAudienceFactor1793`, the ideal-group texts. `audienceReady1789`: own →
+a dataset; analytics → `cz18`, or special with a dataset / subpanel / panel key.
+
+**Deterministic server calls.** `GET /api/audience/dimensions` (the factor
+catalogue, cached per page; default category `demography`, search by id, label
+and category), `POST /api/audience` (population preview, `{filtry,n}`),
+`POST /api/audiences/preflight` (a dataset), `GET /api/audiences`,
+`POST /api/audiences/upload`, `GET /api/audiences/template`. The preview is
+page memory (`AUDIENCE_PREVIEW`), never saved, cleared by most changes.
+
+**AI job.** `proposeAudience` (`/api/audience/propose`, *AI převádí cílovku na
+dostupné filtry*, warn 40 s; `maxMs: 240000` is passed and ignored, OI-55):
+provider check first; filters replaced by the model's, strategy `filters`,
+description = the text, the preview = its feasibility,
+`save('audience_ai_1776', false)`, a toast when part of the text is not
+covered.
+
+**Transition.** `go('persona')` from the wizard or the in-card buttons; no
+state change.
+
+#### Dimenze (`renderPersona`)
+
+**Chain.** The declaration `:410`, the reassignment `:683` and its 1785 wrapper
+`:904` are all replaced by the full reassignment `:979`, then wrapped by 1793
+`:1071` (society-factor catalogue card; the model's proposed new dimensions,
+page memory only).
+
+**State transformations.** `personaApproved` `:407` **writes the recommended
+set into an empty approval during render** (OI-54); add / remove a catalogue
+dimension (`dimension_catalog_add` / `_remove`), `autofillPersonaDims`,
+`suggestedPersonaDims` (research-plan topics, question topics, study-type rules,
+else four defaults; `canonicalPersonaDim`; 8 at most), the sample size
+(`recommendedSample1789`: 300, 400 for > 30 questions or a > 1 200-character
+goal, ≥ 500 for the ideal-group strategy; the input clamps 50–5 000, empty →
+the recommendation), `useRecommendedSample1789`. The catalogue is
+`PERSONA_DIM_LABELS` `:404` plus the Data Library's active dimensions, sorted
+by Czech label; the search only hides rows.
+
+**Server calls.** `POST /api/library/dimension/request` (a custom or AI-proposed
+dimension, then four Data Library reads to refresh), `GET /api/audience/dimensions`.
+
+**AI job.** `suggestPersonaAI` `:1070` (`/api/persona/suggest`, warn 45 s,
+`maxMs` 300 s ignored): provider check; **the approval becomes the model's
+list, canonicalised, not checked against the catalogue** (OI-53; an earlier,
+dead binding `:402` filtered and warned).
+
+**Transition.** *Další · kontrola*: `persona_mode='calibrated'`,
+`save('persona_done_1789')`, to the run step (not rebuilt in PR B: it hands off).
+
+#### What PR B keeps from the classic behaviour, and what needs a decision
+
+Ported as the classic does, each with a characterization test: OI-50, OI-51,
+OI-52, OI-53, OI-54, OI-55. OI-57 (found in chunk 6) is characterised and not
+reproduced: the rebuild asks for the catalogue once. None is silently fixed; each is a decision for the
+data owner, listed in the PR. Display-only differences are in the table below.
+
+### Chunk 4 — what landed
+
+- **Logic.** `src/unit/research/questionnaire.ts`: the counts and the four
+  views, the respondent preview, every editor action with its prompts and save
+  reasons, the import, and what the three AI steps send and keep
+  (`questionnaire.parity.test.ts`, 62 checks against the original under Node,
+  with time and randomness fixed so the generated ids agree; the editor's
+  inline `oninput` / `onchange` handlers are extracted from the classic
+  templates and run against a stand-in element; six deliberate mutations each
+  caught).
+- **Shared AI step.** `useAiStep.tsx`: the provider check (where the classic
+  step makes one), the save a job is addressed to, and one failure card; the
+  brief's analysis card is now drawn by it.
+- **Screen.** `QuestionnaireStep.tsx` (`QuestionnaireStep.test.tsx`, 10 tests:
+  the three paths, the editor with no dead button, question edits, the guided
+  prompt and the 4–15 refusal, the small-set note and the confirmed delete, the
+  import, the AI build reusing the brief's analysis, the provider notice,
+  optimisation with no provider check (OI-55), the way on).
+- **Workbench.** A `questionnaire` fixture; the capture's comparison treats the
+  preview's radio circle "○" as a drawn element, as it already did arrows.
+- **Capture.** `route-questionnaire@questionnaire`: 1 classic text missing at
+  1440 and 1024, *AI: zlepšit blok* (OI-49).
+- **Found here.** `develop` had moved the web client to Next.js 16.3.6
+  (`36bcfa4`); this checkout's modules were 16.1.6, which `make verify` does
+  not notice (it runs no ESLint). Reinstalled with `npm ci`. Next 16.3's
+  `next dev` writes `apps/web/AGENTS.md` and `apps/web/CLAUDE.md`; not
+  committed here, a decision for the PR.
+
+### Chunk 5 — what landed
+
+- **Found first: a lost change (OI-56, fixed).** Every step was its own page and
+  store, and leaving one dropped a pending save; the project now has one session
+  for all its steps (the `[projectId]` layout), handed over from
+  `/app/research/new` once it has an id, and `dispose()` saves a pending change.
+  The session also holds the page memory the classic keeps in globals.
+- **Logic.** `src/unit/research/audience.ts` (`audience.parity.test.ts`, 72
+  checks: the six screens and the readiness rule, every chooser and preset, the
+  factor list, current values and handlers, chips, summary, preview and
+  preflight, saved audiences, upload, proposal; seven mutations caught, two of
+  them "fixes" of OI-50 / OI-51 that the characterization tests reject).
+- **Screen.** `AudienceStep.tsx` (`AudienceStep.test.tsx`, 8 tests: the two
+  sources, own audiences and an upload, AI Analytics with a special preset and
+  ČR 18+, a factor with its preview and chip, the empty bound stored as 0
+  (OI-50), the AI proposal, the preview kept across steps).
+- **Capture.** `route-audience@audience`: 1 classic text missing at 1440 and
+  1024, `[object Object]` (the summary's range, drawn `25–54`).
+
+### Chunk 6 — what landed
+
+- **Logic.** `src/unit/research/persona.ts` (`persona.parity.test.ts`, 45
+  checks: the catalogue and its search text, `canonicalPersonaDim`, the
+  recommended and approved dimensions, add / remove / autofill, the sample and
+  the input's own `onchange` handler, the wizard's action cut from the drawn
+  page, the AI suggestion's body and what it keeps, both dimension requests,
+  Deep Research's topic; thirteen mutations caught). The classic screen writes
+  the approval's refill into the project as it draws, so every change the port
+  makes (and the suggestion's body) carries the refill, as the classic save
+  does; the parity cases draw first and then act.
+- **Harness.** `legacyContext({ now })` now fixes a no-argument `new Date()` as
+  well as `Date.now()`: the dimension request stamps `created_at` with it.
+- **Hand-off.** `#aia:dimension=research` calls the classic
+  `openDimensionResearch1793(label)`; the label, free text, goes through
+  same-origin `sessionStorage` and is read once (ADR 0014, point 7).
+- **Screen.** `PersonaStep.tsx` (`PersonaStep.test.tsx`, 9 tests: the base, the
+  refill and the catalogue with the library's; add / remove / autofill and the
+  refill after the last (OI-54); the AI suggestion with its new dimensions and
+  a request from one (OI-53); the provider notice; a custom request refused
+  empty, recorded, the library refreshed; the sample clamped on commit and the
+  recommendation; the way on and back to the audience; a failed catalogue asked
+  once (OI-57); Deep Research's hand-off).
+- **Workbench.** A `persona` fixture: three catalogue dimensions, one request,
+  N=450.
+- **Capture.** `route-persona@persona`: 0 classic texts missing at 1440 and 1024.
+- **Found here.** OI-57: a failed audience catalogue is requested again on every
+  draw, without limit (the probe without a bound never ends).
+
 ## Deliberate differences (added to as chunks land)
 
 | Step | Classic | Rebuilt | Why |
@@ -231,4 +460,19 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | plan | the comment box after the *Další* button | before it | the way on is last |
 | plan | a missing `what_is_known` would become the word `undefined` | an empty field | defect (defaultsMerge normally prevents it) |
 | plan | a comment is offered after a mouse selection | also after a keyboard selection | accessibility |
-| audience | range filter shown as `[object Object]` | `od–do` | defect |
+| questionnaire | *AI: zlepšit blok* on every block | not drawn | it does nothing (OI-49); a decision |
+| questionnaire | failures of the AI build, optimisation and deep research in an `alert()` | the same text on the page, with *Zkusit znovu* and *Diagnostika* | the editor stays in view |
+| questionnaire | a file input and a *Načíst dotazník* button | one *Načíst dotazník* button that picks and imports | as the brief's attachments |
+| questionnaire | *Načítám dotazník* as a full-screen overlay | inline in the import card | the rest of the step stays usable |
+| audience | the readable summary prints a range filter as `[object Object]` | `od–do`, as the filter chips print it | display only; the stored filter is the classic one |
+| audience | preview and upload failures, the AI proposal's failure in an `alert()` | the same text on the page | the editor stays in view |
+| audience | *Nahrávám audience* as a full-screen overlay | inline in the upload card | as the questionnaire's import |
+| audience | the readable summary after the *Další* button | before it | the way on is last |
+| persona | the society-factor and new-dimension cards below the *Další* button | above it | the way on is last |
+| persona | a failed audience catalogue is asked for again on every draw, without limit | asked once per visit; on failure both cards are left out, as the classic draws them | OI-57; the visible result is the classic's |
+| persona | the AI suggestion's and the dimension request's failures in an `alert()` | the same text on the page | the catalogue stays in view |
+| persona | the search box is emptied by every add or remove (the page is redrawn) | the search is kept | a redraw artefact, not a rule |
+| persona | the model's proposed dimensions (`PERSONA_AI_SUGGESTION`) are one global, shown in any project opened next | kept per project session | a suggestion belongs to the project it was made for |
+| persona | the labels sent to the model are every Data Library label seen since the page loaded | the system's labels and the current library's | the global only grows; nothing is removed from it |
+| persona | the sample saves on the input's `change` | on blur or Enter; a spinner click saves on blur | React's `onChange` is every keystroke |
+| persona | the refill of an empty approval is written into the project when the screen draws, and saved by the next save anywhere | saved with the next change made on this step | the rebuild does not change a project by drawing it |

@@ -110,6 +110,45 @@ def test_the_effective_binding_is_the_declaration_when_nothing_reassigns_it(
     assert ui.effective_binding(js, "noSuchFunction1234") is None
 
 
+def test_no_declaration_is_overridden_within_its_script_block(ui: Any) -> None:
+    """The condition under which ``effective_binding`` is exact.
+
+    It takes the later of a name's last declaration and last assignment by
+    position. A declaration is hoisted to the start of its ``<script>`` block,
+    so an assignment earlier in the *same* block runs after it and wins even
+    though it sits before it: then the later-by-position rule is wrong. The
+    rebuild's parity tests trust the rule, so the unit must never have that shape.
+    """
+    import re
+
+    html = ui.load_ui_app()
+    declaration = re.compile(r"(?<![\w.$])(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(")
+    assignment = re.compile(
+        r"(?<![\w.$])(?:window\.)?([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?function\s*\("
+    )
+    blocks = [m.span(1) for m in ui.SCRIPT_BLOCK.finditer(html)]
+    assert len(blocks) == 13
+
+    def block_of(pos: int) -> int:
+        return next(i for i, (a, b) in enumerate(blocks) if a <= pos < b)
+
+    last_declared: dict[str, int] = {}
+    last_assigned: dict[str, int] = {}
+    for a, b in blocks:
+        for m in declaration.finditer(html, a, b):
+            last_declared[m.group(1)] = m.start()
+        for m in assignment.finditer(html, a, b):
+            last_assigned[m.group(1)] = m.start()
+    wrong = sorted(
+        name
+        for name, d in last_declared.items()
+        if name in last_assigned
+        and last_assigned[name] < d
+        and block_of(last_assigned[name]) == block_of(d)
+    )
+    assert wrong == []
+
+
 def test_the_ledger_pins_the_unit_it_describes(ui: Any) -> None:
     assert LEDGER["unit"]["ui_app_sha256"] == ui.ui_app_sha256()
     assert LEDGER["unit"]["archive_sha256"] == ARCHIVE_SHA256

@@ -66,6 +66,9 @@ research chunks land ([research-flow-rehome.md](../../.planning/plans/research-f
 |---|---|---|
 | `empty` | nothing but a title | Zadání as a new project sees it |
 | `planned` | brief + the plan's analysis (two comparable sets, questions for the user, three design variants) | Zadání, Návrh |
+| `questionnaire` | the `planned` project with a question block (every question type) and a tracked set, on the editor | Dotazník |
+| `audience` | the `questionnaire` project on the ČR 18+ branch, narrowed by a region and an age range | Audience |
+| `persona` | the `questionnaire` project with three catalogue dimensions, one requested dimension and N=450 | Dimenze |
 
 A ledger screen in `docs/migration/interface-screens.json` that names a
 `fixture` is captured a second time on that project: the classic step opened

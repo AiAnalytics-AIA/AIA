@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import vm from "node:vm";
 import { describe, expect, it } from "vitest";
 
-import { applyHandoff, classicHref } from "./interface-handoff";
+import { DIMENSION_RESEARCH_KEY, applyHandoff, classicHref } from "./interface-handoff";
 import { sha256Hex } from "./interface-skin";
 
 const repo = join(process.cwd(), "../..");
@@ -43,6 +43,7 @@ function page(hash: string, stage = "ready") {
   const calls: string[] = [];
   const timers: (() => void)[] = [];
   const listeners: Record<string, () => void> = {};
+  const stored = new Map<string, string>();
   const win: Record<string, unknown> = {
     addEventListener: (type: string, f: () => void) => (listeners[type] = f),
     NPC_BOOT_STAGE: stage,
@@ -59,6 +60,12 @@ function page(hash: string, stage = "ready") {
     switchProduct1776: (k: string) => calls.push(`switch:${k}`),
     openAssistant1791: () => calls.push("assistant"),
     createSupportBundle: (job: string) => calls.push(`support:${job}`),
+    openDimensionResearch1793: (label: string) => calls.push(`dimension:${label}`),
+    sessionStorage: {
+      getItem: (k: string) => stored.get(k) ?? null,
+      setItem: (k: string, v: string) => void stored.set(k, v),
+      removeItem: (k: string) => void stored.delete(k),
+    },
   };
   const ctx = vm.createContext({ window: win, setTimeout: (f: () => void) => timers.push(f), console });
   vm.runInContext(script, ctx);
@@ -121,6 +128,21 @@ describe("handoff.js", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(p.calls).toEqual(["replaceState", "open:PRJ-2", "go:plan"]);
     expect(p.win.go).toBe(go);
+  });
+
+  it("opens Deep Research for a proposed dimension with the label left in session storage, once", () => {
+    const p = page("");
+    const store = p.win.sessionStorage as { setItem: (k: string, v: string) => void; getItem: (k: string) => string | null };
+    store.setItem(DIMENSION_RESEARCH_KEY, "Vztah k AI ve zdravotnictví");
+    (p.win.location as { hash: string }).hash = "#aia:dimension=research";
+    p.listeners.hashchange();
+    expect(p.calls).toEqual(["replaceState", "dimension:Vztah k AI ve zdravotnictví"]);
+    expect(store.getItem(DIMENSION_RESEARCH_KEY)).toBeNull();
+    // Without a label nothing is opened.
+    (p.win.location as { hash: string }).hash = "#aia:dimension=research";
+    p.listeners.hashchange();
+    expect(p.calls).toEqual(["replaceState", "dimension:Vztah k AI ve zdravotnictví", "replaceState"]);
+    expect(classicHref({ dimension: "research" })).toBe("/#aia:dimension=research");
   });
 
   it("acts on a hand-off link followed from the classic page itself", () => {

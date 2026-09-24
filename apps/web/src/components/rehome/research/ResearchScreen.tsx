@@ -1,12 +1,16 @@
 "use client";
 
-// One research project on one step (ADR 0014, area A4): loads the bootstrap and
-// the project, keeps them in a ResearchStore, and draws the step in the shell
-// with the project's steps in the rail. A step not yet rebuilt hands off to the
-// classic interface.
+// One research project on one step (ADR 0014, area A4). A ResearchSession
+// loads the bootstrap and the project into one ResearchStore and keeps it, with
+// the page memory the classic interface keeps in globals (the audience preview,
+// the model's dimension proposals), for as long as the person stays in the
+// project: the /app/research/<id> layout holds it, so moving between steps
+// neither reloads the project nor drops a change still waiting to be saved.
+// ResearchScreen draws the step in the shell with the project's steps in the
+// rail; a step not yet rebuilt hands off to the classic interface.
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { classicHref } from "@/lib/interface-handoff";
 import { t, tv } from "@/i18n/t";
@@ -30,49 +34,94 @@ type Loaded =
   | { kind: "demo" | "simulation" }
   | { kind: "ready"; store: ResearchStore; boot: BootInfo };
 
+type Session = { projectId: string | null; loaded: Loaded; retry: () => void; memory: Map<string, unknown> };
+const SessionContext = createContext<Session | null>(null);
+
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function ResearchScreen({ projectId, step }: { projectId: string | null; step: StepKey }) {
+/**
+ * A new project's live store, handed from /app/research/new to the session of
+ * the id it was just given, so the new route adopts it instead of loading a
+ * copy that a change typed during the first save would be missing.
+ */
+const handedOver = new Map<string, { store: ResearchStore; boot: BootInfo; memory: Map<string, unknown> }>();
+
+/** The project, loaded once and kept while the person stays in it (the [projectId] layout). */
+export function ResearchSession({ projectId, children }: { projectId: string | null; children: ReactNode }) {
   const router = useRouter();
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
+  const [memory, setMemory] = useState(() => new Map<string, unknown>());
   // Read when a new project gets its id, not dependencies of the load: the load
-  // is per project id only, whatever the router object or the step is.
-  const stepRef = useRef(step);
+  // is per project id only, whatever the router object or the path is.
   const routerRef = useRef(router);
+  const memoryRef = useRef(memory);
   useEffect(() => {
-    stepRef.current = step;
     routerRef.current = router;
-  }, [step, router]);
+    memoryRef.current = memory;
+  }, [router, memory]);
 
-  // One load per project id: moving between steps keeps the same store.
   useEffect(() => {
     let live = true;
     let store: ResearchStore | null = null;
-    loadBoot()
-      .then(async (boot): Promise<{ boot: BootInfo; state: ResearchState } | { other: "demo" | "simulation" }> => {
-        if (!projectId) return { boot, state: newResearch(boot) };
-        const r = await loadResearch(projectId, boot);
-        if (r.kind !== "research") return { other: r.kind };
-        return { boot, state: r.state };
-      })
-      .then(
-        (r) => {
-          if (!live) return;
-          if ("other" in r) return setLoaded({ kind: r.other });
-          store = new ResearchStore(r.state, r.boot, {
-            onIdAssigned: (id) => routerRef.current.replace(`/app/research/${encodeURIComponent(id)}/${stepRef.current}`),
-          });
-          setLoaded({ kind: "ready", store, boot: r.boot });
-        },
-        (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
-      );
+    let adopted = false;
+    const taken = projectId ? handedOver.get(projectId) : undefined;
+    if (taken && projectId) {
+      handedOver.delete(projectId);
+      store = taken.store;
+      queueMicrotask(() => {
+        if (!live) return;
+        setMemory(taken.memory);
+        setLoaded({ kind: "ready", store: taken.store, boot: taken.boot });
+      });
+    } else {
+      loadBoot()
+        .then(async (boot): Promise<{ boot: BootInfo; state: ResearchState } | { other: "demo" | "simulation" }> => {
+          if (!projectId) return { boot, state: newResearch(boot) };
+          const r = await loadResearch(projectId, boot);
+          if (r.kind !== "research") return { other: r.kind };
+          return { boot, state: r.state };
+        })
+        .then(
+          (r) => {
+            if (!live) return;
+            if ("other" in r) return setLoaded({ kind: r.other });
+            const s: ResearchStore = new ResearchStore(r.state, r.boot, {
+              onIdAssigned: (id) => {
+                adopted = true;
+                handedOver.set(id, { store: s, boot: r.boot, memory: memoryRef.current });
+                const step = window.location.pathname.split("/").pop() || "brief";
+                routerRef.current.replace(`/app/research/${encodeURIComponent(id)}/${step === "new" ? "brief" : step}`);
+              },
+            });
+            store = s;
+            setLoaded({ kind: "ready", store: s, boot: r.boot });
+          },
+          (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
+        );
+    }
     return () => {
       live = false;
-      store?.dispose();
+      // A store handed to the new route is not this session's to close.
+      if (!adopted) store?.dispose();
     };
   }, [projectId, version]);
 
+  const value = useMemo(() => ({ projectId, loaded, retry: () => setVersion((v) => v + 1), memory }), [projectId, loaded, memory]);
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
+
+export function ResearchScreen({ projectId, step }: { projectId: string | null; step: StepKey }) {
+  const session = useContext(SessionContext);
+  // Outside the project's layout (the new-project page, a test), the screen holds its own session.
+  if (!session || session.projectId !== projectId) {
+    return (
+      <ResearchSession projectId={projectId}>
+        <ResearchScreen projectId={projectId} step={step} />
+      </ResearchSession>
+    );
+  }
+  const { loaded } = session;
   const [title, sub] = [t(`research.steps.${step}.0`), t(`research.steps.${step}.1`)];
 
   if (loaded.kind !== "ready") {
@@ -84,7 +133,7 @@ export function ResearchScreen({ projectId, step }: { projectId: string | null; 
           <section role="alert" className="rounded-md border border-status-fault/40 bg-status-fault-wash p-5">
             <h2 className="font-semibold text-status-fault">{t("research.loadFailed")}</h2>
             <p className="mt-1 text-sm text-ink">{loaded.message}</p>
-            <Button className="mt-3" onClick={() => setVersion((v) => v + 1)}>{t("research.retry")}</Button>
+            <Button className="mt-3" onClick={session.retry}>{t("research.retry")}</Button>
           </section>
         ) : (
           <section className="max-w-2xl rounded-md border border-border bg-surface-raised p-6">
@@ -99,10 +148,12 @@ export function ResearchScreen({ projectId, step }: { projectId: string | null; 
       </Shell>
     );
   }
-  return <Ready store={loaded.store} boot={loaded.boot} step={step} title={title} sub={sub} />;
+  return <Ready store={loaded.store} boot={loaded.boot} memory={session.memory} step={step} title={title} sub={sub} />;
 }
 
-function Ready({ store, boot, step, title, sub }: { store: ResearchStore; boot: BootInfo; step: StepKey; title: string; sub: string }) {
+function Ready({ store, boot, memory, step, title, sub }: {
+  store: ResearchStore; boot: BootInfo; memory: Map<string, unknown>; step: StepKey; title: string; sub: string;
+}) {
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
   const [job, setJob] = useState<JobUpdate | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -172,8 +223,8 @@ function Ready({ store, boot, step, title, sub }: { store: ResearchStore; boot: 
     [],
   );
   const value = useMemo(
-    () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt }),
-    [store, boot, runJob, job, confirm, prompt],
+    () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt, memory }),
+    [store, boot, runJob, job, confirm, prompt, memory],
   );
   const Screen = STEP_SCREENS[step];
   const eyebrow = stepEyebrow(step);

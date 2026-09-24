@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetBootCache } from "@/unit/boot";
 import { REBUILT_STEPS, STEP_KEYS } from "@/unit/research/steps";
-import { ResearchScreen } from "./ResearchScreen";
+import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { STEP_SCREENS } from "./steps";
 
 const replace = vi.fn();
@@ -38,15 +38,15 @@ afterEach(() => {
 describe("ResearchScreen", () => {
   it("draws the step in the shell with the project's steps, and hands a step not yet rebuilt to the classic interface", async () => {
     unitStub(() => ({ project_id: "PRJ-1", revision: 2, project_type: "research", project: { title: "Alfa" }, analysis: null }));
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
-    expect(await screen.findByRole("link", { name: /Otevřít krok v klasickém rozhraní/ })).toHaveProperty("href", "http://localhost:3000/#aia:open=PRJ-1@questionnaire");
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("3. Dotazník");
-    expect(screen.getByText(/VÝZKUM · KROK 3 \/ 7/)).toBeTruthy();
+    render(<ResearchScreen projectId="PRJ-1" step="run" />);
+    expect(await screen.findByRole("link", { name: /Otevřít krok v klasickém rozhraní/ })).toHaveProperty("href", "http://localhost:3000/#aia:open=PRJ-1@run");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("6. Finální kontrola & spuštění");
+    expect(screen.getByText(/VÝZKUM · KROK 6 \/ 7/)).toBeTruthy();
     const steps = screen.getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/app/research/PRJ-1/"));
     expect(steps.map((a) => a.getAttribute("href"))).toEqual(
       ["brief", "plan", "questionnaire", "audience", "persona", "run", "results"].map((s) => `/app/research/PRJ-1/${s}`),
     );
-    expect(within(steps[2]).getByText("Dotazník").closest("a")?.getAttribute("aria-current")).toBe("step");
+    expect(within(steps[5]).getByText("Kontrola & Spuštění").closest("a")?.getAttribute("aria-current")).toBe("step");
     expect(screen.getByText("Uloženo")).toBeTruthy();
   });
 
@@ -60,7 +60,7 @@ describe("ResearchScreen", () => {
   it("says why a project could not be loaded, and retries", async () => {
     let fail = true;
     unitStub(() => (fail ? new Response('{"error":"Projekt neexistuje."}', { status: 404 }) : { project_id: "PRJ-1", project_type: "research", project: {} }));
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="run" />);
     expect(await screen.findByText("Projekt neexistuje.")).toBeTruthy();
     fail = false;
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
@@ -69,7 +69,7 @@ describe("ResearchScreen", () => {
 
   it("says a project with no saved version has nowhere to hand off to yet", async () => {
     unitStub(() => ({}));
-    render(<ResearchScreen projectId={null} step="questionnaire" />);
+    render(<ResearchScreen projectId={null} step="run" />);
     const note = await screen.findByText(/Projekt ještě nemá uloženou verzi/);
     expect(note).toBeTruthy();
   });
@@ -81,6 +81,21 @@ describe("ResearchScreen", () => {
     rerender(<ResearchScreen projectId="PRJ-1" step="audience" />);
     rerender(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
     await screen.findByText("Uloženo");
+    const loads = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => String(c[0]) === "/api/projects/load");
+    expect(loads.length).toBe(1);
+  });
+
+  it("keeps one project session while each step's page mounts afresh, as Next mounts them", async () => {
+    unitStub(() => ({ project_id: "PRJ-1", revision: 2, project_type: "research", project: {}, analysis: null }));
+    const page = (step: "run" | "results") => (
+      <ResearchSession projectId="PRJ-1">
+        <ResearchScreen key={step} projectId="PRJ-1" step={step} />
+      </ResearchSession>
+    );
+    const { rerender } = render(page("run"));
+    await screen.findByText("Uloženo");
+    rerender(page("results"));
+    expect(await screen.findByRole("heading", { name: "7. Výsledky" })).toBeTruthy();
     const loads = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => String(c[0]) === "/api/projects/load");
     expect(loads.length).toBe(1);
   });

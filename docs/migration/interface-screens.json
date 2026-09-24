@@ -98,9 +98,26 @@
    },
    "title": "3. Dotazník",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILT",
+   "react_path": "/app/research/<id>/questionnaire",
+   "unit_routes": [
+    "POST /api/projects/load",
+    "POST /api/projects/save",
+    "POST /api/questionnaire/upload",
+    "GET /api/questionnaire/template",
+    "GET /files/",
+    "POST /api/research/analyze",
+    "POST /api/research/build_questionnaire",
+    "POST /api/questionnaire/optimize",
+    "POST /api/research/deep",
+    "GET /api/providers/claude-code/status",
+    "POST /api/settings/ai_check",
+    "GET /api/job",
+    "POST /api/jobs/",
+    "POST /api/support/bundle"
+   ],
+   "fixture": "questionnaire",
+   "notes": "Captured on the `questionnaire` fixture beside the classic step opened on the same project: 1 classic text missing at 1440 and 1024, \"AI: zlepšit blok\", left out on purpose because it does nothing in the classic interface (OI-49). The choose, upload and AI views are covered by QuestionnaireStep.test.tsx. Differences are listed in .planning/plans/research-flow-rehome.md."
   },
   {
    "id": "route-audience",
@@ -109,9 +126,27 @@
    },
    "title": "4. Audience / Cílová skupina",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILT",
+   "react_path": "/app/research/<id>/audience",
+   "unit_routes": [
+    "POST /api/projects/load",
+    "POST /api/projects/save",
+    "GET /api/audience/dimensions",
+    "POST /api/audience",
+    "POST /api/audiences/preflight",
+    "GET /api/audiences",
+    "POST /api/audiences/upload",
+    "GET /api/audiences/template",
+    "GET /files/",
+    "POST /api/audience/propose",
+    "GET /api/providers/claude-code/status",
+    "POST /api/settings/ai_check",
+    "GET /api/job",
+    "POST /api/jobs/",
+    "POST /api/support/bundle"
+   ],
+   "fixture": "audience",
+   "notes": "Captured on the `audience` fixture (ČR 18+, narrowed) beside the classic step on the same project: 1 classic text missing at 1440 and 1024, \"[object Object]\", the classic summary's print of a range, drawn \"25–54\" instead. The other branches (own, special, coming soon) are covered by AudienceStep.test.tsx. OI-50 and OI-51 are kept as the classic behaves."
   },
   {
    "id": "route-persona",
@@ -120,9 +155,26 @@
    },
    "title": "5. Dimenze",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILT",
+   "react_path": "/app/research/<id>/persona",
+   "unit_routes": [
+    "POST /api/projects/load",
+    "POST /api/projects/save",
+    "GET /api/audience/dimensions",
+    "POST /api/persona/suggest",
+    "GET /api/providers/claude-code/status",
+    "POST /api/settings/ai_check",
+    "GET /api/job",
+    "POST /api/jobs/",
+    "POST /api/support/bundle",
+    "POST /api/library/dimension/request",
+    "GET /api/library",
+    "GET /api/library/system-catalog",
+    "GET /api/populations",
+    "GET /api/results-registry"
+   ],
+   "fixture": "persona",
+   "notes": "Captured on the `persona` fixture (three catalogue dimensions, one request, N=450) beside the classic step on the same project: 0 classic texts missing at 1440 and 1024. The AI suggestion, the requests, the sample and a failed catalogue are covered by PersonaStep.test.tsx. OI-53 and OI-54 are kept as the classic behaves; OI-57 is not reproduced (one catalogue request)."
   },
   {
    "id": "route-run",

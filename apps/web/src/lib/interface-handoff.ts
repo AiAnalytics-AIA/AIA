@@ -33,7 +33,16 @@ export type ClassicTarget =
   | { go: string }
   | { switch: "research" | "simulation" | "library" }
   | { assistant: "open" }
-  | { support: "bundle" };
+  | { support: "bundle" }
+  | { dimension: "research" };
+
+/**
+ * Where the rebuilt dimension step leaves a proposed dimension's name for the
+ * classic Data Library's Deep Research (#aia:dimension=research): free text,
+ * which the fragment's strict pattern cannot carry, so it goes through the
+ * page's same-origin session storage and is read once.
+ */
+export const DIMENSION_RESEARCH_KEY = "aia:dimension-research";
 
 /** The link from a rebuilt screen to the classic interface, carrying one hand-off instruction. */
 export function classicHref(target?: ClassicTarget): string {

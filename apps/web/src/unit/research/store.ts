@@ -189,8 +189,14 @@ export class ResearchStore {
     });
   }
 
+  /**
+   * The person left the project: a change still waiting for its debounced save
+   * is saved now (flush clears the timer) rather than dropped. Nothing is
+   * listening any more, so if that save fails, no one is told; the next load
+   * shows the last revision the unit stored.
+   */
   dispose(): void {
-    if (this.timer) clearTimeout(this.timer);
     this.listeners.clear();
+    if (this.timer || this.state.save.kind === "pending") this.flush().catch(() => {});
   }
 }

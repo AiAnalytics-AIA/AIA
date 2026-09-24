@@ -45,7 +45,7 @@ export type Legacy = {
 export function legacyContext(opts: { prelude?: string[]; functions: string[]; now?: number; host?: Record<string, unknown> }): Legacy {
   const ctx = vm.createContext({ ...opts.host });
   if (opts.now !== undefined) {
-    vm.runInContext(`const __RealDate=Date;Date=class extends __RealDate{static now(){return ${opts.now}}};`, ctx);
+    vm.runInContext(`const __RealDate=Date;Date=class extends __RealDate{constructor(...a){a.length?super(...a):super(${opts.now})}static now(){return ${opts.now}}};`, ctx);
   }
   for (const s of opts.prelude ?? []) vm.runInContext(s, ctx);
   for (const name of opts.functions) vm.runInContext(effective(name), ctx);

@@ -1576,3 +1576,239 @@ addendum.
 **Status.** Fixed in-repo: `addenda` in the ledger, checked by
 `test_legacy_route_ledger.py::test_the_addenda_are_exactly_the_set_arms_the_reference_missed`.
 The reference's parser (upstream) still misses the form.
+
+## OI-49 · Finding · The questionnaire's "AI: zlepšit blok" does nothing
+
+**Claim.** Every question block has an *AI: zlepšit blok* button that calls
+`quickClaude(...)`, which returns at once unless an element `#chatInput`
+exists, and no code in the document creates one.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:579 @ 8444bda`
+(`function quickClaude(t){let inp=$('#chatInput');if(!inp)return;…}`); the
+button is in `questionSection`. `grep -c 'id="chatInput"\|id=.chatInput' ui_app.html` → `0`;
+all five `chatInput` references are lookups.
+
+**Reproduction.** `grep -o "chatInput" legacy/npc-panel-18.6.6/app/ui_app.html | wc -l` → 5,
+and every occurrence is `$('#chatInput')` (a lookup); in the workbench, the
+button on any question block changes nothing and starts no job.
+
+**Consequence.** A person asks the AI to improve a block and nothing happens,
+with no message.
+
+**Smallest fix.** A decision, not a port: drop the button, or wire it to the
+AI assistant (new behaviour). The rebuild leaves it out and lists it.
+
+**Test that would have caught it.** A reachability check that every `on…`
+handler's first guard can pass on some screen.
+
+**Status.** Open in the classic interface; **decision for the data owner** (PR B).
+
+## OI-50 · Finding · An empty bound in the audience range filter becomes 0, and the unit then targets the wrong people
+
+**Claim.** `setAudienceRange1793` reads both inputs with `Number(...)`, and
+`Number('')` is `0`, so a range with one bound left empty is stored with the
+other bound `0`; the unit then orders the pair, so *od 25* (no upper bound)
+selects ages 0–25.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:1053 @ 8444bda`
+(`let a=Number($('#'+minId)?.value),b=Number($('#'+maxId)?.value);…{min:Number.isFinite(a)?a:null,…}`).
+
+**Reproduction.** Under Node, the effective binding with only the lower input
+filled stores `{"vek":{"min":25,"max":0}}`; the workbench unit answers
+`POST /api/audience {"filtry":{"vek":{"min":25,"max":0}},"n":300}` with
+`"filtry": {"vek": [0.0, 25.0]}` (verified 2026-09-24; support 8 of 60 instead
+of the over-25s). The rebuild's characterization test:
+`audience.parity.test.ts` › *an empty bound is stored as 0, as the classic does (OI-50)*.
+
+**Consequence.** A person who asks for "25 and older" researches people under
+25, and the preview shows a plausible support number, so nothing looks wrong.
+Clearing both inputs stores `0–0`, an empty audience; a range can only be
+removed with its chip.
+
+**Smallest fix.** Read an empty input as "no bound" (`null`) and delete the
+filter when both are empty. This changes who is sampled, so it is a
+methodology decision.
+
+**Test that would have caught it.** The characterization test above, asserting
+`null` instead of `0`.
+
+**Status.** Open; ported as the classic behaves; **decision for the data owner**
+before PR B merges.
+
+## OI-51 · Finding · Picking a special-audience preset keeps the previous subpanel and its filters
+
+**Claim.** `chooseSpecialPreset` for a *special* or *coming soon* preset sets
+the new source but leaves `builtin_subpanel` and `filters` from a population
+preset picked before it, and `setAnalyticsChoice('special')` does not clear
+`filters` either.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:372 @ 8444bda`
+(`chooseSpecialPreset`), `:350` (`setAnalyticsChoice`).
+
+**Reproduction.** Under Node with the effective bindings: `chooseSpecialPreset('doctors')`
+then `chooseSpecialPreset('foreign_prague')` leaves
+`{"dataset_name":"Cizinci žijící v Praze","builtin_subpanel":"medical_doctors","filters":{"profese":["lékař"]},"source_mode":"special_audience"}`
+and `audienceReady1789()` → `true` (verified 2026-09-24). The rebuild's
+characterization test: `audience.parity.test.ts` › *a special preset keeps the
+previous subpanel and filters, as the classic does (OI-51)*.
+
+**Consequence.** The screen says *Vybráno: Cizinci žijící v Praze* and lets the
+person continue, while the project still carries the doctors' filters; a
+*coming soon* preset asks for the person's own data but shows no upload on that
+screen (its scroll target `#audFile` is on the *own* screen). **What the run
+does with this state is a hypothesis:** not traced through the unit's sampler.
+
+**Smallest fix.** Clear `builtin_subpanel`, `filters` and `segment` whenever a
+preset or the special branch is chosen. It changes a project's audience, so it
+is a decision.
+
+**Test that would have caught it.** The characterization test above, asserting
+the cleared state.
+
+**Status.** Open; ported as the classic behaves; **decision for the data owner**.
+
+## OI-52 · Question · Is a questionnaire of tracked sets only a questionnaire?
+
+**Claim.** The wizard's *Další · cílová skupina* is enabled only when some
+section has `questions`; a questionnaire made only of tracked object sets
+(which have `objects`, not `questions`) cannot use it, but the editor's own
+*Dotazník mám → Koho se ptát* continues with no check at all.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:955 @ 8444bda`
+(`questionnaireHasQuestions1789`), `:960` (the wizard), `questionnaireEditorHtml`
+(the unconditional button), `:588` (`continueQuestionnaireToAudience`).
+
+**Reproduction.** `questionnaire.parity.test.ts` › *a questionnaire of tracked
+sets only has no questions, as the classic counts (OI-52)*.
+
+**Consequence.** Two buttons on one screen disagree about whether the
+questionnaire is ready.
+
+**Smallest fix.** Decide the rule (a set counts, or it does not), then apply it
+to both buttons. The rebuild keeps both as they are.
+
+**Status.** Open; **question for the data owner**.
+
+## OI-53 · Finding · "AI doporučí" approves dimensions that are not in the catalogue
+
+**Claim.** The effective `suggestPersonaAI` sets the approved dimensions to the
+model's list, canonicalised, without checking it against the dimension
+catalogue; an earlier binding, now dead, filtered to the catalogue and warned
+about the rest.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:1070 @ 8444bda`
+(`PROJECT.persona_dimensions.approved=(r.dimensions||[]).map(canonicalPersonaDim).filter(Boolean)`);
+the dead one at `:402` (`…filter(x=>allowed.has(x))…toast('AI navrhla i dimenze mimo katalog…')`).
+
+**Reproduction.** `persona.parity.test.ts` › *the model's dimensions are
+approved without the catalogue check, as the classic does (OI-53)*.
+
+**Consequence.** A dimension with no definition in the system can be switched
+on by the model and is shown by its raw id; the screen says the catalogue is
+the primary source. `canonicalPersonaDim` also maps by substring, so the
+model's *vztah k AI* is approved as `vztahy` (*Vztahy / domácnost*), a
+different dimension (same test).
+
+**Smallest fix.** Filter to the catalogue and list the rest as requests, as the
+earlier binding did. A methodology decision.
+
+**Status.** Open; ported as the classic behaves; **decision for the data owner**.
+
+## OI-54 · Finding · The optional dimensions can never all be removed
+
+**Claim.** `personaApproved` replaces an empty approval with the recommended
+set while the screen draws, so removing the last optional dimension brings the
+recommended ones back.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:407 @ 8444bda`
+(`if(!Array.isArray(PROJECT.persona_dimensions.approved)||!PROJECT.persona_dimensions.approved.length)PROJECT.persona_dimensions.approved=suggestedPersonaDims();`).
+
+**Reproduction.** `persona.parity.test.ts` › *removing the last dimension
+brings the recommended ones back, as the classic does (OI-54)*.
+
+**Consequence.** A study cannot run with the fixed sociodemographic base only;
+the screen offers *Zatím není vybraná žádná volitelná dimenze* but never shows it.
+
+**Smallest fix.** Refill only when the approval has never been set. A
+methodology decision.
+
+**Status.** Open; ported as the classic behaves; **decision for the data owner**.
+
+## OI-55 · Question · The AI steps disagree about provider checks and time limits
+
+**Claim.** Building a questionnaire, proposing an audience and suggesting
+dimensions check the provider first; optimising the questionnaire and deep
+research do not. Two callers pass `maxMs` (240 s, 300 s) that the job never
+reads: only `warnMs` has an effect, and nothing stops a job client-side.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:338-339 @ 8444bda`
+(`optimizeQuestionnaireAI`, `runProjectDeepResearch`: no `ensureClaudeReady1776`);
+`:305` (`job`: reads `opt.warnMs` only).
+
+**Reproduction.** `grep -o "maxMs" legacy/npc-panel-18.6.6/app/ui_app.html | wc -l`
+counts the callers; `python3 tools/ui_functions.py show job | grep -c maxMs` → `0`.
+
+**Consequence.** Optimising with an unready provider fails only after the job
+starts, with the provider's error; a caller's stated limit is not a limit.
+
+**Smallest fix.** None needed for parity; the rebuild keeps both behaviours.
+Worth deciding when the AI steps move behind the governed gateway.
+
+**Status.** Open; **question**, no decision needed for PR B.
+
+## OI-56 · Finding, fixed · A change made just before moving to another research step was lost
+
+**Claim.** Each research step was its own page with its own project store, and
+leaving a page disposed its store by cancelling the pending debounced save; the
+next step then loaded the project from the unit without that change.
+
+**Anchor.** `apps/web/src/unit/research/store.ts` `dispose()` and
+`apps/web/src/components/rehome/research/ResearchScreen.tsx` (one
+`ResearchStore` per page) `@ 8444bda`.
+
+**Reproduction.** In the workbench, open `/app/research/<planned>/plan` and
+click *Další · dotazník* (it sets `questionnaire_path` and moves on at once):
+`/api/projects/load` is requested again and no `/api/projects/save` is sent
+(Playwright, 2026-09-24: loads 2 → 4, saves `[]`). Tests:
+`store.test.ts` › *saves a change still waiting for its debounce when the person
+leaves the project*; `ResearchScreen.test.tsx` › *keeps one project session
+while each step's page mounts afresh, as Next mounts them*.
+
+**Consequence.** Any edit made less than 1.8 s before a step change (a rail
+link, a *Další* button) silently disappeared, and the save indicator had said
+*Změny se uloží za chvíli*.
+
+**Fix.** The `/app/research/<id>` layout holds one `ResearchSession` (store and
+page memory) for all the project's steps, since a layout is not re-rendered when
+only the step changes; a new project's store is handed to its new route instead
+of reloaded; `dispose()` saves a pending change instead of dropping it. After
+the fix: loads stay 2, saves `["questionnaire_path"]`.
+
+**Status.** Fixed in PR B (`feature/research-flow-b`).
+
+## OI-57 · Finding · A failed audience catalogue is requested again on every draw of Dimenze, without limit
+
+**Claim.** The 1793 `renderPersona` wrapper draws its society-factor card only
+once `AUDIENCE_DIM_CATALOG_1793` is set; until then it calls
+`ensureAudienceDimensionCatalog1793()` and redraws when that settles. A failed
+load returns `null` and leaves the global unset, so the redraw asks again at
+once: one request per round trip for as long as the step stays open.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:1071 @ 8444bda`
+(`if(!cat){ensureAudienceDimensionCatalog1793().then(()=>{if(CURRENT==='persona')renderPersona()});return}`);
+`ensureAudienceDimensionCatalog1793` (`catch(e){console.error(e);return null}`).
+
+**Reproduction.** `persona.parity.test.ts` › *a catalogue that fails to load is
+asked for again on every draw, with no limit, as the classic does (OI-57)*: a
+stub that fails nineteen times is asked twenty. Without the twentieth answer
+the run never ends (Node, 2026-09-24).
+
+**Consequence.** While `/api/audience/dimensions` fails, an open Dimenze step
+loads the unit with back-to-back requests and each redraw rebuilds the page
+under the person's hands; the card never appears.
+
+**Smallest fix.** Ask once per visit; on failure leave the card out. That is
+what the rebuild does (research-flow-rehome.md, deliberate differences): the
+visible result, no card, is the classic's.
+
+**Status.** Open; **decision**: confirm the rebuild's single request.

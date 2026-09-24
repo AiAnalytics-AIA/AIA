@@ -6,9 +6,9 @@
 // appearance; what the value is, src/unit/ decides.
 
 import {
-  type ButtonHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type InputHTMLAttributes,
+  type ButtonHTMLAttributes, type ComponentProps, type ReactNode, type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
-  useEffect, useRef, useState,
+  useLayoutEffect, useRef, useState,
 } from "react";
 
 import type { Tone } from "@/unit/projects";
@@ -112,7 +112,8 @@ export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select {...props} className={`${CONTROL} ${props.className ?? "w-full"}`} />;
 }
 
-export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
+/** A text field; `ref` is an ordinary prop in React 19 (a range's inputs are read on "Použít interval"). */
+export function TextInput(props: ComponentProps<"input">) {
   return <input {...props} className={`${CONTROL} ${props.className ?? "w-full"}`} />;
 }
 
@@ -131,7 +132,10 @@ export type Ask =
 export function AskDialog({ ask, onDone }: { ask: Ask | null; onDone: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
 
-  useEffect(() => {
+  // A layout effect: the dialog opens in the same commit that mounts its form,
+  // so the form is never on the page inside a closed (hidden) dialog, where a
+  // prompt that follows another could not be answered yet.
+  useLayoutEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (ask && !d.open) d.showModal();

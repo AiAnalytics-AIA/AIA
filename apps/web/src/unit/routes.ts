@@ -35,6 +35,22 @@ export const UNIT_ROUTES = {
   researchAnalyze: "POST /api/research/analyze",
   projectAttachment: "POST /api/project/attachment",
   settingsAiCheck: "POST /api/settings/ai_check",
+  questionnaireUpload: "POST /api/questionnaire/upload",
+  questionnaireOptimize: "POST /api/questionnaire/optimize",
+  researchBuildQuestionnaire: "POST /api/research/build_questionnaire",
+  researchDeep: "POST /api/research/deep",
+  audienceDimensions: "GET /api/audience/dimensions",
+  audiencePreview: "POST /api/audience",
+  audiencesPreflight: "POST /api/audiences/preflight",
+  audiences: "GET /api/audiences",
+  audiencesUpload: "POST /api/audiences/upload",
+  audiencePropose: "POST /api/audience/propose",
+  personaSuggest: "POST /api/persona/suggest",
+  libraryDimensionRequest: "POST /api/library/dimension/request",
+  library: "GET /api/library",
+  librarySystemCatalog: "GET /api/library/system-catalog",
+  populations: "GET /api/populations",
+  resultsRegistry: "GET /api/results-registry",
 } as const satisfies Record<string, Entry>;
 
 export type UnitRouteKey = keyof typeof UNIT_ROUTES;

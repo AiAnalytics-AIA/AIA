@@ -72,14 +72,17 @@ The data owner chose 3.
    has no deep links: it opens a project from its own state. So a rebuilt screen
    links to `/#aia:open=<id>` (or `#aia:start=research|simulation`,
    `#aia:go=<route>`, `#aia:switch=research|simulation|library`,
-   `#aia:assistant=open`, `#aia:support=bundle`), and the web client adds one script,
+   `#aia:assistant=open`, `#aia:support=bundle`, `#aia:dimension=research`), and the web client adds one script,
    `/skin/handoff.js`, to the pinned document while `/app` is on. After the
    classic boot reports `ready`, it clears the fragment and calls the classic
    interface's own function for that instruction — `openProject1785`,
    `startProductionResearch`, `startSimulationProduct1773`, `go` for a route
    its router knows, `switchProduct1776`, `openAssistant1791`,
-   `createSupportBundle` — the function the
-   classic button calls. It changes no DOM
+   `createSupportBundle`, `openDimensionResearch1793` — the function the
+   classic button calls. A proposed dimension's name is free text the
+   fragment's pattern cannot carry, so the rebuilt screen leaves it in
+   same-origin `sessionStorage["aia:dimension-research"]` and the script reads
+   it once. It changes no DOM
    and calls nothing else; an instruction that does not match is ignored. The
    pin guarantees the names exist; `X-AIA-Handoff` says whether it was added.
    This is the one behaviour the web client adds to the classic document, and it
