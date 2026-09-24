@@ -674,6 +674,27 @@ rm -rf node_modules && npm ci && npm test
 Do not settle for Vitest 3.2.x to dodge it: every release before 4.1.11 carries
 GHSA-82fw-gwwq-j7x9.
 
+**`next` 16.3 lints every relative `window.location.assign`.** The
+`@next/next/no-location-assign-relative-destination` rule (new in
+`eslint-config-next` 16.3) warns on a hard navigation to a relative path and
+suggests `router.push`. On the develop host that advice is wrong for `/`: it is
+not a page of this app but the 18.6.6 document behind Caddy's `forward_auth`
+gate (`deploy/develop/Caddyfile`, `handle /`), and a client-side transition
+would render the Next route instead of going through the gate. Keep the full
+navigation and say why at the call site (`src/lib/auth.ts`, `logout`).
+
+```ts
+// WRONG — skips the gate and the unit's document
+router.push("/");
+// RIGHT — a real request Caddy can gate
+// eslint-disable-next-line @next/next/no-location-assign-relative-destination
+window.location.assign("/");
+```
+
+A patched `next` needs 16.3.3 or later: every 16.1.x and 16.2.x release up to
+16.2.12 still carries a critical advisory (npm's bulk advisory endpoint,
+2026-09-24), so a 16.2 patch bump does not clear the audit.
+
 **A `var()` with no fallback invalidates the whole declaration.** The design
 branch's generator wrote `--font-sans-stack: var(--font-plex-sans), "Segoe UI", …`
 for `next/font` variables. Where the layout does not define `--font-plex-sans`,
