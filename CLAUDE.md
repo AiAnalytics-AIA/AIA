@@ -55,6 +55,15 @@ apps/
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout (the front door
                             to the 18.6.6 interface) and the live /studies pages; no mock data.
+    src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
+    scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
+    scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
+    public/skin/            Self-hosted fonts (OFL), identity and skin.css, served at /skin/ (ADR 0013)
+    src/skin/               The 18.6.6 skin's sources: legacy-variables.json (each 18.6.6 variable ->
+                            a token, with why) and components.css (token-only rules, linted)
+    scripts/build-skin.mjs  -> public/skin/skin.css; refuses raw colour/radius/shadow/font values
+    src/lib/interface-skin.ts  The skin decision: pinned SHA256 -> two tags, else byte-for-byte
+    src/app/interface-document/  The gated `/` document: fetch the unit, apply the skin
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
     executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
     worker.py               The loop: claim, execute, record; reconcile on an interval
@@ -141,7 +150,7 @@ migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
-docs/architecture/          System design + 10 ADRs; ai-step-executor-contract.md
+docs/architecture/          System design + 13 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
@@ -195,7 +204,10 @@ against.
 
 **The develop site is the 18.6.6 interface, behind AIA sign-in** (ADR 0012).
 Caddy serves the unit at the product hostname's root, after `forward_auth` to
-`GET /api/v1/panel/gate`; only organization owners and admins pass. Features are
+`GET /api/v1/panel/gate`; only organization owners and admins pass. The document
+at `/` passes through the web client, which adds the AIA design-system skin only
+when it is the pinned `ui_app.html` (ADR 0013, `AIA_INTERFACE_SKIN_ENABLED`); the
+unit's bytes never change and the oracle hostname is never skinned. Features are
 rebuilt behind the same screens by moving their paths from the unit to the API.
 The gate stays in front of whatever the unit still serves.
 
@@ -259,6 +271,9 @@ ungated fixture.
 | Lint | `make lint` |
 | Format | `make format` |
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
+| Web tests | `make test-web` (Vitest, pure functions) |
+| **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, `npm run tokens`, `npm run skin` |
+| **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |
@@ -499,6 +514,8 @@ make layer_check
 make exposure_check
 ruff format --check packages/aia_core apps/api migrations
 make test
+make web_design    # token drift + design evidence
+make test-web
 ```
 
 or `make verify`, which runs exactly that sequence.

@@ -47,10 +47,38 @@
 	}
 
 	# AIA's own pages: the sign-in the gate sends people to, the live studies,
-	# the build identity and Next.js's assets. No unit path collides with these.
-	@web path /login /logout /auth/* /config /version /studies /studies/* /_next/*
+	# the build identity and Next.js's assets; the skin's static files (fonts,
+	# identity, the generated stylesheet: no data, public like /_next/*); and
+	# AIA's icon set, which the unit neither serves nor links. No unit path
+	# collides with these.
+	@web path /login /logout /auth/* /config /version /studies /studies/* /_next/* /skin/* /favicon.ico /icon.svg /apple-icon.png
 	handle @web {
 		reverse_proxy web:3000
+	}
+
+	# The 18.6.6 interface document itself (ADR 0013). Only `/` -- the unit
+	# serves its one document there and nowhere else. Same gate as every unit
+	# path, then the web client, which fetches the unit's `/` and adds the AIA
+	# skin only when the document is the pinned ui_app.html. `route`, not bare
+	# directives: inside `handle` Caddy re-sorts directives and would run the
+	# rewrite before forward_auth, so the gate would see /interface-document and
+	# send a signed-out visitor back there after sign-in.
+	handle / {
+		route {
+			forward_auth api:8000 {
+				uri /api/v1/panel/gate
+			}
+			rewrite * /interface-document
+			reverse_proxy web:3000 {
+				header_up -Cookie
+			}
+		}
+	}
+
+	# Not an entry point: the document is reachable only through the gated
+	# rewrite above.
+	handle /interface-document {
+		respond 404
 	}
 
 	# Everything else is the 18.6.6 unit, behind AIA sign-in. forward_auth asks

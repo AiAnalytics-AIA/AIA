@@ -466,6 +466,14 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
+      # tokens.json is the one source: the generated CSS/TS must match it, and
+      # the contrast, palette and client-accent evidence is re-measured from it.
+      - run: npm run tokens:check
+      # The 18.6.6 skin (ADR 0013): regenerated from tokens.json and linted for
+      # raw values; it also reads the vendored ui_app.html, so it runs here.
+      - run: npm run skin:check
+      - run: npm run check:design
+      - run: npm test
       - run: npm run build
 
   startup-smoke:
@@ -665,6 +673,52 @@ jobs:
                   break
               else:
                   continue
+              break
+          else:
+              raise SystemExit("no route for the product hostname")
+          PY
+
+      - name: The interface document is served only through the gate (ADR 0013)
+        run: |
+          # caddy.json is the previous step's adaptation of the same Caddyfile.
+          python3 - <<'PY'
+          import json
+          config = json.load(open("caddy.json"))
+
+          def walk(node):
+              if isinstance(node, dict):
+                  yield node
+                  for value in node.values():
+                      yield from walk(value)
+              elif isinstance(node, list):
+                  for value in node:
+                      yield from walk(value)
+
+          for route in (r for s in config["apps"]["http"]["servers"].values() for r in s.get("routes", [])):
+              if "aia.example.test" not in [h for m in route.get("match", []) for h in m.get("host", [])]:
+                  continue
+              # ADR 0013: `/` reaches the web client's injector only through the same
+              # gate, the gate runs before the rewrite (else a signed-out visitor is sent
+              # back to /interface-document after sign-in), and that path is not an entry.
+              subroutes = route["handle"][0]["routes"]
+              def matched(path):
+                  return [r for r in subroutes if any(path in m.get("path", []) for m in r.get("match", []))]
+              root = matched("/")
+              assert len(root) == 1, "no single route for / on the product hostname"
+              steps = [n for n in walk(root[0]) if n.get("handler") in ("reverse_proxy", "rewrite")]
+              order = [
+                  f'{n["handler"]}:' + ((n.get("rewrite") or {}).get("uri") or n.get("uri")
+                                        or ",".join(u.get("dial", "") for u in n.get("upstreams", [])))
+                  for n in steps
+              ]
+              expected = ["reverse_proxy:/api/v1/panel/gate", "rewrite:/interface-document", "reverse_proxy:web:3000"]
+              assert order == expected, f"/ must be the gate, then the rewrite, then the web client; got {order}"
+              assert "Cookie" in steps[-1].get("headers", {}).get("request", {}).get("delete", []), \
+                  "the session cookie (an id token) reaches the interface injector"
+              direct = matched("/interface-document")
+              assert direct and any(n.get("handler") == "static_response" and n.get("status_code") == 404
+                                    for n in walk(direct[0])), "/interface-document is reachable directly"
+              print("interface document: gate -> rewrite -> web; direct path 404")
               break
           else:
               raise SystemExit("no route for the product hostname")
