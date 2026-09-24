@@ -12,7 +12,7 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web web_design \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web web_design ui-workbench ui-workbench-status ui-workbench-down ui-capture \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
@@ -96,6 +96,18 @@ parity-status: ## Parity verdict per capability, from a fresh run of every suite
 
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
+
+ui-workbench: ## The real 18.6.6 interface + AIA's web client on this machine (fictional panel): 127.0.0.1:8780
+	@python3 tools/ui_workbench/workbench.py up
+
+ui-workbench-status: ## Is the UI workbench running, and is the skin applied?
+	@python3 tools/ui_workbench/workbench.py status
+
+ui-capture: ## Screenshot every screen of the workbench, bare and skinned -> tmp/ui-workbench/shots/<time>/index.html
+	@node tools/ui_workbench/capture.mjs
+
+ui-workbench-down: ## Stop the UI workbench
+	@python3 tools/ui_workbench/workbench.py down
 
 web_design: ## Design tokens and the 18.6.6 skin: generated files current, contrast / palette / accent evidence holds
 	@cd apps/web && npm run tokens:check && npm run skin:check && npm run check:design

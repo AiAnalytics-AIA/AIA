@@ -739,3 +739,66 @@ on `apps/web/package-lock.json` — caching on a branch name gives a stale
 
 The client renders state the server computed. `GET …/impact` exists precisely so
 no component reasons about which stages an edit invalidates.
+
+**`react-hooks/set-state-in-effect` flags a load function called from an
+effect**, even when every `setState` in it runs after an `await`: the rule sees
+a state-setting function called in the effect body. Start the fetch in the effect
+and set state only in its promise callbacks, with a counter to reload:
+
+```tsx
+// WRONG — flagged: load() sets state, and is called from the effect body
+useEffect(() => { void load(); }, [load]);
+
+// RIGHT — state is set in callbacks; `setVersion(v => v + 1)` reloads
+useEffect(() => {
+  let live = true;
+  unit("projects").then(parseProjectRows).then((r) => live && setRows(r), (e) => live && setError(msg(e)));
+  return () => { live = false; };
+}, [version]);
+```
+
+A dialog that must start from a new initial value each time is a child that
+mounts per question (`useState(initial)`), not an effect that copies a prop.
+
+**`tsc --noEmit` fails while `next dev` regenerates `.next/**/types`.** Changing
+`next.config.ts` restarts the dev server, and for a few seconds
+`.next/dev/types/validator.ts` references routes that are not yet written
+(`TS2305 … AppRouteHandlerRoutes`). It is not the source: re-run when the dev
+log says *Ready*. CI never runs `next dev`, so it never sees this.
+
+**jsdom has no `<dialog>` modality.** `HTMLDialogElement.prototype.showModal` is
+missing; a component test stubs it to set `open` (`ProjectsScreen.test.tsx`).
+
+**A fragment-only navigation does not reload the page.** Following
+`/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
+document load, so a script that reads the fragment once on load never sees it.
+Read it on load *and* on `hashchange` (`apps/web/public/skin/handoff.js`).
+Playwright's `page.goto` to the same path with a new fragment is the same trap in
+tests: go to `about:blank` first.
+
+## The 18.6.6 unit, run outside its container
+
+**It registers its population files at import, not at first request.**
+`population_context.py` bootstraps `data/population_registry.sqlite` the first
+time it connects, which happens while `prototype_server` is imported; a panel
+file that does not exist at that moment is silently skipped, and every later
+`/api/bootstrap` answers `Population CZ_STATIC_REFERENCE není inicializována`.
+The registry then remembers the empty state, so writing the file afterwards does
+not help until the scratch copy is reset (`workbench.py up --fresh`).
+
+```python
+# WRONG — the registry is already built, without the panel
+import prototype_server as core
+frame.to_csv("FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz")
+
+# RIGHT — both files the registry names (STATIC v17_1_2, LIVE v17_4_0) first
+for name in PANEL_FILES:
+    frame.to_csv(name, index=False)
+import prototype_server as core
+```
+
+**A missing panel column is an `AttributeError`, not a `KeyError`.**
+`audience_dimensions.attach_derived` reads flags with `out.get('is_parent', 0)`;
+on a frame without the column that is the int `0`, and `pd.to_numeric(0)` has no
+`.fillna`. A stand-in frame needs every column the unit reads that way
+(`tools/ui_workbench/unit_standin.py` lists them), invented values only.

@@ -12,7 +12,8 @@
     "check:design": "node scripts/check-design.mjs",
     "test": "vitest run",
     "skin": "node scripts/build-skin.mjs",
-    "skin:check": "node scripts/build-skin.mjs --check"
+    "skin:check": "node scripts/build-skin.mjs --check",
+    "skin:watch": "node scripts/build-skin.mjs --watch"
   },
   "dependencies": {
     "next": "16.1.6",
@@ -21,11 +22,15 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "jsdom": "^27.4.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.11"

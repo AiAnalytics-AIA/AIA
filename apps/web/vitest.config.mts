@@ -1,12 +1,12 @@
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 
-// Pure-function tests only (tokens, the interface injector). jsdom and Testing
-// Library arrive with the first re-homed component, not before they are needed.
+// Node by default (tokens, the injector, the unit client and its parity tests).
+// A component test opts into jsdom with `// @vitest-environment jsdom`.
 export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
 });
