@@ -114,7 +114,9 @@ the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
 | Path | Goes to |
 |---|---|
 | `/api/v1/*` | the AIA API |
-| `/login`, `/logout`, `/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*` | the AIA web client |
+| `/login`, `/logout`, `/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`, `/skin/*`, `/favicon.ico`, `/icon.svg`, `/apple-icon.png` | the AIA web client |
+| `/` | after `forward_auth` to `GET /api/v1/panel/gate`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin when it applies ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) |
+| `/interface-document` (requested directly) | 404 |
 | everything else | `legacy-panel`, after `forward_auth` to `GET /api/v1/panel/gate` |
 
 - **Who gets in.** An active member of the organization whose role is `OWNER`
@@ -137,7 +139,16 @@ the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
   its data bundle synced by `bin/deploy.sh` (OI-39). A 401 or 403 JSON body on a
   page means the gate refused it; the `code` field says why (`unauthenticated`,
   `legacy_panel_denied`, `cross_origin`). A 502 on `/` means the gate admitted
-  the request and the unit is not answering.
+  the request and the unit is not answering: the response carries
+  `X-AIA-Skin: bypassed-unreachable` when the web client could not reach it, and
+  no such header when the web client itself is down.
+- **The skin** (ADR 0013). `AIA_INTERFACE_SKIN_ENABLED` on the `web` service;
+  `"false"` serves the unit's document byte-for-byte. Every response to `/`
+  says what happened in `X-AIA-Skin`: `applied`, `bypassed-disabled`, or
+  `bypassed-hash-mismatch` when the unit's document is not the pinned
+  `ui_app.html` (a regenerated unit; the web log has an
+  `interface_skin_bypassed` line with the hash it received). Switching it:
+  change the value and `docker compose up -d web`.
 - **The site does not depend on the unit** (OI-44). Caddy starts without it,
   the deploy waits only on AIA's services, and the unit's health is a smoke
   check: an unhealthy unit fails the deploy but `/login`, `/studies` and the API

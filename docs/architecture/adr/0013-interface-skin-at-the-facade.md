@@ -43,10 +43,16 @@ text or behaviour.
    added.** Caddy sends `GET /` — and only `/` — through the existing
    `forward_auth` gate to the web client, by an internal rewrite to
    `/interface-document`. The web client fetches the document from
-   `legacy-panel:8765/` on the internal network and inserts
-   `<link rel="stylesheet" href="/skin/skin.css">` immediately before `</head>`.
-   Nothing else in the document changes. Every other unit path is routed exactly
-   as ADR 0012 records.
+   `legacy-panel:8765/` on the internal network and inserts two tags: a
+   `<link rel="preload" as="style">` for the skin before `</head>`, so it is
+   fetched as early as the page's own styles, and the
+   `<link rel="stylesheet">` itself immediately before the last `</body>`.
+   The stylesheet goes last because the interface's own styles do not all live
+   in `<head>`: three `<style>` blocks sit inside `<body>` and nine more are
+   appended to `<head>` at runtime (`document.head.appendChild`), so a
+   stylesheet placed in `<head>` would lose the cascade to every one of them at
+   equal specificity. Nothing else in the document changes. Every other unit
+   path is routed exactly as ADR 0012 records.
 2. **The skin applies only to the document it was written for.** The injector
    computes the SHA256 of the fetched document and inserts the link only when it
    equals the pinned hash of the vendored `ui_app.html`. Any other document is

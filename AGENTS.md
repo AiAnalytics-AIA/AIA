@@ -587,6 +587,34 @@ Two consequences to carry:
   file missing from that list will not fire. OI-37 records the first time this
   was learned here.
 
+## Caddy
+
+**Inside `handle`, Caddy re-sorts directives into its fixed order.** The
+directive order puts `rewrite` before `forward_auth`, so a block that is written
+gate-then-rewrite runs rewrite-then-gate: the gate sees the rewritten URI and
+builds its `/login?next=` from it, sending a signed-out visitor back to an
+internal path after sign-in. Proven by adapting both forms and reading the
+handler order (`.github/workflows/ci.yml`, *The interface document is served
+only through the gate*). `route` keeps the written order:
+
+```caddyfile
+# WRONG — the rewrite runs first
+handle / {
+	forward_auth api:8000 { uri /api/v1/panel/gate }
+	rewrite * /interface-document
+	reverse_proxy web:3000
+}
+
+# RIGHT
+handle / {
+	route {
+		forward_auth api:8000 { uri /api/v1/panel/gate }
+		rewrite * /interface-document
+		reverse_proxy web:3000
+	}
+}
+```
+
 ## CI contracts
 
 **A contract assertion that outlives the contract is worse than none.** CI

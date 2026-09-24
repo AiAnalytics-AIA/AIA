@@ -377,9 +377,14 @@ client's `/version` reports the same, and every artifact records it as its
 **The product hostname is the 18.6.6 interface, with AIA in front
 ([ADR 0012](docs/architecture/adr/0012-legacy-interface-as-product-facade.md)).**
 Caddy sends `/api/v1/*` to the API, AIA's own pages (`/login`, `/logout`,
-`/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`) to the web client,
-and everything else to the vendored unit only after `forward_auth` to
-`GET /api/v1/panel/gate`. The gate is the whole of the unit's access control:
+`/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`, the skin's `/skin/*`
+and the icon set) to the web client, and everything else to the vendored unit
+only after `forward_auth` to `GET /api/v1/panel/gate`. `/` itself goes through
+the same gate to the web client, which fetches the unit's document and adds the
+AIA skin only when it is the pinned `ui_app.html`
+([ADR 0013](docs/architecture/adr/0013-interface-skin-at-the-facade.md),
+`AIA_INTERFACE_SKIN_ENABLED`, off by default); `/interface-document` is not an
+entry point. The gate is the whole of the unit's access control:
 it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as every
 API call, admits only what `ScopeResolver.authorize_legacy_panel` admits
 (organization owners and admins), and refuses a state-changing request whose

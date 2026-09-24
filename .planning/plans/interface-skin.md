@@ -86,17 +86,27 @@ area is re-homed.
       146 checks, 0 failures; palette and client-accent checks PASS in both
       themes; 4 token tests pass; lint, `tsc --noEmit`, `next build` clean;
       `npm audit` 13 findings against `develop`'s 14, none from Vitest.
-- [ ] 2. **The injector.** `apps/web` route `/interface-document`: fetch
-      `legacy-panel:8765/`, SHA256 against the pin, insert the stylesheet link
-      before `</head>` or pass through unchanged with `X-AIA-Skin: bypassed`;
-      `AIA_INTERFACE_SKIN_ENABLED` off by default. Caddy: `/` → `forward_auth` →
-      rewrite → web; direct `/interface-document` → 404; `/skin/*` → web.
-      Compose and `env.example`. Also route `/favicon.ico`, `/icon.svg` and
-      `/apple-icon.png` to the web client, which now serves AIA's identity
-      there and the unit would otherwise answer. — verify: unit tests of the pure injector
-      (applied, bypassed on mismatch, bypassed when off, no `</head>`), a test
-      that the pin equals `app-manifest.json`, `develop-host-config` validates
-      the Caddyfile, a local run end to end against the real `ui_server.py`.
+- [x] 2. **The injector.** `src/lib/interface-skin.ts` (`applySkin`, pure):
+      SHA256 against `PINNED_INTERFACE_SHA256`; on a match a `preload` before
+      `</head>` and the stylesheet before the last `</body>` — last, because
+      18.6.6 keeps three `<style>` blocks in `<body>` and appends nine to
+      `<head>` at runtime; anything else byte-for-byte with a named outcome.
+      `src/app/interface-document/route.ts` fetches `AIA_LEGACY_PANEL_URL` and
+      says what happened in `X-AIA-Skin`; unit errors pass through, an
+      unreachable unit is a 502. Caddy: `/` → `route { forward_auth → rewrite →
+      web }` (a bare `handle` re-sorts the rewrite ahead of the gate — proven,
+      `AGENTS.md` § Caddy); direct `/interface-document` → 404; `/skin/*` and
+      the icon set → web. Compose: `AIA_INTERFACE_SKIN_ENABLED: "false"` until
+      the skin exists, no `depends_on` the unit (OI-44). CI: a new
+      `develop-host-config` step asserts gate → rewrite → web and the direct
+      404. — measured: 20 web tests (pin = `app-manifest.json`; exactly two
+      tags added on the real document; off, mismatch, no head/body; route
+      against a local stub of the unit). End to end through the real Caddyfile
+      (upstreams pointed at localhost), the real `ui_server.py`, `next start`
+      and a stub gate: signed-out `/` → `/login?next=%2F` with the gate seeing
+      `/`; signed-in `/` 200 `X-AIA-Skin: applied`, 896 591 → 896 758 bytes;
+      direct injector 404; fonts and favicon ungated; unit paths gated. The
+      CI check fails on the swapped order and on the bare-`handle` form.
 - [ ] 3. **The variable layer.** `skin.css` generated from `tokens.json`:
       18.6.6's variables (`--bg`, `--card`, `--soft`, `--rail`, `--line`,
       `--line-strong`, `--ink`, `--mut`, `--faint`, `--brand*`, `--ok*`,

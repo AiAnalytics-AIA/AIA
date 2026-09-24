@@ -87,6 +87,13 @@ services:
       AIA_COGNITO_DOMAIN: ${AIA_COGNITO_DOMAIN}
       AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
       AIA_PUBLIC_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
+      # The 18.6.6 interface document at / is fetched from the unit and the AIA
+      # skin added when the document is the pinned one (ADR 0013). Off until the
+      # skin itself lands; off means the document is served byte-for-byte. No
+      # depends_on legacy-panel: without the unit, / answers 502 and every AIA
+      # page stays up (OI-44).
+      AIA_INTERFACE_SKIN_ENABLED: "false"
+      AIA_LEGACY_PANEL_URL: http://legacy-panel:8765
     expose: ["3000"]
     networks: [internal]
     read_only: true
