@@ -23,6 +23,7 @@ COMPOSE = DEVELOP / "docker-compose.yml"
 DEPLOY = DEVELOP / "bin" / "deploy.sh"
 SMOKE = DEVELOP / "bin" / "smoke.sh"
 WRITE_ENV = DEVELOP / "bin" / "write-env.sh"
+LIB = DEVELOP / "bin" / "lib.sh"
 
 
 def _service_block(text: str, name: str) -> str:
@@ -79,3 +80,27 @@ def test_the_env_file_quotes_every_value() -> None:
     text = WRITE_ENV.read_text(encoding="utf-8")
     assert 'printf "%s=\'%s\'\\n" "$key" "$value"' in text
     assert 'printf \'%s=%s\\n\' "$key" "$value"' not in text
+
+
+def test_a_changed_caddyfile_recreates_caddy() -> None:
+    """Caddy reads its Caddyfile only at start, and Compose recreates a container
+    only when its configuration changes, not when a bind-mounted file does. Run
+    14 (2026-09-24) deployed a new Caddyfile that the running Caddy never read
+    (OI-45). The file's hash is part of the service's configuration instead."""
+    caddy = _service_block(COMPOSE.read_text(encoding="utf-8"), "caddy")
+    label = r"^      aia\.caddyfile-sha256: \$\{AIA_CADDYFILE_SHA256:-unset\}$"
+    assert re.search(label, caddy, re.M), (
+        "caddy's configuration no longer carries the Caddyfile's hash"
+    )
+    lib = LIB.read_text(encoding="utf-8")
+    compose_at = lib.index("COMPOSE=(")
+    hash_at = lib.index('AIA_CADDYFILE_SHA256="$(sha256sum "$DEPLOY_DIR/Caddyfile"')
+    assert compose_at < hash_at < lib.index("export AIA_CADDYFILE_SHA256")
+    # Every script sources lib.sh before its first compose call, so they all agree.
+    assert '. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"' in DEPLOY.read_text(encoding="utf-8")
+
+
+def test_the_smoke_check_proves_caddy_runs_the_deployed_caddyfile() -> None:
+    text = SMOKE.read_text(encoding="utf-8")
+    assert 'code "$BASE/interface-document"' in text
+    assert '[ "$direct_code" = "404" ]' in text

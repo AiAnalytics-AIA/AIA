@@ -11,6 +11,19 @@ DEPLOY_DIR="${DEPLOY_DIR:-/opt/aia/develop}"
 ENV_FILE="${ENV_FILE:-$DEPLOY_DIR/.env}"
 COMPOSE=(docker compose --project-directory "$DEPLOY_DIR" --env-file "$ENV_FILE")
 
+# Caddy reads its Caddyfile once, at start, and `compose up` recreates a
+# container only when its image or its Compose configuration changes -- never
+# because the contents of a bind-mounted file did. The Caddyfile's hash is
+# therefore part of the caddy service's configuration (a label in
+# docker-compose.yml): a changed Caddyfile recreates Caddy on the next `up`, an
+# unchanged one restarts nothing. Deploy run 14 (2026-09-24) shipped a new
+# Caddyfile that the running Caddy never read (OI-45). Computed here so every
+# script that runs `compose up` sees the same value.
+if [ -f "$DEPLOY_DIR/Caddyfile" ]; then
+  AIA_CADDYFILE_SHA256="$(sha256sum "$DEPLOY_DIR/Caddyfile" | cut -d' ' -f1)"
+  export AIA_CADDYFILE_SHA256
+fi
+
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
 die() { log "ERROR: $*" >&2; exit 1; }
 

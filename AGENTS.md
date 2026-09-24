@@ -615,6 +615,29 @@ handle / {
 }
 ```
 
+**A Caddyfile change does not reach a running Caddy by itself.** Caddy reads
+the file once, at start, and `docker compose up -d` recreates a container only
+when its image or its Compose configuration changes. A bind-mounted file's
+*contents* are not part of that configuration, so a deploy that changes only
+the Caddyfile leaves Caddy on the old one and every smoke check still passes
+(OI-45: run 14 shipped the ADR 0013 routing and nobody could see it). Make the
+file's hash part of the service's configuration:
+
+```yaml
+# WRONG — editing ./Caddyfile never recreates Caddy
+caddy:
+  volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro"]
+
+# RIGHT — bin/lib.sh exports AIA_CADDYFILE_SHA256=$(sha256sum Caddyfile)
+caddy:
+  labels:
+    aia.caddyfile-sha256: ${AIA_CADDYFILE_SHA256:-unset}
+  volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro"]
+```
+
+And smoke-check something only the new file answers (here: `/interface-document`
+is Caddy's own 404), because checks the old routing also passes prove nothing.
+
 ## CI contracts
 
 **A contract assertion that outlives the contract is worse than none.** CI

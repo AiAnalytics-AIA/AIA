@@ -53,6 +53,11 @@ services:
       AIA_LEGACY_HOSTNAME: ${AIA_LEGACY_HOSTNAME:-legacy-unconfigured.localhost}
       AIA_LEGACY_BASIC_USER: ${AIA_LEGACY_BASIC_USER:-unconfigured}
       AIA_LEGACY_BASIC_HASH: ${AIA_LEGACY_BASIC_HASH:-$$2a$$14$$sy9kBdx8X2CPlJ78PHv3rea2RaYWuDCXnWR/wUpzucd5aARTiUnKa}
+    # The Caddyfile's hash, so a changed file changes this service's
+    # configuration and `compose up` recreates Caddy; Caddy reads the file only
+    # at start (bin/lib.sh, OI-45). Unset outside the deploy scripts.
+    labels:
+      aia.caddyfile-sha256: ${AIA_CADDYFILE_SHA256:-unset}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
