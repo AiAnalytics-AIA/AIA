@@ -183,9 +183,10 @@ function texts() {
 }
 
 // Classic text a rebuilt screen does not show. Compared without whitespace,
-// case or the pictographs and arrows the rebuilt screens draw as icons.
+// case or the pictographs, arrows and radio circles ("○ Každý den") the rebuilt
+// screens draw as icons or elements.
 export function missingIn(classic, rebuilt) {
-  const norm = (x) => x.replace(/[\p{Extended_Pictographic}\u2600-\u27BF+·•←→↗\uFE0F]/gu, "").replace(/\s+/g, "").toLowerCase();
+  const norm = (x) => x.replace(/[\p{Extended_Pictographic}\u2600-\u27BF\u25CB+·•←→↗\uFE0F]/gu, "").replace(/\s+/g, "").toLowerCase();
   const haystack = norm(`${rebuilt.full}\n${rebuilt.items.join("\n")}`);
   return classic.items.filter((x) => {
     const n = norm(x);
