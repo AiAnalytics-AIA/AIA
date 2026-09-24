@@ -740,6 +740,35 @@ on `apps/web/package-lock.json` — caching on a branch name gives a stale
 The client renders state the server computed. `GET …/impact` exists precisely so
 no component reasons about which stages an edit invalidates.
 
+**`react-hooks/set-state-in-effect` flags a load function called from an
+effect**, even when every `setState` in it runs after an `await`: the rule sees
+a state-setting function called in the effect body. Start the fetch in the effect
+and set state only in its promise callbacks, with a counter to reload:
+
+```tsx
+// WRONG — flagged: load() sets state, and is called from the effect body
+useEffect(() => { void load(); }, [load]);
+
+// RIGHT — state is set in callbacks; `setVersion(v => v + 1)` reloads
+useEffect(() => {
+  let live = true;
+  unit("projects").then(parseProjectRows).then((r) => live && setRows(r), (e) => live && setError(msg(e)));
+  return () => { live = false; };
+}, [version]);
+```
+
+A dialog that must start from a new initial value each time is a child that
+mounts per question (`useState(initial)`), not an effect that copies a prop.
+
+**`tsc --noEmit` fails while `next dev` regenerates `.next/**/types`.** Changing
+`next.config.ts` restarts the dev server, and for a few seconds
+`.next/dev/types/validator.ts` references routes that are not yet written
+(`TS2305 … AppRouteHandlerRoutes`). It is not the source: re-run when the dev
+log says *Ready*. CI never runs `next dev`, so it never sees this.
+
+**jsdom has no `<dialog>` modality.** `HTMLDialogElement.prototype.showModal` is
+missing; a component test stubs it to set `open` (`ProjectsScreen.test.tsx`).
+
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.

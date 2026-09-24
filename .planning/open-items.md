@@ -1469,6 +1469,37 @@ directly, which only the current Caddyfile answers with Caddy's own 404.
 `::test_the_smoke_check_proves_caddy_runs_the_deployed_caddyfile`; on the host,
 the smoke check *caddy: running the deployed Caddyfile*.
 
-**Status.** Fix on `claude/eager-meitner-9s1qky`. Immediate remedy on the host,
-without waiting for it: `docker compose up -d --force-recreate caddy` in
-`/opt/aia/develop`.
+**Status.** Fixed in PR #46 (`230ee7e`); deploy run 15 recreated Caddy and its
+smoke check *caddy: running the deployed Caddyfile* passed, 2026-09-24.
+
+## OI-46 · Finding · The classic rail says "Core joint · VALID" whatever the joint core's status is
+
+**Claim.** 18.6.6's last `updateState` override writes the rail's second status
+line as a literal — `Core joint` / `VALID` — without reading
+`BOOT.joint_core.status`, so every user is told the joint core is valid while
+the unit reports it is not.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:614 @ 7a2a9af`
+(`updateState=function(){…core.innerHTML='…Core joint…VALID…'}`).
+
+**Reproduction.** `make ui-workbench`, then
+`curl -s 127.0.0.1:8767/api/bootstrap | python3 -c "import json,sys;print(json.load(sys.stdin)['joint_core']['status'])"`
+prints `JOINT_UNVALIDATED`, while the classic rail at `127.0.0.1:8780/` reads
+*Core joint · VALID*. Whether develop's real panel reports otherwise is not
+known from here (no egress); the literal does not depend on it either way.
+
+**Consequence.** A certainty the backend does not grant is shown on every
+screen, next to a real one (*Claude Code · READY* does read the provider's
+status). This is the "never stamp a guess" failure (CLAUDE.md §8) in the
+product surface.
+
+**Smallest fix.** The unit is frozen (ADR 0011). The rebuilt rail
+(`apps/web/src/unit/shell.ts`, ADR 0014) prints the status the unit reports and
+nothing when it reports none; the classic rail keeps the literal until `/`
+moves.
+
+**Test that would have caught it.** `apps/web/src/unit/shell.test.ts`
+("prints the joint core status the unit reports, never a stamped VALID").
+
+**Status.** Fixed in the rebuilt interface; standing in the classic one.
+

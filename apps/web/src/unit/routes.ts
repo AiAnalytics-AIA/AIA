@@ -8,7 +8,10 @@ export const UNIT_ROUTES = {
   projects: "GET /api/projects",
   projectsDashboard: "GET /api/projects/dashboard",
   projectAction: "POST /api/projects/history-action",
+  projectsTrash: "GET /api/projects/trash",
   demos: "GET /api/demos",
+  bootstrap: "GET /api/bootstrap",
+  claudeCodeStatus: "GET /api/providers/claude-code/status",
   demoCopy: "POST /api/demos/copy",
 } as const;
 

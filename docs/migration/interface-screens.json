@@ -35,9 +35,16 @@
    },
    "title": "Správa projektů",
    "area": "A2",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILT",
+   "react_path": "/app/projects",
+   "unit_routes": [
+    "GET /api/projects",
+    "GET /api/projects/dashboard",
+    "POST /api/projects/history-action",
+    "GET /api/projects/trash",
+    "POST /api/demos/copy"
+   ],
+   "notes": "Trash view at /app/projects/trash. Open, new research/simulation and the portfolio dashboard hand off to the classic interface (ADR 0014 decision 7). Capture pair: 0 classic texts missing at 1440 and 1024. Status tones split running / waiting-on-you / waiting-on-the-world, which 18.6.6 paints alike."
   },
   {
    "id": "route-brief",

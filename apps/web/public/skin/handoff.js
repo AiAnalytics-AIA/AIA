@@ -9,6 +9,10 @@
  *   #aia:start=research           startProductionResearch() -- "+ Nový výzkum"
  *   #aia:start=simulation         startSimulationProduct1773()
  *   #aia:go=<route>               go(route), for a route the router knows
+ *   #aia:switch=research|simulation|library   switchProduct1776(kind) -- the rail's
+ *                                 "Výzkum" / "Simulace" / "Data Library"
+ *   #aia:assistant=open           openAssistant1791()       -- "AI asistent"
+ *   #aia:support=bundle           createSupportBundle(...)  -- "Diagnostika"
  *
  * It waits for the classic boot to finish (NPC_BOOT_STAGE === "ready"), clears
  * the fragment, and calls the classic interface's own function -- the one its
@@ -22,13 +26,16 @@
     "results", "verify", "next", "command", "data", "settings", "sim_context", "sim_change", "sim_people",
     "sim_run", "sim_results", "project_overview", "demos", "demo_project", "visualization",
   ];
-  var PATTERN = /^#aia:(open|start|go)=([A-Za-z0-9_-]{1,160})$/;
+  var PATTERN = /^#aia:(open|start|go|switch|assistant|support)=([A-Za-z0-9_-]{1,160})$/;
 
   function run(verb, arg) {
     if (verb === "open") return window.openProject1785(arg);
     if (verb === "start" && arg === "research") return window.startProductionResearch();
     if (verb === "start" && arg === "simulation") return window.startSimulationProduct1773();
     if (verb === "go" && ROUTES.indexOf(arg) >= 0) return window.go(arg);
+    if (verb === "switch" && ["research", "simulation", "library"].indexOf(arg) >= 0) return window.switchProduct1776(arg);
+    if (verb === "assistant" && arg === "open") return window.openAssistant1791();
+    if (verb === "support" && arg === "bundle") return window.createSupportBundle(window.LAST_FAILED_JOB_ID || "");
   }
 
   // On load, and again when a hand-off link is followed from this same page

@@ -100,15 +100,17 @@ describe("labels are the classic ones", () => {
       expect(ago(s, NOW), String(s)).toBe(call("pmAgo1810(__s)", { __s: s }));
     }
   });
-  it("statusTone is statusChip1796's class", () => {
-    const cls = { done: "ok", you: "warn", fault: "bad", neutral: "" } as const;
+  // Which classic class each tone replaces. Three tones share "warn": 18.6.6
+  // does not tell running from waiting-on-you from waiting-on-the-world.
+  it("statusTone refines statusChip1796's class, never contradicts it", () => {
+    const cls = { done: "ok", running: "warn", you: "warn", world: "warn", fault: "bad", neutral: "" } as const;
     for (const s of statuses) {
       const chip = call<string>("statusChip1796(__s)", { __s: s });
       expect(chip, String(s)).toContain(`class="chip ${cls[statusTone(s)]}"`);
     }
   });
   it("jobBadges is pmJobBadges1810, as data", () => {
-    const cls = { done: "ok", you: "warn", fault: "bad", neutral: "" } as const;
+    const cls = { done: "ok", running: "ok", you: "warn", world: "warn", fault: "bad", neutral: "" } as const;
     for (const r of ROWS) {
       const legacy = call<string>("pmJobBadges1810(__r)", { __r: r });
       const mine = jobBadges(r).map((b) => `<span class="chip${cls[b.tone] ? " " + cls[b.tone] : ""}">${b.label}</span>`).join("");

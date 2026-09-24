@@ -32,6 +32,7 @@ export type ProjectRow = {
   last_checkpoint?: string;
   last_completed_stage?: string;
   last_completed_artifact?: string;
+  deleted_at?: string;
   job_summary?: JobSummary;
   collection?: string;
 };
@@ -64,7 +65,7 @@ export class ShapeError extends Error {
 const STRING_FIELDS = [
   "title", "project_type", "status", "current_stage", "preferred_provider", "goal", "research_question",
   "takeaway", "study_result", "population", "client", "domain", "study_type", "modified_at", "created_at",
-  "last_checkpoint", "last_completed_stage", "last_completed_artifact", "collection",
+  "last_checkpoint", "last_completed_stage", "last_completed_artifact", "collection", "deleted_at",
 ] as const;
 const NUMBER_FIELDS = ["sample", "progress_pct", "revision"] as const;
 const BOOLEAN_FIELDS = ["is_demo", "archived", "pinned"] as const;
@@ -257,13 +258,21 @@ export function ago(s: string | undefined, now: number): string {
   return d <= 0 ? "dnes" : d === 1 ? "včera" : d < 31 ? `před ${d} dny` : String(s).slice(0, 10);
 }
 
-export type Tone = "done" | "you" | "fault" | "neutral";
+/**
+ * The design system's status families (docs/design/aia-design-system-brief.md
+ * §4.3). 18.6.6 paints running, waiting-on-you and waiting-on-the-world with
+ * the same "warn" class; that is the naive design the brief names, so here they
+ * are three tones. The parity test pins which classic class each tone replaces.
+ */
+export type Tone = "running" | "you" | "world" | "fault" | "done" | "neutral";
 
-/** statusChip1796: which family the status chip belongs to (ok / warn / bad in 18.6.6). */
+/** statusChip1796: which family a project status belongs to. */
 export function statusTone(x: string | undefined): Tone {
   const s = String(x ?? "").toUpperCase();
   if (s === "COMPLETED") return "done";
-  if (s.includes("WAITING") || s === "RUNNING" || s === "IN_PROGRESS") return "you";
+  if (s === "RUNNING" || s === "IN_PROGRESS") return "running";
+  if (s === "WAITING_USER") return "you";
+  if (s.includes("WAITING")) return "world";
   if (s === "FAILED") return "fault";
   return "neutral";
 }
@@ -272,9 +281,9 @@ export function statusTone(x: string | undefined): Tone {
 export function jobBadges(x: ProjectRow): { label: string; tone: Tone }[] {
   const j = x.job_summary ?? {};
   const out: { label: string; tone: Tone }[] = [];
-  if (j.running) out.push({ label: `${j.running} běží`, tone: "done" });
+  if (j.running) out.push({ label: `${j.running} běží`, tone: "running" });
   if (j.waiting_user) out.push({ label: `${j.waiting_user} čeká na vás`, tone: "you" });
-  if (j.waiting_ai) out.push({ label: `${j.waiting_ai} čeká na AI`, tone: "you" });
+  if (j.waiting_ai) out.push({ label: `${j.waiting_ai} čeká na AI`, tone: "world" });
   if (j.failed) out.push({ label: `${j.failed} selhalo`, tone: "fault" });
   if (j.queued) out.push({ label: `${j.queued} ve frontě`, tone: "neutral" });
   return out;

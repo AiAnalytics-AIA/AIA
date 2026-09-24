@@ -27,7 +27,13 @@ export function applyHandoff(
   return { outcome: "added", body: Buffer.from(html.slice(0, bodyEnd) + tag + html.slice(bodyEnd), "utf8") };
 }
 
-export type ClassicTarget = { open: string } | { start: "research" | "simulation" } | { go: string };
+export type ClassicTarget =
+  | { open: string }
+  | { start: "research" | "simulation" }
+  | { go: string }
+  | { switch: "research" | "simulation" | "library" }
+  | { assistant: "open" }
+  | { support: "bundle" };
 
 /** The link from a rebuilt screen to the classic interface, carrying one hand-off instruction. */
 export function classicHref(target?: ClassicTarget): string {

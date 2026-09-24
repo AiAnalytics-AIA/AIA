@@ -71,12 +71,15 @@ The data owner chose 3.
 7. **A hand-off, not a patch, joins the two interfaces.** The classic interface
    has no deep links: it opens a project from its own state. So a rebuilt screen
    links to `/#aia:open=<id>` (or `#aia:start=research|simulation`,
-   `#aia:go=<route>`), and the web client adds one script,
+   `#aia:go=<route>`, `#aia:switch=research|simulation|library`,
+   `#aia:assistant=open`, `#aia:support=bundle`), and the web client adds one script,
    `/skin/handoff.js`, to the pinned document while `/app` is on. After the
    classic boot reports `ready`, it clears the fragment and calls the classic
    interface's own function for that instruction — `openProject1785`,
-   `startProductionResearch`, `startSimulationProduct1773` or `go` for a route
-   its router knows — the function the classic button calls. It changes no DOM
+   `startProductionResearch`, `startSimulationProduct1773`, `go` for a route
+   its router knows, `switchProduct1776`, `openAssistant1791`,
+   `createSupportBundle` — the function the
+   classic button calls. It changes no DOM
    and calls nothing else; an instruction that does not match is ignored. The
    pin guarantees the names exist; `X-AIA-Handoff` says whether it was added.
    This is the one behaviour the web client adds to the classic document, and it

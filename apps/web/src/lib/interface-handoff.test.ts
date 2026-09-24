@@ -50,6 +50,9 @@ function page(hash: string, stage = "ready") {
     startProductionResearch: () => calls.push("start:research"),
     startSimulationProduct1773: () => calls.push("start:simulation"),
     go: (r: string) => calls.push(`go:${r}`),
+    switchProduct1776: (k: string) => calls.push(`switch:${k}`),
+    openAssistant1791: () => calls.push("assistant"),
+    createSupportBundle: (job: string) => calls.push(`support:${job}`),
   };
   const ctx = vm.createContext({ window: win, setTimeout: (f: () => void) => timers.push(f), console });
   vm.runInContext(script, ctx);
@@ -62,11 +65,14 @@ describe("handoff.js", () => {
     ["#aia:start=research", "start:research"],
     ["#aia:start=simulation", "start:simulation"],
     ["#aia:go=projects", "go:projects"],
+    ["#aia:switch=library", "switch:library"],
+    ["#aia:assistant=open", "assistant"],
+    ["#aia:support=bundle", "support:"],
   ])("%s calls the classic function once boot is ready", (hash, expected) => {
     expect(page(hash).calls).toEqual(["replaceState", expected]);
   });
 
-  it.each([["#aia:go=renderHome"], ["#aia:start=anything"], ["#aia:open=a b"], ["#aia:eval=x"], ["#projects"], [""]])(
+  it.each([["#aia:go=renderHome"], ["#aia:start=anything"], ["#aia:switch=home"], ["#aia:assistant=close"], ["#aia:open=a b"], ["#aia:eval=x"], ["#projects"], [""]])(
     "ignores %j",
     (hash) => {
       expect(page(hash).calls.filter((c) => c !== "replaceState")).toEqual([]);

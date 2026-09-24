@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   // .next/standalone/apps/web/server.js -- a layout that differs between a
   // checkout (repository root present) and the image (apps/web alone).
   outputFileTracingRoot: path.join(__dirname),
+  // `next dev` only: the rebuilt interface's rail keeps its footer link at the
+  // bottom left, where the indicator would sit on top of it.
+  devIndicators: { position: "bottom-right" },
 };
 
 export default nextConfig;
