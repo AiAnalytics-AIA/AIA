@@ -11,6 +11,10 @@ and the develop seed provisions its world for ``WORKBENCH_EMAIL``: the synthetic
 client and the two fictional clients with their studies and knowledge. Nothing
 here reaches a provider: no model is configured and no worker runs.
 
+``--panel-origin`` also switches on the legacy-panel gate (ADR 0012) for that
+origin, for the develop routing proof (tools/develop_routing_proof.py), where
+Caddy asks it before every gated path.
+
 Needs the repository's own Python environment (``make setup``), not the
 workbench venv, which holds the 18.6.6 unit's requirements.
 """
@@ -27,7 +31,7 @@ DB = HOME / "aia.sqlite"
 WORKBENCH_EMAIL = "workbench@example.invalid"
 
 
-def build(db: Path) -> object:
+def build(db: Path, panel_origin: str = "") -> object:
     from aia_api.config import Environment, Settings
     from aia_api.main import create_app
     from aia_core.application.develop_seed import seed_develop
@@ -40,6 +44,8 @@ def build(db: Path) -> object:
         identity_provider="development",
         log_level="WARNING",
         log_format="console",
+        legacy_panel_enabled=bool(panel_origin),
+        legacy_panel_origin=panel_origin,
     )
     app = create_app(settings)
     return app, Base, seed_develop, Session
@@ -49,15 +55,18 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--port", type=int, default=8766)
     ap.add_argument("--fresh", action="store_true", help="start from an empty database")
+    ap.add_argument("--db", default=str(DB), help="the SQLite file")
+    ap.add_argument("--panel-origin", default="", help="switch the legacy-panel gate on")
     args = ap.parse_args(argv)
 
     import uvicorn
     from fastapi.testclient import TestClient
 
-    HOME.mkdir(parents=True, exist_ok=True)
+    db = Path(args.db)
+    db.parent.mkdir(parents=True, exist_ok=True)
     if args.fresh:
-        DB.unlink(missing_ok=True)
-    app, base, seed_develop, session_cls = build(DB)
+        db.unlink(missing_ok=True)
+    app, base, seed_develop, session_cls = build(db, args.panel_origin)
     # Startup builds the engine; create the schema and seed through it once.
     with TestClient(app):  # type: ignore[arg-type]
         engine = app.state.engine  # type: ignore[attr-defined]
