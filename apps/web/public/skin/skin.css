@@ -595,3 +595,31 @@ td {
     opacity: 1;
   }
 }
+
+/* ---- The hand-off bar (ADR 0015) -------------------------------------------
+ * handoff.js adds one element to the classic page: it says this is the classic
+ * interface, temporarily, and leads back to the AIA page the person came from. */
+
+.aia-return-bar {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--aia-surface-inverse);
+  color: var(--aia-ink-inverse);
+  border-radius: var(--aia-radius-md);
+  box-shadow: var(--aia-shadow-overlay);
+  font-family: var(--aia-font-sans-stack);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.aia-return-bar a {
+  color: var(--aia-ink-inverse);
+  font-weight: 600;
+  text-decoration: underline;
+}

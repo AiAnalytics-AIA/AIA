@@ -31,31 +31,45 @@ code() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$@"; }
 echo "Smoke: $BASE expecting build $SHA"
 echo
 
-# --- web and the 18.6.6 interface (ADR 0012) --------------------------------
-# `/` is the 18.6.6 interface behind AIA sign-in: anonymous, a browser is sent
-# to /login and a data request is refused. Both answers come from the API's
-# gate, so they also prove Caddy asks it before forwarding to the unit.
-root_headers="$(curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' "$BASE/" || true)"
-root_code="$(printf '%s' "$root_headers" | awk 'NR==1{print $2}')"
-root_location="$(printf '%s' "$root_headers" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')"
-if [ "$root_code" = "302" ] && [ "$root_location" = "/login?next=%2F" ]; then
-  pass "web: an anonymous visit to / is sent to sign-in (302 /login)"
-else fail "web: an anonymous visit to / is sent to sign-in" "got ${root_code} Location '${root_location}'"; fi
+# --- web: AIA is the product; 18.6.6 is an explicit hand-off (ADR 0015) -----
+headers() { curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' "$1" || true; }
+status_of() { printf '%s' "$1" | awk 'NR==1{print $2}'; }
+location_of() { printf '%s' "$1" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}'; }
 
-# The rebuilt interface (ADR 0014) is behind the same gate: anonymous, a browser
-# is sent to sign-in and comes back to /app. A 200 here would mean the React
-# screens are public; a 404 from Caddy, that the running Caddy predates @rehome.
-app_headers="$(curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' "$BASE/app" || true)"
-app_code="$(printf '%s' "$app_headers" | awk 'NR==1{print $2}')"
-app_location="$(printf '%s' "$app_headers" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')"
-if [ "$app_code" = "302" ] && [ "$app_location" = "/login?next=%2Fapp" ]; then
-  pass "web: an anonymous visit to /app is sent to sign-in (302 /login)"
-else fail "web: an anonymous visit to /app is sent to sign-in" "got ${app_code} Location '${app_location}'"; fi
+# `/` is the front door of AIA: Caddy itself answers 302 /app/clients, so the
+# NPC Panel 18.6.6 document is never what the product hostname opens.
+root_headers="$(headers "$BASE/")"
+root_code="$(status_of "$root_headers")"; root_location="$(location_of "$root_headers")"
+if [ "$root_code" = "302" ] && [ "$root_location" = "/app/clients" ]; then
+  pass "web: / opens AIA (302 /app/clients), not the 18.6.6 document"
+else fail "web: / opens AIA (302 /app/clients)" "got ${root_code} Location '${root_location}'"; fi
 
-# The interface document is reached only through the gated rewrite of `/`
-# (ADR 0013); asked for directly, Caddy itself answers 404. Anything else means
-# the running Caddy is not on the deployed Caddyfile -- how run 14 left the
-# skin unseen with every other check green (OI-45).
+# AIA is behind the gate: anonymous, a browser is sent to sign-in and comes back
+# to /app/clients. A 200 would mean the screens are public; a 404 from Caddy,
+# that the running Caddy predates @rehome.
+app_headers="$(headers "$BASE/app/clients")"
+app_code="$(status_of "$app_headers")"; app_location="$(location_of "$app_headers")"
+if [ "$app_code" = "302" ] && [ "$app_location" = "/login?next=%2Fapp%2Fclients" ]; then
+  pass "web: an anonymous visit to /app/clients is sent to sign-in (302 /login)"
+else fail "web: an anonymous visit to /app/clients is sent to sign-in" "got ${app_code} Location '${app_location}'"; fi
+
+# The classic interface is served only at /classic, behind the same gate.
+classic_headers="$(headers "$BASE/classic")"
+classic_code="$(status_of "$classic_headers")"; classic_location="$(location_of "$classic_headers")"
+if [ "$classic_code" = "302" ] && [ "$classic_location" = "/login?next=%2Fclassic" ]; then
+  pass "web: the classic interface is a gated hand-off at /classic (302 /login)"
+else fail "web: the classic interface is a gated hand-off at /classic" "got ${classic_code} Location '${classic_location}'"; fi
+
+# No catch-all to the unit: a path neither AIA nor the unit serves is the web
+# client's own 404, not a gate answer (302/401) from a forward to 18.6.6.
+stray_code="$(code -H 'Accept: text/html' "$BASE/no-such-page")"
+if [ "$stray_code" = "404" ]; then pass "web: an unknown path is AIA's 404, never the 18.6.6 unit"
+else fail "web: an unknown path is AIA's 404" "GET /no-such-page returned ${stray_code}, expected 404"; fi
+
+# The interface document is reached only through the gated rewrite of /classic
+# (ADR 0013, 0015); asked for directly, Caddy itself answers 404. Anything else
+# means the running Caddy is not on the deployed Caddyfile -- how run 14 left
+# the skin unseen with every other check green (OI-45).
 direct_code="$(code "$BASE/interface-document")"
 if [ "$direct_code" = "404" ]; then
   pass "caddy: running the deployed Caddyfile (/interface-document answers 404)"

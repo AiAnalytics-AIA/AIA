@@ -12,7 +12,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { DIMENSION_RESEARCH_KEY, classicHref } from "@/lib/interface-handoff";
+import { DIMENSION_RESEARCH_KEY, classicHref, rememberReturn } from "@/lib/interface-handoff";
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
 import { type Catalog, loadAudienceCatalog } from "@/unit/research/audience";
@@ -295,6 +295,7 @@ function openResearch(label: string) {
   } catch {
     // Without storage the classic page opens without the topic filled in.
   }
+  rememberReturn(window.location.pathname + window.location.search);
   window.location.href = classicHref({ dimension: "research" });
 }
 

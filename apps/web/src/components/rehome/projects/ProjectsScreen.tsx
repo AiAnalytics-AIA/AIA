@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { classicHref } from "@/lib/interface-handoff";
+import { classicHref, rememberReturn } from "@/lib/interface-handoff";
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
 import {
@@ -117,6 +117,7 @@ export function ProjectsScreen() {
       const r = (await unit("projectAction", { body, timeoutMs: 30_000 })) as { project_id?: unknown };
       if (action === "duplicate" && typeof r.project_id === "string") {
         setToast(t("projects.duplicateDone"));
+        rememberReturn(window.location.pathname + window.location.search);
         window.location.assign(classicHref({ open: r.project_id }));
         return;
       }
@@ -133,7 +134,10 @@ export function ProjectsScreen() {
     try {
       const r = (await unit("demoCopy", { body: { project_id: row.project_id }, timeoutMs: 30_000 })) as { project_id?: unknown };
       setToast(t("projects.copyDemoDone"));
-      if (typeof r.project_id === "string") window.location.assign(classicHref({ open: r.project_id }));
+      if (typeof r.project_id === "string") {
+        rememberReturn(window.location.pathname + window.location.search);
+        window.location.assign(classicHref({ open: r.project_id }));
+      }
     } catch (e) {
       setToast(message(e));
     }

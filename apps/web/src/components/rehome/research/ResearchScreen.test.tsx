@@ -42,7 +42,7 @@ describe("ResearchScreen", () => {
   it("draws the step in the shell with the project's steps, and hands a step not yet rebuilt to the classic interface", async () => {
     unitStub(() => ({ project_id: "PRJ-1", revision: 2, project_type: "research", project: { title: "Alfa" }, analysis: null }));
     render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("link", { name: /Otevřít krok v klasickém rozhraní/ })).toHaveProperty("href", "http://localhost:3000/#aia:open=PRJ-1@run");
+    expect(await screen.findByRole("link", { name: /Otevřít krok v klasickém rozhraní/ })).toHaveProperty("href", "http://localhost:3000/classic#aia:open=PRJ-1@run");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("6. Finální kontrola & spuštění");
     expect(screen.getByText(/VÝZKUM · KROK 6 \/ 7/)).toBeTruthy();
     const rail = screen.getByRole("navigation", { name: "Fáze výzkumu" });
@@ -59,7 +59,7 @@ describe("ResearchScreen", () => {
     unitStub(() => ({ is_demo: true }));
     render(<ResearchScreen projectId="PRJ-DEMO-1" step="brief" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Toto je DEMO projekt/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Otevřít v klasickém rozhraní/ }).getAttribute("href")).toBe("/#aia:open=PRJ-DEMO-1");
+    expect(screen.getByRole("link", { name: /Otevřít v klasickém rozhraní/ }).getAttribute("href")).toBe("/classic#aia:open=PRJ-DEMO-1");
   });
 
   it("says why a project could not be loaded, and retries", async () => {

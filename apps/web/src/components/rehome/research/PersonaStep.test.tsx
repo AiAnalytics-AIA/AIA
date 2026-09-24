@@ -207,6 +207,6 @@ describe("Dimenze", () => {
     fireEvent.click(research);
     spy.mockRestore();
     expect(window.sessionStorage.getItem(DIMENSION_RESEARCH_KEY)).toBe("Důvěra v AI");
-    expect(loc.href).toBe("/#aia:dimension=research");
+    expect(loc.href).toBe("/classic#aia:dimension=research");
   });
 });
