@@ -154,10 +154,15 @@ area is re-homed.
       1024 px; the +35 % Czech stress at 1280 px — no clipped control, no page
       scroll, the same result unskinned. Not yet seen: screens with real data
       (chunk 5).
-- [ ] 5. **Live baseline.** `tools/interface_screens.mjs`: every view above
-      captured from the oracle (unskinned) and from a local skinned copy, side by
-      side. **Blocked** on oracle access (Baseline, above).
-- [ ] 6. **Per-area passes**, one PR each, in this order: home and projects;
+- [x] 5. **Baseline, locally.** Replaced by the UI workbench
+      ([ui-workbench.md](ui-workbench.md)): the real `ui_app.html` on a fictional
+      panel, every route its router knows plus the DEMO views, captured bare and
+      skinned by `tools/ui_workbench/capture.mjs`. The oracle-with-real-data
+      capture stays optional (it needs egress and an identity; ui-workbench.md).
+- [ ] 6. **Per-area passes** — now only while an area waits for its React
+      rebuild ([ADR 0014](../../docs/architecture/adr/0014-rebuild-the-interface-in-react.md),
+      [interface-rehome.md](interface-rehome.md)); each area's skin rules are
+      deleted when `/` moves. Original order, one PR each, in this order: home and projects;
       research flow (brief → plan → questionnaire → audience → persona → run);
       results and verify; command centre; simulation (`fullsim`, `sim_run`,
       `sim_change`); data library; settings; demos; Sociomap (its own seven
@@ -170,8 +175,9 @@ area is re-homed.
       new Caddyfile (OI-45). Fixed by hashing the Caddyfile into the caddy
       service's configuration, with a smoke check that only the current
       Caddyfile passes.
-- [ ] 7. **Promote.** ADR 0013 → Accepted after the first skinned deploy is seen
-      working on develop; plan → `done/`.
+- [x] 7. **Promote.** ADR 0013 → Accepted, 2026-09-24: the data owner saw the
+      skin on develop (run 15, `230ee7e`). The plan stays open for 6 until the
+      re-home retires it.
 
 ## Hard-coded overrides
 

@@ -54,11 +54,17 @@ apps/
                             panel (the session + gate in front of the 18.6.6 interface, ADR 0012)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout (the front door
-                            to the 18.6.6 interface) and the live /studies pages; no mock data.
+                            to the 18.6.6 interface), the live /studies pages, and /app: the
+                            interface rebuilt in React, area by area (ADR 0014); no mock data.
+    src/app/app/            The rebuilt interface, gated like `/`, AIA_INTERFACE_REHOME_ENABLED
+    src/components/rehome/  Its shell, primitives (token utilities only) and one folder per area
+    src/unit/               The ONLY way it reaches the unit: routes named by ledger row, parsers,
+                            and each area's logic ported from the JS (parity-tested under Node)
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
-    public/skin/            Self-hosted fonts (OFL), identity and skin.css, served at /skin/ (ADR 0013)
+    public/skin/            Self-hosted fonts (OFL), identity and skin.css, served at /skin/ (ADR 0013);
+                            handoff.js: /app's links into the classic interface (#aia:open=…, ADR 0014)
     src/skin/               The 18.6.6 skin's sources: legacy-variables.json (each 18.6.6 variable ->
                             a token, with why) and components.css (token-only rules, linted)
     scripts/build-skin.mjs  -> public/skin/skin.css; refuses raw colour/radius/shadow/font values
@@ -150,11 +156,12 @@ migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
-docs/architecture/          System design + 13 ADRs; ai-step-executor-contract.md
+docs/architecture/          System design + 14 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
   legacy-route-ledger.json  The strangler's route ledger: 153 legacy routes, LEGACY/PORTING/PORTED/RETIRED
+  interface-screens.json    Every classic screen (router routes + DEMO views) and its React rebuild state (ADR 0014)
   legacy-ui-functions.json  The 88 research functions of ui_app.html (+ recorded additions), hash-pinned
 docs/product/               Authoritative product scope
 docs/archive/original-mvp/  Superseded. NOT requirements.
@@ -166,6 +173,10 @@ tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / comp
 tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; check the UI ledger
 tools/ui_function_runner.mjs, ui_function_capture.py
                             Run extracted functions under Node; capture U<nn> fixtures
+tools/ui_workbench/         The real 18.6.6 interface + the web client on this machine, for UI work;
+                            capture.mjs screenshots every screen and measures what the skin missed:
+                            the unit on a scratch copy with a fictional panel, `next dev`, the skin
+                            rebuilt on save, a facade routed by the Caddyfile's @web. Never parity
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
@@ -273,6 +284,8 @@ ungated fixture.
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
 | Web tests | `make test-web` (Vitest, pure functions) |
 | **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, `npm run tokens`, `npm run skin` |
+| **UI workbench** | `make ui-workbench` → <http://127.0.0.1:8780/> skinned, `:8767` bare; `make ui-workbench-status`, `make ui-workbench-down`. First run installs the unit's requirements into `tmp/ui-workbench/venv` |
+| **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every router route and DEMO view, bare and skinned, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |

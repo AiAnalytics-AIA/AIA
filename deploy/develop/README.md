@@ -117,6 +117,7 @@ the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
 | `/login`, `/logout`, `/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`, `/skin/*`, `/favicon.ico`, `/icon.svg`, `/apple-icon.png` | the AIA web client |
 | `/` | after `forward_auth` to `GET /api/v1/panel/gate`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin when it applies ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) |
 | `/interface-document` (requested directly) | 404 |
+| `/app`, `/app/*` | after the same `forward_auth`, the web client: the interface rebuilt in React ([ADR 0014](../../docs/architecture/adr/0014-rebuild-the-interface-in-react.md)); 404 while `AIA_INTERFACE_REHOME_ENABLED` is off. While on, `/` also carries `/skin/handoff.js` (response header `X-AIA-Handoff: added`) so `/app`'s links can open a project in the classic interface |
 | everything else | `legacy-panel`, after `forward_auth` to `GET /api/v1/panel/gate` |
 
 - **Who gets in.** An active member of the organization whose role is `OWNER`

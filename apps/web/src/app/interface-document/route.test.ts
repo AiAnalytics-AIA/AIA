@@ -24,6 +24,7 @@ afterAll(async () => {
 });
 afterEach(() => {
   vi.stubEnv("AIA_INTERFACE_SKIN_ENABLED", "");
+  vi.stubEnv("AIA_INTERFACE_REHOME_ENABLED", "");
   vi.restoreAllMocks();
 });
 
@@ -51,6 +52,7 @@ describe("GET /interface-document", () => {
     serve(200, realDocument);
     const res = await GET();
     expect(res.headers.get("x-aia-skin")).toBe("bypassed-disabled");
+    expect(res.headers.get("x-aia-handoff")).toBe("bypassed-disabled");
     expect(Buffer.from(await res.arrayBuffer()).equals(realDocument)).toBe(true);
   });
 
@@ -76,6 +78,31 @@ describe("GET /interface-document", () => {
     expect(res.status).toBe(503);
     expect(res.headers.get("x-aia-skin")).toBe("bypassed-upstream-status");
     expect(await res.text()).toBe("starting");
+  });
+
+  it("adds the hand-off script to the pinned document while the rebuilt interface is on", async () => {
+    serve(200, realDocument);
+    vi.stubEnv("AIA_INTERFACE_SKIN_ENABLED", "true");
+    vi.stubEnv("AIA_INTERFACE_REHOME_ENABLED", "true");
+    const res = await GET();
+    const html = await res.text();
+    expect(res.headers.get("x-aia-handoff")).toBe("added");
+    expect(html).toContain('<script src="/skin/handoff.js?v=abc1234" data-aia-handoff="ADR-0014"></script></body>');
+    expect(html).toContain('data-aia-skin="ADR-0013">');
+  });
+
+  it("adds the hand-off without the skin, and neither to an unpinned document", async () => {
+    serve(200, realDocument);
+    vi.stubEnv("AIA_INTERFACE_REHOME_ENABLED", "true");
+    let res = await GET();
+    expect(res.headers.get("x-aia-skin")).toBe("bypassed-disabled");
+    expect(res.headers.get("x-aia-handoff")).toBe("added");
+    expect(await res.text()).not.toContain("data-aia-skin");
+
+    serve(200, Buffer.concat([realDocument, Buffer.from("\n")]));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    res = await GET();
+    expect(res.headers.get("x-aia-handoff")).toBe("bypassed-hash-mismatch");
   });
 
   it("answers 502 when the unit is unreachable", async () => {

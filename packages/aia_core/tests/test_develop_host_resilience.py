@@ -104,3 +104,13 @@ def test_the_smoke_check_proves_caddy_runs_the_deployed_caddyfile() -> None:
     text = SMOKE.read_text(encoding="utf-8")
     assert 'code "$BASE/interface-document"' in text
     assert '[ "$direct_code" = "404" ]' in text
+
+
+def test_the_rebuilt_interface_is_switched_on_for_develop_and_smoke_checked() -> None:
+    # ADR 0014: /app renders only with the switch on, and the smoke check proves
+    # an anonymous browser is sent to sign-in there, never served the screens.
+    web = _service_block(COMPOSE.read_text(encoding="utf-8"), "web")
+    assert 'AIA_INTERFACE_REHOME_ENABLED: "true"' in web
+    text = SMOKE.read_text(encoding="utf-8")
+    assert '"$BASE/app"' in text
+    assert '[ "$app_location" = "/login?next=%2Fapp" ]' in text

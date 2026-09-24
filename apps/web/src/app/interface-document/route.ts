@@ -1,7 +1,10 @@
 import { buildIdentity } from "@/lib/build";
+import { applyHandoff } from "@/lib/interface-handoff";
 import { applySkin, skinEnabledFrom, type SkinOutcome } from "@/lib/interface-skin";
+import { REHOME_SWITCH, rehomeEnabledFrom } from "@/lib/rehome";
 
-// The 18.6.6 interface document, with the AIA skin when it applies (ADR 0013).
+// The 18.6.6 interface document, with the AIA skin when it applies (ADR 0013)
+// and the rebuilt interface's hand-off script while /app is on (ADR 0014).
 //
 // Reachable only through Caddy's rewrite of `/`, after the same forward_auth gate
 // that fronts every unit path; a direct request for this path is answered 404 at
@@ -61,8 +64,18 @@ export async function GET(): Promise<Response> {
   if (decision.outcome !== "applied" && decision.outcome !== "bypassed-disabled") {
     log(decision.outcome, { received_sha256: decision.receivedSha256 });
   }
-  return new Response(new Uint8Array(decision.body), {
+  // Decided on the unit's bytes, as the skin is; added to whatever the skin returned.
+  const handoff = applyHandoff(decision.body, decision.receivedSha256, {
+    enabled: rehomeEnabledFrom(process.env[REHOME_SWITCH]),
+    version: buildVersion(),
+  });
+  return new Response(new Uint8Array(handoff.body), {
     status: 200,
-    headers: { ...NO_STORE, "Content-Type": contentType, "X-AIA-Skin": decision.outcome },
+    headers: {
+      ...NO_STORE,
+      "Content-Type": contentType,
+      "X-AIA-Skin": decision.outcome,
+      "X-AIA-Handoff": handoff.outcome,
+    },
   });
 }

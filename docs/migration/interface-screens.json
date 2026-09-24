@@ -1,0 +1,340 @@
+{
+ "schema_version": 1,
+ "description": "Every screen of the classic 18.6.6 interface and where its React rebuild stands (ADR 0014). The routes are the ones its router knows, parsed from ui_app.html by tools/ui_workbench/capture.mjs routesFrom() (aliases folded: demo->home, sociomap->visualization, production->home, fullsim->sim_context); the DEMO views are one per collection with their tabs. A screen is REBUILT only with its capture pair in the workbench and its tests.",
+ "statuses": {
+  "CLASSIC": "served by the frozen unit at /, skinned (ADR 0013)",
+  "REBUILDING": "a React screen exists under /app but does not yet carry everything the classic one shows",
+  "REBUILT": "the React screen carries every label, control and state of the classic one; capture pair and tests"
+ },
+ "areas": {
+  "A1": "Shell",
+  "A2": "Projects",
+  "A3": "DEMO project",
+  "A4": "Research flow",
+  "A5": "Simulation flow",
+  "A6": "Project overview",
+  "A7": "Data Library, Settings, AI assistant",
+  "A8": "Visualization / Sociomap"
+ },
+ "screens": [
+  {
+   "id": "route-home",
+   "classic": {
+    "route": "home"
+   },
+   "title": "Co chcete udělat?",
+   "area": "A1",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-projects",
+   "classic": {
+    "route": "projects"
+   },
+   "title": "Správa projektů",
+   "area": "A2",
+   "status": "REBUILT",
+   "react_path": "/app/projects",
+   "unit_routes": [
+    "GET /api/projects",
+    "GET /api/projects/dashboard",
+    "POST /api/projects/history-action",
+    "GET /api/projects/trash",
+    "POST /api/demos/copy"
+   ],
+   "notes": "Trash view at /app/projects/trash. Open, new research/simulation and the portfolio dashboard hand off to the classic interface (ADR 0014 decision 7). Capture pair: 0 classic texts missing at 1440 and 1024. Status tones split running / waiting-on-you / waiting-on-the-world, which 18.6.6 paints alike."
+  },
+  {
+   "id": "route-brief",
+   "classic": {
+    "route": "brief"
+   },
+   "title": "1. Zadání",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-plan",
+   "classic": {
+    "route": "plan"
+   },
+   "title": "2. Návrh",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-questionnaire",
+   "classic": {
+    "route": "questionnaire"
+   },
+   "title": "3. Dotazník",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-audience",
+   "classic": {
+    "route": "audience"
+   },
+   "title": "4. Audience / Cílová skupina",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-persona",
+   "classic": {
+    "route": "persona"
+   },
+   "title": "5. Dimenze",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-run",
+   "classic": {
+    "route": "run"
+   },
+   "title": "6. Finální kontrola & spuštění",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-research_progress",
+   "classic": {
+    "route": "research_progress"
+   },
+   "title": "Výzkum probíhá",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-results",
+   "classic": {
+    "route": "results"
+   },
+   "title": "7. Výsledky",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-verify",
+   "classic": {
+    "route": "verify"
+   },
+   "title": "8. Ověření & kontext",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-next",
+   "classic": {
+    "route": "next"
+   },
+   "title": "9. Další krok · Ideální skupina",
+   "area": "A4",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-command",
+   "classic": {
+    "route": "command"
+   },
+   "title": "Command Center",
+   "area": "A7",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-data",
+   "classic": {
+    "route": "data"
+   },
+   "title": "Data Library",
+   "area": "A7",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-settings",
+   "classic": {
+    "route": "settings"
+   },
+   "title": "AI nastavení",
+   "area": "A7",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-sim_context",
+   "classic": {
+    "route": "sim_context"
+   },
+   "title": "Simulace · 1. Kontext",
+   "area": "A5",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-sim_change",
+   "classic": {
+    "route": "sim_change"
+   },
+   "title": "Simulace · 2. Změna",
+   "area": "A5",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-sim_people",
+   "classic": {
+    "route": "sim_people"
+   },
+   "title": "Simulace · 2. Změna",
+   "area": "A5",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-sim_run",
+   "classic": {
+    "route": "sim_run"
+   },
+   "title": "Simulace · 4. Spustit",
+   "area": "A5",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-sim_results",
+   "classic": {
+    "route": "sim_results"
+   },
+   "title": "Simulace · 5. Výsledky",
+   "area": "A5",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-project_overview",
+   "classic": {
+    "route": "project_overview"
+   },
+   "title": "Projekt",
+   "area": "A6",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-demos",
+   "classic": {
+    "route": "demos"
+   },
+   "title": "Dema",
+   "area": "A3",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-demo_project",
+   "classic": {
+    "route": "demo_project"
+   },
+   "title": "Dema",
+   "area": "A3",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "route-visualization",
+   "classic": {
+    "route": "visualization"
+   },
+   "title": "Sociomapa",
+   "area": "A8",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "demo-complete",
+   "classic": {
+    "demo_collection": "complete",
+    "tabs": "every tab of .demoTabs1795 except Sociomapa"
+   },
+   "title": "DEMO · complete",
+   "area": "A3",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "demo-showcase",
+   "classic": {
+    "demo_collection": "showcase",
+    "tabs": "every tab of .demoTabs1795 except Sociomapa"
+   },
+   "title": "DEMO · showcase",
+   "area": "A3",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "demo-visualization-showcase",
+   "classic": {
+    "demo_collection": "visualization_showcase",
+    "tabs": "every tab of .demoTabs1795 except Sociomapa"
+   },
+   "title": "DEMO · visualization_showcase",
+   "area": "A3",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  },
+  {
+   "id": "demo-simulation",
+   "classic": {
+    "demo_collection": "simulation",
+    "tabs": "every tab of .demoTabs1795 except Sociomapa"
+   },
+   "title": "DEMO · simulation",
+   "area": "A3",
+   "status": "CLASSIC",
+   "react_path": null,
+   "unit_routes": []
+  }
+ ]
+}

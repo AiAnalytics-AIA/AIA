@@ -98,6 +98,9 @@ services:
       # `docker compose up -d web`. No depends_on legacy-panel: without the
       # unit, / answers 502 and every AIA page stays up (OI-44).
       AIA_INTERFACE_SKIN_ENABLED: "true"
+      # The rebuilt interface at /app (ADR 0014), behind the same gate as /.
+      # "false" makes every /app path a 404; the classic interface is untouched.
+      AIA_INTERFACE_REHOME_ENABLED: "true"
       AIA_LEGACY_PANEL_URL: http://legacy-panel:8765
     expose: ["3000"]
     networks: [internal]
