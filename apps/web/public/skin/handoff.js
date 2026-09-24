@@ -6,8 +6,8 @@
  * the URL fragment, which never reaches a server:
  *
  *   #aia:open=<project id>        openProject1785(id)       -- "Otevřít"
- *   #aia:open=<project id>@<route>   the same, then go(route) once it has loaded:
- *                                 a rebuilt research step handing off to one that is not
+ *   #aia:open=<project id>@<route>   the same, landing on go(route) instead of the
+ *                                 overview: a rebuilt research step handing off to one that is not
  *   #aia:start=research           startProductionResearch() -- "+ Nový výzkum"
  *   #aia:start=simulation         startSimulationProduct1773()
  *   #aia:go=<route>               go(route), for a route the router knows
@@ -33,9 +33,32 @@
   function run(verb, arg, step) {
     if (verb === "open" && step) {
       if (ROUTES.indexOf(step) < 0) return;
-      return Promise.resolve(window.openProject1785(arg)).then(function () {
-        window.go(step);
-      });
+      // openProject1785 ends with go('project_overview'), and that screen draws
+      // itself asynchronously: a go(step) after it is painted over a moment
+      // later. So while the project opens, that one call draws the step instead.
+      var go = window.go;
+      var swapped = false;
+      window.go = function (route) {
+        if (route === "project_overview" && !swapped) {
+          swapped = true;
+          window.go = go;
+          return go(step);
+        }
+        return go.apply(this, arguments);
+      };
+      var restore = function () {
+        if (window.go !== go) window.go = go;
+      };
+      return Promise.resolve(window.openProject1785(arg)).then(
+        function () {
+          restore();
+          if (!swapped) go(step);
+        },
+        function (e) {
+          restore();
+          throw e;
+        },
+      );
     }
     if (verb === "open") return window.openProject1785(arg);
     if (verb === "start" && arg === "research") return window.startProductionResearch();

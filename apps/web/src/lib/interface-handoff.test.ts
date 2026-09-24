@@ -48,7 +48,11 @@ function page(hash: string, stage = "ready") {
     NPC_BOOT_STAGE: stage,
     location: { hash, pathname: "/", search: "" },
     history: { replaceState: () => calls.push("replaceState") },
-    openProject1785: (id: string) => calls.push(`open:${id}`),
+    // As the classic one does: it ends on the project overview.
+    openProject1785: (id: string) => {
+      calls.push(`open:${id}`);
+      (win.go as (r: string) => void)("project_overview");
+    },
     startProductionResearch: () => calls.push("start:research"),
     startSimulationProduct1773: () => calls.push("start:simulation"),
     go: (r: string) => calls.push(`go:${r}`),
@@ -63,15 +67,15 @@ function page(hash: string, stage = "ready") {
 
 describe("handoff.js", () => {
   it.each([
-    ["#aia:open=PRJ-DEMO-COMPLETE-01", "open:PRJ-DEMO-COMPLETE-01"],
+    ["#aia:open=PRJ-DEMO-COMPLETE-01", "open:PRJ-DEMO-COMPLETE-01", "go:project_overview"],
     ["#aia:start=research", "start:research"],
     ["#aia:start=simulation", "start:simulation"],
     ["#aia:go=projects", "go:projects"],
     ["#aia:switch=library", "switch:library"],
     ["#aia:assistant=open", "assistant"],
     ["#aia:support=bundle", "support:"],
-  ])("%s calls the classic function once boot is ready", (hash, expected) => {
-    expect(page(hash).calls).toEqual(["replaceState", expected]);
+  ])("%s calls the classic function once boot is ready", (hash, ...expected) => {
+    expect(page(hash).calls).toEqual(["replaceState", ...expected]);
   });
 
   it.each([["#aia:go=renderHome"], ["#aia:start=anything"], ["#aia:switch=home"], ["#aia:assistant=close"], ["#aia:open=a b"], ["#aia:eval=x"], ["#projects"], [""]])(
@@ -88,13 +92,16 @@ describe("handoff.js", () => {
     expect(p.calls).toEqual([]);
     p.win.NPC_BOOT_STAGE = "ready";
     p.tick();
-    expect(p.calls).toEqual(["replaceState", "open:PRJ-1"]);
+    expect(p.calls).toEqual(["replaceState", "open:PRJ-1", "go:project_overview"]);
   });
 
-  it("opens a project on a step once it has loaded, for a step the router knows", async () => {
+  it("opens a project on a step instead of its overview, for a step the router knows", async () => {
     const p = page("#aia:open=PRJ-1@questionnaire");
+    const go = p.win.go;
     await new Promise((r) => setTimeout(r, 0));
+    // The overview is never drawn: it would paint over the step a moment later.
     expect(p.calls).toEqual(["replaceState", "open:PRJ-1", "go:questionnaire"]);
+    expect(p.win.go).toBe(go);
     // A step the router does not know: the fragment is cleared, nothing is opened.
     const q = page("#aia:open=PRJ-1@render_home");
     await new Promise((r) => setTimeout(r, 0));
@@ -103,6 +110,17 @@ describe("handoff.js", () => {
     const r = page("#aia:open=PRJ-1@renderHome");
     await new Promise((res) => setTimeout(res, 0));
     expect(r.calls).toEqual([]);
+  });
+
+  it("still lands on the step when opening never reaches the overview, and restores go", async () => {
+    const p = page("");
+    const go = p.win.go;
+    p.win.openProject1785 = (id: string) => p.calls.push(`open:${id}`);
+    (p.win.location as { hash: string }).hash = "#aia:open=PRJ-2@plan";
+    p.listeners.hashchange();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(p.calls).toEqual(["replaceState", "open:PRJ-2", "go:plan"]);
+    expect(p.win.go).toBe(go);
   });
 
   it("acts on a hand-off link followed from the classic page itself", () => {
