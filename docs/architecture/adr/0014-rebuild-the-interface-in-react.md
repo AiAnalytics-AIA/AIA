@@ -68,7 +68,21 @@ The data owner chose 3.
 6. **Behind a switch.** `AIA_INTERFACE_REHOME_ENABLED` (off by default, on in the
    develop compose) decides whether `/app` renders or answers 404.
 
-7. **D-L1 extends to the rebuilt screens.** The real-client demo identifiers the
+7. **A hand-off, not a patch, joins the two interfaces.** The classic interface
+   has no deep links: it opens a project from its own state. So a rebuilt screen
+   links to `/#aia:open=<id>` (or `#aia:start=research|simulation`,
+   `#aia:go=<route>`), and the web client adds one script,
+   `/skin/handoff.js`, to the pinned document while `/app` is on. After the
+   classic boot reports `ready`, it clears the fragment and calls the classic
+   interface's own function for that instruction — `openProject1785`,
+   `startProductionResearch`, `startSimulationProduct1773` or `go` for a route
+   its router knows — the function the classic button calls. It changes no DOM
+   and calls nothing else; an instruction that does not match is ignored. The
+   pin guarantees the names exist; `X-AIA-Handoff` says whether it was added.
+   This is the one behaviour the web client adds to the classic document, and it
+   goes when `/` moves.
+
+8. **D-L1 extends to the rebuilt screens.** The real-client demo identifiers the
    classic interface carries (`ui_app.html`, 9 hits in the unit's
    `exposure-report.json`) may appear where a rebuilt screen needs them, as
    identifiers only. `exposure_check` keeps enforcing client names everywhere

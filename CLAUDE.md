@@ -62,7 +62,8 @@ apps/
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
-    public/skin/            Self-hosted fonts (OFL), identity and skin.css, served at /skin/ (ADR 0013)
+    public/skin/            Self-hosted fonts (OFL), identity and skin.css, served at /skin/ (ADR 0013);
+                            handoff.js: /app's links into the classic interface (#aia:open=…, ADR 0014)
     src/skin/               The 18.6.6 skin's sources: legacy-variables.json (each 18.6.6 variable ->
                             a token, with why) and components.css (token-only rules, linted)
     scripts/build-skin.mjs  -> public/skin/skin.css; refuses raw colour/radius/shadow/font values

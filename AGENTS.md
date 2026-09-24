@@ -740,6 +740,13 @@ on `apps/web/package-lock.json` — caching on a branch name gives a stale
 The client renders state the server computed. `GET …/impact` exists precisely so
 no component reasons about which stages an edit invalidates.
 
+**A fragment-only navigation does not reload the page.** Following
+`/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
+document load, so a script that reads the fragment once on load never sees it.
+Read it on load *and* on `hashchange` (`apps/web/public/skin/handoff.js`).
+Playwright's `page.goto` to the same path with a new fragment is the same trap in
+tests: go to `about:blank` first.
+
 ## The 18.6.6 unit, run outside its container
 
 **It registers its population files at import, not at first request.**
