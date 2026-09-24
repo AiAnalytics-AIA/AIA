@@ -88,7 +88,8 @@ def test_a_changed_caddyfile_recreates_caddy() -> None:
     14 (2026-09-24) deployed a new Caddyfile that the running Caddy never read
     (OI-45). The file's hash is part of the service's configuration instead."""
     caddy = _service_block(COMPOSE.read_text(encoding="utf-8"), "caddy")
-    assert re.search(r"^      aia\.caddyfile-sha256: \$\{AIA_CADDYFILE_SHA256:-unset\}$", caddy, re.M), (
+    label = r"^      aia\.caddyfile-sha256: \$\{AIA_CADDYFILE_SHA256:-unset\}$"
+    assert re.search(label, caddy, re.M), (
         "caddy's configuration no longer carries the Caddyfile's hash"
     )
     lib = LIB.read_text(encoding="utf-8")
@@ -96,7 +97,7 @@ def test_a_changed_caddyfile_recreates_caddy() -> None:
     hash_at = lib.index('AIA_CADDYFILE_SHA256="$(sha256sum "$DEPLOY_DIR/Caddyfile"')
     assert compose_at < hash_at < lib.index("export AIA_CADDYFILE_SHA256")
     # Every script sources lib.sh before its first compose call, so they all agree.
-    assert ". \"$(dirname \"${BASH_SOURCE[0]}\")/lib.sh\"" in DEPLOY.read_text(encoding="utf-8")
+    assert '. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"' in DEPLOY.read_text(encoding="utf-8")
 
 
 def test_the_smoke_check_proves_caddy_runs_the_deployed_caddyfile() -> None:
