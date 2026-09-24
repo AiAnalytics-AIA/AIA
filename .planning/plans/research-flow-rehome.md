@@ -107,7 +107,7 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | 0 | This plan; OI-47, OI-48 | A | done @ `3c5bd21`, `b3fd59f` |
 | 1 | Foundation: research routes (+ the ledger addendum for OI-48), the model and `defaultsMerge` / `briefFingerprint1780` ports, the project store with visible save state, the job runner and panel, the research rail and `/app/research/<id>/<step>`, the `open@step` hand-off, the workbench fixture project | A | done — see below |
 | 2 | brief: problem types, title, goal, attachments and links, further context, AI analysis | A | done — see below |
-| 3 | plan: variants, understanding, objectives, hypotheses, comparable sets, questions for the user, text-selection comments | A | pending |
+| 3 | plan: variants, understanding, objectives, hypotheses, comparable sets, questions for the user, text-selection comments | A | done — see below |
 | 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | pending |
 | 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | pending |
 | 6 | persona: fixed base, catalog, AI suggestions, custom dimension request, sample size, society factors | B | pending |
@@ -182,6 +182,37 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 - **Capture pair.** `route-brief` at `/app/research/new`: 0 classic texts
   missing at 1440 and 1024.
 
+### Chunk 3 — what landed
+
+- **What runs.** The plan is `renderPlan` @313280 under four wrappers: the
+  review note (1785), the wizard's *Další · dotazník* (1789), the design
+  variants (1793) and the comment workflow (26), which removes both the review
+  note and the *Další krok: dotazník* card. Neither is drawn here.
+- **Logic.** `src/unit/research/plan.ts`: `comparableFamily`, the question
+  preview of `renderObjectSet` (six rows, the first `{object}` filled), the set
+  editors (`addPlanSet` with its two prompts and the 15-item cut,
+  `addPlanObject`, `renamePlanSet`, `removePlanSet`, `removePlanObject`),
+  `projectVariants1793` / `applyProjectVariant1793`, `reanalyze`, the comment
+  workflow (`comments26`, the float button's add, `npcRemoveComment26`,
+  `npcProcessComments26`) and `setQuestionnairePath('choose')`
+  (`plan.parity.test.ts`, 39 checks; five deliberate mutations each caught).
+- **Shared analysis.** `useAnalysis.tsx`: the brief's analysis flow and its
+  error card, now used by Zadání and by Návrh (follow-up answers; comments,
+  forced).
+- **Dialogs.** The research context has `confirm` / `prompt` with the classic
+  words, through the rebuilt dialog; its form is keyed per question, so two
+  prompts in a row never share a value.
+- **Screen.** `PlanStep.tsx` (`PlanStep.test.tsx`, 7 tests: the empty state,
+  the analysis and its sets, a variant applied, the set editors through the
+  prompts and the confirm, follow-up answers to a new analysis, a comment on
+  selected text worked in with a forced analysis, the way on). The comment
+  flow was also driven in Chromium on the fixture.
+- **Capture.** Fixture pairs (`fixture` in the screen ledger): the classic step
+  opened on the same project through the hand-off. `route-plan@planned`:
+  0 classic texts missing at 1440 and 1024.
+- **Found here.** The `open@step` hand-off landed on the overview: the classic
+  overview draws itself asynchronously over the step (fixed @ `7d74069`).
+
 ## Deliberate differences (added to as chunks land)
 
 | Step | Classic | Rebuilt | Why |
@@ -194,4 +225,10 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | brief | a file input and a separate *Přidat soubory* button | one *Přidat soubory* button that opens the picker and uploads | one step, not two; the classic 📎 / 🔗 are icons |
 | brief | *Přidávám přílohy* as a full-screen overlay | the same words inline in the attachments card | the rest of the brief stays usable |
 | brief | a job starts against whatever was last saved | a new or edited brief is saved before the analysis job starts | the job is addressed to the saved revision |
+| plan | a failed follow-up analysis jumps to the brief with its error card; a failed comment analysis is an `alert()` | the error card on the plan | the person stays where the answers are |
+| plan | "changed by your comments" is marked on the understanding card and never cleared | the mark stays until another analysis replaces that one | it says something true, or nothing |
+| plan | with no analysis, the comment box is drawn | the empty state only | there is no text to comment on |
+| plan | the comment box after the *Další* button | before it | the way on is last |
+| plan | a missing `what_is_known` would become the word `undefined` | an empty field | defect (defaultsMerge normally prevents it) |
+| plan | a comment is offered after a mouse selection | also after a keyboard selection | accessibility |
 | audience | range filter shown as `[object Object]` | `od–do` | defect |

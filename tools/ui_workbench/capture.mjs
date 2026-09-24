@@ -271,7 +271,8 @@ async function main() {
   // 3. every screen the ledger says is rebuilt, from the facade's /app, beside
   // the classic one it replaces (docs/migration/interface-screens.json).
   const ledger = JSON.parse(readFileSync(join(REPO, "docs/migration/interface-screens.json"), "utf8"));
-  const rebuilt = ledger.screens.filter((x) => x.react_path && x.status !== "CLASSIC" && (!ONLY || ONLY.has(x.classic.route)));
+  // A path with <id> needs a project: it is captured with its fixture, in 4.
+  const rebuilt = ledger.screens.filter((x) => x.react_path && !x.react_path.includes("<id>") && x.status !== "CLASSIC" && (!ONLY || ONLY.has(x.classic.route)));
   for (const width of WIDTHS) {
     const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
     const page = await ctx.newPage();

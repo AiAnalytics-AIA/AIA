@@ -60,7 +60,7 @@ describe("ResearchScreen", () => {
   it("says why a project could not be loaded, and retries", async () => {
     let fail = true;
     unitStub(() => (fail ? new Response('{"error":"Projekt neexistuje."}', { status: 404 }) : { project_id: "PRJ-1", project_type: "research", project: {} }));
-    render(<ResearchScreen projectId="PRJ-1" step="plan" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
     expect(await screen.findByText("Projekt neexistuje.")).toBeTruthy();
     fail = false;
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));

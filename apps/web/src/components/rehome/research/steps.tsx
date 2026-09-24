@@ -7,5 +7,6 @@ import type { ComponentType } from "react";
 
 import type { StepKey } from "@/unit/research/steps";
 import { BriefStep } from "./BriefStep";
+import { PlanStep } from "./PlanStep";
 
-export const STEP_SCREENS: Partial<Record<StepKey, ComponentType>> = { brief: BriefStep };
+export const STEP_SCREENS: Partial<Record<StepKey, ComponentType>> = { brief: BriefStep, plan: PlanStep };
