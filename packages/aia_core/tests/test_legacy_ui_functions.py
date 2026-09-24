@@ -89,6 +89,27 @@ def test_extraction_finds_every_declaration(ui: Any, extracted: dict[str, Any]) 
     }
 
 
+def test_the_effective_binding_is_the_last_assignment_when_one_follows(
+    ui: Any, extracted: dict[str, Any]
+) -> None:
+    # briefFingerprint1780 is declared once and reassigned twice; the browser runs
+    # the last, which is the one that reads the selected problem types.
+    js = extracted["js"]
+    declared = extracted["functions"]["briefFingerprint1780"].body
+    effective = ui.effective_binding(js, "briefFingerprint1780")
+    assert effective != declared
+    assert effective.startswith("var briefFingerprint1780=function(){")
+    assert "selectedProblemTypes1789()" in effective and effective.endswith("};")
+
+
+def test_the_effective_binding_is_the_declaration_when_nothing_reassigns_it(
+    ui: Any, extracted: dict[str, Any]
+) -> None:
+    js = extracted["js"]
+    assert ui.effective_binding(js, "defaultsMerge") == extracted["functions"]["defaultsMerge"].body
+    assert ui.effective_binding(js, "noSuchFunction1234") is None
+
+
 def test_the_ledger_pins_the_unit_it_describes(ui: Any) -> None:
     assert LEDGER["unit"]["ui_app_sha256"] == ui.ui_app_sha256()
     assert LEDGER["unit"]["archive_sha256"] == ARCHIVE_SHA256

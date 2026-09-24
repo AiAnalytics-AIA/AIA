@@ -8,6 +8,7 @@ them (ADR 0014), and a capture of every screen. Plan:
 ```bash
 make ui-workbench          # start, or confirm running
 make ui-capture            # screenshot every screen -> tmp/ui-workbench/shots/<time>/index.html
+make ui-fixtures           # the fictional research projects; prints their /app links
 make ui-workbench-status
 make ui-workbench-down
 python3 tools/ui_workbench/workbench.py up --fresh   # also reset the unit's state
@@ -37,6 +38,39 @@ value is invented. **Nothing it shows is data, and it is never used for parity**
 — that is `tools/legacy_oracle.py` against the running unit (ADR 0011). Screens
 that need the real panel show their empty states. The DEMO library ships in
 `app/` and fills the project screens.
+
+## No AI, ever
+
+The workbench never reaches a model, even on a machine with a signed-in Claude
+Code CLI or an API key (an agent session has both). `unit_standin.py` switches
+every provider off three ways: the scratch copy's `BUILD_EDITION.json`, which
+every part of the unit reads; provider credentials and the CLI's directory
+removed from the unit's environment; and the unit's CLI lookup finding nothing.
+No job worker runs either, so an AI step started here stays queued until it is
+cancelled. `GET /api/providers/claude-code/status` answers
+`DISABLED_IN_EDITION`, and the rebuilt screens show their "not ready" notice.
+Screens that show an AI answer are seen from fixture projects.
+
+## Fixture research projects
+
+The workbench never calls a model, so a research step that shows an AI answer
+(the plan's understanding, a built questionnaire, a proposed audience) is seen
+from a project that already holds one. `make ui-fixtures`
+(`fixture_project.py`) writes them through the unit's own
+`POST /api/projects/save`, with the classic save's body; their ids are kept in
+`tmp/ui-workbench/fixtures.json`, so a second run updates the same projects.
+Every word is written in the script and fictional. The projects grow as the
+research chunks land ([research-flow-rehome.md](../../.planning/plans/research-flow-rehome.md)):
+
+| Key | Holds | For |
+|---|---|---|
+| `empty` | nothing but a title | Zadání as a new project sees it |
+| `planned` | brief + the plan's analysis (two comparable sets, questions for the user, three design variants) | Zadání, Návrh |
+
+A ledger screen in `docs/migration/interface-screens.json` that names a
+`fixture` is captured a second time on that project: the classic step opened
+on it, beside the rebuilt one at its `react_path` with the project's id for
+`<id>` (`<screen>@<fixture>` in the contact sheet).
 
 ## Requirements
 

@@ -790,6 +790,31 @@ log says *Ready*. CI never runs `next dev`, so it never sees this.
 **jsdom has no `<dialog>` modality.** `HTMLDialogElement.prototype.showModal` is
 missing; a component test stubs it to set `open` (`ProjectsScreen.test.tsx`).
 
+**jsdom's `Blob` has no `arrayBuffer()`.** Every current browser has it, so app
+code calls `file.arrayBuffer()` directly (`fileToBase64` in
+`src/unit/research/brief.ts`); a component test that uploads a `File` fails with
+an error the screen then shows, not a thrown one, which reads as a rendering
+bug. Polyfill it in the test through `FileReader`, never in app code
+(`BriefStep.test.tsx`).
+
+**Don't list the router in a load effect's dependencies.** A test's
+`vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))` returns a
+new object on every render, so an effect keyed on `router` re-runs on every
+render and reloads the project: an edit appears to do nothing, because the
+store it went into was just replaced. Keep the router (and anything else the
+load only *reads later*) in a ref, and key the load on what it loads
+(`ResearchScreen.tsx`; pinned by "loads a project once, however often the
+screen re-renders").
+
+```tsx
+// WRONG: reloads whenever the router object is new
+useEffect(() => { load(projectId, (id) => router.replace(`/x/${id}`)) }, [projectId, router]);
+// RIGHT
+const routerRef = useRef(router);
+useEffect(() => { routerRef.current = router; }, [router]);
+useEffect(() => { load(projectId, (id) => routerRef.current.replace(`/x/${id}`)) }, [projectId]);
+```
+
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.
@@ -823,3 +848,23 @@ import prototype_server as core
 on a frame without the column that is the int `0`, and `pd.to_numeric(0)` has no
 `.fillna`. A stand-in frame needs every column the unit reads that way
 (`tools/ui_workbench/unit_standin.py` lists them), invented values only.
+
+**It uses whatever AI the machine it runs on has.** `claude_code_setup.executable`
+finds any `claude` on `PATH`, and `claude_code_provider.health` then reports
+`SUBSCRIPTION_READY` for the signed-in account, so a local copy of the unit on a
+developer's machine or in an agent session will spend that account on the first
+AI step anyone clicks. An `ANTHROPIC_API_KEY` in the environment is the same, billed
+per token. A copy that is not meant to reach a model has to be told so, and in
+more than one place, because the unit's edition flags, its CLI lookup and its
+children's environment are read by different code:
+
+```python
+# WRONG: the unit's default edition allows all three providers
+runpy.run_path("ui_server.py", run_name="__main__")
+
+# RIGHT (tools/ui_workbench/unit_standin.py no_ai): edition flags off, with a
+# provider list that is not empty (empty means "all" to allowed_providers),
+# credentials and the CLI's directory out of the environment, the lookup stubbed
+no_ai(here, os.environ)
+claude_code_setup.executable = claude_code_provider.executable = lambda: None
+```

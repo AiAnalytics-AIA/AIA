@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "description": "The strangler's route ledger: one row per unique verb + path of the NPC Panel 18.6.6 HTTP surface (AIA-reference api-ledger.json, 162 dispatch arms, 153 unique routes), with the AIA status of each. Hand-maintained; packages/aia_core/tests/test_legacy_route_ledger.py keeps it covering exactly the reference's ledger and apps/api/tests/test_legacy_route_claims.py proves every PORTING/PORTED row names a live AIA route. Rules: docs/migration/legacy-route-ledger.md.",
+ "description": "The strangler's route ledger: one row per unique verb + path of the NPC Panel 18.6.6 HTTP surface (AIA-reference api-ledger.json, 162 dispatch arms, 153 unique routes), with the AIA status of each. Hand-maintained; packages/aia_core/tests/test_legacy_route_ledger.py keeps it covering exactly the reference's ledger and apps/api/tests/test_legacy_route_claims.py proves every PORTING/PORTED row names a live AIA route. `addenda` lists dispatch arms the reference's parser missed (`path in {…}` sets, OI-48), each anchored to its ui_server.py line and kept apart from the pinned rows until the reference is fixed upstream. Rules: docs/migration/legacy-route-ledger.md.",
  "reference": {
   "repository": "AiAnalytics-AIA/AIA-reference",
   "commit": "678e298ad9ca0263da53cc8920d153fdfb956c93",
@@ -4164,6 +4164,96 @@
    "scope": "undecided (D8)",
    "notes": "prototype_server.py arm: retain or retire is reference decision D9",
    "decision": "D9"
+  }
+ ],
+ "addenda": [
+  {
+   "route": "POST /api/audience/navrh",
+   "verb": "POST",
+   "path": "/api/audience/navrh",
+   "api_ledger_capability": null,
+   "family": "audience",
+   "reference_capabilities": [],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2120,
+     "match": "set",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "OI-48: served by `path in {…}` with /api/audience/propose; AI audience proposal job (audience_propose).",
+   "decision": null
+  },
+  {
+   "route": "POST /api/audience/propose",
+   "verb": "POST",
+   "path": "/api/audience/propose",
+   "api_ledger_capability": null,
+   "family": "audience",
+   "reference_capabilities": [],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2120,
+     "match": "set",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "OI-48: the path the classic interface calls (proposeAudience); same arm as /api/audience/navrh.",
+   "decision": null
+  },
+  {
+   "route": "POST /api/results/contextual_calibration",
+   "verb": "POST",
+   "path": "/api/results/contextual_calibration",
+   "api_ledger_capability": null,
+   "family": "results",
+   "reference_capabilities": [],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2108,
+     "match": "set",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "OI-48: served by `path in {…}` with /api/results/contextual_scenario; calibrate_result_context.",
+   "decision": null
+  },
+  {
+   "route": "POST /api/results/contextual_scenario",
+   "verb": "POST",
+   "path": "/api/results/contextual_scenario",
+   "api_ledger_capability": null,
+   "family": "results",
+   "reference_capabilities": [],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2108,
+     "match": "set",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "OI-48: the path the classic verify screen calls; same arm as /api/results/contextual_calibration.",
+   "decision": null
   }
  ]
 }

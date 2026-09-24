@@ -12,6 +12,7 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { classicHref, type ClassicTarget } from "@/lib/interface-handoff";
 import { t } from "@/i18n/t";
+import { loadBoot } from "@/unit/boot";
 import { unit } from "@/unit/client";
 import { type RailStatus, parseBootstrap, parseClaudeCode } from "@/unit/shell";
 import { Icon, type IconName } from "./icons";
@@ -72,7 +73,7 @@ function RailLink({ item, path }: { item: Item; path: string }) {
 let railStatus: Promise<RailStatus> | null = null;
 function loadRailStatus(): Promise<RailStatus> {
   railStatus ??= Promise.all([
-    unit("bootstrap").then(parseBootstrap, () => ({ release: null, jointCore: null })),
+    loadBoot().then((b) => parseBootstrap(b.raw), () => ({ release: null, jointCore: null })),
     unit("claudeCodeStatus").then(parseClaudeCode, () => null),
   ]).then(([b, claudeCode]) => ({ ...b, claudeCode }));
   return railStatus;
@@ -113,11 +114,27 @@ function RailStatusLines() {
   );
 }
 
-export function Shell({ title, sub, actions, children }: { title: string; sub?: string; actions?: ReactNode; children: ReactNode }) {
+export function Shell({
+  title,
+  sub,
+  actions,
+  eyebrow,
+  context,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  actions?: ReactNode;
+  /** The line above the title; "NPC Panel" unless a flow says where you are (VÝZKUM · KROK 3 / 7). */
+  eyebrow?: ReactNode;
+  /** The rail's first block, above the main menu: the current project's steps. */
+  context?: ReactNode;
+  children: ReactNode;
+}) {
   const path = usePathname();
   return (
     <div className="flex min-h-screen bg-surface text-ink">
-      <nav aria-label={t("rehome.mainMenu")} className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-border bg-surface-sunken">
+      <nav aria-label={t("rehome.mainMenu")} className="sticky top-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface-sunken">
         <div className="flex items-center gap-2.5 border-b border-border px-4 py-4">
           {/* eslint-disable-next-line @next/next/no-img-element -- the identity's own SVG, served by this app */}
           <img src="/icon.svg" alt="" width={28} height={28} />
@@ -128,6 +145,7 @@ export function Shell({ title, sub, actions, children }: { title: string; sub?: 
             </div>
           </div>
         </div>
+        {context ? <div className="border-b border-border pb-3">{context}</div> : null}
         <div className="px-4 pb-1.5 pt-4 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("rehome.mainMenu")}</div>
         <ul className="flex flex-col gap-0.5 px-2">
           {ENTRIES.map((e) =>
@@ -169,7 +187,7 @@ export function Shell({ title, sub, actions, children }: { title: string; sub?: 
         <header className="border-b border-border bg-surface px-8 pb-5 pt-6">
           <div className="mx-auto flex max-w-[88rem] flex-wrap items-end justify-between gap-4">
             <div className="min-w-0 max-w-3xl">
-              <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-signal">{t("rehome.eyebrow")}</div>
+              <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-signal">{eyebrow ?? t("rehome.eyebrow")}</div>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight">{title}</h1>
               {sub ? <p className="mt-1 text-sm leading-6 text-ink-muted">{sub}</p> : null}
             </div>

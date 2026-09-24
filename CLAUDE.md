@@ -60,6 +60,12 @@ apps/
     src/components/rehome/  Its shell, primitives (token utilities only) and one folder per area
     src/unit/               The ONLY way it reaches the unit: routes named by ledger row, parsers,
                             and each area's logic ported from the JS (parity-tested under Node)
+      research/             The research flow's model, project store (1.8 s save, visible state),
+                            AI jobs (POST -> job_id, read /api/job) and the ten steps
+      testing/legacy.ts     Parity harness: a function's effective binding, run in a Node vm
+    src/app/app/research/   /app/research/new and /app/research/<project id>/<step>
+    src/components/rehome/research/  The research frame: rail, save state, job panel, the shared brief
+                            analysis (useAnalysis), one screen per step
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
@@ -170,13 +176,15 @@ tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
-tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; check the UI ledger
+tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; `effective` prints the binding
+                            that runs (the last declaration or reassignment); check the UI ledger
 tools/ui_function_runner.mjs, ui_function_capture.py
                             Run extracted functions under Node; capture U<nn> fixtures
 tools/ui_workbench/         The real 18.6.6 interface + the web client on this machine, for UI work;
                             capture.mjs screenshots every screen and measures what the skin missed:
                             the unit on a scratch copy with a fictional panel, `next dev`, the skin
-                            rebuilt on save, a facade routed by the Caddyfile's @web. Never parity
+                            rebuilt on save, a facade routed by the Caddyfile's @web. Never parity.
+                            fixture_project.py: fictional research projects for screens with AI answers
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
@@ -285,6 +293,7 @@ ungated fixture.
 | Web tests | `make test-web` (Vitest, pure functions) |
 | **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, `npm run tokens`, `npm run skin` |
 | **UI workbench** | `make ui-workbench` → <http://127.0.0.1:8780/> skinned, `:8767` bare; `make ui-workbench-status`, `make ui-workbench-down`. First run installs the unit's requirements into `tmp/ui-workbench/venv` |
+| Workbench research fixtures | `make ui-fixtures` (workbench running): fictional projects, prints their `/app` links |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every router route and DEMO view, bare and skinned, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |
 | **Layering** | `make layer_check` |

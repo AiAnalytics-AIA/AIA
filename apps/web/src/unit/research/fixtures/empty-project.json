@@ -1,0 +1,82 @@
+{
+ "schema_version": 3,
+ "title": "Nový výzkum",
+ "study_type": "custom",
+ "study_config": {},
+ "instrument_library": {
+  "version": "",
+  "missing_slots": [],
+  "skipped_instruments": []
+ },
+ "goal": "",
+ "decision_use": "",
+ "briefing": {
+  "product_description": "",
+  "situation": "",
+  "what_is_known": "",
+  "constraints": ""
+ },
+ "research_plan": {
+  "status": "draft",
+  "problem_summary": "",
+  "objectives": [],
+  "research_questions": [],
+  "hypotheses": [],
+  "recommended_topics": [],
+  "non_object_measures": [],
+  "questions_for_user": [],
+  "complexity": "standard",
+  "estimated_minutes": null,
+  "method_reason": ""
+ },
+ "audience": {
+  "source_mode": "population",
+  "dataset_id": "",
+  "dataset_name": "ČR 18+",
+  "builtin_subpanel": "",
+  "strategy": "population",
+  "description": "ČR 18+",
+  "filters": {},
+  "segment": {
+   "mode": "none"
+  },
+  "product_description": "",
+  "success_definition": "",
+  "discovery_note": "",
+  "subpanel_status": "",
+  "support_tier": "",
+  "support_summary": {},
+  "audience_recommendation": {}
+ },
+ "n": 300,
+ "persona_mode": "calibrated",
+ "persona_dimensions": {
+  "approved": []
+ },
+ "panel_mode": "standard",
+ "ai_panel_profile": {},
+ "model": "sonnet",
+ "ui_state": {
+  "questionnaire_path": "choose",
+  "audience_entry": "choose",
+  "persona_path": "choose"
+ },
+ "research_context": true,
+ "pre_research": {},
+ "run_policy": {
+  "provider": "claude_code_subscription",
+  "allow_provider_fallback": false
+ },
+ "budget": {
+  "max_usd": null,
+  "warning_pct": 80
+ },
+ "sections": [],
+ "discovery": {
+  "enabled": false,
+  "question_id": "",
+  "positive_answers": [],
+  "min_positive": 20
+ },
+ "notes": []
+}

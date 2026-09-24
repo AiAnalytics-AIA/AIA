@@ -53,9 +53,21 @@
    },
    "title": "1. Zadání",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILT",
+   "react_path": "/app/research/new",
+   "unit_routes": [
+    "GET /api/bootstrap",
+    "POST /api/projects/load",
+    "POST /api/projects/save",
+    "POST /api/project/attachment",
+    "GET /api/providers/claude-code/status",
+    "POST /api/settings/ai_check",
+    "POST /api/research/analyze",
+    "GET /api/job",
+    "POST /api/jobs/",
+    "POST /api/support/bundle"
+   ],
+   "notes": "Also /app/research/<id>/brief. The analysis job hands on to /app/research/<id>/plan. Capture pair: 0 classic texts missing at 1440 and 1024. Differences are listed in .planning/plans/research-flow-rehome.md: the provider notice stays on the screen, the error card says what failed, one button uploads, a new project says it is not saved yet."
   },
   {
    "id": "route-plan",
@@ -64,9 +76,20 @@
    },
    "title": "2. Návrh",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILT",
+   "react_path": "/app/research/<id>/plan",
+   "unit_routes": [
+    "POST /api/projects/load",
+    "POST /api/projects/save",
+    "GET /api/providers/claude-code/status",
+    "POST /api/settings/ai_check",
+    "POST /api/research/analyze",
+    "GET /api/job",
+    "POST /api/jobs/",
+    "POST /api/support/bundle"
+   ],
+   "fixture": "planned",
+   "notes": "Captured on the `planned` fixture beside the classic step opened on the same project (#aia:open=<id>@plan): 0 classic texts missing at 1440 and 1024. The review note (1785) and the \"Další krok: dotazník\" card are not drawn, because the classic comment wrapper (26) removes both. Differences are listed in .planning/plans/research-flow-rehome.md."
   },
   {
    "id": "route-questionnaire",

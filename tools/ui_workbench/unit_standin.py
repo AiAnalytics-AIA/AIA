@@ -9,6 +9,14 @@ the real ui_app.html boots and every screen can be drawn for design work.
 Nothing it shows is data. It is never used for parity: that is
 tools/legacy_oracle.py against the running unit (ADR 0011).
 
+It never reaches a model. The machine running it may well have a signed-in
+Claude Code CLI or an API key (an agent session does), and the unit would use
+either for a real, billed AI step. So every provider is switched off three
+ways: in the scratch copy's BUILD_EDITION.json, which every part of the unit
+reads; by dropping provider credentials and the CLI's directory from the
+environment the unit and its children inherit; and by making the unit's CLI
+lookup find nothing.
+
 Run from the scratch copy's directory, under the workbench venv:
     python unit_standin.py --port 8767
 """
@@ -16,13 +24,55 @@ Run from the scratch copy's directory, under the workbench venv:
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import runpy
 import sys
+from collections.abc import MutableMapping
 from pathlib import Path
 
 # The names population_context.py registers as STATIC and LIVE. It registers them
 # on first use, which is at import, so the files must exist before the import.
 PANEL_FILES = ("FINALNI_KOMPLETNI_PANEL_v17_1_2.csv.gz", "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz")
+
+
+# edition_config.py reads these; an empty provider list falls back to all three,
+# so the one allowed provider is a name no provider has.
+AI_OFF = {
+    "claude_code_enabled": False,
+    "claude_api_enabled": False,
+    "openai_api_enabled": False,
+    "default_provider": "workbench_no_ai",
+    "allowed_live_providers": ["workbench_no_ai"],
+}
+# claude_code_setup.PAYG_ENV_KEYS, and the provider keys the unit reads itself.
+CREDENTIALS = (
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_BASE_URL",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "OPENAI_API_KEY",
+    "AWS_BEARER_TOKEN_BEDROCK",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "NPC_CLAUDE_CODE_EXE",
+)
+
+
+def no_ai(here: Path, environ: MutableMapping[str, str]) -> None:
+    """Switch every AI provider off for this copy of the unit (see the module docstring)."""
+    edition = here / "BUILD_EDITION.json"
+    current = json.loads(edition.read_text(encoding="utf-8")) if edition.is_file() else {}
+    text = json.dumps({**current, **AI_OFF}, ensure_ascii=False, indent=2)
+    edition.write_text(text, encoding="utf-8")
+    for key in CREDENTIALS:
+        environ.pop(key, None)
+    exe = ("claude", "claude.exe", "claude.cmd")
+    path = environ.get("PATH", "").split(os.pathsep)
+    kept = [d for d in path if d and not any((Path(d) / n).exists() for n in exe)]
+    environ["PATH"] = os.pathsep.join(kept)
 
 
 def fictional_panel():  # type: ignore[no-untyped-def]
@@ -115,6 +165,7 @@ def main(argv: list[str]) -> int:
         print("unit_standin: refusing to run inside the frozen vendored unit", file=sys.stderr)
         return 2
 
+    no_ai(here, os.environ)
     frame = fictional_panel()
     for name in PANEL_FILES:
         frame.to_csv(here / name, index=False)
@@ -123,6 +174,12 @@ def main(argv: list[str]) -> int:
     import prototype_server as core  # the unit's own module, from the scratch copy
 
     core.load_panel_cached = lambda panel_path=None: frame
+    # The third switch: the unit's own CLI lookup, in both modules that hold it.
+    import claude_code_provider
+    import claude_code_setup
+
+    claude_code_setup.executable = lambda: None
+    claude_code_provider.executable = lambda: None
 
     sys.argv = ["ui_server.py", "--host", "127.0.0.1", "--port", str(args.port), "--no-open"]
     runpy.run_path(str(here / "ui_server.py"), run_name="__main__")

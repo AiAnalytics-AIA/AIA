@@ -7,6 +7,7 @@
 
 import {
   type ButtonHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type InputHTMLAttributes,
+  type TextareaHTMLAttributes,
   useEffect, useRef, useState,
 } from "react";
 
@@ -115,6 +116,10 @@ export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${CONTROL} ${props.className ?? "w-full"}`} />;
 }
 
+export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} className={`${CONTROL} min-h-24 py-2 leading-6 ${props.className ?? "w-full"}`} />;
+}
+
 export type Ask =
   | { kind: "confirm"; message: string; resolve: (ok: boolean) => void }
   | { kind: "prompt"; message: string; initial: string; resolve: (value: string | null) => void };
@@ -149,10 +154,19 @@ export function AskDialog({ ask, onDone }: { ask: Ask | null; onDone: () => void
       }}
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
     >
-      {/* Mounted per question, so a prompt starts from its own initial value. */}
-      {ask ? <AskForm ask={ask} finish={finish} /> : null}
+      {/* Mounted per question (keyed by it), so a prompt starts from its own initial value
+          even when it follows another without the dialog closing in between. */}
+      {ask ? <AskForm key={askKey(ask)} ask={ask} finish={finish} /> : null}
     </dialog>
   );
+}
+
+const askKeys = new WeakMap<Ask, number>();
+let askSeq = 0;
+function askKey(ask: Ask): number {
+  let k = askKeys.get(ask);
+  if (k === undefined) askKeys.set(ask, (k = ++askSeq));
+  return k;
 }
 
 function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: string) => void }) {

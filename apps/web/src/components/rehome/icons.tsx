@@ -5,6 +5,7 @@
 export type IconName =
   | "home" | "research" | "simulation" | "assistant" | "library" | "settings" | "command" | "projects"
   | "external" | "plus" | "search" | "pin" | "tag" | "copy" | "archive" | "trash" | "restore" | "back"
+  | "attach" | "link" | "next"
   | "done" | "running" | "you" | "world" | "fault" | "dot";
 
 const PATHS: Record<IconName, string> = {
@@ -26,6 +27,9 @@ const PATHS: Record<IconName, string> = {
   trash: "M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4",
   restore: "M3 8a5 5 0 1 0 1.5-3.5L3 6M3 2.5V6h3.5",
   back: "M10 3 5 8l5 5",
+  attach: "M11 5.5 6.2 10.3a1.5 1.5 0 0 0 2.1 2.1l5-5a3 3 0 0 0-4.2-4.2l-5 5a4.5 4.5 0 0 0 6.4 6.4L14 11",
+  link: "M6.5 9.5l3-3M7 4.5l1-1a2.8 2.8 0 0 1 4 4l-1 1M9 11.5l-1 1a2.8 2.8 0 0 1-4-4l1-1",
+  next: "M3 8h10M9 4l4 4-4 4",
   // Status glyphs: shape carries the status as well as colour (brief §5).
   done: "M3 8.5 6.5 12 13 4.5",
   running: "M8 2.5a5.5 5.5 0 1 1-5.5 5.5",
