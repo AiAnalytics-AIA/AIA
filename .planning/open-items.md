@@ -1705,7 +1705,9 @@ approved without the catalogue check, as the classic does (OI-53)*.
 
 **Consequence.** A dimension with no definition in the system can be switched
 on by the model and is shown by its raw id; the screen says the catalogue is
-the primary source.
+the primary source. `canonicalPersonaDim` also maps by substring, so the
+model's *vztah k AI* is approved as `vztahy` (*Vztahy / domácnost*), a
+different dimension (same test).
 
 **Smallest fix.** Filter to the catalogue and list the rest as requests, as the
 earlier binding did. A methodology decision.
@@ -1783,3 +1785,30 @@ of reloaded; `dispose()` saves a pending change instead of dropping it. After
 the fix: loads stay 2, saves `["questionnaire_path"]`.
 
 **Status.** Fixed in PR B (`feature/research-flow-b`).
+
+## OI-57 · Finding · A failed audience catalogue is requested again on every draw of Dimenze, without limit
+
+**Claim.** The 1793 `renderPersona` wrapper draws its society-factor card only
+once `AUDIENCE_DIM_CATALOG_1793` is set; until then it calls
+`ensureAudienceDimensionCatalog1793()` and redraws when that settles. A failed
+load returns `null` and leaves the global unset, so the redraw asks again at
+once: one request per round trip for as long as the step stays open.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:1071 @ 8444bda`
+(`if(!cat){ensureAudienceDimensionCatalog1793().then(()=>{if(CURRENT==='persona')renderPersona()});return}`);
+`ensureAudienceDimensionCatalog1793` (`catch(e){console.error(e);return null}`).
+
+**Reproduction.** `persona.parity.test.ts` › *a catalogue that fails to load is
+asked for again on every draw, with no limit, as the classic does (OI-57)*: a
+stub that fails nineteen times is asked twenty. Without the twentieth answer
+the run never ends (Node, 2026-09-24).
+
+**Consequence.** While `/api/audience/dimensions` fails, an open Dimenze step
+loads the unit with back-to-back requests and each redraw rebuilds the page
+under the person's hands; the card never appears.
+
+**Smallest fix.** Ask once per visit; on failure leave the card out. That is
+what the rebuild does (research-flow-rehome.md, deliberate differences): the
+visible result, no card, is the classic's.
+
+**Status.** Open; **decision**: confirm the rebuild's single request.

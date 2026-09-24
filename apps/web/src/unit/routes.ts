@@ -45,6 +45,12 @@ export const UNIT_ROUTES = {
   audiences: "GET /api/audiences",
   audiencesUpload: "POST /api/audiences/upload",
   audiencePropose: "POST /api/audience/propose",
+  personaSuggest: "POST /api/persona/suggest",
+  libraryDimensionRequest: "POST /api/library/dimension/request",
+  library: "GET /api/library",
+  librarySystemCatalog: "GET /api/library/system-catalog",
+  populations: "GET /api/populations",
+  resultsRegistry: "GET /api/results-registry",
 } as const satisfies Record<string, Entry>;
 
 export type UnitRouteKey = keyof typeof UNIT_ROUTES;
