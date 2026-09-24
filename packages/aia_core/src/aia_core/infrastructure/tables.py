@@ -641,6 +641,136 @@ class StudyWorkspaceRow(Base):
     )
 
 
+# Client Knowledge (ADR 0015 decision 7). Client-scoped, not study-scoped: the
+# narrow amendment to ADR 0004 rule 1. Every row carries organization_id and
+# client_id and is reached only through ClientKnowledgeRepository, which takes an
+# issued ClientContext or StudyContext; `make layer_check` forbids these tables
+# anywhere else. A study never writes an item: it proposes, a person decides,
+# and an approval appends a revision.
+
+KNOWLEDGE_KINDS = (
+    "SOURCE",
+    "DOCUMENT",
+    "DATASET",
+    "FACT",
+    "FINDING",
+    "TERM",
+    "ENTITY",
+    "DIMENSION",
+    "AUDIENCE",
+    "ARTIFACT",
+)
+_KINDS_SQL = "(" + ",".join(f"'{k}'" for k in KNOWLEDGE_KINDS) + ")"
+
+
+class ClientKnowledgeItemRow(Base):
+    """One approved piece of a client's knowledge, at its current revision."""
+
+    __tablename__ = "client_knowledge_items"
+
+    item_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    content: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="ACTIVE")
+    current_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    modified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        CheckConstraint(f"kind in {_KINDS_SQL}", name="knowledge_item_kind_known"),
+        CheckConstraint("status in ('ACTIVE','RETIRED')", name="knowledge_item_status_known"),
+        CheckConstraint("current_revision >= 1", name="knowledge_item_revision_positive"),
+        Index("ix_client_knowledge_items_client", "client_id", "kind", "status"),
+    )
+
+
+class ClientKnowledgeRevisionRow(Base):
+    """An approved revision of one item: append-only, with its provenance.
+
+    ``context_revision`` numbers the client's knowledge as a whole: every
+    approval advances it by one, so "the client context at revision N" is a
+    question with one answer.
+    """
+
+    __tablename__ = "client_knowledge_revisions"
+
+    item_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    context_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    content: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="ACTIVE")
+    # Where it came from: the proposal, and through it the study, project and run.
+    provenance: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    proposal_id: Mapped[str | None] = mapped_column(String(64))
+    approved_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["item_id"], ["client_knowledge_items.item_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint("client_id", "context_revision", name="knowledge_context_revision_unique"),
+        CheckConstraint("status in ('ACTIVE','RETIRED')", name="knowledge_revision_status_known"),
+    )
+
+
+class ClientKnowledgeProposalRow(Base):
+    """A proposed addition or change to a client's knowledge, awaiting a person.
+
+    From a study (``study_id`` set: a finding offered for reuse) or from the
+    client workspace (``study_id`` null). It changes nothing until approved.
+    """
+
+    __tablename__ = "client_knowledge_proposals"
+
+    proposal_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str | None] = mapped_column(String(64))
+    # Set when the proposal revises an existing item; null for a new one.
+    item_id: Mapped[str | None] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    content: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    provenance: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="PROPOSED")
+    proposed_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    proposed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    decided_by: Mapped[str | None] = mapped_column(String(64))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # The item revision an approval produced.
+    revision: Mapped[int | None] = mapped_column(Integer)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["item_id"], ["client_knowledge_items.item_id"], ondelete="CASCADE"),
+        CheckConstraint(f"kind in {_KINDS_SQL}", name="knowledge_proposal_kind_known"),
+        CheckConstraint(
+            "status in ('PROPOSED','APPROVED','REJECTED')", name="knowledge_proposal_status_known"
+        ),
+        Index("ix_client_knowledge_proposals_client", "client_id", "status"),
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Durable workflow engine: runs, steps, attempts, reservations, gates
 #
