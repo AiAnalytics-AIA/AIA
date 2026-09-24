@@ -206,6 +206,29 @@ FIXTURES: dict[str, dict[str, Any]] = {
         "project": {**BRIEF, "sections": SECTIONS, "ui_state": {"questionnaire_path": "manual"}},
         "analysis": ANALYSIS,
     },
+    # The questionnaire's project on the ČR 18+ branch, narrowed by a categorical
+    # filter and a range, as the factor editor writes them (renderAudience).
+    "audience": {
+        "project": {
+            **BRIEF,
+            "sections": SECTIONS,
+            "ui_state": {
+                "questionnaire_path": "manual",
+                "audience_entry": "analytics",
+                "analytics_choice": "cz18",
+            },
+            "audience": {
+                "source_mode": "population",
+                "strategy": "filters",
+                "dataset_id": "",
+                "dataset_name": "ČR 18+",
+                "description": "Dojíždějící v produktivním věku",
+                "filters": {"kraj": ["Fiktivní kraj A"], "vek": {"min": 25, "max": 54}},
+                "segment": {"mode": "none"},
+            },
+        },
+        "analysis": ANALYSIS,
+    },
 }
 
 

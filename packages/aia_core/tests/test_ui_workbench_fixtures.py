@@ -114,3 +114,16 @@ def test_the_questionnaire_is_in_the_shape_the_editor_draws() -> None:
     assert {q["typ"] for q in blocks[0]["questions"]} == {"vyber", "multi", "skala", "otevrena"}
     assert len(sets) == 1 and 4 <= len(sets[0]["objects"]) <= 15
     assert "{object}" in sets[0]["object_question"]
+
+
+def test_the_audience_is_on_the_branch_the_factor_editor_draws() -> None:
+    m = _load()
+    fx = m.FIXTURES["audience"]["project"]
+    # renderAudience: analytics -> cz18 -> the "filters" strategy draws filterEditor.
+    assert fx["ui_state"]["audience_entry"] == "analytics"
+    assert fx["ui_state"]["analytics_choice"] == "cz18"
+    assert fx["audience"]["strategy"] == "filters"
+    # One filter of each shape the editor writes: categorical values, a {min, max} range.
+    filters = fx["audience"]["filters"]
+    assert isinstance(filters["kraj"], list)
+    assert set(filters["vek"]) == {"min", "max"}
