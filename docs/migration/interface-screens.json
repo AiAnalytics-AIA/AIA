@@ -98,9 +98,26 @@
    },
    "title": "3. Dotazník",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILT",
+   "react_path": "/app/research/<id>/questionnaire",
+   "unit_routes": [
+    "POST /api/projects/load",
+    "POST /api/projects/save",
+    "POST /api/questionnaire/upload",
+    "GET /api/questionnaire/template",
+    "GET /files/",
+    "POST /api/research/analyze",
+    "POST /api/research/build_questionnaire",
+    "POST /api/questionnaire/optimize",
+    "POST /api/research/deep",
+    "GET /api/providers/claude-code/status",
+    "POST /api/settings/ai_check",
+    "GET /api/job",
+    "POST /api/jobs/",
+    "POST /api/support/bundle"
+   ],
+   "fixture": "questionnaire",
+   "notes": "Captured on the `questionnaire` fixture beside the classic step opened on the same project: 1 classic text missing at 1440 and 1024, \"AI: zlepšit blok\", left out on purpose because it does nothing in the classic interface (OI-49). The choose, upload and AI views are covered by QuestionnaireStep.test.tsx. Differences are listed in .planning/plans/research-flow-rehome.md."
   },
   {
    "id": "route-audience",

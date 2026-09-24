@@ -31,7 +31,7 @@ export const CLASSIC_ROUTE: Record<StepKey, string> = {
 };
 
 /** The steps with a rebuilt screen. The others hand off to the classic interface. */
-export const REBUILT_STEPS: ReadonlySet<StepKey> = new Set<StepKey>(["brief", "plan"]);
+export const REBUILT_STEPS: ReadonlySet<StepKey> = new Set<StepKey>(["brief", "plan", "questionnaire"]);
 
 export function isStepKey(x: string): x is StepKey {
   return (STEP_KEYS as readonly string[]).includes(x);

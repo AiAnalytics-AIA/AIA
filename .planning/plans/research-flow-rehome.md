@@ -108,7 +108,7 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | 1 | Foundation: research routes (+ the ledger addendum for OI-48), the model and `defaultsMerge` / `briefFingerprint1780` ports, the project store with visible save state, the job runner and panel, the research rail and `/app/research/<id>/<step>`, the `open@step` hand-off, the workbench fixture project | A | done — see below |
 | 2 | brief: problem types, title, goal, attachments and links, further context, AI analysis | A | done — see below |
 | 3 | plan: variants, understanding, objectives, hypotheses, comparable sets, questions for the user, text-selection comments | A | done — see below |
-| 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | pending |
+| 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | done — see below |
 | 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | pending |
 | 6 | persona: fixed base, catalog, AI suggestions, custom dimension request, sample size, society factors | B | pending |
 | 7 | run: technical check and issues, final AI review, overrides, AI repair, start | C | pending |
@@ -365,6 +365,34 @@ Ported as the classic does, each with a characterization test: OI-50, OI-51,
 OI-52, OI-53, OI-54, OI-55. None is silently fixed; each is a decision for the
 data owner, listed in the PR. Display-only differences are in the table below.
 
+### Chunk 4 — what landed
+
+- **Logic.** `src/unit/research/questionnaire.ts`: the counts and the four
+  views, the respondent preview, every editor action with its prompts and save
+  reasons, the import, and what the three AI steps send and keep
+  (`questionnaire.parity.test.ts`, 62 checks against the original under Node,
+  with time and randomness fixed so the generated ids agree; the editor's
+  inline `oninput` / `onchange` handlers are extracted from the classic
+  templates and run against a stand-in element; six deliberate mutations each
+  caught).
+- **Shared AI step.** `useAiStep.tsx`: the provider check (where the classic
+  step makes one), the save a job is addressed to, and one failure card; the
+  brief's analysis card is now drawn by it.
+- **Screen.** `QuestionnaireStep.tsx` (`QuestionnaireStep.test.tsx`, 10 tests:
+  the three paths, the editor with no dead button, question edits, the guided
+  prompt and the 4–15 refusal, the small-set note and the confirmed delete, the
+  import, the AI build reusing the brief's analysis, the provider notice,
+  optimisation with no provider check (OI-55), the way on).
+- **Workbench.** A `questionnaire` fixture; the capture's comparison treats the
+  preview's radio circle "○" as a drawn element, as it already did arrows.
+- **Capture.** `route-questionnaire@questionnaire`: 1 classic text missing at
+  1440 and 1024, *AI: zlepšit blok* (OI-49).
+- **Found here.** `develop` had moved the web client to Next.js 16.3.6
+  (`36bcfa4`); this checkout's modules were 16.1.6, which `make verify` does
+  not notice (it runs no ESLint). Reinstalled with `npm ci`. Next 16.3's
+  `next dev` writes `apps/web/AGENTS.md` and `apps/web/CLAUDE.md`; not
+  committed here, a decision for the PR.
+
 ## Deliberate differences (added to as chunks land)
 
 | Step | Classic | Rebuilt | Why |
@@ -383,4 +411,8 @@ data owner, listed in the PR. Display-only differences are in the table below.
 | plan | the comment box after the *Další* button | before it | the way on is last |
 | plan | a missing `what_is_known` would become the word `undefined` | an empty field | defect (defaultsMerge normally prevents it) |
 | plan | a comment is offered after a mouse selection | also after a keyboard selection | accessibility |
+| questionnaire | *AI: zlepšit blok* on every block | not drawn | it does nothing (OI-49); a decision |
+| questionnaire | failures of the AI build, optimisation and deep research in an `alert()` | the same text on the page, with *Zkusit znovu* and *Diagnostika* | the editor stays in view |
+| questionnaire | a file input and a *Načíst dotazník* button | one *Načíst dotazník* button that picks and imports | as the brief's attachments |
+| questionnaire | *Načítám dotazník* as a full-screen overlay | inline in the import card | the rest of the step stays usable |
 | audience | range filter shown as `[object Object]` | `od–do` | defect |
