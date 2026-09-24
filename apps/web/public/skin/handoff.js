@@ -15,6 +15,9 @@
  *                                 "Výzkum" / "Simulace" / "Data Library"
  *   #aia:assistant=open           openAssistant1791()       -- "AI asistent"
  *   #aia:support=bundle           createSupportBundle(...)  -- "Diagnostika"
+ *   #aia:dimension=research       openDimensionResearch1793(label) -- a proposed dimension's
+ *                                 "Deep Research"; the label, free text, is read once from
+ *                                 sessionStorage["aia:dimension-research"], never from the URL
  *
  * It waits for the classic boot to finish (NPC_BOOT_STAGE === "ready"), clears
  * the fragment, and calls the classic interface's own function -- the one its
@@ -28,7 +31,7 @@
     "results", "verify", "next", "command", "data", "settings", "sim_context", "sim_change", "sim_people",
     "sim_run", "sim_results", "project_overview", "demos", "demo_project", "visualization",
   ];
-  var PATTERN = /^#aia:(open|start|go|switch|assistant|support)=([A-Za-z0-9_-]{1,160})(?:@([a-z_]{1,40}))?$/;
+  var PATTERN = /^#aia:(open|start|go|switch|assistant|support|dimension)=([A-Za-z0-9_-]{1,160})(?:@([a-z_]{1,40}))?$/;
 
   function run(verb, arg, step) {
     if (verb === "open" && step) {
@@ -61,6 +64,17 @@
       );
     }
     if (verb === "open") return window.openProject1785(arg);
+    if (verb === "dimension" && arg === "research") {
+      var label = null;
+      try {
+        label = window.sessionStorage.getItem("aia:dimension-research");
+        window.sessionStorage.removeItem("aia:dimension-research");
+      } catch {
+        label = null;
+      }
+      if (label) return window.openDimensionResearch1793(label);
+      return;
+    }
     if (verb === "start" && arg === "research") return window.startProductionResearch();
     if (verb === "start" && arg === "simulation") return window.startSimulationProduct1773();
     if (verb === "go" && ROUTES.indexOf(arg) >= 0) return window.go(arg);
