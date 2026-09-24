@@ -141,7 +141,7 @@ migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
-docs/architecture/          System design + 10 ADRs; ai-step-executor-contract.md
+docs/architecture/          System design + 13 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
