@@ -54,7 +54,9 @@ apps/
                             panel (the session + gate in front of the 18.6.6 interface, ADR 0012)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout (the front door
-                            to the 18.6.6 interface) and the live /studies pages; no mock data.
+                            to the 18.6.6 interface), the live /studies pages, and /app: the
+                            interface rebuilt in React, area by area (ADR 0014); no mock data.
+    src/app/app/            The rebuilt interface, gated like `/`, AIA_INTERFACE_REHOME_ENABLED
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured

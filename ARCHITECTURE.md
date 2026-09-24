@@ -384,7 +384,11 @@ the same gate to the web client, which fetches the unit's document and adds the
 AIA skin only when it is the pinned `ui_app.html`
 ([ADR 0013](docs/architecture/adr/0013-interface-skin-at-the-facade.md),
 `AIA_INTERFACE_SKIN_ENABLED`, off by default); `/interface-document` is not an
-entry point. The gate is the whole of the unit's access control:
+entry point. `/app` and `/app/*` — the interface rebuilt in React, area by area
+([ADR 0014](docs/architecture/adr/0014-rebuild-the-interface-in-react.md),
+`AIA_INTERFACE_REHOME_ENABLED`, off by default) — go through the same gate to the
+web client; its screens fetch the unit's API from the browser, through the gated
+paths, via one ledger-checked client (`apps/web/src/unit/`). The gate is the whole of the unit's access control:
 it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as every
 API call, admits only what `ScopeResolver.authorize_legacy_panel` admits
 (organization owners and admins), and refuses a state-changing request whose

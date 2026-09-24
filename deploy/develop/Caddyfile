@@ -81,6 +81,23 @@
 		respond 404
 	}
 
+	# The rebuilt interface (ADR 0014): AIA's own React screens, area by area.
+	# The same gate as `/` and the unit -- organization owners and admins only.
+	# The pages hold no data; they fetch it from the browser through the gated
+	# unit paths below. No unit path begins with /app (the route ledger). The
+	# web client answers 404 here while AIA_INTERFACE_REHOME_ENABLED is off.
+	@rehome path /app /app/*
+	handle @rehome {
+		route {
+			forward_auth api:8000 {
+				uri /api/v1/panel/gate
+			}
+			reverse_proxy web:3000 {
+				header_up -Cookie
+			}
+		}
+	}
+
 	# Everything else is the 18.6.6 unit, behind AIA sign-in. forward_auth asks
 	# the gate first with the request's headers (cookie, Origin, Accept) and the
 	# original method and URI; a 2xx lets the request through unchanged, and any

@@ -181,6 +181,7 @@ def up(fresh: bool) -> int:
             {
                 "AIA_LEGACY_PANEL_URL": f"http://127.0.0.1:{UNIT_PORT}",
                 "AIA_INTERFACE_SKIN_ENABLED": "true",
+                "AIA_INTERFACE_REHOME_ENABLED": "true",
                 "AIA_BUILD_SHA": "workbench",
                 "NEXT_TELEMETRY_DISABLED": "1",
             },

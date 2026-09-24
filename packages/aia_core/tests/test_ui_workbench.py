@@ -40,10 +40,12 @@ PATTERNS: list[str] = facade.web_paths((REPO / "deploy" / "develop" / "Caddyfile
 def test_the_web_matcher_is_read_from_the_committed_caddyfile() -> None:
     for expected in ("/login", "/_next/*", "/skin/*", "/studies", "/studies/*", "/version"):
         assert expected in PATTERNS
+    # The rebuilt interface (ADR 0014), from its own gated matcher.
+    assert "/app" in PATTERNS and "/app/*" in PATTERNS
 
 
 def test_a_caddyfile_without_the_matcher_is_refused() -> None:
-    with pytest.raises(ValueError, match="@web"):
+    with pytest.raises(ValueError, match="/_next/"):
         facade.web_paths("example.test {\n\treverse_proxy web:3000\n}\n")
 
 
@@ -60,6 +62,9 @@ def test_a_caddyfile_without_the_matcher_is_refused() -> None:
         ("/studies", "web", "/studies"),
         ("/studies-archive", "unit", "/studies-archive"),
         ("/brand/logo.svg", "unit", "/brand/logo.svg"),
+        ("/app", "web", "/app"),
+        ("/app/projects?view=demo", "web", "/app/projects?view=demo"),
+        ("/apps", "unit", "/apps"),
     ],
 )
 def test_routes_like_the_product_hostname(path: str, target: str, upstream: str) -> None:

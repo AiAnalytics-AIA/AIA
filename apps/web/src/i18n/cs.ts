@@ -1,4 +1,10 @@
 export const cs = {
+  rehome: {
+    title: "Nové rozhraní AIA",
+    intro:
+      "Obrazovky NPC Panelu se zde postupně přestavují v AIA. Oblasti, které zatím přestavěné nejsou, zůstávají v klasickém rozhraní.",
+    openClassic: "Otevřít klasické rozhraní",
+  },
   home: {
     title: "AIA",
     liveIntro:

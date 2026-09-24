@@ -4,14 +4,15 @@ routes the product hostname -- minus the gate.
     /                      -> the web client's /interface-document (the skin)
     /interface-document    -> 404, as on develop: reachable only through `/`
     /api/v1/*              -> 502: the workbench runs no AIA API
-    the Caddyfile's @web   -> the web client (read from deploy/develop/Caddyfile)
+    @web, @rehome, ...     -> the web client: every named matcher whose handle
+                              proxies to web:3000 in deploy/develop/Caddyfile
     everything else        -> the 18.6.6 unit, Host/Origin/Referer rewritten to
                               its own origin, as the unit's runtime/relay.py does
 
-The `@web` matcher is parsed from the committed Caddyfile, not copied, so the
-one routing fact that decides what the web client serves cannot drift from
-develop. There is no identity here: the workbench is a local design tool on a
-fictional panel (tools/ui_workbench/README.md), never a deployment.
+The matchers are parsed from the committed Caddyfile, not copied, so the one
+routing fact that decides what the web client serves cannot drift from develop.
+There is no identity here: the workbench is a local design tool on a fictional
+panel (tools/ui_workbench/README.md), never a deployment.
 
 Stdlib only.
 """
@@ -42,12 +43,32 @@ HOP_BY_HOP = {
 CHUNK = 64 * 1024
 
 
+def _block(text: str, start: int) -> str:
+    """The body of the `{ ... }` block whose opening brace is at or after `start`."""
+    i = text.index("{", start)
+    depth = 0
+    for j in range(i, len(text)):
+        depth += {"{": 1, "}": -1}.get(text[j], 0)
+        if depth == 0:
+            return text[i + 1 : j]
+    raise ValueError("unbalanced braces in the Caddyfile")
+
+
 def web_paths(caddyfile: str) -> list[str]:
-    """The path patterns of the product hostname's `@web` matcher."""
-    m = re.search(r"^\s*@web\s+path\s+(.+)$", caddyfile, re.MULTILINE)
-    if not m:
-        raise ValueError("the Caddyfile has no `@web path ...` matcher")
-    return m.group(1).split()
+    """The path patterns of every named matcher whose `handle` goes to the web client.
+
+    `@web` (AIA's own pages and assets) and `@rehome` (the rebuilt interface,
+    ADR 0014) today; any later matcher that proxies to web:3000 is picked up
+    the same way. The gate in front of some of them is not reproduced here.
+    """
+    patterns: list[str] = []
+    for m in re.finditer(r"^\s*@(\w+)\s+path\s+(.+)$", caddyfile, re.MULTILINE):
+        handle = re.search(rf"^\s*handle\s+@{m.group(1)}\s*\{{", caddyfile, re.MULTILINE)
+        if handle and "web:3000" in _block(caddyfile, handle.start()):
+            patterns += m.group(2).split()
+    if "/_next/*" not in patterns:
+        raise ValueError("no `@name path ...` matcher in the Caddyfile sends /_next/* to web:3000")
+    return patterns
 
 
 def _matches(pattern: str, path: str) -> bool:

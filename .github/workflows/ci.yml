@@ -719,6 +719,19 @@ jobs:
               assert direct and any(n.get("handler") == "static_response" and n.get("status_code") == 404
                                     for n in walk(direct[0])), "/interface-document is reachable directly"
               print("interface document: gate -> rewrite -> web; direct path 404")
+              # ADR 0014: the rebuilt interface is behind the same gate, then the
+              # web client, with the session cookie dropped. Without the gate the
+              # React screens -- and the unit data they fetch -- would be public.
+              for path in ("/app", "/app/*"):
+                  rehome = matched(path)
+                  assert len(rehome) == 1, f"no single route for {path} on the product hostname"
+                  steps = [n for n in walk(rehome[0]) if n.get("handler") == "reverse_proxy"]
+                  order = [n.get("rewrite", {}).get("uri") or ",".join(u.get("dial", "") for u in n.get("upstreams", []))
+                           for n in steps]
+                  assert order == ["/api/v1/panel/gate", "web:3000"], f"{path} must be the gate, then the web client; got {order}"
+                  assert "Cookie" in steps[-1].get("headers", {}).get("request", {}).get("delete", []), \
+                      f"the session cookie reaches the web client on {path}"
+              print("rebuilt interface: /app and /app/* are gate -> web")
               break
           else:
               raise SystemExit("no route for the product hostname")

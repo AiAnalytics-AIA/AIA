@@ -42,6 +42,16 @@ if [ "$root_code" = "302" ] && [ "$root_location" = "/login?next=%2F" ]; then
   pass "web: an anonymous visit to / is sent to sign-in (302 /login)"
 else fail "web: an anonymous visit to / is sent to sign-in" "got ${root_code} Location '${root_location}'"; fi
 
+# The rebuilt interface (ADR 0014) is behind the same gate: anonymous, a browser
+# is sent to sign-in and comes back to /app. A 200 here would mean the React
+# screens are public; a 404 from Caddy, that the running Caddy predates @rehome.
+app_headers="$(curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' "$BASE/app" || true)"
+app_code="$(printf '%s' "$app_headers" | awk 'NR==1{print $2}')"
+app_location="$(printf '%s' "$app_headers" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')"
+if [ "$app_code" = "302" ] && [ "$app_location" = "/login?next=%2Fapp" ]; then
+  pass "web: an anonymous visit to /app is sent to sign-in (302 /login)"
+else fail "web: an anonymous visit to /app is sent to sign-in" "got ${app_code} Location '${app_location}'"; fi
+
 # The interface document is reached only through the gated rewrite of `/`
 # (ADR 0013); asked for directly, Caddy itself answers 404. Anything else means
 # the running Caddy is not on the deployed Caddyfile -- how run 14 left the
