@@ -42,6 +42,15 @@ if [ "$root_code" = "302" ] && [ "$root_location" = "/login?next=%2F" ]; then
   pass "web: an anonymous visit to / is sent to sign-in (302 /login)"
 else fail "web: an anonymous visit to / is sent to sign-in" "got ${root_code} Location '${root_location}'"; fi
 
+# The interface document is reached only through the gated rewrite of `/`
+# (ADR 0013); asked for directly, Caddy itself answers 404. Anything else means
+# the running Caddy is not on the deployed Caddyfile -- how run 14 left the
+# skin unseen with every other check green (OI-45).
+direct_code="$(code "$BASE/interface-document")"
+if [ "$direct_code" = "404" ]; then
+  pass "caddy: running the deployed Caddyfile (/interface-document answers 404)"
+else fail "caddy: running the deployed Caddyfile" "GET /interface-document returned ${direct_code}, expected 404; the running Caddy predates this Caddyfile (docker compose up -d --force-recreate caddy)"; fi
+
 if [ "$(code "$BASE/login")" = "200" ] && curl -fsS --max-time 10 "$BASE/login" | grep -qi '<html'; then
   pass "web: the sign-in page renders"
 else fail "web: the sign-in page renders" "GET $BASE/login did not return 200 HTML"; fi

@@ -150,6 +150,11 @@ the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
   `ui_app.html` (a regenerated unit; the web log has an
   `interface_skin_bypassed` line with the hash it received). Switching it:
   change the value and `docker compose up -d web`.
+- **A Caddyfile change** reaches the running Caddy because its hash is part of
+  the caddy service's configuration (`bin/lib.sh`, `AIA_CADDYFILE_SHA256`), so
+  `compose up` recreates Caddy when the file changed and not otherwise. The
+  smoke check *caddy: running the deployed Caddyfile* fails if it did not; the
+  remedy is `docker compose up -d --force-recreate caddy` (OI-45).
 - **The site does not depend on the unit** (OI-44). Caddy starts without it,
   the deploy waits only on AIA's services, and the unit's health is a smoke
   check: an unhealthy unit fails the deploy but `/login`, `/studies` and the API

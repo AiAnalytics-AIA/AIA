@@ -1429,3 +1429,46 @@ the unit unhealthy (every other smoke check passed), and run 12 passed everythin
 once `aia_legacy_data_prefix` was set. Still open: Terraform ownership of the
 four `aia_legacy_*` parameters and the oracle's DNS record.
 
+## OI-45 · Finding · A deploy that changes only the Caddyfile leaves the running Caddy on the old one
+
+**Claim.** *Deploy develop* run 14 (`35968675321`) @ `4dc7966` deployed the
+interface skin (PR #45, ADR 0013) and passed every smoke check, but the site
+looked exactly as before: the running Caddy kept the routing it started with, so
+`/` still went straight to the unit and the web client's injector never saw a
+request.
+
+**Anchor.** `deploy/develop/bin/deploy.sh:97-98 @ 4dc7966` (`compose up -d`; no
+reload or recreate of `caddy`); `deploy/develop/docker-compose.yml` caddy
+`volumes: ./Caddyfile:/etc/caddy/Caddyfile:ro` @ `4dc7966`. Caddy reads its
+Caddyfile once, at start; Compose recreates a container only when its image or
+its configuration changes, never because a bind-mounted file's contents did.
+
+**Reproduction.** `docker compose config` of the caddy service, rendered from
+the same directory, at `cd8113c` and `4dc7966`: identical
+(`fc17bc3292e0…`), while the Caddyfile changed (`fae7b5d0…` → `5871bb11…`) and
+the web service's configuration changed (`35915de2…` → `a623b1ff…`). So run 14
+recreated `web` (with the injector and the switch on) and left `caddy` running.
+The data owner reported the unchanged site on 2026-09-24. The same deploy's
+smoke checks could not see it: every one of them is answered identically by the
+old routing.
+
+**Consequence.** The skin was deployed and switched on and nobody could see it;
+more generally, any Caddyfile-only change — a route, a header, a gate — would
+ship green and not take effect. Earlier Caddyfile changes took effect only
+because each also changed the caddy service's Compose configuration.
+
+**Smallest fix.** `bin/lib.sh` exports `AIA_CADDYFILE_SHA256` (the file's hash)
+for every script, and the caddy service carries it as a label, so a changed
+Caddyfile changes the service's configuration and `compose up` recreates Caddy;
+an unchanged one restarts nothing. The first deploy with the fix recreates Caddy
+once (the label is new). A new smoke check asks for `/interface-document`
+directly, which only the current Caddyfile answers with Caddy's own 404.
+
+**Test that would have caught it.**
+`test_develop_host_resilience.py::test_a_changed_caddyfile_recreates_caddy` and
+`::test_the_smoke_check_proves_caddy_runs_the_deployed_caddyfile`; on the host,
+the smoke check *caddy: running the deployed Caddyfile*.
+
+**Status.** Fix on `claude/eager-meitner-9s1qky`. Immediate remedy on the host,
+without waiting for it: `docker compose up -d --force-recreate caddy` in
+`/opt/aia/develop`.

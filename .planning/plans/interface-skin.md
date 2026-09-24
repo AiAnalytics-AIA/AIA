@@ -165,7 +165,11 @@ area is re-homed.
 - [x] 6a. **Switched on for develop** (`AIA_INTERFACE_SKIN_ENABLED: "true"` in
       `deploy/develop/docker-compose.yml`), as its own commit, so that merging
       is what shows the skin and reverting one value removes it. Per-area
-      passes (6) follow the live baseline.
+      passes (6) follow the live baseline. **Merged in PR #45 @ `4dc7966` and
+      deployed by run 14, but not visible:** the running Caddy never read the
+      new Caddyfile (OI-45). Fixed by hashing the Caddyfile into the caddy
+      service's configuration, with a smoke check that only the current
+      Caddyfile passes.
 - [ ] 7. **Promote.** ADR 0013 → Accepted after the first skinned deploy is seen
       working on develop; plan → `done/`.
 
