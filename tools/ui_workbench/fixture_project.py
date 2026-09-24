@@ -229,6 +229,30 @@ FIXTURES: dict[str, dict[str, Any]] = {
         },
         "analysis": ANALYSIS,
     },
+    # The audience's project with dimensions chosen from the catalogue, one
+    # requested dimension waiting for evidence, and a sample set by hand
+    # (renderPersona): the chips, the rows, the request and the sample drawn.
+    "persona": {
+        "project": {
+            **BRIEF,
+            "sections": SECTIONS,
+            "ui_state": {
+                "questionnaire_path": "manual",
+                "audience_entry": "analytics",
+                "analytics_choice": "cz18",
+            },
+            "persona_dimensions": {"approved": ["media", "cena", "technologie"]},
+            "requested_dimensions": [
+                {
+                    "label": "Vztah k fiktivní službě",
+                    "status": "needs_evidence",
+                    "source_strategy": "document_or_research",
+                }
+            ],
+            "n": 450,
+        },
+        "analysis": ANALYSIS,
+    },
 }
 
 

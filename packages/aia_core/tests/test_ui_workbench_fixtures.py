@@ -127,3 +127,13 @@ def test_the_audience_is_on_the_branch_the_factor_editor_draws() -> None:
     filters = fx["audience"]["filters"]
     assert isinstance(filters["kraj"], list)
     assert set(filters["vek"]) == {"min", "max"}
+
+
+def test_the_persona_draws_chosen_requested_and_a_hand_set_sample() -> None:
+    m = _load()
+    fx = m.FIXTURES["persona"]["project"]
+    # renderPersona: a non-empty approval is drawn as it is (an empty one is refilled).
+    assert fx["persona_dimensions"]["approved"]
+    assert fx["requested_dimensions"][0]["status"] == "needs_evidence"
+    # Inside 50-5000 and not the recommendation, so the input shows the project's N.
+    assert 50 <= fx["n"] <= 5000 and fx["n"] not in (300, 400, 500)
