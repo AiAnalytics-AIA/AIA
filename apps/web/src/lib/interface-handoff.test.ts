@@ -30,6 +30,8 @@ describe("classicHref", () => {
     expect(classicHref({ open: "PRJ-DEMO-1" })).toBe("/#aia:open=PRJ-DEMO-1");
     expect(classicHref({ start: "simulation" })).toBe("/#aia:start=simulation");
     expect(classicHref({ go: "projects" })).toBe("/#aia:go=projects");
+    expect(classicHref({ open: "PRJ-1", step: "questionnaire" })).toBe("/#aia:open=PRJ-1@questionnaire");
+    expect(classicHref({ open: "PRJ-1", step: "Bad Step" })).toBe("/");
   });
   it("never builds an instruction from an id the script would refuse", () => {
     expect(classicHref({ open: "x'); alert(1)//" })).toBe("/");
@@ -87,6 +89,20 @@ describe("handoff.js", () => {
     p.win.NPC_BOOT_STAGE = "ready";
     p.tick();
     expect(p.calls).toEqual(["replaceState", "open:PRJ-1"]);
+  });
+
+  it("opens a project on a step once it has loaded, for a step the router knows", async () => {
+    const p = page("#aia:open=PRJ-1@questionnaire");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(p.calls).toEqual(["replaceState", "open:PRJ-1", "go:questionnaire"]);
+    // A step the router does not know: the fragment is cleared, nothing is opened.
+    const q = page("#aia:open=PRJ-1@render_home");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(q.calls).toEqual(["replaceState"]);
+    // Not the pattern at all: ignored before anything runs.
+    const r = page("#aia:open=PRJ-1@renderHome");
+    await new Promise((res) => setTimeout(res, 0));
+    expect(r.calls).toEqual([]);
   });
 
   it("acts on a hand-off link followed from the classic page itself", () => {

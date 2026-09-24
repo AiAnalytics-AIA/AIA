@@ -28,7 +28,7 @@ export function applyHandoff(
 }
 
 export type ClassicTarget =
-  | { open: string }
+  | { open: string; step?: string }
   | { start: "research" | "simulation" }
   | { go: string }
   | { switch: "research" | "simulation" | "library" }
@@ -38,7 +38,9 @@ export type ClassicTarget =
 /** The link from a rebuilt screen to the classic interface, carrying one hand-off instruction. */
 export function classicHref(target?: ClassicTarget): string {
   if (!target) return "/";
-  const [verb, arg] = Object.entries(target)[0] as [string, string];
+  const { step, ...rest } = target as { step?: string } & Record<string, string>;
+  const [verb, arg] = Object.entries(rest)[0] as [string, string];
   if (!/^[A-Za-z0-9_-]{1,160}$/.test(arg)) return "/";
-  return `/#aia:${verb}=${arg}`;
+  if (step !== undefined && !/^[a-z_]{1,40}$/.test(step)) return "/";
+  return `/#aia:${verb}=${arg}${step ? `@${step}` : ""}`;
 }
