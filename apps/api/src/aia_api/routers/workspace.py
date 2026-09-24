@@ -26,6 +26,7 @@ from aia_core.domain.scope import (
     ClientPermission,
     Permission,
     ScopeDenied,
+    ScopeRole,
     SeparationOfDutiesViolation,
     Study,
     StudyKind,
@@ -43,6 +44,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
     ArtifactStoreDep,
+    OrganizationDep,
     PrincipalDep,
     ResolverDep,
     ScopeRepositoryDep,
@@ -370,6 +372,71 @@ def _slug(name: str) -> str:
 # --------------------------------------------------------------------------- #
 # The directory and one client
 # --------------------------------------------------------------------------- #
+
+
+class Me(BaseModel):
+    """Who the caller is in this organization."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str
+    email: str | None
+    organization_role: str
+    may_administer: bool
+
+
+class ClientStart(BaseModel):
+    """A new client, as an administrator starts one from the directory."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=255)
+
+
+@router.get("/workspace/me", response_model=Me, summary="Who you are here")
+def me(principal: PrincipalDep, admin: OrganizationDep) -> Me:
+    """The caller's user id, e-mail and organization role; no client data."""
+    return Me(
+        user_id=principal.user_id,
+        email=principal.email,
+        organization_role=admin.organization_role.value,
+        may_administer=admin.may_administer,
+    )
+
+
+@router.post(
+    "/workspace/clients",
+    response_model=ClientWorkspace,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a new client",
+)
+def start_client(
+    body: ClientStart,
+    principal: PrincipalDep,
+    admin: OrganizationDep,
+    resolver: ResolverDep,
+    repo: ScopeRepositoryDep,
+) -> ClientWorkspace:
+    """Create a client and grant its creator LEAD on it, in one transaction.
+
+    Organization administration is required, as for ``POST /clients``. The grant
+    is the ordinary self-grant ADR 0004 allows and audits as ``CLIENT_SELF_GRANT``:
+    without it the creator could not open the client they just made.
+    """
+    try:
+        client = repo.create_client(admin, slug=_slug(body.name), name=body.name.strip())
+        resolver.grant_client_access(
+            admin,
+            client_id=client.client_id,
+            user_id=principal.user_id,
+            role=ScopeRole.LEAD,
+            reason="created the client from the directory",
+        )
+    except ScopeDenied as exc:
+        raise _forbidden(
+            exc.reason, "Starting a client needs an organization owner or admin."
+        ) from exc
+    return _workspace(_client_scope(principal, resolver, client.client_id), repo)
 
 
 @router.get(

@@ -45,6 +45,28 @@ def test_the_directory_lists_only_the_clients_you_work_for(
     assert owner.get(f"{API}/workspace/clients").json() == []
 
 
+def test_an_administrator_starts_a_client_and_can_open_it_members_cannot(
+    owner: TestClient, lead: TestClient, world: Any
+) -> None:
+    me = owner.get(f"{API}/workspace/me").json()
+    assert me["may_administer"] is True and me["organization_role"] == "OWNER"
+    assert lead.get(f"{API}/workspace/me").json()["may_administer"] is False
+    made = owner.post(f"{API}/workspace/clients", json={"name": "Nový klient s. r. o."})
+    assert made.status_code == 201 and made.json()["your_role"] == "LEAD"
+    assert made.json()["slug"].startswith("novy-klient-s-r-o-")
+    assert [c["client_id"] for c in owner.get(f"{API}/workspace/clients").json()] == [
+        made.json()["client_id"]
+    ]
+    audit = owner.get(f"{API}/access-audit").json()
+    assert any(
+        a["action"] == "CLIENT_SELF_GRANT" and a["client_id"] == made.json()["client_id"]
+        for a in audit
+    )
+    assert lead.post(f"{API}/workspace/clients", json={"name": "Nope"}).status_code == 403
+    # The new client is invisible to people without a grant on it.
+    assert lead.get(f"{API}/clients/{made.json()['client_id']}").status_code == 404
+
+
 def test_a_client_workspace_cannot_be_opened_outside_your_scope(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:

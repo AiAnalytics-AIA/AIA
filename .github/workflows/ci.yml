@@ -422,6 +422,7 @@ jobs:
               "/api/v1/access-audit",
               # The client workspace (ADR 0015): the directory, one client, its
               # studies, its knowledge, and one study's bridge to the unit.
+              "/api/v1/workspace/me",
               "/api/v1/workspace/clients",
               "/api/v1/clients/{client_id}",
               "/api/v1/clients/{client_id}/studies",
