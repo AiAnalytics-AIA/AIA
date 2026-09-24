@@ -137,6 +137,36 @@ def test_every_dispatch_arm_points_at_a_real_line_of_the_unit(routes: list[dict[
             )
 
 
+SET_ARM = re.compile(r"if path in \{([^}]*)\}")
+
+
+def test_the_addenda_are_exactly_the_set_arms_the_reference_missed(
+    ledger: dict[str, Any], routes: list[dict[str, Any]]
+) -> None:
+    """OI-48: `path in {...}` arms are rows the reference's parser never produced.
+
+    Each is listed once under `addenda`, anchored to its line, and never
+    duplicates a pinned row; a new set arm in the unit fails here until it is.
+    """
+    lines = (UNIT / "ui_server.py").read_text(encoding="utf-8").splitlines()
+    served = {
+        (n, p)
+        for n, line in enumerate(lines, start=1)
+        for m in SET_ARM.finditer(line)
+        for p in re.findall(r'"(/[^"]+)"', m.group(1))
+    }
+    addenda: list[dict[str, Any]] = ledger["addenda"]
+    listed = {(a["arms"][0]["line"], a["path"]) for a in addenda}
+    assert listed == served
+    pinned = {(r["verb"], r["path"]) for r in routes}
+    for a in addenda:
+        assert (a["verb"], a["path"]) not in pinned, a["route"]
+        assert a["route"] == f"{a['verb']} {a['path']}"
+        assert a["status"] in STATUSES and a["scope"] in SCOPES
+        assert [arm["match"] for arm in a["arms"]] == ["set"]
+        assert "OI-48" in a["notes"]
+
+
 def test_nothing_is_ported_yet(routes: list[dict[str, Any]]) -> None:
     """PORTED means parity PASS from executed gates. No oracle gate has executed yet.
 

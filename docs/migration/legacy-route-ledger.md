@@ -44,6 +44,12 @@ Rules:
   prefix dispatches (`POST /api/workflows/<id>/pause` appears as both
   `POST /api/workflows/` and `POST /pause`). Both rows are kept so coverage is
   exactly the reference's 162 arms; the suffix rows say so in `notes`.
+- **Addenda** (`addenda`, OI-48). The reference's scan did not recognise set
+  arms (`if path in {"/a","/b"}:`), so four served paths had no row. They are
+  listed apart from the 153 pinned rows, one per path, with `match: "set"` and
+  their `ui_server.py` line; `test_legacy_route_ledger.py` fails when a set arm
+  in the unit is missing from them. When the reference's parser is fixed and
+  re-pinned, they move into `routes` and `addenda` empties.
 
 ## UI function statuses
 

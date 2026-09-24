@@ -7,11 +7,12 @@ import { UNIT_ROUTES } from "./routes";
 // Read at run time: the web image is built from apps/web alone.
 const ledger = JSON.parse(
   readFileSync(join(process.cwd(), "../../docs/migration/legacy-route-ledger.json"), "utf8"),
-) as { routes: { route: string; status: string }[] };
+) as { routes: { route: string; status: string }[]; addenda: { route: string }[] };
 
 describe("the unit routes the rebuilt interface calls", () => {
   it("are every one a row of the legacy route ledger", () => {
-    const known = new Set(ledger.routes.map((r) => r.route));
+    // A pinned row, or an addendum the reference's parser missed (OI-48).
+    const known = new Set([...ledger.routes, ...ledger.addenda].map((r) => r.route));
     for (const [key, route] of Object.entries(UNIT_ROUTES)) expect(known.has(route), `${key}: ${route}`).toBe(true);
   });
 

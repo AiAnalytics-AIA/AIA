@@ -1566,4 +1566,6 @@ from the pinned 153 rows until the reference's parser is fixed upstream
 `path ==` / `path in {…}` literal in `ui_server.py`'s dispatch is a row or an
 addendum.
 
-**Status.** Fix in research-flow-rehome.md chunk 1.
+**Status.** Fixed in-repo: `addenda` in the ledger, checked by
+`test_legacy_route_ledger.py::test_the_addenda_are_exactly_the_set_arms_the_reference_missed`.
+The reference's parser (upstream) still misses the form.
