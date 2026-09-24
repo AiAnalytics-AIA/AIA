@@ -1,7 +1,8 @@
 # The develop environment: one host, six services, ADR 0009 and ADR 0011.
 #
 #   caddy         public HTTPS entrypoint (80/443), proxies to web, api and legacy-panel
-#                 (the product hostname serves the 18.6.6 interface behind AIA sign-in, ADR 0012)
+#                 (the product hostname is AIA, ADR 0015; the 18.6.6 unit behind the gate,
+#                 at /classic and on its own paths)
 #   web           Next.js standalone, internal only
 #   api           FastAPI under uvicorn, internal only
 #   worker        aia-worker, no inbound port

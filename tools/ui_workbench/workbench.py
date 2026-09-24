@@ -1,24 +1,29 @@
-"""The UI workbench: the real 18.6.6 interface with the AIA skin, on this machine.
+"""The UI workbench: AIA's client-first interface and the classic 18.6.6 one, on this machine.
 
     python tools/ui_workbench/workbench.py up        # start (or confirm) everything
     python tools/ui_workbench/workbench.py status    # what is running, and answering
     python tools/ui_workbench/workbench.py down      # stop everything
     python tools/ui_workbench/workbench.py up --fresh  # also reset the unit's state
 
-Four processes, all under tmp/ui-workbench/ (git-ignored):
+Five processes, all under tmp/ui-workbench/ (git-ignored):
 
     unit     the vendored ui_server.py on a scratch copy of app/, fictional panel
              (unit_standin.py)                                 127.0.0.1:8767
+    api      the real aia_api on a scratch SQLite file, local identity, the
+             develop seed (api_standin.py)                      127.0.0.1:8766
     web      `next dev` for apps/web, AIA_INTERFACE_SKIN_ENABLED=true  127.0.0.1:13000
     skin     `build-skin.mjs --watch`: skin.css rebuilt on every save
     facade   routes like the develop Caddyfile, minus the gate  127.0.0.1:8780
 
-http://127.0.0.1:8780/ is the skinned interface, as develop serves it after
-sign-in. http://127.0.0.1:8767/ is the same unit bare, byte for byte. Edit
+http://127.0.0.1:8780/workbench/sign-in signs in as the seeded operator and
+opens the client directory, as develop does after sign-in (ADR 0015).
+http://127.0.0.1:8780/classic is the classic interface, skinned, with its bar
+back to AIA; http://127.0.0.1:8767/ is the same unit bare, byte for byte. Edit
 apps/web/src/skin/components.css (or tokens.json, legacy-variables.json), reload.
 
-Stdlib only; the unit's own Python dependencies go into tmp/ui-workbench/venv
-(uv when present, else venv + pip), keyed by the requirements file's hash.
+The unit's own Python dependencies go into tmp/ui-workbench/venv (uv when
+present, else venv + pip), keyed by the requirements file's hash. The API runs
+on the repository's environment (`make setup`): AIA_API_PYTHON, else .venv.
 """
 
 from __future__ import annotations
@@ -47,7 +52,8 @@ UNIT = HOME / "unit"
 LOGS = HOME / "logs"
 STATE = HOME / "state.json"
 
-UNIT_PORT, WEB_PORT, FACADE_PORT = 8767, 13000, 8780
+UNIT_PORT, API_PORT, WEB_PORT, FACADE_PORT = 8767, 8766, 13000, 8780
+NAMES = ("unit", "api", "web", "skin", "facade")
 
 
 def _hash(path: Path) -> str:
@@ -56,6 +62,15 @@ def _hash(path: Path) -> str:
 
 def _python() -> Path:
     return VENV / "bin" / "python"
+
+
+def _api_python() -> str:
+    """The repository's Python, which has aia_api installed; not the unit's venv."""
+    configured = os.environ.get("AIA_API_PYTHON")
+    if configured:
+        return configured
+    local = REPO / ".venv" / "bin" / "python"
+    return str(local) if local.exists() else sys.executable
 
 
 def ensure_venv() -> None:
@@ -154,8 +169,10 @@ def _wait(url: str, what: str, seconds: int) -> tuple[int, dict[str, str]]:
 def up(fresh: bool) -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     state = {k: v for k, v in _read_state().items() if _alive(v)}
-    if fresh and "unit" in state:
-        _stop("unit", state.pop("unit"))
+    if fresh:
+        for name in ("unit", "api"):
+            if name in state:
+                _stop(name, state.pop(name))
     ensure_venv()
     ensure_unit_copy(fresh)
     ensure_web_modules()
@@ -163,6 +180,13 @@ def up(fresh: bool) -> int:
     if "unit" not in state:
         state["unit"] = _spawn(
             "unit", [str(_python()), str(HERE / "unit_standin.py"), "--port", str(UNIT_PORT)], UNIT
+        )
+    if "api" not in state:
+        state["api"] = _spawn(
+            "api",
+            [_api_python(), str(HERE / "api_standin.py"), "--port", str(API_PORT)]
+            + (["--fresh"] if fresh else []),
+            REPO,
         )
     if "skin" not in state:
         state["skin"] = _spawn("skin", ["node", "scripts/build-skin.mjs", "--watch"], WEB)
@@ -182,7 +206,6 @@ def up(fresh: bool) -> int:
                 "AIA_LEGACY_PANEL_URL": f"http://127.0.0.1:{UNIT_PORT}",
                 "AIA_INTERFACE_SKIN_ENABLED": "true",
                 "AIA_INTERFACE_REHOME_ENABLED": "true",
-                "AIA_BUILD_SHA": "workbench",
                 "NEXT_TELEMETRY_DISABLED": "1",
             },
         )
@@ -198,16 +221,23 @@ def up(fresh: bool) -> int:
                 f"127.0.0.1:{WEB_PORT}",
                 "--unit",
                 f"127.0.0.1:{UNIT_PORT}",
+                "--api",
+                f"127.0.0.1:{API_PORT}",
             ],
             REPO,
         )
     STATE.write_text(json.dumps(state, indent=1) + "\n")
 
     _wait(f"http://127.0.0.1:{UNIT_PORT}/", "the unit", 180)
-    status, headers = _wait(f"http://127.0.0.1:{FACADE_PORT}/", "the facade and web client", 240)
+    _wait(f"http://127.0.0.1:{API_PORT}/api/v1/health", "the AIA API", 120)
+    status, headers = _wait(
+        f"http://127.0.0.1:{FACADE_PORT}/classic", "the facade and web client", 240
+    )
     skin = headers.get("x-aia-skin", "absent")
+    print(f"workbench: AIA      http://127.0.0.1:{FACADE_PORT}/workbench/sign-in")
     print(
-        f"workbench: skinned  http://127.0.0.1:{FACADE_PORT}/  (HTTP {status}, X-AIA-Skin: {skin})"
+        f"workbench: classic  http://127.0.0.1:{FACADE_PORT}/classic"
+        f"  (HTTP {status}, X-AIA-Skin: {skin})"
     )
     print(f"workbench: bare     http://127.0.0.1:{UNIT_PORT}/")
     print(f"workbench: logs     {LOGS.relative_to(REPO)}/")
@@ -243,22 +273,26 @@ def down() -> int:
 def status() -> int:
     state = _read_state()
     ok = True
-    for name in ("unit", "web", "skin", "facade"):
+    for name in NAMES:
         pid = state.get(name)
         alive = bool(pid) and _alive(pid or 0)
         ok &= alive
         print(f"{name:7} {'running' if alive else 'stopped'} {pid or ''}")
-    code, headers = _probe(f"http://127.0.0.1:{FACADE_PORT}/", timeout=30)
+    api, _ = _probe(f"http://127.0.0.1:{FACADE_PORT}/api/v1/health", timeout=30)
+    print(f"api     http://127.0.0.1:{FACADE_PORT}/api/v1/health  HTTP {api}")
+    code, headers = _probe(f"http://127.0.0.1:{FACADE_PORT}/classic", timeout=30)
     skin = headers.get("x-aia-skin", "-")
-    print(f"skinned http://127.0.0.1:{FACADE_PORT}/  HTTP {code}  X-AIA-Skin: {skin}")
-    return 0 if ok and headers.get("x-aia-skin") == "applied" else 1
+    print(f"classic http://127.0.0.1:{FACADE_PORT}/classic  HTTP {code}  X-AIA-Skin: {skin}")
+    return 0 if ok and api == 200 and headers.get("x-aia-skin") == "applied" else 1
 
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     p_up = sub.add_parser("up")
-    p_up.add_argument("--fresh", action="store_true", help="reset the unit's scratch state")
+    p_up.add_argument(
+        "--fresh", action="store_true", help="reset the unit's and the API's scratch state"
+    )
     sub.add_parser("down")
     sub.add_parser("status")
     args = ap.parse_args(argv)

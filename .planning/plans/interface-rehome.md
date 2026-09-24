@@ -1,7 +1,20 @@
 # Interface re-home — the screens rebuilt in React, area by area
 
 **Status:** in progress · **Owner:** product-surface (A9) + web · **Started:** 2026-09-24
-**Decision:** [ADR 0014](../../docs/architecture/adr/0014-rebuild-the-interface-in-react.md) (Proposed)
+**Decision:** [ADR 0014](../../docs/architecture/adr/0014-rebuild-the-interface-in-react.md) (Proposed),
+**superseded in part by [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)**
+
+> **Read this first (2026-09-24, [client-first-ia.md](client-first-ia.md)).** The
+> React work below is kept, but its frame changed. AIA is the product at `/`
+> (→ `/app/clients`); the classic interface is a hand-off at `/classic`, not the
+> page `/app` sits beside. The classic rail is no longer copied: the global
+> navigation is *Klienti, Společenská inteligence, Projektová paměť, Nastavení*
+> and a study's stages are drawn only inside the study. A classic screen's capture
+> is **evidence of what it does, not the specification** of the rebuilt one
+> (ADR 0015 superseding ADR 0014 decision 4). The research stages live at
+> `/app/clients/<client>/research/<study>/<stage>`; *Správa projektů* moved to
+> `/app/settings/classic-projects` (the unit's store, OI-58). The area order below
+> is historical; the next areas are chosen inside the client workspace.
 **Tools:** [ui-workbench.md](ui-workbench.md) — every classic screen captured, every
 rebuilt one beside it.
 
@@ -42,8 +55,8 @@ fills with content so the rebuild can be seen, go first; the heaviest go last:
 | 2 | Foundation: the typed unit client (`src/unit/`, every call ledger-checked), the UI primitives on tokens, the catalogue | client done: `unit()` + `UNIT_ROUTES` (5 routes, all ledger rows), Projects parse and logic ported from 14 classic functions, **220 parity checks against the originals run under Node** (`projects.parity.test.ts`), 225 tests in `src/unit/`. Primitives and catalogue land with the shell (3) |
 | 3 | A1 Shell | rail and header done: the classic rail item for item (Nastavení and Pokročilé groups included), each unrebuilt item a hand-off marked as such; the rail's foot reads Claude Code and the joint core from the unit — 18.6.6 prints *Core joint · VALID* as a literal (OI-46). The classic `home` route itself is not rebuilt yet |
 | 4 | A2 Projects | **done**: `/app/projects` + `/app/projects/trash`, every control of the classic screen, confirm/prompt as a modal dialog, toasts; ledger row `REBUILT`; capture pair 0 classic texts missing at 1440/1024; 7 component tests (jsdom), 220 parity checks; driven end to end in the workbench (views, search, pin, trash, restore, hand-off into a DEMO) |
-| 5+ | A3–A8, one chunk per area, each: capture pair, tests, ledger row `REBUILT` | pending |
-| — | `/` moves to the rebuilt interface; the classic one to its own path | when the data owner says the areas they use are covered |
+| 5+ | A3–A8, one chunk per area, each: capture pair, tests, ledger row `REBUILT` | pending, re-planned inside the client workspace ([client-first-ia.md](client-first-ia.md)) |
+| — | `/` moves to the rebuilt interface; the classic one to its own path | **done early, by decision** (ADR 0015, 2026-09-24): `/` → `/app/clients`, the classic interface at `/classic`; the shell of chunk 3 was replaced by the client-first `AppShell` |
 
 ## Deliberate differences from the classic screens
 

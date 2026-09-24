@@ -1,8 +1,9 @@
 """The workbench's fixture research projects (tools/ui_workbench/fixture_project.py).
 
 They reach the unit only through its save route, with the body the classic
-``scheduleServerSave`` sends, and a second run updates the same projects. The
-unit is a stub here: these tests pin what is sent, not what the unit stores.
+``scheduleServerSave`` sends, and a second run updates the same projects. Each
+is then bound to an AIA study through the API's own routes. The unit and the
+API are stubs here: these tests pin what is sent, not what either stores.
 """
 
 from __future__ import annotations
@@ -137,3 +138,60 @@ def test_the_persona_draws_chosen_requested_and_a_hand_set_sample() -> None:
     assert fx["requested_dimensions"][0]["status"] == "needs_evidence"
     # Inside 50-5000 and not the recommendation, so the input shows the project's N.
     assert 50 <= fx["n"] <= 5000 and fx["n"] not in (300, 400, 500)
+
+
+@pytest.fixture()
+def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[ModuleType, list[str]]:
+    """The workbench API's routes, as a stub: one fictional client, studies bound once."""
+    m = _load()
+    calls: list[str] = []
+    bound: dict[str, str] = {}
+
+    def call(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
+        calls.append(f"{method} {path}")
+        if path == "/workspace/clients":
+            return [
+                {"client_id": "CLI-X", "name": "Lumen"},
+                {"client_id": "CLI-H", "name": "Horizont Mobility (fiktivní)"},
+            ]
+        if method == "POST" and path == "/clients/CLI-H/studies":
+            assert body is not None and body["kind"] == "RESEARCH"
+            return {"study_id": f"STU-{sum(c.startswith('POST') for c in calls)}"}
+        if method == "PUT" and path.endswith("/workspace"):
+            assert body is not None
+            bound[path.split("/")[2]] = body["unit_project_id"]
+            return {}
+        if method == "GET" and path.endswith("/workspace"):
+            return {"unit_project_id": bound.get(path.split("/")[2])}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(m, "STUDIES", tmp_path / "studies.json")
+    monkeypatch.setattr(m, "_api", call)
+    return m, calls
+
+
+def test_each_fixture_is_bound_to_a_study_of_the_workbench_client(
+    api: tuple[ModuleType, list[str]],
+) -> None:
+    m, calls = api
+    out = m.bind({"empty": "PRJ-00", "planned": "PRJ-01"})
+    assert {k: v["unit"] for k, v in out.items()} == {"empty": "PRJ-00", "planned": "PRJ-01"}
+    assert {v["client"] for v in out.values()} == {"CLI-H"}
+    assert len({v["study"] for v in out.values()}) == 2
+    # A study is made in the client, then bound; nothing looks a study up by unit id.
+    assert [c for c in calls if c != "GET /workspace/clients"][:2] == [
+        "POST /clients/CLI-H/studies",
+        f"PUT /studies/{out['empty']['study']}/workspace",
+    ]
+
+
+def test_a_second_bind_reuses_the_studies_and_a_new_unit_project_gets_a_new_one(
+    api: tuple[ModuleType, list[str]],
+) -> None:
+    m, calls = api
+    first = m.bind({"empty": "PRJ-00"})
+    again = m.bind({"empty": "PRJ-00"})
+    assert again == first
+    moved = m.bind({"empty": "PRJ-09"})
+    assert moved["empty"]["study"] != first["empty"]["study"]
+    assert sum(c.startswith("POST") for c in calls) == 2

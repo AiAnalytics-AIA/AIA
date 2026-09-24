@@ -97,8 +97,8 @@ parity-status: ## Parity verdict per capability, from a fresh run of every suite
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
 
-ui-workbench: ## The real 18.6.6 interface + AIA's web client on this machine (fictional panel): 127.0.0.1:8780
-	@python3 tools/ui_workbench/workbench.py up
+ui-workbench: ## AIA's client-first interface + the classic 18.6.6 one on this machine (fictional panel): 127.0.0.1:8780
+	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up
 
 ui-workbench-status: ## Is the UI workbench running, and is the skin applied?
 	@python3 tools/ui_workbench/workbench.py status

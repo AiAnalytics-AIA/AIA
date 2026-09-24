@@ -53,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
                     "project_id": result.project_id,
                     "run_id": result.run_id,
                     "created": result.created,
+                    "workspaces": result.workspaces,
                 },
                 indent=2,
             )

@@ -80,7 +80,7 @@ const TEMPLATE_HREF = "/api/questionnaire/template";
 const METHODOLOGY_HREF = "/files/docs/reference/QUESTIONNAIRE_IMPORT_AI_INSTRUCTIONS.md";
 
 export function QuestionnaireStep() {
-  const { store, state, boot, runJob, toast } = useResearch();
+  const { store, state, boot, runJob, toast, stepHref } = useResearch();
   const router = useRouter();
   const analysis = useAnalysis();
   const step = useAiStep();
@@ -95,8 +95,7 @@ export function QuestionnaireStep() {
   // continueQuestionnaireToAudience: the run check and the final review are cleared.
   const toAudienceStep = () => {
     store.update(({ project }) => ({ project: toAudience(project) }), { reason: "questionnaire_done" });
-    const id = store.get().projectId;
-    if (id) router.push(`/app/research/${encodeURIComponent(id)}/audience`);
+    router.push(stepHref("audience"));
   };
 
   // buildQuestionnaire: the analysis first (reused when the brief is the same), then the job.

@@ -5,7 +5,7 @@
 export type IconName =
   | "home" | "research" | "simulation" | "assistant" | "library" | "settings" | "command" | "projects"
   | "external" | "plus" | "search" | "pin" | "tag" | "copy" | "archive" | "trash" | "restore" | "back"
-  | "attach" | "link" | "next"
+  | "attach" | "link" | "next" | "client" | "knowledge" | "data" | "memory" | "intelligence"
   | "done" | "running" | "you" | "world" | "fault" | "dot";
 
 const PATHS: Record<IconName, string> = {
@@ -27,6 +27,11 @@ const PATHS: Record<IconName, string> = {
   trash: "M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4",
   restore: "M3 8a5 5 0 1 0 1.5-3.5L3 6M3 2.5V6h3.5",
   back: "M10 3 5 8l5 5",
+  client: "M2.5 13.5h11M4 13.5v-10h5v10M9 6.5h3v7M6 5.5h1M6 8h1M6 10.5h1",
+  knowledge: "M2.5 3h4a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 0 6.5 12h-4zM13.5 3h-4A1.5 1.5 0 0 0 8 4.5v9A1.5 1.5 0 0 1 9.5 12h4z",
+  data: "M2.5 3h11v10h-11zM2.5 6.5h11M2.5 10h11M6.5 3v10",
+  memory: "M8 14a6 6 0 1 0-6-6M2 8l-1.5-1.5M2 8l1.5-1.5M8 4.5V8l2.5 1.5",
+  intelligence: "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12ZM2 8h12M8 2c1.8 1.8 2.5 3.8 2.5 6S9.8 12.2 8 14M8 2C6.2 3.8 5.5 5.8 5.5 8s.7 4.2 2.5 6",
   attach: "M11 5.5 6.2 10.3a1.5 1.5 0 0 0 2.1 2.1l5-5a3 3 0 0 0-4.2-4.2l-5 5a4.5 4.5 0 0 0 6.4 6.4L14 11",
   link: "M6.5 9.5l3-3M7 4.5l1-1a2.8 2.8 0 0 1 4 4l-1 1M9 11.5l-1 1a2.8 2.8 0 0 1-4-4l1-1",
   next: "M3 8h10M9 4l4 4-4 4",

@@ -420,6 +420,17 @@ jobs:
               "/api/v1/studies/{study_id}/projects/{project_id}/runs/{run_id}/events",
               "/api/v1/studies/{study_id}/projects/{project_id}/artifacts/{artifact_id}",
               "/api/v1/access-audit",
+              # The client workspace (ADR 0015): the directory, one client, its
+              # studies, its knowledge, and one study's bridge to the unit.
+              "/api/v1/workspace/me",
+              "/api/v1/workspace/clients",
+              "/api/v1/clients/{client_id}",
+              "/api/v1/clients/{client_id}/studies",
+              "/api/v1/clients/{client_id}/overview",
+              "/api/v1/clients/{client_id}/knowledge",
+              "/api/v1/clients/{client_id}/knowledge/proposals",
+              "/api/v1/studies/{study_id}/workspace",
+              "/api/v1/studies/{study_id}/context",
               # The gate in front of the 18.6.6 interface (ADR 0012); Caddy's
               # forward_auth names /panel/gate, so a rename breaks the site.
               "/api/v1/panel/session",
@@ -439,6 +450,17 @@ jobs:
           ]
           if unscoped:
               sys.exit(f"project routes must sit under a study scope: {unscoped}")
+
+          # Client knowledge is reached through a client or a study in the path
+          # (ADR 0015): a bare /knowledge route would be an unscoped pool.
+          loose = [
+              p
+              for p in paths
+              if "knowledge" in p
+              and not p.startswith(("/api/v1/clients/{client_id}/", "/api/v1/studies/{study_id}/"))
+          ]
+          if loose:
+              sys.exit(f"knowledge routes must sit under a client or a study: {loose}")
 
           print(f"OpenAPI OK: {len(paths)} paths, all project routes study-scoped")
           PY
@@ -612,8 +634,9 @@ jobs:
 
   develop-host-config:
     name: Develop host configuration (Caddy, Compose, scripts)
-    # The Caddyfile decides who reaches the 18.6.6 unit on the product hostname
-    # (ADR 0012) and ships in the deploy bundle; a syntax error would first show
+    # The Caddyfile decides what the product hostname is -- AIA, with the 18.6.6
+    # unit behind the gate on its own paths only (ADR 0012, 0015) -- and ships in
+    # the deploy bundle; a syntax error would first show
     # as a failed deployment on the host. Validated here with the Caddy image the
     # host runs and placeholder values, never real configuration.
     runs-on: ubuntu-latest
@@ -632,110 +655,19 @@ jobs:
             -v "$PWD/deploy/develop/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
-      - name: The product hostname routes the unit only through the gate
+      - name: The product hostname is AIA, and the unit is gated on its own paths only
         run: |
-          # The one line that must never go missing: without it the unit's
-          # unauthenticated API (reference R14) is public on the product hostname.
+          # tools/caddy_routes.py says what must never go missing (ADR 0012, 0013,
+          # 0015): / is a redirect to /app/clients; /classic and /app are behind
+          # the gate without the session cookie; the unit is reached only on the
+          # paths it serves, each gated -- no catch-all to 18.6.6; the legacy
+          # hostname is basic auth then the unit.
           docker run --rm \
             -e AIA_PUBLIC_HOSTNAME=aia.example.test -e AIA_LEGACY_HOSTNAME=legacy.example.test \
             -e AIA_ACME_EMAIL=ops@example.test -e AIA_LEGACY_BASIC_USER=oracle -e AIA_LEGACY_BASIC_HASH=x \
             -v "$PWD/deploy/develop/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2-alpine caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile > caddy.json
-          python3 - <<'PY'
-          import json
-          config = json.load(open("caddy.json"))
-
-          def walk(node):
-              if isinstance(node, dict):
-                  yield node
-                  for value in node.values():
-                      yield from walk(value)
-              elif isinstance(node, list):
-                  for value in node:
-                      yield from walk(value)
-
-          servers = config["apps"]["http"]["servers"]
-          for name, server in servers.items():
-              for route in server.get("routes", []):
-                  hosts = [h for m in route.get("match", []) for h in m.get("host", [])]
-                  if "aia.example.test" not in hosts:
-                      continue
-                  nodes = list(walk(route))
-                  unit = [n for n in nodes if n.get("handler") == "reverse_proxy"
-                          and any(u.get("dial") == "legacy-panel:8765" for u in n.get("upstreams", []))]
-                  gates = [n for n in nodes if n.get("handler") == "reverse_proxy"
-                           and n.get("rewrite", {}).get("uri") == "/api/v1/panel/gate"]
-                  assert unit, "the product hostname no longer reaches the unit"
-                  assert gates, "the product hostname reaches the unit without the gate"
-                  assert all("Cookie" in u.get("headers", {}).get("request", {}).get("delete", [])
-                             for u in unit), "the session cookie (an id token) reaches the unit"
-                  print(f"{name}: unit behind /api/v1/panel/gate")
-                  break
-              else:
-                  continue
-              break
-          else:
-              raise SystemExit("no route for the product hostname")
-          PY
-
-      - name: The interface document is served only through the gate (ADR 0013)
-        run: |
-          # caddy.json is the previous step's adaptation of the same Caddyfile.
-          python3 - <<'PY'
-          import json
-          config = json.load(open("caddy.json"))
-
-          def walk(node):
-              if isinstance(node, dict):
-                  yield node
-                  for value in node.values():
-                      yield from walk(value)
-              elif isinstance(node, list):
-                  for value in node:
-                      yield from walk(value)
-
-          for route in (r for s in config["apps"]["http"]["servers"].values() for r in s.get("routes", [])):
-              if "aia.example.test" not in [h for m in route.get("match", []) for h in m.get("host", [])]:
-                  continue
-              # ADR 0013: `/` reaches the web client's injector only through the same
-              # gate, the gate runs before the rewrite (else a signed-out visitor is sent
-              # back to /interface-document after sign-in), and that path is not an entry.
-              subroutes = route["handle"][0]["routes"]
-              def matched(path):
-                  return [r for r in subroutes if any(path in m.get("path", []) for m in r.get("match", []))]
-              root = matched("/")
-              assert len(root) == 1, "no single route for / on the product hostname"
-              steps = [n for n in walk(root[0]) if n.get("handler") in ("reverse_proxy", "rewrite")]
-              order = [
-                  f'{n["handler"]}:' + ((n.get("rewrite") or {}).get("uri") or n.get("uri")
-                                        or ",".join(u.get("dial", "") for u in n.get("upstreams", [])))
-                  for n in steps
-              ]
-              expected = ["reverse_proxy:/api/v1/panel/gate", "rewrite:/interface-document", "reverse_proxy:web:3000"]
-              assert order == expected, f"/ must be the gate, then the rewrite, then the web client; got {order}"
-              assert "Cookie" in steps[-1].get("headers", {}).get("request", {}).get("delete", []), \
-                  "the session cookie (an id token) reaches the interface injector"
-              direct = matched("/interface-document")
-              assert direct and any(n.get("handler") == "static_response" and n.get("status_code") == 404
-                                    for n in walk(direct[0])), "/interface-document is reachable directly"
-              print("interface document: gate -> rewrite -> web; direct path 404")
-              # ADR 0014: the rebuilt interface is behind the same gate, then the
-              # web client, with the session cookie dropped. Without the gate the
-              # React screens -- and the unit data they fetch -- would be public.
-              for path in ("/app", "/app/*"):
-                  rehome = matched(path)
-                  assert len(rehome) == 1, f"no single route for {path} on the product hostname"
-                  steps = [n for n in walk(rehome[0]) if n.get("handler") == "reverse_proxy"]
-                  order = [n.get("rewrite", {}).get("uri") or ",".join(u.get("dial", "") for u in n.get("upstreams", []))
-                           for n in steps]
-                  assert order == ["/api/v1/panel/gate", "web:3000"], f"{path} must be the gate, then the web client; got {order}"
-                  assert "Cookie" in steps[-1].get("headers", {}).get("request", {}).get("delete", []), \
-                      f"the session cookie reaches the web client on {path}"
-              print("rebuilt interface: /app and /app/* are gate -> web")
-              break
-          else:
-              raise SystemExit("no route for the product hostname")
-          PY
+          python3 tools/caddy_routes.py caddy.json
 
       - name: Validate the Compose file
         run: |

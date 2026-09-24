@@ -9,17 +9,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { classicHref } from "@/lib/interface-handoff";
+import { classicHref, rememberReturn } from "@/lib/interface-handoff";
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
 import {
   DEFAULT_FILTERS, type DashboardCounts, type DateWindow, type Filters, type ProjectRow, type Sort, VIEWS,
   filterOptions, filterProjects, parseDashboardCounts, parseProjectRows, providerLabel, stageLabel, statusLabel,
 } from "@/unit/projects";
-import { type Ask, AskDialog, Button, ClassicLink, Field, Select, TextInput, Toast } from "../ui";
+import { type Ask, AskDialog, Button, Field, Select, TextInput, Toast } from "../ui";
 import { Icon } from "../icons";
 import { type CardAction, ProjectCard } from "./ProjectCard";
-import { Shell } from "../Shell";
+import { AppShell } from "../../aia/AppShell";
+import { appRoutes } from "@/lib/app-routes";
 
 const FILTERS_KEY = "aia.projects.filters";
 const VIEWS_KEY = "aia.projects.savedViews";
@@ -116,6 +117,7 @@ export function ProjectsScreen() {
       const r = (await unit("projectAction", { body, timeoutMs: 30_000 })) as { project_id?: unknown };
       if (action === "duplicate" && typeof r.project_id === "string") {
         setToast(t("projects.duplicateDone"));
+        rememberReturn(window.location.pathname + window.location.search);
         window.location.assign(classicHref({ open: r.project_id }));
         return;
       }
@@ -132,7 +134,10 @@ export function ProjectsScreen() {
     try {
       const r = (await unit("demoCopy", { body: { project_id: row.project_id }, timeoutMs: 30_000 })) as { project_id?: unknown };
       setToast(t("projects.copyDemoDone"));
-      if (typeof r.project_id === "string") window.location.assign(classicHref({ open: r.project_id }));
+      if (typeof r.project_id === "string") {
+        rememberReturn(window.location.pathname + window.location.search);
+        window.location.assign(classicHref({ open: r.project_id }));
+      }
     } catch (e) {
       setToast(message(e));
     }
@@ -149,11 +154,8 @@ export function ProjectsScreen() {
 
   const actions = (
     <>
-      <ClassicLink href={classicHref({ start: "research" })} variant="primary" icon="plus">{t("projects.newResearch")}</ClassicLink>
-      <ClassicLink href={classicHref({ start: "simulation" })} variant="secondary" icon="plus">{t("projects.newSimulation")}</ClassicLink>
-      <ClassicLink href={classicHref({ go: "home" })}>{t("projects.portfolio")}</ClassicLink>
       <Link
-        href="/app/projects/trash"
+        href={appRoutes.classicTrash()}
         className="inline-flex min-h-9 items-center gap-1.5 rounded-sm px-3 text-sm font-medium text-ink-muted no-underline hover:bg-surface-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
         <Icon name="trash" />
@@ -163,7 +165,12 @@ export function ProjectsScreen() {
   );
 
   return (
-    <Shell title={t("projects.title")} sub={t("projects.sub")} actions={actions}>
+    <AppShell
+      crumbs={[{ label: t("aia.navSettings"), href: appRoutes.settings() }, { label: t("aia.settings.classicProjects") }]}
+      title={t("aia.settings.classicProjects")}
+      sub={t("aia.settings.classicProjectsText")}
+      action={actions}
+    >
       {error ? (
         <section role="alert" className="rounded-md border border-status-fault/40 bg-status-fault-wash p-5">
           <h2 className="font-semibold text-status-fault">{t("projects.loadFailed")}</h2>
@@ -279,6 +286,6 @@ export function ProjectsScreen() {
       )}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
       <Toast message={toast} />
-    </Shell>
+    </AppShell>
   );
 }

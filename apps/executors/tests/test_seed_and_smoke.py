@@ -9,6 +9,7 @@ import pytest
 from aia_core.application.develop_seed import (
     SEED_ORGANIZATION_SLUG,
     SEED_PROJECT_TITLE,
+    SEED_WORKSPACES,
     reset_develop_seed,
     seed_develop,
     seeded_study_scope,
@@ -40,6 +41,7 @@ def test_seed_provisions_a_complete_world_once(sessions: sessionmaker[Session]) 
         "study": True,
         "project": True,
         "run": True,
+        "workspaces": True,
     }
 
     with sessions() as session:
@@ -66,6 +68,50 @@ def test_seed_provisions_a_complete_world_once(sessions: sessionmaker[Session]) 
         assert not run["status"].is_terminal
         assert run["workflow_type"] == DEVELOP_SNAPSHOT
         assert ScopeRepository(session).study_spend(scope)["budget_usd"] == 25.0
+
+
+def test_seed_gives_two_fictional_clients_their_own_work_and_knowledge(
+    sessions: sessionmaker[Session],
+) -> None:
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.knowledge import ProposalStatus
+    from aia_core.domain.scope import StudyKind
+    from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+
+    with sessions() as session:
+        result = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    assert again.workspaces == result.workspaces and again.created["workspaces"] is False
+    assert set(result.workspaces) == set(SEED_WORKSPACES)
+
+    with sessions() as session:
+        resolver = ScopeResolver(session)
+        repo = ScopeRepository(session)
+        knowledge = ClientKnowledgeRepository(session)
+        owner = AuthenticatedPrincipal(
+            user_id=result.owner_user_id, organization_id=result.organization_id
+        )
+        seen: dict[str, set[str]] = {}
+        for slug, client_id in result.workspaces.items():
+            ctx = resolver.client_context(owner, client_id=client_id)
+            studies = repo.studies_in_client(ctx)
+            assert {s.kind for s in studies} == {StudyKind.RESEARCH, StudyKind.SIMULATION}
+            assert len(studies) == len(SEED_WORKSPACES[slug]["studies"])
+            items = knowledge.items(ctx)
+            assert len(items) == len(SEED_WORKSPACES[slug]["knowledge"])
+            assert all(
+                knowledge.revisions(ctx, item_id=i.item_id)[0].approved_by != result.owner_user_id
+                for i in items
+            )
+            pending = knowledge.proposals(ctx, status=ProposalStatus.PROPOSED)
+            assert len(pending) == (1 if SEED_WORKSPACES[slug]["pending"] else 0)
+            seen[slug] = {i.title for i in items}
+        # Each client's knowledge is its own.
+        a, b = seen.values()
+        assert not a & b
 
 
 def test_seed_refuses_a_blank_operator(sessions: sessionmaker[Session]) -> None:

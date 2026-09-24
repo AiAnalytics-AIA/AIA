@@ -8,6 +8,7 @@ import { createContext, useCallback, useContext, useState, useSyncExternalStore 
 import type { BootInfo } from "@/unit/boot";
 import type { JobUpdate } from "@/unit/research/jobs";
 import type { ResearchState, ResearchStore } from "@/unit/research/store";
+import type { StepKey } from "@/unit/research/steps";
 import type { UnitRouteKey } from "@/unit/routes";
 
 export type RunJob = (
@@ -27,6 +28,8 @@ export type ResearchContextValue = {
   prompt: (message: string, initial?: string) => Promise<string | null>;
   /** The project session's page memory: what the classic interface keeps in globals, never saved. */
   memory: Map<string, unknown>;
+  /** The URL of one of this study's stages (ADR 0015): steps never build one themselves. */
+  stepHref: (step: StepKey) => string;
 };
 
 export const ResearchContext = createContext<ResearchContextValue | null>(null);

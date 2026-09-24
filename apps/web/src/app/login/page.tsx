@@ -1,12 +1,12 @@
 "use client";
 
-// The front door on the develop host (ADR 0012). The gate in front of the
-// NPC Panel 18.6.6 interface sends every navigation without a session here as
-// /login?next=<where they were going>. This page opens the panel session and
-// sends them back; signed out, it offers the Google Workspace sign-in and comes
-// back here after it. It never starts the sign-in by itself: Cognito's sign-out
-// lands on `/`, which the gate sends here, and an automatic sign-in would undo
-// the sign-out the user just asked for.
+// The front door on the develop host (ADR 0012, ADR 0015). The gate in front of
+// /app and of the classic interface sends every navigation without a session
+// here as /login?next=<where they were going>; with nowhere named, the client
+// directory. This page opens the session and sends them back; signed out, it
+// offers the Google Workspace sign-in and comes back here after it. It never
+// starts the sign-in by itself: Cognito's sign-out lands on `/`, which leads
+// here, and an automatic sign-in would undo the sign-out the user just asked for.
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -32,7 +32,8 @@ type View =
 
 function Login() {
   const params = useSearchParams();
-  const next = localPath(params.get("next"));
+  // With nowhere named, the application home (ADR 0015).
+  const next = params.get("next") ? localPath(params.get("next")) : "/app/clients";
   const [view, setView] = useState<View>({ kind: "working" });
   const [attempt, setAttempt] = useState(0);
 

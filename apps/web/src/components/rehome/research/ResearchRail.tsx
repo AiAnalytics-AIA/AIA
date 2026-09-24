@@ -1,7 +1,8 @@
 "use client";
 
-// The current project's steps in the rail, as RESEARCH_STEPS draws them: every
-// step can be opened, the current one is marked. A step not yet rebuilt says so.
+// The open study's stages, as RESEARCH_STEPS draws them: every stage can be
+// opened, the current one is marked, a stage not yet rebuilt says so. It is the
+// study's own navigation, drawn beside the stage -- never the global menu.
 
 import Link from "next/link";
 
@@ -9,12 +10,11 @@ import { t } from "@/i18n/t";
 import { RAIL_STEPS, REBUILT_STEPS, type StepKey } from "@/unit/research/steps";
 import { Icon } from "../icons";
 
-export function ResearchRail({ projectId, current }: { projectId: string | null; current: StepKey }) {
-  const base = projectId ? `/app/research/${encodeURIComponent(projectId)}` : "/app/research/new";
+export function ResearchRail({ stepHref, current, studyName }: { stepHref: (step: StepKey) => string; current: StepKey; studyName: string }) {
   return (
-    <div className="px-2 pt-3">
-      <div className="px-2 pb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.railTag")}</div>
-      <div className="px-2 pb-2 font-mono text-[11px] uppercase tracking-[0.08em] text-signal">{t("research.railMode")}</div>
+    <nav aria-label={t("aia.study.stagesLabel")} className="px-2 pt-4">
+      <div className="px-2 pb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("aia.study.stagesLabel")}</div>
+      <div className="px-2 pb-3 text-sm font-semibold leading-5 text-ink">{studyName}</div>
       <ol className="flex flex-col gap-0.5">
         {RAIL_STEPS.map((s) => {
           const on = s.key === current || (current === "progress" && s.key === "run");
@@ -22,7 +22,7 @@ export function ResearchRail({ projectId, current }: { projectId: string | null;
           return (
             <li key={s.key}>
               <Link
-                href={projectId || s.key === "brief" ? `${base}/${s.key}` : base}
+                href={stepHref(s.key)}
                 aria-current={on ? "step" : undefined}
                 className={`grid grid-cols-[1.25rem_1fr_auto] items-start gap-x-2 rounded-sm px-2 py-1.5 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash" : "hover:bg-surface-raised"}`}
               >
@@ -37,6 +37,6 @@ export function ResearchRail({ projectId, current }: { projectId: string | null;
           );
         })}
       </ol>
-    </div>
+    </nav>
   );
 }

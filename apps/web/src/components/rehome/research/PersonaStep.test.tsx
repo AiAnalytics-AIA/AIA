@@ -9,9 +9,10 @@ import { resetBootCache } from "@/unit/boot";
 import { resetAudienceCatalog } from "@/unit/research/audience";
 import { REQUEST_AI_DONE, REQUEST_DONE, REQUEST_EMPTY } from "@/unit/research/persona";
 import { ResearchScreen } from "./ResearchScreen";
+import { TEST_FRAME, stagePath } from "./test-frame";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ usePathname: () => "/app/research/PRJ-1/persona", useRouter: () => ({ push, replace: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/dimensions", useRouter: () => ({ push, replace: vi.fn() }) }));
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
 const BOOT = {
@@ -77,7 +78,7 @@ afterEach(() => {
 describe("Dimenze", () => {
   it("draws the fixed base, the recommended dimensions, and the catalogue with the library's", async () => {
     unitStub(PLANNED);
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "Sociodemografie a reprezentativní výběr" })).toBeTruthy();
     // No approval yet: the recommended set is drawn (OI-54).
     expect(screen.getByRole("button", { name: "Odebrat dimenzi Zdraví" })).toBeTruthy();
@@ -94,7 +95,7 @@ describe("Dimenze", () => {
 
   it("adds and removes a dimension; removing the last brings the recommended back (OI-54)", async () => {
     unitStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] } });
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /^Politické postoje/ }));
     await savedWith("dimension_catalog_add");
     expect(lastSave().project.persona_dimensions.approved).toEqual(["cena", "politika"]);
@@ -112,7 +113,7 @@ describe("Dimenze", () => {
 
   it("AI doporučí: the model's dimensions become the approval, and its new ones are offered", async () => {
     unitStub(PLANNED);
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "Co už panel umí popsat a segmentovat" });
     fireEvent.click(screen.getByRole("button", { name: "AI doporučí" }));
     expect(await screen.findByRole("heading", { name: "Claude navrhuje doplnit nové dimenze" }, { timeout: 4000 })).toBeTruthy();
@@ -130,7 +131,7 @@ describe("Dimenze", () => {
 
   it("stops at the provider notice when the provider is not ready", async () => {
     unitStub(PLANNED, { "/api/providers/claude-code/status": () => ({ ok: false }) });
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "AI doporučí" }));
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(posted("/api/persona/suggest").length).toBe(0);
@@ -138,7 +139,7 @@ describe("Dimenze", () => {
 
   it("requests a dimension the system does not have: refused when empty, recorded, the library read again", async () => {
     unitStub(PLANNED);
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     const input = await screen.findByLabelText("Název dimenze");
     fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
     expect(await screen.findByText(REQUEST_EMPTY)).toBeTruthy();
@@ -159,7 +160,7 @@ describe("Dimenze", () => {
 
   it("the sample: clamped when it is committed, and the recommendation", async () => {
     unitStub(PLANNED);
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     const n = (await screen.findByLabelText("Počet respondentů")) as HTMLInputElement;
     fireEvent.change(n, { target: { value: "10" } });
     fireEvent.blur(n);
@@ -173,21 +174,21 @@ describe("Dimenze", () => {
 
   it("goes on calibrated to the run step, and the factors lead back to the audience", async () => {
     unitStub(PLANNED);
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     const card = (await screen.findByRole("heading", { name: "Co už panel umí popsat a segmentovat" })).closest("section") as HTMLElement;
     expect(within(card).getByText("Demografie · 3")).toBeTruthy();
     expect(within(card).queryByText(/Research-only/)).toBeNull();
     fireEvent.click(within(card).getByRole("button", { name: "Použít faktory pro cílovou populaci" }));
-    expect(push).toHaveBeenLastCalledWith("/app/research/PRJ-1/audience");
+    expect(push).toHaveBeenLastCalledWith(stagePath("audience"));
     fireEvent.click(screen.getByRole("button", { name: "Další · kontrola" }));
-    expect(push).toHaveBeenLastCalledWith("/app/research/PRJ-1/run");
+    expect(push).toHaveBeenLastCalledWith(stagePath("run"));
     await savedWith("persona_done_1789");
     expect(lastSave().project).toMatchObject({ persona_mode: "calibrated", persona_dimensions: { approved: ["zdravi", "media"] } });
   }, 20_000);
 
   it("a catalogue that fails leaves both cards out and is asked for once (OI-57)", async () => {
     unitStub(PLANNED, { "/api/audience/dimensions": () => new Response("{}", { status: 500 }) });
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "Vzorek" });
     await waitFor(() => expect(posted("/api/audience/dimensions").length).toBe(1));
     await new Promise((r) => setTimeout(r, 50));
@@ -197,7 +198,7 @@ describe("Dimenze", () => {
 
   it("Deep Research leaves the label for the classic Data Library and follows the hand-off", async () => {
     unitStub(PLANNED);
-    render(<ResearchScreen projectId="PRJ-1" step="persona" />);
+    render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "Co už panel umí popsat a segmentovat" });
     fireEvent.click(screen.getByRole("button", { name: "AI doporučí" }));
     const research = await screen.findByRole("button", { name: "Deep Research" }, { timeout: 4000 });
@@ -206,6 +207,6 @@ describe("Dimenze", () => {
     fireEvent.click(research);
     spy.mockRestore();
     expect(window.sessionStorage.getItem(DIMENSION_RESEARCH_KEY)).toBe("Důvěra v AI");
-    expect(loc.href).toBe("/#aia:dimension=research");
+    expect(loc.href).toBe("/classic#aia:dimension=research");
   });
 });

@@ -7,10 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetBootCache } from "@/unit/boot";
 import { PROPOSE_UNCOVERED, UPLOAD_DONE, resetAudienceCatalog } from "@/unit/research/audience";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
+import { TEST_FRAME } from "./test-frame";
 
 const push = vi.fn();
 const replace = vi.fn();
-vi.mock("next/navigation", () => ({ usePathname: () => "/app/research/PRJ-1/audience", useRouter: () => ({ push, replace }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/audience", useRouter: () => ({ push, replace }) }));
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
 const BOOT = {
@@ -77,7 +78,7 @@ afterEach(() => {
 describe("Audience", () => {
   it("starts at the two sources, and waits for one before going on", async () => {
     unitStub({});
-    render(<ResearchScreen projectId="PRJ-1" step="audience" />);
+    render(<ResearchScreen projectId="PRJ-1" step="audience" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "Odkud mají respondenti pocházet?" })).toBeTruthy();
     expect((screen.getByRole("button", { name: /Další · dimenze/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Nejdřív vyberte zdroj audience.")).toBeTruthy();
@@ -86,7 +87,7 @@ describe("Audience", () => {
 
   it("own audience: the saved ones are offered, and choosing one makes the step ready", async () => {
     unitStub({});
-    render(<ResearchScreen projectId="PRJ-1" step="audience" />);
+    render(<ResearchScreen projectId="PRJ-1" step="audience" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Vlastní audience/ }));
     const select = await screen.findByLabelText("Uložená audience");
     expect((screen.getByRole("button", { name: "Audience mám → Persony" }) as HTMLButtonElement).disabled).toBe(true);
@@ -99,7 +100,7 @@ describe("Audience", () => {
 
   it("own audience: an upload is sent, the list refreshed, and the new one chosen", async () => {
     unitStub({}, {});
-    render(<ResearchScreen projectId="PRJ-1" step="audience" />);
+    render(<ResearchScreen projectId="PRJ-1" step="audience" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Vlastní audience/ }));
     const file = (await screen.findByLabelText("Soubor")) as HTMLInputElement;
     if (!Blob.prototype.arrayBuffer) Blob.prototype.arrayBuffer = async function () { return new Uint8Array([65]).buffer; };
@@ -113,7 +114,7 @@ describe("Audience", () => {
 
   it("AI Analytics: ČR 18+ is ready at once; a special preset says what was chosen", async () => {
     unitStub({ ui_state: { audience_entry: "analytics" } });
-    render(<ResearchScreen projectId="PRJ-1" step="audience" />);
+    render(<ResearchScreen projectId="PRJ-1" step="audience" frame={TEST_FRAME} />);
     expect(await screen.findByText(/= výsledky reprezentují celou dospělou populaci/)).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: /Special Audience/ }));
     fireEvent.click(await screen.findByRole("button", { name: /^Lékaři/ }));
@@ -128,7 +129,7 @@ describe("Audience", () => {
 
   it("narrows by a factor: the value, a preview, the chip and the readable summary", async () => {
     unitStub({ ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: {} } });
-    render(<ResearchScreen projectId="PRJ-1" step="audience" />);
+    render(<ResearchScreen projectId="PRJ-1" step="audience" frame={TEST_FRAME} />);
     const kraj = (await screen.findByLabelText("Kraj")) as HTMLSelectElement;
     within(kraj).getByRole("option", { name: "B (40)" }).setAttribute("selected", "");
     (within(kraj).getByRole("option", { name: "B (40)" }) as HTMLOptionElement).selected = true;
@@ -141,7 +142,7 @@ describe("Audience", () => {
 
   it("an empty upper bound is stored as 0, as the classic reads it (OI-50)", async () => {
     unitStub({ ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: {} } });
-    render(<ResearchScreen projectId="PRJ-1" step="audience" />);
+    render(<ResearchScreen projectId="PRJ-1" step="audience" frame={TEST_FRAME} />);
     fireEvent.change(await screen.findByLabelText("od 18"), { target: { value: "25" } });
     fireEvent.click(screen.getByRole("button", { name: "Použít interval" }));
     await waitFor(() => expect(posted("/api/audience").at(-1)?.body).toEqual({ filtry: { vek: { min: 25, max: 0 } }, n: 300 }));
@@ -151,7 +152,7 @@ describe("Audience", () => {
 
   it("proposes filters with AI: the model's filters replace the project's, with the classic note", async () => {
     unitStub({ ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: { kraj: ["A"] }, description: "Zúžená cílová populace" } });
-    render(<ResearchScreen projectId="PRJ-1" step="audience" />);
+    render(<ResearchScreen projectId="PRJ-1" step="audience" frame={TEST_FRAME} />);
     const input = await screen.findByPlaceholderText(/např. 25–44/);
     fireEvent.change(input, { target: { value: "Mladí sportovci" } });
     fireEvent.click(screen.getByRole("button", { name: "AI: převést na dostupné filtry" }));
@@ -165,7 +166,7 @@ describe("Audience", () => {
     unitStub({ ui_state: ANALYTICS });
     const page = (step: "audience" | "run") => (
       <ResearchSession projectId="PRJ-1">
-        <ResearchScreen key={step} projectId="PRJ-1" step={step} />
+        <ResearchScreen key={step} projectId="PRJ-1" step={step} frame={TEST_FRAME} />
       </ResearchSession>
     );
     const { rerender } = render(page("audience"));

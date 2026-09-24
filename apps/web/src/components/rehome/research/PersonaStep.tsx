@@ -12,7 +12,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { DIMENSION_RESEARCH_KEY, classicHref } from "@/lib/interface-handoff";
+import { DIMENSION_RESEARCH_KEY, classicHref, rememberReturn } from "@/lib/interface-handoff";
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
 import { type Catalog, loadAudienceCatalog } from "@/unit/research/audience";
@@ -60,7 +60,7 @@ const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-fain
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function PersonaStep() {
-  const { store, state, boot, runJob, toast } = useResearch();
+  const { store, state, boot, runJob, toast, stepHref } = useResearch();
   const router = useRouter();
   const step = useAiStep();
   const [library, setLibrary] = useSessionState<unknown>("persona.library", null);
@@ -121,12 +121,10 @@ export function PersonaStep() {
 
   const toRun = () => {
     apply(personaDone(store.get().project));
-    const id = store.get().projectId;
-    if (id) router.push(`/app/research/${encodeURIComponent(id)}/run`);
+    router.push(stepHref("run"));
   };
   const toAudience = () => {
-    const id = store.get().projectId;
-    if (id) router.push(`/app/research/${encodeURIComponent(id)}/audience`);
+    router.push(stepHref("audience"));
   };
 
   return (
@@ -297,6 +295,7 @@ function openResearch(label: string) {
   } catch {
     // Without storage the classic page opens without the topic filled in.
   }
+  rememberReturn(window.location.pathname + window.location.search);
   window.location.href = classicHref({ dimension: "research" });
 }
 

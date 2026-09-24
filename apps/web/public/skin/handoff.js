@@ -1,9 +1,9 @@
 /*
- * The rebuilt interface's hand-off into the classic one (ADR 0014, decision 8).
+ * AIA's hand-off into the classic interface (ADR 0014 decision 8, ADR 0015).
  *
- * The web client adds this script only to the pinned 18.6.6 document, so every
- * name it calls is known to exist. A link from /app carries one instruction in
- * the URL fragment, which never reaches a server:
+ * The web client adds this script only to the pinned 18.6.6 document, served at
+ * /classic, so every name it calls is known to exist. A link from /app carries
+ * one instruction in the URL fragment, which never reaches a server:
  *
  *   #aia:open=<project id>        openProject1785(id)       -- "Otevřít"
  *   #aia:open=<project id>@<route>   the same, landing on go(route) instead of the
@@ -21,8 +21,14 @@
  *
  * It waits for the classic boot to finish (NPC_BOOT_STAGE === "ready"), clears
  * the fragment, and calls the classic interface's own function -- the one its
- * own button calls. It changes no DOM, calls nothing else, and ignores any
- * instruction that does not match exactly.
+ * own button calls. It calls nothing else, and ignores any instruction that
+ * does not match exactly.
+ *
+ * It adds one element to the page, outside the classic interface's own tree:
+ * a bar saying this is the classic interface, temporarily, with "Zpět do AIA"
+ * back to the AIA page the person came from (sessionStorage["aia:return"], an
+ * /app path only), else to the client directory. The classic interface is never
+ * where a person is without knowing it (ADR 0015 decision 4).
  */
 (function () {
   "use strict";
@@ -110,6 +116,36 @@
     })();
   }
 
+  var RETURN = /^\/app(\/[A-Za-z0-9_%.-]*)*(\?[A-Za-z0-9_%.=&-]*)?$/;
+
+  function returnTo() {
+    var path = null;
+    try {
+      path = window.sessionStorage.getItem("aia:return");
+    } catch {
+      path = null;
+    }
+    return path && RETURN.test(path) && path.indexOf("..") < 0 ? path : "/app/clients";
+  }
+
+  function bar() {
+    if (!document.body || document.getElementById("aia-return-bar")) return;
+    var el = document.createElement("div");
+    el.id = "aia-return-bar";
+    el.className = "aia-return-bar";
+    el.setAttribute("role", "region");
+    el.setAttribute("aria-label", "Klasické rozhraní 18.6.6");
+    var label = document.createElement("span");
+    label.textContent = "Klasické rozhraní 18.6.6 · dočasně";
+    var back = document.createElement("a");
+    back.href = returnTo();
+    back.textContent = "Zpět do AIA";
+    el.appendChild(label);
+    el.appendChild(back);
+    document.body.appendChild(el);
+  }
+
+  bar();
   handle();
   window.addEventListener("hashchange", handle);
 })();

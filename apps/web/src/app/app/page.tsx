@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
-// The rebuilt interface opens on its first rebuilt area. When the classic
-// "Úvod" is rebuilt (area A1), it takes this path.
-export default function RehomeHome() {
-  redirect("/app/projects");
+// The application's home is the client directory (ADR 0015).
+export default function AppIndex() {
+  redirect("/app/clients");
 }

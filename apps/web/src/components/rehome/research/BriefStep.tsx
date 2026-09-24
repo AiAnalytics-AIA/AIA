@@ -37,7 +37,7 @@ const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-fain
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function BriefStep() {
-  const { store, state } = useResearch();
+  const { store, state, stepHref } = useResearch();
   const router = useRouter();
   const p = state.project;
   const { analyse: runAnalysis, failure, busy } = useAnalysis();
@@ -48,8 +48,7 @@ export function BriefStep() {
   // analyzeBrief -> ensureAnalysis1776 -> go('plan').
   const analyse = async () => {
     if (!(await runAnalysis())) return;
-    const id = store.get().projectId;
-    if (id) router.push(`/app/research/${encodeURIComponent(id)}/plan`);
+    router.push(stepHref("plan"));
   };
 
   const selected = new Set(selectedProblemTypes(p));

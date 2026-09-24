@@ -8,10 +8,11 @@ import { resetBootCache } from "@/unit/boot";
 import { briefFingerprint, defaultsMerge } from "@/unit/research/model";
 import { CONFIRM_REMOVE_SET, PROMPT_COMMENT, PROMPT_SET_OBJECTS, PROMPT_SET_TITLE } from "@/unit/research/plan";
 import { ResearchScreen } from "./ResearchScreen";
+import { TEST_FRAME, stagePath } from "./test-frame";
 
 const push = vi.fn();
 const replace = vi.fn();
-vi.mock("next/navigation", () => ({ usePathname: () => "/app/research/PRJ-1/plan", useRouter: () => ({ push, replace }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/plan", useRouter: () => ({ push, replace }) }));
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
 const BOOT = { empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6", claude_code_enabled: true } };
@@ -83,16 +84,16 @@ afterEach(() => {
 describe("Návrh", () => {
   it("without an analysis says so, and offers the brief and the questionnaire", async () => {
     unitStub(null);
-    render(<ResearchScreen projectId="PRJ-1" step="plan" />);
+    render(<ResearchScreen projectId="PRJ-1" step="plan" frame={TEST_FRAME} />);
     expect(await screen.findByText("Zatím není návrh")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Zadání" }));
-    expect(push).toHaveBeenCalledWith("/app/research/PRJ-1/brief");
+    expect(push).toHaveBeenCalledWith(stagePath("brief"));
     expect(screen.queryByText("KOMENTÁŘE K NÁVRHU")).toBeNull();
   });
 
   it("draws the analysis, its sets with the question preview, the follow-ups and the comments", async () => {
     unitStub();
-    render(<ResearchScreen projectId="PRJ-1" step="plan" />);
+    render(<ResearchScreen projectId="PRJ-1" step="plan" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "Jak jsem zadání pochopil" })).toBeTruthy();
     expect(screen.getByText("Jde o test nového konceptu.")).toBeTruthy();
     expect(screen.getByText("Mírnější varianta vyhraje")).toBeTruthy();
@@ -106,7 +107,7 @@ describe("Návrh", () => {
 
   it("applies a design variant to the project", async () => {
     unitStub();
-    render(<ResearchScreen projectId="PRJ-1" step="plan" />);
+    render(<ResearchScreen projectId="PRJ-1" step="plan" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Jen varianty/ }));
     expect(screen.getByRole("button", { name: /Jen varianty/ }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText("Použit návrh: Jen varianty")).toBeTruthy();
@@ -115,7 +116,7 @@ describe("Návrh", () => {
 
   it("adds a set through the classic prompts, removes an object, and removes a set only when confirmed", async () => {
     unitStub();
-    render(<ResearchScreen projectId="PRJ-1" step="plan" />);
+    render(<ResearchScreen projectId="PRJ-1" step="plan" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Přidat sadu" }));
     await answerDialog(PROMPT_SET_TITLE, "Kraje");
     await answerDialog(PROMPT_SET_OBJECTS, "Praha, Brno");
@@ -133,7 +134,7 @@ describe("Návrh", () => {
 
   it("answers the follow-up questions into the brief and analyses it again", async () => {
     unitStub();
-    render(<ResearchScreen projectId="PRJ-1" step="plan" />);
+    render(<ResearchScreen projectId="PRJ-1" step="plan" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Doplnit a aktualizovat návrh" }));
     expect((await screen.findByRole("alert")).textContent).toBe("Napište odpovědi.");
     fireEvent.change(screen.getByPlaceholderText("Odpovězte jen na relevantní body…"), { target: { value: "Ano, jen MHD." } });
@@ -146,7 +147,7 @@ describe("Návrh", () => {
 
   it("comments on selected text, then works the comments in with a forced analysis", async () => {
     unitStub();
-    render(<ResearchScreen projectId="PRJ-1" step="plan" />);
+    render(<ResearchScreen projectId="PRJ-1" step="plan" frame={TEST_FRAME} />);
     const text = (await screen.findByText("Jde o test nového konceptu.")).firstChild as Text;
     // jsdom lays nothing out: a selection has no box of its own.
     Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
@@ -172,8 +173,8 @@ describe("Návrh", () => {
 
   it("goes on to the questionnaire at its three paths", async () => {
     unitStub();
-    render(<ResearchScreen projectId="PRJ-1" step="plan" />);
+    render(<ResearchScreen projectId="PRJ-1" step="plan" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · dotazník/ }));
-    expect(push).toHaveBeenCalledWith("/app/research/PRJ-1/questionnaire");
+    expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
   });
 });

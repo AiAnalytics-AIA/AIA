@@ -60,6 +60,7 @@ export type Study = {
   client_id: string;
   slug: string;
   name: string;
+  kind: StudyKind;
   status: string;
   accepts_work: boolean;
   your_role: string | null;
@@ -166,4 +167,156 @@ export const api = {
       "GET",
       `/api/v1/studies/${studyId}/projects/${projectId}/artifacts/${artifactId}`,
     ),
+};
+
+// ---- the client workspace (ADR 0015) --------------------------------------
+
+export type StudyKind = "RESEARCH" | "SIMULATION";
+
+export type WorkspaceStudy = {
+  study_id: string;
+  client_id: string;
+  name: string;
+  slug: string;
+  kind: StudyKind;
+  status: string;
+  accepts_work: boolean;
+  last_stage: string | null;
+  has_working_content: boolean;
+  created_at: string | null;
+  modified_at: string | null;
+};
+
+export type ClientCard = {
+  client_id: string;
+  name: string;
+  slug: string;
+  your_role: string | null;
+  active_count: number;
+  study_count: number;
+  recent: WorkspaceStudy[];
+  modified_at: string | null;
+};
+
+export type ClientWorkspace = {
+  client_id: string;
+  name: string;
+  slug: string;
+  status: string;
+  your_role: string | null;
+  permissions: string[];
+};
+
+export type KnowledgeSection = "sources" | "knowledge" | "dimensions" | "audiences" | "data";
+
+export type KnowledgeItem = {
+  item_id: string;
+  kind: string;
+  title: string;
+  summary: string;
+  content: Record<string, unknown>;
+  revision: number;
+  modified_at: string | null;
+};
+
+export type KnowledgeRevision = {
+  revision: number;
+  context_revision: number;
+  title: string;
+  summary: string;
+  provenance: Record<string, unknown>;
+  approved_by: string;
+  approved_at: string | null;
+};
+
+export type Proposal = {
+  proposal_id: string;
+  origin: "STUDY" | "CLIENT";
+  study_id: string | null;
+  study_name: string | null;
+  item_id: string | null;
+  kind: string;
+  title: string;
+  summary: string;
+  status: "PROPOSED" | "APPROVED" | "REJECTED";
+  proposed_by: string;
+  proposed_at: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string;
+  revision: number | null;
+  yours: boolean;
+};
+
+export type KnowledgeSummary = {
+  context_revision: number;
+  items_by_kind: Record<string, number>;
+  pending_proposals: number;
+  last_approved_at: string | null;
+};
+
+export type OutputItem = {
+  artifact_id: string;
+  artifact_type: string;
+  stage_type: string;
+  status: string;
+  study_id: string;
+  study_name: string;
+  created_at: string | null;
+};
+
+export type ClientOverview = {
+  client: ClientWorkspace;
+  active: WorkspaceStudy[];
+  previous_count: number;
+  recent_outputs: OutputItem[];
+  knowledge: KnowledgeSummary | null;
+  pending: Proposal[];
+};
+
+export type StudyWorkspace = {
+  study: WorkspaceStudy;
+  client_name: string;
+  your_role: string;
+  can_edit: boolean;
+  unit_project_id: string | null;
+};
+
+export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
+
+const enc = encodeURIComponent;
+const query = (q: Record<string, string | undefined>) => {
+  const p = new URLSearchParams(Object.entries(q).filter((e): e is [string, string] => !!e[1]));
+  const s = p.toString();
+  return s ? `?${s}` : "";
+};
+
+export const workspace = {
+  me: () => request<Me>("GET", "/api/v1/workspace/me"),
+  clients: () => request<ClientCard[]>("GET", "/api/v1/workspace/clients"),
+  startClient: (name: string) => request<ClientWorkspace>("POST", "/api/v1/workspace/clients", { name }),
+  client: (clientId: string) => request<ClientWorkspace>("GET", `/api/v1/clients/${enc(clientId)}`),
+  overview: (clientId: string) => request<ClientOverview>("GET", `/api/v1/clients/${enc(clientId)}/overview`),
+  studies: (clientId: string, kind?: StudyKind) =>
+    request<WorkspaceStudy[]>("GET", `/api/v1/clients/${enc(clientId)}/studies${query({ kind })}`),
+  startStudy: (clientId: string, name: string, kind: StudyKind) =>
+    request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
+  knowledge: (clientId: string, section?: KnowledgeSection, q?: string) =>
+    request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q })}`),
+  revisions: (clientId: string, itemId: string) =>
+    request<KnowledgeRevision[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/items/${enc(itemId)}/revisions`),
+  proposals: (clientId: string, status?: Proposal["status"]) =>
+    request<Proposal[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/proposals${query({ status })}`),
+  propose: (clientId: string, body: { kind: string; title: string; summary?: string }) =>
+    request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals`, body),
+  decide: (clientId: string, proposalId: string, approve: boolean, note = "") =>
+    request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals/${enc(proposalId)}/decision`, {
+      approve,
+      note,
+    }),
+  study: (studyId: string) => request<StudyWorkspace>("GET", `/api/v1/studies/${enc(studyId)}/workspace`),
+  bind: (studyId: string, unitProjectId: string) =>
+    request<StudyWorkspace>("PUT", `/api/v1/studies/${enc(studyId)}/workspace`, { unit_project_id: unitProjectId }),
+  recordStage: (studyId: string, stage: string) =>
+    request<void>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/stage`, { stage }),
 };

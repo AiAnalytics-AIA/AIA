@@ -11,6 +11,7 @@ import {
   useLayoutEffect, useRef, useState,
 } from "react";
 
+import { rememberReturn } from "@/lib/interface-handoff";
 import type { Tone } from "@/unit/projects";
 import { t } from "@/i18n/t";
 import { Icon, type IconName } from "./icons";
@@ -44,9 +45,10 @@ export function Button({ variant = "secondary", small = false, icon, children, t
 }
 
 /**
- * A link out of the rebuilt interface into the classic one: a full document
- * load (not next/link), marked with the external glyph and said aloud, so a
- * person always knows which interface they are about to be in.
+ * A link out of AIA into the classic interface (ADR 0015): a full document load
+ * (not next/link), marked with the external glyph and said aloud, so a person
+ * always knows which interface they are about to be in -- and the page it
+ * leaves is remembered, for the classic page's "Zpět do AIA".
  */
 export function ClassicLink({ href, children, variant = "quiet", small = false, icon }: {
   href: string; children: ReactNode; variant?: keyof typeof VARIANT; small?: boolean; icon?: IconName;
@@ -54,6 +56,7 @@ export function ClassicLink({ href, children, variant = "quiet", small = false, 
   return (
     <a
       href={href}
+      onClick={() => rememberReturn(window.location.pathname + window.location.search)}
       className={`inline-flex items-center gap-1.5 rounded-sm border font-medium whitespace-nowrap no-underline ${small ? "min-h-7 px-2 text-xs" : "min-h-9 px-3 text-sm"} ${VARIANT[variant]} ${FOCUS}`}
     >
       {icon ? <Icon name={icon} size={small ? 14 : 16} /> : null}

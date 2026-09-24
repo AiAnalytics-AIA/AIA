@@ -44,12 +44,40 @@ export type ClassicTarget =
  */
 export const DIMENSION_RESEARCH_KEY = "aia:dimension-research";
 
+/**
+ * Where the classic interface is served on the product hostname (ADR 0015): an
+ * explicit path, never `/`, so nobody lands in it by accident.
+ */
+export const CLASSIC_PATH = "/classic";
+
+/**
+ * Where a hand-off remembers the AIA page it left, for the classic page's one
+ * bar, "Zpět do AIA". Same-origin session storage; only an /app path is kept.
+ */
+export const RETURN_KEY = "aia:return";
+
 /** The link from a rebuilt screen to the classic interface, carrying one hand-off instruction. */
 export function classicHref(target?: ClassicTarget): string {
-  if (!target) return "/";
+  if (!target) return CLASSIC_PATH;
   const { step, ...rest } = target as { step?: string } & Record<string, string>;
   const [verb, arg] = Object.entries(rest)[0] as [string, string];
-  if (!/^[A-Za-z0-9_-]{1,160}$/.test(arg)) return "/";
-  if (step !== undefined && !/^[a-z_]{1,40}$/.test(step)) return "/";
-  return `/#aia:${verb}=${arg}${step ? `@${step}` : ""}`;
+  if (!/^[A-Za-z0-9_-]{1,160}$/.test(arg)) return CLASSIC_PATH;
+  if (step !== undefined && !/^[a-z_]{1,40}$/.test(step)) return CLASSIC_PATH;
+  return `${CLASSIC_PATH}#aia:${verb}=${arg}${step ? `@${step}` : ""}`;
+}
+
+/** The AIA page to come back to, if it is one: an /app path of plain characters. */
+export function returnPath(path: string): string | null {
+  return /^\/app(\/[A-Za-z0-9_%.-]*)*(\?[A-Za-z0-9_%.=&-]*)?$/.test(path) && !path.includes("..") ? path : null;
+}
+
+/** Remember the page a hand-off leaves, so the classic page's bar can return to it. */
+export function rememberReturn(path: string): void {
+  const p = returnPath(path);
+  if (!p) return;
+  try {
+    window.sessionStorage.setItem(RETURN_KEY, p);
+  } catch {
+    // Without storage the bar returns to the client directory.
+  }
 }

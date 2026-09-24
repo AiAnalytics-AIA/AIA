@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 
 from ..domain.scope import (
     Client,
+    ClientContext,
+    ClientPermission,
     ClientStatus,
     Organization,
     OrganizationContext,
@@ -26,6 +28,7 @@ from ..domain.scope import (
     SelfApprovalPolicy,
     Study,
     StudyContext,
+    StudyKind,
     StudyStatus,
     new_client_id,
     new_organization_id,
@@ -67,6 +70,7 @@ def _study_to_domain(row: StudyRow) -> Study:
         client_id=row.client_id,
         slug=row.slug,
         name=row.name,
+        kind=StudyKind(row.kind),
         status=StudyStatus(row.status),
         budget_usd=row.budget_usd,
         spent_usd=row.spent_usd,
@@ -359,6 +363,7 @@ class ScopeRepository:
         slug: str,
         name: str,
         budget_usd: float = 0.0,
+        kind: StudyKind = StudyKind.RESEARCH,
     ) -> Study:
         """Create a study under a client."""
         admin.require_administer()
@@ -382,6 +387,7 @@ class ScopeRepository:
             client_id=client_id,
             slug=slug,
             name=name,
+            kind=kind,
             budget_usd=budget_usd,
         )
         self._session.add(
@@ -391,6 +397,7 @@ class ScopeRepository:
                 client_id=study.client_id,
                 slug=study.slug,
                 name=study.name,
+                kind=study.kind.value,
                 status=study.status.value,
                 budget_usd=study.budget_usd,
             )
@@ -403,6 +410,108 @@ class ScopeRepository:
                 actor_id=admin.actor_id,
                 action="STUDY_CREATED",
                 request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+        return study
+
+    # ------------------------------------------------------- client workspace
+
+    def get_client_in_scope(self, scope: ClientContext) -> Client:
+        """The client a :class:`ClientContext` authorised; no id parameter to get wrong."""
+        row = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == scope.client_id,
+                ClientRow.organization_id == scope.organization_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        return _client_to_domain(row)
+
+    def client_of_study(self, scope: StudyContext) -> Client:
+        """The client of the study in scope: from the context, never from an argument."""
+        row = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == scope.client_id,
+                ClientRow.organization_id == scope.organization_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        return _client_to_domain(row)
+
+    def studies_in_client(
+        self,
+        scope: ClientContext,
+        *,
+        kind: StudyKind | None = None,
+        include_archived: bool = True,
+    ) -> list[Study]:
+        """The studies of the client in scope that the actor may open, newest change first.
+
+        Restricted to ``scope.study_ids`` in the query itself: a study-only
+        grantee sees their studies and nothing else of the client's work.
+        """
+        if not scope.study_ids:
+            return []
+        stmt = select(StudyRow).where(
+            StudyRow.organization_id == scope.organization_id,
+            StudyRow.client_id == scope.client_id,
+            StudyRow.study_id.in_(sorted(scope.study_ids)),
+        )
+        if kind is not None:
+            stmt = stmt.where(StudyRow.kind == kind.value)
+        if not include_archived:
+            stmt = stmt.where(StudyRow.status != StudyStatus.ARCHIVED.value)
+        rows = self._session.scalars(stmt.order_by(StudyRow.modified_at.desc())).all()
+        return [_study_to_domain(r) for r in rows]
+
+    def create_study_in_client(
+        self,
+        scope: ClientContext,
+        *,
+        slug: str,
+        name: str,
+        kind: StudyKind,
+    ) -> Study:
+        """Start a research or a simulation for the client in scope (ADR 0015).
+
+        Needs ``CREATE_STUDY`` on the client (a client-level RESEARCHER or LEAD):
+        the person working for the client starts the work, and their client grant
+        is what lets them open it. The budget starts at zero; raising it needs
+        ``MANAGE_STUDY_BUDGET`` on the study, as before.
+        """
+        scope.require(ClientPermission.CREATE_STUDY)
+        study = Study(
+            study_id=new_study_id(),
+            organization_id=scope.organization_id,
+            client_id=scope.client_id,
+            slug=slug,
+            name=name,
+            kind=kind,
+        )
+        self._session.add(
+            StudyRow(
+                study_id=study.study_id,
+                organization_id=study.organization_id,
+                client_id=study.client_id,
+                slug=study.slug,
+                name=study.name,
+                kind=study.kind.value,
+                status=study.status.value,
+                budget_usd=0.0,
+            )
+        )
+        self._session.add(
+            AccessAuditRow(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                study_id=study.study_id,
+                actor_id=scope.actor_id,
+                action="STUDY_CREATED",
+                payload={"kind": kind.value, "via": "client_workspace"},
+                request_id=scope.request_id,
             )
         )
         self._session.flush()

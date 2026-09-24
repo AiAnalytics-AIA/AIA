@@ -77,8 +77,10 @@ describe("ProjectsScreen", () => {
     render(<ProjectsScreen />);
     await screen.findByText("Ukázka");
     const demo = screen.getByText("Ukázka").closest("article")!;
-    expect(within(demo).getByRole("link", { name: /Otevřít DEMO/ }).getAttribute("href")).toBe("/#aia:open=PRJ-DEMO-1");
-    expect(screen.getByRole("link", { name: /Nový výzkum/ }).getAttribute("href")).toBe("/#aia:start=research");
+    expect(within(demo).getByRole("link", { name: /Otevřít DEMO/ }).getAttribute("href")).toBe("/classic#aia:open=PRJ-DEMO-1");
+    // New work starts from a client (ADR 0015); this unscoped list offers none.
+    expect(screen.queryByRole("link", { name: /Nový výzkum/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /Koš/ }).getAttribute("href")).toBe("/app/settings/classic-projects/trash");
   });
 
   it("asks the classic question before moving to the trash, and sends the classic body", async () => {

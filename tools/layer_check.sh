@@ -147,6 +147,24 @@ forbid "the worker never builds an unscoped repository" \
   '_across_studies' \
   "$WORKER"
 
+# Client Knowledge is reached only through its repository, which takes an issued
+# ClientContext or StudyContext and puts the client in the query (ADR 0015
+# decision 7). A table used anywhere else is a query that could forget the
+# client: an unscoped pool filtered afterwards, which the ADR forbids.
+forbid "client knowledge tables are touched only by their repository" \
+  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  "$CORE" \
+  tables.py client_knowledge_repository.py
+forbid "the API never touches the client knowledge tables" \
+  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  "$API"
+forbid "the worker never touches the client knowledge tables" \
+  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  "$WORKER"
+forbid "executors never touch the client knowledge tables" \
+  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  "$EXECUTORS"
+
 # --- Layer 4b: executors do the work; they neither serve nor decide scope -----
 #
 # Step implementations depend on the worker's executor seam and on aia_core.

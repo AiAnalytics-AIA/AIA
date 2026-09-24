@@ -112,5 +112,14 @@ def test_the_rebuilt_interface_is_switched_on_for_develop_and_smoke_checked() ->
     web = _service_block(COMPOSE.read_text(encoding="utf-8"), "web")
     assert 'AIA_INTERFACE_REHOME_ENABLED: "true"' in web
     text = SMOKE.read_text(encoding="utf-8")
-    assert '"$BASE/app"' in text
-    assert '[ "$app_location" = "/login?next=%2Fapp" ]' in text
+    assert '"$BASE/app/clients"' in text
+    assert '[ "$app_location" = "/login?next=%2Fapp%2Fclients" ]' in text
+
+
+def test_the_smoke_check_proves_the_product_hostname_opens_aia_not_18_6_6() -> None:
+    # ADR 0015: / redirects to the client directory, the classic interface is a
+    # gated hand-off at /classic, and no path falls through to the unit.
+    text = SMOKE.read_text(encoding="utf-8")
+    assert '[ "$root_code" = "302" ] && [ "$root_location" = "/app/clients" ]' in text
+    assert '[ "$classic_location" = "/login?next=%2Fclassic" ]' in text
+    assert '"$BASE/no-such-page"' in text and '[ "$stray_code" = "404" ]' in text

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Capture every screen of the 18.6.6 interface, bare and skinned, and measure
- * what the skin did not reach (tools/ui_workbench/README.md).
+ * Capture every screen of the 18.6.6 interface, bare and skinned, every screen
+ * of AIA's client-first interface, and measure what the skin did not reach
+ * (tools/ui_workbench/README.md).
  *
  *   node tools/ui_workbench/capture.mjs [--out DIR] [--widths 1440,1024] [--only a,b]
  *
@@ -16,8 +17,11 @@
  *   2. the first DEMO project of each collection, opened the way a person opens
  *      one (openProject1785), and each of its tabs.
  *
+ *   3. every AIA screen (`aia_screens` of docs/migration/interface-screens.json),
+ *      and every rebuilt classic screen beside the classic one it replaces.
+ *
  * Per screen and width: a full-page PNG bare (the unit direct) and skinned (the
- * facade); page errors; horizontal overflow; and, on the skinned page, every
+ * facade's /classic); page errors; horizontal overflow; and, on the skinned page, every
  * computed colour on a visible element that is not a design-system token, with
  * a sample selector. Writes report.json and index.html beside the images.
  */
@@ -30,7 +34,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "../..");
 const DOCUMENT = join(REPO, "legacy/npc-panel-18.6.6/app/ui_app.html");
-const FIXTURES = join(REPO, "tmp/ui-workbench/fixtures.json");
+const STUDIES = join(REPO, "tmp/ui-workbench/studies.json");
+// The workbench's operator, signed in the way its /workbench/sign-in page does
+// (the local API's development credential; tools/ui_workbench/api_standin.py).
+const OPERATOR = "workbench@example.invalid";
 const TOKENS = join(REPO, "apps/web/src/design/tokens.json");
 
 // ---- arguments -------------------------------------------------------------
@@ -43,7 +50,8 @@ const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 const OUT = arg("out", join(REPO, "tmp/ui-workbench/shots", stamp));
 const WIDTHS = arg("widths", "1440,1024").split(",").map(Number);
 const ONLY = arg("only", "") ? new Set(arg("only").split(",")) : null;
-const BASES = { bare: arg("bare", "http://127.0.0.1:8767/"), skin: arg("skinned", "http://127.0.0.1:8780/") };
+const BASES = { bare: arg("bare", "http://127.0.0.1:8767/"), skin: arg("skinned", "http://127.0.0.1:8780/classic") };
+const FACADE = new URL(BASES.skin).origin;
 const SETTLE_MS = Number(arg("settle", "900"));
 
 // ---- Playwright, from wherever the environment has it ----------------------
@@ -141,6 +149,20 @@ function offPalette(allowed) {
 }
 
 // ---- driving the interface ---------------------------------------------------
+// Every context is signed in: the AIA pages read the tab's session, the classic
+// ones ignore it.
+async function context(browser, width) {
+  const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+  const session = JSON.stringify({ idToken: OPERATOR, refreshToken: "", expiresAt: 4102444800000, email: OPERATOR, subject: OPERATOR });
+  await ctx.addInitScript((s) => { try { sessionStorage.setItem("aia.session", s); } catch { /* no storage */ } }, session);
+  return ctx;
+}
+
+// A ledger path with its placeholders filled from a workbench binding.
+export function fill(path, binding) {
+  return path.replace("<client>", encodeURIComponent(binding.client)).replace("<id>", encodeURIComponent(binding.study));
+}
+
 async function boot(page, base) {
   await page.goto(base, { waitUntil: "load", timeout: 120000 });
   await page.waitForFunction(() => typeof go === "function" && window.NPC_BOOT_STAGE !== "start", null, { timeout: 60000 }).catch(() => {});
@@ -227,7 +249,7 @@ async function main() {
 
   for (const [variant, base] of Object.entries(BASES)) {
     for (const width of WIDTHS) {
-      const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+      const ctx = await context(browser, width);
       const page = await ctx.newPage();
       let errors = [];
       page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
@@ -269,56 +291,70 @@ async function main() {
       await ctx.close();
     }
   }
-  // 3. every screen the ledger says is rebuilt, from the facade's /app, beside
-  // the classic one it replaces (docs/migration/interface-screens.json).
+  // 3. every AIA screen, and every screen the ledger says is rebuilt, from the
+  // facade's /app, beside the classic one it replaces
+  // (docs/migration/interface-screens.json). A <client> is the one the
+  // workbench fixtures are bound under (tmp/ui-workbench/studies.json).
   const ledger = JSON.parse(readFileSync(join(REPO, "docs/migration/interface-screens.json"), "utf8"));
+  const studies = existsSync(STUDIES) ? JSON.parse(readFileSync(STUDIES, "utf8")) : {};
+  const anyBinding = Object.values(studies)[0];
+  const aia = (ledger.aia_screens || []).filter((x) => !ONLY || ONLY.has(x.id));
   // A path with <id> needs a project: it is captured with its fixture, in 4.
   const rebuilt = ledger.screens.filter((x) => x.react_path && !x.react_path.includes("<id>") && x.status !== "CLASSIC" && (!ONLY || ONLY.has(x.classic.route)));
+  const pages = [
+    ...aia.map((x) => ({ id: x.id, label: x.title, kind: "aia", path: x.path })),
+    ...rebuilt.map((x) => ({ id: x.id, label: x.id.replace(/^route-/, ""), kind: "route", path: x.react_path })),
+  ].filter((x) => {
+    if (!x.path.includes("<client>")) return true;
+    if (!anyBinding) console.log(`\ncapture: ${x.id}: no workbench client (run make ui-fixtures)`);
+    return !!anyBinding;
+  });
   for (const width of WIDTHS) {
-    const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+    const ctx = await context(browser, width);
     const page = await ctx.newPage();
-    for (const x of rebuilt) {
+    for (const x of pages) {
       const errors = [];
       page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
-      await page.goto(new URL(x.react_path, BASES.skin).href, { waitUntil: "networkidle", timeout: 120000 });
+      const path = anyBinding ? fill(x.path, anyBinding) : x.path;
+      await page.goto(new URL(path, FACADE).href, { waitUntil: "networkidle", timeout: 120000 });
       await page.waitForTimeout(SETTLE_MS);
       const file = join(OUT, `${x.id}.react.${width}.png`);
       await shoot(page, file);
       const m = await measure(page, allowed, true);
-      record(x.id, x.id.replace(/^route-/, ""), "route").shots[`react.${width}`] = { file: relative(OUT, file), ...m, errors, path: x.react_path };
+      record(x.id, x.label, x.kind).shots[`react.${width}`] = { file: relative(OUT, file), ...m, errors, path };
       page.removeAllListeners("pageerror");
       process.stdout.write("+");
     }
     await ctx.close();
   }
   // 4. screens the ledger names a fixture project for (`fixture`, a key of
-  // tmp/ui-workbench/fixtures.json, written by `make ui-fixtures`): the classic
-  // step opened on that project, beside the rebuilt one at react_path with the
-  // project's id for <id>. What a screen shows with an AI answer in it.
-  const fixtures = existsSync(FIXTURES) ? JSON.parse(readFileSync(FIXTURES, "utf8")) : {};
+  // tmp/ui-workbench/studies.json, written by `make ui-fixtures`): the classic
+  // step opened on that unit project, beside the rebuilt one at react_path with
+  // the study bound to it for <id> and its client for <client>. What a screen
+  // shows with an AI answer in it.
   const paired = ledger.screens.filter((x) => x.fixture && x.react_path && (!ONLY || ONLY.has(x.classic.route)));
   for (const x of paired) {
-    const pid = fixtures[x.fixture];
-    if (!pid) {
+    const binding = studies[x.fixture];
+    if (!binding) {
       console.log(`\ncapture: ${x.id}: no fixture "${x.fixture}" (run make ui-fixtures)`);
       continue;
     }
     const id = `${x.id}@${x.fixture}`;
-    const path = x.react_path.replace("<id>", encodeURIComponent(pid));
+    const path = fill(x.react_path, binding);
     for (const width of WIDTHS) {
-      const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+      const ctx = await context(browser, width);
       const page = await ctx.newPage();
       let errors = [];
       page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
-      // Through the hand-off link a rebuilt step uses (#aia:open=<id>@<route>), so it is exercised too.
-      await boot(page, new URL(`/#aia:open=${pid}@${x.classic.route}`, BASES.skin).href);
+      // Through the hand-off link a rebuilt step uses (#aia:open=<unit>@<route>), so it is exercised too.
+      await boot(page, `${BASES.skin}#aia:open=${binding.unit}@${x.classic.route}`);
       await page.waitForFunction((r) => window.CURRENT === r, x.classic.route, { timeout: 30000 }).catch(() => {});
       await page.waitForTimeout(SETTLE_MS + 600);
       let file = join(OUT, `${id}.skin.${width}.png`);
       await shoot(page, file);
       record(id, `${x.classic.route} · ${x.fixture}`, "fixture").shots[`skin.${width}`] = { file: relative(OUT, file), ...(await measure(page, allowed, true)), errors };
       errors = [];
-      await page.goto(new URL(path, BASES.skin).href, { waitUntil: "networkidle", timeout: 120000 });
+      await page.goto(new URL(path, FACADE).href, { waitUntil: "networkidle", timeout: 120000 });
       await page.waitForTimeout(SETTLE_MS);
       file = join(OUT, `${id}.react.${width}.png`);
       await shoot(page, file);
@@ -346,16 +382,19 @@ async function main() {
   console.log(`capture: most off-palette paint: ${worst.map((w) => `${w.id} (${w.n})`).join(", ")}`);
   for (const sc of screens) {
     const r = sc.shots[`react.${WIDTHS[0]}`];
-    if (r) console.log(`capture: ${sc.id} rebuilt at ${r.path}: ${r.missing.length} classic text(s) missing${r.missing.length ? ": " + r.missing.slice(0, 12).map((x) => JSON.stringify(x)).join(", ") : ""}`);
+    if (r?.missing) console.log(`capture: ${sc.id} rebuilt at ${r.path}: ${r.missing.length} classic text(s) missing${r.missing.length ? ": " + r.missing.slice(0, 12).map((x) => JSON.stringify(x)).join(", ") : ""}`);
   }
 }
 
 // ---- the contact sheet -------------------------------------------------------
+function x0(s, w) { return s.kind === "aia" ? s.shots[`react.${w}`] : undefined; }
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
 function sheet(r) {
   const w = r.widths[0];
   const rows = r.screens.map((s) => {
-    const b = s.shots[`bare.${w}`] || {}, k = s.shots[`skin.${w}`] || {}, x = s.shots[`react.${w}`];
+    // An AIA screen has no classic counterpart: only its own shot is drawn.
+    const b = s.shots[`bare.${w}`], k = s.shots[`skin.${w}`] || x0(s, w) || {}, x = s.shots[`react.${w}`];
+    const fig = (shot, caption) => (shot ? `<figure><figcaption>${esc(caption)}</figcaption><a href="${esc(shot.file)}"><img loading="lazy" src="${esc(shot.file)}"></a></figure>` : "");
     const flags = [
       k.overflowPx ? `overflow ${k.overflowPx}px` : "",
       (k.errors || []).length ? `${k.errors.length} page error(s)` : "",
@@ -363,12 +402,11 @@ function sheet(r) {
     ].filter(Boolean).join(" · ");
     const off = (k.offPalette || []).slice(0, 8).map((f) =>
       `<li><span class="sw" style="background:${f.hex}"></span><code>${f.prop} ${f.hex}</code> ×${f.count} <code>${esc(f.sample)}</code></li>`).join("");
-    const other = r.widths.slice(1).map((x) => `<a href="${esc(s.shots[`skin.${x}`]?.file)}">skin ${x}</a> · <a href="${esc(s.shots[`bare.${x}`]?.file)}">bare ${x}</a>`).join(" · ");
-    return `<section id="${esc(s.id)}"><h2>${esc(s.label)} <small>${esc(k.title || b.title)}</small></h2>
+    const other = r.widths.slice(1).map((x) => ["skin", "bare", "react"].filter((v) => s.shots[`${v}.${x}`]).map((v) => `<a href="${esc(s.shots[`${v}.${x}`].file)}">${v} ${x}</a>`).join(" · ")).join(" · ");
+    return `<section id="${esc(s.id)}"><h2>${esc(s.label)} <small>${esc(k.title || b?.title)}</small></h2>
 <p class="meta">${esc(s.kind)}${flags ? " · <b>" + esc(flags) + "</b>" : ""} · ${other}</p>
-<div class="pair"><figure><figcaption>18.6.6 as shipped</figcaption><a href="${esc(b.file)}"><img loading="lazy" src="${esc(b.file)}"></a></figure>
-<figure><figcaption>with the AIA skin</figcaption><a href="${esc(k.file)}"><img loading="lazy" src="${esc(k.file)}"></a></figure>${x ? `<figure><figcaption>rebuilt · ${esc(x.path)}</figcaption><a href="${esc(x.file)}"><img loading="lazy" src="${esc(x.file)}"></a></figure>` : ""}</div>
-${x ? `<details${x.missing.length ? " open" : ""}><summary>Classic text the rebuilt screen does not show (${x.missing.length})</summary><ul>${x.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
+<div class="pair">${fig(b, "18.6.6 as shipped")}${fig(s.shots[`skin.${w}`], "with the AIA skin")}${fig(x, s.kind === "aia" ? `AIA · ${x?.path}` : `rebuilt · ${x?.path}`)}</div>
+${x?.missing ? `<details${x.missing.length ? " open" : ""}><summary>Classic text the rebuilt screen does not show (${x.missing.length})</summary><ul>${x.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
 ${off ? `<details><summary>Colours the skin did not reach (${(k.offPalette || []).length})</summary><ul>${off}</ul></details>` : ""}</section>`;
   }).join("\n");
   return `<!doctype html><html lang="en"><meta charset="utf-8"><title>UI capture</title>

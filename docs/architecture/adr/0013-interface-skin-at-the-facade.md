@@ -4,6 +4,10 @@
 working on develop by the data owner, 2026-09-24; see
 *Decision record* below). Builds on [ADR 0012](0012-legacy-interface-as-product-facade.md);
 leaves [ADR 0011](0011-vendor-legacy-product-unit.md) intact.
+**Superseded in part by [ADR 0015](0015-client-first-product-interface.md)**
+(2026-09-24): decision 1's "at `/`" -- the skinned document is served at
+`/classic`, the hand-off -- and "the develop deployment is the canonical
+baseline for every screen". The skin itself, its pin and its kill switch stand.
 **Date:** 2026-09-23
 
 ## Context

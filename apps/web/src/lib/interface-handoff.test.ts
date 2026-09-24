@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import vm from "node:vm";
 import { describe, expect, it } from "vitest";
 
-import { DIMENSION_RESEARCH_KEY, applyHandoff, classicHref } from "./interface-handoff";
+import { DIMENSION_RESEARCH_KEY, applyHandoff, classicHref, returnPath } from "./interface-handoff";
 import { sha256Hex } from "./interface-skin";
 
 const repo = join(process.cwd(), "../..");
@@ -26,24 +26,36 @@ describe("applyHandoff", () => {
 
 describe("classicHref", () => {
   it("carries one instruction in the fragment", () => {
-    expect(classicHref()).toBe("/");
-    expect(classicHref({ open: "PRJ-DEMO-1" })).toBe("/#aia:open=PRJ-DEMO-1");
-    expect(classicHref({ start: "simulation" })).toBe("/#aia:start=simulation");
-    expect(classicHref({ go: "projects" })).toBe("/#aia:go=projects");
-    expect(classicHref({ open: "PRJ-1", step: "questionnaire" })).toBe("/#aia:open=PRJ-1@questionnaire");
-    expect(classicHref({ open: "PRJ-1", step: "Bad Step" })).toBe("/");
+    expect(classicHref()).toBe("/classic");
+    expect(classicHref({ open: "PRJ-DEMO-1" })).toBe("/classic#aia:open=PRJ-DEMO-1");
+    expect(classicHref({ start: "simulation" })).toBe("/classic#aia:start=simulation");
+    expect(classicHref({ go: "projects" })).toBe("/classic#aia:go=projects");
+    expect(classicHref({ open: "PRJ-1", step: "questionnaire" })).toBe("/classic#aia:open=PRJ-1@questionnaire");
+    expect(classicHref({ open: "PRJ-1", step: "Bad Step" })).toBe("/classic");
   });
   it("never builds an instruction from an id the script would refuse", () => {
-    expect(classicHref({ open: "x'); alert(1)//" })).toBe("/");
+    expect(classicHref({ open: "x'); alert(1)//" })).toBe("/classic");
   });
 });
 
 // The script itself, in a bare context standing in for the classic page.
-function page(hash: string, stage = "ready") {
+function page(hash: string, stage = "ready", stash: Record<string, string> = {}) {
   const calls: string[] = [];
   const timers: (() => void)[] = [];
   const listeners: Record<string, () => void> = {};
-  const stored = new Map<string, string>();
+  const stored = new Map<string, string>(Object.entries(stash));
+  // The one element the script adds: a stand-in body that records what it appends.
+  type El = { id: string; className: string; textContent: string; href: string; children: El[]; attrs: Record<string, string>; appendChild: (c: El) => void; setAttribute: (k: string, v: string) => void };
+  const element = (): El => {
+    const el: El = { id: "", className: "", textContent: "", href: "", children: [], attrs: {}, appendChild: (c) => void el.children.push(c), setAttribute: (k, v) => void (el.attrs[k] = v) };
+    return el;
+  };
+  const body = element();
+  const document = {
+    body,
+    createElement: () => element(),
+    getElementById: (id: string) => body.children.find((c) => c.id === id) ?? null,
+  };
   const win: Record<string, unknown> = {
     addEventListener: (type: string, f: () => void) => (listeners[type] = f),
     NPC_BOOT_STAGE: stage,
@@ -67,9 +79,9 @@ function page(hash: string, stage = "ready") {
       removeItem: (k: string) => void stored.delete(k),
     },
   };
-  const ctx = vm.createContext({ window: win, setTimeout: (f: () => void) => timers.push(f), console });
+  const ctx = vm.createContext({ window: win, document, setTimeout: (f: () => void) => timers.push(f), console });
   vm.runInContext(script, ctx);
-  return { calls, win, listeners, tick: () => timers.splice(0).forEach((f) => f()) };
+  return { calls, win, listeners, body, tick: () => timers.splice(0).forEach((f) => f()) };
 }
 
 describe("handoff.js", () => {
@@ -91,6 +103,28 @@ describe("handoff.js", () => {
       expect(page(hash).calls.filter((c) => c !== "replaceState")).toEqual([]);
     },
   );
+
+  it("says on the classic page that it is the classic interface, and leads back to where the person was", () => {
+    const p = page("", "ready", { "aia:return": "/app/clients/CLI-1/research/STU-1/run" });
+    const [bar] = p.body.children;
+    expect(bar.id).toBe("aia-return-bar");
+    expect(bar.children.map((c) => c.textContent)).toEqual(["Klasické rozhraní 18.6.6 · dočasně", "Zpět do AIA"]);
+    expect(bar.children[1].href).toBe("/app/clients/CLI-1/research/STU-1/run");
+    // Once only, however often a hand-off arrives on the same page.
+    (p.win.location as { hash: string }).hash = "#aia:go=data";
+    p.listeners.hashchange();
+    expect(p.body.children.length).toBe(1);
+  });
+
+  it("leads back only to an AIA page, else to the client directory", () => {
+    for (const bad of ["https://evil.example/app", "/app/../login", "javascript:alert(1)", "/studies", "//app"]) {
+      expect(page("", "ready", { "aia:return": bad }).body.children[0].children[1].href, bad).toBe("/app/clients");
+    }
+    expect(page("").body.children[0].children[1].href).toBe("/app/clients");
+    expect(returnPath("/app/clients/CLI-1?x=1")).toBe("/app/clients/CLI-1?x=1");
+    expect(returnPath("/app/../x")).toBeNull();
+    expect(returnPath("https://x/app")).toBeNull();
+  });
 
   it("waits for the boot to finish", () => {
     const p = page("#aia:open=PRJ-1", "bootstrap data");
@@ -142,7 +176,7 @@ describe("handoff.js", () => {
     (p.win.location as { hash: string }).hash = "#aia:dimension=research";
     p.listeners.hashchange();
     expect(p.calls).toEqual(["replaceState", "dimension:Vztah k AI ve zdravotnictví", "replaceState"]);
-    expect(classicHref({ dimension: "research" })).toBe("/#aia:dimension=research");
+    expect(classicHref({ dimension: "research" })).toBe("/classic#aia:dimension=research");
   });
 
   it("acts on a hand-off link followed from the classic page itself", () => {
