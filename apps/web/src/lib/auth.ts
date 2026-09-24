@@ -215,6 +215,10 @@ export async function logout(): Promise<void> {
   writeSession(null);
   const config = await loadConfig();
   if (!config.cognitoDomain || !config.cognitoClientId || !session) {
+    // A full navigation on purpose: `/` is not a page of this app but the
+    // 18.6.6 document behind Caddy's forward_auth gate (deploy/develop/Caddyfile),
+    // which a client-side router.push would never reach.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/");
     return;
   }
