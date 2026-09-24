@@ -1812,3 +1812,65 @@ what the rebuild does (research-flow-rehome.md, deliberate differences): the
 visible result, no card, is the classic's.
 
 **Status.** Open; **decision**: confirm the rebuild's single request.
+
+## OI-58 · Migration debt · The unit's project store holds the rebuilt research stages' working content
+
+**Claim.** The research stages rebuilt in PR #49 and #50 read and write their working content in
+the 18.6.6 unit's single-tenant project store (`/api/projects/load|save`), not in AIA-owned,
+study-scoped storage; ADR 0015 bridges it with an explicit AIA-owned binding, `study_workspaces`
+(AIA Study ↔ unit project), and that bridge is temporary.
+
+**Anchor.** `apps/web/src/unit/research/store.ts:42-63,144-152 @ 8e7a6db` (the unit load and
+save); `docs/architecture/adr/0015-client-first-product-interface.md` decision 5.
+
+**Rules while it exists.** Access always resolves the study through `ScopeResolver` first and
+reads the unit project id from the binding; a unit project id supplied by the browser is never
+authorization and no route finds a study by one; the binding is written once per study, through
+an issued `StudyContext` with `EDIT_STUDY`, and never to a unit project already bound elsewhere.
+The Study stays canonical for scope, identity, lifecycle, permissions, budgets and costs,
+approvals, provenance, artifacts and history; the unit copy is working content only.
+
+**Tests.** `packages/aia_core/tests/test_study_workspaces.py` ›
+*a unit project id is never a way into a study* and *a unit project bound to one study cannot be
+bound to another*; `apps/api/tests/test_client_api.py` › *the workspace of another client's study
+is not found*.
+
+**Consequence of leaving it.** The unit store would harden into the data model: study state
+outside AIA's audit, cost and provenance contracts, isolated only by the binding and the
+owner/admin gate (OI-59), with no row-level scope of its own.
+
+**Removal condition.** The research (then simulation) stage state is stored and served by AIA's
+study-scoped contracts (`/api/v1/studies/{study_id}/…`); the rebuilt stages no longer call the
+unit's project store; the bound working content is migrated into AIA. Then `study_workspaces` is
+dropped by a migration and ADR 0015 decision 5 is retired. The unit remains only as the oracle
+and a fallback.
+
+**Status.** Open; **migration debt**, accepted temporarily by the data owner (2026-09-24).
+
+## OI-59 · Temporary restriction · `/app` admits organization owners and admins only
+
+**Claim.** The client-first shell at `/app` sits behind the panel gate, which admits only
+organization owners and admins (`LEGACY_PANEL_ROLES`), because the rebuilt stages still depend on
+the single-tenant unit (OI-58); this is a temporary restriction, **not the authorization model**.
+
+**Anchor.** `deploy/develop/Caddyfile:84-99 @ 8e7a6db` (`/app` → `forward_auth
+/api/v1/panel/gate`); `packages/aia_core/src/aia_core/domain/scope.py:120-128 @ 8e7a6db`
+(`LEGACY_PANEL_ROLES`).
+
+**Reproduction.** `apps/api/tests/test_panel_api.py` ›
+*test_a_members_session_is_refused_by_the_gate*: a member with client and study grants, but no
+admin role, is refused.
+
+**Target.** *Authenticated user → organization membership → client grant → study grant*, exactly
+as every `/api/v1` route resolves it through `ScopeResolver`. Nothing in the client shell may
+depend on the caller being an owner or admin: every page's data already comes from scoped API
+routes, which apply the grants, not the gate.
+
+**Consequence of leaving it.** Researchers who hold the right client and study grants cannot use
+the product; owners and admins become the only users by accident of the migration.
+
+**Removal condition.** Stage state is fully AIA-scoped for the stages a researcher uses (OI-58);
+then `/app` moves to a gate that admits any provisioned member, and the unit's own paths keep the
+owner/admin gate until the unit is out of the stage path.
+
+**Status.** Open; **temporary restriction**, accepted by the data owner for this PR (2026-09-24).

@@ -113,14 +113,18 @@ be served at a path other than `/`.
    and every other path is the web client's (its own 404). The legacy hostname is unchanged: the
    oracle, basic auth, unskinned.
 2. **Hierarchy:** Client → (Výzkumy | Simulace | Znalosti | Data) → a research or simulation →
-   its stages → results. A research or a simulation **is an AIA Study** (one engagement, one
-   client, its budget and access), marked by a new `studies.kind` (`RESEARCH` | `SIMULATION`).
-3. **Working content stays where it is** until the research store is ported: the unit project that
-   holds a study's working content is **bound** to the study in AIA (`study_workspaces`: one row
-   per study, `unit_project_id` unique, readable and writable only through an issued
-   `StudyContext`). The client-first routes resolve the study through AIA's scope first and only
-   then load the unit project. The unit itself stays single-tenant and admin-gated
-   (`LEGACY_PANEL_ROLES`); that limitation is stated, not hidden.
+   its stages → results. **Research and Simulation are both AIA `Study` records**, distinguished
+   by a persisted `studies.kind` (`RESEARCH` | `SIMULATION`). The Study is canonical for client
+   scope, identity, lifecycle, permissions, budgets and costs, approvals, provenance, artifacts
+   and history; only the workflow beneath it differs by `kind`.
+3. **The unit store is a temporary migration bridge (OI-58), not the data model.** The unit
+   project holding a study's working content is bound by an explicit AIA-owned binding
+   (`study_workspaces`: one row per study, `unit_project_id` unique, written only through an
+   issued `StudyContext` with `EDIT_STUDY`, once). Access always resolves the study through AIA's
+   scope first and reads the unit id from the binding; a unit project id from the browser is never
+   authorization, and no route finds a study by one. Removal condition: stage state stored and
+   served by AIA's study-scoped contracts, the stages no longer calling the unit store, the
+   bridged content migrated — then the table is dropped.
 4. **Client scope:** `ScopeResolver.client_context()` issues a new, unforgeable
    **`ClientContext`**: a client-level grant (role, permissions), or study-only access (only the
    granted studies, no client knowledge). Denial is 404, as for studies.
@@ -140,9 +144,11 @@ be served at a path other than `/`.
    `brief plan questionnaire audience dimensions run progress results verify next` (`dimensions`
    is the URL of the `persona` step). The stage rail belongs to the project, not to the shell.
    `/app/research/*` is retired (redirects to `/app/clients`).
-8. **Unchanged in this PR, raised for decision:** `/app` stays behind the panel gate (owners and
-   admins), because the research stages still read the single-tenant unit; opening the client
-   shell to researchers without an admin role is a follow-up once the store moves.
+8. **`/app` stays owner/admin-only — a temporary restriction (OI-59), not the authorization
+   model.** The rebuilt stages still read the single-tenant unit. The target is *authenticated
+   user → organization membership → client grant → study grant*, as every `/api/v1` route already
+   resolves it; once stage state is AIA-scoped, researchers with the right grants use `/app`.
+   Nothing in the client shell may depend on the caller being an owner or admin.
 
 ## Target route tree
 
@@ -197,4 +203,4 @@ AppShell (global nav: Klienti · Společenská inteligence · Projektová pamě�
 
 The whole Data Library; Simulation screens; Run / Progress / Results / Verify; knowledge ingestion
 (upload, extraction); Project Memory search beyond listing; porting the research store from the
-unit to AIA; opening `/app` to members without an admin role.
+unit to AIA (OI-58); opening `/app` to members without an admin role (OI-59).
