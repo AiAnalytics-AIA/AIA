@@ -163,6 +163,34 @@ def _expression_end(js: str, start: int) -> int:
     return -1
 
 
+def effective_binding(js: str, name: str) -> str | None:
+    """The source of whichever binding of ``name`` the browser runs, as a statement.
+
+    The interface redefines many functions by assignment long after their
+    declaration (``renderPlan=function(){...}``, ``window.renderPlan=...``), and
+    the last one wins at runtime; ``extract_functions`` sees only declarations.
+    This returns the later of the last declaration and the last
+    ``name=[async] function(...){...}`` assignment, as ``var name=...;`` so it can
+    be evaluated on its own. A wrapper that calls a saved earlier binding
+    (``const old=window.name``) needs that binding supplied separately.
+    """
+    functions = extract_functions(js)
+    declared = functions.get(name)
+    assignment = re.compile(
+        r"(?<![\w.$])(?:window\.)?"
+        + re.escape(name)
+        + r"\s*=\s*((?:async\s+)?function\s*\([^)]*\)\s*\{)"
+    )
+    last = None
+    for m in assignment.finditer(js):
+        last = m
+    if last is None or (declared is not None and declared.start > last.start()):
+        return declared.body if declared else None
+    open_at = js.index("{", last.start(1) + len(last.group(1)) - 1)
+    end = _match_brace(js, open_at)
+    return f"var {name}={js[last.start(1) : end]};"
+
+
 def calls_of(fn: JsFunction, names: Mapping[str, Any]) -> set[str]:
     """Names among ``names`` that ``fn``'s body calls (excluding itself)."""
     return {
@@ -236,6 +264,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     sub.add_parser("list", help="every declared function: name, parameter count, chars")
     show = sub.add_parser("show", help="print a function's source")
     show.add_argument("name")
+    effective = sub.add_parser(
+        "effective", help="print the binding that runs: the last declaration or assignment"
+    )
+    effective.add_argument("name")
     index = sub.add_parser("index", help="the full index as JSON")
     index.add_argument("--json", type=Path, help="write here instead of stdout")
     check = sub.add_parser("check", help="the committed UI function ledger against the unit")
@@ -260,6 +292,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"no function named {args.name!r}", file=sys.stderr)
             return 1
         print(wanted.body)
+        return 0
+    if args.command == "effective":
+        source = effective_binding(js, args.name)
+        if source is None:
+            print(f"no function named {args.name!r}", file=sys.stderr)
+            return 1
+        print(source)
         return 0
     if args.command == "index":
         document = {
