@@ -166,6 +166,9 @@ tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / comp
 tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; check the UI ledger
 tools/ui_function_runner.mjs, ui_function_capture.py
                             Run extracted functions under Node; capture U<nn> fixtures
+tools/ui_workbench/         The real 18.6.6 interface + the web client on this machine, for UI work:
+                            the unit on a scratch copy with a fictional panel, `next dev`, the skin
+                            rebuilt on save, a facade routed by the Caddyfile's @web. Never parity
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
@@ -273,6 +276,7 @@ ungated fixture.
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
 | Web tests | `make test-web` (Vitest, pure functions) |
 | **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, `npm run tokens`, `npm run skin` |
+| **UI workbench** | `make ui-workbench` → <http://127.0.0.1:8780/> skinned, `:8767` bare; `make ui-workbench-status`, `make ui-workbench-down`. First run installs the unit's requirements into `tmp/ui-workbench/venv` |
 | **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |

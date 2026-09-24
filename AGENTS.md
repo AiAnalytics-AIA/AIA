@@ -739,3 +739,30 @@ on `apps/web/package-lock.json` — caching on a branch name gives a stale
 
 The client renders state the server computed. `GET …/impact` exists precisely so
 no component reasons about which stages an edit invalidates.
+
+## The 18.6.6 unit, run outside its container
+
+**It registers its population files at import, not at first request.**
+`population_context.py` bootstraps `data/population_registry.sqlite` the first
+time it connects, which happens while `prototype_server` is imported; a panel
+file that does not exist at that moment is silently skipped, and every later
+`/api/bootstrap` answers `Population CZ_STATIC_REFERENCE není inicializována`.
+The registry then remembers the empty state, so writing the file afterwards does
+not help until the scratch copy is reset (`workbench.py up --fresh`).
+
+```python
+# WRONG — the registry is already built, without the panel
+import prototype_server as core
+frame.to_csv("FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz")
+
+# RIGHT — both files the registry names (STATIC v17_1_2, LIVE v17_4_0) first
+for name in PANEL_FILES:
+    frame.to_csv(name, index=False)
+import prototype_server as core
+```
+
+**A missing panel column is an `AttributeError`, not a `KeyError`.**
+`audience_dimensions.attach_derived` reads flags with `out.get('is_parent', 0)`;
+on a frame without the column that is the int `0`, and `pd.to_numeric(0)` has no
+`.fillna`. A stand-in frame needs every column the unit reads that way
+(`tools/ui_workbench/unit_standin.py` lists them), invented values only.
