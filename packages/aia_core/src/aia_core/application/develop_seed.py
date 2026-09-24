@@ -24,8 +24,10 @@ from sqlalchemy.orm import Session
 
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.workflows import StartedRun, start_workflow
-from aia_core.domain.scope import ScopeRole, StudyContext, StudyStatus
+from aia_core.domain.knowledge import KnowledgeKind
+from aia_core.domain.scope import ScopeRole, StudyContext, StudyKind, StudyStatus
 from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
+from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.tables import OrganizationRow, StudyRow
@@ -35,6 +37,7 @@ __all__ = [
     "SEED_ORGANIZATION_SLUG",
     "SEED_PROJECT_TITLE",
     "SEED_STUDY_SLUG",
+    "SEED_WORKSPACES",
     "SeedResult",
     "reset_develop_seed",
     "seed_develop",
@@ -60,6 +63,103 @@ SEED_PROJECT_CONTENT: Final[dict[str, Any]] = {
 }
 
 
+# The client-first world (ADR 0015): two fictional clients -- invented names, no
+# real company, brand or person -- each with research, a simulation, approved
+# knowledge and one pending update, so every area of the client workspace has
+# something true to show on develop. Each tuple is (slug, name, kind, status).
+SEED_WORKSPACES: Final[dict[str, dict[str, Any]]] = {
+    "horizont-mobility": {
+        "name": "Horizont Mobility (fiktivní)",
+        "studies": [
+            ("vnimani-znacky-2026", "Vnímání značky 2026", StudyKind.RESEARCH, StudyStatus.ACTIVE),
+            (
+                "segmentace-flotil",
+                "Segmentace flotilových zákazníků",
+                StudyKind.RESEARCH,
+                StudyStatus.DRAFT,
+            ),
+            (
+                "cenove-scenare-ev-2027",
+                "Cenové scénáře elektromobilů 2027",
+                StudyKind.SIMULATION,
+                StudyStatus.ACTIVE,
+            ),
+            (
+                "spokojenost-servisu-2025",
+                "Spokojenost se servisem 2025",
+                StudyKind.RESEARCH,
+                StudyStatus.DELIVERED,
+            ),
+        ],
+        "knowledge": [
+            (
+                KnowledgeKind.SOURCE,
+                "Výroční zpráva 2025",
+                "Fiktivní podklad klienta: obchodní síť a produktové řady.",
+            ),
+            (
+                KnowledgeKind.TERM,
+                "Flotilový zákazník",
+                "Firma s pěti a více vozy na leasing nebo v majetku.",
+            ),
+            (
+                KnowledgeKind.FINDING,
+                "Zákazníci do 35 let rozhodují hlavně podle ceny",
+                "Z výzkumu Spokojenost se servisem 2025.",
+            ),
+            (
+                KnowledgeKind.DIMENSION,
+                "Vztah k elektromobilitě",
+                "Klientská dimenze: od odmítání po aktivní zájem.",
+            ),
+            (
+                KnowledgeKind.AUDIENCE,
+                "Fleet manažeři středních firem",
+                "Firmy s 50 až 249 zaměstnanci, rozhodují o vozovém parku.",
+            ),
+            (KnowledgeKind.DATASET, "Servisní průzkum 2025", "Fiktivní datová sada, n = 1 200."),
+        ],
+        "pending": (
+            "vnimani-znacky-2026",
+            KnowledgeKind.FINDING,
+            "Značka působí spolehlivě, ale konzervativně",
+            "Navrženo k převzetí do znalostí klienta z běžícího výzkumu.",
+        ),
+    },
+    "lumen-pojistovna": {
+        "name": "Lumen pojišťovna (fiktivní)",
+        "studies": [
+            (
+                "duvera-v-digitalnim-pojisteni",
+                "Důvěra v digitální pojištění",
+                StudyKind.RESEARCH,
+                StudyStatus.ACTIVE,
+            ),
+            (
+                "reakce-na-zmenu-pojistneho",
+                "Reakce na změnu pojistného",
+                StudyKind.SIMULATION,
+                StudyStatus.DRAFT,
+            ),
+        ],
+        "knowledge": [
+            (
+                KnowledgeKind.FACT,
+                "Online kanál tvoří 38 % nových smluv",
+                "Fiktivní údaj klienta za rok 2025.",
+            ),
+            (
+                KnowledgeKind.TERM,
+                "Pojistná událost",
+                "Klientova definice pro komunikaci se zákazníky.",
+            ),
+        ],
+        "pending": None,
+    },
+}
+SEED_CURATOR_EMAIL: Final = "curator.seed@aia-develop.invalid"
+
+
 @dataclass(frozen=True, slots=True)
 class SeedResult:
     """Every id the seed provisioned or found."""
@@ -72,6 +172,7 @@ class SeedResult:
     project_id: str
     run_id: str
     created: dict[str, bool]
+    workspaces: dict[str, str]
 
 
 def _find_organization(session: Session, slug: str) -> OrganizationRow | None:
@@ -171,6 +272,15 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
     )
     created["run"] = started.created
 
+    workspaces, created["workspaces"] = _seed_workspaces(
+        session,
+        scope_repo,
+        resolver,
+        admin=admin,
+        owner_id=owner_id,
+        organization_id=organization_id,
+    )
+
     return SeedResult(
         organization_id=organization_id,
         owner_user_id=owner_id,
@@ -180,7 +290,100 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         project_id=project_id,
         run_id=started.run_id,
         created=created,
+        workspaces=workspaces,
     )
+
+
+def _seed_workspaces(
+    session: Session,
+    scope_repo: ScopeRepository,
+    resolver: ScopeResolver,
+    *,
+    admin: Any,
+    owner_id: str,
+    organization_id: str,
+) -> tuple[dict[str, str], bool]:
+    """The fictional clients of SEED_WORKSPACES, found by slug or created; idempotent.
+
+    Knowledge goes the governed way: the operator proposes, a synthetic curator
+    (a REVIEWER on the client) approves, so every item has a revision and
+    provenance like any other. Returns slug -> client id, and whether anything
+    was new.
+    """
+    knowledge = ClientKnowledgeRepository(session)
+    owner = AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
+    members = {m["email"]: m for m in scope_repo.members(admin)}
+    curator_id = (
+        members[SEED_CURATOR_EMAIL]["user_id"]
+        if SEED_CURATOR_EMAIL in members
+        else scope_repo.add_member(
+            admin, email=SEED_CURATOR_EMAIL, display_name="Kurátor (seed)"
+        ).user_id
+    )
+    curator = AuthenticatedPrincipal(user_id=curator_id, organization_id=organization_id)
+    existing = {c.slug: c for c in scope_repo.list_clients(admin, include_archived=True)}
+    out: dict[str, str] = {}
+    fresh = False
+    for slug, spec in SEED_WORKSPACES.items():
+        client = existing.get(slug)
+        if client is None:
+            client = scope_repo.create_client(admin, slug=slug, name=spec["name"])
+            fresh = True
+        out[slug] = client.client_id
+        resolver.grant_client_access(
+            admin, client_id=client.client_id, user_id=owner_id, role=ScopeRole.LEAD, reason="seed"
+        )
+        resolver.grant_client_access(
+            admin,
+            client_id=client.client_id,
+            user_id=curator_id,
+            role=ScopeRole.REVIEWER,
+            reason="seed",
+        )
+        ctx = resolver.client_context(owner, client_id=client.client_id)
+        studies = {s.slug: s for s in scope_repo.studies_in_client(ctx)}
+        for study_slug, name, kind, status in spec["studies"]:
+            if study_slug in studies:
+                continue
+            study = scope_repo.create_study_in_client(ctx, slug=study_slug, name=name, kind=kind)
+            studies[study_slug] = study
+            fresh = True
+            if status is not StudyStatus.DRAFT:
+                study_scope = resolver.study_context(owner, study_id=study.study_id)
+                scope_repo.set_study_status(study_scope, status)
+
+        ctx = resolver.client_context(owner, client_id=client.client_id)
+        have = {i.title for i in knowledge.items(ctx)}
+        proposed = {p.title for p in knowledge.proposals(ctx)}
+        delivered = studies.get("spokojenost-servisu-2025")
+        for kind, title, summary in spec["knowledge"]:
+            if title in have or title in proposed:
+                continue
+            provenance: dict[str, Any] = {"seed": True}
+            if kind is KnowledgeKind.FINDING and delivered is not None:
+                provenance["study_id"] = delivered.study_id
+            p = knowledge.propose(
+                ctx, kind=kind, title=title, summary=summary, provenance=provenance
+            )
+            knowledge.decide(
+                resolver.client_context(curator, client_id=client.client_id),
+                proposal_id=p.proposal_id,
+                approve=True,
+                note="seed",
+            )
+            fresh = True
+        pending = spec["pending"]
+        if pending is not None and pending[2] not in proposed:
+            study_scope = resolver.study_context(owner, study_id=studies[pending[0]].study_id)
+            knowledge.propose_from_study(
+                study_scope,
+                kind=pending[1],
+                title=pending[2],
+                summary=pending[3],
+                provenance={"seed": True},
+            )
+            fresh = True
+    return out, fresh
 
 
 def seeded_study_scope(session: Session, *, owner_email: str) -> StudyContext:
