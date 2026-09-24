@@ -35,10 +35,14 @@ export function ResearchScreen({ projectId, step }: { projectId: string | null; 
   const router = useRouter();
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
+  // Read when a new project gets its id, not dependencies of the load: the load
+  // is per project id only, whatever the router object or the step is.
   const stepRef = useRef(step);
+  const routerRef = useRef(router);
   useEffect(() => {
     stepRef.current = step;
-  }, [step]);
+    routerRef.current = router;
+  }, [step, router]);
 
   // One load per project id: moving between steps keeps the same store.
   useEffect(() => {
@@ -56,7 +60,7 @@ export function ResearchScreen({ projectId, step }: { projectId: string | null; 
           if (!live) return;
           if ("other" in r) return setLoaded({ kind: r.other });
           store = new ResearchStore(r.state, r.boot, {
-            onIdAssigned: (id) => router.replace(`/app/research/${encodeURIComponent(id)}/${stepRef.current}`),
+            onIdAssigned: (id) => routerRef.current.replace(`/app/research/${encodeURIComponent(id)}/${stepRef.current}`),
           });
           setLoaded({ kind: "ready", store, boot: r.boot });
         },
@@ -66,7 +70,7 @@ export function ResearchScreen({ projectId, step }: { projectId: string | null; 
       live = false;
       store?.dispose();
     };
-  }, [projectId, version, router]);
+  }, [projectId, version]);
 
   const [title, sub] = [t(`research.steps.${step}.0`), t(`research.steps.${step}.1`)];
 

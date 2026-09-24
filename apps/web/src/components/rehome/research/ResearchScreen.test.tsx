@@ -74,6 +74,17 @@ describe("ResearchScreen", () => {
     expect(note).toBeTruthy();
   });
 
+  it("loads a project once, however often the screen re-renders", async () => {
+    unitStub(() => ({ project_id: "PRJ-1", revision: 2, project_type: "research", project: {}, analysis: null }));
+    const { rerender } = render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    await screen.findByText("Uloženo");
+    rerender(<ResearchScreen projectId="PRJ-1" step="audience" />);
+    rerender(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    await screen.findByText("Uloženo");
+    const loads = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => String(c[0]) === "/api/projects/load");
+    expect(loads.length).toBe(1);
+  });
+
   it("lists as rebuilt exactly the steps that have a screen", () => {
     for (const k of STEP_KEYS) expect(REBUILT_STEPS.has(k), k).toBe(k in STEP_SCREENS);
   });

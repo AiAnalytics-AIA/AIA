@@ -10,6 +10,8 @@ import { type Json, type ResearchProject, defaultsMerge } from "./model";
 export const SAVE_DEBOUNCE_MS = 1800;
 
 export type SaveState =
+  /** Never saved, and nothing to save yet: a new project before its first change. */
+  | { kind: "new" }
   | { kind: "saved" }
   | { kind: "pending" }
   | { kind: "saving" }
@@ -69,7 +71,7 @@ export function newResearch(boot: BootInfo): ResearchState {
     preferredProvider: null,
     project: defaultsMerge({}, boot),
     analysis: null,
-    save: { kind: "saved" },
+    save: { kind: "new" },
     checkEpoch: 0,
   };
 }

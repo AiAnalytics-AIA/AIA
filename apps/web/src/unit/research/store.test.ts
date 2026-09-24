@@ -51,6 +51,8 @@ describe("ResearchStore", () => {
     const { calls, fetchImpl } = unitStub({ "/api/projects/save": () => ({ project_id: "PRJ-9", revision: 1 }) });
     const assigned: string[] = [];
     const store = new ResearchStore(newResearch(BOOT), BOOT, { fetchImpl, onIdAssigned: (id) => assigned.push(id) });
+    // A new project is not "saved": it has never been, and nothing is sent until it changes.
+    expect(store.get().save.kind).toBe("new");
     store.update(({ project }) => ({ project: { ...project, goal: "a" } }), { reason: "brief" });
     await vi.advanceTimersByTimeAsync(1000);
     store.update(({ project }) => ({ project: { ...project, goal: "ab" } }), { reason: "brief" });

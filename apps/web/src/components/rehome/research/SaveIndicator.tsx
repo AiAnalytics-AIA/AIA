@@ -20,7 +20,11 @@ export function SaveIndicator({ save, onRetry }: { save: SaveState; onRetry: () 
       </div>
     );
   }
-  const label = save.kind === "saved" ? t("research.saveSaved") : save.kind === "saving" ? t("research.saveSaving") : t("research.savePending");
+  const label =
+    save.kind === "new" ? t("research.saveNew")
+    : save.kind === "saved" ? t("research.saveSaved")
+    : save.kind === "saving" ? t("research.saveSaving")
+    : t("research.savePending");
   return (
     <span aria-live="polite" className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
       <Icon name={save.kind === "saved" ? "done" : "dot"} size={12} />

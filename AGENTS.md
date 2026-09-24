@@ -769,6 +769,24 @@ log says *Ready*. CI never runs `next dev`, so it never sees this.
 **jsdom has no `<dialog>` modality.** `HTMLDialogElement.prototype.showModal` is
 missing; a component test stubs it to set `open` (`ProjectsScreen.test.tsx`).
 
+**Don't list the router in a load effect's dependencies.** A test's
+`vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))` returns a
+new object on every render, so an effect keyed on `router` re-runs on every
+render and reloads the project: an edit appears to do nothing, because the
+store it went into was just replaced. Keep the router (and anything else the
+load only *reads later*) in a ref, and key the load on what it loads
+(`ResearchScreen.tsx`; pinned by "loads a project once, however often the
+screen re-renders").
+
+```tsx
+// WRONG: reloads whenever the router object is new
+useEffect(() => { load(projectId, (id) => router.replace(`/x/${id}`)) }, [projectId, router]);
+// RIGHT
+const routerRef = useRef(router);
+useEffect(() => { routerRef.current = router; }, [router]);
+useEffect(() => { load(projectId, (id) => routerRef.current.replace(`/x/${id}`)) }, [projectId]);
+```
+
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.

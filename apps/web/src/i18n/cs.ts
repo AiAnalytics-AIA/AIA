@@ -42,6 +42,7 @@ export const cs = {
     notRebuiltHelp: "Otevře se na stejném projektu a stejném kroku. Vše, co jste zde uložili, tam uvidíte.",
     openStepInClassic: "Otevřít krok v klasickém rozhraní",
     unsavedForClassic: "Projekt ještě nemá uloženou verzi. Nejdřív vyplňte zadání; uloží se samo.",
+    saveNew: "Nový projekt · uloží se po první změně",
     saveSaved: "Uloženo",
     savePending: "Změny se uloží za chvíli",
     saveSaving: "Ukládám…",
