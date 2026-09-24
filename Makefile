@@ -12,7 +12,7 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web web_design ui-workbench ui-workbench-status ui-workbench-down \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web web_design ui-workbench ui-workbench-status ui-workbench-down ui-capture \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
@@ -102,6 +102,9 @@ ui-workbench: ## The real 18.6.6 interface + AIA's web client on this machine (f
 
 ui-workbench-status: ## Is the UI workbench running, and is the skin applied?
 	@python3 tools/ui_workbench/workbench.py status
+
+ui-capture: ## Screenshot every screen of the workbench, bare and skinned -> tmp/ui-workbench/shots/<time>/index.html
+	@node tools/ui_workbench/capture.mjs
 
 ui-workbench-down: ## Stop the UI workbench
 	@python3 tools/ui_workbench/workbench.py down

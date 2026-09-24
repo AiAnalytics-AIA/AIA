@@ -1,6 +1,7 @@
 # ADR 0013 — Restyle the 18.6.6 interface with an AIA skin applied at the facade
 
-**Status:** Proposed — develop only (data owner's direction, 2026-09-23; see
+**Status:** Accepted — develop only (data owner's direction, 2026-09-23; seen
+working on develop by the data owner, 2026-09-24; see
 *Decision record* below). Builds on [ADR 0012](0012-legacy-interface-as-product-facade.md);
 leaves [ADR 0011](0011-vendor-legacy-product-unit.md) intact.
 **Date:** 2026-09-23
@@ -125,3 +126,9 @@ Asked and answered on 2026-09-23 in the session that wrote this ADR: *skin now,
 re-home later*; *implement the existing design system*; *verify against the
 live oracle*. Status stays **Proposed** until the first skinned deploy is seen
 working on develop.
+
+Accepted on 2026-09-24: the data owner saw the skin on develop (deploy run 15,
+`230ee7e`) — "the skin was applied, and all seems to look fine". The same day
+they asked for full UI control; [ADR 0014](0014-rebuild-the-interface-in-react.md)
+rebuilds the screens in React, and this skin covers the classic screens until
+each area moves.
