@@ -362,7 +362,8 @@ dead binding `:402` filtered and warned).
 #### What PR B keeps from the classic behaviour, and what needs a decision
 
 Ported as the classic does, each with a characterization test: OI-50, OI-51,
-OI-52, OI-53, OI-54, OI-55. None is silently fixed; each is a decision for the
+OI-52, OI-53, OI-54, OI-55. OI-57 (found in chunk 6) is characterised and not
+reproduced: the rebuild asks for the catalogue once. None is silently fixed; each is a decision for the
 data owner, listed in the PR. Display-only differences are in the table below.
 
 ### Chunk 4 — what landed
@@ -412,6 +413,35 @@ data owner, listed in the PR. Display-only differences are in the table below.
 - **Capture.** `route-audience@audience`: 1 classic text missing at 1440 and
   1024, `[object Object]` (the summary's range, drawn `25–54`).
 
+### Chunk 6 — what landed
+
+- **Logic.** `src/unit/research/persona.ts` (`persona.parity.test.ts`, 45
+  checks: the catalogue and its search text, `canonicalPersonaDim`, the
+  recommended and approved dimensions, add / remove / autofill, the sample and
+  the input's own `onchange` handler, the wizard's action cut from the drawn
+  page, the AI suggestion's body and what it keeps, both dimension requests,
+  Deep Research's topic; thirteen mutations caught). The classic screen writes
+  the approval's refill into the project as it draws, so every change the port
+  makes (and the suggestion's body) carries the refill, as the classic save
+  does; the parity cases draw first and then act.
+- **Harness.** `legacyContext({ now })` now fixes a no-argument `new Date()` as
+  well as `Date.now()`: the dimension request stamps `created_at` with it.
+- **Hand-off.** `#aia:dimension=research` calls the classic
+  `openDimensionResearch1793(label)`; the label, free text, goes through
+  same-origin `sessionStorage` and is read once (ADR 0014, point 7).
+- **Screen.** `PersonaStep.tsx` (`PersonaStep.test.tsx`, 9 tests: the base, the
+  refill and the catalogue with the library's; add / remove / autofill and the
+  refill after the last (OI-54); the AI suggestion with its new dimensions and
+  a request from one (OI-53); the provider notice; a custom request refused
+  empty, recorded, the library refreshed; the sample clamped on commit and the
+  recommendation; the way on and back to the audience; a failed catalogue asked
+  once (OI-57); Deep Research's hand-off).
+- **Workbench.** A `persona` fixture: three catalogue dimensions, one request,
+  N=450.
+- **Capture.** `route-persona@persona`: 0 classic texts missing at 1440 and 1024.
+- **Found here.** OI-57: a failed audience catalogue is requested again on every
+  draw, without limit (the probe without a bound never ends).
+
 ## Deliberate differences (added to as chunks land)
 
 | Step | Classic | Rebuilt | Why |
@@ -438,3 +468,11 @@ data owner, listed in the PR. Display-only differences are in the table below.
 | audience | preview and upload failures, the AI proposal's failure in an `alert()` | the same text on the page | the editor stays in view |
 | audience | *Nahrávám audience* as a full-screen overlay | inline in the upload card | as the questionnaire's import |
 | audience | the readable summary after the *Další* button | before it | the way on is last |
+| persona | the society-factor and new-dimension cards below the *Další* button | above it | the way on is last |
+| persona | a failed audience catalogue is asked for again on every draw, without limit | asked once per visit; on failure both cards are left out, as the classic draws them | OI-57; the visible result is the classic's |
+| persona | the AI suggestion's and the dimension request's failures in an `alert()` | the same text on the page | the catalogue stays in view |
+| persona | the search box is emptied by every add or remove (the page is redrawn) | the search is kept | a redraw artefact, not a rule |
+| persona | the model's proposed dimensions (`PERSONA_AI_SUGGESTION`) are one global, shown in any project opened next | kept per project session | a suggestion belongs to the project it was made for |
+| persona | the labels sent to the model are every Data Library label seen since the page loaded | the system's labels and the current library's | the global only grows; nothing is removed from it |
+| persona | the sample saves on the input's `change` | on blur or Enter; a spinner click saves on blur | React's `onChange` is every keystroke |
+| persona | the refill of an empty approval is written into the project when the screen draws, and saved by the next save anywhere | saved with the next change made on this step | the rebuild does not change a project by drawing it |
