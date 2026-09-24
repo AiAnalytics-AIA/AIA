@@ -142,7 +142,8 @@ the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
   the request and the unit is not answering: the response carries
   `X-AIA-Skin: bypassed-unreachable` when the web client could not reach it, and
   no such header when the web client itself is down.
-- **The skin** (ADR 0013). `AIA_INTERFACE_SKIN_ENABLED` on the `web` service;
+- **The skin** (ADR 0013). `AIA_INTERFACE_SKIN_ENABLED` on the `web` service,
+  `"true"` on develop;
   `"false"` serves the unit's document byte-for-byte. Every response to `/`
   says what happened in `X-AIA-Skin`: `applied`, `bypassed-disabled`, or
   `bypassed-hash-mismatch` when the unit's document is not the pinned

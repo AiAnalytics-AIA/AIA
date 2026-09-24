@@ -55,9 +55,12 @@ area is re-homed.
   library tabs `upload`, `sources`, `proposals`, `learning`, `research`.
 - **Live screens with real data:** from the parity oracle
   (`AIA_LEGACY_REFERENCE_URL` + basic auth), which is never skinned. Not
-  reachable from cloud sessions until `legacy.aia-develop.art-chain.io` is
-  allow-listed and the three `AIA_LEGACY_REFERENCE_*` values are in the
-  environment's secrets (requested 2026-09-23). A local run of the unit stops at
+  reachable from cloud sessions until, in order: the oracle hostname exists on
+  develop (the three optional `aia_legacy_hostname` / `_basic_user` /
+  `_basic_hash` parameters and a DNS record, OI-39 — on 2026-09-24 only the
+  product hostname is configured); `legacy.aia-develop.art-chain.io` is
+  allow-listed in the session environment; and the three
+  `AIA_LEGACY_REFERENCE_*` values are in its secrets (requested 2026-09-23). A local run of the unit stops at
   `/api/bootstrap` without the licence-bound data bundle, and a fictional
   stand-in was abandoned after three layers of population dependencies: it would
   have meant fabricating the population layer.
@@ -159,6 +162,10 @@ area is re-homed.
       results and verify; command centre; simulation (`fullsim`, `sim_run`,
       `sim_change`); data library; settings; demos; Sociomap (its own seven
       style blocks). — verify: before/after from chunk 5 for the area.
+- [x] 6a. **Switched on for develop** (`AIA_INTERFACE_SKIN_ENABLED: "true"` in
+      `deploy/develop/docker-compose.yml`), as its own commit, so that merging
+      is what shows the skin and reverting one value removes it. Per-area
+      passes (6) follow the live baseline.
 - [ ] 7. **Promote.** ADR 0013 → Accepted after the first skinned deploy is seen
       working on develop; plan → `done/`.
 
