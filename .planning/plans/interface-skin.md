@@ -130,12 +130,27 @@ area is re-homed.
       shell only): body and buttons in IBM Plex Sans (loaded 400/500/600, Mono
       400/500), page on `surface`, soft actions on `signal-wash`. Still 18.6.6's:
       the white workspace and 3 px radii, which are hard-coded (chunk 4).
-- [ ] 4. **Shared components.** Shell (header, product tabs, step rail, page
-      title), buttons, cards and panels, forms, tables, badges and pills,
-      dialogs and drawers, the assistant panel, focus rings, scrollbars. Hard
-      coded colours that bypass the variables are overridden per component and
-      listed below. — verify: in Chromium against the real document, both
-      themes, 1440 / 1280 / 1024, +35 % Czech strings.
+- [x] 4. **Shared components.** `src/skin/components.css`, token-only (lint
+      clean): shell (paper workspace and top bar, sunken rail, step list, tool
+      buttons), Studio type scale (page title 28/32, card titles 20/26, headings
+      15/20, labels 13/18), `.metric` as the design system's hero number (sans,
+      tabular — 18.6.6 set it in monospace), cards and section heads on raised
+      and sunken surfaces with one 4 px radius and no shadow, `.info` on
+      `signal-tint`, callouts (`okbox` quiet ink rule; `warnbox` the person
+      family; `badbox` fault) with a coloured left rule on a hairline, choice
+      cards with a signal selection, every button variant, chips with a shape as
+      well as a colour (a drawn check, a ring, a cross), forms with
+      `border-strong` controls and the one focus ring, tables with sentence-case
+      left-aligned headers and tabular figures, the toast, and the progress bar.
+      **The progress bar no longer travels:** 18.6.6 slides a segment back and
+      forth, which reads as progress the backend is not reporting; the skin
+      draws a still line whose live edge breathes, and stops even that under
+      `prefers-reduced-motion`. — verified in Chromium against the real
+      document with a specimen built from 18.6.6's own render templates
+      (fictional labels; `renderSteps()` draws the real research rail): 1440 and
+      1024 px; the +35 % Czech stress at 1280 px — no clipped control, no page
+      scroll, the same result unskinned. Not yet seen: screens with real data
+      (chunk 5).
 - [ ] 5. **Live baseline.** `tools/interface_screens.mjs`: every view above
       captured from the oracle (unskinned) and from a local skinned copy, side by
       side. **Blocked** on oracle access (Baseline, above).
@@ -151,6 +166,16 @@ area is re-homed.
 
 Listed here as they are written (chunk 4 onwards): selector, the 18.6.6 value it
 replaces, the token it uses, and why the variable layer could not reach it.
+
+Every rule in `components.css` overrides a hard-coded 18.6.6 value; the
+variable layer reaches only what 18.6.6 wrote as `var()`. The ones that need
+`!important`, because 18.6.6 itself declares them `!important`:
+
+| Selector | 18.6.6 value | Token | Why |
+| --- | --- | --- | --- |
+| `.toast` background, color, border-radius, box-shadow | `var(--ink)`, `#fff`, 3 px, a literal rgba shadow, all `!important` | `surface-inverse`, `ink-inverse`, `radius-md`, `shadow-overlay` | the toast is an overlay; its colours come from the inverse pair |
+| `.moving` border-radius, background | 999 px, `#E8F0F3`, `!important` | `radius-sm`, `border` | the track is a hairline, not a pill |
+| `.moving i` background | `var(--brand)`, `!important` | `signal` | the live edge |
 
 ## Needs structure — waits for re-homing
 
