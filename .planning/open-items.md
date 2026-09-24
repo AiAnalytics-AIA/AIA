@@ -82,6 +82,13 @@ rewire (Next #4).
 **Status.** Open, deliberate, with the promotion condition recorded in
 `ARCHITECTURE.md §8`. This is the tier working as designed, not an oversight.
 
+**Update 2026-09-24.** The npm side now has its clean baseline:
+`cd apps/web && npm audit` reports 0 vulnerabilities after `next` 16.1.6 →
+16.3.6, `eslint-config-next` to match, and patch/minor bumps of the transitive
+packages (13 advisories before: 1 critical, 8 high, 3 moderate, 1 low). Dropping
+`|| true` from `.github/workflows/ci.yml` (*Audit npm dependencies*) is now
+unblocked and is a separate change; `pip-audit` is unchanged.
+
 ---
 
 ## OI-3 · Question · No release branch
