@@ -239,12 +239,9 @@ any live-AI run on the oracle (a provider credential through the governed
 - [x] 4. **Documents** — CLAUDE.md, ARCHITECTURE.md (§8 CI tier, §9), the runbook,
       PROGRESS.md, OI-42, OI-43.
 
-**Still needed to see it live:** ~~`terraform apply` for the fourth image
-repository (OI-41)~~ (done 2026-09-23); the OI-44 fix deployed (run 10 took the
-site down: no `AIA_LEGACY_*` settings on the host); then the four
-`aia_legacy_*` parameters and the unit's data bundle (OI-39; runbook
-§ Switching the unit on). Without the bundle the page loads and its bootstrap call
-fails, as it did locally.
+**Live since 2026-09-23 23:34 UTC** (*Deploy develop* run 12, every smoke check
+passed including the unit's health), after PR #43 fixed the outage run 10 caused
+(OI-44) and the operator set `aia_legacy_data_prefix`.
 
 ## Review outcome
 
