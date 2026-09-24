@@ -22,7 +22,7 @@
  * a sample selector. Writes report.json and index.html beside the images.
  */
 import { execSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -30,6 +30,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "../..");
 const DOCUMENT = join(REPO, "legacy/npc-panel-18.6.6/app/ui_app.html");
+const FIXTURES = join(REPO, "tmp/ui-workbench/fixtures.json");
 const TOKENS = join(REPO, "apps/web/src/design/tokens.json");
 
 // ---- arguments -------------------------------------------------------------
@@ -288,6 +289,43 @@ async function main() {
     }
     await ctx.close();
   }
+  // 4. screens the ledger names a fixture project for (`fixture`, a key of
+  // tmp/ui-workbench/fixtures.json, written by `make ui-fixtures`): the classic
+  // step opened on that project, beside the rebuilt one at react_path with the
+  // project's id for <id>. What a screen shows with an AI answer in it.
+  const fixtures = existsSync(FIXTURES) ? JSON.parse(readFileSync(FIXTURES, "utf8")) : {};
+  const paired = ledger.screens.filter((x) => x.fixture && x.react_path && (!ONLY || ONLY.has(x.classic.route)));
+  for (const x of paired) {
+    const pid = fixtures[x.fixture];
+    if (!pid) {
+      console.log(`\ncapture: ${x.id}: no fixture "${x.fixture}" (run make ui-fixtures)`);
+      continue;
+    }
+    const id = `${x.id}@${x.fixture}`;
+    const path = x.react_path.replace("<id>", encodeURIComponent(pid));
+    for (const width of WIDTHS) {
+      const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+      const page = await ctx.newPage();
+      let errors = [];
+      page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
+      // Through the hand-off link a rebuilt step uses (#aia:open=<id>@<route>), so it is exercised too.
+      await boot(page, new URL(`/#aia:open=${pid}@${x.classic.route}`, BASES.skin).href);
+      await page.waitForFunction((r) => window.CURRENT === r, x.classic.route, { timeout: 30000 }).catch(() => {});
+      await page.waitForTimeout(SETTLE_MS + 600);
+      let file = join(OUT, `${id}.skin.${width}.png`);
+      await shoot(page, file);
+      record(id, `${x.classic.route} · ${x.fixture}`, "fixture").shots[`skin.${width}`] = { file: relative(OUT, file), ...(await measure(page, allowed, true)), errors };
+      errors = [];
+      await page.goto(new URL(path, BASES.skin).href, { waitUntil: "networkidle", timeout: 120000 });
+      await page.waitForTimeout(SETTLE_MS);
+      file = join(OUT, `${id}.react.${width}.png`);
+      await shoot(page, file);
+      record(id, `${x.classic.route} · ${x.fixture}`, "fixture").shots[`react.${width}`] = { file: relative(OUT, file), ...(await measure(page, allowed, true)), errors, path };
+      await ctx.close();
+      process.stdout.write("+");
+    }
+  }
+
   for (const sc of screens) {
     for (const width of WIDTHS) {
       const classic = sc.shots[`skin.${width}`], react = sc.shots[`react.${width}`];

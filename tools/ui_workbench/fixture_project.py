@@ -93,6 +93,50 @@ ANALYSIS: dict[str, Any] = {
         "Má se výzkum omezit na lidi, kteří dojíždějí veřejnou dopravou?",
         "Je cena 60 Kč horní hranicí, nebo jen orientační?",
     ],
+    # projectVariants1793: at most three ways to scope the project.
+    "project_variants": [
+        {
+            "id": "focused",
+            "badge": "RYCHLÝ",
+            "title": "Jen varianty",
+            "summary": "Porovnat čtyři varianty a vybrat jednu.",
+            "n": 300,
+            "complexity": "light",
+            "tradeoff": "Bez ceny a bez příležitostí pití.",
+            "objectives": ["Porovnat čtyři varianty na stejné škále."],
+            "research_questions": ["Která varianta osloví nejvíc lidí?"],
+            "hypotheses": [],
+        },
+        {
+            "id": "recommended",
+            "badge": "DOPORUČENO",
+            "title": "Varianty a cena",
+            "summary": "Varianty, cena a situace, ve kterých by lidé nápoj pili.",
+            "n": 600,
+            "complexity": "standard",
+            "tradeoff": "Delší dotazník.",
+            "objectives": [
+                "Změřit zájem o koncept u lidí, kteří denně dojíždějí.",
+                "Porovnat čtyři varianty na stejné škále.",
+                "Najít cenu, nad kterou zájem výrazně klesá.",
+            ],
+            "research_questions": ["Která varianta a za jakou cenu?"],
+            "hypotheses": ["Cena nad 49 Kč sníží zkušební nákup o více než třetinu."],
+        },
+        {
+            "id": "broad",
+            "badge": "ŠIRŠÍ",
+            "title": "Celá kategorie",
+            "summary": "K tomu postoje ke kategorii a konkurenci.",
+            "n": 1000,
+            "complexity": "complex",
+            "deep_research": True,
+            "tradeoff": "Dražší a delší; kontext z Deep Research.",
+            "objectives": ["Pochopit celou kategorii ranních nápojů."],
+            "research_questions": ["Kde je v kategorii mezera?"],
+            "hypotheses": [],
+        },
+    ],
 }
 
 FIXTURES: dict[str, dict[str, Any]] = {

@@ -65,7 +65,12 @@ research chunks land ([research-flow-rehome.md](../../.planning/plans/research-f
 | Key | Holds | For |
 |---|---|---|
 | `empty` | nothing but a title | Zadání as a new project sees it |
-| `planned` | brief + the plan's analysis (two comparable sets, questions for the user) | Zadání, Návrh |
+| `planned` | brief + the plan's analysis (two comparable sets, questions for the user, three design variants) | Zadání, Návrh |
+
+A ledger screen in `docs/migration/interface-screens.json` that names a
+`fixture` is captured a second time on that project: the classic step opened
+on it, beside the rebuilt one at its `react_path` with the project's id for
+`<id>` (`<screen>@<fixture>` in the contact sheet).
 
 ## Requirements
 

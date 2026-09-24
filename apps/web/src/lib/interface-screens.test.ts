@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 //
 // Read at run time, never imported: the web image is built from apps/web alone,
 // and `next build` type-checks every file tsconfig includes.
-type Screen = { id: string; classic: { route?: string }; area: string; status: string; react_path: string | null };
+type Screen = { id: string; classic: { route?: string }; area: string; status: string; react_path: string | null; fixture?: string };
 type Ledger = { areas: Record<string, string>; statuses: Record<string, string>; screens: Screen[] };
 type Parse = { routes: string[]; aliases: Record<string, string> };
 
@@ -40,6 +40,18 @@ describe("the interface screen ledger", () => {
       expect(Object.keys(ledger.areas), s.id).toContain(s.area);
       expect(Object.keys(ledger.statuses), s.id).toContain(s.status);
       if (s.status !== "CLASSIC") expect(s.react_path, s.id).toMatch(/^\/app(\/|$)/);
+    }
+  });
+
+  it("names only fixture projects the workbench writes, on a path with a project id", () => {
+    // FIXTURES in tools/ui_workbench/fixture_project.py, the one writer of tmp/ui-workbench/fixtures.json.
+    const source = readFileSync(join(repo, "tools/ui_workbench/fixture_project.py"), "utf8");
+    const block = source.slice(source.indexOf("FIXTURES: dict"), source.indexOf("\n}\n", source.indexOf("FIXTURES: dict")));
+    const keys = [...block.matchAll(/^ {4}"([a-z_]+)": \{/gm)].map((m) => m[1]);
+    expect(keys.length).toBeGreaterThan(0);
+    for (const s of ledger.screens.filter((x) => x.fixture)) {
+      expect(keys, s.id).toContain(s.fixture);
+      expect(s.react_path, s.id).toContain("<id>");
     }
   });
 });
