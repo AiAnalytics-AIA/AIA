@@ -109,7 +109,7 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | 2 | brief: problem types, title, goal, attachments and links, further context, AI analysis | A | done — see below |
 | 3 | plan: variants, understanding, objectives, hypotheses, comparable sets, questions for the user, text-selection comments | A | done — see below |
 | 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | done — see below |
-| 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | pending |
+| 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | done — see below |
 | 6 | persona: fixed base, catalog, AI suggestions, custom dimension request, sample size, society factors | B | pending |
 | 7 | run: technical check and issues, final AI review, overrides, AI repair, start | C | pending |
 | 8 | progress: workflow status, active job, failure and resume, reconnect | C | pending |
@@ -393,6 +393,25 @@ data owner, listed in the PR. Display-only differences are in the table below.
   `next dev` writes `apps/web/AGENTS.md` and `apps/web/CLAUDE.md`; not
   committed here, a decision for the PR.
 
+### Chunk 5 — what landed
+
+- **Found first: a lost change (OI-56, fixed).** Every step was its own page and
+  store, and leaving one dropped a pending save; the project now has one session
+  for all its steps (the `[projectId]` layout), handed over from
+  `/app/research/new` once it has an id, and `dispose()` saves a pending change.
+  The session also holds the page memory the classic keeps in globals.
+- **Logic.** `src/unit/research/audience.ts` (`audience.parity.test.ts`, 72
+  checks: the six screens and the readiness rule, every chooser and preset, the
+  factor list, current values and handlers, chips, summary, preview and
+  preflight, saved audiences, upload, proposal; seven mutations caught, two of
+  them "fixes" of OI-50 / OI-51 that the characterization tests reject).
+- **Screen.** `AudienceStep.tsx` (`AudienceStep.test.tsx`, 8 tests: the two
+  sources, own audiences and an upload, AI Analytics with a special preset and
+  ČR 18+, a factor with its preview and chip, the empty bound stored as 0
+  (OI-50), the AI proposal, the preview kept across steps).
+- **Capture.** `route-audience@audience`: 1 classic text missing at 1440 and
+  1024, `[object Object]` (the summary's range, drawn `25–54`).
+
 ## Deliberate differences (added to as chunks land)
 
 | Step | Classic | Rebuilt | Why |
@@ -415,4 +434,7 @@ data owner, listed in the PR. Display-only differences are in the table below.
 | questionnaire | failures of the AI build, optimisation and deep research in an `alert()` | the same text on the page, with *Zkusit znovu* and *Diagnostika* | the editor stays in view |
 | questionnaire | a file input and a *Načíst dotazník* button | one *Načíst dotazník* button that picks and imports | as the brief's attachments |
 | questionnaire | *Načítám dotazník* as a full-screen overlay | inline in the import card | the rest of the step stays usable |
-| audience | range filter shown as `[object Object]` | `od–do` | defect |
+| audience | the readable summary prints a range filter as `[object Object]` | `od–do`, as the filter chips print it | display only; the stored filter is the classic one |
+| audience | preview and upload failures, the AI proposal's failure in an `alert()` | the same text on the page | the editor stays in view |
+| audience | *Nahrávám audience* as a full-screen overlay | inline in the upload card | as the questionnaire's import |
+| audience | the readable summary after the *Další* button | before it | the way on is last |

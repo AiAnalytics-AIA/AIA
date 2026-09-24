@@ -126,9 +126,27 @@
    },
    "title": "4. Audience / Cílová skupina",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILT",
+   "react_path": "/app/research/<id>/audience",
+   "unit_routes": [
+    "POST /api/projects/load",
+    "POST /api/projects/save",
+    "GET /api/audience/dimensions",
+    "POST /api/audience",
+    "POST /api/audiences/preflight",
+    "GET /api/audiences",
+    "POST /api/audiences/upload",
+    "GET /api/audiences/template",
+    "GET /files/",
+    "POST /api/audience/propose",
+    "GET /api/providers/claude-code/status",
+    "POST /api/settings/ai_check",
+    "GET /api/job",
+    "POST /api/jobs/",
+    "POST /api/support/bundle"
+   ],
+   "fixture": "audience",
+   "notes": "Captured on the `audience` fixture (ČR 18+, narrowed) beside the classic step on the same project: 1 classic text missing at 1440 and 1024, \"[object Object]\", the classic summary's print of a range, drawn \"25–54\" instead. The other branches (own, special, coming soon) are covered by AudienceStep.test.tsx. OI-50 and OI-51 are kept as the classic behaves."
   },
   {
    "id": "route-persona",
