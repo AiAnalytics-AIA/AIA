@@ -67,18 +67,33 @@ area is re-homed.
 - [x] 0. **This plan and ADR 0013.** `design-system.md` marked: its screen
       chunks (V, 4–11) are superseded by the 18.6.6 baseline; its foundation
       (chunks 1–3) is carried by chunk 1 here and by the re-homing slices.
-- [ ] 1. **Token foundation onto `develop`.** From `feature/web-primitives`
-      @ `cb26c15`, the foundation only: `src/design/tokens.json`,
-      `scripts/build-tokens.mjs` with `--check`, the generated `tokens.css` /
-      `tokens.ts`, IBM Plex Sans/Mono and Source Serif 4 as woff2 with their OFL
-      licences, the brand SVGs, `scripts/check-design.mjs` (contrast). No screen
-      compositions. — verify: `tokens:check`, `check:design`, lint, `tsc`, build.
+- [x] 1. **Token foundation onto `develop`.** From `feature/web-primitives`
+      @ `cb26c15`, the foundation only: `src/design/tokens.json` (74 colours × 2
+      themes, byte-identical), `scripts/build-tokens.mjs` with `--check`, the
+      generated `tokens.css` / `tokens-theme.css` / `tokens.ts` / `fonts.css`,
+      IBM Plex Sans/Mono and Source Serif 4 as woff2 with their OFL licences
+      (byte-identical to the branch), the brand SVGs, the AIA favicon and icons,
+      `scripts/check-design.mjs`. No screen compositions. Two deliberate
+      differences from the branch: font stacks name the self-hosted families
+      instead of `next/font` variables, and the generator emits `@font-face`
+      from one `FACES` list (`AGENTS.md` § Next.js); fonts and identity live
+      under `public/skin/`, because Caddy sends `/brand/*` to the unit.
+      `next/font/google` (Geist) removed: nothing is fetched from a font CDN.
+      Vitest **4.1.11**, not the branch's 3.2.7 (GHSA-82fw-gwwq-j7x9); npm 10
+      cannot add it, npm 11 can (`AGENTS.md`). `make web_design` and
+      `make test-web` join `check` and `verify`; CI's frontend job runs
+      `tokens:check`, `check:design` and `npm test`. — measured: contrast
+      146 checks, 0 failures; palette and client-accent checks PASS in both
+      themes; 4 token tests pass; lint, `tsc --noEmit`, `next build` clean;
+      `npm audit` 13 findings against `develop`'s 14, none from Vitest.
 - [ ] 2. **The injector.** `apps/web` route `/interface-document`: fetch
       `legacy-panel:8765/`, SHA256 against the pin, insert the stylesheet link
       before `</head>` or pass through unchanged with `X-AIA-Skin: bypassed`;
       `AIA_INTERFACE_SKIN_ENABLED` off by default. Caddy: `/` → `forward_auth` →
       rewrite → web; direct `/interface-document` → 404; `/skin/*` → web.
-      Compose and `env.example`. — verify: unit tests of the pure injector
+      Compose and `env.example`. Also route `/favicon.ico`, `/icon.svg` and
+      `/apple-icon.png` to the web client, which now serves AIA's identity
+      there and the unit would otherwise answer. — verify: unit tests of the pure injector
       (applied, bypassed on mismatch, bypassed when off, no `</head>`), a test
       that the pin equals `app-manifest.json`, `develop-host-config` validates
       the Caddyfile, a local run end to end against the real `ui_server.py`.

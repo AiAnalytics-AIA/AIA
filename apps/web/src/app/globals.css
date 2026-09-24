@@ -1,26 +1,16 @@
 @import "tailwindcss";
+@import "./fonts.css";
+@import "./tokens.css";
+@import "./tokens-theme.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/*
+ * Every value above is generated from src/design/tokens.json by
+ * scripts/build-tokens.mjs; nothing here introduces a raw colour, font or size.
+ * Light, dark and system themes follow data-theme on <html> (none = system).
+ */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans-stack);
+  font-variant-numeric: tabular-nums;
 }

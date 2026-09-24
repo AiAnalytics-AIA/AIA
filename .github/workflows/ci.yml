@@ -466,6 +466,11 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
+      # tokens.json is the one source: the generated CSS/TS must match it, and
+      # the contrast, palette and client-accent evidence is re-measured from it.
+      - run: npm run tokens:check
+      - run: npm run check:design
+      - run: npm test
       - run: npm run build
 
   startup-smoke:

@@ -604,6 +604,41 @@ existed. Two habits fix it:
 `npm run lint`, `npx tsc --noEmit` and `npm run build` are three different
 gates and all three are blocking.
 
+**npm 10 cannot add Vitest 4 to this lockfile.** `npm install --save-dev
+vitest@^4.1.11` fails inside arborist with `Cannot read properties of null
+(reading 'edgesOut')` (`#loadPeerSet`), from a clean `node_modules` too, and
+declaring `vite` explicitly does not help. It is an npm bug in peer-set loading,
+not a real conflict. npm 11 resolves the same request, and the lockfile it
+writes is still `lockfileVersion: 3`, which CI's npm 10 installs with `npm ci`.
+
+```bash
+# WRONG — fails, and every retry leaves the same error
+npm install --save-dev vitest@^4.1.11
+
+# RIGHT — change the lockfile with npm 11, then prove it with CI's npm
+npx -y npm@11 install --save-dev vitest@^4.1.11
+rm -rf node_modules && npm ci && npm test
+```
+
+Do not settle for Vitest 3.2.x to dodge it: every release before 4.1.11 carries
+GHSA-82fw-gwwq-j7x9.
+
+**A `var()` with no fallback invalidates the whole declaration.** The design
+branch's generator wrote `--font-sans-stack: var(--font-plex-sans), "Segoe UI", …`
+for `next/font` variables. Where the layout does not define `--font-plex-sans`,
+the *entire* `font-family` using that stack is invalid at computed-value time
+and the element inherits its parent's font — no fallback face is tried. The
+18.6.6 skin has no `next/font` at all, so the stack names the self-hosted
+families directly and `fonts.css` declares them (`scripts/build-tokens.mjs`,
+`FACES`):
+
+```css
+/* WRONG — invalid wherever the variable is undefined */
+--font-sans-stack: var(--font-plex-sans), "Segoe UI", system-ui, sans-serif;
+/* RIGHT */
+--font-sans-stack: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+```
+
 **Standalone output roots itself at the nearest lockfile above the app.** With
 `output: "standalone"`, Next found the repository's root `package-lock.json`,
 treated the monorepo as the workspace, and emitted

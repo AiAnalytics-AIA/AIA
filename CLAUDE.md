@@ -55,6 +55,10 @@ apps/
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout (the front door
                             to the 18.6.6 interface) and the live /studies pages; no mock data.
+    src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
+    scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
+    scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
+    public/skin/            Self-hosted fonts (OFL) and identity, served at /skin/ (ADR 0013)
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
     executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
     worker.py               The loop: claim, execute, record; reconcile on an interval
@@ -259,6 +263,8 @@ ungated fixture.
 | Lint | `make lint` |
 | Format | `make format` |
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
+| Web tests | `make test-web` (Vitest, pure functions) |
+| **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, `npm run tokens` |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |
@@ -499,6 +505,8 @@ make layer_check
 make exposure_check
 ruff format --check packages/aia_core apps/api migrations
 make test
+make web_design    # token drift + design evidence
+make test-web
 ```
 
 or `make verify`, which runs exactly that sequence.

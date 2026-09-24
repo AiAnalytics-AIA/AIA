@@ -12,7 +12,7 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web web_design \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
@@ -97,6 +97,9 @@ parity-status: ## Parity verdict per capability, from a fresh run of every suite
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
 
+web_design: ## Design tokens: generated files current, contrast / palette / accent evidence holds
+	@cd apps/web && npm run tokens:check && npm run check:design
+
 lint: ## Lint Python and the web client
 	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations
 	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
@@ -116,7 +119,7 @@ layer_check: ## Enforce the layering rules in ARCHITECTURE.md
 exposure_check: ## Fail if detailed reference material reached this repository
 	@./tools/exposure_check.sh
 
-check: lint typecheck layer_check exposure_check test ## Everything CI runs
+check: lint typecheck layer_check exposure_check web_design test test-web ## Everything CI runs
 
 verify: ## The pre-commit sequence from CLAUDE.md §10, in order
 	@$(MAKE) typecheck
@@ -124,6 +127,8 @@ verify: ## The pre-commit sequence from CLAUDE.md §10, in order
 	@$(MAKE) exposure_check
 	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
 	@$(MAKE) test
+	@$(MAKE) web_design
+	@$(MAKE) test-web
 
 openapi: ## Write the OpenAPI document to openapi.json
 	@$(PY) -c "import json; from aia_api.main import create_app; \
