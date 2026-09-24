@@ -143,3 +143,49 @@ def test_the_direct_document_path_is_not_an_entry(running: int) -> None:
     with pytest.raises(urllib.error.HTTPError) as err:
         _get(running, "/interface-document")
     assert err.value.code == 404
+
+
+def test_a_websocket_upgrade_is_tunnelled_to_the_web_client() -> None:
+    # `next dev`'s live reload: the upgrade reaches the web client with its
+    # Upgrade header intact, and bytes flow both ways afterwards.
+    import socket
+
+    seen: dict[str, str] = {}
+
+    def upstream(srv: socket.socket) -> None:
+        conn, _ = srv.accept()
+        head = b""
+        while b"\r\n\r\n" not in head:
+            head += conn.recv(1024)
+        seen["head"] = head.decode()
+        conn.sendall(
+            b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n"
+        )
+        conn.sendall(conn.recv(1024)[::-1])
+        conn.close()
+
+    srv = socket.create_server(("127.0.0.1", 0))
+    threading.Thread(target=upstream, args=(srv,), daemon=True).start()
+    handler = type(
+        "F",
+        (facade.Facade,),
+        {"web": srv.getsockname()[:2], "unit": ("127.0.0.1", 9), "patterns": PATTERNS},
+    )
+    front = _serve(handler)
+    client = socket.create_connection(("127.0.0.1", int(front.server_address[1])), timeout=10)
+    client.sendall(
+        b"GET /_next/webpack-hmr?id=1 HTTP/1.1\r\nHost: x\r\n"
+        b"Upgrade: websocket\r\nConnection: Upgrade\r\n\r\n"
+    )
+    reply = b""
+    while b"\r\n\r\n" not in reply:
+        reply += client.recv(1024)
+    client.sendall(b"ping")
+    echoed = client.recv(1024)
+    client.close()
+    front.shutdown()
+    srv.close()
+    assert reply.startswith(b"HTTP/1.1 101")
+    assert seen["head"].startswith("GET /_next/webpack-hmr?id=1 HTTP/1.1")
+    assert "Upgrade: websocket" in seen["head"]
+    assert echoed == b"gnip"

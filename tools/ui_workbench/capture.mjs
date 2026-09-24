@@ -157,8 +157,43 @@ async function shoot(page, file) {
   await page.setViewportSize({ width, height: 900 });
 }
 
+// Runs in the page: every distinct text a person can read in the working area
+// (the classic topbar and #view; a rebuilt screen's header and main), for the
+// classic-vs-rebuilt comparison.
+function texts() {
+  const roots = [...document.querySelectorAll(".sidebar, .topbar, #view, nav, body > div header, main")];
+  const seen = new Set();
+  for (const root of roots) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const el = n.parentElement;
+      if (!el || el.closest("script, style, [aria-hidden=true]")) continue;
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden") continue;
+      const v = n.textContent.replace(/\s+/g, " ").trim();
+      if (v.length >= 2) seen.add(v);
+    }
+    for (const el of root.querySelectorAll("input[placeholder], option")) {
+      const v = (el.getAttribute("placeholder") || el.textContent || "").trim();
+      if (v.length >= 2) seen.add(v);
+    }
+  }
+  return { items: [...seen], full: roots.map((r) => r.innerText).join("\n") };
+}
+
+// Classic text a rebuilt screen does not show. Compared without whitespace,
+// case or the pictographs and arrows the rebuilt screens draw as icons.
+export function missingIn(classic, rebuilt) {
+  const norm = (x) => x.replace(/[\p{Extended_Pictographic}\u2600-\u27BF+·•←→↗\uFE0F]/gu, "").replace(/\s+/g, "").toLowerCase();
+  const haystack = norm(`${rebuilt.full}\n${rebuilt.items.join("\n")}`);
+  return classic.items.filter((x) => {
+    const n = norm(x);
+    return n.length >= 2 && !haystack.includes(n);
+  });
+}
+
 async function measure(page, allowed, skinned) {
-  return page.evaluate(({ allowed, skinned, offPaletteSrc }) => {
+  return page.evaluate(({ allowed, skinned, offPaletteSrc, textsSrc }) => {
     const title = document.querySelector("#pageTitle")?.innerText?.trim() || document.querySelector("h1,h2")?.innerText?.trim() || "";
     const overflow = document.documentElement.scrollWidth - window.innerWidth;
     const fn = new Function(`return (${offPaletteSrc})`)();
@@ -168,8 +203,9 @@ async function measure(page, allowed, skinned) {
       overflowPx: overflow > 1 ? overflow : 0,
       skinLink: !!document.querySelector('link[data-aia-skin]'),
       offPalette: skinned ? fn(allowed).slice(0, 25) : undefined,
+      texts: new Function(`return (${textsSrc})`)()(),
     };
-  }, { allowed, skinned, offPaletteSrc: offPalette.toString() });
+  }, { allowed, skinned, offPaletteSrc: offPalette.toString(), textsSrc: texts.toString() });
 }
 
 async function main() {
@@ -231,6 +267,33 @@ async function main() {
       await ctx.close();
     }
   }
+  // 3. every screen the ledger says is rebuilt, from the facade's /app, beside
+  // the classic one it replaces (docs/migration/interface-screens.json).
+  const ledger = JSON.parse(readFileSync(join(REPO, "docs/migration/interface-screens.json"), "utf8"));
+  const rebuilt = ledger.screens.filter((x) => x.react_path && x.status !== "CLASSIC" && (!ONLY || ONLY.has(x.classic.route)));
+  for (const width of WIDTHS) {
+    const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+    const page = await ctx.newPage();
+    for (const x of rebuilt) {
+      const errors = [];
+      page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
+      await page.goto(new URL(x.react_path, BASES.skin).href, { waitUntil: "networkidle", timeout: 120000 });
+      await page.waitForTimeout(SETTLE_MS);
+      const file = join(OUT, `${x.id}.react.${width}.png`);
+      await shoot(page, file);
+      const m = await measure(page, allowed, true);
+      record(x.id, x.id.replace(/^route-/, ""), "route").shots[`react.${width}`] = { file: relative(OUT, file), ...m, errors, path: x.react_path };
+      page.removeAllListeners("pageerror");
+      process.stdout.write("+");
+    }
+    await ctx.close();
+  }
+  for (const sc of screens) {
+    for (const width of WIDTHS) {
+      const classic = sc.shots[`skin.${width}`], react = sc.shots[`react.${width}`];
+      if (classic && react) react.missing = missingIn(classic.texts, react.texts);
+    }
+  }
   await browser.close();
 
   const report = { generated: new Date().toISOString(), widths: WIDTHS, bases: BASES, aliases, routes, screens };
@@ -241,6 +304,10 @@ async function main() {
     .sort((a, b) => b.n - a.n).slice(0, 5);
   console.log(`\ncapture: ${screens.length} screens x ${WIDTHS.length} widths x 2 -> ${relative(REPO, OUT)}/index.html`);
   console.log(`capture: most off-palette paint: ${worst.map((w) => `${w.id} (${w.n})`).join(", ")}`);
+  for (const sc of screens) {
+    const r = sc.shots[`react.${WIDTHS[0]}`];
+    if (r) console.log(`capture: ${sc.id} rebuilt at ${r.path}: ${r.missing.length} classic text(s) missing${r.missing.length ? ": " + r.missing.slice(0, 12).map((x) => JSON.stringify(x)).join(", ") : ""}`);
+  }
 }
 
 // ---- the contact sheet -------------------------------------------------------
@@ -248,7 +315,7 @@ function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp
 function sheet(r) {
   const w = r.widths[0];
   const rows = r.screens.map((s) => {
-    const b = s.shots[`bare.${w}`] || {}, k = s.shots[`skin.${w}`] || {};
+    const b = s.shots[`bare.${w}`] || {}, k = s.shots[`skin.${w}`] || {}, x = s.shots[`react.${w}`];
     const flags = [
       k.overflowPx ? `overflow ${k.overflowPx}px` : "",
       (k.errors || []).length ? `${k.errors.length} page error(s)` : "",
@@ -260,13 +327,14 @@ function sheet(r) {
     return `<section id="${esc(s.id)}"><h2>${esc(s.label)} <small>${esc(k.title || b.title)}</small></h2>
 <p class="meta">${esc(s.kind)}${flags ? " · <b>" + esc(flags) + "</b>" : ""} · ${other}</p>
 <div class="pair"><figure><figcaption>18.6.6 as shipped</figcaption><a href="${esc(b.file)}"><img loading="lazy" src="${esc(b.file)}"></a></figure>
-<figure><figcaption>with the AIA skin</figcaption><a href="${esc(k.file)}"><img loading="lazy" src="${esc(k.file)}"></a></figure></div>
+<figure><figcaption>with the AIA skin</figcaption><a href="${esc(k.file)}"><img loading="lazy" src="${esc(k.file)}"></a></figure>${x ? `<figure><figcaption>rebuilt · ${esc(x.path)}</figcaption><a href="${esc(x.file)}"><img loading="lazy" src="${esc(x.file)}"></a></figure>` : ""}</div>
+${x ? `<details${x.missing.length ? " open" : ""}><summary>Classic text the rebuilt screen does not show (${x.missing.length})</summary><ul>${x.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
 ${off ? `<details><summary>Colours the skin did not reach (${(k.offPalette || []).length})</summary><ul>${off}</ul></details>` : ""}</section>`;
   }).join("\n");
   return `<!doctype html><html lang="en"><meta charset="utf-8"><title>UI capture</title>
 <style>body{font:14px/1.45 system-ui,sans-serif;margin:24px;color:#1b1f24;background:#fafaf9}h1{font-size:20px}
 h2{font-size:16px;margin:28px 0 4px}h2 small{color:#6b7280;font-weight:400}.meta{color:#6b7280;margin:0 0 8px}
-.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}figure{margin:0}figcaption{font-size:12px;color:#6b7280}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}figure{margin:0}figcaption{font-size:12px;color:#6b7280}
 img{width:100%;border:1px solid #e5e7eb;display:block}code{font-size:12px}.sw{display:inline-block;width:12px;height:12px;border:1px solid #ccc;vertical-align:-2px;margin-right:4px}
 nav a{margin-right:10px}</style>
 <h1>Every screen, ${esc(r.generated)} · ${r.screens.length} screens · widths ${r.widths.join(", ")}</h1>

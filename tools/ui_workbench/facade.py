@@ -20,9 +20,12 @@ Stdlib only.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import http.client
 import re
+import socket
 import sys
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import ClassVar
@@ -140,6 +143,8 @@ class Facade(BaseHTTPRequestHandler):
         if target == "no-api":
             return self._answer(502, "the workbench runs no AIA API")
         host, port = self.web if target == "web" else self.unit
+        if (self.headers.get("Upgrade") or "").lower() == "websocket":
+            return self._tunnel(host, port, path)
         length = int(self.headers.get("Content-Length") or 0)
         body = self.rfile.read(length) if length else None
         conn = http.client.HTTPConnection(host, port, timeout=600)
@@ -166,6 +171,37 @@ class Facade(BaseHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError):
                 pass
         conn.close()
+
+    def _tunnel(self, host: str, port: int, path: str) -> None:
+        """A WebSocket upgrade, passed through byte for byte: `next dev`'s live
+        reload, so a save shows in the browser without a manual refresh."""
+        try:
+            upstream = socket.create_connection((host, port), timeout=10)
+        except OSError as exc:
+            return self._answer(502, f"web at {host}:{port} is not answering: {exc}")
+        upstream.settimeout(None)
+        lines = [f"{self.command} {path} HTTP/1.1"] + [f"{k}: {v}" for k, v in self.headers.items()]
+        head = "\r\n".join(lines) + "\r\n"
+        upstream.sendall(head.encode("latin-1") + b"\r\n")
+        client = self.connection
+
+        def pipe(src: socket.socket, dst: socket.socket) -> None:
+            try:
+                while data := src.recv(CHUNK):
+                    dst.sendall(data)
+            except OSError:
+                pass
+            finally:
+                for s in (src, dst):
+                    with contextlib.suppress(OSError):
+                        s.shutdown(socket.SHUT_RDWR)
+
+        back = threading.Thread(target=pipe, args=(upstream, client), daemon=True)
+        back.start()
+        pipe(client, upstream)
+        back.join()
+        upstream.close()
+        self.close_connection = True
 
     def do_GET(self) -> None:
         self._proxy()
