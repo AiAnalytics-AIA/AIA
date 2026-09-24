@@ -5,6 +5,13 @@
 **Design source:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md),
 the token foundation on `feature/web-primitives` @ `cb26c15`.
 
+> **2026-09-24, [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md).**
+> The skinned document is now served at `/classic`, the labelled hand-off, not at
+> `/`; the develop site is AIA's client-first application, and the classic
+> screens are the behavioural reference rather than the canonical baseline. The
+> skin, its pin and its kill switch are unchanged. Chunk 5 (the live baseline)
+> still waits on the oracle's reach from an agent session.
+
 ## Problem
 
 The develop site is the canonical baseline for every screen (data owner,

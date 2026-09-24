@@ -599,14 +599,14 @@ only through the gate*). `route` keeps the written order:
 
 ```caddyfile
 # WRONG — the rewrite runs first
-handle / {
+handle /classic {
 	forward_auth api:8000 { uri /api/v1/panel/gate }
 	rewrite * /interface-document
 	reverse_proxy web:3000
 }
 
 # RIGHT
-handle / {
+handle /classic {
 	route {
 		forward_auth api:8000 { uri /api/v1/panel/gate }
 		rewrite * /interface-document
@@ -635,8 +635,29 @@ caddy:
   volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro"]
 ```
 
-And smoke-check something only the new file answers (here: `/interface-document`
-is Caddy's own 404), because checks the old routing also passes prove nothing.
+And smoke-check something only the new file answers (here: `/` is Caddy's own
+`302 /app/clients`, and `/classic` the gate's `302 /login?next=%2Fclassic`),
+because checks the old routing also passes prove nothing. `/interface-document`
+answering 404 no longer tells the two apart: the file before ADR 0015 said the
+same.
+
+**`redir`'s first argument is a matcher when it starts with `/`.** `redir
+/app/clients 302` reads `/app/clients` as a path matcher and `302` as the
+target: a redirect to `Location: 302` that fires only for `/app/clients`, a path
+that never reaches `handle /`, so `/` gets no redirect at all. `caddy validate`
+accepts both; only the adapted JSON shows it (`tools/caddy_routes.py` caught it):
+
+```caddyfile
+# WRONG — Location: 302
+handle / {
+	redir /app/clients 302
+}
+
+# RIGHT — `*` is the matcher, then the target and the status
+handle / {
+	redir * /app/clients 302
+}
+```
 
 ## CI contracts
 

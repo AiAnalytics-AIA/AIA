@@ -5,6 +5,21 @@
 **Parent plan:** [interface-rehome.md](interface-rehome.md) (area A4) ·
 **Tools:** [ui-workbench.md](ui-workbench.md)
 
+> **Re-homed under the client (2026-09-24, [client-first-ia.md](client-first-ia.md),
+> [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)).**
+> A research is an AIA `Study` of kind `RESEARCH` under its client. Its stages are
+> at `/app/clients/<client>/research/<study>/<stage>` (the `persona` step's slug is
+> `dimensions`); `/app/research/*` is retired and redirects to `/app/clients`. The
+> stage components, their parity-tested logic and their tests are unchanged; the
+> frame around them (`StudyFrame`) now comes from the study's AIA workspace, and
+> the unit project holding the working content is found only through the study's
+> binding (OI-58), bound on the first save. The **classic seven steps are the
+> current stage list, not the target specification**: the product lifecycle is
+> the 13 stages of `docs/product/README.md`, and a stage is added, merged or
+> renamed on that basis, not because the classic flow drew it. Hand-offs go to
+> `/classic#aia:open=<unit>@<step>`, with the classic page's bar leading back. The
+> URL and rail notes in *Approach* below are historical.
+
 ## Problem
 
 The data owner asked, 2026-09-24, for the research flow rebuilt: *brief → plan →
@@ -110,13 +125,14 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | 3 | plan: variants, understanding, objectives, hypotheses, comparable sets, questions for the user, text-selection comments | A | done — see below |
 | 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | done — see below |
 | 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | done — see below |
-| 6 | persona: fixed base, catalog, AI suggestions, custom dimension request, sample size, society factors | B | pending |
+| 6 | persona: fixed base, catalog, AI suggestions, custom dimension request, sample size, society factors | B | done — see below (PR #50) |
 | 7 | run: technical check and issues, final AI review, overrides, AI repair, start | C | pending |
 | 8 | progress: workflow status, active job, failure and resume, reconnect | C | pending |
 | 9 | results: the analytical report, analyst / client views, attachments | C | pending |
 | 10 | next: ideal group from results, manual propensity, child project | D | pending |
 | 11 | verify: its intended screen against `/api/results/verify` and `contextual_scenario`, which the classic interface never draws (OI-47) — **new behaviour**, shown to the data owner before it merges | D | pending |
-| 12 | Switch-over: Projects opens research projects in `/app`, every A4 ledger row `REBUILT`, the capture of all ten | D | pending |
+| — | Re-home under the client: `/app/clients/<client>/research/<study>/<stage>`, the study frame from its AIA binding, breadcrumbs, the rail only inside a study ([client-first-ia.md](client-first-ia.md) chunk 6) | IA | done |
+| 12 | Switch-over: every A4 ledger row `REBUILT`, the capture of all ten; research projects of the classic store reachable only from their study (Projects is now `/app/settings/classic-projects`) | D | pending |
 
 ### Chunk 1 — what landed
 

@@ -13,6 +13,16 @@ slice below · **Started:** 2026-09-23 · **Revised:** 2026-09-23 (facade first,
 > records the decision. The slice table below is the revised order; slice 1
 > (the harnesses, PR #40) is unchanged and done.
 
+> **Revision, 2026-09-24 — AIA is the product, 18.6.6 the reference.**
+> [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)
+> supersedes "behind the same screens": the product hostname opens AIA's
+> client-first application (`/` → `/app/clients`) and the 18.6.6 interface is a
+> labelled, temporary hand-off at `/classic`. The strangler order is unchanged in
+> its mechanics -- one capability at a time, its paths moved from the unit
+> (`@unit` in the Caddyfile, the route ledger) to the API, the oracle checking
+> each -- but a capability now lands behind AIA's own screens under its client,
+> and the unit's project store is migration debt with a removal condition (OI-58).
+
 Decision: [ADR 0011](../../docs/architecture/adr/0011-vendor-legacy-product-unit.md).
 The working NPC Panel 18.6.6 product is the canonical baseline. AIA delivers
 what it shows and computes, restructured onto AIA's layers, PostgreSQL, S3,

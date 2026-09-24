@@ -34,20 +34,54 @@ Client and Study are **first-class isolation boundaries**, not labels.
 ```
 Organization          the AIA team itself
 └── Client            a paying client; a hard confidentiality boundary
-    └── Study         one engagement; the unit of budget, delivery and access
+    ├── Client Knowledge   what AIA knows about this client: sources, facts, terms,
+    │                      dimensions, audiences, findings -- changed only by approval
+    └── Study         one engagement, a research or a simulation (Study.kind);
+        │             the unit of budget, delivery, approvals and access
         └── Project revisions, stages, artifacts, workflow runs, costs
 ```
 
 Two rules follow, and they are enforced in code rather than trusted to callers:
 
-1. **Every client-derived object resolves to a client and a study.** There is no
-   object that "belongs to the organization" but carries client data.
+1. **Every client-derived object resolves to a client and a study** -- or, for
+   Client Knowledge, to a client ([ADR 0015](../architecture/adr/0015-client-first-product-interface.md)
+   amends this rule narrowly). There is no object that "belongs to the
+   organization" but carries client data.
 2. **Scope is injected from authenticated application context, never inferred.**
    In particular, **no AI or model-generated argument may determine client or
    study scope.** A model can decide which tool to call; it cannot decide whose
    data that tool reads.
 
 See [`docs/architecture/scope-and-authorization.md`](../architecture/scope-and-authorization.md).
+
+## How the product is navigated
+
+The first decision is always *which client am I working for?*
+([ADR 0015](../architecture/adr/0015-client-first-product-interface.md)).
+
+```
+AIA
+├── Klienti                        the clients you hold a grant in (the home, /app/clients)
+│   └── one client's workspace     Přehled · Výzkumy · Simulace · Znalosti · Data
+│       ├── Výzkumy → a research   its stages, then results, artifacts and sociomaps
+│       ├── Simulace → a simulation
+│       ├── Znalosti               Client Knowledge: sources, knowledge, previous
+│       │                          studies, dimensions, audiences, pending updates
+│       └── Data                   the client's datasets and what it takes from shared intelligence
+├── Společenská inteligence        AIA's shared, approved layer: the population, shared definitions
+├── Projektová paměť               your studies across the clients you work for
+└── Nastavení
+```
+
+Knowledge flows one way, in three explicit layers: **AIA shared intelligence** →
+**Client Knowledge** → **the study's context**. A study may *propose* an update to
+its client's knowledge; a person approves it, and approval creates a new revision
+with its provenance. Nothing a study does changes client knowledge on its own,
+and shared intelligence never takes in one client's data.
+
+Sociomapping is a view of a study's results, reached inside the study, not an
+application of its own. The classic 18.6.6 interface remains reachable, labelled
+as temporary, for stages not yet rebuilt, always with a way back.
 
 ## The two lifecycles
 
@@ -74,13 +108,15 @@ Brief → Deep Research → Baseline → Scenario Contract → Audience → Dime
 
 | Area | What it does |
 | --- | --- |
-| **Portfolio** | Studies across clients, with state, pending steps and quick resume |
+| **Clients** | The client directory and each client's workspace: active work, results, knowledge status, pending approvals |
+| **Portfolio / Project memory** | Studies across the clients you work for, with state, pending steps and quick resume |
 | **Research Studio** | The research lifecycle, brief-first, with AI-assisted design and questionnaire construction |
 | **Simulation Studio** | Scenario contracts, independently modelled variants, multi-world runs, frozen results |
 | **Results workspace** | Headline answer, findings, segments, filters, respondent explorer, charts, evidence, exports |
-| **Sociomapa** | Respondent and object maps over a shared data contract; matrix, comparison and what-if modes |
+| **Sociomapa** | Respondent and object maps over a shared data contract; matrix, comparison and what-if modes -- inside a study's results |
+| **Client Knowledge** | Per-client sources, facts, terms, dimensions and audiences; study proposals → human approval → a new revision |
 | **Data Library / Society Intelligence** | Source ingestion → evidence proposal → human approval → dimension materialisation → LIVE population revision |
-| **Project memory** | Retrieval over historical studies and approved high-level artifacts |
+| **Project memory (retrieval)** | Retrieval over historical studies and approved high-level artifacts, always inside a resolved client scope |
 | **Cost and budget** | Per-study budgets enforced before expensive calls; an immutable AI usage ledger |
 
 ## Product rules the system enforces

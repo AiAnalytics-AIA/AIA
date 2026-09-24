@@ -151,6 +151,45 @@ another client's authorisation.
 `OrganizationContext` is the administrative counterpart and deliberately carries
 no client or study id, so it cannot be used to read research data at all.
 
+## ClientContext: one client's workspace
+
+A client workspace (ADR 0015) reads above the study -- the client's list of
+studies, its overview, its knowledge -- so it needs scope for the client itself.
+`ScopeResolver.client_context(principal, client_id, require=...)` issues a
+`ClientContext`, with the same sentinel, after the same checks in the same
+order: an active user, a member of the organization, a client of **that**
+organization that is not archived, and then either a client-level grant or at
+least one study grant on a study of the client. The studies the caller may open
+are resolved there and travel on the context (`study_ids`); a list of the
+client's studies is filtered by them in the query, never in the page.
+
+What it allows is `ClientPermission`, from the client-level role:
+
+| Client role | `VIEW_CLIENT` | `VIEW_CLIENT_KNOWLEDGE` | `PROPOSE_CLIENT_KNOWLEDGE` | `APPROVE_CLIENT_KNOWLEDGE` | `CREATE_STUDY` |
+|---|---|---|---|---|---|
+| none (study grants only) | yes | | | | |
+| `VIEWER` | yes | yes | | | |
+| `REVIEWER` | yes | yes | | yes | |
+| `RESEARCHER` | yes | yes | yes | | yes |
+| `LEAD` | yes | yes | yes | yes | yes |
+
+Denial follows the rule below: no grant, an unknown or archived client, another
+organization's client -- all 404, the reason in the audit. A caller who can see
+the client but lacks the permission gets 403 `insufficient_role`.
+
+**Client Knowledge** is read only through `ClientKnowledgeRepository`, which takes
+an issued `ClientContext` or `StudyContext` and puts `client_id ==
+scope.client_id` in the statement that finds the rows. There is no method that
+reads knowledge by id alone, and no global pool filtered afterwards. A proposal
+is approved by someone other than its proposer unless the client's self-approval
+policy (above) allows it, and approval writes a new revision with its provenance.
+ADR 0015 narrowly amends ADR 0004 rule 1 for this: a study may *propose*
+knowledge to its own client, and only a human decision moves it there.
+
+**A study's unit project** (OI-58) is found only from the study:
+`StudyWorkspaceRepository.get(scope)` with an issued `StudyContext`. There is no
+lookup by unit project id; an id a browser sends authorizes nothing.
+
 ## The isolation predicate
 
 ```python

@@ -50,7 +50,7 @@ point; nothing outside it touches its internals.
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
 | — | **Legacy stub** | `src/server.js` | Frozen. The sole surviving login path. | Nothing. Receives no new features. |
-| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited.** Outside every code-quality gate by construction; deployed as its own service on its own hostname behind a gate. | Nothing. Nothing depends on it in code; parity tests reach it over HTTP. |
+| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited.** Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only behind the gate, at `/classic` and on its own paths (ADR 0015). | Nothing. Nothing depends on it in code; parity tests reach it over HTTP. |
 
 Dependencies point inward only. `infrastructure → domain` is allowed;
 `domain → infrastructure` is not. The domain layer must stay importable with
@@ -95,6 +95,7 @@ Run it before every commit. It is blocking in CI.
 | executors never build their own scope context, admit their own claims, or build an unscoped repository | A claimed step writing another client's artifacts, or a number reaching a result without the admission gate, from inside the process where model-driven code will run |
 | the API never executes workflow steps | Expensive work inside a request, holding a lease exactly as long as a browser stays connected |
 | only the work queue may query across studies | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
+| Client Knowledge rows are reached only through `ClientKnowledgeRepository` (never by the API, the worker or the executors) | Knowledge read from a global pool and filtered afterwards, or changed without an approved proposal and a revision (ADR 0015) |
 | runtime populations are issued only by the canonical loader (and never by the API) | A second loader returning different population semantics from the same bytes (reference F10, R4) |
 | population panels are parsed only by the canonical loader (and never by the API) | The first step of that second loader: a consumer reading the panel itself |
 | population-operator grants are issued only by the population authority (and never by the API) | A study context, an organization owner or a request body moving LIVE for every tenant (OI-8) |
@@ -133,9 +134,19 @@ script, then confirm it passes before committing.
 - **Type signatures on every public function** in the domain and application
   layers, verified by `mypy --strict`, which is blocking.
 - **Scope is a capability, not an argument.** `StudyContext` is issuable only by
-  `ScopeResolver` through a module-private sentinel. Repositories refuse anything
-  that is not an issued context, by type. This is the isolation boundary; see
-  [scope-and-authorization.md](docs/architecture/scope-and-authorization.md).
+  `ScopeResolver` through a module-private sentinel, and so is the
+  `ClientContext` a client workspace reads through (a client grant, or study
+  grants inside the client; `ClientPermission` says what it allows). Repositories
+  refuse anything that is not an issued context, by type. This is the isolation
+  boundary; see [scope-and-authorization.md](docs/architecture/scope-and-authorization.md).
+  Client Knowledge is read only inside such a context -- never a global pool
+  filtered afterwards -- and changes only when a proposal is approved, which writes
+  a new revision ([ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).
+- **A study's working content in the unit is reached through its AIA binding.**
+  `StudyWorkspaceRepository` binds a study to one unit project, once, under
+  `EDIT_STUDY`; the web client reads the id out of the study's scope and never
+  sends one in to find a study. The unit store is temporary migration debt with a
+  removal condition (OI-58), not the target data model.
 - **Population data is a capability too.** `RuntimePopulation` is issuable only by
   `PopulationRuntime` through the same sentinel construction, and carries the
   `PopulationBinding` (version, content hash, weight scheme, view) it was loaded
@@ -333,7 +344,7 @@ declared tier.
 | API contract (OpenAPI paths + study-scoping assertion, now covering `/runs` and `/artifacts` too) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
 | Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
-| Develop host configuration: `caddy validate` on the Caddyfile, the product hostname reaching the 18.6.6 unit only through the gate and without the session cookie (from `caddy adapt`), `docker compose config`, `bash -n` on the host scripts | **blocking** |
+| Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (`/` → `/app/clients`, `/classic` and `/app` gated, the unit only on its own paths through the gate and without the session cookie, no catch-all to it, the oracle hostname behind basic auth); `docker compose config`, `bash -n` on the host scripts | **blocking** |
 | Committed-provider-key scan | **blocking** |
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |
@@ -374,26 +385,33 @@ revision is always visible: `/api/v1/health` reports `build.sha`, the web
 client's `/version` reports the same, and every artifact records it as its
 `runtime_version`. Production compute remains undecided.
 
-**The product hostname is the 18.6.6 interface, with AIA in front
-([ADR 0012](docs/architecture/adr/0012-legacy-interface-as-product-facade.md)).**
-Caddy sends `/api/v1/*` to the API, AIA's own pages (`/login`, `/logout`,
-`/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`, the skin's `/skin/*`
-and the icon set) to the web client, and everything else to the vendored unit
-only after `forward_auth` to `GET /api/v1/panel/gate`. `/` itself goes through
-the same gate to the web client, which fetches the unit's document and adds the
-AIA skin only when it is the pinned `ui_app.html`
-([ADR 0013](docs/architecture/adr/0013-interface-skin-at-the-facade.md),
+**The product hostname is AIA, client-first
+([ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).**
+Caddy answers `/` itself with `302 /app/clients`. `/api/v1/*` goes to the API;
+AIA's own pages (`/login`, `/logout`, `/auth/*`, `/config`, `/version`,
+`/studies*`, `/_next/*`, the skin's `/skin/*` and the icon set) to the web
+client. `/app` and `/app/*` -- Clients → client workspace → study → stages
+(`AIA_INTERFACE_REHOME_ENABLED`, off by default) -- go through `forward_auth` to
+`GET /api/v1/panel/gate`, then the web client. The 18.6.6 interface is a
+labelled hand-off at `/classic`: the same gate, then the web client's
+`/interface-document`, which fetches the unit's document and adds the AIA skin
+and the hand-off script (with its way back) only when it is the pinned
+`ui_app.html` ([ADR 0013](docs/architecture/adr/0013-interface-skin-at-the-facade.md),
 `AIA_INTERFACE_SKIN_ENABLED`, off by default); `/interface-document` is not an
-entry point. `/app` and `/app/*` — the interface rebuilt in React, area by area
-([ADR 0014](docs/architecture/adr/0014-rebuild-the-interface-in-react.md),
-`AIA_INTERFACE_REHOME_ENABLED`, off by default) — go through the same gate to the
-web client; its screens fetch the unit's API from the browser, through the gated
-paths, via one ledger-checked client (`apps/web/src/unit/`). The gate is the whole of the unit's access control:
+entry point. The vendored unit is reached only on the paths it serves (`@unit`:
+`/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`,
+`/fullsim-arena`, `/health`, `/status`), each after the gate; the stages read
+the working content through them, via one ledger-checked client
+(`apps/web/src/unit/`). Every other path is the web client's, so nothing falls
+through to the classic product. The gate is the whole of the unit's access control:
 it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as every
 API call, admits only what `ScopeResolver.authorize_legacy_panel` admits
 (organization owners and admins), and refuses a state-changing request whose
-`Origin` is not the product origin. Rebuilding a feature moves its paths from
-the unit to the API; it never removes the gate from what remains.
+`Origin` is not the product origin. Its owner/admin rule is a temporary
+restriction while the stages read the single-tenant unit, not the target model
+(OI-59). Rebuilding a feature moves its paths from the unit to the API; it never
+removes the gate from what remains. `tools/caddy_routes.py` holds the adapted
+Caddyfile to this paragraph in CI; `tools/develop_routing_proof.py` runs it.
 `AIA_LEGACY_PANEL_ENABLED` is off by default and refused in production.
 
 - Deploy only what CI verified: chain CD to CI's *completion* and guard on

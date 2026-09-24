@@ -3,6 +3,11 @@
 **Status:** Accepted for the `develop` environment (data owner, 2026-09-23).
 Supersedes one consequence of [ADR 0011](0011-vendor-legacy-product-unit.md):
 "It never becomes a user-facing surface". Everything else in ADR 0011 stands.
+**Superseded in part by [ADR 0015](0015-client-first-product-interface.md)**
+(2026-09-24): decisions 1 and 5 no longer hold -- the product hostname's `/` is
+AIA's client directory, and the 18.6.6 document is an explicit hand-off at
+`/classic`. The gate, its owner/admin rule and the unit's own paths behind it
+stand.
 **Date:** 2026-09-23
 
 ## Context

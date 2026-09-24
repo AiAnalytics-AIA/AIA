@@ -78,8 +78,9 @@ Done once, by a person with AWS access. Everything after this is automatic.
    budget, a project, and one example workflow run. Re-running changes nothing.
 9. **Sign in.** Open the public hostname (`https://aia-develop.art-chain.io/`).
    The gate sends you to `/login`; choose *Sign in* and authenticate with the
-   Google Workspace account from step 8. You land on the NPC Panel 18.6.6
-   interface (ADR 0012). `/studies` is AIA's own live view of the same API.
+   Google Workspace account from step 8. You land on AIA's client directory,
+   `/app/clients` (ADR 0015). The classic 18.6.6 interface is at `/classic`,
+   and a stage not yet rebuilt links there with a way back.
 
 ## Normal deployment
 
@@ -105,25 +106,36 @@ Merge a pull request into `develop`. Then:
 Refresh `https://aia-develop.art-chain.io/` — the footer and `/version` show the SHA;
 `/api/v1/health` shows the same SHA under `build.sha`.
 
-## The 18.6.6 interface on the product hostname
+## AIA and the 18.6.6 unit on the product hostname
 
-Since [ADR 0012](../../docs/architecture/adr/0012-legacy-interface-as-product-facade.md)
-`https://aia-develop.art-chain.io/` is the NPC Panel 18.6.6 interface, served by
-the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
+Since [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)
+`https://aia-develop.art-chain.io/` is AIA: `/` redirects to the client
+directory, `/app/clients`. The NPC Panel 18.6.6 interface, served by the
+`legacy-panel` container, is a labelled, temporary hand-off at `/classic`, and
+the unit still answers its own paths, which the React stages read (OI-58). The
+Caddyfile routes:
 
 | Path | Goes to |
 |---|---|
 | `/api/v1/*` | the AIA API |
 | `/login`, `/logout`, `/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`, `/skin/*`, `/favicon.ico`, `/icon.svg`, `/apple-icon.png` | the AIA web client |
-| `/` | after `forward_auth` to `GET /api/v1/panel/gate`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin when it applies ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) |
+| `/` | `302 /app/clients`; nothing is served |
+| `/app`, `/app/*` | after `forward_auth` to `GET /api/v1/panel/gate`, the web client: AIA, Clients → client workspace → study → stages; 404 while `AIA_INTERFACE_REHOME_ENABLED` is off |
+| `/classic` | after the same `forward_auth`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) and `/skin/handoff.js` (its "Zpět do AIA" bar) when it applies |
 | `/interface-document` (requested directly) | 404 |
-| `/app`, `/app/*` | after the same `forward_auth`, the web client: the interface rebuilt in React ([ADR 0014](../../docs/architecture/adr/0014-rebuild-the-interface-in-react.md)); 404 while `AIA_INTERFACE_REHOME_ENABLED` is off. While on, `/` also carries `/skin/handoff.js` (response header `X-AIA-Handoff: added`) so `/app`'s links can open a project in the classic interface |
-| everything else | `legacy-panel`, after `forward_auth` to `GET /api/v1/panel/gate` |
+| `/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`, `/health`, `/status` | `legacy-panel`, after the same `forward_auth` |
+| everything else | the web client (its own 404 for a path it does not know); never the unit |
+
+`tools/caddy_routes.py` checks this table against the adapted Caddyfile in CI;
+`tools/develop_routing_proof.py` and `tools/develop_routing_journey.mjs` run the
+real file locally, with a browser, when the routing changes.
 
 - **Who gets in.** An active member of the organization whose role is `OWNER`
   or `ADMIN`. Anyone else who signs in is shown a message and can still use
   `/studies`. To let someone in, make them an organization admin; there is no
-  separate list.
+  separate list. This is a temporary restriction while the stages read the
+  single-tenant unit, not the target model (OI-59); inside AIA each person
+  still sees only the clients and studies they hold grants in.
 - **How.** `/login` turns the Google sign-in into an HttpOnly session cookie
   (`aia_panel`) through `POST /api/v1/panel/session`; the gate re-verifies it on
   every request and Caddy strips it before the request reaches the unit.
@@ -132,20 +144,21 @@ the `legacy-panel` container, with AIA in front of it. The Caddyfile routes:
 - **Signing out.** `/logout` clears the cookie and the Cognito session.
 - **Switching it off.** Set `AIA_LEGACY_PANEL_ENABLED: "false"` on the `api`
   service and `docker compose up -d api`. The gate then answers 404 to
-  everything, so nothing reaches the unit from the product hostname; `/` shows
-  a 404 until the Caddyfile routes it elsewhere.
+  everything, so nothing reaches the unit from the product hostname -- and,
+  while `/app` sits behind the same gate (OI-59), AIA's pages answer 404 too:
+  `/` still redirects, to a 404. `/login`, `/studies` and the API stay up.
 - **The oracle hostname** (`AIA_LEGACY_HOSTNAME`, basic auth) is unchanged and
   reaches the same container, so both share its state.
-- **When `/` shows an error.** `docker compose ps legacy-panel`: the unit needs
+- **When `/classic` or a research stage shows an error.** `docker compose ps legacy-panel`: the unit needs
   its data bundle synced by `bin/deploy.sh` (OI-39). A 401 or 403 JSON body on a
   page means the gate refused it; the `code` field says why (`unauthenticated`,
-  `legacy_panel_denied`, `cross_origin`). A 502 on `/` means the gate admitted
-  the request and the unit is not answering: the response carries
+  `legacy_panel_denied`, `cross_origin`). A 502 on `/classic` means the gate admitted
+  the request and the unit is not answering: `/classic`'s response carries
   `X-AIA-Skin: bypassed-unreachable` when the web client could not reach it, and
   no such header when the web client itself is down.
 - **The skin** (ADR 0013). `AIA_INTERFACE_SKIN_ENABLED` on the `web` service,
   `"true"` on develop;
-  `"false"` serves the unit's document byte-for-byte. Every response to `/`
+  `"false"` serves the unit's document byte-for-byte. Every response to `/classic`
   says what happened in `X-AIA-Skin`: `applied`, `bypassed-disabled`, or
   `bypassed-hash-mismatch` when the unit's document is not the pinned
   `ui_app.html` (a regenerated unit; the web log has an

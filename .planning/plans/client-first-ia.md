@@ -1,6 +1,6 @@
 # Client-first information architecture — the React AIA shell becomes the product
 
-**Status:** in progress on `feature/client-first-ia` (from `develop` @ `8e7a6db`, PR #50 merged).
+**Status:** complete, in review on `feature/client-first-ia` (from `develop` @ `8e7a6db`, PR #50 merged).
 **Decided by:** the data owner, 2026-09-24: stop the screen-by-screen migration before PR C; correct
 the information architecture first; the React client-first shell is the canonical product on
 `develop`; NPC Panel 18.6.6 is the behavioural reference and a temporary, explicit hand-off.
@@ -186,18 +186,34 @@ AppShell (global nav: Klienti · Společenská inteligence · Projektová pamě�
 
 | # | Chunk | State |
 |---|---|---|
-| 0 | This plan and ADR 0015 | done |
-| 1 | Core: `studies.kind`, `ClientContext`, `ScopeResolver.client_context`, isolation tests | pending |
-| 2 | Core: `study_workspaces` (study ↔ unit project binding, last stage) | pending |
-| 3 | Core: Client Knowledge — domain, tables, migration, repository, proposals → approval → revision, layer check | pending |
-| 4 | API: client routes (accessible list, one client, its studies, create research/simulation, overview), workspace, knowledge, study context; API tests incl. cross-client | pending |
-| 5 | Seed: two fictional clients with research, simulations and knowledge | pending |
-| 6 | Web: AppShell, breadcrumbs, client directory, workspace, lists, knowledge, data, intelligence, memory, settings | pending |
-| 7 | Web: re-home the five research stages under client/study; step URLs from one helper | pending |
-| 8 | Hand-off to `/classic` with a way back; `/app/research` and `/app/projects` retired/moved | pending |
-| 9 | Caddy, smoke, CI routing checks, develop runbook | pending |
-| 10 | Workbench (API behind the facade), fixtures, capture; the real Caddyfile end to end locally | pending |
-| 11 | Documents: ADRs 0012–0014 status, plans, PROGRESS, CLAUDE.md, ARCHITECTURE.md, product and design docs, ledgers | pending |
+| 0 | This plan and ADR 0015; OI-58, OI-59 (the two temporary states, with exits) | done @ `dba22e0`, `e90f367` |
+| 1 | Core: `studies.kind`, `ClientContext`, `ScopeResolver.client_context`, isolation tests | done @ `464b43a` (`test_client_scope.py`, 11) |
+| 2 | Core: `study_workspaces` (study ↔ unit project binding, last stage) | done @ `464b43a` (`test_study_workspaces.py`, 7) |
+| 3 | Core: Client Knowledge — domain, tables, migration, repository, proposals → approval → revision, layer check | done @ `814d003` (`test_client_knowledge.py`, 9; 4 layer rules) |
+| 4 | API: client routes (accessible list, one client, its studies, create research/simulation, overview), workspace, knowledge, study context; API tests incl. cross-client | done @ `16026f4`, `085eb14` (`test_client_api.py`, 11); OI-60 found and fixed @ `87da177` |
+| 5 | Seed: two fictional clients with research, simulations and knowledge | done @ `aaaf8c3` |
+| 6 | Web: AppShell, breadcrumbs, client directory, workspace, lists, knowledge, data, intelligence, memory, settings | done @ `bbc95de` (`ClientFirst.test.tsx`) |
+| 7 | Web: re-home the five research stages under client/study; step URLs from one helper | done @ `bbc95de` (`app-routes.test.ts`; the stage tests unchanged and passing) |
+| 8 | Hand-off to `/classic` with a way back; `/app/research` and `/app/projects` retired/moved | done @ `bbc95de`, `3180d7b` (`interface-handoff.test.ts`) |
+| 9 | Caddy, smoke, CI routing checks, develop runbook | done @ `3180d7b` (`tools/caddy_routes.py`, `test_caddy_routes.py`, 6) |
+| 10 | Workbench (API behind the facade), fixtures, capture; the real Caddyfile end to end locally | done @ `38dd917`, `bf6bff5`; a malformed id now reads "nothing here" @ `f51264c` |
+| 11 | Documents: ADRs 0012–0014 status, plans, PROGRESS, CLAUDE.md, ARCHITECTURE.md, product and design docs, ledgers | done (this commit) |
+
+### Proof through the real Caddyfile (chunk 10)
+
+`sudo python3 tools/develop_routing_proof.py --keep` then `node tools/develop_routing_journey.mjs`,
+Caddy v2.10.2, the committed `deploy/develop/Caddyfile`, local stand-ins for `api`, `web` and
+`legacy-panel` (the unit behind its own `runtime/relay.py`), 2026-09-24:
+
+| | This branch | `develop` @ `8e7a6db` |
+|---|---|---|
+| `GET /` signed out | `302 /app/clients` | `302 /login?next=%2F` (the gate) |
+| `GET /` signed in | `302 /app/clients`, not the 18.6.6 document | `200`, the 18.6.6 document |
+| `GET /classic` signed in | `200`, `X-AIA-Skin: applied`, hand-off script | `404` |
+| `GET /no-such-page`, `/studies-archive` | `404` from the web client | `404` from the unit (the catch-all) |
+| `GET https://legacy.localhost/` | `401`; with basic auth `200`, SHA256 = pinned `ui_app.html`, unskinned | the same |
+| Requests passing | **15 / 15** | 10 / 15 |
+| Browser journey | **13 / 13**: `/` → `/app/clients`; a new research opens on its brief under its client; breadcrumbs client / Výzkumy / study / stage; the first save binds the study to its unit project; `/classic` carries its label and *Zpět do AIA* returns to the stage; another client's study under this client's URL and a unit id in a study's place find nothing; no page errors | -- |
 
 ## Not in this PR
 

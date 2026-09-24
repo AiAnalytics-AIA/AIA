@@ -5,6 +5,12 @@
 (re-homing starts now, not last); keeps [ADR 0011](0011-vendor-legacy-product-unit.md)
 and [ADR 0013](0013-interface-skin-at-the-facade.md) for the screens not yet rebuilt;
 extends decision D-L1.
+**Superseded in part by [ADR 0015](0015-client-first-product-interface.md)**
+(2026-09-24): decisions 1 (the classic interface stays at `/`), 4 (a classic
+screen's capture is the specification) and 7 (hand-offs to `/#aia:…`, now
+`/classic#aia:…`). The React rebuild under `/app`, the ledger-checked unit
+client and the fragment hand-off mechanism stand, re-homed under the client
+(`/app/clients/<client>/research/<study>/<stage>`).
 **Date:** 2026-09-24
 
 ## Context

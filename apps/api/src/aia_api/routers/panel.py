@@ -1,8 +1,10 @@
-"""The gate in front of the vendored 18.6.6 interface on the product hostname (ADR 0012).
+"""The gate in front of AIA's pages and the vendored 18.6.6 unit on the product hostname.
 
-The develop site serves the 18.6.6 interface at ``/``, from the unit, while AIA
-rebuilds each feature behind it. The unit has no identity model (reference R14),
-so every request Caddy forwards to it first asks this router:
+The develop site is AIA's client-first application (ADR 0015); the 18.6.6
+interface is an explicit hand-off at ``/classic`` and the unit still serves its
+own paths, while AIA rebuilds each feature (ADR 0012). The unit has no identity
+model (reference R14), so every request Caddy forwards to ``/app``, ``/classic``
+or a unit path first asks this router:
 
 * ``POST /panel/session`` turns the Cognito id token the web client holds into an
   HttpOnly, SameSite=Lax cookie, after the same verification every API call gets
