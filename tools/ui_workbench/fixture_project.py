@@ -139,11 +139,73 @@ ANALYSIS: dict[str, Any] = {
     ],
 }
 
+# The questionnaire: the sections an AI build or an import leaves (renderQuestionnaire's
+# editor): a question block with each question type, and a tracked object set.
+SECTIONS: list[dict[str, Any]] = [
+    {
+        "id": "sec_wb_main",
+        "type": "questions",
+        "title": "Hlavní otázky",
+        "purpose": "Zájem a příležitosti pití",
+        "questions": [
+            {
+                "id": "Q_wb1",
+                "text": "Jak často během pracovního týdne dojíždíte?",
+                "typ": "vyber",
+                "kategorie": ["Každý den", "Tři až čtyři dny", "Jeden až dva dny", "Méně často"],
+                "povolit_nevim": False,
+            },
+            {
+                "id": "Q_wb2",
+                "text": "Jak pravděpodobně byste nápoj vyzkoušeli?",
+                "typ": "skala",
+                "skala": [1, 10],
+                "popisky_skaly": ["vůbec", "zcela"],
+                "povolit_nevim": False,
+            },
+            {
+                "id": "Q_wb3",
+                "text": "Kde nápoje na cestu obvykle kupujete?",
+                "typ": "multi",
+                "kategorie": ["Nádraží", "Supermarket", "Čerpací stanice", "Automat"],
+                "povolit_nevim": False,
+            },
+            {
+                "id": "Q_wb4",
+                "text": "Co by vás přesvědčilo nápoj koupit znovu?",
+                "typ": "otevrena",
+                "povolit_nevim": False,
+            },
+        ],
+    },
+    {
+        "id": "sec_wb_set",
+        "type": "object_battery",
+        "title": "Sledovaná sada — varianty",
+        "purpose": "Která varianta osloví nejvíc",
+        "object_family": "varianta",
+        "object_type": "varianta",
+        "objects": ["Varianta Jemná", "Varianta Silná", "Varianta Bylinná", "Varianta Citrus"],
+        "object_question": "Jak vás oslovuje {object}?",
+        "scale": [1, 10],
+        "scale_labels": ["vůbec", "velmi"],
+        "familiarity_required": False,
+        "output_type": "pozicni_mapa",
+        "visualize": True,
+        "metadata": {"tracked_set": True},
+    },
+]
+
 FIXTURES: dict[str, dict[str, Any]] = {
     # The brief with nothing filled in: the first screen as a new project sees it.
     "empty": {"project": {"title": "Workbench · prázdné zadání"}, "analysis": None},
     # Brief and plan filled: every screen up to the questionnaire has content.
     "planned": {"project": BRIEF, "analysis": ANALYSIS},
+    # The plan's project with a questionnaire, opened on its editor.
+    "questionnaire": {
+        "project": {**BRIEF, "sections": SECTIONS, "ui_state": {"questionnaire_path": "manual"}},
+        "analysis": ANALYSIS,
+    },
 }
 
 

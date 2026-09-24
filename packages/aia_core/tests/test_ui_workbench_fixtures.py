@@ -102,3 +102,15 @@ def test_the_plan_is_in_the_shape_render_plan_draws() -> None:
         assert all(isinstance(o, str) for o in s["objects"])
         assert "{object}" in s["object_question"]
         assert len(s["scale_labels"]) == 2
+
+
+def test_the_questionnaire_is_in_the_shape_the_editor_draws() -> None:
+    m = _load()
+    fx = m.FIXTURES["questionnaire"]["project"]
+    assert fx["ui_state"]["questionnaire_path"] == "manual"
+    blocks = [s for s in fx["sections"] if s["type"] == "questions"]
+    sets = [s for s in fx["sections"] if s["type"] == "object_battery"]
+    # questionnaireEditorHtml: every question type the card offers, and a 4-15 set.
+    assert {q["typ"] for q in blocks[0]["questions"]} == {"vyber", "multi", "skala", "otevrena"}
+    assert len(sets) == 1 and 4 <= len(sets[0]["objects"]) <= 15
+    assert "{object}" in sets[0]["object_question"]
