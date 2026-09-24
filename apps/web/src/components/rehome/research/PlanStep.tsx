@@ -52,7 +52,7 @@ const CARD = "rounded-md border border-border bg-surface-raised p-5";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
 
 export function PlanStep() {
-  const { store, state, toast } = useResearch();
+  const { store, state, toast, stepHref } = useResearch();
   const router = useRouter();
   const { analyse, failure, busy } = useAnalysis();
   const a = state.analysis;
@@ -61,8 +61,7 @@ export function PlanStep() {
 
   const next = () => {
     store.update(({ project }) => ({ project: toQuestionnaire(project) }), { reason: "questionnaire_path", invalidateCheck: false });
-    const id = store.get().projectId;
-    if (id) router.push(`/app/research/${encodeURIComponent(id)}/questionnaire`);
+    router.push(stepHref("questionnaire"));
   };
   const nextButton = (
     <div className="flex justify-end border-t border-border pt-4">
@@ -96,7 +95,7 @@ export function PlanStep() {
           <Button
             className="mt-4"
             icon="back"
-            onClick={() => state.projectId && router.push(`/app/research/${encodeURIComponent(state.projectId)}/brief`)}
+            onClick={() => router.push(stepHref("brief"))}
           >
             {t("research.plan.backToBrief")}
           </Button>

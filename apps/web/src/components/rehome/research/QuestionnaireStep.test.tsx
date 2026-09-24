@@ -8,10 +8,11 @@ import { resetBootCache } from "@/unit/boot";
 import { briefFingerprint, defaultsMerge } from "@/unit/research/model";
 import { CONFIRM_REMOVE_SECTION, GUIDED_PROMPT, OPTIMIZE_DONE, PROMPT_SET_ITEMS, PROMPT_SET_TYPE, SET_SIZE, SET_TOO_SMALL } from "@/unit/research/questionnaire";
 import { ResearchScreen } from "./ResearchScreen";
+import { TEST_FRAME, stagePath } from "./test-frame";
 
 const push = vi.fn();
 const replace = vi.fn();
-vi.mock("next/navigation", () => ({ usePathname: () => "/app/research/PRJ-1/questionnaire", useRouter: () => ({ push, replace }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/questionnaire", useRouter: () => ({ push, replace }) }));
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
 const BOOT = { empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6", claude_code_enabled: true } };
@@ -92,7 +93,7 @@ afterEach(() => {
 describe("Dotazník", () => {
   it("offers the three paths with the provider and model, and waits for questions before going on", async () => {
     unitStub(BRIEF);
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" })).toBeTruthy();
     expect(screen.getByText("AI partner · sonnet")).toBeTruthy();
     expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(true);
@@ -105,7 +106,7 @@ describe("Dotazník", () => {
 
   it("draws the preview and the editor, and has no dead 'AI: zlepšit blok' (OI-49)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" })).toBeTruthy();
     expect(screen.getByText("Otázka 1")).toBeTruthy();
     expect(screen.getByText("Sledovaná sada 3 · Sledovaná sada — média")).toBeTruthy();
@@ -116,7 +117,7 @@ describe("Dotazník", () => {
 
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     const card = (await screen.findByText("Q1")).closest("[id^=qedit_]") as HTMLElement;
     const options = within(card).getByLabelText("Možnosti — jedna na řádek");
     fireEvent.blur(options, { target: { value: " Denně \n\nTýdně\nNikdy " } });
@@ -129,7 +130,7 @@ describe("Dotazník", () => {
 
   it("adds a guided question through the classic prompt, and refuses a set of three", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Škála 1–10" }));
     await answerDialog(GUIDED_PROMPT.scale, "Jak moc vám chutná?");
     expect((await screen.findAllByText("Jak moc vám chutná?")).length).toBeGreaterThan(0);
@@ -142,7 +143,7 @@ describe("Dotazník", () => {
 
   it("notes a set under four objects, and removes a block only when confirmed", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     const objects = await screen.findByLabelText("Objekty — jeden na řádek (povinně 4–15)");
     fireEvent.blur(objects, { target: { value: "TV\nRádio" } });
     expect(await screen.findByText(SET_TOO_SMALL)).toBeTruthy();
@@ -157,7 +158,7 @@ describe("Dotazník", () => {
       null,
       { "/api/questionnaire/upload": () => ({ project: { ...EMPTY, ...BRIEF, sections: SECTIONS }, summary: { question_count: 2, tracked_sets: 1 } }) },
     );
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     expect(await screen.findByRole("link", { name: "Stáhnout XLSX šablonu" })).toHaveProperty("href", "http://localhost:3000/api/questionnaire/template");
     fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
     expect(await screen.findByText("Načteno: 2 otázek · 1 sledovaných sad")).toBeTruthy();
@@ -169,7 +170,7 @@ describe("Dotazník", () => {
   it("builds with AI: the brief's analysis reused, then the job, then the editor", async () => {
     const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
     expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" }, { timeout: 4000 })).toBeTruthy();
     expect(posted("/api/research/analyze")).toEqual([]);
@@ -180,7 +181,7 @@ describe("Dotazník", () => {
   it("stops the build at the provider notice when Claude Code is not ready", async () => {
     const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig }, { "/api/providers/claude-code/status": () => ({ ok: false }) });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
     expect(await screen.findByText("Claude Code není připravený. Projekt zůstává uložený.")).toBeTruthy();
     expect(posted("/api/research/build_questionnaire")).toEqual([]);
@@ -188,7 +189,7 @@ describe("Dotazník", () => {
 
   it("optimises without a provider check, as the classic does (OI-55)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/api/providers/claude-code/status": () => ({ ok: false }) });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click((await screen.findAllByRole("button", { name: "OPTIMALIZOVAT DOTAZNÍK S AI" }))[0]);
     expect(await screen.findByText(OPTIMIZE_DONE, {}, { timeout: 4000 })).toBeTruthy();
     expect(posted("/api/providers/claude-code/status")).toEqual([]);
@@ -197,9 +198,9 @@ describe("Dotazník", () => {
 
   it("goes on to the audience at its first choice", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" />);
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Dotazník mám → Koho se ptát" }));
-    expect(push).toHaveBeenCalledWith("/app/research/PRJ-1/audience");
+    expect(push).toHaveBeenCalledWith(stagePath("audience"));
     await saved();
     expect(lastSave()).toMatchObject({ reason: "questionnaire_done", project: { ui_state: { audience_entry: "choose" } } });
   });

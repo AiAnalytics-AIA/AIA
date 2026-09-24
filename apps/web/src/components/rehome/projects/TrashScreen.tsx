@@ -10,7 +10,8 @@ import { unit } from "@/unit/client";
 import { type ProjectRow, parseProjectRows } from "@/unit/projects";
 import { Button, Toast } from "../ui";
 import { Icon } from "../icons";
-import { Shell } from "../Shell";
+import { AppShell } from "../../aia/AppShell";
+import { appRoutes } from "@/lib/app-routes";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -48,12 +49,17 @@ export function TrashScreen() {
   };
 
   return (
-    <Shell
+    <AppShell
+      crumbs={[
+        { label: t("aia.navSettings"), href: appRoutes.settings() },
+        { label: t("aia.settings.classicProjects"), href: appRoutes.classicProjects() },
+        { label: t("projects.trash") },
+      ]}
       title={t("projects.trashTitle")}
       sub={t("projects.trashSub")}
-      actions={
+      action={
         <Link
-          href="/app/projects"
+          href={appRoutes.classicProjects()}
           className="inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-border-strong bg-surface-raised px-3 text-sm font-medium text-ink no-underline hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           <Icon name="back" />
@@ -96,6 +102,6 @@ export function TrashScreen() {
         </div>
       )}
       <Toast message={toast} />
-    </Shell>
+    </AppShell>
   );
 }

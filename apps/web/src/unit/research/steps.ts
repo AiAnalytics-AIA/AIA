@@ -37,6 +37,22 @@ export function isStepKey(x: string): x is StepKey {
   return (STEP_KEYS as readonly string[]).includes(x);
 }
 
+/**
+ * The URL segment of a step under /app/clients/<client>/research/<study>/ (ADR 0015):
+ * the step key, except that the persona step is "dimensions" -- what the
+ * researcher sees it as ("Dimenze"), not the classic router's name for it.
+ */
+export function stepSlug(step: StepKey): string {
+  return step === "persona" ? "dimensions" : step;
+}
+
+/** The step a URL segment names, or null. The classic "persona" is not a URL. */
+export function stepFromSlug(slug: string): StepKey | null {
+  if (slug === "dimensions") return "persona";
+  if (slug === "persona") return null;
+  return isStepKey(slug) ? slug : null;
+}
+
 /** updateTopbarProgress1782: "VÝZKUM · KROK n / 7" on a rail step, "NPC PANEL" elsewhere; how many rail marks are done. */
 export function stepEyebrow(step: StepKey): { text: string; done: number; total: number } {
   const idx = RAIL_STEPS.findIndex((s) => s.key === step);

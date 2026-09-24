@@ -96,7 +96,7 @@ function usePreview() {
 }
 
 export function AudienceStep() {
-  const { store, state, boot } = useResearch();
+  const { store, state, boot, stepHref } = useResearch();
   const router = useRouter();
   const { preview, setPreview, check } = usePreview();
   const p = state.project;
@@ -110,8 +110,7 @@ export function AudienceStep() {
     if (clearPreview) setPreview(null);
   };
   const toPersona = () => {
-    const id = store.get().projectId;
-    if (id) router.push(`/app/research/${encodeURIComponent(id)}/persona`);
+    router.push(stepHref("persona"));
   };
   const backToSource = (
     <Button small variant="quiet" icon="back" onClick={() => apply(setAudienceEntry(store.get().project, "choose"), { clearPreview: true })}>

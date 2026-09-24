@@ -1,15 +1,17 @@
 "use client";
 
-// One research project on one step (ADR 0014, area A4). A ResearchSession
-// loads the bootstrap and the project into one ResearchStore and keeps it, with
-// the page memory the classic interface keeps in globals (the audience preview,
-// the model's dimension proposals), for as long as the person stays in the
-// project: the /app/research/<id> layout holds it, so moving between steps
-// neither reloads the project nor drops a change still waiting to be saved.
-// ResearchScreen draws the step in the shell with the project's steps in the
-// rail; a step not yet rebuilt hands off to the classic interface.
+// One research study on one stage (ADR 0014 area A4, re-homed by ADR 0015). A
+// ResearchSession loads the bootstrap and the study's working content into one
+// ResearchStore and keeps it, with the page memory the classic interface keeps
+// in globals (the audience preview, the model's dimension proposals), for as
+// long as the person stays in the study: the /app/clients/<client>/research/<study>
+// layout holds it, so moving between stages neither reloads nor drops a change
+// still waiting to be saved. Which unit project holds the working content comes
+// from the study's AIA binding (OI-58); a new study's first save binds it.
+// ResearchScreen draws the stage in the AIA shell -- client, study and stage in
+// the breadcrumbs, the study's stages in its own rail -- and a stage not yet
+// rebuilt hands off to the classic interface, explicitly.
 
-import { useRouter } from "next/navigation";
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { classicHref } from "@/lib/interface-handoff";
@@ -19,13 +21,15 @@ import { CANCEL_CONFIRM, JobError, type JobUpdate, cancelJob, runJob as runUnitJ
 import { activeProvider } from "@/unit/research/provider";
 import { type StepKey, stepEyebrow } from "@/unit/research/steps";
 import { type ResearchState, ResearchStore, loadResearch, newResearch } from "@/unit/research/store";
-import { Shell } from "../Shell";
+import { appRoutes } from "@/lib/app-routes";
+import { AppShell } from "../../aia/AppShell";
 import { type Ask, AskDialog, Button, ClassicLink, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
 import { ResearchRail } from "./ResearchRail";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
 import { ResearchContext, type RunJob } from "./context";
+import { type StudyFrame, useStudyFrame } from "./frame";
 import { STEP_SCREENS } from "./steps";
 
 type Loaded =
@@ -39,71 +43,52 @@ const SessionContext = createContext<Session | null>(null);
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-/**
- * A new project's live store, handed from /app/research/new to the session of
- * the id it was just given, so the new route adopts it instead of loading a
- * copy that a change typed during the first save would be missing.
- */
-const handedOver = new Map<string, { store: ResearchStore; boot: BootInfo; memory: Map<string, unknown> }>();
-
-/** The project, loaded once and kept while the person stays in it (the [projectId] layout). */
-export function ResearchSession({ projectId, children }: { projectId: string | null; children: ReactNode }) {
-  const router = useRouter();
+/** The study's working content, loaded once and kept while the person stays in the study (its layout). */
+export function ResearchSession({
+  projectId,
+  onIdAssigned,
+  children,
+}: {
+  projectId: string | null;
+  /** A new study's first save gave its working content an id: bind it (OI-58). */
+  onIdAssigned?: (id: string) => void;
+  children: ReactNode;
+}) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
-  const [memory, setMemory] = useState(() => new Map<string, unknown>());
-  // Read when a new project gets its id, not dependencies of the load: the load
-  // is per project id only, whatever the router object or the path is.
-  const routerRef = useRef(router);
-  const memoryRef = useRef(memory);
+  const [memory] = useState(() => new Map<string, unknown>());
+  // Read when a new project gets its id, not a dependency of the load: the load
+  // is per project id only.
+  const assignedRef = useRef(onIdAssigned);
   useEffect(() => {
-    routerRef.current = router;
-    memoryRef.current = memory;
-  }, [router, memory]);
+    assignedRef.current = onIdAssigned;
+  }, [onIdAssigned]);
 
   useEffect(() => {
     let live = true;
     let store: ResearchStore | null = null;
-    let adopted = false;
-    const taken = projectId ? handedOver.get(projectId) : undefined;
-    if (taken && projectId) {
-      handedOver.delete(projectId);
-      store = taken.store;
-      queueMicrotask(() => {
-        if (!live) return;
-        setMemory(taken.memory);
-        setLoaded({ kind: "ready", store: taken.store, boot: taken.boot });
-      });
-    } else {
-      loadBoot()
-        .then(async (boot): Promise<{ boot: BootInfo; state: ResearchState } | { other: "demo" | "simulation" }> => {
-          if (!projectId) return { boot, state: newResearch(boot) };
-          const r = await loadResearch(projectId, boot);
-          if (r.kind !== "research") return { other: r.kind };
-          return { boot, state: r.state };
-        })
-        .then(
-          (r) => {
-            if (!live) return;
-            if ("other" in r) return setLoaded({ kind: r.other });
-            const s: ResearchStore = new ResearchStore(r.state, r.boot, {
-              onIdAssigned: (id) => {
-                adopted = true;
-                handedOver.set(id, { store: s, boot: r.boot, memory: memoryRef.current });
-                const step = window.location.pathname.split("/").pop() || "brief";
-                routerRef.current.replace(`/app/research/${encodeURIComponent(id)}/${step === "new" ? "brief" : step}`);
-              },
-            });
-            store = s;
-            setLoaded({ kind: "ready", store: s, boot: r.boot });
-          },
-          (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
-        );
-    }
+    loadBoot()
+      .then(async (boot): Promise<{ boot: BootInfo; state: ResearchState } | { other: "demo" | "simulation" }> => {
+        if (!projectId) return { boot, state: newResearch(boot) };
+        const r = await loadResearch(projectId, boot);
+        if (r.kind !== "research") return { other: r.kind };
+        return { boot, state: r.state };
+      })
+      .then(
+        (r) => {
+          if (!live) return;
+          if ("other" in r) return setLoaded({ kind: r.other });
+          const s: ResearchStore = new ResearchStore(r.state, r.boot, {
+            onIdAssigned: (id) => assignedRef.current?.(id),
+          });
+          store = s;
+          setLoaded({ kind: "ready", store: s, boot: r.boot });
+        },
+        (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
+      );
     return () => {
       live = false;
-      // A store handed to the new route is not this session's to close.
-      if (!adopted) store?.dispose();
+      store?.dispose();
     };
   }, [projectId, version]);
 
@@ -111,22 +96,63 @@ export function ResearchSession({ projectId, children }: { projectId: string | n
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
-export function ResearchScreen({ projectId, step }: { projectId: string | null; step: StepKey }) {
+/** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its rail. */
+function StageChrome({ frame, step, status, children }: { frame: StudyFrame; step: StepKey; status?: ReactNode; children: ReactNode }) {
+  const eyebrow = stepEyebrow(step);
+  return (
+    <AppShell
+      crumbs={[
+        { label: t("aia.navClients"), href: appRoutes.clients() },
+        { label: frame.clientName, href: appRoutes.client(frame.clientId) },
+        { label: t("aia.study.crumbResearch"), href: appRoutes.area(frame.clientId, "research") },
+        { label: frame.studyName, href: frame.stepHref("brief") },
+        { label: t(`aia.stages.${step}`) },
+      ]}
+      title={t(`research.steps.${step}.0`)}
+      sub={t(`research.steps.${step}.1`)}
+      eyebrow={
+        eyebrow.total ? (
+          <span className="inline-flex items-center gap-2">
+            {eyebrow.text}
+            <span aria-hidden="true" className="inline-flex gap-0.5">
+              {Array.from({ length: eyebrow.total }, (_, i) => (
+                <i key={i} className={`block h-0.5 w-4 ${i < eyebrow.done ? "bg-signal" : "bg-border"}`} />
+              ))}
+            </span>
+          </span>
+        ) : (
+          t("aia.kind.RESEARCH")
+        )
+      }
+      status={status}
+      aside={<ResearchRail stepHref={frame.stepHref} current={step} studyName={frame.studyName} />}
+    >
+      {frame.notice ? (
+        <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
+      ) : null}
+      {children}
+    </AppShell>
+  );
+}
+
+export function ResearchScreen({ projectId, step, frame: given }: { projectId: string | null; step: StepKey; frame?: StudyFrame }) {
   const session = useContext(SessionContext);
-  // Outside the project's layout (the new-project page, a test), the screen holds its own session.
+  const inherited = useStudyFrame();
+  const frame = given ?? inherited;
+  if (!frame) throw new Error("ResearchScreen outside a study frame");
+  // Outside the study's layout (a test), the screen holds its own session.
   if (!session || session.projectId !== projectId) {
     return (
-      <ResearchSession projectId={projectId}>
-        <ResearchScreen projectId={projectId} step={step} />
+      <ResearchSession projectId={projectId} onIdAssigned={frame.onIdAssigned}>
+        <ResearchScreen projectId={projectId} step={step} frame={frame} />
       </ResearchSession>
     );
   }
   const { loaded } = session;
-  const [title, sub] = [t(`research.steps.${step}.0`), t(`research.steps.${step}.1`)];
 
   if (loaded.kind !== "ready") {
     return (
-      <Shell title={title} sub={sub} eyebrow={stepEyebrow(step).text}>
+      <StageChrome frame={frame} step={step}>
         {loaded.kind === "loading" ? (
           <p className="py-10 text-sm text-ink-muted">{t("research.loading")}</p>
         ) : loaded.kind === "failed" ? (
@@ -145,16 +171,20 @@ export function ResearchScreen({ projectId, step }: { projectId: string | null; 
             ) : null}
           </section>
         )}
-      </Shell>
+      </StageChrome>
     );
   }
-  return <Ready store={loaded.store} boot={loaded.boot} memory={session.memory} step={step} title={title} sub={sub} />;
+  return <Ready store={loaded.store} boot={loaded.boot} memory={session.memory} step={step} frame={frame} />;
 }
 
-function Ready({ store, boot, memory, step, title, sub }: {
-  store: ResearchStore; boot: BootInfo; memory: Map<string, unknown>; step: StepKey; title: string; sub: string;
+function Ready({ store, boot, memory, step, frame }: {
+  store: ResearchStore; boot: BootInfo; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame;
 }) {
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const { onStage, stepHref } = frame;
+  useEffect(() => {
+    onStage?.(step);
+  }, [onStage, step]);
   const [job, setJob] = useState<JobUpdate | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
@@ -223,34 +253,16 @@ function Ready({ store, boot, memory, step, title, sub }: {
     [],
   );
   const value = useMemo(
-    () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt, memory }),
-    [store, boot, runJob, job, confirm, prompt, memory],
+    () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt, memory, stepHref }),
+    [store, boot, runJob, job, confirm, prompt, memory, stepHref],
   );
   const Screen = STEP_SCREENS[step];
-  const eyebrow = stepEyebrow(step);
 
   return (
     <ResearchContext.Provider value={value}>
-      <Shell
-        title={title}
-        sub={sub}
-        eyebrow={
-          <span className="inline-flex items-center gap-2">
-            {eyebrow.text}
-            {eyebrow.total ? (
-              <span aria-hidden="true" className="inline-flex gap-0.5">
-                {Array.from({ length: eyebrow.total }, (_, i) => (
-                  <i key={i} className={`block h-0.5 w-4 ${i < eyebrow.done ? "bg-signal" : "bg-border"}`} />
-                ))}
-              </span>
-            ) : null}
-          </span>
-        }
-        context={<ResearchRail projectId={state.projectId} current={step} />}
-        actions={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} />}
-      >
+      <StageChrome frame={frame} step={step} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} />}>
         {Screen ? <Screen /> : <StepPlaceholder projectId={state.projectId} step={step} />}
-      </Shell>
+      </StageChrome>
       {job ? <JobPanel job={job} onCancel={onCancel} /> : null}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
       <Toast message={toast} />
