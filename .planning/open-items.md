@@ -1874,3 +1874,24 @@ then `/app` moves to a gate that admits any provisioned member, and the unit's o
 owner/admin gate until the unit is out of the stage path.
 
 **Status.** Open; **temporary restriction**, accepted by the data owner for this PR (2026-09-24).
+
+## OI-60 · Finding, fixed · `GET /api/v1/access-audit` always failed
+
+**Claim.** The access-audit route built each response entry from a dict that
+always carries `payload`, into a response model that forbids extra fields and
+had no `payload`, so every call raised a validation error (HTTP 500) once the
+organization had any audit entry — which it has from its first grant.
+
+**Anchor.** `apps/api/src/aia_api/routers/scope.py:160-172,510 @ 8e7a6db`
+(`AuditEntryResponse`, `extra="forbid"`, no `payload`); `application/scope.py:731 @ 8e7a6db`
+(`"payload": dict(r.payload or {})`).
+
+**Reproduction.** `apps/api/tests/test_scope_api.py` ›
+*test_the_access_audit_lists_entries_with_their_payload* (fails at `8e7a6db`).
+
+**Consequence.** The one review surface for break-glass access (`CLIENT_SELF_GRANT`,
+denials) was unusable; nobody noticed because no API test exercised the scope router.
+
+**Fix.** `AuditEntryResponse.payload`, the before/after record the audit exists to show.
+
+**Status.** Fixed on `feature/client-first-ia`.

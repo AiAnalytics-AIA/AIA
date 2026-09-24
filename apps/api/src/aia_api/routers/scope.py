@@ -172,6 +172,8 @@ class AuditEntryResponse(BaseModel):
     actor_id: str | None = None
     role: str | None = None
     reason: str = ""
+    # The structured before/after record a grant writes: what the audit is for.
+    payload: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime | None = None
 
 
