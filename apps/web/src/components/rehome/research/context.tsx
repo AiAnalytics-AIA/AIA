@@ -22,6 +22,9 @@ export type ResearchContextValue = {
   runJob: RunJob;
   job: JobUpdate | null;
   toast: (message: string) => void;
+  /** confirm() and prompt(), with the classic words, as the rebuilt interface's dialog. */
+  confirm: (message: string) => Promise<boolean>;
+  prompt: (message: string, initial?: string) => Promise<string | null>;
 };
 
 export const ResearchContext = createContext<ResearchContextValue | null>(null);

@@ -64,7 +64,8 @@ apps/
                             AI jobs (POST -> job_id, read /api/job) and the ten steps
       testing/legacy.ts     Parity harness: a function's effective binding, run in a Node vm
     src/app/app/research/   /app/research/new and /app/research/<project id>/<step>
-    src/components/rehome/research/  The research frame: rail, save state, job panel, one screen per step
+    src/components/rehome/research/  The research frame: rail, save state, job panel, the shared brief
+                            analysis (useAnalysis), one screen per step
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured

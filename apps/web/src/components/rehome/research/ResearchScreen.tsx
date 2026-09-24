@@ -166,7 +166,15 @@ function Ready({ store, boot, step, title, sub }: { store: ResearchStore; boot: 
       },
     });
 
-  const value = useMemo(() => ({ store, boot, runJob, job, toast: setToast }), [store, boot, runJob, job]);
+  const confirm = useCallback((m: string) => new Promise<boolean>((resolve) => setAsk({ kind: "confirm", message: m, resolve })), []);
+  const prompt = useCallback(
+    (m: string, initial = "") => new Promise<string | null>((resolve) => setAsk({ kind: "prompt", message: m, initial, resolve })),
+    [],
+  );
+  const value = useMemo(
+    () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt }),
+    [store, boot, runJob, job, confirm, prompt],
+  );
   const Screen = STEP_SCREENS[step];
   const eyebrow = stepEyebrow(step);
 

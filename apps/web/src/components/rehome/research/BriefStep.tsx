@@ -9,94 +9,53 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
-import { classicHref } from "@/lib/interface-handoff";
-import { t, tv } from "@/i18n/t";
+import { t } from "@/i18n/t";
 import { unit } from "@/unit/client";
 import {
-  ANALYSIS_JOB_TITLE,
-  ANALYSIS_REUSED,
-  ANALYSIS_WARN_MS,
   ATTACHMENT_TIMEOUT_MS,
-  BRIEF_EMPTY,
   type BriefingField,
   MAX_FILES_PER_PICK,
   type TopField,
   addAttachments,
   addLink,
-  analysisPayload,
   attachmentLine,
-  briefEmpty,
   canAnalyse,
   editBrief,
   fileToBase64,
-  mergeAnalysis,
   removeAttachment,
-  reusableAnalysis,
   titleValue,
   toggleProblemType,
-  withAttachmentContext,
 } from "@/unit/research/brief";
-import { JobError } from "@/unit/research/jobs";
 import { type Attachment, PROBLEM_TYPES, selectedProblemTypes } from "@/unit/research/model";
-import { activeProvider, notReadyMessage, providerReady } from "@/unit/research/provider";
-import { createSupportBundle } from "@/unit/support";
 import { Icon } from "../icons";
-import { Button, ClassicLink, Field, Tag, TextArea, TextInput } from "../ui";
+import { Button, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
+import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 
 const CARD = "rounded-md border border-border bg-surface-raised p-5";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-type Failure = { kind: "analysis"; message: string; jobId: string | null } | { kind: "provider"; message: string };
-
 export function BriefStep() {
-  const { store, boot, state, runJob, toast } = useResearch();
+  const { store, state } = useResearch();
   const router = useRouter();
   const p = state.project;
-  const [failure, setFailure] = useState<Failure | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { analyse: runAnalysis, failure, busy } = useAnalysis();
 
   const edit = (field: TopField | BriefingField, value: string) =>
     store.update(({ project, analysis }) => editBrief(project, analysis, field, value));
 
   // analyzeBrief -> ensureAnalysis1776 -> go('plan').
   const analyse = async () => {
-    setFailure(null);
-    setBusy(true);
-    try {
-      const current = store.get();
-      const withCtx = withAttachmentContext(current.project);
-      if (reusableAnalysis(withCtx, current.analysis)) {
-        if (withCtx.briefing.attachments_context !== current.project.briefing.attachments_context) {
-          store.update(() => ({ project: withCtx }), { reason: "brief_attachments_context", invalidateCheck: false });
-        }
-        toast(ANALYSIS_REUSED);
-      } else {
-        if (briefEmpty(withCtx)) throw new Error(BRIEF_EMPTY);
-        const provider = activeProvider(current.preferredProvider, current.project.run_policy?.provider, boot);
-        if (!(await providerReady(provider, { boot, model: String(current.project.model || "") }))) {
-          setFailure({ kind: "provider", message: notReadyMessage(provider) });
-          return;
-        }
-        // The job is addressed to the saved project: a new or edited brief is saved first.
-        if (!current.projectId || current.save.kind !== "saved") await store.flush();
-        const result = await runJob("researchAnalyze", analysisPayload(withCtx), { title: ANALYSIS_JOB_TITLE, warnMs: ANALYSIS_WARN_MS });
-        store.update(() => mergeAnalysis(withCtx, result, boot), { reason: "ai_analysis_1780" });
-      }
-      const id = store.get().projectId;
-      if (id) router.push(`/app/research/${encodeURIComponent(id)}/plan`);
-    } catch (e) {
-      setFailure({ kind: "analysis", message: message(e), jobId: e instanceof JobError ? e.jobId : null });
-    } finally {
-      setBusy(false);
-    }
+    if (!(await runAnalysis())) return;
+    const id = store.get().projectId;
+    if (id) router.push(`/app/research/${encodeURIComponent(id)}/plan`);
   };
 
   const selected = new Set(selectedProblemTypes(p));
   return (
     <div className="flex max-w-5xl flex-col gap-4">
-      {failure ? <FailureCard failure={failure} onRetry={analyse} /> : null}
+      {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} /> : null}
 
       <section className={CARD} aria-labelledby="brief-what">
         <div className={EYEBROW}>{t("research.brief.quickStart")}</div>
@@ -186,47 +145,6 @@ export function BriefStep() {
         </Button>
       </div>
     </div>
-  );
-}
-
-/** The classic error card, with what failed said in words, or the provider notice. */
-function FailureCard({ failure, onRetry }: { failure: Failure; onRetry: () => void }) {
-  const { toast } = useResearch();
-  if (failure.kind === "provider") {
-    return (
-      <section role="alert" className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-5">
-        <p className="flex items-center gap-2 text-sm font-semibold text-status-you-ink">
-          <Icon name="you" size={14} />
-          {failure.message}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button onClick={onRetry}>{t("research.retry")}</Button>
-          <ClassicLink href={classicHref({ go: "settings" })}>{t("research.openSettings")}</ClassicLink>
-        </div>
-      </section>
-    );
-  }
-  const diagnostics = () =>
-    createSupportBundle(failure.jobId).then(
-      (url) => {
-        toast(t("research.supportCreated"));
-        window.location.href = url;
-      },
-      (e: unknown) => toast(tv("research.supportFailed", { message: message(e) })),
-    );
-  return (
-    <section role="alert" className="rounded-md border border-status-fault/40 bg-status-fault-wash p-5">
-      <h2 className="flex items-center gap-2 font-semibold text-status-fault">
-        <Icon name="fault" size={14} />
-        {t("research.brief.failedTitle")}
-      </h2>
-      <p className="mt-1 text-sm text-ink">{t("research.brief.failedSub")}</p>
-      {failure.message ? <p className="mt-1 text-xs text-ink-muted">{failure.message}</p> : null}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="primary" onClick={onRetry}>{t("research.retry")}</Button>
-        <Button onClick={() => void diagnostics()}>{t("research.diagnostics")}</Button>
-      </div>
-    </section>
   );
 }
 
