@@ -104,8 +104,8 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 
 | # | Chunk | PR | Status |
 |---|---|---|---|
-| 0 | This plan; OI-47, OI-48 | A | in progress |
-| 1 | Foundation: research routes (+ the ledger addendum for OI-48), the model and `defaultsMerge` / `briefFingerprint1780` ports, the project store with visible save state, the job runner and panel, the research rail and `/app/research/<id>/<step>`, the `open@step` hand-off, the workbench fixture project | A | pending |
+| 0 | This plan; OI-47, OI-48 | A | done @ `3c5bd21`, `b3fd59f` |
+| 1 | Foundation: research routes (+ the ledger addendum for OI-48), the model and `defaultsMerge` / `briefFingerprint1780` ports, the project store with visible save state, the job runner and panel, the research rail and `/app/research/<id>/<step>`, the `open@step` hand-off, the workbench fixture project | A | done — see below |
 | 2 | brief: problem types, title, goal, attachments and links, further context, AI analysis | A | pending |
 | 3 | plan: variants, understanding, objectives, hypotheses, comparable sets, questions for the user, text-selection comments | A | pending |
 | 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | pending |
@@ -117,6 +117,36 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | 10 | next: ideal group from results, manual propensity, child project | D | pending |
 | 11 | verify: its intended screen against `/api/results/verify` and `contextual_scenario`, which the classic interface never draws (OI-47) — **new behaviour**, shown to the data owner before it merges | D | pending |
 | 12 | Switch-over: Projects opens research projects in `/app`, every A4 ledger row `REBUILT`, the capture of all ten | D | pending |
+
+### Chunk 1 — what landed
+
+- **Routes.** `src/unit/routes.ts`: the research, job and workflow routes, each a
+  ledger row; id-addressed routes (`POST /api/jobs/{id}/cancel`) as
+  `{route, path(id)}`, the id escaped (`routes.test.ts`). The ledger's
+  `addenda` hold OI-48's four set arms
+  (`test_the_addenda_are_exactly_the_set_arms_the_reference_missed`).
+- **The effective binding.** `tools/ui_functions.py effective <name>` prints the
+  binding that runs, not the dead declaration; the parity harness
+  (`src/unit/testing/legacy.ts`) evaluates it under Node.
+- **Model.** `src/unit/research/model.ts`: `defaultsMerge`, `PROBLEM_TYPES`
+  (final splice @495760), `selectedProblemTypes`, `briefFingerprint`
+  (`model.parity.test.ts`, 16 checks).
+- **Store.** `src/unit/research/store.ts`: load (demo and simulation kept out),
+  the classic save body at 1.8 s, a change made during a save stays pending,
+  a failed save is a visible state (`store.test.ts`).
+- **Jobs.** `src/unit/research/jobs.ts`: payload, meta line, outcome wording,
+  one job at a time, cancel with the classic body (`jobs.test.ts`, parity on
+  `fmtTime`, `usualRange`, the payload and the meta line).
+- **Frame.** `/app/research/new` and `/app/research/<id>/<step>`; the rail of
+  seven steps, the eyebrow and done marks (`steps.parity.test.ts` against
+  `RESEARCH_STEPS` and `updateTopbarProgress1782`), the save indicator, the job
+  panel (cancel armed after 5 s). A step not yet rebuilt says so and hands off
+  with `#aia:open=<id>@<route>` (`ResearchScreen.test.tsx`).
+- **Workbench.** `make ui-fixtures` writes two fictional projects (`empty`,
+  `planned`) through `POST /api/projects/save`.
+
+100 tests across the seven files; seen in the workbench at
+`/app/research/<id>/questionnaire` (eyebrow *VÝZKUM · KROK 3 / 7*, *Uloženo*).
 
 ## Deliberate differences (added to as chunks land)
 

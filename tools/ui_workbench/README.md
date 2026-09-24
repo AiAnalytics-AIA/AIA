@@ -8,6 +8,7 @@ them (ADR 0014), and a capture of every screen. Plan:
 ```bash
 make ui-workbench          # start, or confirm running
 make ui-capture            # screenshot every screen -> tmp/ui-workbench/shots/<time>/index.html
+make ui-fixtures           # the fictional research projects; prints their /app links
 make ui-workbench-status
 make ui-workbench-down
 python3 tools/ui_workbench/workbench.py up --fresh   # also reset the unit's state
@@ -37,6 +38,22 @@ value is invented. **Nothing it shows is data, and it is never used for parity**
 — that is `tools/legacy_oracle.py` against the running unit (ADR 0011). Screens
 that need the real panel show their empty states. The DEMO library ships in
 `app/` and fills the project screens.
+
+## Fixture research projects
+
+The workbench never calls a model, so a research step that shows an AI answer
+(the plan's understanding, a built questionnaire, a proposed audience) is seen
+from a project that already holds one. `make ui-fixtures`
+(`fixture_project.py`) writes them through the unit's own
+`POST /api/projects/save`, with the classic save's body; their ids are kept in
+`tmp/ui-workbench/fixtures.json`, so a second run updates the same projects.
+Every word is written in the script and fictional. The projects grow as the
+research chunks land ([research-flow-rehome.md](../../.planning/plans/research-flow-rehome.md)):
+
+| Key | Holds | For |
+|---|---|---|
+| `empty` | nothing but a title | Zadání as a new project sees it |
+| `planned` | brief + the plan's analysis (two comparable sets, questions for the user) | Zadání, Návrh |
 
 ## Requirements
 
