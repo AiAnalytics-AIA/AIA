@@ -164,3 +164,29 @@ contracts and start when those are agreed.
   **Weight 600 maps to its own face** ("Source Serif 4 Semibold", "IBM Plex Sans
   SmBld"), because Word has no weight axis and the fonts' Reserved Font Names
   forbid renaming a face into another family.
+
+- **R2 — fonts and embedding.** Twelve upstream TTFs are vendored unmodified in
+  `infrastructure/report_docx/fonts/`, 2.6 MB:
+  - Source Serif 4: Regular, It, Bold, BoldIt, Semibold, Display Semibold.
+  - IBM Plex Sans: Regular, Italic, Bold, BoldItalic, SemiBold.
+  - IBM Plex Mono: Regular.
+
+  Their provenance, tarball hashes and licences are in the fonts' README, and
+  every file is pinned in SHA256SUMS. `embed.py` implements ECMA-376 §17.8.1
+  obfuscation with keys derived from each file's SHA-256, so the output is
+  byte-reproducible. It inserts `w:embedTrueTypeFonts` in schema order.
+
+  python-docx is the new `report` extra, installed by `make deps` and every CI
+  job that collects the test tree. The security audit covers it, and
+  `types-lxml` is in dev. `layer_check` gains "domain imports no document, XML
+  or plotting library", now 59 rules.
+
+  Tests: `test_report_fonts.py`, 16 tests. They cover checksums, that the
+  vendored set equals `print_tokens.FONTS`, and that each file's family name
+  equals the Word name with `fsType` 0 and TrueType outlines. They also cover
+  the standard's key order, and that the embedded parts de-obfuscate back to the
+  vendored bytes.
+
+  The prototype rendered them in LibreOffice with no fonts installed. The
+  automated render check is R9.
+

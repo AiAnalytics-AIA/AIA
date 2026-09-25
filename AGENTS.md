@@ -694,6 +694,49 @@ handle / {
 }
 ```
 
+## DOCX (python-docx) and embedded fonts
+
+**Word embeds only TrueType or OpenType, never WOFF2.** The web client's fonts are
+WOFF2, so the report vendors the upstream TTFs of the same releases
+(`infrastructure/report_docx/fonts/`). Converting WOFF2 to TTF would be a
+modification of an OFL font, and both families reserve their names.
+
+**An embedded face is matched by its family name (`name` ID 1).** A weight with
+no Bold slot in its family, such as Plex's SemiBold (`IBM Plex Sans SmBld`) or
+Source Serif's Semibold, is its own Word font. Ask for it by that name, not as
+"bold".
+
+```python
+# wrong — Word synthesises bold from Regular, which is 700, not the design's 600
+run.font.name = "IBM Plex Sans"; run.bold = True
+# right — the face the file actually declares
+run.font.name = "IBM Plex Sans SmBld"; run.bold = False
+```
+
+**Word's built-in styles carry theme-font attributes that override an explicit
+font.** `Heading 1`, `Title` and others set `w:asciiTheme="majorHAnsi"`. With it
+present, `w:ascii="IBM Plex Sans SmBld"` is ignored, and the heading renders in
+the theme font (in LibreOffice, DejaVu). Found by a prototype: body text embedded
+correctly while every heading fell back.
+
+```python
+# wrong — python-docx sets w:ascii, but w:asciiTheme still wins
+style.font.name = "IBM Plex Sans SmBld"
+# right — strip the theme attributes first
+for a in ("w:asciiTheme", "w:hAnsiTheme", "w:cstheme", "w:eastAsiaTheme"):
+    rfonts.attrib.pop(qn(a), None)
+```
+
+**Word enforces schema order in `settings.xml`; LibreOffice does not.** A file
+LibreOffice opens can still be one Word calls corrupt. Insert settings children
+in `CT_Settings` order (`embed._insert_in_order`), and never append them.
+
+**Verifying a DOCX by eye needs LibreOffice Writer, not just its core.** A
+container with `libreoffice-core` alone answers every conversion with "source
+file could not be loaded", even for a document python-docx wrote itself. Install
+`libreoffice-writer` (and `poppler-utils` for `pdftoppm`). It is a verification
+tool, never a runtime dependency.
+
 ## CI contracts
 
 **A contract assertion that outlives the contract is worse than none.** CI

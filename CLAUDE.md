@@ -179,6 +179,9 @@ packages/aia_core/src/aia_core/
                             found only through the Study; research_artifacts, the ONLY reader
     develop_seed.py         The synthetic develop world, through the same paths the API uses
   infrastructure/
+    report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
+      embed.py              ECMA-376 obfuscated font embedding; deterministic keys
+      fonts/                Upstream TTFs, unmodified, with licences + SHA256SUMS
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
     repositories.py         ProjectRepository (owner= in its isolation predicate)
