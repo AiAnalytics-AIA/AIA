@@ -11,16 +11,18 @@ pointed at another run's, or another Study's, artifact.
 
 **Fieldwork is a boundary.** :class:`FieldworkExecutor` produces a dataset from the
 source the run recorded at creation, and only from a source its composition was
-given. The production composition gives it none: the AI respondent engine is not
-deployed, so the step parks the run (``RUNTIME_UNAVAILABLE``) and nothing
-downstream runs. The fictional synthetic source exists only in
-``aia_executors.workbench``.
+given. ``ai_runtime`` is produced by the AI respondent engine
+(:class:`~aia_executors.ai_fieldwork.AIFieldwork`) when the composition built one
+-- only when the AI runtime is configured (``AIA_AI_RUNTIME_ENABLED``) -- and parks
+the run (``RUNTIME_UNAVAILABLE``) otherwise, or when the gateway refuses its
+material; nothing downstream runs while it waits. The fictional synthetic source
+exists only in ``aia_executors.workbench``.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import Any, Final
+from typing import Any, Final, Protocol
 
 from aia_core.application.research import research_artifacts
 from aia_core.domain.fieldwork import (
@@ -48,11 +50,14 @@ from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from sqlalchemy.orm import Session
 
+from .ai_fieldwork import ProducedDataset
+
 __all__ = [
     "FIELDWORK_DATASET",
     "READINESS",
     "SOCIOMAP",
     "SPECIFICATION",
+    "AIDatasetProducer",
     "AggregateExecutor",
     "CompileExecutor",
     "DatasetProducer",
@@ -71,6 +76,15 @@ FIELDWORK_DATASET: Final = "research_fieldwork_dataset"
 
 #: What a fieldwork source is, to the executor: the specification in, a dataset out.
 DatasetProducer = Callable[[ResearchSpecification], FieldworkDataset]
+
+
+class AIDatasetProducer(Protocol):
+    """The ``ai_runtime`` source: it needs the attempt's context, to meter and ledger calls."""
+
+    def produce(
+        self, spec: ResearchSpecification, step: StepInput, context: StepContext
+    ) -> ProducedDataset | Failed: ...
+
 
 _RUNTIME_UNAVAILABLE_MESSAGE: Final = (
     "AI respondenti zatím nejsou nasazeni. Běh čeká u sběru dat; nic nebylo vymyšleno "
@@ -246,10 +260,12 @@ class PreflightExecutor(_Step):
 class FieldworkExecutor(_Step):
     """Produce the run's fieldwork dataset from its recorded source, or park.
 
-    ``producers`` are the sources this composition provides. ``AI_RUNTIME`` is never
-    one of them in PR C: the step parks. A run recorded with a source the
-    composition does not provide fails permanently rather than being given
-    another source's data.
+    ``producers`` are the deterministic sources this composition provides (only the
+    workbench gives one, the fictional fixture); ``ai_runtime`` is the AI respondent
+    engine, when the composition built one. A run whose recorded source is
+    ``ai_runtime`` is **never** given another source's data: with no engine it parks,
+    and the synthetic fixture cannot be registered for it. A run recorded with a
+    source the composition does not provide fails permanently.
     """
 
     def __init__(
@@ -258,11 +274,13 @@ class FieldworkExecutor(_Step):
         store: ArtifactStore,
         build: BuildIdentity,
         producers: Mapping[FieldworkSource, DatasetProducer] | None = None,
+        ai_runtime: AIDatasetProducer | None = None,
     ) -> None:
         super().__init__(store=store, build=build)
         self._producers = dict(producers or {})
         if FieldworkSource.AI_RUNTIME in self._producers:
-            raise ValueError("the AI runtime is not a dataset producer in this composition")
+            raise ValueError("the AI runtime is not a dataset producer; pass it as ai_runtime")
+        self._ai = ai_runtime
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
@@ -275,13 +293,13 @@ class FieldworkExecutor(_Step):
                     "message": f"unknown fieldwork source {step.payload.get('fieldwork_source')!r}"
                 },
             )
-        if source is FieldworkSource.AI_RUNTIME:
+        if source is FieldworkSource.AI_RUNTIME and self._ai is None:
             return Failed(
                 FailureClass.RUNTIME_UNAVAILABLE,
                 error={"message": _RUNTIME_UNAVAILABLE_MESSAGE, "source": source.value},
             )
         producer = self._producers.get(source)
-        if producer is None:
+        if source is not FieldworkSource.AI_RUNTIME and producer is None:
             return Failed(
                 FailureClass.MISSING_CONFIGURATION,
                 error={
@@ -297,27 +315,46 @@ class FieldworkExecutor(_Step):
                 return _missing_upstream("compile")
             repo = _artifacts(session, context, self._store)
             spec = _read_spec(repo, spec_id)
-        dataset = producer(spec)
+
+        provenance: dict[str, Any] | None = None
+        if source is FieldworkSource.AI_RUNTIME:
+            assert self._ai is not None
+            produced = self._ai.produce(spec, step, context)
+            if isinstance(produced, Failed):
+                return produced
+            dataset, provenance = produced.dataset, produced.provenance
+        else:
+            assert producer is not None
+            dataset = producer(spec)
         try:
             validate_dataset(spec, dataset)
         except InvalidDataset as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
         origin = dataset.origin.value if dataset.origin else None
+        fingerprint_inputs: dict[str, Any] = {
+            "spec": spec.fingerprint(),
+            "source": source.value,
+            "generator": dataset.generator,
+            "seed": dataset.seed,
+        }
+        if provenance is not None:
+            # A model's answers are not a function of the inputs: every attempt's
+            # dataset is its own artifact, never "reused" over another attempt's.
+            fingerprint_inputs["attempt"] = step.attempt_id
+        payload: dict[str, Any] = {
+            "kind": FIELDWORK_DATASET,
+            "dataset": dataset.model_dump(mode="json"),
+        }
+        if provenance is not None:
+            payload["provenance"] = provenance
         context.checkpoint()
         with context.transaction() as (session, _workflow):
             artifact, created = self._put(
                 _artifacts(session, context, self._store),
                 step,
-                payload={"kind": FIELDWORK_DATASET, "dataset": dataset.model_dump(mode="json")},
+                payload=payload,
                 artifact_type=FIELDWORK_DATASET,
-                input_fingerprint=fingerprint(
-                    {
-                        "spec": spec.fingerprint(),
-                        "source": source.value,
-                        "generator": dataset.generator,
-                        "seed": dataset.seed,
-                    }
-                ),
+                input_fingerprint=fingerprint(fingerprint_inputs),
                 depends_on=[spec_id],
                 metadata={"data_origin": origin, "fieldwork_source": source.value},
             )
@@ -447,12 +484,16 @@ def research_registry(
     store: ArtifactStore,
     build: BuildIdentity,
     producers: Mapping[FieldworkSource, DatasetProducer] | None = None,
+    ai_runtime: AIDatasetProducer | None = None,
 ) -> dict[str, Any]:
-    """The research step kinds -> executors. ``producers`` only from the workbench."""
+    """The research step kinds -> executors. ``producers`` only from the workbench;
+    ``ai_runtime`` only from a composition whose AI runtime is configured."""
     return {
         RESEARCH_KINDS["compile"]: CompileExecutor(store=store, build=build),
         RESEARCH_KINDS["preflight"]: PreflightExecutor(store=store, build=build),
-        RESEARCH_KINDS["run"]: FieldworkExecutor(store=store, build=build, producers=producers),
+        RESEARCH_KINDS["run"]: FieldworkExecutor(
+            store=store, build=build, producers=producers, ai_runtime=ai_runtime
+        ),
         RESEARCH_KINDS["aggregate"]: AggregateExecutor(store=store, build=build),
         RESEARCH_KINDS["sociomap"]: SociomapExecutor(store=store, build=build),
     }
