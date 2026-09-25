@@ -1,6 +1,6 @@
 # PR C — Research execution: Run → Progress → Results, under the client
 
-**Status:** in progress on `feature/research-execution` (from `develop` @ `4ad5f66`, PR #51 merged).
+**Status:** merged as PR #52 into `develop` at `b3bd42f`. The deployed Research run still parks at AI fieldwork; the Agent Runtime is a separate next slice.
 **Decided by:** the data owner, 2026-09-25 (D1–D3 and design ingestion below; D3′, D6′, D11′ and DI′ the same day).
 **Follows:** [client-first-ia.md](client-first-ia.md) (ADR 0015) · research-flow-rehome chunks 7–9 are
 replaced by this plan · **precedes** the Agent Runtime Foundation (Study → AgentRun → AIA
