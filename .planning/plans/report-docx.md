@@ -148,4 +148,19 @@ contracts and start when those are agreed.
 
 ## Chunk log
 
-(Entries are added as chunks land.)
+- **R1 — print tokens.** `tokens.json` gains a `print` section: A4 geometry, the
+  weight → Word-font map (`faces`) and the print palette. The Deliverable group
+  gains print metrics in points on its 7 styles and 10 print-only styles
+  (subtitle, kicker, h3, meta, running, table, table-head, kpi, quote, mono), 17
+  in all. There is a new `doc-wash` colour for callout grounds.
+  `build-tokens.mjs` emits `domain/report/print_tokens.py` (stdlib-only
+  dataclasses), and `tokens:check` fails on drift.
+  Tests: `test_report_print_tokens.py`, 7 tests. They check that every style
+  resolves to an embeddable font, the 7.5 pt legibility floor, headings in real
+  semibold faces rather than synthetic bold, A4, and that the module is
+  stdlib-only.
+  `check:design` now runs 170 contrast checks with 0 failures; there are 3 new
+  `doc-wash` pairs.
+  **Weight 600 maps to its own face** ("Source Serif 4 Semibold", "IBM Plex Sans
+  SmBld"), because Word has no weight axis and the fonts' Reserved Font Names
+  forbid renaming a face into another family.
