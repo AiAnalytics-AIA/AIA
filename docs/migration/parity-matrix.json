@@ -3194,7 +3194,8 @@
    "parity_owner": "parity-quality",
    "implementation_state": "PARTIAL",
    "implementation": [
-    "packages/aia_core/src/aia_core/domain/sociomap/"
+    "packages/aia_core/src/aia_core/domain/sociomap/",
+    "packages/aia_core/src/aia_core/domain/research_sociomap.py"
    ],
    "reference_modules": [
     "segment_intelligence.py",
@@ -3329,6 +3330,14 @@
       "packages/aia_core/tests/test_legacy_ui_functions.py::test_u02_unknown_metric_id_is_reference_behaviour_that_aia_refuses",
       "packages/aia_core/tests/test_legacy_ui_functions.py::test_u02_a_missing_rating_is_zero_in_the_reference_and_null_here"
      ]
+    },
+    {
+     "id": "sociomapping.core/relation-unit-capture",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_research_sociomap.py"
+     ]
     }
    ],
    "recorded_evidence": [
@@ -3362,7 +3371,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-10)."
    },
-   "notes": "Relations, metrics, terrain, an AIA-declared layout and the artifact/view contracts are ported (docs/architecture/sociomapa-deterministic-engine.md). Not at parity: the layout (F4 refused, OI-13; R branch refused, OI-15), the object-map base layout (F8 partial, OI-14), and the Sociomapa modes (segments, comparison, object manager). The AIA declarations await methodology sign-off (OI-16, D6)."
+   "notes": "Relations, metrics, terrain, an AIA-declared layout and the artifact/view contracts are ported (docs/architecture/sociomapa-deterministic-engine.md). Not at parity: the layout (F4 refused, OI-13; R branch refused, OI-15), the object-map base layout (F8 partial, OI-14), and the Sociomapa modes (segments, comparison, object manager). The AIA declarations await methodology sign-off (OI-16, D6). PR C chunk 6: sociomap.py derive_relation_matrix ported (domain/research_sociomap.py), exact against a capture of the unit (fixtures/research_sociomap); a research run's map is compute_sociomap under AIA_SOCIOMAP_V1 and INTERNAL_ONLY while D6 is open."
   },
   "sociomapping.study_module": {
    "family": "sociomapping",

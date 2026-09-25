@@ -1611,7 +1611,7 @@
       "module": "sociomap.py",
       "loc": 565,
       "docstring": "Auditovatelná preference mapa a segmentace pro modul VÝZKUM. Primární kontrakt specifikuje row-conditional multidimensional unfolding přes R `smacof::unfolding`. Runtime proto umí dvě cesty: - `method",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "drop",

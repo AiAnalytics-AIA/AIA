@@ -28,7 +28,13 @@ from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_executors import workbench
 from aia_executors.registry import registry_for
-from aia_executors.research import AGGREGATE, FIELDWORK_DATASET, READINESS, SPECIFICATION
+from aia_executors.research import (
+    AGGREGATE,
+    FIELDWORK_DATASET,
+    READINESS,
+    SOCIOMAP,
+    SPECIFICATION,
+)
 from aia_worker.executor import StepExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
@@ -167,7 +173,8 @@ def test_the_workbench_produces_a_fictional_dataset_that_says_so(
 ) -> None:
     run_id = _start(world, FieldworkSource.SYNTHETIC_FIXTURE)
     worker = worker_with(workbench.workbench_registry_for(store=store, build=build))
-    assert _drain(worker) == ["completed", "completed", "completed", "completed"]
+    assert _drain(worker) == ["completed"] * 5
+    assert _run(world, run_id)["status"] is WorkflowRunStatus.COMPLETED
 
     steps = _steps(_run(world, run_id))
     output = steps["run"]["output"]
@@ -204,6 +211,18 @@ def test_the_workbench_produces_a_fictional_dataset_that_says_so(
         "dzus",
         "voda",
     }
+
+    # The Sociomap was computed, and is internal only while D6 is open.
+    sociomap_out = steps["sociomap"]["output"]
+    assert sociomap_out["artifact_type"] == SOCIOMAP
+    assert sociomap_out["methodology_status"] == "INTERNAL_ONLY"
+    assert sociomap_out["data_origin"] == "SYNTHETIC_FIXTURE"
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        sociomap = research.read_json(sociomap_out["artifact_id"])["sociomap"]
+    (battery,) = sociomap["batteries"]
+    assert battery["methodology_status"] == "INTERNAL_ONLY"
+    assert battery["sociomap"]["kind"] == "sociomap"
 
 
 def test_a_worker_never_substitutes_a_source_it_does_not_provide(

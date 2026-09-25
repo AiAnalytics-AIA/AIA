@@ -36,6 +36,8 @@ from aia_core.domain.research_design import (
     assess_readiness,
     compile_design,
 )
+from aia_core.domain.research_sociomap import SOCIOMAP_VERSION, research_sociomaps
+from aia_core.domain.sociomap import AIA_SOCIOMAP_V1
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_KINDS
 from aia_core.infrastructure.artifact_repository import ArtifactRepository
@@ -49,17 +51,20 @@ from sqlalchemy.orm import Session
 __all__ = [
     "FIELDWORK_DATASET",
     "READINESS",
+    "SOCIOMAP",
     "SPECIFICATION",
     "AggregateExecutor",
     "CompileExecutor",
     "DatasetProducer",
     "FieldworkExecutor",
     "PreflightExecutor",
+    "SociomapExecutor",
     "research_registry",
     "upstream_artifact",
 ]
 
 AGGREGATE: Final = "research_aggregate"
+SOCIOMAP: Final = "research_sociomap"
 SPECIFICATION: Final = "research_specification"
 READINESS: Final = "research_readiness"
 FIELDWORK_DATASET: Final = "research_fieldwork_dataset"
@@ -383,6 +388,60 @@ class AggregateExecutor(_Step):
         return _produced(step, artifact, created, AGGREGATE, data_origin=origin)
 
 
+class SociomapExecutor(_Step):
+    """Each tracked set's relation matrix and Sociomap: stored, and INTERNAL_ONLY (chunk 6)."""
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        context.checkpoint()
+        with context.transaction() as (session, workflow):
+            spec_id = upstream_artifact(workflow, step, "compile")
+            dataset_id = upstream_artifact(workflow, step, "run")
+            if spec_id is None:
+                return _missing_upstream("compile")
+            if dataset_id is None:
+                return _missing_upstream("run")
+            repo = _artifacts(session, context, self._store)
+            spec = _read_spec(repo, spec_id)
+            dataset = _read_dataset(repo, dataset_id)
+            dataset_sha = repo.get(dataset_id).sha256
+        try:
+            validate_dataset(spec, dataset)
+        except InvalidDataset as exc:
+            return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
+        result = research_sociomaps(spec, dataset)
+        context.checkpoint()
+        origin = result["data_origin"]
+        with context.transaction() as (session, _workflow):
+            artifact, created = self._put(
+                _artifacts(session, context, self._store),
+                step,
+                payload={"kind": SOCIOMAP, "sociomap": result},
+                artifact_type=SOCIOMAP,
+                input_fingerprint=fingerprint(
+                    {
+                        "dataset": dataset_sha,
+                        "sociomap": SOCIOMAP_VERSION,
+                        "preset": AIA_SOCIOMAP_V1.fingerprint(),
+                        "spec": spec.fingerprint(),
+                    }
+                ),
+                depends_on=[spec_id, dataset_id],
+                metadata={
+                    "data_origin": origin,
+                    "methodology_status": result["methodology_status"],
+                },
+            )
+        context.progress("Sociomapa spočtena (interní)", artifact_id=artifact.artifact_id)
+        return _produced(
+            step,
+            artifact,
+            created,
+            SOCIOMAP,
+            data_origin=origin,
+            methodology_status=result["methodology_status"],
+        )
+
+
 def research_registry(
     *,
     store: ArtifactStore,
@@ -395,4 +454,5 @@ def research_registry(
         RESEARCH_KINDS["preflight"]: PreflightExecutor(store=store, build=build),
         RESEARCH_KINDS["run"]: FieldworkExecutor(store=store, build=build, producers=producers),
         RESEARCH_KINDS["aggregate"]: AggregateExecutor(store=store, build=build),
+        RESEARCH_KINDS["sociomap"]: SociomapExecutor(store=store, build=build),
     }

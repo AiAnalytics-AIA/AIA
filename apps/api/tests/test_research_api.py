@@ -425,7 +425,7 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
 
 
 def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
-    app: FastAPI, researcher: TestClient, world: Any, projects_url: Any
+    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any, projects_url: Any
 ) -> None:
     """Regression (ADR 0016 chunk 4): the generic artifact route served them.
 
@@ -455,8 +455,21 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     assert dataset.status_code == 200
     assert dataset.json()["payload"] is None, "respondent rows are never inlined"
 
+    # The full fictional chain completed: aggregate, and an INTERNAL_ONLY Sociomap.
+    assert run["status"] == "COMPLETED" and run["phase"] == "COMPLETED"
+    aggregate_id, sociomap_id = steps["aggregate"]["artifact_id"], steps["sociomap"]["artifact_id"]
+    aggregate = viewer.get(f"{_runs(world)}/{run_id}/artifacts/{aggregate_id}")
+    assert aggregate.status_code == 200
+    assert aggregate.json()["payload"]["aggregate"]["data_origin"] == "SYNTHETIC_FIXTURE"
+    sociomap = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
+    assert sociomap.status_code == 200
+    assert sociomap.json()["payload"]["sociomap"]["methodology_status"] == "INTERNAL_ONLY"
+    # INTERNAL_ONLY while D6 is open: a viewer of the Study may not see it.
+    hidden = viewer.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
+    assert hidden.status_code == 403 and hidden.json()["code"] == "insufficient_role"
+
     with create_session_factory(app.state.engine)() as session:
         design_project = session.scalars(select(ProjectRow.project_id)).one()
-    for artifact_id in (spec_id, dataset_id):
+    for artifact_id in (spec_id, dataset_id, aggregate_id, sociomap_id):
         generic = researcher.get(f"{projects_url()}/{design_project}/artifacts/{artifact_id}")
         assert generic.status_code == 404

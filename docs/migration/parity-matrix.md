@@ -104,7 +104,7 @@ job's summary in CI.
 | `runtime.desktop` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `simulation.engine` | A7 simulation-engine | PARTIAL | NUMERICAL | `1e-09` | F13 | production_contract x1 | — | no |
 | `simulation.scenarios` | A7 simulation-engine | PARTIAL | EXACT | — | — | production_contract x1 | — | no |
-| `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12, U01, U02, U03, U04, U05, U06, U07 | golden_fixture x9, production_contract x2 | R16 | yes |
+| `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12, U01, U02, U03, U04, U05, U06, U07 | golden_fixture x9, production_contract x3 | R16 | yes |
 | `sociomapping.study_module` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-12` | F3 | golden_fixture x1 | — | yes |
 | `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
 | `statistics.diagnostics` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |

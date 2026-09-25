@@ -91,8 +91,10 @@ model provider (`open-decisions.md` D3).
 6. **Sociomap integration is not Sociomap exposure.** The research run computes a Sociomap with the
    deterministic engine and stores it as an artifact carrying its methodology status. While
    PROGRESS D6 (the four AIA declarations) is open that status is `INTERNAL_ONLY`: the Study's
-   researchers can inspect it, and no client-facing surface, export or report renders it. D6 gates
-   exposure, not the integration seam.
+   researchers (`EDIT_STUDY`) can inspect it, and no client-facing surface, export or report renders
+   it -- each must call `research_sociomap.require_client_facing`, which refuses. D6 gates exposure,
+   not the integration seam. The relation matrix is the unit's (`derive_relation_matrix`, exact);
+   the layout is AIA's engine under `AIA_SOCIOMAP_V1`, which is exactly what D6 decides.
 
 7. **The execution API is Study-scoped.** Under `/api/v1/studies/{study_id}/`:
    `design/revisions` (submit, list, get), `research/readiness` (compile a revision and run AIA's

@@ -57,6 +57,10 @@ _INLINE_PAYLOAD_LIMIT = 1024 * 1024
 # results screens read what was computed from it, not the rows (ADR 0016).
 _NEVER_INLINED = frozenset({"research_fieldwork_dataset"})
 
+# INTERNAL_ONLY while PROGRESS D6 is open (ADR 0016 decision 6): the Study's own
+# researchers may inspect it; a viewer or reviewer may not.
+_RESEARCHERS_ONLY = frozenset({"research_sociomap"})
+
 
 # --------------------------------------------------------------------------- #
 # Schemas
@@ -587,6 +591,11 @@ def run_artifact(
         artifact = repo.get(artifact_id)
     except ArtifactNotFound as exc:  # pragma: no cover - a step output names a stored artifact
         raise _not_found("artifact") from exc
+    if artifact.artifact_type in _RESEARCHERS_ONLY:
+        try:
+            scope.require(Permission.EDIT_STUDY)
+        except ScopeDenied as exc:
+            raise _refused(exc) from exc
     payload: Any = None
     if (
         artifact.content_type == "application/json"

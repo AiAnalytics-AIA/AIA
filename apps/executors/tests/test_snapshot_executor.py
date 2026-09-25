@@ -26,10 +26,8 @@ from aia_worker.registry import load_executors
 from aia_worker.worker import Worker
 from sqlalchemy.orm import Session, sessionmaker
 
-# The research steps with an executor so far (ADR 0016; PR C adds the rest by chunk).
-PRODUCTION_RESEARCH_KINDS = [
-    RESEARCH_KINDS[n] for n in ("compile", "preflight", "run", "aggregate")
-]
+# Every research step has an executor (ADR 0016).
+PRODUCTION_RESEARCH_KINDS = list(RESEARCH_KINDS.values())
 
 
 def _start(world: Any, **kwargs: Any) -> str:

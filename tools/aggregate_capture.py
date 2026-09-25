@@ -18,7 +18,10 @@ the unit needs NumPy and pandas:
         ``dotaznik.agreguj_otazku`` on every question and battery object of each
         case, and -- for every interval bound it reports -- the same bootstrap call
         at ``--seeds`` seeds; write <id>.json beside the cases, and index.json
-        pinning every file and the unit sources it was captured from.
+        pinning every file and the unit sources it was captured from. For every
+        tracked set, also run ``sociomap.derive_relation_matrix`` over the battery
+        frame ``project_engine._battery_dataset`` builds (``vaha`` = the analysis
+        weight normalised to sum N), into fixtures/research_sociomap/.
 
 A fixture holds ``expected`` (the unit's output, compared EXACT by the test) and
 ``bound_spread`` (per bound: the unit's mean, sd, min and max over the seeds). The
@@ -41,7 +44,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 UNIT = ROOT / "legacy" / "npc-panel-18.6.6" / "app"
 OUT = ROOT / "packages" / "aia_core" / "tests" / "fixtures" / "research_aggregate"
+SOCIOMAP_OUT = ROOT / "packages" / "aia_core" / "tests" / "fixtures" / "research_sociomap"
 UNIT_SOURCES = ("dotaznik.py", "uncertainty.py", "fidelity.py")
+SOCIOMAP_SOURCES = ("sociomap.py", "project_engine.py")
 
 CASES: dict[str, dict[str, Any]] = {
     "A01_full_questionnaire": {
@@ -345,6 +350,45 @@ def capture(n_seeds: int) -> int:
         files[f"cases/{case_path.name}"] = _sha256(case_path)
         files[fixture.name] = _sha256(fixture)
         print(f"captured {fixture.name}: {len(expected)} items, {len(spread)} bounds")
+    import sociomap as unit_sociomap
+
+    relation_files: dict[str, str] = {}
+    for case_path in sorted((OUT / "cases").glob("*.json")):
+        case = json.loads(case_path.read_text(encoding="utf-8"))
+        for b in case["spec"]["batteries"]:
+            qids = [f"{b['id']}_obj_{o['id']}" for o in b["objects"]]
+            frame = _frame(case["dataset"], qids, pd)
+            w = pd.to_numeric(frame["_analysis_weight"], errors="coerce").fillna(1.0)
+            frame["vaha"] = w * (len(frame) / float(w.sum() or 1.0))
+            matrix, scores = unit_sociomap.derive_relation_matrix(frame, qids)
+            target = SOCIOMAP_OUT / f"{case['case_id']}__{b['id']}.json"
+            _dump(
+                target,
+                {
+                    "case_id": case["case_id"],
+                    "battery_id": b["id"],
+                    "object_ids": [o["id"] for o in b["objects"]],
+                    "matrix": [[float(x) for x in row] for row in matrix.tolist()],
+                    "scores": [None if s != s else float(s) for s in scores.tolist()],
+                },
+            )
+            relation_files[target.name] = _sha256(target)
+            print(f"captured research_sociomap/{target.name}")
+    _dump(
+        SOCIOMAP_OUT / "index.json",
+        {
+            "description": (
+                "Relation matrices captured from legacy/npc-panel-18.6.6 sociomap.py by "
+                "tools/aggregate_capture.py"
+            ),
+            "unit_sources": {name: _sha256(UNIT / name) for name in SOCIOMAP_SOURCES},
+            "cases": {
+                name: _sha256(OUT / "cases" / name)
+                for name in sorted(p.name for p in (OUT / "cases").glob("*.json"))
+            },
+            "files": relation_files,
+        },
+    )
     _dump(
         OUT / "index.json",
         {

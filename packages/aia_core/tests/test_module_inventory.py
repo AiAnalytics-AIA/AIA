@@ -125,6 +125,9 @@ def test_only_ported_modules_claim_progress(inventory: dict[str, dict[str, Any]]
         # (test_research_aggregate.py); bounds within its seed spread (OI-62).
         "uncertainty.py",
         "fidelity.py",
+        # PR C chunk 6: derive_relation_matrix, exact against a capture of the unit
+        # (test_research_sociomap.py).
+        "sociomap.py",
     }, (
         "The set of modules claiming progress changed. Update this assertion "
         "deliberately, with the parity or behavioural evidence for the new entry."

@@ -249,7 +249,7 @@ wrong answer corrupts artifact reuse or lies about money.
 
 | | Module | LOC | Context | Disposition note |
 | --- | --- | --- | --- | --- |
-| ○ | `sociomap.py` | 565 | sociomapa | Preference map and segmentation — numerical parity required |
+| ◐ | `sociomap.py` | 565 | sociomapa | Preference map and segmentation — numerical parity required. `derive_relation_matrix` in `aia_core.domain.research_sociomap` (PR C chunk 6), exact against a capture of the unit; the layout is AIA's engine (`domain/sociomap`, D6), not `fit_relational_landscape`; segmentation not started |
 | ○ | `visualization_lab.py` | 286 | sociomapa | Preference map and segmentation — numerical parity required |
 | ○ | `study_contract.py` | 271 | sociomapa | modul VÝZKUM: data contract, dataset conversion, engine, export, validity |
 | ○ | `segment_intelligence.py` | 245 | sociomapa | Preference map and segmentation — numerical parity required |
