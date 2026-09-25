@@ -766,3 +766,123 @@ def test_the_develop_worker_passes_every_ai_runtime_key_and_no_credential() -> N
     assert read and read == passed
     assert read <= set(re.findall(r"^(AIA_(?:AI|BEDROCK)_[A-Z_]+)=", example, flags=re.M))
     assert "AWS_ACCESS_KEY_ID" not in compose and "AWS_SECRET_ACCESS_KEY" not in compose
+
+
+# --------------------------------------------------------------------------- #
+# A TLS failure after sending, over the real transport: uncertain, never free
+# --------------------------------------------------------------------------- #
+
+
+def test_an_ssl_failure_after_sending_needs_recovery_and_is_never_settled_as_free(
+    world: Any, run_with: Callable[..., Worker], tmp_path: Any
+) -> None:
+    """The real Urllib3Transport against a local TLS server that reads the whole
+    request and then corrupts the response stream. The call may have been billed:
+    it is ledgered UNCERTAIN at its ceiling, the reservation is SETTLED_UNCERTAIN
+    (not settled at zero), the step needs a person, and nothing is sent again."""
+    import os
+    import shutil
+    import socket
+    import ssl
+    import subprocess
+
+    from aia_core.infrastructure.model_adapters.live_transport import Urllib3Transport
+
+    openssl = shutil.which("openssl")
+    assert openssl, "the TLS test needs the openssl CLI (present on every CI runner)"
+    cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
+    subprocess.run(
+        [
+            openssl,
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-days",
+            "1",
+            "-subj",
+            "/CN=127.0.0.1",
+            "-addext",
+            "subjectAltName=IP:127.0.0.1",
+            "-keyout",
+            str(key),
+            "-out",
+            str(cert),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert, key)
+    listener = socket.create_server(("127.0.0.1", 0))
+    port = listener.getsockname()[1]
+    received: list[int] = []
+
+    def serve() -> None:
+        while True:
+            try:
+                raw, _ = listener.accept()
+            except OSError:
+                return
+            tls = context.wrap_socket(raw, server_side=True)
+            data = b""
+            while b"\r\n\r\n" not in data:
+                data += tls.recv(65536)
+            head, _, body = data.partition(b"\r\n\r\n")
+            length = next(
+                int(line.split(b":", 1)[1])
+                for line in head.split(b"\r\n")
+                if line.lower().startswith(b"content-length:")
+            )
+            while len(body) < length:
+                body += tls.recv(65536)
+            received.append(len(body))
+            os.write(tls.fileno(), b"\x17\x03\x03\x00\x20" + b"\x00" * 32)  # forged record
+            time.sleep(0.2)
+            raw.close()
+
+    threading.Thread(target=serve, daemon=True).start()
+
+    live = Urllib3Transport(ca_certs=str(cert))
+
+    class ToStub:
+        """Sends the adapter's exact request to the local server instead of AWS."""
+
+        async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
+            path = request.url.split("amazonaws.com", 1)[1]
+            return await live.send(
+                HttpRequest(
+                    method=request.method,
+                    url=f"https://127.0.0.1:{port}{path}",
+                    headers=request.headers,
+                    body=request.body,
+                    raw_body=request.raw_body,
+                ),
+                timeout_s=timeout_s,
+            )
+
+    try:
+        run_id = _start(world)
+        _drain(run_with(ToStub(), env=_fictional(world)))
+    finally:
+        listener.close()
+
+    fw = _steps(_run(world, run_id))["run"]
+    assert fw["status"] is StepRunStatus.RECOVERY_REQUIRED
+    assert len(fw["attempts"]) == 1, "an uncertain call was retried"
+    assert len(received) == 1 and received[0] > 0, "the request reached the server once"
+    events = _ledger(world, run_id)
+    assert [e.outcome for e in events] == [UsageOutcome.DISPATCHED, UsageOutcome.UNCERTAIN]
+    uncertain = events[-1]
+    assert uncertain.cost_basis.value == "CEILING" and uncertain.cost_usd > 0
+    with world.sessions() as session:
+        (reservation,) = session.scalars(
+            select(BudgetReservationRow).where(BudgetReservationRow.run_id == run_id)
+        ).all()
+        attempt = session.scalar(
+            select(StepAttemptRow).where(StepAttemptRow.step_id == fw["step_id"])
+        )
+    assert reservation.status == "SETTLED_UNCERTAIN", "never settled as a known zero-cost failure"
+    assert attempt is not None
+    assert attempt.paid_call_dispatched and not attempt.paid_call_outcome_known

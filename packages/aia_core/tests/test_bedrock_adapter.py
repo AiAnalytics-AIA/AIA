@@ -282,3 +282,147 @@ def test_a_refused_connection_was_never_sent() -> None:
     with pytest.raises(TransportFailure) as failed:
         asyncio.run(Urllib3Transport().send(_live(f"http://127.0.0.1:{port}/x"), timeout_s=2))
     assert failed.value.delivery is Delivery.NOT_SENT
+
+
+# --------------------------------------------------------------------------- #
+# TLS: an SSL error after the request was written is UNKNOWN, never NOT_SENT
+# --------------------------------------------------------------------------- #
+
+
+class _TlsStub:
+    """A local HTTPS server that reads the whole request, then breaks the TLS stream.
+
+    After the handshake and a complete request, it writes a forged application-data
+    record straight onto the socket: the client's decryption fails *while reading
+    the response*, which urllib3 raises as the same ``SSLError`` a handshake
+    failure produces. ``request_bytes`` is what the server received.
+    """
+
+    def __init__(self, directory: Path) -> None:
+        import shutil
+        import ssl
+        import subprocess
+
+        openssl = shutil.which("openssl")
+        assert openssl, "the TLS tests need the openssl CLI (present on every CI runner)"
+        self.cert = directory / "cert.pem"
+        key = directory / "key.pem"
+        subprocess.run(
+            [
+                openssl,
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-nodes",
+                "-days",
+                "1",
+                "-subj",
+                "/CN=127.0.0.1",
+                "-addext",
+                "subjectAltName=IP:127.0.0.1",
+                "-keyout",
+                str(key),
+                "-out",
+                str(self.cert),
+            ],
+            check=True,
+            capture_output=True,
+        )
+        self._context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        self._context.load_cert_chain(self.cert, key)
+        self._listener = socket.create_server(("127.0.0.1", 0))
+        self.port = self._listener.getsockname()[1]
+        self.connections = 0
+        self.request_bytes = 0
+        self._thread = threading.Thread(target=self._serve, daemon=True)
+        self._thread.start()
+
+    def _serve(self) -> None:
+        import os
+        import ssl
+
+        while True:
+            try:
+                raw, _ = self._listener.accept()
+            except OSError:
+                return
+            self.connections += 1
+            try:
+                tls = self._context.wrap_socket(raw, server_side=True)
+            except (ssl.SSLError, OSError):
+                raw.close()  # the client refused the handshake: nothing was sent
+                continue
+            data = b""
+            while b"\r\n\r\n" not in data:
+                chunk = tls.recv(65536)
+                if not chunk:
+                    break
+                data += chunk
+            head, _, body = data.partition(b"\r\n\r\n")
+            length = next(
+                (
+                    int(line.split(b":", 1)[1])
+                    for line in head.split(b"\r\n")
+                    if line.lower().startswith(b"content-length:")
+                ),
+                0,
+            )
+            while len(body) < length:
+                body += tls.recv(65536)
+            self.request_bytes += len(head) + len(body)
+            # A forged TLS application-data record: the client fails to decrypt it.
+            os.write(tls.fileno(), b"\x17\x03\x03\x00\x20" + b"\x00" * 32)
+            time.sleep(0.2)
+            raw.close()
+
+    def close(self) -> None:
+        self._listener.close()
+
+
+@pytest.fixture
+def tls_stub(tmp_path: Path) -> Iterator[_TlsStub]:
+    stub = _TlsStub(tmp_path)
+    try:
+        yield stub
+    finally:
+        stub.close()
+
+
+def _tls_request(port: int) -> HttpRequest:
+    raw = b'{"a":1}'
+    return HttpRequest(
+        method="POST",
+        url=f"https://127.0.0.1:{port}/converse",
+        headers={"content-type": "application/json"},
+        body={"a": 1},
+        raw_body=raw,
+    )
+
+
+def test_an_ssl_error_after_the_request_was_sent_is_uncertain_and_not_retried(
+    tls_stub: _TlsStub,
+) -> None:
+    from aia_core.infrastructure.model_adapters.live_transport import Urllib3Transport
+
+    transport = Urllib3Transport(ca_certs=str(tls_stub.cert))
+    with pytest.raises(TransportFailure) as failed:
+        asyncio.run(transport.send(_tls_request(tls_stub.port), timeout_s=5))
+    assert "SSL" in str(failed.value) or "ssl" in str(failed.value).lower()
+    assert failed.value.delivery is Delivery.UNKNOWN, "the request had been written"
+    assert tls_stub.request_bytes > 0
+    time.sleep(0.5)
+    assert tls_stub.connections == 1, "an SSL failure was retried"
+
+
+def test_a_refused_certificate_is_provably_before_sending(tls_stub: _TlsStub) -> None:
+    """The handshake fails on the client's verification: no request byte leaves."""
+    from aia_core.infrastructure.model_adapters.live_transport import Urllib3Transport
+
+    transport = Urllib3Transport()  # the system trust store does not know the stub
+    with pytest.raises(TransportFailure) as failed:
+        asyncio.run(transport.send(_tls_request(tls_stub.port), timeout_s=5))
+    assert failed.value.delivery is Delivery.NOT_SENT
+    time.sleep(0.3)
+    assert tls_stub.request_bytes == 0
+    assert tls_stub.connections == 1

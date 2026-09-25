@@ -7,10 +7,12 @@ the whole point of this module:
 * **No retry, anywhere.** ``urllib3``'s default ``Retry`` re-sends on connection
   errors and some read errors; a re-sent Converse call is a second billed call the
   gateway never recorded. ``retries=False`` on the pool *and* the request.
-* **Delivery is stated from the failure.** A failure before any byte left the
-  process (DNS, refused connection, connect timeout, TLS handshake) is
-  ``NOT_SENT``: nothing can have been billed. Anything after the request may have
-  been written -- a read timeout, a reset, a truncated response -- is ``UNKNOWN``,
+* **Delivery is stated from the failure.** A failure that provably happens before
+  any request byte is written (DNS, a refused connection, a connect timeout, the
+  server's certificate refused during the handshake) is ``NOT_SENT``: nothing can
+  have been billed. Anything else may have followed the request -- a read timeout,
+  a reset, a truncated response, **any other TLS error**, which urllib3 raises the
+  same way from the handshake and from reading the answer -- and is ``UNKNOWN``,
   the ``SETTLED_UNCERTAIN`` case. When the kind of failure is unclear, ``UNKNOWN``.
 
 The blocking call runs in a thread so the gateway's ``await`` holds no event-loop
@@ -21,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import ssl
 from typing import Any
 
 from aia_core.domain.ai_contracts import Delivery
@@ -28,6 +31,28 @@ from aia_core.domain.ai_contracts import Delivery
 from .transport import HttpRequest, HttpResponse, TransportFailure
 
 __all__ = ["Urllib3Transport"]
+
+
+def _certificate_refused(error: BaseException) -> bool:
+    """True when ``error`` wraps a refused server certificate (a handshake-only failure).
+
+    urllib3 wraps the ``ssl`` exception as the SSLError's argument and chains it;
+    both are followed. ``ssl.CertificateError`` is ``SSLCertVerificationError``.
+    """
+    seen: set[int] = set()
+    stack: list[BaseException] = [error]
+    while stack:
+        current = stack.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        if isinstance(current, ssl.SSLCertVerificationError):
+            return True
+        stack.extend(a for a in current.args if isinstance(a, BaseException))
+        for linked in (current.__cause__, current.__context__):
+            if linked is not None:
+                stack.append(linked)
+    return False
 
 
 class Urllib3Transport:
@@ -63,7 +88,13 @@ class Urllib3Transport:
             # subclass) are raised before the request is written.
             raise TransportFailure(str(exc), delivery=Delivery.NOT_SENT) from exc
         except u.exceptions.SSLError as exc:
-            raise TransportFailure(str(exc), delivery=Delivery.NOT_SENT) from exc
+            # urllib3 raises the same SSLError from the handshake and from reading
+            # the response (getresponse, the body): the class does not say whether
+            # the request was written. Only a certificate-verification failure is
+            # provably pre-send -- the client verifies the server during the
+            # handshake, before any application data -- so only that is NOT_SENT.
+            delivery = Delivery.NOT_SENT if _certificate_refused(exc) else Delivery.UNKNOWN
+            raise TransportFailure(str(exc), delivery=delivery) from exc
         except u.exceptions.HTTPError as exc:
             # ReadTimeoutError, ProtocolError (reset, incomplete read) and anything
             # else: the request may have reached Bedrock.

@@ -489,8 +489,29 @@ pool.request("POST", url, body=raw, retries=False, redirect=False)
 ```
 
 Delivery follows from the exception: `NewConnectionError` / `ConnectTimeoutError`
-(and `SSLError`) happen before the request is written (`NOT_SENT`); anything else
+happen before the request is written (`NOT_SENT`); anything else
 (`ReadTimeoutError`, `ProtocolError`) may have reached Bedrock (`UNKNOWN`).
+
+**`urllib3.exceptions.SSLError` does not say when it happened.** urllib3 2.x raises
+it from the handshake (`_validate_conn`) *and* from reading the answer
+(`conn.getresponse()`, the preloaded body): a corrupted or truncated TLS record
+after a complete request is the same class as a handshake failure. Treating every
+`SSLError` as `NOT_SENT` made a possibly billed call look free and retryable -- the
+attempt was re-sent three times in
+`test_an_ssl_failure_after_sending_needs_recovery_and_is_never_settled_as_free`.
+
+```python
+# wrong: every SSLError was "not sent"
+except urllib3.exceptions.SSLError as exc:
+    raise TransportFailure(str(exc), delivery=Delivery.NOT_SENT)
+# right: only a refused server certificate is provably pre-send (the client verifies
+# it during the handshake, before any application data); everything else is UNKNOWN
+except urllib3.exceptions.SSLError as exc:
+    sent = Delivery.NOT_SENT if _certificate_refused(exc) else Delivery.UNKNOWN
+```
+
+`_certificate_refused` looks for `ssl.SSLCertVerificationError` in the exception's
+arguments and cause chain: urllib3 wraps the `ssl` error as `SSLError(e)`.
 
 **Sign the bytes you send.** A SigV4 signature covers the body bytes. Serialising the
 dict again in the transport (other separators, key order) sends different bytes and
