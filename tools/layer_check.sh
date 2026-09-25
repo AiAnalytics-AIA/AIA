@@ -165,6 +165,17 @@ forbid "executors never touch the client knowledge tables" \
   'ClientKnowledge(Item|Revision|Proposal)Row' \
   "$EXECUTORS"
 
+# A Study's design project is found only through the Study (ADR 0016 decision 1).
+# The table used anywhere but its repository is a query that could find a design
+# project -- and the revisions runs execute -- by something other than scope.
+forbid "the study design table is touched only by its repository" \
+  'StudyDesignRow' \
+  "$CORE" \
+  tables.py study_design_repository.py
+forbid "the API, worker and executors never touch the study design table" \
+  'StudyDesignRow' \
+  apps
+
 # --- Layer 4b: executors do the work; they neither serve nor decide scope -----
 #
 # Step implementations depend on the worker's executor seam and on aia_core.

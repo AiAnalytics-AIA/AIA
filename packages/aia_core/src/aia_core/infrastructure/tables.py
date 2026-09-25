@@ -641,6 +641,38 @@ class StudyWorkspaceRow(Base):
     )
 
 
+class StudyDesignRow(Base):
+    """The AIA project holding a research Study's Design Revisions (ADR 0016 decision 1).
+
+    One per research Study, created on the first submitted design. The project's
+    immutable ``project_revisions`` are the Design Revisions a run executes; the
+    revision's ``revision_id`` is the Design Revision ID. Unlike
+    ``study_workspaces`` this is not a bridge: it is where the design lives in AIA,
+    and where the editing copy moves when OI-58 retires the unit store. Found only
+    through the Study (all three scope columns); ``project_id`` is unique so a
+    design project can never serve two Studies.
+    """
+
+    __tablename__ = "study_designs"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        # RESTRICT: the design a run executed may not vanish from under the run.
+        ForeignKeyConstraint(["project_id"], ["projects.project_id"], ondelete="RESTRICT"),
+        UniqueConstraint("project_id", name="study_design_project_unique"),
+    )
+
+
 # Client Knowledge (ADR 0015 decision 7). Client-scoped, not study-scoped: the
 # narrow amendment to ADR 0004 rule 1. Every row carries organization_id and
 # client_id and is reached only through ClientKnowledgeRepository, which takes an
