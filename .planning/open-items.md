@@ -1912,6 +1912,12 @@ Every panel-derived source is recorded as *not approved*. The rule is code; the 
 policy data, changed by the data owner with legal's confirmation, never by an engineer to unblock a
 feature.
 
+**Where the rule lives.** `packages/aia_core/src/aia_core/domain/licence.py` (`LicencePolicy.authorise`)
+and the determinations `domain/licence_determinations.py` @ `ee5aac0`, enforced in
+`GovernedModelGateway` beside residency; `test_licence_gate.py`,
+`test_model_gateway.py::test_licence_is_a_second_gate_refused_before_dispatch`. Resolving this item
+means replacing the UNDETERMINED record of each source in that file, nothing else.
+
 **Consequence.** AI fieldwork (the Agent Runtime PR) cannot go live against the panel until this is
 resolved per source. It can be built and tested on synthetic or explicitly cleared data.
 
