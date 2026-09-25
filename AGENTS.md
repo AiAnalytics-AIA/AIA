@@ -885,6 +885,23 @@ useEffect(() => { routerRef.current = router; }, [router]);
 useEffect(() => { load(projectId, (id) => routerRef.current.replace(`/x/${id}`)) }, [projectId]);
 ```
 
+**Stub a list route with what the API returns, not with the full object.** A
+fetch stub whose list route returns full runs lets a screen render steps it will
+never get: `GET …/research/runs` returns summaries (`steps: []`,
+`artifact_ids: []`), so Progress read from the list showed a completed run with
+no steps, and every component test passed. Type the list item as what it is
+(`ResearchRunSummary = Omit<ResearchRun, "steps" | "artifact_ids">`) and make the
+stub return that shape (`listed(...)` in `ExecutionSteps.test.tsx`); the
+workbench journey (`make ui-research`) is what found it.
+
+```ts
+// WRONG: the stub is richer than the API, so the bug is invisible
+"GET /api/v1/studies/S/research/runs": () => ({ items: [COMPLETED] }),
+// RIGHT: the list as the API sends it; the run in full at its own path
+"GET /api/v1/studies/S/research/runs": () => ({ items: [{ ...COMPLETED, steps: [], artifact_ids: [] }] }),
+"GET /api/v1/studies/S/research/runs/RUN-1": () => COMPLETED,
+```
+
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.

@@ -123,7 +123,7 @@ Each chunk: schema + logic + tests, its own commit(s), `make verify` green befor
 
 ## Implemented now, blocked, deferred
 
-**Implemented in PR C** (when every chunk lands): Design Revisions the browser submits and only the
+**Implemented in PR C** (every chunk has landed): Design Revisions the browser submits and only the
 design repository writes; the `research` run over one revision — start, read, events, cancel,
 retry — Study-scoped with 404/403 semantics; the honest park at fieldwork; compile, preflight and
 the fieldwork boundary; the synthetic source, refused in every deployed composition; Aggregate
@@ -159,3 +159,18 @@ watches truthful durable state, and on develop sees it park at fieldwork waiting
 in tests and the workbench the same run, fed by the labelled synthetic dataset, completes and its
 Aggregate and Sociomap artifacts are inspectable from Results with their provenance — without a
 unit-project identity anywhere in the product surface.
+
+**Evidence, per clause** (chunk 8, local; develop itself is reached by agent sessions only through
+this proof, since their egress to it is refused):
+
+| Clause | Shown by |
+|---|---|
+| enters a client-scoped Research Study, submits the design | `develop_routing_journey.mjs` step 4a (a Design Revision from the Run stage, through Caddy); `test_research_api.py` (another client's Study 404) |
+| starts the run, truthful durable state | `research_journey.mjs` (Run → Progress, each step's own status and times); `test_research_runs.py` (phase from the engine's state, never a percentage) |
+| on develop it parks at fieldwork | `develop_routing_proof.py` with the develop worker's registry: `WAITING_PROVIDER` / `ai_runtime_unavailable`, aggregate and Sociomap BLOCKED, 22/22; `test_research_executors.py` (production registry parks) |
+| in tests and the workbench it completes on the labelled synthetic dataset | `research_journey.mjs` (all five SUCCEEDED, the fictional notice on Progress and Results); `test_research_executors.py` (fictional run COMPLETES) |
+| Aggregate and Sociomap inspectable from Results with provenance | `research_journey.mjs` (tables, INTERNAL_ONLY Sociomap); `ExecutionSteps.test.tsx` (provenance line, suppression, viewer without the Sociomap) |
+| no unit-project identity in the product surface | No research route takes or returns one (`routers/research.py`; the web client sends content and a source stage only). The one place a unit id still appears is the existing /classic hand-off link on Results (`#aia:open=<unit>@results`, ADR 0014), which the browser follows to the classic report and no AIA route reads |
+
+Not shown here: the deployed develop host itself. That happens when the PR is merged and deployed; its
+smoke test is `deploy/develop/README.md`'s.

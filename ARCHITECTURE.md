@@ -100,6 +100,11 @@ Run it before every commit. It is blocking in CI.
 | population panels are parsed only by the canonical loader (and never by the API) | The first step of that second loader: a consumer reading the panel itself |
 | population-operator grants are issued only by the population authority (and never by the API) | A study context, an organization owner or a request body moving LIVE for every tenant (OI-8) |
 | the Sociomap preset `AIA_SOCIOMAP_V1` is never named outside the Sociomap domain package | An engineering preset silently filling in a missing spec, and becoming client methodology by default ([sociomapa-deterministic-engine.md §13](docs/architecture/sociomapa-deterministic-engine.md#13-computable-is-not-deliverable)) |
+| the study design table is touched only by its repository (never by the API, the worker or the executors) | A Study's design project -- and the revisions its runs execute -- found by something other than the Study's scope (ADR 0016) |
+| only the design repository and the research runs name the design project's owner (`projects.owner`), and no app does | A generic project route reading or writing a Study's design, around the validation that makes content a Design Revision |
+| no statement updates a project revision (the ORM refuses an UPDATE; this forbids the bulk one) | A run's executed content changing under it |
+| licence determinations and policies are built only in their policy-data module, never by an app | An approval of panel-derived transmission nobody gave (ADR 0016 decision 5, OI-61) |
+| the fictional fieldwork generator is imported only by the workbench composition; nothing in the API or worker imports either, and no deployment names it | Fictional respondents reaching a deployed run, or a deployed worker configured with the test composition |
 | claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
 | the API never admits its own claims | The same, at the edge where untrusted input arrives |
 | a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
@@ -161,6 +166,33 @@ script, then confirm it passes before committing.
   the interval rule and the tier gate have all passed. The certificate itself is an
   `aia_core.domain.evidence.JointStatus` only `load_joint_status` can issue, bound to the loaded panel's
   hash. A prompt may state a rule; it is never the only thing enforcing it.
+- **A research run executes a Design Revision, and nothing else**
+  ([ADR 0016](docs/architecture/adr/0016-research-execution-and-model-transmission.md)).
+  The browser submits the design it shows; `StudyDesignRepository` stores it as
+  an immutable, content-deduplicated revision of the Study's own design project,
+  which is *owned* (`projects.owner = study_design`) so no generic project
+  repository can see it. A run names a revision by id; it is found only through
+  the Study (`ResearchRuns`), and its artifacts are read only through the run
+  (`research_artifacts`, `ArtifactRepository(owner=)`), never by id alone.
+  Respondent rows are never sent to the browser; the Sociomap artifact is served
+  only with `EDIT_STUDY`.
+- **Fieldwork is a boundary with one production answer.** The deployed
+  composition (`aia_executors.registry`) has no dataset producer, so a run parks
+  at fieldwork (`WAITING_PROVIDER`, `ai_runtime_unavailable`) and is never
+  resumed by time; nothing is invented or substituted. The fictional source
+  exists only in `aia_executors.workbench` (refused unless `AIA_ENV` is
+  `local`/`test`, and by the API on staging/production), and everything computed
+  from it carries `data_origin = SYNTHETIC_FIXTURE`, which the evidence gate
+  refuses as a client-facing claim.
+- **Two gates before any model call carries panel-derived data.** Residency
+  (where the data may go) and licence eligibility (whether its source's licence
+  permits that route) are separate refusals; `ModelRequest.data_lineage` has no
+  default, and `GovernedModelGateway` runs both before any adapter. Every panel
+  source is `UNDETERMINED` until OI-61 records a determination.
+- **Integrated is not exposed.** The research Sociomap is computed from the
+  unit's own relation matrix by AIA's engine and marked `INTERNAL_ONLY` while
+  PROGRESS D6 is open; every client-facing surface, export or report calls
+  `require_client_facing`, which refuses it and fails closed on a missing status.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal
   so a later gate cannot launder an earlier one.
@@ -458,6 +490,9 @@ that looks local:
 - **No invented certainty.** Evidence roles travel with the data. A modelled
   figure is never presented as a measurement.
 - **No fake progress.** Real elapsed time and real stage transitions only.
+- **No invented fieldwork.** Without the AI runtime a research run waits at
+  fieldwork and says so; fictional respondents exist only on a developer's
+  machine and in tests, and are labelled on every view.
 - **No visualisation mutating research truth.** A dragged node saves a view
   override; results stay immutable.
 - **Fail closed.** When a methodology precondition is unmet, the system blocks.
