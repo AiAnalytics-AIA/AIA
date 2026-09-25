@@ -42,6 +42,8 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.ai_execution import ExecutionContext, ReservationView, recovery_inputs
 from aia_core.domain.ai_models import ModelBinding, ModelCapability, ModelRegistry
+from aia_core.domain.licence import DataLineage
+from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET, recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
 from aia_core.domain.workflow import (
@@ -53,6 +55,8 @@ from aia_core.domain.workflow import (
 from aia_core.infrastructure.ai_call_journal import InMemoryCallJournal
 
 POLICY = "policy-test-v1"
+
+LICENCE = recorded_policy()
 
 
 class Answer(BaseModel):
@@ -144,6 +148,7 @@ def _request(**overrides: Any) -> ModelRequest:
         "agent": _agent(),
         "policy_version": POLICY,
         "data_classification": DataClass.CLASS_C_INTERNAL,
+        "data_lineage": DataLineage.none(),
         "system": "Review the argument.",
         "messages": (Message(role="user", content="The argument."),),
     }
@@ -186,6 +191,7 @@ def _gateway(registry: ModelRegistry, *adapters: ScriptedAdapter) -> GovernedMod
     return GovernedModelGateway(
         registry=registry,
         egress=EGRESS,
+        licence=LICENCE,
         adapters={ROUTE_FOR[a.provider]: a for a in adapters},
     )
 
@@ -380,12 +386,65 @@ def test_egress_is_refused_before_dispatch(
     _nothing_sent(adapter, journal)
 
 
+@pytest.mark.parametrize(
+    ("lineage", "reason"),
+    [
+        (None, "licence_lineage_undeclared"),
+        (DataLineage.of("czech_population_panel"), "licence_undetermined"),
+        (DataLineage.of("piaac"), "licence_undetermined"),
+        (DataLineage.of(SYNTHETIC_FIXTURE_DATASET, "issp"), "licence_undetermined"),
+        (DataLineage.of("never_heard_of_it"), "licence_dataset_unknown"),
+    ],
+)
+def test_licence_is_a_second_gate_refused_before_dispatch(
+    model_registry: ModelRegistry,
+    context: ExecutionContext,
+    journal: InMemoryCallJournal,
+    lineage: DataLineage | None,
+    reason: str,
+) -> None:
+    """ADR 0016 decision 5: residency passes here (internal material, an approved
+    route) and the call is still refused, because a dataset it derives from is not
+    cleared for any provider -- and nothing is offered instead."""
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    failure = _fail(_gateway(model_registry, adapter), _request(data_lineage=lineage), context)
+    assert failure.failure is FailureClass.PERMISSION
+    assert failure.reason == reason
+    _nothing_sent(adapter, journal)
+
+
+def test_each_gate_refuses_on_its_own_and_names_itself(
+    model_registry: ModelRegistry, context: ExecutionContext, journal: InMemoryCallJournal
+) -> None:
+    """Clearing one gate never clears the other; a refusal says which gate refused."""
+    clean = DataLineage.of(SYNTHETIC_FIXTURE_DATASET)
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    residency = _fail(
+        _gateway(model_registry, adapter),
+        _request(data_classification=DataClass.CLASS_A_CLIENT_CONFIDENTIAL, data_lineage=clean),
+        context,
+    )
+    assert residency.reason.startswith("egress_")
+    both = _fail(
+        _gateway(model_registry, adapter),
+        _request(data_classification=None, data_lineage=None),
+        context,
+    )
+    assert both.reason == "egress_unclassified_material"
+    _nothing_sent(adapter, journal)
+    # Both cleared: the fictional fixture over an approved route is sent.
+    ok = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    result = _run(_gateway(model_registry, ok), _request(data_lineage=clean), context)
+    assert result.resolved_provider is Provider.OPENAI and len(ok.requests) == 1
+
+
 def test_route_approved_for_another_provider_is_refused(
     model_registry: ModelRegistry, context: ExecutionContext, journal: InMemoryCallJournal
 ) -> None:
     adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
     gateway = GovernedModelGateway(
         registry=model_registry,
+        licence=LICENCE,
         egress=EgressPolicy(routes=(_route("openai-direct", "someone_else"),)),
         # No adapter can even be bound to this route (the constructor refuses a
         # mismatch), so the egress check is what stops the call.
@@ -488,12 +547,14 @@ def test_adapter_bound_to_an_unknown_or_mismatched_route_is_refused(
         GovernedModelGateway(
             registry=model_registry,
             egress=EGRESS,
+            licence=LICENCE,
             adapters={"nowhere": ScriptedAdapter(Provider.OPENAI, [])},
         )
     with pytest.raises(ValueError, match="carries anthropic"):
         GovernedModelGateway(
             registry=model_registry,
             egress=EGRESS,
+            licence=LICENCE,
             adapters={"anthropic-direct": ScriptedAdapter(Provider.OPENAI, [])},
         )
 
@@ -519,7 +580,10 @@ def test_each_route_uses_its_own_adapter(
     direct = ScriptedAdapter(Provider.OPENAI, [_ok()])
     eu = ScriptedAdapter(Provider.OPENAI, [_ok()])
     gateway = GovernedModelGateway(
-        registry=registry, egress=egress, adapters={"openai-direct": direct, "openai-eu": eu}
+        registry=registry,
+        egress=egress,
+        licence=LICENCE,
+        adapters={"openai-direct": direct, "openai-eu": eu},
     )
     result = _run(gateway, _request(), context)
     assert result.provenance.route_id == "openai-eu"
@@ -533,7 +597,7 @@ def test_unbound_route_does_not_borrow_another_routes_adapter(
     registry, egress = _two_openai_routes(model_config_document)
     direct = ScriptedAdapter(Provider.OPENAI, [_ok()])
     gateway = GovernedModelGateway(
-        registry=registry, egress=egress, adapters={"openai-direct": direct}
+        registry=registry, egress=egress, licence=LICENCE, adapters={"openai-direct": direct}
     )
     failure = _fail(gateway, _request(), context)
     assert failure.reason == "no_adapter_for_route"

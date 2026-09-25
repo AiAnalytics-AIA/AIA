@@ -10,6 +10,7 @@ import type { JobUpdate } from "@/unit/research/jobs";
 import type { ResearchState, ResearchStore } from "@/unit/research/store";
 import type { StepKey } from "@/unit/research/steps";
 import type { UnitRouteKey } from "@/unit/routes";
+import type { StudyFrame } from "./frame";
 
 export type RunJob = (
   endpoint: UnitRouteKey,
@@ -30,6 +31,8 @@ export type ResearchContextValue = {
   memory: Map<string, unknown>;
   /** The URL of one of this study's stages (ADR 0015): steps never build one themselves. */
   stepHref: (step: StepKey) => string;
+  /** The AIA study this screen is in: its id, and whether the person may edit it (ADR 0016). */
+  frame: StudyFrame;
 };
 
 export const ResearchContext = createContext<ResearchContextValue | null>(null);

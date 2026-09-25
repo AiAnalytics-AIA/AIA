@@ -121,6 +121,13 @@ def test_only_ported_modules_claim_progress(inventory: dict[str, dict[str, Any]]
         # Deterministic halves only; behavioural tests in test_simulation_*.py.
         "full_simulation.py",
         "scenario_compiler.py",
+        # PR C chunk 5: aggregation, exact against captures of the unit
+        # (test_research_aggregate.py); bounds within its seed spread (OI-62).
+        "uncertainty.py",
+        "fidelity.py",
+        # PR C chunk 6: derive_relation_matrix, exact against a capture of the unit
+        # (test_research_sociomap.py).
+        "sociomap.py",
     }, (
         "The set of modules claiming progress changed. Update this assertion "
         "deliberately, with the parity or behavioural evidence for the new entry."

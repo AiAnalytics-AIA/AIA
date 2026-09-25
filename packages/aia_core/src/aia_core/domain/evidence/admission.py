@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Final
 
+from ..fieldwork import DataOrigin
 from ..pipeline import fingerprint
 from .claims import (
     ClaimBasis,
@@ -85,6 +86,9 @@ class EvidenceRow:
     weight_scheme: str | None = None
     use_case: TierUseCase | None = None
     dimension_tiers: Mapping[str, str | None] = field(default_factory=lambda: MappingProxyType({}))
+    #: Where the respondent data behind the number came from. ``SYNTHETIC_FIXTURE``
+    #: (the fictional fieldwork of ADR 0016) can never back a client-facing claim.
+    data_origin: DataOrigin | None = None
 
     def __post_init__(self) -> None:
         if not self.evidence_ref.strip():
@@ -237,6 +241,14 @@ def _check_claim(
         )
 
     decisions: list[GateDecision] = []
+    if surface is ClaimSurface.CLIENT_FACING and row.data_origin is DataOrigin.SYNTHETIC_FIXTURE:
+        decisions.append(
+            block(
+                ViolationCode.SYNTHETIC_DATA_ORIGIN,
+                cid,
+                f"{claim.evidence_ref} is computed from fictional fieldwork; it is not a finding",
+            )
+        )
     try:
         metric = parse_metric(claim.metric)
     except UnknownMetric as exc:

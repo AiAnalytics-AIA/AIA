@@ -147,7 +147,8 @@ def _run_response(run: dict[str, Any], *, created: bool | None = None) -> RunRes
     )
 
 
-def _artifact_response(artifact: Artifact, payload: Any) -> ArtifactResponse:
+def artifact_response(artifact: Artifact, payload: Any) -> ArtifactResponse:
+    """An artifact's metadata and provenance, with its payload when one was read."""
     return ArtifactResponse(
         artifact_id=artifact.artifact_id,
         project_id=artifact.project_id,
@@ -329,4 +330,4 @@ def get_artifact(
                     "message": "The stored bytes do not match the recorded hash.",
                 },
             ) from exc
-    return _artifact_response(artifact, payload)
+    return artifact_response(artifact, payload)

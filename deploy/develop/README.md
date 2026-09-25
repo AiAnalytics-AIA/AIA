@@ -128,7 +128,9 @@ Caddyfile routes:
 
 `tools/caddy_routes.py` checks this table against the adapted Caddyfile in CI;
 `tools/develop_routing_proof.py` and `tools/develop_routing_journey.mjs` run the
-real file locally, with a browser, when the routing changes.
+real file locally, with a browser, when the routing changes. The proof also runs
+the worker as this host does (`aia_executors.registry`, no fieldwork source) and
+shows a research run parking at fieldwork, `ai_runtime_unavailable` (ADR 0016).
 
 - **Who gets in.** An active member of the organization whose role is `OWNER`
   or `ADMIN`. Anyone else who signs in is shown a message and can still use

@@ -52,8 +52,17 @@ def start_workflow(
     workflow_type: str,
     idempotency_key: str | None = None,
     metadata: dict[str, Any] | None = None,
+    revision: int | None = None,
+    step_inputs: dict[str, dict[str, Any]] | None = None,
+    owner: str | None = None,
 ) -> StartedRun:
-    """Create a run of ``workflow_type`` against the project's current revision.
+    """Create a run of ``workflow_type`` against a revision of the project.
+
+    ``revision`` pins the run to one immutable revision (a research run names its
+    Design Revision, ADR 0016); ``None`` means the project's current revision.
+    ``step_inputs`` are recorded on the steps by node key, for their executors.
+    ``owner`` reaches an owned project (``projects.owner``): a research run names
+    the design repository's owner; every other caller runs ordinary projects only.
 
     Raises :class:`~aia_core.domain.workflow_templates.UnknownWorkflowType` for a
     type with no template, :class:`~aia_core.infrastructure.repositories.ProjectNotFound`
@@ -64,9 +73,9 @@ def start_workflow(
     if workflow_type not in WORKFLOW_TYPES:
         raise UnknownWorkflowType(workflow_type)
 
-    projects = ProjectRepository(session, scope)
+    projects = ProjectRepository(session, scope, owner=owner)
     project = projects.get(project_id)
-    revision = project.current_revision
+    revision = project.current_revision if revision is None else revision
     content = projects.content(project_id, revision)
     steps = steps_for_workflow(workflow_type, project_type=project.project_type)
 
@@ -85,6 +94,7 @@ def start_workflow(
         idempotency_key=key,
         metadata={"content_fingerprint": content_fingerprint, **(metadata or {})},
         fingerprints={s.node_key: content_fingerprint for s in steps},
+        step_inputs=step_inputs,
     )
     return StartedRun(
         run_id=run_id,

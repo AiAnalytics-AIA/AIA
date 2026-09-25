@@ -563,6 +563,16 @@ class WorkflowRepository:
             .order_by(WorkflowRunRow.created_at.desc())
             .limit(max(1, min(int(limit), 200)))
         ).all()
+        # Which runs a worker has picked up at all: one query for the page, so a
+        # screen can tell "queued" from "running" without reading every step.
+        attempted = set(
+            self._session.scalars(
+                select(StepRunRow.run_id)
+                .join(StepAttemptRow, StepAttemptRow.step_id == StepRunRow.step_id)
+                .where(StepRunRow.run_id.in_([r.run_id for r in rows]))
+                .distinct()
+            ).all()
+        )
         return [
             {
                 "run_id": r.run_id,
@@ -574,6 +584,8 @@ class WorkflowRepository:
                 "created_at": r.created_at,
                 "started_at": r.started_at,
                 "finished_at": r.finished_at,
+                "metadata": dict(r.metadata_json or {}),
+                "attempted": r.run_id in attempted,
             }
             for r in rows
         ]
@@ -1662,6 +1674,7 @@ class WorkflowRepository:
                 now=moment,
                 capacity_backoff_seconds=capacity_backoff_seconds,
                 quota_fallback_seconds=quota_fallback_seconds,
+                waiting_reason=step.waiting_reason,
             ):
                 continue
             previous = step.status
@@ -2011,6 +2024,7 @@ class WorkflowRepository:
             "created_at": run.created_at,
             "started_at": run.started_at,
             "finished_at": run.finished_at,
+            "metadata": dict(run.metadata_json or {}),
             "population": _binding(binding_row).as_record() if binding_row is not None else None,
             "steps": [
                 {
@@ -2024,6 +2038,8 @@ class WorkflowRepository:
                     "max_attempts": s.max_attempts,
                     "waiting_reason": s.waiting_reason,
                     "runnable_after": s.runnable_after,
+                    "updated_at": s.updated_at,
+                    "finished_at": s.finished_at,
                     "output": dict(s.output_json or {}),
                     "attempts": self.attempt_history(s.step_id),
                 }

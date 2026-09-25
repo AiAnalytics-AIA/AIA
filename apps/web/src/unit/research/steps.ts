@@ -31,7 +31,11 @@ export const CLASSIC_ROUTE: Record<StepKey, string> = {
 };
 
 /** The steps with a rebuilt screen. The others hand off to the classic interface. */
-export const REBUILT_STEPS: ReadonlySet<StepKey> = new Set<StepKey>(["brief", "plan", "questionnaire", "audience", "persona"]);
+export const REBUILT_STEPS: ReadonlySet<StepKey> = new Set<StepKey>([
+  "brief", "plan", "questionnaire", "audience", "persona",
+  // ADR 0016: run, progress and results execute in AIA, not the unit.
+  "run", "progress", "results",
+]);
 
 export function isStepKey(x: string): x is StepKey {
   return (STEP_KEYS as readonly string[]).includes(x);

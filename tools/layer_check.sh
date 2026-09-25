@@ -165,6 +165,62 @@ forbid "executors never touch the client knowledge tables" \
   'ClientKnowledge(Item|Revision|Proposal)Row' \
   "$EXECUTORS"
 
+# A Study's design project is found only through the Study (ADR 0016 decision 1).
+# The table used anywhere but its repository is a query that could find a design
+# project -- and the revisions runs execute -- by something other than scope.
+forbid "the study design table is touched only by its repository" \
+  'StudyDesignRow' \
+  "$CORE" \
+  tables.py study_design_repository.py
+forbid "the API, worker and executors never touch the study design table" \
+  'StudyDesignRow' \
+  apps
+# A Study's design project is owned (projects.owner): a repository that does not
+# name the owner cannot see it. Naming it anywhere else would reopen the path by
+# which content that skipped validate_design became a Design Revision (ADR 0016).
+forbid "only the design repository and the research runs name the design project's owner" \
+  'DESIGN_PROJECT_OWNER' \
+  "$CORE" \
+  design.py study_design_repository.py research.py
+forbid "the API, worker and executors never name the design project's owner" \
+  'DESIGN_PROJECT_OWNER|study_design\b' \
+  apps
+# Licence eligibility (ADR 0016 decision 5): a determination is policy data that
+# legal and the data owner change, in one reviewed file. Built anywhere else, it
+# would be an approval nobody gave.
+forbid "licence determinations are written only in their policy-data module" \
+  'LicenceDetermination\(|LicencePolicy\(' \
+  "$CORE" \
+  licence.py licence_determinations.py
+forbid "the API, worker and executors never build a licence policy of their own" \
+  'LicenceDetermination\(|LicencePolicy\(' \
+  apps
+# The fictional fieldwork source (ADR 0016 D1) is kept out of production by
+# construction: only the workbench composition may build it, nothing may import
+# the workbench composition, and no deployment may name it.
+forbid "only the workbench composition imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*synthetic_fieldwork' \
+  "$CORE" \
+  synthetic_fieldwork.py
+forbid "no API code imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|aia_executors\.workbench)' \
+  "$API"
+forbid "the worker never imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|aia_executors\.workbench)' \
+  "$WORKER"
+forbid "among the executors, only the workbench composition builds fictional fieldwork" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|\.workbench|aia_executors\.workbench)' \
+  "$EXECUTORS" \
+  workbench.py
+forbid "no deployment runs the workbench composition" \
+  'aia_executors\.workbench|aia_executors/workbench' \
+  deploy
+# A revision is what a run executed. The ORM refuses to UPDATE one
+# (tables.py, before_update); a bulk update() would go around it.
+forbid "no statement updates a project revision" \
+  'update\(\s*ProjectRevisionRow' \
+  packages/aia_core/src
+
 # --- Layer 4b: executors do the work; they neither serve nor decide scope -----
 #
 # Step implementations depend on the worker's executor seam and on aia_core.

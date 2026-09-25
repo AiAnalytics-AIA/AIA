@@ -1,0 +1,707 @@
+{
+ "case_id": "A03_suppressed_support",
+ "dataset": {
+  "dataset_version": "aia-fieldwork-dataset-1",
+  "generator": "aia-synthetic-fieldwork-1",
+  "origin": "SYNTHETIC_FIXTURE",
+  "respondents": [
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00001",
+    "weight": 0.723016
+   },
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00002",
+    "weight": 0.906251
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00003",
+    "weight": 1.155459
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00004",
+    "weight": 0.97573
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": []
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00005",
+    "weight": 0.999351
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00006",
+    "weight": 0.448224
+   },
+   {
+    "answers": {
+     "t1": 4,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0020",
+    "respondent_id": "SYN-R00007",
+    "weight": 3.719742
+   },
+   {
+    "answers": {
+     "t1": 0,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00008",
+    "weight": 0.717935
+   },
+   {
+    "answers": {
+     "t1": 4,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0016",
+    "respondent_id": "SYN-R00009",
+    "weight": 2.061462
+   },
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00010",
+    "weight": 1.511979
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00011",
+    "weight": 1.842097
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0020",
+    "respondent_id": "SYN-R00012",
+    "weight": 0.684918
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00013",
+    "weight": 1.247392
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0010",
+    "respondent_id": "SYN-R00014",
+    "weight": 1.290131
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": []
+    },
+    "donor_id": "SYN-D0005",
+    "respondent_id": "SYN-R00015",
+    "weight": 1.701771
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00016",
+    "weight": 1.122828
+   },
+   {
+    "answers": {
+     "t1": 2,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00017",
+    "weight": 0.812707
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0005",
+    "respondent_id": "SYN-R00018",
+    "weight": 1.630718
+   },
+   {
+    "answers": {
+     "t1": 2,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00019",
+    "weight": 1.403972
+   },
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0003",
+    "respondent_id": "SYN-R00020",
+    "weight": 2.09948
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": []
+    },
+    "donor_id": "SYN-D0003",
+    "respondent_id": "SYN-R00021",
+    "weight": 0.943717
+   },
+   {
+    "answers": {
+     "t1": 0,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00022",
+    "weight": 0.865307
+   },
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0015",
+    "respondent_id": "SYN-R00023",
+    "weight": 0.997867
+   },
+   {
+    "answers": {
+     "t1": 4,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00024",
+    "weight": 0.753786
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": []
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00025",
+    "weight": 0.638972
+   },
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00026",
+    "weight": 1.183353
+   },
+   {
+    "answers": {
+     "t1": 4,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00027",
+    "weight": 0.874817
+   },
+   {
+    "answers": {
+     "t1": 0,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0010",
+    "respondent_id": "SYN-R00028",
+    "weight": 1.04304
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0005",
+    "respondent_id": "SYN-R00029",
+    "weight": 1.041877
+   },
+   {
+    "answers": {
+     "t1": 0,
+     "t2": []
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00030",
+    "weight": 1.12058
+   },
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00031",
+    "weight": 0.888711
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": []
+    },
+    "donor_id": "SYN-D0020",
+    "respondent_id": "SYN-R00032",
+    "weight": 0.702079
+   },
+   {
+    "answers": {
+     "t1": 0,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00033",
+    "weight": 1.547119
+   },
+   {
+    "answers": {
+     "t1": 4,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00034",
+    "weight": 0.976922
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00035",
+    "weight": 0.882811
+   },
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00036",
+    "weight": 0.433755
+   },
+   {
+    "answers": {
+     "t1": 5,
+     "t2": []
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00037",
+    "weight": 0.75704
+   },
+   {
+    "answers": {
+     "t1": 7,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0004",
+    "respondent_id": "SYN-R00038",
+    "weight": 1.044886
+   },
+   {
+    "answers": {
+     "t1": 4,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00039",
+    "weight": 0.962682
+   },
+   {
+    "answers": {
+     "t1": 4,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0010",
+    "respondent_id": "SYN-R00040",
+    "weight": 0.727838
+   },
+   {
+    "answers": {
+     "t1": 0,
+     "t2": []
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00041",
+    "weight": 0.814724
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0015",
+    "respondent_id": "SYN-R00042",
+    "weight": 0.541428
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": []
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00043",
+    "weight": 0.990198
+   },
+   {
+    "answers": {
+     "t1": 4,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0016",
+    "respondent_id": "SYN-R00044",
+    "weight": 1.287292
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": []
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00045",
+    "weight": 1.093326
+   },
+   {
+    "answers": {
+     "t1": 0,
+     "t2": []
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00046",
+    "weight": 0.931626
+   },
+   {
+    "answers": {
+     "t1": 5,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00047",
+    "weight": 1.059908
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00048",
+    "weight": 0.717758
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": []
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00049",
+    "weight": 0.606632
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00050",
+    "weight": 0.777336
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00051",
+    "weight": 1.021337
+   },
+   {
+    "answers": {
+     "t1": 1,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00052",
+    "weight": 1.148775
+   },
+   {
+    "answers": {
+     "t1": 2,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00053",
+    "weight": 1.475066
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00054",
+    "weight": 2.468959
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00055",
+    "weight": 0.478108
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0004",
+    "respondent_id": "SYN-R00056",
+    "weight": 1.373096
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00057",
+    "weight": 0.940497
+   },
+   {
+    "answers": {
+     "t1": 6,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00058",
+    "weight": 0.877878
+   },
+   {
+    "answers": {
+     "t1": 0,
+     "t2": [
+      "A"
+     ]
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00059",
+    "weight": 1.135962
+   },
+   {
+    "answers": {
+     "t1": 3,
+     "t2": [
+      "A",
+      "B"
+     ]
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00060",
+    "weight": 0.640451
+   }
+  ],
+  "seed": 11,
+  "source": "synthetic_fixture",
+  "spec_fingerprint": "47f4ad937e6bf5aa0549b1f1450688cd93e15a5c5e6eb15875a3c5894a84988c"
+ },
+ "spec": {
+  "audience": {
+   "has_filters": false,
+   "source_mode": "population",
+   "strategy": "population"
+  },
+  "batteries": [],
+  "compiler_version": "aia-research-compile-1",
+  "n": 60,
+  "questions": [
+   {
+    "allow_dont_know": false,
+    "has_filter": false,
+    "id": "t1",
+    "options": [],
+    "scale": [
+     0,
+     7
+    ],
+    "section_id": "sekce_1",
+    "text": "Kolikrát týdně?",
+    "typ": "skala"
+   },
+   {
+    "allow_dont_know": false,
+    "has_filter": false,
+    "id": "t2",
+    "options": [
+     "A",
+     "B"
+    ],
+    "scale": null,
+    "section_id": "sekce_1",
+    "text": "Který obchod?",
+    "typ": "multi"
+   }
+  ],
+  "title": "Fiktivní potlačená buňka"
+ }
+}

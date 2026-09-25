@@ -34,6 +34,7 @@ __all__ = [
     "DEFAULT_LEASE_SECONDS",
     "DEFAULT_MAX_ATTEMPTS",
     "DEFAULT_QUOTA_FALLBACK_SECONDS",
+    "RUNTIME_UNAVAILABLE_REASON",
     "AttemptStatus",
     "FailureClass",
     "InteractionMode",
@@ -315,6 +316,10 @@ class FailureClass(StrEnum):
 
     # Park, not retry. A quota pause is not a failed attempt.
     QUOTA = "QUOTA"
+    # Park until someone deploys what the step needs: the runtime it would run on
+    # does not exist yet (ADR 0016: AI fieldwork before the Agent Runtime). Not a
+    # failure of the work, and no timer can clear it.
+    RUNTIME_UNAVAILABLE = "RUNTIME_UNAVAILABLE"
 
     # Needs a person
     BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
@@ -377,8 +382,17 @@ _PERMANENT_FAILURES: Final = frozenset(
     }
 )
 _NON_CONSUMING_FAILURES: Final = frozenset(
-    {FailureClass.QUOTA, FailureClass.BUDGET_EXCEEDED, FailureClass.APPROVAL_REQUIRED}
+    {
+        FailureClass.QUOTA,
+        FailureClass.RUNTIME_UNAVAILABLE,
+        FailureClass.BUDGET_EXCEEDED,
+        FailureClass.APPROVAL_REQUIRED,
+    }
 )
+
+#: The waiting reason of a step parked for a runtime that is not deployed.
+#: :func:`resume_due` never resumes it: only deploying the runtime can.
+RUNTIME_UNAVAILABLE_REASON: Final = "ai_runtime_unavailable"
 
 
 # Provider error tags to failure classes. The prototype matched a bracketed tag
@@ -570,6 +584,16 @@ def decide_recovery(
             retry_after=quota_reset_at,
         )
 
+    # The runtime the step needs is not deployed. The step waits, visibly, with a
+    # reason no timer clears; nothing downstream runs and nothing is fabricated.
+    if failure is FailureClass.RUNTIME_UNAVAILABLE:
+        return RecoveryDecision(
+            action=RecoveryAction.PARK_PROVIDER,
+            step_status=StepRunStatus.WAITING_PROVIDER,
+            reason=RUNTIME_UNAVAILABLE_REASON,
+            consumes_attempt=False,
+        )
+
     # A dispatched paid call with an unknown outcome must never be auto-retried.
     # Checked before the permanence and attempt-count branches, because the
     # billing uncertainty outranks both: even a "permanent" error leaves the
@@ -685,6 +709,7 @@ def resume_due(
     now: datetime | None = None,
     capacity_backoff_seconds: int = DEFAULT_CAPACITY_BACKOFF_SECONDS,
     quota_fallback_seconds: int = DEFAULT_QUOTA_FALLBACK_SECONDS,
+    waiting_reason: str | None = None,
 ) -> bool:
     """True when a parked step should be offered to workers again.
 
@@ -700,7 +725,13 @@ def resume_due(
 
     A missing ``parked_at`` counts as parked long ago. The alternative strands the
     step forever, and resuming costs at most one refused call.
+
+    A step parked for a runtime that is not deployed (``RUNTIME_UNAVAILABLE_REASON``)
+    is never resumed here: a timer cannot deploy it, and resuming would only
+    re-park it on every sweep.
     """
+    if waiting_reason == RUNTIME_UNAVAILABLE_REASON:
+        return False
     moment = as_utc(now) or datetime.now(UTC)
     parked = as_utc(parked_at)
 

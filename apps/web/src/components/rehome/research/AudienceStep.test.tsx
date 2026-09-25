@@ -174,7 +174,7 @@ describe("Audience", () => {
     fireEvent.click(within(card).getByRole("button", { name: "Zkontrolovat audience" }));
     expect(await screen.findByText("Populace je připravená.")).toBeTruthy();
     rerender(page("run"));
-    await screen.findByRole("heading", { name: "6. Finální kontrola & spuštění" });
+    await screen.findByRole("heading", { name: "6. Kontrola & spuštění" });
     rerender(page("audience"));
     expect(await screen.findByText("Populace je připravená.")).toBeTruthy();
     expect(posted("/api/audience").length).toBe(1);

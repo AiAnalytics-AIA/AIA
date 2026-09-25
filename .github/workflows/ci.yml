@@ -431,6 +431,17 @@ jobs:
               "/api/v1/clients/{client_id}/knowledge/proposals",
               "/api/v1/studies/{study_id}/workspace",
               "/api/v1/studies/{study_id}/context",
+              # Research execution (ADR 0016): the Design Revisions a run executes.
+              "/api/v1/studies/{study_id}/design/revisions",
+              "/api/v1/studies/{study_id}/design/revisions/{revision_id}",
+              # ... and the runs that execute them.
+              "/api/v1/studies/{study_id}/research/readiness",
+              "/api/v1/studies/{study_id}/research/runs",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/events",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/cancel",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/retry",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/artifacts/{artifact_id}",
               # The gate in front of the 18.6.6 interface (ADR 0012); Caddy's
               # forward_auth names /panel/gate, so a rename breaks the site.
               "/api/v1/panel/session",

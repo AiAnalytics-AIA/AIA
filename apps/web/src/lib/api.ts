@@ -320,3 +320,95 @@ export const workspace = {
   recordStage: (studyId: string, stage: string) =>
     request<void>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/stage`, { stage }),
 };
+
+// ---- research execution (ADR 0016) -----------------------------------------
+// Every route is under the study: the browser supplies the design's content and
+// the ids the API gave it, never a client, organization or unit project id.
+
+export type DesignRevision = {
+  revision_id: string;
+  study_id: string;
+  revision: number;
+  content_sha256: string;
+  parent_revision: number | null;
+  source_stage: string;
+  created_by: string;
+  created_at: string;
+  created?: boolean;
+};
+
+export type CheckStatus = "PASS" | "WARN" | "FAIL";
+export type Readiness = {
+  design_revision_id: string;
+  rules: string;
+  ready: boolean;
+  checks: { id: string; status: CheckStatus; message: string }[];
+  questions: number;
+  batteries: number;
+  objects: number;
+  n: number | null;
+  /** The deployment's: `ai_runtime` stops at fieldwork until the AI runtime exists. */
+  fieldwork_source: string;
+};
+
+export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
+export type ResearchStep = {
+  node_key: "compile" | "preflight" | "run" | "aggregate" | "sociomap" | string;
+  kind: string;
+  stage_type: string;
+  status: string;
+  waiting_reason: string | null;
+  attempts_recorded: number;
+  max_attempts: number;
+  started_at: string | null;
+  finished_at: string | null;
+  failure_class: string | null;
+  error_message: string | null;
+  artifact_id: string | null;
+  data_origin: string | null;
+};
+export type ResearchRun = {
+  run_id: string;
+  study_id: string;
+  design_revision_id: string;
+  design_revision: number;
+  status: string;
+  phase: ResearchPhase;
+  needs_attention: boolean;
+  is_terminal: boolean;
+  retryable: boolean;
+  cancel_requested: boolean;
+  fieldwork_source: string;
+  retry_of: string | null;
+  created: boolean | null;
+  created_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  steps: ResearchStep[];
+  artifact_ids: string[];
+  actual_cost_usd: number | null;
+};
+/** A run as the Study's list gives it: its state, without its steps or artifacts. */
+export type ResearchRunSummary = Omit<ResearchRun, "steps" | "artifact_ids">;
+
+const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
+
+export const research = {
+  submitDesign: (studyId: string, content: unknown, sourceStage: string) =>
+    request<DesignRevision>("POST", `${studyPath(studyId)}/design/revisions`, { content, source_stage: sourceStage }),
+  revisions: (studyId: string) =>
+    request<{ items: DesignRevision[] }>("GET", `${studyPath(studyId)}/design/revisions`).then((r) => r.items),
+  readiness: (studyId: string, revisionId: string) =>
+    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
+  start: (studyId: string, revisionId: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, { design_revision_id: revisionId }),
+  runs: (studyId: string) =>
+    request<{ items: ResearchRunSummary[] }>("GET", `${studyPath(studyId)}/research/runs`).then((r) => r.items),
+  run: (studyId: string, runId: string) => request<ResearchRun>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}`),
+  cancel: (studyId: string, runId: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),
+  retry: (studyId: string, runId: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`),
+  artifact: (studyId: string, runId: string, artifactId: string) =>
+    request<Artifact>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/artifacts/${enc(artifactId)}`),
+};

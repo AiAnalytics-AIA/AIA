@@ -10,6 +10,7 @@ capture of every screen. Plan:
 make ui-workbench          # start, or confirm running
 make ui-capture            # screenshot every screen -> tmp/ui-workbench/shots/<time>/index.html
 make ui-fixtures           # the fictional research projects, bound to AIA studies; prints their links
+make ui-research           # one research run in a browser: Run -> Progress -> Results (needs ui-fixtures)
 make ui-workbench-status
 make ui-workbench-down
 python3 tools/ui_workbench/workbench.py up --fresh   # also reset the unit's and the API's state
@@ -32,7 +33,8 @@ path to the web client -- never to the unit, as on develop.
 | Process | What | Log |
 |---|---|---|
 | `unit` | the vendored `ui_server.py` on a scratch copy of `app/` (`tmp/ui-workbench/unit/`), `unit_standin.py` | `tmp/ui-workbench/logs/unit.log` |
-| `api` | the real `aia_api` on a scratch SQLite file (`tmp/ui-workbench/aia.sqlite`), the `local` environment's development identity, the develop seed for `workbench@example.invalid` (`api_standin.py`); no model is configured and no worker runs | `…/api.log` |
+| `api` | the real `aia_api` on a scratch SQLite file (`tmp/ui-workbench/aia.sqlite`), the `local` environment's development identity, the develop seed for `workbench@example.invalid` (`api_standin.py`); no model is configured; research runs record the fictional fieldwork source (`--fieldwork synthetic_fixture`, legal only in `local`) and artifacts go to `tmp/ui-workbench/artifacts/` | `…/api.log` |
+| `worker` | `python -m aia_worker` over the same SQLite file and artifact directory, with the workbench composition (`aia_executors.workbench:build_registry`, `AIA_ENV=local`): the research steps, with fictional respondents at fieldwork (ADR 0016). Started once the API has created the schema | `…/worker.log` |
 | `web` | `next dev` for `apps/web`, skin and re-home switched on | `…/web.log` |
 | `skin` | `build-skin.mjs --watch`: `skin.css` rebuilt on every save of `src/skin/*` or `tokens.json` | `…/skin.log` |
 | `facade` | one origin, routed like the develop Caddyfile minus the gate (`facade.py`) | `…/facade.log` |
@@ -62,8 +64,11 @@ Code CLI or an API key (an agent session has both). `unit_standin.py` switches
 every provider off three ways: the scratch copy's `BUILD_EDITION.json`, which
 every part of the unit reads; provider credentials and the CLI's directory
 removed from the unit's environment; and the unit's CLI lookup finding nothing.
-No job worker runs either, so an AI step started here stays queued until it is
-cancelled. `GET /api/providers/claude-code/status` answers
+The unit's own AI jobs have no worker, so an AI step started in a classic or
+re-homed stage stays queued until it is cancelled. AIA's worker runs only the
+research steps (compile, preflight, fieldwork, aggregate, Sociomap), none of
+which calls a model; at fieldwork it uses fictional respondents instead of the
+AI runtime, which is not deployed. `GET /api/providers/claude-code/status` answers
 `DISABLED_IN_EDITION`, and the rebuilt screens show their "not ready" notice.
 Screens that show an AI answer are seen from fixture projects.
 
@@ -88,7 +93,7 @@ research chunks land ([research-flow-rehome.md](../../.planning/plans/research-f
 | `planned` | brief + the plan's analysis (two comparable sets, questions for the user, three design variants) | Zadání, Návrh |
 | `questionnaire` | the `planned` project with a question block (every question type) and a tracked set, on the editor | Dotazník |
 | `audience` | the `questionnaire` project on the ČR 18+ branch, narrowed by a region and an age range | Audience |
-| `persona` | the `questionnaire` project with three catalogue dimensions, one requested dimension and N=450 | Dimenze |
+| `persona` | the `questionnaire` project with three catalogue dimensions, one requested dimension and N=450 | Dimenze; Kontrola & spuštění, Průběh, Výsledky (it passes AIA's readiness) |
 
 A ledger screen in `docs/migration/interface-screens.json` that names a
 `fixture` is captured a second time on that project: the classic step opened
@@ -96,6 +101,23 @@ on it (`/classic#aia:open=<unit>@<route>`), beside the rebuilt one at its
 `react_path` with the bound study for `<id>` and its client for `<client>`
 (`<screen>@<fixture>` in the contact sheet). Every AIA screen of the ledger's
 `aia_screens` is captured too, under the same client.
+
+## A research run, end to end
+
+`make ui-research` (`research_journey.mjs`) signs in as the operator, opens the
+`persona` study's Run stage, where the design is submitted as a Design Revision
+and AIA's readiness is shown; starts one run; follows it on Progress until the
+worker has finished all five steps; and reads Results. It fails unless the
+fictional-data notice is on Progress and Results, every step is `SUCCEEDED`,
+an aggregate table is shown, the Sociomap is labelled INTERNAL_ONLY (PROGRESS
+D6), and no page error occurred. Screenshots go to
+`tmp/ui-workbench/shots/research-<time>/`.
+
+Every number on those screens comes from fictional respondents and says so.
+**Nothing here is a finding, and nothing here is parity**; the aggregate is
+compared with the unit by `packages/aia_core/tests/test_research_aggregate.py`.
+What the develop host does instead -- the same run parks at fieldwork -- is in
+`tools/develop_routing_proof.py`.
 
 ## Requirements
 

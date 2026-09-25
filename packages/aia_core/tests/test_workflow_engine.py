@@ -1282,11 +1282,16 @@ def test_unknown_failures_are_permanent_not_retryable() -> None:
     assert FailureClass.UNKNOWN.is_retryable is False
 
 
-def test_non_consuming_failures_are_exactly_quota_budget_and_approval() -> None:
-    """These three are not failures of the work, so they do not count attempts."""
+def test_non_consuming_failures_are_exactly_quota_runtime_budget_and_approval() -> None:
+    """These four are not failures of the work, so they do not count attempts.
+
+    ``RUNTIME_UNAVAILABLE`` joined them with ADR 0016: a step whose runtime is not
+    deployed has not tried the work at all.
+    """
     non_consuming = {f for f in FailureClass if not f.consumes_attempt}
     assert non_consuming == {
         FailureClass.QUOTA,
+        FailureClass.RUNTIME_UNAVAILABLE,
         FailureClass.BUDGET_EXCEEDED,
         FailureClass.APPROVAL_REQUIRED,
     }

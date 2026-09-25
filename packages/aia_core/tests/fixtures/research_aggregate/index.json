@@ -1,0 +1,16 @@
+{
+ "description": "Aggregation fixtures captured from legacy/npc-panel-18.6.6 by tools/aggregate_capture.py",
+ "files": {
+  "A01_full_questionnaire.json": "e98584d43a93ab3022bd809a130f67907742f8c01af5ff6e4aa9ac92115b7e81",
+  "A02_indicative_support.json": "b721563602dbbeb8adef5416fd9a73dcf040796e4857c5949ba8764ee6670190",
+  "A03_suppressed_support.json": "64524c5caf11d2c09142d19f3ef97d91bd584e571c50a03f4c8e1b58f25ba1be",
+  "cases/A01_full_questionnaire.json": "6f77095c43979c4fc747fd2b60560f2ddff29393be8e6e1f01af8670f00b931a",
+  "cases/A02_indicative_support.json": "f8e01d6a00b32aa10e3cc7a159d2f33a4a4d53cd0710da611a74dcb74a6b7633",
+  "cases/A03_suppressed_support.json": "0f5d525cbadeba519ea529a8d7e043a1180e4aed27c0262f40c8d6eda1b283d6"
+ },
+ "unit_sources": {
+  "dotaznik.py": "90dbe16a66bc02118fd9790211b97c535276f4cf4f4866f3a316f5c8fd995dd9",
+  "fidelity.py": "a13307c46d6e6bf4ba2c74d5582013020485e7e6e664d00dc7823c81bbb42187",
+  "uncertainty.py": "a7d334f1833d0e52204d02a7ee45ce5333f49c06bc0364d732a4d4a237512c3a"
+ }
+}

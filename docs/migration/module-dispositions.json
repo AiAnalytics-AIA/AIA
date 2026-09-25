@@ -581,7 +581,7 @@
       "module": "fidelity.py",
       "loc": 62,
       "docstring": "Question-level evidence/fidelity policy for the 10.13 HTML protocol. This layer never upgrades a synthetic estimate merely because it looks stable. GREEN requires an actual validated human holdout sta",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",
@@ -1611,7 +1611,7 @@
       "module": "sociomap.py",
       "loc": 565,
       "docstring": "Auditovatelná preference mapa a segmentace pro modul VÝZKUM. Primární kontrakt specifikuje row-conditional multidimensional unfolding přes R `smacof::unfolding`. Runtime proto umí dvě cesty: - `method",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "drop",
@@ -1791,7 +1791,7 @@
       "module": "uncertainty.py",
       "loc": 199,
       "docstring": "Donor-aware weighted uncertainty helpers for NPC Panel 17.1.2. 17.1 rules: - report Kish weight effective N *and* real donor support; - bootstrap client-facing intervals over donor clusters, not synth",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",

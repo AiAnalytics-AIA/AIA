@@ -41,17 +41,18 @@ afterEach(() => {
 describe("ResearchScreen", () => {
   it("draws the step in the shell with the project's steps, and hands a step not yet rebuilt to the classic interface", async () => {
     unitStub(() => ({ project_id: "PRJ-1", revision: 2, project_type: "research", project: { title: "Alfa" }, analysis: null }));
-    render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("link", { name: /Otevřít krok v klasickém rozhraní/ })).toHaveProperty("href", "http://localhost:3000/classic#aia:open=PRJ-1@run");
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("6. Finální kontrola & spuštění");
-    expect(screen.getByText(/VÝZKUM · KROK 6 \/ 7/)).toBeTruthy();
+    // Verification is not rebuilt: it hands off. (Run, progress and results execute in AIA, ADR 0016.)
+    render(<ResearchScreen projectId="PRJ-1" step="verify" frame={TEST_FRAME} />);
+    expect(await screen.findByRole("link", { name: /Otevřít krok v klasickém rozhraní/ })).toHaveProperty("href", "http://localhost:3000/classic#aia:open=PRJ-1@verify");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("8. Ověření & kontext");
+    expect(screen.getByText(t("aia.kind.RESEARCH"))).toBeTruthy(); // not a rail step: no step counter
     const rail = screen.getByRole("navigation", { name: "Fáze výzkumu" });
     const steps = within(rail).getAllByRole("link");
     expect(steps.map((a) => a.getAttribute("href"))).toEqual(
       (["brief", "plan", "questionnaire", "audience", "persona", "run", "results"] as const).map((s) => stagePath(s)),
     );
     expect(steps[4].getAttribute("href")).toBe("/app/clients/CLI-1/research/STU-1/dimensions");
-    expect(within(steps[5]).getByText("Kontrola & Spuštění").closest("a")?.getAttribute("aria-current")).toBe("step");
+    expect(steps.some((a) => a.getAttribute("aria-current") === "step")).toBe(false);
     expect(screen.getByText("Uloženo")).toBeTruthy();
   });
 
@@ -65,7 +66,7 @@ describe("ResearchScreen", () => {
   it("says why a project could not be loaded, and retries", async () => {
     let fail = true;
     unitStub(() => (fail ? new Response('{"error":"Projekt neexistuje."}', { status: 404 }) : { project_id: "PRJ-1", project_type: "research", project: {} }));
-    render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
+    render(<ResearchScreen projectId="PRJ-1" step="verify" frame={TEST_FRAME} />);
     expect(await screen.findByText("Projekt neexistuje.")).toBeTruthy();
     fail = false;
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
@@ -74,7 +75,7 @@ describe("ResearchScreen", () => {
 
   it("says a project with no saved version has nowhere to hand off to yet", async () => {
     unitStub(() => ({}));
-    render(<ResearchScreen projectId={null} step="run" frame={TEST_FRAME} />);
+    render(<ResearchScreen projectId={null} step="verify" frame={TEST_FRAME} />);
     const note = await screen.findByText(/Projekt ještě nemá uloženou verzi/);
     expect(note).toBeTruthy();
   });

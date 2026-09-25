@@ -184,9 +184,11 @@
    },
    "title": "6. Finální kontrola & spuštění",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILDING",
+   "react_path": "/app/clients/<client>/research/<id>/run",
+   "unit_routes": [],
+   "notes": "The AIA run stage (ADR 0016): the design the person sees is submitted as a Design Revision, AIA's structural readiness checks are shown, and one run starts over that revision through /api/v1/studies/<study>/research/runs. Not the classic stage: its single AI check and the 18.6.6 technical preflight are not carried; they stay in /classic.",
+   "fixture": "persona"
   },
   {
    "id": "route-research_progress",
@@ -195,9 +197,11 @@
    },
    "title": "Výzkum probíhá",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILDING",
+   "react_path": "/app/clients/<client>/research/<id>/progress",
+   "unit_routes": [],
+   "notes": "The AIA progress stage (ADR 0016): the run's canonical state, step by step, with the explicit wait for the AI runtime at fieldwork; cancel and retry. Reads AIA's API only.",
+   "fixture": "persona"
   },
   {
    "id": "route-results",
@@ -206,9 +210,11 @@
    },
    "title": "7. Výsledky",
    "area": "A4",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "REBUILDING",
+   "react_path": "/app/clients/<client>/research/<id>/results",
+   "unit_routes": [],
+   "notes": "The AIA results stage (ADR 0016): the run's aggregate (suppression and intervals) and its INTERNAL_ONLY Sociomap, each with provenance; fictional data is labelled on every view. The 18.6.6 analytical report stays in /classic (the stage links to it).",
+   "fixture": "persona"
   },
   {
    "id": "route-verify",

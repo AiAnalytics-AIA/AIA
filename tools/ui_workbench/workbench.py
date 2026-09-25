@@ -5,12 +5,15 @@
     python tools/ui_workbench/workbench.py down      # stop everything
     python tools/ui_workbench/workbench.py up --fresh  # also reset the unit's state
 
-Five processes, all under tmp/ui-workbench/ (git-ignored):
+Six processes, all under tmp/ui-workbench/ (git-ignored):
 
     unit     the vendored ui_server.py on a scratch copy of app/, fictional panel
              (unit_standin.py)                                 127.0.0.1:8767
     api      the real aia_api on a scratch SQLite file, local identity, the
              develop seed (api_standin.py)                      127.0.0.1:8766
+    worker   `python -m aia_worker` over the API's SQLite file and artifact store, with
+             the workbench composition (aia_executors.workbench: the fictional
+             fieldwork source, ADR 0016), so a research run finishes here
     web      `next dev` for apps/web, AIA_INTERFACE_SKIN_ENABLED=true  127.0.0.1:13000
     skin     `build-skin.mjs --watch`: skin.css rebuilt on every save
     facade   routes like the develop Caddyfile, minus the gate  127.0.0.1:8780
@@ -53,7 +56,9 @@ LOGS = HOME / "logs"
 STATE = HOME / "state.json"
 
 UNIT_PORT, API_PORT, WEB_PORT, FACADE_PORT = 8767, 8766, 13000, 8780
-NAMES = ("unit", "api", "web", "skin", "facade")
+NAMES = ("unit", "api", "worker", "web", "skin", "facade")
+DB = HOME / "aia.sqlite"
+ARTIFACTS = HOME / "artifacts"
 
 
 def _hash(path: Path) -> str:
@@ -170,7 +175,7 @@ def up(fresh: bool) -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     state = {k: v for k, v in _read_state().items() if _alive(v)}
     if fresh:
-        for name in ("unit", "api"):
+        for name in ("unit", "api", "worker"):
             if name in state:
                 _stop(name, state.pop(name))
     ensure_venv()
@@ -184,7 +189,16 @@ def up(fresh: bool) -> int:
     if "api" not in state:
         state["api"] = _spawn(
             "api",
-            [_api_python(), str(HERE / "api_standin.py"), "--port", str(API_PORT)]
+            [
+                _api_python(),
+                str(HERE / "api_standin.py"),
+                "--port",
+                str(API_PORT),
+                "--artifacts",
+                str(ARTIFACTS),
+                "--fieldwork",
+                "synthetic_fixture",
+            ]
             + (["--fresh"] if fresh else []),
             REPO,
         )
@@ -230,6 +244,23 @@ def up(fresh: bool) -> int:
 
     _wait(f"http://127.0.0.1:{UNIT_PORT}/", "the unit", 180)
     _wait(f"http://127.0.0.1:{API_PORT}/api/v1/health", "the AIA API", 120)
+    # The API creates the schema on its first start; the worker claims from it.
+    if "worker" not in state:
+        state["worker"] = _spawn(
+            "worker",
+            [_api_python(), "-m", "aia_worker"],
+            REPO,
+            {
+                "AIA_ENV": "local",
+                "DATABASE_URL": f"sqlite+pysqlite:///{DB}",
+                "AIA_WORKER_EXECUTORS": "aia_executors.workbench:build_registry",
+                "AIA_WORKER_ID": "workbench-worker",
+                "AIA_WORKER_POLL_SECONDS": "1",
+                "AIA_STORAGE_BACKEND": "filesystem",
+                "AIA_STORAGE_ROOT": str(ARTIFACTS),
+            },
+        )
+        STATE.write_text(json.dumps(state, indent=1) + "\n")
     status, headers = _wait(
         f"http://127.0.0.1:{FACADE_PORT}/classic", "the facade and web client", 240
     )

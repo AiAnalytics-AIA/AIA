@@ -39,6 +39,8 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.ai_execution import ExecutionContext, ReservationView
 from aia_core.domain.ai_models import ModelCapability, ModelRegistry
+from aia_core.domain.licence import DataLineage
+from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
 from aia_core.infrastructure.ai_call_journal import InMemoryCallJournal
@@ -62,6 +64,8 @@ FIXTURES = Path(__file__).parent / "fixtures" / "model_adapters"
 NOW = datetime(2026, 9, 22, 12, 0, tzinfo=UTC)
 SECRET = "test-secret-not-a-real-key"
 CREDENTIALS = StaticCredentials({"provider-key": SECRET})
+
+LICENCE = recorded_policy()
 
 
 class Verdict(BaseModel):
@@ -377,6 +381,7 @@ def test_gateway_over_a_recorded_openai_exchange(
     adapter, transport = _openai(_success("openai"))
     gateway = GovernedModelGateway(
         registry=model_registry,
+        licence=LICENCE,
         egress=EgressPolicy(
             routes=(
                 ProviderRoute(
@@ -411,6 +416,7 @@ def test_gateway_over_a_recorded_openai_exchange(
                 agent=agent,
                 policy_version="policy-test-v1",
                 data_classification=DataClass.CLASS_C_INTERNAL,
+                data_lineage=DataLineage.none(),
                 system="s",
                 messages=(Message(role="user", content="u"),),
             ),

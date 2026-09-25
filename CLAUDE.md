@@ -53,7 +53,9 @@ apps/
     routers/                health, projects, scope, runs (runs + artifacts under a project),
                             workspace (clients, a client's workspace, its knowledge and proposals,
                             a study's frame and its unit-project binding, ADR 0015),
-                            panel (the session + gate in front of /app, /classic and the unit, ADR 0012)
+                            panel (the session + gate in front of /app, /classic and the unit, ADR 0012),
+                            research (a study's Design Revisions, readiness, runs, their steps and
+                            artifacts, ADR 0016)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data.
@@ -74,7 +76,9 @@ apps/
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
     src/components/rehome/research/  The stage frame (StudyFrame: client, study, binding): rail,
                             save state, job panel, the shared brief analysis (useAnalysis), one
-                            screen per stage
+                            screen per stage; ExecutionSteps.tsx: Run, Progress, Results (ADR 0016)
+    src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
+                            fictional data is labelled every time, the park is explained
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
@@ -97,6 +101,10 @@ apps/
   executors/src/aia_executors/  Step implementations the worker runs, registered by kind
     snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
     registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build
+    research.py             The research steps: compile, preflight, fieldwork (parks without a
+                            source), aggregate, sociomap; every artifact on the owned design project
+    workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
+                            local/test, and no deployment may name it (layer_check)
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
 
 packages/aia_core/src/aia_core/
@@ -106,6 +114,18 @@ packages/aia_core/src/aia_core/
                             structured-output validation, AgentDefinition, FallbackPolicy
     ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
     ai_tools.py             ToolRegistry — scope never from model arguments
+    licence.py              Licence eligibility beside residency: DataLineage (no default),
+                            LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
+    licence_determinations.py  The determinations as data: panel sources UNDETERMINED (OI-61)
+    design.py               A Study's Design Revision: immutable content, provenance, the owner tag
+    research_design.py      A revision -> ResearchSpecification (compile) + AIA's readiness rules
+    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; data_origin
+    synthetic_fieldwork.py  Fictional respondents from random.Random(seed), workbench and tests only
+    research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
+                            (EXACT; bootstrap bounds from AIA's generator, OI-62, parity D5)
+    research_sociomap.py    The unit's relation matrix -> compute_sociomap; INTERNAL_ONLY while D6
+                            is open; require_client_facing refuses it
+    research.py             A run's phase in words (queued … cancelled), from the engine's state
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
                             contract + validation, weights, bindings, RuntimePopulation
@@ -152,12 +172,16 @@ packages/aia_core/src/aia_core/
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     workflows.py            start_workflow: a run from a template, idempotent per revision
+    research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
+                            found only through the Study; research_artifacts, the ONLY reader
     develop_seed.py         The synthetic develop world, through the same paths the API uses
   infrastructure/
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
-    repositories.py         ProjectRepository
+    repositories.py         ProjectRepository (owner= in its isolation predicate)
     scope_repository.py     Organizations, clients, studies, grants; studies in a client, by kind
+    study_design_repository.py  A Study's design project (owned: projects.owner) and its
+                            Design Revisions; the ONLY writer of a Study's design (ADR 0016)
     study_workspace_repository.py  The study <-> unit project binding: bound once, under
                             EDIT_STUDY, never looked up by unit id (OI-58)
     client_knowledge_repository.py  The ONLY reader/writer of Client Knowledge: read inside a
@@ -180,7 +204,7 @@ migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
-docs/architecture/          System design + 14 ADRs; ai-step-executor-contract.md
+docs/architecture/          System design + 16 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
@@ -194,6 +218,9 @@ tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
+tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
+                            the unit's venv), `self` (AIA's pinned bounds)
+tools/bootstrap_seed_sensitivity.py  The unit's bootstrap spread over seeds: the evidence for OI-62
 tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; `effective` prints the binding
                             that runs (the last declaration or reassignment); check the UI ledger
 tools/ui_function_runner.mjs, ui_function_capture.py
@@ -206,7 +233,8 @@ tools/ui_workbench/         AIA and the classic interface on this machine, for U
                             scratch copy with a fictional panel, the real API on SQLite with local
                             identity and the develop seed, `next dev`, the skin rebuilt on save, a
                             facade routed by the Caddyfile. Never parity. capture.mjs screenshots every
-                            screen; fixture_project.py: fictional research projects bound to studies
+                            screen; fixture_project.py: fictional research projects bound to studies;
+                            a worker with fictional fieldwork; research_journey.mjs: Run -> Results
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
@@ -270,6 +298,16 @@ proposer approves (unless the client's self-approval policy allows it), and
 approval writes a new revision with provenance; nothing
 changes knowledge otherwise. `make layer_check` keeps the rows inside the
 repository.
+
+**A research run executes a Design Revision** (ADR 0016). The browser submits the
+design it shows; the revision is immutable and belongs to the Study's owned design
+project, which no generic project route can see. Runs are found only through the
+Study and their artifacts only through the run. On develop, fieldwork **parks**
+(`ai_runtime_unavailable`) until the AI runtime exists; fictional respondents exist
+only in `aia_executors.workbench` and tests, labelled `SYNTHETIC_FIXTURE` everywhere.
+Panel-derived data reaches no model provider until OI-61 records a licence
+determination -- a gate of its own beside residency. The Sociomap is computed but
+`INTERNAL_ONLY` while D6 is open.
 
 **The population is resolved once per run.** Research and simulation code gets
 population data only from `PopulationRuntime.load_for_run`, which reads the
@@ -336,6 +374,8 @@ ungated fixture.
 | **UI workbench** | `make ui-workbench` → <http://127.0.0.1:8780/workbench/sign-in> (AIA), `/classic` skinned, `:8767` bare; `make ui-workbench-status`, `make ui-workbench-down`. First run installs the unit's requirements into `tmp/ui-workbench/venv`; the API runs on the repo's env (`make setup`) |
 | **Develop routing, run** | `sudo python3 tools/develop_routing_proof.py --keep`, then `node tools/develop_routing_journey.mjs` (disposable machine: Caddy on 80/443, `/etc/hosts` names; see the script) |
 | Workbench research fixtures | `make ui-fixtures` (workbench running): fictional projects, prints their `/app` links |
+| **A research run, end to end** | `make ui-research` (workbench + fixtures): Run → Progress → Results in a browser, on fictional fieldwork |
+| Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, every router route and DEMO view, bare and skinned, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |
 | **Layering** | `make layer_check` |
