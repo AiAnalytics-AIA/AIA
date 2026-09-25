@@ -19,6 +19,7 @@ from aia_core.application.research import (
     ResearchRuns,
 )
 from aia_core.application.workflows import start_workflow
+from aia_core.domain.design import DESIGN_PROJECT_OWNER
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.research import ResearchPhase, phase_of, retryable
@@ -40,7 +41,7 @@ from aia_core.domain.workflow_templates import (
     UnknownWorkflowType,
     steps_for_workflow,
 )
-from aia_core.infrastructure.repositories import ProjectRepository
+from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
@@ -220,8 +221,18 @@ def test_a_non_research_run_on_the_design_project_is_not_a_research_run(
     design()
     project_id = StudyDesignRepository(session, scoped.scope()).project_id()
     assert project_id is not None
+    # An ordinary caller cannot run anything on the design project at all ...
+    with pytest.raises(ProjectNotFound):
+        start_workflow(
+            session, scoped.scope(), project_id=project_id, workflow_type=DEVELOP_SNAPSHOT
+        )
+    # ... and a snapshot run on it by its owner is still not a research run.
     snapshot = start_workflow(
-        session, scoped.scope(), project_id=project_id, workflow_type=DEVELOP_SNAPSHOT
+        session,
+        scoped.scope(),
+        project_id=project_id,
+        workflow_type=DEVELOP_SNAPSHOT,
+        owner=DESIGN_PROJECT_OWNER,
     )
     # A research workflow over some other project of the same Study is not the Study's research.
     stray, _ = ProjectRepository(session, scoped.scope()).create(

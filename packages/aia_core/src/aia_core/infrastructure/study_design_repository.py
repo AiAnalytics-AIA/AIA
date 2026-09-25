@@ -1,9 +1,13 @@
 """Design Revisions: the research design a run executes (ADR 0016 decision 1).
 
 Every method takes an issued ``StudyContext``; the design project is found from
-the Study, never from anything the caller names. A revision is written through
-``ProjectRepository.save``, which deduplicates identical content and never
-rewrites a revision, so the content under an existing run cannot change.
+the Study, never from anything the caller names. The design project is owned
+(``projects.owner = study_design``): only this repository names that owner, so no
+other path -- the generic project routes included -- can see or write it, and
+every revision of it passed :func:`~aia_core.domain.design.validate_design`. A
+revision is written through ``ProjectRepository.save``, which deduplicates identical
+content and never rewrites a revision, so the content under an existing run cannot
+change.
 """
 
 from __future__ import annotations
@@ -14,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..domain.design import (
+    DESIGN_PROJECT_OWNER,
     DESIGN_SOURCE_STAGES,
     DesignRejected,
     DesignRevision,
@@ -108,7 +113,7 @@ class StudyDesignRepository:
             raise DesignRejected("unknown source stage", reason="unknown_source_stage")
         design = validate_design(content)
         study = self._require_research()
-        projects = ProjectRepository(self._session, s)
+        projects = ProjectRepository(self._session, s, owner=DESIGN_PROJECT_OWNER)
         reason = _REASON_PREFIX + source_stage
 
         row = self._design()
@@ -118,11 +123,9 @@ class StudyDesignRepository:
                 project_type=ProjectType.RESEARCH,
                 content=design,
                 created_by=s.actor_id,
+                reason=reason,
             )
-            # create() records "project_created"; the revision is the design's
-            # first, so it says where it came from like every later one.
             first = self._revision_row(project.project_id, outcome.revision)
-            first.reason = reason
             self._session.add(
                 StudyDesignRow(
                     study_id=s.study_id,

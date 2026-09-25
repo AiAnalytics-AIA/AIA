@@ -18,6 +18,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.fieldwork import FieldworkSource
 from ..domain.research import phase_of, retryable
 from ..domain.scope import Permission, StudyContext
@@ -99,6 +100,7 @@ class ResearchRuns:
                 **({"retry_of": retry_of} if retry_of else {}),
             },
             step_inputs={"run": {"fieldwork_source": fieldwork_source.value}},
+            owner=DESIGN_PROJECT_OWNER,
         )
 
     def retry(self, run_id: str, *, fieldwork_source: FieldworkSource) -> StartedRun:

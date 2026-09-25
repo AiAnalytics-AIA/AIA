@@ -22,11 +22,17 @@ from pydantic import BaseModel, ConfigDict
 
 __all__ = [
     "DESIGN_MAX_BYTES",
+    "DESIGN_PROJECT_OWNER",
     "DESIGN_SOURCE_STAGES",
     "DesignRejected",
     "DesignRevision",
     "validate_design",
 ]
+
+#: ``projects.owner`` of a Study's design project. A project with an owner is
+#: invisible to a repository that does not name it, so only the design repository
+#: can write the content a run executes (ADR 0016 decision 1).
+DESIGN_PROJECT_OWNER: Final = "study_design"
 
 #: A design is a questionnaire, an audience and choices: kilobytes, not megabytes.
 #: The cap is generous and exists so that a submission cannot become a dump of

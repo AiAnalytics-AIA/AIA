@@ -12,13 +12,17 @@ import inspect
 from typing import Any
 
 import pytest
+from sqlalchemy import select
 
+from aia_core.application.workflows import start_workflow
 from aia_core.domain.design import DESIGN_MAX_BYTES, DesignRejected, validate_design
 from aia_core.domain.scope import ScopeDenied, StudyKind, StudyStatus
+from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
 )
+from aia_core.infrastructure.tables import ProjectRevisionRow
 
 DESIGN = {
     "title": "Ranní nápoj",
@@ -142,3 +146,40 @@ def test_a_revision_is_reachable_only_through_its_own_study(scoped: Any, designs
 def test_the_repository_refuses_anything_but_an_issued_scope(session: Any) -> None:
     with pytest.raises(TypeError):
         StudyDesignRepository(session, {"study_id": "STU-x"})  # type: ignore[arg-type]
+
+
+def test_only_the_design_repository_can_see_or_write_the_design(
+    session: Any, scoped: Any, designs: Any
+) -> None:
+    """Every revision of a design passed validate_design: nothing else can write one."""
+    repo = designs()
+    first, _ = repo.submit(content=DESIGN, source_stage="run")
+    project_id = repo.project_id()
+    assert project_id is not None
+    ordinary = ProjectRepository(session, scoped.scope())
+    assert project_id not in [p.project_id for p in ordinary.list_projects().items]
+    with pytest.raises(ProjectNotFound):
+        ordinary.get(project_id)
+    with pytest.raises(ProjectNotFound):
+        ordinary.save(project_id, content={**DESIGN, "client_id": "CLI-other"})
+    with pytest.raises(ProjectNotFound):
+        ordinary.update_settings(project_id, title="renamed")
+    with pytest.raises(ProjectNotFound):
+        ordinary.move_to_trash(project_id)
+    with pytest.raises(ProjectNotFound):
+        start_workflow(session, scoped.scope(), project_id=project_id, workflow_type="research")
+    # An ordinary project of the same Study is untouched by any of this.
+    plain, _ = ordinary.create(title="Plain", content={"goal": "g"})
+    assert plain.project_id in [p.project_id for p in ordinary.list_projects().items]
+    assert [r.revision_id for r in repo.revisions()] == [first.revision_id]
+
+
+def test_a_revision_row_is_never_updated(session: Any, designs: Any) -> None:
+    revision, _ = designs().submit(content=DESIGN, source_stage="run")
+    row = session.scalars(
+        select(ProjectRevisionRow).where(ProjectRevisionRow.revision_id == revision.revision_id)
+    ).one()
+    row.content = {**DESIGN, "n": 1}
+    with pytest.raises(RuntimeError, match="immutable"):
+        session.flush()
+    session.rollback()

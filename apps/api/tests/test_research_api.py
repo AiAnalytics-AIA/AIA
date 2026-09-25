@@ -11,11 +11,13 @@ from typing import Any
 
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.tables import ProjectRow
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 API = "/api/v1"
 
@@ -101,6 +103,34 @@ def test_a_design_never_crosses_studies_or_clients(
     assert outsider.get(f"{API}/studies/{world.study_id()}/design/revisions").status_code == 404
     # A malformed id is refused before any lookup.
     assert lead.get(f"{API}/studies/{world.study_id()}/design/revisions/PRJ-1").status_code == 422
+
+
+def test_the_generic_project_routes_cannot_see_or_write_a_design(
+    app: FastAPI, researcher: TestClient, lead: TestClient, world: Any, projects_url: Any
+) -> None:
+    """Regression (ADR 0016 decision 1): the design project was an ordinary project to /projects.
+
+    A researcher could list it, PUT content that skipped validate_design (a
+    ``client_id`` key became revision 2), and trash it while runs still started.
+    """
+    revision_id = submit(researcher, world).json()["revision_id"]
+    assert researcher.get(projects_url()).json()["items"] == []
+    listed = researcher.get(f"{API}/studies/{world.study_id()}/design/revisions").json()["items"]
+    assert [r["revision_id"] for r in listed] == [revision_id]
+    # The design project's id is never exposed; read it from the database, as an attacker
+    # who guessed it would hold it, and try every write the generic routes offer.
+    with create_session_factory(app.state.engine)() as session:
+        design_project = session.scalars(select(ProjectRow.project_id)).one()
+    base = f"{projects_url()}/{design_project}"
+    assert researcher.get(base).status_code == 404
+    put = researcher.put(f"{base}/content", json={"content": {**DESIGN, "client_id": "CLI-x"}})
+    assert put.status_code == 404
+    assert researcher.patch(base, json={"title": "renamed"}).status_code == 404
+    assert lead.post(f"{base}/trash").status_code == 404
+    runs = lead.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"})
+    assert runs.status_code == 404
+    listed = researcher.get(f"{API}/studies/{world.study_id()}/design/revisions").json()["items"]
+    assert [r["revision_id"] for r in listed] == [revision_id]
 
 
 # --------------------------------------------------------------------------- #

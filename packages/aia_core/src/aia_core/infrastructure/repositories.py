@@ -130,7 +130,13 @@ class ProjectRepository:
     save, write an event and enqueue a job atomically.
     """
 
-    def __init__(self, session: Session, scope: StudyContext) -> None:
+    def __init__(self, session: Session, scope: StudyContext, *, owner: str | None = None) -> None:
+        """``owner`` names the repository this one acts for (``projects.owner``).
+
+        ``None`` -- every ordinary caller, the API included -- sees only ordinary
+        projects. A Study's design project is owned by the design repository and is
+        invisible here unless its owner is named, so nothing else can write it.
+        """
         if not isinstance(scope, StudyContext):
             raise TypeError(
                 "ProjectRepository requires a StudyContext issued by the "
@@ -138,6 +144,7 @@ class ProjectRepository:
             )
         self._session = session
         self._scope = scope
+        self._owner = owner
 
     @property
     def scope(self) -> StudyContext:
@@ -158,6 +165,7 @@ class ProjectRepository:
             ProjectRow.organization_id == self._scope.organization_id,
             ProjectRow.client_id == self._scope.client_id,
             ProjectRow.study_id == self._scope.study_id,
+            ProjectRow.owner.is_(None) if self._owner is None else ProjectRow.owner == self._owner,
         )
 
     def _row(self, project_id: str) -> ProjectRow:
@@ -321,6 +329,7 @@ class ProjectRepository:
         runtime_version: str = "",
         created_by: str | None = None,
         request_id: str | None = None,
+        reason: str = "project_created",
     ) -> tuple[Project, SaveOutcome]:
         """Create a project and its first revision in one transaction.
 
@@ -370,6 +379,7 @@ class ProjectRepository:
             max_api_cost_usd=project.max_api_cost_usd,
             runtime_version=runtime_version,
             tags=[],
+            owner=self._owner,
         )
         self._session.add(row)
         self._session.flush()
@@ -377,7 +387,7 @@ class ProjectRepository:
         outcome = self.save(
             project.project_id,
             content=body,
-            reason="project_created",
+            reason=reason,
             actor_id=created_by or self._scope.actor_id,
             request_id=request_id or self._scope.request_id,
         )

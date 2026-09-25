@@ -34,7 +34,11 @@ model provider (`open-decisions.md` D3).
    and stores it as an immutable revision of the Study's own design project (`study_designs`: one
    per research Study, found only through the Study). The revision's `revision_id` is the **Design
    Revision ID**; content is deduplicated by hash, and a later edit is a new revision. A run names a
-   Design Revision ID explicitly and executes exactly that content. The browser supplies content,
+   Design Revision ID explicitly and executes exactly that content. The existing revision system is
+   reused because its invariants hold: a revision row is only ever inserted, never updated (an ORM
+   guard refuses an update), and the design project is **owned** by the design repository
+   (`projects.owner = study_design`): the generic project routes can neither see nor write it, so
+   every revision of it passed `validate_design`. The browser supplies content,
    never authority: no route takes a client, organization or unit project id, and nothing finds a
    Study by a unit id.
 

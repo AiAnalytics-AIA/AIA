@@ -175,6 +175,21 @@ forbid "the study design table is touched only by its repository" \
 forbid "the API, worker and executors never touch the study design table" \
   'StudyDesignRow' \
   apps
+# A Study's design project is owned (projects.owner): a repository that does not
+# name the owner cannot see it. Naming it anywhere else would reopen the path by
+# which content that skipped validate_design became a Design Revision (ADR 0016).
+forbid "only the design repository and the research runs name the design project's owner" \
+  'DESIGN_PROJECT_OWNER' \
+  "$CORE" \
+  design.py study_design_repository.py research.py
+forbid "the API, worker and executors never name the design project's owner" \
+  'DESIGN_PROJECT_OWNER|study_design\b' \
+  apps
+# A revision is what a run executed. The ORM refuses to UPDATE one
+# (tables.py, before_update); a bulk update() would go around it.
+forbid "no statement updates a project revision" \
+  'update\(\s*ProjectRevisionRow' \
+  packages/aia_core/src
 
 # --- Layer 4b: executors do the work; they neither serve nor decide scope -----
 #

@@ -226,6 +226,20 @@ and `fixtures/sociomap/index.json` maps it back. Rename; do not add an exemption
 `exposure_check` reads `git ls-files`, so an untracked file passes until it is
 staged — run it after `git add`, not before.
 
+**A reused local PostgreSQL test database keeps the old table after a model
+change.** The worker and executor suites create the schema on PostgreSQL and never
+drop it (they truncate, so a killed run leaves no rows), and `create_all` skips a
+table that already exists -- it never adds a column. Add a column to a model,
+run the core suite against the same `aia_test`, and every test touching that table
+errors with `column … does not exist` (PR C chunk 1b: 51 failed and 192 errors
+until the core suite's own `drop_all` rebuilt it). CI starts from an empty
+database, so this is local only. After a schema change, drop the local test
+schema first:
+
+```bash
+psql "$TEST_DB" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
+```
+
 ## Pydantic
 
 **An after-validator never sees a boolean in an `int` field.** Lax mode coerces
@@ -372,6 +386,27 @@ response = await adapter.send(request)
 
 `test_ai_usage_ledger.py::test_without_a_committed_dispatch_the_same_crash_is_retried`
 runs the crash both ways.
+
+**A `before_update` listener guards the ORM, not the table.** `project_revisions`
+rows are immutable, and `tables.py` refuses an ORM flush that would UPDATE one.
+That hook fires only for objects the session flushes; a bulk `update()` statement
+goes straight to SQL and never calls it. So the guard is paired with a layer rule
+that forbids the bulk form:
+
+```python
+# Caught -- the listener raises on flush
+row = session.scalars(select(ProjectRevisionRow).where(...)).one()
+row.content = {...}
+session.flush()                      # RuntimeError: ... is immutable
+
+# NOT caught by the listener -- make layer_check forbids it instead
+session.execute(update(ProjectRevisionRow).where(...).values(content={...}))
+```
+
+A "harmless" stamp on a just-inserted row is still an UPDATE. Chunk 1 of PR C set
+`reason` on the revision `create()` had just written, and that would have tripped
+the listener; the fix was for `create()` to take the reason, so the INSERT carries
+it. `test_design_revisions.py::test_a_revision_row_is_never_updated`.
 
 ## Alembic
 
