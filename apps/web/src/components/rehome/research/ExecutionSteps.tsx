@@ -295,7 +295,7 @@ export function ProgressStep() {
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
           {STEP_ORDER.map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s).map((s) => (
-            <li key={s.node_key} className="flex flex-col gap-0.5 text-sm">
+            <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>

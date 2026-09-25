@@ -6,8 +6,8 @@
 ``tools/caddy_routes.py`` checks the Caddyfile's *adapted configuration*; this
 runs it. The real ``deploy/develop/Caddyfile`` -- not a copy, not an edit -- is
 started with the develop Compose file's environment names, in front of the same
-three upstreams it names (``api:8000``, ``web:3000``, ``legacy-panel:8765``),
-each a local process on this machine:
+three upstreams it names (``api:8000``, ``web:3000``, ``legacy-panel:8765``), and
+the worker the host runs beside them, each a local process on this machine:
 
     legacy-panel  the vendored unit on the workbench's scratch copy and fictional
                   panel (tools/ui_workbench/unit_standin.py; no AI provider) on
@@ -17,6 +17,9 @@ each a local process on this machine:
                   environment's development identity, the gate switched on
                   (tools/ui_workbench/api_standin.py --panel-origin)
     web           ``next dev`` for apps/web, skin, hand-off and re-home on
+    worker        ``python -m aia_worker`` with the production registry
+                  (``aia_executors.registry``), over the API's database and
+                  artifact directory: a research run parks at fieldwork (ADR 0016)
 
 and then asks the product and legacy hostnames what a browser would, printing
 one line per request. It exits 1 if any answer is not the one ADR 0015 says.
@@ -103,11 +106,19 @@ class Site:
         self.tls = ssl.create_default_context(cafile=str(ca))
 
     def get(
-        self, path: str, headers: dict[str, str] | None = None, method: str = "GET"
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        method: str = "GET",
+        body: object = None,
     ) -> tuple[int, dict[str, str], bytes]:
         conn = http.client.HTTPSConnection(self.host, 443, context=self.tls, timeout=120)
+        sent = {"Accept-Encoding": "identity", **(headers or {})}
+        data = None if body is None else json.dumps(body).encode()
+        if data is not None:
+            sent["Content-Type"] = "application/json"
         try:
-            conn.request(method, path, headers={"Accept-Encoding": "identity", **(headers or {})})
+            conn.request(method, path, body=data, headers=sent)
             r = conn.getresponse()
             return r.status, {k.lower(): v for k, v in r.getheaders()}, r.read()
         finally:
@@ -199,6 +210,8 @@ def prove(caddy: str) -> list[tuple[bool, str]]:
         web = b"/_next/static/" in b
         line(s == 404 and web, f"GET {path}", f"{s} from {'the web client' if web else 'the unit'}")
 
+    research(product, line)
+
     # The oracle: the legacy hostname, basic auth, the unit's own bytes.
     s, _, _ = legacy.get("/", html)
     line(s == 401, f"GET https://{LEGACY}/ (no credentials)", str(s))
@@ -211,6 +224,97 @@ def prove(caddy: str) -> list[tuple[bool, str]]:
         f"{s} sha256 {digest[:12]} == pinned ui_app.html, unskinned",
     )
     return out
+
+
+# A design that passes AIA's readiness: two questions, one tracked set, n in range.
+DESIGN: dict[str, Any] = {
+    "title": "Proof · fiktivní výzkum",
+    "n": 300,
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {"id": "q1", "text": "Jak často?", "typ": "skala", "skala": [1, 5]},
+                {"id": "q2", "text": "Kde?", "typ": "vyber", "kategorie": ["Doma", "Venku"]},
+            ],
+        },
+        {
+            "type": "object_battery",
+            "object_family": "varianta",
+            "objects": ["Varianta A", "Varianta B", "Varianta C", "Varianta D"],
+            "scale": [1, 10],
+        },
+    ],
+}
+
+
+def research(product: Site, line: Any) -> None:
+    """ADR 0016 on the production composition: a run parks at fieldwork, nothing invented."""
+    bearer = {
+        "Authorization": f"Bearer {OPERATOR}",
+        "Accept": "application/json",
+        "Origin": f"https://{PRODUCT}",
+    }
+
+    def call(method: str, path: str, body: object = None) -> tuple[int, Any]:
+        s, _, b = product.get(path, bearer, method=method, body=body)
+        try:
+            return s, json.loads(b)
+        except ValueError:
+            return s, None
+
+    _, clients = call("GET", "/api/v1/workspace/clients")
+    client = (clients or [{}])[0].get("client_id", "")
+    s, study = call(
+        "POST", f"/api/v1/clients/{client}/studies", {"name": "Proof run", "kind": "RESEARCH"}
+    )
+    sid = (study or {}).get("study_id", "")
+    line(s == 201 and bool(sid), "POST /api/v1/clients/<client>/studies (RESEARCH)", f"{s} {sid}")
+    base = f"/api/v1/studies/{sid}"
+    s, rev = call("POST", f"{base}/design/revisions", {"content": DESIGN, "source_stage": "run"})
+    rid = (rev or {}).get("revision_id", "")
+    line(s in (200, 201) and bool(rid), "POST …/design/revisions", f"{s} {rid}")
+    s, ready = call("GET", f"{base}/research/readiness?design_revision_id={rid}")
+    ready = ready or {}
+    line(
+        s == 200 and ready.get("ready") is True and ready.get("fieldwork_source") == "ai_runtime",
+        "GET …/research/readiness",
+        f"{s} ready={ready.get('ready')} fieldwork={ready.get('fieldwork_source')}",
+    )
+    s, run = call("POST", f"{base}/research/runs", {"design_revision_id": rid})
+    run_id = (run or {}).get("run_id", "")
+    line(s in (200, 201) and bool(run_id), "POST …/research/runs", f"{s} {run_id}")
+    deadline = time.monotonic() + 90
+    steps: dict[str, dict[str, Any]] = {}
+    while time.monotonic() < deadline:
+        _, run = call("GET", f"{base}/research/runs/{run_id}")
+        steps = {x["node_key"]: x for x in (run or {}).get("steps", [])}
+        if steps.get("run", {}).get("waiting_reason") or (run or {}).get("is_terminal"):
+            break
+        time.sleep(1)
+    fieldwork = steps.get("run", {})
+    run = run or {}
+    line(
+        fieldwork.get("status") == "WAITING_PROVIDER"
+        and fieldwork.get("waiting_reason") == "ai_runtime_unavailable"
+        and run.get("phase") == "WAITING",
+        "the run parks at fieldwork (no AI runtime)",
+        f"{run.get('phase')} run={fieldwork.get('status')}/{fieldwork.get('waiting_reason')}",
+    )
+    done = [k for k in ("compile", "preflight") if steps.get(k, {}).get("status") == "SUCCEEDED"]
+    after = {k: steps.get(k, {}).get("status") for k in ("aggregate", "sociomap")}
+    line(
+        len(done) == 2 and set(after.values()) == {"BLOCKED"},
+        "compile + preflight done; aggregate, sociomap blocked",
+        f"{done} {after}",
+    )
+    origins = {x.get("data_origin") for x in steps.values()}
+    artifacts = len(run.get("artifact_ids", []))
+    line(
+        origins == {None} and artifacts == 2,
+        "nothing fictional, nothing computed past fieldwork",
+        f"data_origin {sorted(map(str, origins))}, {artifacts} artifacts",
+    )
 
 
 def main(argv: list[str]) -> int:
@@ -270,6 +374,8 @@ def main(argv: list[str]) -> int:
                 str(HOME / "aia.sqlite"),
                 "--panel-origin",
                 f"https://{PRODUCT}",
+                "--artifacts",
+                str(HOME / "artifacts"),
             ],
             REPO,
             {},
@@ -303,6 +409,23 @@ def main(argv: list[str]) -> int:
     try:
         for name, port in (("unit", 18765), *UPSTREAMS.items(), ("caddy", 443)):
             _wait_port(port, name, 240)
+        # The worker the develop host runs: the production registry, which has no
+        # fieldwork source (ADR 0016), over the API's schema, created at its start.
+        procs.append(
+            _spawn(
+                "worker",
+                [api_python, "-m", "aia_worker"],
+                REPO,
+                {
+                    "DATABASE_URL": f"sqlite+pysqlite:///{HOME / 'aia.sqlite'}",
+                    "AIA_WORKER_EXECUTORS": "aia_executors.registry:build_registry",
+                    "AIA_WORKER_ID": "proof-worker",
+                    "AIA_WORKER_POLL_SECONDS": "1",
+                    "AIA_STORAGE_BACKEND": "filesystem",
+                    "AIA_STORAGE_ROOT": str(HOME / "artifacts"),
+                },
+            )
+        )
         # Warm next dev's compile of the pages the proof reads, so no answer times out.
         for path in ("/app/clients", "/interface-document", "/no-such-page"):
             with contextlib.suppress(OSError):

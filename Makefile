@@ -12,7 +12,7 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web web_design ui-workbench ui-workbench-status ui-workbench-down ui-capture ui-fixtures \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web web_design ui-workbench ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
@@ -108,6 +108,9 @@ ui-capture: ## Screenshot every screen of the workbench, bare and skinned -> tmp
 
 ui-fixtures: ## Write the workbench's fictional research projects (the screens that show an AI answer)
 	@python3 tools/ui_workbench/fixture_project.py
+
+ui-research: ## One research run end to end in a browser on the workbench: Run -> Progress -> Results (fictional fieldwork)
+	@node tools/ui_workbench/research_journey.mjs
 
 ui-workbench-down: ## Stop the UI workbench
 	@python3 tools/ui_workbench/workbench.py down

@@ -9,7 +9,8 @@
  * Signed in as /login leaves a person (the gate's cookie and the tab's session),
  * it opens the hostname's root and follows it to the client directory, starts a
  * research under a fictional client, lets the first save bind the study to its
- * unit project, hands off to the classic interface and comes back, and tries two
+ * unit project, opens the run stage (AIA's: the empty design is not ready), hands
+ * off to the classic interface from a stage still there and comes back, and tries two
  * direct routes that must find nothing: another client's study under this
  * client's URL, and a unit project id in a study's place. Prints one line per
  * check; exits 1 on any failure. Needs Playwright with a Chromium (resolved from
@@ -86,11 +87,21 @@ for (let i = 0; i < 40 && !bound; i++) { await page.waitForTimeout(500); bound =
 check(!!bound, "first save bound the study to its unit project", String(bound));
 await page.screenshot({ path: `${OUT}/3-brief.png` });
 
-// 4. The hand-off to the classic interface is explicit, labelled and returnable.
+// 4a. The run stage is AIA's (ADR 0016): the design the person sees becomes a
+// Design Revision, and AIA's readiness refuses one with no questionnaire yet.
 await page.getByRole("link", { name: /Kontrola & Spuštění/ }).click();
 await page.waitForURL(/\/run$/, { timeout: 60000 });
-await page.waitForTimeout(1500);
+await page.getByText("Návrh zatím nelze spustit").first().waitFor({ timeout: 60000 }).catch(() => {});
+const start = page.getByRole("button", { name: "Spustit výzkum" });
+check((await start.count()) === 1 && (await start.isDisabled()), "run stage is AIA's: the empty design is not ready, no start");
+const revisions = await api(`/studies/${studyId}/design/revisions`);
+check(revisions.status === 200 && revisions.body.items.length >= 1, "the design on screen was submitted as a Design Revision", `${revisions.status} ${revisions.body?.items?.length} revision(s)`);
 await page.screenshot({ path: `${OUT}/4a-run-stage.png` });
+
+// 4b. The hand-off to the classic interface is explicit, labelled and returnable,
+// from a stage that still lives there.
+await page.goto(`${HOST}/app/clients/${clientId}/research/${studyId}/verify`, { waitUntil: "networkidle" });
+await page.waitForTimeout(1500);
 const stagePath = new URL(page.url()).pathname;
 const classic = page.locator("a[href^='/classic']").first();
 const href = await classic.getAttribute("href").catch(() => null);
