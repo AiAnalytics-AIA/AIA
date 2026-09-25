@@ -1,7 +1,7 @@
 # PR C — Research execution: Run → Progress → Results, under the client
 
 **Status:** in progress on `feature/research-execution` (from `develop` @ `4ad5f66`, PR #51 merged).
-**Decided by:** the data owner, 2026-09-25 (D1–D3 and design ingestion below).
+**Decided by:** the data owner, 2026-09-25 (D1–D3 and design ingestion below; D3′, D6′, D11′ and DI′ the same day).
 **Follows:** [client-first-ia.md](client-first-ia.md) (ADR 0015) · research-flow-rehome chunks 7–9 are
 replaced by this plan · **precedes** the Agent Runtime Foundation (Study → AgentRun → AIA
 Orchestrator → ModelGateway → Bedrock).
@@ -42,6 +42,10 @@ answered by code (`factual_layer`, EXACT).
 | D2 | **First methods: Aggregate + Sociomap.** Aggregate proves the respondent-data → analysis-result boundary; Sociomap proves a real deterministic methodology artifact downstream. Next, in order: Donor QC → battery quality gates → segments. Not in PR C. |
 | D3 | **Provider transmission.** The licensing question is unresolved (reference `open-decisions.md` D3). Until positively approved, PIAAC, ISSP and any panel-derived microdata are **prohibited from transmission to any model provider, Bedrock included**. Enforced fail-closed: a dataset/provider combination without an explicit approved classification → no external transmission. The **determination** (a legal fact, changeable) is recorded separately from the **engineering rule** (code), so approval changes policy data, not the runtime. AI fieldwork may be built and tested on synthetic or explicitly cleared data only. |
 | DI | **Design ingestion.** The browser submits the design; AIA validates it against the authenticated Study and persists it as a versioned, Study-scoped **Design Revision** with provenance. The browser supplies content, never authority. A run binds to an explicit Design Revision ID; a later edit creates a new revision and never mutates the one under an existing run. |
+| D3′ | **Two gates, not one** (data owner, 2026-09-25, adjusting D3). Dataset/provider **licence eligibility** and **EU residency** are separate policies with separate owners, reasons and records: licence eligibility is `domain/transmission.py` + the determinations in `domain/licence_determinations.py`; residency is `domain/residency.py` (ADR 0008). Both are enforced at the one egress boundary, `GovernedModelGateway`, and **both must pass** before any adapter is reached; neither implies the other, and a refusal names which gate refused. |
+| D6′ | **Integration is not exposure** (adjusting D2/D6). PR C integrates the deterministic Sociomap engine into the research run and proves synthetic fieldwork → aggregate → sociomap → results internally. Whether a Sociomap may be shown in production or in a report stays gated on PROGRESS D6 (the four AIA declarations, `sociomapa-methodology-decision.md`); the artifact carries that status and every client-facing surface refuses it while D6 is open. D6 does not block the seam. |
+| D11′ | **The smallest stable deterministic contract for intervals** (adjusting chunk 5). Characterised first: in 18.6.6 only the interval *bounds* depend on the random stream, no research decision reads a bound, and the unit's own bounds move by up to 12 rounding steps when only the seed changes (OI-62, `tools/bootstrap_seed_sensitivity.py`). So: estimates, support and suppression EXACT; intervals the same estimator under AIA's own seeded generator, inside the unit's seed envelope; **no PCG64** unless a consumer later needs bound equality. |
+| DI′ | **Reuse `project_revisions.revision_id` — after closing the gap verification found** (adjusting DI). Verified @ `7e0fa7c`: a revision row is only ever inserted (`repositories.py:446`, via `save`/`create`); no statement updates one except chunk 1's own `reason` stamp on a just-inserted row; the id is unique (`tables.py:155`); a run records `(project_id, project_revision)` and `metadata.design_revision_id` once, at creation (`workflow_repository.py:448`), never rewritten; a design project cannot be purged while its Study binds it (`study_designs.project_id` RESTRICT). **Not verified — a defect:** the design project was also an ordinary project to the generic `/studies/{s}/projects` routes, so a researcher could list it, `PUT` content that skipped `validate_design` (a `client_id` key was accepted as revision 2, source `autosave`), and trash it while runs still started on it. Reuse holds once only the design repository can write it (chunk 1b). |
 
 ## Shape
 
@@ -91,11 +95,12 @@ Each chunk: schema + logic + tests, its own commit(s), `make verify` green befor
 |---|---|---|
 | 0 | This plan; ADR 0016 (research execution, fieldwork boundary, the model-transmission rule); open items for D3's determination and the numerics question | done: ADR 0016, OI-61 (licensing determination), OI-62 (NumPy random stream); the IA plan archived and its PROGRESS row moved to Completed |
 | 1 | **Design Revisions.** `study_designs` (Study → its AIA design project, one per research Study); submit/list/get over `/studies/{s}/design/revisions`; immutable, deduplicated by content, provenance (actor, time, source stage, base revision); cross-client and invalid-Study tests | done: `domain/design.py`, `study_design_repository.py`, migration `eff3c6ed26b4` (upgrade, `alembic check`, downgrade on PostgreSQL 16), `routers/research.py`; `test_design_revisions.py` (11), `test_research_api.py` (3); the Study filter mutation-checked; two layer rules |
+| 1b | **Only the design repository writes a Study's design** (DI′). `projects.owner` (`NULL` for an ordinary project, `study_design` for a Study's design project), backfilled from `study_designs`; `ProjectRepository(owner=…)` adds the owner to its isolation predicate, so a repository without the owner cannot list, read, save, patch, trash, restore, purge or run the design project (404, as for any project outside scope); `create()` takes the revision reason, so no revision row is ever mutated; an ORM guard refuses any UPDATE of a `project_revisions` row, and a layer rule forbids a bulk one | next |
 | 2 | **The `research` workflow and the execution API.** Template `compile → preflight → run → aggregate → sociomap` (reference node keys; `run` is fieldwork); start (idempotent by revision), list, get, cancel, retry (a new run linked to the one it retries); the explicit waiting-for-AI-runtime park (no auto-resume; resumed only when the runtime exists); 404/403 semantics; cost fields only under `VIEW_COSTS` | done: `FailureClass.RUNTIME_UNAVAILABLE` parks `WAITING_PROVIDER` with reason `ai_runtime_unavailable`, non-consuming, and `resume_due` never resumes it; `ResearchRuns` finds a run only through the Study's design project and `workflow_type`; the phase is QUEUED until a step has an attempt (the engine stamps `RUNNING` at creation); the fieldwork source is the deployment's (`AIA_RESEARCH_FIELDWORK_SOURCE`, `synthetic_fixture` refused on staging/production). Idempotency is per revision (`research:<REV>`, a retry `…:retry:<RUN>`): a second key from the browser would only let one revision have two live runs. Tests: `test_research_runs.py`, `test_research_api.py` (runs), `test_config_and_security.py::test_synthetic_fieldwork_is_refused_on_every_deployed_environment`. The positive artifact read lands with chunk 4's first artifact |
-| 3 | **Model-transmission rule (D3).** Dataset licence classes and the provider rule in `aia_core` (fail closed; unknown ⇒ prohibited); the determinations as separate policy data (all panel-derived sources: *not approved*); enforced at the gateway's egress boundary so no caller can transmit panel-derived material; tests and a layer rule | pending |
+| 3 | **Licence eligibility, a gate beside residency (D3, D3′).** `domain/transmission.py`: `DataLineage` (declared, never defaulted; `DataLineage.none()` is itself a declaration), `LicenceDetermination`, `TransmissionPolicy.authorise` (undeclared lineage, unknown dataset, undetermined or refused, or approved for another route ⇒ refused), `LicenceDenied` — its own refusal, not a residency one. `domain/licence_determinations.py`: the determinations as data (PIAAC, ISSP, the Czech panel: UNDETERMINED, OI-61; AIA's fictional fixture: approved). `ModelRequest.data_lineage` (no default, like `data_classification`); `GovernedModelGateway` runs residency *and* licence before any adapter, each failure `PERMISSION` with its own reason (`egress_*` / `licence_*`), and records both in the call's events; layer rules: determinations constructed only in their module, the policy only by the gateway's composition | draft written (rule + data + 12 tests); gateway wiring pending |
 | 4 | **compile, preflight and the fieldwork boundary.** compile: the design → a typed research specification (questions, object batteries, audience, N) as an artifact; preflight: structural readiness (AIA's rules, labelled as such; the legacy technical check stays in /classic); fieldwork: source resolution, the park, and the synthetic source — refused outside the test/workbench composition, stamped `data_origin=SYNTHETIC_FIXTURE`, never client-facing | pending |
-| 5 | **Aggregate.** Port `uncertainty.py` (weights, Kish n, donor support and status, weighted mean/distribution/quantile/variance) and the reportable core of `agreguj_otazku` for `vyber`/`multi`/`skala`/`otevrena`, with fixtures captured by running the vendored unit's own functions. Bootstrap intervals need NumPy's PCG64 stream: attempt a pure-Python PCG64 + `integers`, proven against captured draws; if it cannot be made exact, intervals are a recorded INTENTIONAL_DIFFERENCE and the decision goes to the data owner | pending |
-| 6 | **Sociomap.** Port `derive_relation_matrix` (object×object from common respondent ratings) with a captured fixture; the step builds `SociomapInputs` from the specification's object batteries and the fieldwork dataset and calls `compute_sociomap`; the artifact carries the spec and its methodology status (D6 open ⇒ not client-facing) | pending |
+| 5 | **Aggregate** (D11′, OI-62). Port `uncertainty.py` (weights, Kish n, donor support and status, weighted mean/distribution/quantile/variance, the cluster bootstrap) and the reportable core of `agreguj_otazku` for `vyber`/`multi`/`skala`/`otevrena`. Fixtures captured by running the unit's own functions: estimates, support and suppression compared EXACT; each bound compared against the unit's envelope over K seeds; AIA's own bounds pinned by a self-fixture. Generator: `random.Random(seed).random()`, index `floor(u·m)` — no PCG64. `statistics.uncertainty` gains the documented deviation for bounds with its gate | pending |
+| 6 | **Sociomap, integrated; exposure still gated (D6′).** Port `derive_relation_matrix` (object×object from common respondent ratings) with a captured fixture; the step builds `SociomapInputs` from the specification's object batteries and the fieldwork dataset and calls `compute_sociomap`; the artifact records the engine version, the SociomapSpec and `methodology_status` (D6 open ⇒ `INTERNAL_ONLY`). The API serves it to the Study's own researchers flagged internal; no client-facing surface, export or report renders an `INTERNAL_ONLY` sociomap (tested) | pending |
 | 7 | **Web: Run, Progress, Results** under `/app/clients/<c>/research/<s>/{run,progress,results}`. Run: what will run, the Design Revision, readiness, one dominant *Spustit*; Progress: status in words, step checkpoints, timestamps, the park explained, cancel/retry; Results: artifacts with provenance, aggregate tables with suppression and intervals, the sociomap summary, the synthetic banner. The legacy analytical report stays an explicit /classic hand-off | pending |
 | 8 | **Workbench and proof.** A worker in the workbench (synthetic source on), fixtures bound to studies, capture of the three stages; the routing journey extended: start → park (production composition) and start → completed with results (synthetic) | pending |
 | 9 | Documents (CLAUDE.md, ARCHITECTURE.md, AGENTS.md, PROGRESS.md, ledgers, plans), `make verify`, PostgreSQL suites, per-commit checks, PR | pending |
@@ -111,14 +116,41 @@ Each chunk: schema + logic + tests, its own commit(s), `make verify` green befor
   artifact carries its origin; the evidence gate never admits a client-facing claim from it).
 - No executor in this PR reaches `ModelGateway`; `make layer_check` keeps provider SDKs out.
 - Panel-derived material cannot be transmitted to any provider while its determination is not
-  approved, whatever the caller does.
+  approved, whatever the caller does; a call reaches an adapter only when residency **and** licence
+  eligibility both pass, and a refusal names the gate.
+- Only the design repository can write a Study's design project; no revision row is ever updated.
+- No `INTERNAL_ONLY` Sociomap reaches a client-facing surface while D6 is open.
 
-## Not in PR C
+## Implemented now, blocked, deferred
 
-AI fieldwork, analysis modules, interpretation, report and delivery (Agent Runtime PR); Bedrock;
-Donor QC, battery quality gates, segments (next, in that order); the legacy analytical report
-(hand-off); OI-58 (the unit store still holds the editing copy); OI-59; Simulation runtime; the
-Data Library; Project Memory; Sociomap redesign or client-facing sociomaps (D6).
+**Implemented in PR C** (when every chunk lands): Design Revisions the browser submits and only the
+design repository writes; the `research` run over one revision — start, read, events, cancel,
+retry — Study-scoped with 404/403 semantics; the honest park at fieldwork; compile, preflight and
+the fieldwork boundary; the synthetic source, refused in every deployed composition; Aggregate
+(exact estimates and support, the stable interval contract); the Sociomap step as an internal
+artifact; licence eligibility and residency as two gates at the gateway; the Run, Progress and
+Results stages; the workbench and routing proof.
+
+**Blocked by D3 (OI-61, legal and the data owner)** — built and enforced, not live:
+- AI fieldwork against PIAAC, ISSP, the Czech panel or anything computed from its rows. The rule
+  refuses it at the gateway; AI fieldwork can only be exercised on the fictional fixture or on data
+  whose determination approves a route.
+- Any model interpretation of panel-derived aggregates, for the same reason.
+
+**Blocked by D6 (PROGRESS D6, the methodology owner)** — integrated, not exposed:
+- A Sociomap in any client-facing surface, export or report. PR C produces and stores it, labelled
+  `INTERNAL_ONLY`, and proves the chain on synthetic data.
+
+**Deferred — not in PR C:**
+- The Agent Runtime Foundation (next PR): `AgentRun`, the orchestrator, the `ai_runtime` fieldwork
+  source, Bedrock behind `ModelGateway`.
+- Analysis modules, interpretation, report and delivery.
+- Donor QC, then battery quality gates, then segments (D2's order).
+- The legacy analytical report (an explicit /classic hand-off).
+- OI-58: the unit store still holds the editing copy.
+- OI-59: membership → client grant → study grant.
+- Simulation runtime; the Data Library; Project Memory; the Sociomap redesign.
+- A PCG64 port (only if a consumer needs bound equality, OI-62).
 
 ## Exit criteria
 

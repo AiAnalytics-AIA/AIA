@@ -64,10 +64,16 @@ model provider (`open-decisions.md` D3).
      derived from it carries `data_origin = SYNTHETIC_FIXTURE`, and nothing from it can become a
      client-facing claim.
 
-5. **Model transmission fails closed on licence (D3).** Two things are kept apart:
-   - the **engineering rule** (code, in the egress boundary of ADR 0008): material may be sent to a
+5. **Model transmission fails closed on licence (D3).** Licence eligibility is its own gate,
+   beside residency, not a kind of it: residency (ADR 0008, `domain/residency.py`) asks whether a
+   class of material may leave over a route; licence eligibility (`domain/transmission.py`) asks
+   whether the datasets the material was computed from permit a model provider at all. They have
+   different owners and change for different reasons. Both are enforced at the one egress boundary,
+   `GovernedModelGateway`, and **both must pass** before an adapter is reached; a refusal names the
+   gate that refused (`egress_*` or `licence_*`). Within the licence gate two things are kept apart:
+   - the **engineering rule** (code): material may be sent to a
      model provider only when every dataset it derives from has a determination that explicitly
-     approves that provider. Unknown lineage, an unknown dataset, or a determination that is missing,
+     approves that route. Unknown lineage, an unknown dataset, or a determination that is missing,
      pending or refused all mean **no transmission**. Material must declare its lineage; an
      undeclared lineage is refused like unclassified material.
    - the **determination** (policy data, owned by the data owner and legal): per dataset, whether
@@ -76,7 +82,13 @@ model provider (`open-decisions.md` D3).
      rows — is *not approved* for any provider, Bedrock included. Approval changes the
      determination; it does not change code.
 
-6. **The execution API is Study-scoped.** Under `/api/v1/studies/{study_id}/`:
+6. **Sociomap integration is not Sociomap exposure.** The research run computes a Sociomap with the
+   deterministic engine and stores it as an artifact carrying its methodology status. While
+   PROGRESS D6 (the four AIA declarations) is open that status is `INTERNAL_ONLY`: the Study's
+   researchers can inspect it, and no client-facing surface, export or report renders it. D6 gates
+   exposure, not the integration seam.
+
+7. **The execution API is Study-scoped.** Under `/api/v1/studies/{study_id}/`:
    `design/revisions` (submit, list, get), `research/runs` (start, list), `research/runs/{run_id}`
    (state), `…/cancel`, `…/retry`, `…/artifacts/{artifact_id}`. Every route resolves the Study
    through `ScopeResolver` first: out of scope is 404, in scope without the permission is 403.
@@ -104,9 +116,11 @@ model provider (`open-decisions.md` D3).
   built and tested on synthetic or explicitly cleared data.
 - Until OI-58, the unit store keeps the editing copy; AIA holds the revisions that ran. The design
   project is where the editing copy moves when OI-58 lands.
-- Porting brings the vendored unit's numerics into a stdlib-only domain (ARCHITECTURE.md §2); a
-  method that depends on NumPy's random stream needs a faithful pure-Python generator or a recorded
-  intentional difference (the same question as PROGRESS D11 for simulation).
+- Porting brings the vendored unit's numerics into a stdlib-only domain (ARCHITECTURE.md §2). For
+  aggregation the question was characterised before it was answered (OI-62): only interval bounds
+  depend on NumPy's random stream, and no research decision reads one, so estimates and support are
+  ported exactly and intervals as the same estimator under AIA's own seeded generator. No PCG64
+  port. PROGRESS D11's simulation half is a separate question and stays open.
 
 ## Revisit when
 

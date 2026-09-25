@@ -1920,20 +1920,61 @@ classes, by whom, when, on what basis) from legal and the data owner.
 
 **Status.** Open; blocks live AI fieldwork, not PR C.
 
-## OI-62 · Decision may be owed · Bootstrap intervals depend on NumPy's random stream
+## OI-62 · Decided (engineering, on evidence) · Bootstrap intervals need not follow NumPy's random stream
 
 **Claim.** The unit's aggregation intervals are a donor-cluster bootstrap whose resamples come from
-`np.random.default_rng(seed).integers(...)` (PCG64). AIA's domain layer is stdlib-only
-(ARCHITECTURE.md §2), so an exact port needs a faithful pure-Python PCG64 and bounded-integer
-draw; otherwise the intervals are an intentional difference.
+`np.random.default_rng(seed).integers(...)` (PCG64). The question was whether AIA must reproduce that
+stream exactly (a pure-Python PCG64 in a stdlib-only domain, ARCHITECTURE.md §2) or whether the same
+estimator, deterministic under AIA's own generator, is enough.
 
-**Anchor.** `legacy/npc-panel-18.6.6/app/uncertainty.py:136-151` (`_cluster_multipliers`,
-`bootstrap_weighted_mean`); seeds `20260816`/`20260818`/`20260830+i` at `dotaznik.py:1453-1475`.
-Same question as PROGRESS D11 (simulation numerics).
+**Anchor.** `legacy/npc-panel-18.6.6/app/uncertainty.py:144-181` (`_cluster_multipliers`,
+`bootstrap_weighted_mean`, `bootstrap_weighted_distribution`) @ `7e0fa7c`; the call sites and their
+seeds, `dotaznik.py:1450-1578` (`20260816`, `20260818`, `20260816+i`, `20260820`–`20260824`,
+`20260830+i`). The research half of PROGRESS D11; D11's simulation half (the withheld `FS_*` formula
+bodies) is unchanged.
 
-**Plan.** PR C chunk 5 attempts the faithful generator, proven against draws captured from NumPy. If
-it is exact, both this and D11's generator half are settled; if not, the intervals ship as a recorded
-INTENTIONAL_DIFFERENCE and the choice goes to the data owner.
+**What the unit does with the random stream.** The random stream decides only the interval bounds.
+Point estimates (`weighted_mean`, `weighted_distribution`), Kish n, donor counts, `support_status`
+and suppression are computed without it. No 18.6.6 research code makes a decision from a bound: the
+report draws them and hides a value without an interval (`report_html.py:33-36`), and the only
+comparison against a bound is simulation truth-coverage (`full_simulation.py:783`), outside research
+aggregation. AC-09 asks for effective-n suppression on every client-facing number
+(`docs/migration/mvp-acceptance.md:79`), not for equal bounds. AIA's own evidence gate needs a finite
+interval that contains its estimate (`domain/evidence/support.py:206-224`).
 
-**Status.** Open.
+**Evidence.** `tmp/ui-workbench/venv/bin/python tools/bootstrap_seed_sensitivity.py` runs the
+unit's own, unmodified `uncertainty.py` (NumPy 2.4.6) with 400 resamples on fictional cells, at the
+unit's seed and 199 others:
+
+| cell | support | estimate moves with seed | 1–5 mean: unit bounds | unit's own range, low / high | other seeds giving the unit's bounds | % option A: unit bounds | unit's own range, low / high | other seeds giving the unit's bounds |
+|---|---|---|---|---|---|---|---|---|
+| 450 rows, 287 donors | REPORTABLE | no | 3.29 [3.18, 3.39] | 3.15–3.20 / 3.38–3.41 | 23.5% | 40.5 [35.7, 45.6] | 34.5–36.3 / 44.6–46.5 | 0.5% |
+| 450 rows, 146 donors | REPORTABLE | no | 3.29 [3.18, 3.40] | 3.16–3.20 / 3.37–3.42 | 21.0% | 40.5 [35.4, 45.1] | 34.6–36.4 / 44.5–46.3 | 1.5% |
+| 120 rows, 53 donors | REPORTABLE | no | 3.24 [2.99, 3.44] | 2.98–3.06 / 3.41–3.50 | 0.5% | 42.1 [32.4, 51.7] | 31.0–34.1 / 49.6–52.9 | 0.5% |
+| 60 rows, 24 donors | SUPPRESS | no | 3.10 [2.78, 3.40] | 2.74–2.86 / 3.35–3.45 | 1.5% | 40.2 [30.1, 50.5] | 28.7–32.1 / 49.2–54.1 | 0.5% |
+
+On the unit's own terms, a bound moves by up to 12 rounding steps (0.01 on the mean, 0.1 pp on
+a share) when only the seed changes. The unit's seed is one draw of a Monte Carlo estimator. Matching
+it exactly would be matching NumPy's PCG64 and its bounded-integer algorithm, which says nothing
+about the method.
+
+**Decision.** No PCG64. The aggregation contract (PR C chunk 5) is:
+- **EXACT against the unit's captured output:** weights, Kish n, donor support and its status,
+  suppression, point estimates (1e-9 before the unit's rounding, identical after it).
+- **Intervals — the same estimator, not the same stream:** donor clusters of the selected layer
+  (a missing id is its own cluster), uniform resampling of clusters with replacement, weight ×
+  multiplicity, the call site's resample count, the 2.5/97.5 percentiles with linear interpolation,
+  the unit's rounding. A fixture records the unit's bounds for each cell at K seeds, and AIA's bound
+  must fall inside that envelope.
+- **Deterministic:** AIA draws with `random.Random(seed)` using only `random()`, the one sequence
+  Python guarantees across versions. The cluster index is `floor(u·m)`. The same input and seed give
+  the same bounds, pinned by an AIA fixture of its own.
+- `parity-matrix.json` `statistics.uncertainty` keeps NUMERICAL 1e-9 for support and estimates. The
+  bounds get a documented deviation, landing with chunk 5's gate.
+
+**Revisit when** a consumer needs AIA's bounds to equal an 18.6.6 report's printed numbers
+(re-issuing a delivered report), or an acceptance criterion names bound equality. Only then is a
+PCG64 port justified, and it would need its own named exception to §2.
+
+**Status.** Decided for research aggregation; the contract lands and is tested in PR C chunk 5.
 
