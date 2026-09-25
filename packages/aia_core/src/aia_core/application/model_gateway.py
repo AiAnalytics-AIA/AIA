@@ -174,6 +174,37 @@ class GovernedModelGateway:
 
     # ------------------------------------------------------------ entry point --
 
+    def preflight(self, request: ModelRequest, context: ExecutionContext) -> ModelResolution:
+        """Would this request be allowed to leave? Raise :class:`ModelCallFailed` if not.
+
+        Runs exactly what :meth:`invoke` runs before its first dispatch -- resolution,
+        residency, licence eligibility, the route's adapter and the output limit --
+        through the same code, and stops there: nothing is
+        journaled, reserved, budget-checked against spend, or sent. A step executor
+        asks this before it reserves money, so that a route which is not approved for
+        its material is known before anything is spent, and the run can *park* rather
+        than fail. It is not a substitute for :meth:`invoke`'s own checks, which run
+        again, unconditionally, on every call.
+        """
+        if not isinstance(context, ExecutionContext):
+            raise TypeError("preflight requires an ExecutionContext")
+        events: list[AIUsageEvent] = []
+        try:
+            resolution = self._registry.resolve(
+                capability=request.capability,
+                policy_version=request.policy_version,
+                requested_provider=request.requested_provider,
+                requested_model=request.requested_model,
+            )
+        except ResolutionError as exc:
+            raise self._failed(
+                str(exc),
+                events,
+                failure=FailureClass.MISSING_CONFIGURATION,
+                reason=f"model_resolution_{exc.reason}",
+            ) from exc
+        return self._lane(request, context, resolution, events, check_reservation=False).resolution
+
     async def invoke(self, request: ModelRequest, context: ExecutionContext) -> ModelResult:
         """Run one logical request, or raise :class:`ModelCallFailed`."""
         if not isinstance(context, ExecutionContext):
@@ -254,8 +285,13 @@ class GovernedModelGateway:
         *,
         fallback_from: str | None = None,
         fallback_authorised_by: str | None = None,
+        check_reservation: bool = True,
     ) -> _Lane:
-        """Authorise egress and find the adapter for one resolved binding."""
+        """Authorise egress and find the adapter for one resolved binding.
+
+        ``check_reservation`` is False only for :meth:`preflight`, which runs before
+        the caller has reserved anything; every real call checks it.
+        """
         try:
             decision = self._egress.authorise(
                 scope=context.scope,
@@ -314,7 +350,7 @@ class GovernedModelGateway:
                 reason="output_limit_exceeds_model",
             )
 
-        if resolution.descriptor.is_paid:
+        if resolution.descriptor.is_paid and check_reservation:
             if context.reservation is None:
                 raise self._failed(
                     "a metered call requires a budget reservation",
