@@ -190,3 +190,50 @@ contracts and start when those are agreed.
   The prototype rendered them in LibreOffice with no fonts installed. The
   automated render check is R9.
 
+- **R3 — the document model.** `domain/report/`:
+
+  - `model.py` holds the document, metadata, sections and 15 block kinds, plus
+    inline text, value, footnote, cross-reference and link.
+  - `evidence.py` holds `EvidenceLedger` and print grades.
+  - `validation.py` holds 22 problem codes. `validate` lists every one;
+    `require_valid` raises.
+  - `numbers.py` does Czech formatting.
+  - `copy.py` holds the report's Czech vocabulary.
+
+  **No block carries a number.** A value is an `evidence_ref` that resolves in a
+  ledger built only from `AdmittedClaim`s, for one surface. An internal claim in
+  a client ledger is refused, not filtered.
+
+  A suppressed ref may appear in a table or chart, where it is removed and
+  counted. It is refused in prose, a KPI, a callout or a caption's base.
+
+  The validator enforces, for client kinds:
+
+  - client-facing claims only;
+  - an interval on every estimate;
+  - the method status as an on-page callout;
+  - no audit block, no identifiers, and no internal term such as "provider" or
+    "quality gate" (legacy `test_release_core.py:22`);
+  - Sociomaps only when `CLIENT_FACING`.
+
+  It also enforces, for every kind:
+
+  - complete figures and tables (title, source and alt text);
+  - one unit per chart, at most 6 series, and hatching that matches the grade;
+  - unique ids and resolved cross-references;
+  - no skipped heading level, and lists at most two deep.
+
+  **Grades changed during the chunk.** The first rule ("measured only if joint")
+  would have printed every single-field measured share as `?`. Whether a
+  measured field is measured or calibrated depends on its `EvidenceStatus`, so
+  grades now come from `EvidenceLedger.field_grades`, the OI-9 mapping, supplied
+  as data. The rules: MODELED prints as modelled; several non-joint fields never
+  print as measured; otherwise the weakest field grade; an ungraded field prints
+  `?`. OI-9 is updated.
+
+  Tests: `test_report_model.py`, 30 tests. They cover formatting (NBSP grouping,
+  decimal comma, true minus, en-dash intervals, effective n rounded down, the
+  genitive month, and refusing unrounded values), grades, the ledger, and every
+  validation rule. The shared `report_ledger` fixture admits a study's evidence
+  through the real gate.
+

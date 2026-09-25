@@ -153,6 +153,11 @@ packages/aia_core/src/aia_core/
       view.py               drag overrides, view terrain, scenarios (never write) F9
     report/                 The report as data: document model, components, templates (DOCX output)
       print_tokens.py       GENERATED from tokens.json: print colours, type scale in pt, page
+      model.py              The document: metadata, sections, every block — numbers only as refs
+      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades
+      validation.py         Every rule a report must keep before it renders; fails closed
+      numbers.py            Czech print formatting; never re-rounds; effective n rounds down
+      copy.py               The report's own Czech vocabulary
     evidence/               What may be claimed — every gate fails closed
       field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
       joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
