@@ -16,6 +16,10 @@ dependencies = [
 [project.optional-dependencies]
 postgres = ["psycopg[binary]>=3.2,<4"]
 s3 = ["boto3>=1.35,<2"]
+# The DOCX report renderer (infrastructure/report_docx). Imported only there, so
+# aia_core installs and imports without it; the worker image that renders
+# reports installs it.
+report = ["python-docx>=1.2,<2"]
 # The Bedrock route (ADR 0010): botocore's SigV4 signer and urllib3, its own HTTP
 # dependency, for the one live transport. No boto3 client is built for Bedrock.
 bedrock = ["botocore>=1.35,<2", "urllib3>=1.26,<3"]
@@ -24,6 +28,7 @@ dev = [
     "pytest-cov>=5,<8",
     "ruff>=0.7,<1",
     "mypy>=1.13,<2",
+    "types-lxml>=2024.11",
 ]
 
 [tool.hatch.build.targets.wheel]

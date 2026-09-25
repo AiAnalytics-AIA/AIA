@@ -68,6 +68,13 @@ forbid "domain imports no framework, driver or SDK" \
   '^\s*(from|import)\s+(sqlalchemy|fastapi|starlette|boto3|botocore|httpx|requests|redis|alembic|psycopg)\b' \
   "$CORE/domain/"
 
+# The report is data in the domain and bytes in infrastructure: a document
+# library, an XML toolkit or a plotting stack in the domain would make the
+# report's rules untestable without them (.planning/plans/report-docx.md).
+forbid "domain imports no document, XML or plotting library" \
+  '^\s*(from|import)\s+(docx|lxml|matplotlib|numpy|PIL|pptx|openpyxl)\b' \
+  "$CORE/domain/"
+
 forbid "domain does not import outward (application, infrastructure)" \
   '^\s*from\s+(\.\.|aia_core\.)(application|infrastructure)\b' \
   "$CORE/domain/"
