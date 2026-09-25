@@ -747,3 +747,22 @@ def test_calls_are_attributed_to_the_runs_study_and_invisible_to_another(
         )
         assert AIUsageRepository(session, other).events() == []
         assert AIUsageRepository(session, other).events(run_id=run_id) == []
+
+
+def test_the_develop_worker_passes_every_ai_runtime_key_and_no_credential() -> None:
+    """A key the settings read but Compose does not pass would be silently absent on the host."""
+    import re
+    from pathlib import Path
+
+    import aia_executors.ai_runtime as runtime
+
+    root = Path(__file__).resolve().parents[3]
+    source = Path(runtime.__file__).read_text(encoding="utf-8")
+    compose = (root / "deploy" / "develop" / "docker-compose.yml").read_text(encoding="utf-8")
+    example = (root / "deploy" / "develop" / "env.example").read_text(encoding="utf-8")
+    read = set(re.findall(r'"(AIA_(?:AI|BEDROCK)_[A-Z_]+)"', source))
+    worker = compose.split("\n  worker:\n", 1)[1].split("\n  legacy-panel:", 1)[0]
+    passed = set(re.findall(r"^\s+(AIA_(?:AI|BEDROCK)_[A-Z_]+):", worker, flags=re.M))
+    assert read and read == passed
+    assert read <= set(re.findall(r"^(AIA_(?:AI|BEDROCK)_[A-Z_]+)=", example, flags=re.M))
+    assert "AWS_ACCESS_KEY_ID" not in compose and "AWS_SECRET_ACCESS_KEY" not in compose

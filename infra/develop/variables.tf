@@ -102,6 +102,23 @@ variable "bedrock_model_id" {
   }
 }
 
+variable "bedrock_destination_regions" {
+  description = <<-EOT
+    The regions the pinned EU inference profile routes to -- the foundation-model ARNs the
+    instance role is granted, and no others. Must equal the profile's destinations as
+    `aws bedrock get-inference-profile --inference-profile-identifier <id>` reports them;
+    verified 2026-09-25 for eu.anthropic.claude-sonnet-4-5-20250929-v1:0 (six regions).
+    A change to the profile's routing is a change here, reviewed like any IAM grant.
+  EOT
+  type        = list(string)
+  default     = ["eu-central-1", "eu-north-1", "eu-west-1", "eu-west-3", "eu-south-1", "eu-south-2"]
+
+  validation {
+    condition     = length(var.bedrock_destination_regions) > 0 && alltrue([for r in var.bedrock_destination_regions : startswith(r, "eu-")])
+    error_message = "bedrock_destination_regions must name EU regions only (ADR 0008)."
+  }
+}
+
 variable "monthly_budget_usd" {
   description = "AWS Budgets ceiling for the account's develop-tagged spend; alerts at 80 % and 100 %."
   type        = number

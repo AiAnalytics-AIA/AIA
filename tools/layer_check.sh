@@ -114,6 +114,20 @@ forbid "the API does not call providers directly" \
   '^\s*(from|import)\s+(anthropic|openai|litellm|langchain[a-z_]*|google\.generativeai|mistralai|cohere)\b' \
   "$API"
 
+# The AI runtime runs in the worker, never in a request (ADR 0016, the Agent
+# Runtime Foundation): no HTTP route builds, holds or invokes the gateway, an
+# adapter or the fieldwork producer. A model call inside a request would have no
+# lease, no reservation and no heartbeat.
+forbid "the API never builds or invokes the model gateway or an adapter" \
+  '(GovernedModelGateway|model_adapters|aia_executors\.ai_)' \
+  "$API"
+# One composition builds the Bedrock route's adapter: aia_executors/ai_runtime.py,
+# from validated settings. Anywhere else it would be a route nobody configured.
+forbid "only the AI runtime composition builds the Bedrock adapter" \
+  'BedrockConverseAdapter\(' \
+  "$EXECUTORS" \
+  ai_runtime.py
+
 # --- Layer 4: the worker executes; it does not serve, and it does not know ---
 #
 # The worker is driven by the engine and drives executors through one protocol
