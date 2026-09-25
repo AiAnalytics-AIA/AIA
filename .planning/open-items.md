@@ -1894,4 +1894,46 @@ denials) was unusable; nobody noticed because no API test exercised the scope ro
 
 **Fix.** `AuditEntryResponse.payload`, the before/after record the audit exists to show.
 
-**Status.** Fixed on `feature/client-first-ia`.
+**Status.** Fixed, merged in PR #51 (`develop` @ `4ad5f66`).
+
+## OI-61 · Decision owed (legal) · May panel-derived microdata be sent to a model provider?
+
+**Claim.** Whether PIAAC, ISSP and the Czech population panel built from them — or anything computed
+from their rows, such as a synthetic respondent's grounded profile — may be transmitted to any model
+provider (Bedrock included) is unresolved.
+
+**Anchor.** AIA-reference `open-decisions.md` D3 (storage jurisdiction, sending to model providers,
+showing to clients; `legal_gate` records licensing as "reviewed outside" the system);
+`population-subsystem.md:28-73` (the panel's lineage).
+
+**Engineering rule until it is resolved (ADR 0016 decision 5).** Fail closed: material may reach a
+provider only when every dataset it derives from has a determination approving that provider.
+Every panel-derived source is recorded as *not approved*. The rule is code; the determination is
+policy data, changed by the data owner with legal's confirmation, never by an engineer to unblock a
+feature.
+
+**Consequence.** AI fieldwork (the Agent Runtime PR) cannot go live against the panel until this is
+resolved per source. It can be built and tested on synthetic or explicitly cleared data.
+
+**What resolves it.** A source-specific determination (per dataset: which providers, which data
+classes, by whom, when, on what basis) from legal and the data owner.
+
+**Status.** Open; blocks live AI fieldwork, not PR C.
+
+## OI-62 · Decision may be owed · Bootstrap intervals depend on NumPy's random stream
+
+**Claim.** The unit's aggregation intervals are a donor-cluster bootstrap whose resamples come from
+`np.random.default_rng(seed).integers(...)` (PCG64). AIA's domain layer is stdlib-only
+(ARCHITECTURE.md §2), so an exact port needs a faithful pure-Python PCG64 and bounded-integer
+draw; otherwise the intervals are an intentional difference.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/uncertainty.py:136-151` (`_cluster_multipliers`,
+`bootstrap_weighted_mean`); seeds `20260816`/`20260818`/`20260830+i` at `dotaznik.py:1453-1475`.
+Same question as PROGRESS D11 (simulation numerics).
+
+**Plan.** PR C chunk 5 attempts the faithful generator, proven against draws captured from NumPy. If
+it is exact, both this and D11's generator half are settled; if not, the intervals ship as a recorded
+INTENTIONAL_DIFFERENCE and the choice goes to the data owner.
+
+**Status.** Open.
+
