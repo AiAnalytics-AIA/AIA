@@ -253,8 +253,8 @@ function Ready({ store, boot, memory, step, frame }: {
     [],
   );
   const value = useMemo(
-    () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt, memory, stepHref }),
-    [store, boot, runJob, job, confirm, prompt, memory, stepHref],
+    () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
+    [store, boot, runJob, job, confirm, prompt, memory, stepHref, frame],
   );
   const Screen = STEP_SCREENS[step];
 
