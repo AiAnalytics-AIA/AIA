@@ -373,3 +373,16 @@ def test_legacy_postgres_scheme_is_rewritten() -> None:
     assert resolve_database_url("postgres://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
     assert resolve_database_url("postgresql://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
     assert resolve_database_url("postgresql+psycopg://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
+
+
+@pytest.mark.parametrize("env", [Environment.STAGING, Environment.PRODUCTION])
+def test_synthetic_fieldwork_is_refused_on_every_deployed_environment(env: Environment) -> None:
+    """ADR 0016: the fictional dataset proves the chain in tests and the workbench only.
+
+    Develop runs as ``staging``, so this is what keeps it off the develop host too.
+    """
+    with pytest.raises(RuntimeError, match="AIA_RESEARCH_FIELDWORK_SOURCE"):
+        Settings(
+            **{**PRODUCTION_OK, "env": env, "research_fieldwork_source": "synthetic_fixture"}
+        ).validate_for_production()
+    assert Settings(**{**PRODUCTION_OK, "env": env}).research_fieldwork_source == "ai_runtime"

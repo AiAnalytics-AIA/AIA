@@ -39,7 +39,8 @@ model provider (`open-decisions.md` D3).
    Study by a unit id.
 
 2. **One `research` workflow type, with the reference's node keys.** PR C's graph is
-   `compile → preflight → fieldwork → aggregate → sociomap`. Later nodes (`donor_qc`, battery
+   `compile → preflight → run → aggregate → sociomap`, where `run` is fieldwork (the reference's
+   node key; its step kind is `research_fieldwork`). Later nodes (`donor_qc`, battery
    gates, segments, `analysis_*`, `interpret`, `verify`, `alignment`, `report`, `delivery`) join the
    same type as their executors land. A run's state is the engine's canonical state
    (`WorkflowRunStatus`); the product groups it for people (queued, running, waiting, completed,
@@ -51,7 +52,7 @@ model provider (`open-decisions.md` D3).
    fixtures captured by running that code; where exactness is impossible the difference is recorded,
    never silent.
 
-4. **Fieldwork is a boundary.** The `fieldwork` step produces a **fieldwork dataset** (respondent
+4. **Fieldwork is a boundary.** The fieldwork step (node `run`) produces a **fieldwork dataset** (respondent
    rows with weights, donor ids and answers) from a declared **source**, and every later step reads
    only that dataset. Sources:
    - `ai_runtime` — the AI respondent engine (Agent Runtime PR). Until it exists, the step **parks**
@@ -79,8 +80,8 @@ model provider (`open-decisions.md` D3).
    `design/revisions` (submit, list, get), `research/runs` (start, list), `research/runs/{run_id}`
    (state), `…/cancel`, `…/retry`, `…/artifacts/{artifact_id}`. Every route resolves the Study
    through `ScopeResolver` first: out of scope is 404, in scope without the permission is 403.
-   Start is idempotent per client request and per Design Revision; retry starts a new run linked to
-   the one it retries. Cost and usage fields require `VIEW_COSTS`.
+   Start is idempotent per Design Revision (a double submission gets the run that exists; a second
+   run of the same revision is a retry); retry starts a new run linked to the one it retries. Cost and usage fields require `VIEW_COSTS`.
 
 ## Alternatives considered
 

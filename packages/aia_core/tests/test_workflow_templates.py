@@ -8,6 +8,7 @@ from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.workflow import validate_dag
 from aia_core.domain.workflow_templates import (
     DEVELOP_SNAPSHOT,
+    RESEARCH,
     WORKFLOW_TYPES,
     UnknownWorkflowType,
     steps_for_workflow,
@@ -15,7 +16,7 @@ from aia_core.domain.workflow_templates import (
 
 
 def test_the_set_of_workflow_types_is_closed() -> None:
-    assert frozenset({DEVELOP_SNAPSHOT}) == WORKFLOW_TYPES
+    assert frozenset({DEVELOP_SNAPSHOT, RESEARCH}) == WORKFLOW_TYPES
     with pytest.raises(UnknownWorkflowType):
         steps_for_workflow("anything_else", project_type=ProjectType.RESEARCH)
 

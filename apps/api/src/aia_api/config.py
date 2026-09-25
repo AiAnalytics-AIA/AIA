@@ -12,6 +12,7 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Literal
 
+from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
 from aia_core.infrastructure.storage_settings import StorageBackend, StorageSettings
 from pydantic import Field, field_validator
@@ -90,6 +91,13 @@ class Settings(BaseSettings):
     # refused, never waved through.
     legacy_panel_enabled: bool = False
     legacy_panel_origin: str = ""
+
+    # -------------------------------------------------- research execution --
+    # Who answers a research run's questionnaire (ADR 0016 decision 4). The AI
+    # runtime is the only deployed source; until it exists a run parks at
+    # fieldwork. ``synthetic_fixture`` is a fictional dataset for tests and the
+    # workbench, refused in every deployed environment by validate_for_production().
+    research_fieldwork_source: FieldworkSource = FieldworkSource.AI_RUNTIME
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
@@ -209,6 +217,13 @@ class Settings(BaseSettings):
                 problems.append(
                     "AIA_LEGACY_PANEL_ORIGIN is required when the legacy panel is enabled"
                 )
+
+        # Fictional respondents must never become a deployed study's fieldwork (D1).
+        if self.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE:
+            problems.append(
+                "AIA_RESEARCH_FIELDWORK_SOURCE=synthetic_fixture is refused outside "
+                "local and test (ADR 0016)"
+            )
 
         if problems:
             raise RuntimeError("invalid production configuration: " + "; ".join(problems))
