@@ -22,16 +22,17 @@ is shaped that way. The companion documents go deeper:
 | [adr/](adr/) | Decision records, with a list of what is deliberately still open |
 | [boards-v2.2-content-spec.md](boards-v2.2-content-spec.md) | What the visual architecture boards must assert, and must not |
 
-Migration documents live in [`../migration/`](../migration/). Start with
-[status.md](../migration/status.md) to see where the work currently stands.
+Migration documents live in [`../migration/`](../migration/). The current
+implementation state is [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md);
+[status.md](../migration/status.md) is the older narrative.
 
 ## The one idea that explains the rest
 
 **A project is the source of truth. Workflows and jobs only orchestrate work
 against it.**
 
-Everything expensive in this product is an AI call. A single research project runs
-hundreds of them across thirteen stages. So the architecture is organised around
+Research and other paid tools can be expensive. A study can span many calls and
+stages. So the architecture is organised around
 one question: *after a user edits something, what work can we prove is still
 valid?*
 
@@ -63,11 +64,14 @@ against the validated prototype by the parity suite
 ## Layers
 
 ```
-apps/web         Next.js client. No business rules. Still mock-backed.
+apps/web         Next.js client. No business rules. Client-first interface live;
+                 Research execution screens merged, with deployment unverified here.
 apps/api         FastAPI. Validates, delegates, serialises. No business rules.
 apps/worker      The execution loop: claims steps from PostgreSQL, heartbeats,
                  runs the StepExecutor registered for each kind, records the
-                 outcome. No executor for a real step kind exists yet.
+                 outcome.
+apps/executors   Snapshot and Research steps. Deployed AI fieldwork parks until
+                 the governed agent source is implemented.
 packages/aia_core
   domain/        Pure rules. No framework, no driver, no SDK imports.
   application/   Use cases that orchestrate domain + infrastructure.
@@ -120,7 +124,7 @@ These are product requirements expressed as architecture, not preferences:
 - **No one clearing their own gate by default.** Independent review is the
   default; self-approval exists only where an administrator has explicitly enabled
   it in persisted policy, and it never confers authority someone did not have.
-- **No spending past a budget.** A paid call is checked against the project's
+- **No spending past a budget.** A paid call is checked against the Study's
   ceiling *before* it is made. Over budget means park and ask, not proceed.
 - **No invented certainty.** Evidence roles (`MEASURED_JOINT`, `CALIBRATED_CORE`,
   `MODELED_BEHAVIOR_PRIOR`, …) travel with the data. The UI must not present a
