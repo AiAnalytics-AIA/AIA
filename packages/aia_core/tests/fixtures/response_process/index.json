@@ -1,0 +1,15 @@
+{
+  "provenance": "Captured by tools/respondent_capture.py from the vendored 18.6.6 unit's own functions on fictional inputs; never edit by hand.",
+  "unit_sources": {
+    "behavior.py": "b53833703b78b20bab96bed2eee89f5a29f4ce8fc9cea19b7c317b696a94cdd8",
+    "styly.py": "23e7f31d9c7660bdf7aecec28849d2f2a27db313c5f83949e8e85543c6bd5b96"
+  },
+  "environment": {
+    "numpy": "2.5.3",
+    "pandas": "3.0.6"
+  },
+  "fixtures": {
+    "behavior.json": "0fc9bd7740a6f4977f8c7db4c2f931a47b458b0c35b45e336c0f499b10e812e8",
+    "styles.json": "fa617a1549cf6bb295e4317617e124e1967144b9e7e75e304ca871e388c6259c"
+  }
+}

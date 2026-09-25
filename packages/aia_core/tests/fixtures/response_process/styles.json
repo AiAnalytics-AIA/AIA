@@ -1,0 +1,566 @@
+{
+ "rows": [
+  {
+   "respondent_id": "FIC-R00001",
+   "vek": 27,
+   "pohlavi": "muž",
+   "vzdelani": "základní"
+  },
+  {
+   "respondent_id": "FIC-R00002",
+   "vek": 47,
+   "pohlavi": "muž",
+   "vzdelani": "základní"
+  },
+  {
+   "respondent_id": "FIC-R00003",
+   "vek": 32,
+   "pohlavi": "žena",
+   "vzdelani": "VOŠ/VŠ"
+  },
+  {
+   "respondent_id": "FIC-R00004",
+   "vek": 49,
+   "pohlavi": "muž",
+   "vzdelani": "střední bez maturity"
+  },
+  {
+   "respondent_id": "FIC-R00005",
+   "vek": 70,
+   "pohlavi": "muž",
+   "vzdelani": "střední s maturitou"
+  },
+  {
+   "respondent_id": "FIC-R00006",
+   "vek": 87,
+   "pohlavi": "muž",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00007",
+   "vek": 75,
+   "pohlavi": "muž",
+   "vzdelani": "střední bez maturity"
+  },
+  {
+   "respondent_id": "FIC-R00008",
+   "vek": 33,
+   "pohlavi": "žena",
+   "vzdelani": "střední s maturitou"
+  },
+  {
+   "respondent_id": "FIC-R00009",
+   "vek": 50,
+   "pohlavi": "muž",
+   "vzdelani": "střední s maturitou"
+  },
+  {
+   "respondent_id": "FIC-R00010",
+   "vek": 19,
+   "pohlavi": "žena",
+   "vzdelani": "střední s maturitou"
+  },
+  {
+   "respondent_id": "FIC-R00011",
+   "vek": 88,
+   "pohlavi": "žena",
+   "vzdelani": "základní"
+  },
+  {
+   "respondent_id": "FIC-R00012",
+   "vek": 29,
+   "pohlavi": "muž",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00013",
+   "vek": 66,
+   "pohlavi": "žena",
+   "vzdelani": "střední bez maturity"
+  },
+  {
+   "respondent_id": "FIC-R00014",
+   "vek": 70,
+   "pohlavi": "muž",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00015",
+   "vek": 37,
+   "pohlavi": "žena",
+   "vzdelani": "střední bez maturity"
+  },
+  {
+   "respondent_id": "FIC-R00016",
+   "vek": 38,
+   "pohlavi": "muž",
+   "vzdelani": "střední bez maturity"
+  },
+  {
+   "respondent_id": "FIC-R00017",
+   "vek": 28,
+   "pohlavi": "žena",
+   "vzdelani": "základní"
+  },
+  {
+   "respondent_id": "FIC-R00018",
+   "vek": 89,
+   "pohlavi": "muž",
+   "vzdelani": "VOŠ/VŠ"
+  },
+  {
+   "respondent_id": "FIC-R00019",
+   "vek": 47,
+   "pohlavi": "žena",
+   "vzdelani": "střední s maturitou"
+  },
+  {
+   "respondent_id": "FIC-R00020",
+   "vek": 72,
+   "pohlavi": "muž",
+   "vzdelani": "základní"
+  },
+  {
+   "respondent_id": "FIC-R00021",
+   "vek": 34,
+   "pohlavi": "žena",
+   "vzdelani": "základní"
+  },
+  {
+   "respondent_id": "FIC-R00022",
+   "vek": 33,
+   "pohlavi": "muž",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00023",
+   "vek": 46,
+   "pohlavi": "muž",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00024",
+   "vek": 76,
+   "pohlavi": "žena",
+   "vzdelani": "základní"
+  },
+  {
+   "respondent_id": "FIC-R00025",
+   "vek": 35,
+   "pohlavi": "muž",
+   "vzdelani": "střední s maturitou"
+  },
+  {
+   "respondent_id": "FIC-R00026",
+   "vek": 37,
+   "pohlavi": "žena",
+   "vzdelani": "VOŠ/VŠ"
+  },
+  {
+   "respondent_id": "FIC-R00027",
+   "vek": 70,
+   "pohlavi": "žena",
+   "vzdelani": "VOŠ/VŠ"
+  },
+  {
+   "respondent_id": "FIC-R00028",
+   "vek": 50,
+   "pohlavi": "žena",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00029",
+   "vek": 86,
+   "pohlavi": "muž",
+   "vzdelani": "VOŠ/VŠ"
+  },
+  {
+   "respondent_id": "FIC-R00030",
+   "vek": 57,
+   "pohlavi": "muž",
+   "vzdelani": "střední bez maturity"
+  },
+  {
+   "respondent_id": "FIC-R00031",
+   "vek": 68,
+   "pohlavi": "muž",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00032",
+   "vek": 19,
+   "pohlavi": "muž",
+   "vzdelani": "střední s maturitou"
+  },
+  {
+   "respondent_id": "FIC-R00033",
+   "vek": 49,
+   "pohlavi": "žena",
+   "vzdelani": "střední bez maturity"
+  },
+  {
+   "respondent_id": "FIC-R00034",
+   "vek": 41,
+   "pohlavi": "muž",
+   "vzdelani": "VOŠ/VŠ"
+  },
+  {
+   "respondent_id": "FIC-R00035",
+   "vek": 20,
+   "pohlavi": "muž",
+   "vzdelani": "VOŠ/VŠ"
+  },
+  {
+   "respondent_id": "FIC-R00036",
+   "vek": 61,
+   "pohlavi": "žena",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00037",
+   "vek": 56,
+   "pohlavi": "žena",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00038",
+   "vek": 41,
+   "pohlavi": "žena",
+   "vzdelani": "základní"
+  },
+  {
+   "respondent_id": "FIC-R00039",
+   "vek": 57,
+   "pohlavi": "muž",
+   "vzdelani": null
+  },
+  {
+   "respondent_id": "FIC-R00040",
+   "vek": 31,
+   "pohlavi": "žena",
+   "vzdelani": "střední s maturitou"
+  }
+ ],
+ "expected": [
+  {
+   "souhlasny_sklon": -0.06420575397041697,
+   "vyhranenost": 0.7801072611812162,
+   "ochota_priznat_nevim": 1.9029835485844604,
+   "sdilnost": -0.8296519443542024,
+   "satisficing": -0.43492173750545343,
+   "social_desirability_sensitivity": 0.5644838022634724
+  },
+  {
+   "souhlasny_sklon": 0.13853571158711137,
+   "vyhranenost": -0.3393965859221225,
+   "ochota_priznat_nevim": -1.3584528576872823,
+   "sdilnost": -0.4638617838867043,
+   "satisficing": 1.464537242933549,
+   "social_desirability_sensitivity": -0.7056071298610727
+  },
+  {
+   "souhlasny_sklon": -0.0957086872539714,
+   "vyhranenost": -1.1886196412953152,
+   "ochota_priznat_nevim": -1.008259468116328,
+   "sdilnost": 0.6166922459374369,
+   "satisficing": -0.00723251750098496,
+   "social_desirability_sensitivity": 0.6053793366733514
+  },
+  {
+   "souhlasny_sklon": -0.915219830321701,
+   "vyhranenost": 2.007719789159523,
+   "ochota_priznat_nevim": 0.565979375189094,
+   "sdilnost": -0.1507076707140154,
+   "satisficing": 0.2981817261839691,
+   "social_desirability_sensitivity": -0.10039653735133336
+  },
+  {
+   "souhlasny_sklon": -2.0664813882549136,
+   "vyhranenost": -0.3633408703992189,
+   "ochota_priznat_nevim": 0.3215187508371624,
+   "sdilnost": 0.8086851235841053,
+   "satisficing": -1.2155140784148875,
+   "social_desirability_sensitivity": 2.2807762001360103
+  },
+  {
+   "souhlasny_sklon": 2.4653474038872356,
+   "vyhranenost": 2.0905617244764643,
+   "ochota_priznat_nevim": -0.14118477155183656,
+   "sdilnost": -0.7494519240406899,
+   "satisficing": 0.4455795882907991,
+   "social_desirability_sensitivity": 0.9708741099381031
+  },
+  {
+   "souhlasny_sklon": 0.5639399527189262,
+   "vyhranenost": 0.12554147371609203,
+   "ochota_priznat_nevim": 0.7408863830444561,
+   "sdilnost": 0.5767027570837278,
+   "satisficing": 0.45163866235708544,
+   "social_desirability_sensitivity": 2.343424152219766
+  },
+  {
+   "souhlasny_sklon": -1.5987024794976825,
+   "vyhranenost": -0.438203437696166,
+   "ochota_priznat_nevim": 1.364856722289079,
+   "sdilnost": -0.5098876858944027,
+   "satisficing": -0.36683733853343653,
+   "social_desirability_sensitivity": 0.20088392202041505
+  },
+  {
+   "souhlasny_sklon": -0.6525063945963359,
+   "vyhranenost": -1.3182400717256835,
+   "ochota_priznat_nevim": 0.19622208336500283,
+   "sdilnost": 1.093998936637983,
+   "satisficing": -0.036835162616910166,
+   "social_desirability_sensitivity": 0.6276162207195479
+  },
+  {
+   "souhlasny_sklon": 1.1199072451104148,
+   "vyhranenost": -0.7866192835507131,
+   "ochota_priznat_nevim": 0.8201607335090048,
+   "sdilnost": 0.633018631627638,
+   "satisficing": -2.3235019576080527,
+   "social_desirability_sensitivity": -0.2075197552906769
+  },
+  {
+   "souhlasny_sklon": 1.331626355592608,
+   "vyhranenost": -0.25150578499768617,
+   "ochota_priznat_nevim": -1.3147425192927709,
+   "sdilnost": -0.32768637666587846,
+   "satisficing": 0.29706506210528444,
+   "social_desirability_sensitivity": 1.7286703916734043
+  },
+  {
+   "souhlasny_sklon": -0.6067360156226225,
+   "vyhranenost": 0.0026551286902527942,
+   "ochota_priznat_nevim": 0.7578227998299868,
+   "sdilnost": 0.48780673958907894,
+   "satisficing": 0.04365772167474283,
+   "social_desirability_sensitivity": -1.3810704862376033
+  },
+  {
+   "souhlasny_sklon": 0.3675322935890271,
+   "vyhranenost": 0.9883242903846584,
+   "ochota_priznat_nevim": -0.16208206299853575,
+   "sdilnost": 0.44905485381823074,
+   "satisficing": 1.1287804459202329,
+   "social_desirability_sensitivity": 0.16885372234686727
+  },
+  {
+   "souhlasny_sklon": -1.2265629773578244,
+   "vyhranenost": -1.933001790764028,
+   "ochota_priznat_nevim": -0.7101539329026201,
+   "sdilnost": 0.8348905568695826,
+   "satisficing": -1.0259061972760999,
+   "social_desirability_sensitivity": 0.025971075086472808
+  },
+  {
+   "souhlasny_sklon": 0.7858865550961831,
+   "vyhranenost": 1.050062260276985,
+   "ochota_priznat_nevim": -0.41251733533678475,
+   "sdilnost": 1.335253079688671,
+   "satisficing": -1.3971715719193256,
+   "social_desirability_sensitivity": -0.6756510063223657
+  },
+  {
+   "souhlasny_sklon": 0.17967059916590303,
+   "vyhranenost": 0.03234650202860504,
+   "ochota_priznat_nevim": -1.8033797512647762,
+   "sdilnost": -0.16771472780652646,
+   "satisficing": 1.2326704904975208,
+   "social_desirability_sensitivity": 0.47985666764381707
+  },
+  {
+   "souhlasny_sklon": 1.5473024767692902,
+   "vyhranenost": -2.0955985807056763,
+   "ochota_priznat_nevim": -0.2122116655284542,
+   "sdilnost": -0.7160138664440204,
+   "satisficing": 1.1714158279880735,
+   "social_desirability_sensitivity": -0.9026800027761064
+  },
+  {
+   "souhlasny_sklon": 0.7429238117050521,
+   "vyhranenost": 0.2760974769920763,
+   "ochota_priznat_nevim": -1.4969482745908058,
+   "sdilnost": 1.0856913511952224,
+   "satisficing": -0.8087038300688498,
+   "social_desirability_sensitivity": 1.9397305071047601
+  },
+  {
+   "souhlasny_sklon": -0.49056462995705524,
+   "vyhranenost": -0.5113388803737591,
+   "ochota_priznat_nevim": -0.1707589753646388,
+   "sdilnost": -0.47346904789964445,
+   "satisficing": 0.6059031530684736,
+   "social_desirability_sensitivity": -1.6261201173595576
+  },
+  {
+   "souhlasny_sklon": -1.4623867219785767,
+   "vyhranenost": 2.3091773940538425,
+   "ochota_priznat_nevim": -0.5046280334874528,
+   "sdilnost": -3.2392713517408858,
+   "satisficing": 0.962205016002731,
+   "social_desirability_sensitivity": -1.0873893956801117
+  },
+  {
+   "souhlasny_sklon": -0.2324028625116706,
+   "vyhranenost": 0.8484795985734628,
+   "ochota_priznat_nevim": 1.6137559530882837,
+   "sdilnost": 0.30846330834406854,
+   "satisficing": 0.763291956045139,
+   "social_desirability_sensitivity": 0.18103248938768815
+  },
+  {
+   "souhlasny_sklon": -0.7109052034542108,
+   "vyhranenost": 0.8133710385892439,
+   "ochota_priznat_nevim": -0.5720938063172436,
+   "sdilnost": -0.5533700751346611,
+   "satisficing": 0.7937185237259583,
+   "social_desirability_sensitivity": -0.89203752019354
+  },
+  {
+   "souhlasny_sklon": -0.5930249794029459,
+   "vyhranenost": -0.6728929630564282,
+   "ochota_priznat_nevim": 1.4866832189378523,
+   "sdilnost": -0.17487837104250178,
+   "satisficing": -1.067212036711147,
+   "social_desirability_sensitivity": -0.6194477171160652
+  },
+  {
+   "souhlasny_sklon": 1.1865203341514439,
+   "vyhranenost": -0.5583387191129234,
+   "ochota_priznat_nevim": -0.3069863330585957,
+   "sdilnost": -0.37855942561664435,
+   "satisficing": 0.7832292873156679,
+   "social_desirability_sensitivity": -0.5126679531990396
+  },
+  {
+   "souhlasny_sklon": -0.708258318285794,
+   "vyhranenost": 1.5732463931096008,
+   "ochota_priznat_nevim": 0.43903751447741185,
+   "sdilnost": -0.1159029725115073,
+   "satisficing": -0.8742459258965455,
+   "social_desirability_sensitivity": -0.6253767440086409
+  },
+  {
+   "souhlasny_sklon": -1.221629478501693,
+   "vyhranenost": -0.8582662544891366,
+   "ochota_priznat_nevim": 1.7833694398572575,
+   "sdilnost": 1.8047564541922647,
+   "satisficing": -2.1027705396491907,
+   "social_desirability_sensitivity": 0.14614636036306586
+  },
+  {
+   "souhlasny_sklon": -0.7150529007075658,
+   "vyhranenost": -0.044452717596579885,
+   "ochota_priznat_nevim": 0.5626174433949819,
+   "sdilnost": 0.7344908776945881,
+   "satisficing": -1.142669299887952,
+   "social_desirability_sensitivity": -0.6561848757440715
+  },
+  {
+   "souhlasny_sklon": -0.5876694444027076,
+   "vyhranenost": -0.47478385575237914,
+   "ochota_priznat_nevim": -0.4004580050742311,
+   "sdilnost": -0.5336828616385882,
+   "satisficing": -0.9716341906789494,
+   "social_desirability_sensitivity": -0.6554436008261498
+  },
+  {
+   "souhlasny_sklon": -0.9868337600790628,
+   "vyhranenost": 0.673435971388997,
+   "ochota_priznat_nevim": -1.272879049150043,
+   "sdilnost": 0.9426609334416445,
+   "satisficing": -0.37968482813450755,
+   "social_desirability_sensitivity": -0.5259359929600043
+  },
+  {
+   "souhlasny_sklon": 1.1926629959495783,
+   "vyhranenost": -0.01167705213085687,
+   "ochota_priznat_nevim": 0.4374316159925146,
+   "sdilnost": -2.2484697471541506,
+   "satisficing": 1.0625332560566059,
+   "social_desirability_sensitivity": -1.4374269830824973
+  },
+  {
+   "souhlasny_sklon": 0.9151380851877887,
+   "vyhranenost": -0.1161444188955859,
+   "ochota_priznat_nevim": -0.3992342060758824,
+   "sdilnost": -0.929798592733321,
+   "satisficing": 0.5927741527676222,
+   "social_desirability_sensitivity": 1.1026747847263438
+  },
+  {
+   "souhlasny_sklon": -0.9018884280105467,
+   "vyhranenost": 0.4630643446668724,
+   "ochota_priznat_nevim": -1.8239574047483957,
+   "sdilnost": 1.0535323546567383,
+   "satisficing": -0.1274624027229245,
+   "social_desirability_sensitivity": 0.30425361714044596
+  },
+  {
+   "souhlasny_sklon": 0.3759284791912879,
+   "vyhranenost": -0.4416846857853816,
+   "ochota_priznat_nevim": 0.09663261447105223,
+   "sdilnost": 0.10612420678645053,
+   "satisficing": -0.6678033231315669,
+   "social_desirability_sensitivity": -1.1846990371712987
+  },
+  {
+   "souhlasny_sklon": 0.0286506957922516,
+   "vyhranenost": 0.6262325649154581,
+   "ochota_priznat_nevim": 0.5120873268654033,
+   "sdilnost": -0.30912903842872286,
+   "satisficing": 0.019071604358498445,
+   "social_desirability_sensitivity": -1.2999218804806756
+  },
+  {
+   "souhlasny_sklon": -0.28791039260635287,
+   "vyhranenost": -0.358112321933051,
+   "ochota_priznat_nevim": -0.3910024255344252,
+   "sdilnost": 0.38710969722692895,
+   "satisficing": -0.023272730479986722,
+   "social_desirability_sensitivity": -0.6130753196871301
+  },
+  {
+   "souhlasny_sklon": 1.26680860890799,
+   "vyhranenost": 0.7510562389934843,
+   "ochota_priznat_nevim": 0.3776409788786257,
+   "sdilnost": -0.18038357045965725,
+   "satisficing": -0.05711357880581863,
+   "social_desirability_sensitivity": 0.23936014948158446
+  },
+  {
+   "souhlasny_sklon": -0.5310951684159474,
+   "vyhranenost": 0.17972323235730586,
+   "ochota_priznat_nevim": -1.7672732660599892,
+   "sdilnost": -1.1571914757926522,
+   "satisficing": -0.23044454183385701,
+   "social_desirability_sensitivity": 0.9175077307754668
+  },
+  {
+   "souhlasny_sklon": 0.2561533085326421,
+   "vyhranenost": -0.42302423691838537,
+   "ochota_priznat_nevim": 1.40140123445578,
+   "sdilnost": 1.967328997386024,
+   "satisficing": 2.096971284575452,
+   "social_desirability_sensitivity": 1.3427246855123687
+  },
+  {
+   "souhlasny_sklon": 0.5139175791775864,
+   "vyhranenost": -1.496321007295756,
+   "ochota_priznat_nevim": 1.0269407708120724,
+   "sdilnost": 0.27223768276789645,
+   "satisficing": 1.839922331656241,
+   "social_desirability_sensitivity": -0.20764431727197277
+  },
+  {
+   "souhlasny_sklon": 1.6772933230772762,
+   "vyhranenost": -0.9096395231573088,
+   "ochota_priznat_nevim": -0.17882436373838795,
+   "sdilnost": -1.2894162785689038,
+   "satisficing": -0.7922095441472008,
+   "social_desirability_sensitivity": -0.253923552593039
+  }
+ ]
+}
