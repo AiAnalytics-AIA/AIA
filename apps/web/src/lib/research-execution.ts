@@ -61,7 +61,17 @@ export function parkedForRuntime(run: ResearchRun): ResearchStep | null {
   return run.steps.find((s) => s.waiting_reason === RUNTIME_UNAVAILABLE) ?? null;
 }
 
-export const isSynthetic = (run: ResearchRun | ResearchRunSummary): boolean => run.fieldwork_source === SYNTHETIC_SOURCE;
+/** Origins that are never evidence: the fictional fixture, and AI respondents on fictional personas. */
+export const SYNTHETIC_ORIGINS: ReadonlySet<string> = new Set(["SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"]);
+
+/**
+ * A run is synthetic when its source is the fictional fixture, or when any step says its data is
+ * synthetic -- an `ai_runtime` run on the fictional roster is labelled like the fixture, every time.
+ * A summary carries no steps; it is labelled once the run is read in full.
+ */
+export const isSynthetic = (run: ResearchRun | ResearchRunSummary): boolean =>
+  run.fieldwork_source === SYNTHETIC_SOURCE ||
+  ("steps" in run && run.steps.some((s) => s.data_origin !== null && SYNTHETIC_ORIGINS.has(s.data_origin)));
 
 export function stepOf(run: ResearchRun, nodeKey: string): ResearchStep | null {
   return run.steps.find((s) => s.node_key === nodeKey) ?? null;
