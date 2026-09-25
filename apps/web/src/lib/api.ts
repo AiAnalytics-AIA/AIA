@@ -388,6 +388,8 @@ export type ResearchRun = {
   artifact_ids: string[];
   actual_cost_usd: number | null;
 };
+/** A run as the Study's list gives it: its state, without its steps or artifacts. */
+export type ResearchRunSummary = Omit<ResearchRun, "steps" | "artifact_ids">;
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
 
@@ -401,7 +403,7 @@ export const research = {
   start: (studyId: string, revisionId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, { design_revision_id: revisionId }),
   runs: (studyId: string) =>
-    request<{ items: ResearchRun[] }>("GET", `${studyPath(studyId)}/research/runs`).then((r) => r.items),
+    request<{ items: ResearchRunSummary[] }>("GET", `${studyPath(studyId)}/research/runs`).then((r) => r.items),
   run: (studyId: string, runId: string) => request<ResearchRun>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}`),
   cancel: (studyId: string, runId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),

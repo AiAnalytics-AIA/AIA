@@ -59,6 +59,14 @@ const COMPLETED = run({
     step("sociomap", "SUCCEEDED", { artifact_id: "ART-5", data_origin: "SYNTHETIC_FIXTURE" }),
   ],
 });
+// What the API gives: the Study's list is a summary (no steps, no artifacts); the run itself is read in full.
+const listed = (...runs: ReturnType<typeof run>[]) => {
+  const routes: Record<string, () => unknown> = {
+    "GET /api/v1/studies/STU-1/research/runs": () => ({ items: runs.map((r) => ({ ...r, steps: [], artifact_ids: [] })) }),
+  };
+  for (const r of runs) routes[`GET /api/v1/studies/STU-1/research/runs/${r.run_id}`] = () => r;
+  return routes;
+};
 const support = (status: string, donors: number) => ({ support_status: status, n_platnych: 120, n_unique_layer_donors: donors, effective_n: 30 });
 const AGGREGATE = {
   artifact_id: "ART-4", artifact_type: "research_aggregate", stage_type: "AGGREGATION", revision: 3, content_type: "application/json",
@@ -179,7 +187,7 @@ describe("Run", () => {
 
 describe("Progress", () => {
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
-    api({ "GET /api/v1/studies/STU-1/research/runs": () => ({ items: [PARKED] }) });
+    api(listed(PARKED));
     render(<ResearchScreen projectId="PRJ-1" step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti zatím nejsou nasazeni/)).toBeTruthy();
     const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
@@ -197,7 +205,7 @@ describe("Progress", () => {
 
   it("cancels only after the person confirms, and retries a failed run as a new run", async () => {
     api({
-      "GET /api/v1/studies/STU-1/research/runs": () => ({ items: [PARKED] }),
+      ...listed(PARKED),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/cancel": () => ({ ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true }),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
     });
@@ -214,7 +222,7 @@ describe("Progress", () => {
 describe("Results", () => {
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {
     api({
-      "GET /api/v1/studies/STU-1/research/runs": () => ({ items: [COMPLETED] }),
+      ...listed(COMPLETED),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
     });
@@ -236,7 +244,7 @@ describe("Results", () => {
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {
-    api({ "GET /api/v1/studies/STU-1/research/runs": () => ({ items: [PARKED] }) });
+    api(listed(PARKED));
     render(<ResearchScreen projectId="PRJ-1" step="results" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.exec.noResultsParked"))).toBeTruthy();
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts")).toHaveLength(0);
@@ -244,7 +252,7 @@ describe("Results", () => {
 
   it("leaves the Sociomap out for a person the API refuses it to", async () => {
     api({
-      "GET /api/v1/studies/STU-1/research/runs": () => ({ items: [COMPLETED] }),
+      ...listed(COMPLETED),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () =>
         new Response('{"code":"insufficient_role","message":"Not permitted."}', { status: 403 }),

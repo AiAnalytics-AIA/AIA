@@ -8,7 +8,7 @@
 // * anything computed from the fictional dataset says so, every time.
 
 import { t, tv } from "@/i18n/t";
-import type { ResearchPhase, ResearchRun, ResearchStep } from "@/lib/api";
+import type { ResearchPhase, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
 import type { Tone } from "@/unit/projects";
 
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
@@ -61,7 +61,7 @@ export function parkedForRuntime(run: ResearchRun): ResearchStep | null {
   return run.steps.find((s) => s.waiting_reason === RUNTIME_UNAVAILABLE) ?? null;
 }
 
-export const isSynthetic = (run: ResearchRun): boolean => run.fieldwork_source === SYNTHETIC_SOURCE;
+export const isSynthetic = (run: ResearchRun | ResearchRunSummary): boolean => run.fieldwork_source === SYNTHETIC_SOURCE;
 
 export function stepOf(run: ResearchRun, nodeKey: string): ResearchStep | null {
   return run.steps.find((s) => s.node_key === nodeKey) ?? null;

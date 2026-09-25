@@ -17,6 +17,7 @@ import {
   type Artifact,
   type Readiness,
   type ResearchRun,
+  type ResearchRunSummary,
   type ResearchStep,
   research,
 } from "@/lib/api";
@@ -83,7 +84,7 @@ export function RunStep() {
     | { kind: "none" }
     | { kind: "ready"; revision: number; readiness: Readiness }
   >({ kind: "loading" });
-  const [runs, setRuns] = useState<ResearchRun[]>([]);
+  const [runs, setRuns] = useState<ResearchRunSummary[]>([]);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   // The design as the person sees it, submitted once per visit.
@@ -178,7 +179,7 @@ export function RunStep() {
   );
 }
 
-function RunList({ runs }: { runs: ResearchRun[] }) {
+function RunList({ runs }: { runs: ResearchRunSummary[] }) {
   const { stepHref } = useResearch();
   return (
     <Card title={t("research.exec.previous")}>
@@ -222,9 +223,9 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
     const wanted = runFromQuery();
     const read = async () => {
       try {
-        const current = wanted
-          ? await research.run(frame.studyId, wanted)
-          : ((await research.runs(frame.studyId))[0] ?? null);
+        // The list is a summary (no steps, no artifacts): the newest is read in full.
+        const id = wanted ?? (await research.runs(frame.studyId))[0]?.run_id;
+        const current = id ? await research.run(frame.studyId, id) : null;
         if (!live) return;
         setRun(current);
         setError(null);
