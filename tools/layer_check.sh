@@ -87,10 +87,16 @@ forbid "infrastructure knows nothing about HTTP" \
 # The AWS SDK is an optional dependency imported lazily inside S3ArtifactStore,
 # so that nothing else in the codebase loads an AWS SDK and the package installs
 # without one. A second import site would silently make boto3 mandatory.
-forbid "AWS SDK stays behind the storage adapter" \
+# Named exemption (ADR 0010): model_adapters/aws_signing.py imports botocore's
+# SigV4 signer and credential chain, lazily and for signing only -- no botocore
+# client is built there, so nothing can retry or call Bedrock behind the gateway.
+forbid "AWS SDK stays behind the storage adapter and the Bedrock signer" \
   '^\s*(from|import)\s+(boto3|botocore)\b' \
   "$CORE" \
-  storage.py
+  storage.py aws_signing.py
+forbid "no botocore client is built for Bedrock (signing only, ADR 0010)" \
+  '(boto3|botocore\.session\.get_session\(\))\.client\(|create_client\(' \
+  "$CORE/infrastructure/model_adapters/"
 
 # --- AI runtime: AIA owns the contract, providers sit underneath ------------
 #

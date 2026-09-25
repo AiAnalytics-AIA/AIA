@@ -1,0 +1,26 @@
+{
+  "provenance": "Hand-authored from the Bedrock Runtime Converse API definition (botocore service model bedrock-runtime 2023-09-30: shapes, error codes, x-amzn-requestid); not captured from a live call. Replace with a live capture once ADR 0010's route is verified and approved.",
+  "description": "404 ResourceNotFoundException: the profile id does not exist in this region.",
+  "structured": false,
+  "response": {
+    "status": 404,
+    "headers": {
+      "x-amzn-RequestId": "7c1f0a3e-0000-4000-8000-0000000e4404",
+      "content-type": "application/json",
+      "x-amzn-ErrorType": "ResourceNotFoundException:http://internal.amazon.com/coral/com.amazon.bedrock/"
+    },
+    "body": {
+      "message": "The provided model identifier is invalid."
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "MODEL",
+      "delivery": "RESPONDED",
+      "provider_request_id": "7c1f0a3e-0000-4000-8000-0000000e4404",
+      "retry_after": null,
+      "http_status": 404,
+      "provider_error_type": "ResourceNotFoundException"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "provenance": "Hand-authored from the Bedrock Runtime Converse API definition (botocore service model bedrock-runtime 2023-09-30: shapes, error codes, x-amzn-requestid); not captured from a live call. Replace with a live capture once ADR 0010's route is verified and approved.",
+  "description": "A 200 whose body is not a Converse response: uncertain, not free.",
+  "structured": false,
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-amzn-RequestId": "7c1f0a3e-0000-4000-8000-000000000200"
+    },
+    "body": "<html>gateway</html>"
+  },
+  "expect": {
+    "error": {
+      "kind": "OTHER",
+      "delivery": "UNKNOWN",
+      "provider_request_id": "7c1f0a3e-0000-4000-8000-000000000200",
+      "retry_after": null,
+      "http_status": 200
+    }
+  }
+}

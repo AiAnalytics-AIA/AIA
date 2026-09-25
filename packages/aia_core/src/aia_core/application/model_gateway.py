@@ -374,6 +374,7 @@ class GovernedModelGateway:
                 output_schema=schema,
                 schema_name=_schema_name(agent.agent_id) if schema is not None else "",
                 strict_schema=strict,
+                temperature=request.temperature,
             )
             in_fp = input_fingerprint(outbound)
             ceiling = 0.0
