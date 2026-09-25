@@ -36,6 +36,7 @@ from aia_core.domain.ai_contracts import (
     validate_structured_output,
 )
 from aia_core.domain.ai_models import ModelBinding, ModelCapability
+from aia_core.domain.licence import DataLineage
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass
 from aia_core.domain.workflow import _TAG_TO_CLASS, FailureClass
@@ -382,6 +383,7 @@ def test_request_requires_messages_and_a_positive_cap() -> None:
             agent=_agent(),
             policy_version="p",
             data_classification=DataClass.CLASS_C_INTERNAL,
+            data_lineage=DataLineage.none(),
             system="s",
             messages=(),
         )
@@ -390,6 +392,7 @@ def test_request_requires_messages_and_a_positive_cap() -> None:
             agent=_agent(),
             policy_version="p",
             data_classification=DataClass.CLASS_C_INTERNAL,
+            data_lineage=DataLineage.none(),
             system="s",
             messages=(Message(role="user", content="x"),),
             max_output_tokens=0,
@@ -401,6 +404,7 @@ def test_request_output_limit_defaults_to_the_agent() -> None:
         agent=_agent(max_output_tokens=123),
         policy_version="p",
         data_classification=None,
+        data_lineage=DataLineage.none(),
         system="s",
         messages=(Message(role="user", content="x"),),
     )

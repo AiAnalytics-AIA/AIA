@@ -70,8 +70,9 @@ model provider (`open-decisions.md` D3).
 
 5. **Model transmission fails closed on licence (D3).** Licence eligibility is its own gate,
    beside residency, not a kind of it: residency (ADR 0008, `domain/residency.py`) asks whether a
-   class of material may leave over a route; licence eligibility (`domain/transmission.py`) asks
-   whether the datasets the material was computed from permit a model provider at all. They have
+   class of material may leave over a route; licence eligibility (`domain/licence.py`, with its
+   determinations in `domain/licence_determinations.py`) asks whether the datasets the material was
+   computed from permit a model provider at all. They have
    different owners and change for different reasons. Both are enforced at the one egress boundary,
    `GovernedModelGateway`, and **both must pass** before an adapter is reached; a refusal names the
    gate that refused (`egress_*` or `licence_*`). Within the licence gate two things are kept apart:

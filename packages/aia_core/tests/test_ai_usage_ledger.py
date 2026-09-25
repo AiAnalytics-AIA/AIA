@@ -43,6 +43,8 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.ai_execution import ExecutionContext, ReservationView, recovery_inputs
 from aia_core.domain.ai_models import ModelCapability, ModelRegistry
+from aia_core.domain.licence import DataLineage
+from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
 from aia_core.domain.scope import ScopeDenied
@@ -59,6 +61,8 @@ from aia_core.infrastructure.tables import AIUsageEventRow, BudgetReservationRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 WORKER = "worker-1"
+
+LICENCE = recorded_policy()
 
 
 class Answer(BaseModel):
@@ -115,6 +119,7 @@ REQUEST = ModelRequest(
     ),
     policy_version="policy-test-v1",
     data_classification=DataClass.CLASS_C_INTERNAL,
+    data_lineage=DataLineage.none(),
     system="s",
     messages=(Message(role="user", content="u"),),
 )
@@ -161,7 +166,7 @@ class Attempt:
 
     def invoke(self, adapter: Adapter, registry: ModelRegistry, *, durable: bool = True) -> Any:
         gateway = GovernedModelGateway(
-            registry=registry, egress=EGRESS, adapters={"openai-direct": adapter}
+            registry=registry, egress=EGRESS, licence=LICENCE, adapters={"openai-direct": adapter}
         )
         return asyncio.run(gateway.invoke(REQUEST, self.context(self.journal(durable=durable))))
 

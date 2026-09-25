@@ -6,10 +6,14 @@ with cost or provenance consequences is made here, in this order, and recorded:
 
 1. **Resolve** the capability to one ``(provider, model, route)`` under the
    request's policy version. Unconfigured, unpermitted or unknown is refused.
-2. **Authorise egress** for the request's data class over the binding's route,
-   from the issued ``StudyContext``. Unclassified material, an unknown route or
-   a route that does not carry this class is refused, with no alternative
-   offered (ADR 0008).
+2. **Authorise egress** -- two gates, both required, neither implying the other:
+   *residency* for the request's data class over the binding's route, from the
+   issued ``StudyContext`` (unclassified material, an unknown route or a route
+   that does not carry this class is refused, ADR 0008); then *licence
+   eligibility* for the datasets the material derives from over the same route
+   (an undeclared lineage, or a dataset whose determination does not approve the
+   route, is refused, ADR 0016). Each refusal names its gate (``egress_*`` or
+   ``licence_*``) and offers no alternative.
 3. **Preflight the budget** for a metered call: the call's worst-case cost,
    plus what this attempt has already spent, must fit the reservation the
    durable layer granted. A metered call with no reservation is refused.
@@ -64,6 +68,7 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.ai_execution import ExecutionContext
 from aia_core.domain.ai_models import ModelRegistry, ModelResolution, ResolutionError
+from aia_core.domain.licence import LicenceDenied, LicencePolicy
 from aia_core.domain.providers import check_budget
 from aia_core.domain.residency import EgressDecision, EgressDenied, EgressPolicy
 from aia_core.domain.workflow import FailureClass
@@ -134,11 +139,16 @@ class GovernedModelGateway:
         *,
         registry: ModelRegistry,
         egress: EgressPolicy,
+        licence: LicencePolicy,
         adapters: Mapping[str, ProviderAdapter],
         call_ids: Callable[[], str] = new_call_id,
         event_ids: Callable[[], str] = new_usage_event_id,
     ) -> None:
         """``adapters`` is keyed by **route id**, not by provider.
+
+        ``licence`` is the licence gate's policy -- in every composition root,
+        :func:`aia_core.domain.licence_determinations.recorded_policy`; there is
+        no default, so a gateway cannot be built without one.
 
         A route is the unit of residency approval (ADR 0008): the same provider
         over a different region, account, credential or transport is a different
@@ -157,6 +167,7 @@ class GovernedModelGateway:
                 )
         self._registry = registry
         self._egress = egress
+        self._licence = licence
         self._adapters = dict(adapters)
         self._call_ids = call_ids
         self._event_ids = event_ids
@@ -265,6 +276,21 @@ class GovernedModelGateway:
                 failure=FailureClass.PERMISSION,
                 reason="egress_route_provider_mismatch",
             )
+        # Residency passed; the licence gate is separate and must pass as well.
+        route = self._egress.route(resolution.route_id)
+        if route is None:  # pragma: no cover - authorise() has just refused an unknown route
+            raise self._failed(
+                f"no approved route {resolution.route_id}",
+                events,
+                failure=FailureClass.PERMISSION,
+                reason="egress_no_approved_route",
+            )
+        try:
+            self._licence.authorise(lineage=request.data_lineage, route=route)
+        except LicenceDenied as exc:
+            raise self._failed(
+                str(exc), events, failure=FailureClass.PERMISSION, reason=f"licence_{exc.reason}"
+            ) from exc
 
         adapter = self._adapters.get(resolution.route_id)
         if adapter is None or adapter.provider is not resolution.provider:

@@ -185,6 +185,16 @@ forbid "only the design repository and the research runs name the design project
 forbid "the API, worker and executors never name the design project's owner" \
   'DESIGN_PROJECT_OWNER|study_design\b' \
   apps
+# Licence eligibility (ADR 0016 decision 5): a determination is policy data that
+# legal and the data owner change, in one reviewed file. Built anywhere else, it
+# would be an approval nobody gave.
+forbid "licence determinations are written only in their policy-data module" \
+  'LicenceDetermination\(|LicencePolicy\(' \
+  "$CORE" \
+  licence.py licence_determinations.py
+forbid "the API, worker and executors never build a licence policy of their own" \
+  'LicenceDetermination\(|LicencePolicy\(' \
+  apps
 # A revision is what a run executed. The ORM refuses to UPDATE one
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \

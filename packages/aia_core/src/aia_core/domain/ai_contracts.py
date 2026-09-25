@@ -40,6 +40,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ValidationError
 
 from .ai_models import ModelBinding, ModelCapability
+from .licence import DataLineage
 from .providers import Provider
 from .residency import DataClass
 from .workflow import FailureClass, classify_failure
@@ -513,11 +514,16 @@ class ModelRequest:
     ``data_classification`` has no default. ``None`` is representable so that a
     caller that forgot to classify reaches the egress boundary and is refused
     there, loudly, rather than being defaulted to the most permissive class.
+
+    ``data_lineage`` has no default either, for the same reason at the licence
+    gate (ADR 0016 decision 5): the datasets the material was computed from, or
+    ``DataLineage.none()`` for material computed from none. ``None`` is refused.
     """
 
     agent: AgentDefinition
     policy_version: str
     data_classification: DataClass | None
+    data_lineage: DataLineage | None
     system: str
     messages: tuple[Message, ...]
     requested_provider: Provider | None = None
