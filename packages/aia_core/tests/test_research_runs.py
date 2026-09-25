@@ -50,8 +50,30 @@ from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 DESIGN = {
     "title": "Ranní nápoj",
-    "sections": [{"type": "questions", "questions": [{"id": "q1", "typ": "skala"}]}],
+    "goal": "Zjistit, zda nový nápoj dává smysl dojíždějícím.",
     "n": 450,
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {"id": "q1", "text": "Jak často pijete kávu?", "typ": "skala", "skala": [1, 5]},
+                {
+                    "id": "q2",
+                    "text": "Co si ráno koupíte?",
+                    "typ": "vyber",
+                    "kategorie": ["Kávu", "Čaj", "Nic"],
+                },
+            ],
+        },
+        {
+            "type": "object_battery",
+            "title": "Nápoje",
+            "object_family": "nápoje",
+            "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"],
+            "object_question": "Jak hodnotíte {object}?",
+            "scale": [1, 10],
+        },
+    ],
 }
 AI = FieldworkSource.AI_RUNTIME
 
@@ -197,7 +219,7 @@ def test_a_run_and_its_revision_are_reachable_only_through_their_own_study(
     acme_revision = design()
     acme = runs().start(design_revision_id=acme_revision, fieldwork_source=AI).run_id
     # Each study has a design and a run of its own, so only the Study can refuse Acme's ids.
-    sibling_revision = design({**DESIGN, "n": 1}, study="sibling")
+    sibling_revision = design({**DESIGN, "n": 21}, study="sibling")
     runs(study="sibling").start(design_revision_id=sibling_revision, fieldwork_source=AI)
     globex_revision = design(study="other_client")
     globex = runs(user="other_lead", study="other_client")

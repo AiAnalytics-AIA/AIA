@@ -13,14 +13,16 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from aia_core.application.research import (
+    DesignNotReady,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
+    research_artifacts,
 )
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
-from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
+from aia_core.infrastructure.artifact_repository import ArtifactNotFound
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
@@ -50,6 +52,10 @@ ArtifactIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32
 
 # JSON payloads above this size are not inlined (as for project artifacts).
 _INLINE_PAYLOAD_LIMIT = 1024 * 1024
+
+# Respondent-level data is never inlined to the browser, whatever its size: the
+# results screens read what was computed from it, not the rows (ADR 0016).
+_NEVER_INLINED = frozenset({"research_fieldwork_dataset"})
 
 
 # --------------------------------------------------------------------------- #
@@ -114,6 +120,8 @@ class ResearchStepResponse(BaseModel):
     failure_class: str | None
     error_message: str | None
     artifact_id: str | None
+    #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
+    data_origin: str | None = None
 
 
 class ResearchRunResponse(BaseModel):
@@ -147,6 +155,46 @@ class ResearchRunList(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[ResearchRunResponse]
+
+
+class ReadinessCheckResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    status: str
+    message: str
+
+
+class ReadinessResponse(BaseModel):
+    """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    design_revision_id: str
+    rules: str
+    ready: bool
+    checks: list[ReadinessCheckResponse]
+    questions: int
+    batteries: int
+    objects: int
+    n: int | None
+    #: The deployment's fieldwork source: ``ai_runtime`` parks until it exists.
+    fieldwork_source: str
+
+
+def _not_ready(readiness: Any) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "design_not_ready",
+            "message": "The design does not pass the readiness checks.",
+            "details": {
+                "failed": [
+                    c.model_dump(mode="json") for c in readiness.checks if c.status == "FAIL"
+                ]
+            },
+        },
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -284,6 +332,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         failure_class=last["failure_class"].value if last and last["failure_class"] else None,
         error_message=str(error.get("message")) if error.get("message") else None,
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
+        data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
     )
 
 
@@ -332,6 +381,41 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
     return _run(runs.get(started.run_id), runs.scope, created=started.created)
 
 
+@router.get(
+    "/research/readiness",
+    response_model=ReadinessResponse,
+    summary="Can this Design Revision run in AIA?",
+)
+def readiness(
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    design_revision_id: Annotated[str, Query(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")],
+) -> ReadinessResponse:
+    """Compile the revision and run AIA's structural checks, without starting anything.
+
+    The 18.6.6 technical preflight is not these checks and is not claimed.
+    """
+    try:
+        spec, result = ResearchRuns(session, scope).readiness(design_revision_id)
+    except DesignRevisionNotFound as exc:
+        raise _not_found("design_revision") from exc
+    return ReadinessResponse(
+        design_revision_id=design_revision_id,
+        rules=result.rules,
+        ready=result.ready,
+        checks=[
+            ReadinessCheckResponse(id=c.id, status=c.status.value, message=c.message)
+            for c in result.checks
+        ],
+        questions=len(spec.questions) if spec else 0,
+        batteries=len(spec.batteries) if spec else 0,
+        objects=sum(len(b.objects) for b in spec.batteries) if spec else 0,
+        n=spec.n if spec else None,
+        fieldwork_source=str(_fieldwork_source(request).value),
+    )
+
+
 @router.post(
     "/research/runs",
     response_model=ResearchRunResponse,
@@ -361,6 +445,8 @@ def start_run(
         raise _refused(exc) from exc
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
+    except DesignNotReady as exc:
+        raise _not_ready(exc.readiness) from exc
     return _started(runs, started, response)
 
 
@@ -455,6 +541,8 @@ def retry_run(
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
+    except DesignNotReady as exc:
+        raise _not_ready(exc.readiness) from exc
     except ResearchRunNotRetryable as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -494,13 +582,17 @@ def run_artifact(
         raise _not_found("run") from exc
     if artifact_id not in produced:
         raise _not_found("artifact")
-    repo = ArtifactRepository(session, scope, store)
+    repo = research_artifacts(session, scope, store)
     try:
         artifact = repo.get(artifact_id)
     except ArtifactNotFound as exc:  # pragma: no cover - a step output names a stored artifact
         raise _not_found("artifact") from exc
     payload: Any = None
-    if artifact.content_type == "application/json" and artifact.size_bytes <= _INLINE_PAYLOAD_LIMIT:
+    if (
+        artifact.content_type == "application/json"
+        and artifact.size_bytes <= _INLINE_PAYLOAD_LIMIT
+        and artifact.artifact_type not in _NEVER_INLINED
+    ):
         try:
             payload = repo.read_json(artifact_id)
         except (IntegrityError, ObjectNotFound) as exc:

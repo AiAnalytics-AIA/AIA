@@ -208,3 +208,17 @@ def test_a_hand_written_reportable_status_never_reaches_the_table(evidence_row: 
 def test_a_row_never_assessed_cannot_be_cited(admit: Any, evidence_row: Any) -> None:
     table = EvidenceTable.build([evidence_row(support=SupportAssessment())])
     assert admit([nc()], table).decision.codes == {ViolationCode.EVIDENCE_SUPPRESSED}
+
+
+def test_a_number_from_fictional_fieldwork_is_never_a_client_facing_claim(
+    admit: Any, evidence_row: Any
+) -> None:
+    """ADR 0016 D1: the synthetic dataset proves the chain; it never backs a finding."""
+    from aia_core.domain.fieldwork import DataOrigin
+
+    table = EvidenceTable.build([evidence_row(data_origin=DataOrigin.SYNTHETIC_FIXTURE)])
+    refused = admit([nc()], table)
+    assert not refused.decision.allowed and refused.admitted == ()
+    assert [v.code for v in refused.decision.violations] == [ViolationCode.SYNTHETIC_DATA_ORIGIN]
+    # Internally -- the workbench, a test -- the same number may be looked at.
+    assert admit([nc()], table, ClaimSurface.INTERNAL).decision.allowed

@@ -21,18 +21,43 @@ from sqlalchemy.orm import Session
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.fieldwork import FieldworkSource
 from ..domain.research import phase_of, retryable
+from ..domain.research_design import Readiness, ResearchSpecification, prepare
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH
+from ..infrastructure.artifact_repository import ArtifactRepository
+from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.workflow_repository import WorkflowNotFound, WorkflowRepository
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
+    "DesignNotReady",
     "ResearchRunNotFound",
     "ResearchRunNotRetryable",
     "ResearchRuns",
+    "research_artifacts",
 ]
+
+
+def research_artifacts(
+    session: Session, scope: StudyContext, store: ArtifactStore
+) -> ArtifactRepository:
+    """The artifacts of the Study's research: those of its owned design project.
+
+    The one way to reach them. An ordinary :class:`ArtifactRepository` cannot see
+    an owned project's artifacts, so a research artifact is never served by the
+    generic project routes, only by the run that produced it (ADR 0016).
+    """
+    return ArtifactRepository(session, scope, store, owner=DESIGN_PROJECT_OWNER)
+
+
+class DesignNotReady(Exception):
+    """The Design Revision does not compile, or fails a readiness check."""
+
+    def __init__(self, readiness: Readiness) -> None:
+        super().__init__("the design is not ready to run")
+        self.readiness = readiness
 
 
 class ResearchRunNotFound(LookupError):
@@ -81,6 +106,9 @@ class ResearchRuns:
         self.scope.require_open_study()
         designs = self._designs()
         revision = designs.get(design_revision_id)
+        _spec, readiness = prepare(designs.content(revision.revision_id))
+        if not readiness.ready:
+            raise DesignNotReady(readiness)
         project_id = designs.project_id()
         assert project_id is not None  # a revision exists, so its design project does
         key = f"{RESEARCH}:{revision.revision_id}"
@@ -99,7 +127,10 @@ class ResearchRuns:
                 "fieldwork_source": fieldwork_source.value,
                 **({"retry_of": retry_of} if retry_of else {}),
             },
-            step_inputs={"run": {"fieldwork_source": fieldwork_source.value}},
+            step_inputs={
+                "compile": {"design_revision_id": revision.revision_id},
+                "run": {"fieldwork_source": fieldwork_source.value},
+            },
             owner=DESIGN_PROJECT_OWNER,
         )
 
@@ -119,6 +150,12 @@ class ResearchRuns:
         self.scope.require(Permission.CANCEL_WORKFLOW)
         self.get(run_id)
         return self._workflows().request_cancel(run_id, reason=reason)
+
+    def readiness(self, design_revision_id: str) -> tuple[ResearchSpecification | None, Readiness]:
+        """Compile a revision of this Study and assess it, without starting anything."""
+        designs = self._designs()
+        revision = designs.get(design_revision_id)
+        return prepare(designs.content(revision.revision_id))
 
     # -- read -------------------------------------------------------------------
 

@@ -11,6 +11,7 @@ from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
     DEVELOP_SNAPSHOT,
+    RESEARCH_KINDS,
     UnknownWorkflowType,
     steps_for_workflow,
 )
@@ -24,6 +25,9 @@ from aia_executors.snapshot import ARTIFACT_TYPE, KIND, SnapshotExecutor
 from aia_worker.registry import load_executors
 from aia_worker.worker import Worker
 from sqlalchemy.orm import Session, sessionmaker
+
+# The research steps with an executor so far (ADR 0016; PR C adds the rest by chunk).
+PRODUCTION_RESEARCH_KINDS = [RESEARCH_KINDS[n] for n in ("compile", "preflight", "run")]
 
 
 def _start(world: Any, **kwargs: Any) -> str:
@@ -63,7 +67,8 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
     monkeypatch.setenv("AIA_STORAGE_BACKEND", "memory")
     monkeypatch.setenv("AIA_BUILD_SHA", build.sha or "")
     loaded = load_executors("aia_executors.registry:build_registry")
-    assert set(loaded) == {KIND}
+    # The production registry: the snapshot and the research steps (ADR 0016).
+    assert set(loaded) == {KIND, *PRODUCTION_RESEARCH_KINDS}
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
 
 
@@ -189,4 +194,4 @@ def test_a_viewer_cannot_start_a_run(world: Any, sessions: sessionmaker[Session]
 
 def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: BuildIdentity) -> None:
     registry = registry_for(store=store, build=build)
-    assert list(registry) == [KIND]
+    assert list(registry) == [KIND, *PRODUCTION_RESEARCH_KINDS]

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.tables import ProjectRow
@@ -24,8 +25,29 @@ API = "/api/v1"
 DESIGN = {
     "title": "Ranní nápoj",
     "goal": "Zjistit, zda nový nápoj dává smysl dojíždějícím.",
-    "sections": [{"type": "questions", "questions": [{"id": "q1", "typ": "skala"}]}],
     "n": 450,
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {"id": "q1", "text": "Jak často pijete kávu?", "typ": "skala", "skala": [1, 5]},
+                {
+                    "id": "q2",
+                    "text": "Co si ráno koupíte?",
+                    "typ": "vyber",
+                    "kategorie": ["Kávu", "Čaj", "Nic"],
+                },
+            ],
+        },
+        {
+            "type": "object_battery",
+            "title": "Nápoje",
+            "object_family": "nápoje",
+            "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"],
+            "object_question": "Jak hodnotíte {object}?",
+            "scale": [1, 10],
+        },
+    ],
 }
 
 
@@ -82,7 +104,7 @@ def test_a_design_never_crosses_studies_or_clients(
     acme = submit(lead, world).json()["revision_id"]
     # Each study has a design of its own, so only the Study filter can refuse Acme's id.
     assert submit(other_client_lead, world, study="other_client").status_code == 201
-    assert submit(lead, world, {**DESIGN, "n": 1}, study="sibling").status_code == 201
+    assert submit(lead, world, {**DESIGN, "n": 21}, study="sibling").status_code == 201
     # Another client's lead: Acme's study is invisible; Acme's revision id means nothing in theirs.
     assert submit(other_client_lead, world).status_code == 404
     assert (
@@ -237,7 +259,7 @@ def test_a_run_never_crosses_studies_or_clients(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
     acme = start(lead, world, submit(lead, world).json()["revision_id"]).json()["run_id"]
-    sibling_rev = submit(lead, world, {**DESIGN, "n": 1}, study="sibling").json()["revision_id"]
+    sibling_rev = submit(lead, world, {**DESIGN, "n": 21}, study="sibling").json()["revision_id"]
     assert start(lead, world, sibling_rev, study="sibling").status_code == 201
     globex_rev = submit(other_client_lead, world, study="other_client").json()["revision_id"]
     assert start(other_client_lead, world, globex_rev, study="other_client").status_code == 201
@@ -334,3 +356,107 @@ def test_a_run_serves_only_the_artifacts_it_produced(researcher: TestClient, wor
     assert researcher.get(f"{base}/ART-0000000000abcd").status_code == 404
     assert researcher.get(f"{_runs(world)}/RUN-0000000000abcd/artifacts/ART-1").status_code == 404
     assert researcher.get(f"{base}/REV-1").status_code == 422
+
+
+# --------------------------------------------------------------------------- #
+# Readiness, and artifacts read only through their run (chunk 4)
+# --------------------------------------------------------------------------- #
+
+
+def _real_worker(app: FastAPI, *, workbench: bool) -> Worker:
+    """A worker over the app's database and store, running the real research executors."""
+    from aia_core.infrastructure.build_identity import BuildIdentity
+    from aia_executors import workbench as wb
+    from aia_executors.registry import registry_for
+
+    build = BuildIdentity(sha="a15be650937aacaa")
+    store = app.state.artifact_store
+    executors = (
+        wb.workbench_registry_for(store=store, build=build)
+        if workbench
+        else registry_for(store=store, build=build)
+    )
+    settings = app.state.settings
+    return Worker(
+        session_factory=create_session_factory(app.state.engine),
+        executors=executors,
+        settings=WorkerSettings(
+            database_url=settings.database_url or "sqlite+pysqlite:///:memory:",
+            executors="aia_executors.registry:build_registry",
+            worker_id="research-api-worker",
+            lease_seconds=30,
+            heartbeat_seconds=0.1,
+            poll_seconds=0.05,
+        ),
+    )
+
+
+def test_readiness_says_what_would_stop_a_run_before_anything_starts(
+    researcher: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    revision_id = submit(researcher, world).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+    ready = viewer.get(url, params={"design_revision_id": revision_id})
+    assert ready.status_code == 200, ready.text
+    body = ready.json()
+    assert body["ready"] is True and body["rules"] == "aia-structural-readiness-1"
+    assert (body["questions"], body["batteries"], body["objects"], body["n"]) == (2, 1, 5, 450)
+    assert body["fieldwork_source"] == "ai_runtime"
+
+    filtered = {**DESIGN, "sections": [dict(DESIGN["sections"][0]), DESIGN["sections"][1]]}
+    filtered["sections"][0]["questions"] = [
+        *DESIGN["sections"][0]["questions"],
+        {"id": "q3", "text": "Proč?", "typ": "otevrena", "filtr": "q2 == 'Nic'"},
+    ]
+    not_ready = submit(researcher, world, filtered).json()["revision_id"]
+    body = viewer.get(url, params={"design_revision_id": not_ready}).json()
+    assert body["ready"] is False
+    assert any(c["id"] == "conditional_questions" and c["status"] == "FAIL" for c in body["checks"])
+    refused = start(researcher, world, not_ready)
+    assert refused.status_code == 409 and refused.json()["code"] == "design_not_ready"
+    assert refused.json()["details"]["failed"][0]["id"] == "conditional_questions"
+    # Another client's lead cannot read this Study's readiness, nor ask about its revision.
+    assert other_client_lead.get(url, params={"design_revision_id": revision_id}).status_code == 404
+    other = f"{API}/studies/{world.study_id('other_client')}/research/readiness"
+    submit(other_client_lead, world, study="other_client")
+    assert (
+        other_client_lead.get(other, params={"design_revision_id": revision_id}).status_code == 404
+    )
+
+
+def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
+    app: FastAPI, researcher: TestClient, world: Any, projects_url: Any
+) -> None:
+    """Regression (ADR 0016 chunk 4): the generic artifact route served them.
+
+    It checked only that the artifact's project was the Study's, so the design
+    project's id and a research artifact id reached any artifact of the research,
+    past the run it belonged to and past the rule that keeps respondent rows out
+    of the browser.
+    """
+    # The test/workbench composition: this API records the fictional source on its runs.
+    app.state.settings = app.state.settings.model_copy(
+        update={"research_fieldwork_source": FieldworkSource.SYNTHETIC_FIXTURE}
+    )
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    worker = _real_worker(app, workbench=True)
+    while worker.run_once() is not None:
+        pass
+    run = researcher.get(f"{_runs(world)}/{run_id}").json()
+    steps = {s["node_key"]: s for s in run["steps"]}
+    assert steps["run"]["data_origin"] == "SYNTHETIC_FIXTURE"
+    spec_id, dataset_id = steps["compile"]["artifact_id"], steps["run"]["artifact_id"]
+
+    spec = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{spec_id}")
+    assert spec.status_code == 200 and spec.json()["payload"]["specification"]["n"] == 450
+    dataset = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{dataset_id}")
+    assert dataset.status_code == 200
+    assert dataset.json()["payload"] is None, "respondent rows are never inlined"
+
+    with create_session_factory(app.state.engine)() as session:
+        design_project = session.scalars(select(ProjectRow.project_id)).one()
+    for artifact_id in (spec_id, dataset_id):
+        generic = researcher.get(f"{projects_url()}/{design_project}/artifacts/{artifact_id}")
+        assert generic.status_code == 404

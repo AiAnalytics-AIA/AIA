@@ -435,6 +435,7 @@ jobs:
               "/api/v1/studies/{study_id}/design/revisions",
               "/api/v1/studies/{study_id}/design/revisions/{revision_id}",
               # ... and the runs that execute them.
+              "/api/v1/studies/{study_id}/research/readiness",
               "/api/v1/studies/{study_id}/research/runs",
               "/api/v1/studies/{study_id}/research/runs/{run_id}",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/events",

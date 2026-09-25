@@ -1,0 +1,492 @@
+"""From a Design Revision to a research specification, and whether it can run.
+
+ADR 0016, PR C chunk 4. Two pure functions:
+
+* :func:`compile_design` turns the design the browser submitted -- the unit's
+  research project document, ``sections`` of questions and tracked object sets --
+  into a typed :class:`ResearchSpecification`: what fieldwork asks, of how many,
+  and which object batteries a Sociomap can be drawn from. Content it cannot use
+  is a :class:`CompileProblem`, never a guess.
+* :func:`assess_readiness` says, as a list of named checks, whether the
+  specification can run **in AIA today**. These are AIA's structural rules,
+  labelled as such. The 18.6.6 technical preflight (study-type slots, filter
+  linting, the audience sufficiency gate) stays in /classic and is not claimed.
+
+Where a rule follows the unit it says so, with the anchor, so a later port can be
+checked against it: ``legacy/npc-panel-18.6.6/app/research_project.py``
+(``normalize_project``, ``_normalize_question``) and ``dotaznik.py`` (``Otazka``).
+What the unit does and this does not -- conditional routing (``filtr``),
+familiarity pre-questions, study-type slots -- is refused by a readiness check
+rather than silently skipped, because skipping it would put answers in the data
+that no respondent would have been asked for.
+
+No I/O.
+"""
+
+from __future__ import annotations
+
+import re
+import unicodedata
+from enum import StrEnum
+from typing import Any, Final, Literal
+
+from pydantic import BaseModel, ConfigDict, model_validator
+
+from .pipeline import fingerprint
+
+__all__ = [
+    "COMPILER_VERSION",
+    "DONT_KNOW",
+    "SAMPLE_SIZE_BOUNDS",
+    "TRACKED_SET_LIMITS",
+    "CheckStatus",
+    "CompileProblem",
+    "Readiness",
+    "ReadinessCheck",
+    "ResearchSpecification",
+    "SpecBattery",
+    "SpecObject",
+    "SpecQuestion",
+    "assess_readiness",
+    "compile_design",
+    "prepare",
+]
+
+#: The compiler's own version: part of the specification's fingerprint.
+COMPILER_VERSION: Final = "aia-research-compile-1"
+
+#: The unit's "don't know" option (``dotaznik.py`` ``Otazka.volby``).
+DONT_KNOW: Final = "Nevím / neodpovím"
+
+#: ``PRODUCT_POLICY.json`` ``research_design.sample_size`` (hard_min, hard_max).
+SAMPLE_SIZE_BOUNDS: Final = (20, 10000)
+
+#: ``PRODUCT_POLICY.json`` ``research_design.tracked_set`` for a position map:
+#: hard (min, max) and recommended (min, max).
+TRACKED_SET_LIMITS: Final = ((3, 40), (4, 15))
+
+QuestionType = Literal["vyber", "multi", "skala", "otevrena"]
+_QUESTION_TYPES: Final = frozenset({"vyber", "multi", "skala", "otevrena"})
+
+
+class _Frozen(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+class SpecQuestion(_Frozen):
+    """One question a respondent answers. ``options`` already includes "don't know"."""
+
+    id: str
+    section_id: str
+    text: str
+    typ: QuestionType
+    options: tuple[str, ...] = ()
+    scale: tuple[int, int] | None = None
+    allow_dont_know: bool = False
+    has_filter: bool = False
+
+    @model_validator(mode="after")
+    def _shape(self) -> SpecQuestion:
+        if self.typ in ("vyber", "multi") and len(self.options) < 2:
+            raise ValueError(f"{self.id}: a choice question needs at least two options")
+        if self.typ == "skala" and self.scale is None:
+            raise ValueError(f"{self.id}: a scale question needs its scale")
+        return self
+
+
+class SpecObject(_Frozen):
+    id: str
+    label: str
+
+
+class SpecBattery(_Frozen):
+    """A tracked object set: every object rated on one scale by the same respondents.
+
+    Each object's rating is one question in fieldwork, ``question_id`` below; a
+    Sociomap is drawn from the respondents x objects matrix of those ratings.
+    """
+
+    id: str
+    title: str
+    family: str
+    question_template: str
+    scale: tuple[int, int]
+    scale_labels: tuple[str, str]
+    objects: tuple[SpecObject, ...]
+    familiarity_required: bool
+    output_type: str
+
+    def question_id(self, obj: SpecObject) -> str:
+        return f"{self.id}_obj_{obj.id}"
+
+
+class ResearchSpecification(_Frozen):
+    """What a research run executes, compiled from one Design Revision."""
+
+    compiler_version: str
+    title: str
+    n: int | None
+    questions: tuple[SpecQuestion, ...]
+    batteries: tuple[SpecBattery, ...]
+    audience: dict[str, Any]
+
+    def fingerprint(self) -> str:
+        return fingerprint(self.model_dump(mode="json"))
+
+    def battery_questions(self) -> tuple[str, ...]:
+        return tuple(b.question_id(o) for b in self.batteries for o in b.objects)
+
+
+class CompileProblem(_Frozen):
+    """Why part of the design cannot be compiled. ``where`` names the section/question."""
+
+    code: str
+    where: str
+    message: str
+
+
+class CheckStatus(StrEnum):
+    PASS = "PASS"
+    WARN = "WARN"
+    FAIL = "FAIL"
+
+
+class ReadinessCheck(_Frozen):
+    id: str
+    status: CheckStatus
+    message: str
+
+
+class Readiness(_Frozen):
+    """Whether a specification can run in AIA, as named checks. Ready means no FAIL."""
+
+    rules: str
+    ready: bool
+    checks: tuple[ReadinessCheck, ...]
+
+
+# --------------------------------------------------------------------------- #
+# compile
+# --------------------------------------------------------------------------- #
+
+
+def _text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value if value is not None else "")).strip()
+
+
+def _slug(value: str, prefix: str) -> str:
+    """Lower-case ASCII with underscores. AIA's rule; the unit's ``slugify`` may differ."""
+    folded = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode()
+    slug = re.sub(r"[^a-z0-9]+", "_", folded.lower()).strip("_")
+    if not slug:
+        return prefix
+    return f"{prefix}_{slug}" if slug[0].isdigit() else slug
+
+
+def _unique(base: str, used: set[str]) -> str:
+    candidate, i = base, 2
+    while candidate in used:
+        candidate, i = f"{base}_{i}", i + 1
+    used.add(candidate)
+    return candidate
+
+
+def _scale(raw: Any, default: tuple[int, int]) -> tuple[int, int] | None:
+    values = list(raw) if isinstance(raw, list | tuple) else list(default)
+    if len(values) < 2:
+        values = list(default)
+    try:
+        low, high = int(values[0]), int(values[1])
+    except (TypeError, ValueError):
+        return None
+    return (low, high) if low < high else None
+
+
+def _question(
+    raw: Any, *, section_id: str, ordinal: int, used: set[str], problems: list[CompileProblem]
+) -> SpecQuestion | None:
+    where = f"{section_id}#{ordinal}"
+    if not isinstance(raw, dict):
+        problems.append(
+            CompileProblem(
+                code="question_not_object", where=where, message="Otázka musí být objekt."
+            )
+        )
+        return None
+    typ = _text(raw.get("typ") or "vyber")
+    if typ not in _QUESTION_TYPES:
+        problems.append(
+            CompileProblem(
+                code="unknown_question_type", where=where, message=f"Neznámý typ otázky: {typ}"
+            )
+        )
+        return None
+    text = _text(raw.get("text"))
+    if not text:
+        problems.append(
+            CompileProblem(code="question_without_text", where=where, message="Otázka nemá text.")
+        )
+        return None
+    qid = _unique(_slug(_text(raw.get("id")) or f"{section_id}_{ordinal}", "q"), used)
+    allow_dont_know = bool(raw.get("povolit_nevim", False))  # research_project.py:155
+    options: tuple[str, ...] = ()
+    scale: tuple[int, int] | None = None
+    if typ in ("vyber", "multi"):
+        cats = [_text(x) for x in (raw.get("kategorie") or raw.get("volby") or []) if _text(x)]
+        cats = list(dict.fromkeys(cats))[:24]  # research_project.py:139-143
+        if len(cats) < 2:
+            problems.append(
+                CompileProblem(
+                    code="too_few_categories",
+                    where=qid,
+                    message=f"{qid}: výběrová otázka potřebuje alespoň 2 kategorie.",
+                )
+            )
+            return None
+        options = tuple(cats) + ((DONT_KNOW,) if allow_dont_know else ())
+    elif typ == "skala":
+        scale = _scale(raw.get("skala"), (1, 10))
+        if scale is None:
+            problems.append(
+                CompileProblem(
+                    code="invalid_scale",
+                    where=qid,
+                    message=f"{qid}: škála musí mít dvě celá čísla, od menšího k většímu.",
+                )
+            )
+            return None
+    return SpecQuestion(
+        id=qid,
+        section_id=section_id,
+        text=text,
+        typ=typ,
+        options=options,
+        scale=scale,
+        allow_dont_know=allow_dont_know,
+        has_filter=bool(_text(raw.get("filtr"))),
+    )
+
+
+def _battery(
+    raw: dict[str, Any], *, section_id: str, title: str, problems: list[CompileProblem]
+) -> SpecBattery | None:
+    family = _text(raw.get("object_family") or raw.get("object_type"))  # research_project.py:318
+    if not family:
+        problems.append(
+            CompileProblem(
+                code="battery_without_family",
+                where=section_id,
+                message=f"{title}: pojmenuj typ sledovaných položek (např. média, emoce, značky).",
+            )
+        )
+        return None
+    labels = list(dict.fromkeys(_text(x) for x in (raw.get("objects") or []) if _text(x)))
+    (hard_min, hard_max), _ = TRACKED_SET_LIMITS
+    if not hard_min <= len(labels) <= hard_max:
+        problems.append(
+            CompileProblem(
+                code="battery_size",
+                where=section_id,
+                message=(
+                    f"{title}: sada potřebuje {hard_min}\u2013{hard_max} srovnatelných položek, "
+                    f"má {len(labels)}."
+                ),
+            )
+        )
+        return None
+    scale = _scale(raw.get("scale"), (1, 10))
+    if scale is None:
+        problems.append(
+            CompileProblem(
+                code="invalid_scale", where=section_id, message=f"{title}: neplatná škála."
+            )
+        )
+        return None
+    template = _text(raw.get("object_question") or "Jak hodnotíte položku {object}?")
+    if "{object}" not in template:  # research_project.py:330-332
+        template = template.rstrip(" ?") + " {object}?"
+    scale_labels = [_text(x) for x in (raw.get("scale_labels") or [])][:2]
+    if len(scale_labels) != 2 or not all(scale_labels):
+        scale_labels = ["vůbec", "velmi"]
+    used: set[str] = set()
+    objects = tuple(
+        SpecObject(id=_unique(_slug(label, "o"), used), label=label) for label in labels
+    )
+    output_type = _text(raw.get("output_type") or "pozicni_mapa")
+    return SpecBattery(
+        id=section_id,
+        title=title,
+        family=family,
+        question_template=template,
+        scale=scale,
+        scale_labels=(scale_labels[0], scale_labels[1]),
+        objects=objects,
+        familiarity_required=bool(raw.get("familiarity_required", False)),
+        output_type=output_type
+        if output_type in {"pozicni_mapa", "segmentace", "lovebrand", "test_konceptu"}
+        else "pozicni_mapa",
+    )
+
+
+def compile_design(
+    content: dict[str, Any],
+) -> tuple[ResearchSpecification | None, tuple[CompileProblem, ...]]:
+    """Compile a design, or say exactly what stops it. Never both a spec and a problem."""
+    problems: list[CompileProblem] = []
+    questions: list[SpecQuestion] = []
+    batteries: list[SpecBattery] = []
+    section_ids: set[str] = set()
+    question_ids: set[str] = set()
+    for i, sec in enumerate(content.get("sections") or [], start=1):
+        if not isinstance(sec, dict):
+            continue
+        kind = _text(sec.get("type") or "questions")
+        if kind not in ("questions", "object_battery"):
+            continue  # research_project.py:301-303: unknown section types are not part of the study
+        sid = _unique(
+            _slug(_text(sec.get("id") or sec.get("title")) or f"sekce_{i}", "sec"), section_ids
+        )
+        title = _text(sec.get("title")) or (
+            "Sledovaná sada" if kind == "object_battery" else f"Blok {i}"
+        )
+        if kind == "questions":
+            for qi, q in enumerate(sec.get("questions") or [], start=1):
+                compiled = _question(
+                    q, section_id=sid, ordinal=qi, used=question_ids, problems=problems
+                )
+                if compiled is not None:
+                    questions.append(compiled)
+        else:
+            battery = _battery(sec, section_id=sid, title=title, problems=problems)
+            if battery is not None:
+                batteries.append(battery)
+    if not questions and not batteries and not problems:
+        problems.append(
+            CompileProblem(
+                code="empty_questionnaire",
+                where="sections",
+                message="Dotazník je prázdný. Přidejte alespoň jednu otázku nebo sledovanou sadu.",
+            )
+        )
+    if problems:
+        return None, tuple(problems)
+    raw_n = content.get("n")
+    n = raw_n if isinstance(raw_n, int) and not isinstance(raw_n, bool) else None
+    raw_audience = content.get("audience")
+    audience: dict[str, Any] = raw_audience if isinstance(raw_audience, dict) else {}
+    spec = ResearchSpecification(
+        compiler_version=COMPILER_VERSION,
+        title=_text(content.get("title")) or "Výzkum",
+        n=n,
+        questions=tuple(questions),
+        batteries=tuple(batteries),
+        audience={
+            "source_mode": _text(audience.get("source_mode")) or "population",
+            "strategy": _text(audience.get("strategy")) or "population",
+            "has_filters": bool(audience.get("filters")),
+        },
+    )
+    return spec, ()
+
+
+# --------------------------------------------------------------------------- #
+# readiness
+# --------------------------------------------------------------------------- #
+
+READINESS_RULES: Final = "aia-structural-readiness-1"
+
+
+def assess_readiness(spec: ResearchSpecification) -> Readiness:
+    """AIA's structural readiness checks. Ready means no check FAILed."""
+    checks: list[ReadinessCheck] = []
+
+    def check(check_id: str, status: CheckStatus, message: str) -> None:
+        checks.append(ReadinessCheck(id=check_id, status=status, message=message))
+
+    low, high = SAMPLE_SIZE_BOUNDS
+    if spec.n is None:
+        check("sample_size", CheckStatus.FAIL, "Velikost vzorku (n) není zadaná.")
+    elif not low <= spec.n <= high:
+        check(
+            "sample_size",
+            CheckStatus.FAIL,
+            f"Velikost vzorku {spec.n} je mimo rozsah {low}\u2013{high}.",
+        )
+    else:
+        check("sample_size", CheckStatus.PASS, f"n = {spec.n}.")
+
+    asked = len(spec.questions) + len(spec.battery_questions())
+    check(
+        "questionnaire",
+        CheckStatus.PASS,
+        f"{len(spec.questions)} otázek, {len(spec.batteries)} sledovaných sad "
+        f"({asked} položek k zodpovězení).",
+    )
+
+    filtered = [q.id for q in spec.questions if q.has_filter]
+    if filtered:
+        check(
+            "conditional_questions",
+            CheckStatus.FAIL,
+            "Podmíněné otázky (filtr) AIA zatím neumí položit jen těm, kdo mají odpovídat: "
+            + ", ".join(filtered)
+            + ". Spusťte tento návrh v klasickém rozhraní.",
+        )
+    else:
+        check("conditional_questions", CheckStatus.PASS, "Žádná podmíněná otázka.")
+
+    familiarity = [b.id for b in spec.batteries if b.familiarity_required]
+    if familiarity:
+        check(
+            "battery_familiarity",
+            CheckStatus.FAIL,
+            "Sady s povinnou znalostí položek AIA zatím neumí: " + ", ".join(familiarity) + ".",
+        )
+    (_, _), (rec_min, rec_max) = TRACKED_SET_LIMITS
+    for b in spec.batteries:
+        if not rec_min <= len(b.objects) <= rec_max:
+            check(
+                f"battery_size:{b.id}",
+                CheckStatus.WARN,
+                f"{b.title}: {len(b.objects)} položek; doporučeno {rec_min}\u2013{rec_max}.",
+            )
+    if spec.batteries:
+        check(
+            "sociomap_input",
+            CheckStatus.PASS,
+            f"{len(spec.batteries)} sad pro Sociomapu (interní, D6).",
+        )
+    else:
+        check("sociomap_input", CheckStatus.WARN, "Bez sledované sady nevznikne Sociomapa.")
+
+    if spec.audience.get("has_filters") or spec.audience.get("source_mode") != "population":
+        check(
+            "audience",
+            CheckStatus.WARN,
+            "AIA zatím nepoužije filtry ani vlastní publikum; běh počítá s celou populací.",
+        )
+    else:
+        check("audience", CheckStatus.PASS, "Celá populace.")
+
+    return Readiness(
+        rules=READINESS_RULES,
+        ready=not any(c.status is CheckStatus.FAIL for c in checks),
+        checks=tuple(checks),
+    )
+
+
+def prepare(content: dict[str, Any]) -> tuple[ResearchSpecification | None, Readiness]:
+    """Compile and assess in one call. A design that does not compile is not ready."""
+    spec, problems = compile_design(content)
+    if spec is None:
+        return None, Readiness(
+            rules=READINESS_RULES,
+            ready=False,
+            checks=tuple(
+                ReadinessCheck(
+                    id=f"compile:{p.code}:{p.where}", status=CheckStatus.FAIL, message=p.message
+                )
+                for p in problems
+            ),
+        )
+    return spec, assess_readiness(spec)

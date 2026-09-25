@@ -195,6 +195,26 @@ forbid "licence determinations are written only in their policy-data module" \
 forbid "the API, worker and executors never build a licence policy of their own" \
   'LicenceDetermination\(|LicencePolicy\(' \
   apps
+# The fictional fieldwork source (ADR 0016 D1) is kept out of production by
+# construction: only the workbench composition may build it, nothing may import
+# the workbench composition, and no deployment may name it.
+forbid "only the workbench composition imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*synthetic_fieldwork' \
+  "$CORE" \
+  synthetic_fieldwork.py
+forbid "no API code imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|aia_executors\.workbench)' \
+  "$API"
+forbid "the worker never imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|aia_executors\.workbench)' \
+  "$WORKER"
+forbid "among the executors, only the workbench composition builds fictional fieldwork" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|\.workbench|aia_executors\.workbench)' \
+  "$EXECUTORS" \
+  workbench.py
+forbid "no deployment runs the workbench composition" \
+  'aia_executors\.workbench|aia_executors/workbench' \
+  deploy
 # A revision is what a run executed. The ORM refuses to UPDATE one
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \

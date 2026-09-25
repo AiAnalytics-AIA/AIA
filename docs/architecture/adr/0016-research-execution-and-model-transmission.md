@@ -63,10 +63,11 @@ model provider (`open-decisions.md` D3).
      the run in an explicit waiting-for-AI-runtime state that no timer resumes; downstream steps stay
      blocked, and nothing is fabricated.
    - `synthetic_fixture` — a fictional dataset for tests and the workbench. It exists only in the
-     test/workbench composition: the production executor registry never provides it, a run records
+     test/workbench composition (`aia_executors.workbench`, which refuses to build unless
+     `AIA_ENV` is `local` or `test`): the production executor registry never provides it, a run records
      its source at creation and the worker refuses a source it does not provide, every artifact
      derived from it carries `data_origin = SYNTHETIC_FIXTURE`, and nothing from it can become a
-     client-facing claim.
+     client-facing claim (the evidence gate refuses it: `SYNTHETIC_DATA_ORIGIN`).
 
 5. **Model transmission fails closed on licence (D3).** Licence eligibility is its own gate,
    beside residency, not a kind of it: residency (ADR 0008, `domain/residency.py`) asks whether a
@@ -94,7 +95,9 @@ model provider (`open-decisions.md` D3).
    exposure, not the integration seam.
 
 7. **The execution API is Study-scoped.** Under `/api/v1/studies/{study_id}/`:
-   `design/revisions` (submit, list, get), `research/runs` (start, list), `research/runs/{run_id}`
+   `design/revisions` (submit, list, get), `research/readiness` (compile a revision and run AIA's
+   structural checks without starting; a run of a not-ready revision is refused, 409),
+   `research/runs` (start, list), `research/runs/{run_id}`
    (state), `…/cancel`, `…/retry`, `…/artifacts/{artifact_id}`. Every route resolves the Study
    through `ScopeResolver` first: out of scope is 404, in scope without the permission is 403.
    Start is idempotent per Design Revision (a double submission gets the run that exists; a second
