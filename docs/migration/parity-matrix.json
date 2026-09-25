@@ -3488,7 +3488,8 @@
    "implementation_state": "PARTIAL",
    "implementation": [
     "packages/aia_core/src/aia_core/domain/evidence/support.py",
-    "packages/aia_core/src/aia_core/domain/evidence/metrics.py"
+    "packages/aia_core/src/aia_core/domain/evidence/metrics.py",
+    "packages/aia_core/src/aia_core/domain/research_aggregate.py"
    ],
    "reference_modules": [
     "ensemble.py",
@@ -3519,11 +3520,26 @@
       "packages/aia_core/tests/test_evidence_support.py",
       "packages/aia_core/tests/test_evidence_metrics.py"
      ]
+    },
+    {
+     "id": "statistics.uncertainty/aggregate-unit-capture",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_research_aggregate.py"
+     ]
     }
    ],
    "recorded_evidence": [],
    "intentional_difference": null,
-   "documented_deviations": [],
+   "documented_deviations": [
+    {
+     "id": "D5",
+     "summary": "bootstrap interval bounds are drawn from AIA's seeded generator, not NumPy's PCG64 stream; estimates, Kish n, donor support and suppression are exact",
+     "anchor": "docs/migration/parity-matrix.md D5",
+     "gate": "statistics.uncertainty/aggregate-unit-capture"
+    }
+   ],
    "high_risk": [
     "R5"
    ],
@@ -3532,7 +3548,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-09)."
    },
-   "notes": "Effective-n SUPPRESS-by-default support and the allowed-metric enum are ported; interval computation itself (uncertainty.py) is not."
+   "notes": "Effective-n SUPPRESS-by-default support and the allowed-metric enum are ported. PR C chunk 5 ports weights, Kish n, core donor support, the weighted summaries, the cluster bootstrap and the reportable core of dotaznik.agreguj_otazku (domain/research_aggregate.py): exact against captures of the unit (fixtures/research_aggregate, tools/aggregate_capture.py), interval bounds within the unit's own seed spread (D5, OI-62). Topic donor layers and segment tables are not started."
   },
   "tests": {
    "family": "tests",

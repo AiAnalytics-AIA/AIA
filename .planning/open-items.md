@@ -1982,5 +1982,5 @@ about the method.
 (re-issuing a delivered report), or an acceptance criterion names bound equality. Only then is a
 PCG64 port justified, and it would need its own named exception to §2.
 
-**Status.** Decided for research aggregation; the contract lands and is tested in PR C chunk 5.
+**Status.** Decided for research aggregation, and implemented: `packages/aia_core/src/aia_core/domain/research_aggregate.py`, `test_research_aggregate.py` (EXACT fields, bounds within the unit's seed spread, AIA's bounds pinned), parity-matrix deviation D5.
 

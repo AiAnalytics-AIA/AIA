@@ -1,0 +1,803 @@
+{
+ "A01_full_questionnaire": {
+  "aggregate_version": "aia-research-aggregate-1",
+  "batteries": {
+   "napoje": {
+    "family": "nápoje",
+    "objects": {
+     "caj": {
+      "donor_layer": "core",
+      "effective_n": 125.0,
+      "effective_n_kish": 401.8,
+      "evidence": {
+       "mode": "JUST_SHOW",
+       "question_type": "rating_scale",
+       "rating": "AMBER",
+       "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+      },
+      "indicative_threshold": 50.0,
+      "label": "Čaj",
+      "max_donor_share": 0.0178,
+      "median": 7.0,
+      "n_chybi": 0,
+      "n_eligible": 450,
+      "n_filtered": 0,
+      "n_guard_threshold": 25.0,
+      "n_platnych": 450,
+      "n_unique_core_donors": 140,
+      "n_unique_layer_donors": 140,
+      "prumer": 6.47,
+      "prumer_interval_95": {
+       "high": 6.66,
+       "low": 6.29
+      },
+      "rozlozeni": {
+       "1.0": 12,
+       "10.0": 18,
+       "2.0": 8,
+       "3.0": 22,
+       "4.0": 29,
+       "5.0": 54,
+       "6.0": 85,
+       "7.0": 89,
+       "8.0": 93,
+       "9.0": 40
+      },
+      "sd": 1.98,
+      "support_status": "REPORTABLE",
+      "top2box_interval_95": {
+       "high": 15.8,
+       "low": 9.5
+      },
+      "top2box_pct": 12.9,
+      "typ": "skala",
+      "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+     },
+     "dzus": {
+      "donor_layer": "core",
+      "effective_n": 125.0,
+      "effective_n_kish": 401.8,
+      "evidence": {
+       "mode": "JUST_SHOW",
+       "question_type": "rating_scale",
+       "rating": "AMBER",
+       "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+      },
+      "indicative_threshold": 50.0,
+      "label": "Džus",
+      "max_donor_share": 0.0178,
+      "median": 4.0,
+      "n_chybi": 0,
+      "n_eligible": 450,
+      "n_filtered": 0,
+      "n_guard_threshold": 25.0,
+      "n_platnych": 450,
+      "n_unique_core_donors": 140,
+      "n_unique_layer_donors": 140,
+      "prumer": 3.81,
+      "prumer_interval_95": {
+       "high": 4.05,
+       "low": 3.59
+      },
+      "rozlozeni": {
+       "1.0": 82,
+       "2.0": 73,
+       "3.0": 62,
+       "4.0": 66,
+       "5.0": 61,
+       "6.0": 58,
+       "7.0": 23,
+       "8.0": 18,
+       "9.0": 7
+      },
+      "sd": 2.12,
+      "support_status": "REPORTABLE",
+      "top2box_interval_95": {
+       "high": 2.7,
+       "low": 0.5
+      },
+      "top2box_pct": 1.6,
+      "typ": "skala",
+      "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+     },
+     "kakao": {
+      "donor_layer": "core",
+      "effective_n": 125.0,
+      "effective_n_kish": 401.8,
+      "evidence": {
+       "mode": "JUST_SHOW",
+       "question_type": "rating_scale",
+       "rating": "AMBER",
+       "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+      },
+      "indicative_threshold": 50.0,
+      "label": "Kakao",
+      "max_donor_share": 0.0178,
+      "median": 4.0,
+      "n_chybi": 0,
+      "n_eligible": 450,
+      "n_filtered": 0,
+      "n_guard_threshold": 25.0,
+      "n_platnych": 450,
+      "n_unique_core_donors": 140,
+      "n_unique_layer_donors": 140,
+      "prumer": 4.47,
+      "prumer_interval_95": {
+       "high": 4.67,
+       "low": 4.25
+      },
+      "rozlozeni": {
+       "1.0": 48,
+       "10.0": 4,
+       "2.0": 62,
+       "3.0": 52,
+       "4.0": 65,
+       "5.0": 63,
+       "6.0": 69,
+       "7.0": 40,
+       "8.0": 37,
+       "9.0": 10
+      },
+      "sd": 2.23,
+      "support_status": "REPORTABLE",
+      "top2box_interval_95": {
+       "high": 4.3,
+       "low": 1.6
+      },
+      "top2box_pct": 2.8,
+      "typ": "skala",
+      "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+     },
+     "kava": {
+      "donor_layer": "core",
+      "effective_n": 125.0,
+      "effective_n_kish": 401.8,
+      "evidence": {
+       "mode": "JUST_SHOW",
+       "question_type": "rating_scale",
+       "rating": "AMBER",
+       "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+      },
+      "indicative_threshold": 50.0,
+      "label": "Káva",
+      "max_donor_share": 0.0178,
+      "median": 6.0,
+      "n_chybi": 0,
+      "n_eligible": 450,
+      "n_filtered": 0,
+      "n_guard_threshold": 25.0,
+      "n_platnych": 450,
+      "n_unique_core_donors": 140,
+      "n_unique_layer_donors": 140,
+      "prumer": 6.14,
+      "prumer_interval_95": {
+       "high": 6.34,
+       "low": 5.95
+      },
+      "rozlozeni": {
+       "1.0": 15,
+       "10.0": 16,
+       "2.0": 13,
+       "3.0": 23,
+       "4.0": 49,
+       "5.0": 66,
+       "6.0": 79,
+       "7.0": 76,
+       "8.0": 69,
+       "9.0": 44
+      },
+      "sd": 2.1,
+      "support_status": "REPORTABLE",
+      "top2box_interval_95": {
+       "high": 16.4,
+       "low": 9.7
+      },
+      "top2box_pct": 13.0,
+      "typ": "skala",
+      "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+     },
+     "voda": {
+      "donor_layer": "core",
+      "effective_n": 125.0,
+      "effective_n_kish": 401.8,
+      "evidence": {
+       "mode": "JUST_SHOW",
+       "question_type": "rating_scale",
+       "rating": "AMBER",
+       "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+      },
+      "indicative_threshold": 50.0,
+      "label": "Voda",
+      "max_donor_share": 0.0178,
+      "median": 6.0,
+      "n_chybi": 0,
+      "n_eligible": 450,
+      "n_filtered": 0,
+      "n_guard_threshold": 25.0,
+      "n_platnych": 450,
+      "n_unique_core_donors": 140,
+      "n_unique_layer_donors": 140,
+      "prumer": 5.89,
+      "prumer_interval_95": {
+       "high": 6.08,
+       "low": 5.69
+      },
+      "rozlozeni": {
+       "1.0": 17,
+       "10.0": 17,
+       "2.0": 18,
+       "3.0": 30,
+       "4.0": 58,
+       "5.0": 62,
+       "6.0": 77,
+       "7.0": 71,
+       "8.0": 69,
+       "9.0": 31
+      },
+      "sd": 2.2,
+      "support_status": "REPORTABLE",
+      "top2box_interval_95": {
+       "high": 13.9,
+       "low": 7.6
+      },
+      "top2box_pct": 10.7,
+      "typ": "skala",
+      "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+     }
+    },
+    "title": "Nápoje"
+   }
+  },
+  "bootstrap_generator": "python-random-mt19937:floor(u*m)",
+  "data_origin": "SYNTHETIC_FIXTURE",
+  "questions": {
+   "q1": {
+    "donor_layer": "core",
+    "effective_n": 124.6,
+    "effective_n_kish": 397.1,
+    "evidence": {
+     "mode": "JUST_SHOW",
+     "question_type": "rating_scale",
+     "rating": "AMBER",
+     "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+    },
+    "indicative_threshold": 50.0,
+    "max_donor_share": 0.0181,
+    "median": 3.0,
+    "n_chybi": 7,
+    "n_eligible": 450,
+    "n_filtered": 0,
+    "n_guard_threshold": 25.0,
+    "n_platnych": 443,
+    "n_unique_core_donors": 139,
+    "n_unique_layer_donors": 139,
+    "prumer": 3.04,
+    "prumer_interval_95": {
+     "high": 3.15,
+     "low": 2.94
+    },
+    "rozlozeni": {
+     "1.0": 38,
+     "2.0": 96,
+     "3.0": 163,
+     "4.0": 107,
+     "5.0": 39
+    },
+    "sd": 1.08,
+    "support_status": "REPORTABLE",
+    "top2box_interval_95": {
+     "high": 38.4,
+     "low": 29.9
+    },
+    "top2box_pct": 34.0,
+    "typ": "skala",
+    "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+   },
+   "q2": {
+    "celkem_pct": {
+     "Kávu": 34.8,
+     "Nevím / neodpovím": 2.9,
+     "Nic": 23.9,
+     "Čaj": 38.4
+    },
+    "donor_layer": "core",
+    "effective_n": 125.0,
+    "effective_n_kish": 401.8,
+    "evidence": {
+     "mode": "JUST_SHOW",
+     "question_type": "distribution",
+     "rating": "AMBER",
+     "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+    },
+    "indicative_threshold": 50.0,
+    "intervaly_95": {
+     "Kávu": {
+      "high": 38.6,
+      "low": 30.6
+     },
+     "Nevím / neodpovím": {
+      "high": 4.9,
+      "low": 1.4
+     },
+     "Nic": {
+      "high": 27.7,
+      "low": 19.9
+     },
+     "Čaj": {
+      "high": 43.1,
+      "low": 34.4
+     }
+    },
+    "max_donor_share": 0.0178,
+    "n_chybi": 0,
+    "n_eligible": 450,
+    "n_filtered": 0,
+    "n_guard_threshold": 25.0,
+    "n_platnych": 450,
+    "n_unique_core_donors": 140,
+    "n_unique_layer_donors": 140,
+    "support_status": "REPORTABLE",
+    "typ": "vyber",
+    "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+   },
+   "q3": {
+    "celkem_pct": {
+     "Jogurt": 50.8,
+     "Ovoce": 58.1,
+     "Pečivo": 58.7
+    },
+    "donor_layer": "core",
+    "effective_n": 125.0,
+    "effective_n_kish": 401.8,
+    "evidence": {
+     "mode": "JUST_SHOW",
+     "question_type": "distribution",
+     "rating": "AMBER",
+     "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+    },
+    "indicative_threshold": 50.0,
+    "intervaly_95": {
+     "Jogurt": {
+      "high": 55.9,
+      "low": 46.6
+     },
+     "Ovoce": {
+      "high": 63.2,
+      "low": 52.4
+     },
+     "Pečivo": {
+      "high": 63.6,
+      "low": 53.9
+     }
+    },
+    "max_donor_share": 0.0178,
+    "n_chybi": 0,
+    "n_eligible": 450,
+    "n_filtered": 0,
+    "n_guard_threshold": 25.0,
+    "n_platnych": 450,
+    "n_unique_core_donors": 140,
+    "n_unique_layer_donors": 140,
+    "pozn": "více odpovědí, součet > 100 %",
+    "support_status": "REPORTABLE",
+    "typ": "multi",
+    "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+   },
+   "q4": {
+    "donor_layer": "core",
+    "effective_n": 125.0,
+    "effective_n_kish": 401.8,
+    "evidence": {
+     "mode": "JUST_SHOW",
+     "question_type": "open_ended",
+     "rating": "AMBER",
+     "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+    },
+    "indicative_threshold": 50.0,
+    "max_donor_share": 0.0178,
+    "n_chybi": 0,
+    "n_eligible": 450,
+    "n_filtered": 0,
+    "n_guard_threshold": 25.0,
+    "n_platnych": 450,
+    "n_unique_core_donors": 140,
+    "n_unique_layer_donors": 140,
+    "pozn": "450 syntetických ilustračních odpovědí",
+    "support_status": "REPORTABLE",
+    "typ": "otevrena",
+    "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity.",
+    "verbatimy": [
+     "Fiktivní odpověď 1 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 2 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 3 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 4 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 5 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 6 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 7 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 8 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 9 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 10 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 11 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 12 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 13 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 14 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 15 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 16 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 17 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 18 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 19 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 20 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 21 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 22 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 23 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 24 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 25 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 26 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 27 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 28 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 29 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 30 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 31 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 32 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 33 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 34 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 35 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 36 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 37 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 38 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 39 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 40 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 41 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 42 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 43 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 44 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 45 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 46 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 47 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 48 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 49 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 50 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 51 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 52 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 53 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 54 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 55 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 56 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 57 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 58 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 59 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 60 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 61 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 62 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 63 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 64 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 65 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 66 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 67 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 68 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 69 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 70 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 71 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 72 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 73 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 74 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 75 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 76 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 77 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 78 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 79 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 80 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 81 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 82 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 83 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 84 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 85 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 86 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 87 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 88 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 89 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 90 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 91 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 92 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 93 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 94 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 95 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 96 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 97 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 98 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 99 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 100 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 101 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 102 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 103 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 104 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 105 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 106 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 107 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 108 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 109 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 110 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 111 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 112 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 113 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 114 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 115 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 116 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 117 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 118 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 119 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 120 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 121 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 122 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 123 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 124 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 125 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 126 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 127 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 128 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 129 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 130 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 131 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 132 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 133 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 134 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 135 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 136 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 137 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 138 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 139 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 140 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 141 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 142 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 143 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 144 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 145 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 146 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 147 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 148 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 149 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 150 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 151 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 152 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 153 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 154 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 155 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 156 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 157 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 158 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 159 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 160 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 161 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 162 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 163 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 164 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 165 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 166 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 167 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 168 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 169 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 170 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 171 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 172 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 173 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 174 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 175 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 176 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 177 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 178 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 179 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 180 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 181 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 182 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 183 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 184 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 185 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 186 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 187 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 188 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 189 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 190 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 191 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 192 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 193 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 194 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 195 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 196 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 197 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 198 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 199 (syntetická data, ne respondent)",
+     "Fiktivní odpověď 200 (syntetická data, ne respondent)"
+    ]
+   }
+  },
+  "respondents": 450,
+  "validation_status": "UNVALIDATED"
+ },
+ "A02_indicative_support": {
+  "aggregate_version": "aia-research-aggregate-1",
+  "batteries": {},
+  "bootstrap_generator": "python-random-mt19937:floor(u*m)",
+  "data_origin": "SYNTHETIC_FIXTURE",
+  "questions": {
+   "s1": {
+    "donor_layer": "core",
+    "effective_n": 34.3,
+    "effective_n_kish": 103.0,
+    "evidence": {
+     "mode": "JUST_SHOW",
+     "question_type": "rating_scale",
+     "rating": "AMBER",
+     "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+    },
+    "indicative_threshold": 50.0,
+    "max_donor_share": 0.0583,
+    "median": 6.0,
+    "n_chybi": 0,
+    "n_eligible": 120,
+    "n_filtered": 0,
+    "n_guard_threshold": 25.0,
+    "n_platnych": 120,
+    "n_unique_core_donors": 40,
+    "n_unique_layer_donors": 40,
+    "prumer": 5.95,
+    "prumer_interval_95": {
+     "high": 6.6,
+     "low": 5.34
+    },
+    "rozlozeni": {
+     "1.0": 14,
+     "10.0": 23,
+     "2.0": 6,
+     "3.0": 13,
+     "4.0": 13,
+     "5.0": 6,
+     "6.0": 12,
+     "7.0": 7,
+     "8.0": 13,
+     "9.0": 13
+    },
+    "sd": 3.09,
+    "support_status": "INDICATIVE",
+    "top2box_interval_95": {
+     "high": 37.0,
+     "low": 18.0
+    },
+    "top2box_pct": 27.9,
+    "typ": "skala",
+    "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+   },
+   "s2": {
+    "celkem_pct": {
+     "Ano": 53.4,
+     "Ne": 46.6
+    },
+    "donor_layer": "core",
+    "effective_n": 34.3,
+    "effective_n_kish": 103.0,
+    "evidence": {
+     "mode": "JUST_SHOW",
+     "question_type": "distribution",
+     "rating": "AMBER",
+     "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+    },
+    "indicative_threshold": 50.0,
+    "intervaly_95": {
+     "Ano": {
+      "high": 62.9,
+      "low": 43.4
+     },
+     "Ne": {
+      "high": 56.6,
+      "low": 37.1
+     }
+    },
+    "max_donor_share": 0.0583,
+    "n_chybi": 0,
+    "n_eligible": 120,
+    "n_filtered": 0,
+    "n_guard_threshold": 25.0,
+    "n_platnych": 120,
+    "n_unique_core_donors": 40,
+    "n_unique_layer_donors": 40,
+    "support_status": "INDICATIVE",
+    "typ": "vyber",
+    "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+   }
+  },
+  "respondents": 120,
+  "validation_status": "UNVALIDATED"
+ },
+ "A03_suppressed_support": {
+  "aggregate_version": "aia-research-aggregate-1",
+  "batteries": {},
+  "bootstrap_generator": "python-random-mt19937:floor(u*m)",
+  "data_origin": "SYNTHETIC_FIXTURE",
+  "questions": {
+   "t1": {
+    "donor_layer": "core",
+    "effective_n": 15.4,
+    "effective_n_kish": 48.7,
+    "evidence": {
+     "mode": "JUST_SHOW",
+     "question_type": "rating_scale",
+     "rating": "AMBER",
+     "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+    },
+    "indicative_threshold": 50.0,
+    "max_donor_share": 0.1,
+    "median": 4.0,
+    "n_chybi": 0,
+    "n_eligible": 60,
+    "n_filtered": 0,
+    "n_guard_threshold": 25.0,
+    "n_platnych": 60,
+    "n_unique_core_donors": 19,
+    "n_unique_layer_donors": 19,
+    "prumer": 3.73,
+    "prumer_interval_95": {
+     "high": 4.24,
+     "low": 3.25
+    },
+    "rozlozeni": {
+     "0.0": 8,
+     "1.0": 9,
+     "2.0": 3,
+     "3.0": 9,
+     "4.0": 8,
+     "5.0": 2,
+     "6.0": 12,
+     "7.0": 9
+    },
+    "sd": 2.4,
+    "support_status": "SUPPRESS",
+    "top2box_interval_95": {
+     "high": 47.6,
+     "low": 21.3
+    },
+    "top2box_pct": 35.8,
+    "typ": "skala",
+    "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+   },
+   "t2": {
+    "celkem_pct": {
+     "A": 55.2,
+     "B": 60.6
+    },
+    "donor_layer": "core",
+    "effective_n": 15.4,
+    "effective_n_kish": 48.7,
+    "evidence": {
+     "mode": "JUST_SHOW",
+     "question_type": "distribution",
+     "rating": "AMBER",
+     "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+    },
+    "indicative_threshold": 50.0,
+    "intervaly_95": {
+     "A": {
+      "high": 70.8,
+      "low": 39.6
+     },
+     "B": {
+      "high": 70.5,
+      "low": 51.5
+     }
+    },
+    "max_donor_share": 0.1,
+    "n_chybi": 0,
+    "n_eligible": 60,
+    "n_filtered": 0,
+    "n_guard_threshold": 25.0,
+    "n_platnych": 60,
+    "n_unique_core_donors": 19,
+    "n_unique_layer_donors": 19,
+    "pozn": "více odpovědí, součet > 100 %",
+    "support_status": "SUPPRESS",
+    "typ": "multi",
+    "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+   }
+  },
+  "respondents": 60,
+  "validation_status": "UNVALIDATED"
+ }
+}

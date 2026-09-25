@@ -108,7 +108,7 @@ job's summary in CI.
 | `sociomapping.study_module` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-12` | F3 | golden_fixture x1 | — | yes |
 | `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
 | `statistics.diagnostics` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
-| `statistics.uncertainty` | analysis *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x1, reference_contract x1 | R5 | yes |
+| `statistics.uncertainty` | analysis *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x2, reference_contract x1 | R5 | yes |
 | `tests` | verification *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `workflow.config` | workflow *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R10 | yes |
 | `workflow.dispatch` | workflow *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
@@ -289,6 +289,26 @@ model never proposed.
 **Tests:** `test_production_rejects_what_the_reference_corrected` (one case per
 policy row), `test_every_recorded_difference_is_exercised`,
 `test_policy_table_is_reject_only_and_unambiguous`.
+
+### D5 — bootstrap bounds come from AIA's generator, not NumPy's stream
+
+**Prototype:** `uncertainty.py` resamples donor clusters with
+`np.random.default_rng(seed).integers(...)` (PCG64) at fixed seeds per call site
+(`dotaznik.py` `agreguj_otazku`), so each printed bound is one draw of a Monte
+Carlo estimator.
+
+**Now:** `aia_core.domain.research_aggregate` resamples the same clusters with the
+same estimator (weight x multiplicity, the call site's resample count, the
+2.5/97.5 percentiles with linear interpolation, the unit's rounding), drawing from
+`random.Random(seed).random()` with cluster index `floor(u*m)`. Estimates, Kish n,
+donor support, suppression, distributions and evidence ratings are exact against
+captures of the unit; every bound lies within the unit's own seed-to-seed spread,
+`mean +/- (4 sd + rounding step)` over 100 seeds. Why not the exact stream is
+OI-62: the unit's own bounds move by up to 12 rounding steps when only the seed
+changes, and no research decision reads a bound.
+
+**Tests:** `test_research_aggregate.py` (`test_estimates_support_and_suppression_are_exact_against_the_unit`,
+`test_every_bound_lies_within_the_units_own_seed_spread`, `test_aias_own_bounds_are_pinned`).
 
 ## Deliberate improvements (not behaviour changes)
 

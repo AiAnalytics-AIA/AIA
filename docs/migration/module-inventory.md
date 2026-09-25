@@ -162,7 +162,7 @@ wrong answer corrupts artifact reuse or lies about money.
 | ○ | `benchmark.py` | 274 | governance | Benchmarks, drift guard and controlled ablation experiments |
 | ○ | `holdout_protocol.py` | 218 | governance | Blind-human holdout: protocol, registry, preregistration workflow |
 | ○ | `analysis_agent.py` | 216 | analysis | Eight independently durable analysis modules |
-| ○ | `uncertainty.py` | 199 | statistics | Donor-aware weighted uncertainty; Kish effective N; bootstrap intervals |
+| ◐ | `uncertainty.py` | 199 | statistics | Donor-aware weighted uncertainty; Kish effective N; bootstrap intervals. Weights, Kish n, core donor support, weighted mean/distribution/quantile/variance and the cluster bootstrap in `aia_core.domain.research_aggregate` (PR C chunk 5; bounds from AIA's generator, OI-62); topic donor layers, `combine_interval_components`, `n_guard` not started |
 | ○ | `client_report_v2.py` | 160 | reports | Report composition and export packs |
 | ○ | `persona_calibration.py` | 158 | statistics | Calibration layers, kept separate from respondent microdata |
 | ○ | `report_html.py` | 140 | reports | Report composition and export packs |
@@ -179,7 +179,7 @@ wrong answer corrupts artifact reuse or lies about money.
 | ○ | `tier_gate.py` | 75 | governance | Fail-closed evidence and predictive-validity gates |
 | ○ | `validation_stats.py` | 75 | statistics | Donor-aware weighted uncertainty; Kish effective N; bootstrap intervals |
 | ○ | `validation_workflow.py` | 69 | governance | Blind-human holdout: protocol, registry, preregistration workflow |
-| ○ | `fidelity.py` | 62 | governance | Fail-closed evidence and predictive-validity gates |
+| ◐ | `fidelity.py` | 62 | governance | Fail-closed evidence and predictive-validity gates. `classify_question` and `evidence_rating` in `aia_core.domain.research_aggregate` (PR C chunk 5); `falsification_condition` and the validation-status lookup not started |
 | ○ | `survey_experiments.py` | 62 | governance | Benchmarks, drift guard and controlled ablation experiments |
 | ○ | `evidence_validator.py` | 60 | governance | Fail-closed evidence and predictive-validity gates |
 | ○ | `final_client_report.py` | 59 | reports | Report composition and export packs |

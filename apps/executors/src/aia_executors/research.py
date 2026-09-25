@@ -30,6 +30,7 @@ from aia_core.domain.fieldwork import (
     validate_dataset,
 )
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.research_aggregate import AGGREGATE_VERSION, aggregate_dataset
 from aia_core.domain.research_design import (
     ResearchSpecification,
     assess_readiness,
@@ -49,6 +50,7 @@ __all__ = [
     "FIELDWORK_DATASET",
     "READINESS",
     "SPECIFICATION",
+    "AggregateExecutor",
     "CompileExecutor",
     "DatasetProducer",
     "FieldworkExecutor",
@@ -57,6 +59,7 @@ __all__ = [
     "upstream_artifact",
 ]
 
+AGGREGATE: Final = "research_aggregate"
 SPECIFICATION: Final = "research_specification"
 READINESS: Final = "research_readiness"
 FIELDWORK_DATASET: Final = "research_fieldwork_dataset"
@@ -328,6 +331,58 @@ class FieldworkExecutor(_Step):
         )
 
 
+# --------------------------------------------------------------------------- #
+# after fieldwork: deterministic methods over the dataset
+# --------------------------------------------------------------------------- #
+
+
+def _read_dataset(repo: ArtifactRepository, artifact_id: str) -> FieldworkDataset:
+    return FieldworkDataset.model_validate(repo.read_json(artifact_id)["dataset"])
+
+
+class AggregateExecutor(_Step):
+    """The fieldwork dataset -> the unit's weighted, donor-aware aggregates (chunk 5)."""
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        context.checkpoint()
+        with context.transaction() as (session, workflow):
+            spec_id = upstream_artifact(workflow, step, "compile")
+            dataset_id = upstream_artifact(workflow, step, "run")
+            if spec_id is None:
+                return _missing_upstream("compile")
+            if dataset_id is None:
+                return _missing_upstream("run")
+            repo = _artifacts(session, context, self._store)
+            spec = _read_spec(repo, spec_id)
+            dataset = _read_dataset(repo, dataset_id)
+            dataset_sha = repo.get(dataset_id).sha256
+        try:
+            validate_dataset(spec, dataset)
+        except InvalidDataset as exc:
+            return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
+        result = aggregate_dataset(spec, dataset)
+        context.checkpoint()
+        origin = result["data_origin"]
+        with context.transaction() as (session, _workflow):
+            artifact, created = self._put(
+                _artifacts(session, context, self._store),
+                step,
+                payload={"kind": AGGREGATE, "aggregate": result},
+                artifact_type=AGGREGATE,
+                input_fingerprint=fingerprint(
+                    {
+                        "dataset": dataset_sha,
+                        "aggregate": AGGREGATE_VERSION,
+                        "spec": spec.fingerprint(),
+                    }
+                ),
+                depends_on=[spec_id, dataset_id],
+                metadata={"data_origin": origin},
+            )
+        context.progress("agregace spočtena", artifact_id=artifact.artifact_id)
+        return _produced(step, artifact, created, AGGREGATE, data_origin=origin)
+
+
 def research_registry(
     *,
     store: ArtifactStore,
@@ -339,4 +394,5 @@ def research_registry(
         RESEARCH_KINDS["compile"]: CompileExecutor(store=store, build=build),
         RESEARCH_KINDS["preflight"]: PreflightExecutor(store=store, build=build),
         RESEARCH_KINDS["run"]: FieldworkExecutor(store=store, build=build, producers=producers),
+        RESEARCH_KINDS["aggregate"]: AggregateExecutor(store=store, build=build),
     }

@@ -28,7 +28,7 @@ from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_executors import workbench
 from aia_executors.registry import registry_for
-from aia_executors.research import FIELDWORK_DATASET, READINESS, SPECIFICATION
+from aia_executors.research import AGGREGATE, FIELDWORK_DATASET, READINESS, SPECIFICATION
 from aia_worker.executor import StepExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
@@ -167,7 +167,7 @@ def test_the_workbench_produces_a_fictional_dataset_that_says_so(
 ) -> None:
     run_id = _start(world, FieldworkSource.SYNTHETIC_FIXTURE)
     worker = worker_with(workbench.workbench_registry_for(store=store, build=build))
-    assert _drain(worker) == ["completed", "completed", "completed"]
+    assert _drain(worker) == ["completed", "completed", "completed", "completed"]
 
     steps = _steps(_run(world, run_id))
     output = steps["run"]["output"]
@@ -184,6 +184,26 @@ def test_the_workbench_produces_a_fictional_dataset_that_says_so(
     assert dataset["seed"] == workbench.SYNTHETIC_SEED
     assert len(dataset["respondents"]) == 60
     assert all(r["respondent_id"].startswith("SYN-") for r in dataset["respondents"])
+
+    # Aggregate ran over that dataset, and says where its numbers came from.
+    aggregate_out = steps["aggregate"]["output"]
+    assert steps["aggregate"]["status"] is StepRunStatus.SUCCEEDED
+    assert aggregate_out["artifact_type"] == AGGREGATE
+    assert aggregate_out["data_origin"] == "SYNTHETIC_FIXTURE"
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        aggregate = research.read_json(aggregate_out["artifact_id"])["aggregate"]
+        deps = {a.artifact_id for a in research.dependencies(aggregate_out["artifact_id"])}
+    assert deps == {steps["compile"]["output"]["artifact_id"], output["artifact_id"]}
+    assert aggregate["bootstrap_generator"].startswith("python-random")
+    assert aggregate["questions"]["q1"]["n_platnych"] == 60
+    assert set(aggregate["batteries"]["napoje"]["objects"]) == {
+        "kava",
+        "caj",
+        "kakao",
+        "dzus",
+        "voda",
+    }
 
 
 def test_a_worker_never_substitutes_a_source_it_does_not_provide(

@@ -1,0 +1,144 @@
+{
+ "bound_spread": {
+  "questions.s1.prumer_interval_95.high": {
+   "max": 6.69,
+   "mean": 6.5965,
+   "min": 6.49,
+   "sd": 0.03945567132872029
+  },
+  "questions.s1.prumer_interval_95.low": {
+   "max": 5.41,
+   "mean": 5.320499999999999,
+   "min": 5.18,
+   "sd": 0.04539548435692699
+  },
+  "questions.s1.top2box_interval_95.high": {
+   "max": 38.9,
+   "mean": 37.324,
+   "min": 36.0,
+   "sd": 0.6397061825557104
+  },
+  "questions.s1.top2box_interval_95.low": {
+   "max": 21.0,
+   "mean": 19.081,
+   "min": 17.8,
+   "sd": 0.5294704902069614
+  },
+  "questions.s2.intervaly_95.Ano.high": {
+   "max": 65.7,
+   "mean": 63.287,
+   "min": 61.7,
+   "sd": 0.7006646844247254
+  },
+  "questions.s2.intervaly_95.Ano.low": {
+   "max": 45.0,
+   "mean": 43.336999999999996,
+   "min": 41.6,
+   "sd": 0.6701723658880602
+  },
+  "questions.s2.intervaly_95.Ne.high": {
+   "max": 58.4,
+   "mean": 56.663000000000004,
+   "min": 55.0,
+   "sd": 0.6701723658880602
+  },
+  "questions.s2.intervaly_95.Ne.low": {
+   "max": 38.3,
+   "mean": 36.713,
+   "min": 34.3,
+   "sd": 0.7006646844247253
+  }
+ },
+ "case_id": "A02_indicative_support",
+ "case_sha256": "f8e01d6a00b32aa10e3cc7a159d2f33a4a4d53cd0710da611a74dcb74a6b7633",
+ "expected": {
+  "questions.s1": {
+   "donor_layer": "core",
+   "effective_n": 34.3,
+   "effective_n_kish": 103.0,
+   "evidence": {
+    "mode": "JUST_SHOW",
+    "question_type": "rating_scale",
+    "rating": "AMBER",
+    "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+   },
+   "indicative_threshold": 50.0,
+   "max_donor_share": 0.0583,
+   "median": 6.0,
+   "n_chybi": 0,
+   "n_eligible": 120,
+   "n_filtered": 0,
+   "n_guard_threshold": 25.0,
+   "n_platnych": 120,
+   "n_unique_core_donors": 40,
+   "n_unique_layer_donors": 40,
+   "prumer": 5.95,
+   "prumer_interval_95": {
+    "high": 6.64,
+    "low": 5.33
+   },
+   "rozlozeni": {
+    "1.0": 14,
+    "10.0": 23,
+    "2.0": 6,
+    "3.0": 13,
+    "4.0": 13,
+    "5.0": 6,
+    "6.0": 12,
+    "7.0": 7,
+    "8.0": 13,
+    "9.0": 13
+   },
+   "sd": 3.09,
+   "support_status": "INDICATIVE",
+   "top2box_interval_95": {
+    "high": 36.1,
+    "low": 19.1
+   },
+   "top2box_pct": 27.9,
+   "typ": "skala",
+   "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+  },
+  "questions.s2": {
+   "celkem_pct": {
+    "Ano": 53.4,
+    "Ne": 46.6
+   },
+   "donor_layer": "core",
+   "effective_n": 34.3,
+   "effective_n_kish": 103.0,
+   "evidence": {
+    "mode": "JUST_SHOW",
+    "question_type": "distribution",
+    "rating": "AMBER",
+    "reason": "Syntetický výsledek bez dostatečného blind human holdoutu; používejte pro exploraci/relativní rozhodnutí, ne jako publikovatelný populační fakt."
+   },
+   "indicative_threshold": 50.0,
+   "intervaly_95": {
+    "Ano": {
+     "high": 62.6,
+     "low": 42.6
+    },
+    "Ne": {
+     "high": 57.4,
+     "low": 37.4
+    }
+   },
+   "max_donor_share": 0.0583,
+   "n_chybi": 0,
+   "n_eligible": 120,
+   "n_filtered": 0,
+   "n_guard_threshold": 25.0,
+   "n_platnych": 120,
+   "n_unique_core_donors": 40,
+   "n_unique_layer_donors": 40,
+   "support_status": "INDICATIVE",
+   "typ": "vyber",
+   "uncertainty_note": "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. n_unique_layer_donors <25 se nereportuje; 25–49 je INDIKATIVNÍ. Interval není důkaz externí prediktivní validity."
+  }
+ },
+ "numpy": "2.4.6",
+ "pandas": "2.3.3",
+ "seeds": 100,
+ "tolerance_rule": "bound within mean +/- (4*sd + rounding step) of the unit's bound over the seeds"
+}

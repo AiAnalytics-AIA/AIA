@@ -1,0 +1,1132 @@
+{
+ "case_id": "A02_indicative_support",
+ "dataset": {
+  "dataset_version": "aia-fieldwork-dataset-1",
+  "generator": "aia-synthetic-fieldwork-1",
+  "origin": "SYNTHETIC_FIXTURE",
+  "respondents": [
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0004",
+    "respondent_id": "SYN-R00001",
+    "weight": 1.437925
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0038",
+    "respondent_id": "SYN-R00002",
+    "weight": 2.024511
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00003",
+    "weight": 1.022386
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0024",
+    "respondent_id": "SYN-R00004",
+    "weight": 0.611941
+   },
+   {
+    "answers": {
+     "s1": 7,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00005",
+    "weight": 1.159055
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00006",
+    "weight": 0.761289
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00007",
+    "weight": 0.767242
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0031",
+    "respondent_id": "SYN-R00008",
+    "weight": 1.048461
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0023",
+    "respondent_id": "SYN-R00009",
+    "weight": 0.460355
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00010",
+    "weight": 0.846418
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0029",
+    "respondent_id": "SYN-R00011",
+    "weight": 0.692879
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0027",
+    "respondent_id": "SYN-R00012",
+    "weight": 1.238667
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0031",
+    "respondent_id": "SYN-R00013",
+    "weight": 1.558365
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00014",
+    "weight": 0.706998
+   },
+   {
+    "answers": {
+     "s1": 5,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0017",
+    "respondent_id": "SYN-R00015",
+    "weight": 0.846458
+   },
+   {
+    "answers": {
+     "s1": 5,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0010",
+    "respondent_id": "SYN-R00016",
+    "weight": 1.087159
+   },
+   {
+    "answers": {
+     "s1": 2,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0017",
+    "respondent_id": "SYN-R00017",
+    "weight": 1.431744
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0025",
+    "respondent_id": "SYN-R00018",
+    "weight": 0.903941
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00019",
+    "weight": 0.853668
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0003",
+    "respondent_id": "SYN-R00020",
+    "weight": 0.572968
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00021",
+    "weight": 1.181456
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00022",
+    "weight": 0.510062
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0040",
+    "respondent_id": "SYN-R00023",
+    "weight": 1.414775
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00024",
+    "weight": 1.59108
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00025",
+    "weight": 0.747331
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0028",
+    "respondent_id": "SYN-R00026",
+    "weight": 0.948131
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00027",
+    "weight": 0.518996
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00028",
+    "weight": 0.978835
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00029",
+    "weight": 0.935487
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00030",
+    "weight": 0.583879
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0010",
+    "respondent_id": "SYN-R00031",
+    "weight": 1.083103
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0020",
+    "respondent_id": "SYN-R00032",
+    "weight": 0.819351
+   },
+   {
+    "answers": {
+     "s1": 2,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00033",
+    "weight": 0.517866
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00034",
+    "weight": 0.532494
+   },
+   {
+    "answers": {
+     "s1": 7,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00035",
+    "weight": 0.85628
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0034",
+    "respondent_id": "SYN-R00036",
+    "weight": 0.863508
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00037",
+    "weight": 0.8585
+   },
+   {
+    "answers": {
+     "s1": 5,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0035",
+    "respondent_id": "SYN-R00038",
+    "weight": 0.851662
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0024",
+    "respondent_id": "SYN-R00039",
+    "weight": 1.751016
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00040",
+    "weight": 0.685228
+   },
+   {
+    "answers": {
+     "s1": 7,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0022",
+    "respondent_id": "SYN-R00041",
+    "weight": 0.796393
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00042",
+    "weight": 1.505889
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0021",
+    "respondent_id": "SYN-R00043",
+    "weight": 0.907116
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00044",
+    "weight": 0.760186
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00045",
+    "weight": 0.68718
+   },
+   {
+    "answers": {
+     "s1": 2,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0022",
+    "respondent_id": "SYN-R00046",
+    "weight": 0.684576
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00047",
+    "weight": 0.812755
+   },
+   {
+    "answers": {
+     "s1": 7,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00048",
+    "weight": 1.169822
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00049",
+    "weight": 0.496477
+   },
+   {
+    "answers": {
+     "s1": 2,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0039",
+    "respondent_id": "SYN-R00050",
+    "weight": 1.28337
+   },
+   {
+    "answers": {
+     "s1": 7,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0034",
+    "respondent_id": "SYN-R00051",
+    "weight": 1.038705
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00052",
+    "weight": 1.406824
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00053",
+    "weight": 1.149125
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0039",
+    "respondent_id": "SYN-R00054",
+    "weight": 0.926131
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00055",
+    "weight": 0.416967
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0037",
+    "respondent_id": "SYN-R00056",
+    "weight": 1.247159
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00057",
+    "weight": 1.312527
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0035",
+    "respondent_id": "SYN-R00058",
+    "weight": 0.728717
+   },
+   {
+    "answers": {
+     "s1": 2,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0038",
+    "respondent_id": "SYN-R00059",
+    "weight": 1.451713
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00060",
+    "weight": 1.484616
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00061",
+    "weight": 1.653035
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00062",
+    "weight": 1.059703
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0005",
+    "respondent_id": "SYN-R00063",
+    "weight": 1.106077
+   },
+   {
+    "answers": {
+     "s1": 5,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0021",
+    "respondent_id": "SYN-R00064",
+    "weight": 0.699227
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0026",
+    "respondent_id": "SYN-R00065",
+    "weight": 0.640652
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0030",
+    "respondent_id": "SYN-R00066",
+    "weight": 1.849702
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0027",
+    "respondent_id": "SYN-R00067",
+    "weight": 0.520156
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00068",
+    "weight": 1.148204
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0039",
+    "respondent_id": "SYN-R00069",
+    "weight": 0.976249
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0021",
+    "respondent_id": "SYN-R00070",
+    "weight": 2.402585
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0016",
+    "respondent_id": "SYN-R00071",
+    "weight": 3.113941
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0022",
+    "respondent_id": "SYN-R00072",
+    "weight": 1.710507
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00073",
+    "weight": 0.821163
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0034",
+    "respondent_id": "SYN-R00074",
+    "weight": 0.802319
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0021",
+    "respondent_id": "SYN-R00075",
+    "weight": 0.775249
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00076",
+    "weight": 0.814927
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0015",
+    "respondent_id": "SYN-R00077",
+    "weight": 1.123833
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0028",
+    "respondent_id": "SYN-R00078",
+    "weight": 0.762069
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0022",
+    "respondent_id": "SYN-R00079",
+    "weight": 0.790328
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00080",
+    "weight": 1.314605
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0016",
+    "respondent_id": "SYN-R00081",
+    "weight": 0.959575
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0004",
+    "respondent_id": "SYN-R00082",
+    "weight": 0.842854
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00083",
+    "weight": 1.289218
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00084",
+    "weight": 0.74699
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00085",
+    "weight": 1.340393
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0039",
+    "respondent_id": "SYN-R00086",
+    "weight": 1.288928
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0024",
+    "respondent_id": "SYN-R00087",
+    "weight": 0.812725
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0021",
+    "respondent_id": "SYN-R00088",
+    "weight": 1.083938
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00089",
+    "weight": 0.698422
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00090",
+    "weight": 1.519692
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0005",
+    "respondent_id": "SYN-R00091",
+    "weight": 0.287197
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0016",
+    "respondent_id": "SYN-R00092",
+    "weight": 1.166922
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00093",
+    "weight": 1.243999
+   },
+   {
+    "answers": {
+     "s1": 3,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00094",
+    "weight": 0.803992
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00095",
+    "weight": 0.874929
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00096",
+    "weight": 0.963432
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00097",
+    "weight": 0.812242
+   },
+   {
+    "answers": {
+     "s1": 7,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0030",
+    "respondent_id": "SYN-R00098",
+    "weight": 1.428522
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0016",
+    "respondent_id": "SYN-R00099",
+    "weight": 1.356809
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00100",
+    "weight": 0.707798
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0004",
+    "respondent_id": "SYN-R00101",
+    "weight": 1.405094
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00102",
+    "weight": 1.806236
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00103",
+    "weight": 0.93209
+   },
+   {
+    "answers": {
+     "s1": 10,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0026",
+    "respondent_id": "SYN-R00104",
+    "weight": 1.06586
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00105",
+    "weight": 1.760392
+   },
+   {
+    "answers": {
+     "s1": 5,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0029",
+    "respondent_id": "SYN-R00106",
+    "weight": 1.025245
+   },
+   {
+    "answers": {
+     "s1": 5,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0038",
+    "respondent_id": "SYN-R00107",
+    "weight": 1.000406
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00108",
+    "weight": 1.086591
+   },
+   {
+    "answers": {
+     "s1": 1,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0031",
+    "respondent_id": "SYN-R00109",
+    "weight": 0.887253
+   },
+   {
+    "answers": {
+     "s1": 2,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0037",
+    "respondent_id": "SYN-R00110",
+    "weight": 0.418382
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0028",
+    "respondent_id": "SYN-R00111",
+    "weight": 2.03335
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00112",
+    "weight": 0.820476
+   },
+   {
+    "answers": {
+     "s1": 7,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0026",
+    "respondent_id": "SYN-R00113",
+    "weight": 1.141683
+   },
+   {
+    "answers": {
+     "s1": 4,
+     "s2": "Ne"
+    },
+    "donor_id": "SYN-D0029",
+    "respondent_id": "SYN-R00114",
+    "weight": 1.814398
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00115",
+    "weight": 0.692506
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0017",
+    "respondent_id": "SYN-R00116",
+    "weight": 1.136763
+   },
+   {
+    "answers": {
+     "s1": 9,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00117",
+    "weight": 0.790424
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0031",
+    "respondent_id": "SYN-R00118",
+    "weight": 1.244702
+   },
+   {
+    "answers": {
+     "s1": 8,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0017",
+    "respondent_id": "SYN-R00119",
+    "weight": 1.466484
+   },
+   {
+    "answers": {
+     "s1": 6,
+     "s2": "Ano"
+    },
+    "donor_id": "SYN-D0039",
+    "respondent_id": "SYN-R00120",
+    "weight": 1.530754
+   }
+  ],
+  "seed": 7,
+  "source": "synthetic_fixture",
+  "spec_fingerprint": "eb3111597f11ed87aac39c82da9e71ce293ded1867dab8c5da21064012724544"
+ },
+ "spec": {
+  "audience": {
+   "has_filters": false,
+   "source_mode": "population",
+   "strategy": "population"
+  },
+  "batteries": [],
+  "compiler_version": "aia-research-compile-1",
+  "n": 120,
+  "questions": [
+   {
+    "allow_dont_know": false,
+    "has_filter": false,
+    "id": "s1",
+    "options": [],
+    "scale": [
+     1,
+     10
+    ],
+    "section_id": "sekce_1",
+    "text": "Jak jste spokojeni?",
+    "typ": "skala"
+   },
+   {
+    "allow_dont_know": false,
+    "has_filter": false,
+    "id": "s2",
+    "options": [
+     "Ano",
+     "Ne"
+    ],
+    "scale": null,
+    "section_id": "sekce_1",
+    "text": "Doporučili byste nás?",
+    "typ": "vyber"
+   }
+  ],
+  "title": "Fiktivní malá studie"
+ }
+}
