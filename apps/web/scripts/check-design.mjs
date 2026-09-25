@@ -65,6 +65,7 @@ const TEXT = [
   ["ink-inverse", "surface-inverse", 7, "inverse text"],
   ...[1, 2, 3, 4, 5, 6].map((i) => ["on-client", `client-${i}`, 4.5, "monogram on client accent"]),
   ["doc-ink", "doc-paper", 7, "report prose"], ["doc-muted", "doc-paper", 4.5, "captions"], ["doc-accent", "doc-paper", 4.5, "report headings accent"],
+  ["doc-ink", "doc-wash", 7, "report callout prose"], ["doc-muted", "doc-wash", 4.5, "report callout captions"], ["doc-accent", "doc-wash", 4.5, "report callout accent"],
 ];
 const NONTEXT = [
   ...["surface", "surface-raised", "surface-sunken"].map((bg) => ["border-strong", bg, 3, "control border"]),

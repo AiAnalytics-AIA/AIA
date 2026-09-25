@@ -80,7 +80,8 @@ apps/
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
                             fictional data is labelled every time, the park is explained
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
-    scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts
+    scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts,
+                              and aia_core domain/report/print_tokens.py (the report's print register)
     scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
     public/skin/            Self-hosted fonts (OFL), identity and skin.css, served at /skin/ (ADR 0013);
                             handoff.js: /app's links into /classic (#aia:open=…, ADR 0014) and the
@@ -150,6 +151,8 @@ packages/aia_core/src/aia_core/
       terrain.py            respondent density / object weighted mean         F7-F8
       engine.py, models.py  the pipeline and the v2 artifact
       view.py               drag overrides, view terrain, scenarios (never write) F9
+    report/                 The report as data: document model, components, templates (DOCX output)
+      print_tokens.py       GENERATED from tokens.json: print colours, type scale in pt, page
     evidence/               What may be claimed — every gate fails closed
       field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
       joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
@@ -176,6 +179,9 @@ packages/aia_core/src/aia_core/
                             found only through the Study; research_artifacts, the ONLY reader
     develop_seed.py         The synthetic develop world, through the same paths the API uses
   infrastructure/
+    report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
+      embed.py              ECMA-376 obfuscated font embedding; deterministic keys
+      fonts/                Upstream TTFs, unmodified, with licences + SHA256SUMS
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
     repositories.py         ProjectRepository (owner= in its isolation predicate)

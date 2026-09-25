@@ -356,6 +356,11 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
    (authoritative, `report-export-inventory.md` in the reference repository),
    consuming only `AnalysisModuleResult`. Now unblocked: the evidence layer is
    enforceable. Needs the worker (2) and the gateway (3) to run for real.
+   **The DOCX output side is in progress** as its own plan,
+   [`plans/report-docx.md`](plans/report-docx.md): the document model, every
+   report component, the style sheet generated from the design tokens, and the
+   templates. Chunk R1 (print tokens) has landed; R10 composes from
+   `AnalysisModuleResult` once this item's contract is agreed.
 5b. **`statistics.uncertainty`** — Kish n, donor support and bootstrap intervals
    computed rather than supplied; `EvidenceRow` already refuses a client
    estimate without one. NUMERICAL parity, tolerance 1e-9, needs the archive.
