@@ -5,6 +5,16 @@
 **Phase:** 1 and 2 complete. Phase 3 implemented and verified under real
 PostgreSQL contention. Architecture v2.1 reconciliation applied.
 
+**Current-state addendum:** PR #52 merged into `develop` at `b3bd42f`. The
+executable worker, live develop facade, client-first interface and the
+Study-scoped Research Run → Progress → Results slice are implemented. Deployed
+Research fieldwork still parks until the governed AI runtime exists; only the
+fictional workbench composition completes Aggregate and an `INTERNAL_ONLY`
+Sociomap. No live model call, panel-derived transmission approval or full
+Research acceptance is claimed. The material below records the earlier
+implementation narrative; [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md)
+is the current tracker.
+
 > **This document is the narrative, not the tracker.** What is done, in
 > progress and next lives in [`../../.planning/PROGRESS.md`](../../.planning/PROGRESS.md),
 > and open defects in [`../../.planning/open-items.md`](../../.planning/open-items.md).
