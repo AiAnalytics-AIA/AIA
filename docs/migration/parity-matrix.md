@@ -95,9 +95,9 @@ job's summary in CI.
 | `research.copilot` | research *(unconfirmed)* | NOT_STARTED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `research.design` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `respondents.context` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
-| `respondents.engine` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
-| `respondents.factual_layer` | research *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1 | — | yes |
-| `respondents.layers` | research *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
+| `respondents.engine` | research *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x1 | — | yes |
+| `respondents.factual_layer` | research *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x2 | — | yes |
+| `respondents.layers` | research *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x1 | — | yes |
 | `results.dialogue` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | no |
 | `results.registry` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `results.verification` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |

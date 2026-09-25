@@ -122,6 +122,10 @@ model provider (`open-decisions.md` D3).
 
 - The Agent Runtime PR adds executor kinds and the `ai_runtime` fieldwork source; it does not touch
   the run, revision, API or UI contracts.
+  *Landed 2026-09-25 (Agent Runtime Foundation):* the `ai_runtime` source is
+  `aia_executors.ai_fieldwork`, at `FieldworkExecutor`'s existing branch; the run, revision and
+  API contracts are unchanged, and the web client only learned to label a second synthetic
+  origin (`SYNTHETIC_AI_FICTIONAL`). A gate refusal parks the run like the missing runtime does.
 - AI fieldwork cannot go live against the Czech panel until the D3 determination changes. It can be
   built and tested on synthetic or explicitly cleared data.
 - Until OI-58, the unit store keeps the editing copy; AIA holds the revisions that ran. The design

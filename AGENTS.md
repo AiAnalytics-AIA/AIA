@@ -474,6 +474,85 @@ class CancellationRequested(StopExecution): ...
 The worker's own `except Exception` for an unclassified executor error therefore
 does not catch these either; it names them explicitly, first.
 
+## The AI runtime: HTTP, SigV4, model output (Bedrock, 2026-09-25)
+
+**urllib3 retries by default.** A `PoolManager()` re-sends on connection and some
+read errors. For a metered call that is a second billed call nobody ledgered.
+
+```python
+# wrong: the default Retry re-sends a Converse request after a reset
+pool = urllib3.PoolManager()
+pool.request("POST", url, body=raw)
+# right: no retry on the pool AND the request; the gateway decides (it never retries)
+pool = urllib3.PoolManager(retries=False)
+pool.request("POST", url, body=raw, retries=False, redirect=False)
+```
+
+Delivery follows from the exception: `NewConnectionError` / `ConnectTimeoutError`
+(and `SSLError`) happen before the request is written (`NOT_SENT`); anything else
+(`ReadTimeoutError`, `ProtocolError`) may have reached Bedrock (`UNKNOWN`).
+
+**Sign the bytes you send.** A SigV4 signature covers the body bytes. Serialising the
+dict again in the transport (other separators, key order) sends different bytes and
+AWS answers 403 `InvalidSignatureException`.
+
+```python
+# wrong: sign json.dumps(body), let the transport json.dumps it again
+# right: serialise once, sign those bytes, send them (HttpRequest.raw_body)
+raw = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()
+headers = signer.sign(method="POST", url=url, headers=h, body=raw)
+HttpRequest(method="POST", url=url, headers=headers, body=body, raw_body=raw)
+```
+
+**A Bedrock model id in the path is one encoded segment.** `eu.anthropic.…-v1:0`
+goes into `/model/{modelId}/converse` as `…-v1%3A0` (botocore's non-greedy label:
+`quote(id, safe="-._~")`). Build the URL already encoded and give *that* URL to
+`AWSRequest`; `SigV4Auth` encodes the path once more for the canonical request
+(`%253A`), which is what the service expects. Do not decode it first.
+
+**botocore's credential chain takes whatever it finds first**, including an
+`AWS_ACCESS_KEY_ID` left in the environment or a shared credentials file. For a
+route approved on the host's role, check where the credential came from:
+
+```python
+creds = botocore.session.get_session().get_credentials()
+if creds.method not in {"iam-role", "container-role"}:   # "env", "shared-credentials-file", ...
+    raise SigningUnavailable(...)
+```
+
+**`max(0.0, nan)` is `0.0`.** Clipping a model's probability vector with `max`
+silently turns a NaN into a plausible zero. Refuse non-finite values *before*
+clipping (`respondent_behavior.normalise`), as the unit does before `np.clip`.
+
+**A per-request Pydantic contract keyed by arbitrary ids.** Question ids are not
+Python identifiers you control. Name fields positionally and put the id in the
+alias; `model_json_schema()` and `model_validate_json()` both use the alias by
+default, so the provider sees and must return the real ids:
+
+```python
+create_model("RespondentBlock", __config__=ConfigDict(extra="forbid"),
+             item_0=(Probabilities5, Field(alias="q1")), item_1=(Open, Field(alias="q-2")))
+```
+
+The class is rebuilt per request, so `isinstance(output, block_contract(block))` is
+always False; compare `model_fields` instead.
+
+**pytest can spend minutes rendering one failed assertion.** `assert "x" not in
+big_string` over 60 request bodies took 104 s to *fail*, all of it in pytest's
+diff of the string; the passing run took 4 s. Assert on a small, specific marker
+(`"(ID q_sex)" not in sent`), or compute the boolean first and assert on it.
+
+**Importing a vendored module that defines dataclasses, by path.**
+`importlib.util.module_from_spec` + `exec_module` fails inside `@dataclass` with
+`AttributeError: 'NoneType' object has no attribute '__dict__'` unless the module
+is in `sys.modules` first:
+
+```python
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module          # dataclasses resolve their module by name
+spec.loader.exec_module(module)
+```
+
 ## FastAPI
 
 **A passing unit test does not prove the process boots.** `TestClient` does not

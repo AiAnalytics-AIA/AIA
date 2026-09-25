@@ -1,6 +1,6 @@
 # Agent Runtime Foundation — AI respondent fieldwork, the first end-to-end Research integration
 
-**Status:** in progress on `claude/modest-hypatia-9gvdpx` (from `develop` @ `b3bd42f`, PR #52 merged, CI green).
+**Status:** chunks 0–8 done on `claude/modest-hypatia-9gvdpx` (from `develop` @ `b3bd42f`, PR #52 merged, CI green).
 **Follows:** [research-execution.md](research-execution.md) (PR C, ADR 0016) — its *Deferred* list names this PR.
 **Governing records:** ADR 0005 (A: the gateway contract), ADR 0006 (AIA owns the workflow), ADR 0008
 (residency), ADR 0010 (Bedrock, EU — *Proposed*, stays Proposed here), ADR 0016 (the fieldwork boundary,
@@ -99,9 +99,10 @@ repair allowed by the gateway. Output contract, built per block by a versioned b
 schema violation the gateway sees (and may repair once).
 
 **Deterministic handling** (`domain/ai_respondent.py`, pure). Facts first: an item the factual layer
-classifies DIRECT is answered from the persona's own attributes, never asked; UNSUPPORTED fails the step
-before any call. After the call: finite, non-negative, non-zero mass, unique in-range selections, else the
-attempt fails `SCHEMA_VIOLATION` (no silent hole, no retry). Normalise → `adjust_probabilities` (ported
+classifies DIRECT is answered from the persona's own attributes, never asked (it appears to the model
+only as history, as the unit shows prior answers); UNSUPPORTED fails the step before any call. After the
+call: finite, non-negative, non-zero mass and in-range selections (duplicates collapsed, as the unit
+does), else the attempt fails `SCHEMA_VIOLATION` (no silent hole, no retry). Normalise → `adjust_probabilities` (ported
 `behavior.py`) with the persona's style → draw with `random.Random(seed)` where `seed` derives from the
 spec fingerprint, the persona and the item. The model never sets an answer, a weight, a donor, an id or a
 fact.
@@ -140,15 +141,44 @@ and first by `preflight`, which parks the run with the refusing gate's reason.
 
 | # | Chunk | State |
 |---|---|---|
-| 0 | This plan; PROGRESS *In progress* row | done |
-| 1 | **Bedrock provider and adapter.** `Provider.AWS_BEDROCK` (paid); `BedrockConverseAdapter` (route-bound to one model id; Converse, forced tool; usage, `x-amzn-requestid`; error taxonomy); `SigV4Signer` protocol + botocore instance-role signer; `Urllib3Transport` (no retries, delivery from the exception); `HttpRequest.raw_body`; optional `temperature` on request/adapter request; recorded fixtures for success, throttling, access-denied, validation, not-ready, service-unavailable, unreadable-200, read-timeout; layer exemption | |
-| 2 | **The gateway can preflight.** `GovernedModelGateway.preflight(request, context)`: resolution, residency, licence, adapter binding and output limit — the same `_lane` the call uses; nothing journaled, reserved or sent | |
-| 3 | **Deterministic respondent layer (domain).** `respondent_behavior.py` (port of `behavior.adjust_probabilities` + stable style noise) with fixtures captured from the unit; `respondent_facts.py` (port of the factual layer) with parity against the unit's module | |
-| 4 | **The respondent agent (domain).** Persona, fictional roster, item plan, per-block strict contract, prompt v1 and its identity, `ModelRequest` builder, response interpretation (validate, adjust, draw), dataset assembly; `DataOrigin.SYNTHETIC_AI_FICTIONAL`; evidence gate; web label | |
-| 5 | **The bridge and the producer.** `StepContext.record_usage`; `StepCallJournal` + `StepModelCaller` (AR1, AR2, cancellation, heartbeat); `AIFieldwork` producer; `FieldworkExecutor(ai_runtime=…)`; park on preflight refusal (AR4) | |
-| 6 | **Composition and deployable configuration.** `AIRuntimeSettings.from_env` (AR6); production registry builds the producer only when enabled; compose + env example + runbook keys (SSM → env) | |
-| 7 | **Proof.** End-to-end worker run: compile → preflight → AI fieldwork (recorded Bedrock exchanges, fictional personas, a test route approved for Class A) → aggregate → sociomap; production registry parks with no configuration; refusals before network; budget, ledger, lease, cancellation, provider errors, no fallback | |
-| 8 | **Documents and records.** ARCHITECTURE, CLAUDE.md, AGENTS.md, contract doc (D11 resolved), ADR 0010 consequences (still Proposed), PROGRESS, open items; `make verify`; PR with the AWS handoff | |
+| 0 | This plan; PROGRESS *In progress* row | done (in `2e8beb5`) |
+| 1 | **Bedrock provider and adapter.** `Provider.AWS_BEDROCK` (paid); `BedrockConverseAdapter` (route-bound to one model id; Converse, forced tool; usage, `x-amzn-requestid`; error taxonomy); `SigV4Signer` protocol + botocore instance-role signer; `Urllib3Transport` (no retries, delivery from the exception); `HttpRequest.raw_body`; optional `temperature` on request/adapter request; recorded fixtures for success, throttling, access-denied, validation, not-ready, service-unavailable, unreadable-200, read-timeout; layer exemption || done `2e8beb5`: 20 fixtures, `test_bedrock_adapter.py` (signer against botocore, live transport against a local stub: sent once, read timeout UNKNOWN and not re-sent, refused connection NOT_SENT) |
+| 2 | **The gateway can preflight.** `GovernedModelGateway.preflight(request, context)`: resolution, residency, licence, adapter binding and output limit — the same `_lane` the call uses; nothing journaled, reserved or sent || done `125a8be`: `test_model_gateway.py` preflight tests (each gate refuses with no journal entry; an unreserved context passes preflight and is still refused by invoke) |
+| 3 | **Deterministic respondent layer (domain).** `respondent_behavior.py` (port of `behavior.adjust_probabilities` + stable style noise) with fixtures captured from the unit; `respondent_facts.py` (port of the factual layer) with parity against the unit's module || done `b2cc9ff`: 66 behaviour cases 1e-12 and 40 style rows 1e-9 against the unit's own functions (`tools/respondent_capture.py`); 39 classifications and 12 choice mappings against the unit module itself |
+| 4 | **The respondent agent (domain).** Persona, fictional roster, item plan, per-block strict contract, prompt v1 and its identity, `ModelRequest` builder, response interpretation (validate, adjust, draw), dataset assembly; `DataOrigin.SYNTHETIC_AI_FICTIONAL`; evidence gate; web label || done `9b7fa9b`: `test_ai_respondent.py` (19); evidence gate refuses the new origin; web label + Vitest |
+| 5 | **The bridge and the producer.** `StepContext.record_usage`; `StepCallJournal` + `StepModelCaller` (AR1, AR2, cancellation, heartbeat); `AIFieldwork` producer; `FieldworkExecutor(ai_runtime=…)`; park on preflight refusal (AR4) || done `dec2fd1`: `test_ai_fieldwork.py` (26 then 27) |
+| 6 | **Composition and deployable configuration.** `AIRuntimeSettings.from_env` (AR6); production registry builds the producer only when enabled; compose + env example + runbook keys (SSM → env) || done in `dec2fd1` (settings) and `2840d34` (Compose, env example, Terraform regions narrowed to the profile's six, two layer rules) |
+| 7 | **Proof.** End-to-end worker run: compile → preflight → AI fieldwork (recorded Bedrock exchanges, fictional personas, a test route approved for Class A) → aggregate → sociomap; production registry parks with no configuration; refusals before network; budget, ledger, lease, cancellation, provider errors, no fallback || done: the acceptance run and every failure path in `test_ai_fieldwork.py`, recorded exchanges; no live call |
+| 8 | **Documents and records.** ARCHITECTURE, CLAUDE.md, AGENTS.md, contract doc (D11 resolved), ADR 0010 consequences (still Proposed), PROGRESS, open items; `make verify`; PR with the AWS handoff || done: this change. `make verify` exit 0; PostgreSQL 16 core 2410 / API 199 / worker 49 / executors 56 |
+
+## AWS handoff (account side), as of 2026-09-25
+
+**Reported done by the operator's Codex session (not re-verified here):** profile
+`eu.anthropic.claude-sonnet-4-5-20250929-v1:0` ACTIVE, routing from `eu-central-1` to six EU
+regions; the underlying model active and authorised; Anthropic's first-use form present; the
+running host's role `aia-develop-instance` permits the pinned profile and model; model
+invocation logging off; the `Environment` cost allocation tag activated (up to 24 h to show;
+the budget's tag filter is **not** proof Bedrock charges are included for a system-defined
+profile); Bedrock data retention `inherit` (not an explicit zero). No live call made.
+
+**Still owed before any call** (none is engineering's to supply):
+
+1. ADR 0010's human terms review — training exclusion and the model-specific retention basis,
+   with the service-terms link and date — then `aia_ai_route_excluded_from_training` and
+   `aia_ai_route_eu_processing_approved` may be set `true`.
+2. The dated `eu-central-1` price per million input and output tokens (and cache rates, if
+   used) for the pinned id → `aia_bedrock_input_usd_per_mtok`, `aia_bedrock_output_usd_per_mtok`.
+3. `aws bedrock get-inference-profile --inference-profile-identifier eu.anthropic.claude-sonnet-4-5-20250929-v1:0`
+   → its destination regions must equal `bedrock_destination_regions` (default: eu-central-1,
+   eu-north-1, eu-west-1, eu-west-3, eu-south-1, eu-south-2). Then `terraform plan` shows the
+   grant losing `eu-central-2`'s foundation-model ARN; apply only as a reviewed change.
+4. The model's output ceiling and context window from its model card →
+   `aia_bedrock_max_output_tokens`, `aia_bedrock_context_window_tokens`.
+5. The seed's fictional client ids → `aia_ai_fictional_client_ids` (OI-63's default).
+6. A human flips ADR 0010 to Accepted; then `aia_ai_runtime_enabled=true` and the remaining
+   keys (`deploy/develop/README.md` § AI), and a first authorised Class C run.
+7. Optional (AR-3): an application inference profile for AWS-side cost attribution — a
+   coordinated Terraform + IAM + model-policy change, never piecemeal.
 
 ## Not in this PR (follow-up chunks, in order)
 

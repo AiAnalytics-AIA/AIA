@@ -63,6 +63,10 @@ These need account control an agent does not have. In order.
    licence if prompted. Then complete the verification table in
    [ADR 0010](../../docs/architecture/adr/0010-bedrock-eu-inference-route.md)
    and write the full, versioned EU inference-profile id into `bedrock_model_id`.
+   Then run `aws bedrock get-inference-profile --inference-profile-identifier <id>`
+   and set `bedrock_destination_regions` to exactly the destination regions it lists
+   (the default is the six reported for `eu.anthropic.claude-sonnet-4-5-20250929-v1:0`
+   on 2026-09-25); the role is granted the foundation model there and nowhere else.
 5. **Budget.** Approve `monthly_budget_usd` (default 100) and set `alert_email`.
 6. **Terraform state.** Decide where state lives (an S3 bucket in the same
    account is the simple answer; `versions.tf` has the block to uncomment).
