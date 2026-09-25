@@ -388,7 +388,7 @@ function Table({ table }: { table: ResultTable }) {
           <thead>
             <tr className="text-left text-xs text-ink-muted">
               <th className="py-1 font-medium"> </th>
-              <th className="py-1 font-medium">%</th>
+              <th className="py-1 font-medium">{t("research.exec.results.value")}</th>
               <th className="py-1 font-medium">{t("research.exec.results.interval")}</th>
             </tr>
           </thead>

@@ -674,6 +674,7 @@ export const cs = {
         aggregate: "Agregace",
         mean: "Průměr",
         top2: "Horní dva body",
+        value: "Hodnota",
         interval: "95% interval",
         verbatims: "Ukázky odpovědí",
         sociomap: "Sociomapa",
