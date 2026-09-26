@@ -151,6 +151,12 @@ and first by `preflight`, which parks the run with the refusing gate's reason.
 | 7 | **Proof.** End-to-end worker run: compile → preflight → AI fieldwork (recorded Bedrock exchanges, fictional personas, a test route approved for Class A) → aggregate → sociomap; production registry parks with no configuration; refusals before network; budget, ledger, lease, cancellation, provider errors, no fallback || done: the acceptance run and every failure path in `test_ai_fieldwork.py`, recorded exchanges; no live call |
 | 8 | **Documents and records.** ARCHITECTURE, CLAUDE.md, AGENTS.md, contract doc (D11 resolved), ADR 0010 consequences (still Proposed), PROGRESS, open items; `make verify`; PR with the AWS handoff || done: this change. `make verify` exit 0; PostgreSQL 16 core 2410 / API 199 / worker 49 / executors 56 |
 
+## Review outcomes
+
+| Finding | Resolution |
+|---|---|
+| `live_transport.py` classified every `urllib3.exceptions.SSLError` as `NOT_SENT`, but urllib3 2.x raises it from the handshake *and* from reading the response; a post-send TLS failure was ledgered as a free, retryable failure and the request re-sent (three attempts against the old code) | `4d99e6a`: only a refused server certificate (`ssl.SSLCertVerificationError`, handshake-only) stays `NOT_SENT`; every other SSL error is `UNKNOWN` → `RECOVERY_REQUIRED`, `SETTLED_UNCERTAIN`, no retry. Local TLS server tests in `test_bedrock_adapter.py` and `test_ai_fieldwork.py`, each failing under the opposite mutation |
+
 ## AWS handoff (account side), as of 2026-09-25
 
 **Reported done by the operator's Codex session (not re-verified here):** profile
