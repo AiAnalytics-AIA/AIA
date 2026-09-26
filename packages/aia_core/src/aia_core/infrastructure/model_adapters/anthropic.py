@@ -113,6 +113,8 @@ class AnthropicMessagesAdapter:
             "system": request.system,
             "messages": [{"role": m.role, "content": m.content} for m in request.messages],
         }
+        if request.temperature is not None:
+            body["temperature"] = request.temperature
         if request.output_schema is not None:
             name = request.schema_name or "structured_output"
             body["tools"] = [

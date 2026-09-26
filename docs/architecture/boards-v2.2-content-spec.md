@@ -4,7 +4,7 @@
 full board set remains stale. A current-state summary was published to the AIA
 Drive Architecture Diagrams folder on 2026-09-25; it does not replace the full
 regeneration specified here. This update includes the live develop facade and
-merged Research execution PR #52; it does not show live AI fieldwork as built.
+merged Research execution PR #52; PR #56 subsequently deployed the AI respondent implementation; live acceptance evidence is tracked separately.
 This document is **not** a design brief and contains no
 layout, colour or styling guidance — it says what each board must assert, and what
 it must not.
@@ -48,7 +48,7 @@ client studies against a calibrated synthetic population.
 | PostgreSQL | Built |
 | Object storage (S3-compatible) | Built in software; S3 provisioned for develop |
 | Cognito, federated to Google Workspace | Built and provisioned for develop |
-| Model providers | Bedrock EU route **Proposed** in ADR 0010; no verified live call |
+| Model providers | Bedrock EU route **Accepted for fictional Class C develop use only** in ADR 0010; live test pending |
 
 **Must not show:** Redis, a message broker, an accepted model route, completed
 live fieldwork or a decided production compute service. The develop EC2 choice
@@ -173,11 +173,11 @@ absence of it is what let stale assumptions spread.
 | 0007 Deterministic tools | Accepted |
 | 0008 EU data residency | Accepted |
 | 0009 Single-host develop environment | Accepted, develop only; live |
-| 0010 Bedrock EU inference route | **Proposed**; no verified live call |
+| 0010 Bedrock EU inference route | **Accepted 2026-09-26 for fictional Class C develop use only**; live test pending |
 | 0015 Client-first interface | Accepted, develop |
 | 0016 Research execution and model-transmission rule | Accepted, develop; PR #52 merged |
 | Compute service | **Not decided** |
-| Production model provider / hosting | **Not accepted**; Bedrock EU route proposed for Class C |
+| Production model provider / hosting | **Not accepted for production**; Bedrock EU accepted for fictional Class C on develop only |
 | Observability backend | **Not decided** |
 
 ## Board 9 — LangGraph boundary

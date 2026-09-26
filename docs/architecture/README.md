@@ -70,7 +70,7 @@ apps/api         FastAPI. Validates, delegates, serialises. No business rules.
 apps/worker      The execution loop: claims steps from PostgreSQL, heartbeats,
                  runs the StepExecutor registered for each kind, records the
                  outcome.
-apps/executors   Snapshot and Research steps. Deployed AI fieldwork parks until
+apps/executors   Snapshot and Research steps. The governed respondent source landed in PR #56; default-off AI fieldwork parks until
                  the governed agent source is implemented.
 packages/aia_core
   domain/        Pure rules. No framework, no driver, no SDK imports.
@@ -162,3 +162,7 @@ without them.
 
 Sequencing is in [../migration/migration-plan.md](../migration/migration-plan.md);
 current state is in [../migration/status.md](../migration/status.md).
+
+### Bedrock develop activation — 2026-09-26
+
+PR #56 is deployed at `0310091`. ADR 0010 is accepted for the authorised fictional Class C develop scope; live activation and its $2 acceptance study are pending. See [activation evidence](bedrock-develop-activation-2026-09-26.md). Class A/B and panel-derived transmission remain unapproved.

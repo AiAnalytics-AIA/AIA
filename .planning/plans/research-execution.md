@@ -1,6 +1,6 @@
 # PR C — Research execution: Run → Progress → Results, under the client
 
-**Status:** merged as PR #52 into `develop` at `b3bd42f`. The deployed Research run still parks at AI fieldwork; the Agent Runtime is a separate next slice.
+**Status:** merged as PR #52 into `develop` at `b3bd42f`. PR #56 subsequently merged and deployed at `0310091`; its AI respondent source is configured separately under ADR 0010. Human approval for fictional Class C on develop is recorded on 2026-09-26; live activation/test pending. When runtime is disabled, the default park remains.
 **Decided by:** the data owner, 2026-09-25 (D1–D3 and design ingestion below; D3′, D6′, D11′ and DI′ the same day).
 **Follows:** [client-first-ia.md](client-first-ia.md) (ADR 0015) · research-flow-rehome chunks 7–9 are
 replaced by this plan · **precedes** the Agent Runtime Foundation (Study → AgentRun → AIA
@@ -142,7 +142,7 @@ Results stages; the workbench and routing proof.
   `INTERNAL_ONLY`, and proves the chain on synthetic data.
 
 **Deferred — not in PR C:**
-- The Agent Runtime Foundation (next PR): `AgentRun`, the orchestrator, the `ai_runtime` fieldwork
+- The Agent Runtime Foundation (subsequently merged in PR #56 @ `0310091`): `AgentRun`, the orchestrator, the `ai_runtime` fieldwork
   source, Bedrock behind `ModelGateway`.
 - Analysis modules, interpretation, report and delivery.
 - Donor QC, then battery quality gates, then segments (D2's order).

@@ -46,6 +46,7 @@ from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, Re
 from aia_core.infrastructure.ai_call_journal import InMemoryCallJournal
 from aia_core.infrastructure.model_adapters import (
     AnthropicMessagesAdapter,
+    BedrockConverseAdapter,
     ClaudeCodeCliAdapter,
     CliResult,
     OpenAIChatAdapter,
@@ -118,6 +119,29 @@ def _openai(fixture: dict[str, Any]) -> tuple[ProviderAdapter, Any]:
     return adapter, transport
 
 
+class FakeSigner:
+    """Stands in for SigV4: records what it signed, adds an unmistakable header."""
+
+    def __init__(self) -> None:
+        self.signed: list[dict[str, Any]] = []
+
+    def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
+        self.signed.append({"method": method, "url": url, "body": body})
+        return {**dict(headers), "authorization": "AWS4-HMAC-SHA256 Credential=TEST/test"}
+
+
+def _bedrock(fixture: dict[str, Any]) -> tuple[ProviderAdapter, Any]:
+    transport = RecordedTransport.from_fixture(fixture)
+    adapter = BedrockConverseAdapter(
+        transport=transport,
+        signer=FakeSigner(),
+        region="eu-central-1",
+        model_id="m",
+        clock=lambda: NOW,
+    )
+    return adapter, transport
+
+
 def _claude_code(fixture: dict[str, Any]) -> tuple[ProviderAdapter, Any]:
     runner = RecordedCliRunner.from_fixture(fixture)
     return ClaudeCodeCliAdapter(runner=runner, clock=lambda: NOW), runner
@@ -127,6 +151,7 @@ ADAPTERS: dict[str, Callable[[dict[str, Any]], tuple[ProviderAdapter, Any]]] = {
     "anthropic": _anthropic,
     "openai": _openai,
     "claude_code": _claude_code,
+    "bedrock": _bedrock,
 }
 
 

@@ -350,7 +350,7 @@ Nothing. The tree is green and the slice is complete.
       `/studies` slice is real; the demo pages remain, labelled as mock.
 - [x] Terraform for the AWS baseline — for `develop` (`infra/develop/`,
       ADR 0009). Production compute is still open.
-- [ ] The Bedrock adapter and `aws_bedrock` provider, after PR #28 (ADR 0010).
+- [x] Bedrock adapter and `aws_bedrock` provider: PR #56 merged and deployed at `0310091`; human approval and dated EU pricing recorded on 2026-09-26. Live acceptance test pending.
 - [ ] PostgreSQL row-level security as a second isolation layer.
 - [ ] Rate limiting.
 
@@ -577,3 +577,7 @@ tests. Those numbers are not comparable to the table above, because that run had
 the prototype available and this one did not. Both are recorded rather than one
 being rewritten into the other: the difference *is* the parity suite, and
 collapsing them would hide exactly the thing worth knowing.
+
+### Agent Runtime follow-up — 2026-09-26
+
+AI respondent fieldwork is implemented in PR #56 and deployed at `0310091`. CI `36234914562` and deploy `36235378083` succeeded. ADR 0010 approval covers fictional Class C on develop only, retention unspecified. The isolated $2 acceptance study is pending. See [activation evidence](../architecture/bedrock-develop-activation-2026-09-26.md). Earlier measurements are historical snapshots; OI-61 and D6 remain open.

@@ -16,8 +16,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
+from aia_core.domain.ai_contracts import AIUsageEvent
 from aia_core.domain.providers import Provider, is_paid
 from aia_core.domain.scope import StudyContext
+from aia_core.infrastructure.ai_usage_repository import AIUsageRepository, LedgerConflict
 from aia_core.infrastructure.workflow_repository import LeaseLost, WorkflowRepository
 from sqlalchemy.exc import DBAPIError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
@@ -195,6 +197,41 @@ class AttemptContext:
 
     def not_billed(self, call: PaidCall, *, provider_request_id: str | None = None) -> None:
         self.settled(call, actual_cost_usd=0.0, provider_request_id=provider_request_id)
+
+    # ------------------------------------------------------------------ usage --
+
+    def record_usage(self, event: AIUsageEvent) -> None:
+        """Append one ledger entry, committed, without the lease (see ``StepContext``).
+
+        Retried like any short write. An append whose commit landed but whose
+        acknowledgement was lost is found on the retry as a ``LedgerConflict`` for
+        that same event id, which is success, not a second entry.
+        """
+        for attempt in range(1, max(1, self._write_attempts) + 1):
+            session = self._factory()
+            try:
+                AIUsageRepository(session, self._scope).append(event)
+                session.commit()
+                return
+            except LedgerConflict:
+                session.rollback()
+                if attempt > 1 and self._ledgered(event):
+                    return
+                raise
+            except Exception as error:
+                session.rollback()
+                if not _is_transient(error) or attempt >= self._write_attempts:
+                    raise
+                time.sleep(0.2 * attempt)
+            finally:
+                session.close()
+
+    def _ledgered(self, event: AIUsageEvent) -> bool:
+        session = self._factory()
+        try:
+            return AIUsageRepository(session, self._scope).has_event(event.event_id)
+        finally:
+            session.close()
 
     # ------------------------------------------------------------------ other --
 

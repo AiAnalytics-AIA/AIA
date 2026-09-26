@@ -1,11 +1,11 @@
 # AI runtime ↔ step executor contract
 
 **Owners:** ai-runtime (the gateway side) and platform-runtime (the worker and
-`WorkflowRepository` side). **Status:** the ai-runtime side is implemented, and
-`WorkflowCallJournal` speaks `WorkflowRepository`'s lease-fenced API. The worker
-(`apps/worker`, PR #23) exists with its own seam, `aia_worker.executor.StepContext`;
-the **AI step executor** that adapts that seam to this contract is the next
-ai-runtime slice and is not built yet (PROGRESS *Next* #3).
+`WorkflowRepository` side). **Status:** both sides are implemented. The AI step
+executor's bridge is `apps/executors/src/aia_executors/ai_step.py`
+(`StepModelCaller`, `StepCallJournal`), used by the `research_fieldwork` step's
+`ai_runtime` source (`ai_fieldwork.py`); `WorkflowCallJournal` remains the
+reference journal for a caller that holds its own session.
 
 This is the whole interface between the two. It exists so that neither side
 edits the other's implementation to integrate. Anything not written here is
@@ -68,6 +68,37 @@ except ModelCallFailed as failure:
 A subscription-only step passes no reservation; the gateway refuses a metered
 call without one (`paid_call_without_reservation`), rather than calling unbudgeted.
 
+## How a worker step keeps it (`aia_executors.ai_step`, D11 resolved 2026-09-25)
+
+```
+paid     = context.reserve(amount_usd=<per request>, provider=AWS_BEDROCK)   # BudgetExceeded -> park
+journal  = StepCallJournal(context, paid)
+exec_ctx = ExecutionContext(scope=context.scope, runtime_version=BUILD, journal=journal,
+                            run_id / step_id / attempt_id = context.step.…,
+                            reservation=ReservationView(paid.reservation_id, paid.amount_usd),
+                            is_cancelled=<context.checkpoint() raised?>)
+result   = asyncio.run(gateway.invoke(request, exec_ctx))
+  record_dispatch -> context.dispatching(paid)   # checkpoint + fenced paid_call_dispatched, committed
+                  -> context.record_usage(DISPATCHED)
+  record_outcome  -> context.record_usage(terminal)   # UNFENCED: survives a lost lease
+context.settled(paid, actual_cost_usd=<sum of this request's terminal entries>)
+# ModelCallFailed: settle only if the outcome is known; checkpoint (a stop surfaces as
+# itself); raise StepFailed(recovery_inputs(...)) -> fail_attempt
+```
+
+**D11's answer: one reservation per logical request**, not per attempt and not per
+call. The gateway checks the primary call and an allowed schema repair against the
+same reservation (`committed_usd` is the request's own spend); the reservation is
+settled once with their sum. Per call would not work: `settle_paid_call` settles a
+reservation once, so a repair's cost would be silently dropped. An uncertain
+outcome leaves the reservation unsettled and the attempt dispatched-and-unknown,
+so `fail_attempt` chooses `RECOVERY_REQUIRED`
+(`test_ai_fieldwork.py::test_an_uncertain_call_needs_recovery_and_is_never_retried`).
+
+`StepContext.record_usage` is the one unfenced write a step may make, and only to
+the append-only, scope-checked ledger
+(`::test_a_lease_lost_mid_call_still_leaves_the_answer_on_the_ledger`).
+
 ## The three obligations
 
 1. **Scope is issued, never supplied.** `ExecutionContext` accepts only an issued
@@ -113,9 +144,10 @@ wrote. `recovery_inputs` deliberately does not pass them again.
 These are not implemented by ai-runtime because they are platform-runtime's to
 own. Filed so nothing is assumed:
 
-1. ~~**The step executor itself**~~ — the worker landed (PR #23). What remains
+1. ~~**The step executor itself**~~ — the worker landed (PR #23), and the AI
+   step executor's bridge is `aia_executors.ai_step` (above). ~~What remains
    is ai-runtime's: an AI `StepExecutor` that builds this contract's
-   `ExecutionContext` from `StepContext`. One reconciliation is open for it:
+   `ExecutionContext` from `StepContext`.~~ Done. One reconciliation is open for it:
    `StepContext` meters **per call** (`reserve` → `dispatching` → `settled`),
    while this contract checks each call against **one attempt reservation**.
    Either the executor reserves per call through `StepContext`, or the worker
@@ -124,7 +156,10 @@ own. Filed so nothing is assumed:
    closes by settling a refused call at zero first -- the gateway already does
    this, because a provider refusal is a `RESPONDED` failure whose outcome is
    recorded as known before the step fails.
-2. **Heartbeats during a long call.** A model call can outlast a 120 s lease. The
+2. ~~**Heartbeats during a long call.**~~ Done: the worker's heartbeat thread keeps
+   the lease while `invoke` blocks the executing thread
+   (`::test_the_heartbeat_keeps_the_lease_through_a_call_longer_than_the_lease`).
+   The original ask, for the record: A model call can outlast a 120 s lease. The
    worker now heartbeats (`aia_worker.heartbeat`); the AI executor must keep that
    running across `invoke`, or take a lease long enough for the agent's timeout. A lapsed lease during a paid call is
    `RECOVERY_REQUIRED` — safe, but a person is paged for nothing.
