@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
+from aia_core.domain.ai_contracts import AIUsageEvent
 from aia_core.domain.providers import Provider
 from aia_core.domain.scope import StudyContext
 from aia_core.domain.workflow import FailureClass, InteractionMode
@@ -261,6 +262,18 @@ class StepContext(Protocol):
 
     def not_billed(self, call: PaidCall, *, provider_request_id: str | None = None) -> None:
         """Record that the provider answered ``call`` without billing it."""
+        ...
+
+    def record_usage(self, event: AIUsageEvent) -> None:
+        """Append one AI usage ledger entry and commit it. **Not** lease-fenced.
+
+        The ledger is append-only and scope-checked (``AIUsageRepository``); it records
+        what a provider did, which is true whoever holds the lease now. A worker that
+        lost the lease mid-call must still leave the provider's answer on the ledger
+        -- that is what a person reconciles an uncertain charge against -- so this is
+        the one write that does not ask for the lease. Everything that changes the
+        attempt or the budget (``dispatching``, ``settled``) stays fenced.
+        """
         ...
 
     def progress(self, message: str, **payload: Any) -> None:

@@ -204,14 +204,17 @@ def input_fingerprint(request: AdapterRequest) -> str:
     The model and provider are recorded separately; this identifies the
     *content*, so the same inputs sent to a fallback model share a fingerprint.
     """
-    return content_fingerprint(
-        {
-            "system": request.system,
-            "messages": [{"role": m.role, "content": m.content} for m in request.messages],
-            "output_schema": dict(request.output_schema) if request.output_schema else None,
-            "max_output_tokens": request.max_output_tokens,
-        }
-    )
+    content: dict[str, Any] = {
+        "system": request.system,
+        "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+        "output_schema": dict(request.output_schema) if request.output_schema else None,
+        "max_output_tokens": request.max_output_tokens,
+    }
+    if request.temperature is not None:
+        # Only when set, so every fingerprint recorded before the field existed
+        # still identifies the same inputs.
+        content["temperature"] = request.temperature
+    return content_fingerprint(content)
 
 
 def schema_fingerprint(schema: Mapping[str, Any]) -> str:
@@ -531,12 +534,18 @@ class ModelRequest:
     fallback_policy: FallbackPolicy = field(default_factory=FallbackPolicy)
     budget_reservation_id: str | None = None
     max_output_tokens: int | None = None
+    #: Sampling temperature, when the caller's method depends on it (the respondent
+    #: agent asks for 0.0: its probabilities are drawn from by code, so the model's
+    #: own sampling noise is not wanted on top). ``None`` leaves the provider default.
+    temperature: float | None = None
 
     def __post_init__(self) -> None:
         if not self.messages:
             raise ValueError("a model request needs at least one message")
         if self.max_output_tokens is not None and self.max_output_tokens <= 0:
             raise ValueError("max_output_tokens must be positive")
+        if self.temperature is not None and not 0.0 <= self.temperature <= 1.0:
+            raise ValueError("temperature must be within 0..1")
 
     @property
     def capability(self) -> ModelCapability:
@@ -573,6 +582,7 @@ class AdapterRequest:
     output_schema: Mapping[str, Any] | None = None
     schema_name: str = ""
     strict_schema: bool = False
+    temperature: float | None = None
 
 
 class FinishReason(StrEnum):

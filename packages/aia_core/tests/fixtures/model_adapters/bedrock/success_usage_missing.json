@@ -1,0 +1,55 @@
+{
+  "provenance": "Hand-authored from the Bedrock Runtime Converse API definition (botocore service model bedrock-runtime 2023-09-30: shapes, error codes, x-amzn-requestid); not captured from a live call. Replace with a live capture once ADR 0010's route is verified and approved.",
+  "description": "A tool answer whose usage block is absent: counts stay unreported (None), priced at the ceiling.",
+  "structured": true,
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-amzn-RequestId": "7c1f0a3e-0000-4000-8000-00000000c0de",
+      "content-type": "application/json"
+    },
+    "body": {
+      "output": {
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "toolUse": {
+                "toolUseId": "tooluse_02",
+                "name": "test_agent",
+                "input": {
+                  "verdict": "ok",
+                  "score": 3
+                }
+              }
+            }
+          ]
+        }
+      },
+      "stopReason": "tool_use",
+      "usage": {},
+      "metrics": {
+        "latencyMs": 812
+      }
+    }
+  },
+  "expect": {
+    "ok": {
+      "text": "",
+      "structured": {
+        "verdict": "ok",
+        "score": 3
+      },
+      "finish_reason": "COMPLETED",
+      "usage": {
+        "input_tokens": null,
+        "output_tokens": null,
+        "cache_read_input_tokens": null,
+        "cache_write_input_tokens": null
+      },
+      "provider_request_id": "7c1f0a3e-0000-4000-8000-00000000c0de",
+      "served_model": "m",
+      "reported_cost_usd": null
+    }
+  }
+}

@@ -22,6 +22,7 @@ from .research_design import ResearchSpecification
 
 __all__ = [
     "DATASET_VERSION",
+    "NON_EVIDENCE_ORIGINS",
     "Answer",
     "DataOrigin",
     "FieldworkDataset",
@@ -47,9 +48,24 @@ class FieldworkSource(StrEnum):
 
 
 class DataOrigin(StrEnum):
-    """Where the respondent data behind an artifact came from, stamped on it."""
+    """Where the respondent data behind an artifact came from, stamped on it.
 
+    Every member so far is synthetic, and none is evidence: the evidence gate refuses
+    a client-facing claim from any origin in :data:`NON_EVIDENCE_ORIGINS`.
+    """
+
+    #: Invented respondents from ``random.Random(seed)``: no panel, no person, no model.
     SYNTHETIC_FIXTURE = "SYNTHETIC_FIXTURE"
+    #: A model answering *as* invented personas (the AI respondent engine on its
+    #: fictional roster). Model-simulated answers of people who do not exist: never
+    #: observed fieldwork, never a finding.
+    SYNTHETIC_AI_FICTIONAL = "SYNTHETIC_AI_FICTIONAL"
+
+
+#: Origins from which no client-facing claim may be made. Today: all of them.
+NON_EVIDENCE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset(
+    {DataOrigin.SYNTHETIC_FIXTURE, DataOrigin.SYNTHETIC_AI_FICTIONAL}
+)
 
 
 #: One answer: a category (``vyber``), categories (``multi``), a scale point or
@@ -93,7 +109,7 @@ class FieldworkDataset(BaseModel):
 
     @property
     def is_synthetic(self) -> bool:
-        return self.origin is DataOrigin.SYNTHETIC_FIXTURE
+        return self.origin in NON_EVIDENCE_ORIGINS
 
 
 class InvalidDataset(ValueError):

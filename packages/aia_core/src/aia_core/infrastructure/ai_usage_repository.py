@@ -308,6 +308,19 @@ class AIUsageRepository:
         self._scope.require(Permission.VIEW_COSTS)
         return self._events(call_id=call_id, run_id=run_id, attempt_id=attempt_id)
 
+    def has_event(self, event_id: str) -> bool:
+        """True when this study's ledger holds ``event_id``. Reveals no cost.
+
+        For a writer retrying an append whose acknowledgement was lost: it must learn
+        whether its own entry landed without needing ``VIEW_COSTS``.
+        """
+        found = self._session.scalar(
+            select(AIUsageEventRow.event_id).where(
+                *self._scoped(), AIUsageEventRow.event_id == event_id
+            )
+        )
+        return found is not None
+
     def _events(
         self,
         *,

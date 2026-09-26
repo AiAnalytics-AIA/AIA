@@ -68,6 +68,13 @@ forbid "domain imports no framework, driver or SDK" \
   '^\s*(from|import)\s+(sqlalchemy|fastapi|starlette|boto3|botocore|httpx|requests|redis|alembic|psycopg)\b' \
   "$CORE/domain/"
 
+# The report is data in the domain and bytes in infrastructure: a document
+# library, an XML toolkit or a plotting stack in the domain would make the
+# report's rules untestable without them (.planning/plans/report-docx.md).
+forbid "domain imports no document, XML or plotting library" \
+  '^\s*(from|import)\s+(docx|lxml|matplotlib|numpy|PIL|pptx|openpyxl)\b' \
+  "$CORE/domain/"
+
 forbid "domain does not import outward (application, infrastructure)" \
   '^\s*from\s+(\.\.|aia_core\.)(application|infrastructure)\b' \
   "$CORE/domain/"
@@ -87,10 +94,16 @@ forbid "infrastructure knows nothing about HTTP" \
 # The AWS SDK is an optional dependency imported lazily inside S3ArtifactStore,
 # so that nothing else in the codebase loads an AWS SDK and the package installs
 # without one. A second import site would silently make boto3 mandatory.
-forbid "AWS SDK stays behind the storage adapter" \
+# Named exemption (ADR 0010): model_adapters/aws_signing.py imports botocore's
+# SigV4 signer and credential chain, lazily and for signing only -- no botocore
+# client is built there, so nothing can retry or call Bedrock behind the gateway.
+forbid "AWS SDK stays behind the storage adapter and the Bedrock signer" \
   '^\s*(from|import)\s+(boto3|botocore)\b' \
   "$CORE" \
-  storage.py
+  storage.py aws_signing.py
+forbid "no botocore client is built for Bedrock (signing only, ADR 0010)" \
+  '(boto3|botocore\.session\.get_session\(\))\.client\(|create_client\(' \
+  "$CORE/infrastructure/model_adapters/"
 
 # --- AI runtime: AIA owns the contract, providers sit underneath ------------
 #
@@ -107,6 +120,20 @@ forbid "provider SDKs and gateway libraries are not imported (ADR 0005)" \
 forbid "the API does not call providers directly" \
   '^\s*(from|import)\s+(anthropic|openai|litellm|langchain[a-z_]*|google\.generativeai|mistralai|cohere)\b' \
   "$API"
+
+# The AI runtime runs in the worker, never in a request (ADR 0016, the Agent
+# Runtime Foundation): no HTTP route builds, holds or invokes the gateway, an
+# adapter or the fieldwork producer. A model call inside a request would have no
+# lease, no reservation and no heartbeat.
+forbid "the API never builds or invokes the model gateway or an adapter" \
+  '(GovernedModelGateway|model_adapters|aia_executors\.ai_)' \
+  "$API"
+# One composition builds the Bedrock route's adapter: aia_executors/ai_runtime.py,
+# from validated settings. Anywhere else it would be a route nobody configured.
+forbid "only the AI runtime composition builds the Bedrock adapter" \
+  'BedrockConverseAdapter\(' \
+  "$EXECUTORS" \
+  ai_runtime.py
 
 # --- Layer 4: the worker executes; it does not serve, and it does not know ---
 #

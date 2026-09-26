@@ -278,6 +278,10 @@ export const colors = {
     "light": "#0d5279",
     "dark": "#0d5279"
   },
+  "doc-wash": {
+    "light": "#f3f1ec",
+    "dark": "#f3f1ec"
+  },
   "evidence-mark": {
     "light": "#151a20",
     "dark": "#ece9e4"

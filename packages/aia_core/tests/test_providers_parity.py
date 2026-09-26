@@ -14,6 +14,7 @@ import pytest
 
 from aia_core.domain.providers import (
     DEFAULT_MAX_API_COST_USD,
+    PROJECT_PROVIDERS,
     Provider,
     ProviderPolicy,
     check_budget,
@@ -67,7 +68,9 @@ def test_provider_ids_match_legacy(legacy_provider_runtime: Any) -> None:
     assert Provider.CLAUDE_CODE.value == lr.CLAUDE_CODE
     assert Provider.ANTHROPIC.value == lr.CLAUDE_API
     assert Provider.OPENAI.value == lr.OPENAI
-    assert {p.value for p in Provider} == lr.LIVE_PROVIDERS
+    # Project-selectable providers are the prototype's LIVE_PROVIDERS exactly; a
+    # route provider (Bedrock, ADR 0010) is AIA's own and is never a project choice.
+    assert {p.value for p in PROJECT_PROVIDERS} == lr.LIVE_PROVIDERS
     assert {p.value for p in ProviderPolicy} == lr.POLICIES
 
 
@@ -354,3 +357,23 @@ def test_budget_decision_is_immutable() -> None:
     decision = check_budget(provider=Provider.ANTHROPIC, estimate_usd=1.0)
     with pytest.raises((AttributeError, TypeError)):
         decision.allowed = False  # type: ignore[misc]
+
+
+# --------------------------------------------------------------------------- #
+# Route providers (ADR 0010): metered, never a project choice
+# --------------------------------------------------------------------------- #
+
+
+def test_bedrock_is_metered_and_budget_checked() -> None:
+    assert is_paid(Provider.AWS_BEDROCK)
+    refused = check_budget(
+        provider=Provider.AWS_BEDROCK, spent_usd=0.9, estimate_usd=0.2, limit_usd=1
+    )
+    assert not refused.allowed
+    assert ui_label(Provider.AWS_BEDROCK) == "Amazon Bedrock"
+
+
+def test_a_project_can_never_prefer_bedrock() -> None:
+    assert Provider.AWS_BEDROCK not in PROJECT_PROVIDERS
+    for spelling in ("aws_bedrock", "bedrock", Provider.AWS_BEDROCK):
+        assert normalize_provider(spelling) is Provider.CLAUDE_CODE

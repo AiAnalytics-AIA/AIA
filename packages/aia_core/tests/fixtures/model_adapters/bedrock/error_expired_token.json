@@ -1,0 +1,26 @@
+{
+  "provenance": "Hand-authored from the Bedrock Runtime Converse API definition (botocore service model bedrock-runtime 2023-09-30: shapes, error codes, x-amzn-requestid); not captured from a live call. Replace with a live capture once ADR 0010's route is verified and approved.",
+  "description": "403 ExpiredTokenException in the body's __type: the role's credentials. Authentication.",
+  "structured": false,
+  "response": {
+    "status": 403,
+    "headers": {
+      "x-amzn-RequestId": "7c1f0a3e-0000-4000-8000-0000000e4404",
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "The security token included in the request is expired",
+      "__type": "com.amazon.bedrock.runtime#ExpiredTokenException"
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "AUTHENTICATION",
+      "delivery": "RESPONDED",
+      "provider_request_id": "7c1f0a3e-0000-4000-8000-0000000e4404",
+      "retry_after": null,
+      "http_status": 403,
+      "provider_error_type": "ExpiredTokenException"
+    }
+  }
+}

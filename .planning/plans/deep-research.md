@@ -217,8 +217,8 @@ no decision.
 - [ ] 3. **Deterministic additions** — citation grounding, source-scoring tables, coverage matrix,
       saturation stop rule, budget allocator.
 - [ ] 4. **Tool usage in the ledger** — tool calls as usage rows (extends `ai_usage_events`, one
-      migration), reservation per call; coordinated with *Next* #2 (the generalized ledger) and
-      D11.
+      migration), one reservation per request as D11 resolved it in the Agent Runtime
+      Foundation; coordinated with *Next* #2 (the generalized ledger).
 - [ ] 5. **`ToolEffect.EXTERNAL_RETRIEVAL`** in `ToolRegistry`: registration needs a route and a
       meter; invocation runs query classification → egress → reservation → call → ledger. Refusal
       tests: no route, class not approved, lease lost before dispatch.
@@ -241,8 +241,9 @@ no decision.
       (start, state, cancel, extend budget, bundle, evidence item); progress in real counts
       (tracks, calls, accepted, quarantined, spend); an evidence browser showing quarantine
       reasons.
-- [ ] 13. **Live enablement** — *blocked on DR-2, D6, D7/D8 (the Bedrock adapter, Next #5c)*:
-      search route configuration, a Class C smoke run, then Class B once D6 approves.
+- [ ] 13. **Live enablement** — *blocked on DR-2, D6 and AR-2 (ADR 0010 → Accepted); the
+      Bedrock adapter landed at `2e8beb5`*: search route configuration, a Class C smoke run,
+      then Class B once D6 approves.
 
 ## Review outcome
 

@@ -55,16 +55,23 @@ MAX_PLAUSIBLE_WAIT: Final = timedelta(days=7)
 
 @dataclass(frozen=True, slots=True)
 class HttpRequest:
-    """One outbound HTTP request, fully built. Headers may contain a secret."""
+    """One outbound HTTP request, fully built. Headers may contain a secret.
+
+    ``raw_body`` is the exact bytes to send, when an adapter signed them: a
+    signature is over bytes, and a transport that re-serialised ``body`` could send
+    different ones (key order, spacing) and be refused. ``body`` stays the readable
+    form, for recorded exchanges and tests.
+    """
 
     method: str
     url: str
     headers: Mapping[str, str]
     body: Mapping[str, Any]
+    raw_body: bytes | None = None
 
     def redacted_headers(self) -> dict[str, str]:
         """Headers safe to log: credentials replaced."""
-        hidden = {"authorization", "x-api-key", "api-key"}
+        hidden = {"authorization", "x-api-key", "api-key", "x-amz-security-token"}
         return {k: ("<redacted>" if k.lower() in hidden else v) for k, v in self.headers.items()}
 
 

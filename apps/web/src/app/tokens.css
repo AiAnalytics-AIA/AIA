@@ -72,6 +72,7 @@
   --doc-muted: #44484e;
   --doc-rule: #c6c4be;
   --doc-accent: #0d5279;
+  --doc-wash: #f3f1ec;
   --evidence-mark: var(--ink);
   --evidence-hatch: var(--ink-faint);
   --null-mark: var(--ink);
@@ -155,6 +156,7 @@
   --doc-muted: #44484e;
   --doc-rule: #c6c4be;
   --doc-accent: #0d5279;
+  --doc-wash: #f3f1ec;
   --evidence-mark: var(--ink);
   --evidence-hatch: var(--ink-faint);
   --null-mark: var(--ink);
@@ -240,6 +242,7 @@
     --doc-muted: #44484e;
     --doc-rule: #c6c4be;
     --doc-accent: #0d5279;
+    --doc-wash: #f3f1ec;
     --evidence-mark: var(--ink);
     --evidence-hatch: var(--ink-faint);
     --null-mark: var(--ink);
@@ -303,3 +306,13 @@
 .type-doc-body { font-family: var(--font-serif-stack); font-size: 15px; line-height: 24px; font-weight: 400; }
 .type-doc-caption { font-family: var(--font-sans-stack); font-size: 12px; line-height: 17px; font-weight: 400; }
 .type-doc-footnote { font-family: var(--font-serif-stack); font-size: 12px; line-height: 16px; font-weight: 400; }
+.type-doc-subtitle { font-family: var(--font-serif-stack); font-size: 21px; line-height: 28px; font-weight: 400; }
+.type-doc-kicker { font-family: var(--font-sans-stack); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; }
+.type-doc-h3 { font-family: var(--font-serif-stack); font-size: 16px; line-height: 22px; font-weight: 600; }
+.type-doc-meta { font-family: var(--font-sans-stack); font-size: 13px; line-height: 19px; font-weight: 400; }
+.type-doc-running { font-family: var(--font-sans-stack); font-size: 11px; line-height: 15px; font-weight: 400; }
+.type-doc-table { font-family: var(--font-sans-stack); font-size: 12px; line-height: 17px; font-weight: 400; }
+.type-doc-table-head { font-family: var(--font-sans-stack); font-size: 11px; line-height: 16px; font-weight: 600; }
+.type-doc-kpi { font-family: var(--font-sans-stack); font-size: 28px; line-height: 34px; font-weight: 600; }
+.type-doc-quote { font-family: var(--font-serif-stack); font-size: 16px; line-height: 24px; font-weight: 400; font-style: italic; }
+.type-doc-mono { font-family: var(--font-mono-stack); font-size: 11px; line-height: 16px; font-weight: 400; }

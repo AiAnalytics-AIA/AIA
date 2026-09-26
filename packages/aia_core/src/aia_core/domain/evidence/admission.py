@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Final
 
-from ..fieldwork import DataOrigin
+from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
 from .claims import (
     ClaimBasis,
@@ -241,12 +241,13 @@ def _check_claim(
         )
 
     decisions: list[GateDecision] = []
-    if surface is ClaimSurface.CLIENT_FACING and row.data_origin is DataOrigin.SYNTHETIC_FIXTURE:
+    if surface is ClaimSurface.CLIENT_FACING and row.data_origin in NON_EVIDENCE_ORIGINS:
         decisions.append(
             block(
                 ViolationCode.SYNTHETIC_DATA_ORIGIN,
                 cid,
-                f"{claim.evidence_ref} is computed from fictional fieldwork; it is not a finding",
+                f"{claim.evidence_ref} is computed from synthetic respondents "
+                f"({row.data_origin.value if row.data_origin else '?'}); it is not a finding",
             )
         )
     try:

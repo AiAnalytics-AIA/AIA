@@ -70,6 +70,7 @@
   --color-doc-muted: var(--doc-muted);
   --color-doc-rule: var(--doc-rule);
   --color-doc-accent: var(--doc-accent);
+  --color-doc-wash: var(--doc-wash);
   --color-evidence-mark: var(--evidence-mark);
   --color-evidence-hatch: var(--evidence-hatch);
   --color-null-mark: var(--null-mark);

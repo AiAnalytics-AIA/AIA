@@ -1037,3 +1037,69 @@ def test_every_call_records_the_fingerprint_of_its_own_inputs(
     again = ScriptedAdapter(Provider.OPENAI, [_ok()])
     same = _run(_gateway(model_registry, again), _request(), context)
     assert same.provenance.input_fingerprint == primary[0].input_fingerprint
+
+
+# --------------------------------------------------------------------------- #
+# Preflight: the same gates, nothing journaled or sent
+# --------------------------------------------------------------------------- #
+
+
+def test_preflight_resolves_an_allowed_request_and_sends_nothing(
+    model_registry: ModelRegistry, context: ExecutionContext, journal: InMemoryCallJournal
+) -> None:
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    resolution = _gateway(model_registry, adapter).preflight(_request(), context)
+    assert resolution.provider is Provider.OPENAI
+    _nothing_sent(adapter, journal)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "reason"),
+    [
+        ({"data_classification": None}, "egress_unclassified_material"),
+        (
+            {"data_classification": DataClass.CLASS_A_CLIENT_CONFIDENTIAL},
+            "egress_route_not_approved_for_class",
+        ),
+        ({"data_lineage": None}, "licence_lineage_undeclared"),
+        ({"data_lineage": DataLineage.of("czech_population_panel")}, "licence_undetermined"),
+        (
+            {"data_lineage": DataLineage.of("piaac", SYNTHETIC_FIXTURE_DATASET)},
+            "licence_undetermined",
+        ),
+    ],
+)
+def test_preflight_refuses_each_gate_before_any_journal_entry(
+    model_registry: ModelRegistry,
+    context: ExecutionContext,
+    journal: InMemoryCallJournal,
+    overrides: dict[str, Any],
+    reason: str,
+) -> None:
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    with pytest.raises(ModelCallFailed) as refused:
+        _gateway(model_registry, adapter).preflight(_request(**overrides), context)
+    assert refused.value.failure is FailureClass.PERMISSION
+    assert refused.value.reason == reason
+    assert refused.value.usage_events == ()
+    _nothing_sent(adapter, journal)
+
+
+def test_preflight_needs_no_reservation_but_invoke_still_does(
+    model_registry: ModelRegistry, scope: Any, journal: InMemoryCallJournal
+) -> None:
+    unreserved = ExecutionContext(scope=scope, runtime_version="test-sha", journal=journal)
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
+    gateway = _gateway(model_registry, adapter)
+    gateway.preflight(_request(), unreserved)
+    failure = _fail(gateway, _request(), unreserved)
+    assert failure.reason == "paid_call_without_reservation"
+    _nothing_sent(adapter, journal)
+
+
+def test_preflight_names_a_missing_adapter(
+    model_registry: ModelRegistry, context: ExecutionContext
+) -> None:
+    with pytest.raises(ModelCallFailed) as refused:
+        _gateway(model_registry).preflight(_request(), context)
+    assert refused.value.reason == "no_adapter_for_route"

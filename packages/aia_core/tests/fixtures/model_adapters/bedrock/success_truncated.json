@@ -1,0 +1,49 @@
+{
+  "provenance": "Hand-authored from the Bedrock Runtime Converse API definition (botocore service model bedrock-runtime 2023-09-30: shapes, error codes, x-amzn-requestid); not captured from a live call. Replace with a live capture once ADR 0010's route is verified and approved.",
+  "description": "stopReason max_tokens: truncated, so the gateway refuses to validate it.",
+  "structured": false,
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-amzn-RequestId": "7c1f0a3e-0000-4000-8000-00000000c0de",
+      "content-type": "application/json"
+    },
+    "body": {
+      "output": {
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "text": "Shrnutí je"
+            }
+          ]
+        }
+      },
+      "stopReason": "max_tokens",
+      "usage": {
+        "inputTokens": 40,
+        "outputTokens": 256,
+        "totalTokens": 296
+      },
+      "metrics": {
+        "latencyMs": 812
+      }
+    }
+  },
+  "expect": {
+    "ok": {
+      "text": "Shrnutí je",
+      "structured": null,
+      "finish_reason": "TRUNCATED",
+      "usage": {
+        "input_tokens": 40,
+        "output_tokens": 256,
+        "cache_read_input_tokens": null,
+        "cache_write_input_tokens": null
+      },
+      "provider_request_id": "7c1f0a3e-0000-4000-8000-00000000c0de",
+      "served_model": "m",
+      "reported_cost_usd": null
+    }
+  }
+}
