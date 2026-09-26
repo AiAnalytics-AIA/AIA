@@ -43,7 +43,7 @@ reference LOC" means 3% of the *behaviour surface*, not 3% of the effort.
 | 2 | Foundation, scope, artifacts | 4 | 866 | 4 | ✅ complete |
 | 3 | Durable workflow engine | 6 | 853 | 3 | ◐ 3 of 6 |
 | 4 | AI runtime and cost | 10 | 3,261 | 0 | ○ not started |
-| 5 | Research engine | 42 | 13,152 | 0 | ○ not started |
+| 5 | Research engine | 42 | 13,152 | 3 | ◐ response process, styles and factual layer (AI respondents) |
 | 6 | Analysis, governance and reports | 43 | 4,538 | 0 | ○ not started |
 | 7 | Simulation | 6 | 2,852 | 0 | ◐ deterministic core of 2 |
 | 8 | Data Library and population | 29 | 5,017 | 0 | ○ not started |
@@ -128,7 +128,7 @@ wrong answer corrupts artifact reuse or lies about money.
 | ○ | `audience.py` | 268 | audience | Audience definition, sufficiency, registry and AI-assisted discovery |
 | ○ | `osobnost.py` | 268 | respondents | Latent dispositions, personality, biography, response style, behaviour layers |
 | ○ | `research_copilot.py` | 256 | research-design | Optional research-design copilot surface |
-| ○ | `factual_layer.py` | 201 | respondents | Deterministic factual layer — panel facts must never be re-invented by an LLM |
+| ◐ | `factual_layer.py` | 201 | respondents | Deterministic factual layer — panel facts must never be re-invented by an LLM. `classify_question`, `_choice_index`, `deterministic_answer` ported to `aia_core.domain.respondent_facts`, compared with the unit module itself (test_respondent_facts.py); `harmonize_project_fact_choices` and metadata-declared facts not ported |
 | ○ | `navrh.py` | 201 | questionnaire | Sequential questionnaire engine — core research runtime |
 | ○ | `project_engine.py` | 187 | respondents | Respondent sampling and generation pipeline |
 | ○ | `mrp.py` | 185 | respondents | Raking / IPF weighting and competitor-inspired adjustment mechanisms |
@@ -138,10 +138,10 @@ wrong answer corrupts artifact reuse or lies about money.
 | ○ | `pricing_engine.py` | 147 | analysis | Post-run QC and pricing analysis helpers |
 | ○ | `kontext.py` | 145 | respondents | Shared survey runtime context; never implicitly injected |
 | ○ | `filter_syntax.py` | 141 | questionnaire | Deterministic instrument library, static lint, filter normalisation |
-| ○ | `behavior.py` | 126 | respondents | Latent dispositions, personality, biography, response style, behaviour layers |
+| ◐ | `behavior.py` | 126 | respondents | Latent dispositions, personality, biography, response style, behaviour layers. `adjust_probabilities` ported to `aia_core.domain.respondent_behavior` (Agent Runtime Foundation), 1e-12 against captures of the unit (test_respondent_behavior.py); used on the fictional roster only |
 | ○ | `instrument_library.py` | 125 | questionnaire | Deterministic instrument library, static lint, filter normalisation |
 | ○ | `survey_lint.py` | 118 | questionnaire | Deterministic instrument library, static lint, filter normalisation |
-| ○ | `styly.py` | 117 | respondents | Latent dispositions, personality, biography, response style, behaviour layers |
+| ◐ | `styly.py` | 117 | respondents | Latent dispositions, personality, biography, response style, behaviour layers. `prirad_styly` and `popis_stylu` ported (`respondent_behavior.assign_styles`, `ai_respondent.describe_style`), 1e-9 against captures; applied to the fictional roster, not yet to panel personas (OI-61) |
 | ○ | `segment_orchestration.py` | 115 | audience | Segment engine and orchestration |
 | ○ | `biografie.py` | 108 | respondents | Latent dispositions, personality, biography, response style, behaviour layers |
 | ○ | `kalibrace.py` | 102 | respondents | Raking / IPF weighting and competitor-inspired adjustment mechanisms |

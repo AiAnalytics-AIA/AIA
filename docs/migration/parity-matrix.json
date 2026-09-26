@@ -2861,8 +2861,11 @@
     "confirmed": false
    },
    "parity_owner": "parity-quality",
-   "implementation_state": "NOT_STARTED",
-   "implementation": [],
+   "implementation_state": "PARTIAL",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/ai_respondent.py",
+    "apps/executors/src/aia_executors/ai_fieldwork.py"
+   ],
    "reference_modules": [
     "pipeline.py",
     "project_engine.py",
@@ -2872,7 +2875,17 @@
    "tolerance": null,
    "parity_reason": "Sampling and generation; representativeness raking is NUMERICAL within it",
    "fixtures": [],
-   "gates": [],
+   "gates": [
+    {
+     "id": "respondents.engine/fictional-roster-run",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "apps/executors/tests/test_ai_fieldwork.py::test_ai_respondents_answer_and_the_run_continues_through_aggregate_and_sociomap",
+      "packages/aia_core/tests/test_ai_respondent.py"
+     ]
+    }
+   ],
    "recorded_evidence": [],
    "intentional_difference": null,
    "documented_deviations": [],
@@ -2882,7 +2895,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-06)."
    },
-   "notes": ""
+   "notes": "The questionnaire respondent of dotaznik.py (probability per item, code draws) on AIA's fictional roster, through GovernedModelGateway. Not ported: panel-grounded personas and representative sampling (OI-61 blocks transmission), filtered questions, context injection, dispersion calibration."
   },
   "respondents.factual_layer": {
    "family": "respondents",
@@ -2894,7 +2907,8 @@
    "parity_owner": "parity-quality",
    "implementation_state": "PARTIAL",
    "implementation": [
-    "packages/aia_core/src/aia_core/domain/evidence/factual.py"
+    "packages/aia_core/src/aia_core/domain/evidence/factual.py",
+    "packages/aia_core/src/aia_core/domain/respondent_facts.py"
    ],
    "reference_modules": [
     "factual_layer.py"
@@ -2915,6 +2929,16 @@
       "packages/aia_core/tests/test_evidence_claims.py::test_metadata_that_would_need_an_invented_fact_is_refused",
       "packages/aia_core/tests/test_evidence_claims.py::test_factual_answer_is_the_panel_value_and_missing_stays_missing"
      ]
+    },
+    {
+     "id": "respondents.factual_layer/unit-module",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_respondent_facts.py::test_classification_matches_the_unit",
+      "packages/aia_core/tests/test_respondent_facts.py::test_choice_mapping_matches_the_unit",
+      "packages/aia_core/tests/test_respondent_facts.py::test_a_fact_that_does_not_map_is_refused_not_guessed"
+     ]
     }
    ],
    "recorded_evidence": [],
@@ -2926,7 +2950,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-06)."
    },
-   "notes": "Explicit factual metadata resolves to the panel value; automatic factual-question detection is not ported (OI-20)."
+   "notes": "Explicit factual metadata resolves to the panel value (evidence/factual.py). The unit's automatic factual-question detection and choice mapping are ported for AI respondents (respondent_facts.py), compared with the unit's own module; harmonize_project_fact_choices is not (OI-20 narrowed)."
   },
   "respondents.layers": {
    "family": "respondents",
@@ -2936,8 +2960,10 @@
     "confirmed": false
    },
    "parity_owner": "parity-quality",
-   "implementation_state": "NOT_STARTED",
-   "implementation": [],
+   "implementation_state": "PARTIAL",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/respondent_behavior.py"
+   ],
    "reference_modules": [
     "behavior.py",
     "biografie.py",
@@ -2952,7 +2978,18 @@
    "tolerance": 1e-09,
    "parity_reason": "Disposition, personality, biography, style and behaviour layers are deterministic transforms",
    "fixtures": [],
-   "gates": [],
+   "gates": [
+    {
+     "id": "respondents.layers/unit-capture",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_respondent_behavior.py::test_fixtures_are_pinned_and_the_unit_sources_are_the_ones_captured",
+      "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit",
+      "packages/aia_core/tests/test_respondent_behavior.py::test_styles_match_the_unit"
+     ]
+    }
+   ],
    "recorded_evidence": [],
    "intentional_difference": null,
    "documented_deviations": [],
@@ -2962,7 +2999,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-06)."
    },
-   "notes": ""
+   "notes": "behavior.adjust_probabilities and styly.prirad_styly/popis_stylu ported, 1e-12 / 1e-9 against captures of the unit (tools/respondent_capture.py, fixtures/response_process/, pinned with the unit sources). Not ported: dispozice, osobnost, biografie, persona_depth, persona_grounded, dimension_catalog; the dispersion temperature (no calibration: 1.0)."
   },
   "results.dialogue": {
    "family": "results",

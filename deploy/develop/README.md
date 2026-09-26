@@ -263,24 +263,52 @@ replaces the `aia` database, starts them, runs the smoke test.
 
 ## AI
 
-There is **no live model call on this revision**. The `ModelGateway` contract
-and provider adapter interfaces exist, but no Bedrock adapter, live transport
-or governed EU route is wired into the API or worker. The smoke test reports
-the AI check as `NOT_RUNNABLE`, never as a pass. What the environment already
-provides for it:
+The worker can run AI respondent fieldwork (the research `ai_runtime` source)
+through `GovernedModelGateway` over ADR 0010's route `bedrock-eu-primary`. **It is
+off** (`AIA_AI_RUNTIME_ENABLED=false`): a research run parks at fieldwork
+(`WAITING_PROVIDER` / `ai_runtime_unavailable`) until an operator configures it,
+and ADR 0010 is still *Proposed*. No live model call has been made from this
+environment. The smoke test's AI check is still `NOT_RUNNABLE`.
 
-- the instance role may call `bedrock:InvokeModel` on the one pinned EU model
-  in `infra/develop/terraform.tfvars` (`bedrock_model_id`), and nothing else;
-- no static AWS credentials exist anywhere in the stack;
-- [ADR 0010](../../docs/architecture/adr/0010-bedrock-eu-inference-route.md)
-  records the proposed route `bedrock-eu-primary` and the checks a human performs.
+What the environment provides:
 
-When the Bedrock adapter and its governed route land, inspect: the model policy and
-route in the api/worker environment (`AIA_MODEL_POLICY_*`, `AIA_EGRESS_ROUTES_*`
-as that change defines them), usage in the `ai_usage_events` table (`provider`,
-`route_id`, `model`, `provider_request_id`, tokens, `cost_usd`, `input_fingerprint`,
-`runtime_version`), and failure classification on the attempt row
-(`step_attempts.error_json.failure`). This section is updated by that change.
+- the instance role `aia-develop-instance` may call `bedrock:InvokeModel` on the
+  pinned EU profile (`bedrock_model_id`) and on its foundation model in the
+  profile's destination regions (`bedrock_destination_regions`), and nothing else;
+- no static AWS credentials exist anywhere in the stack, and the signer refuses
+  any credential that is not an instance or container role.
+
+**To switch it on** (only after ADR 0010's two open rows are recorded -- the
+human terms review and the dated `eu-central-1` price): create these parameters
+under `/aia/develop/` (lower-case names; `bin/write-env.sh` upper-cases them),
+redeploy, and read the worker's start-up log: an incomplete or unsafe value stops
+the worker with the key named.
+
+| Parameter | Value |
+|---|---|
+| `aia_ai_runtime_enabled` | `true` |
+| `aia_ai_route_id` | `bedrock-eu-primary` |
+| `aia_bedrock_region` | `eu-central-1` |
+| `aia_bedrock_model_id` | the same id as Terraform's `bedrock_model_id` |
+| `aia_ai_policy_version` | a new name per change of model or price, e.g. `aia-bedrock-develop-2026-09` |
+| `aia_bedrock_input_usd_per_mtok`, `aia_bedrock_output_usd_per_mtok` | from the Bedrock pricing page, the date recorded in ADR 0010 |
+| `aia_bedrock_max_output_tokens`, `aia_bedrock_context_window_tokens` | the model's documented limits |
+| `aia_ai_route_eu_processing_approved`, `aia_ai_route_excluded_from_training` | `true` only once ADR 0010's review is recorded |
+| `aia_ai_route_approved_for` | `CLASS_C_INTERNAL` (ADR 0010: nothing wider without a reviewed change) |
+| `aia_ai_route_retention_days` | **leave unset** -- the account setting is `inherit`, not zero |
+| `aia_ai_fieldwork_max_output_tokens` | the respondent agent's cap per call, e.g. `1024` |
+| `aia_ai_fieldwork_reservation_usd` | budget held per respondent request (primary + one repair); it must cover two calls' ceilings |
+| `aia_ai_fictional_client_ids` | the client ids of the seed's *(fiktivní)* clients: only their studies' designs are Class C |
+
+With the route approved for Class C only, a study of any client **not** in
+`aia_ai_fictional_client_ids` parks with `egress_route_not_approved_for_class`,
+and anything derived from the population panel parks with `licence_undetermined`
+(OI-61), both before any request leaves. Inspect: usage in `ai_usage_events`
+(`provider`, `route_id`, `model`, `provider_request_id`, tokens, `cost_usd`,
+`cost_basis`, `runtime_version`), the reservation per request in
+`budget_reservations`, failure classification on the attempt row
+(`step_attempts.error_json`), and the dataset artifact's `provenance` (agent,
+prompt hash, class, lineage, every call).
 
 ## Seed / reset
 

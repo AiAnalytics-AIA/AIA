@@ -19,11 +19,13 @@ locals {
   # The EU inference profile and every EU foundation model it may route to.
   # Bedrock evaluates InvokeModel on both the profile ARN and the underlying
   # model ARN in the region it lands in, so both shapes are granted -- and only
-  # for this one model id (ADR 0010).
+  # for this one model id and only in the regions the profile actually routes to
+  # (var.bedrock_destination_regions, ADR 0010). eu-central-2 was granted here
+  # until 2026-09-25 although the active profile does not route to it.
   bedrock_foundation_model = replace(var.bedrock_model_id, "/^eu\\./", "")
   bedrock_model_arns = concat(
     ["arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${local.account_id}:inference-profile/${var.bedrock_model_id}"],
-    [for r in ["eu-central-1", "eu-west-1", "eu-west-3", "eu-north-1", "eu-south-1", "eu-south-2", "eu-central-2"] :
+    [for r in var.bedrock_destination_regions :
     "arn:${data.aws_partition.current.partition}:bedrock:${r}::foundation-model/${local.bedrock_foundation_model}"]
   )
 }

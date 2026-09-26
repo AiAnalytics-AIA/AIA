@@ -1,0 +1,2717 @@
+{
+ "cases": [
+  {
+   "id": "B00_0",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.0,
+    0.016888,
+    0.260288
+   ],
+   "style": {
+    "souhlasny_sklon": -2.639503,
+    "vyhranenost": 1.208275,
+    "ochota_priznat_nevim": 0.478021,
+    "sdilnost": -1.583853,
+    "satisficing": -1.095004,
+    "social_desirability_sensitivity": -0.486834
+   },
+   "expected": {
+    "probabilities": [
+     0.011433253333333332,
+     0.07027220639247264,
+     0.918294540274194
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.041553,
+    "base_max_prob": 0.939071,
+    "adjusted_max_prob": 0.918295
+   }
+  },
+  {
+   "id": "B00_1",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    2.74779,
+    0.209892,
+    0.00021300000000000003
+   ],
+   "style": {
+    "souhlasny_sklon": 0.582351,
+    "vyhranenost": -0.933804,
+    "ochota_priznat_nevim": -1.366297,
+    "sdilnost": -1.175639,
+    "satisficing": 0.262612,
+    "social_desirability_sensitivity": 1.565424
+   },
+   "expected": {
+    "probabilities": [
+     0.860019343751553,
+     0.10133140796429892,
+     0.038649248284148015
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.137897,
+    "base_max_prob": 0.928968,
+    "adjusted_max_prob": 0.860019
+   }
+  },
+  {
+   "id": "B00_2",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    2.1e-05,
+    0.762052,
+    0.252403
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.03335196364099956,
+     0.7093934865552923,
+     0.2572545498037082
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.083569,
+    "base_max_prob": 0.751178,
+    "adjusted_max_prob": 0.709393
+   }
+  },
+  {
+   "id": "B00_3",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.181611,
+    0.246827,
+    0.951113
+   ],
+   "style": {
+    "souhlasny_sklon": 2.603484,
+    "vyhranenost": 0.492336,
+    "ochota_priznat_nevim": 0.28809,
+    "sdilnost": -1.300999,
+    "satisficing": -0.350994,
+    "social_desirability_sensitivity": 1.742296
+   },
+   "expected": {
+    "probabilities": [
+     0.14756635538627663,
+     0.19110793194433068,
+     0.6613257126693927
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.056222,
+    "base_max_prob": 0.689437,
+    "adjusted_max_prob": 0.661326
+   }
+  },
+  {
+   "id": "B00_4",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.211715,
+    0.130768,
+    0.744275
+   ],
+   "style": {
+    "souhlasny_sklon": -2.02484,
+    "vyhranenost": 0.890504,
+    "ochota_priznat_nevim": -0.925453,
+    "sdilnost": 0.666337,
+    "satisficing": -1.474928,
+    "social_desirability_sensitivity": 0.107041
+   },
+   "expected": {
+    "probabilities": [
+     0.19640695857715026,
+     0.12277901214477065,
+     0.6808140292780791
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.008088,
+    "base_max_prob": 0.684858,
+    "adjusted_max_prob": 0.680814
+   }
+  },
+  {
+   "id": "B00_5",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.00246,
+    0.001457,
+    0.360032
+   ],
+   "style": {
+    "souhlasny_sklon": -2.379025,
+    "vyhranenost": -0.245014,
+    "ochota_priznat_nevim": -0.317868,
+    "sdilnost": -0.136014,
+    "satisficing": 0.823205,
+    "social_desirability_sensitivity": 0.760661
+   },
+   "expected": {
+    "probabilities": [
+     0.05554685136168346,
+     0.05320267807614071,
+     0.8912504705621758
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.195974,
+    "base_max_prob": 0.989238,
+    "adjusted_max_prob": 0.89125
+   }
+  },
+  {
+   "id": "B01_0",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C",
+    "Nevím / neodpovím"
+   ],
+   "scale": null,
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.0,
+    0.501677,
+    0.469224,
+    0.256239
+   ],
+   "style": {
+    "souhlasny_sklon": -0.327897,
+    "vyhranenost": 1.24957,
+    "ochota_priznat_nevim": 2.52127,
+    "sdilnost": -0.917787,
+    "satisficing": 0.324078,
+    "social_desirability_sensitivity": 1.660158
+   },
+   "expected": {
+    "probabilities": [
+     0.029861170000000006,
+     0.3365948911796569,
+     0.3167525833731531,
+     0.31679135544719006
+    ],
+    "applied": [
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.275685,
+    "base_max_prob": 0.408818,
+    "adjusted_max_prob": 0.336595
+   }
+  },
+  {
+   "id": "B01_1",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C",
+    "Nevím / neodpovím"
+   ],
+   "scale": null,
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    2.63721,
+    0.428265,
+    0.299052,
+    0.940581
+   ],
+   "style": {
+    "souhlasny_sklon": -0.693086,
+    "vyhranenost": -1.285614,
+    "ochota_priznat_nevim": 1.703763,
+    "sdilnost": -1.008917,
+    "satisficing": 0.33908,
+    "social_desirability_sensitivity": -0.178837
+   },
+   "expected": {
+    "probabilities": [
+     0.5153812952417095,
+     0.10889482880229134,
+     0.08511726268451267,
+     0.2906066132714864
+    ],
+    "applied": [
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.194391,
+    "base_max_prob": 0.612577,
+    "adjusted_max_prob": 0.515381
+   }
+  },
+  {
+   "id": "B01_2",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C",
+    "Nevím / neodpovím"
+   ],
+   "scale": null,
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.133633,
+    0.505203,
+    0.188205,
+    0.540292
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.11295933397350902,
+     0.3575325286524936,
+     0.14887947924901984,
+     0.38062865812497765
+    ],
+    "applied": [
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.052925,
+    "base_max_prob": 0.395143,
+    "adjusted_max_prob": 0.380629
+   }
+  },
+  {
+   "id": "B01_3",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C",
+    "Nevím / neodpovím"
+   ],
+   "scale": null,
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.373121,
+    0.279539,
+    0.805417,
+    0.481503
+   ],
+   "style": {
+    "souhlasny_sklon": 1.472822,
+    "vyhranenost": 1.425504,
+    "ochota_priznat_nevim": 1.209597,
+    "sdilnost": 0.390548,
+    "satisficing": -0.609458,
+    "social_desirability_sensitivity": -0.884378
+   },
+   "expected": {
+    "probabilities": [
+     0.1821244932340074,
+     0.14042343967721246,
+     0.3747598146461189,
+     0.3026922524426613
+    ],
+    "applied": [
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.108882,
+    "base_max_prob": 0.415253,
+    "adjusted_max_prob": 0.37476
+   }
+  },
+  {
+   "id": "B01_4",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C",
+    "Nevím / neodpovím"
+   ],
+   "scale": null,
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.420595,
+    0.038798,
+    0.426906,
+    0.447432
+   ],
+   "style": {
+    "souhlasny_sklon": -2.078834,
+    "vyhranenost": 1.194989,
+    "ochota_priznat_nevim": 0.447337,
+    "sdilnost": 2.636268,
+    "satisficing": 0.743168,
+    "social_desirability_sensitivity": 1.190127
+   },
+   "expected": {
+    "probabilities": [
+     0.2960221552082382,
+     0.06011978808880093,
+     0.29992155682451804,
+     0.3439364998784428
+    ],
+    "applied": [
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.078985,
+    "base_max_prob": 0.335474,
+    "adjusted_max_prob": 0.343936
+   }
+  },
+  {
+   "id": "B01_5",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C",
+    "Nevím / neodpovím"
+   ],
+   "scale": null,
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.007339,
+    0.845616,
+    0.000991,
+    0.353656
+   ],
+   "style": {
+    "souhlasny_sklon": -1.01413,
+    "vyhranenost": 0.530831,
+    "ochota_priznat_nevim": 1.279557,
+    "sdilnost": 1.617697,
+    "satisficing": 0.232308,
+    "social_desirability_sensitivity": 0.483251
+   },
+   "expected": {
+    "probabilities": [
+     0.033356620236599126,
+     0.5898473876893306,
+     0.029142496036853767,
+     0.3476534960372165
+    ],
+    "applied": [
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.220793,
+    "base_max_prob": 0.700244,
+    "adjusted_max_prob": 0.589847
+   }
+  },
+  {
+   "id": "B02_0",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.0,
+    0.841967,
+    0.162251,
+    0.006833,
+    0.538439
+   ],
+   "style": {
+    "souhlasny_sklon": -1.569444,
+    "vyhranenost": 0.857785,
+    "ochota_priznat_nevim": -0.499687,
+    "sdilnost": -0.140845,
+    "satisficing": -1.173223,
+    "social_desirability_sensitivity": -0.676152
+   },
+   "expected": {
+    "probabilities": [
+     0.005921324000000003,
+     0.5203778364542718,
+     0.09613295590941859,
+     0.01009640609894217,
+     0.3674714775373675
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.06317,
+    "base_max_prob": 0.543383,
+    "adjusted_max_prob": 0.520378
+   }
+  },
+  {
+   "id": "B02_1",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.20778600000000003,
+    0.25733100000000003,
+    0.002268,
+    0.212991,
+    1.097088
+   ],
+   "style": {
+    "souhlasny_sklon": 1.56516,
+    "vyhranenost": -2.028674,
+    "ochota_priznat_nevim": -0.904734,
+    "sdilnost": 0.828941,
+    "satisficing": 1.079429,
+    "social_desirability_sensitivity": -0.770034
+   },
+   "expected": {
+    "probabilities": [
+     0.12447218828893676,
+     0.1746309771651537,
+     0.03451402056771141,
+     0.15021885835637075,
+     0.5161639556218275
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.202114,
+    "base_max_prob": 0.617221,
+    "adjusted_max_prob": 0.516164
+   }
+  },
+  {
+   "id": "B02_2",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.293773,
+    0.043884,
+    0.493911,
+    0.86918,
+    0.64713
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.13261049339020173,
+     0.03682182805069088,
+     0.2093283637395129,
+     0.3531782997242617,
+     0.2680610150953329
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.051237,
+    "base_max_prob": 0.370198,
+    "adjusted_max_prob": 0.353178
+   }
+  },
+  {
+   "id": "B02_3",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.494254,
+    0.005955,
+    0.474073,
+    0.510929,
+    0.016527
+   ],
+   "style": {
+    "souhlasny_sklon": 1.706017,
+    "vyhranenost": -0.681017,
+    "ochota_priznat_nevim": 0.845398,
+    "sdilnost": 0.60377,
+    "satisficing": -0.32091,
+    "social_desirability_sensitivity": -0.03888
+   },
+   "expected": {
+    "probabilities": [
+     0.2968568793835047,
+     0.019794267433334508,
+     0.3289133486997231,
+     0.3289000405585504,
+     0.025535463924887165
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.087179,
+    "base_max_prob": 0.340225,
+    "adjusted_max_prob": 0.328913
+   }
+  },
+  {
+   "id": "B02_4",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.243873,
+    0.060622,
+    0.069952,
+    0.683059,
+    0.8645
+   ],
+   "style": {
+    "souhlasny_sklon": -0.288164,
+    "vyhranenost": 0.644503,
+    "ochota_priznat_nevim": -1.07511,
+    "sdilnost": 0.055982,
+    "satisficing": -0.532183,
+    "social_desirability_sensitivity": -0.172754
+   },
+   "expected": {
+    "probabilities": [
+     0.13568137853276438,
+     0.04188065333737409,
+     0.04399870524847167,
+     0.3321108156712977,
+     0.44632844721009224
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.05348,
+    "base_max_prob": 0.44979,
+    "adjusted_max_prob": 0.446328
+   }
+  },
+  {
+   "id": "B02_5",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.594594,
+    0.005595,
+    0.171416,
+    0.62835,
+    0.37378
+   ],
+   "style": {
+    "souhlasny_sklon": 0.52806,
+    "vyhranenost": -0.601947,
+    "ochota_priznat_nevim": 0.57794,
+    "sdilnost": 0.780096,
+    "satisficing": -0.677749,
+    "social_desirability_sensitivity": -0.266241
+   },
+   "expected": {
+    "probabilities": [
+     0.3156100852059695,
+     0.014920824720433238,
+     0.11183250546978896,
+     0.3548273735521406,
+     0.2028092110516676
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.055065,
+    "base_max_prob": 0.354252,
+    "adjusted_max_prob": 0.354827
+   }
+  },
+  {
+   "id": "B03_0",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    7
+   ],
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.0,
+    0.902402,
+    0.011832,
+    0.097111,
+    0.102161,
+    0.001503,
+    0.026438,
+    0.179961
+   ],
+   "style": {
+    "souhlasny_sklon": -0.450877,
+    "vyhranenost": 2.018002,
+    "ochota_priznat_nevim": -0.408924,
+    "sdilnost": -0.306876,
+    "satisficing": 0.035837,
+    "social_desirability_sensitivity": 0.042574
+   },
+   "expected": {
+    "probabilities": [
+     0.012768777499999997,
+     0.6733934284355774,
+     0.020239163291510473,
+     0.06564780256728313,
+     0.0772703058000762,
+     0.013869084071080482,
+     0.035210344607728476,
+     0.10160109372674381
+    ],
+    "applied": [
+     "extremity",
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.103977,
+    "base_max_prob": 0.682909,
+    "adjusted_max_prob": 0.673393
+   }
+  },
+  {
+   "id": "B03_1",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    7
+   ],
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    1.87827,
+    0.432705,
+    1.433157,
+    2.474361,
+    0.336588,
+    0.014847,
+    0.024777,
+    0.632853
+   ],
+   "style": {
+    "souhlasny_sklon": -1.967045,
+    "vyhranenost": 1.86142,
+    "ochota_priznat_nevim": 0.28604,
+    "sdilnost": -0.436578,
+    "satisficing": -0.885738,
+    "social_desirability_sensitivity": -0.508103
+   },
+   "expected": {
+    "probabilities": [
+     0.3181089163927758,
+     0.06861308155371562,
+     0.1871891625329826,
+     0.2789818210741835,
+     0.04844423331968273,
+     0.008010256647827079,
+     0.009976003583195604,
+     0.08067652489563698
+    ],
+    "applied": [
+     "extremity",
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.16271,
+    "base_max_prob": 0.342351,
+    "adjusted_max_prob": 0.318109
+   }
+  },
+  {
+   "id": "B03_2",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    7
+   ],
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.241185,
+    0.789681,
+    0.573531,
+    0.097853,
+    0.338091,
+    0.77048,
+    0.001929,
+    0.832911
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.07204105442058381,
+     0.2074476103236148,
+     0.15408691661128118,
+     0.036656853859972166,
+     0.09596412351559838,
+     0.2027074822645331,
+     0.01297620993833491,
+     0.21811974906608156
+    ],
+    "applied": [
+     "extremity",
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.062747,
+    "base_max_prob": 0.228466,
+    "adjusted_max_prob": 0.21812
+   }
+  },
+  {
+   "id": "B03_3",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    7
+   ],
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.885396,
+    0.033271,
+    0.767211,
+    0.001881,
+    0.778303,
+    0.217466,
+    0.191892,
+    0.1539
+   ],
+   "style": {
+    "souhlasny_sklon": 2.688614,
+    "vyhranenost": 0.748955,
+    "ochota_priznat_nevim": 0.967314,
+    "sdilnost": -2.849801,
+    "satisficing": -0.235567,
+    "social_desirability_sensitivity": -0.303592
+   },
+   "expected": {
+    "probabilities": [
+     0.29317843485454315,
+     0.020779626611389313,
+     0.23001657578604712,
+     0.011242140730579747,
+     0.23318687792893716,
+     0.07639841776351437,
+     0.07194763280537522,
+     0.06325029351961398
+    ],
+    "applied": [
+     "extremity",
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.093963,
+    "base_max_prob": 0.292275,
+    "adjusted_max_prob": 0.293178
+   }
+  },
+  {
+   "id": "B03_4",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    7
+   ],
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.00324,
+    0.004643,
+    0.315188,
+    0.180788,
+    0.355612,
+    0.288883,
+    0.122705,
+    0.05136
+   ],
+   "style": {
+    "souhlasny_sklon": 0.253512,
+    "vyhranenost": -0.491253,
+    "ochota_priznat_nevim": 0.676785,
+    "sdilnost": 0.354616,
+    "satisficing": 0.251706,
+    "social_desirability_sensitivity": -1.319208
+   },
+   "expected": {
+    "probabilities": [
+     0.016407015511268875,
+     0.017387530597637476,
+     0.22549328218605263,
+     0.13991706465217657,
+     0.25256832379299515,
+     0.2010284623815006,
+     0.09085953970223677,
+     0.05633878117613207
+    ],
+    "applied": [
+     "extremity",
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.097083,
+    "base_max_prob": 0.26891,
+    "adjusted_max_prob": 0.252568
+   }
+  },
+  {
+   "id": "B03_5",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    7
+   ],
+   "dk": true,
+   "process": null,
+   "probabilities": [
+    0.47731,
+    0.324387,
+    0.013601,
+    0.175559,
+    0.785636,
+    0.251977,
+    0.663552,
+    0.361136
+   ],
+   "style": {
+    "souhlasny_sklon": 0.310168,
+    "vyhranenost": 0.216527,
+    "ochota_priznat_nevim": -0.281166,
+    "sdilnost": -0.663647,
+    "satisficing": -0.402836,
+    "social_desirability_sensitivity": -2.650217
+   },
+   "expected": {
+    "probabilities": [
+     0.15791956073121233,
+     0.10877210565473337,
+     0.01357634986220338,
+     0.06153678230474505,
+     0.24616997903036633,
+     0.08660773614806623,
+     0.2158398163241026,
+     0.10957766994457072
+    ],
+    "applied": [
+     "extremity",
+     "dont_know",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.042695,
+    "base_max_prob": 0.257319,
+    "adjusted_max_prob": 0.24617
+   }
+  },
+  {
+   "id": "B04_0",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    10
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.0,
+    0.434993,
+    0.955228,
+    0.075009,
+    0.000121,
+    0.641468,
+    0.00164,
+    0.734779,
+    0.016928,
+    0.132328
+   ],
+   "style": {
+    "souhlasny_sklon": -0.339728,
+    "vyhranenost": 1.510269,
+    "ochota_priznat_nevim": 0.606117,
+    "sdilnost": -0.855138,
+    "satisficing": -1.554777,
+    "social_desirability_sensitivity": -0.076125
+   },
+   "expected": {
+    "probabilities": [
+     0.0006713380000000006,
+     0.15811228406870437,
+     0.3217978569355883,
+     0.02409291901708889,
+     0.0007064311140022,
+     0.18671356653523052,
+     0.0011834284540525246,
+     0.24768778062623437,
+     0.006798241961790253,
+     0.05223615328730863
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.057236,
+    "base_max_prob": 0.319208,
+    "adjusted_max_prob": 0.321798
+   }
+  },
+  {
+   "id": "B04_1",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    10
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.291999,
+    3e-06,
+    0.07802999999999999,
+    2.200344,
+    0.890166,
+    0.14016,
+    0.22384199999999999,
+    0.9684929999999999,
+    2.225892,
+    0.002325
+   ],
+   "style": {
+    "souhlasny_sklon": -1.082235,
+    "vyhranenost": -1.825555,
+    "ochota_priznat_nevim": 0.065315,
+    "sdilnost": 0.256561,
+    "satisficing": -0.513244,
+    "social_desirability_sensitivity": 1.277728
+   },
+   "expected": {
+    "probabilities": [
+     0.03845129182875861,
+     0.006920890188759734,
+     0.016992997810739888,
+     0.3174659417010494,
+     0.14428235400175743,
+     0.028548673236342796,
+     0.03851246194564046,
+     0.1319379492573229,
+     0.26971584492565287,
+     0.007171595103975919
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.112884,
+    "base_max_prob": 0.317022,
+    "adjusted_max_prob": 0.317466
+   }
+  },
+  {
+   "id": "B04_2",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    10
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.022016,
+    0.041777,
+    0.22219,
+    0.082832,
+    0.566686,
+    0.560786,
+    0.655456,
+    0.252067,
+    0.048772,
+    0.048659
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.017921827604776987,
+     0.02503225798713518,
+     0.0899487134586391,
+     0.03980472493454249,
+     0.2139057411900732,
+     0.21178279502055175,
+     0.2458470855067544,
+     0.10069909696826493,
+     0.027549208572864425,
+     0.027508548756397317
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.082719,
+    "base_max_prob": 0.262052,
+    "adjusted_max_prob": 0.245847
+   }
+  },
+  {
+   "id": "B04_3",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    10
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.997902,
+    0.04863,
+    0.815515,
+    0.640734,
+    3.8e-05,
+    0.159621,
+    0.733624,
+    0.018917,
+    0.183729,
+    0.172568
+   ],
+   "style": {
+    "souhlasny_sklon": 0.305782,
+    "vyhranenost": 0.374657,
+    "ochota_priznat_nevim": 1.928284,
+    "sdilnost": 2.420808,
+    "satisficing": 2.850727,
+    "social_desirability_sensitivity": -0.876484
+   },
+   "expected": {
+    "probabilities": [
+     0.22627483463620524,
+     0.03663422259268693,
+     0.18401755097458056,
+     0.14815037308158452,
+     0.027111410578260275,
+     0.056712285960063905,
+     0.1656989407701548,
+     0.030744180759718884,
+     0.06310912771733038,
+     0.06154707292941459
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.242271,
+    "base_max_prob": 0.264606,
+    "adjusted_max_prob": 0.226275
+   }
+  },
+  {
+   "id": "B04_4",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    10
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.000149,
+    0.697343,
+    0.769946,
+    0.713169,
+    8.1e-05,
+    0.048484,
+    0.906448,
+    0.059649,
+    0.133068,
+    0.775177
+   ],
+   "style": {
+    "souhlasny_sklon": -1.282107,
+    "vyhranenost": 1.85233,
+    "ochota_priznat_nevim": 0.18723,
+    "sdilnost": -3.007985,
+    "satisficing": -1.009131,
+    "social_desirability_sensitivity": -0.104453
+   },
+   "expected": {
+    "probabilities": [
+     0.0039861746656741906,
+     0.17905006965527942,
+     0.18054208992108006,
+     0.1533574662100513,
+     0.003960714645355781,
+     0.013223402758390523,
+     0.19385032371634575,
+     0.01762646833707884,
+     0.037358975853688525,
+     0.21704431423705547
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.109143,
+    "base_max_prob": 0.220896,
+    "adjusted_max_prob": 0.217044
+   }
+  },
+  {
+   "id": "B04_5",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    10
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.237241,
+    0.038683,
+    0.228611,
+    0.053643,
+    0.023979,
+    0.691239,
+    0.056783,
+    0.422023,
+    0.000318,
+    0.307871
+   ],
+   "style": {
+    "souhlasny_sklon": -1.33286,
+    "vyhranenost": 0.18961,
+    "ochota_priznat_nevim": -0.814791,
+    "sdilnost": 2.794136,
+    "satisficing": 0.231269,
+    "social_desirability_sensitivity": 2.433048
+   },
+   "expected": {
+    "probabilities": [
+     0.11551001963078918,
+     0.028208495936696523,
+     0.10987937567934826,
+     0.03428521627106237,
+     0.021528646734760997,
+     0.3037216282017371,
+     0.03562553040582619,
+     0.1932064623458958,
+     0.011525892842278769,
+     0.14650873195160485
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.094757,
+    "base_max_prob": 0.335489,
+    "adjusted_max_prob": 0.303722
+   }
+  },
+  {
+   "id": "B05_0",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    0,
+    1
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.0,
+    0.13425
+   ],
+   "style": {
+    "souhlasny_sklon": -0.440202,
+    "vyhranenost": 1.182683,
+    "ochota_priznat_nevim": -0.306366,
+    "sdilnost": 0.062162,
+    "satisficing": 1.098152,
+    "social_desirability_sensitivity": -2.055086
+   },
+   "expected": {
+    "probabilities": [
+     0.08294456,
+     0.9170554399999999
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.165889,
+    "base_max_prob": 1.0,
+    "adjusted_max_prob": 0.917055
+   }
+  },
+  {
+   "id": "B05_1",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    0,
+    1
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    1.338765,
+    2.047329
+   ],
+   "style": {
+    "souhlasny_sklon": -0.371801,
+    "vyhranenost": -1.143606,
+    "ochota_priznat_nevim": -0.826724,
+    "sdilnost": -3.003335,
+    "satisficing": 0.264331,
+    "social_desirability_sensitivity": 0.937668
+   },
+   "expected": {
+    "probabilities": [
+     0.40749372667165173,
+     0.5925062733283483
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.024244,
+    "base_max_prob": 0.604629,
+    "adjusted_max_prob": 0.592506
+   }
+  },
+  {
+   "id": "B05_2",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    0,
+    1
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.000536,
+    0.015604
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.07988847583643123,
+     0.9201115241635688
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.093358,
+    "base_max_prob": 0.966791,
+    "adjusted_max_prob": 0.920112
+   }
+  },
+  {
+   "id": "B05_3",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    0,
+    1
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.535691,
+    0.018427
+   ],
+   "style": {
+    "souhlasny_sklon": 0.869517,
+    "vyhranenost": 0.79567,
+    "ochota_priznat_nevim": -0.933862,
+    "sdilnost": 0.93145,
+    "satisficing": -1.631047,
+    "social_desirability_sensitivity": 1.606955
+   },
+   "expected": {
+    "probabilities": [
+     0.9657478314406679,
+     0.03425216855933213
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.001995,
+    "base_max_prob": 0.966745,
+    "adjusted_max_prob": 0.965748
+   }
+  },
+  {
+   "id": "B05_4",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    0,
+    1
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.187963,
+    0.184894
+   ],
+   "style": {
+    "souhlasny_sklon": -0.608951,
+    "vyhranenost": 1.440346,
+    "ochota_priznat_nevim": 0.071007,
+    "sdilnost": 0.122291,
+    "satisficing": -1.786302,
+    "social_desirability_sensitivity": -0.589014
+   },
+   "expected": {
+    "probabilities": [
+     0.5041155188182064,
+     0.49588448118179357
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.504116,
+    "adjusted_max_prob": 0.504116
+   }
+  },
+  {
+   "id": "B05_5",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    0,
+    1
+   ],
+   "dk": false,
+   "process": null,
+   "probabilities": [
+    0.035273,
+    0.964413
+   ],
+   "style": {
+    "souhlasny_sklon": -1.271403,
+    "vyhranenost": 1.630108,
+    "ochota_priznat_nevim": -0.569549,
+    "sdilnost": 1.120094,
+    "satisficing": 0.14043,
+    "social_desirability_sensitivity": -0.392237
+   },
+   "expected": {
+    "probabilities": [
+     0.08567127468625149,
+     0.9143287253137485
+    ],
+    "applied": [
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.100774,
+    "base_max_prob": 0.964716,
+    "adjusted_max_prob": 0.914329
+   }
+  },
+  {
+   "id": "B06_0",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "midpoint"
+   },
+   "probabilities": [
+    0.0,
+    0.871087,
+    0.82607,
+    0.955067,
+    0.182964
+   ],
+   "style": {
+    "souhlasny_sklon": -1.556194,
+    "vyhranenost": -0.607014,
+    "ochota_priznat_nevim": -0.985412,
+    "sdilnost": 2.48202,
+    "satisficing": 1.595533,
+    "social_desirability_sensitivity": -2.171655
+   },
+   "expected": {
+    "probabilities": [
+     0.0,
+     0.24322478522187446,
+     0.44231414301342703,
+     0.26667366858591623,
+     0.04778740317878226
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:midpoint"
+    ],
+    "l1_shift": 0.301901,
+    "base_max_prob": 0.336862,
+    "adjusted_max_prob": 0.442314
+   }
+  },
+  {
+   "id": "B06_1",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "midpoint"
+   },
+   "probabilities": [
+    0.564948,
+    0.16148400000000002,
+    0.7671479999999999,
+    0.052026,
+    0.011667
+   ],
+   "style": {
+    "souhlasny_sklon": 1.400798,
+    "vyhranenost": -1.071066,
+    "ochota_priznat_nevim": 1.36784,
+    "sdilnost": 0.436939,
+    "satisficing": -2.827913,
+    "social_desirability_sensitivity": -0.220719
+   },
+   "expected": {
+    "probabilities": [
+     0.31600000136233586,
+     0.10161913488896802,
+     0.5431159259242996,
+     0.03273907700907489,
+     0.006525860815321716
+    ],
+    "applied": [
+     "extremity"
+    ],
+    "l1_shift": 0.100986,
+    "base_max_prob": 0.492623,
+    "adjusted_max_prob": 0.543116
+   }
+  },
+  {
+   "id": "B06_2",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "midpoint"
+   },
+   "probabilities": [
+    0.262077,
+    0.191796,
+    0.739986,
+    0.570865,
+    0.771238
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.09300979273348733,
+     0.06806742372322613,
+     0.3626172631924296,
+     0.20259708150200986,
+     0.2737084388488471
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:midpoint"
+    ],
+    "l1_shift": 0.141641,
+    "base_max_prob": 0.30412,
+    "adjusted_max_prob": 0.362617
+   }
+  },
+  {
+   "id": "B06_3",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "midpoint"
+   },
+   "probabilities": [
+    0.512749,
+    0.710614,
+    0.800406,
+    0.75403,
+    0.776437
+   ],
+   "style": {
+    "souhlasny_sklon": 0.207049,
+    "vyhranenost": 0.436471,
+    "ochota_priznat_nevim": 0.41426,
+    "sdilnost": -0.32666,
+    "satisficing": 1.241576,
+    "social_desirability_sensitivity": -2.562775
+   },
+   "expected": {
+    "probabilities": [
+     0.12404472772621769,
+     0.16385359839219366,
+     0.35040082013604634,
+     0.17386447325223792,
+     0.18783638049330434
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:midpoint"
+    ],
+    "l1_shift": 0.250406,
+    "base_max_prob": 0.225198,
+    "adjusted_max_prob": 0.350401
+   }
+  },
+  {
+   "id": "B06_4",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "midpoint"
+   },
+   "probabilities": [
+    0.003582,
+    0.172976,
+    0.032655,
+    0.119313,
+    0.438089
+   ],
+   "style": {
+    "souhlasny_sklon": 0.605134,
+    "vyhranenost": -1.31168,
+    "ochota_priznat_nevim": -0.337578,
+    "sdilnost": -0.121333,
+    "satisficing": -0.363042,
+    "social_desirability_sensitivity": 2.665285
+   },
+   "expected": {
+    "probabilities": [
+     0.004012397602808519,
+     0.22383413783608452,
+     0.12703236311846522,
+     0.15439322500021246,
+     0.4907278764424292
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:midpoint"
+    ],
+    "l1_shift": 0.168872,
+    "base_max_prob": 0.571459,
+    "adjusted_max_prob": 0.490728
+   }
+  },
+  {
+   "id": "B06_5",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "midpoint"
+   },
+   "probabilities": [
+    0.701005,
+    0.206315,
+    0.998735,
+    0.03191,
+    0.057712
+   ],
+   "style": {
+    "souhlasny_sklon": -0.951286,
+    "vyhranenost": -1.437214,
+    "ochota_priznat_nevim": -0.390902,
+    "sdilnost": -0.049031,
+    "satisficing": 1.760189,
+    "social_desirability_sensitivity": -0.369221
+   },
+   "expected": {
+    "probabilities": [
+     0.23126850665415272,
+     0.07972331275561298,
+     0.6576379005943096,
+     0.012330518430708431,
+     0.01903976156521631
+    ],
+    "applied": [
+     "extremity",
+     "satisficing:midpoint"
+    ],
+    "l1_shift": 0.314377,
+    "base_max_prob": 0.500449,
+    "adjusted_max_prob": 0.657638
+   }
+  },
+  {
+   "id": "B07_0",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "first_option",
+    "strength": 0.5
+   },
+   "probabilities": [
+    0.0,
+    0.080228,
+    0.421727
+   ],
+   "style": {
+    "souhlasny_sklon": -3.663792,
+    "vyhranenost": 0.434925,
+    "ochota_priznat_nevim": 1.464322,
+    "sdilnost": 2.468422,
+    "satisficing": -0.841362,
+    "social_desirability_sensitivity": -0.565835
+   },
+   "expected": {
+    "probabilities": [
+     0.02475914000000001,
+     0.15587378094865076,
+     0.8193670790513493
+    ],
+    "applied": [
+     "satisficing:first_option"
+    ],
+    "l1_shift": 0.049518,
+    "base_max_prob": 0.840169,
+    "adjusted_max_prob": 0.819367
+   }
+  },
+  {
+   "id": "B07_1",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "first_option",
+    "strength": 0.5
+   },
+   "probabilities": [
+    2.489607,
+    0.013718999999999999,
+    0.6447419999999999
+   ],
+   "style": {
+    "souhlasny_sklon": -1.418,
+    "vyhranenost": 1.471957,
+    "ochota_priznat_nevim": 1.284007,
+    "sdilnost": -0.721291,
+    "satisficing": -1.839078,
+    "social_desirability_sensitivity": -0.677829
+   },
+   "expected": {
+    "probabilities": [
+     0.7908364749427268,
+     0.004357910947285763,
+     0.20480561410998743
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.790836,
+    "adjusted_max_prob": 0.790836
+   }
+  },
+  {
+   "id": "B07_2",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "first_option",
+    "strength": 0.5
+   },
+   "probabilities": [
+    0.732335,
+    0.480727,
+    0.254737
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.523987412445437,
+     0.31113977458766495,
+     0.16487281296689807
+    ],
+    "applied": [
+     "satisficing:first_option"
+    ],
+    "l1_shift": 0.050107,
+    "base_max_prob": 0.498934,
+    "adjusted_max_prob": 0.523987
+   }
+  },
+  {
+   "id": "B07_3",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "first_option",
+    "strength": 0.5
+   },
+   "probabilities": [
+    0.778598,
+    0.043029,
+    0.000374
+   ],
+   "style": {
+    "souhlasny_sklon": 0.598746,
+    "vyhranenost": -0.604116,
+    "ochota_priznat_nevim": 0.909876,
+    "sdilnost": 0.619368,
+    "satisficing": -1.020486,
+    "social_desirability_sensitivity": -0.478736
+   },
+   "expected": {
+    "probabilities": [
+     0.9482219430198504,
+     0.051331889818649855,
+     0.0004461671614998036
+    ],
+    "applied": [
+     "satisficing:first_option"
+    ],
+    "l1_shift": 0.002047,
+    "base_max_prob": 0.947198,
+    "adjusted_max_prob": 0.948222
+   }
+  },
+  {
+   "id": "B07_4",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "first_option",
+    "strength": 0.5
+   },
+   "probabilities": [
+    0.328401,
+    0.210115,
+    0.585847
+   ],
+   "style": {
+    "souhlasny_sklon": -0.156133,
+    "vyhranenost": 0.987705,
+    "ochota_priznat_nevim": -1.050862,
+    "sdilnost": -0.593845,
+    "satisficing": 0.579784,
+    "social_desirability_sensitivity": -1.432682
+   },
+   "expected": {
+    "probabilities": [
+     0.3397867779055696,
+     0.17428055756477223,
+     0.48593266452965816
+    ],
+    "applied": [
+     "satisficing:first_option"
+    ],
+    "l1_shift": 0.095419,
+    "base_max_prob": 0.521048,
+    "adjusted_max_prob": 0.485933
+   }
+  },
+  {
+   "id": "B07_5",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B",
+    "C"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "satisficing_strategy": "first_option",
+    "strength": 0.5
+   },
+   "probabilities": [
+    0.594161,
+    0.133124,
+    0.045815
+   ],
+   "style": {
+    "souhlasny_sklon": -2.21786,
+    "vyhranenost": -0.186217,
+    "ochota_priznat_nevim": 2.542992,
+    "sdilnost": -0.657322,
+    "satisficing": 2.987357,
+    "social_desirability_sensitivity": -1.255971
+   },
+   "expected": {
+    "probabilities": [
+     0.8008596432889536,
+     0.14815306247828225,
+     0.0509872942327642
+    ],
+    "applied": [
+     "satisficing:first_option"
+    ],
+    "l1_shift": 0.064632,
+    "base_max_prob": 0.768544,
+    "adjusted_max_prob": 0.80086
+   }
+  },
+  {
+   "id": "B08_0",
+   "typ": "vyber",
+   "labels": [
+    "Souhlasím",
+    "Nesouhlasím"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "agreement_scores": {
+     "Souhlasím": 1.0,
+     "Nesouhlasím": -1.0
+    },
+    "social_desirability_scores": [
+     0.5,
+     -0.5
+    ]
+   },
+   "probabilities": [
+    0.0,
+    0.190529
+   ],
+   "style": {
+    "souhlasny_sklon": -0.053971,
+    "vyhranenost": -1.223595,
+    "ochota_priznat_nevim": 0.416848,
+    "sdilnost": 0.670619,
+    "satisficing": 2.112059,
+    "social_desirability_sensitivity": 1.05542
+   },
+   "expected": {
+    "probabilities": [
+     0.11336177,
+     0.88663823
+    ],
+    "applied": [
+     "social_desirability",
+     "acquiescence",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.226724,
+    "base_max_prob": 1.0,
+    "adjusted_max_prob": 0.886638
+   }
+  },
+  {
+   "id": "B08_1",
+   "typ": "vyber",
+   "labels": [
+    "Souhlasím",
+    "Nesouhlasím"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "agreement_scores": {
+     "Souhlasím": 1.0,
+     "Nesouhlasím": -1.0
+    },
+    "social_desirability_scores": [
+     0.5,
+     -0.5
+    ]
+   },
+   "probabilities": [
+    0.26877,
+    2.7060269999999997
+   ],
+   "style": {
+    "souhlasny_sklon": -0.756547,
+    "vyhranenost": 1.344493,
+    "ochota_priznat_nevim": -1.386831,
+    "sdilnost": 1.925886,
+    "satisficing": -1.678076,
+    "social_desirability_sensitivity": -0.967488
+   },
+   "expected": {
+    "probabilities": [
+     0.07811599060517269,
+     0.9218840093948273
+    ],
+    "applied": [
+     "social_desirability",
+     "acquiescence"
+    ],
+    "l1_shift": 0.024466,
+    "base_max_prob": 0.909651,
+    "adjusted_max_prob": 0.921884
+   }
+  },
+  {
+   "id": "B08_2",
+   "typ": "vyber",
+   "labels": [
+    "Souhlasím",
+    "Nesouhlasím"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "agreement_scores": {
+     "Souhlasím": 1.0,
+     "Nesouhlasím": -1.0
+    },
+    "social_desirability_scores": [
+     0.5,
+     -0.5
+    ]
+   },
+   "probabilities": [
+    0.191056,
+    0.215511
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.5133958318794618,
+     0.4866041681205383
+    ],
+    "applied": [
+     "social_desirability",
+     "acquiescence",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.086942,
+    "base_max_prob": 0.530075,
+    "adjusted_max_prob": 0.513396
+   }
+  },
+  {
+   "id": "B08_3",
+   "typ": "vyber",
+   "labels": [
+    "Souhlasím",
+    "Nesouhlasím"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "agreement_scores": {
+     "Souhlasím": 1.0,
+     "Nesouhlasím": -1.0
+    },
+    "social_desirability_scores": [
+     0.5,
+     -0.5
+    ]
+   },
+   "probabilities": [
+    0.883421,
+    0.224775
+   ],
+   "style": {
+    "souhlasny_sklon": 0.08844,
+    "vyhranenost": -3.432955,
+    "ochota_priznat_nevim": -1.205971,
+    "sdilnost": 0.107099,
+    "satisficing": 1.714151,
+    "social_desirability_sensitivity": -1.096503
+   },
+   "expected": {
+    "probabilities": [
+     0.7492329407787868,
+     0.2507670592212133
+    ],
+    "applied": [
+     "social_desirability",
+     "acquiescence",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.095875,
+    "base_max_prob": 0.79717,
+    "adjusted_max_prob": 0.749233
+   }
+  },
+  {
+   "id": "B08_4",
+   "typ": "vyber",
+   "labels": [
+    "Souhlasím",
+    "Nesouhlasím"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "agreement_scores": {
+     "Souhlasím": 1.0,
+     "Nesouhlasím": -1.0
+    },
+    "social_desirability_scores": [
+     0.5,
+     -0.5
+    ]
+   },
+   "probabilities": [
+    0.010565,
+    0.478295
+   ],
+   "style": {
+    "souhlasny_sklon": 1.928325,
+    "vyhranenost": 1.661089,
+    "ochota_priznat_nevim": 0.00358,
+    "sdilnost": 0.629355,
+    "satisficing": 0.578501,
+    "social_desirability_sensitivity": 1.258706
+   },
+   "expected": {
+    "probabilities": [
+     0.11292359220673465,
+     0.8870764077932652
+    ],
+    "applied": [
+     "social_desirability",
+     "acquiescence",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.182624,
+    "base_max_prob": 0.978388,
+    "adjusted_max_prob": 0.887076
+   }
+  },
+  {
+   "id": "B08_5",
+   "typ": "vyber",
+   "labels": [
+    "Souhlasím",
+    "Nesouhlasím"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "agreement_scores": {
+     "Souhlasím": 1.0,
+     "Nesouhlasím": -1.0
+    },
+    "social_desirability_scores": [
+     0.5,
+     -0.5
+    ]
+   },
+   "probabilities": [
+    0.603167,
+    0.181507
+   ],
+   "style": {
+    "souhlasny_sklon": -0.156048,
+    "vyhranenost": -0.325187,
+    "ochota_priznat_nevim": 0.718564,
+    "sdilnost": -1.44431,
+    "satisficing": 0.946474,
+    "social_desirability_sensitivity": -1.271992
+   },
+   "expected": {
+    "probabilities": [
+     0.7269874393863777,
+     0.2730125606136224
+    ],
+    "applied": [
+     "social_desirability",
+     "acquiescence",
+     "satisficing:uniform"
+    ],
+    "l1_shift": 0.083395,
+    "base_max_prob": 0.768685,
+    "adjusted_max_prob": 0.726987
+   }
+  },
+  {
+   "id": "B09_0",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "enabled": false
+   },
+   "probabilities": [
+    0.0,
+    0.133092
+   ],
+   "style": {
+    "souhlasny_sklon": -0.425989,
+    "vyhranenost": 0.738438,
+    "ochota_priznat_nevim": -1.518235,
+    "sdilnost": -2.57943,
+    "satisficing": -0.731079,
+    "social_desirability_sensitivity": -0.745602
+   },
+   "expected": {
+    "probabilities": [
+     0.0,
+     1.0
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 1.0,
+    "adjusted_max_prob": 1.0
+   }
+  },
+  {
+   "id": "B09_1",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "enabled": false
+   },
+   "probabilities": [
+    0.389181,
+    0.450024
+   ],
+   "style": {
+    "souhlasny_sklon": 0.890801,
+    "vyhranenost": -1.748221,
+    "ochota_priznat_nevim": 0.403981,
+    "sdilnost": -1.346648,
+    "satisficing": -0.988456,
+    "social_desirability_sensitivity": -0.923882
+   },
+   "expected": {
+    "probabilities": [
+     0.4637496201762382,
+     0.5362503798237618
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.5362503798237618,
+    "adjusted_max_prob": 0.5362503798237618
+   }
+  },
+  {
+   "id": "B09_2",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "enabled": false
+   },
+   "probabilities": [
+    0.713864,
+    0.150909
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.8254929328274588,
+     0.17450706717254122
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.8254929328274588,
+    "adjusted_max_prob": 0.8254929328274588
+   }
+  },
+  {
+   "id": "B09_3",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "enabled": false
+   },
+   "probabilities": [
+    0.32547,
+    0.628443
+   ],
+   "style": {
+    "souhlasny_sklon": 0.093601,
+    "vyhranenost": -0.097454,
+    "ochota_priznat_nevim": 0.833779,
+    "sdilnost": 1.88103,
+    "satisficing": 0.228323,
+    "social_desirability_sensitivity": 0.726435
+   },
+   "expected": {
+    "probabilities": [
+     0.34119463724679294,
+     0.658805362753207
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.658805362753207,
+    "adjusted_max_prob": 0.658805362753207
+   }
+  },
+  {
+   "id": "B09_4",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "enabled": false
+   },
+   "probabilities": [
+    0.38473,
+    0.674549
+   ],
+   "style": {
+    "souhlasny_sklon": -1.915246,
+    "vyhranenost": -0.211581,
+    "ochota_priznat_nevim": 2.764412,
+    "sdilnost": 0.525334,
+    "satisficing": 1.148024,
+    "social_desirability_sensitivity": 0.599201
+   },
+   "expected": {
+    "probabilities": [
+     0.36319987463170705,
+     0.6368001253682929
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.6368001253682929,
+    "adjusted_max_prob": 0.6368001253682929
+   }
+  },
+  {
+   "id": "B09_5",
+   "typ": "vyber",
+   "labels": [
+    "A",
+    "B"
+   ],
+   "scale": null,
+   "dk": false,
+   "process": {
+    "enabled": false
+   },
+   "probabilities": [
+    0.102733,
+    0.029029
+   ],
+   "style": {
+    "souhlasny_sklon": 0.32932,
+    "vyhranenost": -1.422148,
+    "ochota_priznat_nevim": -0.298339,
+    "sdilnost": 0.303083,
+    "satisficing": -2.460983,
+    "social_desirability_sensitivity": 1.019213
+   },
+   "expected": {
+    "probabilities": [
+     0.7796861006967108,
+     0.22031389930328926
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.7796861006967108,
+    "adjusted_max_prob": 0.7796861006967108
+   }
+  },
+  {
+   "id": "B10_0",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "extremity": false,
+    "satisficing_strategy": "none"
+   },
+   "probabilities": [
+    0.0,
+    0.845958,
+    0.867388,
+    0.593148,
+    0.380395
+   ],
+   "style": {
+    "souhlasny_sklon": 1.423876,
+    "vyhranenost": -0.903384,
+    "ochota_priznat_nevim": 2.336984,
+    "sdilnost": 0.961766,
+    "satisficing": 0.367869,
+    "social_desirability_sensitivity": -1.146701
+   },
+   "expected": {
+    "probabilities": [
+     0.0,
+     0.31484664978717025,
+     0.3228224165568433,
+     0.22075642127382264,
+     0.1415745123821639
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.322822,
+    "adjusted_max_prob": 0.322822
+   }
+  },
+  {
+   "id": "B10_1",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "extremity": false,
+    "satisficing_strategy": "none"
+   },
+   "probabilities": [
+    2.003589,
+    0.973962,
+    0.143448,
+    0.287271,
+    0.373599
+   ],
+   "style": {
+    "souhlasny_sklon": -1.00556,
+    "vyhranenost": 1.590587,
+    "ochota_priznat_nevim": 0.867846,
+    "sdilnost": -1.08954,
+    "satisficing": -0.048373,
+    "social_desirability_sensitivity": 1.19734
+   },
+   "expected": {
+    "probabilities": [
+     0.529788049242319,
+     0.25753456822539333,
+     0.03793045184801483,
+     0.07596006101744932,
+     0.09878686966682347
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.529788,
+    "adjusted_max_prob": 0.529788
+   }
+  },
+  {
+   "id": "B10_2",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "extremity": false,
+    "satisficing_strategy": "none"
+   },
+   "probabilities": [
+    0.110539,
+    0.335507,
+    0.202856,
+    0.647251,
+    0.872933
+   ],
+   "style": {},
+   "expected": {
+    "probabilities": [
+     0.050961096056126864,
+     0.15467667026572482,
+     0.09352141869893586,
+     0.2983980349326859,
+     0.4024427800465265
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.402443,
+    "adjusted_max_prob": 0.402443
+   }
+  },
+  {
+   "id": "B10_3",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "extremity": false,
+    "satisficing_strategy": "none"
+   },
+   "probabilities": [
+    0.317701,
+    0.01926,
+    0.987747,
+    0.189565,
+    0.018817
+   ],
+   "style": {
+    "souhlasny_sklon": 0.961926,
+    "vyhranenost": -0.195495,
+    "ochota_priznat_nevim": -0.768287,
+    "sdilnost": 0.766271,
+    "satisficing": -0.092301,
+    "social_desirability_sensitivity": -0.516397
+   },
+   "expected": {
+    "probabilities": [
+     0.20722919071939677,
+     0.012562863236991956,
+     0.6442850713265366,
+     0.12364897038008206,
+     0.01227390433699261
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.644285,
+    "adjusted_max_prob": 0.644285
+   }
+  },
+  {
+   "id": "B10_4",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "extremity": false,
+    "satisficing_strategy": "none"
+   },
+   "probabilities": [
+    0.007131,
+    0.271658,
+    0.394296,
+    0.066672,
+    0.126092
+   ],
+   "style": {
+    "souhlasny_sklon": -2.209351,
+    "vyhranenost": 0.322195,
+    "ochota_priznat_nevim": 2.994815,
+    "sdilnost": -0.81754,
+    "satisficing": -0.432299,
+    "social_desirability_sensitivity": -1.072049
+   },
+   "expected": {
+    "probabilities": [
+     0.008235847128078917,
+     0.31374754720511316,
+     0.45538656278404205,
+     0.07700187908053252,
+     0.14562816380223345
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.455387,
+    "adjusted_max_prob": 0.455387
+   }
+  },
+  {
+   "id": "B10_5",
+   "typ": "skala",
+   "labels": [],
+   "scale": [
+    1,
+    5
+   ],
+   "dk": false,
+   "process": {
+    "extremity": false,
+    "satisficing_strategy": "none"
+   },
+   "probabilities": [
+    0.042787,
+    0.722474,
+    0.121244,
+    0.96981,
+    0.722183
+   ],
+   "style": {
+    "souhlasny_sklon": 1.090706,
+    "vyhranenost": 1.006654,
+    "ochota_priznat_nevim": 0.418375,
+    "sdilnost": 1.464385,
+    "satisficing": -0.292624,
+    "social_desirability_sensitivity": -0.552673
+   },
+   "expected": {
+    "probabilities": [
+     0.01659376893059448,
+     0.2801918015837127,
+     0.04702117279129168,
+     0.37611431151003416,
+     0.28007894518436705
+    ],
+    "applied": [],
+    "l1_shift": 0.0,
+    "base_max_prob": 0.376114,
+    "adjusted_max_prob": 0.376114
+   }
+  }
+ ]
+}

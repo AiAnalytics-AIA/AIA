@@ -222,3 +222,16 @@ def test_a_number_from_fictional_fieldwork_is_never_a_client_facing_claim(
     assert [v.code for v in refused.decision.violations] == [ViolationCode.SYNTHETIC_DATA_ORIGIN]
     # Internally -- the workbench, a test -- the same number may be looked at.
     assert admit([nc()], table, ClaimSurface.INTERNAL).decision.allowed
+
+
+def test_a_number_from_ai_respondents_on_fictional_personas_is_never_a_claim(
+    admit: Any, evidence_row: Any
+) -> None:
+    """A model answering as invented people is simulation, not fieldwork: refused the same."""
+    from aia_core.domain.fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+
+    assert set(DataOrigin) == NON_EVIDENCE_ORIGINS, "a new origin must decide if it is evidence"
+    table = EvidenceTable.build([evidence_row(data_origin=DataOrigin.SYNTHETIC_AI_FICTIONAL)])
+    refused = admit([nc()], table)
+    assert [v.code for v in refused.decision.violations] == [ViolationCode.SYNTHETIC_DATA_ORIGIN]
+    assert admit([nc()], table, ClaimSurface.INTERNAL).decision.allowed

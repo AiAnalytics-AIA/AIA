@@ -81,7 +81,8 @@ Run it before every commit. It is blocking in CI.
 | domain does not import outward | A dependency cycle through application or infrastructure |
 | application knows nothing about HTTP | Use cases that only work behind FastAPI |
 | infrastructure knows nothing about HTTP | Adapters that cannot be reused by a worker |
-| AWS SDK stays behind the storage adapter | `boto3` becoming a mandatory dependency of the whole package |
+| AWS SDK stays behind the storage adapter and the Bedrock signer (`aws_signing.py`: SigV4 and the role credential only) | `boto3` becoming a mandatory dependency of the whole package, or a botocore client calling Bedrock behind the gateway |
+| no botocore client is built for Bedrock | A second call path under the adapter that retries and chooses endpoints on its own (ADR 0005 A, ADR 0010) |
 | no database access in the HTTP layer | A handler opening a Session, and deciding something the domain never saw |
 | no ORM tables in the HTTP layer | Queries written where they cannot be tested without the whole stack |
 | scope contexts are issued only by `ScopeResolver` | A request body, tool payload or model-generated argument widening its own scope |
@@ -94,6 +95,8 @@ Run it before every commit. It is blocking in CI.
 | executors know nothing about HTTP and never import the API | A step implementation that only works behind a web server, or reaches into request state |
 | executors never build their own scope context, admit their own claims, or build an unscoped repository | A claimed step writing another client's artifacts, or a number reaching a result without the admission gate, from inside the process where model-driven code will run |
 | the API never executes workflow steps | Expensive work inside a request, holding a lease exactly as long as a browser stays connected |
+| the API never builds or invokes the model gateway or an adapter | A model call inside a request: no lease, no reservation, no heartbeat, no recovery |
+| only the AI runtime composition (`aia_executors/ai_runtime.py`) builds the Bedrock adapter | A route nobody configured, built from values nobody validated |
 | only the work queue may query across studies | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
 | Client Knowledge rows are reached only through `ClientKnowledgeRepository` (never by the API, the worker or the executors) | Knowledge read from a global pool and filtered afterwards, or changed without an approved proposal and a revision (ADR 0015) |
 | runtime populations are issued only by the canonical loader (and never by the API) | A second loader returning different population semantics from the same bytes (reference F10, R4) |
@@ -176,14 +179,33 @@ script, then confirm it passes before committing.
   (`research_artifacts`, `ArtifactRepository(owner=)`), never by id alone.
   Respondent rows are never sent to the browser; the Sociomap artifact is served
   only with `EDIT_STUDY`.
-- **Fieldwork is a boundary with one production answer.** The deployed
-  composition (`aia_executors.registry`) has no dataset producer, so a run parks
-  at fieldwork (`WAITING_PROVIDER`, `ai_runtime_unavailable`) and is never
-  resumed by time; nothing is invented or substituted. The fictional source
-  exists only in `aia_executors.workbench` (refused unless `AIA_ENV` is
-  `local`/`test`, and by the API on staging/production), and everything computed
-  from it carries `data_origin = SYNTHETIC_FIXTURE`, which the evidence gate
-  refuses as a client-facing claim.
+- **Fieldwork is a boundary, and `ai_runtime` is answered only by AI respondents.**
+  The deployed composition (`aia_executors.registry`) has no deterministic dataset
+  producer. It builds the AI respondent engine (`aia_executors.ai_fieldwork`) only
+  when `AIA_AI_RUNTIME_ENABLED` is set and every AI runtime key validates (the
+  worker refuses to start otherwise); without it a run parks at fieldwork
+  (`WAITING_PROVIDER`, `ai_runtime_unavailable`) and is never resumed by time. The
+  engine asks the gateway's `preflight` before reserving anything, and a residency
+  or licence refusal parks the run the same way, naming the gate; nothing is sent.
+  The model returns only one respondent's probabilities, selections or short text
+  under a strict per-block contract; facts the persona has are answered by code
+  (`respondent_facts`), the response process and a seeded draw decide the answer
+  (`respondent_behavior`). Personas are the fictional roster only: its datasets
+  carry `data_origin = SYNTHETIC_AI_FICTIONAL`, and the fixture's
+  `SYNTHETIC_FIXTURE` (in `aia_executors.workbench`, refused unless `AIA_ENV` is
+  `local`/`test`); the evidence gate refuses every origin in `NON_EVIDENCE_ORIGINS`
+  as a client-facing claim.
+- **A model call from a step goes through `StepModelCaller`, and nowhere else.**
+  One reservation per logical request (PROGRESS D11, resolved), checked by the
+  gateway on every call and settled once with their sum; dispatch is
+  `StepContext.dispatching` (checkpoint, fenced, committed) before the call leaves;
+  outcomes are ledgered by `StepContext.record_usage`, unfenced, so a lost lease
+  still records the provider's answer; an uncertain outcome is left for
+  `RECOVERY_REQUIRED`. The heartbeat thread holds the lease through a blocking call.
+- **A respondent request is Class C only when nothing in it is client material**:
+  fictional personas *and* a client the operator declared fictional
+  (`AIA_AI_FICTIONAL_CLIENT_IDS`, refused in production). Any other questionnaire
+  is a client's design, Class A, and ADR 0010's route refuses it.
 - **Two gates before any model call carries panel-derived data.** Residency
   (where the data may go) and licence eligibility (whether its source's licence
   permits that route) are separate refusals; `ModelRequest.data_lineage` has no
@@ -490,9 +512,11 @@ that looks local:
 - **No invented certainty.** Evidence roles travel with the data. A modelled
   figure is never presented as a measurement.
 - **No fake progress.** Real elapsed time and real stage transitions only.
-- **No invented fieldwork.** Without the AI runtime a research run waits at
-  fieldwork and says so; fictional respondents exist only on a developer's
-  machine and in tests, and are labelled on every view.
+- **No invented fieldwork.** Without the AI runtime, or when its gates refuse the
+  material, a research run waits at fieldwork and says so; fictional respondents
+  -- invented by code, or answered by a model as invented people -- are labelled
+  on every view and never become a finding. A model never answers a fact the
+  respondent already has, and never an individual fact it does not.
 - **No visualisation mutating research truth.** A dragged node saves a view
   override; results stay immutable.
 - **Fail closed.** When a methodology precondition is unmet, the system blocks.

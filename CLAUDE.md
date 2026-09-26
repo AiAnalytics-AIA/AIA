@@ -104,6 +104,12 @@ apps/
     registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build
     research.py             The research steps: compile, preflight, fieldwork (parks without a
                             source), aggregate, sociomap; every artifact on the owned design project
+    ai_fieldwork.py         The ai_runtime source: fictional roster, class + lineage, gateway preflight
+                            (a refusal parks), one request per respondent block, answers drawn by code
+    ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
+                            request, settled once) + StepCallJournal (fenced dispatch, unfenced ledger)
+    ai_runtime.py           AIA_AI_* / AIA_BEDROCK_* settings (off by default, fail closed when on) and
+                            the one gateway over ADR 0010's route; the only builder of the adapter
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check)
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
@@ -115,6 +121,10 @@ packages/aia_core/src/aia_core/
                             structured-output validation, AgentDefinition, FallbackPolicy
     ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
     ai_tools.py             ToolRegistry — scope never from model arguments
+    ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
+                            contract, fictional roster, facts by code, interpretation, the dataset
+    respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
+    respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     licence.py              Licence eligibility beside residency: DataLineage (no default),
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources UNDETERMINED (OI-61)
@@ -201,7 +211,9 @@ packages/aia_core/src/aia_core/
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
     ai_call_journal.py      CallJournal over the workflow attempt + ledger
-    model_adapters/         Anthropic / OpenAI / Claude Code adapters, transports, recorded doubles
+    model_adapters/         Anthropic / OpenAI / Claude Code / Bedrock adapters, transports, recorded
+                            doubles; live_transport.py (urllib3, no retries), aws_signing.py (SigV4,
+                            instance or container role only)
     storage.py              ArtifactStore: S3 / filesystem / memory
     storage_settings.py     AIA_STORAGE_*: one typed definition for every composition root
     build_identity.py       AIA_BUILD_SHA: the commit a process runs; null, never a guess
@@ -226,6 +238,8 @@ tools/parity_status.py      Parity verdict per capability, from JUnit XML
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
 tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
                             the unit's venv), `self` (AIA's pinned bounds)
+tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own behavior.py / styly.py
+                            (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/bootstrap_seed_sensitivity.py  The unit's bootstrap spread over seeds: the evidence for OI-62
 tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; `effective` prints the binding
                             that runs (the last declaration or reassignment); check the UI ledger
@@ -308,9 +322,13 @@ repository.
 **A research run executes a Design Revision** (ADR 0016). The browser submits the
 design it shows; the revision is immutable and belongs to the Study's owned design
 project, which no generic project route can see. Runs are found only through the
-Study and their artifacts only through the run. On develop, fieldwork **parks**
-(`ai_runtime_unavailable`) until the AI runtime exists; fictional respondents exist
-only in `aia_executors.workbench` and tests, labelled `SYNTHETIC_FIXTURE` everywhere.
+Study and their artifacts only through the run. Fieldwork for an `ai_runtime` run is
+answered by AI respondents (`aia_executors.ai_fieldwork`) only when the worker's AI
+runtime is configured and the gateway's gates pass; otherwise it **parks**
+(`ai_runtime_unavailable`, the refusing gate named). Its personas are fictional and
+its datasets say so (`SYNTHETIC_AI_FICTIONAL`); the fixture's invented respondents
+exist only in `aia_executors.workbench` and tests (`SYNTHETIC_FIXTURE`). The model
+returns one respondent's probabilities; code answers facts and draws the answer.
 Panel-derived data reaches no model provider until OI-61 records a licence
 determination -- a gate of its own beside residency. The Sociomap is computed but
 `INTERNAL_ONLY` while D6 is open.

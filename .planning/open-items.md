@@ -638,6 +638,17 @@ the archive is available, with a golden fixture of classified questions.
 **Status.** Open, blocked on the archive; must close before Phase 5's respondent
 engine ships.
 
+**Update 2026-09-25 (Agent Runtime Foundation) — narrowed, not closed.** The keyword
+classification, the choice mapping and the deterministic answer are ported for the AI
+respondent (`packages/aia_core/src/aia_core/domain/respondent_facts.py` @ `dec2fd1`),
+compared with the vendored unit's own `factual_layer.py`, not the archive
+(`test_respondent_facts.py::test_classification_matches_the_unit`, 39 cases;
+`::test_choice_mapping_matches_the_unit`, 12). A DIRECT fact is answered from the
+persona and never asked; an UNSUPPORTED one refuses the fieldwork step. Still open:
+`evidence/factual.py` (the claim gate's contract) does not use it, questions carry no
+`fact_kind` / `fact_source_field` metadata, and `harmonize_project_fact_choices` is not
+ported.
+
 ---
 
 ## OI-21 · Finding · A provider park can auto-resume a possibly-billed call
@@ -1983,4 +1994,67 @@ about the method.
 PCG64 port justified, and it would need its own named exception to §2.
 
 **Status.** Decided for research aggregation, and implemented: `packages/aia_core/src/aia_core/domain/research_aggregate.py`, `test_research_aggregate.py` (EXACT fields, bounds within the unit's seed spread, AIA's bounds pinned), parity-matrix deviation D5.
+
+---
+
+## OI-63 · Decision owed (data owner) · Who may declare a client fictional, making its designs Class C?
+
+**Claim.** A respondent request is `CLASS_C_INTERNAL` only when its personas are the
+fictional roster *and* the Study's client is listed in `AIA_AI_FICTIONAL_CLIENT_IDS`
+(`packages/aia_core/src/aia_core/domain/ai_respondent.py` `classify_material` @ `dec2fd1`);
+every other questionnaire is treated as a client's design, Class A. The list is an
+operator's deployment setting, refused in production.
+
+**Anchor.** `apps/executors/tests/test_ai_fieldwork.py::test_a_real_clients_design_is_class_a_and_the_class_c_route_refuses_it`;
+`packages/aia_core/tests/test_ai_respondent.py::test_material_is_class_c_only_when_client_and_personas_are_both_fictional`.
+
+**Reproduction.** Unset `AIA_AI_FICTIONAL_CLIENT_IDS`: the run parks with
+`egress_route_not_approved_for_class` and zero requests.
+
+**Consequence.** On develop, only the seed's *(fiktivní)* clients, once listed, can
+exercise AI fieldwork over ADR 0010's Class C route. Anyone who can set the parameter
+can downgrade a client's designs to Class C.
+
+**Question for the data owner.** Is an operator-maintained list the right authority, or
+should "fictional client" be a recorded attribute of the client (set once, audited,
+never by the browser)? Engineering chose the list because it needs no schema change
+and fails closed; a client attribute would need a migration and a route.
+
+**Status.** Open. The engineering default stands until answered.
+
+---
+
+## OI-64 · Follow-up · AI fieldwork restarts every respondent when an attempt is retried
+
+**Claim.** A fieldwork attempt is one unit: a retry (transport failure, a quota park
+resumed) asks every respondent again, and the earlier attempt's answered calls stay
+charged (`apps/executors/src/aia_executors/ai_fieldwork.py` `AIFieldwork.produce` @ `dec2fd1`).
+
+**Anchor / reproduction.** `apps/executors/tests/test_ai_fieldwork.py::test_throttling_parks_for_quota_after_one_request_and_charges_nothing`
+parks on call 1; a park on call N would repeat calls 1..N-1 on resume.
+
+**Consequence.** Cost, not correctness: at N=20 x 3 blocks the worst case repeats 59
+calls. At production N it matters.
+
+**Smallest fix.** Checkpoint each respondent's answers as a per-attempt artifact keyed by
+(spec fingerprint, persona, block) and reuse it on the next attempt of the same run.
+
+**Test that would catch it.** A resumed attempt sends only the calls the previous one did
+not complete.
+
+**Status.** Open; plan follow-up 2.
+
+---
+
+## OI-65 · Follow-up · The usage ledger does not record the lineage a call declared
+
+**Claim.** `ai_usage_events` has no lineage column; the licence gate's input for each call
+is on the fieldwork dataset's provenance (`provenance.lineage`), not on the ledger row
+(`packages/aia_core/src/aia_core/infrastructure/ai_usage_repository.py` `_row` @ `dec2fd1`).
+
+**Consequence.** Auditing which datasets reached a provider needs the artifact as well as
+the ledger. Nothing panel-derived can be sent today (OI-61), so nothing is missing yet.
+
+**Smallest fix.** `AIUsageEvent.data_lineage` + a column + migration, written by the
+gateway from the request. **Status.** Open; plan follow-up 6.
 

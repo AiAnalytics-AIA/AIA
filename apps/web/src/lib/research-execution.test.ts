@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchRun } from "@/lib/api";
-import { parkedForRuntime, phaseTone, resultTable, shouldPoll, stepLabel, supportNote } from "./research-execution";
+import { isSynthetic, parkedForRuntime, phaseTone, resultTable, shouldPoll, stepLabel, supportNote } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -39,5 +39,13 @@ describe("research execution", () => {
     const shown = resultTable("t1", { typ: "multi", support_status: "INDICATIVE", ...base, n_unique_layer_donors: 40, celkem_pct: { A: 55.2 }, intervaly_95: { A: { low: 40, high: 70 } } });
     expect(shown.rows).toEqual([{ label: "A", value: "55,2 %", interval: "40,0–70,0" }]);
     expect(supportNote(shown)).toMatch(/Indikativní/);
+  });
+
+  it("labels AI respondents on fictional personas as synthetic, like the fixture", () => {
+    const step = (origin: string | null) => ({ node_key: "run", data_origin: origin }) as ResearchRun["steps"][number];
+    expect(isSynthetic(run({ fieldwork_source: "synthetic_fixture" }))).toBe(true);
+    expect(isSynthetic(run({ steps: [step("SYNTHETIC_AI_FICTIONAL")] }))).toBe(true);
+    expect(isSynthetic(run({ steps: [step(null)] }))).toBe(false);
+    expect(isSynthetic(run({ steps: [step("SOMETHING_ELSE")] }))).toBe(false);
   });
 });
