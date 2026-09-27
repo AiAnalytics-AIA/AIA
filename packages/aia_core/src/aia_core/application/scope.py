@@ -167,6 +167,28 @@ class ScopeResolver:
             request_id=principal.request_id,
         )
 
+    def authorize_session(
+        self, principal: AuthenticatedPrincipal, *, audit: bool
+    ) -> OrganizationContext:
+        """Admit a principal to AIA's pages, or deny (ADR 0018 decision 3).
+
+        Any active member of the organization is admitted: a page holds no data
+        of its own, and everything it shows is read through ``/api/v1`` with the
+        person's own token, where each client and study is authorized again by
+        :meth:`study_context` and :meth:`client_context`. ``audit`` records the
+        decision; the session is opened with it on, and the per-request gate
+        re-checks with it off, as :meth:`authorize_legacy_panel` does.
+        """
+        try:
+            context = self.organization_context(principal)
+        except ScopeDenied as exc:
+            if audit:
+                self._record(principal, action="AIA_SESSION_DENIED", reason=exc.reason)
+            raise
+        if audit:
+            self._record(principal, action="AIA_SESSION", role=context.organization_role.value)
+        return context
+
     def authorize_legacy_panel(
         self, principal: AuthenticatedPrincipal, *, audit: bool
     ) -> OrganizationContext:

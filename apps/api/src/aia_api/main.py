@@ -21,7 +21,7 @@ from .observability import (
     configure_logging,
     install_exception_handlers,
 )
-from .routers import health, panel, projects, research, runs, scope, workspace
+from .routers import health, panel, projects, research, runs, scope, session, workspace
 from .routers import settings as settings_router
 
 API_PREFIX = "/api/v1"
@@ -116,6 +116,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(scope.router, prefix=API_PREFIX)
     app.include_router(projects.router, prefix=API_PREFIX)
     app.include_router(runs.router, prefix=API_PREFIX)
+    app.include_router(session.router, prefix=API_PREFIX)
     app.include_router(panel.router, prefix=API_PREFIX)
     app.include_router(workspace.router, prefix=API_PREFIX)
     app.include_router(research.router, prefix=API_PREFIX)
