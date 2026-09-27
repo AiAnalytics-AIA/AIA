@@ -326,26 +326,32 @@ compile → research → design → questionnaire → audience → dimensions �
 
 Two details to keep:
 
-- **`preflight` is `review_if_warning`**, not `auto`. A methodological warning
-  pauses for a human.
+- **`preflight` is declared `review_if_warning`**, not `auto`, but the reference
+  never acts on the declaration: the mode is stored (`job_store.py:18,56,63`) and read
+  nowhere, and `preflight` parks for a person only on a BLOCKER
+  (`legacy/npc-panel-18.6.6/app/worker_job.py:441-450`). AIA refuses to start a
+  design that is not ready (`409 design_not_ready`) instead of parking mid-run
+  (corrected 2026-09-27, [research-journey.md](research-journey.md) §2).
 - **Analysis is eight separate nodes**, each independently durable, so a quota
   pause after `analysis_segments` resumes at `analysis_hypotheses` instead of
   recomputing five modules of AI work.
 
 ## Progress reporting
 
-Attempts emit events. The API exposes them over Server-Sent Events; the client
-reconnects and rebuilds state from the server rather than holding it locally.
-Event ids are monotonic, which is what lets a reconnecting client resume without
-gaps or duplicates.
+Attempts emit events. The API exposes them as a cursor-paged JSON list
+(`GET …/runs/{run_id}/events?since=&limit=`, `apps/api/src/aia_api/routers/research.py:480-507`);
+the client rebuilds state from the server rather than holding it locally. Event
+ids are monotonic, which is what lets a client resume from its cursor without gaps
+or duplicates. Server-Sent Events are not built: the Progress stage polls the run
+every 2 s while it is queued or running (`ExecutionSteps.tsx`).
 
 **Progress must not be invented.** Real elapsed time, real state transitions, real
 counts (respondent 240 of 300), and an empirical range for typical duration. No
 synthesised percentage the backend cannot know — a fabricated bar stalling at 90%
 is worse than an honest timer.
 
-SSE over WebSockets: traffic is server-to-client only, SSE reconnects
-automatically, and it survives ordinary HTTP infrastructure.
+If a push channel is added, SSE over WebSockets: traffic is server-to-client
+only, SSE reconnects automatically, and it survives ordinary HTTP infrastructure.
 
 ## The worker
 
@@ -434,10 +440,13 @@ rather than sequential mocks, and they are what makes the engine trustworthy:
 
 Still owed, and not to be described as done anywhere:
 
-- **Executors.** The worker runs any registered `StepExecutor`; none exists yet
-  for a real step kind. They arrive with the AI runtime.
-- **The AI runtime the steps call.** See
-  [ai-runtime.md](ai-runtime.md) and [ADR 0005](adr/0005-llm-gateway.md).
+- ~~**Executors.**~~ Done for `develop_snapshot`, the five research steps and
+  `research_agent` (`apps/executors/src/aia_executors/registry.py:32-44`). Still owed:
+  the executors for `donor_qc`, the analysis nodes, `interpret`, `verify`,
+  `alignment`, `report` and `delivery` ([research-journey.md](research-journey.md) §2).
+- ~~**The AI runtime the steps call.**~~ Built, and activated for fictional Class C on
+  develop (2026-09-26). See [ai-runtime.md](ai-runtime.md) and
+  [ADR 0010](adr/0010-bedrock-eu-inference-route.md).
 - **A generalized metered-cost ledger.** Budget reservations and `Study.spent_usd`
   are implemented and enforce spending; attribution down to
   `Client → Study → Revision → WorkflowRun → Step → Agent/Tool/Call` across every

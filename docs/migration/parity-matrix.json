@@ -545,13 +545,13 @@
    ],
    "parity_type": "INTENTIONAL_DIFFERENCE",
    "tolerance": null,
-   "parity_reason": "Local keystore replaced by Secrets Manager + KMS",
+   "parity_reason": "The local keystore is replaced by no stored model credential: the approved Bedrock route signs with the deployment's role (ADR 0010); a keyed service's secret lives in Secrets Manager + KMS (D8)",
    "fixtures": [],
    "gates": [],
    "recorded_evidence": [],
    "intentional_difference": {
-    "legacy": "Local keystore replaced by Secrets Manager + KMS",
-    "production_target": "Secrets Manager + KMS; no local keystore",
+    "legacy": "Provider API keys saved from NPC Settings into a local .env file (provider_auth.py)",
+    "production_target": "No stored credential for the approved Bedrock route: SigV4 with the instance or container role only (infrastructure/model_adapters/aws_signing.py, ADR 0010). Secrets Manager + KMS for any keyed service (D8). No local keystore",
     "override": null
    },
    "documented_deviations": [],
@@ -3892,7 +3892,7 @@
    },
    {
     "id": "AC-02",
-    "statement": "From a brief, the Research lifecycle produces Deep Research, Research Design and a Questionnaire through the ModelGateway: provider and policy resolved per stage, credentials from Secrets Manager, every call on the immutable usage ledger, and no silent provider fallback.",
+    "statement": "From a brief, the Research lifecycle produces Deep Research, Research Design and a Questionnaire through the ModelGateway: provider and policy resolved per stage, no model credential stored by AIA (the approved route signs with the deployment's role, ADR 0010; a keyed service's secret comes from a secret store, D8), every call on the immutable usage ledger, and no silent provider fallback.",
     "capabilities": [
      "project.persistence",
      "pipeline.stages",

@@ -18,8 +18,8 @@ implementation narrative; [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md)
 is the current tracker.
 
 **2026-09-27:** PRs #57, #58, #59, #61, #54 and #62 have merged since the paragraph
-above. Bedrock design assistants are in PR #63. PROGRESS § *Where the code is* is the
-current picture. Below, "mock-backed", "Bedrock adapter still to be written",
+above, and #63 (the Bedrock design assistants, off by default) and #64–#71 followed the
+same day. PROGRESS § *Where the code is* is the current picture. Below, "mock-backed", "Bedrock adapter still to be written",
 "first green deploy still owed" and "In progress: Nothing" are history, not state.
 
 > **This document is the narrative, not the tracker.** What is done, in

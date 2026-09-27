@@ -2108,7 +2108,7 @@ PCG64 port justified, and it would need its own named exception to §2.
 
 ---
 
-## OI-63 · Decision owed (data owner) · Who may declare a client fictional, making its designs Class C?
+## OI-63 · Direction recorded, engineering open · A fictional-client flag is not production data authority
 
 **Claim.** A respondent request is `CLASS_C_INTERNAL` only when its personas are the
 fictional roster *and* the Study's client is listed in `AIA_AI_FICTIONAL_CLIENT_IDS`
@@ -2126,12 +2126,15 @@ operator's deployment setting, refused in production.
 exercise AI fieldwork over ADR 0010's Class C route. Anyone who can set the parameter
 can downgrade a client's designs to Class C.
 
-**Question for the data owner.** Is an operator-maintained list the right authority, or
-should "fictional client" be a recorded attribute of the client (set once, audited,
-never by the browser)? Engineering chose the list because it needs no schema change
-and fails closed; a client attribute would need a migration and a route.
+**Data-owner direction (2026-09-28).** Stop treating a Study as fictional. A Study's production
+state and the actual provenance/content of each item determine what can be sent. Do not add a
+product "fictional client" attribute or promote this operator list into production authority.
+Keep the existing allowlist confined to local/test synthetic fixtures, where the runtime already
+refuses it in production. OI-79 owns the design-input classification gap; the respondent source
+and any production Class A/B route also need their own approval and proof.
 
-**Status.** Open. The engineering default stands until answered.
+**Status.** Direction decided; implementation and production-route acceptance open. A local
+fixture's Class C path is not evidence that client work has an approved egress route.
 
 ---
 
@@ -2153,7 +2156,13 @@ calls. At production N it matters.
 **Test that would catch it.** A resumed attempt sends only the calls the previous one did
 not complete.
 
-**Status.** Open; plan follow-up 2.
+**Status.** Open; plan follow-up 2. *Re-confirmed at `ceee2dc`, 2026-09-27:* each attempt starts
+at the first persona (`ai_fieldwork.py:167-173`), and `context.checkpoint()` only checks for a
+stop and persists nothing (`apps/worker/src/aia_worker/context.py:125-138`). The attempts that
+trigger it include a quota or capacity park resuming, a retryable failure, and a lapsed lease
+with no call in flight. An uncertain call still goes to `RECOVERY_REQUIRED` and is never
+retried. Owner: Job 6, inside the existing executor and recovery contract. Until it is fixed,
+no acceptance claims to be retry-safe (`docs/architecture/research-journey.md` §7, line 6).
 
 ---
 
@@ -2378,7 +2387,10 @@ down.
 **Test that would have caught it.** `test_develop_legacy_unit_health.py` (PR #70).
 
 **Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
-deploy that carries it.
+deploy that carries it. *Update, 2026-09-27:* #70 merged at 15:52 (`ceee2dc`), and *Deploy
+develop* run 34 (`36331833716`), the first deploy that carries it, passed its host step (which
+ends with smoke, `deploy.sh:103-104`) at 16:07:55 UTC. Whether that run needed the wait is not
+visible from the job's summary.
 
 ---
 
@@ -2634,3 +2646,110 @@ retried run that recomputes the spec.
 **Status.** API half merged in PR #84 (`8c13a11`, 2026-09-27), both artifact routes and the
 proposal routes. Worker half open. It is not fixed there because it needs the failure-class
 decision and, for design jobs, a decision to spend on a recompute.
+
+---
+
+## OI-78 · Finding · An evidence row that names no data origin is admitted as observed data
+
+**Claim.** `EvidenceRow.data_origin` defaults to `None`, and the admission gate refuses a
+client-facing claim only when the origin is in `NON_EVIDENCE_ORIGINS`. A row that does not say
+where its respondents came from is therefore admitted client-facing, as if it were observed
+data: *unknown* scored as *good* (CLAUDE.md §8).
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/evidence/admission.py:91` (the default) and
+`:244` (the check) @ `ceee2dc`. `DataOrigin` has no value for observed data at all, only the two
+synthetic ones (`domain/fieldwork.py:50-68`).
+
+**Reproduction.** `pytest packages/aia_core/tests/test_analysis_runner.py::test_a_passing_first_draft_completes`.
+It uses the shared `evidence_row` fixture, which sets no `data_origin` (`tests/conftest.py:807-839`),
+and completes a `CLIENT_FACING` module from it.
+
+**Consequence.** Nothing is wrong yet, because no production code builds an `EvidenceRow`. But
+the first adapter from a fieldwork aggregate to an `EvidenceTable` (Job 3) needs only to forget
+to copy `aggregate["data_origin"]` (`domain/research_aggregate.py:571`). With that one omission,
+fictional respondents become client-facing claims, and no error is raised.
+
+**Smallest fix.**
+- Make `data_origin` required on `EvidenceRow`, with an explicit value for observed data once
+  real fieldwork exists.
+- Until then, refuse a `CLIENT_FACING` claim whose row names no origin.
+- Every adapter copies the dataset's origin onto each row it builds.
+
+Changing the gate changes the shared test fixture as well; that is the point.
+
+**Test that would have caught it.** Admitting a `CLIENT_FACING` claim from a row with
+`data_origin=None` is refused.
+
+**Status.** Open. Owner: Job 3, with evidence governance, before or together with the aggregate
+adapter. It is a rule of the research journey's contract (`docs/architecture/research-journey.md`
+§4, §6 rule 6).
+
+*2026-09-27, 18:05 UTC:* Job 3's draft PR #76 @ `7c46e0c` closes the path for native instrument
+evidence. Its rows carry the aggregate's origin, and its instrument policy refuses a row that
+names none (`domain/evidence/instrument.py:132-139`). The gate's default is unchanged
+(`admission.py:91, 244`), so this stays open for any other builder of an `EvidenceRow`. Its
+number follows the contract's rule for concurrent entries (§5). It was OI-72 on this entry's branch
+until #83 put OI-76 on `develop` (`48bf3e2`, 22:45 UTC). #75 still claims OI-72 to OI-75, and #84
+claims OI-77.
+
+---
+
+## OI-79 · Direction recorded, engineering open · Classify actual design inputs before model egress
+
+**Claim.** A native design job sends the brief's attachment text to the model, and classifies the
+request by only two things: the client allowlist and the approved knowledge. A study of an
+allowlisted fictional client with no approved knowledge sends its attachments' text as
+`CLASS_C_INTERNAL`. No rule classifies an attachment's content on its own.
+
+**Anchor** (all @ `56b5768`):
+
+- `context_snapshot` copies the whole design into the context
+  (`packages/aia_core/src/aia_core/domain/research_agents.py:218-251`; `:225`);
+- the request's class comes from `fictional_client` and knowledge only (`:273, 294-296`);
+- the snapshot is the whole Design Revision (`application/research.py:245-248`), and
+  `fictional_client` is the allowlist (`apps/executors/src/aia_executors/research_agents.py:129`);
+- the brief keeps each file's `context_excerpt` and up to 22 000 characters of attachment text in
+  `briefing.attachments_context`, as 18.6.6's `briefAttachmentContext1785` did
+  (`apps/web/src/unit/research/brief.ts:101-111`);
+- the documented rule names knowledge, not attachments (`docs/architecture/research-agents.md:49-53`).
+
+**Reproduction.** Prints `CLASS_C_INTERNAL True`:
+
+```
+python -c "from aia_core.domain.research_agents import ResearchAction as A, agent_request, context_snapshot; r = agent_request(A.ANALYZE, context_snapshot({'briefing': {'attachments': [{'kind': 'file', 'filename': 'zadani.docx', 'context_excerpt': 'TEXT Z PRILOHY'}]}}, []), instruction='', policy_version='p', fictional_client=True, max_output_tokens=512); print(r.data_classification.value, 'TEXT Z PRILOHY' in r.messages[0].content)"
+```
+
+**Consequence.**
+
+- Nothing is sent today: the design jobs are off on develop (`AIA_AI_RESEARCH_AGENTS_ENABLED`,
+  `deploy/develop/docker-compose.yml:176`).
+- Once they are on, a document someone attaches to an allowlisted client's study leaves AIA
+  under ADR 0010's Class C approval, which does not cover confidential material, up to the 64 KB
+  context cap. Pasting the same text into the brief does the same. The allowlist (OI-63) is the
+  only control.
+- A real client's requests are Class A, and the approved route refuses them.
+- The phase-out owner's draft PR #74 stores attachments in AIA and fills the same fields
+  (`POST /api/v1/studies/{id}/workspace/attachments`), so this path no longer runs through the
+  unit.
+
+**Data-owner direction (2026-09-28).** A Study is not declared fictional to decide egress.
+Classify each material input by actual provenance and content, including a file's extracted text
+and text pasted into the brief. Client-supplied or unknown content cannot inherit Class C merely
+because a local test client is allowlisted. A request takes the most restrictive class of its
+parts; unknown classification refuses the model call. Class A/B material still needs an approved
+route before any live send. A generated test fixture may exercise Class C only when its own
+synthetic provenance is established; that does not authorize a production Study.
+
+**Engineering fix.** Job 6, owner of the design jobs' context and request, must carry the
+classification of attached and pasted material into `agent_request`, or omit unclassified text
+from a Class C request. Preserve the exact material fingerprint and the resulting class in the
+request's audit record. Add tests where (1) a synthetic local fixture uses its recorded Class C
+route, (2) an allowlisted local client with uploaded or pasted client/unknown text is refused
+before dispatch, and (3) approved knowledge and another client's material cannot lower the
+request's class. The existing reproduction above must change from `CLASS_C_INTERNAL True` to a
+refusal or a more restrictive request under the chosen implementation.
+
+**Status.** Direction decided; code still has the unsafe inheritance shown above, and design
+jobs must remain off for studies with unclassified attachments or pasted material. Numbered
+OI-73 on this entry's earlier branch until #83 put OI-76 on `develop`; renumbered under the
+contract's concurrent-entry rule (§5). This is not a new approval for Class A/B egress.

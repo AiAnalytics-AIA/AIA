@@ -16,13 +16,15 @@ It deliberately does not describe the product. That lives in
 | [workflows.md](docs/architecture/workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](docs/architecture/ai-runtime.md) | Providers, provenance, budgets, failure behaviour |
 | [ai-step-executor-contract.md](docs/architecture/ai-step-executor-contract.md) | The one seam between the model gateway and the workflow worker |
+| [research-agents.md](docs/architecture/research-agents.md) | Native design-proposal jobs: the eight actions, frozen context, review and acceptance |
+| [research-journey.md](docs/architecture/research-journey.md) | The research journey's integration contract: who owns each stage, the interfaces between jobs, shared files, what "accepted" means |
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](docs/architecture/scope-and-authorization.md) | Client/Study isolation |
 | [security.md](docs/architecture/security.md) | Threat model |
 | [sociomapa-deterministic-engine.md](docs/architecture/sociomapa-deterministic-engine.md) | Sociomapping engine: what is ported, declared and refused |
 | [sociomapa-methodology-decision.md](docs/architecture/sociomapa-methodology-decision.md) | The D6 decision package for the methodology owner |
 | [simulation-deterministic-engine.md](docs/architecture/simulation-deterministic-engine.md) | Simulation core boundary and parity status |
-| [adr/](docs/architecture/adr/README.md) | Eight decision records, with the reasoning |
+| [adr/](docs/architecture/adr/README.md) | The decision records, with the reasoning |
 
 ---
 
@@ -429,7 +431,7 @@ declared tier.
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Executor suite (the `develop_snapshot` step under the real loop, the develop seed, the smoke module) with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
-| API contract (OpenAPI paths + study-scoping assertion, now covering `/runs` and `/artifacts` too) | **blocking** |
+| API contract (OpenAPI paths + study-scoping assertion, now covering `/runs`, `/artifacts` and the research `agent-jobs` routes) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
 | Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
 | Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (`/` → `/app/clients`, `/app` behind AIA's own gate, no route to the 18.6.6 document and `/classic` only the web client's page, the unit only on its own paths through the panel's gate and without the session cookie, no catch-all to it, the oracle hostname behind basic auth); `docker compose config`, `bash -n` on the host scripts | **blocking** |
