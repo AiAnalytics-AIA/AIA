@@ -245,6 +245,85 @@ no decision.
       is resolved: ADR 0010 is accepted for fictional Class C on develop only (2026-09-26)*:
       search route configuration, a Class C smoke run, then Class B once D6 approves.
 
+## Implementation — recorded/offline core (Job 5, 2026-09-27)
+
+**Base:** `develop` @ `ceee2dc`. **Branch:** `feature/deep-research-core`. **Scope of this job:**
+an executable Deep Research core whose every published finding is traced to a captured
+source, proven on recorded exchanges only. No live search, no new paid call, no route or
+methodology approval, no migration, no API route, no screen, and no production registration:
+the integrator (Job 6) registers the workflow type and executors, and connects the design,
+respondent and analysis consumers to the contracts published here.
+
+### Decisions taken while implementing (each amends or narrows the approach above)
+
+| # | Decision | Why |
+|---|---|---|
+| I-1 | **Code drives retrieval; models only propose.** The planner proposes queries and the investigators propose evidence items in strict schemas; code decides which query leaves, runs search and fetch, and checks every quote. No model tool-use loop, and `ToolRegistry` keeps its two effects: `EXTERNAL_RETRIEVAL` is not registered, because the generalized metered ledger it needs does not exist (`domain/ai_tools.py` `ToolEffect` docstring). | The gateway makes one call and one repair; a tool loop is a shared gateway change (Job 6). A query that code sends is also one the egress and ledger saw. |
+| I-2 | **A query's class is inherited, never inferred down.** Class = the most restrictive of: the class of the context the proposing call saw, the client-term match, and n-gram overlap with Class A text the run holds. Keywords can only raise a class. Amends ADR 0017 decision 2. | A query paraphrasing a client's brief is still the client's brief with the names removed (web-search proposal, research-agents.md). |
+| I-3 | **Channels are separated by construction.** The web query proposer never sees Client Knowledge; internal retrieval is deterministic over the knowledge frozen at enqueue; the internal path holds no search or fetch adapter. | No knowledge-derived query can exist if nothing that writes queries has read knowledge. |
+| I-4 | **Checkpoints are artifacts.** A completed track is an artifact whose input fingerprint is the track fingerprint; `ArtifactRepository.find_reusable` is the checkpoint and the reuse. The same holds for verification batches, the synthesis and the bundle. | No parallel research database; a retry, and a later pass, re-buy nothing already bought. |
+| I-5 | **Grounding is exact.** A quote must occur (after whitespace/Unicode normalisation) in the content-addressed snapshot the item cites, that snapshot must belong to the same track, and every number in the claim must appear in the quote. | "The agent said so" and "a URL" are not retrieval. |
+| I-6 | **Tool cost contract without a migration.** `ToolReservation` / `ToolUsageEvent` / `ToolMeter`; each tool call's dispatch is journaled, committed and lease-fenced, before it leaves. A route with a price is refused until tool calls charge the study budget (handoff: the generalized ledger). Recorded adapters are free and say so. | Paid external side effects stay off until they are metered like model calls. |
+| I-7 | **Capabilities within today's bindings:** `RESEARCH_REASONING` (planner, investigators, synthesizer) and `CRITIC` (verifier), the two `AIRuntimeSettings` binds when research agents are enabled. | `ai_runtime.py` is not this job's; FAST_EXTRACTION/REPORT_WRITING bindings are a later registry change. |
+| I-8 | **Frozen at enqueue:** the design revision, the subjects, the brief digest, the approved Study-visible knowledge (bounded, omitted ids explicit) and the client-term list. A knowledge approval after enqueue does not change the job. | Frozen scoped context, as the design jobs do. |
+| I-9 | **Nothing registered in production.** `domain/deep_research/workflow.py` defines the `deep_research` graph and kinds; `workflow_templates.py`, `aia_executors/registry.py` and the API are untouched. A local recorded composition runs them and refuses outside `local`/`test`. | The integrator owns production registration (task ownership). |
+
+### Chunks as implemented (original numbers in brackets)
+
+**PR 1 — domain core** (pure, no I/O):
+
+- [x] a. Contracts [1]: subjects, tracks, snapshots, knowledge sources, evidence, quarantine
+      reasons, stop reasons, the bundle and its hash, quality status, evidence origin; the
+      workflow graph; the tool reservation/usage contract and an in-memory ledger.
+      `test_deep_research_contracts.py` (14).
+- [x] b. Legacy leakage screen and merge, EXACT [2]: `tools/deep_research_capture.py` runs
+      the vendored `research_context.py`; fixtures pinned with its SHA256. Gated under
+      `research.design` (`research.design/deep-research-leakage-merge`), because the matrix is
+      fixed at the reference's 78 capabilities. `test_deep_research_legacy.py` (94), including
+      `test_the_fixtures_reproduce_from_the_vendored_unit`.
+- [x] c. Grounding, source tables, query classifier, URL safety [3, 6, 7-policy].
+      `test_deep_research_{grounding,sources,classification,web_policy}.py` (90).
+- [x] d. Planning, fingerprints, coverage, presets, stop rule, budget split, frozen knowledge,
+      AIA merge, respondent-context quarantine, synthesis validation, agents and prompts
+      [3, 8-access, 9, 11-contracts]. `test_deep_research_{planning,knowledge_access,agents,
+      merge,synthesis,bundle_and_quarantine}.py` (55). Core suite 2783 passed / 201 skipped
+      (2530 / 201 on `develop` @ `ceee2dc`).
+
+**PR 2 — recorded execution** (stacked on PR 1, #79):
+
+- [x] e. Retrieval adapters and the governed gate [5, 7]: search/fetch protocols, the fetcher
+      (addresses re-checked across redirects, caps, HTML to text), recorded doubles that state
+      their own mode; classify → egress → meter → reserve → durable dispatch → call → outcome;
+      charges decided in the gate. `test_web_retrieval.py` (25), including
+      `test_every_redirect_hop_is_checked_and_the_metadata_service_is_never_reached`,
+      `test_a_call_is_charged_by_what_may_have_been_served`,
+      `test_a_recorded_replay_can_never_stand_behind_a_live_route`.
+- [x] f. Application service [8, 10]: `DeepResearchRuns` (freeze, start, get, runs, events,
+      cancel, retry, bundle, snapshot). `test_deep_research_runs.py` (10), including
+      `test_starting_twice_is_one_run_and_an_approval_in_between_is_a_new_one` and
+      `test_a_run_is_found_only_through_its_own_study_and_type`.
+- [x] g. Executors and compositions [10]: the six steps with artifact checkpoints
+      (`aia_executors/deep_research/`), the step records (`domain/deep_research/steps.py`,
+      `test_deep_research_steps.py` (4)), the production-shaped composition and its switch
+      (`deep_research_runtime.py`), the recorded composition (`deep_research_recorded.py`), 7
+      `layer_check` rules and their ARCHITECTURE.md §3 row.
+- [x] h. Worker journey [10, 11]: `apps/executors/tests/test_deep_research_journey.py` (17):
+      `test_pass_one_runs_every_phase_to_a_sealed_grounded_bundle` (13 model requests, 6
+      searches, 8 fetches, 7 accepted, 6 quarantined), `test_a_second_pass_reuses_unchanged_tracks_and_measures_what_it_bought`
+      (6 tracks reused; 5 requests, 3 searches, 2 fetches), and the failure modes: production
+      shape, unconfigured, a real client's design, foreign and altered requests, cancellation,
+      a lost model answer, a changed composition.
+
+Decisions taken while building PR 2 (ADR 0017 amendments 8–10): only completed work is
+reusable (a refused or cut-short track is its run's alone); tool charges are decided in the gate
+and never in AIA's favour; the planner is not asked when no query could leave. Execution,
+compositions, registration and the live-search decisions: `docs/architecture/deep-research.md`
+§§ 8–12.
+
+Not in this job: the ledger migration [4], the API and screen [12], live enablement [13], the
+knowledge-proposal write path and the report DOCX [11, partly], the `RESEARCH_DESIGN`
+fingerprint migration [11] (a pipeline change the integrator makes with its consumer).
+
 ## Review outcome
 
 Filled in when the plan is archived.

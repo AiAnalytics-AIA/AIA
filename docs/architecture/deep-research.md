@@ -1,0 +1,344 @@
+# Deep Research — the contracts
+
+**State:** recorded/offline. The domain rules and their execution through the worker are
+implemented and proven on recorded exchanges; nothing is registered, deployed or enabled. No
+live search or fetch exists; no search provider, route or account is approved (DR-2).
+Decision record: [ADR 0017](adr/0017-deep-research-external-retrieval.md) (*Proposed*,
+amended 2026-09-27). Plan and chunk state: [deep-research.md](../../.planning/plans/deep-research.md).
+Code: `packages/aia_core/src/aia_core/domain/deep_research/` (pure);
+`application/web_retrieval.py` (the gate), `application/deep_research.py` (the runs),
+`infrastructure/web_retrieval.py` (fetcher and recorded doubles);
+`apps/executors/src/aia_executors/deep_research/` (the steps), `deep_research_runtime.py`
+(production-shaped composition), `deep_research_recorded.py` (local and test only).
+
+This document is the handoff for whoever connects Deep Research to the rest of the
+Study: the shapes it publishes, the rules each consumer must keep, and what it
+needs from the platform. Where this document and the code disagree, the code's
+tests decide and this document is stale.
+
+## 1. What a run does
+
+`plan → investigate → merge → verify → synthesize → publish`, one Study-scoped
+workflow (`deep_research`, `domain/deep_research/workflow.py`) pinned to one Design
+Revision and filed under `DEEP_RESEARCH`.
+
+| Phase | Who decides | What it produces |
+|---|---|---|
+| plan | **code** picks the subjects and tracks; the planner model proposes sub-questions and queries for the web tracks it is shown; code refuses a plan that skips or invents a track | the plan: tracks, fingerprints, reuse, allowances |
+| investigate | **code** classifies and sends each query, fetches, snapshots; the investigator proposes findings with verbatim quotes; code grounds each | one artifact per track |
+| merge | **code**: declared source scores, dedupe, confirmation, the leakage rule | candidates, quarantine |
+| verify | the verifier model judges each candidate against its own excerpt | accepted / quarantined |
+| synthesize | the synthesizer writes a brief from accepted evidence only; **code** checks every citation and number | the brief, with exclusions |
+| publish | **code** | the sealed evidence bundle |
+
+## 2. The shapes (`contracts.py`)
+
+All closed (`extra="forbid"`) and frozen.
+
+- **`ResearchSubject`** — a research question, a tracked object, or a question ×
+  object cross. `key` is `q-`/`o-`/`x-` + 12 hex of its kind and normalised text
+  (`subject_key`), so the same question is the same subject in every pass, wherever
+  it sits in the design. `origin` says where it was read from.
+- **`ResearchTrack`** — one subject on one channel (`INTERNAL` or `WEB`).
+  `track_id` = `DRT-<I|W>-<subject key>` (stable across passes); `fingerprint` =
+  SHA256 of everything its result depends on (§4).
+- **`DeepResearchRequest`** — what a run is frozen to at enqueue: design revision id,
+  preset, channels, `BriefDigest`, subjects, the questionnaire as the leakage screen
+  reads it (`ScreenQuestion`), `FrozenKnowledge`, client terms. It carries no scope:
+  scope comes from the lease.
+- **`SourceSnapshot`** — a fetched page: `snapshot_id` = `SNP-` + 24 hex of its
+  normalised text (content-addressed), requested/canonical/final URL, redirects,
+  title, `retrieved_at`, HTTP status, content type, raw and text SHA256, byte size,
+  `truncated`, adapter, provider request id, `retrieval_mode` (`RECORDED` | `LIVE`),
+  and every prompt-injection pattern detected.
+- **`KnowledgeSource`** — one approved Client Knowledge item at one revision
+  (`ref` = `KNW-…@<revision>`), its normalised text, data class, lineage,
+  `truncated`, `public`.
+- **`EvidenceItem`** — a grounded finding: claim, verbatim quote and its span in the
+  source's normalised text, source ref/kind/URL/title, evidence type, and what the
+  investigating agent said about it (`agent_outcome_overlap`,
+  `agent_recommended_use`, `agent_source_quality` — recorded, never decisive).
+  `evidence_id` = `EV-` + 16 hex of (track fingerprint, source, quote, claim).
+- **`QuarantinedEvidence`** — a finding kept in the log with one
+  `QuarantineReason`: the legacy four (`target_outcome_overlap`,
+  `deterministic_target_overlap`, `low_source_quality`,
+  `no_independent_confirmation`) and AIA's (`ungrounded_excerpt`,
+  `citation_outside_track`, `number_not_in_quote`, `source_contains_instructions`,
+  `unsupported_by_verifier`, `overstated_by_verifier`, `unverified`,
+  `questionnaire_leakage`).
+- **`StopReason`** — exactly one per track: `depth_target_met`, `saturated`,
+  `queries_exhausted`, `budget_exhausted`, `all_queries_refused`,
+  `no_knowledge_matched`, `single_pass`, `web_retrieval_unavailable`,
+  `search_route_refused`, `model_route_refused`, `channel_not_requested`,
+  `tool_outcome_uncertain`, `track_limit`, `plan_incomplete`, `context_too_large`.
+- **`EvidenceBundle`** (`bundle.py`) — the published result: versions, request
+  fingerprint, preset and its status, subjects (crosses included), `TrackRecord`s
+  (status, stop reason, the refusing gate in words, reuse, queries with their class
+  and decision, snapshots, counts and costs), the coverage matrix and the question ×
+  object grid, accepted and quarantined evidence, `SnapshotRef`s, the brief,
+  `quality_status` (`GROUNDED` | `PARTIAL` | `NO_EVIDENCE`), `origins`
+  (`RECORDED_FIXTURE` | `LIVE_RETRIEVAL` | `CLIENT_KNOWLEDGE`), `fictional_client`,
+  `client_facing: false` always, and `sha256` over the rest (`verify()`).
+
+## 3. The rules code keeps
+
+**Grounding** (`grounding.py`, `aia-grounding-1`). A finding is admissible only if
+its source is one the same track retrieved (`citation_outside_track`), its quote —
+20 to 800 characters after NFKC, quotation-mark and dash folding and whitespace
+collapse — occurs in that source (`ungrounded_excerpt`), and every number in the
+claim is in the quote (`number_not_in_quote`). A source whose text matches a
+prompt-injection pattern is kept for provenance and its findings are quarantined
+(`source_contains_instructions`).
+
+**Source quality** (`sources.py`, `aia-source-table-1`). The class comes from the
+host of the fetched page through declared tables (official statistics, government
+and regulators, peer-reviewed, academic, preprint, industry research, media, forum
+and social), or from being approved Client Knowledge. An unknown host scores lowest
+(0.2); an undated or future-dated page loses the recency benefit; the threshold is
+the unit's 0.55. The agent's own score is never an input. The numbers are a proposal
+for the methodology owner.
+
+**Query class** (`classification.py`, `aia-query-classifier-1`). The most restrictive
+of: the class of the context the proposing call saw; any client term (client and
+study names and slugs, every non-public approved ENTITY/TERM), matched across case,
+diacritics, German transliteration, punctuation and spacing (→ at least B); a
+five-word run shared with Class A text the run holds (→ A). **Nothing lowers a
+class**: a paraphrase with every name removed keeps the class of what it was written
+from. A design is Class C only for a client the operator declared fictional
+(`agents.design_class`, the design jobs' rule).
+
+**What a fetch may reach** (`web.py`). `http`/`https` on default ports, no
+credentials, no internal hostnames, every resolved address globally routable
+(private, loopback, link-local and the metadata service, CGNAT, multicast, reserved,
+IPv4-mapped forms refused), a host that resolves to nothing refused, the same checks
+on every redirect hop (at most 3), at most 2 MB, only `text/html`, `text/plain` and
+`application/xhtml+xml`.
+
+**Merge and verification** (`merge.py`, `aia-merge-1`). Declared score, then dedupe
+(same source, claim similarity ≥ the unit's 0.42), then independent confirmation
+from a different source as a confidence bonus (+0.1 each, at most two, capped at
+0.98) — never the gate. Only a verifier verdict of `supported` makes accepted
+evidence.
+
+**The leakage rule** is the unit's, exactly (`legacy.py`, EXACT against captures of
+the vendored `research_context.py`; gate `research.design/deep-research-leakage-merge`).
+In AIA it bars a finding from respondent context rather than discarding it: a finding
+that reports a survey question's answer — by the agent's label or by the
+deterministic screen against the questionnaire the design holds — stays in the
+bundle as alignment evidence for the researcher, marked `EXCLUDED` for respondents.
+
+**The brief** (`synthesis.py`). Findings may cite accepted evidence only
+(`citation_not_accepted`), must name a subject of the run (`unknown_subject`), and
+may write only numbers their cited quotes carry, except a subject's own range as the
+subject writes it (`number_not_in_cited_evidence`). A failing finding is excluded
+with its reason; a summary with an unbacked number is withheld; accepted evidence
+with no surviving finding makes the brief `BLOCKED`.
+
+## 4. Tracks, fingerprints and reuse (`planning.py`)
+
+Subjects: research questions (`research_plan.research_questions`, or the goal when
+there are none yet), then tracked objects (`research_plan.tracked_sets[].objects`,
+`tracked_objects`, object batteries in `sections`), then approved ENTITY items the
+brief names. One track per subject per requested channel, questions first, internal
+before web; crosses only when the preset opens them.
+
+A track's fingerprint covers its subject, channel, depth preset, brief digest, model
+policy and prompt version, the grounding and classifier versions, and **either** the
+retrieval identity (web: route ids, recorded or live, adapter ids, prices) **or** the
+frozen knowledge (internal). It does not cover the other subjects. Consequences, each
+tested (`test_deep_research_planning.py`):
+
+- adding an object in a later pass leaves every existing track's fingerprint, and so
+  its stored result, valid; only the new object's tracks are researched;
+- a knowledge approval changes the internal tracks only; a change of retrieval (a
+  recorded route replaced by a live one) changes the web tracks only;
+- a changed brief or depth changes every track.
+
+**Depth presets** (`PRESETS`, status `PROPOSED_DR5`): `QUICK`, `STANDARD`, `DEEP`,
+each a set of visible numbers — queries per web track, pages per query, evidence
+target, knowledge items per track, crosses, saturation window, track limit, run
+limits on searches and fetches, verification batch size. A run names one; there is no
+default. Tracks beyond the limit are recorded as `track_limit`, never dropped.
+`allocate` splits the run's search and fetch limits equally across web tracks (the
+remainder to earlier tracks); `stop_reason` ends a track on the depth target,
+saturation (no new grounded evidence in the last *k* rounds), its budget share, or
+its queries, in that order.
+
+## 5. Internal retrieval (`knowledge_access.py`)
+
+The authorized interface is: **the knowledge frozen at enqueue** from
+`ClientKnowledgeRepository.for_study(scope)` under an issued `StudyContext` — the
+study's own client's approved items, nothing else — turned into `FrozenKnowledge` by
+`freeze_knowledge` (at most 200 items, 128 KB of text, 16 000 characters per item;
+omissions named, truncation flagged), and **`retrieve`** over it: lexical, folded,
+title words counted double, nothing returned for a subject no item mentions. There is
+no live knowledge read during a run and no model chooses what is read.
+
+Classes by kind: SOURCE, DOCUMENT, DATASET, ARTIFACT → Class A; FACT, FINDING, TERM,
+ENTITY, DIMENSION, AUDIENCE → Class B. DATASET, ARTIFACT and FINDING carry the named
+lineage `unclassified-client-knowledge`, which the licence gate refuses (as for the
+design jobs) until lineage is recorded. No route is approved for Class A or B today,
+so internal tracks are refused before any call on the current Class C route.
+
+## 6. What consumers may take (`quarantine.py`)
+
+| Consumer | Function | Rule |
+|---|---|---|
+| Fieldwork (respondents) | `respondent_context(bundle, final_questionnaire)` | Accepted, respondent-eligible evidence only, **re-screened against the final questionnaire** (`questionnaire_leakage`), at most 8 blocks in the unit's `KontextovyBlok` shape, role `EXTERNAL_CONTEXT`. Refuses a recorded bundle unless the caller passes `allow_recorded=True` (tests, workbench). |
+| Research design | `design_input(bundle)` | Every accepted finding per subject with quote, source, class, confidence and whether it may reach respondents; subjects with none are gaps. External context, never a measurement. |
+| Analysis and report | `analysis_context(bundle)` | External context only; `admissible_as_panel_claim` is always false. A number enters a result only as an `AdmittedClaim` from the population. |
+| Anything client-facing | `require_live_evidence(bundle)` | Refuses recorded fixtures and fictional clients. A person still signs off. |
+
+## 7. The cost contract for tools (`tooling.py`, `application/web_retrieval.py`)
+
+Search and fetch are bracketed like a model call: `ToolMeter.reserve` →
+`dispatching` (a `DISPATCHED` `ToolUsageEvent`, durable before the call leaves) →
+send → `outcome` (`SUCCEEDED` / `FAILED` / `UNCERTAIN` / `REFUSED`). `ToolRoute` binds an
+ADR 0008 route to an adapter, a retrieval mode and a price; a recorded route must declare a
+price of zero. `InMemoryToolLedger` never charges a study's budget
+(`charges_study_budget = False`).
+
+**The gate** (`RetrievalGate`) is the only way a query or URL leaves, in this order:
+classify (a URL from a public context, raised by client terms) → refuse Class A → `evaluate_egress`
+for the class on the tool's own route → refuse a priced route unless the meter charges the
+study (`tool_metering_unavailable`) → reserve → journal the dispatch → call → journal the
+outcome. Every refusal is recorded with its reason; nothing is rerouted. What a call is
+charged is decided there, never in AIA's favour: a provider that answered (success or error)
+costs the route's price; a failure that sent nothing costs nothing; an uncertain call, and a
+page refused after its dispatch (a later hop), cost the ceiling. `refusal_for_class` answers,
+without journaling, whether any query of a class could leave.
+
+**In a worker** (`aia_executors.deep_research.StepToolMeter`) every entry is a lease-fenced
+progress event named by `TOOL_EVENT_KINDS` (`deep_research_tool_dispatched`, …); the dispatch
+is written after a checkpoint and before the call, so a cancelled, stopping or lease-less step
+stops first. The journal holds the request's fingerprint, never the query text. Its ceiling is
+zero: only a free call can be reserved at all.
+
+**Adapters state their own mode.** A `SearchAdapter` and a `FetchTransport` each say
+`RECORDED` or `LIVE`, and a recorded one cannot say anything else; `WebRetrieval` refuses an
+adapter whose mode is not its route's, so a replay cannot stand behind a live route.
+
+## 8. Execution (`apps/executors/src/aia_executors/deep_research/`)
+
+A run is enqueued by `DeepResearchRuns.start(design_revision_id, preset_name, channels)`
+(`application/deep_research.py`): the request is frozen under the issued `StudyContext` --
+the revision, subjects, brief, questionnaire, the Study's own client's approved knowledge
+(`ClientKnowledgeRepository.for_study`) and the client terms (client and study names and
+slugs, non-public ENTITY/TERM items) -- and the graph is created on the Study's owned design
+project with the request's fingerprint as the idempotency key. A run, its bundle
+(`bundle`, seal verified) and its snapshots (`snapshot`, only those the bundle cites) are
+found only through the Study and the run's type. `retry` starts a failed or cancelled run
+again, frozen afresh; nothing stored is bought twice.
+
+| Step | Asks | Stores (`ARTIFACT_TYPES`) | Keyed by |
+|---|---|---|---|
+| plan | the planner, once, for the web tracks not already stored -- and only when a query of the design's class could leave | `deep_research_plan`: `PlanRecord` (tracks, reuse, planned queries, blocked tracks with their gate, allowances, versions) | this run |
+| investigate | per track: the internal investigator once over the knowledge `retrieve` found; the web investigator once per round over the round's new pages | `deep_research_track`: `TrackResult` per track; `deep_research_source_snapshot` per page; `InvestigationRecord` | a COMPLETED track: its fingerprint (any later run); otherwise this run; a snapshot: its content address |
+| merge | -- | `MergeRecord`: candidates and every quarantined finding | this run |
+| verify | the verifier once per batch (a track's candidates, `verify_batch` at a time) | `VerificationBatch` per batch; `VerifyRecord` | a batch: what the verifier is shown (any later run); the record: this run |
+| synthesize | the synthesizer once, when anything was accepted | `SynthesisArtifact` (the checked brief) | what it was shown (any later run) |
+| publish | -- | `deep_research_bundle`: `{"bundle": EvidenceBundle}` | this run |
+
+The shapes are `domain/deep_research/steps.py`. `tally` counts what the run did and spent from
+them -- a reused unit costs it nothing -- into the bundle's `counts` (tracks, reused, researched,
+blocked, incomplete, beyond the limit, model requests, searches, fetches, refused queries,
+snapshots, batches and reused batches, accepted, quarantined) and `spend_usd` (`model_usd`,
+`tool_usd`).
+
+A web track runs round by round: the stop rule is checked before each query; a refused query
+and a known search failure do not count as rounds; each result is fetched once per track within
+the track's allowance and snapshotted; one investigator request reads the round's new pages; an
+uncertain search or fetch ends the track `INCOMPLETE` (never retried). A track whose queries
+were all refused is `BLOCKED` (`all_queries_refused`). Every request is preflighted first, and a
+refused one (`model_route_refused`, `context_too_large`) spends nothing. Each step re-checks
+that the composition's versions, policy and retrieval are the ones the plan recorded
+(`composition_changed`), that the request matches the step's fingerprint (`request_altered`)
+and that its Design Revision is the held Study's (`design_not_in_scope`).
+
+## 9. Compositions and configuration
+
+| Composition | Built by | What a run does |
+|---|---|---|
+| none | `deep_research_registry(runtime=None)` | parks at plan (`RUNTIME_UNAVAILABLE`, `deep_research_unconfigured`); nothing read or sent |
+| production-shaped | `deep_research_runtime(settings)` (`deep_research_runtime.py`) | web tracks `web_retrieval_unavailable` without a planner call (no retrieval exists); internal tracks refused by the gateway on a Class C route; a completed bundle that says so |
+| recorded | `recorded_runtime(...)` (`deep_research_recorded.py`) | the whole path over a recorded exchange file; refuses unless `AIA_ENV` is `local` or `test`; `layer_check` keeps it out of the API, the worker, the other executors and deployments |
+
+Configuration: **`AIA_DEEP_RESEARCH_ENABLED`** (strict `true`/`false`, default off). On, it
+requires `AIA_AI_RUNTIME_ENABLED` and `AIA_AI_RESEARCH_AGENTS_ENABLED` -- the capabilities it
+names (`RESEARCH_REASONING`, `CRITIC`) are bound only then -- and uses their output limit and
+their per-request reservation (primary plus one repair, checked there against the model's
+ceilings); the worker refuses to start otherwise. There is no key for web retrieval: no
+provider exists to configure. The recorded exchange file's format is in
+`deep_research_recorded.py`; its SHA256 is in the adapter ids, so a changed recording changes
+every web track's fingerprint.
+
+## 10. What the integrator registers (Job 6)
+
+1. `deep_research` in `workflow_templates.WORKFLOW_TYPES` with `deep_research_steps()`, and
+   `start_workflow` able to create it for a Study's design project -- or keep
+   `DeepResearchRuns.start` as the one entry point, as now.
+2. `deep_research_registry(store=..., build=..., runtime=deep_research_runtime(settings))` in
+   `aia_executors/registry.py`, in the same change as 1: a worker claims only kinds it has
+   executors for, and a type without executors would wait forever.
+3. An API route over `DeepResearchRuns` (start, get, list, events, cancel, retry, bundle,
+   snapshot) with the Study's permissions, and a screen. The bundle is never client-facing. A
+   bundle or snapshot whose bytes fail verification is a 409 that commits the `CORRUPT` mark
+   before answering, as `routers/runs.py` › `artifact_corrupt` does since #84 (OI-77).
+4. The generalized metered ledger (a migration), so `ToolMeter.charges_study_budget` can be
+   true and tool spend reach the study's budget; then `EXTERNAL_RETRIEVAL` in `ToolRegistry`.
+5. The consumers: `respondent_context` at compile, `design_input` in the design jobs,
+   `analysis_context` in analysis and report, each after `require_live_evidence` where the
+   output is client-facing.
+6. OI-77's worker half reaches these steps: a corrupt upstream record or reused unit fails the
+   step `UNKNOWN`, its `CORRUPT` mark rolls back with the step's transaction, and every later run
+   that plans the same unit fails the same way (reproduced; `.planning/open-items.md` OI-77).
+   When that item's failure class and recompute decision are made, the fix goes into `_Step`
+   (`deep_research/_shared.py`) as well as the other executors.
+
+## 11. The recorded acceptance journey
+
+`pytest apps/executors/tests/test_deep_research_journey.py` (17 tests, about 9 s) runs the real
+worker, gateway, Bedrock adapter, gate and executors over `fixtures/deep_research/web.json`
+and recorded agent answers (`agents.json`), for a fictional client with one FACT and one Class A
+DOCUMENT approved. Pass 1: 8 tracks; 13 model requests (planner 1, internal 3, web 4, verifier 4,
+synthesizer 1), 6 searches, 8 fetches, 7 findings accepted and 6 quarantined -- one per reason:
+a number not in its quote, an invented quote, a citation outside the track, a page carrying
+injected instructions, a forum source, an overstated claim; a client-named query (Class B) and
+one repeating the Class A plan refused before sending; a private address and (in pass 2) a
+metadata-service redirect refused mid-fetch; the survey's own answers accepted but barred from
+respondents. Pass 2 adds one object: 6 tracks reused, 5 model requests, 3 searches, 2 fetches,
+4 of 5 verification batches reused. Also: the production shape (fictional or not) sends nothing;
+a real client's design writes no query; unconfigured parks; a foreign or altered request fails
+before anything is sent; cancellation between steps, and before a tool call leaves, stops it; a lost
+model answer waits for recovery and is not bought again; a changed composition is refused.
+**Completion is recorded/offline**: no provider was called and no page was fetched.
+
+## 12. Decisions live search needs
+
+Before any live search or fetch, each of these needs an owner's decision (none is taken here):
+
+1. **The provider and route per data class** (DR-2): which search API, EU processing, retention,
+   training exclusion, and terms that allow storing excerpts; whether any route may carry Class B.
+2. **Metering** (handoff 4 above): tool spend held against the study's budget, and whether a
+   provider bills an errored request (the gate charges it the price until its terms say).
+3. **DR-2b**: whether a code-built digest of a client's design may travel as Class B; until then a
+   real client's queries are Class A and never leave.
+4. **Client terms**: which ENTITY/TERM items are public, and whether study names (often generic)
+   count -- today they do, so a study named after its topic blocks every query.
+5. **Fetch**: a live transport that connects to the checked address (DNS rebinding), a user agent
+   and robots policy, and whether a fetch through a provider is billed per hop.
+6. **Freshness**: how long a live track result may be reused before it is researched again; today
+   a fingerprint match reuses it for ever.
+7. **Source tables and presets** (DR-5): the host classes, scores and threshold; the default depth.
+8. **D6**: a model route for Class A/B, without which internal tracks, and any real client's, stay
+   refused.
+
+## 13. Decisions this depends on
+
+| Id | Decision | Effect until made |
+|---|---|---|
+| DR-2 | A search provider and route per data class, with terms covering stored excerpts | No live search exists; only recorded retrieval runs |
+| DR-2b | May a code-built digest of a client's design (questions, object names) travel as Class B? | Queries from a real client's design are Class A and never leave |
+| DR-5 | Depth presets and default run budget | A run must name a proposed preset |
+| D6 | A model route for Class A/B | Internal tracks, and any real client's tracks, are refused before any call |
+| — | Which public terms are harmless (ENTITY/TERM `public`) | Every approved ENTITY/TERM is a client term |

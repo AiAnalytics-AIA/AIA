@@ -1,7 +1,7 @@
 # ADR 0017 — Deep Research: AIA-owned web retrieval, tiered query egress, and grounding as the acceptance rule
 
 **Status:** Proposed — develop (data owner's DR-1, DR-3, DR-4, 2026-09-25; DR-2 route choice and
-DR-5 open).
+DR-5 open). Amended 2026-09-27 by the recorded/offline implementation (§ Amendments).
 Builds on [ADR 0005](0005-llm-gateway.md) (one model call path), [ADR 0006](0006-langgraph-agent-execution.md)
 (a graph never outlives its attempt), [ADR 0007](0007-deterministic-tools.md) (models choose, code
 computes), [ADR 0008](0008-eu-data-residency.md) (the egress boundary), [ADR 0010](0010-bedrock-eu-inference-route.md)
@@ -75,8 +75,55 @@ Three facts decide the shape:
 - Live runs need a search provider route (DR-2). ADR 0010 is accepted for fictional Class C on
   develop only (AR-2, 2026-09-26); any client material, and so any Class B query or model call,
   needs D6. Everything else is buildable and testable offline on recorded doubles.
-- `research.deep_research` becomes its own parity-matrix capability: leakage screen and merge
-  EXACT, grounding and scoring as recorded intentional differences.
+- ~~`research.deep_research` becomes its own parity-matrix capability~~ — the matrix is fixed at
+  the reference's 78 capabilities; the leakage screen and merge are gated EXACT under
+  `research.design`, which owns `research_context.py` (amendment 6).
+
+## Amendments — 2026-09-27, the recorded/offline implementation
+
+What building it on today's runtime changed. Each keeps the decision's intent and says what is
+different and why; the contracts are in [deep-research.md](../deep-research.md).
+
+1. **Decision 1: retrieval is code-called, and `EXTERNAL_RETRIEVAL` is not registered yet.** The
+   gateway makes one call and one schema repair; there is no model tool loop, and adding one is a
+   shared gateway change. So models *propose* queries in a strict schema and code sends them
+   through classification, egress, a tool reservation and a journal. `ToolRegistry` keeps its two
+   effects: its own rule forbids registering a metered external tool before the generalized ledger
+   exists. The reserve / dispatching / outcome contract for tools is defined
+   (`domain/deep_research/tooling.py`); a route with a price is refused until tool spend is held
+   against the study's budget.
+2. **Decision 2: a query's class is inherited, never inferred down.** Class = the most restrictive
+   of the proposing call's context, a client-term match, and a five-word run shared with Class A
+   text. Keywords can only raise a class, so a paraphrase of a client's brief without the names is
+   still the client's brief. "Anything else is Class C" is replaced: a query written from a Class A
+   context is Class A. A design is Class C only for an operator-declared fictional client.
+3. **Decision 3: channels are separated by construction, not only by tool grant.** The web query
+   proposer is never shown Client Knowledge; internal retrieval is deterministic over the
+   knowledge frozen at enqueue; no agent holds any tool.
+4. **Decision 4: grounding is exact and narrower.** The cited source must be one the same track
+   retrieved; every number in the claim must be in the quote; a source containing
+   prompt-injection text is quarantined as a source.
+5. **Decision 5: the leakage rule bars, it does not discard.** A finding that reports a target
+   outcome stays in the bundle as alignment evidence for the researcher and is barred from
+   respondent context for good; respondent context is built at compile against the final
+   questionnaire, which re-screens everything else.
+6. **Consequences: parity.** Gated under `research.design`
+   (`research.design/deep-research-leakage-merge`), not as a new capability.
+7. **Decision 6: checkpoints are artifacts.** A completed track is an artifact whose input
+   fingerprint is the track fingerprint; `ArtifactRepository.find_reusable` is both the per-track
+   checkpoint and the cross-pass reuse. The fingerprint excludes the other subjects, so a pass that
+   adds an object re-buys only that object's tracks.
+8. **Decision 6, further: only completed work is reusable.** A track a gate refused, or one an
+   uncertain tool call cut short, is stored for its own run alone (a resumed step finds it; no
+   other run can), as are the plan and the review records. A refused track reused after its gate
+   opened would never be researched.
+9. **Decision 1, further: what a tool call is charged is decided in the gate, never in AIA's
+   favour.** A provider that answered is charged the route's price, error or not; a failure that
+   sent nothing is free; an uncertain call and a page refused after its dispatch are charged the
+   ceiling. Recorded routes have no price, so nothing moves today.
+10. **Decision 2, further: no model is paid to write a query that cannot leave.** The planner is
+    not asked when retrieval does not exist, when the design's class is A, or when the route or
+    its metering would refuse every query; the web tracks are blocked with the gate named.
 
 ## Revisit when
 

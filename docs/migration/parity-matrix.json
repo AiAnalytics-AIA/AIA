@@ -2806,8 +2806,10 @@
     "confirmed": false
    },
    "parity_owner": "parity-quality",
-   "implementation_state": "NOT_STARTED",
-   "implementation": [],
+   "implementation_state": "PARTIAL",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/deep_research/"
+   ],
    "reference_modules": [
     "project_intake.py",
     "research_context.py",
@@ -2818,7 +2820,20 @@
    "tolerance": null,
    "parity_reason": "AI-assisted design; structure and constraints matter, not wording",
    "fixtures": [],
-   "gates": [],
+   "gates": [
+    {
+     "id": "research.design/deep-research-leakage-merge",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_deep_research_legacy.py::test_fixtures_are_pinned_and_the_unit_source_is_the_one_captured",
+      "packages/aia_core/tests/test_deep_research_legacy.py::test_the_fixtures_reproduce_from_the_vendored_unit",
+      "packages/aia_core/tests/test_deep_research_legacy.py::test_target_overlap_matches_the_unit",
+      "packages/aia_core/tests/test_deep_research_legacy.py::test_coerce_and_merge_match_the_unit",
+      "packages/aia_core/tests/test_deep_research_legacy.py::test_every_merge_branch_is_exercised_by_the_captures"
+     ]
+    }
+   ],
    "recorded_evidence": [],
    "intentional_difference": null,
    "documented_deviations": [],
@@ -2828,7 +2843,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-02)."
    },
-   "notes": ""
+   "notes": "PARTIAL for research_context.py only: its leakage screen (_deterministic_target_overlap), tokens/similarity, URL canonicalisation and _merge_agents are ported EXACT (domain/deep_research/legacy.py) against fixtures captured from the vendored unit by tools/deep_research_capture.py and pinned with its SHA256. AIA uses the leakage rule and replaces self-reported source_quality and two-agent lexical consensus as acceptance with grounding in captured snapshots and declared source tables (ADR 0017, docs/architecture/deep-research.md): an intentional difference of the Deep Research core, which is recorded/offline only. The capability count is fixed at the reference's 78, so Deep Research is not a row of its own. project_intake.py, research_designer.py and research_project.py are not recorded here."
   },
   "respondents.context": {
    "family": "respondents",
