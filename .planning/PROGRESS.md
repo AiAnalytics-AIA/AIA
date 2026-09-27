@@ -69,7 +69,7 @@ attempt 3, green).
 |---|---|---|---|---|
 | #64 | `fix/deploy-without-home` | Deploy fails when SSM gives no `HOME` (OI-67) | Draft | **1**, unblocks every deploy |
 | #65 | `fix/api-tests-file-backed-sqlite` | Flaky API tests on shared in-memory SQLite (OI-69) | Draft | 2 |
-| — | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
+| #66 | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
 | #63 | `feature/research-agents` | Native Research design agents on Bedrock | Draft, "do not merge as completion"; conflicts with 3 in this file's header | 4, see below |
 | — | `claude/trusting-turing-2b9oyl` | Settings page on the real API | No PR yet; based on `main` | open a PR into `develop` |
 
