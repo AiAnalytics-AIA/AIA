@@ -1,6 +1,6 @@
 # Settings control panel
 
-**Status:** all chunks done; PR into `develop` · **Owner:** product-surface · **Started:** 2026-09-27
+**Status:** done — merged in PR #67 @ `2beafd9` (2026-09-27). Archived 2026-09-27 · **Owner:** product-surface · **Started:** 2026-09-27
 
 ## Problem
 
