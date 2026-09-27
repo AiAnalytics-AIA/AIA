@@ -20,7 +20,7 @@ entry is a **hypothesis**, not a finding.
 ## Where the code is — consolidation, 2026-09-27
 
 **`develop` holds the newest code, and nothing merged anywhere else is missing from
-it.** Of the 40 remote branches (10:20 UTC), 26 are fully contained in `develop`
+it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully contained in it
 (`git rev-list --count origin/develop..<branch>` = 0). The 14 that are not:
 
 - **In flight:** `feature/research-agents` (#63), the two fixes (#64, #65), and
@@ -118,8 +118,10 @@ PRs, each against the plan that already exists for it, not in the same branch.
    stop is an email, not a morning of red PRs.
 4. **Release `develop` → `main`** once #64 has merged and a deploy is green. PR #60,
    the previous attempt, was closed unmerged.
-5. **After the open PRs land, delete the 26 contained branches.** Tag the web-component
-   stack first (`feature/design-tokens`, `feature/enum-binding`), then delete it.
+5. **After the open PRs land, delete the 24 contained feature branches**: the 25 above,
+   less `coordination/agent-status`, which CLAUDE.md §5 keeps for agents' status files.
+   Tag the web-component stack first (`feature/design-tokens`, `feature/enum-binding`),
+   then delete it.
 
 ## Completed
 
