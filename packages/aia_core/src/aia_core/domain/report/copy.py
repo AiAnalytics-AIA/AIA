@@ -111,6 +111,26 @@ CS: Final[dict[str, str]] = {
     "disclosure_SCOPE": "Platí pro sledovanou populaci a období, nikoli obecně.",
     "disclosure_MODELED_VALUE": "Hodnota je modelovaná, nikoli změřená.",
     "disclosure_HISTORICAL": "Údaj je historický; nemusí odpovídat současnému stavu.",
+    # templates: chapter titles and fixed labels
+    "tpl_executive_summary": "Shrnutí pro vedení",
+    "tpl_research_questions": "Výzkumné otázky",
+    "tpl_questions_table": "Odpovědi na výzkumné otázky",
+    "tpl_question": "Otázka",
+    "tpl_answer": "Odpověď",
+    "tpl_strength": "Síla evidence",
+    "tpl_source_analysis": "AIA, analýza studie {study}",
+    "tpl_findings": "Co jsme zjistili",
+    "tpl_recommendations": "Doporučení",
+    "tpl_external_evidence": "Jak výsledky zapadají do dostupné externí evidence",
+    "tpl_confidence": "Jistota závěrů",
+    "tpl_method": "Metodika",
+    "tpl_limitations": "Limity",
+    "tpl_conclusion": "Závěr",
+    "tpl_triangulation": "Externí kontext a triangulace",
+    "tpl_support": "Efektivní podpora vzorku",
+    "tpl_purpose": "Účel studie",
+    "tpl_design": "Design studie",
+    "tpl_population": "Populace a vzorek",
     # method status (validation.METHOD_STATUS_*), printed on the page
     "method_status_pending": (
         "Syntetický a modelovaný výzkum. Externí prediktivní validace proti lidskému "

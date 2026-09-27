@@ -170,6 +170,8 @@ packages/aia_core/src/aia_core/
       copy.py               The report's own Czech vocabulary
       outline.py            Every printed number: chapters, appendices, headings, figures, cross-ref labels
       rendering.py          ReportRenderer protocol: the seam to the DOCX adapter
+      templates.py          client / final / internal / documentation recipes; the client report
+                            keeps the legacy client_report_v2 section order
     evidence/               What may be claimed — every gate fails closed
       field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
       joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units

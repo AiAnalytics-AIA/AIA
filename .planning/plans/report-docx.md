@@ -338,6 +338,27 @@ contracts and start when those are agreed.
   `test_report_docx_figures.py`, 8 tests. The render found exact leading crops
   pictures (AGENTS.md § DOCX).
 
+- **R8 — templates.** `domain/report/templates.py` (pure): `ReportContent`
+  (the legacy client-report fields as typed prose and blocks),
+  `FinalContent`, `DocumentationContent`, and four recipes. `client_report`
+  keeps the legacy order (`client_report_v2.py:149-158`): Shrnutí pro vedení
+  (lede, method callout, KPIs), Odpověď pro rozhodnutí, Výzkumné otázky (a
+  table), Co jsme zjistili (findings, then exhibits), Doporučení, Jak výsledky
+  zapadají do dostupné externí evidence, Jistota závěrů (with the evidence key),
+  Metodika, Limity, Závěr; then the appendices and the evidence appendix.
+  `final_report` inserts Externí kontext a triangulace and Efektivní podpora
+  vzorku after the external-evidence chapter. `internal_report` adds the Audit
+  appendix; `study_documentation` is purpose, design, population, support,
+  method, limits, evidence appendix, audit. A recipe refuses the wrong
+  `ReportKind`. `tests/report_samples.py` builds one sample per template (and
+  `stretch` lengthens prose for the stress check). Tests:
+  `test_report_templates.py`, 11 tests: every sample validates, renders and
+  lints clean; the section orders; **the client and final samples contain no
+  internal string** (provider, model, QA, run and study ids, "Audit"); the
+  internal sample carries them. Rendered: client 16 pages, final 18, internal
+  17, documentation 11. The render found a table row splitting from its
+  interval across a page (every data row is now `cantSplit`).
+
 ## Handoff — where to pick up
 
 **State.** R0–R2 are merged to `develop` (#53). R3 (`37a1c29`) and the R4 modules
