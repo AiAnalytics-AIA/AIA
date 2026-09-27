@@ -1,6 +1,6 @@
 # Plan: the report output stage — DOCX from the design system
 
-**Status:** in progress (2026-09-25). **Owner:** product-surface (A9).
+**Status:** paused at a checkpoint (2026-09-27); R0–R3 done, R4 started. See **Handoff** at the end. **Owner:** product-surface (A9).
 **Realises:** chunk 10 "Deliverable" of [`design-system.md`](design-system.md).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md) §4.9.
 Anchors are against `develop` @ b3bd42f unless stated.
@@ -236,4 +236,92 @@ contracts and start when those are agreed.
   genitive month, and refusing unrounded values), grades, the ledger, and every
   validation rule. The shared `report_ledger` fixture admits a study's evidence
   through the real gate.
+
+- **R4 — style sheet and furniture (started, not finished).** Landed, tested and
+  unwired:
+  - `domain/report/outline.py` computes every printed number: chapters 1..n,
+    appendices A..Z..AA, headings 1.1 and 1.1.1, figures and tables numbered
+    continuously, and the cross-reference labels ("graf 3", "oddíl 2.1").
+  - `infrastructure/report_docx/styles.py` holds the whole Word style sheet
+    built from `print_tokens` (`S` names every style), the data-table style
+    (rules, not boxes), and theme fonts stripped from every style in the sheet.
+  - `ooxml.py` holds fields with cached results (TOC, PAGE, STYLEREF, SEQ),
+    bookmarks, internal hyperlinks, and schema-ordered insertion.
+  - `numbering.py` holds bullets and numbered lists that restart per list.
+  - `footnotes.py` writes the footnotes part python-docx lacks, with the
+    separators and `footnotePr`.
+
+  Tests: `test_report_docx_styles.py`, 4 tests. They found that Word's
+  untouched default styles (Heading 4–9) also carry theme fonts, so the
+  stripping is now sheet-wide.
+
+## Handoff — where to pick up
+
+**State.** R0–R2 are merged to `develop` (#53). R3 (`37a1c29`) and the R4 modules
+above are on `feature/report-docx`, in the follow-up PR. Nothing renders a whole
+report yet: there is no `renderer.py`.
+
+**Next steps, in order.**
+
+1. **`infrastructure/report_docx/renderer.py`** — `DocxRenderer.render(doc) -> bytes`:
+   1. Run `require_valid(doc)`, then `build_outline(doc)`.
+   2. Build the sections in `layout.py`: cover (no running heads), front
+      matter (`pgNumType lowerRoman`), and body (`decimal`, restarting at 1).
+      The body header is the report title plus a tab plus
+      `STYLEREF "Heading 1"`. The body footer is the classification plus a tab
+      plus `PAGE`.
+   3. **With no `meta.approvals`, every footer says "KONCEPT — NESCHVÁLENO".**
+   4. Front matter: the document-control page (the meta table, approvals and
+      revision history; identifiers only for internal kinds), then Obsah, the
+      list of figures and the list of tables. Each is a TOC field
+      (`TOC \o "1-3" \h \z \u`, and `TOC \h \z \c "Graf"` / `"Tabulka"`)
+      pre-filled with the outline's entries as cached results.
+   5. Chapters: `Heading 1` gets the text "{number} {title}", with the number
+      in a doc-accent character style, and is bookmarked by its anchor. The
+      first H1 after the body section break must not also break the page.
+   6. Finally, run `Footnotes.finish()`, set the core properties (title,
+      subject, `language cs-CZ`, author "AIA"), call
+      `embed.embed_fonts(doc, print_tokens.FONTS)`, and add
+      `w:updateFields true` (in settings order) so Word refreshes the TOC.
+2. **R5 — block renderers** (`blocks.py`, one function per model block):
+   - Paragraph, lede, lists (through `Numbering`), and quote with attribution
+     and a "syntetický respondent" label.
+   - Callouts are paragraph shading `doc-wash` plus a left bar; METHOD always
+     uses `copy.t("method_status_*")`.
+   - KeyFinding and Recommendation use the legacy field labels.
+   - A KPI row is a borderless table.
+   - `Value` inline prints `numbers.with_unit(row.value, row.decimals, row.unit)`,
+     plus a grade mark and "orientační" when `ledger.is_indicative`.
+   - Footnote and CrossRef use the outline label.
+3. **R6 — tables.** Use `S.DATA_TABLE`, with the header row repeating
+   (`w:tblHeader`) and numbers right-aligned in `S.TABLE_NUMBER`. **A row with a
+   suppressed ref is dropped**, and the source line says "Potlačeno …: N". The
+   caption is above ("Tabulka N — title (n = …)"), with n from
+   `numbers.base_n(ledger.row(base_ref).support.effective_n)`. A landscape
+   table gets its own section.
+4. **R7 — figures and marks.**
+   - Charts are matplotlib (add it to the `report` extra), and axis and label
+     text are converted to paths. Use the `viz-*` colours in fixed order, direct
+     labels, one axis, and hatch modelled series.
+   - Embed as SVG plus a PNG fallback. `/tmp` prototype code:
+     `asvg:svgBlip` inside `a:extLst` of the PNG's `a:blip`, and set
+     `wp:docPr/@descr` to the alt text.
+   - Evidence marks are the same technique at about 2.5 mm, using the shapes in
+     the web `EvidenceMark` (on `feature/web-first-slice`).
+   - A SociomapFigure prints `stress_1` in its caption and is refused unless
+     `CLIENT_FACING`, which validation already enforces.
+5. **R8 — templates** (`domain/report/templates.py`): client report (the legacy
+   v2 section order, `client_report_v2.py:149-158`), final report (triangulation
+   and effective support), internal report (plus the audit block), and study
+   documentation.
+6. **R9 — `tools/report_preview.py`**: DOCX → PDF → PNG via LibreOffice (needs
+   `libreoffice-writer`; see AGENTS.md). Check greyscale and +35 % Czech text.
+7. **R10–R11** remain as the table above describes: coordinate them with
+   analysis-governance and platform-runtime.
+
+**Gotchas already paid for** are in AGENTS.md § DOCX: WOFF2 can't be embedded,
+fonts are matched by family name, theme fonts win over explicit fonts, Word
+enforces schema order, and LibreOffice needs Writer. The file-writing tool in
+this session turned `\u00a0` escapes into literal characters. Keep NBSP and
+en dash as escapes (AGENTS.md § ruff and Czech text).
 

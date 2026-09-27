@@ -158,6 +158,7 @@ packages/aia_core/src/aia_core/
       validation.py         Every rule a report must keep before it renders; fails closed
       numbers.py            Czech print formatting; never re-rounds; effective n rounds down
       copy.py               The report's own Czech vocabulary
+      outline.py            Every printed number: chapters, appendices, headings, figures, cross-ref labels
     evidence/               What may be claimed — every gate fails closed
       field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
       joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
@@ -186,6 +187,8 @@ packages/aia_core/src/aia_core/
   infrastructure/
     report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
       embed.py              ECMA-376 obfuscated font embedding; deterministic keys
+      styles.py             The Word style sheet, built from print_tokens (S = every style name)
+      ooxml.py, numbering.py, footnotes.py  Fields and bookmarks; lists; the footnotes part
       fonts/                Upstream TTFs, unmodified, with licences + SHA256SUMS
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
