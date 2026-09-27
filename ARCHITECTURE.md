@@ -414,7 +414,7 @@ declared tier.
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Executor suite (the `develop_snapshot` step under the real loop, the develop seed, the smoke module) with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
-| API contract (OpenAPI paths + study-scoping assertion, now covering `/runs` and `/artifacts` too) | **blocking** |
+| API contract (OpenAPI paths + study-scoping assertion, now covering `/runs`, `/artifacts` and the research `agent-jobs` routes) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
 | Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
 | Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (`/` → `/app/clients`, `/classic` and `/app` gated, the unit only on its own paths through the gate and without the session cookie, no catch-all to it, the oracle hostname behind basic auth); `docker compose config`, `bash -n` on the host scripts | **blocking** |
