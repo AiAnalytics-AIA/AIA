@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from aia_core.domain.evidence import REFERENCE_THRESHOLDS
 from aia_core.domain.providers import (
     DEFAULT_MAX_API_COST_USD,
@@ -14,6 +15,8 @@ from aia_core.domain.providers import (
 from aia_core.domain.scope import ROLE_PERMISSIONS, OrganizationRole, StudyStatus
 from aia_core.domain.workflow import DEFAULT_LEASE_SECONDS
 from fastapi.testclient import TestClient
+
+from aia_api.routers.settings import _database_backend
 
 API = "/api/v1"
 
@@ -53,9 +56,26 @@ def test_no_secret_reaches_the_document(owner: TestClient) -> None:
     # The test database URL is a path, not a secret, but a production URL carries a
     # password: only the backend name may appear.
     deployment = _groups(owner.get(f"{API}/settings").json())["deployment"]
-    assert deployment["database_backend"]["value"] in {"sqlite", "postgresql"}
+    # CI's SQLite job runs with DATABASE_URL="" (not configured), the PostgreSQL job
+    # with a URL: either way the document carries a backend name or null, never a URL.
+    assert deployment["database_backend"]["value"] in {None, "sqlite", "postgresql"}
     assert "://" not in raw
     assert deployment["cognito_configured"]["value"] is False
+
+
+@pytest.mark.parametrize(
+    ("url", "backend"),
+    [
+        ("", None),
+        ("   ", None),
+        ("sqlite+pysqlite:///:memory:", "sqlite"),
+        ("postgresql+psycopg://aia:s3cret@db.internal:5432/aia", "postgresql"),
+        ("postgres://aia:s3cret@db.internal/aia", "postgresql"),
+    ],
+)
+def test_a_database_url_is_reduced_to_its_backend(url: str, backend: str | None) -> None:
+    """Unset is null, not a guessed default; a password never survives."""
+    assert _database_backend(url) == backend
 
 
 def test_values_are_the_domain_constants(owner: TestClient) -> None:
