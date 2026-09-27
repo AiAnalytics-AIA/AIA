@@ -458,9 +458,9 @@ export const cs = {
           fields: "Pole obecného projektu",
           provider: {
             claude_code_subscription:
-              "běh prototypu 18.6.6 na předplatném Claude Code. Claude Code je dnes jen vývojářský nástroj pro práci na kódu AIA, ne součást jejího běhu.",
-            anthropic: "přímé Claude API prototypu",
-            openai: "OpenAI API prototypu",
+              "Běh prototypu 18.6.6 na předplatném Claude Code. Claude Code je dnes jen vývojářský nástroj pro práci na kódu AIA, ne součást jejího běhu.",
+            anthropic: "Přímé Claude API prototypu.",
+            openai: "OpenAI API prototypu.",
           },
           paid: "v záznamech s cenou za token",
           subscription: "v záznamech bez ceny za token (předplatné)",

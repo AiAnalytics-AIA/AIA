@@ -654,7 +654,8 @@ function HistoryPanel({ vocab, items }: { vocab: Vocabularies; items: SettingIte
             {historical.map((p) => (
               <li key={p.id} data-provider={p.id} className="text-sm">
                 {p.label} <code className="text-xs text-ink-faint">{p.id}</code>{" "}
-                <span className="text-xs text-ink-muted">— {t(`${H}.provider.${p.id}`)} {t(p.paid ? `${H}.paid` : `${H}.subscription`)}.</span>
+                <span className="text-xs text-ink-faint">· {t(p.paid ? `${H}.paid` : `${H}.subscription`)}</span>
+                <p className="text-xs text-ink-muted">{t(`${H}.provider.${p.id}`)}</p>
               </li>
             ))}
           </ul>
@@ -753,7 +754,8 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 
 // Groups with a dedicated panel, in page order. A group the API adds later still
 // renders -- generically, after these -- so a new control is never hidden.
-const ORDER = ["deployment", "ai", "ai_history", "access", "studies", "approvals", "residency", "workflow", "population", "evidence", "simulation"];
+// What powers AIA comes first: every reader needs it, the deployment's posture only administrators.
+const ORDER = ["ai", "ai_history", "deployment", "access", "studies", "approvals", "residency", "workflow", "population", "evidence", "simulation"];
 // Groups whose panel draws their rows itself (inside it), so they are not drawn twice.
 const OWN_ROWS = new Set(["ai_history"]);
 
