@@ -2348,3 +2348,62 @@ Changing the gate changes the shared test fixture as well; that is the point.
 **Status.** Open. Owner: Job 3, with evidence governance, before or together with the aggregate
 adapter. It is a rule of the research journey's contract (`docs/architecture/research-journey.md`
 §4, §6 rule 6).
+
+---
+
+## OI-73 · Decision owed (data owner) · May a file attached to a fictional client's study reach a model as Class C?
+
+**Claim.** A native design job sends the brief's attachment text to the model, and classifies the
+request by only two things: the client allowlist and the approved knowledge. A study of an
+allowlisted fictional client with no approved knowledge sends its attachments' text as
+`CLASS_C_INTERNAL`. No rule classifies an attachment's content on its own.
+
+**Anchor** (all @ `56b5768`):
+
+- `context_snapshot` copies the whole design into the context
+  (`packages/aia_core/src/aia_core/domain/research_agents.py:218-251`; `:225`);
+- the request's class comes from `fictional_client` and knowledge only (`:273, 294-296`);
+- the snapshot is the whole Design Revision (`application/research.py:245-248`), and
+  `fictional_client` is the allowlist (`apps/executors/src/aia_executors/research_agents.py:129`);
+- the brief keeps each file's `context_excerpt` and up to 22 000 characters of attachment text in
+  `briefing.attachments_context`, as 18.6.6's `briefAttachmentContext1785` did
+  (`apps/web/src/unit/research/brief.ts:101-111`);
+- the documented rule names knowledge, not attachments (`docs/architecture/research-agents.md:49-53`).
+
+**Reproduction.** Prints `CLASS_C_INTERNAL True`:
+
+```
+python -c "from aia_core.domain.research_agents import ResearchAction as A, agent_request, context_snapshot; r = agent_request(A.ANALYZE, context_snapshot({'briefing': {'attachments': [{'kind': 'file', 'filename': 'zadani.docx', 'context_excerpt': 'TEXT Z PRILOHY'}]}}, []), instruction='', policy_version='p', fictional_client=True, max_output_tokens=512); print(r.data_classification.value, 'TEXT Z PRILOHY' in r.messages[0].content)"
+```
+
+**Consequence.**
+
+- Nothing is sent today: the design jobs are off on develop (`AIA_AI_RESEARCH_AGENTS_ENABLED`,
+  `deploy/develop/docker-compose.yml:176`).
+- Once they are on, a document someone attaches to an allowlisted client's study leaves AIA
+  under ADR 0010's Class C approval, which does not cover confidential material, up to the 64 KB
+  context cap. Pasting the same text into the brief does the same. The allowlist (OI-63) is the
+  only control.
+- A real client's requests are Class A, and the approved route refuses them.
+- The phase-out owner's draft PR #74 stores attachments in AIA and fills the same fields
+  (`POST /api/v1/studies/{id}/workspace/attachments`), so this path no longer runs through the
+  unit.
+
+**Question for the data owner.** Is a file attached to a fictional client's study fictional
+material, and so Class C? Or is uploaded content client material, and so Class A, whatever the
+client's declaration?
+
+**Smallest fix**, for each answer:
+
+- *Class A:* `agent_request` classifies a design Class A whenever its brief carries a file's
+  extracted text. Alternatively, a Class C context leaves the extracted text out and keeps only
+  the file's name.
+- *Class C:* the documented rule says so, beside the knowledge rule in `research-agents.md`.
+
+**Test that would have caught it.** A test in `test_research_agents.py` that asserts the chosen
+rule for a design whose brief carries an attachment's text.
+
+**Status.** Open. The code's behaviour stands until answered. Owner of the decision: the data
+owner, with OI-63. Engineering owner: Job 6, which owns the design jobs' executor composition.
+The research journey's contract no longer claims attachment text stays out of Class C calls
+(`docs/architecture/research-journey.md` §6 rule 5, §10).

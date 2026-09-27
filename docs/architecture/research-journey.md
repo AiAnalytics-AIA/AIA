@@ -130,7 +130,7 @@ actions still go to the unit: the classic Data Library's Deep Research, *Diagnos
 | Objects | `service_a` … `service_e`, fictional service concepts |
 | Questionnaire | one rating battery over the five objects (it feeds Aggregate and the Sociomap), one single-choice question, one open question |
 | Fieldwork | n = 20 from the fictional roster; datasets `SYNTHETIC_AI_FICTIONAL`; no panel lineage (OI-61) |
-| Attachment | one fictional text file, stored and scoped by the PO's workspace. Its content reaches no Class C call (§6 rule 5) |
+| Attachment | one fictional text file, stored and scoped by the PO's workspace. The scenario records each model request that carries its text, and that request's class. Which class is right waits on OI-73 (§6 rule 5) |
 
 The seed (`application/develop_seed.py`, `SEED_PROJECT_CONTENT`) and the 2026-09-26 live fieldwork
 study use the same brief and objects, so recorded and live evidence stay comparable.
@@ -303,7 +303,7 @@ re-points its `down_revision`. The chain has one head today: `1777fcb96352`; PR 
 
 | File or area | Owner | Rule for others |
 |---|---|---|
-| `domain/workflow_templates.py`; `apps/executors/src/aia_executors/registry.py`; `aia_executors/ai_runtime.py` bindings | J6 | handoff |
+| `domain/workflow_templates.py`; `apps/executors/src/aia_executors/registry.py`; `aia_executors/ai_runtime.py` bindings; the design jobs' context and request (`context_snapshot`, `agent_request` in `domain/research_agents.py`) | J6 | handoff |
 | The worker's `AIA_AI_*` keys in `deploy/develop/docker-compose.yml` and `env.example` | J6 | J1 displays them; the PO owns the rest of the file |
 | `apps/api/src/aia_api/main.py` | J6 for research routers; PO for workspace and gate routers | one registration change at a time |
 | The `api-contract` paths in `.github/workflows/ci.yml`; `apps/web/src/lib/api.ts` | J6 for research paths and types; PO for workspace paths and types | no edits to the other owner's lines |
@@ -326,9 +326,12 @@ re-points its `down_revision`. The chain has one head today: `1777fcb96352`; PR 
    request id, cost, population binding and `data_origin`.
 4. Every paid call is reserved before dispatch, settled once and ledgered. An uncertain delivery
    goes to `RECOVERY_REQUIRED` and is never retried automatically.
-5. Class C applies only to an allowlisted fictional client with no transmitted client material.
-   Approved knowledge, or an attachment's content, makes a request Class A, and the approved route
-   refuses Class A. Panel-derived data is refused by the licence gate (OI-61).
+5. Class C applies only to an allowlisted fictional client (OI-63) whose request carries no
+   approved knowledge. Approved knowledge makes a request Class A
+   (`domain/research_agents.py:273, 294-296`), and the approved route refuses Class A. An
+   attachment's text has no class of its own: it travels in the class of the design that carries
+   it until the data owner answers OI-73. Panel-derived data is refused by the licence gate
+   (OI-61).
 6. A number reaches a result or a report only as an `AdmittedClaim`. `NON_EVIDENCE_ORIGINS` never
    become client-facing claims, and every evidence row carries the origin of its data (OI-72). The
    Sociomap stays `INTERNAL_ONLY` while D6 (Sociomap methodology) is open.
@@ -417,6 +420,7 @@ every component head recorded.
 | The unit stays "as the oracle and a fallback" | ADR 0015 decision 5; OI-58 | the oracle and a frozen reference only; no runtime fallback (the user's direction) | handed to the PO |
 | AIA's AI default is `claude_code_subscription` / `CLAUDE_CODE_ONLY` | `GET /api/v1/settings` (`routers/settings.py:200-217`) | these are persisted legacy fields; the worker binds Bedrock capabilities only | handed to J1 |
 | Run, Progress and Results use no unit route; the rebuilt stages call unit AI routes | `docs/migration/interface-screens.json` | all eight stages need `/api/bootstrap` and `/api/projects/load`; the AI actions are native agent jobs | handed to the PO |
+| Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the question is OI-73 |
 | Implementation states of `ai.gateway`, `ai.usage_ledger`, `ai.credentials`, `reports.generation` (`NOT_STARTED`) and `workflow.step_execution`'s note ("No research step body exists") | `parity-matrix.json` | all have merged code. Re-grading them touches the module inventory (OI-30) | handed to the parity owner |
 
 ## 11. Handoff to the phase-out owner
