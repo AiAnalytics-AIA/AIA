@@ -1367,11 +1367,11 @@
       "disposition": "port",
       "phase": 5,
       "context": "research-design",
-      "note": "Guided research design and dual-agent research context",
+      "note": "Guided research design and dual-agent research context. Leakage screen and merge ported EXACT (domain/deep_research/legacy.py, research.design gate); provider-side web search replaced by AIA-owned retrieval (ADR 0017), recorded/offline only",
       "module": "research_context.py",
       "loc": 512,
       "docstring": "Dual-agent Research Context for NPC Panel. Contract -------- * OFF means OFF: no OpenAI/Anthropic research call is made. * ON uses the globally selected provider (OpenAI or Anthropic) fail-closed. * D",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",
