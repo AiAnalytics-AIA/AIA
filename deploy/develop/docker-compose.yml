@@ -1,14 +1,15 @@
 # The develop environment: one host, six services, ADR 0009 and ADR 0011.
 #
 #   caddy         public HTTPS entrypoint (80/443), proxies to web, api and legacy-panel
-#                 (the product hostname is AIA, ADR 0015; the 18.6.6 unit behind the gate,
-#                 at /classic and on its own paths)
+#                 (the product hostname is AIA, ADR 0015; the 18.6.6 unit behind the
+#                 panel's gate on its own paths only, which no AIA page calls, ADR 0018)
 #   web           Next.js standalone, internal only
 #   api           FastAPI under uvicorn, internal only
 #   worker        aia-worker, no inbound port
 #   postgres      PostgreSQL 16 on a named volume, internal only
-#   legacy-panel  the vendored NPC Panel 18.6.6 unit: the product hostname's interface
-#                 behind AIA sign-in, and its own hostname behind basic auth as the oracle
+#   legacy-panel  the vendored NPC Panel 18.6.6 unit: its own hostname behind basic auth
+#                 as the oracle, and its paths on the product hostname until ADR 0018
+#                 decision 5 takes it out of this file
 #
 # Every image is pulled by immutable git SHA (AIA_IMAGE_TAG), never by a floating
 # tag, so the running deployment is always traceable to one commit. Migrations

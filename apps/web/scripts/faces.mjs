@@ -1,7 +1,6 @@
 /**
  * The self-hosted faces, served from public/skin/fonts/ at /skin/fonts/. One list:
- * AIA's own pages import the fonts.css that build-tokens.mjs generates, and the
- * 18.6.6 interface skin (build-skin.mjs, ADR 0013) is built from the same
+ * AIA's own pages import the fonts.css that build-tokens.mjs generates from these
  * entries. The family names must match the first entry of each stack in
  * tokens.type.families; build-tokens.mjs refuses a stack no entry provides.
  */

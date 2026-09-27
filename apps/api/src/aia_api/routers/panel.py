@@ -1,10 +1,11 @@
 """The gate in front of AIA's pages and the vendored 18.6.6 unit on the product hostname.
 
-The develop site is AIA's client-first application (ADR 0015); the 18.6.6
-interface is an explicit hand-off at ``/classic`` and the unit still serves its
-own paths, while AIA rebuilds each feature (ADR 0012). The unit has no identity
-model (reference R14), so every request Caddy forwards to ``/app``, ``/classic``
-or a unit path first asks this router:
+The develop site is AIA's client-first application (ADR 0015), behind AIA's own
+gate (``routers/session.py``, ADR 0018). The 18.6.6 interface is no longer served,
+but the unit still answers its own paths until the deployment stops running it
+(ADR 0018 decision 5), and no AIA page calls them. The unit has no identity model
+(reference R14), so every request Caddy forwards to a unit path first asks this
+router:
 
 * ``POST /panel/session`` turns the Cognito id token the web client holds into an
   HttpOnly, SameSite=Lax cookie, after the same verification every API call gets

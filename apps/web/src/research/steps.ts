@@ -16,7 +16,7 @@ export const RAIL_STEPS = [
 export const STEP_KEYS = ["brief", "plan", "questionnaire", "audience", "persona", "run", "progress", "results", "verify", "next"] as const;
 export type StepKey = (typeof STEP_KEYS)[number];
 
-/** The classic router's name for each step, for a hand-off (`#aia:open=<id>@<route>`). */
+/** The classic router's name for each step: what the parity tests hand 18.6.6's own functions. */
 export const CLASSIC_ROUTE: Record<StepKey, string> = {
   brief: "brief",
   plan: "plan",
@@ -30,7 +30,7 @@ export const CLASSIC_ROUTE: Record<StepKey, string> = {
   next: "next",
 };
 
-/** The steps with a rebuilt screen. The others hand off to the classic interface. */
+/** The steps with a rebuilt screen. The others say they are not in AIA (StepPlaceholder, ADR 0018). */
 export const REBUILT_STEPS: ReadonlySet<StepKey> = new Set<StepKey>([
   "brief", "plan", "questionnaire", "audience", "persona",
   // ADR 0016: run, progress and results execute in AIA, not the unit.

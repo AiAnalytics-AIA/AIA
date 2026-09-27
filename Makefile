@@ -97,16 +97,16 @@ parity-status: ## Parity verdict per capability, from a fresh run of every suite
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
 
-ui-workbench: ## AIA's client-first interface + the classic 18.6.6 one on this machine (fictional panel): 127.0.0.1:8780
+ui-workbench: ## AIA's client-first interface on this machine, the 18.6.6 unit beside it as reference (fictional panel): 127.0.0.1:8780
 	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up
 
 ui-workbench-aia: ## AIA alone, the 18.6.6 unit not started (its paths answer 502): 127.0.0.1:8780
 	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up --no-unit
 
-ui-workbench-status: ## Is the UI workbench running, and is the skin applied?
+ui-workbench-status: ## Is the UI workbench running, and do the API and /app answer?
 	@python3 tools/ui_workbench/workbench.py status
 
-ui-capture: ## Screenshot every screen of the workbench, bare and skinned -> tmp/ui-workbench/shots/<time>/index.html
+ui-capture: ## Screenshot every AIA screen, and the unit's as shipped -> tmp/ui-workbench/shots/<time>/index.html
 	@node tools/ui_workbench/capture.mjs
 
 ui-fixtures: ## Write the workbench's fictional research projects (the screens that show an AI answer)
