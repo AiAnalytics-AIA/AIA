@@ -30,6 +30,7 @@ from aia_core.application.analysis_results import (
     DATASET_ARTIFACT,
     SPECIFICATION_ARTIFACT,
     DatasetMaterial,
+    SourcesRefused,
     reconstruct_run,
 )
 from aia_core.application.research import ResearchRuns, research_artifacts
@@ -324,7 +325,7 @@ def _start(
     design: dict[str, Any] = DESIGN,
     *,
     source: FieldworkSource = FieldworkSource.SYNTHETIC_FIXTURE,
-    surface: ClaimSurface = ClaimSurface.INTERNAL,
+    surface: ClaimSurface | None = ClaimSurface.INTERNAL,
 ) -> str:
     """A research run with the eight analysis nodes, as the integration will build it."""
     with world.sessions() as session:
@@ -350,7 +351,13 @@ def _start(
             step_inputs={
                 "compile": {"design_revision_id": revision.revision_id},
                 "run": {"fieldwork_source": source.value},
-                **analysis_step_inputs(surface),
+                **(
+                    analysis_step_inputs(surface)
+                    if surface is not None
+                    else {  # a step that does not say which surface it writes for
+                        analysis_node_key(m): {"analysis_module": m.value} for m in AnalysisModuleId
+                    }
+                ),
             },
         )
         session.commit()
@@ -1019,3 +1026,34 @@ def test_a_checkpoint_whose_bytes_changed_is_never_replayed_and_the_turn_is_aske
     record = _record(world, store, output["artifact_id"])
     assert [(c.turn, c.replayed) for c in record.calls] == [(1, False), (2, False)]
     assert "99 %" not in json.dumps(record.model_dump(mode="json"), ensure_ascii=False)
+
+
+def test_a_step_that_does_not_name_its_surface_fails_and_nothing_is_guessed(
+    world: Any, run_with: Callable[..., Worker]
+) -> None:
+    models = ScriptedModels()
+    run_id = _start(world, surface=None)
+    _drain(run_with(models))
+    assert models.requests == []
+    failed = [s for s in _analysis(_run(world, run_id)).values() if s["attempts"]]
+    assert failed and all(s["status"] is StepRunStatus.FAILED for s in failed)
+    error = failed[0]["attempts"][-1]
+    assert error["failure_class"] is FailureClass.MISSING_CONFIGURATION
+    assert error["error"]["reason"] == "analysis_step_unnamed"
+
+
+def test_sources_that_do_not_describe_one_computation_fail_the_step_before_any_call(
+    world: Any, run_with: Callable[..., Worker], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refused(*_: Any, **__: Any) -> Any:
+        raise SourcesRefused("aggregate_lineage", "the aggregate records another dataset")
+
+    monkeypatch.setattr(analysis, "native_sources", refused)
+    models = ScriptedModels()
+    run_id = _start(world)
+    _drain(run_with(models))
+    assert models.requests == []
+    failed = [s for s in _analysis(_run(world, run_id)).values() if s["attempts"]]
+    error = failed[0]["attempts"][-1]
+    assert error["failure_class"] is FailureClass.SCHEMA_VIOLATION
+    assert error["error"]["reason"] == "aggregate_lineage"
