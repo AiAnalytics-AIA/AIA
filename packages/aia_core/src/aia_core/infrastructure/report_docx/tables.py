@@ -37,7 +37,7 @@ from aia_core.infrastructure.report_docx import layout
 from aia_core.infrastructure.report_docx.blocks import base_text, shows_interval, write_mark
 from aia_core.infrastructure.report_docx.context import Container, RenderContext
 from aia_core.infrastructure.report_docx.marks import grade_label
-from aia_core.infrastructure.report_docx.ooxml import add_field, full_width, header_row
+from aia_core.infrastructure.report_docx.ooxml import add_field, full_width, header_row, keep_row
 from aia_core.infrastructure.report_docx.styles import S
 
 INDICATIVE_MARK: Final = "\u2020"  # dagger
@@ -174,7 +174,9 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
         p.add_run(_head_label(column))
     any_indicative = False
     for trow in kept:
-        cells = table.add_row().cells
+        row = table.add_row()
+        keep_row(row)
+        cells = row.cells
         for cell, column, value in zip(cells, block.columns, trow.cells, strict=True):
             any_indicative |= _write_cell(
                 ctx, cell, column, value, strong=trow.emphasis, marks=grade is None

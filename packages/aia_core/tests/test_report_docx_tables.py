@@ -127,6 +127,7 @@ def test_units_in_the_header_numbers_right_aligned_header_repeats(report_ledger:
     rows = tbl.findall(f"{W}tr")
     head = rows[0]
     assert head.find(f"{W}trPr/{W}tblHeader") is not None
+    assert all(r.find(f"{W}trPr/{W}cantSplit") is not None for r in rows)
     assert [_t(c) for c in head.findall(f"{W}tc")] == ["Region", "Důvěra (%)"]
     praha = rows[1].findall(f"{W}tc")[1]
     styles = [p.find(f"{W}pPr/{W}pStyle").get(f"{W}val") for p in praha.iter(f"{W}p")]

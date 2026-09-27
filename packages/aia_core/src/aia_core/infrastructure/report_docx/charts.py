@@ -308,7 +308,7 @@ def _dots(ax: Axes, fig: MplFigure, chart: Chart, data: list[list[Point | None]]
                               markerfacecolor=COLORS["doc-paper"] if series.modelled else color,
                               label=_series_label(series)))  # fmt: skip
     ax.set_yticks(range(len(chart.categories)), list(chart.categories))
-    ax.invert_yaxis()
+    ax.set_ylim(len(chart.categories) - 0.4, -0.6)  # top to bottom, clear of the axis
     ax.set_xlim(0, top * 1.2)
     ax.xaxis.set_major_formatter(_tick_formatter(0))
     ax.grid(axis="x")

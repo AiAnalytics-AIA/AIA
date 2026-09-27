@@ -278,6 +278,13 @@ def full_width(table: Any) -> None:
     )  # fmt: skip
 
 
+def keep_row(row: Any) -> None:
+    """Never split this row across pages (a value and its interval stay together)."""
+    tr_pr: etree._Element = row._tr.get_or_add_trPr()
+    if tr_pr.find(qn("w:cantSplit")) is None:
+        tr_pr.append(el("w:cantSplit"))
+
+
 def header_row(row: Any) -> None:
     """Repeat this row at the top of every page the table runs onto; never split it."""
     tr_pr: etree._Element = row._tr.get_or_add_trPr()
