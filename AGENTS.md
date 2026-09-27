@@ -1127,3 +1127,29 @@ Back up live SQLite with `Connection.backup`, not a copy of the main file:
 committed project content can still be in WAL. The host feeds the backup source
 to the old image before replacing it; a backup helper present only in the new
 image cannot protect the deployment that installs it.
+
+## Docker registry credentials on the develop host
+
+**`docker login` keeps the registry token, and so does the ECR helper's cache.**
+`aws ecr get-login-password | docker login` writes the token base64-encoded, not
+encrypted, into `~/.docker/config.json`; Docker prints "credentials are stored
+unencrypted" on every deploy. Amazon's credential helper asks the instance role on
+each pull instead, but by default it caches the same token in plain text in
+`~/.ecr/cache.json`. Name the helper per registry and turn its cache off
+(`deploy/develop/bin/lib.sh` › `ecr_login`, 2026-09-27).
+
+```bash
+# WRONG: a 12-hour token at rest in ~/.docker/config.json
+aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+
+# RIGHT: nothing at rest; the instance role is asked on every pull
+export AWS_ECR_DISABLE_CACHE=true
+jq --arg r "$REGISTRY" \
+  '.credHelpers[$r] = "ecr-login" | if has("auths") then .auths |= del(.[$r]) else . end' config.json
+```
+
+**A host package does not go in user-data.** cloud-init runs once per instance, so
+a package added to `infra/develop/user-data.yaml.tftpl` never reaches the running
+host, and with `user_data_replace_on_change = false` a changed `user_data` makes
+the AWS provider stop and start the instance on the next `terraform apply`. The
+deploy script installs what it needs, idempotently.

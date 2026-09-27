@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-27 · **Branch:** `feature/bedrock-settings-cleanup` (Codex Research repair; `develop` @ `9206bb6` merged in) ·
+**Updated:** 2026-09-27 · **Branch:** `claude/modest-hypatia-9gvdpx` (registry credentials on the develop host) ·
 **Trunk:** `main` (release) · **Integration:** `develop` (deployed, ADR 0009)
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -30,6 +30,7 @@ entry is a **hypothesis**, not a finding.
 
 | Phase | What | Anchor |
 |---|---|---|
+| Host | **No registry token at rest on the develop host.** `ecr_login` pulls through Amazon's ECR credential helper (instance role), installs the Ubuntu package on first use, removes the token `docker login` had stored unencrypted in root's `~/.docker/config.json`, and turns the helper's plain-text cache off. If the package cannot be installed, the deploy falls back to `docker login` and logs a warning. No Terraform or user-data change (a changed `user_data` would stop and start the host on apply) | `deploy/develop/bin/lib.sh` › `ecr_login` · `packages/aia_core/tests/test_develop_registry_credentials.py` |
 | Agent Runtime | **PR #56 merged and deployed** at `0310091`, 2026-09-26. CI `36234914562` and deploy `36235378083` passed; running worker SHA verified. ADR 0010 human approval recorded for fictional Class C on develop only, retention unspecified. Verified EU prices: input $3.30 / output $16.50 per million tokens. Audited Terraform apply removed only the unused eu-central-2 model grant. Live acceptance study completed: five steps succeeded; 20 primary calls; $0.2303301 ledger cost against $2; all reservations settled. | `apps/executors/src/aia_executors/ai_runtime.py` @ `0310091` · [activation evidence](../docs/architecture/bedrock-develop-activation-2026-09-26.md) · OI-63–65 |
 | PR C | **Research execution (ADR 0016)**: Design Revisions, the `research` workflow (`compile → preflight → run → aggregate → sociomap`), the honest park at fieldwork, Aggregate and the internal Sociomap, the Run/Progress/Results stages, the workbench proof. Merged PR #52 @ `b3bd42f`, CI green. Plan: [research-execution.md](plans/done/research-execution.md) | `apps/executors/src/aia_executors/research.py` · OI-61, OI-62 |
 | IA | **Client-first IA (ADR 0015)**: `/` → `/app/clients`; Clients → workspace → study → stages; Study.kind; ClientContext; Client Knowledge; the study↔unit binding (OI-58); `/classic` hand-off; no catch-all to the unit. Merged PR #51 @ `4ad5f66`, **live since deploy run 20** (2026-09-24 18:53 UTC, every smoke check ok). Plan archived: [done/client-first-ia.md](plans/done/client-first-ia.md) | `deploy/develop/Caddyfile` · `apps/api/src/aia_api/routers/workspace.py` · OI-58, OI-59, OI-60 |
