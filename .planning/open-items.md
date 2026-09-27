@@ -2377,13 +2377,13 @@ still runs, harmlessly. `request()` takes no abort signal, and giving it one wou
 the next call reads /config again* and *does not keep a refused answer either*; both fail against
 `dd27f68`'s `loadConfig` given only the reset hook. The one-file reproduction above.
 
-**Status.** Fixed in code on `fix/native-tests-config-cache` (2026-09-27). The reproduction passes
+**Status.** Fixed in code: PR #83 (`fix/native-tests-config-cache`, 2026-09-27). The reproduction passes
 9 of 9 with both changes, and with each alone. Full runs with the fix, on the same container:
 20 of 20 passed, 776 tests each, where `develop` @ `dd27f68` failed 2 of 10. Under doubled load
 (both trees' full suites at once, the Python suites alongside), `develop` passed 8 of 8 and this
 branch 7 of 8. That one failure was an unrelated test, `ClientFirst.test.tsx` › *loads the working
 content its AIA binding names…*: a separate race that `develop` has too, since it fails the same way
-on `dd27f68` when the stage's load starts 30 ms late (described in the pull request). `AGENTS.md`
+on `dd27f68` when the stage's load starts 30 ms late (described in PR #83). `AGENTS.md`
 § Next.js / TypeScript has the trap. Owner of the research screens: job 6 / the phase-out agent.
 PRs #74 and #77 touch neither `auth.ts` nor `test-native-agents.ts`, and their rewritten tests
 call `nativeAgentFixture`, so they carry the reset.
