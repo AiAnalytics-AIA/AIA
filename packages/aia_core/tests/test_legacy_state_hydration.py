@@ -8,6 +8,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[3]
 
 
@@ -83,3 +85,44 @@ def test_first_state_seed_with_wrong_digest_is_not_installed(tmp_path: Path) -> 
     tree = tmp_path / "tree"
     assert _hydrator().main([str(tree), "--source", str(source), "--manifest", str(manifest)]) == 1
     assert not (tree / "state.sqlite").exists()
+
+
+def test_interrupted_first_seed_is_retryable_and_never_published_as_working_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    seed = source / "state.sqlite"
+    with sqlite3.connect(seed) as connection:
+        connection.execute("CREATE TABLE projects (id TEXT)")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "files": [
+                    {
+                        "path": "state.sqlite",
+                        "class": "state_seed",
+                        "sha256": hashlib.sha256(seed.read_bytes()).hexdigest(),
+                    }
+                ]
+            }
+        )
+    )
+    tree = tmp_path / "tree"
+    args = [str(tree), "--source", str(source), "--manifest", str(manifest)]
+    module = _hydrator()
+
+    def interrupted_copy(src: Path, destination: Path) -> None:
+        Path(destination).write_bytes(b"partial SQLite seed")
+        raise InterruptedError("stopped during seed copy")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(module.shutil, "copyfile", interrupted_copy)
+        with pytest.raises(InterruptedError):
+            module.main(args)
+    assert not (tree / "state.sqlite").exists()
+    assert module.main(args) == 0
+    with sqlite3.connect(tree / "state.sqlite") as connection:
+        assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        assert connection.execute("SELECT * FROM projects").fetchall() == []

@@ -18,8 +18,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -29,6 +31,20 @@ def sha256_of(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def install_state_seed(source: Path, target: Path) -> None:
+    """Publish a complete first-use seed; interrupted copies remain retryable."""
+    fd, name = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
+    os.close(fd)
+    temporary = Path(name)
+    try:
+        shutil.copyfile(source, temporary)
+        with temporary.open("rb") as stream:
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def main(argv: list[str]) -> int:
@@ -78,7 +94,10 @@ def main(argv: list[str]) -> int:
                 continue           # strict: never place a file that is not the audited one
             unverified += 1        # warn: place it, but say so
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, target)
+        if e.get("class") == "state_seed":
+            install_state_seed(src, target)
+        else:
+            shutil.copyfile(src, target)
         if ok:
             copied += 1
 

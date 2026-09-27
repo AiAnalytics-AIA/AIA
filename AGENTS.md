@@ -1108,6 +1108,10 @@ archive seed and copying the seed on mismatch silently deletes projects while
 PostgreSQL retains their study bindings (2026-09-26, reproduced loading the Lumen
 study after PR #56 deployed). Runtime `hydrate_data.py` preserves any existing
 `state_seed` file; immutable assets and first installation remain hash-checked.
+Install the first seed through a temporary file in the same directory, sync the
+complete copy, then atomically rename it. A direct copy interrupted by a process
+or host stop leaves a partial regular file that the preservation rule would
+mistake for saved working state (PR #57 review).
 
 ```python
 # WRONG: a legitimate edit is treated as drift and replaced from the archive.

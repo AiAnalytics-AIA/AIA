@@ -19,7 +19,7 @@ entry is a **hypothesis**, not a finding.
 ## In progress — develop Research repair
 
 - Preserve mutable legacy state seeds and back up live working SQLite databases.
-  The overwrite defect is reproduced by `test_legacy_state_hydration.py`; WAL
+  First installation is atomic (PR #57 P2 review). The overwrite defect is reproduced by `test_legacy_state_hydration.py`; WAL
   backup coverage is in `test_legacy_state_backup.py`; export is off by default
   until separately approved. Recovery of affected
   working copies remains an operational task; do not infer it from the code fix.
