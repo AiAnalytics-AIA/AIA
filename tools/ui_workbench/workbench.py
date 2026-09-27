@@ -4,6 +4,8 @@
     python tools/ui_workbench/workbench.py status    # what is running, and answering
     python tools/ui_workbench/workbench.py down      # stop everything
     python tools/ui_workbench/workbench.py up --fresh  # also reset the unit's state
+    python tools/ui_workbench/workbench.py up --no-unit  # AIA alone: the unit not started,
+                                                     # its paths answer 502 (ADR 0018)
 
 Six processes, all under tmp/ui-workbench/ (git-ignored):
 
@@ -56,6 +58,10 @@ LOGS = HOME / "logs"
 STATE = HOME / "state.json"
 
 UNIT_PORT, API_PORT, WEB_PORT, FACADE_PORT = 8767, 8766, 13000, 8780
+# With --no-unit the unit's upstream is a port nothing listens on: a request that
+# still reached for the unit would fail loudly (502), never quietly succeed.
+CLOSED = "127.0.0.1:9"
+NO_UNIT = HOME / "no-unit"
 NAMES = ("unit", "api", "worker", "web", "skin", "facade")
 DB = HOME / "aia.sqlite"
 ARTIFACTS = HOME / "artifacts"
@@ -171,18 +177,26 @@ def _wait(url: str, what: str, seconds: int) -> tuple[int, dict[str, str]]:
     raise SystemExit(f"workbench: {what} did not answer at {url} within {seconds}s; see {LOGS}")
 
 
-def up(fresh: bool) -> int:
+def up(fresh: bool, no_unit: bool = False) -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     state = {k: v for k, v in _read_state().items() if _alive(v)}
+    if no_unit != NO_UNIT.exists() and state:
+        print("workbench: running in the other mode; `down` first", file=sys.stderr)
+        return 1
     if fresh:
         for name in ("unit", "api", "worker"):
             if name in state:
                 _stop(name, state.pop(name))
-    ensure_venv()
-    ensure_unit_copy(fresh)
+    if no_unit:
+        NO_UNIT.write_text("the 18.6.6 unit is not part of this workbench\n")
+    else:
+        NO_UNIT.unlink(missing_ok=True)
+        ensure_venv()
+        ensure_unit_copy(fresh)
     ensure_web_modules()
+    unit_at = CLOSED if no_unit else f"127.0.0.1:{UNIT_PORT}"
 
-    if "unit" not in state:
+    if "unit" not in state and not no_unit:
         state["unit"] = _spawn(
             "unit", [str(_python()), str(HERE / "unit_standin.py"), "--port", str(UNIT_PORT)], UNIT
         )
@@ -217,7 +231,7 @@ def up(fresh: bool) -> int:
             ],
             WEB,
             {
-                "AIA_LEGACY_PANEL_URL": f"http://127.0.0.1:{UNIT_PORT}",
+                "AIA_LEGACY_PANEL_URL": f"http://{unit_at}",
                 "AIA_INTERFACE_SKIN_ENABLED": "true",
                 "AIA_INTERFACE_REHOME_ENABLED": "true",
                 "NEXT_TELEMETRY_DISABLED": "1",
@@ -234,7 +248,7 @@ def up(fresh: bool) -> int:
                 "--web",
                 f"127.0.0.1:{WEB_PORT}",
                 "--unit",
-                f"127.0.0.1:{UNIT_PORT}",
+                unit_at,
                 "--api",
                 f"127.0.0.1:{API_PORT}",
             ],
@@ -242,7 +256,8 @@ def up(fresh: bool) -> int:
         )
     STATE.write_text(json.dumps(state, indent=1) + "\n")
 
-    _wait(f"http://127.0.0.1:{UNIT_PORT}/", "the unit", 180)
+    if not no_unit:
+        _wait(f"http://127.0.0.1:{UNIT_PORT}/", "the unit", 180)
     _wait(f"http://127.0.0.1:{API_PORT}/api/v1/health", "the AIA API", 120)
     # The API creates the schema on its first start; the worker claims from it.
     if "worker" not in state:
@@ -261,6 +276,12 @@ def up(fresh: bool) -> int:
             },
         )
         STATE.write_text(json.dumps(state, indent=1) + "\n")
+    if no_unit:
+        _wait(f"http://127.0.0.1:{FACADE_PORT}/app/clients", "the facade and web client", 240)
+        print(f"workbench: AIA      http://127.0.0.1:{FACADE_PORT}/workbench/sign-in")
+        print(f"workbench: no unit  its paths answer 502 (upstream {CLOSED})")
+        print(f"workbench: logs     {LOGS.relative_to(REPO)}/")
+        return 0
     status, headers = _wait(
         f"http://127.0.0.1:{FACADE_PORT}/classic", "the facade and web client", 240
     )
@@ -298,19 +319,26 @@ def down() -> int:
         if _alive(pid):
             _stop(name, pid)
     STATE.unlink(missing_ok=True)
+    NO_UNIT.unlink(missing_ok=True)
     return 0
 
 
 def status() -> int:
     state = _read_state()
+    no_unit = NO_UNIT.exists()
     ok = True
     for name in NAMES:
+        if name == "unit" and no_unit:
+            print("unit    not part of this workbench (--no-unit)")
+            continue
         pid = state.get(name)
         alive = bool(pid) and _alive(pid or 0)
         ok &= alive
         print(f"{name:7} {'running' if alive else 'stopped'} {pid or ''}")
     api, _ = _probe(f"http://127.0.0.1:{FACADE_PORT}/api/v1/health", timeout=30)
     print(f"api     http://127.0.0.1:{FACADE_PORT}/api/v1/health  HTTP {api}")
+    if no_unit:
+        return 0 if ok and api == 200 else 1
     code, headers = _probe(f"http://127.0.0.1:{FACADE_PORT}/classic", timeout=30)
     skin = headers.get("x-aia-skin", "-")
     print(f"classic http://127.0.0.1:{FACADE_PORT}/classic  HTTP {code}  X-AIA-Skin: {skin}")
@@ -324,11 +352,16 @@ def main(argv: list[str]) -> int:
     p_up.add_argument(
         "--fresh", action="store_true", help="reset the unit's and the API's scratch state"
     )
+    p_up.add_argument(
+        "--no-unit",
+        action="store_true",
+        help="AIA alone: do not start the 18.6.6 unit; its paths answer 502 (ADR 0018)",
+    )
     sub.add_parser("down")
     sub.add_parser("status")
     args = ap.parse_args(argv)
     if args.cmd == "up":
-        return up(args.fresh)
+        return up(args.fresh, args.no_unit)
     if args.cmd == "down":
         return down()
     return status()

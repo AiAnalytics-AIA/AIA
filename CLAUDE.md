@@ -316,7 +316,9 @@ tools/ui_workbench/         AIA and the classic interface on this machine, for U
                             identity and the develop seed, `next dev`, the skin rebuilt on save, a
                             facade routed by the Caddyfile. Never parity. capture.mjs screenshots every
                             screen; fixture_project.py: fictional research projects bound to studies;
-                            a worker with fictional fieldwork; research_journey.mjs: Run -> Results
+                            a worker with fictional fieldwork; research_journey.mjs: Run -> Results;
+                            `up --no-unit`: AIA alone, the unit's paths 502; workspace_journey.mjs:
+                            a study's content, file, import, audience, dimensions on AIA alone
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
@@ -470,6 +472,7 @@ ungated fixture.
 | **Develop routing, run** | `sudo python3 tools/develop_routing_proof.py --keep`, then `node tools/develop_routing_journey.mjs` (disposable machine: Caddy on 80/443, `/etc/hosts` names; see the script) |
 | Workbench research fixtures | `make ui-fixtures` (workbench running): fictional projects, prints their `/app` links |
 | **A research run, end to end** | `make ui-research` (workbench + fixtures): Run → Progress → Results in a browser, on fictional fieldwork |
+| **AIA with 18.6.6 stopped** | `make ui-workbench-aia` (no unit; its paths answer 502), `make ui-fixtures`, `make ui-research`, `make ui-workspace` (brief file, template import, audience, dimensions); both journeys fail on a request to the unit |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, every router route and DEMO view, bare and skinned, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |

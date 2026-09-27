@@ -780,7 +780,7 @@ export const cs = {
       customPlaceholder: "Např. vztah k AI ve zdravotnictví",
       customAdd: "Přidat jako požadavek",
       customHelper: "Taková dimenze se neaktivuje naslepo. Uloží se jako návrh do Znalostí klienta; do katalogu přibude, až ho někdo schválí.",
-      waiting: "{label} · čeká na evidenci",
+      waiting: "{label} · čeká na schválení",
       sampleTag: "DOPORUČENÁ VELIKOST",
       sampleTitle: "Vzorek",
       sampleChip: "N={n}",

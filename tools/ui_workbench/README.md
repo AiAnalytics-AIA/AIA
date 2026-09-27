@@ -8,6 +8,8 @@ capture of every screen. Plan:
 
 ```bash
 make ui-workbench          # start, or confirm running
+make ui-workbench-aia      # AIA alone: the 18.6.6 unit not started, its paths answer 502 (ADR 0018)
+make ui-workspace          # on AIA alone: a study's content, file, import, audience, dimensions
 make ui-capture            # screenshot every screen -> tmp/ui-workbench/shots/<time>/index.html
 make ui-fixtures           # the fictional research projects, bound to AIA studies; prints their links
 make ui-research           # one research run in a browser: Run -> Progress -> Results (needs ui-fixtures)
@@ -23,6 +25,13 @@ python3 tools/ui_workbench/workbench.py up --fresh   # also reset the unit's and
 | <http://127.0.0.1:8780/app/clients> | AIA (React, `next dev`: saves show at once) |
 | <http://127.0.0.1:8780/classic> | The classic interface as develop hands off to it: skinned, with the bar back to AIA |
 | <http://127.0.0.1:8767/> | The same unit, bare, byte for byte |
+
+`make ui-workbench-aia` (`workbench.py up --no-unit`) starts everything but the unit
+and points the facade's unit upstream at a closed port, so a request that still
+reaches for the unit answers 502 instead of quietly succeeding. It is how the
+product is checked with 18.6.6 stopped: `make ui-fixtures`, `make ui-research` and
+`make ui-workspace` all pass on it, and the two journeys fail on any request to a
+path the unit serves. `down` first to switch between the two modes.
 
 Routing is read from the committed Caddyfile (`facade.py`): the web client's
 matchers, the unit's `@unit` paths, `/api/v1/*` to the API, and every other

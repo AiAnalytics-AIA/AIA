@@ -100,6 +100,9 @@ test-web: ## Web client tests
 ui-workbench: ## AIA's client-first interface + the classic 18.6.6 one on this machine (fictional panel): 127.0.0.1:8780
 	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up
 
+ui-workbench-aia: ## AIA alone, the 18.6.6 unit not started (its paths answer 502): 127.0.0.1:8780
+	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up --no-unit
+
 ui-workbench-status: ## Is the UI workbench running, and is the skin applied?
 	@python3 tools/ui_workbench/workbench.py status
 
@@ -111,6 +114,9 @@ ui-fixtures: ## Write the workbench's fictional research projects (the screens t
 
 ui-research: ## One research run end to end in a browser on the workbench: Run -> Progress -> Results (fictional fieldwork)
 	@node tools/ui_workbench/research_journey.mjs
+
+ui-workspace: ## A study's working content in a browser on AIA alone: brief file, template import, audience, dimensions (needs ui-workbench-aia + ui-fixtures)
+	@node tools/ui_workbench/workspace_journey.mjs
 
 ui-workbench-down: ## Stop the UI workbench
 	@python3 tools/ui_workbench/workbench.py down

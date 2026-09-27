@@ -141,7 +141,7 @@ describe("Dimenze", () => {
       summary: "Mění ochotu",
       content: { source_strategy: "document", spec: { predictors: [{ column: "vek", direction: "positive", strength: 1 }] }, origin: "claude", requested_from: "research_dimensions" },
     });
-    expect(screen.getByText("Důvěra v AI · čeká na evidenci")).toBeTruthy();
+    expect(screen.getByText("Důvěra v AI · čeká na schválení")).toBeTruthy();
     noUnitCalls();
   }, 20_000);
 
@@ -168,7 +168,7 @@ describe("Dimenze", () => {
       summary: "Požadavek projektu: Vztah k AI ve zdravotnictví",
       content: { source_strategy: "document_or_research", spec: { predictors: [] }, origin: "user", requested_from: "research_dimensions" },
     });
-    expect(screen.getByText("Vztah k AI ve zdravotnictví · čeká na evidenci")).toBeTruthy();
+    expect(screen.getByText("Vztah k AI ve zdravotnictví · čeká na schválení")).toBeTruthy();
     expect((input as HTMLInputElement).value).toBe("");
     await savedWith("requested_dimension_1793");
     expect(lastSave().content).toMatchObject({ requested_dimensions: [{ label: "Vztah k AI ve zdravotnictví", proposal_id: "KNP-1", status: "needs_evidence" }], persona_dimensions: { approved: ["zdravi", "media"] } });

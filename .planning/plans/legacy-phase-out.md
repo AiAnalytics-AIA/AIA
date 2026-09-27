@@ -159,7 +159,15 @@ PR 1 — native research workspace (`feature/native-research-workspace`)
   bundle had gone in chunk 2 — tests: `AudienceStep.test.tsx`, `PersonaStep.test.tsx`;
   every research stage's test now fails on any unit URL (`unitCalls()` in its
   `afterEach`)
-- [ ] 6. Documents: CLAUDE.md map, ARCHITECTURE §4, data-model, OI-58, ledgers
+- [x] 6. Documents: CLAUDE.md map, ARCHITECTURE §4, data-model, OI-58, both ledgers,
+  AGENTS.md (the Alembic backfill default; jsdom downloads), ADR 0018 (the save
+  normalization difference) — kept in step with each chunk. And the proof on AIA
+  alone: `workbench.py up --no-unit` (`make ui-workbench-aia`: the unit not started,
+  its paths answer 502), on which `make ui-fixtures`, `make ui-research` (Run →
+  Progress → Results) and the new `make ui-workspace` (a new study's brief text and
+  file, a reload, the download; AIA's template imported back; audience and Dimenze)
+  pass in Chromium, both journeys failing on any request to a path of the unit
+  (2026-09-27: 244 requests, none to the unit, no 502)
 
 PR 2 — migration (`feature/legacy-workspace-migration`)
 - [ ] 7. The migration command, its validation and its report; runbook
