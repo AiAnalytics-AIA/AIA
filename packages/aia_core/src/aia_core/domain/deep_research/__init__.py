@@ -18,6 +18,7 @@ is pure:
 * :mod:`.merge` -- scoring, dedupe, confirmation and the verifier's verdicts;
 * :mod:`.synthesis` -- the brief, and what of it may be published;
 * :mod:`.bundle` -- the sealed evidence bundle;
+* :mod:`.steps` -- what each step of a run stores, and the gate each refusal names;
 * :mod:`.quarantine` -- what leaves the bundle for respondents, design and analysis.
 
 Pure: stdlib and Pydantic only.

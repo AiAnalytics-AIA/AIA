@@ -438,6 +438,10 @@ class StopReason(StrEnum):
     TOOL_OUTCOME_UNCERTAIN = "tool_outcome_uncertain"
     #: Beyond the preset's track limit: recorded and skipped, never dropped silently.
     TRACK_LIMIT = "track_limit"
+    #: The planner skipped the track or gave it no query; nothing was searched for it.
+    PLAN_INCOMPLETE = "plan_incomplete"
+    #: The request for this track's model would not fit the model's context window.
+    CONTEXT_TOO_LARGE = "context_too_large"
 
 
 class CoverageCell(_Closed):

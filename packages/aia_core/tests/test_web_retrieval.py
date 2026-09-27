@@ -579,3 +579,24 @@ def test_a_recorded_replay_can_never_stand_behind_a_live_route() -> None:
             search=_PricedSearch(script=[]),
             fetcher=recorded_fetcher,
         )
+
+
+def test_the_planning_step_can_ask_whether_any_query_of_a_class_could_leave(scoped: Any) -> None:
+    gate, ledger, search, _ = _gate(scoped.scope())
+    assert gate.refusal_for_class(DataClass.CLASS_A_CLIENT_CONFIDENTIAL) == "class_a_query"
+    assert gate.refusal_for_class(DataClass.CLASS_B_DERIVED_CLIENT) == (
+        "egress_route_not_approved_for_class"
+    )
+    assert gate.refusal_for_class(DataClass.CLASS_C_INTERNAL) is None
+    priced, meter, _, _ = _priced_gate(scoped.scope(), budget=1.0, script=[])
+    assert priced.refusal_for_class(DataClass.CLASS_C_INTERNAL) is None  # metered study budget
+    unmetered = RetrievalGate(
+        retrieval=priced._retrieval,
+        scope=scoped.scope(),
+        meter=InMemoryToolLedger(budget_usd=1.0),
+        client_terms=(),
+        class_a_texts=(),
+    )
+    assert unmetered.refusal_for_class(DataClass.CLASS_C_INTERNAL) == "tool_metering_unavailable"
+    # Asking sends nothing and journals nothing: nothing was proposed.
+    assert ledger.events() == () and meter.events() == () and search.calls == []

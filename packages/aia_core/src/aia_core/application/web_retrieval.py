@@ -203,6 +203,22 @@ class RetrievalGate:
             return "tool_metering_unavailable"
         return None
 
+    def refusal_for_class(self, data_class: DataClass) -> str | None:
+        """Why every query written from a context of ``data_class`` would be refused.
+
+        ``None`` when such a query could leave. Journals nothing: nothing was
+        proposed. The planning step asks first, so that no model is paid to write
+        queries that can never be sent. A fetch is judged for the public class its
+        URLs start from.
+        """
+        if data_class is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
+            return "class_a_query"
+        search = self._refusal(self._retrieval.search_route, data_class=data_class)
+        if search is not None:
+            return search
+        fetch = self._refusal(self._retrieval.fetch_route, data_class=DataClass.CLASS_C_INTERNAL)
+        return None if fetch is None else f"fetch_{fetch}"
+
     def _refuse(
         self, route: ToolRoute, *, reason: str, data_class: DataClass, track_id: str, sent: str
     ) -> None:
