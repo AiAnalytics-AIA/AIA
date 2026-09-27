@@ -1,0 +1,486 @@
+{
+  "v": 3,
+  "assetGroups": {
+    "Accessibility": {
+      "files": {
+        "greyscale-GradedBars.png": {
+          "blob": "d42b78e6b3cc8da0f7457053f10c081e",
+          "name": "greyscale-GradedBars.png",
+          "size": 11769,
+          "type": "image/png"
+        },
+        "greyscale-ReportPage.png": {
+          "blob": "1f392364a9be5dba9d1fe1001cc2351a",
+          "name": "greyscale-ReportPage.png",
+          "size": 73420,
+          "type": "image/png"
+        },
+        "greyscale-evidence-grades.png": {
+          "blob": "0dd295bd6819adff17fe5a2f118eecaf",
+          "name": "greyscale-evidence-grades.png",
+          "size": 48278,
+          "type": "image/png"
+        },
+        "greyscale-five-states.png": {
+          "blob": "b9410b0ed4f9ccc7b111015836d10b74",
+          "name": "greyscale-five-states.png",
+          "size": 34570,
+          "type": "image/png"
+        },
+        "greyscale-null-states.png": {
+          "blob": "22777918d64e8afdd596ef16e67c9ab4",
+          "name": "greyscale-null-states.png",
+          "size": 32981,
+          "type": "image/png"
+        }
+      },
+      "name": "Accessibility",
+      "order": [
+        "greyscale-GradedBars.png",
+        "greyscale-ReportPage.png",
+        "greyscale-evidence-grades.png",
+        "greyscale-five-states.png",
+        "greyscale-null-states.png"
+      ],
+      "tile": "l"
+    },
+    "Favicons": {
+      "files": {
+        "app-icon.svg": {
+          "blob": "2093b1ef67efba6543e690a75cf0de90",
+          "name": "app-icon.svg",
+          "size": 1645,
+          "type": "image/svg+xml"
+        },
+        "apple-touch-icon-180.png": {
+          "blob": "b3d366aa24c36238ff5d315e42712022",
+          "name": "apple-touch-icon-180.png",
+          "size": 7279,
+          "type": "image/png"
+        },
+        "favicon-16.png": {
+          "blob": "9414f7946ef570e07ea8dedd0af463da",
+          "name": "favicon-16.png",
+          "size": 412,
+          "type": "image/png"
+        },
+        "favicon-16.svg": {
+          "blob": "a22ef70a9125b350c6e9734175041bf8",
+          "name": "favicon-16.svg",
+          "size": 434,
+          "type": "image/svg+xml"
+        },
+        "favicon-32.png": {
+          "blob": "737c2374bb935c0f83b2d52f15e30de4",
+          "name": "favicon-32.png",
+          "size": 1153,
+          "type": "image/png"
+        },
+        "icon-512.png": {
+          "blob": "43c4c06b97a484b6bcdc5b6aa55a7e47",
+          "name": "icon-512.png",
+          "size": 22494,
+          "type": "image/png"
+        }
+      },
+      "name": "Favicons",
+      "order": [
+        "app-icon.svg",
+        "apple-touch-icon-180.png",
+        "favicon-16.png",
+        "favicon-16.svg",
+        "favicon-32.png",
+        "icon-512.png"
+      ],
+      "tile": "s"
+    },
+    "Icons": {
+      "files": {
+        "artifact.svg": {
+          "blob": "e06aaeeb054d7ce8996917bde8337266",
+          "name": "artifact.svg",
+          "size": 239,
+          "type": "image/svg+xml"
+        },
+        "budget.svg": {
+          "blob": "1bc0e66d68afa1009e05928a80f6766c",
+          "name": "budget.svg",
+          "size": 279,
+          "type": "image/svg+xml"
+        },
+        "check.svg": {
+          "blob": "ec57ab8c4622b1dfee74cfab7f3ee200",
+          "name": "check.svg",
+          "size": 224,
+          "type": "image/svg+xml"
+        },
+        "chevron.svg": {
+          "blob": "a754142e9cc512caee0de59370c97c50",
+          "name": "chevron.svg",
+          "size": 209,
+          "type": "image/svg+xml"
+        },
+        "client.svg": {
+          "blob": "cadbe9b40f157e96112a27df044a9ab9",
+          "name": "client.svg",
+          "size": 262,
+          "type": "image/svg+xml"
+        },
+        "clock.svg": {
+          "blob": "3cd1dc310aa680d3fba6f17cb6644c11",
+          "name": "clock.svg",
+          "size": 244,
+          "type": "image/svg+xml"
+        },
+        "close.svg": {
+          "blob": "352a23db04c0de547493867255bf72b1",
+          "name": "close.svg",
+          "size": 229,
+          "type": "image/svg+xml"
+        },
+        "evidence.svg": {
+          "blob": "8b7f9fe735b1f0db7c94d09be19ac7c9",
+          "name": "evidence.svg",
+          "size": 389,
+          "type": "image/svg+xml"
+        },
+        "export.svg": {
+          "blob": "b0e2ca8e1ba07d15eb1cf5e77200d484",
+          "name": "export.svg",
+          "size": 263,
+          "type": "image/svg+xml"
+        },
+        "fingerprint.svg": {
+          "blob": "fb234dfa1d08cec39be23132a869bd3b",
+          "name": "fingerprint.svg",
+          "size": 288,
+          "type": "image/svg+xml"
+        },
+        "gate.svg": {
+          "blob": "8fb7a35cff61d00afc769f931c0e9d1e",
+          "name": "gate.svg",
+          "size": 302,
+          "type": "image/svg+xml"
+        },
+        "keyboard.svg": {
+          "blob": "61d6e848f5db87725de1c4adf953498b",
+          "name": "keyboard.svg",
+          "size": 316,
+          "type": "image/svg+xml"
+        },
+        "ledger.svg": {
+          "blob": "97b95f3944c2ae849e818a3a3360a853",
+          "name": "ledger.svg",
+          "size": 289,
+          "type": "image/svg+xml"
+        },
+        "library.svg": {
+          "blob": "16edd9051b820541ddc2612ff6cf5eb2",
+          "name": "library.svg",
+          "size": 274,
+          "type": "image/svg+xml"
+        },
+        "map.svg": {
+          "blob": "d8db81c7fe7ac82b6a4d30f9bc423a91",
+          "name": "map.svg",
+          "size": 369,
+          "type": "image/svg+xml"
+        },
+        "missing.svg": {
+          "blob": "bcbb3af4a989e8e8bb437c0f42fcd26d",
+          "name": "missing.svg",
+          "size": 269,
+          "type": "image/svg+xml"
+        },
+        "parked.svg": {
+          "blob": "15a02409bff2e7cac9cee7e517edd3c0",
+          "name": "parked.svg",
+          "size": 252,
+          "type": "image/svg+xml"
+        },
+        "population.svg": {
+          "blob": "2f85193d23a23976c8c1bb9433daf317",
+          "name": "population.svg",
+          "size": 611,
+          "type": "image/svg+xml"
+        },
+        "portfolio.svg": {
+          "blob": "8b72c64abeae18ad0fbd93ef4a6ec1f9",
+          "name": "portfolio.svg",
+          "size": 283,
+          "type": "image/svg+xml"
+        },
+        "provider.svg": {
+          "blob": "7e2581a3d2144b26762301134e0bf036",
+          "name": "provider.svg",
+          "size": 275,
+          "type": "image/svg+xml"
+        },
+        "recovery.svg": {
+          "blob": "f9928516aefa487c6bebfcd32767a591",
+          "name": "recovery.svg",
+          "size": 273,
+          "type": "image/svg+xml"
+        },
+        "reservation.svg": {
+          "blob": "ca785ed442f65de2cef0333acdd50be5",
+          "name": "reservation.svg",
+          "size": 287,
+          "type": "image/svg+xml"
+        },
+        "revision.svg": {
+          "blob": "cefca1b91f01660184544e1d4914deab",
+          "name": "revision.svg",
+          "size": 232,
+          "type": "image/svg+xml"
+        },
+        "search.svg": {
+          "blob": "54ba6a63a00de6dbea1bc3f618bff8b3",
+          "name": "search.svg",
+          "size": 250,
+          "type": "image/svg+xml"
+        },
+        "settings.svg": {
+          "blob": "0a6fdee0cd6cc90c563f539a913d6534",
+          "name": "settings.svg",
+          "size": 323,
+          "type": "image/svg+xml"
+        },
+        "signoff.svg": {
+          "blob": "945c6843e3144a8e495079c46319c99f",
+          "name": "signoff.svg",
+          "size": 256,
+          "type": "image/svg+xml"
+        },
+        "stage.svg": {
+          "blob": "f9cf2b1524fa93ba34a45d88cce498c0",
+          "name": "stage.svg",
+          "size": 255,
+          "type": "image/svg+xml"
+        },
+        "study.svg": {
+          "blob": "02e7789562f6b17513873d58aeccb992",
+          "name": "study.svg",
+          "size": 235,
+          "type": "image/svg+xml"
+        },
+        "suppressed.svg": {
+          "blob": "eca4ef282a0a6522b04576023249716f",
+          "name": "suppressed.svg",
+          "size": 255,
+          "type": "image/svg+xml"
+        },
+        "view.svg": {
+          "blob": "bb1e5478413bb3224fad2f5d359efd70",
+          "name": "view.svg",
+          "size": 280,
+          "type": "image/svg+xml"
+        },
+        "waiting.svg": {
+          "blob": "8a67cb78689fcb72a69d16cb6381ef91",
+          "name": "waiting.svg",
+          "size": 274,
+          "type": "image/svg+xml"
+        },
+        "whatif.svg": {
+          "blob": "2d1898ac53953a4ec7638a7b2d612107",
+          "name": "whatif.svg",
+          "size": 265,
+          "type": "image/svg+xml"
+        }
+      },
+      "name": "Icons",
+      "order": [
+        "artifact.svg",
+        "budget.svg",
+        "check.svg",
+        "chevron.svg",
+        "client.svg",
+        "clock.svg",
+        "close.svg",
+        "evidence.svg",
+        "export.svg",
+        "fingerprint.svg",
+        "gate.svg",
+        "keyboard.svg",
+        "ledger.svg",
+        "library.svg",
+        "map.svg",
+        "missing.svg",
+        "parked.svg",
+        "population.svg",
+        "portfolio.svg",
+        "provider.svg",
+        "recovery.svg",
+        "reservation.svg",
+        "revision.svg",
+        "search.svg",
+        "settings.svg",
+        "signoff.svg",
+        "stage.svg",
+        "study.svg",
+        "suppressed.svg",
+        "view.svg",
+        "waiting.svg",
+        "whatif.svg"
+      ],
+      "tile": "xs"
+    },
+    "Logos": {
+      "files": {
+        "aia-lockup-mono.svg": {
+          "blob": "1145a262674eb9db10b1aef1d65f8f75",
+          "name": "aia-lockup-mono.svg",
+          "size": 12363,
+          "type": "image/svg+xml"
+        },
+        "aia-lockup.svg": {
+          "blob": "bae166c91a247822a67850c6fbf7923f",
+          "name": "aia-lockup.svg",
+          "size": 12363,
+          "type": "image/svg+xml"
+        },
+        "aia-mark-mono-black.svg": {
+          "blob": "3d118f31920a4b357dc941420bfb4bf0",
+          "name": "aia-mark-mono-black.svg",
+          "size": 1579,
+          "type": "image/svg+xml"
+        },
+        "aia-mark-mono-white.svg": {
+          "blob": "a02454ac41c4447f08b85534f9bbfaad",
+          "name": "aia-mark-mono-white.svg",
+          "size": 1579,
+          "type": "image/svg+xml"
+        },
+        "aia-mark-on-graphite.svg": {
+          "blob": "8803ea344d4608c6dc2312e7ee895ca6",
+          "name": "aia-mark-on-graphite.svg",
+          "size": 1633,
+          "type": "image/svg+xml"
+        },
+        "aia-mark.svg": {
+          "blob": "937c30bca8105e3a198497609ef295ce",
+          "name": "aia-mark.svg",
+          "size": 1579,
+          "type": "image/svg+xml"
+        },
+        "aia-wordmark-mono.svg": {
+          "blob": "f76436bd502afba68966c85924aca0bc",
+          "name": "aia-wordmark-mono.svg",
+          "size": 821,
+          "type": "image/svg+xml"
+        },
+        "aia-wordmark-on-graphite.svg": {
+          "blob": "6b0469ffde51fba36dabd3a139f1e99e",
+          "name": "aia-wordmark-on-graphite.svg",
+          "size": 962,
+          "type": "image/svg+xml"
+        },
+        "aia-wordmark.svg": {
+          "blob": "2e5db96265741a2dcecfd7fcbe6d9f55",
+          "name": "aia-wordmark.svg",
+          "size": 821,
+          "type": "image/svg+xml"
+        }
+      },
+      "name": "Logos",
+      "order": [
+        "aia-mark.svg",
+        "aia-mark-on-graphite.svg",
+        "aia-wordmark.svg",
+        "aia-wordmark-on-graphite.svg",
+        "aia-lockup.svg",
+        "aia-mark-mono-black.svg",
+        "aia-mark-mono-white.svg",
+        "aia-wordmark-mono.svg",
+        "aia-lockup-mono.svg",
+        "README.md"
+      ],
+      "tile": "l"
+    },
+    "Motif": {
+      "files": {
+        "lattice-field-on-graphite.svg": {
+          "blob": "46891a7e8691d8997003765d4bcdf695",
+          "name": "lattice-field-on-graphite.svg",
+          "size": 52370,
+          "type": "image/svg+xml"
+        },
+        "lattice-field.svg": {
+          "blob": "6f1af03cf9ddde4e7ab7b0ae6c97e5f2",
+          "name": "lattice-field.svg",
+          "size": 52324,
+          "type": "image/svg+xml"
+        },
+        "report-cover-field.svg": {
+          "blob": "fc6370a7b1d1e4d5490baeb68b9c2c7a",
+          "name": "report-cover-field.svg",
+          "size": 19018,
+          "type": "image/svg+xml"
+        },
+        "section-divider.svg": {
+          "blob": "a6e2a6a5c0c44c28713a939d43d6d080",
+          "name": "section-divider.svg",
+          "size": 5354,
+          "type": "image/svg+xml"
+        }
+      },
+      "name": "Motif",
+      "order": [
+        "lattice-field-on-graphite.svg",
+        "lattice-field.svg",
+        "report-cover-field.svg",
+        "section-divider.svg"
+      ],
+      "tile": "l"
+    }
+  },
+  "blobs": {},
+  "createdOnFiles": {
+    "at": "2026-09-22T21:52:28Z",
+    "v": 1
+  },
+  "docs": {
+    "readme": "project/README.md",
+    "sections": [
+      "project/guidelines/01-direction.md",
+      "project/guidelines/02-status.md",
+      "project/guidelines/03-evidence.md",
+      "project/guidelines/04-scope-and-money.md",
+      "project/guidelines/05-lifecycle-review-results.md",
+      "project/guidelines/06-deliverable.md",
+      "project/guidelines/07-accessibility.md",
+      "project/guidelines/08-implementation.md",
+      "project/guidelines/09-open-items.md"
+    ]
+  },
+  "groups": [
+    "Logos",
+    "Icons",
+    "Motif",
+    "Favicons",
+    "Accessibility"
+  ],
+  "lastChange": {
+    "at": "2026-09-22T21:52:28Z",
+    "by": "nigelblount",
+    "note": "First build: tokens, 30 components, 12 screens, identity, accessibility proofs, implementation plan",
+    "via": "Claude Code · GitHub AiAnalytics-AIA/AIA@0d4c51d"
+  },
+  "layout": "files",
+  "libraries": [
+    {
+      "global": "React",
+      "name": "react",
+      "version": "18"
+    },
+    {
+      "global": "ReactDOM",
+      "name": "react-dom",
+      "version": "18"
+    }
+  ],
+  "namespace": "AIA",
+  "sections": {},
+  "title": "AIA Design System"
+}

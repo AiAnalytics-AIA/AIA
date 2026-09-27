@@ -1,0 +1,12 @@
+<!-- @dsCard group="Money" height=90 subtitle="Never a bare number" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>Money</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia aia-row",style:{padding:16,gap:24}},h(A.Money,{value:12480.5}),h(A.Money,{value:0.0412,digits:4}),h(A.Money,{value:0}),h(A.Money,{value:null}),h(A.Money,{value:36000,digits:0,currency:"CZK"})));
+</script>
+</body>
+</html>

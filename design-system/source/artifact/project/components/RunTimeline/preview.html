@@ -1,0 +1,12 @@
+<!-- @dsCard group="Lifecycle" height=330 subtitle="Honest progress: elapsed, counts, current step" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>RunTimeline</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{padding:16,maxWidth:560}},h(A.RunTimeline,{status:"RUNNING",runId:"run_01J8ZK3Q",elapsed:192,heartbeat:4,waitingOn:"odpověď design_model (Claude API)",steps:[{name:"Načtení zadání a dimenzí",status:"SUCCEEDED",elapsed:2},{name:"Návrh segmentů",status:"SUCCEEDED",elapsed:61},{name:"Kontrola proti ČSÚ 2021",status:"RUNNING",elapsed:129,attempt:2,detail:"1. pokus: přetížený poskytovatel"},{name:"Schválení kvót",status:"AWAITING_GATE"},{name:"Uložení artefaktu",status:"BLOCKED"}]})));
+</script>
+</body>
+</html>

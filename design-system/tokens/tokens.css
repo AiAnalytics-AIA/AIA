@@ -1,0 +1,293 @@
+/* AIA design system: every token as a plain CSS custom property.
+ *
+ * Light (Paper) is :root; dark (Graphite) is [data-theme="dark"]. Density is
+ * [data-density="compact"] (comfortable is the default). Inside .aia-doc the Studio
+ * tokens are re-scoped to the Deliverable register, so a report is paper in both themes.
+ *
+ * Values: the AIA Design System artifact (design-system/source/artifact/project/tokens.json).
+ * The web client's own source is apps/web/src/design/tokens.json; every token both files
+ * name has the same value (checked 043b0dd). Generated; edit tokens.json upstream, not this file.
+ */
+
+:root, [data-theme="light"] {
+  color-scheme: light;
+
+  /* ---- Colour · semantic UI (structure, text, selection, focus) ---- */
+  --surface: #f9f6f2; /* Page ground in Studio. Light: paper with a faint warm cast so eight-hour sessions do not glare. Dark: graphite. Every text token is verified against it. */
+  --surface-raised: #fefcf9; /* Panels, table bodies, cards, the stage rail track. One step above `surface`; separated by `border`, never by shadow. */
+  --surface-sunken: #f1eee9; /* Wells: table headers, inputs, code and fingerprint blocks, the budget meter track. */
+  --surface-overlay: #fefdfb; /* Dialogs and popovers only (the park-and-ask dialog, command palette). Pairs with `shadow-overlay`. */
+  --border: #dad7d2; /* Hairline dividers between rows, panels and cells. Decorative; never the only boundary of a control. */
+  --border-strong: #7b8187; /* Control borders (inputs, secondary buttons, checkboxes) and the scope bar edge. >= 3:1 on every surface in both themes. */
+  --ink: #151a20; /* Primary text and every figure a conclusion rests on. >= 7:1 (AA-plus) on all surfaces and status washes in both themes. */
+  --ink-muted: #43484f; /* Secondary text: labels, metadata, table headers. >= 4.5:1 on surface, raised, sunken and overlay. */
+  --ink-faint: #5c6167; /* Tertiary text: timestamps, hints, NOT_STARTED stages. >= 4.5:1 on all four surfaces — faint, never illegible. */
+  --surface-inverse: #151a20; /* Inverse fields: the RECOVERY_REQUIRED block, tooltips, the keyboard-shortcut overlay. */
+  --ink-inverse: #f9f6f2; /* Text on `surface-inverse`. */
+  --signal: #006b9f; /* The one precise accent: selection, links, the live edge of a RUNNING process, the primary action. Used sparingly — never decoration, never for a warning. */
+  --signal-wash: #d7edfb; /* Selected row / selected stage background. `ink` stays >= 7:1 on it. */
+  --on-signal: #fefcf9; /* Text and icons on a solid `signal` fill (primary button). */
+  --focus-ring: #006b9f; /* The 2px focus outline, always drawn with a 2px `surface` gap so it sits on a known ground; >= 3:1 on every surface in both themes. */
+  --selection: var(--signal-wash); /* Alias of `signal-wash` for selected rows, nodes and text ranges. */
+
+  /* ---- Colour · status (the state of a stage, run, step or reservation; nothing else) ---- */
+  --status-running: #006b9f; /* RUNNING / EXECUTING: the machine is working, nothing is needed from you. Same hue as `signal` on purpose: the live edge. */
+  --status-running-wash: #d7edfb; /* Background of a running row or stage cell. */
+  --status-you: #f5ae39; /* RESERVED for "parked, waiting on a person" (WAITING_USER, AWAITING_GATE, AWAITING_BUDGET, WAITING_CREDITS). Solid fill, the loudest thing on any screen. Never used for anything else — not warnings, not highlights, not a data series. */
+  --on-status-you: #151a20; /* Label and glyph on a solid `status-you` fill. >= 7:1. */
+  --status-you-ink: #97570d; /* Waiting-on-you text and glyphs on ordinary surfaces (the count in the nav, an inline "čeká na vás"). */
+  --status-you-wash: #feeed3; /* Row background for a parked-on-you item in Portfolio and run logs. */
+  --status-world: #576574; /* "Parked, waiting on the world": WAITING_PROVIDER, WAITING_CAPACITY. Slate — calm, not alarming, visibly not running. */
+  --status-world-wash: #e3e8ee; /* Row background for a waiting-on-the-world item. */
+  --status-fault: #b52524; /* FAILED and SCHEMA/PERMISSION failure text and glyphs; the uncertain part of the budget meter. Always with the × glyph and a label. */
+  --on-status-fault: #fefcf9; /* Text on a solid `status-fault` fill. */
+  --status-fault-wash: #ffe8e6; /* Row background for a failed item. */
+  --status-recovery: #151a20; /* RECOVERY_REQUIRED block fill: inverse ink. The rarest, most serious state — a decision about money that may already be spent. */
+  --on-status-recovery: #f9f6f2; /* Text on the recovery block. */
+  --status-recovery-hatch: #e24942; /* The 45-degree hatch band along the recovery block edge. >= 3:1 against `status-recovery`. */
+  --status-done: #151a20; /* DONE / COMPLETED / SUCCEEDED glyph: plain ink. Done is quiet, not celebratory — there is no green in the status family. */
+  --status-inert: #5c6167; /* NOT_STARTED, BLOCKED, CANCELLED, SKIPPED, INVALIDATED glyphs and labels. */
+
+  /* ---- Colour · data viz (inside a plot area and nowhere else) ---- */
+  --viz-cat-1: #2a78d6; /* Categorical series slot 1 (blue). Fixed order, never cycled. Plot area only. */
+  --viz-cat-2: #eb6834; /* Categorical slot 2 (orange). Light theme 2.97:1 on surface: charts always carry direct labels or a table view (relief rule). */
+  --viz-cat-3: #1baf7a; /* Categorical slot 3 (aqua). Light 2.61:1: relief rule applies. */
+  --viz-cat-4: #4a3aa7; /* Categorical slot 4 (violet). */
+  --viz-cat-5: #008300; /* Categorical slot 5 (green). */
+  --viz-cat-6: #e87ba4; /* Categorical slot 6 (magenta). Light 2.50:1: relief rule. A seventh series folds into "Ostatní" or small multiples. */
+  --viz-seq-1: #cde2fb; /* Sequential ramp step 1 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-2: #9ec5f4; /* Sequential ramp step 2 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-3: #6da7ec; /* Sequential ramp step 3 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-4: #3987e5; /* Sequential ramp step 4 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-5: #256abf; /* Sequential ramp step 5 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-6: #184f95; /* Sequential ramp step 6 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-7: #0d366b; /* Sequential ramp step 7 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-div-1: #184f95; /* Diverging negative arm (blue), step 1 of 7. */
+  --viz-div-2: #3987e5; /* Diverging negative arm (blue), step 2 of 7. */
+  --viz-div-3: #9ec5f4; /* Diverging negative arm (blue), step 3 of 7. */
+  --viz-div-4: #f0efec; /* Diverging midpoint — neutral grey, never a hue, step 4 of 7. */
+  --viz-div-5: #feaa89; /* Diverging positive arm (orange), step 5 of 7. */
+  --viz-div-6: #cf6335; /* Diverging positive arm (orange), step 6 of 7. */
+  --viz-div-7: #883001; /* Diverging positive arm (orange), step 7 of 7. */
+  --viz-grid: #e1dfdb; /* Chart gridlines. Recessive. */
+  --viz-axis: #43484f; /* Axis labels and tick text. >= 4.5:1. */
+
+  /* ---- Colour · client accent (scope band and client monogram only) ---- */
+  --client-1: #a0555c; /* Client accent (rose). Scope chrome only: the scope-bar band and the client monogram. Never on data, never on status. */
+  --client-2: #6c2d0a; /* Client accent (umber). Scope chrome only. */
+  --client-3: #2c5a21; /* Client accent (moss). Scope chrome only. */
+  --client-4: #09816b; /* Client accent (teal). Scope chrome only. */
+  --client-5: #5e69a8; /* Client accent (iris). Scope chrome only. */
+  --client-6: #46376d; /* Client accent (plum). Scope chrome only. */
+  --on-client: #fefcf9; /* Monogram letters on a client accent tile. >= 4.5:1 on all six in both themes. */
+  --scope-above: var(--ink); /* The band of a cross-client surface (Portfolio, Admin): hatched ink instead of a client accent — you are above the boundary. */
+
+  /* ---- Colour · achromatic evidence, null and budget marks (carried by form, survive greyscale) ---- */
+  --evidence-mark: var(--ink); /* Evidence-grade marks (the grade glyph, dashed/dotted underlines, hollow nodes). Achromatic by design so the grade survives greyscale print and never collides with status or data colour. */
+  --evidence-hatch: var(--ink-faint); /* Hatch strokes for modelled bars and cells. */
+  --null-mark: var(--ink); /* The "not available" glyph and label. Full ink: missing data is information, never softer than a bad value. */
+  --suppressed-fill: var(--ink-muted); /* The solid redaction bar of a suppressed value. */
+  --budget-spent: var(--ink); /* Settled spend segment of the budget meter. */
+  --budget-reserved: var(--signal); /* Reserved-but-unsettled segment, drawn hatched. */
+  --budget-uncertain: var(--status-fault); /* SETTLED_UNCERTAIN segment: money that may already be gone. Hatched and labelled, never rounded into spent. */
+
+  /* ---- Colour · Deliverable register (the report is paper in both themes) ---- */
+  --doc-paper: #fffdfa; /* Deliverable register page. Identical in both themes: the report is paper even when the Studio is dark. */
+  --doc-ink: #0f1216; /* Report prose and figures. 17:1 on `doc-paper`. */
+  --doc-muted: #44484e; /* Report captions, running heads, footnotes. */
+  --doc-rule: #c6c4be; /* Report table rules and figure frames. */
+  --doc-accent: #0d5279; /* Report section numbers and the cover rule. The only colour a printed report needs; prints as dark grey. */
+
+  /* ---- Type · families ---- */
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; /* UI face: IBM Plex Sans (tabular figures by default). Studio text, numbers, report tables and captions. */
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace; /* Identifier face: IBM Plex Mono. Fingerprints, revision, run, step and ledger ids; use with font-feature-settings "zero" 1. */
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif; /* Deliverable prose: Source Serif 4. Report body, chapter and section headings, footnotes. */
+  --font-display: "Source Serif 4 Display", "Source Serif 4", Georgia, serif; /* Deliverable cover: Source Serif 4 Display. The report cover title only. */
+
+  /* ---- Type · styles (use as `font: var(--text-…)`) ---- */
+  --text-studio-title: 600 20px/26px var(--font-sans); /* Page title: study or screen name. One per screen. */
+  --text-studio-heading: 600 15px/20px var(--font-sans); /* Panel and section headings. */
+  --text-studio-body: 400 14px/20px var(--font-sans); /* Default UI text in comfortable density. */
+  --text-studio-body-compact: 400 13px/18px var(--font-sans); /* Dense tables: respondent explorer, usage ledger, run log. */
+  --text-studio-label: 500 12px/16px var(--font-sans); /* Status chip labels, field labels, table headers. Sentence case, never all caps (Czech diacritics collide with caps height). */
+  --text-studio-caption: 400 12px/16px var(--font-sans); /* Metadata and timestamps. 12px is the floor: nothing in AIA is set smaller. */
+  --text-num: 400 14px/20px var(--font-sans); /* Every compared number. Plex Sans figures are tabular by default (all digits 600 units): columns align without a feature flag. */
+  --text-num-compact: 400 13px/18px var(--font-sans); /* Numbers inside compact tables. */
+  --text-num-hero: 500 28px/32px var(--font-sans); /* The one figure of a headline answer or a budget meter total. */
+  --text-mono: 400 13px/18px var(--font-mono); /* Identifiers: fingerprints, revision ids, run and step ids, ledger row ids. Slashed zero on (font-feature-settings "zero"). */
+  --text-mono-sm: 400 12px/16px var(--font-mono); /* Identifiers inside compact tables and the run log. */
+  --text-doc-title: 600 44px/48px var(--font-display); /* Report cover title. Display optical size. */
+  --text-doc-h1: 600 26px/32px var(--font-serif); /* Report chapter heading, numbered. */
+  --text-doc-h2: 600 19px/26px var(--font-serif); /* Report section heading. */
+  --text-doc-lede: 400 18px/28px var(--font-serif); /* The headline answer paragraph on the report page. */
+  --text-doc-body: 400 15px/24px var(--font-serif); /* Report prose. Prints at 10.5pt / 16.8pt. */
+  --text-doc-caption: 400 12px/17px var(--font-sans); /* Figure and table captions: always name n and the evidence grade. */
+  --text-doc-footnote: 400 12px/16px var(--font-serif); /* Footnotes and the evidence appendix. */
+  --font-feature-mono: "zero" 1; /* Slashed zero for every mono identifier. */
+  --font-numeric: tabular-nums lining-nums; /* font-variant-numeric for every compared figure; Plex is already tabular, this keeps fallback faces aligned. */
+
+  /* ---- Spacing (4px base) ---- */
+  --space-half: 2px; /* Glyph-to-label gap inside chips; gaps between stacked meter segments. */
+  --space-1: 4px; /* Icon padding; compact cell vertical padding. */
+  --space-2: 8px; /* Cell horizontal padding; gap between chips. */
+  --space-3: 12px; /* Control padding; compact panel padding. */
+  --space-4: 16px; /* Panel padding; mobile side gutter. */
+  --space-6: 24px; /* Gap between panels; dialog padding. */
+  --space-8: 32px; /* Section spacing in Studio. */
+  --space-12: 48px; /* Deliverable margins and chapter spacing. */
+
+  /* ---- Radii ---- */
+  --radius-0: 0px; /* Tables, the stage rail, the scope bar, report figures. Precision reads square. */
+  --radius-sm: 2px; /* Chips, inputs, buttons, cells with a state fill. */
+  --radius-md: 4px; /* Panels, dialogs, popovers. The largest radius in the system. */
+
+  /* ---- Borders and strokes ---- */
+  --stroke-hairline: 1px; /* Borders, rules, gridlines. */
+  --stroke-mark: 1.5px; /* Icon and status-glyph strokes at 16px. */
+  --stroke-emphasis: 2px; /* Chart lines, the focus ring, the selected-stage underline. */
+  --stroke-scope: 4px; /* The client accent band of the scope bar. */
+
+  /* ---- Elevation: one shadow, and the stacking order ---- */
+  --shadow-overlay: 0 8px 24px rgba(21, 26, 32, 0.16), 0 0 0 1px rgba(21, 26, 32, 0.08); /* Dialogs and popovers only. Everything else is flat and bordered. */
+  --z-scope: 30; /* The scope bar: above all page content, it must never scroll away or be covered. */
+  --z-overlay: 40; /* Dialogs and popovers. */
+  --z-toast: 50; /* Transient confirmations. Never used for a parked or failed state — those live in the page. */
+
+  /* ---- Motion (no easing token: motion confirms, it never anticipates) ---- */
+  --duration-instant: 0ms; /* Everything under prefers-reduced-motion. */
+  --duration-confirm: 120ms; /* State-change confirmation: a chip changing status, a row selected. Motion confirms a transition that happened; it never anticipates one. */
+  --duration-panel: 180ms; /* Panels and dialogs opening. */
+
+  /* ---- Density · fixed sizes ---- */
+  --row-compact: 28px; /* Row height in compact density: respondent explorer, usage ledger, run log. */
+  --row-comfortable: 36px; /* Row height in comfortable density: Portfolio, Admin lists. */
+  --control-compact: 24px; /* Button and input height in compact density. */
+  --control-comfortable: 32px; /* Button and input height in comfortable density. Hit area never below 24px (WCAG 2.2 target size). */
+
+  /* ---- Density · current mode (comfortable) ---- */
+  --row-height: var(--row-comfortable); /* Table/list row height in the current density: comfortable (Portfolio, Admin, prose) or compact (respondent explorer, usage ledger, run log). */
+  --control-height: var(--control-comfortable); /* Button and input height in the current density; never below 24px (WCAG 2.2 target size). */
+  --text-density-body: var(--text-studio-body); /* Body text in the current density: 14/20 comfortable, 13/18 compact. */
+  --text-density-num: var(--text-num); /* Compared numbers in the current density: 14/20 comfortable, 13/18 compact. */
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ---- Colour · semantic UI (structure, text, selection, focus) ---- */
+  --surface: #0f1215; /* Page ground in Studio. Light: paper with a faint warm cast so eight-hour sessions do not glare. Dark: graphite. Every text token is verified against it. */
+  --surface-raised: #171a1e; /* Panels, table bodies, cards, the stage rail track. One step above `surface`; separated by `border`, never by shadow. */
+  --surface-sunken: #090b0f; /* Wells: table headers, inputs, code and fingerprint blocks, the budget meter track. */
+  --surface-overlay: #1d2125; /* Dialogs and popovers only (the park-and-ask dialog, command palette). Pairs with `shadow-overlay`. */
+  --border: #2f3338; /* Hairline dividers between rows, panels and cells. Decorative; never the only boundary of a control. */
+  --border-strong: #70757c; /* Control borders (inputs, secondary buttons, checkboxes) and the scope bar edge. >= 3:1 on every surface in both themes. */
+  --ink: #ece9e4; /* Primary text and every figure a conclusion rests on. >= 7:1 (AA-plus) on all surfaces and status washes in both themes. */
+  --ink-muted: #bdbab5; /* Secondary text: labels, metadata, table headers. >= 4.5:1 on surface, raised, sunken and overlay. */
+  --ink-faint: #9e9b96; /* Tertiary text: timestamps, hints, NOT_STARTED stages. >= 4.5:1 on all four surfaces — faint, never illegible. */
+  --surface-inverse: #ece9e4; /* Inverse fields: the RECOVERY_REQUIRED block, tooltips, the keyboard-shortcut overlay. */
+  --ink-inverse: #0f1215; /* Text on `surface-inverse`. */
+  --signal: #6ac5e8; /* The one precise accent: selection, links, the live edge of a RUNNING process, the primary action. Used sparingly — never decoration, never for a warning. */
+  --signal-wash: #123144; /* Selected row / selected stage background. `ink` stays >= 7:1 on it. */
+  --on-signal: #090b0f; /* Text and icons on a solid `signal` fill (primary button). */
+  --focus-ring: #6ac5e8; /* The 2px focus outline, always drawn with a 2px `surface` gap so it sits on a known ground; >= 3:1 on every surface in both themes. */
+  --selection: var(--signal-wash); /* Alias of `signal-wash` for selected rows, nodes and text ranges. */
+
+  /* ---- Colour · status (the state of a stage, run, step or reservation; nothing else) ---- */
+  --status-running: #6ac5e8; /* RUNNING / EXECUTING: the machine is working, nothing is needed from you. Same hue as `signal` on purpose: the live edge. */
+  --status-running-wash: #132e3f; /* Background of a running row or stage cell. */
+  --status-you: #f7b746; /* RESERVED for "parked, waiting on a person" (WAITING_USER, AWAITING_GATE, AWAITING_BUDGET, WAITING_CREDITS). Solid fill, the loudest thing on any screen. Never used for anything else — not warnings, not highlights, not a data series. */
+  --on-status-you: #0f1215; /* Label and glyph on a solid `status-you` fill. >= 7:1. */
+  --status-you-ink: #f4bd62; /* Waiting-on-you text and glyphs on ordinary surfaces (the count in the nav, an inline "čeká na vás"). */
+  --status-you-wash: #3c2a0e; /* Row background for a parked-on-you item in Portfolio and run logs. */
+  --status-world: #97a7b7; /* "Parked, waiting on the world": WAITING_PROVIDER, WAITING_CAPACITY. Slate — calm, not alarming, visibly not running. */
+  --status-world-wash: #21272d; /* Row background for a waiting-on-the-world item. */
+  --status-fault: #f47b74; /* FAILED and SCHEMA/PERMISSION failure text and glyphs; the uncertain part of the budget meter. Always with the × glyph and a label. */
+  --on-status-fault: #090b0f; /* Text on a solid `status-fault` fill. */
+  --status-fault-wash: #431f1d; /* Row background for a failed item. */
+  --status-recovery: #ece9e4; /* RECOVERY_REQUIRED block fill: inverse ink. The rarest, most serious state — a decision about money that may already be spent. */
+  --on-status-recovery: #0f1215; /* Text on the recovery block. */
+  --status-recovery-hatch: #da534f; /* The 45-degree hatch band along the recovery block edge. >= 3:1 against `status-recovery`. */
+  --status-done: #ece9e4; /* DONE / COMPLETED / SUCCEEDED glyph: plain ink. Done is quiet, not celebratory — there is no green in the status family. */
+  --status-inert: #9e9b96; /* NOT_STARTED, BLOCKED, CANCELLED, SKIPPED, INVALIDATED glyphs and labels. */
+
+  /* ---- Colour · data viz (inside a plot area and nowhere else) ---- */
+  --viz-cat-1: #3987e5; /* Categorical series slot 1 (blue). Fixed order, never cycled. Plot area only. */
+  --viz-cat-2: #d95926; /* Categorical slot 2 (orange). Light theme 2.97:1 on surface: charts always carry direct labels or a table view (relief rule). */
+  --viz-cat-3: #199e70; /* Categorical slot 3 (aqua). Light 2.61:1: relief rule applies. */
+  --viz-cat-4: #9085e9; /* Categorical slot 4 (violet). */
+  --viz-cat-5: #008300; /* Categorical slot 5 (green). */
+  --viz-cat-6: #d55181; /* Categorical slot 6 (magenta). Light 2.50:1: relief rule. A seventh series folds into "Ostatní" or small multiples. */
+  --viz-seq-1: #0d366b; /* Sequential ramp step 1 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-2: #184f95; /* Sequential ramp step 2 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-3: #256abf; /* Sequential ramp step 3 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-4: #3987e5; /* Sequential ramp step 4 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-5: #6da7ec; /* Sequential ramp step 5 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-6: #9ec5f4; /* Sequential ramp step 6 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-seq-7: #cde2fb; /* Sequential ramp step 7 of 7 (one hue, blue). Light: 1 = near zero, 7 = most. Dark flips the anchor: step 1 recedes into the dark surface. */
+  --viz-div-1: #6da7ec; /* Diverging negative arm (blue), step 1 of 7. */
+  --viz-div-2: #3987e5; /* Diverging negative arm (blue), step 2 of 7. */
+  --viz-div-3: #184f95; /* Diverging negative arm (blue), step 3 of 7. */
+  --viz-div-4: #383835; /* Diverging midpoint — neutral grey, never a hue, step 4 of 7. */
+  --viz-div-5: #883001; /* Diverging positive arm (orange), step 5 of 7. */
+  --viz-div-6: #cf6335; /* Diverging positive arm (orange), step 6 of 7. */
+  --viz-div-7: #f08053; /* Diverging positive arm (orange), step 7 of 7. */
+  --viz-grid: #272a2f; /* Chart gridlines. Recessive. */
+  --viz-axis: #bdbab5; /* Axis labels and tick text. >= 4.5:1. */
+
+  /* ---- Colour · client accent (scope band and client monogram only) ---- */
+  --client-1: #efa8ac; /* Client accent (rose). Scope chrome only: the scope-bar band and the client monogram. Never on data, never on status. */
+  --client-2: #b87b60; /* Client accent (umber). Scope chrome only. */
+  --client-3: #7ca573; /* Client accent (moss). Scope chrome only. */
+  --client-4: #80d0bb; /* Client accent (teal). Scope chrome only. */
+  --client-5: #adbaf5; /* Client accent (iris). Scope chrome only. */
+  --client-6: #8f83b6; /* Client accent (plum). Scope chrome only. */
+  --on-client: #090b0f; /* Monogram letters on a client accent tile. >= 4.5:1 on all six in both themes. */
+  --scope-above: var(--ink); /* The band of a cross-client surface (Portfolio, Admin): hatched ink instead of a client accent — you are above the boundary. */
+
+  /* ---- Colour · achromatic evidence, null and budget marks (carried by form, survive greyscale) ---- */
+  --evidence-mark: var(--ink); /* Evidence-grade marks (the grade glyph, dashed/dotted underlines, hollow nodes). Achromatic by design so the grade survives greyscale print and never collides with status or data colour. */
+  --evidence-hatch: var(--ink-faint); /* Hatch strokes for modelled bars and cells. */
+  --null-mark: var(--ink); /* The "not available" glyph and label. Full ink: missing data is information, never softer than a bad value. */
+  --suppressed-fill: var(--ink-muted); /* The solid redaction bar of a suppressed value. */
+  --budget-spent: var(--ink); /* Settled spend segment of the budget meter. */
+  --budget-reserved: var(--signal); /* Reserved-but-unsettled segment, drawn hatched. */
+  --budget-uncertain: var(--status-fault); /* SETTLED_UNCERTAIN segment: money that may already be gone. Hatched and labelled, never rounded into spent. */
+
+  /* ---- Colour · Deliverable register (the report is paper in both themes) ---- */
+  --doc-paper: #fffdfa; /* Deliverable register page. Identical in both themes: the report is paper even when the Studio is dark. */
+  --doc-ink: #0f1216; /* Report prose and figures. 17:1 on `doc-paper`. */
+  --doc-muted: #44484e; /* Report captions, running heads, footnotes. */
+  --doc-rule: #c6c4be; /* Report table rules and figure frames. */
+  --doc-accent: #0d5279; /* Report section numbers and the cover rule. The only colour a printed report needs; prints as dark grey. */
+
+  /* ---- Elevation ---- */
+  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(236, 233, 228, 0.10); /* Dialogs and popovers only. Everything else is flat and bordered. */
+}
+
+[data-density="compact"] {
+  --row-height: var(--row-compact); /* Table/list row height in the current density: comfortable (Portfolio, Admin, prose) or compact (respondent explorer, usage ledger, run log). */
+  --control-height: var(--control-compact); /* Button and input height in the current density; never below 24px (WCAG 2.2 target size). */
+  --text-density-body: var(--text-studio-body-compact); /* Body text in the current density: 14/20 comfortable, 13/18 compact. */
+  --text-density-num: var(--text-num-compact); /* Compared numbers in the current density: 14/20 comfortable, 13/18 compact. */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-confirm: var(--duration-instant); --duration-panel: var(--duration-instant); } /* Everything uses duration-instant. */
+}
+
+/* The Deliverable register: inside .aia-doc the Studio tokens point at the paper tokens. */
+.aia-doc {
+  --ink: var(--doc-ink); /* In a report, ink is doc-ink. */
+  --ink-muted: var(--doc-muted); /* In a report, ink-muted is doc-muted. */
+  --ink-faint: var(--doc-muted); /* In a report, ink-faint is doc-muted. */
+  --surface: var(--doc-paper); /* In a report, surface is doc-paper. */
+  --surface-raised: var(--doc-paper); /* In a report, surface-raised is doc-paper. */
+  --surface-sunken: var(--doc-paper); /* In a report, surface-sunken is doc-paper. */
+  --border: var(--doc-rule); /* In a report, border is doc-rule. */
+  --border-strong: var(--doc-muted); /* In a report, border-strong is doc-muted. */
+  --evidence-mark: var(--doc-ink); /* In a report, evidence-mark is doc-ink. */
+  --null-mark: var(--doc-ink); /* In a report, null-mark is doc-ink. */
+  --suppressed-fill: var(--doc-muted); /* In a report, suppressed-fill is doc-muted. */
+  --viz-grid: var(--doc-rule); /* In a report, viz-grid is doc-rule. */
+  --viz-axis: var(--doc-muted); /* In a report, viz-axis is doc-muted. */
+}

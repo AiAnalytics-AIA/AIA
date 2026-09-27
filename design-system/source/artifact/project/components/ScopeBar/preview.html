@@ -1,0 +1,12 @@
+<!-- @dsCard group="Scope" height=250 subtitle="Client, study, boundary, read-only" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>ScopeBar</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{display:"grid",gap:8,padding:8}},h(A.ScopeBar,{clientId:"cl_horizont",code:"BH",client:"Banka Horizont",study:"Důvěra v digitální bankovnictví 2026",studyStatus:"ACTIVE",revision:14,role:"LEAD"}),h(A.ScopeBar,{clientId:"cl_morava",code:"EM",client:"Energie Morava",study:"Tarif pro domácnosti — cenová citlivost",studyStatus:"ACTIVE",revision:6,role:"RESEARCHER"}),h(A.ScopeBar,{clientId:"cl_salvia",code:"SL",client:"Lékárny Salvia",study:"Věrnostní program 2025",studyStatus:"DELIVERED",revision:11,role:"VIEWER",deliveredAt:"12. 6. 2025"}),h(A.ScopeBar,{above:true,note:"Portfolio · 5 klientů",role:"LEAD"})));
+</script>
+</body>
+</html>
