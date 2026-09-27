@@ -142,6 +142,24 @@ packages/aia_core/src/aia_core/
     ai_tools.py             ToolRegistry — scope never from model arguments
     research_agents.py     Eight closed Research task contracts, prompt/harness versions,
                             bounded context and task-owned proposal mapping
+    deep_research/          Deep Research (ADR 0017), pure; recorded/offline, nothing registered:
+      contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
+                            stop reasons, the request a run is frozen to
+      workflow.py           the deep_research graph: plan → investigate → merge → verify →
+                            synthesize → publish (defined here; registration is the integrator's)
+      tooling.py            the tool-cost contract: ToolRoute, reserve → dispatching → outcome
+      legacy.py             18.6.6 research_context leakage screen + merge, EXACT (unit captures)
+      grounding.py          a quote must be in a source the same track retrieved; numbers too
+      sources.py            source class + score from declared tables; unknown scores lowest
+      classification.py     a query's class: inherited from its context, never lowered by keywords
+      web.py                what a fetch may reach: public http(s), every hop, every address
+      knowledge_access.py   Client Knowledge frozen at enqueue, classed by kind, retrieved by code
+      planning.py           subjects → tracks → fingerprints; presets (DR-5, proposed); stop rule
+      agents.py             five agents: closed contracts, prompts from the enums, no tools
+      merge.py              declared scores, dedupe, confirmation bonus, the verifier's verdicts
+      synthesis.py          the brief: cite accepted evidence, write only its quotes' numbers
+      bundle.py, quarantine.py  the sealed bundle; respondent context (re-screened against the
+                            final questionnaire), design input, analysis context
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
                             contract, fictional roster, facts by code, interpretation, the dataset
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
@@ -315,6 +333,8 @@ tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents 
                             unit's own `_extract_text` on each (`capture`, with the unit's libraries)
 tools/questionnaire_import_capture.py  Import fixtures: fictional files (`inputs`), AIA's template
                             (`template`), the unit's own import on each (`capture`)
+tools/deep_research_capture.py  Leakage-screen and merge fixtures from the unit's own
+                            research_context.py (`capture`, `verify`; stdlib only)
 tools/bootstrap_seed_sensitivity.py  The unit's bootstrap spread over seeds: the evidence for OI-62
 tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; `effective` prints the binding
                             that runs (the last declaration or reassignment); check the UI ledger
@@ -432,6 +452,14 @@ reference's recorded outputs, vendored under
 `packages/aia_core/tests/fixtures/sociomap/` and pinned by SHA256 in its
 `index.json`. They run in every CI job. Never edit one to make a test pass.
 
+**A Deep Research finding is a quote in a captured source, or it is nothing** (ADR 0017,
+[deep-research.md](docs/architecture/deep-research.md)). Code picks the subjects and tracks,
+sends every query and fetch, and grounds every quote in a content-addressed snapshot of the same
+track; models only propose. A query's data class is inherited from what it was written from and
+never lowered by keywords. The 18.6.6 leakage rule is kept exactly and bars a finding from
+respondent context, which is re-screened against the final questionnaire. The core is
+recorded/offline: no live search, no route, nothing registered in production.
+
 **Evidence is a capability, like scope.** A number reaches an analysis result only
 as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,
 joint structure, support, interval and tier have all passed. Prompts state the
@@ -489,6 +517,7 @@ ungated fixture.
 | **A research run, end to end** | `make ui-research` (workbench + fixtures): Run → Progress → Results in a browser, on fictional fieldwork |
 | **AIA with 18.6.6 stopped** | `make ui-workbench-aia` (no unit; its paths answer 502), `make ui-fixtures`, `make ui-research`, `make ui-workspace` (brief file, template import, audience, dimensions); both journeys fail on a request to the unit |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
+| Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, every router route and DEMO view, bare and skinned, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |
 | **Layering** | `make layer_check` |
