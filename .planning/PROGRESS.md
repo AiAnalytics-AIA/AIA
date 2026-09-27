@@ -89,6 +89,7 @@ attempt 3, green).
 | #77 | `feature/legacy-workspace-migration` | Phase-out increment 2: the one-off migration of Studies' 18.6.6 content from a copy of the unit's store (ADR 0018 decision 2, chunk 7) | Draft, stacked on #74 | after #74 |
 | #78 | `feature/aia-session-gate` | Phase-out increment 3: AIA's own gate in front of `/app`, for any active member (ADR 0018 decision 3, chunk 8) | Draft, stacked on #77 | after #77 |
 | #82 | `feature/interface-without-classic` | Phase-out increment 4: the interface without 18.6.6 -- no hand-off, no skin, and what AIA lacks says so (ADR 0018 decision 4, chunk 9) | Draft, stacked on #78 | after #78 |
+| #75 | `fix/truthful-ai-controls` | Settings says truthfully what powers AIA's AI: `ai_runtime` from code, each switch from `/config`, never "connected"; the prototype's provider fields as collapsed history ([plan](plans/truthful-ai-controls.md), OI-72; handoffs OI-73–OI-76) | Draft into `develop` | any time: no migration, no new variable. One shared surface: the `set-ai` card in `GlobalPages.tsx`, for the phase-out agent to agree |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
 by default. The browser journey it named (enqueue → reload → review → accept → stale
