@@ -2367,6 +2367,6 @@ session of their own (`apps/api/tests/conftest.py` › `artifact_status`), not o
 the worker, the reproduction as an executor test: the stored status after the failed step, and a
 retried run that recomputes the spec.
 
-**Status.** API half fixed in code on `fix/durable-corrupt-mark`: both artifact routes and the
-proposal routes. Worker half open. It is not fixed here because it needs the failure-class decision
-and, for design jobs, a decision to spend on a recompute.
+**Status.** API half fixed in code: PR #84 (draft, 2026-09-27), both artifact routes and the
+proposal routes. Worker half open. It is not fixed there because it needs the failure-class
+decision and, for design jobs, a decision to spend on a recompute.
