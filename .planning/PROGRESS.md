@@ -50,7 +50,8 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `ff463a3`, not `develop`.**
+**Deployed: `e0edf2a`, green again since 10:46 UTC** (*Deploy develop* run 28: host step,
+every smoke check, and "Confirm from outside"). Before that, the host had been on `ff463a3`:
 - *Deploy develop* run 26 (PR #59 @ `043b0dd`) failed on the host with
   `bin/lib.sh: line 62: HOME: unbound variable`, and run 27 failed too. PR #64 fixed it
   (merged 10:29, OI-67). The first deploy carrying the fix follows the next green CI on

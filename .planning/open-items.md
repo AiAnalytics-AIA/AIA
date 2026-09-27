@@ -2152,8 +2152,9 @@ PR #64.
 `test_a_deploy_without_home_writes_the_config_docker_reads`,
 `test_a_deploy_with_no_home_anywhere_stops_and_says_why`.
 
-**Status.** Fixed in code: PR #64, merged 2026-09-27 10:29 (`96581bc`). On the host it is proven
-only by the first deploy that carries it.
+**Status.** **Closed.** PR #64, merged 2026-09-27 10:29 (`96581bc`). Proven on the host by *Deploy
+develop* run 28 (`36313351584`) @ `e0edf2a`: the SSM step passed, smoke passed every check, and
+`/api/v1/health` and `/version` both report `e0edf2a`.
 
 ---
 
