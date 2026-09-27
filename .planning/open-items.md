@@ -2257,7 +2257,8 @@ the deploy.
 **Reproduction.** *Deploy develop* runs 29 (`36314741586`) and 30 (`36315831550`): the host printed
 `replacing services`, then `smoke tests` 19 s later, and `FAIL  legacy: the 18.6.6 unit is healthy`
 with `state 'starting'`. Every other check passed. Run 28 (`36313351584`) had the same 19 s gap and
-passed, because its unit was up by the first probe. Offline:
+passed, because its unit was up by the first probe, and run 31 (`36316771795`, `2beafd9`) passed
+too: 2 of the 4 deploys that reached smoke on 2026-09-27 failed on it. Offline:
 `packages/aia_core/tests/test_develop_legacy_unit_health.py` on PR #70 fails all 5 tests against
 the scripts @ `85fa951`.
 

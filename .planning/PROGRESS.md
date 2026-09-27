@@ -49,13 +49,14 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `85fa951` (#63's merge), with one smoke check red (OI-71).** *Deploy develop*
-runs 29 (`14a124b`, 11:11 UTC) and 30 (`85fa951`, 11:33) replaced every service, and every smoke
-check passed except `legacy: the 18.6.6 unit is healthy`, read as `starting` 19 s after the
-unit was recreated. The site served each new build throughout (`/health` and `/version`
-reported it). PR #70 is the fix. Until it merges, a red deploy on that one line means the
-unit was read too early, not that the site is down. The last deploy with every check green was
-run 28 @ `e0edf2a` (10:46 UTC). Before that, the host had been on `ff463a3`:
+**Deployed: `2beafd9` (#67's merge), green** (*Deploy develop* run 31, 11:51 UTC: host step,
+every smoke check, and "Confirm from outside"). Runs 29 (`14a124b`, 11:11) and 30 (`85fa951`,
+11:33) had replaced every service and passed every smoke check but
+`legacy: the 18.6.6 unit is healthy`, read as `starting` 19 s after the unit was recreated. That
+is a race, not a broken unit (OI-71): run 31 passed the same check with the same one-shot read.
+The site served each new build throughout. PR #70 is the fix. Until it merges, a red deploy on
+that one line means the unit was read too early, not that the site is down. Run 28 @ `e0edf2a`
+(10:46) was the first green deploy of the day. Before it, the host had been on `ff463a3`:
 - *Deploy develop* run 26 (PR #59 @ `043b0dd`) failed on the host with
   `bin/lib.sh: line 62: HOME: unbound variable`, and run 27 failed too. PR #64 fixed it
   (merged 10:29, OI-67), and run 28 is the first deploy that carried it.
