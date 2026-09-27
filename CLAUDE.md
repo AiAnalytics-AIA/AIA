@@ -65,7 +65,9 @@ apps/
                             settings (+ settings/classic-projects, the unit's store, OI-58)
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs), the client workspace and its areas, ResearchStudy
-                            (a study's frame from its AIA binding), useResource (404 = nothing here)
+                            (a study's frame from its AIA binding), useResource (404 = nothing here),
+                            FrontDoor (the branded frame of /login, /logout, /auth/callback)
+    src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
     src/components/rehome/  Primitives (token utilities only), the research stages and the classic
                             projects screens, re-homed under the shell above
     src/unit/               The ONLY way it reaches the unit: routes named by ledger row, parsers,

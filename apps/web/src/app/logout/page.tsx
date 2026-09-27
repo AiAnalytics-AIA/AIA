@@ -6,6 +6,7 @@
 
 import { useEffect } from "react";
 
+import { FrontDoor } from "@/components/aia/FrontDoor";
 import { signOut } from "@/lib/panel";
 import { t } from "@/i18n/t";
 
@@ -15,10 +16,10 @@ export default function LogoutPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-10">
-      <div className="mx-auto max-w-md rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
+    <FrontDoor>
+      <p className="text-ink-muted" role="status">
         {t("panel.signingOut")}
-      </div>
-    </div>
+      </p>
+    </FrontDoor>
   );
 }
