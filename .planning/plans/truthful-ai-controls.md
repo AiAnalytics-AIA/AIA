@@ -111,24 +111,39 @@ each Study's runs.
 
 ## Chunks
 
-- [ ] 1. Domain: `NATIVE_PROVIDERS`; the project model's `DEFAULT_*` documented as
-      prototype defaults no native run reads -- `packages/aia_core/src/aia_core/domain/providers.py`,
-      a test in `test_providers*.py`
-- [ ] 2. `/config`: `aiRuntime.switches` by variable name and `aiRuntime.approvedFor` as
-      a list, both additive to the fields already there -- `route.ts`, `route.test.ts`
-- [ ] 3. The settings document: `ai_runtime`, `ProviderEntry.use`, the *ai* group
-      (invariants only), the *ai_history* group, the project cost items out of *studies*;
-      API tests (permissions, no native default spelled as the subscription, facts pinned
-      to the domain) and an executors-side cross-check against the worker's composition
-      and Compose -- `routers/settings.py`, `schemas/settings.py`, `apps/api/tests/test_settings_api.py`,
-      `apps/executors/tests/test_settings_presentation.py`
-- [ ] 4. The Settings UI: one AI section (runtime, activities with state and reason,
-      invariants), a history section, the top card removed from `GlobalPages.tsx`
-      (`set-ai` and its `/config` loader only), state wording as a pure, tested function
-      (`lib/ai-runtime.ts`), narrow `cs.ts` patches -- `components/aia/settings/*`
-- [ ] 5. Documents and tracker: ARCHITECTURE §2, CLAUDE.md map, `ai-runtime.md`,
-      `research-agents.md` § Configuration, PROGRESS, open items for the handoffs;
-      screenshots of the representative states
+- [x] 1. Domain: `NATIVE_PROVIDERS`; the project model's `DEFAULT_*` documented as
+      prototype defaults no native run reads -- `df22227`;
+      `test_providers_parity.py::test_the_native_runtime_calls_bedrock_and_every_prototype_provider_is_historical`
+- [x] 2. `/config`: `aiRuntime.switches` by variable name and `aiRuntime.approvedClasses`,
+      both additive to the fields already there -- `7873a57`; `route.test.ts` (6)
+- [x] 3. The settings document: `ai_runtime` (with the master `switch`), `ProviderEntry.use`,
+      the *ai* group (invariants only), the *ai_history* group, the project cost items out
+      of *studies* -- `76bb5a5`; `test_settings_api.py` (19),
+      `apps/executors/tests/test_settings_presentation.py` (5: bindings per switch, switches
+      read by the worker and handed to both containers, the read-first rule, the signer).
+      Mutation check: dropping `CRITIC` from the described design activity fails it with
+      the message naming the file to update
+- [x] 4. The Settings UI -- `6a6d0dd`, `d941a63` (AI first; the history's sentence seam, both
+      seen in the workbench); `lib/ai-runtime.test.ts` (7), `ControlPanel.test.tsx` (17, of
+      which 8 new; the three Bedrock-card tests moved there from `ClientFirst.test.tsx` with
+      every assertion)
+- [x] 5. Documents and tracker: ARCHITECTURE §2, CLAUDE.md map, `ai-runtime.md`
+      (§ Providers, § Policies, § Budget control, new § What Settings shows),
+      `research-agents.md` § Configuration, the runbook's § AI settings, OI-72 to OI-76,
+      PROGRESS; screenshots of four states at 1440 px and the history at 1024 px
+
+## Evidence
+
+- Screenshots, local only (`make ui-workbench`'s API stand-in and facade, no unit, `next dev`
+  restarted per state): develop's state (fieldwork on, design off), runtime off, a design
+  switch the worker refuses, both on with the route approved for nothing, the history at
+  1024 px. Each capture recorded no page error, no request beyond `/api/v1/*` and `/config`,
+  no connected/verified wording, no login or key wording, and no horizontal overflow at
+  1024 px.
+- Web suite, alternated with `ceee2dc` in the same container: this branch 7 of 8 full runs
+  green, `ceee2dc` 4 of 6. Every failure is a native research-agent screen test outrunning its
+  15 s budget (OI-76), none in a file this change touches.
+- No model call, no health probe, no paid inference.
 
 ## Ownership and handoffs
 
