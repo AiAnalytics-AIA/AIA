@@ -2245,19 +2245,30 @@ expects `aria-pressed="true"`. It failed once with `expected 'false' to be 'true
 **Anchor.** `BriefStep.test.tsx:97-99` @ `cfb1532` (2026-09-24); unchanged by PR #63.
 
 **Reproduction.** Intermittent: 1 failure in 26 full `npm test` runs on a 4-core machine
-(2026-09-27; 20 on #63 merged with `develop`, 6 on #63 before the merge). It has not been
-reproduced alone, so the cause is a hypothesis: the pressed state is set through the
-research store and rendered on a later tick, and a loaded worker sees the old one.
+(2026-09-27; 20 on #63 merged with `develop`, 6 on #63 before the merge). The same failure
+hit CI once, on #68's *Frontend* job @ `78f1473` (a docs-only commit). The same day it was
+reproduced 2 times in 61 runs of the test alone (`repeats: 60`), and 2 times in 6 full suites.
+
+**Cause (confirmed).** The tile can be on screen before the research store is subscribed:
+`useSyncExternalStore` subscribes in a passive effect, which runs after the commit that drew
+the tile, and `findByRole` can resolve in between. The click's `store.update` then has no
+subscriber, so nothing renders until the effect subscribes. With a log at the click, the 2
+failures in 61 runs were exactly the 2 in which the same commit's other effect (the agents'
+`agent-jobs` request) had not run yet; all 59 passes had it. The product renders the click a
+moment later, so no click is lost; only the test's synchronous read is wrong.
 
 **Consequence.** A red *Frontend* job on any PR, unrelated to that PR's change.
 
 **Smallest fix.** Assert through `await waitFor(...)`, or find the pressed tile with
 `findByRole("button", { name: …, pressed: true })`, not a synchronous read after the
-click. First confirm the cause by running the file under load.
+click.
 
 **Test that would have caught it.** The test itself, run repeatedly under load.
 
-**Status.** Open (2026-09-27).
+**Status.** Fixed in code: PR #71 (2026-09-27). The test waits for the pressed tile
+(`findByRole(..., { pressed: true }, { timeout: 5_000 })`). 305 runs passed, 2 of them with
+the click before the effects, and the full web suite passed 772 of 772. `AGENTS.md`
+§ Next.js / TypeScript has the trap.
 
 ---
 

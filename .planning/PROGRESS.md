@@ -79,8 +79,9 @@ attempt 3, green).
 | #66 | `chore/consolidate-tracker` | This reconciliation | **Merged** 10:57 (`14a124b`) | 3 |
 | #63 | `feature/research-agents` | Native Research design agents on Bedrock | **Merged** 11:17 (`85fa951`); CI green on `614b6a7` | 4, see below |
 | #67 | `claude/trusting-turing-2b9oyl` | Settings control panel on `/app/settings`: `GET /settings`, `GET`/`PUT /self-approval`, `PUT /clients/{id}/status` ([plan](plans/done/settings-control-panel.md)) | **Merged** 11:34 (`2beafd9`) | 5 |
-| #68 | `chore/record-deploy-and-oi-70` | Records run 28, #63's and #67's merges, OI-70, OI-71 | Docs only | 6 |
+| #68 | `chore/record-deploy-and-oi-70` | Records run 28, #63's and #67's merges, OI-70, OI-71 | **Merged** 14:13 (`4c4c3dd`) | 6 |
 | #70 | `fix/smoke-waits-for-unit-start` | Smoke judges the 18.6.6 unit after its start period (OI-71) | Draft into `develop` | 7: turns *Deploy develop* green again |
+| #71 | `fix/brief-toggle-test-waits` | BriefStep's toggle test waits for the pressed tile (OI-70) | Draft into `develop` | any time: ends a red *Frontend* about 1 run in 30 |
 | #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | Draft into `develop` | not yet reviewed here |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
