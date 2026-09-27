@@ -643,8 +643,8 @@ environment.** `create_app(settings)` takes an explicit, validated `Settings`
 and stores it on `app.state`; a `Depends(get_settings)` constructs a fresh one
 from the process environment. The two agree in a deployment and disagree in
 every test that builds its own settings, so a route gated on a flag answers as
-if the flag were unset. Found when the legacy-panel gate returned 404 in all its
-tests with `legacy_panel_enabled=True`.
+if the flag were unset. Found when the 18.6.6 panel's gate (since retired with the
+unit, ADR 0018) returned 404 in all its tests with `legacy_panel_enabled=True`.
 
 ```python
 # WRONG -- re-reads os.environ; ignores the Settings passed to create_app
@@ -662,8 +662,8 @@ raises a 403 therefore records nothing (OI-42). Commit the row you mean to keep
 before raising, or write it in a session of its own.
 
 ```python
-# WRONG -- the LEGACY_PANEL_DENIED row is rolled back with the 403
-resolver.authorize_legacy_panel(principal, audit=True)   # adds the row, raises
+# WRONG -- the AIA_SESSION_DENIED row is rolled back with the 403
+resolver.authorize_session(principal, audit=True)   # adds the row, raises
 
 # RIGHT
 except ScopeDenied as exc:
@@ -784,17 +784,17 @@ written order:
 
 ```caddyfile
 # WRONG — the rewrite runs first
-handle /classic {
-	forward_auth api:8000 { uri /api/v1/panel/gate }
-	rewrite * /interface-document
+handle /old {
+	forward_auth api:8000 { uri /api/v1/session/gate }
+	rewrite * /new
 	reverse_proxy web:3000
 }
 
 # RIGHT
-handle /classic {
+handle /old {
 	route {
-		forward_auth api:8000 { uri /api/v1/panel/gate }
-		rewrite * /interface-document
+		forward_auth api:8000 { uri /api/v1/session/gate }
+		rewrite * /new
 		reverse_proxy web:3000
 	}
 }
@@ -1401,6 +1401,66 @@ a package added to `infra/develop/user-data.yaml.tftpl` never reaches the runnin
 host, and with `user_data_replace_on_change = false` a changed `user_data` makes
 the AWS provider stop and start the instance on the next `terraform apply`. The
 deploy script installs what it needs, idempotently.
+
+## Docker and Compose on the develop host (ADR 0018, 2026-09-27)
+
+Found while taking the 18.6.6 unit out of the product stack and giving it a Compose
+project of its own on the same volume (`deploy/reference`).
+
+**`docker compose config` prints every `$` in a value as `$$`.** Its output is a
+Compose file again, so a literal dollar is re-escaped: a bcrypt hash
+(`$2a$14$...`) looks mangled there when the container receives it intact. Ask the
+container.
+
+```bash
+# WRONG -- Compose syntax, not the value: every $ comes back as $$
+docker compose config | grep AIA_LEGACY_BASIC_HASH
+
+# RIGHT -- what the process gets
+docker compose run --rm --no-deps -T gate printenv AIA_LEGACY_BASIC_HASH
+```
+
+**`run --no-deps` still needs every external volume.** Compose resolves the
+project's volumes before it starts even one service alone, and refuses an
+`external: true` volume that does not exist. In CI, create a throwaway volume and
+point the variable that names it there (`AIA_REFERENCE_STATE_VOLUME`); never create
+the real name on a host, where its absence means data is missing.
+
+**`docker run -v name:/path` creates a missing named volume, filled from the
+image.** A new empty volume mounted where the image has files gets a copy of them,
+so a typo or a missing volume produces a fresh, plausible-looking one instead of an
+error. Before touching a volume that holds data, check it exists.
+
+```bash
+# WRONG -- if the volume is gone, this makes a new one from the image and copies it
+docker run --rm -v aia-develop_legacy_state:/app "$IMAGE" ...
+
+# RIGHT
+docker volume inspect aia-develop_legacy_state >/dev/null   # stop if it is missing
+docker run --rm -v aia-develop_legacy_state:/app "$IMAGE" ...
+```
+
+**`--remove-orphans` removes only containers that carry the project's labels.** A
+container started by hand with `docker run` is nobody's orphan, so a test of "the
+old service's container is removed" must create that container with the old Compose
+file, not by hand.
+
+**A read-only SQLite connection to a WAL database still writes beside it.**
+`?mode=ro` opens the database file read-only, but reading a WAL database needs its
+`-shm` index (and the `-wal` file) next to it, created or written by the reader.
+A copier running as a user who cannot write that directory fails with *attempt to
+write a readonly database*; it works when it runs as the files' owner. The unit's
+stores belong to its image's user (uid 10001), so they are copied in a container
+of the unit's own image. Measured on a stand-in volume: root-owned stores failed,
+the unit's user's copied both a cleanly closed store and one whose writer was
+killed with committed rows only in the WAL (those rows were in the copy).
+`immutable=1` needs no write, because it ignores the WAL, which is right only for a
+copy nobody writes.
+
+**`docker cp` reads the volumes of a container that never started.**
+`docker create -v name:/app "$IMAGE"`, then `docker cp "$cid:/app/..." <dest>` and
+`docker rm "$cid"`, copies files out of a volume without running anything of the
+image.
 
 ## Durable AI proposal reuse and browser lifetime
 

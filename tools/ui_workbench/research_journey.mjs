@@ -76,7 +76,8 @@ await ctx.addInitScript((s) => { try { sessionStorage.setItem("aia.session", s);
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
-// The paths the 18.6.6 unit serves (the Caddyfile's @unit, /classic and its document).
+// The paths the 18.6.6 unit served on the product hostname (its @unit matcher until ADR
+// 0018 decision 5, /classic and its document): now the web client's, never the unit's.
 const UNIT_PATH = /^\/(api\/(?!v1\/)|files\/|artifacts\/|project-attachments\/|brand\/|fullsim-arena|status$|health$|classic|interface-document)/;
 const toUnit = [];
 const bad = [];

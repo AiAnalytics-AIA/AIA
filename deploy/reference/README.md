@@ -27,9 +27,16 @@ brings it back after a reboot.
 The *Reference unit* workflow (`.github/workflows/reference-unit.yml`, dispatched
 by hand) builds `aia-legacy-panel:<sha>` from `legacy/npc-panel-18.6.6` and ships
 this directory as `s3://<ops>/deploy/reference-<sha>.tar.gz`. It changes nothing
-on the host. GitHub dispatches only workflows on the default branch; until it is
-there, the images a develop deploy pushed before ADR 0018 are in ECR (the
-repository keeps the 30 newest), so any of those SHAs will do.
+on the host. GitHub dispatches only workflows on the default branch. Until this one
+is there, the images a develop deploy pushed before ADR 0018 are in ECR (the
+repository keeps the 30 newest), so any of those SHAs will do for the image, and an
+operator with the ops bucket's credentials ships the bundle from a checkout the way
+the workflow does:
+
+```bash
+tar -czf reference-bundle.tar.gz -C deploy/reference docker-compose.yml Caddyfile README.md bin
+aws s3 cp reference-bundle.tar.gz "s3://<ops-bucket>/deploy/reference-<sha>.tar.gz"
+```
 
 On the host, as root:
 
@@ -65,6 +72,14 @@ accepted (`deploy/develop/README.md` § Migrating 18.6.6 content, OI-58). If it 
 ever missing there, restore it from the newest `backups/legacy-state-*.zip`
 before anything else. On a host that never ran the unit, an empty one is created
 explicitly: `docker volume create aia-develop_legacy_state`.
+
+**Restoring its databases** from a `legacy-state-*.zip` is done with the reference
+unit stopped (`bin/down.sh`), after copying the current state first
+(`bin/backup-state.sh`), and before starting it again the restored project IDs are
+checked against the Studies' bindings in PostgreSQL (`study_workspaces`). The unit's
+own start installs a `state_seed` only where no working file exists: it hash-verifies
+the seed on first installation and its immutable assets on every start, and never
+replaces edited state with archive bytes.
 
 ## Reaching it
 

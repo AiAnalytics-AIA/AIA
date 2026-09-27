@@ -12,8 +12,9 @@ of it and the owner/admin rule (0012), the skin as long as the classic document 
 (0013), the ledger-checked unit client and the fragment hand-off mechanism (0014). Narrowly
 **amends [ADR 0004](0004-client-study-isolation.md) rule 1** for Client Knowledge (below).
 **Superseded in part by [ADR 0018](0018-aia-runs-without-18-6-6.md)** (2026-09-27): decision
-4's hand-off (`/classic` no longer serves 18.6.6 and nothing links to it, ADR 0018 decision 4)
-and, when the deployment stops running the unit, its routes to the unit's paths (decision 5);
+4's hand-off (`/classic` no longer serves 18.6.6 and nothing links to it, ADR 0018 decision 4),
+its routes to the unit's paths and the legacy hostname (the product deployment has no unit,
+decision 5);
 decision 5 (a study's working content is AIA's, and bound content comes over by an explicit
 migration, decisions 1 and 2); decision 8's classic project store under *Nastavení* (removed,
 decision 4); and the consequence that `/app` is open to owners and admins only (AIA's own
@@ -69,6 +70,9 @@ that client.
      `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`,
      `/health`, `/status`), each through the gate. There is no catch-all to the unit: an unknown
      path is the web client's 404, so normal navigation cannot fall into the old product.
+     *Superseded by [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 5: the product
+     deployment has no unit; those paths are the web client's 404 too, and the legacy hostname
+     is not served. The unit runs from `deploy/reference/` on the host's loopback.*
 
 5. **The unit store is a temporary migration bridge, not the data model** (open item OI-58).
    Until the research store is ported, the unit project that holds a study's *working content*

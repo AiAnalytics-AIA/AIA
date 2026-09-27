@@ -3,6 +3,10 @@
 **Status:** Accepted for the `develop` environment. The unit is a baseline and an
 oracle, not a product surface; nothing in it is edited, and nothing in AIA
 imports it.
+**Amended by [ADR 0018](0018-aia-runs-without-18-6-6.md)** (2026-09-27, decision 5): the
+unit is no longer a service of the develop deployment. It stays frozen here and runs, when a
+comparison needs it, from `deploy/reference/` beside the product, behind a basic-auth gate on
+the host's loopback; the oracle hostname is not served. Everything else stands.
 **Date:** 2026-09-23
 
 ## Context

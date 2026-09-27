@@ -1267,6 +1267,16 @@ gate (ADR 0012). The oracle hostname is not configured yet, so the parity gate
 still reports `NOT_EXECUTED`: remaining are the three optional `aia_legacy_*`
 hostname parameters (runbook § Switching the unit on), the DNS record, and the
 three repository secrets.
+2026-09-27 (ADR 0018 decision 5, increment 5 on `feature/deploy-without-legacy`): the
+product deployment no longer runs the unit or serves an oracle hostname. The unit runs
+from `deploy/reference/` behind its own basic-auth gate on the host's loopback,
+`127.0.0.1:8765`, reached through an SSM port forward (`deploy/reference/README.md` §
+Reaching it; `test_reference_setup.py` › *the unit is reached only through the gate on
+the hosts loopback*). What the human actions become: the hostname parameters and the DNS
+record are no longer needed (the record, if it exists, can be removed); the parity gate
+needs a runner that can reach the host's loopback (inside the VPC, or on the host) and
+the three repository secrets holding the reference gate's credentials. Until then an
+operator runs `make test-oracle` through the port forward, and CI reports `NOT_EXECUTED`.
 
 ---
 
@@ -1933,13 +1943,27 @@ Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-
   bound content comes over by the migration, and a unit project no Study refers to stays in the
   unit's volume, listed in the migration's report. Tests: `NotInAia.test.tsx` › *settings offer
   no way into the classic interface or its project store*; the research flow's tests above.
+- **Landed (chunks 10–11, `feature/deploy-without-legacy`):** the product deployment has no
+  unit (ADR 0018 decision 5), and its volume is kept: the first deploy without it stops the
+  old container as its service did and fails if the volume vanished, and nothing removes the
+  volume, the data directory, the data bundle or the images (`deploy/develop/bin/deploy.sh`,
+  `bin/lib.sh` › `retire_product_unit` @ `9138977`; `test_develop_unit_retirement.py` ›
+  *the deploy stops the unit before replacing services and proves the volume after*). The
+  migration's copies are taken from the volume in throwaway containers of the unit's image,
+  not from a running unit (runbook § Migrating 18.6.6 content), checked on a stand-in volume:
+  a store whose writer was killed with committed rows only in its WAL was copied with those
+  rows, and the attachments came out, with no container left. The copier needs the unit's own
+  user (AGENTS.md § Docker and Compose): run as another user, it cannot open a WAL store
+  read-only. The unit's databases are backed up by the reference setup
+  (`deploy/reference/bin/backup-state.sh`), no longer by the product's nightly dump.
 - **Still open:** **running** the migration on develop -- an operator action on the live
   host, by the runbook (`deploy/develop/README.md` § Migrating 18.6.6 content), not done by
-  any change here -- and the removal of the unit from the deployment (chunks 10–11). Until it
-  runs, the develop Studies bound to 18.6.6 stay `AWAITING_MIGRATION` and their content stays
-  in the unit's volume, untouched.
+  any change here -- preceded by a copy of the unit's databases taken before the first deploy
+  without it (`bin/backup.sh pre-adr-0018`, with the data owner's approval, runbook § The
+  first deploy without the unit). Until it runs, the develop Studies bound to 18.6.6 stay
+  `AWAITING_MIGRATION` and their content stays in the unit's volume, untouched.
 
-## OI-59 · Temporary restriction · `/app` admits organization owners and admins only
+## OI-59 · Temporary restriction, closed · `/app` admits organization owners and admins only
 
 **Claim.** The client-first shell at `/app` sits behind the panel gate, which admits only
 organization owners and admins (`LEGACY_PANEL_ROLES`), because the rebuilt stages still depend on
@@ -1993,9 +2017,15 @@ Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-
   `test_caddy_routes.py` › *the classic hand off coming back is refused*;
   `apps/web/src/lib/session.test.ts` › *clears AIA's session and a panel cookie left from
   before, then the sign-in*.
-- **Still open:** the unit's own paths keep the owner/admin panel gate until the deployment
-  stops running the unit (plan chunks 10–11). Then `LEGACY_PANEL_ROLES`, the panel gate and
-  this item go.
+- **Closed (chunk 11, `feature/deploy-without-legacy` @ `caa7ed8`):** the product deployment
+  no longer runs the unit, so its paths are gone from the product hostname, and the panel's
+  gate with them: `apps/api/src/aia_api/routers/panel.py`, `ScopeResolver.authorize_legacy_panel`,
+  `LEGACY_PANEL_ROLES` and the `AIA_LEGACY_PANEL_*` settings are removed, and
+  `/api/v1/panel/*` answers 404. Nothing in AIA depends on a caller being an owner or admin
+  to be let in. Tests: `apps/api/tests/test_session_api.py` › *the session and its gate need
+  nothing of 18 6 6* (no legacy setting exists; the panel routes answer 404);
+  `test_caddy_routes.py` › *app behind the 18 6 6 panels gate is refused* and *the unit
+  coming back on its own paths is refused*; CI's API contract fails a `/api/v1/panel` path.
 
 ## OI-60 · Finding, fixed · `GET /api/v1/access-audit` always failed
 
@@ -2378,4 +2408,9 @@ down.
 **Test that would have caught it.** `test_develop_legacy_unit_health.py` (PR #70).
 
 **Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
-deploy that carries it.
+deploy that carries it. **Fixed:** #70 merged into `develop` at 15:52. **Moot** once increment 5
+of ADR 0018 lands (`feature/deploy-without-legacy` @ `9138977`): the product's smoke no longer
+reads the unit's health, and `legacy_unit_health` and `test_develop_legacy_unit_health.py` go
+with the unit; the smoke checks instead that no unit path answers and no unit container of
+the product project exists (`test_develop_unit_retirement.py` › *the smoke check says the
+product runs no unit and kept its volume*).

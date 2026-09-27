@@ -54,11 +54,10 @@ apps/
                             workspace (clients, a client's workspace, its knowledge and proposals,
                             a study's frame and its working content in AIA, ADR 0015, ADR 0018),
                             session (AIA's own session + the gate in front of /app: any active
-                            member, ADR 0018), panel (the owner/admin session + gate in front of
-                            the unit's paths, which no AIA page calls, ADR 0012, until the unit leaves),
-                            research (a study's Design Revisions, readiness, runs, their steps and
-                            artifacts (ADR 0016), and native agent-jobs beneath each Study,
-                            settings (the read-only settings document: every control and how it is set)
+                            member, ADR 0018), research (a study's Design Revisions, readiness,
+                            runs, their steps and artifacts (ADR 0016), and native agent-jobs
+                            beneath each Study), settings (the read-only settings document: every
+                            control and how it is set)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
@@ -278,10 +277,18 @@ packages/aia_core/src/aia_core/
 
 migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
-deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
-  bin/backup-legacy-state.py Live SQLite database copies for pre-deploy/nightly backup (WAL-safe)
+deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook.
+                            AIA only: no unit image, service, volume, hostname, credential, data sync
+                            or health check (ADR 0018 decision 5); the first deploy without the unit
+                            stops its old container and keeps its volume (bin/lib.sh)
+deploy/reference/           The 18.6.6 unit beside the product, never part of it: Compose project
+                            `aia-reference` on the unit's external volume, a basic-auth gate on the
+                            host's loopback (127.0.0.1:8765), up/down/backup-state by hand;
+                            .github/workflows/reference-unit.yml builds its image and bundle
+  bin/backup-legacy-state.py The unit's SQLite databases copied WAL-safe (backup API), for the
+                            migration's copy and backup-state.sh
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
-docs/architecture/          System design + 16 ADRs; ai-step-executor-contract.md
+docs/architecture/          System design + 18 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief
 design-system/              The AIA Design System artifact as a static reference package for design tools:
                             tokens (CSS + flat JSON), fonts, identity SVGs, status-map.md (from the domain
@@ -314,18 +321,20 @@ tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; `effec
                             that runs (the last declaration or reassignment); check the UI ledger
 tools/ui_function_runner.mjs, ui_function_capture.py
                             Run extracted functions under Node; capture U<nn> fixtures
-tools/caddy_routes.py       CI's check of the adapted develop Caddyfile: / -> /app/clients, /app behind
-                            AIA's gate, no 18.6.6 document, the unit only on its own paths, the oracle
+tools/caddy_routes.py       CI's check of the adapted develop Caddyfile: one hostname, / -> /app/clients,
+                            /app behind AIA's gate, no 18.6.6 document, no upstream but the API and the
+                            web client, no panel gate
 tools/develop_routing_proof.py, develop_routing_journey.mjs
                             Run the real Caddyfile locally in front of stand-ins; then a browser
-tools/ui_workbench/         AIA on this machine, for UI work, with the unit beside it as reference: the
-                            unit on a scratch copy with a fictional panel, the real API on SQLite with
-                            local identity and the develop seed, `next dev`, a facade routed by the
-                            Caddyfile. Never parity. capture.mjs screenshots every AIA screen and the
-                            unit's as reference; fixture_project.py: fictional research projects;
-                            a worker with fictional fieldwork; research_journey.mjs: Run -> Results;
-                            `up --no-unit`: AIA alone, the unit's paths 502; workspace_journey.mjs:
-                            a study's content, file, import, audience, dimensions on AIA alone
+tools/ui_workbench/         AIA on this machine, for UI work: the real API on SQLite with local
+                            identity and the develop seed, `next dev`, a facade routed by the
+                            Caddyfile, a worker with fictional fieldwork; nothing of the unit unless
+                            `up --with-unit` runs it beside AIA as reference (scratch copy, fictional
+                            panel, its own port, never behind the facade). Never parity. capture.mjs
+                            screenshots every AIA screen, and the unit's when it runs;
+                            fixture_project.py: fictional research projects; research_journey.mjs:
+                            Run -> Results; workspace_journey.mjs: a study's content, file, import,
+                            audience, dimensions; both fail on a request to a path the unit served
 .planning/                  Progress, plans, open items
 src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
@@ -358,9 +367,10 @@ used by the parity suites. What *is* here, since ADR 0011, is the extracted
 files of 18.6.6, byte-identical to the archive, with their licence-bound data
 kept in EU object storage and hydrated at container start. It is frozen and
 regenerated by `AIA-reference/tools/extract_legacy.py`; never edit a file under
-`legacy/npc-panel-18.6.6/app/` by hand. It runs as the `legacy-panel` service
-on the develop host and is the behavioural baseline every port is checked
-against.
+`legacy/npc-panel-18.6.6/app/` by hand. It is the behavioural baseline every port
+is checked against, and runs for that alone: from `deploy/reference/` beside the
+develop host's product, on the host's loopback behind a basic-auth gate, started by
+hand (ADR 0018 decision 5). The product deployment has no unit in it and needs none.
 
 **The develop site is AIA, client-first** (ADR 0015). `/` answers 302
 `/app/clients`; the hierarchy is Clients → client workspace (Přehled, Výzkumy,
@@ -370,15 +380,14 @@ and simulation are both `Study` records, told apart by `Study.kind`. The 18.6.6
 interface is not part of the product (ADR 0018 decision 4): no page hands off to
 it, `/classic` is AIA's public page saying so, and what AIA does not have yet says
 so where a person meets it (`docs/migration/interface-screens.json`: every classic
-screen REBUILT, REBUILDING, SUPERSEDED or NOT_IN_AIA with where AIA says it). The
-oracle stays on its own basic-auth hostname. `/app` sits behind AIA's own gate,
-`forward_auth` to `GET /api/v1/session/gate` (ADR 0018): any active member of the
-organization with an AIA session; what they see inside is decided per call by the
-API (user → organization membership → client grant → study grant). No legacy
-setting touches it. The unit's own paths still sit behind the panel's gate,
-`GET /api/v1/panel/gate` (organization owners and admins), until the deployment
-stops running the unit (OI-59); no AIA page calls them. There is no catch-all to
-the unit.
+screen REBUILT, REBUILDING, SUPERSEDED or NOT_IN_AIA with where AIA says it). `/app`
+sits behind AIA's own gate, `forward_auth` to `GET /api/v1/session/gate` (ADR 0018):
+any active member of the organization with an AIA session; what they see inside is
+decided per call by the API (user → organization membership → client grant → study
+grant). No legacy setting touches it. The product hostname serves nothing of the unit (ADR 0018
+decision 5): its old paths are the web client's 404, the panel's gate is gone with
+it, and `tools/caddy_routes.py` fails a Caddyfile that routes anywhere but the API
+and the web client.
 
 **A research study's working content lives in AIA** (ADR 0018, OI-58). The stages load
 and save it through `/api/v1/studies/{study_id}/workspace/content`; it is the Study's
@@ -437,8 +446,8 @@ rules; they never enforce them.
 
 **The unit is the oracle, and its functions are fixtures.** The strangler plan
 ([`.planning/plans/legacy-strangler.md`](.planning/plans/legacy-strangler.md))
-replaces one capability at a time behind the running `legacy-panel`, reached only
-through `tools/legacy_oracle.py` and `AIA_LEGACY_REFERENCE_URL`. The 88 research
+replaces one capability at a time, compared with the running unit (`deploy/reference`),
+reached only through `tools/legacy_oracle.py` and `AIA_LEGACY_REFERENCE_URL`. The 88 research
 functions of `ui_app.html` are ported *from the JavaScript*: a fixture is captured
 first by running the extracted function under Node
 (`packages/aia_core/tests/fixtures/legacy_ui/`, `U<nn>_<function>`), pinned to the
@@ -481,13 +490,14 @@ ungated fixture.
 | Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
 | Web tests | `make test-web` (Vitest, pure functions) |
 | **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, then `npm run tokens` |
-| **UI workbench** | `make ui-workbench` → <http://127.0.0.1:8780/workbench/sign-in> (AIA), the unit at `:8767` as reference; `make ui-workbench-status`, `make ui-workbench-down`. First run installs the unit's requirements into `tmp/ui-workbench/venv`; the API runs on the repo's env (`make setup`) |
+| **UI workbench** | `make ui-workbench` → <http://127.0.0.1:8780/workbench/sign-in>: AIA alone, nothing of 18.6.6; `make ui-workbench-reference`: the same with the unit at `:8767` as reference (its first run installs the unit's requirements into `tmp/ui-workbench/venv`); `make ui-workbench-status`, `make ui-workbench-down`. The API runs on the repo's env (`make setup`) |
 | **Develop routing, run** | `sudo python3 tools/develop_routing_proof.py --keep`, then `node tools/develop_routing_journey.mjs` (disposable machine: Caddy on 80/443, `/etc/hosts` names; see the script) |
 | Workbench research fixtures | `make ui-fixtures` (workbench running): fictional projects, prints their `/app` links |
 | **A research run, end to end** | `make ui-research` (workbench + fixtures): Run → Progress → Results in a browser, on fictional fieldwork |
-| **AIA with 18.6.6 stopped** | `make ui-workbench-aia` (no unit; its paths answer 502), `make ui-fixtures`, `make ui-research`, `make ui-workspace` (brief file, template import, audience, dimensions); both journeys fail on a request to the unit |
+| **AIA with 18.6.6 absent** | `make ui-workbench` (no unit; its old paths are the web client's 404), `make ui-fixtures`, `make ui-research`, `make ui-workspace` (brief file, template import, audience, dimensions); both journeys fail on a request to a path the unit served |
+| **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
-| **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and the unit's router routes and DEMO views as shipped when it runs, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
+| **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |

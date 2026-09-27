@@ -40,7 +40,8 @@ const OUT = arg("out", join(REPO, "tmp/ui-workbench/shots", `workspace-${stamp}`
 const OPERATOR = "workbench@example.invalid";
 const GOAL = "Zjistit, zda by lidé kupovali fiktivní ranní nápoj.";
 const FILE = { name: "zadani.txt", body: "Fiktivní zadání: ranní nápoj pro dospělé, test konceptu." };
-// The paths the 18.6.6 unit serves (the Caddyfile's @unit, /classic and its document).
+// The paths the 18.6.6 unit served on the product hostname (its @unit matcher until ADR
+// 0018 decision 5, /classic and its document): now the web client's, never the unit's.
 const UNIT_PATH = /^\/(api\/(?!v1\/)|files\/|artifacts\/|project-attachments\/|brand\/|fullsim-arena|status$|health$|classic|interface-document)/;
 
 async function loadPlaywright() {

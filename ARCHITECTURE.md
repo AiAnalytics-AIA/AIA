@@ -50,7 +50,7 @@ point; nothing outside it touches its internals.
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
 | — | **Legacy stub** | `src/server.js` | Frozen and unused: nothing in the Makefile, CI, Compose or a Dockerfile runs it, and sign-in is Cognito through `apps/web`. Deleting it is PROGRESS *Next* 8. | Nothing. Receives no new features. |
-| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only on its own paths behind the panel's gate, which no AIA page calls (ADR 0018; the deployment stops running it in increment 5). | Nothing. Neither the back end nor the web client calls it (ADR 0018); parity tests reach it over HTTP. |
+| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction. Not part of the product deployment (ADR 0018 decision 5): it runs, when a comparison needs it, from `deploy/reference/` beside the develop host's product, behind a basic-auth gate on the host's loopback. | Nothing. Neither the back end nor the web client calls it (ADR 0018); parity tests reach it over HTTP. |
 
 The web `/config` endpoint may expose nonsecret runtime configuration for
 Settings (switch, Bedrock model/profile, source region and approval class).
@@ -425,7 +425,7 @@ declared tier.
 | API contract (OpenAPI paths + study-scoping assertion, now covering `/runs` and `/artifacts` too) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
 | Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
-| Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (`/` → `/app/clients`, `/app` behind AIA's own gate, no route to the 18.6.6 document and `/classic` only the web client's page, the unit only on its own paths through the panel's gate and without the session cookie, no catch-all to it, the oracle hostname behind basic auth); `docker compose config`, `bash -n` on the host scripts | **blocking** |
+| Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (the product hostname the only site, `/` → `/app/clients`, `/app` behind AIA's own gate and without the session cookie, no route to the 18.6.6 document and `/classic` only the web client's page, no upstream but the API and the web client, no panel gate); `docker compose config` on the product stack and on `deploy/reference` (its gate's rules validated too); `bash -n` on the host scripts | **blocking** |
 | Committed-provider-key scan | **blocking** |
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |
@@ -450,7 +450,7 @@ running backwards.
 | `npm audit` | Drop `|| true` once `apps/web` transitive advisories are at zero or explicitly waived. The mock-up and its editor dependencies are gone (ADR 0012). The baseline is clean: 0 advisories since `next` 16.3.6 and the transitive patch bumps (2026-09-24, OI-2); the promotion itself is the remaining step. |
 | Parity suite | 94 parity and characterization tests report as skipped in CI because they execute the legacy code, which exists only inside the withheld archive. **The archive is deliberately not a CI dependency.** Promotion needs the archive's licence decision and an EU-resident home (`REF-WITHHELD-REFERENCE-ARCHIVE`). Until then **anyone changing domain logic runs them locally against `AIA_LEGACY_REFERENCE`**, and `parity-status` reports them as `NOT_EXECUTED` — never as a pass. |
 | Golden fixtures | A human provisions a read-only deploy key on `AiAnalytics-AIA/AIA-reference` as the `AIA_REFERENCE_DEPLOY_KEY` secret, then sets the repository variable `AIA_REQUIRE_REFERENCE_REPO=1`. From then on a missing checkout fails the job instead of skipping. |
-| Oracle parity | A human provisions `AIA_LEGACY_REFERENCE_URL`, `AIA_LEGACY_REFERENCE_USER` and `AIA_LEGACY_REFERENCE_PASSWORD` (the legacy hostname and its Caddy basic-auth credentials from SSM) as repository secrets, after *Deploy develop* has run green with `legacy-panel` healthy. The job then sets `AIA_REQUIRE_LEGACY_ORACLE=1` itself, so an unreachable oracle fails rather than skips (OI-39). |
+| Oracle parity | The reference unit listens only on the develop host's loopback (`deploy/reference`, ADR 0018 decision 5), which a GitHub-hosted runner cannot reach. Promotion needs a runner that can (inside the VPC, or on the host), and `AIA_LEGACY_REFERENCE_URL`, `AIA_LEGACY_REFERENCE_USER` and `AIA_LEGACY_REFERENCE_PASSWORD` (the reference gate's basic-auth credentials from SSM) as repository secrets. The job then sets `AIA_REQUIRE_LEGACY_ORACLE=1` itself, so an unreachable oracle fails rather than skips (OI-39). Until then an operator runs `make test-oracle` through an SSM port forward. |
 
 An advisory check with no promotion plan is decoration — delete it or schedule
 it. Never move a check to advisory because it is failing on your branch.
@@ -478,20 +478,29 @@ active member of the organization with an AIA session (`aia_session`, opened by
 HEAD only, then the web client. No legacy setting touches it; what a page shows is
 authorized per call by the API. The 18.6.6 interface is not served
 (ADR 0018 decision 4): no page hands off to it, `/classic` is the web client's page
-saying so, and what AIA does not have yet says so where a person meets it. The
-vendored unit is still reached on the paths it serves (`@unit`: `/api/*`,
-`/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`,
-`/fullsim-arena`, `/health`, `/status`), each after the panel's gate, until the
-deployment stops running it (increment 5); nothing in AIA calls them. Every other
-path is the web client's, so nothing falls through to the classic product. The panel's gate is the whole of the unit's access
-control: it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as
-every API call, admits only what `ScopeResolver.authorize_legacy_panel` admits
-(organization owners and admins), and refuses a state-changing request whose
-`Origin` is not the product origin. That owner/admin rule is for what remains of
-the unit only, and goes with it (OI-59). Rebuilding a feature moves its paths from
-the unit to the API; it never removes the gate from what remains. `tools/caddy_routes.py` holds the adapted
-Caddyfile to this paragraph in CI; `tools/develop_routing_proof.py` runs it.
-`AIA_LEGACY_PANEL_ENABLED` is off by default and refused in production.
+saying so, and what AIA does not have yet says so where a person meets it. Nothing
+of the vendored unit is served or run by the product deployment (ADR 0018 decision
+5): no unit image, service, volume mount, hostname, credential, data sync or health
+check. Every other path is the web client's, with its own 404, the unit's old paths
+(`/api/*` outside `/api/v1`, `/files/*`, `/artifacts/*`, `/project-attachments/*`,
+`/brand/*`, `/fullsim-arena`, `/health`, `/status`) among them; the panel's gate that
+guarded them (ADR 0012) is gone, `/api/v1/panel/*` with it. `tools/caddy_routes.py`
+holds the adapted Caddyfile to this paragraph in CI (one hostname; no upstream but
+the API and the web client); `tools/develop_routing_proof.py` runs it, and the smoke
+check fails a deploy on which a unit path answers or a `legacy-panel` container of
+the product's Compose project exists.
+
+**The 18.6.6 unit is a reference beside the product** (ADR 0018 decision 5).
+`deploy/reference/` runs it as the Compose project `aia-reference`, on the unit's
+working volume declared `external` (never created or removed there), behind a
+basic-auth gate published only on the host's loopback, started and stopped by
+hand; `.github/workflows/reference-unit.yml` (dispatched by hand) builds its image
+and ships its bundle, and changes nothing on the host. The two stacks share no
+network, file or Compose project, and the product starts, deploys and passes its
+smoke checks whether the reference is up, down or absent. The first product deploy
+after the change stops the unit's old container and fails if its volume vanished,
+because until the migration's report is accepted that volume holds the only copy of
+the content of Studies still waiting for it (OI-58).
 
 - Deploy only what CI verified: chain CD to CI's *completion* and guard on
   `workflow_run.conclusion == 'success'`, checking out
