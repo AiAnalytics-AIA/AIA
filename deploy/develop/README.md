@@ -79,8 +79,8 @@ Done once, by a person with AWS access. Everything after this is automatic.
 9. **Sign in.** Open the public hostname (`https://aia-develop.art-chain.io/`).
    The gate sends you to `/login`; choose *Sign in* and authenticate with the
    Google Workspace account from step 8. You land on AIA's client directory,
-   `/app/clients` (ADR 0015). The classic 18.6.6 interface is at `/classic`,
-   and a stage not yet rebuilt links there with a way back.
+   `/app/clients` (ADR 0015). The 18.6.6 interface is not part of the product
+   (ADR 0018): a stage AIA has not rebuilt says so where you meet it.
 
 ## Normal deployment
 
@@ -129,10 +129,11 @@ An operator pulling by hand outside these scripts should
 
 Since [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)
 `https://aia-develop.art-chain.io/` is AIA: `/` redirects to the client
-directory, `/app/clients`. The NPC Panel 18.6.6 interface, served by the
-`legacy-panel` container, is a labelled, temporary hand-off at `/classic`, and
-the unit still answers its own paths, which the React stages read (OI-58). The
-Caddyfile routes:
+directory, `/app/clients`. The NPC Panel 18.6.6 interface is no longer served
+([ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md) decision 4):
+`/classic` is AIA's page saying so. The `legacy-panel` container still runs and
+answers its own paths behind the panel's gate, but nothing in AIA calls them;
+increment 5 takes it out of the deployment. The Caddyfile routes:
 
 | Path | Goes to |
 |---|---|
@@ -140,8 +141,8 @@ Caddyfile routes:
 | `/login`, `/logout`, `/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`, `/skin/*`, `/favicon.ico`, `/icon.svg`, `/apple-icon.png` | the AIA web client |
 | `/` | `302 /app/clients`; nothing is served |
 | `/app`, `/app/*` | after `forward_auth` to AIA's own gate, `GET /api/v1/session/gate`, the web client: AIA, Clients → client workspace → study → stages |
-| `/classic` | after `forward_auth` to the panel's gate, `GET /api/v1/panel/gate`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) and `/skin/handoff.js` (its "Zpět do AIA" bar) when it applies |
-| `/interface-document` (requested directly) | 404 |
+| `/classic` | the web client's public page: the 18.6.6 interface is gone, and the way into AIA |
+| `/interface-document` | the web client's 404: the document it served is gone |
 | Legacy Claude Code setup/status and `/api/settings/{api_keys,anthropic_check,ai_check,ai_diagnose}` | after the panel's gate, HTTP 410; no direct credentials or provider probes on the product hostname |
 | `/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`, `/health`, `/status` | `legacy-panel`, after the panel's gate |
 | everything else | the web client (its own 404 for a path it does not know); never the unit |
@@ -157,39 +158,26 @@ shows a research run parking at fieldwork, `ai_runtime_unavailable` (ADR 0016).
   decides that per call. To let someone in, add them to the organization and
   grant them a client or a study. Someone who signs in with Google but is no
   member is told so.
-- **Who gets into what remains of 18.6.6** (`/classic`, the unit's paths, which
-  the classic projects screen reads): organization owners and admins only, until
-  the unit leaves the product (OI-59).
+- **The unit's own paths** are behind the panel's gate (organization owners and
+  admins, `aia_panel`), until the unit leaves the product (OI-59). No AIA page
+  calls them and `/login` no longer opens that session.
 - **How.** `/login` turns the Google sign-in into an HttpOnly session cookie,
   `aia_session`, through `POST /api/v1/session`; AIA's gate re-verifies it on
-  every request to `/app`. It then opens the panel's cookie, `aia_panel`, through
-  `POST /api/v1/panel/session`, best effort: it matters only on the way to
-  `/classic`. Caddy strips both before a request reaches the web client or the
-  unit. Opening a session is recorded in the access audit (`AIA_SESSION`;
-  `LEGACY_PANEL_SESSION`, `LEGACY_PANEL_DENIED`); individual requests are not.
-- **Signing out.** `/logout` clears both cookies and the Cognito session.
+  every request to `/app`. Caddy strips it before a request reaches the web
+  client. Opening a session is recorded in the access audit (`AIA_SESSION`);
+  individual requests are not.
+- **Signing out.** `/logout` clears the cookie, any `aia_panel` cookie a sign-in
+  before this change opened, and the Cognito session.
 - **Switching the unit off.** Set `AIA_LEGACY_PANEL_ENABLED: "false"` on the `api`
   service and `docker compose up -d api`. The panel's gate then answers 404 to
   everything, so nothing reaches the unit from the product hostname. AIA is not
   affected: its gate does not read that setting.
 - **The oracle hostname** (`AIA_LEGACY_HOSTNAME`, basic auth) is unchanged and
   reaches the same container, so both share its state.
-- **When `/classic` or a research stage shows an error.** `docker compose ps legacy-panel`: the unit needs
-  its data bundle synced by `bin/deploy.sh` (OI-39). A 401 or 403 JSON body on a
-  page means a gate refused it; the `code` field says why (`unauthenticated`,
-  `not_a_member`, `method_not_allowed` from AIA's gate; `legacy_panel_denied`,
-  `cross_origin` from the panel's). A 502 on `/classic` means the gate admitted
-  the request and the unit is not answering: `/classic`'s response carries
-  `X-AIA-Skin: bypassed-unreachable` when the web client could not reach it, and
-  no such header when the web client itself is down.
-- **The skin** (ADR 0013). `AIA_INTERFACE_SKIN_ENABLED` on the `web` service,
-  `"true"` on develop;
-  `"false"` serves the unit's document byte-for-byte. Every response to `/classic`
-  says what happened in `X-AIA-Skin`: `applied`, `bypassed-disabled`, or
-  `bypassed-hash-mismatch` when the unit's document is not the pinned
-  `ui_app.html` (a regenerated unit; the web log has an
-  `interface_skin_bypassed` line with the hash it received). Switching it:
-  change the value and `docker compose up -d web`.
+- **When a page shows an error.** A 401 or 403 JSON body on a page means AIA's
+  gate refused it; the `code` field says why (`unauthenticated`, `not_a_member`,
+  `method_not_allowed`). Nothing on an AIA page depends on the `legacy-panel`
+  container any more.
 - **A Caddyfile change** reaches the running Caddy because its hash is part of
   the caddy service's configuration (`bin/lib.sh`, `AIA_CADDYFILE_SHA256`), so
   `compose up` recreates Caddy when the file changed and not otherwise. The

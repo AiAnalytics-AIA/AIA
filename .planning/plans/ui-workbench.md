@@ -5,6 +5,12 @@
 data owner's direction of 2026-09-24: "we need to be able to edit the UI very quick
 and you need to be able to see everything."
 
+> **2026-09-27, [ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md)
+> decision 4.** The skin is gone, so the workbench no longer builds it and `/classic` is
+> AIA's page saying 18.6.6 is not part of AIA. The unit still runs beside AIA, bare at
+> `:8767`, as the reference a screen is compared with; `up --no-unit` runs AIA alone.
+> The records below that name the skin describe what landed at the time.
+
 **Decision, 2026-09-24 (data owner):** full UI control, not only the skin — markup,
 text, layout, components and behaviour — by **rebuilding the screens in React** in
 the web client, area by area; D-L1 extends to the rebuilt screens (the real-client

@@ -200,8 +200,24 @@ PR 3 — AIA's own session gate (`feature/aia-session-gate`)
   `test_caddy_routes.py`, `login/page.test.tsx`, `lib/session.test.ts`
 
 PR 4 — the interface without 18.6.6 (`feature/interface-without-classic`)
-- [ ] 9. Remove `/classic`, `interface-document`, hand-offs, the skin, the classic
-  project store screens, `src/unit`; explicit "not in AIA yet" states
+- [x] 9. The interface hands nothing to 18.6.6 (ADR 0018 decision 4). Removed:
+  `app/interface-document`, `lib/interface-skin*`, `lib/interface-handoff*`,
+  `lib/rehome*`, `lib/panel.ts`, `src/skin/`, `scripts/build-skin.mjs`,
+  `scripts/skin-lint.mjs`, `public/skin/skin.css` and `handoff.js`, `ClassicLink`, the
+  classic projects screens (`rehome/projects/`, `/app/settings/classic-projects`) and,
+  with them, `src/unit/`. `/classic` is the web client's public page saying 18.6.6 is
+  gone (`app/classic/page.tsx`); the simulation, the Data Library, the verify and next
+  stages, the report and the Sociomap's tools say they are not in AIA; `/login` opens
+  AIA's session only, and sign-out still clears a panel cookie left from before while
+  the panel's gate stands. The Caddyfile has no `/classic` or `/interface-document`
+  route and `tools/caddy_routes.py` fails one that comes back; smoke checks `/classic`
+  is AIA's page and `/interface-document` a 404; Compose's `web` loses
+  `AIA_INTERFACE_SKIN_ENABLED`, `AIA_INTERFACE_REHOME_ENABLED` and
+  `AIA_LEGACY_PANEL_URL`; CI loses `skin:check`; `interface-screens.json` is 5
+  `REBUILT`, 3 `REBUILDING`, 4 `SUPERSEDED`, 16 `NOT_IN_AIA`; the workbench runs no skin
+  process — tests: `NotInAia.test.tsx`, `interface-screens.test.ts`,
+  `login/page.test.tsx`, `lib/session.test.ts`, `test_caddy_routes.py`,
+  `test_develop_host_resilience.py`, `test_ui_workbench.py`
 
 PR 5 — the deployment without 18.6.6 (`feature/deploy-without-legacy`)
 - [ ] 10. Retire the panel gate and its settings

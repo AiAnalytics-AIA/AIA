@@ -1,9 +1,9 @@
 # UI workbench
 
-AIA's client-first interface (ADR 0015) and the classic 18.6.6 one on one
-machine, for UI work: the client workspaces and the re-homed research stages,
-the classic screens with the AIA skin (ADR 0013) behind `/classic`, and a
-capture of every screen. Plan:
+AIA's client-first interface (ADR 0015) on one machine, for UI work: the
+client workspaces and the re-homed research stages, with the 18.6.6 unit beside
+them as the reference to compare a screen with (never part of AIA, ADR 0018), and
+a capture of every screen. Plan:
 [`.planning/plans/ui-workbench.md`](../../.planning/plans/ui-workbench.md).
 
 ```bash
@@ -23,8 +23,8 @@ python3 tools/ui_workbench/workbench.py up --fresh   # also reset the unit's and
 | <http://127.0.0.1:8780/workbench/sign-in> | Sign in as the seeded operator; opens the client directory |
 | <http://127.0.0.1:8780/> | 302 to `/app/clients`, as on develop |
 | <http://127.0.0.1:8780/app/clients> | AIA (React, `next dev`: saves show at once) |
-| <http://127.0.0.1:8780/classic> | The classic interface as develop hands off to it: skinned, with the bar back to AIA |
-| <http://127.0.0.1:8767/> | The same unit, bare, byte for byte |
+| <http://127.0.0.1:8780/classic> | AIA's page saying the 18.6.6 interface is gone, as on develop |
+| <http://127.0.0.1:8767/> | The unit, byte for byte: the reference, which AIA never reaches |
 
 `make ui-workbench-aia` (`workbench.py up --no-unit`) starts everything but the unit
 and points the facade's unit upstream at a closed port, so a request that still
@@ -44,9 +44,8 @@ path to the web client -- never to the unit, as on develop.
 | `unit` | the vendored `ui_server.py` on a scratch copy of `app/` (`tmp/ui-workbench/unit/`), `unit_standin.py` | `tmp/ui-workbench/logs/unit.log` |
 | `api` | the real `aia_api` on a scratch SQLite file (`tmp/ui-workbench/aia.sqlite`), the `local` environment's development identity, the develop seed for `workbench@example.invalid` (`api_standin.py`); no model is configured; research runs record the fictional fieldwork source (`--fieldwork synthetic_fixture`, legal only in `local`) and artifacts go to `tmp/ui-workbench/artifacts/` | `…/api.log` |
 | `worker` | `python -m aia_worker` over the same SQLite file and artifact directory, with the workbench composition (`aia_executors.workbench:build_registry`, `AIA_ENV=local`): the research steps, with fictional respondents at fieldwork (ADR 0016). Started once the API has created the schema | `…/worker.log` |
-| `web` | `next dev` for `apps/web`, skin and re-home switched on | `…/web.log` |
-| `skin` | `build-skin.mjs --watch`: `skin.css` rebuilt on every save of `src/skin/*` or `tokens.json` | `…/skin.log` |
-| `facade` | one origin, routed like the develop Caddyfile minus the gate (`facade.py`) | `…/facade.log` |
+| `web` | `next dev` for `apps/web` | `…/web.log` |
+| `facade` | one origin, routed like the develop Caddyfile minus the gates (`facade.py`) | `…/facade.log` |
 
 The API needs the repository's Python environment (`make setup`): `make
 ui-workbench` passes it as `AIA_API_PYTHON`. The sign-in page puts the
@@ -73,13 +72,15 @@ Code CLI or an API key (an agent session has both). `unit_standin.py` switches
 every provider off three ways: the scratch copy's `BUILD_EDITION.json`, which
 every part of the unit reads; provider credentials and the CLI's directory
 removed from the unit's environment; and the unit's CLI lookup finding nothing.
-The unit's own AI jobs have no worker, so an AI step started in a classic or
-re-homed stage stays queued until it is cancelled. AIA's worker runs only the
-research steps (compile, preflight, fieldwork, aggregate, Sociomap), none of
-which calls a model; at fieldwork it uses fictional respondents instead of the
-AI runtime, which is not deployed. `GET /api/providers/claude-code/status` answers
-`DISABLED_IN_EDITION`, and the rebuilt screens show their "not ready" notice.
-Screens that show an AI answer are seen from fixture projects.
+The unit's own AI jobs have no worker, so an AI step started on one of the
+unit's screens stays queued until it is cancelled. AIA's worker runs the research
+steps (compile, preflight, fieldwork, aggregate, Sociomap), none of which calls a
+model; at fieldwork it uses fictional respondents instead of the AI runtime, which
+is not configured here. An AI step started in an AIA stage is a job of the study;
+the research agents are not configured either, so the job parks (`WAITING_PROVIDER`,
+`ai_runtime_unavailable`) and the stage shows the step's message ("AI návrhy
+výzkumu nejsou zapnuté. Zadání zůstává uložené."). Screens that show an AI answer
+are seen from fixture projects.
 
 ## Fixture research projects
 
@@ -104,11 +105,11 @@ research chunks land ([research-flow-rehome.md](../../.planning/plans/research-f
 | `persona` | the `questionnaire` project with three catalogue dimensions, one requested dimension and N=450 | Dimenze; Kontrola & spuštění, Průběh, Výsledky (it passes AIA's readiness) |
 
 A ledger screen in `docs/migration/interface-screens.json` that names a
-`fixture` is captured a second time on that project: the classic step opened
-on it (`/classic#aia:open=<unit>@<route>`), beside the rebuilt one at its
-`react_path` with the bound study for `<id>` and its client for `<client>`
+`fixture` is captured a second time on that project: the AIA screen at its
+`react_path` with the fixture's study for `<id>` and its client for `<client>`
 (`<screen>@<fixture>` in the contact sheet). Every AIA screen of the ledger's
-`aia_screens` is captured too, under the same client.
+`aia_screens` is captured too, under the same client. The unit's own screens are
+captured bare, as shipped, only when the workbench runs it.
 
 ## A research run, end to end
 

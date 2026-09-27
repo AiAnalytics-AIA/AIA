@@ -2,6 +2,10 @@
 
 **Status:** foundation carried forward; **screen compositions superseded** (2026-09-23). The develop deployment's 18.6.6 interface is the canonical baseline for every screen (ADR 0012), so chunks V and 4–11 below no longer describe work to do. Chunk 1 (tokens, fonts, identity) lands through [`interface-skin.md`](interface-skin.md) and [ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md); chunks 2–3 (enum binding, primitives) return when areas are re-homed (legacy strangler, slice 16+). Decisions DS-1 to DS-3 stand. **Owner:** product-surface (A9).
 
+**2026-09-27:** the 18.6.6 skin that chunk 1 landed through is removed
+([ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md) decision 4); the
+tokens, fonts and identity now serve AIA's own pages only.
+
 **Where the unmerged half is (2026-09-27).** Chunks 0 and 2–3 and a first slice V were
 built and reviewed, but never reached `develop` or `main`. Their PRs (#16, #17, #18, #24)
 merged into intermediate branches *after* #15 had already merged those branches' base.

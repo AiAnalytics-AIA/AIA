@@ -110,17 +110,36 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
    session goes to `/login`, a fetch gets 401, and any method but GET and HEAD is refused,
    because the pages take no writes. The web client's switch for `/app`
    (`AIA_INTERFACE_REHOME_ENABLED`, ADR 0014) is retired there: it existed so the classic
-   interface could stand in. While `/classic` and the unit's paths remain, they keep the
-   owner/admin panel gate; `/login` opens that session too, best effort, and it only ever
-   stands in the way of the 18.6.6 interface. *Rejected:* opening `/app` to anyone signed in
-   to Cognito (a page shell is harmless, but a person who is no member has no business in
-   the product); keeping the panel gate with a wider role set (it answers 404 when the
-   legacy flag is off and is refused in production, so AIA would still depend on it).
+   interface could stand in. While the unit's paths remain on the product hostname, they
+   keep the owner/admin panel gate. Until increment 4, `/login` opened that session too, best
+   effort, for the 18.6.6 interface alone; since increment 4 it does not, and sign-out still
+   clears a panel cookie an earlier sign-in left, as long as the panel's gate stands.
+   *Rejected:* opening `/app` to anyone signed in to Cognito (a page shell is harmless, but
+   a person who is no member has no business in the product); keeping the panel gate with a
+   wider role set (it answers 404 when the legacy flag is off and is refused in production,
+   so AIA would still depend on it).
 
-4. **The interface hands nothing to 18.6.6** (increment 4). No `/classic`, no hand-off links,
-   no skin. A capability AIA does not have -- simulation screens, verification, the 18.6.6
-   client report, panel-derived audience filters and previews, special and customer
-   audiences -- says so where the person is.
+4. **The interface hands nothing to 18.6.6** (increment 4). No page links to the 18.6.6
+   interface or opens one of its screens; the web client serves no 18.6.6 document and no
+   skin, and calls none of the unit's paths. `/classic` stays a path, because old links and
+   bookmarks point at it: it is the web client's public page saying the 18.6.6 interface is
+   not part of AIA, with the way into AIA; it shows no data, so it needs no gate. A capability
+   AIA does not have says so where the person is (*V AIA zatím není*): the simulation flow,
+   the Data Library, verification and the next-steps stage, the 18.6.6 client report and the
+   Sociomap's interactive tools, what 18.6.6 computed from its licensed panel (audience
+   filters, the feasibility check, subpanels, customer audiences, panel factors), and Deep
+   Research for a dimension. `docs/migration/interface-screens.json` records every classic
+   screen as `REBUILT`, `REBUILDING`, `SUPERSEDED` (AIA does its job its own way) or
+   `NOT_IN_AIA` with the AIA page that says so (none where AIA has no place a person would
+   look for it, as for the unit's DEMO library); its test fails a screen with any other
+   status. The classic projects screens (`/app/settings/classic-projects`), the last caller
+   of the unit's store, are removed: a Study's bound project comes over by the migration
+   (decision 2), and until then the Study says it is waiting; a unit project no Study refers
+   to stays in the unit's volume, listed in the migration's report. *Rejected:* redirecting `/classic`
+   to `/app/clients` without a word (a person who followed a link to 18.6.6 would land
+   elsewhere without knowing why); keeping the hand-off for owners until increment 5 (each
+   hand-off is a way for a supported workflow to keep needing the unit); removing the
+   notices with the hand-offs (hiding a missing capability does not make it AIA's).
 
 5. **The product deployment has no unit** (increment 5): no `legacy-panel` image, service,
    volume mount, hostname, credentials, data sync or health check; CI fails a product

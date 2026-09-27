@@ -778,8 +778,9 @@ directive order puts `rewrite` before `forward_auth`, so a block that is written
 gate-then-rewrite runs rewrite-then-gate: the gate sees the rewritten URI and
 builds its `/login?next=` from it, sending a signed-out visitor back to an
 internal path after sign-in. Proven by adapting both forms and reading the
-handler order (`.github/workflows/ci.yml`, *The interface document is served
-only through the gate*). `route` keeps the written order:
+handler order, on the `/classic` route that served the 18.6.6 document until ADR
+0018 removed it; the rule stands for any gated rewrite. `route` keeps the
+written order:
 
 ```caddyfile
 # WRONG — the rewrite runs first
@@ -819,11 +820,11 @@ caddy:
   volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro"]
 ```
 
-And smoke-check something only the new file answers (here: `/` is Caddy's own
-`302 /app/clients`, and `/classic` the gate's `302 /login?next=%2Fclassic`),
-because checks the old routing also passes prove nothing. `/interface-document`
-answering 404 no longer tells the two apart: the file before ADR 0015 said the
-same.
+And smoke-check something only the new file answers (today: `/classic` is the
+web client's page, 200, where the file before ADR 0018 sent it to `/login`),
+because checks the old routing also passes prove nothing. Each routing change
+needs its own such check: the previous one (`/interface-document` answering 404)
+stopped telling files apart as soon as a newer file said the same.
 
 **`redir`'s first argument is a matcher when it starts with `/`.** `redir
 /app/clients 302` reads `/app/clients` as a path matcher and `302` as the
@@ -1018,9 +1019,9 @@ branch's generator wrote `--font-sans-stack: var(--font-plex-sans), "Segoe UI", 
 for `next/font` variables. Where the layout does not define `--font-plex-sans`,
 the *entire* `font-family` using that stack is invalid at computed-value time
 and the element inherits its parent's font — no fallback face is tried. The
-18.6.6 skin has no `next/font` at all, so the stack names the self-hosted
-families directly and `fonts.css` declares them (`scripts/build-tokens.mjs`,
-`FACES`):
+stack must also work where no `next/font` variable exists (it did for the 18.6.6
+skin, which ADR 0018 removed), so it names the self-hosted families directly and
+`fonts.css` declares them (`scripts/build-tokens.mjs`, `FACES`):
 
 ```css
 /* WRONG — invalid wherever the variable is undefined */
@@ -1241,7 +1242,8 @@ await screen.findByRole("button", { name: /Nový produkt/, pressed: true }, { ti
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.
-Read it on load *and* on `hashchange` (`apps/web/public/skin/handoff.js`).
+Read it on load *and* on `hashchange` (the 18.6.6 hand-off script did, until ADR
+0018 removed it).
 Playwright's `page.goto` to the same path with a new fragment is the same trap in
 tests: go to `about:blank` first.
 

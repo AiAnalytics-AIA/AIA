@@ -11,6 +11,12 @@ screen's capture is the specification) and 7 (hand-offs to `/#aia:…`, now
 `/classic#aia:…`). The React rebuild under `/app`, the ledger-checked unit
 client and the fragment hand-off mechanism stand, re-homed under the client
 (`/app/clients/<client>/research/<study>/<stage>`).
+**Superseded in part by [ADR 0018](0018-aia-runs-without-18-6-6.md)** (2026-09-27):
+decisions 2 and 6 (the panel gate and the switch in front of `/app`: AIA's own gate,
+decision 3), 3 (the unit as the screens' backend: every screen reads AIA's API, and the
+unit client is removed with its last caller, decisions 1 and 4) and 7 (the hand-off:
+nothing hands off to 18.6.6, decision 4). The React rebuild under `/app`, the screen
+ledger (with `NOT_IN_AIA` in place of `CLASSIC`) and D-L1 stand.
 **Date:** 2026-09-24
 
 ## Context
@@ -47,7 +53,8 @@ The data owner chose 3.
 2. **The same gate.** `/app` and `/app/*` pass through `forward_auth` to
    `GET /api/v1/panel/gate` exactly as `/` does: organization owners and admins
    only. The pages hold no data; everything they show is fetched from the
-   browser, through the same gated paths the classic document uses.
+   browser, through the same gated paths the classic document uses. *Superseded by
+   [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 3: `/app` has AIA's own gate.*
 
 3. **The unit is the backend until each capability is ported.** Screens call
    the unit's own HTTP API (`/api/projects/...`, `/api/demos`, ...) through **one
@@ -56,6 +63,9 @@ The data owner chose 3.
    When the strangler ports a capability to AIA's API, the client's call moves to
    `/api/v1/...` and the screen does not change. Behaviour therefore stays the
    unit's, verified by the oracle, while the presentation becomes AIA's.
+   *Superseded by [ADR 0018](0018-aia-runs-without-18-6-6.md) decisions 1 and 4: the
+   research stages read and write AIA's API only, and `apps/web/src/unit/` went with its
+   last caller, the classic projects screens.*
 
 4. **Screens are rebuilt from the classic ones, not from memory.** The UI
    workbench's capture (`tools/ui_workbench/capture.mjs`) of each classic screen
@@ -69,7 +79,10 @@ The data owner chose 3.
    lists every classic screen the capture finds (24 routes, the DEMO views and
    their tabs) with `CLASSIC` / `REBUILDING` / `REBUILT`, its React path and the
    unit routes it calls. A screen is `REBUILT` only with its capture pair and its
-   tests.
+   tests. *Since [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 4 no screen is
+   served from 18.6.6, so `CLASSIC` is gone: a screen is `REBUILT`, `REBUILDING`,
+   `SUPERSEDED` (AIA does its job its own way) or `NOT_IN_AIA`, with the AIA page that
+   says so.*
 
 6. **Behind a switch.** `AIA_INTERFACE_REHOME_ENABLED` (off by default, on in the
    develop compose) decides whether `/app` renders or answers 404. *Retired for `/app`
@@ -95,7 +108,9 @@ The data owner chose 3.
    and calls nothing else; an instruction that does not match is ignored. The
    pin guarantees the names exist; `X-AIA-Handoff` says whether it was added.
    This is the one behaviour the web client adds to the classic document, and it
-   goes when `/` moves.
+   goes when `/` moves. *Superseded by [ADR 0018](0018-aia-runs-without-18-6-6.md)
+   decision 4: no page hands off to 18.6.6; `handoff.js`, its fragment instructions and
+   the classic document it was added to are no longer served.*
 
 8. **D-L1 extends to the rebuilt screens.** The real-client demo identifiers the
    classic interface carries (`ui_app.html`, 9 hits in the unit's

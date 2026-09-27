@@ -1927,9 +1927,15 @@ Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-
   from the copy waits until the copy is said complete*, *the operator migrates only what their
   own grants let them edit*, *a second run changes nothing and says what was done before*;
   `apps/executors/tests/test_legacy_workspace.py`.
+- **Landed (chunk 9, `feature/interface-without-classic`):** the last caller of the unit's
+  store, the classic projects screens at `/app/settings/classic-projects`, is removed with the
+  typed unit client (`apps/web/src/unit/`); the web client calls no path of the unit. A Study's
+  bound content comes over by the migration, and a unit project no Study refers to stays in the
+  unit's volume, listed in the migration's report. Tests: `NotInAia.test.tsx` › *settings offer
+  no way into the classic interface or its project store*; the research flow's tests above.
 - **Still open:** **running** the migration on develop -- an operator action on the live
   host, by the runbook (`deploy/develop/README.md` § Migrating 18.6.6 content), not done by
-  any change here -- and the removal of the unit from the product (chunks 9–11). Until it
+  any change here -- and the removal of the unit from the deployment (chunks 10–11). Until it
   runs, the develop Studies bound to 18.6.6 stay `AWAITING_MIGRATION` and their content stays
   in the unit's volume, untouched.
 
@@ -1980,8 +1986,15 @@ Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-
   *the session and its gate do not depend on the legacy panel*;
   `packages/aia_core/tests/test_caddy_routes.py` › *app behind the 18 6 6 panels gate is refused*;
   `apps/web/src/app/login/page.test.tsx`.
-- **Still open:** `/classic` and the unit's own paths keep the owner/admin panel gate until the
-  unit leaves the product (plan chunks 9–11). Then `LEGACY_PANEL_ROLES`, the panel gate and
+- **Landed (chunk 9, `feature/interface-without-classic`):** `/classic` no longer serves 18.6.6:
+  it is the web client's public page saying so, with no data and no gate; `/login` no longer
+  opens the panel's session, and sign-out still clears a panel cookie an earlier sign-in left.
+  Tests: `NotInAia.test.tsx` › *tells an old link the interface is gone, and leads into AIA*;
+  `test_caddy_routes.py` › *the classic hand off coming back is refused*;
+  `apps/web/src/lib/session.test.ts` › *clears AIA's session and a panel cookie left from
+  before, then the sign-in*.
+- **Still open:** the unit's own paths keep the owner/admin panel gate until the deployment
+  stops running the unit (plan chunks 10–11). Then `LEGACY_PANEL_ROLES`, the panel gate and
   this item go.
 
 ## OI-60 · Finding, fixed · `GET /api/v1/access-audit` always failed
