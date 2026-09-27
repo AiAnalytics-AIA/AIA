@@ -49,9 +49,20 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `dd27f68` (#72's merge), green** (*Deploy develop* run 35, 16:52 UTC), after CI run
-211 passed on the same SHA; #72 changed no product code. Run 34 (`ceee2dc`, #70's merge, 16:08,
-after CI run 209), run 32 (`4c4c3dd`, 14:28) and run 33 (`53de110`, 15:11) were green too.
+**Deployed: `8c13a11` (#84's merge), smoke red** (*Deploy develop* run 37, 23:20–23:25 UTC).
+- Every service was replaced and reports that build.
+- Every smoke check passed but one: `slice: unexpected error` with `ScopeDenied: not found`, raised
+  in the develop seed step of `aia_executors.smoke`
+  (`apps/executors/src/aia_executors/smoke.py:122-134, 238` @ `8c13a11`).
+- Run 36 (`48bf3e2`, #83's merge, 22:58–23:04) failed the same check after replacing every service.
+- No Python changed between `dd27f68` and `48bf3e2`, so the cause is probably the host's data, not
+  code. That is a hypothesis: it is not reproduced, and the smoke does not print the `ScopeDenied`
+  reason.
+- Owner: the operator of the develop host (the phase-out owner's deployment area).
+
+The last green deploy is run 35 (`dd27f68`, #72's merge, 16:52 UTC, after CI run 211). Runs 34
+(`ceee2dc`, #70's merge, 16:08, after CI run 209), 32 (`4c4c3dd`, 14:28) and 33 (`53de110`, 15:11)
+were green too.
 Earlier, runs 29 (`14a124b`, 11:11) and 30 (`85fa951`, 11:33) had replaced every service and
 passed every smoke check but `legacy: the 18.6.6 unit is healthy`, read as `starting` 19 s after
 the unit was recreated. That was a race, not a broken unit (OI-71); run 31 (`2beafd9`, 11:51)
