@@ -112,7 +112,11 @@ def test_aia_needs_no_switch_and_the_smoke_check_proves_its_gate() -> None:
     # ADR 0018: /app has no switch of its own, and the smoke check proves an
     # anonymous browser is sent to sign-in there, never served the screens.
     web = _service_block(COMPOSE.read_text(encoding="utf-8"), "web")
-    for gone in ("AIA_INTERFACE_REHOME_ENABLED", "AIA_INTERFACE_SKIN_ENABLED", "AIA_LEGACY_PANEL_URL"):
+    for gone in (
+        "AIA_INTERFACE_REHOME_ENABLED",
+        "AIA_INTERFACE_SKIN_ENABLED",
+        "AIA_LEGACY_PANEL_URL",
+    ):
         assert gone not in web, gone
     text = SMOKE.read_text(encoding="utf-8")
     assert '"$BASE/app/clients"' in text
