@@ -85,6 +85,7 @@ attempt 3, green).
 | #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | Draft into `develop` | not yet reviewed here |
 | #72 | `chore/design-system-reference` | Design-system reference package: the AIA Design System artifact as plain files under `design-system/` (tokens CSS + flat JSON, OFL fonts, identity SVGs, `status-map.md` from the domain enums @ `043b0dd`, three no-build HTML pages); the artifact's 12 screens left out; `FailureClass.RUNTIME_UNAVAILABLE` mapped to `world` pending the design owner. Not wired into `apps/web` | Ready for review | any time: docs only |
 | #79 | `feature/deep-research-core` | Deep Research core, 1 of 2: the pure domain -- closed contracts, the 18.6.6 leakage screen and merge EXACT against the vendored unit, grounding, source tables, query classes, fetch policy, frozen knowledge, tracks and fingerprints, merge/verify, the brief's checks, the sealed bundle, respondent quarantine ([plan](plans/deep-research.md) chunks a–d). Recorded/offline; nothing registered | Draft into `develop` | before its stacked 2 of 2 |
+| #83 | `fix/native-tests-config-cache` | Native Research tests no longer inherit a `/config` failure an earlier test cached; `loadConfig()` keeps no failed read (OI-76) | Draft into `develop` | any time: ends a red *Frontend* about 1 full run in 5 |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
 by default. The browser journey it named (enqueue → reload → review → accept → stale
