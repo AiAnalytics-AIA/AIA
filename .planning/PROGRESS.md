@@ -54,8 +54,7 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
 every smoke check, and "Confirm from outside"). Before that, the host had been on `ff463a3`:
 - *Deploy develop* run 26 (PR #59 @ `043b0dd`) failed on the host with
   `bin/lib.sh: line 62: HOME: unbound variable`, and run 27 failed too. PR #64 fixed it
-  (merged 10:29, OI-67). The first deploy carrying the fix follows the next green CI on
-  `develop`.
+  (merged 10:29, OI-67), and run 28 is the first deploy that carried it.
 - Merged today after the outage: #61 (10:08), #54 (10:15), #62 (10:16), #64 (10:29),
   #65 (10:30). CI on `develop` @ `46b7337` crashed with a segmentation fault in the
   OI-69 test (run 36312008574). #65 is its fix.
