@@ -1,9 +1,24 @@
+<!-- Research agents: active work 2026-09-27 -->
+**Research agents — full Study process**: Codex implementation on
+`feature/research-agents`, based on develop after PR #57 merged. [Plan](plans/research-agent-workflows.md).
+The user confirmed that design through results belongs to the original goal.
+Respondent fieldwork is already live. Native proposal jobs and eight actions are
+implemented locally (not deployed); analysis/report execution and owned Deep
+Research remain required work. Contract: [research-agents.md](../docs/architecture/research-agents.md).
+Anchors: `test_research_agent_executor.py`, `test_research_agent_jobs_api.py`,
+`useResearchAgents.test.tsx`, and PostgreSQL
+`test_two_reviewed_design_proposals_cannot_overwrite_each_other`. Search provider:
+Tavily free evaluation proposed; no service approval, account, route or live call.
+Local checks on refreshed develop: core 2,575/100 skipped; API 202; worker 43/6
+skipped; executors 64; web 758; PostgreSQL focused suites 65; types/lint clean,
+layer 62 and exposure 7. Browser journey and CI are still pending.
+
 # PROGRESS
 
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-27 · **Branch:** `claude/modest-hypatia-9gvdpx` (registry credentials on the develop host) ·
+**Updated:** 2026-09-27 · **Branch:** `feature/research-agents` (native Research agent implementation) ·
 **Trunk:** `main` (release) · **Integration:** `develop` (deployed, ADR 0009)
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -16,15 +31,15 @@ entry is a **hypothesis**, not a finding.
 
 ---
 
-## In progress — develop Research repair
+## Develop Research repair — code merged, operational recovery remains
 
-- Preserve mutable legacy state seeds and back up live working SQLite databases.
+- PR #57 merged: preserve mutable legacy state seeds and back up live working SQLite databases.
   First installation is atomic (PR #57 P2 review). The overwrite defect is reproduced by `test_legacy_state_hydration.py`; WAL
   backup coverage is in `test_legacy_state_backup.py`; export is off by default
   until separately approved. Recovery of affected
   working copies remains an operational task; do not infer it from the code fix.
-- Remove old Claude Code/direct API connection controls and accurately describe
-  the unmigrated design assistants. Plan: [bedrock-settings-cleanup.md](plans/bedrock-settings-cleanup.md).
+- PR #57 merged: remove old Claude Code/direct API connection controls. Native
+  design jobs are now implemented on this branch; their activation remains separate. Plan: [bedrock-settings-cleanup.md](plans/bedrock-settings-cleanup.md).
 
 ## Completed
 
@@ -107,7 +122,7 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 ## In progress
 
-**The `develop` environment is live.** The original facade passed its live smoke gate, and the client-first interface followed. PR #52 is merged into `develop`; the deployed Research composition parks at fieldwork until the governed AI runtime exists. No live model invocation or full Research acceptance is claimed.
+**The `develop` environment is live.** Research execution and Bedrock respondent fieldwork are merged; the fictional acceptance completed on 2026-09-26 (activation evidence above). Native design proposals are implemented on this branch and remain off by default. Evidence-backed interpretation/report execution and owned Deep Research remain required for the complete agent workflow.
 
 | What | State | Anchor |
 |---|---|---|
@@ -249,7 +264,7 @@ the data owner, 2026-09-24: PR C → OI-58 → OI-59.** PR C merged as #52;
 PR #56 has merged and deployed; activate the approved fictional Class C route and verify its isolated $2 study. Checkpointing (OI-64), persistent lineage (OI-65), OI-58 and OI-59 follow.
 
 - ~~**PR C, research execution**~~ — merged (PR #52 @ `b3bd42f`); see Completed.
-- **Agent Runtime Foundation**: AI respondent fieldwork is built and deployed in PR #56 @ `0310091`; ADR 0010 approval and EU pricing are recorded. The runtime is active for the approved synthetic client; the isolated $2 study completed with 20 calls costing $0.2303301. Design-generation assistants remain unmigrated. Then checkpointed fieldwork (OI-64), ledger lineage (OI-65), analysis and report agents. Panel-derived transmission remains blocked by OI-61.
+- **Agent Runtime Foundation**: AI respondent fieldwork is built and deployed in PR #56 @ `0310091`; ADR 0010 approval and EU pricing are recorded. The runtime is active for the approved synthetic client; the isolated $2 study completed with 20 calls costing $0.2303301. Native design assistants are implemented on this branch, not deployed or activated. Remaining work: checkpointed fieldwork (OI-64), ledger lineage (OI-65), analysis/report execution and owned Deep Research. Panel-derived transmission remains blocked by OI-61.
 - **OI-58**: port the research store from the unit into AIA's study-scoped
   project, stage by stage; remove `study_workspaces` when no stage reads the unit.
 - **OI-59**: open `/app` to members by client and study grant once OI-58 no

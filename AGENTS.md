@@ -1153,3 +1153,26 @@ a package added to `infra/develop/user-data.yaml.tftpl` never reaches the runnin
 host, and with `user_data_replace_on_change = false` a changed `user_data` makes
 the AWS provider stop and start the instance on the next `terraform apply`. The
 deploy script installs what it needs, idempotently.
+
+## Durable AI proposal reuse and browser lifetime
+
+A full-project proposal artifact must include its input revision in the reuse
+fingerprint. Two revisions can have identical model context when provider/policy
+fields are excluded, while their full saved baselines differ. Reusing the older
+artifact would overwrite fields the model never saw.
+
+```python
+# WRONG: same model context means the whole proposed project is reusable.
+key = hash(context_hash, prompt_version, policy_version)
+
+# RIGHT: a complete project proposal remains bound to its baseline.
+key = hash(design_revision_id, context_hash, prompt_version, policy_version)
+```
+
+A React job follower stops on unmount without cancelling the server job. Pending
+review promises must also settle, and old async cleanup must not clear a newer
+operation. Use an operation identity plus an abort signal; refresh errors in
+`finally` must not replace the original job error. Native dialogs use `showModal`
+so keyboard focus and Escape have browser behavior; jsdom needs the existing
+dialog-method stand-ins in component tests. Native HTTP fixtures distinguish
+GET inbox reads from POST creation even when the path is identical.

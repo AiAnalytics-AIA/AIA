@@ -11,6 +11,7 @@ from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
     DEVELOP_SNAPSHOT,
+    RESEARCH_AGENT,
     RESEARCH_KINDS,
     UnknownWorkflowType,
     steps_for_workflow,
@@ -21,6 +22,7 @@ from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.registry import build_registry, registry_for
+from aia_executors.research_agents import ResearchAgentExecutor
 from aia_executors.snapshot import ARTIFACT_TYPE, KIND, SnapshotExecutor
 from aia_worker.registry import load_executors
 from aia_worker.worker import Worker
@@ -67,9 +69,10 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
     monkeypatch.setenv("AIA_STORAGE_BACKEND", "memory")
     monkeypatch.setenv("AIA_BUILD_SHA", build.sha or "")
     loaded = load_executors("aia_executors.registry:build_registry")
-    # The production registry: the snapshot and the research steps (ADR 0016).
-    assert set(loaded) == {KIND, *PRODUCTION_RESEARCH_KINDS}
+    # Every closed production kind is registered, including disabled AI jobs.
+    assert set(loaded) == {RESEARCH_AGENT, KIND, *PRODUCTION_RESEARCH_KINDS}
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
+    assert isinstance(loaded[RESEARCH_AGENT], ResearchAgentExecutor)
 
 
 def test_the_worker_executes_a_snapshot_and_the_artifact_is_readable(
@@ -194,4 +197,4 @@ def test_a_viewer_cannot_start_a_run(world: Any, sessions: sessionmaker[Session]
 
 def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: BuildIdentity) -> None:
     registry = registry_for(store=store, build=build)
-    assert list(registry) == [KIND, *PRODUCTION_RESEARCH_KINDS]
+    assert list(registry) == [RESEARCH_AGENT, KIND, *PRODUCTION_RESEARCH_KINDS]

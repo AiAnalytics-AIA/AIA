@@ -55,8 +55,8 @@ point; nothing outside it touches its internals.
 The web `/config` endpoint may expose nonsecret runtime configuration for
 Settings (switch, Bedrock model/profile, source region and approval class).
 This is a configuration display, never a provider health test or authority to
-invoke a capability. Design assistants remain on the migration backlog; an
-active fieldwork route does not enable legacy design jobs. Product-only Caddy
+invoke a capability. Native design jobs have a separate activation switch;
+an active fieldwork route does not enable them. Product-only Caddy
 retirement blocks legacy credential/login/probe endpoints after the existing
 gate; the independent oracle and pinned reference application stay unchanged.
 
@@ -187,6 +187,17 @@ script, then confirm it passes before committing.
   (`research_artifacts`, `ArtifactRepository(owner=)`), never by id alone.
   Respondent rows are never sent to the browser; the Sociomap artifact is served
   only with `EDIT_STUDY`.
+- **Research assistants propose; a person accepts against an unchanged revision.**
+  The `research_agent` workflow freezes approved Study-visible knowledge and
+  harness context at enqueue. Its eight closed actions use `StepModelCaller`;
+  no API or browser invokes Bedrock. Results and artifacts stay Study-scoped.
+  `StudyDesignRepository.submit_if_current` locks the Study against every design
+  writer; stale proposals cannot overwrite a newer revision. Library instruments,
+  audience filters and approved dimensions remain controlled by code or a person.
+  Reload follows existing jobs; it never creates another call. Advice is not an
+  admitted report claim. Activation, budget and classification are independent
+  of fieldwork; confidential knowledge cannot use the fictional Class C allowance.
+  See [native Research agents](docs/architecture/research-agents.md).
 - **Fieldwork is a boundary, and `ai_runtime` is answered only by AI respondents.**
   The deployed composition (`aia_executors.registry`) has no deterministic dataset
   producer. It builds the AI respondent engine (`aia_executors.ai_fieldwork`) only

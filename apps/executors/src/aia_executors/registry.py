@@ -20,8 +20,9 @@ from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import StepExecutor
 
-from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork
+from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
 from .research import AIDatasetProducer, research_registry
+from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from .snapshot import KIND as SNAPSHOT_KIND
 from .snapshot import SnapshotExecutor
 
@@ -33,9 +34,11 @@ def registry_for(
     store: ArtifactStore,
     build: BuildIdentity,
     ai_runtime: AIDatasetProducer | None = None,
+    research_agent: StepExecutor | None = None,
 ) -> dict[str, StepExecutor]:
     """Step kind -> executor, over explicit collaborators. Tests use this."""
     return {
+        "research_agent": research_agent or ResearchAgentExecutor(store=store, build=build),
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
         **research_registry(store=store, build=build, ai_runtime=ai_runtime),
     }
@@ -45,8 +48,24 @@ def build_registry() -> dict[str, StepExecutor]:
     """The factory named by ``AIA_WORKER_EXECUTORS``; reads the environment."""
     build = BuildIdentity.from_env()
     settings = AIRuntimeSettings.from_env()
+    store = build_artifact_store(StorageSettings.from_env())
+    agent = None
+    if settings is not None and settings.research_agents_enabled:
+        agent = ResearchAgentExecutor(
+            store=store,
+            build=build,
+            gateway=build_gateway(settings),
+            config=ResearchAgentConfig(
+                policy_version=settings.policy_version,
+                max_output_tokens=settings.research_max_output_tokens,
+                context_window_tokens=settings.context_window_tokens,
+                reservation_usd=settings.research_reservation_usd,
+                fictional_client_ids=settings.fictional_client_ids,
+            ),
+        )
     return registry_for(
-        store=build_artifact_store(StorageSettings.from_env()),
+        store=store,
+        research_agent=agent,
         build=build,
         ai_runtime=build_ai_fieldwork(settings, build=build) if settings is not None else None,
     )

@@ -18,14 +18,23 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ..domain.design import DESIGN_PROJECT_OWNER
+from ..domain.ai_contracts import canonical_json
+from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.fieldwork import FieldworkSource
 from ..domain.research import phase_of, retryable
+from ..domain.research_agents import (
+    HARNESS_VERSION,
+    ResearchAction,
+    context_snapshot,
+    prompt_for,
+    snapshot_hash,
+)
 from ..domain.research_design import Readiness, ResearchSpecification, prepare
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import WorkflowRunStatus
-from ..domain.workflow_templates import RESEARCH
+from ..domain.workflow_templates import RESEARCH, RESEARCH_AGENT
 from ..infrastructure.artifact_repository import ArtifactRepository
+from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.workflow_repository import WorkflowNotFound, WorkflowRepository
@@ -33,6 +42,7 @@ from .workflows import StartedRun, start_workflow
 
 __all__ = [
     "DesignNotReady",
+    "ResearchAgentJobs",
     "ResearchRunNotFound",
     "ResearchRunNotRetryable",
     "ResearchRuns",
@@ -207,3 +217,140 @@ class ResearchRuns:
             for s in run["steps"]
             if isinstance(s.get("output"), dict) and s["output"].get("artifact_id")
         ]
+
+
+@dataclass(frozen=True, slots=True)
+class ResearchAgentJobs:
+    """Design assistance is a durable job, never a request-time model call.
+
+    Approved client memory is frozen at enqueue. Jobs only produce proposals;
+    applying one requires EDIT_STUDY and its unchanged Design Revision.
+    """
+
+    session: Session
+    scope: StudyContext
+
+    def start(
+        self, *, design_revision_id: str, action: ResearchAction, instruction: str = ""
+    ) -> StartedRun:
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        if len(instruction.encode()) > 8000:
+            raise ValueError("agent instruction exceeds 8 KB")
+        designs = StudyDesignRepository(self.session, self.scope)
+        revision = designs.get(design_revision_id)
+        snapshot = context_snapshot(
+            designs.content(design_revision_id),
+            ClientKnowledgeRepository(self.session).for_study(self.scope),
+        )
+        import hashlib
+
+        digest = hashlib.sha256(
+            canonical_json(
+                {
+                    "action": action.value,
+                    "context": snapshot_hash(snapshot),
+                    "instruction": instruction,
+                    "prompt": prompt_for(action),
+                }
+            ).encode()
+        ).hexdigest()
+        payload = {
+            "design_revision_id": design_revision_id,
+            "action": action.value,
+            "instruction": instruction,
+            "snapshot": snapshot,
+            "job_fingerprint": digest,
+            "harness_version": HARNESS_VERSION,
+        }
+        project_id = designs.project_id()
+        assert project_id is not None
+        return start_workflow(
+            self.session,
+            self.scope,
+            project_id=project_id,
+            revision=revision.revision,
+            workflow_type=RESEARCH_AGENT,
+            idempotency_key=f"{RESEARCH_AGENT}:{design_revision_id}:{digest}",
+            metadata={
+                "design_revision_id": design_revision_id,
+                "action": action.value,
+                "context_sha256": snapshot_hash(snapshot),
+                "harness_version": HARNESS_VERSION,
+            },
+            step_inputs={"agent": payload},
+            owner=DESIGN_PROJECT_OWNER,
+        )
+
+    def get(self, run_id: str) -> dict[str, Any]:
+        try:
+            run = WorkflowRepository(self.session, self.scope).get_run(run_id)
+        except WorkflowNotFound as exc:
+            raise ResearchRunNotFound(run_id) from exc
+        project_id = StudyDesignRepository(self.session, self.scope).project_id()
+        if (
+            project_id is None
+            or run["project_id"] != project_id
+            or run["workflow_type"] != RESEARCH_AGENT
+        ):
+            raise ResearchRunNotFound(run_id)
+        return run
+
+    def jobs(self, *, limit: int = 20) -> list[dict[str, Any]]:
+        project_id = StudyDesignRepository(self.session, self.scope).project_id()
+        if project_id is None:
+            return []
+        return [
+            r
+            for r in WorkflowRepository(self.session, self.scope).list_runs(
+                project_id=project_id, limit=limit, workflow_type=RESEARCH_AGENT
+            )
+            if r["workflow_type"] == RESEARCH_AGENT
+        ]
+
+    def cancel(self, run_id: str) -> WorkflowRunStatus:
+        self.scope.require(Permission.CANCEL_WORKFLOW)
+        self.get(run_id)
+        return WorkflowRepository(self.session, self.scope).request_cancel(
+            run_id, reason="researcher"
+        )
+
+    def result(self, run_id: str, *, store: ArtifactStore) -> dict[str, Any]:
+        run = self.get(run_id)
+        if run["status"] is not WorkflowRunStatus.COMPLETED:
+            raise DesignRejected(
+                "the agent job has no completed proposal", reason="proposal_not_ready"
+            )
+        output = run["steps"][0]["output"]
+        result = research_artifacts(self.session, self.scope, store).read_json(
+            output["artifact_id"]
+        )
+        if not isinstance(result, dict):
+            raise DesignRejected("invalid proposal artifact", reason="proposal_invalid")
+        return result
+
+    def accept(
+        self, run_id: str, *, store: ArtifactStore, expected_revision_id: str
+    ) -> tuple[DesignRevision, bool]:
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require_open_study()
+        run = self.get(run_id)
+        if expected_revision_id != run["metadata"]["design_revision_id"]:
+            raise DesignRejected("proposal baseline does not match", reason="stale_proposal")
+        result = self.result(run_id, store=store)
+        action = ResearchAction(run["metadata"]["action"])
+        stages = {
+            ResearchAction.ANALYZE: "plan",
+            ResearchAction.BUILD: "questionnaire",
+            ResearchAction.OPTIMIZE: "questionnaire",
+            ResearchAction.AUDIENCE: "audience",
+            ResearchAction.DIMENSIONS: "persona",
+        }
+        if action not in stages:
+            raise DesignRejected("an advice answer is not a design mutation", reason="advice_only")
+        return StudyDesignRepository(self.session, self.scope).submit_if_current(
+            content=result["result"]["project"],
+            source_stage=stages[action],
+            expected_revision_id=expected_revision_id,
+        )
