@@ -102,9 +102,10 @@ Reconstruction parses the artifact, re-loads the run's sources and requires them
 the recorded ones by content, rebuilds the inputs, requires every fingerprint, the
 harness and the method status to match, and puts a completed module's draft through the
 gate again. Content, not names: the research steps reuse artifacts by fingerprint, so a
-design edited and edited back runs on the earlier revision's specification, and an
-outcome reused by such a run keeps the ids, revision and `produced_by` it was computed
-under. Anything else raises `ReconstructionRefused(reason)`:
+design edited and edited back runs on the earlier revision's specification, a design
+edited only outside its questionnaire (its research questions) reuses the earlier run's
+dataset and aggregate, and an outcome reused by such a run keeps the ids, revision and
+`produced_by` it was computed under. Anything else raises `ReconstructionRefused(reason)`:
 
 | `reason` | When |
 | --- | --- |

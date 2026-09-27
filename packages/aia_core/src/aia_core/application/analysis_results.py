@@ -7,8 +7,8 @@ judged on and what a reader re-checks cannot differ:
   dataset, aggregate), found through the run's recorded step outputs, read through the
   Study's research artifacts, and checked against each other: the specification is the
   run's Design Revision compiled (or an identical earlier revision's, which the compile
-  step reuses), the aggregate was computed from that specification and that dataset
-  (its recorded dependencies), the types are what they must be.
+  step reuses), the aggregate was computed from that dataset and a specification of
+  that fingerprint (its recorded dependencies), the types are what they must be.
 * :func:`prepare_module` -- those sources as the :class:`AnalysisInputs` one module is
   judged on, with the domain's module fingerprint, the artifact's reuse key and the
   deterministic preflight. The executor calls this before any reservation.
@@ -86,7 +86,12 @@ from ..domain.pipeline import fingerprint
 from ..domain.research_design import ResearchSpecification
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus
-from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
+from ..infrastructure.artifact_repository import (
+    Artifact,
+    ArtifactNotFound,
+    ArtifactRepository,
+    ArtifactStatus,
+)
 from ..infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from ..infrastructure.study_design_repository import (
     DesignRevisionNotFound,
@@ -177,6 +182,39 @@ def _typed(artifact: Artifact, artifact_type: str) -> Artifact:
     return artifact
 
 
+def _computed_from(
+    repo: ArtifactRepository,
+    depends: Sequence[Artifact],
+    *,
+    spec: ResearchSpecification,
+    spec_id: str,
+    dataset_id: str,
+) -> bool:
+    """Whether an aggregate records the run's dataset and the run's specification.
+
+    The specification by fingerprint, as the fieldwork and aggregate steps key on it: a
+    design edited outside its questionnaire (its research questions, say) compiles to a
+    new artifact of the same specification, and the steps after it reuse the earlier
+    run's dataset and aggregate, which record the earlier artifact.
+    """
+    ids = {d.artifact_id for d in depends}
+    if dataset_id not in ids:
+        return False
+    if spec_id in ids:
+        return True
+    for dependency in depends:
+        if dependency.artifact_type != SPECIFICATION_ARTIFACT:
+            continue
+        recorded = repo.read_json(dependency.artifact_id)
+        try:
+            other = ResearchSpecification.model_validate(recorded.get("specification"))
+        except ValueError:
+            continue
+        if other.fingerprint() == recorded.get("specification_fingerprint") == spec.fingerprint():
+            return True
+    return False
+
+
 def native_sources(
     session: Session, scope: StudyContext, store: ArtifactStore, run: Mapping[str, Any]
 ) -> NativeSources:
@@ -197,7 +235,14 @@ def native_sources(
         aggregate_row = _typed(repo.get(ids["aggregate"]), AGGREGATE_ARTIFACT)
         spec_payload = repo.read_json(spec_row.artifact_id)
         aggregate_payload = repo.read_json(aggregate_row.artifact_id)
-        depends = {a.artifact_id for a in repo.dependencies(aggregate_row.artifact_id)}
+        spec = ResearchSpecification.model_validate(spec_payload.get("specification"))
+        computed_from = _computed_from(
+            repo,
+            repo.dependencies(aggregate_row.artifact_id),
+            spec=spec,
+            spec_id=spec_row.artifact_id,
+            dataset_id=dataset_row.artifact_id,
+        )
     except ArtifactNotFound as exc:
         raise SourcesRefused(
             "source_not_found", f"an upstream artifact is not in scope: {exc}"
@@ -205,7 +250,6 @@ def native_sources(
     except (IntegrityError, ObjectNotFound) as exc:
         raise SourcesRefused("source_corrupt", f"an upstream artifact is corrupt: {exc}") from exc
 
-    spec = ResearchSpecification.model_validate(spec_payload.get("specification"))
     if spec_payload.get("specification_fingerprint") != spec.fingerprint():
         raise SourcesRefused(
             "specification_moved", "the specification does not match its fingerprint"
@@ -226,7 +270,7 @@ def native_sources(
         raise SourcesRefused(
             "design_revision", "the specification is not the run's Design Revision"
         )
-    if not {spec_row.artifact_id, dataset_row.artifact_id} <= depends:
+    if not computed_from:
         raise SourcesRefused(
             "aggregate_lineage", "the aggregate does not record this specification and dataset"
         )

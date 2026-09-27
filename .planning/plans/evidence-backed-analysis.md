@@ -135,11 +135,13 @@ validation (only support and suppression), verification or alignment.
       code + tests: `test_analysis_artifact.py` (22), including the eight nodes joining the
       research graph as a valid DAG
 - [x] 5. Scoped sources and reconstruction: `application/analysis_results.py`. — code +
-      tests: `test_analysis_results.py` (18; SQLite and PostgreSQL 16), upstream steps driven
+      tests: `test_analysis_results.py` (20; SQLite and PostgreSQL 16), upstream steps driven
       through the real workflow repository. Sources are identified by content
-      (`ModuleSources.content`): the compile step reuses an identical earlier revision's
-      specification, which was refused until
-      `test_a_specification_reused_from_an_identical_revision_is_the_runs_own` (**PR A ends
+      (`ModuleSources.content`), as the research steps reuse them: an identical earlier
+      revision's specification, and -- after an edit outside the questionnaire -- the
+      earlier run's dataset and aggregate. Both were refused until
+      `test_a_specification_reused_from_an_identical_revision_is_the_runs_own` and
+      `test_an_aggregate_reused_over_the_same_questionnaire_is_the_runs_own` (**PR A ends
       here**)
 - [ ] 6. Executor: `aia_executors/analysis.py`, generator with turn checkpoints, config,
       registry; real worker over recorded Bedrock: complete, blocked after 3 calls,

@@ -149,11 +149,13 @@ class World:
         lineage: bool = True,
         stop_before: str | None = None,
         spec_revision: str | None = None,
+        reused: dict[str, str] | None = None,
     ) -> None:
         """compile, preflight, run and aggregate, as their executors store them.
 
         ``spec_revision`` names the revision the specification records, as when the
-        compile step reused the artifact of an earlier revision.
+        compile step reused the artifact of an earlier revision; ``reused`` maps a step
+        kind to an earlier run's artifact that step reuses instead of storing one.
         """
         latest = StudyDesignRepository(self.session, self.scope).latest()
         assert latest is not None
@@ -207,7 +209,10 @@ class World:
         ):
             if stop_before == kind:
                 return
-            self._complete(kind, build)
+            if reused and kind in reused:
+                self._complete(kind, lambda w, found=reused[kind]: found)
+            else:
+                self._complete(kind, build)
 
     def run(self, run_id: str) -> dict[str, Any]:
         return self.engine.get_run(run_id)
@@ -357,6 +362,44 @@ def test_a_specification_reused_from_an_identical_revision_is_the_runs_own(
     run_revision = world.run(run_id)["metadata"]["design_revision_id"]
     assert run_revision != first.revision_id
     assert world.sources(run_id).refs.design_revision_id == run_revision
+
+
+def _outputs(world: World, run_id: str) -> dict[str, str]:
+    return {
+        s["node_key"]: s["output"]["artifact_id"]
+        for s in world.run(run_id)["steps"]
+        if (s.get("output") or {}).get("artifact_id")
+    }
+
+
+def test_an_aggregate_reused_over_the_same_questionnaire_is_the_runs_own(world: World) -> None:
+    """Editing only the research questions compiles to the same specification, so the
+    fieldwork and aggregate steps reuse the earlier run's artifacts, which record the
+    earlier specification artifact."""
+    first = world.start()
+    world.upstream()
+    earlier = _outputs(world, first)
+    second = world.start({**DESIGN, "research_plan": {"research_questions": ["Jiná otázka?"]}})
+    world.upstream(
+        reused={"research_fieldwork": earlier["run"], "research_aggregate": earlier["aggregate"]}
+    )
+    sources = world.sources(second)
+    assert sources.refs.aggregate.artifact_id == earlier["aggregate"]
+    assert sources.refs.specification.artifact_id != earlier["compile"]
+    assert sources.research_questions == ("Jiná otázka?",)
+
+
+def test_an_aggregate_of_another_questionnaire_is_refused(world: World) -> None:
+    first = world.start()
+    world.upstream()
+    earlier = _outputs(world, first)
+    second = world.start({**DESIGN, "title": "Jiný dotazník"})  # another specification
+    world.upstream(
+        reused={"research_fieldwork": earlier["run"], "research_aggregate": earlier["aggregate"]}
+    )
+    with pytest.raises(SourcesRefused) as refused:
+        world.sources(second)
+    assert refused.value.reason == "aggregate_lineage"
 
 
 def test_a_specification_of_another_design_is_refused(world: World) -> None:
