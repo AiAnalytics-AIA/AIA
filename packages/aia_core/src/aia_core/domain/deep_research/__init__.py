@@ -14,7 +14,11 @@ is pure:
 * :mod:`.web` -- what a fetch may reach, on every hop;
 * :mod:`.knowledge_access` -- Client Knowledge frozen at enqueue, retrieved by code;
 * :mod:`.planning` -- subjects, tracks and their fingerprints, depth, stopping;
-* :mod:`.agents` -- the five agents' contracts, prompts and requests.
+* :mod:`.agents` -- the five agents' contracts, prompts and requests;
+* :mod:`.merge` -- scoring, dedupe, confirmation and the verifier's verdicts;
+* :mod:`.synthesis` -- the brief, and what of it may be published;
+* :mod:`.bundle` -- the sealed evidence bundle;
+* :mod:`.quarantine` -- what leaves the bundle for respondents, design and analysis.
 
 Pure: stdlib and Pydantic only.
 """
