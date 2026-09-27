@@ -30,3 +30,20 @@ log "dumping to s3://$AIA_OPS_BUCKET/$key"
 size="$(aws s3api head-object --bucket "$AIA_OPS_BUCKET" --key "$key" --region "$AWS_REGION" --query ContentLength --output text)"
 [ "${size:-0}" -gt 1024 ] || die "backup object is ${size:-0} bytes; refusing to call that a backup"
 log "backup complete: $key ($size bytes)"
+# The research editing copy still lives in the legacy SQLite store (OI-58).
+# PostgreSQL retains its study binding, not that editing content. Back up the
+# live databases before any container replacement; a file copy would miss WAL.
+# Export requires separate owner approval; leave it off until explicitly enabled.
+if [ "${AIA_LEGACY_STATE_BACKUP_ENABLED:-false}" != "true" ]; then
+  log "legacy working database export is disabled; owner approval is required"
+elif [ -n "$("${COMPOSE[@]}" ps --status running -q legacy-panel)" ]; then
+  state_key="backups/legacy-state-${stamp}-${LABEL}.zip"
+  log "backing up legacy working databases to s3://$AIA_OPS_BUCKET/$state_key"
+  "${COMPOSE[@]}" exec -T legacy-panel python - < "$DEPLOY_DIR/bin/backup-legacy-state.py" \
+    | aws s3 cp - "s3://$AIA_OPS_BUCKET/$state_key" --region "$AWS_REGION" --only-show-errors
+  state_size="$(aws s3api head-object --bucket "$AIA_OPS_BUCKET" --key "$state_key" --region "$AWS_REGION" --query ContentLength --output text)"
+  [ "${state_size:-0}" -gt 100 ] || die "legacy state backup is too small"
+  log "legacy state backup complete: $state_key ($state_size bytes)"
+else
+  log "legacy-panel is not running; no legacy working database backup available"
+fi

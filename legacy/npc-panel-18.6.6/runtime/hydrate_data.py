@@ -5,7 +5,8 @@ The extracted unit keeps licence-bound and bulky files out of app/ and out of
 Git; ``data-manifest.json`` lists them with their SHA256. At container start
 this copies each one from the data mount (``NPC_DATA_SOURCE``) to its place in
 the tree, skipping files already present with the right hash, and refuses to
-continue when one is missing or differs.
+continue when one is missing or differs. State seeds are verified when first
+installed; an existing working state database is never overwritten.
 
     hydrate_data.py <tree> --manifest data-manifest.json --source /data [--warn]
 
@@ -57,6 +58,12 @@ def main(argv: list[str]) -> int:
     for e in entries:
         rel, digest = e["path"], e["sha256"]
         target = args.tree / rel
+        # State seeds initialise a new volume. The reference legitimately writes
+        # these databases; their changed hash is not asset drift (verify_tree.py).
+        # Replacing one here loses projects while AIA retains their bindings.
+        if e.get("class") == "state_seed" and target.is_file():
+            kept += 1
+            continue
         if target.is_file() and sha256_of(target) == digest:
             kept += 1
             continue

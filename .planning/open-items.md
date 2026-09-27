@@ -2058,3 +2058,32 @@ the ledger. Nothing panel-derived can be sent today (OI-61), so nothing is missi
 **Smallest fix.** `AIUsageEvent.data_lineage` + a column + migration, written by the
 gateway from the request. **Status.** Open; plan follow-up 6.
 
+
+
+---
+
+## OI-66 · Reproduced defect · Legacy startup overwrites saved study projects
+
+**Claim.** Startup hydration replaces an edited `state_seed` with archive bytes,
+losing working projects while PostgreSQL retains their study bindings.
+
+**Anchor.** `legacy/npc-panel-18.6.6/runtime/hydrate_data.py:74` @ `0310091`.
+
+**Reproduction.** Run `pytest packages/aia_core/tests/test_legacy_state_hydration.py`:
+first hydrate, save a SQLite project, hydrate again. On the original code the
+saved project vanishes. Live startup logged one copied data file; the Lumen
+binding names `PRJ-bd16268b772b4c`, absent from the working project database.
+
+**User consequence.** Research stages fail with “Projekt/revize nenalezena”.
+Four older bound projects are absent; newer saved drafts still exist.
+
+**Smallest fix.** Preserve existing `state_seed` files and retain strict checking
+for new seeds/immutable assets. Add live SQLite backups before deployment, using
+SQLite's backup API to include WAL. Keep the pinned application unchanged.
+
+**Coverage.** `test_restart_preserves_saved_project_and_still_verifies_assets`;
+`test_backup_captures_wal_edits_and_other_state_databases`.
+
+**Recovery.** Two missing projects have native submitted design copies. No saved
+copy has yet been found for the two other fictional demos. Recovery or explicit
+recreation must preserve study identity and must not invent original content.

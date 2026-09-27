@@ -221,6 +221,7 @@ packages/aia_core/src/aia_core/
 migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
+  bin/backup-legacy-state.py Live SQLite database copies for pre-deploy/nightly backup (WAL-safe)
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
 docs/architecture/          System design + 16 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief

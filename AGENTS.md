@@ -1098,3 +1098,28 @@ runpy.run_path("ui_server.py", run_name="__main__")
 no_ai(here, os.environ)
 claude_code_setup.executable = claude_code_provider.executable = lambda: None
 ```
+
+
+## Hydrating legacy working state
+
+**A seed database is installed once, not restored on every container start.**
+The working SQLite project's hash changes after a save. Comparing it to the
+archive seed and copying the seed on mismatch silently deletes projects while
+PostgreSQL retains their study bindings (2026-09-26, reproduced loading the Lumen
+study after PR #56 deployed). Runtime `hydrate_data.py` preserves any existing
+`state_seed` file; immutable assets and first installation remain hash-checked.
+
+```python
+# WRONG: a legitimate edit is treated as drift and replaced from the archive.
+if sha256_of(target) != digest:
+    shutil.copyfile(seed, target)
+
+# RIGHT: working state survives a restart; a new state file is still verified.
+if entry.get("class") == "state_seed" and target.is_file():
+    continue
+```
+
+Back up live SQLite with `Connection.backup`, not a copy of the main file:
+committed project content can still be in WAL. The host feeds the backup source
+to the old image before replacing it; a backup helper present only in the new
+image cannot protect the deployment that installs it.
