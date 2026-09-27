@@ -14,8 +14,8 @@ the worker the host runs beside them, each a local process on this machine:
                   loopback, behind the unit's own runtime/relay.py, as the
                   container's entrypoint runs it
     api           the real aia_api on a scratch SQLite file, the local
-                  environment's development identity, the gate switched on
-                  (tools/ui_workbench/api_standin.py --panel-origin)
+                  environment's development identity, AIA's session gate and the
+                  panel's switched on (tools/ui_workbench/api_standin.py --panel-origin)
     web           ``next dev`` for apps/web, skin, hand-off and re-home on
     worker        ``python -m aia_worker`` with the production registry
                   (``aia_executors.registry``), over the API's database and
@@ -159,19 +159,32 @@ def prove(caddy: str) -> list[tuple[bool, str]]:
     s, h, _ = product.get("/api/bootstrap", {"Accept": "application/json"})
     line(s == 401, "GET /api/bootstrap, the unit (signed out)", str(s))
 
-    # Sign in the way /login does after Cognito: the id token to the gate's session.
-    s, h, _ = product.get(
-        "/api/v1/panel/session",
-        {"Authorization": f"Bearer {OPERATOR}", "Origin": f"https://{PRODUCT}"},
-        method="POST",
-    )
-    cookie = (h.get("set-cookie") or "").split(";", 1)[0]
-    line(
-        s == 204 and cookie.startswith("aia_panel="),
-        "POST /api/v1/panel/session",
-        f"{s} {cookie[:24]}...",
-    )
+    # Sign in the way /login does after Cognito: the id token to AIA's session
+    # (ADR 0018), then -- best effort, for /classic and the unit -- to the panel's.
+    def open_session(path: str, name: str) -> str:
+        s, h, _ = product.get(
+            path,
+            {"Authorization": f"Bearer {OPERATOR}", "Origin": f"https://{PRODUCT}"},
+            method="POST",
+        )
+        cookie = (h.get("set-cookie") or "").split(";", 1)[0]
+        line(s == 204 and cookie.startswith(f"{name}="), f"POST {path}", f"{s} {cookie[:24]}...")
+        return cookie
+
+    aia_cookie = open_session("/api/v1/session", "aia_session")
+    panel_cookie = open_session("/api/v1/panel/session", "aia_panel")
+    cookie = f"{aia_cookie}; {panel_cookie}"
     signed = {**html, "Cookie": cookie}
+    # AIA's pages need AIA's session and nothing of the unit's; the panel's cookie
+    # alone is not a way into AIA.
+    s, h, _ = product.get("/app/clients", {**html, "Cookie": aia_cookie})
+    line(s == 200, "GET /app/clients (AIA's session only)", str(s))
+    s, h, _ = product.get("/app/clients", {**html, "Cookie": panel_cookie})
+    line(
+        s == 302 and (h.get("location") or "").startswith("/login?next="),
+        "GET /app/clients (the panel's cookie only)",
+        f"{s} -> {h.get('location')}",
+    )
 
     s, h, b = product.get("/", signed)
     served = "the 18.6.6 document" if is_unit_document(b) else "not the 18.6.6 document"
@@ -196,7 +209,7 @@ def prove(caddy: str) -> list[tuple[bool, str]]:
         "GET /classic (signed in): the hand-off, skinned",
         f"{s} X-AIA-Skin: {h.get('x-aia-skin')}, hand-off {'present' if handoff else 'absent'}",
     )
-    s, h, b = product.get("/api/bootstrap", {"Accept": "application/json", "Cookie": cookie})
+    s, h, b = product.get("/api/bootstrap", {"Accept": "application/json", "Cookie": panel_cookie})
     line(
         s == 200 and b.lstrip().startswith(b"{"),
         "GET /api/bootstrap, the unit (signed in)",

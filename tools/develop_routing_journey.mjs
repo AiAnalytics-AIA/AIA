@@ -6,7 +6,7 @@
  *   python3 tools/develop_routing_proof.py --keep     # Caddy and its upstreams, left running
  *   node tools/develop_routing_journey.mjs [OUT_DIR]  # then this; screenshots into OUT_DIR
  *
- * Signed in as /login leaves a person (the gate's cookie and the tab's session),
+ * Signed in as /login leaves a person (the gates' cookies and the tab's session),
  * it opens the hostname's root and follows it to the client directory, starts a
  * research under a fictional client, lets the first save bind the study to its
  * unit project, opens the run stage (AIA's: the empty design is not ready), hands
@@ -45,9 +45,12 @@ const browser = await chromium.launch();
 // Caddy's local CA for *.localhost is not in Chromium's own store; the proof
 // script has already verified these hostnames' TLS against that CA.
 const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 } });
-// Signed in as /login leaves it: the gate's cookie (POST /api/v1/panel/session) and the tab's session.
-const opened = await ctx.request.fetch(HOST + "/api/v1/panel/session", { method: "POST", headers: { authorization: `Bearer ${OP}`, origin: HOST } });
-check(opened.status() === 204, "panel session opened", String(opened.status()));
+// Signed in as /login leaves it: AIA's session cookie (POST /api/v1/session, ADR 0018),
+// the panel's for /classic (POST /api/v1/panel/session) and the tab's session.
+for (const [path, what] of [["/api/v1/session", "AIA session"], ["/api/v1/panel/session", "panel session"]]) {
+  const opened = await ctx.request.fetch(HOST + path, { method: "POST", headers: { authorization: `Bearer ${OP}`, origin: HOST } });
+  check(opened.status() === 204, `${what} opened`, String(opened.status()));
+}
 const session = JSON.stringify({ idToken: OP, refreshToken: "", expiresAt: 4102444800000, email: OP, subject: OP });
 await ctx.addInitScript((s) => sessionStorage.setItem("aia.session", s), session);
 const page = await ctx.newPage();

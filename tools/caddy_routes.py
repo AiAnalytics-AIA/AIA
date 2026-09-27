@@ -15,7 +15,9 @@ only. What it asserts, and why each line must never go missing:
   hand-off, never public, and the gate runs before the rewrite (else a
   signed-out visitor is sent back to ``/interface-document`` after sign-in).
 * ``/interface-document`` is not an entry point (404).
-* ``/app`` and ``/app/*`` are the gate, then the web client, without the cookie.
+* ``/app`` and ``/app/*`` are AIA's own gate (``/api/v1/session/gate``, ADR 0018),
+  then the web client, without the cookie: never the 18.6.6 panel's gate, so
+  nothing about the unit decides whether AIA can be reached.
 * The unit is reached only on the paths it serves, each behind the gate and
   without the cookie; nothing without a path matcher reaches it, so no unknown
   path falls through to the classic product.
@@ -35,6 +37,8 @@ LEGACY = "legacy.example.test"
 UNIT = "legacy-panel:8765"
 WEB = "web:3000"
 GATE = "/api/v1/panel/gate"
+APP_GATE = "/api/v1/session/gate"
+GATES = (GATE, APP_GATE)
 # The paths the unit serves (docs/migration/legacy-route-ledger.json).
 UNIT_PATHS = {
     "/api/*",
@@ -83,7 +87,7 @@ def steps(node: Any) -> list[str]:
         handler = n.get("handler")
         if handler == "reverse_proxy":
             uri = n.get("rewrite", {}).get("uri")
-            out.append(f"gate:{uri}" if uri == GATE else "proxy:" + ",".join(dials(n)))
+            out.append(f"gate:{uri}" if uri in GATES else "proxy:" + ",".join(dials(n)))
         elif handler == "rewrite":
             out.append(f"rewrite:{n.get('uri')}")
         elif handler == "static_response":
@@ -98,7 +102,7 @@ def cookie_dropped(node: Any) -> bool:
     proxies = [
         n
         for n in walk(node)
-        if n.get("handler") == "reverse_proxy" and n.get("rewrite", {}).get("uri") != GATE
+        if n.get("handler") == "reverse_proxy" and n.get("rewrite", {}).get("uri") not in GATES
     ]
     return bool(proxies) and all(
         "Cookie" in n.get("headers", {}).get("request", {}).get("delete", []) for n in proxies
@@ -142,8 +146,10 @@ def check(config: dict[str, Any]) -> list[str]:
         problems.append(f"/interface-document must be 404; got {steps(r)}")
     for path in ("/app", "/app/*"):
         if (r := only(path)) is not None:
-            if steps(r) != [f"gate:{GATE}", f"proxy:{WEB}"]:
-                problems.append(f"{path} must be the gate, then the web client; got {steps(r)}")
+            if steps(r) != [f"gate:{APP_GATE}", f"proxy:{WEB}"]:
+                problems.append(
+                    f"{path} must be AIA's own gate, then the web client; got {steps(r)}"
+                )
             if not cookie_dropped(r):
                 problems.append(f"{path}: the session cookie reaches the web client")
     if (r := only("/api/v1/*")) is not None and dials(r) != ["api:8000"]:
@@ -199,8 +205,8 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     print(
-        "caddy routes: / -> /app/clients; /classic and /app gated; "
-        "the unit only on its own paths, gated"
+        "caddy routes: / -> /app/clients; /app behind AIA's gate; /classic and the "
+        "unit only on its own paths, behind the panel gate"
     )
     return 0
 
