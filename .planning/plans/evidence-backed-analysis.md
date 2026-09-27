@@ -116,12 +116,16 @@ validation (only support and suppression), verification or alignment.
 
 ## Chunks
 
-- [ ] 0. This plan; PROGRESS row. — docs only
-- [ ] 1. Instrument items as evidence fields: `evidence/instrument.py`, `InstrumentStatus`
-      beside the dictionary's statuses, `FieldPolicy` typed for both; layer rule: no app
-      builds a policy book or a joint status. — code + tests
-- [ ] 2. Native evidence and inputs: `analysis/native.py` (rows, support, intervals,
-      fidelity, suppression, research questions, preflight). — code + tests
+- [x] 0. This plan; PROGRESS row. — docs only
+- [x] 1. Instrument items as evidence fields: `evidence/instrument.py`, `InstrumentStatus`
+      beside the dictionary's statuses, `FieldPolicy` typed for both, `ClaimRule.INTERNAL_ONLY`
+      refused client-facing by the claim gate (`FIELD_INTERNAL_ONLY`); layer rule: no app
+      builds a policy book or a joint status (probe-verified to fail). — code + tests:
+      `test_evidence_instrument.py` (19)
+- [x] 2. Native evidence and inputs: `analysis/native.py` (rows, support, intervals,
+      fidelity, suppression, research questions, preflight). — code + tests:
+      `test_analysis_native.py` (28), on a compiled design, the fixture dataset and the real
+      aggregate
 - [ ] 3. Harness: `analysis/harness.py` (agent, request per turn, invalid-output marker,
       classification, lineage, identity). — code + tests
 - [ ] 4. Artifact contract and graph spec: `analysis/artifact.py`, `analysis/steps.py`. —
