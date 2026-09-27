@@ -331,6 +331,17 @@ explicit UNKNOWN grade `?` — never as measured, never as the strongest grade.
 product-surface then adds it to `apps/web/src/design/enums.ts` and the parity
 check (`.planning/plans/design-system.md`, chunk 2).
 
+**Update (2026-09-25).** The enum now exists in part: `domain/evidence/field_policy.py`
+defines 22 field `EvidenceStatus` values. What is still missing is the **mapping
+from those statuses onto the five print grades** (measured / calibrated /
+modelled / holdout-pending / unknown). The report takes that mapping as data:
+`EvidenceLedger.field_grades` (`domain/report/evidence.py`,
+`grade_of`). Until analysis-governance supplies it, the report prints every
+measured-basis number as `?` (a `MODELED` basis always prints as modelled).
+The rules are pinned by `test_report_model.py::test_a_field_without_a_grade_prints_unknown_never_measured`
+and `test_several_fields_not_jointly_measured_never_print_measured`. Decision
+R-D4 in `.planning/plans/report-docx.md`.
+
 **Status.** Open. Cross-context dependency.
 
 ---
