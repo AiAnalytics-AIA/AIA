@@ -505,6 +505,11 @@ def access_audit(
     legitimate but must be reviewable afterwards.
     """
     try:
-        return [AuditEntryResponse(**e) for e in resolver.audit_trail(admin, limit=limit)]
+        # The trail's free-form ``payload`` is internal and deliberately not part of
+        # this contract; passing it through made the closed model reject every entry.
+        return [
+            AuditEntryResponse(**{k: v for k, v in e.items() if k != "payload"})
+            for e in resolver.audit_trail(admin, limit=limit)
+        ]
     except ScopeDenied as exc:
         raise _forbidden(exc) from exc
