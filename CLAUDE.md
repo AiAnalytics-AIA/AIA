@@ -169,6 +169,7 @@ packages/aia_core/src/aia_core/
       numbers.py            Czech print formatting; never re-rounds; effective n rounds down
       copy.py               The report's own Czech vocabulary
       outline.py            Every printed number: chapters, appendices, headings, figures, cross-ref labels
+      rendering.py          ReportRenderer protocol: the seam to the DOCX adapter
     evidence/               What may be claimed — every gate fails closed
       field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
       joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
@@ -198,6 +199,13 @@ packages/aia_core/src/aia_core/
     report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
       embed.py              ECMA-376 obfuscated font embedding; deterministic keys
       styles.py             The Word style sheet, built from print_tokens (S = every style name)
+      renderer.py           DocxRenderer.render(doc) -> bytes: validate, outline, write, finish;
+                            deterministic bytes (fixed zip timestamps)
+      layout.py             Sections (cover / front i, ii / body 1, 2 / appendix), running heads,
+                            the draft footer, cover, document control, TOC fields
+      blocks.py             One renderer per model block; no direct formatting
+      context.py            RenderContext: the state of one render
+      lint.py               lint_docx: no direct formatting, schema order kept
       ooxml.py, numbering.py, footnotes.py  Fields and bookmarks; lists; the footnotes part
       fonts/                Upstream TTFs, unmodified, with licences + SHA256SUMS
     tables.py               SQLAlchemy tables

@@ -831,6 +831,40 @@ for a in ("w:asciiTheme", "w:hAnsiTheme", "w:cstheme", "w:eastAsiaTheme"):
 LibreOffice opens can still be one Word calls corrupt. Insert settings children
 in `CT_Settings` order (`embed._insert_in_order`), and never append them.
 
+**LibreOffice ignores `w:ptab`.** An absolute-position tab to the right margin
+would right-align a running head on any page width, but LibreOffice renders it
+as nothing, and the chapter name lands mid-header. Use a right tab stop in the
+Header / Footer *style* (at the text width) and a plain `w:tab` in the run.
+
+**python-docx's `add_section` adds an empty paragraph.** It moves the previous
+`sectPr` into a new, unstyled paragraph. The renderer instead moves it into the
+section's own last paragraph (`layout.end_section`) and resets the body
+`sectPr` — including dropping `pgNumType/@w:start`, which the clone would
+otherwise carry into every later section and restart the page numbers.
+
+```python
+# wrong — an extra empty Normal paragraph, and page numbers restart again
+document.add_section(WD_SECTION.NEW_PAGE)
+# right
+layout.end_section(ctx, layout.last_paragraph(ctx))
+```
+
+**A `Normal` paragraph has no `w:pStyle`.** python-docx omits the element for
+the default style, so "every paragraph names its style" means "has a `pStyle`
+or is `Normal`". `lint.lint_docx` checks the real rule: no formatting element in
+`pPr`/`rPr`/`tblPr`/`trPr`/`tcPr` beyond style names and structure.
+
+**A TOC's cached page numbers stay empty until Word updates the field.**
+LibreOffice shows a TOC field's cached result as-is and does not evaluate the
+`PAGEREF`s inside it; the renderer cannot know page numbers. Word updates them
+on open (`w:updateFields`). A LibreOffice preview therefore shows the entries
+and leaders without numbers — expected, not a defect. `STYLEREF` and `PAGE` in
+running heads LibreOffice does evaluate.
+
+**python-docx writes the current time into the zip.** Two renders of the same
+document differ in bytes unless the package is rewritten with fixed timestamps
+(`renderer._normalise_zip`) and the core properties are dated explicitly.
+
 **Verifying a DOCX by eye needs LibreOffice Writer, not just its core.** A
 container with `libreoffice-core` alone answers every conversion with "source
 file could not be loaded", even for a document python-docx wrote itself. Install

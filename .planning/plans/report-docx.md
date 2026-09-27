@@ -255,6 +255,36 @@ contracts and start when those are agreed.
   untouched default styles (Heading 4–9) also carry theme fonts, so the
   stripping is now sheet-wide.
 
+- **R4 — finished (the renderer).** `infrastructure/report_docx/renderer.py`:
+  `DocxRenderer.render(doc) -> bytes` runs `require_valid`, then
+  `build_outline`, writes the sections and finishes the package. `layout.py`:
+  - cover (no header; a draft's cover footer carries only the draft notice),
+    front matter paged `lowerRoman` from i, body `decimal` from 1, and an
+    appendix section that continues the numbering with its own
+    `STYLEREF "AIA Appendix Heading"` header;
+  - body header "title ⇥ `STYLEREF "Heading 1"`", footer
+    "classification ⇥ `PAGE`"; **with no approvals every footer starts
+    "KONCEPT — NESCHVÁLENO"**;
+  - document control (meta table, approvals or the draft notice, history;
+    study id and identifiers only for internal kinds), then Obsah, Seznam grafů
+    and Seznam tabulek as TOC fields pre-filled with the outline's entries (a
+    hyperlink to the bookmark plus a `PAGEREF`);
+  - core properties (cs-CZ, dated by `issued_on`), the 12 faces embedded,
+    `w:mirrorMargins` and `w:updateFields` in settings order, rsids dropped;
+  - **deterministic bytes**: the zip is rewritten with fixed timestamps.
+
+  `blocks.py` renders headings (number in `AIA Heading Number`, bookmarked),
+  paragraphs, page breaks and callouts (the METHOD callout always prints
+  `copy.method_status_text`). `lint.py` is the DOCX lint (no direct
+  formatting; settings and sectPr in schema order). Validation now also refuses
+  a method status with no printed wording, and `cited_refs(doc)` lists the refs
+  the evidence appendix prints. `domain/report/rendering.py` is the
+  `ReportRenderer` protocol.
+
+  Tests: `test_report_docx_render.py`, 14 tests. The LibreOffice render showed
+  `w:ptab` is ignored (header tab moved into the style) and that a TOC's cached
+  page numbers stay empty until Word updates fields (AGENTS.md § DOCX).
+
 ## Handoff — where to pick up
 
 **State.** R0–R2 are merged to `develop` (#53). R3 (`37a1c29`) and the R4 modules

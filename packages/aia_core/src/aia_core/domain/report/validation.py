@@ -19,6 +19,7 @@ from enum import StrEnum
 from typing import Final
 
 from aia_core.domain.evidence.claims import ClaimSurface
+from aia_core.domain.report.copy import METHOD_STATUS_COPY
 from aia_core.domain.report.evidence import PrintGrade, grade_of
 from aia_core.domain.report.model import (
     AuditBlock,
@@ -203,6 +204,12 @@ def validate(doc: ReportDocument) -> tuple[Problem, ...]:
         add(ProblemCode.INTERNAL_BLOCK, "run ids and fingerprints are internal", "meta")
     if not meta.method_status.strip():
         add(ProblemCode.METHOD_STATUS, "the method status is written by code, always", "meta")
+    elif meta.method_status not in METHOD_STATUS_COPY:
+        add(
+            ProblemCode.METHOD_STATUS,
+            f"no printed wording for method status {meta.method_status!r}",
+            "meta",
+        )
     if client and not any(
         isinstance(b, Callout) and b.kind is CalloutKind.METHOD
         for s in doc.sections
@@ -326,6 +333,21 @@ def _chart_problems(chart: Chart, doc: ReportDocument, where: str) -> Iterator[P
         yield Problem(ProblemCode.MIXED_UNITS, "one chart, one unit, one axis", where)
     if chart.kind is ChartKind.STACKED_100 and units and units != {"%"}:
         yield Problem(ProblemCode.MIXED_UNITS, "a 100 % stack shows percentages", where)
+
+
+def cited_refs(doc: ReportDocument) -> tuple[str, ...]:
+    """Every admitted ref the document prints, once each, in document order.
+
+    What the evidence appendix lists. Suppressed refs are omitted: the document
+    removes them, it does not cite them.
+    """
+    out: dict[str, None] = {}
+    for section in doc.sections:
+        for block in section.blocks:
+            for ref in (*_prose_refs(block), *_data_refs(block)):
+                if ref in doc.ledger.rows:
+                    out.setdefault(ref, None)
+    return tuple(out)
 
 
 def require_valid(doc: ReportDocument) -> ReportDocument:

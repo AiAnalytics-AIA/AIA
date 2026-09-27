@@ -10,6 +10,11 @@ from __future__ import annotations
 
 from typing import Final
 
+from aia_core.domain.evidence.validation import (
+    METHOD_STATUS_HOLDOUT_VALIDATED,
+    METHOD_STATUS_PENDING,
+)
+
 CS: Final[dict[str, str]] = {
     # furniture
     "contents": "Obsah",
@@ -36,6 +41,14 @@ CS: Final[dict[str, str]] = {
     "approval": "Schválení",
     "revision_history": "Historie revizí",
     "identifiers": "Identifikátory",
+    "study_id": "Označení studie",
+    "method": "Metoda",
+    "reviewer": "Schvalovatel",
+    "decided_on": "Datum schválení",
+    "change": "Změna",
+    "draft": "KONCEPT — NESCHVÁLENO",
+    "draft_long": "Tato revize dosud nebyla schválena. Nepředávejte ji jako finální.",
+    "separator": " \u00b7 ",
     # report kinds
     "kind_client": "Závěrečná zpráva",
     "kind_final": "Závěrečná zpráva s externí triangulací",
@@ -86,6 +99,21 @@ CS: Final[dict[str, str]] = {
         "Syntetický a modelovaný výzkum, externě validovaný proti slepému lidskému vzorku."
     ),
 }
+
+#: validation.METHOD_STATUS_* → the copy key that prints it. A status with no
+#: wording is refused (validation), never printed raw.
+METHOD_STATUS_COPY: Final[dict[str, str]] = {
+    METHOD_STATUS_PENDING: "method_status_pending",
+    METHOD_STATUS_HOLDOUT_VALIDATED: "method_status_validated",
+}
+
+
+def method_status_text(status: str) -> str:
+    """The Czech sentence the page prints for a document's method status."""
+    try:
+        return t(METHOD_STATUS_COPY[status])
+    except KeyError:
+        raise KeyError(f"no printed wording for method status {status!r}") from None
 
 
 def t(key: str) -> str:
