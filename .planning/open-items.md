@@ -2689,8 +2689,7 @@ evidence. Its rows carry the aggregate's origin, and its instrument policy refus
 names none (`domain/evidence/instrument.py:132-139`). The gate's default is unchanged
 (`admission.py:91, 244`), so this stays open for any other builder of an `EvidenceRow`. Its
 number follows the contract's rule for concurrent entries (§5). It was OI-72 on this entry's branch
-until #83 put OI-76 on `develop` (`48bf3e2`, 22:45 UTC). #75 still claims OI-72 to OI-75, and #84
-claims OI-77.
+until #83 put OI-76 on `develop` (`48bf3e2`, 22:45 UTC). #84 merged OI-77 at 23:09 UTC (`8c13a11`), and #75 still claims OI-72 to OI-75.
 
 ---
 
