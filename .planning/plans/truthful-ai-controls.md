@@ -129,8 +129,9 @@ each Study's runs.
       every assertion)
 - [x] 5. Documents and tracker: ARCHITECTURE §2, CLAUDE.md map, `ai-runtime.md`
       (§ Providers, § Policies, § Budget control, new § What Settings shows),
-      `research-agents.md` § Configuration, the runbook's § AI settings, OI-72 to OI-76,
-      PROGRESS; screenshots of four states at 1440 px and the history at 1024 px
+      `research-agents.md` § Configuration, the runbook's § AI settings, OI-72 to OI-76
+      (OI-76 since fixed by #83, whose entry replaced this branch's copy when `develop` @
+      `8c13a11` was merged in), PROGRESS; screenshots of four states at 1440 px and the history at 1024 px
 
 ## Evidence
 
@@ -142,7 +143,8 @@ each Study's runs.
   1024 px.
 - Web suite, alternated with `ceee2dc` in the same container: this branch 7 of 8 full runs
   green, `ceee2dc` 4 of 6. Every failure is a native research-agent screen test outrunning its
-  15 s budget (OI-76), none in a file this change touches.
+  15 s budget (OI-76), none in a file this change touches. #83 found the cause, a `/config`
+  failure an earlier test left cached, and fixed it.
 - No model call, no health probe, no paid inference.
 
 ## Ownership and handoffs
