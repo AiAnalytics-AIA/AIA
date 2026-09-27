@@ -106,6 +106,25 @@ Merge a pull request into `develop`. Then:
 Refresh `https://aia-develop.art-chain.io/` — the footer and `/version` show the SHA;
 `/api/v1/health` shows the same SHA under `build.sha`.
 
+### Registry credentials
+
+`bin/deploy.sh` pulls from ECR through Amazon's credential helper
+(`docker-credential-ecr-login`), which asks the instance role on each pull. No
+registry token is stored: `ecr_login` in `bin/lib.sh` names the helper for
+`AIA_IMAGE_REGISTRY` in root's `~/.docker/config.json`, deletes the token an
+earlier `docker login` left there, and exports `AWS_ECR_DISABLE_CACHE=true` so the
+helper does not keep its own plain-text copy in `~/.ecr/cache.json`. The first
+deploy after this change installs the Ubuntu package `amazon-ecr-credential-helper`
+itself; there is nothing to do by hand and no Terraform change.
+
+If the package cannot be installed, the deploy still pulls with `docker login`,
+and its log says `WARNING: the ECR credential helper is not installed`. Docker's
+"credentials are stored unencrypted" warning then comes back. Install the package
+(`sudo apt-get install amazon-ecr-credential-helper`) and deploy again.
+
+An operator pulling by hand outside these scripts should
+`export AWS_ECR_DISABLE_CACHE=true` first, or the helper writes its cache.
+
 ## AIA and the 18.6.6 unit on the product hostname
 
 Since [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)

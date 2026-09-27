@@ -44,9 +44,51 @@ require_sha() {
   [[ "$sha" =~ ^[0-9a-f]{7,40}$ ]] || die "expected a git SHA, got '${sha}'"
 }
 
+# Registry credentials come from the instance role through Amazon's ECR credential
+# helper, so no registry token is kept on disk. `docker login` stored the 12-hour
+# token unencrypted in ~/.docker/config.json, and Docker said so on every deploy.
+# The helper's own token cache (~/.ecr/cache.json, also plain text) is switched
+# off for every docker call these scripts make.
+#
+# The helper is installed here rather than in user-data: cloud-init runs once per
+# instance, so a new package there would never reach the running host, and a
+# changed user_data stops and starts the host on the next `terraform apply`.
+# When it cannot be installed, the deploy falls back to `docker login` and says
+# so: a pull that works beats a deploy that fails over credential hygiene.
+export AWS_ECR_DISABLE_CACHE=true
+
 ecr_login() {
-  aws ecr get-login-password --region "$AWS_REGION" \
-    | docker login --username AWS --password-stdin "$AIA_IMAGE_REGISTRY" >/dev/null
+  local registry="${AIA_IMAGE_REGISTRY%%/*}"
+  local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
+  local config="$config_dir/config.json" next
+  if ! command -v docker-credential-ecr-login >/dev/null 2>&1; then
+    log "installing the ECR credential helper"
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get install -y -qq amazon-ecr-credential-helper >/dev/null 2>&1 \
+      || { apt-get update -qq >/dev/null 2>&1 && apt-get install -y -qq amazon-ecr-credential-helper >/dev/null 2>&1; } \
+      || true
+  fi
+  if ! command -v docker-credential-ecr-login >/dev/null 2>&1; then
+    log "WARNING: the ECR credential helper is not installed; docker login stores a 12-hour registry token unencrypted in $config (deploy/develop/README.md § Registry credentials)"
+    aws ecr get-login-password --region "$AWS_REGION" \
+      | docker login --username AWS --password-stdin "$AIA_IMAGE_REGISTRY" >/dev/null
+    return
+  fi
+  # Name the helper for this registry and drop any token an earlier login stored.
+  # Other registries' entries are left as they are.
+  mkdir -p "$config_dir"
+  chmod 700 "$config_dir"
+  [ -s "$config" ] || printf '{}\n' >"$config"
+  next="$(mktemp "$config_dir/.config.json.XXXXXX")"
+  if ! jq --arg r "$registry" \
+    '.credHelpers[$r] = "ecr-login" | if has("auths") then .auths |= del(.[$r]) else . end' \
+    "$config" >"$next"; then
+    rm -f "$next"
+    die "$config is not valid JSON; fix or remove it, then deploy again"
+  fi
+  chmod 600 "$next"
+  mv "$next" "$config"
+  log "registry credentials: ECR credential helper (instance role), nothing stored"
 }
 
 # The running API's build, as /health reports it. Empty when it is not answering.
