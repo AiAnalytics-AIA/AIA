@@ -404,9 +404,12 @@ class QueryRecord(_Closed):
     #: Why the class is what it is ("context:CLASS_C_INTERNAL", "client_term:...").
     class_reasons: tuple[str, ...]
     decision: QueryDecision
+    #: Why it was not sent (a ``REFUSED`` decision): the class, the route, the budget.
     refusal: str | None
     call_id: str | None
     hits: int
+    #: Why a sent query brought nothing back: the provider's error, or a lost answer.
+    failure: str | None = None
 
 
 class TrackStatus(StrEnum):
