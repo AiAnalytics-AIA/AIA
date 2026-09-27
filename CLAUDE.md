@@ -627,12 +627,22 @@ are fast and stay in the foreground.
 
 ### Known flakes
 
-None recorded. Add an entry here the moment one is confirmed, in this shape:
+Add an entry here the moment one is confirmed, in this shape:
 
 ```
 - `packages/aia_core/tests/test_x.py::test_y` — symptom: …
   Confirmation: passes when run alone. Cause: … Fix or waiver: …
 ```
+
+- `apps/api/tests/test_research_api.py::test_research_artifacts_are_read_only_through_the_run_that_produced_them`
+  — symptom: the run ends `FAILED` instead of `COMPLETED`; its `sociomap` step's
+  attempt records `IntegrityError` ("raised as a result of Query-invoked autoflush")
+  inserting a `(child, parent)` pair into `project_artifact_dependencies`, failure
+  class `UNKNOWN`. Confirmation: fails 3 of 20 runs alone on `develop` @ `46b7337`,
+  1 of 20 on `claude/trusting-turing-2b9oyl`; the other 19 pass. Cause: *hypothesis*,
+  not reproduced deterministically — a duplicate dependency edge when an input
+  artifact is reused by content hash. Fix or waiver: none yet; it is a defect in the
+  artifact repository, not a test to retry.
 
 Mocks live at interface boundaries — external services are mocked through their
 protocol, always. Real HTTP only in explicitly manual or integration runs; if a
