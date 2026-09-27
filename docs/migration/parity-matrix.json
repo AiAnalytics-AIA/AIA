@@ -927,7 +927,9 @@
    "implementation_state": "PARTIAL",
    "implementation": [
     "packages/aia_core/src/aia_core/domain/analysis/",
-    "packages/aia_core/src/aia_core/application/analysis.py"
+    "packages/aia_core/src/aia_core/application/analysis.py",
+    "packages/aia_core/src/aia_core/application/analysis_results.py",
+    "packages/aia_core/src/aia_core/domain/evidence/instrument.py"
    ],
    "reference_modules": [
     "analysis_agent.py"
@@ -944,7 +946,12 @@
      "tests": [
       "packages/aia_core/tests/test_analysis_draft.py",
       "packages/aia_core/tests/test_analysis_modules.py",
-      "packages/aia_core/tests/test_analysis_runner.py"
+      "packages/aia_core/tests/test_analysis_runner.py",
+      "packages/aia_core/tests/test_analysis_native.py",
+      "packages/aia_core/tests/test_analysis_harness.py",
+      "packages/aia_core/tests/test_analysis_artifact.py",
+      "packages/aia_core/tests/test_analysis_results.py",
+      "packages/aia_core/tests/test_evidence_instrument.py"
      ]
     }
    ],
@@ -959,7 +966,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-09)."
    },
-   "notes": "The eight module definitions, draft checking and admitted-claim results are ported; no module body calls a model yet, and no reference-backed gate compares module outputs."
+   "notes": "The eight module definitions, draft checking and admitted-claim results are ported; a native run's artifacts now map to evidence (instrument items internal only), with the harness, the stored-outcome contract and reconstruction by re-admission (.planning/plans/evidence-backed-analysis.md). No module body calls a model in production yet, and no reference-backed gate compares module outputs."
   },
   "analysis.qc": {
    "family": "analysis",

@@ -104,7 +104,8 @@ validation (only support and suppression), verification or alignment.
   (`domain/analysis/artifact.py`); per-turn checkpoints `research_analysis_turn`.
 - **Reconstruction** `application/analysis_results.py`: `reconstruct_module`,
   `reconstruct_run` → `ReconstructedModule` (a fresh `AnalysisModuleResult` or the
-  recorded violations). Refusals are `AnalysisReconstructionRefused` with a reason code.
+  recorded violations). Refusals are `ReconstructionRefused` with a reason code (the table in
+  `docs/architecture/analysis.md`).
 - **Graph for Job 6** (`domain/analysis/steps.py`): eight nodes `analysis_<module>`, kind
   `research_analysis`, stage `ANALYSIS`, each depending on `aggregate` only (a blocked or
   failed module strands no other), step input `{"analysis_module", "analysis_surface"}`,
@@ -121,7 +122,9 @@ validation (only support and suppression), verification or alignment.
       beside the dictionary's statuses, `FieldPolicy` typed for both, `ClaimRule.INTERNAL_ONLY`
       refused client-facing by the claim gate (`FIELD_INTERNAL_ONLY`); layer rule: no app
       builds a policy book or a joint status (probe-verified to fail). — code + tests:
-      `test_evidence_instrument.py` (19)
+      `test_evidence_instrument.py` (19); the gate's parity against the reference's
+      `field-policy.json` and methodology ledger still holds (`test_evidence_gate_parity.py`,
+      8 passed against `AIA-reference` @ `05ef950`)
 - [x] 2. Native evidence and inputs: `analysis/native.py` (rows, support, intervals,
       fidelity, suppression, research questions, preflight). — code + tests:
       `test_analysis_native.py` (28), on a compiled design, the fixture dataset and the real
