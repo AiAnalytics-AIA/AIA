@@ -342,7 +342,11 @@ attempt = session.scalar(
 `:memory:` a single shared connection (`StaticPool`) so separate sessions see one
 database — which also means a second thread (the worker's heartbeat) shares that
 connection mid-transaction. Tests with more than one thread use a **file-backed**
-SQLite database per test (`apps/worker/tests/conftest.py`).
+SQLite database per test (`apps/worker/tests/conftest.py`). That includes an API
+test that starts a `Worker`: `test_research_api.py` and `test_runs_api.py` ran on
+`:memory:` and failed about one run in fourteen, the heartbeat's session close
+rolling back a step's flushed artifact row so its dependency insert failed its
+foreign key (found on PR #54, 2026-09-25). Both now override `settings`.
 
 
 **SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
@@ -831,6 +835,62 @@ for a in ("w:asciiTheme", "w:hAnsiTheme", "w:cstheme", "w:eastAsiaTheme"):
 LibreOffice opens can still be one Word calls corrupt. Insert settings children
 in `CT_Settings` order (`embed._insert_in_order`), and never append them.
 
+**LibreOffice ignores `w:ptab`.** An absolute-position tab to the right margin
+would right-align a running head on any page width, but LibreOffice renders it
+as nothing, and the chapter name lands mid-header. Use a right tab stop in the
+Header / Footer *style* (at the text width) and a plain `w:tab` in the run.
+
+**python-docx's `add_section` adds an empty paragraph.** It moves the previous
+`sectPr` into a new, unstyled paragraph. The renderer instead moves it into the
+section's own last paragraph (`layout.end_section`) and resets the body
+`sectPr` — including dropping `pgNumType/@w:start`, which the clone would
+otherwise carry into every later section and restart the page numbers.
+
+```python
+# wrong — an extra empty Normal paragraph, and page numbers restart again
+document.add_section(WD_SECTION.NEW_PAGE)
+# right
+layout.end_section(ctx, layout.last_paragraph(ctx))
+```
+
+**A `Normal` paragraph has no `w:pStyle`.** python-docx omits the element for
+the default style, so "every paragraph names its style" means "has a `pStyle`
+or is `Normal`". `lint.lint_docx` checks the real rule: no formatting element in
+`pPr`/`rPr`/`tblPr`/`trPr`/`tcPr` beyond style names and structure.
+
+**A TOC's cached page numbers stay empty until Word updates the field.**
+LibreOffice shows a TOC field's cached result as-is and does not evaluate the
+`PAGEREF`s inside it; the renderer cannot know page numbers. Word updates them
+on open (`w:updateFields`). A LibreOffice preview therefore shows the entries
+and leaders without numbers — expected, not a defect. `STYLEREF` and `PAGE` in
+running heads LibreOffice does evaluate.
+
+**LibreOffice pads an inline picture by ~3 mm a side unless told not to.**
+python-docx writes `wp:inline` without `distT/B/L/R`. Word reads them as 0;
+LibreOffice as its default wrap distance, so a 2.5 mm evidence mark sat in a
+gap three times its size. `images.add_vector_image` sets all four to `"0"`.
+
+**An exact line height crops a picture to one line.** A style with
+`w:spacing w:lineRule="exact"` (every text style in the report) clips an inline
+picture to its leading in LibreOffice and Word alike: seven charts rendered as
+7 mm slivers. The Figure paragraph style uses auto (single) spacing
+(`Para(exact=False)`).
+
+**The file-writing tool turns `\u00a0` / `\u2013` escapes into literal
+characters.** Grep a newly written file for NBSP, en dash and minus before
+running ruff; RUF001 then catches the rest.
+
+**python-docx writes the current time into the zip.** Two renders of the same
+document differ in bytes unless the package is rewritten with fixed timestamps
+(`renderer._normalise_zip`) and the core properties are dated explicitly.
+
+**Look at the pages, not only the XML.** Every layout defect in the report
+renderer so far — the header tab, padded marks, cropped charts, a row split
+from its interval — passed the structural tests and showed on the first
+render. `make report-preview` (or `tools/report_preview.py some.docx`) renders
+through LibreOffice with a private profile, so a running instance or a stale
+lock never blocks it.
+
 **Verifying a DOCX by eye needs LibreOffice Writer, not just its core.** A
 container with `libreoffice-core` alone answers every conversion with "source
 file could not be loaded", even for a document python-docx wrote itself. Install
@@ -1146,6 +1206,22 @@ aws ecr get-login-password | docker login --username AWS --password-stdin "$REGI
 export AWS_ECR_DISABLE_CACHE=true
 jq --arg r "$REGISTRY" \
   '.credHelpers[$r] = "ecr-login" | if has("auths") then .auths |= del(.[$r]) else . end' config.json
+```
+
+**SSM Run Command gives the script no `HOME`.** `AWS-RunShellScript` starts the
+deploy as root with `HOME` unset, and under `set -u` a bare `$HOME` stops the
+script: deploy run 26 (2026-09-27) failed at `ecr_login` on "HOME: unbound
+variable", and the host stayed on the previous build. The tests had passed because
+they set `HOME`. Docker itself falls back to the passwd entry's home, so resolve
+it the same way, and test the path with `HOME` absent
+(`test_a_deploy_without_home_writes_the_config_docker_reads`).
+
+```bash
+# WRONG: fine in an operator shell, fatal under SSM
+local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
+
+# RIGHT: where docker looks when HOME is unset (lib.sh › docker_config_dir)
+home="${HOME:-$(getent passwd "$(id -u)" | cut -d: -f6)}"
 ```
 
 **A host package does not go in user-data.** cloud-init runs once per instance, so

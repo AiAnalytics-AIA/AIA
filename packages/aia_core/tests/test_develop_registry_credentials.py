@@ -25,7 +25,7 @@ import pytest
 REPO = Path(__file__).resolve().parents[3]
 LIB = REPO / "deploy" / "develop" / "bin" / "lib.sh"
 REGISTRY = "123456789012.dkr.ecr.eu-central-1.amazonaws.com"
-TOOLS = ("bash", "jq", "mktemp", "date", "chmod", "mv", "mkdir", "rm", "cat")
+TOOLS = ("bash", "jq", "mktemp", "date", "chmod", "mv", "mkdir", "rm", "cat", "cut")
 
 
 def _stub(bin_dir: Path, name: str, body: str) -> None:
@@ -147,6 +147,57 @@ def test_an_unreadable_docker_config_stops_the_deploy_and_is_left_alone(
     assert "is not valid JSON" in result.stderr
     assert (host["docker"] / "config.json").read_text() == "{not json"
     assert list(host["docker"].glob(".config.json.*")) == []
+
+
+def _without_home(host: dict[str, Path], passwd_home: str) -> subprocess.CompletedProcess[str]:
+    """``ecr_login`` as SSM Run Command starts it: root, and no HOME at all.
+
+    ``getent`` answers for the passwd entry, so nothing touches the real home of
+    whoever runs the tests.
+    """
+    entry = f"root:x:0:0:root:{passwd_home}:/bin/bash"
+    _stub(host["bin"], "id", "echo 0")
+    _stub(host["bin"], "getent", f'[ "$1 $2" = "passwd 0" ] && echo "{entry}"')
+    env = {
+        "PATH": str(host["bin"]),
+        "DEPLOY_DIR": str(host["root"] / "deploy"),
+        "AIA_IMAGE_REGISTRY": REGISTRY,
+        "AWS_REGION": "eu-central-1",
+    }
+    return subprocess.run(
+        [str(host["bin"] / "bash"), "-c", f'. "{LIB}"; ecr_login'],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_a_deploy_without_home_writes_the_config_docker_reads(host: dict[str, Path]) -> None:
+    """Deploy run 26 (2026-09-27) stopped at ``HOME: unbound variable``.
+
+    SSM Run Command gives the script no HOME. Docker then finds its config through
+    the passwd entry, so the helper must be named in that same file.
+    """
+    _helper(host["bin"])
+    passwd_home = host["root"] / "root-home"
+
+    result = _without_home(host, str(passwd_home))
+
+    assert result.returncode == 0, result.stderr
+    config = json.loads((passwd_home / ".docker" / "config.json").read_text())
+    assert config == {"credHelpers": {REGISTRY: "ecr-login"}}
+
+
+def test_a_deploy_with_no_home_anywhere_stops_and_says_why(host: dict[str, Path]) -> None:
+    """No HOME and no passwd home: refuse, rather than guess where docker looks."""
+    _helper(host["bin"])
+
+    result = _without_home(host, "")
+
+    assert result.returncode != 0
+    assert "no home directory" in result.stderr
+    assert "unbound variable" not in result.stderr
 
 
 def test_every_script_turns_the_helpers_plaintext_cache_off(host: dict[str, Path]) -> None:

@@ -12,6 +12,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 
+import { FrontDoor } from "@/components/aia/FrontDoor";
+import { Button } from "@/components/rehome/ui";
 import { login } from "@/lib/auth";
 import { isAiaPage, localPath, openPanelSession, signOut } from "@/lib/panel";
 import { t } from "@/i18n/t";
@@ -21,6 +23,9 @@ import { t } from "@/i18n/t";
 // stop and say so rather than bounce between the two forever.
 const OPENED_KEY = "aia.panel.openedAt";
 const LOOP_WINDOW_MS = 10_000;
+
+const LINK =
+  "font-medium text-signal underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
 type View =
   | { kind: "working" }
@@ -105,58 +110,57 @@ function Login() {
   }, [next, attempt]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-10">
-      <div className="mx-auto max-w-md space-y-4 rounded-xl border border-zinc-200 bg-white p-6 text-sm">
-        <h1 className="text-lg font-semibold">AIA</h1>
-        {view.kind === "working" && <p className="text-zinc-600">{t("panel.opening")}</p>}
-        {view.kind === "signed-out" && (
-          <>
-            <p className="text-zinc-600">{t("home.liveIntro")}</p>
-            <button
-              className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
-              // Back here after Google, with the same destination.
-              onClick={() => void login(`/login?next=${encodeURIComponent(next)}`)}
-            >
-              {t("home.signInGoogle")}
-            </button>
-          </>
-        )}
-        {view.kind === "denied" && (
-          <>
-            <p className="text-zinc-800">{view.message}</p>
-            <div className="flex gap-3">
-              <Link className="font-medium text-blue-700 hover:underline" href="/studies">
-                {t("home.openStudies")}
-              </Link>
-              <button className="text-zinc-600 hover:underline" onClick={() => void signOut()}>
-                {t("live.signOut")}
-              </button>
-            </div>
-          </>
-        )}
-        {view.kind === "disabled" && (
-          <>
-            <p className="text-zinc-800">{t("panel.notEnabled")}</p>
-            <Link className="font-medium text-blue-700 hover:underline" href="/studies">
+    <FrontDoor title={t("home.signInTitle")}>
+      {view.kind === "working" && (
+        <p className="text-ink-muted" role="status">
+          {t("panel.opening")}
+        </p>
+      )}
+      {view.kind === "signed-out" && (
+        <>
+          <p className="leading-relaxed text-ink-muted">{t("home.liveIntro")}</p>
+          <Button
+            variant="primary"
+            className="w-full justify-center"
+            // Back here after Google, with the same destination.
+            onClick={() => void login(`/login?next=${encodeURIComponent(next)}`)}
+          >
+            {t("home.signInGoogle")}
+          </Button>
+        </>
+      )}
+      {view.kind === "denied" && (
+        <>
+          <p className="text-ink">{view.message}</p>
+          <div className="flex items-center gap-2">
+            <Link className={`${LINK} min-h-9 inline-flex items-center`} href="/studies">
               {t("home.openStudies")}
             </Link>
-          </>
-        )}
-        {(view.kind === "loop" || view.kind === "error") && (
-          <>
-            <p className="text-red-800">
-              {view.kind === "loop" ? t("panel.loop") : `${t("panel.failed")}: ${view.message}`}
-            </p>
-            <button
-              className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
-              onClick={retry}
-            >
-              {t("panel.retry")}
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+            <Button variant="quiet" onClick={() => void signOut()}>
+              {t("live.signOut")}
+            </Button>
+          </div>
+        </>
+      )}
+      {view.kind === "disabled" && (
+        <>
+          <p className="text-ink">{t("panel.notEnabled")}</p>
+          <Link className={LINK} href="/studies">
+            {t("home.openStudies")}
+          </Link>
+        </>
+      )}
+      {(view.kind === "loop" || view.kind === "error") && (
+        <>
+          <p className="rounded-sm border border-status-fault/40 bg-status-fault-wash px-3 py-2 text-status-fault" role="alert">
+            {view.kind === "loop" ? t("panel.loop") : `${t("panel.failed")}: ${view.message}`}
+          </p>
+          <Button variant="primary" onClick={retry}>
+            {t("panel.retry")}
+          </Button>
+        </>
+      )}
+    </FrontDoor>
   );
 }
 
