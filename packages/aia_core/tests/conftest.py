@@ -102,9 +102,10 @@ def reference_repo() -> Path:
 # --------------------------------------------------------------------------- #
 # The running oracle (ADR 0011)
 #
-# Distinct from both of the above. The vendored 18.6.6 unit runs as the
-# ``legacy-panel`` service on the develop host behind Caddy's basic-auth gate,
-# and the differential parity tests reach it over HTTP through
+# Distinct from both of the above. The vendored 18.6.6 unit runs, when a
+# comparison needs it, from deploy/reference on the develop host, behind a
+# basic-auth gate on the host's loopback (ADR 0018; reached through an SSM port
+# forward), and the differential parity tests reach it over HTTP through
 # ``tools/legacy_oracle.py``. ``AIA_LEGACY_REFERENCE_URL`` names it;
 # ``AIA_LEGACY_REFERENCE_USER`` / ``AIA_LEGACY_REFERENCE_PASSWORD`` pass the
 # gate. Absent URL is valid and skips; ``AIA_REQUIRE_LEGACY_ORACLE=1`` makes
