@@ -281,12 +281,19 @@ every web track's fingerprint.
    `aia_executors/registry.py`, in the same change as 1: a worker claims only kinds it has
    executors for, and a type without executors would wait forever.
 3. An API route over `DeepResearchRuns` (start, get, list, events, cancel, retry, bundle,
-   snapshot) with the Study's permissions, and a screen. The bundle is never client-facing.
+   snapshot) with the Study's permissions, and a screen. The bundle is never client-facing. A
+   bundle or snapshot whose bytes fail verification is a 409 that commits the `CORRUPT` mark
+   before answering, as `routers/runs.py` › `artifact_corrupt` does since #84 (OI-77).
 4. The generalized metered ledger (a migration), so `ToolMeter.charges_study_budget` can be
    true and tool spend reach the study's budget; then `EXTERNAL_RETRIEVAL` in `ToolRegistry`.
 5. The consumers: `respondent_context` at compile, `design_input` in the design jobs,
    `analysis_context` in analysis and report, each after `require_live_evidence` where the
    output is client-facing.
+6. OI-77's worker half reaches these steps: a corrupt upstream record or reused unit fails the
+   step `UNKNOWN`, its `CORRUPT` mark rolls back with the step's transaction, and every later run
+   that plans the same unit fails the same way (reproduced; `.planning/open-items.md` OI-77).
+   When that item's failure class and recompute decision are made, the fix goes into `_Step`
+   (`deep_research/_shared.py`) as well as the other executors.
 
 ## 11. The recorded acceptance journey
 
