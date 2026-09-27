@@ -241,9 +241,9 @@ no decision.
       (start, state, cancel, extend budget, bundle, evidence item); progress in real counts
       (tracks, calls, accepted, quarantined, spend); an evidence browser showing quarantine
       reasons.
-- [ ] 13. **Live enablement** — *blocked on DR-2, D6 and AR-2 (ADR 0010 → Accepted); the
-      Bedrock adapter landed at `2e8beb5`*: search route configuration, a Class C smoke run,
-      then Class B once D6 approves.
+- [ ] 13. **Live enablement** — *blocked on DR-2 (a search route) and, for Class B, D6. AR-2
+      is resolved: ADR 0010 is accepted for fictional Class C on develop only (2026-09-26)*:
+      search route configuration, a Class C smoke run, then Class B once D6 approves.
 
 ## Review outcome
 

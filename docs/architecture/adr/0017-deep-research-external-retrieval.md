@@ -72,8 +72,9 @@ Three facts decide the shape:
 - The usage ledger records tool calls as well as model calls; the generalized metered ledger
   (PROGRESS *Next* #2) and D11 must accommodate them.
 - The `RESEARCH_DESIGN` stage fingerprint gains the evidence bundle id — a fingerprint migration.
-- Live runs need a search provider route (DR-2), ADR 0010 accepted (the Bedrock adapter
-  itself landed at `2e8beb5`) and, for any client material, D6. Everything else is buildable and testable offline on recorded doubles.
+- Live runs need a search provider route (DR-2). ADR 0010 is accepted for fictional Class C on
+  develop only (AR-2, 2026-09-26); any client material, and so any Class B query or model call,
+  needs D6. Everything else is buildable and testable offline on recorded doubles.
 - `research.deep_research` becomes its own parity-matrix capability: leakage screen and merge
   EXACT, grounding and scoring as recorded intentional differences.
 
