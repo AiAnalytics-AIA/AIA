@@ -7,7 +7,11 @@ is pure:
   reasons, the request a run is frozen to;
 * :mod:`.workflow` -- the ``deep_research`` step graph (defined, not registered);
 * :mod:`.tooling` -- the cost contract for search and fetch;
-* :mod:`.legacy` -- the 18.6.6 leakage screen and merge, ported exactly.
+* :mod:`.legacy` -- the 18.6.6 leakage screen and merge, ported exactly;
+* :mod:`.grounding` -- a quote must be in the source it cites;
+* :mod:`.sources` -- source classes and scores from declared tables;
+* :mod:`.classification` -- a query's data class, inherited and never lowered;
+* :mod:`.web` -- what a fetch may reach, on every hop.
 
 Pure: stdlib and Pydantic only.
 """
