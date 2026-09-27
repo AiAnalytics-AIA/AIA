@@ -1,8 +1,13 @@
 # The research journey — integration contract
 
-**Status:** Phase A of the research integration job (Job 6), 2026-09-27, against `develop` @
-`ceee2dc` (CI run 209 green; *Deploy develop* run 34 green). **Phase B has not started**: at that
-SHA there is no open pull request and no branch from the other jobs (§9 lists what Phase B needs).
+**Status:** Phase A of the research integration job (Job 6), 2026-09-27.
+
+- Written against `develop` @ `ceee2dc`. Every anchor holds at `dd27f68`, which adds only the
+  design-system reference package (#72; CI run 211, *Deploy develop* run 35).
+- **Checked at 17:40 UTC against the PO's first increment**, draft PR #74 @ `7b9e9dc` (CI green).
+  §4.2, §4.3 and §5 say what it changes.
+- **Phase B has not started.** J1, J3, J4 and J5 have no branch yet; §9 lists what Phase B needs.
+
 Tracker: [PROGRESS](../../.planning/PROGRESS.md). Chunks:
 [research-agent-workflows.md](../../.planning/plans/research-agent-workflows.md) § Integration.
 
@@ -66,7 +71,7 @@ AIA's graph today is two templates (`domain/workflow_templates.py:51-69, 94-105`
 | The reference's (`worker_job.py`, `job_store.py`, `dotaznik.py`, `prototype_server.py`, `project_engine.py`, `client_report_v2.py`, `output_pack.py`) | `legacy/npc-panel-18.6.6/app/` |
 | The research screens (`*Step.tsx`, `ExecutionSteps.tsx`, `ResearchScreen.tsx`, `StepPlaceholder.tsx`, `useAiStep.tsx`) | `apps/web/src/components/rehome/research/` |
 | The classic-projects screens (`ProjectsScreen.tsx`, `TrashScreen.tsx`) | `apps/web/src/components/rehome/projects/` |
-| The unit store (`store.ts`) | `apps/web/src/unit/research/` |
+| The unit store (`store.ts`) | `apps/web/src/unit/research/` on `develop`; `apps/web/src/research/` in #74 |
 
 **IMPLEMENTED**: AIA behaviour exists. **REPLACEMENT**: a deliberate AIA shape instead of the
 reference's. **GAP**: nothing yet; the owner is named.
@@ -86,6 +91,9 @@ reference's. **GAP**: nothing yet; the owner is named.
 | Analysis | `analysis_*` ×8, `interpret` | The eight modules and their runner (`application/analysis.py:145, 225`) have no executor, no node, no production `AnalysisGenerator` and no adapter from the aggregate to an `EvidenceTable`. `research_sociomap` runs here and is `INTERNAL_ONLY` while D6 (Sociomap methodology) is open. The reference computes the Sociomap inside `run` (`project_engine.py:95-149`) | contracts IMPLEMENTED; execution GAP | J3. Node and registration: J6 |
 | Report | `report` (`final_report`) | `DocxRenderer` and four templates (R0–R9, PR #62). No composition (R10), no step, storage or download (R11). Results links to the classic report (`ExecutionSteps.tsx:420-422`). The reference's report QA is automatic, and a failed gate still proceeds to delivery (`client_report_v2.py:30-37,135-141`, `worker_job.py:901`) | renderer IMPLEMENTED; rest GAP | J4. Node, Results integration: J6 |
 | Delivery | `delivery` | The reference lists files (`worker_job.py:927-941`); its sign-off is only a sentence (`output_pack.py:27`). AIA already has: study status `DELIVERED` behind sign-off authority (`apps/api/src/aia_api/routers/scope.py:485-505`); artifact `approve` (independent, `SIGN_OFF_DELIVERABLE`), `freeze` and `download_url` (`EXPORT_DELIVERABLE`) (`infrastructure/artifact_repository.py:424-432, 506-570`); engine gates. None of it has a caller. No API decides a gate, and nothing ties a report to its review | GAP | J6, over J4's storage |
+
+The Brief, Questionnaire, Audience and Dimensions rows describe `develop`; §4.3 says what #74
+changes.
 
 ### 2.1 Verification and alignment: owner to be confirmed
 
@@ -114,7 +122,8 @@ an explicit state. That is neither a silent skip nor the reference's hard precon
 
 No button of the web client reaches a unit AI job any more (`ResearchScreen.tsx:204-244`). Three
 actions still go to the unit: the classic Data Library's Deep Research, *Diagnostika*
-(`useAiStep.tsx:72-76,89`) and *Založit v Data Library* (`PersonaStep.tsx:98-115`).
+(`useAiStep.tsx:72-76,89`) and *Založit v Data Library* (`PersonaStep.tsx:98-115`). In #74 none
+does (§4.3).
 
 ## 3. INT-1: the scenario every job tests against
 
@@ -162,9 +171,13 @@ The scenario also checks independently: it fails on any browser request to a uni
 paths are `/classic`, `/interface-document`, `/api/*` outside `/api/v1`, `/files/*`, `/artifacts/*`,
 `/project-attachments/*`, `/brand/*`, `/fullsim-arena`, `/health` and `/status`.
 
-This cannot pass today. Every research stage, Run, Progress and Results included, renders only
-after the unit's `GET /api/bootstrap` and `POST /api/projects/load` succeed
+This cannot pass on `develop`. Every research stage, Run, Progress and Results included, renders
+only after the unit's `GET /api/bootstrap` and `POST /api/projects/load` succeed
 (`apps/web/src/components/rehome/research/ResearchScreen.tsx:70-96, 156-180`). That is OI-58.
+
+#74 removes that dependency for the research stages (§4.3). Its PR body reports two browser
+journeys passing on AIA alone, with the unit's paths answering 502 (`make ui-workbench-aia`). J6 has
+not re-run them.
 
 ### 3.4 The scenario's interface (proposed; J6 builds it in Phase B)
 
@@ -260,7 +273,8 @@ the shared file (§5):
     second approval store.
 - **The worker image renders reports.** The deployed image installs
   `aia_core[postgres,s3,bedrock]`, without the `report` extra (`deploy/docker/python.Dockerfile:41-46`).
-  J6 adds the extra in the change that registers the report executor.
+  J6 adds the extra in the change that registers the report executor. #74 adds `documents` on the
+  same line (§5).
 - **Tests without the shared files.**
   - Executor tests build their own graph with `WorkflowRepository.create_run(steps=[…])`
     (`infrastructure/workflow_repository.py:383`; it validates the DAG, not the workflow type) and
@@ -272,8 +286,8 @@ the shared file (§5):
 Research execution reads the workspace **only through Design Revisions**. It never reads a draft:
 a run, a proposal and every later stage name one immutable revision.
 
-**Implemented at `ceee2dc`.** All paths are under `/api/v1/studies/{study_id}`; the models are in
-`apps/api/src/aia_api/routers/research.py`.
+**Implemented on `develop`** (`ceee2dc`; unchanged at `dd27f68`). All paths are under
+`/api/v1/studies/{study_id}`; the models are in `apps/api/src/aia_api/routers/research.py`.
 
 | Route | Contract |
 |---|---|
@@ -283,23 +297,77 @@ a run, a proposal and every later stage name one immutable revision.
 | `POST /research/runs`, `GET …`, `…/{run_id}`, `…/cancel`, `…/retry`, `…/events?since=`, `…/artifacts/{artifact_id}` | `RunStart{design_revision_id}`: idempotent per revision, `409 design_not_ready`. Cost only with `VIEW_COSTS`. The Sociomap only with `EDIT_STUDY` (`:106-160, 427-619`) |
 | `POST /research/agent-jobs {design_revision_id, action, instruction}`; `GET`; `…/cancel`; `…/result`; `…/accept {expected_revision_id}` | proposals; accept writes a revision through `submit_if_current`, which locks the Study, so a stale baseline answers 409 (`:620-753`; `test_two_reviewed_design_proposals_cannot_overwrite_each_other`) |
 
-**Proposed, to be published by the PO.** None of these exists at `ceee2dc`:
+**The PO's, in draft PR #74 @ `7b9e9dc`, not merged.** Same prefix; CI green. The line numbers are
+in `apps/api/src/aia_api/routers/workspace.py`:
 
-- draft load and save, and its concurrency semantics;
-- the stage bootstrap;
-- attachment upload and reference;
-- questionnaire import;
-- the audience and library catalogues.
+| Route | Contract |
+|---|---|
+| `GET /workspace/content` | `state` is a `ContentState`: `EMPTY`, `NATIVE`, `MIGRATED`, `RECOVERED`, `UNRECOVERABLE` or `AWAITING_MIGRATION`. It also returns `revision`, `revision_id`, `content`, `analysis`, `can_edit`, `lineage`, and `template`, which takes the place of the unit's bootstrap (`:257-276, 952-964`) |
+| `PUT /workspace/content` | `{content, analysis, base_revision, reason}` → `{revision, revision_id, deduplicated}`. A stale base answers `409 stale_revision` with `current_revision`; content awaiting migration answers `409 awaiting_migration`. Needs `EDIT_STUDY` on an open study (`:279-300, 967-1009`; `test_only_editors_of_an_open_research_study_save`) |
+| `GET /workspace/revisions` | the draft's history, newest first (`:1012-1028`) |
+| `POST /workspace/attachments`, `GET …/{attachment_id}` | `{filename, data_b64}` → a record: `attachment_id`, `sha256`, `text_extracted`, `context_excerpt`. Needs `EDIT_STUDY` and a first save. A download goes only through the study, as `application/octet-stream` (`:1048-1131`) |
+| `POST /workspace/questionnaire-import`, `GET …/questionnaire-template` | sections and a summary. Nothing is stored; the stage saves them (`:1134-1195`) |
 
-The Run stage (J6) will submit the PO's native draft through the existing `POST /design/revisions`;
-today it submits the unit's working copy (`ExecutionSteps.tsx:91-107`). How an attachment is cited
-from a design, and classified, is the PO's proposal (§6 rule 5).
+**Two kinds of revision.**
+
+- A *working revision* (`/workspace/revisions`) is the draft's history. It is never a run's input.
+- A *Design Revision* (`/design/revisions`) is immutable. It is the only thing a run, a proposal or a
+  later stage names.
+- The Run stage turns the first into the second. In #74 it submits the copy the store holds
+  (`ExecutionSteps.tsx:89-97 @ 7b9e9dc`). So the plan's I5, the Run stage on the native draft, is
+  delivered once #74 merges.
+- How an attachment's text is classified when it reaches a model is OI-73 (§6 rule 5).
+
+**Finding at `7b9e9dc`: the Run stage does not save before it submits.**
+
+- *Claim.* The AI steps save first (`useAiStep.tsx:31-33`), and a save refuses a copy that lost a
+  conflict (`src/research/store.ts:159`). RunStep does not save (`ExecutionSteps.tsx:76-97`), although
+  the store's own header says "flush before a run" (`store.ts:4`). So a copy whose save was refused
+  with `409 stale_revision` still becomes a Design Revision that a run can execute.
+- *Reproduction.* One Vitest in the style of `ResearchScreen.test.tsx`: open the study's session at
+  Brief, edit the goal while the save answers 409, wait for the conflict notice, then open Run.
+  `POST /design/revisions` carries the refused edit. The test passes at `7b9e9dc` and fails once
+  RunStep saves first; #74's eight `ExecutionSteps` tests still pass with that change.
+- *Consequence.* A person told *Obsah studie mezitím uložil někdo jiný…* can still start a run of
+  content nobody saved, beside a newer working revision.
+- *Smallest fix.* Two lines in RunStep: flush the store before `submitDesign`, as the AI steps do.
+  The conflict then shows as the stage's error.
+- *Test.* The reproduction, kept in `ExecutionSteps.test.tsx`.
+- *Owner.* J6, which owns the Run stage (§5). The fix is cheapest in #74, which already edits the
+  file. If #74 merges without it, it becomes an OI.
+
+### 4.3 What #74 changes, if it merges
+
+- **The research stages run on AIA alone.**
+  - They load and save through `/workspace/content`, with no unit bootstrap
+    (`ResearchScreen.tsx:48-70 @ 7b9e9dc`).
+  - The screen ledger lists no unit route for them.
+  - §3.3's blocker is gone for these stages. The classic-projects screens call the unit until
+    increment 4.
+- **Now native:** the brief's attachments, the questionnaire import and its template. In Dimenze,
+  dimensions come from the client's approved knowledge, and a request becomes a knowledge proposal.
+- **Marked *V AIA zatím není*:**
+  - the audience catalogue, check and preview, special subpanels, own audiences and panel factors
+    (`AudienceStep.tsx:59-66`, `PersonaStep.tsx:273-274`). By #74's stated trade-off they return when
+    a population version is imported through `PopulationRuntime`;
+  - the classic client report (`ExecutionSteps.tsx:417-419`), which returns with J4 and J6 (§7
+    line 5).
+
+  The independence verdict names each of these as unavailable without 18.6.6. They are not dropped
+  from the supported set (the two verdicts, above). INT-1 needs none of them, because its
+  respondents are the fictional roster.
+- **Bound studies are read-only until migrated.** A study bound to the unit reads
+  `AWAITING_MIGRATION` until increment 2 migrates it. INT-1 creates its study, so the study goes
+  from `EMPTY` to `NATIVE` and never meets that state. The migration's acceptance is the PO's.
 
 ## 5. Shared files
 
 Ownership is agreed before concurrent change. Changes are applied one after another onto a
 reconciled candidate. Migration heads are resolved explicitly: one head, and the later PR
-re-points its `down_revision`. The chain has one head today: `1777fcb96352`; PR #63 added none.
+re-points its `down_revision`. The chain has one head on `develop`: `1777fcb96352`; PR #63 added none.
+#74 adds `5b1d0f3e9a21` on top of it
+(`migrations/versions/20260927_5b1d0f3e9a21_study_working_content_in_aia.py:34-35 @ 7b9e9dc`). A later
+migration from J3, J4 or J6 re-points to whichever head `develop` has when it lands.
 
 | File or area | Owner | Rule for others |
 |---|---|---|
@@ -308,13 +376,21 @@ re-points its `down_revision`. The chain has one head today: `1777fcb96352`; PR 
 | `apps/api/src/aia_api/main.py` | J6 for research routers; PO for workspace and gate routers | one registration change at a time |
 | The `api-contract` paths in `.github/workflows/ci.yml`; `apps/web/src/lib/api.ts` | J6 for research paths and types; PO for workspace paths and types | no edits to the other owner's lines |
 | `migrations/versions/` | PO for workspace tables; each author otherwise | one head |
-| `ExecutionSteps.tsx`; `lib/research-execution.ts`; the report and review screens | J6 for native destinations and actions | the PO removes classic links (`ExecutionSteps.tsx:420-422`) once J6's replacement is in |
+| `ExecutionSteps.tsx`; `lib/research-execution.ts`; the report and review screens | J6 for native destinations and actions | #74 replaced the classic report link (`ExecutionSteps.tsx:420-422`) with a *not in AIA yet* sentence (`:417-419 @ 7b9e9dc`) rather than wait for J6; J6's native report retrieval replaces that sentence |
 | `GlobalPages.tsx`; `settings/ControlPanel.tsx`; `apps/web/src/i18n/cs.ts` | J1 for the AI settings panels; PO for legacy navigation and cards; J6 for research-stage copy | each owner edits only its own keys |
 | Stage editors; `StudyFrame` and its bootstrap; `apps/web/src/unit/*` and its replacement | PO | — |
 | `routers/panel.py`; `deploy/develop/Caddyfile`; `bin/*.sh`; `tools/caddy_routes.py`; `tools/develop_routing_*` | PO | — |
-| `deploy/docker/python.Dockerfile` | PO; J6 adds only the `report` extra | agreed first |
+| `deploy/docker/python.Dockerfile` | PO; J6 adds only the `report` extra | agreed first. #74 sets the install line both targets share to `aia_core[postgres,s3,bedrock,documents]` (`:43 @ 7b9e9dc`); J6 adds `report` to that line after #74 |
 | This document; the scenario; the research plan's Integration section | J6 | components add rows by handoff |
 | OI-58, OI-59, the phase-out ADR, the screen and route ledgers | PO | findings handed over (§11) |
+
+**Checked against #74 @ `7b9e9dc`.**
+
+- Both PRs change `.github/workflows/ci.yml`, `.planning/PROGRESS.md`, `.planning/open-items.md`,
+  `ARCHITECTURE.md` and `CLAUDE.md`, each on its own lines.
+- A trial merge of `7b9e9dc` into this PR's head is clean, and no OI number is reused.
+- The one semantic overlap was the ADR counts, which ADR 0018 would have made wrong. This PR drops
+  the numbers.
 
 ## 6. Rules every PR keeps
 
@@ -348,12 +424,12 @@ re-points its `down_revision`. The chain has one head today: `1777fcb96352`; PR 
 
 ## 7. Acceptance, line by line
 
-This is the state at `ceee2dc`. The Executable column names what exists; the later columns name
-what is missing. Lines 1 and 7 decide **independence**. Lines 3–6 decide **completion**.
+This is the state at `ceee2dc`, unchanged at `dd27f68`; line 1 notes what #74 would change. The
+Executable column names what exists; the later columns name what is missing. Lines 1 and 7 decide **independence**. Lines 3–6 decide **completion**.
 
 | # | Must show | Owner | Executable | Recorded | Enablement | Live |
 |---|---|---|---|---|---|---|
-| 1 | Sign in → client and study → native draft edit, save, reload → scoped attachment | PO | sign-in, client and study creation (`test_client_api.py`); the draft is still the unit's (OI-58) | UNMET | `/app` needs `AIA_LEGACY_PANEL_ENABLED` and an owner or admin role (`apps/api/src/aia_api/routers/panel.py:53-62`, `application/scope.py:170-197`), and is refused in production (`apps/api/src/aia_api/config.py:213-215`, OI-59) | UNMET |
+| 1 | Sign in → client and study → native draft edit, save, reload → scoped attachment | PO | sign-in, client and study creation (`test_client_api.py`); on `develop` the draft is still the unit's (OI-58). In #74, not merged, the draft and its attachments are native (`test_study_workspaces.py`, `test_client_api.py` @ `7b9e9dc`) | UNMET | `/app` needs `AIA_LEGACY_PANEL_ENABLED` and an owner or admin role (`apps/api/src/aia_api/routers/panel.py:53-62`, `application/scope.py:170-197`), and is refused in production (`apps/api/src/aia_api/config.py:213-215`, OI-59) | UNMET |
 | 2 | Accurate runtime settings; the disabled and unconfigured behaviour | J1 | `app/config/route.test.ts`; a park on a disabled runtime (`test_ai_fieldwork.py`, `test_research_agent_executor.py`) | UNMET | the settings document calls the legacy subscription provider AIA's default (§10) | UNMET |
 | 3 | Recorded Deep Research → reviewed design proposal → immutable revision → stale proposal refused | J5, J6 | proposals, acceptance and the stale refusal (`test_research_agent_executor.py`, `test_two_reviewed_design_proposals_cannot_overwrite_each_other`); Deep Research: none | UNMET | design switch off by default (`docker-compose.yml:176`); no search route (DR-2) | UNMET. The $2 fieldwork budget is spent |
 | 4 | Readiness → fieldwork → aggregation and QC → validation → admitted analysis | J3, J6 | readiness to Sociomap (`test_research_executors.py`, `test_ai_fieldwork.py`); QC, validation, analysis execution: none | UNMET | fieldwork: fictional Class C approved (ADR 0010). Analysis: unbound | fieldwork MET at `0310091` (2026-09-26: 20 calls, $0.2303301; the fieldwork executor, gateway and adapter are unchanged since); the rest UNMET |
@@ -380,8 +456,8 @@ independence.
 ## 9. Phase B: what it needs
 
 **From each job:** a PR against `develop` (draft or merged), its head SHA, its "Handoff to
-integration" section, and its own checks green. **From the PO, additionally:** the published
-workspace API shapes (§4.2) and, for the final run, the legacy-offline environment (§3.3). Phase B
+integration" section, and its own checks green. **From the PO, additionally:** the workspace API,
+published in #74 (§4.2), and, for the final run, the legacy-offline environment (§3.3). Phase B
 integrates the latest heads. An unmerged stack is tested on an isolated integration branch, with
 every component head recorded.
 
@@ -396,10 +472,11 @@ every component head recorded.
      `provider_policy`) out of `apps/executors` and `apps/worker`. That turns §6 rule 9 from a
      code reading into a check.
 3. Build the Results, Report and Review destinations: native report retrieval, and the review and
-   delivery decisions over `ArtifactRepository.approve` / `freeze`. Then the PO can remove the
-   classic report link.
+   delivery decisions over `ArtifactRepository.approve` / `freeze`. They take the place of the
+   classic report link, or of #74's *not in AIA yet* sentence once #74 has merged (§5).
 4. Fix OI-64 inside the fieldwork executor, or do not claim retry-safe acceptance.
-5. Move the Run stage from the unit's working copy to the PO's native draft, once it exists.
+5. The Run stage on the native draft is delivered by #74 (§4.2). J6 fixes the Run stage's missing
+   save (§4.2) if #74 does not, and the scenario checks both.
 6. Write the activation and live-acceptance runbook for the combined candidate. It names the
    revision, the switches, the approved data class and route, the scenario, a bounded proposed
    spend, rollback, and the evidence to collect. It is not executed without a new, explicit
@@ -417,9 +494,9 @@ every component head recorded.
 | PRs #69, #70 and #71 are open; `2beafd9` is deployed | PROGRESS | all merged on 2026-09-27; `develop` @ `ceee2dc` deployed by run 34 | corrected |
 | Credentials come from Secrets Manager | `mvp-acceptance.md` AC-02; `parity-matrix.json` AC-02 and `ai.credentials`; PROGRESS D7 and D8 | Bedrock signs with the instance or container role (`infrastructure/model_adapters/aws_signing.py`, ADR 0010). A secret store is still needed for a keyed service such as a search API | corrected |
 | `preflight` pauses for a person on a warning; no executor exists for a real step; progress is sent as server-sent events | `workflows.md` | the reference pauses only on a BLOCKER. Research, proposal and snapshot executors exist. Events are a cursor-paged JSON list (`routers/research.py:480-507`), and the Progress stage polls the run | corrected |
-| The unit stays "as the oracle and a fallback" | ADR 0015 decision 5; OI-58 | the oracle and a frozen reference only; no runtime fallback (the user's direction) | handed to the PO |
+| The unit stays "as the oracle and a fallback" | ADR 0015 decision 5; OI-58 | the oracle and a frozen reference only; no runtime fallback (the user's direction) | handed to the PO. ADR 0018 in #74 says *reference only*; OI-58's removal condition still ends *as the oracle and a fallback* at `7b9e9dc` |
 | AIA's AI default is `claude_code_subscription` / `CLAUDE_CODE_ONLY` | `GET /api/v1/settings` (`routers/settings.py:200-217`) | these are persisted legacy fields; the worker binds Bedrock capabilities only | handed to J1 |
-| Run, Progress and Results use no unit route; the rebuilt stages call unit AI routes | `docs/migration/interface-screens.json` | all eight stages need `/api/bootstrap` and `/api/projects/load`; the AI actions are native agent jobs | handed to the PO |
+| Run, Progress and Results use no unit route; the rebuilt stages call unit AI routes | `docs/migration/interface-screens.json` | all eight stages need `/api/bootstrap` and `/api/projects/load`; the AI actions are native agent jobs | handed to the PO. #74 empties the research stages' `unit_routes`, which is true on that branch |
 | Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the question is OI-73 |
 | Implementation states of `ai.gateway`, `ai.usage_ledger`, `ai.credentials`, `reports.generation` (`NOT_STARTED`) and `workflow.step_execution`'s note ("No research step body exists") | `parity-matrix.json` | all have merged code. Re-grading them touches the module inventory (OI-30) | handed to the parity owner |
 
@@ -444,7 +521,10 @@ These are findings from this inventory, anchored at `ceee2dc`, that sit in the P
 - **`canEdit` does not stop autosave.** From the code, a signed-in reader's edits still autosave
   to the unit: `canEdit` gates only the AI buttons, revisions and runs (`ResearchScreen.tsx:280`,
   `ExecutionSteps.tsx:98`), and `store.ts` has no read-only mode. This is a hypothesis to
-  reproduce; the native draft should enforce `EDIT_STUDY` on save by construction.
+  reproduce; the native draft should enforce `EDIT_STUDY` on save by construction. **#74 answers it
+  for AIA's store:** the server refuses a save without `EDIT_STUDY` on an open study
+  (`study_workspace_repository.py:228-229 @ 7b9e9dc`; `test_only_editors_of_an_open_research_study_save`).
+  On `develop` it stays a hypothesis about the unit store.
 - **Legacy-dependent actions a supported workflow still uses:**
   - attachments (`BriefStep.tsx:160-183`);
   - questionnaire import and templates (`QuestionnaireStep.tsx:79-80, 249-254`);
@@ -453,5 +533,8 @@ These are findings from this inventory, anchored at `ceee2dc`, that sit in the P
   - the classic report (`ExecutionSteps.tsx:420-422`);
   - *Diagnostika* (`useAiStep.tsx:72-76`);
   - the classic-projects pages (`ProjectsScreen.tsx:63`, `TrashScreen.tsx:26`).
+
+  #74 moves each research-stage item onto AIA or marks it *V AIA zatím není* (§4.3). The
+  classic-projects pages still call the unit until increment 4.
 - **The product README's index links three documents that were never written:**
   `docs/product/README.md:171-173`.

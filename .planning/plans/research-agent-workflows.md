@@ -64,7 +64,8 @@ build one.
 
 - [x] I0. **Phase A: the contract.** `research-journey.md`; stale claims corrected; the
       `research/agent-jobs` routes asserted by the API contract check
-      (`.github/workflows/ci.yml` `api-contract`).
+      (`.github/workflows/ci.yml` `api-contract`). Re-checked at 17:40 UTC against the PO's draft
+      PR #74 @ `7b9e9dc` (contract §4.2, §4.3, §5).
 - [ ] I1. Register nodes, executors and capability bindings for Jobs 3–5 as their PRs land,
       and add the `report` extra to the worker image with the report executor.
 - [ ] I2. The recorded composition and the reusable scenario (contract §3.2, §3.4). Two layer
@@ -73,7 +74,10 @@ build one.
 - [ ] I3. Results, Report and Review destinations and actions: native report retrieval, and
       the review and delivery decisions over `ArtifactRepository.approve` / `freeze`.
 - [ ] I4. OI-64: fieldwork retries must not re-ask respondents who already answered.
-- [ ] I5. The Run stage submits the phase-out owner's native draft, once it exists.
+- [ ] I5. The Run stage submits the phase-out owner's native draft. #74 does this
+      (`ExecutionSteps.tsx:89-97 @ 7b9e9dc`) without saving first, so a copy that lost a save
+      conflict can still be run (contract §4.2, reproduced). Done when #74 merges with that save,
+      or J6 adds it.
 - [ ] I6. The activation and live-acceptance runbook for the combined candidate (not
       executed without a new, explicit budget).
 
