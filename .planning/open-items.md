@@ -2152,8 +2152,9 @@ PR #64.
 `test_a_deploy_without_home_writes_the_config_docker_reads`,
 `test_a_deploy_with_no_home_anywhere_stops_and_says_why`.
 
-**Status.** Fixed in code: PR #64, merged 2026-09-27 10:29 (`96581bc`). On the host it is proven
-only by the first deploy that carries it.
+**Status.** **Closed.** PR #64, merged 2026-09-27 10:29 (`96581bc`). Proven on the host by *Deploy
+develop* run 28 (`36313351584`) @ `e0edf2a`: the SSM step passed, smoke passed every check, and
+`/api/v1/health` and `/version` both report `e0edf2a`.
 
 ---
 
@@ -2231,3 +2232,62 @@ edge, whose parent row had been rolled back.
 The known-flakes entry for this test in CLAUDE.md, added by `08bf3c7` and merged to `develop`
 with PR #67 (`2beafd9`), was measured at `46b7337`, before `e0edf2a`, and named the wrong cause.
 PR #69 removes it.
+
+---
+
+## OI-70 · Observed flake · BriefStep's problem-type toggle is read before it re-renders
+
+**Claim.** `apps/web/src/components/rehome/research/BriefStep.test.tsx` › *a problem type
+is a toggle that fills an empty goal with its default* clicks a tile and synchronously
+expects `aria-pressed="true"`. It failed once with `expected 'false' to be 'true'`
+(`BriefStep.test.tsx:99`).
+
+**Anchor.** `BriefStep.test.tsx:97-99` @ `cfb1532` (2026-09-24); unchanged by PR #63.
+
+**Reproduction.** Intermittent: 1 failure in 26 full `npm test` runs on a 4-core machine
+(2026-09-27; 20 on #63 merged with `develop`, 6 on #63 before the merge). It has not been
+reproduced alone, so the cause is a hypothesis: the pressed state is set through the
+research store and rendered on a later tick, and a loaded worker sees the old one.
+
+**Consequence.** A red *Frontend* job on any PR, unrelated to that PR's change.
+
+**Smallest fix.** Assert through `await waitFor(...)`, or find the pressed tile with
+`findByRole("button", { name: …, pressed: true })`, not a synchronous read after the
+click. First confirm the cause by running the file under load.
+
+**Test that would have caught it.** The test itself, run repeatedly under load.
+
+**Status.** Open (2026-09-27).
+
+---
+
+## OI-71 · Finding · Smoke reads the 18.6.6 unit's health before its first probe has passed
+
+**Claim.** `smoke.sh` reads the unit's health once, about 20 s after `bin/deploy.sh` recreates it.
+Docker reports `starting` until the unit's first healthcheck probe passes. The probes run every
+15 s during a 120 s start period, so a healthy unit that is not up by the first probe (15 s) fails
+the deploy.
+
+**Anchor.** `deploy/develop/bin/smoke.sh:101-104 @ 85fa951` (one `docker inspect`, no wait);
+`legacy/npc-panel-18.6.6/Dockerfile:50 @ 85fa951` (`--interval=15s --start-period=120s`).
+
+**Reproduction.** *Deploy develop* runs 29 (`36314741586`) and 30 (`36315831550`): the host printed
+`replacing services`, then `smoke tests` 19 s later, and `FAIL  legacy: the 18.6.6 unit is healthy`
+with `state 'starting'`. Every other check passed. Run 28 (`36313351584`) had the same 19 s gap and
+passed, because its unit was up by the first probe, and run 31 (`36316771795`, `2beafd9`) passed
+too: 2 of the 4 deploys that reached smoke on 2026-09-27 failed on it. Offline:
+`packages/aia_core/tests/test_develop_legacy_unit_health.py` on PR #70 fails all 5 tests against
+the scripts @ `85fa951`.
+
+**Consequence.** *Deploy develop* goes red although the new build is serving, and "Confirm from
+outside" is skipped. The failure message points the operator at the data bundle, which was fine.
+
+**Smallest fix.** Wait out `starting` in the smoke read only, bounded (PR #70:
+`lib.sh` › `legacy_unit_health`, at most `LEGACY_START_WAIT_SECONDS`, default 150). The fix is not
+`compose up --wait` on the unit, which OI-44 removed so that a broken unit cannot keep the site
+down.
+
+**Test that would have caught it.** `test_develop_legacy_unit_health.py` (PR #70).
+
+**Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
+deploy that carries it.
