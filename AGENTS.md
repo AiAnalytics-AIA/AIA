@@ -1302,6 +1302,22 @@ local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
 home="${HOME:-$(getent passwd "$(id -u)" | cut -d: -f6)}"
 ```
 
+**A healthcheck with a start period reads "starting", and a single read races it.**
+The 18.6.6 unit is recreated on every deploy and hydrates its data on start; its
+healthcheck stays `starting` for up to its 120 s start period. The deploy does not
+wait for it (a broken unit must not take the site down), so smoke read its state
+once: deploy runs 29 and 30 (2026-09-27) failed on `state 'starting'` while
+every other check passed. Wait out `starting` for a bounded time, then judge; report
+`unhealthy`, `exited` or missing at once (`lib.sh` › `legacy_unit_health`,
+`test_develop_legacy_unit_health.py`).
+
+```bash
+# WRONG: whatever the unit is doing at this instant
+state="$(docker inspect --format '{{.State.Health.Status}}' "$id")"
+# RIGHT: judged after its start period, never forever
+state="$(legacy_unit_health "$id")"   # waits out "starting", at most 150 s
+```
+
 **A host package does not go in user-data.** cloud-init runs once per instance, so
 a package added to `infra/develop/user-data.yaml.tftpl` never reaches the running
 host, and with `user_data_replace_on_change = false` a changed `user_data` makes

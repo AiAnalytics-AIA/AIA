@@ -109,6 +109,28 @@ ecr_login() {
   log "registry credentials: ECR credential helper (instance role), nothing stored"
 }
 
+# The 18.6.6 unit's health once it has finished starting. The unit is recreated on
+# every deploy (its image is tagged by SHA) and hydrates its data on start, so its
+# healthcheck says "starting" for up to its start period (120 s,
+# legacy/npc-panel-18.6.6/Dockerfile). The deploy does not wait for it, by design,
+# and a single read raced it: deploy runs 29 and 30 (2026-09-27) failed smoke
+# on "starting", about 20 s after the unit was recreated, while every other
+# check passed. This waits out "starting" for at most
+# LEGACY_START_WAIT_SECONDS (default 150), then prints the state. An unhealthy,
+# exited or missing unit is reported at once.
+legacy_unit_health() {
+  local id="$1" state waited=0
+  local limit="${LEGACY_START_WAIT_SECONDS:-150}" step="${LEGACY_POLL_SECONDS:-5}"
+  while :; do
+    state="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null)" || state="missing"
+    [ -n "$state" ] || state="missing"
+    if [ "$state" != "starting" ] || [ "$waited" -ge "$limit" ]; then break; fi
+    sleep "$step"
+    waited=$((waited + step))
+  done
+  printf '%s\n' "$state"
+}
+
 # The running API's build, as /health reports it. Empty when it is not answering.
 deployed_sha() {
   curl -fsS --max-time 5 "https://${AIA_PUBLIC_HOSTNAME}/api/v1/health" 2>/dev/null \

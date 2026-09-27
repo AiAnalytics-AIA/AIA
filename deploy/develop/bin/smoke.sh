@@ -97,9 +97,10 @@ case "$redirect" in 301|308) pass "web: HTTP redirects to HTTPS ($redirect)" ;;
 
 # --- legacy unit (ADR 0011, ADR 0012) ----------------------------------------
 # Its health is checked here rather than by `compose up --wait`, so an unhealthy
-# unit fails the deploy without keeping the product hostname down.
+# unit fails the deploy without keeping the product hostname down. The read waits
+# out the unit's start period first (lib.sh › legacy_unit_health).
 legacy_id="$("${COMPOSE[@]}" ps -q legacy-panel 2>/dev/null || true)"
-legacy_health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$legacy_id" 2>/dev/null || echo missing)"
+legacy_health="$(legacy_unit_health "$legacy_id")"
 if [ "$legacy_health" = "healthy" ]; then pass "legacy: the 18.6.6 unit is healthy"
 else fail "legacy: the 18.6.6 unit is healthy" "state '${legacy_health}'; it needs AIA_LEGACY_DATA_PREFIX and its data bundle in the ops bucket (runbook § The 18.6.6 interface)"; fi
 
