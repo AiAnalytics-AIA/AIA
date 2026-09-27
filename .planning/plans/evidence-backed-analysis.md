@@ -126,8 +126,8 @@ validation (only support and suppression), verification or alignment.
       fidelity, suppression, research questions, preflight). — code + tests:
       `test_analysis_native.py` (28), on a compiled design, the fixture dataset and the real
       aggregate
-- [ ] 3. Harness: `analysis/harness.py` (agent, request per turn, invalid-output marker,
-      classification, lineage, identity). — code + tests
+- [x] 3. Harness: `analysis/harness.py` (agent, request per turn, invalid-output marker,
+      classification, lineage, identity). — code + tests: `test_analysis_harness.py` (13)
 - [ ] 4. Artifact contract and graph spec: `analysis/artifact.py`, `analysis/steps.py`. —
       code + tests
 - [ ] 5. Scoped sources and reconstruction: `application/analysis_results.py`. — code +
