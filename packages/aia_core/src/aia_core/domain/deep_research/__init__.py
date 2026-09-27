@@ -6,7 +6,8 @@ is pure:
 * :mod:`.contracts` -- subjects, tracks, snapshots, evidence, quarantine and stop
   reasons, the request a run is frozen to;
 * :mod:`.workflow` -- the ``deep_research`` step graph (defined, not registered);
-* :mod:`.tooling` -- the cost contract for search and fetch.
+* :mod:`.tooling` -- the cost contract for search and fetch;
+* :mod:`.legacy` -- the 18.6.6 leakage screen and merge, ported exactly.
 
 Pure: stdlib and Pydantic only.
 """
