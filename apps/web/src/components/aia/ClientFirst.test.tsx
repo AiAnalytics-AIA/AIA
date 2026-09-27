@@ -269,6 +269,16 @@ describe("Bedrock settings", () => {
     expect(screen.getByText(/AI návrh výzkumu a další návrhové asistenty zatím/)).toBeTruthy();
     expect(called("POST", "/api/settings/ai_check")).toEqual([]);
   });
+  it("says a switch the worker refuses is invalid, never off or on", async () => {
+    path = "/app/settings";
+    api({ "GET /config": () => ({ apiBase: "", aiRuntime: {
+      enabled: null, provider: "aws_bedrock", region: null, model: null, approvedFor: null,
+    } }) });
+    render(<SettingsPage />);
+    expect(await screen.findByText(/má neplatnou hodnotu; worker se s ní nespustí/)).toBeTruthy();
+    expect(screen.queryByText("AI odpovědi respondentů jsou vypnuté.")).toBeNull();
+    expect(screen.queryByText(/AI odpovědi respondentů jsou povolené pouze/)).toBeNull();
+  });
   it("reports an absent configuration as unknown rather than connected", async () => {
     path = "/app/settings";
     api();

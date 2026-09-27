@@ -427,5 +427,6 @@ runtime environment through `/config`. It has no provider login, direct API-key
 field, selector or paid test button. Classic settings navigation is redirected
 there by the product wrapper. The currently enabled capability is fictional,
 internal-only respondent fieldwork; research design generation remains unmigrated.
-This display is not a live health probe. Historical provider labels in archived
+The switch is read with the worker's vocabulary (`1`/`true`/`yes`/`on`); a value the
+worker refuses is shown as invalid, not as off. This display is not a live health probe. Historical provider labels in archived
 projects remain historical metadata, not connection controls.

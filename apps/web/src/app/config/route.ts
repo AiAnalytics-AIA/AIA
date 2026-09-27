@@ -13,9 +13,24 @@ export type PublicConfig = {
   cognitoClientId: string | null;
   publicOrigin: string | null;
   apiBase: string;
-  aiRuntime: { enabled: boolean; provider: "aws_bedrock"; region: string | null; model: string | null; approvedFor: string | null };
+  // null: the switch holds a value the worker refuses, so it does not start (ai_runtime._flag).
+  aiRuntime: { enabled: boolean | null; provider: "aws_bedrock"; region: string | null; model: string | null; approvedFor: string | null };
   build: { sha: string | null; built_at: string | null };
 };
+
+// The worker's vocabulary for AIA_AI_RUNTIME_ENABLED (apps/executors/src/aia_executors/
+// ai_runtime.py, _TRUE/_FALSE). Compose hands both services the same raw value, so the
+// page must read it the same way or it reports "off" while respondent calls run.
+const TRUE = new Set(["1", "true", "yes", "on"]);
+const FALSE = new Set(["0", "false", "no", "off", ""]);
+
+export function runtimeSwitch(raw: string | undefined): boolean | null {
+  if (raw === undefined) return false;
+  const value = raw.trim().toLowerCase();
+  if (TRUE.has(value)) return true;
+  if (FALSE.has(value)) return false;
+  return null;
+}
 
 export function GET() {
   const config: PublicConfig = {
@@ -24,7 +39,7 @@ export function GET() {
     publicOrigin: process.env.AIA_PUBLIC_ORIGIN?.trim() || null,
     apiBase: process.env.AIA_API_BASE?.trim() || "",
     aiRuntime: {
-      enabled: process.env.AIA_AI_RUNTIME_ENABLED?.trim().toLowerCase() === "true",
+      enabled: runtimeSwitch(process.env.AIA_AI_RUNTIME_ENABLED),
       provider: "aws_bedrock",
       region: process.env.AIA_BEDROCK_REGION?.trim() || null,
       model: process.env.AIA_BEDROCK_MODEL_ID?.trim() || null,

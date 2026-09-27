@@ -112,7 +112,7 @@ export function SettingsPage() {
           <Loaded res={runtime} retry={retryRuntime}>
             {(ai) => (
               <div className="mt-3 space-y-2 text-sm">
-                <p>{t(ai.enabled ? "aia.settings.aiEnabled" : "aia.settings.aiDisabled")}</p>
+                <p>{t(ai.enabled === null ? "aia.settings.aiInvalid" : ai.enabled ? "aia.settings.aiEnabled" : "aia.settings.aiDisabled")}</p>
                 {ai.region ? <p>{tv("aia.settings.aiRegion", { region: ai.region })}</p> : null}
                 {ai.model ? <p className="break-all">{tv("aia.settings.aiModel", { model: ai.model })}</p> : null}
                 <p className="text-ink-muted">{t("aia.settings.aiDesignPending")}</p>

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GET } from "./route";
+import { GET, runtimeSwitch } from "./route";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -25,5 +25,21 @@ describe("public AI configuration", () => {
     expect((await GET().json()).aiRuntime.enabled).toBe(false);
     vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "false");
     expect((await GET().json()).aiRuntime.enabled).toBe(false);
+  });
+  it("reads the switch with the worker's vocabulary, so the page never says off while calls run", async () => {
+    for (const on of ["1", "true", "yes", "on", " TRUE ", "On"]) {
+      vi.stubEnv("AIA_AI_RUNTIME_ENABLED", on);
+      expect((await GET().json()).aiRuntime.enabled, on).toBe(true);
+    }
+    for (const off of ["0", "false", "no", "off", "", "  "]) {
+      vi.stubEnv("AIA_AI_RUNTIME_ENABLED", off);
+      expect((await GET().json()).aiRuntime.enabled, JSON.stringify(off)).toBe(false);
+    }
+  });
+  it("reports a value the worker refuses as unknown, not as off", async () => {
+    expect(runtimeSwitch("enabled")).toBeNull();
+    expect(runtimeSwitch("2")).toBeNull();
+    vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "ture");
+    expect((await GET().json()).aiRuntime.enabled).toBeNull();
   });
 });

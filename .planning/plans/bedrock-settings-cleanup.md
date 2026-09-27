@@ -48,3 +48,13 @@ copy. First installs now copy into a temporary sibling, sync the complete data,
 and publish by atomic rename. `test_interrupted_first_seed_is_retryable_and_never_published_as_working_state`
 checks that a partial copy is not preserved as working state and the next start
 retries successfully. Existing edited state remains untouched.
+
+The second P2 finding: `/config` counted only `"true"` as on, while the worker
+accepts `1`, `yes` and `on` (`apps/executors/src/aia_executors/ai_runtime.py:63`).
+Compose passes both services the same raw value, so Settings could say off while
+respondent calls ran. `/config` now reads the switch with the worker's vocabulary
+(`runtimeSwitch`), and reports a value the worker refuses as `null`, shown as
+invalid rather than off. Tests: `route.test.ts` › *reads the switch with the
+worker's vocabulary…* and *reports a value the worker refuses as unknown…* (both
+fail on the old comparison); `ClientFirst.test.tsx` › *says a switch the worker
+refuses is invalid…*; `test_ai_fieldwork.py` › *the settings page reads the switch with the workers vocabulary* compares the two word lists, so a change to either side fails.

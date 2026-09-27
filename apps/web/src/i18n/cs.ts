@@ -198,6 +198,8 @@ export const cs = {
       aiEnabled: "AI odpovědi respondentů jsou povolené pouze pro schválené fiktivní studie pro interní použití.",
       aiDisabled: "AI odpovědi respondentů jsou vypnuté.",
       aiUnknown: "Stav konfigurace AI se nepodařilo načíst.",
+      aiInvalid:
+        "Přepínač AIA_AI_RUNTIME_ENABLED má neplatnou hodnotu; worker se s ní nespustí a AI odpovědi respondentů neběží.",
       aiRegion: "Výchozí oblast: {region}",
       aiModel: "Model: {model}",
       aiDesignPending: "AI návrh výzkumu a další návrhové asistenty zatím nejsou převedeny do AIA.",
