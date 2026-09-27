@@ -23,7 +23,7 @@ entry is a **hypothesis**, not a finding.
 it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully contained in it
 (`git rev-list --count origin/develop..<branch>` = 0). The 14 that are not:
 
-- **In flight:** `feature/research-agents` (#63), the two fixes (#64, #65; both merged
+- **In flight:** `feature/research-agents` (#63), the two fixes (#64, #65; all three merged
   since), and
   `claude/trusting-turing-2b9oyl` (a settings page, no PR yet). That branch was started
   from `main`, so it carries `main`'s `7f8cb2a` and had to merge `develop` in: the
@@ -72,19 +72,19 @@ attempt 3, green).
 | #64 | `fix/deploy-without-home` | Deploy fails when SSM gives no `HOME` (OI-67) | **Merged** 10:29 | 1 |
 | #65 | `fix/api-tests-file-backed-sqlite` | Flaky API tests on shared in-memory SQLite (OI-69) | **Merged** 10:30 | 2 |
 | #66 | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
-| #63 | `feature/research-agents` | Native Research design agents on Bedrock | Draft, "do not merge as completion"; `develop` merged in @ `5718383` (2026-09-27); conflicts with 3 in this file's header | 4, see below |
+| #63 | `feature/research-agents` | Native Research design agents on Bedrock | **Merged** 11:17 (`85fa951`); CI green on `614b6a7` | 4, see below |
 | — | `claude/trusting-turing-2b9oyl` | Settings page on the real API | No PR yet; based on `main` | open a PR into `develop` |
 
-**PR #63** is one slice, not the whole agent workflow. Land what it has built as a slice:
-native design jobs and reviewed proposals, once CI is green and the browser journey is
-recorded. Then take interpretation, report execution and Deep Research as their own
-PRs, each against the plan that already exists for it, not in the same branch.
+**PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
+by default. The browser journey it named (enqueue → reload → review → accept → stale
+refusal) is still to be recorded. Interpretation, report execution and Deep Research are
+the next PRs, each against the plan that already exists for it, not one long branch.
 - Its handoff tells the next agent to "continue report-docx.md: #58 supplies… not a
   complete renderer". **#62 is that renderer, merged at 10:16.** Merge `develop` into
   #63 and start the report work at R10/R11, not R4.
 - Deep Research is planned in `plans/deep-research.md` (#54, merged 10:15).
-- Branch state, as #63 records it (moved here from above the title in the merge that
-  brought `develop` @ `14a124b` in):
+- Branch state as #63 recorded it before merging (moved here from above the title in the
+  merge that brought `develop` @ `14a124b` in):
   **Research agents — full Study process**: Codex implementation on
   `feature/research-agents`, based on develop after PR #57 merged. [Plan](plans/research-agent-workflows.md).
   The user confirmed that design through results belongs to the original goal.
@@ -144,7 +144,7 @@ PRs, each against the plan that already exists for it, not in the same branch.
 
 | Phase | What | Anchor |
 |---|---|---|
-| Repair | **PR #57 merged** @ `ff463a3`, 2026-09-27 (deploy run 25 green): saved Research projects survive a restart (OI-66: an edited `state_seed` is kept, a new one installed atomically), live SQLite backups include WAL (export off by default), and the Claude Code / direct API connection controls are retired in favour of Bedrock runtime metadata. Recovery of the affected working copies is operational and still open (OI-66); the fix sits in a hand-edited file of the frozen unit (OI-68) | `legacy/npc-panel-18.6.6/runtime/hydrate_data.py` · `test_legacy_state_hydration.py`, `test_legacy_state_backup.py` · [bedrock-settings-cleanup.md](plans/bedrock-settings-cleanup.md) |
+| Repair | **PR #57 merged** @ `ff463a3`, 2026-09-27 (deploy run 25 green): saved Research projects survive a restart (OI-66: an edited `state_seed` is kept, a new one installed atomically), live SQLite backups include WAL (export off by default), and the Claude Code / direct API connection controls are retired in favour of Bedrock runtime metadata. Recovery of the affected working copies is operational and still open (OI-66); the fix sits in a hand-edited file of the frozen unit (OI-68) | `legacy/npc-panel-18.6.6/runtime/hydrate_data.py` · `test_legacy_state_hydration.py`, `test_legacy_state_backup.py` · [bedrock-settings-cleanup.md](plans/done/bedrock-settings-cleanup.md) |
 | Host | **No registry token at rest on the develop host.** `ecr_login` pulls through Amazon's ECR credential helper (instance role), installs the Ubuntu package on first use, removes the token `docker login` had stored unencrypted in root's `~/.docker/config.json`, and turns the helper's plain-text cache off. If the package cannot be installed, the deploy falls back to `docker login` and logs a warning. No Terraform or user-data change (a changed `user_data` would stop and start the host on apply) | `deploy/develop/bin/lib.sh` › `ecr_login` · `packages/aia_core/tests/test_develop_registry_credentials.py` |
 | Agent Runtime | **PR #56 merged and deployed** at `0310091`, 2026-09-26. CI `36234914562` and deploy `36235378083` passed; running worker SHA verified. ADR 0010 human approval recorded for fictional Class C on develop only, retention unspecified. Verified EU prices: input $3.30 / output $16.50 per million tokens. Audited Terraform apply removed only the unused eu-central-2 model grant. Live acceptance study completed: five steps succeeded; 20 primary calls; $0.2303301 ledger cost against $2; all reservations settled. | `apps/executors/src/aia_executors/ai_runtime.py` @ `0310091` · [activation evidence](../docs/architecture/bedrock-develop-activation-2026-09-26.md) · OI-63–65 |
 | PR C | **Research execution (ADR 0016)**: Design Revisions, the `research` workflow (`compile → preflight → run → aggregate → sociomap`), the honest park at fieldwork, Aggregate and the internal Sociomap, the Run/Progress/Results stages, the workbench proof. Merged PR #52 @ `b3bd42f`, CI green. Plan: [research-execution.md](plans/done/research-execution.md) | `apps/executors/src/aia_executors/research.py` · OI-61, OI-62 |
@@ -225,7 +225,7 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 ## In progress
 
-**The `develop` environment is live** (see *Where the code is* for what is deployed). Research execution and Bedrock respondent fieldwork are merged, and the fictional Class C acceptance completed on 2026-09-26 (Completed, Agent Runtime). Native design proposals are implemented (PR #63) and remain off by default. Evidence-backed interpretation/report execution and owned Deep Research remain required for the complete agent workflow.
+**The `develop` environment is live** (see *Where the code is* for what is deployed). Research execution and Bedrock respondent fieldwork are merged, and the fictional Class C acceptance completed on 2026-09-26 (Completed, Agent Runtime). Native design proposals are merged (PR #63) and remain off by default. Evidence-backed interpretation/report execution and owned Deep Research remain required for the complete agent workflow.
 
 | What | State | Anchor |
 |---|---|---|
