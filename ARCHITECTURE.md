@@ -212,6 +212,10 @@ script, then confirm it passes before committing.
   respondent context; respondent context is re-screened against the final questionnaire. Tool
   calls follow the model-call bracket (reserve, durable dispatch, outcome, uncertain at its
   ceiling), and a priced tool route is refused until tool spend is held against the study budget.
+  A query or URL leaves only through `RetrievalGate`; a run is frozen at enqueue
+  (`DeepResearchRuns`) and executed by six steps whose completed tracks, snapshots, verification
+  batches and brief are reused by fingerprint, while anything a gate refused is its run's alone.
+  Production has no retrieval, so web tracks are blocked; recorded retrieval is local and test only.
 - **Fieldwork is a boundary, and `ai_runtime` is answered only by AI respondents.**
   The deployed composition (`aia_executors.registry`) has no deterministic dataset
   producer. It builds the AI respondent engine (`aia_executors.ai_fieldwork`) only
