@@ -1,0 +1,97 @@
+# ADR 0018 — AIA runs without NPC Panel 18.6.6; the unit is reference only
+
+**Status:** Proposed — develop (product direction, 2026-09-27). Implemented in increments
+([plan](../../../.planning/plans/legacy-phase-out.md)); each decision below says which
+increment carries it. **Supersedes**, once every increment has landed: the product-facade
+decisions of [ADR 0012](0012-legacy-interface-as-product-facade.md) (the 18.6.6 interface
+behind AIA sign-in; the panel gate), [ADR 0013](0013-interface-skin-at-the-facade.md) (the
+skin, which exists only for that interface), [ADR 0014](0014-rebuild-the-interface-in-react.md)
+decisions on the ledger-checked unit client and the fragment hand-off, and
+[ADR 0015](0015-client-first-product-interface.md) decisions 4 (`/classic` and the unit's
+paths on the product hostname) and 5 (the unit store as a bridge), and its OI-59
+consequence (`/app` open to owners and admins only). **Amends**
+[ADR 0011](0011-vendor-legacy-product-unit.md): the vendored unit stays, frozen, as the
+behavioural reference and parity oracle; it is no longer part of the product deployment.
+**Date:** 2026-09-27
+
+## Context
+
+AIA is its own application: its own architecture, interface, authentication, data model,
+APIs, workers and deployment. On `develop` @ `4c4c3dd` its back end already was -- the API,
+worker, executors and core never call the unit -- but the product was not
+(`.planning/plans/legacy-phase-out.md` § Dependency inventory):
+
+- the research stages kept their working content in the unit's single-tenant SQLite project
+  store and loaded the unit's bootstrap before rendering (OI-58);
+- `/app` sat behind the legacy panel gate, open to organization owners and admins only, and
+  switched off by `AIA_LEGACY_PANEL_ENABLED` -- which production refuses (OI-59);
+- `/classic` and a dozen links handed people to the 18.6.6 interface;
+- the deployment built, ran, hydrated and smoke-checked the unit, and CI failed a Caddyfile
+  that did not route to it.
+
+18.6.6 remains valuable as a reference -- behaviour, methodology, datasets, algorithms,
+prompts -- and as the oracle parity is measured against. Neither needs it in the product.
+
+## Decision
+
+1. **A research Study's working content is AIA's** (increment 1). It is an owned AIA project
+   (`projects.owner = study_workspace`), found only through the Study's `study_workspaces`
+   row and served at `/api/v1/studies/{study_id}/workspace/content`. Saves are
+   `ProjectRepository.save` revisions -- immutable, deduplicated, with event history -- and
+   each names the revision it was edited from: a save from a stale copy is refused (409),
+   never applied over a newer one. The row names a `ContentState`; a Study never shows an
+   empty document in place of content it does not have:
+
+   | State | Meaning |
+   | --- | --- |
+   | `EMPTY` | nothing saved yet; the stages start from the research template |
+   | `NATIVE` | saved in AIA |
+   | `MIGRATED` | brought from the 18.6.6 store by the migration, with lineage |
+   | `RECOVERED` | the bound 18.6.6 project was gone; recovered from the Study's newest Design Revision, with lineage |
+   | `UNRECOVERABLE` | the bound 18.6.6 project was gone and nothing recoverable existed; a person who may edit starts again explicitly |
+   | `AWAITING_MIGRATION` | bound to an 18.6.6 project not yet migrated; **not editable**, so the content cannot fork |
+
+   The research template is AIA's copy of the unit's empty project
+   (`aia_core.domain.research_template`), pinned to the unit's answer by a test. The working
+   copy is not what runs execute: a run still executes a Design Revision the browser submits
+   (ADR 0016). *Rejected:* a parallel table of working revisions (duplicates
+   `project_revisions`); saving autosaves as Design Revisions (every keystroke-pause would
+   become something a run could execute, and flood the list ADR 0016 reads).
+
+2. **Legacy working content is migrated explicitly, once, with a report** (increment 2). An
+   operator command reads a WAL-safe *copy* of the unit's `project_store.sqlite` read-only and
+   its attachment directory, brings each `AWAITING_MIGRATION` Study's project -- every revision,
+   its analysis, its attachments into AIA storage -- over with lineage, validates the result
+   against the source, and reports every case it could not migrate. It never writes or
+   deletes the source; nothing in the product reads it afterwards.
+
+3. **`/app` has AIA's own gate** (increment 3): any active organization member with an AIA
+   session; every page's data is authorized per call by `ScopeResolver`, as it always was.
+   No legacy flag decides whether AIA can be reached.
+
+4. **The interface hands nothing to 18.6.6** (increment 4). No `/classic`, no hand-off links,
+   no skin. A capability AIA does not have -- simulation screens, verification, the 18.6.6
+   client report, panel-derived audience filters and previews, special and customer
+   audiences -- says so where the person is.
+
+5. **The product deployment has no unit** (increment 5): no `legacy-panel` image, service,
+   volume mount, hostname, credentials, data sync or health check; CI fails a product
+   Caddyfile that routes to the unit. The unit runs, when a comparison needs it, from a
+   separate optional reference setup (`deploy/reference/`), reached on the host's loopback.
+   Its working volume and data bundle are left exactly as they are.
+
+## Consequences
+
+- The research flow saves, reloads, executes and shows its results with the unit stopped.
+- Studies bound to 18.6.6 are read-only until the migration runs; the operator runs it
+  between increments 2 and 5.
+- Capabilities that exist only in 18.6.6 are unavailable in the product until rebuilt, and
+  say so; they are no longer reachable through a hand-off.
+- The parity oracle is reachable only from the reference setup; the oracle CI job still skips
+  without its secrets, as it did.
+
+## Revisit when
+
+- A capability listed as unavailable in decision 4 is rebuilt: its notice goes.
+- The migration has run on develop and its report is accepted: the `AWAITING_MIGRATION` state
+  can no longer be entered, and `unit_project_id` becomes history only.
