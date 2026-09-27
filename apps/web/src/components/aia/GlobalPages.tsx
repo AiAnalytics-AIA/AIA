@@ -21,6 +21,7 @@ import { ClassicLink, Field, Tag, TextInput } from "../rehome/ui";
 import { AppShell } from "./AppShell";
 import { studyHref } from "./clients/ClientOverview";
 import { CARD, Empty, Loaded } from "./states";
+import { ControlPanel } from "./settings/ControlPanel";
 import { useResource } from "./useResource";
 
 export function IntelligencePage() {
@@ -115,7 +116,7 @@ export function SettingsPage() {
                 <p>{t(ai.enabled === null ? "aia.settings.aiInvalid" : ai.enabled ? "aia.settings.aiEnabled" : "aia.settings.aiDisabled")}</p>
                 {ai.region ? <p>{tv("aia.settings.aiRegion", { region: ai.region })}</p> : null}
                 {ai.model ? <p className="break-all">{tv("aia.settings.aiModel", { model: ai.model })}</p> : null}
-                <p className="text-ink-muted">{t("aia.settings.aiDesignPending")}</p>
+                <p className="text-ink-muted">{t(ai.researchAgentsEnabled === null ? "aia.settings.aiDesignInvalid" : ai.researchAgentsEnabled ? "aia.settings.aiDesignEnabled" : "aia.settings.aiDesignDisabled")}</p>
                 <p className="text-xs text-ink-faint">{t("aia.settings.aiConfigOnly")}</p>
               </div>
             )}
@@ -132,6 +133,9 @@ export function SettingsPage() {
             <p className="mt-1 text-xs text-ink-faint">{t("aia.settings.classicProjectsText")}</p>
           </div>
         </section>
+      </div>
+      <div className="mt-6">
+        <ControlPanel />
       </div>
     </AppShell>
   );

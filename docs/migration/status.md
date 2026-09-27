@@ -17,6 +17,11 @@ remain unapproved/unimplemented. The material below records the earlier
 implementation narrative; [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md)
 is the current tracker.
 
+**2026-09-27:** PRs #57, #58, #59, #61, #54 and #62 have merged since the paragraph
+above. Bedrock design assistants are in PR #63. PROGRESS § *Where the code is* is the
+current picture. Below, "mock-backed", "Bedrock adapter still to be written",
+"first green deploy still owed" and "In progress: Nothing" are history, not state.
+
 > **This document is the narrative, not the tracker.** What is done, in
 > progress and next lives in [`../../.planning/PROGRESS.md`](../../.planning/PROGRESS.md),
 > and open defects in [`../../.planning/open-items.md`](../../.planning/open-items.md).

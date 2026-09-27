@@ -1,6 +1,6 @@
 # Simulation deterministic core
 
-**Status:** all chunks landed, in review · **Owner:** simulation-engine · **Started:** 2026-09-22
+**Status:** done — merged in PR #27 @ `b85431f` (2026-09-23). Archived 2026-09-27. · **Owner:** simulation-engine · **Started:** 2026-09-22
 
 ## Problem
 

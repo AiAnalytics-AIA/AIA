@@ -49,14 +49,14 @@ point; nothing outside it touches its internals.
 | 4b | **Executors** | `apps/executors/src/aia_executors/` | What a step of each kind *does*, under the scope the lease issued and through the worker's `StepContext`. Registered by kind; the worker loads them from `AIA_WORKER_EXECUTORS`. Also the operator commands (seed, smoke) that act as a user would through the application layer. | 1, 2, 3 and `aia_worker.executor` — never 5 |
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
-| — | **Legacy stub** | `src/server.js` | Frozen. The sole surviving login path. | Nothing. Receives no new features. |
-| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited.** Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only behind the gate, at `/classic` and on its own paths (ADR 0015). | Nothing. Nothing depends on it in code; parity tests reach it over HTTP. |
+| — | **Legacy stub** | `src/server.js` | Frozen and unused: nothing in the Makefile, CI, Compose or a Dockerfile runs it, and sign-in is Cognito through `apps/web`. Deleting it is PROGRESS *Next* 8. | Nothing. Receives no new features. |
+| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only behind the gate, at `/classic` and on its own paths (ADR 0015). | Nothing. The back end never calls it. The web client reaches it over HTTP through Caddy, only from `apps/web/src/unit/`, for the stages still in its store (OI-58); parity tests reach it over HTTP. |
 
 The web `/config` endpoint may expose nonsecret runtime configuration for
 Settings (switch, Bedrock model/profile, source region and approval class).
 This is a configuration display, never a provider health test or authority to
-invoke a capability. Design assistants remain on the migration backlog; an
-active fieldwork route does not enable legacy design jobs. Product-only Caddy
+invoke a capability. Native design jobs have a separate activation switch;
+an active fieldwork route does not enable them. Product-only Caddy
 retirement blocks legacy credential/login/probe endpoints after the existing
 gate; the independent oracle and pinned reference application stay unchanged.
 
@@ -187,6 +187,17 @@ script, then confirm it passes before committing.
   (`research_artifacts`, `ArtifactRepository(owner=)`), never by id alone.
   Respondent rows are never sent to the browser; the Sociomap artifact is served
   only with `EDIT_STUDY`.
+- **Research assistants propose; a person accepts against an unchanged revision.**
+  The `research_agent` workflow freezes approved Study-visible knowledge and
+  harness context at enqueue. Its eight closed actions use `StepModelCaller`;
+  no API or browser invokes Bedrock. Results and artifacts stay Study-scoped.
+  `StudyDesignRepository.submit_if_current` locks the Study against every design
+  writer; stale proposals cannot overwrite a newer revision. Library instruments,
+  audience filters and approved dimensions remain controlled by code or a person.
+  Reload follows existing jobs; it never creates another call. Advice is not an
+  admitted report claim. Activation, budget and classification are independent
+  of fieldwork; confidential knowledge cannot use the fictional Class C allowance.
+  See [native Research agents](docs/architecture/research-agents.md).
 - **Fieldwork is a boundary, and `ai_runtime` is answered only by AI respondents.**
   The deployed composition (`aia_executors.registry`) has no deterministic dataset
   producer. It builds the AI respondent engine (`aia_executors.ai_fieldwork`) only

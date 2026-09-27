@@ -342,7 +342,30 @@ attempt = session.scalar(
 `:memory:` a single shared connection (`StaticPool`) so separate sessions see one
 database — which also means a second thread (the worker's heartbeat) shares that
 connection mid-transaction. Tests with more than one thread use a **file-backed**
-SQLite database per test (`apps/worker/tests/conftest.py`).
+SQLite database per test (`apps/worker/tests/conftest.py`). That includes an API
+test that starts a `Worker`: `test_research_api.py` and `test_runs_api.py` ran on
+`:memory:` and failed about one run in fourteen, the heartbeat's session close
+rolling back a step's flushed artifact row so its dependency insert failed its
+foreign key (found on PR #54, 2026-09-25). Both now override `settings`.
+
+A per-module override only holds until the next test forgets it, so `Worker` now
+refuses such an engine at construction (`shares_one_connection` in
+`infrastructure/db.py`). The race becomes a `ValueError` on every run instead of a
+step failing one run in fourteen. The failure looked like a repository bug, an
+`IntegrityError` "raised as a result of Query-invoked autoflush" inserting into
+`project_artifact_dependencies`, but the repository's transaction was correct: it
+had been rolled back from underneath it. `apps/worker/tests/test_shared_connection.py`
+replays the heartbeat's close at that point, so the race is reproduced
+deterministically.
+
+```python
+# WRONG: the heartbeat thread's session close rolls back the step's transaction
+engine = create_app_engine("sqlite+pysqlite:///:memory:")   # StaticPool
+Worker(session_factory=create_session_factory(engine), ...)  # now raises ValueError
+
+# RIGHT: a connection per session
+engine = create_app_engine(f"sqlite+pysqlite:///{tmp_path / 'worker.db'}")
+```
 
 
 **SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
@@ -629,6 +652,13 @@ except ScopeDenied as exc:
     raise _forbidden(...) from exc
 ```
 
+**A closed response model rejects a repository's extra key at runtime, not in
+mypy.** `GET /access-audit` answered 500 for every organization with a grant,
+because `audit_trail()` returns a `payload` key that `AuditEntryResponse`
+(`extra="forbid"`) did not declare; no API test had called the route with data
+in it. Fixed by declaring the field (`87da177`). Every route needs one API test
+that returns *data*, not only one that is refused.
+
 ## Pydantic strict mode
 
 **Strict *Python* mode rejects what JSON can express.** `model_validate(data,
@@ -831,6 +861,62 @@ for a in ("w:asciiTheme", "w:hAnsiTheme", "w:cstheme", "w:eastAsiaTheme"):
 LibreOffice opens can still be one Word calls corrupt. Insert settings children
 in `CT_Settings` order (`embed._insert_in_order`), and never append them.
 
+**LibreOffice ignores `w:ptab`.** An absolute-position tab to the right margin
+would right-align a running head on any page width, but LibreOffice renders it
+as nothing, and the chapter name lands mid-header. Use a right tab stop in the
+Header / Footer *style* (at the text width) and a plain `w:tab` in the run.
+
+**python-docx's `add_section` adds an empty paragraph.** It moves the previous
+`sectPr` into a new, unstyled paragraph. The renderer instead moves it into the
+section's own last paragraph (`layout.end_section`) and resets the body
+`sectPr` — including dropping `pgNumType/@w:start`, which the clone would
+otherwise carry into every later section and restart the page numbers.
+
+```python
+# wrong — an extra empty Normal paragraph, and page numbers restart again
+document.add_section(WD_SECTION.NEW_PAGE)
+# right
+layout.end_section(ctx, layout.last_paragraph(ctx))
+```
+
+**A `Normal` paragraph has no `w:pStyle`.** python-docx omits the element for
+the default style, so "every paragraph names its style" means "has a `pStyle`
+or is `Normal`". `lint.lint_docx` checks the real rule: no formatting element in
+`pPr`/`rPr`/`tblPr`/`trPr`/`tcPr` beyond style names and structure.
+
+**A TOC's cached page numbers stay empty until Word updates the field.**
+LibreOffice shows a TOC field's cached result as-is and does not evaluate the
+`PAGEREF`s inside it; the renderer cannot know page numbers. Word updates them
+on open (`w:updateFields`). A LibreOffice preview therefore shows the entries
+and leaders without numbers — expected, not a defect. `STYLEREF` and `PAGE` in
+running heads LibreOffice does evaluate.
+
+**LibreOffice pads an inline picture by ~3 mm a side unless told not to.**
+python-docx writes `wp:inline` without `distT/B/L/R`. Word reads them as 0;
+LibreOffice as its default wrap distance, so a 2.5 mm evidence mark sat in a
+gap three times its size. `images.add_vector_image` sets all four to `"0"`.
+
+**An exact line height crops a picture to one line.** A style with
+`w:spacing w:lineRule="exact"` (every text style in the report) clips an inline
+picture to its leading in LibreOffice and Word alike: seven charts rendered as
+7 mm slivers. The Figure paragraph style uses auto (single) spacing
+(`Para(exact=False)`).
+
+**The file-writing tool turns `\u00a0` / `\u2013` escapes into literal
+characters.** Grep a newly written file for NBSP, en dash and minus before
+running ruff; RUF001 then catches the rest.
+
+**python-docx writes the current time into the zip.** Two renders of the same
+document differ in bytes unless the package is rewritten with fixed timestamps
+(`renderer._normalise_zip`) and the core properties are dated explicitly.
+
+**Look at the pages, not only the XML.** Every layout defect in the report
+renderer so far — the header tab, padded marks, cropped charts, a row split
+from its interval — passed the structural tests and showed on the first
+render. `make report-preview` (or `tools/report_preview.py some.docx`) renders
+through LibreOffice with a private profile, so a running instance or a stale
+lock never blocks it.
+
 **Verifying a DOCX by eye needs LibreOffice Writer, not just its core.** A
 container with `libreoffice-core` alone answers every conversion with "source
 file could not be loaded", even for a document python-docx wrote itself. Install
@@ -971,6 +1057,19 @@ set in an effect; only the asynchronous outcome of a promise is `setState`d. `ap
 on `apps/web/package-lock.json` — caching on a branch name gives a stale
 `node_modules` that fails for reasons unrelated to the change.
 
+**A constant exported from a `"use client"` module is not a constant on the
+server.** A server component that imports it gets a client *reference*, and
+`className={inputClass}` renders the text of a thrown error into the HTML. Only
+components cross that boundary; shared constants live in a plain module.
+
+```ts
+// WRONG -- ActionForm.tsx starts with "use client"
+export const inputClass = "h-8 rounded-md …";   // imported by a server component
+
+// RIGHT -- components/settings/styles.ts, no directive
+export const inputClass = "h-8 rounded-md …";
+```
+
 The client renders state the server computed. `GET …/impact` exists precisely so
 no component reasons about which stages an edit invalidates.
 
@@ -1043,6 +1142,45 @@ workbench journey (`make ui-research`) is what found it.
 // RIGHT: the list as the API sends it; the run in full at its own path
 "GET /api/v1/studies/S/research/runs": () => ({ items: [{ ...COMPLETED, steps: [], artifact_ids: [] }] }),
 "GET /api/v1/studies/S/research/runs/RUN-1": () => COMPLETED,
+```
+
+**A wait sized on an idle machine fails on a loaded CI runner.** Testing
+Library's `findBy*` gives up after 1 s and Vitest ends a test at 5 s. A native
+Research job reaches its review dialog through a chain of mocked requests and
+renders: about 0.3 s alone, several seconds with 39 test files sharing the
+runner. `findByRole("dialog")` (1 s) and `approveProposal`'s 4 s wait failed
+PlanStep and AudienceStep one run in two locally, and once in CI. A wait
+resolves as soon as its element appears, so give it room. A file that uses
+`vi.setConfig` raises its own test timeout; nothing else is affected
+(`test-native-agents.ts`: `NATIVE_JOB_WAIT`, `NATIVE_TEST_TIMEOUT_MS`).
+
+```ts
+// WRONG: passes on a laptop, fails under CI load
+await screen.findByRole("dialog");
+// RIGHT: room for the whole job chain, and a test timeout that allows it
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
+await screen.findByRole("dialog", {}, NATIVE_JOB_WAIT);
+```
+
+**An element on screen does not mean its store subscription exists.**
+`useSyncExternalStore` subscribes in a passive effect, and React runs passive
+effects after the commit that drew the element, not in it. A `findBy*` can
+resolve in between. A click whose only effect is a store update then has no
+subscriber, so nothing renders. React renders it when the effect subscribes and
+finds the store changed. The click is not lost, but a synchronous read straight
+after it sees the old DOM. `BriefStep.test.tsx` › *a problem type is a toggle…*
+failed this way once in 26 local runs, and once in CI (#68, 2026-09-27). With a
+log at the click, the 2 failures in 61 runs were exactly the 2 runs in which the
+same commit's other effects (the agents' `agent-jobs` request) had not run yet
+(OI-70). Wait for what the click changes; do not read it synchronously.
+
+```ts
+// WRONG: right after mount, the store may not be subscribed yet
+fireEvent.click(tile);
+expect(tile.getAttribute("aria-pressed")).toBe("true");
+// RIGHT: resolves on the render the subscription makes
+fireEvent.click(tile);
+await screen.findByRole("button", { name: /Nový produkt/, pressed: true }, { timeout: 5_000 });
 ```
 
 **A fragment-only navigation does not reload the page.** Following
@@ -1148,8 +1286,76 @@ jq --arg r "$REGISTRY" \
   '.credHelpers[$r] = "ecr-login" | if has("auths") then .auths |= del(.[$r]) else . end' config.json
 ```
 
+**SSM Run Command gives the script no `HOME`.** `AWS-RunShellScript` starts the
+deploy as root with `HOME` unset, and under `set -u` a bare `$HOME` stops the
+script: deploy run 26 (2026-09-27) failed at `ecr_login` on "HOME: unbound
+variable", and the host stayed on the previous build. The tests had passed because
+they set `HOME`. Docker itself falls back to the passwd entry's home, so resolve
+it the same way, and test the path with `HOME` absent
+(`test_a_deploy_without_home_writes_the_config_docker_reads`).
+
+```bash
+# WRONG: fine in an operator shell, fatal under SSM
+local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
+
+# RIGHT: where docker looks when HOME is unset (lib.sh › docker_config_dir)
+home="${HOME:-$(getent passwd "$(id -u)" | cut -d: -f6)}"
+```
+
+**A healthcheck with a start period reads "starting", and a single read races it.**
+The 18.6.6 unit is recreated on every deploy and hydrates its data on start; its
+healthcheck stays `starting` for up to its 120 s start period. The deploy does not
+wait for it (a broken unit must not take the site down), so smoke read its state
+once: deploy runs 29 and 30 (2026-09-27) failed on `state 'starting'` while
+every other check passed. Wait out `starting` for a bounded time, then judge; report
+`unhealthy`, `exited` or missing at once (`lib.sh` › `legacy_unit_health`,
+`test_develop_legacy_unit_health.py`).
+
+```bash
+# WRONG: whatever the unit is doing at this instant
+state="$(docker inspect --format '{{.State.Health.Status}}' "$id")"
+# RIGHT: judged after its start period, never forever
+state="$(legacy_unit_health "$id")"   # waits out "starting", at most 150 s
+```
+
 **A host package does not go in user-data.** cloud-init runs once per instance, so
 a package added to `infra/develop/user-data.yaml.tftpl` never reaches the running
 host, and with `user_data_replace_on_change = false` a changed `user_data` makes
 the AWS provider stop and start the instance on the next `terraform apply`. The
 deploy script installs what it needs, idempotently.
+
+## Durable AI proposal reuse and browser lifetime
+
+Apply the workflow-type filter in the repository before the list limit. Filtering
+after pagination lets a burst of design jobs hide the older fieldwork run on the
+same owned project. The regression in `test_research_runs.py` first returned an
+empty fieldwork list with `limit=1` after two proposals were enqueued.
+
+```python
+# WRONG: unrelated jobs consume the list's page.
+[r for r in repo.list_runs(limit=20) if r["workflow_type"] == RESEARCH]
+
+# RIGHT: paginate the requested workflow family.
+repo.list_runs(limit=20, workflow_type=RESEARCH)
+```
+
+A full-project proposal artifact must include its input revision in the reuse
+fingerprint. Two revisions can have identical model context when provider/policy
+fields are excluded, while their full saved baselines differ. Reusing the older
+artifact would overwrite fields the model never saw.
+
+```python
+# WRONG: same model context means the whole proposed project is reusable.
+key = hash(context_hash, prompt_version, policy_version)
+
+# RIGHT: a complete project proposal remains bound to its baseline.
+key = hash(design_revision_id, context_hash, prompt_version, policy_version)
+```
+
+A React job follower stops on unmount without cancelling the server job. Pending
+review promises must also settle, and old async cleanup must not clear a newer
+operation. Use an operation identity plus an abort signal; refresh errors in
+`finally` must not replace the original job error. Native dialogs use `showModal`
+so keyboard focus and Escape have browser behavior; jsdom needs the existing
+dialog-method stand-ins in component tests. Native HTTP fixtures distinguish
+GET inbox reads from POST creation even when the path is identical.

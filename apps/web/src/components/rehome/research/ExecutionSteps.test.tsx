@@ -155,7 +155,7 @@ describe("Run", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-a1");
     expect(screen.getByText("n = 450.")).toBeTruthy();
     expect(screen.getByText(/AIA zatím nepoužije filtry/)).toBeTruthy();
-    expect(screen.getByText(/AI respondenti, kteří zatím nejsou nasazeni/)).toBeTruthy();
+    expect(screen.getByText(/Sběr dat pomocí AI respondentů je dostupný jen pro schválené studie/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
@@ -189,7 +189,7 @@ describe("Progress", () => {
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
     api(listed(PARKED));
     render(<ResearchScreen projectId="PRJ-1" step="progress" frame={TEST_FRAME} />);
-    expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti zatím nejsou nasazeni/)).toBeTruthy();
+    expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení/)).toBeTruthy();
     const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
     expect(steps.map((li) => li.textContent)).toEqual([
       expect.stringContaining("Sestavení dotazníku z návrhu"),

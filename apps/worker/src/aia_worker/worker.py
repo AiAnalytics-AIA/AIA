@@ -50,6 +50,7 @@ from typing import Any
 from aia_core.application.scope import ScopeResolver
 from aia_core.domain.scope import ScopeDenied, StudyContext
 from aia_core.domain.workflow import FailureClass, StepRunStatus
+from aia_core.infrastructure.db import shares_one_connection
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
     ClaimedWork,
@@ -57,6 +58,7 @@ from aia_core.infrastructure.workflow_repository import (
     WorkflowRepository,
     WorkQueue,
 )
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from .context import AttemptContext, AttemptSignals, in_transaction
@@ -102,6 +104,30 @@ class _Claim:
     step: StepInput
 
 
+def _require_a_connection_per_thread(session_factory: sessionmaker[Session]) -> None:
+    """Refuse an engine on which the heartbeat thread would share the step's connection.
+
+    The heartbeat opens and closes a session every ``heartbeat_seconds`` while the
+    step holds an open transaction. On a single shared connection (in-memory
+    SQLite) that close rolls the step's flushed rows back from underneath it; it
+    showed up as a step failing one run in fourteen with a foreign-key error on
+    ``project_artifact_dependencies`` (AGENTS.md § SQLite). Refusing here makes it
+    fail every time, at construction.
+    """
+    engine = session_factory.kw.get("bind")
+    if not isinstance(engine, Engine):
+        raise ValueError(
+            "a worker's session factory must be bound to an engine, so it can tell"
+            " whether its heartbeat thread would share the step's connection"
+        )
+    if shares_one_connection(engine):
+        raise ValueError(
+            "this engine gives every thread one connection (in-memory SQLite): the"
+            " heartbeat thread's session would roll back the executing step's"
+            " transaction. Use a file-backed SQLite database or PostgreSQL."
+        )
+
+
 class Worker:
     """One worker's loop. Several may run against one database, in any processes."""
 
@@ -115,6 +141,7 @@ class Worker:
     ) -> None:
         if not executors:
             raise ValueError("a worker needs at least one executor; it would claim nothing")
+        _require_a_connection_per_thread(session_factory)
         self._factory = session_factory
         self._executors: Mapping[str, StepExecutor] = dict(executors)
         self._kinds = frozenset(self._executors)
