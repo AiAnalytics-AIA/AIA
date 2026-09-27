@@ -8,10 +8,12 @@ PostgreSQL contention. Architecture v2.1 reconciliation applied.
 **Current-state addendum:** PR #52 merged into `develop` at `b3bd42f`. The
 executable worker, live develop facade, client-first interface and the
 Study-scoped Research Run → Progress → Results slice are implemented. Deployed
-Research fieldwork still parks until the governed AI runtime exists; only the
-fictional workbench composition completes Aggregate and an `INTERNAL_ONLY`
-Sociomap. No live model call, panel-derived transmission approval or full
-Research acceptance is claimed. The material below records the earlier
+PR #56 deployed the governed Bedrock respondent runtime at `0310091`. The
+fictional acceptance run completed all five steps with 20 successful model
+calls and settled cost $0.2303301; results were verified in the signed-in UI.
+Fieldwork and aggregate artifacts are `SYNTHETIC_AI_FICTIONAL`; Sociomap is
+`INTERNAL_ONLY`. Panel-derived transmission and Bedrock design assistants
+remain unapproved/unimplemented. The material below records the earlier
 implementation narrative; [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md)
 is the current tracker.
 
@@ -350,7 +352,7 @@ Nothing. The tree is green and the slice is complete.
       `/studies` slice is real; the demo pages remain, labelled as mock.
 - [x] Terraform for the AWS baseline — for `develop` (`infra/develop/`,
       ADR 0009). Production compute is still open.
-- [x] Bedrock adapter and `aws_bedrock` provider: PR #56 merged and deployed at `0310091`; human approval and dated EU pricing recorded on 2026-09-26. Live acceptance test pending.
+- [x] Bedrock adapter and `aws_bedrock` provider: PR #56 merged and deployed at `0310091`; human approval and dated EU pricing recorded on 2026-09-26. Fictional acceptance run `RUN-f59dce9b82ae49ec` completed: 20 successful calls, $0.2303301 settled, no held/uncertain reservations.
 - [ ] PostgreSQL row-level security as a second isolation layer.
 - [ ] Rate limiting.
 
@@ -580,4 +582,4 @@ collapsing them would hide exactly the thing worth knowing.
 
 ### Agent Runtime follow-up — 2026-09-26
 
-AI respondent fieldwork is implemented in PR #56 and deployed at `0310091`. CI `36234914562` and deploy `36235378083` succeeded. ADR 0010 approval covers fictional Class C on develop only, retention unspecified. The isolated $2 acceptance study is pending. See [activation evidence](../architecture/bedrock-develop-activation-2026-09-26.md). Earlier measurements are historical snapshots; OI-61 and D6 remain open.
+AI respondent fieldwork is implemented in PR #56 and deployed at `0310091`. CI `36234914562` and deploy `36235378083` succeeded. ADR 0010 approval covers fictional Class C on develop only, retention unspecified. The isolated $2 acceptance study completed all five steps and 20 model calls at $0.2303301; results were verified in the signed-in UI. See [activation evidence](../architecture/bedrock-develop-activation-2026-09-26.md). Earlier measurements are historical snapshots; OI-61 and D6 remain open.

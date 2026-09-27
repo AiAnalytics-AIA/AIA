@@ -22,4 +22,27 @@ Only synthetic client `CLI-905099f4020045` is approved for the fictional allowli
 
 ## Activation result
 
-Pending configuration, study creation and the first live request. No successful live call or cost claimed yet. OI-61, D6, general fictional-client authority (OI-63), checkpointing (OI-64), persistent lineage (OI-65) and AWS application-profile attribution remain separate work.
+Runtime enabled after the explicit ADR 0010 approval. Study `STU-ae8b2794ee2f4e`,
+run `RUN-f59dce9b82ae49ec`, executed Design Revision `REV-6b672fe2f1a3418d`.
+All five steps succeeded in one attempt each: compile, preflight, run, aggregate,
+sociomap. Twenty primary Bedrock requests succeeded, with twenty provider request
+IDs, 40,197 input tokens and 5,920 output tokens. No repair requests or uncertain
+outcomes occurred. Ledger/study cost **$0.2303301** against the **$2** cap; all
+20 reservations settled, with no held or uncertain reservations.
+
+Fieldwork and aggregate metadata declare `SYNTHETIC_AI_FICTIONAL`; Sociomap
+metadata also declares `INTERNAL_ONLY`. The application Results page was read
+back: fictional/internal warnings are visible and low-support aggregate cells
+are suppressed. These are fictional development results, not client findings.
+
+Configuration: source eu-central-1, policy `aia-bedrock-develop-2026-09-26`,
+route `bedrock-eu-primary`, fieldwork output cap 1,024, reservation $0.15, model
+context/output ceilings 200,000/64,000. Only synthetic client
+`CLI-905099f4020045` is allowlisted. Configuration was validated while off, then
+the worker was recreated with the runtime switch on. Operator credentials did
+not make model requests; the host instance role did.
+
+OI-61, D6, general fictional-client authority (OI-63), checkpointing (OI-64),
+persistent ledger lineage (OI-65), design/analysis/report agents and AWS
+application-profile attribution remain separate work. Legacy Claude Code/direct
+API design assistants are not connected by this fieldwork activation.

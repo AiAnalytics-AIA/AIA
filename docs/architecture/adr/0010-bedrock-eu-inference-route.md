@@ -37,7 +37,8 @@ policy. The instance role is granted `bedrock:InvokeModel` and
 foundation-model ARNs only**. There is no `bedrock:*`, and there are no static
 credentials: the adapter signs requests with the instance role via SigV4.
 
-All six `ModelCapability` values initially resolve to that one model. That is a
+Only `ModelCapability.SIMULATION` currently resolves to that model, for respondent
+modelling. Other capabilities await their governed agents. That is a
 methodology simplification made explicit in the policy document, not an
 optimisation; refining it later is a versioned policy change.
 
@@ -120,9 +121,10 @@ named `layer_check` exemption); `Urllib3Transport` (no retries, delivery stated)
 service model); `aia_executors.ai_runtime` (the route, catalog and policy from
 `AIA_AI_*` / `AIA_BEDROCK_*`, off by default, fail closed). Only
 `ModelCapability.SIMULATION` is bound: the other capabilities wait for their agents.
-No live call has been made at this approval-record stage; the activation evidence will record the measured outcome.
+The approved live fictional study completed all five steps with 20 successful
+primary calls and $0.2303301 recorded cost; see the dated activation evidence.
 
-- A `Provider.BEDROCK = "aws_bedrock"` member, a `BedrockConverseAdapter`
+- A `Provider.AWS_BEDROCK = "aws_bedrock"` member, a `BedrockConverseAdapter`
   implementing PR #28's `ProviderAdapter` over a SigV4 `HttpTransport`, recorded
   fixtures for success / throttling / access-denied / validation / unreadable-200,
   and the pricing entry — one PR, after #28 merges.

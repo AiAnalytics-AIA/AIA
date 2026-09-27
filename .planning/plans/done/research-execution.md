@@ -1,6 +1,6 @@
 # PR C — Research execution: Run → Progress → Results, under the client
 
-**Status:** merged as PR #52 into `develop` at `b3bd42f`. PR #56 subsequently merged and deployed at `0310091`; its AI respondent source is configured separately under ADR 0010. Human approval for fictional Class C on develop is recorded on 2026-09-26; live activation/test pending. When runtime is disabled, the default park remains.
+**Status:** merged as PR #52 into `develop` at `b3bd42f`. PR #56 subsequently merged and deployed at `0310091`; its AI respondent source is configured separately under ADR 0010. Human approval for fictional Class C on develop is recorded on 2026-09-26; live fictional activation/test completed (20 calls, $0.2303301). When runtime is disabled, the default park remains.
 **Decided by:** the data owner, 2026-09-25 (D1–D3 and design ingestion below; D3′, D6′, D11′ and DI′ the same day).
 **Follows:** [client-first-ia.md](client-first-ia.md) (ADR 0015) · research-flow-rehome chunks 7–9 are
 replaced by this plan · **precedes** the Agent Runtime Foundation (Study → AgentRun → AIA
@@ -174,3 +174,14 @@ this proof, since their egress to it is refused):
 
 Not shown here: the deployed develop host itself. That happens when the PR is merged and deployed; its
 smoke test is `deploy/develop/README.md`'s.
+
+
+## Archived review outcome — 2026-09-26
+
+PR #52 @ `b3bd42f` completed chunks 0–9 plus 1b. PR #56 @ `0310091`
+subsequently added the governed fictional respondent fieldwork source. Its dated
+live acceptance record confirms compile → preflight → run → aggregate →
+sociomap, provenance and internal/fictional display. This closes this plan;
+agent design/analysis/report work and OI-61/63/64/65 remain separate ownership.
+The 2026-09-26 legacy state-overwrite incident is a separate runtime repair,
+not a missing Research execution chunk.

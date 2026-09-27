@@ -150,19 +150,21 @@ structured logging with request correlation and secret redaction; and CI.
 The worker process that drives the engine is built and verified with real
 processes contending, killed and stopped mid-step.
 
-**Not built:** executors for real step kinds, the AI provider gateway and
-adapters, OpenTelemetry instrumentation, a generalized metered-cost ledger, and
-every stage that actually calls a model. `apps/web` is still mock-backed.
+**Built and deployed on develop:** the Cognito federation and identity gate,
+private EU S3 storage, native client/study interface, scoped Research design/run
+APIs, five Research executors, governed model gateway, pinned Bedrock adapter
+and per-call usage/reservation ledger. The approved fictional respondent runtime
+has completed a measured live study; details are in the dated activation record.
+Research editing still bridges to the unit store (OI-58), and `/app` retains its
+temporary owner/admin gate (OI-59).
 
-**Built but not provisioned** — a distinction worth keeping, because the code
-being finished is not the same as the system being deployable: the Cognito user
-pool and federation, the S3 bucket, and approved egress routes. Until those exist
-no environment holds real client data, and the API refuses to boot in production
-without them.
+**Remaining:** durable design/analysis/report agents, checkpointed fieldwork,
+full ledger lineage, OpenTelemetry and wider Class A/B or panel-data approval.
+The fieldwork activation does not migrate legacy research design jobs.
 
 Sequencing is in [../migration/migration-plan.md](../migration/migration-plan.md);
 current state is in [../migration/status.md](../migration/status.md).
 
 ### Bedrock develop activation — 2026-09-26
 
-PR #56 is deployed at `0310091`. ADR 0010 is accepted for the authorised fictional Class C develop scope; live activation and its $2 acceptance study are pending. See [activation evidence](bedrock-develop-activation-2026-09-26.md). Class A/B and panel-derived transmission remain unapproved.
+PR #56 is deployed at `0310091`. ADR 0010 is accepted for the authorised fictional Class C develop scope; the live $2 acceptance study completed with 20 calls and $0.2303301 recorded cost. See [activation evidence](bedrock-develop-activation-2026-09-26.md). Class A/B and panel-derived transmission remain unapproved.

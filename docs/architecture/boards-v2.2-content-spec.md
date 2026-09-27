@@ -48,7 +48,7 @@ client studies against a calibrated synthetic population.
 | PostgreSQL | Built |
 | Object storage (S3-compatible) | Built in software; S3 provisioned for develop |
 | Cognito, federated to Google Workspace | Built and provisioned for develop |
-| Model providers | Bedrock EU route **Accepted for fictional Class C develop use only** in ADR 0010; live test pending |
+| Model providers | Bedrock EU route **Accepted for fictional Class C develop use only** in ADR 0010; live fictional test completed: 20 calls, $0.2303301 |
 
 **Must not show:** Redis, a message broker, an accepted model route, completed
 live fieldwork or a decided production compute service. The develop EC2 choice
@@ -173,7 +173,11 @@ absence of it is what let stale assumptions spread.
 | 0007 Deterministic tools | Accepted |
 | 0008 EU data residency | Accepted |
 | 0009 Single-host develop environment | Accepted, develop only; live |
-| 0010 Bedrock EU inference route | **Accepted 2026-09-26 for fictional Class C develop use only**; live test pending |
+| 0010 Bedrock EU inference route | **Accepted 2026-09-26 for fictional Class C develop use only**; live fictional test completed: 20 calls, $0.2303301 |
+| 0011 Vendored legacy unit | Accepted; pinned application remains the parity oracle |
+| 0012 Product facade | Accepted; product routing superseded by ADR 0015 |
+| 0013 Facade skin | Accepted; retained on the explicit classic hand-off |
+| 0014 React interface rehome | Proposed/superseded by ADR 0015; historical decision record |
 | 0015 Client-first interface | Accepted, develop |
 | 0016 Research execution and model-transmission rule | Accepted, develop; PR #52 merged |
 | Compute service | **Not decided** |

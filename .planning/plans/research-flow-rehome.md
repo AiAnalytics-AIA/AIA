@@ -126,9 +126,9 @@ missing, or each difference listed below), ledger row `REBUILT`, `make verify`.
 | 4 | questionnaire: the three paths, Excel upload and template, AI build, the guided editor, respondent preview, optimisation | B | done — see below |
 | 5 | audience: own / AI Analytics / special / ČR 18+, the factor filter editor, discovery, the readable summary, preflight | B | done — see below |
 | 6 | persona: fixed base, catalog, AI suggestions, custom dimension request, sample size, society factors | B | done — see below (PR #50) |
-| 7 | run: technical check and issues, final AI review, overrides, AI repair, start | C | **superseded** by [research-execution.md](research-execution.md) (ADR 0016): an AIA-run workflow, not a rebuild of the classic screen |
-| 8 | progress: workflow status, active job, failure and resume, reconnect | C | **superseded** by [research-execution.md](research-execution.md) (ADR 0016): an AIA-run workflow, not a rebuild of the classic screen |
-| 9 | results: the analytical report, analyst / client views, attachments | C | **superseded** by [research-execution.md](research-execution.md) (ADR 0016): an AIA-run workflow, not a rebuild of the classic screen |
+| 7 | run: technical check and issues, final AI review, overrides, AI repair, start | C | **superseded** by [research-execution.md](done/research-execution.md) (ADR 0016): an AIA-run workflow, not a rebuild of the classic screen |
+| 8 | progress: workflow status, active job, failure and resume, reconnect | C | **superseded** by [research-execution.md](done/research-execution.md) (ADR 0016): an AIA-run workflow, not a rebuild of the classic screen |
+| 9 | results: the analytical report, analyst / client views, attachments | C | **superseded** by [research-execution.md](done/research-execution.md) (ADR 0016): an AIA-run workflow, not a rebuild of the classic screen |
 | 10 | next: ideal group from results, manual propensity, child project | D | pending |
 | 11 | verify: its intended screen against `/api/results/verify` and `contextual_scenario`, which the classic interface never draws (OI-47) — **new behaviour**, shown to the data owner before it merges | D | pending |
 | — | Re-home under the client: `/app/clients/<client>/research/<study>/<stage>`, the study frame from its AIA binding, breadcrumbs, the rail only inside a study ([client-first-ia.md](done/client-first-ia.md) chunk 6) | IA | done |
