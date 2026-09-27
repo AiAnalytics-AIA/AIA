@@ -2389,7 +2389,7 @@ still runs, harmlessly. `request()` takes no abort signal, and giving it one wou
 the next call reads /config again* and *does not keep a refused answer either*; both fail against
 `dd27f68`'s `loadConfig` given only the reset hook. The one-file reproduction above.
 
-**Status.** Fixed in code: PR #83 (`fix/native-tests-config-cache`, 2026-09-27). The reproduction passes
+**Status.** Merged in PR #83 (`fix/native-tests-config-cache`, 2026-09-27). The reproduction passes
 9 of 9 with both changes, and with each alone. Full runs with the fix, on the same container:
 20 of 20 passed, 776 tests each, where `develop` @ `dd27f68` failed 2 of 10. Under doubled load
 (both trees' full suites at once, the Python suites alongside), `develop` passed 8 of 8 and this
@@ -2399,6 +2399,74 @@ on `dd27f68` when the stage's load starts 30 ms late (described in PR #83). `AGE
 § Next.js / TypeScript has the trap. Owner of the research screens: job 6 / the phase-out agent.
 PRs #74 and #77 touch neither `auth.ts` nor `test-native-agents.ts`, and their rewritten tests
 call `nativeAgentFixture`, so they carry the reset.
+
+---
+
+## OI-77 · Reproduced defect · A corrupt artifact's CORRUPT mark is rolled back with the read that found it
+
+**Claim.** `ArtifactRepository.read` flushes `CORRUPT` onto an artifact whose bytes fail
+verification (a hash mismatch or a missing object) and re-raises, and every caller then ends its
+transaction on that exception, so the mark is rolled back and the artifact stays `VALID`.
+
+**Anchor.** All @ `ceee2dc`, unchanged at `dd27f68`:
+- `packages/aia_core/src/aia_core/infrastructure/artifact_repository.py:411-418`: `read` marks,
+  flushes and re-raises. `:262-267`: `find_reusable` checks only that the object exists.
+- The API: `apps/api/src/aia_api/routers/runs.py:325` and `routers/research.py:611` answer 409
+  `artifact_corrupt`; `routers/research.py:671-686` (`_agent_errors`) maps no storage error, so the
+  proposal read at `packages/aia_core/src/aia_core/application/research.py:328` becomes a 500;
+  `apps/api/src/aia_api/dependencies.py:129-131`: `get_session` rolls back on either.
+- The worker: `apps/worker/src/aia_worker/context.py:267-269` (`StepContext.transaction` rolls
+  back), `apps/worker/src/aia_worker/worker.py:383-390` (the step fails `UNKNOWN`), with the readers
+  `apps/executors/src/aia_executors/research.py:114-116` (`_read_spec`, first called at `:228`) and
+  `apps/executors/src/aia_executors/research_agents.py:121-123` (the proposal reuse check).
+
+**Reproduction.** Reported 2026-09-27 on `develop` @ `ceee2dc` with PostgreSQL 16; reproduced the
+same day at `dd27f68` on PostgreSQL 16 and on file-backed SQLite.
+- *API, as reported.* `apps/api/tests/test_runs_api.py::test_a_corrupt_artifact_stays_marked_corrupt_after_the_409`
+  and `test_research_api.py::test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409`,
+  each `[tampered]` and `[missing]`: 4 of 4 answered 409, then failed on
+  `assert 'VALID' == 'CORRUPT'`.
+- *API, the proposal read.* `test_research_agent_jobs_api.py::test_a_corrupt_proposal_is_a_409_and_stays_marked_corrupt`:
+  `GET …/research/agent-jobs/{run}/result` and `POST …/accept` answered 500 `internal_error`
+  (read through a `TestClient` with `raise_server_exceptions=False`), and the row stayed `VALID`.
+- *Worker.* With `test_research_api.py`'s `submit`, `start` and `_real_worker(app, workbench=False)`:
+  run one step (compile), tamper with the spec's object (`damage_artifact`), run the next. Preflight
+  fails `UNKNOWN` and the spec is still `VALID`. Retry the run: its compile reuses the same spec
+  (same artifact id), and its preflight fails `UNKNOWN` again. A scratch test, run once on
+  PostgreSQL 16, not committed.
+
+**Consequence.** A tampered or truncated artifact reads `VALID` in every listing (the client
+overview's recent outputs among them), and nothing durable tells an operator. `find_reusable` keeps
+offering it, so a retried research run reuses the corrupt artifact and fails the same way: the run
+cannot recover by retry. The proposal routes answered 500 instead of 409. On the worker the step's
+`error_message`, which the browser reads, is the storage error's text, and that carries the
+storage key (`org/…/client/…/study/…`), which a client is never to receive
+(`docs/architecture/artifacts.md` § Read protocol).
+
+**Smallest fix.** *API:* commit the mark before raising, in one place: `routers/runs.py` ›
+`artifact_corrupt`, used by both artifact routes and by `_agent_errors`. Not taken: the repository
+recording `CORRUPT` in its own short transaction. That changes the shared "flush, never commit"
+contract, and a second connection that writes the row once the request holds its lock waits on the
+request itself. Measured 2026-09-27 with a scratch table, after an uncommitted `UPDATE` on the first
+connection, as `read` leaves it: the second connection's `UPDATE` waited out a 2 s `lock_timeout` on
+PostgreSQL 16 (with no timeout it waits for ever, since the request is waiting on it) and got
+`database is locked` after SQLite's busy timeout. On in-memory SQLite's single shared connection it
+would instead commit the caller's half-done work (`AGENTS.md` § SQLAlchemy and PostgreSQL,
+*In-memory SQLite cannot serve two threads*). *Worker:* an executor that reads an upstream artifact
+returns a `Failed` outcome from inside `StepContext.transaction` instead of raising, so the
+transaction commits the mark, with a message that names the step and not the key. Still to decide:
+the failure class (`MISSING_CONFIGURATION`, as `_missing_upstream` uses for an upstream step with no
+artifact, or a new one), and whether the proposal executor's reuse check falls through to a fresh,
+paid call.
+
+**Test that would have caught it.** The API tests above, which read the stored status from a
+session of their own (`apps/api/tests/conftest.py` › `artifact_status`), not only the response. For
+the worker, the reproduction as an executor test: the stored status after the failed step, and a
+retried run that recomputes the spec.
+
+**Status.** API half fixed in code: PR #84 (ready after conflict resolution, 2026-09-27), both artifact routes and the
+proposal routes. Worker half open. It is not fixed there because it needs the failure-class
+decision and, for design jobs, a decision to spend on a recompute.
 
 ---
 
@@ -2442,8 +2510,8 @@ evidence. Its rows carry the aggregate's origin, and its instrument policy refus
 names none (`domain/evidence/instrument.py:132-139`). The gate's default is unchanged
 (`admission.py:91, 244`), so this stays open for any other builder of an `EvidenceRow`. Its
 number follows the contract's rule for concurrent entries (§5). It was OI-72 on this entry's branch
-until #83 put OI-76 on `develop` (`48bf3e2`, 22:45 UTC). #75 still claims OI-72 to OI-75, and #84
-claims OI-77.
+until #83 put OI-76 on `develop` (`48bf3e2`, 22:45 UTC). #84 merged OI-77 at 23:09 UTC (`8c13a11`),
+and #75 still claims OI-72 to OI-75.
 
 ---
 
