@@ -1,0 +1,12 @@
+<!-- @dsCard group="Actions" height=90 subtitle="Primary, secondary, quiet, compact" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>Button</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia aia-row",style:{padding:16}},h(A.Button,{variant:"primary",kbd:"⌘↵"},"Uložit jako novou revizi"),h(A.Button,{icon:"export"},"Exportovat"),h(A.Button,{variant:"quiet"},"Zahodit úpravu"),h(A.Button,{compact:true},"Načíst znovu")));
+</script>
+</body>
+</html>

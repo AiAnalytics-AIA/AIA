@@ -1,0 +1,12 @@
+<!-- @dsCard group="Money" height=230 subtitle="Parked on a provider: an explicit choice" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>ProviderChoice</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{padding:16,maxWidth:720}},h(A.ProviderChoice,{provider:"claude_code_subscription",reason:"kvóta vyčerpána pro krok Kontrola proti ČSÚ.",resumeAt:"18:00",policy:"CLAUDE_CODE_THEN_API",alternative:"anthropic",alternativeCost:12})));
+</script>
+</body>
+</html>

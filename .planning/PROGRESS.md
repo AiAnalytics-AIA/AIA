@@ -83,6 +83,7 @@ attempt 3, green).
 | #71 | `fix/brief-toggle-test-waits` | BriefStep's toggle test waits for the pressed tile (OI-70) | **Merged** 14:54 (`53de110`) | 7 |
 | #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | **Merged** 15:52 (`1800c31`) | 8 |
 | #70 | `fix/smoke-waits-for-unit-start` | Smoke judges the 18.6.6 unit after its start period (OI-71) | **Merged** 15:52 (`ceee2dc`); deployed by run 34 | 9 |
+| #72 | `chore/design-system-reference` | Design-system reference package: the AIA Design System artifact as plain files under `design-system/` (tokens CSS + flat JSON, OFL fonts, identity SVGs, `status-map.md` from the domain enums @ `043b0dd`, three no-build HTML pages); the artifact's 12 screens left out; `FailureClass.RUNTIME_UNAVAILABLE` mapped to `world` pending the design owner. Not wired into `apps/web` | **Merged** 16:36 (`dd27f68`) | 10 |
 | #73 | `chore/research-journey-integration-contract` | Job 6, Phase A: the research journey's integration contract ([research-journey.md](../docs/architecture/research-journey.md)), stale claims corrected, the agent-job routes in the API contract check | Draft into `develop` | any time: documents and one CI assertion |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off

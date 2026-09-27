@@ -1,0 +1,58 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>AIA</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--surface); color:var(--ink); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; width:960px; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .ink { fill:var(--surface-inverse); }
+  .sig { fill:var(--signal); }
+  .you { fill:var(--status-you); }
+  .tint { fill:var(--surface-sunken); stroke:var(--border); stroke-width:1; }
+  .blk { rx:var(--radius-md); }
+  .pt { fill:var(--ink); }
+  .pt-inv { fill:var(--ink-inverse); }
+  .pt-sig { fill:var(--signal); }
+  .words { position:absolute; left:var(--space-8); bottom:var(--space-8); max-width:440px; }
+  .name { margin:0; font-size:120px; line-height:.9; font-weight:600; letter-spacing:-.02em; color:var(--ink); }
+  .tag { margin:var(--space-3) 0 0 4px; font-size:14px; line-height:20px; color:var(--ink-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      surface-inverse 176×272 slab bled off the top (graphite/ink: the instrument) · signal 96×96 (the one calibrated accent) · status-you 48×24 once (amber only ever means "waiting on you") · surface-sunken 160×208 tint — ≈36% of 960×288
+  arrangement one tall ink slab with satellites; bottoms on one line space-8 above the edge, space-4 gutters
+  pattern     dot grid at the space-4 pitch — from "Precision, not softness" and the population motif: 5 rows × 8 points on the tint resolve into the mark's A (filled) out of a faint field; three knocked-out points in the slab
+  scales      sides in space-4 multiples; gutters space-4; pitch space-4; corners radius-md; points r 2 / 1 (radius-sm / half)
+-->
+<rect class="ink blk" x="16" y="-16" width="176" height="272" rx="4"/>
+<rect class="sig blk" x="208" y="160" width="96" height="96" rx="4"/>
+<rect class="you blk" x="208" y="120" width="48" height="24" rx="2"/>
+<rect class="tint blk" x="320" y="48" width="160" height="208" rx="4"/>
+<!-- the lattice on the tint: A resolving from the field (col 0-7, row 0-4, pitch 16, origin 344,88) -->
+<g>
+<circle class="pt" cx="344" cy="88" r="1" opacity=".45"/><circle class="pt" cx="360" cy="88" r="1" opacity=".45"/><circle class="pt" cx="376" cy="88" r="1" opacity=".45"/><circle class="pt-sig" cx="392" cy="88" r="3"/><circle class="pt" cx="408" cy="88" r="1" opacity=".45"/><circle class="pt" cx="424" cy="88" r="1" opacity=".45"/><circle class="pt" cx="440" cy="88" r="1" opacity=".45"/><circle class="pt" cx="456" cy="88" r="1" opacity=".45"/>
+<circle class="pt" cx="344" cy="104" r="1" opacity=".45"/><circle class="pt" cx="360" cy="104" r="1" opacity=".45"/><circle class="pt" cx="376" cy="104" r="3"/><circle class="pt" cx="392" cy="104" r="1" opacity=".45"/><circle class="pt" cx="408" cy="104" r="3"/><circle class="pt" cx="424" cy="104" r="1" opacity=".45"/><circle class="pt" cx="440" cy="104" r="1" opacity=".45"/><circle class="pt" cx="456" cy="104" r="1" opacity=".45"/>
+<circle class="pt" cx="344" cy="120" r="1" opacity=".45"/><circle class="pt" cx="360" cy="120" r="1" opacity=".45"/><circle class="pt" cx="376" cy="120" r="3"/><circle class="pt" cx="392" cy="120" r="3"/><circle class="pt" cx="408" cy="120" r="3"/><circle class="pt" cx="424" cy="120" r="1" opacity=".45"/><circle class="pt" cx="440" cy="120" r="1" opacity=".45"/><circle class="pt" cx="456" cy="120" r="1" opacity=".45"/>
+<circle class="pt" cx="344" cy="136" r="1" opacity=".45"/><circle class="pt" cx="360" cy="136" r="3"/><circle class="pt" cx="376" cy="136" r="1" opacity=".45"/><circle class="pt" cx="392" cy="136" r="1" opacity=".45"/><circle class="pt" cx="408" cy="136" r="1" opacity=".45"/><circle class="pt" cx="424" cy="136" r="3"/><circle class="pt" cx="440" cy="136" r="1" opacity=".45"/><circle class="pt" cx="456" cy="136" r="1" opacity=".45"/>
+<circle class="pt" cx="344" cy="152" r="1" opacity=".45"/><circle class="pt" cx="360" cy="152" r="3"/><circle class="pt" cx="376" cy="152" r="1" opacity=".45"/><circle class="pt" cx="392" cy="152" r="1" opacity=".45"/><circle class="pt" cx="408" cy="152" r="1" opacity=".45"/><circle class="pt" cx="424" cy="152" r="3"/><circle class="pt" cx="440" cy="152" r="1" opacity=".45"/><circle class="pt" cx="456" cy="152" r="1" opacity=".45"/>
+</g>
+<!-- three points knocked out of the slab, on the same pitch -->
+<circle class="pt-inv" cx="56" cy="216" r="2"/><circle class="pt-inv" cx="72" cy="216" r="2"/><circle class="pt-inv" cx="88" cy="216" r="2"/>
+</svg>
+</div>
+<div class="words">
+  <h1 class="name">AIA</h1>
+  <p class="tag">Přesný nástroj pro obhajitelné poznání.</p>
+</div>
+</div>
+</body>
+</html>

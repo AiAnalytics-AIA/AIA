@@ -264,6 +264,10 @@ infra/develop/              Terraform for the develop AWS resources (one root, n
 docs/architecture/          System design + 17 ADRs; ai-step-executor-contract.md;
                             research-journey.md (the research journey: stage owners, interfaces, acceptance)
 docs/design/                Brand and UI direction; the design-system brief
+design-system/              The AIA Design System artifact as a static reference package for design tools:
+                            tokens (CSS + flat JSON), fonts, identity SVGs, status-map.md (from the domain
+                            enums), three no-build HTML pages, the artifact verbatim. Not imported by apps/web,
+                            whose token source stays apps/web/src/design/tokens.json
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
   legacy-route-ledger.json  The strangler's route ledger: 153 legacy routes, LEGACY/PORTING/PORTED/RETIRED
