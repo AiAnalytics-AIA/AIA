@@ -94,6 +94,12 @@ def unit_paths(caddyfile: str) -> list[str]:
     return patterns
 
 
+def retired_paths(caddyfile: str) -> list[str]:
+    """Product-only retired connection endpoints, ahead of the unit matcher."""
+    match = re.search(r"^\s*@retired_ai\s+path\s+(.+)$", caddyfile, re.MULTILINE)
+    return match.group(1).split() if match else []
+
+
 def _matches(pattern: str, path: str) -> bool:
     # Caddy's path matcher: a trailing * is a prefix match, otherwise exact.
     if pattern.endswith("*"):
@@ -104,7 +110,12 @@ def _matches(pattern: str, path: str) -> bool:
 SIGN_IN = "/workbench/sign-in"
 
 
-def route(path: str, patterns: list[str], unit: list[str] | None = None) -> tuple[str, str]:
+def route(
+    path: str,
+    patterns: list[str],
+    unit: list[str] | None = None,
+    retired: list[str] | None = None,
+) -> tuple[str, str]:
     """Where a request path goes, and the path to send upstream.
 
     The target is one of web, unit, api, redirect, sign-in or 404.
@@ -121,6 +132,8 @@ def route(path: str, patterns: list[str], unit: list[str] | None = None) -> tupl
         return "sign-in", p
     if p.startswith("/api/v1/"):
         return "api", path
+    if any(_matches(pat, p) for pat in (retired or [])):
+        return "410", p
     if any(_matches(pat, p) for pat in patterns):
         return "web", path
     if any(_matches(pat, p) for pat in (unit or [])):
@@ -154,6 +167,7 @@ class Facade(BaseHTTPRequestHandler):
     email: str = "workbench@example.invalid"
     patterns: ClassVar[list[str]] = []
     unit_patterns: ClassVar[list[str]] = []
+    retired_patterns: ClassVar[list[str]] = []
 
     def _client_origin(self) -> str:
         return f"http://{self.headers.get('Host') or 'localhost'}"
@@ -195,7 +209,12 @@ class Facade(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def _proxy(self) -> None:
-        target, path = route(self.path, self.patterns, self.unit_patterns)
+        target, path = route(self.path, self.patterns, self.unit_patterns, self.retired_patterns)
+        if target == "410":
+            self.close_connection = True  # do not parse an unconsumed POST body as another request
+            return self._answer(
+                410, "Legacy AI connection settings are retired. AIA uses Amazon Bedrock."
+            )
         if target == "404":
             return self._answer(404, "Not Found")
         if target == "redirect":
@@ -319,6 +338,7 @@ def main(argv: list[str]) -> int:
     caddyfile = Path(args.caddyfile).read_text(encoding="utf-8")
     Facade.patterns = web_paths(caddyfile)
     Facade.unit_patterns = unit_paths(caddyfile)
+    Facade.retired_patterns = retired_paths(caddyfile)
     listen = _hostport(args.listen)
     srv = ThreadingHTTPServer(listen, Facade)
     print(

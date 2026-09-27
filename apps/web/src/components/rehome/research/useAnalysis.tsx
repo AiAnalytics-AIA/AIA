@@ -55,7 +55,7 @@ export function useAnalysis() {
       if (briefEmpty(withCtx)) throw new Error(BRIEF_EMPTY);
       const provider = activeProvider(current.preferredProvider, current.project.run_policy?.provider, boot);
       if (!(await providerReady(provider, { boot, model: String(current.project.model || "") }))) {
-        setFailure({ kind: "provider", message: notReadyMessage(provider) });
+        setFailure({ kind: "provider", message: notReadyMessage() });
         return false;
       }
       // The job is addressed to the saved project: a new or edited brief is saved first.

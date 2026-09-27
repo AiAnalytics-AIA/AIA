@@ -18,9 +18,9 @@ describe("the provider an AI step runs on", () => {
     expect(activeProvider(null, "", {})).toBe("claude_code_subscription");
   });
 
-  it("says it is not ready in the classic words", () => {
+  it("explains the missing design capability without asking for legacy credentials", () => {
     expect(effective("ensureClaudeReady1776")).toContain("alert(providerLabel1790(p)+' není připravený. Projekt zůstává uložený.')");
-    expect(notReadyMessage("anthropic")).toBe("Claude API není připravený. Projekt zůstává uložený.");
+    expect(notReadyMessage()).toBe("AI návrh výzkumu zatím není dostupný. Amazon Bedrock nyní zajišťuje odpovědi respondentů. Projekt zůstává uložený.");
   });
 });
 

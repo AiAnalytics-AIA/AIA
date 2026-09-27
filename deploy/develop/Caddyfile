@@ -111,6 +111,20 @@
 		}
 	}
 
+	# Legacy connection controls are retired on the product hostname. Keep the
+	# independent oracle unchanged; a stale client cannot save a direct API key
+	# or install/login to Claude Code through the broad /api/* unit matcher.
+	@retired_ai path /api/providers/claude-code/* /api/settings/api_keys /api/settings/anthropic_check /api/settings/ai_check /api/settings/ai_diagnose
+	handle @retired_ai {
+		route {
+			forward_auth api:8000 {
+				uri /api/v1/panel/gate
+			}
+			header Content-Type application/json
+			respond `{ "code": "legacy_ai_connection_retired", "message": "AI connections are managed by AIA through Amazon Bedrock." }` 410
+		}
+	}
+
 	# The 18.6.6 unit, only on the paths it serves (docs/migration/legacy-route-ledger.json):
 	# its API (the React stages still read the working content through it,
 	# OI-58), its files and artifacts, its maps' arena and its health. Behind AIA

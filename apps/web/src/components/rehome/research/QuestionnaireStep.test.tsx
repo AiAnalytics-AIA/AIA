@@ -91,11 +91,11 @@ afterEach(() => {
 });
 
 describe("Dotazník", () => {
-  it("offers the three paths with the provider and model, and waits for questions before going on", async () => {
+  it("offers the three paths with the design availability, and waits for questions before going on", async () => {
     unitStub(BRIEF);
     render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" })).toBeTruthy();
-    expect(screen.getByText("AI partner · sonnet")).toBeTruthy();
+    expect(screen.getByText("AI návrh výzkumu a další návrhové asistenty zatím nejsou převedeny do AIA.")).toBeTruthy();
     expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Nejdřív vytvořte nebo nahrajte dotazník.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Sestavit ručně/ }));
@@ -183,7 +183,7 @@ describe("Dotazník", () => {
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig }, { "/api/providers/claude-code/status": () => ({ ok: false }) });
     render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
-    expect(await screen.findByText("Claude Code není připravený. Projekt zůstává uložený.")).toBeTruthy();
+    expect(await screen.findByText("AI návrh výzkumu zatím není dostupný. Amazon Bedrock nyní zajišťuje odpovědi respondentů. Projekt zůstává uložený.")).toBeTruthy();
     expect(posted("/api/research/build_questionnaire")).toEqual([]);
   });
 

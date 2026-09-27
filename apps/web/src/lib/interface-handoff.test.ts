@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import vm from "node:vm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { JSDOM } from "jsdom";
 
 import { DIMENSION_RESEARCH_KEY, applyHandoff, classicHref, returnPath } from "./interface-handoff";
 import { sha256Hex } from "./interface-skin";
@@ -193,5 +194,56 @@ describe("handoff.js", () => {
     };
     const listed = JSON.parse(script.match(/var ROUTES = (\[[\s\S]*?\]);/)![1].replace(/,\s*\]/, "]")) as string[];
     expect([...listed].sort()).toEqual([...capture.routesFrom(html).routes].sort());
+  });
+});
+
+
+describe("product-only connection retirement", () => {
+  function classic() {
+    const dom = new JSDOM(`<body>
+      <div id="keyState">Claude Code CHECK</div><div id="claudeState">CLAUDE</div>
+      <button onclick="go('settings')">Claude Code</button>
+      <button onclick="go('settings')">Nastavení</button>
+      <button onclick="continueClaudeApi1790()">Pokračovat přes Claude API</button>
+      <select onchange="setInlineAIProvider(this.value)"><option>Claude Code</option></select>
+      <div class="hubState1783"><div>Claude Code CHECK</div><div>Research OS READY</div></div>
+    </body>`);
+    const go = vi.fn(), assign = vi.fn();
+    const win = {
+      NPC_BOOT_STAGE: "ready", go,
+      location: { hash: "", pathname: "/classic", search: "", assign },
+      addEventListener: vi.fn(), sessionStorage: { getItem: () => null },
+      MutationObserver: dom.window.MutationObserver, alert: vi.fn(),
+      renderSettings: vi.fn(), ensureClaudeReady1776: vi.fn(),
+    };
+    vm.runInContext(script, vm.createContext({ window: win, document: dom.window.document, console, setTimeout }));
+    return { dom, win, go, assign };
+  }
+  it("redirects settings and keeps unrelated classic navigation working", () => {
+    const { dom, win, go, assign } = classic();
+    win.go("settings");
+    expect(assign).toHaveBeenCalledWith("/app/settings");
+    expect(go).not.toHaveBeenCalled();
+    win.go("projects");
+    expect(go).toHaveBeenCalledWith("projects");
+    win.renderSettings();
+    expect(assign).toHaveBeenCalledTimes(2);
+    dom.window.close();
+  });
+  it("removes old connection controls and statuses, including later renders", async () => {
+    const { dom, win } = classic();
+    const doc = dom.window.document;
+    expect((doc.querySelector("#keyState") as HTMLElement).hidden).toBe(true);
+    expect([...doc.querySelectorAll("button")].filter((el) => !el.hidden).map((el) => el.textContent)).toEqual(["Nastavení"]);
+    expect((doc.querySelector("select") as HTMLElement).hidden).toBe(true);
+    expect([...doc.querySelectorAll(".hubState1783 > div")].filter((el) => !(el as HTMLElement).hidden).map((el) => el.textContent)).toEqual(["Research OS READY"]);
+    const late = doc.createElement("button");
+    late.setAttribute("onclick", "setupClaudeCode()");
+    doc.body.appendChild(late);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(late.hidden).toBe(true);
+    await expect(win.ensureClaudeReady1776()).resolves.toBe(false);
+    expect(win.alert).toHaveBeenCalledWith(expect.stringContaining("nejsou převedeny do AIA"));
+    dom.window.close();
   });
 });

@@ -18,9 +18,9 @@ export function activeProvider(preferred: string | null, runPolicyProvider: unkn
   return preferred || (typeof runPolicyProvider === "string" && runPolicyProvider) || boot.ai_provider || "claude_code_subscription";
 }
 
-/** The classic alert's text when a provider is not ready. */
-export function notReadyMessage(p: string): string {
-  return `${providerLabel(p)} není připravený. Projekt zůstává uložený.`;
+/** Legacy design jobs have not been migrated to the governed Bedrock runtime. */
+export function notReadyMessage(): string {
+  return "AI návrh výzkumu zatím není dostupný. Amazon Bedrock nyní zajišťuje odpovědi respondentů. Projekt zůstává uložený.";
 }
 
 const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);

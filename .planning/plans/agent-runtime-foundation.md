@@ -1,7 +1,7 @@
 # Agent Runtime Foundation — AI respondent fieldwork, the first end-to-end Research integration
 
 **Status:** chunks 0–8 done on `claude/modest-hypatia-9gvdpx` (from `develop` @ `b3bd42f`, PR #52 merged, CI green).
-**Follows:** [research-execution.md](research-execution.md) (PR C, ADR 0016) — its *Deferred* list names this PR.
+**Follows:** [research-execution.md](done/research-execution.md) (PR C, ADR 0016) — its *Deferred* list names this PR.
 **Governing records:** ADR 0005 (A: the gateway contract), ADR 0006 (AIA owns the workflow), ADR 0008
 (residency), ADR 0010 (Bedrock, EU — *Proposed*, stays Proposed here), ADR 0016 (the fieldwork boundary,
 the licence gate), `docs/architecture/ai-step-executor-contract.md`.

@@ -1,7 +1,11 @@
 # Architecture Boards v2.2 — content specification
 
 **Purpose:** a factual source for regenerating the visual architecture boards. The
-current boards are stale. This document is **not** a design brief and contains no
+full board set remains stale. A current-state summary was published to the AIA
+Drive Architecture Diagrams folder on 2026-09-25; it does not replace the full
+regeneration specified here. This update includes the live develop facade and
+merged Research execution PR #52; PR #56 subsequently deployed the AI respondent implementation; live acceptance evidence is tracked separately.
+This document is **not** a design brief and contains no
 layout, colour or styling guidance — it says what each board must assert, and what
 it must not.
 
@@ -38,16 +42,17 @@ client studies against a calibrated synthetic population.
 
 | Element | State |
 | --- | --- |
-| Next.js web client (`apps/web`) | Built; still mock-backed |
+| Next.js web client (`apps/web`) | Built; client-first shell live and Research Run/Progress/Results screens merged, with their post-merge deployment unverified here |
 | FastAPI service (`apps/api`) | Built |
-| Worker process (`apps/worker`) | Built; no executor for a real step kind yet |
+| Worker process (`apps/worker`) | Built and exercised with real step executors; deployed Research fieldwork parks until the agent source exists |
 | PostgreSQL | Built |
-| Object storage (S3-compatible) | Built in software; **not provisioned** |
-| Cognito, federated to Google Workspace | Built in software; **not provisioned** |
-| Model providers | **Not decided**; no vendor selected |
+| Object storage (S3-compatible) | Built in software; S3 provisioned for develop |
+| Cognito, federated to Google Workspace | Built and provisioned for develop |
+| Model providers | Bedrock EU route **Accepted for fictional Class C develop use only** in ADR 0010; live fictional test completed: 20 calls, $0.2303301 |
 
-**Must not show:** Redis. A message broker. A named model provider. A named
-compute service.
+**Must not show:** Redis, a message broker, an accepted model route, completed
+live fieldwork or a decided production compute service. The develop EC2 choice
+may be shown if labelled develop only.
 
 ## Board 2 — Scope and isolation
 
@@ -145,9 +150,10 @@ unknown zone, no training exclusion, unspecified retention.
 
 Show that approval is **per class, not per provider**.
 
-**Must not show:** a named provider, a named managed inference service, a specific
-cloud region, or a hosted search product. Route boxes are generic and labelled by
-their properties, not their vendors.
+**Must not show:** the proposed Bedrock route as approved for client data, or
+licence eligibility as implied by residency. A proposed route may be shown in a
+separate, clearly labelled decision area, initially Class C only. OI-61 blocks
+panel-derived model transmission even when the EU route is available.
 
 ## Board 8 — Decision status
 
@@ -166,8 +172,16 @@ absence of it is what let stale assumptions spread.
 | 0006 LangGraph | **Accepted — constrained use** |
 | 0007 Deterministic tools | Accepted |
 | 0008 EU data residency | Accepted |
+| 0009 Single-host develop environment | Accepted, develop only; live |
+| 0010 Bedrock EU inference route | **Accepted 2026-09-26 for fictional Class C develop use only**; live fictional test completed: 20 calls, $0.2303301 |
+| 0011 Vendored legacy unit | Accepted; pinned application remains the parity oracle |
+| 0012 Product facade | Accepted; product routing superseded by ADR 0015 |
+| 0013 Facade skin | Accepted; retained on the explicit classic hand-off |
+| 0014 React interface rehome | Proposed/superseded by ADR 0015; historical decision record |
+| 0015 Client-first interface | Accepted, develop |
+| 0016 Research execution and model-transmission rule | Accepted, develop; PR #52 merged |
 | Compute service | **Not decided** |
-| Model provider / hosting | **Not decided** |
+| Production model provider / hosting | **Not accepted for production**; Bedrock EU accepted for fictional Class C on develop only |
 | Observability backend | **Not decided** |
 
 ## Board 9 — LangGraph boundary
