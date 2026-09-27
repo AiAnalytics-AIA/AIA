@@ -58,7 +58,15 @@ AIA's graph today is two templates (`domain/workflow_templates.py:51-69, 94-105`
 - `research` = `compile → preflight → run → {aggregate, sociomap}`;
 - `research_agent`, one proposal step with no automatic retry.
 
-Unless stated, stage code named below is under `apps/executors/src/aia_executors/`.
+**Where bare file names live.** In this document a file named without a path is one of these:
+
+| Kind of file | Directory |
+|---|---|
+| AIA's executors (`research.py`, `ai_fieldwork.py`, `ai_runtime.py`, `registry.py`) | `apps/executors/src/aia_executors/` |
+| The reference's (`worker_job.py`, `job_store.py`, `dotaznik.py`, `prototype_server.py`, `project_engine.py`, `client_report_v2.py`, `output_pack.py`) | `legacy/npc-panel-18.6.6/app/` |
+| The research screens (`*Step.tsx`, `ExecutionSteps.tsx`, `ResearchScreen.tsx`, `StepPlaceholder.tsx`, `useAiStep.tsx`) | `apps/web/src/components/rehome/research/` |
+| The classic-projects screens (`ProjectsScreen.tsx`, `TrashScreen.tsx`) | `apps/web/src/components/rehome/projects/` |
+| The unit store (`store.ts`) | `apps/web/src/unit/research/` |
 
 **IMPLEMENTED**: AIA behaviour exists. **REPLACEMENT**: a deliberate AIA shape instead of the
 reference's. **GAP**: nothing yet; the owner is named.
@@ -239,8 +247,10 @@ the shared file (§5):
     AIA does not copy that.
 - **Waiting is a state.**
   - A disabled capability, a refused route or licence, an exhausted budget and an uncertain
-    delivery each park with a named reason, and never resume on a timer
-    (`domain/workflow.py:733-734`).
+    delivery each park with a named reason, and never resume on a timer. That is how the engine
+    already treats `ai_runtime_unavailable`, `AWAITING_*` and `RECOVERY_REQUIRED`
+    (`domain/workflow.py:715-748`).
+  - Only a provider's quota or capacity park resumes by itself.
   - The UI shows the reason.
 - **Download is not delivery.**
   - Retrieving the DOCX needs `EXPORT_DELIVERABLE` (researcher, lead) and changes no state.
@@ -340,12 +350,12 @@ what is missing. Lines 1 and 7 decide **independence**. Lines 3–6 decide **com
 
 | # | Must show | Owner | Executable | Recorded | Enablement | Live |
 |---|---|---|---|---|---|---|
-| 1 | Sign in → client and study → native draft edit, save, reload → scoped attachment | PO | sign-in, client and study creation (`test_client_api.py`); the draft is still the unit's (OI-58) | UNMET | `/app` needs `AIA_LEGACY_PANEL_ENABLED` and an owner or admin role (`panel.py:53-62`, `application/scope.py:170-197`), and is refused in production (`config.py:213-215`, OI-59) | UNMET |
+| 1 | Sign in → client and study → native draft edit, save, reload → scoped attachment | PO | sign-in, client and study creation (`test_client_api.py`); the draft is still the unit's (OI-58) | UNMET | `/app` needs `AIA_LEGACY_PANEL_ENABLED` and an owner or admin role (`apps/api/src/aia_api/routers/panel.py:53-62`, `application/scope.py:170-197`), and is refused in production (`apps/api/src/aia_api/config.py:213-215`, OI-59) | UNMET |
 | 2 | Accurate runtime settings; the disabled and unconfigured behaviour | J1 | `app/config/route.test.ts`; a park on a disabled runtime (`test_ai_fieldwork.py`, `test_research_agent_executor.py`) | UNMET | the settings document calls the legacy subscription provider AIA's default (§10) | UNMET |
 | 3 | Recorded Deep Research → reviewed design proposal → immutable revision → stale proposal refused | J5, J6 | proposals, acceptance and the stale refusal (`test_research_agent_executor.py`, `test_two_reviewed_design_proposals_cannot_overwrite_each_other`); Deep Research: none | UNMET | design switch off by default (`docker-compose.yml:176`); no search route (DR-2) | UNMET. The $2 fieldwork budget is spent |
-| 4 | Readiness → fieldwork → aggregation and QC → validation → admitted analysis | J3, J6 | readiness to Sociomap (`test_research_executors.py`, `test_ai_fieldwork.py`); QC, validation, analysis execution: none | UNMET | fieldwork: fictional Class C approved (ADR 0010). Analysis: unbound | fieldwork MET (2026-09-26 activation: 20 calls, $0.2303301); the rest UNMET |
+| 4 | Readiness → fieldwork → aggregation and QC → validation → admitted analysis | J3, J6 | readiness to Sociomap (`test_research_executors.py`, `test_ai_fieldwork.py`); QC, validation, analysis execution: none | UNMET | fieldwork: fictional Class C approved (ADR 0010). Analysis: unbound | fieldwork MET at `0310091` (2026-09-26: 20 calls, $0.2303301; the fieldwork executor, gateway and adapter are unchanged since); the rest UNMET |
 | 5 | Fixed-object research reuse → verification and alignment → stored report → authorized download → explicit review and delivery state | J4, J5, J6 | renderer and templates (`test_report_docx_*.py`). Nothing composes, stores or delivers a report | UNMET | none | UNMET |
-| 6 | Cross-client denial; cancel and reload; failure states; retry and recovery; budgets and settled usage | J6 (and every job for its own stage) | 404 isolation, cancel, park, `RECOVERY_REQUIRED`, reservations (`test_research_api.py`, `test_workflow_concurrency.py`, `test_worker_processes.py`, `test_ai_usage_ledger.py`). A retry repeats paid respondents (OI-64) | UNMET | — | fieldwork settlement MET (2026-09-26); the rest UNMET |
+| 6 | Cross-client denial; cancel and reload; failure states; retry and recovery; budgets and settled usage | J6 (and every job for its own stage) | 404 isolation, cancel, park, `RECOVERY_REQUIRED`, reservations (`test_research_api.py`, `test_workflow_concurrency.py`, `test_worker_processes.py`, `test_ai_usage_ledger.py`). A retry repeats paid respondents (OI-64) | UNMET | — | fieldwork settlement MET at `0310091` (all 20 reservations settled); the rest UNMET |
 | 7 | AIA starts, deploys and passes readiness and smoke with no reference service and no legacy health requirement | PO | start and readiness need no unit: no `depends_on` on it, and `/api/v1/ready` checks only the database; CI's `startup-smoke` boots the API and worker without it | UNMET | the deploy pulls and starts `legacy-panel` (`deploy/develop/bin/deploy.sh:40,97`); smoke fails without a healthy unit (`bin/smoke.sh:98-105`) | UNMET |
 
 The scenario is accepted only when every line is MET in the Recorded column at one combined
@@ -410,17 +420,19 @@ every component head recorded.
 These are findings from this inventory, anchored at `ceee2dc`, that sit in the PO's area.
 
 - **Deployment coupling.**
-  - The deploy pulls and starts `legacy-panel` (`deploy.sh:40,97`), and smoke fails without a
-    healthy unit (`smoke.sh:98-105`).
-  - The three image lists must change together: `docker-compose.yml:201`,
-    `deploy-develop.yml:128-142`, `infra/develop/main.tf:17`; `test_deploy_images.py` pins them.
+  - The deploy pulls and starts `legacy-panel` (`deploy/develop/bin/deploy.sh:40,97`), and smoke
+    fails without a healthy unit (`deploy/develop/bin/smoke.sh:98-105`).
+  - The three image lists must change together: `deploy/develop/docker-compose.yml:201`,
+    `.github/workflows/deploy-develop.yml:128-142`, `infra/develop/main.tf:17`;
+    `packages/aia_core/tests/test_deploy_images.py` pins them.
   - CI's `oracle-parity` job requires the unit whenever `AIA_LEGACY_REFERENCE_URL` is set
-    (`ci.yml` `oracle-parity`). Clear it before the unit leaves.
+    (`.github/workflows/ci.yml` `oracle-parity`). Clear it before the unit leaves.
   - `tools/caddy_routes.py` requires `/app` behind the panel gate (`:143-148`) and the product
-    hostname routing to the unit (`:160-164`). `test_ui_workbench.py:38-41` fails to collect if
-    the Caddyfile has no unit matcher.
-  - Stale comments still call `/` the 18.6.6 document: `docker-compose.yml:102-106`,
-    `Caddyfile:43-45`, `apps/web/src/app/interface-document/route.ts:9-12`, `lib/panel.ts:4-5`.
+    hostname routing to the unit (`:160-164`). `packages/aia_core/tests/test_ui_workbench.py:38-41`
+    fails to collect if the Caddyfile has no unit matcher.
+  - Stale comments still call `/` the 18.6.6 document: `deploy/develop/docker-compose.yml:102-106`,
+    `deploy/develop/Caddyfile:43-45`, `apps/web/src/app/interface-document/route.ts:9-12`,
+    `apps/web/src/lib/panel.ts:4-5`.
 - **`canEdit` does not stop autosave.** From the code, a signed-in reader's edits still autosave
   to the unit: `canEdit` gates only the AI buttons, revisions and runs (`ResearchScreen.tsx:280`,
   `ExecutionSteps.tsx:98`), and `store.ts` has no read-only mode. This is a hypothesis to
