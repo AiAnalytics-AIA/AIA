@@ -13,7 +13,7 @@ crypto.
 from __future__ import annotations
 
 import os
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,9 +22,10 @@ from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.scope import ScopeRole
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from aia_core.infrastructure.tables import Base
+from aia_core.infrastructure.tables import Base, ProjectArtifactRow
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from aia_api.config import Environment, Settings
 from aia_api.main import create_app
@@ -233,6 +234,52 @@ def outsider(as_user: Any) -> TestClient:
 def owner(as_user: Any) -> TestClient:
     """The organization OWNER: may administer, but holds no client grant."""
     return as_user("owner")
+
+
+@pytest.fixture
+def damage_artifact(app: FastAPI) -> Callable[[str, str], None]:
+    """Damage an artifact's stored object behind the database's back.
+
+    ``"tampered"`` replaces the bytes, so they no longer match the recorded
+    SHA-256; ``"missing"`` deletes the object. The key comes from the artifact's
+    row, so this works on whichever store the app was built with.
+    """
+
+    def damage(artifact_id: str, how: str) -> None:
+        with create_session_factory(app.state.engine)() as session:
+            key = session.scalars(
+                select(ProjectArtifactRow.storage_key).where(
+                    ProjectArtifactRow.artifact_id == artifact_id
+                )
+            ).one()
+        if how == "tampered":
+            app.state.artifact_store.put(key, b'{"tampered": true}')
+        elif how == "missing":
+            app.state.artifact_store.delete(key)
+        else:  # pragma: no cover - a typo in a test
+            raise ValueError(f"unknown damage {how!r}")
+
+    return damage
+
+
+@pytest.fixture
+def artifact_status(app: FastAPI) -> Callable[[str], str]:
+    """The status the database holds for an artifact, read in a session of its own.
+
+    Not through the API: a response can say CORRUPT while the row it came from is
+    rolled back, which is exactly what the durable-mark tests are about.
+    """
+
+    def read(artifact_id: str) -> str:
+        with create_session_factory(app.state.engine)() as session:
+            status: str = session.scalars(
+                select(ProjectArtifactRow.status).where(
+                    ProjectArtifactRow.artifact_id == artifact_id
+                )
+            ).one()
+        return status
+
+    return read
 
 
 @pytest.fixture
