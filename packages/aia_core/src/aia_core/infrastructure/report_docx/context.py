@@ -18,6 +18,8 @@ from aia_core.domain.report.model import ReportDocument
 from aia_core.domain.report.outline import Outline
 from aia_core.domain.report.validation import CLIENT_KINDS
 from aia_core.infrastructure.report_docx.footnotes import Footnotes
+from aia_core.infrastructure.report_docx.images import SvgParts
+from aia_core.infrastructure.report_docx.marks import Marks
 from aia_core.infrastructure.report_docx.numbering import Numbering
 from aia_core.infrastructure.report_docx.ooxml import Bookmarks
 
@@ -36,6 +38,8 @@ class RenderContext:
     bookmarks: Bookmarks
     footnotes: Footnotes
     numbering: Numbering
+    svgs: SvgParts
+    marks: Marks
     #: The section index and block index being rendered: the outline's key.
     position: tuple[int, int] = (0, 0)
 

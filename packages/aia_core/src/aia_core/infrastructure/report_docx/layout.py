@@ -334,5 +334,5 @@ def render_contents(ctx: RenderContext) -> None:
             _toc(
                 ctx,
                 instruction,
-                [(S.TOF, f"{t(word)} {e.number} — {e.title}", e.anchor) for e in entries],
+                [(S.TOF, f"{t(word)} {e.number} \u2014 {e.title}", e.anchor) for e in entries],
             )

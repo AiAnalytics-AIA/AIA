@@ -861,6 +861,15 @@ on open (`w:updateFields`). A LibreOffice preview therefore shows the entries
 and leaders without numbers — expected, not a defect. `STYLEREF` and `PAGE` in
 running heads LibreOffice does evaluate.
 
+**LibreOffice pads an inline picture by ~3 mm a side unless told not to.**
+python-docx writes `wp:inline` without `distT/B/L/R`. Word reads them as 0;
+LibreOffice as its default wrap distance, so a 2.5 mm evidence mark sat in a
+gap three times its size. `images.add_vector_image` sets all four to `"0"`.
+
+**The file-writing tool turns `\u00a0` / `\u2013` escapes into literal
+characters.** Grep a newly written file for NBSP, en dash and minus before
+running ruff; RUF001 then catches the rest.
+
 **python-docx writes the current time into the zip.** Two renders of the same
 document differ in bytes unless the package is rewritten with fixed timestamps
 (`renderer._normalise_zip`) and the core properties are dated explicitly.

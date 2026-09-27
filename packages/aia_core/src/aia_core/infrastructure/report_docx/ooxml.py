@@ -8,7 +8,7 @@ elements; nothing decides content.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Final
+from typing import Any, Final
 
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.oxml import OxmlElement
@@ -263,3 +263,23 @@ def add_toc_entry(paragraph: Paragraph, text: str, bookmark: str, cached_page: s
 def add_tab(paragraph: Paragraph, style: str | None = None) -> None:
     r = _run(paragraph, style)
     r.append(OxmlElement("w:tab"))
+
+
+def full_width(table: Any) -> None:
+    """The table spans the text width (``tblW`` 100 %), whatever the page."""
+    tbl_pr: etree._Element = table._tbl.tblPr
+    for existing in tbl_pr.findall(qn("w:tblW")):
+        tbl_pr.remove(existing)
+    insert_in_order(
+        tbl_pr,
+        el("w:tblW", w="5000", type="pct"),
+        ("jc", "tblCellSpacing", "tblInd", "tblBorders", "shd", "tblLayout", "tblCellMar",
+         "tblLook", "tblCaption", "tblDescription"),
+    )  # fmt: skip
+
+
+def header_row(row: Any) -> None:
+    """Repeat this row at the top of every page the table runs onto; never split it."""
+    tr_pr: etree._Element = row._tr.get_or_add_trPr()
+    tr_pr.append(el("w:cantSplit"))
+    tr_pr.append(el("w:tblHeader"))

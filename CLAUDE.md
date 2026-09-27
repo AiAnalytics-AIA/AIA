@@ -204,6 +204,9 @@ packages/aia_core/src/aia_core/
       layout.py             Sections (cover / front i, ii / body 1, 2 / appendix), running heads,
                             the draft footer, cover, document control, TOC fields
       blocks.py             One renderer per model block; no direct formatting
+      marks.py, images.py   Evidence marks (one glyph per grade; unknown prints "?"), SVG + PNG
+                            fallback images with alt text (asvg:svgBlip)
+      plotting.py           Matplotlib for the report: vendored fonts, tokens, deterministic SVG/PNG
       context.py            RenderContext: the state of one render
       lint.py               lint_docx: no direct formatting, schema order kept
       ooxml.py, numbering.py, footnotes.py  Fields and bookmarks; lists; the footnotes part

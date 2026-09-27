@@ -42,7 +42,7 @@ from aia_core.infrastructure.report_docx.ooxml import SECTPR_ORDER, SETTINGS_ORD
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-DRAFT = "KONCEPT — NESCHVÁLENO"
+DRAFT = "KONCEPT \u2014 NESCHVÁLENO"
 
 
 def _meta(**overrides: Any) -> ReportMeta:
@@ -249,7 +249,7 @@ def test_an_internal_report_prints_its_identifiers(report_ledger: Any) -> None:
     )
     body = _text(_xml(_parts(DocxRenderer().render(doc)), "word/document.xml"))
     assert "run-7f3a" in body and "STU-1" in body
-    assert "Interní — nepředávat klientovi" in body
+    assert "Interní \u2014 nepředávat klientovi" in body
 
 
 def test_footnotes_links_properties_fonts_and_settings(rendered: dict[str, bytes]) -> None:

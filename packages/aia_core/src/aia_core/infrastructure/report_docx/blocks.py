@@ -14,27 +14,46 @@ from typing import Any
 from docx.enum.text import WD_BREAK
 from docx.text.paragraph import Paragraph as DocxParagraph
 
+from aia_core.domain.report import numbers
 from aia_core.domain.report.copy import method_status_text, t
+from aia_core.domain.report.evidence import PrintGrade
 from aia_core.domain.report.model import (
+    AuditBlock,
     Block,
+    BulletList,
     Callout,
     CalloutKind,
     CrossRef,
+    EvidenceAppendix,
+    EvidenceKey,
     Footnote,
     Heading,
     Inline,
+    KeyFinding,
+    KpiRow,
     Link,
+    ListItem,
     PageBreak,
     Paragraph,
     ParagraphRole,
+    Quote,
+    Recommendation,
     Section,
     Text,
     Value,
 )
 from aia_core.domain.report.outline import OutlineEntry
+from aia_core.domain.report.validation import cited_refs
 from aia_core.infrastructure.report_docx.context import Container, RenderContext
 from aia_core.infrastructure.report_docx.layout import heading_label
-from aia_core.infrastructure.report_docx.ooxml import add_external_link, add_internal_link
+from aia_core.infrastructure.report_docx.marks import UNKNOWN_GLYPH, grade_label
+from aia_core.infrastructure.report_docx.numbering import Numbering
+from aia_core.infrastructure.report_docx.ooxml import (
+    add_external_link,
+    add_internal_link,
+    full_width,
+    header_row,
+)
 from aia_core.infrastructure.report_docx.styles import S
 
 # ---------------------------------------------------------------------- inline
@@ -61,8 +80,48 @@ def write_inlines(ctx: RenderContext, p: DocxParagraph, content: tuple[Inline, .
             add_external_link(p, inline.text, inline.url, style=S.LINK)
 
 
+def value_text(ctx: RenderContext, ref: str, *, with_interval: bool, unit: bool = True) -> str:
+    """How one evidenced value prints: exactly as the evidence rounded it.
+
+    In a client report an estimate always carries its interval, whatever the
+    block asked for (validation guarantees there is one).
+    """
+    row = ctx.ledger.row(ref)
+    out = (
+        numbers.with_unit(row.value, row.decimals, row.unit)
+        if unit
+        else numbers.number(row.value, row.decimals)
+    )
+    if row.interval is not None and (with_interval or (ctx.client and row.is_estimate)):
+        out += f"{numbers.NBSP}{numbers.interval(row.interval, row.decimals, row.unit)}"
+    return out
+
+
+def base_text(ctx: RenderContext, ref: str) -> str:
+    """``n = 1 204``: the row's effective n, rounded down. Absent → ``?``, never a guess."""
+    effective = ctx.ledger.row(ref).support.effective_n
+    if effective is None:
+        return f"n{numbers.NBSP}={numbers.NBSP}{UNKNOWN_GLYPH}"
+    return numbers.base_n(effective)
+
+
 def write_value(ctx: RenderContext, p: DocxParagraph, ref: str, *, with_interval: bool) -> None:
-    raise NotImplementedError("evidenced values render with the report components (R5)")
+    """``42,5 % (38,1-46,9 %)`` in the numeral face, its grade mark, "orientační"."""
+    p.add_run(value_text(ctx, ref, with_interval=with_interval), style=S.NUMERAL)
+    p.add_run(numbers.NBSP)
+    write_mark(ctx, p, ref)
+    if ctx.ledger.is_indicative(ref):
+        p.add_run(f" ({t('indicative')})", style=S.GRADE)
+
+
+def write_mark(ctx: RenderContext, p: DocxParagraph, ref: str) -> None:
+    ctx.marks.add(p, ctx.ledger.grade(ref))
+
+
+def write_marks(ctx: RenderContext, p: DocxParagraph, refs: tuple[str, ...]) -> None:
+    for ref in refs:
+        p.add_run(numbers.NBSP)
+        write_mark(ctx, p, ref)
 
 
 # ---------------------------------------------------------------------- headings
@@ -125,17 +184,183 @@ def render_callout(ctx: RenderContext, container: Container, block: Callout) -> 
     """
     title = container.add_paragraph(style=S.CALLOUT_TITLE)
     title.add_run(block.title or t(_CALLOUT_TITLES[block.kind]))
-    for ref in block.refs:
-        title.add_run(" ")
-        write_mark(ctx, title, ref)
+    write_marks(ctx, title, block.refs)
     if block.kind is CalloutKind.METHOD:
         container.add_paragraph(method_status_text(ctx.report.meta.method_status), style=S.CALLOUT)
     if block.content:
         write_inlines(ctx, container.add_paragraph(style=S.CALLOUT), block.content)
 
 
-def write_mark(ctx: RenderContext, p: DocxParagraph, ref: str) -> None:
-    raise NotImplementedError("evidence marks render with the figures (R7)")
+# ---------------------------------------------------------------------- lists and quotes
+
+
+def render_list(ctx: RenderContext, container: Container, block: BulletList) -> None:
+    num_id = ctx.numbering.new_ordered_list() if block.ordered else ctx.numbering.bullets
+    styles = (S.NUMBER, S.NUMBER_2) if block.ordered else (S.BULLET, S.BULLET_2)
+    for item in block.items:
+        _list_item(ctx, container, item, num_id, styles, 0)
+
+
+def _list_item(
+    ctx: RenderContext,
+    container: Container,
+    item: ListItem,
+    num_id: int,
+    styles: tuple[str, str],
+    level: int,
+) -> None:
+    p = container.add_paragraph(style=styles[level])
+    Numbering.apply(p, num_id, level)
+    write_inlines(ctx, p, item.content)
+    for child in item.children:
+        _list_item(ctx, container, child, num_id, styles, 1)
+
+
+def render_quote(ctx: RenderContext, container: Container, block: Quote) -> None:
+    """A verbatim quote in Czech quotation marks; a synthetic respondent says so."""
+    container.add_paragraph(f"\u201e{block.text}\u201c", style=S.QUOTE)
+    by = f"\u2014 {block.attribution}"
+    if block.synthetic:
+        by += f", {t('synthetic_quote')}"
+    container.add_paragraph(by, style=S.QUOTE_BY)
+
+
+# ---------------------------------------------------------------------- findings
+
+
+def _labelled(container: Container, label: str, body: str) -> None:
+    container.add_paragraph(label, style=S.FINDING_LABEL)
+    container.add_paragraph(body, style=S.BODY)
+
+
+def render_key_finding(ctx: RenderContext, container: Container, block: KeyFinding) -> None:
+    """Legacy ``key_findings``: headline, finding, evidence, meaning, confidence."""
+    title = container.add_paragraph(block.headline, style=S.FINDING_TITLE)
+    write_marks(ctx, title, block.refs)
+    container.add_paragraph(block.finding, style=S.BODY)
+    _labelled(container, t("finding_evidence"), block.evidence)
+    _labelled(container, t("finding_meaning"), block.meaning)
+    _labelled(container, t("finding_confidence"), block.confidence)
+
+
+def render_recommendation(ctx: RenderContext, container: Container, block: Recommendation) -> None:
+    """Legacy ``implications``: the action, why, and its priority."""
+    title = container.add_paragraph(block.action, style=S.FINDING_TITLE)
+    write_marks(ctx, title, block.refs)
+    _labelled(container, t("recommendation_why"), block.why)
+    _labelled(container, t("recommendation_priority"), block.priority)
+
+
+def render_kpi_row(ctx: RenderContext, container: Container, block: KpiRow) -> None:
+    """Stat tiles in a borderless table: value and mark, label, then base n."""
+    table = ctx.document.add_table(rows=1, cols=len(block.items))
+    table.style = S.KPI_TABLE
+    full_width(table)
+    for cell, kpi in zip(table.rows[0].cells, block.items, strict=True):
+        value = cell.paragraphs[0]
+        value.style = S.KPI_VALUE
+        row = ctx.ledger.row(kpi.ref)
+        value.add_run(numbers.with_unit(row.value, row.decimals, row.unit))
+        value.add_run(numbers.NBSP)
+        write_mark(ctx, value, kpi.ref)
+        cell.add_paragraph(kpi.label, style=S.KPI_LABEL)
+        base = base_text(ctx, kpi.ref)
+        if row.interval is not None:  # the tile's interval sits under it, never dropped
+            base += f"{t('separator')}{numbers.interval(row.interval, row.decimals, row.unit)}"
+        if ctx.ledger.is_indicative(kpi.ref):
+            base += f", {t('indicative')}"
+        cell.add_paragraph(base, style=S.KPI_LABEL)
+
+
+# ---------------------------------------------------------------------- evidence
+
+
+def _grade_text(grade: PrintGrade) -> str:
+    return UNKNOWN_GLYPH if grade is PrintGrade.UNKNOWN else grade_label(grade)
+
+
+def render_evidence_key(ctx: RenderContext, container: Container, block: EvidenceKey) -> None:
+    """The key to the marks, every grade, the unknown one included."""
+    container.add_paragraph(t("evidence_key"), style=S.CALLOUT_TITLE)
+    for grade in PrintGrade:
+        p = container.add_paragraph(style=S.CALLOUT)
+        ctx.marks.add(p, grade)
+        p.add_run(f" {grade_label(grade)}", style=S.STRONG)
+        key = grade.value.replace("-", "_")
+        p.add_run(f" \u2014 {t(f'grade_{key}_long')}")
+
+
+def render_evidence_appendix(
+    ctx: RenderContext, container: Container, block: EvidenceAppendix
+) -> None:
+    """One row per cited ref: value, interval, effective n, support, basis, grade."""
+    head = (
+        t("evidence"),
+        t("value"),
+        t("interval_head"),
+        t("effective_n_head"),
+        t("support"),
+        t("basis"),
+        t("grade"),
+        t("disclosures"),
+    )
+    numeric = {1, 2, 3}
+    table = ctx.document.add_table(rows=1, cols=len(head))
+    table.style = S.DATA_TABLE
+    full_width(table)
+    header_row(table.rows[0])
+    for i, (cell, label) in enumerate(zip(table.rows[0].cells, head, strict=True)):
+        cell.paragraphs[0].style = S.TABLE_HEAD_NUMBER if i in numeric else S.TABLE_HEAD
+        cell.paragraphs[0].add_run(label)
+    refs = cited_refs(ctx.report)
+    for ref in refs:
+        row = ctx.ledger.row(ref)
+        interval = (
+            numbers.interval(row.interval, row.decimals, row.unit)
+            if row.interval is not None
+            else t("no_value")
+        )
+        values = (
+            ref,
+            numbers.with_unit(row.value, row.decimals, row.unit),
+            interval,
+            UNKNOWN_GLYPH
+            if row.support.effective_n is None
+            else numbers.effective_n(row.support.effective_n),
+            t(f"support_{row.support.status.value}"),
+            t(f"basis_{row.basis.value}"),
+            _grade_text(ctx.ledger.grade(ref)),
+            ", ".join(t(f"disclosure_short_{d.value}") for d in sorted(row.disclosures)),
+        )
+        cells = table.add_row().cells
+        for i, (cell, value) in enumerate(zip(cells, values, strict=True)):
+            cell.paragraphs[0].style = (
+                S.MONO if i == 0 else S.TABLE_NUMBER if i in numeric else S.TABLE
+            )
+            cell.paragraphs[0].add_run(value)
+    used = sorted({d for ref in refs for d in ctx.ledger.row(ref).disclosures})
+    for d in used:
+        p = container.add_paragraph(style=S.SOURCE)
+        p.add_run(t(f"disclosure_short_{d.value}"), style=S.STRONG)
+        p.add_run(f" \u2014 {t(f'disclosure_{d.value}')}")
+
+
+def render_audit(ctx: RenderContext, container: Container, block: AuditBlock) -> None:
+    """Run ids, fingerprints, provider and model. Internal reports only (validated)."""
+    container.add_paragraph(t("audit"), style=S.H2_FRONT)
+    table = ctx.document.add_table(rows=1, cols=2)
+    table.style = S.DATA_TABLE
+    full_width(table)
+    header_row(table.rows[0])
+    for cell, label in zip(table.rows[0].cells, (t("audit_key"), t("value")), strict=True):
+        cell.paragraphs[0].style = S.TABLE_HEAD
+        cell.paragraphs[0].add_run(label)
+    for key, value in block.entries:
+        cells = table.add_row().cells
+        cells[0].paragraphs[0].style = S.TABLE
+        cells[0].paragraphs[0].add_run(key)
+        cells[1].paragraphs[0].style = S.MONO
+        cells[1].paragraphs[0].add_run(value)
 
 
 # ---------------------------------------------------------------------- dispatch
@@ -145,6 +370,14 @@ _RENDERERS: dict[type[Any], Callable[[RenderContext, Container, Any], None]] = {
     Paragraph: render_paragraph,
     PageBreak: render_page_break,
     Callout: render_callout,
+    BulletList: render_list,
+    Quote: render_quote,
+    KeyFinding: render_key_finding,
+    Recommendation: render_recommendation,
+    KpiRow: render_kpi_row,
+    EvidenceKey: render_evidence_key,
+    EvidenceAppendix: render_evidence_appendix,
+    AuditBlock: render_audit,
 }
 
 

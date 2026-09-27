@@ -285,6 +285,25 @@ contracts and start when those are agreed.
   `w:ptab` is ignored (header tab moved into the style) and that a TOC's cached
   page numbers stay empty until Word updates fields (AGENTS.md § DOCX).
 
+- **R5 — text and report components.** `blocks.py` renders every text block:
+  paragraphs and ledes; inline values (`value_text`: exactly `row.value` at
+  `row.decimals`, and **in a client report an estimate always prints its
+  interval**, whatever the block asked); the grade mark after every value, and
+  "orientační" for INDICATIVE support; bullet and numbered lists (two levels,
+  each ordered list restarting); quotes in Czech quotation marks with
+  "syntetický respondent"; callouts with the marks of their refs; key findings
+  and recommendations with the legacy labels; KPI tiles (a borderless
+  `AIA KPI Table`, the interval and `n` from the row under each value); the
+  evidence key (all five grades); the evidence appendix (one row per
+  `cited_refs`, suppressed refs never listed, disclosures as short labels
+  explained under the table); the audit block. `marks.py` draws one glyph per
+  grade in `evidence-mark` ink (disc, ring+dot, hatched ring, half disc) with
+  matplotlib, embedded once as SVG with a PNG fallback (`images.py`); **the
+  unknown grade has no glyph — it prints `?`**. matplotlib joined the `report`
+  extra. Tests: `test_report_docx_blocks.py`, 8 tests. The LibreOffice render
+  found that inline pictures get ~3 mm of padding unless `distL/R` are 0
+  (AGENTS.md § DOCX).
+
 ## Handoff — where to pick up
 
 **State.** R0–R2 are merged to `develop` (#53). R3 (`37a1c29`) and the R4 modules

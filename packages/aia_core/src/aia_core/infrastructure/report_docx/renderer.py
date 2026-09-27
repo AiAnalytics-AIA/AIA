@@ -31,6 +31,8 @@ from aia_core.infrastructure.report_docx.blocks import chapter_heading, render_b
 from aia_core.infrastructure.report_docx.context import RenderContext
 from aia_core.infrastructure.report_docx.embed import embed_fonts
 from aia_core.infrastructure.report_docx.footnotes import Footnotes
+from aia_core.infrastructure.report_docx.images import SvgParts
+from aia_core.infrastructure.report_docx.marks import Marks
 from aia_core.infrastructure.report_docx.numbering import Numbering
 from aia_core.infrastructure.report_docx.ooxml import SETTINGS_ORDER, Bookmarks, el, insert_ordered
 from aia_core.infrastructure.report_docx.styles import S, install_styles
@@ -48,6 +50,7 @@ class DocxRenderer:
         require_valid(doc)
         document = docx.Document()
         install_styles(document)
+        svgs = SvgParts(document)
         ctx = RenderContext(
             document=document,
             report=doc,
@@ -55,6 +58,8 @@ class DocxRenderer:
             bookmarks=Bookmarks(),
             footnotes=Footnotes(document),
             numbering=Numbering(document),
+            svgs=svgs,
+            marks=Marks(svgs),
         )
         _write(ctx)
         _finish(ctx)
