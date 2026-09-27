@@ -272,15 +272,22 @@ respondent and analysis consumers to the contracts published here.
 
 **PR 1 — domain core** (pure, no I/O):
 
-- [ ] a. Contracts [1]: subjects, tracks, snapshots, knowledge sources, evidence, quarantine
+- [x] a. Contracts [1]: subjects, tracks, snapshots, knowledge sources, evidence, quarantine
       reasons, stop reasons, the bundle and its hash, quality status, evidence origin; the
       workflow graph; the tool reservation/usage contract and an in-memory ledger.
-- [ ] b. Legacy leakage screen and merge, EXACT [2]: `tools/deep_research_capture.py` runs
-      the vendored `research_context.py`; fixtures pinned with its SHA256;
-      `research.deep_research` in the parity matrix.
-- [ ] c. Grounding, source tables, query classifier, URL safety [3, 6, 7-policy].
-- [ ] d. Planning, fingerprints, coverage, presets, stop rule, budget split, AIA merge,
-      respondent-context quarantine, synthesis validation, agents and prompts [3, 9, 11-contracts].
+      `test_deep_research_contracts.py` (14).
+- [x] b. Legacy leakage screen and merge, EXACT [2]: `tools/deep_research_capture.py` runs
+      the vendored `research_context.py`; fixtures pinned with its SHA256. Gated under
+      `research.design` (`research.design/deep-research-leakage-merge`), because the matrix is
+      fixed at the reference's 78 capabilities. `test_deep_research_legacy.py` (94), including
+      `test_the_fixtures_reproduce_from_the_vendored_unit`.
+- [x] c. Grounding, source tables, query classifier, URL safety [3, 6, 7-policy].
+      `test_deep_research_{grounding,sources,classification,web_policy}.py` (90).
+- [x] d. Planning, fingerprints, coverage, presets, stop rule, budget split, frozen knowledge,
+      AIA merge, respondent-context quarantine, synthesis validation, agents and prompts
+      [3, 8-access, 9, 11-contracts]. `test_deep_research_{planning,knowledge_access,agents,
+      merge,synthesis,bundle_and_quarantine}.py` (55). Core suite 2783 passed / 201 skipped
+      (2530 / 201 on `develop` @ `ceee2dc`).
 
 **PR 2 — recorded execution** (stacked on PR 1):
 
