@@ -412,7 +412,7 @@ ungated fixture.
 | Purpose | Command |
 |---|---|
 | One-time setup | `make setup` |
-| Start Postgres / Redis / MinIO | `make services` |
+| Start Postgres / MinIO | `make services` |
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
 | Run everything | `make dev` |
@@ -531,7 +531,7 @@ purpose and was the right tool.
 ```
 main                       release branch; receives release PRs from develop
   └── develop              integration branch; CI on every push; every green head is
-       │                   deployed to https://dev.<domain>/ (ADR 0009)
+       │                   deployed to https://aia-develop.art-chain.io/ (ADR 0009)
        ├── feature/<slug>  new capability
        ├── fix/<slug>      defect
        └── chore/<slug>    docs, plan archiving, dependency bumps, tooling

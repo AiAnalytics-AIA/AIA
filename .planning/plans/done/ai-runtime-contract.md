@@ -1,7 +1,6 @@
 # AI runtime contract (Phase 4, first slice)
 
-**Status:** in progress · **Owner:** ai-runtime · **Started:** 2026-09-22 ·
-**Branch:** `claude/eager-mendel-3bom5p`
+**Status:** done — merged in PR #28 @ `676bc1f` (2026-09-23). Archived 2026-09-27. · **Owner:** ai-runtime · **Started:** 2026-09-22
 
 ## Problem
 
