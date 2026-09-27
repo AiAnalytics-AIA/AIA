@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 //
 // Read at run time, never imported: the web image is built from apps/web alone,
 // and `next build` type-checks every file tsconfig includes.
-type Screen = { id: string; classic: { route?: string }; area: string; status: string; react_path: string | null; fixture?: string };
+type Screen = { id: string; classic: { route?: string }; area: string; status: string; react_path: string | null; notice?: string | null; fixture?: string };
 type Ledger = { areas: Record<string, string>; statuses: Record<string, string>; screens: Screen[] };
 type Parse = { routes: string[]; aliases: Record<string, string> };
 
@@ -35,11 +35,19 @@ describe("the interface screen ledger", () => {
     expect([...listed].sort()).toEqual([...routes].sort());
   });
 
-  it("gives every screen a known area and status, and a React path once it is not CLASSIC", () => {
+  it("gives every screen a known area and status: an AIA path, or where AIA says it is not there", () => {
+    // ADR 0018: no screen is served by the classic interface any more.
+    expect(Object.keys(ledger.statuses)).not.toContain("CLASSIC");
     for (const s of ledger.screens) {
       expect(Object.keys(ledger.areas), s.id).toContain(s.area);
       expect(Object.keys(ledger.statuses), s.id).toContain(s.status);
-      if (s.status !== "CLASSIC") expect(s.react_path, s.id).toMatch(/^\/app(\/|$)/);
+      if (s.status === "NOT_IN_AIA") {
+        expect(s.react_path, s.id).toBeNull();
+        expect("notice" in s, `${s.id} names where AIA says so, or null`).toBe(true);
+        if (s.notice !== null) expect(s.notice, s.id).toMatch(/^\/app(\/|$)/);
+      } else {
+        expect(s.react_path, s.id).toMatch(/^\/app(\/|$)/);
+      }
     }
   });
 

@@ -55,7 +55,7 @@ const TEXT = [
   ...["signal-wash-strong", "signal-tint"].map((bg) => ["ink", bg, 7, "text on a signal ground"]),
   ...["signal-wash-strong", "signal-tint"].map((bg) => ["signal", bg, 4.5, "link / action label on a signal ground"]),
   ["ink-muted", "signal-tint", 4.5, "secondary text on an informational panel"],
-  ["status-you-ink", "status-you-wash", 4.5, "waiting-on-person text on its own wash (the 18.6.6 skin's warnings)"],
+  ["status-you-ink", "status-you-wash", 4.5, "waiting-on-person text on its own wash (notices that ask a person to act)"],
   ...["surface", "surface-raised", "surface-sunken"].map((bg) => ["status-you-ink", bg, 4.5, "waiting-on-person text"]),
   ["on-status-you", "status-you", 7, "label on parked-on-you fill"],
   ...["surface", "surface-raised", "surface-sunken", "status-world-wash"].map((bg) => ["status-world", bg, 4.5, "waiting-on-world text"]),

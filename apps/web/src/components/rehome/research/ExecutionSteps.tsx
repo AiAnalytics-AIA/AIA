@@ -426,7 +426,7 @@ export function ResultsStep() {
   const sociomap = useArtifact(run, "sociomap");
   // The 18.6.6 client report has no AIA counterpart yet (report-docx.md): said
   // here, not handed off to an interface that is no longer part of AIA.
-  const classic = <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
+  const reportNote = <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
   if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null || run.phase !== "COMPLETED") {
@@ -435,7 +435,7 @@ export function ResultsStep() {
         <Card>
           <p className="text-sm">{run && parkedForRuntime(run) ? t("research.exec.noResultsParked") : t("research.exec.noResults")}</p>
         </Card>
-        {classic}
+        {reportNote}
       </div>
     );
   }
@@ -450,11 +450,12 @@ export function ResultsStep() {
       {sociomap && sociomap.state !== "hidden" ? (
         <Card title={t("research.exec.results.sociomap")} tone="notice">
           <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.internal")}</p>
+          <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
           {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
       ) : null}
-      {classic}
+      {reportNote}
     </div>
   );
 }

@@ -24,6 +24,4 @@ export const appRoutes = {
   intelligence: () => "/app/intelligence",
   memory: () => "/app/memory",
   settings: () => "/app/settings",
-  classicProjects: () => "/app/settings/classic-projects",
-  classicTrash: () => "/app/settings/classic-projects/trash",
 };

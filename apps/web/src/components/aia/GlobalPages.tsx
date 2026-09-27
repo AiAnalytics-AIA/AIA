@@ -2,9 +2,10 @@
 
 // The three global destinations besides Klienti (ADR 0015 decision 3):
 // Společenská inteligence (the shared layer), Projektová paměť (your work across
-// your clients) and Nastavení (account, administration, and the explicit ways
-// into the classic interface). Execution infrastructure lives here, not in the
-// primary navigation.
+// your clients) and Nastavení (account and administration). Execution
+// infrastructure lives here, not in the primary navigation. There is no way into
+// the 18.6.6 interface from any of them (ADR 0018): what AIA does not have yet
+// says so where the person meets it.
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -15,9 +16,8 @@ import { appRoutes } from "@/lib/app-routes";
 import type { PublicConfig } from "@/app/config/route";
 import { useSession } from "@/lib/auth";
 import { relative } from "@/lib/format";
-import { classicHref } from "@/lib/interface-handoff";
 import { Icon } from "../rehome/icons";
-import { ClassicLink, Field, Tag, TextInput } from "../rehome/ui";
+import { Field, Tag, TextInput } from "../rehome/ui";
 import { AppShell } from "./AppShell";
 import { studyHref } from "./clients/ClientOverview";
 import { CARD, Empty, Loaded } from "./states";
@@ -29,9 +29,9 @@ export function IntelligencePage() {
     <AppShell title={t("aia.intelligence.title")} sub={t("aia.intelligence.sub")}>
       <section className={`${CARD} max-w-2xl`}>
         <p className="text-sm leading-6">{t("aia.intelligence.text")}</p>
-        <div className="mt-4">
-          <ClassicLink href={classicHref({ switch: "library" })}>{t("aia.intelligence.openClassic")}</ClassicLink>
-        </div>
+        <p role="status" className="mt-4 rounded-sm border border-border bg-surface-sunken p-3 text-sm leading-6 text-ink">
+          {t("aia.intelligence.notInAia")}
+        </p>
       </section>
     </AppShell>
   );
@@ -121,17 +121,6 @@ export function SettingsPage() {
               </div>
             )}
           </Loaded>
-        </section>
-        <section className={CARD} aria-labelledby="set-classic">
-          <h2 id="set-classic" className="text-base font-semibold">{t("aia.settings.classic")}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t("aia.settings.classicText")}</p>
-          <ul className="mt-3 flex flex-col gap-2">
-            <li><ClassicLink href={classicHref({ support: "bundle" })}>{t("aia.settings.diagnostics")}</ClassicLink></li>
-          </ul>
-          <div className="mt-4 border-t border-border pt-4">
-            <Link href={appRoutes.classicProjects()} className="text-sm font-medium text-signal underline">{t("aia.settings.classicProjects")}</Link>
-            <p className="mt-1 text-xs text-ink-faint">{t("aia.settings.classicProjectsText")}</p>
-          </div>
         </section>
       </div>
       <div className="mt-6">

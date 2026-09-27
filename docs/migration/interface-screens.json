@@ -1,10 +1,11 @@
 {
  "schema_version": 1,
- "description": "Every screen of the classic 18.6.6 interface and where its React rebuild stands (ADR 0014), re-homed under the client-first hierarchy (ADR 0015): a rebuilt research step lives at /app/clients/<client>/research/<id>/<stage>, <id> being the AIA study. `aia_screens` lists the client-first screens that have no classic counterpart. The routes are the ones its router knows, parsed from ui_app.html by tools/ui_workbench/capture.mjs routesFrom() (aliases folded: demo->home, sociomap->visualization, production->home, fullsim->sim_context); the DEMO views are one per collection with their tabs. A screen is REBUILT only with its capture pair in the workbench and its tests.",
+ "description": "Every screen of the classic 18.6.6 interface and what AIA does in its place (ADR 0014, ADR 0018: the classic interface is no longer part of the product), re-homed under the client-first hierarchy (ADR 0015): a rebuilt research step lives at /app/clients/<client>/research/<id>/<stage>, <id> being the AIA study. `aia_screens` lists the client-first screens that have no classic counterpart. The routes are the ones its router knows, parsed from ui_app.html by tools/ui_workbench/capture.mjs routesFrom() (aliases folded: demo->home, sociomap->visualization, production->home, fullsim->sim_context); the DEMO views are one per collection with their tabs. A screen is REBUILT only with its capture pair in the workbench and its tests.",
  "statuses": {
-  "CLASSIC": "served by the frozen unit at /classic, an explicit hand-off, skinned (ADR 0013, ADR 0015)",
+  "REBUILT": "the React screen carries every label, control and state of the classic one; capture pair and tests",
   "REBUILDING": "a React screen exists under /app but does not yet carry everything the classic one shows",
-  "REBUILT": "the React screen carries every label, control and state of the classic one; capture pair and tests"
+  "SUPERSEDED": "AIA does the screen's job its own way, at react_path; nothing of the classic screen is ported",
+  "NOT_IN_AIA": "not rebuilt, and 18.6.6 is not part of the product (ADR 0018): AIA says so at `notice` where a person would look for it (null when AIA has no place a person would look), and the frozen unit keeps the screen as reference only"
  },
  "areas": {
   "A1": "Shell",
@@ -24,9 +25,10 @@
    },
    "title": "Co chcete udělat?",
    "area": "A1",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "SUPERSEDED",
+   "react_path": "/app/clients",
+   "unit_routes": [],
+   "notes": "AIA's home is the client directory (ADR 0015)."
   },
   {
    "id": "route-projects",
@@ -35,16 +37,10 @@
    },
    "title": "Správa projektů",
    "area": "A2",
-   "status": "REBUILT",
-   "react_path": "/app/settings/classic-projects",
-   "unit_routes": [
-    "GET /api/projects",
-    "GET /api/projects/dashboard",
-    "POST /api/projects/history-action",
-    "GET /api/projects/trash",
-    "POST /api/demos/copy"
-   ],
-   "notes": "Trash view at /app/projects/trash. Open, new research/simulation and the portfolio dashboard hand off to the classic interface (ADR 0014 decision 7). Capture pair: 0 classic texts missing at 1440 and 1024. Status tones split running / waiting-on-you / waiting-on-the-world, which 18.6.6 paints alike."
+   "status": "SUPERSEDED",
+   "react_path": "/app/clients/<client>/research",
+   "unit_routes": [],
+   "notes": "A client's studies, found through the client. The unscoped 18.6.6 project store screens are gone (ADR 0018); its content comes over by the migration (aia_executors.legacy_workspace), which lists every unit project no study refers to."
   },
   {
    "id": "route-brief",
@@ -157,9 +153,11 @@
    },
    "title": "8. Ověření & kontext",
    "area": "A4",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/research/<id>/verify",
+   "notes": "The stage says it is not in AIA."
   },
   {
    "id": "route-next",
@@ -168,9 +166,11 @@
    },
    "title": "9. Další krok · Ideální skupina",
    "area": "A4",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/research/<id>/next",
+   "notes": "The stage says it is not in AIA."
   },
   {
    "id": "route-command",
@@ -179,9 +179,11 @@
    },
    "title": "Command Center",
    "area": "A7",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "The 18.6.6 Command Center has no AIA page a person would look for it on; AIA's execution state is in each run's Progress and in Settings."
   },
   {
    "id": "route-data",
@@ -190,9 +192,11 @@
    },
    "title": "Data Library",
    "area": "A7",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/intelligence",
+   "notes": "Společenská inteligence says the 18.6.6 Data Library is not in AIA."
   },
   {
    "id": "route-settings",
@@ -201,9 +205,10 @@
    },
    "title": "AI nastavení",
    "area": "A7",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "SUPERSEDED",
+   "react_path": "/app/settings",
+   "unit_routes": [],
+   "notes": "AIA's settings: every control and how it is set."
   },
   {
    "id": "route-sim_context",
@@ -212,9 +217,11 @@
    },
    "title": "Simulace · 1. Kontext",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-sim_change",
@@ -223,9 +230,11 @@
    },
    "title": "Simulace · 2. Změna",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-sim_people",
@@ -234,9 +243,11 @@
    },
    "title": "Simulace · 2. Změna",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-sim_run",
@@ -245,9 +256,11 @@
    },
    "title": "Simulace · 4. Spustit",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-sim_results",
@@ -256,9 +269,11 @@
    },
    "title": "Simulace · 5. Výsledky",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-project_overview",
@@ -267,9 +282,10 @@
    },
    "title": "Projekt",
    "area": "A6",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "SUPERSEDED",
+   "react_path": "/app/clients/<client>/research",
+   "unit_routes": [],
+   "notes": "A study's stages are its own rail; the client's study list says where each stands."
   },
   {
    "id": "route-demos",
@@ -278,9 +294,11 @@
    },
    "title": "Dema",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "The 18.6.6 demonstration collections are reference material, not product; the workbench's fictional fixtures stand in for them."
   },
   {
    "id": "route-demo_project",
@@ -289,9 +307,11 @@
    },
    "title": "Dema",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   },
   {
    "id": "route-visualization",
@@ -300,9 +320,11 @@
    },
    "title": "Sociomapa",
    "area": "A8",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/research/<id>/results",
+   "notes": "Results shows the computed Sociomap to editors, INTERNAL_ONLY while D6 is open; the interactive 18.6.6 map tool (dragging, scenarios) is not in AIA."
   },
   {
    "id": "demo-complete",
@@ -312,9 +334,11 @@
    },
    "title": "DEMO · complete",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   },
   {
    "id": "demo-showcase",
@@ -324,9 +348,11 @@
    },
    "title": "DEMO · showcase",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   },
   {
    "id": "demo-visualization-showcase",
@@ -336,9 +362,11 @@
    },
    "title": "DEMO · visualization_showcase",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   },
   {
    "id": "demo-simulation",
@@ -348,9 +376,11 @@
    },
    "title": "DEMO · simulation",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   }
  ],
  "aia_screens": [

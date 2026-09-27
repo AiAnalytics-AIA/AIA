@@ -522,9 +522,6 @@ jobs:
       # tokens.json is the one source: the generated CSS/TS must match it, and
       # the contrast, palette and client-accent evidence is re-measured from it.
       - run: npm run tokens:check
-      # The 18.6.6 skin (ADR 0013): regenerated from tokens.json and linted for
-      # raw values; it also reads the vendored ui_app.html, so it runs here.
-      - run: npm run skin:check
       - run: npm run check:design
       - run: npm test
       - run: npm run build

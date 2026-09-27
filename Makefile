@@ -125,8 +125,8 @@ report-preview: ## Render the four report samples DOCX -> PDF -> PNG (needs libr
 	@$(PY) tools/report_preview.py --samples --grey
 	@$(PY) tools/report_preview.py --samples --stress
 
-web_design: ## Design tokens and the 18.6.6 skin: generated files current, contrast / palette / accent evidence holds
-	@cd apps/web && npm run tokens:check && npm run skin:check && npm run check:design
+web_design: ## Design tokens: generated files current, contrast / palette / accent evidence holds
+	@cd apps/web && npm run tokens:check && npm run check:design
 
 lint: ## Lint Python and the web client
 	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations
