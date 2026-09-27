@@ -413,6 +413,35 @@ export const research = {
     request<Artifact>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/artifacts/${enc(artifactId)}`),
 };
 
+export type ResearchAgentAction = "analyze_brief" | "build_questionnaire" | "optimize_questionnaire" | "propose_audience" | "suggest_dimensions" | "critique_design" | "design_copilot" | "answer_memory";
+export type ResearchAgentJob = {
+  run_id: string; design_revision_id: string; action: ResearchAgentAction;
+  status: string; is_terminal: boolean; needs_attention: boolean;
+  context_sha256: string; harness_version: string; created_at: string | null;
+  steps: ResearchStep[]; actual_cost_usd: number | null;
+};
+export type ResearchAgentResult = {
+  result: { project: Record<string, unknown>; proposal: Record<string, unknown>; analysis?: unknown } & Record<string, unknown>;
+  provenance: { agent_id: string; design_revision_id: string; context_sha256: string; status: string } & Record<string, unknown>;
+};
+const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
+export const researchAgents = {
+  design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
+  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "") =>
+    request<ResearchAgentJob>("POST", agentsPath(studyId), { design_revision_id: revisionId, action, instruction }),
+  jobs: async (studyId: string) => {
+    const jobs = await request<unknown>("GET", agentsPath(studyId));
+    if (!Array.isArray(jobs) || jobs.some((j) => !j || typeof j.run_id !== "string" || typeof j.status !== "string" || !Array.isArray(j.steps))) {
+      throw new Error("Seznam AI kroků má neplatný formát. Zkuste jej načíst znovu.");
+    }
+    return jobs as ResearchAgentJob[];
+  },
+  job: (studyId: string, jobId: string) => request<ResearchAgentJob>("GET", `${agentsPath(studyId)}/${enc(jobId)}`),
+  cancel: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/cancel`),
+  result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),
+  accept: (studyId: string, jobId: string, revisionId: string) => request<DesignRevision>("POST", `${agentsPath(studyId)}/${enc(jobId)}/accept`, { expected_revision_id: revisionId }),
+};
+
 // ---- the settings page: every control and how it is set -------------------
 // Mirrors apps/api/src/aia_api/schemas/settings.py and the administrative routes
 // in routers/scope.py. Enum values are never listed here: they arrive in

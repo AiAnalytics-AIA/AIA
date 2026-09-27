@@ -42,9 +42,10 @@ DEVELOP_SNAPSHOT: Final = "develop_snapshot"
 
 #: A research Study's run over one Design Revision (ADR 0016).
 RESEARCH: Final = "research"
+RESEARCH_AGENT: Final = "research_agent"
 
 #: Every workflow type a run may be created with. Closed: an unknown type is refused.
-WORKFLOW_TYPES: Final[frozenset[str]] = frozenset({DEVELOP_SNAPSHOT, RESEARCH})
+WORKFLOW_TYPES: Final[frozenset[str]] = frozenset({DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT})
 
 #: The research template's step kinds, by node key -- what an executor registers for.
 RESEARCH_KINDS: Final[dict[str, str]] = {
@@ -88,6 +89,18 @@ def steps_for_workflow(workflow_type: str, *, project_type: ProjectType) -> list
                 stage_type=first_stage,
                 artifact_target=DEVELOP_SNAPSHOT,
                 max_attempts=3,
+            )
+        ]
+    if workflow_type == RESEARCH_AGENT:
+        if project_type is not ProjectType.RESEARCH:
+            raise UnknownWorkflowType(f"{RESEARCH_AGENT} needs a research project")
+        return [
+            StepDefinition(
+                node_key="agent",
+                kind=RESEARCH_AGENT,
+                stage_type="BRIEF",
+                artifact_target="research_agent_proposal",
+                max_attempts=1,
             )
         ]
     if workflow_type == RESEARCH:

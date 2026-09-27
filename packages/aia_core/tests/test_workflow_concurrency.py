@@ -1309,3 +1309,49 @@ def test_concurrent_live_promotions_have_exactly_one_winner(
         assert rt.version_status(expected) is VersionStatus.SUPERSEDED
         losers = [c for c in candidates if c != winner]
         assert all(rt.version_status(c) is VersionStatus.REGISTERED for c in losers)
+
+
+def test_two_reviewed_design_proposals_cannot_overwrite_each_other(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """Two connections accept the same baseline; only one may create its child."""
+    from aia_core.domain.design import DesignRejected
+    from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+
+    session, workflows = _repo_in_new_session(pg_sessions, world)
+    try:
+        design = StudyDesignRepository(session, workflows.scope)
+        revision, _ = design.submit(content={"goal": "Original"}, source_stage="brief")
+        session.commit()
+    finally:
+        session.close()
+
+    def accept(index: int) -> str:
+        session, workflows = _repo_in_new_session(pg_sessions, world)
+        try:
+            # This identity-map entry precedes the lock. The repository must
+            # re-read its guard when acquiring FOR UPDATE, not trust old state.
+            session.get(StudyRow, world["study_id"])
+            repository = StudyDesignRepository(session, workflows.scope)
+            try:
+                repository.submit_if_current(
+                    content={"goal": f"Reviewed proposal {index}"},
+                    source_stage="plan",
+                    expected_revision_id=revision.revision_id,
+                )
+                session.commit()
+                return "accepted"
+            except DesignRejected as exc:
+                session.rollback()
+                return exc.reason
+        finally:
+            session.close()
+
+    assert sorted(_run_concurrently(2, accept)) == ["accepted", "stale_proposal"]
+    session, workflows = _repo_in_new_session(pg_sessions, world)
+    try:
+        revisions = StudyDesignRepository(session, workflows.scope).revisions()
+        assert len(revisions) == 2
+        assert revisions[0].parent_revision == revision.revision
+    finally:
+        session.close()
