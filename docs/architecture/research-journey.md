@@ -6,7 +6,10 @@
   design-system reference package (#72; CI run 211, *Deploy develop* run 35).
 - **Checked at 17:40 UTC against the PO's first increment**, draft PR #74 @ `7b9e9dc` (CI green).
   §4.2, §4.3 and §5 say what it changes.
-- **Phase B has not started.** J1, J3, J4 and J5 have no branch yet; §9 lists what Phase B needs.
+- **Phase B has not started.** At 18:05 UTC the component PRs were #74 @ `184699c` and #77 @
+  `b28e1bf` (PO; #77 is stacked on #74), #75 @ `efa3971` (J1) and #76 @ `7c46e0c` (J3). J4 and J5
+  had none. The live list is PROGRESS's open pull request table, where each PR adds its own row.
+  §9 lists what Phase B needs.
 
 Tracker: [PROGRESS](../../.planning/PROGRESS.md). Chunks:
 [research-agent-workflows.md](../../.planning/plans/research-agent-workflows.md) § Integration.
@@ -234,6 +237,12 @@ the shared file (§5):
     (`domain/workflow_templates.py:14-21`).
   - Reference node keys are kept: `donor_qc`, `analysis_executive` … `analysis_limitations`,
     `interpret`, `verify`, `alignment`, `report`, `delivery`.
+  - **Open for Phase B:** J3's #76 specifies the eight analysis nodes as data
+    (`domain/analysis/steps.py:1-15, 43 @ 7c46e0c`). Each depends on `aggregate` only, so a blocked
+    module strands no other; the reference chains them one after another
+    (`legacy/npc-panel-18.6.6/app/workflow_engine.py:24-31`). J6 decides the shape when it adds
+    the nodes: parallel, as #76 proposes, unless one module reads another's output. `interpret`
+    would then depend on all eight.
   - Deep Research is its own workflow type, pinned to a Design Revision (plan § Approach).
 - **Capabilities.**
   - One switch per capability family, off by default. Each has its own output cap and a
@@ -242,8 +251,11 @@ the shared file (§5):
   - `model_document()` binds only what is switched on (`:259-298`).
   - Bound today: `SIMULATION` (respondents), and `RESEARCH_REASONING` + `CRITIC` under
     `AIA_AI_RESEARCH_AGENTS_ENABLED`. `REPORT_WRITING`, `FAST_EXTRACTION` and `EMBEDDING` are unbound.
-- **Stored analysis is re-admitted, never deserialised** *(proposed; J3 and J4 confirm the stored
-  form before either lands).*
+- **Stored analysis is re-admitted, never deserialised.** J3 confirms it in #76 @ `7c46e0c`: the
+  `research_analysis_module` artifact keeps the draft the gate accepted and never a claim
+  (`domain/analysis/artifact.py:197`), and `reconstruct_module` re-admits on every read
+  (`application/analysis_results.py:594`). J4, which has no PR yet, reads outcomes only through
+  that API.
   - An `AdmittedClaim` cannot be rebuilt from a stored payload: its issuer is module-private
     (`domain/evidence/admission.py:185-201`), and `AnalysisModuleResult` has no serialiser.
   - So an analysis artifact stores the checked draft and the evidence table it was admitted
@@ -335,6 +347,10 @@ in `apps/api/src/aia_api/routers/workspace.py`:
 - *Test.* The reproduction, kept in `ExecutionSteps.test.tsx`.
 - *Owner.* J6, which owns the Run stage (§5). The fix is cheapest in #74, which already edits the
   file. If #74 merges without it, it becomes an OI.
+- **Fixed in #74 @ `184699c`** (`ExecutionSteps.tsx:96-107`), with two tests: *saves a change not
+  yet saved before the design becomes a revision* and *never submits a copy whose save AIA refused
+  because someone saved a newer one*. Re-run there, the reproduction fails, and #74's ten
+  `ExecutionSteps` tests pass.
 
 ### 4.3 What #74 changes, if it merges
 
@@ -391,6 +407,19 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
 - A trial merge of `7b9e9dc` into this PR's head is clean, and no OI number is reused.
 - The one semantic overlap was the ADR counts, which ADR 0018 would have made wrong. This PR drops
   the numbers.
+
+**Checked at 18:05 UTC against #75, #76 and #77.**
+
+- Each trial merge into this PR's head conflicts only where both sides add a row or an entry:
+  - #75: `.planning/PROGRESS.md` and `.planning/open-items.md`;
+  - #76: `.planning/PROGRESS.md`, `ARCHITECTURE.md` and `docs/architecture/README.md`;
+  - #77: `.planning/PROGRESS.md`.
+- **One collision of meaning: OI numbers.** #75 numbers its new entries OI-72 to OI-76, and this
+  PR numbers its own OI-72 and OI-73. Both started from OI-71 on `develop`.
+- **The rule for the register:** an OI number is taken when its PR merges. The PR that merges
+  later renumbers its new entries above `develop`'s highest, together with every reference to
+  them in that PR.
+- #77 adds no migration, so the one head after #74 stays `5b1d0f3e9a21`.
 
 ## 6. Rules every PR keeps
 
@@ -475,8 +504,8 @@ every component head recorded.
    delivery decisions over `ArtifactRepository.approve` / `freeze`. They take the place of the
    classic report link, or of #74's *not in AIA yet* sentence once #74 has merged (§5).
 4. Fix OI-64 inside the fieldwork executor, or do not claim retry-safe acceptance.
-5. The Run stage on the native draft is delivered by #74 (§4.2). J6 fixes the Run stage's missing
-   save (§4.2) if #74 does not, and the scenario checks both.
+5. The Run stage on the native draft, including the save before it submits, is delivered by #74
+   @ `184699c` (§4.2). The scenario checks both.
 6. Write the activation and live-acceptance runbook for the combined candidate. It names the
    revision, the switches, the approved data class and route, the scenario, a bounded proposed
    spend, rollback, and the evidence to collect. It is not executed without a new, explicit
@@ -495,7 +524,7 @@ every component head recorded.
 | Credentials come from Secrets Manager | `mvp-acceptance.md` AC-02; `parity-matrix.json` AC-02 and `ai.credentials`; PROGRESS D7 and D8 | Bedrock signs with the instance or container role (`infrastructure/model_adapters/aws_signing.py`, ADR 0010). A secret store is still needed for a keyed service such as a search API | corrected |
 | `preflight` pauses for a person on a warning; no executor exists for a real step; progress is sent as server-sent events | `workflows.md` | the reference pauses only on a BLOCKER. Research, proposal and snapshot executors exist. Events are a cursor-paged JSON list (`routers/research.py:480-507`), and the Progress stage polls the run | corrected |
 | The unit stays "as the oracle and a fallback" | ADR 0015 decision 5; OI-58 | the oracle and a frozen reference only; no runtime fallback (the user's direction) | handed to the PO. ADR 0018 in #74 says *reference only*; OI-58's removal condition still ends *as the oracle and a fallback* at `7b9e9dc` |
-| AIA's AI default is `claude_code_subscription` / `CLAUDE_CODE_ONLY` | `GET /api/v1/settings` (`routers/settings.py:200-217`) | these are persisted legacy fields; the worker binds Bedrock capabilities only | handed to J1 |
+| AIA's AI default is `claude_code_subscription` / `CLAUDE_CODE_ONLY` | `GET /api/v1/settings` (`routers/settings.py:200-217`) | these are persisted legacy fields; the worker binds Bedrock capabilities only | handed to J1; #75 @ `efa3971` corrects it (its own OI entry) |
 | Run, Progress and Results use no unit route; the rebuilt stages call unit AI routes | `docs/migration/interface-screens.json` | all eight stages need `/api/bootstrap` and `/api/projects/load`; the AI actions are native agent jobs | handed to the PO. #74 empties the research stages' `unit_routes`, which is true on that branch |
 | Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the question is OI-73 |
 | Implementation states of `ai.gateway`, `ai.usage_ledger`, `ai.credentials`, `reports.generation` (`NOT_STARTED`) and `workflow.step_execution`'s note ("No research step body exists") | `parity-matrix.json` | all have merged code. Re-grading them touches the module inventory (OI-30) | handed to the parity owner |
@@ -536,5 +565,10 @@ These are findings from this inventory, anchored at `ceee2dc`, that sit in the P
 
   #74 moves each research-stage item onto AIA or marks it *V AIA zatím není* (§4.3). The
   classic-projects pages still call the unit until increment 4.
+- **A flake the research screens own.** #75 records one on `develop`: under a loaded full web run,
+  the native-job waits in the Brief and Audience tests outrun their 15 s budget
+  (`apps/web/src/components/rehome/research/test-native-agents.ts:53`; #75's OI-76, whose number
+  is subject to the §5 rule). The tests are the PO's stage files. The wait is the native jobs'
+  helper, which J6 takes in Phase B, or sooner if it turns a CI run red.
 - **The product README's index links three documents that were never written:**
   `docs/product/README.md:171-173`.

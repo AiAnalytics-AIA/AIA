@@ -2349,6 +2349,12 @@ Changing the gate changes the shared test fixture as well; that is the point.
 adapter. It is a rule of the research journey's contract (`docs/architecture/research-journey.md`
 §4, §6 rule 6).
 
+*2026-09-27, 18:05 UTC:* Job 3's draft PR #76 @ `7c46e0c` closes the path for native instrument
+evidence. Its rows carry the aggregate's origin, and its instrument policy refuses a row that
+names none (`domain/evidence/instrument.py:132-139`). The gate's default is unchanged
+(`admission.py:91, 244`), so this stays open for any other builder of an `EvidenceRow`. Its
+number is subject to the contract's rule for concurrent entries (§5): #75 also numbers an OI-72.
+
 ---
 
 ## OI-73 · Decision owed (data owner) · May a file attached to a fictional client's study reach a model as Class C?
