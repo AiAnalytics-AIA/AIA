@@ -2214,3 +2214,29 @@ in `AGENTS.md` beside the worker's own conftest.
 **Status.** Fixed: PR #65, merged 2026-09-27 10:30 (`e0edf2a`). Before it landed, the same race
 also crashed CI on `develop` @ `46b7337` with a segmentation fault inside this test (run
 36312008574; the crashing thread was in a worker transaction on the shared connection).
+
+---
+
+## OI-70 · Observed flake · BriefStep's problem-type toggle is read before it re-renders
+
+**Claim.** `apps/web/src/components/rehome/research/BriefStep.test.tsx` › *a problem type
+is a toggle that fills an empty goal with its default* clicks a tile and synchronously
+expects `aria-pressed="true"`. It failed once with `expected 'false' to be 'true'`
+(`BriefStep.test.tsx:99`).
+
+**Anchor.** `BriefStep.test.tsx:97-99` @ `cfb1532` (2026-09-24); unchanged by PR #63.
+
+**Reproduction.** Intermittent: 1 failure in 26 full `npm test` runs on a 4-core machine
+(2026-09-27; 20 on #63 merged with `develop`, 6 on #63 before the merge). It has not been
+reproduced alone, so the cause is a hypothesis: the pressed state is set through the
+research store and rendered on a later tick, and a loaded worker sees the old one.
+
+**Consequence.** A red *Frontend* job on any PR, unrelated to that PR's change.
+
+**Smallest fix.** Assert through `await waitFor(...)`, or find the pressed tile with
+`findByRole("button", { name: …, pressed: true })`, not a synchronous read after the
+click. First confirm the cause by running the file under load.
+
+**Test that would have caught it.** The test itself, run repeatedly under load.
+
+**Status.** Open (2026-09-27).
