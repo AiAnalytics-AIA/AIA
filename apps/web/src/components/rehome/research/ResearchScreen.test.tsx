@@ -31,6 +31,9 @@ function api(load: () => unknown, save: (b: Record<string, unknown>) => unknown 
         u === "/config" ? { apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost" }
         : u === CONTENT_PATH && method === "GET" ? load()
         : u === CONTENT_PATH && method === "PUT" ? save(body ?? {})
+        : u.endsWith("/research/readiness") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test" }
+        : u.endsWith("/research/runs") ? { items: [] }
+        : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
         : u.endsWith("/research/agent-jobs") ? []
         : {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
@@ -138,6 +141,7 @@ describe("ResearchScreen", () => {
     );
     const { rerender } = render(page("run"));
     await screen.findByText("Uloženo");
+    await screen.findByRole("list", { name: t("research.exec.steps.preflight") });
     rerender(page("results"));
     expect(await screen.findByRole("heading", { name: "7. Výsledky" })).toBeTruthy();
     expect(loads()).toHaveLength(1);

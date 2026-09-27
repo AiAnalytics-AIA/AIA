@@ -226,18 +226,40 @@ PR 5 — the deployment without 18.6.6 (`feature/deploy-without-legacy`)
 - [ ] 12. Workbench without the unit by default; offline verification recorded;
   ADR 0018, OI-58/59, PROGRESS
 
-## Operator sequence (none of it is run by an agent)
+## One cutover, after combined acceptance
 
-1. Merge PR 1, deploy. Bound Studies show *Čeká na migraci z 18.6.6*; new Studies
-   work natively.
-2. Merge PR 2, deploy. On the host, by `deploy/develop/README.md` § Migrating 18.6.6
-   content: take a WAL-safe copy of the unit's state (`bin/backup-legacy-state.py`)
-   and of its attachment directory, run the migration as a dry run, read the report,
-   back up PostgreSQL, run it with `--apply`, keep both reports. Only when the copy is
-   known complete, `--recover-missing` for the Studies whose project it lacks.
-3. Merge PR 3 and PR 4, deploy.
-4. Merge PR 5, deploy: the unit stops being part of the product. Its volume and
-   data bundle stay untouched; `deploy/reference/` can start it again as the oracle.
+**User direction, 2026-09-28:** do not deploy #74 alone. The old sequence of separate
+increment deployments below the earlier version of this plan is superseded. A merge to
+`develop` automatically deploys; merging the parent PRs one at a time is therefore not a
+safe way to assemble this release.
+
+1. Prepare one candidate from #74 → #77 → #78 → #82, including #74's latest Run-conflict
+   regression and PlanStep test repair. Complete chunks 10–12 (PR 5) in that candidate
+   before declaring independence. Include #75's truthful AI controls; resolve its Settings
+   overlap by retaining the ControlPanel and removing classic navigation. Include #73's
+   production-state contract and merged #83/#84 repairs. Validate the combined tree, not
+   just each parent head. This candidate is a draft; it is not deployed.
+2. With the runbook's export/copy authority in place, take a WAL-safe copy of the unit's
+   state (`bin/backup-legacy-state.py`) and its attachment directory. Against an isolated
+   restored PostgreSQL copy, run the migration dry run, read the per-study report, apply it,
+   and verify all supported content and attachments with the unit offline. Keep both reports.
+   Only a known-complete copy can authorize `--recover-missing` for a Study whose project
+   the copy lacks. This preparation does not change the live unit or its volumes.
+3. Establish and test the live transition **before** merging the candidate: the current
+   `deploy.sh` switches services before the manual content migration, so even a combined
+   merge would expose `AWAITING_MIGRATION` studies. The release must either migrate and
+   validate content before exposing the native UI, or use an explicitly agreed maintenance
+   window with writes stopped, a PostgreSQL backup, migration report and tested rollback.
+   Do not treat merging #77's tool as having migrated any Study. The existing failed live
+   smoke (run `36357121087`, `ScopeDenied` in seed loading) also needs a resolved verdict.
+4. Merge and deploy the accepted combined candidate once. Verify the expected build,
+   migration verdict for every supported bound Study, native saving and Run conflict refusal,
+   attachments/import, scoped access, and the browser journey with 18.6.6 stopped. The
+   unit's volume, data bundle and frozen source remain preserved; the optional reference
+   stack may start it separately. Report unavailable features and the incomplete overall
+   research journey explicitly; independence does not establish workflow completion.
+
+No cutover, data export, live migration or model call has been performed by this candidate.
 
 ## Review outcome
 

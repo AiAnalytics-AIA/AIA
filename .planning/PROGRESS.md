@@ -3,8 +3,8 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-27 · **Code of record:** `develop` @ `48bf3e2` · **Release:** `main` @ `9cf1f58`,
-259 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
+**Updated:** 2026-09-28 · **Code of record:** `develop` @ `8c13a11` · **Release:** `main` @ `9cf1f58`,
+263 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -18,6 +18,8 @@ entry is a **hypothesis**, not a finding.
 ---
 
 ## Where the code is — consolidation, 2026-09-27
+
+**Combined cutover candidate:** `integration/phaseout-cutover-review` assembles #74/#77/#78/#82, the latest #74 tests, #75 and #73, plus current `develop`. Settings keeps #75's truthful controls and #82's classic-navigation removal. It is isolated and not release-ready: chunks 10–12 and a validated migration-before-exposure or agreed maintenance transition remain open. [The phase-out plan](plans/legacy-phase-out.md) now requires one cutover instead of separate parent deployments.
 
 **`develop` holds the newest code, and nothing merged anywhere else is missing from
 it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully contained in it
@@ -49,7 +51,9 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `dd27f68` (#72's merge), green** (*Deploy develop* run 35, 16:52 UTC), after CI run
+**Latest release status (2026-09-28):** #83's merge `48bf3e2` replaced the running services, but deploy run `36357121087` failed its slice smoke with `ScopeDenied` while loading the existing seed, before creating a fresh run. Web/API/readiness/worker/storage checks passed. #84 merged as `8c13a11` after all head CI checks passed; its develop CI/deployment is pending. No phase-out candidate has been deployed.
+
+**Last fully successful deployment: `dd27f68` (#72's merge), green** (*Deploy develop* run 35, 16:52 UTC), after CI run
 211 passed on the same SHA; #72 changed no product code. Run 34 (`ceee2dc`, #70's merge, 16:08,
 after CI run 209), run 32 (`4c4c3dd`, 14:28) and run 33 (`53de110`, 15:11) were green too.
 Earlier, runs 29 (`14a124b`, 11:11) and 30 (`85fa951`, 11:33) had replaced every service and
