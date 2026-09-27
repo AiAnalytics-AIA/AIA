@@ -1143,6 +1143,27 @@ vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 await screen.findByRole("dialog", {}, NATIVE_JOB_WAIT);
 ```
 
+**An element on screen does not mean its store subscription exists.**
+`useSyncExternalStore` subscribes in a passive effect, and React runs passive
+effects after the commit that drew the element, not in it. A `findBy*` can
+resolve in between. A click whose only effect is a store update then has no
+subscriber, so nothing renders. React renders it when the effect subscribes and
+finds the store changed. The click is not lost, but a synchronous read straight
+after it sees the old DOM. `BriefStep.test.tsx` › *a problem type is a toggle…*
+failed this way once in 26 local runs, and once in CI (#68, 2026-09-27). With a
+log at the click, the 2 failures in 61 runs were exactly the 2 runs in which the
+same commit's other effects (the agents' `agent-jobs` request) had not run yet
+(OI-70). Wait for what the click changes; do not read it synchronously.
+
+```ts
+// WRONG: right after mount, the store may not be subscribed yet
+fireEvent.click(tile);
+expect(tile.getAttribute("aria-pressed")).toBe("true");
+// RIGHT: resolves on the render the subscription makes
+fireEvent.click(tile);
+await screen.findByRole("button", { name: /Nový produkt/, pressed: true }, { timeout: 5_000 });
+```
+
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.
