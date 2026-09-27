@@ -128,8 +128,9 @@ validation (only support and suppression), verification or alignment.
       aggregate
 - [x] 3. Harness: `analysis/harness.py` (agent, request per turn, invalid-output marker,
       classification, lineage, identity). — code + tests: `test_analysis_harness.py` (13)
-- [ ] 4. Artifact contract and graph spec: `analysis/artifact.py`, `analysis/steps.py`. —
-      code + tests
+- [x] 4. Artifact contract and graph spec: `analysis/artifact.py`, `analysis/steps.py`. —
+      code + tests: `test_analysis_artifact.py` (22), including the eight nodes joining the
+      research graph as a valid DAG
 - [ ] 5. Scoped sources and reconstruction: `application/analysis_results.py`. — code +
       tests (**PR A ends here**)
 - [ ] 6. Executor: `aia_executors/analysis.py`, generator with turn checkpoints, config,
