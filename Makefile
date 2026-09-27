@@ -28,7 +28,7 @@ setup: deps ## One-time setup: Python venv, dependencies, web packages
 deps: ## Create the venv and install Python packages in editable mode
 	@test -d $(VENV) || python3 -m venv $(VENV)
 	@$(VENV)/bin/python -m pip install -q --upgrade pip
-	@$(VENV)/bin/python -m pip install -q -e "packages/aia_core[dev,postgres,s3,report,bedrock]"
+	@$(VENV)/bin/python -m pip install -q -e "packages/aia_core[dev,postgres,s3,report,bedrock,documents]"
 	@$(VENV)/bin/python -m pip install -q -e "apps/worker[dev]"
 	@$(VENV)/bin/python -m pip install -q -e "apps/executors[dev]"
 	@$(VENV)/bin/python -m pip install -q -e "apps/api[dev]"

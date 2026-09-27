@@ -1912,10 +1912,10 @@
     }
    ],
    "slice": 3,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/workspace/attachments",
+   "scope": "study",
+   "notes": "bytes are an artifact of the study's working project in AIA storage, not a file in the unit's tree; the name reduction, 25 MB limit, 6 000-character excerpt and text_extracted are the unit's, and the text is read by the unit's own libraries (test_document_text.py); the brief keeps the record, never a URL (ADR 0018)",
    "decision": null
   },
   {
@@ -4047,10 +4047,10 @@
     }
    ],
    "slice": 15,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/workspace/attachments/{attachment_id}",
+   "scope": "study",
+   "notes": "served only through the study that holds the file, to anyone who may read it; the unit served any file to anyone who knew its name; always application/octet-stream as an attachment, hash-verified on read (ADR 0018)",
    "decision": null
   },
   {

@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
@@ -30,10 +30,13 @@ const BOOT = {
 type Call = { url: string; body: unknown };
 let calls: Call[] = [];
 
-/** The unit, answering by path; `over` replaces any answer. */
-function unitStub(project: Record<string, unknown>, over: Record<string, (body: unknown) => unknown> = {}, analysis: unknown = null) {
+const ATTACH_PATH = "/api/v1/studies/STU-1/workspace/attachments";
+let ws: ReturnType<typeof workspaceFixture>;
+
+/** AIA, answering by path; `over` replaces any answer. `project` null is a study never saved. */
+function unitStub(project: Record<string, unknown> | null, over: Record<string, (body: unknown) => unknown> = {}, analysis: unknown = null) {
   calls = [];
-  const ws = workspaceFixture(project, { analysis });
+  ws = workspaceFixture(project, { analysis });
   const native = nativeAgentFixture((_action, baseline) => ({ project: { ...baseline, research_plan: { status: "analyzed", objectives: ["Změřit zájem"] } }, proposal: { objectives: ["Změřit zájem"] }, analysis: { objectives: ["Změřit zájem"] } }), over);
   vi.stubGlobal(
     "fetch",
@@ -122,14 +125,68 @@ describe("Zadání", () => {
     expect(screen.getByText("Zatím bez příloh.")).toBeTruthy();
   });
 
-  it("uploads picked files one request each, as base64, and lists what the unit read", async () => {
-    unitStub({}, { "/api/project/attachment": (b) => ({ kind: "file", filename: (b as { filename: string }).filename, size_bytes: 2048, text_extracted: true, sha256: "s" }) });
+  const record = (b: unknown, n = 1) => ({
+    kind: "file",
+    attachment_id: `ART-${n}a`,
+    filename: (b as { filename: string }).filename,
+    extension: ".txt",
+    content_type: "text/plain",
+    size_bytes: 2048,
+    text_extracted: true,
+    sha256: `s${n}`,
+    context_excerpt: "ahoj",
+  });
+
+  it("keeps picked files in AIA, one request each, as base64, and the brief saves their records", async () => {
+    unitStub({}, { [ATTACH_PATH]: (b) => record(b) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     const input = await screen.findByLabelText("Soubory k zadání");
     fireEvent.change(input, { target: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })] } });
     expect(await screen.findByText("zadani.txt")).toBeTruthy();
     expect(screen.getByText("2 KB · text načten")).toBeTruthy();
-    expect(posted("/api/project/attachment").map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
+    expect(posted(ATTACH_PATH).map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
+    // Nothing reaches 18.6.6.
+    expect(calls.filter((c) => c.url.startsWith("/api/project"))).toEqual([]);
+    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_attachments"), { timeout: 4000 });
+    expect((ws.saves.at(-1)?.content.briefing as { attachments: unknown[] }).attachments).toEqual([record({ filename: "zadani.txt" })]);
+  });
+
+  it("saves a study that was never saved before its first file, so the file has somewhere to be", async () => {
+    unitStub(null, { [ATTACH_PATH]: (b) => record(b) });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.change(await screen.findByLabelText("Soubory k zadání"), { target: { files: [new File(["ahoj"], "zadani.txt")] } });
+    expect(await screen.findByText("zadani.txt")).toBeTruthy();
+    const order = calls.filter((c) => c.body !== null && (c.url === ATTACH_PATH || c.url.endsWith("/workspace/content"))).map((c) => c.url.split("/").at(-1));
+    expect(order[0]).toBe("content");
+    expect(order[1]).toBe("attachments");
+    expect(ws.saves[0]).toMatchObject({ base_revision: null, reason: "brief_attachments" });
+  });
+
+  it("downloads a kept file through the study, and says when a file is not in AIA", async () => {
+    // jsdom has no object URLs and does not navigate: both are stood in for, and put back.
+    const created: Blob[] = [];
+    const clicked = vi.fn();
+    const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
+    URL.createObjectURL = (b: Blob) => (created.push(b), "blob:1");
+    URL.revokeObjectURL = () => {};
+    HTMLAnchorElement.prototype.click = clicked;
+    onTestFinished(() => {
+      URL.createObjectURL = real.create;
+      URL.revokeObjectURL = real.revoke;
+      HTMLAnchorElement.prototype.click = real.click;
+    });
+    unitStub(
+      { briefing: { attachments: [record({ filename: "zadani.txt" }), { kind: "file", filename: "stare.pdf", size_bytes: 1024, attachment_id: "ATT-legacy" }] } },
+      { [`${ATTACH_PATH}/ART-1a`]: () => new Response("ahoj", { status: 200, headers: { "Content-Type": "application/octet-stream" } }) },
+    );
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Stáhnout přílohu zadani.txt" }));
+    await waitFor(() => expect(clicked).toHaveBeenCalledTimes(1));
+    expect(await created[0].text()).toBe("ahoj");
+    expect(calls.map((c) => c.url)).toContain(`${ATTACH_PATH}/ART-1a`);
+    // A record whose file never came into AIA offers no download, and says why.
+    expect(screen.queryByRole("button", { name: "Stáhnout přílohu stare.pdf" })).toBeNull();
+    expect(screen.getByText("1 KB · reference · soubor není uložen v AIA")).toBeTruthy();
   });
 
   it("runs the analysis as a job, keeps the person's brief, and goes on to the plan", async () => {

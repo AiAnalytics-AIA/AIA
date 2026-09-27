@@ -57,8 +57,6 @@ const attachments = (p: ResearchProject): Attachment[] => p.briefing?.attachment
 
 /** uploadBriefAttachments1785 reads at most this many files per pick. */
 export const MAX_FILES_PER_PICK = 8;
-/** Its request timeout: a large file's text is extracted before the unit answers. */
-export const ATTACHMENT_TIMEOUT_MS = 180_000;
 
 /** fileToB64: a file's bytes as base64, read in 32 KiB chunks so a large file never overflows the call stack. */
 export async function fileToBase64(file: Blob): Promise<string> {
@@ -68,7 +66,7 @@ export async function fileToBase64(file: Blob): Promise<string> {
   return btoa(chunks.join(""));
 }
 
-/** The records POST /api/project/attachment returned, appended in order. */
+/** The records POST /api/v1/studies/{id}/workspace/attachments returned, appended in order. */
 export function addAttachments(p: ResearchProject, records: Attachment[]): ResearchProject {
   return { ...p, briefing: { ...(p.briefing || {}), attachments: [...attachments(p), ...records] } };
 }
@@ -96,6 +94,16 @@ export function attachmentLine(x: Attachment): { name: string; detail: string } 
     name: x.filename || "Příloha",
     detail: `${Math.round((x.size_bytes || 0) / 1024)} KB${x.text_extracted ? " · text načten" : " · reference"}`,
   };
+}
+
+/**
+ * The AIA artifact holding a file attachment's bytes, or null: a link has none, and
+ * a record whose file was never brought into AIA says so instead of offering a
+ * download that cannot work (ADR 0018).
+ */
+export function storedAttachmentId(x: Attachment): string | null {
+  if (x.kind === "url") return null;
+  return typeof x.attachment_id === "string" && /^ART-[0-9a-f]{1,32}$/.test(x.attachment_id) ? x.attachment_id : null;
 }
 
 /** briefAttachmentContext1785: what the model reads of the attachments, at most 22 000 characters. */

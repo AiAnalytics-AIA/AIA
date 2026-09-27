@@ -1104,10 +1104,29 @@ missing; a component test stubs it to set `open` (`ProjectsScreen.test.tsx`).
 
 **jsdom's `Blob` has no `arrayBuffer()`.** Every current browser has it, so app
 code calls `file.arrayBuffer()` directly (`fileToBase64` in
-`src/unit/research/brief.ts`); a component test that uploads a `File` fails with
+`src/research/brief.ts`); a component test that uploads a `File` fails with
 an error the screen then shows, not a thrown one, which reads as a rendering
 bug. Polyfill it in the test through `FileReader`, never in app code
 (`BriefStep.test.tsx`).
+
+**jsdom has no `URL.createObjectURL`, and a clicked `<a download>` goes nowhere.**
+A download that needs the bearer token cannot be a plain link: the app fetches the
+bytes (`workspace.attachment` in `src/lib/api.ts`), makes an object URL and clicks a
+temporary anchor. Under jsdom the first call throws `TypeError: URL.createObjectURL is
+not a function`, which the screen shows as a failed download. Stand both in for
+inside the test and put them back with `onTestFinished` -- assigning to `URL` or
+`HTMLAnchorElement.prototype` outlives the test otherwise, and `vi.unstubAllGlobals`
+does not restore a property that was assigned rather than stubbed
+(`BriefStep.test.tsx`, "downloads a kept file through the study").
+
+```ts
+// WRONG: mutates the real URL object for every later test in the file
+vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:1" }));
+// RIGHT
+const real = URL.createObjectURL;
+URL.createObjectURL = () => "blob:1";
+onTestFinished(() => { URL.createObjectURL = real; });
+```
 
 **Don't list the router in a load effect's dependencies.** A test's
 `vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))` returns a

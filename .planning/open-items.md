@@ -1899,6 +1899,12 @@ Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-
   `test_study_workspaces.py`, `test_workflow_concurrency.py` ›
   *two editors saving from one revision cannot overwrite each other*,
   `test_client_api.py` › *a save from a stale revision is a conflict…*.
+- **Landed (same branch, chunk 3):** the brief's attachments are artifacts of the working
+  project in AIA's storage (`POST`/`GET /api/v1/studies/{study_id}/workspace/attachments`),
+  their text read by the unit's own libraries and compared with the unit's function
+  (`test_document_text.py`); nothing of the brief reaches the unit. Tests:
+  `test_study_workspaces.py` › *an attachment is served only through its own study*,
+  `test_client_api.py` › *a file is attached in AIA and downloaded only through its study*.
 - **Still open:** the migration of the bound content (chunk 7), and the removal of the
   unit from the product (chunks 9–11). The unit store still holds the develop Studies'
   content until the migration runs there.

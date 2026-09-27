@@ -33,7 +33,6 @@ export const UNIT_ROUTES = {
   workflow: { route: "GET /api/workflows/", path: under("/api/workflows/") },
   supportBundle: "POST /api/support/bundle",
   researchAnalyze: "POST /api/research/analyze",
-  projectAttachment: "POST /api/project/attachment",
   settingsAiCheck: "POST /api/settings/ai_check",
   questionnaireUpload: "POST /api/questionnaire/upload",
   questionnaireOptimize: "POST /api/questionnaire/optimize",

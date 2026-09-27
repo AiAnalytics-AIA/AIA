@@ -132,7 +132,14 @@ PR 1 — native research workspace (`feature/native-research-workspace`)
   the workbench fixtures are written through AIA — tests: `store.test.ts`,
   `ResearchScreen.test.tsx`, every stage's test on `test-workspace.ts`,
   `test_ui_workbench_fixtures.py`
-- [ ] 3. Attachments in AIA storage
+- [x] 3. Attachments in AIA storage: `domain/attachments.py` (the unit's rules),
+  `infrastructure/document_text.py` (the unit's `_extract_text`, the same libraries as
+  the `documents` extra, ZIP bounds added), `StudyWorkspaceRepository.attach` /
+  `.attachment` (artifacts of the working project), `POST`/`GET
+  /studies/{id}/workspace/attachments[/{attachment_id}]`, the brief's upload and download
+  — tests: `test_document_text.py` (fixtures captured from the unit by
+  `tools/attachment_text_capture.py`), `test_study_workspaces.py`, `test_client_api.py`,
+  `BriefStep.test.tsx`
 - [ ] 4. Questionnaire import ported (stdlib XLSX/CSV)
 - [ ] 5. Audience and Dimenze without the unit; unit job runner, provider checks
   and support bundle removed from the research flow

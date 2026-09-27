@@ -167,6 +167,7 @@ packages/aia_core/src/aia_core/
     workspace.py            A research Study's working content: ContentState (EMPTY … AWAITING_MIGRATION),
                             validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58)
     research_template.py    The research template a new study starts from (the unit's empty project)
+    attachments.py          A brief attachment's record and the unit's rules (25 MB, the name, the excerpt)
     knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015)
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
@@ -243,7 +244,10 @@ packages/aia_core/src/aia_core/
                             Design Revisions; the ONLY writer of a Study's design (ADR 0016)
     study_workspace_repository.py  A Study's working content in its owned working project
                             (projects.owner = study_workspace): load, save naming its base revision
-                            (a stale one refused), history; found only through the Study (ADR 0018)
+                            (a stale one refused), history; the brief's attachments as artifacts of
+                            that project; found only through the Study (ADR 0018)
+    document_text.py        An attachment's text, read as the unit read it (pypdf, python-docx,
+                            openpyxl: the `documents` extra), with the ZIP bounds the unit lacked
     client_knowledge_repository.py  The ONLY reader/writer of Client Knowledge: read inside a
                             resolved scope, changed only by an approved proposal (new revision)
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
@@ -287,6 +291,8 @@ tools/aggregate_capture.py  Research fixtures from the unit's own functions: `ca
                             the unit's venv), `self` (AIA's pinned bounds)
 tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own behavior.py / styly.py
                             (`capture`, in an environment with NumPy, pandas and SciPy)
+tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
+                            unit's own `_extract_text` on each (`capture`, with the unit's libraries)
 tools/bootstrap_seed_sensitivity.py  The unit's bootstrap spread over seeds: the evidence for OI-62
 tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; `effective` prints the binding
                             that runs (the last declaration or reassignment); check the UI ledger
@@ -360,7 +366,10 @@ names the revision it was edited from and a stale one is refused (409), never
 applied over a newer one. A study bound to 18.6.6 before ADR 0018 is
 `AWAITING_MIGRATION` -- not editable -- until the explicit migration of its 18.6.6
 content ([legacy-phase-out.md](.planning/plans/legacy-phase-out.md) chunk 7) brings it
-over; `unit_project_id` is lineage only, and nothing finds a study by it.
+over; `unit_project_id` is lineage only, and nothing finds a study by it. The files a
+brief carries are artifacts of the same working project, in AIA's storage
+(`/workspace/attachments`), served only through the Study as `application/octet-stream`;
+the brief keeps their records, never a URL.
 
 **Client Knowledge is scoped before it is read.** `ClientKnowledgeRepository`
 takes a `ClientContext` or `StudyContext` and queries by that client; there is

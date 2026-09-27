@@ -55,10 +55,8 @@
    "area": "A4",
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/brief",
-   "unit_routes": [
-    "POST /api/project/attachment"
-   ],
-   "notes": "Also /app/research/<id>/brief. The analysis job hands on to /app/research/<id>/plan. Capture pair: 0 classic texts missing at 1440 and 1024. Differences are listed in .planning/plans/research-flow-rehome.md: the provider notice stays on the screen, the error card says what failed, one button uploads, a new project says it is not saved yet.",
+   "unit_routes": [],
+   "notes": "Also /app/research/<id>/brief. The analysis job hands on to /app/research/<id>/plan. Capture pair: 0 classic texts missing at 1440 and 1024. Differences are listed in .planning/plans/research-flow-rehome.md: the provider notice stays on the screen, the error card says what failed, one button uploads, a new project says it is not saved yet. Attachments are kept in AIA's storage (POST/GET /api/v1/studies/{study_id}/workspace/attachments, ADR 0018); nothing on the screen reaches the unit.",
    "fixture": "empty"
   },
   {

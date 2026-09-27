@@ -4,16 +4,31 @@ The stages save one document per Study every few seconds. These tests pin the
 rules that keep that store the Study's own: read and written only through an issued
 scope, never found by a project id or an 18.6.6 unit id, refused from a stale copy
 instead of silently overwriting a newer save, and never editable while the Study's
-content still waits to be migrated from 18.6.6.
+content still waits to be migrated from 18.6.6. The brief's attachments follow the
+same rules: kept in AIA's storage on the working project, served only through the
+Study.
 """
 
 from __future__ import annotations
 
+import hashlib
 import inspect
+from pathlib import Path
 from typing import Any
 
 import pytest
 
+from aia_core.domain.attachments import (
+    ATTACHMENT_ARTIFACT_TYPE,
+    ATTACHMENT_MAX_BYTES,
+    ATTACHMENT_STAGE,
+    CONTEXT_EXCERPT_CHARS,
+    AttachmentRejected,
+    attachment_record,
+    content_type_of,
+    safe_filename,
+    validate_attachment,
+)
 from aia_core.domain.scope import ScopeDenied, StudyStatus
 from aia_core.domain.workspace import (
     WORKING_CONTENT_MAX_BYTES,
@@ -22,7 +37,9 @@ from aia_core.domain.workspace import (
     WorkspaceRejected,
     validate_working_content,
 )
+from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
 from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
+from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
@@ -270,3 +287,141 @@ def test_a_clients_workspaces_are_only_the_studies_its_scope_opens(
     seen = workspaces.in_client(lead)
     assert set(seen) == {scoped.studies["primary"].study_id, scoped.studies["sibling"].study_id}
     assert all(w.state is ContentState.NATIVE for w in seen.values())
+
+
+# -- attachments ---------------------------------------------------------------
+
+DOCX = (
+    Path(__file__).parent / "fixtures" / "attachment_text" / "inputs" / "zadani.docx"
+).read_bytes()
+
+
+def test_an_attachment_is_kept_in_aia_storage_on_the_working_project(
+    scoped: Any, workspaces: StudyWorkspaceRepository, session: Any
+) -> None:
+    lead = scoped.scope()
+    store = InMemoryArtifactStore()
+    workspaces.save(lead, content=BRIEF, base_revision=None)
+    record = workspaces.attach(lead, store, filename="Zadání klienta.docx", data=DOCX)
+    # The unit's record, with the unit's name reduction and the unit's excerpt.
+    assert record.kind == "file"
+    assert record.filename == "Zad_n_ klienta.docx"
+    assert (record.extension, record.size_bytes) == (".docx", len(DOCX))
+    assert record.sha256 == hashlib.sha256(DOCX).hexdigest()
+    assert record.text_extracted is True
+    assert record.context_excerpt.startswith("Zadání výzkumu: fiktivní ranní nápoj")
+    assert record.attachment_id.startswith("ART-")
+
+    artifact, data = workspaces.attachment(scoped.scope(user="viewer"), store, record.attachment_id)
+    assert data == DOCX
+    assert (artifact.stage_type, artifact.artifact_type) == (
+        ATTACHMENT_STAGE,
+        ATTACHMENT_ARTIFACT_TYPE,
+    )
+    assert artifact.metadata["filename"] == record.filename
+    ws = workspaces.get(lead)
+    assert ws is not None and artifact.project_id == ws.project_id
+    assert artifact.produced_by_user_id == lead.actor_id
+    # Nothing in the brief changed: the stage adds the record and saves.
+    assert workspaces.content(lead).revision == 1
+    # The bytes sit under the Study's own storage prefix.
+    assert f"/{lead.study_id}/" in artifact.storage_key
+
+
+def test_a_file_that_cannot_be_read_is_kept_and_says_so(
+    scoped: Any, workspaces: StudyWorkspaceRepository
+) -> None:
+    lead = scoped.scope()
+    store = InMemoryArtifactStore()
+    workspaces.save(lead, content=BRIEF, base_revision=None)
+    record = workspaces.attach(lead, store, filename="foto.png", data=b"\x89PNG not really")
+    assert (record.text_extracted, record.context_excerpt) == (False, "")
+    assert workspaces.attachment(lead, store, record.attachment_id)[1] == b"\x89PNG not really"
+
+
+def test_nothing_is_attached_to_a_study_without_saved_content_or_awaiting_migration(
+    scoped: Any, workspaces: StudyWorkspaceRepository, session: Any
+) -> None:
+    store = InMemoryArtifactStore()
+    with pytest.raises(WorkspaceConflict) as unsaved:
+        workspaces.attach(scoped.scope(), store, filename="a.txt", data=b"text")
+    assert unsaved.value.reason == "not_saved"
+    _awaiting(session, scoped, study="sibling")
+    with pytest.raises(WorkspaceConflict) as waiting:
+        workspaces.attach(scoped.scope(study="sibling"), store, filename="a.txt", data=b"text")
+    assert waiting.value.reason == "awaiting_migration"
+    assert store._objects == {}
+
+
+def test_only_editors_of_an_open_study_attach_and_the_file_is_checked_first(
+    scoped: Any, workspaces: StudyWorkspaceRepository
+) -> None:
+    store = InMemoryArtifactStore()
+    workspaces.save(scoped.scope(), content=BRIEF, base_revision=None)
+    for user in ("viewer", "reviewer"):
+        with pytest.raises(ScopeDenied):
+            workspaces.attach(scoped.scope(user=user), store, filename="a.txt", data=b"x")
+    for data, reason in ((b"", "empty"), (b"x" * (ATTACHMENT_MAX_BYTES + 1), "too_large")):
+        with pytest.raises(AttachmentRejected) as rejected:
+            workspaces.attach(scoped.scope(), store, filename="a.txt", data=data)
+        assert rejected.value.reason == reason
+    scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)
+    with pytest.raises(ScopeDenied):
+        workspaces.attach(scoped.scope(), store, filename="a.txt", data=b"x")
+    assert store._objects == {}
+
+
+def test_an_attachment_is_served_only_through_its_own_study(
+    scoped: Any, workspaces: StudyWorkspaceRepository, session: Any
+) -> None:
+    store = InMemoryArtifactStore()
+    lead = scoped.scope()
+    workspaces.save(lead, content=BRIEF, base_revision=None)
+    record = workspaces.attach(lead, store, filename="a.txt", data=b"primary")
+    workspaces.save(scoped.scope(study="sibling"), content=BRIEF, base_revision=None)
+    for other in (
+        scoped.scope(study="sibling"),
+        scoped.scope(user="other_lead", study="other_client"),
+    ):
+        with pytest.raises(ArtifactNotFound):
+            workspaces.attachment(other, store, record.attachment_id)
+    # Neither the generic project routes nor a run's artifact reader can see it.
+    with pytest.raises(ArtifactNotFound):
+        ArtifactRepository(session, lead, store).get(record.attachment_id)
+    with pytest.raises(ArtifactNotFound):
+        ArtifactRepository(session, lead, store, owner="study_design").get(record.attachment_id)
+    # And an artifact of the working project that is not an attachment is not served as one.
+    ws = workspaces.get(lead)
+    assert ws is not None and ws.project_id is not None
+    other_kind, _ = ArtifactRepository(session, lead, store, owner=WORKSPACE_PROJECT_OWNER).put(
+        project_id=ws.project_id,
+        revision=1,
+        stage_type="BRIEF",
+        artifact_type="SOMETHING_ELSE",
+        data=b"{}",
+    )
+    with pytest.raises(ArtifactNotFound):
+        workspaces.attachment(lead, store, other_kind.artifact_id)
+
+
+def test_an_attachments_name_is_reduced_exactly_as_the_unit_reduced_it() -> None:
+    """``ui_server.py:1024-1026``: Path(name).name, then the unsafe characters, then 160."""
+    cases = {
+        "zadani.pdf": "zadani.pdf",
+        "Zadání klienta (v2).docx": "Zad_n_ klienta _v2_.docx",
+        "../../etc/passwd": "passwd",
+        "C:\\fakepath\\brief.txt": "C_fakepath_brief.txt",
+        "": "attachment",
+        "ěščř": "_",
+        "a" * 200 + ".txt": "a" * 160,
+        " mezera.txt": " mezera.txt",
+    }
+    for raw, expected in cases.items():
+        assert safe_filename(raw) == expected, raw
+    assert validate_attachment("x.csv", b"a;b") == "x.csv"
+    record = attachment_record(
+        attachment_id="ART-1", filename="x.pdf", size_bytes=3, sha256="s", text="t" * 7000
+    )
+    assert (record.content_type, record.text_extracted) == ("application/pdf", True)
+    assert len(record.context_excerpt) == CONTEXT_EXCERPT_CHARS
+    assert content_type_of("x.unknown") == "application/octet-stream"

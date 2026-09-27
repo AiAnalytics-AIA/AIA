@@ -156,6 +156,13 @@ nothing when neither did, with its `project_events` entry. A save names the
 revision it was edited from; a stale one is refused under a lock on the Study row
 (`test_two_editors_saving_from_one_revision_cannot_overwrite_each_other`).
 
+A file the brief carries is a `project_artifacts` row of the working project
+(`artifact_type = STUDY_ATTACHMENT`, stage `BRIEF`) whose bytes are in the artifact
+store under the Study's prefix, uploaded and read back before the row is written, as
+every artifact is. The brief's `attachments[]` keeps the record (`attachment_id` is
+the artifact id); nothing stores a URL. Removing a record from the brief leaves the
+artifact, as 18.6.6 left the file.
+
 **Population registry.** `population_dataset_versions`, `populations`,
 `population_promotions`, `population_companion_sets`, `population_companion_assets`,
 `run_population_bindings`. Platform reference data, so the

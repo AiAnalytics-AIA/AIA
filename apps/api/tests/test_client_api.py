@@ -7,6 +7,8 @@ another client, and a direct attempt across it must fail closed (404).
 
 from __future__ import annotations
 
+import base64
+import hashlib
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -322,3 +324,61 @@ def test_the_unit_binding_route_is_gone(lead: TestClient, world: Any) -> None:
     """ADR 0018: nothing binds a study to an 18.6.6 project any more."""
     r = lead.put(f"{API}/studies/{world.study_id()}/workspace", json={"unit_project_id": "PRJ-1"})
     assert r.status_code == 405
+
+
+# --------------------------------------------------------------------------- #
+# The brief's attachments (ADR 0018): AIA's storage, served only through the study
+# --------------------------------------------------------------------------- #
+
+
+def test_a_file_is_attached_in_aia_and_downloaded_only_through_its_study(
+    lead: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    body = {
+        "filename": "Zadání.txt",
+        "data_b64": base64.b64encode("Fiktivní zadání".encode()).decode(),
+    }
+    unsaved = lead.post(f"{url}/attachments", json=body)
+    assert unsaved.status_code == 409 and unsaved.json()["code"] == "not_saved"
+
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    assert viewer.post(f"{url}/attachments", json=body).status_code == 403
+    created = lead.post(f"{url}/attachments", json=body)
+    assert created.status_code == 201
+    record = created.json()
+    assert record == {
+        "kind": "file",
+        "attachment_id": record["attachment_id"],
+        "filename": "Zad_n_.txt",
+        "extension": ".txt",
+        "content_type": "text/plain",
+        "size_bytes": len("Fiktivní zadání".encode()),
+        "sha256": hashlib.sha256("Fiktivní zadání".encode()).hexdigest(),
+        "text_extracted": True,
+        "context_excerpt": "Fiktivní zadání",
+    }
+    # Attaching changes nothing in the brief: the stage adds the record and saves.
+    assert lead.get(f"{url}/content").json()["revision"] == 1
+
+    download = viewer.get(f"{url}/attachments/{record['attachment_id']}")
+    assert download.status_code == 200
+    assert download.content == "Fiktivní zadání".encode()
+    assert download.headers["content-type"] == "application/octet-stream"
+    assert download.headers["content-disposition"] == 'attachment; filename="Zad_n_.txt"'
+    assert download.headers["x-content-type-options"] == "nosniff"
+
+    assert other_client_lead.get(f"{url}/attachments/{record['attachment_id']}").status_code == 404
+    assert other_client_lead.post(f"{url}/attachments", json=body).status_code == 404
+    assert lead.get(f"{url}/attachments/ART-0123456789abcdef").status_code == 404
+
+
+def test_an_attachment_is_checked_before_it_is_stored(lead: TestClient, world: Any) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    not_b64 = lead.post(f"{url}/attachments", json={"filename": "a.txt", "data_b64": "***"})
+    assert not_b64.status_code == 422 and not_b64.json()["code"] == "not_base64"
+    empty = lead.post(f"{url}/attachments", json={"filename": "a.txt", "data_b64": "="})
+    assert empty.status_code == 422
+    assert lead.post(f"{url}/attachments", json={"data_b64": "YQ=="}).status_code == 422
+    assert lead.get(f"{url}/attachments/not-an-artifact").status_code == 422

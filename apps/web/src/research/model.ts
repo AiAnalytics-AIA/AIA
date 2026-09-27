@@ -13,7 +13,11 @@ type Obj = { [k: string]: Json };
 
 export type Attachment = {
   kind?: string;
+  /** The artifact that holds a file's bytes in AIA (ART-…): served only through the study. */
+  attachment_id?: string;
   filename?: string;
+  extension?: string;
+  content_type?: string;
   url?: string;
   title?: string;
   size_bytes?: number;

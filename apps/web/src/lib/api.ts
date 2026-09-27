@@ -21,11 +21,11 @@ export class ApiError extends Error {
 
 export class Unauthenticated extends ApiError {}
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function send(method: string, path: string, body?: unknown): Promise<Response> {
   const token = await currentIdToken();
   if (!token) throw new Unauthenticated(401, "unauthenticated", "Not signed in.", null);
   const config = await loadConfig();
-  const response = await fetch(`${config.apiBase}${path}`, {
+  return fetch(`${config.apiBase}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -34,20 +34,33 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
+}
+
+async function refusal(response: Response): Promise<ApiError> {
   const requestId = response.headers.get("X-Request-ID");
-  if (response.status === 204) return undefined as T;
   const payload = (await response.json().catch(() => ({}))) as {
     code?: string;
     message?: string;
     details?: Record<string, unknown>;
   };
-  if (!response.ok) {
-    const code = payload.code ?? `http_${response.status}`;
-    const message = payload.message ?? response.statusText;
-    if (response.status === 401) throw new Unauthenticated(401, code, message, requestId);
-    throw new ApiError(response.status, code, message, requestId, payload.details ?? {});
-  }
-  return payload as T;
+  const code = payload.code ?? `http_${response.status}`;
+  const message = payload.message ?? response.statusText;
+  if (response.status === 401) return new Unauthenticated(401, code, message, requestId);
+  return new ApiError(response.status, code, message, requestId, payload.details ?? {});
+}
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const response = await send(method, path, body);
+  if (response.status === 204) return undefined as T;
+  if (!response.ok) throw await refusal(response);
+  return (await response.json().catch(() => ({}))) as T;
+}
+
+/** A file the API serves as bytes (an attachment): same authentication, same errors. */
+async function requestBlob(path: string): Promise<Blob> {
+  const response = await send("GET", path);
+  if (!response.ok) throw await refusal(response);
+  return response.blob();
 }
 
 export type Health = {
@@ -310,6 +323,19 @@ export type WorkingContent = {
 
 export type WorkingSave = { study_id: string; state: ContentState; revision: number; revision_id: string; deduplicated: boolean };
 
+/** What the brief keeps of an attached file (AttachmentResponse): never where it is stored. */
+export type AttachmentRecord = {
+  kind: "file";
+  attachment_id: string;
+  filename: string;
+  extension: string;
+  content_type: string;
+  size_bytes: number;
+  sha256: string;
+  text_extracted: boolean;
+  context_excerpt: string;
+};
+
 export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
 
 const enc = encodeURIComponent;
@@ -350,6 +376,10 @@ export const workspace = {
   ) => request<WorkingSave>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/content`, body),
   recordStage: (studyId: string, stage: string) =>
     request<void>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/stage`, { stage }),
+  attach: (studyId: string, body: { filename: string; data_b64: string }) =>
+    request<AttachmentRecord>("POST", `/api/v1/studies/${enc(studyId)}/workspace/attachments`, body),
+  attachment: (studyId: string, attachmentId: string) =>
+    requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/attachments/${enc(attachmentId)}`),
 };
 
 // ---- research execution (ADR 0016) -----------------------------------------

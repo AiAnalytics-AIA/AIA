@@ -62,7 +62,7 @@ jobs:
         # drives a real worker), so those install first.
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev,postgres,report,bedrock]"
+          pip install -e "packages/aia_core[dev,postgres,report,bedrock,documents]"
           pip install -e "apps/worker[dev]"
           pip install -e "apps/executors[dev]"
           pip install -e "apps/api[dev]"
@@ -434,6 +434,8 @@ jobs:
               # A research study's working content, in AIA (ADR 0018, OI-58).
               "/api/v1/studies/{study_id}/workspace/content",
               "/api/v1/studies/{study_id}/workspace/revisions",
+              "/api/v1/studies/{study_id}/workspace/attachments",
+              "/api/v1/studies/{study_id}/workspace/attachments/{attachment_id}",
               # Research execution (ADR 0016): the Design Revisions a run executes.
               "/api/v1/studies/{study_id}/design/revisions",
               "/api/v1/studies/{study_id}/design/revisions/{revision_id}",
@@ -555,7 +557,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev,postgres,report,bedrock]"
+          pip install -e "packages/aia_core[dev,postgres,report,bedrock,documents]"
           pip install -e "apps/worker[dev]"
           pip install -e "apps/executors[dev]"
           pip install -e "apps/api[dev]"
@@ -748,7 +750,7 @@ jobs:
 
       - name: Audit Python dependencies
         run: |
-          pip install -e "packages/aia_core[postgres,s3,report,bedrock]" -e "apps/worker" -e "apps/executors" -e "apps/api"
+          pip install -e "packages/aia_core[postgres,s3,report,bedrock,documents]" -e "apps/worker" -e "apps/executors" -e "apps/api"
           pip-audit --strict --ignore-vuln GHSA-0000-0000-0000 || true
 
       - uses: actions/setup-node@v4

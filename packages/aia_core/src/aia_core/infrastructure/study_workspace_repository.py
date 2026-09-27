@@ -12,6 +12,10 @@ Saves are serialized per Study by locking the Study row, as design submissions a
 (``StudyDesignRepository``), and a save names the revision it was edited from: a
 save from a stale copy is refused (:class:`WorkspaceConflict`, ``stale_revision``)
 rather than silently overwriting a newer one saved elsewhere.
+
+A brief's attachments are artifacts of the same working project, in AIA's artifact
+storage (:meth:`StudyWorkspaceRepository.attach`); the brief keeps their records,
+and only :meth:`StudyWorkspaceRepository.attachment` serves their bytes.
 """
 
 from __future__ import annotations
@@ -21,6 +25,15 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..domain.attachments import (
+    ATTACHMENT_ARTIFACT_TYPE,
+    ATTACHMENT_STAGE,
+    AttachmentRecord,
+    attachment_record,
+    content_type_of,
+    extension_of,
+    validate_attachment,
+)
 from ..domain.pipeline import ProjectType, fingerprint
 from ..domain.scope import ClientContext, Permission, ScopeDenied, StudyContext, StudyKind
 from ..domain.workspace import (
@@ -35,7 +48,10 @@ from ..domain.workspace import (
     WorkspaceRejected,
     validate_working_content,
 )
+from .artifact_repository import Artifact, ArtifactNotFound, ArtifactRepository
+from .document_text import extract_text
 from .repositories import ProjectRepository
+from .storage import ArtifactStore
 from .tables import (
     ProjectRevisionRow,
     ProjectRow,
@@ -301,6 +317,79 @@ class StudyWorkspaceRepository:
             revision_id=revision_id,
             deduplicated=outcome.deduplicated,
         )
+
+    # -- attachments ---------------------------------------------------------
+
+    def _artifacts(self, scope: StudyContext, store: ArtifactStore) -> ArtifactRepository:
+        return ArtifactRepository(self._session, scope, store, owner=WORKSPACE_PROJECT_OWNER)
+
+    def attach(
+        self, scope: StudyContext, store: ArtifactStore, *, filename: str, data: bytes
+    ) -> AttachmentRecord:
+        """Keep a file for the Study's brief, in AIA's storage, and return its record.
+
+        The bytes become an artifact of the Study's working project (stage ``BRIEF``)
+        and the text the unit would have read of them becomes the record's excerpt.
+        Nothing in the working content changes here: the stage adds the record to the
+        brief and saves it, as any other edit. Needs ``EDIT_STUDY`` on an open Study
+        whose working content exists in AIA -- one with nothing saved yet has nothing
+        to attach to (``not_saved``), one awaiting migration is not editable
+        (``awaiting_migration``).
+        """
+        scope.require(Permission.EDIT_STUDY)
+        scope.require_open_study()
+        name = validate_attachment(filename, data)
+        row = self._row(scope)
+        state = ContentState(row.content_state) if row else ContentState.EMPTY
+        if not state.editable:
+            raise WorkspaceConflict(
+                "the Study's content awaits migration from 18.6.6", reason="awaiting_migration"
+            )
+        if row is None or row.project_id is None:
+            raise WorkspaceConflict(
+                "the Study's working content has not been saved yet", reason="not_saved"
+            )
+        project = self._session.get(ProjectRow, row.project_id)
+        assert project is not None  # the row's foreign key
+        text = extract_text(data, name)
+        artifact, _ = self._artifacts(scope, store).put(
+            project_id=row.project_id,
+            revision=project.current_revision,
+            stage_type=ATTACHMENT_STAGE,
+            artifact_type=ATTACHMENT_ARTIFACT_TYPE,
+            data=data,
+            content_type=content_type_of(name),
+            metadata={
+                "filename": name,
+                "extension": extension_of(name),
+                "text_extracted": bool(text),
+                "text_chars": len(text),
+            },
+            reuse=False,
+        )
+        return attachment_record(
+            attachment_id=artifact.artifact_id,
+            filename=name,
+            size_bytes=artifact.size_bytes,
+            sha256=artifact.sha256,
+            text=text,
+        )
+
+    def attachment(
+        self, scope: StudyContext, store: ArtifactStore, attachment_id: str
+    ) -> tuple[Artifact, bytes]:
+        """One of the Study's attachments and its bytes, verified against the recorded hash.
+
+        Only an attachment of this Study's working project: any other id -- another
+        Study's attachment, a run's or a design's artifact -- is
+        :class:`~aia_core.infrastructure.artifact_repository.ArtifactNotFound`.
+        Readable by anyone who may read the Study, as its working content is.
+        """
+        artifacts = self._artifacts(scope, store)
+        artifact = artifacts.get(attachment_id)
+        if artifact.artifact_type != ATTACHMENT_ARTIFACT_TYPE:
+            raise ArtifactNotFound(attachment_id)
+        return artifact, artifacts.read(attachment_id)
 
     def record_stage(self, scope: StudyContext, *, stage: str) -> StudyWorkspace | None:
         """Remember the stage the study was opened on.

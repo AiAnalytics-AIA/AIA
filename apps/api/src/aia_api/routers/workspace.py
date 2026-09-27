@@ -6,18 +6,22 @@ scope is a 404, as elsewhere. Inside a client the caller demonstrably has, a
 missing permission is a 403: acknowledging the client leaks nothing.
 
 A research study's working content -- what its stages edit -- is loaded and saved
-here, in AIA (``/studies/{study_id}/workspace/content``). No route takes a project id
-or an 18.6.6 unit project id to find a study.
+here, in AIA (``/studies/{study_id}/workspace/content``), and so are the files its
+brief carries (``/studies/{study_id}/workspace/attachments``). No route takes a
+project id or an 18.6.6 unit project id to find a study.
 """
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 import unicodedata
 from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
+from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
     KnowledgeItem,
@@ -43,13 +47,14 @@ from aia_core.domain.workspace import (
     WorkingContent,
     WorkspaceRejected,
 )
-from aia_core.infrastructure.artifact_repository import ArtifactRepository
+from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
 )
-from fastapi import APIRouter, HTTPException, Path, Query, status
+from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
@@ -73,6 +78,10 @@ router = APIRouter(
 )
 
 ClientIdPath = Annotated[str, Path(max_length=64, pattern=r"^CLI-[0-9a-f]{1,32}$")]
+AttachmentIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")]
+# The base64 of the largest attachment the domain accepts; a longer body is refused
+# before it is decoded.
+_ATTACHMENT_B64_MAX = -(-ATTACHMENT_MAX_BYTES // 3) * 4
 OPEN_STATUSES = (StudyStatus.DRAFT, StudyStatus.ACTIVE, StudyStatus.IN_REVIEW)
 
 
@@ -305,6 +314,31 @@ class WorkingRevisionList(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[WorkingRevisionResponse]
+
+
+class AttachmentUpload(BaseModel):
+    """One file for the brief, base64-encoded as the classic interface sent it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filename: str = Field(min_length=1, max_length=255)
+    data_b64: str = Field(min_length=1, max_length=_ATTACHMENT_B64_MAX)
+
+
+class AttachmentResponse(BaseModel):
+    """What the brief keeps of an attached file: its record, never a storage location."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["file"]
+    attachment_id: str
+    filename: str
+    extension: str
+    content_type: str
+    size_bytes: int
+    sha256: str
+    text_extracted: bool
+    context_excerpt: str
 
 
 class StageRequest(BaseModel):
@@ -928,18 +962,7 @@ def save_study_working_content(
     except ScopeDenied as exc:
         raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
     except WorkspaceConflict as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": exc.reason,
-                "message": (
-                    "The working content awaits migration from 18.6.6."
-                    if exc.reason == "awaiting_migration"
-                    else "The working content was saved elsewhere since it was loaded."
-                ),
-                "details": {"current_revision": exc.current_revision},
-            },
-        ) from exc
+        raise _workspace_conflict(exc) from exc
     except WorkspaceRejected as exc:
         raise HTTPException(
             status_code=422, detail={"code": exc.reason, "message": str(exc)}
@@ -969,6 +992,109 @@ def study_working_revisions(
             WorkingRevisionResponse(**r.model_dump())
             for r in StudyWorkspaceRepository(session).revisions(scope, limit=limit)
         ]
+    )
+
+
+def _workspace_conflict(exc: WorkspaceConflict) -> HTTPException:
+    messages = {
+        "awaiting_migration": "The working content awaits migration from 18.6.6.",
+        "not_saved": "Save the study's working content before attaching files to it.",
+    }
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": exc.reason,
+            "message": messages.get(
+                exc.reason, "The working content was saved elsewhere since it was loaded."
+            ),
+            "details": {"current_revision": exc.current_revision},
+        },
+    )
+
+
+@router.post(
+    "/studies/{study_id}/workspace/attachments",
+    response_model=AttachmentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Attach a file to the research study's brief",
+    responses={
+        409: {"model": ErrorResponse, "description": "Nothing saved yet, or awaiting migration"},
+        422: {"model": ErrorResponse, "description": "Empty, too large, or not base64"},
+    },
+)
+def attach_study_file(
+    body: AttachmentUpload, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> AttachmentResponse:
+    """Keep the file in AIA's storage and answer with the record the brief keeps.
+
+    Needs ``EDIT_STUDY`` on an open study whose working content has been saved. The
+    record's ``context_excerpt`` is the text 18.6.6 would have read of the file;
+    ``text_extracted`` is false when none could be read. The brief itself is not
+    changed: the stage adds the record and saves.
+    """
+    try:
+        data = base64.b64decode(body.data_b64, validate=True)
+    except binascii.Error as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "not_base64", "message": "The file is not valid base64."},
+        ) from exc
+    try:
+        record = StudyWorkspaceRepository(session).attach(
+            scope, store, filename=body.filename, data=data
+        )
+    except ScopeDenied as exc:
+        raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
+    except WorkspaceConflict as exc:
+        raise _workspace_conflict(exc) from exc
+    except AttachmentRejected as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    return AttachmentResponse(**record.model_dump())
+
+
+@router.get(
+    "/studies/{study_id}/workspace/attachments/{attachment_id}",
+    response_class=Response,
+    summary="Download a file attached to the research study's brief",
+    responses={
+        200: {"content": {"application/octet-stream": {}}, "description": "The file"},
+        409: {"model": ErrorResponse, "description": "The stored bytes do not match"},
+    },
+)
+def download_study_file(
+    attachment_id: AttachmentIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    """The file's bytes, for anyone who may read the study; any other id is a 404.
+
+    Always ``application/octet-stream`` and ``attachment``, never rendered in AIA's
+    origin, whatever the file claims to be. The bytes are hash-verified on read.
+    """
+    try:
+        artifact, data = StudyWorkspaceRepository(session).attachment(scope, store, attachment_id)
+    except ArtifactNotFound as exc:
+        raise _not_found() from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "attachment_corrupt",
+                "message": "The stored bytes do not match the recorded hash.",
+            },
+        ) from exc
+    filename = str(artifact.metadata.get("filename") or "attachment")
+    return Response(
+        content=data,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
     )
 
 

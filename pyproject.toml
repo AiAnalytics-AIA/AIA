@@ -45,6 +45,12 @@ exclude = ["migrations/versions/"]
 module = ["boto3", "boto3.*", "botocore", "botocore.*"]
 ignore_missing_imports = true
 
+# openpyxl ships no type stubs either, and is read in one function
+# (aia_core.infrastructure.document_text._xlsx), which turns every value into str.
+[[tool.mypy.overrides]]
+module = ["openpyxl", "openpyxl.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.
 # Helpers are shared through conftest fixtures rather than imports.
