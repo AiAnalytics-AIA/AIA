@@ -11,7 +11,10 @@ is pure:
 * :mod:`.grounding` -- a quote must be in the source it cites;
 * :mod:`.sources` -- source classes and scores from declared tables;
 * :mod:`.classification` -- a query's data class, inherited and never lowered;
-* :mod:`.web` -- what a fetch may reach, on every hop.
+* :mod:`.web` -- what a fetch may reach, on every hop;
+* :mod:`.knowledge_access` -- Client Knowledge frozen at enqueue, retrieved by code;
+* :mod:`.planning` -- subjects, tracks and their fingerprints, depth, stopping;
+* :mod:`.agents` -- the five agents' contracts, prompts and requests.
 
 Pure: stdlib and Pydantic only.
 """

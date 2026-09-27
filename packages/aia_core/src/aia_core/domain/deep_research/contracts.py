@@ -433,6 +433,8 @@ class StopReason(StrEnum):
     MODEL_ROUTE_REFUSED = "model_route_refused"
     CHANNEL_NOT_REQUESTED = "channel_not_requested"
     TOOL_OUTCOME_UNCERTAIN = "tool_outcome_uncertain"
+    #: Beyond the preset's track limit: recorded and skipped, never dropped silently.
+    TRACK_LIMIT = "track_limit"
 
 
 class CoverageCell(_Closed):
