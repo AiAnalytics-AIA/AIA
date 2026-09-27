@@ -55,6 +55,9 @@ class ViolationCode(StrEnum):
     CROSS_BLOCK_NOT_SAME_PERSON = "CROSS_BLOCK_NOT_SAME_PERSON"
     CLIENT_JOINT_OUTPUT = "CLIENT_JOINT_OUTPUT"
 
+    # Data origin (ADR 0016 D1): fictional data is never a client-facing claim
+    SYNTHETIC_DATA_ORIGIN = "SYNTHETIC_DATA_ORIGIN"
+
     # Support and suppression
     SUPPORT_SUPPRESSED = "SUPPORT_SUPPRESSED"
     INTERVAL_MISSING = "INTERVAL_MISSING"

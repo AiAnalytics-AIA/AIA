@@ -1,0 +1,377 @@
+{
+  "version": "18.6.6",
+  "release_date": "2026-08-26",
+  "status": "FINAL_ENGINEERING_RELEASE_EXTERNAL_VALIDATION_PENDING",
+  "production_panel": "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+  "panel_rows": 18766,
+  "panel_columns": 400,
+  "panel_sha256": "864f8dbcd101e4be1b2a006ccebe4196a85f9bfcbf1a474af762b8135cc779ce",
+  "runtime_code_sha256": "eca1beece9122b6303631cab7e60169bf86cde52a24ff9c73ad866d674f8cbd2",
+  "config_sha256": "341ed0f4a615e8930e863f1480f0a1cbda685e74b29905b204570acb18afdfb3",
+  "data_contract": "DATA_CONTRACT_v17.json",
+  "default_weight": "vaha_strukturalni_2025",
+  "weights": {
+    "default_current": {
+      "column": "vaha_strukturalni_2025",
+      "sum": 8956290.361759476,
+      "missing_rows": 0,
+      "ess": 16678.36203919256
+    },
+    "demographic_current_approx": {
+      "column": "vaha_populace_2025_aprox",
+      "sum": 8956290.361759476,
+      "missing_rows": 0,
+      "ess": 18166.44783853239
+    },
+    "census_2021": {
+      "column": "vaha_kalibrovana",
+      "sum": 8533116.0,
+      "missing_rows": 0,
+      "ess": 18177.583503100934
+    },
+    "party_2021_aggregate": {
+      "column": "vaha_strana_2021_benchmark",
+      "sum": 5370379.581869571,
+      "missing_rows": 7052,
+      "ess": 10907.930028925022
+    }
+  },
+  "field_dictionary": {
+    "file": "FIELD_DICTIONARY_v17_1.csv",
+    "rows": 400
+  },
+  "dimension_scorecard": {
+    "file": "DIMENSION_SCORECARD_v17_1.csv",
+    "rows": 400,
+    "production_grades": {
+      "B": 188,
+      "C": 114,
+      "T": 45,
+      "D": 27,
+      "C_RAW/B_WEIGHTED": 11,
+      "A": 10,
+      "B_WEIGHTED": 5
+    }
+  },
+  "persona": {
+    "default": "calibrated",
+    "signal_catalog": "PERSONA_SIGNAL_CATALOG_v17.csv",
+    "signals": 117,
+    "brand_specific_background_required": true,
+    "modeled_behavior_prior_in_live_prompt_default": false
+  },
+  "population": {
+    "same_person_core": true,
+    "whole_donor_blocks": true,
+    "cross_block_same_person": false,
+    "core_joint_status": "COHERENT_CORE_MATCHED_BLOCKS"
+  },
+  "audiences": {
+    "builtin_subpanels": 18,
+    "special_panels": 18,
+    "special_registry": "SPECIAL_PANEL_REGISTRY_v17.json",
+    "user_facing_special_audience_status": "SELECTABLE_WITH_SUPPORT_GATES",
+    "cz_population_18_active": true
+  },
+  "sources": {
+    "catalog": "FINAL_SOURCE_CATALOG_v17.csv",
+    "catalog_rows": 945,
+    "large_microdata_evidence_archive": "distributed separately"
+  },
+  "respondent_audit": {
+    "file": "RESPONDENT_AUDIT_v17_1.csv",
+    "rows": 18766,
+    "status_counts": {
+      "PASS": 17437,
+      "REVIEW_LOW_CONFIDENCE": 1329
+    }
+  },
+  "structural_audit": {
+    "file": "COHERENCE_AUDIT_v17_1.csv",
+    "pass": 23,
+    "fail": 0
+  },
+  "targeted_tests": {
+    "product_runtime_version": "17.8.9",
+    "data_method_version": "17.1.2",
+    "tests": 42,
+    "passed": 42,
+    "failed": 0
+  },
+  "release_gate": {
+    "methodology_version": "17.1.2",
+    "status": "ENGINEERING_RELEASE_EXTERNAL_HOLDOUT_PENDING",
+    "passed": 180,
+    "failed": 0
+  },
+  "validation": {
+    "out_of_sample_file": "OUT_OF_SAMPLE_VALIDATION_v17_1.csv",
+    "out_of_sample_checks": 15,
+    "out_of_sample_failed": 2,
+    "llm_ablation_run": false,
+    "llm_ablation_status": "NOT_RUN_NO_CREDENTIALS",
+    "external_predictive_certification": "PENDING"
+  },
+  "provider_policy": {
+    "live_providers": [
+      "claude_code_subscription",
+      "anthropic",
+      "openai"
+    ],
+    "default_provider": "claude_code_subscription",
+    "selected_provider_fail_closed": true,
+    "cross_provider_fallback_live": false,
+    "local_content_fallback_live": false,
+    "dry_exports_invalid": true,
+    "auto_resume_capacity_supported": true
+  },
+  "campaign": {
+    "generic_background_available": true,
+    "brand_specific_state_required_for_brand_claims": true
+  },
+  "typology": {
+    "role": "HYPOTHESIS_REFERENCE_ONLY",
+    "hard_assignment": false,
+    "numeric_hexaco_reconstruction": false
+  },
+  "hotfix": {
+    "backend_startup": "bootstrap log + product bootstrap smoke + HTTP smoke",
+    "ui_internal_panels": "registry only in Settings",
+    "illustrative_mode": "INVALID precomputed demo; no live survey call",
+    "data_changed": false,
+    "hotfix_tests": "19/19 PASS"
+  },
+  "hotfix_tests": {
+    "file": "V17_0_1_HOTFIX_TESTS.json",
+    "tests": 19,
+    "passed": 19,
+    "failed": 0
+  },
+  "product_release": "NPC Panel 18.6.6 — Native Sociomapa Design Final",
+  "data_version": "17.1.2",
+  "release_type": "COMPLETE_FINAL_ASSEMBLY_A_TO_F",
+  "data_values_changed": true,
+  "research_os": {
+    "durable_queue": "SQLite WAL",
+    "background_worker": true,
+    "restart_recovery": true,
+    "scheduler": true,
+    "scheduler_rrule_subset": true,
+    "command_center": true,
+    "hard_workflow_budget": true,
+    "claude_code_optional_provider": false,
+    "legacy_long_jobs_durable": true,
+    "cheap_respondent_default_allowed": false,
+    "cheap_respondent_parity_status": "NOT_RUN",
+    "acceptance_passed": 17,
+    "acceptance_failed": 0,
+    "claude_code_only_provider": false,
+    "client_delivery_zip": true,
+    "workflow_dependency_publish_barrier": true,
+    "claim_dependency_guard": true,
+    "explicit_live_providers": [
+      "claude_code_subscription",
+      "anthropic",
+      "openai"
+    ],
+    "cross_provider_fallback_live": false
+  },
+  "ux_release": {
+    "entry_choice": [
+      "DEMO",
+      "PRODUKCE"
+    ],
+    "production_paths": [
+      "SCENARIOS_SIMULATIONS",
+      "RESEARCH"
+    ],
+    "research_steps": [
+      "BRIEF",
+      "RESEARCH_DESIGN",
+      "AUDIENCE",
+      "PERSONA",
+      "RUN",
+      "OUTPUTS"
+    ],
+    "demo_precomputed": true,
+    "maps_in_client_flow": true,
+    "ux_acceptance_passed": 34,
+    "ux_acceptance_failed": 0
+  },
+  "data_change_note": "T2 remediated social_network_user_2025 assignment in a new panel snapshot; original v17_1_2 panel remains unchanged.",
+  "ux_17_6": {
+    "launcher": "A0_NPC_PANEL_START.bat",
+    "sticky_demo_real": true,
+    "brief_first_real": true,
+    "questionnaire_paths": [
+      "excel",
+      "manual",
+      "ai"
+    ],
+    "questionnaire_ai_optimization": true,
+    "audience_entry": [
+      "own",
+      "ai_analytics"
+    ],
+    "cz18_isolated_branch": true,
+    "special_audience_selectable": true,
+    "persona_entry": [
+      "manual",
+      "ai"
+    ],
+    "settings_reworked": true,
+    "commander_phase_rail": true,
+    "provider_model_per_ai_action": true,
+    "production_fullsim_auto_outcome": true,
+    "fullsim_checkpoint_resume": true
+  },
+  "version_identity": {
+    "product_runtime_version": "18.6.3",
+    "data_method_version": "17.1.2"
+  },
+  "product_layer": "CLIENT_READY_RESEARCH_SIMULATION_SUITE",
+  "engineering_validation": {
+    "pytest_collected": 207,
+    "pytest_passed": 206,
+    "pytest_skipped": 1,
+    "pytest_failed": 0,
+    "selftest": "PASS",
+    "backend_http_smoke": "PASS",
+    "ui_render_smoke": "PASS",
+    "runtime_import_smoke": "PASS",
+    "javascript_syntax": "PASS",
+    "functional_python_hash_diff_count": 0,
+    "report_outage_e2e": "PASS",
+    "handoff_verification": "PASS",
+    "release_gate": "180/180 PASS",
+    "brand_route_http": "PASS",
+    "dry_fullsim_e2e": "PASS",
+    "dry_fullsim_e2e_seconds": 10.94,
+    "release_gate_passed": 180,
+    "release_gate_failed": 0,
+    "hotfix_18_6_2_targeted_tests": "4/4 PASS",
+    "hotfix_18_6_2_compileall": "PASS",
+    "hotfix_18_6_2_import_smoke": "PASS",
+    "hotfix_18_6_2_javascript_syntax": "PASS",
+    "live_external_provider_roundtrip": "NOT_RUN_IN_RELEASE_ENV"
+  },
+  "simulation_suite": {
+    "standalone": true,
+    "ai_context_enrichment": true,
+    "market_competitor_price_research": true,
+    "actionable_uncertainties": true,
+    "batch_variants_max": 12,
+    "independent_variant_world_models": true,
+    "shared_frozen_npc_core_baseline": true,
+    "linear_interpolation": false,
+    "single_delivery": [
+      "CSV",
+      "XLSX",
+      "HTML",
+      "ZIP"
+    ],
+    "batch_delivery": [
+      "CSV",
+      "XLSX",
+      "HTML",
+      "ZIP"
+    ],
+    "frozen_artifact_gate": true
+  },
+  "visual_redesign": {
+    "source": "user-provided AI Analytics high-fidelity handoff",
+    "functional_changes": false,
+    "right_ai_partner_restored": false,
+    "brand_accent": "#2180A5",
+    "rail_width_px": 248,
+    "content_max_width_px": 1080,
+    "radius_px": 4
+  },
+  "respondent_resilience_17_8_5": {
+    "grouped_subscription_batches": true,
+    "durable_first_question_checkpoint": true,
+    "partial_journal_resume": true,
+    "question_watchdog": true,
+    "worker_auto_retry": true,
+    "backend_health_watchdog": true,
+    "worker_heartbeat_watchdog": true,
+    "browser_reconnect": true
+  },
+  "simulation_stability_17_8_6": {
+    "cancel_guard": true,
+    "cancel_provenance": true,
+    "pre_dispatch_cancel": true,
+    "scenario_cancel_passthrough": true,
+    "worker_watchdog_respects_fresh_job_heartbeat": true,
+    "separate_server_worker_watchdog_clocks": true
+  },
+  "results_guarantee_17_8_7": {
+    "research_results_first": true,
+    "research_secondary_export_fail_safe": true,
+    "single_simulation_frozen_results_first": true,
+    "single_simulation_render_fallback": true,
+    "batch_comparison_ai_fallback": true,
+    "batch_xlsx_html_fallback": true,
+    "artifact_gate_requires_nonempty_outputs": true
+  },
+  "release_name": "NPC_PANEL_18.6.3_COMPLETE_FINAL",
+  "demos": {
+    "research_showcase": 28,
+    "simulation": 6,
+    "total": 34,
+    "read_only_seed": true,
+    "copy_to_editable_project": true,
+    "canonical_reference_cases": 4
+  },
+  "data_library_18_5": {
+    "catalog_rows": 945,
+    "source_groups": 133,
+    "expected_payload_files": 775,
+    "available_retained_payload_files": 0,
+    "static_live_population": true,
+    "results_registry": true
+  },
+  "visualization_18_2_plus": {
+    "respondent_map": true,
+    "filtering": true,
+    "segment_blink": true,
+    "profile_clickthrough": true,
+    "area_ab_compare": true,
+    "interactive_3d_object_map": true,
+    "classic_and_normative_score": true,
+    "matrix_collapsed_default": true
+  },
+  "segment_intelligence_18_4": {
+    "data_first_candidates": true,
+    "ai_aggregates_only": true,
+    "ai_cannot_change_membership": true,
+    "demo_precomputed": true,
+    "live_cache": true
+  },
+  "system_sha256": "84470cb0462189f53042b16385582b97e038248ecd43224e2907ed4597b2ee11",
+  "sociomap_release": {
+    "version": "18.6.6",
+    "primary_map_types": [
+      "respondents",
+      "objects"
+    ],
+    "analysis_modes": [
+      "map",
+      "matrix",
+      "comparison",
+      "what_if"
+    ],
+    "normalization": [
+      "absolute",
+      "range",
+      "sigma",
+      "percentile"
+    ],
+    "native_offline_canvas": true,
+    "external_cdn": false,
+    "position_height_separated": true,
+    "manual_layout_visual_override_only": true,
+    "scenario_preserves_original": true,
+    "inferential_comparison": "Welch t-test + Cohen d + 95% CI when respondent rows support it"
+  }
+}

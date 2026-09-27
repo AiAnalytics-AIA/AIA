@@ -421,6 +421,18 @@ Design these at real fidelity with real-shaped content — realistic Czech strin
 realistic numbers, realistic edge cases. Each screen must show at least one
 degraded state, not only the happy path.
 
+> **Information architecture, since 2026-09-24
+> ([ADR 0015](../architecture/adr/0015-client-first-product-interface.md)).**
+> The product is client-first: the home is the client directory (*Klienti*),
+> each client has a workspace (*Přehled · Výzkumy · Simulace · Znalosti · Data*),
+> and a study lives under its client. The global navigation is four items:
+> *Klienti, Společenská inteligence, Projektová paměť, Nastavení*. Read the
+> screens below inside that frame: *Portfolio* is the client directory and
+> *Projektová paměť*; *Study overview*, *Research Studio*, *Simulation Studio*,
+> *Results* and *Sociomapa* are inside a client's study; the *Data Library*
+> approval queue has a per-client counterpart, *Znalosti*. Breadcrumbs always
+> show client / area / study / stage, and each screen has one dominant action.
+
 1. **Portfolio** — studies across clients, state, pending steps, quick resume.
    The screen that answers "what needs me today?" The parked-on-you items are
    the whole point of this page.

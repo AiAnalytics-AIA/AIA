@@ -1,0 +1,1056 @@
+{
+  "version": "17.1.2",
+  "variables": {
+    "PIAAC_I2_Q01a": {
+      "anchors": {
+        "low": "0 = vůbec nesouhlasí, že lidé jako on/ona nemají vliv na vládu",
+        "high": "10 = zcela souhlasí, že lidé jako on/ona nemají vliv na vládu"
+      },
+      "direction": "vyšší hodnota = nižší pocit politické sebeúčinnosti"
+    },
+    "PIAAC_I2_Q01b": {
+      "anchors": {
+        "low": "0 = vůči lidem nelze být dost opatrný",
+        "high": "10 = většině lidí lze důvěřovat"
+      },
+      "direction": "vyšší hodnota = vyšší obecná sociální důvěra"
+    },
+    "PIAAC_I2_Q04": {
+      "anchors": {
+        "low": "0 = zcela neochotný/á vzdát se něčeho nyní pro budoucí prospěch",
+        "high": "10 = velmi ochotný/á"
+      },
+      "direction": "vyšší hodnota = vyšší orientace na budoucí prospěch"
+    },
+    "PIAAC_I2_Q05": {
+      "anchors": {
+        "low": "0 = krajně nespokojený/á se životem",
+        "high": "10 = krajně spokojený/á se životem"
+      },
+      "direction": "vyšší hodnota = vyšší životní spokojenost"
+    },
+    "PIAAC_I2_Q02": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "PIAAC_I2_Q03": {
+      "values": {
+        "1": "výborné",
+        "2": "velmi dobré",
+        "3": "dobré",
+        "4": "uspokojivé",
+        "5": "špatné"
+      },
+      "direction": "vyšší hodnota = horší sebehodnocení zdraví"
+    },
+    "JRC_loneliness_direct": {
+      "values": {
+        "1": "po celou dobu",
+        "2": "většinu času",
+        "3": "část času",
+        "4": "malou část času",
+        "5": "vůbec ne"
+      },
+      "direction": "vyšší hodnota = méně často pociťovaná osamělost v posledních 4 týdnech"
+    },
+    "JRC_family_meet_face": {
+      "values": {
+        "1": "nikdy",
+        "2": "jednou za dva měsíce nebo méně často",
+        "3": "jednou měsíčně",
+        "4": "jednou za dva týdny",
+        "5": "každý týden",
+        "6": "více než jednou týdně",
+        "7": "denně"
+      }
+    },
+    "JRC_friends_meet_face": {
+      "values": {
+        "1": "nikdy",
+        "2": "jednou za dva měsíce nebo méně často",
+        "3": "jednou měsíčně",
+        "4": "jednou za dva týdny",
+        "5": "každý týden",
+        "6": "více než jednou týdně",
+        "7": "denně"
+      }
+    },
+    "JRC_religion_now": {
+      "values": {
+        "1": "nikdy",
+        "2": "jen při zvláštních svátcích/příležitostech",
+        "3": "jednou měsíčně",
+        "4": "jednou týdně",
+        "5": "více než jednou týdně"
+      }
+    },
+    "JRC_trust": {
+      "anchors": {
+        "low": "1 = vůbec nedůvěřuje ostatním",
+        "high": "10 = zcela důvěřuje ostatním"
+      },
+      "direction": "vyšší hodnota = vyšší důvěra"
+    },
+    "JRC_civic_government": {
+      "anchors": {
+        "low": "1 = vůbec nesouhlasí s tvrzením „lidé jako já nemají vliv na to, co vláda dělá“",
+        "high": "10 = zcela souhlasí s tímto tvrzením"
+      },
+      "direction": "vyšší hodnota = nižší občanská/politická sebeúčinnost"
+    },
+    "mentalni_zdravi_sebehodnoceni_2022": {
+      "values": {
+        "1": "velmi dobré",
+        "2": "dobré",
+        "3": "uspokojivé",
+        "4": "spíše špatné",
+        "5": "velmi špatné"
+      },
+      "direction": "vyšší hodnota = horší sebehodnocení duševního zdraví"
+    },
+    "fyzicke_zdravi_sebehodnoceni_2022": {
+      "values": {
+        "1": "velmi dobré",
+        "2": "dobré",
+        "3": "uspokojivé",
+        "4": "spíše špatné",
+        "5": "velmi špatné"
+      },
+      "direction": "vyšší hodnota = horší sebehodnocení fyzického zdraví"
+    },
+    "politicky_zajem_2021": {
+      "values": {
+        "1": "velmi se zajímá",
+        "2": "spíše se zajímá",
+        "3": "příliš se nezajímá",
+        "4": "vůbec se nezajímá"
+      },
+      "direction": "vyšší hodnota = nižší politický zájem"
+    },
+    "politika_media_2021": {
+      "values": {
+        "1": "sleduje velmi pozorně",
+        "2": "sleduje poměrně pozorně",
+        "3": "nesleduje příliš pozorně",
+        "4": "nesleduje vůbec"
+      },
+      "direction": "vyšší hodnota = méně pozorné sledování politiky"
+    },
+    "korupce_rozsirena_2021": {
+      "values": {
+        "1": "velmi rozšířená",
+        "2": "poměrně rozšířená",
+        "3": "málo rozšířená",
+        "4": "téměř vůbec nerozšířená"
+      },
+      "direction": "vyšší hodnota = vnímá méně korupce"
+    },
+    "hodnoceni_vlady_2021": {
+      "values": {
+        "1": "velmi dobré",
+        "2": "dobré",
+        "3": "špatné",
+        "4": "velmi špatné"
+      },
+      "direction": "vyšší hodnota = horší hodnocení vlády"
+    },
+    "stav_ekonomiky_2021": {
+      "values": {
+        "1": "mnohem lepší",
+        "2": "poněkud lepší",
+        "3": "přibližně stejný",
+        "4": "poněkud horší",
+        "5": "mnohem horší"
+      },
+      "direction": "vyšší hodnota = horší hodnocení vývoje ekonomiky"
+    },
+    "volil_2021": {
+      "values": {
+        "0": "neúčastnil/a se",
+        "1": "účastnil/a se"
+      }
+    },
+    "politicka_sebeucinnost_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "elity_kompromis_zrada_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "elity_nezajem_o_lidi_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "elity_duveryhodne_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "politici_problem_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "silny_lidr_ohybani_pravidel_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "prime_rozhodovani_lidu_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "politici_pro_bohate_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "mensiny_prizpusobit_zvyky_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "vule_vetsiny_pred_mensinami_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "imigrace_prospiva_ekonomice_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "imigrace_skodi_kulture_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "imigrace_zvysuje_kriminalitu_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "redistribuce_podpora_2021": {
+      "values": {
+        "1": "rozhodně souhlasí",
+        "2": "spíše souhlasí",
+        "3": "ani souhlas, ani nesouhlas",
+        "4": "spíše nesouhlasí",
+        "5": "rozhodně nesouhlasí"
+      },
+      "direction": "vyšší hodnota = silnější nesouhlas s uvedeným tvrzením"
+    },
+    "PIAAC_G2_Q05a": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "PIAAC_G2_Q05b": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "PIAAC_G2_Q05c": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "PIAAC_G2_Q06a": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "PIAAC_G2_Q06b": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "PIAAC_G2_Q06c": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "PIAAC_G2_Q06d": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "PIAAC_G2_Q06e": {
+      "values": {
+        "1": "nikdy",
+        "2": "méně než jednou měsíčně",
+        "3": "alespoň jednou měsíčně, ale méně než týdně",
+        "4": "alespoň jednou týdně, ale ne denně",
+        "5": "denně"
+      }
+    },
+    "smartphone_use_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "tablet_use_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "computer_use_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "digital_communication_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "online_information_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "online_entertainment_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "online_transactions_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "digital_personal_management_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "social_media_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "linkedin_affinity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "social_passive_consumption_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "social_public_interaction_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "social_private_sharing_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "social_algorithm_discovery_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "social_relaxation_use_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "tv_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "radio_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "print_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "gaming_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "travel_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "sport_activity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "outdoor_activity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "socializing_offline_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "dining_out_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "culture_activity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "nightlife_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "diy_home_activity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "cooking_activity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "physical_retail_activity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "commute_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "caregiving_intensity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "price_sensitivity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "deal_proneness_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "premium_willingness_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "purchase_planning_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "impulse_buying_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "research_orientation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "review_reliance_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "novelty_orientation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "risk_aversion_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "brand_consciousness_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "brand_loyalty_general_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "convenience_orientation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "local_brand_preference_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "sustainability_orientation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "status_consumption_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "privacy_concern_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "persuasion_knowledge_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "advertising_skepticism_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "reactance_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "need_for_cognition_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "need_for_affect_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "social_proof_susceptibility_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "influencer_receptivity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "authority_receptivity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "scarcity_response_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "ad_avoidance_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "tv_ad_attention_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "social_ad_attention_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "search_ad_attention_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "audio_ad_attention_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "print_ad_attention_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "ooh_ad_attention_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "media_fragmentation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "old_new_media_orientation_1_10": {
+      "anchors": {
+        "low": "1 = převážně tradiční média",
+        "high": "10 = převážně digitální/nová média"
+      },
+      "direction": "vyšší číslo = více nových/digitálních médií"
+    },
+    "media_multitasking_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "category_knowledge_general_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "market_knowledge_general_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "advertising_literacy_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "religious_practice_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_self_direction_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_stimulation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_hedonism_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_achievement_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_power_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_security_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_conformity_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_tradition_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_benevolence_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_universalism_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_openness_to_change_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_conservation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_self_enhancement_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "value_self_transcendence_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "family_centrality_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "work_centrality_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "local_attachment_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "cosmopolitan_orientation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "authority_orientation_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "financial_knowledge_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "financial_behavior_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "financial_resilience_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "financial_planning_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "financial_capability_1_10": {
+      "anchors": {
+        "low": "1 = nízká intenzita / nízký souhlas",
+        "high": "10 = vysoká intenzita / vysoký souhlas"
+      },
+      "direction": "vyšší číslo = více uvedeného rysu/chování"
+    },
+    "profile_confidence_0_1": {
+      "anchors": {
+        "low": "0 = velmi nízká datová jistota",
+        "high": "1 = velmi vysoká datová jistota"
+      },
+      "direction": "technická jistota profilu, ne lidský rys"
+    }
+  }
+}

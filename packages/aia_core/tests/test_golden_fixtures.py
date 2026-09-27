@@ -40,7 +40,14 @@ REPO = Path(__file__).resolve().parents[3]
 MATRIX = json.loads((REPO / "docs" / "migration" / "parity-matrix.json").read_text("utf-8"))
 PIN = MATRIX["reference"]
 FIXTURES: dict[str, dict[str, Any]] = MATRIX["fixtures"]
-CAPTURED = sorted(fid for fid, fx in FIXTURES.items() if fx["status"] == "CAPTURED")
+# The reference's fixtures only: unit-captured fixtures (source legacy_unit) are
+# AIA's own evidence from the vendored unit and are checked in
+# test_legacy_ui_functions.py, not against the reference checkout.
+CAPTURED = sorted(
+    fid
+    for fid, fx in FIXTURES.items()
+    if fx["status"] == "CAPTURED" and fx["source"] != "legacy_unit"
+)
 
 pytestmark = pytest.mark.golden
 
@@ -128,5 +135,12 @@ def test_matrix_agrees_with_the_reference_parity_plan(reference_repo: Path) -> N
         assert cap["parity_type"] == ref["parity_type"], cid
         assert cap["tolerance"] == ref["tolerance"], cid
         expected = sorted(f for f in ref["fixtures"] if (cid, f) not in rejected)
-        captured = sorted(f for f in cap["fixtures"] if FIXTURES[f]["status"] == "CAPTURED")
+        # The reference's plan lists the reference's fixtures. Fixtures AIA captured
+        # from the vendored unit (source legacy_unit, ADR 0011) are additional
+        # evidence, not a claim about the plan, so they are not compared here.
+        captured = sorted(
+            f
+            for f in cap["fixtures"]
+            if FIXTURES[f]["status"] == "CAPTURED" and FIXTURES[f]["source"] != "legacy_unit"
+        )
         assert captured == expected, cid

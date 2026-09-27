@@ -1,0 +1,601 @@
+﻿respondent_id,segment,dem_gender,dem_age,dem_region,dem_education,dem_income,att_sport,att_price,att_sustainability,att_status,att_basics,att_trend,att_quality,beh_sport_frequency,beh_novelty_openness,obj_Nike,obj_Adidas,obj_Zara,obj_H&M,obj_Uniqlo,obj_Patagonia,obj_Levi’s,obj_Gucci
+05R0001,Sportovní lifestyle,muž,18,Plzeňský,SŠ s maturitou,do 30 tis.,9,4,6,4,5,5,5,9,6,8,9,3,4,6,5,5,4
+05R0002,Sportovní lifestyle,muž,38,Praha,SŠ s maturitou,30–50 tis.,9,4,5,6,6,6,6,9,6,8,8,4,6,6,5,6,4
+05R0003,Sportovní lifestyle,žena,29,Jihomoravský,SŠ s maturitou,50–80 tis.,9,4,4,4,7,6,5,8,6,8,8,7,3,8,5,6,5
+05R0004,Sportovní lifestyle,muž,40,Olomoucký,SŠ s maturitou,30–50 tis.,9,5,6,6,5,6,7,9,5,8,8,5,6,7,8,8,5
+05R0005,Status a luxus,muž,53,Moravskoslezský,VŠ,30–50 tis.,4,5,3,9,2,7,6,5,6,4,7,6,4,3,3,6,9
+05R0006,Trend a fast fashion,muž,18,Moravskoslezský,VŠ,50–80 tis.,5,4,6,5,5,8,6,3,8,5,6,7,7,6,6,7,6
+05R0007,Minimalistické basics,žena,46,Plzeňský,ZŠ / vyučení,30–50 tis.,4,3,6,5,8,7,7,5,7,7,6,6,4,8,6,7,6
+05R0008,Status a luxus,žena,48,Ústecký,SŠ s maturitou,do 30 tis.,5,3,6,7,6,6,6,5,4,5,6,6,3,6,7,6,7
+05R0009,Udržitelnost,žena,20,Jihomoravský,ZŠ / vyučení,do 30 tis.,5,3,8,6,5,5,9,4,4,5,4,7,3,7,7,6,7
+05R0010,Sportovní lifestyle,muž,35,Středočeský,VŠ,do 30 tis.,8,7,6,5,7,5,7,7,5,6,7,5,4,6,4,7,4
+05R0011,Status a luxus,žena,39,Olomoucký,SŠ s maturitou,30–50 tis.,5,1,8,7,4,5,5,4,7,3,4,3,2,4,7,3,7
+05R0012,Minimalistické basics,žena,38,Olomoucký,ZŠ / vyučení,50–80 tis.,6,6,8,6,10,7,7,5,5,6,7,5,7,10,8,10,6
+05R0013,Trend a fast fashion,žena,30,Plzeňský,SŠ s maturitou,do 30 tis.,4,8,5,5,5,9,3,5,9,3,5,6,8,4,4,4,4
+05R0014,Trend a fast fashion,muž,30,Jihočeský,VŠ,80 tis. +,5,7,6,6,5,8,7,4,7,6,7,7,8,3,6,7,5
+05R0015,Udržitelnost,muž,65,Praha,VŠ,30–50 tis.,7,6,9,7,5,5,7,5,4,5,5,5,7,4,9,6,7
+05R0016,Minimalistické basics,žena,41,Olomoucký,VŠ,80 tis. +,4,4,6,5,9,6,8,6,5,5,5,5,6,8,7,9,7
+05R0017,Minimalistické basics,muž,34,Moravskoslezský,VŠ,30–50 tis.,6,6,5,7,9,4,6,6,2,6,7,5,5,9,4,8,7
+05R0018,Sportovní lifestyle,žena,37,Moravskoslezský,SŠ s maturitou,30–50 tis.,10,5,4,7,5,5,6,10,7,8,8,5,4,6,6,5,7
+05R0019,Udržitelnost,žena,34,Plzeňský,SŠ s maturitou,50–80 tis.,7,6,8,3,7,5,6,4,5,7,7,6,6,4,8,7,5
+05R0020,Status a luxus,žena,34,Jihočeský,SŠ s maturitou,do 30 tis.,8,4,8,8,7,8,7,9,7,7,8,5,5,5,6,7,9
+05R0021,Sportovní lifestyle,žena,60,Moravskoslezský,VŠ,30–50 tis.,8,6,7,4,5,7,8,8,5,6,7,7,7,4,7,7,4
+05R0022,Status a luxus,žena,64,Praha,VŠ,30–50 tis.,7,5,5,10,5,5,6,5,5,6,8,6,4,5,5,7,8
+05R0023,Minimalistické basics,muž,27,Olomoucký,ZŠ / vyučení,80 tis. +,5,4,6,5,10,8,7,5,6,4,4,5,4,6,7,8,6
+05R0024,Status a luxus,žena,39,Jihočeský,SŠ s maturitou,50–80 tis.,4,3,6,8,5,8,6,6,7,6,5,7,7,6,7,7,8
+05R0025,Sportovní lifestyle,muž,44,Ústecký,SŠ s maturitou,50–80 tis.,7,5,5,4,5,6,6,6,8,7,7,7,6,5,7,6,6
+05R0026,Status a luxus,žena,45,Jihočeský,SŠ s maturitou,do 30 tis.,6,3,8,10,7,6,8,7,7,6,7,6,6,7,8,8,10
+05R0027,Trend a fast fashion,žena,41,Jihočeský,SŠ s maturitou,do 30 tis.,6,6,5,5,6,8,6,8,9,7,6,8,8,6,6,5,6
+05R0028,Sportovní lifestyle,muž,57,Plzeňský,SŠ s maturitou,80 tis. +,9,3,7,5,6,6,6,8,7,6,7,5,4,4,6,7,7
+05R0029,Sportovní lifestyle,žena,55,Středočeský,SŠ s maturitou,30–50 tis.,8,3,7,7,4,5,6,7,5,6,7,5,4,4,7,4,6
+05R0030,Trend a fast fashion,muž,38,Olomoucký,ZŠ / vyučení,do 30 tis.,6,5,6,7,5,7,7,4,5,5,6,5,7,6,6,8,7
+05R0031,Sportovní lifestyle,muž,56,Jihomoravský,SŠ s maturitou,do 30 tis.,9,6,6,5,6,4,5,7,4,8,6,7,5,9,5,6,6
+05R0032,Trend a fast fashion,muž,35,Jihomoravský,ZŠ / vyučení,30–50 tis.,6,7,5,5,5,8,7,7,7,5,6,5,6,4,4,6,3
+05R0033,Sportovní lifestyle,žena,47,Jihomoravský,SŠ s maturitou,30–50 tis.,8,4,8,4,7,6,6,6,5,8,7,7,5,6,9,6,4
+05R0034,Udržitelnost,muž,38,Jihočeský,ZŠ / vyučení,30–50 tis.,6,2,8,7,7,8,7,6,6,5,7,7,5,8,6,9,8
+05R0035,Minimalistické basics,žena,37,Ústecký,SŠ s maturitou,50–80 tis.,5,5,5,6,9,4,5,5,4,5,4,4,6,8,5,5,6
+05R0036,Sportovní lifestyle,muž,48,Jihočeský,ZŠ / vyučení,30–50 tis.,7,6,6,5,5,6,5,5,7,8,6,6,4,5,5,5,4
+05R0037,Status a luxus,muž,27,Jihomoravský,SŠ s maturitou,do 30 tis.,5,5,4,8,6,4,7,7,5,5,3,4,4,7,5,6,7
+05R0038,Sportovní lifestyle,žena,72,Olomoucký,SŠ s maturitou,80 tis. +,10,4,6,6,5,5,6,10,5,8,10,5,6,5,5,6,7
+05R0039,Status a luxus,muž,42,Olomoucký,VŠ,30–50 tis.,6,4,5,9,3,5,5,7,4,6,5,6,4,4,4,6,9
+05R0040,Udržitelnost,muž,26,Jihomoravský,SŠ s maturitou,do 30 tis.,4,6,9,6,4,5,5,5,6,3,4,6,7,4,6,5,7
+05R0041,Sportovní lifestyle,muž,52,Jihomoravský,SŠ s maturitou,50–80 tis.,8,5,6,5,4,7,7,9,6,7,7,6,6,3,7,4,5
+05R0042,Trend a fast fashion,žena,19,Olomoucký,SŠ s maturitou,do 30 tis.,4,6,5,4,5,9,7,5,6,6,5,8,7,4,5,5,7
+05R0043,Sportovní lifestyle,muž,22,Jihomoravský,ZŠ / vyučení,50–80 tis.,10,5,5,5,7,6,5,9,7,8,7,6,5,6,4,5,5
+05R0044,Udržitelnost,žena,44,Olomoucký,SŠ s maturitou,30–50 tis.,4,6,8,7,6,8,6,4,7,6,4,6,7,7,6,6,8
+05R0045,Trend a fast fashion,muž,30,Plzeňský,SŠ s maturitou,50–80 tis.,6,6,6,6,6,6,7,8,5,7,8,4,6,6,5,6,7
+05R0046,Trend a fast fashion,muž,31,Jihočeský,SŠ s maturitou,30–50 tis.,5,8,7,3,5,9,5,6,8,6,5,9,7,6,6,1,3
+05R0047,Minimalistické basics,žena,41,Jihočeský,SŠ s maturitou,50–80 tis.,5,5,6,5,10,4,7,6,2,7,4,6,5,10,6,9,6
+05R0048,Sportovní lifestyle,muž,32,Olomoucký,VŠ,do 30 tis.,10,6,6,5,5,6,6,10,9,9,9,5,6,5,6,7,3
+05R0049,Minimalistické basics,muž,54,Jihočeský,ZŠ / vyučení,do 30 tis.,6,5,4,3,10,8,7,6,7,8,7,8,6,9,6,7,7
+05R0050,Status a luxus,žena,48,Ústecký,VŠ,80 tis. +,6,4,5,8,8,7,6,7,7,6,4,7,7,9,7,8,8
+05R0051,Trend a fast fashion,muž,53,Olomoucký,ZŠ / vyučení,50–80 tis.,5,7,6,7,8,8,4,7,7,6,6,6,7,7,5,7,8
+05R0052,Sportovní lifestyle,muž,18,Olomoucký,VŠ,50–80 tis.,9,5,5,4,7,6,7,8,6,5,8,6,5,6,5,7,5
+05R0053,Sportovní lifestyle,muž,36,Praha,ZŠ / vyučení,30–50 tis.,8,4,6,5,5,7,3,5,8,9,5,6,6,6,5,4,7
+05R0054,Status a luxus,muž,32,Olomoucký,ZŠ / vyučení,30–50 tis.,6,5,7,10,9,6,8,5,4,6,5,5,5,9,6,9,7
+05R0055,Udržitelnost,žena,43,Plzeňský,SŠ s maturitou,50–80 tis.,6,5,10,3,6,7,8,4,7,6,5,7,3,5,9,5,5
+05R0056,Sportovní lifestyle,muž,29,Olomoucký,ZŠ / vyučení,30–50 tis.,9,6,5,5,7,7,7,9,6,9,6,6,6,7,5,6,5
+05R0057,Trend a fast fashion,muž,34,Moravskoslezský,SŠ s maturitou,80 tis. +,5,8,5,6,5,7,9,4,7,7,5,8,8,8,6,9,7
+05R0058,Trend a fast fashion,žena,27,Jihomoravský,SŠ s maturitou,30–50 tis.,6,6,5,6,5,10,5,7,10,7,6,6,6,4,4,6,7
+05R0059,Udržitelnost,muž,53,Středočeský,SŠ s maturitou,30–50 tis.,7,7,10,6,2,6,6,7,6,6,6,6,7,4,9,4,6
+05R0060,Trend a fast fashion,muž,18,Praha,VŠ,50–80 tis.,6,7,5,5,5,9,5,7,9,8,5,7,7,4,6,4,7
+05R0061,Trend a fast fashion,žena,36,Olomoucký,SŠ s maturitou,50–80 tis.,4,8,3,5,4,6,6,5,6,4,4,6,7,5,3,3,4
+05R0062,Trend a fast fashion,žena,41,Plzeňský,SŠ s maturitou,do 30 tis.,5,7,6,7,5,7,7,6,5,5,5,6,7,6,5,5,5
+05R0063,Trend a fast fashion,žena,19,Plzeňský,SŠ s maturitou,do 30 tis.,8,8,7,6,8,7,6,8,7,4,6,7,8,7,5,4,4
+05R0064,Udržitelnost,žena,27,Jihočeský,ZŠ / vyučení,do 30 tis.,5,7,9,6,7,6,7,7,5,5,7,6,5,5,9,8,4
+05R0065,Status a luxus,muž,39,Moravskoslezský,ZŠ / vyučení,50–80 tis.,5,3,3,8,5,8,7,5,8,6,6,7,5,6,3,6,8
+05R0066,Minimalistické basics,žena,32,Praha,SŠ s maturitou,50–80 tis.,6,5,5,5,9,6,6,5,5,5,7,4,4,8,5,7,6
+05R0067,Minimalistické basics,muž,39,Moravskoslezský,ZŠ / vyučení,30–50 tis.,7,4,8,4,8,7,9,8,7,6,6,6,6,7,9,9,7
+05R0068,Minimalistické basics,žena,36,Středočeský,SŠ s maturitou,80 tis. +,5,5,5,4,8,3,6,6,5,5,7,4,4,9,6,9,5
+05R0069,Status a luxus,žena,35,Středočeský,SŠ s maturitou,50–80 tis.,6,5,5,6,6,7,6,5,6,7,5,5,6,4,6,4,6
+05R0070,Sportovní lifestyle,žena,24,Ústecký,VŠ,50–80 tis.,9,7,6,4,6,6,5,9,7,7,7,4,4,4,5,4,4
+05R0071,Udržitelnost,žena,37,Středočeský,VŠ,50–80 tis.,4,4,9,6,7,6,8,4,5,5,5,5,3,8,9,9,5
+05R0072,Sportovní lifestyle,muž,22,Ústecký,VŠ,30–50 tis.,9,6,6,4,7,6,6,8,7,8,8,7,5,7,6,7,4
+05R0073,Minimalistické basics,muž,31,Plzeňský,SŠ s maturitou,80 tis. +,6,4,4,6,6,5,7,7,5,7,5,4,5,6,4,7,6
+05R0074,Status a luxus,žena,39,Jihomoravský,VŠ,do 30 tis.,8,3,7,8,4,6,8,7,7,8,6,3,4,5,6,5,6
+05R0075,Status a luxus,žena,59,Moravskoslezský,VŠ,do 30 tis.,7,2,6,10,5,5,5,8,6,6,6,6,5,5,6,7,8
+05R0076,Minimalistické basics,žena,38,Jihočeský,VŠ,30–50 tis.,7,7,5,6,7,8,6,7,5,8,6,7,7,5,4,6,5
+05R0077,Status a luxus,žena,28,Olomoucký,ZŠ / vyučení,do 30 tis.,6,5,4,10,4,6,6,6,6,4,5,3,5,4,4,5,8
+05R0078,Udržitelnost,žena,24,Praha,ZŠ / vyučení,80 tis. +,6,5,9,5,7,5,6,5,6,5,5,3,3,8,6,6,4
+05R0079,Status a luxus,žena,68,Ústecký,SŠ s maturitou,80 tis. +,4,6,2,8,5,6,6,4,7,4,3,6,6,6,4,8,7
+05R0080,Status a luxus,muž,30,Jihomoravský,ZŠ / vyučení,80 tis. +,4,7,5,9,5,7,7,5,6,4,6,7,6,7,5,5,8
+05R0081,Trend a fast fashion,muž,18,Jihočeský,SŠ s maturitou,50–80 tis.,5,9,7,6,5,8,5,6,7,4,5,5,7,4,5,4,4
+05R0082,Minimalistické basics,žena,43,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,6,5,4,9,7,9,5,9,6,6,6,7,8,7,8,5
+05R0083,Status a luxus,muž,48,Jihočeský,VŠ,30–50 tis.,7,2,5,7,7,6,6,8,6,7,7,4,4,6,5,6,8
+05R0084,Trend a fast fashion,muž,26,Praha,ZŠ / vyučení,50–80 tis.,7,6,7,4,6,9,7,7,7,8,9,9,6,6,8,7,6
+05R0085,Sportovní lifestyle,žena,25,Ústecký,SŠ s maturitou,50–80 tis.,6,5,9,5,7,6,6,6,5,4,5,6,7,6,7,5,6
+05R0086,Trend a fast fashion,muž,49,Plzeňský,VŠ,30–50 tis.,5,7,8,4,7,8,5,7,7,6,6,8,7,6,7,4,4
+05R0087,Trend a fast fashion,muž,18,Jihočeský,VŠ,30–50 tis.,7,7,7,5,5,7,7,6,6,6,4,8,6,7,5,6,5
+05R0088,Status a luxus,muž,45,Plzeňský,SŠ s maturitou,80 tis. +,5,4,7,7,5,4,6,5,3,5,5,6,5,6,7,7,6
+05R0089,Trend a fast fashion,žena,19,Praha,SŠ s maturitou,30–50 tis.,4,7,7,6,6,10,7,6,8,5,5,7,10,6,6,6,5
+05R0090,Minimalistické basics,žena,47,Ústecký,VŠ,30–50 tis.,4,6,6,6,9,6,8,3,7,6,6,6,7,9,7,9,6
+05R0091,Status a luxus,muž,48,Středočeský,SŠ s maturitou,30–50 tis.,7,5,7,9,7,4,5,5,5,5,5,5,5,5,6,6,9
+05R0092,Trend a fast fashion,žena,37,Ústecký,ZŠ / vyučení,30–50 tis.,4,4,4,4,6,6,6,5,6,3,3,6,6,6,5,5,4
+05R0093,Status a luxus,žena,43,Olomoucký,ZŠ / vyučení,do 30 tis.,6,3,6,9,6,8,5,6,6,5,6,6,6,6,4,5,9
+05R0094,Sportovní lifestyle,muž,57,Středočeský,VŠ,80 tis. +,7,6,7,6,6,6,6,7,6,6,6,5,5,3,7,6,5
+05R0095,Trend a fast fashion,žena,18,Olomoucký,SŠ s maturitou,50–80 tis.,9,8,5,5,6,8,5,7,8,9,9,8,10,6,4,6,8
+05R0096,Trend a fast fashion,muž,20,Olomoucký,VŠ,30–50 tis.,4,5,6,7,6,8,6,3,8,3,3,7,8,3,5,6,7
+05R0097,Sportovní lifestyle,žena,34,Moravskoslezský,VŠ,do 30 tis.,7,7,6,6,5,4,7,7,4,5,7,3,3,5,7,2,4
+05R0098,Udržitelnost,muž,40,Praha,ZŠ / vyučení,30–50 tis.,4,5,8,7,4,5,6,4,6,5,3,6,6,2,8,5,5
+05R0099,Status a luxus,žena,38,Olomoucký,SŠ s maturitou,50–80 tis.,7,5,5,8,6,8,5,5,6,7,5,8,8,5,5,5,9
+05R0100,Status a luxus,muž,35,Olomoucký,SŠ s maturitou,30–50 tis.,5,3,6,7,3,5,4,6,6,6,6,5,5,5,6,4,9
+05R0101,Minimalistické basics,muž,38,Jihomoravský,SŠ s maturitou,50–80 tis.,6,6,5,7,8,6,8,6,8,7,6,5,5,7,5,8,6
+05R0102,Trend a fast fashion,žena,32,Jihomoravský,SŠ s maturitou,50–80 tis.,6,6,7,5,5,8,4,7,7,4,7,7,6,4,7,3,4
+05R0103,Trend a fast fashion,žena,18,Olomoucký,ZŠ / vyučení,30–50 tis.,5,5,3,5,6,9,4,5,7,5,6,9,7,6,3,5,7
+05R0104,Trend a fast fashion,žena,24,Moravskoslezský,ZŠ / vyučení,80 tis. +,6,8,5,4,5,9,6,7,10,5,5,6,7,5,5,3,3
+05R0105,Status a luxus,žena,18,Středočeský,SŠ s maturitou,80 tis. +,4,3,3,7,5,6,4,6,8,5,3,7,4,6,4,3,8
+05R0106,Status a luxus,muž,49,Ústecký,ZŠ / vyučení,do 30 tis.,7,4,5,10,4,7,8,6,6,7,6,7,7,6,5,9,10
+05R0107,Trend a fast fashion,žena,18,Jihočeský,VŠ,30–50 tis.,5,8,6,7,4,8,3,6,7,5,5,7,9,5,5,5,5
+05R0108,Status a luxus,muž,32,Jihočeský,SŠ s maturitou,50–80 tis.,6,4,6,9,7,8,6,5,8,5,6,6,6,7,5,6,9
+05R0109,Sportovní lifestyle,žena,35,Středočeský,ZŠ / vyučení,80 tis. +,10,5,5,7,4,5,6,9,7,7,7,5,5,4,4,4,4
+05R0110,Trend a fast fashion,muž,32,Jihočeský,SŠ s maturitou,30–50 tis.,6,6,8,8,6,10,4,5,10,6,4,10,7,5,6,4,8
+05R0111,Minimalistické basics,muž,26,Jihočeský,SŠ s maturitou,80 tis. +,6,7,6,6,7,4,7,6,3,5,5,4,7,7,8,7,6
+05R0112,Trend a fast fashion,žena,28,Jihomoravský,SŠ s maturitou,30–50 tis.,4,7,4,6,2,9,3,4,8,6,4,7,9,4,4,5,6
+05R0113,Minimalistické basics,žena,29,Olomoucký,VŠ,80 tis. +,6,5,5,5,8,5,6,7,6,4,5,5,6,8,4,6,3
+05R0114,Sportovní lifestyle,žena,25,Praha,SŠ s maturitou,do 30 tis.,9,8,7,7,6,5,4,7,5,7,8,5,6,7,7,5,6
+05R0115,Sportovní lifestyle,žena,32,Ústecký,VŠ,30–50 tis.,8,4,6,4,6,7,6,9,6,7,7,6,5,6,3,7,5
+05R0116,Trend a fast fashion,žena,18,Jihočeský,ZŠ / vyučení,do 30 tis.,7,8,6,7,3,8,5,8,8,6,6,7,7,3,6,4,5
+05R0117,Udržitelnost,žena,47,Moravskoslezský,VŠ,30–50 tis.,4,5,6,5,4,6,5,2,5,5,5,5,6,5,6,6,6
+05R0118,Sportovní lifestyle,muž,24,Praha,ZŠ / vyučení,50–80 tis.,10,6,7,4,6,6,6,10,7,8,7,4,5,5,7,4,3
+05R0119,Status a luxus,muž,18,Ústecký,SŠ s maturitou,50–80 tis.,3,2,7,9,5,6,6,3,4,5,4,5,4,5,6,6,10
+05R0120,Status a luxus,muž,20,Olomoucký,VŠ,do 30 tis.,5,7,5,8,4,7,5,3,5,7,4,8,6,5,5,4,7
+05R0121,Udržitelnost,žena,52,Ústecký,SŠ s maturitou,80 tis. +,6,6,9,4,5,6,8,6,6,7,6,6,5,4,7,7,5
+05R0122,Udržitelnost,muž,49,Plzeňský,VŠ,80 tis. +,5,5,6,4,7,5,9,5,4,8,5,5,5,8,5,8,6
+05R0123,Minimalistické basics,muž,18,Olomoucký,SŠ s maturitou,30–50 tis.,8,5,5,5,8,7,7,8,6,8,8,7,8,6,5,5,5
+05R0124,Sportovní lifestyle,muž,42,Plzeňský,SŠ s maturitou,50–80 tis.,10,6,7,8,7,5,7,10,7,8,9,7,6,8,8,7,6
+05R0125,Sportovní lifestyle,žena,43,Jihočeský,SŠ s maturitou,do 30 tis.,6,4,4,8,6,3,6,4,2,4,5,4,4,8,6,8,7
+05R0126,Status a luxus,žena,47,Středočeský,SŠ s maturitou,80 tis. +,4,4,6,8,8,5,4,5,5,5,4,3,5,6,5,5,6
+05R0127,Minimalistické basics,žena,45,Středočeský,SŠ s maturitou,30–50 tis.,5,5,6,6,9,4,5,4,2,5,2,4,5,6,2,4,4
+05R0128,Trend a fast fashion,muž,18,Praha,ZŠ / vyučení,50–80 tis.,6,7,6,5,6,9,5,6,7,8,5,7,7,5,4,3,6
+05R0129,Trend a fast fashion,muž,33,Praha,VŠ,30–50 tis.,6,6,4,4,5,7,8,7,6,3,5,5,7,6,6,5,4
+05R0130,Sportovní lifestyle,muž,27,Moravskoslezský,VŠ,30–50 tis.,8,6,6,6,6,5,7,7,5,6,6,6,5,6,8,7,7
+05R0131,Sportovní lifestyle,muž,39,Jihomoravský,VŠ,50–80 tis.,7,3,4,6,5,5,7,7,5,5,7,6,4,5,4,5,6
+05R0132,Status a luxus,muž,19,Jihočeský,SŠ s maturitou,50–80 tis.,6,5,6,9,7,7,6,6,6,5,4,5,6,6,5,4,8
+05R0133,Udržitelnost,žena,40,Jihomoravský,SŠ s maturitou,80 tis. +,5,8,9,7,6,6,5,6,6,4,4,4,5,4,8,5,6
+05R0134,Sportovní lifestyle,muž,35,Praha,SŠ s maturitou,30–50 tis.,10,5,3,4,5,5,6,10,5,9,10,5,7,6,4,5,4
+05R0135,Status a luxus,muž,34,Praha,ZŠ / vyučení,30–50 tis.,6,5,7,10,4,7,4,5,6,5,7,5,5,3,5,4,8
+05R0136,Trend a fast fashion,žena,41,Praha,VŠ,80 tis. +,6,7,5,6,4,6,6,6,6,6,6,6,6,4,5,4,6
+05R0137,Minimalistické basics,žena,52,Středočeský,SŠ s maturitou,do 30 tis.,6,6,6,6,8,5,9,6,6,6,5,4,6,10,7,7,6
+05R0138,Trend a fast fashion,muž,18,Jihomoravský,VŠ,30–50 tis.,3,6,5,3,4,4,3,2,2,5,3,5,6,4,6,5,4
+05R0139,Udržitelnost,muž,32,Ústecký,SŠ s maturitou,30–50 tis.,3,3,9,5,6,5,7,3,4,2,3,2,5,6,8,6,5
+05R0140,Minimalistické basics,muž,53,Praha,SŠ s maturitou,30–50 tis.,6,4,6,5,10,5,7,6,4,5,5,5,5,9,5,9,4
+05R0141,Trend a fast fashion,muž,42,Praha,VŠ,30–50 tis.,5,5,5,8,6,9,6,5,8,4,5,8,6,6,6,7,8
+05R0142,Udržitelnost,žena,18,Jihočeský,SŠ s maturitou,30–50 tis.,6,5,8,6,3,6,6,6,4,4,5,5,3,3,7,4,6
+05R0143,Status a luxus,muž,49,Ústecký,ZŠ / vyučení,do 30 tis.,6,4,8,9,6,8,5,6,9,7,6,8,7,3,5,6,7
+05R0144,Status a luxus,žena,53,Olomoucký,VŠ,80 tis. +,8,7,6,8,6,6,5,8,5,6,6,5,6,4,5,4,5
+05R0145,Trend a fast fashion,žena,20,Plzeňský,ZŠ / vyučení,do 30 tis.,5,4,5,6,6,8,5,4,8,6,5,8,4,6,6,5,7
+05R0146,Minimalistické basics,žena,40,Olomoucký,VŠ,80 tis. +,6,6,5,6,8,5,6,5,4,5,6,6,4,8,7,7,5
+05R0147,Minimalistické basics,muž,19,Praha,VŠ,50–80 tis.,6,4,5,6,7,6,7,5,6,7,8,6,6,7,7,8,9
+05R0148,Minimalistické basics,muž,20,Olomoucký,VŠ,do 30 tis.,6,5,6,6,8,7,6,7,6,5,6,5,5,7,7,7,7
+05R0149,Udržitelnost,žena,40,Jihomoravský,ZŠ / vyučení,do 30 tis.,6,4,7,5,6,5,4,5,5,5,4,1,4,6,6,4,5
+05R0150,Trend a fast fashion,žena,36,Středočeský,VŠ,30–50 tis.,5,6,8,4,6,10,4,3,10,5,6,7,8,6,7,5,6
+05R0151,Udržitelnost,muž,18,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,6,10,6,5,6,8,6,7,5,5,6,7,6,9,8,6
+05R0152,Sportovní lifestyle,muž,38,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,6,8,3,6,5,6,7,5,8,7,7,6,6,7,5,4
+05R0153,Trend a fast fashion,žena,43,Plzeňský,ZŠ / vyučení,50–80 tis.,3,7,5,7,7,7,6,5,8,5,2,6,5,6,4,4,4
+05R0154,Sportovní lifestyle,žena,47,Ústecký,SŠ s maturitou,30–50 tis.,9,6,5,6,6,7,6,7,7,8,7,5,8,8,3,5,5
+05R0155,Udržitelnost,žena,19,Jihočeský,ZŠ / vyučení,do 30 tis.,6,7,10,6,6,7,4,7,5,6,6,6,7,8,9,5,5
+05R0156,Minimalistické basics,muž,31,Praha,VŠ,50–80 tis.,6,6,6,4,7,7,6,6,7,8,5,8,6,6,5,5,5
+05R0157,Minimalistické basics,žena,42,Jihočeský,ZŠ / vyučení,30–50 tis.,6,6,5,4,8,6,7,5,5,6,4,6,5,7,6,5,3
+05R0158,Sportovní lifestyle,žena,34,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,6,6,5,6,6,8,7,5,9,7,8,6,7,6,8,6
+05R0159,Sportovní lifestyle,žena,46,Jihočeský,VŠ,30–50 tis.,10,5,4,6,7,8,5,10,8,10,9,7,6,5,4,6,7
+05R0160,Sportovní lifestyle,muž,44,Ústecký,SŠ s maturitou,30–50 tis.,7,6,7,4,5,5,6,6,5,6,7,4,5,6,7,5,4
+05R0161,Sportovní lifestyle,žena,23,Jihočeský,ZŠ / vyučení,30–50 tis.,9,4,8,5,7,7,6,8,6,8,8,7,5,7,9,6,6
+05R0162,Udržitelnost,muž,27,Olomoucký,ZŠ / vyučení,50–80 tis.,5,5,7,6,5,5,7,5,7,5,4,6,7,6,6,6,7
+05R0163,Status a luxus,muž,45,Ústecký,VŠ,30–50 tis.,7,5,6,9,6,5,4,5,4,6,7,4,3,6,4,6,8
+05R0164,Sportovní lifestyle,žena,67,Jihočeský,SŠ s maturitou,50–80 tis.,10,5,7,4,5,8,8,8,7,8,7,5,7,4,7,4,6
+05R0165,Minimalistické basics,žena,18,Ústecký,ZŠ / vyučení,do 30 tis.,5,7,5,7,9,5,6,4,6,4,6,5,7,7,6,8,6
+05R0166,Status a luxus,muž,52,Jihomoravský,VŠ,50–80 tis.,5,4,6,9,3,6,7,4,7,5,3,4,5,5,6,6,8
+05R0167,Minimalistické basics,žena,18,Praha,SŠ s maturitou,do 30 tis.,6,5,5,6,5,6,7,7,7,6,3,5,6,6,7,7,6
+05R0168,Status a luxus,žena,23,Středočeský,ZŠ / vyučení,30–50 tis.,4,4,6,8,6,8,6,4,8,5,6,7,4,7,6,6,8
+05R0169,Trend a fast fashion,žena,38,Jihočeský,SŠ s maturitou,do 30 tis.,5,6,6,4,5,8,5,3,7,5,5,7,8,6,5,3,5
+05R0170,Minimalistické basics,muž,38,Jihomoravský,SŠ s maturitou,do 30 tis.,7,7,4,7,6,7,3,6,5,8,8,7,8,6,4,6,7
+05R0171,Minimalistické basics,žena,56,Moravskoslezský,VŠ,do 30 tis.,6,7,5,4,8,5,6,5,5,5,4,4,5,8,4,6,3
+05R0172,Minimalistické basics,muž,47,Praha,VŠ,50–80 tis.,4,7,6,5,8,4,8,5,6,5,4,5,7,8,5,8,4
+05R0173,Udržitelnost,žena,50,Praha,VŠ,do 30 tis.,5,5,8,6,5,7,8,5,5,6,5,8,7,5,8,7,6
+05R0174,Trend a fast fashion,žena,27,Jihočeský,VŠ,30–50 tis.,6,7,5,4,4,9,4,8,10,7,7,8,8,5,6,3,3
+05R0175,Sportovní lifestyle,muž,34,Jihomoravský,SŠ s maturitou,do 30 tis.,8,5,5,4,5,7,6,7,5,7,6,4,6,4,4,2,5
+05R0176,Trend a fast fashion,muž,35,Olomoucký,SŠ s maturitou,80 tis. +,7,5,5,5,5,9,4,7,9,7,7,8,7,6,5,6,6
+05R0177,Sportovní lifestyle,muž,23,Plzeňský,SŠ s maturitou,80 tis. +,9,6,5,6,4,5,8,8,4,6,7,6,7,5,5,6,6
+05R0178,Sportovní lifestyle,žena,45,Praha,SŠ s maturitou,50–80 tis.,9,3,4,6,6,5,6,8,5,7,8,2,3,4,4,4,7
+05R0179,Sportovní lifestyle,muž,18,Moravskoslezský,VŠ,30–50 tis.,7,5,5,6,7,6,9,7,8,5,5,7,5,6,8,8,4
+05R0180,Minimalistické basics,muž,26,Středočeský,SŠ s maturitou,80 tis. +,4,7,7,3,8,4,8,4,5,3,3,5,6,8,8,7,6
+05R0181,Trend a fast fashion,žena,23,Moravskoslezský,ZŠ / vyučení,50–80 tis.,5,6,6,8,7,8,6,5,7,5,3,7,5,6,4,7,6
+05R0182,Sportovní lifestyle,muž,39,Praha,VŠ,50–80 tis.,7,7,5,7,7,5,6,5,4,6,5,4,7,7,4,7,6
+05R0183,Status a luxus,žena,53,Plzeňský,SŠ s maturitou,30–50 tis.,5,4,5,8,5,5,6,5,6,4,6,7,6,6,8,6,6
+05R0184,Sportovní lifestyle,muž,42,Plzeňský,SŠ s maturitou,80 tis. +,10,5,5,6,5,6,7,10,6,9,10,6,6,6,5,7,6
+05R0185,Sportovní lifestyle,žena,38,Jihočeský,SŠ s maturitou,30–50 tis.,9,5,6,5,5,8,5,8,6,10,8,6,7,7,7,7,6
+05R0186,Trend a fast fashion,muž,29,Plzeňský,SŠ s maturitou,50–80 tis.,5,6,6,8,8,9,4,5,10,6,4,8,6,5,6,6,6
+05R0187,Minimalistické basics,muž,38,Středočeský,SŠ s maturitou,do 30 tis.,4,5,4,5,10,6,6,6,6,4,6,6,7,10,5,7,3
+05R0188,Trend a fast fashion,žena,18,Jihočeský,SŠ s maturitou,30–50 tis.,7,8,6,5,7,7,5,7,6,5,6,8,8,7,7,6,6
+05R0189,Udržitelnost,žena,39,Olomoucký,ZŠ / vyučení,30–50 tis.,6,5,7,7,4,5,8,6,6,6,8,4,5,5,5,6,7
+05R0190,Minimalistické basics,žena,40,Jihočeský,VŠ,30–50 tis.,7,5,6,6,7,5,10,7,4,7,6,3,4,7,4,9,7
+05R0191,Status a luxus,muž,43,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,5,6,8,7,6,5,6,6,7,6,5,5,5,6,5,6
+05R0192,Sportovní lifestyle,muž,65,Středočeský,SŠ s maturitou,30–50 tis.,7,6,5,6,7,5,6,10,6,6,6,6,5,6,7,5,8
+05R0193,Minimalistické basics,muž,28,Praha,ZŠ / vyučení,50–80 tis.,4,4,6,5,9,6,8,4,6,6,5,6,5,8,6,8,6
+05R0194,Trend a fast fashion,žena,18,Moravskoslezský,ZŠ / vyučení,30–50 tis.,2,7,6,6,6,6,5,3,8,3,5,4,5,5,4,5,2
+05R0195,Udržitelnost,žena,31,Ústecký,SŠ s maturitou,do 30 tis.,8,6,10,3,3,6,7,6,7,5,6,7,7,5,7,3,3
+05R0196,Sportovní lifestyle,muž,45,Jihomoravský,VŠ,do 30 tis.,7,7,8,4,4,6,5,6,6,8,7,8,8,5,7,2,4
+05R0197,Minimalistické basics,žena,51,Plzeňský,SŠ s maturitou,50–80 tis.,4,6,5,5,8,6,6,5,8,5,5,7,8,8,6,8,6
+05R0198,Trend a fast fashion,žena,29,Jihomoravský,VŠ,50–80 tis.,6,8,7,7,4,7,6,5,6,6,6,6,5,6,7,5,4
+05R0199,Sportovní lifestyle,žena,49,Jihočeský,SŠ s maturitou,do 30 tis.,10,6,7,5,6,8,8,10,8,9,10,7,6,7,8,8,4
+05R0200,Sportovní lifestyle,muž,42,Plzeňský,SŠ s maturitou,50–80 tis.,9,5,5,6,5,4,3,10,2,8,9,4,5,6,5,4,6
+05R0201,Udržitelnost,žena,40,Praha,VŠ,do 30 tis.,5,5,7,6,5,7,5,5,6,5,4,4,6,7,6,5,6
+05R0202,Status a luxus,muž,28,Jihomoravský,ZŠ / vyučení,80 tis. +,4,3,4,6,4,7,6,5,6,2,3,3,4,3,5,4,6
+05R0203,Sportovní lifestyle,žena,30,Plzeňský,SŠ s maturitou,do 30 tis.,7,4,6,4,5,6,7,7,7,7,9,6,6,5,7,5,6
+05R0204,Trend a fast fashion,žena,30,Plzeňský,SŠ s maturitou,do 30 tis.,6,7,6,6,5,9,5,7,9,5,5,7,9,4,4,4,4
+05R0205,Status a luxus,žena,34,Moravskoslezský,SŠ s maturitou,do 30 tis.,4,5,9,8,5,5,5,4,2,3,2,5,5,4,6,5,6
+05R0206,Udržitelnost,muž,38,Středočeský,ZŠ / vyučení,80 tis. +,6,2,7,6,5,6,6,6,4,6,5,4,3,5,7,6,6
+05R0207,Status a luxus,žena,32,Praha,ZŠ / vyučení,do 30 tis.,5,4,5,8,6,7,4,3,8,5,5,6,5,6,4,3,8
+05R0208,Trend a fast fashion,muž,27,Jihomoravský,SŠ s maturitou,30–50 tis.,8,9,5,4,6,8,7,9,9,8,8,7,9,6,6,7,3
+05R0209,Sportovní lifestyle,žena,56,Středočeský,ZŠ / vyučení,do 30 tis.,8,6,4,5,7,6,6,8,7,8,10,6,7,6,5,7,5
+05R0210,Udržitelnost,žena,40,Jihomoravský,VŠ,30–50 tis.,6,7,10,5,5,5,7,5,5,5,5,6,6,4,7,4,4
+05R0211,Sportovní lifestyle,žena,39,Plzeňský,SŠ s maturitou,do 30 tis.,6,6,5,5,3,5,7,5,5,7,7,4,4,6,4,5,5
+05R0212,Udržitelnost,muž,34,Olomoucký,SŠ s maturitou,30–50 tis.,6,6,7,3,8,6,6,9,6,5,5,4,5,10,8,7,4
+05R0213,Sportovní lifestyle,muž,53,Olomoucký,ZŠ / vyučení,30–50 tis.,7,7,4,5,8,7,7,6,6,6,6,6,5,5,5,7,2
+05R0214,Trend a fast fashion,muž,46,Plzeňský,SŠ s maturitou,do 30 tis.,7,7,6,5,5,9,5,7,10,7,7,8,7,5,5,4,3
+05R0215,Minimalistické basics,muž,55,Plzeňský,SŠ s maturitou,do 30 tis.,6,5,6,6,10,6,6,7,6,7,6,7,7,9,7,9,6
+05R0216,Udržitelnost,muž,48,Jihočeský,SŠ s maturitou,30–50 tis.,7,8,6,3,6,4,6,5,7,6,4,3,5,4,4,6,3
+05R0217,Status a luxus,muž,35,Jihočeský,SŠ s maturitou,30–50 tis.,4,3,6,5,8,6,3,5,6,4,4,6,5,4,3,3,6
+05R0218,Udržitelnost,žena,49,Olomoucký,SŠ s maturitou,30–50 tis.,5,6,9,8,5,5,6,6,5,4,4,4,5,6,7,5,7
+05R0219,Trend a fast fashion,žena,37,Praha,ZŠ / vyučení,50–80 tis.,7,8,4,5,6,8,5,7,6,5,5,5,7,7,3,5,5
+05R0220,Minimalistické basics,žena,34,Plzeňský,ZŠ / vyučení,50–80 tis.,7,5,7,5,9,8,8,7,7,6,7,5,8,8,8,7,6
+05R0221,Trend a fast fashion,muž,47,Olomoucký,VŠ,80 tis. +,6,6,5,6,6,8,6,5,8,7,6,6,5,5,5,5,4
+05R0222,Status a luxus,žena,20,Olomoucký,VŠ,do 30 tis.,6,4,5,9,3,6,5,5,5,5,4,5,6,3,4,4,8
+05R0223,Trend a fast fashion,muž,38,Ústecký,ZŠ / vyučení,30–50 tis.,7,8,4,7,8,9,3,8,7,9,9,9,7,6,6,5,7
+05R0224,Minimalistické basics,muž,43,Praha,SŠ s maturitou,50–80 tis.,7,2,5,6,10,6,5,5,4,6,5,6,5,8,3,7,8
+05R0225,Trend a fast fashion,muž,18,Olomoucký,VŠ,50–80 tis.,5,6,6,4,5,7,5,4,5,6,5,6,7,6,4,5,4
+05R0226,Trend a fast fashion,muž,36,Plzeňský,ZŠ / vyučení,50–80 tis.,8,7,6,4,6,8,5,6,7,6,7,8,8,4,4,7,6
+05R0227,Udržitelnost,muž,30,Jihočeský,SŠ s maturitou,30–50 tis.,5,3,10,5,4,6,6,8,7,6,6,6,3,5,8,5,7
+05R0228,Status a luxus,žena,34,Olomoucký,SŠ s maturitou,30–50 tis.,5,4,7,9,6,7,7,6,6,3,5,7,6,6,7,6,9
+05R0229,Minimalistické basics,žena,37,Ústecký,SŠ s maturitou,80 tis. +,6,6,7,5,7,4,6,5,4,5,6,7,6,6,8,6,6
+05R0230,Udržitelnost,muž,20,Středočeský,VŠ,50–80 tis.,4,4,6,7,5,3,6,4,3,5,3,2,3,5,5,4,4
+05R0231,Trend a fast fashion,muž,30,Středočeský,SŠ s maturitou,30–50 tis.,5,6,7,5,6,8,6,5,6,6,7,6,7,7,4,6,4
+05R0232,Trend a fast fashion,muž,18,Středočeský,SŠ s maturitou,80 tis. +,6,7,5,5,4,7,5,6,7,6,6,7,8,5,4,5,3
+05R0233,Minimalistické basics,muž,29,Olomoucký,ZŠ / vyučení,80 tis. +,5,6,6,4,9,4,8,6,3,4,4,5,4,7,7,7,5
+05R0234,Udržitelnost,žena,47,Moravskoslezský,SŠ s maturitou,do 30 tis.,5,7,8,5,5,7,8,7,7,5,6,5,5,5,8,7,7
+05R0235,Trend a fast fashion,žena,30,Moravskoslezský,VŠ,30–50 tis.,6,7,5,7,5,9,4,6,8,7,8,8,8,4,4,6,6
+05R0236,Udržitelnost,muž,41,Olomoucký,SŠ s maturitou,50–80 tis.,8,3,8,3,7,6,5,7,7,8,6,6,4,6,8,7,5
+05R0237,Udržitelnost,muž,48,Plzeňský,SŠ s maturitou,80 tis. +,5,5,8,6,5,6,7,6,6,6,5,5,5,6,9,6,7
+05R0238,Udržitelnost,muž,50,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,7,8,5,4,6,8,7,6,5,5,7,8,5,5,5,4
+05R0239,Minimalistické basics,muž,28,Ústecký,SŠ s maturitou,30–50 tis.,6,6,6,6,10,5,5,5,3,5,5,4,6,6,5,8,4
+05R0240,Sportovní lifestyle,žena,44,Praha,ZŠ / vyučení,do 30 tis.,8,6,7,4,5,8,7,9,7,6,8,8,6,4,6,4,5
+05R0241,Udržitelnost,muž,35,Plzeňský,ZŠ / vyučení,do 30 tis.,5,4,9,5,4,5,5,4,5,4,4,3,3,2,6,1,5
+05R0242,Status a luxus,muž,31,Jihočeský,VŠ,30–50 tis.,7,4,6,9,6,5,6,6,3,8,8,5,4,6,6,7,8
+05R0243,Minimalistické basics,žena,31,Jihočeský,VŠ,30–50 tis.,5,5,5,5,7,6,7,5,8,5,4,5,5,5,5,6,4
+05R0244,Trend a fast fashion,muž,34,Ústecký,SŠ s maturitou,30–50 tis.,6,9,6,4,8,10,5,5,7,7,7,10,9,6,5,6,4
+05R0245,Udržitelnost,žena,59,Jihomoravský,VŠ,30–50 tis.,6,6,10,7,8,8,6,5,8,6,5,6,7,7,8,5,7
+05R0246,Sportovní lifestyle,žena,48,Praha,VŠ,80 tis. +,7,6,5,6,5,6,5,7,5,7,6,5,4,5,4,3,7
+05R0247,Status a luxus,muž,29,Jihomoravský,SŠ s maturitou,30–50 tis.,5,3,6,7,5,6,6,6,6,6,6,6,3,5,5,6,8
+05R0248,Status a luxus,muž,39,Praha,ZŠ / vyučení,50–80 tis.,5,5,5,9,8,9,4,5,8,6,6,7,5,7,4,5,6
+05R0249,Trend a fast fashion,muž,35,Plzeňský,SŠ s maturitou,30–50 tis.,4,6,5,5,6,9,7,4,10,6,5,9,9,6,7,7,5
+05R0250,Status a luxus,žena,27,Ústecký,VŠ,50–80 tis.,6,4,7,7,4,6,6,5,4,5,3,4,4,4,6,5,7
+05R0251,Udržitelnost,žena,44,Praha,SŠ s maturitou,30–50 tis.,5,6,9,5,5,6,7,6,6,5,4,6,6,6,7,4,3
+05R0252,Minimalistické basics,muž,26,Středočeský,SŠ s maturitou,do 30 tis.,5,4,7,5,7,7,6,4,6,4,5,5,4,7,6,5,6
+05R0253,Trend a fast fashion,žena,19,Jihočeský,SŠ s maturitou,do 30 tis.,6,7,5,5,2,6,6,5,5,6,7,5,6,3,6,2,3
+05R0254,Sportovní lifestyle,žena,51,Moravskoslezský,VŠ,30–50 tis.,9,6,3,5,5,6,8,8,6,8,9,6,4,8,6,7,6
+05R0255,Minimalistické basics,žena,50,Středočeský,VŠ,30–50 tis.,5,5,7,6,7,6,5,4,5,6,6,5,6,6,5,7,6
+05R0256,Udržitelnost,muž,55,Plzeňský,ZŠ / vyučení,50–80 tis.,5,4,8,6,4,7,6,4,7,5,5,5,3,4,6,5,7
+05R0257,Minimalistické basics,žena,46,Plzeňský,SŠ s maturitou,50–80 tis.,6,8,7,6,8,6,5,5,5,6,5,7,7,7,5,9,6
+05R0258,Status a luxus,žena,28,Praha,SŠ s maturitou,30–50 tis.,7,3,6,9,5,6,4,6,6,8,7,4,5,4,7,4,9
+05R0259,Udržitelnost,muž,38,Praha,SŠ s maturitou,50–80 tis.,7,7,6,6,4,7,9,8,8,6,4,8,8,5,7,8,6
+05R0260,Status a luxus,žena,57,Ústecký,SŠ s maturitou,30–50 tis.,7,4,5,7,4,7,3,6,7,5,6,5,7,2,6,3,7
+05R0261,Trend a fast fashion,žena,32,Plzeňský,ZŠ / vyučení,50–80 tis.,6,6,6,4,6,10,5,6,10,5,7,8,7,7,5,4,6
+05R0262,Status a luxus,muž,26,Středočeský,VŠ,do 30 tis.,5,2,4,8,4,5,6,5,5,5,5,4,2,6,4,4,7
+05R0263,Status a luxus,žena,46,Jihočeský,VŠ,80 tis. +,4,6,4,8,5,6,4,4,5,5,6,4,7,7,5,5,6
+05R0264,Status a luxus,muž,39,Jihočeský,SŠ s maturitou,30–50 tis.,6,5,5,8,6,7,5,6,7,7,6,5,5,6,3,5,9
+05R0265,Trend a fast fashion,muž,29,Plzeňský,ZŠ / vyučení,30–50 tis.,7,6,6,4,6,6,5,5,6,7,7,5,5,5,7,4,4
+05R0266,Sportovní lifestyle,muž,27,Plzeňský,SŠ s maturitou,80 tis. +,8,7,5,4,7,6,7,6,5,8,6,7,6,8,5,8,4
+05R0267,Sportovní lifestyle,žena,21,Ústecký,SŠ s maturitou,do 30 tis.,8,2,5,4,5,6,7,8,6,7,9,7,5,8,6,7,6
+05R0268,Trend a fast fashion,žena,46,Jihomoravský,ZŠ / vyučení,30–50 tis.,5,5,6,5,6,9,5,5,9,5,5,8,8,8,6,5,6
+05R0269,Trend a fast fashion,žena,24,Plzeňský,SŠ s maturitou,do 30 tis.,8,6,7,5,6,7,5,6,7,8,5,5,7,4,7,5,5
+05R0270,Trend a fast fashion,muž,18,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,6,5,6,3,9,5,6,8,7,5,6,9,3,5,5,7
+05R0271,Sportovní lifestyle,muž,30,Olomoucký,VŠ,50–80 tis.,8,6,4,5,5,6,4,8,5,7,6,5,6,5,6,2,5
+05R0272,Status a luxus,žena,21,Moravskoslezský,VŠ,do 30 tis.,4,3,4,8,4,6,4,4,7,6,5,4,5,4,4,6,9
+05R0273,Trend a fast fashion,žena,18,Plzeňský,VŠ,30–50 tis.,5,7,4,6,5,9,7,6,8,7,6,8,8,4,2,6,6
+05R0274,Trend a fast fashion,muž,40,Jihočeský,ZŠ / vyučení,30–50 tis.,4,8,5,6,4,7,6,4,6,3,4,4,7,4,6,5,5
+05R0275,Minimalistické basics,muž,43,Středočeský,ZŠ / vyučení,50–80 tis.,6,8,7,6,7,6,7,5,4,4,6,5,5,6,7,5,5
+05R0276,Minimalistické basics,žena,38,Plzeňský,SŠ s maturitou,30–50 tis.,7,6,7,5,5,6,5,6,8,7,7,7,9,5,6,6,5
+05R0277,Minimalistické basics,žena,50,Jihomoravský,SŠ s maturitou,50–80 tis.,6,5,7,8,8,5,7,6,4,6,6,5,3,8,7,8,7
+05R0278,Udržitelnost,žena,22,Plzeňský,VŠ,50–80 tis.,5,8,9,6,6,5,7,4,5,4,6,6,5,5,9,7,4
+05R0279,Trend a fast fashion,muž,43,Jihočeský,VŠ,30–50 tis.,6,5,7,6,5,10,6,7,8,6,8,8,7,5,7,5,6
+05R0280,Sportovní lifestyle,žena,29,Praha,SŠ s maturitou,30–50 tis.,7,5,5,4,5,6,7,7,5,6,7,4,5,6,6,5,5
+05R0281,Minimalistické basics,muž,32,Ústecký,ZŠ / vyučení,80 tis. +,4,6,7,5,8,6,5,4,6,6,4,8,5,9,7,7,5
+05R0282,Minimalistické basics,muž,35,Středočeský,SŠ s maturitou,30–50 tis.,8,5,3,4,8,6,6,7,9,7,8,6,5,7,3,7,5
+05R0283,Sportovní lifestyle,muž,20,Jihomoravský,ZŠ / vyučení,do 30 tis.,9,5,5,6,6,4,5,10,4,9,8,4,3,7,7,5,6
+05R0284,Minimalistické basics,muž,42,Středočeský,SŠ s maturitou,80 tis. +,6,5,5,4,7,6,6,6,6,6,5,5,6,7,5,6,5
+05R0285,Sportovní lifestyle,muž,45,Jihočeský,SŠ s maturitou,do 30 tis.,9,7,7,6,5,6,8,7,7,6,8,5,6,6,6,6,6
+05R0286,Sportovní lifestyle,žena,29,Jihočeský,SŠ s maturitou,50–80 tis.,7,6,6,7,7,6,8,7,7,6,6,6,6,9,5,8,5
+05R0287,Status a luxus,muž,33,Ústecký,VŠ,50–80 tis.,6,7,5,10,5,6,5,6,6,5,6,6,7,4,5,6,8
+05R0288,Udržitelnost,žena,39,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,8,7,4,5,5,7,6,6,6,7,5,7,5,8,5,4
+05R0289,Minimalistické basics,muž,37,Jihomoravský,SŠ s maturitou,50–80 tis.,6,6,4,3,9,6,6,5,5,5,4,4,4,7,4,5,2
+05R0290,Udržitelnost,žena,20,Jihomoravský,SŠ s maturitou,80 tis. +,4,6,9,5,5,5,5,2,5,4,4,6,6,5,9,4,5
+05R0291,Minimalistické basics,muž,27,Jihočeský,ZŠ / vyučení,30–50 tis.,5,6,5,5,8,2,7,4,4,4,5,4,3,6,5,8,4
+05R0292,Sportovní lifestyle,muž,56,Plzeňský,VŠ,do 30 tis.,7,6,5,7,6,6,6,8,7,6,7,5,4,7,5,6,6
+05R0293,Status a luxus,muž,30,Jihomoravský,SŠ s maturitou,50–80 tis.,6,3,1,8,8,4,3,6,4,5,5,4,5,6,2,7,7
+05R0294,Minimalistické basics,muž,32,Ústecký,VŠ,do 30 tis.,6,7,5,7,7,6,9,7,6,7,7,6,7,7,7,10,7
+05R0295,Udržitelnost,muž,55,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,5,9,4,7,6,6,6,5,5,5,5,5,6,8,6,5
+05R0296,Minimalistické basics,muž,25,Plzeňský,SŠ s maturitou,30–50 tis.,6,3,6,6,8,5,7,6,5,6,5,4,3,8,6,9,7
+05R0297,Status a luxus,muž,39,Jihomoravský,ZŠ / vyučení,80 tis. +,6,6,3,10,2,4,6,5,4,3,4,4,5,5,4,5,6
+05R0298,Status a luxus,žena,47,Ústecký,SŠ s maturitou,80 tis. +,6,4,4,8,5,6,4,7,7,6,6,3,4,3,3,4,8
+05R0299,Minimalistické basics,žena,24,Jihočeský,SŠ s maturitou,50–80 tis.,5,4,6,4,8,7,7,4,6,7,3,5,4,8,6,7,5
+05R0300,Udržitelnost,muž,44,Plzeňský,ZŠ / vyučení,50–80 tis.,6,6,5,2,5,6,7,7,5,4,6,6,5,6,3,4,2
+05R0301,Sportovní lifestyle,muž,27,Praha,ZŠ / vyučení,50–80 tis.,8,2,6,6,5,7,6,8,7,9,8,7,7,4,6,5,8
+05R0302,Minimalistické basics,žena,18,Ústecký,VŠ,80 tis. +,4,5,5,7,7,5,8,5,3,3,6,4,4,5,6,8,6
+05R0303,Minimalistické basics,muž,37,Ústecký,SŠ s maturitou,do 30 tis.,4,7,6,4,8,7,8,5,7,7,6,6,5,8,8,7,4
+05R0304,Trend a fast fashion,žena,18,Středočeský,VŠ,do 30 tis.,6,7,8,5,5,9,5,5,8,6,8,8,7,5,6,5,3
+05R0305,Udržitelnost,muž,53,Jihomoravský,VŠ,50–80 tis.,5,4,9,4,7,6,7,6,5,5,5,7,5,7,8,7,5
+05R0306,Udržitelnost,muž,18,Praha,VŠ,80 tis. +,6,3,8,6,6,6,8,4,4,5,7,6,4,7,7,4,6
+05R0307,Trend a fast fashion,žena,35,Moravskoslezský,ZŠ / vyučení,50–80 tis.,5,6,4,3,5,8,5,6,9,4,4,6,8,3,4,2,2
+05R0308,Trend a fast fashion,žena,18,Moravskoslezský,VŠ,30–50 tis.,6,6,6,6,5,10,5,7,10,5,4,7,7,4,2,3,7
+05R0309,Udržitelnost,muž,34,Plzeňský,SŠ s maturitou,80 tis. +,7,6,8,5,6,6,7,6,4,6,6,6,5,8,8,5,5
+05R0310,Trend a fast fashion,žena,34,Praha,ZŠ / vyučení,50–80 tis.,7,8,3,6,5,8,3,6,7,7,5,7,8,5,4,3,5
+05R0311,Udržitelnost,žena,36,Jihomoravský,VŠ,50–80 tis.,5,6,5,5,6,7,8,7,7,6,5,7,6,7,7,7,6
+05R0312,Status a luxus,žena,55,Praha,VŠ,30–50 tis.,7,2,4,8,7,9,4,7,10,9,8,7,5,7,4,6,8
+05R0313,Status a luxus,žena,56,Olomoucký,ZŠ / vyučení,30–50 tis.,5,6,6,7,4,5,8,4,5,4,4,4,5,3,5,5,4
+05R0314,Udržitelnost,muž,40,Jihočeský,SŠ s maturitou,do 30 tis.,6,5,7,7,4,6,9,5,7,5,6,7,5,7,8,8,8
+05R0315,Trend a fast fashion,muž,41,Jihočeský,ZŠ / vyučení,30–50 tis.,6,7,4,6,4,7,7,5,8,5,5,6,9,3,5,5,5
+05R0316,Trend a fast fashion,muž,51,Plzeňský,SŠ s maturitou,do 30 tis.,5,6,7,8,7,7,7,5,6,5,7,8,7,8,7,7,7
+05R0317,Sportovní lifestyle,žena,43,Olomoucký,SŠ s maturitou,do 30 tis.,8,4,7,5,7,4,7,8,3,7,7,4,3,6,8,7,7
+05R0318,Status a luxus,žena,59,Jihomoravský,SŠ s maturitou,do 30 tis.,4,5,3,8,6,6,4,3,4,6,7,7,7,7,5,5,8
+05R0319,Udržitelnost,muž,62,Středočeský,SŠ s maturitou,30–50 tis.,7,6,10,6,5,4,7,7,4,6,7,6,5,3,8,7,5
+05R0320,Trend a fast fashion,muž,35,Praha,VŠ,50–80 tis.,5,9,7,6,4,8,3,5,7,7,5,10,10,5,7,5,6
+05R0321,Sportovní lifestyle,muž,39,Středočeský,VŠ,30–50 tis.,8,5,5,6,5,6,7,8,7,7,9,7,5,6,5,6,6
+05R0322,Minimalistické basics,žena,29,Moravskoslezský,VŠ,do 30 tis.,7,5,4,6,6,6,5,7,6,7,8,6,6,8,5,7,7
+05R0323,Status a luxus,muž,40,Středočeský,SŠ s maturitou,50–80 tis.,5,5,5,10,5,6,3,4,6,6,6,7,5,3,4,4,9
+05R0324,Status a luxus,muž,44,Praha,VŠ,30–50 tis.,6,6,5,8,3,7,7,7,6,5,5,4,6,5,6,6,7
+05R0325,Trend a fast fashion,žena,18,Olomoucký,ZŠ / vyučení,30–50 tis.,7,7,4,6,6,6,6,7,7,6,9,6,5,4,4,6,6
+05R0326,Udržitelnost,žena,42,Plzeňský,ZŠ / vyučení,30–50 tis.,6,5,7,6,8,5,4,6,4,6,4,4,5,8,6,7,6
+05R0327,Udržitelnost,muž,43,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,7,8,4,6,7,6,6,6,8,6,6,6,8,8,8,5
+05R0328,Status a luxus,žena,37,Praha,ZŠ / vyučení,50–80 tis.,7,3,5,8,6,6,6,6,6,4,5,4,2,3,3,4,6
+05R0329,Minimalistické basics,žena,31,Plzeňský,SŠ s maturitou,30–50 tis.,5,6,6,5,9,7,5,7,7,6,4,7,6,7,7,7,4
+05R0330,Minimalistické basics,muž,40,Středočeský,SŠ s maturitou,80 tis. +,7,5,5,5,8,6,5,5,7,6,9,5,7,8,4,7,5
+05R0331,Trend a fast fashion,žena,51,Olomoucký,VŠ,do 30 tis.,6,5,5,7,6,9,6,6,10,5,5,7,8,5,4,5,5
+05R0332,Sportovní lifestyle,muž,39,Olomoucký,SŠ s maturitou,30–50 tis.,8,5,7,6,7,6,9,7,7,7,8,5,4,5,9,7,6
+05R0333,Udržitelnost,žena,25,Praha,SŠ s maturitou,50–80 tis.,6,4,9,6,4,4,6,6,4,7,5,3,4,4,9,4,5
+05R0334,Trend a fast fashion,muž,42,Jihomoravský,SŠ s maturitou,50–80 tis.,5,6,5,6,6,6,8,7,7,5,5,5,5,7,5,8,6
+05R0335,Sportovní lifestyle,muž,31,Praha,VŠ,30–50 tis.,7,5,7,4,5,6,6,6,7,6,3,4,4,4,4,5,4
+05R0336,Trend a fast fashion,žena,23,Jihočeský,SŠ s maturitou,80 tis. +,6,6,6,6,5,8,7,5,8,4,6,7,6,5,6,7,5
+05R0337,Trend a fast fashion,žena,23,Ústecký,SŠ s maturitou,50–80 tis.,4,4,7,7,6,9,6,3,9,6,6,6,8,6,8,6,4
+05R0338,Sportovní lifestyle,žena,24,Jihočeský,VŠ,50–80 tis.,10,7,6,8,5,5,5,10,3,10,10,6,8,7,6,7,8
+05R0339,Status a luxus,muž,42,Jihočeský,SŠ s maturitou,50–80 tis.,5,7,4,9,6,5,6,6,6,6,7,7,5,6,6,7,6
+05R0340,Sportovní lifestyle,žena,57,Olomoucký,VŠ,80 tis. +,9,7,4,3,7,7,8,9,8,6,6,4,6,7,6,7,4
+05R0341,Sportovní lifestyle,žena,57,Plzeňský,SŠ s maturitou,50–80 tis.,9,4,9,3,7,8,9,10,8,8,7,7,6,9,9,7,3
+05R0342,Minimalistické basics,žena,60,Praha,SŠ s maturitou,do 30 tis.,5,6,4,6,7,6,8,5,5,6,2,4,5,6,6,8,6
+05R0343,Udržitelnost,muž,35,Středočeský,ZŠ / vyučení,30–50 tis.,5,6,9,3,6,5,6,5,6,5,5,6,5,4,8,7,3
+05R0344,Sportovní lifestyle,žena,45,Jihočeský,SŠ s maturitou,30–50 tis.,9,4,6,5,7,5,5,7,5,6,8,4,5,8,6,5,5
+05R0345,Minimalistické basics,muž,40,Středočeský,SŠ s maturitou,50–80 tis.,6,5,6,4,7,4,6,6,3,5,5,4,3,6,4,5,4
+05R0346,Minimalistické basics,žena,28,Středočeský,SŠ s maturitou,do 30 tis.,6,4,5,7,7,5,7,7,5,6,6,5,6,8,5,8,7
+05R0347,Minimalistické basics,muž,29,Jihomoravský,SŠ s maturitou,50–80 tis.,5,7,6,5,10,5,7,6,4,7,3,4,6,7,6,8,3
+05R0348,Udržitelnost,žena,43,Praha,SŠ s maturitou,50–80 tis.,5,3,7,6,8,6,4,6,6,7,4,5,4,4,6,6,6
+05R0349,Trend a fast fashion,žena,35,Jihomoravský,SŠ s maturitou,do 30 tis.,8,6,6,5,6,8,5,7,8,7,7,6,6,6,7,5,3
+05R0350,Trend a fast fashion,žena,18,Plzeňský,SŠ s maturitou,80 tis. +,6,8,5,5,9,8,3,7,8,7,5,8,7,7,6,6,5
+05R0351,Status a luxus,muž,30,Jihočeský,SŠ s maturitou,30–50 tis.,5,4,6,7,5,6,4,6,6,4,5,5,4,3,4,5,8
+05R0352,Minimalistické basics,žena,23,Jihočeský,SŠ s maturitou,30–50 tis.,6,5,4,5,7,6,5,6,6,4,4,6,3,5,4,5,5
+05R0353,Trend a fast fashion,žena,40,Olomoucký,ZŠ / vyučení,do 30 tis.,5,5,6,6,6,10,4,6,9,7,7,9,9,5,8,6,8
+05R0354,Udržitelnost,muž,24,Jihomoravský,ZŠ / vyučení,80 tis. +,7,4,7,3,4,4,8,7,5,5,6,5,4,4,6,5,4
+05R0355,Trend a fast fashion,muž,18,Jihočeský,SŠ s maturitou,do 30 tis.,4,6,6,6,5,8,6,3,8,5,3,6,5,3,5,5,7
+05R0356,Udržitelnost,žena,44,Plzeňský,ZŠ / vyučení,30–50 tis.,6,7,10,5,7,5,6,8,6,6,6,6,6,7,8,4,6
+05R0357,Trend a fast fashion,žena,39,Ústecký,VŠ,80 tis. +,6,8,6,4,7,7,6,5,7,6,8,7,7,6,5,6,4
+05R0358,Minimalistické basics,žena,65,Moravskoslezský,ZŠ / vyučení,50–80 tis.,5,4,6,5,9,3,6,5,4,4,5,5,4,9,6,6,7
+05R0359,Status a luxus,žena,50,Olomoucký,VŠ,30–50 tis.,5,5,5,8,8,8,5,6,8,6,6,9,7,9,6,7,7
+05R0360,Trend a fast fashion,žena,52,Středočeský,SŠ s maturitou,50–80 tis.,5,7,5,6,4,9,4,4,8,5,5,7,7,4,4,4,6
+05R0361,Trend a fast fashion,muž,38,Plzeňský,SŠ s maturitou,30–50 tis.,5,6,6,6,4,8,7,4,8,5,7,6,7,5,6,5,4
+05R0362,Udržitelnost,muž,37,Středočeský,VŠ,30–50 tis.,6,6,7,6,6,5,7,6,4,5,6,6,6,4,5,4,5
+05R0363,Udržitelnost,muž,56,Plzeňský,ZŠ / vyučení,50–80 tis.,6,5,10,4,8,6,7,8,6,6,7,5,5,8,7,6,5
+05R0364,Trend a fast fashion,žena,32,Jihočeský,ZŠ / vyučení,do 30 tis.,5,5,4,4,6,7,6,3,8,6,6,7,7,5,6,5,5
+05R0365,Sportovní lifestyle,muž,27,Moravskoslezský,SŠ s maturitou,80 tis. +,7,3,7,5,4,4,5,7,7,6,6,4,4,5,7,4,7
+05R0366,Minimalistické basics,muž,21,Jihomoravský,SŠ s maturitou,do 30 tis.,5,3,7,6,7,6,7,5,3,6,5,5,4,7,5,5,5
+05R0367,Status a luxus,muž,34,Jihočeský,ZŠ / vyučení,80 tis. +,4,2,7,9,5,5,5,4,5,4,6,2,3,4,6,6,10
+05R0368,Trend a fast fashion,žena,44,Ústecký,VŠ,do 30 tis.,5,7,4,4,5,7,4,7,7,6,4,6,6,5,5,4,4
+05R0369,Sportovní lifestyle,žena,54,Ústecký,SŠ s maturitou,30–50 tis.,8,5,5,3,5,6,7,9,5,6,6,6,5,6,5,6,4
+05R0370,Status a luxus,žena,45,Jihočeský,SŠ s maturitou,30–50 tis.,6,4,6,9,5,7,6,8,7,6,7,5,5,5,7,6,9
+05R0371,Minimalistické basics,žena,38,Středočeský,VŠ,30–50 tis.,6,4,4,5,7,6,7,6,4,7,6,4,4,5,6,7,7
+05R0372,Status a luxus,žena,38,Moravskoslezský,VŠ,50–80 tis.,7,2,6,7,6,5,6,7,3,6,6,3,3,5,5,6,6
+05R0373,Sportovní lifestyle,žena,18,Jihomoravský,ZŠ / vyučení,80 tis. +,7,6,5,6,4,5,8,6,3,4,6,4,5,5,4,5,6
+05R0374,Status a luxus,žena,27,Jihomoravský,SŠ s maturitou,30–50 tis.,4,3,5,8,5,8,5,4,6,5,5,6,4,5,5,6,7
+05R0375,Trend a fast fashion,muž,26,Moravskoslezský,VŠ,30–50 tis.,6,6,7,5,5,7,4,4,7,8,7,7,6,4,7,4,6
+05R0376,Udržitelnost,žena,35,Praha,SŠ s maturitou,80 tis. +,7,5,8,8,6,4,5,4,3,6,6,4,6,5,8,6,8
+05R0377,Trend a fast fashion,žena,37,Moravskoslezský,VŠ,do 30 tis.,5,7,7,6,4,6,7,6,5,6,4,8,7,5,5,4,5
+05R0378,Sportovní lifestyle,žena,31,Moravskoslezský,SŠ s maturitou,30–50 tis.,9,5,6,8,5,6,6,9,8,9,7,6,4,5,6,5,3
+05R0379,Trend a fast fashion,žena,18,Olomoucký,VŠ,do 30 tis.,6,8,7,5,6,8,4,4,6,6,4,6,7,5,6,6,4
+05R0380,Trend a fast fashion,muž,48,Moravskoslezský,ZŠ / vyučení,30–50 tis.,4,6,4,6,6,6,4,4,7,4,4,7,6,6,4,3,6
+05R0381,Status a luxus,žena,45,Plzeňský,SŠ s maturitou,30–50 tis.,4,6,7,9,6,6,5,5,3,6,3,6,4,5,5,6,7
+05R0382,Trend a fast fashion,muž,18,Jihočeský,SŠ s maturitou,50–80 tis.,5,6,4,6,4,9,4,6,8,5,3,9,7,4,4,5,6
+05R0383,Trend a fast fashion,žena,33,Jihočeský,VŠ,do 30 tis.,4,4,5,5,4,8,6,2,8,5,6,6,5,4,6,5,5
+05R0384,Sportovní lifestyle,žena,23,Praha,SŠ s maturitou,do 30 tis.,7,5,3,5,8,4,8,7,3,4,6,3,6,7,5,8,5
+05R0385,Trend a fast fashion,žena,29,Jihočeský,VŠ,50–80 tis.,4,6,5,5,6,7,5,5,6,3,5,7,6,5,4,5,3
+05R0386,Status a luxus,muž,40,Jihomoravský,SŠ s maturitou,50–80 tis.,5,4,5,9,8,7,5,5,7,6,5,6,5,7,5,7,8
+05R0387,Udržitelnost,žena,20,Praha,ZŠ / vyučení,80 tis. +,7,4,8,5,6,6,7,7,6,8,7,6,6,4,8,7,6
+05R0388,Trend a fast fashion,žena,32,Ústecký,SŠ s maturitou,30–50 tis.,5,7,5,5,7,10,7,5,10,8,7,8,8,8,5,6,6
+05R0389,Udržitelnost,muž,54,Středočeský,SŠ s maturitou,50–80 tis.,5,7,9,6,3,5,10,5,5,6,7,5,7,6,10,7,7
+05R0390,Trend a fast fashion,muž,50,Ústecký,ZŠ / vyučení,50–80 tis.,6,5,3,6,6,8,3,5,7,9,8,8,7,4,4,4,6
+05R0391,Sportovní lifestyle,muž,25,Jihočeský,ZŠ / vyučení,50–80 tis.,9,5,6,6,6,7,9,7,6,9,8,7,6,6,9,9,5
+05R0392,Udržitelnost,žena,41,Plzeňský,ZŠ / vyučení,30–50 tis.,7,6,9,8,5,5,9,8,6,6,6,5,5,6,9,6,6
+05R0393,Sportovní lifestyle,muž,36,Praha,ZŠ / vyučení,30–50 tis.,9,6,7,5,5,4,7,9,6,7,7,2,6,5,4,5,3
+05R0394,Udržitelnost,žena,31,Plzeňský,ZŠ / vyučení,50–80 tis.,2,4,8,6,6,5,7,2,6,4,4,6,5,5,8,6,7
+05R0395,Trend a fast fashion,muž,28,Středočeský,SŠ s maturitou,50–80 tis.,8,6,7,6,5,7,4,8,8,7,6,8,6,4,6,5,6
+05R0396,Udržitelnost,žena,45,Olomoucký,SŠ s maturitou,30–50 tis.,6,4,8,5,6,3,6,6,2,4,7,3,3,7,8,7,5
+05R0397,Sportovní lifestyle,muž,31,Praha,VŠ,30–50 tis.,10,4,5,2,4,4,5,10,6,8,8,5,3,4,7,4,3
+05R0398,Status a luxus,muž,32,Moravskoslezský,VŠ,30–50 tis.,5,5,7,10,6,7,5,5,4,5,4,5,6,5,4,5,8
+05R0399,Udržitelnost,muž,58,Ústecký,VŠ,30–50 tis.,5,6,8,4,5,6,7,8,7,6,5,5,7,7,7,5,4
+05R0400,Trend a fast fashion,muž,30,Jihočeský,ZŠ / vyučení,do 30 tis.,6,6,4,6,7,7,7,5,7,5,8,6,6,7,5,7,5
+05R0401,Udržitelnost,muž,36,Ústecký,SŠ s maturitou,50–80 tis.,5,6,7,5,4,4,4,6,5,3,7,5,8,4,6,6,7
+05R0402,Sportovní lifestyle,žena,69,Plzeňský,ZŠ / vyučení,80 tis. +,7,6,2,6,5,6,4,7,5,6,7,7,8,5,4,3,4
+05R0403,Trend a fast fashion,žena,18,Olomoucký,ZŠ / vyučení,30–50 tis.,6,6,5,5,6,6,5,5,7,5,5,7,6,4,4,4,4
+05R0404,Minimalistické basics,muž,25,Praha,VŠ,50–80 tis.,4,4,5,3,9,4,7,3,4,4,4,3,4,7,5,7,3
+05R0405,Sportovní lifestyle,muž,44,Jihomoravský,ZŠ / vyučení,do 30 tis.,8,6,6,6,5,5,7,7,6,7,7,4,5,5,6,6,6
+05R0406,Minimalistické basics,muž,41,Ústecký,SŠ s maturitou,50–80 tis.,6,6,6,6,7,4,6,5,4,6,6,4,5,7,6,7,8
+05R0407,Minimalistické basics,muž,42,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,6,5,5,8,5,5,6,5,6,9,6,6,8,5,7,6
+05R0408,Trend a fast fashion,žena,25,Praha,SŠ s maturitou,30–50 tis.,6,6,7,5,7,9,6,7,8,7,6,8,9,6,9,6,6
+05R0409,Trend a fast fashion,žena,26,Ústecký,VŠ,do 30 tis.,5,4,5,4,4,7,3,7,7,5,5,5,6,4,4,2,6
+05R0410,Status a luxus,žena,50,Praha,ZŠ / vyučení,50–80 tis.,6,5,6,8,4,5,5,6,6,5,5,5,4,4,5,6,9
+05R0411,Trend a fast fashion,muž,34,Plzeňský,VŠ,80 tis. +,6,5,5,6,4,7,7,7,7,7,6,4,5,4,5,4,8
+05R0412,Trend a fast fashion,muž,35,Plzeňský,ZŠ / vyučení,30–50 tis.,4,7,6,4,4,10,5,5,9,3,7,9,8,5,6,5,6
+05R0413,Minimalistické basics,muž,38,Středočeský,VŠ,do 30 tis.,7,6,6,6,8,5,6,7,5,5,5,5,6,7,5,6,6
+05R0414,Status a luxus,muž,34,Ústecký,SŠ s maturitou,80 tis. +,5,3,4,9,6,6,5,3,5,5,6,4,3,6,3,5,9
+05R0415,Trend a fast fashion,muž,18,Ústecký,SŠ s maturitou,80 tis. +,4,6,5,5,6,9,7,4,9,6,6,8,6,7,3,7,5
+05R0416,Status a luxus,muž,40,Středočeský,ZŠ / vyučení,30–50 tis.,6,3,5,8,2,5,6,7,7,5,7,5,4,4,5,6,6
+05R0417,Sportovní lifestyle,žena,43,Moravskoslezský,VŠ,30–50 tis.,8,5,5,6,8,7,7,7,6,8,8,6,7,7,7,8,5
+05R0418,Udržitelnost,muž,21,Jihočeský,ZŠ / vyučení,30–50 tis.,3,5,8,6,7,8,7,3,8,4,5,7,7,9,7,7,7
+05R0419,Sportovní lifestyle,žena,61,Ústecký,SŠ s maturitou,30–50 tis.,8,6,8,5,5,3,8,6,2,7,6,4,3,6,8,7,4
+05R0420,Udržitelnost,žena,47,Středočeský,SŠ s maturitou,30–50 tis.,4,7,9,6,6,8,7,4,7,5,5,7,7,8,8,7,6
+05R0421,Status a luxus,muž,23,Středočeský,SŠ s maturitou,30–50 tis.,6,5,6,8,7,8,5,5,9,6,7,6,6,7,4,5,7
+05R0422,Status a luxus,muž,18,Jihočeský,ZŠ / vyučení,30–50 tis.,5,5,5,8,5,7,5,5,7,5,5,7,4,5,7,6,8
+05R0423,Sportovní lifestyle,žena,40,Jihočeský,SŠ s maturitou,80 tis. +,7,7,5,7,6,4,5,7,4,7,6,4,5,5,3,5,6
+05R0424,Sportovní lifestyle,muž,46,Středočeský,SŠ s maturitou,30–50 tis.,7,6,6,6,5,6,5,6,6,6,6,6,4,5,6,6,7
+05R0425,Trend a fast fashion,muž,18,Ústecký,ZŠ / vyučení,50–80 tis.,7,7,4,4,6,7,4,7,5,9,7,9,9,6,4,5,6
+05R0426,Udržitelnost,žena,55,Plzeňský,ZŠ / vyučení,do 30 tis.,6,5,8,6,5,5,8,6,6,4,5,5,4,7,7,6,4
+05R0427,Trend a fast fashion,žena,18,Jihomoravský,VŠ,30–50 tis.,4,7,4,3,6,8,6,6,5,4,5,7,6,7,6,7,6
+05R0428,Trend a fast fashion,žena,25,Olomoucký,ZŠ / vyučení,30–50 tis.,7,6,5,8,7,8,6,7,8,6,6,6,6,7,5,4,6
+05R0429,Minimalistické basics,muž,18,Moravskoslezský,SŠ s maturitou,30–50 tis.,4,6,4,5,7,4,5,4,5,3,5,6,4,6,5,7,5
+05R0430,Udržitelnost,muž,59,Jihočeský,SŠ s maturitou,do 30 tis.,8,5,8,6,5,7,7,9,5,6,8,6,7,7,8,6,6
+05R0431,Udržitelnost,žena,31,Praha,VŠ,do 30 tis.,7,4,9,5,4,6,8,4,6,6,7,5,5,5,10,6,7
+05R0432,Status a luxus,žena,41,Jihočeský,VŠ,30–50 tis.,5,2,5,9,7,9,7,6,8,8,5,6,6,9,8,9,9
+05R0433,Minimalistické basics,muž,40,Praha,VŠ,do 30 tis.,5,5,6,7,8,7,7,7,6,7,3,6,5,8,5,9,7
+05R0434,Trend a fast fashion,muž,47,Plzeňský,SŠ s maturitou,30–50 tis.,5,6,6,7,5,8,6,7,8,6,5,5,5,6,6,5,7
+05R0435,Trend a fast fashion,muž,44,Moravskoslezský,VŠ,30–50 tis.,4,8,6,3,7,9,5,5,8,7,6,7,10,7,5,5,5
+05R0436,Minimalistické basics,žena,37,Ústecký,ZŠ / vyučení,80 tis. +,6,6,8,8,9,5,5,7,6,5,3,5,5,6,3,7,5
+05R0437,Sportovní lifestyle,žena,42,Praha,ZŠ / vyučení,do 30 tis.,7,5,7,4,5,7,8,6,5,7,7,6,7,6,7,5,4
+05R0438,Sportovní lifestyle,žena,32,Praha,SŠ s maturitou,50–80 tis.,9,4,7,6,7,6,7,9,7,7,9,5,5,6,6,6,6
+05R0439,Trend a fast fashion,muž,18,Jihomoravský,SŠ s maturitou,30–50 tis.,6,7,6,5,3,10,7,7,9,5,8,8,6,4,5,3,4
+05R0440,Udržitelnost,žena,38,Středočeský,VŠ,80 tis. +,6,6,7,6,2,4,6,6,4,5,5,7,7,2,7,5,5
+05R0441,Status a luxus,žena,31,Jihočeský,ZŠ / vyučení,30–50 tis.,5,3,4,10,8,7,4,5,6,3,6,4,4,6,2,5,8
+05R0442,Udržitelnost,muž,37,Jihočeský,ZŠ / vyučení,50–80 tis.,3,7,6,4,5,4,7,2,4,3,2,3,5,4,6,4,3
+05R0443,Status a luxus,žena,24,Praha,VŠ,30–50 tis.,7,4,5,8,7,6,5,6,5,4,7,6,5,6,3,6,9
+05R0444,Trend a fast fashion,žena,37,Plzeňský,VŠ,30–50 tis.,6,7,2,5,5,8,7,6,9,5,6,6,7,4,3,4,3
+05R0445,Minimalistické basics,žena,50,Plzeňský,ZŠ / vyučení,do 30 tis.,6,5,7,6,6,4,7,7,2,4,5,2,4,5,5,5,5
+05R0446,Trend a fast fashion,muž,31,Praha,SŠ s maturitou,30–50 tis.,6,6,5,7,4,8,6,6,7,6,7,7,6,5,4,7,7
+05R0447,Minimalistické basics,žena,25,Jihomoravský,ZŠ / vyučení,50–80 tis.,6,6,6,5,6,6,6,6,6,6,7,7,5,7,7,7,7
+05R0448,Minimalistické basics,žena,44,Olomoucký,SŠ s maturitou,30–50 tis.,6,5,5,4,10,6,6,8,9,5,6,5,5,8,6,9,4
+05R0449,Udržitelnost,muž,36,Středočeský,ZŠ / vyučení,80 tis. +,7,5,6,5,7,6,5,5,6,6,6,6,5,8,4,7,5
+05R0450,Sportovní lifestyle,žena,36,Ústecký,SŠ s maturitou,30–50 tis.,8,5,7,6,6,4,7,7,5,8,7,5,5,5,6,7,5
+05R0451,Udržitelnost,muž,26,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,8,8,4,5,6,8,5,6,5,6,7,6,6,9,6,4
+05R0452,Minimalistické basics,muž,35,Jihočeský,SŠ s maturitou,do 30 tis.,6,4,6,6,10,3,8,7,5,4,5,3,3,10,5,9,5
+05R0453,Udržitelnost,muž,18,Jihomoravský,SŠ s maturitou,30–50 tis.,5,7,8,6,6,4,7,6,5,6,4,6,5,6,10,7,6
+05R0454,Minimalistické basics,muž,32,Středočeský,SŠ s maturitou,30–50 tis.,6,5,6,5,9,6,7,7,7,4,6,4,4,7,8,9,5
+05R0455,Sportovní lifestyle,žena,44,Moravskoslezský,ZŠ / vyučení,50–80 tis.,10,5,5,6,7,5,7,10,6,9,10,4,5,8,6,6,6
+05R0456,Status a luxus,muž,45,Praha,VŠ,30–50 tis.,6,5,6,10,6,8,4,5,8,4,6,8,6,6,6,7,10
+05R0457,Minimalistické basics,muž,43,Jihomoravský,VŠ,50–80 tis.,5,4,6,6,8,7,8,6,9,6,5,7,4,6,6,7,6
+05R0458,Status a luxus,žena,35,Moravskoslezský,VŠ,50–80 tis.,6,4,4,8,3,7,7,5,6,6,7,6,5,5,5,5,8
+05R0459,Udržitelnost,žena,30,Jihočeský,SŠ s maturitou,do 30 tis.,6,6,8,8,7,8,8,6,6,5,4,5,6,6,7,6,7
+05R0460,Sportovní lifestyle,žena,18,Ústecký,SŠ s maturitou,do 30 tis.,10,6,5,5,5,6,7,9,5,9,10,5,4,5,5,7,6
+05R0461,Minimalistické basics,žena,18,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,8,6,7,6,6,7,9,8,6,7,6,6,4,7,8,6
+05R0462,Udržitelnost,muž,38,Praha,VŠ,do 30 tis.,4,4,9,4,5,6,7,5,6,3,4,5,6,6,8,6,6
+05R0463,Sportovní lifestyle,žena,54,Plzeňský,VŠ,50–80 tis.,8,5,6,5,5,5,6,9,6,5,6,5,4,6,6,7,5
+05R0464,Status a luxus,muž,47,Ústecký,SŠ s maturitou,30–50 tis.,7,4,6,8,5,7,7,7,5,5,3,5,7,7,4,6,7
+05R0465,Minimalistické basics,žena,39,Ústecký,SŠ s maturitou,30–50 tis.,7,5,6,7,7,6,6,4,5,8,7,6,6,7,5,6,7
+05R0466,Status a luxus,žena,47,Olomoucký,VŠ,80 tis. +,6,3,5,8,6,8,6,6,7,4,5,5,5,4,5,7,7
+05R0467,Sportovní lifestyle,žena,25,Jihočeský,VŠ,do 30 tis.,6,4,5,6,7,5,8,7,5,4,7,5,5,5,8,7,4
+05R0468,Udržitelnost,žena,34,Jihočeský,ZŠ / vyučení,80 tis. +,7,7,9,5,4,5,5,6,6,6,8,5,5,6,8,5,4
+05R0469,Trend a fast fashion,žena,19,Ústecký,VŠ,do 30 tis.,6,5,5,5,6,9,5,7,9,6,8,8,7,5,7,5,7
+05R0470,Status a luxus,žena,24,Ústecký,SŠ s maturitou,30–50 tis.,8,4,7,8,6,5,6,7,4,7,6,5,4,6,6,6,6
+05R0471,Trend a fast fashion,žena,31,Jihomoravský,SŠ s maturitou,do 30 tis.,6,7,7,5,7,8,5,5,9,8,6,9,6,8,6,5,7
+05R0472,Udržitelnost,muž,36,Olomoucký,SŠ s maturitou,30–50 tis.,5,6,8,3,7,6,10,6,6,4,5,5,5,8,6,9,3
+05R0473,Sportovní lifestyle,muž,25,Plzeňský,SŠ s maturitou,30–50 tis.,10,5,7,6,5,5,4,8,5,9,7,6,5,5,6,5,5
+05R0474,Sportovní lifestyle,muž,25,Jihomoravský,SŠ s maturitou,30–50 tis.,8,8,5,5,4,5,6,7,4,7,7,6,7,4,5,5,4
+05R0475,Trend a fast fashion,žena,53,Jihočeský,ZŠ / vyučení,do 30 tis.,4,8,5,5,4,6,5,6,4,4,4,6,7,4,4,3,3
+05R0476,Minimalistické basics,žena,38,Ústecký,SŠ s maturitou,do 30 tis.,9,7,6,5,8,6,7,8,5,7,8,6,8,9,5,7,6
+05R0477,Status a luxus,žena,55,Plzeňský,VŠ,80 tis. +,4,3,5,10,5,7,6,5,7,5,5,6,4,6,7,7,10
+05R0478,Sportovní lifestyle,žena,52,Plzeňský,ZŠ / vyučení,50–80 tis.,8,4,8,6,3,5,5,6,5,7,7,5,3,1,7,3,7
+05R0479,Status a luxus,muž,42,Moravskoslezský,ZŠ / vyučení,30–50 tis.,7,4,6,7,7,7,7,8,7,6,8,6,7,6,6,9,7
+05R0480,Status a luxus,muž,60,Moravskoslezský,VŠ,50–80 tis.,5,3,5,7,6,7,6,6,5,5,7,4,6,6,6,6,8
+05R0481,Sportovní lifestyle,žena,37,Praha,SŠ s maturitou,do 30 tis.,10,6,6,5,7,5,5,10,7,8,6,6,6,4,7,7,5
+05R0482,Minimalistické basics,žena,44,Plzeňský,ZŠ / vyučení,50–80 tis.,5,6,5,6,7,6,7,6,5,6,6,4,7,9,6,7,6
+05R0483,Sportovní lifestyle,muž,34,Jihočeský,SŠ s maturitou,50–80 tis.,6,3,6,5,5,7,5,7,4,7,7,7,5,7,6,6,5
+05R0484,Udržitelnost,muž,40,Jihočeský,ZŠ / vyučení,80 tis. +,4,7,9,7,5,6,7,4,4,3,3,6,5,5,7,5,5
+05R0485,Minimalistické basics,žena,32,Jihočeský,SŠ s maturitou,do 30 tis.,6,6,6,7,7,5,8,5,5,5,5,5,4,9,7,7,5
+05R0486,Status a luxus,žena,25,Jihomoravský,VŠ,30–50 tis.,5,4,7,7,4,6,3,4,6,6,3,5,4,2,6,5,7
+05R0487,Udržitelnost,muž,38,Jihočeský,VŠ,do 30 tis.,5,4,8,4,7,6,7,5,5,5,7,6,5,7,8,7,4
+05R0488,Trend a fast fashion,žena,35,Ústecký,VŠ,30–50 tis.,7,7,6,6,4,8,7,8,7,6,6,8,6,6,4,7,4
+05R0489,Status a luxus,žena,30,Jihočeský,ZŠ / vyučení,30–50 tis.,8,3,6,8,6,7,5,6,9,6,6,4,5,3,4,4,6
+05R0490,Status a luxus,žena,33,Středočeský,SŠ s maturitou,30–50 tis.,4,2,6,9,5,6,4,6,6,3,3,4,3,4,5,5,7
+05R0491,Trend a fast fashion,muž,47,Plzeňský,SŠ s maturitou,50–80 tis.,7,7,8,3,7,9,5,8,7,8,7,9,8,4,6,6,4
+05R0492,Udržitelnost,muž,37,Praha,VŠ,50–80 tis.,5,5,9,6,5,6,7,4,7,4,5,7,6,8,9,7,6
+05R0493,Udržitelnost,žena,35,Moravskoslezský,SŠ s maturitou,80 tis. +,5,7,9,6,9,5,7,5,4,4,3,5,6,7,7,7,6
+05R0494,Trend a fast fashion,muž,28,Olomoucký,SŠ s maturitou,do 30 tis.,5,7,5,5,5,8,5,5,8,5,5,9,9,8,7,3,6
+05R0495,Trend a fast fashion,žena,24,Ústecký,SŠ s maturitou,80 tis. +,5,4,4,5,5,9,6,5,9,7,8,8,5,4,5,5,6
+05R0496,Trend a fast fashion,žena,31,Středočeský,VŠ,50–80 tis.,6,6,7,6,6,8,4,7,7,7,5,7,7,5,5,5,6
+05R0497,Minimalistické basics,žena,41,Plzeňský,ZŠ / vyučení,50–80 tis.,5,7,6,5,7,6,6,6,5,5,6,6,6,6,6,6,7
+05R0498,Status a luxus,muž,28,Středočeský,SŠ s maturitou,80 tis. +,3,5,5,6,6,9,7,4,10,2,3,7,6,5,3,6,4
+05R0499,Sportovní lifestyle,muž,42,Olomoucký,VŠ,30–50 tis.,8,7,6,3,4,5,5,8,6,6,4,3,5,3,6,4,2
+05R0500,Udržitelnost,žena,36,Středočeský,SŠ s maturitou,30–50 tis.,7,5,7,8,6,7,7,8,7,6,5,4,5,4,5,5,7
+05R0501,Sportovní lifestyle,žena,44,Praha,SŠ s maturitou,do 30 tis.,7,5,6,7,4,3,6,7,3,5,5,5,6,6,7,6,6
+05R0502,Trend a fast fashion,muž,18,Ústecký,VŠ,50–80 tis.,4,7,7,7,7,10,4,2,10,3,5,5,5,6,5,4,6
+05R0503,Udržitelnost,žena,36,Olomoucký,SŠ s maturitou,50–80 tis.,5,5,9,6,4,5,7,5,8,6,3,7,5,5,9,4,8
+05R0504,Sportovní lifestyle,žena,48,Jihomoravský,ZŠ / vyučení,80 tis. +,8,4,8,5,6,5,6,9,4,6,8,7,5,7,6,7,7
+05R0505,Sportovní lifestyle,muž,49,Středočeský,SŠ s maturitou,30–50 tis.,9,5,6,8,5,6,6,10,6,9,8,4,3,5,7,5,5
+05R0506,Status a luxus,žena,42,Plzeňský,ZŠ / vyučení,30–50 tis.,7,3,7,8,7,8,8,6,8,9,10,8,5,8,8,9,8
+05R0507,Udržitelnost,žena,29,Středočeský,VŠ,30–50 tis.,7,7,9,5,5,6,7,7,6,6,4,3,5,5,7,6,4
+05R0508,Status a luxus,žena,56,Praha,SŠ s maturitou,30–50 tis.,6,6,6,10,6,7,4,5,7,6,6,4,6,4,6,4,7
+05R0509,Minimalistické basics,žena,18,Olomoucký,SŠ s maturitou,30–50 tis.,6,5,5,6,10,6,7,7,4,5,8,7,6,10,6,9,7
+05R0510,Minimalistické basics,muž,51,Plzeňský,VŠ,30–50 tis.,6,5,3,5,6,5,7,6,6,7,6,7,6,7,4,5,5
+05R0511,Minimalistické basics,žena,24,Praha,VŠ,50–80 tis.,5,7,4,6,9,7,4,5,9,5,5,8,8,7,4,6,5
+05R0512,Sportovní lifestyle,muž,37,Jihomoravský,VŠ,do 30 tis.,6,9,4,7,6,6,4,6,5,5,6,4,7,5,3,4,5
+05R0513,Trend a fast fashion,muž,20,Plzeňský,ZŠ / vyučení,30–50 tis.,7,7,6,5,6,9,5,6,7,7,8,9,7,4,6,4,7
+05R0514,Sportovní lifestyle,žena,19,Plzeňský,SŠ s maturitou,50–80 tis.,9,6,7,6,4,6,7,9,8,7,8,6,6,4,8,4,4
+05R0515,Sportovní lifestyle,žena,51,Plzeňský,SŠ s maturitou,do 30 tis.,5,6,5,4,5,6,5,4,6,6,5,6,6,4,2,4,5
+05R0516,Trend a fast fashion,muž,30,Ústecký,SŠ s maturitou,do 30 tis.,4,8,6,6,4,6,5,5,6,5,6,7,7,3,8,5,5
+05R0517,Minimalistické basics,žena,47,Praha,SŠ s maturitou,do 30 tis.,5,3,4,6,9,6,6,6,5,5,6,5,6,8,4,5,5
+05R0518,Minimalistické basics,muž,18,Olomoucký,SŠ s maturitou,50–80 tis.,5,8,6,6,9,6,6,4,5,6,7,7,7,8,6,8,7
+05R0519,Sportovní lifestyle,žena,44,Ústecký,VŠ,80 tis. +,7,5,6,6,5,5,7,8,6,6,6,4,5,5,6,5,5
+05R0520,Udržitelnost,žena,29,Středočeský,SŠ s maturitou,30–50 tis.,5,5,9,4,6,7,7,5,8,6,5,5,7,5,9,7,6
+05R0521,Sportovní lifestyle,žena,30,Olomoucký,SŠ s maturitou,do 30 tis.,8,5,5,6,6,7,3,9,6,7,9,5,4,5,3,4,5
+05R0522,Minimalistické basics,muž,38,Moravskoslezský,VŠ,50–80 tis.,5,6,5,6,8,7,9,4,6,5,5,5,5,8,6,10,6
+05R0523,Udržitelnost,muž,47,Praha,ZŠ / vyučení,50–80 tis.,6,6,8,5,6,5,4,5,6,5,5,5,6,5,6,4,4
+05R0524,Sportovní lifestyle,žena,34,Moravskoslezský,ZŠ / vyučení,do 30 tis.,10,6,7,6,6,8,5,9,9,10,10,8,7,8,7,8,6
+05R0525,Trend a fast fashion,muž,64,Jihomoravský,VŠ,30–50 tis.,5,7,5,7,5,7,6,3,9,5,6,8,7,5,6,4,6
+05R0526,Status a luxus,muž,57,Moravskoslezský,VŠ,do 30 tis.,7,4,7,7,5,9,4,8,10,5,9,6,6,6,5,4,8
+05R0527,Minimalistické basics,muž,28,Praha,VŠ,50–80 tis.,6,5,7,6,5,6,8,7,5,6,6,5,5,6,6,7,6
+05R0528,Udržitelnost,žena,31,Jihomoravský,VŠ,30–50 tis.,4,7,7,4,6,7,8,5,6,4,6,8,7,6,7,7,3
+05R0529,Trend a fast fashion,muž,27,Praha,ZŠ / vyučení,50–80 tis.,8,5,8,6,6,9,5,9,10,8,7,8,7,5,6,5,6
+05R0530,Minimalistické basics,žena,29,Praha,SŠ s maturitou,30–50 tis.,5,7,6,5,8,5,7,4,5,5,3,6,4,7,6,8,5
+05R0531,Sportovní lifestyle,žena,53,Jihomoravský,SŠ s maturitou,30–50 tis.,7,5,5,6,4,7,4,7,7,8,7,5,6,4,4,6,7
+05R0532,Minimalistické basics,muž,29,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,6,5,5,10,8,6,4,7,6,5,7,8,8,4,9,6
+05R0533,Udržitelnost,muž,51,Středočeský,VŠ,do 30 tis.,7,6,8,5,5,5,7,6,7,6,5,4,6,5,9,4,4
+05R0534,Udržitelnost,žena,52,Středočeský,VŠ,30–50 tis.,7,5,7,6,6,4,7,6,3,5,5,2,4,5,6,6,4
+05R0535,Udržitelnost,žena,31,Jihočeský,VŠ,do 30 tis.,5,6,9,4,5,6,5,5,6,6,7,6,5,4,7,6,3
+05R0536,Sportovní lifestyle,žena,18,Jihočeský,ZŠ / vyučení,do 30 tis.,7,7,7,5,7,5,7,10,4,7,6,4,5,5,6,6,4
+05R0537,Status a luxus,žena,55,Ústecký,ZŠ / vyučení,do 30 tis.,7,3,7,8,5,8,6,8,7,6,7,7,6,4,8,7,7
+05R0538,Minimalistické basics,muž,23,Středočeský,ZŠ / vyučení,do 30 tis.,5,5,4,4,9,3,5,6,4,4,5,3,4,8,4,7,2
+05R0539,Sportovní lifestyle,muž,44,Jihomoravský,SŠ s maturitou,do 30 tis.,7,5,4,5,5,5,6,6,4,7,6,5,4,6,6,6,5
+05R0540,Status a luxus,žena,30,Plzeňský,VŠ,80 tis. +,4,4,4,8,4,7,5,5,7,5,5,4,5,3,4,5,8
+05R0541,Minimalistické basics,muž,30,Olomoucký,SŠ s maturitou,50–80 tis.,5,7,6,6,9,4,6,6,3,6,4,2,6,8,7,9,7
+05R0542,Minimalistické basics,žena,27,Praha,VŠ,50–80 tis.,5,7,5,6,9,6,6,6,6,4,5,5,5,7,6,7,6
+05R0543,Sportovní lifestyle,žena,22,Praha,ZŠ / vyučení,50–80 tis.,8,5,7,8,8,4,5,7,3,7,6,4,6,7,7,7,7
+05R0544,Sportovní lifestyle,žena,46,Moravskoslezský,ZŠ / vyučení,50–80 tis.,7,5,6,6,5,4,7,8,4,6,8,6,4,5,6,6,6
+05R0545,Trend a fast fashion,muž,48,Praha,ZŠ / vyučení,50–80 tis.,4,7,6,6,4,10,6,4,8,3,5,8,10,3,4,6,5
+05R0546,Trend a fast fashion,žena,30,Olomoucký,SŠ s maturitou,30–50 tis.,6,8,4,6,5,7,4,6,7,5,6,7,7,2,5,3,4
+05R0547,Minimalistické basics,žena,33,Moravskoslezský,SŠ s maturitou,50–80 tis.,4,4,5,5,7,7,8,4,6,4,3,4,6,7,4,8,6
+05R0548,Status a luxus,muž,50,Jihomoravský,VŠ,30–50 tis.,5,6,4,8,6,8,5,5,6,5,5,8,8,6,5,6,7
+05R0549,Udržitelnost,muž,55,Plzeňský,ZŠ / vyučení,30–50 tis.,6,6,10,6,5,5,7,5,6,5,6,4,5,5,8,5,5
+05R0550,Minimalistické basics,žena,26,Moravskoslezský,VŠ,50–80 tis.,6,5,6,4,8,4,7,6,6,6,5,3,4,7,7,6,5
+05R0551,Status a luxus,žena,23,Středočeský,ZŠ / vyučení,50–80 tis.,5,5,4,9,6,6,7,5,7,4,4,6,5,9,5,7,9
+05R0552,Sportovní lifestyle,žena,49,Praha,VŠ,50–80 tis.,9,5,5,4,5,6,6,9,6,8,8,6,6,7,6,6,6
+05R0553,Trend a fast fashion,žena,18,Olomoucký,ZŠ / vyučení,30–50 tis.,5,7,4,5,4,9,5,4,9,6,6,9,9,5,6,6,6
+05R0554,Trend a fast fashion,žena,54,Olomoucký,ZŠ / vyučení,50–80 tis.,5,6,4,4,3,8,5,5,9,7,6,6,6,5,5,2,4
+05R0555,Udržitelnost,žena,29,Jihočeský,SŠ s maturitou,do 30 tis.,4,5,10,5,4,7,4,4,8,5,5,7,7,4,6,3,6
+05R0556,Udržitelnost,muž,55,Praha,ZŠ / vyučení,80 tis. +,5,4,7,6,6,8,7,5,6,6,5,7,5,5,6,8,7
+05R0557,Sportovní lifestyle,žena,35,Olomoucký,ZŠ / vyučení,80 tis. +,9,5,7,5,6,4,3,7,3,8,8,4,5,4,6,4,5
+05R0558,Minimalistické basics,muž,65,Plzeňský,ZŠ / vyučení,80 tis. +,7,5,7,5,10,5,6,6,6,6,8,4,5,8,5,7,5
+05R0559,Status a luxus,muž,32,Jihomoravský,ZŠ / vyučení,50–80 tis.,4,3,6,9,4,5,5,2,4,3,5,5,5,5,6,6,9
+05R0560,Trend a fast fashion,muž,30,Plzeňský,ZŠ / vyučení,do 30 tis.,6,7,7,8,5,5,4,6,6,6,6,6,4,4,7,4,6
+05R0561,Trend a fast fashion,žena,20,Plzeňský,SŠ s maturitou,80 tis. +,5,8,5,4,5,7,7,6,7,5,4,6,7,4,5,4,2
+05R0562,Trend a fast fashion,muž,25,Praha,SŠ s maturitou,80 tis. +,7,9,6,6,6,8,6,7,6,8,4,7,6,5,6,6,5
+05R0563,Udržitelnost,muž,46,Olomoucký,ZŠ / vyučení,do 30 tis.,6,3,8,5,4,6,7,7,5,5,5,6,5,5,9,6,5
+05R0564,Status a luxus,žena,34,Moravskoslezský,VŠ,30–50 tis.,8,3,8,9,4,6,7,9,6,7,6,6,5,4,6,6,10
+05R0565,Trend a fast fashion,muž,30,Ústecký,SŠ s maturitou,50–80 tis.,6,8,6,6,4,8,6,6,6,7,5,8,8,6,5,4,5
+05R0566,Trend a fast fashion,žena,25,Jihomoravský,ZŠ / vyučení,do 30 tis.,8,7,6,6,6,7,6,7,6,7,8,8,6,6,5,7,5
+05R0567,Status a luxus,muž,49,Olomoucký,SŠ s maturitou,30–50 tis.,6,4,4,9,5,7,4,5,7,9,5,6,4,5,6,6,8
+05R0568,Udržitelnost,žena,18,Plzeňský,SŠ s maturitou,30–50 tis.,6,6,8,6,7,5,6,5,5,6,5,4,8,8,7,6,7
+05R0569,Minimalistické basics,žena,28,Středočeský,SŠ s maturitou,do 30 tis.,6,6,6,5,6,6,6,6,7,5,7,5,7,6,7,7,5
+05R0570,Status a luxus,žena,29,Moravskoslezský,ZŠ / vyučení,50–80 tis.,5,6,5,6,6,6,3,4,6,7,6,8,6,6,4,5,6
+05R0571,Trend a fast fashion,žena,42,Jihočeský,SŠ s maturitou,30–50 tis.,6,5,3,7,6,7,6,7,5,7,6,9,6,5,4,8,6
+05R0572,Sportovní lifestyle,žena,37,Plzeňský,ZŠ / vyučení,50–80 tis.,6,6,4,5,4,6,7,5,7,6,5,5,4,4,5,5,5
+05R0573,Trend a fast fashion,muž,41,Ústecký,ZŠ / vyučení,50–80 tis.,6,5,5,7,3,8,3,4,9,6,3,8,6,5,4,4,9
+05R0574,Sportovní lifestyle,žena,29,Jihomoravský,VŠ,50–80 tis.,8,6,7,5,6,5,6,6,6,5,6,5,3,5,6,5,4
+05R0575,Trend a fast fashion,muž,35,Jihomoravský,SŠ s maturitou,80 tis. +,5,5,6,8,6,7,6,5,8,4,5,5,5,5,3,4,7
+05R0576,Sportovní lifestyle,muž,18,Moravskoslezský,ZŠ / vyučení,50–80 tis.,9,7,4,7,9,7,6,8,5,7,9,6,8,8,5,5,4
+05R0577,Minimalistické basics,žena,36,Praha,SŠ s maturitou,do 30 tis.,5,5,7,6,8,4,7,5,3,5,5,4,6,7,7,9,5
+05R0578,Trend a fast fashion,muž,29,Olomoucký,SŠ s maturitou,50–80 tis.,7,7,6,6,5,9,7,7,7,4,6,7,7,5,3,5,5
+05R0579,Trend a fast fashion,žena,33,Plzeňský,VŠ,30–50 tis.,3,6,6,6,5,5,5,4,4,6,5,7,6,4,5,4,7
+05R0580,Trend a fast fashion,muž,29,Středočeský,SŠ s maturitou,30–50 tis.,4,9,5,6,6,7,6,6,6,3,4,6,6,5,6,6,4
+05R0581,Sportovní lifestyle,muž,44,Středočeský,SŠ s maturitou,do 30 tis.,9,6,4,7,7,5,5,7,5,7,7,6,4,7,3,8,6
+05R0582,Udržitelnost,muž,53,Plzeňský,VŠ,do 30 tis.,6,6,7,4,6,6,8,6,8,6,5,6,7,7,8,6,5
+05R0583,Udržitelnost,muž,48,Plzeňský,SŠ s maturitou,30–50 tis.,5,5,10,6,8,3,7,5,3,4,8,5,5,9,10,7,6
+05R0584,Sportovní lifestyle,muž,45,Středočeský,VŠ,80 tis. +,10,6,4,6,5,7,5,9,7,7,10,4,6,4,5,4,4
+05R0585,Udržitelnost,muž,38,Praha,ZŠ / vyučení,30–50 tis.,5,8,9,6,4,4,6,5,5,4,4,5,6,4,10,6,4
+05R0586,Status a luxus,muž,42,Ústecký,VŠ,30–50 tis.,5,3,6,9,6,7,6,4,5,4,5,6,3,5,6,7,8
+05R0587,Trend a fast fashion,žena,40,Středočeský,SŠ s maturitou,30–50 tis.,4,6,6,7,6,7,6,3,6,7,4,8,8,8,6,6,7
+05R0588,Status a luxus,žena,22,Jihočeský,VŠ,do 30 tis.,7,3,6,9,5,7,6,7,7,5,4,5,3,4,4,5,8
+05R0589,Sportovní lifestyle,žena,24,Praha,ZŠ / vyučení,30–50 tis.,10,5,8,7,6,6,7,9,7,8,7,8,4,8,8,7,4
+05R0590,Status a luxus,žena,40,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,5,5,8,7,7,7,5,7,6,6,6,7,8,6,7,8
+05R0591,Sportovní lifestyle,muž,41,Olomoucký,ZŠ / vyučení,do 30 tis.,6,6,7,7,5,7,6,5,8,6,6,5,6,5,8,6,5
+05R0592,Status a luxus,žena,40,Praha,VŠ,50–80 tis.,6,6,5,8,7,7,5,6,6,6,4,6,8,8,6,4,6
+05R0593,Minimalistické basics,muž,43,Plzeňský,ZŠ / vyučení,50–80 tis.,5,4,4,5,8,4,6,4,6,8,5,5,3,7,5,5,5
+05R0594,Trend a fast fashion,muž,19,Jihočeský,VŠ,50–80 tis.,7,5,5,6,7,7,6,6,8,5,5,4,7,6,4,6,6
+05R0595,Minimalistické basics,muž,57,Jihomoravský,SŠ s maturitou,80 tis. +,6,7,5,6,5,8,6,6,7,5,6,8,8,4,6,5,7
+05R0596,Minimalistické basics,žena,57,Plzeňský,ZŠ / vyučení,30–50 tis.,5,6,4,6,9,5,6,4,4,5,4,6,5,8,5,7,4
+05R0597,Udržitelnost,muž,58,Praha,VŠ,30–50 tis.,5,6,8,8,3,8,8,5,10,5,6,7,5,5,8,6,7
+05R0598,Minimalistické basics,žena,42,Středočeský,ZŠ / vyučení,50–80 tis.,5,7,7,4,9,6,7,4,6,4,6,7,7,8,5,8,5
+05R0599,Minimalistické basics,žena,48,Olomoucký,VŠ,30–50 tis.,6,6,6,6,7,5,8,5,4,6,5,3,5,8,9,7,4
+05R0600,Status a luxus,muž,48,Středočeský,ZŠ / vyučení,30–50 tis.,6,5,5,7,7,6,3,7,6,5,5,6,5,7,3,5,7

@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "policy_version": "18.6.6",
+  "research_design": {
+    "sample_size": {
+      "default": 300,
+      "hard_min": 20,
+      "hard_max": 10000
+    },
+    "tracked_set": {
+      "recommended_min": 4,
+      "recommended_max": 15,
+      "hard_max": 40,
+      "min_for_position_map": 3,
+      "min_for_other_outputs": 1
+    }
+  },
+  "persona": {
+    "population_strategy": "same_person_core_plus_topic_aware_whole_donor_blocks_plus_labeled_behavior_models_v17",
+    "custom_audience_strategy": "measured_pass_through",
+    "allowed_evidence_roles": [
+      "MEASURED_JOINT",
+      "MEASURED_DERIVED",
+      "MATCHED_WHOLE_BLOCK_CANONICAL",
+      "MATCHED_DONOR_BLOCK",
+      "CALIBRATED_CORE",
+      "CALIBRATED_BEHAVIOR_MODEL",
+      "MODELED_BEHAVIOR_PRIOR",
+      "MODELED_VALUE_PROXY",
+      "CALIBRATED_MODELED_COMPOSITE",
+      "CALIBRATED_MODELED_BINARY"
+    ],
+    "include_synthetic_ungrounded": false,
+    "signal_budget": {
+      "base": 4,
+      "per_two_extra_topics": 1,
+      "max": 8
+    },
+    "minimum_distinctiveness_z": 0.35,
+    "custom_persona_rule": "Only Variables.persona_use=yes is passed through as measured facts; outcome_history defaults to no.",
+    "production_default": "calibrated"
+  },
+  "audience": {
+    "source_modes": [
+      "population",
+      "customer",
+      "special_audience"
+    ],
+    "custom_min_rows": 20,
+    "custom_recommended_rows": 100,
+    "ess_recommended_min": 100,
+    "mix_with_population_automatically": false,
+    "customer_special_require_dataset_id": true
+  },
+  "notes": [
+    "Hard limits are reserved for runtime or mathematical validity. Product-method recommendations should be warnings, not blockers.",
+    "Population v17.1.2 uses a Census-calibrated same-person core and whole matched donor blocks; it does not independently impute legacy D_* dimensions.",
+    "Customer/Special Audience row-level attributes are measured joint inputs; model-generated new outcomes remain predictions, not measurements.",
+    "17.7.2: normal UX hides internal methodology codes; Data Library learning remains external-evidence and approval gated.",
+    "17.8.0: client-ready Research + standalone/batch Simulation; LIVE AI runtime is Claude Code subscription only; simulation variants are independently modeled, never linearly interpolated.",
+    "17.8.2: AI Analytics high-fidelity visual redesign only; functional and methodological policy inherited from 17.8.1 client-ready suite.",
+    "17.8.5: respondent resilience + UX clarity; grouped Claude respondent batches, durable first-question resume, backend/worker watchdog, compact guided start, project attachments and local logo route.",
+    "17.8.9: guided UX; multi-intent brief, catalog-first persona dimensions, audited methodological warning override, single-question AI repair, sticky Next navigation.",
+    "17.9.0: persistent project/stage/artifact source of truth; explicit Claude Code + Claude API dual LIVE runtime; no silent paid fallback.",
+    "17.9.1: fast interactive research intake; quick simulation context separated from optional Deep Research; cancel/project-state synchronization; autosave performance fix.",
+    "17.9.3: three editable project design variants; 187 data-backed audience factors; derived respondent overlays; evidence-backed custom dimensions with quantitative-anchor gate; Claude may propose new dimensions but cannot activate them without evidence/approval.",
+    "17.9.4: global privacy-safe Project Memory / AI Assistant; 20 bundled read-only DEMO projects with no-AI opening, normal artifact downloads, and explicit copy-to-editable-project flow.",
+    "17.9.7: bubble sociomap with all-pairs full zero-diagonal matrix, user-selectable zero-height secondary objects, clean global navigation, human-readable Project Workspace and separate DEMO simulation companions."
+  ],
+  "data_core": {
+    "target_architecture": "same_person_core_plus_whole_donor_block_fusion",
+    "unit": "same-person population core + thematic respondent block",
+    "registry": "DATA_PROVENANCE_REGISTRY_v17.csv",
+    "status": "PRODUCTION_V17_ENGINEERING_QC_EXTERNAL_HOLDOUT_PENDING",
+    "production_panel": "FINALNI_KOMPLETNI_PANEL_v17_1_2.csv.gz",
+    "independent_dimension_imputation_allowed": false,
+    "cross_block_same_person_joint": false
+  },
+  "instrument_library": {
+    "registry": "INSTRUMENT_LIBRARY_v1.json",
+    "version": "17.1.2-instruments-v1.1",
+    "standard_constructs_generated_by_llm": false,
+    "llm_role": "study classification, slot extraction, client-specific wording only",
+    "n_study_types": 16,
+    "n_instruments": 58,
+    "source_binding_policy": "PENDING_SOURCE_BINDING is not external validation and cannot create an anchor."
+  },
+  "scenario": {
+    "compiler_required": true,
+    "human_approval_required_for_live": true,
+    "primary_output": "delta",
+    "absolute_level_claims_allowed": false,
+    "truth_log": "data/scenario_truth_log.jsonl",
+    "standalone_simulation": true,
+    "batch_variants": true,
+    "independent_variant_models": true,
+    "linear_interpolation_allowed": false,
+    "uncertainty_resolution": true,
+    "client_delivery_required": true
+  },
+  "validation_anchors": {
+    "global_registry": "VALIDATION_ANCHORS.json",
+    "invent_missing_truth": false,
+    "custom_audience_benchmarks_sheet": "Benchmarks"
+  },
+  "version": "18.6.6",
+  "production_panel": "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+  "external_validation": "EXTERNAL_HOLDOUT_PENDING",
+  "same_person_core": true,
+  "cross_block_same_person": false,
+  "default_weight": "vaha_strukturalni_2025",
+  "brand_specific_background_rule": "REQUIRED_FOR_BRAND_SPECIFIC_CLAIMS",
+  "modeled_background_allowed": true,
+  "modeled_background_must_be_labeled": true,
+  "ai_runtime": {
+    "live_providers": [
+      "claude_code_subscription",
+      "anthropic",
+      "openai"
+    ],
+    "ui_labels": {
+      "claude_code_subscription": "Claude Code",
+      "anthropic": "Claude API",
+      "openai": "OpenAI API"
+    },
+    "default_provider": "claude_code_subscription",
+    "provider_policies": [
+      "CLAUDE_CODE_ONLY",
+      "CLAUDE_API_ONLY",
+      "OPENAI_ONLY",
+      "CLAUDE_CODE_THEN_API"
+    ],
+    "silent_paid_fallback": false,
+    "openai_live_allowed": true,
+    "local_live_allowed": false,
+    "default_max_api_cost_usd": 10.0,
+    "quota_semantics": "Claude Code usage/session limit parks project at WAITING_CREDITS; completed artifacts are reused.",
+    "api_continuation": "Explicit user action only; preserve completed Claude Code artifacts and continue missing stages/batches."
+  },
+  "project_memory": {
+    "raw_fieldwork_indexing": false,
+    "safe_high_level_artifacts_only": true,
+    "current_revision_excluded_from_history": true,
+    "demo_high_level_memory": true
+  },
+  "demos": {
+    "count": 34,
+    "read_only": true,
+    "learning_excluded": true,
+    "benchmark_excluded": true,
+    "validation_excluded": true,
+    "research_showcase_count": 28,
+    "simulation_count": 6,
+    "canonical_reference_cases": 4
+  },
+  "sociomap": {
+    "version": "18.6.6",
+    "workspace": "single_native_workspace_two_primary_maps",
+    "primary_map_types": [
+      "respondents",
+      "objects"
+    ],
+    "analysis_modes": [
+      "map",
+      "matrix",
+      "comparison",
+      "what_if"
+    ],
+    "position": "relationship_derived_and_stable_across_metric_changes",
+    "height_and_color": "independent_selectable_metrics",
+    "normalization": [
+      "absolute",
+      "range",
+      "sigma",
+      "percentile"
+    ],
+    "terrain": "native_canvas_gaussian_rainbow_black_stage",
+    "object_layout_iterations": 800,
+    "directional_relationships": true,
+    "relationship_colors": {
+      "outgoing": "warm_orange",
+      "incoming": "cool_purple"
+    },
+    "respondent_filters": true,
+    "ai_segment_intelligence": true,
+    "area_ab_comparison": true,
+    "respondent_profile_clickthrough": true,
+    "manual_drag": "visual_override_only_never_mutates_raw_results",
+    "what_if": "scenario_layer_original_immutable",
+    "offline_no_external_cdn": true
+  }
+}

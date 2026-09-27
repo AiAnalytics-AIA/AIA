@@ -1,0 +1,245 @@
+# The develop environment: one host, six services, ADR 0009 and ADR 0011.
+#
+#   caddy         public HTTPS entrypoint (80/443), proxies to web, api and legacy-panel
+#                 (the product hostname is AIA, ADR 0015; the 18.6.6 unit behind the gate,
+#                 at /classic and on its own paths)
+#   web           Next.js standalone, internal only
+#   api           FastAPI under uvicorn, internal only
+#   worker        aia-worker, no inbound port
+#   postgres      PostgreSQL 16 on a named volume, internal only
+#   legacy-panel  the vendored NPC Panel 18.6.6 unit: the product hostname's interface
+#                 behind AIA sign-in, and its own hostname behind basic auth as the oracle
+#
+# Every image is pulled by immutable git SHA (AIA_IMAGE_TAG), never by a floating
+# tag, so the running deployment is always traceable to one commit. Migrations
+# are NOT run by any service here: bin/deploy.sh runs `alembic upgrade head`
+# once, from the api image, after a backup and before the services are replaced.
+#
+# Configuration comes from /opt/aia/develop/.env (root-only, written from SSM
+# Parameter Store by bin/write-env.sh); see env.example. Nothing in this file is
+# a secret.
+
+name: aia-develop
+
+x-app-env: &app-env
+  AIA_ENV: staging
+  AIA_LOG_FORMAT: json
+  AIA_LOG_LEVEL: ${AIA_LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+psycopg://aia:${POSTGRES_PASSWORD}@postgres:5432/aia
+  AIA_STORAGE_BACKEND: s3
+  AIA_STORAGE_BUCKET: ${AIA_STORAGE_BUCKET}
+  AIA_STORAGE_REGION: ${AWS_REGION}
+  AIA_STORAGE_PREFIX: ${AIA_STORAGE_PREFIX:-}
+  AIA_STORAGE_KMS_KEY_ID: ${AIA_STORAGE_KMS_KEY_ID:-}
+  AWS_REGION: ${AWS_REGION}
+  AWS_DEFAULT_REGION: ${AWS_REGION}
+  # Credentials are deliberately absent: boto3 finds the instance role through
+  # IMDS. The containers reach 169.254.169.254 through the host's default route.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      AIA_PUBLIC_HOSTNAME: ${AIA_PUBLIC_HOSTNAME}
+      AIA_ACME_EMAIL: ${AIA_ACME_EMAIL}
+      # The oracle hostname is optional configuration; unset or empty, these
+      # defaults keep the Caddyfile loadable and its gate shut (see the
+      # Caddyfile's legacy block). The hash is of a random value discarded when
+      # it was generated; `$$` is Compose's escape for a literal `$`.
+      AIA_LEGACY_HOSTNAME: ${AIA_LEGACY_HOSTNAME:-legacy-unconfigured.localhost}
+      AIA_LEGACY_BASIC_USER: ${AIA_LEGACY_BASIC_USER:-unconfigured}
+      AIA_LEGACY_BASIC_HASH: ${AIA_LEGACY_BASIC_HASH:-$$2a$$14$$sy9kBdx8X2CPlJ78PHv3rea2RaYWuDCXnWR/wUpzucd5aARTiUnKa}
+    # The Caddyfile's hash, so a changed file changes this service's
+    # configuration and `compose up` recreates Caddy; Caddy reads the file only
+    # at start (bin/lib.sh, OI-45). Unset outside the deploy scripts.
+    labels:
+      aia.caddyfile-sha256: ${AIA_CADDYFILE_SHA256:-unset}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      # Not legacy-panel: the product hostname serves AIA's own pages and the API
+      # whatever state the 18.6.6 unit is in. An unhealthy unit answers 502 on its
+      # own paths; it must never keep Caddy from starting (run 10, 2026-09-23).
+    networks: [edge, internal]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/metrics"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+    logging: &logging
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  web:
+    image: ${AIA_IMAGE_REGISTRY}/aia-web:${AIA_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      # Read at request time by the web container's /config route and handed to
+      # the browser, so one SHA-tagged image serves any environment. Same-origin:
+      # the browser calls /api/v1 on the public hostname and Caddy routes it, so
+      # no CORS configuration exists anywhere and AIA_API_BASE stays empty.
+      AIA_API_BASE: ""
+      # Public configuration display only; no role credentials reach the web.
+      AIA_AI_RUNTIME_ENABLED: ${AIA_AI_RUNTIME_ENABLED:-false}
+      AIA_BEDROCK_REGION: ${AIA_BEDROCK_REGION:-}
+      AIA_BEDROCK_MODEL_ID: ${AIA_BEDROCK_MODEL_ID:-}
+      AIA_AI_ROUTE_APPROVED_FOR: ${AIA_AI_ROUTE_APPROVED_FOR:-}
+      AIA_COGNITO_DOMAIN: ${AIA_COGNITO_DOMAIN}
+      AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
+      AIA_PUBLIC_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
+      # The 18.6.6 interface document at / is fetched from the unit and the AIA
+      # skin added when the document is the pinned one (ADR 0013). "false"
+      # serves the document byte-for-byte: the kill switch, then
+      # `docker compose up -d web`. No depends_on legacy-panel: without the
+      # unit, / answers 502 and every AIA page stays up (OI-44).
+      AIA_INTERFACE_SKIN_ENABLED: "true"
+      # The rebuilt interface at /app (ADR 0014), behind the same gate as /.
+      # "false" makes every /app path a 404; the classic interface is untouched.
+      AIA_INTERFACE_REHOME_ENABLED: "true"
+      AIA_LEGACY_PANEL_URL: http://legacy-panel:8765
+    expose: ["3000"]
+    networks: [internal]
+    read_only: true
+    tmpfs: ["/tmp", "/app/.next/cache"]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+
+  api:
+    image: ${AIA_IMAGE_REGISTRY}/aia-api:${AIA_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      AIA_IDENTITY_PROVIDER: cognito
+      AIA_COGNITO_REGION: ${AWS_REGION}
+      AIA_COGNITO_USER_POOL_ID: ${AIA_COGNITO_USER_POOL_ID}
+      AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
+      AIA_COGNITO_TOKEN_USE: id
+      # Same-origin through Caddy: an empty list means no CORS middleware at all.
+      AIA_CORS_ORIGINS: "[]"
+      # The gate Caddy asks before forwarding to the 18.6.6 unit (ADR 0012).
+      # Develop only: the API refuses it when AIA_ENV=production. The origin is
+      # the one a state-changing request to the unit must name.
+      AIA_LEGACY_PANEL_ENABLED: "true"
+      AIA_LEGACY_PANEL_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
+    expose: ["8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+
+  worker:
+    image: ${AIA_IMAGE_REGISTRY}/aia-worker:${AIA_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      AIA_WORKER_EXECUTORS: aia_executors.registry:build_registry
+      AIA_WORKER_LEASE_SECONDS: ${AIA_WORKER_LEASE_SECONDS:-120}
+      AIA_WORKER_HEARTBEAT_SECONDS: ${AIA_WORKER_HEARTBEAT_SECONDS:-30}
+      AIA_WORKER_POLL_SECONDS: ${AIA_WORKER_POLL_SECONDS:-2}
+      # The AI runtime (ADR 0010, aia_executors/ai_runtime.py). Off unless
+      # AIA_AI_RUNTIME_ENABLED is true; when on, every key must be set or the
+      # worker refuses to start. Values come from SSM /aia/develop/<lower_case_key>
+      # through bin/write-env.sh; none has a default here. Credentials are the
+      # instance role's (IMDS), never a key.
+      AIA_AI_RUNTIME_ENABLED: ${AIA_AI_RUNTIME_ENABLED:-false}
+      AIA_AI_ROUTE_ID: ${AIA_AI_ROUTE_ID:-}
+      AIA_BEDROCK_REGION: ${AIA_BEDROCK_REGION:-}
+      AIA_BEDROCK_MODEL_ID: ${AIA_BEDROCK_MODEL_ID:-}
+      AIA_AI_POLICY_VERSION: ${AIA_AI_POLICY_VERSION:-}
+      AIA_BEDROCK_INPUT_USD_PER_MTOK: ${AIA_BEDROCK_INPUT_USD_PER_MTOK:-}
+      AIA_BEDROCK_OUTPUT_USD_PER_MTOK: ${AIA_BEDROCK_OUTPUT_USD_PER_MTOK:-}
+      AIA_BEDROCK_CACHE_READ_USD_PER_MTOK: ${AIA_BEDROCK_CACHE_READ_USD_PER_MTOK:-}
+      AIA_BEDROCK_CACHE_WRITE_USD_PER_MTOK: ${AIA_BEDROCK_CACHE_WRITE_USD_PER_MTOK:-}
+      AIA_BEDROCK_MAX_OUTPUT_TOKENS: ${AIA_BEDROCK_MAX_OUTPUT_TOKENS:-}
+      AIA_BEDROCK_CONTEXT_WINDOW_TOKENS: ${AIA_BEDROCK_CONTEXT_WINDOW_TOKENS:-}
+      AIA_BEDROCK_TIMEOUT_SECONDS: ${AIA_BEDROCK_TIMEOUT_SECONDS:-}
+      AIA_AI_ROUTE_EU_PROCESSING_APPROVED: ${AIA_AI_ROUTE_EU_PROCESSING_APPROVED:-}
+      AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING: ${AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING:-}
+      AIA_AI_ROUTE_APPROVED_FOR: ${AIA_AI_ROUTE_APPROVED_FOR:-}
+      AIA_AI_ROUTE_RETENTION_DAYS: ${AIA_AI_ROUTE_RETENTION_DAYS:-}
+      AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS: ${AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS:-}
+      AIA_AI_FIELDWORK_RESERVATION_USD: ${AIA_AI_FIELDWORK_RESERVATION_USD:-}
+      AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    # A first SIGTERM releases the executing step; give it the lease's worth of
+    # time to reach a checkpoint before Compose sends SIGKILL.
+    stop_grace_period: 60s
+    logging: *logging
+
+  legacy-panel:
+    # The extracted 18.6.6 product (legacy/npc-panel-18.6.6, ADR 0011): the
+    # rebuild's behavioural baseline and parity oracle, unchanged. Its code is
+    # in the image; the licence-bound data is synced from the ops bucket to
+    # /opt/aia/develop/legacy-data by bin/deploy.sh and hydrated at start with
+    # hash verification. The working tree is written at run time (SQLite state,
+    # logs, runs), so this service is not read_only.
+    image: ${AIA_IMAGE_REGISTRY}/aia-legacy-panel:${AIA_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      NPC_VERIFY: strict
+      NPC_START_WORKER: "1"
+      # No provider credential: the baseline runs every deterministic route
+      # without one. A live-AI run on the oracle is a separate, recorded decision.
+    expose: ["8765"]
+    volumes:
+      - legacy_state:/app
+      - /opt/aia/develop/legacy-data:/data:ro
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+    logging: *logging
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: aia
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    # No `ports:` entry, deliberately. The database is reachable only on the
+    # internal Compose network; bin/smoke.sh asserts nothing listens on 5432 on
+    # the host.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aia -d aia"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    shm_size: 256m
+    logging: *logging
+
+networks:
+  edge:
+  internal:
+    # No outbound NAT is needed by web; api and worker reach S3 and IMDS, so the
+    # network stays a normal bridge. It is simply not published.
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+  legacy_state:

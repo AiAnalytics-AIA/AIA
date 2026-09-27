@@ -18,7 +18,9 @@ each needs to run; whether a gate passed is a property of a run, not of a file.
 
 | Term | Meaning |
 | --- | --- |
-| **Gate** | A set of tests that establishes parity for a capability. Kinds: `reference_comparison` (runs the legacy code — needs the extracted archive), `reference_characterization` (pins down legacy behaviour — needs the extracted archive), `reference_contract` (compares against a committed reference contract or ledger — needs the reference repository, or nothing when the test carries the reference's recovered decision table itself), `golden_fixture` (compares against a golden fixture — vendored F1–F9 need nothing, F10–F11 need the reference repository, none needs the archive), `production_contract` (production-only; proves an intentional difference or an equivalence criterion) |
+| **Gate** | A set of tests that establishes parity for a capability. Kinds: `reference_comparison` (runs the legacy code — from the extracted archive, `legacy_tree`, or as the deployed unit reached over HTTP, `legacy_oracle`), `reference_characterization` (pins down legacy behaviour — needs the extracted archive), `reference_contract` (compares against a committed reference contract or ledger — needs the reference repository, or nothing when the test carries the reference's recovered decision table itself), `golden_fixture` (compares against a golden fixture — vendored F1–F9 and unit-captured `U<nn>` need nothing, F10–F11 need the reference repository, none needs the archive), `production_contract` (production-only; proves an intentional difference or an equivalence criterion) |
+| **Fixture source** | `vendored` (a byte-identical copy of a reference golden fixture, F1–F9), `reference_repo` (read from the pinned checkout, F10–F11), `legacy_unit` (captured by `tools/ui_function_capture.py` from the vendored unit's own `ui_app.html` functions, `U<nn>_<function>`; pinned by file hash *and* by the SHA256 of the function source, `source_sha256`, so a regenerated unit that changes the function is known) |
+| **Requirement** | What a gate needs to run: `postgres`, `reference_repo`, `legacy_tree` (the extracted archive), `legacy_oracle` (the running unit, `AIA_LEGACY_REFERENCE_URL`), `population_panel`, `r_smacof`, `provider_credential`. `tools/parity_status.py --available …` names what a run had; a gate whose needs were all present and which did not run is a `FAIL` |
 | **Fixture gate state** | `GATED`, `PARTIALLY_GATED` (some of the fixture's facts are asserted; the capability cannot pass until all are), `AWAITING_IMPLEMENTATION`, `AWAITING_CAPTURE` — each fixture names the gate that covers it (`gate.gate_id`) |
 | **Release blocker** | Exactly the capabilities an MVP acceptance criterion names. Off-path high-risk capabilities say why they are off the path |
 | **Implementation state** | `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `RETIRED` — checked against `module-dispositions.json` in both directions |
@@ -46,11 +48,11 @@ job's summary in CI.
 | `ai.single_provider_mode` | ai-runtime *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `ai.usage_ledger` | ai-runtime *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
 | `analysis.modules` | analysis *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x1 | R5 | yes |
-| `analysis.qc` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | F11 | — | — | yes |
-| `api.http` | api *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | R14 | yes |
+| `analysis.qc` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | F11, U08 | — | — | yes |
+| `api.http` | api *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1, reference_comparison x1 | R14 | yes |
 | `artifacts.registration` | artifacts *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `artifacts.storage` | artifacts *(unconfirmed)* | IMPLEMENTED | SEMANTIC | — | — | production_contract x1 | — | yes |
-| `audience.definition` | audience *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
+| `audience.definition` | audience *(unconfirmed)* | NOT_STARTED | EXACT | — | U10 | — | — | yes |
 | `audience.segments` | audience *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
 | `config.edition` | platform *(unconfirmed)* | NOT_STARTED | INTENTIONAL_DIFFERENCE | — | — | — | R17 | yes |
 | `config.environment` | platform *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | — | — | yes |
@@ -93,26 +95,26 @@ job's summary in CI.
 | `research.copilot` | research *(unconfirmed)* | NOT_STARTED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `research.design` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `respondents.context` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
-| `respondents.engine` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
-| `respondents.factual_layer` | research *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x1 | — | yes |
-| `respondents.layers` | research *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
+| `respondents.engine` | research *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x1 | — | yes |
+| `respondents.factual_layer` | research *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x2 | — | yes |
+| `respondents.layers` | research *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x1 | — | yes |
 | `results.dialogue` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | no |
 | `results.registry` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `results.verification` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `runtime.desktop` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `simulation.engine` | A7 simulation-engine | PARTIAL | NUMERICAL | `1e-09` | F13 | production_contract x1 | — | no |
 | `simulation.scenarios` | A7 simulation-engine | PARTIAL | EXACT | — | — | production_contract x1 | — | no |
-| `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12 | golden_fixture x7, production_contract x2 | R16 | yes |
+| `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12, U01, U02, U03, U04, U05, U06, U07 | golden_fixture x9, production_contract x3 | R16 | yes |
 | `sociomapping.study_module` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-12` | F3 | golden_fixture x1 | — | yes |
 | `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
 | `statistics.diagnostics` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
-| `statistics.uncertainty` | analysis *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x1, reference_contract x1 | R5 | yes |
+| `statistics.uncertainty` | analysis *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x2, reference_contract x1 | R5 | yes |
 | `tests` | verification *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `workflow.config` | workflow *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | R10 | yes |
 | `workflow.dispatch` | workflow *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
 | `workflow.engine` | workflow *(unconfirmed)* | IMPLEMENTED | SEMANTIC | — | — | production_contract x2, reference_characterization x1 | — | yes |
 | `workflow.legacy_dispatch` | workflow *(unconfirmed)* | IMPLEMENTED | INTENTIONAL_DIFFERENCE | — | — | production_contract x1 | — | yes |
-| `workflow.step_execution` | workflow *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x2 | — | yes |
+| `workflow.step_execution` | workflow *(unconfirmed)* | PARTIAL | SEMANTIC | — | U09 | production_contract x2 | — | yes |
 
 <!-- parity-matrix:end -->
 
@@ -287,6 +289,26 @@ model never proposed.
 **Tests:** `test_production_rejects_what_the_reference_corrected` (one case per
 policy row), `test_every_recorded_difference_is_exercised`,
 `test_policy_table_is_reject_only_and_unambiguous`.
+
+### D5 — bootstrap bounds come from AIA's generator, not NumPy's stream
+
+**Prototype:** `uncertainty.py` resamples donor clusters with
+`np.random.default_rng(seed).integers(...)` (PCG64) at fixed seeds per call site
+(`dotaznik.py` `agreguj_otazku`), so each printed bound is one draw of a Monte
+Carlo estimator.
+
+**Now:** `aia_core.domain.research_aggregate` resamples the same clusters with the
+same estimator (weight x multiplicity, the call site's resample count, the
+2.5/97.5 percentiles with linear interpolation, the unit's rounding), drawing from
+`random.Random(seed).random()` with cluster index `floor(u*m)`. Estimates, Kish n,
+donor support, suppression, distributions and evidence ratings are exact against
+captures of the unit; every bound lies within the unit's own seed-to-seed spread,
+`mean +/- (4 sd + rounding step)` over 100 seeds. Why not the exact stream is
+OI-62: the unit's own bounds move by up to 12 rounding steps when only the seed
+changes, and no research decision reads a bound.
+
+**Tests:** `test_research_aggregate.py` (`test_estimates_support_and_suppression_are_exact_against_the_unit`,
+`test_every_bound_lies_within_the_units_own_seed_spread`, `test_aias_own_bounds_are_pinned`).
 
 ## Deliberate improvements (not behaviour changes)
 

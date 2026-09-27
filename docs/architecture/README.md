@@ -22,16 +22,17 @@ is shaped that way. The companion documents go deeper:
 | [adr/](adr/) | Decision records, with a list of what is deliberately still open |
 | [boards-v2.2-content-spec.md](boards-v2.2-content-spec.md) | What the visual architecture boards must assert, and must not |
 
-Migration documents live in [`../migration/`](../migration/). Start with
-[status.md](../migration/status.md) to see where the work currently stands.
+Migration documents live in [`../migration/`](../migration/). The current
+implementation state is [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md);
+[status.md](../migration/status.md) is the older narrative.
 
 ## The one idea that explains the rest
 
 **A project is the source of truth. Workflows and jobs only orchestrate work
 against it.**
 
-Everything expensive in this product is an AI call. A single research project runs
-hundreds of them across thirteen stages. So the architecture is organised around
+Research and other paid tools can be expensive. A study can span many calls and
+stages. So the architecture is organised around
 one question: *after a user edits something, what work can we prove is still
 valid?*
 
@@ -63,11 +64,14 @@ against the validated prototype by the parity suite
 ## Layers
 
 ```
-apps/web         Next.js client. No business rules. Still mock-backed.
+apps/web         Next.js client. No business rules. Client-first interface live;
+                 Research execution screens merged, with deployment unverified here.
 apps/api         FastAPI. Validates, delegates, serialises. No business rules.
 apps/worker      The execution loop: claims steps from PostgreSQL, heartbeats,
                  runs the StepExecutor registered for each kind, records the
-                 outcome. No executor for a real step kind exists yet.
+                 outcome.
+apps/executors   Snapshot and Research steps. The governed respondent source landed in PR #56; default-off AI fieldwork parks until
+                 the governed agent source is implemented.
 packages/aia_core
   domain/        Pure rules. No framework, no driver, no SDK imports.
   application/   Use cases that orchestrate domain + infrastructure.
@@ -97,7 +101,7 @@ Two rules keep this honest rather than decorative:
 | Artifact bytes | S3-compatible object storage | Research outputs are large, immutable blobs that must outlive any container |
 | Identity | Amazon Cognito, federated to Google Workspace | A token proves identity only; authorization is a PostgreSQL read ([ADR 0003](adr/0003-cognito-identity-boundary.md)) |
 | Instrumentation | OpenTelemetry | Vendor-neutral by decision; the backend it exports to is replaceable and unchosen |
-| Compute | AWS, service **not yet decided** | ECS Fargate and App Runner both remain open; the choice gets its own ADR |
+| Compute | AWS. `develop`: one EC2 host under Docker Compose ([ADR 0009](adr/0009-single-host-develop-environment.md)). Production: **not yet decided** | ECS Fargate and App Runner both remain open for production; the develop decision is explicitly not that decision |
 | Local development | Docker Compose (Postgres, MinIO) | Development exercises the same engines as production |
 
 The root `src/server.js` Fastify stub predates this work and is retained only
@@ -120,7 +124,7 @@ These are product requirements expressed as architecture, not preferences:
 - **No one clearing their own gate by default.** Independent review is the
   default; self-approval exists only where an administrator has explicitly enabled
   it in persisted policy, and it never confers authority someone did not have.
-- **No spending past a budget.** A paid call is checked against the project's
+- **No spending past a budget.** A paid call is checked against the Study's
   ceiling *before* it is made. Over budget means park and ask, not proceed.
 - **No invented certainty.** Evidence roles (`MEASURED_JOINT`, `CALIBRATED_CORE`,
   `MODELED_BEHAVIOR_PRIOR`, …) travel with the data. The UI must not present a
@@ -146,15 +150,21 @@ structured logging with request correlation and secret redaction; and CI.
 The worker process that drives the engine is built and verified with real
 processes contending, killed and stopped mid-step.
 
-**Not built:** executors for real step kinds, the AI provider gateway and
-adapters, OpenTelemetry instrumentation, a generalized metered-cost ledger, and
-every stage that actually calls a model. `apps/web` is still mock-backed.
+**Built and deployed on develop:** the Cognito federation and identity gate,
+private EU S3 storage, native client/study interface, scoped Research design/run
+APIs, five Research executors, governed model gateway, pinned Bedrock adapter
+and per-call usage/reservation ledger. The approved fictional respondent runtime
+has completed a measured live study; details are in the dated activation record.
+Research editing still bridges to the unit store (OI-58), and `/app` retains its
+temporary owner/admin gate (OI-59).
 
-**Built but not provisioned** — a distinction worth keeping, because the code
-being finished is not the same as the system being deployable: the Cognito user
-pool and federation, the S3 bucket, and approved egress routes. Until those exist
-no environment holds real client data, and the API refuses to boot in production
-without them.
+**Remaining:** durable design/analysis/report agents, checkpointed fieldwork,
+full ledger lineage, OpenTelemetry and wider Class A/B or panel-data approval.
+The fieldwork activation does not migrate legacy research design jobs.
 
 Sequencing is in [../migration/migration-plan.md](../migration/migration-plan.md);
 current state is in [../migration/status.md](../migration/status.md).
+
+### Bedrock develop activation — 2026-09-26
+
+PR #56 is deployed at `0310091`. ADR 0010 is accepted for the authorised fictional Class C develop scope; the live $2 acceptance study completed with 20 calls and $0.2303301 recorded cost. See [activation evidence](bedrock-develop-activation-2026-09-26.md). Class A/B and panel-derived transmission remain unapproved.

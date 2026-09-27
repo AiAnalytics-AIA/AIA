@@ -1,0 +1,18 @@
+{
+  "provenance": "Hand-authored from the Bedrock Runtime Converse API definition (botocore service model bedrock-runtime 2023-09-30: shapes, error codes, x-amzn-requestid); not captured from a live call. Replace with a live capture once ADR 0010's route is verified and approved.",
+  "description": "Connection refused before the request was written: nothing billed.",
+  "structured": false,
+  "transport_failure": {
+    "delivery": "NOT_SENT",
+    "message": "Connection refused before the request was written: nothing billed."
+  },
+  "expect": {
+    "error": {
+      "kind": "TRANSPORT",
+      "delivery": "NOT_SENT",
+      "provider_request_id": null,
+      "retry_after": null,
+      "http_status": null
+    }
+  }
+}

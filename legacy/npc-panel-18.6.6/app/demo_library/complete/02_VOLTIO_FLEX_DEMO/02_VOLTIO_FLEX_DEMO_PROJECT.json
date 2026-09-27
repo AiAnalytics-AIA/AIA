@@ -1,0 +1,434 @@
+{
+  "project": {
+    "title": "Voltio Flex — DEMO",
+    "type": "Nová služba + pricing",
+    "industry": "Energetika",
+    "status": "COMPLETED",
+    "sample_n": 1500,
+    "world_count": 8,
+    "variant_count": 4
+  },
+  "assignment_summary": {
+    "client_need": "Energetický dodavatel chce navrhnout retailovou nabídku pro domácnosti, která kombinuje úsporu, jednoduchost a ochranu proti cenovým extrémům.",
+    "primary_decision": "Vybrat core tarif pro pilot, fee a hlavní benefit komunikace.",
+    "success_definition": "Management má vidět nejlepší tarif, kdo jej chce, kdy se doporučení láme a co ověřit v pilotu.",
+    "questions": [
+      "Který tarif nejlépe kombinuje switch intent, důvěru, úsporu a kontrolu?",
+      "Jak moc čistý dynamický tarif trpí obavou z volatility?",
+      "Je ochranný cenový strop dost silný?",
+      "Které domácnosti preferují fix, dynamiku nebo hybrid?",
+      "Za jakých cenových podmínek se winner mění?"
+    ],
+    "inputs": [
+      "Čtyři fiktivní tarifní koncepty.",
+      "1 500 syntetických domácností.",
+      "8 světů mění volatilitu, finanční stres, digitální důvěru, smart-meter dostupnost a promo tlak."
+    ],
+    "deliverables": [
+      "Executive answer",
+      "Porovnání variant",
+      "Segmentová analýza",
+      "8 detailních světů a breakpointy",
+      "Word report",
+      "Excel workbook",
+      "Respondent-level CSV",
+      "SQLite databáze",
+      "JSON + provenance + historie"
+    ],
+    "out_of_scope": [
+      "Skutečné aktuální nabídky dodavatelů.",
+      "Predikce skutečné churn míry.",
+      "Regulatorní nebo právní stanovisko."
+    ]
+  },
+  "variants": [
+    {
+      "id": "A",
+      "name": "Simple Fix",
+      "price_or_fee": 189,
+      "positioning": "12měsíční fixace",
+      "description": "Jednoduchý tarif s předvídatelnou cenou."
+    },
+    {
+      "id": "B",
+      "name": "Dynamic",
+      "price_or_fee": 99,
+      "positioning": "Spot + nízký fee",
+      "description": "Plná dynamika s důrazem na potenciální úsporu."
+    },
+    {
+      "id": "C",
+      "name": "Green+",
+      "price_or_fee": 239,
+      "positioning": "Fix + green premium",
+      "description": "Stabilita s přidaným zeleným benefitem."
+    },
+    {
+      "id": "D",
+      "name": "SafeFlex",
+      "price_or_fee": 159,
+      "positioning": "Dynamika + ochranný strop",
+      "description": "Hybrid úspory, kontroly a ochrany."
+    }
+  ],
+  "variant_results": [
+    {
+      "variant_id": "A",
+      "variant_name": "Simple Fix",
+      "price_or_fee": 189,
+      "decision_score_0_100": 63,
+      "consideration_pct": 45.1,
+      "switch_intent_pct": 25.7,
+      "trust": 6.55,
+      "savings": 4.61,
+      "simplicity": 6.73,
+      "control": 5.53,
+      "respondent_composite_avg": 50.8
+    },
+    {
+      "variant_id": "B",
+      "variant_name": "Dynamic",
+      "price_or_fee": 99,
+      "decision_score_0_100": 72,
+      "consideration_pct": 59.3,
+      "switch_intent_pct": 45.5,
+      "trust": 4.85,
+      "savings": 6.71,
+      "simplicity": 4.57,
+      "control": 6.25,
+      "respondent_composite_avg": 54.8
+    },
+    {
+      "variant_id": "C",
+      "variant_name": "Green+",
+      "price_or_fee": 239,
+      "decision_score_0_100": 65,
+      "consideration_pct": 46.7,
+      "switch_intent_pct": 26.6,
+      "trust": 5.82,
+      "savings": 4.83,
+      "simplicity": 6.11,
+      "control": 5.5,
+      "respondent_composite_avg": 49.3
+    },
+    {
+      "variant_id": "D",
+      "variant_name": "SafeFlex",
+      "price_or_fee": 159,
+      "decision_score_0_100": 79,
+      "consideration_pct": 64.5,
+      "switch_intent_pct": 52.1,
+      "trust": 6.45,
+      "savings": 6.19,
+      "simplicity": 6.19,
+      "control": 6.69,
+      "respondent_composite_avg": 62.0
+    }
+  ],
+  "worlds": [
+    {
+      "world_id": "W1",
+      "name": "Base case",
+      "headline": "Vyrovnané podmínky bez extrémního šoku.",
+      "description": "Vyrovnané podmínky bez extrémního šoku.",
+      "assumptions": {
+        "price_pressure": 1.0,
+        "trust_pressure": 1.0,
+        "competition_pressure": 1.0,
+        "activation": 1.0
+      },
+      "primary_metric": {
+        "A": 26,
+        "B": 45,
+        "C": 28,
+        "D": 48
+      },
+      "decision_scores": {
+        "A": 64.3,
+        "B": 74.8,
+        "C": 65.4,
+        "D": 81.4
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W2",
+      "name": "Rozpočtový tlak",
+      "headline": "Lidé více řeší cenu, riziko a bezprostřední hodnotu.",
+      "description": "Lidé více řeší cenu, riziko a bezprostřední hodnotu.",
+      "assumptions": {
+        "price_pressure": 1.3,
+        "trust_pressure": 1.02,
+        "competition_pressure": 1.08,
+        "activation": 0.94
+      },
+      "primary_metric": {
+        "A": 24,
+        "B": 49,
+        "C": 23,
+        "D": 50
+      },
+      "decision_scores": {
+        "A": 63.2,
+        "B": 77.0,
+        "C": 62.6,
+        "D": 82.5
+      },
+      "winner": "D",
+      "risk": "MEDIUM",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W3",
+      "name": "Promo / konkurenční tlak",
+      "headline": "Konkurence zvyšuje promo nebo agresivitu nabídky.",
+      "description": "Konkurence zvyšuje promo nebo agresivitu nabídky.",
+      "assumptions": {
+        "price_pressure": 1.22,
+        "trust_pressure": 0.96,
+        "competition_pressure": 1.35,
+        "activation": 0.98
+      },
+      "primary_metric": {
+        "A": 24,
+        "B": 51,
+        "C": 24,
+        "D": 52
+      },
+      "decision_scores": {
+        "A": 63.2,
+        "B": 78.0,
+        "C": 63.2,
+        "D": 83.6
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W4",
+      "name": "Vyšší skepticismus",
+      "headline": "Roste požadavek na důkaz, srozumitelnost a důvěryhodnost.",
+      "description": "Roste požadavek na důkaz, srozumitelnost a důvěryhodnost.",
+      "assumptions": {
+        "price_pressure": 1.03,
+        "trust_pressure": 1.3,
+        "competition_pressure": 1.02,
+        "activation": 0.95
+      },
+      "primary_metric": {
+        "A": 25,
+        "B": 43,
+        "C": 27,
+        "D": 49
+      },
+      "decision_scores": {
+        "A": 63.8,
+        "B": 73.7,
+        "C": 64.8,
+        "D": 82.0
+      },
+      "winner": "D",
+      "risk": "MEDIUM",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W5",
+      "name": "Silnější důvěra / relevance",
+      "headline": "Zesiluje faktor, na kterém stojí doporučený koncept.",
+      "description": "Zesiluje faktor, na kterém stojí doporučený koncept.",
+      "assumptions": {
+        "price_pressure": 0.96,
+        "trust_pressure": 0.88,
+        "competition_pressure": 0.95,
+        "activation": 1.02
+      },
+      "primary_metric": {
+        "A": 26,
+        "B": 54,
+        "C": 29,
+        "D": 51
+      },
+      "decision_scores": {
+        "A": 64.3,
+        "B": 79.7,
+        "C": 66.0,
+        "D": 83.0
+      },
+      "winner": "D",
+      "risk": "HIGH",
+      "implication": "Breakpoint: za těchto podmínek přebírá vedení B."
+    },
+    {
+      "world_id": "W6",
+      "name": "Kategorie se mění",
+      "headline": "Posouvají se potřeby a kontext používání.",
+      "description": "Posouvají se potřeby a kontext používání.",
+      "assumptions": {
+        "price_pressure": 1.0,
+        "trust_pressure": 1.05,
+        "competition_pressure": 1.04,
+        "activation": 1.05
+      },
+      "primary_metric": {
+        "A": 25,
+        "B": 45,
+        "C": 30,
+        "D": 50
+      },
+      "decision_scores": {
+        "A": 63.8,
+        "B": 74.8,
+        "C": 66.5,
+        "D": 82.5
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W7",
+      "name": "Opatrný trh",
+      "headline": "Klesá obecná ochota ke změně a roste potřeba jistoty.",
+      "description": "Klesá obecná ochota ke změně a roste potřeba jistoty.",
+      "assumptions": {
+        "price_pressure": 1.12,
+        "trust_pressure": 1.22,
+        "competition_pressure": 1.08,
+        "activation": 0.9
+      },
+      "primary_metric": {
+        "A": 22,
+        "B": 42,
+        "C": 24,
+        "D": 46
+      },
+      "decision_scores": {
+        "A": 62.1,
+        "B": 73.1,
+        "C": 63.2,
+        "D": 80.3
+      },
+      "winner": "D",
+      "risk": "MEDIUM",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    },
+    {
+      "world_id": "W8",
+      "name": "Silná aktivace",
+      "headline": "Vyšší dostupnost, informovanost nebo trial usnadní první krok.",
+      "description": "Vyšší dostupnost, informovanost nebo trial usnadní první krok.",
+      "assumptions": {
+        "price_pressure": 0.95,
+        "trust_pressure": 0.92,
+        "competition_pressure": 0.9,
+        "activation": 1.35
+      },
+      "primary_metric": {
+        "A": 29,
+        "B": 48,
+        "C": 31,
+        "D": 52
+      },
+      "decision_scores": {
+        "A": 66.0,
+        "B": 76.4,
+        "C": 67.0,
+        "D": 83.6
+      },
+      "winner": "D",
+      "risk": "LOW",
+      "implication": "Doporučení D drží; svět testuje odolnost závěru vůči změně podmínek."
+    }
+  ],
+  "history": [
+    {
+      "revision": 1,
+      "time": "20:10:04",
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní zadání uloženo do persistentního projektu."
+    },
+    {
+      "revision": 2,
+      "time": "20:10:22",
+      "stage": "RESEARCH_DESIGN",
+      "event": "Výzkumný rámec připraven",
+      "detail": "Rozhodovací otázky, KPI a varianty byly strukturovány."
+    },
+    {
+      "revision": 3,
+      "time": "20:12:15",
+      "stage": "AUDIENCE",
+      "event": "Audience a segmenty uzamčeny",
+      "detail": "Syntetická populace a segmentační logika připravena."
+    },
+    {
+      "revision": 4,
+      "time": "20:15:41",
+      "stage": "WORLDS",
+      "event": "8 světů dokončeno",
+      "detail": "Otestována robustnost doporučení napříč změnami podmínek."
+    },
+    {
+      "revision": 5,
+      "time": "20:18:54",
+      "stage": "ANALYSIS",
+      "event": "Analýza dokončena",
+      "detail": "Varianty, segmenty, breakpointy a rozhodovací implikace sestaveny."
+    },
+    {
+      "revision": 6,
+      "time": "20:20:03",
+      "stage": "DELIVERY",
+      "event": "Výstupy dokončeny",
+      "detail": "Word, Excel, SQLite, CSV, JSON, dashboard a provenance uzamčeny."
+    }
+  ],
+  "winner": "D",
+  "alternative": "B",
+  "takeaway": "SafeFlex je nejrobustnější core pilot; Dynamic dává smysl jako opt-in pro digitálně sebejisté domácnosti.",
+  "next_steps": [
+    "Ověřit fee 129 / 159 / 189 Kč.",
+    "Otestovat srozumitelnost cenového stropu.",
+    "Pilotovat onboarding a měsíční reporting úspory.",
+    "Dynamic ponechat jako volitelný expert tarif."
+  ],
+  "metrics": [
+    [
+      "consideration_pct",
+      "Consideration %"
+    ],
+    [
+      "switch_intent_pct",
+      "Switch intent %"
+    ],
+    [
+      "trust",
+      "Trust /10"
+    ],
+    [
+      "savings",
+      "Perceived savings /10"
+    ],
+    [
+      "simplicity",
+      "Simplicity /10"
+    ],
+    [
+      "control",
+      "Control /10"
+    ]
+  ],
+  "primary": "switch_intent_pct",
+  "primary_label": "Switch intent",
+  "segments": [
+    "Budget Guarded",
+    "Digital Optimizers",
+    "Stability Seekers",
+    "Green Progressives",
+    "Prosumer Households"
+  ]
+}

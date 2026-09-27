@@ -1,0 +1,44 @@
+[
+  {
+    "id": "Q1",
+    "section": "Context",
+    "text": "Jaké politické strany/hnutí spontánně znáte a naposledy jste volili?",
+    "type": "frequency",
+    "purpose": "content"
+  },
+  {
+    "id": "Q2",
+    "section": "Needs",
+    "text": "Jak vnímáte současnou stranu, kterou jste volili, na klíčových atributech nespokojenosti?",
+    "type": "battery",
+    "purpose": "drivers — odpovídá baterii Q1a–Q1f: neplnění slibů, odtržení od lidí, netransparentnost, chybějící vize pro obec, absence komunikace, upřednostňování jiných zájmů"
+  },
+  {
+    "id": "Q3",
+    "section": "Objects",
+    "text": "Porovnejte důvody pro a proti přechodu k Naše Česko na stejné sadě motivů.",
+    "type": "object_battery",
+    "purpose": "comparison + iconmap / object_battery — odpovídá Q4/Q4b a Q5 z dotazníku"
+  },
+  {
+    "id": "Q4",
+    "section": "Emotions",
+    "text": "Jaké emoce ve vás jednotliví kandidáti Naše Česko vyvolávají?",
+    "type": "emotion_battery",
+    "purpose": "odpovídá hodnocení kandidátů Q7, škála 1–5 + „Neznám“, routováno podle kraje"
+  },
+  {
+    "id": "Q5",
+    "section": "Decision",
+    "text": "Nakolik by přechod k Naše Česko snížil nebo zvýšil vaši důvěru v komunální politiku?",
+    "type": "choice",
+    "purpose": "odpovídá Q9 — celková důvěryhodnost kandidátů"
+  },
+  {
+    "id": "Q6",
+    "section": "Validation",
+    "text": "Které prvky vaší současné volby musí Naše Česko nahradit, aby získalo váš hlas?",
+    "type": "certainty",
+    "purpose": "odpovídá otevřené doplňkové otázce z metodických poznámek dotazníku"
+  }
+]

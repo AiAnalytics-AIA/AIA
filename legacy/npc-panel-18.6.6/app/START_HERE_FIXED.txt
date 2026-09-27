@@ -1,0 +1,12 @@
+NPC PANEL 17.6.1 - START / INSTALL HOTFIX
+
+1) Rozbalte CELÝ ZIP do normální složky (nepouštějte .bat přímo z náhledu ZIPu).
+2) Dvojklik na A0_NPC_PANEL_START.bat.
+3) Okno musí okamžitě zobrazit [1/5] Hledam funkcni Python...
+4) Pokud Python chybí, A0 automaticky spustí A1_NPC_PANEL_INSTALOVAT_PYTHON.bat.
+   Ten nepoužívá py.exe, Microsoft Store ani WinGet. Stáhne oficiální Python 3.13.15,
+   ověří SHA-256 a nainstaluje ho do %LocalAppData%\NPCPanel\Python313.
+5) První instalace Python balíčků může trvat několik minut, ale progress musí být vidět přímo v okně.
+6) Po úspěšném startu se zobrazí NPC Panel READY: http://127.0.0.1:8766 a otevře se browser.
+
+Pokud se něco zastaví, NEZAVÍREJTE okno a pošlete poslední viditelný řádek/chybu.

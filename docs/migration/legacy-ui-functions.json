@@ -1,0 +1,1510 @@
+{
+ "schema_version": 1,
+ "description": "The strangler's UI function ledger: the 88 functions (plus AIA additions marked source=aia_addition, each with its reason) of ui_app.html that the reference's UI capability ledger classifies as METHODOLOGY_SEMANTICS or DETERMINISTIC_COMPUTATION (research logic, moved server-side from the JavaScript). One row per function with the SHA256 of its source in the vendored unit, so a regenerated unit that changes a function is known, not guessed. Hand-maintained statuses; tools/ui_functions.py check and packages/aia_core/tests/test_legacy_ui_functions.py keep it current. Rules: docs/migration/legacy-route-ledger.md.",
+ "reference": {
+  "repository": "AiAnalytics-AIA/AIA-reference",
+  "commit": "678e298ad9ca0263da53cc8920d153fdfb956c93",
+  "ui_capability_ledger_sha256": "ecec3acf9bd878e0477aa52935c0fa309b871fc0da6586ecedbb2042fb9841ca"
+ },
+ "unit": {
+  "path": "legacy/npc-panel-18.6.6/app/ui_app.html",
+  "ui_app_sha256": "d844dd6fc7bc738bf1bedaed1b668eb44d79c1ad7d281f093eee15ed1c81eaee",
+  "archive_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216"
+ },
+ "extraction": {
+  "functions": 731,
+  "declarations_found": 737,
+  "declarations_scanned": 737
+ },
+ "statuses": {
+  "LEGACY": "runs only in the browser of the oracle",
+  "PORTING": "an aia_core.domain implementation exists; parity not yet PASS",
+  "PORTED": "parity PASS from executed gates against unit-captured fixtures"
+ },
+ "functions": [
+  {
+   "name": "renderResults",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "analysis",
+   "params": [],
+   "chars": 11236,
+   "source_sha256": "0d88e36ea75d7aa3d3275b248d6740f7f90901fe9ad0657a49af0f756cc8b156",
+   "reference_chars": 11212,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 10,
+   "notes": ""
+  },
+  {
+   "name": "workflowStepLabel",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "analysis",
+   "params": [
+    "k"
+   ],
+   "chars": 336,
+   "source_sha256": "e193c15fb396989250790312f66e02beccb64c9de5971b9a8672f1ab266229dd",
+   "reference_chars": 307,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 10,
+   "notes": ""
+  },
+  {
+   "name": "normalizer66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "audience",
+   "params": [
+    "values",
+    "mode",
+    "bounds"
+   ],
+   "chars": 953,
+   "source_sha256": "72db114b041f70c2b8c51deb091823b3bb6c7642566774999a2c0eeb5cd550fa",
+   "reference_chars": 912,
+   "source": "aia_addition",
+   "reference_class": "PRESENTATION_ONLY",
+   "status": "PORTING",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/sociomap/metrics.py"
+   ],
+   "fixtures": [
+    "U01_normalizer66"
+   ],
+   "slice": 7,
+   "notes": "The reference's own golden fixture F5 (ui_app.html::normalizer66) and its UI-only methodology table ('Four normalisation modes with a population-variance sd') treat this function as methodology, but its function classifier placed it in another class, so it is absent from the 88. Carried here as an AIA addition; discrepancy REF-DISC-3 in docs/migration/parity-matrix.json. Ported as build_normalizer; parity not yet PASS for the whole function."
+  },
+  {
+   "name": "objStats27",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "audience",
+   "params": [],
+   "chars": 317,
+   "source_sha256": "73f4d1f66984634de469e3703930084e8da3744806849678bcd7f00af96b5275",
+   "reference_chars": 296,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 7,
+   "notes": ""
+  },
+  {
+   "name": "renderResearchProgress1770",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "audience",
+   "params": [],
+   "chars": 3210,
+   "source_sha256": "9c349051c1d6c8ec02a43e20da9113f7951317756cc1647e00cdffe176793852",
+   "reference_chars": 3167,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 7,
+   "notes": ""
+  },
+  {
+   "name": "scale1882",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "audience",
+   "params": [
+    "idx"
+   ],
+   "chars": 640,
+   "source_sha256": "efc2111d6bc0ef5505eaf763526514c8e9c8b23cb7edf14a3ea04b99574f2b49",
+   "reference_chars": 617,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 7,
+   "notes": ""
+  },
+  {
+   "name": "subpanelCards",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "audience",
+   "params": [],
+   "chars": 1459,
+   "source_sha256": "d74a3af24cbdaef4b016be493095a0a93fddebe7e3788ea9dda61dd3510ea113",
+   "reference_chars": 1435,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 7,
+   "notes": ""
+  },
+  {
+   "name": "vAreaUp1820",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "audience",
+   "params": [
+    "e"
+   ],
+   "chars": 759,
+   "source_sha256": "60e5e0e6731c5cef7104b3cf579db14ff87323532fcb2fe989daf4a299e26775",
+   "reference_chars": 736,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 7,
+   "notes": ""
+  },
+  {
+   "name": "vIntelCards1840",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "audience",
+   "params": [
+    "payload"
+   ],
+   "chars": 1550,
+   "source_sha256": "e440f2d742f6ff8e33659c372361f43021d3bd3b7594f1872ed0aabeb4c91cc7",
+   "reference_chars": 1517,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 7,
+   "notes": ""
+  },
+  {
+   "name": "workflowActiveJob1784",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "audience",
+   "params": [
+    "w"
+   ],
+   "chars": 413,
+   "source_sha256": "a55d39b59cb5ad655c1b2de042890005ae2fd618c1a9207cf651993569fffe2f",
+   "reference_chars": 380,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 7,
+   "notes": ""
+  },
+  {
+   "name": "applyManager27",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "data_library",
+   "params": [
+    "render=true"
+   ],
+   "chars": 2543,
+   "source_sha256": "8671af548620be81190501ddec13185e9ef59da8d4f156d497f23e4d0394a2bc",
+   "reference_chars": 2507,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 12,
+   "notes": ""
+  },
+  {
+   "name": "factorEditor1793",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "data_library",
+   "params": [
+    "f"
+   ],
+   "chars": 1620,
+   "source_sha256": "b3414e5a742fd626fdc7cf83ba1322452d79a9fcfab47da7544f79ad9bcc9db8",
+   "reference_chars": 1592,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 12,
+   "notes": ""
+  },
+  {
+   "name": "proposalCard",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "data_library",
+   "params": [
+    "x"
+   ],
+   "chars": 893,
+   "source_sha256": "a290213d453cf8ec7aa0c62bb6e55fcbaf0c74becc4b0bb30f7fabfaf3c0ec50",
+   "reference_chars": 869,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 12,
+   "notes": ""
+  },
+  {
+   "name": "usePopulationSubpanel",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "data_library",
+   "params": [
+    "key"
+   ],
+   "chars": 889,
+   "source_sha256": "3ee83a3578255a2a956448d9cc122f6a4c0215da2137c2526ba93175a76bda3a",
+   "reference_chars": 854,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 12,
+   "notes": ""
+  },
+  {
+   "name": "verificationHtml",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "data_library",
+   "params": [
+    "v"
+   ],
+   "chars": 1747,
+   "source_sha256": "3d872b3c7a5e81eb05386c41cd10a3dc9929bfa2979a1ba14ae64a9b4c9d2043",
+   "reference_chars": 1719,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 12,
+   "notes": ""
+  },
+  {
+   "name": "checkStatusHtml",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "questionnaire",
+   "params": [
+    "c"
+   ],
+   "chars": 1054,
+   "source_sha256": "efa5135fc8360e9d3a68eceb95f0a1b3030b8346f7275e5e846312da8d79f6b9",
+   "reference_chars": 1027,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 9,
+   "notes": ""
+  },
+  {
+   "name": "fillSimUncertainty1780",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "questionnaire",
+   "params": [
+    "i"
+   ],
+   "chars": 339,
+   "source_sha256": "34d736e2f3ab0f30b8d34e37f941e98db25bfe15d0177b83e70ba5230477242f",
+   "reference_chars": 305,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 9,
+   "notes": ""
+  },
+  {
+   "name": "renderNext",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "questionnaire",
+   "params": [],
+   "chars": 2952,
+   "source_sha256": "ec5e3c6f9051b2ef4e0adab5815f25147de096a7614a5f9fdffbe259473bcd8f",
+   "reference_chars": 2931,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 9,
+   "notes": ""
+  },
+  {
+   "name": "runDiscovery",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "questionnaire",
+   "params": [],
+   "chars": 975,
+   "source_sha256": "5d54ecbdf0ecea495116dd056dd30c92080f04ff1fc02a379d71f1b4ccbe633f",
+   "reference_chars": 946,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 9,
+   "notes": ""
+  },
+  {
+   "name": "sampleRecommendation1785",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "questionnaire",
+   "params": [],
+   "chars": 649,
+   "source_sha256": "39df73d08327a6137300025db5cbde4e794b5dc5d2fc1314b6b191e204e7ba76",
+   "reference_chars": 614,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 9,
+   "notes": ""
+  },
+  {
+   "name": "ablationSummaryHtml",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "results",
+   "params": [],
+   "chars": 795,
+   "source_sha256": "53bd422bf186b6017dc3da26fafa143f1b2f66622c2e4c9770be18a2355a6d4e",
+   "reference_chars": 765,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 10,
+   "notes": ""
+  },
+  {
+   "name": "keyInsights",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "results",
+   "params": [
+    "s"
+   ],
+   "chars": 574,
+   "source_sha256": "24628a12c18db415fea5d170595bec16bfba0009398488acf220d4a4820912b3",
+   "reference_chars": 551,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 10,
+   "notes": ""
+  },
+  {
+   "name": "resultBars",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "results",
+   "params": [
+    "r"
+   ],
+   "chars": 1496,
+   "source_sha256": "30dee4a51652b11028624b4396885c6d2482bfd66593d5d92896c6b7427e6ee0",
+   "reference_chars": 1474,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 10,
+   "notes": ""
+  },
+  {
+   "name": "buildFullMatrix1797",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "nodes",
+    "edges"
+   ],
+   "chars": 867,
+   "source_sha256": "0a4bcd13da3da724012e2b34453846fc4e9438308b54529476f100c9c3cd505b",
+   "reference_chars": 826,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "color1865",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "t"
+   ],
+   "chars": 347,
+   "source_sha256": "6bfea150094db05cfe027e8a4ea5bf0c8287ee9b8a18a97fcb1a221c108121bc",
+   "reference_chars": 326,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "color66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "t"
+   ],
+   "chars": 359,
+   "source_sha256": "513815bd15cdcc6589d74a17bac07e8a45c263dd083e20deb62cf657914649ff",
+   "reference_chars": 340,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "computeDirectedMatrix1798",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "nodes",
+    "edges"
+   ],
+   "chars": 748,
+   "source_sha256": "de3fc0d653f5101aa835370fe0fa033b4acf232c7e280036c513d44b3ac16082",
+   "reference_chars": 701,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "copy1882",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "shell",
+   "params": [
+    "f"
+   ],
+   "chars": 630,
+   "source_sha256": "929567909817cc8e2122e9a9364cc86485379a21c4c09357930c4a9ccb3952f0",
+   "reference_chars": 610,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "curveArrow1865",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "ctx",
+    "A",
+    "B",
+    "val",
+    "col",
+    "side"
+   ],
+   "chars": 668,
+   "source_sha256": "a38ce53d888e85ab174cfe17c10fa5868a8140b8cefb2109762709fcd2b7e8ac",
+   "reference_chars": 623,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "curveArrow66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "ctx",
+    "a",
+    "b",
+    "v",
+    "color",
+    "side",
+    "hitMeta"
+   ],
+   "chars": 883,
+   "source_sha256": "0f7fd47f0dc491528900fe823c2bde166fd33843db3f0395afa27b46b1e596d1",
+   "reference_chars": 832,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "fmt66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "v"
+   ],
+   "chars": 170,
+   "source_sha256": "7d53035989f3301db657cc9da1bddbeb7f03f53329087522b0db84d50ff6af65",
+   "reference_chars": 153,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "fmtTime",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "sec"
+   ],
+   "chars": 301,
+   "source_sha256": "c094939557e4234d6c9758971206f6f6e20a44276d2255092cba9026db38ffd2",
+   "reference_chars": 280,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "forceLayout27",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "M",
+    "n"
+   ],
+   "chars": 866,
+   "source_sha256": "4dd944a8bca8cb0543f803b6e9a48effa653a59cd528d076fcc898c7f8545053",
+   "reference_chars": 839,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "height",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "score"
+   ],
+   "chars": 99,
+   "source_sha256": "d3996ed695501f4b325a9b7d7c7aac2ca03b93b9ec06aec868ebd1f621730546",
+   "reference_chars": 77,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "impactRows66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [],
+   "chars": 406,
+   "source_sha256": "7c4c4df27e6e508e2237c69734e33ed3fe80ad182d7882ffdcb8cc0c3554b9cd",
+   "reference_chars": 383,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "layoutFromMatrix1797",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "nodes",
+    "M"
+   ],
+   "chars": 650,
+   "source_sha256": "728bd50dada3ba9053b3a80c06a15f9082a9bd29b22ddef17ca228f1f1ca986d",
+   "reference_chars": 612,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "layoutStatic1798",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "nodes",
+    "M"
+   ],
+   "chars": 484,
+   "source_sha256": "1b7e5999486b9c8ee65270e55ff2b8f08513faba45410c6e64ff766f3719a97c",
+   "reference_chars": 450,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "objectLayout1865",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [],
+   "chars": 1124,
+   "source_sha256": "61bf2513accf3ceeeace79b71ec04ecc6ca3dde1d0300e84107c811566d40b6e",
+   "reference_chars": 1097,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "proj",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "p",
+    "z"
+   ],
+   "chars": 298,
+   "source_sha256": "7922c2eadc78173545ff3d70d85bde699c872cc8089a6d538c3382b94de6996b",
+   "reference_chars": 280,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "vAreaMove1820",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "e"
+   ],
+   "chars": 389,
+   "source_sha256": "b3d53715fa77bcd33eec8ed5f326affb3691a74438c24b0471d9222ac68330ab",
+   "reference_chars": 364,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "vScale1820",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "payload"
+   ],
+   "chars": 359,
+   "source_sha256": "df08a71c9fd1979e2b7d6d241280b3ab5ba120226421fbd1087ea04f7982e6f8",
+   "reference_chars": 331,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "zz",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "shell",
+   "params": [
+    "n"
+   ],
+   "chars": 244,
+   "source_sha256": "111d044b0af3afb26b504c4ce2063dd365971a0d7aae2bc90070087c1fd6077a",
+   "reference_chars": 230,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 16,
+   "notes": ""
+  },
+  {
+   "name": "addScenarioShift",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "simulation",
+   "params": [],
+   "chars": 605,
+   "source_sha256": "cc94fcc8c6b2a4ed190d5d4ceba9c432fc2f83ba5fb306bf31d661597862181b",
+   "reference_chars": 578,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "baseObjectLayout66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "simulation",
+   "params": [
+    "matrix"
+   ],
+   "chars": 1270,
+   "source_sha256": "b2771d4806857443a6f6fb4d2f54c0b350ba6b4981aa5d0515ec8ce9d93e57ea",
+   "reference_chars": 1235,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "editScenarioUnknowns1780",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "simulation",
+   "params": [],
+   "chars": 622,
+   "source_sha256": "90dadfb168382526cb8886ae275f3431e2eb95f2dc47bb474ea0c0e01114c806",
+   "reference_chars": 587,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "fsHybridHtml",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "simulation",
+   "params": [],
+   "chars": 1388,
+   "source_sha256": "d023a203b5de861e3bc435b100c9ece2e0759e9b3257d95f7d75120db09b3add",
+   "reference_chars": 1365,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "fsPredHtml",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "simulation",
+   "params": [
+    "p"
+   ],
+   "chars": 3449,
+   "source_sha256": "7cca8c4a8a152ef14eb8c9dea39d721d9cc74a3b9718d49f36dced65dc2ba5f3",
+   "reference_chars": 3427,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "fsPrepHtml",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "simulation",
+   "params": [],
+   "chars": 1947,
+   "source_sha256": "778bdf0c2ebe81bb879a16e9c82f59e73d92c75cca6991aec3a6b92b195acbd2",
+   "reference_chars": 1926,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "pmCard1810",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "simulation",
+   "params": [
+    "x"
+   ],
+   "chars": 2433,
+   "source_sha256": "49b9dbd35dc885246f8c5dd479775dc9bfcb7bd5ebe2e1f45e9d87f658339214",
+   "reference_chars": 2411,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "renderProjectOverview1790",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "simulation",
+   "params": [],
+   "chars": 5651,
+   "source_sha256": "8cd056af1b68fcb367848a4bd306d1115cfdb46648713d0cd203307c20b427ab",
+   "reference_chars": 5609,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "researchScenarioUnknowns1780",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "simulation",
+   "params": [],
+   "chars": 751,
+   "source_sha256": "4c1c3b41332bf9488760f14de5f8c186f2affb6bab8e4bb7241c902f189e4416",
+   "reference_chars": 706,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "scenarioContractHtml",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "simulation",
+   "params": [],
+   "chars": 2720,
+   "source_sha256": "02334c6ea6e6f3935f4404bf53c39996c469943fa2ddc5579cc4641462909ec5",
+   "reference_chars": 2689,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "smartDiscoveryHtml",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "simulation",
+   "params": [
+    "r"
+   ],
+   "chars": 1463,
+   "source_sha256": "aa3addc792ce43b2020a314b63f129e97496a51bcf29fc022dddac198f7d31a4",
+   "reference_chars": 1433,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 11,
+   "notes": ""
+  },
+  {
+   "name": "analyticsHtml27",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 3723,
+   "source_sha256": "d56dc514f273d3683aa3af1d7d8c10762615224bba2cb2fd598340ed14d91d68",
+   "reference_chars": 3697,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "compareObjectsDetail66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 1433,
+   "source_sha256": "d7b83e561169abd16dc8372f54134e2a31eac6b9f868242ba9a0abc92518ae7a",
+   "reference_chars": 1400,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "dialogueBox66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [
+    "type",
+    "id",
+    "label",
+    "ids"
+   ],
+   "chars": 2407,
+   "source_sha256": "695e4edca5cb0281371ed1e8b5ed830e0a4dcbc4415c34df82d4987a6573102a",
+   "reference_chars": 2366,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "draw1865",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 1610,
+   "source_sha256": "58cdc8a8698557ff0e4bb92aca32e25f7a2cbc54e52347adf05b2ac6cac1370d",
+   "reference_chars": 1591,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "draw66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 1693,
+   "source_sha256": "ac9e513eabfc2ffff4d0dac26b422ec5c505f80bd159c450bdc22c934dfc423a",
+   "reference_chars": 1676,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "drawBubbleSocio1797",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "id"
+   ],
+   "chars": 2502,
+   "source_sha256": "cdef5dd1defd254b2aeb28868ee74d4491efe55b86ca7aea459a79841dc13c15",
+   "reference_chars": 2470,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "drawObjects66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [
+    "ctx",
+    "P"
+   ],
+   "chars": 1414,
+   "source_sha256": "28e02636bb997788d6a7dc122e9a8e0358aa6ca54156c1ca7ce0197fe372b6f7",
+   "reference_chars": 1385,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "fieldHtml1882",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [
+    "idx"
+   ],
+   "chars": 2539,
+   "source_sha256": "3b49f67443b5328151b0a70fa1d826fc1ea238ce78d9e708d9643848d6e33395",
+   "reference_chars": 2512,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "initBubbleSocio1797",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "id",
+    "nodes",
+    "M",
+    "layout"
+   ],
+   "chars": 1708,
+   "source_sha256": "720755ebfc97053ca4eb2473868f2cfcee5e6a9411788324e1feca085ce21632",
+   "reference_chars": 1661,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "initManager27",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 1296,
+   "source_sha256": "e406a49dbe104b5ca20124f7c1ca6eb84138ea359953078084551be170c1c4cf",
+   "reference_chars": 1272,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "leftObjects66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 878,
+   "source_sha256": "ebb15f527e452e6b769a1c4c308ab4f36b66813fe87fd6d71f6ce2f219b87040",
+   "reference_chars": 854,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "leftRespondents66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 1479,
+   "source_sha256": "93da3241b6f71f02b95fe099666fd69aff8ed5a009f0fdd677e09ee6bce3a933",
+   "reference_chars": 1451,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "metricCatalog66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 786,
+   "source_sha256": "ce168ec652db7d41c17960e5123be5968340a7a5f640c4d1b63f4d2cc1f3d627",
+   "reference_chars": 760,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "metricOpts27",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 200,
+   "source_sha256": "e09c92f38aed2b1dd5ab52c2413f8ff14c858b4e660295ddaa7a5e9760c604b5",
+   "reference_chars": 177,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "objectDetail66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 3090,
+   "source_sha256": "56457c975ebb72d8d5ea3edd8ec32d4c8c1e0564e4466029e27e8e1f8cc4fc8a",
+   "reference_chars": 3065,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "objectMetricArray66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "id"
+   ],
+   "chars": 613,
+   "source_sha256": "73bb36bd3be737d3a07eede93399c428936ebd432dcc82bf50c6e7e108f7d3c5",
+   "reference_chars": 581,
+   "source": "reference_ledger",
+   "status": "PORTING",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/sociomap/metrics.py"
+   ],
+   "fixtures": [
+    "U02_objectMetricArray66"
+   ],
+   "slice": 8,
+   "notes": "Ported as object_metric; parity not yet PASS for the whole function."
+  },
+  {
+   "name": "overlay27",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 2447,
+   "source_sha256": "b63b6a5f5d2af1ff02615e798228f51c71c024d339377840113d37a69b8be925",
+   "reference_chars": 2427,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "pointerMove1865",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "e"
+   ],
+   "chars": 1069,
+   "source_sha256": "973d6bea67cf6eb625345b6d9b4519490732c82237238a22c811a78024b2e46d",
+   "reference_chars": 1042,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "pointerMove66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "e"
+   ],
+   "chars": 971,
+   "source_sha256": "f0584130f399c99988da3110309311111b39c5ccb534c06180b0f9da0c7a518a",
+   "reference_chars": 946,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "pointerUp1865",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "e"
+   ],
+   "chars": 784,
+   "source_sha256": "e8622ca337ee9aefe3269ed40af463b6cf2efa85c421e4b6a36f5fabf58a7887",
+   "reference_chars": 759,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "pointerUp66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "e"
+   ],
+   "chars": 714,
+   "source_sha256": "aa3185b579c4f80948cd00e6bd03c4d56aa584a1877a33f0636e05e6f8b05c85",
+   "reference_chars": 685,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "projection1865",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 514,
+   "source_sha256": "49359fdc19a7f77f75dbd079079aa63f299e26fbc7556f965dad14897657cab9",
+   "reference_chars": 489,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "projection66",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 510,
+   "source_sha256": "0b4f9a422cbbaaa257e63e2c677a364711eed54271b29ce517b70984259eab56",
+   "reference_chars": 487,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "renderDetail1865",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 254,
+   "source_sha256": "07c5c345b073fdaf0b56fb664734b13debf2118fcda565dfebdbcd70a82f9582",
+   "reference_chars": 227,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "renderFlatSocioSvg1798",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "id"
+   ],
+   "chars": 2756,
+   "source_sha256": "00e7e3921fc1ff9cc5747d17d08340ef816d78a0cfe61ae254566948497df7c7",
+   "reference_chars": 2721,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "renderSociomap1795",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "id",
+    "nodes",
+    "edges"
+   ],
+   "chars": 1914,
+   "source_sha256": "7af39dd596923e1a16ba5f8f9598843c1d6abf320ed527f4638af6b7661fbaf3",
+   "reference_chars": 1871,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "renderTerrain1796",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "id",
+    "mains",
+    "seconds",
+    "edges"
+   ],
+   "chars": 3207,
+   "source_sha256": "009d9c27f3276f696a09fe80368fb9d0dde56a80c0ce7fe9e19427ba389ea9d1",
+   "reference_chars": 3157,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "restore27",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [
+    "s"
+   ],
+   "chars": 450,
+   "source_sha256": "20c7308e86c510d7213a0a89ddebe1485a21c2521091a9d3f8c867a2c43af3eb",
+   "reference_chars": 429,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "snapshot27",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 431,
+   "source_sha256": "bf66f2158d275603ff41114a19392beefb5746c0c332fb84a505b416532328d0",
+   "reference_chars": 410,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "sociomapMatrix1796",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "nodes",
+    "edges"
+   ],
+   "chars": 833,
+   "source_sha256": "046938ca092c310ad1b59561e4a363f99f999635a2e3eddcab2acf22fc7e1ea4",
+   "reference_chars": 793,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "sociomapTerrain1796",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [
+    "d"
+   ],
+   "chars": 2531,
+   "source_sha256": "d46513e852506f877d44e638418a5f40a8358be5592b509e540bca9524ee0976",
+   "reference_chars": 2500,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "terrain66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 2014,
+   "source_sha256": "6e1240277c8a39e33a1bce7d70060824aaf46a5d8b527fc88245d37066e7beef",
+   "reference_chars": 1994,
+   "source": "reference_ledger",
+   "status": "PORTING",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/sociomap/terrain.py"
+   ],
+   "fixtures": [],
+   "slice": 8,
+   "notes": "Ported as terrain fields F7/F8; parity not yet PASS for the whole function."
+  },
+  {
+   "name": "terrainData1865",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 1301,
+   "source_sha256": "9aec3d4aa56364d8568ce016a7076a3c74edea831cefe3ff6d6b10a30c6e2956",
+   "reference_chars": 1275,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "topControls66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 2005,
+   "source_sha256": "8e28fc2f8e07493a3d29ceafb184d0782fd9890d8805de348c254dbaff90be75",
+   "reference_chars": 1981,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "updateStatus66",
+   "class": "METHODOLOGY_SEMANTICS",
+   "area": "sociomapping",
+   "params": [],
+   "chars": 718,
+   "source_sha256": "4c768d4f8619fdbeced05ce39c60a5ca06bf2c521dc600742fde4e7563cc57e7",
+   "reference_chars": 693,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 8,
+   "notes": ""
+  },
+  {
+   "name": "workflowCard",
+   "class": "DETERMINISTIC_COMPUTATION",
+   "area": "workflow",
+   "params": [
+    "w"
+   ],
+   "chars": 2112,
+   "source_sha256": "e2a202fb0a645afb664b0be91f6197e923e4cbd93e9406272d2ada8a60d5da6b",
+   "reference_chars": 2088,
+   "source": "reference_ledger",
+   "status": "LEGACY",
+   "implementation": [],
+   "fixtures": [],
+   "slice": 4,
+   "notes": ""
+  }
+ ]
+}

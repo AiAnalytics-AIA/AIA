@@ -1,0 +1,265 @@
+// @vitest-environment jsdom
+// Run, Progress and Results (ADR 0016) against a fake AIA API. What they must do:
+// submit the design the person sees as a Design Revision, say what AIA's checks
+// say, start one run over that revision, explain a run waiting for the AI
+// runtime, hide a suppressed cell's numbers, label fictional data every time, and
+// keep the internal Sociomap internal.
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { t } from "@/i18n/t";
+import { resetBootCache } from "@/unit/boot";
+import { ResearchScreen } from "./ResearchScreen";
+import { TEST_FRAME, stagePath } from "./test-frame";
+
+const push = vi.fn();
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/run", useRouter: () => ({ push, replace }) }));
+
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
+const PROJECT = { title: "Ranní nápoj", n: 450, sections: [{ type: "questions", questions: [{ id: "q1", text: "Jak často?", typ: "skala", skala: [1, 5] }] }] };
+
+const READY = {
+  design_revision_id: "REV-a1", rules: "aia-structural-readiness-1", ready: true, questions: 1, batteries: 1, objects: 5, n: 450,
+  fieldwork_source: "ai_runtime",
+  checks: [
+    { id: "sample_size", status: "PASS", message: "n = 450." },
+    { id: "audience", status: "WARN", message: "AIA zatím nepoužije filtry." },
+  ],
+};
+const step = (node: string, status: string, extra: Record<string, unknown> = {}) => ({
+  node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
+  started_at: "2026-09-25T08:00:00Z", finished_at: null, failure_class: null, error_message: null, artifact_id: null, data_origin: null, ...extra,
+});
+const run = (extra: Record<string, unknown> = {}) => ({
+  run_id: "RUN-1", study_id: "STU-1", design_revision_id: "REV-a1", design_revision: 3, status: "RUNNING", phase: "RUNNING",
+  needs_attention: false, is_terminal: false, retryable: false, cancel_requested: false, fieldwork_source: "ai_runtime",
+  retry_of: null, created: null, created_at: "2026-09-25T08:00:00Z", started_at: "2026-09-25T08:00:00Z", finished_at: null,
+  steps: [], artifact_ids: [], actual_cost_usd: null, ...extra,
+});
+const PARKED = run({
+  status: "WAITING_PROVIDER", phase: "WAITING",
+  steps: [
+    step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+    step("preflight", "SUCCEEDED", { artifact_id: "ART-2" }),
+    step("run", "WAITING_PROVIDER", { waiting_reason: "ai_runtime_unavailable", failure_class: "RUNTIME_UNAVAILABLE" }),
+    step("aggregate", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+    step("sociomap", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+  ],
+});
+const COMPLETED = run({
+  status: "COMPLETED", phase: "COMPLETED", is_terminal: true, fieldwork_source: "synthetic_fixture", finished_at: "2026-09-25T08:05:00Z",
+  steps: [
+    step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+    step("preflight", "SUCCEEDED", { artifact_id: "ART-2" }),
+    step("run", "SUCCEEDED", { artifact_id: "ART-3", data_origin: "SYNTHETIC_FIXTURE" }),
+    step("aggregate", "SUCCEEDED", { artifact_id: "ART-4", data_origin: "SYNTHETIC_FIXTURE" }),
+    step("sociomap", "SUCCEEDED", { artifact_id: "ART-5", data_origin: "SYNTHETIC_FIXTURE" }),
+  ],
+});
+// What the API gives: the Study's list is a summary (no steps, no artifacts); the run itself is read in full.
+const listed = (...runs: ReturnType<typeof run>[]) => {
+  const routes: Record<string, () => unknown> = {
+    "GET /api/v1/studies/STU-1/research/runs": () => ({ items: runs.map((r) => ({ ...r, steps: [], artifact_ids: [] })) }),
+  };
+  for (const r of runs) routes[`GET /api/v1/studies/STU-1/research/runs/${r.run_id}`] = () => r;
+  return routes;
+};
+const support = (status: string, donors: number) => ({ support_status: status, n_platnych: 120, n_unique_layer_donors: donors, effective_n: 30 });
+const AGGREGATE = {
+  artifact_id: "ART-4", artifact_type: "research_aggregate", stage_type: "AGGREGATION", revision: 3, content_type: "application/json",
+  sha256: "abcdef0123456789", size_bytes: 10, status: "VALID", runtime_version: "a15be65", produced_by_job_id: null, created_at: null,
+  payload: {
+    aggregate: {
+      data_origin: "SYNTHETIC_FIXTURE",
+      questions: {
+        q2: { typ: "vyber", ...support("REPORTABLE", 140), celkem_pct: { Kávu: 34.8, Čaj: 38.4 }, intervaly_95: { Kávu: { low: 30.1, high: 39.9 }, Čaj: { low: 33.0, high: 43.2 } } },
+        t1: { typ: "skala", ...support("SUPPRESS", 19), prumer: 3.73, prumer_interval_95: { low: 3.25, high: 4.28 }, top2box_pct: 22.1, top2box_interval_95: { low: 10, high: 30 } },
+      },
+      batteries: {},
+    },
+  },
+};
+const SOCIOMAP = {
+  ...AGGREGATE, artifact_id: "ART-5", artifact_type: "research_sociomap",
+  payload: {
+    sociomap: {
+      methodology_status: "INTERNAL_ONLY",
+      batteries: [{
+        battery_id: "napoje", title: "Nápoje", methodology_status: "INTERNAL_ONLY",
+        objects: [{ id: "kava", label: "Káva" }, { id: "caj", label: "Čaj" }, { id: "voda", label: "Voda" }],
+        relation: { scores: [6.14, 6.47, 5.89] },
+        sociomap: { object_ids: ["kava", "caj", "voda"], layout: { object_xy: [[1.5, -2], [0, 3], [-4, 1]] } },
+      }],
+    },
+  },
+};
+
+type Call = { method: string; url: string; body: unknown };
+let calls: Call[] = [];
+function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
+  calls = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(url);
+      const method = init?.method ?? "GET";
+      const body = init?.body ? JSON.parse(String(init.body)) : null;
+      calls.push({ method, url: u, body });
+      const routes: Record<string, (b: unknown) => unknown> = {
+        "GET /config": () => ({ cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", apiBase: "", build: { sha: null } }),
+        "GET /api/bootstrap": () => ({ empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6" } }),
+        "POST /api/projects/load": () => ({ project_id: "PRJ-1", revision: 3, project_type: "research", project: PROJECT, analysis: null }),
+        "POST /api/v1/studies/STU-1/design/revisions": () => ({ revision_id: "REV-a1", study_id: "STU-1", revision: 3, content_sha256: "x", parent_revision: 2, source_stage: "run", created_by: "USR-1", created_at: "2026-09-25T08:00:00Z", created: true }),
+        "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-old", revision: 2 }] }),
+        "GET /api/v1/studies/STU-1/research/readiness": () => READY,
+        "GET /api/v1/studies/STU-1/research/runs": () => ({ items: [] }),
+        "POST /api/v1/studies/STU-1/research/runs": () => run({ created: true, phase: "QUEUED" }),
+        ...overrides,
+      };
+      const answer = routes[`${method} ${u.split("?")[0]}`]?.(body) ?? {};
+      return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
+    }),
+  );
+}
+const called = (method: string, prefix: string) => calls.filter((c) => c.method === method && c.url.startsWith(prefix));
+
+beforeEach(() => {
+  resetBootCache();
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+  };
+  push.mockReset();
+  sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "a@example.test", subject: "s" }));
+  window.history.replaceState(null, "", "/");
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  sessionStorage.clear();
+});
+
+describe("Run", () => {
+  it("submits the design the person sees as a revision, shows AIA's checks, and starts one run over it", async () => {
+    api();
+    render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
+    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
+    expect(submitted.body).toMatchObject({ source_stage: "run", content: { title: "Ranní nápoj", n: 450 } });
+    expect(Object.keys(submitted.body as object).sort()).toEqual(["content", "source_stage"]); // no client, org or unit id
+    expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-a1");
+    expect(screen.getByText("n = 450.")).toBeTruthy();
+    expect(screen.getByText(/AIA zatím nepoužije filtry/)).toBeTruthy();
+    expect(screen.getByText(/AI respondenti, kteří zatím nejsou nasazeni/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1" });
+  });
+
+  it("cannot start a design that fails a check", async () => {
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({
+        ...READY, ready: false,
+        checks: [{ id: "conditional_questions", status: "FAIL", message: "Podmíněné otázky AIA zatím neumí." }],
+      }),
+    });
+    render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.notReady"))).toBeTruthy();
+    expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("lets a reader see the latest revision's checks, but not write a revision or start", async () => {
+    api();
+    render(<ResearchScreen projectId="PRJ-1" step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    expect(await screen.findByText("Revize návrhu 2")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-old");
+    expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(t("research.exec.readOnly"))).toBeTruthy();
+  });
+});
+
+describe("Progress", () => {
+  it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen projectId="PRJ-1" step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti zatím nejsou nasazeni/)).toBeTruthy();
+    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    expect(steps.map((li) => li.textContent)).toEqual([
+      expect.stringContaining("Sestavení dotazníku z návrhu"),
+      expect.stringContaining("Kontrola připravenosti"),
+      expect.stringContaining("Sběr dat"),
+      expect.stringContaining("Agregace"),
+      expect.stringContaining("Sociomapa (interní)"),
+    ]);
+    expect(within(steps[3]).getByText("Čeká na předchozí krok")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.retry") })).toBeNull();
+    expect(screen.queryByRole("note")).toBeNull(); // not fictional: no fiction banner
+  });
+
+  it("cancels only after the person confirms, and retries a failed run as a new run", async () => {
+    api({
+      ...listed(PARKED),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/cancel": () => ({ ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
+    });
+    render(<ResearchScreen projectId="PRJ-1" step="progress" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.cancel") }));
+    fireEvent.click(await screen.findByRole("button", { name: "OK" }));
+    expect(await screen.findByText("Zrušeno")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.retry") }));
+    expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/retry")).toHaveLength(1);
+  });
+});
+
+describe("Results", () => {
+  it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {
+    api({
+      ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen projectId="PRJ-1" step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
+    const q2 = await screen.findByRole("region", { name: "q2" });
+    expect(within(q2).getByText("34,8 %")).toBeTruthy();
+    expect(within(q2).getByText("30,1–39,9")).toBeTruthy();
+    const t1 = screen.getByRole("region", { name: "t1" });
+    expect(within(t1).getByText(/Potlačeno: jen 19 unikátních dárců/)).toBeTruthy();
+    expect(within(t1).queryByText("3,73")).toBeNull();
+    expect(within(t1).queryByText(/3,25/)).toBeNull();
+    expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
+    const map = screen.getByRole("region", { name: "Nápoje" });
+    expect(within(map).getByText("Káva")).toBeTruthy();
+    expect(within(map).getByText("6,14")).toBeTruthy();
+    expect(screen.getAllByText(/Artefakt ART-4/).length).toBe(1);
+    expect(screen.getByRole("link", { name: /Analytický report 18\.6\.6/ }).getAttribute("href")).toBe("/classic#aia:open=PRJ-1@results");
+  });
+
+  it("says there are no results while the run waits at fieldwork", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen projectId="PRJ-1" step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.noResultsParked"))).toBeTruthy();
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts")).toHaveLength(0);
+  });
+
+  it("leaves the Sociomap out for a person the API refuses it to", async () => {
+    api({
+      ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () =>
+        new Response('{"code":"insufficient_role","message":"Not permitted."}', { status: 403 }),
+    });
+    render(<ResearchScreen projectId="PRJ-1" step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    expect(await screen.findByRole("region", { name: "q2" })).toBeTruthy();
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5")).toHaveLength(1));
+    expect(screen.queryByText(/Interní: metodika Sociomapy/)).toBeNull();
+  });
+});

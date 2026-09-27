@@ -1,0 +1,14 @@
+.venv/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+runs/
+vystupy/
+prototype_outputs/
+*.log
+.DS_Store
+*.bak
+*.pre*
+*.orig

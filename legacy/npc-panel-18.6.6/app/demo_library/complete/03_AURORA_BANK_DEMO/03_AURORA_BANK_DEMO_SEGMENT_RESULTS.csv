@@ -1,0 +1,21 @@
+﻿dimension,segment_value,variant_id,n,consideration_pct,preference_pct,trust,modernity,differentiation,migration_comfort
+segment,Young Digitals,A,284,45.8,25.7,7.05,5.23,4.53,7.32
+segment,Young Digitals,B,284,57.7,38.4,5.86,8.09,7.49,5.42
+segment,Young Digitals,C,284,66.9,44.4,7.29,7.86,7.26,7.46
+segment,Young Digitals,D,284,63.4,41.5,6.83,7.99,6.66,7.02
+segment,Affluent Planners,A,284,51.8,29.2,7.34,5.46,4.76,7.4
+segment,Affluent Planners,B,284,55.3,32.7,5.56,7.91,7.07,5.13
+segment,Affluent Planners,C,284,68.7,42.3,7.02,7.59,6.84,7.34
+segment,Affluent Planners,D,284,55.6,39.4,6.67,7.86,6.59,6.99
+segment,Family Mainstream,A,267,52.8,25.8,7.32,5.4,4.81,7.46
+segment,Family Mainstream,B,267,61.8,40.8,5.92,8.18,7.52,5.61
+segment,Family Mainstream,C,267,64.4,43.1,7.02,7.61,7.04,7.27
+segment,Family Mainstream,D,267,58.1,40.4,6.65,7.84,6.5,6.83
+segment,Trust-First Seniors,A,278,48.9,29.5,7.11,5.35,4.78,7.49
+segment,Trust-First Seniors,B,278,61.5,38.5,5.85,8.08,7.44,5.37
+segment,Trust-First Seniors,C,278,67.3,50.0,7.25,7.75,7.14,7.39
+segment,Trust-First Seniors,D,278,50.0,40.3,6.41,7.5,6.29,6.63
+segment,SME Owners,A,287,53.3,33.8,7.46,5.58,4.87,7.74
+segment,SME Owners,B,287,59.2,40.1,5.86,8.25,7.39,5.41
+segment,SME Owners,C,287,66.6,48.8,7.07,7.62,6.98,7.36
+segment,SME Owners,D,287,54.7,35.2,6.71,7.77,6.59,6.84

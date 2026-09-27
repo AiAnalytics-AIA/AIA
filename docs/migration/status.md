@@ -5,6 +5,18 @@
 **Phase:** 1 and 2 complete. Phase 3 implemented and verified under real
 PostgreSQL contention. Architecture v2.1 reconciliation applied.
 
+**Current-state addendum:** PR #52 merged into `develop` at `b3bd42f`. The
+executable worker, live develop facade, client-first interface and the
+Study-scoped Research Run → Progress → Results slice are implemented. Deployed
+PR #56 deployed the governed Bedrock respondent runtime at `0310091`. The
+fictional acceptance run completed all five steps with 20 successful model
+calls and settled cost $0.2303301; results were verified in the signed-in UI.
+Fieldwork and aggregate artifacts are `SYNTHETIC_AI_FICTIONAL`; Sociomap is
+`INTERNAL_ONLY`. Panel-derived transmission and Bedrock design assistants
+remain unapproved/unimplemented. The material below records the earlier
+implementation narrative; [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md)
+is the current tracker.
+
 > **This document is the narrative, not the tracker.** What is done, in
 > progress and next lives in [`../../.planning/PROGRESS.md`](../../.planning/PROGRESS.md),
 > and open defects in [`../../.planning/open-items.md`](../../.planning/open-items.md).
@@ -48,9 +60,12 @@ both the authoritative store and the v0.1 queue, claimed with
 `FOR UPDATE SKIP LOCKED`
 ([ADR 0002](../architecture/adr/0002-postgresql-authoritative-store.md)).
 
-The **compute service is not decided**. ECS Fargate and App Runner both remain
-options; neither is frozen, and nothing here should be read as selecting one. The
-web client's hosting is likewise open.
+The **production compute service is not decided**. ECS Fargate and App Runner
+both remain options. The **`develop` environment** is decided and declared:
+one EC2 host under Docker Compose with S3, Cognito, ECR, SSM and Bedrock used
+for real ([ADR 0009](../architecture/adr/0009-single-host-develop-environment.md));
+`deploy/develop/README.md` is its runbook and `infra/develop/` its Terraform.
+It is live at <https://aia-develop.art-chain.io/> (§ The develop environment, below).
 
 The NPC Panel prototype is **not** in this repository. The authoritative
 reference specification lives in the private repository
@@ -272,6 +287,47 @@ is taken and recorded (`.planning/open-items.md` OI-18); two further items went 
 the register (OI-19 `RELIGION`, OI-20 factual keyword detection). The plan and its
 review map are in `.planning/plans/done/evidence-governance-foundation.md`.
 
+## The develop environment — live
+
+Narrative for the tracker entry in `PROGRESS.md` (Completed, "The `develop`
+environment") and the plan `.planning/plans/done/develop-deployment.md`, which also
+holds the audit of `main` @ `a15be65` this work started from.
+
+What landed: every process names its commit (`AIA_BUILD_SHA`) and refuses to
+run deployed without it or with any artifact store but S3; api, worker and web
+images; one host's Compose, Caddyfile and scripts (deploy → backup → migrate once
+→ replace → smoke); a Terraform root for the AWS resources with an instance role
+as the host's only credential and a GitHub OIDC role scoped to the `develop`
+environment; the first real vertical slice — a `develop_snapshot` run started
+from the browser after a Cognito (Google Workspace) sign-in, executed by the
+worker through `apps/executors`, written to S3 through `ArtifactRepository`, and
+read back in the browser with its provenance; an idempotent seed; CI on
+`develop`; a deploy workflow that ships only what CI verified.
+
+What did **not** land, and why: a governed model call. When this was built
+`main` had no `ModelGateway`; PR #28 has since merged (D12), but the Bedrock
+adapter it needs is still to be written (Next #5c). The route is recorded as
+ADR 0010 *Proposed*, the instance role may already invoke exactly one pinned EU
+model, and the smoke test reports the AI check `NOT_RUNNABLE` rather than pass.
+
+Applied 2026-09-23. `terraform apply`, DNS, the Google OAuth client, the GitHub
+environment and the workflow registration on `main` (PR #32) were done by hand;
+the first four dispatched deploys each failed one step further along and
+became PRs #34, #35 and #37 (the table in the archived plan). Run 4 deployed
+`848ec11` to <https://aia-develop.art-chain.io/> without a human step and was
+failed only by its own smoke check, which required a reused artifact to name the
+deployed build (OI-38, fixed in PR #37). The first dispatched deploy that ends
+green is still owed.
+
+Verified here: 1668 passed / 169 skipped on PostgreSQL 16 (1620 / 169 before),
+the same on SQLite, `mypy --strict` clean over 99 files, `layer_check` 40/40,
+`exposure_check` 7/7, `alembic check` clean, web lint / `tsc` / build clean, the
+standalone web server answering `/config`, `/version`, `/studies`. **Not
+verified here:** the image builds and the deploy workflow — this sandbox's
+egress policy refused Docker Hub and the Terraform registry — so the first real
+run happens in GitHub Actions after the human actions in
+`infra/develop/README.md` — and did, as recorded above.
+
 ## In progress
 
 Nothing. The tree is green and the slice is complete.
@@ -292,8 +348,11 @@ Nothing. The tree is green and the slice is complete.
       compensating entries rather than edits, is outstanding.
 - [ ] **OpenTelemetry instrumentation.** Structured logging and request
       correlation exist; spans, propagation and metrics do not.
-- [ ] Wire `apps/web` to the real API and delete `lib/mock.ts`.
-- [ ] Terraform for the AWS baseline, once the compute service is chosen.
+- [ ] Wire `apps/web` to the real API and delete `lib/mock.ts`. The live
+      `/studies` slice is real; the demo pages remain, labelled as mock.
+- [x] Terraform for the AWS baseline — for `develop` (`infra/develop/`,
+      ADR 0009). Production compute is still open.
+- [x] Bedrock adapter and `aws_bedrock` provider: PR #56 merged and deployed at `0310091`; human approval and dated EU pricing recorded on 2026-09-26. Fictional acceptance run `RUN-f59dce9b82ae49ec` completed: 20 successful calls, $0.2303301 settled, no held/uncertain reservations.
 - [ ] PostgreSQL row-level security as a second isolation layer.
 - [ ] Rate limiting.
 
@@ -520,3 +579,7 @@ tests. Those numbers are not comparable to the table above, because that run had
 the prototype available and this one did not. Both are recorded rather than one
 being rewritten into the other: the difference *is* the parity suite, and
 collapsing them would hide exactly the thing worth knowing.
+
+### Agent Runtime follow-up — 2026-09-26
+
+AI respondent fieldwork is implemented in PR #56 and deployed at `0310091`. CI `36234914562` and deploy `36235378083` succeeded. ADR 0010 approval covers fictional Class C on develop only, retention unspecified. The isolated $2 acceptance study completed all five steps and 20 model calls at $0.2303301; results were verified in the signed-in UI. See [activation evidence](../architecture/bedrock-develop-activation-2026-09-26.md). Earlier measurements are historical snapshots; OI-61 and D6 remain open.

@@ -55,13 +55,19 @@ REQUIREMENTS = frozenset(
         "population_panel",
         "r_smacof",
         "provider_credential",
+        # The running 18.6.6 unit behind its gate (ADR 0011), reached through
+        # AIA_LEGACY_REFERENCE_URL; tools/legacy_oracle.py.
+        "legacy_oracle",
     }
 )
 FIXTURE_STATUSES = frozenset({"CAPTURED", "SPECIFIED_NOT_CAPTURED"})
 FIXTURE_GATE_STATES = frozenset(
     {"GATED", "PARTIALLY_GATED", "AWAITING_IMPLEMENTATION", "AWAITING_CAPTURE"}
 )
-FIXTURE_SOURCES = frozenset({"vendored", "reference_repo"})
+# legacy_unit: captured by tools/ui_function_capture.py from the vendored unit's own
+# JavaScript, so it needs nothing but the repository (ADR 0011).
+FIXTURE_SOURCES = frozenset({"vendored", "reference_repo", "legacy_unit"})
+UNIT_FUNCTION = re.compile(r"^legacy/npc-panel-18\.6\.6/app/ui_app\.html::[A-Za-z_$][\w$]*$")
 RECORDED_VERDICTS = frozenset({"PASS", "FAIL", "NOT_EXECUTED", "NOT_RUNNABLE"})
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 CAPABILITY_ID = re.compile(r"^[a-z_]+(\.[a-z_]+)?$")
@@ -250,7 +256,9 @@ def test_reference_backed_gates_declare_what_they_need(
                 assert gate["id"] in fixture_of, f"{gate['id']} gates no fixture"
                 assert gate["requires"] == fixture_of[gate["id"]]["requires"], gate["id"]
             if gate["kind"] in {"reference_comparison", "reference_characterization"}:
-                assert "legacy_tree" in gate["requires"], (cid, gate["id"])
+                # The legacy code runs either from the extracted tree or as the
+                # deployed unit (the oracle); a gate names which.
+                assert {"legacy_tree", "legacy_oracle"} & set(gate["requires"]), (cid, gate["id"])
 
 
 # --------------------------------------------------------------------------- #
@@ -278,9 +286,16 @@ def test_fixture_records_are_well_formed(fixtures: dict[str, dict[str, Any]]) ->
         if fx["status"] == "CAPTURED":
             assert SHA256.match(fx["sha256"]), fid
             assert fx["source"] in FIXTURE_SOURCES, fid
-            assert fx["reference_path"].startswith("golden-fixtures/"), fid
             assert fx["gate"]["state"] != "AWAITING_CAPTURE", fid
             assert fx["gap"] is None, fid
+            if fx["source"] == "legacy_unit":
+                assert fid.startswith("U"), f"{fid}: unit-captured fixtures are U<nn>_<function>"
+                assert UNIT_FUNCTION.match(fx["reference_path"]), fid
+                assert fx["path"].startswith("packages/aia_core/tests/fixtures/legacy_ui/"), fid
+                assert SHA256.match(fx["source_sha256"]), fid
+                assert fx["requires"] == [], f"{fid} is captured from the unit and needs nothing"
+                continue
+            assert fx["reference_path"].startswith("golden-fixtures/"), fid
             if fx["source"] == "vendored":
                 assert fx["requires"] == [], f"{fid} is vendored and needs nothing"
             else:
@@ -296,10 +311,26 @@ def test_every_vendored_fixture_is_the_pinned_bytes(fixtures: dict[str, dict[str
     """Runs everywhere: a vendored copy that no longer hashes to its pin is a
     fixture someone edited, and a parity test against it tests itself."""
     for fid, fx in fixtures.items():
-        if fx["source"] != "vendored":
+        if fx["source"] not in {"vendored", "legacy_unit"}:
             continue
         actual = hashlib.sha256((REPO / fx["path"]).read_bytes()).hexdigest()
         assert actual == fx["sha256"], f"{fid}: {fx['path']} does not hash to its pin"
+
+
+def test_every_unit_fixture_agrees_with_its_index(fixtures: dict[str, dict[str, Any]]) -> None:
+    """The matrix and the fixture directory's own index pin the same bytes and source."""
+    index = json.loads(
+        (REPO / "packages/aia_core/tests/fixtures/legacy_ui/index.json").read_text("utf-8")
+    )
+    unit = {fid: fx for fid, fx in fixtures.items() if fx["source"] == "legacy_unit"}
+    assert set(unit) == set(index["fixtures"]), "every captured fixture is in the matrix"
+    for fid, fx in unit.items():
+        entry = index["fixtures"][fid]
+        assert fx["sha256"] == entry["sha256"], fid
+        assert fx["source_sha256"] == entry["source_sha256"], fid
+        assert fx["parity_type"] == entry["parity_type"] and fx["tolerance"] == entry["tolerance"]
+        assert fx["capability"] == entry["capability"], fid
+        assert fx["reference_path"].endswith("::" + entry["function"]), fid
 
 
 def test_a_fixture_gate_link_is_one_golden_gate_of_its_capability(

@@ -1,0 +1,194 @@
+[
+  {
+    "path": "AUDIENCE_DESIGN_DEMO.json",
+    "stage": "AUDIENCE",
+    "sha256": "5971ef72c9004483f5b89aa24588d4895e822b7900acc178bff007a3351e2204",
+    "bytes": 393
+  },
+  {
+    "path": "CLIENT_REPORT_STREAMIO_DEMO.docx",
+    "stage": "DELIVERY",
+    "sha256": "534580a1b1163d85e3b755a428d00cd8081acec7a6ad9fc4b98e11c5d83d4cae",
+    "bytes": 52366
+  },
+  {
+    "path": "DEMO_PREVIEW.html",
+    "stage": "DELIVERY",
+    "sha256": "13e7c164fa36f50e38d861897e66a86773ecedf909fe40faf4a568d17b6288d9",
+    "bytes": 3129
+  },
+  {
+    "path": "DEMO_PROJECT_SEED.json",
+    "stage": "DELIVERY",
+    "sha256": "98120dc07e71685cd211fc9b68be2ec8687d4b959b486aa5885458ad18ebf1b5",
+    "bytes": 10248
+  },
+  {
+    "path": "EXECUTIVE_XLSX_PREVIEW.png",
+    "stage": "DELIVERY",
+    "sha256": "926609e286d8033d8ae482b4c9c8c4776497e4341906dffac16890ab82e17207",
+    "bytes": 100660
+  },
+  {
+    "path": "IMPLEMENTACE_DO_PANELU.md",
+    "stage": "DELIVERY",
+    "sha256": "b98c80857d48c96d283b7d917f362b954a22d06d21841d923c028890e2e990d4",
+    "bytes": 2562
+  },
+  {
+    "path": "OBJECTS_SOCIOMAP_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "08b43d07d934373e5cc665be4f2d23eda9ff18c89ea2eed952b049e12b6f72e5",
+    "bytes": 1702
+  },
+  {
+    "path": "PROJECT_HISTORY_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "cbf03c587463eeb2fa80d18a18f0208155d5aa3f8058972d7e6937318cf3ccc8",
+    "bytes": 1068
+  },
+  {
+    "path": "QUESTIONNAIRE_DEMO.json",
+    "stage": "QUESTIONNAIRE",
+    "sha256": "273764a92fdbd3a8c49ffe25bdf81d8fabe9d0afcd30915bd037fe03fd28c355",
+    "bytes": 1055
+  },
+  {
+    "path": "REPORT_TEXT_DEMO.md",
+    "stage": "DELIVERY",
+    "sha256": "a52d09a94115a017d7ad76c913b57c8261a7e640bbbe6aad0b54918b80a75f0e",
+    "bytes": 925
+  },
+  {
+    "path": "RESEARCH_DESIGN_DEMO.json",
+    "stage": "RESEARCH_DESIGN",
+    "sha256": "9acd9f72f66c5653a89f8514258a530bc1b04bd4077173d4b3c6e8d1b42b20d8",
+    "bytes": 1526
+  },
+  {
+    "path": "RESPONDENT_DATABASE_DEMO.csv",
+    "stage": "FIELDWORK",
+    "sha256": "6964ea2af05b497eb8bb3d9e612f3a77d599b3ec6c6db34b24851cbe4125053d",
+    "bytes": 126255
+  },
+  {
+    "path": "RESULTS_TABLES_STREAMIO_BRAND_CONTENT_DEMO.xlsx",
+    "stage": "DELIVERY",
+    "sha256": "ff6e3293dbdf0ddf214f6eb3db7c493b473e06a0589078d878718e9000b3caba",
+    "bytes": 97731
+  },
+  {
+    "path": "analysis/ANALYSIS_01_EXECUTIVE.json",
+    "stage": "ANALYSIS",
+    "sha256": "34051761588eede7112d4cadaed90e2b85cc9d619bf176b01030d8e2a4697428",
+    "bytes": 310
+  },
+  {
+    "path": "analysis/ANALYSIS_02_RESEARCH_QUESTIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "ff0ff3cdacad2c06faec8bc5ca675e15bf384831f5afe4ee8de307332cfc74b7",
+    "bytes": 418
+  },
+  {
+    "path": "analysis/ANALYSIS_03_OBJECTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "f3f46c2b1eb0d3378ae1dbbcab18d335c224e4c3a72a0f9d467947e08873b7be",
+    "bytes": 141
+  },
+  {
+    "path": "analysis/ANALYSIS_04_AUDIENCE.json",
+    "stage": "ANALYSIS",
+    "sha256": "94b31807c17cb385691a437f143d5a8e744c2257b63a496b8516c7f01cf0cdba",
+    "bytes": 168
+  },
+  {
+    "path": "analysis/ANALYSIS_05_SEGMENTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "57f54e6871da435deb5bf8c30545068472ad04f1a20770c83b7b82700b81d3bb",
+    "bytes": 170
+  },
+  {
+    "path": "analysis/ANALYSIS_06_HYPOTHESES.json",
+    "stage": "ANALYSIS",
+    "sha256": "fd66ae160d8e4ba697df7eadb5ec13181256504f1f724f694d56384c540ff2c0",
+    "bytes": 150
+  },
+  {
+    "path": "analysis/ANALYSIS_07_IMPLICATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "9d070e7646f250e9ae497d92544405f2ece2142f7e19b930b278f4b5db65795c",
+    "bytes": 200
+  },
+  {
+    "path": "analysis/ANALYSIS_08_LIMITATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "8e062c40f7db618d8a35f26aa454c166fe2f333d9bf3edd044f6935b4831d4e3",
+    "bytes": 262
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.png",
+    "stage": "ANALYSIS",
+    "sha256": "c5353001f3fc304df01d695201fc2f0a242c5bb150d44944e5c2e8d3e2fd2493",
+    "bytes": 13636
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.svg",
+    "stage": "ANALYSIS",
+    "sha256": "8853ca7066c205f98e58d17b73b8647e6e73de7be490fc5b5d3e7bdca23dfdb1",
+    "bytes": 2352
+  },
+  {
+    "path": "demo_project_loader.py",
+    "stage": "DELIVERY",
+    "sha256": "ab323968ff606589a77fb24d893e449725059e84498ce10669c861296ff04b95",
+    "bytes": 1039
+  },
+  {
+    "path": "worlds/WORLD_1_BASE_STREAMING.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "034b4ac11525be7ccc062747bc146df6fc61ba6d90d08d84f18d14403a9cf9a2",
+    "bytes": 155
+  },
+  {
+    "path": "worlds/WORLD_2_LOCAL_HIT_YEAR.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "aeb2285f857bfd604d4dd9a31506b822c1ee6c94cc1c315b694087ae4866c84a",
+    "bytes": 156
+  },
+  {
+    "path": "worlds/WORLD_3_GLOBAL_FRANCHISE_BOOM.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "921410f58ced7ca6e4151c16f3d88137798c6c4d5c4cb5e8f09bcb6dbc323bc3",
+    "bytes": 175
+  },
+  {
+    "path": "worlds/WORLD_4_SUBSCRIPTION_SQUEEZE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "16461f1780a825f9d2838a259da5aa8fecc477597506e1a4fb88bdddb83e45ac",
+    "bytes": 165
+  },
+  {
+    "path": "worlds/WORLD_5_AD_TIER_GROWTH.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "e138674074d67a358b5a12f6809da6af6bb236e4fb92debe9319bdb9ab66193e",
+    "bytes": 160
+  },
+  {
+    "path": "worlds/WORLD_6_CHOICE_OVERLOAD_UP.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "8ee612acbc507358ae55575145ccbdca2c71afc71339177169d03db529708c50",
+    "bytes": 163
+  },
+  {
+    "path": "worlds/WORLD_7_FAMILY_VIEWING.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "28c8085eec0aa2e5071502ef3585c6967e8b0548c6ff3441551a84547819772f",
+    "bytes": 149
+  },
+  {
+    "path": "worlds/WORLD_8_LIGHT_USERS.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "a6e72f999ddda593abf18067e78e7e93a856ceb04f16f92a4f65158c8caca0a9",
+    "bytes": 157
+  }
+]

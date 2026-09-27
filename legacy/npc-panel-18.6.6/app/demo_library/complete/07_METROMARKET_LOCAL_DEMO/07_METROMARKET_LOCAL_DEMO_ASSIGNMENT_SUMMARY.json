@@ -1,0 +1,32 @@
+{
+  "client_need": "Retailer chce vytvořit nový městský formát pro menší prodejny a propojit ho s novou private-label architekturou.",
+  "primary_decision": "Vybrat koncept pro pilotní síť a hlavní retail proposition.",
+  "success_definition": "Koncept má zvýšit visit intent, velikost košíku a diferenciaci bez ztráty vnímané value.",
+  "questions": [
+    "Který koncept nejlépe kombinuje pohodlí, fresh nabídku a cenu?",
+    "Co zvyšuje ochotu změnit běžnou prodejnu?",
+    "Které skupiny chtějí lokálnost vs. value?",
+    "Kdy private label posiluje důvěru?"
+  ],
+  "inputs": [
+    "Čtyři store concepts.",
+    "Syntetický městský shopper sample.",
+    "8 světů mění inflaci potravin, tlak diskontů, convenience potřebu, lokálnost a online delivery."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Reálná ekonomika jednotky prodejny.",
+    "Skutečná logistická dostupnost sortimentu.",
+    "Predikce tržeb konkrétní lokality."
+  ]
+}

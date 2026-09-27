@@ -1,0 +1,51 @@
+{
+  "version": "17.6.7",
+  "status": "COHERENT_CORE_MATCHED_BLOCKS",
+  "structure_status": "QC_PASSED",
+  "prediction_validation_status": "EXTERNAL_HOLDOUT_PENDING",
+  "production_panel": "FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz",
+  "panel_sha256": "864f8dbcd101e4be1b2a006ccebe4196a85f9bfcbf1a474af762b8135cc779ce",
+  "client_joint_outputs_allowed": false,
+  "descriptive_core_outputs_allowed": true,
+  "matched_block_outputs_allowed": true,
+  "cross_block_joint_claims_allowed": false,
+  "core_same_person_joint": true,
+  "specialist_block_internal_joint": true,
+  "cross_block_same_person_joint": false,
+  "method": "Census exact-age × sex × kraj skeleton + whole-person PIAAC 18–65 / ISSP 66+ core + constrained whole respondent donor blocks",
+  "core_sources": {
+    "18_65": "PIAAC_2023_CZ",
+    "66_plus": "ISSP_2022_CZ"
+  },
+  "matched_blocks": [
+    "mental_health",
+    "social_network",
+    "institutions",
+    "rule_of_law",
+    "politics",
+    "family_health"
+  ],
+  "calibration": {
+    "margins": [
+      "exact age×sex×kraj",
+      "labour_force×ageband×sex"
+    ],
+    "max_exact_cell_error": 1.2732925824820995e-11,
+    "max_labour_relative_error": 2.4661002394421535e-07,
+    "weighted_ess": 18177.6
+  },
+  "qc": {
+    "step2_hard_fail": 0,
+    "step2_warning": 0,
+    "product_integration_fail": 0
+  },
+  "reasons": [
+    "Core work, education, income position, household, health and available personality fields stay within one real core donor.",
+    "Specialist domains are copied as whole respondent blocks and cannot overwrite core socioeconomics.",
+    "Cross-survey links remain statistical matches; natural cross-block latent claims require separate external validation.",
+    "The 2026 psychographic typology is reference-only and is not assigned to respondent rows."
+  ],
+  "runtime_identity_contract": "single_authoritative_core; specialist donor demographics/party identity are audit-only",
+  "current_default_weight": "vaha_strukturalni_2025",
+  "note_v17": "Same-person core is preserved. Specialist blocks are whole-donor matches. Marketing/value/finance modeled/calibrated layers are persona priors, not same-person measurements."
+}

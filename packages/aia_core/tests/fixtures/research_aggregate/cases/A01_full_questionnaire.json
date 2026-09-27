@@ -1,0 +1,8470 @@
+{
+ "case_id": "A01_full_questionnaire",
+ "dataset": {
+  "dataset_version": "aia-fieldwork-dataset-1",
+  "generator": "aia-synthetic-fieldwork-1",
+  "origin": "SYNTHETIC_FIXTURE",
+  "respondents": [
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 1 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0099",
+    "respondent_id": "SYN-R00001",
+    "weight": 2.003494
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 2,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 2 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0146",
+    "respondent_id": "SYN-R00002",
+    "weight": 1.189395
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 3 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0102",
+    "respondent_id": "SYN-R00003",
+    "weight": 1.263513
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 4 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0081",
+    "respondent_id": "SYN-R00004",
+    "weight": 1.261758
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 5 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0038",
+    "respondent_id": "SYN-R00005",
+    "weight": 1.362058
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 10,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 6 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0075",
+    "respondent_id": "SYN-R00006",
+    "weight": 1.219901
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 10,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 7 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0125",
+    "respondent_id": "SYN-R00007",
+    "weight": 2.131913
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 8 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0102",
+    "respondent_id": "SYN-R00008",
+    "weight": 0.878129
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 9 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0113",
+    "respondent_id": "SYN-R00009",
+    "weight": 0.74229
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 10 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0024",
+    "respondent_id": "SYN-R00010",
+    "weight": 0.820453
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 11 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0045",
+    "respondent_id": "SYN-R00011",
+    "weight": 0.712457
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 2,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 12 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0070",
+    "respondent_id": "SYN-R00012",
+    "weight": 1.472486
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 13 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0123",
+    "respondent_id": "SYN-R00013",
+    "weight": 0.913194
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 14 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0095",
+    "respondent_id": "SYN-R00014",
+    "weight": 1.067599
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 15 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0070",
+    "respondent_id": "SYN-R00015",
+    "weight": 0.612965
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 16 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0143",
+    "respondent_id": "SYN-R00016",
+    "weight": 1.037133
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 17 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0095",
+    "respondent_id": "SYN-R00017",
+    "weight": 1.050938
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 18 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0069",
+    "respondent_id": "SYN-R00018",
+    "weight": 0.955249
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 19 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0046",
+    "respondent_id": "SYN-R00019",
+    "weight": 1.114166
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 20 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0100",
+    "respondent_id": "SYN-R00020",
+    "weight": 1.020689
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 21 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0068",
+    "respondent_id": "SYN-R00021",
+    "weight": 1.062519
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 22 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0121",
+    "respondent_id": "SYN-R00022",
+    "weight": 0.851686
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 23 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0130",
+    "respondent_id": "SYN-R00023",
+    "weight": 1.074508
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 24 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0090",
+    "respondent_id": "SYN-R00024",
+    "weight": 0.732407
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 25 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00025",
+    "weight": 0.786712
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 26 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0072",
+    "respondent_id": "SYN-R00026",
+    "weight": 0.498238
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 10,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 27 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0060",
+    "respondent_id": "SYN-R00027",
+    "weight": 1.184123
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 28 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0122",
+    "respondent_id": "SYN-R00028",
+    "weight": 1.671523
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 5,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 29 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0067",
+    "respondent_id": "SYN-R00029",
+    "weight": 0.988434
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 8,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 30 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0128",
+    "respondent_id": "SYN-R00030",
+    "weight": 1.020203
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 31 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0087",
+    "respondent_id": "SYN-R00031",
+    "weight": 0.660652
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 32 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00032",
+    "weight": 1.397842
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 2,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 33 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0056",
+    "respondent_id": "SYN-R00033",
+    "weight": 0.882876
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 34 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0021",
+    "respondent_id": "SYN-R00034",
+    "weight": 0.943274
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 35 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0087",
+    "respondent_id": "SYN-R00035",
+    "weight": 1.085144
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 36 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0121",
+    "respondent_id": "SYN-R00036",
+    "weight": 1.340732
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 10,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 37 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0026",
+    "respondent_id": "SYN-R00037",
+    "weight": 1.255742
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 38 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00038",
+    "weight": 0.791342
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 39 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0113",
+    "respondent_id": "SYN-R00039",
+    "weight": 1.267493
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 40 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00040",
+    "weight": 0.480957
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 10,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 41 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0131",
+    "respondent_id": "SYN-R00041",
+    "weight": 1.295306
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 3,
+     "q1": null,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 42 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0091",
+    "respondent_id": "SYN-R00042",
+    "weight": 1.105589
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 43 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0042",
+    "respondent_id": "SYN-R00043",
+    "weight": 1.939811
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 44 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0018",
+    "respondent_id": "SYN-R00044",
+    "weight": 0.934734
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 45 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00045",
+    "weight": 1.222469
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 46 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00046",
+    "weight": 1.548003
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 47 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00047",
+    "weight": 0.627911
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 48 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0073",
+    "respondent_id": "SYN-R00048",
+    "weight": 1.376568
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 49 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0094",
+    "respondent_id": "SYN-R00049",
+    "weight": 0.887711
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 50 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0046",
+    "respondent_id": "SYN-R00050",
+    "weight": 0.610265
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 51 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00051",
+    "weight": 1.185275
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 10,
+     "q1": 3,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 52 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0106",
+    "respondent_id": "SYN-R00052",
+    "weight": 0.730987
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 53 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0081",
+    "respondent_id": "SYN-R00053",
+    "weight": 1.354178
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 9,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 54 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00054",
+    "weight": 0.768888
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 55 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0115",
+    "respondent_id": "SYN-R00055",
+    "weight": 1.203021
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 56 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0089",
+    "respondent_id": "SYN-R00056",
+    "weight": 1.418893
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 57 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00057",
+    "weight": 1.668153
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 58 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00058",
+    "weight": 1.068107
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 59 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0125",
+    "respondent_id": "SYN-R00059",
+    "weight": 0.677257
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 60 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0111",
+    "respondent_id": "SYN-R00060",
+    "weight": 0.814717
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 61 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0069",
+    "respondent_id": "SYN-R00061",
+    "weight": 0.646122
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 3,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 62 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0080",
+    "respondent_id": "SYN-R00062",
+    "weight": 0.756603
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 63 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0097",
+    "respondent_id": "SYN-R00063",
+    "weight": 1.091601
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 64 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0147",
+    "respondent_id": "SYN-R00064",
+    "weight": 1.173488
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 65 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0056",
+    "respondent_id": "SYN-R00065",
+    "weight": 1.075143
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 66 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0054",
+    "respondent_id": "SYN-R00066",
+    "weight": 0.892223
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 67 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0093",
+    "respondent_id": "SYN-R00067",
+    "weight": 1.129033
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 68 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0081",
+    "respondent_id": "SYN-R00068",
+    "weight": 0.528485
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 69 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00069",
+    "weight": 1.392721
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 1,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 70 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0147",
+    "respondent_id": "SYN-R00070",
+    "weight": 1.383691
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 71 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0118",
+    "respondent_id": "SYN-R00071",
+    "weight": 2.026174
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 72 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0023",
+    "respondent_id": "SYN-R00072",
+    "weight": 1.881217
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 2,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 73 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00073",
+    "weight": 0.558741
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 74 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0063",
+    "respondent_id": "SYN-R00074",
+    "weight": 1.252716
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 10,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 75 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0050",
+    "respondent_id": "SYN-R00075",
+    "weight": 0.722198
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 76 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0030",
+    "respondent_id": "SYN-R00076",
+    "weight": 0.890261
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 77 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00077",
+    "weight": 0.535123
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 78 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0117",
+    "respondent_id": "SYN-R00078",
+    "weight": 0.914632
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 79 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00079",
+    "weight": 1.452656
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 80 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0142",
+    "respondent_id": "SYN-R00080",
+    "weight": 1.426193
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 81 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0135",
+    "respondent_id": "SYN-R00081",
+    "weight": 1.584738
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 82 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0037",
+    "respondent_id": "SYN-R00082",
+    "weight": 0.922408
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 83 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0093",
+    "respondent_id": "SYN-R00083",
+    "weight": 1.107293
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 84 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0142",
+    "respondent_id": "SYN-R00084",
+    "weight": 1.342236
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 85 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0133",
+    "respondent_id": "SYN-R00085",
+    "weight": 1.14995
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 10,
+     "q1": null,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 86 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00086",
+    "weight": 1.040948
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 2,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 87 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0145",
+    "respondent_id": "SYN-R00087",
+    "weight": 1.704612
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 88 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00088",
+    "weight": 0.841847
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 89 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0014",
+    "respondent_id": "SYN-R00089",
+    "weight": 0.997396
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 90 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00090",
+    "weight": 1.000517
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 2,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 2,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 91 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0063",
+    "respondent_id": "SYN-R00091",
+    "weight": 1.190651
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 92 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0105",
+    "respondent_id": "SYN-R00092",
+    "weight": 1.066555
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [],
+     "q4": "Fiktivní odpověď 93 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00093",
+    "weight": 1.431439
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 5,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 94 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0030",
+    "respondent_id": "SYN-R00094",
+    "weight": 1.520973
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 95 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00095",
+    "weight": 0.807503
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 96 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0071",
+    "respondent_id": "SYN-R00096",
+    "weight": 1.109996
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 97 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0099",
+    "respondent_id": "SYN-R00097",
+    "weight": 1.219957
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 98 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0091",
+    "respondent_id": "SYN-R00098",
+    "weight": 0.77832
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 99 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0025",
+    "respondent_id": "SYN-R00099",
+    "weight": 1.348287
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 100 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0087",
+    "respondent_id": "SYN-R00100",
+    "weight": 1.538711
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 10,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 101 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0050",
+    "respondent_id": "SYN-R00101",
+    "weight": 0.802938
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 10,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 102 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0110",
+    "respondent_id": "SYN-R00102",
+    "weight": 1.665137
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [],
+     "q4": "Fiktivní odpověď 103 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0128",
+    "respondent_id": "SYN-R00103",
+    "weight": 0.617188
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 104 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0072",
+    "respondent_id": "SYN-R00104",
+    "weight": 1.597776
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 10,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 105 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0141",
+    "respondent_id": "SYN-R00105",
+    "weight": 0.989998
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 106 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0120",
+    "respondent_id": "SYN-R00106",
+    "weight": 1.517169
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 107 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0134",
+    "respondent_id": "SYN-R00107",
+    "weight": 0.909686
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 108 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0105",
+    "respondent_id": "SYN-R00108",
+    "weight": 1.206445
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 109 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0069",
+    "respondent_id": "SYN-R00109",
+    "weight": 1.369115
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 110 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00110",
+    "weight": 1.251265
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 111 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0075",
+    "respondent_id": "SYN-R00111",
+    "weight": 1.043932
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 10,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 112 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0078",
+    "respondent_id": "SYN-R00112",
+    "weight": 1.151532
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 113 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0087",
+    "respondent_id": "SYN-R00113",
+    "weight": 0.553992
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 114 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0123",
+    "respondent_id": "SYN-R00114",
+    "weight": 0.762211
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 115 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0053",
+    "respondent_id": "SYN-R00115",
+    "weight": 0.733031
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 116 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0053",
+    "respondent_id": "SYN-R00116",
+    "weight": 0.673061
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 117 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0079",
+    "respondent_id": "SYN-R00117",
+    "weight": 1.311095
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 118 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0100",
+    "respondent_id": "SYN-R00118",
+    "weight": 0.71022
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 119 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0112",
+    "respondent_id": "SYN-R00119",
+    "weight": 1.188773
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 120 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0144",
+    "respondent_id": "SYN-R00120",
+    "weight": 0.941364
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 2,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 2,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 121 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0139",
+    "respondent_id": "SYN-R00121",
+    "weight": 0.892778
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 122 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0144",
+    "respondent_id": "SYN-R00122",
+    "weight": 0.938336
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 123 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0110",
+    "respondent_id": "SYN-R00123",
+    "weight": 0.839782
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 124 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0060",
+    "respondent_id": "SYN-R00124",
+    "weight": 0.690697
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 10,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 125 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0117",
+    "respondent_id": "SYN-R00125",
+    "weight": 0.972787
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 126 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0115",
+    "respondent_id": "SYN-R00126",
+    "weight": 1.628615
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 127 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0138",
+    "respondent_id": "SYN-R00127",
+    "weight": 1.344903
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 9,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 128 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00128",
+    "weight": 1.714502
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 3,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 129 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0023",
+    "respondent_id": "SYN-R00129",
+    "weight": 1.079841
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 130 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0092",
+    "respondent_id": "SYN-R00130",
+    "weight": 0.857092
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 10,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 131 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0015",
+    "respondent_id": "SYN-R00131",
+    "weight": 0.955756
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 132 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0097",
+    "respondent_id": "SYN-R00132",
+    "weight": 0.842355
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 133 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00133",
+    "weight": 1.010122
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 134 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0065",
+    "respondent_id": "SYN-R00134",
+    "weight": 0.537883
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 8,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 135 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0123",
+    "respondent_id": "SYN-R00135",
+    "weight": 0.765489
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 136 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0138",
+    "respondent_id": "SYN-R00136",
+    "weight": 1.19958
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 2,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 2,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 137 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0087",
+    "respondent_id": "SYN-R00137",
+    "weight": 0.840684
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 138 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0058",
+    "respondent_id": "SYN-R00138",
+    "weight": 0.832604
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 139 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0005",
+    "respondent_id": "SYN-R00139",
+    "weight": 0.887222
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 140 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0027",
+    "respondent_id": "SYN-R00140",
+    "weight": 1.356064
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 9,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 141 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0105",
+    "respondent_id": "SYN-R00141",
+    "weight": 1.318383
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 142 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0140",
+    "respondent_id": "SYN-R00142",
+    "weight": 1.101575
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 143 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0038",
+    "respondent_id": "SYN-R00143",
+    "weight": 0.895672
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 144 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0121",
+    "respondent_id": "SYN-R00144",
+    "weight": 0.754785
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 145 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0121",
+    "respondent_id": "SYN-R00145",
+    "weight": 0.896069
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 146 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00146",
+    "weight": 0.729227
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 147 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0081",
+    "respondent_id": "SYN-R00147",
+    "weight": 0.738208
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 148 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0062",
+    "respondent_id": "SYN-R00148",
+    "weight": 1.084137
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 149 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0143",
+    "respondent_id": "SYN-R00149",
+    "weight": 1.374617
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 150 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00150",
+    "weight": 1.285987
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 151 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0115",
+    "respondent_id": "SYN-R00151",
+    "weight": 1.138721
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 152 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0148",
+    "respondent_id": "SYN-R00152",
+    "weight": 1.484536
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 153 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00153",
+    "weight": 0.858389
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 154 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0084",
+    "respondent_id": "SYN-R00154",
+    "weight": 0.834878
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 155 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0091",
+    "respondent_id": "SYN-R00155",
+    "weight": 1.37825
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 156 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0063",
+    "respondent_id": "SYN-R00156",
+    "weight": 0.457603
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 157 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0135",
+    "respondent_id": "SYN-R00157",
+    "weight": 1.450059
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 158 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0061",
+    "respondent_id": "SYN-R00158",
+    "weight": 1.417232
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 159 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0040",
+    "respondent_id": "SYN-R00159",
+    "weight": 1.227142
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 160 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0118",
+    "respondent_id": "SYN-R00160",
+    "weight": 0.895967
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 161 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0055",
+    "respondent_id": "SYN-R00161",
+    "weight": 1.325485
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 162 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0125",
+    "respondent_id": "SYN-R00162",
+    "weight": 0.609548
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 163 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0075",
+    "respondent_id": "SYN-R00163",
+    "weight": 0.915745
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 164 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0128",
+    "respondent_id": "SYN-R00164",
+    "weight": 1.295492
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 165 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00165",
+    "weight": 2.199712
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 166 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00166",
+    "weight": 1.59187
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 4,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 167 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0078",
+    "respondent_id": "SYN-R00167",
+    "weight": 1.163108
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 168 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0091",
+    "respondent_id": "SYN-R00168",
+    "weight": 1.068152
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 169 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0052",
+    "respondent_id": "SYN-R00169",
+    "weight": 0.863642
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 170 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0093",
+    "respondent_id": "SYN-R00170",
+    "weight": 1.335125
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 171 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0068",
+    "respondent_id": "SYN-R00171",
+    "weight": 0.571796
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 172 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0098",
+    "respondent_id": "SYN-R00172",
+    "weight": 1.323947
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 173 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0084",
+    "respondent_id": "SYN-R00173",
+    "weight": 1.579056
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 174 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0040",
+    "respondent_id": "SYN-R00174",
+    "weight": 1.383093
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 175 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0045",
+    "respondent_id": "SYN-R00175",
+    "weight": 1.00498
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 176 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0121",
+    "respondent_id": "SYN-R00176",
+    "weight": 1.276015
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 177 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0039",
+    "respondent_id": "SYN-R00177",
+    "weight": 0.741989
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 178 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00178",
+    "weight": 0.715352
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 179 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0102",
+    "respondent_id": "SYN-R00179",
+    "weight": 0.948566
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 180 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0007",
+    "respondent_id": "SYN-R00180",
+    "weight": 1.359614
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 181 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0138",
+    "respondent_id": "SYN-R00181",
+    "weight": 1.313966
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 182 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0016",
+    "respondent_id": "SYN-R00182",
+    "weight": 0.598484
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 10,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 183 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0077",
+    "respondent_id": "SYN-R00183",
+    "weight": 1.139902
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 184 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0040",
+    "respondent_id": "SYN-R00184",
+    "weight": 1.672243
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 185 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0137",
+    "respondent_id": "SYN-R00185",
+    "weight": 1.557292
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 186 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0083",
+    "respondent_id": "SYN-R00186",
+    "weight": 0.619225
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 9,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 187 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0042",
+    "respondent_id": "SYN-R00187",
+    "weight": 0.729169
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 188 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00188",
+    "weight": 0.981364
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 189 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0084",
+    "respondent_id": "SYN-R00189",
+    "weight": 1.39835
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 190 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0029",
+    "respondent_id": "SYN-R00190",
+    "weight": 0.403105
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 191 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0017",
+    "respondent_id": "SYN-R00191",
+    "weight": 0.619406
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 192 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00192",
+    "weight": 1.323589
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 9,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 193 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0090",
+    "respondent_id": "SYN-R00193",
+    "weight": 1.14994
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 194 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0084",
+    "respondent_id": "SYN-R00194",
+    "weight": 1.064979
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 195 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00195",
+    "weight": 0.718361
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 196 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0138",
+    "respondent_id": "SYN-R00196",
+    "weight": 0.58145
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 197 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0096",
+    "respondent_id": "SYN-R00197",
+    "weight": 0.351112
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 198 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00198",
+    "weight": 0.88158
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 199 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0081",
+    "respondent_id": "SYN-R00199",
+    "weight": 0.871768
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 200 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0003",
+    "respondent_id": "SYN-R00200",
+    "weight": 0.716683
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 201 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0028",
+    "respondent_id": "SYN-R00201",
+    "weight": 1.278916
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 202 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0135",
+    "respondent_id": "SYN-R00202",
+    "weight": 0.716477
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 203 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0072",
+    "respondent_id": "SYN-R00203",
+    "weight": 1.211405
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 204 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0099",
+    "respondent_id": "SYN-R00204",
+    "weight": 0.70215
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 205 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0074",
+    "respondent_id": "SYN-R00205",
+    "weight": 0.999501
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 2,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 206 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0115",
+    "respondent_id": "SYN-R00206",
+    "weight": 1.365639
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 207 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0149",
+    "respondent_id": "SYN-R00207",
+    "weight": 0.941496
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 10,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 208 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0073",
+    "respondent_id": "SYN-R00208",
+    "weight": 0.671679
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 2,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 1,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 209 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0107",
+    "respondent_id": "SYN-R00209",
+    "weight": 1.2903
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 210 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0149",
+    "respondent_id": "SYN-R00210",
+    "weight": 0.785377
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 10,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 211 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0124",
+    "respondent_id": "SYN-R00211",
+    "weight": 0.445284
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 212 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0113",
+    "respondent_id": "SYN-R00212",
+    "weight": 0.524
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 213 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0089",
+    "respondent_id": "SYN-R00213",
+    "weight": 0.923852
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 214 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00214",
+    "weight": 1.236576
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 215 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0010",
+    "respondent_id": "SYN-R00215",
+    "weight": 0.685946
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 216 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0135",
+    "respondent_id": "SYN-R00216",
+    "weight": 0.995923
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 217 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0125",
+    "respondent_id": "SYN-R00217",
+    "weight": 1.092671
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 218 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0109",
+    "respondent_id": "SYN-R00218",
+    "weight": 1.231885
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 219 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0045",
+    "respondent_id": "SYN-R00219",
+    "weight": 0.716219
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 220 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0030",
+    "respondent_id": "SYN-R00220",
+    "weight": 1.396238
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 221 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0113",
+    "respondent_id": "SYN-R00221",
+    "weight": 0.998772
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [],
+     "q4": "Fiktivní odpověď 222 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0056",
+    "respondent_id": "SYN-R00222",
+    "weight": 1.121358
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 223 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0054",
+    "respondent_id": "SYN-R00223",
+    "weight": 1.602935
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 224 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0135",
+    "respondent_id": "SYN-R00224",
+    "weight": 1.577596
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 225 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0006",
+    "respondent_id": "SYN-R00225",
+    "weight": 1.221804
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 226 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0023",
+    "respondent_id": "SYN-R00226",
+    "weight": 1.130576
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 227 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0086",
+    "respondent_id": "SYN-R00227",
+    "weight": 0.751753
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 228 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0137",
+    "respondent_id": "SYN-R00228",
+    "weight": 0.818544
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 229 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0077",
+    "respondent_id": "SYN-R00229",
+    "weight": 0.700005
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 230 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0077",
+    "respondent_id": "SYN-R00230",
+    "weight": 0.741204
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 231 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00231",
+    "weight": 1.529433
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 2,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 1,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 232 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0060",
+    "respondent_id": "SYN-R00232",
+    "weight": 1.402005
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 233 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0132",
+    "respondent_id": "SYN-R00233",
+    "weight": 1.309262
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 234 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0047",
+    "respondent_id": "SYN-R00234",
+    "weight": 1.058304
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 235 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0031",
+    "respondent_id": "SYN-R00235",
+    "weight": 1.170188
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 236 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0054",
+    "respondent_id": "SYN-R00236",
+    "weight": 2.847755
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 1,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 237 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0129",
+    "respondent_id": "SYN-R00237",
+    "weight": 0.456976
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 238 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0030",
+    "respondent_id": "SYN-R00238",
+    "weight": 0.973138
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 239 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0131",
+    "respondent_id": "SYN-R00239",
+    "weight": 1.786081
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 240 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0031",
+    "respondent_id": "SYN-R00240",
+    "weight": 0.923955
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 241 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0143",
+    "respondent_id": "SYN-R00241",
+    "weight": 0.648612
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 242 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00242",
+    "weight": 0.979019
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 243 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0030",
+    "respondent_id": "SYN-R00243",
+    "weight": 0.581016
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 244 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00244",
+    "weight": 0.434499
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 245 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0144",
+    "respondent_id": "SYN-R00245",
+    "weight": 0.926711
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 246 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00246",
+    "weight": 0.592618
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 247 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0004",
+    "respondent_id": "SYN-R00247",
+    "weight": 0.838989
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 248 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0082",
+    "respondent_id": "SYN-R00248",
+    "weight": 0.842813
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 10,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 249 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0140",
+    "respondent_id": "SYN-R00249",
+    "weight": 1.166668
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 250 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0079",
+    "respondent_id": "SYN-R00250",
+    "weight": 0.874703
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 251 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0052",
+    "respondent_id": "SYN-R00251",
+    "weight": 1.226552
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 252 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0042",
+    "respondent_id": "SYN-R00252",
+    "weight": 0.995567
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 253 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0119",
+    "respondent_id": "SYN-R00253",
+    "weight": 0.862913
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 254 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0115",
+    "respondent_id": "SYN-R00254",
+    "weight": 1.986612
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 255 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0029",
+    "respondent_id": "SYN-R00255",
+    "weight": 1.173703
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 256 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0004",
+    "respondent_id": "SYN-R00256",
+    "weight": 1.094437
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 257 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0083",
+    "respondent_id": "SYN-R00257",
+    "weight": 0.704418
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 258 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0102",
+    "respondent_id": "SYN-R00258",
+    "weight": 0.825637
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 259 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0140",
+    "respondent_id": "SYN-R00259",
+    "weight": 1.016134
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 260 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0003",
+    "respondent_id": "SYN-R00260",
+    "weight": 1.495321
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 261 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0087",
+    "respondent_id": "SYN-R00261",
+    "weight": 1.022955
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 262 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0101",
+    "respondent_id": "SYN-R00262",
+    "weight": 0.878299
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 9,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 263 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0073",
+    "respondent_id": "SYN-R00263",
+    "weight": 1.202252
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 264 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0127",
+    "respondent_id": "SYN-R00264",
+    "weight": 1.0111
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 265 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0103",
+    "respondent_id": "SYN-R00265",
+    "weight": 0.410528
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 266 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0034",
+    "respondent_id": "SYN-R00266",
+    "weight": 1.102133
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 267 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0119",
+    "respondent_id": "SYN-R00267",
+    "weight": 0.591806
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 268 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0048",
+    "respondent_id": "SYN-R00268",
+    "weight": 0.734791
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 269 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0026",
+    "respondent_id": "SYN-R00269",
+    "weight": 0.890855
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 270 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0003",
+    "respondent_id": "SYN-R00270",
+    "weight": 0.880904
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 271 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0013",
+    "respondent_id": "SYN-R00271",
+    "weight": 0.466211
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 272 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0101",
+    "respondent_id": "SYN-R00272",
+    "weight": 1.088072
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 273 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0010",
+    "respondent_id": "SYN-R00273",
+    "weight": 1.018337
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 2,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 274 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0034",
+    "respondent_id": "SYN-R00274",
+    "weight": 0.803928
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 275 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0023",
+    "respondent_id": "SYN-R00275",
+    "weight": 1.02473
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 2,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 276 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0115",
+    "respondent_id": "SYN-R00276",
+    "weight": 0.902197
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 277 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0015",
+    "respondent_id": "SYN-R00277",
+    "weight": 1.043134
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 278 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0056",
+    "respondent_id": "SYN-R00278",
+    "weight": 1.888933
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 279 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00279",
+    "weight": 1.244403
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 280 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0125",
+    "respondent_id": "SYN-R00280",
+    "weight": 1.381669
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 9,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 281 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00281",
+    "weight": 1.490702
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 9,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 282 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0133",
+    "respondent_id": "SYN-R00282",
+    "weight": 0.780579
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 283 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0063",
+    "respondent_id": "SYN-R00283",
+    "weight": 0.717263
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 284 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0053",
+    "respondent_id": "SYN-R00284",
+    "weight": 1.161805
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 285 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0061",
+    "respondent_id": "SYN-R00285",
+    "weight": 1.050514
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 286 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0072",
+    "respondent_id": "SYN-R00286",
+    "weight": 1.101819
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 2,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 287 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0107",
+    "respondent_id": "SYN-R00287",
+    "weight": 1.882425
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 288 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0037",
+    "respondent_id": "SYN-R00288",
+    "weight": 1.169855
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 289 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00289",
+    "weight": 0.978633
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 290 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0017",
+    "respondent_id": "SYN-R00290",
+    "weight": 0.759828
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 291 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0147",
+    "respondent_id": "SYN-R00291",
+    "weight": 1.014247
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 292 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0140",
+    "respondent_id": "SYN-R00292",
+    "weight": 0.883158
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 293 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0024",
+    "respondent_id": "SYN-R00293",
+    "weight": 0.952718
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 294 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0012",
+    "respondent_id": "SYN-R00294",
+    "weight": 0.951309
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 295 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0084",
+    "respondent_id": "SYN-R00295",
+    "weight": 1.065532
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 296 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0128",
+    "respondent_id": "SYN-R00296",
+    "weight": 0.898188
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 297 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0142",
+    "respondent_id": "SYN-R00297",
+    "weight": 0.857567
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 3,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 298 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0138",
+    "respondent_id": "SYN-R00298",
+    "weight": 1.614609
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 299 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0146",
+    "respondent_id": "SYN-R00299",
+    "weight": 1.201769
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 300 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0120",
+    "respondent_id": "SYN-R00300",
+    "weight": 2.555989
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 301 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0085",
+    "respondent_id": "SYN-R00301",
+    "weight": 1.056388
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 10,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 3,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 302 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0047",
+    "respondent_id": "SYN-R00302",
+    "weight": 0.789258
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 2,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 303 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0138",
+    "respondent_id": "SYN-R00303",
+    "weight": 1.235937
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 304 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0081",
+    "respondent_id": "SYN-R00304",
+    "weight": 0.953165
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 305 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0132",
+    "respondent_id": "SYN-R00305",
+    "weight": 0.904377
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 3,
+     "q1": null,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 306 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0056",
+    "respondent_id": "SYN-R00306",
+    "weight": 2.758148
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 307 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0061",
+    "respondent_id": "SYN-R00307",
+    "weight": 0.679871
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 308 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0076",
+    "respondent_id": "SYN-R00308",
+    "weight": 0.990028
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 309 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0101",
+    "respondent_id": "SYN-R00309",
+    "weight": 0.952453
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 3,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 310 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0114",
+    "respondent_id": "SYN-R00310",
+    "weight": 1.200979
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 2,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 311 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0063",
+    "respondent_id": "SYN-R00311",
+    "weight": 0.967723
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 312 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0054",
+    "respondent_id": "SYN-R00312",
+    "weight": 1.810547
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": null,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 313 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0048",
+    "respondent_id": "SYN-R00313",
+    "weight": 0.665977
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 9,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 314 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0086",
+    "respondent_id": "SYN-R00314",
+    "weight": 1.011458
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 315 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0056",
+    "respondent_id": "SYN-R00315",
+    "weight": 0.644776
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 316 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0041",
+    "respondent_id": "SYN-R00316",
+    "weight": 0.870947
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 317 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0093",
+    "respondent_id": "SYN-R00317",
+    "weight": 1.557447
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 318 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0037",
+    "respondent_id": "SYN-R00318",
+    "weight": 0.955882
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 319 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0149",
+    "respondent_id": "SYN-R00319",
+    "weight": 1.185962
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 320 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0121",
+    "respondent_id": "SYN-R00320",
+    "weight": 1.2781
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 321 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0100",
+    "respondent_id": "SYN-R00321",
+    "weight": 1.630124
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 322 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00322",
+    "weight": 1.18514
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 323 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0074",
+    "respondent_id": "SYN-R00323",
+    "weight": 1.191545
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 324 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0063",
+    "respondent_id": "SYN-R00324",
+    "weight": 2.019933
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 2,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 325 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0109",
+    "respondent_id": "SYN-R00325",
+    "weight": 1.198819
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 326 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0023",
+    "respondent_id": "SYN-R00326",
+    "weight": 1.304278
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 327 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0039",
+    "respondent_id": "SYN-R00327",
+    "weight": 0.835687
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 328 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0115",
+    "respondent_id": "SYN-R00328",
+    "weight": 1.488386
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 329 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0109",
+    "respondent_id": "SYN-R00329",
+    "weight": 0.627148
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": null,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 330 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0035",
+    "respondent_id": "SYN-R00330",
+    "weight": 0.620913
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 331 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0028",
+    "respondent_id": "SYN-R00331",
+    "weight": 1.355574
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 332 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0058",
+    "respondent_id": "SYN-R00332",
+    "weight": 1.465046
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 333 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0092",
+    "respondent_id": "SYN-R00333",
+    "weight": 0.837397
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 334 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0140",
+    "respondent_id": "SYN-R00334",
+    "weight": 1.129573
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 335 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0130",
+    "respondent_id": "SYN-R00335",
+    "weight": 0.741084
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 336 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00336",
+    "weight": 1.035607
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": null,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 337 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0053",
+    "respondent_id": "SYN-R00337",
+    "weight": 0.675434
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 338 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0093",
+    "respondent_id": "SYN-R00338",
+    "weight": 0.826935
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 339 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0042",
+    "respondent_id": "SYN-R00339",
+    "weight": 0.730728
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 340 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0033",
+    "respondent_id": "SYN-R00340",
+    "weight": 0.571521
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 341 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0099",
+    "respondent_id": "SYN-R00341",
+    "weight": 2.099893
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 342 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0061",
+    "respondent_id": "SYN-R00342",
+    "weight": 0.93995
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 343 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0010",
+    "respondent_id": "SYN-R00343",
+    "weight": 2.453981
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 9,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 344 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0113",
+    "respondent_id": "SYN-R00344",
+    "weight": 0.705957
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 345 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0072",
+    "respondent_id": "SYN-R00345",
+    "weight": 1.246379
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 346 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0078",
+    "respondent_id": "SYN-R00346",
+    "weight": 1.240565
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 347 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0039",
+    "respondent_id": "SYN-R00347",
+    "weight": 0.996223
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 9,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 348 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0150",
+    "respondent_id": "SYN-R00348",
+    "weight": 0.600156
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 349 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0124",
+    "respondent_id": "SYN-R00349",
+    "weight": 1.739012
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 350 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0115",
+    "respondent_id": "SYN-R00350",
+    "weight": 1.203756
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 351 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0087",
+    "respondent_id": "SYN-R00351",
+    "weight": 0.87109
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 352 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0134",
+    "respondent_id": "SYN-R00352",
+    "weight": 1.172055
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 353 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0079",
+    "respondent_id": "SYN-R00353",
+    "weight": 1.338164
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 354 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0027",
+    "respondent_id": "SYN-R00354",
+    "weight": 1.22911
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 2,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 2,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 355 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0080",
+    "respondent_id": "SYN-R00355",
+    "weight": 1.063103
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 356 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0070",
+    "respondent_id": "SYN-R00356",
+    "weight": 1.798065
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 9,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 357 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0048",
+    "respondent_id": "SYN-R00357",
+    "weight": 0.652418
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 358 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0046",
+    "respondent_id": "SYN-R00358",
+    "weight": 1.377459
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 359 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0058",
+    "respondent_id": "SYN-R00359",
+    "weight": 1.018866
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 360 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0129",
+    "respondent_id": "SYN-R00360",
+    "weight": 1.165609
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 361 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0027",
+    "respondent_id": "SYN-R00361",
+    "weight": 0.722186
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 362 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0034",
+    "respondent_id": "SYN-R00362",
+    "weight": 1.489003
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 3,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 363 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0003",
+    "respondent_id": "SYN-R00363",
+    "weight": 0.875157
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 364 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0104",
+    "respondent_id": "SYN-R00364",
+    "weight": 0.981938
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 365 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0147",
+    "respondent_id": "SYN-R00365",
+    "weight": 0.628045
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 366 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0052",
+    "respondent_id": "SYN-R00366",
+    "weight": 0.616812
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 367 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0104",
+    "respondent_id": "SYN-R00367",
+    "weight": 1.018025
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 368 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0063",
+    "respondent_id": "SYN-R00368",
+    "weight": 0.777994
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 369 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0055",
+    "respondent_id": "SYN-R00369",
+    "weight": 1.539995
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 370 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0117",
+    "respondent_id": "SYN-R00370",
+    "weight": 1.288777
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 371 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0146",
+    "respondent_id": "SYN-R00371",
+    "weight": 0.987931
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 10,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 372 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0061",
+    "respondent_id": "SYN-R00372",
+    "weight": 0.922696
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 373 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0142",
+    "respondent_id": "SYN-R00373",
+    "weight": 1.263768
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 374 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0116",
+    "respondent_id": "SYN-R00374",
+    "weight": 0.399524
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 375 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0063",
+    "respondent_id": "SYN-R00375",
+    "weight": 0.622266
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 376 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0140",
+    "respondent_id": "SYN-R00376",
+    "weight": 0.578966
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 377 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0144",
+    "respondent_id": "SYN-R00377",
+    "weight": 0.532519
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 378 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0088",
+    "respondent_id": "SYN-R00378",
+    "weight": 0.81617
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 379 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0046",
+    "respondent_id": "SYN-R00379",
+    "weight": 0.891621
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 380 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0028",
+    "respondent_id": "SYN-R00380",
+    "weight": 1.374462
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 381 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0069",
+    "respondent_id": "SYN-R00381",
+    "weight": 1.107296
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 382 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0083",
+    "respondent_id": "SYN-R00382",
+    "weight": 0.400442
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 383 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0005",
+    "respondent_id": "SYN-R00383",
+    "weight": 1.276145
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 384 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0084",
+    "respondent_id": "SYN-R00384",
+    "weight": 0.534447
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 385 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0053",
+    "respondent_id": "SYN-R00385",
+    "weight": 0.979133
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 386 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0136",
+    "respondent_id": "SYN-R00386",
+    "weight": 0.946097
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 387 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0023",
+    "respondent_id": "SYN-R00387",
+    "weight": 1.168464
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 9,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 388 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0062",
+    "respondent_id": "SYN-R00388",
+    "weight": 1.613066
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 389 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0008",
+    "respondent_id": "SYN-R00389",
+    "weight": 0.853524
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 1,
+     "napoje_obj_voda": 1,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 390 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0129",
+    "respondent_id": "SYN-R00390",
+    "weight": 1.152353
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 391 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0120",
+    "respondent_id": "SYN-R00391",
+    "weight": 1.128017
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 392 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0028",
+    "respondent_id": "SYN-R00392",
+    "weight": 1.091392
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 393 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0057",
+    "respondent_id": "SYN-R00393",
+    "weight": 0.542194
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 394 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0045",
+    "respondent_id": "SYN-R00394",
+    "weight": 0.948299
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 395 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0114",
+    "respondent_id": "SYN-R00395",
+    "weight": 0.839105
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 1,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 396 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0088",
+    "respondent_id": "SYN-R00396",
+    "weight": 1.455224
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 397 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0088",
+    "respondent_id": "SYN-R00397",
+    "weight": 0.799418
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 398 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0102",
+    "respondent_id": "SYN-R00398",
+    "weight": 1.066165
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": null,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 399 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00399",
+    "weight": 1.186221
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 400 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0047",
+    "respondent_id": "SYN-R00400",
+    "weight": 0.457966
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 401 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0054",
+    "respondent_id": "SYN-R00401",
+    "weight": 0.644942
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 402 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00402",
+    "weight": 0.958953
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 403 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0143",
+    "respondent_id": "SYN-R00403",
+    "weight": 1.968901
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 10,
+     "q1": 4,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo"
+     ],
+     "q4": "Fiktivní odpověď 404 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0011",
+    "respondent_id": "SYN-R00404",
+    "weight": 1.478327
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 405 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0122",
+    "respondent_id": "SYN-R00405",
+    "weight": 1.490763
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 406 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00406",
+    "weight": 1.251833
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 407 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00407",
+    "weight": 0.794343
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 408 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0147",
+    "respondent_id": "SYN-R00408",
+    "weight": 1.029786
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 9,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 409 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0020",
+    "respondent_id": "SYN-R00409",
+    "weight": 1.056342
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 410 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00410",
+    "weight": 1.593687
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 1,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 411 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0060",
+    "respondent_id": "SYN-R00411",
+    "weight": 0.972236
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 412 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0097",
+    "respondent_id": "SYN-R00412",
+    "weight": 0.941387
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 413 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00413",
+    "weight": 1.070401
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 7,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 414 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0055",
+    "respondent_id": "SYN-R00414",
+    "weight": 1.436591
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 2,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 3,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 415 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0009",
+    "respondent_id": "SYN-R00415",
+    "weight": 0.961659
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 3,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 416 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0016",
+    "respondent_id": "SYN-R00416",
+    "weight": 1.333148
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 1,
+     "q2": "Nic",
+     "q3": [],
+     "q4": "Fiktivní odpověď 417 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0150",
+    "respondent_id": "SYN-R00417",
+    "weight": 1.001112
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 418 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0129",
+    "respondent_id": "SYN-R00418",
+    "weight": 0.72678
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 419 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0061",
+    "respondent_id": "SYN-R00419",
+    "weight": 1.445152
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 420 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0071",
+    "respondent_id": "SYN-R00420",
+    "weight": 0.903184
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 6,
+     "q1": 3,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 421 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00421",
+    "weight": 0.824136
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 422 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0140",
+    "respondent_id": "SYN-R00422",
+    "weight": 1.378215
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 10,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 7,
+     "q1": 5,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 423 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0106",
+    "respondent_id": "SYN-R00423",
+    "weight": 0.906647
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 7,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 424 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0102",
+    "respondent_id": "SYN-R00424",
+    "weight": 0.663901
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 5,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 425 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0119",
+    "respondent_id": "SYN-R00425",
+    "weight": 0.799614
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 6,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 426 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0132",
+    "respondent_id": "SYN-R00426",
+    "weight": 1.374501
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 427 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0048",
+    "respondent_id": "SYN-R00427",
+    "weight": 1.141131
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 5,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 428 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0024",
+    "respondent_id": "SYN-R00428",
+    "weight": 1.180529
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 429 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0068",
+    "respondent_id": "SYN-R00429",
+    "weight": 1.043525
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Nevím / neodpovím",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 430 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0027",
+    "respondent_id": "SYN-R00430",
+    "weight": 0.944833
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 2,
+     "q1": 2,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 431 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0104",
+    "respondent_id": "SYN-R00431",
+    "weight": 0.693294
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 7,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 5,
+     "q1": 5,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 432 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0001",
+    "respondent_id": "SYN-R00432",
+    "weight": 0.984027
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 7,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 433 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0032",
+    "respondent_id": "SYN-R00433",
+    "weight": 1.04075
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 434 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0031",
+    "respondent_id": "SYN-R00434",
+    "weight": 0.913372
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 6,
+     "napoje_obj_kakao": 4,
+     "napoje_obj_kava": 10,
+     "napoje_obj_voda": 9,
+     "q1": 5,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 435 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0095",
+    "respondent_id": "SYN-R00435",
+    "weight": 1.280049
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 5,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 436 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0085",
+    "respondent_id": "SYN-R00436",
+    "weight": 0.680703
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 8,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 437 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0149",
+    "respondent_id": "SYN-R00437",
+    "weight": 0.756075
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 4,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 3,
+     "napoje_obj_voda": 2,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 438 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0027",
+    "respondent_id": "SYN-R00438",
+    "weight": 1.510042
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 8,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 439 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0087",
+    "respondent_id": "SYN-R00439",
+    "weight": 1.430866
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 9,
+     "napoje_obj_dzus": 5,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 9,
+     "napoje_obj_voda": 9,
+     "q1": 4,
+     "q2": "Čaj",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 440 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0146",
+    "respondent_id": "SYN-R00440",
+    "weight": 0.917698
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 8,
+     "napoje_obj_kakao": 2,
+     "napoje_obj_kava": 5,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 441 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0005",
+    "respondent_id": "SYN-R00441",
+    "weight": 1.179828
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 7,
+     "napoje_obj_voda": 5,
+     "q1": 3,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 442 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0090",
+    "respondent_id": "SYN-R00442",
+    "weight": 1.142553
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 3,
+     "q1": 4,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 443 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0019",
+    "respondent_id": "SYN-R00443",
+    "weight": 1.585186
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 1,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 2,
+     "napoje_obj_voda": 1,
+     "q1": 1,
+     "q2": "Kávu",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 444 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0036",
+    "respondent_id": "SYN-R00444",
+    "weight": 1.020953
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 6,
+     "napoje_obj_kava": 8,
+     "napoje_obj_voda": 7,
+     "q1": 1,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce"
+     ],
+     "q4": "Fiktivní odpověď 445 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0002",
+    "respondent_id": "SYN-R00445",
+    "weight": 0.711549
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 7,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 446 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0134",
+    "respondent_id": "SYN-R00446",
+    "weight": 1.362325
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 3,
+     "napoje_obj_dzus": 2,
+     "napoje_obj_kakao": 1,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 3,
+     "q2": "Čaj",
+     "q3": [],
+     "q4": "Fiktivní odpověď 447 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0092",
+    "respondent_id": "SYN-R00447",
+    "weight": 0.77698
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 6,
+     "napoje_obj_dzus": 1,
+     "napoje_obj_kakao": 5,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 4,
+     "q1": 2,
+     "q2": "Nic",
+     "q3": [
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 448 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0085",
+    "respondent_id": "SYN-R00448",
+    "weight": 1.285397
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 8,
+     "napoje_obj_dzus": 3,
+     "napoje_obj_kakao": 8,
+     "napoje_obj_kava": 6,
+     "napoje_obj_voda": 6,
+     "q1": 2,
+     "q2": "Čaj",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 449 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0091",
+    "respondent_id": "SYN-R00449",
+    "weight": 2.020033
+   },
+   {
+    "answers": {
+     "napoje_obj_caj": 5,
+     "napoje_obj_dzus": 4,
+     "napoje_obj_kakao": 3,
+     "napoje_obj_kava": 4,
+     "napoje_obj_voda": 2,
+     "q1": 5,
+     "q2": "Kávu",
+     "q3": [
+      "Pečivo",
+      "Ovoce",
+      "Jogurt"
+     ],
+     "q4": "Fiktivní odpověď 450 (syntetická data, ne respondent)"
+    },
+    "donor_id": "SYN-D0089",
+    "respondent_id": "SYN-R00450",
+    "weight": 1.083694
+   }
+  ],
+  "seed": 20260816,
+  "source": "synthetic_fixture",
+  "spec_fingerprint": "b718a53c4a6c964c6e08863abdb959040c0d21e6476c782f65aee4e2936cb3c4"
+ },
+ "spec": {
+  "audience": {
+   "has_filters": false,
+   "source_mode": "population",
+   "strategy": "population"
+  },
+  "batteries": [
+   {
+    "familiarity_required": false,
+    "family": "nápoje",
+    "id": "napoje",
+    "objects": [
+     {
+      "id": "kava",
+      "label": "Káva"
+     },
+     {
+      "id": "caj",
+      "label": "Čaj"
+     },
+     {
+      "id": "kakao",
+      "label": "Kakao"
+     },
+     {
+      "id": "dzus",
+      "label": "Džus"
+     },
+     {
+      "id": "voda",
+      "label": "Voda"
+     }
+    ],
+    "output_type": "pozicni_mapa",
+    "question_template": "Jak hodnotíte {object}?",
+    "scale": [
+     1,
+     10
+    ],
+    "scale_labels": [
+     "vůbec",
+     "velmi"
+    ],
+    "title": "Nápoje"
+   }
+  ],
+  "compiler_version": "aia-research-compile-1",
+  "n": 450,
+  "questions": [
+   {
+    "allow_dont_know": true,
+    "has_filter": false,
+    "id": "q1",
+    "options": [],
+    "scale": [
+     1,
+     5
+    ],
+    "section_id": "sekce_1",
+    "text": "Jak často pijete kávu?",
+    "typ": "skala"
+   },
+   {
+    "allow_dont_know": true,
+    "has_filter": false,
+    "id": "q2",
+    "options": [
+     "Kávu",
+     "Čaj",
+     "Nic",
+     "Nevím / neodpovím"
+    ],
+    "scale": null,
+    "section_id": "sekce_1",
+    "text": "Co si ráno koupíte?",
+    "typ": "vyber"
+   },
+   {
+    "allow_dont_know": false,
+    "has_filter": false,
+    "id": "q3",
+    "options": [
+     "Pečivo",
+     "Ovoce",
+     "Jogurt"
+    ],
+    "scale": null,
+    "section_id": "sekce_1",
+    "text": "Co k tomu?",
+    "typ": "multi"
+   },
+   {
+    "allow_dont_know": false,
+    "has_filter": false,
+    "id": "q4",
+    "options": [],
+    "scale": null,
+    "section_id": "sekce_1",
+    "text": "Proč?",
+    "typ": "otevrena"
+   }
+  ],
+  "title": "Fiktivní ranní nápoj"
+ }
+}

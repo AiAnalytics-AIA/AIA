@@ -1,0 +1,474 @@
+/*
+ * The skin's hand-written layer (ADR 0013). Rules here restyle 18.6.6's own
+ * selectors; every colour, radius, shadow and font is a design-system token
+ * (var(--aia-…)) or one of 18.6.6's variables that legacy-variables.json has
+ * already re-pointed. scripts/skin-lint.mjs refuses anything else.
+ *
+ * This file loads after every stylesheet in the document (the link sits before
+ * </body>), so a rule of equal specificity wins without !important. Where an
+ * inline style="" has to be beaten, !important is used and the override is
+ * listed in .planning/plans/interface-skin.md § Hard-coded overrides.
+ */
+
+/* ---- Base ---------------------------------------------------------------- */
+
+html {
+  background: var(--aia-surface);
+}
+
+body {
+  background: var(--aia-surface);
+  color: var(--aia-ink);
+  font-family: var(--aia-font-sans-stack);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--aia-font-mono-stack);
+}
+
+::selection {
+  background: var(--aia-selection);
+  color: var(--aia-ink);
+}
+
+/* One focus treatment everywhere: 2px ring on a 2px gap, >= 3:1 on every ground. */
+:focus-visible {
+  outline: 2px solid var(--aia-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Shell --------------------------------------------------------------- */
+
+.app,
+.workspace {
+  background: var(--aia-surface);
+}
+
+.topbar {
+  background: var(--aia-surface);
+  border-bottom: 1px solid var(--aia-border);
+}
+
+.topbar h1 {
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--aia-ink);
+}
+
+.topbar .sub {
+  color: var(--aia-ink-muted);
+}
+
+.stepProgress i {
+  background: var(--aia-border);
+}
+
+.stepProgress i.done {
+  background: var(--aia-signal);
+}
+
+.sidebar {
+  background: var(--aia-surface-sunken);
+  border-right: 1px solid var(--aia-border);
+}
+
+.brandProduct small {
+  color: var(--aia-ink-faint);
+}
+
+.step {
+  border-radius: 0;
+}
+
+.step small {
+  color: var(--aia-ink-faint);
+}
+
+.toolbtn {
+  border-radius: var(--aia-radius-md);
+  color: var(--aia-ink-muted);
+}
+
+.toolbtn:hover {
+  background: var(--aia-signal-tint);
+  color: var(--aia-ink);
+}
+
+/* ---- Type ---------------------------------------------------------------- */
+/* Sizes follow the design system's Studio scale (tokens.json type.groups). */
+
+.card h2 {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.card h3,
+.sectiontitle {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--aia-ink);
+}
+
+.tag {
+  color: var(--aia-ink-muted);
+}
+
+label {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--aia-ink);
+}
+
+/* A figure a conclusion rests on: sans, tabular, the design system's hero number. */
+.metric {
+  font-family: var(--aia-font-sans-stack);
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--aia-ink);
+}
+
+/* ---- Surfaces ------------------------------------------------------------ */
+
+.card {
+  background: var(--aia-surface-raised);
+  border: 1px solid var(--aia-border);
+  border-radius: var(--aia-radius-md);
+  box-shadow: none;
+}
+
+.sectionhead {
+  background: var(--aia-surface-sunken);
+  border-bottom: 1px solid var(--aia-border);
+}
+
+.info {
+  background: var(--aia-signal-tint);
+  border: 1px solid var(--aia-signal-edge);
+  border-radius: var(--aia-radius-md);
+  color: var(--aia-ink-muted);
+}
+
+.empty {
+  background: var(--aia-surface-sunken);
+  border: 1px dashed var(--aia-border-strong);
+  border-radius: var(--aia-radius-md);
+  color: var(--aia-ink-muted);
+}
+
+/* Callouts. The tone is carried three ways: the left rule's colour, its
+   weight, and the text 18.6.6 already prints. Done is quiet (no green);
+   a warning is "a person must act" (amber ink and wash, never the solid
+   fill); a blocker is a fault. */
+.okbox,
+.warnbox,
+.badbox {
+  display: block;
+  padding: 10px 12px;
+  margin: 8px 0;
+  border: 1px solid var(--aia-border);
+  border-left-width: 3px;
+  border-radius: var(--aia-radius-md);
+  color: var(--aia-ink);
+}
+
+.okbox {
+  background: var(--aia-surface-sunken);
+  border-left-color: var(--aia-status-done);
+}
+
+.warnbox {
+  background: var(--aia-status-you-wash);
+  border-left-color: var(--aia-status-you);
+}
+
+.badbox {
+  background: var(--aia-status-fault-wash);
+  border-left-color: var(--aia-status-fault);
+}
+
+.choiceCard,
+.flowChoice {
+  background: var(--aia-surface-raised);
+  border: 1px solid var(--aia-border);
+  border-radius: var(--aia-radius-md);
+}
+
+.choiceCard:hover,
+.flowChoice:hover {
+  border-color: var(--aia-border-strong);
+}
+
+.choiceCard.selected,
+.flowChoice.selected {
+  background: var(--aia-signal-tint);
+  border-color: var(--aia-signal);
+}
+
+/* ---- Actions ------------------------------------------------------------- */
+
+.btn {
+  border-radius: var(--aia-radius-md);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.btn:hover {
+  background: var(--aia-signal-hover);
+}
+
+.btn.secondary {
+  background: var(--aia-surface-raised);
+  color: var(--aia-ink);
+  border: 1px solid var(--aia-border-strong);
+}
+
+.btn.secondary:hover {
+  background: var(--aia-surface-sunken);
+}
+
+.btn.soft {
+  background: var(--aia-signal-wash);
+  color: var(--aia-signal);
+  border: 1px solid var(--aia-signal-edge);
+}
+
+.btn.soft:hover {
+  background: var(--aia-signal-wash-strong);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--aia-ink-muted);
+}
+
+.btn.ghost:hover {
+  background: var(--aia-signal-tint);
+  color: var(--aia-ink);
+}
+
+.btn.danger {
+  background: var(--aia-status-fault);
+  color: var(--aia-on-status-fault);
+}
+
+.btn.small {
+  font-size: 12px;
+  line-height: 16px;
+  padding: 5px 9px;
+}
+
+/* ---- Chips and tags ------------------------------------------------------ */
+/* Every tone has a shape as well as a colour: no status by colour alone. */
+
+.chip {
+  border-radius: var(--aia-radius-sm);
+  border: 1px solid var(--aia-border);
+  background: transparent;
+  color: var(--aia-ink-muted);
+  font-family: var(--aia-font-sans-stack);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.chip.ok,
+.chip.warn,
+.chip.bad {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip.ok {
+  background: transparent;
+  color: var(--aia-status-done);
+  border-color: var(--aia-border-strong);
+}
+
+/* A drawn check: the shipped faces have no dependable check-mark glyph. */
+.chip.ok::before {
+  content: "";
+  width: 4px;
+  height: 8px;
+  margin: -2px 1px 0;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.chip.warn {
+  background: var(--aia-status-you-wash);
+  color: var(--aia-status-you-ink);
+  border-color: var(--aia-status-you);
+}
+
+.chip.warn::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.chip.bad {
+  background: var(--aia-status-fault-wash);
+  color: var(--aia-status-fault);
+  border-color: var(--aia-status-fault);
+}
+
+.chip.bad::before {
+  content: "×";
+  font-weight: 600;
+  line-height: 1;
+}
+
+.statusDot.ok {
+  background: var(--aia-status-done);
+}
+
+.statusDot.warn {
+  background: var(--aia-status-you);
+}
+
+/* ---- Forms --------------------------------------------------------------- */
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  background: var(--aia-surface-raised);
+  border: 1px solid var(--aia-border-strong);
+  border-radius: var(--aia-radius-md);
+  color: var(--aia-ink);
+  font-size: 14px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--aia-ink-faint);
+}
+
+/* The focus ring (Base) replaces 18.6.6's translucent glow. */
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--aia-signal);
+  box-shadow: none;
+}
+
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  accent-color: var(--aia-signal);
+}
+
+/* ---- Tables -------------------------------------------------------------- */
+
+th {
+  background: var(--aia-surface-sunken);
+  color: var(--aia-ink-muted);
+  font-family: var(--aia-font-sans-stack);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  text-align: left;
+}
+
+td {
+  color: var(--aia-ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Feedback ------------------------------------------------------------ */
+
+/* 18.6.6 sets these with !important, so beating them needs it too
+   (plan, Hard-coded overrides). */
+.toast {
+  background: var(--aia-surface-inverse) !important;
+  color: var(--aia-ink-inverse) !important;
+  border-radius: var(--aia-radius-md) !important;
+  box-shadow: var(--aia-shadow-overlay) !important;
+}
+
+/* The progress overlay's bar. 18.6.6 slides a segment back and forth; motion
+   that travels reads as progress the backend is not reporting. The skin draws
+   a still line whose live edge breathes, and nothing moves at all when the
+   viewer asks for reduced motion. The overlay's own text says what is
+   happening. */
+.moving {
+  border-radius: var(--aia-radius-sm) !important;
+  background: var(--aia-border) !important;
+}
+
+.moving i {
+  width: 100%;
+  background: var(--aia-signal) !important;
+  animation: aia-live-edge 2.4s ease-in-out infinite;
+}
+
+@keyframes aia-live-edge {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moving i {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ---- The hand-off bar (ADR 0015) -------------------------------------------
+ * handoff.js adds one element to the classic page: it says this is the classic
+ * interface, temporarily, and leads back to the AIA page the person came from. */
+
+.aia-return-bar {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--aia-surface-inverse);
+  color: var(--aia-ink-inverse);
+  border-radius: var(--aia-radius-md);
+  box-shadow: var(--aia-shadow-overlay);
+  font-family: var(--aia-font-sans-stack);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.aia-return-bar a {
+  color: var(--aia-ink-inverse);
+  font-weight: 600;
+  text-decoration: underline;
+}

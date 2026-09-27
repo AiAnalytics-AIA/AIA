@@ -50,6 +50,18 @@ def test_values_are_read_from_the_environment() -> None:
     assert settings.quota_fallback_seconds == 600
 
 
+def test_the_build_sha_is_read_and_a_malformed_one_stops_the_process() -> None:
+    """The start-up log names the revision, so a container can be matched to a
+    commit; a branch name in that slot is a broken build step, not a revision."""
+    assert WorkerSettings.from_env(BASE).build_sha is None
+    assert (
+        WorkerSettings.from_env({**BASE, "AIA_BUILD_SHA": "A15BE650937aacaa"}).build_sha
+        == "a15be650937aacaa"
+    )
+    with pytest.raises(ValueError, match="AIA_BUILD_SHA"):
+        WorkerSettings.from_env({**BASE, "AIA_BUILD_SHA": "develop"})
+
+
 def test_a_worker_never_defaults_to_sqlite() -> None:
     """The API may fall back to in-memory SQLite for development. A worker may not:
     it would claim nothing and report healthy."""

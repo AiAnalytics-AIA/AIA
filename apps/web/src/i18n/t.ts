@@ -22,3 +22,8 @@ export function t(key: string): string {
   if (typeof v === "string") return v;
   return key;
 }
+
+/** t() with `{name}` placeholders filled. */
+export function tv(key: string, vars: Record<string, string | number>): string {
+  return t(key).replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
+}

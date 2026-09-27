@@ -1,0 +1,33 @@
+{
+  "version": "18.6.6",
+  "release": "NPC Panel 18.6.6 Native Sociomapa Design Workspace",
+  "status": "PASS",
+  "sociomap": {
+    "single_workspace": true,
+    "modes": ["respondents", "objects"],
+    "matrix_mode": true,
+    "compare_mode": true,
+    "what_if_mode": true,
+    "respondent_filters": true,
+    "ai_segments": true,
+    "area_ab": true,
+    "manual_drag": true,
+    "layout_persistence": true,
+    "directional_relations": true,
+    "normalization_options": ["absolute", "range", "sigma", "percentile"],
+    "camera": ["zoom", "rotate", "2d", "3d", "center", "fullscreen"],
+    "export_png": true,
+    "old_demo_fallback": "objects",
+    "live_fake_respondent_fallback": false
+  },
+  "tests": {
+    "relevant_integration": "87/87 PASS",
+    "sociomap_targeted": "27/27 PASS",
+    "chromium_new_360_demo": "PASS, no JS errors",
+    "chromium_old_demo": "PASS, no JS errors",
+    "python_compileall": "PASS",
+    "javascript_syntax": "PASS",
+    "project_store_seed_projects": 0
+  },
+  "external_paid_provider_roundtrip": "NOT_RUN_FOR_THIS_VISUAL_RELEASE"
+}

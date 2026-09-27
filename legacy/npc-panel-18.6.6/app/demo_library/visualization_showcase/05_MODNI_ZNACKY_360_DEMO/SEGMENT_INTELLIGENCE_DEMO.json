@@ -1,0 +1,62 @@
+{
+  "status": "AI_READY",
+  "provider": "build_time_ai",
+  "model": "GPT-5.6 Sol",
+  "fallback_used": false,
+  "summary": "Módní mapa ukazuje pět odlišných hodnotových logik: sportovní lifestyle, trend a dostupnost, status, minimalistické basics a udržitelnost. Značky se proto nemají číst jen jako jedna osa levné–drahé.",
+  "insights": [
+    {
+      "candidate_id": "SG-F8D4570E2A",
+      "title": "Sportovní lifestyle",
+      "why_interesting": "Výrazný funkčně-lifestylový shluk.",
+      "characterization": "Sportovní orientace a frekvence sportu se pojí s Adidas a Nike.",
+      "business_meaning": "Je vhodný pro performance-lifestyle komunikaci a každodenní sportovní použití.",
+      "map_cta": "Zobrazit skupinu A na mapě",
+      "confidence_note": "Skupina má 126 respondentů (21.0 %) a datové skóre odlišnosti 95.1/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-5016C5143B",
+      "title": "Trend a fast fashion",
+      "why_interesting": "Početný trendový segment s vyšší cenovou citlivostí.",
+      "characterization": "Trend, otevřenost novinkám a cena se pojí se Zara a H&M.",
+      "business_meaning": "Je relevantní pro rychlost kolekcí, dostupnost a módní novost.",
+      "map_cta": "Zobrazit skupinu B na mapě",
+      "confidence_note": "Skupina má 145 respondentů (24.2 %) a datové skóre odlišnosti 94.3/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-0B83727BE8",
+      "title": "Status a luxus",
+      "why_interesting": "Silně odlišný statusový shluk.",
+      "characterization": "Vyšší status a nižší cenová citlivost se výrazně pojí s Gucci a slabším vztahem k H&M.",
+      "business_meaning": "Je vhodný pro exkluzivitu, symbolickou hodnotu a prémiovou zkušenost.",
+      "map_cta": "Zobrazit skupinu C na mapě",
+      "confidence_note": "Skupina má 111 respondentů (18.5 %) a datové skóre odlišnosti 92.2/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-0B25E42186",
+      "title": "Minimalistické basics",
+      "why_interesting": "Praktický segment orientovaný na jednoduchost a trvanlivost.",
+      "characterization": "Basics orientace se pojí s Uniqlo a Levi’s a současně s nižší trendovostí.",
+      "business_meaning": "Je relevantní pro nadčasovost, kombinovatelnost a funkční šatník.",
+      "map_cta": "Zobrazit skupinu D na mapě",
+      "confidence_note": "Skupina má 112 respondentů (18.7 %) a datové skóre odlišnosti 87.8/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-2C36553BC2",
+      "title": "Udržitelnost",
+      "why_interesting": "Hodnotově jasný segment kolem udržitelnosti.",
+      "characterization": "Vyšší udržitelnost se pojí s Patagonií a částečně s důrazem na kvalitu.",
+      "business_meaning": "Je vhodný pro transparentní původ, životnost a environmentální argumentaci.",
+      "map_cta": "Zobrazit skupinu E na mapě",
+      "confidence_note": "Skupina má 106 respondentů (17.7 %) a datové skóre odlišnosti 83.7/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    }
+  ],
+  "privacy_contract": "Interpretace vznikla nad agregovanými profily DEMO skupin; individuální respondentní řádky nebyly součástí interpretačního promptu.",
+  "provenance": "BUILD_TIME_AI_DEMO",
+  "demo_truth": "ILUSTRAČNÍ DEMO — syntetický dataset, nikoli reálný průzkum."
+}

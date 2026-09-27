@@ -109,6 +109,7 @@ class StudyResponse(BaseModel):
     client_id: str
     slug: str
     name: str
+    kind: Literal["RESEARCH", "SIMULATION"] = "RESEARCH"
     status: str
     accepts_work: bool
     your_role: str | None = None
@@ -233,6 +234,8 @@ class AuditEntryResponse(BaseModel):
     actor_id: str | None = None
     role: str | None = None
     reason: str = ""
+    # The structured before/after record a grant writes: what the audit is for.
+    payload: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime | None = None
 
 
@@ -260,6 +263,7 @@ def _study_response(study: Any, *, role: str | None, include_costs: bool) -> Stu
         client_id=study.client_id,
         slug=study.slug,
         name=study.name,
+        kind=study.kind.value,
         status=study.status.value,
         accepts_work=study.status.accepts_work,
         your_role=role,
@@ -655,11 +659,6 @@ def access_audit(
     legitimate but must be reviewable afterwards.
     """
     try:
-        # The trail's free-form ``payload`` is internal and deliberately not part of
-        # this contract; passing it through made the closed model reject every entry.
-        return [
-            AuditEntryResponse(**{k: v for k, v in e.items() if k != "payload"})
-            for e in resolver.audit_trail(admin, limit=limit)
-        ]
+        return [AuditEntryResponse(**e) for e in resolver.audit_trail(admin, limit=limit)]
     except ScopeDenied as exc:
         raise _forbidden(exc) from exc

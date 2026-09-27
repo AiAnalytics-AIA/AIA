@@ -1,0 +1,59 @@
+{
+  "study_type": "Předvolební veřejné mínění a image kandidátů",
+  "decision": "Popsat stav veřejného mínění, hlavní issues, nejisté voliče a silné/slabé stránky kandidátských image.",
+  "research_questions": [
+    "Jak pravděpodobně půjdete volit?",
+    "Jaké jsou tři nejdůležitější problémy města?",
+    "Jak hodnotíte každého kandidáta na stejné sadě image atributů?",
+    "Kterému kandidátovi nejvíce důvěřujete v jednotlivých tématech?",
+    "Koho byste volili, kdyby se volby konaly dnes?",
+    "Jak pevné je vaše současné rozhodnutí?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Jana Novotná",
+      "description": "Fiktivní kandidátka",
+      "type": "tracked_object",
+      "score": 69,
+      "x": 390,
+      "y": 205
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Petr Marek",
+      "description": "Fiktivní kandidát",
+      "type": "tracked_object",
+      "score": 64,
+      "x": 255,
+      "y": 275
+    },
+    {
+      "id": "OBJ-C",
+      "name": "David Král",
+      "description": "Fiktivní kandidát",
+      "type": "tracked_object",
+      "score": 58,
+      "x": 535,
+      "y": 290
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Nerozhodnutí",
+      "description": "Analytická skupina",
+      "type": "tracked_object",
+      "score": 0,
+      "x": 380,
+      "y": 345
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Trust",
+    "Competence",
+    "Empathy",
+    "Issue fit",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

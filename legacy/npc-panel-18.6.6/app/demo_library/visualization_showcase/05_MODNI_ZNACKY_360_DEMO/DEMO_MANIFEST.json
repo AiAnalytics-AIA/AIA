@@ -1,0 +1,56 @@
+{
+  "project_id": "PRJ-DEMO-VIS-MODA-360",
+  "slug": "05_MODNI_ZNACKY_360_DEMO",
+  "files": [
+    {
+      "name": "ANALYSIS.json",
+      "size_bytes": 2218,
+      "sha256": "2f76c76896624dadfbb1ec7c4333609663c6e1470343f95542d0492304d732c9"
+    },
+    {
+      "name": "DATA_DICTIONARY.json",
+      "size_bytes": 2302,
+      "sha256": "f117a859dcf0e7c55aa4df108547a8939972c4db69bedefbf736d980a364218c"
+    },
+    {
+      "name": "DEMO_PROJECT_SEED.json",
+      "size_bytes": 4811,
+      "sha256": "d2d0d0d3c21c555d92c2046ef0103afe609577a4b379e676a3fbe3f7bc60a735"
+    },
+    {
+      "name": "DEMO_REPORT.html",
+      "size_bytes": 1355,
+      "sha256": "7cdc30f47dba73883d60c3af5dca5ba85a0cb790ea38eb3ffb4eb431bc87f40a"
+    },
+    {
+      "name": "OBJECTS_SOCIOMAP_DEMO.json",
+      "size_bytes": 5006,
+      "sha256": "be51fdd3b239c51d2c4807f528d26462c7c94814a41964abcd1bd39878cb24c7"
+    },
+    {
+      "name": "OBJECT_MAP_3D.html",
+      "size_bytes": 13667,
+      "sha256": "19228a847610898a179f55b6b617346164110e978f99b667c3830a7c2bd367b4"
+    },
+    {
+      "name": "QUESTIONNAIRE.json",
+      "size_bytes": 1234,
+      "sha256": "8b586e02aceb340a8e3c6b791e5ad273951acd75054fb295d1b472dff91526af"
+    },
+    {
+      "name": "README.md",
+      "size_bytes": 150,
+      "sha256": "9b5467408ee62b5b7a8ff5c0acab0c18b2f644d5405f91d3e39f14299fff483a"
+    },
+    {
+      "name": "RESPONDENTS.csv",
+      "size_bytes": 64081,
+      "sha256": "b9ce6a719c3deb5b4f240aba82f2693f170d9bf05ea090e9f3614108b4ad1e76"
+    },
+    {
+      "name": "RESULTS.xlsx",
+      "size_bytes": 59892,
+      "sha256": "f5843b4dc46440aa0bae5d56503e6e6f2269caa2f19ee98344e323afa840f304"
+    }
+  ]
+}

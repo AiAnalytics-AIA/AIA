@@ -1,0 +1,200 @@
+{
+  "nodes": [
+    {
+      "name": "Current",
+      "type": "object",
+      "score": 60,
+      "x": 250,
+      "y": 285,
+      "color": "#537bd7"
+    },
+    {
+      "name": "Local First",
+      "type": "object",
+      "score": 77,
+      "x": 405,
+      "y": 215,
+      "color": "#3c9890"
+    },
+    {
+      "name": "Premium Exclusives",
+      "type": "object",
+      "score": 73,
+      "x": 565,
+      "y": 135,
+      "color": "#7961c5"
+    },
+    {
+      "name": "Smart Discovery",
+      "type": "object",
+      "score": 75,
+      "x": 350,
+      "y": 330,
+      "color": "#299764"
+    },
+    {
+      "name": "Relevance",
+      "type": "anchor",
+      "x": 380,
+      "y": 115,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Distinctiveness",
+      "type": "anchor",
+      "x": 520,
+      "y": 225,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Ease",
+      "type": "anchor",
+      "x": 160,
+      "y": 210,
+      "color": "#9ba3af"
+    },
+    {
+      "name": "Content fit",
+      "type": "anchor",
+      "x": 350,
+      "y": 355,
+      "color": "#9ba3af"
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 6,
+      "weight": 0.71
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "weight": 0.69
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "weight": 0.74
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "weight": 0.71
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "weight": 0.75
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "weight": 0.53
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "weight": 0.94
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "weight": 0.5
+    }
+  ],
+  "layers": [
+    "perception",
+    "emotion",
+    "segment_resonance"
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      6.28,
+      2.38,
+      7.6,
+      5.32,
+      3.96,
+      7.39,
+      7.209999999999999
+    ],
+    [
+      6.28,
+      0.0,
+      6.09,
+      7.21,
+      7.66,
+      7.39,
+      4.65,
+      6.71
+    ],
+    [
+      2.38,
+      6.09,
+      0.0,
+      3.66,
+      5.7700000000000005,
+      7.75,
+      1.0,
+      3.28
+    ],
+    [
+      7.6,
+      7.21,
+      3.66,
+      0.0,
+      5.26,
+      5.5,
+      5.09,
+      9.459999999999999
+    ],
+    [
+      5.32,
+      7.66,
+      5.7700000000000005,
+      5.26,
+      0.0,
+      6.11,
+      4.76,
+      4.72
+    ],
+    [
+      3.96,
+      7.39,
+      7.75,
+      5.5,
+      6.11,
+      0.0,
+      2.13,
+      5.32
+    ],
+    [
+      7.39,
+      4.65,
+      1.0,
+      5.09,
+      4.76,
+      2.13,
+      0.0,
+      4.78
+    ],
+    [
+      7.209999999999999,
+      6.71,
+      3.28,
+      9.459999999999999,
+      4.72,
+      5.32,
+      4.78,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SEED_RELATIONS_WITH_GEOMETRY_FILL; LIVE uses respondent correlations or explicit directional relations",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": true
+  }
+}

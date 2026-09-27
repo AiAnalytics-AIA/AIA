@@ -82,6 +82,13 @@ rewire (Next #4).
 **Status.** Open, deliberate, with the promotion condition recorded in
 `ARCHITECTURE.md §8`. This is the tier working as designed, not an oversight.
 
+**Update 2026-09-24.** The npm side now has its clean baseline:
+`cd apps/web && npm audit` reports 0 vulnerabilities after `next` 16.1.6 →
+16.3.6, `eslint-config-next` to match, and patch/minor bumps of the transitive
+packages (13 advisories before: 1 critical, 8 high, 3 moderate, 1 low). Dropping
+`|| true` from `.github/workflows/ci.yml` (*Audit npm dependencies*) is now
+unblocked and is a separate change; `pip-audit` is unchanged.
+
 ---
 
 ## OI-3 · Question · No release branch
@@ -102,7 +109,11 @@ is deferred until there is a release to protect.
 **Trigger to revisit.** The first production deployment, or Terraform landing
 (Next #5) — whichever comes first.
 
-**Status.** Open by decision, not by neglect.
+**Status.** **Closed** by the develop deployment: `develop` is the integration
+branch, deployed on every green head (ADR 0009), and `main` is the release
+branch receiving release PRs (`CLAUDE.md §5`, `.github/workflows/ci.yml`
+`on.push.branches`). Branch protection itself is a human action
+(`infra/develop/README.md` § Human actions, items 10–11).
 
 ---
 
@@ -319,6 +330,17 @@ explicit UNKNOWN grade `?` — never as measured, never as the strongest grade.
 **Owner.** analysis-governance (A6) publishes the role enum in `aia_core.domain`;
 product-surface then adds it to `apps/web/src/design/enums.ts` and the parity
 check (`.planning/plans/design-system.md`, chunk 2).
+
+**Update (2026-09-25).** The enum now exists in part: `domain/evidence/field_policy.py`
+defines 22 field `EvidenceStatus` values. What is still missing is the **mapping
+from those statuses onto the five print grades** (measured / calibrated /
+modelled / holdout-pending / unknown). The report takes that mapping as data:
+`EvidenceLedger.field_grades` (`domain/report/evidence.py`,
+`grade_of`). Until analysis-governance supplies it, the report prints every
+measured-basis number as `?` (a `MODELED` basis always prints as modelled).
+The rules are pinned by `test_report_model.py::test_a_field_without_a_grade_prints_unknown_never_measured`
+and `test_several_fields_not_jointly_measured_never_print_measured`. Decision
+R-D4 in `.planning/plans/report-docx.md`.
 
 **Status.** Open. Cross-context dependency.
 
@@ -626,6 +648,17 @@ the archive is available, with a golden fixture of classified questions.
 
 **Status.** Open, blocked on the archive; must close before Phase 5's respondent
 engine ships.
+
+**Update 2026-09-25 (Agent Runtime Foundation) — narrowed, not closed.** The keyword
+classification, the choice mapping and the deterministic answer are ported for the AI
+respondent (`packages/aia_core/src/aia_core/domain/respondent_facts.py` @ `dec2fd1`),
+compared with the vendored unit's own `factual_layer.py`, not the archive
+(`test_respondent_facts.py::test_classification_matches_the_unit`, 39 cases;
+`::test_choice_mapping_matches_the_unit`, 12). A DIRECT fact is answered from the
+persona and never asked; an UNSUPPORTED one refuses the fieldwork step. Still open:
+`evidence/factual.py` (the claim gate's contract) does not use it, questions carry no
+`fact_kind` / `fact_source_field` metadata, and `harmonize_project_fact_choices` is not
+ported.
 
 ---
 
@@ -966,10 +999,89 @@ against a scratch repository and fails if a tracked `.agent-status/` stops
 failing the build.
 
 **Status.** Open. Needs a repository admin.
+---
+
+## OI-33 · Finding · A repository's `ScopeDenied` reaches the client as a 500
+
+**Claim.** A permission the *repository* checks (not the route dependency) is
+unhandled by the API: a VIEWER creating a project gets `500 internal_error`
+instead of `403 insufficient_role`.
+
+**Anchor.** `apps/api/src/aia_api/routers/projects.py:146 @ a15be65`
+(`repo.create(...)` → `repositories.py:332` `self._scope.require(Permission.EDIT_STUDY)`),
+with no `ScopeDenied` handler in `apps/api/src/aia_api/observability.py:244-289 @ a15be65`.
+
+**Reproduction.** In `apps/api/tests`, as the `viewer` client:
+`viewer.post(f"/api/v1/studies/{world.study_id()}/projects", json={"title": "x"})`
+returns 500 (log: `ScopeDenied: role VIEWER does not permit EDIT_STUDY`).
+Confirmed 2026-09-23 against SQLite.
+
+**Consequence.** The refusal is correct but unreadable: the client sees a generic
+error and an alert fires for what is a normal authorization outcome. Nothing is
+disclosed. The new `runs.py` router maps `ScopeDenied` itself (`_denied`) and so
+does not have the defect; the projects and scope routers do.
+
+**Smallest fix.** One `@app.exception_handler(ScopeDenied)` in
+`install_exception_handlers`: `insufficient_role` and `study_closed` → 403 with
+the scope router's `insufficient_role` shape; every other reason → the 404
+`dependencies._not_found_for` already renders. Then delete `runs.py::_denied`.
+
+**Test that would catch it.** `test_a_viewer_cannot_create_a_project_and_is_told_why`
+asserting 403 and `code == "insufficient_role"` on `POST …/projects`.
+
+**Status.** Open. Found while writing the run routes; deliberately not fixed in
+the deployment change set (it touches every router's error contract).
 
 ---
 
-## OI-33 · Finding · Resolving an uncertain call corrects the ledger but not the study's spend
+## OI-34 · Finding · The web client has no test runner
+
+**Claim.** `ARCHITECTURE.md §7` requires web tests ("Mount, events, auth
+guards"); `apps/web` has no test framework, no test file and no `test` script.
+
+**Anchor.** `apps/web/package.json:6-11 @ a15be65` (`scripts`: dev, build,
+start, lint only).
+
+**Reproduction.** `cd apps/web && npm test` → `Missing script: "test"`.
+
+**Consequence.** The PKCE login (`src/lib/auth.ts`) and the API client
+(`src/lib/api.ts`) landed with lint, `tsc` and a build as their only gates. Their
+pure parts (PKCE encoding, session caching, error mapping) are testable today
+and untested.
+
+**Smallest fix.** Vitest with `jsdom`, as `plans/design-system.md` chunk 3 already
+schedules; first tests on `auth.ts` (`parseBuildSha`-style pure functions,
+`readSession` caching, `completeLogin` state mismatch) and `api.ts` (401 →
+`Unauthenticated`). Owner: product-surface, with the design-system plan.
+
+**Test that would catch it.** A CI step `npm test` that fails on a missing script.
+
+**Status.** Open.
+
+---
+
+## OI-35 · Decision · The browser session lives in `sessionStorage`
+
+**Claim.** The live pages keep the Cognito id and refresh tokens in
+`sessionStorage` for the tab's lifetime and send the id token as a bearer header.
+
+**Anchor.** `apps/web/src/lib/auth.ts` (`SESSION_KEY`, `writeSession`) @ this change.
+
+**Consequence.** Correct against CSRF (no cookie), same-origin only, cleared when
+the tab closes; exposed to any XSS in the client. Accepted for `develop`
+(synthetic data, five internal users) and recorded here so it is not mistaken
+for the production shape.
+
+**Smallest fix, when production is provisioned.** A same-site, `HttpOnly` cookie
+session minted by the API after verifying the id token once (a `POST
+/api/v1/session` that returns a cookie and a CSRF token), the browser holding no
+token at all. The `IdentityProvider` seam is unchanged by that move.
+
+**Status.** Open by decision. Trigger: the production environment.
+
+---
+
+## OI-36 · Finding · Resolving an uncertain call corrects the ledger but not the study's spend
 
 **Claim.** `AIUsageRepository.resolve_uncertain` appends the compensating ledger
 entry, but `Study.spent_usd` keeps the full `SETTLED_UNCERTAIN` reservation
@@ -1003,3 +1115,994 @@ agree after resolution.
 
 **Status.** Open. Owner **platform-runtime**. Listed as ask 3 in
 `docs/architecture/ai-step-executor-contract.md`.
+
+---
+
+## OI-37 · Finding · The deploy workflow cannot fire until it is on `main`
+
+**Claim.** `deploy-develop.yml` is on `develop` only; GitHub registers
+`workflow_run` and `workflow_dispatch` triggers from the default branch alone,
+so the first CI-green head of `develop` was never deployed and no manual
+rollback dispatch is offered.
+
+**Anchor.** `.github/workflows/deploy-develop.yml:13-18 @ 262a6dd` (the `on:`
+block); `git ls-tree origin/main .github/workflows/` lists `ci.yml` only @ `676bc1f`.
+
+**Reproduction.** CI run 35836518940 on `develop` @ `262a6dd` completed
+`success` at 2026-09-23 08:24:55 UTC; seventeen minutes later
+`GET /repos/AiAnalytics-AIA/AIA/actions/workflows` listed one workflow (`CI`) and
+`GET …/actions/workflows/deploy-develop.yml/runs` returned 404. Same check, one
+command: `gh api repos/AiAnalytics-AIA/AIA/actions/workflows --jq '.workflows[].path'`.
+
+**Consequence.** The chain `develop → CI → deploy` that the plan calls done stops
+after CI, silently: no run, no failure, no *Run workflow* button. The human
+actions in `infra/develop/README.md` would have been completed against a
+pipeline that could not fire. Nothing was deployed wrongly; nothing was deployed.
+
+**Smallest fix.** Put the file on `main`: a release PR `develop → main` (after
+this change `develop ⊇ main`, so it is the repository's normal release and
+carries PR #29 with it), or a `chore/` PR into `main` carrying only
+`.github/workflows/deploy-develop.yml`. No code change. Recorded as human action
+11 in `infra/develop/README.md`. Standing rule, now in `AGENTS.md` § GitHub
+Actions: edits to that workflow take effect when they reach `main`, not `develop`.
+
+**Test that would catch it.** Not a unit test — a repository-state property. A
+`push`-to-`develop` job that fails when `.github/workflows/deploy-develop.yml`
+differs from `main`'s copy (`git diff --quiet origin/main -- .github/workflows/deploy-develop.yml`)
+would have turned the first green `develop` head red with the reason. It also
+fails, correctly, for the window between merging a workflow change to `develop`
+and releasing it; whether that noise is wanted is a human decision, so it is
+proposed here and not added.
+
+**Status.** **Closed 2026-09-23.** PR #32 (`fix/register-develop-workflow`)
+put the file on `main` at `7f8cb2a`, merged 12:41 UTC;
+`GET /repos/AiAnalytics-AIA/AIA/actions/workflows/deploy-develop.yml/runs`
+now lists runs, the first (35863981545) dispatched by CI at 12:59 UTC from the
+next `develop` merge (PR #33). The standing rule stays in `AGENTS.md` § GitHub
+Actions. The first *green* dispatched run is still owed: runs 1–3 failed at
+the OIDC trust (fixed by PR #34), the SSM script launch (same PR) and the API's
+start-up on `AIA_CORS_ORIGINS=""` (PR #35, merged at `848ec11`). Run 4 on
+`848ec11` deployed and failed only its smoke verdict (OI-38). The host is live
+at <https://aia-develop.art-chain.io/>.
+
+---
+
+## OI-38 · Finding · The smoke check failed a reused artifact for naming its real producer
+
+**Claim.** `slice_check` required the snapshot artifact's `runtime_version` to
+equal the deployed build, but the snapshot executor reuses a VALID artifact
+with the same content fingerprint by design, so every second deploy over the
+unchanged develop seed reads back the *previous* build's artifact and the smoke
+test fails a deployment that worked.
+
+**Anchor.** `apps/executors/src/aia_executors/smoke.py:173-179 @ 848ec11` (the
+single check); `apps/executors/src/aia_executors/snapshot.py:88-96 @ 848ec11`
+(`put_json(..., input_fingerprint=..., runtime_version=self._build.sha)`, reuse
+on) and `packages/aia_core/src/aia_core/infrastructure/artifact_repository.py:287-295 @ 848ec11`
+(`find_reusable` returns the existing row, provenance untouched).
+
+**Reproduction.** *Deploy develop* run 35869042785 on `848ec11`: 21 `ok` lines,
+then `FAIL slice: the artifact was produced by the deployed build —
+runtime_version 'b5c331f…', expected '848ec11…'`. Locally:
+`test_slice_check_accepts_an_artifact_reused_from_an_earlier_build` in
+`apps/executors/tests/test_seed_and_smoke.py` runs the check under a worker at
+one build, then under a worker at another; it failed before the fix.
+
+**Consequence.** The deploy is reported failed although the images, migration,
+container replacement and every other check succeeded, and the host already
+serves the new build. Operators learn to distrust the verdict; the *Confirm
+from outside* step is skipped; the first green automatic deploy is postponed by
+a check, not by the system.
+
+**Smallest fix.** Check two facts separately: the step output's
+`runtime_version` (the build that *executed* the run) must be the deployed one;
+the artifact's `runtime_version` (the build that *produced* the bytes) must
+match only when the output says `reused: false`, and otherwise the line reports
+the reuse and both builds. Done in this change; the docstring says the same.
+
+**Test that would have caught it.** The test above: two `slice_check` passes
+over unchanged content with workers at different builds, the second expecting
+its own build and asserting one stored object.
+
+**Status.** Fixed in this change (`apps/executors/src/aia_executors/smoke.py`).
+Verified by the dispatched run its merge triggers, not before.
+
+---
+
+## OI-39 · Finding · The oracle is deployed by a workflow that ran before the unit existed, and is unreachable from cloud sessions
+
+**Claim.** The first *Deploy develop* run to build `aia-legacy-panel` failed
+before deploying anything, the run that would deploy the unit is waiting on a
+human, and no cloud session can reach the develop host to check either — so
+Phase 0 of the strangler plan (a healthy, gated oracle) is unproven from here.
+
+**Anchor.** `.github/workflows/deploy-develop.yml:128-141 @ 09810d1`
+(`context: legacy/npc-panel-18.6.6`); `git ls-tree 71d3576 -- legacy` (only
+`legacy/README.md`); `.planning/plans/legacy-strangler.md` § Phase 0.
+
+**Reproduction.** GitHub Actions *Deploy develop* run 6 (`35880744530`) @
+`71d3576`, step *Build and push aia-legacy-panel*: `ERROR: failed to build:
+unable to prepare context: path "legacy/npc-panel-18.6.6" not found`. Run 7
+(`35883107082`) @ `09810d1` (PR #39, the unit's files): job *Build, push and
+deploy* `waiting` since 2026-09-23T15:39:11Z. From a cloud session:
+`curl https://aia-develop.art-chain.io/api/v1/health` → `connect_rejected`
+(egress policy); `docker ps` → no daemon.
+
+**Consequence.** `legacy-panel` has not been deployed; the oracle parity gate
+(`api.http/oracle-contract`) reports `NOT_EXECUTED`; slice 2 of the strangler
+plan (HTTP differential recordings) cannot start until an operator either
+approves run 7 or dispatches *Deploy develop* for `09810d1` or later, then adds
+`AIA_LEGACY_REFERENCE_URL` / `_USER` / `_PASSWORD` as repository secrets for the
+`oracle-parity` CI job (`ARCHITECTURE.md` §8 promotion table).
+
+**Smallest fix.** Human: approve or re-dispatch the deploy at a SHA that carries
+the unit, confirm `bin/smoke.sh` reports `legacy: hostname answers and the gate
+refuses anonymous access (401)`, then provision the three secrets. No code
+change: run 6 failed on ordering (PR #38 merged before PR #39), which cannot
+recur now that both are on `develop`.
+
+**Test that would have caught it.** None in this repository can: the failure is a
+merge order across two PRs. The `oracle-parity` job with
+`AIA_REQUIRE_LEGACY_ORACLE=1` is what turns a missing oracle into a red check
+from now on.
+
+**Status.** Open — human action. The engineering half (the endpoint contract,
+the `oracle` marker, the CI job, `make test-oracle`) landed with slice 1.
+2026-09-23 21:23 UTC: the operator cancelled run 7; run 8 (`35920580798`) @
+`764f9f7` started in its place and failed pushing `aia-legacy-panel` — a code
+defect after all, filed and fixed as OI-41. Still needed from the human, in
+order: `terraform apply` in `infra/develop`, re-run run 8, confirm
+`bin/smoke.sh`, provision the three secrets.
+2026-09-23 23:34 UTC: `legacy-panel` deployed and healthy (run 12, smoke
+`legacy: the 18.6.6 unit is healthy`), serving the product hostname behind the
+gate (ADR 0012). The oracle hostname is not configured yet, so the parity gate
+still reports `NOT_EXECUTED`: remaining are the three optional `aia_legacy_*`
+hostname parameters (runbook § Switching the unit on), the DNS record, and the
+three repository secrets.
+
+---
+
+## OI-40 · Finding · The reference's UI ledger leaves `normalizer66` out of the 88 research functions
+
+**Claim.** `AIA-reference/ui-capability-ledger.json` classifies
+`ui_app.html::normalizer66` as `PRESENTATION_ONLY` although the reference's own
+golden fixture F5 executes it as methodology and its "UI-only methodology rules"
+table names its four modes and population-variance sd; the 88-function list a
+port would follow therefore misses at least one research function.
+
+**Anchor.** `AIA-reference/ui-capability-ledger.json` `functions[name="normalizer66"]`
+(`class: PRESENTATION_ONLY`, `signals: ["compute:1"]`) @ `678e298`;
+`AIA-reference/golden-fixtures/manifest.json` `F5_normalizer66_all_modes`;
+`docs/migration/legacy-ui-functions.json` row `normalizer66`
+(`source: aia_addition`).
+
+**Reproduction.**
+`python3 -c "import json;d=json.load(open('../aia-reference/ui-capability-ledger.json'));print([f['name'] for f in d['methodology_functions']+d['computation_functions'] if f['name']=='normalizer66'])"`
+→ `[]`.
+
+**Consequence.** A restructuring that ported exactly the 88 would leave the
+normaliser in the browser, where it decides what "high" means on every map.
+
+**Smallest fix.** Carry `normalizer66` as a recorded AIA addition in
+`docs/migration/legacy-ui-functions.json` (done; discrepancy `REF-DISC-3` in
+`docs/migration/parity-matrix.json`) and reclassify upstream in
+`AIA-reference/tools/build_ui_ledger.py`; when the re-pinned ledger carries it,
+the row's `source` returns to `reference_ledger`. The classifier's `compute:1`
+signal on a 900-character numeric function suggests the threshold, not the
+function, is the defect — worth a sweep of the other `PRESENTATION_ONLY`
+functions with a `compute` signal before slice 7.
+
+**Test that would have caught it.** `test_legacy_ui_functions.py::test_the_ledger_holds_the_88_research_functions_and_names_every_addition`
+pins the addition; the sweep above would be its widening.
+
+**Status.** Open — upstream (AIA-reference). Carried here as an addition.
+
+---
+
+## OI-41 · Finding · The deploy role could build the fourth image but not push it
+
+**Claim.** `infra/develop/main.tf` still declared three images, so the ECR
+repository `aia-legacy-panel` was never created and the deploy role's push
+grant never named it; the first deploy that carried the unit built the image
+and was refused at the push.
+
+**Anchor.** `infra/develop/main.tf:12 @ 764f9f7`
+(`images = ["aia-api", "aia-worker", "aia-web"]`);
+`infra/develop/github.tf:84 @ 764f9f7` (`resources = [for r in
+aws_ecr_repository.images : r.arn]`);
+`.github/workflows/deploy-develop.yml:128-141 @ 764f9f7` (the fourth push).
+
+**Reproduction.** GitHub Actions *Deploy develop* run 8 (`35920580798`) @
+`764f9f7`, step *Build and push aia-legacy-panel*: the build completes, then
+`failed to push 311141567391.dkr.ecr.eu-central-1.amazonaws.com/aia-legacy-panel:764f9f7…:
+unexpected status from HEAD request to …/v2/aia-legacy-panel/blobs/sha256:4f4fb7…: 403 Forbidden`.
+`aia-api` and `aia-worker` pushed in the same run. Locally:
+`pytest packages/aia_core/tests/test_deploy_images.py` fails on `764f9f7` and
+passes with the fix.
+
+**Consequence.** No deploy of `develop` has succeeded since the unit landed
+(runs 6, 7 and 8); the host still runs `85d8d00` (run 5), no migration after it
+has been applied, and the oracle is still not deployed (OI-39). The failure
+mode is the expensive one: two images pushed, the third refused, the deploy
+never reached the host — so nothing is half-deployed, but every push to
+`develop` since 15:19 UTC has been silently undeployable.
+
+**Smallest fix.** Add `aia-legacy-panel` to `local.images` — the one list that
+is both the repository set and the push grant — with the docs that count the
+repositories (done in this change). Then, by the operator: `terraform apply` in
+`infra/develop` (plan: one `aws_ecr_repository`, one lifecycle policy, an
+in-place update of the `aia-develop-github-deploy` inline policy and the
+instance role's pull grant), and *Re-run failed jobs* on run 8.
+
+**Test that would have caught it.** `packages/aia_core/tests/test_deploy_images.py`
+(added here): the images the workflow pushes, the images the compose file
+pulls and `local.images` in the Terraform must be the same set. Terraform does
+not run in CI, so a text-level check is the only one that fires before
+`apply`; the test explains why it parses with regular expressions.
+
+**Status.** Fixed in code in this change; `terraform apply` and the re-run are
+human actions, tracked under OI-39.
+
+## OI-42 · Finding · A refused study request's audit row is rolled back with the request
+
+**Claim.** `ScopeResolver` writes `ACCESS_DENIED` and `PERMISSION_DENIED` rows
+into the request's session and then raises; the API turns that into a 404 or 403,
+and `get_session` rolls the whole transaction back on the error, so no refusal
+made through the API is ever recorded.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/scope.py:244` and `:281`
+(`self._record(... action="ACCESS_DENIED" / "PERMISSION_DENIED")` before
+`raise`) and `apps/api/src/aia_api/dependencies.py:130` (`session.rollback()` in
+`get_session`) @ `764f9f7`.
+
+**Reproduction.** In `apps/api/tests`, as the `outsider` of the conftest world:
+`GET /api/v1/studies/{primary}/projects` → 404, then
+`select(AccessAuditRow).where(action == "ACCESS_DENIED")` → `[]`. Run on this
+branch on 2026-09-23 (scratch test, not committed): the assertion failed with `[]`.
+
+**Consequence.** The access audit shows who got in but never who was refused,
+though the resolver's own comment says a member reaching for a study they hold
+no grant on "is worth seeing". An operator investigating probing would find
+nothing.
+
+**Smallest fix.** Record refusals in their own short transaction (a separate
+session from the factory, committed before the raise), or have the dependency
+commit the audit row before translating `ScopeDenied`. The legacy-panel
+session route does the latter for its one refusal
+(`apps/api/src/aia_api/routers/panel.py`, `open_session`), which is why its test
+passes.
+
+**Test that would have caught it.** The reproduction above as
+`apps/api/tests/test_projects_api.py::test_a_refused_study_request_is_audited`,
+with its `PERMISSION_DENIED` twin.
+
+**Status.** Open. Found while building ADR 0012's gate; not fixed here because it
+changes the transaction shape of every scoped route.
+
+## OI-43 · Question · Three develop-only choices in the 18.6.6 gate need a decision before production
+
+**Claim.** The gate in front of the 18.6.6 interface (ADR 0012) makes three
+choices that are right for a handful of develop users and are not a production
+design: only organization owners and admins pass; the cookie carries the Cognito
+id token itself; and every request to the unit costs one gate round trip with a
+user upsert and a membership read.
+
+**Anchor.** `LEGACY_PANEL_ROLES` in `packages/aia_core/src/aia_core/domain/scope.py`,
+`_set_cookie` and `gate` in `apps/api/src/aia_api/routers/panel.py`, and the
+`forward_auth` block of `deploy/develop/Caddyfile` @ `2326bef`.
+
+**Reproduction.** `apps/api/tests/test_panel_api.py` pins all three:
+`test_a_members_session_is_refused_by_the_gate`,
+`test_an_administrator_gets_an_httponly_lax_session_cookie` (the cookie value is
+the token), `test_the_gate_writes_no_audit_row_per_request`.
+
+**Consequence.** None on develop. In production: researchers without an admin
+role could not use the interface; a stolen cookie is a bearer token for an hour;
+the gate's cost scales with the interface's request rate (map tiles, polling).
+
+**Smallest fix.** Decide per item when production is planned: the role rule is
+reference decision D8 ("default to the most restrictive role and relax
+deliberately"); a signed server-side session id replaces the token in the cookie;
+the gate's cost is measured on develop first (Caddy access log durations for
+`/api/v1/panel/gate`). `Settings.validate_for_production` refuses the panel in
+production until then.
+
+**Test that would have caught it.** Not a defect; the production guard is
+`test_panel_api.py::test_production_refuses_the_panel`.
+
+**Status.** Open — data owner (D8), then deployment work.
+
+## OI-44 · Finding · The first deploy with the legacy unit took the whole develop site down
+
+**Claim.** *Deploy develop* run 10 @ `9e42f24` replaced every service and left
+Caddy unable to start, so nothing answered on the product hostname: the host's
+env file had no `AIA_LEGACY_*` values, which made the Caddyfile's legacy site
+address empty and the file unparseable, and Caddy also waited for the unit to be
+healthy, which it never is without its data bundle.
+
+**Anchor.** `deploy/develop/Caddyfile` legacy site `{$AIA_LEGACY_HOSTNAME} {`,
+`deploy/develop/docker-compose.yml` caddy `depends_on: legacy-panel:
+condition: service_healthy`, and `deploy/develop/bin/deploy.sh`
+`up -d --remove-orphans --wait` @ `9e42f24` (the first two from PR #38, ADR 0011;
+the host never ran them before run 10 because runs 6 to 9 failed earlier).
+
+**Reproduction.** Run 10 (`35925591868`) log: `AIA_LEGACY_DATA_PREFIX is unset`,
+`The "AIA_LEGACY_HOSTNAME" variable is not set`, `Container
+aia-develop-legacy-panel-1 Error`, `dependency failed to start: container
+aia-develop-legacy-panel-1 is unhealthy`; Caddy is `Recreated` and never
+`Started`. Locally, Caddy 2.11.4 with `AIA_LEGACY_HOSTNAME` empty:
+`caddy adapt --config deploy/develop/Caddyfile` → `Error: server block without
+any key is global configuration, and if used, it must be first`.
+
+**Consequence.** https://aia-develop.art-chain.io/ down from 22:03 UTC on
+2026-09-23 until a deploy carrying the fix. The develop-host-config CI job did
+not catch it because it validated the Caddyfile with every value supplied.
+
+**Smallest fix.** Landed on `claude/stoic-fermi-qiw3g1`: Compose defaults the
+three values when unset or empty (a `*.localhost` name, a hash of a discarded
+random value); Caddy no longer depends on the unit; `bin/deploy.sh` validates
+the Caddyfile with the host's `.env` before touching anything and waits only on
+AIA's services, with the unit's health as a smoke check; `write-env.sh` quotes
+every value, because an unquoted bcrypt hash is mangled by both Compose and the
+shell. Still open: Terraform should own the four `aia_legacy_*` parameters
+(hostname, user, hash, data prefix) and the oracle's DNS record; until then the
+runbook (§ Switching the unit on) gives the commands.
+
+**Test that would have caught it.**
+`packages/aia_core/tests/test_develop_host_resilience.py` (fails on the files at
+`9e42f24`) and the CI step *Caddy loads through Compose without the oracle's
+settings*.
+
+**Status.** Fixed in PR #43 @ `5b51640`: deploy run 11 brought the site back with
+the unit unhealthy (every other smoke check passed), and run 12 passed everything
+once `aia_legacy_data_prefix` was set. Still open: Terraform ownership of the
+four `aia_legacy_*` parameters and the oracle's DNS record.
+
+## OI-45 · Finding · A deploy that changes only the Caddyfile leaves the running Caddy on the old one
+
+**Claim.** *Deploy develop* run 14 (`35968675321`) @ `4dc7966` deployed the
+interface skin (PR #45, ADR 0013) and passed every smoke check, but the site
+looked exactly as before: the running Caddy kept the routing it started with, so
+`/` still went straight to the unit and the web client's injector never saw a
+request.
+
+**Anchor.** `deploy/develop/bin/deploy.sh:97-98 @ 4dc7966` (`compose up -d`; no
+reload or recreate of `caddy`); `deploy/develop/docker-compose.yml` caddy
+`volumes: ./Caddyfile:/etc/caddy/Caddyfile:ro` @ `4dc7966`. Caddy reads its
+Caddyfile once, at start; Compose recreates a container only when its image or
+its configuration changes, never because a bind-mounted file's contents did.
+
+**Reproduction.** `docker compose config` of the caddy service, rendered from
+the same directory, at `cd8113c` and `4dc7966`: identical
+(`fc17bc3292e0…`), while the Caddyfile changed (`fae7b5d0…` → `5871bb11…`) and
+the web service's configuration changed (`35915de2…` → `a623b1ff…`). So run 14
+recreated `web` (with the injector and the switch on) and left `caddy` running.
+The data owner reported the unchanged site on 2026-09-24. The same deploy's
+smoke checks could not see it: every one of them is answered identically by the
+old routing.
+
+**Consequence.** The skin was deployed and switched on and nobody could see it;
+more generally, any Caddyfile-only change — a route, a header, a gate — would
+ship green and not take effect. Earlier Caddyfile changes took effect only
+because each also changed the caddy service's Compose configuration.
+
+**Smallest fix.** `bin/lib.sh` exports `AIA_CADDYFILE_SHA256` (the file's hash)
+for every script, and the caddy service carries it as a label, so a changed
+Caddyfile changes the service's configuration and `compose up` recreates Caddy;
+an unchanged one restarts nothing. The first deploy with the fix recreates Caddy
+once (the label is new). A new smoke check asks for `/interface-document`
+directly, which only the current Caddyfile answers with Caddy's own 404.
+
+**Test that would have caught it.**
+`test_develop_host_resilience.py::test_a_changed_caddyfile_recreates_caddy` and
+`::test_the_smoke_check_proves_caddy_runs_the_deployed_caddyfile`; on the host,
+the smoke check *caddy: running the deployed Caddyfile*.
+
+**Status.** Fixed in PR #46 (`230ee7e`); deploy run 15 recreated Caddy and its
+smoke check *caddy: running the deployed Caddyfile* passed, 2026-09-24.
+
+## OI-46 · Finding · The classic rail says "Core joint · VALID" whatever the joint core's status is
+
+**Claim.** 18.6.6's last `updateState` override writes the rail's second status
+line as a literal — `Core joint` / `VALID` — without reading
+`BOOT.joint_core.status`, so every user is told the joint core is valid while
+the unit reports it is not.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:614 @ 7a2a9af`
+(`updateState=function(){…core.innerHTML='…Core joint…VALID…'}`).
+
+**Reproduction.** `make ui-workbench`, then
+`curl -s 127.0.0.1:8767/api/bootstrap | python3 -c "import json,sys;print(json.load(sys.stdin)['joint_core']['status'])"`
+prints `JOINT_UNVALIDATED`, while the classic rail at `127.0.0.1:8780/` reads
+*Core joint · VALID*. Whether develop's real panel reports otherwise is not
+known from here (no egress); the literal does not depend on it either way.
+
+**Consequence.** A certainty the backend does not grant is shown on every
+screen, next to a real one (*Claude Code · READY* does read the provider's
+status). This is the "never stamp a guess" failure (CLAUDE.md §8) in the
+product surface.
+
+**Smallest fix.** The unit is frozen (ADR 0011). The rebuilt rail
+(`apps/web/src/unit/shell.ts`, ADR 0014) prints the status the unit reports and
+nothing when it reports none; the classic rail keeps the literal until `/`
+moves.
+
+**Test that would have caught it.** `apps/web/src/unit/shell.test.ts`
+("prints the joint core status the unit reports, never a stamped VALID").
+
+**Status.** Fixed in the rebuilt interface; standing in the classic one.
+
+
+## OI-47 · Finding · The classic "Ověření & kontext" step never renders, and nothing links to it or to "Další krok"
+
+**Claim.** `renderVerify` awaits `loadVerifyTargets(false)`, which is defined
+nowhere in the document, so the step throws a `ReferenceError` before drawing;
+and no rail entry, button or `go('verify')` / `go('next')` call reaches either
+`verify` or `next`.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:447-448 @ 0932c5d` (the
+two `renderVerify` / helper declarations calling `loadVerifyTargets`); the final
+`RESEARCH_STEPS` splice lists seven steps without either (char offset 417490).
+`grep -c "function loadVerifyTargets\|loadVerifyTargets=" ui_app.html` → `0`.
+
+**Reproduction.** `make ui-workbench`, open `127.0.0.1:8780/`, and in the
+console: `LAST_RESULT={main:{summary:{mode:'live',run_id:'x'}}}; go('verify')`.
+The title becomes *8. Ověření & kontext*, the previous screen's content stays,
+and the page throws `ReferenceError: loadVerifyTargets is not defined`
+(verified 2026-09-24; without a result it shows *Nejdřív potřebujete výsledek*).
+`grep -c "go('verify')\|go('next')" ui_app.html` → `0`.
+
+**Consequence.** External verification and the "ideal group from results"
+step, both backed by working unit routes (`/api/results/verify`,
+`/api/discovery/strategy`), are unreachable in the product.
+
+**Smallest fix.** The unit is frozen. The rebuild (research-flow-rehome.md,
+chunks 10–11) links both from the results step and draws verify's intended
+screen against its routes — new behaviour for users, shown to the data owner
+before it merges.
+
+**Test that would have caught it.** A reachability check over the router: every
+route in `RESEARCH_ROUTE_SET_1776` is the target of some control. The rebuild's
+equivalent is the screen ledger plus a component test per step.
+
+**Status.** Open in the classic interface; to be fixed by the rebuild.
+
+## OI-48 · Finding · The route ledger misses four paths the unit serves as `path in {…}` sets
+
+**Claim.** `docs/migration/legacy-route-ledger.json` has no row for
+`POST /api/audience/navrh`, `/api/audience/propose`,
+`/api/results/contextual_calibration` or `/api/results/contextual_scenario`,
+all served by the unit and two of them called by the classic interface.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_server.py:2108` and `:2120 @ 0932c5d`
+(`if path in {"…","…"}:`); the ledger mirrors the reference's
+`api-ledger.json` byte for byte (`test_legacy_route_ledger.py`), whose parser
+recognised `path ==`, `startswith` and `endswith` arms but not set membership.
+
+**Reproduction.** `grep -n 'path in {' legacy/npc-panel-18.6.6/app/ui_server.py`
+→ 2 lines; `python3 -c "import json;print([r['route'] for r in json.load(open('docs/migration/legacy-route-ledger.json'))['routes'] if 'propose' in r['route'] or 'contextual' in r['route']])"` → `[]`.
+
+**Consequence.** The strangler's state omits two live capabilities (AI audience
+proposal, contextual scenario), and the rebuilt interface's client — which may
+call only ledger rows — could not reach them.
+
+**Smallest fix.** An `addenda` section in the ledger: each missed path with its
+`ui_server.py` line, verified against the unit by the ledger test, kept apart
+from the pinned 153 rows until the reference's parser is fixed upstream
+(`AiAnalytics-AIA/AIA-reference`, not reachable from this session).
+
+**Test that would have caught it.** `test_legacy_route_ledger.py`: every
+`path ==` / `path in {…}` literal in `ui_server.py`'s dispatch is a row or an
+addendum.
+
+**Status.** Fixed in-repo: `addenda` in the ledger, checked by
+`test_legacy_route_ledger.py::test_the_addenda_are_exactly_the_set_arms_the_reference_missed`.
+The reference's parser (upstream) still misses the form.
+
+## OI-49 · Finding · The questionnaire's "AI: zlepšit blok" does nothing
+
+**Claim.** Every question block has an *AI: zlepšit blok* button that calls
+`quickClaude(...)`, which returns at once unless an element `#chatInput`
+exists, and no code in the document creates one.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:579 @ 8444bda`
+(`function quickClaude(t){let inp=$('#chatInput');if(!inp)return;…}`); the
+button is in `questionSection`. `grep -c 'id="chatInput"\|id=.chatInput' ui_app.html` → `0`;
+all five `chatInput` references are lookups.
+
+**Reproduction.** `grep -o "chatInput" legacy/npc-panel-18.6.6/app/ui_app.html | wc -l` → 5,
+and every occurrence is `$('#chatInput')` (a lookup); in the workbench, the
+button on any question block changes nothing and starts no job.
+
+**Consequence.** A person asks the AI to improve a block and nothing happens,
+with no message.
+
+**Smallest fix.** A decision, not a port: drop the button, or wire it to the
+AI assistant (new behaviour). The rebuild leaves it out and lists it.
+
+**Test that would have caught it.** A reachability check that every `on…`
+handler's first guard can pass on some screen.
+
+**Status.** Open in the classic interface; **decision for the data owner** (PR B).
+
+## OI-50 · Finding · An empty bound in the audience range filter becomes 0, and the unit then targets the wrong people
+
+**Claim.** `setAudienceRange1793` reads both inputs with `Number(...)`, and
+`Number('')` is `0`, so a range with one bound left empty is stored with the
+other bound `0`; the unit then orders the pair, so *od 25* (no upper bound)
+selects ages 0–25.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:1053 @ 8444bda`
+(`let a=Number($('#'+minId)?.value),b=Number($('#'+maxId)?.value);…{min:Number.isFinite(a)?a:null,…}`).
+
+**Reproduction.** Under Node, the effective binding with only the lower input
+filled stores `{"vek":{"min":25,"max":0}}`; the workbench unit answers
+`POST /api/audience {"filtry":{"vek":{"min":25,"max":0}},"n":300}` with
+`"filtry": {"vek": [0.0, 25.0]}` (verified 2026-09-24; support 8 of 60 instead
+of the over-25s). The rebuild's characterization test:
+`audience.parity.test.ts` › *an empty bound is stored as 0, as the classic does (OI-50)*.
+
+**Consequence.** A person who asks for "25 and older" researches people under
+25, and the preview shows a plausible support number, so nothing looks wrong.
+Clearing both inputs stores `0–0`, an empty audience; a range can only be
+removed with its chip.
+
+**Smallest fix.** Read an empty input as "no bound" (`null`) and delete the
+filter when both are empty. This changes who is sampled, so it is a
+methodology decision.
+
+**Test that would have caught it.** The characterization test above, asserting
+`null` instead of `0`.
+
+**Status.** Open; ported as the classic behaves; **decision for the data owner**
+before PR B merges.
+
+## OI-51 · Finding · Picking a special-audience preset keeps the previous subpanel and its filters
+
+**Claim.** `chooseSpecialPreset` for a *special* or *coming soon* preset sets
+the new source but leaves `builtin_subpanel` and `filters` from a population
+preset picked before it, and `setAnalyticsChoice('special')` does not clear
+`filters` either.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:372 @ 8444bda`
+(`chooseSpecialPreset`), `:350` (`setAnalyticsChoice`).
+
+**Reproduction.** Under Node with the effective bindings: `chooseSpecialPreset('doctors')`
+then `chooseSpecialPreset('foreign_prague')` leaves
+`{"dataset_name":"Cizinci žijící v Praze","builtin_subpanel":"medical_doctors","filters":{"profese":["lékař"]},"source_mode":"special_audience"}`
+and `audienceReady1789()` → `true` (verified 2026-09-24). The rebuild's
+characterization test: `audience.parity.test.ts` › *a special preset keeps the
+previous subpanel and filters, as the classic does (OI-51)*.
+
+**Consequence.** The screen says *Vybráno: Cizinci žijící v Praze* and lets the
+person continue, while the project still carries the doctors' filters; a
+*coming soon* preset asks for the person's own data but shows no upload on that
+screen (its scroll target `#audFile` is on the *own* screen). **What the run
+does with this state is a hypothesis:** not traced through the unit's sampler.
+
+**Smallest fix.** Clear `builtin_subpanel`, `filters` and `segment` whenever a
+preset or the special branch is chosen. It changes a project's audience, so it
+is a decision.
+
+**Test that would have caught it.** The characterization test above, asserting
+the cleared state.
+
+**Status.** Open; ported as the classic behaves; **decision for the data owner**.
+
+## OI-52 · Question · Is a questionnaire of tracked sets only a questionnaire?
+
+**Claim.** The wizard's *Další · cílová skupina* is enabled only when some
+section has `questions`; a questionnaire made only of tracked object sets
+(which have `objects`, not `questions`) cannot use it, but the editor's own
+*Dotazník mám → Koho se ptát* continues with no check at all.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:955 @ 8444bda`
+(`questionnaireHasQuestions1789`), `:960` (the wizard), `questionnaireEditorHtml`
+(the unconditional button), `:588` (`continueQuestionnaireToAudience`).
+
+**Reproduction.** `questionnaire.parity.test.ts` › *a questionnaire of tracked
+sets only has no questions, as the classic counts (OI-52)*.
+
+**Consequence.** Two buttons on one screen disagree about whether the
+questionnaire is ready.
+
+**Smallest fix.** Decide the rule (a set counts, or it does not), then apply it
+to both buttons. The rebuild keeps both as they are.
+
+**Status.** Open; **question for the data owner**.
+
+## OI-53 · Finding · "AI doporučí" approves dimensions that are not in the catalogue
+
+**Claim.** The effective `suggestPersonaAI` sets the approved dimensions to the
+model's list, canonicalised, without checking it against the dimension
+catalogue; an earlier binding, now dead, filtered to the catalogue and warned
+about the rest.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:1070 @ 8444bda`
+(`PROJECT.persona_dimensions.approved=(r.dimensions||[]).map(canonicalPersonaDim).filter(Boolean)`);
+the dead one at `:402` (`…filter(x=>allowed.has(x))…toast('AI navrhla i dimenze mimo katalog…')`).
+
+**Reproduction.** `persona.parity.test.ts` › *the model's dimensions are
+approved without the catalogue check, as the classic does (OI-53)*.
+
+**Consequence.** A dimension with no definition in the system can be switched
+on by the model and is shown by its raw id; the screen says the catalogue is
+the primary source. `canonicalPersonaDim` also maps by substring, so the
+model's *vztah k AI* is approved as `vztahy` (*Vztahy / domácnost*), a
+different dimension (same test).
+
+**Smallest fix.** Filter to the catalogue and list the rest as requests, as the
+earlier binding did. A methodology decision.
+
+**Status.** Open; ported as the classic behaves; **decision for the data owner**.
+
+## OI-54 · Finding · The optional dimensions can never all be removed
+
+**Claim.** `personaApproved` replaces an empty approval with the recommended
+set while the screen draws, so removing the last optional dimension brings the
+recommended ones back.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:407 @ 8444bda`
+(`if(!Array.isArray(PROJECT.persona_dimensions.approved)||!PROJECT.persona_dimensions.approved.length)PROJECT.persona_dimensions.approved=suggestedPersonaDims();`).
+
+**Reproduction.** `persona.parity.test.ts` › *removing the last dimension
+brings the recommended ones back, as the classic does (OI-54)*.
+
+**Consequence.** A study cannot run with the fixed sociodemographic base only;
+the screen offers *Zatím není vybraná žádná volitelná dimenze* but never shows it.
+
+**Smallest fix.** Refill only when the approval has never been set. A
+methodology decision.
+
+**Status.** Open; ported as the classic behaves; **decision for the data owner**.
+
+## OI-55 · Question · The AI steps disagree about provider checks and time limits
+
+**Claim.** Building a questionnaire, proposing an audience and suggesting
+dimensions check the provider first; optimising the questionnaire and deep
+research do not. Two callers pass `maxMs` (240 s, 300 s) that the job never
+reads: only `warnMs` has an effect, and nothing stops a job client-side.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:338-339 @ 8444bda`
+(`optimizeQuestionnaireAI`, `runProjectDeepResearch`: no `ensureClaudeReady1776`);
+`:305` (`job`: reads `opt.warnMs` only).
+
+**Reproduction.** `grep -o "maxMs" legacy/npc-panel-18.6.6/app/ui_app.html | wc -l`
+counts the callers; `python3 tools/ui_functions.py show job | grep -c maxMs` → `0`.
+
+**Consequence.** Optimising with an unready provider fails only after the job
+starts, with the provider's error; a caller's stated limit is not a limit.
+
+**Smallest fix.** None needed for parity; the rebuild keeps both behaviours.
+Worth deciding when the AI steps move behind the governed gateway.
+
+**Status.** Open; **question**, no decision needed for PR B.
+
+## OI-56 · Finding, fixed · A change made just before moving to another research step was lost
+
+**Claim.** Each research step was its own page with its own project store, and
+leaving a page disposed its store by cancelling the pending debounced save; the
+next step then loaded the project from the unit without that change.
+
+**Anchor.** `apps/web/src/unit/research/store.ts` `dispose()` and
+`apps/web/src/components/rehome/research/ResearchScreen.tsx` (one
+`ResearchStore` per page) `@ 8444bda`.
+
+**Reproduction.** In the workbench, open `/app/research/<planned>/plan` and
+click *Další · dotazník* (it sets `questionnaire_path` and moves on at once):
+`/api/projects/load` is requested again and no `/api/projects/save` is sent
+(Playwright, 2026-09-24: loads 2 → 4, saves `[]`). Tests:
+`store.test.ts` › *saves a change still waiting for its debounce when the person
+leaves the project*; `ResearchScreen.test.tsx` › *keeps one project session
+while each step's page mounts afresh, as Next mounts them*.
+
+**Consequence.** Any edit made less than 1.8 s before a step change (a rail
+link, a *Další* button) silently disappeared, and the save indicator had said
+*Změny se uloží za chvíli*.
+
+**Fix.** The `/app/research/<id>` layout holds one `ResearchSession` (store and
+page memory) for all the project's steps, since a layout is not re-rendered when
+only the step changes; a new project's store is handed to its new route instead
+of reloaded; `dispose()` saves a pending change instead of dropping it. After
+the fix: loads stay 2, saves `["questionnaire_path"]`.
+
+**Status.** Fixed in PR B (`feature/research-flow-b`).
+
+## OI-57 · Finding · A failed audience catalogue is requested again on every draw of Dimenze, without limit
+
+**Claim.** The 1793 `renderPersona` wrapper draws its society-factor card only
+once `AUDIENCE_DIM_CATALOG_1793` is set; until then it calls
+`ensureAudienceDimensionCatalog1793()` and redraws when that settles. A failed
+load returns `null` and leaves the global unset, so the redraw asks again at
+once: one request per round trip for as long as the step stays open.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/ui_app.html:1071 @ 8444bda`
+(`if(!cat){ensureAudienceDimensionCatalog1793().then(()=>{if(CURRENT==='persona')renderPersona()});return}`);
+`ensureAudienceDimensionCatalog1793` (`catch(e){console.error(e);return null}`).
+
+**Reproduction.** `persona.parity.test.ts` › *a catalogue that fails to load is
+asked for again on every draw, with no limit, as the classic does (OI-57)*: a
+stub that fails nineteen times is asked twenty. Without the twentieth answer
+the run never ends (Node, 2026-09-24).
+
+**Consequence.** While `/api/audience/dimensions` fails, an open Dimenze step
+loads the unit with back-to-back requests and each redraw rebuilds the page
+under the person's hands; the card never appears.
+
+**Smallest fix.** Ask once per visit; on failure leave the card out. That is
+what the rebuild does (research-flow-rehome.md, deliberate differences): the
+visible result, no card, is the classic's.
+
+**Status.** Open; **decision**: confirm the rebuild's single request.
+
+## OI-58 · Migration debt · The unit's project store holds the rebuilt research stages' working content
+
+**Claim.** The research stages rebuilt in PR #49 and #50 read and write their working content in
+the 18.6.6 unit's single-tenant project store (`/api/projects/load|save`), not in AIA-owned,
+study-scoped storage; ADR 0015 bridges it with an explicit AIA-owned binding, `study_workspaces`
+(AIA Study ↔ unit project), and that bridge is temporary.
+
+**Anchor.** `apps/web/src/unit/research/store.ts:42-63,144-152 @ 8e7a6db` (the unit load and
+save); `docs/architecture/adr/0015-client-first-product-interface.md` decision 5.
+
+**Rules while it exists.** Access always resolves the study through `ScopeResolver` first and
+reads the unit project id from the binding; a unit project id supplied by the browser is never
+authorization and no route finds a study by one; the binding is written once per study, through
+an issued `StudyContext` with `EDIT_STUDY`, and never to a unit project already bound elsewhere.
+The Study stays canonical for scope, identity, lifecycle, permissions, budgets and costs,
+approvals, provenance, artifacts and history; the unit copy is working content only.
+
+**Tests.** `packages/aia_core/tests/test_study_workspaces.py` ›
+*a unit project id is never a way into a study* and *a unit project bound to one study cannot be
+bound to another*; `apps/api/tests/test_client_api.py` › *the workspace of another client's study
+is not found*.
+
+**Consequence of leaving it.** The unit store would harden into the data model: study state
+outside AIA's audit, cost and provenance contracts, isolated only by the binding and the
+owner/admin gate (OI-59), with no row-level scope of its own.
+
+**Removal condition.** The research (then simulation) stage state is stored and served by AIA's
+study-scoped contracts (`/api/v1/studies/{study_id}/…`); the rebuilt stages no longer call the
+unit's project store; the bound working content is migrated into AIA. Then `study_workspaces` is
+dropped by a migration and ADR 0015 decision 5 is retired. The unit remains only as the oracle
+and a fallback.
+
+**Carried from OI-66.** Some bindings already name unit projects that no longer exist (four
+at the time of OI-66). The migration accounts for each one explicitly: a study with a
+recoverable copy (a submitted Design Revision) is migrated from that copy with its provenance;
+a study with none is given an explicit "no recoverable working content" state. It never
+creates an empty stand-in and never rebinds a study to another project. The AIA-owned store
+keeps two invariants the unit lacked: seed or fixture data never overwrites working content,
+and a study whose content is missing says so by name rather than "Projekt/revize nenalezena".
+
+**Status.** Open; **migration debt**, accepted temporarily by the data owner (2026-09-24).
+
+## OI-59 · Temporary restriction · `/app` admits organization owners and admins only
+
+**Claim.** The client-first shell at `/app` sits behind the panel gate, which admits only
+organization owners and admins (`LEGACY_PANEL_ROLES`), because the rebuilt stages still depend on
+the single-tenant unit (OI-58); this is a temporary restriction, **not the authorization model**.
+
+**Anchor.** `deploy/develop/Caddyfile:84-99 @ 8e7a6db` (`/app` → `forward_auth
+/api/v1/panel/gate`); `packages/aia_core/src/aia_core/domain/scope.py:120-128 @ 8e7a6db`
+(`LEGACY_PANEL_ROLES`).
+
+**Reproduction.** `apps/api/tests/test_panel_api.py` ›
+*test_a_members_session_is_refused_by_the_gate*: a member with client and study grants, but no
+admin role, is refused.
+
+**Target.** *Authenticated user → organization membership → client grant → study grant*, exactly
+as every `/api/v1` route resolves it through `ScopeResolver`. Nothing in the client shell may
+depend on the caller being an owner or admin: every page's data already comes from scoped API
+routes, which apply the grants, not the gate.
+
+**Consequence of leaving it.** Researchers who hold the right client and study grants cannot use
+the product; owners and admins become the only users by accident of the migration.
+
+**Removal condition.** Stage state is fully AIA-scoped for the stages a researcher uses (OI-58);
+then `/app` moves to a gate that admits any provisioned member, and the unit's own paths keep the
+owner/admin gate until the unit is out of the stage path.
+
+**Status.** Open; **temporary restriction**, accepted by the data owner for this PR (2026-09-24).
+
+## OI-60 · Finding, fixed · `GET /api/v1/access-audit` always failed
+
+**Claim.** The access-audit route built each response entry from a dict that
+always carries `payload`, into a response model that forbids extra fields and
+had no `payload`, so every call raised a validation error (HTTP 500) once the
+organization had any audit entry — which it has from its first grant.
+
+**Anchor.** `apps/api/src/aia_api/routers/scope.py:160-172,510 @ 8e7a6db`
+(`AuditEntryResponse`, `extra="forbid"`, no `payload`); `application/scope.py:731 @ 8e7a6db`
+(`"payload": dict(r.payload or {})`).
+
+**Reproduction.** `apps/api/tests/test_scope_api.py` ›
+*test_the_access_audit_lists_entries_with_their_payload* (fails at `8e7a6db`).
+
+**Consequence.** The one review surface for break-glass access (`CLIENT_SELF_GRANT`,
+denials) was unusable; nobody noticed because no API test exercised the scope router.
+
+**Fix.** `AuditEntryResponse.payload`, the before/after record the audit exists to show.
+
+**Status.** Fixed, merged in PR #51 (`develop` @ `4ad5f66`).
+
+## OI-61 · Decision owed (legal) · May panel-derived microdata be sent to a model provider?
+
+**Claim.** Whether PIAAC, ISSP and the Czech population panel built from them — or anything computed
+from their rows, such as a synthetic respondent's grounded profile — may be transmitted to any model
+provider (Bedrock included) is unresolved.
+
+**Anchor.** AIA-reference `open-decisions.md` D3 (storage jurisdiction, sending to model providers,
+showing to clients; `legal_gate` records licensing as "reviewed outside" the system);
+`population-subsystem.md:28-73` (the panel's lineage).
+
+**Engineering rule until it is resolved (ADR 0016 decision 5).** Fail closed: material may reach a
+provider only when every dataset it derives from has a determination approving that provider.
+Every panel-derived source is recorded as *not approved*. The rule is code; the determination is
+policy data, changed by the data owner with legal's confirmation, never by an engineer to unblock a
+feature.
+
+**Where the rule lives.** `packages/aia_core/src/aia_core/domain/licence.py` (`LicencePolicy.authorise`)
+and the determinations `domain/licence_determinations.py` @ `ee5aac0`, enforced in
+`GovernedModelGateway` beside residency; `test_licence_gate.py`,
+`test_model_gateway.py::test_licence_is_a_second_gate_refused_before_dispatch`. Resolving this item
+means replacing the UNDETERMINED record of each source in that file, nothing else.
+
+**Consequence.** AI fieldwork (the Agent Runtime PR) cannot go live against the panel until this is
+resolved per source. It can be built and tested on synthetic or explicitly cleared data.
+
+**What resolves it.** A source-specific determination (per dataset: which providers, which data
+classes, by whom, when, on what basis) from legal and the data owner.
+
+**Status.** Open; blocks live AI fieldwork, not PR C.
+
+## OI-62 · Decided (engineering, on evidence) · Bootstrap intervals need not follow NumPy's random stream
+
+**Claim.** The unit's aggregation intervals are a donor-cluster bootstrap whose resamples come from
+`np.random.default_rng(seed).integers(...)` (PCG64). The question was whether AIA must reproduce that
+stream exactly (a pure-Python PCG64 in a stdlib-only domain, ARCHITECTURE.md §2) or whether the same
+estimator, deterministic under AIA's own generator, is enough.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/uncertainty.py:144-181` (`_cluster_multipliers`,
+`bootstrap_weighted_mean`, `bootstrap_weighted_distribution`) @ `7e0fa7c`; the call sites and their
+seeds, `dotaznik.py:1450-1578` (`20260816`, `20260818`, `20260816+i`, `20260820`–`20260824`,
+`20260830+i`). The research half of PROGRESS D11; D11's simulation half (the withheld `FS_*` formula
+bodies) is unchanged.
+
+**What the unit does with the random stream.** The random stream decides only the interval bounds.
+Point estimates (`weighted_mean`, `weighted_distribution`), Kish n, donor counts, `support_status`
+and suppression are computed without it. No 18.6.6 research code makes a decision from a bound: the
+report draws them and hides a value without an interval (`report_html.py:33-36`), and the only
+comparison against a bound is simulation truth-coverage (`full_simulation.py:783`), outside research
+aggregation. AC-09 asks for effective-n suppression on every client-facing number
+(`docs/migration/mvp-acceptance.md:79`), not for equal bounds. AIA's own evidence gate needs a finite
+interval that contains its estimate (`domain/evidence/support.py:206-224`).
+
+**Evidence.** `tmp/ui-workbench/venv/bin/python tools/bootstrap_seed_sensitivity.py` runs the
+unit's own, unmodified `uncertainty.py` (NumPy 2.4.6) with 400 resamples on fictional cells, at the
+unit's seed and 199 others:
+
+| cell | support | estimate moves with seed | 1–5 mean: unit bounds | unit's own range, low / high | other seeds giving the unit's bounds | % option A: unit bounds | unit's own range, low / high | other seeds giving the unit's bounds |
+|---|---|---|---|---|---|---|---|---|
+| 450 rows, 287 donors | REPORTABLE | no | 3.29 [3.18, 3.39] | 3.15–3.20 / 3.38–3.41 | 23.5% | 40.5 [35.7, 45.6] | 34.5–36.3 / 44.6–46.5 | 0.5% |
+| 450 rows, 146 donors | REPORTABLE | no | 3.29 [3.18, 3.40] | 3.16–3.20 / 3.37–3.42 | 21.0% | 40.5 [35.4, 45.1] | 34.6–36.4 / 44.5–46.3 | 1.5% |
+| 120 rows, 53 donors | REPORTABLE | no | 3.24 [2.99, 3.44] | 2.98–3.06 / 3.41–3.50 | 0.5% | 42.1 [32.4, 51.7] | 31.0–34.1 / 49.6–52.9 | 0.5% |
+| 60 rows, 24 donors | SUPPRESS | no | 3.10 [2.78, 3.40] | 2.74–2.86 / 3.35–3.45 | 1.5% | 40.2 [30.1, 50.5] | 28.7–32.1 / 49.2–54.1 | 0.5% |
+
+On the unit's own terms, a bound moves by up to 12 rounding steps (0.01 on the mean, 0.1 pp on
+a share) when only the seed changes. The unit's seed is one draw of a Monte Carlo estimator. Matching
+it exactly would be matching NumPy's PCG64 and its bounded-integer algorithm, which says nothing
+about the method.
+
+**Decision.** No PCG64. The aggregation contract (PR C chunk 5) is:
+- **EXACT against the unit's captured output:** weights, Kish n, donor support and its status,
+  suppression, point estimates (1e-9 before the unit's rounding, identical after it).
+- **Intervals — the same estimator, not the same stream:** donor clusters of the selected layer
+  (a missing id is its own cluster), uniform resampling of clusters with replacement, weight ×
+  multiplicity, the call site's resample count, the 2.5/97.5 percentiles with linear interpolation,
+  the unit's rounding. A fixture records the unit's bounds for each cell at K seeds, and AIA's bound
+  must fall inside that envelope.
+- **Deterministic:** AIA draws with `random.Random(seed)` using only `random()`, the one sequence
+  Python guarantees across versions. The cluster index is `floor(u·m)`. The same input and seed give
+  the same bounds, pinned by an AIA fixture of its own.
+- `parity-matrix.json` `statistics.uncertainty` keeps NUMERICAL 1e-9 for support and estimates. The
+  bounds get a documented deviation, landing with chunk 5's gate.
+
+**Revisit when** a consumer needs AIA's bounds to equal an 18.6.6 report's printed numbers
+(re-issuing a delivered report), or an acceptance criterion names bound equality. Only then is a
+PCG64 port justified, and it would need its own named exception to §2.
+
+**Status.** Decided for research aggregation, and implemented: `packages/aia_core/src/aia_core/domain/research_aggregate.py`, `test_research_aggregate.py` (EXACT fields, bounds within the unit's seed spread, AIA's bounds pinned), parity-matrix deviation D5.
+
+---
+
+## OI-63 · Decision owed (data owner) · Who may declare a client fictional, making its designs Class C?
+
+**Claim.** A respondent request is `CLASS_C_INTERNAL` only when its personas are the
+fictional roster *and* the Study's client is listed in `AIA_AI_FICTIONAL_CLIENT_IDS`
+(`packages/aia_core/src/aia_core/domain/ai_respondent.py` `classify_material` @ `dec2fd1`);
+every other questionnaire is treated as a client's design, Class A. The list is an
+operator's deployment setting, refused in production.
+
+**Anchor.** `apps/executors/tests/test_ai_fieldwork.py::test_a_real_clients_design_is_class_a_and_the_class_c_route_refuses_it`;
+`packages/aia_core/tests/test_ai_respondent.py::test_material_is_class_c_only_when_client_and_personas_are_both_fictional`.
+
+**Reproduction.** Unset `AIA_AI_FICTIONAL_CLIENT_IDS`: the run parks with
+`egress_route_not_approved_for_class` and zero requests.
+
+**Consequence.** On develop, only the seed's *(fiktivní)* clients, once listed, can
+exercise AI fieldwork over ADR 0010's Class C route. Anyone who can set the parameter
+can downgrade a client's designs to Class C.
+
+**Question for the data owner.** Is an operator-maintained list the right authority, or
+should "fictional client" be a recorded attribute of the client (set once, audited,
+never by the browser)? Engineering chose the list because it needs no schema change
+and fails closed; a client attribute would need a migration and a route.
+
+**Status.** Open. The engineering default stands until answered.
+
+---
+
+## OI-64 · Follow-up · AI fieldwork restarts every respondent when an attempt is retried
+
+**Claim.** A fieldwork attempt is one unit: a retry (transport failure, a quota park
+resumed) asks every respondent again, and the earlier attempt's answered calls stay
+charged (`apps/executors/src/aia_executors/ai_fieldwork.py` `AIFieldwork.produce` @ `dec2fd1`).
+
+**Anchor / reproduction.** `apps/executors/tests/test_ai_fieldwork.py::test_throttling_parks_for_quota_after_one_request_and_charges_nothing`
+parks on call 1; a park on call N would repeat calls 1..N-1 on resume.
+
+**Consequence.** Cost, not correctness: at N=20 x 3 blocks the worst case repeats 59
+calls. At production N it matters.
+
+**Smallest fix.** Checkpoint each respondent's answers as a per-attempt artifact keyed by
+(spec fingerprint, persona, block) and reuse it on the next attempt of the same run.
+
+**Test that would catch it.** A resumed attempt sends only the calls the previous one did
+not complete.
+
+**Status.** Open; plan follow-up 2.
+
+---
+
+## OI-65 · Follow-up · The usage ledger does not record the lineage a call declared
+
+**Claim.** `ai_usage_events` has no lineage column; the licence gate's input for each call
+is on the fieldwork dataset's provenance (`provenance.lineage`), not on the ledger row
+(`packages/aia_core/src/aia_core/infrastructure/ai_usage_repository.py` `_row` @ `dec2fd1`).
+
+**Consequence.** Auditing which datasets reached a provider needs the artifact as well as
+the ledger. Nothing panel-derived can be sent today (OI-61), so nothing is missing yet.
+
+**Smallest fix.** `AIUsageEvent.data_lineage` + a column + migration, written by the
+gateway from the request. **Status.** Open; plan follow-up 6.
+
+
+
+---
+
+## OI-66 · Reproduced defect · Legacy startup overwrites saved study projects
+
+**Claim.** Startup hydration replaces an edited `state_seed` with archive bytes,
+losing working projects while PostgreSQL retains their study bindings.
+
+**Anchor.** `legacy/npc-panel-18.6.6/runtime/hydrate_data.py:74` @ `0310091`.
+
+**Reproduction.** Run `pytest packages/aia_core/tests/test_legacy_state_hydration.py`:
+first hydrate, save a SQLite project, hydrate again. On the original code the
+saved project vanishes. Live startup logged one copied data file; the Lumen
+binding names `PRJ-bd16268b772b4c`, absent from the working project database.
+
+**User consequence.** Research stages fail with “Projekt/revize nenalezena”.
+Four older bound projects are absent; newer saved drafts still exist.
+
+**Smallest fix.** Preserve existing `state_seed` files and retain strict checking
+for new seeds/immutable assets. Add live SQLite backups before deployment, using
+SQLite's backup API to include WAL. Keep the pinned application unchanged.
+
+**Coverage.** `test_restart_preserves_saved_project_and_still_verifies_assets`;
+`test_backup_captures_wal_edits_and_other_state_databases`.
+
+**Recovery.** Two missing projects have native submitted design copies. No saved
+copy has yet been found for the two other fictional demos. Recovery or explicit
+recreation must preserve study identity and must not invent original content.

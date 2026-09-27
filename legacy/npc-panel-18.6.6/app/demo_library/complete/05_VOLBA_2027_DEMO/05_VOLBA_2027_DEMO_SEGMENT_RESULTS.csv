@@ -1,0 +1,21 @@
+﻿dimension,segment_value,variant_id,n,watch_intent_pct,trust_pct,fairness,information_value,clarity,engagement
+segment,Low Political Interest,A,312,66.3,50.3,6.47,5.97,6.67,6.48
+segment,Low Political Interest,B,312,70.2,58.0,7.34,7.5,6.96,6.0
+segment,Low Political Interest,C,312,71.5,56.7,6.94,6.66,5.96,7.07
+segment,Low Political Interest,D,312,54.5,63.8,7.25,7.57,6.65,5.88
+segment,News Regulars,A,360,62.2,46.7,6.46,5.76,6.65,6.24
+segment,News Regulars,B,360,71.9,59.7,7.62,7.76,7.26,6.48
+segment,News Regulars,C,360,72.8,57.2,7.16,6.96,6.27,7.23
+segment,News Regulars,D,360,56.9,61.7,7.28,7.45,6.73,6.0
+segment,Young Adults,A,321,63.2,47.4,6.72,6.08,6.83,6.6
+segment,Young Adults,B,321,68.8,65.7,7.52,7.77,7.17,6.37
+segment,Young Adults,C,321,69.8,53.6,7.1,6.96,6.28,7.21
+segment,Young Adults,D,321,58.6,56.1,7.0,7.36,6.52,5.6
+segment,High Polarization,A,310,62.3,45.5,6.41,5.65,6.63,6.48
+segment,High Polarization,B,310,70.6,63.9,7.51,7.72,7.11,6.36
+segment,High Polarization,C,310,66.8,56.5,6.97,6.87,6.02,7.17
+segment,High Polarization,D,310,60.6,59.0,7.26,7.56,6.77,5.98
+segment,Undecided/Low Attachment,A,297,68.0,43.8,6.64,6.01,6.78,6.63
+segment,Undecided/Low Attachment,B,297,68.7,62.6,7.49,7.67,7.11,6.32
+segment,Undecided/Low Attachment,C,297,72.4,51.5,7.23,6.79,6.24,7.3
+segment,Undecided/Low Attachment,D,297,54.9,56.9,7.23,7.47,6.77,5.94

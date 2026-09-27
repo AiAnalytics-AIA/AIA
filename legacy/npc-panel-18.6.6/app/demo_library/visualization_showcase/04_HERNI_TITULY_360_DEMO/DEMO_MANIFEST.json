@@ -1,0 +1,56 @@
+{
+  "project_id": "PRJ-DEMO-VIS-HRY-360",
+  "slug": "04_HERNI_TITULY_360_DEMO",
+  "files": [
+    {
+      "name": "ANALYSIS.json",
+      "size_bytes": 2376,
+      "sha256": "42b69682a149fc3e9e66a4aa5d91c675dc168e50a3d9acd4701e7ac53a38e5d0"
+    },
+    {
+      "name": "DATA_DICTIONARY.json",
+      "size_bytes": 2404,
+      "sha256": "216767bb3aa38544ea90cec8ce50c1a56a662c1b8b5d3399b13eaf24423cb274"
+    },
+    {
+      "name": "DEMO_PROJECT_SEED.json",
+      "size_bytes": 4994,
+      "sha256": "4fe6fb6bbbe5419d774c47a4237865f7b6ad937ae2640a0401aa051e33cb7713"
+    },
+    {
+      "name": "DEMO_REPORT.html",
+      "size_bytes": 1454,
+      "sha256": "7d8085a30f65167c5bbd86fd2951227531418445ec3e5e2a6537efc7dd631a60"
+    },
+    {
+      "name": "OBJECTS_SOCIOMAP_DEMO.json",
+      "size_bytes": 5055,
+      "sha256": "47ed8b55682395e72193a0176080df68cf09ed76cb3bf5078a0288838ed42787"
+    },
+    {
+      "name": "OBJECT_MAP_3D.html",
+      "size_bytes": 13801,
+      "sha256": "a558a70958da793a94244e573f3f6b9932766a19fbfc95e23129c824c94d118c"
+    },
+    {
+      "name": "QUESTIONNAIRE.json",
+      "size_bytes": 1285,
+      "sha256": "e933d1a38aecd4f4ef0b33ed9d3fdf48d6e945b347c8299465d2e5e771c96469"
+    },
+    {
+      "name": "README.md",
+      "size_bytes": 145,
+      "sha256": "7ebbb7833a8aa838cc77e8fc0885d9c45f0fe385a12e145460f6b61b1ed1246b"
+    },
+    {
+      "name": "RESPONDENTS.csv",
+      "size_bytes": 65369,
+      "sha256": "57cee546196d2c6d8e8a7fddc5181064dfb989182c09b8857845f86a3e6e1112"
+    },
+    {
+      "name": "RESULTS.xlsx",
+      "size_bytes": 60081,
+      "sha256": "dd056c7eae8f513b8a4acec270349af035edbb62e8797505f73f6271ce3f8f54"
+    }
+  ]
+}

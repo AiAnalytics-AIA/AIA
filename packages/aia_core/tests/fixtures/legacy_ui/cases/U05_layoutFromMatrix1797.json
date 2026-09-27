@@ -1,0 +1,16 @@
+{
+ "fixture_id": "U05_layoutFromMatrix1797",
+ "function": "layoutFromMatrix1797",
+ "capability_id": "sociomapping.core",
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-9,
+ "helpers": [],
+ "notes": "The 1797 slice's 100-iteration spring relaxation from a matrix of target distances (35 + 3.2*M), starting from the nodes' own coordinates shrunk by 0.7 and recentred every iteration. Deterministic: no randomness. Not yet ported.",
+ "cases": [
+  {"id": "four_nodes", "args": [
+    [{"x": 0, "y": 0}, {"x": 40, "y": 30}, {"x": -20, "y": 60}, {"x": 80, "y": -10}],
+    [[0, 12.5, 30, 55.1], [12.5, 0, 22.2, 61], [30, 22.2, 0, 90.4], [55.1, 61, 90.4, 0]]]},
+  {"id": "two_nodes", "args": [[{"x": 0, "y": 0}, {"x": 10, "y": 0}], [[0, 5], [5, 0]]]},
+  {"id": "no_nodes", "args": [[], []]}
+ ]
+}

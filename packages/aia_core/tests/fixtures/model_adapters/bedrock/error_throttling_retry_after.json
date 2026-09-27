@@ -1,0 +1,27 @@
+{
+  "provenance": "Hand-authored from the Bedrock Runtime Converse API definition (botocore service model bedrock-runtime 2023-09-30: shapes, error codes, x-amzn-requestid); not captured from a live call. Replace with a live capture once ADR 0010's route is verified and approved.",
+  "description": "429 ThrottlingException with retry-after: quota, park until then.",
+  "structured": false,
+  "response": {
+    "status": 429,
+    "headers": {
+      "x-amzn-RequestId": "7c1f0a3e-0000-4000-8000-0000000e4404",
+      "content-type": "application/json",
+      "x-amzn-ErrorType": "ThrottlingException:http://internal.amazon.com/coral/com.amazon.bedrock/",
+      "retry-after": "30"
+    },
+    "body": {
+      "message": "Too many requests, please wait before trying again."
+    }
+  },
+  "expect": {
+    "error": {
+      "kind": "QUOTA",
+      "delivery": "RESPONDED",
+      "provider_request_id": "7c1f0a3e-0000-4000-8000-0000000e4404",
+      "retry_after": "2026-09-22T12:00:30+00:00",
+      "http_status": 429,
+      "provider_error_type": "ThrottlingException"
+    }
+  }
+}

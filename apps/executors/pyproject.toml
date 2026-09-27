@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aia-executors"
+version = "0.1.0"
+description = "AIA step executors: the implementations the worker runs, registered by step kind"
+requires-python = ">=3.12"
+dependencies = [
+    "aia-core",
+    "aia-worker",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff>=0.7,<1",
+    "mypy>=1.13,<2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aia_executors"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "postgres: requires a live PostgreSQL instance via DATABASE_URL",
+]

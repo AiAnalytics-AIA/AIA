@@ -1,0 +1,16 @@
+{
+  "nazev": "Demo — rozvoz potravin",
+  "n": 120,
+  "mode": "dry",
+  "model": "haiku",
+  "response_mode": "probability",
+  "seed": 42,
+  "persona_mode": "full",
+  "filtry": {},
+  "otazky": [
+    {"id":"O1","text":"Nakupujete někdy potraviny online?","typ":"vyber","kategorie":["ano, pravidelně","ano, občas","ne"]},
+    {"id":"O2","text":"Zvažoval(a) byste předplatné rozvozu potravin za 299 Kč měsíčně?","typ":"vyber","kategorie":["určitě ano","spíše ano","spíše ne","určitě ne"],"filtr":"O1 != 'ne'","hypoteticka":true},
+    {"id":"O3","text":"Jak důležitá je pro vás při nákupu potravin cena?","typ":"skala","skala":[1,10],"popisky_skaly":["vůbec","zásadně"]},
+    {"id":"O4","text":"Co by vás na takové službě nejvíc přesvědčilo nebo odradilo?","typ":"otevrena","max_slov":25}
+  ]
+}

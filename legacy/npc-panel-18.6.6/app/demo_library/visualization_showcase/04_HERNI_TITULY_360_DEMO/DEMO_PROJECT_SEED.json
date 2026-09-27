@@ -1,0 +1,222 @@
+{
+  "project_id": "PRJ-DEMO-VIS-HRY-360",
+  "title": "Herní tituly 360 — hráčské světy",
+  "project_type": "research",
+  "study_type": "Player segmentation / title affinities",
+  "domain": "Gaming",
+  "current_revision": 1,
+  "brief": {
+    "client_input": "Ilustrační komplexní výzkum vytvořený pro demonstraci Visualization Lab.",
+    "decision": "Jaké typy hráčů se shlukují kolem různých her a co je spojuje?"
+  },
+  "audience": {
+    "population": "Ilustrační česká populace 18+",
+    "n": 600,
+    "provenance": "DEMO_SYNTHETIC_DATASET"
+  },
+  "research_questions": [
+    "Jaké typy hráčů se shlukují kolem různých her a co je spojuje?",
+    "Které segmenty tvoří nejvýraznější shluky?",
+    "Jaké charakteristiky jednotlivé shluky odlišují?"
+  ],
+  "questionnaire": [
+    {
+      "id": "Q0",
+      "text": "Demografický a profilový blok"
+    },
+    {
+      "id": "QO1",
+      "text": "Jak blízko je vám EA Sports FC? Hodnocení 1–10."
+    },
+    {
+      "id": "QO2",
+      "text": "Jak blízko je vám Fortnite? Hodnocení 1–10."
+    },
+    {
+      "id": "QO3",
+      "text": "Jak blízko je vám Minecraft? Hodnocení 1–10."
+    },
+    {
+      "id": "QO4",
+      "text": "Jak blízko je vám GTA Online? Hodnocení 1–10."
+    },
+    {
+      "id": "QO5",
+      "text": "Jak blízko je vám Call of Duty? Hodnocení 1–10."
+    },
+    {
+      "id": "QO6",
+      "text": "Jak blízko je vám League of Legends? Hodnocení 1–10."
+    },
+    {
+      "id": "QO7",
+      "text": "Jak blízko je vám The Sims? Hodnocení 1–10."
+    },
+    {
+      "id": "QO8",
+      "text": "Jak blízko je vám Baldur’s Gate 3? Hodnocení 1–10."
+    },
+    {
+      "id": "QT1",
+      "text": "Competitive — škála 1–10"
+    },
+    {
+      "id": "QT2",
+      "text": "Social — škála 1–10"
+    },
+    {
+      "id": "QT3",
+      "text": "Creative — škála 1–10"
+    },
+    {
+      "id": "QT4",
+      "text": "Story — škála 1–10"
+    },
+    {
+      "id": "QT5",
+      "text": "Casual — škála 1–10"
+    },
+    {
+      "id": "QT6",
+      "text": "Sports — škála 1–10"
+    },
+    {
+      "id": "QT7",
+      "text": "Challenge — škála 1–10"
+    }
+  ],
+  "segments": [
+    {
+      "segment": "Kompetitivní online",
+      "n": 139,
+      "share": 0.232,
+      "top_objects": [
+        {
+          "object": "League of Legends",
+          "mean": 7.41
+        },
+        {
+          "object": "Call of Duty",
+          "mean": 7.4
+        },
+        {
+          "object": "Fortnite",
+          "mean": 7.14
+        }
+      ]
+    },
+    {
+      "segment": "Kreativní stavitelé",
+      "n": 104,
+      "share": 0.173,
+      "top_objects": [
+        {
+          "object": "Minecraft",
+          "mean": 6.97
+        },
+        {
+          "object": "The Sims",
+          "mean": 6.7
+        },
+        {
+          "object": "Fortnite",
+          "mean": 5.37
+        }
+      ]
+    },
+    {
+      "segment": "Příběhoví hráči",
+      "n": 113,
+      "share": 0.188,
+      "top_objects": [
+        {
+          "object": "Baldur’s Gate 3",
+          "mean": 6.95
+        },
+        {
+          "object": "League of Legends",
+          "mean": 5.68
+        },
+        {
+          "object": "Call of Duty",
+          "mean": 5.57
+        }
+      ]
+    },
+    {
+      "segment": "Sportovní mainstream",
+      "n": 125,
+      "share": 0.208,
+      "top_objects": [
+        {
+          "object": "EA Sports FC",
+          "mean": 7.18
+        },
+        {
+          "object": "Call of Duty",
+          "mean": 5.98
+        },
+        {
+          "object": "League of Legends",
+          "mean": 5.69
+        }
+      ]
+    },
+    {
+      "segment": "Casual a social",
+      "n": 119,
+      "share": 0.198,
+      "top_objects": [
+        {
+          "object": "The Sims",
+          "mean": 6.38
+        },
+        {
+          "object": "GTA Online",
+          "mean": 6.24
+        },
+        {
+          "object": "Minecraft",
+          "mean": 6.13
+        }
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "EA Sports FC",
+      "mean": 5.84
+    },
+    {
+      "name": "Fortnite",
+      "mean": 5.97
+    },
+    {
+      "name": "Minecraft",
+      "mean": 5.84
+    },
+    {
+      "name": "GTA Online",
+      "mean": 5.8
+    },
+    {
+      "name": "Call of Duty",
+      "mean": 5.96
+    },
+    {
+      "name": "League of Legends",
+      "mean": 5.92
+    },
+    {
+      "name": "The Sims",
+      "mean": 5.75
+    },
+    {
+      "name": "Baldur’s Gate 3",
+      "mean": 5.58
+    }
+  ],
+  "executive_answer": "Kompetitivní hráči se shlukují kolem Call of Duty a League of Legends; kreativní kolem Minecraftu a The Sims; příběhoví kolem Baldur’s Gate 3.",
+  "recommendation": "Použijte Visualization Lab: filtrujte segmenty, klikněte na respondenty a porovnejte oblasti A/B.",
+  "demo_truth": "ILUSTRAČNÍ DEMO — data jsou synteticky vygenerována pro demonstraci funkce, nejde o reálný průzkum."
+}

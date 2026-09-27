@@ -1,0 +1,18 @@
+{
+  "name": "kategorie_napoju_quick_demo",
+  "research_question": "Jaké segmenty českých spotřebitelů vznikají podle vztahu ke značkám v kategorii a čím se liší?",
+  "output_type": "segmentace",
+  "objects": [
+    "Značka A",
+    "Značka B",
+    "Značka C",
+    "Značka D",
+    "Značka E",
+    "Značka F",
+    "Značka G",
+    "Značka H"
+  ],
+  "n": 120,
+  "seed": 20260814,
+  "object_family": "značky nealkoholických nápojů"
+}

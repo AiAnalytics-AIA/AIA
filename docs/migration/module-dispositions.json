@@ -197,11 +197,11 @@
       "disposition": "port",
       "phase": 5,
       "context": "respondents",
-      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers. `adjust_probabilities` ported to `aia_core.domain.respondent_behavior` (Agent Runtime Foundation), 1e-12 against captures of the unit (test_respondent_behavior.py); used on the fictional roster only",
       "module": "behavior.py",
       "loc": 126,
       "docstring": "Behavioral response-process layer for NPC Panel. The LLM estimates latent preference probabilities. This module then applies explicit, auditable survey-response mechanisms before external RNG selects ",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",
@@ -567,11 +567,11 @@
       "disposition": "port",
       "phase": 5,
       "context": "respondents",
-      "note": "Deterministic factual layer — panel facts must never be re-invented by an LLM",
+      "note": "Deterministic factual layer — panel facts must never be re-invented by an LLM. `classify_question`, `_choice_index`, `deterministic_answer` ported to `aia_core.domain.respondent_facts`, compared with the unit module itself (test_respondent_facts.py); `harmonize_project_fact_choices` and metadata-declared facts not ported",
       "module": "factual_layer.py",
       "loc": 201,
       "docstring": "Deterministic factual-response layer for NPC Panel. Facts already present in the panel must never be re-invented by an LLM. This module classifies common factual survey questions and maps them to auth",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",
@@ -581,7 +581,7 @@
       "module": "fidelity.py",
       "loc": 62,
       "docstring": "Question-level evidence/fidelity policy for the 10.13 HTML protocol. This layer never upgrades a synthetic estimate merely because it looks stable. GREEN requires an actual validated human holdout sta",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",
@@ -1611,7 +1611,7 @@
       "module": "sociomap.py",
       "loc": 565,
       "docstring": "Auditovatelná preference mapa a segmentace pro modul VÝZKUM. Primární kontrakt specifikuje row-conditional multidimensional unfolding přes R `smacof::unfolding`. Runtime proto umí dvě cesty: - `method",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "drop",
@@ -1697,11 +1697,11 @@
       "disposition": "port",
       "phase": 5,
       "context": "respondents",
-      "note": "Latent dispositions, personality, biography, response style, behaviour layers",
+      "note": "Latent dispositions, personality, biography, response style, behaviour layers. `prirad_styly` and `popis_stylu` ported (`respondent_behavior.assign_styles`, `ai_respondent.describe_style`), 1e-9 against captures; applied to the fictional roster, not yet to panel personas (OI-61)",
       "module": "styly.py",
       "loc": 117,
       "docstring": "NPC PANEL — styly.py Vrstva odpovedniho stylu (response style). Proc existuje: Rozptyl v realnem pruzkumu nevznika jen tim, ze lidi mysli ruzne veci. Vznika taky tim, ze ruzne ODPOVIDAJI. Nekdo souhla",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "dev-tool",
@@ -1791,7 +1791,7 @@
       "module": "uncertainty.py",
       "loc": 199,
       "docstring": "Donor-aware weighted uncertainty helpers for NPC Panel 17.1.2. 17.1 rules: - report Kish weight effective N *and* real donor support; - bootstrap client-facing intervals over donor clusters, not synth",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",

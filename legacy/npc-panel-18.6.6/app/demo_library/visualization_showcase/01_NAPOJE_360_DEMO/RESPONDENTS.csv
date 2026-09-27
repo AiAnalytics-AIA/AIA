@@ -1,0 +1,601 @@
+﻿respondent_id,segment,dem_gender,dem_age,dem_region,dem_education,dem_income,att_health,att_sugar,att_energy,att_price,att_brand,att_sport,att_novelty,beh_sport_frequency,beh_novelty_openness,beh_meat_frequency,att_sugar_avoidance,obj_Coca-Cola,obj_Coca-Cola Zero,obj_Pepsi Max,obj_Red Bull,obj_Monster,obj_Mattoni,obj_Vinea,obj_Kofola
+01R0001,Tradiční sladká chuť,žena,43,Ústecký,SŠ s maturitou,30–50 tis.,6,7,7,6,6,2,5,1,5,2,4,8,6,6,6,7,7,8,8
+01R0002,Minerálka a zdraví,muž,38,Plzeňský,SŠ s maturitou,50–80 tis.,8,3,5,6,4,7,6,6,6,5,8,4,7,6,5,4,8,5,4
+01R0003,Energetičtí mladí,muž,31,Plzeňský,ZŠ / vyučení,do 30 tis.,6,5,5,5,5,5,9,6,7,5,6,6,7,5,7,8,5,7,5
+01R0004,Minerálka a zdraví,muž,46,Ústecký,SŠ s maturitou,30–50 tis.,10,2,2,5,4,3,6,3,6,10,9,3,8,9,4,6,9,5,4
+01R0005,Tradiční sladká chuť,muž,42,Ústecký,SŠ s maturitou,30–50 tis.,4,8,4,6,5,5,3,5,3,8,3,6,5,5,6,4,1,6,7
+01R0006,Tradiční sladká chuť,žena,48,Olomoucký,ZŠ / vyučení,do 30 tis.,8,6,6,4,10,9,4,9,6,3,5,7,7,5,4,4,7,6,8
+01R0007,Cenově citliví,muž,36,Jihočeský,SŠ s maturitou,80 tis. +,4,6,5,7,4,5,3,5,2,7,5,5,5,4,3,5,3,6,6
+01R0008,Aktivní bez cukru,muž,27,Jihočeský,SŠ s maturitou,50–80 tis.,7,2,5,4,7,7,5,7,7,6,9,3,6,8,6,6,8,3,4
+01R0009,Minerálka a zdraví,žena,36,Ústecký,VŠ,do 30 tis.,7,4,4,6,5,5,7,7,6,6,7,6,7,7,6,6,8,5,7
+01R0010,Minerálka a zdraví,muž,33,Jihomoravský,SŠ s maturitou,30–50 tis.,8,2,5,6,4,7,5,7,3,6,9,3,8,7,6,6,9,3,2
+01R0011,Tradiční sladká chuť,žena,48,Ústecký,ZŠ / vyučení,do 30 tis.,6,8,3,5,7,6,6,6,6,6,3,8,4,5,3,4,2,4,7
+01R0012,Tradiční sladká chuť,muž,26,Ústecký,VŠ,do 30 tis.,6,8,3,5,7,4,4,5,4,7,3,9,6,3,4,5,4,6,7
+01R0013,Energetičtí mladí,muž,18,Plzeňský,VŠ,do 30 tis.,5,5,9,4,5,8,8,8,8,7,6,5,5,6,8,9,5,7,3
+01R0014,Minerálka a zdraví,muž,18,Středočeský,ZŠ / vyučení,do 30 tis.,10,5,4,8,6,6,6,8,4,6,6,7,9,8,5,6,10,6,6
+01R0015,Energetičtí mladí,žena,37,Plzeňský,SŠ s maturitou,80 tis. +,6,6,10,6,6,7,7,6,9,5,5,6,5,2,7,6,3,4,6
+01R0016,Tradiční sladká chuť,žena,46,Praha,SŠ s maturitou,30–50 tis.,6,8,5,4,8,4,6,6,6,7,3,8,4,4,5,5,4,5,7
+01R0017,Aktivní bez cukru,muž,33,Moravskoslezský,SŠ s maturitou,30–50 tis.,8,1,4,5,6,7,6,8,4,4,10,3,10,9,5,5,9,5,4
+01R0018,Tradiční sladká chuť,žena,41,Jihomoravský,SŠ s maturitou,80 tis. +,4,7,5,5,5,6,4,6,5,5,4,6,3,4,5,5,4,7,6
+01R0019,Minerálka a zdraví,žena,41,Středočeský,ZŠ / vyučení,30–50 tis.,5,4,6,6,5,6,8,6,8,4,7,4,5,7,5,5,6,3,6
+01R0020,Minerálka a zdraví,muž,46,Olomoucký,ZŠ / vyučení,do 30 tis.,9,6,6,6,6,7,6,6,6,5,5,6,5,7,7,4,9,6,7
+01R0021,Minerálka a zdraví,muž,49,Plzeňský,ZŠ / vyučení,do 30 tis.,6,2,6,4,6,5,7,5,6,6,9,4,6,7,5,8,8,3,3
+01R0022,Tradiční sladká chuť,žena,24,Ústecký,VŠ,30–50 tis.,4,8,5,4,7,6,5,8,6,7,3,6,2,2,5,3,3,5,6
+01R0023,Energetičtí mladí,žena,18,Plzeňský,ZŠ / vyučení,do 30 tis.,6,5,6,6,7,7,7,6,4,8,6,4,6,5,5,5,5,4,7
+01R0024,Minerálka a zdraví,žena,55,Jihočeský,VŠ,30–50 tis.,7,4,7,6,7,4,5,5,6,5,7,7,6,6,6,3,7,5,7
+01R0025,Tradiční sladká chuť,žena,48,Ústecký,SŠ s maturitou,30–50 tis.,7,7,6,5,4,6,4,6,4,3,4,6,6,6,5,6,4,5,6
+01R0026,Energetičtí mladí,muž,43,Středočeský,VŠ,30–50 tis.,6,7,9,5,5,6,8,4,6,8,4,5,5,4,7,7,3,5,7
+01R0027,Aktivní bez cukru,muž,34,Praha,SŠ s maturitou,30–50 tis.,7,1,6,4,7,10,6,10,5,4,10,2,9,8,4,5,6,3,2
+01R0028,Tradiční sladká chuť,muž,28,Olomoucký,ZŠ / vyučení,30–50 tis.,6,7,6,7,7,7,5,6,3,6,4,6,4,4,4,5,4,6,6
+01R0029,Cenově citliví,žena,28,Ústecký,VŠ,do 30 tis.,6,5,4,7,4,8,4,7,4,5,6,3,5,3,5,3,5,4,5
+01R0030,Tradiční sladká chuť,muž,46,Ústecký,ZŠ / vyučení,30–50 tis.,5,8,7,4,6,4,5,6,6,6,3,6,5,5,6,5,4,5,6
+01R0031,Tradiční sladká chuť,muž,44,Praha,SŠ s maturitou,do 30 tis.,6,9,4,6,8,5,3,6,5,5,2,9,6,4,6,4,5,7,10
+01R0032,Tradiční sladká chuť,žena,34,Praha,ZŠ / vyučení,50–80 tis.,5,8,3,7,6,4,5,4,4,6,3,10,4,5,5,6,5,6,7
+01R0033,Cenově citliví,muž,48,Ústecký,ZŠ / vyučení,30–50 tis.,5,3,4,8,6,5,5,6,6,7,8,3,6,7,3,5,8,5,7
+01R0034,Aktivní bez cukru,muž,57,Jihočeský,SŠ s maturitou,50–80 tis.,9,4,5,6,5,8,7,8,5,3,7,3,8,9,5,5,8,4,5
+01R0035,Tradiční sladká chuť,žena,50,Jihočeský,SŠ s maturitou,do 30 tis.,6,7,5,5,7,7,6,7,7,2,4,7,5,3,4,4,4,7,5
+01R0036,Cenově citliví,muž,49,Ústecký,SŠ s maturitou,30–50 tis.,3,6,6,6,7,4,4,4,4,4,5,3,4,4,4,4,4,3,6
+01R0037,Aktivní bez cukru,žena,18,Moravskoslezský,ZŠ / vyučení,do 30 tis.,6,2,5,7,3,8,7,8,5,2,9,2,9,7,6,6,7,4,3
+01R0038,Energetičtí mladí,žena,18,Středočeský,ZŠ / vyučení,50–80 tis.,4,5,10,5,6,9,9,8,9,7,6,6,5,5,9,7,6,5,5
+01R0039,Minerálka a zdraví,žena,42,Olomoucký,ZŠ / vyučení,30–50 tis.,7,3,4,6,5,5,4,5,4,6,8,4,8,6,3,2,7,2,4
+01R0040,Aktivní bez cukru,žena,45,Praha,SŠ s maturitou,30–50 tis.,8,4,5,6,7,8,6,9,5,3,7,6,8,8,6,5,8,6,4
+01R0041,Energetičtí mladí,muž,18,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,4,8,5,6,6,5,8,6,10,7,6,8,5,7,5,8,5,6
+01R0042,Cenově citliví,žena,56,Olomoucký,SŠ s maturitou,50–80 tis.,7,5,2,9,6,6,4,4,4,5,6,5,5,6,3,4,7,8,8
+01R0043,Energetičtí mladí,žena,23,Praha,SŠ s maturitou,30–50 tis.,6,6,8,6,6,7,9,7,8,5,5,6,7,7,8,8,8,7,6
+01R0044,Cenově citliví,žena,54,Středočeský,ZŠ / vyučení,do 30 tis.,9,5,6,7,5,6,6,8,5,3,6,5,8,6,6,6,8,5,7
+01R0045,Aktivní bez cukru,muž,40,Plzeňský,SŠ s maturitou,80 tis. +,8,3,7,3,5,7,6,7,5,5,8,4,7,7,6,6,7,4,4
+01R0046,Aktivní bez cukru,muž,59,Praha,VŠ,50–80 tis.,7,3,5,5,5,10,7,10,5,3,8,4,7,6,5,5,8,6,4
+01R0047,Energetičtí mladí,muž,36,Olomoucký,SŠ s maturitou,80 tis. +,7,5,9,5,6,6,8,5,8,5,6,5,6,7,9,9,7,5,5
+01R0048,Minerálka a zdraví,muž,57,Jihomoravský,SŠ s maturitou,30–50 tis.,7,4,6,7,6,7,8,8,7,2,7,6,8,9,5,9,8,7,6
+01R0049,Aktivní bez cukru,muž,49,Ústecký,ZŠ / vyučení,do 30 tis.,9,3,6,5,7,7,6,8,5,6,8,5,10,7,6,6,9,6,5
+01R0050,Cenově citliví,žena,49,Plzeňský,ZŠ / vyučení,50–80 tis.,6,6,4,6,5,5,4,6,2,9,5,7,6,5,4,6,4,6,5
+01R0051,Cenově citliví,žena,30,Olomoucký,SŠ s maturitou,30–50 tis.,4,7,6,8,8,6,6,5,5,9,4,9,4,5,6,8,6,7,8
+01R0052,Cenově citliví,muž,47,Ústecký,SŠ s maturitou,30–50 tis.,4,7,4,7,5,5,6,3,5,3,4,8,4,5,6,6,6,7,7
+01R0053,Minerálka a zdraví,žena,41,Olomoucký,VŠ,30–50 tis.,8,3,4,5,6,7,6,5,7,2,8,4,6,6,6,6,9,5,4
+01R0054,Cenově citliví,žena,50,Olomoucký,SŠ s maturitou,30–50 tis.,5,6,6,7,2,5,6,4,6,6,5,5,5,6,5,6,4,6,5
+01R0055,Minerálka a zdraví,muž,37,Plzeňský,VŠ,do 30 tis.,10,6,6,5,7,6,5,5,5,8,5,7,6,6,6,5,8,6,6
+01R0056,Tradiční sladká chuť,muž,43,Moravskoslezský,SŠ s maturitou,do 30 tis.,7,7,7,4,6,5,4,6,6,3,4,5,5,4,7,5,7,7,6
+01R0057,Aktivní bez cukru,muž,40,Olomoucký,SŠ s maturitou,30–50 tis.,7,2,6,4,6,8,7,8,6,1,9,3,8,6,7,7,8,4,3
+01R0058,Cenově citliví,žena,23,Plzeňský,SŠ s maturitou,80 tis. +,8,5,6,10,6,6,6,8,7,7,6,4,7,9,6,5,8,5,6
+01R0059,Cenově citliví,žena,32,Moravskoslezský,ZŠ / vyučení,do 30 tis.,5,5,4,8,6,4,5,3,6,5,6,4,6,5,3,4,4,6,6
+01R0060,Energetičtí mladí,žena,18,Jihočeský,SŠ s maturitou,30–50 tis.,7,4,9,4,4,8,8,10,7,7,7,4,6,8,8,8,7,6,4
+01R0061,Aktivní bez cukru,muž,38,Olomoucký,VŠ,30–50 tis.,8,2,4,6,5,8,6,9,8,4,9,4,9,7,4,5,7,2,2
+01R0062,Aktivní bez cukru,muž,49,Olomoucký,SŠ s maturitou,50–80 tis.,9,3,8,5,5,7,5,8,6,5,8,3,7,6,6,7,6,7,4
+01R0063,Energetičtí mladí,muž,18,Ústecký,VŠ,80 tis. +,7,4,7,5,6,7,7,6,8,6,7,5,9,6,7,7,8,4,5
+01R0064,Minerálka a zdraví,muž,40,Moravskoslezský,VŠ,30–50 tis.,7,3,5,4,4,5,5,6,6,2,8,3,6,7,5,5,6,6,1
+01R0065,Aktivní bez cukru,muž,41,Olomoucký,SŠ s maturitou,do 30 tis.,9,4,7,6,6,6,8,7,6,1,7,3,7,7,6,7,7,6,6
+01R0066,Minerálka a zdraví,žena,37,Jihomoravský,ZŠ / vyučení,80 tis. +,7,3,5,3,5,6,7,4,8,6,8,5,7,5,4,6,7,5,4
+01R0067,Energetičtí mladí,žena,38,Olomoucký,SŠ s maturitou,30–50 tis.,4,7,7,3,6,9,8,8,6,4,4,6,5,5,7,8,3,9,6
+01R0068,Minerálka a zdraví,žena,26,Jihomoravský,ZŠ / vyučení,do 30 tis.,6,3,4,4,5,4,8,3,8,7,8,5,7,9,6,5,7,5,2
+01R0069,Minerálka a zdraví,muž,48,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,4,5,5,7,5,4,6,4,3,7,4,6,6,4,4,5,4,5
+01R0070,Aktivní bez cukru,žena,18,Jihomoravský,VŠ,30–50 tis.,8,2,5,6,8,9,5,8,6,1,9,4,9,8,5,6,8,5,6
+01R0071,Minerálka a zdraví,muž,63,Jihomoravský,ZŠ / vyučení,50–80 tis.,7,5,5,7,5,5,5,5,5,1,6,5,6,6,4,4,5,3,3
+01R0072,Aktivní bez cukru,muž,43,Plzeňský,SŠ s maturitou,50–80 tis.,8,5,6,6,6,8,7,6,7,5,6,6,7,8,6,7,8,5,5
+01R0073,Energetičtí mladí,žena,18,Praha,SŠ s maturitou,50–80 tis.,6,6,7,6,7,4,6,4,5,9,5,5,4,4,6,6,4,5,6
+01R0074,Minerálka a zdraví,muž,28,Jihomoravský,SŠ s maturitou,do 30 tis.,8,3,7,6,4,7,4,7,6,4,8,3,8,6,6,7,6,3,3
+01R0075,Minerálka a zdraví,muž,38,Středočeský,SŠ s maturitou,50–80 tis.,8,5,5,5,4,5,5,5,6,9,6,3,6,6,3,4,6,5,5
+01R0076,Cenově citliví,žena,21,Ústecký,SŠ s maturitou,50–80 tis.,6,6,5,8,4,6,4,6,4,1,5,4,4,5,4,4,6,2,5
+01R0077,Tradiční sladká chuť,žena,52,Moravskoslezský,VŠ,30–50 tis.,6,6,5,7,8,5,5,6,7,6,5,6,6,7,6,5,5,7,8
+01R0078,Aktivní bez cukru,muž,39,Jihomoravský,SŠ s maturitou,50–80 tis.,8,4,7,7,5,9,5,8,6,6,7,6,7,6,7,6,8,6,5
+01R0079,Tradiční sladká chuť,žena,39,Jihomoravský,VŠ,80 tis. +,6,7,7,7,6,7,5,7,6,4,4,5,3,5,5,5,3,7,7
+01R0080,Energetičtí mladí,muž,18,Středočeský,ZŠ / vyučení,30–50 tis.,7,4,9,4,6,7,6,9,5,5,7,6,6,7,8,7,7,5,6
+01R0081,Tradiční sladká chuť,žena,27,Ústecký,VŠ,50–80 tis.,4,8,5,5,7,7,5,5,4,6,3,6,5,4,6,4,5,8,7
+01R0082,Cenově citliví,žena,38,Plzeňský,SŠ s maturitou,30–50 tis.,5,7,7,8,6,6,6,6,6,5,4,6,6,4,5,7,5,5,8
+01R0083,Minerálka a zdraví,muž,24,Praha,VŠ,30–50 tis.,8,3,6,5,6,5,4,5,4,4,8,3,6,9,4,4,7,6,3
+01R0084,Tradiční sladká chuť,žena,29,Středočeský,SŠ s maturitou,30–50 tis.,6,7,5,4,6,5,5,5,6,8,4,5,7,5,5,4,6,6,8
+01R0085,Cenově citliví,žena,37,Plzeňský,ZŠ / vyučení,50–80 tis.,6,7,7,8,5,7,6,7,5,5,4,4,5,4,6,7,5,7,8
+01R0086,Tradiční sladká chuť,muž,45,Plzeňský,ZŠ / vyučení,do 30 tis.,6,7,6,5,8,5,6,4,7,3,4,7,5,6,5,5,5,7,8
+01R0087,Tradiční sladká chuť,muž,38,Olomoucký,VŠ,do 30 tis.,5,7,6,5,7,6,5,6,6,2,4,7,3,3,7,6,6,6,7
+01R0088,Cenově citliví,muž,57,Plzeňský,SŠ s maturitou,50–80 tis.,5,5,6,5,5,5,6,4,6,5,6,4,4,5,6,5,4,7,5
+01R0089,Energetičtí mladí,žena,35,Praha,SŠ s maturitou,30–50 tis.,6,4,9,6,5,6,8,5,8,6,7,2,6,6,6,7,5,3,1
+01R0090,Cenově citliví,žena,48,Jihomoravský,SŠ s maturitou,do 30 tis.,5,5,8,8,5,7,4,8,4,6,6,4,3,5,6,6,4,4,4
+01R0091,Tradiční sladká chuť,muž,63,Olomoucký,ZŠ / vyučení,50–80 tis.,5,7,6,6,8,6,4,6,5,1,4,6,6,3,5,5,3,9,8
+01R0092,Tradiční sladká chuť,muž,26,Jihomoravský,SŠ s maturitou,30–50 tis.,6,7,7,6,6,7,7,6,6,6,4,6,6,4,7,5,4,7,6
+01R0093,Energetičtí mladí,žena,36,Olomoucký,SŠ s maturitou,do 30 tis.,4,5,9,6,4,8,8,8,7,2,6,5,5,6,7,8,5,4,3
+01R0094,Energetičtí mladí,muž,35,Ústecký,ZŠ / vyučení,30–50 tis.,7,4,6,5,8,7,6,7,5,9,7,4,7,7,5,3,6,6,6
+01R0095,Tradiční sladká chuť,žena,26,Plzeňský,SŠ s maturitou,80 tis. +,5,8,6,6,5,5,5,6,7,7,3,5,5,2,4,6,4,8,4
+01R0096,Tradiční sladká chuť,muž,34,Jihočeský,VŠ,30–50 tis.,4,7,7,6,7,7,6,8,5,5,4,5,7,5,5,7,6,6,7
+01R0097,Aktivní bez cukru,muž,39,Ústecký,VŠ,80 tis. +,10,4,5,5,7,8,8,8,8,2,7,4,8,8,7,5,8,4,4
+01R0098,Aktivní bez cukru,muž,46,Jihomoravský,VŠ,do 30 tis.,6,1,5,4,5,8,5,8,7,5,10,4,7,7,4,6,8,3,2
+01R0099,Energetičtí mladí,muž,31,Moravskoslezský,SŠ s maturitou,do 30 tis.,5,8,8,5,5,4,9,4,7,9,3,5,3,4,8,9,3,5,7
+01R0100,Tradiční sladká chuť,muž,42,Moravskoslezský,ZŠ / vyučení,do 30 tis.,6,7,5,6,7,4,5,4,6,7,4,7,4,3,4,5,4,6,6
+01R0101,Aktivní bez cukru,muž,34,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,3,4,5,5,7,7,7,8,7,8,3,10,9,4,5,9,5,4
+01R0102,Minerálka a zdraví,žena,38,Středočeský,ZŠ / vyučení,do 30 tis.,8,3,4,6,4,7,5,8,6,7,8,3,7,6,5,4,7,5,3
+01R0103,Aktivní bez cukru,muž,31,Olomoucký,VŠ,30–50 tis.,8,3,5,5,5,5,7,6,7,6,8,5,8,8,8,4,8,4,5
+01R0104,Tradiční sladká chuť,muž,53,Středočeský,SŠ s maturitou,50–80 tis.,4,9,6,7,6,6,4,6,5,4,2,8,6,3,4,4,4,6,7
+01R0105,Energetičtí mladí,žena,18,Olomoucký,SŠ s maturitou,30–50 tis.,7,5,9,5,4,6,9,6,6,4,6,3,5,8,9,8,7,6,4
+01R0106,Energetičtí mladí,muž,18,Středočeský,VŠ,30–50 tis.,7,5,9,5,6,5,8,4,8,3,6,6,8,6,7,7,7,5,7
+01R0107,Aktivní bez cukru,žena,64,Středočeský,SŠ s maturitou,30–50 tis.,8,2,4,5,5,9,6,9,6,1,9,3,8,8,3,5,7,3,3
+01R0108,Minerálka a zdraví,muž,49,Moravskoslezský,SŠ s maturitou,do 30 tis.,8,2,6,3,6,6,5,7,7,5,9,4,9,9,6,4,9,4,5
+01R0109,Energetičtí mladí,žena,25,Olomoucký,ZŠ / vyučení,30–50 tis.,5,7,10,3,4,4,8,3,8,6,4,5,3,6,7,8,3,5,4
+01R0110,Minerálka a zdraví,žena,27,Praha,VŠ,do 30 tis.,7,7,8,6,5,4,7,3,7,5,4,6,4,6,6,6,6,5,4
+01R0111,Aktivní bez cukru,žena,48,Ústecký,SŠ s maturitou,80 tis. +,8,3,8,7,5,7,6,8,7,6,8,4,7,7,8,6,7,5,6
+01R0112,Aktivní bez cukru,žena,26,Praha,SŠ s maturitou,50–80 tis.,8,2,3,6,5,9,5,8,6,2,9,3,10,8,3,3,10,2,4
+01R0113,Energetičtí mladí,žena,35,Středočeský,SŠ s maturitou,do 30 tis.,7,5,9,6,6,7,8,7,10,7,6,5,8,5,8,8,6,6,4
+01R0114,Minerálka a zdraví,muž,18,Jihomoravský,VŠ,80 tis. +,8,4,6,5,3,5,4,3,3,3,7,4,8,8,6,5,7,6,6
+01R0115,Aktivní bez cukru,žena,22,Olomoucký,VŠ,30–50 tis.,7,3,7,4,6,7,9,7,7,2,8,5,10,8,7,8,7,6,4
+01R0116,Energetičtí mladí,žena,18,Jihomoravský,ZŠ / vyučení,80 tis. +,6,5,8,7,5,8,7,8,7,6,6,5,7,6,7,8,5,7,6
+01R0117,Minerálka a zdraví,muž,33,Jihomoravský,SŠ s maturitou,30–50 tis.,9,3,6,8,6,6,8,5,9,4,8,7,8,9,6,6,9,5,3
+01R0118,Tradiční sladká chuť,žena,50,Olomoucký,VŠ,30–50 tis.,7,6,7,6,7,5,4,3,5,6,5,7,5,4,5,7,7,5,6
+01R0119,Aktivní bez cukru,žena,38,Plzeňský,VŠ,30–50 tis.,7,4,6,6,5,8,7,8,6,7,7,6,7,8,7,5,6,5,5
+01R0120,Tradiční sladká chuť,žena,40,Jihočeský,ZŠ / vyučení,50–80 tis.,7,9,5,6,8,4,5,5,4,7,2,9,4,1,4,4,4,7,8
+01R0121,Minerálka a zdraví,žena,51,Plzeňský,VŠ,80 tis. +,7,3,7,5,4,6,7,7,7,7,8,4,5,6,6,6,7,3,4
+01R0122,Aktivní bez cukru,muž,24,Plzeňský,SŠ s maturitou,do 30 tis.,5,2,6,4,8,9,8,10,6,1,9,5,8,7,6,6,8,4,6
+01R0123,Aktivní bez cukru,žena,44,Moravskoslezský,SŠ s maturitou,80 tis. +,9,4,4,3,5,8,5,7,5,3,7,3,7,6,4,5,8,5,4
+01R0124,Aktivní bez cukru,žena,25,Plzeňský,SŠ s maturitou,50–80 tis.,7,2,6,6,5,7,5,5,6,6,9,4,7,6,5,5,7,3,4
+01R0125,Aktivní bez cukru,žena,49,Středočeský,ZŠ / vyučení,80 tis. +,7,4,6,4,6,7,9,6,6,2,7,5,5,7,6,7,7,5,4
+01R0126,Aktivní bez cukru,muž,43,Moravskoslezský,ZŠ / vyučení,do 30 tis.,8,3,5,6,5,9,4,7,6,2,8,2,8,8,5,5,8,2,4
+01R0127,Minerálka a zdraví,muž,30,Jihočeský,SŠ s maturitou,50–80 tis.,7,2,5,6,5,6,4,5,3,3,9,2,9,7,4,5,8,2,2
+01R0128,Tradiční sladká chuť,muž,33,Jihočeský,VŠ,do 30 tis.,6,6,6,4,8,5,7,4,8,9,5,7,5,6,6,4,5,5,6
+01R0129,Minerálka a zdraví,žena,21,Ústecký,SŠ s maturitou,do 30 tis.,6,5,4,7,5,7,5,9,6,2,6,5,9,4,5,6,6,6,5
+01R0130,Energetičtí mladí,muž,18,Olomoucký,SŠ s maturitou,50–80 tis.,3,6,6,5,4,6,7,7,7,5,5,4,3,4,6,6,1,5,5
+01R0131,Energetičtí mladí,muž,25,Moravskoslezský,ZŠ / vyučení,do 30 tis.,5,5,8,7,5,8,7,9,7,7,6,3,5,5,5,6,5,5,3
+01R0132,Aktivní bez cukru,žena,35,Plzeňský,SŠ s maturitou,30–50 tis.,8,3,5,7,4,6,7,6,7,3,8,3,8,8,7,4,7,4,3
+01R0133,Energetičtí mladí,žena,18,Jihočeský,ZŠ / vyučení,50–80 tis.,6,5,6,5,5,7,7,7,5,4,6,5,7,4,7,7,6,6,5
+01R0134,Cenově citliví,muž,27,Plzeňský,SŠ s maturitou,30–50 tis.,8,5,6,7,7,5,6,5,4,4,6,8,4,4,4,5,7,4,6
+01R0135,Energetičtí mladí,muž,18,Praha,VŠ,50–80 tis.,6,4,8,5,8,8,6,6,5,7,7,4,7,7,7,7,7,5,7
+01R0136,Aktivní bez cukru,žena,36,Jihomoravský,SŠ s maturitou,30–50 tis.,6,4,6,7,7,9,8,8,7,5,7,5,7,7,5,7,7,6,5
+01R0137,Tradiční sladká chuť,muž,18,Ústecký,VŠ,30–50 tis.,6,8,5,5,7,7,5,6,2,6,3,9,6,5,4,3,6,8,7
+01R0138,Tradiční sladká chuť,muž,44,Středočeský,SŠ s maturitou,50–80 tis.,5,9,7,4,6,5,5,5,5,5,2,8,4,5,6,5,5,7,7
+01R0139,Tradiční sladká chuť,muž,47,Jihočeský,ZŠ / vyučení,do 30 tis.,4,9,5,5,6,8,6,9,6,5,2,8,4,5,4,3,2,5,6
+01R0140,Tradiční sladká chuť,žena,34,Středočeský,VŠ,30–50 tis.,7,8,5,6,7,5,4,6,5,1,3,7,5,4,4,4,5,6,8
+01R0141,Minerálka a zdraví,muž,41,Plzeňský,SŠ s maturitou,30–50 tis.,7,3,4,5,6,6,4,5,6,3,8,5,6,7,2,2,6,5,3
+01R0142,Minerálka a zdraví,muž,18,Olomoucký,ZŠ / vyučení,30–50 tis.,7,5,4,8,4,2,6,3,7,5,6,3,5,5,4,4,6,4,6
+01R0143,Energetičtí mladí,žena,18,Moravskoslezský,ZŠ / vyučení,30–50 tis.,8,6,7,7,4,7,7,7,7,4,5,6,5,7,6,7,7,6,5
+01R0144,Minerálka a zdraví,žena,26,Praha,SŠ s maturitou,30–50 tis.,8,1,5,5,6,8,6,9,6,7,10,1,9,8,4,6,9,2,3
+01R0145,Tradiční sladká chuť,žena,40,Olomoucký,SŠ s maturitou,do 30 tis.,5,6,5,6,5,5,6,4,7,5,5,3,5,4,4,4,2,3,4
+01R0146,Energetičtí mladí,žena,46,Praha,VŠ,30–50 tis.,5,6,9,5,5,6,8,8,10,1,5,5,5,5,8,9,6,5,6
+01R0147,Aktivní bez cukru,žena,29,Olomoucký,VŠ,30–50 tis.,10,3,5,3,8,10,5,10,6,6,8,6,9,9,6,5,8,3,5
+01R0148,Aktivní bez cukru,muž,27,Jihočeský,SŠ s maturitou,do 30 tis.,8,3,5,5,5,7,7,7,7,5,8,3,8,6,6,5,7,4,3
+01R0149,Energetičtí mladí,žena,34,Olomoucký,ZŠ / vyučení,do 30 tis.,5,4,9,5,7,7,6,8,7,7,7,4,8,6,7,9,5,4,5
+01R0150,Tradiční sladká chuť,muž,20,Olomoucký,SŠ s maturitou,50–80 tis.,6,6,6,3,6,7,4,7,5,5,5,6,5,4,4,6,6,6,3
+01R0151,Aktivní bez cukru,žena,63,Středočeský,VŠ,30–50 tis.,7,3,5,6,5,6,6,6,7,5,8,3,7,7,6,5,7,6,4
+01R0152,Aktivní bez cukru,žena,37,Plzeňský,SŠ s maturitou,30–50 tis.,6,2,7,5,6,7,5,5,5,1,9,3,8,7,8,6,7,6,5
+01R0153,Energetičtí mladí,muž,18,Jihočeský,SŠ s maturitou,30–50 tis.,7,7,8,5,6,4,7,4,7,5,4,5,4,5,8,6,5,5,6
+01R0154,Energetičtí mladí,muž,18,Praha,SŠ s maturitou,do 30 tis.,6,5,7,4,8,6,7,6,7,8,6,5,9,6,6,7,5,6,5
+01R0155,Energetičtí mladí,žena,39,Středočeský,SŠ s maturitou,30–50 tis.,5,6,8,5,4,6,5,6,6,6,5,4,4,5,6,8,6,5,3
+01R0156,Minerálka a zdraví,žena,46,Jihočeský,ZŠ / vyučení,80 tis. +,7,4,5,7,8,4,8,2,7,7,7,6,9,8,7,5,8,6,6
+01R0157,Minerálka a zdraví,žena,26,Plzeňský,VŠ,30–50 tis.,7,5,7,4,5,7,6,5,5,7,6,5,6,5,6,7,6,4,4
+01R0158,Minerálka a zdraví,muž,32,Praha,ZŠ / vyučení,50–80 tis.,8,3,6,7,5,6,5,8,4,9,8,3,6,7,3,6,7,3,3
+01R0159,Minerálka a zdraví,žena,58,Plzeňský,SŠ s maturitou,do 30 tis.,7,6,6,6,6,4,6,5,3,5,5,5,5,4,5,3,5,5,5
+01R0160,Tradiční sladká chuť,žena,41,Středočeský,VŠ,30–50 tis.,6,8,5,5,6,7,4,6,5,6,3,5,6,4,5,4,5,7,6
+01R0161,Energetičtí mladí,žena,18,Jihomoravský,SŠ s maturitou,80 tis. +,4,4,9,5,5,5,8,6,9,6,7,5,5,6,7,8,9,7,4
+01R0162,Energetičtí mladí,žena,18,Jihočeský,SŠ s maturitou,50–80 tis.,6,7,7,5,5,7,9,6,8,8,4,6,6,6,7,7,6,6,7
+01R0163,Minerálka a zdraví,muž,39,Středočeský,VŠ,30–50 tis.,7,4,7,5,6,5,4,4,5,5,7,5,6,7,7,5,6,6,5
+01R0164,Aktivní bez cukru,žena,34,Praha,SŠ s maturitou,30–50 tis.,7,4,4,4,5,7,6,5,6,3,7,3,7,6,4,4,8,4,3
+01R0165,Minerálka a zdraví,žena,53,Jihočeský,VŠ,50–80 tis.,9,4,6,4,3,6,5,6,4,3,7,4,6,9,6,5,9,6,4
+01R0166,Tradiční sladká chuť,muž,33,Jihočeský,SŠ s maturitou,30–50 tis.,8,9,8,6,7,5,4,7,4,8,2,9,6,4,6,5,7,5,8
+01R0167,Energetičtí mladí,žena,34,Středočeský,SŠ s maturitou,50–80 tis.,5,6,9,6,6,6,8,6,7,2,5,6,3,7,8,8,5,5,5
+01R0168,Aktivní bez cukru,muž,24,Středočeský,SŠ s maturitou,do 30 tis.,5,3,5,5,4,7,6,7,6,5,8,3,7,4,3,3,5,3,2
+01R0169,Aktivní bez cukru,žena,41,Plzeňský,ZŠ / vyučení,30–50 tis.,7,2,6,5,3,8,6,8,6,5,9,1,7,7,4,6,8,6,1
+01R0170,Minerálka a zdraví,žena,24,Moravskoslezský,SŠ s maturitou,30–50 tis.,8,3,6,7,5,5,6,6,4,10,8,3,8,8,5,7,7,2,4
+01R0171,Minerálka a zdraví,muž,37,Středočeský,VŠ,do 30 tis.,6,2,7,8,5,6,4,6,1,5,9,3,8,8,6,6,7,3,3
+01R0172,Tradiční sladká chuť,žena,36,Jihočeský,SŠ s maturitou,30–50 tis.,5,8,5,5,8,7,4,8,5,5,3,8,6,3,5,4,6,8,8
+01R0173,Energetičtí mladí,žena,18,Moravskoslezský,VŠ,80 tis. +,6,5,6,5,6,10,8,9,7,7,6,7,9,6,8,8,7,5,6
+01R0174,Energetičtí mladí,muž,43,Ústecký,VŠ,do 30 tis.,5,4,7,6,7,6,5,7,6,6,7,7,9,6,7,6,6,4,6
+01R0175,Tradiční sladká chuť,žena,31,Plzeňský,VŠ,50–80 tis.,4,8,7,5,8,8,4,6,4,3,3,6,5,3,6,8,5,6,6
+01R0176,Tradiční sladká chuť,žena,32,Praha,SŠ s maturitou,30–50 tis.,2,8,6,6,7,6,6,5,6,9,3,7,3,2,6,5,3,6,7
+01R0177,Aktivní bez cukru,muž,28,Plzeňský,ZŠ / vyučení,50–80 tis.,8,4,6,5,5,7,6,9,7,6,7,2,5,3,8,5,6,4,5
+01R0178,Aktivní bez cukru,žena,44,Praha,SŠ s maturitou,50–80 tis.,9,3,5,6,6,8,7,7,7,6,8,4,9,9,5,5,8,3,4
+01R0179,Aktivní bez cukru,žena,53,Ústecký,SŠ s maturitou,do 30 tis.,9,4,8,7,4,8,7,7,6,5,7,3,7,6,6,7,8,4,4
+01R0180,Energetičtí mladí,žena,25,Olomoucký,ZŠ / vyučení,30–50 tis.,6,6,7,5,6,7,7,6,7,6,5,4,4,4,6,6,6,5,4
+01R0181,Aktivní bez cukru,muž,57,Jihomoravský,ZŠ / vyučení,do 30 tis.,9,2,5,5,4,10,5,10,4,2,9,4,9,9,6,4,9,6,3
+01R0182,Cenově citliví,muž,44,Středočeský,ZŠ / vyučení,30–50 tis.,7,5,4,7,6,5,7,5,6,7,6,5,6,7,5,5,5,6,7
+01R0183,Cenově citliví,žena,26,Plzeňský,SŠ s maturitou,do 30 tis.,5,5,4,5,6,7,6,9,6,10,6,6,6,8,5,6,7,5,7
+01R0184,Cenově citliví,muž,45,Jihomoravský,VŠ,50–80 tis.,5,6,5,10,7,7,5,5,6,6,5,4,6,6,3,6,6,7,8
+01R0185,Minerálka a zdraví,muž,44,Praha,SŠ s maturitou,80 tis. +,8,5,4,8,4,6,7,7,7,7,6,3,7,6,4,4,8,5,6
+01R0186,Cenově citliví,žena,45,Praha,SŠ s maturitou,30–50 tis.,7,6,6,7,4,6,6,7,6,8,5,5,5,4,5,4,5,3,5
+01R0187,Cenově citliví,muž,68,Olomoucký,ZŠ / vyučení,50–80 tis.,6,7,6,7,5,7,4,8,3,4,4,8,5,5,5,5,5,5,6
+01R0188,Tradiční sladká chuť,muž,41,Ústecký,ZŠ / vyučení,80 tis. +,5,5,6,6,9,4,6,3,4,1,6,7,7,7,6,5,7,7,8
+01R0189,Energetičtí mladí,muž,27,Jihočeský,VŠ,30–50 tis.,6,5,7,8,4,6,7,7,9,1,6,5,7,7,6,10,4,5,6
+01R0190,Aktivní bez cukru,žena,37,Praha,SŠ s maturitou,50–80 tis.,9,1,7,6,8,7,3,7,3,1,10,5,10,9,8,4,10,3,6
+01R0191,Tradiční sladká chuť,žena,32,Plzeňský,VŠ,30–50 tis.,4,7,4,5,6,5,3,5,5,5,4,7,4,4,3,5,4,7,7
+01R0192,Tradiční sladká chuť,muž,33,Středočeský,VŠ,50–80 tis.,6,9,5,7,6,5,6,6,7,5,2,7,3,4,6,5,5,8,8
+01R0193,Aktivní bez cukru,muž,45,Plzeňský,SŠ s maturitou,50–80 tis.,8,2,7,6,6,10,3,9,3,5,9,4,10,9,7,6,9,5,4
+01R0194,Tradiční sladká chuť,žena,62,Olomoucký,ZŠ / vyučení,30–50 tis.,5,9,4,4,7,6,4,5,4,1,2,8,3,4,5,6,4,6,8
+01R0195,Minerálka a zdraví,žena,20,Olomoucký,SŠ s maturitou,30–50 tis.,7,4,7,6,6,5,6,4,6,5,7,5,7,6,4,8,7,4,6
+01R0196,Energetičtí mladí,muž,19,Olomoucký,VŠ,80 tis. +,5,8,6,4,5,6,7,6,9,2,3,7,5,5,6,3,4,6,6
+01R0197,Minerálka a zdraví,muž,27,Plzeňský,ZŠ / vyučení,50–80 tis.,6,2,5,4,6,6,5,6,6,9,9,2,5,6,5,5,7,4,4
+01R0198,Aktivní bez cukru,žena,32,Olomoucký,SŠ s maturitou,50–80 tis.,9,3,5,7,4,7,5,9,5,1,8,4,8,8,6,4,7,3,4
+01R0199,Tradiční sladká chuť,muž,35,Plzeňský,ZŠ / vyučení,30–50 tis.,7,7,6,5,9,4,4,5,3,3,4,8,8,4,6,6,4,7,7
+01R0200,Minerálka a zdraví,muž,52,Moravskoslezský,VŠ,50–80 tis.,7,4,4,6,5,3,7,2,8,6,7,4,5,8,6,4,8,4,3
+01R0201,Cenově citliví,muž,31,Plzeňský,SŠ s maturitou,50–80 tis.,6,5,4,9,6,5,6,6,6,1,6,4,7,7,3,6,6,6,5
+01R0202,Tradiční sladká chuť,žena,28,Plzeňský,SŠ s maturitou,50–80 tis.,6,6,5,6,8,8,5,7,5,4,5,6,6,5,4,4,6,6,6
+01R0203,Aktivní bez cukru,žena,62,Praha,ZŠ / vyučení,80 tis. +,7,1,7,4,7,9,5,6,6,2,10,4,9,7,4,7,7,5,5
+01R0204,Aktivní bez cukru,muž,29,Ústecký,VŠ,do 30 tis.,6,3,4,5,5,8,6,9,5,2,8,5,8,7,6,5,8,6,5
+01R0205,Cenově citliví,muž,30,Olomoucký,ZŠ / vyučení,50–80 tis.,6,4,6,7,6,5,5,6,4,7,7,5,6,6,7,6,6,4,4
+01R0206,Cenově citliví,muž,46,Moravskoslezský,VŠ,do 30 tis.,6,5,5,9,6,6,7,5,4,8,6,6,7,6,4,5,6,6,6
+01R0207,Energetičtí mladí,žena,23,Středočeský,SŠ s maturitou,do 30 tis.,7,7,8,7,6,7,9,8,9,5,4,3,6,6,9,10,7,7,6
+01R0208,Aktivní bez cukru,žena,58,Jihomoravský,VŠ,50–80 tis.,7,2,4,9,5,7,5,8,6,6,9,2,8,9,3,5,7,5,2
+01R0209,Minerálka a zdraví,muž,56,Ústecký,SŠ s maturitou,do 30 tis.,7,4,6,5,6,5,5,6,5,7,7,7,8,5,5,8,6,5,5
+01R0210,Aktivní bez cukru,muž,49,Ústecký,SŠ s maturitou,30–50 tis.,8,3,6,4,4,8,7,7,6,3,8,2,7,8,8,4,7,3,4
+01R0211,Aktivní bez cukru,muž,47,Olomoucký,ZŠ / vyučení,30–50 tis.,9,4,5,4,4,7,4,6,5,3,7,3,6,6,3,4,6,3,5
+01R0212,Aktivní bez cukru,žena,47,Středočeský,SŠ s maturitou,50–80 tis.,8,1,5,7,8,8,5,9,5,5,10,5,8,7,4,5,8,4,6
+01R0213,Energetičtí mladí,muž,38,Jihomoravský,VŠ,30–50 tis.,7,6,8,3,5,7,8,6,7,7,5,6,6,5,7,7,7,5,5
+01R0214,Tradiční sladká chuť,žena,27,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,6,4,5,7,4,7,5,6,1,5,7,5,5,6,5,6,6,6
+01R0215,Tradiční sladká chuť,žena,30,Plzeňský,VŠ,80 tis. +,8,7,6,6,7,6,5,6,6,8,4,7,5,5,4,5,4,8,9
+01R0216,Energetičtí mladí,žena,28,Plzeňský,SŠ s maturitou,50–80 tis.,4,7,8,4,4,6,7,5,6,2,4,4,3,5,8,9,5,6,5
+01R0217,Tradiční sladká chuť,žena,51,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,6,4,7,6,4,2,1,3,5,5,5,6,2,5,5,6,5,7
+01R0218,Tradiční sladká chuť,žena,37,Olomoucký,SŠ s maturitou,30–50 tis.,7,7,4,7,10,6,5,5,6,8,4,7,7,5,5,4,6,6,9
+01R0219,Minerálka a zdraví,žena,57,Středočeský,ZŠ / vyučení,do 30 tis.,7,7,9,5,5,5,6,6,6,9,4,5,5,5,8,5,5,7,5
+01R0220,Cenově citliví,žena,20,Olomoucký,SŠ s maturitou,80 tis. +,5,4,6,9,5,6,4,5,4,6,7,5,6,6,5,5,6,5,5
+01R0221,Aktivní bez cukru,muž,33,Jihočeský,SŠ s maturitou,do 30 tis.,8,4,7,5,6,9,7,10,6,2,7,4,7,8,6,7,8,4,4
+01R0222,Tradiční sladká chuť,žena,39,Olomoucký,SŠ s maturitou,50–80 tis.,7,7,6,6,8,5,6,5,6,8,4,6,7,3,5,6,6,8,8
+01R0223,Cenově citliví,muž,37,Středočeský,SŠ s maturitou,do 30 tis.,6,4,4,10,5,6,5,6,7,7,7,3,6,7,4,5,6,6,4
+01R0224,Cenově citliví,žena,45,Ústecký,VŠ,do 30 tis.,8,8,4,8,6,5,5,4,5,7,3,5,3,5,3,3,4,3,3
+01R0225,Tradiční sladká chuť,žena,39,Jihočeský,VŠ,50–80 tis.,6,6,6,6,7,5,6,4,5,6,5,6,5,4,5,6,6,7,5
+01R0226,Energetičtí mladí,žena,25,Jihomoravský,SŠ s maturitou,do 30 tis.,5,7,8,6,6,7,8,7,7,4,4,7,6,6,8,7,6,6,8
+01R0227,Aktivní bez cukru,žena,31,Moravskoslezský,SŠ s maturitou,80 tis. +,7,2,4,5,6,8,5,8,7,4,9,4,8,9,6,6,8,3,4
+01R0228,Cenově citliví,žena,47,Jihomoravský,ZŠ / vyučení,do 30 tis.,5,6,6,8,4,7,7,7,7,3,5,3,6,6,5,4,5,6,5
+01R0229,Energetičtí mladí,žena,30,Olomoucký,SŠ s maturitou,do 30 tis.,4,6,9,6,4,8,5,7,6,6,5,5,4,4,8,7,4,3,4
+01R0230,Energetičtí mladí,žena,37,Olomoucký,ZŠ / vyučení,30–50 tis.,4,7,7,5,5,7,6,7,5,8,4,5,4,4,8,8,3,5,3
+01R0231,Minerálka a zdraví,muž,30,Praha,SŠ s maturitou,50–80 tis.,8,4,6,6,4,6,7,4,7,4,7,4,5,9,7,7,7,5,3
+01R0232,Minerálka a zdraví,muž,50,Olomoucký,SŠ s maturitou,80 tis. +,7,3,7,5,6,5,7,6,6,7,8,3,6,6,7,7,7,5,3
+01R0233,Minerálka a zdraví,žena,33,Olomoucký,SŠ s maturitou,30–50 tis.,10,4,9,6,4,4,8,3,7,5,7,5,7,7,9,7,7,3,3
+01R0234,Cenově citliví,muž,41,Olomoucký,ZŠ / vyučení,50–80 tis.,5,6,6,9,5,6,4,5,4,10,5,5,4,5,5,3,4,3,4
+01R0235,Aktivní bez cukru,žena,41,Praha,VŠ,do 30 tis.,6,4,6,4,6,8,8,6,6,9,7,5,6,8,6,6,6,5,5
+01R0236,Aktivní bez cukru,žena,51,Praha,VŠ,30–50 tis.,6,3,5,7,6,7,5,6,5,5,8,5,8,6,4,5,7,4,5
+01R0237,Energetičtí mladí,žena,18,Plzeňský,ZŠ / vyučení,50–80 tis.,5,9,6,6,7,6,7,6,9,6,2,6,2,2,7,4,2,5,6
+01R0238,Energetičtí mladí,žena,24,Ústecký,SŠ s maturitou,30–50 tis.,6,5,6,5,6,7,8,7,7,6,6,5,7,7,7,7,7,6,5
+01R0239,Energetičtí mladí,muž,28,Olomoucký,SŠ s maturitou,do 30 tis.,5,5,8,3,7,5,8,7,7,6,6,6,6,7,7,8,7,5,6
+01R0240,Minerálka a zdraví,muž,24,Ústecký,VŠ,30–50 tis.,6,4,9,5,4,6,6,7,4,5,7,5,6,6,6,7,6,4,3
+01R0241,Cenově citliví,muž,37,Plzeňský,SŠ s maturitou,30–50 tis.,7,7,5,8,5,6,7,4,6,3,4,5,5,7,5,7,6,5,6
+01R0242,Energetičtí mladí,žena,31,Olomoucký,VŠ,30–50 tis.,5,6,8,5,8,6,6,7,5,8,5,5,6,5,8,7,5,7,8
+01R0243,Aktivní bez cukru,muž,46,Olomoucký,SŠ s maturitou,50–80 tis.,9,2,7,8,5,8,8,7,7,4,9,3,9,10,5,8,7,3,5
+01R0244,Energetičtí mladí,žena,42,Středočeský,SŠ s maturitou,30–50 tis.,7,6,10,5,5,7,8,9,5,3,5,4,4,4,8,6,3,4,6
+01R0245,Cenově citliví,žena,42,Ústecký,VŠ,80 tis. +,6,5,7,7,5,5,6,5,6,6,6,4,6,6,5,5,6,4,4
+01R0246,Tradiční sladká chuť,žena,42,Jihomoravský,VŠ,50–80 tis.,4,9,6,5,6,6,6,5,6,10,2,7,4,2,4,6,2,6,6
+01R0247,Tradiční sladká chuť,žena,37,Praha,VŠ,50–80 tis.,6,7,6,5,5,8,6,6,7,5,4,4,3,4,4,6,4,6,5
+01R0248,Aktivní bez cukru,muž,45,Olomoucký,VŠ,do 30 tis.,8,4,5,6,8,8,7,8,5,6,7,5,7,6,6,5,7,7,6
+01R0249,Tradiční sladká chuť,žena,30,Olomoucký,SŠ s maturitou,do 30 tis.,6,9,5,9,5,3,4,5,5,1,2,7,3,5,4,4,3,7,7
+01R0250,Energetičtí mladí,muž,46,Moravskoslezský,VŠ,30–50 tis.,6,5,8,5,6,8,8,8,8,8,6,4,6,7,9,9,5,4,5
+01R0251,Cenově citliví,žena,42,Jihomoravský,VŠ,30–50 tis.,6,6,6,9,5,6,6,5,6,5,5,4,6,6,4,7,6,4,4
+01R0252,Aktivní bez cukru,žena,37,Ústecký,SŠ s maturitou,50–80 tis.,8,5,5,7,6,8,5,9,5,7,6,5,7,8,6,3,9,5,5
+01R0253,Aktivní bez cukru,muž,31,Středočeský,VŠ,50–80 tis.,7,4,5,4,4,7,7,8,7,4,7,2,3,5,4,4,5,5,1
+01R0254,Aktivní bez cukru,žena,43,Jihomoravský,SŠ s maturitou,do 30 tis.,8,2,6,6,6,7,5,8,5,2,9,5,7,9,6,5,9,4,4
+01R0255,Tradiční sladká chuť,muž,41,Plzeňský,SŠ s maturitou,30–50 tis.,6,6,6,6,4,5,4,4,5,5,5,5,5,5,6,5,5,7,3
+01R0256,Tradiční sladká chuť,žena,48,Olomoucký,ZŠ / vyučení,30–50 tis.,4,9,8,5,5,5,4,5,4,4,2,6,3,2,8,6,4,5,6
+01R0257,Cenově citliví,žena,34,Středočeský,VŠ,50–80 tis.,5,6,5,8,6,4,7,4,4,3,5,7,6,3,4,7,6,6,5
+01R0258,Minerálka a zdraví,žena,31,Olomoucký,SŠ s maturitou,80 tis. +,7,4,4,4,4,7,6,8,7,6,7,3,4,6,4,6,7,4,3
+01R0259,Energetičtí mladí,muž,25,Středočeský,ZŠ / vyučení,30–50 tis.,5,5,7,8,8,5,7,5,6,2,6,5,7,5,8,8,5,6,8
+01R0260,Aktivní bez cukru,žena,38,Jihomoravský,SŠ s maturitou,50–80 tis.,6,2,7,6,5,7,5,6,6,2,9,4,8,8,6,4,6,4,1
+01R0261,Energetičtí mladí,žena,34,Praha,VŠ,30–50 tis.,4,4,7,5,7,6,5,6,4,4,7,4,4,3,8,5,6,4,5
+01R0262,Minerálka a zdraví,muž,50,Plzeňský,VŠ,50–80 tis.,8,4,5,7,7,5,6,6,7,5,7,5,9,6,7,6,8,5,6
+01R0263,Minerálka a zdraví,žena,30,Praha,SŠ s maturitou,do 30 tis.,7,5,6,5,4,6,6,5,5,7,6,7,7,5,4,5,7,5,5
+01R0264,Minerálka a zdraví,žena,38,Ústecký,SŠ s maturitou,50–80 tis.,6,4,5,5,5,4,6,6,5,4,7,4,6,6,6,7,7,6,4
+01R0265,Energetičtí mladí,žena,29,Plzeňský,SŠ s maturitou,80 tis. +,6,5,10,6,6,8,7,10,8,7,6,5,6,6,9,9,6,4,5
+01R0266,Cenově citliví,žena,31,Ústecký,VŠ,50–80 tis.,6,6,6,9,6,6,5,7,4,5,5,5,5,5,4,4,3,5,5
+01R0267,Minerálka a zdraví,žena,40,Praha,ZŠ / vyučení,50–80 tis.,7,6,7,4,7,5,4,5,7,6,5,6,7,6,5,5,4,6,5
+01R0268,Energetičtí mladí,žena,40,Moravskoslezský,VŠ,30–50 tis.,6,4,10,4,4,8,7,9,6,5,7,6,6,9,9,9,6,5,5
+01R0269,Cenově citliví,muž,48,Středočeský,SŠ s maturitou,30–50 tis.,4,5,5,8,4,3,6,4,5,4,6,5,5,5,7,5,7,5,5
+01R0270,Aktivní bez cukru,muž,18,Středočeský,ZŠ / vyučení,80 tis. +,8,4,4,3,6,9,6,7,6,2,7,3,7,7,6,4,8,6,6
+01R0271,Tradiční sladká chuť,žena,42,Jihomoravský,SŠ s maturitou,30–50 tis.,6,8,3,5,6,5,6,4,6,8,3,8,2,4,4,5,5,6,7
+01R0272,Energetičtí mladí,muž,34,Plzeňský,ZŠ / vyučení,50–80 tis.,7,7,8,6,6,6,5,7,7,8,4,8,5,7,7,8,5,9,8
+01R0273,Minerálka a zdraví,muž,44,Plzeňský,ZŠ / vyučení,do 30 tis.,6,3,5,7,2,5,4,6,3,3,8,4,6,6,5,6,8,5,2
+01R0274,Energetičtí mladí,muž,37,Moravskoslezský,VŠ,80 tis. +,5,5,8,6,5,6,8,6,6,1,6,4,4,5,6,8,6,4,5
+01R0275,Energetičtí mladí,žena,40,Moravskoslezský,ZŠ / vyučení,80 tis. +,5,7,8,4,6,7,6,8,6,1,4,5,4,5,4,8,5,5,7
+01R0276,Cenově citliví,žena,21,Plzeňský,VŠ,30–50 tis.,6,4,6,9,8,4,7,4,7,4,7,6,6,7,7,7,6,7,7
+01R0277,Cenově citliví,muž,18,Ústecký,ZŠ / vyučení,do 30 tis.,6,7,4,6,6,5,6,4,5,10,4,4,6,5,6,4,6,5,7
+01R0278,Cenově citliví,žena,36,Plzeňský,SŠ s maturitou,do 30 tis.,6,8,3,6,2,5,5,5,6,6,3,5,4,5,5,5,4,5,5
+01R0279,Cenově citliví,žena,37,Ústecký,SŠ s maturitou,50–80 tis.,4,6,3,8,3,6,6,6,6,4,5,5,4,6,5,4,5,6,5
+01R0280,Tradiční sladká chuť,žena,40,Jihomoravský,ZŠ / vyučení,do 30 tis.,6,8,7,7,8,5,5,5,4,7,3,6,4,5,6,5,5,7,8
+01R0281,Energetičtí mladí,žena,18,Praha,VŠ,80 tis. +,7,6,7,6,6,7,8,8,9,6,5,4,5,7,7,8,6,6,6
+01R0282,Tradiční sladká chuť,žena,53,Moravskoslezský,VŠ,30–50 tis.,4,6,6,5,6,4,5,4,3,5,5,6,2,2,5,5,3,6,4
+01R0283,Minerálka a zdraví,muž,39,Jihočeský,SŠ s maturitou,80 tis. +,6,4,6,6,5,6,4,7,5,8,7,6,6,6,7,7,6,6,4
+01R0284,Energetičtí mladí,žena,24,Ústecký,SŠ s maturitou,30–50 tis.,3,7,10,6,5,6,6,8,7,8,4,6,4,5,9,8,2,5,7
+01R0285,Minerálka a zdraví,muž,28,Jihočeský,ZŠ / vyučení,80 tis. +,8,5,7,5,6,7,5,8,4,5,6,6,8,8,6,5,8,7,6
+01R0286,Cenově citliví,žena,46,Ústecký,SŠ s maturitou,50–80 tis.,7,6,3,8,6,6,6,5,6,5,5,6,6,5,5,5,5,6,5
+01R0287,Cenově citliví,žena,36,Praha,ZŠ / vyučení,do 30 tis.,6,5,6,9,6,3,5,3,5,7,6,4,5,6,6,8,6,6,7
+01R0288,Aktivní bez cukru,žena,24,Plzeňský,SŠ s maturitou,50–80 tis.,8,4,7,6,8,8,5,7,5,5,7,6,7,7,5,6,9,5,6
+01R0289,Tradiční sladká chuť,muž,29,Středočeský,ZŠ / vyučení,80 tis. +,7,8,6,6,4,6,5,5,4,5,3,6,3,3,7,4,5,6,6
+01R0290,Tradiční sladká chuť,žena,40,Olomoucký,ZŠ / vyučení,50–80 tis.,6,7,5,5,8,7,3,7,5,6,4,6,5,4,6,3,6,7,6
+01R0291,Aktivní bez cukru,žena,41,Praha,SŠ s maturitou,50–80 tis.,9,2,6,5,5,9,8,9,9,6,9,4,8,8,7,8,9,3,3
+01R0292,Tradiční sladká chuť,žena,38,Jihomoravský,ZŠ / vyučení,30–50 tis.,2,8,4,7,9,5,5,2,6,4,3,9,4,3,4,5,4,7,9
+01R0293,Aktivní bez cukru,žena,38,Praha,VŠ,do 30 tis.,7,4,6,6,5,10,6,10,4,4,7,3,8,6,5,4,7,4,2
+01R0294,Minerálka a zdraví,žena,53,Moravskoslezský,ZŠ / vyučení,50–80 tis.,9,4,5,4,3,5,4,6,4,7,7,5,7,6,4,4,9,6,3
+01R0295,Tradiční sladká chuť,muž,46,Jihomoravský,ZŠ / vyučení,30–50 tis.,3,8,5,4,4,6,3,7,2,5,3,4,3,1,6,4,1,6,4
+01R0296,Minerálka a zdraví,žena,46,Jihočeský,VŠ,30–50 tis.,7,4,5,4,5,6,6,8,7,5,7,5,8,8,7,4,8,5,6
+01R0297,Aktivní bez cukru,muž,35,Olomoucký,VŠ,50–80 tis.,8,3,4,5,6,9,4,7,5,1,8,3,8,6,5,3,6,2,5
+01R0298,Energetičtí mladí,muž,22,Ústecký,SŠ s maturitou,50–80 tis.,5,4,6,7,6,5,6,6,6,8,7,4,5,6,5,7,5,4,2
+01R0299,Minerálka a zdraví,muž,44,Ústecký,SŠ s maturitou,30–50 tis.,8,5,6,6,5,8,5,8,4,4,6,4,6,6,6,7,8,5,7
+01R0300,Cenově citliví,muž,40,Plzeňský,ZŠ / vyučení,do 30 tis.,5,4,5,10,7,6,6,6,7,5,7,6,8,6,4,6,6,5,7
+01R0301,Aktivní bez cukru,žena,45,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,3,5,5,6,10,5,10,3,3,8,6,10,7,6,6,9,6,4
+01R0302,Cenově citliví,muž,43,Moravskoslezský,VŠ,do 30 tis.,6,5,4,10,5,7,5,7,5,7,6,4,5,4,5,6,7,6,7
+01R0303,Minerálka a zdraví,muž,38,Praha,SŠ s maturitou,30–50 tis.,6,3,6,5,5,4,4,4,4,6,8,5,5,8,5,5,7,3,4
+01R0304,Minerálka a zdraví,muž,34,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,6,4,7,5,7,6,6,6,4,5,6,4,4,4,5,5,4,6
+01R0305,Aktivní bez cukru,žena,48,Plzeňský,ZŠ / vyučení,do 30 tis.,6,2,5,5,7,9,4,8,6,8,9,4,9,9,7,5,7,5,5
+01R0306,Energetičtí mladí,žena,29,Praha,VŠ,50–80 tis.,4,4,9,6,5,6,7,4,8,7,7,4,7,6,7,7,6,5,5
+01R0307,Cenově citliví,žena,33,Olomoucký,SŠ s maturitou,do 30 tis.,4,7,5,8,4,7,5,5,5,6,4,6,3,4,6,5,5,4,5
+01R0308,Cenově citliví,muž,53,Plzeňský,VŠ,30–50 tis.,7,4,7,7,6,6,6,6,5,9,7,5,7,5,6,4,7,6,6
+01R0309,Minerálka a zdraví,žena,38,Praha,SŠ s maturitou,30–50 tis.,10,4,6,5,6,7,5,8,6,7,7,6,7,8,6,6,10,5,6
+01R0310,Energetičtí mladí,muž,32,Jihomoravský,SŠ s maturitou,30–50 tis.,8,6,8,6,6,7,7,8,6,5,5,5,5,4,6,6,7,5,7
+01R0311,Minerálka a zdraví,žena,30,Jihomoravský,ZŠ / vyučení,80 tis. +,9,4,3,7,4,5,5,7,5,6,7,4,5,9,3,4,8,6,6
+01R0312,Minerálka a zdraví,muž,27,Středočeský,ZŠ / vyučení,30–50 tis.,8,3,4,4,5,5,4,6,3,8,8,4,8,7,4,5,8,3,3
+01R0313,Minerálka a zdraví,žena,18,Moravskoslezský,SŠ s maturitou,80 tis. +,7,4,6,4,6,3,9,3,7,8,7,5,8,7,5,6,7,5,4
+01R0314,Energetičtí mladí,muž,31,Moravskoslezský,VŠ,do 30 tis.,6,4,10,7,7,6,6,5,6,5,7,5,8,9,10,8,7,5,5
+01R0315,Minerálka a zdraví,muž,33,Ústecký,VŠ,80 tis. +,8,3,9,7,6,7,6,6,7,6,8,2,9,8,8,7,6,5,5
+01R0316,Tradiční sladká chuť,muž,35,Jihomoravský,VŠ,30–50 tis.,3,8,5,7,8,7,6,7,7,4,3,8,4,4,6,8,4,5,8
+01R0317,Energetičtí mladí,žena,38,Praha,VŠ,30–50 tis.,7,7,7,5,7,5,7,5,8,7,4,5,6,6,7,6,4,5,8
+01R0318,Tradiční sladká chuť,žena,47,Středočeský,ZŠ / vyučení,80 tis. +,5,7,5,5,6,4,5,5,5,7,4,5,3,5,4,6,4,6,5
+01R0319,Energetičtí mladí,žena,25,Olomoucký,ZŠ / vyučení,50–80 tis.,7,6,8,8,6,5,10,5,10,7,5,3,4,6,7,6,4,4,5
+01R0320,Minerálka a zdraví,žena,27,Jihomoravský,VŠ,do 30 tis.,7,5,5,6,4,4,4,4,4,7,6,4,5,6,6,5,8,5,4
+01R0321,Aktivní bez cukru,muž,44,Plzeňský,SŠ s maturitou,do 30 tis.,8,2,4,8,6,10,5,7,6,4,9,3,7,9,4,5,7,3,6
+01R0322,Minerálka a zdraví,muž,31,Jihočeský,ZŠ / vyučení,do 30 tis.,9,3,7,7,7,6,4,6,5,7,8,5,8,7,4,6,7,5,4
+01R0323,Cenově citliví,žena,21,Olomoucký,SŠ s maturitou,50–80 tis.,7,2,5,7,8,6,4,5,5,6,9,6,8,8,4,6,8,5,7
+01R0324,Minerálka a zdraví,muž,25,Praha,SŠ s maturitou,50–80 tis.,9,4,4,5,5,6,5,5,4,8,7,7,6,6,4,3,8,5,3
+01R0325,Aktivní bez cukru,muž,59,Plzeňský,VŠ,80 tis. +,8,3,6,8,6,6,7,7,7,5,8,6,6,6,6,6,8,4,7
+01R0326,Tradiční sladká chuť,žena,33,Středočeský,SŠ s maturitou,do 30 tis.,5,7,7,5,6,6,3,6,3,3,4,5,5,3,6,5,4,5,6
+01R0327,Cenově citliví,žena,46,Ústecký,SŠ s maturitou,30–50 tis.,6,8,7,7,6,4,7,5,8,8,3,6,4,5,7,6,7,7,6
+01R0328,Minerálka a zdraví,žena,37,Olomoucký,ZŠ / vyučení,do 30 tis.,6,8,6,4,4,5,6,5,6,7,3,6,4,5,3,6,4,6,5
+01R0329,Tradiční sladká chuť,muž,55,Středočeský,SŠ s maturitou,30–50 tis.,6,9,5,8,5,4,5,4,4,6,2,7,4,2,4,6,3,7,7
+01R0330,Aktivní bez cukru,žena,37,Jihočeský,ZŠ / vyučení,50–80 tis.,10,2,5,6,8,9,8,7,7,4,9,5,10,8,7,8,8,6,5
+01R0331,Energetičtí mladí,muž,18,Ústecký,SŠ s maturitou,30–50 tis.,4,3,7,4,5,5,6,5,6,7,8,4,5,4,8,5,5,3,3
+01R0332,Tradiční sladká chuť,muž,46,Praha,VŠ,30–50 tis.,5,10,7,4,5,5,6,5,7,6,1,8,1,3,6,6,4,5,5
+01R0333,Cenově citliví,žena,37,Jihočeský,VŠ,30–50 tis.,5,6,2,9,8,6,7,5,6,7,5,8,8,5,2,5,4,5,9
+01R0334,Energetičtí mladí,muž,27,Olomoucký,SŠ s maturitou,80 tis. +,5,5,5,5,4,7,8,7,7,9,6,2,4,5,5,6,5,4,4
+01R0335,Minerálka a zdraví,muž,38,Moravskoslezský,ZŠ / vyučení,80 tis. +,8,3,5,5,3,4,4,5,4,7,8,2,7,7,5,4,7,3,3
+01R0336,Energetičtí mladí,muž,24,Praha,SŠ s maturitou,50–80 tis.,5,3,10,6,6,6,9,7,8,4,8,5,8,10,10,10,8,7,6
+01R0337,Aktivní bez cukru,žena,37,Ústecký,VŠ,do 30 tis.,9,3,5,4,7,9,5,8,5,2,8,4,9,7,5,4,8,2,4
+01R0338,Aktivní bez cukru,muž,50,Praha,VŠ,30–50 tis.,8,5,5,4,4,7,7,8,6,2,6,5,7,7,3,4,6,5,3
+01R0339,Aktivní bez cukru,muž,20,Středočeský,ZŠ / vyučení,80 tis. +,7,6,5,4,4,6,4,7,5,5,5,6,7,5,4,5,6,5,5
+01R0340,Aktivní bez cukru,žena,36,Jihomoravský,VŠ,30–50 tis.,8,5,7,5,5,7,7,9,7,1,6,3,7,6,6,8,7,4,3
+01R0341,Cenově citliví,muž,38,Moravskoslezský,ZŠ / vyučení,30–50 tis.,5,5,5,8,5,5,4,4,4,2,6,6,6,4,3,6,4,4,5
+01R0342,Energetičtí mladí,žena,18,Jihočeský,SŠ s maturitou,50–80 tis.,7,6,7,6,5,7,8,5,9,6,5,4,5,7,8,8,5,6,7
+01R0343,Tradiční sladká chuť,muž,55,Jihočeský,ZŠ / vyučení,30–50 tis.,7,8,6,3,6,5,5,4,6,8,3,7,2,3,4,5,5,7,5
+01R0344,Tradiční sladká chuť,žena,45,Praha,VŠ,30–50 tis.,4,5,4,6,7,6,4,7,6,6,6,6,5,5,4,4,6,4,5
+01R0345,Minerálka a zdraví,žena,47,Praha,ZŠ / vyučení,80 tis. +,8,4,4,5,5,7,4,6,5,6,7,6,7,6,3,4,9,4,5
+01R0346,Tradiční sladká chuť,žena,33,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,8,6,4,7,6,4,5,5,8,3,6,5,5,5,3,3,6,5
+01R0347,Aktivní bez cukru,muž,34,Jihomoravský,SŠ s maturitou,50–80 tis.,9,2,5,6,3,8,7,8,7,2,9,2,5,8,7,5,8,3,2
+01R0348,Cenově citliví,žena,68,Jihočeský,VŠ,80 tis. +,5,5,4,8,4,5,6,5,5,6,6,4,5,5,5,5,5,4,6
+01R0349,Tradiční sladká chuť,muž,28,Středočeský,VŠ,30–50 tis.,5,7,6,9,7,6,4,4,3,7,4,6,3,4,4,2,4,6,7
+01R0350,Minerálka a zdraví,žena,54,Středočeský,VŠ,30–50 tis.,9,5,5,7,2,2,6,3,7,5,6,4,4,9,6,6,9,4,4
+01R0351,Cenově citliví,muž,32,Jihomoravský,VŠ,30–50 tis.,7,7,4,7,4,6,6,5,6,4,4,5,6,7,6,6,6,6,5
+01R0352,Energetičtí mladí,muž,18,Středočeský,SŠ s maturitou,80 tis. +,6,5,8,5,4,7,7,7,6,4,6,3,7,6,9,8,7,4,4
+01R0353,Minerálka a zdraví,muž,37,Ústecký,SŠ s maturitou,30–50 tis.,9,6,4,4,6,6,6,6,6,4,5,4,6,6,3,3,7,5,6
+01R0354,Minerálka a zdraví,muž,38,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,6,6,6,4,6,6,6,6,5,5,5,5,7,6,6,6,5,6
+01R0355,Cenově citliví,muž,41,Olomoucký,SŠ s maturitou,30–50 tis.,7,6,5,10,4,6,6,6,5,6,5,4,5,5,4,4,5,5,5
+01R0356,Energetičtí mladí,žena,29,Jihočeský,SŠ s maturitou,50–80 tis.,6,6,7,7,6,7,8,7,7,6,5,5,6,6,6,8,5,7,6
+01R0357,Aktivní bez cukru,muž,37,Moravskoslezský,VŠ,do 30 tis.,9,4,6,6,6,6,5,8,5,1,7,5,5,6,5,6,8,4,5
+01R0358,Aktivní bez cukru,muž,31,Plzeňský,ZŠ / vyučení,do 30 tis.,7,3,6,6,6,8,5,6,6,1,8,3,8,7,7,4,8,5,5
+01R0359,Tradiční sladká chuť,muž,37,Praha,VŠ,30–50 tis.,6,6,5,5,7,8,4,6,3,4,5,7,8,5,5,5,6,5,7
+01R0360,Energetičtí mladí,muž,18,Jihočeský,SŠ s maturitou,50–80 tis.,7,4,8,5,7,6,7,6,7,4,7,6,7,8,8,7,8,5,6
+01R0361,Minerálka a zdraví,muž,49,Praha,SŠ s maturitou,50–80 tis.,8,5,6,5,2,5,5,6,5,7,6,1,5,5,5,4,7,3,2
+01R0362,Tradiční sladká chuť,žena,47,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,9,3,5,6,6,3,5,3,5,2,8,5,3,6,4,5,7,7
+01R0363,Energetičtí mladí,muž,18,Jihomoravský,SŠ s maturitou,30–50 tis.,3,7,9,5,7,6,7,6,7,3,4,8,5,4,10,8,4,6,5
+01R0364,Minerálka a zdraví,žena,34,Středočeský,VŠ,do 30 tis.,9,4,6,5,5,7,6,7,4,3,7,5,7,7,5,6,7,3,5
+01R0365,Aktivní bez cukru,muž,54,Jihomoravský,ZŠ / vyučení,do 30 tis.,6,1,6,5,7,6,5,6,6,1,10,4,7,7,4,6,7,3,3
+01R0366,Aktivní bez cukru,žena,57,Jihočeský,ZŠ / vyučení,30–50 tis.,8,3,6,4,7,7,5,8,6,6,8,5,9,7,8,6,9,6,5
+01R0367,Cenově citliví,muž,61,Olomoucký,SŠ s maturitou,80 tis. +,5,8,8,6,5,5,6,6,4,5,3,7,3,3,6,8,5,5,5
+01R0368,Cenově citliví,muž,26,Ústecký,SŠ s maturitou,50–80 tis.,5,4,6,8,4,4,6,7,8,9,7,3,7,6,5,6,6,6,5
+01R0369,Energetičtí mladí,žena,18,Olomoucký,SŠ s maturitou,80 tis. +,5,5,9,6,4,9,6,7,4,4,6,6,7,7,10,6,7,6,6
+01R0370,Energetičtí mladí,žena,44,Praha,ZŠ / vyučení,50–80 tis.,6,4,7,8,5,7,7,8,7,6,7,3,6,7,7,6,5,3,5
+01R0371,Minerálka a zdraví,žena,46,Olomoucký,SŠ s maturitou,50–80 tis.,9,5,7,5,6,5,5,5,5,7,6,5,8,7,6,5,7,3,6
+01R0372,Aktivní bez cukru,žena,18,Moravskoslezský,VŠ,do 30 tis.,8,3,4,8,5,10,6,7,6,5,8,3,7,8,4,4,8,3,3
+01R0373,Energetičtí mladí,muž,42,Moravskoslezský,SŠ s maturitou,30–50 tis.,4,7,8,6,5,6,7,5,6,3,4,7,2,3,7,9,3,5,5
+01R0374,Energetičtí mladí,žena,34,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,5,8,4,5,6,9,4,9,2,6,4,7,5,7,7,8,3,6
+01R0375,Aktivní bez cukru,žena,33,Středočeský,VŠ,do 30 tis.,6,2,6,5,6,9,5,10,6,6,9,3,8,8,4,4,6,2,4
+01R0376,Tradiční sladká chuť,muž,25,Moravskoslezský,SŠ s maturitou,do 30 tis.,5,5,4,3,6,7,4,6,5,3,6,5,7,6,6,4,6,6,5
+01R0377,Cenově citliví,žena,22,Středočeský,VŠ,do 30 tis.,9,5,5,8,7,7,5,7,5,6,6,7,10,8,5,5,9,5,6
+01R0378,Tradiční sladká chuť,muž,18,Jihočeský,VŠ,do 30 tis.,6,7,5,5,6,8,5,8,3,5,4,8,7,4,6,4,6,5,5
+01R0379,Energetičtí mladí,muž,18,Ústecký,SŠ s maturitou,30–50 tis.,6,5,7,6,5,6,7,6,8,3,6,5,7,5,7,6,5,5,5
+01R0380,Energetičtí mladí,žena,18,Jihomoravský,SŠ s maturitou,30–50 tis.,5,6,8,5,4,7,6,7,7,3,5,7,6,7,7,9,5,7,6
+01R0381,Cenově citliví,muž,41,Jihomoravský,SŠ s maturitou,30–50 tis.,7,6,7,8,5,2,5,2,6,6,5,5,5,8,6,7,5,6,5
+01R0382,Energetičtí mladí,muž,18,Středočeský,SŠ s maturitou,30–50 tis.,6,4,6,5,5,4,8,5,8,4,7,6,4,8,4,8,6,6,4
+01R0383,Energetičtí mladí,muž,18,Olomoucký,SŠ s maturitou,50–80 tis.,7,6,7,5,5,8,6,9,4,6,5,5,6,3,6,6,5,5,4
+01R0384,Cenově citliví,muž,44,Jihočeský,SŠ s maturitou,50–80 tis.,4,5,6,6,6,4,5,5,3,5,6,5,4,5,5,5,4,5,6
+01R0385,Cenově citliví,žena,40,Olomoucký,SŠ s maturitou,do 30 tis.,4,5,5,9,6,4,5,5,5,6,6,5,5,5,2,6,5,4,5
+01R0386,Aktivní bez cukru,muž,37,Jihomoravský,SŠ s maturitou,30–50 tis.,9,2,6,8,5,8,5,9,4,3,9,3,8,8,5,6,8,3,5
+01R0387,Minerálka a zdraví,muž,43,Olomoucký,VŠ,30–50 tis.,8,4,6,6,5,4,5,5,5,5,7,5,7,6,5,6,7,4,6
+01R0388,Tradiční sladká chuť,žena,18,Středočeský,SŠ s maturitou,do 30 tis.,6,8,5,6,6,6,3,5,3,8,3,8,5,4,4,4,5,7,7
+01R0389,Minerálka a zdraví,muž,43,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,5,6,7,7,5,6,5,5,5,6,5,8,6,7,7,7,7,7
+01R0390,Energetičtí mladí,muž,23,Praha,VŠ,30–50 tis.,3,6,7,5,5,4,7,5,7,3,5,6,5,6,10,7,4,7,7
+01R0391,Cenově citliví,žena,27,Jihočeský,SŠ s maturitou,50–80 tis.,5,3,5,8,5,7,4,8,3,5,8,5,9,7,6,4,6,5,7
+01R0392,Energetičtí mladí,žena,18,Plzeňský,VŠ,50–80 tis.,6,5,8,5,5,7,7,5,7,7,6,6,5,6,7,8,5,5,5
+01R0393,Cenově citliví,muž,39,Středočeský,SŠ s maturitou,80 tis. +,2,4,7,8,6,5,7,7,7,6,7,4,3,4,7,7,5,4,6
+01R0394,Cenově citliví,muž,18,Jihočeský,SŠ s maturitou,30–50 tis.,7,7,6,8,7,5,6,5,7,6,4,7,7,4,6,6,6,5,7
+01R0395,Energetičtí mladí,žena,53,Jihomoravský,ZŠ / vyučení,30–50 tis.,8,6,7,5,4,6,6,5,7,4,5,7,7,7,7,8,6,7,5
+01R0396,Cenově citliví,muž,27,Jihočeský,VŠ,30–50 tis.,4,6,6,9,5,6,6,6,5,8,5,6,4,5,6,7,4,5,4
+01R0397,Tradiční sladká chuť,muž,53,Olomoucký,ZŠ / vyučení,80 tis. +,3,10,5,4,5,6,1,6,3,6,1,6,3,1,4,4,2,6,6
+01R0398,Minerálka a zdraví,žena,45,Praha,SŠ s maturitou,30–50 tis.,8,3,5,4,5,6,6,7,6,7,8,5,8,8,5,6,8,5,5
+01R0399,Cenově citliví,žena,53,Ústecký,ZŠ / vyučení,do 30 tis.,5,5,7,8,5,6,5,5,4,3,6,5,5,6,6,6,5,5,5
+01R0400,Tradiční sladká chuť,žena,47,Olomoucký,ZŠ / vyučení,30–50 tis.,2,8,4,7,5,5,5,7,5,3,3,6,2,1,4,2,2,6,3
+01R0401,Minerálka a zdraví,muž,36,Jihočeský,SŠ s maturitou,do 30 tis.,6,3,5,5,4,5,8,3,7,3,8,2,6,8,7,6,5,3,2
+01R0402,Cenově citliví,muž,38,Moravskoslezský,VŠ,do 30 tis.,7,4,6,7,5,6,6,7,6,7,7,4,7,7,6,6,6,3,5
+01R0403,Minerálka a zdraví,muž,34,Ústecký,SŠ s maturitou,50–80 tis.,9,4,5,4,6,6,4,7,4,4,7,5,6,5,5,5,6,5,4
+01R0404,Tradiční sladká chuť,muž,51,Praha,SŠ s maturitou,do 30 tis.,8,8,5,6,7,5,4,2,3,7,3,7,4,6,5,4,5,6,9
+01R0405,Minerálka a zdraví,žena,36,Plzeňský,SŠ s maturitou,do 30 tis.,8,4,5,7,6,5,6,6,5,5,7,5,7,6,4,5,7,4,6
+01R0406,Tradiční sladká chuť,žena,54,Plzeňský,SŠ s maturitou,30–50 tis.,5,8,5,6,5,6,5,6,4,5,3,7,7,5,6,5,5,8,7
+01R0407,Tradiční sladká chuť,žena,41,Praha,SŠ s maturitou,30–50 tis.,5,8,5,8,8,5,4,5,5,9,3,6,4,2,3,3,2,4,7
+01R0408,Energetičtí mladí,muž,18,Praha,SŠ s maturitou,30–50 tis.,6,7,7,6,6,7,8,7,8,7,4,5,5,5,7,7,5,7,6
+01R0409,Energetičtí mladí,žena,18,Jihomoravský,ZŠ / vyučení,30–50 tis.,7,5,8,5,5,5,7,4,9,5,6,4,4,6,6,7,5,3,5
+01R0410,Energetičtí mladí,žena,18,Jihočeský,VŠ,30–50 tis.,6,7,9,5,6,6,9,5,8,5,4,5,5,5,10,10,6,7,5
+01R0411,Energetičtí mladí,žena,18,Jihomoravský,VŠ,30–50 tis.,6,4,8,6,6,5,9,5,8,6,7,4,6,8,10,9,7,7,5
+01R0412,Energetičtí mladí,muž,38,Praha,VŠ,50–80 tis.,5,6,8,7,6,8,7,8,5,6,5,6,6,5,8,6,4,5,4
+01R0413,Aktivní bez cukru,muž,35,Jihočeský,VŠ,50–80 tis.,6,1,8,6,7,10,7,10,7,2,10,3,8,8,7,8,7,3,5
+01R0414,Cenově citliví,muž,50,Praha,ZŠ / vyučení,do 30 tis.,4,7,7,6,5,7,6,7,8,6,4,5,3,3,6,6,3,6,7
+01R0415,Aktivní bez cukru,žena,44,Praha,ZŠ / vyučení,do 30 tis.,8,2,5,7,4,7,4,6,5,2,9,3,7,9,4,5,8,1,3
+01R0416,Minerálka a zdraví,žena,37,Středočeský,ZŠ / vyučení,80 tis. +,5,5,5,6,6,5,6,5,8,4,6,4,6,5,5,5,7,6,5
+01R0417,Cenově citliví,muž,35,Plzeňský,SŠ s maturitou,30–50 tis.,3,5,5,8,7,4,5,6,4,5,6,4,4,5,4,6,4,4,5
+01R0418,Minerálka a zdraví,muž,46,Jihočeský,SŠ s maturitou,do 30 tis.,10,5,6,5,5,4,6,5,5,1,6,5,6,7,7,4,8,5,6
+01R0419,Aktivní bez cukru,muž,53,Středočeský,VŠ,50–80 tis.,8,3,6,7,7,7,7,7,6,3,8,6,9,8,8,6,8,4,5
+01R0420,Energetičtí mladí,muž,31,Plzeňský,SŠ s maturitou,50–80 tis.,5,5,8,4,6,5,6,4,4,1,6,4,6,4,5,6,5,9,5
+01R0421,Cenově citliví,žena,43,Ústecký,SŠ s maturitou,30–50 tis.,5,7,5,10,6,5,6,6,7,7,4,7,5,5,4,6,2,8,8
+01R0422,Tradiční sladká chuť,žena,27,Jihomoravský,VŠ,do 30 tis.,7,8,7,5,7,6,5,7,5,9,3,8,4,4,6,7,4,7,7
+01R0423,Minerálka a zdraví,žena,24,Jihočeský,SŠ s maturitou,30–50 tis.,6,5,6,4,5,6,6,5,6,6,6,3,5,4,6,5,4,7,4
+01R0424,Tradiční sladká chuť,žena,52,Moravskoslezský,SŠ s maturitou,80 tis. +,7,9,7,8,6,5,5,6,5,6,2,7,4,3,7,7,5,6,7
+01R0425,Cenově citliví,muž,30,Plzeňský,SŠ s maturitou,30–50 tis.,4,5,3,7,6,6,4,8,6,6,6,3,5,4,3,6,4,4,6
+01R0426,Tradiční sladká chuť,muž,38,Olomoucký,SŠ s maturitou,30–50 tis.,6,7,8,3,7,5,5,5,5,6,4,5,6,4,6,6,5,7,7
+01R0427,Tradiční sladká chuť,muž,20,Olomoucký,SŠ s maturitou,do 30 tis.,6,8,3,7,6,8,4,7,5,6,3,8,3,5,3,3,5,6,6
+01R0428,Energetičtí mladí,muž,38,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,7,6,5,5,4,8,5,6,5,4,9,5,3,6,4,6,5,5
+01R0429,Aktivní bez cukru,muž,38,Praha,VŠ,do 30 tis.,8,3,6,8,6,5,7,6,7,4,8,5,9,8,6,8,8,4,5
+01R0430,Cenově citliví,žena,36,Středočeský,VŠ,do 30 tis.,5,5,5,8,5,4,5,4,4,7,6,6,5,6,6,5,4,2,4
+01R0431,Minerálka a zdraví,muž,59,Jihomoravský,VŠ,30–50 tis.,7,3,5,7,3,6,6,7,7,3,8,3,6,6,6,5,7,5,3
+01R0432,Aktivní bez cukru,žena,33,Plzeňský,ZŠ / vyučení,30–50 tis.,6,3,6,6,6,10,7,9,8,2,8,5,6,6,5,5,7,3,5
+01R0433,Energetičtí mladí,žena,20,Jihočeský,SŠ s maturitou,50–80 tis.,6,6,6,6,5,8,6,7,4,7,5,4,6,6,6,5,6,5,5
+01R0434,Minerálka a zdraví,muž,52,Praha,SŠ s maturitou,do 30 tis.,8,5,5,5,6,6,3,7,3,10,6,6,7,6,4,4,7,5,3
+01R0435,Cenově citliví,žena,26,Plzeňský,ZŠ / vyučení,50–80 tis.,6,4,5,8,6,4,6,4,7,5,7,4,6,7,5,5,8,5,6
+01R0436,Tradiční sladká chuť,muž,45,Olomoucký,SŠ s maturitou,50–80 tis.,7,6,5,5,7,8,3,6,4,4,5,5,5,5,3,3,5,6,6
+01R0437,Tradiční sladká chuť,žena,42,Jihomoravský,VŠ,30–50 tis.,4,6,6,5,7,7,5,8,7,5,5,6,5,4,6,5,5,7,7
+01R0438,Aktivní bez cukru,žena,39,Jihočeský,SŠ s maturitou,30–50 tis.,8,4,6,5,6,7,7,7,8,3,7,6,7,5,7,5,8,4,6
+01R0439,Tradiční sladká chuť,muž,25,Olomoucký,SŠ s maturitou,30–50 tis.,6,8,4,5,8,6,5,5,5,3,3,8,5,4,4,3,6,5,7
+01R0440,Cenově citliví,muž,55,Olomoucký,VŠ,30–50 tis.,5,4,5,8,6,5,4,5,5,1,7,3,5,6,4,5,4,4,6
+01R0441,Energetičtí mladí,žena,18,Plzeňský,SŠ s maturitou,do 30 tis.,6,6,8,7,4,5,8,6,7,8,5,4,4,6,7,6,5,5,5
+01R0442,Minerálka a zdraví,žena,34,Ústecký,ZŠ / vyučení,80 tis. +,8,3,5,8,7,6,5,6,3,8,8,5,9,7,6,6,8,6,5
+01R0443,Cenově citliví,žena,52,Moravskoslezský,ZŠ / vyučení,30–50 tis.,5,5,6,9,5,5,5,4,6,4,6,2,6,6,3,4,7,4,5
+01R0444,Tradiční sladká chuť,muž,18,Praha,SŠ s maturitou,do 30 tis.,6,9,6,7,9,6,3,7,4,6,2,7,4,3,7,3,5,7,7
+01R0445,Cenově citliví,muž,31,Jihomoravský,SŠ s maturitou,80 tis. +,5,4,6,9,6,5,7,6,8,3,7,5,5,6,7,7,5,4,7
+01R0446,Tradiční sladká chuť,žena,33,Jihomoravský,VŠ,80 tis. +,7,6,5,4,8,5,6,5,7,3,5,6,4,5,3,4,4,6,5
+01R0447,Energetičtí mladí,muž,22,Středočeský,VŠ,30–50 tis.,5,6,8,6,5,5,7,4,8,5,5,5,7,4,6,7,6,5,6
+01R0448,Energetičtí mladí,muž,43,Praha,ZŠ / vyučení,30–50 tis.,6,5,8,4,6,6,6,5,5,7,6,5,6,5,6,5,5,5,3
+01R0449,Tradiční sladká chuť,žena,50,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,9,6,7,7,6,5,4,5,6,2,7,3,5,4,6,5,8,8
+01R0450,Aktivní bez cukru,žena,41,Plzeňský,SŠ s maturitou,80 tis. +,7,3,5,6,5,7,9,8,7,4,8,3,7,7,7,7,4,3,4
+01R0451,Aktivní bez cukru,muž,41,Ústecký,VŠ,30–50 tis.,8,3,6,6,5,7,9,7,9,5,8,4,8,8,6,8,8,7,5
+01R0452,Aktivní bez cukru,žena,45,Jihočeský,VŠ,do 30 tis.,7,4,3,7,7,8,6,8,5,3,7,8,10,9,5,7,9,4,6
+01R0453,Energetičtí mladí,muž,45,Moravskoslezský,VŠ,50–80 tis.,6,6,7,7,5,7,7,7,7,3,5,4,4,5,7,7,4,5,5
+01R0454,Tradiční sladká chuť,muž,43,Jihomoravský,SŠ s maturitou,30–50 tis.,8,8,6,4,6,3,5,5,7,10,3,7,5,3,6,4,6,7,5
+01R0455,Minerálka a zdraví,žena,28,Praha,SŠ s maturitou,do 30 tis.,8,3,5,5,5,5,8,5,7,4,8,4,7,8,7,6,7,5,5
+01R0456,Cenově citliví,žena,56,Praha,ZŠ / vyučení,50–80 tis.,4,4,6,6,5,4,3,5,5,6,7,4,7,4,5,5,5,3,4
+01R0457,Tradiční sladká chuť,muž,31,Jihočeský,ZŠ / vyučení,do 30 tis.,3,7,7,5,7,6,4,5,4,4,4,7,7,4,5,6,4,7,7
+01R0458,Tradiční sladká chuť,muž,26,Ústecký,SŠ s maturitou,30–50 tis.,5,8,3,5,7,5,6,4,7,3,3,8,4,5,4,4,4,7,7
+01R0459,Minerálka a zdraví,muž,41,Moravskoslezský,SŠ s maturitou,30–50 tis.,8,2,5,5,5,4,4,4,4,7,9,1,7,7,3,4,5,3,2
+01R0460,Minerálka a zdraví,žena,42,Ústecký,SŠ s maturitou,50–80 tis.,8,2,6,4,6,4,6,4,6,5,9,3,7,9,6,6,8,4,3
+01R0461,Tradiční sladká chuť,žena,47,Moravskoslezský,ZŠ / vyučení,do 30 tis.,5,9,6,6,5,6,5,6,5,5,2,7,4,2,6,7,3,6,7
+01R0462,Aktivní bez cukru,žena,37,Jihočeský,VŠ,30–50 tis.,8,2,5,5,5,9,5,9,5,4,9,3,7,8,5,4,7,4,4
+01R0463,Tradiční sladká chuť,muž,40,Praha,SŠ s maturitou,80 tis. +,6,8,5,5,7,5,4,6,4,2,3,8,4,2,3,3,4,6,8
+01R0464,Tradiční sladká chuť,žena,18,Jihomoravský,VŠ,50–80 tis.,6,7,6,7,7,5,5,5,6,5,4,6,5,4,3,6,6,6,8
+01R0465,Tradiční sladká chuť,žena,54,Jihočeský,ZŠ / vyučení,30–50 tis.,6,8,4,3,7,7,7,7,7,5,3,9,4,3,4,5,6,8,6
+01R0466,Aktivní bez cukru,muž,55,Olomoucký,VŠ,80 tis. +,9,4,7,8,5,8,5,7,5,3,7,3,7,6,5,4,7,3,5
+01R0467,Energetičtí mladí,muž,27,Olomoucký,VŠ,do 30 tis.,5,5,7,6,6,6,8,5,7,4,6,4,3,5,6,7,4,5,6
+01R0468,Energetičtí mladí,žena,27,Olomoucký,ZŠ / vyučení,30–50 tis.,5,5,9,7,5,5,8,4,7,7,6,6,6,5,8,8,6,5,6
+01R0469,Cenově citliví,žena,33,Moravskoslezský,VŠ,30–50 tis.,5,5,6,8,6,5,5,5,5,1,6,3,6,5,5,3,6,5,6
+01R0470,Tradiční sladká chuť,žena,38,Plzeňský,SŠ s maturitou,30–50 tis.,6,7,5,5,7,8,4,8,5,4,4,5,7,3,4,4,5,6,7
+01R0471,Minerálka a zdraví,muž,43,Plzeňský,ZŠ / vyučení,50–80 tis.,7,5,5,5,4,5,6,4,4,2,6,5,4,5,5,4,8,4,5
+01R0472,Tradiční sladká chuť,muž,36,Plzeňský,SŠ s maturitou,do 30 tis.,6,6,4,3,8,5,4,6,5,6,5,7,6,4,3,4,6,6,6
+01R0473,Aktivní bez cukru,muž,53,Plzeňský,SŠ s maturitou,30–50 tis.,7,2,8,6,7,7,5,7,4,3,9,4,8,9,7,6,8,6,7
+01R0474,Tradiční sladká chuť,žena,31,Jihomoravský,SŠ s maturitou,30–50 tis.,3,7,5,5,6,5,4,5,5,2,4,7,4,3,6,6,4,8,7
+01R0475,Minerálka a zdraví,muž,42,Středočeský,VŠ,30–50 tis.,5,3,6,4,5,6,6,6,6,7,8,5,6,5,5,5,7,4,4
+01R0476,Minerálka a zdraví,muž,32,Jihomoravský,ZŠ / vyučení,30–50 tis.,6,3,6,7,5,7,5,8,5,7,8,4,6,7,3,4,5,4,3
+01R0477,Cenově citliví,žena,54,Plzeňský,VŠ,50–80 tis.,6,5,4,8,5,6,7,7,6,8,6,7,4,6,6,5,5,6,4
+01R0478,Cenově citliví,muž,18,Praha,VŠ,30–50 tis.,3,6,5,7,6,6,5,4,6,5,5,6,6,5,5,6,4,6,6
+01R0479,Tradiční sladká chuť,žena,18,Jihomoravský,SŠ s maturitou,30–50 tis.,6,9,7,4,7,4,4,4,6,7,2,9,5,2,6,6,5,7,8
+01R0480,Energetičtí mladí,žena,31,Jihomoravský,VŠ,30–50 tis.,5,6,7,5,6,8,10,6,8,3,5,5,7,6,5,8,4,4,7
+01R0481,Energetičtí mladí,žena,22,Plzeňský,VŠ,50–80 tis.,4,6,9,8,5,6,5,5,6,6,5,7,5,4,7,6,5,6,7
+01R0482,Aktivní bez cukru,muž,51,Praha,ZŠ / vyučení,50–80 tis.,7,2,5,5,8,5,6,7,6,6,9,4,7,8,5,5,9,4,3
+01R0483,Minerálka a zdraví,žena,29,Středočeský,ZŠ / vyučení,50–80 tis.,9,5,5,6,5,4,6,3,6,6,6,4,9,6,5,5,10,6,5
+01R0484,Minerálka a zdraví,muž,42,Jihočeský,VŠ,30–50 tis.,9,3,6,5,4,5,5,5,6,5,8,5,9,8,4,7,7,4,3
+01R0485,Tradiční sladká chuť,muž,46,Moravskoslezský,ZŠ / vyučení,30–50 tis.,4,10,4,6,7,5,6,5,5,7,1,9,3,2,5,5,2,9,9
+01R0486,Energetičtí mladí,muž,31,Praha,SŠ s maturitou,do 30 tis.,6,7,9,5,5,6,6,7,6,4,4,6,6,5,9,6,4,6,4
+01R0487,Tradiční sladká chuť,muž,44,Ústecký,SŠ s maturitou,30–50 tis.,6,7,6,5,8,5,5,5,5,6,4,7,5,5,4,5,3,7,6
+01R0488,Energetičtí mladí,muž,24,Plzeňský,VŠ,30–50 tis.,7,4,7,4,4,5,9,5,8,5,7,4,7,7,7,9,7,4,4
+01R0489,Aktivní bez cukru,žena,44,Plzeňský,VŠ,50–80 tis.,7,3,5,6,5,8,4,9,4,7,8,4,6,6,6,4,7,6,5
+01R0490,Cenově citliví,muž,25,Moravskoslezský,VŠ,50–80 tis.,5,6,4,6,4,5,6,6,6,6,5,5,4,6,4,4,5,6,5
+01R0491,Cenově citliví,žena,40,Středočeský,ZŠ / vyučení,do 30 tis.,8,7,7,7,3,5,9,6,8,6,4,5,6,5,7,7,5,6,5
+01R0492,Cenově citliví,žena,36,Jihomoravský,SŠ s maturitou,do 30 tis.,5,6,7,9,5,5,7,5,7,4,5,5,3,4,6,6,4,7,7
+01R0493,Tradiční sladká chuť,muž,52,Praha,SŠ s maturitou,30–50 tis.,7,7,5,6,8,7,6,7,7,6,4,7,8,5,7,6,7,8,7
+01R0494,Tradiční sladká chuť,žena,49,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,8,6,6,6,6,6,6,5,7,3,6,4,2,6,7,6,6,8
+01R0495,Minerálka a zdraví,muž,34,Olomoucký,ZŠ / vyučení,do 30 tis.,9,4,7,6,5,6,5,5,3,6,7,4,9,6,5,5,8,4,5
+01R0496,Cenově citliví,žena,59,Olomoucký,SŠ s maturitou,do 30 tis.,6,4,5,9,6,5,6,5,6,7,7,7,7,8,5,6,7,6,5
+01R0497,Energetičtí mladí,žena,24,Jihočeský,SŠ s maturitou,30–50 tis.,6,5,8,5,5,6,10,6,9,3,6,4,5,6,7,9,4,3,4
+01R0498,Tradiční sladká chuť,muž,39,Jihomoravský,ZŠ / vyučení,do 30 tis.,4,6,8,5,7,6,3,4,3,8,5,6,6,4,5,6,5,7,7
+01R0499,Cenově citliví,muž,37,Olomoucký,SŠ s maturitou,80 tis. +,6,5,4,8,6,8,6,9,6,7,6,5,5,6,4,3,7,6,5
+01R0500,Minerálka a zdraví,muž,25,Ústecký,VŠ,30–50 tis.,7,5,8,7,4,5,6,4,8,5,6,5,4,7,6,7,6,6,5
+01R0501,Tradiční sladká chuť,žena,41,Středočeský,ZŠ / vyučení,80 tis. +,4,8,5,5,10,5,4,5,6,1,3,9,8,5,4,9,4,8,10
+01R0502,Minerálka a zdraví,muž,23,Olomoucký,ZŠ / vyučení,30–50 tis.,8,4,6,4,5,4,6,4,7,7,7,3,8,8,5,6,7,5,5
+01R0503,Energetičtí mladí,muž,22,Ústecký,SŠ s maturitou,30–50 tis.,7,5,7,6,3,7,5,6,6,5,6,5,4,4,5,6,4,6,5
+01R0504,Cenově citliví,žena,57,Praha,ZŠ / vyučení,50–80 tis.,6,6,5,10,7,6,6,5,7,5,5,7,6,4,4,6,6,4,7
+01R0505,Aktivní bez cukru,muž,21,Moravskoslezský,ZŠ / vyučení,50–80 tis.,7,2,7,5,4,8,8,8,8,3,9,3,7,10,9,7,7,3,3
+01R0506,Cenově citliví,muž,22,Plzeňský,SŠ s maturitou,50–80 tis.,5,6,6,8,9,5,8,5,7,2,5,6,6,5,5,8,5,5,6
+01R0507,Energetičtí mladí,muž,44,Ústecký,SŠ s maturitou,50–80 tis.,4,4,8,6,7,7,8,6,7,7,7,7,9,8,8,10,6,5,6
+01R0508,Tradiční sladká chuť,žena,47,Ústecký,ZŠ / vyučení,80 tis. +,6,10,6,7,8,5,3,4,3,3,1,9,4,3,5,5,4,9,9
+01R0509,Cenově citliví,muž,47,Ústecký,VŠ,do 30 tis.,4,3,5,8,4,6,5,8,6,5,8,5,5,6,5,2,4,5,4
+01R0510,Tradiční sladká chuť,muž,18,Jihomoravský,ZŠ / vyučení,30–50 tis.,4,7,6,3,7,6,6,6,5,4,4,7,5,5,5,6,4,7,6
+01R0511,Minerálka a zdraví,žena,36,Plzeňský,VŠ,80 tis. +,7,5,6,3,6,5,7,6,6,6,6,5,5,5,5,5,5,5,4
+01R0512,Aktivní bez cukru,muž,21,Ústecký,ZŠ / vyučení,30–50 tis.,8,4,5,7,5,10,8,10,8,4,7,3,6,8,6,7,7,5,5
+01R0513,Energetičtí mladí,žena,28,Jihomoravský,VŠ,do 30 tis.,6,6,8,5,7,5,9,7,7,10,5,7,6,5,5,7,5,5,4
+01R0514,Cenově citliví,muž,29,Plzeňský,VŠ,do 30 tis.,5,5,5,9,7,4,4,6,5,5,6,5,6,6,4,5,5,4,7
+01R0515,Energetičtí mladí,žena,20,Středočeský,SŠ s maturitou,80 tis. +,7,5,10,5,5,7,9,7,9,7,6,3,6,7,9,8,6,6,5
+01R0516,Minerálka a zdraví,muž,34,Středočeský,ZŠ / vyučení,50–80 tis.,8,4,5,6,5,4,7,5,7,6,7,4,4,6,4,5,6,5,5
+01R0517,Tradiční sladká chuť,žena,30,Jihočeský,ZŠ / vyučení,do 30 tis.,6,7,9,5,8,5,5,4,5,6,4,8,4,4,7,6,4,7,8
+01R0518,Aktivní bez cukru,žena,42,Plzeňský,ZŠ / vyučení,do 30 tis.,8,2,6,6,8,8,6,6,7,1,9,4,8,8,7,7,9,3,7
+01R0519,Cenově citliví,muž,27,Olomoucký,SŠ s maturitou,50–80 tis.,8,8,5,8,6,9,5,7,5,7,3,5,6,6,4,4,5,7,5
+01R0520,Tradiční sladká chuť,muž,50,Středočeský,ZŠ / vyučení,30–50 tis.,5,7,5,6,7,5,3,5,3,5,4,7,6,3,5,5,5,7,5
+01R0521,Minerálka a zdraví,žena,34,Ústecký,ZŠ / vyučení,50–80 tis.,7,3,6,6,6,6,4,5,4,6,8,3,7,7,6,4,7,3,5
+01R0522,Cenově citliví,žena,50,Moravskoslezský,SŠ s maturitou,30–50 tis.,4,7,8,7,4,5,5,6,5,5,4,7,3,4,6,6,5,7,6
+01R0523,Minerálka a zdraví,žena,23,Moravskoslezský,VŠ,50–80 tis.,6,5,3,6,3,6,5,6,7,9,6,5,8,6,4,5,6,5,6
+01R0524,Minerálka a zdraví,žena,38,Plzeňský,VŠ,do 30 tis.,9,4,7,7,7,5,6,4,5,6,7,4,7,8,5,3,7,6,5
+01R0525,Aktivní bez cukru,žena,42,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,5,5,5,3,9,6,8,5,3,6,6,5,5,6,5,7,6,4
+01R0526,Cenově citliví,muž,26,Ústecký,VŠ,50–80 tis.,6,3,6,10,4,6,4,6,3,7,8,4,8,9,7,6,6,4,3
+01R0527,Minerálka a zdraví,muž,39,Jihočeský,SŠ s maturitou,50–80 tis.,6,4,6,5,4,6,3,7,4,5,7,5,6,6,5,6,7,5,4
+01R0528,Cenově citliví,muž,43,Jihočeský,VŠ,80 tis. +,4,4,5,6,7,6,6,7,6,5,7,6,7,5,5,6,6,5,7
+01R0529,Aktivní bez cukru,muž,43,Olomoucký,ZŠ / vyučení,30–50 tis.,10,2,6,6,5,7,6,6,6,7,9,5,8,8,6,5,8,1,5
+01R0530,Tradiční sladká chuť,muž,39,Středočeský,VŠ,50–80 tis.,7,7,7,6,6,5,7,5,7,8,4,6,5,2,5,7,5,4,6
+01R0531,Aktivní bez cukru,žena,28,Jihomoravský,VŠ,do 30 tis.,9,3,6,7,5,8,6,7,8,6,8,4,7,7,5,7,7,6,5
+01R0532,Minerálka a zdraví,žena,34,Středočeský,SŠ s maturitou,do 30 tis.,9,4,7,9,5,7,6,6,6,5,7,4,8,9,7,8,9,5,4
+01R0533,Tradiční sladká chuť,muž,57,Ústecký,SŠ s maturitou,30–50 tis.,4,8,6,4,8,6,7,6,7,7,3,9,5,3,6,5,2,8,7
+01R0534,Tradiční sladká chuť,žena,18,Středočeský,VŠ,do 30 tis.,7,7,4,6,8,6,6,6,7,5,4,8,6,7,5,4,8,7,8
+01R0535,Tradiční sladká chuť,muž,44,Ústecký,SŠ s maturitou,80 tis. +,5,5,6,5,7,4,4,5,6,1,6,5,6,5,8,3,5,6,5
+01R0536,Energetičtí mladí,muž,21,Jihočeský,SŠ s maturitou,do 30 tis.,6,2,8,5,7,7,6,9,7,4,9,4,8,8,8,7,9,3,4
+01R0537,Aktivní bez cukru,žena,40,Jihočeský,ZŠ / vyučení,30–50 tis.,9,4,3,7,7,7,7,6,6,4,7,7,9,9,4,3,8,8,7
+01R0538,Tradiční sladká chuť,muž,25,Ústecký,ZŠ / vyučení,do 30 tis.,5,9,3,6,7,5,4,5,5,8,2,7,4,4,2,4,5,7,8
+01R0539,Tradiční sladká chuť,žena,47,Jihomoravský,VŠ,30–50 tis.,6,8,3,5,8,7,4,5,6,2,3,7,4,3,4,5,6,7,8
+01R0540,Tradiční sladká chuť,žena,59,Ústecký,VŠ,30–50 tis.,5,10,5,6,7,5,5,5,5,6,1,8,3,3,2,6,2,8,7
+01R0541,Tradiční sladká chuť,žena,51,Ústecký,ZŠ / vyučení,30–50 tis.,3,6,6,6,9,6,7,4,6,5,5,6,6,4,5,6,3,5,8
+01R0542,Aktivní bez cukru,žena,66,Jihočeský,SŠ s maturitou,30–50 tis.,8,3,8,6,6,9,7,7,8,3,8,5,8,7,7,7,8,4,4
+01R0543,Cenově citliví,žena,22,Plzeňský,SŠ s maturitou,do 30 tis.,7,7,5,7,5,8,3,9,4,5,4,6,6,4,2,6,6,5,5
+01R0544,Aktivní bez cukru,žena,42,Středočeský,SŠ s maturitou,do 30 tis.,7,1,6,6,6,8,7,8,6,7,10,2,8,8,6,7,8,4,4
+01R0545,Minerálka a zdraví,muž,41,Ústecký,SŠ s maturitou,do 30 tis.,9,5,7,6,4,4,6,3,5,4,6,2,5,7,5,7,8,5,4
+01R0546,Minerálka a zdraví,žena,30,Jihočeský,SŠ s maturitou,do 30 tis.,7,3,5,6,4,5,5,5,7,5,8,3,6,7,5,4,7,5,3
+01R0547,Energetičtí mladí,žena,36,Jihočeský,SŠ s maturitou,30–50 tis.,6,6,6,6,7,6,8,5,8,5,5,7,6,5,7,8,5,7,7
+01R0548,Tradiční sladká chuť,žena,48,Moravskoslezský,VŠ,do 30 tis.,5,9,4,6,6,6,5,6,6,7,2,8,4,2,5,5,3,7,7
+01R0549,Cenově citliví,žena,53,Středočeský,SŠ s maturitou,do 30 tis.,5,6,8,10,4,6,6,6,5,6,5,5,4,5,7,7,5,6,6
+01R0550,Minerálka a zdraví,muž,32,Plzeňský,SŠ s maturitou,80 tis. +,7,5,6,5,6,4,6,3,7,9,6,6,6,7,7,6,6,6,5
+01R0551,Energetičtí mladí,žena,32,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,4,9,6,6,6,8,7,8,3,7,5,7,8,9,7,6,6,4
+01R0552,Energetičtí mladí,muž,30,Jihomoravský,SŠ s maturitou,50–80 tis.,6,5,9,4,3,8,7,7,6,4,6,3,4,7,9,7,4,5,3
+01R0553,Aktivní bez cukru,žena,18,Ústecký,ZŠ / vyučení,50–80 tis.,9,3,5,6,4,8,6,9,4,2,8,5,10,8,6,5,8,4,4
+01R0554,Aktivní bez cukru,žena,27,Moravskoslezský,SŠ s maturitou,30–50 tis.,9,3,6,5,4,7,6,8,6,8,8,5,9,8,6,6,9,4,2
+01R0555,Tradiční sladká chuť,žena,51,Plzeňský,ZŠ / vyučení,do 30 tis.,6,6,5,6,5,5,4,4,4,3,5,7,7,3,4,5,5,5,5
+01R0556,Cenově citliví,muž,33,Středočeský,SŠ s maturitou,50–80 tis.,4,7,5,10,3,5,4,6,4,5,4,4,4,6,3,6,4,6,8
+01R0557,Cenově citliví,žena,36,Moravskoslezský,SŠ s maturitou,do 30 tis.,5,7,6,9,4,7,4,7,7,7,4,8,4,4,7,7,5,7,7
+01R0558,Aktivní bez cukru,muž,54,Moravskoslezský,VŠ,50–80 tis.,7,5,6,7,5,8,7,8,7,1,6,5,8,8,7,7,9,6,6
+01R0559,Aktivní bez cukru,žena,26,Praha,SŠ s maturitou,50–80 tis.,8,4,6,5,6,8,9,8,10,7,7,4,8,7,6,7,7,5,5
+01R0560,Cenově citliví,žena,42,Praha,SŠ s maturitou,80 tis. +,5,6,5,7,7,5,6,4,6,5,5,6,4,7,5,3,4,4,7
+01R0561,Minerálka a zdraví,žena,41,Plzeňský,VŠ,50–80 tis.,8,3,6,5,7,7,6,7,5,3,8,4,6,8,3,5,9,3,5
+01R0562,Aktivní bez cukru,muž,54,Plzeňský,SŠ s maturitou,30–50 tis.,6,2,4,6,6,8,6,8,5,2,9,5,6,8,5,5,7,3,7
+01R0563,Tradiční sladká chuť,žena,57,Jihočeský,VŠ,30–50 tis.,4,9,7,5,6,5,5,5,6,10,2,8,4,5,6,6,3,6,6
+01R0564,Energetičtí mladí,muž,21,Středočeský,SŠ s maturitou,30–50 tis.,6,4,8,6,8,7,8,6,7,5,7,6,7,7,7,7,7,5,7
+01R0565,Energetičtí mladí,žena,33,Středočeský,VŠ,80 tis. +,8,4,8,4,5,8,7,8,7,5,7,4,6,6,6,7,5,3,4
+01R0566,Tradiční sladká chuť,žena,51,Jihočeský,SŠ s maturitou,30–50 tis.,4,7,6,6,7,3,4,4,5,5,4,8,4,6,7,8,6,6,8
+01R0567,Energetičtí mladí,žena,22,Praha,VŠ,30–50 tis.,4,4,8,7,4,6,7,4,7,9,7,4,5,7,7,8,6,4,6
+01R0568,Minerálka a zdraví,muž,24,Ústecký,ZŠ / vyučení,30–50 tis.,9,5,6,4,5,6,6,6,6,1,6,5,9,7,5,8,7,6,6
+01R0569,Aktivní bez cukru,muž,38,Jihomoravský,ZŠ / vyučení,30–50 tis.,9,1,7,6,7,8,8,7,7,3,10,4,10,9,7,6,8,3,4
+01R0570,Tradiční sladká chuť,žena,44,Středočeský,SŠ s maturitou,50–80 tis.,6,7,7,5,8,8,2,9,4,9,4,7,6,4,4,5,7,6,7
+01R0571,Energetičtí mladí,žena,33,Jihomoravský,SŠ s maturitou,do 30 tis.,6,5,6,6,3,5,7,5,8,1,6,1,6,6,5,4,6,2,3
+01R0572,Tradiční sladká chuť,muž,44,Moravskoslezský,VŠ,30–50 tis.,6,8,5,4,8,6,7,4,9,6,3,8,7,4,5,6,4,8,8
+01R0573,Tradiční sladká chuť,žena,47,Praha,ZŠ / vyučení,50–80 tis.,8,5,6,6,6,7,5,6,6,2,6,8,7,6,6,6,7,6,6
+01R0574,Aktivní bez cukru,žena,18,Ústecký,ZŠ / vyučení,50–80 tis.,8,4,6,6,4,7,6,7,5,3,7,3,8,9,4,5,6,3,3
+01R0575,Minerálka a zdraví,muž,47,Praha,VŠ,do 30 tis.,7,5,5,6,8,6,4,5,5,5,6,5,7,6,4,5,5,7,7
+01R0576,Aktivní bez cukru,žena,42,Jihomoravský,ZŠ / vyučení,do 30 tis.,9,4,7,6,7,9,7,7,6,2,7,6,7,9,6,7,8,4,7
+01R0577,Energetičtí mladí,žena,18,Ústecký,ZŠ / vyučení,80 tis. +,5,5,8,5,6,5,9,7,7,6,6,4,4,5,8,9,5,6,6
+01R0578,Cenově citliví,muž,20,Ústecký,SŠ s maturitou,30–50 tis.,4,6,6,9,5,6,6,5,6,7,5,6,5,7,4,6,4,5,5
+01R0579,Cenově citliví,žena,19,Jihomoravský,VŠ,do 30 tis.,5,7,6,7,6,5,4,5,4,5,4,7,5,4,5,4,3,6,7
+01R0580,Cenově citliví,muž,48,Praha,VŠ,80 tis. +,6,5,7,9,5,6,6,3,6,8,6,5,4,8,7,6,5,5,6
+01R0581,Tradiční sladká chuť,žena,50,Praha,ZŠ / vyučení,30–50 tis.,5,9,5,5,7,4,5,2,5,4,2,10,3,3,5,5,6,9,9
+01R0582,Aktivní bez cukru,muž,26,Ústecký,SŠ s maturitou,30–50 tis.,7,5,5,5,7,7,7,7,7,1,6,6,8,6,6,5,6,6,7
+01R0583,Minerálka a zdraví,muž,46,Moravskoslezský,VŠ,30–50 tis.,8,4,3,3,5,5,7,6,7,7,7,2,6,7,3,4,7,5,3
+01R0584,Aktivní bez cukru,žena,39,Středočeský,SŠ s maturitou,do 30 tis.,7,4,4,6,4,9,8,8,6,5,7,3,7,7,3,6,6,4,5
+01R0585,Cenově citliví,žena,26,Ústecký,VŠ,50–80 tis.,6,6,8,5,5,6,8,6,8,1,5,7,8,8,10,8,6,5,6
+01R0586,Minerálka a zdraví,muž,19,Jihomoravský,SŠ s maturitou,do 30 tis.,8,3,6,4,6,5,6,6,7,7,8,8,6,7,5,5,6,5,5
+01R0587,Aktivní bez cukru,muž,33,Moravskoslezský,SŠ s maturitou,80 tis. +,8,4,5,4,5,10,4,7,6,1,7,5,9,6,5,3,7,6,4
+01R0588,Energetičtí mladí,muž,24,Středočeský,SŠ s maturitou,do 30 tis.,4,6,9,6,7,6,8,4,7,6,5,6,4,4,8,8,5,7,6
+01R0589,Tradiční sladká chuť,muž,33,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,9,5,6,6,5,5,6,5,5,2,9,5,4,4,4,4,5,6
+01R0590,Tradiční sladká chuť,muž,18,Olomoucký,SŠ s maturitou,30–50 tis.,5,7,7,7,5,6,6,7,6,5,4,5,6,6,5,6,5,5,7
+01R0591,Aktivní bez cukru,žena,44,Jihomoravský,SŠ s maturitou,50–80 tis.,9,2,5,5,5,6,8,6,8,1,9,3,8,9,7,6,9,4,4
+01R0592,Tradiční sladká chuť,žena,37,Ústecký,SŠ s maturitou,50–80 tis.,5,8,5,7,8,7,6,8,5,10,3,8,6,5,5,6,4,7,9
+01R0593,Cenově citliví,žena,66,Plzeňský,VŠ,do 30 tis.,6,4,5,7,6,4,8,4,7,6,7,7,6,8,5,7,7,4,4
+01R0594,Tradiční sladká chuť,žena,42,Olomoucký,SŠ s maturitou,30–50 tis.,5,7,6,6,7,5,6,5,7,6,4,6,5,2,5,4,4,8,8
+01R0595,Aktivní bez cukru,žena,36,Olomoucký,SŠ s maturitou,do 30 tis.,7,1,6,5,7,10,5,9,7,5,10,6,10,8,6,8,10,5,6
+01R0596,Tradiční sladká chuť,muž,54,Středočeský,ZŠ / vyučení,30–50 tis.,4,7,6,4,4,8,4,8,5,7,4,7,4,4,7,5,4,5,5
+01R0597,Minerálka a zdraví,muž,32,Moravskoslezský,SŠ s maturitou,30–50 tis.,8,2,7,5,5,5,6,5,5,9,9,2,10,9,6,5,7,3,5
+01R0598,Cenově citliví,muž,67,Jihomoravský,SŠ s maturitou,do 30 tis.,9,6,8,10,5,7,6,7,6,3,5,6,8,7,6,7,6,4,4
+01R0599,Tradiční sladká chuť,muž,53,Plzeňský,SŠ s maturitou,do 30 tis.,7,7,6,5,5,7,6,8,5,7,4,7,6,6,5,5,5,7,5
+01R0600,Energetičtí mladí,žena,30,Moravskoslezský,SŠ s maturitou,80 tis. +,4,5,9,6,5,6,7,8,7,8,6,5,5,6,9,8,6,3,4

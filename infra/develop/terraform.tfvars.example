@@ -1,0 +1,33 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored: it holds
+# the Google client secret.
+
+aws_region       = "eu-central-1"
+public_hostname  = "dev.example.com"
+acme_email       = "ops@example.com"
+alert_email      = "ops@example.com"
+seed_owner_email = "you@example.com" # the Google Workspace account that will sign in
+
+github_repository  = "AiAnalytics-AIA/AIA"
+github_environment = "develop"
+# If GitHub Settings > Actions > OIDC subject customization uses immutable
+# subjects, use the exact subject shown there (including organization/repo IDs).
+# github_oidc_subject = "repo:OWNER@OWNER_ID/REPO@REPO_ID:environment:develop"
+# create_github_oidc_provider = false   # if the account already has one for GitHub
+
+instance_type  = "t3a.medium"
+root_volume_gb = 80
+# subnet_id       = "subnet-…"          # default: a subnet of the default VPC
+# route53_zone_id = "Z…"                # default: DNS managed elsewhere
+
+cognito_domain_prefix = "aia-develop" # must be globally unique
+google_client_id      = "…apps.googleusercontent.com"
+google_client_secret  = "…"
+google_hosted_domain  = "example.com"
+
+# The one pinned EU inference profile the instance role may invoke (ADR 0010).
+# Verify in the Bedrock console that model access is enabled for it first, and
+# write the full versioned id -- never a floating alias.
+bedrock_model_id = "eu.anthropic.claude-sonnet-4-5-20250929-v1:0"
+
+monthly_budget_usd    = 100
+backup_retention_days = 30

@@ -1,6 +1,6 @@
 # Plan: AIA design system → apps/web
 
-**Status:** direction accepted; decisions DS-1, DS-2 and DS-3 resolved (below). Chunks 0–3 next, then the first vertical slice. **Owner:** product-surface (A9).
+**Status:** foundation carried forward; **screen compositions superseded** (2026-09-23). The develop deployment's 18.6.6 interface is the canonical baseline for every screen (ADR 0012), so chunks V and 4–11 below no longer describe work to do. Chunk 1 (tokens, fonts, identity) lands through [`interface-skin.md`](interface-skin.md) and [ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md); chunks 2–3 (enum binding, primitives) return when areas are re-homed (legacy strangler, slice 16+). Decisions DS-1 to DS-3 stand. **Owner:** product-surface (A9).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md).
 **Design source:** the "AIA Design System" artifact, https://claude.ai/artifact/LB7SgQGTiynynHZNEXgqBy (private to its owner until shared).
 

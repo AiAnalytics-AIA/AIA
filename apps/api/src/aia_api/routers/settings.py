@@ -43,10 +43,10 @@ from aia_core.domain.workflow import (
     DEFAULT_MAX_ATTEMPTS,
     DEFAULT_QUOTA_FALLBACK_SECONDS,
 )
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 
 from ..config import Settings
-from ..dependencies import OrganizationDep
+from ..dependencies import OrganizationDep, SettingsDep
 from ..schemas.projects import ErrorResponse
 from ..schemas.settings import (
     LabelledValue,
@@ -393,19 +393,16 @@ def _vocabularies() -> Vocabularies:
 
 
 @router.get("/settings", response_model=SettingsResponse, summary="Effective settings")
-def get_settings_document(admin: OrganizationDep, request: Request) -> SettingsResponse:
+def get_settings_document(admin: OrganizationDep, settings: SettingsDep) -> SettingsResponse:
     """Return every control the system has, its value, and how it is changed.
 
     Any organization member may read it. The deployment group, which describes the
-    deployment's security posture, is included only for OWNER and ADMIN.
-
-    The deployment values are the ones this application was built with
-    (``app.state.settings``), not a fresh read of the environment: ``get_settings``
-    is process-cached and ignores settings passed to ``create_app``.
+    deployment's security posture, is included only for OWNER and ADMIN. Its values
+    are the ones this application was built with (``SettingsDep`` reads
+    ``app.state.settings``), not a fresh read of the environment.
     """
     groups = _groups()
     if admin.may_administer:
-        settings: Settings = request.app.state.settings
         groups.insert(0, _deployment(settings))
     return SettingsResponse(
         organization_id=admin.organization_id,

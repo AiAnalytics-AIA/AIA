@@ -52,12 +52,19 @@ every decision written to an append-only ledger.
 
 Not defects in the code; work that has to exist outside it:
 
-- **A Cognito user pool and app client**, and Google Workspace federation.
-- **Environment configuration** for staging and production.
-- **S3 bucket provisioning**, encryption and lifecycle policy for artifacts.
+- **A Cognito user pool and app client**, and Google Workspace federation —
+  declared in [`infra/develop/identity.tf`](../../infra/develop/identity.tf);
+  the Google OAuth client and the `terraform apply` are human actions.
+- **Environment configuration** — the develop host's env file is written from
+  SSM Parameter Store (`deploy/develop/bin/write-env.sh`); production is still to
+  be provisioned.
+- **S3 bucket provisioning**, encryption and lifecycle policy for artifacts —
+  declared in [`infra/develop/main.tf`](../../infra/develop/main.tf) (SSE-S3,
+  versioning, TLS-only, private, lifecycle).
 
 The API refuses to boot in production without the identity configuration, so a
-missing pool is a failed health check rather than an open door. **Until that
+missing pool is a failed health check rather than an open door. It also refuses
+to boot without its build SHA and with any artifact store but S3 itself. **Until that
 infrastructure exists, no deployed environment holds real client data** — but the
 reason is provisioning, not an absent verifier.
 
@@ -190,8 +197,10 @@ provider switch was genuinely user-authorised.
 
 Ordered by how much they should worry you:
 
-1. **No identity infrastructure provisioned.** The verifier exists; the user pool,
-   app client and federation do not. Blocks any deployment with real data.
+1. **Identity infrastructure declared, not yet applied.** The verifier exists and
+   `infra/develop` declares the pool, client and Google federation; a human must
+   create the Google OAuth client and run `terraform apply`. Until then no
+   deployment exists at all, and the develop deployment holds synthetic data only.
 2. **No approved egress routes configured.** The boundary is enforceable and
    currently permits nothing, which is the right failure mode but means no client
    inference can run until routes are declared and justified against

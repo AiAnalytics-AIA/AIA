@@ -12,6 +12,9 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Literal
 
+from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
+from aia_core.infrastructure.storage_settings import StorageBackend, StorageSettings
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -42,6 +45,13 @@ class Settings(BaseSettings):
     service_name: str = "aia-api"
     version: str = "0.1.0"
 
+    # The git commit this process was built from, baked into the image by the
+    # deployment. Reported by /health and written into artifact provenance as the
+    # runtime version. Required in a deployed environment: a deployment that
+    # cannot say which revision it is cannot be debugged or rolled back.
+    build_sha: str = ""
+    build_time: str = ""
+
     # ``DATABASE_URL`` is read without the AIA_ prefix because every hosting
     # platform and migration tool already uses that name.
     database_url: str = Field(default="", validation_alias="DATABASE_URL")
@@ -49,6 +59,17 @@ class Settings(BaseSettings):
     # CORS. Empty means same-origin only, which is the correct default for a
     # deployment that serves the web client behind one hostname.
     cors_origins: list[str] = Field(default_factory=list)
+
+    # -------------------------------------------------------------- storage --
+    # Where artifact bytes live. Metadata is always PostgreSQL; this selects the
+    # ArtifactStore for the bytes. A deployed environment must use S3 itself.
+    storage_backend: StorageBackend = "memory"
+    storage_bucket: str = ""
+    storage_region: str = ""
+    storage_prefix: str = ""
+    storage_kms_key_id: str = ""
+    storage_endpoint: str = ""
+    storage_root: str = "./data/artifacts"
 
     # ------------------------------------------------------------- identity --
     # Which identity provider answers authentication. "cognito" is the only
@@ -61,12 +82,37 @@ class Settings(BaseSettings):
     cognito_client_id: str = ""
     cognito_token_use: Literal["id", "access"] = "id"
 
+    # --------------------------------------------------------- legacy panel --
+    # The vendored 18.6.6 interface on the product hostname (ADR 0012). Off by
+    # default: with it off the gate answers 404 and Caddy forwards nothing to the
+    # unit. Refused in production by validate_for_production(). ``legacy_panel_origin``
+    # is the product origin a state-changing request must name in ``Origin``
+    # (e.g. https://aia-develop.art-chain.io); with it unset every such request is
+    # refused, never waved through.
+    legacy_panel_enabled: bool = False
+    legacy_panel_origin: str = ""
+
+    # -------------------------------------------------- research execution --
+    # Who answers a research run's questionnaire (ADR 0016 decision 4). The AI
+    # runtime is the only deployed source; until it exists a run parks at
+    # fieldwork. ``synthetic_fixture`` is a fictional dataset for tests and the
+    # workbench, refused in every deployed environment by validate_for_production().
+    research_fieldwork_source: FieldworkSource = FieldworkSource.AI_RUNTIME
+
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
 
     # Request body ceiling. Dataset uploads go through a dedicated upload path with
     # its own limit; this guards ordinary JSON endpoints.
     max_request_bytes: int = 2 * 1024 * 1024
+
+    @field_validator("build_sha", mode="before")
+    @classmethod
+    def _check_build_sha(cls, value: object) -> object:
+        """Refuse a malformed revision rather than record it (ARCHITECTURE.md A5)."""
+        if isinstance(value, str):
+            return parse_build_sha(value) or ""
+        return value
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -75,6 +121,23 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @property
+    def build(self) -> BuildIdentity:
+        """The build this process runs, or an identity with ``sha=None``."""
+        return BuildIdentity(sha=self.build_sha or None, built_at=self.build_time or None)
+
+    def storage_settings(self) -> StorageSettings:
+        """The typed storage configuration, shared with the executors' composition root."""
+        return StorageSettings(
+            backend=self.storage_backend,
+            bucket=self.storage_bucket,
+            region=self.storage_region,
+            prefix=self.storage_prefix,
+            kms_key_id=self.storage_kms_key_id,
+            endpoint_url=self.storage_endpoint,
+            root=self.storage_root,
+        )
 
     @property
     def is_production(self) -> bool:
@@ -118,6 +181,16 @@ class Settings(BaseSettings):
             problems.append("AIA_DEBUG must be off in production")
         if "*" in self.cors_origins:
             problems.append("wildcard CORS origin is not permitted in production")
+        if not self.build_sha:
+            problems.append("AIA_BUILD_SHA is required so the deployed revision is known")
+
+        # Storage. Memory vanishes with the container and a container filesystem
+        # is unshared between the API and the worker, so a deployment that is not
+        # on S3 would lose every artifact on the first restart.
+        try:
+            problems.extend(self.storage_settings().deployment_problems())
+        except ValueError as exc:
+            problems.append(str(exc))
 
         # Identity. A deployed environment trusting request headers would make
         # every tenant and client boundary meaningless, so this is refused at
@@ -134,6 +207,23 @@ class Settings(BaseSettings):
             ]
             if missing:
                 problems.append("Cognito configuration is incomplete: " + ", ".join(missing))
+
+        # The vendored unit is single-tenant and holds no study scope: it may be a
+        # develop facade (ADR 0012), never a production surface.
+        if self.legacy_panel_enabled:
+            if self.env == Environment.PRODUCTION:
+                problems.append("AIA_LEGACY_PANEL_ENABLED is refused in production (ADR 0012)")
+            if not self.legacy_panel_origin:
+                problems.append(
+                    "AIA_LEGACY_PANEL_ORIGIN is required when the legacy panel is enabled"
+                )
+
+        # Fictional respondents must never become a deployed study's fieldwork (D1).
+        if self.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE:
+            problems.append(
+                "AIA_RESEARCH_FIELDWORK_SOURCE=synthetic_fixture is refused outside "
+                "local and test (ADR 0016)"
+            )
 
         if problems:
             raise RuntimeError("invalid production configuration: " + "; ".join(problems))

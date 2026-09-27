@@ -1,0 +1,66 @@
+[
+  {
+    "id": "Q0",
+    "text": "Demografický a profilový blok"
+  },
+  {
+    "id": "QO1",
+    "text": "Jak blízko je vám EA Sports FC? Hodnocení 1–10."
+  },
+  {
+    "id": "QO2",
+    "text": "Jak blízko je vám Fortnite? Hodnocení 1–10."
+  },
+  {
+    "id": "QO3",
+    "text": "Jak blízko je vám Minecraft? Hodnocení 1–10."
+  },
+  {
+    "id": "QO4",
+    "text": "Jak blízko je vám GTA Online? Hodnocení 1–10."
+  },
+  {
+    "id": "QO5",
+    "text": "Jak blízko je vám Call of Duty? Hodnocení 1–10."
+  },
+  {
+    "id": "QO6",
+    "text": "Jak blízko je vám League of Legends? Hodnocení 1–10."
+  },
+  {
+    "id": "QO7",
+    "text": "Jak blízko je vám The Sims? Hodnocení 1–10."
+  },
+  {
+    "id": "QO8",
+    "text": "Jak blízko je vám Baldur’s Gate 3? Hodnocení 1–10."
+  },
+  {
+    "id": "QT1",
+    "text": "Competitive — škála 1–10"
+  },
+  {
+    "id": "QT2",
+    "text": "Social — škála 1–10"
+  },
+  {
+    "id": "QT3",
+    "text": "Creative — škála 1–10"
+  },
+  {
+    "id": "QT4",
+    "text": "Story — škála 1–10"
+  },
+  {
+    "id": "QT5",
+    "text": "Casual — škála 1–10"
+  },
+  {
+    "id": "QT6",
+    "text": "Sports — škála 1–10"
+  },
+  {
+    "id": "QT7",
+    "text": "Challenge — škála 1–10"
+  }
+]

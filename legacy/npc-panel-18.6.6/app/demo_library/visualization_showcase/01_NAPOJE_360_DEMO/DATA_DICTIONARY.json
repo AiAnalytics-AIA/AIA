@@ -1,0 +1,132 @@
+[
+  {
+    "column": "respondent_id",
+    "kind": "profile",
+    "description": "respondent id"
+  },
+  {
+    "column": "segment",
+    "kind": "profile",
+    "description": "segment"
+  },
+  {
+    "column": "dem_gender",
+    "kind": "profile",
+    "description": "dem gender"
+  },
+  {
+    "column": "dem_age",
+    "kind": "profile",
+    "description": "dem age"
+  },
+  {
+    "column": "dem_region",
+    "kind": "profile",
+    "description": "dem region"
+  },
+  {
+    "column": "dem_education",
+    "kind": "profile",
+    "description": "dem education"
+  },
+  {
+    "column": "dem_income",
+    "kind": "profile",
+    "description": "dem income"
+  },
+  {
+    "column": "att_health",
+    "kind": "profile",
+    "description": "att health"
+  },
+  {
+    "column": "att_sugar",
+    "kind": "profile",
+    "description": "att sugar"
+  },
+  {
+    "column": "att_energy",
+    "kind": "profile",
+    "description": "att energy"
+  },
+  {
+    "column": "att_price",
+    "kind": "profile",
+    "description": "att price"
+  },
+  {
+    "column": "att_brand",
+    "kind": "profile",
+    "description": "att brand"
+  },
+  {
+    "column": "att_sport",
+    "kind": "profile",
+    "description": "att sport"
+  },
+  {
+    "column": "att_novelty",
+    "kind": "profile",
+    "description": "att novelty"
+  },
+  {
+    "column": "beh_sport_frequency",
+    "kind": "profile",
+    "description": "beh sport frequency"
+  },
+  {
+    "column": "beh_novelty_openness",
+    "kind": "profile",
+    "description": "beh novelty openness"
+  },
+  {
+    "column": "beh_meat_frequency",
+    "kind": "profile",
+    "description": "beh meat frequency"
+  },
+  {
+    "column": "att_sugar_avoidance",
+    "kind": "profile",
+    "description": "att sugar avoidance"
+  },
+  {
+    "column": "obj_Coca-Cola",
+    "kind": "object_rating",
+    "description": "obj Coca-Cola"
+  },
+  {
+    "column": "obj_Coca-Cola Zero",
+    "kind": "object_rating",
+    "description": "obj Coca-Cola Zero"
+  },
+  {
+    "column": "obj_Pepsi Max",
+    "kind": "object_rating",
+    "description": "obj Pepsi Max"
+  },
+  {
+    "column": "obj_Red Bull",
+    "kind": "object_rating",
+    "description": "obj Red Bull"
+  },
+  {
+    "column": "obj_Monster",
+    "kind": "object_rating",
+    "description": "obj Monster"
+  },
+  {
+    "column": "obj_Mattoni",
+    "kind": "object_rating",
+    "description": "obj Mattoni"
+  },
+  {
+    "column": "obj_Vinea",
+    "kind": "object_rating",
+    "description": "obj Vinea"
+  },
+  {
+    "column": "obj_Kofola",
+    "kind": "object_rating",
+    "description": "obj Kofola"
+  }
+]

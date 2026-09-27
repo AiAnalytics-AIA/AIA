@@ -1,0 +1,25 @@
+{
+ "fixture_id": "U08_keyInsights",
+ "function": "keyInsights",
+ "capability_id": "analysis.qc",
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-9,
+ "helpers": [],
+ "notes": "Key insights from aggregated results: for a choice question the most frequent answer and its lead over the runner-up (strength); for a scale question the mean and top-2 box; sorted by strength, at most eight rows. Czech labels are part of the output. Not yet ported.",
+ "cases": [
+  {"id": "mixed_questions", "args": [{"vysledky": {
+     "q1": {"typ": "vyber", "celkem_pct": {"ano": 62.5, "ne": 30, "nevim": 7.5}},
+     "q2": {"typ": "skala", "prumer": 3.456, "top2box_pct": 41.2},
+     "q3": {"typ": "vyber", "celkem_pct": {"A": 45, "B": 44.9}},
+     "q4": {"typ": "skala", "prumer": 7.05},
+     "q5": {"typ": "vyber", "celkem_pct": {}},
+     "q6": {"typ": "text"}}}]},
+  {"id": "more_than_eight_rows_are_cut", "args": [{"vysledky": {
+     "a": {"typ": "vyber", "celkem_pct": {"x": 90, "y": 10}}, "b": {"typ": "vyber", "celkem_pct": {"x": 80, "y": 20}},
+     "c": {"typ": "vyber", "celkem_pct": {"x": 70, "y": 30}}, "d": {"typ": "vyber", "celkem_pct": {"x": 60, "y": 40}},
+     "e": {"typ": "vyber", "celkem_pct": {"x": 55, "y": 45}}, "f": {"typ": "vyber", "celkem_pct": {"x": 51, "y": 49}},
+     "g": {"typ": "skala", "prumer": 5}, "h": {"typ": "skala", "prumer": 6, "top2box_pct": 12},
+     "i": {"typ": "vyber", "celkem_pct": {"x": 50.5, "y": 49.5}}}}]},
+  {"id": "empty", "args": [{}]}
+ ]
+}

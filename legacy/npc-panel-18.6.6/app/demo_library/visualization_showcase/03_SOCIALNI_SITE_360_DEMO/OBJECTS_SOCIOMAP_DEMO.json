@@ -1,0 +1,327 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "name": "Instagram",
+      "type": "object",
+      "x": 0.7411,
+      "y": 0.0002,
+      "score": 5.783
+    },
+    {
+      "id": 1,
+      "name": "TikTok",
+      "type": "object",
+      "x": 0.82,
+      "y": 0.0002,
+      "score": 5.942
+    },
+    {
+      "id": 2,
+      "name": "Facebook",
+      "type": "object",
+      "x": -0.8146,
+      "y": 0.0002,
+      "score": 5.348
+    },
+    {
+      "id": 3,
+      "name": "YouTube",
+      "type": "object",
+      "x": 0.47,
+      "y": 0.0002,
+      "score": 5.922
+    },
+    {
+      "id": 4,
+      "name": "LinkedIn",
+      "type": "object",
+      "x": -0.3843,
+      "y": 0.0002,
+      "score": 5.57
+    },
+    {
+      "id": 5,
+      "name": "X",
+      "type": "object",
+      "x": -0.669,
+      "y": 0.0002,
+      "score": 5.738
+    },
+    {
+      "id": 6,
+      "name": "Reddit",
+      "type": "object",
+      "x": -0.6861,
+      "y": 0.0002,
+      "score": 5.85
+    },
+    {
+      "id": 7,
+      "name": "Snapchat",
+      "type": "object",
+      "x": 0.5229,
+      "y": 0.0002,
+      "score": 5.8
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 1,
+      "relation_1_10": 7.447,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 2,
+      "relation_1_10": 3.249,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 3,
+      "relation_1_10": 5.959,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 4,
+      "relation_1_10": 4.004,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 5,
+      "relation_1_10": 3.75,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 6,
+      "relation_1_10": 3.607,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "relation_1_10": 6.434,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "relation_1_10": 2.989,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 3,
+      "relation_1_10": 6.506,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "relation_1_10": 4.012,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "relation_1_10": 3.475,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "relation_1_10": 3.49,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "relation_1_10": 6.488,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "relation_1_10": 4.261,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "relation_1_10": 5.87,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "relation_1_10": 6.545,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "relation_1_10": 6.886,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 7,
+      "relation_1_10": 3.535,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "relation_1_10": 4.62,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "relation_1_10": 3.979,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 6,
+      "relation_1_10": 3.755,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "relation_1_10": 5.204,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "relation_1_10": 5.307,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 6,
+      "relation_1_10": 5.132,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 7,
+      "relation_1_10": 4.32,
+      "directed": false
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "relation_1_10": 6.774,
+      "directed": false
+    },
+    {
+      "from": 5,
+      "to": 7,
+      "relation_1_10": 4.099,
+      "directed": false
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "relation_1_10": 4.413,
+      "directed": false
+    }
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      7.447,
+      3.249,
+      5.959,
+      4.004,
+      3.75,
+      3.607,
+      6.434
+    ],
+    [
+      7.447,
+      0.0,
+      2.989,
+      6.506,
+      4.012,
+      3.475,
+      3.49,
+      6.488
+    ],
+    [
+      3.249,
+      2.989,
+      0.0,
+      4.261,
+      5.87,
+      6.545,
+      6.886,
+      3.535
+    ],
+    [
+      5.959,
+      6.506,
+      4.261,
+      0.0,
+      4.62,
+      3.979,
+      3.755,
+      5.204
+    ],
+    [
+      4.004,
+      4.012,
+      5.87,
+      4.62,
+      0.0,
+      5.307,
+      5.132,
+      4.32
+    ],
+    [
+      3.75,
+      3.475,
+      6.545,
+      3.979,
+      5.307,
+      0.0,
+      6.774,
+      4.099
+    ],
+    [
+      3.607,
+      3.49,
+      6.886,
+      3.755,
+      5.132,
+      6.774,
+      0.0,
+      4.413
+    ],
+    [
+      6.434,
+      6.488,
+      3.535,
+      5.204,
+      4.32,
+      4.099,
+      4.413,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SYNTHETIC_RESPONDENT_CORRELATIONS",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": false
+  }
+}

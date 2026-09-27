@@ -1,0 +1,18 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "kind": "PROJECT_PERSISTENCE_MIGRATION_V1",
+  "status": "PASS",
+  "destructive_changes": false,
+  "acceptance_fixture": "PASS",
+  "checks": {
+    "legacy_project_row_preserved": "PASS",
+    "legacy_revision_preserved": "PASS",
+    "new_columns_added_additively": "PASS",
+    "stage_schema_created": "PASS",
+    "unknown_history_policy_preserve_not_guess": "PASS"
+  },
+  "package_runtime_database": "CLEAN_INITIAL_STATE",
+  "note": "Migration logic remains idempotent/additive and runs against an existing installation; the distributed release does not ship test project history."
+}

@@ -1,0 +1,28 @@
+{
+  "generated_at_utc": "2026-08-24T15:49:59Z",
+  "checks": {
+    "secret_scan": {
+      "command": "python secret_scan.py",
+      "returncode": 0,
+      "output": "SECRET_SCAN_PASS\n",
+      "timed_out": false
+    },
+    "portability": {
+      "command": "python portability_check.py",
+      "returncode": 0,
+      "output": "PORTABILITY_PASS\n",
+      "timed_out": false
+    },
+    "doctor_offline": {
+      "command": "python doctor.py --json",
+      "returncode": 0,
+      "output": "{\n  \"python\": {\n    \"version\": \"3.13.5\",\n    \"supported\": true\n  },\n  \"files\": {\n    \"VERSION\": {\n      \"exists\": true,\n      \"bytes\": 7\n    },\n    \"PROJECT_POLICY.json\": {\n      \"exists\": true,\n      \"bytes\": 3901\n    },\n    \"requirements.txt\": {\n      \"exists\": true,\n      \"bytes\": 169\n    },\n    \".env.example\": {\n      \"exists\": true,\n      \"bytes\": 1650\n    },\n    \"FINALNI_KOMPLETNI_PANEL_v17_1_2.csv.gz\": {\n      \"exists\": true,\n      \"bytes\": 7324528\n    },\n    \"DATA_PROVENANCE_REGISTRY_v17.csv\": {\n      \"exists\": true,\n      \"bytes\": 79472\n    },\n    \"PERSONA_SIGNAL_CATALOG_v17.csv\": {\n      \"exists\": true,\n      \"bytes\": 20237\n    },\n    \"BUILTIN_SUBPANELS_v17.json\": {\n      \"exists\": true,\n      \"bytes\": 11415\n    },\n    \"BACKBONE_CENSUS_2021_TARGETS.csv\": {\n      \"exists\": true,\n      \"bytes\": 6933\n    },\n    \"CENSUS_LABOUR_FORCE_TARGETS_v17.csv\": {\n      \"exists\": true,\n      \"bytes\": 934\n    },\n    \"DONOR_BLOCK_REGISTRY.json\": {\n      \"exists\": true,\n      \"bytes\": 3268\n    },\n    \"CORE_JOINT_STATUS.json\": {\n      \"exists\": true,\n      \"bytes\": 2175\n    },\n    \"VALIDATION_PROTOCOL.md\": {\n      \"exists\": true,\n      \"bytes\": 1167\n    },\n    \"ui_server.py\": {\n      \"exists\": true,\n      \"bytes\": 120076\n    },\n    \"prototype_server.py\": {\n      \"exists\": true,\n      \"bytes\": 32800\n    },\n    \"validation_gate.py\": {\n      \"exists\": true,\n      \"bytes\": 15468\n    },\n    \"validation_status.py\": {\n      \"exists\": true,\n      \"bytes\": 1225\n    },\n    \"core_joint.py\": {\n      \"exists\": true,\n      \"bytes\": 4848\n    },\n    \"run_store.py\": {\n      \"exists\": true,\n      \"bytes\": 6199\n    },\n    \"provider_auth.py\": {\n      \"exists\": true,\n      \"bytes\": 26349\n    },\n    \"runtime_diagnostic.py\": {\n      \"exists\": true,\n      \"bytes\": 5625\n    },\n    \"ui_app.html\": {\n      \"exists\": true,\n      \"bytes\": 400527\n    }\n  },\n  \"packages\": {\n    \"pandas\": {\n      \"version\": \"2.2.3\",\n      \"import_ok\": true,\n      \"error\": null\n    },\n    \"numpy\": {\n      \"version\": \"2.3.5\",\n      \"import_ok\": true,\n      \"error\": null\n    },\n    \"openpyxl\": {\n      \"version\": \"3.1.5\",\n      \"import_ok\": true,\n      \"error\": null\n    },\n    \"scikit-learn\": {\n      \"version\": \"1.8.0\",\n      \"import_ok\": true,\n      \"error\": null\n    },\n    \"python-docx\": {\n      \"version\": \"1.2.0\",\n      \"import_ok\": true,\n      \"error\": null\n    },\n    \"pypdf\": {\n      \"version\": \"5.9.0\",\n      \"import_ok\": true,\n      \"error\": null\n    },\n    \"anthropic\": {\n      \"version\": null,\n      \"import_ok\": false,\n      \"error\": null\n    },\n    \"openai\": {\n      \"version\": null,\n      \"import_ok\": false,\n      \"error\": null\n    }\n  },\n  \"runtime\": {\n    \"release\": \"npc-panel-17.8.9-production-evidence-html\",\n    \"panel_path\": \"<PROJECT_ROOT>/FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz\",\n    \"panel_rows\": 18766,\n    \"panel_diagnostics\": \"OK\",\n    \"system_sha256\": \"b8baa6bbd396691d7facced5a0187150bb7f306a479e8681752fc32f3045e7c5\",\n    \"survey_model_default\": \"claude-sonnet-5\",\n    \"research_runtime\": \"claude_code_subscription\",\n    \"research_model_default\": \"claude-sonnet-5\",\n    \"licensing_mode\": \"ledger\",\n    \"licensing_status\": \"BLOCKED\",\n    \"validation_status\": \"NOT_VALIDATED\",\n    \"core_joint_status\": \"COHERENT_CORE_MATCHED_BLOCKS\",\n    \"core_joint_client_outputs_allowed\": false\n  },\n  \"keys\": {\n    \"ANTHROPIC_API_KEY\": false,\n    \"OPENAI_API_KEY\": false,\n    \"anthropic\": {\n      \"present\": false,\n      \"source\": \"missing\",\n      \"format_ok\": false,\n      \"key_kind\": \"MISSING\",\n      \"env_overrides\": [],\n      \"suffix\": \"\",\n      \"fingerprint\": \"\",\n      \"error\": \"\",\n      \"base_url\": \"https://api.anthropic.com\"\n    },\n    \"note\": \"User-facing LIVE používá pouze Claude Code subscription. Při chybě krok failne; silent API/local fallback je vypnutý.\",\n    \"claude_code_subscription\": {\n      \"ready\": false,\n      \"status\": \"Claude Code není nainstalovaný.\"\n    }\n  },\n  \"tests\": null,\n  \"full_dependencies_ready\": false,\n  \"offline_ready\": true\n}\n",
+      "timed_out": false
+    }
+  },
+  "regression_suite_command": "python -m pytest -q",
+  "selftest_command": "python selftest.py",
+  "release_gate_command": "python release_gate.py --skip-tests",
+  "note": "Predictive/commercial validation remains a separate human-evidence gate.",
+  "pass": true
+}

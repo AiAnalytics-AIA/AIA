@@ -1,0 +1,14 @@
+{
+ "fixture_id": "U06_layoutStatic1798",
+ "function": "layoutStatic1798",
+ "capability_id": "sociomapping.core",
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-9,
+ "helpers": [],
+ "notes": "Static layout of the 1798 slice: nodes with any non-zero coordinate are min-max scaled to 0..100 per axis (a zero span divides by 1, not 0); nodes with no coordinates are placed on a circle of radius 35 around (50,50). Not yet ported.",
+ "cases": [
+  {"id": "scaled_from_coordinates", "args": [[{"x": -5, "y": 10}, {"x": 15, "y": 10}, {"x": 5, "y": 30}], []]},
+  {"id": "circle_when_no_coordinates", "args": [[{"name": "a"}, {"name": "b"}, {"name": "c"}, {"name": "d"}, {"name": "e"}], []]},
+  {"id": "zero_span_axis", "args": [[{"x": 3, "y": 7}, {"x": 3, "y": 7.5}], []]}
+ ]
+}

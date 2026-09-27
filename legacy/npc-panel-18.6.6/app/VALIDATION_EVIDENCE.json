@@ -1,0 +1,27 @@
+{
+  "status": "NOT_VALIDATED",
+  "reasons": [
+    "No live preregistered blind human holdout has been executed for npc-panel-10.7.0-final yet.",
+    "Dry/mock and SMOKE outputs cannot unlock final predictive-validity claims."
+  ],
+  "thresholds": {
+    "min_questions": 30,
+    "min_domains": 5,
+    "min_questions_per_domain": 3,
+    "max_full_mae_pp": 7.5,
+    "min_human_n_per_question": 300,
+    "max_human_moe_pp": 5.0,
+    "min_relative_improvement_vs_demographics": 0.1,
+    "min_relative_improvement_vs_generic": 0.1,
+    "min_relative_improvement_vs_shuffled": 0.08,
+    "min_win_rate_vs_demographics": 0.6,
+    "min_win_rate_vs_generic": 0.6,
+    "min_win_rate_vs_shuffled": 0.6,
+    "min_win_rate_vs_core": 0.55,
+    "require_positive_ci_vs_demographics": true,
+    "require_positive_ci_vs_generic": true,
+    "require_positive_ci_vs_shuffled": true,
+    "min_domain_win_share_vs_demographics": 0.6
+  },
+  "next_step": "Use SMOKE_VALIDATED for iterative published-human checks, then VALIDATION_PROTOCOL.md + validation_workflow.py for a one-time blind human holdout."
+}

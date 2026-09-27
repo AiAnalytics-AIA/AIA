@@ -544,6 +544,52 @@ class WorkflowRepository:
                 f"resolves to {requested.version_id if requested else 'no population'}"
             )
 
+    def find_run_by_idempotency_key(self, idempotency_key: str) -> str | None:
+        """Return the id of the run created with this key in scope, or None."""
+        return self._session.scalar(
+            select(WorkflowRunRow.run_id).where(
+                WorkflowRunRow.idempotency_key == idempotency_key, *self._scope_filter()
+            )
+        )
+
+    def list_runs(self, *, project_id: str, limit: int = 50) -> list[dict[str, Any]]:
+        """Return a project's runs, newest first, without their steps.
+
+        A listing for a screen; :meth:`get_run` returns one run in full.
+        """
+        rows = self._session.scalars(
+            select(WorkflowRunRow)
+            .where(WorkflowRunRow.project_id == project_id, *self._scope_filter())
+            .order_by(WorkflowRunRow.created_at.desc())
+            .limit(max(1, min(int(limit), 200)))
+        ).all()
+        # Which runs a worker has picked up at all: one query for the page, so a
+        # screen can tell "queued" from "running" without reading every step.
+        attempted = set(
+            self._session.scalars(
+                select(StepRunRow.run_id)
+                .join(StepAttemptRow, StepAttemptRow.step_id == StepRunRow.step_id)
+                .where(StepRunRow.run_id.in_([r.run_id for r in rows]))
+                .distinct()
+            ).all()
+        )
+        return [
+            {
+                "run_id": r.run_id,
+                "status": WorkflowRunStatus(r.status),
+                "workflow_type": r.workflow_type,
+                "project_id": r.project_id,
+                "project_revision": r.project_revision,
+                "cancel_requested": r.cancel_requested,
+                "created_at": r.created_at,
+                "started_at": r.started_at,
+                "finished_at": r.finished_at,
+                "metadata": dict(r.metadata_json or {}),
+                "attempted": r.run_id in attempted,
+            }
+            for r in rows
+        ]
+
     def population_binding(self, run_id: str) -> PopulationBinding:
         """Return the population binding a run recorded, or raise.
 
@@ -1628,6 +1674,7 @@ class WorkflowRepository:
                 now=moment,
                 capacity_backoff_seconds=capacity_backoff_seconds,
                 quota_fallback_seconds=quota_fallback_seconds,
+                waiting_reason=step.waiting_reason,
             ):
                 continue
             previous = step.status
@@ -1977,6 +2024,7 @@ class WorkflowRepository:
             "created_at": run.created_at,
             "started_at": run.started_at,
             "finished_at": run.finished_at,
+            "metadata": dict(run.metadata_json or {}),
             "population": _binding(binding_row).as_record() if binding_row is not None else None,
             "steps": [
                 {
@@ -1990,6 +2038,9 @@ class WorkflowRepository:
                     "max_attempts": s.max_attempts,
                     "waiting_reason": s.waiting_reason,
                     "runnable_after": s.runnable_after,
+                    "updated_at": s.updated_at,
+                    "finished_at": s.finished_at,
+                    "output": dict(s.output_json or {}),
                     "attempts": self.attempt_history(s.step_id),
                 }
                 for s in steps

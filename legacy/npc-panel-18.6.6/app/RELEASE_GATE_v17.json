@@ -1,0 +1,949 @@
+{
+  "version": "17.9.9",
+  "methodology_base": "17.1.2",
+  "status": "ENGINEERING_RELEASE_EXTERNAL_HOLDOUT_PENDING",
+  "passed": 188,
+  "failed": 0,
+  "checks": [
+    {
+      "check": "compile:run_store.py",
+      "status": "PASS",
+      "detail": "run_store.py"
+    },
+    {
+      "check": "compile:benchmark.py",
+      "status": "PASS",
+      "detail": "benchmark.py"
+    },
+    {
+      "check": "compile:biografie.py",
+      "status": "PASS",
+      "detail": "biografie.py"
+    },
+    {
+      "check": "compile:simulation_batch.py",
+      "status": "PASS",
+      "detail": "simulation_batch.py"
+    },
+    {
+      "check": "compile:release_gate.py",
+      "status": "PASS",
+      "detail": "release_gate.py"
+    },
+    {
+      "check": "compile:project_migration.py",
+      "status": "PASS",
+      "detail": "project_migration.py"
+    },
+    {
+      "check": "compile:evaluation.py",
+      "status": "PASS",
+      "detail": "evaluation.py"
+    },
+    {
+      "check": "compile:audience_registry.py",
+      "status": "PASS",
+      "detail": "audience_registry.py"
+    },
+    {
+      "check": "compile:tier_gate.py",
+      "status": "PASS",
+      "detail": "tier_gate.py"
+    },
+    {
+      "check": "compile:ai_runtime.py",
+      "status": "PASS",
+      "detail": "ai_runtime.py"
+    },
+    {
+      "check": "compile:env_loader.py",
+      "status": "PASS",
+      "detail": "env_loader.py"
+    },
+    {
+      "check": "compile:ai_router.py",
+      "status": "PASS",
+      "detail": "ai_router.py"
+    },
+    {
+      "check": "compile:project_memory.py",
+      "status": "PASS",
+      "detail": "project_memory.py"
+    },
+    {
+      "check": "compile:research_os_config.py",
+      "status": "PASS",
+      "detail": "research_os_config.py"
+    },
+    {
+      "check": "compile:study_engine.py",
+      "status": "PASS",
+      "detail": "study_engine.py"
+    },
+    {
+      "check": "compile:import_dotaznik.py",
+      "status": "PASS",
+      "detail": "import_dotaznik.py"
+    },
+    {
+      "check": "compile:report.py",
+      "status": "PASS",
+      "detail": "report.py"
+    },
+    {
+      "check": "compile:selftest.py",
+      "status": "PASS",
+      "detail": "selftest.py"
+    },
+    {
+      "check": "compile:cost_estimator.py",
+      "status": "PASS",
+      "detail": "cost_estimator.py"
+    },
+    {
+      "check": "compile:instrument_library.py",
+      "status": "PASS",
+      "detail": "instrument_library.py"
+    },
+    {
+      "check": "compile:qc.py",
+      "status": "PASS",
+      "detail": "qc.py"
+    },
+    {
+      "check": "compile:study_dataset.py",
+      "status": "PASS",
+      "detail": "study_dataset.py"
+    },
+    {
+      "check": "compile:dimension_catalog.py",
+      "status": "PASS",
+      "detail": "dimension_catalog.py"
+    },
+    {
+      "check": "compile:research_context.py",
+      "status": "PASS",
+      "detail": "research_context.py"
+    },
+    {
+      "check": "compile:survey_lint.py",
+      "status": "PASS",
+      "detail": "survey_lint.py"
+    },
+    {
+      "check": "compile:runtime_diagnostic.py",
+      "status": "PASS",
+      "detail": "runtime_diagnostic.py"
+    },
+    {
+      "check": "compile:persona_depth.py",
+      "status": "PASS",
+      "detail": "persona_depth.py"
+    },
+    {
+      "check": "compile:smoke_validation.py",
+      "status": "PASS",
+      "detail": "smoke_validation.py"
+    },
+    {
+      "check": "compile:provider_parity.py",
+      "status": "PASS",
+      "detail": "provider_parity.py"
+    },
+    {
+      "check": "compile:artifact_store.py",
+      "status": "PASS",
+      "detail": "artifact_store.py"
+    },
+    {
+      "check": "compile:full_simulation.py",
+      "status": "PASS",
+      "detail": "full_simulation.py"
+    },
+    {
+      "check": "compile:persona_grounded.py",
+      "status": "PASS",
+      "detail": "persona_grounded.py"
+    },
+    {
+      "check": "compile:ensemble.py",
+      "status": "PASS",
+      "detail": "ensemble.py"
+    },
+    {
+      "check": "compile:support_bundle.py",
+      "status": "PASS",
+      "detail": "support_bundle.py"
+    },
+    {
+      "check": "compile:holdout_registry.py",
+      "status": "PASS",
+      "detail": "holdout_registry.py"
+    },
+    {
+      "check": "compile:evidence_validator.py",
+      "status": "PASS",
+      "detail": "evidence_validator.py"
+    },
+    {
+      "check": "compile:study_validity.py",
+      "status": "PASS",
+      "detail": "study_validity.py"
+    },
+    {
+      "check": "compile:validate_v17.py",
+      "status": "PASS",
+      "detail": "validate_v17.py"
+    },
+    {
+      "check": "compile:simulation_context.py",
+      "status": "PASS",
+      "detail": "simulation_context.py"
+    },
+    {
+      "check": "compile:osobnost.py",
+      "status": "PASS",
+      "detail": "osobnost.py"
+    },
+    {
+      "check": "compile:audience_strategist.py",
+      "status": "PASS",
+      "detail": "audience_strategist.py"
+    },
+    {
+      "check": "compile:audience_profile.py",
+      "status": "PASS",
+      "detail": "audience_profile.py"
+    },
+    {
+      "check": "compile:project_engine.py",
+      "status": "PASS",
+      "detail": "project_engine.py"
+    },
+    {
+      "check": "compile:claude_code_setup_smoketest.py",
+      "status": "PASS",
+      "detail": "claude_code_setup_smoketest.py"
+    },
+    {
+      "check": "compile:study_contract.py",
+      "status": "PASS",
+      "detail": "study_contract.py"
+    },
+    {
+      "check": "compile:diagnostika.py",
+      "status": "PASS",
+      "detail": "diagnostika.py"
+    },
+    {
+      "check": "compile:claude_code_setup.py",
+      "status": "PASS",
+      "detail": "claude_code_setup.py"
+    },
+    {
+      "check": "compile:campaign_background.py",
+      "status": "PASS",
+      "detail": "campaign_background.py"
+    },
+    {
+      "check": "compile:effective_evidence_audit.py",
+      "status": "PASS",
+      "detail": "effective_evidence_audit.py"
+    },
+    {
+      "check": "compile:desktop_launcher.py",
+      "status": "PASS",
+      "detail": "desktop_launcher.py"
+    },
+    {
+      "check": "compile:claude_code_provider.py",
+      "status": "PASS",
+      "detail": "claude_code_provider.py"
+    },
+    {
+      "check": "compile:conditional_engine.py",
+      "status": "PASS",
+      "detail": "conditional_engine.py"
+    },
+    {
+      "check": "compile:validation_workflow.py",
+      "status": "PASS",
+      "detail": "validation_workflow.py"
+    },
+    {
+      "check": "compile:ai_runtime_audit.py",
+      "status": "PASS",
+      "detail": "ai_runtime_audit.py"
+    },
+    {
+      "check": "compile:population_subpanels.py",
+      "status": "PASS",
+      "detail": "population_subpanels.py"
+    },
+    {
+      "check": "compile:build_wp_artifacts_v17_1.py",
+      "status": "PASS",
+      "detail": "build_wp_artifacts_v17_1.py"
+    },
+    {
+      "check": "compile:styly.py",
+      "status": "PASS",
+      "detail": "styly.py"
+    },
+    {
+      "check": "compile:workflow_report.py",
+      "status": "PASS",
+      "detail": "workflow_report.py"
+    },
+    {
+      "check": "compile:output_pack.py",
+      "status": "PASS",
+      "detail": "output_pack.py"
+    },
+    {
+      "check": "compile:task_conditions.py",
+      "status": "PASS",
+      "detail": "task_conditions.py"
+    },
+    {
+      "check": "compile:backend_smoketest.py",
+      "status": "PASS",
+      "detail": "backend_smoketest.py"
+    },
+    {
+      "check": "compile:data_contract.py",
+      "status": "PASS",
+      "detail": "data_contract.py"
+    },
+    {
+      "check": "compile:persona_calibration.py",
+      "status": "PASS",
+      "detail": "persona_calibration.py"
+    },
+    {
+      "check": "compile:release_scorecard.py",
+      "status": "PASS",
+      "detail": "release_scorecard.py"
+    },
+    {
+      "check": "compile:npc.py",
+      "status": "PASS",
+      "detail": "npc.py"
+    },
+    {
+      "check": "compile:provider_runtime.py",
+      "status": "PASS",
+      "detail": "provider_runtime.py"
+    },
+    {
+      "check": "compile:anchor_registry.py",
+      "status": "PASS",
+      "detail": "anchor_registry.py"
+    },
+    {
+      "check": "compile:scenario_compiler.py",
+      "status": "PASS",
+      "detail": "scenario_compiler.py"
+    },
+    {
+      "check": "compile:rebuild_social_network_gender_v17_4.py",
+      "status": "PASS",
+      "detail": "rebuild_social_network_gender_v17_4.py"
+    },
+    {
+      "check": "compile:portability_check.py",
+      "status": "PASS",
+      "detail": "portability_check.py"
+    },
+    {
+      "check": "compile:study_export.py",
+      "status": "PASS",
+      "detail": "study_export.py"
+    },
+    {
+      "check": "compile:segment_orchestration.py",
+      "status": "PASS",
+      "detail": "segment_orchestration.py"
+    },
+    {
+      "check": "compile:kontext.py",
+      "status": "PASS",
+      "detail": "kontext.py"
+    },
+    {
+      "check": "compile:typology_reference.py",
+      "status": "PASS",
+      "detail": "typology_reference.py"
+    },
+    {
+      "check": "compile:release_integrity.py",
+      "status": "PASS",
+      "detail": "release_integrity.py"
+    },
+    {
+      "check": "compile:cost_controller.py",
+      "status": "PASS",
+      "detail": "cost_controller.py"
+    },
+    {
+      "check": "compile:validace.py",
+      "status": "PASS",
+      "detail": "validace.py"
+    },
+    {
+      "check": "compile:representative_sampling.py",
+      "status": "PASS",
+      "detail": "representative_sampling.py"
+    },
+    {
+      "check": "compile:dispersion_calibration.py",
+      "status": "PASS",
+      "detail": "dispersion_calibration.py"
+    },
+    {
+      "check": "compile:worker_job.py",
+      "status": "PASS",
+      "detail": "worker_job.py"
+    },
+    {
+      "check": "compile:filter_syntax.py",
+      "status": "PASS",
+      "detail": "filter_syntax.py"
+    },
+    {
+      "check": "compile:cross_survey.py",
+      "status": "PASS",
+      "detail": "cross_survey.py"
+    },
+    {
+      "check": "compile:study_cli.py",
+      "status": "PASS",
+      "detail": "study_cli.py"
+    },
+    {
+      "check": "compile:doctor.py",
+      "status": "PASS",
+      "detail": "doctor.py"
+    },
+    {
+      "check": "compile:core_joint.py",
+      "status": "PASS",
+      "detail": "core_joint.py"
+    },
+    {
+      "check": "compile:runtime_config.py",
+      "status": "PASS",
+      "detail": "runtime_config.py"
+    },
+    {
+      "check": "compile:reality_alignment.py",
+      "status": "PASS",
+      "detail": "reality_alignment.py"
+    },
+    {
+      "check": "compile:project_artifact_sync.py",
+      "status": "PASS",
+      "detail": "project_artifact_sync.py"
+    },
+    {
+      "check": "compile:scenario_truth_log.py",
+      "status": "PASS",
+      "detail": "scenario_truth_log.py"
+    },
+    {
+      "check": "compile:research_designer.py",
+      "status": "PASS",
+      "detail": "research_designer.py"
+    },
+    {
+      "check": "compile:anthropic_compat.py",
+      "status": "PASS",
+      "detail": "anthropic_compat.py"
+    },
+    {
+      "check": "compile:launcher_bootstrap.py",
+      "status": "PASS",
+      "detail": "launcher_bootstrap.py"
+    },
+    {
+      "check": "compile:budget_guard.py",
+      "status": "PASS",
+      "detail": "budget_guard.py"
+    },
+    {
+      "check": "compile:golden_path_test.py",
+      "status": "PASS",
+      "detail": "golden_path_test.py"
+    },
+    {
+      "check": "compile:model_drift.py",
+      "status": "PASS",
+      "detail": "model_drift.py"
+    },
+    {
+      "check": "compile:sociomap.py",
+      "status": "PASS",
+      "detail": "sociomap.py"
+    },
+    {
+      "check": "compile:domain_readiness.py",
+      "status": "PASS",
+      "detail": "domain_readiness.py"
+    },
+    {
+      "check": "compile:secret_scan.py",
+      "status": "PASS",
+      "detail": "secret_scan.py"
+    },
+    {
+      "check": "compile:behavior.py",
+      "status": "PASS",
+      "detail": "behavior.py"
+    },
+    {
+      "check": "compile:navrh.py",
+      "status": "PASS",
+      "detail": "navrh.py"
+    },
+    {
+      "check": "compile:job_store.py",
+      "status": "PASS",
+      "detail": "job_store.py"
+    },
+    {
+      "check": "compile:validation_diagnostics.py",
+      "status": "PASS",
+      "detail": "validation_diagnostics.py"
+    },
+    {
+      "check": "compile:prototype_server.py",
+      "status": "PASS",
+      "detail": "prototype_server.py"
+    },
+    {
+      "check": "compile:mrp.py",
+      "status": "PASS",
+      "detail": "mrp.py"
+    },
+    {
+      "check": "compile:final_client_report.py",
+      "status": "PASS",
+      "detail": "final_client_report.py"
+    },
+    {
+      "check": "compile:ingest_cli.py",
+      "status": "PASS",
+      "detail": "ingest_cli.py"
+    },
+    {
+      "check": "compile:report_html.py",
+      "status": "PASS",
+      "detail": "report_html.py"
+    },
+    {
+      "check": "compile:client_report_v2.py",
+      "status": "PASS",
+      "detail": "client_report_v2.py"
+    },
+    {
+      "check": "compile:provenance.py",
+      "status": "PASS",
+      "detail": "provenance.py"
+    },
+    {
+      "check": "compile:uncertainty.py",
+      "status": "PASS",
+      "detail": "uncertainty.py"
+    },
+    {
+      "check": "compile:run.py",
+      "status": "PASS",
+      "detail": "run.py"
+    },
+    {
+      "check": "compile:reality_alignment_acceptance.py",
+      "status": "PASS",
+      "detail": "reality_alignment_acceptance.py"
+    },
+    {
+      "check": "compile:ingest_automation.py",
+      "status": "PASS",
+      "detail": "ingest_automation.py"
+    },
+    {
+      "check": "compile:dispozice.py",
+      "status": "PASS",
+      "detail": "dispozice.py"
+    },
+    {
+      "check": "compile:project_pipeline.py",
+      "status": "PASS",
+      "detail": "project_pipeline.py"
+    },
+    {
+      "check": "compile:NPC_AI_DIAGNOSTIKA.py",
+      "status": "PASS",
+      "detail": "NPC_AI_DIAGNOSTIKA.py"
+    },
+    {
+      "check": "compile:kalibrace.py",
+      "status": "PASS",
+      "detail": "kalibrace.py"
+    },
+    {
+      "check": "compile:research_copilot.py",
+      "status": "PASS",
+      "detail": "research_copilot.py"
+    },
+    {
+      "check": "compile:audience.py",
+      "status": "PASS",
+      "detail": "audience.py"
+    },
+    {
+      "check": "compile:workflow_engine.py",
+      "status": "PASS",
+      "detail": "workflow_engine.py"
+    },
+    {
+      "check": "compile:donor_fusion.py",
+      "status": "PASS",
+      "detail": "donor_fusion.py"
+    },
+    {
+      "check": "compile:fidelity.py",
+      "status": "PASS",
+      "detail": "fidelity.py"
+    },
+    {
+      "check": "compile:pdf_targets.py",
+      "status": "PASS",
+      "detail": "pdf_targets.py"
+    },
+    {
+      "check": "compile:factual_layer.py",
+      "status": "PASS",
+      "detail": "factual_layer.py"
+    },
+    {
+      "check": "compile:study_validation.py",
+      "status": "PASS",
+      "detail": "study_validation.py"
+    },
+    {
+      "check": "compile:edition_config.py",
+      "status": "PASS",
+      "detail": "edition_config.py"
+    },
+    {
+      "check": "compile:legal_gate.py",
+      "status": "PASS",
+      "detail": "legal_gate.py"
+    },
+    {
+      "check": "compile:persona_ablation.py",
+      "status": "PASS",
+      "detail": "persona_ablation.py"
+    },
+    {
+      "check": "compile:provider_diagnostics.py",
+      "status": "PASS",
+      "detail": "provider_diagnostics.py"
+    },
+    {
+      "check": "compile:survey_experiments.py",
+      "status": "PASS",
+      "detail": "survey_experiments.py"
+    },
+    {
+      "check": "compile:system_fingerprint.py",
+      "status": "PASS",
+      "detail": "system_fingerprint.py"
+    },
+    {
+      "check": "compile:scheduler.py",
+      "status": "PASS",
+      "detail": "scheduler.py"
+    },
+    {
+      "check": "compile:employment_bridge.py",
+      "status": "PASS",
+      "detail": "employment_bridge.py"
+    },
+    {
+      "check": "compile:ai_execution_context.py",
+      "status": "PASS",
+      "detail": "ai_execution_context.py"
+    },
+    {
+      "check": "compile:worker_daemon.py",
+      "status": "PASS",
+      "detail": "worker_daemon.py"
+    },
+    {
+      "check": "compile:spawn_env.py",
+      "status": "PASS",
+      "detail": "spawn_env.py"
+    },
+    {
+      "check": "compile:product_policy.py",
+      "status": "PASS",
+      "detail": "product_policy.py"
+    },
+    {
+      "check": "compile:research_project.py",
+      "status": "PASS",
+      "detail": "research_project.py"
+    },
+    {
+      "check": "compile:analysis_agent.py",
+      "status": "PASS",
+      "detail": "analysis_agent.py"
+    },
+    {
+      "check": "compile:handoff_verify.py",
+      "status": "PASS",
+      "detail": "handoff_verify.py"
+    },
+    {
+      "check": "compile:NPC_JEN_CLAUDE_CODE.py",
+      "status": "PASS",
+      "detail": "NPC_JEN_CLAUDE_CODE.py"
+    },
+    {
+      "check": "compile:live_smoketest.py",
+      "status": "PASS",
+      "detail": "live_smoketest.py"
+    },
+    {
+      "check": "compile:validation_stats.py",
+      "status": "PASS",
+      "detail": "validation_stats.py"
+    },
+    {
+      "check": "compile:demo_showcase.py",
+      "status": "PASS",
+      "detail": "demo_showcase.py"
+    },
+    {
+      "check": "compile:validation_gate.py",
+      "status": "PASS",
+      "detail": "validation_gate.py"
+    },
+    {
+      "check": "compile:research_arena.py",
+      "status": "PASS",
+      "detail": "research_arena.py"
+    },
+    {
+      "check": "compile:audience_dimensions.py",
+      "status": "PASS",
+      "detail": "audience_dimensions.py"
+    },
+    {
+      "check": "compile:BUILD_MARKETING_LATENT_v17_1.py",
+      "status": "PASS",
+      "detail": "BUILD_MARKETING_LATENT_v17_1.py"
+    },
+    {
+      "check": "compile:segment.py",
+      "status": "PASS",
+      "detail": "segment.py"
+    },
+    {
+      "check": "compile:provider_auth.py",
+      "status": "PASS",
+      "detail": "provider_auth.py"
+    },
+    {
+      "check": "compile:pipeline.py",
+      "status": "PASS",
+      "detail": "pipeline.py"
+    },
+    {
+      "check": "compile:manifest.py",
+      "status": "PASS",
+      "detail": "manifest.py"
+    },
+    {
+      "check": "compile:pricing_engine.py",
+      "status": "PASS",
+      "detail": "pricing_engine.py"
+    },
+    {
+      "check": "compile:legacy_job_dispatch.py",
+      "status": "PASS",
+      "detail": "legacy_job_dispatch.py"
+    },
+    {
+      "check": "compile:project_intake.py",
+      "status": "PASS",
+      "detail": "project_intake.py"
+    },
+    {
+      "check": "compile:data_library.py",
+      "status": "PASS",
+      "detail": "data_library.py"
+    },
+    {
+      "check": "compile:dotaznik.py",
+      "status": "PASS",
+      "detail": "dotaznik.py"
+    },
+    {
+      "check": "compile:ui_server.py",
+      "status": "PASS",
+      "detail": "ui_server.py"
+    },
+    {
+      "check": "compile:fullsim_learning.py",
+      "status": "PASS",
+      "detail": "fullsim_learning.py"
+    },
+    {
+      "check": "compile:conditional_validation.py",
+      "status": "PASS",
+      "detail": "conditional_validation.py"
+    },
+    {
+      "check": "compile:holdout_protocol.py",
+      "status": "PASS",
+      "detail": "holdout_protocol.py"
+    },
+    {
+      "check": "compile:validation_status.py",
+      "status": "PASS",
+      "detail": "validation_status.py"
+    },
+    {
+      "check": "compile:project_store.py",
+      "status": "PASS",
+      "detail": "project_store.py"
+    },
+    {
+      "check": "compile:coherence_audit_v17.py",
+      "status": "PASS",
+      "detail": "coherence_audit_v17.py"
+    },
+    {
+      "check": "compile:claude_code_respondent_smoketest.py",
+      "status": "PASS",
+      "detail": "claude_code_respondent_smoketest.py"
+    },
+    {
+      "check": "compile:output_calibration.py",
+      "status": "PASS",
+      "detail": "output_calibration.py"
+    },
+    {
+      "check": "compile:result_context.py",
+      "status": "PASS",
+      "detail": "result_context.py"
+    },
+    {
+      "check": "compile:audience_selector.py",
+      "status": "PASS",
+      "detail": "audience_selector.py"
+    },
+    {
+      "check": "panel_rows",
+      "status": "PASS",
+      "detail": "18766"
+    },
+    {
+      "check": "panel_columns",
+      "status": "PASS",
+      "detail": "400"
+    },
+    {
+      "check": "unique_ids",
+      "status": "PASS",
+      "detail": "18766"
+    },
+    {
+      "check": "no_legacy_D_P",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "check": "scorecard_complete",
+      "status": "PASS",
+      "detail": "400"
+    },
+    {
+      "check": "field_dictionary_complete",
+      "status": "PASS",
+      "detail": "400"
+    },
+    {
+      "check": "persona_catalog_fields",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "check": "respondent_audit_no_hard_fail",
+      "status": "PASS",
+      "detail": "{'PASS': 17437, 'REVIEW_LOW_CONFIDENCE': 1329}"
+    },
+    {
+      "check": "builtin_subpanels_match",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "check": "special_panels_match",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "check": "special_sensitive_fail_closed",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "check": "brand_specific_gate",
+      "status": "PASS",
+      "detail": "{'ready': False, 'reason': 'BRAND_SPECIFIC_BACKGROUND_MISSING'}"
+    },
+    {
+      "check": "provider_fail_closed",
+      "status": "PASS",
+      "detail": "static contract"
+    },
+    {
+      "check": "external_holdout_pending",
+      "status": "PASS",
+      "detail": "EXTERNAL_HOLDOUT_PENDING"
+    },
+    {
+      "check": "cross_block_fail_closed",
+      "status": "PASS",
+      "detail": "False"
+    },
+    {
+      "check": "weight:default_current",
+      "status": "PASS",
+      "detail": "vaha_strukturalni_2025"
+    },
+    {
+      "check": "weight:demographic_current_approx",
+      "status": "PASS",
+      "detail": "vaha_populace_2025_aprox"
+    },
+    {
+      "check": "weight:census_2021",
+      "status": "PASS",
+      "detail": "vaha_kalibrovana"
+    },
+    {
+      "check": "weight:party_2021_aggregate",
+      "status": "PASS",
+      "detail": "vaha_strana_2021_benchmark"
+    },
+    {
+      "check": "import_smoke",
+      "status": "PASS",
+      "detail": "[]"
+    }
+  ]
+}

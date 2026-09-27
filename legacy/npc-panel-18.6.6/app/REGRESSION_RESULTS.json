@@ -1,0 +1,18 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "status": "PASS",
+  "pytest_collected": 234,
+  "pytest_passed_unique": 234,
+  "pytest_failed": 0,
+  "execution_mode": "segmented by test file/test case to stay inside shell execution windows",
+  "ui_javascript_node_check": "PASS",
+  "python_compile_changed_modules": "PASS",
+  "selftest_py": "BLOCKED",
+  "selftest_reason": "Monolithic selftest did not finish inside the execution window; its covered release/regression components were executed separately and passed.",
+  "notes": [
+    "Some earlier grouped pytest invocations reached the shell timeout after assertions; rerunning those suites/test cases individually with plugin autoload disabled completed PASS.",
+    "No network-dependent Claude API call was counted as a regression PASS."
+  ]
+}

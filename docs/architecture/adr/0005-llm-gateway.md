@@ -70,6 +70,7 @@ class ModelGateway(Protocol):
 | `capability` | Logical capability, not a model name |
 | `policy_version` | Which model policy resolved this; changes results |
 | `data_classification` | Governs which providers may see the payload at all |
+| `data_lineage` | The datasets the payload was computed from; the licence gate beside residency ([ADR 0016](0016-research-execution-and-model-transmission.md) decision 5) |
 | `requested_provider` | Explicit choice, when a user made one |
 | `requested_model` | Explicit pin, for a reproducible run |
 | `fallback_policy` | **Explicitly authorised** fallback, or none. Never implicit |

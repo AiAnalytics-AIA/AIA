@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "01_NOVA_SPARK_DEMO",
+  "project_id": "PRJ-DEMO-NOVA-SPARK",
+  "title": "NOVA Spark DEMO",
+  "domain": "FMCG / nápoje",
+  "study_type": "Uvedení nového produktu",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Chci zjistit, jestli má smysl uvést nový funkční nápoj NOVA Spark na český trh.",
+    "decision": "Go / No-Go + doporučení varianty, ceny, publika a komunikace."
+  },
+  "executive_answer": "Produkt má smysl uvést, ale ne jako další levný energy drink. Nejrobustnější je varianta Familiar: 49 Kč, mírnější chuť, český původ a jednoduchý benefit energie bez cukru.",
+  "recommendation": "GO — Familiar jako core launch; Value jen jako promo cenový test.",
+  "audience": {
+    "population": "ČR 18–64, bez předčasného zúžení cílové populace",
+    "n": 1200,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jak často používáte produkty pro zvýšení energie?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Jak důležité jsou pro vás funkční benefity, chuť, cena a původ?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Jak na vás působí čtyři produktové varianty?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Jaké emoce a asociace ve vás jednotlivé varianty vyvolávají?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Jakou cenu považujete za přijatelnou?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Jak pravděpodobně byste produkt vyzkoušeli a koupili?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Baseline",
+      "description": "Základní funkční positioning",
+      "type": "tracked_object",
+      "score": 61,
+      "x": 280,
+      "y": 230
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Value",
+      "description": "Dostupná energie každý den",
+      "type": "tracked_object",
+      "score": 70,
+      "x": 150,
+      "y": 310
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Premium",
+      "description": "Přírodní / prémiový benefit",
+      "type": "tracked_object",
+      "score": 67,
+      "x": 575,
+      "y": 135
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Familiar",
+      "description": "Český původ + jednoduchá funkčnost",
+      "type": "tracked_object",
+      "score": 72,
+      "x": 390,
+      "y": 245
+    }
+  ],
+  "metrics": [
+    "Trial intent",
+    "Purchase intent",
+    "Appeal",
+    "Uniqueness",
+    "Price acceptance",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      46,
+      31,
+      58,
+      52,
+      44,
+      61
+    ],
+    [
+      57,
+      43,
+      54,
+      41,
+      67,
+      70
+    ],
+    [
+      49,
+      34,
+      63,
+      61,
+      31,
+      67
+    ],
+    [
+      54,
+      39,
+      60,
+      48,
+      52,
+      72
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Pragmatic Energy Seekers",
+      "share_pct": 28,
+      "description": "Funkce + rozumná cena",
+      "best_object": "Familiar"
+    },
+    {
+      "id": "SEG2",
+      "name": "Price Maximizers",
+      "share_pct": 24,
+      "description": "Silně cenově citliví",
+      "best_object": "Value"
+    },
+    {
+      "id": "SEG3",
+      "name": "Health Optimizers",
+      "share_pct": 19,
+      "description": "Ingredience a wellness",
+      "best_object": "Premium"
+    },
+    {
+      "id": "SEG4",
+      "name": "Category Skeptics",
+      "share_pct": 17,
+      "description": "Nízká relevance kategorie",
+      "best_object": "Familiar"
+    },
+    {
+      "id": "SEG5",
+      "name": "Trend Explorers",
+      "share_pct": 12,
+      "description": "Novinky a design",
+      "best_object": "Premium"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Standard market",
+      "winner": "Familiar",
+      "primary_metric": 39,
+      "overall": 72,
+      "assumption": "Vyvážené předpoklady"
+    },
+    {
+      "id": "W2",
+      "name": "Higher skepticism",
+      "winner": "Familiar",
+      "primary_metric": 38,
+      "overall": 70,
+      "assumption": "Vyšší nedůvěra ke claimům"
+    },
+    {
+      "id": "W3",
+      "name": "Price pressure",
+      "winner": "Value",
+      "primary_metric": 44,
+      "overall": 71,
+      "assumption": "Výrazně vyšší cenová citlivost"
+    },
+    {
+      "id": "W4",
+      "name": "Health trend",
+      "winner": "Familiar",
+      "primary_metric": 40,
+      "overall": 73,
+      "assumption": "Vyšší wellness relevance"
+    },
+    {
+      "id": "W5",
+      "name": "Weak brand story",
+      "winner": "Familiar",
+      "primary_metric": 39,
+      "overall": 71,
+      "assumption": "Nižší význam původu"
+    },
+    {
+      "id": "W6",
+      "name": "Innovation wave",
+      "winner": "Familiar",
+      "primary_metric": 41,
+      "overall": 72,
+      "assumption": "Vyšší adoption novinek"
+    },
+    {
+      "id": "W7",
+      "name": "Category fatigue",
+      "winner": "Familiar",
+      "primary_metric": 37,
+      "overall": 69,
+      "assumption": "Nižší category interest"
+    },
+    {
+      "id": "W8",
+      "name": "Strong local origin",
+      "winner": "Familiar",
+      "primary_metric": 42,
+      "overall": 74,
+      "assumption": "Vyšší relevance českého původu"
+    }
+  ],
+  "findings": [
+    "Value maximalizuje krátkodobý zájem, ale oslabuje unikátnost.",
+    "Premium vytváří největší appeal, ale cena 59 Kč polarizuje.",
+    "Familiar nejlépe kombinuje důvěru, relevanci a cenovou přijatelnost.",
+    "Největší opportunity je 18–44, nikoli jen nejmladší publikum."
+  ],
+  "risks": [
+    "Purchase intent není skutečný nákup.",
+    "Cenovou elasticitu je nutné ověřit reálným testem.",
+    "Funkční claim musí být právně a produktově ověřitelný."
+  ],
+  "primary_metric": "Purchase intent",
+  "primary_value": 39,
+  "world_range": "37–42 %",
+  "winner_stability": "7/8",
+  "overall": 72,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Baseline",
+        "type": "object",
+        "score": 61,
+        "x": 280,
+        "y": 230,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Value",
+        "type": "object",
+        "score": 70,
+        "x": 150,
+        "y": 310,
+        "color": "#3c9890"
+      },
+      {
+        "name": "Premium",
+        "type": "object",
+        "score": 67,
+        "x": 575,
+        "y": 135,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Familiar",
+        "type": "object",
+        "score": 72,
+        "x": 390,
+        "y": 245,
+        "color": "#299764"
+      },
+      {
+        "name": "Důvěra",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Relevance",
+        "type": "anchor",
+        "x": 500,
+        "y": 245,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Cena / náklad",
+        "type": "anchor",
+        "x": 170,
+        "y": 205,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Jednoduchost",
+        "type": "anchor",
+        "x": 335,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 6,
+        "weight": 0.72
+      },
+      {
+        "from": 0,
+        "to": 7,
+        "weight": 0.66
+      },
+      {
+        "from": 1,
+        "to": 6,
+        "weight": 0.73
+      },
+      {
+        "from": 1,
+        "to": 7,
+        "weight": 0.52
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.67
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "weight": 0.51
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.72
+      },
+      {
+        "from": 3,
+        "to": 7,
+        "weight": 0.69
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

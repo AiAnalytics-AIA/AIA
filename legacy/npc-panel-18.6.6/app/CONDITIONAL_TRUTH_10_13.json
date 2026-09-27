@@ -1,0 +1,282 @@
+{
+  "adopce_ai": {
+    "celkem": 31.5,
+    "evidence_role": "AGGREGATE_CONDITIONAL",
+    "pohlavi": {
+      "muz": 33.7,
+      "zena": 29.6
+    },
+    "source_url": "https://csu.gov.cz/produkty/vyuzivani-informacnich-a-komunikacnich-technologii-v-domacnostech-a-mezi-osobami-gnzqheaxdo",
+    "vek": {
+      "18-24": 78.5,
+      "25-34": 56.4,
+      "35-44": 40.4,
+      "45-54": 27.0,
+      "55-64": 16.2,
+      "65-74": 5.9,
+      "75+": 1.8
+    },
+    "vzdelani": {
+      "ss_bez": 13.2,
+      "ss_mat": 37.3,
+      "vs": 60.0,
+      "zakladni": 16.4
+    },
+    "zdroj": "ČSÚ VŠIT 2025 tab. 5.8"
+  },
+  "depresivni_symptomy": {
+    "celkem": 8.7,
+    "evidence_role": "MEASURED_RESPONDENT_PROFILE",
+    "pohlavi": {
+      "muz": 7.9,
+      "zena": 9.5
+    },
+    "source_url": "https://zenodo.org/records/15754049",
+    "vek": {
+      "18-24": 13.1,
+      "25-34": 10.1,
+      "35-44": 8.7,
+      "45-54": 6.6,
+      "55-64": 7.2,
+      "65-74": 7.5,
+      "75+": 14.5
+    },
+    "vzdelani": {
+      "ss_bez": 9.9,
+      "ss_mat": 7.9,
+      "vs": 7.5,
+      "zakladni": 9.8
+    },
+    "zdroj": "NÚDZ CAPI 2022, PHQ-9 ≥10, target profile from bundled v15 research build"
+  },
+  "digitalni_zivot": {
+    "celkem": 63.6,
+    "evidence_role": "AGGREGATE_CONDITIONAL",
+    "pohlavi": {
+      "muz": 63.8,
+      "zena": 63.6
+    },
+    "source_url": "https://csu.gov.cz/produkty/vyuzivani-informacnich-a-komunikacnich-technologii-v-domacnostech-a-mezi-osobami-gnzqheaxdo",
+    "vek": {
+      "18-24": 91.6,
+      "25-34": 88.1,
+      "35-44": 85.4,
+      "45-54": 75.5,
+      "55-64": 56.8,
+      "65-74": 25.5,
+      "75+": 10.8
+    },
+    "vzdelani": {
+      "ss_bez": 56.2,
+      "ss_mat": 85.5,
+      "vs": 95.3,
+      "zakladni": 46.4
+    },
+    "zdroj": "ČSÚ VŠIT 2025 tab. 5.10"
+  },
+  "ecommerce": {
+    "celkem": 76.2,
+    "evidence_role": "AGGREGATE_CONDITIONAL",
+    "pohlavi": {
+      "muz": 75.8,
+      "zena": 76.6
+    },
+    "source_url": "https://csu.gov.cz/produkty/vyuzivani-informacnich-a-komunikacnich-technologii-v-domacnostech-a-mezi-osobami-gnzqheaxdo",
+    "vek": {
+      "18-24": 97.3,
+      "25-34": 97.1,
+      "35-44": 94.5,
+      "45-54": 90.4,
+      "55-64": 75.1,
+      "65-74": 46.3,
+      "75+": 18.1
+    },
+    "vzdelani": {
+      "ss_bez": 80.5,
+      "ss_mat": 95.7,
+      "vs": 96.4,
+      "zakladni": 65.7
+    },
+    "zdroj": "ČSÚ VŠIT 2025 tab. 14.1, nákup za posledních 12 měsíců"
+  },
+  "internetove_bankovnictvi": {
+    "celkem": 77.9,
+    "evidence_role": "AGGREGATE_CONDITIONAL",
+    "pohlavi": {
+      "muz": 78.2,
+      "zena": 77.7
+    },
+    "source_url": "https://csu.gov.cz/produkty/vyuzivani-informacnich-a-komunikacnich-technologii-v-domacnostech-a-mezi-osobami-gnzqheaxdo",
+    "vek": {
+      "18-24": 87.7,
+      "25-34": 95.5,
+      "35-44": 94.9,
+      "45-54": 91.7,
+      "55-64": 81.7,
+      "65-74": 53.9,
+      "75+": 23.8
+    },
+    "vzdelani": {
+      "ss_bez": 84.7,
+      "ss_mat": 95.8,
+      "vs": 98.5,
+      "zakladni": 62.7
+    },
+    "zdroj": "ČSÚ VŠIT 2025 tab. 12.1"
+  },
+  "kognitivni_gramotnost": {
+    "celkem": 24.42,
+    "evidence_role": "MEASURED_RESPONDENT_PROFILE",
+    "pohlavi": {
+      "muz": 25.53,
+      "zena": 23.26
+    },
+    "source_url": "https://www.oecd.org/en/data/datasets/piaac-2nd-cycle-database.html",
+    "vek": {
+      "18-24": 13.09,
+      "25-34": 21.6,
+      "35-44": 20.86,
+      "45-54": 25.09,
+      "55-64": 36.15,
+      "65-74": 36.74
+    },
+    "zdroj": "OECD PIAAC 2023 CZ, PVLIT1<226"
+  },
+  "prioritizuje_nezavislost_soudu": {
+    "celkem": 17.95,
+    "evidence_role": "MEASURED_RESPONDENT_PROFILE",
+    "pohlavi": {
+      "muz": 18.75,
+      "zena": 17.18
+    },
+    "source_url": "https://doi.org/10.14473/CSDA/HL0XSA",
+    "vek": {
+      "18-24": 23.42,
+      "25-34": 18.01,
+      "35-44": 28.14,
+      "45-54": 14.76,
+      "55-64": 13.36,
+      "65-74": 13.52,
+      "75+": 16.31
+    },
+    "zdroj": "Rule of Law ČR 2024, nezávislé soudy jako TOP priorita"
+  },
+  "prioritizuje_vetsinovou_vladu": {
+    "celkem": 17.3,
+    "evidence_role": "MEASURED_RESPONDENT_PROFILE",
+    "pohlavi": {
+      "muz": 18.78,
+      "zena": 15.87
+    },
+    "source_url": "https://doi.org/10.14473/CSDA/HL0XSA",
+    "vek": {
+      "18-24": 7.62,
+      "25-34": 8.14,
+      "35-44": 15.77,
+      "45-54": 19.07,
+      "55-64": 20.22,
+      "65-74": 22.14,
+      "75+": 25.08
+    },
+    "zdroj": "Rule of Law ČR 2024, vláda dle vůle většiny jako TOP priorita"
+  },
+  "socialni_duvera": {
+    "celkem": 25.7,
+    "evidence_role": "MEASURED_RESPONDENT_PROFILE",
+    "pohlavi": {
+      "muz": 26.82,
+      "zena": 24.56
+    },
+    "source_url": "https://www.oecd.org/en/data/datasets/piaac-2nd-cycle-database.html",
+    "vek": {
+      "18-24": 22.95,
+      "25-34": 25.21,
+      "35-44": 25.85,
+      "45-54": 26.18,
+      "55-64": 28.08,
+      "65-74": 19.12
+    },
+    "zdroj": "OECD PIAAC 2023 CZ, I2_Q01b≥6"
+  },
+  "socialni_site": {
+    "celkem": 63.2,
+    "evidence_role": "AGGREGATE_CONDITIONAL",
+    "pohlavi": {
+      "muz": 59.6,
+      "zena": 66.6
+    },
+    "source_url": "https://csu.gov.cz/produkty/vyuzivani-informacnich-a-komunikacnich-technologii-v-domacnostech-a-mezi-osobami-gnzqheaxdo",
+    "vek": {
+      "18-24": 97.6,
+      "25-34": 95.6,
+      "35-44": 85.3,
+      "45-54": 70.3,
+      "55-64": 50.7,
+      "65-74": 25.0,
+      "75+": 9.4
+    },
+    "vzdelani": {
+      "ss_bez": 70.0,
+      "ss_mat": 77.7,
+      "vs": 80.1,
+      "zakladni": 62.7
+    },
+    "zdroj": "ČSÚ VŠIT 2025 tab. 7.1"
+  },
+  "ucast_volby": {
+    "celkem": 68.9,
+    "evidence_role": "AGGREGATE_CONDITIONAL",
+    "kraj": {
+      "Jihomoravský": 69.8,
+      "Jihočeský": 69.5,
+      "Karlovarský": 60.7,
+      "Královehradecký": 70.5,
+      "Liberecký": 68.0,
+      "Moravskoslezský": 66.1,
+      "Olomoucký": 68.6,
+      "Pardubický": 71.4,
+      "Plzeňský": 68.2,
+      "Praha": 71.4,
+      "Středočeský": 71.3,
+      "Vysočina": 72.5,
+      "Zlínský": 69.7,
+      "Ústecký": 61.9
+    },
+    "source_url": "https://www.volby.cz/opendata/ps2025/ps2025_opendata.htm",
+    "vek": {
+      "18-24": 61.0,
+      "25-34": 63.0,
+      "35-44": 70.0,
+      "45-54": 72.0,
+      "55-64": 72.0,
+      "65-74": 75.0,
+      "75+": 62.0
+    },
+    "zdroj": "ČSÚ volby PS 2025 + věkový profil použitý ve v15 research build"
+  },
+  "uzkostne_symptomy": {
+    "celkem": 4.2,
+    "evidence_role": "MEASURED_RESPONDENT_PROFILE",
+    "pohlavi": {
+      "muz": 3.8,
+      "zena": 4.6
+    },
+    "source_url": "https://zenodo.org/records/15754049",
+    "vek": {
+      "18-24": 7.2,
+      "25-34": 4.4,
+      "35-44": 4.6,
+      "45-54": 4.1,
+      "55-64": 4.0,
+      "65-74": 3.1,
+      "75+": 2.9
+    },
+    "vzdelani": {
+      "ss_bez": 3.5,
+      "ss_mat": 4.8,
+      "vs": 3.7,
+      "zakladni": 5.3
+    },
+    "zdroj": "NÚDZ CAPI 2022, GAD-7 ≥10, target profile from bundled v15 research build"
+  }
+}

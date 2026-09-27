@@ -1,0 +1,122 @@
+[
+  {
+    "column": "respondent_id",
+    "kind": "profile",
+    "description": "respondent id"
+  },
+  {
+    "column": "segment",
+    "kind": "profile",
+    "description": "segment"
+  },
+  {
+    "column": "dem_gender",
+    "kind": "profile",
+    "description": "dem gender"
+  },
+  {
+    "column": "dem_age",
+    "kind": "profile",
+    "description": "dem age"
+  },
+  {
+    "column": "dem_region",
+    "kind": "profile",
+    "description": "dem region"
+  },
+  {
+    "column": "dem_education",
+    "kind": "profile",
+    "description": "dem education"
+  },
+  {
+    "column": "dem_income",
+    "kind": "profile",
+    "description": "dem income"
+  },
+  {
+    "column": "att_competitive",
+    "kind": "profile",
+    "description": "att competitive"
+  },
+  {
+    "column": "att_social",
+    "kind": "profile",
+    "description": "att social"
+  },
+  {
+    "column": "att_creative",
+    "kind": "profile",
+    "description": "att creative"
+  },
+  {
+    "column": "att_story",
+    "kind": "profile",
+    "description": "att story"
+  },
+  {
+    "column": "att_casual",
+    "kind": "profile",
+    "description": "att casual"
+  },
+  {
+    "column": "att_sports",
+    "kind": "profile",
+    "description": "att sports"
+  },
+  {
+    "column": "att_challenge",
+    "kind": "profile",
+    "description": "att challenge"
+  },
+  {
+    "column": "beh_sport_frequency",
+    "kind": "profile",
+    "description": "beh sport frequency"
+  },
+  {
+    "column": "beh_novelty_openness",
+    "kind": "profile",
+    "description": "beh novelty openness"
+  },
+  {
+    "column": "obj_EA Sports FC",
+    "kind": "object_rating",
+    "description": "obj EA Sports FC"
+  },
+  {
+    "column": "obj_Fortnite",
+    "kind": "object_rating",
+    "description": "obj Fortnite"
+  },
+  {
+    "column": "obj_Minecraft",
+    "kind": "object_rating",
+    "description": "obj Minecraft"
+  },
+  {
+    "column": "obj_GTA Online",
+    "kind": "object_rating",
+    "description": "obj GTA Online"
+  },
+  {
+    "column": "obj_Call of Duty",
+    "kind": "object_rating",
+    "description": "obj Call of Duty"
+  },
+  {
+    "column": "obj_League of Legends",
+    "kind": "object_rating",
+    "description": "obj League of Legends"
+  },
+  {
+    "column": "obj_The Sims",
+    "kind": "object_rating",
+    "description": "obj The Sims"
+  },
+  {
+    "column": "obj_Baldur’s Gate 3",
+    "kind": "object_rating",
+    "description": "obj Baldur’s Gate 3"
+  }
+]

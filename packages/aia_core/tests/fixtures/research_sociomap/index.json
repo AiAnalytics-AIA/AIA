@@ -1,0 +1,15 @@
+{
+ "cases": {
+  "A01_full_questionnaire.json": "6f77095c43979c4fc747fd2b60560f2ddff29393be8e6e1f01af8670f00b931a",
+  "A02_indicative_support.json": "f8e01d6a00b32aa10e3cc7a159d2f33a4a4d53cd0710da611a74dcb74a6b7633",
+  "A03_suppressed_support.json": "0f5d525cbadeba519ea529a8d7e043a1180e4aed27c0262f40c8d6eda1b283d6"
+ },
+ "description": "Relation matrices captured from legacy/npc-panel-18.6.6 sociomap.py by tools/aggregate_capture.py",
+ "files": {
+  "A01_full_questionnaire__napoje.json": "f5ef44a82412fae5c23ca05bf9f7672b673eb01f412c5b87736e66544501bbee"
+ },
+ "unit_sources": {
+  "project_engine.py": "de74099b049833ac8f8047ad0faf845a09ee707e45da43cca434a5b55e8d9cb9",
+  "sociomap.py": "94e06f7ff9eac72636216ff420a2e4e9b5deecd65ccbe79d0d9e32e29f0524be"
+ }
+}

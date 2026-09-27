@@ -1,0 +1,14 @@
+{
+  "status": "NOT_RUN",
+  "economy_respondent_default_allowed": false,
+  "reference_runtime": "Anthropic/OpenAI reference path, one respondent per call",
+  "candidate_runtime": "NOT_BENCHMARKED",
+  "note": "17.2.0 nesmí přepnout ECONOMY respondentní engine na cheap/batch cestu bez explicitního parity PASS.",
+  "tolerances": {
+    "aggregate_mean_abs_pp": 3.0,
+    "ranking_agreement": 0.9,
+    "variance_ratio_low": 0.8,
+    "variance_ratio_high": 1.25,
+    "schema_failure_rate": 0.02
+  }
+}

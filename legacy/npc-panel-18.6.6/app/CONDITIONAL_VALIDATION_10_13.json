@@ -1,0 +1,13 @@
+{
+  "release": "10.13.0",
+  "n_truth_dimensions": 12,
+  "category_loo_n": 30,
+  "category_loo_mae_pp": 3.405,
+  "axis_holdout_n_cells": 146,
+  "axis_holdout_mae_pp": 9.24,
+  "category_loo_interpretation": "Regression/sensitivity diagnostic only; not an independent holdout because omitted categories can be partly constrained by totals and sibling categories.",
+  "axis_holdout_interpretation": "Stronger conditional test: the whole demographic axis is absent from fit. Still not a new-year or independent-source human holdout.",
+  "joint_status": "JOINT_UNVALIDATED",
+  "fitted_n_cells": 158,
+  "fitted_mae_pp": 1.27
+}

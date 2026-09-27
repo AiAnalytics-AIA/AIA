@@ -1,0 +1,49 @@
+{
+  "name": "demo_kategorie",
+  "research_question": "Jak se liší vztah českých spotřebitelů k osmi modelovým značkám a jaké segmenty z této struktury vznikají?",
+  "output_type": "segmentace",
+  "objects": [
+    "Značka A",
+    "Značka B",
+    "Značka C",
+    "Značka D",
+    "Značka E",
+    "Značka F",
+    "Značka G",
+    "Značka H"
+  ],
+  "characteristics": [
+    {
+      "name": "vek",
+      "kind": "metric",
+      "text": "Věk",
+      "source_column": "vek"
+    },
+    {
+      "name": "pohlavi",
+      "kind": "ordinal",
+      "text": "Pohlaví",
+      "source_column": "pohlavi"
+    },
+    {
+      "name": "cena_dulezitost",
+      "kind": "attitude",
+      "text": "Jak důležitá je pro vás při výběru cena?",
+      "topics": [
+        "cena",
+        "nakup"
+      ]
+    },
+    {
+      "name": "frekvence_nakupu",
+      "kind": "frequency",
+      "text": "Jak často tuto kategorii nakupujete?",
+      "topics": [
+        "nakup"
+      ]
+    }
+  ],
+  "n": 80,
+  "seed": 20260814,
+  "object_family": "modelové značky"
+}

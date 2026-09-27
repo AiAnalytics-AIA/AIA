@@ -1,0 +1,134 @@
+{
+ "schema": "aia-legacy-ui-fixture-1",
+ "fixture_id": "U07_forceLayout27",
+ "capability_id": "sociomapping.core",
+ "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+ "reference_function": "ui_app.html::forceLayout27",
+ "source_sha256": "4dd944a8bca8cb0543f803b6e9a48effa653a59cd528d076fcc898c7f8545053",
+ "helpers": {},
+ "ui_app_sha256": "d844dd6fc7bc738bf1bedaed1b668eb44d79c1ad7d281f093eee15ed1c81eaee",
+ "runtime_environment": {
+  "node": "v22.22.2",
+  "note": "Frontend function executed in a Node vm sandbox (no DOM) from source extracted verbatim from the vendored legacy/npc-panel-18.6.6/app/ui_app.html"
+ },
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-09,
+ "input": {
+  "four_objects_asymmetric": {
+   "args": [
+    [
+     [
+      0,
+      7,
+      2,
+      5
+     ],
+     [
+      3,
+      0,
+      8,
+      1
+     ],
+     [
+      9,
+      2,
+      0,
+      4
+     ],
+     [
+      1,
+      5,
+      7,
+      0
+     ]
+    ],
+    4
+   ]
+  },
+  "three_objects_equal_relations": {
+   "args": [
+    [
+     [
+      0,
+      4,
+      4
+     ],
+     [
+      4,
+      0,
+      4
+     ],
+     [
+      4,
+      4,
+      0
+     ]
+    ],
+    3
+   ]
+  },
+  "ragged_matrix_reads_missing_as_zero": {
+   "args": [
+    [
+     [
+      0,
+      9
+     ],
+     [
+      2
+     ]
+    ],
+    3
+   ]
+  }
+ },
+ "expected_output": {
+  "four_objects_asymmetric": [
+   {
+    "x": 7.0133575047,
+    "y": -26.0283278549
+   },
+   {
+    "x": 31.8788617896,
+    "y": 0.0141441991
+   },
+   {
+    "x": -1.9457591864,
+    "y": 17.1282911571
+   },
+   {
+    "x": -36.9464601079,
+    "y": 8.8858924987
+   }
+  ],
+  "three_objects_equal_relations": [
+   {
+    "x": 0,
+    "y": -38
+   },
+   {
+    "x": 32.9089653438,
+    "y": 19
+   },
+   {
+    "x": -32.9089653438,
+    "y": 19
+   }
+  ],
+  "ragged_matrix_reads_missing_as_zero": [
+   {
+    "x": 9.7808104558,
+    "y": -21.0591393514
+   },
+   {
+    "x": 23.1281548881,
+    "y": 2.0591393514
+   },
+   {
+    "x": -32.9089653438,
+    "y": 19
+   }
+  ]
+ },
+ "notes": "The 27 chrome family's object layout: n points on a circle of radius 28, 500 iterations of spring relaxation towards target = 14 + 46*(1 - m/max) where m is the mean of both matrix directions, recentred and rescaled to radius 38. Deterministic. Not yet ported."
+}

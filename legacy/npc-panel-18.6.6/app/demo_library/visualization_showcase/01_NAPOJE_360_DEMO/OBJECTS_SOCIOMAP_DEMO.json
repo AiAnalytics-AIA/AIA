@@ -1,0 +1,327 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "name": "Coca-Cola",
+      "type": "object",
+      "x": 0.7622,
+      "y": -0.0001,
+      "score": 5.152
+    },
+    {
+      "id": 1,
+      "name": "Coca-Cola Zero",
+      "type": "object",
+      "x": -0.7005,
+      "y": -0.0001,
+      "score": 6.025
+    },
+    {
+      "id": 2,
+      "name": "Pepsi Max",
+      "type": "object",
+      "x": -0.82,
+      "y": -0.0001,
+      "score": 5.817
+    },
+    {
+      "id": 3,
+      "name": "Red Bull",
+      "type": "object",
+      "x": -0.0017,
+      "y": -0.0001,
+      "score": 5.62
+    },
+    {
+      "id": 4,
+      "name": "Monster",
+      "type": "object",
+      "x": 0.0389,
+      "y": -0.0001,
+      "score": 5.698
+    },
+    {
+      "id": 5,
+      "name": "Mattoni",
+      "type": "object",
+      "x": -0.7405,
+      "y": -0.0001,
+      "score": 5.977
+    },
+    {
+      "id": 6,
+      "name": "Vinea",
+      "type": "object",
+      "x": 0.7273,
+      "y": -0.0001,
+      "score": 5.197
+    },
+    {
+      "id": 7,
+      "name": "Kofola",
+      "type": "object",
+      "x": 0.7343,
+      "y": -0.0001,
+      "score": 5.335
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 1,
+      "relation_1_10": 3.087,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 2,
+      "relation_1_10": 2.43,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 3,
+      "relation_1_10": 4.564,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 4,
+      "relation_1_10": 4.66,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 5,
+      "relation_1_10": 2.951,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 6,
+      "relation_1_10": 7.806,
+      "directed": false
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "relation_1_10": 8.138,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "relation_1_10": 7.815,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 3,
+      "relation_1_10": 4.277,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "relation_1_10": 4.266,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "relation_1_10": 7.965,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "relation_1_10": 3.023,
+      "directed": false
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "relation_1_10": 3.229,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "relation_1_10": 5.059,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "relation_1_10": 5.029,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "relation_1_10": 8.096,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "relation_1_10": 2.736,
+      "directed": false
+    },
+    {
+      "from": 2,
+      "to": 7,
+      "relation_1_10": 2.624,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "relation_1_10": 7.118,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "relation_1_10": 4.518,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 6,
+      "relation_1_10": 4.849,
+      "directed": false
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "relation_1_10": 4.46,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "relation_1_10": 4.228,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 6,
+      "relation_1_10": 4.916,
+      "directed": false
+    },
+    {
+      "from": 4,
+      "to": 7,
+      "relation_1_10": 4.643,
+      "directed": false
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "relation_1_10": 3.002,
+      "directed": false
+    },
+    {
+      "from": 5,
+      "to": 7,
+      "relation_1_10": 2.937,
+      "directed": false
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "relation_1_10": 7.705,
+      "directed": false
+    }
+  ],
+  "relation_matrix_1_10": [
+    [
+      0.0,
+      3.087,
+      2.43,
+      4.564,
+      4.66,
+      2.951,
+      7.806,
+      8.138
+    ],
+    [
+      3.087,
+      0.0,
+      7.815,
+      4.277,
+      4.266,
+      7.965,
+      3.023,
+      3.229
+    ],
+    [
+      2.43,
+      7.815,
+      0.0,
+      5.059,
+      5.029,
+      8.096,
+      2.736,
+      2.624
+    ],
+    [
+      4.564,
+      4.277,
+      5.059,
+      0.0,
+      7.118,
+      4.518,
+      4.849,
+      4.46
+    ],
+    [
+      4.66,
+      4.266,
+      5.029,
+      7.118,
+      0.0,
+      4.228,
+      4.916,
+      4.643
+    ],
+    [
+      2.951,
+      7.965,
+      8.096,
+      4.518,
+      4.228,
+      0.0,
+      3.002,
+      2.937
+    ],
+    [
+      7.806,
+      3.023,
+      2.736,
+      4.849,
+      4.916,
+      3.002,
+      0.0,
+      7.705
+    ],
+    [
+      8.138,
+      3.229,
+      2.624,
+      4.46,
+      4.643,
+      2.937,
+      7.705,
+      0.0
+    ]
+  ],
+  "matrix_source": "DEMO_SYNTHETIC_RESPONDENT_CORRELATIONS",
+  "matrix_contract": {
+    "scale": "1-10",
+    "diagonal": 0,
+    "all_pairs": true,
+    "asymmetry_allowed": false
+  }
+}

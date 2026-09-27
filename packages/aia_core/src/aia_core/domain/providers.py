@@ -18,6 +18,7 @@ from typing import Any, Final
 
 __all__ = [
     "DEFAULT_MAX_API_COST_USD",
+    "PROJECT_PROVIDERS",
     "BudgetDecision",
     "ModelRole",
     "Provider",
@@ -43,6 +44,18 @@ class Provider(StrEnum):
     CLAUDE_CODE = "claude_code_subscription"
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
+    #: Amazon Bedrock, reached only over an approved route (ADR 0010). A *route*
+    #: provider, not a project choice: it has no project policy and no project
+    #: spelling, so a project's ``preferred_provider`` can never name it.
+    AWS_BEDROCK = "aws_bedrock"
+
+
+#: The providers a project may prefer and a stage may run on -- the prototype's
+#: ``LIVE_PROVIDERS``. Route providers (Bedrock) are resolved by model policy, never
+#: chosen per project.
+PROJECT_PROVIDERS: Final[frozenset[Provider]] = frozenset(
+    {Provider.CLAUDE_CODE, Provider.ANTHROPIC, Provider.OPENAI}
+)
 
 
 class ProviderPolicy(StrEnum):
@@ -80,6 +93,7 @@ _UI_LABELS: Final[dict[Provider, str]] = {
     Provider.CLAUDE_CODE: "Claude Code",
     Provider.ANTHROPIC: "Claude API",
     Provider.OPENAI: "OpenAI API",
+    Provider.AWS_BEDROCK: "Amazon Bedrock",
 }
 
 # Accepted spellings for each provider. The prototype accumulated several aliases
@@ -99,7 +113,9 @@ _PROVIDER_ALIASES: Final[dict[str, Provider]] = {
 
 # Providers that bill per token. Claude Code runs on a subscription, so its
 # marginal API cost is zero and budget checks do not apply to it.
-_PAID_PROVIDERS: Final[frozenset[Provider]] = frozenset({Provider.ANTHROPIC, Provider.OPENAI})
+_PAID_PROVIDERS: Final[frozenset[Provider]] = frozenset(
+    {Provider.ANTHROPIC, Provider.OPENAI, Provider.AWS_BEDROCK}
+)
 
 _POLICY_FOR_PROVIDER: Final[dict[Provider, ProviderPolicy]] = {
     Provider.CLAUDE_CODE: ProviderPolicy.CLAUDE_CODE_ONLY,
@@ -115,6 +131,12 @@ def normalize_provider(value: Any, default: Provider = DEFAULT_PROVIDER) -> Prov
     that accept user input should compare the result against the input and emit a
     ``CONFIG_NORMALIZED`` audit event when they differ -- silently retargeting a
     provider would break provenance.
+
+    A project-selectable :class:`Provider` is returned as itself; a route provider
+    (:data:`PROJECT_PROVIDERS` excludes it) has no project spelling and resolves to
+    ``default`` like any unknown value, so a project can never prefer Bedrock.
+    Use :func:`is_paid` and :func:`ui_label` for route providers: they take a
+    :class:`Provider` as it is.
     """
     return _PROVIDER_ALIASES.get(str(value or "").strip().lower(), default)
 
@@ -137,14 +159,23 @@ def policy_for_provider(provider: Any) -> ProviderPolicy:
     return _POLICY_FOR_PROVIDER[normalize_provider(provider)]
 
 
+def _as_provider(provider: Any) -> Provider:
+    """A :class:`Provider` as itself (route providers included); a spelling normalised."""
+    return provider if isinstance(provider, Provider) else normalize_provider(provider)
+
+
 def ui_label(provider: Any) -> str:
     """Return the user-facing provider name."""
-    return _UI_LABELS[normalize_provider(provider)]
+    return _UI_LABELS[_as_provider(provider)]
 
 
 def is_paid(provider: Any) -> bool:
-    """True when the provider bills per token and is therefore budget-controlled."""
-    return normalize_provider(provider) in _PAID_PROVIDERS
+    """True when the provider bills per token and is therefore budget-controlled.
+
+    A route provider is judged as itself: Bedrock is metered, and normalising it
+    as a project spelling would score it as the free subscription runtime.
+    """
+    return _as_provider(provider) in _PAID_PROVIDERS
 
 
 def provider_for_stage(
@@ -233,7 +264,7 @@ def check_budget(
     each individually pass the check and collectively overspend. Subscription
     runtimes are always allowed because they incur no marginal API cost.
     """
-    resolved = normalize_provider(provider)
+    resolved = _as_provider(provider)
 
     # Negatives are clamped rather than trusted: a bad cost record must not create
     # phantom headroom. Matches legacy api_budget_check.

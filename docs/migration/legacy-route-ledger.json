@@ -1,0 +1,4259 @@
+{
+ "schema_version": 1,
+ "description": "The strangler's route ledger: one row per unique verb + path of the NPC Panel 18.6.6 HTTP surface (AIA-reference api-ledger.json, 162 dispatch arms, 153 unique routes), with the AIA status of each. Hand-maintained; packages/aia_core/tests/test_legacy_route_ledger.py keeps it covering exactly the reference's ledger and apps/api/tests/test_legacy_route_claims.py proves every PORTING/PORTED row names a live AIA route. `addenda` lists dispatch arms the reference's parser missed (`path in {…}` sets, OI-48), each anchored to its ui_server.py line and kept apart from the pinned rows until the reference is fixed upstream. Rules: docs/migration/legacy-route-ledger.md.",
+ "reference": {
+  "repository": "AiAnalytics-AIA/AIA-reference",
+  "commit": "678e298ad9ca0263da53cc8920d153fdfb956c93",
+  "api_ledger_sha256": "013701e466464a38bc95b9c2eb627fce78e1f141c377170a546d428217561c32",
+  "capability_map_sha256": "34b85e679e5d19d5a6384817f3db6d9935884ca7cb72a91248f8e8aed26e6199",
+  "route_count": 162,
+  "unique_verb_path_count": 153
+ },
+ "statuses": {
+  "LEGACY": "served by the oracle only; no AIA route exists",
+  "PORTING": "an AIA route serves the capability, and parity against the oracle is not yet PASS",
+  "PORTED": "parity PASS from executed gates; the legacy path for this route is retired",
+  "RETIRED": "no production equivalent, by the recorded decision named in `decision`"
+ },
+ "scopes": {
+  "public": "no identity required (health)",
+  "organization": "issued by ScopeResolver for the caller's organization",
+  "study": "issued by ScopeResolver for one study; the study id is in the path",
+  "undecided (D8)": "decided when the route is ported, never inferred from the reference (R14)"
+ },
+ "routes": [
+  {
+   "route": "GET /",
+   "verb": "GET",
+   "path": "/",
+   "api_ledger_capability": "root",
+   "family": "api",
+   "reference_capabilities": [
+    "api.http"
+   ],
+   "arms": [
+    {
+     "source": "prototype_server.py",
+     "line": 494,
+     "match": "exact",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1705,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 16,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "prototype_server.py arm: retain or retire is reference decision D9",
+   "decision": "D9"
+  },
+  {
+   "route": "POST /api/approvals/",
+   "verb": "POST",
+   "path": "/api/approvals/",
+   "api_ledger_capability": "api.approvals",
+   "family": "governance",
+   "reference_capabilities": [
+    "governance.anchors",
+    "governance.benchmarks",
+    "governance.evidence_audit",
+    "governance.evidence_gates",
+    "governance.holdout",
+    "governance.legal",
+    "governance.product_policy",
+    "governance.validation_state"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1928,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/approvals/pending",
+   "verb": "GET",
+   "path": "/api/approvals/pending",
+   "api_ledger_capability": "api.approvals",
+   "family": "governance",
+   "reference_capabilities": [
+    "governance.anchors",
+    "governance.benchmarks",
+    "governance.evidence_audit",
+    "governance.evidence_gates",
+    "governance.holdout",
+    "governance.legal",
+    "governance.product_policy",
+    "governance.validation_state"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1742,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/assistant/chat",
+   "verb": "POST",
+   "path": "/api/assistant/chat",
+   "api_ledger_capability": "api.assistant",
+   "family": "ai",
+   "reference_capabilities": [
+    "ai.credentials",
+    "ai.gateway",
+    "ai.provider_compat",
+    "ai.provider_diagnostics",
+    "ai.provider_parity",
+    "ai.provider_policy",
+    "ai.provider_setup",
+    "ai.runtime_policy",
+    "ai.single_provider_mode",
+    "ai.usage_ledger"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2066,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/assistant/search",
+   "verb": "POST",
+   "path": "/api/assistant/search",
+   "api_ledger_capability": "api.assistant",
+   "family": "ai",
+   "reference_capabilities": [
+    "ai.credentials",
+    "ai.gateway",
+    "ai.provider_compat",
+    "ai.provider_diagnostics",
+    "ai.provider_parity",
+    "ai.provider_policy",
+    "ai.provider_setup",
+    "ai.runtime_policy",
+    "ai.single_provider_mode",
+    "ai.usage_ledger"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2065,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/audience",
+   "verb": "POST",
+   "path": "/api/audience",
+   "api_ledger_capability": "api.audience",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2118,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/audience/dimensions",
+   "verb": "GET",
+   "path": "/api/audience/dimensions",
+   "api_ledger_capability": "api.audience",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1755,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/audience/recommend",
+   "verb": "POST",
+   "path": "/api/audience/recommend",
+   "api_ledger_capability": "api.audience",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2115,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/audiences",
+   "verb": "GET",
+   "path": "/api/audiences",
+   "api_ledger_capability": "api.audiences",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1779,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/audiences/delete",
+   "verb": "POST",
+   "path": "/api/audiences/delete",
+   "api_ledger_capability": "api.audiences",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2015,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/audiences/preflight",
+   "verb": "POST",
+   "path": "/api/audiences/preflight",
+   "api_ledger_capability": "api.audiences",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2013,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/audiences/template",
+   "verb": "GET",
+   "path": "/api/audiences/template",
+   "api_ledger_capability": "api.audiences",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1780,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/audiences/upload",
+   "verb": "POST",
+   "path": "/api/audiences/upload",
+   "api_ledger_capability": "api.audiences",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2006,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/bootstrap",
+   "verb": "GET",
+   "path": "/api/bootstrap",
+   "api_ledger_capability": "api.bootstrap",
+   "family": "api",
+   "reference_capabilities": [
+    "api.http"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1718,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 5,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/command-center",
+   "verb": "GET",
+   "path": "/api/command-center",
+   "api_ledger_capability": "api.command-center",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1730,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/copilot/chat",
+   "verb": "POST",
+   "path": "/api/copilot/chat",
+   "api_ledger_capability": "api.copilot",
+   "family": "ai",
+   "reference_capabilities": [
+    "ai.credentials",
+    "ai.gateway",
+    "ai.provider_compat",
+    "ai.provider_diagnostics",
+    "ai.provider_parity",
+    "ai.provider_policy",
+    "ai.provider_setup",
+    "ai.runtime_policy",
+    "ai.single_provider_mode",
+    "ai.usage_ledger"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2096,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/demos",
+   "verb": "GET",
+   "path": "/api/demos",
+   "api_ledger_capability": "api.demos",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1810,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 6,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/demos/copy",
+   "verb": "POST",
+   "path": "/api/demos/copy",
+   "api_ledger_capability": "api.demos",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2067,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 6,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/discovery/from_run",
+   "verb": "POST",
+   "path": "/api/discovery/from_run",
+   "api_ledger_capability": "api.discovery",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2110,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/discovery/strategy",
+   "verb": "POST",
+   "path": "/api/discovery/strategy",
+   "api_ledger_capability": "api.discovery",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2095,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/fullsim/arena",
+   "verb": "GET",
+   "path": "/api/fullsim/arena",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1823,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/fullsim/batch-pipeline",
+   "verb": "POST",
+   "path": "/api/fullsim/batch-pipeline",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1937,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/fullsim/calibration",
+   "verb": "POST",
+   "path": "/api/fullsim/calibration",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1947,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/fullsim/leaderboard",
+   "verb": "GET",
+   "path": "/api/fullsim/leaderboard",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1820,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/fullsim/pipeline",
+   "verb": "POST",
+   "path": "/api/fullsim/pipeline",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1936,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/fullsim/prepare",
+   "verb": "POST",
+   "path": "/api/fullsim/prepare",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1934,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/fullsim/run",
+   "verb": "POST",
+   "path": "/api/fullsim/run",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1935,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/fullsim/runs",
+   "verb": "GET",
+   "path": "/api/fullsim/runs",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1817,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/fullsim/submit",
+   "verb": "POST",
+   "path": "/api/fullsim/submit",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1944,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/fullsim/truth",
+   "verb": "POST",
+   "path": "/api/fullsim/truth",
+   "api_ledger_capability": "api.fullsim",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1941,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/history",
+   "verb": "GET",
+   "path": "/api/history",
+   "api_ledger_capability": "api.history",
+   "family": "results",
+   "reference_capabilities": [
+    "results.dialogue",
+    "results.registry",
+    "results.verification"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1758,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/ingest",
+   "verb": "POST",
+   "path": "/api/ingest",
+   "api_ledger_capability": "api.ingest",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2129,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/instruments",
+   "verb": "GET",
+   "path": "/api/instruments",
+   "api_ledger_capability": "api.instruments",
+   "family": "questionnaire",
+   "reference_capabilities": [
+    "questionnaire.conditionals",
+    "questionnaire.engine",
+    "questionnaire.instruments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1788,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/job",
+   "verb": "GET",
+   "path": "/api/job",
+   "api_ledger_capability": "api.job",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1832,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/jobs",
+   "verb": "GET",
+   "path": "/api/jobs",
+   "api_ledger_capability": "api.jobs",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1735,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/jobs/",
+   "verb": "GET",
+   "path": "/api/jobs/",
+   "api_ledger_capability": "api.jobs",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1738,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/jobs/",
+   "verb": "POST",
+   "path": "/api/jobs/",
+   "api_ledger_capability": "api.jobs",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1920,
+     "match": "prefix",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1924,
+     "match": "prefix",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1926,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/jobs/updates",
+   "verb": "GET",
+   "path": "/api/jobs/updates",
+   "api_ledger_capability": "api.jobs",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1740,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/projects/{project_id}/runs/{run_id}/events",
+   "scope": "study",
+   "notes": "the reference streams one global event log; AIA scopes events to a run",
+   "decision": null
+  },
+  {
+   "route": "GET /api/library",
+   "verb": "GET",
+   "path": "/api/library",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1759,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/analyze",
+   "verb": "POST",
+   "path": "/api/library/analyze",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1989,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/batch-upload",
+   "verb": "POST",
+   "path": "/api/library/batch-upload",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1956,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/deep-research",
+   "verb": "POST",
+   "path": "/api/library/deep-research",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1990,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/dimension/materialize",
+   "verb": "POST",
+   "path": "/api/library/dimension/materialize",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2000,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/dimension/request",
+   "verb": "POST",
+   "path": "/api/library/dimension/request",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1994,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/dimension/spec",
+   "verb": "POST",
+   "path": "/api/library/dimension/spec",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1997,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/library/dimensions",
+   "verb": "GET",
+   "path": "/api/library/dimensions",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1762,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/project-link",
+   "verb": "POST",
+   "path": "/api/library/project-link",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1962,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/library/project-sources",
+   "verb": "GET",
+   "path": "/api/library/project-sources",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1775,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/proposal/decide",
+   "verb": "POST",
+   "path": "/api/library/proposal/decide",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1991,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/society/ask",
+   "verb": "POST",
+   "path": "/api/library/society/ask",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1980,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/library/society/brief",
+   "verb": "GET",
+   "path": "/api/library/society/brief",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1801,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/society/schedule",
+   "verb": "POST",
+   "path": "/api/library/society/schedule",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1977,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/society/segment/ask",
+   "verb": "POST",
+   "path": "/api/library/society/segment/ask",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1986,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/society/segment/run",
+   "verb": "POST",
+   "path": "/api/library/society/segment/run",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1983,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/library/system-catalog",
+   "verb": "GET",
+   "path": "/api/library/system-catalog",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1765,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/library/upload",
+   "verb": "POST",
+   "path": "/api/library/upload",
+   "api_ledger_capability": "api.library",
+   "family": "data_library",
+   "reference_capabilities": [
+    "data_library.demos",
+    "data_library.ingest_cli",
+    "data_library.ingest_subsystem",
+    "data_library.ingestion",
+    "data_library.panel_tools"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1952,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/navrh",
+   "verb": "POST",
+   "path": "/api/navrh",
+   "api_ledger_capability": "api.navrh",
+   "family": "questionnaire",
+   "reference_capabilities": [
+    "questionnaire.conditionals",
+    "questionnaire.engine",
+    "questionnaire.instruments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2114,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/panel_values",
+   "verb": "GET",
+   "path": "/api/panel_values",
+   "api_ledger_capability": "api.panel_values",
+   "family": "population",
+   "reference_capabilities": [
+    "population.bridges",
+    "population.build",
+    "population.core",
+    "population.panel_loader",
+    "population.readiness",
+    "population.weighting"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1754,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/persona/ablation",
+   "verb": "POST",
+   "path": "/api/persona/ablation",
+   "api_ledger_capability": "api.persona",
+   "family": "respondents",
+   "reference_capabilities": [
+    "respondents.context",
+    "respondents.engine",
+    "respondents.factual_layer",
+    "respondents.layers"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2087,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/persona/benchmark/run",
+   "verb": "POST",
+   "path": "/api/persona/benchmark/run",
+   "api_ledger_capability": "api.persona",
+   "family": "respondents",
+   "reference_capabilities": [
+    "respondents.context",
+    "respondents.engine",
+    "respondents.factual_layer",
+    "respondents.layers"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2088,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/persona/calibration/fit",
+   "verb": "POST",
+   "path": "/api/persona/calibration/fit",
+   "api_ledger_capability": "api.persona",
+   "family": "respondents",
+   "reference_capabilities": [
+    "respondents.context",
+    "respondents.engine",
+    "respondents.factual_layer",
+    "respondents.layers"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2089,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/persona/calibration/status",
+   "verb": "GET",
+   "path": "/api/persona/calibration/status",
+   "api_ledger_capability": "api.persona",
+   "family": "respondents",
+   "reference_capabilities": [
+    "respondents.context",
+    "respondents.engine",
+    "respondents.factual_layer",
+    "respondents.layers"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1814,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/persona/suggest",
+   "verb": "POST",
+   "path": "/api/persona/suggest",
+   "api_ledger_capability": "api.persona",
+   "family": "respondents",
+   "reference_capabilities": [
+    "respondents.context",
+    "respondents.engine",
+    "respondents.factual_layer",
+    "respondents.layers"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2103,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/population/calibration/apply-overlay",
+   "verb": "POST",
+   "path": "/api/population/calibration/apply-overlay",
+   "api_ledger_capability": "api.population",
+   "family": "population",
+   "reference_capabilities": [
+    "population.bridges",
+    "population.build",
+    "population.core",
+    "population.panel_loader",
+    "population.readiness",
+    "population.weighting"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1974,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/population/calibration/decide",
+   "verb": "POST",
+   "path": "/api/population/calibration/decide",
+   "api_ledger_capability": "api.population",
+   "family": "population",
+   "reference_capabilities": [
+    "population.bridges",
+    "population.build",
+    "population.core",
+    "population.panel_loader",
+    "population.readiness",
+    "population.weighting"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1971,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/population/calibration/propose",
+   "verb": "POST",
+   "path": "/api/population/calibration/propose",
+   "api_ledger_capability": "api.population",
+   "family": "population",
+   "reference_capabilities": [
+    "population.bridges",
+    "population.build",
+    "population.core",
+    "population.panel_loader",
+    "population.readiness",
+    "population.weighting"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1968,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 12,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/populations",
+   "verb": "GET",
+   "path": "/api/populations",
+   "api_ledger_capability": "api.populations",
+   "family": "population",
+   "reference_capabilities": [
+    "population.bridges",
+    "population.build",
+    "population.core",
+    "population.panel_loader",
+    "population.readiness",
+    "population.weighting"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1768,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/preflight",
+   "verb": "POST",
+   "path": "/api/preflight",
+   "api_ledger_capability": "api.preflight",
+   "family": "governance",
+   "reference_capabilities": [
+    "governance.anchors",
+    "governance.benchmarks",
+    "governance.evidence_audit",
+    "governance.evidence_gates",
+    "governance.holdout",
+    "governance.legal",
+    "governance.product_policy",
+    "governance.validation_state"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2111,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/project/attachment",
+   "verb": "POST",
+   "path": "/api/project/attachment",
+   "api_ledger_capability": "api.project",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2084,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/project/check",
+   "verb": "POST",
+   "path": "/api/project/check",
+   "api_ledger_capability": "api.project",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2085,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/project/final-review",
+   "verb": "POST",
+   "path": "/api/project/final-review",
+   "api_ledger_capability": "api.project",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2086,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/project/run",
+   "verb": "POST",
+   "path": "/api/project/run",
+   "api_ledger_capability": "api.project",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1933,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/projects/{project_id}/runs",
+   "scope": "study",
+   "notes": "the reference aliases /api/project/run to create_research_workflow",
+   "decision": null
+  },
+  {
+   "route": "GET /api/projects",
+   "verb": "GET",
+   "path": "/api/projects",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1794,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/projects",
+   "scope": "study",
+   "notes": "the reference lists every project in one SQLite store; AIA lists the study's",
+   "decision": null
+  },
+  {
+   "route": "GET /api/projects/",
+   "verb": "GET",
+   "path": "/api/projects/",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1811,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/continue-claude-api",
+   "verb": "POST",
+   "path": "/api/projects/continue-claude-api",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2071,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "continues a run on the paid API after the subscription runtime; ai.single_provider_mode is INTENTIONALLY_RETIRED, the route's fate is decided with slice 13",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/create",
+   "verb": "POST",
+   "path": "/api/projects/create",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2068,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/projects",
+   "scope": "study",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/projects/dashboard",
+   "verb": "GET",
+   "path": "/api/projects/dashboard",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1807,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/export",
+   "verb": "POST",
+   "path": "/api/projects/export",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2074,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 13,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/history-action",
+   "verb": "POST",
+   "path": "/api/projects/history-action",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2073,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/projects/{project_id}/restore",
+   "scope": "study",
+   "notes": "only the restore-trash and revision actions have AIA routes (restore, revisions); branch, archive, pin, tags, duplicate do not yet",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/impact",
+   "verb": "POST",
+   "path": "/api/projects/impact",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2070,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/projects/{project_id}/impact",
+   "scope": "study",
+   "notes": "pipeline.stages: fingerprint contract already EXACT against the prototype",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/load",
+   "verb": "POST",
+   "path": "/api/projects/load",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2076,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/projects/{project_id}",
+   "scope": "study",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/overview",
+   "verb": "POST",
+   "path": "/api/projects/overview",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2069,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/save",
+   "verb": "POST",
+   "path": "/api/projects/save",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2075,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "PUT /api/v1/studies/{study_id}/projects/{project_id}/content",
+   "scope": "study",
+   "notes": "a content change is a new immutable revision on both sides",
+   "decision": null
+  },
+  {
+   "route": "POST /api/projects/settings",
+   "verb": "POST",
+   "path": "/api/projects/settings",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2072,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "PATCH /api/v1/studies/{study_id}/projects/{project_id}",
+   "scope": "study",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/projects/trash",
+   "verb": "GET",
+   "path": "/api/projects/trash",
+   "api_ledger_capability": "api.projects",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1795,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 3,
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/projects",
+   "scope": "study",
+   "notes": "trash is a project status filter on the same listing",
+   "decision": null
+  },
+  {
+   "route": "POST /api/providers/claude-code/setup",
+   "verb": "POST",
+   "path": "/api/providers/claude-code/setup",
+   "api_ledger_capability": "api.providers",
+   "family": "ai",
+   "reference_capabilities": [
+    "ai.credentials",
+    "ai.gateway",
+    "ai.provider_compat",
+    "ai.provider_diagnostics",
+    "ai.provider_parity",
+    "ai.provider_policy",
+    "ai.provider_setup",
+    "ai.runtime_policy",
+    "ai.single_provider_mode",
+    "ai.usage_ledger"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2043,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 5,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
+   "decision": null
+  },
+  {
+   "route": "GET /api/providers/claude-code/status",
+   "verb": "GET",
+   "path": "/api/providers/claude-code/status",
+   "api_ledger_capability": "api.providers",
+   "family": "ai",
+   "reference_capabilities": [
+    "ai.credentials",
+    "ai.gateway",
+    "ai.provider_compat",
+    "ai.provider_diagnostics",
+    "ai.provider_parity",
+    "ai.provider_policy",
+    "ai.provider_setup",
+    "ai.runtime_policy",
+    "ai.single_provider_mode",
+    "ai.usage_ledger"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1746,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 5,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
+   "decision": null
+  },
+  {
+   "route": "GET /api/providers/parity/status",
+   "verb": "GET",
+   "path": "/api/providers/parity/status",
+   "api_ledger_capability": "api.providers",
+   "family": "ai",
+   "reference_capabilities": [
+    "ai.credentials",
+    "ai.gateway",
+    "ai.provider_compat",
+    "ai.provider_diagnostics",
+    "ai.provider_parity",
+    "ai.provider_policy",
+    "ai.provider_setup",
+    "ai.runtime_policy",
+    "ai.single_provider_mode",
+    "ai.usage_ledger"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1751,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 5,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/questionnaire/optimize",
+   "verb": "POST",
+   "path": "/api/questionnaire/optimize",
+   "api_ledger_capability": "api.questionnaire",
+   "family": "questionnaire",
+   "reference_capabilities": [
+    "questionnaire.conditionals",
+    "questionnaire.engine",
+    "questionnaire.instruments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2101,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/questionnaire/repair",
+   "verb": "POST",
+   "path": "/api/questionnaire/repair",
+   "api_ledger_capability": "api.questionnaire",
+   "family": "questionnaire",
+   "reference_capabilities": [
+    "questionnaire.conditionals",
+    "questionnaire.engine",
+    "questionnaire.instruments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2102,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/questionnaire/template",
+   "verb": "GET",
+   "path": "/api/questionnaire/template",
+   "api_ledger_capability": "api.questionnaire",
+   "family": "questionnaire",
+   "reference_capabilities": [
+    "questionnaire.conditionals",
+    "questionnaire.engine",
+    "questionnaire.instruments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1784,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/questionnaire/upload",
+   "verb": "POST",
+   "path": "/api/questionnaire/upload",
+   "api_ledger_capability": "api.questionnaire",
+   "family": "questionnaire",
+   "reference_capabilities": [
+    "questionnaire.conditionals",
+    "questionnaire.engine",
+    "questionnaire.instruments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2099,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/research/analyze",
+   "verb": "POST",
+   "path": "/api/research/analyze",
+   "api_ledger_capability": "api.research",
+   "family": "research",
+   "reference_capabilities": [
+    "research.copilot",
+    "research.design"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2097,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/research/build_questionnaire",
+   "verb": "POST",
+   "path": "/api/research/build_questionnaire",
+   "api_ledger_capability": "api.research",
+   "family": "research",
+   "reference_capabilities": [
+    "research.copilot",
+    "research.design"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2098,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/research/compile_instruments",
+   "verb": "POST",
+   "path": "/api/research/compile_instruments",
+   "api_ledger_capability": "api.research",
+   "family": "research",
+   "reference_capabilities": [
+    "research.copilot",
+    "research.design"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2021,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/research/deep",
+   "verb": "POST",
+   "path": "/api/research/deep",
+   "api_ledger_capability": "api.research",
+   "family": "research",
+   "reference_capabilities": [
+    "research.copilot",
+    "research.design"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2100,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/research/design",
+   "verb": "POST",
+   "path": "/api/research/design",
+   "api_ledger_capability": "api.research",
+   "family": "research",
+   "reference_capabilities": [
+    "research.copilot",
+    "research.design"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2113,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/research/intake",
+   "verb": "POST",
+   "path": "/api/research/intake",
+   "api_ledger_capability": "api.research",
+   "family": "research",
+   "reference_capabilities": [
+    "research.copilot",
+    "research.design"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2017,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 9,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/results-registry",
+   "verb": "GET",
+   "path": "/api/results-registry",
+   "api_ledger_capability": "api.results-registry",
+   "family": "results",
+   "reference_capabilities": [
+    "results.dialogue",
+    "results.registry",
+    "results.verification"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1771,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/results-registry/sync",
+   "verb": "POST",
+   "path": "/api/results-registry/sync",
+   "api_ledger_capability": "api.results-registry",
+   "family": "results",
+   "reference_capabilities": [
+    "results.dialogue",
+    "results.registry",
+    "results.verification"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1965,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/results/final_report",
+   "verb": "POST",
+   "path": "/api/results/final_report",
+   "api_ledger_capability": "api.results",
+   "family": "results",
+   "reference_capabilities": [
+    "results.dialogue",
+    "results.registry",
+    "results.verification"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2109,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 13,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/results/targets",
+   "verb": "POST",
+   "path": "/api/results/targets",
+   "api_ledger_capability": "api.results",
+   "family": "results",
+   "reference_capabilities": [
+    "results.dialogue",
+    "results.registry",
+    "results.verification"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2104,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/results/verify",
+   "verb": "POST",
+   "path": "/api/results/verify",
+   "api_ledger_capability": "api.results",
+   "family": "results",
+   "reference_capabilities": [
+    "results.dialogue",
+    "results.registry",
+    "results.verification"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2107,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/run",
+   "verb": "POST",
+   "path": "/api/run",
+   "api_ledger_capability": "api.run",
+   "family": "respondents",
+   "reference_capabilities": [
+    "respondents.context",
+    "respondents.engine",
+    "respondents.factual_layer",
+    "respondents.layers"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2112,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/scenario/approve",
+   "verb": "POST",
+   "path": "/api/scenario/approve",
+   "api_ledger_capability": "api.scenario",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2034,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/scenario/approve-batch",
+   "verb": "POST",
+   "path": "/api/scenario/approve-batch",
+   "api_ledger_capability": "api.scenario",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2037,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/scenario/compile",
+   "verb": "POST",
+   "path": "/api/scenario/compile",
+   "api_ledger_capability": "api.scenario",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2030,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/scenario/compile-batch",
+   "verb": "POST",
+   "path": "/api/scenario/compile-batch",
+   "api_ledger_capability": "api.scenario",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2032,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/scenario/truth",
+   "verb": "GET",
+   "path": "/api/scenario/truth",
+   "api_ledger_capability": "api.scenario",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1791,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/scenario/truth",
+   "verb": "POST",
+   "path": "/api/scenario/truth",
+   "api_ledger_capability": "api.scenario",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2040,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/schedules",
+   "verb": "GET",
+   "path": "/api/schedules",
+   "api_ledger_capability": "api.schedules",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1743,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/schedules",
+   "verb": "POST",
+   "path": "/api/schedules",
+   "api_ledger_capability": "api.schedules",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1930,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "DELETE /api/schedules/",
+   "verb": "DELETE",
+   "path": "/api/schedules/",
+   "api_ledger_capability": "api.schedules",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2145,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "PATCH /api/schedules/",
+   "verb": "PATCH",
+   "path": "/api/schedules/",
+   "api_ledger_capability": "api.schedules",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2152,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/segment/preview",
+   "verb": "POST",
+   "path": "/api/segment/preview",
+   "api_ledger_capability": "api.segment",
+   "family": "audience",
+   "reference_capabilities": [
+    "audience.definition",
+    "audience.segments"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2122,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/settings/ai_check",
+   "verb": "POST",
+   "path": "/api/settings/ai_check",
+   "api_ledger_capability": "api.settings",
+   "family": "config",
+   "reference_capabilities": [
+    "config.edition",
+    "config.environment"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2059,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
+   "decision": null
+  },
+  {
+   "route": "POST /api/settings/ai_diagnose",
+   "verb": "POST",
+   "path": "/api/settings/ai_diagnose",
+   "api_ledger_capability": "api.settings",
+   "family": "config",
+   "reference_capabilities": [
+    "config.edition",
+    "config.environment"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2064,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
+   "decision": null
+  },
+  {
+   "route": "POST /api/settings/anthropic_check",
+   "verb": "POST",
+   "path": "/api/settings/anthropic_check",
+   "api_ledger_capability": "api.settings",
+   "family": "config",
+   "reference_capabilities": [
+    "config.edition",
+    "config.environment"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2058,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
+   "decision": null
+  },
+  {
+   "route": "POST /api/settings/api_keys",
+   "verb": "POST",
+   "path": "/api/settings/api_keys",
+   "api_ledger_capability": "api.settings",
+   "family": "config",
+   "reference_capabilities": [
+    "config.edition",
+    "config.environment"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2057,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 14,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
+   "decision": null
+  },
+  {
+   "route": "POST /api/simulation/context/deep",
+   "verb": "POST",
+   "path": "/api/simulation/context/deep",
+   "api_ledger_capability": "api.simulation",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1939,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/simulation/context/enrich",
+   "verb": "POST",
+   "path": "/api/simulation/context/enrich",
+   "api_ledger_capability": "api.simulation",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1938,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/simulation/context/resolve",
+   "verb": "POST",
+   "path": "/api/simulation/context/resolve",
+   "api_ledger_capability": "api.simulation",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1940,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/study/check",
+   "verb": "POST",
+   "path": "/api/study/check",
+   "api_ledger_capability": "api.study",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2125,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/study/run",
+   "verb": "POST",
+   "path": "/api/study/run",
+   "api_ledger_capability": "api.study",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2128,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/support/bundle",
+   "verb": "POST",
+   "path": "/api/support/bundle",
+   "api_ledger_capability": "api.support",
+   "family": "operability",
+   "reference_capabilities": [
+    "operability.diagnostics",
+    "operability.integrity",
+    "operability.release",
+    "operability.smoke",
+    "operability.support"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2060,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 15,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/support/download",
+   "verb": "GET",
+   "path": "/api/support/download",
+   "api_ledger_capability": "api.support",
+   "family": "operability",
+   "reference_capabilities": [
+    "operability.diagnostics",
+    "operability.integrity",
+    "operability.release",
+    "operability.smoke",
+    "operability.support"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1725,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 15,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/validation",
+   "verb": "GET",
+   "path": "/api/validation",
+   "api_ledger_capability": "api.validation",
+   "family": "governance",
+   "reference_capabilities": [
+    "governance.anchors",
+    "governance.benchmarks",
+    "governance.evidence_audit",
+    "governance.evidence_gates",
+    "governance.holdout",
+    "governance.legal",
+    "governance.product_policy",
+    "governance.validation_state"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1813,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/visualization/compare",
+   "verb": "POST",
+   "path": "/api/visualization/compare",
+   "api_ledger_capability": "api.visualization",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2082,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/visualization/dialogue",
+   "verb": "POST",
+   "path": "/api/visualization/dialogue",
+   "api_ledger_capability": "api.visualization",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2078,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/visualization/intelligence",
+   "verb": "POST",
+   "path": "/api/visualization/intelligence",
+   "api_ledger_capability": "api.visualization",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2083,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/visualization/layout",
+   "verb": "POST",
+   "path": "/api/visualization/layout",
+   "api_ledger_capability": "api.visualization",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2080,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/visualization/object-map",
+   "verb": "POST",
+   "path": "/api/visualization/object-map",
+   "api_ledger_capability": "api.visualization",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2079,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/visualization/respondents",
+   "verb": "POST",
+   "path": "/api/visualization/respondents",
+   "api_ledger_capability": "api.visualization",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2077,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/visualization/segment",
+   "verb": "POST",
+   "path": "/api/visualization/segment",
+   "api_ledger_capability": "api.visualization",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2081,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/visualization/segments/",
+   "verb": "GET",
+   "path": "/api/visualization/segments/",
+   "api_ledger_capability": "api.visualization",
+   "family": "sociomapping",
+   "reference_capabilities": [
+    "sociomapping.core",
+    "sociomapping.study_module"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1808,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 8,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /api/workflows/",
+   "verb": "GET",
+   "path": "/api/workflows/",
+   "api_ledger_capability": "api.workflows",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1733,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/projects/{project_id}/runs/{run_id}",
+   "scope": "study",
+   "notes": "prefix arm: GET /api/workflows/<id>",
+   "decision": null
+  },
+  {
+   "route": "POST /api/workflows/",
+   "verb": "POST",
+   "path": "/api/workflows/",
+   "api_ledger_capability": "api.workflows",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1901,
+     "match": "prefix",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1905,
+     "match": "prefix",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1909,
+     "match": "prefix",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1911,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /api/workflows/create",
+   "verb": "POST",
+   "path": "/api/workflows/create",
+   "api_ledger_capability": "api.workflows",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1900,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/projects/{project_id}/runs",
+   "scope": "study",
+   "notes": "a run from a template, idempotent per revision",
+   "decision": null
+  },
+  {
+   "route": "GET /artifacts/",
+   "verb": "GET",
+   "path": "/artifacts/",
+   "api_ledger_capability": "static.artifacts",
+   "family": "artifacts",
+   "reference_capabilities": [
+    "artifacts.registration",
+    "artifacts.storage"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1888,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 15,
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/projects/{project_id}/artifacts/{artifact_id}",
+   "scope": "study",
+   "notes": "the reference serves files from four top-level directories by relative path; AIA serves an artifact by id from the store",
+   "decision": null
+  },
+  {
+   "route": "GET /brand/",
+   "verb": "GET",
+   "path": "/brand/",
+   "api_ledger_capability": "static.brand",
+   "family": "api",
+   "reference_capabilities": [
+    "api.http"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1707,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 16,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /cancel",
+   "verb": "POST",
+   "path": "/cancel",
+   "api_ledger_capability": "static.cancel",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1909,
+     "match": "suffix",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1926,
+     "match": "suffix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 15,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "decision": null
+  },
+  {
+   "route": "POST /configure",
+   "verb": "POST",
+   "path": "/configure",
+   "api_ledger_capability": "static.configure",
+   "family": "config",
+   "reference_capabilities": [
+    "config.edition",
+    "config.environment"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1924,
+     "match": "suffix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "decision": null
+  },
+  {
+   "route": "POST /decide",
+   "verb": "POST",
+   "path": "/decide",
+   "api_ledger_capability": "static.decide",
+   "family": "governance",
+   "reference_capabilities": [
+    "governance.anchors",
+    "governance.benchmarks",
+    "governance.evidence_audit",
+    "governance.evidence_gates",
+    "governance.holdout",
+    "governance.legal",
+    "governance.product_policy",
+    "governance.validation_state"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1928,
+     "match": "suffix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "decision": null
+  },
+  {
+   "route": "GET /files/",
+   "verb": "GET",
+   "path": "/files/",
+   "api_ledger_capability": "static.files",
+   "family": "artifacts",
+   "reference_capabilities": [
+    "artifacts.registration",
+    "artifacts.storage"
+   ],
+   "arms": [
+    {
+     "source": "prototype_server.py",
+     "line": 504,
+     "match": "prefix",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1883,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 15,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "prototype_server.py arm: retain or retire is reference decision D9",
+   "decision": "D9"
+  },
+  {
+   "route": "GET /fullsim-arena",
+   "verb": "GET",
+   "path": "/fullsim-arena",
+   "api_ledger_capability": "static.fullsim-arena",
+   "family": "simulation",
+   "reference_capabilities": [
+    "simulation.engine",
+    "simulation.scenarios"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1827,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 11,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "GET /health",
+   "verb": "GET",
+   "path": "/health",
+   "api_ledger_capability": "static.health",
+   "family": "operability",
+   "reference_capabilities": [
+    "operability.diagnostics",
+    "operability.integrity",
+    "operability.release",
+    "operability.smoke",
+    "operability.support"
+   ],
+   "arms": [
+    {
+     "source": "prototype_server.py",
+     "line": 496,
+     "match": "exact",
+     "origin_guarded": false
+    },
+    {
+     "source": "ui_server.py",
+     "line": 1716,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 5,
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/health",
+   "scope": "public",
+   "notes": "liveness only; the reference also reports worker readiness, which AIA reports on /api/v1/ready; prototype_server.py arm: retain or retire is reference decision D9",
+   "decision": "D9"
+  },
+  {
+   "route": "GET /overview",
+   "verb": "GET",
+   "path": "/overview",
+   "api_ledger_capability": "static.overview",
+   "family": "project",
+   "reference_capabilities": [
+    "project.memory",
+    "project.migration",
+    "project.persistence"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1811,
+     "match": "suffix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 15,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "decision": null
+  },
+  {
+   "route": "POST /pause",
+   "verb": "POST",
+   "path": "/pause",
+   "api_ledger_capability": "static.pause",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1901,
+     "match": "suffix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "decision": null
+  },
+  {
+   "route": "GET /project-attachments/",
+   "verb": "GET",
+   "path": "/project-attachments/",
+   "api_ledger_capability": "static.project-attachments",
+   "family": "artifacts",
+   "reference_capabilities": [
+    "artifacts.registration",
+    "artifacts.storage"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1712,
+     "match": "prefix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 15,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "",
+   "decision": null
+  },
+  {
+   "route": "POST /resume",
+   "verb": "POST",
+   "path": "/resume",
+   "api_ledger_capability": "static.resume",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1905,
+     "match": "suffix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "decision": null
+  },
+  {
+   "route": "POST /retry",
+   "verb": "POST",
+   "path": "/retry",
+   "api_ledger_capability": "static.retry",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1920,
+     "match": "suffix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "decision": null
+  },
+  {
+   "route": "POST /schedule",
+   "verb": "POST",
+   "path": "/schedule",
+   "api_ledger_capability": "static.schedule",
+   "family": "workflow",
+   "reference_capabilities": [
+    "workflow.config",
+    "workflow.dispatch",
+    "workflow.engine",
+    "workflow.legacy_dispatch",
+    "workflow.step_execution"
+   ],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 1911,
+     "match": "suffix",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 4,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "decision": null
+  },
+  {
+   "route": "GET /status",
+   "verb": "GET",
+   "path": "/status",
+   "api_ledger_capability": "static.status",
+   "family": "operability",
+   "reference_capabilities": [
+    "operability.diagnostics",
+    "operability.integrity",
+    "operability.release",
+    "operability.smoke",
+    "operability.support"
+   ],
+   "arms": [
+    {
+     "source": "prototype_server.py",
+     "line": 498,
+     "match": "exact",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 15,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "prototype_server.py arm: retain or retire is reference decision D9",
+   "decision": "D9"
+  }
+ ],
+ "addenda": [
+  {
+   "route": "POST /api/audience/navrh",
+   "verb": "POST",
+   "path": "/api/audience/navrh",
+   "api_ledger_capability": null,
+   "family": "audience",
+   "reference_capabilities": [],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2120,
+     "match": "set",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "OI-48: served by `path in {…}` with /api/audience/propose; AI audience proposal job (audience_propose).",
+   "decision": null
+  },
+  {
+   "route": "POST /api/audience/propose",
+   "verb": "POST",
+   "path": "/api/audience/propose",
+   "api_ledger_capability": null,
+   "family": "audience",
+   "reference_capabilities": [],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2120,
+     "match": "set",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 7,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "OI-48: the path the classic interface calls (proposeAudience); same arm as /api/audience/navrh.",
+   "decision": null
+  },
+  {
+   "route": "POST /api/results/contextual_calibration",
+   "verb": "POST",
+   "path": "/api/results/contextual_calibration",
+   "api_ledger_capability": null,
+   "family": "results",
+   "reference_capabilities": [],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2108,
+     "match": "set",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "OI-48: served by `path in {…}` with /api/results/contextual_scenario; calibrate_result_context.",
+   "decision": null
+  },
+  {
+   "route": "POST /api/results/contextual_scenario",
+   "verb": "POST",
+   "path": "/api/results/contextual_scenario",
+   "api_ledger_capability": null,
+   "family": "results",
+   "reference_capabilities": [],
+   "arms": [
+    {
+     "source": "ui_server.py",
+     "line": 2108,
+     "match": "set",
+     "origin_guarded": false
+    }
+   ],
+   "slice": 10,
+   "status": "LEGACY",
+   "aia_route": null,
+   "scope": "undecided (D8)",
+   "notes": "OI-48: the path the classic verify screen calls; same arm as /api/results/contextual_calibration.",
+   "decision": null
+  }
+ ]
+}

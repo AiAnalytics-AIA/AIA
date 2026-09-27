@@ -1,0 +1,24 @@
+# Python dependencies of NPC Panel 18.6.6 for the reference runtime container.
+#
+# Sources: the tree's requirements.txt (declared) and runtime-environment.md
+# "Undeclared third-party imports" (imported but never declared). Versions the
+# golden fixtures were produced with are pinned where PyPI carries them.
+#
+# --- declared in requirements.txt --------------------------------------------
+pandas==2.3.3                 # fixtures: 2.3.3
+numpy>=1.26,<3                # fixtures record 2.5.3, which PyPI does not carry
+openpyxl==3.1.5               # fixtures: 3.1.5
+anthropic>=0.120,<1
+openai>=2.0,<3
+python-docx>=1.1,<2
+pypdf>=5,<7
+scikit-learn==1.9.1           # fixtures: 1.9.1
+scipy>=1.11,<2                # fixtures record 1.18.1, which PyPI does not carry
+pyarrow>=15,<25
+# --- imported but undeclared (runtime-environment.md) -------------------------
+python-pptx>=1.0,<2           # output_pack.export_management_deck_pptx (delivery)
+matplotlib>=3.8,<4            # sociomap.export_relational_png
+requests>=2.31,<3             # HTTP calls outside the provider SDKs
+pytest>=8,<10                 # the 64-module test suite
+# playwright is NOT installed: only tests/browser_smoke_*.py need it, and it
+# requires a Chromium download. Install it in a derived image if you run them.

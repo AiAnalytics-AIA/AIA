@@ -39,11 +39,14 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.ai_execution import ExecutionContext, ReservationView
 from aia_core.domain.ai_models import ModelCapability, ModelRegistry
+from aia_core.domain.licence import DataLineage
+from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
 from aia_core.infrastructure.ai_call_journal import InMemoryCallJournal
 from aia_core.infrastructure.model_adapters import (
     AnthropicMessagesAdapter,
+    BedrockConverseAdapter,
     ClaudeCodeCliAdapter,
     CliResult,
     OpenAIChatAdapter,
@@ -62,6 +65,8 @@ FIXTURES = Path(__file__).parent / "fixtures" / "model_adapters"
 NOW = datetime(2026, 9, 22, 12, 0, tzinfo=UTC)
 SECRET = "test-secret-not-a-real-key"
 CREDENTIALS = StaticCredentials({"provider-key": SECRET})
+
+LICENCE = recorded_policy()
 
 
 class Verdict(BaseModel):
@@ -114,6 +119,29 @@ def _openai(fixture: dict[str, Any]) -> tuple[ProviderAdapter, Any]:
     return adapter, transport
 
 
+class FakeSigner:
+    """Stands in for SigV4: records what it signed, adds an unmistakable header."""
+
+    def __init__(self) -> None:
+        self.signed: list[dict[str, Any]] = []
+
+    def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
+        self.signed.append({"method": method, "url": url, "body": body})
+        return {**dict(headers), "authorization": "AWS4-HMAC-SHA256 Credential=TEST/test"}
+
+
+def _bedrock(fixture: dict[str, Any]) -> tuple[ProviderAdapter, Any]:
+    transport = RecordedTransport.from_fixture(fixture)
+    adapter = BedrockConverseAdapter(
+        transport=transport,
+        signer=FakeSigner(),
+        region="eu-central-1",
+        model_id="m",
+        clock=lambda: NOW,
+    )
+    return adapter, transport
+
+
 def _claude_code(fixture: dict[str, Any]) -> tuple[ProviderAdapter, Any]:
     runner = RecordedCliRunner.from_fixture(fixture)
     return ClaudeCodeCliAdapter(runner=runner, clock=lambda: NOW), runner
@@ -123,6 +151,7 @@ ADAPTERS: dict[str, Callable[[dict[str, Any]], tuple[ProviderAdapter, Any]]] = {
     "anthropic": _anthropic,
     "openai": _openai,
     "claude_code": _claude_code,
+    "bedrock": _bedrock,
 }
 
 
@@ -377,6 +406,7 @@ def test_gateway_over_a_recorded_openai_exchange(
     adapter, transport = _openai(_success("openai"))
     gateway = GovernedModelGateway(
         registry=model_registry,
+        licence=LICENCE,
         egress=EgressPolicy(
             routes=(
                 ProviderRoute(
@@ -411,6 +441,7 @@ def test_gateway_over_a_recorded_openai_exchange(
                 agent=agent,
                 policy_version="policy-test-v1",
                 data_classification=DataClass.CLASS_C_INTERNAL,
+                data_lineage=DataLineage.none(),
                 system="s",
                 messages=(Message(role="user", content="u"),),
             ),

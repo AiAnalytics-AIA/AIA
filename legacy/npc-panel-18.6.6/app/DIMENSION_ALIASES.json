@@ -1,0 +1,8 @@
+{
+  "ma_mazlicka": {
+    "canonical_name": "ma_psa",
+    "legacy_columns": ["D_ma_mazlicka", "M_ma_mazlicka"],
+    "meaning": "má doma psa",
+    "note": "Legacy technical identifier retained for backward-compatible panel files; it must never be interpreted as 'má jakéhokoli mazlíčka'."
+  }
+}

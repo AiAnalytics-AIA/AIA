@@ -1,0 +1,21 @@
+{
+  "name": "lovebrand_test",
+  "research_question": "Pro koho je značka A lovebrand a jak se její pozice liší od konkurence?",
+  "output_type": "lovebrand",
+  "objects": [
+    "Značka A",
+    "Značka B",
+    "Značka C",
+    "Značka D",
+    "Značka E",
+    "Značka F",
+    "Značka G",
+    "Značka H"
+  ],
+  "metadata": {
+    "focal_object": "Značka A"
+  },
+  "n": 500,
+  "seed": 20260814,
+  "object_family": "značky nealkoholických nápojů"
+}

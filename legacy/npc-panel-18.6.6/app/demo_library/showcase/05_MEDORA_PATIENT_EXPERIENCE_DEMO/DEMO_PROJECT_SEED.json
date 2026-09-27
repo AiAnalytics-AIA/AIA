@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "05_MEDORA_PATIENT_EXPERIENCE_DEMO",
+  "project_id": "PRJ-DEMO-MEDORA-PX",
+  "title": "Medora Patient Experience DEMO",
+  "domain": "Zdravotní služby",
+  "study_type": "Patient experience / service redesign",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Chci zjistit, kde pacienti v ambulantní péči nejvíce ztrácejí důvěru a jak má vypadat nový objednávkový a komunikační proces.",
+    "decision": "Prioritizovat service redesign a určit, které touchpointy mají největší dopad na zkušenost pacienta."
+  },
+  "executive_answer": "Největší problém není samotná péče, ale nejistota před návštěvou: objednání, čekání a nedostatek informací. Koncept „Guided Care“ s jasným časem, přednávštěvními instrukcemi a jednoduchým follow-upem má nejvyšší experience score.",
+  "recommendation": "Implementovat Guided Care jako standard služby; prioritou je transparentní čekání a navigace, nikoli další digitální funkce.",
+  "audience": {
+    "population": "Dospělí pacienti fiktivní ambulantní sítě po návštěvě v posledních 12 měsících",
+    "n": 900,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jak snadné bylo objednat se?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Jak dobře jste věděli, co se bude dít před návštěvou?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Jak hodnotíte jednotlivé návrhy nové patient journey?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Které touchpointy nejvíce ovlivňují důvěru?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Jaké emoce jste zažívali před, během a po návštěvě?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Jak pravděpodobně byste zařízení doporučili?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Current journey",
+      "description": "Současný proces",
+      "type": "tracked_object",
+      "score": 55,
+      "x": 250,
+      "y": 285
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Digital only",
+      "description": "Maximum samoobsluhy",
+      "type": "tracked_object",
+      "score": 68,
+      "x": 555,
+      "y": 180
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Guided Care",
+      "description": "Digitál + jasná lidská navigace",
+      "type": "tracked_object",
+      "score": 82,
+      "x": 395,
+      "y": 205
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Concierge",
+      "description": "Vysoce osobní podpora",
+      "type": "tracked_object",
+      "score": 73,
+      "x": 350,
+      "y": 330
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Trust",
+    "Clarity",
+    "Ease",
+    "Human support",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      29,
+      71,
+      42,
+      48,
+      58,
+      55
+    ],
+    [
+      44,
+      66,
+      76,
+      79,
+      38,
+      68
+    ],
+    [
+      61,
+      82,
+      86,
+      83,
+      75,
+      82
+    ],
+    [
+      49,
+      84,
+      72,
+      69,
+      91,
+      73
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Routine Patients",
+      "share_pct": 32,
+      "description": "Opakované návštěvy, nízká komplexita",
+      "best_object": "Digital only"
+    },
+    {
+      "id": "SEG2",
+      "name": "Anxious Navigators",
+      "share_pct": 23,
+      "description": "Vysoká potřeba jistoty",
+      "best_object": "Guided Care"
+    },
+    {
+      "id": "SEG3",
+      "name": "Complex Care",
+      "share_pct": 18,
+      "description": "Více návazných kroků",
+      "best_object": "Guided Care"
+    },
+    {
+      "id": "SEG4",
+      "name": "Digital Self-servers",
+      "share_pct": 17,
+      "description": "Preferují samoobsluhu",
+      "best_object": "Digital only"
+    },
+    {
+      "id": "SEG5",
+      "name": "Human Support Seekers",
+      "share_pct": 10,
+      "description": "Silná potřeba kontaktu",
+      "best_object": "Concierge"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base journey",
+      "winner": "Guided Care",
+      "primary_metric": 61,
+      "overall": 82,
+      "assumption": "Standardní mix pacientů"
+    },
+    {
+      "id": "W2",
+      "name": "High anxiety",
+      "winner": "Guided Care",
+      "primary_metric": 64,
+      "overall": 84,
+      "assumption": "Více nejistých pacientů"
+    },
+    {
+      "id": "W3",
+      "name": "Digital adoption",
+      "winner": "Guided Care",
+      "primary_metric": 60,
+      "overall": 81,
+      "assumption": "Vyšší digitální dovednosti"
+    },
+    {
+      "id": "W4",
+      "name": "Older patients",
+      "winner": "Guided Care",
+      "primary_metric": 59,
+      "overall": 80,
+      "assumption": "Vyšší věk"
+    },
+    {
+      "id": "W5",
+      "name": "Staff pressure",
+      "winner": "Guided Care",
+      "primary_metric": 57,
+      "overall": 78,
+      "assumption": "Nižší dostupnost personálu"
+    },
+    {
+      "id": "W6",
+      "name": "Complex care mix",
+      "winner": "Guided Care",
+      "primary_metric": 63,
+      "overall": 85,
+      "assumption": "Více komplexních návštěv"
+    },
+    {
+      "id": "W7",
+      "name": "Short waits",
+      "winner": "Guided Care",
+      "primary_metric": 58,
+      "overall": 80,
+      "assumption": "Kratší čekání"
+    },
+    {
+      "id": "W8",
+      "name": "Communication first",
+      "winner": "Guided Care",
+      "primary_metric": 64,
+      "overall": 86,
+      "assumption": "Silnější přednávštěvní komunikace"
+    }
+  ],
+  "findings": [
+    "Klinická důvěra je vyšší než procesní důvěra.",
+    "Největší negativní emoce vznikají před návštěvou, nikoli během ní.",
+    "Digital only zvyšuje ease, ale snižuje pocit lidské opory.",
+    "Guided Care funguje napříč věkem i komplexitou péče."
+  ],
+  "risks": [
+    "DEMO nehodnotí klinickou kvalitu ani medicínské výsledky.",
+    "Patient experience se liší podle diagnózy a typu péče.",
+    "Návrh vyžaduje provozní validaci kapacit."
+  ],
+  "primary_metric": "Experience preference",
+  "primary_value": 61,
+  "world_range": "57–64 %",
+  "winner_stability": "8/8",
+  "overall": 82,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Current journey",
+        "type": "object",
+        "score": 55,
+        "x": 250,
+        "y": 285,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Digital only",
+        "type": "object",
+        "score": 68,
+        "x": 555,
+        "y": 180,
+        "color": "#3c9890"
+      },
+      {
+        "name": "Guided Care",
+        "type": "object",
+        "score": 82,
+        "x": 395,
+        "y": 205,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Concierge",
+        "type": "object",
+        "score": 73,
+        "x": 350,
+        "y": 330,
+        "color": "#299764"
+      },
+      {
+        "name": "Důvěra",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Jasnost",
+        "type": "anchor",
+        "x": 520,
+        "y": 225,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Ease",
+        "type": "anchor",
+        "x": 160,
+        "y": 210,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Lidská podpora",
+        "type": "anchor",
+        "x": 350,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 6,
+        "weight": 0.71
+      },
+      {
+        "from": 0,
+        "to": 7,
+        "weight": 0.69
+      },
+      {
+        "from": 1,
+        "to": 5,
+        "weight": 0.86
+      },
+      {
+        "from": 1,
+        "to": 4,
+        "weight": 0.53
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "weight": 0.77
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.68
+      },
+      {
+        "from": 3,
+        "to": 7,
+        "weight": 0.94
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.5
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

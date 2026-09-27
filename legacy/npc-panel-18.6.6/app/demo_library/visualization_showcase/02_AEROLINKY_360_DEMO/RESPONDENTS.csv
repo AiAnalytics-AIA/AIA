@@ -1,0 +1,601 @@
+﻿respondent_id,segment,dem_gender,dem_age,dem_region,dem_education,dem_income,att_safety,att_comfort,att_price,att_network,att_status,att_service,att_frequency,beh_sport_frequency,beh_novelty_openness,obj_British Airways,obj_Air France,obj_Qatar Airways,obj_Emirates,obj_Ryanair,obj_Wizz Air,obj_Lufthansa,obj_easyJet
+02R0001,Síť a spolehlivost,žena,42,Moravskoslezský,VŠ,80 tis. +,8,4,8,7,5,5,6,5,5,6,6,3,3,4,4,4,7
+02R0002,Komfort a servis,muž,42,Moravskoslezský,VŠ,do 30 tis.,6,6,5,7,6,10,6,6,4,7,6,8,7,3,5,7,6
+02R0003,Bezpečnost na prvním místě,žena,55,Jihočeský,VŠ,50–80 tis.,10,5,4,8,5,3,7,5,6,8,8,6,4,5,5,7,4
+02R0004,Lovci nejnižší ceny,muž,50,Středočeský,ZŠ / vyučení,do 30 tis.,5,4,8,4,5,5,6,7,5,5,5,5,3,7,8,4,8
+02R0005,Lovci nejnižší ceny,muž,45,Jihočeský,SŠ s maturitou,50–80 tis.,5,4,8,6,5,6,5,7,6,5,6,4,4,7,7,5,8
+02R0006,Bezpečnost na prvním místě,žena,42,Jihočeský,VŠ,do 30 tis.,8,6,5,8,5,5,5,6,5,5,6,3,4,3,4,6,3
+02R0007,Lovci nejnižší ceny,muž,35,Středočeský,ZŠ / vyučení,do 30 tis.,5,5,8,4,5,6,5,6,5,5,5,4,4,6,9,4,6
+02R0008,Lovci nejnižší ceny,muž,35,Praha,VŠ,50–80 tis.,7,5,7,5,6,6,7,8,8,6,6,6,6,7,7,6,9
+02R0009,Lovci nejnižší ceny,žena,19,Olomoucký,SŠ s maturitou,80 tis. +,5,4,8,6,5,5,4,5,6,5,6,5,5,8,9,4,6
+02R0010,Lovci nejnižší ceny,žena,28,Středočeský,SŠ s maturitou,50–80 tis.,4,2,8,6,6,4,6,5,7,5,5,4,3,8,9,4,5
+02R0011,Prémioví cestující,žena,31,Praha,ZŠ / vyučení,80 tis. +,5,8,5,4,8,5,5,4,6,4,4,8,8,5,3,5,5
+02R0012,Lovci nejnižší ceny,žena,37,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,4,8,5,3,7,7,5,4,7,6,3,4,8,7,5,9
+02R0013,Komfort a servis,žena,18,Olomoucký,VŠ,do 30 tis.,6,9,6,8,6,7,6,4,6,6,6,6,8,4,4,8,6
+02R0014,Prémioví cestující,muž,26,Olomoucký,SŠ s maturitou,do 30 tis.,5,7,4,5,7,6,5,5,6,5,5,7,7,6,6,5,6
+02R0015,Síť a spolehlivost,žena,19,Plzeňský,SŠ s maturitou,30–50 tis.,7,5,5,10,6,7,7,5,4,8,8,7,7,6,6,10,6
+02R0016,Lovci nejnižší ceny,muž,29,Plzeňský,ZŠ / vyučení,do 30 tis.,6,4,10,5,6,4,5,4,4,4,6,4,4,10,9,5,8
+02R0017,Síť a spolehlivost,muž,53,Moravskoslezský,SŠ s maturitou,do 30 tis.,5,6,5,8,7,5,6,6,5,6,3,7,7,5,6,6,7
+02R0018,Síť a spolehlivost,muž,44,Moravskoslezský,VŠ,80 tis. +,8,5,7,7,5,6,7,7,5,9,8,6,5,8,8,7,7
+02R0019,Lovci nejnižší ceny,žena,37,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,4,8,5,9,6,5,8,6,5,4,6,6,8,9,6,7
+02R0020,Bezpečnost na prvním místě,muž,56,Olomoucký,SŠ s maturitou,80 tis. +,8,7,6,7,6,6,6,6,8,7,7,7,6,4,6,5,5
+02R0021,Prémioví cestující,muž,38,Středočeský,SŠ s maturitou,do 30 tis.,4,8,6,5,8,5,3,3,6,6,5,6,7,6,7,5,7
+02R0022,Bezpečnost na prvním místě,muž,44,Ústecký,ZŠ / vyučení,30–50 tis.,8,5,5,6,4,5,5,3,4,6,7,4,4,7,3,6,4
+02R0023,Lovci nejnižší ceny,muž,38,Plzeňský,SŠ s maturitou,do 30 tis.,7,5,9,5,5,5,5,4,5,6,5,4,5,7,7,7,7
+02R0024,Komfort a servis,žena,39,Plzeňský,ZŠ / vyučení,do 30 tis.,8,10,5,5,9,8,5,3,5,7,7,10,9,2,5,6,6
+02R0025,Bezpečnost na prvním místě,muž,18,Plzeňský,SŠ s maturitou,30–50 tis.,7,6,6,7,7,3,6,7,4,7,7,5,5,8,6,6,6
+02R0026,Bezpečnost na prvním místě,muž,78,Praha,SŠ s maturitou,80 tis. +,8,4,5,5,6,3,5,4,5,4,6,5,4,4,5,4,7
+02R0027,Bezpečnost na prvním místě,muž,77,Ústecký,ZŠ / vyučení,50–80 tis.,9,6,7,5,7,4,6,7,6,8,5,6,6,8,5,6,7
+02R0028,Lovci nejnižší ceny,muž,32,Středočeský,VŠ,do 30 tis.,5,5,8,5,6,6,5,4,5,4,4,5,5,7,7,7,6
+02R0029,Komfort a servis,muž,57,Středočeský,ZŠ / vyučení,do 30 tis.,6,8,7,5,6,8,7,8,6,5,8,7,8,5,5,5,5
+02R0030,Komfort a servis,muž,30,Plzeňský,SŠ s maturitou,30–50 tis.,8,9,6,8,7,6,4,8,3,8,5,7,8,5,4,6,6
+02R0031,Bezpečnost na prvním místě,žena,55,Jihomoravský,VŠ,30–50 tis.,10,7,6,6,5,5,5,5,7,7,7,5,5,7,4,7,5
+02R0032,Síť a spolehlivost,žena,42,Moravskoslezský,ZŠ / vyučení,30–50 tis.,7,6,4,7,5,4,5,2,9,5,7,6,5,4,7,6,5
+02R0033,Komfort a servis,žena,32,Jihomoravský,SŠ s maturitou,30–50 tis.,5,8,6,7,6,8,5,4,7,7,8,9,8,3,5,6,6
+02R0034,Lovci nejnižší ceny,žena,38,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,3,8,6,5,6,6,4,3,5,6,5,6,6,7,7,8
+02R0035,Bezpečnost na prvním místě,muž,34,Středočeský,SŠ s maturitou,30–50 tis.,6,7,5,4,8,6,6,7,5,5,5,6,6,4,5,5,5
+02R0036,Bezpečnost na prvním místě,žena,48,Praha,SŠ s maturitou,do 30 tis.,4,6,4,7,6,6,6,5,8,6,6,7,6,4,3,7,5
+02R0037,Prémioví cestující,muž,45,Plzeňský,SŠ s maturitou,do 30 tis.,6,8,4,7,6,6,3,6,6,5,6,9,7,3,3,8,5
+02R0038,Lovci nejnižší ceny,muž,39,Olomoucký,VŠ,30–50 tis.,4,5,7,4,6,4,5,7,4,2,3,5,6,6,6,7,7
+02R0039,Komfort a servis,muž,18,Moravskoslezský,SŠ s maturitou,80 tis. +,6,8,7,5,8,7,3,4,5,6,6,8,7,7,5,6,6
+02R0040,Lovci nejnižší ceny,muž,28,Moravskoslezský,ZŠ / vyučení,30–50 tis.,5,4,7,7,7,4,5,4,7,5,5,4,6,5,6,5,7
+02R0041,Prémioví cestující,muž,47,Olomoucký,SŠ s maturitou,30–50 tis.,7,8,6,6,7,5,4,6,5,8,7,7,7,6,7,5,6
+02R0042,Prémioví cestující,muž,35,Ústecký,SŠ s maturitou,80 tis. +,7,7,3,6,9,5,7,4,4,6,7,7,7,3,4,6,4
+02R0043,Bezpečnost na prvním místě,muž,79,Jihočeský,VŠ,30–50 tis.,9,5,6,8,4,7,4,6,5,5,9,2,4,6,5,7,6
+02R0044,Lovci nejnižší ceny,žena,34,Olomoucký,SŠ s maturitou,50–80 tis.,5,3,9,6,3,7,7,5,4,6,5,3,5,7,8,6,7
+02R0045,Síť a spolehlivost,žena,45,Středočeský,SŠ s maturitou,do 30 tis.,8,6,3,6,6,6,5,7,8,7,6,7,6,4,4,9,4
+02R0046,Komfort a servis,žena,57,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,10,5,5,6,7,7,6,5,5,4,10,9,4,3,4,4
+02R0047,Lovci nejnižší ceny,žena,37,Olomoucký,VŠ,50–80 tis.,6,3,8,4,5,7,7,3,4,4,6,4,4,8,8,6,7
+02R0048,Bezpečnost na prvním místě,žena,30,Ústecký,SŠ s maturitou,30–50 tis.,8,6,6,6,7,5,4,7,4,8,7,8,5,6,7,8,7
+02R0049,Síť a spolehlivost,žena,39,Středočeský,SŠ s maturitou,30–50 tis.,6,7,5,9,5,5,5,5,5,6,8,5,4,4,3,5,6
+02R0050,Lovci nejnižší ceny,žena,31,Olomoucký,SŠ s maturitou,50–80 tis.,5,6,9,6,5,6,5,7,3,8,7,6,6,9,7,7,7
+02R0051,Síť a spolehlivost,muž,65,Moravskoslezský,ZŠ / vyučení,30–50 tis.,8,4,4,7,7,8,6,8,6,7,9,9,6,4,6,8,5
+02R0052,Lovci nejnižší ceny,žena,43,Moravskoslezský,SŠ s maturitou,50–80 tis.,4,3,6,6,3,6,6,5,2,5,5,6,5,6,9,6,7
+02R0053,Bezpečnost na prvním místě,žena,44,Olomoucký,SŠ s maturitou,50–80 tis.,6,5,6,5,7,7,5,5,6,6,6,6,6,6,5,5,5
+02R0054,Komfort a servis,žena,36,Olomoucký,VŠ,50–80 tis.,4,7,6,6,7,8,5,5,4,5,7,8,8,6,4,5,6
+02R0055,Komfort a servis,muž,48,Ústecký,SŠ s maturitou,50–80 tis.,8,8,5,5,7,6,7,4,3,8,7,7,9,3,6,6,4
+02R0056,Bezpečnost na prvním místě,muž,47,Moravskoslezský,SŠ s maturitou,50–80 tis.,9,3,7,6,4,5,4,5,8,8,8,4,4,8,8,8,5
+02R0057,Prémioví cestující,muž,52,Jihočeský,ZŠ / vyučení,50–80 tis.,5,8,5,6,5,5,6,5,3,5,8,6,7,5,4,8,5
+02R0058,Síť a spolehlivost,žena,56,Olomoucký,SŠ s maturitou,80 tis. +,7,6,6,7,7,3,7,5,9,5,6,6,6,4,5,6,6
+02R0059,Síť a spolehlivost,žena,50,Jihočeský,VŠ,50–80 tis.,8,6,6,9,5,5,8,6,2,9,6,4,4,7,5,8,8
+02R0060,Lovci nejnižší ceny,muž,25,Olomoucký,SŠ s maturitou,30–50 tis.,6,5,8,4,5,6,7,2,5,5,4,4,6,6,6,3,7
+02R0061,Síť a spolehlivost,muž,59,Jihomoravský,VŠ,do 30 tis.,7,6,5,7,6,4,7,5,6,7,8,4,3,4,5,7,6
+02R0062,Bezpečnost na prvním místě,muž,46,Moravskoslezský,VŠ,30–50 tis.,10,6,6,6,7,5,7,4,5,8,7,4,4,4,4,7,5
+02R0063,Lovci nejnižší ceny,žena,32,Ústecký,SŠ s maturitou,50–80 tis.,6,5,9,6,4,7,6,6,5,5,5,4,4,8,7,4,7
+02R0064,Prémioví cestující,muž,33,Moravskoslezský,VŠ,30–50 tis.,5,7,6,4,8,5,5,5,4,2,3,9,7,5,4,3,4
+02R0065,Bezpečnost na prvním místě,žena,65,Plzeňský,SŠ s maturitou,do 30 tis.,9,6,7,5,7,5,5,6,5,6,6,6,5,5,6,6,5
+02R0066,Bezpečnost na prvním místě,muž,60,Praha,VŠ,80 tis. +,6,6,4,8,6,5,6,6,8,6,7,5,5,2,5,7,3
+02R0067,Lovci nejnižší ceny,žena,41,Jihočeský,VŠ,30–50 tis.,5,4,9,7,5,4,6,4,6,5,5,3,3,9,9,6,9
+02R0068,Bezpečnost na prvním místě,žena,33,Olomoucký,SŠ s maturitou,do 30 tis.,8,7,4,8,4,7,6,4,7,8,7,5,4,3,5,9,5
+02R0069,Lovci nejnižší ceny,muž,44,Jihomoravský,SŠ s maturitou,do 30 tis.,7,4,9,4,7,6,6,6,4,6,5,5,5,6,9,5,6
+02R0070,Lovci nejnižší ceny,žena,35,Olomoucký,VŠ,do 30 tis.,7,4,8,5,6,5,5,4,10,6,7,5,7,7,8,7,8
+02R0071,Lovci nejnižší ceny,žena,30,Moravskoslezský,VŠ,50–80 tis.,4,3,9,4,3,6,7,2,4,5,4,4,4,6,10,6,8
+02R0072,Lovci nejnižší ceny,muž,33,Středočeský,ZŠ / vyučení,30–50 tis.,7,2,8,4,5,3,6,3,5,6,5,1,2,6,7,5,5
+02R0073,Síť a spolehlivost,žena,33,Moravskoslezský,ZŠ / vyučení,50–80 tis.,6,6,7,9,6,7,3,5,9,6,8,6,7,6,7,5,7
+02R0074,Síť a spolehlivost,žena,54,Jihomoravský,VŠ,80 tis. +,7,7,5,7,4,6,6,4,3,7,7,4,6,5,6,7,6
+02R0075,Síť a spolehlivost,žena,34,Praha,ZŠ / vyučení,80 tis. +,10,4,6,9,6,7,7,5,7,10,10,6,5,7,6,10,7
+02R0076,Bezpečnost na prvním místě,muž,26,Jihočeský,SŠ s maturitou,do 30 tis.,10,6,6,5,4,7,5,6,4,8,8,6,5,4,5,8,5
+02R0077,Bezpečnost na prvním místě,žena,38,Ústecký,SŠ s maturitou,30–50 tis.,8,6,6,7,7,6,6,5,8,9,5,8,7,6,6,6,8
+02R0078,Síť a spolehlivost,žena,42,Středočeský,SŠ s maturitou,30–50 tis.,7,5,5,8,6,5,5,7,8,7,6,5,6,4,3,6,4
+02R0079,Lovci nejnižší ceny,žena,37,Praha,VŠ,do 30 tis.,6,6,9,6,7,5,6,6,8,4,6,6,4,8,7,6,8
+02R0080,Komfort a servis,muž,25,Olomoucký,ZŠ / vyučení,do 30 tis.,7,8,7,5,6,9,7,7,4,6,8,9,7,6,6,6,8
+02R0081,Bezpečnost na prvním místě,žena,61,Ústecký,VŠ,30–50 tis.,7,7,6,6,5,7,6,3,5,8,6,7,7,6,7,8,7
+02R0082,Komfort a servis,žena,37,Jihočeský,ZŠ / vyučení,50–80 tis.,6,8,6,5,5,7,4,6,6,5,7,8,7,4,5,6,7
+02R0083,Komfort a servis,muž,50,Jihomoravský,SŠ s maturitou,50–80 tis.,3,8,6,5,5,8,5,9,6,7,4,8,7,6,3,5,7
+02R0084,Síť a spolehlivost,žena,52,Jihomoravský,SŠ s maturitou,30–50 tis.,6,5,5,7,7,6,6,8,6,6,7,6,6,5,5,6,4
+02R0085,Lovci nejnižší ceny,muž,35,Ústecký,ZŠ / vyučení,50–80 tis.,8,3,7,5,7,6,4,6,5,6,7,4,4,7,7,7,5
+02R0086,Bezpečnost na prvním místě,žena,49,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,6,6,8,5,6,6,5,5,7,10,7,5,5,6,8,7
+02R0087,Komfort a servis,muž,33,Praha,SŠ s maturitou,80 tis. +,6,8,6,4,6,6,5,5,5,6,6,9,9,6,5,5,6
+02R0088,Lovci nejnižší ceny,muž,40,Praha,ZŠ / vyučení,50–80 tis.,7,3,6,6,8,4,3,3,6,7,5,2,3,6,6,4,7
+02R0089,Síť a spolehlivost,žena,45,Plzeňský,VŠ,80 tis. +,7,7,9,8,5,5,6,5,5,6,7,5,4,5,6,6,7
+02R0090,Lovci nejnižší ceny,muž,20,Olomoucký,SŠ s maturitou,50–80 tis.,4,4,8,6,5,5,5,8,3,5,6,5,5,8,7,5,8
+02R0091,Komfort a servis,muž,46,Olomoucký,ZŠ / vyučení,do 30 tis.,7,8,6,6,8,8,6,6,8,9,6,9,9,7,5,5,8
+02R0092,Prémioví cestující,muž,43,Středočeský,ZŠ / vyučení,30–50 tis.,5,7,5,7,8,5,5,6,7,5,6,9,8,4,5,7,7
+02R0093,Bezpečnost na prvním místě,muž,26,Moravskoslezský,SŠ s maturitou,do 30 tis.,10,3,4,6,4,7,6,6,5,7,6,3,3,5,5,5,4
+02R0094,Prémioví cestující,muž,26,Ústecký,SŠ s maturitou,50–80 tis.,5,9,4,6,8,3,4,3,5,5,4,8,6,3,3,4,5
+02R0095,Bezpečnost na prvním místě,žena,43,Plzeňský,SŠ s maturitou,do 30 tis.,9,6,6,6,4,6,6,6,6,8,8,6,6,5,5,8,6
+02R0096,Bezpečnost na prvním místě,muž,33,Jihomoravský,SŠ s maturitou,do 30 tis.,8,4,4,6,4,6,5,7,6,6,7,5,4,5,5,8,6
+02R0097,Prémioví cestující,muž,41,Praha,SŠ s maturitou,50–80 tis.,5,7,4,5,8,6,8,9,5,5,4,7,8,4,4,5,6
+02R0098,Bezpečnost na prvním místě,muž,42,Středočeský,SŠ s maturitou,30–50 tis.,9,5,5,7,5,4,4,4,6,7,6,3,6,6,7,8,6
+02R0099,Síť a spolehlivost,žena,46,Středočeský,VŠ,30–50 tis.,7,3,5,7,4,5,6,5,2,8,6,4,2,4,3,7,7
+02R0100,Lovci nejnižší ceny,muž,38,Moravskoslezský,ZŠ / vyučení,do 30 tis.,6,4,8,5,6,4,5,5,6,3,6,4,4,7,8,4,5
+02R0101,Komfort a servis,žena,49,Ústecký,VŠ,50–80 tis.,6,9,7,7,8,8,8,5,7,7,6,8,9,4,5,9,7
+02R0102,Komfort a servis,žena,37,Jihočeský,SŠ s maturitou,do 30 tis.,6,9,6,5,6,7,7,5,7,4,6,7,7,5,4,5,6
+02R0103,Lovci nejnižší ceny,muž,31,Jihomoravský,VŠ,do 30 tis.,3,5,9,5,5,5,5,5,7,5,3,6,5,8,6,5,7
+02R0104,Bezpečnost na prvním místě,žena,54,Praha,SŠ s maturitou,50–80 tis.,7,6,5,8,4,4,4,5,7,5,7,4,4,4,5,7,5
+02R0105,Komfort a servis,muž,41,Olomoucký,SŠ s maturitou,50–80 tis.,5,8,7,6,5,9,6,6,6,5,7,9,9,6,3,7,8
+02R0106,Prémioví cestující,muž,46,Středočeský,SŠ s maturitou,do 30 tis.,7,8,5,6,10,5,5,7,5,5,4,7,6,3,3,4,5
+02R0107,Lovci nejnižší ceny,žena,36,Jihočeský,SŠ s maturitou,30–50 tis.,5,3,8,6,5,5,6,8,6,6,3,4,2,7,9,5,7
+02R0108,Lovci nejnižší ceny,muž,40,Středočeský,SŠ s maturitou,50–80 tis.,5,4,10,3,8,5,6,4,6,5,4,7,5,10,9,3,9
+02R0109,Komfort a servis,žena,27,Praha,SŠ s maturitou,30–50 tis.,4,7,7,3,6,7,7,4,6,4,3,6,6,4,4,3,2
+02R0110,Lovci nejnižší ceny,žena,51,Středočeský,SŠ s maturitou,do 30 tis.,6,3,7,4,5,6,6,7,6,4,4,3,3,5,6,4,4
+02R0111,Prémioví cestující,muž,58,Praha,SŠ s maturitou,80 tis. +,6,6,4,6,7,7,5,7,5,4,4,8,5,5,2,6,3
+02R0112,Bezpečnost na prvním místě,žena,41,Olomoucký,SŠ s maturitou,50–80 tis.,8,6,5,6,7,6,7,4,4,6,7,7,3,6,4,6,6
+02R0113,Bezpečnost na prvním místě,žena,33,Olomoucký,SŠ s maturitou,50–80 tis.,10,4,5,7,4,7,5,8,6,7,9,4,5,5,4,8,5
+02R0114,Komfort a servis,žena,32,Jihočeský,VŠ,do 30 tis.,7,6,6,5,6,6,5,6,4,6,5,6,7,6,6,7,6
+02R0115,Lovci nejnižší ceny,muž,30,Olomoucký,SŠ s maturitou,30–50 tis.,5,4,10,8,4,6,5,4,7,7,8,3,5,9,9,6,10
+02R0116,Bezpečnost na prvním místě,muž,57,Moravskoslezský,ZŠ / vyučení,50–80 tis.,9,7,6,5,4,6,5,4,2,6,8,6,8,6,5,6,8
+02R0117,Lovci nejnižší ceny,žena,31,Praha,VŠ,50–80 tis.,4,5,7,6,6,4,4,9,4,5,3,5,3,7,6,4,6
+02R0118,Lovci nejnižší ceny,muž,40,Jihočeský,SŠ s maturitou,30–50 tis.,8,3,8,5,7,5,5,6,6,7,7,3,3,7,6,7,5
+02R0119,Komfort a servis,muž,44,Praha,SŠ s maturitou,do 30 tis.,5,8,5,5,8,8,6,3,5,7,6,10,8,4,3,6,4
+02R0120,Prémioví cestující,muž,47,Středočeský,SŠ s maturitou,50–80 tis.,7,9,6,4,9,5,8,2,5,7,6,8,8,6,6,7,5
+02R0121,Bezpečnost na prvním místě,muž,33,Jihočeský,ZŠ / vyučení,do 30 tis.,9,6,7,5,5,7,6,3,3,9,8,4,6,7,7,7,6
+02R0122,Lovci nejnižší ceny,muž,49,Jihomoravský,VŠ,50–80 tis.,5,4,8,5,6,6,6,6,7,6,6,6,6,6,7,4,8
+02R0123,Bezpečnost na prvním místě,žena,27,Středočeský,SŠ s maturitou,30–50 tis.,9,7,6,5,5,6,7,3,6,7,6,4,6,4,4,7,5
+02R0124,Síť a spolehlivost,žena,55,Ústecký,SŠ s maturitou,50–80 tis.,6,5,6,8,5,6,3,5,6,7,7,5,6,6,8,8,6
+02R0125,Komfort a servis,muž,33,Olomoucký,SŠ s maturitou,50–80 tis.,5,7,7,8,5,7,5,5,8,5,7,6,5,5,5,6,7
+02R0126,Lovci nejnižší ceny,muž,63,Ústecký,ZŠ / vyučení,80 tis. +,5,5,8,5,8,6,6,5,3,5,5,5,5,7,6,6,8
+02R0127,Bezpečnost na prvním místě,muž,51,Středočeský,VŠ,50–80 tis.,7,4,6,9,5,8,4,7,3,10,8,4,4,6,7,8,6
+02R0128,Lovci nejnižší ceny,muž,33,Jihomoravský,SŠ s maturitou,30–50 tis.,4,3,8,4,4,4,7,4,3,4,2,4,4,7,7,5,7
+02R0129,Komfort a servis,žena,43,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,9,5,5,5,10,6,5,6,8,6,9,9,4,5,6,5
+02R0130,Bezpečnost na prvním místě,muž,47,Středočeský,VŠ,do 30 tis.,8,5,7,6,4,4,5,6,5,7,7,5,6,6,5,6,8
+02R0131,Síť a spolehlivost,žena,36,Jihočeský,VŠ,do 30 tis.,7,7,6,8,6,6,6,9,4,7,7,7,7,4,6,7,5
+02R0132,Komfort a servis,žena,19,Jihočeský,SŠ s maturitou,30–50 tis.,6,9,5,5,6,8,6,4,6,4,5,7,7,4,5,6,5
+02R0133,Síť a spolehlivost,žena,48,Olomoucký,ZŠ / vyučení,80 tis. +,6,6,3,8,5,5,6,6,4,5,7,6,5,2,4,7,3
+02R0134,Komfort a servis,žena,34,Plzeňský,SŠ s maturitou,30–50 tis.,5,9,6,7,8,8,7,7,5,5,7,9,8,5,4,7,5
+02R0135,Bezpečnost na prvním místě,muž,43,Středočeský,SŠ s maturitou,80 tis. +,8,6,5,7,6,6,8,6,5,8,8,5,6,5,5,7,5
+02R0136,Síť a spolehlivost,žena,36,Středočeský,SŠ s maturitou,30–50 tis.,8,5,5,8,7,5,5,6,5,8,7,5,5,4,6,8,7
+02R0137,Komfort a servis,žena,18,Olomoucký,SŠ s maturitou,do 30 tis.,6,8,4,5,6,6,6,8,3,4,5,5,7,3,5,5,5
+02R0138,Komfort a servis,žena,38,Středočeský,VŠ,80 tis. +,5,9,6,4,7,8,5,5,5,6,6,8,8,5,4,4,6
+02R0139,Síť a spolehlivost,žena,36,Olomoucký,VŠ,50–80 tis.,6,6,6,7,8,6,7,5,6,5,8,9,8,7,5,5,5
+02R0140,Síť a spolehlivost,muž,57,Jihomoravský,ZŠ / vyučení,30–50 tis.,8,6,5,9,5,6,4,3,5,8,10,6,6,3,5,9,7
+02R0141,Lovci nejnižší ceny,muž,50,Jihočeský,VŠ,30–50 tis.,8,4,9,4,4,6,4,3,4,9,7,5,4,7,7,6,7
+02R0142,Síť a spolehlivost,žena,38,Olomoucký,VŠ,30–50 tis.,7,5,7,9,6,5,7,3,6,8,4,4,4,6,3,6,7
+02R0143,Bezpečnost na prvním místě,žena,65,Jihočeský,VŠ,do 30 tis.,8,7,6,7,6,5,3,7,2,6,8,6,6,7,5,7,8
+02R0144,Síť a spolehlivost,muž,55,Plzeňský,VŠ,30–50 tis.,5,3,5,8,5,5,7,6,4,6,7,4,4,4,6,5,3
+02R0145,Síť a spolehlivost,žena,43,Olomoucký,SŠ s maturitou,50–80 tis.,7,5,5,9,5,5,8,4,5,8,5,3,4,7,5,10,6
+02R0146,Prémioví cestující,žena,38,Olomoucký,VŠ,do 30 tis.,7,7,3,6,7,8,6,8,6,4,7,7,8,4,4,7,4
+02R0147,Lovci nejnižší ceny,muž,38,Jihomoravský,VŠ,do 30 tis.,6,4,7,6,5,5,5,5,7,7,6,4,4,7,8,5,7
+02R0148,Komfort a servis,žena,33,Jihočeský,SŠ s maturitou,do 30 tis.,6,9,4,5,5,10,9,8,5,5,7,8,6,4,4,7,4
+02R0149,Lovci nejnižší ceny,žena,36,Jihočeský,SŠ s maturitou,30–50 tis.,6,3,6,5,6,6,9,7,6,7,4,4,3,6,8,5,6
+02R0150,Síť a spolehlivost,žena,37,Olomoucký,ZŠ / vyučení,80 tis. +,9,8,4,8,5,6,7,6,2,8,8,7,5,4,4,8,5
+02R0151,Síť a spolehlivost,muž,49,Moravskoslezský,ZŠ / vyučení,30–50 tis.,7,6,7,8,6,6,5,3,5,9,7,7,7,6,6,8,7
+02R0152,Síť a spolehlivost,žena,52,Olomoucký,ZŠ / vyučení,30–50 tis.,4,4,5,9,5,7,5,4,7,5,6,5,6,5,6,6,7
+02R0153,Prémioví cestující,žena,49,Olomoucký,VŠ,30–50 tis.,5,6,4,5,7,2,5,7,7,4,6,5,5,4,5,4,5
+02R0154,Lovci nejnižší ceny,žena,35,Jihočeský,SŠ s maturitou,30–50 tis.,7,5,10,4,7,6,5,4,6,4,6,7,7,9,8,7,8
+02R0155,Síť a spolehlivost,žena,32,Jihočeský,ZŠ / vyučení,30–50 tis.,9,6,4,6,5,5,6,8,2,8,6,5,4,3,3,8,4
+02R0156,Lovci nejnižší ceny,žena,47,Plzeňský,SŠ s maturitou,50–80 tis.,4,4,6,6,5,4,6,6,7,3,5,5,3,6,6,5,5
+02R0157,Bezpečnost na prvním místě,žena,43,Olomoucký,SŠ s maturitou,80 tis. +,6,6,5,7,5,6,6,5,6,8,8,6,8,7,6,6,7
+02R0158,Komfort a servis,muž,57,Olomoucký,SŠ s maturitou,do 30 tis.,6,8,7,8,8,9,4,6,3,8,7,9,9,7,4,9,8
+02R0159,Lovci nejnižší ceny,žena,43,Jihočeský,VŠ,30–50 tis.,5,6,8,5,7,6,4,6,6,5,4,6,4,7,7,5,6
+02R0160,Bezpečnost na prvním místě,muž,61,Olomoucký,VŠ,80 tis. +,8,3,4,6,6,4,6,4,4,7,7,4,4,6,4,7,5
+02R0161,Lovci nejnižší ceny,žena,41,Středočeský,ZŠ / vyučení,30–50 tis.,7,3,9,5,5,8,8,7,4,6,4,5,4,8,8,5,8
+02R0162,Bezpečnost na prvním místě,muž,45,Plzeňský,ZŠ / vyučení,30–50 tis.,7,6,4,6,5,7,4,6,7,6,6,5,5,5,3,5,2
+02R0163,Síť a spolehlivost,žena,45,Ústecký,SŠ s maturitou,50–80 tis.,6,9,4,8,5,5,6,8,6,7,6,7,7,3,2,6,5
+02R0164,Komfort a servis,žena,18,Jihomoravský,SŠ s maturitou,30–50 tis.,5,8,4,4,8,10,6,6,6,7,7,8,8,4,5,5,5
+02R0165,Prémioví cestující,muž,48,Jihomoravský,VŠ,do 30 tis.,6,5,3,5,9,5,4,7,6,5,5,6,7,3,2,5,4
+02R0166,Prémioví cestující,muž,67,Ústecký,VŠ,80 tis. +,8,7,5,6,6,5,6,4,4,8,7,6,8,5,5,8,6
+02R0167,Prémioví cestující,žena,56,Praha,SŠ s maturitou,50–80 tis.,6,7,3,5,8,7,7,5,7,5,5,8,6,3,2,5,4
+02R0168,Bezpečnost na prvním místě,žena,35,Středočeský,SŠ s maturitou,30–50 tis.,7,7,5,6,7,5,6,4,6,4,5,6,6,3,3,3,5
+02R0169,Lovci nejnižší ceny,žena,40,Jihomoravský,SŠ s maturitou,do 30 tis.,6,5,9,3,5,6,6,7,5,2,6,6,6,7,7,4,6
+02R0170,Prémioví cestující,žena,45,Středočeský,ZŠ / vyučení,30–50 tis.,5,7,4,6,6,6,5,4,6,5,5,7,5,4,3,5,3
+02R0171,Lovci nejnižší ceny,muž,50,Olomoucký,VŠ,do 30 tis.,7,5,9,4,4,6,6,7,8,8,5,5,5,8,8,4,8
+02R0172,Prémioví cestující,žena,28,Ústecký,ZŠ / vyučení,30–50 tis.,6,8,3,4,6,6,7,4,4,6,4,6,7,3,3,5,4
+02R0173,Komfort a servis,muž,43,Jihočeský,SŠ s maturitou,30–50 tis.,5,10,4,5,3,9,7,2,6,6,7,7,9,3,4,6,4
+02R0174,Prémioví cestující,muž,40,Jihočeský,VŠ,do 30 tis.,6,6,5,7,7,5,6,6,6,8,7,8,6,4,5,4,5
+02R0175,Lovci nejnižší ceny,muž,18,Jihočeský,SŠ s maturitou,do 30 tis.,6,5,9,5,5,5,6,5,6,6,5,7,6,8,8,7,8
+02R0176,Bezpečnost na prvním místě,muž,54,Moravskoslezský,ZŠ / vyučení,30–50 tis.,7,6,6,7,6,4,7,7,5,6,8,7,7,6,8,6,7
+02R0177,Komfort a servis,žena,51,Jihočeský,ZŠ / vyučení,80 tis. +,7,7,4,9,5,7,6,8,6,7,8,7,5,5,4,8,6
+02R0178,Komfort a servis,muž,22,Praha,ZŠ / vyučení,30–50 tis.,7,6,6,3,4,8,7,7,8,5,6,6,5,6,6,6,4
+02R0179,Bezpečnost na prvním místě,žena,37,Jihomoravský,VŠ,30–50 tis.,8,5,6,6,5,7,6,7,6,6,6,6,3,5,5,7,4
+02R0180,Síť a spolehlivost,muž,39,Praha,ZŠ / vyučení,80 tis. +,8,6,6,8,5,6,4,7,5,9,9,8,6,6,6,7,7
+02R0181,Lovci nejnižší ceny,žena,36,Jihočeský,SŠ s maturitou,30–50 tis.,4,6,9,4,6,7,5,6,5,5,3,6,6,10,8,4,8
+02R0182,Síť a spolehlivost,muž,70,Olomoucký,ZŠ / vyučení,do 30 tis.,7,5,7,4,6,5,4,7,6,6,7,5,6,6,7,4,7
+02R0183,Komfort a servis,muž,18,Středočeský,SŠ s maturitou,30–50 tis.,6,9,6,6,6,8,6,6,7,6,9,8,7,5,5,6,6
+02R0184,Bezpečnost na prvním místě,muž,53,Olomoucký,SŠ s maturitou,do 30 tis.,7,5,4,8,5,5,5,5,5,8,7,5,6,4,5,6,6
+02R0185,Prémioví cestující,muž,39,Moravskoslezský,ZŠ / vyučení,50–80 tis.,4,8,3,5,8,7,5,8,7,3,4,10,8,4,3,5,3
+02R0186,Prémioví cestující,žena,36,Středočeský,VŠ,30–50 tis.,5,8,3,4,8,5,8,7,8,5,5,6,8,5,4,4,4
+02R0187,Bezpečnost na prvním místě,muž,34,Olomoucký,SŠ s maturitou,30–50 tis.,7,3,5,7,7,6,6,5,4,6,7,3,5,5,5,9,6
+02R0188,Komfort a servis,muž,36,Jihomoravský,SŠ s maturitou,80 tis. +,6,6,7,7,5,7,6,9,4,7,5,5,7,4,4,6,5
+02R0189,Síť a spolehlivost,žena,43,Ústecký,SŠ s maturitou,80 tis. +,6,4,6,6,6,7,5,7,5,8,8,6,4,6,6,4,7
+02R0190,Lovci nejnižší ceny,žena,35,Moravskoslezský,ZŠ / vyučení,30–50 tis.,4,5,7,6,7,5,5,5,6,5,6,5,6,7,7,5,6
+02R0191,Komfort a servis,muž,28,Praha,VŠ,50–80 tis.,4,9,6,4,7,8,3,8,7,5,3,10,8,6,3,4,6
+02R0192,Komfort a servis,muž,26,Olomoucký,SŠ s maturitou,do 30 tis.,5,8,5,6,6,9,4,5,5,6,7,8,9,5,2,4,3
+02R0193,Lovci nejnižší ceny,muž,38,Středočeský,ZŠ / vyučení,do 30 tis.,6,5,7,5,5,5,6,4,6,7,5,3,4,6,4,5,7
+02R0194,Lovci nejnižší ceny,žena,50,Plzeňský,VŠ,30–50 tis.,4,4,8,5,6,4,5,4,6,4,6,5,6,9,9,5,6
+02R0195,Bezpečnost na prvním místě,žena,44,Praha,ZŠ / vyučení,50–80 tis.,9,6,4,7,5,6,6,1,6,9,8,6,6,4,4,8,5
+02R0196,Síť a spolehlivost,muž,18,Středočeský,SŠ s maturitou,50–80 tis.,8,6,6,6,4,5,5,4,7,8,7,6,6,4,5,6,6
+02R0197,Bezpečnost na prvním místě,muž,39,Praha,SŠ s maturitou,do 30 tis.,9,6,5,5,6,4,5,5,5,8,7,5,4,5,5,7,6
+02R0198,Bezpečnost na prvním místě,muž,42,Plzeňský,ZŠ / vyučení,do 30 tis.,9,6,6,5,4,6,5,4,9,7,6,4,6,6,5,8,6
+02R0199,Síť a spolehlivost,žena,18,Olomoucký,ZŠ / vyučení,50–80 tis.,6,4,4,8,4,8,6,5,3,9,7,6,7,5,7,7,6
+02R0200,Lovci nejnižší ceny,žena,35,Ústecký,SŠ s maturitou,50–80 tis.,6,6,8,5,7,5,4,6,3,7,7,7,7,6,8,7,8
+02R0201,Komfort a servis,žena,52,Ústecký,ZŠ / vyučení,50–80 tis.,5,8,5,6,6,7,3,6,6,5,5,7,8,4,4,6,5
+02R0202,Lovci nejnižší ceny,muž,46,Středočeský,ZŠ / vyučení,50–80 tis.,6,4,8,4,5,6,7,8,7,6,5,5,4,8,8,6,6
+02R0203,Lovci nejnižší ceny,žena,33,Plzeňský,ZŠ / vyučení,50–80 tis.,5,6,9,6,5,4,6,8,7,4,4,5,5,5,8,4,8
+02R0204,Prémioví cestující,žena,43,Praha,VŠ,30–50 tis.,5,8,3,4,8,6,4,8,6,4,3,5,8,2,3,2,3
+02R0205,Síť a spolehlivost,muž,44,Středočeský,SŠ s maturitou,50–80 tis.,6,7,5,5,5,4,4,7,8,6,5,4,5,5,6,5,5
+02R0206,Prémioví cestující,žena,58,Moravskoslezský,VŠ,do 30 tis.,4,8,5,6,8,2,4,4,3,3,4,5,7,5,5,6,6
+02R0207,Síť a spolehlivost,žena,61,Olomoucký,VŠ,80 tis. +,7,6,4,10,5,5,5,9,7,7,7,5,6,5,4,8,7
+02R0208,Komfort a servis,žena,51,Moravskoslezský,VŠ,50–80 tis.,7,10,6,6,6,7,6,7,2,5,6,9,9,4,3,5,3
+02R0209,Síť a spolehlivost,muž,36,Ústecký,SŠ s maturitou,do 30 tis.,7,4,6,6,6,7,4,3,4,6,5,4,3,6,5,5,4
+02R0210,Síť a spolehlivost,žena,21,Ústecký,ZŠ / vyučení,50–80 tis.,6,5,6,7,4,6,4,7,7,6,4,5,4,5,5,4,4
+02R0211,Lovci nejnižší ceny,muž,56,Olomoucký,SŠ s maturitou,50–80 tis.,5,2,9,3,6,5,7,6,4,4,4,6,3,8,9,3,6
+02R0212,Komfort a servis,žena,34,Ústecký,SŠ s maturitou,do 30 tis.,4,7,4,6,6,6,3,5,6,6,6,7,7,4,4,5,5
+02R0213,Komfort a servis,muž,32,Jihočeský,ZŠ / vyučení,30–50 tis.,6,7,6,5,7,7,5,4,3,4,5,7,4,4,5,4,4
+02R0214,Lovci nejnižší ceny,žena,57,Ústecký,VŠ,30–50 tis.,6,5,7,6,5,5,6,7,6,4,5,5,5,9,9,4,8
+02R0215,Komfort a servis,muž,35,Jihomoravský,ZŠ / vyučení,do 30 tis.,3,8,6,5,5,7,3,7,6,4,1,5,6,5,4,3,6
+02R0216,Síť a spolehlivost,žena,42,Praha,SŠ s maturitou,50–80 tis.,7,5,6,9,5,5,7,7,4,7,7,5,4,6,5,8,9
+02R0217,Prémioví cestující,žena,27,Moravskoslezský,SŠ s maturitou,80 tis. +,4,7,5,7,8,6,5,6,5,5,4,6,7,3,6,5,5
+02R0218,Lovci nejnižší ceny,žena,18,Plzeňský,SŠ s maturitou,50–80 tis.,7,4,8,4,5,6,6,7,7,6,5,5,5,6,8,5,6
+02R0219,Prémioví cestující,muž,27,Moravskoslezský,ZŠ / vyučení,80 tis. +,6,7,3,7,8,6,5,7,2,6,6,6,6,3,4,6,2
+02R0220,Síť a spolehlivost,žena,35,Olomoucký,VŠ,50–80 tis.,5,7,7,8,3,6,6,3,6,6,6,6,6,6,6,7,6
+02R0221,Lovci nejnižší ceny,žena,47,Plzeňský,SŠ s maturitou,30–50 tis.,5,6,9,6,6,6,4,7,6,3,6,5,6,7,7,4,6
+02R0222,Bezpečnost na prvním místě,muž,46,Jihočeský,SŠ s maturitou,30–50 tis.,9,5,5,6,4,7,6,5,5,9,7,6,4,4,6,7,4
+02R0223,Síť a spolehlivost,žena,57,Středočeský,VŠ,30–50 tis.,5,4,5,9,6,5,6,7,4,6,5,6,3,5,5,6,5
+02R0224,Lovci nejnižší ceny,žena,65,Ústecký,SŠ s maturitou,do 30 tis.,8,4,8,4,5,8,4,6,5,6,8,6,4,6,8,7,6
+02R0225,Komfort a servis,muž,58,Ústecký,SŠ s maturitou,do 30 tis.,9,8,5,5,6,8,6,6,8,8,8,9,8,4,5,7,4
+02R0226,Bezpečnost na prvním místě,muž,54,Moravskoslezský,ZŠ / vyučení,50–80 tis.,9,6,4,7,5,7,7,6,5,8,8,4,5,5,7,7,6
+02R0227,Bezpečnost na prvním místě,žena,32,Praha,VŠ,30–50 tis.,7,4,6,6,6,5,6,7,4,5,5,5,5,5,6,5,6
+02R0228,Síť a spolehlivost,muž,53,Plzeňský,SŠ s maturitou,50–80 tis.,6,6,6,6,6,2,5,7,4,5,4,3,4,6,4,4,7
+02R0229,Bezpečnost na prvním místě,žena,31,Praha,VŠ,50–80 tis.,8,6,5,7,6,3,5,5,6,7,9,6,5,5,7,8,7
+02R0230,Síť a spolehlivost,muž,22,Plzeňský,VŠ,30–50 tis.,7,4,9,7,4,5,5,5,6,6,5,4,2,7,6,5,9
+02R0231,Komfort a servis,žena,39,Jihomoravský,VŠ,30–50 tis.,5,9,4,5,6,8,7,2,7,5,8,9,9,5,6,6,6
+02R0232,Komfort a servis,žena,37,Jihomoravský,SŠ s maturitou,50–80 tis.,6,9,5,5,7,8,4,8,6,6,5,9,8,3,5,7,5
+02R0233,Lovci nejnižší ceny,žena,50,Ústecký,SŠ s maturitou,80 tis. +,5,3,7,7,6,5,3,8,3,7,7,7,3,9,8,7,7
+02R0234,Lovci nejnižší ceny,muž,70,Plzeňský,VŠ,50–80 tis.,5,5,10,7,6,7,5,8,6,5,6,6,4,9,8,5,9
+02R0235,Komfort a servis,žena,49,Plzeňský,ZŠ / vyučení,30–50 tis.,6,6,4,4,8,9,7,7,10,5,5,9,9,5,4,4,4
+02R0236,Bezpečnost na prvním místě,muž,62,Plzeňský,ZŠ / vyučení,do 30 tis.,7,6,5,7,4,6,6,3,7,6,7,5,6,5,5,5,5
+02R0237,Síť a spolehlivost,muž,48,Olomoucký,ZŠ / vyučení,80 tis. +,7,5,5,9,7,5,7,6,6,7,9,5,5,4,5,9,6
+02R0238,Bezpečnost na prvním místě,žena,38,Praha,VŠ,30–50 tis.,6,6,2,8,3,5,7,6,7,6,6,5,6,4,3,7,2
+02R0239,Bezpečnost na prvním místě,muž,55,Ústecký,ZŠ / vyučení,do 30 tis.,6,7,6,5,5,6,5,6,4,5,4,7,7,6,7,6,6
+02R0240,Komfort a servis,žena,39,Středočeský,SŠ s maturitou,80 tis. +,6,10,6,8,5,7,7,7,5,6,7,8,8,5,3,7,7
+02R0241,Síť a spolehlivost,žena,57,Praha,SŠ s maturitou,do 30 tis.,7,5,5,8,4,5,7,3,5,7,7,5,5,4,4,6,4
+02R0242,Lovci nejnižší ceny,žena,39,Olomoucký,VŠ,50–80 tis.,4,5,8,5,6,6,6,4,5,4,6,6,5,8,5,3,8
+02R0243,Síť a spolehlivost,muž,29,Ústecký,ZŠ / vyučení,50–80 tis.,7,4,6,7,7,7,4,1,7,7,7,6,5,6,5,5,7
+02R0244,Síť a spolehlivost,muž,63,Ústecký,SŠ s maturitou,do 30 tis.,7,5,5,7,6,3,6,7,5,4,5,4,4,4,5,6,4
+02R0245,Lovci nejnižší ceny,žena,57,Praha,SŠ s maturitou,30–50 tis.,6,5,8,5,6,6,5,4,6,5,4,2,6,7,6,5,5
+02R0246,Prémioví cestující,muž,56,Olomoucký,VŠ,80 tis. +,4,8,4,2,9,6,6,6,5,2,4,7,5,3,3,3,3
+02R0247,Lovci nejnižší ceny,muž,27,Plzeňský,SŠ s maturitou,80 tis. +,6,3,7,5,6,6,6,5,6,4,5,4,2,6,8,5,4
+02R0248,Bezpečnost na prvním místě,žena,42,Plzeňský,ZŠ / vyučení,30–50 tis.,9,5,5,7,7,4,7,6,4,6,6,5,4,5,3,5,5
+02R0249,Prémioví cestující,muž,26,Středočeský,SŠ s maturitou,do 30 tis.,6,7,2,5,9,7,4,6,8,6,5,6,7,2,1,7,5
+02R0250,Lovci nejnižší ceny,muž,35,Středočeský,ZŠ / vyučení,30–50 tis.,3,4,9,5,5,3,4,6,3,4,4,2,4,6,7,5,8
+02R0251,Komfort a servis,žena,50,Plzeňský,ZŠ / vyučení,50–80 tis.,7,8,5,6,7,9,6,4,7,7,7,9,9,5,5,8,5
+02R0252,Bezpečnost na prvním místě,muž,75,Olomoucký,SŠ s maturitou,50–80 tis.,9,5,4,8,4,5,7,7,7,8,7,3,4,5,5,8,6
+02R0253,Lovci nejnižší ceny,muž,38,Ústecký,SŠ s maturitou,30–50 tis.,6,4,5,7,5,6,7,7,6,6,8,6,6,6,6,6,5
+02R0254,Komfort a servis,žena,51,Praha,ZŠ / vyučení,30–50 tis.,5,7,5,6,4,6,5,7,7,6,5,7,6,4,4,5,5
+02R0255,Bezpečnost na prvním místě,muž,66,Jihomoravský,SŠ s maturitou,30–50 tis.,10,5,6,6,7,5,6,5,6,6,6,6,4,6,6,6,6
+02R0256,Bezpečnost na prvním místě,žena,41,Moravskoslezský,VŠ,80 tis. +,7,5,4,8,7,4,5,10,7,5,7,5,3,4,3,7,4
+02R0257,Síť a spolehlivost,žena,64,Praha,VŠ,50–80 tis.,8,4,3,8,6,5,8,5,7,7,8,5,6,3,4,8,3
+02R0258,Lovci nejnižší ceny,žena,35,Jihočeský,ZŠ / vyučení,50–80 tis.,5,3,7,7,8,7,4,6,7,6,3,5,4,6,7,4,6
+02R0259,Prémioví cestující,muž,65,Jihočeský,VŠ,30–50 tis.,8,6,4,5,8,4,4,4,4,7,8,7,6,6,5,7,6
+02R0260,Komfort a servis,muž,42,Praha,SŠ s maturitou,80 tis. +,6,10,8,5,5,8,4,5,8,6,6,10,8,5,7,5,7
+02R0261,Bezpečnost na prvním místě,žena,50,Jihočeský,ZŠ / vyučení,do 30 tis.,9,7,5,6,5,6,6,6,9,8,8,7,7,6,5,7,6
+02R0262,Prémioví cestující,žena,29,Olomoucký,ZŠ / vyučení,30–50 tis.,5,8,4,6,8,4,6,4,5,7,5,7,7,4,3,7,5
+02R0263,Komfort a servis,muž,39,Moravskoslezský,VŠ,50–80 tis.,4,8,5,4,6,5,5,7,5,4,4,5,8,5,4,4,3
+02R0264,Bezpečnost na prvním místě,muž,22,Moravskoslezský,ZŠ / vyučení,30–50 tis.,9,6,4,8,4,5,7,5,5,8,8,4,5,4,4,8,5
+02R0265,Prémioví cestující,muž,43,Jihomoravský,SŠ s maturitou,30–50 tis.,6,8,3,5,7,5,5,5,8,6,7,6,8,4,5,5,4
+02R0266,Komfort a servis,muž,42,Středočeský,SŠ s maturitou,50–80 tis.,6,8,8,5,6,7,4,6,5,5,6,7,6,6,6,6,6
+02R0267,Komfort a servis,muž,18,Ústecký,SŠ s maturitou,50–80 tis.,5,8,6,3,7,6,6,2,5,5,5,9,8,6,5,6,6
+02R0268,Bezpečnost na prvním místě,muž,35,Středočeský,VŠ,do 30 tis.,8,4,5,7,5,6,4,5,6,7,8,5,5,6,6,9,5
+02R0269,Lovci nejnižší ceny,muž,32,Středočeský,ZŠ / vyučení,80 tis. +,4,4,7,4,6,6,3,4,6,3,6,4,5,5,6,6,6
+02R0270,Síť a spolehlivost,žena,46,Plzeňský,SŠ s maturitou,50–80 tis.,6,5,9,6,7,5,6,5,4,6,6,6,5,7,8,6,8
+02R0271,Bezpečnost na prvním místě,muž,71,Plzeňský,SŠ s maturitou,50–80 tis.,8,6,6,6,5,5,5,9,9,5,7,4,5,5,5,7,5
+02R0272,Lovci nejnižší ceny,muž,40,Středočeský,SŠ s maturitou,30–50 tis.,6,7,9,6,6,5,6,8,6,5,5,6,7,6,8,6,9
+02R0273,Síť a spolehlivost,muž,61,Olomoucký,VŠ,30–50 tis.,8,4,7,6,5,7,4,4,5,7,9,6,6,6,7,7,7
+02R0274,Komfort a servis,žena,69,Plzeňský,SŠ s maturitou,30–50 tis.,5,9,6,4,6,8,7,10,5,5,6,6,6,6,5,5,5
+02R0275,Bezpečnost na prvním místě,muž,68,Ústecký,ZŠ / vyučení,do 30 tis.,7,7,5,6,7,5,5,6,5,7,5,7,8,4,6,6,6
+02R0276,Lovci nejnižší ceny,muž,28,Olomoucký,SŠ s maturitou,do 30 tis.,6,5,8,7,5,5,7,5,7,7,7,5,5,5,3,9,7
+02R0277,Lovci nejnižší ceny,žena,56,Moravskoslezský,SŠ s maturitou,80 tis. +,5,2,8,5,2,5,6,5,4,5,5,2,4,7,7,5,6
+02R0278,Lovci nejnižší ceny,muž,18,Ústecký,SŠ s maturitou,do 30 tis.,6,4,8,5,6,3,5,7,5,5,4,2,7,7,6,3,7
+02R0279,Prémioví cestující,žena,55,Středočeský,SŠ s maturitou,50–80 tis.,5,8,3,7,7,4,9,4,7,5,4,7,6,3,3,5,5
+02R0280,Lovci nejnižší ceny,žena,18,Jihomoravský,SŠ s maturitou,do 30 tis.,5,5,8,6,5,8,4,4,7,6,8,5,7,8,9,5,6
+02R0281,Síť a spolehlivost,muž,57,Ústecký,VŠ,50–80 tis.,6,4,4,9,6,5,5,4,4,6,6,4,4,3,3,6,4
+02R0282,Komfort a servis,žena,53,Jihomoravský,VŠ,do 30 tis.,6,9,4,6,6,5,4,4,2,6,6,6,8,4,4,7,6
+02R0283,Lovci nejnižší ceny,žena,38,Olomoucký,VŠ,30–50 tis.,4,6,6,7,8,4,4,2,7,5,6,7,6,4,5,6,7
+02R0284,Lovci nejnižší ceny,muž,45,Moravskoslezský,SŠ s maturitou,50–80 tis.,3,5,6,4,7,7,4,3,7,1,4,6,4,5,7,4,5
+02R0285,Lovci nejnižší ceny,muž,46,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,4,8,5,6,6,4,10,4,7,4,4,3,6,8,7,7
+02R0286,Komfort a servis,žena,27,Olomoucký,VŠ,30–50 tis.,6,6,7,6,8,6,5,5,8,8,6,7,6,9,5,6,6
+02R0287,Bezpečnost na prvním místě,žena,45,Moravskoslezský,VŠ,50–80 tis.,10,6,4,5,8,9,5,5,6,6,8,8,7,4,4,7,4
+02R0288,Síť a spolehlivost,žena,41,Jihočeský,SŠ s maturitou,do 30 tis.,4,8,5,9,7,6,5,5,5,5,5,8,7,4,5,6,8
+02R0289,Bezpečnost na prvním místě,muž,51,Středočeský,ZŠ / vyučení,do 30 tis.,7,6,6,5,4,5,6,8,7,7,5,6,6,6,5,6,7
+02R0290,Prémioví cestující,žena,37,Středočeský,VŠ,do 30 tis.,4,7,3,6,9,4,6,4,7,3,4,6,7,5,3,5,3
+02R0291,Prémioví cestující,muž,49,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,7,6,6,7,3,7,4,6,4,6,5,6,4,6,3,5
+02R0292,Lovci nejnižší ceny,muž,46,Středočeský,VŠ,50–80 tis.,5,5,9,4,6,6,5,4,6,5,6,4,6,10,8,6,9
+02R0293,Síť a spolehlivost,muž,56,Plzeňský,ZŠ / vyučení,80 tis. +,5,6,3,7,5,5,7,5,6,4,5,5,5,4,5,5,5
+02R0294,Síť a spolehlivost,žena,45,Olomoucký,ZŠ / vyučení,do 30 tis.,6,3,5,6,5,7,6,6,4,7,7,5,5,6,5,6,6
+02R0295,Lovci nejnižší ceny,žena,32,Moravskoslezský,VŠ,do 30 tis.,6,5,10,8,4,4,5,5,5,6,6,4,4,8,8,7,9
+02R0296,Bezpečnost na prvním místě,žena,55,Praha,SŠ s maturitou,do 30 tis.,7,5,5,8,5,4,8,6,2,8,8,4,6,6,6,9,7
+02R0297,Bezpečnost na prvním místě,žena,48,Ústecký,SŠ s maturitou,50–80 tis.,8,7,5,7,5,7,5,4,4,7,6,5,7,4,5,6,4
+02R0298,Síť a spolehlivost,žena,62,Ústecký,SŠ s maturitou,do 30 tis.,5,7,6,8,5,5,5,7,6,6,4,6,6,4,6,5,4
+02R0299,Lovci nejnižší ceny,žena,35,Středočeský,VŠ,80 tis. +,5,3,9,4,4,8,4,3,5,5,5,4,5,9,8,6,7
+02R0300,Síť a spolehlivost,muž,18,Moravskoslezský,ZŠ / vyučení,do 30 tis.,6,5,4,8,6,4,5,3,6,5,6,3,5,6,6,4,5
+02R0301,Bezpečnost na prvním místě,žena,37,Moravskoslezský,VŠ,30–50 tis.,8,6,4,5,7,6,6,5,7,7,7,7,7,5,4,6,5
+02R0302,Lovci nejnižší ceny,žena,52,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,3,8,5,5,4,6,7,7,5,5,3,4,9,8,6,7
+02R0303,Síť a spolehlivost,žena,51,Praha,VŠ,do 30 tis.,7,4,6,8,5,4,3,6,5,8,8,6,4,8,6,8,7
+02R0304,Bezpečnost na prvním místě,žena,42,Středočeský,SŠ s maturitou,30–50 tis.,8,6,5,7,4,6,5,6,5,6,6,5,7,4,5,7,6
+02R0305,Prémioví cestující,muž,41,Praha,ZŠ / vyučení,30–50 tis.,6,9,4,8,8,7,5,7,4,7,7,9,9,4,5,6,4
+02R0306,Prémioví cestující,muž,38,Jihomoravský,ZŠ / vyučení,30–50 tis.,5,7,4,3,8,4,4,7,6,4,4,6,6,3,5,3,2
+02R0307,Prémioví cestující,žena,19,Moravskoslezský,ZŠ / vyučení,50–80 tis.,6,8,3,7,8,6,7,6,8,7,6,7,10,4,2,8,6
+02R0308,Lovci nejnižší ceny,žena,21,Středočeský,SŠ s maturitou,30–50 tis.,8,4,8,4,6,5,8,6,6,4,4,4,5,7,6,4,6
+02R0309,Lovci nejnižší ceny,muž,39,Jihomoravský,SŠ s maturitou,do 30 tis.,3,5,9,5,5,8,6,5,4,5,4,6,5,7,7,5,7
+02R0310,Komfort a servis,žena,39,Olomoucký,VŠ,30–50 tis.,5,9,7,7,7,7,5,6,7,7,7,9,10,8,7,7,7
+02R0311,Lovci nejnižší ceny,muž,30,Středočeský,SŠ s maturitou,50–80 tis.,6,2,8,5,7,5,5,5,7,5,4,6,6,9,7,7,7
+02R0312,Komfort a servis,muž,38,Ústecký,VŠ,80 tis. +,6,8,6,5,6,7,7,5,5,5,5,8,6,4,4,6,4
+02R0313,Bezpečnost na prvním místě,žena,42,Praha,VŠ,30–50 tis.,8,4,5,6,7,4,5,6,2,8,6,5,2,6,6,7,4
+02R0314,Síť a spolehlivost,žena,50,Středočeský,VŠ,30–50 tis.,9,5,4,8,7,5,4,4,3,7,8,4,6,5,2,8,4
+02R0315,Lovci nejnižší ceny,žena,63,Jihočeský,SŠ s maturitou,do 30 tis.,7,4,8,6,5,4,6,7,7,7,9,5,6,8,7,5,7
+02R0316,Komfort a servis,žena,43,Jihomoravský,ZŠ / vyučení,30–50 tis.,6,7,6,6,6,4,5,6,4,7,7,6,6,5,6,4,6
+02R0317,Bezpečnost na prvním místě,muž,26,Ústecký,VŠ,50–80 tis.,7,5,7,6,7,6,4,7,5,6,7,5,5,6,6,6,6
+02R0318,Prémioví cestující,žena,46,Olomoucký,SŠ s maturitou,80 tis. +,7,7,3,4,7,4,4,8,1,7,6,5,7,3,4,5,5
+02R0319,Prémioví cestující,muž,58,Jihočeský,VŠ,do 30 tis.,6,7,4,5,6,7,7,4,4,4,4,6,6,3,4,6,3
+02R0320,Prémioví cestující,žena,45,Středočeský,SŠ s maturitou,30–50 tis.,5,9,4,6,9,8,5,7,4,6,7,10,10,4,3,5,3
+02R0321,Lovci nejnižší ceny,žena,50,Jihočeský,ZŠ / vyučení,30–50 tis.,8,4,9,7,6,4,6,4,5,5,5,2,1,7,7,6,7
+02R0322,Lovci nejnižší ceny,žena,34,Jihomoravský,VŠ,do 30 tis.,5,3,7,5,5,6,5,7,5,5,5,3,6,7,9,5,6
+02R0323,Bezpečnost na prvním místě,muž,59,Jihomoravský,SŠ s maturitou,30–50 tis.,8,5,5,7,4,5,3,5,9,7,6,4,4,5,4,7,5
+02R0324,Bezpečnost na prvním místě,muž,61,Středočeský,SŠ s maturitou,30–50 tis.,10,4,5,4,4,5,6,8,7,7,8,4,4,6,5,9,7
+02R0325,Síť a spolehlivost,žena,53,Jihočeský,SŠ s maturitou,do 30 tis.,7,7,6,8,6,4,6,6,4,6,7,6,7,5,4,6,5
+02R0326,Komfort a servis,žena,31,Moravskoslezský,SŠ s maturitou,do 30 tis.,7,9,6,7,6,7,7,5,6,8,6,10,7,5,3,7,4
+02R0327,Komfort a servis,muž,29,Plzeňský,SŠ s maturitou,do 30 tis.,3,8,8,6,6,7,5,5,5,5,4,6,6,8,5,6,6
+02R0328,Bezpečnost na prvním místě,muž,56,Jihomoravský,ZŠ / vyučení,30–50 tis.,7,8,5,6,6,6,7,6,7,6,6,5,7,5,3,8,4
+02R0329,Síť a spolehlivost,muž,41,Moravskoslezský,VŠ,80 tis. +,4,4,6,7,6,3,6,5,5,5,4,5,5,5,5,4,6
+02R0330,Síť a spolehlivost,žena,28,Praha,SŠ s maturitou,do 30 tis.,8,5,6,7,6,4,7,5,6,8,7,5,7,5,6,8,6
+02R0331,Lovci nejnižší ceny,žena,43,Plzeňský,ZŠ / vyučení,30–50 tis.,6,7,8,3,7,6,6,5,7,4,5,5,5,6,6,3,5
+02R0332,Prémioví cestující,muž,35,Olomoucký,SŠ s maturitou,do 30 tis.,6,9,7,5,8,5,5,1,5,5,5,6,6,5,4,5,7
+02R0333,Komfort a servis,žena,51,Jihočeský,SŠ s maturitou,30–50 tis.,6,9,4,5,5,9,5,8,7,7,7,9,9,4,3,8,5
+02R0334,Síť a spolehlivost,žena,41,Moravskoslezský,SŠ s maturitou,50–80 tis.,7,5,7,6,3,7,7,3,8,8,5,4,6,6,7,6,6
+02R0335,Komfort a servis,muž,18,Ústecký,VŠ,50–80 tis.,6,8,4,6,8,6,5,5,5,6,9,8,5,3,6,6,5
+02R0336,Síť a spolehlivost,žena,42,Středočeský,VŠ,do 30 tis.,7,6,7,9,5,5,6,5,5,6,9,5,6,5,4,8,8
+02R0337,Komfort a servis,žena,46,Jihočeský,VŠ,30–50 tis.,8,9,5,5,9,8,6,8,6,7,5,9,8,5,4,8,5
+02R0338,Lovci nejnižší ceny,žena,34,Jihočeský,ZŠ / vyučení,50–80 tis.,5,3,8,5,6,3,6,8,4,5,5,5,3,7,7,5,8
+02R0339,Komfort a servis,žena,31,Moravskoslezský,ZŠ / vyučení,do 30 tis.,4,9,5,5,6,9,3,4,5,6,7,8,8,3,4,4,6
+02R0340,Bezpečnost na prvním místě,žena,51,Olomoucký,SŠ s maturitou,50–80 tis.,10,6,7,7,7,4,6,6,3,8,5,3,5,5,5,8,5
+02R0341,Komfort a servis,muž,41,Praha,SŠ s maturitou,30–50 tis.,5,8,7,5,7,7,5,6,3,3,5,7,9,6,3,6,6
+02R0342,Bezpečnost na prvním místě,muž,58,Plzeňský,ZŠ / vyučení,80 tis. +,7,4,6,9,6,6,6,3,7,7,8,5,4,8,8,6,6
+02R0343,Lovci nejnižší ceny,muž,38,Moravskoslezský,ZŠ / vyučení,30–50 tis.,5,5,9,6,7,5,5,5,6,5,4,5,5,6,8,4,7
+02R0344,Prémioví cestující,žena,18,Středočeský,VŠ,50–80 tis.,6,8,4,5,7,6,4,7,4,6,6,8,8,6,5,5,4
+02R0345,Prémioví cestující,muž,28,Ústecký,VŠ,30–50 tis.,7,7,4,6,8,7,6,4,8,6,5,8,8,4,6,6,4
+02R0346,Síť a spolehlivost,muž,48,Středočeský,VŠ,30–50 tis.,7,5,7,7,4,5,6,4,6,5,7,4,5,6,6,5,5
+02R0347,Bezpečnost na prvním místě,muž,53,Olomoucký,VŠ,30–50 tis.,7,5,5,7,6,4,5,7,4,6,7,4,6,5,7,7,8
+02R0348,Bezpečnost na prvním místě,muž,43,Plzeňský,ZŠ / vyučení,50–80 tis.,8,6,6,7,6,6,4,4,7,7,7,6,6,6,5,7,5
+02R0349,Lovci nejnižší ceny,muž,18,Jihomoravský,SŠ s maturitou,50–80 tis.,5,4,8,7,4,7,6,7,3,6,5,5,5,6,7,6,8
+02R0350,Síť a spolehlivost,muž,22,Středočeský,SŠ s maturitou,30–50 tis.,8,4,6,9,6,6,5,4,7,9,8,5,4,5,8,9,6
+02R0351,Prémioví cestující,muž,36,Jihomoravský,VŠ,30–50 tis.,4,6,4,5,7,6,7,8,4,5,4,4,7,4,4,4,3
+02R0352,Bezpečnost na prvním místě,muž,58,Ústecký,SŠ s maturitou,50–80 tis.,6,7,6,8,4,5,6,3,4,7,6,7,8,5,5,7,7
+02R0353,Lovci nejnižší ceny,muž,31,Jihomoravský,VŠ,30–50 tis.,3,4,10,5,4,5,5,8,5,5,4,3,4,8,9,4,7
+02R0354,Bezpečnost na prvním místě,žena,50,Praha,SŠ s maturitou,50–80 tis.,9,4,5,7,8,7,4,5,6,7,8,6,6,7,7,8,6
+02R0355,Komfort a servis,muž,55,Praha,SŠ s maturitou,50–80 tis.,6,7,6,7,7,7,6,7,4,6,7,7,5,5,6,7,4
+02R0356,Lovci nejnižší ceny,žena,41,Jihomoravský,VŠ,30–50 tis.,4,1,8,4,7,6,7,5,5,6,5,7,4,9,8,5,8
+02R0357,Síť a spolehlivost,žena,27,Olomoucký,SŠ s maturitou,30–50 tis.,7,5,7,9,6,5,5,6,5,6,7,3,5,6,7,7,6
+02R0358,Síť a spolehlivost,žena,43,Jihomoravský,VŠ,30–50 tis.,6,5,7,8,6,7,8,7,4,6,6,5,8,6,6,6,6
+02R0359,Bezpečnost na prvním místě,muž,65,Středočeský,ZŠ / vyučení,80 tis. +,9,4,5,8,6,5,6,7,4,8,7,6,3,6,5,6,7
+02R0360,Bezpečnost na prvním místě,muž,43,Moravskoslezský,VŠ,do 30 tis.,7,4,4,8,6,6,4,5,7,5,6,4,4,5,5,6,4
+02R0361,Komfort a servis,muž,20,Olomoucký,VŠ,30–50 tis.,4,8,7,5,6,5,6,4,4,5,3,5,6,6,5,3,6
+02R0362,Bezpečnost na prvním místě,muž,62,Olomoucký,ZŠ / vyučení,80 tis. +,10,6,5,7,3,6,6,7,5,8,6,4,3,2,3,6,4
+02R0363,Síť a spolehlivost,žena,69,Plzeňský,VŠ,do 30 tis.,3,6,2,9,6,7,5,9,4,8,8,7,7,4,3,7,7
+02R0364,Lovci nejnižší ceny,žena,56,Plzeňský,VŠ,do 30 tis.,6,3,8,6,7,4,7,4,5,4,5,4,3,8,7,4,7
+02R0365,Bezpečnost na prvním místě,žena,79,Středočeský,ZŠ / vyučení,50–80 tis.,8,6,5,6,3,5,3,2,5,7,9,5,5,7,4,7,6
+02R0366,Bezpečnost na prvním místě,muž,31,Jihočeský,SŠ s maturitou,30–50 tis.,8,5,6,5,6,6,6,5,10,6,6,5,6,6,5,5,6
+02R0367,Lovci nejnižší ceny,žena,40,Plzeňský,SŠ s maturitou,50–80 tis.,5,4,8,7,7,6,5,6,2,6,5,4,6,7,6,6,8
+02R0368,Síť a spolehlivost,muž,45,Ústecký,ZŠ / vyučení,30–50 tis.,7,6,8,7,7,6,7,4,7,7,7,6,8,6,8,8,6
+02R0369,Prémioví cestující,muž,47,Středočeský,ZŠ / vyučení,do 30 tis.,5,8,4,6,9,7,5,2,6,5,6,7,8,3,3,4,5
+02R0370,Komfort a servis,muž,32,Jihočeský,SŠ s maturitou,30–50 tis.,6,6,6,5,5,8,5,6,3,5,9,7,5,5,6,6,7
+02R0371,Bezpečnost na prvním místě,muž,43,Plzeňský,SŠ s maturitou,80 tis. +,9,4,4,6,5,4,5,5,2,7,7,6,4,5,5,7,6
+02R0372,Síť a spolehlivost,žena,43,Praha,SŠ s maturitou,do 30 tis.,6,5,6,9,7,6,4,5,6,7,6,6,4,5,6,6,5
+02R0373,Bezpečnost na prvním místě,muž,44,Jihomoravský,SŠ s maturitou,80 tis. +,8,6,6,6,5,6,7,4,5,6,7,5,5,4,6,8,5
+02R0374,Síť a spolehlivost,žena,41,Jihomoravský,SŠ s maturitou,30–50 tis.,8,5,5,7,6,5,6,7,4,5,6,5,5,5,6,5,4
+02R0375,Síť a spolehlivost,muž,28,Olomoucký,ZŠ / vyučení,30–50 tis.,6,5,7,8,5,3,6,2,4,6,7,5,4,7,6,8,6
+02R0376,Lovci nejnižší ceny,muž,39,Moravskoslezský,VŠ,30–50 tis.,4,6,9,6,5,7,7,6,6,6,6,6,6,6,6,6,8
+02R0377,Síť a spolehlivost,žena,37,Ústecký,SŠ s maturitou,do 30 tis.,6,3,6,8,5,7,6,7,5,8,6,4,4,5,7,7,6
+02R0378,Prémioví cestující,muž,62,Jihomoravský,ZŠ / vyučení,50–80 tis.,5,6,5,6,8,5,5,5,6,5,6,6,6,7,4,5,6
+02R0379,Komfort a servis,muž,40,Jihočeský,VŠ,do 30 tis.,4,9,4,7,7,9,4,5,5,8,6,9,9,4,3,6,5
+02R0380,Komfort a servis,muž,18,Ústecký,VŠ,do 30 tis.,6,8,4,5,7,7,5,9,3,6,5,9,6,3,3,2,4
+02R0381,Bezpečnost na prvním místě,muž,27,Ústecký,SŠ s maturitou,30–50 tis.,9,5,6,7,3,4,7,6,5,8,6,5,3,7,5,7,7
+02R0382,Komfort a servis,muž,43,Ústecký,VŠ,80 tis. +,5,7,3,5,6,8,7,6,5,7,6,8,8,1,2,4,2
+02R0383,Bezpečnost na prvním místě,žena,51,Středočeský,ZŠ / vyučení,do 30 tis.,9,4,4,5,7,7,6,8,7,9,6,7,5,5,4,8,4
+02R0384,Komfort a servis,muž,65,Olomoucký,VŠ,30–50 tis.,5,8,6,8,5,8,3,8,5,7,7,7,7,7,4,6,7
+02R0385,Lovci nejnižší ceny,muž,48,Jihočeský,SŠ s maturitou,50–80 tis.,3,6,7,7,6,4,3,7,9,5,5,3,4,6,7,4,8
+02R0386,Komfort a servis,žena,25,Olomoucký,SŠ s maturitou,50–80 tis.,3,7,4,6,6,7,6,2,8,4,3,5,5,4,2,4,3
+02R0387,Bezpečnost na prvním místě,žena,44,Jihočeský,SŠ s maturitou,50–80 tis.,10,4,5,5,5,7,5,3,9,7,7,6,7,4,6,9,5
+02R0388,Bezpečnost na prvním místě,žena,40,Plzeňský,SŠ s maturitou,50–80 tis.,5,6,4,6,5,6,4,3,6,5,4,7,7,5,4,6,6
+02R0389,Síť a spolehlivost,žena,63,Moravskoslezský,SŠ s maturitou,do 30 tis.,4,6,5,8,6,6,5,5,7,6,6,6,6,6,6,6,5
+02R0390,Komfort a servis,žena,54,Středočeský,VŠ,do 30 tis.,5,9,5,5,6,8,7,8,6,6,5,6,8,4,3,4,6
+02R0391,Komfort a servis,muž,55,Moravskoslezský,SŠ s maturitou,30–50 tis.,2,8,4,7,9,7,5,4,8,5,5,9,8,4,5,3,5
+02R0392,Komfort a servis,žena,33,Jihočeský,ZŠ / vyučení,50–80 tis.,5,7,6,6,8,8,6,7,3,4,4,8,8,4,6,4,3
+02R0393,Lovci nejnižší ceny,muž,46,Ústecký,SŠ s maturitou,30–50 tis.,6,4,7,6,6,4,4,2,8,6,8,4,4,7,6,6,6
+02R0394,Komfort a servis,muž,54,Jihomoravský,ZŠ / vyučení,do 30 tis.,5,8,4,6,7,9,6,4,4,4,4,9,7,3,4,6,5
+02R0395,Bezpečnost na prvním místě,žena,35,Olomoucký,SŠ s maturitou,do 30 tis.,9,5,7,7,4,6,5,3,7,8,7,6,5,7,7,8,6
+02R0396,Prémioví cestující,žena,38,Moravskoslezský,ZŠ / vyučení,do 30 tis.,5,9,5,5,7,5,3,6,6,4,7,7,8,4,4,6,6
+02R0397,Lovci nejnižší ceny,muž,38,Olomoucký,VŠ,30–50 tis.,7,6,8,4,5,6,5,5,3,5,5,6,5,6,7,4,5
+02R0398,Prémioví cestující,muž,38,Středočeský,VŠ,80 tis. +,5,8,5,7,6,7,5,8,4,7,7,8,7,5,5,7,6
+02R0399,Bezpečnost na prvním místě,muž,52,Ústecký,ZŠ / vyučení,30–50 tis.,6,5,6,6,7,5,6,7,8,6,6,6,6,5,6,5,6
+02R0400,Lovci nejnižší ceny,muž,33,Jihomoravský,VŠ,do 30 tis.,7,6,6,5,5,8,7,6,3,7,7,7,6,7,6,8,7
+02R0401,Síť a spolehlivost,muž,39,Jihomoravský,ZŠ / vyučení,30–50 tis.,7,5,8,10,9,5,6,6,5,9,10,7,7,7,6,6,9
+02R0402,Prémioví cestující,žena,39,Středočeský,VŠ,do 30 tis.,6,8,4,4,7,5,5,4,3,5,5,8,5,3,5,6,3
+02R0403,Lovci nejnižší ceny,žena,37,Olomoucký,ZŠ / vyučení,80 tis. +,5,5,10,5,7,6,5,3,6,6,4,3,6,9,7,6,7
+02R0404,Síť a spolehlivost,žena,29,Plzeňský,SŠ s maturitou,do 30 tis.,6,4,6,8,5,5,6,7,5,6,5,5,3,6,7,6,6
+02R0405,Lovci nejnižší ceny,muž,32,Olomoucký,VŠ,50–80 tis.,4,4,8,6,5,4,4,4,8,3,2,3,3,6,7,3,8
+02R0406,Síť a spolehlivost,žena,37,Moravskoslezský,ZŠ / vyučení,30–50 tis.,8,8,7,5,5,6,7,9,8,4,7,6,7,6,6,8,7
+02R0407,Lovci nejnižší ceny,žena,43,Plzeňský,VŠ,50–80 tis.,5,3,10,6,5,5,7,5,8,8,7,4,4,10,10,5,10
+02R0408,Síť a spolehlivost,muž,50,Praha,VŠ,30–50 tis.,8,7,6,9,6,5,4,9,5,8,7,7,7,5,4,8,7
+02R0409,Bezpečnost na prvním místě,muž,42,Jihočeský,SŠ s maturitou,30–50 tis.,9,5,5,6,5,7,7,5,6,9,8,4,5,5,5,7,5
+02R0410,Prémioví cestující,žena,55,Středočeský,SŠ s maturitou,30–50 tis.,5,7,3,5,7,7,5,6,3,5,5,6,5,2,5,5,4
+02R0411,Prémioví cestující,žena,62,Ústecký,SŠ s maturitou,30–50 tis.,4,7,4,5,5,7,7,4,4,6,8,7,7,5,5,4,4
+02R0412,Síť a spolehlivost,muž,27,Olomoucký,SŠ s maturitou,50–80 tis.,8,5,6,10,7,6,4,6,6,9,9,7,6,7,5,8,6
+02R0413,Prémioví cestující,žena,43,Ústecký,VŠ,30–50 tis.,5,7,4,9,6,6,6,6,7,7,7,7,6,3,4,6,4
+02R0414,Lovci nejnižší ceny,muž,53,Jihočeský,SŠ s maturitou,do 30 tis.,7,3,10,5,5,7,7,7,6,6,6,5,5,9,8,6,8
+02R0415,Bezpečnost na prvním místě,žena,30,Moravskoslezský,VŠ,do 30 tis.,8,7,8,8,7,4,5,5,3,9,8,7,5,5,6,8,6
+02R0416,Lovci nejnižší ceny,muž,42,Plzeňský,SŠ s maturitou,do 30 tis.,4,5,9,8,6,4,6,5,2,4,5,3,7,5,7,3,7
+02R0417,Lovci nejnižší ceny,muž,69,Plzeňský,ZŠ / vyučení,50–80 tis.,6,4,8,6,8,6,5,5,5,7,7,5,5,8,9,8,7
+02R0418,Bezpečnost na prvním místě,žena,49,Středočeský,ZŠ / vyučení,do 30 tis.,8,7,5,5,5,6,8,8,6,6,6,6,6,4,4,7,4
+02R0419,Prémioví cestující,žena,33,Olomoucký,ZŠ / vyučení,50–80 tis.,5,8,2,5,8,4,5,7,4,7,4,7,6,3,2,5,4
+02R0420,Síť a spolehlivost,žena,44,Jihočeský,SŠ s maturitou,30–50 tis.,7,6,5,9,6,7,5,8,6,8,8,5,7,6,5,6,7
+02R0421,Síť a spolehlivost,žena,38,Olomoucký,VŠ,30–50 tis.,6,7,4,8,7,5,6,6,5,9,9,5,7,5,3,8,4
+02R0422,Komfort a servis,žena,64,Ústecký,SŠ s maturitou,do 30 tis.,6,7,3,4,7,8,6,4,6,5,4,8,8,4,3,7,3
+02R0423,Síť a spolehlivost,žena,64,Praha,VŠ,80 tis. +,8,3,5,8,7,7,6,5,3,5,8,3,5,4,5,7,5
+02R0424,Komfort a servis,žena,55,Jihočeský,VŠ,80 tis. +,3,9,6,5,6,8,4,4,7,4,4,8,8,6,6,5,5
+02R0425,Komfort a servis,muž,51,Ústecký,VŠ,do 30 tis.,3,8,6,8,7,9,6,7,5,4,5,8,7,6,3,7,5
+02R0426,Lovci nejnižší ceny,muž,39,Jihomoravský,SŠ s maturitou,30–50 tis.,5,4,6,6,4,5,4,3,6,6,5,4,3,5,5,6,7
+02R0427,Bezpečnost na prvním místě,žena,38,Praha,SŠ s maturitou,30–50 tis.,10,5,8,7,4,8,5,8,8,9,9,5,5,5,6,8,8
+02R0428,Komfort a servis,žena,50,Olomoucký,SŠ s maturitou,do 30 tis.,5,7,7,8,6,9,3,8,6,8,6,9,7,6,4,7,6
+02R0429,Lovci nejnižší ceny,žena,79,Plzeňský,VŠ,50–80 tis.,5,6,10,4,7,5,6,7,7,4,3,6,6,9,10,4,9
+02R0430,Lovci nejnižší ceny,muž,24,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,3,9,6,7,6,5,7,5,6,5,3,6,8,7,4,8
+02R0431,Prémioví cestující,žena,53,Jihomoravský,SŠ s maturitou,80 tis. +,4,9,5,6,8,5,7,4,6,5,5,5,6,2,3,3,4
+02R0432,Komfort a servis,žena,35,Jihočeský,VŠ,do 30 tis.,7,10,6,6,7,9,4,8,6,9,7,10,10,5,5,8,5
+02R0433,Síť a spolehlivost,muž,38,Ústecký,SŠ s maturitou,30–50 tis.,6,7,6,8,6,5,7,8,6,7,7,5,6,7,7,8,8
+02R0434,Síť a spolehlivost,žena,30,Praha,ZŠ / vyučení,80 tis. +,8,9,6,9,6,5,4,8,6,9,8,8,8,5,7,8,8
+02R0435,Lovci nejnižší ceny,žena,46,Jihočeský,SŠ s maturitou,80 tis. +,7,5,10,5,6,6,5,7,6,6,6,6,6,8,8,5,7
+02R0436,Lovci nejnižší ceny,muž,24,Jihočeský,ZŠ / vyučení,50–80 tis.,5,3,10,6,5,5,4,5,4,5,4,4,4,9,10,5,9
+02R0437,Síť a spolehlivost,žena,39,Ústecký,ZŠ / vyučení,50–80 tis.,8,7,5,8,4,4,3,6,5,8,8,5,4,5,4,9,4
+02R0438,Lovci nejnižší ceny,muž,49,Olomoucký,ZŠ / vyučení,30–50 tis.,6,5,8,6,8,6,4,4,6,6,7,5,7,7,7,7,6
+02R0439,Komfort a servis,muž,64,Ústecký,SŠ s maturitou,do 30 tis.,6,7,4,5,7,7,5,6,3,6,6,7,9,6,4,7,5
+02R0440,Komfort a servis,žena,47,Jihočeský,SŠ s maturitou,30–50 tis.,5,7,5,4,5,8,6,2,5,5,3,7,5,4,6,4,3
+02R0441,Síť a spolehlivost,žena,65,Jihočeský,SŠ s maturitou,30–50 tis.,6,6,7,7,5,7,4,7,6,8,5,5,5,3,7,6,6
+02R0442,Lovci nejnižší ceny,muž,51,Moravskoslezský,SŠ s maturitou,do 30 tis.,5,4,7,7,7,6,5,6,7,7,6,5,4,7,8,6,8
+02R0443,Bezpečnost na prvním místě,žena,43,Olomoucký,ZŠ / vyučení,50–80 tis.,8,8,4,8,8,5,7,9,7,8,6,8,6,4,2,7,5
+02R0444,Prémioví cestující,žena,45,Olomoucký,SŠ s maturitou,30–50 tis.,6,8,4,7,8,5,5,5,6,7,6,7,7,2,4,4,4
+02R0445,Síť a spolehlivost,žena,36,Praha,ZŠ / vyučení,30–50 tis.,6,6,6,9,8,7,6,6,4,9,8,5,7,6,5,10,8
+02R0446,Bezpečnost na prvním místě,muž,51,Jihomoravský,SŠ s maturitou,do 30 tis.,7,3,6,7,7,8,4,3,5,6,5,4,5,5,5,5,2
+02R0447,Prémioví cestující,žena,49,Jihomoravský,VŠ,do 30 tis.,5,10,2,5,9,6,4,5,5,4,4,9,8,1,1,5,3
+02R0448,Lovci nejnižší ceny,muž,34,Olomoucký,SŠ s maturitou,50–80 tis.,4,2,7,7,6,5,4,4,6,3,4,1,2,6,6,5,5
+02R0449,Bezpečnost na prvním místě,žena,44,Olomoucký,SŠ s maturitou,50–80 tis.,7,4,3,7,7,6,5,3,4,8,6,5,4,5,6,7,2
+02R0450,Bezpečnost na prvním místě,muž,36,Praha,SŠ s maturitou,do 30 tis.,7,6,5,7,3,3,4,6,3,7,8,4,6,6,6,8,5
+02R0451,Bezpečnost na prvním místě,žena,39,Ústecký,SŠ s maturitou,80 tis. +,8,6,4,5,4,5,4,3,6,6,5,6,5,4,4,6,5
+02R0452,Lovci nejnižší ceny,muž,40,Jihomoravský,SŠ s maturitou,30–50 tis.,6,5,9,6,4,7,5,7,4,5,6,5,4,6,7,6,7
+02R0453,Komfort a servis,žena,27,Jihomoravský,VŠ,30–50 tis.,6,7,6,5,7,9,8,2,3,7,5,9,6,5,5,5,5
+02R0454,Prémioví cestující,žena,54,Olomoucký,SŠ s maturitou,80 tis. +,4,9,5,7,8,4,7,6,5,5,6,7,9,6,6,5,6
+02R0455,Lovci nejnižší ceny,žena,23,Praha,SŠ s maturitou,50–80 tis.,7,4,10,5,4,5,5,4,5,6,6,3,5,9,10,6,9
+02R0456,Síť a spolehlivost,žena,23,Jihomoravský,SŠ s maturitou,do 30 tis.,7,5,6,9,6,5,6,6,5,7,7,6,6,6,6,6,7
+02R0457,Lovci nejnižší ceny,muž,51,Praha,SŠ s maturitou,do 30 tis.,5,5,6,6,5,3,5,6,6,5,4,5,3,5,4,3,5
+02R0458,Prémioví cestující,muž,31,Středočeský,ZŠ / vyučení,50–80 tis.,5,10,5,5,8,5,7,5,4,4,6,6,7,3,2,4,3
+02R0459,Lovci nejnižší ceny,žena,33,Praha,SŠ s maturitou,30–50 tis.,4,4,7,4,7,6,5,5,4,6,4,5,6,7,7,4,6
+02R0460,Lovci nejnižší ceny,muž,46,Ústecký,SŠ s maturitou,50–80 tis.,6,5,10,5,6,6,6,10,5,5,5,6,5,8,8,5,8
+02R0461,Bezpečnost na prvním místě,muž,36,Moravskoslezský,VŠ,do 30 tis.,10,3,7,7,6,3,6,7,6,9,7,4,4,7,6,8,7
+02R0462,Prémioví cestující,žena,57,Ústecký,SŠ s maturitou,do 30 tis.,5,6,2,5,8,6,5,2,5,5,4,6,7,2,3,5,4
+02R0463,Bezpečnost na prvním místě,muž,70,Praha,ZŠ / vyučení,do 30 tis.,8,6,6,8,5,5,5,7,8,6,7,6,6,4,6,6,7
+02R0464,Síť a spolehlivost,žena,38,Plzeňský,SŠ s maturitou,30–50 tis.,6,6,5,8,6,5,7,5,5,7,6,5,5,4,4,6,5
+02R0465,Prémioví cestující,muž,53,Jihomoravský,SŠ s maturitou,30–50 tis.,7,8,6,5,8,4,3,3,4,5,4,8,6,5,4,6,4
+02R0466,Bezpečnost na prvním místě,žena,37,Moravskoslezský,VŠ,30–50 tis.,7,6,4,8,4,4,5,4,3,7,7,5,7,6,5,7,5
+02R0467,Lovci nejnižší ceny,muž,30,Praha,ZŠ / vyučení,do 30 tis.,3,5,9,6,5,7,6,5,6,6,6,5,6,9,8,4,9
+02R0468,Komfort a servis,muž,47,Praha,SŠ s maturitou,50–80 tis.,3,7,7,2,5,6,6,3,3,2,1,6,6,6,6,3,5
+02R0469,Lovci nejnižší ceny,muž,44,Ústecký,VŠ,do 30 tis.,5,4,7,5,6,4,5,6,5,4,4,3,4,6,6,5,6
+02R0470,Komfort a servis,žena,38,Praha,SŠ s maturitou,30–50 tis.,6,6,6,4,6,7,5,4,4,7,6,7,6,6,4,7,7
+02R0471,Prémioví cestující,muž,53,Moravskoslezský,VŠ,30–50 tis.,7,9,4,6,7,6,6,6,8,7,7,9,8,6,4,5,6
+02R0472,Bezpečnost na prvním místě,žena,23,Praha,VŠ,50–80 tis.,9,7,5,7,6,7,5,5,6,10,8,7,7,5,6,6,6
+02R0473,Prémioví cestující,muž,43,Ústecký,SŠ s maturitou,50–80 tis.,7,7,4,6,8,4,5,5,3,6,6,8,7,4,3,5,5
+02R0474,Komfort a servis,žena,39,Moravskoslezský,VŠ,80 tis. +,7,8,4,4,6,9,6,7,4,5,7,8,8,3,3,4,4
+02R0475,Lovci nejnižší ceny,muž,59,Středočeský,VŠ,80 tis. +,4,4,7,9,7,8,5,8,4,6,4,5,5,6,7,6,7
+02R0476,Síť a spolehlivost,muž,32,Středočeský,ZŠ / vyučení,do 30 tis.,7,7,3,8,4,4,6,5,5,6,7,4,7,3,4,7,5
+02R0477,Lovci nejnižší ceny,muž,53,Jihočeský,SŠ s maturitou,50–80 tis.,6,4,8,6,5,7,5,7,6,6,5,4,4,6,7,6,7
+02R0478,Komfort a servis,žena,51,Jihomoravský,ZŠ / vyučení,30–50 tis.,5,8,6,4,5,8,6,7,4,7,4,6,9,6,5,3,5
+02R0479,Bezpečnost na prvním místě,muž,46,Praha,ZŠ / vyučení,80 tis. +,8,7,4,7,5,6,6,5,3,10,9,7,8,6,5,9,5
+02R0480,Prémioví cestující,žena,33,Jihočeský,SŠ s maturitou,30–50 tis.,5,8,5,7,8,7,5,7,3,4,3,7,7,2,2,5,5
+02R0481,Prémioví cestující,žena,57,Jihočeský,VŠ,80 tis. +,5,7,5,5,10,5,6,5,6,6,4,9,7,6,4,4,4
+02R0482,Prémioví cestující,muž,59,Středočeský,ZŠ / vyučení,do 30 tis.,5,7,6,3,7,5,5,4,3,4,6,7,5,6,4,4,8
+02R0483,Síť a spolehlivost,žena,27,Praha,VŠ,80 tis. +,7,5,5,8,6,8,5,5,4,8,8,8,7,7,5,7,6
+02R0484,Prémioví cestující,žena,34,Středočeský,SŠ s maturitou,30–50 tis.,5,9,3,6,6,4,6,6,4,6,4,8,7,3,2,5,4
+02R0485,Síť a spolehlivost,žena,60,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,6,6,8,7,4,6,2,3,5,5,4,6,6,6,5,6
+02R0486,Síť a spolehlivost,muž,34,Moravskoslezský,ZŠ / vyučení,30–50 tis.,5,4,6,9,7,5,7,8,6,6,6,6,5,8,6,7,6
+02R0487,Prémioví cestující,muž,27,Moravskoslezský,VŠ,50–80 tis.,4,7,4,5,7,5,5,3,7,6,7,6,7,6,5,4,5
+02R0488,Bezpečnost na prvním místě,muž,34,Jihočeský,VŠ,30–50 tis.,8,5,5,8,4,5,2,6,6,8,6,5,4,6,4,6,4
+02R0489,Síť a spolehlivost,žena,51,Moravskoslezský,ZŠ / vyučení,do 30 tis.,5,5,6,7,6,6,5,8,4,5,4,5,5,7,6,4,7
+02R0490,Síť a spolehlivost,muž,43,Olomoucký,SŠ s maturitou,50–80 tis.,5,5,6,7,9,6,6,6,3,7,5,7,8,6,5,5,5
+02R0491,Lovci nejnižší ceny,žena,40,Plzeňský,VŠ,do 30 tis.,6,5,7,7,7,7,6,8,8,9,7,6,8,9,7,8,7
+02R0492,Bezpečnost na prvním místě,žena,55,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,5,4,6,4,6,4,3,4,6,7,5,3,6,4,5,3
+02R0493,Síť a spolehlivost,žena,47,Jihočeský,SŠ s maturitou,30–50 tis.,5,4,5,8,4,4,6,6,6,5,4,3,4,4,5,6,5
+02R0494,Lovci nejnižší ceny,žena,49,Jihočeský,ZŠ / vyučení,do 30 tis.,6,4,7,7,6,2,8,7,6,7,4,3,5,7,7,5,7
+02R0495,Prémioví cestující,muž,23,Ústecký,VŠ,30–50 tis.,6,8,3,5,8,6,6,4,7,7,4,9,9,3,5,6,5
+02R0496,Bezpečnost na prvním místě,žena,42,Moravskoslezský,ZŠ / vyučení,50–80 tis.,9,7,5,7,5,5,6,5,4,7,9,7,6,4,5,9,6
+02R0497,Síť a spolehlivost,muž,47,Praha,SŠ s maturitou,30–50 tis.,5,5,5,6,7,4,7,8,6,6,7,5,6,4,4,6,6
+02R0498,Komfort a servis,muž,59,Jihočeský,VŠ,50–80 tis.,6,8,6,6,7,8,7,3,6,5,8,8,8,5,4,7,6
+02R0499,Komfort a servis,žena,18,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,8,6,4,9,7,4,3,6,3,6,7,10,3,4,4,5
+02R0500,Prémioví cestující,muž,37,Plzeňský,VŠ,50–80 tis.,6,9,3,5,8,5,5,8,8,5,6,9,9,2,3,6,3
+02R0501,Prémioví cestující,muž,61,Praha,SŠ s maturitou,30–50 tis.,5,6,3,5,7,6,7,5,7,3,6,6,6,3,3,4,5
+02R0502,Síť a spolehlivost,muž,43,Plzeňský,SŠ s maturitou,80 tis. +,8,4,5,7,5,4,5,5,3,7,8,4,4,6,5,7,6
+02R0503,Prémioví cestující,muž,18,Plzeňský,ZŠ / vyučení,do 30 tis.,4,8,3,4,8,7,4,7,4,4,6,7,8,3,2,5,3
+02R0504,Komfort a servis,muž,18,Jihočeský,SŠ s maturitou,30–50 tis.,6,8,5,7,6,7,6,7,4,5,5,4,5,5,3,7,4
+02R0505,Komfort a servis,muž,39,Plzeňský,SŠ s maturitou,50–80 tis.,4,8,6,4,7,7,5,6,6,4,3,7,6,5,5,4,6
+02R0506,Komfort a servis,muž,56,Plzeňský,VŠ,50–80 tis.,5,7,6,5,6,7,5,4,8,3,4,7,6,6,7,4,5
+02R0507,Lovci nejnižší ceny,žena,45,Jihočeský,SŠ s maturitou,50–80 tis.,7,2,8,4,5,7,5,5,6,6,7,4,2,9,8,4,7
+02R0508,Bezpečnost na prvním místě,žena,33,Olomoucký,SŠ s maturitou,do 30 tis.,9,6,7,7,7,5,4,4,9,9,8,7,5,6,7,8,6
+02R0509,Lovci nejnižší ceny,žena,51,Praha,SŠ s maturitou,30–50 tis.,6,5,7,5,6,5,6,6,3,6,7,4,4,7,6,6,7
+02R0510,Síť a spolehlivost,žena,39,Středočeský,VŠ,80 tis. +,5,4,5,9,5,3,6,3,5,5,7,3,6,5,5,5,8
+02R0511,Lovci nejnižší ceny,žena,45,Praha,ZŠ / vyučení,50–80 tis.,6,5,8,5,6,5,5,6,2,6,7,5,7,6,5,4,8
+02R0512,Komfort a servis,muž,38,Praha,VŠ,do 30 tis.,8,9,6,6,6,8,6,3,3,9,7,9,8,5,4,7,4
+02R0513,Síť a spolehlivost,muž,39,Jihomoravský,SŠ s maturitou,50–80 tis.,8,5,4,10,5,6,5,4,6,9,9,6,4,4,3,9,7
+02R0514,Lovci nejnižší ceny,žena,29,Jihočeský,SŠ s maturitou,50–80 tis.,5,4,8,5,5,4,7,4,5,4,5,5,3,5,7,4,5
+02R0515,Prémioví cestující,muž,41,Olomoucký,ZŠ / vyučení,80 tis. +,6,7,2,7,7,4,6,5,7,5,6,5,6,3,1,5,3
+02R0516,Bezpečnost na prvním místě,muž,43,Moravskoslezský,VŠ,50–80 tis.,8,7,6,6,7,6,6,5,4,8,6,7,6,4,3,6,5
+02R0517,Síť a spolehlivost,muž,34,Středočeský,VŠ,50–80 tis.,6,3,7,10,4,7,4,5,2,8,7,7,4,6,8,9,7
+02R0518,Síť a spolehlivost,muž,28,Olomoucký,SŠ s maturitou,80 tis. +,6,6,7,7,4,6,5,5,5,6,6,4,5,7,6,6,8
+02R0519,Lovci nejnižší ceny,muž,27,Jihočeský,VŠ,50–80 tis.,5,6,8,5,5,4,5,5,3,4,3,4,3,5,5,4,5
+02R0520,Lovci nejnižší ceny,muž,33,Jihomoravský,VŠ,50–80 tis.,4,2,9,7,3,5,7,5,5,4,3,2,3,7,8,5,7
+02R0521,Komfort a servis,muž,39,Praha,SŠ s maturitou,50–80 tis.,7,5,5,5,5,7,5,9,7,6,7,5,4,5,5,5,4
+02R0522,Síť a spolehlivost,muž,50,Plzeňský,ZŠ / vyučení,do 30 tis.,7,5,5,9,7,6,7,5,4,10,8,5,7,6,5,7,6
+02R0523,Prémioví cestující,žena,45,Jihočeský,SŠ s maturitou,80 tis. +,8,7,4,4,9,6,3,6,7,5,6,7,6,4,5,6,5
+02R0524,Komfort a servis,muž,32,Olomoucký,VŠ,30–50 tis.,5,8,8,7,8,8,9,4,7,6,5,9,9,8,8,5,7
+02R0525,Lovci nejnižší ceny,žena,42,Plzeňský,SŠ s maturitou,50–80 tis.,5,4,7,5,3,7,5,4,4,5,6,3,4,8,8,6,8
+02R0526,Síť a spolehlivost,muž,46,Moravskoslezský,VŠ,50–80 tis.,6,5,5,8,6,6,6,6,6,5,7,6,7,6,6,9,7
+02R0527,Lovci nejnižší ceny,muž,36,Praha,VŠ,80 tis. +,5,4,8,4,5,7,5,4,8,3,4,6,3,6,6,5,6
+02R0528,Komfort a servis,muž,54,Ústecký,SŠ s maturitou,do 30 tis.,6,7,7,7,6,10,4,5,4,7,7,8,8,5,6,5,4
+02R0529,Bezpečnost na prvním místě,muž,53,Praha,SŠ s maturitou,30–50 tis.,8,5,6,7,4,5,4,6,7,9,8,6,5,7,7,8,5
+02R0530,Komfort a servis,žena,29,Středočeský,SŠ s maturitou,50–80 tis.,6,9,4,7,5,9,6,6,5,7,5,8,8,1,2,7,4
+02R0531,Lovci nejnižší ceny,muž,56,Ústecký,ZŠ / vyučení,do 30 tis.,5,3,8,4,5,4,7,9,4,4,3,1,4,8,6,3,8
+02R0532,Prémioví cestující,žena,53,Středočeský,ZŠ / vyučení,30–50 tis.,5,6,5,6,9,7,4,8,5,5,6,7,8,4,5,5,3
+02R0533,Lovci nejnižší ceny,muž,39,Jihočeský,ZŠ / vyučení,do 30 tis.,7,4,7,7,5,6,8,6,6,7,6,5,2,6,8,6,8
+02R0534,Lovci nejnižší ceny,žena,37,Plzeňský,SŠ s maturitou,50–80 tis.,4,6,8,7,6,5,7,6,4,3,5,4,6,7,9,5,7
+02R0535,Bezpečnost na prvním místě,žena,55,Středočeský,ZŠ / vyučení,30–50 tis.,10,7,8,6,6,7,3,6,4,7,8,6,8,7,5,9,8
+02R0536,Prémioví cestující,žena,34,Olomoucký,SŠ s maturitou,80 tis. +,8,7,5,6,9,7,5,5,6,6,5,7,7,4,3,6,3
+02R0537,Lovci nejnižší ceny,žena,36,Ústecký,SŠ s maturitou,do 30 tis.,5,4,9,3,7,5,6,3,6,4,4,5,3,8,8,2,6
+02R0538,Lovci nejnižší ceny,muž,36,Ústecký,SŠ s maturitou,80 tis. +,5,5,8,4,6,6,7,5,5,4,5,6,4,4,7,6,6
+02R0539,Síť a spolehlivost,muž,59,Středočeský,VŠ,80 tis. +,6,5,6,10,6,3,5,4,4,6,7,5,3,5,5,6,7
+02R0540,Prémioví cestující,muž,44,Plzeňský,SŠ s maturitou,50–80 tis.,4,8,4,6,9,5,8,5,4,6,5,7,7,4,2,4,5
+02R0541,Prémioví cestující,muž,40,Jihočeský,SŠ s maturitou,do 30 tis.,6,7,3,6,7,5,6,5,4,6,6,5,5,3,2,3,3
+02R0542,Lovci nejnižší ceny,žena,29,Praha,VŠ,80 tis. +,6,4,8,6,7,7,5,7,6,6,7,7,6,6,7,5,7
+02R0543,Lovci nejnižší ceny,žena,49,Olomoucký,SŠ s maturitou,50–80 tis.,6,3,10,4,8,5,6,3,7,4,4,6,5,9,10,4,8
+02R0544,Síť a spolehlivost,žena,34,Olomoucký,VŠ,do 30 tis.,8,7,6,7,6,5,5,7,6,6,6,6,5,6,6,7,4
+02R0545,Síť a spolehlivost,žena,47,Jihočeský,SŠ s maturitou,do 30 tis.,4,5,5,6,5,6,6,5,5,4,5,6,5,4,6,7,5
+02R0546,Komfort a servis,žena,31,Praha,SŠ s maturitou,30–50 tis.,7,8,5,7,7,7,5,6,4,7,7,8,8,3,3,8,4
+02R0547,Lovci nejnižší ceny,muž,47,Ústecký,VŠ,30–50 tis.,6,4,10,6,6,4,4,6,9,5,7,6,3,9,9,5,9
+02R0548,Bezpečnost na prvním místě,žena,54,Plzeňský,SŠ s maturitou,do 30 tis.,6,6,5,8,6,6,4,5,5,7,6,7,6,3,5,6,7
+02R0549,Komfort a servis,žena,32,Ústecký,SŠ s maturitou,80 tis. +,5,9,5,3,8,10,8,9,7,5,5,10,9,6,5,5,5
+02R0550,Bezpečnost na prvním místě,žena,40,Olomoucký,VŠ,30–50 tis.,8,5,9,8,5,4,3,5,9,8,9,5,5,7,9,8,6
+02R0551,Síť a spolehlivost,žena,35,Jihočeský,SŠ s maturitou,50–80 tis.,7,5,6,9,5,6,5,4,6,9,8,7,6,7,6,7,6
+02R0552,Prémioví cestující,žena,35,Středočeský,VŠ,80 tis. +,4,6,2,5,10,3,7,4,7,4,5,6,4,1,2,3,3
+02R0553,Lovci nejnižší ceny,žena,42,Jihomoravský,SŠ s maturitou,30–50 tis.,5,1,9,4,7,8,4,6,7,7,6,6,4,8,10,6,9
+02R0554,Komfort a servis,muž,25,Ústecký,SŠ s maturitou,do 30 tis.,7,6,5,4,5,8,6,7,7,7,7,7,7,4,6,6,5
+02R0555,Bezpečnost na prvním místě,žena,60,Ústecký,SŠ s maturitou,do 30 tis.,8,5,6,6,6,6,6,7,3,6,8,5,5,5,4,7,7
+02R0556,Lovci nejnižší ceny,muž,47,Jihočeský,SŠ s maturitou,50–80 tis.,7,4,5,8,6,5,5,5,5,7,5,4,5,5,7,7,6
+02R0557,Lovci nejnižší ceny,žena,26,Olomoucký,SŠ s maturitou,30–50 tis.,5,3,9,4,6,6,5,6,5,3,4,5,5,8,7,5,9
+02R0558,Lovci nejnižší ceny,muž,23,Olomoucký,SŠ s maturitou,50–80 tis.,5,5,7,7,4,4,7,5,9,5,5,4,6,5,6,5,8
+02R0559,Prémioví cestující,muž,37,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,8,3,5,9,6,6,7,9,7,4,7,7,4,4,5,4
+02R0560,Síť a spolehlivost,muž,41,Ústecký,ZŠ / vyučení,80 tis. +,5,5,8,8,6,6,5,6,5,6,6,5,7,6,7,8,8
+02R0561,Lovci nejnižší ceny,muž,40,Jihomoravský,SŠ s maturitou,do 30 tis.,6,3,9,6,5,5,6,5,4,5,5,3,5,10,9,5,6
+02R0562,Síť a spolehlivost,muž,63,Moravskoslezský,ZŠ / vyučení,30–50 tis.,8,8,6,10,6,6,5,4,3,7,9,4,5,4,6,8,6
+02R0563,Lovci nejnižší ceny,muž,18,Jihomoravský,SŠ s maturitou,50–80 tis.,5,4,10,6,5,7,5,6,5,6,6,4,5,8,8,5,7
+02R0564,Komfort a servis,muž,42,Olomoucký,ZŠ / vyučení,do 30 tis.,4,9,5,5,7,7,5,5,7,5,5,7,8,4,5,4,4
+02R0565,Lovci nejnižší ceny,žena,50,Středočeský,VŠ,do 30 tis.,7,3,10,6,3,5,6,2,6,8,7,4,3,8,10,6,8
+02R0566,Síť a spolehlivost,muž,21,Středočeský,VŠ,30–50 tis.,7,6,5,7,6,5,4,6,6,6,6,4,7,6,5,8,4
+02R0567,Prémioví cestující,žena,36,Středočeský,SŠ s maturitou,30–50 tis.,6,7,5,6,9,5,6,3,5,7,3,5,7,4,3,7,4
+02R0568,Bezpečnost na prvním místě,žena,43,Středočeský,VŠ,30–50 tis.,8,6,5,4,5,6,4,8,5,6,8,7,5,7,4,8,6
+02R0569,Komfort a servis,žena,18,Středočeský,ZŠ / vyučení,50–80 tis.,7,7,4,6,8,9,7,5,9,8,8,8,10,3,5,6,5
+02R0570,Síť a spolehlivost,žena,27,Plzeňský,ZŠ / vyučení,30–50 tis.,6,6,7,7,5,6,6,6,6,5,6,5,5,5,6,7,7
+02R0571,Lovci nejnižší ceny,žena,35,Praha,SŠ s maturitou,50–80 tis.,6,3,9,4,4,7,3,5,7,5,5,4,6,8,8,4,7
+02R0572,Bezpečnost na prvním místě,žena,45,Středočeský,SŠ s maturitou,50–80 tis.,9,4,6,8,8,4,7,6,6,6,7,3,5,4,6,6,5
+02R0573,Komfort a servis,žena,34,Jihomoravský,ZŠ / vyučení,80 tis. +,4,8,6,7,7,7,4,6,5,7,8,8,7,5,5,6,7
+02R0574,Síť a spolehlivost,žena,28,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,5,7,7,6,6,6,5,6,6,8,4,5,8,4,6,7
+02R0575,Komfort a servis,muž,36,Jihočeský,ZŠ / vyučení,50–80 tis.,6,7,7,5,7,7,5,7,3,6,6,6,7,5,6,5,5
+02R0576,Komfort a servis,žena,55,Jihočeský,SŠ s maturitou,do 30 tis.,5,6,5,5,8,7,4,4,8,5,5,5,8,4,4,6,3
+02R0577,Bezpečnost na prvním místě,žena,50,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,6,5,5,6,6,4,3,4,6,5,5,7,6,4,8,4
+02R0578,Bezpečnost na prvním místě,žena,76,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,6,2,4,5,5,7,5,6,7,8,7,6,4,4,6,5
+02R0579,Lovci nejnižší ceny,žena,20,Olomoucký,SŠ s maturitou,30–50 tis.,4,3,6,4,7,4,7,6,7,3,4,2,3,6,7,3,5
+02R0580,Bezpečnost na prvním místě,žena,58,Středočeský,ZŠ / vyučení,30–50 tis.,9,6,4,9,5,6,5,5,8,5,6,4,6,3,1,6,5
+02R0581,Prémioví cestující,žena,51,Jihočeský,ZŠ / vyučení,80 tis. +,7,8,4,6,7,5,5,8,4,5,7,8,7,3,3,6,5
+02R0582,Lovci nejnižší ceny,muž,57,Jihomoravský,VŠ,do 30 tis.,5,6,10,6,6,7,6,6,3,5,6,6,6,7,8,5,7
+02R0583,Komfort a servis,žena,40,Olomoucký,SŠ s maturitou,50–80 tis.,6,9,4,6,5,9,7,6,4,7,7,10,8,4,3,9,3
+02R0584,Lovci nejnižší ceny,žena,54,Olomoucký,SŠ s maturitou,30–50 tis.,6,2,8,4,3,5,5,4,4,4,3,4,3,6,6,6,6
+02R0585,Prémioví cestující,žena,29,Olomoucký,ZŠ / vyučení,50–80 tis.,5,9,6,5,10,5,6,7,7,3,5,9,9,6,5,6,6
+02R0586,Síť a spolehlivost,žena,45,Moravskoslezský,VŠ,30–50 tis.,5,4,8,9,5,5,6,5,5,6,6,4,4,7,7,7,7
+02R0587,Síť a spolehlivost,žena,31,Ústecký,VŠ,30–50 tis.,7,4,5,9,5,7,5,6,4,5,6,5,5,6,5,8,7
+02R0588,Prémioví cestující,muž,44,Ústecký,VŠ,30–50 tis.,4,8,3,6,8,6,5,2,5,5,7,7,8,4,4,5,3
+02R0589,Komfort a servis,muž,39,Ústecký,VŠ,30–50 tis.,6,9,5,7,7,9,7,5,6,7,6,7,8,4,4,7,6
+02R0590,Lovci nejnižší ceny,muž,47,Plzeňský,VŠ,50–80 tis.,6,3,8,6,4,5,7,9,3,5,4,4,3,7,8,6,8
+02R0591,Komfort a servis,muž,51,Praha,ZŠ / vyučení,50–80 tis.,6,7,4,9,6,7,5,3,7,7,7,6,8,3,3,5,4
+02R0592,Komfort a servis,žena,30,Středočeský,SŠ s maturitou,50–80 tis.,5,8,6,6,6,10,5,1,4,7,6,8,7,6,6,5,4
+02R0593,Komfort a servis,muž,42,Ústecký,SŠ s maturitou,30–50 tis.,6,7,6,5,7,8,7,7,9,5,6,9,7,5,4,6,7
+02R0594,Lovci nejnižší ceny,žena,46,Ústecký,VŠ,30–50 tis.,7,3,9,6,4,4,6,4,5,4,7,3,3,10,7,7,7
+02R0595,Prémioví cestující,muž,65,Moravskoslezský,ZŠ / vyučení,do 30 tis.,7,9,3,5,9,7,5,5,2,7,6,10,9,3,2,6,3
+02R0596,Bezpečnost na prvním místě,žena,58,Moravskoslezský,ZŠ / vyučení,50–80 tis.,7,7,7,8,5,8,5,5,6,8,8,7,6,7,8,9,8
+02R0597,Bezpečnost na prvním místě,žena,38,Jihomoravský,VŠ,do 30 tis.,8,5,5,8,6,6,6,5,5,8,7,5,6,6,5,8,5
+02R0598,Síť a spolehlivost,žena,40,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,6,3,7,7,4,7,3,3,5,6,5,4,5,2,7,2
+02R0599,Prémioví cestující,muž,61,Středočeský,ZŠ / vyučení,30–50 tis.,5,8,2,7,8,4,5,4,6,7,6,8,8,3,3,5,4
+02R0600,Bezpečnost na prvním místě,muž,41,Moravskoslezský,VŠ,50–80 tis.,8,9,7,7,6,4,4,6,7,7,7,8,7,6,7,8,6

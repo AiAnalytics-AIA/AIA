@@ -1,0 +1,17 @@
+{
+  "population": "Dospělí pacienti fiktivní ambulantní sítě po návštěvě v posledních 12 měsících",
+  "n": 900,
+  "persona_mode": "calibrated",
+  "dimensions": [
+    "věk",
+    "region",
+    "socioeconomics",
+    "media/digital behavior",
+    "values",
+    "category involvement",
+    "trust",
+    "price sensitivity",
+    "innovation adoption",
+    "context-specific dimensions"
+  ]
+}

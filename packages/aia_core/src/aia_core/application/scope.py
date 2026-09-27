@@ -24,7 +24,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..domain.scope import (
+    LEGACY_PANEL_ROLES,
+    ClientContext,
     ClientGrant,
+    ClientPermission,
     ClientStatus,
     OrganizationContext,
     OrganizationRole,
@@ -35,6 +38,7 @@ from ..domain.scope import (
     StudyContext,
     StudyGrant,
     StudyStatus,
+    client_permissions_for,
     effective_role,
     permissions_for,
     resolve_self_approval_policy,
@@ -162,6 +166,35 @@ class ScopeResolver:
             grant=ScopeGrant._issue(),
             request_id=principal.request_id,
         )
+
+    def authorize_legacy_panel(
+        self, principal: AuthenticatedPrincipal, *, audit: bool
+    ) -> OrganizationContext:
+        """Admit a principal to the vendored 18.6.6 interface, or deny (ADR 0012).
+
+        Only an active member whose organization role is in
+        :data:`LEGACY_PANEL_ROLES` is admitted. ``audit`` records the decision in
+        the access audit; the session is opened with it on, and the per-request
+        gate re-checks with it off, because a record per asset and API call of one
+        page would drown every other entry.
+        """
+        context = self.organization_context(principal)
+        if context.organization_role not in LEGACY_PANEL_ROLES:
+            if audit:
+                self._record(
+                    principal,
+                    action="LEGACY_PANEL_DENIED",
+                    role=context.organization_role.value,
+                    reason="organization_role",
+                )
+            raise ScopeDenied("not found", reason="legacy_panel_role")
+        if audit:
+            self._record(
+                principal,
+                action="LEGACY_PANEL_SESSION",
+                role=context.organization_role.value,
+            )
+        return context
 
     def study_context(
         self,
@@ -357,6 +390,119 @@ class ScopeResolver:
             ),
             request_id=f"{run.run_id}/{attempt.attempt_id}",
         )
+
+    def client_context(
+        self,
+        principal: AuthenticatedPrincipal,
+        *,
+        client_id: str,
+        require: ClientPermission | None = None,
+    ) -> ClientContext:
+        """Authorise scope for one client, or raise :class:`ScopeDenied` (ADR 0015).
+
+        Resolution order: the user is active; a member of the organization; the
+        client exists **within that organization** and is not archived; the user
+        holds a client-level grant, or at least one study grant on a study of this
+        client (study-only access). The studies the actor may open are resolved
+        here and travel on the context. Every failure must surface as 404.
+        """
+        self._active_user(principal)
+        organization_role = self._membership_role(principal)
+
+        client = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == client_id,
+                ClientRow.organization_id == principal.organization_id,
+            )
+        )
+        if client is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        if client.status == ClientStatus.ARCHIVED.value:
+            raise ScopeDenied("not found", reason="client_archived")
+
+        client_grant = self._session.scalar(
+            select(ClientGrantRow).where(
+                ClientGrantRow.client_id == client_id,
+                ClientGrantRow.user_id == principal.user_id,
+            )
+        )
+        study_ids = frozenset(self.accessible_studies(principal, client_id=client_id))
+        if client_grant is None and not study_ids:
+            self._record(
+                principal,
+                action="ACCESS_DENIED",
+                client_id=client_id,
+                study_id=None,
+                reason="no_grant",
+            )
+            raise ScopeDenied("not found", reason="no_grant")
+
+        client_role = ScopeRole(client_grant.role) if client_grant else None
+        organization = self._session.scalar(
+            select(OrganizationRow).where(
+                OrganizationRow.organization_id == principal.organization_id
+            )
+        )
+        context = ClientContext(
+            organization_id=principal.organization_id,
+            client_id=client_id,
+            actor_id=principal.user_id,
+            client_role=client_role,
+            permissions=client_permissions_for(client_role),
+            organization_role=organization_role,
+            grant=ScopeGrant._issue(),
+            study_ids=study_ids,
+            self_approval=resolve_self_approval_policy(
+                organization=organization.allow_self_approval if organization else None,
+                client=client.allow_self_approval,
+            ),
+            request_id=principal.request_id,
+        )
+        if require is not None:
+            try:
+                context.require(require)
+            except ScopeDenied:
+                self._record(
+                    principal,
+                    action="PERMISSION_DENIED",
+                    client_id=client_id,
+                    study_id=None,
+                    role=client_role.value if client_role else None,
+                    reason=require.value,
+                )
+                raise
+        return context
+
+    def accessible_clients(self, principal: AuthenticatedPrincipal) -> list[str]:
+        """The clients this principal may open: a client grant, or a study grant within it.
+
+        Archived clients are excluded, as :meth:`client_context` refuses them.
+        Organization administrators are not silently included (ADR 0004).
+        """
+        self._active_user(principal)
+        self._membership_role(principal)
+        via_client = (
+            select(ClientRow.client_id)
+            .join(ClientGrantRow, ClientGrantRow.client_id == ClientRow.client_id)
+            .where(
+                ClientRow.organization_id == principal.organization_id,
+                ClientRow.status != ClientStatus.ARCHIVED.value,
+                ClientGrantRow.user_id == principal.user_id,
+            )
+        )
+        via_study = (
+            select(ClientRow.client_id)
+            .join(StudyRow, StudyRow.client_id == ClientRow.client_id)
+            .join(StudyGrantRow, StudyGrantRow.study_id == StudyRow.study_id)
+            .where(
+                ClientRow.organization_id == principal.organization_id,
+                ClientRow.status != ClientStatus.ARCHIVED.value,
+                StudyGrantRow.user_id == principal.user_id,
+            )
+        )
+        ids = set(self._session.scalars(via_client).all())
+        ids.update(self._session.scalars(via_study).all())
+        return sorted(ids)
 
     def accessible_studies(
         self, principal: AuthenticatedPrincipal, *, client_id: str | None = None

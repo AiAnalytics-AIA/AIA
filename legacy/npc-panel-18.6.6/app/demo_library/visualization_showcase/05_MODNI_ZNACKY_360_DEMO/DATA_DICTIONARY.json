@@ -1,0 +1,122 @@
+[
+  {
+    "column": "respondent_id",
+    "kind": "profile",
+    "description": "respondent id"
+  },
+  {
+    "column": "segment",
+    "kind": "profile",
+    "description": "segment"
+  },
+  {
+    "column": "dem_gender",
+    "kind": "profile",
+    "description": "dem gender"
+  },
+  {
+    "column": "dem_age",
+    "kind": "profile",
+    "description": "dem age"
+  },
+  {
+    "column": "dem_region",
+    "kind": "profile",
+    "description": "dem region"
+  },
+  {
+    "column": "dem_education",
+    "kind": "profile",
+    "description": "dem education"
+  },
+  {
+    "column": "dem_income",
+    "kind": "profile",
+    "description": "dem income"
+  },
+  {
+    "column": "att_sport",
+    "kind": "profile",
+    "description": "att sport"
+  },
+  {
+    "column": "att_price",
+    "kind": "profile",
+    "description": "att price"
+  },
+  {
+    "column": "att_sustainability",
+    "kind": "profile",
+    "description": "att sustainability"
+  },
+  {
+    "column": "att_status",
+    "kind": "profile",
+    "description": "att status"
+  },
+  {
+    "column": "att_basics",
+    "kind": "profile",
+    "description": "att basics"
+  },
+  {
+    "column": "att_trend",
+    "kind": "profile",
+    "description": "att trend"
+  },
+  {
+    "column": "att_quality",
+    "kind": "profile",
+    "description": "att quality"
+  },
+  {
+    "column": "beh_sport_frequency",
+    "kind": "profile",
+    "description": "beh sport frequency"
+  },
+  {
+    "column": "beh_novelty_openness",
+    "kind": "profile",
+    "description": "beh novelty openness"
+  },
+  {
+    "column": "obj_Nike",
+    "kind": "object_rating",
+    "description": "obj Nike"
+  },
+  {
+    "column": "obj_Adidas",
+    "kind": "object_rating",
+    "description": "obj Adidas"
+  },
+  {
+    "column": "obj_Zara",
+    "kind": "object_rating",
+    "description": "obj Zara"
+  },
+  {
+    "column": "obj_H&M",
+    "kind": "object_rating",
+    "description": "obj H&M"
+  },
+  {
+    "column": "obj_Uniqlo",
+    "kind": "object_rating",
+    "description": "obj Uniqlo"
+  },
+  {
+    "column": "obj_Patagonia",
+    "kind": "object_rating",
+    "description": "obj Patagonia"
+  },
+  {
+    "column": "obj_Levi’s",
+    "kind": "object_rating",
+    "description": "obj Levi’s"
+  },
+  {
+    "column": "obj_Gucci",
+    "kind": "object_rating",
+    "description": "obj Gucci"
+  }
+]

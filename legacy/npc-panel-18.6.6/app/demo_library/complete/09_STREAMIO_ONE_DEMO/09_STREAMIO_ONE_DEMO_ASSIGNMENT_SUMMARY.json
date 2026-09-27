@@ -1,0 +1,32 @@
+{
+  "client_need": "Streaming služba chce zjednodušit portfolio a zvýšit hodnotu předplatného bez růstu churn rizika.",
+  "primary_decision": "Vybrat nový bundle a cenovou architekturu pro pilot.",
+  "success_definition": "Nabídka má zvýšit subscription intent, perceived value a churn resistance při přijatelné ceně.",
+  "questions": [
+    "Který bundle má nejlepší value perception?",
+    "Jak domácnosti reagují na reklamu vs. cenu?",
+    "Kde se láme family pricing?",
+    "Jaký benefit nejlépe snižuje churn?"
+  ],
+  "inputs": [
+    "Čtyři subscription bundles.",
+    "Syntetický streaming household sample.",
+    "8 světů mění tlak konkurence, ekonomickou náladu, obsahové hity, password-sharing restrikce a reklamní toleranci."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Skutečné licenční náklady obsahu.",
+    "Predikce ARPU nebo churn z produkčních dat.",
+    "Reálné cenové elasticity."
+  ]
+}

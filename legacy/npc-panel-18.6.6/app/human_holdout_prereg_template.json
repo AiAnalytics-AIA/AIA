@@ -1,0 +1,19 @@
+{
+  "analysis_plan": {
+    "primary_metric": "question-level MAE pp",
+    "baselines": ["generic", "demographics", "core", "full", "shuffled_full"],
+    "paired_question_analysis": true,
+    "minimum_domains": 5,
+    "note": "Create this file before attaching human truth_pct."
+  },
+  "questions": [
+    {
+      "id": "H001",
+      "text": "Přesné znění otázky",
+      "typ": "vyber",
+      "kategorie": ["Ano", "Ne"],
+      "domain": "retail",
+      "topics": ["nakup"]
+    }
+  ]
+}

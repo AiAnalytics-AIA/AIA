@@ -1,0 +1,62 @@
+{
+  "status": "AI_READY",
+  "provider": "build_time_ai",
+  "model": "GPT-5.6 Sol",
+  "fallback_used": false,
+  "summary": "Aerolinková mapa ukazuje tři velmi čitelné rozhodovací osy: bezpečnost a spolehlivost, komfort a servis a nejnižší cenu. Právě jejich oddělení je pro positioning značek nejcennější.",
+  "insights": [
+    {
+      "candidate_id": "SG-2D297534DB",
+      "title": "Bezpečnost na prvním místě",
+      "why_interesting": "Strategicky zajímavá skupina orientovaná na důvěru a bezpečnost.",
+      "characterization": "V jejím profilu se koncentrují vyšší bezpečnostní preference a silnější vztah k tradičním síťovým dopravcům, zejména British Airways, Air France a Lufthansa.",
+      "business_meaning": "Je vhodná pro komunikaci důvěry, provozní spolehlivosti a reputace.",
+      "map_cta": "Zobrazit skupinu A na mapě",
+      "confidence_note": "Skupina má 125 respondentů (20.8 %) a datové skóre odlišnosti 82.5/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-B6C5D2643C",
+      "title": "Komfort a servis",
+      "why_interesting": "Jasně oddělený prémiovější shluk.",
+      "characterization": "Vyšší důraz na servis a komfort se v této skupině pojí s výrazně silnějším vztahem ke Qatar Airways a Emirates.",
+      "business_meaning": "Pro nabídku a komunikaci je důležitější zážitek než nejnižší cena.",
+      "map_cta": "Zobrazit skupinu B na mapě",
+      "confidence_note": "Skupina má 113 respondentů (18.8 %) a datové skóre odlišnosti 97.8/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-C2287D7BAC",
+      "title": "Lovci nejnižší ceny",
+      "why_interesting": "Největší cenově vedený shluk v mapě.",
+      "characterization": "Vysoká cenová citlivost se pojí s Ryanair, Wizz Air a easyJet a současně s nižší prioritou komfortu.",
+      "business_meaning": "Je klíčový pro low-cost nabídku, transparentní cenu a jednoduché srovnání tarifů.",
+      "map_cta": "Zobrazit skupinu C na mapě",
+      "confidence_note": "Skupina má 156 respondentů (26.0 %) a datové skóre odlišnosti 100.0/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-6C9C287A03",
+      "title": "Síť a spolehlivost",
+      "why_interesting": "Praktický segment zaměřený na fungující síť a konzistenci.",
+      "characterization": "Respondenti preferují síťové značky a méně extrémně se vymezují na ose luxus–cena.",
+      "business_meaning": "Je vhodný pro argumentaci dostupností spojů, návazností a spolehlivostí.",
+      "map_cta": "Zobrazit skupinu D na mapě",
+      "confidence_note": "Skupina má 119 respondentů (19.8 %) a datové skóre odlišnosti 75.0/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    },
+    {
+      "candidate_id": "SG-67460BAEBF",
+      "title": "Prémioví cestující",
+      "why_interesting": "Menší, ale hodnotově velmi odlišný segment.",
+      "characterization": "Vyšší statusová orientace a nižší citlivost na cenu se pojí s prémiovými dopravci a slabším vztahem k low-cost značkám.",
+      "business_meaning": "Je relevantní pro vyšší třídy, lounge, flexibilitu a prémiové služby.",
+      "map_cta": "Zobrazit skupinu E na mapě",
+      "confidence_note": "Skupina má 87 respondentů (14.5 %) a datové skóre odlišnosti 94.7/100.",
+      "caution": "Jde o asociativní profil v ilustračním DEMO datasetu; nelze z něj vyvozovat kauzalitu ani skutečný podíl v české populaci."
+    }
+  ],
+  "privacy_contract": "Interpretace vznikla nad agregovanými profily DEMO skupin; individuální respondentní řádky nebyly součástí interpretačního promptu.",
+  "provenance": "BUILD_TIME_AI_DEMO",
+  "demo_truth": "ILUSTRAČNÍ DEMO — syntetický dataset, nikoli reálný průzkum."
+}

@@ -1,0 +1,32 @@
+{
+  "client_need": "Poskytovatel zdravotních služeb chce zjednodušit objednávání, orientaci a následné administrativní kroky kolem návštěvy.",
+  "primary_decision": "Vybrat digitální service concept, který zvyšuje adopci a důvěru bez nahrazování klinického rozhodování.",
+  "success_definition": "Služba má být jednoduchá, důvěryhodná a užitečná pro různé úrovně digitální jistoty.",
+  "questions": [
+    "Který koncept nejvíce zvyšuje ochotu službu používat?",
+    "Jak důležitá je možnost lidské podpory?",
+    "Kde vznikají privacy obavy?",
+    "Které skupiny potřebují jednodušší flow?"
+  ],
+  "inputs": [
+    "Čtyři neklinické digitální service concepts.",
+    "Syntetický pacientský/klientský sample.",
+    "8 světů mění digitální důvěru, čekací dobu, privacy citlivost, administrativní složitost a dostupnost call centra."
+  ],
+  "deliverables": [
+    "Executive answer",
+    "Porovnání variant",
+    "Segmentová analýza",
+    "8 detailních světů a breakpointy",
+    "Word report",
+    "Excel workbook",
+    "Respondent-level CSV",
+    "SQLite databáze",
+    "JSON + provenance + historie"
+  ],
+  "out_of_scope": [
+    "Diagnóza nebo léčebné doporučení.",
+    "Automatizované klinické rozhodování.",
+    "Predikce zdravotních výsledků."
+  ]
+}

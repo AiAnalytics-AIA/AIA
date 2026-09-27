@@ -4,9 +4,13 @@ name: CI
 # step may leave main unable to start, so this workflow proves on every change
 # that the schema migrates, the API boots, and the domain invariants hold.
 
+# `develop` is the integration branch (ADR 0009): CI runs on every push to it,
+# and dispatches deploy-develop.yml only after all checks succeed. The dispatch
+# uses the develop ref so its environment branch protection remains effective.
+# `main` stays the release branch.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
   workflow_dispatch:
 
@@ -54,11 +58,14 @@ jobs:
           cache: pip
 
       - name: Install
+        # The API's dev extra names aia-worker and aia-executors (its slice test
+        # drives a real worker), so those install first.
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev,postgres]"
-          pip install -e "apps/api[dev]"
+          pip install -e "packages/aia_core[dev,postgres,report,bedrock]"
           pip install -e "apps/worker[dev]"
+          pip install -e "apps/executors[dev]"
+          pip install -e "apps/api[dev]"
 
       - name: Layering rules
         # Grep-level enforcement of ARCHITECTURE.md. Runs before the expensive
@@ -75,13 +82,13 @@ jobs:
 
       - name: Lint
         run: |
-          ruff check packages/aia_core apps/api apps/worker migrations
-          ruff format --check packages/aia_core apps/api apps/worker migrations
+          ruff check packages/aia_core apps/api apps/worker apps/executors migrations
+          ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
 
       - name: Type check
         # One invocation over every source tree: aia_core ships no py.typed, so a
         # tree checked on its own sees aia_core as untyped (AGENTS.md § mypy).
-        run: mypy packages/aia_core/src apps/api/src apps/worker/src
+        run: mypy packages/aia_core/src apps/api/src apps/worker/src apps/executors/src
 
       - name: Migrations apply cleanly
         run: alembic upgrade head
@@ -128,12 +135,19 @@ jobs:
           AIA_REQUIRE_POSTGRES: "1"
         run: pytest apps/worker -q --junit-xml=tmp/junit/worker-postgres.xml -o junit_family=xunit1
 
+      - name: Executor, seed and smoke-module tests (PostgreSQL)
+        # The develop_snapshot executor driven by the real worker loop, the
+        # idempotent develop seed, and the smoke module that proves a deployment.
+        env:
+          AIA_REQUIRE_POSTGRES: "1"
+        run: pytest apps/executors -q --junit-xml=tmp/junit/executors-postgres.xml -o junit_family=xunit1
+
       - name: Domain tests on SQLite
         # The offline development path must keep working too. The worker's
         # process suite skips here by design: SQLite cannot express contention.
         env:
           DATABASE_URL: ""
-        run: pytest packages/aia_core apps/api apps/worker -q --junit-xml=tmp/junit/sqlite.xml -o junit_family=xunit1
+        run: pytest packages/aia_core apps/api apps/worker apps/executors -q --junit-xml=tmp/junit/sqlite.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -160,7 +174,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev]"
+          pip install -e "packages/aia_core[dev,report]"
 
       - name: Run parity suite
         # The prototype is not vendored into this repository. When it is not
@@ -236,7 +250,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev]"
+          pip install -e "packages/aia_core[dev,report]"
 
       - name: Run golden-fixture gates
         # F1-F9 are vendored and run in the backend job with no checkout; what
@@ -257,6 +271,60 @@ jobs:
           path: tmp/junit/
           if-no-files-found: warn
 
+  oracle-parity:
+    # Differential tests against the RUNNING 18.6.6 unit (ADR 0011): the
+    # legacy-panel service on the develop host, behind its basic-auth gate. The
+    # endpoint and its credentials are repository secrets; without them the
+    # `oracle` tests skip and parity-status reports their gates as NOT_EXECUTED,
+    # never as a pass. With them present, `AIA_REQUIRE_LEGACY_ORACLE=1` turns an
+    # unreachable oracle into a failure -- the same ratchet as AIA_REQUIRE_POSTGRES.
+    # Never a `|| true`: an oracle that answers differently is a finding.
+    name: Parity against the running 18.6.6 unit (needs the oracle secrets)
+    runs-on: ubuntu-latest
+    env:
+      HAS_ORACLE: ${{ secrets.AIA_LEGACY_REFERENCE_URL != '' }}
+    outputs:
+      oracle: ${{ steps.oracle.outputs.available }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "packages/aia_core[dev,report]"
+
+      - name: Record whether the oracle is configured
+        id: oracle
+        run: |
+          if [ "$HAS_ORACLE" = "true" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::AIA_LEGACY_REFERENCE_URL is not configured; oracle parity tests are skipped and reported as NOT_EXECUTED."
+          fi
+
+      - name: Run the oracle suite
+        env:
+          AIA_LEGACY_REFERENCE_URL: ${{ secrets.AIA_LEGACY_REFERENCE_URL }}
+          AIA_LEGACY_REFERENCE_USER: ${{ secrets.AIA_LEGACY_REFERENCE_USER }}
+          AIA_LEGACY_REFERENCE_PASSWORD: ${{ secrets.AIA_LEGACY_REFERENCE_PASSWORD }}
+          AIA_REQUIRE_LEGACY_ORACLE: ${{ env.HAS_ORACLE == 'true' && '1' || '' }}
+        run: >-
+          pytest packages/aia_core -q -m oracle -rs
+          --junit-xml=tmp/junit/oracle.xml -o junit_family=xunit1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-oracle
+          path: tmp/junit/
+          if-no-files-found: warn
+
   parity-status:
     # One verdict per capability, from every JUnit file above. FAIL (a gate ran
     # and failed, or could have run and did not) fails this job. NOT_EXECUTED
@@ -264,7 +332,7 @@ jobs:
     # skip can no longer be read as one.
     name: Parity status
     runs-on: ubuntu-latest
-    needs: [backend, parity, golden-fixtures]
+    needs: [backend, parity, golden-fixtures, oracle-parity]
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -282,9 +350,11 @@ jobs:
       - name: Compute parity verdicts
         env:
           REFERENCE_AVAILABLE: ${{ needs.golden-fixtures.outputs.reference }}
+          ORACLE_AVAILABLE: ${{ needs.oracle-parity.outputs.oracle }}
         run: |
           available="postgres"
           if [ "$REFERENCE_AVAILABLE" = "true" ]; then available="$available reference_repo"; fi
+          if [ "$ORACLE_AVAILABLE" = "true" ]; then available="$available legacy_oracle"; fi
           set +e
           python tools/parity_status.py --junit tmp/junit/*.xml --available $available \
             --json parity-status.json --markdown parity-status.md
@@ -313,9 +383,13 @@ jobs:
           cache: pip
 
       - name: Install
+        # apps/api[dev] names aia-worker and aia-executors (AGENTS.md § Python
+        # packaging), so they install first even though this job runs no test.
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev]"
+          pip install -e "packages/aia_core[dev,report]"
+          pip install -e "apps/worker"
+          pip install -e "apps/executors"
           pip install -e "apps/api[dev]"
 
       - name: Generate OpenAPI document
@@ -341,7 +415,38 @@ jobs:
               "/api/v1/studies/{study_id}/projects/{project_id}",
               "/api/v1/studies/{study_id}/projects/{project_id}/content",
               "/api/v1/studies/{study_id}/projects/{project_id}/impact",
+              "/api/v1/studies/{study_id}/projects/{project_id}/runs",
+              "/api/v1/studies/{study_id}/projects/{project_id}/runs/{run_id}",
+              "/api/v1/studies/{study_id}/projects/{project_id}/runs/{run_id}/events",
+              "/api/v1/studies/{study_id}/projects/{project_id}/artifacts/{artifact_id}",
               "/api/v1/access-audit",
+              # The client workspace (ADR 0015): the directory, one client, its
+              # studies, its knowledge, and one study's bridge to the unit.
+              "/api/v1/workspace/me",
+              "/api/v1/workspace/clients",
+              "/api/v1/clients/{client_id}",
+              "/api/v1/clients/{client_id}/studies",
+              "/api/v1/clients/{client_id}/overview",
+              "/api/v1/clients/{client_id}/knowledge",
+              "/api/v1/clients/{client_id}/knowledge/proposals",
+              "/api/v1/studies/{study_id}/workspace",
+              "/api/v1/studies/{study_id}/context",
+              # Research execution (ADR 0016): the Design Revisions a run executes.
+              "/api/v1/studies/{study_id}/design/revisions",
+              "/api/v1/studies/{study_id}/design/revisions/{revision_id}",
+              # ... and the runs that execute them.
+              "/api/v1/studies/{study_id}/research/readiness",
+              "/api/v1/studies/{study_id}/research/runs",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/events",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/cancel",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/retry",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/artifacts/{artifact_id}",
+              # The gate in front of the 18.6.6 interface (ADR 0012); Caddy's
+              # forward_auth names /panel/gate, so a rename breaks the site.
+              "/api/v1/panel/session",
+              "/api/v1/panel/gate",
+              # The settings page (.planning/plans/settings-control-panel.md).
               "/api/v1/settings",
               "/api/v1/self-approval",
               "/api/v1/clients/{client_id}/status",
@@ -355,10 +460,22 @@ jobs:
           unscoped = [
               p
               for p in paths
-              if "/projects" in p and not p.startswith("/api/v1/studies/")
+              if any(k in p for k in ("/projects", "/runs", "/artifacts"))
+              and not p.startswith("/api/v1/studies/")
           ]
           if unscoped:
               sys.exit(f"project routes must sit under a study scope: {unscoped}")
+
+          # Client knowledge is reached through a client or a study in the path
+          # (ADR 0015): a bare /knowledge route would be an unscoped pool.
+          loose = [
+              p
+              for p in paths
+              if "knowledge" in p
+              and not p.startswith(("/api/v1/clients/{client_id}/", "/api/v1/studies/{study_id}/"))
+          ]
+          if loose:
+              sys.exit(f"knowledge routes must sit under a client or a study: {loose}")
 
           print(f"OpenAPI OK: {len(paths)} paths, all project routes study-scoped")
           PY
@@ -386,6 +503,14 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
+      # tokens.json is the one source: the generated CSS/TS must match it, and
+      # the contrast, palette and client-accent evidence is re-measured from it.
+      - run: npm run tokens:check
+      # The 18.6.6 skin (ADR 0013): regenerated from tokens.json and linted for
+      # raw values; it also reads the vendored ui_app.html, so it runs here.
+      - run: npm run skin:check
+      - run: npm run check:design
+      - run: npm test
       - run: npm run build
 
   startup-smoke:
@@ -422,9 +547,10 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev,postgres]"
-          pip install -e "apps/api[dev]"
+          pip install -e "packages/aia_core[dev,postgres,report,bedrock]"
           pip install -e "apps/worker[dev]"
+          pip install -e "apps/executors[dev]"
+          pip install -e "apps/api[dev]"
 
       - name: Migrate and boot the API
         # Proves the real ASGI server starts against a real database and serves
@@ -499,9 +625,13 @@ jobs:
       - name: The worker boots against the migrated schema and stops on SIGTERM
         # A passing unit test does not prove the process starts: the console
         # entry point, settings from the environment, executor loading and the
-        # signal handling are all exercised only here.
+        # signal handling are all exercised only here -- with the real executor
+        # registry the develop host runs, over a filesystem store.
         env:
-          AIA_WORKER_EXECUTORS: aia_worker.testing:build_registry
+          AIA_WORKER_EXECUTORS: aia_executors.registry:build_registry
+          AIA_STORAGE_BACKEND: filesystem
+          AIA_STORAGE_ROOT: ./tmp/artifacts
+          AIA_BUILD_SHA: ${{ github.sha }}
         run: |
           aia-worker > worker.log 2>&1 &
           PID=$!
@@ -516,6 +646,84 @@ jobs:
           # It must have *worked*, not merely survived: the loop outlives a
           # database error by design, so an unmigrated schema would still exit 0.
           ! grep -q '"level": "ERROR"' worker.log
+
+  develop-host-config:
+    name: Develop host configuration (Caddy, Compose, scripts)
+    # The Caddyfile decides what the product hostname is -- AIA, with the 18.6.6
+    # unit behind the gate on its own paths only (ADR 0012, 0015) -- and ships in
+    # the deploy bundle; a syntax error would first show
+    # as a failed deployment on the host. Validated here with the Caddy image the
+    # host runs and placeholder values, never real configuration.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate the Caddyfile
+        run: |
+          hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext placeholder)"
+          docker run --rm \
+            -e AIA_PUBLIC_HOSTNAME=aia.example.test \
+            -e AIA_LEGACY_HOSTNAME=legacy.example.test \
+            -e AIA_ACME_EMAIL=ops@example.test \
+            -e AIA_LEGACY_BASIC_USER=oracle \
+            -e AIA_LEGACY_BASIC_HASH="$hash" \
+            -v "$PWD/deploy/develop/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: The product hostname is AIA, and the unit is gated on its own paths only
+        run: |
+          # tools/caddy_routes.py says what must never go missing (ADR 0012, 0013,
+          # 0015): / is a redirect to /app/clients; /classic and /app are behind
+          # the gate without the session cookie; the unit is reached only on the
+          # paths it serves, each gated -- no catch-all to 18.6.6; the legacy
+          # hostname is basic auth then the unit.
+          docker run --rm \
+            -e AIA_PUBLIC_HOSTNAME=aia.example.test -e AIA_LEGACY_HOSTNAME=legacy.example.test \
+            -e AIA_ACME_EMAIL=ops@example.test -e AIA_LEGACY_BASIC_USER=oracle -e AIA_LEGACY_BASIC_HASH=x \
+            -v "$PWD/deploy/develop/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile > caddy.json
+          python3 tools/caddy_routes.py caddy.json
+
+      - name: Validate the Compose file
+        run: |
+          cat > placeholder.env <<'ENV'
+          AIA_ACME_EMAIL=ops@example.test
+          AIA_COGNITO_CLIENT_ID=placeholder
+          AIA_COGNITO_DOMAIN=auth.example.test
+          AIA_COGNITO_USER_POOL_ID=eu-central-1_placeholder
+          AIA_IMAGE_REGISTRY=registry.example.test
+          AIA_IMAGE_TAG=0000000000000000000000000000000000000000
+          AIA_LEGACY_BASIC_HASH=placeholder
+          AIA_LEGACY_BASIC_USER=oracle
+          AIA_LEGACY_HOSTNAME=legacy.example.test
+          AIA_PUBLIC_HOSTNAME=aia.example.test
+          AIA_STORAGE_BUCKET=placeholder
+          AWS_REGION=eu-central-1
+          POSTGRES_PASSWORD=placeholder
+          ENV
+          docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config -q
+
+      - name: Caddy loads through Compose without the oracle's settings
+        run: |
+          # The host's env file has no AIA_LEGACY_* values until an operator
+          # provisions them; run 10 (2026-09-23) found the Caddyfile unparseable
+          # in exactly that state and the site down. This is the same check
+          # bin/deploy.sh now makes before it replaces anything: first with no
+          # AIA_LEGACY_* value at all, then with real, quoted ones.
+          grep -v '^AIA_LEGACY_' placeholder.env > unconfigured.env
+          docker compose --env-file unconfigured.env -f deploy/develop/docker-compose.yml \
+            run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext placeholder)"
+          cp unconfigured.env configured.env
+          printf "AIA_LEGACY_HOSTNAME='legacy.example.test'\nAIA_LEGACY_BASIC_USER='oracle'\nAIA_LEGACY_BASIC_HASH='%s'\n" "$hash" >> configured.env
+          docker compose --env-file configured.env -f deploy/develop/docker-compose.yml \
+            run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          resolved="$(docker compose --env-file configured.env -f deploy/develop/docker-compose.yml \
+            run --rm --no-deps -T caddy printenv AIA_LEGACY_BASIC_HASH)"
+          test "$resolved" = "$hash" || { echo "::error::the quoted hash was mangled on its way to Caddy"; exit 1; }
+
+      - name: Shell scripts parse
+        run: for f in deploy/develop/bin/*.sh; do bash -n "$f"; done
 
   security:
     name: Security and dependency scan
@@ -532,7 +740,7 @@ jobs:
 
       - name: Audit Python dependencies
         run: |
-          pip install -e "packages/aia_core[postgres]" -e "apps/api" -e "apps/worker"
+          pip install -e "packages/aia_core[postgres,s3,report,bedrock]" -e "apps/worker" -e "apps/executors" -e "apps/api"
           pip-audit --strict --ignore-vuln GHSA-0000-0000-0000 || true
 
       - uses: actions/setup-node@v4
@@ -563,3 +771,20 @@ jobs:
             exit 1
           fi
           echo "no committed provider keys found outside test fixtures"
+
+  dispatch-develop:
+    name: Dispatch verified develop deployment
+    needs: [backend, parity, golden-fixtures, oracle-parity, parity-status, api-contract, frontend, startup-smoke, develop-host-config, security]
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Deploy the SHA that passed CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run deploy-develop.yml --repo "$GITHUB_REPOSITORY" --ref develop \
+            -f sha="$GITHUB_SHA" -f migrate=true
+          echo "Dispatched develop deployment for $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

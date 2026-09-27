@@ -11,8 +11,11 @@ __pycache__/
 .env.*
 !.env.example
 
-# Local databases and scratch state
-data/
+# Local databases and scratch state. Anchored to the repository root: the
+# vendored legacy unit ships an app/data/ directory (provider_parity.json and
+# the .gitkeep files its runtime expects) that an unanchored pattern would
+# silently drop from every commit.
+/data/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
@@ -31,8 +34,10 @@ openapi.json
 .coverage
 htmlcov/
 
-# The NPC Panel prototype must never be committed here. It is a read-only
-# reference kept beside this repository and pointed at by AIA_LEGACY_REFERENCE.
+# The raw NPC Panel archive and its extracted tree are never committed here;
+# they are a read-only reference beside this repository, pointed at by
+# AIA_LEGACY_REFERENCE. The *extracted product unit* is different: it lives at
+# legacy/npc-panel-18.6.6/ by decision (ADR 0011) and is tracked.
 npc-panel-reference/
 legacy_reference/
 
@@ -45,3 +50,11 @@ tmp/
 
 # OS
 .DS_Store
+
+# Terraform: state and the tfvars file hold account ids and the Google client
+# secret. The .example file is the only tfvars that is committed.
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/terraform.tfvars
+infra/**/.terraform.lock.hcl

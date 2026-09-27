@@ -1,0 +1,21 @@
+﻿dimension,segment_value,variant_id,n,trial_intent_pct,purchase_intent_pct,appeal,uniqueness,price_acceptance_pct,credibility
+segment,Young Explorers,A,245,46.1,35.1,5.93,5.23,53.9,6.21
+segment,Young Explorers,B,245,62.0,52.7,5.94,4.38,71.0,6.31
+segment,Young Explorers,C,245,51.4,34.7,6.08,5.85,30.2,5.91
+segment,Young Explorers,D,245,62.4,47.8,6.3,4.94,51.0,6.94
+segment,Pragmatic Mainstream,A,224,47.3,34.4,5.72,5.44,42.9,6.25
+segment,Pragmatic Mainstream,B,224,57.1,46.4,5.7,4.32,68.8,5.84
+segment,Pragmatic Mainstream,C,224,50.4,36.6,6.46,6.15,27.7,6.32
+segment,Pragmatic Mainstream,D,224,63.8,48.7,6.09,4.92,52.7,6.98
+segment,Health-Oriented,A,257,51.0,31.9,5.85,5.35,43.6,6.18
+segment,Health-Oriented,B,257,61.1,47.9,5.53,4.24,69.3,5.95
+segment,Health-Oriented,C,257,51.4,38.5,6.44,5.87,29.6,6.19
+segment,Health-Oriented,D,257,59.1,44.4,5.91,4.83,44.4,6.72
+segment,Price-Sensitive,A,237,44.7,27.4,5.74,5.31,44.7,6.17
+segment,Price-Sensitive,B,237,54.0,41.4,5.43,3.97,66.2,5.78
+segment,Price-Sensitive,C,237,51.1,35.4,6.57,6.18,33.8,6.17
+segment,Price-Sensitive,D,237,63.3,48.1,6.3,4.98,51.9,6.71
+segment,Skeptical Traditional,A,237,48.9,32.1,5.76,5.12,44.7,5.82
+segment,Skeptical Traditional,B,237,53.6,45.1,5.27,3.82,64.1,5.53
+segment,Skeptical Traditional,C,237,52.3,39.2,6.48,5.92,28.7,6.07
+segment,Skeptical Traditional,D,237,60.8,42.2,6.24,4.83,54.4,6.84

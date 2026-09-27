@@ -152,7 +152,21 @@ class ArtifactRepository:
     or writes an artifact without an authorisation decision having been made.
     """
 
-    def __init__(self, session: Session, scope: StudyContext, store: ArtifactStore) -> None:
+    def __init__(
+        self,
+        session: Session,
+        scope: StudyContext,
+        store: ArtifactStore,
+        *,
+        owner: str | None = None,
+    ) -> None:
+        """``owner`` is the project owner this repository acts for (``projects.owner``).
+
+        As in :class:`~aia_core.infrastructure.repositories.ProjectRepository`, an
+        ordinary caller sees only the artifacts of ordinary projects: a research
+        run's artifacts live on the Study's owned design project, and are read only
+        through the run that produced them (ADR 0016).
+        """
         if not isinstance(scope, StudyContext):
             raise TypeError(
                 "ArtifactRepository requires a StudyContext issued by the "
@@ -161,17 +175,25 @@ class ArtifactRepository:
         self._session = session
         self._scope = scope
         self._store = store
+        self._owner = owner
 
     # ---------------------------------------------------------------- helpers --
+
+    def _project_filter(self) -> tuple[Any, ...]:
+        """The isolation predicate on the owning project, owner included."""
+        return (
+            ProjectRow.organization_id == self._scope.organization_id,
+            ProjectRow.client_id == self._scope.client_id,
+            ProjectRow.study_id == self._scope.study_id,
+            ProjectRow.owner.is_(None) if self._owner is None else ProjectRow.owner == self._owner,
+        )
 
     def _owned_project(self, project_id: str) -> ProjectRow:
         """Fetch a project inside the authorised scope, or raise."""
         row = self._session.scalar(
             select(ProjectRow).where(
                 ProjectRow.project_id == project_id,
-                ProjectRow.organization_id == self._scope.organization_id,
-                ProjectRow.client_id == self._scope.client_id,
-                ProjectRow.study_id == self._scope.study_id,
+                *self._project_filter(),
             )
         )
         if row is None:
@@ -189,9 +211,7 @@ class ArtifactRepository:
             .join(ProjectRow, ProjectRow.project_id == ProjectArtifactRow.project_id)
             .where(
                 ProjectArtifactRow.artifact_id == artifact_id,
-                ProjectRow.organization_id == self._scope.organization_id,
-                ProjectRow.client_id == self._scope.client_id,
-                ProjectRow.study_id == self._scope.study_id,
+                *self._project_filter(),
             )
         )
         if row is None:
@@ -410,6 +430,20 @@ class ArtifactRepository:
         self._scope.require(Permission.EXPORT_DELIVERABLE)
         row = self._row(artifact_id)
         return self._store.presigned_url(row.storage_key, expires_seconds=expires_seconds)
+
+    def recent(self, *, limit: int = 5) -> list[Artifact]:
+        """The study's most recent artifacts, newest first: metadata only, for an overview."""
+        self._scope.require(Permission.VIEW_RESULTS)
+        rows = self._session.scalars(
+            select(ProjectArtifactRow)
+            .join(ProjectRow, ProjectRow.project_id == ProjectArtifactRow.project_id)
+            .where(
+                *self._project_filter(),
+            )
+            .order_by(ProjectArtifactRow.created_at.desc())
+            .limit(max(1, min(limit, 50)))
+        ).all()
+        return [_to_domain(r) for r in rows]
 
     def list_for_stage(self, *, project_id: str, revision: int, stage_type: str) -> list[Artifact]:
         """Return the artifacts a stage produced in one revision."""

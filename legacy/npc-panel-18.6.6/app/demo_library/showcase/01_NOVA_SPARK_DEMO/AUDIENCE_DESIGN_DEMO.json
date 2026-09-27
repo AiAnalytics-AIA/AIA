@@ -1,0 +1,17 @@
+{
+  "population": "ČR 18–64, bez předčasného zúžení cílové populace",
+  "n": 1200,
+  "persona_mode": "calibrated",
+  "dimensions": [
+    "věk",
+    "region",
+    "socioeconomics",
+    "media/digital behavior",
+    "values",
+    "category involvement",
+    "trust",
+    "price sensitivity",
+    "innovation adoption",
+    "context-specific dimensions"
+  ]
+}

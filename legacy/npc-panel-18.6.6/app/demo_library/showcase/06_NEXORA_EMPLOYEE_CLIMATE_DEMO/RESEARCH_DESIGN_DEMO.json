@@ -1,0 +1,59 @@
+{
+  "study_type": "Employee climate, leadership a týmová sociomapa",
+  "decision": "Určit organizační priority a týmy/vztahy, které vyžadují zásah do procesu, nikoli hodnocení jednotlivců.",
+  "research_questions": [
+    "Jak jasné jsou vaše priority a rozhodovací pravomoci?",
+    "Jak bezpečné je otevřeně nesouhlasit nebo přiznat chybu?",
+    "S kterými týmy nejčastěji spolupracujete?",
+    "Jak hodnotíte kvalitu vztahů mezi hlavními funkcemi?",
+    "Kde vznikají nejčastější zdržení rozhodování?",
+    "Jaké změny by nejvíce zlepšily každodenní spolupráci?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Product",
+      "description": "Tým / funkce",
+      "type": "tracked_object",
+      "score": 74,
+      "x": 390,
+      "y": 185
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Sales",
+      "description": "Tým / funkce",
+      "type": "tracked_object",
+      "score": 70,
+      "x": 270,
+      "y": 265
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Operations",
+      "description": "Tým / funkce",
+      "type": "tracked_object",
+      "score": 56,
+      "x": 565,
+      "y": 300
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Leadership",
+      "description": "Řídicí vrstva",
+      "type": "tracked_object",
+      "score": 68,
+      "x": 420,
+      "y": 320
+    }
+  ],
+  "metrics": [
+    "Collaboration",
+    "Trust",
+    "Clarity",
+    "Psych safety",
+    "Decision speed",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

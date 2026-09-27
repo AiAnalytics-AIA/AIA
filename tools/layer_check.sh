@@ -27,7 +27,8 @@ PASSED=0
 # forbid <rule-name> <pattern> <path> [excluded-basename ...]
 forbid() {
   local rule="$1" pattern="$2" path="$3"; shift 3
-  local excludes=()
+  local excludes=(--exclude-dir=node_modules --exclude-dir=.next
+                  --exclude-dir=__pycache__ --exclude-dir=.venv)
   while [ $# -gt 0 ]; do excludes+=(--exclude="$1"); shift; done
 
   if [ ! -e "$path" ]; then
@@ -36,10 +37,7 @@ forbid() {
   fi
 
   local hits
-  hits=$(grep -rn "${excludes[@]}" \
-           --exclude-dir=node_modules --exclude-dir=.next \
-           --exclude-dir=__pycache__ --exclude-dir=.venv \
-           -E "$pattern" "$path" 2>/dev/null || true)
+  hits=$(grep -rn "${excludes[@]}" -E "$pattern" "$path" 2>/dev/null || true)
 
   if [ -n "$hits" ]; then
     printf 'FAIL  %s\n' "$rule"
@@ -54,6 +52,7 @@ forbid() {
 CORE=packages/aia_core/src/aia_core
 API=apps/api/src/aia_api
 WORKER=apps/worker/src/aia_worker
+EXECUTORS=apps/executors/src/aia_executors
 
 echo "Layer rules (ARCHITECTURE.md §3)"
 echo
@@ -67,6 +66,13 @@ echo
 
 forbid "domain imports no framework, driver or SDK" \
   '^\s*(from|import)\s+(sqlalchemy|fastapi|starlette|boto3|botocore|httpx|requests|redis|alembic|psycopg)\b' \
+  "$CORE/domain/"
+
+# The report is data in the domain and bytes in infrastructure: a document
+# library, an XML toolkit or a plotting stack in the domain would make the
+# report's rules untestable without them (.planning/plans/report-docx.md).
+forbid "domain imports no document, XML or plotting library" \
+  '^\s*(from|import)\s+(docx|lxml|matplotlib|numpy|PIL|pptx|openpyxl)\b' \
   "$CORE/domain/"
 
 forbid "domain does not import outward (application, infrastructure)" \
@@ -88,10 +94,16 @@ forbid "infrastructure knows nothing about HTTP" \
 # The AWS SDK is an optional dependency imported lazily inside S3ArtifactStore,
 # so that nothing else in the codebase loads an AWS SDK and the package installs
 # without one. A second import site would silently make boto3 mandatory.
-forbid "AWS SDK stays behind the storage adapter" \
+# Named exemption (ADR 0010): model_adapters/aws_signing.py imports botocore's
+# SigV4 signer and credential chain, lazily and for signing only -- no botocore
+# client is built there, so nothing can retry or call Bedrock behind the gateway.
+forbid "AWS SDK stays behind the storage adapter and the Bedrock signer" \
   '^\s*(from|import)\s+(boto3|botocore)\b' \
   "$CORE" \
-  storage.py
+  storage.py aws_signing.py
+forbid "no botocore client is built for Bedrock (signing only, ADR 0010)" \
+  '(boto3|botocore\.session\.get_session\(\))\.client\(|create_client\(' \
+  "$CORE/infrastructure/model_adapters/"
 
 # --- AI runtime: AIA owns the contract, providers sit underneath ------------
 #
@@ -108,6 +120,20 @@ forbid "provider SDKs and gateway libraries are not imported (ADR 0005)" \
 forbid "the API does not call providers directly" \
   '^\s*(from|import)\s+(anthropic|openai|litellm|langchain[a-z_]*|google\.generativeai|mistralai|cohere)\b' \
   "$API"
+
+# The AI runtime runs in the worker, never in a request (ADR 0016, the Agent
+# Runtime Foundation): no HTTP route builds, holds or invokes the gateway, an
+# adapter or the fieldwork producer. A model call inside a request would have no
+# lease, no reservation and no heartbeat.
+forbid "the API never builds or invokes the model gateway or an adapter" \
+  '(GovernedModelGateway|model_adapters|aia_executors\.ai_)' \
+  "$API"
+# One composition builds the Bedrock route's adapter: aia_executors/ai_runtime.py,
+# from validated settings. Anywhere else it would be a route nobody configured.
+forbid "only the AI runtime composition builds the Bedrock adapter" \
+  'BedrockConverseAdapter\(' \
+  "$EXECUTORS" \
+  ai_runtime.py
 
 # --- Layer 4: the worker executes; it does not serve, and it does not know ---
 #
@@ -147,6 +173,107 @@ forbid "only the work queue may query across studies" \
 forbid "the worker never builds an unscoped repository" \
   '_across_studies' \
   "$WORKER"
+
+# Client Knowledge is reached only through its repository, which takes an issued
+# ClientContext or StudyContext and puts the client in the query (ADR 0015
+# decision 7). A table used anywhere else is a query that could forget the
+# client: an unscoped pool filtered afterwards, which the ADR forbids.
+forbid "client knowledge tables are touched only by their repository" \
+  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  "$CORE" \
+  tables.py client_knowledge_repository.py
+forbid "the API never touches the client knowledge tables" \
+  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  "$API"
+forbid "the worker never touches the client knowledge tables" \
+  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  "$WORKER"
+forbid "executors never touch the client knowledge tables" \
+  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  "$EXECUTORS"
+
+# A Study's design project is found only through the Study (ADR 0016 decision 1).
+# The table used anywhere but its repository is a query that could find a design
+# project -- and the revisions runs execute -- by something other than scope.
+forbid "the study design table is touched only by its repository" \
+  'StudyDesignRow' \
+  "$CORE" \
+  tables.py study_design_repository.py
+forbid "the API, worker and executors never touch the study design table" \
+  'StudyDesignRow' \
+  apps
+# A Study's design project is owned (projects.owner): a repository that does not
+# name the owner cannot see it. Naming it anywhere else would reopen the path by
+# which content that skipped validate_design became a Design Revision (ADR 0016).
+forbid "only the design repository and the research runs name the design project's owner" \
+  'DESIGN_PROJECT_OWNER' \
+  "$CORE" \
+  design.py study_design_repository.py research.py
+forbid "the API, worker and executors never name the design project's owner" \
+  'DESIGN_PROJECT_OWNER|study_design\b' \
+  apps
+# Licence eligibility (ADR 0016 decision 5): a determination is policy data that
+# legal and the data owner change, in one reviewed file. Built anywhere else, it
+# would be an approval nobody gave.
+forbid "licence determinations are written only in their policy-data module" \
+  'LicenceDetermination\(|LicencePolicy\(' \
+  "$CORE" \
+  licence.py licence_determinations.py
+forbid "the API, worker and executors never build a licence policy of their own" \
+  'LicenceDetermination\(|LicencePolicy\(' \
+  apps
+# The fictional fieldwork source (ADR 0016 D1) is kept out of production by
+# construction: only the workbench composition may build it, nothing may import
+# the workbench composition, and no deployment may name it.
+forbid "only the workbench composition imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*synthetic_fieldwork' \
+  "$CORE" \
+  synthetic_fieldwork.py
+forbid "no API code imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|aia_executors\.workbench)' \
+  "$API"
+forbid "the worker never imports the fictional fieldwork generator" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|aia_executors\.workbench)' \
+  "$WORKER"
+forbid "among the executors, only the workbench composition builds fictional fieldwork" \
+  '^\s*(from|import)\s+\S*(synthetic_fieldwork|\.workbench|aia_executors\.workbench)' \
+  "$EXECUTORS" \
+  workbench.py
+forbid "no deployment runs the workbench composition" \
+  'aia_executors\.workbench|aia_executors/workbench' \
+  deploy
+# A revision is what a run executed. The ORM refuses to UPDATE one
+# (tables.py, before_update); a bulk update() would go around it.
+forbid "no statement updates a project revision" \
+  'update\(\s*ProjectRevisionRow' \
+  packages/aia_core/src
+
+# --- Layer 4b: executors do the work; they neither serve nor decide scope -----
+#
+# Step implementations depend on the worker's executor seam and on aia_core.
+# They never import the API, never serve HTTP, and -- like the worker -- act
+# only under the scope the lease issued them. An executor that could build a
+# StudyContext could write another client's artifacts from inside a claimed step.
+
+forbid "executors know nothing about HTTP" \
+  '^\s*(from|import)\s+(fastapi|starlette)\b' \
+  "$EXECUTORS"
+
+forbid "executors never import the API" \
+  '^\s*(from|import)\s+aia_api\b' \
+  "$EXECUTORS"
+
+forbid "executors never build their own scope context" \
+  '^[^#]*\b(Organization|Client|Study)Context\(' \
+  "$EXECUTORS"
+
+forbid "executors never admit their own claims" \
+  '^[^#]*\bAdmittedClaim\(' \
+  "$EXECUTORS"
+
+forbid "executors never build an unscoped workflow repository" \
+  '_across_studies' \
+  "$EXECUTORS"
 
 # --- Layer 6: transport validates, delegates, serialises --------------------
 #
@@ -293,6 +420,9 @@ forbid "no statically skipped or xfailed API tests" \
 forbid "no statically skipped or xfailed worker tests" \
   '@pytest\.mark\.(skip|xfail)' \
   apps/worker/tests
+forbid "no statically skipped or xfailed executor tests" \
+  '@pytest\.mark\.(skip|xfail)' \
+  apps/executors/tests
 
 # --- Presentation: the client renders, it does not decide -------------------
 #

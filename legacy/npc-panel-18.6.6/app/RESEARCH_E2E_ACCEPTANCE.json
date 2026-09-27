@@ -1,0 +1,18 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "status": "PASS",
+  "scope": "non-network durable project E2E + 17.8.x regression paths",
+  "checks": {
+    "restart_persistence": "PASS",
+    "deep_research_artifact_reuse_contract": "PASS",
+    "questionnaire_revision_invalidation": "PASS",
+    "fieldwork_checkpoint_projection": "PASS",
+    "aggregation_local_stage": "PASS",
+    "analysis_resume_modules": "PASS",
+    "report_results_guarantee_regression": "PASS"
+  },
+  "live_claude_code_roundtrip": "NOT_RUN",
+  "reason_live": "No authenticated Claude Code interactive runtime was invoked by this packaging environment."
+}

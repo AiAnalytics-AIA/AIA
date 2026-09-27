@@ -1,0 +1,44 @@
+[
+  {
+    "revision": 1,
+    "stage": "BRIEF",
+    "event": "Projekt vytvořen",
+    "detail": "Původní klientské zadání a rozhodovací problém."
+  },
+  {
+    "revision": 2,
+    "stage": "RESEARCH_DESIGN",
+    "event": "AI interpretace a design",
+    "detail": "Research questions, tracked objects a metodika."
+  },
+  {
+    "revision": 3,
+    "stage": "DEEP_RESEARCH",
+    "event": "Research doplněn",
+    "detail": "Evidence/dimenzní vrstvy a nejistoty."
+  },
+  {
+    "revision": 4,
+    "stage": "QUESTIONNAIRE",
+    "event": "Dotazník schválen",
+    "detail": "Objektové baterie a decision KPI."
+  },
+  {
+    "revision": 5,
+    "stage": "AUDIENCE",
+    "event": "Publikum a dimenze frozen",
+    "detail": "Populace, segmentace a dimenze respondentů."
+  },
+  {
+    "revision": 6,
+    "stage": "FROZEN_RESULTS",
+    "event": "Modelové světy dokončeny",
+    "detail": "8/8 světů a frozen result."
+  },
+  {
+    "revision": 7,
+    "stage": "DELIVERY",
+    "event": "Report + exporty",
+    "detail": "Report, databáze, sociomapa a handoff balík."
+  }
+]

@@ -1,0 +1,194 @@
+[
+  {
+    "path": "AUDIENCE_DESIGN_DEMO.json",
+    "stage": "AUDIENCE",
+    "sha256": "5da716a8cad9dccd914c745edf5d8c8fdc32613154aeeae977b036a3d101dfcb",
+    "bytes": 401
+  },
+  {
+    "path": "CLIENT_REPORT_MEDORA_DEMO.docx",
+    "stage": "DELIVERY",
+    "sha256": "97a560a025d5e6fc2b434ea3c5820d90e67eece1ee68bf96aabcb514cd6e5055",
+    "bytes": 51767
+  },
+  {
+    "path": "DEMO_PREVIEW.html",
+    "stage": "DELIVERY",
+    "sha256": "aa2e5c706f978e6c3541cdab30f15c9b82eb04d5012573c471a1d02cd27b0ab1",
+    "bytes": 3128
+  },
+  {
+    "path": "DEMO_PROJECT_SEED.json",
+    "stage": "DELIVERY",
+    "sha256": "4926d143eefd0db6edac7354b65f8fd0ed0399bcabab57b838006a463878f3ed",
+    "bytes": 10263
+  },
+  {
+    "path": "EXECUTIVE_XLSX_PREVIEW.png",
+    "stage": "DELIVERY",
+    "sha256": "a17a61c5d0d5e5ce1cb57d0fac0e08984e6c08d8015ac2ebf96d33327a036017",
+    "bytes": 101609
+  },
+  {
+    "path": "IMPLEMENTACE_DO_PANELU.md",
+    "stage": "DELIVERY",
+    "sha256": "7be7084efc36d87879a4b93e5f5de5822d4f610cbc65989bde0a0e99bda3684e",
+    "bytes": 2623
+  },
+  {
+    "path": "OBJECTS_SOCIOMAP_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "bd09d10284fe4400d09a92dd181ee2461bbaab9567681bcbc8033969dacdc253",
+    "bytes": 1693
+  },
+  {
+    "path": "PROJECT_HISTORY_DEMO.json",
+    "stage": "DELIVERY",
+    "sha256": "cbf03c587463eeb2fa80d18a18f0208155d5aa3f8058972d7e6937318cf3ccc8",
+    "bytes": 1068
+  },
+  {
+    "path": "QUESTIONNAIRE_DEMO.json",
+    "stage": "QUESTIONNAIRE",
+    "sha256": "b5f8704296e35bb0449a471069a1c944c0372e2bf1e2a35d78deceb4462637af",
+    "bytes": 1048
+  },
+  {
+    "path": "REPORT_TEXT_DEMO.md",
+    "stage": "DELIVERY",
+    "sha256": "831a111f522fe5d89e8548ca48f0f83ecc2b72014dee9105956dc9d12c4e765b",
+    "bytes": 940
+  },
+  {
+    "path": "RESEARCH_DESIGN_DEMO.json",
+    "stage": "RESEARCH_DESIGN",
+    "sha256": "a7ae4a4ff123cea4f7dcf6fb2df6dfc3d82319f4eae09546b31c835282f663b0",
+    "bytes": 1542
+  },
+  {
+    "path": "RESPONDENT_DATABASE_DEMO.csv",
+    "stage": "FIELDWORK",
+    "sha256": "d90508e6e5b1b620fbb2ba4ab944d93dbc3be1ffbaa643b5cf0d49d52fca7b6c",
+    "bytes": 79928
+  },
+  {
+    "path": "RESULTS_TABLES_MEDORA_PATIENT_EXPERIENCE_DEMO.xlsx",
+    "stage": "DELIVERY",
+    "sha256": "2d29977fdc65966b3c79b74690a4b0b57224e1cea744fa7066f3cf253e985065",
+    "bytes": 69104
+  },
+  {
+    "path": "analysis/ANALYSIS_01_EXECUTIVE.json",
+    "stage": "ANALYSIS",
+    "sha256": "b14600905e5b02ea5f0fa44b1d0f7f6fa949299060c205a362b900babf5f9c21",
+    "bytes": 349
+  },
+  {
+    "path": "analysis/ANALYSIS_02_RESEARCH_QUESTIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "168067d8bb95d7e183452014dfdd400cae213a5c8d7b561dfecfab487d488420",
+    "bytes": 411
+  },
+  {
+    "path": "analysis/ANALYSIS_03_OBJECTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "71b0ee1220bef5bbadf1f8643bfdcca4cecd67c3e4c49eee040524e38db9d354",
+    "bytes": 137
+  },
+  {
+    "path": "analysis/ANALYSIS_04_AUDIENCE.json",
+    "stage": "ANALYSIS",
+    "sha256": "53379b3bb61c854155f3b01e66de9da85e17b6d4feb8e3c0f4dc29de2e137d4e",
+    "bytes": 177
+  },
+  {
+    "path": "analysis/ANALYSIS_05_SEGMENTS.json",
+    "stage": "ANALYSIS",
+    "sha256": "898ea1e533770d3608fa489c23154d7c5db7a0e7c0571de7aa7b9c407224e894",
+    "bytes": 180
+  },
+  {
+    "path": "analysis/ANALYSIS_06_HYPOTHESES.json",
+    "stage": "ANALYSIS",
+    "sha256": "fd66ae160d8e4ba697df7eadb5ec13181256504f1f724f694d56384c540ff2c0",
+    "bytes": 150
+  },
+  {
+    "path": "analysis/ANALYSIS_07_IMPLICATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "d57a58566c3653d5729c333d07819132059087224b2d38b58e2680c2e86ce7f7",
+    "bytes": 222
+  },
+  {
+    "path": "analysis/ANALYSIS_08_LIMITATIONS.json",
+    "stage": "ANALYSIS",
+    "sha256": "f42210cbaf61388290e431fc5c5f8fea755765554cacd28e13bfb92a5e16acd0",
+    "bytes": 256
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.png",
+    "stage": "ANALYSIS",
+    "sha256": "41efc73caf14caeed2c71e31e39e3f583457b35070515a2eb7fd45b1c7552f4b",
+    "bytes": 13182
+  },
+  {
+    "path": "assets/SOCIOMAP_OBJECTS_DEMO.svg",
+    "stage": "ANALYSIS",
+    "sha256": "d716e6c07ef2370443945938b0f7a9f4ac455d96cf0ade055a81468d501a9a89",
+    "bytes": 2372
+  },
+  {
+    "path": "demo_project_loader.py",
+    "stage": "DELIVERY",
+    "sha256": "16e705ec649a802d3bc31cbf260807d7a3f234dbdd84a2c5f2cf176fd63aa1b7",
+    "bytes": 1042
+  },
+  {
+    "path": "worlds/WORLD_1_BASE_JOURNEY.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "8bcf8f7d05c512a7f0c730c3b4391fb36e6cfe204411c23f6aa1fb680488e768",
+    "bytes": 156
+  },
+  {
+    "path": "worlds/WORLD_2_HIGH_ANXIETY.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "d063f4bba4c9b2f003b5c339362febfcc79a00fe6db480f2b757dfa489a79973",
+    "bytes": 157
+  },
+  {
+    "path": "worlds/WORLD_3_DIGITAL_ADOPTION.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "cd4153ad9b513d856e3921ad9e52ed07e30e4c0778b1a562344ae692d445be56",
+    "bytes": 166
+  },
+  {
+    "path": "worlds/WORLD_4_OLDER_PATIENTS.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "a0cb245ed9c14de6e3c5aef9fe08fec1e7391775d6d5a35dfdd7629a5261f203",
+    "bytes": 146
+  },
+  {
+    "path": "worlds/WORLD_5_STAFF_PRESSURE.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "2de5a816c510269003e02633c086d4831c65be67600a65c6f1c512ce9ebb0d2e",
+    "bytes": 163
+  },
+  {
+    "path": "worlds/WORLD_6_COMPLEX_CARE_MIX.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "a1a6516ee8201442bad3dab30e2775d9e8ba1b39beebcb98e8305839ce532567",
+    "bytes": 164
+  },
+  {
+    "path": "worlds/WORLD_7_SHORT_WAITS.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "aed6aa9c568fa84ef5caad1362004999b0f4e746c49273976e741ca95fe8d7e5",
+    "bytes": 148
+  },
+  {
+    "path": "worlds/WORLD_8_COMMUNICATION_FIRST.json",
+    "stage": "FROZEN_RESULTS",
+    "sha256": "df0b34ffa84a2f28eddeccd592c2c4f64062ed3d829798b36c2fd02f9f3d4f3a",
+    "bytes": 179
+  }
+]

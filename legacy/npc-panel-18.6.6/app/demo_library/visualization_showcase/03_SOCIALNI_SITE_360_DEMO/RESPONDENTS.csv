@@ -1,0 +1,601 @@
+﻿respondent_id,segment,dem_gender,dem_age,dem_region,dem_education,dem_income,att_video,att_professional,att_community,att_news,att_privacy,att_creator,att_youth,beh_sport_frequency,beh_novelty_openness,obj_Instagram,obj_TikTok,obj_Facebook,obj_YouTube,obj_LinkedIn,obj_X,obj_Reddit,obj_Snapchat
+03R0001,Profesionálové,muž,43,Olomoucký,ZŠ / vyučení,30–50 tis.,5,7,5,5,5,6,4,6,7,3,6,3,4,8,5,6,5
+03R0002,Masový mainstream,žena,35,Olomoucký,SŠ s maturitou,30–50 tis.,7,7,7,6,7,6,3,6,5,6,5,7,6,7,7,6,2
+03R0003,Masový mainstream,muž,26,Ústecký,SŠ s maturitou,do 30 tis.,6,7,5,5,7,7,9,8,6,7,5,2,6,6,4,6,6
+03R0004,Masový mainstream,žena,31,Moravskoslezský,VŠ,do 30 tis.,6,5,6,6,6,5,6,6,8,4,7,5,4,7,6,5,7
+03R0005,Komunitní diskutéři,muž,33,Středočeský,SŠ s maturitou,30–50 tis.,5,6,10,6,4,6,6,4,5,5,4,7,4,4,6,8,4
+03R0006,Krátké video a trendy,žena,40,Plzeňský,VŠ,do 30 tis.,8,6,8,4,5,6,7,6,4,5,6,7,7,5,4,4,4
+03R0007,Soukromější pozorovatelé,muž,28,Jihočeský,SŠ s maturitou,do 30 tis.,5,7,7,5,7,4,6,10,7,2,5,5,5,5,6,8,7
+03R0008,Krátké video a trendy,muž,19,Olomoucký,SŠ s maturitou,30–50 tis.,7,6,4,5,3,5,7,4,5,8,7,2,4,5,4,3,5
+03R0009,Krátké video a trendy,žena,18,Plzeňský,VŠ,do 30 tis.,8,5,5,6,7,6,9,6,8,8,8,5,7,6,5,5,9
+03R0010,Profesionálové,muž,46,Plzeňský,ZŠ / vyučení,50–80 tis.,5,8,4,6,5,7,6,4,6,7,6,5,6,8,5,5,7
+03R0011,Masový mainstream,žena,36,Praha,ZŠ / vyučení,30–50 tis.,6,5,6,6,7,5,5,4,4,6,4,4,4,4,6,5,5
+03R0012,Masový mainstream,žena,35,Olomoucký,ZŠ / vyučení,80 tis. +,8,4,7,7,4,4,6,2,4,5,7,7,7,6,7,6,4
+03R0013,Masový mainstream,žena,52,Středočeský,SŠ s maturitou,80 tis. +,7,6,9,4,7,5,6,7,6,7,8,6,6,6,7,7,9
+03R0014,Krátké video a trendy,žena,32,Ústecký,SŠ s maturitou,30–50 tis.,8,6,5,6,5,6,8,7,5,8,8,4,8,4,5,4,9
+03R0015,Krátké video a trendy,muž,32,Moravskoslezský,SŠ s maturitou,do 30 tis.,7,6,6,6,6,7,7,4,5,8,6,6,7,7,6,6,6
+03R0016,Profesionálové,žena,45,Plzeňský,SŠ s maturitou,80 tis. +,5,7,3,6,5,7,5,5,5,6,6,4,5,6,5,2,4
+03R0017,Krátké video a trendy,muž,31,Olomoucký,SŠ s maturitou,do 30 tis.,10,7,7,6,6,7,7,6,7,8,9,2,10,7,5,7,6
+03R0018,Krátké video a trendy,muž,31,Jihomoravský,ZŠ / vyučení,30–50 tis.,6,7,6,5,5,7,8,6,5,7,7,4,6,7,6,5,7
+03R0019,Soukromější pozorovatelé,muž,31,Ústecký,VŠ,50–80 tis.,7,5,7,5,7,5,6,4,6,5,5,6,6,6,7,6,5
+03R0020,Soukromější pozorovatelé,žena,41,Jihočeský,ZŠ / vyučení,80 tis. +,3,6,4,5,7,3,6,5,5,4,5,5,6,6,6,6,7
+03R0021,Krátké video a trendy,muž,18,Jihomoravský,ZŠ / vyučení,80 tis. +,6,4,7,7,5,8,10,10,7,7,6,3,5,4,6,7,8
+03R0022,Soukromější pozorovatelé,žena,55,Středočeský,VŠ,do 30 tis.,6,4,4,5,9,5,8,7,5,6,5,1,5,4,5,6,8
+03R0023,Soukromější pozorovatelé,žena,31,Praha,SŠ s maturitou,80 tis. +,5,5,4,5,9,5,3,8,8,4,3,9,5,6,7,7,7
+03R0024,Krátké video a trendy,muž,31,Plzeňský,VŠ,30–50 tis.,6,7,7,6,8,4,8,5,5,6,7,7,6,7,7,9,7
+03R0025,Profesionálové,žena,51,Středočeský,SŠ s maturitou,50–80 tis.,5,6,5,8,6,3,7,3,4,2,6,5,5,5,7,5,6
+03R0026,Komunitní diskutéři,muž,25,Jihomoravský,VŠ,30–50 tis.,6,4,8,7,4,4,4,4,5,4,7,8,7,3,7,7,6
+03R0027,Profesionálové,muž,28,Středočeský,SŠ s maturitou,50–80 tis.,7,10,8,7,5,5,5,4,6,5,6,6,5,9,7,7,4
+03R0028,Komunitní diskutéři,žena,48,Plzeňský,SŠ s maturitou,30–50 tis.,6,6,10,8,5,6,5,8,7,6,7,10,6,4,10,8,5
+03R0029,Masový mainstream,žena,43,Středočeský,SŠ s maturitou,50–80 tis.,6,5,7,5,5,4,6,2,3,6,6,7,5,5,5,7,9
+03R0030,Profesionálové,muž,37,Jihomoravský,SŠ s maturitou,50–80 tis.,6,8,4,6,4,6,5,7,4,6,8,4,5,7,5,4,2
+03R0031,Profesionálové,žena,39,Olomoucký,SŠ s maturitou,30–50 tis.,4,6,6,5,3,5,5,5,6,6,6,7,5,7,7,5,7
+03R0032,Soukromější pozorovatelé,muž,51,Ústecký,ZŠ / vyučení,80 tis. +,5,6,3,4,10,5,4,6,6,4,3,4,6,4,3,2,5
+03R0033,Soukromější pozorovatelé,muž,25,Moravskoslezský,ZŠ / vyučení,50–80 tis.,5,8,5,6,8,6,5,7,7,6,6,5,6,7,5,4,6
+03R0034,Soukromější pozorovatelé,muž,18,Praha,VŠ,30–50 tis.,7,6,5,5,9,6,5,6,7,5,7,3,5,4,3,4,4
+03R0035,Masový mainstream,muž,36,Plzeňský,SŠ s maturitou,do 30 tis.,5,6,7,5,3,4,5,5,5,4,5,4,4,4,5,5,3
+03R0036,Profesionálové,muž,53,Olomoucký,SŠ s maturitou,50–80 tis.,5,9,4,6,5,7,7,6,6,8,7,5,5,7,6,4,5
+03R0037,Krátké video a trendy,žena,45,Plzeňský,SŠ s maturitou,80 tis. +,8,5,6,4,8,6,9,5,2,9,9,3,5,5,5,7,8
+03R0038,Komunitní diskutéři,muž,42,Plzeňský,SŠ s maturitou,50–80 tis.,6,5,7,8,6,6,7,7,6,5,7,6,5,4,8,8,5
+03R0039,Profesionálové,muž,23,Olomoucký,VŠ,30–50 tis.,5,9,5,6,5,6,5,4,7,4,4,6,5,9,6,5,5
+03R0040,Soukromější pozorovatelé,muž,51,Plzeňský,ZŠ / vyučení,50–80 tis.,7,7,4,8,7,3,4,6,8,3,5,6,7,6,5,5,5
+03R0041,Masový mainstream,muž,40,Středočeský,VŠ,50–80 tis.,4,7,7,5,4,6,5,9,6,3,3,4,1,5,6,5,6
+03R0042,Masový mainstream,žena,25,Jihočeský,SŠ s maturitou,30–50 tis.,5,6,6,6,6,6,6,7,4,4,6,5,5,6,8,6,6
+03R0043,Profesionálové,muž,27,Ústecký,SŠ s maturitou,50–80 tis.,5,9,7,4,7,7,5,5,4,6,4,5,7,7,4,6,4
+03R0044,Soukromější pozorovatelé,žena,41,Ústecký,VŠ,50–80 tis.,5,5,4,4,10,4,6,8,6,3,3,4,5,7,4,4,6
+03R0045,Krátké video a trendy,muž,18,Středočeský,SŠ s maturitou,30–50 tis.,7,5,6,6,6,6,8,9,6,6,5,3,5,6,7,6,7
+03R0046,Profesionálové,žena,53,Středočeský,SŠ s maturitou,30–50 tis.,5,8,3,5,5,6,6,8,6,6,5,3,6,7,5,4,6
+03R0047,Masový mainstream,žena,55,Ústecký,VŠ,30–50 tis.,9,5,5,5,3,4,6,9,4,5,6,7,8,6,5,3,5
+03R0048,Krátké video a trendy,muž,33,Středočeský,SŠ s maturitou,50–80 tis.,8,4,5,7,6,6,8,4,7,8,9,4,8,3,7,4,6
+03R0049,Masový mainstream,žena,43,Jihomoravský,SŠ s maturitou,do 30 tis.,7,7,8,5,5,4,5,4,5,3,5,5,4,4,5,8,4
+03R0050,Krátké video a trendy,žena,32,Praha,VŠ,50–80 tis.,9,4,5,6,5,8,8,5,7,8,9,5,7,5,6,5,8
+03R0051,Masový mainstream,muž,28,Ústecký,VŠ,50–80 tis.,7,6,8,6,6,6,7,6,7,6,6,6,6,6,6,7,7
+03R0052,Krátké video a trendy,žena,18,Olomoucký,ZŠ / vyučení,80 tis. +,9,5,3,4,5,7,9,9,4,8,9,4,7,5,4,4,10
+03R0053,Soukromější pozorovatelé,žena,30,Plzeňský,SŠ s maturitou,50–80 tis.,5,7,7,5,6,5,8,5,7,5,7,6,6,5,6,6,6
+03R0054,Soukromější pozorovatelé,muž,37,Olomoucký,SŠ s maturitou,30–50 tis.,4,4,3,2,8,5,5,4,7,5,5,4,4,5,4,3,7
+03R0055,Komunitní diskutéři,muž,23,Jihomoravský,ZŠ / vyučení,50–80 tis.,6,6,9,6,6,6,6,5,4,7,7,7,5,7,7,9,7
+03R0056,Masový mainstream,muž,48,Jihočeský,VŠ,80 tis. +,6,6,5,5,4,7,4,5,4,6,4,6,6,6,5,5,3
+03R0057,Profesionálové,muž,39,Středočeský,ZŠ / vyučení,50–80 tis.,5,9,6,6,7,5,7,6,4,6,5,5,3,7,4,7,6
+03R0058,Profesionálové,žena,18,Ústecký,SŠ s maturitou,do 30 tis.,8,7,5,7,6,6,8,6,5,9,7,4,9,6,5,7,6
+03R0059,Krátké video a trendy,muž,27,Jihomoravský,VŠ,30–50 tis.,9,5,6,4,6,5,9,5,6,7,10,3,4,6,4,8,8
+03R0060,Profesionálové,žena,47,Ústecký,SŠ s maturitou,30–50 tis.,6,9,6,6,2,5,5,7,5,5,5,4,4,7,6,5,6
+03R0061,Masový mainstream,muž,36,Moravskoslezský,VŠ,30–50 tis.,6,7,6,5,6,5,6,5,6,5,5,4,5,7,6,6,8
+03R0062,Krátké video a trendy,muž,35,Olomoucký,SŠ s maturitou,80 tis. +,7,7,6,5,5,7,9,5,4,8,8,3,5,4,5,5,7
+03R0063,Komunitní diskutéři,žena,42,Ústecký,ZŠ / vyučení,30–50 tis.,6,5,8,7,6,6,4,5,5,5,6,7,7,5,6,7,6
+03R0064,Profesionálové,muž,46,Jihočeský,SŠ s maturitou,80 tis. +,3,9,6,6,7,6,4,4,5,2,2,6,5,7,5,4,3
+03R0065,Krátké video a trendy,žena,49,Jihočeský,ZŠ / vyučení,80 tis. +,7,5,5,8,5,4,7,4,6,5,6,6,8,5,7,4,6
+03R0066,Masový mainstream,žena,46,Plzeňský,VŠ,do 30 tis.,9,2,7,5,6,6,5,3,5,5,8,7,7,2,5,7,4
+03R0067,Krátké video a trendy,žena,18,Ústecký,ZŠ / vyučení,80 tis. +,9,7,7,7,9,5,7,5,8,6,8,7,8,7,6,7,9
+03R0068,Masový mainstream,muž,42,Olomoucký,ZŠ / vyučení,80 tis. +,9,6,6,5,7,6,7,3,5,7,5,6,7,6,4,7,5
+03R0069,Profesionálové,žena,44,Středočeský,ZŠ / vyučení,80 tis. +,5,7,7,7,4,7,5,7,7,6,6,7,4,6,7,7,4
+03R0070,Komunitní diskutéři,muž,46,Olomoucký,VŠ,do 30 tis.,4,6,6,6,6,5,4,7,7,4,3,5,6,6,4,6,4
+03R0071,Soukromější pozorovatelé,žena,33,Olomoucký,SŠ s maturitou,do 30 tis.,7,5,5,4,9,3,5,4,3,3,4,7,6,5,4,6,5
+03R0072,Soukromější pozorovatelé,muž,25,Olomoucký,SŠ s maturitou,30–50 tis.,7,5,5,5,7,5,5,5,6,6,4,4,6,4,4,5,4
+03R0073,Komunitní diskutéři,žena,25,Ústecký,SŠ s maturitou,do 30 tis.,5,5,7,9,6,5,5,4,6,5,4,7,6,5,6,7,7
+03R0074,Krátké video a trendy,žena,18,Ústecký,SŠ s maturitou,30–50 tis.,5,4,6,5,6,7,8,7,1,7,8,7,6,4,5,5,8
+03R0075,Masový mainstream,muž,63,Praha,ZŠ / vyučení,30–50 tis.,6,7,8,5,6,6,5,6,6,5,4,6,6,6,6,6,5
+03R0076,Komunitní diskutéři,žena,33,Praha,ZŠ / vyučení,50–80 tis.,6,8,8,7,8,6,5,9,4,4,6,8,6,4,6,9,3
+03R0077,Masový mainstream,žena,30,Ústecký,SŠ s maturitou,do 30 tis.,4,7,6,4,4,7,5,7,6,4,3,6,3,5,3,4,3
+03R0078,Profesionálové,muž,31,Ústecký,SŠ s maturitou,30–50 tis.,7,8,5,7,7,5,6,7,6,5,6,7,6,7,4,5,7
+03R0079,Komunitní diskutéři,muž,54,Jihočeský,ZŠ / vyučení,30–50 tis.,7,7,8,8,4,6,5,7,5,7,7,9,7,7,9,9,7
+03R0080,Soukromější pozorovatelé,muž,26,Plzeňský,SŠ s maturitou,do 30 tis.,8,5,6,3,8,2,8,7,7,6,7,5,8,4,3,5,7
+03R0081,Masový mainstream,muž,55,Jihomoravský,SŠ s maturitou,30–50 tis.,9,5,7,7,6,4,5,7,4,5,6,6,8,6,5,7,5
+03R0082,Soukromější pozorovatelé,žena,66,Moravskoslezský,VŠ,do 30 tis.,9,4,6,9,9,3,5,5,4,5,7,5,7,3,6,7,5
+03R0083,Masový mainstream,žena,38,Plzeňský,SŠ s maturitou,30–50 tis.,6,5,4,8,5,3,5,7,3,5,5,5,8,6,6,5,5
+03R0084,Masový mainstream,žena,33,Jihočeský,SŠ s maturitou,30–50 tis.,5,5,6,4,3,5,6,5,4,5,5,6,6,5,7,5,5
+03R0085,Komunitní diskutéři,muž,59,Moravskoslezský,ZŠ / vyučení,50–80 tis.,3,5,9,6,6,8,5,4,5,4,3,6,3,4,6,6,5
+03R0086,Profesionálové,žena,36,Moravskoslezský,ZŠ / vyučení,do 30 tis.,5,8,3,7,5,6,6,6,3,3,4,2,4,6,6,3,5
+03R0087,Krátké video a trendy,žena,38,Praha,SŠ s maturitou,do 30 tis.,8,6,4,3,4,5,9,7,8,6,8,4,6,6,4,5,6
+03R0088,Soukromější pozorovatelé,žena,36,Olomoucký,VŠ,50–80 tis.,6,8,6,5,6,6,5,6,3,8,6,5,6,7,5,8,4
+03R0089,Krátké video a trendy,muž,18,Ústecký,ZŠ / vyučení,30–50 tis.,8,4,6,5,4,6,6,7,4,7,5,4,8,4,4,4,4
+03R0090,Soukromější pozorovatelé,žena,38,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,6,5,7,8,5,6,4,4,6,5,5,5,7,6,7,6
+03R0091,Krátké video a trendy,muž,42,Jihomoravský,SŠ s maturitou,30–50 tis.,10,6,5,6,5,7,9,6,6,10,9,4,9,5,7,8,7
+03R0092,Soukromější pozorovatelé,muž,18,Praha,SŠ s maturitou,50–80 tis.,6,7,6,6,8,2,7,1,8,3,4,4,6,6,5,3,6
+03R0093,Masový mainstream,žena,30,Olomoucký,SŠ s maturitou,30–50 tis.,5,5,6,5,7,6,6,5,6,5,5,5,4,4,6,6,7
+03R0094,Soukromější pozorovatelé,žena,42,Moravskoslezský,VŠ,do 30 tis.,7,5,7,6,8,5,6,6,7,7,5,7,5,4,8,9,8
+03R0095,Profesionálové,muž,32,Olomoucký,VŠ,30–50 tis.,6,9,7,7,3,6,6,9,8,7,5,5,6,8,9,6,7
+03R0096,Krátké video a trendy,žena,18,Středočeský,VŠ,30–50 tis.,6,6,7,5,6,6,7,8,3,6,7,5,6,4,7,5,6
+03R0097,Masový mainstream,muž,56,Moravskoslezský,VŠ,50–80 tis.,6,5,7,9,7,8,4,3,6,7,5,6,6,4,6,6,4
+03R0098,Krátké video a trendy,žena,28,Ústecký,VŠ,do 30 tis.,6,4,6,6,6,7,9,5,7,8,5,3,7,2,4,5,7
+03R0099,Komunitní diskutéři,muž,37,Středočeský,SŠ s maturitou,30–50 tis.,5,4,6,7,4,6,4,5,4,7,5,6,6,5,7,5,4
+03R0100,Krátké video a trendy,muž,23,Moravskoslezský,SŠ s maturitou,80 tis. +,7,4,7,5,7,7,7,8,7,6,5,6,6,1,5,6,5
+03R0101,Profesionálové,žena,31,Olomoucký,ZŠ / vyučení,do 30 tis.,7,7,6,7,5,5,7,2,5,4,6,3,6,5,4,5,6
+03R0102,Komunitní diskutéři,žena,61,Moravskoslezský,SŠ s maturitou,do 30 tis.,7,5,6,8,5,5,6,6,4,5,7,5,8,4,9,6,6
+03R0103,Krátké video a trendy,žena,30,Plzeňský,ZŠ / vyučení,30–50 tis.,10,5,6,5,6,8,7,5,6,7,8,5,8,4,4,5,7
+03R0104,Krátké video a trendy,žena,41,Středočeský,SŠ s maturitou,50–80 tis.,7,4,6,4,6,6,8,5,7,7,7,3,5,3,4,6,6
+03R0105,Komunitní diskutéři,muž,44,Středočeský,SŠ s maturitou,50–80 tis.,6,5,10,9,7,7,3,7,4,5,6,9,7,4,9,9,5
+03R0106,Profesionálové,muž,18,Praha,SŠ s maturitou,80 tis. +,7,9,6,8,5,5,5,4,3,6,5,5,6,9,6,7,6
+03R0107,Profesionálové,žena,38,Olomoucký,ZŠ / vyučení,do 30 tis.,5,9,5,5,5,6,4,6,7,6,6,5,6,9,5,7,6
+03R0108,Krátké video a trendy,žena,31,Jihomoravský,VŠ,80 tis. +,7,8,5,5,6,6,6,6,6,6,6,4,7,9,5,3,5
+03R0109,Komunitní diskutéři,muž,54,Olomoucký,SŠ s maturitou,50–80 tis.,4,5,8,8,4,5,3,5,6,4,5,7,6,6,8,9,4
+03R0110,Profesionálové,muž,52,Olomoucký,ZŠ / vyučení,30–50 tis.,4,10,6,7,6,4,5,5,4,5,2,7,5,8,7,6,4
+03R0111,Profesionálové,žena,51,Jihomoravský,ZŠ / vyučení,do 30 tis.,3,8,4,7,6,4,7,2,7,5,4,4,6,6,5,4,6
+03R0112,Krátké video a trendy,žena,31,Plzeňský,SŠ s maturitou,30–50 tis.,10,4,5,6,4,7,9,5,5,10,8,4,8,2,5,5,7
+03R0113,Komunitní diskutéři,muž,38,Praha,SŠ s maturitou,do 30 tis.,6,3,7,7,7,5,5,3,8,6,5,7,7,4,9,8,5
+03R0114,Masový mainstream,muž,35,Ústecký,VŠ,do 30 tis.,5,6,6,7,7,4,5,7,7,4,4,5,6,7,6,8,5
+03R0115,Masový mainstream,žena,41,Ústecký,VŠ,do 30 tis.,7,7,6,3,6,5,5,7,7,6,5,5,4,5,5,4,5
+03R0116,Masový mainstream,muž,41,Jihomoravský,SŠ s maturitou,30–50 tis.,5,7,6,6,6,7,5,5,8,5,4,7,5,5,6,4,5
+03R0117,Masový mainstream,žena,34,Plzeňský,ZŠ / vyučení,50–80 tis.,6,6,6,6,7,5,5,6,6,5,5,5,4,6,5,6,5
+03R0118,Soukromější pozorovatelé,žena,58,Plzeňský,SŠ s maturitou,30–50 tis.,5,5,6,5,6,4,5,5,2,5,4,6,6,7,5,5,6
+03R0119,Masový mainstream,žena,34,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,7,6,7,5,4,5,7,4,5,5,6,6,4,7,6,6
+03R0120,Krátké video a trendy,muž,18,Středočeský,ZŠ / vyučení,30–50 tis.,8,6,7,6,6,4,8,7,3,5,6,6,5,3,5,6,6
+03R0121,Soukromější pozorovatelé,žena,18,Ústecký,VŠ,80 tis. +,6,6,7,6,7,3,6,6,6,4,5,7,6,6,5,6,5
+03R0122,Krátké video a trendy,muž,18,Jihočeský,SŠ s maturitou,80 tis. +,9,5,6,5,6,8,8,7,5,9,6,4,7,4,4,5,8
+03R0123,Soukromější pozorovatelé,žena,35,Plzeňský,SŠ s maturitou,do 30 tis.,6,7,5,6,8,5,5,5,5,4,6,4,5,6,6,6,5
+03R0124,Krátké video a trendy,žena,18,Středočeský,ZŠ / vyučení,do 30 tis.,8,6,4,6,5,9,7,7,7,8,7,5,7,5,6,6,7
+03R0125,Krátké video a trendy,muž,18,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,6,7,4,7,6,6,4,4,6,5,7,4,5,5,8,7
+03R0126,Soukromější pozorovatelé,žena,53,Ústecký,SŠ s maturitou,80 tis. +,3,6,5,5,8,4,4,6,5,3,4,7,4,5,5,5,5
+03R0127,Komunitní diskutéři,žena,34,Středočeský,SŠ s maturitou,50–80 tis.,7,5,7,8,4,5,8,5,5,6,7,5,5,4,7,5,6
+03R0128,Soukromější pozorovatelé,muž,37,Jihomoravský,VŠ,50–80 tis.,4,5,7,5,10,3,4,4,5,3,3,7,3,6,4,8,6
+03R0129,Masový mainstream,žena,34,Moravskoslezský,ZŠ / vyučení,30–50 tis.,4,8,8,6,4,7,6,6,7,6,6,9,5,9,6,7,4
+03R0130,Masový mainstream,muž,62,Jihočeský,SŠ s maturitou,50–80 tis.,4,4,7,6,5,6,8,6,5,6,6,6,4,4,7,8,8
+03R0131,Masový mainstream,žena,31,Praha,ZŠ / vyučení,30–50 tis.,7,6,4,7,4,4,5,6,3,5,6,3,6,6,4,5,4
+03R0132,Krátké video a trendy,žena,25,Středočeský,ZŠ / vyučení,do 30 tis.,7,7,5,7,6,7,6,7,6,6,5,5,6,6,6,6,6
+03R0133,Soukromější pozorovatelé,žena,28,Jihomoravský,SŠ s maturitou,80 tis. +,7,6,7,6,7,4,6,7,7,4,7,7,7,6,6,10,6
+03R0134,Soukromější pozorovatelé,muž,34,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,6,6,6,9,7,6,4,5,7,5,5,6,6,5,4,6
+03R0135,Masový mainstream,muž,19,Olomoucký,ZŠ / vyučení,50–80 tis.,7,6,7,4,4,8,4,3,6,6,7,7,5,6,5,7,3
+03R0136,Krátké video a trendy,žena,18,Jihočeský,SŠ s maturitou,80 tis. +,10,6,5,4,8,6,8,2,5,6,8,5,7,5,4,4,6
+03R0137,Komunitní diskutéři,žena,29,Moravskoslezský,SŠ s maturitou,do 30 tis.,5,8,7,8,7,5,5,8,9,5,4,6,4,6,7,5,4
+03R0138,Masový mainstream,muž,34,Moravskoslezský,SŠ s maturitou,80 tis. +,7,5,7,6,6,7,5,6,5,6,3,6,5,5,7,6,5
+03R0139,Soukromější pozorovatelé,muž,46,Středočeský,VŠ,30–50 tis.,6,5,6,6,8,4,5,5,7,3,6,7,6,5,5,3,6
+03R0140,Krátké video a trendy,žena,39,Jihomoravský,VŠ,do 30 tis.,8,5,4,7,5,6,8,6,9,7,8,3,7,5,6,4,6
+03R0141,Komunitní diskutéři,žena,31,Jihočeský,SŠ s maturitou,do 30 tis.,5,6,7,7,5,5,5,5,7,4,5,5,3,7,5,5,6
+03R0142,Profesionálové,žena,28,Jihočeský,ZŠ / vyučení,30–50 tis.,7,10,6,4,6,5,4,5,4,4,4,5,5,8,5,4,3
+03R0143,Komunitní diskutéři,žena,25,Ústecký,SŠ s maturitou,30–50 tis.,6,6,9,7,5,6,7,6,4,7,7,8,3,5,8,7,5
+03R0144,Profesionálové,muž,47,Olomoucký,SŠ s maturitou,80 tis. +,5,7,4,6,4,5,6,6,5,4,7,5,4,8,6,6,6
+03R0145,Profesionálové,žena,39,Praha,VŠ,50–80 tis.,8,9,6,6,4,4,5,7,6,5,7,5,8,9,6,7,4
+03R0146,Masový mainstream,muž,32,Středočeský,SŠ s maturitou,30–50 tis.,6,4,4,7,7,4,6,3,6,7,7,5,6,4,6,6,7
+03R0147,Profesionálové,muž,28,Jihomoravský,SŠ s maturitou,50–80 tis.,6,7,6,5,3,6,6,5,7,8,8,6,8,7,6,7,5
+03R0148,Soukromější pozorovatelé,muž,41,Moravskoslezský,SŠ s maturitou,do 30 tis.,7,6,3,5,9,4,5,8,3,2,3,4,7,5,4,4,5
+03R0149,Masový mainstream,žena,28,Moravskoslezský,ZŠ / vyučení,30–50 tis.,7,7,5,5,3,5,5,5,6,6,6,5,6,7,5,4,4
+03R0150,Profesionálové,žena,18,Jihomoravský,SŠ s maturitou,50–80 tis.,6,8,5,6,5,5,4,7,5,3,5,6,8,7,4,6,4
+03R0151,Masový mainstream,žena,25,Ústecký,VŠ,50–80 tis.,6,5,6,6,5,4,6,5,3,5,6,5,5,4,6,5,4
+03R0152,Masový mainstream,muž,32,Ústecký,SŠ s maturitou,30–50 tis.,6,5,6,6,7,3,5,6,7,5,4,7,5,3,6,6,6
+03R0153,Krátké video a trendy,žena,29,Jihočeský,ZŠ / vyučení,50–80 tis.,9,5,5,5,5,7,8,6,6,8,10,2,8,3,4,5,7
+03R0154,Krátké video a trendy,muž,19,Praha,VŠ,50–80 tis.,10,7,6,8,7,6,9,3,5,8,8,4,8,6,9,6,10
+03R0155,Profesionálové,muž,38,Středočeský,VŠ,50–80 tis.,7,8,7,9,5,4,5,8,8,4,6,6,8,6,8,7,5
+03R0156,Komunitní diskutéři,žena,62,Jihočeský,SŠ s maturitou,30–50 tis.,6,6,8,5,6,7,5,6,6,5,6,6,4,6,7,7,3
+03R0157,Masový mainstream,muž,26,Jihomoravský,SŠ s maturitou,do 30 tis.,8,5,5,6,7,4,5,5,4,4,7,6,7,5,6,6,5
+03R0158,Komunitní diskutéři,muž,40,Olomoucký,VŠ,50–80 tis.,6,5,8,7,5,6,7,4,6,7,9,6,5,6,9,9,5
+03R0159,Masový mainstream,žena,36,Olomoucký,SŠ s maturitou,50–80 tis.,8,7,7,6,6,4,5,8,5,5,7,7,6,5,5,5,7
+03R0160,Masový mainstream,muž,36,Praha,SŠ s maturitou,do 30 tis.,8,7,8,6,6,5,7,5,6,6,7,5,7,7,7,7,6
+03R0161,Komunitní diskutéři,žena,35,Ústecký,VŠ,30–50 tis.,6,5,6,8,7,4,6,3,3,7,7,5,3,3,7,7,6
+03R0162,Profesionálové,muž,29,Jihomoravský,VŠ,50–80 tis.,5,7,6,7,6,7,6,4,5,6,7,7,5,7,8,7,7
+03R0163,Soukromější pozorovatelé,žena,39,Plzeňský,SŠ s maturitou,do 30 tis.,4,5,7,5,7,4,6,5,6,5,5,7,4,6,5,7,6
+03R0164,Masový mainstream,muž,35,Ústecký,VŠ,30–50 tis.,8,5,4,7,6,4,8,7,6,7,8,3,7,5,6,7,7
+03R0165,Soukromější pozorovatelé,muž,42,Praha,SŠ s maturitou,50–80 tis.,6,4,5,6,8,4,6,3,4,6,6,6,6,6,6,7,7
+03R0166,Profesionálové,žena,68,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,8,4,7,7,6,7,3,4,6,6,4,9,8,4,5,6
+03R0167,Soukromější pozorovatelé,muž,18,Plzeňský,SŠ s maturitou,30–50 tis.,4,5,7,4,10,4,4,4,6,4,2,7,2,3,3,4,6
+03R0168,Masový mainstream,muž,46,Plzeňský,SŠ s maturitou,30–50 tis.,7,5,4,5,5,8,5,7,5,5,6,5,4,3,3,4,4
+03R0169,Komunitní diskutéři,muž,65,Plzeňský,SŠ s maturitou,30–50 tis.,6,3,8,5,6,7,5,6,6,8,7,8,7,4,7,7,7
+03R0170,Soukromější pozorovatelé,žena,28,Středočeský,SŠ s maturitou,30–50 tis.,6,8,5,6,8,4,4,4,6,7,5,5,7,8,6,6,3
+03R0171,Masový mainstream,muž,40,Ústecký,ZŠ / vyučení,do 30 tis.,4,6,8,6,6,4,6,5,7,5,5,5,3,6,7,8,5
+03R0172,Krátké video a trendy,muž,18,Ústecký,SŠ s maturitou,30–50 tis.,8,6,8,5,3,8,7,8,8,9,8,6,8,5,5,5,6
+03R0173,Profesionálové,muž,37,Plzeňský,VŠ,30–50 tis.,6,9,5,7,4,7,6,6,5,7,7,5,6,8,5,6,6
+03R0174,Krátké video a trendy,žena,39,Středočeský,VŠ,80 tis. +,8,6,6,5,4,5,6,4,4,6,7,7,8,7,5,6,5
+03R0175,Profesionálové,muž,32,Praha,ZŠ / vyučení,50–80 tis.,7,10,6,4,7,4,5,4,7,7,5,6,5,8,5,6,5
+03R0176,Masový mainstream,muž,30,Jihomoravský,ZŠ / vyučení,80 tis. +,6,5,7,4,5,4,5,7,8,5,5,7,6,6,5,6,6
+03R0177,Masový mainstream,žena,48,Olomoucký,VŠ,30–50 tis.,5,7,6,4,5,5,4,4,2,5,6,7,5,7,5,6,4
+03R0178,Krátké video a trendy,muž,25,Jihomoravský,SŠ s maturitou,30–50 tis.,9,4,6,5,5,6,7,6,9,8,7,5,8,4,5,5,8
+03R0179,Krátké video a trendy,žena,32,Jihočeský,VŠ,30–50 tis.,9,3,6,6,5,7,9,7,5,9,9,4,10,3,6,6,8
+03R0180,Profesionálové,žena,69,Jihomoravský,SŠ s maturitou,50–80 tis.,7,6,6,6,4,5,5,5,4,6,7,6,7,5,6,5,5
+03R0181,Masový mainstream,muž,19,Středočeský,VŠ,50–80 tis.,8,8,6,4,7,7,6,5,6,7,8,6,9,8,7,5,6
+03R0182,Masový mainstream,muž,57,Ústecký,VŠ,50–80 tis.,6,5,4,5,5,8,5,4,3,8,6,4,5,5,6,5,5
+03R0183,Soukromější pozorovatelé,žena,22,Olomoucký,VŠ,30–50 tis.,6,3,4,5,7,4,7,4,8,4,6,3,6,3,4,5,6
+03R0184,Masový mainstream,muž,40,Praha,SŠ s maturitou,do 30 tis.,8,4,6,4,5,7,5,10,10,7,7,5,7,5,3,6,6
+03R0185,Masový mainstream,muž,35,Olomoucký,SŠ s maturitou,do 30 tis.,7,6,7,4,5,7,5,5,6,6,7,6,7,6,5,6,6
+03R0186,Masový mainstream,muž,28,Olomoucký,SŠ s maturitou,do 30 tis.,8,6,6,5,4,6,4,8,5,7,6,7,5,6,7,5,4
+03R0187,Komunitní diskutéři,muž,28,Jihočeský,SŠ s maturitou,80 tis. +,3,6,8,7,5,5,7,7,4,4,3,5,4,5,8,8,5
+03R0188,Komunitní diskutéři,žena,28,Ústecký,ZŠ / vyučení,30–50 tis.,5,7,7,7,7,5,5,8,4,5,5,7,5,6,6,6,4
+03R0189,Komunitní diskutéři,žena,33,Olomoucký,ZŠ / vyučení,50–80 tis.,7,5,7,4,8,3,6,6,5,6,5,4,7,4,5,6,6
+03R0190,Krátké video a trendy,muž,33,Praha,SŠ s maturitou,30–50 tis.,8,5,2,3,4,9,8,7,3,7,7,1,9,3,3,1,7
+03R0191,Masový mainstream,žena,43,Jihočeský,SŠ s maturitou,30–50 tis.,8,8,6,5,6,5,6,7,5,6,8,6,6,6,5,6,4
+03R0192,Profesionálové,muž,35,Plzeňský,VŠ,30–50 tis.,7,8,4,6,6,6,6,7,9,8,6,4,5,9,6,6,6
+03R0193,Profesionálové,žena,18,Praha,SŠ s maturitou,80 tis. +,6,6,9,6,6,7,5,4,6,6,6,7,5,3,5,5,3
+03R0194,Masový mainstream,žena,52,Ústecký,SŠ s maturitou,50–80 tis.,7,5,7,5,5,5,4,6,6,5,3,5,6,4,5,5,3
+03R0195,Masový mainstream,žena,40,Olomoucký,SŠ s maturitou,30–50 tis.,7,5,6,7,7,7,5,6,4,7,6,5,8,4,7,6,7
+03R0196,Profesionálové,muž,24,Praha,ZŠ / vyučení,30–50 tis.,4,9,5,6,6,5,5,8,6,5,5,5,4,8,6,6,4
+03R0197,Krátké video a trendy,žena,19,Ústecký,SŠ s maturitou,50–80 tis.,8,7,6,5,6,8,8,7,5,8,8,4,7,5,7,6,6
+03R0198,Masový mainstream,muž,36,Středočeský,ZŠ / vyučení,30–50 tis.,7,7,8,6,7,6,6,4,4,6,6,6,5,5,6,6,5
+03R0199,Profesionálové,žena,37,Plzeňský,VŠ,30–50 tis.,5,9,6,6,7,5,6,7,8,4,3,6,4,6,4,7,5
+03R0200,Profesionálové,žena,40,Středočeský,ZŠ / vyučení,30–50 tis.,5,7,6,7,7,2,5,4,6,3,5,6,3,7,7,5,5
+03R0201,Krátké video a trendy,žena,30,Moravskoslezský,SŠ s maturitou,50–80 tis.,9,5,6,5,5,6,6,3,5,7,8,4,9,5,4,5,6
+03R0202,Profesionálové,žena,47,Ústecký,VŠ,50–80 tis.,5,8,7,7,5,6,7,7,3,6,5,6,4,8,6,7,7
+03R0203,Masový mainstream,žena,33,Jihočeský,VŠ,30–50 tis.,7,6,5,5,7,6,5,6,5,6,6,7,9,6,7,5,6
+03R0204,Masový mainstream,muž,44,Plzeňský,SŠ s maturitou,do 30 tis.,7,7,5,6,4,6,7,5,5,7,8,4,7,8,6,5,7
+03R0205,Profesionálové,muž,31,Praha,ZŠ / vyučení,30–50 tis.,5,7,7,5,7,5,7,9,7,3,5,5,3,6,4,6,6
+03R0206,Komunitní diskutéři,muž,34,Jihočeský,SŠ s maturitou,30–50 tis.,5,6,9,6,7,4,5,7,5,2,3,8,4,7,8,7,5
+03R0207,Krátké video a trendy,žena,18,Jihočeský,SŠ s maturitou,80 tis. +,8,6,8,3,6,6,9,7,5,8,7,7,6,6,2,8,7
+03R0208,Masový mainstream,muž,59,Jihomoravský,SŠ s maturitou,50–80 tis.,5,5,5,3,5,7,5,6,6,6,3,6,6,6,2,4,5
+03R0209,Soukromější pozorovatelé,muž,54,Plzeňský,VŠ,80 tis. +,6,7,6,4,6,5,6,4,8,7,5,6,3,7,3,5,5
+03R0210,Soukromější pozorovatelé,žena,38,Ústecký,VŠ,80 tis. +,4,7,6,7,7,7,4,6,5,4,4,5,6,5,7,6,5
+03R0211,Krátké video a trendy,muž,40,Olomoucký,SŠ s maturitou,do 30 tis.,7,7,5,6,4,7,7,6,6,10,9,6,9,7,6,8,8
+03R0212,Krátké video a trendy,žena,18,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,7,5,4,6,6,8,5,6,7,7,2,6,6,3,5,5
+03R0213,Masový mainstream,žena,54,Jihočeský,SŠ s maturitou,do 30 tis.,8,6,5,5,6,6,5,5,7,6,7,7,7,5,5,4,5
+03R0214,Masový mainstream,muž,21,Jihomoravský,ZŠ / vyučení,do 30 tis.,6,6,8,4,4,4,6,5,5,6,3,6,5,7,4,4,6
+03R0215,Profesionálové,muž,28,Jihomoravský,SŠ s maturitou,30–50 tis.,5,7,6,6,6,6,6,8,6,6,6,5,6,5,4,6,5
+03R0216,Profesionálové,muž,35,Olomoucký,VŠ,80 tis. +,6,10,5,7,8,7,5,2,6,3,6,5,6,8,5,7,6
+03R0217,Krátké video a trendy,žena,35,Jihomoravský,ZŠ / vyučení,30–50 tis.,8,6,4,7,4,8,8,5,2,9,8,2,6,4,5,4,8
+03R0218,Masový mainstream,muž,60,Jihomoravský,ZŠ / vyučení,30–50 tis.,7,5,6,6,6,5,8,8,5,6,6,7,6,6,6,6,8
+03R0219,Soukromější pozorovatelé,žena,47,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,6,6,4,8,5,8,2,8,5,3,4,6,3,2,5,7
+03R0220,Profesionálové,muž,54,Jihomoravský,SŠ s maturitou,30–50 tis.,4,7,5,7,5,4,6,5,5,3,4,7,5,7,7,5,5
+03R0221,Krátké video a trendy,muž,18,Středočeský,VŠ,do 30 tis.,8,5,5,5,4,5,9,6,5,5,9,2,6,4,4,4,8
+03R0222,Profesionálové,muž,39,Olomoucký,ZŠ / vyučení,do 30 tis.,5,8,8,6,6,5,4,5,2,5,6,7,5,7,6,6,6
+03R0223,Masový mainstream,žena,43,Jihomoravský,VŠ,50–80 tis.,6,4,8,6,5,5,6,4,6,5,4,6,4,5,7,8,4
+03R0224,Komunitní diskutéři,muž,45,Ústecký,SŠ s maturitou,30–50 tis.,5,6,8,8,6,6,7,4,5,5,6,5,5,5,5,8,5
+03R0225,Masový mainstream,žena,32,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,6,4,6,4,4,6,5,5,7,6,4,5,5,5,3,5
+03R0226,Masový mainstream,žena,38,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,7,5,9,5,3,5,4,3,6,6,6,8,7,7,7,7
+03R0227,Masový mainstream,žena,33,Praha,SŠ s maturitou,50–80 tis.,5,4,6,8,8,5,6,6,4,7,7,6,4,2,7,8,5
+03R0228,Krátké video a trendy,žena,28,Středočeský,SŠ s maturitou,30–50 tis.,9,6,7,3,5,7,8,4,7,6,8,4,8,5,5,6,7
+03R0229,Masový mainstream,muž,62,Ústecký,VŠ,do 30 tis.,7,5,6,4,7,4,5,5,3,5,4,6,6,4,4,5,6
+03R0230,Komunitní diskutéři,žena,39,Olomoucký,VŠ,30–50 tis.,6,5,8,8,6,6,5,5,5,7,5,7,5,6,9,8,4
+03R0231,Krátké video a trendy,muž,22,Moravskoslezský,VŠ,do 30 tis.,8,7,5,5,5,7,9,4,4,9,10,2,7,7,4,4,8
+03R0232,Soukromější pozorovatelé,muž,35,Středočeský,SŠ s maturitou,do 30 tis.,6,5,6,3,10,6,7,4,2,5,7,6,6,5,5,6,7
+03R0233,Krátké video a trendy,muž,25,Jihomoravský,ZŠ / vyučení,30–50 tis.,7,4,5,6,6,6,7,4,4,5,6,5,6,5,6,5,5
+03R0234,Masový mainstream,muž,47,Jihočeský,ZŠ / vyučení,30–50 tis.,6,6,5,7,7,5,9,4,7,7,7,5,5,5,6,6,7
+03R0235,Komunitní diskutéři,žena,54,Olomoucký,SŠ s maturitou,30–50 tis.,7,5,9,8,4,6,7,3,6,6,6,6,6,5,6,7,4
+03R0236,Soukromější pozorovatelé,žena,40,Moravskoslezský,ZŠ / vyučení,50–80 tis.,8,6,5,6,8,5,7,8,6,7,8,4,5,5,3,5,6
+03R0237,Komunitní diskutéři,žena,27,Středočeský,SŠ s maturitou,do 30 tis.,6,4,9,5,6,7,6,2,7,7,7,8,7,4,7,9,9
+03R0238,Masový mainstream,muž,24,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,5,7,4,5,5,3,4,5,5,6,8,6,7,7,7,5
+03R0239,Profesionálové,žena,57,Ústecký,ZŠ / vyučení,do 30 tis.,7,8,5,6,6,3,4,5,6,4,6,6,5,6,4,5,3
+03R0240,Profesionálové,žena,52,Středočeský,SŠ s maturitou,do 30 tis.,7,9,3,8,6,6,5,6,8,5,5,5,6,9,5,3,5
+03R0241,Komunitní diskutéři,žena,35,Plzeňský,VŠ,do 30 tis.,5,4,7,8,4,6,5,8,7,4,4,7,5,5,8,6,5
+03R0242,Masový mainstream,muž,57,Jihočeský,SŠ s maturitou,50–80 tis.,8,8,5,7,6,6,5,4,6,6,6,5,6,7,7,6,6
+03R0243,Krátké video a trendy,muž,29,Praha,ZŠ / vyučení,30–50 tis.,9,5,6,5,6,6,9,3,4,9,8,5,6,6,4,6,9
+03R0244,Soukromější pozorovatelé,žena,54,Jihočeský,VŠ,do 30 tis.,6,4,4,6,9,4,6,4,2,5,4,3,4,4,5,5,7
+03R0245,Komunitní diskutéři,muž,43,Středočeský,ZŠ / vyučení,50–80 tis.,4,6,9,7,6,6,7,5,5,5,5,6,6,5,7,8,6
+03R0246,Komunitní diskutéři,muž,60,Ústecký,ZŠ / vyučení,30–50 tis.,5,5,10,5,5,7,7,6,6,7,6,5,4,4,6,8,5
+03R0247,Komunitní diskutéři,žena,29,Ústecký,ZŠ / vyučení,30–50 tis.,6,6,8,9,5,6,6,6,8,8,8,7,5,4,10,7,6
+03R0248,Masový mainstream,žena,50,Plzeňský,VŠ,80 tis. +,5,5,6,4,5,4,4,4,4,4,4,5,4,5,4,5,3
+03R0249,Soukromější pozorovatelé,žena,32,Jihočeský,SŠ s maturitou,30–50 tis.,5,5,5,6,9,5,5,5,7,4,6,6,4,6,6,5,7
+03R0250,Krátké video a trendy,muž,33,Plzeňský,ZŠ / vyučení,80 tis. +,9,5,5,5,6,5,9,6,6,9,9,5,7,5,4,6,10
+03R0251,Soukromější pozorovatelé,žena,34,Jihočeský,SŠ s maturitou,30–50 tis.,4,3,4,4,4,4,5,4,5,5,4,6,3,5,3,4,7
+03R0252,Krátké video a trendy,muž,18,Ústecký,SŠ s maturitou,30–50 tis.,9,5,7,5,6,6,8,7,5,7,9,3,8,5,3,6,6
+03R0253,Krátké video a trendy,žena,18,Jihočeský,ZŠ / vyučení,80 tis. +,7,5,8,5,6,8,9,4,5,9,9,6,6,5,6,7,6
+03R0254,Profesionálové,žena,50,Jihočeský,ZŠ / vyučení,50–80 tis.,4,8,5,8,5,4,6,7,3,5,5,5,4,7,6,5,4
+03R0255,Soukromější pozorovatelé,muž,46,Plzeňský,SŠ s maturitou,30–50 tis.,6,3,5,6,7,3,7,7,5,4,6,4,7,2,5,6,6
+03R0256,Profesionálové,žena,29,Moravskoslezský,ZŠ / vyučení,30–50 tis.,7,8,4,8,7,6,7,3,5,5,6,4,6,7,8,4,7
+03R0257,Profesionálové,žena,36,Moravskoslezský,VŠ,50–80 tis.,5,8,6,7,6,6,8,4,6,6,6,4,6,8,7,5,8
+03R0258,Krátké video a trendy,žena,29,Olomoucký,ZŠ / vyučení,30–50 tis.,9,6,6,4,7,9,8,4,6,7,8,6,10,7,5,5,6
+03R0259,Masový mainstream,žena,43,Praha,VŠ,80 tis. +,6,7,6,5,6,4,5,4,6,4,6,6,6,6,4,5,5
+03R0260,Profesionálové,muž,24,Jihočeský,SŠ s maturitou,do 30 tis.,4,7,5,5,7,7,6,6,6,4,3,5,3,6,5,4,5
+03R0261,Krátké video a trendy,žena,32,Středočeský,VŠ,do 30 tis.,7,6,4,4,4,5,8,7,5,7,7,3,7,5,6,4,5
+03R0262,Soukromější pozorovatelé,žena,36,Jihočeský,VŠ,do 30 tis.,6,7,6,4,8,6,5,6,6,3,7,6,6,7,4,6,7
+03R0263,Masový mainstream,žena,64,Ústecký,SŠ s maturitou,30–50 tis.,6,6,8,4,5,4,7,7,9,6,6,7,5,5,6,5,6
+03R0264,Komunitní diskutéři,žena,29,Středočeský,VŠ,80 tis. +,6,6,8,7,4,4,5,7,8,6,4,7,7,4,5,6,6
+03R0265,Soukromější pozorovatelé,žena,42,Plzeňský,SŠ s maturitou,do 30 tis.,7,7,7,5,8,5,5,4,5,5,4,5,6,7,6,5,5
+03R0266,Krátké video a trendy,žena,29,Plzeňský,SŠ s maturitou,80 tis. +,7,4,5,5,5,7,10,6,7,6,9,3,7,3,4,4,8
+03R0267,Krátké video a trendy,muž,18,Praha,SŠ s maturitou,do 30 tis.,8,7,6,6,4,6,7,6,7,6,7,4,6,6,4,4,7
+03R0268,Krátké video a trendy,žena,30,Praha,ZŠ / vyučení,50–80 tis.,9,5,7,4,7,6,8,4,2,9,8,7,8,6,6,7,7
+03R0269,Profesionálové,muž,62,Plzeňský,ZŠ / vyučení,30–50 tis.,7,10,5,7,6,4,4,7,3,5,7,6,7,10,7,5,5
+03R0270,Profesionálové,muž,24,Jihočeský,SŠ s maturitou,30–50 tis.,5,8,6,6,6,6,4,4,7,5,3,3,5,4,4,4,5
+03R0271,Masový mainstream,muž,43,Středočeský,SŠ s maturitou,do 30 tis.,6,4,5,6,8,6,4,5,5,5,4,6,4,3,6,5,5
+03R0272,Komunitní diskutéři,žena,33,Plzeňský,VŠ,do 30 tis.,6,5,8,6,3,6,5,6,6,4,5,7,5,3,5,6,3
+03R0273,Profesionálové,žena,36,Olomoucký,VŠ,30–50 tis.,7,8,5,6,5,5,4,4,7,5,5,5,6,6,3,5,6
+03R0274,Komunitní diskutéři,muž,49,Středočeský,VŠ,50–80 tis.,7,5,8,6,6,4,4,8,8,5,5,7,5,5,9,7,5
+03R0275,Soukromější pozorovatelé,muž,36,Praha,ZŠ / vyučení,50–80 tis.,7,6,6,2,8,5,5,6,4,6,7,5,4,5,4,6,5
+03R0276,Profesionálové,muž,18,Praha,SŠ s maturitou,80 tis. +,4,6,5,8,8,6,9,4,6,7,7,5,5,7,6,6,9
+03R0277,Krátké video a trendy,žena,18,Jihočeský,ZŠ / vyučení,30–50 tis.,9,8,6,4,4,7,10,7,2,9,9,3,7,6,4,4,10
+03R0278,Soukromější pozorovatelé,muž,34,Jihomoravský,SŠ s maturitou,30–50 tis.,4,6,6,6,9,3,5,4,6,2,3,7,4,5,7,7,6
+03R0279,Masový mainstream,žena,22,Plzeňský,SŠ s maturitou,50–80 tis.,8,5,5,3,4,6,5,3,7,4,5,4,7,5,6,4,3
+03R0280,Krátké video a trendy,žena,18,Ústecký,ZŠ / vyučení,do 30 tis.,9,4,5,6,7,8,7,5,6,8,8,4,7,4,5,5,7
+03R0281,Profesionálové,žena,18,Ústecký,ZŠ / vyučení,30–50 tis.,7,9,3,6,5,6,6,5,6,6,10,6,7,9,6,7,6
+03R0282,Komunitní diskutéři,muž,52,Praha,SŠ s maturitou,30–50 tis.,4,6,7,7,8,5,6,5,6,6,5,4,4,6,7,8,5
+03R0283,Masový mainstream,žena,32,Jihočeský,SŠ s maturitou,do 30 tis.,5,5,6,5,5,6,5,5,6,7,5,6,3,5,6,6,5
+03R0284,Krátké video a trendy,žena,39,Ústecký,SŠ s maturitou,30–50 tis.,8,6,6,5,7,6,8,6,6,8,7,5,7,6,5,6,7
+03R0285,Komunitní diskutéři,muž,42,Jihomoravský,SŠ s maturitou,do 30 tis.,6,5,6,6,5,6,5,4,9,5,6,5,4,4,5,5,4
+03R0286,Krátké video a trendy,žena,18,Moravskoslezský,SŠ s maturitou,do 30 tis.,10,5,6,4,5,5,8,6,6,9,10,7,9,6,5,5,8
+03R0287,Komunitní diskutéři,žena,34,Středočeský,ZŠ / vyučení,do 30 tis.,3,6,7,6,6,6,6,3,4,5,5,5,3,7,5,5,4
+03R0288,Krátké video a trendy,muž,26,Jihočeský,SŠ s maturitou,30–50 tis.,8,7,6,5,7,7,6,6,8,6,7,5,6,7,5,4,5
+03R0289,Soukromější pozorovatelé,žena,33,Ústecký,VŠ,do 30 tis.,4,4,5,7,7,5,4,4,3,4,4,5,6,5,5,5,5
+03R0290,Masový mainstream,žena,30,Ústecký,SŠ s maturitou,30–50 tis.,7,4,8,7,4,6,8,6,5,5,6,7,7,5,6,5,7
+03R0291,Soukromější pozorovatelé,muž,42,Jihomoravský,ZŠ / vyučení,do 30 tis.,5,5,6,6,8,5,5,7,8,5,5,5,7,6,6,8,7
+03R0292,Soukromější pozorovatelé,muž,45,Moravskoslezský,ZŠ / vyučení,30–50 tis.,6,8,6,6,6,6,6,4,6,4,6,6,5,8,6,7,7
+03R0293,Profesionálové,muž,58,Ústecký,VŠ,do 30 tis.,5,9,5,5,6,6,6,8,3,6,4,3,3,6,4,4,7
+03R0294,Masový mainstream,muž,38,Plzeňský,VŠ,30–50 tis.,8,5,6,7,6,4,9,8,2,7,6,2,7,5,5,7,6
+03R0295,Profesionálové,muž,37,Moravskoslezský,SŠ s maturitou,50–80 tis.,3,9,4,7,5,5,7,7,7,5,7,5,5,7,7,7,5
+03R0296,Komunitní diskutéři,muž,36,Středočeský,VŠ,80 tis. +,5,10,6,8,5,5,3,7,6,4,4,6,5,6,8,5,4
+03R0297,Soukromější pozorovatelé,žena,54,Plzeňský,SŠ s maturitou,30–50 tis.,6,7,6,4,8,4,5,4,7,4,4,4,6,5,3,4,4
+03R0298,Masový mainstream,muž,29,Praha,SŠ s maturitou,do 30 tis.,6,3,7,3,5,3,7,6,4,5,5,6,6,4,5,5,7
+03R0299,Masový mainstream,žena,37,Olomoucký,ZŠ / vyučení,30–50 tis.,4,7,8,6,6,6,6,7,7,5,4,8,3,5,5,6,5
+03R0300,Profesionálové,žena,31,Jihočeský,ZŠ / vyučení,30–50 tis.,5,8,5,5,6,8,5,3,7,4,5,6,6,5,5,6,5
+03R0301,Krátké video a trendy,muž,33,Praha,SŠ s maturitou,50–80 tis.,8,5,6,3,4,7,8,7,4,8,6,5,7,4,4,5,7
+03R0302,Soukromější pozorovatelé,žena,38,Praha,ZŠ / vyučení,50–80 tis.,6,6,3,4,9,4,6,5,4,5,7,3,5,7,4,4,7
+03R0303,Krátké video a trendy,muž,23,Olomoucký,VŠ,30–50 tis.,6,5,7,5,5,8,8,3,7,7,6,5,6,5,3,7,6
+03R0304,Profesionálové,muž,26,Moravskoslezský,SŠ s maturitou,50–80 tis.,6,8,3,5,5,5,3,4,6,5,6,6,4,5,5,4,3
+03R0305,Profesionálové,žena,38,Jihomoravský,ZŠ / vyučení,30–50 tis.,7,8,6,8,4,5,6,6,6,5,5,4,6,7,7,6,5
+03R0306,Masový mainstream,žena,38,Ústecký,ZŠ / vyučení,do 30 tis.,6,7,6,6,4,5,5,6,7,5,5,5,6,6,6,5,5
+03R0307,Krátké video a trendy,žena,18,Jihočeský,SŠ s maturitou,80 tis. +,8,6,3,7,5,7,9,5,4,8,9,3,9,6,6,4,8
+03R0308,Soukromější pozorovatelé,muž,24,Olomoucký,VŠ,80 tis. +,6,6,7,7,9,3,7,4,5,3,5,5,5,4,9,8,7
+03R0309,Komunitní diskutéři,žena,41,Jihočeský,SŠ s maturitou,do 30 tis.,5,6,9,8,5,7,8,6,4,7,6,3,6,5,7,8,7
+03R0310,Soukromější pozorovatelé,žena,33,Moravskoslezský,SŠ s maturitou,30–50 tis.,6,6,7,5,10,3,5,4,5,4,4,6,4,7,5,7,6
+03R0311,Krátké video a trendy,muž,38,Ústecký,SŠ s maturitou,30–50 tis.,7,6,6,5,6,9,9,6,7,7,7,4,6,5,5,5,9
+03R0312,Soukromější pozorovatelé,muž,24,Plzeňský,SŠ s maturitou,do 30 tis.,5,6,5,4,8,4,5,6,7,6,4,5,5,6,3,4,3
+03R0313,Soukromější pozorovatelé,žena,53,Moravskoslezský,VŠ,30–50 tis.,6,6,8,4,6,5,6,5,5,6,8,9,5,6,5,7,6
+03R0314,Masový mainstream,žena,32,Olomoucký,SŠ s maturitou,50–80 tis.,5,6,6,7,4,7,6,5,6,6,5,5,6,5,9,8,6
+03R0315,Soukromější pozorovatelé,muž,47,Ústecký,ZŠ / vyučení,80 tis. +,5,5,4,4,10,5,3,4,6,5,4,5,5,5,2,4,4
+03R0316,Profesionálové,žena,41,Olomoucký,SŠ s maturitou,30–50 tis.,5,7,7,4,6,6,6,6,8,5,5,3,5,6,6,6,5
+03R0317,Masový mainstream,muž,32,Praha,SŠ s maturitou,30–50 tis.,4,6,8,4,5,4,9,3,5,6,4,5,4,6,6,5,7
+03R0318,Profesionálové,muž,30,Plzeňský,ZŠ / vyučení,50–80 tis.,6,9,7,7,5,7,5,3,6,8,6,7,6,6,8,6,6
+03R0319,Komunitní diskutéři,žena,39,Středočeský,VŠ,do 30 tis.,3,5,7,6,4,6,7,9,6,4,4,6,4,5,5,6,5
+03R0320,Profesionálové,muž,31,Olomoucký,ZŠ / vyučení,do 30 tis.,6,10,4,6,5,5,5,5,3,6,6,6,7,9,7,6,7
+03R0321,Komunitní diskutéři,žena,41,Jihočeský,SŠ s maturitou,30–50 tis.,4,5,9,9,4,4,6,3,6,6,4,4,4,4,9,8,6
+03R0322,Soukromější pozorovatelé,muž,23,Jihočeský,SŠ s maturitou,80 tis. +,4,6,5,5,6,5,4,3,5,5,4,6,6,7,5,7,5
+03R0323,Profesionálové,žena,40,Středočeský,SŠ s maturitou,30–50 tis.,2,9,4,7,4,3,6,6,6,3,5,5,4,7,6,6,5
+03R0324,Masový mainstream,žena,49,Praha,ZŠ / vyučení,do 30 tis.,8,3,6,6,6,6,8,6,7,6,5,4,7,4,6,7,7
+03R0325,Profesionálové,muž,54,Středočeský,ZŠ / vyučení,30–50 tis.,6,9,7,8,6,6,6,8,4,6,5,6,5,8,5,8,6
+03R0326,Masový mainstream,žena,38,Olomoucký,VŠ,50–80 tis.,6,6,4,5,7,6,6,6,6,4,8,4,6,6,3,3,3
+03R0327,Profesionálové,muž,39,Plzeňský,SŠ s maturitou,30–50 tis.,6,9,6,7,7,3,5,4,8,4,5,5,6,7,6,7,5
+03R0328,Krátké video a trendy,žena,27,Ústecký,VŠ,50–80 tis.,8,6,6,4,5,8,7,6,4,8,8,6,7,5,5,6,6
+03R0329,Soukromější pozorovatelé,muž,55,Plzeňský,SŠ s maturitou,do 30 tis.,7,4,4,4,8,3,4,4,8,4,5,7,7,5,4,4,5
+03R0330,Krátké video a trendy,žena,26,Středočeský,SŠ s maturitou,do 30 tis.,7,7,7,7,4,8,8,4,3,9,7,4,6,6,7,5,7
+03R0331,Soukromější pozorovatelé,žena,44,Moravskoslezský,VŠ,50–80 tis.,6,7,5,8,7,5,5,4,7,5,6,7,6,8,8,7,6
+03R0332,Krátké video a trendy,žena,40,Moravskoslezský,VŠ,80 tis. +,6,5,6,7,5,5,9,7,4,9,7,5,5,3,7,6,8
+03R0333,Krátké video a trendy,muž,19,Jihomoravský,VŠ,50–80 tis.,7,4,8,5,5,6,7,6,5,7,8,7,5,4,6,6,6
+03R0334,Komunitní diskutéři,muž,44,Jihomoravský,SŠ s maturitou,50–80 tis.,6,5,9,7,6,7,5,3,3,7,7,10,8,7,8,10,7
+03R0335,Krátké video a trendy,muž,24,Ústecký,ZŠ / vyučení,30–50 tis.,6,5,5,4,7,9,8,3,7,7,8,4,5,5,6,6,8
+03R0336,Masový mainstream,muž,33,Středočeský,VŠ,80 tis. +,7,5,6,7,7,6,6,3,4,7,8,5,5,6,8,7,7
+03R0337,Soukromější pozorovatelé,muž,43,Ústecký,SŠ s maturitou,80 tis. +,6,7,4,6,6,3,8,3,6,7,6,5,8,8,7,5,7
+03R0338,Krátké video a trendy,muž,26,Olomoucký,VŠ,30–50 tis.,8,6,5,5,5,8,8,8,4,8,9,5,6,6,7,6,7
+03R0339,Profesionálové,muž,45,Jihočeský,ZŠ / vyučení,30–50 tis.,5,8,5,7,6,4,4,5,4,4,4,6,5,7,4,4,3
+03R0340,Soukromější pozorovatelé,žena,57,Středočeský,SŠ s maturitou,80 tis. +,5,5,5,5,9,5,4,3,4,4,4,6,6,6,5,5,6
+03R0341,Soukromější pozorovatelé,muž,30,Jihomoravský,VŠ,30–50 tis.,6,6,4,5,6,5,6,6,9,6,6,4,5,5,5,5,6
+03R0342,Krátké video a trendy,žena,27,Plzeňský,ZŠ / vyučení,30–50 tis.,7,5,5,4,8,7,8,8,7,8,9,4,6,5,5,6,7
+03R0343,Krátké video a trendy,žena,31,Praha,SŠ s maturitou,30–50 tis.,7,5,6,6,6,10,9,6,4,8,8,3,6,5,5,7,7
+03R0344,Soukromější pozorovatelé,žena,29,Středočeský,VŠ,30–50 tis.,6,6,4,5,7,4,6,8,5,4,6,4,5,5,4,4,7
+03R0345,Komunitní diskutéři,žena,34,Ústecký,VŠ,50–80 tis.,4,5,9,6,4,5,5,6,3,4,3,6,4,5,6,4,3
+03R0346,Profesionálové,muž,18,Moravskoslezský,SŠ s maturitou,50–80 tis.,5,8,7,8,6,5,6,7,7,5,6,6,5,6,7,7,8
+03R0347,Krátké video a trendy,muž,27,Olomoucký,VŠ,do 30 tis.,7,4,7,4,8,8,6,7,6,7,6,8,7,5,4,5,6
+03R0348,Krátké video a trendy,muž,18,Středočeský,SŠ s maturitou,do 30 tis.,6,3,6,5,5,7,8,8,6,6,7,4,6,3,3,5,6
+03R0349,Masový mainstream,muž,27,Olomoucký,ZŠ / vyučení,30–50 tis.,6,5,5,5,6,4,5,6,3,4,4,6,6,6,5,4,4
+03R0350,Komunitní diskutéři,muž,57,Olomoucký,SŠ s maturitou,30–50 tis.,6,6,9,9,5,8,5,5,3,8,7,9,6,7,9,9,4
+03R0351,Komunitní diskutéři,muž,43,Středočeský,SŠ s maturitou,do 30 tis.,3,7,7,5,8,4,4,6,6,4,5,6,3,9,4,5,5
+03R0352,Masový mainstream,muž,52,Ústecký,SŠ s maturitou,do 30 tis.,7,7,5,8,5,5,5,3,6,6,5,6,8,5,8,6,5
+03R0353,Profesionálové,žena,65,Jihočeský,VŠ,30–50 tis.,5,8,5,7,6,6,7,4,4,5,6,4,3,8,6,6,7
+03R0354,Masový mainstream,muž,34,Olomoucký,SŠ s maturitou,30–50 tis.,5,3,6,7,5,5,6,6,7,5,7,6,6,4,9,7,5
+03R0355,Profesionálové,žena,22,Moravskoslezský,ZŠ / vyučení,do 30 tis.,4,8,5,6,6,6,5,5,6,7,4,6,4,8,6,6,6
+03R0356,Krátké video a trendy,muž,18,Praha,SŠ s maturitou,50–80 tis.,10,5,5,7,6,7,8,6,5,7,7,3,7,5,5,5,6
+03R0357,Komunitní diskutéři,žena,41,Ústecký,VŠ,30–50 tis.,8,5,9,7,6,5,5,5,3,4,7,7,8,5,8,8,6
+03R0358,Komunitní diskutéři,muž,37,Praha,ZŠ / vyučení,30–50 tis.,5,10,9,9,6,4,6,7,5,6,5,6,7,9,7,9,7
+03R0359,Profesionálové,žena,23,Moravskoslezský,SŠ s maturitou,80 tis. +,6,8,7,5,6,7,5,7,6,6,5,6,6,6,6,7,5
+03R0360,Soukromější pozorovatelé,muž,32,Praha,SŠ s maturitou,do 30 tis.,7,6,6,5,8,2,6,1,7,3,7,5,7,7,6,6,4
+03R0361,Krátké video a trendy,muž,18,Olomoucký,VŠ,30–50 tis.,8,4,5,6,3,8,8,6,3,7,8,5,7,3,6,5,6
+03R0362,Masový mainstream,žena,54,Středočeský,SŠ s maturitou,50–80 tis.,5,3,8,5,5,7,3,4,5,5,6,8,6,3,5,7,3
+03R0363,Masový mainstream,muž,42,Jihomoravský,ZŠ / vyučení,50–80 tis.,7,7,8,6,6,5,6,5,6,5,6,7,7,7,5,8,6
+03R0364,Soukromější pozorovatelé,žena,47,Jihočeský,SŠ s maturitou,30–50 tis.,6,4,5,5,9,5,6,4,2,7,7,6,5,6,5,5,6
+03R0365,Profesionálové,žena,53,Středočeský,ZŠ / vyučení,50–80 tis.,7,8,4,6,4,6,4,2,8,5,4,4,7,6,5,4,5
+03R0366,Masový mainstream,muž,37,Praha,VŠ,80 tis. +,8,5,4,4,5,6,7,7,3,7,8,3,8,5,5,4,8
+03R0367,Krátké video a trendy,žena,33,Moravskoslezský,VŠ,do 30 tis.,10,5,5,3,4,8,7,6,5,8,10,5,8,4,1,2,6
+03R0368,Masový mainstream,žena,36,Olomoucký,SŠ s maturitou,50–80 tis.,5,5,4,4,4,4,4,6,6,4,3,5,4,6,3,3,4
+03R0369,Masový mainstream,muž,44,Plzeňský,ZŠ / vyučení,50–80 tis.,6,7,5,7,6,6,7,6,5,5,6,4,5,6,6,5,5
+03R0370,Masový mainstream,muž,69,Jihočeský,VŠ,50–80 tis.,6,7,6,5,7,5,5,7,5,4,4,6,6,5,6,7,5
+03R0371,Masový mainstream,žena,50,Středočeský,ZŠ / vyučení,30–50 tis.,5,4,5,7,6,5,4,7,5,5,6,6,4,5,7,5,4
+03R0372,Krátké video a trendy,muž,20,Plzeňský,SŠ s maturitou,80 tis. +,7,6,5,5,5,5,10,6,4,7,6,3,7,3,6,6,9
+03R0373,Profesionálové,muž,40,Plzeňský,SŠ s maturitou,80 tis. +,6,6,5,6,5,4,6,4,6,4,6,6,9,5,6,5,6
+03R0374,Masový mainstream,muž,34,Olomoucký,SŠ s maturitou,30–50 tis.,4,6,7,6,6,5,7,5,6,6,7,6,4,6,7,8,6
+03R0375,Krátké video a trendy,muž,18,Plzeňský,ZŠ / vyučení,do 30 tis.,7,4,7,4,7,8,7,6,6,6,6,4,4,2,4,4,5
+03R0376,Soukromější pozorovatelé,muž,38,Ústecký,ZŠ / vyučení,50–80 tis.,5,5,6,4,6,3,5,4,7,4,4,6,6,5,6,6,4
+03R0377,Masový mainstream,muž,44,Jihomoravský,ZŠ / vyučení,30–50 tis.,6,4,6,5,6,4,6,7,8,5,5,5,4,3,5,5,5
+03R0378,Profesionálové,muž,18,Olomoucký,SŠ s maturitou,30–50 tis.,6,8,6,8,4,6,5,6,5,5,7,5,7,5,10,7,4
+03R0379,Komunitní diskutéři,muž,35,Středočeský,VŠ,30–50 tis.,6,6,8,7,5,6,4,5,4,6,4,7,6,5,7,6,6
+03R0380,Krátké video a trendy,muž,18,Jihomoravský,ZŠ / vyučení,do 30 tis.,9,6,6,7,4,6,9,4,7,8,8,2,8,7,5,6,8
+03R0381,Komunitní diskutéři,žena,22,Jihočeský,VŠ,30–50 tis.,5,6,7,8,5,5,7,7,6,6,5,5,4,6,7,5,6
+03R0382,Masový mainstream,žena,19,Praha,SŠ s maturitou,30–50 tis.,6,6,7,6,6,5,6,4,5,4,6,4,6,6,8,6,4
+03R0383,Profesionálové,žena,34,Jihočeský,SŠ s maturitou,80 tis. +,8,9,5,6,5,5,5,3,6,6,5,5,8,9,6,5,5
+03R0384,Masový mainstream,muž,58,Olomoucký,SŠ s maturitou,30–50 tis.,7,5,6,6,6,5,6,7,7,6,7,5,8,7,6,7,7
+03R0385,Soukromější pozorovatelé,žena,39,Ústecký,ZŠ / vyučení,do 30 tis.,6,3,7,5,8,3,7,6,5,4,8,6,7,4,7,8,10
+03R0386,Krátké video a trendy,žena,40,Ústecký,SŠ s maturitou,80 tis. +,10,6,8,6,6,9,8,6,6,10,10,5,9,7,7,7,7
+03R0387,Masový mainstream,muž,30,Ústecký,SŠ s maturitou,80 tis. +,7,6,5,7,7,5,3,5,5,4,6,6,7,8,7,7,5
+03R0388,Krátké video a trendy,muž,35,Jihočeský,ZŠ / vyučení,do 30 tis.,7,3,6,4,6,6,8,6,6,7,8,4,6,4,5,6,7
+03R0389,Soukromější pozorovatelé,žena,39,Středočeský,ZŠ / vyučení,80 tis. +,6,3,5,5,9,8,6,8,3,6,7,5,9,5,4,4,5
+03R0390,Masový mainstream,žena,26,Jihomoravský,ZŠ / vyučení,do 30 tis.,7,6,6,6,7,6,4,7,8,6,6,6,8,6,6,7,5
+03R0391,Masový mainstream,žena,47,Středočeský,SŠ s maturitou,30–50 tis.,6,6,7,7,6,5,6,8,7,4,4,4,2,5,7,7,5
+03R0392,Komunitní diskutéři,muž,47,Praha,ZŠ / vyučení,50–80 tis.,7,6,8,7,5,6,6,6,5,5,5,6,7,4,6,7,5
+03R0393,Soukromější pozorovatelé,muž,28,Jihočeský,SŠ s maturitou,80 tis. +,6,3,6,5,9,6,9,4,9,9,7,4,7,4,6,7,10
+03R0394,Profesionálové,žena,36,Olomoucký,SŠ s maturitou,do 30 tis.,6,9,5,6,7,7,7,9,6,5,7,5,6,9,6,6,5
+03R0395,Soukromější pozorovatelé,muž,43,Jihomoravský,SŠ s maturitou,do 30 tis.,7,4,6,6,8,4,8,8,6,8,9,4,7,4,5,8,10
+03R0396,Soukromější pozorovatelé,muž,55,Jihomoravský,SŠ s maturitou,50–80 tis.,2,3,6,7,9,4,4,6,4,5,3,7,4,3,6,7,6
+03R0397,Masový mainstream,muž,33,Moravskoslezský,VŠ,do 30 tis.,6,6,7,8,6,6,6,3,4,5,5,5,5,4,8,6,6
+03R0398,Komunitní diskutéři,muž,34,Jihočeský,VŠ,50–80 tis.,4,4,7,6,5,7,6,3,6,5,4,5,4,4,6,7,5
+03R0399,Masový mainstream,žena,44,Ústecký,SŠ s maturitou,80 tis. +,6,7,8,5,5,5,4,5,7,5,4,9,6,7,6,6,4
+03R0400,Krátké video a trendy,žena,34,Moravskoslezský,VŠ,do 30 tis.,9,5,6,9,6,8,7,4,5,8,8,6,10,6,9,7,7
+03R0401,Soukromější pozorovatelé,žena,52,Olomoucký,SŠ s maturitou,80 tis. +,4,6,5,6,9,4,5,7,5,4,4,7,5,6,6,7,7
+03R0402,Masový mainstream,muž,42,Praha,SŠ s maturitou,do 30 tis.,8,6,6,8,6,5,7,5,7,6,8,6,6,4,6,7,7
+03R0403,Masový mainstream,muž,43,Ústecký,SŠ s maturitou,30–50 tis.,7,4,7,5,6,3,5,4,5,4,5,7,6,5,5,5,5
+03R0404,Masový mainstream,muž,60,Moravskoslezský,VŠ,do 30 tis.,7,6,6,7,6,6,6,5,5,7,8,6,8,6,7,7,8
+03R0405,Profesionálové,žena,47,Středočeský,SŠ s maturitou,30–50 tis.,5,7,4,6,6,5,5,5,6,3,3,3,7,6,5,5,4
+03R0406,Krátké video a trendy,žena,49,Jihomoravský,VŠ,30–50 tis.,9,6,6,9,6,8,9,6,4,8,8,3,9,4,8,9,6
+03R0407,Masový mainstream,žena,41,Jihočeský,SŠ s maturitou,30–50 tis.,6,3,7,6,6,8,5,9,6,6,3,4,4,2,4,4,4
+03R0408,Profesionálové,žena,30,Ústecký,VŠ,30–50 tis.,5,8,6,4,6,7,7,6,3,6,8,4,4,7,6,7,8
+03R0409,Profesionálové,žena,56,Olomoucký,SŠ s maturitou,30–50 tis.,5,10,5,6,5,5,7,9,5,6,6,6,6,7,6,3,4
+03R0410,Masový mainstream,muž,33,Středočeský,SŠ s maturitou,50–80 tis.,7,3,6,8,5,6,6,4,5,5,6,4,6,1,5,5,4
+03R0411,Masový mainstream,muž,37,Olomoucký,VŠ,50–80 tis.,7,5,6,5,4,6,7,4,5,6,8,6,5,7,6,6,5
+03R0412,Profesionálové,žena,40,Jihomoravský,SŠ s maturitou,80 tis. +,5,9,4,7,6,5,4,5,7,6,5,6,7,9,6,5,4
+03R0413,Krátké video a trendy,žena,18,Moravskoslezský,SŠ s maturitou,30–50 tis.,8,10,6,5,7,7,5,6,3,8,6,5,8,9,7,7,5
+03R0414,Soukromější pozorovatelé,muž,18,Jihočeský,SŠ s maturitou,do 30 tis.,6,5,5,6,7,3,4,4,7,5,3,7,5,6,6,6,6
+03R0415,Masový mainstream,muž,52,Olomoucký,SŠ s maturitou,80 tis. +,8,7,7,5,4,4,6,2,1,3,4,6,8,6,6,6,5
+03R0416,Masový mainstream,žena,24,Olomoucký,SŠ s maturitou,30–50 tis.,6,7,7,7,6,7,4,4,6,7,5,10,5,6,7,6,5
+03R0417,Komunitní diskutéři,žena,60,Olomoucký,SŠ s maturitou,80 tis. +,5,6,5,10,5,7,4,3,6,4,5,5,5,6,9,5,3
+03R0418,Masový mainstream,muž,28,Olomoucký,SŠ s maturitou,do 30 tis.,7,6,5,6,5,10,5,7,4,8,8,5,6,5,6,6,4
+03R0419,Masový mainstream,muž,34,Ústecký,VŠ,50–80 tis.,6,5,6,5,6,6,5,5,8,6,6,8,6,6,5,6,5
+03R0420,Komunitní diskutéři,muž,44,Jihomoravský,SŠ s maturitou,30–50 tis.,6,5,8,8,8,5,2,6,7,5,2,8,8,5,8,7,4
+03R0421,Masový mainstream,žena,26,Středočeský,SŠ s maturitou,50–80 tis.,7,6,6,6,5,5,5,5,5,6,6,6,5,5,8,5,5
+03R0422,Masový mainstream,muž,25,Praha,SŠ s maturitou,do 30 tis.,5,5,5,6,5,5,7,5,7,5,4,4,4,5,6,6,7
+03R0423,Krátké video a trendy,muž,37,Moravskoslezský,ZŠ / vyučení,30–50 tis.,7,5,5,4,5,8,7,2,6,7,7,3,6,1,4,2,5
+03R0424,Krátké video a trendy,muž,22,Olomoucký,SŠ s maturitou,do 30 tis.,8,5,6,6,6,8,9,3,4,9,8,4,7,5,7,7,9
+03R0425,Komunitní diskutéři,muž,30,Olomoucký,VŠ,do 30 tis.,7,8,9,6,6,5,8,8,5,8,6,6,8,7,6,10,7
+03R0426,Krátké video a trendy,muž,23,Moravskoslezský,ZŠ / vyučení,30–50 tis.,8,6,6,6,7,7,8,7,6,8,8,5,7,4,5,6,8
+03R0427,Soukromější pozorovatelé,žena,27,Plzeňský,SŠ s maturitou,30–50 tis.,4,6,8,6,9,4,6,5,5,4,4,7,6,5,8,9,8
+03R0428,Krátké video a trendy,žena,18,Jihočeský,VŠ,30–50 tis.,9,5,4,3,5,7,8,6,6,7,8,3,8,5,3,3,7
+03R0429,Krátké video a trendy,muž,27,Ústecký,ZŠ / vyučení,30–50 tis.,5,5,4,6,6,5,9,7,6,6,7,2,5,5,5,6,8
+03R0430,Krátké video a trendy,žena,32,Praha,SŠ s maturitou,50–80 tis.,8,6,5,5,5,8,7,5,7,6,7,5,8,5,4,6,5
+03R0431,Profesionálové,muž,46,Plzeňský,SŠ s maturitou,30–50 tis.,4,8,4,5,5,6,7,5,8,6,3,4,3,5,5,5,6
+03R0432,Krátké video a trendy,muž,32,Středočeský,SŠ s maturitou,30–50 tis.,10,7,5,7,9,7,10,6,5,10,10,4,9,7,6,8,9
+03R0433,Profesionálové,žena,34,Plzeňský,VŠ,30–50 tis.,7,9,5,8,8,6,5,6,5,7,7,7,10,7,7,7,9
+03R0434,Masový mainstream,muž,40,Jihočeský,VŠ,80 tis. +,5,6,7,5,3,5,6,5,6,4,5,4,2,5,5,7,7
+03R0435,Soukromější pozorovatelé,muž,60,Jihomoravský,SŠ s maturitou,80 tis. +,7,5,8,4,9,5,7,8,7,4,6,6,7,5,5,7,7
+03R0436,Krátké video a trendy,muž,20,Středočeský,SŠ s maturitou,30–50 tis.,8,6,6,4,3,6,8,4,7,9,7,4,8,4,6,5,7
+03R0437,Krátké video a trendy,muž,22,Jihočeský,VŠ,do 30 tis.,7,5,8,7,6,6,7,6,6,8,9,8,10,6,8,8,7
+03R0438,Masový mainstream,muž,58,Moravskoslezský,SŠ s maturitou,50–80 tis.,8,6,4,6,6,5,5,1,5,5,5,4,6,5,4,5,5
+03R0439,Krátké video a trendy,žena,18,Olomoucký,VŠ,do 30 tis.,7,7,7,6,5,8,8,5,6,6,8,5,8,6,6,7,8
+03R0440,Masový mainstream,žena,53,Olomoucký,SŠ s maturitou,30–50 tis.,5,6,9,8,6,7,8,3,7,6,7,6,7,5,8,7,6
+03R0441,Krátké video a trendy,žena,18,Jihomoravský,SŠ s maturitou,do 30 tis.,8,4,5,5,7,6,6,6,5,6,6,5,7,6,4,4,8
+03R0442,Profesionálové,muž,24,Olomoucký,ZŠ / vyučení,do 30 tis.,5,10,6,6,6,7,4,6,5,5,6,5,6,6,6,7,5
+03R0443,Masový mainstream,žena,39,Moravskoslezský,ZŠ / vyučení,do 30 tis.,7,5,6,6,3,4,6,6,7,4,3,4,7,5,4,6,5
+03R0444,Masový mainstream,žena,26,Jihočeský,SŠ s maturitou,30–50 tis.,7,5,6,5,7,5,5,3,7,5,5,6,6,5,5,7,6
+03R0445,Profesionálové,žena,38,Ústecký,VŠ,do 30 tis.,7,10,3,8,5,5,5,7,8,6,7,3,6,8,4,7,5
+03R0446,Soukromější pozorovatelé,žena,44,Praha,SŠ s maturitou,30–50 tis.,6,6,6,7,9,6,5,7,4,6,5,6,4,6,7,5,6
+03R0447,Masový mainstream,žena,43,Moravskoslezský,SŠ s maturitou,30–50 tis.,8,7,6,5,6,5,5,6,5,5,7,7,8,7,8,7,6
+03R0448,Komunitní diskutéři,žena,45,Jihočeský,VŠ,do 30 tis.,4,6,8,8,4,7,4,5,9,4,2,7,3,5,7,5,4
+03R0449,Masový mainstream,žena,29,Praha,SŠ s maturitou,do 30 tis.,6,4,6,4,4,4,7,5,7,5,6,5,5,5,3,4,5
+03R0450,Komunitní diskutéři,žena,38,Středočeský,VŠ,30–50 tis.,6,5,6,9,4,6,3,6,6,4,4,5,5,3,7,5,3
+03R0451,Masový mainstream,muž,53,Ústecký,ZŠ / vyučení,50–80 tis.,5,5,8,5,6,6,6,6,7,6,7,8,4,4,5,7,7
+03R0452,Soukromější pozorovatelé,žena,44,Ústecký,SŠ s maturitou,30–50 tis.,6,5,5,7,8,4,5,8,6,5,6,4,4,5,5,5,8
+03R0453,Profesionálové,žena,38,Středočeský,SŠ s maturitou,do 30 tis.,5,7,5,7,5,5,5,5,6,4,5,7,3,7,7,6,5
+03R0454,Profesionálové,žena,41,Praha,VŠ,30–50 tis.,4,10,6,8,4,6,5,7,5,6,5,7,7,9,7,6,5
+03R0455,Masový mainstream,žena,63,Středočeský,ZŠ / vyučení,do 30 tis.,5,6,7,7,4,7,4,4,5,7,5,8,4,5,7,7,5
+03R0456,Krátké video a trendy,žena,18,Středočeský,SŠ s maturitou,50–80 tis.,7,6,6,6,5,4,7,7,4,7,6,6,6,6,6,7,8
+03R0457,Profesionálové,muž,51,Středočeský,ZŠ / vyučení,50–80 tis.,7,8,6,7,5,7,6,4,5,8,8,3,5,7,7,7,6
+03R0458,Masový mainstream,muž,39,Ústecký,ZŠ / vyučení,do 30 tis.,6,5,6,5,6,7,5,9,6,5,7,6,5,6,5,6,6
+03R0459,Komunitní diskutéři,žena,45,Středočeský,VŠ,30–50 tis.,5,5,7,9,5,5,6,5,5,5,4,7,5,4,8,6,6
+03R0460,Profesionálové,žena,35,Olomoucký,SŠ s maturitou,50–80 tis.,6,9,6,5,4,6,8,5,6,7,8,4,6,8,5,6,6
+03R0461,Krátké video a trendy,žena,25,Olomoucký,ZŠ / vyučení,30–50 tis.,7,5,5,7,6,8,7,4,7,5,7,4,6,4,5,4,5
+03R0462,Krátké video a trendy,muž,42,Středočeský,SŠ s maturitou,30–50 tis.,8,6,5,6,5,7,8,9,4,7,7,4,8,5,6,7,5
+03R0463,Masový mainstream,muž,27,Středočeský,VŠ,30–50 tis.,6,6,6,5,5,5,7,8,7,4,5,5,5,7,4,6,6
+03R0464,Profesionálové,muž,28,Jihočeský,ZŠ / vyučení,80 tis. +,5,6,6,5,6,5,5,2,4,5,4,5,4,5,4,4,6
+03R0465,Profesionálové,muž,38,Moravskoslezský,VŠ,80 tis. +,5,9,3,9,4,5,4,9,6,6,4,6,5,7,8,5,3
+03R0466,Profesionálové,žena,31,Olomoucký,ZŠ / vyučení,do 30 tis.,5,9,7,8,5,5,4,4,8,5,3,6,5,7,8,6,5
+03R0467,Komunitní diskutéři,žena,38,Plzeňský,ZŠ / vyučení,do 30 tis.,5,5,8,6,5,7,7,4,6,7,5,6,5,5,7,6,6
+03R0468,Komunitní diskutéři,žena,52,Praha,ZŠ / vyučení,do 30 tis.,6,6,9,9,4,7,7,5,4,7,6,7,7,7,9,8,7
+03R0469,Masový mainstream,muž,55,Praha,SŠ s maturitou,30–50 tis.,8,5,6,6,4,5,6,8,10,5,8,5,7,6,6,5,7
+03R0470,Soukromější pozorovatelé,žena,36,Ústecký,VŠ,80 tis. +,5,5,6,4,9,3,5,2,5,3,5,6,3,3,3,7,5
+03R0471,Komunitní diskutéři,muž,20,Olomoucký,VŠ,50–80 tis.,5,5,7,7,4,5,5,7,6,4,5,5,4,6,8,5,5
+03R0472,Masový mainstream,muž,36,Moravskoslezský,SŠ s maturitou,do 30 tis.,6,7,6,5,6,4,6,7,6,6,5,6,6,7,5,5,6
+03R0473,Soukromější pozorovatelé,muž,34,Středočeský,SŠ s maturitou,50–80 tis.,7,5,5,6,8,3,6,3,4,4,5,5,3,5,4,4,3
+03R0474,Krátké video a trendy,muž,20,Jihomoravský,SŠ s maturitou,50–80 tis.,8,7,6,4,5,8,6,6,6,7,8,7,7,5,5,5,6
+03R0475,Profesionálové,žena,42,Jihomoravský,SŠ s maturitou,do 30 tis.,5,7,7,9,4,4,5,6,4,4,4,6,5,7,7,7,3
+03R0476,Masový mainstream,muž,54,Plzeňský,ZŠ / vyučení,50–80 tis.,6,5,8,5,5,5,8,7,8,7,6,5,4,3,4,5,6
+03R0477,Profesionálové,žena,49,Středočeský,SŠ s maturitou,do 30 tis.,7,9,4,7,6,6,6,5,7,6,7,5,6,7,7,4,5
+03R0478,Profesionálové,muž,56,Praha,VŠ,50–80 tis.,8,9,6,5,4,6,7,5,7,6,6,3,6,7,5,4,6
+03R0479,Krátké video a trendy,žena,18,Praha,SŠ s maturitou,30–50 tis.,7,4,6,5,5,5,10,6,6,8,9,2,5,4,6,6,8
+03R0480,Krátké video a trendy,žena,18,Ústecký,SŠ s maturitou,do 30 tis.,8,5,6,4,5,7,10,7,5,9,8,3,5,4,5,5,8
+03R0481,Masový mainstream,muž,46,Praha,SŠ s maturitou,30–50 tis.,4,7,8,6,7,7,6,4,7,5,6,5,5,8,6,8,7
+03R0482,Komunitní diskutéři,žena,47,Plzeňský,ZŠ / vyučení,30–50 tis.,4,6,8,7,9,3,6,6,3,6,5,8,6,6,7,10,7
+03R0483,Profesionálové,žena,54,Praha,SŠ s maturitou,80 tis. +,6,8,6,5,7,6,6,2,6,6,6,5,3,9,2,6,6
+03R0484,Soukromější pozorovatelé,muž,31,Ústecký,ZŠ / vyučení,30–50 tis.,5,5,5,5,8,3,6,8,4,4,4,6,6,6,5,4,5
+03R0485,Krátké video a trendy,muž,27,Jihomoravský,ZŠ / vyučení,30–50 tis.,6,4,6,6,6,8,8,6,4,9,8,6,7,5,7,6,8
+03R0486,Soukromější pozorovatelé,muž,58,Jihočeský,SŠ s maturitou,do 30 tis.,5,4,5,5,8,3,5,8,6,4,4,5,3,2,7,5,6
+03R0487,Soukromější pozorovatelé,muž,54,Praha,SŠ s maturitou,do 30 tis.,4,5,7,5,8,4,6,6,2,5,5,8,6,5,6,7,7
+03R0488,Soukromější pozorovatelé,žena,27,Ústecký,SŠ s maturitou,do 30 tis.,2,3,4,7,7,5,7,3,4,3,4,4,3,4,5,3,6
+03R0489,Krátké video a trendy,žena,52,Olomoucký,VŠ,50–80 tis.,6,8,5,6,4,7,7,7,6,7,7,3,7,8,5,5,6
+03R0490,Masový mainstream,muž,46,Praha,ZŠ / vyučení,50–80 tis.,7,4,7,6,4,7,7,6,5,7,7,6,6,5,7,7,7
+03R0491,Masový mainstream,žena,58,Olomoucký,VŠ,50–80 tis.,6,4,7,6,6,7,5,6,6,6,5,8,7,4,7,7,8
+03R0492,Masový mainstream,žena,44,Jihočeský,VŠ,50–80 tis.,7,5,5,8,6,4,5,6,3,5,5,7,8,3,8,7,5
+03R0493,Profesionálové,žena,35,Plzeňský,VŠ,do 30 tis.,5,9,6,8,6,6,7,6,4,5,3,5,5,8,7,4,6
+03R0494,Profesionálové,žena,23,Moravskoslezský,SŠ s maturitou,30–50 tis.,5,8,7,5,5,7,4,4,4,4,4,7,5,7,6,5,3
+03R0495,Profesionálové,muž,32,Středočeský,SŠ s maturitou,do 30 tis.,5,9,5,7,7,6,4,6,5,6,4,7,5,8,6,6,4
+03R0496,Krátké video a trendy,žena,18,Středočeský,SŠ s maturitou,80 tis. +,7,6,5,4,6,9,9,6,3,7,8,3,7,9,4,5,8
+03R0497,Krátké video a trendy,žena,18,Plzeňský,SŠ s maturitou,80 tis. +,8,5,7,6,6,8,9,5,7,9,9,3,6,5,7,8,9
+03R0498,Masový mainstream,muž,56,Praha,VŠ,do 30 tis.,7,5,7,2,6,5,6,3,5,5,6,5,6,5,4,6,5
+03R0499,Soukromější pozorovatelé,muž,33,Ústecký,SŠ s maturitou,50–80 tis.,7,6,5,6,6,3,6,5,5,2,5,3,7,6,5,7,5
+03R0500,Soukromější pozorovatelé,muž,46,Středočeský,VŠ,80 tis. +,6,7,6,7,7,3,5,8,6,4,5,5,6,7,7,6,4
+03R0501,Masový mainstream,muž,34,Praha,SŠ s maturitou,do 30 tis.,8,5,7,6,5,6,5,8,5,7,5,8,6,6,7,6,5
+03R0502,Soukromější pozorovatelé,žena,43,Olomoucký,SŠ s maturitou,do 30 tis.,7,6,8,6,6,4,5,6,6,5,7,8,8,4,5,6,6
+03R0503,Masový mainstream,žena,29,Ústecký,VŠ,do 30 tis.,5,5,6,7,5,6,5,3,4,4,6,6,5,5,7,5,5
+03R0504,Krátké video a trendy,muž,18,Ústecký,SŠ s maturitou,30–50 tis.,10,5,7,6,6,5,5,6,5,6,7,7,7,6,6,5,8
+03R0505,Komunitní diskutéři,žena,35,Olomoucký,SŠ s maturitou,30–50 tis.,6,5,8,9,8,4,6,6,5,4,5,7,6,3,8,9,5
+03R0506,Masový mainstream,žena,53,Ústecký,VŠ,30–50 tis.,6,5,6,6,4,5,5,7,4,4,4,5,4,3,4,4,6
+03R0507,Krátké video a trendy,muž,38,Moravskoslezský,SŠ s maturitou,80 tis. +,9,5,4,7,6,5,7,4,5,6,7,4,8,4,7,4,6
+03R0508,Komunitní diskutéři,muž,37,Olomoucký,SŠ s maturitou,30–50 tis.,5,5,8,7,5,3,6,4,4,4,4,7,6,4,6,9,4
+03R0509,Masový mainstream,muž,45,Plzeňský,SŠ s maturitou,do 30 tis.,8,3,8,4,6,4,6,5,7,7,6,7,9,5,5,7,6
+03R0510,Krátké video a trendy,žena,22,Plzeňský,ZŠ / vyučení,80 tis. +,9,4,4,6,6,9,7,5,7,8,9,5,8,5,5,4,6
+03R0511,Krátké video a trendy,muž,20,Středočeský,SŠ s maturitou,do 30 tis.,8,5,8,5,5,7,8,10,4,8,6,5,7,5,6,6,6
+03R0512,Profesionálové,žena,51,Plzeňský,SŠ s maturitou,do 30 tis.,6,8,6,6,4,6,5,6,5,4,6,7,7,8,6,5,5
+03R0513,Krátké video a trendy,muž,40,Jihočeský,SŠ s maturitou,do 30 tis.,9,5,4,7,4,7,8,3,7,10,10,4,9,5,7,3,8
+03R0514,Komunitní diskutéři,muž,77,Plzeňský,SŠ s maturitou,30–50 tis.,6,4,8,7,6,6,4,2,6,5,5,8,6,4,5,8,4
+03R0515,Soukromější pozorovatelé,muž,29,Plzeňský,SŠ s maturitou,50–80 tis.,7,5,4,5,8,7,5,5,8,8,7,5,8,7,3,4,5
+03R0516,Komunitní diskutéři,muž,44,Moravskoslezský,ZŠ / vyučení,do 30 tis.,6,7,9,7,5,6,5,6,2,6,4,6,7,6,7,7,4
+03R0517,Masový mainstream,muž,65,Jihočeský,SŠ s maturitou,50–80 tis.,6,6,6,7,6,5,3,6,4,5,4,7,7,8,6,7,3
+03R0518,Masový mainstream,muž,34,Olomoucký,ZŠ / vyučení,30–50 tis.,7,4,8,5,5,6,6,5,6,5,5,6,4,4,7,6,6
+03R0519,Komunitní diskutéři,žena,38,Ústecký,ZŠ / vyučení,80 tis. +,6,7,10,7,3,6,4,3,3,6,4,10,6,7,9,9,3
+03R0520,Masový mainstream,žena,18,Ústecký,SŠ s maturitou,30–50 tis.,5,8,7,7,6,5,5,5,4,5,6,7,4,7,4,9,5
+03R0521,Krátké video a trendy,žena,26,Ústecký,SŠ s maturitou,30–50 tis.,7,6,5,5,5,5,9,6,6,9,7,3,6,4,5,3,7
+03R0522,Krátké video a trendy,muž,18,Olomoucký,SŠ s maturitou,do 30 tis.,6,6,5,6,9,8,6,6,5,6,5,5,4,7,7,5,4
+03R0523,Profesionálové,žena,67,Moravskoslezský,ZŠ / vyučení,50–80 tis.,5,10,4,5,6,5,5,8,6,5,5,3,5,10,5,4,7
+03R0524,Komunitní diskutéři,žena,30,Moravskoslezský,SŠ s maturitou,50–80 tis.,3,5,8,8,6,6,6,4,6,6,5,6,5,6,8,8,7
+03R0525,Krátké video a trendy,muž,18,Plzeňský,SŠ s maturitou,50–80 tis.,6,7,6,7,6,8,9,7,5,8,8,4,7,7,9,7,9
+03R0526,Soukromější pozorovatelé,žena,49,Praha,VŠ,50–80 tis.,8,5,6,5,7,6,5,8,7,5,5,6,7,4,6,6,5
+03R0527,Krátké video a trendy,žena,24,Praha,VŠ,30–50 tis.,9,6,6,6,5,6,7,7,4,7,10,6,8,8,7,6,7
+03R0528,Komunitní diskutéři,muž,39,Olomoucký,SŠ s maturitou,30–50 tis.,5,6,8,9,5,5,5,2,5,3,3,7,5,3,7,7,4
+03R0529,Masový mainstream,muž,47,Plzeňský,VŠ,30–50 tis.,8,4,6,5,4,6,4,8,7,6,5,7,6,5,4,6,4
+03R0530,Krátké video a trendy,muž,18,Ústecký,VŠ,do 30 tis.,9,6,5,5,5,6,7,7,7,7,6,3,8,5,5,6,7
+03R0531,Komunitní diskutéři,žena,60,Plzeňský,SŠ s maturitou,50–80 tis.,3,5,9,7,6,6,6,6,7,5,4,7,5,6,7,9,6
+03R0532,Profesionálové,muž,18,Středočeský,VŠ,30–50 tis.,4,8,6,10,5,8,7,6,6,9,8,5,7,7,10,7,8
+03R0533,Krátké video a trendy,muž,25,Středočeský,VŠ,80 tis. +,7,4,6,4,5,8,6,7,8,7,7,5,4,4,6,3,6
+03R0534,Masový mainstream,muž,38,Moravskoslezský,ZŠ / vyučení,50–80 tis.,8,6,6,5,6,7,6,3,5,6,6,4,8,6,5,7,6
+03R0535,Krátké video a trendy,žena,20,Moravskoslezský,VŠ,80 tis. +,9,3,5,4,5,5,9,7,4,8,8,4,7,3,4,4,8
+03R0536,Komunitní diskutéři,žena,49,Olomoucký,VŠ,do 30 tis.,3,5,8,7,6,4,5,5,4,4,3,5,5,5,8,7,5
+03R0537,Soukromější pozorovatelé,žena,58,Olomoucký,VŠ,do 30 tis.,8,4,4,5,7,5,5,7,4,4,7,4,9,5,5,5,5
+03R0538,Komunitní diskutéři,žena,32,Středočeský,VŠ,do 30 tis.,7,5,9,7,5,7,5,5,5,6,6,5,7,6,8,7,5
+03R0539,Komunitní diskutéři,žena,71,Moravskoslezský,VŠ,50–80 tis.,6,7,7,4,6,6,5,7,3,6,6,5,6,6,6,5,5
+03R0540,Krátké video a trendy,žena,38,Plzeňský,ZŠ / vyučení,30–50 tis.,9,5,3,5,6,5,7,7,4,8,7,4,8,4,5,6,5
+03R0541,Komunitní diskutéři,muž,47,Plzeňský,VŠ,50–80 tis.,3,6,10,7,7,8,4,3,6,6,4,9,6,8,8,9,5
+03R0542,Komunitní diskutéři,muž,24,Jihočeský,SŠ s maturitou,30–50 tis.,5,5,8,8,6,8,4,5,5,8,6,7,5,6,7,7,5
+03R0543,Soukromější pozorovatelé,muž,48,Moravskoslezský,SŠ s maturitou,80 tis. +,6,6,6,4,8,5,5,6,6,6,3,5,7,6,6,7,5
+03R0544,Komunitní diskutéři,muž,49,Moravskoslezský,SŠ s maturitou,30–50 tis.,7,6,6,7,4,7,7,8,6,5,7,5,7,4,6,5,5
+03R0545,Komunitní diskutéři,muž,27,Moravskoslezský,ZŠ / vyučení,80 tis. +,5,4,8,7,5,6,7,7,5,5,4,3,3,2,7,6,4
+03R0546,Profesionálové,muž,18,Plzeňský,SŠ s maturitou,80 tis. +,5,8,4,7,3,6,6,5,3,5,4,5,4,7,5,5,3
+03R0547,Profesionálové,muž,49,Moravskoslezský,VŠ,50–80 tis.,6,10,6,8,6,6,7,6,3,5,6,4,5,6,6,6,6
+03R0548,Profesionálové,žena,18,Praha,SŠ s maturitou,30–50 tis.,5,8,6,5,5,5,6,7,6,5,5,5,4,4,5,4,5
+03R0549,Komunitní diskutéři,žena,38,Jihočeský,VŠ,30–50 tis.,6,8,9,4,5,5,8,7,4,4,8,5,6,5,5,7,7
+03R0550,Soukromější pozorovatelé,žena,62,Jihomoravský,SŠ s maturitou,30–50 tis.,5,6,4,6,10,5,4,5,7,4,6,7,5,4,5,6,8
+03R0551,Soukromější pozorovatelé,žena,45,Ústecký,SŠ s maturitou,do 30 tis.,6,6,7,7,8,5,5,4,4,5,5,7,6,6,8,8,8
+03R0552,Masový mainstream,muž,36,Jihomoravský,VŠ,30–50 tis.,6,5,6,6,6,6,4,8,5,5,4,6,5,6,7,6,5
+03R0553,Masový mainstream,žena,21,Středočeský,SŠ s maturitou,do 30 tis.,8,3,6,6,5,5,6,2,8,4,7,6,6,5,5,6,5
+03R0554,Masový mainstream,muž,42,Ústecký,SŠ s maturitou,50–80 tis.,7,6,7,4,7,3,4,7,5,4,5,6,6,6,5,6,4
+03R0555,Krátké video a trendy,muž,18,Praha,SŠ s maturitou,50–80 tis.,8,6,4,5,6,6,9,4,3,8,10,5,9,6,5,4,9
+03R0556,Komunitní diskutéři,muž,46,Ústecký,VŠ,30–50 tis.,5,6,7,7,4,7,7,6,5,5,6,6,7,7,6,6,6
+03R0557,Masový mainstream,muž,34,Moravskoslezský,SŠ s maturitou,do 30 tis.,8,6,7,4,3,7,3,6,6,6,5,6,7,5,6,5,3
+03R0558,Masový mainstream,žena,52,Plzeňský,SŠ s maturitou,30–50 tis.,7,8,7,7,5,4,6,7,5,6,7,5,7,7,6,8,4
+03R0559,Masový mainstream,žena,34,Praha,ZŠ / vyučení,80 tis. +,6,4,6,5,7,4,3,5,9,6,6,6,8,5,5,7,5
+03R0560,Soukromější pozorovatelé,žena,27,Praha,VŠ,do 30 tis.,5,5,7,6,7,6,3,7,4,4,5,7,5,6,7,6,4
+03R0561,Masový mainstream,žena,53,Plzeňský,SŠ s maturitou,80 tis. +,6,4,5,5,6,5,5,8,6,5,5,6,6,5,7,5,5
+03R0562,Krátké video a trendy,žena,18,Jihočeský,SŠ s maturitou,50–80 tis.,9,5,5,6,5,8,6,6,5,8,7,5,7,5,5,7,6
+03R0563,Soukromější pozorovatelé,muž,44,Olomoucký,VŠ,do 30 tis.,7,8,5,4,10,5,3,8,9,4,5,5,5,7,2,4,4
+03R0564,Soukromější pozorovatelé,muž,33,Praha,ZŠ / vyučení,50–80 tis.,5,6,6,6,10,2,6,10,5,5,4,6,7,6,6,7,6
+03R0565,Komunitní diskutéři,žena,50,Praha,SŠ s maturitou,30–50 tis.,7,5,9,7,3,6,5,7,6,7,6,8,8,6,8,8,5
+03R0566,Soukromější pozorovatelé,muž,27,Plzeňský,ZŠ / vyučení,30–50 tis.,6,7,5,5,10,4,6,4,6,6,4,4,3,5,4,5,8
+03R0567,Krátké video a trendy,žena,23,Praha,SŠ s maturitou,do 30 tis.,7,7,6,3,6,7,8,7,6,7,10,6,8,7,3,6,6
+03R0568,Masový mainstream,žena,35,Jihočeský,SŠ s maturitou,80 tis. +,5,7,5,5,5,4,6,2,5,4,5,6,8,8,7,6,6
+03R0569,Krátké video a trendy,muž,36,Praha,ZŠ / vyučení,30–50 tis.,8,4,5,7,5,6,7,5,7,7,9,5,8,5,8,6,8
+03R0570,Soukromější pozorovatelé,žena,42,Praha,VŠ,80 tis. +,7,6,6,4,9,5,7,5,5,4,6,4,7,4,4,6,7
+03R0571,Krátké video a trendy,žena,41,Plzeňský,SŠ s maturitou,30–50 tis.,8,7,5,6,6,6,8,7,5,6,8,5,9,6,7,4,7
+03R0572,Krátké video a trendy,muž,34,Plzeňský,VŠ,50–80 tis.,8,7,5,6,3,6,7,5,5,5,7,6,8,5,5,5,5
+03R0573,Krátké video a trendy,žena,26,Plzeňský,SŠ s maturitou,50–80 tis.,10,5,3,5,6,8,8,5,6,9,8,4,9,6,3,4,8
+03R0574,Krátké video a trendy,žena,18,Praha,SŠ s maturitou,50–80 tis.,8,7,4,7,6,7,9,4,6,8,8,1,8,7,7,4,9
+03R0575,Krátké video a trendy,žena,18,Olomoucký,SŠ s maturitou,50–80 tis.,7,8,6,6,5,8,7,3,4,9,6,5,8,6,7,5,7
+03R0576,Profesionálové,žena,48,Plzeňský,SŠ s maturitou,30–50 tis.,7,7,5,6,6,6,7,6,8,6,8,2,6,5,4,5,5
+03R0577,Komunitní diskutéři,muž,22,Moravskoslezský,ZŠ / vyučení,do 30 tis.,6,7,9,6,5,6,6,6,5,5,4,7,5,8,6,6,5
+03R0578,Krátké video a trendy,žena,18,Středočeský,SŠ s maturitou,do 30 tis.,8,6,4,6,6,8,10,5,4,10,10,4,9,5,7,5,10
+03R0579,Krátké video a trendy,žena,30,Ústecký,VŠ,30–50 tis.,9,4,5,3,5,8,8,8,7,8,8,5,6,3,4,4,7
+03R0580,Soukromější pozorovatelé,žena,55,Ústecký,SŠ s maturitou,30–50 tis.,5,5,6,5,7,4,4,4,7,2,2,6,3,5,6,6,5
+03R0581,Krátké video a trendy,žena,44,Středočeský,SŠ s maturitou,30–50 tis.,10,6,5,4,5,6,8,5,7,9,8,5,9,4,3,4,6
+03R0582,Krátké video a trendy,žena,20,Ústecký,SŠ s maturitou,30–50 tis.,10,4,6,6,3,8,8,6,6,9,9,5,9,4,7,7,6
+03R0583,Komunitní diskutéři,žena,27,Jihočeský,ZŠ / vyučení,do 30 tis.,4,5,9,6,6,5,4,7,5,5,5,7,4,7,7,7,5
+03R0584,Masový mainstream,muž,42,Praha,SŠ s maturitou,30–50 tis.,6,6,7,6,8,7,7,6,8,8,6,5,5,5,5,6,6
+03R0585,Krátké video a trendy,žena,24,Moravskoslezský,ZŠ / vyučení,50–80 tis.,9,5,6,7,5,6,9,5,5,6,9,3,8,4,8,6,6
+03R0586,Masový mainstream,muž,38,Ústecký,VŠ,80 tis. +,7,4,7,6,6,7,7,5,3,7,7,4,5,4,3,6,5
+03R0587,Masový mainstream,muž,35,Plzeňský,SŠ s maturitou,do 30 tis.,5,7,8,4,8,7,5,4,4,5,5,5,6,7,5,8,6
+03R0588,Soukromější pozorovatelé,žena,35,Moravskoslezský,ZŠ / vyučení,do 30 tis.,7,5,8,5,9,5,5,5,6,5,5,6,7,5,5,8,4
+03R0589,Krátké video a trendy,muž,34,Ústecký,VŠ,80 tis. +,6,4,6,7,7,7,8,3,6,7,8,5,6,5,6,6,7
+03R0590,Profesionálové,žena,60,Praha,SŠ s maturitou,50–80 tis.,3,8,5,7,5,8,7,9,3,7,7,4,4,7,7,5,7
+03R0591,Profesionálové,žena,34,Středočeský,SŠ s maturitou,50–80 tis.,6,7,5,6,7,6,6,2,7,5,7,5,6,6,7,7,5
+03R0592,Soukromější pozorovatelé,muž,18,Olomoucký,ZŠ / vyučení,do 30 tis.,7,6,5,3,8,6,4,7,9,6,6,6,7,6,5,4,6
+03R0593,Soukromější pozorovatelé,žena,36,Olomoucký,SŠ s maturitou,do 30 tis.,5,6,7,5,8,5,6,6,4,6,5,6,4,4,5,6,6
+03R0594,Masový mainstream,muž,25,Jihočeský,ZŠ / vyučení,30–50 tis.,7,6,5,5,6,4,5,7,6,3,6,6,5,4,6,3,3
+03R0595,Soukromější pozorovatelé,žena,42,Ústecký,SŠ s maturitou,30–50 tis.,7,7,7,5,7,4,7,4,5,7,6,6,6,7,5,6,7
+03R0596,Masový mainstream,žena,44,Plzeňský,SŠ s maturitou,do 30 tis.,3,4,6,5,5,6,6,5,6,5,6,4,4,5,6,5,5
+03R0597,Soukromější pozorovatelé,muž,44,Středočeský,SŠ s maturitou,30–50 tis.,6,6,7,6,8,5,6,3,9,4,4,5,6,4,6,7,5
+03R0598,Komunitní diskutéři,muž,40,Jihomoravský,SŠ s maturitou,50–80 tis.,8,6,7,8,6,7,6,4,3,7,7,6,8,6,9,7,8
+03R0599,Masový mainstream,muž,56,Středočeský,SŠ s maturitou,30–50 tis.,6,7,6,5,6,6,7,5,3,4,5,5,6,7,3,6,6
+03R0600,Krátké video a trendy,muž,27,Plzeňský,SŠ s maturitou,50–80 tis.,7,6,5,5,6,7,7,3,6,8,7,4,6,5,5,4,5

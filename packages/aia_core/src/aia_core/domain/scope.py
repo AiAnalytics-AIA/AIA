@@ -33,11 +33,15 @@ from uuid import uuid4
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 __all__ = [
+    "CLIENT_ROLE_PERMISSIONS",
     "DEFAULT_SELF_APPROVAL_ALLOWED",
+    "LEGACY_PANEL_ROLES",
     "ROLE_PERMISSIONS",
     "ApprovalIndependence",
     "Client",
+    "ClientContext",
     "ClientGrant",
+    "ClientPermission",
     "ClientStatus",
     "Organization",
     "OrganizationMembership",
@@ -52,7 +56,9 @@ __all__ = [
     "Study",
     "StudyContext",
     "StudyGrant",
+    "StudyKind",
     "StudyStatus",
+    "client_permissions_for",
     "effective_role",
     "new_client_id",
     "new_organization_id",
@@ -114,6 +120,17 @@ class OrganizationRole(StrEnum):
     OWNER = "OWNER"
     ADMIN = "ADMIN"
     MEMBER = "MEMBER"
+
+
+# Who may use the vendored 18.6.6 interface on the product hostname (ADR 0012).
+# The unit is single-tenant: whoever uses it sees every project it holds and can
+# store provider keys in it, so study-level scope cannot be applied to it. Until a
+# feature moves onto AIA's study-scoped model, only organization administrators
+# may reach it -- the most restrictive choice that still lets the team work
+# (reference open decision D8: "default to the most restrictive role").
+LEGACY_PANEL_ROLES: frozenset[OrganizationRole] = frozenset(
+    {OrganizationRole.OWNER, OrganizationRole.ADMIN}
+)
 
 
 class ScopeRole(StrEnum):
@@ -231,6 +248,55 @@ def effective_role(
     if study_role is not None:
         return study_role
     return client_role
+
+
+class ClientPermission(StrEnum):
+    """A capability at the level of one client, checked on a :class:`ClientContext`.
+
+    Separate from :class:`Permission` because it is about the client as a whole
+    -- its workspace and its knowledge -- not about one study. A study's own
+    work is always checked on its :class:`StudyContext`.
+    """
+
+    VIEW_CLIENT = "VIEW_CLIENT"
+    VIEW_CLIENT_KNOWLEDGE = "VIEW_CLIENT_KNOWLEDGE"
+    PROPOSE_CLIENT_KNOWLEDGE = "PROPOSE_CLIENT_KNOWLEDGE"
+    APPROVE_CLIENT_KNOWLEDGE = "APPROVE_CLIENT_KNOWLEDGE"
+    CREATE_STUDY = "CREATE_STUDY"
+
+
+# Client role -> client permissions. Mirrors ROLE_PERMISSIONS: a REVIEWER may
+# approve knowledge but not propose it, so review stays independent of
+# authorship (ADR 0015 decision 7). A study-only grantee holds no client role
+# and gets only VIEW_CLIENT: the workspace, restricted to their studies.
+CLIENT_ROLE_PERMISSIONS: Final[dict[ScopeRole, frozenset[ClientPermission]]] = {
+    ScopeRole.VIEWER: frozenset(
+        {ClientPermission.VIEW_CLIENT, ClientPermission.VIEW_CLIENT_KNOWLEDGE}
+    ),
+    ScopeRole.REVIEWER: frozenset(
+        {
+            ClientPermission.VIEW_CLIENT,
+            ClientPermission.VIEW_CLIENT_KNOWLEDGE,
+            ClientPermission.APPROVE_CLIENT_KNOWLEDGE,
+        }
+    ),
+    ScopeRole.RESEARCHER: frozenset(
+        {
+            ClientPermission.VIEW_CLIENT,
+            ClientPermission.VIEW_CLIENT_KNOWLEDGE,
+            ClientPermission.PROPOSE_CLIENT_KNOWLEDGE,
+            ClientPermission.CREATE_STUDY,
+        }
+    ),
+    ScopeRole.LEAD: frozenset(set(ClientPermission)),
+}
+
+
+def client_permissions_for(role: ScopeRole | None) -> frozenset[ClientPermission]:
+    """The client permissions a client-level role confers; study-only access sees the workspace."""
+    if role is None:
+        return frozenset({ClientPermission.VIEW_CLIENT})
+    return CLIENT_ROLE_PERMISSIONS[role]
 
 
 class ScopeDenied(PermissionError):
@@ -430,6 +496,18 @@ class ClientStatus(StrEnum):
     ARCHIVED = "ARCHIVED"
 
 
+class StudyKind(StrEnum):
+    """What kind of work a study is (ADR 0015 decision 2).
+
+    Research and simulation are both studies: the same object for scope,
+    identity, lifecycle, permissions, costs, approvals, provenance and
+    artifacts. Only the workflow beneath the study differs by kind.
+    """
+
+    RESEARCH = "RESEARCH"
+    SIMULATION = "SIMULATION"
+
+
 class StudyStatus(StrEnum):
     """Lifecycle of one engagement."""
 
@@ -529,6 +607,7 @@ class Study(BaseModel):
     client_id: str
     slug: Slug
     name: str
+    kind: StudyKind = StudyKind.RESEARCH
     status: StudyStatus = StudyStatus.DRAFT
 
     # Budget is held at the study level because that is what is quoted to a
@@ -721,6 +800,64 @@ class StudyContext:
             f"StudyContext(org={self.organization_id}, client={self.client_id}, "
             f"study={self.study_id}, role={self.role.value})"
         )
+
+
+@dataclass(frozen=True, slots=True)
+class ClientContext:
+    """The authorised scope of one client: its workspace and its knowledge.
+
+    Issued only by ``ScopeResolver.client_context`` (ADR 0015 decision 6), from
+    a verified principal and persisted grants, exactly as a
+    :class:`StudyContext` is. ``client_role`` is the client-level grant, or
+    ``None`` for study-only access, in which case ``study_ids`` are the only
+    studies of this client the actor may see and no client knowledge is
+    readable. ``study_ids`` is always the set the actor can open, so a listing
+    under this context never needs a second authorisation pass.
+    """
+
+    organization_id: str
+    client_id: str
+    actor_id: str
+    client_role: ScopeRole | None
+    permissions: frozenset[ClientPermission]
+    organization_role: OrganizationRole
+    grant: ScopeGrant
+    study_ids: frozenset[str] = frozenset()
+    self_approval: SelfApprovalPolicy = field(default_factory=SelfApprovalPolicy)
+    request_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.grant, ScopeGrant):
+            raise ScopeDenied("client context requires an issued grant", reason="forged_scope")
+        for name in ("organization_id", "client_id", "actor_id"):
+            if not getattr(self, name):
+                raise ScopeDenied(f"{name} is required in a client context", reason="incomplete")
+
+    def has(self, permission: ClientPermission) -> bool:
+        """True when this scope confers ``permission``."""
+        return permission in self.permissions
+
+    def require(self, permission: ClientPermission) -> None:
+        """Raise :class:`ScopeDenied` unless this scope confers ``permission``."""
+        if permission not in self.permissions:
+            role = self.client_role.value if self.client_role else "study-only"
+            raise ScopeDenied(
+                f"{role} does not permit {permission.value}", reason="insufficient_role"
+            )
+
+    def audit_fields(self) -> dict[str, Any]:
+        """Scope fields to attach to an audit record."""
+        return {
+            "organization_id": self.organization_id,
+            "client_id": self.client_id,
+            "actor_id": self.actor_id,
+            "role": self.client_role.value if self.client_role else None,
+            "request_id": self.request_id,
+        }
+
+    def __repr__(self) -> str:
+        role = self.client_role.value if self.client_role else "study-only"
+        return f"ClientContext(org={self.organization_id}, client={self.client_id}, role={role})"
 
 
 @dataclass(frozen=True, slots=True)

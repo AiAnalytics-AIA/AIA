@@ -1,0 +1,59 @@
+{
+  "study_type": "Service concept a pricing research",
+  "decision": "Vybrat service proposition, tarifní logiku a priority digitálního experience.",
+  "research_questions": [
+    "Jak často cestujete vlakem a za jakým účelem?",
+    "Co vám dnes nejvíce vadí na nákupu a změně jízdenek?",
+    "Jak hodnotíte čtyři tarifní koncepty?",
+    "Jak srozumitelná je cenová logika každého konceptu?",
+    "Jaká měsíční cena / kreditní hodnota je přijatelná?",
+    "Který koncept byste nejpravděpodobněji použili?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Pay as you go",
+      "description": "Současný nákup jednotlivých jízd",
+      "type": "tracked_object",
+      "score": 58,
+      "x": 245,
+      "y": 290
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Commuter Pass",
+      "description": "Pevné měsíční předplatné",
+      "type": "tracked_object",
+      "score": 71,
+      "x": 355,
+      "y": 185
+    },
+    {
+      "id": "OBJ-C",
+      "name": "FlexPass",
+      "description": "Kredity + best-price engine",
+      "type": "tracked_object",
+      "score": 79,
+      "x": 420,
+      "y": 235
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Membership Plus",
+      "description": "Členství + benefity",
+      "type": "tracked_object",
+      "score": 69,
+      "x": 555,
+      "y": 135
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Value",
+    "Clarity",
+    "Flexibility",
+    "Trust",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

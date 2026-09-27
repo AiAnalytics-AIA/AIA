@@ -1,0 +1,23 @@
+{
+  "release": "17.9.0",
+  "generated_at": "2026-08-24T18:48:00+02:00",
+  "basis": "segmented local regression + deterministic integration acceptance; no unexecuted provider call is marked PASS",
+  "status": "NOT_RUN",
+  "control_plane_acceptance": "PASS",
+  "api_key_configured": false,
+  "api_auth_test": "NOT_RUN",
+  "real_api_call": "NOT_RUN",
+  "model": "NOT_RUN",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "estimated_cost_usd": 0.0,
+  "provider": "Claude API",
+  "checks": {
+    "explicit_only_switch": "PASS",
+    "unfinished_jobs_only_requeue_contract": "PASS",
+    "completed_artifact_reuse_contract": "PASS",
+    "project_budget_pre_request_guard": "PASS",
+    "provider_event_audit": "PASS"
+  },
+  "reason": "ANTHROPIC_API_KEY is not configured in the release-build environment; no paid request was fabricated."
+}

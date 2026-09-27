@@ -1,0 +1,5 @@
+﻿variant_id,variant_name,price_or_fee,decision_score_0_100,adoption_intent_pct,preference_pct,trust,ease,reassurance,privacy_comfort,respondent_composite_avg
+A,Booking Only,0,72,62.6,39.1,7.29,8.15,5.64,7.52,64.6
+B,Booking + Navigation,0,78,74.6,49.1,6.99,7.72,6.81,7.05,68.2
+C,Digital Concierge,0,74,62.9,47.6,6.1,6.34,7.3,5.66,60.8
+D,Simple + Human Backup,0,84,78.8,58.6,7.96,7.97,8.29,7.52,75.8

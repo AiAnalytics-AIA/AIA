@@ -1,0 +1,13 @@
+{
+ "fixture_id": "U09_workflowStepLabel",
+ "function": "workflowStepLabel",
+ "capability_id": "workflow.step_execution",
+ "parity_type": "EXACT",
+ "helpers": [],
+ "notes": "The Czech labels of the ten standard workflow nodes the shell shows; an unknown key is shown as itself and an empty one as an em dash. Not yet ported.",
+ "cases": [
+  {"id": "standard_nodes", "args": ["compile"], "probe": "(r,c)=>c.keys.map(k=>workflowStepLabel(k))", "extra": {"keys": ["compile", "research", "preflight", "run", "aggregate", "donor_qc", "interpret", "verify", "alignment", "report"]}},
+  {"id": "unknown_key_is_itself", "args": ["analysis_segments"]},
+  {"id": "empty_key_is_a_dash", "args": [""]}
+ ]
+}

@@ -1,0 +1,139 @@
+{
+ "schema": "aia-legacy-ui-fixture-1",
+ "fixture_id": "U04_buildFullMatrix1797",
+ "capability_id": "sociomapping.core",
+ "reference_zip_sha256": "86b70bfb5c1b4a7984b392cc6187c0842edc5cd28d37d2dd72dcf15d58d53216",
+ "reference_function": "ui_app.html::buildFullMatrix1797",
+ "source_sha256": "0a4bcd13da3da724012e2b34453846fc4e9438308b54529476f100c9c3cd505b",
+ "helpers": {},
+ "ui_app_sha256": "d844dd6fc7bc738bf1bedaed1b668eb44d79c1ad7d281f093eee15ed1c81eaee",
+ "runtime_environment": {
+  "node": "v22.22.2",
+  "note": "Frontend function executed in a Node vm sandbox (no DOM) from source extracted verbatim from the vendored legacy/npc-panel-18.6.6/app/ui_app.html"
+ },
+ "parity_type": "NUMERICAL",
+ "tolerance": 1e-09,
+ "input": {
+  "distance_blended_with_edges": {
+   "args": [
+    [
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 4,
+      "y": 3
+     },
+     {
+      "x": -2,
+      "y": 6
+     },
+     {
+      "x": 8,
+      "y": -1
+     }
+    ],
+    [
+     {
+      "from": 0,
+      "to": 1,
+      "weight": 0.9
+     },
+     {
+      "from": 2,
+      "to": 3,
+      "weight": 0.1
+     },
+     {
+      "from": 1,
+      "to": 3,
+      "weight": 1.7
+     },
+     {
+      "from": 9,
+      "to": 0,
+      "weight": 0.5
+     },
+     {
+      "from": 0,
+      "to": 2,
+      "weight": "x"
+     }
+    ]
+   ]
+  },
+  "coincident_points": {
+   "args": [
+    [
+     {
+      "x": 1,
+      "y": 1
+     },
+     {
+      "x": 1,
+      "y": 1
+     },
+     {
+      "x": 1,
+      "y": 1
+     }
+    ],
+    []
+   ]
+  },
+  "empty": {
+   "args": [
+    [],
+    []
+   ]
+  }
+ },
+ "expected_output": {
+  "distance_blended_with_edges": [
+   [
+    0,
+    30.1,
+    51.8,
+    66
+   ],
+   [
+    30.1,
+    0,
+    55,
+    30.1
+   ],
+   [
+    51.8,
+    55,
+    0,
+    96.5
+   ],
+   [
+    66,
+    30.1,
+    96.5,
+    0
+   ]
+  ],
+  "coincident_points": [
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  "empty": []
+ },
+ "notes": "Symmetric 0..100 distance matrix of the 1797 bubble sociomap: normalised Euclidean distance, blended 0.65/0.35 with an undirected edge weight when one exists, rounded to one decimal. Edges with out-of-range indices or non-finite weights are ignored. Not yet ported."
+}

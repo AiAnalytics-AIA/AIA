@@ -1,0 +1,59 @@
+{
+  "study_type": "Tariff proposition + trust research",
+  "decision": "Vybrat tarifní proposition, cenovou logiku a hlavní trust drivers.",
+  "research_questions": [
+    "Jak dnes volíte dodavatele a tarif?",
+    "Jak důležitá je jistota ceny oproti možné úspoře?",
+    "Jak hodnotíte čtyři tarifní koncepty?",
+    "Jak moc důvěřujete automatickému řízení spotřeby?",
+    "Jaký green premium by byl ještě přijatelný?",
+    "Který tarif byste si vybrali pro vlastní domácnost?"
+  ],
+  "tracked_objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Fixed",
+      "description": "Klasický fix",
+      "type": "tracked_object",
+      "score": 68,
+      "x": 250,
+      "y": 285
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Dynamic",
+      "description": "Čistě dynamická cena",
+      "type": "tracked_object",
+      "score": 61,
+      "x": 565,
+      "y": 170
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Secure Flex",
+      "description": "Strop + flexibilita",
+      "type": "tracked_object",
+      "score": 80,
+      "x": 405,
+      "y": 215
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Green Plus",
+      "description": "Zelený tarif + premium",
+      "type": "tracked_object",
+      "score": 69,
+      "x": 350,
+      "y": 335
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Trust",
+    "Savings potential",
+    "Clarity",
+    "Control",
+    "Overall"
+  ],
+  "method": "Synthetic DEMO project; illustrative only."
+}

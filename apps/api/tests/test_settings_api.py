@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from aia_core.domain.evidence import REFERENCE_THRESHOLDS
-from aia_core.domain.providers import DEFAULT_MAX_API_COST_USD, Provider, ProviderPolicy
+from aia_core.domain.providers import (
+    DEFAULT_MAX_API_COST_USD,
+    Provider,
+    ProviderPolicy,
+    is_paid,
+)
 from aia_core.domain.scope import ROLE_PERMISSIONS, OrganizationRole, StudyStatus
 from aia_core.domain.workflow import DEFAULT_LEASE_SECONDS
 from fastapi.testclient import TestClient
@@ -104,7 +109,10 @@ def test_vocabularies_are_the_domain_enums(researcher: TestClient) -> None:
     assert vocab["provider_policies"] == [p.value for p in ProviderPolicy]
     assert [p["id"] for p in vocab["providers"]] == [p.value for p in Provider]
     paid = {p["id"]: p["paid"] for p in vocab["providers"]}
-    assert paid == {"claude_code_subscription": False, "anthropic": True, "openai": True}
+    assert paid == {p.value: is_paid(p) for p in Provider}
+    # The subscription runtime has no marginal cost; the per-token APIs do.
+    assert paid["claude_code_subscription"] is False
+    assert paid["anthropic"] is True
     by_role = {r["role"]: set(r["permissions"]) for r in vocab["scope_roles"]}
     assert by_role == {
         role.value: {p.value for p in granted} for role, granted in ROLE_PERMISSIONS.items()

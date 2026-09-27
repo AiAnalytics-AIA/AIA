@@ -1,0 +1,434 @@
+{
+  "demo": true,
+  "read_only_demo": true,
+  "demo_seed_key": "10_GREENHOME_TARIFF_DEMO",
+  "project_id": "PRJ-DEMO-GREENHOME",
+  "title": "GreenHome Tariff DEMO",
+  "domain": "Energetika / utility",
+  "study_type": "Tariff proposition + trust research",
+  "project_type": "research",
+  "status": "COMPLETED",
+  "current_revision": 7,
+  "brief": {
+    "client_input": "Dodavatel energie chce nabídnout nový tarif s chytrým řízením spotřeby, zelenou elektřinou a cenovou ochranou. Potřebujeme zjistit, jak službu poskládat, aby byla srozumitelná a důvěryhodná.",
+    "decision": "Vybrat tarifní proposition, cenovou logiku a hlavní trust drivers."
+  },
+  "executive_answer": "Nejlépe funguje „Secure Flex“: cenový strop + jednoduché doporučení, kdy spotřebovávat, bez povinné automatizace domácnosti. Čistě dynamický tarif budí obavy z nepředvídatelnosti.",
+  "recommendation": "GO — Secure Flex; nejprve transparentnost a kontrola, teprve potom automatizace a green premium.",
+  "audience": {
+    "population": "České domácnosti odpovědné za rozhodování o energiích",
+    "n": 1200,
+    "persona_mode": "calibrated",
+    "dimensions": [
+      "věk",
+      "region",
+      "socioeconomics",
+      "media/digital behavior",
+      "values",
+      "category involvement",
+      "trust",
+      "price sensitivity",
+      "innovation adoption",
+      "context-specific dimensions"
+    ]
+  },
+  "questionnaire": [
+    {
+      "id": "Q1",
+      "section": "Context",
+      "text": "Jak dnes volíte dodavatele a tarif?",
+      "type": "frequency",
+      "purpose": "context"
+    },
+    {
+      "id": "Q2",
+      "section": "Needs",
+      "text": "Jak důležitá je jistota ceny oproti možné úspoře?",
+      "type": "battery",
+      "purpose": "drivers"
+    },
+    {
+      "id": "Q3",
+      "section": "Objects",
+      "text": "Jak hodnotíte čtyři tarifní koncepty?",
+      "type": "object_battery",
+      "purpose": "comparison + sociomap"
+    },
+    {
+      "id": "Q4",
+      "section": "Emotions",
+      "text": "Jak moc důvěřujete automatickému řízení spotřeby?",
+      "type": "emotion_battery",
+      "purpose": "emotional map"
+    },
+    {
+      "id": "Q5",
+      "section": "Decision",
+      "text": "Jaký green premium by byl ještě přijatelný?",
+      "type": "choice",
+      "purpose": "decision KPI"
+    },
+    {
+      "id": "Q6",
+      "section": "Validation",
+      "text": "Který tarif byste si vybrali pro vlastní domácnost?",
+      "type": "certainty",
+      "purpose": "robustness"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-A",
+      "name": "Fixed",
+      "description": "Klasický fix",
+      "type": "tracked_object",
+      "score": 68,
+      "x": 250,
+      "y": 285
+    },
+    {
+      "id": "OBJ-B",
+      "name": "Dynamic",
+      "description": "Čistě dynamická cena",
+      "type": "tracked_object",
+      "score": 61,
+      "x": 565,
+      "y": 170
+    },
+    {
+      "id": "OBJ-C",
+      "name": "Secure Flex",
+      "description": "Strop + flexibilita",
+      "type": "tracked_object",
+      "score": 80,
+      "x": 405,
+      "y": 215
+    },
+    {
+      "id": "OBJ-D",
+      "name": "Green Plus",
+      "description": "Zelený tarif + premium",
+      "type": "tracked_object",
+      "score": 69,
+      "x": 350,
+      "y": 335
+    }
+  ],
+  "metrics": [
+    "Preference",
+    "Trust",
+    "Savings potential",
+    "Clarity",
+    "Control",
+    "Overall"
+  ],
+  "object_values": [
+    [
+      34,
+      82,
+      51,
+      84,
+      79,
+      68
+    ],
+    [
+      29,
+      49,
+      81,
+      48,
+      55,
+      61
+    ],
+    [
+      45,
+      79,
+      76,
+      77,
+      84,
+      80
+    ],
+    [
+      31,
+      71,
+      58,
+      65,
+      72,
+      69
+    ]
+  ],
+  "segments": [
+    {
+      "id": "SEG1",
+      "name": "Security Seekers",
+      "share_pct": 31,
+      "description": "Stabilita ceny",
+      "best_object": "Fixed"
+    },
+    {
+      "id": "SEG2",
+      "name": "Active Savers",
+      "share_pct": 26,
+      "description": "Ochota měnit spotřebu",
+      "best_object": "Secure Flex"
+    },
+    {
+      "id": "SEG3",
+      "name": "Smart Home Users",
+      "share_pct": 18,
+      "description": "Technologicky vybavení",
+      "best_object": "Dynamic"
+    },
+    {
+      "id": "SEG4",
+      "name": "Green Motivated",
+      "share_pct": 15,
+      "description": "Environmentální preference",
+      "best_object": "Green Plus"
+    },
+    {
+      "id": "SEG5",
+      "name": "Low Involvement",
+      "share_pct": 10,
+      "description": "Chtějí jednoduchost",
+      "best_object": "Secure Flex"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "W1",
+      "name": "Base energy",
+      "winner": "Secure Flex",
+      "primary_metric": 45,
+      "overall": 80,
+      "assumption": "Standardní ceny"
+    },
+    {
+      "id": "W2",
+      "name": "Price volatility",
+      "winner": "Secure Flex",
+      "primary_metric": 48,
+      "overall": 83,
+      "assumption": "Vyšší volatilita trhu"
+    },
+    {
+      "id": "W3",
+      "name": "Stable prices",
+      "winner": "Secure Flex",
+      "primary_metric": 41,
+      "overall": 76,
+      "assumption": "Nízká volatilita"
+    },
+    {
+      "id": "W4",
+      "name": "Green concern",
+      "winner": "Secure Flex",
+      "primary_metric": 44,
+      "overall": 80,
+      "assumption": "Vyšší environmentální salience"
+    },
+    {
+      "id": "W5",
+      "name": "Smart home growth",
+      "winner": "Secure Flex",
+      "primary_metric": 46,
+      "overall": 81,
+      "assumption": "Více smart-home uživatelů"
+    },
+    {
+      "id": "W6",
+      "name": "Trust shock",
+      "winner": "Secure Flex",
+      "primary_metric": 42,
+      "overall": 77,
+      "assumption": "Nižší důvěra v dodavatele"
+    },
+    {
+      "id": "W7",
+      "name": "Savings pressure",
+      "winner": "Secure Flex",
+      "primary_metric": 47,
+      "overall": 82,
+      "assumption": "Vyšší finanční tlak"
+    },
+    {
+      "id": "W8",
+      "name": "Automation comfort",
+      "winner": "Secure Flex",
+      "primary_metric": 46,
+      "overall": 82,
+      "assumption": "Vyšší důvěra v automatizaci"
+    }
+  ],
+  "findings": [
+    "Kontrola a srozumitelnost jsou silnější trust drivers než „smart“ technologičnost.",
+    "Dynamic tarif má vysoký savings potential, ale nízkou perceived control.",
+    "Green premium funguje jen u menšího segmentu.",
+    "Secure Flex je nejrobustnější napříč ekonomickými scénáři."
+  ],
+  "risks": [
+    "Deklarované savings expectations nejsou finanční model.",
+    "Tarif vyžaduje regulatorní a billing validaci.",
+    "Reálná spotřeba domácností je heterogenní."
+  ],
+  "primary_metric": "Tariff preference",
+  "primary_value": 45,
+  "world_range": "41–48 %",
+  "winner_stability": "8/8",
+  "overall": 80,
+  "history": [
+    {
+      "revision": 1,
+      "stage": "BRIEF",
+      "event": "Projekt vytvořen",
+      "detail": "Původní klientské zadání a rozhodovací problém."
+    },
+    {
+      "revision": 2,
+      "stage": "RESEARCH_DESIGN",
+      "event": "AI interpretace a design",
+      "detail": "Research questions, tracked objects a metodika."
+    },
+    {
+      "revision": 3,
+      "stage": "DEEP_RESEARCH",
+      "event": "Research doplněn",
+      "detail": "Evidence/dimenzní vrstvy a nejistoty."
+    },
+    {
+      "revision": 4,
+      "stage": "QUESTIONNAIRE",
+      "event": "Dotazník schválen",
+      "detail": "Objektové baterie a decision KPI."
+    },
+    {
+      "revision": 5,
+      "stage": "AUDIENCE",
+      "event": "Publikum a dimenze frozen",
+      "detail": "Populace, segmentace a dimenze respondentů."
+    },
+    {
+      "revision": 6,
+      "stage": "FROZEN_RESULTS",
+      "event": "Modelové světy dokončeny",
+      "detail": "8/8 světů a frozen result."
+    },
+    {
+      "revision": 7,
+      "stage": "DELIVERY",
+      "event": "Report + exporty",
+      "detail": "Report, databáze, sociomapa a handoff balík."
+    }
+  ],
+  "sociomap": {
+    "nodes": [
+      {
+        "name": "Fixed",
+        "type": "object",
+        "score": 68,
+        "x": 250,
+        "y": 285,
+        "color": "#537bd7"
+      },
+      {
+        "name": "Dynamic",
+        "type": "object",
+        "score": 61,
+        "x": 565,
+        "y": 170,
+        "color": "#3c9890"
+      },
+      {
+        "name": "Secure Flex",
+        "type": "object",
+        "score": 80,
+        "x": 405,
+        "y": 215,
+        "color": "#7961c5"
+      },
+      {
+        "name": "Green Plus",
+        "type": "object",
+        "score": 69,
+        "x": 350,
+        "y": 335,
+        "color": "#299764"
+      },
+      {
+        "name": "Důvěra",
+        "type": "anchor",
+        "x": 380,
+        "y": 115,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Úspora",
+        "type": "anchor",
+        "x": 520,
+        "y": 225,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Kontrola",
+        "type": "anchor",
+        "x": 160,
+        "y": 210,
+        "color": "#9ba3af"
+      },
+      {
+        "name": "Jasnost",
+        "type": "anchor",
+        "x": 350,
+        "y": 355,
+        "color": "#9ba3af"
+      }
+    ],
+    "edges": [
+      {
+        "from": 0,
+        "to": 6,
+        "weight": 0.71
+      },
+      {
+        "from": 0,
+        "to": 7,
+        "weight": 0.69
+      },
+      {
+        "from": 1,
+        "to": 5,
+        "weight": 0.82
+      },
+      {
+        "from": 1,
+        "to": 4,
+        "weight": 0.52
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "weight": 0.74
+      },
+      {
+        "from": 2,
+        "to": 5,
+        "weight": 0.71
+      },
+      {
+        "from": 3,
+        "to": 7,
+        "weight": 0.95
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "weight": 0.49
+      }
+    ],
+    "layers": [
+      "perception",
+      "emotion",
+      "segment_resonance"
+    ]
+  },
+  "user_language_rule": "V UI označovat jako DEMO; neprezentovat syntetická čísla jako reálný výzkum."
+}

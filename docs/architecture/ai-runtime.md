@@ -14,7 +14,8 @@
 | `GovernedModelGateway` (`application/model_gateway.py`) | **Implemented** — the one implementation of the semantics |
 | Adapters: Anthropic Messages, OpenAI Chat Completions, Claude Code CLI (`infrastructure/model_adapters/`) | **Implemented against recorded exchanges.** No live transport; no call has been made |
 | AI usage ledger `ai_usage_events` + `AIUsageRepository` + `WorkflowCallJournal` | **Implemented** — append-only, compensating entries |
-| Live HTTP / CLI transports, credential store | **Not built.** Needs an approved route (ADR 0008) and a transport decision |
+| Live HTTP / CLI transports, credential store | **Not built.** Needs an approved route (ADR 0008; [ADR 0010](adr/0010-bedrock-eu-inference-route.md) proposes the first) and a transport decision |
+| First approved route | **Proposed**: `bedrock-eu-primary`, Amazon Bedrock in the EU geography, Class C only ([ADR 0010](adr/0010-bedrock-eu-inference-route.md)). No adapter is bound to it yet, so nothing can leave over it; the develop host's instance role may already invoke exactly one pinned EU model |
 | Generalized metered-cost ledger for non-model tools | **Not built.** See *Cost accounting* |
 | Research prompts and agents | **Not built**, deliberately (research-engine) |
 
@@ -163,7 +164,7 @@ retrieval, paid datasets). `ToolRegistry` refuses to register a tool with an
 external paid effect until that exists, rather than letting one run uncounted.
 Also outstanding: reconciling a resolved uncertain call back into
 `Study.spent_usd`, which still carries the `SETTLED_UNCERTAIN` reservation
-amount (OI-33), and the reference's per-run hard cap (`budget_guard.py`, R10).
+amount (OI-36), and the reference's per-run hard cap (`budget_guard.py`, R10).
 
 ## Residency and egress
 

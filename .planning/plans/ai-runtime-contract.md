@@ -96,7 +96,7 @@ by the first live run rather than by CI.
 - [x] 6. Infrastructure: `ai_usage_events` (migration `1cd2a5acd29f`), `AIUsageRepository`, `WorkflowCallJournal` + `tests/test_ai_usage_ledger.py` (17)
 - [x] 7. Enforcement + docs: `layer_check` provider-SDK rules (12 → 14), `ai-runtime.md`,
       `ai-step-executor-contract.md`, ADR 0005 implementation note, ARCHITECTURE /
-      CLAUDE / AGENTS, data-model, domain-map, parity matrix, OI-33 (filed as OI-6, renumbered twice on merge with main), PROGRESS
+      CLAUDE / AGENTS, data-model, domain-map, parity matrix, OI-36 (filed as OI-6, renumbered on each merge with main and once more into develop), PROGRESS
 
 All seven landed on PR #28.
 
@@ -157,7 +157,7 @@ All seven landed on PR #28.
 
 D6 route approval per data class · D7 live transport · D8 credential storage ·
 D9 catalog/prices/policy ownership · D10 capacity backoff and per-run cap
-(platform-runtime). All in `PROGRESS.md` *Decisions needed*. Plus OI-33
+(platform-runtime). All in `PROGRESS.md` *Decisions needed*. Plus OI-36
 (uncertain resolution → study spend), owned by platform-runtime.
 
 ### Dependency for research-engine
@@ -192,5 +192,5 @@ own cost because `mark_paid_call_outcome_known` now adds rather than sets --
 passing the running total would have double-charged every multi-call attempt
 (`test_several_calls_in_one_attempt_are_charged_once_each`,
 `test_a_failed_attempt_is_charged_for_every_billed_call`, both shown to fail
-against the old journal). OI-6 renumbered OI-32, then OI-33 when main took OI-32; the ledger migration re-parented
+against the old journal). OI-6 renumbered OI-32, then OI-33 when main took OI-32, then OI-36 when `develop` (PR #29) had taken OI-33–35; the ledger migration re-parented
 onto `85637e58c7dd`. Remaining fields filled in when archived.
