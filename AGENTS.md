@@ -416,6 +416,27 @@ test "$(curl -s -o /dev/null -w '%{http_code}' "$BASE")" = "401"
 decision. `dependencies.py` is the composition root and the only place that wires
 engine, sessions, identity and scope.
 
+**`get_settings()` is not the app's settings.** It is `lru_cache`d and reads the
+environment; `create_app(settings)` stores the settings it was *given* on
+`app.state.settings`. A dependency on `get_settings` inside a test app built with
+explicit settings reads the process environment instead, silently. A route that
+reports the effective configuration must read the app's own copy:
+
+```python
+# WRONG -- the process environment, not what this app was built with
+def get_settings_document(settings: SettingsDep): ...
+
+# RIGHT
+def get_settings_document(request: Request):
+    settings: Settings = request.app.state.settings
+```
+
+**A closed response model rejects a repository's extra key at runtime, not in
+mypy.** `GET /access-audit` answered 500 for every organization with a grant, because
+`audit_trail()` returns a `payload` key and `AuditEntryResponse` is
+`extra="forbid"`. Every route needs one API test that returns *data*, not only one
+that is refused.
+
 ## Pydantic strict mode
 
 **Strict *Python* mode rejects what JSON can express.** `model_validate(data,
@@ -470,6 +491,19 @@ existed. Two habits fix it:
 gates and all three are blocking. `apps/web` has its own lockfile, so CI caches
 on `apps/web/package-lock.json` — caching on a branch name gives a stale
 `node_modules` that fails for reasons unrelated to the change.
+
+**A constant exported from a `"use client"` module is not a constant on the
+server.** A server component that imports it gets a client *reference*, and
+`className={inputClass}` renders the text of a thrown error into the HTML. Only
+components cross that boundary; shared constants live in a plain module.
+
+```ts
+// WRONG -- ActionForm.tsx starts with "use client"
+export const inputClass = "h-8 rounded-md …";   // imported by a server component
+
+// RIGHT -- components/settings/styles.ts, no directive
+export const inputClass = "h-8 rounded-md …";
+```
 
 The client renders state the server computed. `GET …/impact` exists precisely so
 no component reasons about which stages an edit invalidates.

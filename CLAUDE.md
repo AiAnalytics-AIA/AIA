@@ -52,7 +52,11 @@ apps/
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope, settings (the read-only settings document)
     schemas/                Request/response models + the one error contract
-  web/                      Next.js 16 / React 19 / Tailwind 4. Still mock-backed.
+  web/                      Next.js 16 / React 19 / Tailwind 4. Mock-backed, except:
+    src/lib/api/            Server-only API client (AIA_API_URL) + wire types
+    src/app/org/[orgSlug]/admin/settings/  The settings page: server-rendered from
+                            GET /settings, live forms as server actions over the API
+    src/components/settings/  Its panels; an unreachable API renders as unavailable
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
     executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
     worker.py               The loop: claim, execute, record; reconcile on an interval

@@ -73,4 +73,38 @@ deployed worker's values, which it cannot see.
 
 ## Progress
 
-- [ ] 1 · [ ] 2 · [ ] 3 · [ ] 4 · [ ] 5 · [ ] 6
+All six chunks written and verified 2026-09-27. Chunks 1 and the audit fix are
+committed locally (`0a4960a`, and the commit after it); chunks 2–6 are in the
+working tree awaiting permission to commit (CLAUDE.md §5).
+
+- [x] 1 — `GET /api/v1/settings` · `apps/api/tests/test_settings_api.py` (9 tests)
+- [x] 2 — `GET`/`PUT /api/v1/self-approval`, `ScopeRepository.self_approval_levels` ·
+      `apps/api/tests/test_self_approval_api.py` (9),
+      `test_self_approval_policy.py::test_levels_read_back_as_stored_not_as_resolved`,
+      `::test_reading_self_approval_levels_requires_organization_administration`
+- [x] 3 — `PUT /api/v1/clients/{client_id}/status` · `apps/api/tests/test_client_status_api.py` (5)
+- [x] 4 — `apps/web/src/lib/api/{server,types}.ts`
+- [x] 5 — the page, `components/settings/`, `settings` keys in `i18n/cs.ts`
+- [x] 6 — shell title, header and search placeholder; `<html lang="cs">`
+
+### Found on the way
+
+- **`GET /api/v1/access-audit` answered 500 for any organization with a grant.**
+  `ScopeResolver.audit_trail` returns a `payload` key that the closed
+  `AuditEntryResponse` forbids; no API test called the route. Fixed by dropping
+  the payload at the edge; `apps/api/tests/test_access_audit_api.py::test_an_owner_reads_the_trail`.
+- **`get_settings()` is process-cached and ignores `create_app(settings)`** — every
+  route depending on `SettingsDep` reads the environment, not the app's settings.
+  The settings route reads `app.state.settings`; `AGENTS.md` § FastAPI. The other
+  users of `SettingsDep` (`dependencies.py:150`) are unchanged — *hypothesis* that
+  it matters there, not reproduced.
+
+### Verification (driven run)
+
+API on SQLite with development identity, `next start` with `AIA_API_URL`, driven
+with Playwright: set organization self-approval (the level reads back *povoleno*),
+set a study budget 500 → 750 (the summary and the audit trail show it), created a
+study, archived a client (leaves the default list), and a RESEARCHER's budget
+change came back refused (`HTTP 404 · not_found`) and was shown as given. A MEMBER
+sees no deployment group; with no `AIA_API_URL` the page says *not connected* and
+renders no data.

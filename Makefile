@@ -52,8 +52,8 @@ dev-worker: ## Run one worker with the test executors (needs DATABASE_URL)
 	@AIA_WORKER_EXECUTORS=$${AIA_WORKER_EXECUTORS:-aia_worker.testing:build_registry} \
 	  $(PY) -m aia_worker
 
-dev-web: ## Run the web client on :3000
-	@cd apps/web && npm run dev
+dev-web: ## Run the web client on :3000, pointed at the local API
+	@cd apps/web && AIA_API_URL=$${AIA_API_URL:-http://localhost:8000} npm run dev
 
 test: test-core test-api test-worker ## Run all Python tests
 
