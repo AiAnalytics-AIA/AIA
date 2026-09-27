@@ -105,14 +105,18 @@ gate again. Content, not names: the research steps reuse artifacts by fingerprin
 design edited and edited back runs on the earlier revision's specification, a design
 edited only outside its questionnaire (its research questions) reuses the earlier run's
 dataset and aggregate, and an outcome reused by such a run keeps the ids, revision and
-`produced_by` it was computed under. Anything else raises `ReconstructionRefused(reason)`:
+`produced_by` it was computed under. A source whose bytes pass their hash but hold
+another shape -- not an object, or a specification this system cannot read -- is refused
+as `specification_shape` or `aggregate_shape`, never raised.
+Anything else raises `ReconstructionRefused(reason)`:
 
 | `reason` | When |
 | --- | --- |
 | `run_not_found` | No such research run in the Study in scope |
 | `not_in_run`, `no_outcome` | The run has no such module, or its step has not succeeded |
 | `outcome_not_found`, `outcome_invalid`, `outcome_corrupt`, `contract` | The artifact is missing, of another type or status, fails its hash, or breaks the contract |
-| `sources_refused`, `sources_moved` | The run's sources cannot be loaded, or are not the ones recorded |
+| `sources_refused`, `sources_moved` | The run's sources cannot be loaded (the message starts with the source's reason: `design_revision`, `aggregate_lineage`, `specification_shape` …), or are not the ones recorded |
+| `evidence_refused` | The recorded sources no longer make evidence (a later evidence adapter refuses them) |
 | `fingerprint_mismatch` | Evidence, policy, research questions, method status or harness moved |
 | `readmission_refused` | The stored draft no longer passes the gate |
 
