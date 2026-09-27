@@ -50,7 +50,7 @@ apps/
     dependencies.py         Composition root: engine, sessions, identity, scope
     identity/               IdentityProvider protocol: cognito, testing, development
     observability.py        Structured logging, request correlation, secret redaction
-    routers/                health, projects, scope
+    routers/                health, projects, scope, settings (the read-only settings document)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. Still mock-backed.
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
