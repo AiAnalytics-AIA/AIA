@@ -163,6 +163,17 @@ every artifact is. The brief's `attachments[]` keeps the record (`attachment_id`
 the artifact id); nothing stores a URL. Removing a record from the brief leaves the
 artifact, as 18.6.6 left the file.
 
+Content migrated from 18.6.6 (ADR 0018 decision 2) is the same shape. Revision *k* of
+the working project is the unit's *k*-th, with `reason` `unit:<the unit's reason>` and
+`created_by` null (the unit recorded no author); one `WORKSPACE_MIGRATED` event names
+the person who ran it. A migrated file is an attachment artifact whose metadata keeps
+`legacy_attachment_id`, `legacy_stored_name`, `named_in_brief` and `migrated_from`; its
+brief record keeps `legacy_attachment_id` beside the artifact's `attachment_id`. The
+Study's `lineage` records `source`, `unit_project_id`, `outcome`, `migration_version`,
+`migrated_at`, `migrated_by` and, for a migrated Study, each revision's unit id,
+timestamp, reason and hash, the unit title and trash mark, and which files came over or
+did not; for a recovered one, the Design Revision it came from.
+
 **Population registry.** `population_dataset_versions`, `populations`,
 `population_promotions`, `population_companion_sets`, `population_companion_assets`,
 `run_population_bindings`. Platform reference data, so the

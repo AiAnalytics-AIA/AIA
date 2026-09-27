@@ -50,12 +50,12 @@ All through `apps/web/src/unit/client.ts` and the route table
 
 | What | Where | Class |
 |---|---|---|
-| The gate: `POST/DELETE /api/v1/panel/session`, `GET /api/v1/panel/gate`, 404 unless `AIA_LEGACY_PANEL_ENABLED` | `apps/api/src/aia_api/routers/panel.py:52-199` | L → replaced by AIA's own session gate (chunk 7) |
+| The gate: `POST/DELETE /api/v1/panel/session`, `GET /api/v1/panel/gate`, 404 unless `AIA_LEGACY_PANEL_ENABLED` | `apps/api/src/aia_api/routers/panel.py:52-199` | L → replaced by AIA's own session gate (chunk 8) |
 | Owner/admin admission `LEGACY_PANEL_ROLES`, `authorize_legacy_panel` | `domain/scope.py:127`, `application/scope.py:170-197` | L → retired (chunk 10) |
-| Login page opens the panel session; "disabled" when the flag is off | `apps/web/src/app/login/page.tsx:83-106`, `lib/panel.ts` | L → AIA session (chunk 7) |
+| Login page opens the panel session; "disabled" when the flag is off | `apps/web/src/app/login/page.tsx:83-106`, `lib/panel.ts` | L → AIA session (chunk 8) |
 | The study ↔ unit binding `study_workspaces` (`unit_project_id`) and `PUT /studies/{id}/workspace` | `infrastructure/study_workspace_repository.py`, `routers/workspace.py` | L → the workspace row names an AIA working project; the unit id is lineage only (chunk 1) |
-| Working content: `/app/data/project_store.sqlite` (`projects`, `project_revisions`, `project_attachments`) in the `legacy_state` volume | unit `project_store.py:14-120` | L → AIA `projects` owned `study_workspace` (chunk 1); migrated by chunk 6 |
-| Attachment bytes: `/app/data/ui_uploads/project_attachments/ATT-…_<name>` | unit `ui_server.py:38-39,1020-1045` | L → AIA ArtifactStore (S3 in deployment) (chunk 3, migrated in chunk 6) |
+| Working content: `/app/data/project_store.sqlite` (`projects`, `project_revisions`, `project_attachments`) in the `legacy_state` volume | unit `project_store.py:14-120` | L → AIA `projects` owned `study_workspace` (chunk 1); migrated by chunk 7 |
+| Attachment bytes: `/app/data/ui_uploads/project_attachments/ATT-…_<name>` | unit `ui_server.py:38-39,1020-1045` | L → AIA ArtifactStore (S3 in deployment) (chunk 3, migrated in chunk 7) |
 | Population panel `FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz` and companions, hydrated from `s3://<ops>/legacy-data/86b70bfb5c1b/` | unit hydration, `deploy.sh:46-52` | L for the unit; **preserved** in the ops bucket; enters AIA only through `PopulationRuntime.import_version` (`application/population.py:149`) |
 | Background execution | AIA's worker runs research and agent jobs; the unit's own worker runs only unit jobs | N |
 
@@ -170,7 +170,23 @@ PR 1 — native research workspace (`feature/native-research-workspace`)
   (2026-09-27: 244 requests, none to the unit, no 502)
 
 PR 2 — migration (`feature/legacy-workspace-migration`)
-- [ ] 7. The migration command, its validation and its report; runbook
+- [x] 7. The migration command, its validation and its report; runbook (ADR 0018
+  decision 2): `domain/workspace_migration.py` (the rules: file references, record
+  rewrite, source checks against the unit's own hashes, one-for-one validation, the
+  report), `infrastructure/unit_project_store.py` (a copy read `mode=ro&immutable=1`,
+  a live database refused, the backup ZIP unpacked to a scratch directory; files by
+  base name only), `StudyWorkspaceRepository.unit_bindings` / `import_migrated` /
+  `mark_unrecoverable`, `ProjectRepository.create(author_unknown=True)`,
+  `ArtifactRepository.put(artifact_id=…)`, `application/workspace_migration.py` (as a
+  person through `ScopeResolver`, per-Study transactions, dry run unless applied,
+  `recover_missing` for the OI-66 cases), `aia_executors.legacy_workspace` (the
+  command); the stages say recovered content is the last submitted design, and when
+  a migrated brief's files did not all come over; runbook `deploy/develop/README.md`
+  § Migrating 18.6.6 content — tests: `test_workspace_migration.py` (stores written
+  in the unit's own layout, its schema read from `project_store.py` as text),
+  `test_legacy_workspace.py`, `test_project_repository.py`, `test_artifacts.py`,
+  `store.test.ts`, `ResearchScreen.test.tsx`. **Not run on develop**: that is the
+  operator's step 2 below.
 
 PR 3 — AIA's own session gate (`feature/aia-session-gate`)
 - [ ] 8. `POST/DELETE /api/v1/session`, `GET /api/v1/session/gate`; login;
@@ -191,9 +207,11 @@ PR 5 — the deployment without 18.6.6 (`feature/deploy-without-legacy`)
 
 1. Merge PR 1, deploy. Bound Studies show *Čeká na migraci z 18.6.6*; new Studies
    work natively.
-2. Merge PR 2, deploy. On the host: take a WAL-safe copy of the unit's state
-   (`deploy/reference/bin/backup-state.sh`), run the migration as a dry run, read
-   the report, run it with `--apply`, keep the report.
+2. Merge PR 2, deploy. On the host, by `deploy/develop/README.md` § Migrating 18.6.6
+   content: take a WAL-safe copy of the unit's state (`bin/backup-legacy-state.py`)
+   and of its attachment directory, run the migration as a dry run, read the report,
+   back up PostgreSQL, run it with `--apply`, keep both reports. Only when the copy is
+   known complete, `--recover-missing` for the Studies whose project it lacks.
 3. Merge PR 3 and PR 4, deploy.
 4. Merge PR 5, deploy: the unit stops being part of the product. Its volume and
    data bundle stay untouched; `deploy/reference/` can start it again as the oracle.

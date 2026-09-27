@@ -346,6 +346,69 @@ organization slug), never anything else.
 To start completely fresh: `docker compose down -v` (destroys the PostgreSQL
 volume and Caddy's certificates), then `bin/deploy.sh <sha>` and the seed.
 
+## Migrating 18.6.6 content
+
+Studies bound to an 18.6.6 project before ADR 0018 read *Čeká na migraci z 18.6.6* and
+cannot be edited until their content is migrated into AIA
+([ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md) decision 2).
+The migration is an operator's act, run once on the host, from **copies**: it never
+opens the unit's live files and never writes or deletes anything of the unit. Keep the
+unit's `legacy_state` volume and its data bundle exactly as they are until the report
+has been accepted.
+
+From an SSM session, in `/opt/aia/develop`, with the unit running:
+
+```bash
+mkdir -p /opt/aia/migration && cd /opt/aia/develop
+# 1. Copies: the databases through SQLite's backup API (WAL-safe), and the files.
+docker compose exec -T legacy-panel python - < bin/backup-legacy-state.py > /opt/aia/migration/legacy-state.zip
+docker compose cp legacy-panel:/app/data/ui_uploads/project_attachments /opt/aia/migration/project_attachments
+
+# 2. A dry run: nothing is written; the report says what would happen to each Study.
+docker compose run --rm --no-deps -T -v /opt/aia/migration:/migration:ro worker \
+  python -m aia_executors.legacy_workspace \
+    --store /migration/legacy-state.zip --attachments /migration/project_attachments \
+    --as <your AIA sign-in email> > /opt/aia/migration/dry-run.json
+```
+
+Read the summary (standard error) and `dry-run.json`. `--as` names the AIA person the
+migration acts as: each Study is opened with the grants that person holds on it, so a
+Study they may not edit is reported and left waiting. An organization owner has no
+implicit access to a client's studies: grant the person `LEAD` or `RESEARCHER` on each
+client whose studies are waiting first. Each Study's `outcome` is `MIGRATED`,
+`RECOVERED`, `UNRECOVERABLE` or `NOT_MIGRATED` with its `reason`; `files_missing` and
+`files_mismatched` name brief files the copy lacks or whose bytes no longer match;
+`unit_projects_not_bound` lists every unit project no Study refers to, which stays in
+the unit's volume.
+
+```bash
+# 3. Back up PostgreSQL, then apply. Each Study is its own transaction, validated
+#    against the copy before it commits; one that does not validate is rolled back.
+bin/backup.sh pre-migration
+docker compose run --rm --no-deps -T -v /opt/aia/migration:/migration:ro worker \
+  python -m aia_executors.legacy_workspace \
+    --store /migration/legacy-state.zip --attachments /migration/project_attachments \
+    --as <your AIA sign-in email> --apply > /opt/aia/migration/applied.json
+aws s3 cp /opt/aia/migration/applied.json "s3://<ops-bucket>/backups/legacy-migration-$(date -u +%Y%m%dT%H%M%SZ).json"
+```
+
+Exit status: 0 when every Study looked at is migrated, recovered or marked
+unrecoverable; 3 when some stay waiting (each with its reason: fix it, run again);
+2 when it could not start (no such active AIA user, an unreadable copy, or a database
+the unit still has open). Running it again is safe: a Study that no longer waits is
+listed under `done_before` and never written again.
+
+**A Study whose unit project is not in the copy** stays waiting, because a partial or
+wrong copy must not decide its fate. When you know the copy is complete (the dry run's
+`unit_projects_not_bound` and the unit's own project list agree), run step 3 once more
+with `--recover-missing`: such a Study becomes `RECOVERED` from its newest Design
+Revision, whose stages say so, or `UNRECOVERABLE`, where a person who may edit starts
+again (OI-66).
+
+**Undo.** `bin/restore.sh --live <the pre-migration dump>` puts PostgreSQL back as it
+was; the files already copied into the artifact bucket are then unreferenced objects.
+The unit's volume was never changed, so nothing there needs undoing.
+
 ## Rollback
 
 Deploy the previous SHA. The workflow accepts a SHA by hand (*Run workflow* →

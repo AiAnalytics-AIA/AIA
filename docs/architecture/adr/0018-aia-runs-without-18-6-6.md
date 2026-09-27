@@ -64,11 +64,41 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
    become something a run could execute, and flood the list ADR 0016 reads).
 
 2. **Legacy working content is migrated explicitly, once, with a report** (increment 2). An
-   operator command reads a WAL-safe *copy* of the unit's `project_store.sqlite` read-only and
-   its attachment directory, brings each `AWAITING_MIGRATION` Study's project -- every revision,
-   its analysis, its attachments into AIA storage -- over with lineage, validates the result
-   against the source, and reports every case it could not migrate. It never writes or
-   deletes the source; nothing in the product reads it afterwards.
+   operator command (`python -m aia_executors.legacy_workspace`) reads a WAL-safe *copy* of
+   the unit's `project_store.sqlite` read-only and its attachment directory, brings each
+   `AWAITING_MIGRATION` Study's project -- every revision, its analysis, its attachments into
+   AIA storage -- over with lineage, validates the result against the source, and reports
+   every case it could not migrate. It never writes or deletes the source; nothing in the
+   product reads it afterwards. How it does that:
+
+   - **As a person, through their grants.** The operator names an active AIA user; each Study
+     is opened through the scope `ScopeResolver` issues that person, with `EDIT_STUDY`. A
+     Study they may not edit, a closed Study and a simulation project are reported and left
+     waiting. An organization owner has no implicit access here either.
+   - **One for one.** AIA revision *k* is the unit's *k*-th, with its analysis and a reason
+     `unit:<the unit's reason>`; a repeated document is still its own revision. The unit
+     recorded no author, so a migrated revision has none (`created_by` null) rather than the
+     operator's name; one `WORKSPACE_MIGRATED` project event names who ran it. The unit's
+     revision ids, timestamps, reasons and hashes are kept in the Study's lineage.
+   - **Files by artifact id.** Each file a brief names, and each the unit bound to the project
+     that no brief names, is copied into AIA storage when its bytes match the SHA256 the unit
+     recorded; its brief record then names the artifact (`attachment_id`), keeps the unit's id
+     (`legacy_attachment_id`) and drops the unit's URL and stored name. A file missing from the
+     copy, or changed, is reported and its record kept exactly, so the brief marks it as not in
+     AIA.
+   - **Checked twice.** Before writing: every revision must hash to the SHA256 the unit
+     recorded (the unit's `_sha` and AIA's `fingerprint` are one function) and be content AIA
+     can hold. After writing, in the same transaction: every revision's hash must be the
+     source's with its file records rewritten. A Study that fails either is rolled back and
+     stays waiting, with the difference in the report.
+   - **Dry run by default; `--apply` writes.** Each Study is its own transaction. A second run
+     changes nothing and lists what was done before.
+   - **Missing is not lost until the operator says so.** A Study whose unit project is not in
+     the copy stays waiting. Only with `--recover-missing` -- the operator's statement that the
+     copy is complete -- does it become `RECOVERED` from its newest Design Revision, or
+     `UNRECOVERABLE`, so a partial or wrong copy cannot decide a Study's fate. The stages say
+     that recovered content is the last submitted design, not the last save.
+   - Every unit project no Study refers to is listed; it stays in the unit's volume.
 
 3. **`/app` has AIA's own gate** (increment 3): any active organization member with an AIA
    session; every page's data is authorized per call by `ScopeResolver`, as it always was.

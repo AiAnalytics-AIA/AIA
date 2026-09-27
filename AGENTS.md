@@ -1304,6 +1304,27 @@ committed project content can still be in WAL. The host feeds the backup source
 to the old image before replacing it; a backup helper present only in the new
 image cannot protect the deployment that installs it.
 
+**Reading a copy of a WAL database from a read-only mount needs `immutable=1`,
+and `immutable=1` is only safe on a copy.** The unit's store is in WAL mode, which
+is recorded in the file itself. Opened `mode=ro`, SQLite still has to create the
+`-shm` beside it, so on a read-only directory (the migration's `-v …:/migration:ro`)
+the first query fails with *attempt to write a readonly database* (reproduced
+2026-09-27). `immutable=1` reads without the `-shm`, the `-wal` or any lock -- so on
+a database the unit still has open it reads stale or torn pages without an error.
+`UnitProjectStore` therefore opens `immutable=1` and refuses a file with a non-empty
+`-wal` or any `-shm` beside it.
+
+```python
+# WRONG: fails on a read-only mount; on a writable one it leaves a -shm behind.
+sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+# WRONG: immutable on the live file silently misses what is still in its WAL.
+sqlite3.connect(f"file:{live}?mode=ro&immutable=1", uri=True)
+
+# RIGHT: a copy (Connection.backup, or the backup ZIP), opened immutable, the path
+# escaped as a URI (a '?' or '#' in a path would otherwise end it).
+sqlite3.connect(copy.resolve().as_uri() + "?mode=ro&immutable=1", uri=True)
+```
+
 ## Docker registry credentials on the develop host
 
 **`docker login` keeps the registry token, and so does the ECR helper's cache.**

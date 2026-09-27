@@ -1873,9 +1873,11 @@ owner/admin gate (OI-59), with no row-level scope of its own.
 
 **Removal condition.** The research (then simulation) stage state is stored and served by AIA's
 study-scoped contracts (`/api/v1/studies/{study_id}/…`); the rebuilt stages no longer call the
-unit's project store; the bound working content is migrated into AIA. Then `study_workspaces` is
-dropped by a migration and ADR 0015 decision 5 is retired. The unit remains only as the oracle
-and a fallback.
+unit's project store; the bound working content is migrated into AIA. Then ADR 0015 decision 5
+is retired and `study_workspaces.unit_project_id` is history only (ADR 0018 keeps the table: it
+names each Study's AIA working project). The unit remains only as the oracle and a frozen
+reference, never a runtime fallback (ADR 0018; the "fallback" wording here was stale, handed over
+by [#73](https://github.com/AiAnalytics-AIA/AIA/pull/73) § 10).
 
 **Carried from OI-66.** Some bindings already name unit projects that no longer exist (four
 at the time of OI-66). The migration accounts for each one explicitly: a study with a
@@ -1913,9 +1915,23 @@ Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-
 - **Landed (chunk 4):** a questionnaire file is read in AIA and only its sections come back
   (`POST …/workspace/questionnaire-import`), normalized by the unit's rules and compared with
   the unit's own import (`test_questionnaire_import.py`); the template is AIA's own workbook.
-- **Still open:** the migration of the bound content (chunk 7), and the removal of the
-  unit from the product (chunks 9–11). The unit store still holds the develop Studies'
-  content until the migration runs there.
+- **Landed (chunk 7, `feature/legacy-workspace-migration`):** the migration command,
+  `python -m aia_executors.legacy_workspace` (ADR 0018 decision 2): from a copy of the unit's
+  store and attachment directory, as a named person through their own grants; every revision
+  one for one, author unknown, lineage kept; every file into AIA storage or reported; the copy
+  checked against the unit's own hashes before writing and the result after; dry run unless
+  `--apply`; each Study its own transaction. The OI-66 cases are decided only with
+  `--recover-missing`: `RECOVERED` from the newest Design Revision, else `UNRECOVERABLE`.
+  Tests: `test_workspace_migration.py` › *a study gets every revision and file and keeps who
+  it belongs to*, *what does not validate is rolled back and left waiting*, *a project missing
+  from the copy waits until the copy is said complete*, *the operator migrates only what their
+  own grants let them edit*, *a second run changes nothing and says what was done before*;
+  `apps/executors/tests/test_legacy_workspace.py`.
+- **Still open:** **running** the migration on develop -- an operator action on the live
+  host, by the runbook (`deploy/develop/README.md` § Migrating 18.6.6 content), not done by
+  any change here -- and the removal of the unit from the product (chunks 9–11). Until it
+  runs, the develop Studies bound to 18.6.6 stay `AWAITING_MIGRATION` and their content stays
+  in the unit's volume, untouched.
 
 ## OI-59 · Temporary restriction · `/app` admits organization owners and admins only
 
