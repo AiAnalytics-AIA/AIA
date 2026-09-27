@@ -143,11 +143,18 @@ validation (only support and suppression), verification or alignment.
       `test_a_specification_reused_from_an_identical_revision_is_the_runs_own` and
       `test_an_aggregate_reused_over_the_same_questionnaire_is_the_runs_own` (**PR A ends
       here**)
-- [ ] 6. Executor: `aia_executors/analysis.py`, generator with turn checkpoints, config,
-      registry; real worker over recorded Bedrock: complete, blocked after 3 calls,
-      schema failure counted, client-facing and unconfigured and Class A refused with no
-      call, uncertain → recovery without resend, cancel between turns, budget park, retry
-      reuse, changed research questions rerun, recovery replays checkpoints. — code + tests
+- [x] 6. Executor: `aia_executors/analysis.py` (`AnalysisModuleExecutor`, `AnalysisConfig`,
+      `analysis_registry`), generator with turn checkpoints. — code + tests:
+      `test_analysis_executor.py` (20; SQLite and PostgreSQL 16), the real worker over
+      recorded Bedrock exchanges: eight modules complete and read back by re-admission,
+      blocked after 3 calls while the rest complete, a schema failure is one counted turn,
+      client-facing blocked with 0 calls (configured or not), research-questions module
+      without a question blocked, unconfigured / Class A / undeclared lineage park with
+      nothing reserved, budget park, window refused before reservation, throttling parks,
+      uncertain → `RECOVERY_REQUIRED` and a person's resume replays the answered turn, a
+      tampered checkpoint is asked again, cancellation between turns, a second run and an
+      edited-back design reuse every outcome (0 calls), changed research questions rerun
+      every module, and 150 AI respondents then the eight modules in one run
 - [ ] 7. Decision-table parity against the vendored `evidence_validator.py` (M17). — tests +
       parity matrix
 - [ ] 8. Documents: ARCHITECTURE §3–4, CLAUDE map, AGENTS, `docs/architecture/analysis.md`,
