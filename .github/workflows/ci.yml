@@ -442,6 +442,13 @@ jobs:
               "/api/v1/studies/{study_id}/research/runs/{run_id}/cancel",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/retry",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/artifacts/{artifact_id}",
+              # Native design proposals over a Design Revision
+              # (docs/architecture/research-agents.md); accept writes a new revision.
+              "/api/v1/studies/{study_id}/research/agent-jobs",
+              "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}",
+              "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}/cancel",
+              "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}/result",
+              "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}/accept",
               # The gate in front of the 18.6.6 interface (ADR 0012); Caddy's
               # forward_auth names /panel/gate, so a rename breaks the site.
               "/api/v1/panel/session",
