@@ -151,6 +151,7 @@ class Para:
     shade: str | None = None  # a colour token for the paragraph ground
     bar: str | None = None  # a colour token for a left rule (callouts)
     leader: bool = True  # the right tab's dot leader; running heads have none
+    exact: bool = True  # exact leading; a picture paragraph needs auto, or it is cropped
 
 
 _TEXT_WIDTH_MM: Final = 210 - 24 - 20  # page width minus inside and outside margins
@@ -222,7 +223,7 @@ PARAGRAPHS: Final[dict[str, Para]] = {
         shade="doc-wash",
         bar="doc-accent",
     ),
-    S.FIGURE: Para("doc-body", keep_next=True, space_before_pt=2, space_after_pt=0),
+    S.FIGURE: Para("doc-body", keep_next=True, space_before_pt=2, space_after_pt=0, exact=False),
     S.FINDING_TITLE: Para("doc-h3", keep_next=True, space_before_pt=14),
     S.FINDING_LABEL: Para("doc-table-head", color="doc-muted", keep_next=True, space_before_pt=4),
     S.COVER_RULE: Para("doc-meta", space_before_pt=0, space_after_pt=0),
@@ -317,8 +318,11 @@ def _apply_paragraph(style: ParagraphStyle, spec: Para) -> None:
     pf = style.paragraph_format
     pf.space_before = Pt(ps.before_pt if spec.space_before_pt is None else spec.space_before_pt)
     pf.space_after = Pt(ps.after_pt if spec.space_after_pt is None else spec.space_after_pt)
-    pf.line_spacing_rule = WD_LINE_SPACING.EXACTLY
-    pf.line_spacing = Pt(ps.leading_pt)
+    if spec.exact:
+        pf.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+        pf.line_spacing = Pt(ps.leading_pt)
+    else:
+        pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
     pf.widow_control = True
     pf.keep_with_next = spec.keep_next
     pf.page_break_before = spec.page_break_before

@@ -206,6 +206,8 @@ packages/aia_core/src/aia_core/
       blocks.py             One renderer per model block; no direct formatting
       tables.py             The data table: SEQ caption with base n, repeating header, suppressed
                             rows removed and counted, landscape sections
+      charts.py, figures.py Charts from the ledger with the viz tokens (7 kinds, hatched modelled
+                            series, direct labels); figures; the Sociomap gate (require_client_facing)
       dispatch.py           Which renderer draws which block
       marks.py, images.py   Evidence marks (one glyph per grade; unknown prints "?"), SVG + PNG
                             fallback images with alt text (asvg:svgBlip)

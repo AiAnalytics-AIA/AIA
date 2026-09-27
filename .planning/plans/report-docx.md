@@ -319,6 +319,25 @@ contracts and start when those are agreed.
   its heads again. Block dispatch moved to `dispatch.py` (tables import
   blocks). Tests: `test_report_docx_tables.py`, 5 tests.
 
+- **R7 — figures and marks.** `charts.py` draws all seven `ChartKind`s with
+  matplotlib from the ledger: values are `row.value`, labels
+  `numbers.with_unit` of the same row. `viz-cat-1..6` in fixed order, the
+  diverging ramp symmetric about its grey for Likert, the sequential ramp in
+  7 bins for heatmaps. One axis, hairline grid, direct labels at the tips, a
+  legend for two or more series; **modelled series are hatched (lines dashed)
+  and labelled "(modelováno)"**. A suppressed point is left out, a category
+  left with nothing is removed, and the source line counts them. Text is
+  converted to paths; SVG with a PNG fallback, sized from the PNG, never wider
+  than the text block. `figures.py` captions ("Graf N — …" as `SEQ Graf`) and
+  sources them; the alt text is `wp:docPr/@descr`. **A Sociomap in a client
+  report goes through `require_client_facing`** even after validation (a test
+  bypasses validation to prove it); an internal report prints an INTERNAL_ONLY
+  map with a caption saying so, and every map prints `stres 1`. The token
+  palette passes the dataviz validator (CVD ΔE 9.2 worst adjacent; two hues
+  under 3:1 contrast, relieved by the direct labels). Tests:
+  `test_report_docx_figures.py`, 8 tests. The render found exact leading crops
+  pictures (AGENTS.md § DOCX).
+
 ## Handoff — where to pick up
 
 **State.** R0–R2 are merged to `develop` (#53). R3 (`37a1c29`) and the R4 modules

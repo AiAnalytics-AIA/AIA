@@ -866,6 +866,12 @@ python-docx writes `wp:inline` without `distT/B/L/R`. Word reads them as 0;
 LibreOffice as its default wrap distance, so a 2.5 mm evidence mark sat in a
 gap three times its size. `images.add_vector_image` sets all four to `"0"`.
 
+**An exact line height crops a picture to one line.** A style with
+`w:spacing w:lineRule="exact"` (every text style in the report) clips an inline
+picture to its leading in LibreOffice and Word alike: seven charts rendered as
+7 mm slivers. The Figure paragraph style uses auto (single) spacing
+(`Para(exact=False)`).
+
 **The file-writing tool turns `\u00a0` / `\u2013` escapes into literal
 characters.** Grep a newly written file for NBSP, en dash and minus before
 running ruff; RUF001 then catches the rest.

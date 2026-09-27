@@ -101,6 +101,8 @@ CS: Final[dict[str, str]] = {
     "basis_MODELED": "modelováno",
     "support_REPORTABLE": "dostatečná",
     "support_INDICATIVE": "orientační",
+    "stress": "stres 1",
+    "sociomap_internal": "interní: metodika Sociomapy není schválena pro klienta",
     "audit": "Audit",
     "audit_key": "Položka",
     "no_value": "\u2013",
