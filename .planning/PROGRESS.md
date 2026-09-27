@@ -3,8 +3,8 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-27 · **Code of record:** `develop` @ `ceee2dc` · **Release:** `main` @ `9cf1f58`,
-208 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
+**Updated:** 2026-09-27 · **Code of record:** `develop` @ `dd27f68` · **Release:** `main` @ `9cf1f58`,
+255 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -49,8 +49,9 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `ceee2dc` (#70's merge), green** (*Deploy develop* run 34, 16:08 UTC), after CI run
-209 passed on the same SHA. Runs 32 (`4c4c3dd`, 14:28) and 33 (`53de110`, 15:11) were green too.
+**Deployed: `dd27f68` (#72's merge), green** (*Deploy develop* run 35, 16:52 UTC), after CI run
+211 passed on the same SHA; #72 changed no product code. Run 34 (`ceee2dc`, #70's merge, 16:08,
+after CI run 209), run 32 (`4c4c3dd`, 14:28) and run 33 (`53de110`, 15:11) were green too.
 Earlier, runs 29 (`14a124b`, 11:11) and 30 (`85fa951`, 11:33) had replaced every service and
 passed every smoke check but `legacy: the 18.6.6 unit is healthy`, read as `starting` 19 s after
 the unit was recreated. That was a race, not a broken unit (OI-71); run 31 (`2beafd9`, 11:51)
