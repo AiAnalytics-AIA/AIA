@@ -2305,6 +2305,91 @@ deploy that carries it.
 
 ---
 
+## OI-76 · Finding, fixed · Native Research screen tests fail on a /config failure an earlier test left cached
+
+*Filed as "Observed flake · Native research-agent screen tests outrun their 15 s budget under
+load" on `fix/truthful-ai-controls` (PR #75), and closed here, where the fix lands. When #75
+merges, this entry replaces its copy.*
+
+**Claim.** In a full web run, a research test file's native jobs can all fail at their first
+request: the file's first test can leave `loadConfig()` holding a rejected `/config` read, and
+`loadConfig()` kept it for every later test in the file. A test waiting for a review dialog then
+times out at its full 15 s wait; one waiting for the failure card fails fast on its message.
+
+**Anchor.** `apps/web/src/lib/auth.ts:30-40 @ dd27f68` (`loadConfig` keeps its first promise,
+rejection included, and nothing resets it); `apps/web/src/components/rehome/research/useResearchAgents.tsx:43-46 @ dd27f68`
+(the mount effect's `refresh()`, the request that outlives its test) and
+`apps/web/src/lib/api.ts:22-25 @ dd27f68` (`request()` awaits the token, then `loadConfig()`). As
+first reported: `test-native-agents.ts:53 @ ceee2dc` (`NATIVE_JOB_WAIT`). Failing tests:
+`AudienceStep.test.tsx` › *reviews an audience proposal while preserving researcher-controlled
+filters*; `BriefStep.test.tsx` › *runs the analysis as a job…*, *requests a frozen native
+context…*, *explains the unavailable design capability…* and *shows the native failure…* (the
+fast one); `PlanStep.test.tsx` › *answers the follow-up questions…* and *comments on selected
+text…*, found here.
+
+**Reproduction.** Deterministic, one file: give `BriefStep.test.tsx` a
+`beforeAll(() => loadConfig().catch(() => {}))`, so its first `/config` read goes through the real
+`fetch` as the leaked request's does, and run `npx vitest run src/components/rehome/research/BriefStep.test.tsx`
+in `apps/web`. On `dd27f68` 4 of 9 fail, OI-76's pattern exactly: three at 15.1 s and *shows the
+native failure…* at 139 ms. Under load, as first seen: the full `npx vitest run`, one 4-core cloud
+container, 2026-09-27. `dd27f68` failed 2 of 10 runs (AudienceStep at 15 093 ms; the two PlanStep
+tests at 15 252 and 15 277 ms). The first report had `ceee2dc` 2 of 6 and `fix/truthful-ai-controls`
+1 of 8. Every failing file passes alone.
+
+**Cause (confirmed).** A research screen's first request is the agents' `agent-jobs` read, from
+the mount effect of `useResearchAgents`. A file's first test can end on a `findBy*` that resolved on
+the commit that drew the screen, before that commit's passive effects ran (the OI-70 gap). The
+`afterEach` then calls `cleanup()`, and React runs the pending mount effect while it unmounts
+(`cleanup → unmount → flushPendingEffects → flushPassiveEffects`). The effect's request is still
+awaiting its token when `vi.unstubAllGlobals()`, the next line, restores the real `fetch`. Its next
+step, `loadConfig()`, finds the cache empty and reads `/config` through the real `fetch`, which under
+jsdom rejects a relative URL at once (`TypeError: Failed to parse URL from /config`). `loadConfig()`
+kept that rejection, so every native request later in the file failed at `loadConfig()`. The jobs
+never reached review, and the failure card and the agents' notice both read *Failed to parse URL
+from /config*. The fast failure is the same cause, not fallout from the test before it: its card
+showed the config error where the test expects `MODEL_TIMEOUT: nic se nevrátilo`. Measured with
+probes on the mount effect, on `loadConfig()` and on the real `fetch` (an experiment, not
+committed): 5 of 10 instrumented full runs failed, and each had exactly one research request through
+the real `fetch`: `/config`, from the failing file's first test, with the cache empty. The 5 passing
+runs had none. With the full stack recorded, the effect that leaked ran inside `cleanup()`, the only
+one of that run's 62 that did. Not a timer, and not load: in the 10 baseline runs the same tests
+passed in at most 0.9 s (at most 0.99 s in the 20 runs with the fix), and failed only at the full
+15 s.
+
+**Consequence.** A red *Frontend* job on pull requests that never touched the research screens,
+because CI runs the whole Vitest suite. The same code in the product: once a page's one `/config`
+read failed (a deploy replacing the web container, a dropped connection), every later API call on
+that page failed with it until a reload. That follows from the code and `auth.test.ts` pins it;
+nobody has reported it from a browser.
+
+**Smallest fix.** Two changes, each enough on its own for the reproduction:
+1. `loadConfig()` does not keep a failed read; the next call reads `/config` again, as `loadBoot()`
+   already does (`apps/web/src/lib/auth.ts` › `loadConfig`).
+2. `nativeAgentFixture` empties the config cache (`resetConfigCache()`, tests only) before each
+   test stubs `fetch`, and again when the test finishes, so a test's requests read `/config`
+   through its own stub (`test-native-agents.ts`).
+
+No wait was changed: a larger one would only have made the failures slower. The leaked request
+still runs, harmlessly. `request()` takes no abort signal, and giving it one would change
+`useResearchAgents` (PR #74's file), which this fix leaves alone.
+
+**Test that would have caught it.** `apps/web/src/lib/auth.test.ts` › *does not keep a failed read:
+the next call reads /config again* and *does not keep a refused answer either*; both fail against
+`dd27f68`'s `loadConfig` given only the reset hook. The one-file reproduction above.
+
+**Status.** Merged in PR #83 (`fix/native-tests-config-cache`, 2026-09-27). The reproduction passes
+9 of 9 with both changes, and with each alone. Full runs with the fix, on the same container:
+20 of 20 passed, 776 tests each, where `develop` @ `dd27f68` failed 2 of 10. Under doubled load
+(both trees' full suites at once, the Python suites alongside), `develop` passed 8 of 8 and this
+branch 7 of 8. That one failure was an unrelated test, `ClientFirst.test.tsx` › *loads the working
+content its AIA binding names…*: a separate race that `develop` has too, since it fails the same way
+on `dd27f68` when the stage's load starts 30 ms late (described in PR #83). `AGENTS.md`
+§ Next.js / TypeScript has the trap. Owner of the research screens: job 6 / the phase-out agent.
+PRs #74 and #77 touch neither `auth.ts` nor `test-native-agents.ts`, and their rewritten tests
+call `nativeAgentFixture`, so they carry the reset.
+
+---
+
 ## OI-77 · Reproduced defect · A corrupt artifact's CORRUPT mark is rolled back with the read that found it
 
 **Claim.** `ArtifactRepository.read` flushes `CORRUPT` onto an artifact whose bytes fail
@@ -2367,6 +2452,6 @@ session of their own (`apps/api/tests/conftest.py` › `artifact_status`), not o
 the worker, the reproduction as an executor test: the stored status after the failed step, and a
 retried run that recomputes the spec.
 
-**Status.** API half fixed in code: PR #84 (draft, 2026-09-27), both artifact routes and the
+**Status.** API half fixed in code: PR #84 (ready after conflict resolution, 2026-09-27), both artifact routes and the
 proposal routes. Worker half open. It is not fixed there because it needs the failure-class
 decision and, for design jobs, a decision to spend on a recompute.

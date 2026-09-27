@@ -1184,7 +1184,10 @@ runner. `findByRole("dialog")` (1 s) and `approveProposal`'s 4 s wait failed
 PlanStep and AudienceStep one run in two locally, and once in CI. A wait
 resolves as soon as its element appears, so give it room. A file that uses
 `vi.setConfig` raises its own test timeout; nothing else is affected
-(`test-native-agents.ts`: `NATIVE_JOB_WAIT`, `NATIVE_TEST_TIMEOUT_MS`).
+(`test-native-agents.ts`: `NATIVE_JOB_WAIT`, `NATIVE_TEST_TIMEOUT_MS`). A wait
+that runs out at its full size is a job that never settled, not a slow runner:
+OI-76's 15 s failures were a cached `/config` failure (two entries down), and in
+the runs that passed the same tests took under 1 s.
 
 ```ts
 // WRONG: passes on a laptop, fails under CI load
@@ -1213,6 +1216,32 @@ expect(tile.getAttribute("aria-pressed")).toBe("true");
 // RIGHT: resolves on the render the subscription makes
 fireEvent.click(tile);
 await screen.findByRole("button", { name: /Nový produkt/, pressed: true }, { timeout: 5_000 });
+```
+
+**A mount effect the last `findBy*` outran runs inside `cleanup()`, and its
+request outlives the test's `fetch` stub.** The same gap as above, at the end of a test: when a
+test ends on a `findBy*` that resolved on the commit that drew the screen, that
+commit's passive effects may not have run. `cleanup()` unmounts, and React runs
+the pending mount effect first (`cleanup → unmount → flushPendingEffects →
+flushPassiveEffects`). The effect's request is still awaiting when
+`vi.unstubAllGlobals()`, the next line of the `afterEach`, puts the real `fetch`
+back. Under jsdom the real `fetch` rejects a relative URL at once (`TypeError:
+Failed to parse URL from /config`), and `loadConfig()` kept its first read for
+the page, rejection included: for the rest of the file. The agents' mount request
+did exactly this in a research file's first test, and every later native job in
+the file failed at its first request. Tests waiting for a review dialog timed out
+at their full 15 s wait; one waiting for the failure card failed fast on its
+message (OI-76). With probes on the effect and on the real `fetch`, each of the
+5 failing full runs in 10 had exactly this one leak, in the failing file's first
+test; the passing runs had none. A cache a test reads through must not keep a failure, and
+the test empties it before it stubs `fetch`.
+
+```ts
+// WRONG: one failed read is the answer to every later request, in a test file as on a page
+if (!configPromise) configPromise = fetch("/config").then(read);
+// RIGHT: a failure is not kept (as loadBoot), and each test starts from an empty cache
+if (!configPromise) configPromise = fetch("/config").then(read).catch((e) => { configPromise = null; throw e; });
+resetConfigCache(); onTestFinished(resetConfigCache); // nativeAgentFixture, before the stub
 ```
 
 **A fragment-only navigation does not reload the page.** Following
