@@ -2076,7 +2076,13 @@ calls. At production N it matters.
 **Test that would catch it.** A resumed attempt sends only the calls the previous one did
 not complete.
 
-**Status.** Open; plan follow-up 2.
+**Status.** Open; plan follow-up 2. *Re-confirmed at `ceee2dc`, 2026-09-27:* each attempt starts
+at the first persona (`ai_fieldwork.py:167-173`), and `context.checkpoint()` only checks for a
+stop and persists nothing (`apps/worker/src/aia_worker/context.py:125-138`). The attempts that
+trigger it include a quota or capacity park resuming, a retryable failure, and a lapsed lease
+with no call in flight. An uncertain call still goes to `RECOVERY_REQUIRED` and is never
+retried. Owner: Job 6, inside the existing executor and recovery contract. Until it is fixed,
+no acceptance claims to be retry-safe (`docs/architecture/research-journey.md` §7, line 6).
 
 ---
 
@@ -2301,4 +2307,44 @@ down.
 **Test that would have caught it.** `test_develop_legacy_unit_health.py` (PR #70).
 
 **Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
-deploy that carries it.
+deploy that carries it. *Update, 2026-09-27:* #70 merged at 15:52 (`ceee2dc`), and *Deploy
+develop* run 34 (`36331833716`), the first deploy that carries it, passed its host step (which
+ends with smoke, `deploy.sh:103-104`) at 16:07:55 UTC. Whether that run needed the wait is not
+visible from the job's summary.
+
+---
+
+## OI-72 · Finding · An evidence row that names no data origin is admitted as observed data
+
+**Claim.** `EvidenceRow.data_origin` defaults to `None`, and the admission gate refuses a
+client-facing claim only when the origin is in `NON_EVIDENCE_ORIGINS`. A row that does not say
+where its respondents came from is therefore admitted client-facing, as if it were observed
+data: *unknown* scored as *good* (CLAUDE.md §8).
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/evidence/admission.py:91` (the default) and
+`:244` (the check) @ `ceee2dc`. `DataOrigin` has no value for observed data at all, only the two
+synthetic ones (`domain/fieldwork.py:50-68`).
+
+**Reproduction.** `pytest packages/aia_core/tests/test_analysis_runner.py::test_a_passing_first_draft_completes`.
+It uses the shared `evidence_row` fixture, which sets no `data_origin` (`tests/conftest.py:807-839`),
+and completes a `CLIENT_FACING` module from it.
+
+**Consequence.** Nothing is wrong yet, because no production code builds an `EvidenceRow`. But
+the first adapter from a fieldwork aggregate to an `EvidenceTable` (Job 3) needs only to forget
+to copy `aggregate["data_origin"]` (`domain/research_aggregate.py:571`). With that one omission,
+fictional respondents become client-facing claims, and no error is raised.
+
+**Smallest fix.**
+- Make `data_origin` required on `EvidenceRow`, with an explicit value for observed data once
+  real fieldwork exists.
+- Until then, refuse a `CLIENT_FACING` claim whose row names no origin.
+- Every adapter copies the dataset's origin onto each row it builds.
+
+Changing the gate changes the shared test fixture as well; that is the point.
+
+**Test that would have caught it.** Admitting a `CLIENT_FACING` claim from a row with
+`data_origin=None` is refused.
+
+**Status.** Open. Owner: Job 3, with evidence governance, before or together with the aggregate
+adapter. It is a rule of the research journey's contract (`docs/architecture/research-journey.md`
+§4, §6 rule 6).

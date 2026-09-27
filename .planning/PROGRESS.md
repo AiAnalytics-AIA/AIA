@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-27 · **Code of record:** `develop` @ `e0edf2a` · **Release:** `main` @ `9cf1f58`,
+**Updated:** 2026-09-27 · **Code of record:** `develop` @ `ceee2dc` · **Release:** `main` @ `9cf1f58`,
 208 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
 
@@ -49,14 +49,14 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `2beafd9` (#67's merge), green** (*Deploy develop* run 31, 11:51 UTC: host step,
-every smoke check, and "Confirm from outside"). Runs 29 (`14a124b`, 11:11) and 30 (`85fa951`,
-11:33) had replaced every service and passed every smoke check but
-`legacy: the 18.6.6 unit is healthy`, read as `starting` 19 s after the unit was recreated. That
-is a race, not a broken unit (OI-71): run 31 passed the same check with the same one-shot read.
-The site served each new build throughout. PR #70 is the fix. Until it merges, a red deploy on
-that one line means the unit was read too early, not that the site is down. Run 28 @ `e0edf2a`
-(10:46) was the first green deploy of the day. Before it, the host had been on `ff463a3`:
+**Deployed: `ceee2dc` (#70's merge), green** (*Deploy develop* run 34, 16:08 UTC), after CI run
+209 passed on the same SHA. Runs 32 (`4c4c3dd`, 14:28) and 33 (`53de110`, 15:11) were green too.
+Earlier, runs 29 (`14a124b`, 11:11) and 30 (`85fa951`, 11:33) had replaced every service and
+passed every smoke check but `legacy: the 18.6.6 unit is healthy`, read as `starting` 19 s after
+the unit was recreated. That was a race, not a broken unit (OI-71); run 31 (`2beafd9`, 11:51)
+passed the same one-shot read. PR #70, the fix (smoke waits out the unit's start period), merged
+at 15:52 and run 34 is the first deploy that carries it. Run 28 @ `e0edf2a` (10:46) was the first
+green deploy of the day. Before it, the host had been on `ff463a3`:
 - *Deploy develop* run 26 (PR #59 @ `043b0dd`) failed on the host with
   `bin/lib.sh: line 62: HOME: unbound variable`, and run 27 failed too. PR #64 fixed it
   (merged 10:29, OI-67), and run 28 is the first deploy that carried it.
@@ -80,9 +80,10 @@ attempt 3, green).
 | #63 | `feature/research-agents` | Native Research design agents on Bedrock | **Merged** 11:17 (`85fa951`); CI green on `614b6a7` | 4, see below |
 | #67 | `claude/trusting-turing-2b9oyl` | Settings control panel on `/app/settings`: `GET /settings`, `GET`/`PUT /self-approval`, `PUT /clients/{id}/status` ([plan](plans/done/settings-control-panel.md)) | **Merged** 11:34 (`2beafd9`) | 5 |
 | #68 | `chore/record-deploy-and-oi-70` | Records run 28, #63's and #67's merges, OI-70, OI-71 | **Merged** 14:13 (`4c4c3dd`) | 6 |
-| #70 | `fix/smoke-waits-for-unit-start` | Smoke judges the 18.6.6 unit after its start period (OI-71) | Draft into `develop` | 7: turns *Deploy develop* green again |
-| #71 | `fix/brief-toggle-test-waits` | BriefStep's toggle test waits for the pressed tile (OI-70) | Draft into `develop` | any time: ends a red *Frontend* about 1 run in 30 |
-| #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | Draft into `develop` | not yet reviewed here |
+| #71 | `fix/brief-toggle-test-waits` | BriefStep's toggle test waits for the pressed tile (OI-70) | **Merged** 14:54 (`53de110`) | 7 |
+| #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | **Merged** 15:52 (`1800c31`) | 8 |
+| #70 | `fix/smoke-waits-for-unit-start` | Smoke judges the 18.6.6 unit after its start period (OI-71) | **Merged** 15:52 (`ceee2dc`); deployed by run 34 | 9 |
+| #73 | `chore/research-journey-integration-contract` | Job 6, Phase A: the research journey's integration contract ([research-journey.md](../docs/architecture/research-journey.md)), stale claims corrected, the agent-job routes in the API contract check | Draft into `develop` | any time: documents and one CI assertion |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
 by default. The browser journey it named (enqueue → reload → review → accept → stale
@@ -238,6 +239,7 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 | What | State | Anchor |
 |---|---|---|
+| **The complete research journey — split across six jobs** (user's scope addendum, 2026-09-27). The phase-out owner: the native workspace, migration, `/app` authorization, `/classic` removal, deployment separation, the final legacy-offline acceptance, OI-58 and OI-59; the former Job 2 is retired into it. Job 1: native AI settings. Job 3: evidence-backed analysis. Job 4: reports. Job 5: Deep Research. Job 6: the research graph, executor, endpoint and results integration, and a reusable recorded scenario. Independence of the supported workflows and completion of the research process are reported apart | **Job 6, Phase A done** on `chore/research-journey-integration-contract` (PR #73, draft): the contract — every product stage and the reference's 24 nodes marked implemented, replacement or gap, with owner and anchor; interfaces, shared files, INT-1, four acceptance levels, blocked paths; stale claims corrected (§10); the agent-job routes asserted by the API contract check. **Phase B waits on candidate PRs**: none of the other jobs had a branch at `ceee2dc`. At that SHA no acceptance line is MET in the recorded column | [research-journey.md](../docs/architecture/research-journey.md) · [plan § Integration](plans/research-agent-workflows.md) · OI-64, OI-72 |
 | **Interface skin — the AIA design system on the 18.6.6 screens** ([plan](plans/interface-skin.md), [ADR 0013](../docs/architecture/adr/0013-interface-skin-at-the-facade.md), Accepted 2026-09-24; only chunk 6, per-area passes, remains). Data owner's direction 2026-09-23: the develop deployment is the canonical baseline for every screen; the screens get a major design upgrade from the existing design system; skin now, re-home later; verify against the live oracle. The web client adds one token-generated stylesheet to the document the unit serves at `/`, only when its SHA256 is the pinned `ui_app.html` hash; the unit stays byte-identical, the oracle hostname unskinned, `AIA_INTERFACE_SKIN_ENABLED` off by default. Supersedes the screen chunks of [design-system.md](plans/design-system.md) (V, 4–11); its foundation carries forward | Chunks 0 (plan, ADR), 1 (token foundation on `develop`: `tokens.json`, generator with drift check, self-hosted fonts, identity, contrast 146/146, Vitest 4.1.11) 2 (the hash-pinned injector at `/`, gated, off by default; proven end to end locally through the real Caddyfile and `ui_server.py`) 3 (the variable layer: 29 18.6.6 variables re-pointed at tokens, light only, contrast 164/164) and 4 (shared components, token-only; verified on a specimen of 18.6.6's own templates at 1440/1024 px and under the +35 % Czech stress) done. Merged in PR #45 @ `4dc7966`; **live since deploy run 15** @ `230ee7e` (PR #46, OI-45: Caddy is recreated when its Caddyfile changes; smoke "caddy: running the deployed Caddyfile" ok), confirmed by the data owner 2026-09-24. **Blocked for chunk 5** (live baseline): `legacy.aia-develop.art-chain.io` is refused by the cloud session's egress policy and the `AIA_LEGACY_REFERENCE_*` values are not in its secrets; a local run stops at `/api/bootstrap` without the data bundle | `legacy/npc-panel-18.6.6/app-manifest.json` (`ui_app.html` sha256 `d844dd6f…81eaee`) · `plans/interface-skin.md` |
 | **UI workbench + the React re-home** ([plan](plans/ui-workbench.md), [re-home plan](plans/interface-rehome.md), [ADR 0014](../docs/architecture/adr/0014-rebuild-the-interface-in-react.md), Proposed). Data owner 2026-09-24: full UI control, not only the skin, edited quickly and seen by the agent; decided: rebuild the screens in React, area by area, D-L1 extended to the rebuilt screens. Agent sessions cannot reach develop (egress 403), so the workbench runs the real `ui_app.html` locally on a fictional panel with the web client in front, routed by the Caddyfile's `@web` | Workbench chunks 1–2 done: `make ui-workbench` (skinned `:8780`, bare `:8767`, 30 DEMO projects), skin rebuilt on save, `test_ui_workbench.py` 15 passed; `make ui-capture`: 48 screens × 2 widths, bare and skinned, 0 page errors, 0 overflow. Re-home chunks 0–2 and 4 done, 3 in part: `/app` behind the same gate (CI adapt check, smoke), the ledger-checked unit client, the hand-off into the classic interface (`#aia:open=…`), the rail, and **Správa projektů rebuilt in React** (`/app/projects`, ledger `REBUILT`, 0 classic texts missing, 220 parity checks, 7 component tests). Found OI-46: the classic rail prints *Core joint · VALID* as a literal. **Live on develop** (run 16 @ `0932c5d`). Now: **A4 research flow** ([plan](plans/research-flow-rehome.md)) — the data owner's next choice, 2026-09-24; survey done, OI-47 (classic *verify* never renders; *verify*/*next* unreachable) and OI-48 (four aliased unit routes missing from the ledger) recorded; **chunk 1 (foundation) done**: research routes, model, store with visible save state, job runner and panel, `/app/research/<id>/<step>` with the rail, `open@step` hand-off, `make ui-fixtures` (100 tests); **chunk 2 (Zadání) done**: `/app/research/<id>/brief`, 46 parity checks, 9 component tests, capture pair 0 missing; the workbench unit can no longer reach any AI provider (it had found the session's signed-in CLI). **Chunk 3 (Návrh) done**: `/app/research/<id>/plan`, 39 parity checks, 7 component tests, fixture capture pair 0 missing; the open@step hand-off no longer lands on the overview. **PR A complete** (merged, PR #49). **PR B** on `feature/research-flow-b`: survey recorded (OI-49 to OI-55); **chunk 4 (Dotazník) done**: `/app/research/<id>/questionnaire`, 62 parity checks, 10 component tests, fixture capture pair with only the dead button missing. **Chunk 5 (Audience) done**: one project session for all steps (OI-56, a lost-save defect from PR A, fixed); `/app/research/<id>/audience`, 72 parity checks, 8 component tests, capture pair with only the `[object Object]` print missing. **Chunk 6 (Dimenze) done**: `/app/research/<id>/persona`, 45 parity checks, 9 component tests, capture pair 0 missing; the model's *Deep Research* reaches the classic Data Library by a new hand-off verb; OI-57 (a failed audience catalogue re-requested on every draw) recorded. **PR B merged** (PR #50). **PR C merged** as #52 after the client-first IA; its Run, Progress and Results stages are under `/app/clients/<client>/research/<study>/` | `tools/ui_workbench/` · `packages/aia_core/tests/test_ui_workbench.py` |
 
@@ -582,6 +584,10 @@ Open defects and questions live in
 finished ones move to [`plans/done/`](plans/done/).
 
 ### Research agent publication checkpoint — 2026-09-27
+
+*Merged as PR #63 (`85fa951`, 11:17 UTC); kept as the record of what it left. The complete DOCX
+renderer it names as missing merged separately (PR #62); where the rest now sits is under In
+progress, "The complete research journey".*
 
 Native backend `c88ec50` and proposal screens `45a2651` on
 `feature/research-agents`; full-workflow continuation is in the
