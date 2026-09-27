@@ -3,9 +3,10 @@
 // ported from the JavaScript that runs (tools/ui_functions.py effective <name>).
 // model.parity.test.ts runs each original under Node and compares.
 //
-// A project is the unit's document, stored whole by POST /api/projects/save.
-// Fields the rebuilt screens read are typed; everything else is carried through
-// untouched, so a screen never drops a field it does not know.
+// A project is a research study's working content, stored whole in AIA
+// (PUT /api/v1/studies/{id}/workspace/content, ADR 0018). Fields the screens read
+// are typed; everything else is carried through untouched, so a screen never
+// drops a field it does not know.
 
 export type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
 type Obj = { [k: string]: Json };
@@ -56,19 +57,25 @@ export type ResearchProject = Obj & {
 /**
  * The provider the classic interface writes into every AI payload and forces
  * into the run policy after an AI step, whatever the project prefers. The job
- * wrapper then replaces it with the project's provider (src/unit/research/jobs.ts).
+ * wrapper then replaces it with the project's provider (src/research/jobs.ts).
  */
 export const PROVIDER_FORCED = "claude_code_subscription";
 
-/** The unit's template for a new project and its default provider (GET /api/bootstrap). */
-export type Boot = { empty_project: Obj; ai_provider?: string };
+/**
+ * The research template a new study starts from and every stored document is
+ * completed with (`template` in GET /api/v1/studies/{id}/workspace/content; the
+ * 18.6.6 unit's empty project, served by AIA). `ai_provider` is the unit's default
+ * provider in the ported functions' signature; AIA never sets it, and never routes
+ * a model call by a project's content.
+ */
+export type Template = { empty_project: Obj; ai_provider?: string };
 
 const obj = (x: unknown): Obj => (x && typeof x === "object" && !Array.isArray(x) ? (x as Obj) : {});
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 
-/** defaultsMerge @101368: a stored project over the unit's empty template. */
-export function defaultsMerge(p: unknown, boot: Boot): ResearchProject {
-  const d = clone(boot.empty_project);
+/** defaultsMerge @101368: a stored project over the empty template. */
+export function defaultsMerge(p: unknown, template: Template): ResearchProject {
+  const d = clone(template.empty_project);
   const x = obj(p);
   const dd = (k: string) => obj(d[k]);
   const xx = (k: string) => obj(x[k]);
@@ -81,7 +88,7 @@ export function defaultsMerge(p: unknown, boot: Boot): ResearchProject {
   out.discovery = { ...dd("discovery"), ...xx("discovery") };
   out.budget = { ...(d.budget ? dd("budget") : { max_usd: null, warning_pct: 80 }), ...xx("budget") };
   const defaultPolicy: Obj = {
-    provider: boot.ai_provider || "claude_code_subscription",
+    provider: template.ai_provider || "claude_code_subscription",
     allow_provider_fallback: false,
     auto_resume_capacity: true,
     cost_mode: "REFERENCE",

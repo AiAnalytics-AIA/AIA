@@ -7,7 +7,7 @@
 // save reason. questionnaire.parity.test.ts compares each with the original
 // under Node. Survey: .planning/plans/research-flow-rehome.md (PR B).
 
-import { type Boot, type Json, PROVIDER_FORCED, type ResearchProject, defaultsMerge } from "./model";
+import { type Template, type Json, PROVIDER_FORCED, type ResearchProject, defaultsMerge } from "./model";
 import type { Analysis } from "./store";
 
 type Obj = { [k: string]: Json };
@@ -337,9 +337,9 @@ export const UPLOAD_NO_FILE = "Vyberte XLSX nebo CSV.";
 export const UPLOAD_TIMEOUT_MS = 180_000;
 
 /** uploadQuestionnaireFile, after the unit parsed the file: its project, on the editor. */
-export function applyImport(result: unknown, boot: Boot): { project: ResearchProject; toast: string } {
+export function applyImport(result: unknown, template: Template): { project: ResearchProject; toast: string } {
   const r = (result || {}) as { project?: unknown; summary?: { question_count?: unknown; tracked_sets?: unknown } };
-  const project = defaultsMerge(r.project, boot);
+  const project = defaultsMerge(r.project, template);
   project.ui_state.questionnaire_path = "manual";
   return { project, toast: `Načteno: ${r.summary?.question_count} otázek · ${r.summary?.tracked_sets} sledovaných sad` };
 }
@@ -361,9 +361,9 @@ export function buildPayload(p: ResearchProject, analysis: Analysis | null): Rec
 }
 
 /** What buildQuestionnaire does with the job's result: the AI's project, whole, on the editor. */
-export function applyBuilt(result: unknown, boot: Boot): ResearchProject {
+export function applyBuilt(result: unknown, template: Template): ResearchProject {
   const r = (result || {}) as { project?: unknown };
-  const project = defaultsMerge(r.project, boot);
+  const project = defaultsMerge(r.project, template);
   project.run_policy = { ...(project.run_policy || {}), provider: PROVIDER_FORCED, allow_provider_fallback: false };
   project.ui_state = { ...(project.ui_state || {}), questionnaire_path: "manual" };
   return project;
@@ -378,9 +378,9 @@ export function optimizePayload(p: ResearchProject): Record<string, unknown> {
 }
 
 /** What optimizeQuestionnaireAI keeps: the project, the research if returned, the analysis if returned. */
-export function applyOptimized(result: unknown, analysis: Analysis | null, boot: Boot): { project: ResearchProject; analysis: Analysis | null } {
+export function applyOptimized(result: unknown, analysis: Analysis | null, template: Template): { project: ResearchProject; analysis: Analysis | null } {
   const r = (result || {}) as { project?: unknown; research?: Json; analysis?: Analysis };
-  const project = defaultsMerge(r.project, boot);
+  const project = defaultsMerge(r.project, template);
   if (r.research) project.pre_research = r.research;
   project.ui_state.questionnaire_path = "manual";
   return { project, analysis: r.analysis || analysis };

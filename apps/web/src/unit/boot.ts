@@ -4,9 +4,9 @@
 // every load too.
 
 import { unit } from "./client";
-import type { Boot } from "./research/model";
+import type { Template } from "@/research/model";
 
-export type BootInfo = Boot & { panelVersion: string; raw: Record<string, unknown> };
+export type BootInfo = Template & { panelVersion: string; raw: Record<string, unknown> };
 
 const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
 
@@ -14,7 +14,7 @@ export function parseBoot(x: unknown): BootInfo {
   if (!isRecord(x) || !isRecord(x.empty_project)) throw new Error("Neočekávaná odpověď backendu: bootstrap bez empty_project");
   const panel = isRecord(x.panel) ? x.panel : {};
   return {
-    empty_project: x.empty_project as Boot["empty_project"],
+    empty_project: x.empty_project as Template["empty_project"],
     ai_provider: typeof x.ai_provider === "string" ? x.ai_provider : undefined,
     panelVersion: typeof panel.version === "string" ? panel.version : "",
     raw: x,

@@ -428,6 +428,25 @@ alembic downgrade base && alembic upgrade head   # it is reversible
 selection: revisions are generated code, and they are verified by being executed
 in CI rather than type-checked.
 
+**A backfill default is drift unless the migration drops it.** `env.py` compares
+server defaults (`compare_server_default=True`), so a `NOT NULL` column added with a
+`server_default` to fill the existing rows makes `alembic check` report a difference
+from a model that declares none. Add the column with the default, then drop it in
+the same migration. The migrations run on PostgreSQL only (CI's `backend` job); the
+SQLite test suites build the schema with `create_all`, and `alembic upgrade head`
+on SQLite stops at the first `create_foreign_key` outside a batch (`6750a204efd9`).
+
+```python
+# WRONG -- alembic check: "modified server default" on content_state
+batch_op.add_column(sa.Column("content_state", sa.String(32), nullable=False,
+                              server_default="AWAITING_MIGRATION"))
+# RIGHT -- backfill, then leave the column as the model declares it
+batch_op.add_column(sa.Column("content_state", sa.String(32), nullable=False,
+                              server_default="AWAITING_MIGRATION"))
+...
+batch_op.alter_column("content_state", server_default=None)
+```
+
 ## mypy --strict
 
 **An untyped third party leaks `Any` straight through a declared return type.**

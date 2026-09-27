@@ -3,7 +3,7 @@
 // 1. Zadání, rebuilt (research-flow-rehome.md, chunk 2): the classic renderBrief
 // and its two wrappers, block for block -- what the research is about, the
 // attachments and links, the further context, and the AI analysis that turns it
-// into a plan. What each control does to the project is src/unit/research/brief.ts,
+// into a plan. What each control does to the project is src/research/brief.ts,
 // parity-tested against the original; this file only draws it.
 
 import { useRouter } from "next/navigation";
@@ -25,8 +25,8 @@ import {
   removeAttachment,
   titleValue,
   toggleProblemType,
-} from "@/unit/research/brief";
-import { type Attachment, PROBLEM_TYPES, selectedProblemTypes } from "@/unit/research/model";
+} from "@/research/brief";
+import { type Attachment, PROBLEM_TYPES, selectedProblemTypes } from "@/research/model";
 import { Icon } from "../icons";
 import { Button, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";

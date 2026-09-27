@@ -126,6 +126,16 @@ the next PRs, each against the plan that already exists for it, not one long bra
   `legacy-panel` from Compose, Caddy, smoke and deploy. The unit stays only as the
   oracle.
 
+### In progress — phase out 18.6.6 from the product ([plan](plans/legacy-phase-out.md), [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-6.md))
+
+| Increment | Branch | State |
+|---|---|---|
+| 1. Native research workspace | `feature/native-research-workspace` | Chunks 1–2 done: working content in AIA (`GET`/`PUT /studies/{id}/workspace/content`, migration `5b1d0f3e9a21`, stale saves refused), the web store and every stage on it, no unit job runner. Chunks 3–6 (attachments, questionnaire import, Audience/Dimenze, documents) next |
+| 2. Migration of bound content | `feature/legacy-workspace-migration` | not started |
+| 3. AIA's own gate for `/app` | `feature/aia-session-gate` | not started |
+| 4. Interface without 18.6.6 | `feature/interface-without-classic` | not started |
+| 5. Deployment without 18.6.6 | `feature/deploy-without-legacy` | not started |
+
 ### Human actions (repository settings; an agent session cannot make them)
 
 1. **Make `develop` the default branch** (Settings → General → Default branch).

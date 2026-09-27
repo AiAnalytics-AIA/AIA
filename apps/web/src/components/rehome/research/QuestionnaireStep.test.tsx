@@ -6,9 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
-import { briefFingerprint, defaultsMerge } from "@/unit/research/model";
-import { CONFIRM_REMOVE_SECTION, GUIDED_PROMPT, PROMPT_SET_ITEMS, PROMPT_SET_TYPE, SET_SIZE, SET_TOO_SMALL } from "@/unit/research/questionnaire";
+import { briefFingerprint, defaultsMerge } from "@/research/model";
+import { CONFIRM_REMOVE_SECTION, GUIDED_PROMPT, PROMPT_SET_ITEMS, PROMPT_SET_TYPE, SET_SIZE, SET_TOO_SMALL } from "@/research/questionnaire";
 import { ResearchScreen } from "./ResearchScreen";
+import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
 
 // Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
@@ -18,7 +19,7 @@ const push = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/questionnaire", useRouter: () => ({ push, replace }) }));
 
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
 const BOOT = { empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6", claude_code_enabled: true } };
 const SECTIONS = [
   { id: "sec_a", type: "questions", title: "Hlavní otázky", purpose: "", questions: [
@@ -31,8 +32,11 @@ const BRIEF = { goal: "Zjistit zájem o nový nápoj" };
 
 type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
+let saves: SavedBody[] = [];
 function unitStub(project: Record<string, unknown>, analysis: unknown = null, over: Record<string, (b: unknown) => unknown> = {}) {
   calls = [];
+  const ws = workspaceFixture(project, { analysis: analysis });
+  saves = ws.saves;
   const native = nativeAgentFixture((action, baseline) => action === "analyze_brief" ? { project: baseline, proposal: { objectives: ["O"] }, analysis: { objectives: ["O"] } } : { project: { ...baseline, sections: SECTIONS }, proposal: { sections: SECTIONS } }, over);
   vi.stubGlobal(
     "fetch",
@@ -42,21 +46,19 @@ function unitStub(project: Record<string, unknown>, analysis: unknown = null, ov
       calls.push({ url: u, body });
       const answers: Record<string, (b: unknown) => unknown> = {
         "/api/bootstrap": () => BOOT,
-        "/api/projects/load": () => ({ project_id: "PRJ-1", revision: 3, project_type: "research", project, analysis }),
-        "/api/projects/save": () => ({ project_id: "PRJ-1", revision: 4 }),
         "/api/providers/claude-code/status": () => ({ ok: true }),
         "/api/research/build_questionnaire": () => ({ job_id: "JOB-B" }),
         "/api/questionnaire/optimize": () => ({ job_id: "JOB-O" }),
         "/api/job": () => ({ state: "done", result: { project: { ...EMPTY, ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "ai" } } } }),
         ...over,
       };
-      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body) ?? {};
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
-const lastSave = () => posted("/api/projects/save").at(-1)?.body as { project: { sections: { questions?: { typ: string; kategorie?: string[] }[]; objects?: string[] }[]; ui_state: Record<string, unknown> }; reason: string };
+const lastSave = () => saves.at(-1) as unknown as { content: { sections: { questions?: { typ: string; kategorie?: string[] }[]; objects?: string[] }[]; ui_state: Record<string, unknown> }; reason: string };
 
 async function answerDialog(question: string, value: string | null) {
   const form = (await screen.findByText(question)).closest("form") as HTMLFormElement;
@@ -67,7 +69,7 @@ async function answerDialog(question: string, value: string | null) {
 }
 async function saved() {
   // The store saves 1.8 s after the last change; the test waits for that body.
-  await waitFor(() => expect(posted("/api/projects/save").length).toBeGreaterThan(0), { timeout: 4000 });
+  await waitFor(() => expect(saves.length).toBeGreaterThan(0), { timeout: 4000 });
 }
 
 if (!Blob.prototype.arrayBuffer) {
@@ -98,7 +100,7 @@ afterEach(() => {
 describe("Dotazník", () => {
   it("offers the three paths with the design availability, and waits for questions before going on", async () => {
     unitStub(BRIEF);
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" })).toBeTruthy();
     expect(screen.getByText("Návrh AI se uloží jako návrh ke kontrole. Změny použijete až po potvrzení.")).toBeTruthy();
     expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(true);
@@ -111,7 +113,7 @@ describe("Dotazník", () => {
 
   it("draws the preview and the editor, and has no dead 'AI: zlepšit blok' (OI-49)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" })).toBeTruthy();
     expect(screen.getByText("Otázka 1")).toBeTruthy();
     expect(screen.getByText("Sledovaná sada 3 · Sledovaná sada — média")).toBeTruthy();
@@ -122,20 +124,20 @@ describe("Dotazník", () => {
 
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const card = (await screen.findByText("Q1")).closest("[id^=qedit_]") as HTMLElement;
     const options = within(card).getByLabelText("Možnosti — jedna na řádek");
     fireEvent.blur(options, { target: { value: " Denně \n\nTýdně\nNikdy " } });
     fireEvent.change(within(card).getByLabelText("Typ"), { target: { value: "skala" } });
     expect(await within(card).findByLabelText("Minimum")).toBeTruthy();
     await saved();
-    const q1 = lastSave().project.sections[0].questions![0];
+    const q1 = lastSave().content.sections[0].questions![0];
     expect(q1).toMatchObject({ typ: "skala", kategorie: ["Denně", "Týdně", "Nikdy"] });
   });
 
   it("adds a guided question through the classic prompt, and refuses a set of three", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Škála 1–10" }));
     await answerDialog(GUIDED_PROMPT.scale, "Jak moc vám chutná?");
     expect((await screen.findAllByText("Jak moc vám chutná?")).length).toBeGreaterThan(0);
@@ -148,7 +150,7 @@ describe("Dotazník", () => {
 
   it("notes a set under four objects, and removes a block only when confirmed", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const objects = await screen.findByLabelText("Objekty — jeden na řádek (povinně 4–15)");
     fireEvent.blur(objects, { target: { value: "TV\nRádio" } });
     expect(await screen.findByText(SET_TOO_SMALL)).toBeTruthy();
@@ -163,7 +165,7 @@ describe("Dotazník", () => {
       null,
       { "/api/questionnaire/upload": () => ({ project: { ...EMPTY, ...BRIEF, sections: SECTIONS }, summary: { question_count: 2, tracked_sets: 1 } }) },
     );
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     expect(await screen.findByRole("link", { name: "Stáhnout XLSX šablonu" })).toHaveProperty("href", "http://localhost:3000/api/questionnaire/template");
     fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
     expect(await screen.findByText("Načteno: 2 otázek · 1 sledovaných sad")).toBeTruthy();
@@ -175,7 +177,7 @@ describe("Dotazník", () => {
   it("reviews the native brief analysis and questionnaire before opening the editor", async () => {
     const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
     await approveProposal();
     await approveProposal();
@@ -188,7 +190,7 @@ describe("Dotazník", () => {
   it("parks the build at the native runtime boundary", async () => {
     const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig }, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
     expect(await screen.findByText(PARK_MESSAGE, {}, NATIVE_JOB_WAIT)).toBeTruthy();
     expect(posted("/api/research/build_questionnaire")).toEqual([]);
@@ -196,7 +198,7 @@ describe("Dotazník", () => {
 
   it("reviews native optimization without asking for a legacy provider connection", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/api/providers/claude-code/status": () => ({ ok: false }) });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click((await screen.findAllByRole("button", { name: "OPTIMALIZOVAT DOTAZNÍK S AI" }))[0]);
     await approveProposal();
     await waitFor(() => expect(posted(`${AGENTS_PATH}/RUN-A/accept`)).toHaveLength(1));
@@ -207,10 +209,10 @@ describe("Dotazník", () => {
 
   it("goes on to the audience at its first choice", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Dotazník mám → Koho se ptát" }));
     expect(push).toHaveBeenCalledWith(stagePath("audience"));
     await saved();
-    expect(lastSave()).toMatchObject({ reason: "questionnaire_done", project: { ui_state: { audience_entry: "choose" } } });
+    expect(lastSave()).toMatchObject({ reason: "questionnaire_done", content: { ui_state: { audience_entry: "choose" } } });
   });
 });

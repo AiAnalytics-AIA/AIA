@@ -4,7 +4,7 @@
 // renderQuestionnaire (:341) under its wizard wrapper (:960) -- the three
 // paths, the XLSX/CSV import, the AI build, the respondent preview, the guided
 // editor and the final optimisation. What each control does to the project is
-// src/unit/research/questionnaire.ts, parity-tested against the original; this
+// src/research/questionnaire.ts, parity-tested against the original; this
 // file only draws it. The block's "AI: zlepšit blok" is not drawn: it does
 // nothing in the classic interface (OI-49).
 
@@ -13,7 +13,7 @@ import { useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
-import { fileToBase64 } from "@/unit/research/brief";
+import { fileToBase64 } from "@/research/brief";
 import {
   BUILD_FAILED_SUFFIX,
   BUILD_TITLE,
@@ -65,8 +65,8 @@ import {
   setSectionField,
   toAudience,
   updateObjects,
-} from "@/unit/research/questionnaire";
-import type { ResearchProject } from "@/unit/research/model";
+} from "@/research/questionnaire";
+import type { ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
 import { Button, Field, Tag, TextArea, TextInput } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
@@ -80,7 +80,7 @@ const TEMPLATE_HREF = "/api/questionnaire/template";
 const METHODOLOGY_HREF = "/files/docs/reference/QUESTIONNAIRE_IMPORT_AI_INSTRUCTIONS.md";
 
 export function QuestionnaireStep() {
-  const { store, state, boot, runJob, toast, stepHref } = useResearch();
+  const { store, state, template, runJob, toast, stepHref } = useResearch();
   const router = useRouter();
   const analysis = useAnalysis();
   const step = useAiStep();
@@ -108,7 +108,7 @@ export function QuestionnaireStep() {
       const s = store.get();
       const result = await runJob("researchBuildQuestionnaire", buildPayload(s.project, s.analysis), { title: BUILD_TITLE, warnMs: BUILD_WARN_MS });
       if (isNativeResult(result)) return;
-      store.update(() => ({ project: applyBuilt(result, boot) }), { reason: "questionnaire_ai_1776" });
+      store.update(() => ({ project: applyBuilt(result, template) }), { reason: "questionnaire_ai_1776" });
     }, (m) => m + BUILD_FAILED_SUFFIX);
   };
 
@@ -119,7 +119,7 @@ export function QuestionnaireStep() {
       const s = store.get();
       const result = await runJob("questionnaireOptimize", optimizePayload(s.project), { title: OPTIMIZE_TITLE });
       if (isNativeResult(result)) return;
-      store.update(({ analysis: a }) => applyOptimized(result, a, boot), { reason: "questionnaire_optimized" });
+      store.update(({ analysis: a }) => applyOptimized(result, a, template), { reason: "questionnaire_optimized" });
       toast(OPTIMIZE_DONE);
     });
   const deep = () =>
@@ -238,7 +238,7 @@ function AiAction({ label, help, busy, onClick }: { label: string; help: string;
 
 /** uploadQuestionnaireFile: the file is parsed by the unit, and its project replaces this one. */
 function Upload() {
-  const { store, boot, toast } = useResearch();
+  const { store, template, toast } = useResearch();
   const input = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ kind: "loading" } | { kind: "error"; message: string } | null>(null);
 
@@ -250,7 +250,7 @@ function Upload() {
         body: { filename: f.name, data_b64: await fileToBase64(f), project: store.get().project },
         timeoutMs: UPLOAD_TIMEOUT_MS,
       });
-      const imported = applyImport(r, boot);
+      const imported = applyImport(r, template);
       store.update(() => ({ project: imported.project }), { reason: "questionnaire_import" });
       toast(imported.toast);
       setStatus(null);

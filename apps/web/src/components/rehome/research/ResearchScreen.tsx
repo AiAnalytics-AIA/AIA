@@ -1,29 +1,26 @@
 "use client";
 
 // One research study on one stage (ADR 0014 area A4, re-homed by ADR 0015). A
-// ResearchSession loads the bootstrap and the study's working content into one
-// ResearchStore and keeps it, with the page memory the classic interface keeps
-// in globals (the audience preview, the model's dimension proposals), for as
-// long as the person stays in the study: the /app/clients/<client>/research/<study>
-// layout holds it, so moving between stages neither reloads nor drops a change
-// still waiting to be saved. Which unit project holds the working content comes
-// from the study's AIA binding (OI-58); a new study's first save binds it.
-// ResearchScreen draws the stage in the AIA shell -- client, study and stage in
-// the breadcrumbs, the study's stages in its own rail -- and a stage not yet
-// rebuilt hands off to the classic interface, explicitly.
+// ResearchSession loads the study's working content from AIA (ADR 0018) into one
+// ResearchStore and keeps it, with the page memory the classic interface keeps in
+// globals (the audience preview, the model's dimension proposals), for as long as
+// the person stays in the study: the /app/clients/<client>/research/<study> layout
+// holds it, so moving between stages neither reloads nor drops a change still
+// waiting to be saved. A study whose content still waits in 18.6.6, or was lost
+// there, says so instead of showing an empty document. ResearchScreen draws the
+// stage in the AIA shell -- client, study and stage in the breadcrumbs, the
+// study's stages in its own rail -- and a stage AIA has not rebuilt says so.
 
-import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
-import { classicHref } from "@/lib/interface-handoff";
 import { t, tv } from "@/i18n/t";
-import { type BootInfo, loadBoot } from "@/unit/boot";
-import { CANCEL_CONFIRM, JobError, type JobUpdate, cancelJob, runJob as runUnitJob } from "@/unit/research/jobs";
-import { activeProvider } from "@/unit/research/provider";
-import { type StepKey, stepEyebrow } from "@/unit/research/steps";
-import { type ResearchState, ResearchStore, loadResearch, newResearch } from "@/unit/research/store";
+import { CANCEL_CONFIRM, JobError, type JobUpdate } from "@/research/jobs";
+import type { Template } from "@/research/model";
+import { type StepKey, stepEyebrow } from "@/research/steps";
+import { ResearchStore, loadResearch, newResearch } from "@/research/store";
 import { appRoutes } from "@/lib/app-routes";
 import { AppShell } from "../../aia/AppShell";
-import { type Ask, AskDialog, Button, ClassicLink, Toast } from "../ui";
+import { type Ask, AskDialog, Button, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
 import { ResearchRail } from "./ResearchRail";
 import { SaveIndicator } from "./SaveIndicator";
@@ -38,64 +35,51 @@ import { STEP_SCREENS } from "./steps";
 type Loaded =
   | { kind: "loading" }
   | { kind: "failed"; message: string }
-  | { kind: "demo" | "simulation" }
-  | { kind: "ready"; store: ResearchStore; boot: BootInfo };
+  | { kind: "awaiting_migration" }
+  | { kind: "unrecoverable"; template: Template; canEdit: boolean }
+  | { kind: "ready"; store: ResearchStore; template: Template };
 
-type Session = { projectId: string | null; loaded: Loaded; retry: () => void; memory: Map<string, unknown> };
+type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown> };
 const SessionContext = createContext<Session | null>(null);
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
-export function ResearchSession({
-  projectId,
-  onIdAssigned,
-  children,
-}: {
-  projectId: string | null;
-  /** A new study's first save gave its working content an id: bind it (OI-58). */
-  onIdAssigned?: (id: string) => void;
-  children: ReactNode;
-}) {
+export function ResearchSession({ studyId, children }: { studyId: string; children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
   const [memory] = useState(() => new Map<string, unknown>());
-  // Read when a new project gets its id, not a dependency of the load: the load
-  // is per project id only.
-  const assignedRef = useRef(onIdAssigned);
-  useEffect(() => {
-    assignedRef.current = onIdAssigned;
-  }, [onIdAssigned]);
 
   useEffect(() => {
     let live = true;
     let store: ResearchStore | null = null;
-    loadBoot()
-      .then(async (boot): Promise<{ boot: BootInfo; state: ResearchState } | { other: "demo" | "simulation" }> => {
-        if (!projectId) return { boot, state: newResearch(boot) };
-        const r = await loadResearch(projectId, boot);
-        if (r.kind !== "research") return { other: r.kind };
-        return { boot, state: r.state };
-      })
-      .then(
-        (r) => {
-          if (!live) return;
-          if ("other" in r) return setLoaded({ kind: r.other });
-          const s: ResearchStore = new ResearchStore(r.state, r.boot, {
-            onIdAssigned: (id) => assignedRef.current?.(id),
-          });
-          store = s;
-          setLoaded({ kind: "ready", store: s, boot: r.boot });
-        },
-        (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
-      );
+    loadResearch(studyId).then(
+      (r) => {
+        if (!live) return;
+        if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
+        if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
+        const s = new ResearchStore(r.state, studyId);
+        store = s;
+        setLoaded({ kind: "ready", store: s, template: r.template });
+      },
+      (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
+    );
     return () => {
       live = false;
       store?.dispose();
     };
-  }, [projectId, version]);
+  }, [studyId, version]);
 
-  const value = useMemo(() => ({ projectId, loaded, retry: () => setVersion((v) => v + 1), memory }), [projectId, loaded, memory]);
+  // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
+  // from the template. The first save records it with the study (ADR 0018).
+  const startAgain = useCallback(() => {
+    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId), template: l.template } : l));
+  }, [studyId]);
+
+  const value = useMemo(
+    () => ({ studyId, loaded, retry: () => setVersion((v) => v + 1), startAgain, memory }),
+    [studyId, loaded, startAgain, memory],
+  );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
@@ -138,16 +122,16 @@ function StageChrome({ frame, step, status, children }: { frame: StudyFrame; ste
   );
 }
 
-export function ResearchScreen({ projectId, step, frame: given }: { projectId: string | null; step: StepKey; frame?: StudyFrame }) {
+export function ResearchScreen({ step, frame: given }: { step: StepKey; frame?: StudyFrame }) {
   const session = useContext(SessionContext);
   const inherited = useStudyFrame();
   const frame = given ?? inherited;
   if (!frame) throw new Error("ResearchScreen outside a study frame");
   // Outside the study's layout (a test), the screen holds its own session.
-  if (!session || session.projectId !== projectId) {
+  if (!session || session.studyId !== frame.studyId) {
     return (
-      <ResearchSession projectId={projectId} onIdAssigned={frame.onIdAssigned}>
-        <ResearchScreen projectId={projectId} step={step} frame={frame} />
+      <ResearchSession studyId={frame.studyId}>
+        <ResearchScreen step={step} frame={frame} />
       </ResearchSession>
     );
   }
@@ -164,24 +148,30 @@ export function ResearchScreen({ projectId, step, frame: given }: { projectId: s
             <p className="mt-1 text-sm text-ink">{loaded.message}</p>
             <Button className="mt-3" onClick={session.retry}>{t("research.retry")}</Button>
           </section>
+        ) : loaded.kind === "awaiting_migration" ? (
+          <section role="status" className="max-w-2xl rounded-md border border-status-you-ink/40 bg-status-you-wash p-6" data-content-state="AWAITING_MIGRATION">
+            <h2 className="font-semibold">{t("research.awaitingMigration")}</h2>
+            <p className="mt-1 text-sm leading-6 text-ink">{t("research.awaitingMigrationHelp")}</p>
+          </section>
         ) : (
-          <section className="max-w-2xl rounded-md border border-border bg-surface-raised p-6">
-            <p className="text-sm">{loaded.kind === "demo" ? t("research.isDemo") : t("research.isSimulation")}</p>
-            {projectId ? (
-              <div className="mt-4">
-                <ClassicLink href={classicHref({ open: projectId })} variant="primary">{t("research.openInClassic")}</ClassicLink>
-              </div>
-            ) : null}
+          <section role="status" className="max-w-2xl rounded-md border border-status-fault/40 bg-status-fault-wash p-6" data-content-state="UNRECOVERABLE">
+            <h2 className="font-semibold text-status-fault">{t("research.unrecoverable")}</h2>
+            <p className="mt-1 text-sm leading-6 text-ink">{t("research.unrecoverableHelp")}</p>
+            {loaded.canEdit ? (
+              <Button className="mt-3" variant="primary" onClick={session.startAgain}>{t("research.startAgain")}</Button>
+            ) : (
+              <p className="mt-2 text-sm text-ink-muted">{t("research.unrecoverableReadOnly")}</p>
+            )}
           </section>
         )}
       </StageChrome>
     );
   }
-  return <Ready store={loaded.store} boot={loaded.boot} memory={session.memory} step={step} frame={frame} />;
+  return <Ready store={loaded.store} template={loaded.template} memory={session.memory} step={step} frame={frame} reload={session.retry} />;
 }
 
-function Ready({ store, boot, memory, step, frame }: {
-  store: ResearchStore; boot: BootInfo; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame;
+function Ready({ store, template, memory, step, frame, reload }: {
+  store: ResearchStore; template: Template; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame; reload: () => void;
 }) {
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
   const { onStage, stepHref } = frame;
@@ -201,46 +191,19 @@ function Ready({ store, boot, memory, step, frame }: {
   const agents = useResearchAgents(frame.studyId, store, setJob);
   const nativeRun = agents.run;
 
+  // Every AI step of the research stages is an AIA research agent job (ADR 0016,
+  // PR #63). Deep research has no agent yet (ADR 0017) and says so.
   const runJob: RunJob = useCallback(
-    async (endpoint, payload, { title: jobTitle, warnMs = 45_000, model }) => {
-      const action = ACTIONS[endpoint];
-      if (action) return nativeRun(action, payload, jobTitle);
+    async (endpoint, payload, { title: jobTitle }) => {
       if (endpoint === "researchDeep") throw new JobError("Webový výzkum čeká na konfiguraci vyhledávací služby. Zadání zůstává uložené.", "error", null);
-      const s = store.get();
-      const started = Date.now();
-      let warned = false;
-      let overHard = false;
       try {
-        return await runUnitJob(endpoint, payload, {
-          title: jobTitle,
-          model,
-          ctx: {
-            projectId: s.projectId,
-            revision: s.revision,
-            provider: activeProvider(s.preferredProvider, s.project.run_policy?.provider, boot),
-          },
-          onUpdate: (u) => {
-            setJob(u);
-            // The classic job's two notices, once each: still working, and past the server's own time.
-            if (!warned && Date.now() - started > warnMs) {
-              warned = true;
-              setToast(t("research.jobStillWorking"));
-            }
-            const hard = u.meta?.hardSeconds ?? 0;
-            if (hard && !overHard && Date.now() - started > hard * 1000) {
-              overHard = true;
-              setToast(t("research.jobOverHardStop"));
-            }
-          },
-        });
+        return await nativeRun(ACTIONS[endpoint], payload, jobTitle);
       } catch (e) {
         if (e instanceof JobError && e.kind === "busy") setToast(e.message);
         throw e;
-      } finally {
-        setJob(null);
       }
     },
-    [store, boot, nativeRun],
+    [nativeRun],
   );
 
   const onCancel = (jobId: string) =>
@@ -249,7 +212,7 @@ function Ready({ store, boot, memory, step, frame }: {
       message: CANCEL_CONFIRM,
       resolve: (ok) => {
         if (!ok) return;
-        (jobId.startsWith("RUN-") ? researchAgents.cancel(frame.studyId, jobId) : cancelJob(jobId)).then(
+        researchAgents.cancel(frame.studyId, jobId).then(
           () => setToast(t("research.jobCancelling")),
           (e: unknown) => setToast(tv("research.jobCancelFailed", { message: message(e) })),
         );
@@ -262,8 +225,8 @@ function Ready({ store, boot, memory, step, frame }: {
     [],
   );
   const value = useMemo(
-    () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
-    [store, boot, runJob, job, confirm, prompt, memory, stepHref, frame],
+    () => ({ store, template, runJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
+    [store, template, runJob, job, confirm, prompt, memory, stepHref, frame],
   );
   const askAgent = async (action: ResearchAgentAction, title: string) => {
     const instruction = action === "critique_design" ? "Zkontroluj současný návrh." : await prompt("Co chcete zjistit?");
@@ -275,8 +238,8 @@ function Ready({ store, boot, memory, step, frame }: {
 
   return (
     <ResearchContext.Provider value={value}>
-      <StageChrome frame={frame} step={step} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} />}>
-        {Screen ? <Screen /> : <StepPlaceholder projectId={state.projectId} step={step} />}
+      <StageChrome frame={frame} step={step} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+        {Screen ? <Screen /> : <StepPlaceholder step={step} />}
         {frame.canEdit ? <section className="mt-6 flex flex-wrap gap-2 border-t border-border pt-4" aria-label="AI pomoc s výzkumem">
           <Button disabled={agents.busy} onClick={() => void askAgent("critique_design", "Kontrola návrhu")}>AI zkontroluje návrh</Button>
           <Button disabled={agents.busy} onClick={() => void askAgent("design_copilot", "Pomoc s návrhem")}>Zeptat se na návrh</Button>

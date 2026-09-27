@@ -5,20 +5,17 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
-import { resetBootCache } from "@/unit/boot";
 import { ResearchScreen } from "./ResearchScreen";
+import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
 
 const push = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/run", useRouter: () => ({ push, replace }) }));
 
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
 const PROJECT = { title: "Ranní nápoj", n: 450, sections: [{ type: "questions", questions: [{ id: "q1", text: "Jak často?", typ: "skala", skala: [1, 5] }] }] };
 
 const READY = {
@@ -110,8 +107,7 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
       calls.push({ method, url: u, body });
       const routes: Record<string, (b: unknown) => unknown> = {
         "GET /config": () => ({ cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", apiBase: "", build: { sha: null } }),
-        "GET /api/bootstrap": () => ({ empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6" } }),
-        "POST /api/projects/load": () => ({ project_id: "PRJ-1", revision: 3, project_type: "research", project: PROJECT, analysis: null }),
+        "GET /api/v1/studies/STU-1/workspace/content": () => workspaceFixture(PROJECT).answer(CONTENT_PATH, "GET", null),
         "POST /api/v1/studies/STU-1/design/revisions": () => ({ revision_id: "REV-a1", study_id: "STU-1", revision: 3, content_sha256: "x", parent_revision: 2, source_stage: "run", created_by: "USR-1", created_at: "2026-09-25T08:00:00Z", created: true }),
         "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-old", revision: 2 }] }),
         "GET /api/v1/studies/STU-1/research/readiness": () => READY,
@@ -127,7 +123,6 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
 const called = (method: string, prefix: string) => calls.filter((c) => c.method === method && c.url.startsWith(prefix));
 
 beforeEach(() => {
-  resetBootCache();
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");
   };
@@ -147,7 +142,7 @@ afterEach(() => {
 describe("Run", () => {
   it("submits the design the person sees as a revision, shows AIA's checks, and starts one run over it", async () => {
     api();
-    render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
     const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
     expect(submitted.body).toMatchObject({ source_stage: "run", content: { title: "Ranní nápoj", n: 450 } });
@@ -169,14 +164,14 @@ describe("Run", () => {
         checks: [{ id: "conditional_questions", status: "FAIL", message: "Podmíněné otázky AIA zatím neumí." }],
       }),
     });
-    render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.exec.notReady"))).toBeTruthy();
     expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("lets a reader see the latest revision's checks, but not write a revision or start", async () => {
     api();
-    render(<ResearchScreen projectId="PRJ-1" step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    render(<ResearchScreen step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);
     expect(await screen.findByText("Revize návrhu 2")).toBeTruthy();
     expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
     expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-old");
@@ -188,7 +183,7 @@ describe("Run", () => {
 describe("Progress", () => {
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
     api(listed(PARKED));
-    render(<ResearchScreen projectId="PRJ-1" step="progress" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení/)).toBeTruthy();
     const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
     expect(steps.map((li) => li.textContent)).toEqual([
@@ -209,7 +204,7 @@ describe("Progress", () => {
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/cancel": () => ({ ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true }),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
     });
-    render(<ResearchScreen projectId="PRJ-1" step="progress" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.cancel") }));
     fireEvent.click(await screen.findByRole("button", { name: "OK" }));
     expect(await screen.findByText("Zrušeno")).toBeTruthy();
@@ -226,7 +221,7 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
     });
-    render(<ResearchScreen projectId="PRJ-1" step="results" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
     const q2 = await screen.findByRole("region", { name: "q2" });
     expect(within(q2).getByText("34,8 %")).toBeTruthy();
@@ -240,12 +235,14 @@ describe("Results", () => {
     expect(within(map).getByText("Káva")).toBeTruthy();
     expect(within(map).getByText("6,14")).toBeTruthy();
     expect(screen.getAllByText(/Artefakt ART-4/).length).toBe(1);
-    expect(screen.getByRole("link", { name: /Analytický report 18\.6\.6/ }).getAttribute("href")).toBe("/classic#aia:open=PRJ-1@results");
+    // No hand-off to 18.6.6: the report AIA does not have yet is said, not linked (ADR 0018).
+    expect(screen.queryByRole("link", { name: /18\.6\.6/ })).toBeNull();
+    expect(screen.getByText(t("research.exec.results.reportNotInAia"))).toBeTruthy();
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {
     api(listed(PARKED));
-    render(<ResearchScreen projectId="PRJ-1" step="results" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.exec.noResultsParked"))).toBeTruthy();
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts")).toHaveLength(0);
   });
@@ -257,7 +254,7 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () =>
         new Response('{"code":"insufficient_role","message":"Not permitted."}', { status: 403 }),
     });
-    render(<ResearchScreen projectId="PRJ-1" step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
     expect(await screen.findByRole("region", { name: "q2" })).toBeTruthy();
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5")).toHaveLength(1));
     expect(screen.queryByText(/Interní: metodika Sociomapy/)).toBeNull();

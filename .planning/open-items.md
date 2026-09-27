@@ -1886,6 +1886,22 @@ keeps two invariants the unit lacked: seed or fixture data never overwrites work
 and a study whose content is missing says so by name rather than "Projekt/revize nenalezena".
 
 **Status.** Open; **migration debt**, accepted temporarily by the data owner (2026-09-24).
+Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-6.md)
+([plan](plans/legacy-phase-out.md)):
+
+- **Landed in code (`feature/native-research-workspace`, 2026-09-27):** the stages load and
+  save a Study's working content in AIA (`GET`/`PUT /api/v1/studies/{study_id}/workspace/content`,
+  `StudyWorkspaceRepository`, owned working project); the binding route
+  `PUT /studies/{id}/workspace` is gone; every existing binding became `AWAITING_MIGRATION`
+  (migration `5b1d0f3e9a21`), which refuses edits so the content cannot fork. The two
+  invariants above hold by construction: nothing but a person's save writes a working
+  project, and a missing or lost content says so by state. Tests:
+  `test_study_workspaces.py`, `test_workflow_concurrency.py` ›
+  *two editors saving from one revision cannot overwrite each other*,
+  `test_client_api.py` › *a save from a stale revision is a conflict…*.
+- **Still open:** the migration of the bound content (chunk 7), and the removal of the
+  unit from the product (chunks 9–11). The unit store still holds the develop Studies'
+  content until the migration runs there.
 
 ## OI-59 · Temporary restriction · `/app` admits organization owners and admins only
 

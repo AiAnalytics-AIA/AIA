@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { effective, legacyContext, statement } from "../testing/legacy";
-import { type Boot, type ResearchProject, defaultsMerge } from "./model";
+import { effective, legacyContext, statement } from "@/testing/legacy";
+import { type Template, type ResearchProject, defaultsMerge } from "./model";
 import {
   ANSWERS_EMPTY,
   CONFIRM_REMOVE_SET,
@@ -37,8 +37,8 @@ import type { Analysis } from "./store";
 
 // Návrh against the classic interface's own functions, run under Node with the
 // prompts, the save and the render stubbed and recorded.
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
-const BOOT: Boot = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
+const BOOT: Template = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
 
 const legacy = legacyContext({
   prelude: [

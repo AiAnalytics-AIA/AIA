@@ -3,31 +3,27 @@
 // The study a research frame is in (ADR 0015): resolved by the
 // /app/clients/<client>/research/<study> layout through AIA's scope, then handed
 // to the research screens. They never build a URL themselves -- `stepHref` does --
-// and never decide which unit project to load: that comes from the study's AIA
-// binding (OI-58), not from the browser.
+// and load and save the study's working content by the study's id alone, in AIA
+// (ADR 0018): nothing the browser holds says where the content lives.
 
 import { type ReactNode, createContext, useContext } from "react";
 
-import type { StepKey } from "@/unit/research/steps";
+import type { StepKey } from "@/research/steps";
 
 export type StudyFrame = {
   clientId: string;
   clientName: string;
   studyId: string;
   studyName: string;
-  /** The unit project holding the working content, from the study's AIA binding; null until the first save. */
-  unitProjectId: string | null;
   /** The stage the study was last opened on. */
   lastStage: StepKey | null;
   /** EDIT_STUDY on this study: a person who may only read never starts working content. */
   canEdit: boolean;
   /** The URL of one of this study's stages. */
   stepHref: (step: StepKey) => string;
-  /** A new study's first save gave the unit project its id: bind it to the study, once. */
-  onIdAssigned?: (unitProjectId: string) => void;
   /** Remember the stage opened, for "continue where you left off". */
   onStage?: (step: StepKey) => void;
-  /** Something the frame must say, e.g. that the binding failed. */
+  /** Something the frame must say about the study as a whole. */
   notice?: string | null;
 };
 

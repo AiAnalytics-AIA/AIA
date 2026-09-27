@@ -29,7 +29,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
 const A = { client_id: "CLI-a", name: "Klient A", slug: "klient-a", status: "ACTIVE", your_role: "LEAD", permissions: ["APPROVE_CLIENT_KNOWLEDGE", "CREATE_STUDY", "PROPOSE_CLIENT_KNOWLEDGE", "VIEW_CLIENT", "VIEW_CLIENT_KNOWLEDGE"] };
 const study = (id: string, name: string, kind: "RESEARCH" | "SIMULATION", extra: Record<string, unknown> = {}) => ({
   study_id: id, client_id: "CLI-a", name, slug: id.toLowerCase(), kind, status: "ACTIVE", accepts_work: true,
@@ -77,11 +77,10 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
         "GET /api/v1/clients/CLI-a/knowledge/proposals": () => PROPOSALS,
         "POST /api/v1/clients/CLI-a/knowledge/proposals/KNP-1/decision": () => ({ ...PROPOSALS[0], status: "APPROVED" }),
         "POST /api/v1/clients/CLI-a/knowledge/proposals": (b) => ({ ...PROPOSALS[1], title: (b as { title: string }).title }),
-        "GET /api/v1/studies/STU-1/workspace": () => ({ study: STUDIES[0], client_name: "Klient A", your_role: "LEAD", can_edit: true, unit_project_id: "PRJ-bound" }),
-        "GET /api/v1/studies/STU-X/workspace": () => ({ study: { ...STUDIES[0], study_id: "STU-X", client_id: "CLI-other" }, client_name: "Jiný", your_role: "LEAD", can_edit: true, unit_project_id: "PRJ-other" }),
+        "GET /api/v1/studies/STU-1/workspace": () => ({ study: STUDIES[0], client_name: "Klient A", your_role: "LEAD", can_edit: true, content_state: "NATIVE" }),
+        "GET /api/v1/studies/STU-X/workspace": () => ({ study: { ...STUDIES[0], study_id: "STU-X", client_id: "CLI-other" }, client_name: "Jiný", your_role: "LEAD", can_edit: true, content_state: "NATIVE" }),
         "PUT /api/v1/studies/STU-1/workspace/stage": () => new Response(null, { status: 204 }),
-        "GET /api/bootstrap": () => ({ empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6" } }),
-        "POST /api/projects/load": () => ({ project_id: "PRJ-bound", revision: 3, project_type: "research", project: { title: "Vnímání značky" }, analysis: null }),
+        "GET /api/v1/studies/STU-1/workspace/content": () => ({ study_id: "STU-1", state: "NATIVE", revision: 3, revision_id: "REV-3", content: { title: "Vnímání značky" }, analysis: null, template: EMPTY, saved_at: null, saved_by: null, can_edit: true, lineage: {} }),
         ...overrides,
       };
       const answer = routes[key]?.(body) ?? {};
@@ -209,13 +208,14 @@ describe("a client's workspace", () => {
 });
 
 describe("a research, re-homed under its client", () => {
-  it("loads the working content its AIA binding names, never an id from the URL", async () => {
+  it("loads the study's working content from AIA by the study alone (ADR 0018)", async () => {
     path = "/app/clients/CLI-a/research/STU-1/questionnaire";
     api();
     render(inClient("CLI-a", <ResearchStudy studyId="STU-1"><ResearchStage slug="questionnaire" /></ResearchStudy>));
     expect(await screen.findByRole("heading", { level: 1, name: "3. Dotazník" }, { timeout: 4000 })).toBeTruthy();
-    const loads = called("POST", "/api/projects/load");
-    expect(loads.map((c) => c.body)).toEqual([{ project_id: "PRJ-bound" }]);
+    expect(called("GET", "/api/v1/studies/STU-1/workspace/content")).toHaveLength(1);
+    // Nothing reaches the 18.6.6 unit's project store any more.
+    expect(calls.filter((c) => c.url.startsWith("/api/projects"))).toEqual([]);
     const crumbs = within(screen.getByRole("navigation", { name: "Kde jste" })).getAllByRole("listitem");
     expect(crumbs.map((c) => c.textContent?.replace("/", "").trim())).toEqual(["Klienti", "Klient A", "Výzkumy", "Vnímání značky", "Dotazník"]);
     await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/workspace/stage")[0].body).toEqual({ stage: "questionnaire" }));
@@ -226,7 +226,7 @@ describe("a research, re-homed under its client", () => {
     api();
     render(inClient("CLI-a", <ResearchStudy studyId="STU-X"><ResearchStage slug="brief" /></ResearchStudy>));
     expect(await screen.findByRole("heading", { name: "Tady nic není" })).toBeTruthy();
-    expect(called("POST", "/api/projects/load")).toEqual([]);
+    expect(called("GET", "/api/v1/studies/STU-X/workspace/content")).toEqual([]);
   });
 
   it("finds nothing by a unit project id in the study's place", async () => {
@@ -238,7 +238,7 @@ describe("a research, re-homed under its client", () => {
     render(inClient("CLI-a", <ResearchStudy studyId="PRJ-bound"><ResearchStage slug="brief" /></ResearchStudy>));
     expect(await screen.findByRole("heading", { name: "Tady nic není" })).toBeTruthy();
     expect(screen.queryByText(/parameters are invalid/)).toBeNull();
-    expect(called("POST", "/api/projects/load")).toEqual([]);
+    expect(called("GET", "/api/v1/studies/PRJ-bound/workspace/content")).toEqual([]);
   });
 });
 

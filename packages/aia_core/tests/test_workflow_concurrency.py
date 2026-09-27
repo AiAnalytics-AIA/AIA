@@ -1355,3 +1355,85 @@ def test_two_reviewed_design_proposals_cannot_overwrite_each_other(
         assert revisions[0].parent_revision == revision.revision
     finally:
         session.close()
+
+
+def test_two_editors_saving_from_one_revision_cannot_overwrite_each_other(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """Two connections save working content edited from the same revision; one wins."""
+    from aia_core.infrastructure.study_workspace_repository import (
+        StudyWorkspaceRepository,
+        WorkspaceConflict,
+    )
+
+    session, workflows = _repo_in_new_session(pg_sessions, world)
+    try:
+        StudyWorkspaceRepository(session).save(
+            workflows.scope, content={"goal": "Original"}, base_revision=None
+        )
+        session.commit()
+    finally:
+        session.close()
+
+    def save(index: int) -> str:
+        session, workflows = _repo_in_new_session(
+            pg_sessions, world, user="lead" if index == 0 else "researcher"
+        )
+        try:
+            # Read before the lock, as a stale identity map would: the guard is
+            # re-read under FOR UPDATE, never trusted from it.
+            session.get(StudyRow, world["study_id"])
+            try:
+                StudyWorkspaceRepository(session).save(
+                    workflows.scope, content={"goal": f"Editor {index}"}, base_revision=1
+                )
+                session.commit()
+                return "saved"
+            except WorkspaceConflict as exc:
+                session.rollback()
+                return exc.reason
+        finally:
+            session.close()
+
+    assert sorted(_run_concurrently(2, save)) == ["saved", "stale_revision"]
+    session, workflows = _repo_in_new_session(pg_sessions, world)
+    try:
+        workspace = StudyWorkspaceRepository(session)
+        assert [r.revision for r in workspace.revisions(workflows.scope)] == [2, 1]
+        assert workspace.content(workflows.scope).content in (
+            {"goal": "Editor 0"},
+            {"goal": "Editor 1"},
+        )
+    finally:
+        session.close()
+
+
+def test_two_first_saves_create_one_working_project(
+    pg_sessions: sessionmaker[Session], world: dict[str, Any]
+) -> None:
+    """A new Study saved from two tabs at once gets one working project, not two."""
+    from aia_core.infrastructure.study_workspace_repository import (
+        StudyWorkspaceRepository,
+        WorkspaceConflict,
+    )
+    from aia_core.infrastructure.tables import StudyWorkspaceRow
+
+    def first(index: int) -> str:
+        session, workflows = _repo_in_new_session(pg_sessions, world)
+        try:
+            try:
+                StudyWorkspaceRepository(session).save(
+                    workflows.scope, content={"goal": f"Tab {index}"}, base_revision=None
+                )
+                session.commit()
+                return "saved"
+            except WorkspaceConflict as exc:
+                session.rollback()
+                return exc.reason
+        finally:
+            session.close()
+
+    assert sorted(_run_concurrently(2, first)) == ["saved", "stale_revision"]
+    with pg_sessions() as session:
+        rows = session.scalars(select(StudyWorkspaceRow)).all()
+        assert len(rows) == 1 and rows[0].project_id is not None

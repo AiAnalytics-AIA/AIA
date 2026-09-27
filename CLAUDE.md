@@ -52,7 +52,7 @@ apps/
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope, runs (runs + artifacts under a project),
                             workspace (clients, a client's workspace, its knowledge and proposals,
-                            a study's frame and its unit-project binding, ADR 0015),
+                            a study's frame and its working content in AIA, ADR 0015, ADR 0018),
                             panel (the session + gate in front of /app, /classic and the unit, ADR 0012),
                             research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), and native agent-jobs beneath each Study,
@@ -66,20 +66,24 @@ apps/
                             settings (+ settings/classic-projects, the unit's store, OI-58)
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs), the client workspace and its areas, ResearchStudy
-                            (a study's frame from its AIA binding), useResource (404 = nothing here),
+                            (a study's frame; its content loaded by the study's id), useResource
+                            (404 = nothing here),
                             settings/ControlPanel (every control from GET /settings, how each is set;
                             live forms over the admin routes with the signed-in token, lib/api.ts `admin`),
                             FrontDoor (the branded frame of /login, /logout, /auth/callback)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
     src/components/rehome/  Primitives (token utilities only), the research stages and the classic
                             projects screens, re-homed under the shell above
-    src/unit/               The ONLY way it reaches the unit: routes named by ledger row, parsers,
-                            and each area's logic ported from the JS (parity-tested under Node)
-      research/             The research flow's model, project store (1.8 s save, visible state),
-                            AI jobs (POST -> job_id, read /api/job) and the ten steps
-      testing/legacy.ts     Parity harness: a function's effective binding, run in a Node vm
+    src/research/           The research flow's logic ported from ui_app.html (parity-tested under
+                            Node): model, the ten steps, the job panel's words, and the store that
+                            loads and saves a study's working content in AIA (1.8 s save, visible
+                            state, a stale save refused and said, ADR 0018)
+    src/unit/               The remaining calls into the 18.6.6 unit, each by its ledger row;
+                            shrinking to nothing (legacy-phase-out.md)
+    src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
+                            the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
-    src/components/rehome/research/  The stage frame (StudyFrame: client, study, binding): rail,
+    src/components/rehome/research/  The stage frame (StudyFrame: client, study, rights): rail,
                             save state, job panel, the shared brief analysis (useAnalysis), one
                             screen per stage; ExecutionSteps.tsx: Run, Progress, Results (ADR 0016)
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
@@ -160,7 +164,9 @@ packages/aia_core/src/aia_core/
     residency.py            EU residency, data classes, the fail-closed egress boundary
     scope.py                Organization/Client/Study vocabulary, roles, permissions; StudyKind
                             (RESEARCH / SIMULATION); ClientContext + ClientPermission
-    workspace.py            StudyWorkspace: a study's AIA-owned binding to its unit project (OI-58)
+    workspace.py            A research Study's working content: ContentState (EMPTY … AWAITING_MIGRATION),
+                            validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58)
+    research_template.py    The research template a new study starts from (the unit's empty project)
     knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015)
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
@@ -235,8 +241,9 @@ packages/aia_core/src/aia_core/
     scope_repository.py     Organizations, clients, studies, grants; studies in a client, by kind
     study_design_repository.py  A Study's design project (owned: projects.owner) and its
                             Design Revisions; the ONLY writer of a Study's design (ADR 0016)
-    study_workspace_repository.py  The study <-> unit project binding: bound once, under
-                            EDIT_STUDY, never looked up by unit id (OI-58)
+    study_workspace_repository.py  A Study's working content in its owned working project
+                            (projects.owner = study_workspace): load, save naming its base revision
+                            (a stale one refused), history; found only through the Study (ADR 0018)
     client_knowledge_repository.py  The ONLY reader/writer of Client Knowledge: read inside a
                             resolved scope, changed only by an approved proposal (new revision)
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
@@ -345,11 +352,15 @@ There is no catch-all to the unit. The classic document passes through the web
 client, which adds the skin only when it is the pinned `ui_app.html` (ADR 0013);
 the unit's bytes never change.
 
-**The unit store is migration debt.** A research stage's working content still
-lives in the unit's project store, reached only through the study's AIA-owned
-binding (`study_workspaces`, `StudyWorkspaceRepository`), resolved after AIA
-authorization; a unit project id from the browser authorizes nothing, and
-nothing finds a study by it. The removal condition is in OI-58.
+**A research study's working content lives in AIA** (ADR 0018, OI-58). The stages load
+and save it through `/api/v1/studies/{study_id}/workspace/content`; it is the Study's
+owned working project (`projects.owner = study_workspace`), found only through the
+Study's `study_workspaces` row, whose `content_state` names where it stands. A save
+names the revision it was edited from and a stale one is refused (409), never
+applied over a newer one. A study bound to 18.6.6 before ADR 0018 is
+`AWAITING_MIGRATION` -- not editable -- until the explicit migration of its 18.6.6
+content ([legacy-phase-out.md](.planning/plans/legacy-phase-out.md) chunk 7) brings it
+over; `unit_project_id` is lineage only, and nothing finds a study by it.
 
 **Client Knowledge is scoped before it is read.** `ClientKnowledgeRepository`
 takes a `ClientContext` or `StudyContext` and queries by that client; there is

@@ -158,11 +158,14 @@ script, then confirm it passes before committing.
   Client Knowledge is read only inside such a context -- never a global pool
   filtered afterwards -- and changes only when a proposal is approved, which writes
   a new revision ([ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).
-- **A study's working content in the unit is reached through its AIA binding.**
-  `StudyWorkspaceRepository` binds a study to one unit project, once, under
-  `EDIT_STUDY`; the web client reads the id out of the study's scope and never
-  sends one in to find a study. The unit store is temporary migration debt with a
-  removal condition (OI-58), not the target data model.
+- **A research study's working content is AIA's, found only through the Study**
+  ([ADR 0018](docs/architecture/adr/0018-aia-runs-without-18-6-6.md), OI-58).
+  `StudyWorkspaceRepository` keeps it in the Study's owned working project
+  (`projects.owner = study_workspace`, invisible to the generic project routes) and
+  names its state (`ContentState`); a save names its base revision and a stale one
+  is refused, so two editors never overwrite each other silently. A study bound to
+  18.6.6 before ADR 0018 is `AWAITING_MIGRATION` and refuses edits until its content
+  is migrated; the 18.6.6 project id it keeps is lineage, never a way in.
 - **Population data is a capability too.** `RuntimePopulation` is issuable only by
   `PopulationRuntime` through the same sentinel construction, and carries the
   `PopulationBinding` (version, content hash, weight scheme, view) it was loaded

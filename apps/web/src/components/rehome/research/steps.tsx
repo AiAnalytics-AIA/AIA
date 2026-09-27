@@ -1,11 +1,11 @@
 "use client";
 
 // Which steps have a rebuilt screen. A step listed here must also be in
-// REBUILT_STEPS (src/unit/research/steps.ts); screens.test.tsx checks both agree.
+// REBUILT_STEPS (src/research/steps.ts); screens.test.tsx checks both agree.
 
 import type { ComponentType } from "react";
 
-import type { StepKey } from "@/unit/research/steps";
+import type { StepKey } from "@/research/steps";
 import { AudienceStep } from "./AudienceStep";
 import { BriefStep } from "./BriefStep";
 import { ProgressStep, ResultsStep, RunStep } from "./ExecutionSteps";

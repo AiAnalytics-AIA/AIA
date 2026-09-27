@@ -79,12 +79,12 @@ check(/Klienti.*Horizont.*Výzkumy.*Proof.*Zadání/.test(crumbs), "breadcrumbs 
 const study = await api(`/studies/${studyId}/workspace`);
 check(study.status === 200 && study.body.study.kind === "RESEARCH" && study.body.study.client_id === clientId, "the study is RESEARCH, in this client", `${study.body?.study?.kind} ${study.body?.study?.client_id}`);
 
-// 3. The first save creates the unit project and binds it -- AIA-owned, never looked up by unit id.
+// 3. The first save stores the study's working content in AIA (ADR 0018).
 const field = page.locator("textarea, input[type=text]").first();
 await field.fill("Ověřit, že nová cesta prohlížečem ukládá přes Caddy.");
-let bound = null;
-for (let i = 0; i < 40 && !bound; i++) { await page.waitForTimeout(500); bound = (await api(`/studies/${studyId}/workspace`)).body?.unit_project_id; }
-check(!!bound, "first save bound the study to its unit project", String(bound));
+let saved = null;
+for (let i = 0; i < 40 && saved !== "NATIVE"; i++) { await page.waitForTimeout(500); saved = (await api(`/studies/${studyId}/workspace/content`)).body?.state; }
+check(saved === "NATIVE", "first save stored the study's working content in AIA", String(saved));
 await page.screenshot({ path: `${OUT}/3-brief.png` });
 
 // 4a. The run stage is AIA's (ADR 0016): the design the person sees becomes a

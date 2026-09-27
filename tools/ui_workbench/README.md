@@ -76,14 +76,13 @@ Screens that show an AI answer are seen from fixture projects.
 
 The workbench never calls a model, so a research step that shows an AI answer
 (the plan's understanding, a built questionnaire, a proposed audience) is seen
-from a project that already holds one. `make ui-fixtures`
-(`fixture_project.py`) writes them through the unit's own
-`POST /api/projects/save`, with the classic save's body, then binds each to a
-new research study of Horizont Mobility through the API
-(`POST /api/v1/clients/<client>/studies`, `PUT /api/v1/studies/<study>/workspace`,
-OI-58). Unit ids are kept in `tmp/ui-workbench/fixtures.json` and bindings in
-`tmp/ui-workbench/studies.json`, so a second run updates the same projects and
-studies.
+from a study that already holds one. `make ui-fixtures`
+(`fixture_project.py`) makes a research study of Horizont Mobility for each
+(`POST /api/v1/clients/<client>/studies`) and saves the fixture as its working
+content through AIA's own route, `PUT /api/v1/studies/<study>/workspace/content`,
+over the template AIA serves (ADR 0018). Nothing reaches the unit. The studies are
+kept in `tmp/ui-workbench/studies.json`, so a second run saves a new revision of
+the same studies.
 Every word is written in the script and fictional. The projects grow as the
 research chunks land ([research-flow-rehome.md](../../.planning/plans/research-flow-rehome.md)):
 

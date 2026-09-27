@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { legacyContext, statement } from "../testing/legacy";
+import { legacyContext, statement } from "@/testing/legacy";
 import { CLASSIC_ROUTE, RAIL_STEPS, STEP_KEYS, stepEyebrow } from "./steps";
 
 const legacy = legacyContext({

@@ -1,9 +1,13 @@
-"""The client workspace: clients, their studies, the unit bridge and client knowledge.
+"""The client workspace: clients, their studies, a study's working content, client knowledge.
 
-ADR 0015. Everything here resolves scope first -- a ``ClientContext`` for the
-client's own surfaces, a ``StudyContext`` for one study -- and every denial of
+ADR 0015, ADR 0018. Everything here resolves scope first -- a ``ClientContext`` for
+the client's own surfaces, a ``StudyContext`` for one study -- and every denial of
 scope is a 404, as elsewhere. Inside a client the caller demonstrably has, a
 missing permission is a 403: acknowledging the client leaks nothing.
+
+A research study's working content -- what its stages edit -- is loaded and saved
+here, in AIA (``/studies/{study_id}/workspace/content``). No route takes a project id
+or an 18.6.6 unit project id to find a study.
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ from aia_core.domain.knowledge import (
     KnowledgeProposal,
     ProposalStatus,
 )
+from aia_core.domain.research_template import research_template
 from aia_core.domain.scope import (
     ClientContext,
     ClientPermission,
@@ -32,7 +37,12 @@ from aia_core.domain.scope import (
     StudyKind,
     StudyStatus,
 )
-from aia_core.domain.workspace import StudyWorkspace
+from aia_core.domain.workspace import (
+    ContentState,
+    StudyWorkspace,
+    WorkingContent,
+    WorkspaceRejected,
+)
 from aia_core.infrastructure.artifact_repository import ArtifactRepository
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.study_workspace_repository import (
@@ -85,6 +95,8 @@ class WorkspaceStudy(BaseModel):
     accepts_work: bool
     last_stage: str | None = None
     has_working_content: bool = False
+    #: Where the study's working content stands (``ContentState``), by name.
+    content_state: str = ContentState.EMPTY.value
     created_at: datetime | None = None
     modified_at: datetime | None = None
 
@@ -216,7 +228,7 @@ class StudyCreate(BaseModel):
 
 
 class StudyWorkspaceResponse(BaseModel):
-    """One study as its frame needs it: the study, its client, and the bridge."""
+    """One study as its frame needs it: the study, its client, the caller's rights."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -224,15 +236,75 @@ class StudyWorkspaceResponse(BaseModel):
     client_name: str
     your_role: str
     can_edit: bool
-    unit_project_id: str | None
+    content_state: str
 
 
-class BindRequest(BaseModel):
-    """Bind the study to the unit project holding its working content (OI-58)."""
+class WorkingContentResponse(BaseModel):
+    """A research study's working content, as its stages load it (ADR 0018)."""
 
     model_config = ConfigDict(extra="forbid")
 
-    unit_project_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9_-]{1,160}$")
+    study_id: str
+    #: ``ContentState``: EMPTY, NATIVE, MIGRATED, RECOVERED, UNRECOVERABLE or AWAITING_MIGRATION.
+    state: str
+    #: The revision the content is at; a save names it as its ``base_revision``.
+    revision: int | None
+    revision_id: str | None
+    content: dict[str, Any] | None
+    analysis: dict[str, Any] | None
+    #: The document a new study starts from and every stored one is completed with.
+    template: dict[str, Any]
+    saved_at: datetime | None
+    saved_by: str | None
+    can_edit: bool
+    #: Where migrated content came from; empty for content made in AIA.
+    lineage: dict[str, Any]
+
+
+class WorkingContentSave(BaseModel):
+    """Save the study's working content as its newest revision."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    content: dict[str, Any]
+    analysis: dict[str, Any] | None = None
+    #: The revision the content was edited from; null only for a study with no content yet.
+    base_revision: int | None = Field(default=None, ge=1)
+    reason: str = Field(default="autosave", max_length=64, pattern=r"^[a-z0-9_:.-]{1,64}$")
+
+
+class WorkingContentSaved(BaseModel):
+    """What one save did."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    study_id: str
+    state: str
+    revision: int
+    revision_id: str
+    deduplicated: bool
+
+
+class WorkingRevisionResponse(BaseModel):
+    """One saved revision of a study's working content."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int
+    revision_id: str
+    parent_revision: int | None
+    reason: str
+    content_sha256: str
+    created_at: datetime
+    created_by: str | None
+
+
+class WorkingRevisionList(BaseModel):
+    """A study's working-content history, newest first."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[WorkingRevisionResponse]
 
 
 class StageRequest(BaseModel):
@@ -302,6 +374,7 @@ def _client_scope(principal: Any, resolver: Any, client_id: str) -> ClientContex
 
 
 def _study(study: Study, workspace: StudyWorkspace | None) -> WorkspaceStudy:
+    state = workspace.state if workspace else ContentState.EMPTY
     return WorkspaceStudy(
         study_id=study.study_id,
         client_id=study.client_id,
@@ -311,7 +384,8 @@ def _study(study: Study, workspace: StudyWorkspace | None) -> WorkspaceStudy:
         status=study.status.value,
         accepts_work=study.status.accepts_work,
         last_stage=workspace.last_stage if workspace else None,
-        has_working_content=workspace is not None,
+        has_working_content=state.has_content or state is ContentState.AWAITING_MIGRATION,
+        content_state=state.value,
         created_at=study.created_at,
         modified_at=study.modified_at,
     )
@@ -763,7 +837,7 @@ def decide_knowledge(
 
 
 # --------------------------------------------------------------------------- #
-# One study: its frame, the unit bridge, what it consumes, what it proposes
+# One study: its frame, its working content, what it consumes, what it proposes
 # --------------------------------------------------------------------------- #
 
 
@@ -776,48 +850,126 @@ def _study_workspace(scope: Any, repo: Any, session: Any) -> StudyWorkspaceRespo
         client_name=client.name,
         your_role=scope.role.value,
         can_edit=scope.has(Permission.EDIT_STUDY),
-        unit_project_id=workspace.unit_project_id if workspace else None,
+        content_state=(workspace.state if workspace else ContentState.EMPTY).value,
     )
 
 
 @router.get(
     "/studies/{study_id}/workspace",
     response_model=StudyWorkspaceResponse,
-    summary="One study's frame and bridge",
+    summary="One study's frame",
 )
 def study_workspace(
     scope: StudyScopeDep, repo: ScopeRepositoryDep, session: SessionDep
 ) -> StudyWorkspaceResponse:
-    """The study, its client's name, the caller's role, and the unit project bound to it (OI-58).
-
-    The unit project id comes out of the study's scope; nothing takes one in to
-    find a study.
-    """
+    """The study, its client's name, the caller's role and where its working content stands."""
     return _study_workspace(scope, repo, session)
 
 
-@router.put(
-    "/studies/{study_id}/workspace",
-    response_model=StudyWorkspaceResponse,
-    summary="Bind the study's working content",
-)
-def bind_study_workspace(
-    body: BindRequest, scope: StudyScopeDep, repo: ScopeRepositoryDep, session: SessionDep
-) -> StudyWorkspaceResponse:
-    """Once per study, never to a unit project bound elsewhere.
+def _content_response(scope: Any, content: WorkingContent) -> WorkingContentResponse:
+    return WorkingContentResponse(
+        study_id=content.study_id,
+        state=content.state.value,
+        revision=content.revision,
+        revision_id=content.revision_id,
+        content=content.content,
+        analysis=content.analysis,
+        template=research_template(),
+        saved_at=content.saved_at,
+        saved_by=content.saved_by,
+        can_edit=scope.has(Permission.EDIT_STUDY) and content.state.editable,
+        lineage=content.lineage,
+    )
 
-    Needs ``EDIT_STUDY`` on an open study.
+
+@router.get(
+    "/studies/{study_id}/workspace/content",
+    response_model=WorkingContentResponse,
+    summary="The research study's working content",
+)
+def study_working_content(scope: StudyScopeDep, session: SessionDep) -> WorkingContentResponse:
+    """What the stages edit, at its current revision, with the template it is completed with.
+
+    A study with nothing saved is ``EMPTY``; one whose content still waits in 18.6.6
+    is ``AWAITING_MIGRATION``; one whose 18.6.6 content was lost is ``UNRECOVERABLE``.
+    Each says so, with no content, rather than answering with an empty document.
+    """
+    return _content_response(scope, StudyWorkspaceRepository(session).content(scope))
+
+
+@router.put(
+    "/studies/{study_id}/workspace/content",
+    response_model=WorkingContentSaved,
+    summary="Save the research study's working content",
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "A newer revision exists, or the content awaits migration",
+        }
+    },
+)
+def save_study_working_content(
+    body: WorkingContentSave, scope: StudyScopeDep, session: SessionDep
+) -> WorkingContentSaved:
+    """A new immutable revision, or nothing when nothing changed.
+
+    Needs ``EDIT_STUDY`` on an open research study. ``base_revision`` is the revision
+    the content was edited from; a save from an older one is refused with 409
+    ``stale_revision`` and the current revision, never applied over it.
     """
     try:
-        StudyWorkspaceRepository(session).bind(scope, unit_project_id=body.unit_project_id)
+        saved = StudyWorkspaceRepository(session).save(
+            scope,
+            content=body.content,
+            analysis=body.analysis,
+            base_revision=body.base_revision,
+            reason=body.reason,
+        )
     except ScopeDenied as exc:
         raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
     except WorkspaceConflict as exc:
         raise HTTPException(
             status_code=409,
-            detail={"code": exc.reason, "message": "The working content is already bound."},
+            detail={
+                "code": exc.reason,
+                "message": (
+                    "The working content awaits migration from 18.6.6."
+                    if exc.reason == "awaiting_migration"
+                    else "The working content was saved elsewhere since it was loaded."
+                ),
+                "details": {"current_revision": exc.current_revision},
+            },
         ) from exc
-    return _study_workspace(scope, repo, session)
+    except WorkspaceRejected as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    return WorkingContentSaved(
+        study_id=saved.study_id,
+        state=saved.state.value,
+        revision=saved.revision,
+        revision_id=saved.revision_id,
+        deduplicated=saved.deduplicated,
+    )
+
+
+@router.get(
+    "/studies/{study_id}/workspace/revisions",
+    response_model=WorkingRevisionList,
+    summary="The research study's working-content history",
+)
+def study_working_revisions(
+    scope: StudyScopeDep,
+    session: SessionDep,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> WorkingRevisionList:
+    """Every saved revision, newest first: when, by whom, why, and its content hash."""
+    return WorkingRevisionList(
+        items=[
+            WorkingRevisionResponse(**r.model_dump())
+            for r in StudyWorkspaceRepository(session).revisions(scope, limit=limit)
+        ]
+    )
 
 
 @router.put(

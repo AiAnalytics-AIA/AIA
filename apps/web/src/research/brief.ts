@@ -6,7 +6,7 @@
 // the screen hands that to the store, which saves it as `save(reason)` does.
 // brief.parity.test.ts runs each original under Node and compares.
 
-import { type Attachment, type Boot, PROBLEM_TYPES, type ResearchProject, briefFingerprint, defaultsMerge, selectedProblemTypes } from "./model";
+import { type Attachment, type Template, PROBLEM_TYPES, type ResearchProject, briefFingerprint, defaultsMerge, selectedProblemTypes } from "./model";
 import type { Analysis } from "./store";
 
 /** The empty project's title; the field shows empty rather than this. */
@@ -150,7 +150,7 @@ const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === "obj
  * template, with the person's own title, goal, decision, briefing and screen
  * state kept; the later steps' choices reset; the analysis signed with the brief.
  */
-export function mergeAnalysis(p: ResearchProject, result: unknown, boot: Boot): { project: ResearchProject; analysis: Analysis } {
+export function mergeAnalysis(p: ResearchProject, result: unknown, template: Template): { project: ResearchProject; analysis: Analysis } {
   const r = isRecord(result) ? result : {};
   const sig = briefFingerprint(p);
   const preserved = {
@@ -161,7 +161,7 @@ export function mergeAnalysis(p: ResearchProject, result: unknown, boot: Boot): 
     ui_state: clone(p.ui_state || {}),
   };
   const analysis: Analysis = { ...(isRecord(r.analysis) ? (r.analysis as Analysis) : {}), _brief_signature: sig };
-  const next = defaultsMerge(r.project, boot);
+  const next = defaultsMerge(r.project, template);
   next.title = preserved.title || next.title;
   next.goal = preserved.goal || next.goal;
   next.decision_use = preserved.decision_use || next.decision_use;

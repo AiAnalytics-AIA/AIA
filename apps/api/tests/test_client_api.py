@@ -223,42 +223,102 @@ def test_a_study_only_grantee_sees_the_study_but_not_the_clients_knowledge(
 
 
 # --------------------------------------------------------------------------- #
-# The unit bridge (OI-58)
+# A study's working content, in AIA (ADR 0018, OI-58)
 # --------------------------------------------------------------------------- #
 
+BRIEF = {"title": "Vnímání značky", "goal": "Co lidé o značce vědí", "sections": []}
 
-def test_the_study_workspace_binds_once_under_the_studys_scope(
+
+def test_a_new_study_starts_empty_with_the_template_and_its_first_save_is_revision_one(
     lead: TestClient, viewer: TestClient, world: Any
 ) -> None:
     url = f"{API}/studies/{world.study_id()}/workspace"
-    first = lead.get(url).json()
-    assert (
-        first["unit_project_id"] is None and first["client_name"] == world.clients["primary"].name
+    frame = lead.get(url).json()
+    assert frame["content_state"] == "EMPTY" and frame["can_edit"] is True
+    assert frame["client_name"] == world.clients["primary"].name
+    assert "unit_project_id" not in frame
+    empty = lead.get(f"{url}/content").json()
+    assert (empty["state"], empty["revision"], empty["content"]) == ("EMPTY", None, None)
+    assert empty["template"]["title"] == "Nový výzkum" and empty["can_edit"] is True
+
+    assert viewer.put(f"{url}/content", json={"content": BRIEF}).status_code == 403
+    saved = lead.put(f"{url}/content", json={"content": BRIEF, "reason": "autosave"})
+    assert saved.status_code == 200
+    assert saved.json() | {"revision_id": "x"} == {
+        "study_id": world.study_id(),
+        "state": "NATIVE",
+        "revision": 1,
+        "revision_id": "x",
+        "deduplicated": False,
+    }
+    loaded = viewer.get(f"{url}/content").json()
+    assert (loaded["state"], loaded["revision"], loaded["content"]) == ("NATIVE", 1, BRIEF)
+    assert loaded["can_edit"] is False
+
+    again = lead.put(
+        f"{url}/content", json={"content": BRIEF, "analysis": {"x": 1}, "base_revision": 1}
     )
-    assert viewer.put(url, json={"unit_project_id": "PRJ-viewer"}).status_code == 403
-    bound = lead.put(url, json={"unit_project_id": "PRJ-abc"})
-    assert bound.status_code == 200 and bound.json()["unit_project_id"] == "PRJ-abc"
-    assert lead.put(url, json={"unit_project_id": "PRJ-other"}).status_code == 409
-    assert lead.put(url, json={"unit_project_id": "../etc"}).status_code == 422
+    assert again.json()["revision"] == 2
+    history = lead.get(f"{url}/revisions").json()["items"]
+    assert [r["revision"] for r in history] == [2, 1]
+
     assert lead.put(f"{url}/stage", json={"stage": "questionnaire"}).status_code == 204
     listed = lead.get(f"{API}/clients/{world.client_id()}/studies").json()
     row = next(s for s in listed if s["study_id"] == world.study_id())
-    assert (row["last_stage"], row["has_working_content"]) == ("questionnaire", True)
+    assert (row["last_stage"], row["has_working_content"], row["content_state"]) == (
+        "questionnaire",
+        True,
+        "NATIVE",
+    )
+
+
+def test_a_save_from_a_stale_revision_is_a_conflict_that_names_the_current_one(
+    lead: TestClient, researcher: TestClient, world: Any
+) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace/content"
+    lead.put(url, json={"content": BRIEF})
+    researcher.put(url, json={"content": {**BRIEF, "goal": "B"}, "base_revision": 1})
+    stale = lead.put(url, json={"content": {**BRIEF, "goal": "A"}, "base_revision": 1})
+    assert stale.status_code == 409
+    assert stale.json()["code"] == "stale_revision"
+    assert stale.json()["details"] == {"current_revision": 2}
+    blind = lead.put(url, json={"content": BRIEF})
+    assert blind.status_code == 409
+
+
+def test_content_is_validated_before_it_is_saved(lead: TestClient, world: Any) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace/content"
+    posing = lead.put(url, json={"content": {"title": "x", "study_id": "STU-other"}})
+    assert posing.status_code == 422 and posing.json()["code"] == "content_carries_scope"
+    assert lead.put(url, json={"content": {}}).json()["code"] == "content_empty"
+    assert lead.put(url, json={"content": BRIEF, "reason": "Bad Reason"}).status_code == 422
+    assert lead.put(url, json={"content": BRIEF, "base_revision": 0}).status_code == 422
+    assert lead.get(url).json()["state"] == "EMPTY"
 
 
 def test_the_workspace_of_another_clients_study_is_not_found(
     lead: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:
-    lead.put(f"{API}/studies/{world.study_id()}/workspace", json={"unit_project_id": "PRJ-acme"})
-    for method in ("get", "put"):
+    lead.put(f"{API}/studies/{world.study_id()}/workspace/content", json={"content": BRIEF})
+    for method, path in (
+        ("get", ""),
+        ("get", "/content"),
+        ("put", "/content"),
+        ("get", "/revisions"),
+    ):
         r = getattr(other_client_lead, method)(
-            f"{API}/studies/{world.study_id()}/workspace",
-            **({"json": {"unit_project_id": "PRJ-x"}} if method == "put" else {}),
+            f"{API}/studies/{world.study_id()}/workspace{path}",
+            **({"json": {"content": BRIEF}} if method == "put" else {}),
         )
-        assert r.status_code == 404
-    # A unit project already bound to one client's study cannot be claimed by another's.
-    claimed = other_client_lead.put(
-        f"{API}/studies/{world.study_id('other_client')}/workspace",
-        json={"unit_project_id": "PRJ-acme"},
-    )
-    assert claimed.status_code == 409 and claimed.json()["code"] == "unit_project_taken"
+        assert r.status_code == 404, (method, path)
+    # The other client's own study is untouched and empty.
+    theirs = other_client_lead.get(
+        f"{API}/studies/{world.study_id('other_client')}/workspace/content"
+    ).json()
+    assert theirs["state"] == "EMPTY"
+
+
+def test_the_unit_binding_route_is_gone(lead: TestClient, world: Any) -> None:
+    """ADR 0018: nothing binds a study to an 18.6.6 project any more."""
+    r = lead.put(f"{API}/studies/{world.study_id()}/workspace", json={"unit_project_id": "PRJ-1"})
+    assert r.status_code == 405

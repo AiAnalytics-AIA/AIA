@@ -141,6 +141,21 @@ study with ledger entries cannot be deleted out from under its accounting record
 Attribution columns come from the egress decision, computed from an issued
 `StudyContext`. See [ai-runtime.md](ai-runtime.md).
 
+**A research Study's design and working content.** Two rows per research Study at
+most, each pointing at an *owned* project (`projects.owner`), so the generic project
+routes can neither see nor write them:
+
+| Table | Holds | Rule the schema enforces |
+| --- | --- | --- |
+| `study_designs` | The Study's design project; its immutable revisions are the Design Revisions runs execute (ADR 0016) | `project_id` unique, RESTRICT on delete: an executed design cannot vanish |
+| `study_workspaces` | The Study's working content: `content_state` (`EMPTY`, `NATIVE`, `MIGRATED`, `RECOVERED`, `UNRECOVERABLE`, `AWAITING_MIGRATION`), the working project (`project_id`, owner `study_workspace`), `lineage` (where migrated content came from), `last_stage` (ADR 0018) | `project_id` unique, RESTRICT on delete; a state with content has a project and one without has none (`content_state_matches_project`); `unit_project_id` unique and **lineage only** -- the 18.6.6 project a Study was bound to before ADR 0018, never a lookup key |
+
+Every save of the working content is a `ProjectRepository.save` on the working
+project: an immutable `project_revisions` row when content or analysis changed,
+nothing when neither did, with its `project_events` entry. A save names the
+revision it was edited from; a stale one is refused under a lock on the Study row
+(`test_two_editors_saving_from_one_revision_cannot_overwrite_each_other`).
+
 **Population registry.** `population_dataset_versions`, `populations`,
 `population_promotions`, `population_companion_sets`, `population_companion_assets`,
 `run_population_bindings`. Platform reference data, so the

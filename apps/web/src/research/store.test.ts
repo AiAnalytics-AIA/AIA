@@ -2,44 +2,55 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { BootInfo } from "../boot";
-import { defaultsMerge } from "./model";
-import { ResearchStore, SAVE_DEBOUNCE_MS, loadResearch, newResearch } from "./store";
+import { ApiError, type WorkingContent, type WorkingSave } from "@/lib/api";
+import { type Template, defaultsMerge } from "./model";
+import { ResearchStore, SAVE_DEBOUNCE_MS, loadResearch, newResearch, readWorkingContent, saveReason } from "./store";
 
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
-const BOOT: BootInfo = { empty_project: EMPTY, ai_provider: "claude_code_subscription", panelVersion: "v17.1.2", raw: {} };
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
+const TEMPLATE: Template = { empty_project: EMPTY };
 
-function unitStub(answers: Record<string, (body: unknown) => unknown | Promise<unknown>>) {
-  const calls: { url: string; body: Record<string, unknown> }[] = [];
-  const fetchImpl = vi.fn<typeof fetch>(async (url, init) => {
-    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
-    calls.push({ url: String(url), body });
-    const a = answers[String(url)];
-    const r = a ? await a(body) : {};
-    if (r instanceof Response) return r;
-    return new Response(JSON.stringify(r), { status: 200 });
+const content = (over: Partial<WorkingContent> = {}): WorkingContent => ({
+  study_id: "STU-1", state: "NATIVE", revision: 7, revision_id: "REV-7", content: { title: "Alfa" }, analysis: { objectives: ["a"] },
+  template: EMPTY, saved_at: null, saved_by: null, can_edit: true, lineage: {}, ...over,
+});
+
+type Body = { content: Record<string, unknown>; analysis: unknown; base_revision: number | null; reason: string };
+function aia(answer: (body: Body, n: number) => WorkingSave | Promise<WorkingSave> | Error) {
+  const bodies: Body[] = [];
+  const save = vi.fn(async (_studyId: string, sent: { content: unknown; analysis: unknown; base_revision: number | null; reason: string }): Promise<WorkingSave> => {
+    const body = sent as Body;
+    bodies.push(body);
+    const r = await answer(body, bodies.length);
+    if (r instanceof Error) throw r;
+    return r;
   });
-  return { calls, fetchImpl };
+  return { bodies, save };
 }
+const saved = (revision: number): WorkingSave => ({ study_id: "STU-1", state: "NATIVE", revision, revision_id: `REV-${revision}`, deduplicated: false });
 
 describe("loadResearch", () => {
-  it("normalises the stored project and forces the preferred provider, as openProject1785 does", async () => {
-    const { calls, fetchImpl } = unitStub({
-      "/api/projects/load": () => ({ project_id: "PRJ-1", revision: 7, parent_project_id: null, project_type: "research", preferred_provider: "anthropic", project: { title: "Alfa" }, analysis: { objectives: ["a"] } }),
-    });
-    const r = await loadResearch("PRJ-1", BOOT, fetchImpl);
-    expect(calls[0]).toEqual({ url: "/api/projects/load", body: { project_id: "PRJ-1" } });
+  it("completes the stored project with the template, and keeps its revision and analysis", async () => {
+    const read = vi.fn(async () => content());
+    const r = await loadResearch("STU-1", read);
+    expect(read).toHaveBeenCalledWith("STU-1");
     if (r.kind !== "research") throw new Error(r.kind);
-    expect(r.state).toMatchObject({ projectId: "PRJ-1", revision: 7, preferredProvider: "anthropic", analysis: { objectives: ["a"] } });
-    const expected = defaultsMerge({ title: "Alfa" }, BOOT);
-    expect(r.state.project).toEqual({ ...expected, run_policy: { ...expected.run_policy, provider: "anthropic", allow_provider_fallback: false } });
+    expect(r.state).toMatchObject({ revision: 7, analysis: { objectives: ["a"] }, save: { kind: "saved" } });
+    // AIA stamps no provider on load: its model route is its own configuration (ADR 0010, 0018).
+    expect(r.state.project).toEqual(defaultsMerge({ title: "Alfa" }, TEMPLATE));
+    expect(r.template).toEqual(TEMPLATE);
   });
 
-  it("says when the id is a DEMO or a simulation, which this flow does not open", async () => {
-    const demo = unitStub({ "/api/projects/load": () => ({ is_demo: true }) });
-    await expect(loadResearch("PRJ-DEMO", BOOT, demo.fetchImpl)).resolves.toEqual({ kind: "demo" });
-    const sim = unitStub({ "/api/projects/load": () => ({ project_type: "simulation" }) });
-    await expect(loadResearch("SIM-1", BOOT, sim.fetchImpl)).resolves.toEqual({ kind: "simulation" });
+  it("starts a new study from the template, unsaved", () => {
+    const r = readWorkingContent(content({ state: "EMPTY", revision: null, revision_id: null, content: null, analysis: null }));
+    if (r.kind !== "research") throw new Error(r.kind);
+    expect(r.state).toEqual(newResearch(TEMPLATE));
+    expect(r.state.save.kind).toBe("new");
+  });
+
+  it("names content that waits for migration, or was lost, instead of showing an empty document", () => {
+    expect(readWorkingContent(content({ state: "AWAITING_MIGRATION", content: null }))).toEqual({ kind: "awaiting_migration" });
+    const lost = readWorkingContent(content({ state: "UNRECOVERABLE", content: null, lineage: { outcome: "missing" } }));
+    expect(lost).toEqual({ kind: "unrecoverable", template: TEMPLATE, canEdit: true, lineage: { outcome: "missing" } });
   });
 });
 
@@ -47,33 +58,32 @@ describe("ResearchStore", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it("saves once, 1.8 s after the last change, with the classic body", async () => {
-    const { calls, fetchImpl } = unitStub({ "/api/projects/save": () => ({ project_id: "PRJ-9", revision: 1 }) });
-    const assigned: string[] = [];
-    const store = new ResearchStore(newResearch(BOOT), BOOT, { fetchImpl, onIdAssigned: (id) => assigned.push(id) });
-    // A new project is not "saved": it has never been, and nothing is sent until it changes.
+  it("saves once, 1.8 s after the last change, naming the revision it was edited from", async () => {
+    const { bodies, save } = aia(() => saved(1));
+    const revisions: number[] = [];
+    const store = new ResearchStore(newResearch(TEMPLATE), "STU-1", { save, onSaved: (r) => revisions.push(r) });
+    // A new study is not "saved": it has never been, and nothing is sent until it changes.
     expect(store.get().save.kind).toBe("new");
     store.update(({ project }) => ({ project: { ...project, goal: "a" } }), { reason: "brief" });
     await vi.advanceTimersByTimeAsync(1000);
     store.update(({ project }) => ({ project: { ...project, goal: "ab" } }), { reason: "brief" });
     expect(store.get().save.kind).toBe("pending");
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS - 1);
-    expect(calls).toHaveLength(0);
+    expect(bodies).toHaveLength(0);
     await vi.advanceTimersByTimeAsync(1);
-    expect(calls).toHaveLength(1);
-    expect(calls[0].url).toBe("/api/projects/save");
-    expect(Object.keys(calls[0].body)).toEqual(["project_id", "parent_project_id", "project_type", "project", "analysis", "panel_version", "reason"]);
-    expect(calls[0].body).toMatchObject({ project_id: null, project_type: "research", panel_version: "v17.1.2", reason: "brief", project: { goal: "ab" } });
-    expect(store.get()).toMatchObject({ projectId: "PRJ-9", revision: 1, save: { kind: "saved" } });
-    expect(assigned).toEqual(["PRJ-9"]);
+    expect(bodies).toHaveLength(1);
+    expect(save.mock.calls[0][0]).toBe("STU-1");
+    expect(Object.keys(bodies[0])).toEqual(["content", "analysis", "base_revision", "reason"]);
+    expect(bodies[0]).toMatchObject({ base_revision: null, reason: "brief", content: { goal: "ab" } });
+    expect(store.get()).toMatchObject({ revision: 1, save: { kind: "saved" } });
+    expect(store.saved).toBe(true);
+    expect(revisions).toEqual([1]);
   });
 
   it("shows a failed save instead of hiding it, and saves again on flush", async () => {
     let fail = true;
-    const { fetchImpl } = unitStub({
-      "/api/projects/save": () => (fail ? new Response('{"error":"Disk plný."}', { status: 500 }) : { project_id: "PRJ-1", revision: 3 }),
-    });
-    const store = new ResearchStore({ ...newResearch(BOOT), projectId: "PRJ-1", revision: 2 }, BOOT, { fetchImpl });
+    const { save } = aia(() => (fail ? new ApiError(500, "http_500", "Disk plný.", null) : saved(3)));
+    const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2 }, "STU-1", { save });
     store.update(({ project }) => ({ project: { ...project, goal: "x" } }));
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
     expect(store.get().save).toEqual({ kind: "failed", message: "Disk plný." });
@@ -82,13 +92,24 @@ describe("ResearchStore", () => {
     expect(store.get()).toMatchObject({ revision: 3, save: { kind: "saved" } });
   });
 
-  it("keeps a change made during a save pending, and saves it after", async () => {
+  it("stops saving over a newer revision saved elsewhere, and says which one it is", async () => {
+    const { bodies, save } = aia(() => new ApiError(409, "stale_revision", "saved elsewhere", null, { current_revision: 5 }));
+    const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2 }, "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "mine" } }));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(store.get().save).toEqual({ kind: "conflict", current: 5 });
+    // Further edits stay in the page; nothing is sent until the study is reloaded.
+    store.update(({ project }) => ({ project: { ...project, goal: "mine again" } }));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+    expect(bodies).toHaveLength(1);
+    await expect(store.flush()).rejects.toMatchObject({ code: "stale_revision" });
+    expect(bodies).toHaveLength(1);
+  });
+
+  it("keeps a change made during a save pending, and saves it after from the new revision", async () => {
     let release: () => void = () => {};
-    let n = 0;
-    const { calls, fetchImpl } = unitStub({
-      "/api/projects/save": () => (++n === 1 ? new Promise((r) => (release = () => r({ project_id: "PRJ-1", revision: 1 }))) : { project_id: "PRJ-1", revision: 2 }),
-    });
-    const store = new ResearchStore({ ...newResearch(BOOT), projectId: "PRJ-1" }, BOOT, { fetchImpl });
+    const { bodies, save } = aia((_b, n) => (n === 1 ? new Promise<WorkingSave>((r) => (release = () => r(saved(1)))) : saved(2)));
+    const store = new ResearchStore(newResearch(TEMPLATE), "STU-1", { save });
     store.update(({ project }) => ({ project: { ...project, goal: "first" } }));
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
     store.update(({ project }) => ({ project: { ...project, goal: "second" } }));
@@ -96,35 +117,44 @@ describe("ResearchStore", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(store.get().save.kind).toBe("pending");
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
-    expect(calls.map((c) => (c.body.project as { goal: string }).goal)).toEqual(["first", "second"]);
+    expect(bodies.map((b) => [b.content.goal, b.base_revision])).toEqual([["first", null], ["second", 1]]);
     expect(store.get()).toMatchObject({ revision: 2, save: { kind: "saved" } });
   });
 
-  it("saves a change still waiting for its debounce when the person leaves the project", async () => {
-    const { calls, fetchImpl } = unitStub({ "/api/projects/save": () => ({ project_id: "PRJ-1", revision: 3 }) });
-    const store = new ResearchStore({ ...newResearch(BOOT), projectId: "PRJ-1", revision: 2 }, BOOT, { fetchImpl });
+  it("saves a change still waiting for its debounce when the person leaves the study", async () => {
+    const { bodies, save } = aia(() => saved(3));
+    const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2 }, "STU-1", { save });
     store.update(({ project }) => ({ project: { ...project, ui_state: { ...project.ui_state, questionnaire_path: "choose" } } }), { reason: "questionnaire_path" });
     store.dispose();
     await vi.advanceTimersByTimeAsync(0);
-    expect(calls.map((c) => [c.url, c.body.reason])).toEqual([["/api/projects/save", "questionnaire_path"]]);
+    expect(bodies.map((b) => [b.reason, b.base_revision])).toEqual([["questionnaire_path", 2]]);
     // The debounce does not save it a second time.
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
-    expect(calls).toHaveLength(1);
+    expect(bodies).toHaveLength(1);
   });
 
   it("leaves nothing to save when nothing changed", async () => {
-    const { calls, fetchImpl } = unitStub({});
-    const store = new ResearchStore({ ...newResearch(BOOT), projectId: "PRJ-1", revision: 2, save: { kind: "saved" } }, BOOT, { fetchImpl });
+    const { bodies, save } = aia(() => saved(1));
+    const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2, save: { kind: "saved" } }, "STU-1", { save });
     store.dispose();
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
-    expect(calls).toHaveLength(0);
+    expect(bodies).toHaveLength(0);
   });
 
   it("counts the changes that invalidate the technical check, and not the others", () => {
-    const store = new ResearchStore(newResearch(BOOT), BOOT, { fetchImpl: unitStub({}).fetchImpl });
+    const store = new ResearchStore(newResearch(TEMPLATE), "STU-1", { save: aia(() => saved(1)).save });
     store.update(({ project }) => ({ project }), { invalidateCheck: false });
     store.update(({ project }) => ({ project }));
     expect(store.get().checkEpoch).toBe(1);
     store.dispose();
+  });
+});
+
+describe("saveReason", () => {
+  it("keeps the classic reasons and never sends one the API would refuse", () => {
+    expect(saveReason("ai_analysis_1780")).toBe("ai_analysis_1780");
+    expect(saveReason("native_ai_proposal_accepted")).toBe("native_ai_proposal_accepted");
+    expect(saveReason("Něco jiného")).toBe("autosave");
+    expect(saveReason("")).toBe("autosave");
   });
 });

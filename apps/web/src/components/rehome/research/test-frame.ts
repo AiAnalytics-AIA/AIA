@@ -3,7 +3,7 @@
 // client-first URLs it builds.
 
 import { appRoutes } from "@/lib/app-routes";
-import type { StepKey } from "@/unit/research/steps";
+import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "./frame";
 
 export const TEST_FRAME: StudyFrame = {
@@ -11,7 +11,6 @@ export const TEST_FRAME: StudyFrame = {
   clientName: "Klient A",
   studyId: "STU-1",
   studyName: "Výzkum A",
-  unitProjectId: "PRJ-1",
   lastStage: null,
   canEdit: true,
   stepHref: (step: StepKey) => appRoutes.stage("CLI-1", "STU-1", step),

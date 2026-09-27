@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { declaration, effective, legacyContext, statement } from "../testing/legacy";
-import { type Boot, type ResearchProject, defaultsMerge } from "./model";
+import { declaration, effective, legacyContext, statement } from "@/testing/legacy";
+import { type Template, type ResearchProject, defaultsMerge } from "./model";
 import {
   BUILD_FAILED_SUFFIX,
   BUILD_TITLE,
@@ -54,8 +54,8 @@ import {
 // Dotazník against the classic interface's own functions, run under Node with
 // the prompts, the save, the render and the network stubbed and recorded. Time
 // and randomness are fixed so the classic ids and the port's agree.
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
-const BOOT: Boot = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
+const BOOT: Template = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
 const NOW = 1_790_000_000_000;
 const RANDOM = 0.5731209;
 const IDS = { now: () => NOW, random: () => RANDOM };

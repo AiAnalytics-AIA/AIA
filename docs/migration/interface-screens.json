@@ -56,16 +56,7 @@
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/brief",
    "unit_routes": [
-    "GET /api/bootstrap",
-    "POST /api/projects/load",
-    "POST /api/projects/save",
-    "POST /api/project/attachment",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "POST /api/research/analyze",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle"
+    "POST /api/project/attachment"
    ],
    "notes": "Also /app/research/<id>/brief. The analysis job hands on to /app/research/<id>/plan. Capture pair: 0 classic texts missing at 1440 and 1024. Differences are listed in .planning/plans/research-flow-rehome.md: the provider notice stays on the screen, the error card says what failed, one button uploads, a new project says it is not saved yet.",
    "fixture": "empty"
@@ -79,16 +70,7 @@
    "area": "A4",
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/plan",
-   "unit_routes": [
-    "POST /api/projects/load",
-    "POST /api/projects/save",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "POST /api/research/analyze",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle"
-   ],
+   "unit_routes": [],
    "fixture": "planned",
    "notes": "Captured on the `planned` fixture beside the classic step opened on the same project (#aia:open=<id>@plan): 0 classic texts missing at 1440 and 1024. The review note (1785) and the \"Další krok: dotazník\" card are not drawn, because the classic comment wrapper (26) removes both. Differences are listed in .planning/plans/research-flow-rehome.md."
   },
@@ -102,20 +84,9 @@
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/questionnaire",
    "unit_routes": [
-    "POST /api/projects/load",
-    "POST /api/projects/save",
     "POST /api/questionnaire/upload",
     "GET /api/questionnaire/template",
-    "GET /files/",
-    "POST /api/research/analyze",
-    "POST /api/research/build_questionnaire",
-    "POST /api/questionnaire/optimize",
-    "POST /api/research/deep",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle"
+    "GET /files/"
    ],
    "fixture": "questionnaire",
    "notes": "Captured on the `questionnaire` fixture beside the classic step opened on the same project: 1 classic text missing at 1440 and 1024, \"AI: zlepšit blok\", left out on purpose because it does nothing in the classic interface (OI-49). The choose, upload and AI views are covered by QuestionnaireStep.test.tsx. Differences are listed in .planning/plans/research-flow-rehome.md."
@@ -130,21 +101,14 @@
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/audience",
    "unit_routes": [
-    "POST /api/projects/load",
-    "POST /api/projects/save",
+    "GET /api/bootstrap",
     "GET /api/audience/dimensions",
     "POST /api/audience",
     "POST /api/audiences/preflight",
     "GET /api/audiences",
     "POST /api/audiences/upload",
     "GET /api/audiences/template",
-    "GET /files/",
-    "POST /api/audience/propose",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle"
+    "GET /files/"
    ],
    "fixture": "audience",
    "notes": "Captured on the `audience` fixture (ČR 18+, narrowed) beside the classic step on the same project: 1 classic text missing at 1440 and 1024, \"[object Object]\", the classic summary's print of a range, drawn \"25–54\" instead. The other branches (own, special, coming soon) are covered by AudienceStep.test.tsx. OI-50 and OI-51 are kept as the classic behaves."
@@ -159,15 +123,8 @@
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/dimensions",
    "unit_routes": [
-    "POST /api/projects/load",
-    "POST /api/projects/save",
+    "GET /api/bootstrap",
     "GET /api/audience/dimensions",
-    "POST /api/persona/suggest",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle",
     "POST /api/library/dimension/request",
     "GET /api/library",
     "GET /api/library/system-catalog",

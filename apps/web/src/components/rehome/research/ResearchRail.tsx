@@ -7,7 +7,7 @@
 import Link from "next/link";
 
 import { t } from "@/i18n/t";
-import { RAIL_STEPS, REBUILT_STEPS, type StepKey } from "@/unit/research/steps";
+import { RAIL_STEPS, REBUILT_STEPS, type StepKey } from "@/research/steps";
 import { Icon } from "../icons";
 
 export function ResearchRail({ stepHref, current, studyName }: { stepHref: (step: StepKey) => string; current: StepKey; studyName: string }) {

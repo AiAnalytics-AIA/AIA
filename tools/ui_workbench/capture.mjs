@@ -346,14 +346,19 @@ async function main() {
       const page = await ctx.newPage();
       let errors = [];
       page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
-      // Through the hand-off link a rebuilt step uses (#aia:open=<unit>@<route>), so it is exercised too.
-      await boot(page, `${BASES.skin}#aia:open=${binding.unit}@${x.classic.route}`);
-      await page.waitForFunction((r) => window.CURRENT === r, x.classic.route, { timeout: 30000 }).catch(() => {});
-      await page.waitForTimeout(SETTLE_MS + 600);
-      let file = join(OUT, `${id}.skin.${width}.png`);
-      await shoot(page, file);
-      record(id, `${x.classic.route} · ${x.fixture}`, "fixture").shots[`skin.${width}`] = { file: relative(OUT, file), ...(await measure(page, allowed, true)), errors };
-      errors = [];
+      // The classic side needs a unit project; since ADR 0018 the fixtures live in
+      // AIA only, so a fixture without one is captured on the AIA side alone.
+      let file;
+      if (binding.unit) {
+        // Through the hand-off link a rebuilt step used (#aia:open=<unit>@<route>).
+        await boot(page, `${BASES.skin}#aia:open=${binding.unit}@${x.classic.route}`);
+        await page.waitForFunction((r) => window.CURRENT === r, x.classic.route, { timeout: 30000 }).catch(() => {});
+        await page.waitForTimeout(SETTLE_MS + 600);
+        file = join(OUT, `${id}.skin.${width}.png`);
+        await shoot(page, file);
+        record(id, `${x.classic.route} · ${x.fixture}`, "fixture").shots[`skin.${width}`] = { file: relative(OUT, file), ...(await measure(page, allowed, true)), errors };
+        errors = [];
+      }
       await page.goto(new URL(path, FACADE).href, { waitUntil: "networkidle", timeout: 120000 });
       await page.waitForTimeout(SETTLE_MS);
       file = join(OUT, `${id}.react.${width}.png`);

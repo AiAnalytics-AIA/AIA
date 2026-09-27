@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { declaration, effective, legacyContext, statement } from "../testing/legacy";
+import { declaration, effective, legacyContext, statement } from "@/testing/legacy";
 import {
   ANALYSIS_JOB_TITLE,
   ANALYSIS_REUSED,
@@ -23,15 +23,14 @@ import {
   toggleProblemType,
   withAttachmentContext,
 } from "./brief";
-import { type Attachment, type Boot, PROBLEM_TYPES, type ResearchProject, briefFingerprint, defaultsMerge } from "./model";
-import { providerLabel } from "./provider";
+import { type Attachment, type Template, PROBLEM_TYPES, type ResearchProject, briefFingerprint, defaultsMerge } from "./model";
 import type { Analysis } from "./store";
 
 // Zadání against the classic interface's own functions, run under Node with the
 // DOM, the save and the job stubbed: what each does to PROJECT and ANALYSIS is
 // compared with the port. The empty project is the unit's own template.
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
-const BOOT: Boot = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
+const BOOT: Template = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
 
 const legacy = legacyContext({
   prelude: [
@@ -259,12 +258,5 @@ describe("files are read as fileToB64 reads them", () => {
       expect(await fileToBase64(blob)).toBe(expected);
       expect(Buffer.from(expected, "base64")).toEqual(Buffer.from(bytes));
     });
-  }
-});
-
-describe("provider labels are providerLabel1790's effective binding", () => {
-  const l = legacyContext({ prelude: [statement("function providerLabel1790(p)", "}"), statement("_providerLabel1850=providerLabel1790;", "};")], functions: [] });
-  for (const p of ["openai", "anthropic", "claude_code_subscription", "other", ""]) {
-    it(p || "(none)", () => expect(providerLabel(p)).toBe(l.run(`providerLabel1790(${JSON.stringify(p)})`)));
   }
 });

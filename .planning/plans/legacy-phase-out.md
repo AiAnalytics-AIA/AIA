@@ -117,7 +117,7 @@ and say so**, until they are rebuilt; the unit no longer backs them in the produ
 ## Chunks
 
 PR 1 — native research workspace (`feature/native-research-workspace`)
-- [ ] 1. Working content in AIA: `domain/workspace.py` (states, validation),
+- [x] 1. Working content in AIA: `domain/workspace.py` (states, validation),
   `domain/research_template.py`, `study_workspaces` gains `content_state`,
   `project_id`, `lineage` (migration `5b1d0f3e9a21`), `StudyWorkspaceRepository`
   load/save/revisions, `GET`/`PUT /studies/{id}/workspace/content`,
@@ -125,8 +125,13 @@ PR 1 — native research workspace (`feature/native-research-workspace`)
   `test_study_workspaces.py`, `test_research_template.py`,
   `test_workflow_concurrency.py` (two editors, two first saves),
   `test_client_api.py`
-- [ ] 2. Web: the research flow's logic moves from `src/unit/research` to
-  `src/research`; the session loads and saves through the API
+- [x] 2. Web: the research flow's logic moves from `src/unit/research` to
+  `src/research`; the session loads and saves through the API; the unit job runner,
+  provider checks and support bundle go (every AI step was already a native agent job);
+  a step AIA has not rebuilt and the missing 18.6.6 report say so instead of handing off;
+  the workbench fixtures are written through AIA — tests: `store.test.ts`,
+  `ResearchScreen.test.tsx`, every stage's test on `test-workspace.ts`,
+  `test_ui_workbench_fixtures.py`
 - [ ] 3. Attachments in AIA storage
 - [ ] 4. Questionnaire import ported (stdlib XLSX/CSV)
 - [ ] 5. Audience and Dimenze without the unit; unit job runner, provider checks

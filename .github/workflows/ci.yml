@@ -421,7 +421,7 @@ jobs:
               "/api/v1/studies/{study_id}/projects/{project_id}/artifacts/{artifact_id}",
               "/api/v1/access-audit",
               # The client workspace (ADR 0015): the directory, one client, its
-              # studies, its knowledge, and one study's bridge to the unit.
+              # studies, its knowledge, and one study's frame.
               "/api/v1/workspace/me",
               "/api/v1/workspace/clients",
               "/api/v1/clients/{client_id}",
@@ -431,6 +431,9 @@ jobs:
               "/api/v1/clients/{client_id}/knowledge/proposals",
               "/api/v1/studies/{study_id}/workspace",
               "/api/v1/studies/{study_id}/context",
+              # A research study's working content, in AIA (ADR 0018, OI-58).
+              "/api/v1/studies/{study_id}/workspace/content",
+              "/api/v1/studies/{study_id}/workspace/revisions",
               # Research execution (ADR 0016): the Design Revisions a run executes.
               "/api/v1/studies/{study_id}/design/revisions",
               "/api/v1/studies/{study_id}/design/revisions/{revision_id}",
@@ -454,6 +457,11 @@ jobs:
           missing = [p for p in required if p not in paths]
           if missing:
               sys.exit(f"OpenAPI is missing documented routes: {missing}")
+
+          # ADR 0018: nothing binds a study to an 18.6.6 unit project. The study's
+          # frame is read-only; its content is saved at /workspace/content.
+          if "put" in paths.get("/api/v1/studies/{study_id}/workspace", {}):
+              sys.exit("PUT /studies/{study_id}/workspace (the 18.6.6 binding) is back")
 
           # A client-derived resource outside a study prefix would mean scope is
           # no longer carried in the path, which is how isolation gets lost.

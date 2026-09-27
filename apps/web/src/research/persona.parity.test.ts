@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { effective, legacyContext, statement } from "../testing/legacy";
-import { type Boot, type ResearchProject, defaultsMerge } from "./model";
+import { effective, legacyContext, statement } from "@/testing/legacy";
+import { type Template, type ResearchProject, defaultsMerge } from "./model";
 import {
   PERSONA_DIM_LABELS,
   REQUEST_AI_DONE,
@@ -37,8 +37,8 @@ import {
 
 // Dimenze against the classic interface's own functions, run under Node with
 // the prompts, the save, the render and the network stubbed and recorded.
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
-const BOOT: Boot = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
+const BOOT: Template = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
 const NOW = 1_790_000_000_000;
 const ACTIVE = { vztah_k_ai: { label: "Vztah k AI" }, media: { label: "Média (knihovna)" }, prazdna: {}, zdravi: null };
 

@@ -9,7 +9,7 @@
 // characterised, not fixed: OI-50 (an empty range bound is 0) and OI-51 (a
 // special preset keeps the previous subpanel and filters).
 
-import { unit } from "../client";
+import { unit } from "@/unit/client";
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
 type Obj = { [k: string]: Json };

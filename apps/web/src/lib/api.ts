@@ -12,6 +12,8 @@ export class ApiError extends Error {
     public readonly code: string,
     message: string,
     public readonly requestId: string | null,
+    /** The error contract's `details`, when the API gave any. */
+    public readonly details: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -37,12 +39,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const payload = (await response.json().catch(() => ({}))) as {
     code?: string;
     message?: string;
+    details?: Record<string, unknown>;
   };
   if (!response.ok) {
     const code = payload.code ?? `http_${response.status}`;
     const message = payload.message ?? response.statusText;
     if (response.status === 401) throw new Unauthenticated(401, code, message, requestId);
-    throw new ApiError(response.status, code, message, requestId);
+    throw new ApiError(response.status, code, message, requestId, payload.details ?? {});
   }
   return payload as T;
 }
@@ -183,6 +186,7 @@ export type WorkspaceStudy = {
   accepts_work: boolean;
   last_stage: string | null;
   has_working_content: boolean;
+  content_state: ContentState;
   created_at: string | null;
   modified_at: string | null;
 };
@@ -279,8 +283,32 @@ export type StudyWorkspace = {
   client_name: string;
   your_role: string;
   can_edit: boolean;
-  unit_project_id: string | null;
+  content_state: ContentState;
 };
+
+/**
+ * Where a research study's working content stands (ADR 0018). Never guessed from
+ * an empty document: a study bound to 18.6.6 whose content is not migrated yet
+ * is AWAITING_MIGRATION, one whose 18.6.6 content was lost is UNRECOVERABLE.
+ */
+export type ContentState = "EMPTY" | "NATIVE" | "MIGRATED" | "RECOVERED" | "UNRECOVERABLE" | "AWAITING_MIGRATION";
+
+/** GET /api/v1/studies/{id}/workspace/content */
+export type WorkingContent = {
+  study_id: string;
+  state: ContentState;
+  revision: number | null;
+  revision_id: string | null;
+  content: Record<string, unknown> | null;
+  analysis: Record<string, unknown> | null;
+  template: Record<string, unknown>;
+  saved_at: string | null;
+  saved_by: string | null;
+  can_edit: boolean;
+  lineage: Record<string, unknown>;
+};
+
+export type WorkingSave = { study_id: string; state: ContentState; revision: number; revision_id: string; deduplicated: boolean };
 
 export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
 
@@ -315,8 +343,11 @@ export const workspace = {
       note,
     }),
   study: (studyId: string) => request<StudyWorkspace>("GET", `/api/v1/studies/${enc(studyId)}/workspace`),
-  bind: (studyId: string, unitProjectId: string) =>
-    request<StudyWorkspace>("PUT", `/api/v1/studies/${enc(studyId)}/workspace`, { unit_project_id: unitProjectId }),
+  content: (studyId: string) => request<WorkingContent>("GET", `/api/v1/studies/${enc(studyId)}/workspace/content`),
+  saveContent: (
+    studyId: string,
+    body: { content: unknown; analysis: unknown; base_revision: number | null; reason: string },
+  ) => request<WorkingSave>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/content`, body),
   recordStage: (studyId: string, stage: string) =>
     request<void>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/stage`, { stage }),
 };

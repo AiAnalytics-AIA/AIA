@@ -2,13 +2,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { legacyContext, statement } from "../testing/legacy";
-import { type Boot, PROBLEM_TYPES, type ResearchProject, briefFingerprint, defaultsMerge, selectedProblemTypes } from "./model";
+import { legacyContext, statement } from "@/testing/legacy";
+import { type Template, PROBLEM_TYPES, type ResearchProject, briefFingerprint, defaultsMerge, selectedProblemTypes } from "./model";
 
 // The research model against the classic interface's own functions, run under
 // Node. The empty project is the unit's own template (GET /api/bootstrap),
 // captured from the workbench: a template, no data.
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
 
 const legacy = legacyContext({
   prelude: [
@@ -19,7 +19,7 @@ const legacy = legacyContext({
   functions: ["defaultsMerge", "selectedProblemTypes1789", "briefFingerprint1780"],
 });
 
-const BOOTS: Boot[] = [
+const BOOTS: Template[] = [
   { empty_project: EMPTY, ai_provider: "claude_code_subscription" },
   { empty_project: { ...EMPTY, run_policy: undefined, budget: undefined, ui_state: undefined }, ai_provider: "anthropic" },
 ];

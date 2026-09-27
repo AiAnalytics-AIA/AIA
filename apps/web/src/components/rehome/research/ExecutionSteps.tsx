@@ -11,7 +11,6 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { classicHref } from "@/lib/interface-handoff";
 import {
   ApiError,
   type Artifact,
@@ -37,8 +36,7 @@ import {
   supportNote,
   type ResultTable,
 } from "@/lib/research-execution";
-import { CLASSIC_ROUTE } from "@/unit/research/steps";
-import { Button, Chip, ClassicLink } from "../ui";
+import { Button, Chip } from "../ui";
 import { useResearch } from "./context";
 
 const POLL_MS = 2000;
@@ -413,13 +411,12 @@ function Table({ table }: { table: ResultTable }) {
 }
 
 export function ResultsStep() {
-  const { state } = useResearch();
   const [run] = useRun();
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
-  const classic = state.projectId ? (
-    <ClassicLink href={classicHref({ open: state.projectId, step: CLASSIC_ROUTE.results })}>{t("research.exec.results.classicReport")}</ClassicLink>
-  ) : null;
+  // The 18.6.6 client report has no AIA counterpart yet (report-docx.md): said
+  // here, not handed off to an interface that is no longer part of AIA.
+  const classic = <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
   if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null || run.phase !== "COMPLETED") {

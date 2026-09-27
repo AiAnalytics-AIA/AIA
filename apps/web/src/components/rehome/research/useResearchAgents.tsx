@@ -2,9 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { research, researchAgents, type ResearchAgentAction, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
 import { followAgentJob } from "@/lib/research-agent-jobs";
-import { JobError, type JobUpdate } from "@/unit/research/jobs";
-import type { ResearchProject } from "@/unit/research/model";
-import type { Analysis, ResearchStore } from "@/unit/research/store";
+import { JobError, type JobUpdate } from "@/research/jobs";
+import type { ResearchProject } from "@/research/model";
+import type { Analysis, ResearchStore } from "@/research/store";
 import { AgentProposalDialog } from "./AgentProposalDialog";
 
 const adviceActions = new Set<ResearchAgentAction>(["critique_design", "design_copilot", "answer_memory"]);

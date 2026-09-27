@@ -9,7 +9,7 @@
 // catalogue check (OI-53), and an empty approval is refilled with the
 // recommended set (OI-54).
 
-import { unit } from "../client";
+import { unit } from "@/unit/client";
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
 type Obj = { [k: string]: Json };

@@ -3,7 +3,7 @@
 // 4. Audience / Cílová skupina, rebuilt (research-flow-rehome.md, chunk 5): the
 // classic renderAudience (:374) under its three wrappers -- the branch banner
 // (1785), the wizard's way on (1789) and the readable summary (1795). What each
-// control does to the project is src/unit/research/audience.ts, parity-tested
+// control does to the project is src/research/audience.ts, parity-tested
 // against the original; this file only draws it. The preview is page memory,
 // as the classic AUDIENCE_PREVIEW: kept while the person stays in the project,
 // never saved.
@@ -63,11 +63,12 @@ import {
   setDiscoverField,
   specialSelected,
   uploadBody,
-} from "@/unit/research/audience";
-import { fileToBase64 } from "@/unit/research/brief";
-import type { ResearchProject } from "@/unit/research/model";
+} from "@/research/audience";
+import { fileToBase64 } from "@/research/brief";
+import type { ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
 import { Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
+import { useUnitCatalogues } from "./useUnitCatalogues";
 import { useResearch, useSessionState } from "./context";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
@@ -97,13 +98,14 @@ function usePreview() {
 }
 
 export function AudienceStep() {
-  const { store, state, boot, stepHref } = useResearch();
+  const { store, state, stepHref } = useResearch();
+  const unitRaw = useUnitCatalogues();
   const router = useRouter();
   const { preview, setPreview, check } = usePreview();
   const p = state.project;
   const view = audienceView(p);
   const ready = audienceReady(p);
-  const cat = catalogues(boot.raw);
+  const cat = catalogues(unitRaw);
 
   const apply = (c: Change | null, { clearPreview = false } = {}) => {
     if (!c) return;
@@ -325,8 +327,10 @@ function PreviewBox({ preview, n }: { preview: Preview; n: unknown }) {
 
 /** audienceDatasetEditor: the saved customer audiences, and an upload. */
 function DatasetEditor({ onPreflight }: { onPreflight: (r: Record<string, unknown>) => void }) {
-  const { store, state, boot, toast } = useResearch();
-  const [list, setList] = useSessionState<unknown>("audience.list", boot.raw.audiences ?? []);
+  const { store, state, toast } = useResearch();
+  const unitRaw = useUnitCatalogues();
+  const [fetched, setList] = useSessionState<unknown>("audience.list", null);
+  const list = fetched ?? unitRaw.audiences ?? [];
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [status, setStatus] = useState<{ kind: "loading" } | { kind: "error"; message: string } | null>(null);

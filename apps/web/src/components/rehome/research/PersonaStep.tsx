@@ -4,7 +4,7 @@
 // renderPersona reassignment (:979) under its 1793 wrapper -- the fixed base,
 // the dimension catalogue, a dimension request, the sample, and the society
 // factors with the model's proposed new dimensions. What each control does to
-// the project is src/unit/research/persona.ts, parity-tested against the
+// the project is src/research/persona.ts, parity-tested against the
 // original; this file only draws it. The model's suggestion and the refreshed
 // library are page memory, as the classic PERSONA_AI_SUGGESTION and
 // LIBRARY_STATE: kept while the person stays in the project, never saved.
@@ -16,7 +16,7 @@ import { DIMENSION_RESEARCH_KEY, classicHref, rememberReturn } from "@/lib/inter
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
-import { type Catalog, loadAudienceCatalog } from "@/unit/research/audience";
+import { type Catalog, loadAudienceCatalog } from "@/research/audience";
 import {
   type Change,
   type NewDimension,
@@ -49,9 +49,10 @@ import {
   suggestedRequest,
   applyRecommendedSample,
   withApproval,
-} from "@/unit/research/persona";
+} from "@/research/persona";
 import { Icon } from "../icons";
 import { Button, Chip, Field, TextInput } from "../ui";
+import { useUnitCatalogues } from "./useUnitCatalogues";
 import { useResearch, useSessionState } from "./context";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
@@ -61,7 +62,8 @@ const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-fain
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function PersonaStep() {
-  const { store, state, boot, runJob, toast, stepHref } = useResearch();
+  const { store, state, runJob, toast, stepHref } = useResearch();
+  const unitRaw = useUnitCatalogues();
   const router = useRouter();
   const step = useAiStep();
   const [library, setLibrary] = useSessionState<unknown>("persona.library", null);
@@ -72,7 +74,7 @@ export function PersonaStep() {
   const [requesting, setRequesting] = useState(false);
 
   const p = state.project;
-  const active = activeDimensions(library, boot.raw);
+  const active = activeDimensions(library, unitRaw);
   const labels = dimensionLabels(active);
   const { approved } = withApproval(p);
   const chosen = new Set(approved);

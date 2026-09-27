@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { declaration, effective, legacyContext, statement } from "../testing/legacy";
+import { declaration, effective, legacyContext, statement } from "@/testing/legacy";
 import {
   type Catalog,
   type Catalogues,
@@ -44,12 +44,12 @@ import {
   specialSelected,
   uploadBody,
 } from "./audience";
-import { type Boot, type ResearchProject, defaultsMerge } from "./model";
+import { type Template, type ResearchProject, defaultsMerge } from "./model";
 
 // Audience against the classic interface's own functions, run under Node with
 // the inputs, the save, the render and the network stubbed and recorded.
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
-const BOOT: Boot = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
+const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
+const BOOT: Template = { empty_project: EMPTY, ai_provider: "claude_code_subscription" };
 const CATALOGUES: Catalogues = {
   population_subpanels: [
     { key: "medical_doctors", name: "Lékaři", description: "Profesní subpanel", filter: { profese: ["lékař"], vek: [25, 70] }, status: "ready", support_tier: "LOW", rows: 120 },

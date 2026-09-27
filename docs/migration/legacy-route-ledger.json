@@ -401,7 +401,7 @@
    "status": "LEGACY",
    "aia_route": null,
    "scope": "undecided (D8)",
-   "notes": "",
+   "notes": "its empty_project is AIA's research template (aia_core.domain.research_template), served with the working content; the rest is the unit's configuration and panel-derived catalogues, not served by AIA (ADR 0018)",
    "decision": null
   },
   {
@@ -2225,9 +2225,9 @@
    ],
    "slice": 3,
    "status": "PORTING",
-   "aia_route": "GET /api/v1/studies/{study_id}/projects/{project_id}",
+   "aia_route": "GET /api/v1/studies/{study_id}/workspace/content",
    "scope": "study",
-   "notes": "",
+   "notes": "a research study's working content, found through the study (ADR 0018); the unit loaded any project id it was sent",
    "decision": null
   },
   {
@@ -2277,9 +2277,9 @@
    ],
    "slice": 3,
    "status": "PORTING",
-   "aia_route": "PUT /api/v1/studies/{study_id}/projects/{project_id}/content",
+   "aia_route": "PUT /api/v1/studies/{study_id}/workspace/content",
    "scope": "study",
-   "notes": "a content change is a new immutable revision on both sides",
+   "notes": "a content change is a new immutable revision on both sides; AIA refuses a save from a stale revision (409) where the unit overwrote, and keeps an analysis-only change the unit dropped (ADR 0018)",
    "decision": null
   },
   {
