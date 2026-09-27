@@ -54,7 +54,8 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
    The research template is AIA's copy of the unit's empty project
    (`aia_core.domain.research_template`), pinned to the unit's answer by a test. The working
    copy is not what runs execute: a run still executes a Design Revision the browser submits
-   (ADR 0016). The working copy is stored as the stage saved it: 18.6.6 ran every save through
+   (ADR 0016), and the Run stage submits only what AIA holds -- a change still waiting for its
+   save is saved first, and a copy whose save was refused as stale is never submitted. The working copy is stored as the stage saved it: 18.6.6 ran every save through
    `normalize_project` and refused a project that did not normalize, so an autosave of a
    half-edited question failed; AIA keeps the person's work and applies its rules where they
    decide something, when a Design Revision compiles. The brief's files are artifacts of the

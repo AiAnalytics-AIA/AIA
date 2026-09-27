@@ -8,7 +8,7 @@
 // came from -- and when it came from the fictional dataset, that it is fiction.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -36,6 +36,7 @@ import {
   supportNote,
   type ResultTable,
 } from "@/lib/research-execution";
+import { CONFLICT_MESSAGE } from "@/research/store";
 import { Button, Chip } from "../ui";
 import { useResearch } from "./context";
 
@@ -73,7 +74,7 @@ function useFrame() {
 // ---------------------------------------------------------------- Run --------
 
 export function RunStep() {
-  const { state, stepHref } = useResearch();
+  const { store, stepHref } = useResearch();
   const frame = useFrame();
   const router = useRouter();
   const [prepared, setPrepared] = useState<
@@ -85,8 +86,6 @@ export function RunStep() {
   const [runs, setRuns] = useState<ResearchRunSummary[]>([]);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
-  // The design as the person sees it, submitted once per visit.
-  const content = useRef(state.project);
 
   useEffect(() => {
     let live = true;
@@ -94,7 +93,18 @@ export function RunStep() {
       let revisionId: string;
       let revision: number;
       if (frame.canEdit) {
-        const r = await research.submitDesign(frame.studyId, content.current, "run");
+        // The design the person sees, once per visit -- but only as AIA holds it: a
+        // change still waiting for its save is saved first, and a copy whose save was
+        // refused (someone saved a newer one) never becomes a revision a run executes.
+        const s = store.get();
+        if (s.revision === null || s.save.kind !== "saved") {
+          try {
+            await store.flush("run");
+          } catch (e) {
+            throw store.get().save.kind === "conflict" ? new Error(CONFLICT_MESSAGE) : e;
+          }
+        }
+        const r = await research.submitDesign(frame.studyId, store.get().project, "run");
         revisionId = r.revision_id;
         revision = r.revision;
       } else {
@@ -110,7 +120,7 @@ export function RunStep() {
     return () => {
       live = false;
     };
-  }, [frame.studyId, frame.canEdit]);
+  }, [frame.studyId, frame.canEdit, store]);
 
   const start = async () => {
     if (prepared.kind !== "ready") return;
