@@ -1311,3 +1311,77 @@ def sim_population() -> Any:
 def sim_population_builder() -> Any:
     """:func:`build_sim_population`, for tests that need a different size or seed."""
     return build_sim_population
+
+
+# --- the report ------------------------------------------------------------------------
+
+
+@pytest.fixture
+def report_ledger(evidence_row: Any, field_book: Any, joint_status: Any) -> Any:
+    """A client-facing ledger for one study, admitted through the real gate.
+
+    Shares with intervals (by region), a count, a modelled value, an indicative
+    cell and a suppressed cell -- the cases a report has to print differently.
+    """
+    from aia_core.domain.evidence import (
+        ClaimBasis,
+        ClaimSurface,
+        EvidenceTable,
+        Interval,
+        NumericClaim,
+        SupportEvidence,
+        admit_numeric_claims,
+        assess_support,
+    )
+    from aia_core.domain.report.evidence import EvidenceLedger, PrintGrade
+
+    def build(surface: Any = ClaimSurface.CLIENT_FACING, field_grades: Any = None) -> Any:
+        indicative = assess_support(SupportEvidence(n=200, effective_n=40.0))
+        thin = assess_support(SupportEvidence(n=30, effective_n=20.0))
+        rows = [
+            evidence_row("trust_total", value=42.5, interval=Interval(38.1, 46.9, 0.95)),
+            evidence_row("trust_praha", value=48.2, interval=Interval(41.0, 55.4, 0.95)),
+            evidence_row("trust_brno", value=39.7, interval=Interval(32.2, 47.2, 0.95)),
+            evidence_row(
+                "trust_ostrava", value=36.1, interval=Interval(27.9, 44.3, 0.95), support=indicative
+            ),
+            evidence_row(
+                "trust_zlin", value=51.0, interval=Interval(30.0, 72.0, 0.95), support=thin
+            ),
+            evidence_row("n_total", metric="n", value=1204.0, decimals=0, interval=None),
+            evidence_row(
+                "switch_modelled",
+                value=18.4,
+                interval=Interval(14.9, 21.9, 0.95),
+                fields=("deal_seeking_1_10",),
+                basis=ClaimBasis.MODELED,
+            ),
+            evidence_row(
+                "switch_modelled_young",
+                value=24.0,
+                interval=Interval(18.2, 29.8, 0.95),
+                fields=("deal_seeking_1_10",),
+                basis=ClaimBasis.MODELED,
+            ),
+        ]
+        table = EvidenceTable.build(rows)
+        claims = [
+            NumericClaim(
+                claim_id=f"c-{ref}",
+                evidence_ref=ref,
+                metric=str(row.metric),
+                value=row.value,
+                unit=row.unit.value,
+            )
+            for ref, row in table.rows.items()
+        ]
+        admission = admit_numeric_claims(
+            claims, table, book=field_book, joint_status=joint_status, surface=surface
+        )
+        assert admission.decision.allowed, admission.decision
+        grades = {"vek": PrintGrade.MEASURED} if field_grades is None else field_grades
+        return EvidenceLedger.from_claims(
+            admission.admitted, surface=surface, table=table, field_grades=grades
+        )
+
+    return build
