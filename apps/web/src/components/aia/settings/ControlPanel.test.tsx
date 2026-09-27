@@ -317,10 +317,14 @@ describe("what powers AIA", () => {
     expect(screen.getByText("Vnímání značky")).toBeTruthy();
     cleanup();
 
-    // A /config without the runtime display is the same: nothing to read a state from.
+    // A /config without the runtime display is the same: nothing to read a state from,
+    // said once.
     api({ "GET /config": () => ({ apiBase: "", build: { sha: null } }) });
     render(<ControlPanel />);
     await waitFor(() => expect(card("respondent_fieldwork").getAttribute("data-state")).toBe("unknown"));
+    const alert = within(section("ai")).getByRole("alert");
+    expect(alert.textContent).toMatch(/\/config nevrátil přepínače AI\. Konfiguraci nasazení se nepodařilo načíst/);
+    expect(alert.textContent?.match(/Konfiguraci nasazení se nepodařilo načíst/g)).toHaveLength(1);
   });
 
   it("reads approved-for-nothing and an unknown data class as what they are", async () => {

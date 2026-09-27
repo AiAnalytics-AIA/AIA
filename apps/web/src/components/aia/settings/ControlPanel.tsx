@@ -85,7 +85,7 @@ async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   const ai = ((await response.json()) as Partial<PublicConfig>).aiRuntime;
   // Without the switches there is nothing to read a state from: unknown, never "off".
   if (!ai || !ai.switches || typeof ai.switches !== "object" || !Array.isArray(ai.approvedClasses)) {
-    throw new Error(t(`${R}.configUnavailable`));
+    throw new Error(t(`${R}.configMissing`));
   }
   return { switches: ai.switches, region: ai.region ?? null, model: ai.model ?? null, approvedClasses: ai.approvedClasses };
 }

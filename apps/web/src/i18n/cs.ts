@@ -392,6 +392,7 @@ export const cs = {
           config: "Konfigurace nasazení",
           configSource: "Z prostředí nasazení (/config); stejné hodnoty dostává worker.",
           configUnavailable: "Konfiguraci nasazení se nepodařilo načíst, takže stránka o stavu AI nic netvrdí.",
+          configMissing: "/config nevrátil přepínače AI.",
           switchLabel: "Hlavní přepínač AI",
           region: "Zdrojová oblast",
           model: "Model (inferenční profil)",
