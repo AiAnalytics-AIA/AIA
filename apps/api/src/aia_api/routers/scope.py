@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from aia_core.domain.scope import (
+    ClientStatus,
     OrganizationRole,
     Permission,
     ScopeDenied,
@@ -73,6 +74,14 @@ class ClientResponse(BaseModel):
     reference: str = ""
     study_count: int = 0
     created_at: datetime | None = None
+
+
+class ClientStatusRequest(BaseModel):
+    """Change a client's lifecycle status."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["ACTIVE", "DORMANT", "ARCHIVED"]
 
 
 class StudyCreateRequest(BaseModel):
@@ -157,6 +166,59 @@ class MemberResponse(BaseModel):
     display_name: str
     is_active: bool
     organization_role: str
+
+
+class SelfApprovalRequest(BaseModel):
+    """Configure self-approval at one level.
+
+    Neither id configures the organization; ``client_id`` a client; ``study_id``
+    a study. ``allowed: null`` clears the level so it inherits again, which is
+    not the same as ``false``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    allowed: bool | None
+    client_id: str | None = Field(default=None, max_length=64)
+    study_id: str | None = Field(default=None, max_length=64)
+
+
+class SelfApprovalPolicyResponse(BaseModel):
+    """The policy that now resolves at the level that was changed, and why."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    allowed: bool
+    source: Literal["default", "organization", "client", "study"]
+
+
+class ClientSelfApproval(BaseModel):
+    """A client-level override."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    client_id: str
+    allowed: bool
+
+
+class StudySelfApproval(BaseModel):
+    """A study-level override."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    study_id: str
+    client_id: str
+    allowed: bool
+
+
+class SelfApprovalLevelsResponse(BaseModel):
+    """Every configured level. An absent client or study inherits."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    organization: bool | None
+    clients: list[ClientSelfApproval]
+    studies: list[StudySelfApproval]
 
 
 class AuditEntryResponse(BaseModel):
@@ -306,6 +368,44 @@ def grant_client_access(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.put(
+    "/clients/{client_id}/status",
+    response_model=ClientResponse,
+    summary="Change a client's status",
+)
+def set_client_status(
+    client_id: Annotated[str, Path(max_length=64, pattern=r"^CLI-[0-9a-f]{1,32}$")],
+    body: ClientStatusRequest,
+    admin: OrganizationDep,
+    repo: ScopeRepositoryDep,
+) -> ClientResponse:
+    """Mark a client ACTIVE, DORMANT or ARCHIVED. Requires organization administration.
+
+    Archiving hides the client from the default list; it deletes nothing and
+    revokes no grant. The change is written to the access audit.
+    """
+    try:
+        client = repo.set_client_status(
+            admin, client_id=client_id, status=ClientStatus(body.status)
+        )
+    except ScopeDenied as exc:
+        if exc.reason == "insufficient_role":
+            raise _forbidden(exc) from exc
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "No such client."}
+        ) from exc
+    counts = repo.client_study_counts(admin)
+    return ClientResponse(
+        client_id=client.client_id,
+        slug=client.slug,
+        name=client.name,
+        status=client.status.value,
+        reference=client.reference,
+        study_count=counts.get(client.client_id, 0),
+        created_at=client.created_at,
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Studies
 # --------------------------------------------------------------------------- #
@@ -449,6 +549,56 @@ def grant_study_access(
     except ScopeDenied as exc:
         raise _forbidden(exc) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --------------------------------------------------------------------------- #
+# Self-approval
+# --------------------------------------------------------------------------- #
+
+
+@router.get(
+    "/self-approval",
+    response_model=SelfApprovalLevelsResponse,
+    summary="Self-approval levels",
+)
+def get_self_approval(
+    admin: OrganizationDep, repo: ScopeRepositoryDep
+) -> SelfApprovalLevelsResponse:
+    """Return the stored self-approval levels. Requires organization administration."""
+    try:
+        return SelfApprovalLevelsResponse(**repo.self_approval_levels(admin))
+    except ScopeDenied as exc:
+        raise _forbidden(exc) from exc
+
+
+@router.put(
+    "/self-approval",
+    response_model=SelfApprovalPolicyResponse,
+    summary="Configure self-approval",
+)
+def set_self_approval(
+    body: SelfApprovalRequest, admin: OrganizationDep, repo: ScopeRepositoryDep
+) -> SelfApprovalPolicyResponse:
+    """Allow, forbid or inherit self-approval at one level. Audited.
+
+    Self-approval weakens independent review, so only an organization OWNER or
+    ADMIN may configure it; a study LEAD cannot arrange it for their own study.
+    """
+    try:
+        policy = repo.set_self_approval(
+            admin, allowed=body.allowed, client_id=body.client_id, study_id=body.study_id
+        )
+    except ScopeDenied as exc:
+        if exc.reason == "insufficient_role":
+            raise _forbidden(exc) from exc
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "No such client or study."}
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": "invalid_level", "message": str(exc)}
+        ) from exc
+    return SelfApprovalPolicyResponse(allowed=policy.allowed, source=policy.source.value)
 
 
 # --------------------------------------------------------------------------- #

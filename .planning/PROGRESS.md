@@ -73,7 +73,7 @@ attempt 3, green).
 | #65 | `fix/api-tests-file-backed-sqlite` | Flaky API tests on shared in-memory SQLite (OI-69) | **Merged** 10:30 | 2 |
 | #66 | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
 | #63 | `feature/research-agents` | Native Research design agents on Bedrock | Draft, "do not merge as completion"; `develop` merged in @ `5718383` (2026-09-27); conflicts with 3 in this file's header | 4, see below |
-| — | `claude/trusting-turing-2b9oyl` | Settings page on the real API | No PR yet; based on `main` | open a PR into `develop` |
+| #67 | `claude/trusting-turing-2b9oyl` | Settings control panel on `/app/settings`: `GET /settings`, `GET`/`PUT /self-approval`, `PUT /clients/{id}/status` ([plan](plans/settings-control-panel.md)) | Draft into `develop`; `develop` merged in three times, the last @ `14a124b`; CI was green at `abe5c49` before it | after #66 |
 
 **PR #63** is one slice, not the whole agent workflow. Land what it has built as a slice:
 native design jobs and reviewed proposals, once CI is green and the browser journey is

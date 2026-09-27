@@ -208,6 +208,44 @@ def test_configuring_self_approval_requires_organization_administration(
         scoped.scope_repo.set_self_approval(member_context, allowed=True)
 
 
+def test_levels_read_back_as_stored_not_as_resolved(session: Session, scoped: Any) -> None:
+    """The read shows which level decided, which a resolved value cannot."""
+    assert scoped.scope_repo.self_approval_levels(scoped.admin_context) == {
+        "organization": None,
+        "clients": [],
+        "studies": [],
+    }
+
+    client_id = scoped.clients["primary"].client_id
+    study_id = scoped.studies["sibling"].study_id
+    _enable(scoped)
+    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=False, client_id=client_id)
+    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=True, study_id=study_id)
+    session.flush()
+
+    levels = scoped.scope_repo.self_approval_levels(scoped.admin_context)
+    assert levels["organization"] is True
+    assert levels["clients"] == [{"client_id": client_id, "allowed": False}]
+    assert levels["studies"] == [{"study_id": study_id, "client_id": client_id, "allowed": True}]
+
+    # Clearing a level removes it from the list: absent means inherit.
+    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=None, client_id=client_id)
+    session.flush()
+    assert scoped.scope_repo.self_approval_levels(scoped.admin_context)["clients"] == []
+
+
+def test_reading_self_approval_levels_requires_organization_administration(
+    session: Session, scoped: Any
+) -> None:
+    from aia_core.application.scope import ScopeResolver
+
+    member_context = ScopeResolver(session).organization_context(
+        scoped.principal(scoped.users["lead"])
+    )
+    with pytest.raises(ScopeDenied):
+        scoped.scope_repo.self_approval_levels(member_context)
+
+
 def test_configuring_self_approval_is_audited(session: Session, scoped: Any) -> None:
     """Turning the control off is itself a security event."""
     _enable(scoped, client_id=scoped.clients["primary"].client_id)
