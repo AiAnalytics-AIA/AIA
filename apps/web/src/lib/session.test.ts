@@ -57,12 +57,13 @@ describe("openSession", () => {
 });
 
 describe("signOut", () => {
-  it("clears AIA's session, then the sign-in", async () => {
+  it("clears AIA's session and a panel cookie left from before, then the sign-in", async () => {
     const assign = vi.fn();
     api({});
     vi.stubGlobal("location", { ...window.location, assign });
     await signOut();
-    expect(calls.filter((c) => c.method === "DELETE").map((c) => c.url)).toEqual(["/api/v1/session"]);
+    // The panel's gate still guards the unit's paths until increment 5: its cookie must not outlive a sign-out.
+    expect(calls.filter((c) => c.method === "DELETE").map((c) => c.url).sort()).toEqual(["/api/v1/panel/session", "/api/v1/session"]);
     expect(sessionStorage.getItem("aia.session")).toBeNull();
     expect(assign).toHaveBeenCalledWith("/");
   });
