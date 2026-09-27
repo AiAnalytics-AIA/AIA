@@ -334,12 +334,25 @@ export function setPriceBands(p: ResearchProject, si: number, v: string): Resear
 // ---- import and the AI steps ----------------------------------------------
 
 export const UPLOAD_NO_FILE = "Vyberte XLSX nebo CSV.";
-export const UPLOAD_TIMEOUT_MS = 180_000;
+export const TEMPLATE_FILENAME = "AIA_dotaznik_sablona.xlsx";
 
-/** uploadQuestionnaireFile, after the unit parsed the file: its project, on the editor. */
-export function applyImport(result: unknown, template: Template): { project: ResearchProject; toast: string } {
-  const r = (result || {}) as { project?: unknown; summary?: { question_count?: unknown; tracked_sets?: unknown } };
-  const project = defaultsMerge(r.project, template);
+/**
+ * uploadQuestionnaireFile, after AIA read the file (ADR 0018): its sections, on the
+ * editor, and the plan marked questionnaire_ready, as the unit's import left them.
+ * The rest of the project is the person's own; the unit also re-normalized it, as a
+ * side effect of returning a whole project, and AIA does not.
+ */
+export function applyImport(
+  current: ResearchProject,
+  result: unknown,
+  template: Template,
+): { project: ResearchProject; toast: string } {
+  const r = (result || {}) as { sections?: unknown; summary?: { question_count?: unknown; tracked_sets?: unknown } };
+  const plan = (current.research_plan || {}) as Obj;
+  const project = defaultsMerge(
+    { ...current, sections: (Array.isArray(r.sections) ? r.sections : []) as Json[], research_plan: { ...plan, status: "questionnaire_ready" } },
+    template,
+  );
   project.ui_state.questionnaire_path = "manual";
   return { project, toast: `Načteno: ${r.summary?.question_count} otázek · ${r.summary?.tracked_sets} sledovaných sad` };
 }

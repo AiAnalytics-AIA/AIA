@@ -11,6 +11,7 @@ import { useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
+import { saveBlob } from "@/lib/download";
 import {
   type BriefingField,
   MAX_FILES_PER_PICK,
@@ -185,13 +186,7 @@ function Attachments() {
   const download = async (x: Attachment, attachmentId: string) => {
     setError(null);
     try {
-      const blob = await workspace.attachment(frame.studyId, attachmentId);
-      const href = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = href;
-      a.download = x.filename || "priloha";
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(href), 0);
+      saveBlob(await workspace.attachment(frame.studyId, attachmentId), x.filename || "priloha");
     } catch (e) {
       setError(message(e));
     }

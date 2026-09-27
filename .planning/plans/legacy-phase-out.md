@@ -140,7 +140,15 @@ PR 1 — native research workspace (`feature/native-research-workspace`)
   — tests: `test_document_text.py` (fixtures captured from the unit by
   `tools/attachment_text_capture.py`), `test_study_workspaces.py`, `test_client_api.py`,
   `BriefStep.test.tsx`
-- [ ] 4. Questionnaire import ported (stdlib XLSX/CSV)
+- [x] 4. Questionnaire import ported: `domain/questionnaire_import.py` (the unit's row
+  rules and the `normalize_project` rules an import meets, `StudySpec`'s included),
+  `infrastructure/questionnaire_file.py` (the unit's CSV and stdlib XLSX readers; AIA's
+  own template workbook), `POST …/workspace/questionnaire-import`, `GET
+  …/workspace/questionnaire-template`; the stage puts the sections on its content and
+  saves; the classic methodology link (a file the unit never served) is gone — tests:
+  `test_questionnaire_import.py` (24 fictional files, the unit's own function via
+  `tools/questionnaire_import_capture.py`), `test_client_api.py`,
+  `QuestionnaireStep.test.tsx`, `questionnaire.parity.test.ts`
 - [ ] 5. Audience and Dimenze without the unit; unit job runner, provider checks
   and support bundle removed from the research flow
 - [ ] 6. Documents: CLAUDE.md map, ARCHITECTURE §4, data-model, OI-58, ledgers

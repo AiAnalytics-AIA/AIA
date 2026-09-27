@@ -12,7 +12,8 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { unit } from "@/unit/client";
+import { workspace } from "@/lib/api";
+import { saveBlob } from "@/lib/download";
 import { fileToBase64 } from "@/research/brief";
 import {
   BUILD_FAILED_SUFFIX,
@@ -32,8 +33,8 @@ import {
   type Question,
   type QuestionnairePath,
   type Section,
+  TEMPLATE_FILENAME,
   UPLOAD_NO_FILE,
-  UPLOAD_TIMEOUT_MS,
   addGuidedQuestion,
   addQuestion,
   addQuestionSection,
@@ -76,8 +77,6 @@ import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 
 const CARD = "rounded-md border border-border bg-surface-raised p-5";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
-const TEMPLATE_HREF = "/api/questionnaire/template";
-const METHODOLOGY_HREF = "/files/docs/reference/QUESTIONNAIRE_IMPORT_AI_INSTRUCTIONS.md";
 
 export function QuestionnaireStep() {
   const { store, state, template, runJob, toast, stepHref } = useResearch();
@@ -236,9 +235,13 @@ function AiAction({ label, help, busy, onClick }: { label: string; help: string;
   );
 }
 
-/** uploadQuestionnaireFile: the file is parsed by the unit, and its project replaces this one. */
+/**
+ * uploadQuestionnaireFile: AIA reads the file (ADR 0018), and its sections replace
+ * this questionnaire's. The template is AIA's own workbook; its second sheet, NAVOD,
+ * is the guide the classic interface's missing methodology link pointed at nothing for.
+ */
 function Upload() {
-  const { store, template, toast } = useResearch();
+  const { store, template, toast, frame } = useResearch();
   const input = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ kind: "loading" } | { kind: "error"; message: string } | null>(null);
 
@@ -246,11 +249,8 @@ function Upload() {
     if (!f) return setStatus({ kind: "error", message: UPLOAD_NO_FILE });
     setStatus({ kind: "loading" });
     try {
-      const r = await unit("questionnaireUpload", {
-        body: { filename: f.name, data_b64: await fileToBase64(f), project: store.get().project },
-        timeoutMs: UPLOAD_TIMEOUT_MS,
-      });
-      const imported = applyImport(r, template);
+      const r = await workspace.importQuestionnaire(frame.studyId, { filename: f.name, data_b64: await fileToBase64(f) });
+      const imported = applyImport(store.get().project, r, template);
       store.update(() => ({ project: imported.project }), { reason: "questionnaire_import" });
       toast(imported.toast);
       setStatus(null);
@@ -261,18 +261,22 @@ function Upload() {
     }
   };
 
+  const downloadTemplate = async () => {
+    try {
+      saveBlob(await workspace.questionnaireTemplate(frame.studyId), TEMPLATE_FILENAME);
+    } catch (e) {
+      setStatus({ kind: "error", message: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
   return (
     <section className={CARD} aria-labelledby="q-upload">
       <h2 id="q-upload" className="text-lg font-semibold">{t("research.questionnaire.uploadTitle")}</h2>
       <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.uploadIntro")}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <a href={TEMPLATE_HREF} download className="inline-flex min-h-9 items-center rounded-sm border border-border-strong bg-surface-raised px-3 text-sm font-medium text-ink no-underline hover:bg-surface-sunken">
+        <Button onClick={() => void downloadTemplate()}>
           {t("research.questionnaire.template")}
-        </a>
-        <a href={METHODOLOGY_HREF} target="_blank" rel="noopener" className="inline-flex min-h-9 items-center rounded-sm px-3 text-sm font-medium text-ink-muted no-underline hover:bg-surface-sunken hover:text-ink">
-          {t("research.questionnaire.methodology")}
-          <Icon name="external" size={12} className="ml-1.5 opacity-60" />
-        </a>
+        </Button>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <span className="text-xs font-medium text-ink-muted">{t("research.questionnaire.fileLabel")}</span>

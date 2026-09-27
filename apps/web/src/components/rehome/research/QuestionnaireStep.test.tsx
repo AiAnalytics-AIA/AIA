@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
@@ -159,19 +159,65 @@ describe("Dotazník", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "2 otázek · 0 sledovaných sad" })).toBeTruthy());
   });
 
-  it("imports a file through the unit and opens its questionnaire in the editor", async () => {
+  const IMPORT_PATH = "/api/v1/studies/STU-1/workspace/questionnaire-import";
+  const TEMPLATE_PATH = "/api/v1/studies/STU-1/workspace/questionnaire-template";
+
+  it("imports a file in AIA, puts its sections on the questionnaire and saves", async () => {
     unitStub(
-      { ...BRIEF, ui_state: { questionnaire_path: "upload" } },
+      { ...BRIEF, title: "Moje studie", ui_state: { questionnaire_path: "upload" } },
       null,
-      { "/api/questionnaire/upload": () => ({ project: { ...EMPTY, ...BRIEF, sections: SECTIONS }, summary: { question_count: 2, tracked_sets: 1 } }) },
+      { [IMPORT_PATH]: () => ({ sections: SECTIONS, summary: { question_count: 2, tracked_sets: 1, sections: 2 }, filename: "dotaznik.xlsx" }) },
     );
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("link", { name: "Stáhnout XLSX šablonu" })).toHaveProperty("href", "http://localhost:3000/api/questionnaire/template");
-    fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
+    fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
     expect(await screen.findByText("Načteno: 2 otázek · 1 sledovaných sad")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "2 otázek · 1 sledovaných sad" })).toBeTruthy();
-    const [upload] = posted("/api/questionnaire/upload");
-    expect(upload.body).toMatchObject({ filename: "dotaznik.xlsx", data_b64: btoa("x") });
+    // AIA is sent the file alone, never the project, and nothing reaches the unit.
+    expect(posted(IMPORT_PATH).map((c) => c.body)).toEqual([{ filename: "dotaznik.xlsx", data_b64: btoa("x") }]);
+    expect(calls.filter((c) => c.url.startsWith("/api/questionnaire"))).toEqual([]);
+    await saved();
+    const body = saves.at(-1) as unknown as { reason: string; content: Record<string, unknown> & { research_plan: { status: string }; ui_state: Record<string, unknown> } };
+    expect(body.reason).toBe("questionnaire_import");
+    expect(body.content.sections).toEqual(SECTIONS);
+    expect(body.content.research_plan.status).toBe("questionnaire_ready");
+    expect(body.content.ui_state.questionnaire_path).toBe("manual");
+    // The rest of the project is the person's own.
+    expect(body.content.title).toBe("Moje studie");
+  });
+
+  it("shows why a file did not import, in the words AIA gave", async () => {
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, {
+      [IMPORT_PATH]: () => new Response(JSON.stringify({ code: "missing_columns", message: "Chybí povinné sloupce: typ" }), { status: 422 }),
+    });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.csv")] } });
+    expect((await screen.findByRole("alert")).textContent).toBe("Chybí povinné sloupce: typ");
+    expect(saves).toEqual([]);
+  });
+
+  it("downloads AIA's template through the study, and links to nothing of the unit's", async () => {
+    const created: Blob[] = [];
+    const clicked = vi.fn();
+    const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
+    URL.createObjectURL = (b: Blob) => (created.push(b), "blob:t");
+    URL.revokeObjectURL = () => {};
+    HTMLAnchorElement.prototype.click = clicked;
+    onTestFinished(() => {
+      URL.createObjectURL = real.create;
+      URL.revokeObjectURL = real.revoke;
+      HTMLAnchorElement.prototype.click = real.click;
+    });
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, {
+      [TEMPLATE_PATH]: () => new Response("PK-template", { status: 200 }),
+    });
+    const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Stáhnout XLSX šablonu" }));
+    await waitFor(() => expect(clicked).toHaveBeenCalledTimes(1));
+    expect(await created[0].text()).toBe("PK-template");
+    // No link into the unit's paths: the template and the guide are AIA's.
+    const hrefs = [...container.querySelectorAll("a")].map((a) => a.getAttribute("href") || "");
+    expect(hrefs.filter((h) => h.startsWith("/api/questionnaire") || h.startsWith("/files/"))).toEqual([]);
+    expect(screen.queryByText("Metodika pro externí AI")).toBeNull();
   });
 
   it("reviews the native brief analysis and questionnaire before opening the editor", async () => {

@@ -436,6 +436,8 @@ jobs:
               "/api/v1/studies/{study_id}/workspace/revisions",
               "/api/v1/studies/{study_id}/workspace/attachments",
               "/api/v1/studies/{study_id}/workspace/attachments/{attachment_id}",
+              "/api/v1/studies/{study_id}/workspace/questionnaire-import",
+              "/api/v1/studies/{study_id}/workspace/questionnaire-template",
               # Research execution (ADR 0016): the Design Revisions a run executes.
               "/api/v1/studies/{study_id}/design/revisions",
               "/api/v1/studies/{study_id}/design/revisions/{revision_id}",

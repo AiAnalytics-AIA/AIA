@@ -34,7 +34,6 @@ export const UNIT_ROUTES = {
   supportBundle: "POST /api/support/bundle",
   researchAnalyze: "POST /api/research/analyze",
   settingsAiCheck: "POST /api/settings/ai_check",
-  questionnaireUpload: "POST /api/questionnaire/upload",
   questionnaireOptimize: "POST /api/questionnaire/optimize",
   researchBuildQuestionnaire: "POST /api/research/build_questionnaire",
   researchDeep: "POST /api/research/deep",

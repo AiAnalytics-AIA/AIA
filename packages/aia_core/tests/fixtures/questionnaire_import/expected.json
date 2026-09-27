@@ -1,0 +1,619 @@
+{
+ "@unit/NPC_QUESTIONNAIRE_TEMPLATE_v17_6_0.xlsx": {
+  "filename": "NPC_QUESTIONNAIRE_TEMPLATE_v17_6_0.xlsx",
+  "ok": true,
+  "plan_status": "questionnaire_ready",
+  "sections": [
+   {
+    "id": "sec_import_1",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q1",
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_1",
+       "research_section_type": "questions"
+      },
+      "popisky_skaly": [
+       "minimum",
+       "maximum"
+      ],
+      "povolit_nevim": false,
+      "skala": [
+       1,
+       10
+      ],
+      "text": "Jak pravděpodobné je, že byste produkt koupil/a?",
+      "typ": "skala"
+     }
+    ],
+    "title": "Nákupní záměr",
+    "type": "questions"
+   },
+   {
+    "id": "sec_import_2",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q2",
+      "kategorie": [
+       "Cena",
+       "Kvalita",
+       "Dostupnost",
+       "Značka"
+      ],
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_2",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": true,
+      "text": "Který z následujících důvodů je pro vás nejdůležitější?",
+      "typ": "vyber"
+     }
+    ],
+    "title": "Bariéry",
+    "type": "questions"
+   },
+   {
+    "familiarity_required": false,
+    "id": "obj_media",
+    "metadata": {
+     "familiarity_required": false,
+     "imported": true,
+     "object_family": "Média",
+     "object_type": "Média",
+     "tracked_set": true
+    },
+    "object_family": "Média",
+    "object_question": "Jak relevantní je pro vás {object}?",
+    "object_type": "Média",
+    "objects": [
+     "TV",
+     "Online video",
+     "Sociální sítě",
+     "Rádio"
+    ],
+    "output_type": "pozicni_mapa",
+    "purpose": "U objektové sady uvádějte 4–15 srovnatelných položek.",
+    "scale_labels": [
+     "minimum",
+     "maximum"
+    ],
+    "title": "Média",
+    "type": "object_battery",
+    "visualize": true
+   }
+  ],
+  "summary": {
+   "question_count": 2,
+   "sections": 3,
+   "tracked_sets": 1
+  }
+ },
+ "aia_sablona.xlsx": {
+  "filename": "aia_sablona.xlsx",
+  "ok": true,
+  "plan_status": "questionnaire_ready",
+  "sections": [
+   {
+    "id": "sec_import_1",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q1",
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_1",
+       "research_section_type": "questions"
+      },
+      "popisky_skaly": [
+       "minimum",
+       "maximum"
+      ],
+      "povolit_nevim": false,
+      "skala": [
+       1,
+       10
+      ],
+      "text": "Jak pravděpodobné je, že byste produkt koupil/a?",
+      "typ": "skala"
+     }
+    ],
+    "title": "Nákupní záměr",
+    "type": "questions"
+   },
+   {
+    "id": "sec_import_2",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q2",
+      "kategorie": [
+       "Cena",
+       "Kvalita",
+       "Dostupnost",
+       "Značka"
+      ],
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_2",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": true,
+      "text": "Který z následujících důvodů je pro vás nejdůležitější?",
+      "typ": "vyber"
+     }
+    ],
+    "title": "Bariéry",
+    "type": "questions"
+   },
+   {
+    "familiarity_required": false,
+    "id": "obj_media",
+    "metadata": {
+     "familiarity_required": false,
+     "imported": true,
+     "object_family": "Média",
+     "object_type": "Média",
+     "tracked_set": true
+    },
+    "object_family": "Média",
+    "object_question": "Jak relevantní je pro vás {object}?",
+    "object_type": "Média",
+    "objects": [
+     "TV",
+     "Online video",
+     "Sociální sítě",
+     "Rádio"
+    ],
+    "output_type": "pozicni_mapa",
+    "purpose": "U objektové sady uvádějte 4–15 srovnatelných položek.",
+    "scale_labels": [
+     "minimum",
+     "maximum"
+    ],
+    "title": "Média",
+    "type": "object_battery",
+    "visualize": true
+   }
+  ],
+  "summary": {
+   "question_count": 2,
+   "sections": 3,
+   "tracked_sets": 1
+  }
+ },
+ "bez_listu.xlsx": {
+  "error": "XLSX neobsahuje list DOTAZNIK ani čitelný první list.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "bez_zneni.csv": {
+  "error": "Q1: chybí znění otázky.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "bom.csv": {
+  "filename": "bom.csv",
+  "ok": true,
+  "plan_status": "questionnaire_ready",
+  "sections": [
+   {
+    "id": "sec_import_1",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q1",
+      "kategorie": [
+       "Ano",
+       "Ne"
+      ],
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_1",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": false,
+      "text": "Souhlasíte?",
+      "typ": "vyber"
+     }
+    ],
+    "title": "Dotazník",
+    "type": "questions"
+   }
+  ],
+  "summary": {
+   "question_count": 1,
+   "sections": 1,
+   "tracked_sets": 0
+  }
+ },
+ "chybi_sloupce.csv": {
+  "error": "Chybí povinné sloupce: otazka",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "dotaznik.txt": {
+  "error": "Podporovaný formát je .xlsx nebo .csv.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "html_rodina.csv": {
+  "error": ": pojmenuj typ sledovaných položek (např. média, emoce, značky, vztahy).",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "html_zneni.csv": {
+  "error": "Otázka nemá text.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "jedna_moznost.csv": {
+  "error": "Q1: výběrová otázka potřebuje alespoň 2 možnosti.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "jen_bom.csv": {
+  "error": "Soubor je prázdný.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "kolize.csv": {
+  "error": "Objekty po slugifikaci nemají unikátní názvy.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "latin2.csv": {
+  "error": "'utf-8' codec can't decode byte 0xed in position 90: invalid continuation byte",
+  "error_type": "UnicodeDecodeError",
+  "ok": false
+ },
+ "mala_sada.csv": {
+  "error": "Q1: sledovaná sada potřebuje 4–15 srovnatelných položek.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "nahrajte.csv": {
+  "error": "Nahrajte XLSX nebo CSV dotazník.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "neznamy_typ.csv": {
+  "error": "Q1: neznámý typ matice.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "plny.csv": {
+  "filename": "plny.csv",
+  "ok": true,
+  "plan_status": "questionnaire_ready",
+  "sections": [
+   {
+    "id": "sec_import_1",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q1",
+      "kategorie": [
+       "Denně",
+       "Týdně",
+       "Méně často"
+      ],
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_1",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": true,
+      "text": "Jak často kupujete ranní nápoj?",
+      "typ": "vyber"
+     },
+     {
+      "id": "q1_2",
+      "kategorie": [
+       "Citron",
+       "Máta",
+       "Zázvor"
+      ],
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_1",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": false,
+      "text": "Které příchutě znáte?",
+      "typ": "multi"
+     },
+     {
+      "id": "q6",
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_1",
+       "research_section_type": "questions"
+      },
+      "popisky_skaly": [
+       "minimum",
+       "maximum"
+      ],
+      "povolit_nevim": false,
+      "skala": [
+       1,
+       10
+      ],
+      "text": "Jak důležitá je dostupnost?",
+      "typ": "skala"
+     }
+    ],
+    "title": "Nákup",
+    "type": "questions"
+   },
+   {
+    "id": "sec_import_2",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q3",
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_2",
+       "research_section_type": "questions"
+      },
+      "popisky_skaly": [
+       "minimum",
+       "maximum"
+      ],
+      "povolit_nevim": true,
+      "skala": [
+       0,
+       5
+      ],
+      "text": "Jak hodnotíte cenu?",
+      "typ": "skala"
+     },
+     {
+      "id": "q_3",
+      "max_slov": 35,
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_2",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": false,
+      "text": "Co vám chybí?",
+      "typ": "otevrena"
+     }
+    ],
+    "title": "Cena",
+    "type": "questions"
+   },
+   {
+    "familiarity_required": false,
+    "id": "obj_znacky",
+    "metadata": {
+     "familiarity_required": false,
+     "imported": true,
+     "object_family": "Nápojové značky",
+     "object_type": "Nápojové značky",
+     "tracked_set": true
+    },
+    "object_family": "Nápojové značky",
+    "object_question": "Jak blízká je vám značka {object}?",
+    "object_type": "Nápojové značky",
+    "objects": [
+     "Alfa",
+     "Beta",
+     "Gama",
+     "Delta",
+     "Epsilon"
+    ],
+    "output_type": "pozicni_mapa",
+    "purpose": "Fiktivní značky",
+    "scale_labels": [
+     "minimum",
+     "maximum"
+    ],
+    "title": "Nápojové značky",
+    "type": "object_battery",
+    "visualize": true
+   },
+   {
+    "familiarity_required": false,
+    "id": "obj2",
+    "metadata": {
+     "design_warning": "Sada má jen 3 položek; pro stabilnější srovnání bývá vhodné přibližně 4–15.",
+     "familiarity_required": false,
+     "imported": true,
+     "object_family": "Média",
+     "object_type": "Média",
+     "tracked_set": true
+    },
+    "object_family": "Média",
+    "object_question": "Jak vnímáte médium — {object}?",
+    "object_type": "Média",
+    "objects": [
+     "TV",
+     "Rádio",
+     "Web"
+    ],
+    "output_type": "pozicni_mapa",
+    "purpose": "",
+    "scale_labels": [
+     "minimum",
+     "maximum"
+    ],
+    "title": "Média",
+    "type": "object_battery",
+    "visualize": true
+   }
+  ],
+  "summary": {
+   "question_count": 5,
+   "sections": 4,
+   "tracked_sets": 2
+  }
+ },
+ "prvni_list.xlsx": {
+  "filename": "prvni_list.xlsx",
+  "ok": true,
+  "plan_status": "questionnaire_ready",
+  "sections": [
+   {
+    "id": "sec_import_1",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q1",
+      "kategorie": [
+       "Ano",
+       "Ne"
+      ],
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_1",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": false,
+      "text": "Znáte nás?",
+      "typ": "vyber"
+     }
+    ],
+    "title": "Dotazník",
+    "type": "questions"
+   }
+  ],
+  "summary": {
+   "question_count": 1,
+   "sections": 1,
+   "tracked_sets": 0
+  }
+ },
+ "rozbity.xlsx": {
+  "error": "File is not a zip file",
+  "error_type": "BadZipFile",
+  "ok": false
+ },
+ "sada_duplicity.csv": {
+  "error": "Blok: tento typ výstupu potřebuje 3–40 srovnatelných položek stejného typu.",
+  "error_type": "ValueError",
+  "ok": false
+ },
+ "typovany.xlsx": {
+  "filename": "typovany.xlsx",
+  "ok": true,
+  "plan_status": "questionnaire_ready",
+  "sections": [
+   {
+    "id": "sec_import_1",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q1",
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_1",
+       "research_section_type": "questions"
+      },
+      "popisky_skaly": [
+       "minimum",
+       "maximum"
+      ],
+      "povolit_nevim": false,
+      "skala": [
+       1,
+       10
+      ],
+      "text": "Jak pravděpodobné je, že nápoj koupíte?",
+      "typ": "skala"
+     }
+    ],
+    "title": "Záměr",
+    "type": "questions"
+   },
+   {
+    "id": "sec_import_2",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q2",
+      "kategorie": [
+       "Obchod",
+       "Online",
+       "Automat"
+      ],
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_2",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": true,
+      "text": "Kde nakupujete?",
+      "typ": "multi"
+     }
+    ],
+    "title": "Nákup",
+    "type": "questions"
+   },
+   {
+    "familiarity_required": false,
+    "id": "obj",
+    "metadata": {
+     "familiarity_required": false,
+     "imported": true,
+     "object_family": "Značky nápojů",
+     "object_type": "Značky nápojů",
+     "tracked_set": true
+    },
+    "object_family": "Značky nápojů",
+    "object_question": "Jak vnímáte {object}?",
+    "object_type": "Značky nápojů",
+    "objects": [
+     "Alfa",
+     "Beta",
+     "Gama",
+     "Delta"
+    ],
+    "output_type": "pozicni_mapa",
+    "purpose": "",
+    "scale_labels": [
+     "minimum",
+     "maximum"
+    ],
+    "title": "Značky nápojů",
+    "type": "object_battery",
+    "visualize": true
+   },
+   {
+    "id": "sec_import_3",
+    "purpose": "",
+    "questions": [
+     {
+      "id": "q4",
+      "max_slov": 35,
+      "metadata": {
+       "mapped_object": false,
+       "research_section": "sec_import_3",
+       "research_section_type": "questions"
+      },
+      "povolit_nevim": true,
+      "text": "Co byste zlepšili?",
+      "typ": "otevrena"
+     }
+    ],
+    "title": "Závěr",
+    "type": "questions"
+   }
+  ],
+  "summary": {
+   "question_count": 3,
+   "sections": 4,
+   "tracked_sets": 1
+  }
+ },
+ "znacky_html.csv": {
+  "error": "q1: výběrová otázka potřebuje alespoň 2 kategorie.",
+  "error_type": "ValueError",
+  "ok": false
+ }
+}

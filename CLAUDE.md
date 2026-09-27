@@ -168,6 +168,8 @@ packages/aia_core/src/aia_core/
                             validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58)
     research_template.py    The research template a new study starts from (the unit's empty project)
     attachments.py          A brief attachment's record and the unit's rules (25 MB, the name, the excerpt)
+    questionnaire_import.py The questionnaire template's rows -> sections, as the unit imported them
+                            (its row rules and the normalize_project rules an import meets)
     knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015)
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
@@ -248,6 +250,8 @@ packages/aia_core/src/aia_core/
                             that project; found only through the Study (ADR 0018)
     document_text.py        An attachment's text, read as the unit read it (pypdf, python-docx,
                             openpyxl: the `documents` extra), with the ZIP bounds the unit lacked
+    questionnaire_file.py   A questionnaire file's rows (the unit's CSV and stdlib XLSX readers) and
+                            AIA's own template workbook
     client_knowledge_repository.py  The ONLY reader/writer of Client Knowledge: read inside a
                             resolved scope, changed only by an approved proposal (new revision)
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
@@ -293,6 +297,8 @@ tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own b
                             (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
                             unit's own `_extract_text` on each (`capture`, with the unit's libraries)
+tools/questionnaire_import_capture.py  Import fixtures: fictional files (`inputs`), AIA's template
+                            (`template`), the unit's own import on each (`capture`)
 tools/bootstrap_seed_sensitivity.py  The unit's bootstrap spread over seeds: the evidence for OI-62
 tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; `effective` prints the binding
                             that runs (the last declaration or reassignment); check the UI ledger
@@ -369,7 +375,8 @@ content ([legacy-phase-out.md](.planning/plans/legacy-phase-out.md) chunk 7) bri
 over; `unit_project_id` is lineage only, and nothing finds a study by it. The files a
 brief carries are artifacts of the same working project, in AIA's storage
 (`/workspace/attachments`), served only through the Study as `application/octet-stream`;
-the brief keeps their records, never a URL.
+the brief keeps their records, never a URL. A questionnaire file is read in AIA
+(`/workspace/questionnaire-import`) and only its sections come back; the stage saves them.
 
 **Client Knowledge is scoped before it is read.** `ClientKnowledgeRepository`
 takes a `ClientContext` or `StudyContext` and queries by that client; there is

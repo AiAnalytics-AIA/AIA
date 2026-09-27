@@ -1905,6 +1905,9 @@ Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-
   (`test_document_text.py`); nothing of the brief reaches the unit. Tests:
   `test_study_workspaces.py` › *an attachment is served only through its own study*,
   `test_client_api.py` › *a file is attached in AIA and downloaded only through its study*.
+- **Landed (chunk 4):** a questionnaire file is read in AIA and only its sections come back
+  (`POST …/workspace/questionnaire-import`), normalized by the unit's rules and compared with
+  the unit's own import (`test_questionnaire_import.py`); the template is AIA's own workbook.
 - **Still open:** the migration of the bound content (chunk 7), and the removal of the
   unit from the product (chunks 9–11). The unit store still holds the develop Studies'
   content until the migration runs there.

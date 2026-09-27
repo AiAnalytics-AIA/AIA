@@ -130,7 +130,7 @@ the next PRs, each against the plan that already exists for it, not one long bra
 
 | Increment | Branch | State |
 |---|---|---|
-| 1. Native research workspace | `feature/native-research-workspace` | Chunks 1–3 done: working content in AIA (`GET`/`PUT /studies/{id}/workspace/content`, migration `5b1d0f3e9a21`, stale saves refused), the web store and every stage on it, no unit job runner; brief attachments in AIA storage (`/workspace/attachments`, text read as the unit read it, `test_document_text.py`). Chunks 4–6 (questionnaire import, Audience/Dimenze, documents) next |
+| 1. Native research workspace | `feature/native-research-workspace` | Chunks 1–3 done: working content in AIA (`GET`/`PUT /studies/{id}/workspace/content`, migration `5b1d0f3e9a21`, stale saves refused), the web store and every stage on it, no unit job runner; brief attachments in AIA storage (`/workspace/attachments`, text read as the unit read it, `test_document_text.py`); the questionnaire import and template in AIA (`/workspace/questionnaire-import`, `-template`, compared with the unit's import on 24 files). Chunks 5–6 (Audience/Dimenze, documents) next |
 | 2. Migration of bound content | `feature/legacy-workspace-migration` | not started |
 | 3. AIA's own gate for `/app` | `feature/aia-session-gate` | not started |
 | 4. Interface without 18.6.6 | `feature/interface-without-classic` | not started |

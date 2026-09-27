@@ -2279,7 +2279,7 @@
    "status": "PORTING",
    "aia_route": "PUT /api/v1/studies/{study_id}/workspace/content",
    "scope": "study",
-   "notes": "a content change is a new immutable revision on both sides; AIA refuses a save from a stale revision (409) where the unit overwrote, and keeps an analysis-only change the unit dropped (ADR 0018)",
+   "notes": "a content change is a new immutable revision on both sides; AIA refuses a save from a stale revision (409) where the unit overwrote, and keeps an analysis-only change the unit dropped; the unit normalized the whole project on every save (normalize_project, refusing one that did not normalize) where AIA stores what the stage saved and applies its rules when a Design Revision compiles (ADR 0016, 0018)",
    "decision": null
   },
   {
@@ -2505,10 +2505,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/workspace/questionnaire-template",
+   "scope": "study",
+   "notes": "AIA writes its own workbook with the unit's sheets and example rows, not the unit's file; its guide says a tracked set is rated 1-10, which is what the unit's normalization did whatever the template's note claimed (ADR 0018)",
    "decision": null
   },
   {
@@ -2531,10 +2531,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/workspace/questionnaire-import",
+   "scope": "study",
+   "notes": "the unit's row rules, _xlsx_rows and the normalize_project rules an import meets, ported and compared with the unit's own function on fictional files (test_questionnaire_import.py); AIA is sent the file alone and returns the sections, where the unit normalized and returned the whole project it was sent, refusing an import when that project was invalid; an unreadable file is refused in AIA's words, not a Python exception's (ADR 0018)",
    "decision": null
   },
   {

@@ -29,6 +29,7 @@ from aia_core.domain.knowledge import (
     KnowledgeProposal,
     ProposalStatus,
 )
+from aia_core.domain.questionnaire_import import QuestionnaireImportRejected
 from aia_core.domain.research_template import research_template
 from aia_core.domain.scope import (
     ClientContext,
@@ -49,6 +50,11 @@ from aia_core.domain.workspace import (
 )
 from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from aia_core.infrastructure.questionnaire_file import (
+    TEMPLATE_FILENAME,
+    import_questionnaire,
+    template_xlsx,
+)
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
@@ -339,6 +345,33 @@ class AttachmentResponse(BaseModel):
     sha256: str
     text_extracted: bool
     context_excerpt: str
+
+
+class QuestionnaireUpload(BaseModel):
+    """A filled-in questionnaire template, base64-encoded as the classic interface sent it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filename: str = Field(min_length=1, max_length=255)
+    data_b64: str = Field(min_length=1, max_length=_ATTACHMENT_B64_MAX)
+
+
+class ImportSummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_count: int
+    tracked_sets: int
+    sections: int
+
+
+class QuestionnaireImportResponse(BaseModel):
+    """The sections the file holds, normalized as 18.6.6 normalized them, and its summary."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sections: list[dict[str, Any]]
+    summary: ImportSummaryResponse
+    filename: str
 
 
 class StageRequest(BaseModel):
@@ -1094,6 +1127,70 @@ def download_study_file(
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Content-Type-Options": "nosniff",
             "Cache-Control": "private, no-store",
+        },
+    )
+
+
+@router.post(
+    "/studies/{study_id}/workspace/questionnaire-import",
+    response_model=QuestionnaireImportResponse,
+    summary="Read a filled-in questionnaire template",
+    responses={422: {"model": ErrorResponse, "description": "The file does not import"}},
+)
+def import_study_questionnaire(
+    body: QuestionnaireUpload, scope: StudyScopeDep
+) -> QuestionnaireImportResponse:
+    """The questionnaire in an XLSX or CSV template, as the stage's new sections.
+
+    Nothing is stored: the stage puts the sections on the study's working content and
+    saves, as any other edit. Needs ``EDIT_STUDY`` on an open study. A file that breaks
+    one of 18.6.6's import rules is refused with its message (422); so is one that
+    cannot be read at all (``unreadable``).
+    """
+    try:
+        scope.require(Permission.EDIT_STUDY)
+        scope.require_open_study()
+    except ScopeDenied as exc:
+        raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
+    try:
+        data = base64.b64decode(body.data_b64, validate=True)
+    except binascii.Error as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "not_base64", "message": "The file is not valid base64."},
+        ) from exc
+    try:
+        imported = import_questionnaire(data, body.filename)
+    except QuestionnaireImportRejected as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    return QuestionnaireImportResponse(
+        sections=imported.sections,
+        summary=ImportSummaryResponse(**imported.summary.model_dump()),
+        filename=imported.filename,
+    )
+
+
+@router.get(
+    "/studies/{study_id}/workspace/questionnaire-template",
+    response_class=Response,
+    summary="The questionnaire template, as an XLSX workbook",
+    responses={
+        200: {
+            "content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}},
+            "description": "The template",
+        }
+    },
+)
+def study_questionnaire_template(scope: StudyScopeDep) -> Response:
+    """AIA's template: sheet DOTAZNIK with three example rows, sheet NAVOD with the guide."""
+    return Response(
+        content=template_xlsx(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{TEMPLATE_FILENAME}"',
+            "X-Content-Type-Options": "nosniff",
         },
     )
 

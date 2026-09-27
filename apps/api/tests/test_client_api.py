@@ -382,3 +382,62 @@ def test_an_attachment_is_checked_before_it_is_stored(lead: TestClient, world: A
     assert empty.status_code == 422
     assert lead.post(f"{url}/attachments", json={"data_b64": "YQ=="}).status_code == 422
     assert lead.get(f"{url}/attachments/not-an-artifact").status_code == 422
+
+
+# --------------------------------------------------------------------------- #
+# The questionnaire import (ADR 0018): read in AIA, stored by the stage's save
+# --------------------------------------------------------------------------- #
+
+QUESTIONNAIRE_CSV = (
+    "id,otazka,typ,moznosti,blok\nQ1,Souhlasíte?,vyber,Ano|Ne,Úvod\n"
+    "S1,Jak vnímáte {object}?,objektova_sada,A|B|C|D,Značky\n"
+)
+
+
+def test_a_questionnaire_file_is_read_in_aia_and_nothing_is_stored(
+    lead: TestClient, viewer: TestClient, world: Any
+) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    body = {
+        "filename": "dotaznik.csv",
+        "data_b64": base64.b64encode(QUESTIONNAIRE_CSV.encode()).decode(),
+    }
+    assert viewer.post(f"{url}/questionnaire-import", json=body).status_code == 403
+    imported = lead.post(f"{url}/questionnaire-import", json=body)
+    assert imported.status_code == 200
+    got = imported.json()
+    assert got["summary"] == {"question_count": 1, "tracked_sets": 1, "sections": 2}
+    assert [s["id"] for s in got["sections"]] == ["sec_import_1", "s1"]
+    assert got["sections"][0]["questions"][0]["id"] == "q1"
+    assert got["filename"] == "dotaznik.csv"
+    # Reading a file is not a save: the study is still empty.
+    assert lead.get(f"{url}/content").json()["state"] == "EMPTY"
+
+    refused = lead.post(
+        f"{url}/questionnaire-import",
+        json={"filename": "d.csv", "data_b64": base64.b64encode(b"id,otazka\n").decode()},
+    )
+    assert refused.status_code == 422
+    assert (refused.json()["code"], refused.json()["message"]) == (
+        "missing_columns",
+        "Chybí povinné sloupce: typ",
+    )
+    unreadable = lead.post(
+        f"{url}/questionnaire-import",
+        json={"filename": "d.xlsx", "data_b64": base64.b64encode(b"not a zip").decode()},
+    )
+    assert unreadable.status_code == 422 and unreadable.json()["code"] == "unreadable"
+
+
+def test_the_questionnaire_template_is_aias_workbook_for_any_reader_of_the_study(
+    viewer: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace/questionnaire-template"
+    template = viewer.get(url)
+    assert template.status_code == 200
+    assert template.content.startswith(b"PK")
+    assert (
+        template.headers["content-disposition"]
+        == 'attachment; filename="AIA_dotaznik_sablona.xlsx"'
+    )
+    assert other_client_lead.get(url).status_code == 404

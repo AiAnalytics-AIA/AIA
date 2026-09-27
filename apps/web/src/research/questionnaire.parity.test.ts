@@ -344,14 +344,23 @@ describe("the editor's inline fields write what the classic handlers write", () 
 });
 
 describe("import and the AI steps take what the classic ones take", () => {
-  const IMPORTED = { project: { ...EMPTY, sections: [QUESTIONS], title: "Z Excelu" }, summary: { question_count: 5, tracked_sets: 0, sections: 1 } };
+  const SUMMARY = { question_count: 5, tracked_sets: 0, sections: 1 };
+  // The unit answered with the whole project: the one it was sent (FULL), the file's
+  // sections on it, the plan questionnaire_ready -- and every other field re-normalized.
+  // AIA answers with the sections alone (ADR 0018), so the two agree whenever that
+  // re-normalization left the rest as it was, which is what this project is.
+  const UNIT_ANSWER = {
+    project: { ...FULL, sections: [QUESTIONS], research_plan: { ...FULL.research_plan, status: "questionnaire_ready" } },
+    summary: SUMMARY,
+  };
 
-  it("uploadQuestionnaireFile: the unit's project, on the editor", async () => {
-    const ran = await classicAsync("uploadQuestionnaireFile()", { result: IMPORTED, file: { name: "d.xlsx" } });
-    const got = applyImport(IMPORTED, BOOT);
+  it("uploadQuestionnaireFile: the file's sections, on the editor", async () => {
+    const ran = await classicAsync("uploadQuestionnaireFile()", { result: UNIT_ANSWER, file: { name: "d.xlsx" } });
+    const got = applyImport(FULL, { sections: [QUESTIONS], summary: SUMMARY, filename: "d.xlsx" }, BOOT);
     expect(got.project).toEqual(ran.p);
     expect(ran.toasts).toEqual([got.toast]);
     expect(ran.saves).toEqual([["questionnaire_import", true]]);
+    // What the classic interface sent the unit; AIA is sent the file alone.
     expect(ran.posts).toEqual([{ ep: "/api/questionnaire/upload", b: { filename: "d.xlsx", data_b64: "QUJD", project: FULL }, t: 180000 }]);
   });
   it("uploadQuestionnaireFile without a file", async () => {

@@ -1111,8 +1111,8 @@ bug. Polyfill it in the test through `FileReader`, never in app code
 
 **jsdom has no `URL.createObjectURL`, and a clicked `<a download>` goes nowhere.**
 A download that needs the bearer token cannot be a plain link: the app fetches the
-bytes (`workspace.attachment` in `src/lib/api.ts`), makes an object URL and clicks a
-temporary anchor. Under jsdom the first call throws `TypeError: URL.createObjectURL is
+bytes (`workspace.attachment` in `src/lib/api.ts`) and `saveBlob`
+(`src/lib/download.ts`) makes an object URL and clicks a temporary anchor. Under jsdom the first call throws `TypeError: URL.createObjectURL is
 not a function`, which the screen shows as a failed download. Stand both in for
 inside the test and put them back with `onTestFinished` -- assigning to `URL` or
 `HTMLAnchorElement.prototype` outlives the test otherwise, and `vi.unstubAllGlobals`

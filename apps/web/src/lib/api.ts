@@ -323,6 +323,13 @@ export type WorkingContent = {
 
 export type WorkingSave = { study_id: string; state: ContentState; revision: number; revision_id: string; deduplicated: boolean };
 
+/** A filled-in questionnaire template, read by AIA (QuestionnaireImportResponse). */
+export type QuestionnaireImport = {
+  sections: Record<string, unknown>[];
+  summary: { question_count: number; tracked_sets: number; sections: number };
+  filename: string;
+};
+
 /** What the brief keeps of an attached file (AttachmentResponse): never where it is stored. */
 export type AttachmentRecord = {
   kind: "file";
@@ -380,6 +387,9 @@ export const workspace = {
     request<AttachmentRecord>("POST", `/api/v1/studies/${enc(studyId)}/workspace/attachments`, body),
   attachment: (studyId: string, attachmentId: string) =>
     requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/attachments/${enc(attachmentId)}`),
+  importQuestionnaire: (studyId: string, body: { filename: string; data_b64: string }) =>
+    request<QuestionnaireImport>("POST", `/api/v1/studies/${enc(studyId)}/workspace/questionnaire-import`, body),
+  questionnaireTemplate: (studyId: string) => requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/questionnaire-template`),
 };
 
 // ---- research execution (ADR 0016) -----------------------------------------
