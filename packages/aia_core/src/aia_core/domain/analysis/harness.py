@@ -21,7 +21,8 @@ questions and its questionnaire wording. It is internal material only when the
 operator declared the Study's client fictional *and* every respondent is simulated;
 anything else is a client's design, Class A, which the approved route refuses
 (ADR 0010). Lineage is the dataset's, as its artifact recorded it; there is no
-default.
+default, and a dataset that recorded none goes out as ``None``, which the licence
+gate refuses (``lineage_undeclared``) before any adapter.
 
 **The frame.** The harness tells the model what it is interpreting -- simulated
 respondents, modelled numbers, which surface -- because the domain's prompt is
@@ -206,13 +207,14 @@ def analysis_request(
     previous: object,
     policy_version: str,
     data_class: DataClass,
-    lineage: DataLineage,
+    lineage: DataLineage | None,
     max_output_tokens: int,
 ) -> ModelRequest:
     """One turn as a request: the payload, then (on a repair) the last answer and the fix.
 
     ``system`` and ``payload`` are the runner's (the domain prompt, the evidence);
-    ``repair`` is its repair prompt, ``None`` on the first turn.
+    ``repair`` is its repair prompt, ``None`` on the first turn. ``lineage`` is passed
+    through as recorded: ``None`` reaches the licence gate and is refused there.
     """
     messages = [Message(role="user", content=canonical_json(dict(payload)))]
     if repair is not None:

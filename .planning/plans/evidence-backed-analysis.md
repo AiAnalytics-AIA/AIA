@@ -130,7 +130,7 @@ validation (only support and suppression), verification or alignment.
       `test_analysis_native.py` (28), on a compiled design, the fixture dataset and the real
       aggregate
 - [x] 3. Harness: `analysis/harness.py` (agent, request per turn, invalid-output marker,
-      classification, lineage, identity). — code + tests: `test_analysis_harness.py` (13)
+      classification, lineage, identity). — code + tests: `test_analysis_harness.py` (14)
 - [x] 4. Artifact contract and graph spec: `analysis/artifact.py`, `analysis/steps.py`. —
       code + tests: `test_analysis_artifact.py` (22), including the eight nodes joining the
       research graph as a valid DAG

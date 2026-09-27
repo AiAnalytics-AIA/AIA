@@ -30,9 +30,10 @@ from aia_core.domain.analysis.harness import (
 )
 from aia_core.domain.evidence import ClaimSurface
 from aia_core.domain.fieldwork import DataOrigin
-from aia_core.domain.licence import DataLineage
-from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
-from aia_core.domain.residency import DataClass
+from aia_core.domain.licence import DataLineage, LicenceDenied
+from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET, recorded_policy
+from aia_core.domain.providers import Provider
+from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
 
 PAYLOAD = {"module": "executive", "evidence": [{"evidence_ref": "q1.mean", "value": 3.1}]}
 LINEAGE = DataLineage.of(SYNTHETIC_FIXTURE_DATASET)
@@ -156,6 +157,25 @@ def test_the_harness_has_its_own_identity_beside_the_domain_prompt() -> None:
     assert len(harness_sha256()) == 64
     assert harness_sha256() != prompt_template_sha256()
     assert ANALYSIS_HARNESS_VERSION == "aia-analysis-harness-1"
+
+
+def test_an_undeclared_lineage_is_sent_as_undeclared_for_the_licence_gate_to_refuse() -> None:
+    """No default lineage: a dataset that recorded none must not become ``none()`` here."""
+    undeclared = request(lineage=None)
+    assert undeclared.data_lineage is None
+    route = ProviderRoute(
+        route_id="bedrock-eu-primary",
+        provider=Provider.AWS_BEDROCK.value,
+        zone=ResidencyZone.EU,
+        eu_processing_approved=True,
+        excluded_from_training=True,
+        retention_days=None,
+        approved_for=frozenset({DataClass.CLASS_C_INTERNAL}),
+    )
+    with pytest.raises(LicenceDenied) as denied:
+        recorded_policy().authorise(lineage=undeclared.data_lineage, route=route)
+    assert denied.value.reason == "lineage_undeclared"
+    assert request_sha256(undeclared) != request_sha256(request())
 
 
 def test_a_request_is_identified_by_what_it_sends() -> None:
