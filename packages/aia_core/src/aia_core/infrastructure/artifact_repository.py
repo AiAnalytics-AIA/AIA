@@ -402,8 +402,14 @@ class ArtifactRepository:
     def read(self, artifact_id: str) -> bytes:
         """Return the artifact bytes, verified against the recorded hash.
 
-        A hash mismatch marks the artifact CORRUPT and raises. Serving content
-        that may have been altered as a research finding is worse than failing.
+        A hash mismatch or a missing object marks the artifact CORRUPT and raises.
+        Serving content that may have been altered as a research finding is worse
+        than failing.
+
+        The mark is flushed into the caller's transaction, like every write here,
+        so it lasts only if that transaction commits. A caller whose unit of work
+        rolls back on the exception loses it; one that answers the error commits
+        first, as the API does before its 409.
         """
         row = self._row(artifact_id)
         try:
