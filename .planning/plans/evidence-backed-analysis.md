@@ -1,6 +1,6 @@
 # Evidence-backed analysis of native research runs
 
-**Status:** in progress · **Owner:** analysis (Job 3) · **Started:** 2026-09-27
+**Status:** all chunks done, in review (PR A, PR B) · **Owner:** analysis (Job 3) · **Started:** 2026-09-27
 
 Chunk 5 of [research-agent-workflows.md](research-agent-workflows.md), in the analysis
 half; the report half is [report-docx.md](report-docx.md) R10–R11 (Job 4).
@@ -110,10 +110,21 @@ validation (only support and suppression), verification or alignment.
   `research_analysis`, stage `ANALYSIS`, each depending on `aggregate` only (a blocked or
   failed module strands no other), step input `{"analysis_module", "analysis_surface"}`,
   `max_attempts` 3 (turn checkpoints make a retry free for recorded turns).
-- **Composition for Job 6 / Job 1**: `analysis_registry(store, build, gateway, config)`;
-  `AnalysisConfig` from the AI runtime settings plus an analysis switch, output cap and
-  reservation that must cover one call at the model's ceilings. The `ai_runtime.py`
-  settings and the production registry are not edited here.
+- **Composition for Job 6 / Job 1** (`aia_executors/analysis.py`):
+  `analysis_registry(store=, build=, language="cs", gateway=None, config=None)` ->
+  `{"research_analysis": AnalysisModuleExecutor}`, merged into the worker's registry;
+  `AnalysisConfig.from_settings(settings, max_output_tokens=, reservation_usd=)` refuses an
+  output cap above the model's, a reservation below one call at the model's ceilings and a
+  policy that does not bind `RESEARCH_REASONING`. Owed by the activation work: an analysis
+  switch and its two keys (suggested `AIA_AI_ANALYSIS_ENABLED`,
+  `AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS`, `AIA_AI_ANALYSIS_RESERVATION_USD`), binding
+  `RESEARCH_REASONING` under it (today only the design agents' switch binds it), passing
+  the keys through Compose, and registering the executor in `registry.build_registry`.
+  Owed by the workflow integration: adding `analysis_step_definitions()` and
+  `analysis_step_inputs(ClaimSurface.INTERNAL)` to the `research` template, and deciding
+  whether a *failed* analysis step should fail the run (the engine's rule today; a
+  `BLOCKED` module is an outcome and never does). The `ai_runtime.py` settings, the
+  production registry and the template are not edited here.
 
 ## Chunks
 
@@ -145,7 +156,7 @@ validation (only support and suppression), verification or alignment.
       here**)
 - [x] 6. Executor: `aia_executors/analysis.py` (`AnalysisModuleExecutor`, `AnalysisConfig`,
       `analysis_registry`), generator with turn checkpoints. — code + tests:
-      `test_analysis_executor.py` (20; SQLite and PostgreSQL 16), the real worker over
+      `test_analysis_executor.py` (22; SQLite and PostgreSQL 16), the real worker over
       recorded Bedrock exchanges: eight modules complete and read back by re-admission,
       blocked after 3 calls while the rest complete, a schema failure is one counted turn,
       client-facing blocked with 0 calls (configured or not), research-questions module
@@ -154,15 +165,18 @@ validation (only support and suppression), verification or alignment.
       uncertain → `RECOVERY_REQUIRED` and a person's resume replays the answered turn, a
       tampered checkpoint is asked again, cancellation between turns, a second run and an
       edited-back design reuse every outcome (0 calls), changed research questions rerun
-      every module, and 150 AI respondents then the eight modules in one run
+      every module, a step without a surface and refused sources fail before any call, and
+      150 AI respondents then the eight modules in one run
 - [x] 7. Decision-table parity against the vendored `evidence_validator.py` (M17), imported
       from the frozen tree and pinned by SHA-256, both gates judging the same drafts over the
       same aggregate. — tests: `test_analysis_gate_parity.py` (16: 6 EXACT, 4
       INTENTIONAL_DIFFERENCE, 2 DECISION_OWED, the same numbers, the pin, the labels); parity
       matrix: gate `analysis.modules/unit-evidence-validator`, deviations
       `SUB-ANALYSIS-EXACT`, `-PROSE`, `-SUPPRESSED`
-- [ ] 8. Documents: ARCHITECTURE §3–4, CLAUDE map, AGENTS, `docs/architecture/analysis.md`,
-      open items, PROGRESS; draft PRs. (**PR B**: chunks 6–8, stacked on PR A)
+- [x] 8. Documents: ARCHITECTURE §4, the CLAUDE map, AGENTS (research artifacts are reused by
+      fingerprint), `docs/architecture/analysis.md` (the executor and its outcomes table,
+      the gate against the unit's), the ANL decisions in PROGRESS; draft PRs. (**PR B**:
+      chunks 6–8, stacked on PR A)
 
 ## Decisions owed (not engineering)
 

@@ -5,9 +5,10 @@ outcome is when stored, and how a reader gets it back. The plan, with the refere
 mapping and the decisions owed, is
 [`.planning/plans/evidence-backed-analysis.md`](../../.planning/plans/evidence-backed-analysis.md).
 
-**State:** the contract, the inputs and the reconstruction exist in `aia_core`; the
-executor is in PR B. Nothing is registered in the production worker, added to the
-research template, deployed or enabled.
+**State:** the contract, the inputs, the reconstruction (`aia_core`) and the executor
+(`aia_executors/analysis.py`) exist and are tested under the real worker over recorded
+Bedrock exchanges. Nothing registers the executor in the production worker, adds the
+nodes to the research template, deploys or enables it.
 
 ## The rule
 
@@ -122,8 +123,48 @@ Reading needs `VIEW_RESULTS`; an `INTERNAL` outcome needs `EDIT_STUDY` too.
 
 For the workflow integration to add to the `research` template: eight nodes
 `analysis_<module>`, kind `research_analysis`, stage `ANALYSIS`, each depending on
-`aggregate` **only** (a blocked or failed module strands no other), step input
-`{"analysis_module", "analysis_surface"}`, `max_attempts` 3.
+`aggregate` **only**, step input `{"analysis_module", "analysis_surface"}` (no default
+surface: a step without one fails), `max_attempts` 3. A gate refusal is an outcome, so a
+`BLOCKED` module never stops another. A step that *fails* (a broken upstream, a provider's
+permanent refusal) fails the run by the engine's rule (`derive_run_status`: a `FAILED`
+step makes the run `FAILED`, and a failed run's other steps are no longer claimed); whether
+analysis nodes should be exempt from that is the integration's decision.
+
+## The executor: `aia_executors/analysis.py`
+
+`AnalysisModuleExecutor.execute`, per step:
+
+1. The module and surface from the step input; the run's sources (`native_sources`) and the
+   prepared module (`prepare_module`), in one lease-fenced transaction.
+2. A stored outcome under the same reuse key is returned (`reused: true`, no call).
+3. The deterministic preflight: if it refuses, a `BLOCKED` outcome with 0 calls is stored,
+   configured or not.
+4. Unconfigured (no gateway and `AnalysisConfig`): the step parks.
+5. The runner (`run_analysis_module`) drives the turns. Each turn: stop if cancelled; replay
+   a stored `research_analysis_turn` for exactly this request, or check the request fits the
+   model window (the first with room for a repair), ask the gateway's preflight once (a
+   refusal parks), send it through `StepModelCaller` (one reservation, settled once), and
+   store the answer at once. A schema failure is an answer (`SCHEMA_INVALID`); any other
+   failure is the worker's.
+6. The outcome is stored with its turns as dependencies; the step's output names it.
+
+| Situation | Step ends | `error.reason` |
+| --- | --- | --- |
+| Preflight refuses (client-facing, no evidence, no question) | `SUCCEEDED`, outcome `BLOCKED`, 0 calls | -- |
+| Gate refuses the third draft | `SUCCEEDED`, outcome `BLOCKED`, 3 calls | -- |
+| No gateway or configuration | `WAITING_PROVIDER` | `analysis_unconfigured` |
+| The gateway would refuse the material (Class A, lineage, capability) | `WAITING_PROVIDER` | the gateway's, e.g. `egress_route_not_approved_for_class` |
+| The study's budget cannot hold a turn's reservation | `AWAITING_BUDGET` | -- |
+| Quota / throttling | `WAITING_PROVIDER` (resumes after `retry-after`) | the gateway's |
+| A call whose outcome is unknown | `RECOVERY_REQUIRED`; a person resumes it, answered turns replay | -- |
+| A turn larger than the model window | `FAILED` before any reservation | `context_window_exceeded` |
+| Upstream artifacts missing or inconsistent | `FAILED` | `native_sources`' reason |
+
+`AnalysisConfig.from_settings(settings, max_output_tokens=..., reservation_usd=...)` refuses
+an output cap above the model's, a reservation below one call at the model's ceilings, and
+a policy that does not bind `RESEARCH_REASONING`. Today that capability is bound only with
+the design agents' switch (`AIA_AI_RESEARCH_AGENTS_ENABLED`); an analysis switch of its own,
+its keys and its registration are the activation work's, not this module's.
 
 ## Against the unit's gate
 

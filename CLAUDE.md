@@ -116,6 +116,9 @@ apps/
                             provenance artifact; no automatic write or retry
     ai_fieldwork.py         The ai_runtime source: fictional roster, class + lineage, gateway preflight
                             (a refusal parks), one request per respondent block, answers drawn by code
+    analysis.py             research_analysis: one module per step over StepModelCaller; preflight
+                            BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
+                            twice), AnalysisConfig.from_settings; registered by no composition yet
     ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
                             request, settled once) + StepCallJournal (fenced dispatch, unfenced ledger)
     ai_runtime.py           AIA_AI_* / AIA_BEDROCK_* settings (off by default, fail closed when on) and
