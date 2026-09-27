@@ -2228,6 +2228,6 @@ The hypothesis of a duplicate edge on content-hash reuse is refuted: the Socioma
 `depends_on` is `[spec_id, dataset_id]`, two distinct ids, and the failing insert is the first
 edge, whose parent row had been rolled back.
 
-The known-flakes entry for this test in CLAUDE.md, added by `08bf3c7` on
-`claude/trusting-turing-2b9oyl` (PR #67), was measured at `46b7337`, before `e0edf2a`. It is
-not on `develop`, and PR #67 should drop it before merging.
+The known-flakes entry for this test in CLAUDE.md, added by `08bf3c7` and merged to `develop`
+with PR #67 (`2beafd9`), was measured at `46b7337`, before `e0edf2a`, and named the wrong cause.
+PR #69 removes it.
