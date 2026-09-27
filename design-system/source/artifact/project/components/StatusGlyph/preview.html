@@ -1,0 +1,12 @@
+<!-- @dsCard group="Status" height=120 subtitle="Shape carries the state" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>StatusGlyph</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{padding:16,display:"flex",gap:20,flexWrap:"wrap"}},["running","you","world","fault","recovery","done","done-warn","ready","inert","blocked","invalid","cancelled","skipped"].map(function(t){return h("div",{key:t,style:{display:"grid",justifyItems:"center",gap:4,color:t==="you"?"var(--status-you-ink)":t==="running"?"var(--status-running)":t==="world"?"var(--status-world)":t==="fault"?"var(--status-fault)":"var(--ink)"}},h(A.StatusGlyph,{tone:t,size:24}),h("span",{className:"aia-enum"},t));})));
+</script>
+</body>
+</html>

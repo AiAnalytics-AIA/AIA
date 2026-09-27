@@ -1,0 +1,12 @@
+<!-- @dsCard group="Lifecycle" height=400 subtitle="Consequences before the commit" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>ImpactPreview</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{padding:16,maxWidth:760}},h(A.ImpactPreview,{lifecycle:"research",stageIds:A.fixtures.R_IDS,field:"Cílová skupina: věk 18–79 → 18–75",preview:{root_stage:"AUDIENCE",invalidate:["AUDIENCE","DIMENSIONS","SAMPLE_PLAN","FIELDWORK","AGGREGATION","VALIDATION","ANALYSIS","REPORT","DELIVERY"],preserve:["BRIEF","DEEP_RESEARCH","RESEARCH_DESIGN","QUESTIONNAIRE"],presentation_only:false},artifactsKept:17,costEstimate:[310,460],costBasis:"posledních 3 běhů fáze Respondenti",timeEstimate:null})));
+</script>
+</body>
+</html>

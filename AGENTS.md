@@ -348,6 +348,25 @@ test that starts a `Worker`: `test_research_api.py` and `test_runs_api.py` ran o
 rolling back a step's flushed artifact row so its dependency insert failed its
 foreign key (found on PR #54, 2026-09-25). Both now override `settings`.
 
+A per-module override only holds until the next test forgets it, so `Worker` now
+refuses such an engine at construction (`shares_one_connection` in
+`infrastructure/db.py`). The race becomes a `ValueError` on every run instead of a
+step failing one run in fourteen. The failure looked like a repository bug, an
+`IntegrityError` "raised as a result of Query-invoked autoflush" inserting into
+`project_artifact_dependencies`, but the repository's transaction was correct: it
+had been rolled back from underneath it. `apps/worker/tests/test_shared_connection.py`
+replays the heartbeat's close at that point, so the race is reproduced
+deterministically.
+
+```python
+# WRONG: the heartbeat thread's session close rolls back the step's transaction
+engine = create_app_engine("sqlite+pysqlite:///:memory:")   # StaticPool
+Worker(session_factory=create_session_factory(engine), ...)  # now raises ValueError
+
+# RIGHT: a connection per session
+engine = create_app_engine(f"sqlite+pysqlite:///{tmp_path / 'worker.db'}")
+```
+
 
 **SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
 aware `datetime` on PostgreSQL and a **naive** one on SQLite, which has no
@@ -1181,6 +1200,27 @@ vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 await screen.findByRole("dialog", {}, NATIVE_JOB_WAIT);
 ```
 
+**An element on screen does not mean its store subscription exists.**
+`useSyncExternalStore` subscribes in a passive effect, and React runs passive
+effects after the commit that drew the element, not in it. A `findBy*` can
+resolve in between. A click whose only effect is a store update then has no
+subscriber, so nothing renders. React renders it when the effect subscribes and
+finds the store changed. The click is not lost, but a synchronous read straight
+after it sees the old DOM. `BriefStep.test.tsx` › *a problem type is a toggle…*
+failed this way once in 26 local runs, and once in CI (#68, 2026-09-27). With a
+log at the click, the 2 failures in 61 runs were exactly the 2 runs in which the
+same commit's other effects (the agents' `agent-jobs` request) had not run yet
+(OI-70). Wait for what the click changes; do not read it synchronously.
+
+```ts
+// WRONG: right after mount, the store may not be subscribed yet
+fireEvent.click(tile);
+expect(tile.getAttribute("aria-pressed")).toBe("true");
+// RIGHT: resolves on the render the subscription makes
+fireEvent.click(tile);
+await screen.findByRole("button", { name: /Nový produkt/, pressed: true }, { timeout: 5_000 });
+```
+
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.
@@ -1298,6 +1338,22 @@ local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
 
 # RIGHT: where docker looks when HOME is unset (lib.sh › docker_config_dir)
 home="${HOME:-$(getent passwd "$(id -u)" | cut -d: -f6)}"
+```
+
+**A healthcheck with a start period reads "starting", and a single read races it.**
+The 18.6.6 unit is recreated on every deploy and hydrates its data on start; its
+healthcheck stays `starting` for up to its 120 s start period. The deploy does not
+wait for it (a broken unit must not take the site down), so smoke read its state
+once: deploy runs 29 and 30 (2026-09-27) failed on `state 'starting'` while
+every other check passed. Wait out `starting` for a bounded time, then judge; report
+`unhealthy`, `exited` or missing at once (`lib.sh` › `legacy_unit_health`,
+`test_develop_legacy_unit_health.py`).
+
+```bash
+# WRONG: whatever the unit is doing at this instant
+state="$(docker inspect --format '{{.State.Health.Status}}' "$id")"
+# RIGHT: judged after its start period, never forever
+state="$(legacy_unit_health "$id")"   # waits out "starting", at most 150 s
 ```
 
 **A host package does not go in user-data.** cloud-init runs once per instance, so

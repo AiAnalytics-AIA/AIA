@@ -107,7 +107,8 @@ apps/
     src/app/interface-document/  The document Caddy serves at /classic: fetch the unit, apply the skin
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
     executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
-    worker.py               The loop: claim, execute, record; reconcile on an interval
+    worker.py               The loop: claim, execute, record; reconcile on an interval.
+                            Refuses a one-connection engine (in-memory SQLite)
     context.py              Checkpoints, per-call metering, lease-fenced transactions
     heartbeat.py            Lease extension + cancellation carried back, one thread per attempt
     settings.py             Typed, validated settings from the environment
@@ -280,6 +281,10 @@ deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
 docs/architecture/          System design + 16 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief
+design-system/              The AIA Design System artifact as a static reference package for design tools:
+                            tokens (CSS + flat JSON), fonts, identity SVGs, status-map.md (from the domain
+                            enums), three no-build HTML pages, the artifact verbatim. Not imported by apps/web,
+                            whose token source stays apps/web/src/design/tokens.json
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
   legacy-route-ledger.json  The strangler's route ledger: 153 legacy routes, LEGACY/PORTING/PORTED/RETIRED
@@ -666,22 +671,12 @@ are fast and stay in the foreground.
 
 ### Known flakes
 
-Add an entry here the moment one is confirmed, in this shape:
+None recorded. Add an entry here the moment one is confirmed, in this shape:
 
 ```
 - `packages/aia_core/tests/test_x.py::test_y` — symptom: …
   Confirmation: passes when run alone. Cause: … Fix or waiver: …
 ```
-
-- `apps/api/tests/test_research_api.py::test_research_artifacts_are_read_only_through_the_run_that_produced_them`
-  — symptom: the run ends `FAILED` instead of `COMPLETED`; its `sociomap` step's
-  attempt records `IntegrityError` ("raised as a result of Query-invoked autoflush")
-  inserting a `(child, parent)` pair into `project_artifact_dependencies`, failure
-  class `UNKNOWN`. Confirmation: fails 3 of 20 runs alone on `develop` @ `46b7337`,
-  1 of 20 on `claude/trusting-turing-2b9oyl`; the other 19 pass. Cause: *hypothesis*,
-  not reproduced deterministically — a duplicate dependency edge when an input
-  artifact is reused by content hash. Fix or waiver: none yet; it is a defect in the
-  artifact repository, not a test to retry.
 
 Mocks live at interface boundaries — external services are mocked through their
 protocol, always. Real HTTP only in explicitly manual or integration runs; if a
