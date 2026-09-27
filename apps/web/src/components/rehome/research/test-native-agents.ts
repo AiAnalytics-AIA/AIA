@@ -45,6 +45,16 @@ export function nativeAgentFixture(
     return undefined;
   };
 }
+// A native job reaches its review dialog through a chain of mocked requests and
+// renders: about 0.3 s on an idle machine, several seconds on a loaded CI runner,
+// where 1 s and 4 s waits failed (PlanStep, AudienceStep; AGENTS.md § Next.js / TypeScript). A
+// wait resolves as soon as the element appears, so the room costs a passing test
+// nothing. Files that drive native jobs raise their test timeout to match.
+export const NATIVE_JOB_WAIT = { timeout: 15_000 } as const;
+export const NATIVE_TEST_TIMEOUT_MS = 30_000;
+export function findProposalDialog() {
+  return screen.findByRole("dialog", {}, NATIVE_JOB_WAIT);
+}
 export async function approveProposal() {
-  fireEvent.click(await screen.findByRole("button", { name: "Použít návrh" }, { timeout: 4000 }));
+  fireEvent.click(await screen.findByRole("button", { name: "Použít návrh" }, NATIVE_JOB_WAIT));
 }

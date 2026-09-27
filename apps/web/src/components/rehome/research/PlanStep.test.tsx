@@ -4,12 +4,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DESIGN_PATH, approveProposal, nativeAgentFixture } from "./test-native-agents";
+import { DESIGN_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
 import { briefFingerprint, defaultsMerge } from "@/unit/research/model";
 import { CONFIRM_REMOVE_SET, PROMPT_COMMENT, PROMPT_SET_OBJECTS, PROMPT_SET_TITLE } from "@/unit/research/plan";
 import { ResearchScreen } from "./ResearchScreen";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+// Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 
 const push = vi.fn();
 const replace = vi.fn();

@@ -4,12 +4,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AGENTS_PATH, DESIGN_PATH, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
+import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
 import { LINK_INVALID } from "@/unit/research/brief";
 import { PROBLEM_TYPES, briefFingerprint, defaultsMerge } from "@/unit/research/model";
 import { ResearchScreen } from "./ResearchScreen";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+// Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -159,7 +162,7 @@ describe("Zadání", () => {
     unitStub({ goal: "Cíl" }, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
     render(<ResearchScreen projectId="PRJ-1" step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));
-    expect(await screen.findByText(PARK_MESSAGE)).toBeTruthy();
+    expect(await screen.findByText(PARK_MESSAGE, {}, NATIVE_JOB_WAIT)).toBeTruthy();
     expect(screen.queryByRole("link", { name: /Otevřít Nastavení/ })).toBeNull();
     expect(posted("/api/research/analyze")).toEqual([]);
     expect(push).not.toHaveBeenCalled();

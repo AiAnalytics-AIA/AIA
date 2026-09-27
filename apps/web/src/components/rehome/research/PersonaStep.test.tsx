@@ -5,12 +5,15 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DIMENSION_RESEARCH_KEY } from "@/lib/interface-handoff";
-import { AGENTS_PATH, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
+import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
 import { resetAudienceCatalog } from "@/unit/research/audience";
 import { REQUEST_AI_DONE, REQUEST_DONE, REQUEST_EMPTY } from "@/unit/research/persona";
 import { ResearchScreen } from "./ResearchScreen";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+// Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/dimensions", useRouter: () => ({ push, replace: vi.fn() }) }));
@@ -119,7 +122,7 @@ describe("Dimenze", () => {
     await screen.findByRole("heading", { name: "Co už panel umí popsat a segmentovat" });
     fireEvent.click(screen.getByRole("button", { name: "AI doporučí" }));
     await approveProposal();
-    expect(await screen.findByRole("heading", { name: "AI navrhuje doplnit nové dimenze" }, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "AI navrhuje doplnit nové dimenze" }, NATIVE_JOB_WAIT)).toBeTruthy();
     expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "suggest_dimensions" });
     expect(posted("/api/persona/suggest")).toEqual([]);
     await savedWith("native_ai_proposal_accepted");

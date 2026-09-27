@@ -4,11 +4,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AGENTS_PATH, approveProposal, nativeAgentFixture } from "./test-native-agents";
+import { AGENTS_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, findProposalDialog, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
 import { UPLOAD_DONE, resetAudienceCatalog } from "@/unit/research/audience";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { TEST_FRAME } from "./test-frame";
+
+// Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -158,7 +161,7 @@ describe("Audience", () => {
     const input = await screen.findByPlaceholderText(/např. 25–44/);
     fireEvent.change(input, { target: { value: "Mladí sportovci" } });
     fireEvent.click(screen.getByRole("button", { name: "AI: navrhnout cílovou skupinu" }));
-    await screen.findByRole("dialog");
+    await findProposalDialog();
     expect(lastSave().project.audience.filters).toEqual({ kraj: ["A"] });
     await approveProposal();
     expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "propose_audience", instruction: "Mladí sportovci" });

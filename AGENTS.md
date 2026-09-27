@@ -1105,6 +1105,24 @@ workbench journey (`make ui-research`) is what found it.
 "GET /api/v1/studies/S/research/runs/RUN-1": () => COMPLETED,
 ```
 
+**A wait sized on an idle machine fails on a loaded CI runner.** Testing
+Library's `findBy*` gives up after 1 s and Vitest ends a test at 5 s. A native
+Research job reaches its review dialog through a chain of mocked requests and
+renders: about 0.3 s alone, several seconds with 39 test files sharing the
+runner. `findByRole("dialog")` (1 s) and `approveProposal`'s 4 s wait failed
+PlanStep and AudienceStep one run in two locally, and once in CI. A wait
+resolves as soon as its element appears, so give it room. A file that uses
+`vi.setConfig` raises its own test timeout; nothing else is affected
+(`test-native-agents.ts`: `NATIVE_JOB_WAIT`, `NATIVE_TEST_TIMEOUT_MS`).
+
+```ts
+// WRONG: passes on a laptop, fails under CI load
+await screen.findByRole("dialog");
+// RIGHT: room for the whole job chain, and a test timeout that allows it
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
+await screen.findByRole("dialog", {}, NATIVE_JOB_WAIT);
+```
+
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.
