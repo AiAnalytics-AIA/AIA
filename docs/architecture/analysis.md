@@ -125,9 +125,20 @@ For the workflow integration to add to the `research` template: eight nodes
 `aggregate` **only** (a blocked or failed module strands no other), step input
 `{"analysis_module", "analysis_surface"}`, `max_attempts` 3.
 
+## Against the unit's gate
+
+`test_analysis_gate_parity.py` imports the unit's `evidence_validator.py` from the frozen
+tree (pinned by SHA-256) and puts the same drafts, over the same aggregate, to both gates.
+AIA refuses everything the unit refused, and more: a value not copied exactly, a value
+given as text, a number in the prose that no cited claim holds, a claim on a row the
+fidelity rule or support removed. It admits two things the unit refused -- a finding that
+states no number and cites nothing, and a module with no finding -- and those wait on
+decision ANL-4 rather than being called intentional.
+
 ## Not here
 
 Run QC (`qc.kontrola`), the `donor_qc` review gate, external verification, reality
 alignment and the challenger pass are absent; the plan's reference mapping says which
 and why. Decisions owed: ANL-1 (the instrument policy for internal use, and any client
-use), ANL-2 (should thin support pause for a person), ANL-3 (the QC thresholds).
+use), ANL-2 (should thin support pause for a person), ANL-3 (the QC thresholds), ANL-4
+(must every finding cite evidence).

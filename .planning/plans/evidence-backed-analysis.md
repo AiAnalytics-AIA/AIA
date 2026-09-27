@@ -80,7 +80,7 @@ All anchors are in `legacy/npc-panel-18.6.6/app/` @ `ceee2dc`.
 | --- | --- | --- |
 | Evidence table from `vysledky` (distribution, mean, top-2-box) | `analysis_agent.py:25-50` | **Implemented** here: `native.py`, plus n and effective n |
 | Research questions: `research_plan.research_questions` → `objectives` → `goal`, ≤ 8 | `analysis_agent.py:12-22` | **Implemented** here, same order and cap |
-| Analysis evidence integrity (`validate_analysis`: refs, metrics, values ±0.051, coverage ≥ 0.95, score ≥ 90) | `evidence_validator.py:39-60` | **Implemented, stricter**: `check_analysis_draft` (exact values, 100 % coverage). Decision-table parity: chunk 7 |
+| Analysis evidence integrity (`validate_analysis`: refs, metrics, values ±0.051, findings citing evidence ≥ 95 %, score ≥ 90) | `evidence_validator.py:39-60` | **Implemented, compared decision by decision** (`test_analysis_gate_parity.py`, the unit's own module): stricter on exact values, numeric types, numbers in prose and fidelity-refused or suppressed rows; **looser in two cases that wait on ANL-4** -- a finding that states no number and cites nothing, and a module with no finding |
 | Eight modules in `MODULE_ORDER`, one durable module per job | `analysis_agent.py:124`, `:154-184` | **Implemented**; AIA gates *each* module and repairs it ≤ 2 times. The unit's modular path drafted once, unvalidated, and gated only at assembly (`:186-216`) |
 | Repair ≤ 2, `allow_fallback=False`, keep the better-scoring draft | `analysis_agent.py:86-121` | **Implemented** in the runner (from the unit's monolithic `analyze_results`, which the standard workflow does not run); AIA judges each draft alone and has no score |
 | Challenger/editor second pass (non-`ECONOMY`) | `analysis_agent.py:84` | **Absent**: only the monolithic path had it |
@@ -155,8 +155,12 @@ validation (only support and suppression), verification or alignment.
       tampered checkpoint is asked again, cancellation between turns, a second run and an
       edited-back design reuse every outcome (0 calls), changed research questions rerun
       every module, and 150 AI respondents then the eight modules in one run
-- [ ] 7. Decision-table parity against the vendored `evidence_validator.py` (M17). — tests +
-      parity matrix
+- [x] 7. Decision-table parity against the vendored `evidence_validator.py` (M17), imported
+      from the frozen tree and pinned by SHA-256, both gates judging the same drafts over the
+      same aggregate. — tests: `test_analysis_gate_parity.py` (16: 6 EXACT, 4
+      INTENTIONAL_DIFFERENCE, 2 DECISION_OWED, the same numbers, the pin, the labels); parity
+      matrix: gate `analysis.modules/unit-evidence-validator`, deviations
+      `SUB-ANALYSIS-EXACT`, `-PROSE`, `-SUPPRESSED`
 - [ ] 8. Documents: ARCHITECTURE §3–4, CLAUDE map, AGENTS, `docs/architecture/analysis.md`,
       open items, PROGRESS; draft PRs. (**PR B**: chunks 6–8, stacked on PR A)
 
@@ -167,6 +171,13 @@ validation (only support and suppression), verification or alignment.
 - **ANL-2** Should support that is `INDICATIVE` (or a thin run) pause analysis for a person
   (`donor_qc`'s `review_if_warning`)?
 - **ANL-3** Port `qc.kontrola` with its thresholds as warnings, as gates, or not at all.
+- **ANL-4** Must every key finding cite at least one admitted claim, and must a module state
+  at least one finding? The unit refused an analysis in which fewer than 95 % of findings
+  cited evidence, or with none (`evidence_validator.py:47-48`); AIA admits a finding that
+  states no number and cites nothing, and a module that is its summary alone
+  (`test_analysis_gate_parity.py` cases `finding-without-evidence`, `no-finding-at-all`).
+  Tightening is one rule in `domain/analysis/draft.py`; it is a methodology decision, so it
+  is not made here.
 
 ## Review outcome
 
