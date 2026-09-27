@@ -52,6 +52,14 @@ point; nothing outside it touches its internals.
 | — | **Legacy stub** | `src/server.js` | Frozen. The sole surviving login path. | Nothing. Receives no new features. |
 | — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited.** Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only behind the gate, at `/classic` and on its own paths (ADR 0015). | Nothing. Nothing depends on it in code; parity tests reach it over HTTP. |
 
+The web `/config` endpoint may expose nonsecret runtime configuration for
+Settings (switch, Bedrock model/profile, source region and approval class).
+This is a configuration display, never a provider health test or authority to
+invoke a capability. Design assistants remain on the migration backlog; an
+active fieldwork route does not enable legacy design jobs. Product-only Caddy
+retirement blocks legacy credential/login/probe endpoints after the existing
+gate; the independent oracle and pinned reference application stay unchanged.
+
 Dependencies point inward only. `infrastructure → domain` is allowed;
 `domain → infrastructure` is not. The domain layer must stay importable with
 nothing installed but Pydantic — that property is what makes its tests total and

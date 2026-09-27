@@ -5,7 +5,8 @@ The extracted unit keeps licence-bound and bulky files out of app/ and out of
 Git; ``data-manifest.json`` lists them with their SHA256. At container start
 this copies each one from the data mount (``NPC_DATA_SOURCE``) to its place in
 the tree, skipping files already present with the right hash, and refuses to
-continue when one is missing or differs.
+continue when one is missing or differs. State seeds are verified when first
+installed; an existing working state database is never overwritten.
 
     hydrate_data.py <tree> --manifest data-manifest.json --source /data [--warn]
 
@@ -17,8 +18,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -28,6 +31,20 @@ def sha256_of(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def install_state_seed(source: Path, target: Path) -> None:
+    """Publish a complete first-use seed; interrupted copies remain retryable."""
+    fd, name = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
+    os.close(fd)
+    temporary = Path(name)
+    try:
+        shutil.copyfile(source, temporary)
+        with temporary.open("rb") as stream:
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def main(argv: list[str]) -> int:
@@ -57,6 +74,12 @@ def main(argv: list[str]) -> int:
     for e in entries:
         rel, digest = e["path"], e["sha256"]
         target = args.tree / rel
+        # State seeds initialise a new volume. The reference legitimately writes
+        # these databases; their changed hash is not asset drift (verify_tree.py).
+        # Replacing one here loses projects while AIA retains their bindings.
+        if e.get("class") == "state_seed" and target.is_file():
+            kept += 1
+            continue
         if target.is_file() and sha256_of(target) == digest:
             kept += 1
             continue
@@ -71,7 +94,10 @@ def main(argv: list[str]) -> int:
                 continue           # strict: never place a file that is not the audited one
             unverified += 1        # warn: place it, but say so
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, target)
+        if e.get("class") == "state_seed":
+            install_state_seed(src, target)
+        else:
+            shutil.copyfile(src, target)
         if ok:
             copied += 1
 

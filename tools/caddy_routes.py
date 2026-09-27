@@ -48,6 +48,15 @@ UNIT_PATHS = {
 }
 
 
+RETIRED_AI_PATHS = {
+    "/api/providers/claude-code/*",
+    "/api/settings/api_keys",
+    "/api/settings/anthropic_check",
+    "/api/settings/ai_check",
+    "/api/settings/ai_diagnose",
+}
+
+
 def walk(node: Any) -> Iterator[dict[str, Any]]:
     if isinstance(node, dict):
         yield node
@@ -139,6 +148,14 @@ def check(config: dict[str, Any]) -> list[str]:
                 problems.append(f"{path}: the session cookie reaches the web client")
     if (r := only("/api/v1/*")) is not None and dials(r) != ["api:8000"]:
         problems.append(f"/api/v1/* must be the API; got {dials(r)}")
+
+    for path in RETIRED_AI_PATHS:
+        if (r := only(path)) is not None:
+            if steps(r) != [f"gate:{GATE}", "static:410:"]:
+                problems.append(f"{path} must be the gate, then 410; got {steps(r)}")
+            unit_routes = [i for i, route in enumerate(routes) if UNIT in dials(route)]
+            if unit_routes and routes.index(r) > min(unit_routes):
+                problems.append(f"{path}: retired connection handler is shadowed by the unit")
 
     to_unit = [r for r in routes if UNIT in dials(r)]
     if not to_unit:

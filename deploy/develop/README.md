@@ -123,6 +123,7 @@ Caddyfile routes:
 | `/app`, `/app/*` | after `forward_auth` to `GET /api/v1/panel/gate`, the web client: AIA, Clients → client workspace → study → stages; 404 while `AIA_INTERFACE_REHOME_ENABLED` is off |
 | `/classic` | after the same `forward_auth`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) and `/skin/handoff.js` (its "Zpět do AIA" bar) when it applies |
 | `/interface-document` (requested directly) | 404 |
+| Legacy Claude Code setup/status and `/api/settings/{api_keys,anthropic_check,ai_check,ai_diagnose}` | after the gate, HTTP 410; no direct credentials or provider probes on the product hostname |
 | `/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`, `/health`, `/status` | `legacy-panel`, after the same `forward_auth` |
 | everything else | the web client (its own 404 for a path it does not know); never the unit |
 
@@ -392,3 +393,40 @@ reservations, never by choosing a cheaper model automatically.
 Not production. One host, one availability zone, a database on a local volume
 with nightly dumps. Synthetic data only. The path to ECS and RDS is in ADR 0009
 and is deployment work, not application work.
+
+
+### Working Research content and backup scope (2026-09-26)
+
+Until OI-58 is retired, AIA keeps Study identities/bindings in PostgreSQL while
+Research editing content is in the legacy volume's SQLite project store. A
+PostgreSQL dump alone cannot restore that editing copy. After owner approval,
+set `AIA_LEGACY_STATE_BACKUP_ENABLED=true` in the host environment. The default
+is disabled and logs that no working database export was made. When enabled,
+`bin/backup.sh` streams consistent copies of `/app/data/*.sqlite` to the same private,
+encrypted EU ops bucket under `backups/legacy-state-<utc>-<label>.zip`, using
+`bin/backup-legacy-state.py` and SQLite's backup API. Existing retention applies.
+Database snapshots are consistent individually, not an atomic cross-database
+transaction. Uploaded attachments and generated file artifacts are outside this
+ZIP. If the unit is not running the script explicitly reports no state backup.
+
+The backup source is fed from the deployment bundle into the old running image,
+so the first deployment of this repair can protect the databases too. Restore
+working databases only with the unit stopped, keep a backup of current state,
+and check both project IDs and PostgreSQL bindings before restarting. The
+PostgreSQL `restore.sh` does not restore the separate SQLite ZIP.
+
+Runtime hydration installs a `state_seed` only if no working file exists. It
+still hash-verifies the seed on first installation and immutable assets on every
+start. Replacing edited state with archive bytes is prohibited.
+
+
+### AI settings
+
+`/app/settings` displays Bedrock configuration from the web container's nonsecret
+runtime environment through `/config`. It has no provider login, direct API-key
+field, selector or paid test button. Classic settings navigation is redirected
+there by the product wrapper. The currently enabled capability is fictional,
+internal-only respondent fieldwork; research design generation remains unmigrated.
+The switch is read with the worker's vocabulary (`1`/`true`/`yes`/`on`); a value the
+worker refuses is shown as invalid, not as off. This display is not a live health probe. Historical provider labels in archived
+projects remain historical metadata, not connection controls.

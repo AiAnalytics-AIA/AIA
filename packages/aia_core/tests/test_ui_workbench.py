@@ -38,6 +38,7 @@ facade = _load()
 CADDYFILE = (REPO / "deploy" / "develop" / "Caddyfile").read_text()
 PATTERNS: list[str] = facade.web_paths(CADDYFILE)
 UNIT_PATTERNS: list[str] = facade.unit_paths(CADDYFILE)
+RETIRED_PATTERNS: list[str] = facade.retired_paths(CADDYFILE)
 
 
 def test_the_web_matcher_is_read_from_the_committed_caddyfile() -> None:
@@ -143,6 +144,7 @@ def running() -> Iterator[int]:
             "api": api.server_address[:2],
             "patterns": PATTERNS,
             "unit_patterns": UNIT_PATTERNS,
+            "retired_patterns": RETIRED_PATTERNS,
         },
     )
     front = _serve(handler)
@@ -301,3 +303,24 @@ def test_the_workbench_unit_can_reach_no_ai_provider(tmp_path: Path) -> None:
     # An empty list would mean "all three" to edition_config.allowed_providers.
     assert edition["allowed_live_providers"] == ["workbench_no_ai"]
     assert env == {"PATH": str(other), "HOME": "/root"}
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/providers/claude-code/setup",
+        "/api/providers/claude-code/status",
+        "/api/settings/api_keys",
+        "/api/settings/ai_check",
+        "/api/settings/ai_diagnose",
+        "/api/settings/anthropic_check",
+    ],
+)
+def test_legacy_connection_requests_cannot_reach_the_unit(running: int, path: str) -> None:
+    assert facade.route(path + "?x=1", PATTERNS, UNIT_PATTERNS, RETIRED_PATTERNS) == ("410", path)
+    conn = http.client.HTTPConnection("127.0.0.1", running, timeout=10)
+    conn.request("POST", path, body='{"anthropic_key":"test-do-not-store"}')
+    response = conn.getresponse()
+    assert response.status == 410
+    assert b"retired" in response.read()
+    conn.close()

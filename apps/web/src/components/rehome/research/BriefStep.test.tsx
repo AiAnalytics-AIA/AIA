@@ -155,12 +155,12 @@ describe("Zadání", () => {
     expect(screen.getByText(ANALYSIS_REUSED)).toBeTruthy();
   });
 
-  it("says when the provider is not ready, where the person is, with the way to the settings", async () => {
+  it("explains the unavailable design capability without obsolete connection settings", async () => {
     unitStub({ goal: "Cíl" }, { "/api/providers/claude-code/status": () => ({ ok: false }) });
     render(<ResearchScreen projectId="PRJ-1" step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));
-    expect(await screen.findByText("Claude Code není připravený. Projekt zůstává uložený.")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Otevřít Nastavení/ }).getAttribute("href")).toBe("/classic#aia:go=settings");
+    expect(await screen.findByText("AI návrh výzkumu zatím není dostupný. Amazon Bedrock nyní zajišťuje odpovědi respondentů. Projekt zůstává uložený.")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Otevřít Nastavení/ })).toBeNull();
     expect(posted("/api/research/analyze")).toEqual([]);
     expect(push).not.toHaveBeenCalled();
   });

@@ -90,6 +90,11 @@ services:
       # the browser calls /api/v1 on the public hostname and Caddy routes it, so
       # no CORS configuration exists anywhere and AIA_API_BASE stays empty.
       AIA_API_BASE: ""
+      # Public configuration display only; no role credentials reach the web.
+      AIA_AI_RUNTIME_ENABLED: ${AIA_AI_RUNTIME_ENABLED:-false}
+      AIA_BEDROCK_REGION: ${AIA_BEDROCK_REGION:-}
+      AIA_BEDROCK_MODEL_ID: ${AIA_BEDROCK_MODEL_ID:-}
+      AIA_AI_ROUTE_APPROVED_FOR: ${AIA_AI_ROUTE_APPROVED_FOR:-}
       AIA_COGNITO_DOMAIN: ${AIA_COGNITO_DOMAIN}
       AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
       AIA_PUBLIC_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
