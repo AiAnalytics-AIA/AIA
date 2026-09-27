@@ -386,8 +386,12 @@ every component head recorded.
 
 1. Register nodes, executors and bindings as J3, J4 and J5 land, adding the `report` extra with the
    report executor.
-2. Build the recorded composition and the scenario (§3.2, §3.4). Add the layer rule that keeps
-   `aia_worker.testing` out of deployments.
+2. Build the recorded composition and the scenario (§3.2, §3.4). Add two layer rules, both of
+   which pass today:
+   - one that keeps `aia_worker.testing` out of deployments;
+   - one that keeps the legacy provider fields (`run_policy`, `preferred_provider`,
+     `provider_policy`) out of `apps/executors` and `apps/worker`. That turns §6 rule 9 from a
+     code reading into a check.
 3. Build the Results, Report and Review destinations: native report retrieval, and the review and
    delivery decisions over `ArtifactRepository.approve` / `freeze`. Then the PO can remove the
    classic report link.

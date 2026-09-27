@@ -67,8 +67,9 @@ build one.
       (`.github/workflows/ci.yml` `api-contract`).
 - [ ] I1. Register nodes, executors and capability bindings for Jobs 3–5 as their PRs land,
       and add the `report` extra to the worker image with the report executor.
-- [ ] I2. The recorded composition and the reusable scenario (contract §3.2, §3.4), and the
-      layer rule that keeps `aia_worker.testing` out of deployments.
+- [ ] I2. The recorded composition and the reusable scenario (contract §3.2, §3.4). Two layer
+      rules, both passing today: `aia_worker.testing` stays out of deployments, and the legacy
+      provider fields stay out of the executors and the worker.
 - [ ] I3. Results, Report and Review destinations and actions: native report retrieval, and
       the review and delivery decisions over `ArtifactRepository.approve` / `freeze`.
 - [ ] I4. OI-64: fieldwork retries must not re-ask respondents who already answered.
