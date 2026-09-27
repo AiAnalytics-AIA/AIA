@@ -1204,6 +1204,22 @@ jq --arg r "$REGISTRY" \
   '.credHelpers[$r] = "ecr-login" | if has("auths") then .auths |= del(.[$r]) else . end' config.json
 ```
 
+**SSM Run Command gives the script no `HOME`.** `AWS-RunShellScript` starts the
+deploy as root with `HOME` unset, and under `set -u` a bare `$HOME` stops the
+script: deploy run 26 (2026-09-27) failed at `ecr_login` on "HOME: unbound
+variable", and the host stayed on the previous build. The tests had passed because
+they set `HOME`. Docker itself falls back to the passwd entry's home, so resolve
+it the same way, and test the path with `HOME` absent
+(`test_a_deploy_without_home_writes_the_config_docker_reads`).
+
+```bash
+# WRONG: fine in an operator shell, fatal under SSM
+local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
+
+# RIGHT: where docker looks when HOME is unset (lib.sh › docker_config_dir)
+home="${HOME:-$(getent passwd "$(id -u)" | cut -d: -f6)}"
+```
+
 **A host package does not go in user-data.** cloud-init runs once per instance, so
 a package added to `infra/develop/user-data.yaml.tftpl` never reaches the running
 host, and with `user_data_replace_on_change = false` a changed `user_data` makes
