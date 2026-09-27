@@ -84,6 +84,7 @@ attempt 3, green).
 | #71 | `fix/brief-toggle-test-waits` | BriefStep's toggle test waits for the pressed tile (OI-70) | Draft into `develop` | any time: ends a red *Frontend* about 1 run in 30 |
 | #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | Draft into `develop` | not yet reviewed here |
 | #72 | `chore/design-system-reference` | Design-system reference package: the AIA Design System artifact as plain files under `design-system/` (tokens CSS + flat JSON, OFL fonts, identity SVGs, `status-map.md` from the domain enums @ `043b0dd`, three no-build HTML pages); the artifact's 12 screens left out; `FailureClass.RUNTIME_UNAVAILABLE` mapped to `world` pending the design owner. Not wired into `apps/web` | Ready for review | any time: docs only |
+| #76 | `feature/analysis-contracts` | Native analysis, PR A of Job 3: instrument items as internal-only evidence fields, native evidence from a run's specification and aggregate, the one-call-per-turn harness, the stored-outcome contract `aia-analysis-module-artifact-1`, reconstruction by re-admission ([plan](plans/evidence-backed-analysis.md)). No model call, no migration | Draft into `develop`; CI green on `7c46e0c`, later heads not scheduled (runner outage from 18:07) | before #80 |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
 by default. The browser journey it named (enqueue → reload → review → accept → stale
