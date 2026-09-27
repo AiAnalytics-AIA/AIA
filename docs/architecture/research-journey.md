@@ -142,7 +142,7 @@ does (§4.3).
 | Objects | `service_a` … `service_e`, fictional service concepts |
 | Questionnaire | one rating battery over the five objects (it feeds Aggregate and the Sociomap), one single-choice question, one open question |
 | Fieldwork | n = 20 from the fictional roster; datasets `SYNTHETIC_AI_FICTIONAL`; no panel lineage (OI-61) |
-| Attachment | one fictional text file, stored and scoped by the PO's workspace. The scenario records each model request that carries its text, and that request's class. Which class is right waits on OI-73 (§6 rule 5) |
+| Attachment | one fictional text file, stored and scoped by the PO's workspace. The scenario records each model request that carries its text, and that request's class. Which class is right waits on OI-79 (§6 rule 5) |
 
 The seed (`application/develop_seed.py`, `SEED_PROJECT_CONTENT`) and the 2026-09-26 live fieldwork
 study use the same brief and objects, so recorded and live evidence stay comparable.
@@ -225,7 +225,7 @@ the shared file (§5):
 |---|---|---|---|
 | **PO** | Native, study-scoped working content: load, save with visible state, reload. Stage bootstrap, attachments, questionnaire import and the audience and library catalogues on AIA routes. Migration of bound unit content, with an explicit *no recoverable content* state (OI-58, OI-66). `/app` authorization. `/classic` removal. Deployment separation. The legacy-offline environment and the final acceptance, including this scenario. Publishes the workspace's API shapes, marked proposed or implemented | Design Revisions (§4.2); the scenario (§3.4) | 1, 7 |
 | **J1** | The settings document and `/config` state what the worker actually runs: each AI switch, route, model and data-class approval. Disabled and unconfigured are shown as such, invalid values as invalid. Legacy provider fields are labelled persisted provenance, never AIA's default | the switch vocabulary of `aia_executors.ai_runtime` | 2 |
-| **J3** | Executor bodies for QC, the eight analysis nodes and `interpret`. An adapter from the `research_aggregate` artifact to an `EvidenceTable`: it copies `data_origin` onto every row (OI-72) and assesses support through `assess_support` (`domain/evidence/support.py:94-118`). The adapter must not reuse the aggregate's `support_status` string. A production `AnalysisGenerator` over `StepModelCaller`. Each module stores its result, or ends BLOCKED naming the refusing gate. J3 also says how `FieldPolicyBook` and `JointStatus` are obtained for a fictional-roster dataset (`load_joint_status` is bound to the measured panel's hash, `domain/evidence/joint_status.py:190-193`). If they cannot be obtained, analysis BLOCKS with that reason | aggregate artifact, `admit_numeric_claims`, a capability binding (handoff) | 4 |
+| **J3** | Executor bodies for QC, the eight analysis nodes and `interpret`. An adapter from the `research_aggregate` artifact to an `EvidenceTable`: it copies `data_origin` onto every row (OI-78) and assesses support through `assess_support` (`domain/evidence/support.py:94-118`). The adapter must not reuse the aggregate's `support_status` string. A production `AnalysisGenerator` over `StepModelCaller`. Each module stores its result, or ends BLOCKED naming the refusing gate. J3 also says how `FieldPolicyBook` and `JointStatus` are obtained for a fictional-roster dataset (`load_joint_status` is bound to the measured panel's hash, `domain/evidence/joint_status.py:190-193`). If they cannot be obtained, analysis BLOCKS with that reason | aggregate artifact, `admit_numeric_claims`, a capability binding (handoff) | 4 |
 | **J4** | `compose_report(kind, study, results, provenance)` (R10), returning a validated `ReportDocument`. The report executor body: render with `DocxRenderer`, store through `ArtifactRepository` with the DOCX's SHA-256 as its fingerprint. Scoped retrieval, whose download needs `EXPORT_DELIVERABLE` | J3's stored analysis (§4.1), `EvidenceLedger`, templates | 5 |
 | **J5** | `domain/deep_research/`, the owned tools and the executor bodies of the plan's graph. Pass 1 runs at brief time; pass 2 reuses unchanged tracks. The evidence bundle becomes a Research Design input and reaches analysis as `external_context` (`application/analysis.py:92-104`). A search route stays unavailable until DR-2 | Client Knowledge `for_study`, `ToolRegistry`, the usage ledger | 3, 5 |
 | **J6** | Template nodes, registrations and capability bindings for J3–J5. The research routes and their CI contract paths. The Run, Progress, Results, Report and Review destinations and actions: native report retrieval in Results, and the review and delivery decisions over J4's stored report. The recorded composition and the scenario (§3). OI-64 | every row above | 3–6 |
@@ -328,7 +328,7 @@ in `apps/api/src/aia_api/routers/workspace.py`:
 - The Run stage turns the first into the second. In #74 it submits the copy the store holds
   (`ExecutionSteps.tsx:89-97 @ 7b9e9dc`). So the plan's I5, the Run stage on the native draft, is
   delivered once #74 merges.
-- How an attachment's text is classified when it reaches a model is OI-73 (§6 rule 5).
+- How an attachment's text is classified when it reaches a model is OI-79 (§6 rule 5).
 
 **Finding at `7b9e9dc`: the Run stage does not save before it submits.**
 
@@ -415,10 +415,14 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
   - #76: `.planning/PROGRESS.md`, `ARCHITECTURE.md` and `docs/architecture/README.md`;
   - #77: `.planning/PROGRESS.md`.
 - **One collision of meaning: OI numbers.** #75 numbers its new entries OI-72 to OI-76, and this
-  PR numbers its own OI-72 and OI-73. Both started from OI-71 on `develop`.
+  PR numbered its own OI-72 and OI-73. Both started from OI-71 on `develop`.
 - **The rule for the register:** an OI number is taken when its PR merges. The PR that merges
   later renumbers its new entries above `develop`'s highest, together with every reference to
   them in that PR.
+- **Applied at 22:47 UTC.** #83 merged first (`48bf3e2`) and put OI-76 on `develop`, for the
+  flake #75 had filed under that number. This PR's entries became OI-78 and OI-79, above it and
+  clear of #84's OI-77. #75 renumbers OI-72 to OI-75 when it merges; its OI-76 is `develop`'s
+  already.
 - #77 adds no migration, so the one head after #74 stays `5b1d0f3e9a21`.
 
 ## 6. Rules every PR keeps
@@ -435,10 +439,10 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
    approved knowledge. Approved knowledge makes a request Class A
    (`domain/research_agents.py:273, 294-296`), and the approved route refuses Class A. An
    attachment's text has no class of its own: it travels in the class of the design that carries
-   it until the data owner answers OI-73. Panel-derived data is refused by the licence gate
+   it until the data owner answers OI-79. Panel-derived data is refused by the licence gate
    (OI-61).
 6. A number reaches a result or a report only as an `AdmittedClaim`. `NON_EVIDENCE_ORIGINS` never
-   become client-facing claims, and every evidence row carries the origin of its data (OI-72). The
+   become client-facing claims, and every evidence row carries the origin of its data (OI-78). The
    Sociomap stays `INTERNAL_ONLY` while D6 (Sociomap methodology) is open.
 7. Models propose. Code decides numerical admissibility and method status. People approve
    consequential changes.
@@ -526,7 +530,7 @@ every component head recorded.
 | The unit stays "as the oracle and a fallback" | ADR 0015 decision 5; OI-58 | the oracle and a frozen reference only; no runtime fallback (the user's direction) | handed to the PO. ADR 0018 in #74 says *reference only*; OI-58's removal condition still ends *as the oracle and a fallback* at `7b9e9dc` |
 | AIA's AI default is `claude_code_subscription` / `CLAUDE_CODE_ONLY` | `GET /api/v1/settings` (`routers/settings.py:200-217`) | these are persisted legacy fields; the worker binds Bedrock capabilities only | handed to J1; #75 @ `efa3971` corrects it (its own OI entry) |
 | Run, Progress and Results use no unit route; the rebuilt stages call unit AI routes | `docs/migration/interface-screens.json` | all eight stages need `/api/bootstrap` and `/api/projects/load`; the AI actions are native agent jobs | handed to the PO. #74 empties the research stages' `unit_routes`, which is true on that branch |
-| Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the question is OI-73 |
+| Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the question is OI-79 |
 | Implementation states of `ai.gateway`, `ai.usage_ledger`, `ai.credentials`, `reports.generation` (`NOT_STARTED`) and `workflow.step_execution`'s note ("No research step body exists") | `parity-matrix.json` | all have merged code. Re-grading them touches the module inventory (OI-30) | handed to the parity owner |
 
 ## 11. Handoff to the phase-out owner
@@ -565,10 +569,9 @@ These are findings from this inventory, anchored at `ceee2dc`, that sit in the P
 
   #74 moves each research-stage item onto AIA or marks it *V AIA zatím není* (§4.3). The
   classic-projects pages still call the unit until increment 4.
-- **A flake the research screens own.** #75 records one on `develop`: under a loaded full web run,
-  the native-job waits in the Brief and Audience tests outrun their 15 s budget
-  (`apps/web/src/components/rehome/research/test-native-agents.ts:53`; #75's OI-76, whose number
-  is subject to the §5 rule). The tests are the PO's stage files. The wait is the native jobs'
-  helper, which J6 takes in Phase B, or sooner if it turns a CI run red.
+- **A flake in the research screens, fixed.** #75 recorded it: under a loaded full web run, the
+  native-job tests in Brief and Audience outran their 15 s wait. #83 found the cause, a failed
+  `/config` read left in the cache by an earlier test, and fixed it (`48bf3e2`; OI-76 on
+  `develop`).
 - **The product README's index links three documents that were never written:**
   `docs/product/README.md:171-173`.
