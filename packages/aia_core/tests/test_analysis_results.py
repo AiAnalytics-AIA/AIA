@@ -153,22 +153,24 @@ class World:
         lineage: bool = True,
         stop_before: str | None = None,
         spec_revision: str | None = None,
+        spec_design: dict[str, Any] | None = None,
         reused: dict[str, str] | None = None,
         payloads: dict[str, Any] | None = None,
     ) -> None:
         """compile, preflight, run and aggregate, as their executors store them.
 
         ``spec_revision`` names the revision the specification records, as when the
-        compile step reused the artifact of an earlier revision; ``reused`` maps a step
-        kind to an earlier run's artifact that step reuses instead of storing one;
-        ``payloads`` replaces what ``compile`` or ``aggregate`` stores with exactly that
-        JSON.
+        compile step reused the artifact of an earlier revision; ``spec_design`` is the
+        content it is compiled from, and the fieldwork and aggregate built around, when
+        that is not the revision it records; ``reused`` maps a step kind to an earlier
+        run's artifact that step reuses instead of storing one; ``payloads`` replaces
+        what ``compile`` or ``aggregate`` stores with exactly that JSON.
         """
         latest = StudyDesignRepository(self.session, self.scope).latest()
         assert latest is not None
         revision_id = latest.revision_id
         content = StudyDesignRepository(self.session, self.scope).content(revision_id)
-        spec, _ = compile_design(content)
+        spec, _ = compile_design(spec_design if spec_design is not None else content)
         stored = payloads or {}
         assert spec is not None
         dataset = synthetic_dataset(spec, seed=20260816)
@@ -445,6 +447,54 @@ def test_a_source_of_the_wrong_type_is_refused(world: World) -> None:
     with pytest.raises(SourcesRefused) as refused:
         native_sources(world.session, world.scope, world.store, run)
     assert refused.value.reason == "source_type"
+
+
+def test_a_specification_compiled_from_other_content_is_refused_whatever_it_records(
+    world: World,
+) -> None:
+    """The specification is checked against the revision itself, not only against the
+    revision it names: compiled from another questionnaire, with the fieldwork and the
+    aggregate built around it, it is not this run's although it says it is."""
+    run_id = world.start()
+    first_question = DESIGN["sections"][0]["questions"][0]
+    world.upstream(
+        spec_design={**DESIGN, "sections": [{"type": "questions", "questions": [first_question]}]}
+    )
+    with pytest.raises(SourcesRefused) as refused:
+        world.sources(run_id)
+    assert refused.value.reason == "design_revision"
+
+
+@pytest.mark.parametrize("names_the_run", [True, False], ids=["the-run", "another"])
+def test_another_compilers_specification_is_held_to_the_revision_it_records(
+    world: World, names_the_run: bool
+) -> None:
+    """This system cannot recompile what another compiler produced, and a run parked
+    across a deploy must still be analysed: such a specification is held to the revision
+    it records, which must be the run's (or an identical one's) as for any other."""
+    designs = StudyDesignRepository(world.session, world.scope)
+    other, _ = designs.submit(content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run")
+    run_id = world.start()
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    older = spec.model_copy(update={"compiler_version": "aia-research-compile-0"})
+    run_revision = world.run(run_id)["metadata"]["design_revision_id"]
+    world.upstream(
+        payloads={
+            "compile": {
+                "kind": SPECIFICATION_ARTIFACT,
+                "design_revision_id": run_revision if names_the_run else other.revision_id,
+                "specification": older.model_dump(mode="json"),
+                "specification_fingerprint": older.fingerprint(),
+            }
+        }
+    )
+    if names_the_run:
+        assert world.sources(run_id).specification.compiler_version == "aia-research-compile-0"
+    else:
+        with pytest.raises(SourcesRefused) as refused:
+            world.sources(run_id)
+        assert refused.value.reason == "design_revision"
 
 
 @pytest.mark.parametrize(

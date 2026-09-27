@@ -107,7 +107,13 @@ edited only outside its questionnaire (its research questions) reuses the earlie
 dataset and aggregate, and an outcome reused by such a run keeps the ids, revision and
 `produced_by` it was computed under. A source whose bytes pass their hash but hold
 another shape -- not an object, or a specification this system cannot read -- is refused
-as `specification_shape` or `aggregate_shape`, never raised.
+as `specification_shape` or `aggregate_shape`, never raised. The specification is also
+held to the revision's content: one this system's compiler produced must be exactly the
+run's revision compiled again (`compile_design` is deterministic and the revision
+immutable), so one that names the run's revision but was compiled from another
+questionnaire is refused (`design_revision`). Another compiler's specification cannot be
+compiled again here, and a run parked across a deploy must still be read, so it is held
+to the revision it records.
 Anything else raises `ReconstructionRefused(reason)`:
 
 | `reason` | When |

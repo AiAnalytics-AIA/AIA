@@ -7,9 +7,10 @@ judged on and what a reader re-checks cannot differ:
   dataset, aggregate), found through the run's recorded step outputs, read through the
   Study's research artifacts, and checked against each other: the specification is the
   run's Design Revision compiled (or an identical earlier revision's, which the compile
-  step reuses), the aggregate was computed from that dataset and a specification of
-  that fingerprint (its recorded dependencies), and the types and shapes are what they
-  must be.
+  step reuses) -- the revision it records, and, when this system's compiler produced
+  it, the revision compiled again -- the aggregate was computed from that dataset and a
+  specification of that fingerprint (its recorded dependencies), and the types and
+  shapes are what they must be.
 * :func:`prepare_module` -- those sources as the :class:`AnalysisInputs` one module is
   judged on, with the domain's module fingerprint, the artifact's reuse key and the
   deterministic preflight. The executor calls this before any reservation.
@@ -91,7 +92,7 @@ from ..domain.fieldwork import DataOrigin, FieldworkSource
 from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from ..domain.pipeline import fingerprint
-from ..domain.research_design import ResearchSpecification
+from ..domain.research_design import COMPILER_VERSION, ResearchSpecification, compile_design
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..infrastructure.artifact_repository import (
@@ -294,6 +295,17 @@ def native_sources(
         raise SourcesRefused(
             "design_revision", "the specification is not the run's Design Revision"
         )
+    # What the compile step recorded is checked against what it compiles: the revision is
+    # immutable and the compiler deterministic, so a specification of this compiler is
+    # exactly the revision compiled. Another compiler's cannot be compiled again here,
+    # and a run parked across a deploy must still be read, so it is held to the revision
+    # it records, above.
+    if spec.compiler_version == COMPILER_VERSION:
+        recompiled, _ = compile_design(content)
+        if recompiled is None or recompiled.fingerprint() != spec.fingerprint():
+            raise SourcesRefused(
+                "design_revision", "the specification is not the run's Design Revision compiled"
+            )
     if not computed_from:
         raise SourcesRefused(
             "aggregate_lineage", "the aggregate does not record this specification and dataset"
