@@ -266,7 +266,7 @@ describe("Bedrock settings", () => {
     expect(screen.queryByRole("link", { name: "Claude Code" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Obecné nastavení" })).toBeNull();
     expect(screen.queryByLabelText("ANTHROPIC_API_KEY")).toBeNull();
-    expect(screen.getByText(/AI návrh výzkumu a další návrhové asistenty zatím/)).toBeTruthy();
+    expect(screen.getByText(/AI návrhové kroky jsou v tomto prostředí vypnuté/)).toBeTruthy();
     expect(called("POST", "/api/settings/ai_check")).toEqual([]);
   });
   it("says a switch the worker refuses is invalid, never off or on", async () => {

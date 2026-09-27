@@ -11,6 +11,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
 import {
@@ -455,6 +456,7 @@ function FilterEditor({ onPreview }: { onPreview: () => Promise<void> }) {
       if (!(await step.providerOk())) return;
       await step.saved();
       const r = (await runJob("audiencePropose", proposePayload(store.get().project, typed), { title: PROPOSE_TITLE, warnMs: PROPOSE_WARN_MS })) as Parameters<typeof applyProposal>[2];
+      if (isNativeResult(r)) { setPreview(null); toast("Návrh audience je uložený. Zkontrolujte filtry a proveditelnost."); return; }
       const a = applyProposal(store.get().project, typed, r || {});
       store.update(() => ({ project: a.change.project }), { reason: a.change.reason, invalidateCheck: a.change.invalidateCheck });
       setPreview(a.preview ? { result: a.preview as Record<string, unknown> } : null);

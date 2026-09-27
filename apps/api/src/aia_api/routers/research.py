@@ -9,11 +9,14 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any
 
 from aia_core.application.research import (
     DesignNotReady,
+    ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
@@ -21,6 +24,7 @@ from aia_core.application.research import (
 )
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
+from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from aia_core.infrastructure.artifact_repository import ArtifactNotFound
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
@@ -613,3 +617,137 @@ def run_artifact(
                 },
             ) from exc
     return artifact_response(artifact, payload)
+
+
+# Native agent jobs: the API enqueues and reads; the worker owns every model call.
+class AgentJobStart(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    action: ResearchAction
+    instruction: str = Field(default="", max_length=8000)
+
+
+class AgentProposalAccept(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+
+
+class AgentJobResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    run_id: str
+    design_revision_id: str
+    action: str
+    status: str
+    is_terminal: bool
+    needs_attention: bool
+    context_sha256: str
+    harness_version: str
+    created_at: datetime | None
+    steps: list[ResearchStepResponse]
+    actual_cost_usd: float | None
+
+
+def _agent_response(run: dict[str, Any], scope: StudyContext) -> AgentJobResponse:
+    meta = run["metadata"]
+    return AgentJobResponse(
+        run_id=run["run_id"],
+        design_revision_id=meta["design_revision_id"],
+        action=meta["action"],
+        status=run["status"].value,
+        is_terminal=run["status"].is_terminal,
+        needs_attention=run["status"].needs_attention,
+        context_sha256=meta["context_sha256"],
+        harness_version=meta["harness_version"],
+        created_at=run.get("created_at"),
+        steps=[_step(s) for s in run["steps"]],
+        actual_cost_usd=sum(
+            float(a.get("actual_cost_usd") or 0) for s in run["steps"] for a in s["attempts"]
+        )
+        if scope.has(Permission.VIEW_COSTS)
+        else None,
+    )
+
+
+@contextmanager
+def _agent_errors() -> Iterator[None]:
+    try:
+        yield
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except (ResearchRunNotFound, DesignRevisionNotFound) as exc:
+        raise _not_found("agent_job") from exc
+    except DesignRejected as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": "invalid_agent_input", "message": str(exc)}
+        ) from exc
+
+
+@router.post("/research/agent-jobs", response_model=AgentJobResponse, status_code=201)
+def start_agent_job(
+    body: AgentJobStart, scope: StudyScopeDep, session: SessionDep, response: Response
+) -> AgentJobResponse:
+    with _agent_errors():
+        jobs = ResearchAgentJobs(session, scope)
+        started = jobs.start(
+            design_revision_id=body.design_revision_id,
+            action=body.action,
+            instruction=body.instruction,
+        )
+        if not started.created:
+            response.status_code = 200
+        return _agent_response(jobs.get(started.run_id), scope)
+
+
+@router.get("/research/agent-jobs", response_model=list[AgentJobResponse])
+def list_agent_jobs(scope: StudyScopeDep, session: SessionDep) -> list[AgentJobResponse]:
+    with _agent_errors():
+        jobs = ResearchAgentJobs(session, scope)
+        return [_agent_response(jobs.get(r["run_id"]), scope) for r in jobs.jobs()]
+
+
+@router.get("/research/agent-jobs/{run_id}", response_model=AgentJobResponse)
+def read_agent_job(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+) -> AgentJobResponse:
+    with _agent_errors():
+        return _agent_response(ResearchAgentJobs(session, scope).get(run_id), scope)
+
+
+@router.post("/research/agent-jobs/{run_id}/cancel", response_model=AgentJobResponse)
+def cancel_agent_job(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+) -> AgentJobResponse:
+    with _agent_errors():
+        jobs = ResearchAgentJobs(session, scope)
+        jobs.cancel(run_id)
+        return _agent_response(jobs.get(run_id), scope)
+
+
+@router.get("/research/agent-jobs/{run_id}/result", response_model=dict[str, Any])
+def read_agent_result(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    with _agent_errors():
+        result = ResearchAgentJobs(session, scope).result(run_id, store=store)
+        if not scope.has(Permission.VIEW_COSTS):
+            result["provenance"].pop("cost_usd", None)
+        return result
+
+
+@router.post("/research/agent-jobs/{run_id}/accept", response_model=DesignRevisionResponse)
+def accept_agent_result(
+    run_id: RunIdPath,
+    body: AgentProposalAccept,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> DesignRevisionResponse:
+    with _agent_errors():
+        revision, created = ResearchAgentJobs(session, scope).accept(
+            run_id, store=store, expected_revision_id=body.expected_revision_id
+        )
+        return _revision(revision, created=created)

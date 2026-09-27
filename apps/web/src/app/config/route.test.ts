@@ -14,7 +14,7 @@ describe("public AI configuration", () => {
     const response = GET();
     const config = await response.json();
     expect(config.aiRuntime).toEqual({
-      enabled: true, provider: "aws_bedrock", region: "eu-central-1",
+      enabled: true, researchAgentsEnabled: false, provider: "aws_bedrock", region: "eu-central-1",
       model: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", approvedFor: "CLASS_C_INTERNAL",
     });
     expect(JSON.stringify(config)).not.toContain("secret-not-for-browser");
@@ -22,14 +22,20 @@ describe("public AI configuration", () => {
   });
   it("does not announce activation when the switch is absent or false", async () => {
     vi.stubEnv("AIA_AI_RUNTIME_ENABLED", undefined);
+    vi.stubEnv("AIA_AI_RESEARCH_AGENTS_ENABLED", "true");
     expect((await GET().json()).aiRuntime.enabled).toBe(false);
+    expect((await GET().json()).aiRuntime.researchAgentsEnabled).toBe(false);
     vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "false");
     expect((await GET().json()).aiRuntime.enabled).toBe(false);
+    vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "true");
+    expect((await GET().json()).aiRuntime.researchAgentsEnabled).toBe(true);
   });
   it("reads the switch with the worker's vocabulary, so the page never says off while calls run", async () => {
     for (const on of ["1", "true", "yes", "on", " TRUE ", "On"]) {
       vi.stubEnv("AIA_AI_RUNTIME_ENABLED", on);
+      vi.stubEnv("AIA_AI_RESEARCH_AGENTS_ENABLED", on);
       expect((await GET().json()).aiRuntime.enabled, on).toBe(true);
+      expect((await GET().json()).aiRuntime.researchAgentsEnabled, on).toBe(true);
     }
     for (const off of ["0", "false", "no", "off", "", "  "]) {
       vi.stubEnv("AIA_AI_RUNTIME_ENABLED", off);
@@ -41,5 +47,9 @@ describe("public AI configuration", () => {
     expect(runtimeSwitch("2")).toBeNull();
     vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "ture");
     expect((await GET().json()).aiRuntime.enabled).toBeNull();
+    expect((await GET().json()).aiRuntime.researchAgentsEnabled).toBeNull();
+    vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "true");
+    vi.stubEnv("AIA_AI_RESEARCH_AGENTS_ENABLED", "ture");
+    expect((await GET().json()).aiRuntime.researchAgentsEnabled).toBeNull();
   });
 });

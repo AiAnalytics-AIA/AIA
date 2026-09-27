@@ -10,17 +10,15 @@ import { useState } from "react";
 import { t } from "@/i18n/t";
 import {
   ANALYSIS_JOB_TITLE,
-  ANALYSIS_REUSED,
   ANALYSIS_WARN_MS,
   BRIEF_EMPTY,
   analysisPayload,
   briefEmpty,
   mergeAnalysis,
-  reusableAnalysis,
   withAttachmentContext,
 } from "@/unit/research/brief";
+import { isNativeResult } from "@/lib/research-agent-jobs";
 import { JobError } from "@/unit/research/jobs";
-import { activeProvider, notReadyMessage, providerReady } from "@/unit/research/provider";
 import { useResearch } from "./context";
 import { AiFailureCard } from "./useAiStep";
 
@@ -29,7 +27,7 @@ export type AnalysisFailure = { kind: "analysis"; message: string; jobId: string
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function useAnalysis() {
-  const { store, boot, runJob, toast } = useResearch();
+  const { store, boot, runJob } = useResearch();
   const [failure, setFailure] = useState<AnalysisFailure | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -40,27 +38,20 @@ export function useAnalysis() {
    * new analysis clears that mark.
    */
   const analyse = async ({ force = false, byComments = false }: { force?: boolean; byComments?: boolean } = {}): Promise<boolean> => {
+    void force;
     setFailure(null);
     setBusy(true);
     try {
       const current = store.get();
       const withCtx = withAttachmentContext(current.project);
-      if (!force && reusableAnalysis(withCtx, current.analysis)) {
-        if (withCtx.briefing.attachments_context !== current.project.briefing.attachments_context) {
-          store.update(() => ({ project: withCtx }), { reason: "brief_attachments_context", invalidateCheck: false });
-        }
-        toast(ANALYSIS_REUSED);
-        return true;
-      }
       if (briefEmpty(withCtx)) throw new Error(BRIEF_EMPTY);
-      const provider = activeProvider(current.preferredProvider, current.project.run_policy?.provider, boot);
-      if (!(await providerReady(provider, { boot, model: String(current.project.model || "") }))) {
-        setFailure({ kind: "provider", message: notReadyMessage() });
-        return false;
-      }
       // The job is addressed to the saved project: a new or edited brief is saved first.
       if (!current.projectId || current.save.kind !== "saved") await store.flush();
       const result = await runJob("researchAnalyze", analysisPayload(withCtx), { title: ANALYSIS_JOB_TITLE, warnMs: ANALYSIS_WARN_MS });
+      if (isNativeResult(result)) {
+        store.update(({ project }) => ({ project: { ...project, ui_state: { ...project.ui_state, plan_changed26: byComments } } }), { reason: "native_analysis_reviewed" });
+        return true;
+      }
       store.update(() => {
         const merged = mergeAnalysis(withCtx, result, boot);
         return { ...merged, project: { ...merged.project, ui_state: { ...merged.project.ui_state, plan_changed26: byComments } } };

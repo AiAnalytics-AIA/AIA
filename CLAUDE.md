@@ -55,7 +55,8 @@ apps/
                             a study's frame and its unit-project binding, ADR 0015),
                             panel (the session + gate in front of /app, /classic and the unit, ADR 0012),
                             research (a study's Design Revisions, readiness, runs, their steps and
-                            artifacts, ADR 0016)
+                            artifacts (ADR 0016), and native agent-jobs beneath each Study,
+                            settings (the read-only settings document: every control and how it is set)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data.
@@ -66,6 +67,8 @@ apps/
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs), the client workspace and its areas, ResearchStudy
                             (a study's frame from its AIA binding), useResource (404 = nothing here),
+                            settings/ControlPanel (every control from GET /settings, how each is set;
+                            live forms over the admin routes with the signed-in token, lib/api.ts `admin`),
                             FrontDoor (the branded frame of /login, /logout, /auth/callback)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
     src/components/rehome/  Primitives (token utilities only), the research stages and the classic
@@ -79,6 +82,8 @@ apps/
     src/components/rehome/research/  The stage frame (StudyFrame: client, study, binding): rail,
                             save state, job panel, the shared brief analysis (useAnalysis), one
                             screen per stage; ExecutionSteps.tsx: Run, Progress, Results (ADR 0016)
+    src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
+                            live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
                             fictional data is labelled every time, the park is explained
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
@@ -107,6 +112,8 @@ apps/
     registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build
     research.py             The research steps: compile, preflight, fieldwork (parks without a
                             source), aggregate, sociomap; every artifact on the owned design project
+    research_agents.py     Native proposal executor: frozen design/context, StepModelCaller,
+                            provenance artifact; no automatic write or retry
     ai_fieldwork.py         The ai_runtime source: fictional roster, class + lineage, gateway preflight
                             (a refusal parks), one request per respondent block, answers drawn by code
     ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
@@ -124,6 +131,8 @@ packages/aia_core/src/aia_core/
                             structured-output validation, AgentDefinition, FallbackPolicy
     ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
     ai_tools.py             ToolRegistry — scope never from model arguments
+    research_agents.py     Eight closed Research task contracts, prompt/harness versions,
+                            bounded context and task-owned proposal mapping
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
                             contract, fictional roster, facts by code, interpretation, the dataset
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
@@ -625,12 +634,22 @@ are fast and stay in the foreground.
 
 ### Known flakes
 
-None recorded. Add an entry here the moment one is confirmed, in this shape:
+Add an entry here the moment one is confirmed, in this shape:
 
 ```
 - `packages/aia_core/tests/test_x.py::test_y` — symptom: …
   Confirmation: passes when run alone. Cause: … Fix or waiver: …
 ```
+
+- `apps/api/tests/test_research_api.py::test_research_artifacts_are_read_only_through_the_run_that_produced_them`
+  — symptom: the run ends `FAILED` instead of `COMPLETED`; its `sociomap` step's
+  attempt records `IntegrityError` ("raised as a result of Query-invoked autoflush")
+  inserting a `(child, parent)` pair into `project_artifact_dependencies`, failure
+  class `UNKNOWN`. Confirmation: fails 3 of 20 runs alone on `develop` @ `46b7337`,
+  1 of 20 on `claude/trusting-turing-2b9oyl`; the other 19 pass. Cause: *hypothesis*,
+  not reproduced deterministically — a duplicate dependency edge when an input
+  artifact is reused by content hash. Fix or waiver: none yet; it is a defect in the
+  artifact repository, not a test to retry.
 
 Mocks live at interface boundaries — external services are mocked through their
 protocol, always. Real HTTP only in explicitly manual or integration runs; if a
@@ -706,3 +725,13 @@ plainly without hedging.
 
 Do not narrate options you are not going to take, and do not re-explain a
 decision that has already been made.
+
+## Native Research agents (2026-09-27)
+
+[research-agents.md](docs/architecture/research-agents.md) describes contracts,
+context, acceptance and activation. Fieldwork activation does not activate design
+jobs. The additional worker keys are `AIA_AI_RESEARCH_AGENTS_ENABLED`,
+`AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS` and `AIA_AI_RESEARCH_RESERVATION_USD`; the
+reservation covers primary plus one schema repair. Analysis/report execution and
+owned web retrieval remain in the complete-workflow plan, not delivered by the
+proposal executor. Do not describe model recollection as web research.

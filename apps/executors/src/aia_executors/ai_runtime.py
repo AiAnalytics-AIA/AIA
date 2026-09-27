@@ -137,6 +137,9 @@ class AIRuntimeSettings:
     fieldwork_reservation_usd: float
     fictional_client_ids: frozenset[str]
     timeout_s: float
+    research_agents_enabled: bool = False
+    research_max_output_tokens: int = 0
+    research_reservation_usd: float = 0.0
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> AIRuntimeSettings | None:
@@ -218,12 +221,39 @@ class AIRuntimeSettings:
             fieldwork_reservation_usd=reservation,
             fictional_client_ids=fictional,
             timeout_s=timeout,
+            research_agents_enabled=_flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False),
+            research_max_output_tokens=_positive_int(env, "AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS")
+            if _flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False)
+            else 0,
+            research_reservation_usd=float(_number(env, "AIA_AI_RESEARCH_RESERVATION_USD") or 0)
+            if _flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False)
+            else 0,
         )
         if settings.fieldwork_max_output_tokens > settings.max_output_tokens:
             raise AIRuntimeConfigError(
                 "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS exceeds the model's "
                 "AIA_BEDROCK_MAX_OUTPUT_TOKENS"
             )
+        if settings.research_agents_enabled:
+            if settings.research_max_output_tokens > settings.max_output_tokens:
+                raise AIRuntimeConfigError("research output limit exceeds the model limit")
+            prices = [
+                settings.input_usd_per_mtok,
+                settings.cache_write_usd_per_mtok or 0,
+                settings.cache_read_usd_per_mtok or 0,
+            ]
+            worst = (
+                2
+                * (
+                    settings.context_window_tokens * max(prices)
+                    + settings.research_max_output_tokens * settings.output_usd_per_mtok
+                )
+                / 1_000_000
+            )
+            if settings.research_reservation_usd < worst:
+                raise AIRuntimeConfigError(
+                    "research reservation must cover two calls at the model ceilings"
+                )
         return settings
 
     def model_document(self) -> dict[str, Any]:
@@ -241,6 +271,9 @@ class AIRuntimeSettings:
             "model": self.model_id,
             "route_id": self.route_id,
         }
+        capabilities = [ModelCapability.SIMULATION]
+        if self.research_agents_enabled:
+            capabilities += [ModelCapability.RESEARCH_REASONING, ModelCapability.CRITIC]
         return {
             "models": [
                 {
@@ -248,7 +281,7 @@ class AIRuntimeSettings:
                     "model": self.model_id,
                     # Only what runs today. ADR 0010 lets all generative capabilities
                     # resolve to this model; binding them waits for their agents.
-                    "capabilities": [ModelCapability.SIMULATION.value],
+                    "capabilities": [c.value for c in capabilities],
                     "max_output_tokens": self.max_output_tokens,
                     "context_window_tokens": self.context_window_tokens,
                     "pricing": pricing,
@@ -259,7 +292,7 @@ class AIRuntimeSettings:
                 {
                     "version": self.policy_version,
                     "allowed_providers": [Provider.AWS_BEDROCK.value],
-                    "bindings": {ModelCapability.SIMULATION.value: binding},
+                    "bindings": {c.value: binding for c in capabilities},
                 }
             ],
         }

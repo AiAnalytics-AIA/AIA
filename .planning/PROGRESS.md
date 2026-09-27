@@ -73,8 +73,8 @@ attempt 3, green).
 | #65 | `fix/api-tests-file-backed-sqlite` | Flaky API tests on shared in-memory SQLite (OI-69) | **Merged** 10:30 | 2 |
 | #66 | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
 | #63 | `feature/research-agents` | Native Research design agents on Bedrock | Draft, "do not merge as completion"; `develop` merged in @ `5718383` (2026-09-27); conflicts with 3 in this file's header | 4, see below |
-| — | `claude/trusting-turing-2b9oyl` | Settings page on the real API | No PR yet; based on `main` | open a PR into `develop` |
-| — | `claude/loving-hopper-qiflcr` | A worker refuses an in-memory SQLite engine; deterministic reproduction of OI-69 | Draft PR into `develop` | any |
+| #67 | `claude/trusting-turing-2b9oyl` | Settings control panel on `/app/settings`: `GET /settings`, `GET`/`PUT /self-approval`, `PUT /clients/{id}/status` ([plan](plans/settings-control-panel.md)) | Draft into `develop`; `develop` merged in three times, the last @ `14a124b`; CI was green at `abe5c49` before it | after #66 |
+| #69 | `claude/loving-hopper-qiflcr` | A worker refuses an in-memory SQLite engine; deterministic reproduction of OI-69; drops the stale known-flakes entry | Draft into `develop` | any |
 
 **PR #63** is one slice, not the whole agent workflow. Land what it has built as a slice:
 native design jobs and reviewed proposals, once CI is green and the browser journey is
@@ -84,6 +84,21 @@ PRs, each against the plan that already exists for it, not in the same branch.
   complete renderer". **#62 is that renderer, merged at 10:16.** Merge `develop` into
   #63 and start the report work at R10/R11, not R4.
 - Deep Research is planned in `plans/deep-research.md` (#54, merged 10:15).
+- Branch state, as #63 records it (moved here from above the title in the merge that
+  brought `develop` @ `14a124b` in):
+  **Research agents — full Study process**: Codex implementation on
+  `feature/research-agents`, based on develop after PR #57 merged. [Plan](plans/research-agent-workflows.md).
+  The user confirmed that design through results belongs to the original goal.
+  Respondent fieldwork is already live. Native proposal jobs and eight actions are
+  implemented locally (not deployed); analysis/report execution and owned Deep
+  Research remain required work. Contract: [research-agents.md](../docs/architecture/research-agents.md).
+  Anchors: `test_research_agent_executor.py`, `test_research_agent_jobs_api.py`,
+  `useResearchAgents.test.tsx`, and PostgreSQL
+  `test_two_reviewed_design_proposals_cannot_overwrite_each_other`. Search provider:
+  Tavily free evaluation proposed; no service approval, account, route or live call.
+  Local checks on refreshed develop: core 2,575/100 skipped; API 202; worker 43/6
+  skipped; executors 64; web 758; PostgreSQL focused suites 65; types/lint clean,
+  layer 62 and exposure 7. Browser journey and CI are still pending.
 
 **Is AIA its own application?** Not yet, and the gap is precise.
 - **Standalone:** the back end (API, worker, executors, core). None of it calls the
@@ -211,7 +226,7 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 ## In progress
 
-**The `develop` environment is live** (deployed `ff463a3`; see *Where the code is*). Research execution and Bedrock respondent fieldwork are merged, and the fictional Class C acceptance completed on 2026-09-26 (Completed, Agent Runtime). Design assistants, interpretation, report execution and Deep Research are the open work (PRs #63, #62, #54).
+**The `develop` environment is live** (see *Where the code is* for what is deployed). Research execution and Bedrock respondent fieldwork are merged, and the fictional Class C acceptance completed on 2026-09-26 (Completed, Agent Runtime). Native design proposals are implemented (PR #63) and remain off by default. Evidence-backed interpretation/report execution and owned Deep Research remain required for the complete agent workflow.
 
 | What | State | Anchor |
 |---|---|---|
@@ -348,7 +363,7 @@ the data owner, 2026-09-24: PR C → OI-58 → OI-59.** PR C merged as #52;
 PR #56 has merged and deployed, and the fictional Class C acceptance is done (20 calls, $0.2303301). Now: the merge order under *Open pull requests*, then checkpointing (OI-64), persistent lineage (OI-65), OI-58 and OI-59.
 
 - ~~**PR C, research execution**~~ — merged (PR #52 @ `b3bd42f`); see Completed.
-- **Agent Runtime Foundation**: AI respondent fieldwork is built and deployed in PR #56 @ `0310091`; ADR 0010 approval and EU pricing are recorded. The runtime is active for the approved synthetic client; the isolated $2 study completed with 20 calls costing $0.2303301. Design-generation assistants remain unmigrated. Then checkpointed fieldwork (OI-64), ledger lineage (OI-65), analysis and report agents. Panel-derived transmission remains blocked by OI-61.
+- **Agent Runtime Foundation**: AI respondent fieldwork is built and deployed in PR #56 @ `0310091`; ADR 0010 approval and EU pricing are recorded. The runtime is active for the approved synthetic client; the isolated $2 study completed with 20 calls costing $0.2303301. Native design assistants are implemented on this branch, not deployed or activated. Remaining work: checkpointed fieldwork (OI-64), ledger lineage (OI-65), analysis/report execution and owned Deep Research. Panel-derived transmission remains blocked by OI-61.
 - **Deep Research** ([plan](plans/deep-research.md), [ADR 0017](../docs/architecture/adr/0017-deep-research-external-retrieval.md),
   Proposed). Asked for by the data owner 2026-09-25: research driven by the study's
   questions and tracked objects, over Client Knowledge and the web, bounded only by
@@ -557,3 +572,15 @@ with the topic until they are renumbered in one change with every reference.*
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);
 finished ones move to [`plans/done/`](plans/done/).
+
+### Research agent publication checkpoint — 2026-09-27
+
+Native backend `c88ec50` and proposal screens `45a2651` on
+`feature/research-agents`; full-workflow continuation is in the
+[plan handoff](plans/research-agent-workflows.md#claude-continuation-handoff--2026-09-27).
+Final review reproduced and fixed fieldwork runs disappearing behind newer design
+jobs at a pagination limit. Regression:
+`test_design_jobs_do_not_hide_fieldwork_when_the_list_is_limited`; PostgreSQL
+Research/native-agent follow-up 30/30. A real browser journey, interpretation,
+complete DOCX output and owned Deep Research remain required. Draft publication
+is not completion or activation.

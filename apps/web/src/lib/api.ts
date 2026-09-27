@@ -412,3 +412,108 @@ export const research = {
   artifact: (studyId: string, runId: string, artifactId: string) =>
     request<Artifact>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/artifacts/${enc(artifactId)}`),
 };
+
+export type ResearchAgentAction = "analyze_brief" | "build_questionnaire" | "optimize_questionnaire" | "propose_audience" | "suggest_dimensions" | "critique_design" | "design_copilot" | "answer_memory";
+export type ResearchAgentJob = {
+  run_id: string; design_revision_id: string; action: ResearchAgentAction;
+  status: string; is_terminal: boolean; needs_attention: boolean;
+  context_sha256: string; harness_version: string; created_at: string | null;
+  steps: ResearchStep[]; actual_cost_usd: number | null;
+};
+export type ResearchAgentResult = {
+  result: { project: Record<string, unknown>; proposal: Record<string, unknown>; analysis?: unknown } & Record<string, unknown>;
+  provenance: { agent_id: string; design_revision_id: string; context_sha256: string; status: string } & Record<string, unknown>;
+};
+const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
+export const researchAgents = {
+  design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
+  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "") =>
+    request<ResearchAgentJob>("POST", agentsPath(studyId), { design_revision_id: revisionId, action, instruction }),
+  jobs: async (studyId: string) => {
+    const jobs = await request<unknown>("GET", agentsPath(studyId));
+    if (!Array.isArray(jobs) || jobs.some((j) => !j || typeof j.run_id !== "string" || typeof j.status !== "string" || !Array.isArray(j.steps))) {
+      throw new Error("Seznam AI kroků má neplatný formát. Zkuste jej načíst znovu.");
+    }
+    return jobs as ResearchAgentJob[];
+  },
+  job: (studyId: string, jobId: string) => request<ResearchAgentJob>("GET", `${agentsPath(studyId)}/${enc(jobId)}`),
+  cancel: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/cancel`),
+  result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),
+  accept: (studyId: string, jobId: string, revisionId: string) => request<DesignRevision>("POST", `${agentsPath(studyId)}/${enc(jobId)}/accept`, { expected_revision_id: revisionId }),
+};
+
+// ---- the settings page: every control and how it is set -------------------
+// Mirrors apps/api/src/aia_api/schemas/settings.py and the administrative routes
+// in routers/scope.py. Enum values are never listed here: they arrive in
+// `vocabularies`, so a domain change cannot leave a stale copy in the browser.
+
+export type SettingControl = "API" | "DEPLOYMENT" | "CODE" | "INVARIANT";
+
+/** `null` means "not configured" -- never zero, never false. */
+export type SettingValue = string | number | boolean | string[] | null;
+
+export type SettingItem = { key: string; value: SettingValue; control: SettingControl; source: string; unit: string | null };
+export type SettingGroup = { key: string; items: SettingItem[] };
+
+export type Vocabularies = {
+  organization_roles: string[];
+  scope_roles: { role: string; permissions: string[] }[];
+  permissions: string[];
+  client_statuses: string[];
+  study_statuses: string[];
+  providers: { id: string; label: string; paid: boolean }[];
+  provider_policies: string[];
+  model_capabilities: string[];
+  data_classes: string[];
+  research_stages: { id: string; label: string | null }[];
+  simulation_stages: { id: string; label: string | null }[];
+};
+
+export type SettingsDocument = {
+  organization_id: string;
+  your_role: string;
+  may_administer: boolean;
+  groups: SettingGroup[];
+  vocabularies: Vocabularies;
+};
+
+export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string };
+
+export type AdminClient = {
+  client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: string | null;
+};
+
+export type SelfApprovalLevels = {
+  organization: boolean | null;
+  clients: { client_id: string; allowed: boolean }[];
+  studies: { study_id: string; client_id: string; allowed: boolean }[];
+};
+
+export type SelfApprovalPolicy = { allowed: boolean; source: "default" | "organization" | "client" | "study" };
+
+export type AuditEntry = {
+  event_id: number; action: string; client_id: string | null; study_id: string | null; subject_user_id: string | null;
+  actor_id: string | null; role: string | null; reason: string; payload: Record<string, unknown>; created_at: string | null;
+};
+
+export const admin = {
+  settings: () => request<SettingsDocument>("GET", "/api/v1/settings"),
+  members: () => request<Member[]>("GET", "/api/v1/members"),
+  addMember: (body: { email: string; role: string; display_name: string }) => request<Member>("POST", "/api/v1/members", body),
+  clients: () => request<AdminClient[]>("GET", "/api/v1/clients?include_archived=true"),
+  setClientStatus: (clientId: string, status: string) =>
+    request<AdminClient>("PUT", `/api/v1/clients/${enc(clientId)}/status`, { status }),
+  grantClient: (clientId: string, userId: string, role: string) =>
+    request<void>("POST", `/api/v1/clients/${enc(clientId)}/grants`, { user_id: userId, role }),
+  studies: () => request<Study[]>("GET", "/api/v1/studies?include_archived=true"),
+  study: (studyId: string) => request<Study>("GET", `/api/v1/studies/${enc(studyId)}`),
+  setStudyStatus: (studyId: string, status: string) => request<Study>("PUT", `/api/v1/studies/${enc(studyId)}/status`, { status }),
+  setStudyBudget: (studyId: string, budgetUsd: number) =>
+    request<Study>("PUT", `/api/v1/studies/${enc(studyId)}/budget`, { budget_usd: budgetUsd }),
+  grantStudy: (studyId: string, userId: string, role: string) =>
+    request<void>("POST", `/api/v1/studies/${enc(studyId)}/grants`, { user_id: userId, role }),
+  selfApproval: () => request<SelfApprovalLevels>("GET", "/api/v1/self-approval"),
+  setSelfApproval: (body: { allowed: boolean | null; client_id?: string; study_id?: string }) =>
+    request<SelfApprovalPolicy>("PUT", "/api/v1/self-approval", body),
+  audit: (limit = 50) => request<AuditEntry[]>("GET", `/api/v1/access-audit?limit=${limit}`),
+};
