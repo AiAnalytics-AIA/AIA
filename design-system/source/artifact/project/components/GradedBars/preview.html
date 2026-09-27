@@ -1,0 +1,12 @@
+<!-- @dsCard group="Results" height=220 subtitle="Bars that carry their evidence grade" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>GradedBars</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{padding:16,maxWidth:640}},h(A.GradedBars,{id:"p",label:"Ochota převést účet podle věku",rows:[{label:"18–34",value:52.3,lo:48.9,hi:55.6,role:"CALIBRATED_CORE"},{label:"35–54",value:44.1,lo:41,hi:47.3,role:"MEASURED_JOINT"},{label:"55+",value:27.8,role:"MODELED_BEHAVIOR_PRIOR"},{label:"Kraj Vysočina",state:"suppressed"},{label:"Bez odpovědi",value:null}]})));
+</script>
+</body>
+</html>

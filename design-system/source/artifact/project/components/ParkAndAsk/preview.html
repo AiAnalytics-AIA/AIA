@@ -1,0 +1,12 @@
+<!-- @dsCard group="Money" height=470 subtitle="Authorising spend, no cheerful default" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>ParkAndAsk</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{padding:16,background:"var(--surface-sunken)",display:"grid",placeItems:"center"}},h(A.ParkAndAsk,{clientId:"cl_horizont",client:"Banka Horizont",study:"Důvěra v digitální bankovnictví 2026",what:"Fáze Respondenti: 1 204 syntetických respondentů, 1 dotazník (38 otázek)",modelRole:"respondent_model",provider:"anthropic",amount:4900,basis:"horní odhad, rezervuje se před voláním",remaining:3098.66,limit:12000,currency:"USD",canApprove:false})));
+</script>
+</body>
+</html>
