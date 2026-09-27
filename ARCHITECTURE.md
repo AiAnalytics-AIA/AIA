@@ -50,7 +50,7 @@ point; nothing outside it touches its internals.
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
 | — | **Legacy stub** | `src/server.js` | Frozen and unused: nothing in the Makefile, CI, Compose or a Dockerfile runs it, and sign-in is Cognito through `apps/web`. Deleting it is PROGRESS *Next* 8. | Nothing. Receives no new features. |
-| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only behind the gate, at `/classic` and on its own paths (ADR 0015). | Nothing. The back end never calls it. The web client reaches it over HTTP through Caddy, only from `apps/web/src/unit/`, for the stages still in its store (OI-58); parity tests reach it over HTTP. |
+| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only behind the gate, at `/classic` and on its own paths (ADR 0015). | Nothing. The back end never calls it. The web client reaches it over HTTP through Caddy, only from `apps/web/src/unit/`, for the classic projects screens (the research stages no longer do, ADR 0018); parity tests reach it over HTTP. |
 
 The web `/config` endpoint may expose nonsecret runtime configuration for
 Settings (switch, Bedrock model/profile, source region and approval class).
@@ -476,9 +476,11 @@ and the hand-off script (with its way back) only when it is the pinned
 `AIA_INTERFACE_SKIN_ENABLED`, off by default); `/interface-document` is not an
 entry point. The vendored unit is reached only on the paths it serves (`@unit`:
 `/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`,
-`/fullsim-arena`, `/health`, `/status`), each after the gate; the stages read
-the working content through them, via one ledger-checked client
-(`apps/web/src/unit/`). Every other path is the web client's, so nothing falls
+`/fullsim-arena`, `/health`, `/status`), each after the gate. The research stages
+no longer use them: their content, attachments, questionnaire import, catalogues and
+AI steps are AIA's (ADR 0018); only the classic projects screens still call the unit,
+through one ledger-checked client (`apps/web/src/unit/`), until increment 4 removes
+them. Every other path is the web client's, so nothing falls
 through to the classic product. The gate is the whole of the unit's access control:
 it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as every
 API call, admits only what `ScopeResolver.authorize_legacy_panel` admits

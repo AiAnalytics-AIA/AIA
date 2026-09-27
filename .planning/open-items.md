@@ -1905,6 +1905,11 @@ Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-
   (`test_document_text.py`); nothing of the brief reaches the unit. Tests:
   `test_study_workspaces.py` › *an attachment is served only through its own study*,
   `test_client_api.py` › *a file is attached in AIA and downloaded only through its study*.
+- **Landed (chunk 5):** Audience and Dimenze call nothing of the unit. Dimensions come from
+  the client's approved knowledge and a request is a knowledge proposal; what the unit
+  computed from its panel or audience store says it is not in AIA. With chunks 1-4, the
+  research flow reaches no unit route: `ResearchScreen`, `BriefStep`, `PlanStep`,
+  `QuestionnaireStep`, `AudienceStep`, `PersonaStep` tests fail on any unit URL.
 - **Landed (chunk 4):** a questionnaire file is read in AIA and only its sections come back
   (`POST …/workspace/questionnaire-import`), normalized by the unit's rules and compared with
   the unit's own import (`test_questionnaire_import.py`); the template is AIA's own workbook.

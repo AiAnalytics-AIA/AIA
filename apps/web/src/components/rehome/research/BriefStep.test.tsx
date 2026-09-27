@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
-import { resetBootCache } from "@/unit/boot";
 import { LINK_INVALID } from "@/research/brief";
 import { PROBLEM_TYPES, briefFingerprint, defaultsMerge } from "@/research/model";
 import { ResearchScreen } from "./ResearchScreen";
@@ -20,12 +19,7 @@ const replace = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/brief", useRouter: () => ({ push, replace }) }));
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
-const BOOT = {
-  empty_project: EMPTY,
-  ai_provider: "claude_code_subscription",
-  panel: { version: "v17.1.2" },
-  edition: { version: "18.6.6", claude_code_enabled: true },
-};
+const TEMPLATE = { empty_project: EMPTY };
 
 type Call = { url: string; body: unknown };
 let calls: Call[] = [];
@@ -45,22 +39,16 @@ function unitStub(project: Record<string, unknown> | null, over: Record<string, 
       const path = u.split("?")[0];
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       calls.push({ url: u, body });
-      const answers: Record<string, (b: unknown) => unknown> = {
-        "/api/bootstrap": () => BOOT,
-        "/api/providers/claude-code/status": () => ({ ok: true }),
-        "/api/research/analyze": () => ({ job_id: "JOB-1" }),
-        "/api/job": () => ({
-          state: "done",
-          result: { analysis: { objectives: ["Změřit zájem"] }, project: { research_plan: { status: "proposed" } } },
-        }),
-        ...over,
-      };
-      const answer = native(path, init?.method ?? "GET", body) ?? ws.answer(path, init?.method ?? "GET", body) ?? answers[path]?.(body) ?? {};
+      const answer = native(path, init?.method ?? "GET", body) ?? ws.answer(path, init?.method ?? "GET", body) ?? over[path]?.(body);
+      if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
+
+/** Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018). */
+const unitCalls = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url);
 
 // jsdom's Blob has no arrayBuffer() (every current browser has); read it through FileReader. AGENTS.md § jsdom.
 if (!Blob.prototype.arrayBuffer) {
@@ -75,12 +63,12 @@ if (!Blob.prototype.arrayBuffer) {
 }
 
 beforeEach(() => {
-  resetBootCache();
   push.mockReset();
 });
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  expect(unitCalls()).toEqual([]);
 });
 
 describe("Zadání", () => {
@@ -205,7 +193,7 @@ describe("Zadání", () => {
 
   it("requests a frozen native context even when legacy brief signatures match", async () => {
     const project = { goal: "Zjistit zájem" };
-    const sig = briefFingerprint(defaultsMerge(project, BOOT));
+    const sig = briefFingerprint(defaultsMerge(project, TEMPLATE));
     unitStub(project, {}, { objectives: ["A"], _brief_signature: sig });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));

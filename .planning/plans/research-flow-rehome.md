@@ -5,6 +5,15 @@
 **Parent plan:** [interface-rehome.md](interface-rehome.md) (area A4) ·
 **Tools:** [ui-workbench.md](ui-workbench.md)
 
+> **Off the 18.6.6 unit (2026-09-27, [legacy-phase-out.md](legacy-phase-out.md),
+> [ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md)).** The flow's
+> logic moved from `src/unit/research` to `src/research`; the working content, the brief's
+> attachments, the questionnaire import and template, and the Dimenze library are AIA's;
+> the unit job runner, provider readiness (`provider.ts`) and the support bundle
+> (`src/unit/support.ts`) are gone; what the unit computed from its panel says it is not in
+> AIA. The chunk records below describe what landed at the time, and name files that no
+> longer exist.
+
 > **Re-homed under the client (2026-09-24, [client-first-ia.md](done/client-first-ia.md),
 > [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)).**
 > A research is an AIA `Study` of kind `RESEARCH` under its client. Its stages are

@@ -9,7 +9,6 @@ import { join } from "node:path";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resetBootCache } from "@/unit/boot";
 import { ClientDirectory } from "./clients/ClientDirectory";
 import { ClientProvider } from "./clients/ClientContext";
 import { ClientOverview } from "./clients/ClientOverview";
@@ -91,7 +90,6 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
 const called = (method: string, prefix: string) => calls.filter((c) => c.method === method && c.url.startsWith(prefix));
 
 beforeEach(() => {
-  resetBootCache();
   // jsdom has no <dialog> behaviour.
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");

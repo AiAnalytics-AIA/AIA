@@ -78,14 +78,17 @@ apps/
                             Node): model, the ten steps, the job panel's words, and the store that
                             loads and saves a study's working content in AIA (1.8 s save, visible
                             state, a stale save refused and said, ADR 0018)
-    src/unit/               The remaining calls into the 18.6.6 unit, each by its ledger row;
-                            shrinking to nothing (legacy-phase-out.md)
+    src/unit/               The remaining calls into the 18.6.6 unit, each by its ledger row: only
+                            the classic projects screens now -- the research flow calls none, and
+                            its tests fail on any unit URL (legacy-phase-out.md, chunk 9 removes it)
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
     src/components/rehome/research/  The stage frame (StudyFrame: client, study, rights): rail,
                             save state, job panel, the shared brief analysis (useAnalysis), one
-                            screen per stage; ExecutionSteps.tsx: Run, Progress, Results (ADR 0016)
+                            screen per stage; ExecutionSteps.tsx: Run, Progress, Results (ADR 0016).
+                            What 18.6.6 computed from its panel (audience filters, preview, subpanels,
+                            own audiences, panel factors) says "V AIA zatím není" where it is met
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,

@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
-import { resetBootCache } from "@/unit/boot";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
 import { CONFIRM_REMOVE_SECTION, GUIDED_PROMPT, PROMPT_SET_ITEMS, PROMPT_SET_TYPE, SET_SIZE, SET_TOO_SMALL } from "@/research/questionnaire";
 import { ResearchScreen } from "./ResearchScreen";
@@ -20,7 +19,7 @@ const replace = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/questionnaire", useRouter: () => ({ push, replace }) }));
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
-const BOOT = { empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6", claude_code_enabled: true } };
+const TEMPLATE = { empty_project: EMPTY };
 const SECTIONS = [
   { id: "sec_a", type: "questions", title: "Hlavní otázky", purpose: "", questions: [
     { id: "Q1", text: "Jak často?", typ: "vyber", kategorie: ["Denně", "Týdně"] },
@@ -44,20 +43,16 @@ function unitStub(project: Record<string, unknown>, analysis: unknown = null, ov
       const u = String(url);
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       calls.push({ url: u, body });
-      const answers: Record<string, (b: unknown) => unknown> = {
-        "/api/bootstrap": () => BOOT,
-        "/api/providers/claude-code/status": () => ({ ok: true }),
-        "/api/research/build_questionnaire": () => ({ job_id: "JOB-B" }),
-        "/api/questionnaire/optimize": () => ({ job_id: "JOB-O" }),
-        "/api/job": () => ({ state: "done", result: { project: { ...EMPTY, ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "ai" } } } }),
-        ...over,
-      };
-      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body) ?? {};
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? over[u.split("?")[0]]?.(body);
+      if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
+
+/** Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018). */
+const unitCalls = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url);
 const lastSave = () => saves.at(-1) as unknown as { content: { sections: { questions?: { typ: string; kategorie?: string[] }[]; objects?: string[] }[]; ui_state: Record<string, unknown> }; reason: string };
 
 async function answerDialog(question: string, value: string | null) {
@@ -82,7 +77,6 @@ if (!Blob.prototype.arrayBuffer) {
   };
 }
 beforeEach(() => {
-  resetBootCache();
   push.mockReset();
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");
@@ -95,6 +89,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  expect(unitCalls()).toEqual([]);
 });
 
 describe("Dotazník", () => {
@@ -221,7 +216,7 @@ describe("Dotazník", () => {
   });
 
   it("reviews the native brief analysis and questionnaire before opening the editor", async () => {
-    const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
+    const sig = briefFingerprint(defaultsMerge(BRIEF, TEMPLATE));
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
@@ -234,7 +229,7 @@ describe("Dotazník", () => {
   });
 
   it("parks the build at the native runtime boundary", async () => {
-    const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
+    const sig = briefFingerprint(defaultsMerge(BRIEF, TEMPLATE));
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig }, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
@@ -243,7 +238,7 @@ describe("Dotazník", () => {
   });
 
   it("reviews native optimization without asking for a legacy provider connection", async () => {
-    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/api/providers/claude-code/status": () => ({ ok: false }) });
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null);
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click((await screen.findAllByRole("button", { name: "OPTIMALIZOVAT DOTAZNÍK S AI" }))[0]);
     await approveProposal();

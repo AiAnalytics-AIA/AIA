@@ -1213,10 +1213,10 @@
     }
    ],
    "slice": 12,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/knowledge-proposals",
+   "scope": "study",
+   "notes": "a study's dimension request is a Client Knowledge proposal of kind DIMENSION carrying the unit's request content (dimensionProposal in apps/web/src/research/persona.ts); the unit created a needs-evidence dimension in its single-tenant Data Library at once, AIA's joins the client's catalogue only when a person other than the proposer approves it (ADR 0015, 0018)",
    "decision": null
   },
   {

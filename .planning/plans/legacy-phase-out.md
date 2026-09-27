@@ -149,8 +149,16 @@ PR 1 — native research workspace (`feature/native-research-workspace`)
   `test_questionnaire_import.py` (24 fictional files, the unit's own function via
   `tools/questionnaire_import_capture.py`), `test_client_api.py`,
   `QuestionnaireStep.test.tsx`, `questionnaire.parity.test.ts`
-- [ ] 5. Audience and Dimenze without the unit; unit job runner, provider checks
-  and support bundle removed from the research flow
+- [x] 5. Audience and Dimenze without the unit: the Dimenze catalogue's library is the
+  client's approved DIMENSION knowledge (`GET /studies/{id}/context`) and a request a
+  knowledge proposal (`POST /studies/{id}/knowledge-proposals`); what 18.6.6 computed
+  from its panel or audience store (factor catalogue and filters, preview, subpanels,
+  own audiences, panel factors) says "V AIA zatím není", stored choices stay visible
+  and marked unused; the Deep Research hand-off is gone; `useUnitCatalogues` and the
+  unit catalogue loader removed; the unit job runner, provider checks and support
+  bundle had gone in chunk 2 — tests: `AudienceStep.test.tsx`, `PersonaStep.test.tsx`;
+  every research stage's test now fails on any unit URL (`unitCalls()` in its
+  `afterEach`)
 - [ ] 6. Documents: CLAUDE.md map, ARCHITECTURE §4, data-model, OI-58, ledgers
 
 PR 2 — migration (`feature/legacy-workspace-migration`)

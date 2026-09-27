@@ -8,8 +8,13 @@
 // under Node. Two classic behaviours that change who is sampled are kept and
 // characterised, not fixed: OI-50 (an empty range bound is 0) and OI-51 (a
 // special preset keeps the previous subpanel and filters).
+//
+// Since ADR 0018 the product draws only what needs no 18.6.6: the factor
+// catalogue, the preview and preflight, the special subpanels and the customer
+// audience upload were the unit's, and the audience step says they are not in
+// AIA. Their ports stay here, pure and parity-tested, for when AIA has an
+// imported population to compute them from.
 
-import { unit } from "@/unit/client";
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
 type Obj = { [k: string]: Json };
@@ -437,25 +442,4 @@ export function applyProposal(p: ResearchProject, text: string, r: { filtry?: Ob
     preview: r.feasibility || null,
     uncovered: !!r.nepokryto,
   };
-}
-
-// ---- the factor catalogue, once per page -------------------------------------------
-
-let catalog: Promise<Catalog> | null = null;
-
-/** ensureAudienceDimensionCatalog1793: GET /api/audience/dimensions, cached per page; a failure is not. */
-export function loadAudienceCatalog(fetchImpl?: typeof fetch): Promise<Catalog> {
-  catalog ??= unit("audienceDimensions", { fetchImpl }).then(
-    (r) => r as Catalog,
-    (e: unknown) => {
-      catalog = null;
-      throw e;
-    },
-  );
-  return catalog;
-}
-
-/** Tests only. */
-export function resetAudienceCatalog(): void {
-  catalog = null;
 }

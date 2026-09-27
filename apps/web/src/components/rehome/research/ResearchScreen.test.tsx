@@ -48,6 +48,8 @@ beforeEach(() => signedIn());
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  // Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018).
+  expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
   sessionStorage.clear();
 });
 

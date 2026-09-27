@@ -2,45 +2,47 @@
 
 // 5. Dimenze, rebuilt (research-flow-rehome.md, chunk 6): the classic
 // renderPersona reassignment (:979) under its 1793 wrapper -- the fixed base,
-// the dimension catalogue, a dimension request, the sample, and the society
-// factors with the model's proposed new dimensions. What each control does to
-// the project is src/research/persona.ts, parity-tested against the
-// original; this file only draws it. The model's suggestion and the refreshed
-// library are page memory, as the classic PERSONA_AI_SUGGESTION and
-// LIBRARY_STATE: kept while the person stays in the project, never saved.
+// the dimension catalogue, a dimension request, the sample, and the model's
+// proposed new dimensions. What each control does to the project is
+// src/research/persona.ts, parity-tested against the original; this file only
+// draws it. The model's suggestion is page memory, as the classic
+// PERSONA_AI_SUGGESTION: kept while the person stays in the project, never saved.
+//
+// In AIA (ADR 0018) the catalogue's library is the client's own approved
+// knowledge, read through the study, and a request is a proposal to it. The
+// society-factor card and Deep Research for a new dimension were 18.6.6's (its
+// licensed panel, its Data Library): the screen says they are not in AIA.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { DIMENSION_RESEARCH_KEY, classicHref, rememberReturn } from "@/lib/interface-handoff";
+import { workspace } from "@/lib/api";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
-import { unit } from "@/unit/client";
-import { type Catalog, loadAudienceCatalog } from "@/research/audience";
 import {
+  CLIENT_LIBRARY_LABEL,
+  type ActiveDimensions,
   type Change,
   type NewDimension,
-  REQUEST_AI_DONE,
-  REQUEST_DONE,
+  PROPOSAL_AI_DONE,
+  PROPOSAL_DONE,
   REQUEST_EMPTY,
-  REQUEST_TIMEOUT_MS,
   SUGGEST_FAILED_SUFFIX,
   SUGGEST_TITLE,
   SUGGEST_WARN_MS,
   type Suggestion,
-  activeDimensions,
   addDimension,
   applySuggestion,
   autofill,
   catalogEntries,
+  clientDimensions,
   dimensionLabels,
+  dimensionProposal,
   matchesDimensionSearch,
   personaDone,
   recommendedSample,
   recordRequest,
-  refreshLibrary,
   removeDimension,
-  requestBody,
   requestLabel,
   requestedLabels,
   setSampleSize,
@@ -52,7 +54,6 @@ import {
 } from "@/research/persona";
 import { Icon } from "../icons";
 import { Button, Chip, Field, TextInput } from "../ui";
-import { useUnitCatalogues } from "./useUnitCatalogues";
 import { useResearch, useSessionState } from "./context";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
@@ -61,12 +62,28 @@ const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-fain
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+/** The client's approved dimensions, read once per visit through the study; none until they arrive. */
+function useClientDimensions(studyId: string): ActiveDimensions {
+  const [active, setActive] = useState<ActiveDimensions>({});
+  useEffect(() => {
+    let live = true;
+    workspace.studyContext(studyId).then(
+      (c) => live && setActive(clientDimensions(c.client)),
+      // Without the client's knowledge the catalogue is the system's own dimensions.
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [studyId]);
+  return active;
+}
+
 export function PersonaStep() {
-  const { store, state, runJob, toast, stepHref } = useResearch();
-  const unitRaw = useUnitCatalogues();
+  const { store, state, runJob, toast, stepHref, frame } = useResearch();
   const router = useRouter();
   const step = useAiStep();
-  const [library, setLibrary] = useSessionState<unknown>("persona.library", null);
+  const active = useClientDimensions(frame.studyId);
   const [suggestion, setSuggestion] = useSessionState<Suggestion | null>("persona.suggestion", null);
   const [query, setQuery] = useState("");
   const [custom, setCustom] = useState("");
@@ -74,12 +91,11 @@ export function PersonaStep() {
   const [requesting, setRequesting] = useState(false);
 
   const p = state.project;
-  const active = activeDimensions(library, unitRaw);
   const labels = dimensionLabels(active);
   const { approved } = withApproval(p);
   const chosen = new Set(approved);
   const suggested = new Set(suggestedPersonaDims(p));
-  const entries = catalogEntries(active);
+  const entries = catalogEntries(active, CLIENT_LIBRARY_LABEL);
   const requested = requestedLabels(p);
   const r = recommendedSample(p);
 
@@ -96,16 +112,15 @@ export function PersonaStep() {
       apply(applySuggestion(store.get().project, res || {}));
     }, (m) => m + SUGGEST_FAILED_SUFFIX);
 
-  // requestDimension1793: the request, the project's record of it, the library read again.
-  const request = async (label: string, sourceStrategy: string, extra: Parameters<typeof requestBody>[2], done: string) => {
+  // requestDimension1793, in AIA: a proposal to the client's knowledge, and the project's
+  // record of it. It is in the catalogue once someone approves it, not before.
+  const request = async (label: string, sourceStrategy: string, extra: Parameters<typeof dimensionProposal>[2], done: string) => {
     setRequestError(null);
     if (!label) return setRequestError(REQUEST_EMPTY);
     setRequesting(true);
     try {
-      const res = (await unit("libraryDimensionRequest", { body: requestBody(label, sourceStrategy, extra), timeoutMs: REQUEST_TIMEOUT_MS })) as { dimension_id?: string; proposal_id?: string };
-      apply(recordRequest(store.get().project, label, sourceStrategy, res || {}));
-      // refreshLibraryState swallows its own failure; so does the rebuild.
-      await refreshLibrary().then(setLibrary, () => {});
+      const res = await workspace.proposeFromStudy(frame.studyId, dimensionProposal(label, sourceStrategy, extra));
+      apply(recordRequest(store.get().project, label, sourceStrategy, { proposal_id: res.proposal_id }));
       toast(done);
       return true;
     } catch (e) {
@@ -116,19 +131,16 @@ export function PersonaStep() {
     }
   };
   const requestCustom = async () => {
-    if (await request(requestLabel(custom), "document_or_research", {}, REQUEST_DONE)) setCustom("");
+    if (await request(requestLabel(custom), "document_or_research", {}, PROPOSAL_DONE)) setCustom("");
   };
   const requestSuggested = (x: NewDimension) => {
     const q = suggestedRequest(x);
-    void request(q.label, q.sourceStrategy, q.extra, REQUEST_AI_DONE);
+    void request(q.label, q.sourceStrategy, q.extra, PROPOSAL_AI_DONE);
   };
 
   const toRun = () => {
     apply(personaDone(store.get().project));
     router.push(stepHref("run"));
-  };
-  const toAudience = () => {
-    router.push(stepHref("audience"));
   };
 
   return (
@@ -255,32 +267,33 @@ export function PersonaStep() {
         </div>
       </section>
 
-      {/* The 1793 wrapper draws both cards only once the audience catalogue is loaded. */}
-      <Factors onUse={toAudience}>
-        {suggestion?.new_dimension_suggestions?.length ? (
-          <section className={CARD} aria-labelledby="per-new">
-            <h2 id="per-new" className="text-base font-semibold">{t("research.persona.newTitle")}</h2>
-            <p className="mt-1 text-sm text-ink-muted">{t("research.persona.newHelper")}</p>
-            <ul className="mt-3 flex flex-col gap-2">
-              {suggestion.new_dimension_suggestions.map((x, i) => (
-                <li key={`${x.label}-${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border bg-surface p-3">
-                  <div className="min-w-0">
-                    <b className="text-sm">{String(x.label ?? "")}</b>
-                    <div className="text-xs text-ink-muted">{tv("research.persona.newWhy", { why: String(x.why ?? ""), evidence: String(x.evidence_needed ?? "") })}</div>
-                    <div className="text-xs text-ink-muted">
-                      {tv("research.persona.newPredictors", { list: (x.suggested_predictors || []).join(", ") || t("research.persona.newPredictorsNone") })}
-                    </div>
+      {/* The 1793 society-factor card is drawn from 18.6.6's licensed panel: not in AIA. */}
+      <section className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-5" aria-labelledby="per-factors">
+        <div className={EYEBROW}>{t("research.persona.factorsTag")}</div>
+        <h2 id="per-factors" className="mt-1 text-base font-semibold">{t("research.persona.factorsNotInAiaTitle")}</h2>
+        <p className="mt-2 text-sm leading-6">{t("research.persona.factorsNotInAia")}</p>
+      </section>
+
+      {suggestion?.new_dimension_suggestions?.length ? (
+        <section className={CARD} aria-labelledby="per-new">
+          <h2 id="per-new" className="text-base font-semibold">{t("research.persona.newTitle")}</h2>
+          <p className="mt-1 text-sm text-ink-muted">{t("research.persona.newHelper")}</p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {suggestion.new_dimension_suggestions.map((x, i) => (
+              <li key={`${x.label}-${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border bg-surface p-3">
+                <div className="min-w-0">
+                  <b className="text-sm">{String(x.label ?? "")}</b>
+                  <div className="text-xs text-ink-muted">{tv("research.persona.newWhy", { why: String(x.why ?? ""), evidence: String(x.evidence_needed ?? "") })}</div>
+                  <div className="text-xs text-ink-muted">
+                    {tv("research.persona.newPredictors", { list: (x.suggested_predictors || []).join(", ") || t("research.persona.newPredictorsNone") })}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button small disabled={requesting} onClick={() => requestSuggested(x)}>{t("research.persona.newRequest")}</Button>
-                    <Button small variant="quiet" onClick={() => openResearch(String(x.label ?? ""))}>{t("research.persona.newResearch")}</Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-      </Factors>
+                </div>
+                <Button small disabled={requesting} onClick={() => requestSuggested(x)}>{t("research.persona.newRequest")}</Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4">
         <Button variant="primary" onClick={toRun}>
@@ -290,17 +303,6 @@ export function PersonaStep() {
       </div>
     </div>
   );
-}
-
-/** openDimensionResearch1793 is the classic Data Library's: the label goes by session storage (ADR 0014). */
-function openResearch(label: string) {
-  try {
-    window.sessionStorage.setItem(DIMENSION_RESEARCH_KEY, label);
-  } catch {
-    // Without storage the classic page opens without the topic filled in.
-  }
-  rememberReturn(window.location.pathname + window.location.search);
-  window.location.href = classicHref({ dimension: "research" });
 }
 
 /** The classic number input saves on change (blur or Enter), not on each key; a new stored N redraws it (key). */
@@ -323,41 +325,5 @@ function SampleInput({ value, onCommit }: { value: number; onCommit: (raw: strin
         }}
       />
     </Field>
-  );
-}
-
-/** The 1793 card: the society factors the panel already has, drawn once the audience catalogue is loaded. */
-function Factors({ onUse, children }: { onUse: () => void; children: ReactNode }) {
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
-  useEffect(() => {
-    let live = true;
-    // One request per visit; a failure leaves the card out (OI-57: the classic asks again on every draw).
-    loadAudienceCatalog().then((c) => live && setCatalog(c), () => {});
-    return () => {
-      live = false;
-    };
-  }, []);
-  if (!catalog) return null;
-  const cats = (catalog.categories || []).filter((c) => c.id !== "research_only");
-  return (
-    <>
-    <section className={CARD} aria-labelledby="per-factors">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <div className={EYEBROW}>{t("research.persona.factorsTag")}</div>
-          <h2 id="per-factors" className="mt-1 text-base font-semibold">{t("research.persona.factorsTitle")}</h2>
-        </div>
-        <Chip tone="done">{tv("research.persona.factorsChip", { n: String(catalog.filterable_count ?? "") })}</Chip>
-      </div>
-      <p className="mt-2 text-sm leading-6 text-ink-muted">{t("research.persona.factorsIntro")}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {cats.map((c) => (
-          <Chip key={String(c.id)} tone="neutral">{`${c.label ?? ""} · ${c.filterable_count ?? ""}`}</Chip>
-        ))}
-      </div>
-      <Button className="mt-3" onClick={onUse}>{t("research.persona.factorsUse")}</Button>
-    </section>
-    {children}
-    </>
   );
 }

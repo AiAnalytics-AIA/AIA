@@ -9,7 +9,6 @@
 // catalogue check (OI-53), and an empty approval is refilled with the
 // recommended set (OI-54).
 
-import { unit } from "@/unit/client";
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
 type Obj = { [k: string]: Json };
@@ -39,12 +38,26 @@ export const PERSONA_DIM_LABELS: Readonly<Record<string, string>> = {
 
 export type ActiveDimensions = Record<string, { label?: string } | null | undefined>;
 
-/** The Data Library's active dimensions: the refreshed library's, else the bootstrap's. */
+/** The Data Library's active dimensions: the refreshed library's, else the bootstrap's (the classic's sources). */
 export function activeDimensions(library: unknown, bootRaw: Record<string, unknown>): ActiveDimensions {
   const fromLibrary = (library as { summary?: { active_dimensions?: ActiveDimensions } } | null)?.summary?.active_dimensions;
   const fromBoot = (bootRaw.data_library as { active_dimensions?: ActiveDimensions } | undefined)?.active_dimensions;
   return fromLibrary || fromBoot || {};
 }
+
+/**
+ * In AIA the library is the client's own knowledge (ADR 0015, 0018): the study's
+ * inherited context, of which the approved DIMENSION items are this catalogue's
+ * additions. Another client's dimensions are never in it.
+ */
+export function clientDimensions(items: readonly { item_id: string; kind: string; title: string }[]): ActiveDimensions {
+  const out: ActiveDimensions = {};
+  for (const x of items) if (x.kind === "DIMENSION" && x.item_id) out[x.item_id] = { label: x.title };
+  return out;
+}
+
+/** Where a library dimension comes from, in the catalogue: the client's knowledge in AIA. */
+export const CLIENT_LIBRARY_LABEL = "Znalosti klienta";
 
 /** PERSONA_DIM_LABELS with the library's labels added, as dimensionCatalogEntries1789 adds them. */
 export function dimensionLabels(active: ActiveDimensions): Record<string, string> {
@@ -54,9 +67,9 @@ export function dimensionLabels(active: ActiveDimensions): Record<string, string
 }
 
 /** dimensionCatalogEntries1789: every dimension, by Czech label, marked by where it comes from. */
-export function catalogEntries(active: ActiveDimensions): { id: string; label: string; source: string }[] {
+export function catalogEntries(active: ActiveDimensions, libraryLabel = "Data Library"): { id: string; label: string; source: string }[] {
   return Object.entries(dimensionLabels(active))
-    .map(([id, label]) => ({ id, label, source: active[id] ? "Data Library" : "Systém" }))
+    .map(([id, label]) => ({ id, label, source: active[id] ? libraryLabel : "Systém" }))
     .sort((a, b) => a.label.localeCompare(b.label, "cs"));
 }
 
@@ -242,16 +255,29 @@ export function requestedLabels(p: ResearchProject): string[] {
   return (strings(p.requested_dimensions) as { label?: string }[]).map((x) => String(x?.label || ""));
 }
 
-/** refreshLibraryState's four reads; the library is what this step uses. */
-export async function refreshLibrary(fetchImpl?: typeof fetch): Promise<unknown> {
-  const [library] = await Promise.all([
-    unit("library", { fetchImpl }),
-    unit("librarySystemCatalog", { fetchImpl }),
-    unit("populations", { fetchImpl }),
-    unit("resultsRegistry", { query: { sync: "1" }, fetchImpl }),
-  ]);
-  return library;
+/**
+ * A dimension request, as AIA takes it (ADR 0018): a proposal to the client's
+ * knowledge, kind DIMENSION, carrying the classic request's content. The classic
+ * interface wrote it to 18.6.6's Data Library; in AIA a person other than the
+ * proposer approves it (ADR 0015), and only then is it in the catalogue.
+ */
+export function dimensionProposal(label: string, sourceStrategy: string, extra: Parameters<typeof requestBody>[2] = {}): {
+  kind: "DIMENSION";
+  title: string;
+  summary: string;
+  content: Record<string, unknown>;
+} {
+  const b = requestBody(label, sourceStrategy, extra);
+  return {
+    kind: "DIMENSION",
+    title: label,
+    summary: String(b.rationale),
+    content: { source_strategy: b.source_strategy, spec: b.spec, origin: b.origin, requested_from: "research_dimensions" },
+  };
 }
+
+export const PROPOSAL_DONE = "Návrh dimenze je ve Znalostech klienta. Do katalogu přibude, až ho někdo schválí.";
+export const PROPOSAL_AI_DONE = "Návrh AI je ve Znalostech klienta. Do katalogu přibude, až ho někdo schválí.";
 
 /** openDimensionResearch1793's topic, prefilled in the classic Data Library's Deep Research. */
 export function dimensionResearchTopic(label: string): string {

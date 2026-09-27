@@ -390,6 +390,12 @@ export const workspace = {
   importQuestionnaire: (studyId: string, body: { filename: string; data_b64: string }) =>
     request<QuestionnaireImport>("POST", `/api/v1/studies/${enc(studyId)}/workspace/questionnaire-import`, body),
   questionnaireTemplate: (studyId: string) => requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/questionnaire-template`),
+  /** What the study inherits: its own client's approved knowledge (ADR 0015 decision 7). */
+  studyContext: (studyId: string) =>
+    request<{ client_id: string; shared: Record<string, unknown>; client: KnowledgeItem[] }>("GET", `/api/v1/studies/${enc(studyId)}/context`),
+  /** The study proposes; a person approves; nothing else changes the client's knowledge. */
+  proposeFromStudy: (studyId: string, body: { kind: string; title: string; summary?: string; content?: Record<string, unknown> }) =>
+    request<Proposal>("POST", `/api/v1/studies/${enc(studyId)}/knowledge-proposals`, body),
 };
 
 // ---- research execution (ADR 0016) -----------------------------------------

@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DESIGN_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
-import { resetBootCache } from "@/unit/boot";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
 import { CONFIRM_REMOVE_SET, PROMPT_COMMENT, PROMPT_SET_OBJECTS, PROMPT_SET_TITLE } from "@/research/plan";
 import { ResearchScreen } from "./ResearchScreen";
@@ -20,7 +19,7 @@ const replace = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/plan", useRouter: () => ({ push, replace }) }));
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
-const BOOT = { empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6", claude_code_enabled: true } };
+const TEMPLATE = { empty_project: EMPTY };
 const PROJECT = { goal: "Zjistit zájem o nový nápoj", briefing: { what_is_known: "Víme A." } };
 const ANALYSIS = {
   problem_summary: "Jde o test nového konceptu.",
@@ -32,7 +31,7 @@ const ANALYSIS = {
     { id: "focused", title: "Jen varianty", summary: "Úzce", n: 300, complexity: "light", objectives: ["Porovnat varianty"] },
     { id: "recommended", title: "Varianty a cena", summary: "Doporučeno", n: 600 },
   ],
-  _brief_signature: briefFingerprint(defaultsMerge(PROJECT, BOOT)),
+  _brief_signature: briefFingerprint(defaultsMerge(PROJECT, TEMPLATE)),
 };
 
 type Call = { url: string; body: Record<string, unknown> | null };
@@ -47,19 +46,16 @@ function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown
       const u = String(url);
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       calls.push({ url: u, body });
-      const answers: Record<string, (b: unknown) => unknown> = {
-        "/api/bootstrap": () => BOOT,
-        "/api/providers/claude-code/status": () => ({ ok: true }),
-        "/api/research/analyze": () => ({ job_id: "JOB-1" }),
-        "/api/job": () => ({ state: "done", result: { analysis: { ...ANALYSIS, problem_summary: "Nové shrnutí.", _brief_signature: undefined }, project: {} } }),
-        ...over,
-      };
-      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body) ?? {};
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? over[u.split("?")[0]]?.(body);
+      if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
+
+/** Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018). */
+const unitCalls = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url);
 
 /** The rebuilt dialog, answered as a person would. */
 async function answerDialog(question: string, value: string | null) {
@@ -72,7 +68,6 @@ async function answerDialog(question: string, value: string | null) {
 }
 
 beforeEach(() => {
-  resetBootCache();
   push.mockReset();
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");
@@ -84,6 +79,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  expect(unitCalls()).toEqual([]);
 });
 
 describe("Návrh", () => {

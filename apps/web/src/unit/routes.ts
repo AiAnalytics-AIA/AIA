@@ -23,32 +23,12 @@ export const UNIT_ROUTES = {
   demoCopy: "POST /api/demos/copy",
   // The shell (A1)
   bootstrap: "GET /api/bootstrap",
-  claudeCodeStatus: "GET /api/providers/claude-code/status",
-  // The research flow (A4): its project, its jobs
-  projectLoad: "POST /api/projects/load",
-  projectSave: "POST /api/projects/save",
+  // The research flow (A4) calls none of these any more (ADR 0018): its content,
+  // attachments, import, catalogues and AI steps are AIA's. What is left is the
+  // unit's own job and workflow plumbing, removed with the rest of src/unit.
   job: "GET /api/job",
   jobCancel: { route: "POST /api/jobs/", path: under("/api/jobs/", "/cancel") },
-  jobRetry: { route: "POST /api/jobs/", path: under("/api/jobs/", "/retry") },
   workflow: { route: "GET /api/workflows/", path: under("/api/workflows/") },
-  supportBundle: "POST /api/support/bundle",
-  researchAnalyze: "POST /api/research/analyze",
-  settingsAiCheck: "POST /api/settings/ai_check",
-  questionnaireOptimize: "POST /api/questionnaire/optimize",
-  researchBuildQuestionnaire: "POST /api/research/build_questionnaire",
-  researchDeep: "POST /api/research/deep",
-  audienceDimensions: "GET /api/audience/dimensions",
-  audiencePreview: "POST /api/audience",
-  audiencesPreflight: "POST /api/audiences/preflight",
-  audiences: "GET /api/audiences",
-  audiencesUpload: "POST /api/audiences/upload",
-  audiencePropose: "POST /api/audience/propose",
-  personaSuggest: "POST /api/persona/suggest",
-  libraryDimensionRequest: "POST /api/library/dimension/request",
-  library: "GET /api/library",
-  librarySystemCatalog: "GET /api/library/system-catalog",
-  populations: "GET /api/populations",
-  resultsRegistry: "GET /api/results-registry",
 } as const satisfies Record<string, Entry>;
 
 export type UnitRouteKey = keyof typeof UNIT_ROUTES;
