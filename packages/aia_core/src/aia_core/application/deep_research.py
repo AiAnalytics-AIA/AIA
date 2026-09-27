@@ -58,6 +58,7 @@ from .workflows import StartedRun
 __all__ = [
     "BundleNotReady",
     "DeepResearchRunNotFound",
+    "DeepResearchRunNotRetryable",
     "DeepResearchRuns",
     "NothingToResearch",
 ]
@@ -65,6 +66,14 @@ __all__ = [
 
 class DeepResearchRunNotFound(LookupError):
     """No Deep Research run with this id in the Study in scope."""
+
+
+class DeepResearchRunNotRetryable(Exception):
+    """Only a failed or cancelled run may be started again."""
+
+    def __init__(self, status: WorkflowRunStatus) -> None:
+        super().__init__(f"a {status.value} run cannot be retried")
+        self.status = status
 
 
 class NothingToResearch(Exception):
@@ -148,6 +157,7 @@ class DeepResearchRuns:
         design_revision_id: str,
         preset_name: str,
         channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
+        retry_of: str | None = None,
     ) -> StartedRun:
         """Freeze a request over one Design Revision and enqueue a run of it.
 
@@ -166,6 +176,8 @@ class DeepResearchRuns:
         request_fingerprint = request.fingerprint()
         steps = deep_research_steps()
         key = f"{DEEP_RESEARCH}:{request.design_revision_id}:{request_fingerprint}"
+        if retry_of:
+            key += f":retry:{retry_of}"
         workflows = self._workflows()
         existing = workflows.find_run_by_idempotency_key(key)
         run_id = workflows.create_run(
@@ -184,6 +196,7 @@ class DeepResearchRuns:
                 "subjects": len(request.subjects),
                 "knowledge_items": len(request.knowledge.items),
                 "omitted_knowledge_ids": list(request.knowledge.omitted_ids),
+                **({"retry_of": retry_of} if retry_of else {}),
             },
             # Each step's fingerprint is the request's: a re-run after a crash is
             # the same work, and the artifacts it stored are found by their own.
@@ -197,6 +210,24 @@ class DeepResearchRuns:
             workflow_type=DEEP_RESEARCH,
             created=existing is None,
             run=workflows.get_run(run_id),
+        )
+
+    def retry(self, run_id: str) -> StartedRun:
+        """Start a failed or cancelled run again, as a new run linked to it.
+
+        Frozen afresh: what changed since -- an approval, a revoked item -- is in the
+        new request. What the earlier run stored is found by fingerprint, so a track,
+        a snapshot or a verification it completed is not bought again.
+        """
+        run = self.get(run_id)
+        if not retryable(run["status"]):
+            raise DeepResearchRunNotRetryable(run["status"])
+        metadata = run["metadata"]
+        return self.start(
+            design_revision_id=str(metadata["design_revision_id"]),
+            preset_name=str(metadata["preset"]),
+            channels=[Channel(c) for c in metadata["channels"]],
+            retry_of=run_id,
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

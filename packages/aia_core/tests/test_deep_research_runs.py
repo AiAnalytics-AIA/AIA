@@ -16,6 +16,7 @@ import pytest
 from aia_core.application.deep_research import (
     BundleNotReady,
     DeepResearchRunNotFound,
+    DeepResearchRunNotRetryable,
     DeepResearchRuns,
     NothingToResearch,
 )
@@ -269,3 +270,20 @@ def test_nothing_is_read_before_the_run_publishes(runs: Any, design: Any) -> Non
         runs().snapshot(run_id, "SNP-" + "0" * 24, store=store)
     with pytest.raises(DeepResearchRunNotFound):
         runs(study="sibling").bundle(run_id, store=store)
+
+
+def test_a_failed_or_cancelled_run_is_retried_as_a_new_linked_run(runs: Any, design: Any) -> None:
+    run_id = runs().start(design_revision_id=design(), preset_name="QUICK").run_id
+    with pytest.raises(DeepResearchRunNotRetryable):
+        runs().retry(run_id)  # a pending run resumes; it is not started again
+    runs().cancel(run_id)
+    retried = runs().retry(run_id)
+    assert retried.created and retried.run_id != run_id
+    assert retried.run["metadata"]["retry_of"] == run_id
+    assert (
+        retried.run["metadata"]["request_fingerprint"]
+        == runs().get(run_id)["metadata"]["request_fingerprint"]
+    )
+    assert runs().retry(run_id).run_id == retried.run_id  # a double click is one retry
+    with pytest.raises(ScopeDenied):
+        runs(user="viewer").retry(run_id)
