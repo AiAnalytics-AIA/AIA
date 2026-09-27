@@ -2332,3 +2332,156 @@ down.
 
 **Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
 deploy that carries it.
+
+---
+
+## OI-76 · Finding, fixed · Native Research screen tests fail on a /config failure an earlier test left cached
+
+*Filed as "Observed flake · Native research-agent screen tests outrun their 15 s budget under
+load" on `fix/truthful-ai-controls` (PR #75), and closed here, where the fix lands. When #75
+merges, this entry replaces its copy.*
+
+**Claim.** In a full web run, a research test file's native jobs can all fail at their first
+request: the file's first test can leave `loadConfig()` holding a rejected `/config` read, and
+`loadConfig()` kept it for every later test in the file. A test waiting for a review dialog then
+times out at its full 15 s wait; one waiting for the failure card fails fast on its message.
+
+**Anchor.** `apps/web/src/lib/auth.ts:30-40 @ dd27f68` (`loadConfig` keeps its first promise,
+rejection included, and nothing resets it); `apps/web/src/components/rehome/research/useResearchAgents.tsx:43-46 @ dd27f68`
+(the mount effect's `refresh()`, the request that outlives its test) and
+`apps/web/src/lib/api.ts:22-25 @ dd27f68` (`request()` awaits the token, then `loadConfig()`). As
+first reported: `test-native-agents.ts:53 @ ceee2dc` (`NATIVE_JOB_WAIT`). Failing tests:
+`AudienceStep.test.tsx` › *reviews an audience proposal while preserving researcher-controlled
+filters*; `BriefStep.test.tsx` › *runs the analysis as a job…*, *requests a frozen native
+context…*, *explains the unavailable design capability…* and *shows the native failure…* (the
+fast one); `PlanStep.test.tsx` › *answers the follow-up questions…* and *comments on selected
+text…*, found here.
+
+**Reproduction.** Deterministic, one file: give `BriefStep.test.tsx` a
+`beforeAll(() => loadConfig().catch(() => {}))`, so its first `/config` read goes through the real
+`fetch` as the leaked request's does, and run `npx vitest run src/components/rehome/research/BriefStep.test.tsx`
+in `apps/web`. On `dd27f68` 4 of 9 fail, OI-76's pattern exactly: three at 15.1 s and *shows the
+native failure…* at 139 ms. Under load, as first seen: the full `npx vitest run`, one 4-core cloud
+container, 2026-09-27. `dd27f68` failed 2 of 10 runs (AudienceStep at 15 093 ms; the two PlanStep
+tests at 15 252 and 15 277 ms). The first report had `ceee2dc` 2 of 6 and `fix/truthful-ai-controls`
+1 of 8. Every failing file passes alone.
+
+**Cause (confirmed).** A research screen's first request is the agents' `agent-jobs` read, from
+the mount effect of `useResearchAgents`. A file's first test can end on a `findBy*` that resolved on
+the commit that drew the screen, before that commit's passive effects ran (the OI-70 gap). The
+`afterEach` then calls `cleanup()`, and React runs the pending mount effect while it unmounts
+(`cleanup → unmount → flushPendingEffects → flushPassiveEffects`). The effect's request is still
+awaiting its token when `vi.unstubAllGlobals()`, the next line, restores the real `fetch`. Its next
+step, `loadConfig()`, finds the cache empty and reads `/config` through the real `fetch`, which under
+jsdom rejects a relative URL at once (`TypeError: Failed to parse URL from /config`). `loadConfig()`
+kept that rejection, so every native request later in the file failed at `loadConfig()`. The jobs
+never reached review, and the failure card and the agents' notice both read *Failed to parse URL
+from /config*. The fast failure is the same cause, not fallout from the test before it: its card
+showed the config error where the test expects `MODEL_TIMEOUT: nic se nevrátilo`. Measured with
+probes on the mount effect, on `loadConfig()` and on the real `fetch` (an experiment, not
+committed): 5 of 10 instrumented full runs failed, and each had exactly one research request through
+the real `fetch`: `/config`, from the failing file's first test, with the cache empty. The 5 passing
+runs had none. With the full stack recorded, the effect that leaked ran inside `cleanup()`, the only
+one of that run's 62 that did. Not a timer, and not load: in the 10 baseline runs the same tests
+passed in at most 0.9 s (at most 0.99 s in the 20 runs with the fix), and failed only at the full
+15 s.
+
+**Consequence.** A red *Frontend* job on pull requests that never touched the research screens,
+because CI runs the whole Vitest suite. The same code in the product: once a page's one `/config`
+read failed (a deploy replacing the web container, a dropped connection), every later API call on
+that page failed with it until a reload. That follows from the code and `auth.test.ts` pins it;
+nobody has reported it from a browser.
+
+**Smallest fix.** Two changes, each enough on its own for the reproduction:
+1. `loadConfig()` does not keep a failed read; the next call reads `/config` again, as `loadBoot()`
+   already does (`apps/web/src/lib/auth.ts` › `loadConfig`).
+2. `nativeAgentFixture` empties the config cache (`resetConfigCache()`, tests only) before each
+   test stubs `fetch`, and again when the test finishes, so a test's requests read `/config`
+   through its own stub (`test-native-agents.ts`).
+
+No wait was changed: a larger one would only have made the failures slower. The leaked request
+still runs, harmlessly. `request()` takes no abort signal, and giving it one would change
+`useResearchAgents` (PR #74's file), which this fix leaves alone.
+
+**Test that would have caught it.** `apps/web/src/lib/auth.test.ts` › *does not keep a failed read:
+the next call reads /config again* and *does not keep a refused answer either*; both fail against
+`dd27f68`'s `loadConfig` given only the reset hook. The one-file reproduction above.
+
+**Status.** Merged in PR #83 (`fix/native-tests-config-cache`, 2026-09-27). The reproduction passes
+9 of 9 with both changes, and with each alone. Full runs with the fix, on the same container:
+20 of 20 passed, 776 tests each, where `develop` @ `dd27f68` failed 2 of 10. Under doubled load
+(both trees' full suites at once, the Python suites alongside), `develop` passed 8 of 8 and this
+branch 7 of 8. That one failure was an unrelated test, `ClientFirst.test.tsx` › *loads the working
+content its AIA binding names…*: a separate race that `develop` has too, since it fails the same way
+on `dd27f68` when the stage's load starts 30 ms late (described in PR #83). `AGENTS.md`
+§ Next.js / TypeScript has the trap. Owner of the research screens: job 6 / the phase-out agent.
+PRs #74 and #77 touch neither `auth.ts` nor `test-native-agents.ts`, and their rewritten tests
+call `nativeAgentFixture`, so they carry the reset.
+
+---
+
+## OI-77 · Reproduced defect · A corrupt artifact's CORRUPT mark is rolled back with the read that found it
+
+**Claim.** `ArtifactRepository.read` flushes `CORRUPT` onto an artifact whose bytes fail
+verification (a hash mismatch or a missing object) and re-raises, and every caller then ends its
+transaction on that exception, so the mark is rolled back and the artifact stays `VALID`.
+
+**Anchor.** All @ `ceee2dc`, unchanged at `dd27f68`:
+- `packages/aia_core/src/aia_core/infrastructure/artifact_repository.py:411-418`: `read` marks,
+  flushes and re-raises. `:262-267`: `find_reusable` checks only that the object exists.
+- The API: `apps/api/src/aia_api/routers/runs.py:325` and `routers/research.py:611` answer 409
+  `artifact_corrupt`; `routers/research.py:671-686` (`_agent_errors`) maps no storage error, so the
+  proposal read at `packages/aia_core/src/aia_core/application/research.py:328` becomes a 500;
+  `apps/api/src/aia_api/dependencies.py:129-131`: `get_session` rolls back on either.
+- The worker: `apps/worker/src/aia_worker/context.py:267-269` (`StepContext.transaction` rolls
+  back), `apps/worker/src/aia_worker/worker.py:383-390` (the step fails `UNKNOWN`), with the readers
+  `apps/executors/src/aia_executors/research.py:114-116` (`_read_spec`, first called at `:228`) and
+  `apps/executors/src/aia_executors/research_agents.py:121-123` (the proposal reuse check).
+
+**Reproduction.** Reported 2026-09-27 on `develop` @ `ceee2dc` with PostgreSQL 16; reproduced the
+same day at `dd27f68` on PostgreSQL 16 and on file-backed SQLite.
+- *API, as reported.* `apps/api/tests/test_runs_api.py::test_a_corrupt_artifact_stays_marked_corrupt_after_the_409`
+  and `test_research_api.py::test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409`,
+  each `[tampered]` and `[missing]`: 4 of 4 answered 409, then failed on
+  `assert 'VALID' == 'CORRUPT'`.
+- *API, the proposal read.* `test_research_agent_jobs_api.py::test_a_corrupt_proposal_is_a_409_and_stays_marked_corrupt`:
+  `GET …/research/agent-jobs/{run}/result` and `POST …/accept` answered 500 `internal_error`
+  (read through a `TestClient` with `raise_server_exceptions=False`), and the row stayed `VALID`.
+- *Worker.* With `test_research_api.py`'s `submit`, `start` and `_real_worker(app, workbench=False)`:
+  run one step (compile), tamper with the spec's object (`damage_artifact`), run the next. Preflight
+  fails `UNKNOWN` and the spec is still `VALID`. Retry the run: its compile reuses the same spec
+  (same artifact id), and its preflight fails `UNKNOWN` again. A scratch test, run once on
+  PostgreSQL 16, not committed.
+
+**Consequence.** A tampered or truncated artifact reads `VALID` in every listing (the client
+overview's recent outputs among them), and nothing durable tells an operator. `find_reusable` keeps
+offering it, so a retried research run reuses the corrupt artifact and fails the same way: the run
+cannot recover by retry. The proposal routes answered 500 instead of 409. On the worker the step's
+`error_message`, which the browser reads, is the storage error's text, and that carries the
+storage key (`org/…/client/…/study/…`), which a client is never to receive
+(`docs/architecture/artifacts.md` § Read protocol).
+
+**Smallest fix.** *API:* commit the mark before raising, in one place: `routers/runs.py` ›
+`artifact_corrupt`, used by both artifact routes and by `_agent_errors`. Not taken: the repository
+recording `CORRUPT` in its own short transaction. That changes the shared "flush, never commit"
+contract, and a second connection that writes the row once the request holds its lock waits on the
+request itself. Measured 2026-09-27 with a scratch table, after an uncommitted `UPDATE` on the first
+connection, as `read` leaves it: the second connection's `UPDATE` waited out a 2 s `lock_timeout` on
+PostgreSQL 16 (with no timeout it waits for ever, since the request is waiting on it) and got
+`database is locked` after SQLite's busy timeout. On in-memory SQLite's single shared connection it
+would instead commit the caller's half-done work (`AGENTS.md` § SQLAlchemy and PostgreSQL,
+*In-memory SQLite cannot serve two threads*). *Worker:* an executor that reads an upstream artifact
+returns a `Failed` outcome from inside `StepContext.transaction` instead of raising, so the
+transaction commits the mark, with a message that names the step and not the key. Still to decide:
+the failure class (`MISSING_CONFIGURATION`, as `_missing_upstream` uses for an upstream step with no
+artifact, or a new one), and whether the proposal executor's reuse check falls through to a fresh,
+paid call.
+
+**Test that would have caught it.** The API tests above, which read the stored status from a
+session of their own (`apps/api/tests/conftest.py` › `artifact_status`), not only the response. For
+the worker, the reproduction as an executor test: the stored status after the failed step, and a
+retried run that recomputes the spec.
+
+**Status.** API half fixed in code: PR #84 (ready after conflict resolution, 2026-09-27), both artifact routes and the
+proposal routes. Worker half open. It is not fixed there because it needs the failure-class
+decision and, for design jobs, a decision to spend on a recompute.
