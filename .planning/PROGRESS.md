@@ -51,7 +51,7 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Latest release status (2026-09-28):** #83's merge `48bf3e2` replaced the running services, but deploy run `36357121087` failed its slice smoke with `ScopeDenied` while loading the existing seed, before creating a fresh run. Web/API/readiness/worker/storage checks passed. #84 merged as `8c13a11` after all head CI checks passed; its develop CI/deployment is pending. No phase-out candidate has been deployed.
+**Latest release status (2026-09-28):** #83's merge `48bf3e2` replaced the running services, but deploy runs `36357121087` and `36358357243` failed their slice smoke with `ScopeDenied` while loading the existing seed, before creating a fresh run. Web/API/readiness/worker/storage checks passed. #84 merged as `8c13a11` after all head CI checks passed; its develop CI/deployment is pending. No phase-out candidate has been deployed.
 
 **Last fully successful deployment: `dd27f68` (#72's merge), green** (*Deploy develop* run 35, 16:52 UTC), after CI run
 211 passed on the same SHA; #72 changed no product code. Run 34 (`ceee2dc`, #70's merge, 16:08,
