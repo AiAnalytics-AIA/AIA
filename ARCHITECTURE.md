@@ -117,6 +117,7 @@ Run it before every commit. It is blocking in CI.
 | no statement updates a project revision (the ORM refuses an UPDATE; this forbids the bulk one) | A run's executed content changing under it |
 | licence determinations and policies are built only in their policy-data module, never by an app | An approval of panel-derived transmission nobody gave (ADR 0016 decision 5, OI-61) |
 | the fictional fieldwork generator is imported only by the workbench composition; nothing in the API or worker imports either, and no deployment names it | Fictional respondents reaching a deployed run, or a deployed worker configured with the test composition |
+| recorded web retrieval (Deep Research's search and fetch doubles) is defined only beside the web adapters and built only by the recorded composition (`aia_executors/deep_research_recorded.py`); application and domain code never name it, nothing in the API or worker imports it, and no deployment names it | A replayed page standing in for a live source: a recorded route selected as a production fallback, or a deployed worker composed with it |
 | claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
 | the API never admits its own claims | The same, at the edge where untrusted input arrives |
 | a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
