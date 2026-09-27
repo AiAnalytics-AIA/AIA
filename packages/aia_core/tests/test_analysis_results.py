@@ -143,8 +143,18 @@ class World:
         )
         return artifact.artifact_id
 
-    def upstream(self, *, lineage: bool = True, stop_before: str | None = None) -> None:
-        """compile, preflight, run and aggregate, as their executors store them."""
+    def upstream(
+        self,
+        *,
+        lineage: bool = True,
+        stop_before: str | None = None,
+        spec_revision: str | None = None,
+    ) -> None:
+        """compile, preflight, run and aggregate, as their executors store them.
+
+        ``spec_revision`` names the revision the specification records, as when the
+        compile step reused the artifact of an earlier revision.
+        """
         latest = StudyDesignRepository(self.session, self.scope).latest()
         assert latest is not None
         revision_id = latest.revision_id
@@ -159,7 +169,7 @@ class World:
                 work,
                 {
                     "kind": SPECIFICATION_ARTIFACT,
-                    "design_revision_id": revision_id,
+                    "design_revision_id": spec_revision or revision_id,
                     "specification": spec.model_dump(mode="json"),
                     "specification_fingerprint": spec.fingerprint(),
                 },
@@ -334,6 +344,36 @@ def test_an_aggregate_that_does_not_record_the_runs_dataset_is_refused(world: Wo
     assert refused.value.reason == "aggregate_lineage"
 
 
+def test_a_specification_reused_from_an_identical_revision_is_the_runs_own(
+    world: World,
+) -> None:
+    """The compile step keys its artifact on the design's content, so a design edited and
+    edited back runs on the earlier revision's specification. It is the run's own."""
+    designs = StudyDesignRepository(world.session, world.scope)
+    first, _ = designs.submit(content=DESIGN, source_stage="run")
+    designs.submit(content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run")
+    run_id = world.start()  # the same content again: a third revision
+    world.upstream(spec_revision=first.revision_id)
+    run_revision = world.run(run_id)["metadata"]["design_revision_id"]
+    assert run_revision != first.revision_id
+    assert world.sources(run_id).refs.design_revision_id == run_revision
+
+
+def test_a_specification_of_another_design_is_refused(world: World) -> None:
+    designs = StudyDesignRepository(world.session, world.scope)
+    other, _ = designs.submit(content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run")
+    run_id = world.start()
+    world.upstream(spec_revision=other.revision_id)
+    with pytest.raises(SourcesRefused) as refused:
+        world.sources(run_id)
+    assert refused.value.reason == "design_revision"
+    world_run = world.run(run_id)
+    world_run["metadata"] = {**world_run["metadata"], "design_revision_id": "REV-not-here"}
+    with pytest.raises(SourcesRefused) as unknown:
+        native_sources(world.session, world.scope, world.store, world_run)
+    assert unknown.value.reason == "design_revision"
+
+
 def test_a_source_of_the_wrong_type_is_refused(world: World) -> None:
     run_id = world.start()
     world.upstream()
@@ -471,6 +511,28 @@ def moved(prepared: Any) -> Any:
     record = completed(prepared).model_dump(mode="json")
     record["sources"]["aggregate"]["sha256"] = "e" * 64
     return parse_module_artifact(record)
+
+
+def renamed(prepared: Any) -> Any:
+    """Sources recorded under other names and another revision, with the same content:
+    an outcome reused from a run over an identical design."""
+    record = completed(prepared).model_dump(mode="json")
+    record["sources"]["aggregate"]["artifact_id"] = "ART-another-run"
+    record["sources"]["design_revision_id"] = "REV-identical-content"
+    return parse_module_artifact(record)
+
+
+def test_an_outcome_over_the_same_content_reads_back_whatever_its_sources_are_called(
+    world: World,
+) -> None:
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, renamed)
+    back = reconstruct_module(
+        world.session, world.scope, world.store, run_id=run_id, module_id=AnalysisModuleId.EXECUTIVE
+    )
+    assert back.outcome is ModuleOutcomeKind.COMPLETED and back.result is not None
+    assert back.record.sources.design_revision_id == "REV-identical-content"
 
 
 def extra_key(prepared: Any) -> Any:

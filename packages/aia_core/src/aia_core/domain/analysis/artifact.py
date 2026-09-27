@@ -89,13 +89,28 @@ class SourceRef(_Closed):
 
 
 class ModuleSources(_Closed):
-    """The run's artifacts the evidence was built from. Nothing else was read."""
+    """The run's artifacts the evidence was built from. Nothing else was read.
+
+    The ids and the Design Revision say where an outcome was computed; its validity
+    rests on :meth:`content` alone. An outcome reused by another run over the same
+    content -- a design edited and edited back runs on the earlier revision's
+    artifacts -- keeps the names it was computed under.
+    """
 
     design_revision_id: str = Field(min_length=1)
     specification: SourceRef
     specification_fingerprint: Sha256
     dataset: SourceRef
     aggregate: SourceRef
+
+    def content(self) -> dict[str, str]:
+        """The sources by content: what reuse keys on and what a reader must match."""
+        return {
+            "specification": self.specification.sha256,
+            "specification_fingerprint": self.specification_fingerprint,
+            "dataset": self.dataset.sha256,
+            "aggregate": self.aggregate.sha256,
+        }
 
 
 class EvidenceSummary(_Closed):
@@ -288,12 +303,7 @@ def module_reuse_fingerprint(
         {
             "contract": ANALYSIS_ARTIFACT_CONTRACT,
             "module": module_fingerprint,
-            "sources": {
-                "specification": sources.specification.sha256,
-                "specification_fingerprint": sources.specification_fingerprint,
-                "dataset": sources.dataset.sha256,
-                "aggregate": sources.aggregate.sha256,
-            },
+            "sources": sources.content(),
             "harness": harness.model_dump(mode="json"),
         }
     )

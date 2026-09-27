@@ -101,7 +101,10 @@ the suppressed refs for `EvidenceLedger.from_claims(table=...)`), and the parsed
 Reconstruction parses the artifact, re-loads the run's sources and requires them to be
 the recorded ones by content, rebuilds the inputs, requires every fingerprint, the
 harness and the method status to match, and puts a completed module's draft through the
-gate again. Anything else raises `ReconstructionRefused(reason)`:
+gate again. Content, not names: the research steps reuse artifacts by fingerprint, so a
+design edited and edited back runs on the earlier revision's specification, and an
+outcome reused by such a run keeps the ids, revision and `produced_by` it was computed
+under. Anything else raises `ReconstructionRefused(reason)`:
 
 | `reason` | When |
 | --- | --- |

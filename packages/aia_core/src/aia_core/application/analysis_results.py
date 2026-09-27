@@ -6,8 +6,9 @@ judged on and what a reader re-checks cannot differ:
 * :func:`native_sources` -- the run's own upstream artifacts (specification, fieldwork
   dataset, aggregate), found through the run's recorded step outputs, read through the
   Study's research artifacts, and checked against each other: the specification is the
-  run's Design Revision compiled, the aggregate was computed from that specification
-  and that dataset (its recorded dependencies), the types are what they must be.
+  run's Design Revision compiled (or an identical earlier revision's, which the compile
+  step reuses), the aggregate was computed from that specification and that dataset
+  (its recorded dependencies), the types are what they must be.
 * :func:`prepare_module` -- those sources as the :class:`AnalysisInputs` one module is
   judged on, with the domain's module fingerprint, the artifact's reuse key and the
   deterministic preflight. The executor calls this before any reservation.
@@ -81,12 +82,16 @@ from ..domain.evidence import INSTRUMENT_POLICY_VERSION, ClaimSurface, Violation
 from ..domain.fieldwork import DataOrigin, FieldworkSource
 from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
+from ..domain.pipeline import fingerprint
 from ..domain.research_design import ResearchSpecification
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
 from ..infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
-from ..infrastructure.study_design_repository import StudyDesignRepository
+from ..infrastructure.study_design_repository import (
+    DesignRevisionNotFound,
+    StudyDesignRepository,
+)
 from .analysis import MAX_REPAIRS, AnalysisInputs, ModuleOutcomeKind, input_fingerprint
 from .research import ResearchRunNotFound, ResearchRuns, research_artifacts
 
@@ -205,8 +210,19 @@ def native_sources(
         raise SourcesRefused(
             "specification_moved", "the specification does not match its fingerprint"
         )
-    revision_id = str(spec_payload.get("design_revision_id") or "")
-    if revision_id != str((run.get("metadata") or {}).get("design_revision_id") or ""):
+    revision_id = str((run.get("metadata") or {}).get("design_revision_id") or "")
+    compiled_from = str(spec_payload.get("design_revision_id") or "")
+    designs = StudyDesignRepository(session, scope)
+    try:
+        content = designs.content(revision_id)
+        # The compile step keys its artifact on the design's content, so a revision
+        # identical to an earlier one runs on that revision's specification.
+        compiled = compiled_from == revision_id or fingerprint(
+            designs.content(compiled_from)
+        ) == fingerprint(content)
+    except DesignRevisionNotFound as exc:
+        raise SourcesRefused("design_revision", f"no such Design Revision here: {exc}") from exc
+    if not compiled:
         raise SourcesRefused(
             "design_revision", "the specification is not the run's Design Revision"
         )
@@ -224,7 +240,6 @@ def native_sources(
     except ValueError:
         raise SourcesRefused("dataset_origin", f"unknown data origin {raw_origin!r}") from None
 
-    content = StudyDesignRepository(session, scope).content(revision_id)
     return NativeSources(
         run_id=str(run["run_id"]),
         refs=ModuleSources(
@@ -508,7 +523,7 @@ def _reconstruct(
         raise ReconstructionRefused("module", f"{artifact_id} is the {record.module_id} module")
     if record.surface is ClaimSurface.INTERNAL:
         scope.require(Permission.EDIT_STUDY)
-    if record.sources != sources.refs:
+    if record.sources.content() != sources.refs.content():
         raise ReconstructionRefused(
             "sources_moved", "the run's sources are not the ones this outcome was judged on"
         )
