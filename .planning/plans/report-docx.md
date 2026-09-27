@@ -1,6 +1,6 @@
 # Plan: the report output stage — DOCX from the design system
 
-**Status:** paused at a checkpoint (2026-09-27); R0–R3 done, R4 started. See **Handoff** at the end. **Owner:** product-surface (A9).
+**Status:** R0–R9 done (2026-09-27); R10–R11 planned, waiting on other contexts' contracts. See **Handoff** at the end. **Owner:** product-surface (A9).
 **Realises:** chunk 10 "Deliverable" of [`design-system.md`](design-system.md).
 **Brief:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md) §4.9.
 Anchors are against `develop` @ b3bd42f unless stated.
@@ -359,73 +359,84 @@ contracts and start when those are agreed.
   17, documentation 11. The render found a table row splitting from its
   interval across a page (every data row is now `cantSplit`).
 
+- **R9 — verification tooling.** `tools/report_preview.py`: DOCX → PDF →
+  PNG through LibreOffice (a private profile per run), a contact sheet per
+  document, `--grey` twins, `--stress` (+35 % Czech prose, through
+  `report_samples.stretch`), `--samples` (the four templates, written by their
+  own test with `AIA_REPORT_SAMPLES_DIR`), and the lint on every file; exit 1
+  on a lint problem or a failed conversion. `make report-preview` runs it. The
+  DOCX lint itself (`lint.py`) runs in CI through every renderer test.
+  Verified by eye 2026-09-27 (LibreOffice 24.2, poppler 24.02): all four
+  samples in colour, greyscale and stress. Greyscale: hatching and the mark
+  shapes carry the modelled/measured distinction without colour. Stress: no
+  overflow; tables break between rows with the header repeated.
+
+## R10–R11 — planned, not built
+
+These depend on contracts other contexts own. They are planned here so the
+shape is agreed before anything is built; **nothing below exists yet**.
+
+**R10 — composition from analysis results** (with analysis-governance).
+`application/report.py`, `compose_report(kind, study, results, provenance)`:
+
+1. Input: the study's `AnalysisModuleResult`s (the eight modules,
+   `domain/analysis/`), each holding only admitted claims, plus the run's
+   provenance (population binding, fingerprints) for the internal kinds.
+2. The ledger: `EvidenceLedger.from_claims` over every admitted claim the
+   results cite, for the report's surface (client kinds: `CLIENT_FACING`, so an
+   internal claim fails the composition, it is not filtered), with the
+   suppressed refs of the evidence table and `field_grades` from OI-9.
+3. The content: a mapping from each module's draft fields to
+   `ReportContent` — executive summary, decision answer, research-question
+   answers, key findings, implications, validation / confidence / method
+   summaries, limitations, closing — which is the part to agree: **which module
+   owns which field**, and where exhibits (figures and tables) come from.
+4. Output: a `ReportDocument` through `templates.*`, validated.
+
+Open questions for analysis-governance: the field → module map; whether
+exhibits are declared by a module or chosen by the template; OI-9's grades.
+
+**R11 — the REPORT workflow step** (with platform-runtime). A `report`
+executor in `apps/executors` that loads the results, composes (R10), renders
+with `DocxRenderer`, and stores `final_docx` through `ArtifactRepository`
+with its provenance (the document's fingerprint = the DOCX's SHA-256, stable
+because rendering is deterministic). The web results stage lists it and
+offers download, gated by `EXPORT_DELIVERABLE`. The worker image installs the
+`report` extra. Open questions for platform-runtime: the step's place in the
+`research` workflow and its inputs; the artifact kind name; whether an
+unapproved revision may be downloaded (the draft footer already says so).
+
 ## Handoff — where to pick up
 
-**State.** R0–R2 are merged to `develop` (#53). R3 (`37a1c29`) and the R4 modules
-above are on `feature/report-docx`, in the follow-up PR. Nothing renders a whole
-report yet: there is no `renderer.py`.
+**State.** R0–R9 are done: a validated `ReportDocument` renders to a
+deterministic, lint-clean DOCX with embedded fonts, every component, tables,
+charts and marks, and four templates. R0–R4 (styles, fields) were PRs #53 and
+#58; R4 (renderer) to R9 are the follow-up PR from
+`claude/focused-edison-wglopy`.
 
 **Next steps, in order.**
 
-1. **`infrastructure/report_docx/renderer.py`** — `DocxRenderer.render(doc) -> bytes`:
-   1. Run `require_valid(doc)`, then `build_outline(doc)`.
-   2. Build the sections in `layout.py`: cover (no running heads), front
-      matter (`pgNumType lowerRoman`), and body (`decimal`, restarting at 1).
-      The body header is the report title plus a tab plus
-      `STYLEREF "Heading 1"`. The body footer is the classification plus a tab
-      plus `PAGE`.
-   3. **With no `meta.approvals`, every footer says "KONCEPT — NESCHVÁLENO".**
-   4. Front matter: the document-control page (the meta table, approvals and
-      revision history; identifiers only for internal kinds), then Obsah, the
-      list of figures and the list of tables. Each is a TOC field
-      (`TOC \o "1-3" \h \z \u`, and `TOC \h \z \c "Graf"` / `"Tabulka"`)
-      pre-filled with the outline's entries as cached results.
-   5. Chapters: `Heading 1` gets the text "{number} {title}", with the number
-      in a doc-accent character style, and is bookmarked by its anchor. The
-      first H1 after the body section break must not also break the page.
-   6. Finally, run `Footnotes.finish()`, set the core properties (title,
-      subject, `language cs-CZ`, author "AIA"), call
-      `embed.embed_fonts(doc, print_tokens.FONTS)`, and add
-      `w:updateFields true` (in settings order) so Word refreshes the TOC.
-2. **R5 — block renderers** (`blocks.py`, one function per model block):
-   - Paragraph, lede, lists (through `Numbering`), and quote with attribution
-     and a "syntetický respondent" label.
-   - Callouts are paragraph shading `doc-wash` plus a left bar; METHOD always
-     uses `copy.t("method_status_*")`.
-   - KeyFinding and Recommendation use the legacy field labels.
-   - A KPI row is a borderless table.
-   - `Value` inline prints `numbers.with_unit(row.value, row.decimals, row.unit)`,
-     plus a grade mark and "orientační" when `ledger.is_indicative`.
-   - Footnote and CrossRef use the outline label.
-3. **R6 — tables.** Use `S.DATA_TABLE`, with the header row repeating
-   (`w:tblHeader`) and numbers right-aligned in `S.TABLE_NUMBER`. **A row with a
-   suppressed ref is dropped**, and the source line says "Potlačeno …: N". The
-   caption is above ("Tabulka N — title (n = …)"), with n from
-   `numbers.base_n(ledger.row(base_ref).support.effective_n)`. A landscape
-   table gets its own section.
-4. **R7 — figures and marks.**
-   - Charts are matplotlib (add it to the `report` extra), and axis and label
-     text are converted to paths. Use the `viz-*` colours in fixed order, direct
-     labels, one axis, and hatch modelled series.
-   - Embed as SVG plus a PNG fallback. `/tmp` prototype code:
-     `asvg:svgBlip` inside `a:extLst` of the PNG's `a:blip`, and set
-     `wp:docPr/@descr` to the alt text.
-   - Evidence marks are the same technique at about 2.5 mm, using the shapes in
-     the web `EvidenceMark` (on `feature/web-first-slice`).
-   - A SociomapFigure prints `stress_1` in its caption and is refused unless
-     `CLIENT_FACING`, which validation already enforces.
-5. **R8 — templates** (`domain/report/templates.py`): client report (the legacy
-   v2 section order, `client_report_v2.py:149-158`), final report (triangulation
-   and effective support), internal report (plus the audit block), and study
-   documentation.
-6. **R9 — `tools/report_preview.py`**: DOCX → PDF → PNG via LibreOffice (needs
-   `libreoffice-writer`; see AGENTS.md). Check greyscale and +35 % Czech text.
-7. **R10–R11** remain as the table above describes: coordinate them with
-   analysis-governance and platform-runtime.
+1. **Agree R10 with analysis-governance** (the questions above), then build
+   `application/report.py` and its integration tests on stored results.
+2. **Agree R11 with platform-runtime**, then the executor, the artifact and the
+   download.
+3. **OI-9** decides `field_grades`; until then every measured number prints
+   `?` in a real report (the samples pass `{"vek": MEASURED}` explicitly).
+4. Not done in R0–R9, deliberately small follow-ups:
+   - the cover's AIA field image (`public/skin/brand/report-cover-field.svg`) is
+     not on the cover: it needs a PNG fallback rasterised from the SVG, which
+     the renderer cannot make without a new dependency; vendoring a
+     pre-rendered PNG beside it is the likely answer;
+   - custom document properties (`study_id`, revision, content fingerprint)
+     need a `docProps/custom.xml` part python-docx lacks;
+   - the contents' page numbers are filled by Word on open (updateFields);
+     a LibreOffice preview shows them empty (AGENTS.md § DOCX);
+   - a landscape section's running heads use their own styles; a report that
+     mixes several landscape blocks back to back gets one section per block.
 
 **Gotchas already paid for** are in AGENTS.md § DOCX: WOFF2 can't be embedded,
 fonts are matched by family name, theme fonts win over explicit fonts, Word
-enforces schema order, and LibreOffice needs Writer. The file-writing tool in
-this session turned `\u00a0` escapes into literal characters. Keep NBSP and
-en dash as escapes (AGENTS.md § ruff and Czech text).
-
+enforces schema order, LibreOffice needs Writer, ignores `w:ptab`, pads
+pictures without `distL/R`, crops pictures under exact leading, and shows a
+TOC's cached page numbers as they are. The file-writing tool turns `\u00a0`
+escapes into literal characters: grep new files before ruff.

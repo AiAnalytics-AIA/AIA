@@ -358,8 +358,21 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
    **The DOCX output side is in progress** as its own plan,
    [`plans/report-docx.md`](plans/report-docx.md): the document model, every
    report component, the style sheet generated from the design tokens, and the
-   templates. Chunk R1 (print tokens) has landed; R10 composes from
-   `AnalysisModuleResult` once this item's contract is agreed.
+   templates. **R0–R9 are done**: `DocxRenderer.render(doc) -> bytes`
+   (`infrastructure/report_docx/renderer.py`) renders a validated document to
+   a deterministic, lint-clean DOCX — cover, front matter, body, appendices,
+   every component, tables, charts, evidence marks — and four templates
+   (`domain/report/templates.py`) compose client, final, internal and
+   documentation reports (`test_report_docx_*.py`, `test_report_templates.py`).
+   R10 (composition from `AnalysisModuleResult`) and R11 (the REPORT step and
+   download) are planned in the plan file and wait on analysis-governance and
+   platform-runtime. Measured 2026-09-27 on `claude/focused-edison-wglopy`
+   (SQLite, Python 3.12, no PostgreSQL): `make verify` exit 0 — core 2507
+   passed / 200 skipped, API 199, worker 43 / 6, executors 58, web 750;
+   `mypy` clean over 175 files; `layer_check` 62; `exposure_check` 7. The
+   four samples were rendered through LibreOffice 24.2 and inspected in
+   colour, greyscale and +35 % stress (`make report-preview`). Not run: Word
+   itself (no Windows/macOS in the session), PostgreSQL suites.
 5b. **`statistics.uncertainty`** — Kish n, donor support and bootstrap intervals
    computed rather than supplied; `EvidenceRow` already refuses a client
    estimate without one. NUMERICAL parity, tolerance 1e-9, needs the archive.

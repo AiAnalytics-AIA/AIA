@@ -880,6 +880,13 @@ running ruff; RUF001 then catches the rest.
 document differ in bytes unless the package is rewritten with fixed timestamps
 (`renderer._normalise_zip`) and the core properties are dated explicitly.
 
+**Look at the pages, not only the XML.** Every layout defect in the report
+renderer so far — the header tab, padded marks, cropped charts, a row split
+from its interval — passed the structural tests and showed on the first
+render. `make report-preview` (or `tools/report_preview.py some.docx`) renders
+through LibreOffice with a private profile, so a running instance or a stale
+lock never blocks it.
+
 **Verifying a DOCX by eye needs LibreOffice Writer, not just its core.** A
 container with `libreoffice-core` alone answers every conversion with "source
 file could not be loaded", even for a document python-docx wrote itself. Install
