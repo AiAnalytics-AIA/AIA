@@ -1856,6 +1856,14 @@ unit's project store; the bound working content is migrated into AIA. Then `stud
 dropped by a migration and ADR 0015 decision 5 is retired. The unit remains only as the oracle
 and a fallback.
 
+**Carried from OI-66.** Some bindings already name unit projects that no longer exist (four
+at the time of OI-66). The migration accounts for each one explicitly: a study with a
+recoverable copy (a submitted Design Revision) is migrated from that copy with its provenance;
+a study with none is given an explicit "no recoverable working content" state. It never
+creates an empty stand-in and never rebinds a study to another project. The AIA-owned store
+keeps two invariants the unit lacked: seed or fixture data never overwrites working content,
+and a study whose content is missing says so by name rather than "Projekt/revize nenalezena".
+
 **Status.** Open; **migration debt**, accepted temporarily by the data owner (2026-09-24).
 
 ## OI-59 · Temporary restriction · `/app` admits organization owners and admins only
