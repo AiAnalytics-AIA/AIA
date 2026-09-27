@@ -5,16 +5,24 @@
 // over an existing route, sent with the signed-in bearer token; a deployment
 // variable, a code constant and an invariant are shown, never offered as a
 // switch. The API decides what is allowed -- its refusal is shown as given.
+//
+// What powers AIA's model calls is two sources side by side: the settings
+// document's `ai_runtime` (from code) and /config's switches (from the
+// deployment). Neither is a connection, and the page says so.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, type ReactNode, useState } from "react";
 
+import type { PublicConfig } from "@/app/config/route";
 import { t, tv } from "@/i18n/t";
+import { type ActivityState, type SwitchValues, activityState, approvedClasses } from "@/lib/ai-runtime";
 import {
   type AdminClient,
   type AuditEntry,
   type Member,
+  type NativeActivity,
+  type NativeRuntime,
   type SelfApprovalLevels,
   type SettingControl,
   type SettingItem,
@@ -28,11 +36,13 @@ import {
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { Icon, type IconName } from "../../rehome/icons";
-import { Button, Field, Select, Tag, TextInput } from "../../rehome/ui";
+import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 
 const P = "aia.settings.panel";
+const R = `${P}.runtime`;
+const H = `${P}.history`;
 
 // ---------------------------------------------------------------- loading
 
@@ -56,8 +66,12 @@ async function part<T>(p: Promise<T>): Promise<Part<T>> {
 
 export type StudyRow = { study: Study; detail: Part<Study> };
 
+/** The deployment's AI configuration as /config reports it: a display, never a health check. */
+export type RuntimeConfig = { switches: SwitchValues; region: string | null; model: string | null; approvedClasses: string[] };
+
 export type Panel = {
   doc: SettingsDocument;
+  runtime: Part<RuntimeConfig>;
   members: Part<Member[]>;
   clients: Part<AdminClient[]>;
   studies: Part<StudyRow[]>;
@@ -65,11 +79,22 @@ export type Panel = {
   audit: Part<AuditEntry[]> | null;
 };
 
+async function loadRuntimeConfig(): Promise<RuntimeConfig> {
+  const response = await fetch("/config", { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const ai = ((await response.json()) as Partial<PublicConfig>).aiRuntime;
+  // Without the switches there is nothing to read a state from: unknown, never "off".
+  if (!ai || !ai.switches || typeof ai.switches !== "object" || !Array.isArray(ai.approvedClasses)) {
+    throw new Error(t(`${R}.configUnavailable`));
+  }
+  return { switches: ai.switches, region: ai.region ?? null, model: ai.model ?? null, approvedClasses: ai.approvedClasses };
+}
+
 export async function loadPanel(): Promise<Panel> {
   const doc = await admin.settings();
   // A document without its groups is not a settings document; say so rather than
   // render an empty page that looks like "no settings".
-  if (!doc || !Array.isArray(doc.groups) || !doc.vocabularies) throw new Error(t(`${P}.malformed`));
+  if (!doc || !Array.isArray(doc.groups) || !doc.vocabularies || !doc.ai_runtime) throw new Error(t(`${P}.malformed`));
   const loadStudies = async (): Promise<StudyRow[]> => {
     const list = await admin.studies();
     // The list omits costs by design; the detail carries them only where the caller
@@ -77,14 +102,15 @@ export async function loadPanel(): Promise<Panel> {
     const details = await Promise.all(list.map((s) => part(admin.study(s.study_id))));
     return list.map((study, i) => ({ study, detail: details[i] }));
   };
-  const [members, clients, studies, levels, audit] = await Promise.all([
+  const [runtime, members, clients, studies, levels, audit] = await Promise.all([
+    part(loadRuntimeConfig()),
     part(admin.members()),
     part(admin.clients()),
     part(loadStudies()),
     doc.may_administer ? part(admin.selfApproval()) : Promise.resolve(null),
     doc.may_administer ? part(admin.audit(50)) : Promise.resolve(null),
   ]);
-  return { doc, members, clients, studies, levels, audit };
+  return { doc, runtime, members, clients, studies, levels, audit };
 }
 
 // ---------------------------------------------------------------- atoms
@@ -131,12 +157,13 @@ export function Value({ value, unit }: { value: SettingValue; unit?: string | nu
   );
 }
 
-// Where an API control's form lives, when it is not in this panel.
-const ELSEWHERE: Record<string, "clients" | "project"> = {
+// Where an API control's form lives, when it is not in this panel. The generic
+// project's provider fields have no screen at all: only its API stores them.
+const ELSEWHERE: Record<string, "clients" | "projectApi"> = {
   clients: "clients",
   studies: "clients",
-  project_max_api_cost: "project",
-  project_provider_policy: "project",
+  project_max_api_cost: "projectApi",
+  project_provider_policy: "projectApi",
 };
 
 function ApiHint({ item }: { item: SettingItem }) {
@@ -144,7 +171,7 @@ function ApiHint({ item }: { item: SettingItem }) {
   if (where === "clients") {
     return <Link href={appRoutes.clients()} className="text-xs text-signal underline">{t(`${P}.inClients`)}</Link>;
   }
-  return <span className="text-xs text-ink-muted">{t(where === "project" ? `${P}.onProject` : `${P}.inPanel`)}</span>;
+  return <span className="text-xs text-ink-muted">{t(where === "projectApi" ? `${P}.onProjectApi` : `${P}.inPanel`)}</span>;
 }
 
 export function SettingRow({ item }: { item: SettingItem }) {
@@ -486,33 +513,164 @@ function SelfApprovalPanel({ levels, clients, studies, reload }: {
   );
 }
 
-function ProvidersPanel({ vocab }: { vocab: Vocabularies }) {
-  const list = (title: string, ids: string[], prefix: string) => (
-    <div>
-      <Sub>{title}</Sub>
-      <ul className="mt-1 flex flex-col gap-1">
-        {ids.map((id) => <li key={id} className="text-sm"><code className="text-xs">{id}</code> <span className="text-xs text-ink-muted">— {t(`${prefix}.${id}`)}</span></li>)}
-      </ul>
+// ---- what powers AIA: code facts beside the deployment's switches --------
+
+const STATE_TONE = { configured: "neutral", off: "world", invalid: "fault", unknown: "neutral" } as const satisfies Record<ActivityState["kind"], "neutral" | "world" | "fault">;
+
+/** Why an activity stands where it does, in words. Never "connected" or "verified". */
+function reasonFor(state: ActivityState, activity: NativeActivity): string {
+  switch (state.kind) {
+    case "configured":
+      return t(`${R}.reason.configured`);
+    case "off":
+      return `${tv(`${R}.reason.off`, { switch: state.switch })} ${t(`${R}.activity.${activity.key}.off`)}`;
+    case "invalid":
+      return tv(`${R}.reason.invalid`, { switch: state.switch });
+    case "unknown":
+      return state.switch ? tv(`${R}.reason.unknown`, { switch: state.switch }) : t(`${R}.reason.unknownConfig`);
+  }
+}
+
+function Codes({ ids, title }: { ids: string[]; title?: (id: string) => string }) {
+  return (
+    <span className="flex flex-wrap gap-1">
+      {ids.map((id) => <code key={id} title={title?.(id)} className="rounded-sm bg-surface-sunken px-1.5 text-xs">{id}</code>)}
+    </span>
+  );
+}
+
+function SwitchWord({ value }: { value: boolean | null | undefined }) {
+  if (value === undefined) return <Value value={null} />;
+  return <span className="font-mono text-sm">{t(`${R}.switchValue.${value === null ? "invalid" : value ? "on" : "off"}`)}</span>;
+}
+
+function ConfigRow({ label, source, children }: { label: string; source: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-1 border-t border-border py-2 first:border-t-0 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-center md:gap-4">
+      <div className="min-w-0">
+        <div className="text-sm text-ink">{label}</div>
+        <code className="break-all text-[11px] text-ink-faint">{source}</code>
+      </div>
+      <div className="min-w-0 break-all">{children}</div>
     </div>
   );
+}
+
+function ActivityCard({ runtime, activity, switches }: { runtime: NativeRuntime; activity: NativeActivity; switches: SwitchValues | null }) {
+  const state = activityState(runtime, activity, switches);
+  const A = `${R}.activity.${activity.key}`;
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <div>
-        <Sub>{t(`${P}.ai.providers`)}</Sub>
-        <ul className="mt-1 flex flex-col gap-1">
-          {vocab.providers.map((p) => (
-            <li key={p.id} className="text-sm">
-              {p.label} <code className="text-xs text-ink-faint">{p.id}</code> <span className="text-xs text-ink-muted">— {t(p.paid ? `${P}.ai.paid` : `${P}.ai.subscription`)}</span>
-            </li>
-          ))}
-        </ul>
+    <article data-activity={activity.key} data-state={state.kind} className="flex flex-col gap-2 rounded-sm border border-border p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
+        <Chip tone={STATE_TONE[state.kind]}>{t(`${R}.state.${state.kind}`)}</Chip>
       </div>
-      {list(t(`${P}.ai.policies`), vocab.provider_policies, `${P}.policy`)}
-      <div>
-        {list(t(`${P}.ai.capabilities`), vocab.model_capabilities, `${P}.capability`)}
-        <p className="mt-2 text-xs text-ink-faint">{t(`${P}.ai.capabilityNote`)}</p>
+      <p className="text-sm text-ink-muted">{t(`${A}.text`)}</p>
+      <p data-reason className="text-sm text-ink">{reasonFor(state, activity)}</p>
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
+        {activity.actions.length ? (
+          <>
+            <dt className="text-ink-faint">{t(`${R}.actions`)}</dt>
+            <dd>{activity.actions.map((a) => t(`${R}.action.${a}`)).join(", ")}</dd>
+          </>
+        ) : null}
+        <dt className="text-ink-faint">{t(`${R}.col.uses`)}</dt>
+        <dd><Codes ids={activity.capabilities} title={(c) => t(`${P}.capability.${c}`)} /></dd>
+        <dt className="text-ink-faint">{t(`${R}.col.versions`)}</dt>
+        <dd className="flex flex-col gap-0.5">
+          {activity.versions.map((v) => <span key={v.name}>{t(`${R}.version.${v.name}`)} <code className="break-all">{v.value}</code></span>)}
+        </dd>
+        <dt className="text-ink-faint">{t(`${R}.col.switches`)}</dt>
+        <dd><Codes ids={activity.switches} /></dd>
+      </dl>
+    </article>
+  );
+}
+
+/** Code facts from the settings document beside the deployment's switches from /config. */
+function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; config: Part<RuntimeConfig>; vocab: Vocabularies }) {
+  const switches = config.ok ? config.data.switches : null;
+  const providers = runtime.providers.map((p) => p.label).join(", ");
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex max-w-3xl flex-col gap-1 text-sm">
+        <p>{tv(`${R}.powers`, { provider: providers })}</p>
+        <p>{t(`${R}.credential.${runtime.credential}`)}</p>
       </div>
+      <div data-config className="rounded-sm border border-border p-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <Sub>{t(`${R}.config`)}</Sub>
+          <span className="text-[11px] text-ink-faint">{t(`${R}.configSource`)}</span>
+        </div>
+        {config.ok ? (
+          <div className="mt-1">
+            <ConfigRow label={t(`${R}.switchLabel`)} source={runtime.switch}><SwitchWord value={config.data.switches[runtime.switch]} /></ConfigRow>
+            <ConfigRow label={t(`${R}.region`)} source="AIA_BEDROCK_REGION"><Value value={config.data.region} /></ConfigRow>
+            <ConfigRow label={t(`${R}.model`)} source="AIA_BEDROCK_MODEL_ID"><Value value={config.data.model} /></ConfigRow>
+            <ConfigRow label={t(`${R}.approved`)} source="AIA_AI_ROUTE_APPROVED_FOR">
+              {config.data.approvedClasses.length ? (
+                <ul className="flex flex-col gap-0.5">
+                  {approvedClasses(config.data.approvedClasses, vocab.data_classes).map((c) => (
+                    <li key={c.id} className="text-sm">
+                      <code className="text-xs">{c.id}</code>{" "}
+                      <span className={`text-xs ${c.known ? "text-ink-muted" : "text-status-fault"}`}>— {c.known ? t(`${P}.dataClass.${c.id}`) : t(`${R}.unknownClass`)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <span className="text-sm text-ink-muted">{t(`${R}.approvedNone`)}</span>}
+            </ConfigRow>
+          </div>
+        ) : <Unavailable what={t(`${R}.config`)} message={`${config.message} ${t(`${R}.configUnavailable`)}`} />}
+      </div>
+      <div className="flex flex-col gap-2">
+        <Sub>{t(`${R}.activities`)}</Sub>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {runtime.activities.map((a) => <ActivityCard key={a.key} runtime={runtime} activity={a} switches={switches} />)}
+        </div>
+        {runtime.unused_capabilities.length ? (
+          <div data-activity="unused" className="rounded-sm border border-dashed border-border-strong p-3 text-sm">
+            <span className="font-medium text-ink">{t(`${R}.unused`)}:</span>{" "}
+            <Codes ids={runtime.unused_capabilities} title={(c) => t(`${P}.capability.${c}`)} />
+            <p className="mt-1 text-xs text-ink-muted">{t(`${R}.unusedText`)}</p>
+          </div>
+        ) : null}
+        <p className="text-xs text-ink-faint">{t(`${R}.capabilityNote`)}</p>
+      </div>
+      <p role="note" data-not-verified className="rounded-sm border border-border bg-surface-sunken p-3 text-sm text-ink">{t(`${R}.notVerified`)}</p>
     </div>
+  );
+}
+
+/** The prototype's identifiers, for reading older records. Collapsed: nothing here is a choice. */
+function HistoryPanel({ vocab, items }: { vocab: Vocabularies; items: SettingItem[] }) {
+  const historical = vocab.providers.filter((p) => p.use === "HISTORICAL");
+  return (
+    <details data-history className="rounded-sm border border-border">
+      <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-ink">{t(`${H}.show`)}</summary>
+      <div className="grid gap-4 border-t border-border p-3 lg:grid-cols-2">
+        <div>
+          <Sub>{t(`${H}.providers`)}</Sub>
+          <ul className="mt-1 flex flex-col gap-1">
+            {historical.map((p) => (
+              <li key={p.id} data-provider={p.id} className="text-sm">
+                {p.label} <code className="text-xs text-ink-faint">{p.id}</code>{" "}
+                <span className="text-xs text-ink-muted">— {t(`${H}.provider.${p.id}`)} {t(p.paid ? `${H}.paid` : `${H}.subscription`)}.</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <Sub>{t(`${H}.policies`)}</Sub>
+          <ul className="mt-1 flex flex-col gap-1">
+            {vocab.provider_policies.map((id) => <li key={id} className="text-sm"><code className="text-xs">{id}</code> <span className="text-xs text-ink-muted">— {t(`${P}.policy.${id}`)}</span></li>)}
+          </ul>
+        </div>
+        <div className="lg:col-span-2">
+          <Sub>{t(`${H}.fields`)}</Sub>
+          <div>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -595,15 +753,21 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 
 // Groups with a dedicated panel, in page order. A group the API adds later still
 // renders -- generically, after these -- so a new control is never hidden.
-const ORDER = ["deployment", "access", "studies", "approvals", "ai", "residency", "workflow", "population", "evidence", "simulation"];
+const ORDER = ["deployment", "ai", "ai_history", "access", "studies", "approvals", "residency", "workflow", "population", "evidence", "simulation"];
+// Groups whose panel draws their rows itself (inside it), so they are not drawn twice.
+const OWN_ROWS = new Set(["ai_history"]);
 
 export function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
-  const { doc, members, clients, studies, levels, audit } = panel;
+  const { doc, runtime, members, clients, studies, levels, audit } = panel;
   const vocab = doc.vocabularies;
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));
-  const keys = [...ORDER.filter((k) => byKey.has(k)), ...doc.groups.map((g) => g.key).filter((k) => !ORDER.includes(k))];
+  // The AI section is drawn from ai_runtime, which a document always carries (loadPanel).
+  const present = (k: string) => byKey.has(k) || k === "ai";
+  const keys = [...ORDER.filter(present), ...doc.groups.map((g) => g.key).filter((k) => !ORDER.includes(k))];
   const invariants = doc.groups.flatMap((g) => g.items.filter((i) => i.control === "INVARIANT"));
   const extra: Record<string, ReactNode> = {
+    ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
+    ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
     access: (
       <>
         <MembersPanel members={members} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
@@ -612,7 +776,6 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
     ),
     studies: <StudiesPanel studies={studies} clients={clients} members={members} vocab={vocab} reload={reload} />,
     approvals: <SelfApprovalPanel levels={levels} clients={clients} studies={studies} reload={reload} />,
-    ai: <ProvidersPanel vocab={vocab} />,
     residency: <DataClasses vocab={vocab} />,
     workflow: <Stages vocab={vocab} />,
   };
@@ -634,7 +797,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
       {keys.map((key) => (
         <Section key={key} id={key}>
           {extra[key] ?? null}
-          <div>{byKey.get(key)!.items.map((item) => <SettingRow key={item.key} item={item} />)}</div>
+          {OWN_ROWS.has(key) ? null : <div>{(byKey.get(key)?.items ?? []).map((item) => <SettingRow key={item.key} item={item} />)}</div>}
         </Section>
       ))}
       <Section id="roles"><RoleMatrix vocab={vocab} /></Section>

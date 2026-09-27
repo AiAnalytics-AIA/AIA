@@ -252,38 +252,5 @@ describe("Nastavení", () => {
   });
 });
 
-
-describe("Bedrock settings", () => {
-  it("shows fictional fieldwork configuration and no legacy credential controls", async () => {
-    path = "/app/settings";
-    api({ "GET /config": () => ({ apiBase: "", aiRuntime: {
-      enabled: true, provider: "aws_bedrock", region: "eu-central-1",
-      model: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", approvedFor: "CLASS_C_INTERNAL",
-    } }) });
-    render(<SettingsPage />);
-    expect(await screen.findByText(/AI odpovědi respondentů jsou povolené pouze/)).toBeTruthy();
-    expect(screen.getByText("Výchozí oblast: eu-central-1")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "Claude Code" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Obecné nastavení" })).toBeNull();
-    expect(screen.queryByLabelText("ANTHROPIC_API_KEY")).toBeNull();
-    expect(screen.getByText(/AI návrhové kroky jsou v tomto prostředí vypnuté/)).toBeTruthy();
-    expect(called("POST", "/api/settings/ai_check")).toEqual([]);
-  });
-  it("says a switch the worker refuses is invalid, never off or on", async () => {
-    path = "/app/settings";
-    api({ "GET /config": () => ({ apiBase: "", aiRuntime: {
-      enabled: null, provider: "aws_bedrock", region: null, model: null, approvedFor: null,
-    } }) });
-    render(<SettingsPage />);
-    expect(await screen.findByText(/má neplatnou hodnotu; worker se s ní nespustí/)).toBeTruthy();
-    expect(screen.queryByText("AI odpovědi respondentů jsou vypnuté.")).toBeNull();
-    expect(screen.queryByText(/AI odpovědi respondentů jsou povolené pouze/)).toBeNull();
-  });
-  it("reports an absent configuration as unknown rather than connected", async () => {
-    path = "/app/settings";
-    api();
-    render(<SettingsPage />);
-    expect(await screen.findByText("Stav konfigurace AI se nepodařilo načíst.")).toBeTruthy();
-    expect(screen.queryByText(/AI odpovědi respondentů jsou povolené pouze/)).toBeNull();
-  });
-});
+// What Settings says about AI -- configured, off and why, invalid, unknown, never
+// connected -- is tested with the panel that says it: settings/ControlPanel.test.tsx.

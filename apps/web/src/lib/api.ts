@@ -455,13 +455,37 @@ export type SettingValue = string | number | boolean | string[] | null;
 export type SettingItem = { key: string; value: SettingValue; control: SettingControl; source: string; unit: string | null };
 export type SettingGroup = { key: string; items: SettingItem[] };
 
+/** NATIVE: AIA's runtime calls it. HISTORICAL: only read from records, never offered. */
+export type ProviderUse = "NATIVE" | "HISTORICAL";
+export type ProviderEntry = { id: string; label: string; paid: boolean; use: ProviderUse };
+
+/** One thing AIA's runtime does with a model, from code (schemas/settings.py NativeActivity). */
+export type NativeActivity = {
+  key: string;
+  step_kind: string;
+  capabilities: string[];
+  versions: { name: string; value: string }[];
+  switches: string[];
+  actions: string[];
+};
+
+/** What powers AIA's model calls, from code: never a connection or health claim. */
+export type NativeRuntime = {
+  providers: ProviderEntry[];
+  credential: "INSTANCE_ROLE";
+  switch: string;
+  activities: NativeActivity[];
+  unused_capabilities: string[];
+};
+
 export type Vocabularies = {
   organization_roles: string[];
   scope_roles: { role: string; permissions: string[] }[];
   permissions: string[];
   client_statuses: string[];
   study_statuses: string[];
-  providers: { id: string; label: string; paid: boolean }[];
+  providers: ProviderEntry[];
+  /** Every one historical: the prototype's per-project rule. */
   provider_policies: string[];
   model_capabilities: string[];
   data_classes: string[];
@@ -474,6 +498,7 @@ export type SettingsDocument = {
   your_role: string;
   may_administer: boolean;
   groups: SettingGroup[];
+  ai_runtime: NativeRuntime;
   vocabularies: Vocabularies;
 };
 
