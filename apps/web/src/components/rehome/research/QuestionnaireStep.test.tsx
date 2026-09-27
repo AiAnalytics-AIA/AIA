@@ -4,11 +4,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
 import { briefFingerprint, defaultsMerge } from "@/unit/research/model";
-import { CONFIRM_REMOVE_SECTION, GUIDED_PROMPT, OPTIMIZE_DONE, PROMPT_SET_ITEMS, PROMPT_SET_TYPE, SET_SIZE, SET_TOO_SMALL } from "@/unit/research/questionnaire";
+import { CONFIRM_REMOVE_SECTION, GUIDED_PROMPT, PROMPT_SET_ITEMS, PROMPT_SET_TYPE, SET_SIZE, SET_TOO_SMALL } from "@/unit/research/questionnaire";
 import { ResearchScreen } from "./ResearchScreen";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+// Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -29,6 +33,7 @@ type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 function unitStub(project: Record<string, unknown>, analysis: unknown = null, over: Record<string, (b: unknown) => unknown> = {}) {
   calls = [];
+  const native = nativeAgentFixture((action, baseline) => action === "analyze_brief" ? { project: baseline, proposal: { objectives: ["O"] }, analysis: { objectives: ["O"] } } : { project: { ...baseline, sections: SECTIONS }, proposal: { sections: SECTIONS } }, over);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -45,12 +50,12 @@ function unitStub(project: Record<string, unknown>, analysis: unknown = null, ov
         "/api/job": () => ({ state: "done", result: { project: { ...EMPTY, ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "ai" } } } }),
         ...over,
       };
-      const answer = answers[u.split("?")[0]]?.(body) ?? {};
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
-const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path);
+const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 const lastSave = () => posted("/api/projects/save").at(-1)?.body as { project: { sections: { questions?: { typ: string; kategorie?: string[] }[]; objects?: string[] }[]; ui_state: Record<string, unknown> }; reason: string };
 
 async function answerDialog(question: string, value: string | null) {
@@ -95,7 +100,7 @@ describe("Dotazník", () => {
     unitStub(BRIEF);
     render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     expect(await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" })).toBeTruthy();
-    expect(screen.getByText("AI návrh výzkumu a další návrhové asistenty zatím nejsou převedeny do AIA.")).toBeTruthy();
+    expect(screen.getByText("Návrh AI se uloží jako návrh ke kontrole. Změny použijete až po potvrzení.")).toBeTruthy();
     expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Nejdřív vytvořte nebo nahrajte dotazník.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Sestavit ručně/ }));
@@ -167,33 +172,37 @@ describe("Dotazník", () => {
     expect(upload.body).toMatchObject({ filename: "dotaznik.xlsx", data_b64: btoa("x") });
   });
 
-  it("builds with AI: the brief's analysis reused, then the job, then the editor", async () => {
+  it("reviews the native brief analysis and questionnaire before opening the editor", async () => {
     const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig });
     render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
+    await approveProposal();
+    await approveProposal();
     expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" }, { timeout: 4000 })).toBeTruthy();
     expect(posted("/api/research/analyze")).toEqual([]);
-    const [built] = posted("/api/research/build_questionnaire");
-    expect(built.body).toMatchObject({ analysis: { objectives: ["O"] }, model: "sonnet", provider: "claude_code_subscription", project_id: "PRJ-1" });
-  });
-
-  it("stops the build at the provider notice when Claude Code is not ready", async () => {
-    const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig }, { "/api/providers/claude-code/status": () => ({ ok: false }) });
-    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
-    expect(await screen.findByText("AI návrh výzkumu zatím není dostupný. Amazon Bedrock nyní zajišťuje odpovědi respondentů. Projekt zůstává uložený.")).toBeTruthy();
+    expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["analyze_brief", "build_questionnaire"]);
     expect(posted("/api/research/build_questionnaire")).toEqual([]);
   });
 
-  it("optimises without a provider check, as the classic does (OI-55)", async () => {
+  it("parks the build at the native runtime boundary", async () => {
+    const sig = briefFingerprint(defaultsMerge(BRIEF, BOOT));
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig }, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
+    render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
+    expect(await screen.findByText(PARK_MESSAGE, {}, NATIVE_JOB_WAIT)).toBeTruthy();
+    expect(posted("/api/research/build_questionnaire")).toEqual([]);
+  });
+
+  it("reviews native optimization without asking for a legacy provider connection", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/api/providers/claude-code/status": () => ({ ok: false }) });
     render(<ResearchScreen projectId="PRJ-1" step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click((await screen.findAllByRole("button", { name: "OPTIMALIZOVAT DOTAZNÍK S AI" }))[0]);
-    expect(await screen.findByText(OPTIMIZE_DONE, {}, { timeout: 4000 })).toBeTruthy();
+    await approveProposal();
+    await waitFor(() => expect(posted(`${AGENTS_PATH}/RUN-A/accept`)).toHaveLength(1));
     expect(posted("/api/providers/claude-code/status")).toEqual([]);
-    expect(posted("/api/questionnaire/optimize")[0].body).toMatchObject({ research: {}, provider: "claude_code_subscription" });
+    expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "optimize_questionnaire" });
+    expect(posted("/api/questionnaire/optimize")).toEqual([]);
   });
 
   it("goes on to the audience at its first choice", async () => {

@@ -29,6 +29,9 @@ import { ResearchRail } from "./ResearchRail";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
 import { ResearchContext, type RunJob } from "./context";
+import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
+import { researchAgents, type ResearchAgentAction } from "@/lib/api";
+import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
 import { STEP_SCREENS } from "./steps";
 
@@ -195,8 +198,14 @@ function Ready({ store, boot, memory, step, frame }: {
     return () => clearTimeout(id);
   }, [toast]);
 
+  const agents = useResearchAgents(frame.studyId, store, setJob);
+  const nativeRun = agents.run;
+
   const runJob: RunJob = useCallback(
     async (endpoint, payload, { title: jobTitle, warnMs = 45_000, model }) => {
+      const action = ACTIONS[endpoint];
+      if (action) return nativeRun(action, payload, jobTitle);
+      if (endpoint === "researchDeep") throw new JobError("Webový výzkum čeká na konfiguraci vyhledávací služby. Zadání zůstává uložené.", "error", null);
       const s = store.get();
       const started = Date.now();
       let warned = false;
@@ -231,7 +240,7 @@ function Ready({ store, boot, memory, step, frame }: {
         setJob(null);
       }
     },
-    [store, boot],
+    [store, boot, nativeRun],
   );
 
   const onCancel = (jobId: string) =>
@@ -240,7 +249,7 @@ function Ready({ store, boot, memory, step, frame }: {
       message: CANCEL_CONFIRM,
       resolve: (ok) => {
         if (!ok) return;
-        cancelJob(jobId).then(
+        (jobId.startsWith("RUN-") ? researchAgents.cancel(frame.studyId, jobId) : cancelJob(jobId)).then(
           () => setToast(t("research.jobCancelling")),
           (e: unknown) => setToast(tv("research.jobCancelFailed", { message: message(e) })),
         );
@@ -256,14 +265,30 @@ function Ready({ store, boot, memory, step, frame }: {
     () => ({ store, boot, runJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
     [store, boot, runJob, job, confirm, prompt, memory, stepHref, frame],
   );
+  const askAgent = async (action: ResearchAgentAction, title: string) => {
+    const instruction = action === "critique_design" ? "Zkontroluj současný návrh." : await prompt("Co chcete zjistit?");
+    if (!instruction) return;
+    try { await agents.run(action, { instruction }, title); }
+    catch (e) { setToast(message(e)); }
+  };
   const Screen = STEP_SCREENS[step];
 
   return (
     <ResearchContext.Provider value={value}>
       <StageChrome frame={frame} step={step} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} />}>
         {Screen ? <Screen /> : <StepPlaceholder projectId={state.projectId} step={step} />}
+        {frame.canEdit ? <section className="mt-6 flex flex-wrap gap-2 border-t border-border pt-4" aria-label="AI pomoc s výzkumem">
+          <Button disabled={agents.busy} onClick={() => void askAgent("critique_design", "Kontrola návrhu")}>AI zkontroluje návrh</Button>
+          <Button disabled={agents.busy} onClick={() => void askAgent("design_copilot", "Pomoc s návrhem")}>Zeptat se na návrh</Button>
+          <Button disabled={agents.busy} onClick={() => void askAgent("answer_memory", "Klientské znalosti")}>Zeptat se na klientské znalosti</Button>
+        </section> : null}
+      {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
+      {agents.recent.some((j) => j.status === "COMPLETED") ? <section className="my-4 rounded-md border border-border p-4"><h2 className="font-semibold">Uložené návrhy AI</h2>
+        {agents.recent.filter((j) => j.status === "COMPLETED").slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
+      </section> : null}
       </StageChrome>
       {job ? <JobPanel job={job} onCancel={onCancel} /> : null}
+      {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
       <Toast message={toast} />
     </ResearchContext.Provider>

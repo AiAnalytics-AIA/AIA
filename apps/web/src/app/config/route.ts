@@ -13,8 +13,8 @@ export type PublicConfig = {
   cognitoClientId: string | null;
   publicOrigin: string | null;
   apiBase: string;
-  // null: the switch holds a value the worker refuses, so it does not start (ai_runtime._flag).
-  aiRuntime: { enabled: boolean | null; provider: "aws_bedrock"; region: string | null; model: string | null; approvedFor: string | null };
+  // null means a flag value the worker rejects.
+  aiRuntime: { enabled: boolean | null; researchAgentsEnabled: boolean | null; provider: "aws_bedrock"; region: string | null; model: string | null; approvedFor: string | null };
   build: { sha: string | null; built_at: string | null };
 };
 
@@ -40,6 +40,9 @@ export function GET() {
     apiBase: process.env.AIA_API_BASE?.trim() || "",
     aiRuntime: {
       enabled: runtimeSwitch(process.env.AIA_AI_RUNTIME_ENABLED),
+      researchAgentsEnabled: runtimeSwitch(process.env.AIA_AI_RUNTIME_ENABLED) === false ? false
+        : runtimeSwitch(process.env.AIA_AI_RUNTIME_ENABLED) === null ? null
+        : runtimeSwitch(process.env.AIA_AI_RESEARCH_AGENTS_ENABLED),
       provider: "aws_bedrock",
       region: process.env.AIA_BEDROCK_REGION?.trim() || null,
       model: process.env.AIA_BEDROCK_MODEL_ID?.trim() || null,
