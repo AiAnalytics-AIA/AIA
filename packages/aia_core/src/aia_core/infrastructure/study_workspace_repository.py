@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.attachments import (
@@ -317,6 +317,144 @@ class StudyWorkspaceRepository:
             revision_id=revision_id,
             deduplicated=outcome.deduplicated,
         )
+
+    # -- the 18.6.6 migration (ADR 0018, decision 2) ----------------------------
+
+    def unit_bindings(self) -> list[tuple[str, str, str | None, ContentState]]:
+        """Every Study ever bound to 18.6.6, oldest binding first.
+
+        ``(study_id, organization_id, unit_project_id, state)`` for each Study whose
+        content waits for migration or that names a unit project in its lineage.
+        For the operator's migration only, and ids only: it reads no content and
+        grants nothing. Each waiting Study is then opened through an issued scope,
+        and one the operator may not edit stays waiting and is reported.
+        """
+        rows = self._session.execute(
+            select(
+                StudyWorkspaceRow.study_id,
+                StudyWorkspaceRow.organization_id,
+                StudyWorkspaceRow.unit_project_id,
+                StudyWorkspaceRow.content_state,
+            )
+            .where(
+                or_(
+                    StudyWorkspaceRow.content_state == ContentState.AWAITING_MIGRATION.value,
+                    StudyWorkspaceRow.unit_project_id.is_not(None),
+                )
+            )
+            .order_by(StudyWorkspaceRow.bound_at, StudyWorkspaceRow.study_id)
+        ).all()
+        return [(r[0], r[1], r[2], ContentState(r[3])) for r in rows]
+
+    def _awaiting_row(self, scope: StudyContext) -> StudyWorkspaceRow:
+        scope.require(Permission.EDIT_STUDY)
+        self._lock_research_study(scope)
+        row = self._row(scope)
+        if row is None or row.content_state != ContentState.AWAITING_MIGRATION.value:
+            raise WorkspaceConflict(
+                "the Study's content is not waiting for migration", reason="not_awaiting"
+            )
+        return row
+
+    def import_migrated(
+        self,
+        scope: StudyContext,
+        store: ArtifactStore,
+        *,
+        revisions: list[tuple[dict[str, Any], dict[str, Any], str]],
+        files: list[tuple[str, str, bytes, dict[str, Any], int]],
+        state: ContentState,
+        lineage: dict[str, Any],
+    ) -> list[tuple[int, str, dict[str, Any]]]:
+        """Write a Study's migrated content: its working project, every revision, its files.
+
+        ``revisions`` are ``(content, analysis, reason)``, oldest first, each written
+        as its own revision even when the content repeats, so AIA revision *k* is the
+        source's *k*-th; their author is unknown (``created_by`` null), which is what
+        18.6.6 recorded. ``files`` are ``(artifact_id, filename, bytes, metadata,
+        revision)``, stored as the brief's attachments under the ids the revisions
+        already cite. One ``WORKSPACE_MIGRATED`` event names the person who ran the
+        migration. The Study must be waiting for migration, open and a research
+        Study, and the caller must hold ``EDIT_STUDY``. Returns ``(revision, content
+        sha256, analysis)`` of what was written, for the caller to validate before it
+        commits.
+
+        Files are uploaded before the transaction commits: a migration rolled back
+        leaves their objects orphaned in storage (as any failed artifact write does)
+        and never a row that points at nothing.
+        """
+        if state not in (ContentState.MIGRATED, ContentState.RECOVERED):
+            raise ValueError("migrated content is MIGRATED or RECOVERED")
+        if not revisions:
+            raise ValueError("nothing to import")
+        scope.require_open_study()
+        row = self._awaiting_row(scope)
+        projects = self._projects(scope)
+        (content, analysis, reason), *later = revisions
+        study = self._session.get(StudyRow, scope.study_id)
+        project, first = projects.create(
+            title=str(content.get("title") or (study.name if study else "")) or None,
+            project_type=ProjectType.RESEARCH,
+            content=content,
+            analysis=analysis,
+            request_id=scope.request_id,
+            reason=reason,
+            author_unknown=True,
+        )
+        written = [(first.revision, first.content_sha256, dict(analysis or {}))]
+        artifacts = self._artifacts(scope, store)
+        for artifact_id, filename, data, metadata, revision in files:
+            artifacts.put(
+                project_id=project.project_id,
+                revision=revision,
+                stage_type=ATTACHMENT_STAGE,
+                artifact_type=ATTACHMENT_ARTIFACT_TYPE,
+                data=data,
+                content_type=content_type_of(filename),
+                metadata=metadata,
+                reuse=False,
+                artifact_id=artifact_id,
+            )
+        for content, analysis, reason in later:
+            outcome = projects.save(
+                project.project_id,
+                content=content,
+                analysis=analysis,
+                reason=reason,
+                force_new_revision=True,
+                actor_id=None,
+                request_id=scope.request_id,
+            )
+            written.append((outcome.revision, outcome.content_sha256, dict(analysis or {})))
+        projects.record_event(
+            project.project_id,
+            event_type="WORKSPACE_MIGRATED",
+            message="Pracovní obsah studie byl převeden z 18.6.6.",
+            payload={
+                "state": state.value,
+                "unit_project_id": row.unit_project_id,
+                "migration_version": lineage.get("migration_version"),
+                "revisions": len(written),
+                "files": len(files),
+            },
+            revision=written[-1][0],
+            actor_id=scope.actor_id,
+            request_id=scope.request_id,
+        )
+        row.content_state = state.value
+        row.project_id = project.project_id
+        row.lineage = lineage
+        row.modified_at = utcnow()
+        self._session.flush()
+        return written
+
+    def mark_unrecoverable(self, scope: StudyContext, *, lineage: dict[str, Any]) -> None:
+        """Say by state that a Study's 18.6.6 content is gone and nothing could be recovered."""
+        row = self._awaiting_row(scope)
+        row.content_state = ContentState.UNRECOVERABLE.value
+        row.lineage = lineage
+        row.modified_at = utcnow()
+        self._session.flush()
 
     # -- attachments ---------------------------------------------------------
 
