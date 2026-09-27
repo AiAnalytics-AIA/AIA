@@ -83,6 +83,7 @@ attempt 3, green).
 | #70 | `fix/smoke-waits-for-unit-start` | Smoke judges the 18.6.6 unit after its start period (OI-71) | Draft into `develop` | 7: turns *Deploy develop* green again |
 | #71 | `fix/brief-toggle-test-waits` | BriefStep's toggle test waits for the pressed tile (OI-70) | Draft into `develop` | any time: ends a red *Frontend* about 1 run in 30 |
 | #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | Draft into `develop` | not yet reviewed here |
+| #75 | `fix/truthful-ai-controls` | Settings says truthfully what powers AIA's AI: `ai_runtime` from code, each switch from `/config`, never "connected"; the prototype's provider fields as collapsed history ([plan](plans/truthful-ai-controls.md), OI-72; handoffs OI-73–OI-76) | Draft into `develop` | any time: no migration, no new variable. One shared surface: the `set-ai` card in `GlobalPages.tsx`, for the phase-out agent to agree |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
 by default. The browser journey it named (enqueue → reload → review → accept → stale
