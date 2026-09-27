@@ -2152,7 +2152,8 @@ PR #64.
 `test_a_deploy_without_home_writes_the_config_docker_reads`,
 `test_a_deploy_with_no_home_anywhere_stops_and_says_why`.
 
-**Status.** Fix in PR #64 (draft, 2026-09-27).
+**Status.** Fixed in code: PR #64, merged 2026-09-27 10:29 (`96581bc`). On the host it is proven
+only by the first deploy that carries it.
 
 ---
 
@@ -2210,4 +2211,6 @@ Diagnosed on PR #54 (comment, 2026-09-25).
 **Test that would have caught it.** The test itself, run repeatedly. The rule is now named
 in `AGENTS.md` beside the worker's own conftest.
 
-**Status.** Fix in PR #65 (draft, 2026-09-27).
+**Status.** Fixed: PR #65, merged 2026-09-27 10:30 (`e0edf2a`). Before it landed, the same race
+also crashed CI on `develop` @ `46b7337` with a segmentation fault inside this test (run
+36312008574; the crashing thread was in a worker transaction on the shared connection).

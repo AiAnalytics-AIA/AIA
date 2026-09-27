@@ -3,8 +3,8 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-27 · **Code of record:** `develop` @ `46b7337` · **Release:** `main` @ `9cf1f58`,
-204 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
+**Updated:** 2026-09-27 · **Code of record:** `develop` @ `e0edf2a` · **Release:** `main` @ `9cf1f58`,
+208 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -23,7 +23,8 @@ entry is a **hypothesis**, not a finding.
 it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully contained in it
 (`git rev-list --count origin/develop..<branch>` = 0). The 14 that are not:
 
-- **In flight:** `feature/research-agents` (#63), the two fixes (#64, #65), and
+- **In flight:** `feature/research-agents` (#63), the two fixes (#64, #65; both merged
+  since), and
   `claude/trusting-turing-2b9oyl` (a settings page, no PR yet). That branch was started
   from `main`, so it carries `main`'s `7f8cb2a` and had to merge `develop` in: the
   cost of `main` being GitHub's default branch (human action 1, below).
@@ -51,11 +52,12 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
 
 **Deployed: `ff463a3`, not `develop`.**
 - *Deploy develop* run 26 (PR #59 @ `043b0dd`) failed on the host with
-  `bin/lib.sh: line 62: HOME: unbound variable`. Every later deploy stops on the same
-  line until PR #64 merges (OI-67).
-- Merged today after the outage: #61 (10:08), #54 (10:15), #62 (10:16). CI runs
-  on each `develop` push, and each dispatched deploy will fail the same way until
-  #64 lands.
+  `bin/lib.sh: line 62: HOME: unbound variable`, and run 27 failed too. PR #64 fixed it
+  (merged 10:29, OI-67). The first deploy carrying the fix follows the next green CI on
+  `develop`.
+- Merged today after the outage: #61 (10:08), #54 (10:15), #62 (10:16), #64 (10:29),
+  #65 (10:30). CI on `develop` @ `46b7337` crashed with a segmentation fault in the
+  OI-69 test (run 36312008574). #65 is its fix.
 
 **CI outage, 09:37–10:05 UTC, resolved.** Jobs failed in about 3 s with no runner
 and no log: GitHub reported "recent account payments have failed or your spending
@@ -67,10 +69,10 @@ attempt 3, green).
 
 | # | Branch | What | State | Order |
 |---|---|---|---|---|
-| #64 | `fix/deploy-without-home` | Deploy fails when SSM gives no `HOME` (OI-67) | Draft | **1**, unblocks every deploy |
-| #65 | `fix/api-tests-file-backed-sqlite` | Flaky API tests on shared in-memory SQLite (OI-69) | Draft | 2 |
+| #64 | `fix/deploy-without-home` | Deploy fails when SSM gives no `HOME` (OI-67) | **Merged** 10:29 | 1 |
+| #65 | `fix/api-tests-file-backed-sqlite` | Flaky API tests on shared in-memory SQLite (OI-69) | **Merged** 10:30 | 2 |
 | #66 | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
-| #63 | `feature/research-agents` | Native Research design agents on Bedrock | Draft, "do not merge as completion"; conflicts with 3 in this file's header | 4, see below |
+| #63 | `feature/research-agents` | Native Research design agents on Bedrock | Draft, "do not merge as completion"; `develop` merged in @ `5718383` (2026-09-27); conflicts with 3 in this file's header | 4, see below |
 | — | `claude/trusting-turing-2b9oyl` | Settings page on the real API | No PR yet; based on `main` | open a PR into `develop` |
 
 **PR #63** is one slice, not the whole agent workflow. Land what it has built as a slice:
@@ -106,7 +108,7 @@ PRs, each against the plan that already exists for it, not in the same branch.
 1. **Make `develop` the default branch** (Settings → General → Default branch).
    `main` is the default today (`git ls-remote --symref origin HEAD` → `main` @
    `9cf1f58`, 2026-09-23). Every new clone, agent session and *New pull request*
-   therefore starts four days and 204 commits back, as `claude/trusting-turing-2b9oyl`
+   therefore starts four days and 208 commits back, as `claude/trusting-turing-2b9oyl`
    did. `main` stays the release branch. `deploy-develop.yml` is already on
    `develop`, so dispatch keeps working, and later changes to it take effect without
    a release (OI-37).
