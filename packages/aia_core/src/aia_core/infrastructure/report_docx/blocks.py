@@ -8,9 +8,6 @@ indent. How a block looks is the style sheet's (``styles.py``).
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
-
 from docx.enum.text import WD_BREAK
 from docx.text.paragraph import Paragraph as DocxParagraph
 
@@ -19,7 +16,6 @@ from aia_core.domain.report.copy import method_status_text, t
 from aia_core.domain.report.evidence import PrintGrade
 from aia_core.domain.report.model import (
     AuditBlock,
-    Block,
     BulletList,
     Callout,
     CalloutKind,
@@ -80,6 +76,12 @@ def write_inlines(ctx: RenderContext, p: DocxParagraph, content: tuple[Inline, .
             add_external_link(p, inline.text, inline.url, style=S.LINK)
 
 
+def shows_interval(ctx: RenderContext, ref: str, asked: bool) -> bool:
+    """Whether a value prints its interval: when asked, and always for a client estimate."""
+    row = ctx.ledger.row(ref)
+    return row.interval is not None and (asked or (ctx.client and row.is_estimate))
+
+
 def value_text(ctx: RenderContext, ref: str, *, with_interval: bool, unit: bool = True) -> str:
     """How one evidenced value prints: exactly as the evidence rounded it.
 
@@ -92,7 +94,7 @@ def value_text(ctx: RenderContext, ref: str, *, with_interval: bool, unit: bool 
         if unit
         else numbers.number(row.value, row.decimals)
     )
-    if row.interval is not None and (with_interval or (ctx.client and row.is_estimate)):
+    if row.interval is not None and shows_interval(ctx, ref, with_interval):
         out += f"{numbers.NBSP}{numbers.interval(row.interval, row.decimals, row.unit)}"
     return out
 
@@ -361,28 +363,3 @@ def render_audit(ctx: RenderContext, container: Container, block: AuditBlock) ->
         cells[0].paragraphs[0].add_run(key)
         cells[1].paragraphs[0].style = S.MONO
         cells[1].paragraphs[0].add_run(value)
-
-
-# ---------------------------------------------------------------------- dispatch
-
-_RENDERERS: dict[type[Any], Callable[[RenderContext, Container, Any], None]] = {
-    Heading: render_heading,
-    Paragraph: render_paragraph,
-    PageBreak: render_page_break,
-    Callout: render_callout,
-    BulletList: render_list,
-    Quote: render_quote,
-    KeyFinding: render_key_finding,
-    Recommendation: render_recommendation,
-    KpiRow: render_kpi_row,
-    EvidenceKey: render_evidence_key,
-    EvidenceAppendix: render_evidence_appendix,
-    AuditBlock: render_audit,
-}
-
-
-def render_block(ctx: RenderContext, container: Container, block: Block) -> None:
-    renderer = _RENDERERS.get(type(block))
-    if renderer is None:
-        raise NotImplementedError(f"no renderer for {type(block).__name__} yet")
-    renderer(ctx, container, block)

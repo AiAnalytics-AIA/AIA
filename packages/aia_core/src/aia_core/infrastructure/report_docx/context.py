@@ -42,6 +42,8 @@ class RenderContext:
     marks: Marks
     #: The section index and block index being rendered: the outline's key.
     position: tuple[int, int] = (0, 0)
+    #: The running head's chapter style and its cached text, for a new section.
+    running: tuple[str | None, str] = (None, "")
 
     @property
     def ledger(self) -> EvidenceLedger:

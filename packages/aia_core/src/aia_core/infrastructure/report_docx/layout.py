@@ -132,24 +132,42 @@ def _draft(ctx: RenderContext) -> bool:
     return not ctx.report.meta.approvals
 
 
-def running_head(section: Section, title: str, chapter_style: str | None, cached: str) -> None:
+def running(ctx: RenderContext, section: Section, *, wide: bool = False) -> None:
+    """The running heads of ``section``, from ``ctx.running``.
+
+    A landscape page has its own (``wide``) Header/Footer styles, whose right tab
+    sits at the landscape text width, so a section after it sets them again.
+    """
+    chapter_style, cached = ctx.running
+    running_head(section, ctx.report.meta.title, chapter_style, cached, wide=wide)
+    running_foot(ctx, section, page=True, wide=wide)
+
+
+def running_head(
+    section: Section,
+    title: str,
+    chapter_style: str | None,
+    cached: str,
+    *,
+    wide: bool = False,
+) -> None:
     """Report title, then (right) the current chapter by ``STYLEREF``."""
     header = section.header
     header.is_linked_to_previous = False
     p = header.paragraphs[0]
-    p.style = S.HEADER
+    p.style = S.HEADER_WIDE if wide else S.HEADER
     p.add_run(title)
     if chapter_style is not None:
         add_tab(p)
         add_field(p, f'STYLEREF "{chapter_style}"', cached)
 
 
-def running_foot(ctx: RenderContext, section: Section, *, page: bool) -> None:
+def running_foot(ctx: RenderContext, section: Section, *, page: bool, wide: bool = False) -> None:
     """Classification and the page; a draft's footer says it is a draft, first."""
     footer = section.footer
     footer.is_linked_to_previous = False
     p = footer.paragraphs[0]
-    p.style = S.FOOTER
+    p.style = S.FOOTER_WIDE if wide else S.FOOTER
     if _draft(ctx):
         p.add_run(t("draft"), style=S.DRAFT)
         p.add_run(t("separator"))

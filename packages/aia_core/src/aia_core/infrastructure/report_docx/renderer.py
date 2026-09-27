@@ -27,8 +27,9 @@ from aia_core.domain.report.outline import build_outline
 from aia_core.domain.report.print_tokens import FONTS
 from aia_core.domain.report.validation import require_valid
 from aia_core.infrastructure.report_docx import layout
-from aia_core.infrastructure.report_docx.blocks import chapter_heading, render_block
+from aia_core.infrastructure.report_docx.blocks import chapter_heading
 from aia_core.infrastructure.report_docx.context import RenderContext
+from aia_core.infrastructure.report_docx.dispatch import render_block
 from aia_core.infrastructure.report_docx.embed import embed_fonts
 from aia_core.infrastructure.report_docx.footnotes import Footnotes
 from aia_core.infrastructure.report_docx.images import SvgParts
@@ -69,7 +70,6 @@ class DocxRenderer:
 
 
 def _write(ctx: RenderContext) -> None:
-    meta = ctx.report.meta
     first_chapter = ctx.outline.headings[0].number
     first_title = f"{first_chapter} {ctx.report.sections[0].title}"
 
@@ -78,15 +78,14 @@ def _write(ctx: RenderContext) -> None:
 
     front = layout.end_section(ctx, layout.last_paragraph(ctx))
     layout.page_numbers(front, "lowerRoman", restart=True)
-    layout.running_head(front, meta.title, None, "")
-    layout.running_foot(ctx, front, page=True)
+    layout.running(ctx, front)
     layout.render_document_control(ctx)
     layout.render_contents(ctx)
 
     body = layout.end_section(ctx, layout.last_paragraph(ctx))
     layout.page_numbers(body, "decimal", restart=True)
-    layout.running_head(body, meta.title, S.H1, first_title)
-    layout.running_foot(ctx, body, page=True)
+    ctx.running = (S.H1, first_title)
+    layout.running(ctx, body)
 
     in_appendix = False
     for si, section in enumerate(ctx.report.sections):
@@ -97,7 +96,8 @@ def _write(ctx: RenderContext) -> None:
                 label = layout.heading_label(
                     [e for e in ctx.outline.headings if e.level == 1][si], appendix=True
                 )
-                layout.running_head(appendix, meta.title, S.APPENDIX, f"{label} {section.title}")
+                ctx.running = (S.APPENDIX, f"{label} {section.title}")
+                layout.running(ctx, appendix)
         chapter_heading(ctx, si, section)
         for bi, block in enumerate(section.blocks):
             ctx.position = (si, bi)

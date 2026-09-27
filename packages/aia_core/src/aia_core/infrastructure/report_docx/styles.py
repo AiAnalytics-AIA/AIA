@@ -52,6 +52,8 @@ class S:
     FOOTNOTE = "footnote text"
     HEADER = "Header"
     FOOTER = "Footer"
+    HEADER_WIDE = "AIA Header Landscape"
+    FOOTER_WIDE = "AIA Footer Landscape"
     TABLE = "AIA Table"
     TABLE_NUMBER = "AIA Table Number"
     TABLE_HEAD = "AIA Table Head"
@@ -152,6 +154,7 @@ class Para:
 
 
 _TEXT_WIDTH_MM: Final = 210 - 24 - 20  # page width minus inside and outside margins
+_WIDE_TEXT_WIDTH_MM: Final = 297 - 24 - 20  # the same on a landscape page
 
 PARAGRAPHS: Final[dict[str, Para]] = {
     S.BODY: Para("doc-body"),
@@ -172,6 +175,12 @@ PARAGRAPHS: Final[dict[str, Para]] = {
     S.FOOTNOTE: Para("doc-footnote", color="doc-muted", indent_mm=4, hanging_mm=4),
     S.HEADER: Para("doc-running", color="doc-muted", tabs_right_mm=_TEXT_WIDTH_MM, leader=False),
     S.FOOTER: Para("doc-running", color="doc-muted", tabs_right_mm=_TEXT_WIDTH_MM, leader=False),
+    S.HEADER_WIDE: Para(
+        "doc-running", color="doc-muted", tabs_right_mm=_WIDE_TEXT_WIDTH_MM, leader=False
+    ),
+    S.FOOTER_WIDE: Para(
+        "doc-running", color="doc-muted", tabs_right_mm=_WIDE_TEXT_WIDTH_MM, leader=False
+    ),
     S.TABLE: Para("doc-table"),
     S.TABLE_NUMBER: Para("doc-table", align=WD_ALIGN_PARAGRAPH.RIGHT),
     S.TABLE_HEAD: Para("doc-table-head"),

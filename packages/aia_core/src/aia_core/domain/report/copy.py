@@ -83,6 +83,7 @@ CS: Final[dict[str, str]] = {
     "grade_modelled_long": "Modelováno z behaviorálního prioru — nejde o měření.",
     "grade_holdout_pending_long": "Externí prediktivní validace dosud neproběhla.",
     "grade_unknown_long": "Evidenční role nedorazila nebo ji systém nezná — nečtěte jako měření.",
+    "indicative_note": "orientační hodnota: nízká efektivní velikost vzorku, čtěte opatrně.",
     "suppressed_rows": "Potlačeno pro nedostatečnou efektivní velikost vzorku",
     "interval": "interval",
     "evidence": "Evidence",

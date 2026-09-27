@@ -204,6 +204,9 @@ packages/aia_core/src/aia_core/
       layout.py             Sections (cover / front i, ii / body 1, 2 / appendix), running heads,
                             the draft footer, cover, document control, TOC fields
       blocks.py             One renderer per model block; no direct formatting
+      tables.py             The data table: SEQ caption with base n, repeating header, suppressed
+                            rows removed and counted, landscape sections
+      dispatch.py           Which renderer draws which block
       marks.py, images.py   Evidence marks (one glyph per grade; unknown prints "?"), SVG + PNG
                             fallback images with alt text (asvg:svgBlip)
       plotting.py           Matplotlib for the report: vendored fonts, tokens, deterministic SVG/PNG

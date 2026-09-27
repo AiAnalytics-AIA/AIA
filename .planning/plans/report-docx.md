@@ -304,6 +304,21 @@ contracts and start when those are agreed.
   found that inline pictures get ~3 mm of padding unless `distL/R` are 0
   (AGENTS.md § DOCX).
 
+- **R6 — tables.** `tables.py`: the caption above ("Tabulka N — title
+  (n = …; grade)") with the number as `SEQ Tabulka` (the list of tables collects
+  it) and bookmarked for cross-references; n from `base_ref`'s effective n,
+  **rounded down**; the grade in the caption when every number shares one,
+  otherwise a mark per cell. `AIA Data Table`, full width, the header row
+  repeating and unsplittable, the unit in the header (never in each cell),
+  numbers right-aligned with the interval beneath. **A row citing a suppressed
+  ref is removed**, and the source line states "Potlačeno pro nedostatečnou
+  efektivní velikost vzorku: N." INDICATIVE cells carry a dagger explained
+  under the table; an empty cell prints its reason ("chybí"). A landscape
+  table gets its own section, with `AIA Header/Footer Landscape` styles so the
+  running head right-aligns at that width; the portrait section after it sets
+  its heads again. Block dispatch moved to `dispatch.py` (tables import
+  blocks). Tests: `test_report_docx_tables.py`, 5 tests.
+
 ## Handoff — where to pick up
 
 **State.** R0–R2 are merged to `develop` (#53). R3 (`37a1c29`) and the R4 modules

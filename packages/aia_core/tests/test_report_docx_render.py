@@ -177,9 +177,9 @@ def test_the_body_header_carries_the_title_and_the_current_chapter(
 
 def test_an_unapproved_report_says_draft_in_every_footer(rendered: dict[str, bytes]) -> None:
     footers = _header_footer_text(rendered, "footer")
-    assert len(footers) == 3  # cover, front matter, body
+    assert len(footers) == 4  # cover, front matter, body, appendix
     assert all(DRAFT in text for text, _ in footers)
-    assert sum("PAGE" in instr for _, instr in footers) == 2
+    assert sum("PAGE" in instr for _, instr in footers) == 3
     assert all("Důvěrné" in text for text, instr in footers if "PAGE" in instr)
 
 
@@ -187,7 +187,7 @@ def test_an_approved_report_drops_the_draft_notice(report_ledger: Any) -> None:
     doc = _doc(report_ledger(), approvals=(Approval("J. Nováková", date(2026, 9, 26)),))
     parts = _parts(DocxRenderer().render(doc))
     assert DRAFT not in _text(_xml(parts, "word/document.xml"))
-    assert len(_header_footer_text(parts, "footer")) == 2  # the cover has none
+    assert len(_header_footer_text(parts, "footer")) == 3  # the cover has none
     assert all(DRAFT not in text for text, _ in _header_footer_text(parts, "footer"))
 
 
