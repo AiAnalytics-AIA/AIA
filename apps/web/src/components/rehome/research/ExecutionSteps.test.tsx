@@ -8,7 +8,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
-import { ResearchScreen } from "./ResearchScreen";
+import { CONFLICT_MESSAGE } from "@/research/store";
+import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
 
@@ -157,6 +158,46 @@ describe("Run", () => {
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1" });
+  });
+
+  it("saves a change not yet saved before the design becomes a revision", async () => {
+    const workspace = workspaceFixture(PROJECT);
+    api({ "PUT /api/v1/studies/STU-1/workspace/content": (b) => workspace.answer(CONTENT_PATH, "PUT", b) });
+    const at = (step: "brief" | "run") => (
+      <ResearchSession studyId="STU-1">
+        <ResearchScreen step={step} frame={TEST_FRAME} />
+      </ResearchSession>
+    );
+    const { rerender } = render(at("brief"));
+    fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Nový cíl" } });
+    rerender(at("run")); // before the 1.8 s autosave
+    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    const put = calls.findIndex((c) => c.method === "PUT" && c.url === CONTENT_PATH);
+    const post = calls.findIndex((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/design/revisions");
+    expect(put).toBeGreaterThanOrEqual(0);
+    expect(put).toBeLessThan(post);
+    expect((calls[post].body as { content: { goal: string } }).content.goal).toBe("Nový cíl");
+    expect(calls[post].body).toMatchObject({ content: workspace.saves[0].content });
+  });
+
+  it("never submits a copy whose save AIA refused because someone saved a newer one", async () => {
+    api({
+      "PUT /api/v1/studies/STU-1/workspace/content": () =>
+        new Response(JSON.stringify({ code: "stale_revision", message: "The working content changed.", details: { current_revision: 4 } }), { status: 409 }),
+    });
+    const at = (step: "brief" | "run") => (
+      <ResearchSession studyId="STU-1">
+        <ResearchScreen step={step} frame={TEST_FRAME} />
+      </ResearchSession>
+    );
+    const { rerender } = render(at("brief"));
+    fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA odmítla" } });
+    rerender(at("run"));
+    expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
+    expect(screen.getAllByText(CONFLICT_MESSAGE).length).toBeGreaterThan(0);
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
   });
 
   it("cannot start a design that fails a check", async () => {
