@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 
 from aia_core.application.research import (
+    ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
@@ -23,6 +24,7 @@ from aia_core.domain.design import DESIGN_PROJECT_OWNER
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.research import ResearchPhase, phase_of, retryable
+from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
@@ -275,6 +277,22 @@ def test_a_study_with_no_design_has_no_runs(runs: Any) -> None:
         runs().get("RUN-0")
     with pytest.raises(DesignRevisionNotFound):
         runs().start(design_revision_id="REV-0", fieldwork_source=AI)
+
+
+def test_design_jobs_do_not_hide_fieldwork_when_the_list_is_limited(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    revision_id = design()
+    fieldwork = runs().start(design_revision_id=revision_id, fieldwork_source=AI)
+    jobs = ResearchAgentJobs(session, scoped.scope())
+    first = jobs.start(design_revision_id=revision_id, action=ResearchAction.ANALYZE)
+    second = jobs.start(design_revision_id=revision_id, action=ResearchAction.CRITIQUE)
+    session.flush()
+
+    assert [r["run_id"] for r in runs().runs(limit=1)] == [fieldwork.run_id]
+    listed = jobs.jobs(limit=1)
+    assert len(listed) == 1
+    assert listed[0]["run_id"] in {first.run_id, second.run_id}
 
 
 def test_only_a_failed_or_cancelled_run_is_retried_and_a_retry_is_a_linked_run(

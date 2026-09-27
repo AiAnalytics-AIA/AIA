@@ -552,14 +552,19 @@ class WorkflowRepository:
             )
         )
 
-    def list_runs(self, *, project_id: str, limit: int = 50) -> list[dict[str, Any]]:
+    def list_runs(
+        self, *, project_id: str, limit: int = 50, workflow_type: str | None = None
+    ) -> list[dict[str, Any]]:
         """Return a project's runs, newest first, without their steps.
 
         A listing for a screen; :meth:`get_run` returns one run in full.
         """
+        filters = [WorkflowRunRow.project_id == project_id, *self._scope_filter()]
+        if workflow_type is not None:
+            filters.append(WorkflowRunRow.workflow_type == workflow_type)
         rows = self._session.scalars(
             select(WorkflowRunRow)
-            .where(WorkflowRunRow.project_id == project_id, *self._scope_filter())
+            .where(*filters)
             .order_by(WorkflowRunRow.created_at.desc())
             .limit(max(1, min(int(limit), 200)))
         ).all()

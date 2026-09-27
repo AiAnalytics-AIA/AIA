@@ -4,10 +4,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AGENTS_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, findProposalDialog, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
-import { PROPOSE_UNCOVERED, UPLOAD_DONE, resetAudienceCatalog } from "@/unit/research/audience";
+import { UPLOAD_DONE, resetAudienceCatalog } from "@/unit/research/audience";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { TEST_FRAME } from "./test-frame";
+
+// Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -37,6 +41,7 @@ type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 function unitStub(project: Record<string, unknown>, over: Record<string, (b: unknown) => unknown> = {}) {
   calls = [];
+  const native = nativeAgentFixture((_action, baseline, instruction) => ({ project: { ...baseline, audience: { ...(baseline.audience as object), description: instruction } }, proposal: { description: instruction, inclusion_criteria: ["Sportují"], limitations: ["Ověřte filtry"] } }), over);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -56,12 +61,12 @@ function unitStub(project: Record<string, unknown>, over: Record<string, (b: unk
         "/api/audiences/upload": () => ({ audience: { audience_id: "A9", name: "Moje", description: "Nahraná" }, preflight: { ok: true } }),
         ...over,
       };
-      const answer = answers[u.split("?")[0]]?.(body) ?? {};
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
-const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path);
+const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 const lastSave = () => posted("/api/projects/save").at(-1)?.body as { project: { audience: Record<string, unknown>; ui_state: Record<string, unknown> }; reason: string };
 const saved = () => waitFor(() => expect(posted("/api/projects/save").length).toBeGreaterThan(0), { timeout: 4000 });
 
@@ -150,16 +155,19 @@ describe("Audience", () => {
     expect(await screen.findAllByText("25–0")).toBeTruthy();
   });
 
-  it("proposes filters with AI: the model's filters replace the project's, with the classic note", async () => {
+  it("reviews an audience proposal while preserving researcher-controlled filters", async () => {
     unitStub({ ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: { kraj: ["A"] }, description: "Zúžená cílová populace" } });
     render(<ResearchScreen projectId="PRJ-1" step="audience" frame={TEST_FRAME} />);
     const input = await screen.findByPlaceholderText(/např. 25–44/);
     fireEvent.change(input, { target: { value: "Mladí sportovci" } });
-    fireEvent.click(screen.getByRole("button", { name: "AI: převést na dostupné filtry" }));
-    expect(await screen.findByText(PROPOSE_UNCOVERED, {}, { timeout: 4000 })).toBeTruthy();
-    expect(posted("/api/audience/propose")[0].body).toMatchObject({ popis: "Mladí sportovci", model: "sonnet", project_id: "PRJ-1" });
+    fireEvent.click(screen.getByRole("button", { name: "AI: navrhnout cílovou skupinu" }));
+    await findProposalDialog();
+    expect(lastSave().project.audience.filters).toEqual({ kraj: ["A"] });
+    await approveProposal();
+    expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "propose_audience", instruction: "Mladí sportovci" });
+    expect(posted("/api/audience/propose")).toEqual([]);
     await saved();
-    expect(lastSave().project.audience).toMatchObject({ filters: { kraj: ["B"] }, description: "Mladí sportovci", strategy: "filters" });
+    expect(lastSave().project.audience).toMatchObject({ filters: { kraj: ["A"] }, description: "Mladí sportovci", strategy: "filters" });
   });
 
   it("keeps the preview while the person moves between steps, as the classic page does", async () => {

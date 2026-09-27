@@ -1,0 +1,46 @@
+{
+  "status": "PROPOSED_NOT_DEPLOYED",
+  "provider": "tavily",
+  "enabled": false,
+  "route_approved": false,
+  "terms_approved": false,
+  "api_key_configured": false,
+  "search_endpoint": "https://api.tavily.com/search",
+  "extract_endpoint": "https://api.tavily.com/extract",
+  "search_parameters": {
+    "search_depth": "basic",
+    "max_results": 5,
+    "chunks_per_source": 3,
+    "auto_parameters": false,
+    "include_answer": false,
+    "include_raw_content": false,
+    "include_usage": true
+  },
+  "extract_parameters": {
+    "extract_depth": "basic",
+    "format": "text",
+    "include_images": false,
+    "include_usage": true,
+    "timeout": 10
+  },
+  "limits": {
+    "searches_per_job": 6,
+    "extract_batches_per_job": 2,
+    "urls_per_batch": 5,
+    "reserved_credits_per_job": 8,
+    "proposed_search_reservation_usd": "0.064",
+    "price_verified_on": "2026-09-27",
+    "price_usd_per_credit": "0.008",
+    "free_monthly_allowance_credits": 1000
+  },
+  "confidential_route": {
+    "processing_regions": null,
+    "training_excluded": null,
+    "query_retention_days": null,
+    "durable_source_storage_rights": null,
+    "client_application_rights": null,
+    "agreement_reference": null
+  },
+  "account_plan": "free_evaluation",
+  "paid_overage_enabled": false
+}

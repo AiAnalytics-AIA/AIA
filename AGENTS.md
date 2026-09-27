@@ -1105,6 +1105,24 @@ workbench journey (`make ui-research`) is what found it.
 "GET /api/v1/studies/S/research/runs/RUN-1": () => COMPLETED,
 ```
 
+**A wait sized on an idle machine fails on a loaded CI runner.** Testing
+Library's `findBy*` gives up after 1 s and Vitest ends a test at 5 s. A native
+Research job reaches its review dialog through a chain of mocked requests and
+renders: about 0.3 s alone, several seconds with 39 test files sharing the
+runner. `findByRole("dialog")` (1 s) and `approveProposal`'s 4 s wait failed
+PlanStep and AudienceStep one run in two locally, and once in CI. A wait
+resolves as soon as its element appears, so give it room. A file that uses
+`vi.setConfig` raises its own test timeout; nothing else is affected
+(`test-native-agents.ts`: `NATIVE_JOB_WAIT`, `NATIVE_TEST_TIMEOUT_MS`).
+
+```ts
+// WRONG: passes on a laptop, fails under CI load
+await screen.findByRole("dialog");
+// RIGHT: room for the whole job chain, and a test timeout that allows it
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
+await screen.findByRole("dialog", {}, NATIVE_JOB_WAIT);
+```
+
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.
@@ -1229,3 +1247,39 @@ a package added to `infra/develop/user-data.yaml.tftpl` never reaches the runnin
 host, and with `user_data_replace_on_change = false` a changed `user_data` makes
 the AWS provider stop and start the instance on the next `terraform apply`. The
 deploy script installs what it needs, idempotently.
+
+## Durable AI proposal reuse and browser lifetime
+
+Apply the workflow-type filter in the repository before the list limit. Filtering
+after pagination lets a burst of design jobs hide the older fieldwork run on the
+same owned project. The regression in `test_research_runs.py` first returned an
+empty fieldwork list with `limit=1` after two proposals were enqueued.
+
+```python
+# WRONG: unrelated jobs consume the list's page.
+[r for r in repo.list_runs(limit=20) if r["workflow_type"] == RESEARCH]
+
+# RIGHT: paginate the requested workflow family.
+repo.list_runs(limit=20, workflow_type=RESEARCH)
+```
+
+A full-project proposal artifact must include its input revision in the reuse
+fingerprint. Two revisions can have identical model context when provider/policy
+fields are excluded, while their full saved baselines differ. Reusing the older
+artifact would overwrite fields the model never saw.
+
+```python
+# WRONG: same model context means the whole proposed project is reusable.
+key = hash(context_hash, prompt_version, policy_version)
+
+# RIGHT: a complete project proposal remains bound to its baseline.
+key = hash(design_revision_id, context_hash, prompt_version, policy_version)
+```
+
+A React job follower stops on unmount without cancelling the server job. Pending
+review promises must also settle, and old async cleanup must not clear a newer
+operation. Use an operation identity plus an abort signal; refresh errors in
+`finally` must not replace the original job error. Native dialogs use `showModal`
+so keyboard focus and Escape have browser behavior; jsdom needs the existing
+dialog-method stand-ins in component tests. Native HTTP fixtures distinguish
+GET inbox reads from POST creation even when the path is identical.
