@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Reach the running NPC Panel 18.6.6 unit (the oracle), record it, compare with it.
 
-ADR 0011 makes the vendored 18.6.6 unit the behavioural baseline. It runs as the
-``legacy-panel`` service on the develop host, on its own hostname behind Caddy's
-HTTP basic-auth gate (the reference has no identity model, reference R14). This
-module is the one way parity code reaches it:
+ADR 0011 makes the vendored 18.6.6 unit the behavioural baseline. It runs, when a
+comparison needs it, from ``deploy/reference`` on the develop host, behind an HTTP
+basic-auth gate on the host's loopback, reached through an SSM port forward (ADR
+0018; the reference has no identity model, reference R14). This module is the one
+way parity code reaches it:
 
 * ``OracleEndpoint.from_environment()`` reads ``AIA_LEGACY_REFERENCE_URL`` plus
   ``AIA_LEGACY_REFERENCE_USER`` / ``AIA_LEGACY_REFERENCE_PASSWORD``. Absent URL

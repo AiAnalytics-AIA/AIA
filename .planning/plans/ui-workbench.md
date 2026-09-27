@@ -9,6 +9,8 @@ and you need to be able to see everything."
 > decision 4.** The skin is gone, so the workbench no longer builds it and `/classic` is
 > AIA's page saying 18.6.6 is not part of AIA. The unit still runs beside AIA, bare at
 > `:8767`, as the reference a screen is compared with; `up --no-unit` runs AIA alone.
+> Since decision 5 (increment 5) that is the other way round: `up` runs AIA alone, and
+> `up --with-unit` (`make ui-workbench-reference`) adds the unit on its own port.
 > The records below that name the skin describe what landed at the time.
 
 **Decision, 2026-09-24 (data owner):** full UI control, not only the skin — markup,

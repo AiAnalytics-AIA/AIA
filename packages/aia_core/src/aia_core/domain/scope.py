@@ -35,7 +35,6 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validat
 __all__ = [
     "CLIENT_ROLE_PERMISSIONS",
     "DEFAULT_SELF_APPROVAL_ALLOWED",
-    "LEGACY_PANEL_ROLES",
     "ROLE_PERMISSIONS",
     "ApprovalIndependence",
     "Client",
@@ -120,17 +119,6 @@ class OrganizationRole(StrEnum):
     OWNER = "OWNER"
     ADMIN = "ADMIN"
     MEMBER = "MEMBER"
-
-
-# Who may use the vendored 18.6.6 interface on the product hostname (ADR 0012).
-# The unit is single-tenant: whoever uses it sees every project it holds and can
-# store provider keys in it, so study-level scope cannot be applied to it. Until a
-# feature moves onto AIA's study-scoped model, only organization administrators
-# may reach it -- the most restrictive choice that still lets the team work
-# (reference open decision D8: "default to the most restrictive role").
-LEGACY_PANEL_ROLES: frozenset[OrganizationRole] = frozenset(
-    {OrganizationRole.OWNER, OrganizationRole.ADMIN}
-)
 
 
 class ScopeRole(StrEnum):

@@ -14,9 +14,9 @@
  *   * the fictional-data notice on every stage that shows the run;
  *   * a completed run: compile, preflight, fieldwork, aggregate, sociomap;
  *   * an aggregate table and the Sociomap labelled INTERNAL_ONLY (PROGRESS D6);
- *   * no page error, and no request to a path the 18.6.6 unit serves (ADR 0018) --
- *     with the workbench started without the unit (`make ui-workbench-aia`) any such
- *     request would answer 502, which fails the journey too.
+ *   * no page error, and no request to a path the 18.6.6 unit served (ADR 0018): the
+ *     facade routes none of them to the unit, as the develop Caddyfile does not, so
+ *     such a request would be a dependency on 18.6.6; and no 502 from the facade.
  *
  * Screenshots of each stage go to --out (default tmp/ui-workbench/shots/research-<time>).
  * Exits non-zero on the first thing that is not so.
@@ -76,7 +76,8 @@ await ctx.addInitScript((s) => { try { sessionStorage.setItem("aia.session", s);
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
-// The paths the 18.6.6 unit serves (the Caddyfile's @unit, /classic and its document).
+// The paths the 18.6.6 unit served on the product hostname (its @unit matcher until ADR
+// 0018 decision 5, /classic and its document): now the web client's, never the unit's.
 const UNIT_PATH = /^\/(api\/(?!v1\/)|files\/|artifacts\/|project-attachments\/|brand\/|fullsim-arena|status$|health$|classic|interface-document)/;
 const toUnit = [];
 const bad = [];

@@ -10,6 +10,9 @@ set -euo pipefail
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/aia/develop}"
 ENV_FILE="${ENV_FILE:-$DEPLOY_DIR/.env}"
 COMPOSE=(docker compose --project-directory "$DEPLOY_DIR" --env-file "$ENV_FILE")
+# The 18.6.6 unit's working volume, which this stack mounted until ADR 0018 and
+# deploy/reference mounts now. Named only so the deploy can prove it kept it.
+LEGACY_STATE_VOLUME="aia-develop_legacy_state"
 
 # Caddy reads its Caddyfile once, at start, and `compose up` recreates a
 # container only when its image or its Compose configuration changes -- never
@@ -109,26 +112,30 @@ ecr_login() {
   log "registry credentials: ECR credential helper (instance role), nothing stored"
 }
 
-# The 18.6.6 unit's health once it has finished starting. The unit is recreated on
-# every deploy (its image is tagged by SHA) and hydrates its data on start, so its
-# healthcheck says "starting" for up to its start period (120 s,
-# legacy/npc-panel-18.6.6/Dockerfile). The deploy does not wait for it, by design,
-# and a single read raced it: deploy runs 29 and 30 (2026-09-27) failed smoke
-# on "starting", about 20 s after the unit was recreated, while every other
-# check passed. This waits out "starting" for at most
-# LEGACY_START_WAIT_SECONDS (default 150), then prints the state. An unhealthy,
-# exited or missing unit is reported at once.
-legacy_unit_health() {
-  local id="$1" state waited=0
-  local limit="${LEGACY_START_WAIT_SECONDS:-150}" step="${LEGACY_POLL_SECONDS:-5}"
-  while :; do
-    state="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null)" || state="missing"
-    [ -n "$state" ] || state="missing"
-    if [ "$state" != "starting" ] || [ "$waited" -ge "$limit" ]; then break; fi
-    sleep "$step"
-    waited=$((waited + step))
-  done
-  printf '%s\n' "$state"
+# Until ADR 0018 this stack ran the 18.6.6 unit as its service `legacy-panel`.
+# A host deployed before it still has that container: these find it, stop it the
+# way its service did, and say whether its working volume is still there. On a
+# host that never ran the unit all three are no-ops. They go once the volume's
+# content is migrated and the data owner has accepted the report (OI-58).
+product_unit_containers() {
+  docker ps -a -q --filter "label=com.docker.compose.project=aia-develop" \
+    --filter "label=com.docker.compose.service=legacy-panel"
+}
+
+unit_volume_exists() {
+  docker volume inspect "$LEGACY_STATE_VOLUME" >/dev/null 2>&1
+}
+
+# 30 s, the service's stop_grace_period, so the unit's SQLite stores close
+# cleanly; `compose up --remove-orphans` would give an orphan only Compose's 10 s.
+# The container is left for `--remove-orphans`; the volume is never touched.
+retire_product_unit() {
+  local ids
+  ids="$(product_unit_containers)"
+  [ -n "$ids" ] || return 0
+  log "retiring the 18.6.6 unit's container from the product stack (ADR 0018); its volume $LEGACY_STATE_VOLUME stays"
+  # shellcheck disable=SC2086 -- one id per word
+  docker stop -t 30 $ids >/dev/null
 }
 
 # The running API's build, as /health reports it. Empty when it is not answering.

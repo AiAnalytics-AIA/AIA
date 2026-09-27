@@ -220,11 +220,37 @@ PR 4 — the interface without 18.6.6 (`feature/interface-without-classic`)
   `test_develop_host_resilience.py`, `test_ui_workbench.py`
 
 PR 5 — the deployment without 18.6.6 (`feature/deploy-without-legacy`)
-- [ ] 10. Retire the panel gate and its settings
-- [ ] 11. Product Compose/Caddy/deploy/smoke/CI without the unit;
-  `deploy/reference/`; reference image workflow
-- [ ] 12. Workbench without the unit by default; offline verification recorded;
-  ADR 0018, OI-58/59, PROGRESS
+- [x] 10. Retire the panel gate and its settings (`caa7ed8`): `routers/panel.py`,
+  `ScopeResolver.authorize_legacy_panel`, `LEGACY_PANEL_ROLES`,
+  `Settings.legacy_panel_enabled` / `legacy_panel_origin` and their production guard, the
+  web client's `closePanelSession` and the stand-in's `--panel-origin` are removed;
+  `/api/v1/panel/*` answers 404 and CI's API contract fails such a path — tests:
+  `test_session_api.py` › *the session and its gate need nothing of 18 6 6*,
+  `lib/session.test.ts`; `test_panel_api.py` and `test_legacy_panel_access.py` go with
+  the code they tested
+- [x] 11. Product Compose/Caddy/deploy/smoke/CI without the unit; `deploy/reference/`;
+  reference image workflow (`9138977`, `b9b4258`). The product stack builds and pulls
+  three images and declares no unit service, volume or `AIA_LEGACY_*` setting; the
+  Caddyfile has one site, the API and the web client; the deploy pulls and syncs nothing
+  of the unit, stops a `legacy-panel` container left from before (`docker stop -t 30`),
+  lets `--remove-orphans` remove it and fails if the unit's volume vanished; smoke checks
+  the unit's old paths are the web client's 404, that no unit container of the product
+  project exists, and says whether the volume is kept; `bin/backup.sh` is PostgreSQL
+  only. `deploy/reference/`: Compose project `aia-reference` on the external volume, a
+  basic-auth gate on `127.0.0.1:8765`, `up.sh` / `down.sh` / `backup-state.sh`, the
+  copier `backup-legacy-state.py` moved here; `.github/workflows/reference-unit.yml`
+  builds the unit's image and ships the bundle by hand. `tools/caddy_routes.py` fails a
+  second hostname, any upstream but the API and the web client, and the panel gate; CI
+  validates both stacks' Compose files and the reference gate's Caddyfile — tests:
+  `test_caddy_routes.py`, `test_deploy_images.py`, `test_develop_host_resilience.py`,
+  `test_develop_unit_retirement.py`, `test_reference_setup.py`,
+  `test_legacy_state_backup.py`, `test_workspace_migration.py`
+- [x] 12. Workbench without the unit by default (`7c68d23`): `make ui-workbench` is AIA
+  alone, `make ui-workbench-reference` adds the unit on its own port, never behind the
+  facade; `ui-workbench-aia` is gone. Offline verification recorded in PROGRESS; ADR 0018
+  (decisions 3 and 5, consequences), 0011, 0012, 0015, OI-39, OI-58, OI-59 (closed), OI-71,
+  the runbooks, CLAUDE.md, ARCHITECTURE.md and AGENTS.md (§ Docker and Compose) — tests:
+  `test_ui_workbench.py`
 
 ## One cutover, after combined acceptance
 
@@ -234,15 +260,19 @@ increment deployments below the earlier version of this plan is superseded. A me
 safe way to assemble this release.
 
 1. Prepare one candidate from #74 → #77 → #78 → #82, including #74's latest Run-conflict
-   regression and PlanStep test repair. Complete chunks 10–12 (PR 5) in that candidate
-   before declaring independence. Include #75's truthful AI controls; resolve its Settings
+   regression and PlanStep test repair. Include #85, which implements chunks 10–12, and verify
+   their acceptance on the combined candidate before declaring independence. Include #75's truthful AI controls; resolve its Settings
    overlap by retaining the ControlPanel and removing classic navigation. Include #73's
    production-state contract and merged #83/#84 repairs. Validate the combined tree, not
    just each parent head. This candidate is a draft; it is not deployed.
 2. With the runbook's export/copy authority in place, take a WAL-safe copy of the unit's
-   state (`bin/backup-legacy-state.py`) and its attachment directory. Against an isolated
+   state (`deploy/reference/bin/backup-legacy-state.py`) and its attachment directory. Against an isolated
    restored PostgreSQL copy, run the migration dry run, read the per-study report, apply it,
    and verify all supported content and attachments with the unit offline. Keep both reports.
+   Before the first cutover, preserve an approved pre-transition legacy backup using the
+   old host script (`bin/backup.sh pre-adr-0018`, with its backup setting enabled by the
+   data owner). The new product backup covers PostgreSQL only; the reference runbook
+   can copy the preserved unit volume without starting the unit.
    Only a known-complete copy can authorize `--recover-missing` for a Study whose project
    the copy lacks. This preparation does not change the live unit or its volumes.
 3. Establish and test the live transition **before** merging the candidate: the current

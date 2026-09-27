@@ -30,6 +30,13 @@ Cognito and the develop host, by replacing one capability at a time behind the
 running unit (`legacy-panel`, the **oracle**) and retiring each legacy path only
 after a differential test against the oracle passes for it.
 
+> **2026-09-27, [ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md).**
+> The unit no longer stands in front of anything: the product deployment has no unit
+> (decision 5), and it runs, for comparisons only, from `deploy/reference/` on the
+> develop host's loopback. The oracle is still reached only through
+> `tools/legacy_oracle.py`, now over an SSM port forward. The slices below keep their
+> order; a capability that is not yet AIA's says so in AIA instead of falling back.
+
 ## Problem
 
 After five phases the deployed rebuild does not resemble the product: 19 of 136
@@ -159,7 +166,7 @@ the only server of that capability.
 | 14 | **AI runtime settings and assistants** | `ai.provider_diagnostics`, `ai.provider_setup`, `ai.credentials`, `research.copilot` | 4 `/api/settings*`, `POST /api/providers/claude-code/setup`, 2 `/api/assistant*`, `POST /api/copilot/chat`, `POST /api/discovery*` | intentional differences with production tests (Secrets Manager, no local keystore) | ai-runtime |
 | 15 | **The static arms and the second server's routes** | `operability.support`, `artifacts.*` | `/files/`, `/artifacts/`, `/project-attachments/`, `/brand/`, `/api/support*`; `prototype_server.py` routes | files served from S3 through AIA; **D9 decides** the second server | platform |
 | 16+ | **Re-home the screens**, one product area per slice, once its paths are all on AIA: `shell`, `project`, `workflow`, `data_library`, `audience`, `questionnaire`, `results`, `sociomapping`, `simulation`, `analysis`, `population`, `reports`, `ai_runtime`, `governance`, `settings` | the same ids, per area | 247 presentation + 291 orchestration functions restructured freely; the 88 research functions already server-side | screens look and behave the same (browser tests against both); `discoverBackend()`, the origin guard and build-suffixed ids dropped | web |
-| last | **Retire** `legacy-panel` by ADR when every path is on AIA and every area is re-homed | — | — | — | data owner |
+| last | **Retire** `legacy-panel` by ADR when every path is on AIA and every area is re-homed. *Done for the product by ADR 0018 decision 5, before every path was AIA's: what AIA lacks says so; the reference unit stays* | — | — | — | data owner |
 
 ### Open question before slice 3 — where a legacy-shaped request gets its study
 

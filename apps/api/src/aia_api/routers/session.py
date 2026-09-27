@@ -18,8 +18,8 @@ organization is served AIA's pages at all. Caddy asks it before every request to
 * ``DELETE /session`` clears the cookie.
 
 No setting turns it off and no legacy setting touches it: whether AIA can be
-reached never depends on the 18.6.6 unit (the panel gate, ``routers/panel.py``,
-still stands in front of what remains of the unit, until it leaves the product).
+reached never depends on the 18.6.6 unit, which the product no longer serves at
+all (ADR 0018 decision 5; the panel's own gate went with it).
 """
 
 from __future__ import annotations

@@ -240,7 +240,7 @@ def unit(tmp_path: Path, unit_store: Any) -> Iterator[Any]:
 
 
 def _backup_script() -> Any:
-    path = REPO / "deploy/develop/bin/backup-legacy-state.py"
+    path = REPO / "deploy/reference/bin/backup-legacy-state.py"
     spec = importlib.util.spec_from_file_location("backup_legacy_state", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)

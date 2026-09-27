@@ -12,7 +12,7 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-workspace \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
@@ -97,11 +97,11 @@ parity-status: ## Parity verdict per capability, from a fresh run of every suite
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
 
-ui-workbench: ## AIA's client-first interface on this machine, the 18.6.6 unit beside it as reference (fictional panel): 127.0.0.1:8780
+ui-workbench: ## AIA's client-first interface on this machine, nothing of 18.6.6 (ADR 0018): 127.0.0.1:8780
 	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up
 
-ui-workbench-aia: ## AIA alone, the 18.6.6 unit not started (its paths answer 502): 127.0.0.1:8780
-	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up --no-unit
+ui-workbench-reference: ## The same, with the 18.6.6 unit beside it at :8767 to compare a screen with (fictional panel)
+	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up --with-unit
 
 ui-workbench-status: ## Is the UI workbench running, and do the API and /app answer?
 	@python3 tools/ui_workbench/workbench.py status
@@ -115,7 +115,7 @@ ui-fixtures: ## Write the workbench's fictional research projects (the screens t
 ui-research: ## One research run end to end in a browser on the workbench: Run -> Progress -> Results (fictional fieldwork)
 	@node tools/ui_workbench/research_journey.mjs
 
-ui-workspace: ## A study's working content in a browser on AIA alone: brief file, template import, audience, dimensions (needs ui-workbench-aia + ui-fixtures)
+ui-workspace: ## A study's working content in a browser on AIA alone: brief file, template import, audience, dimensions (needs ui-workbench + ui-fixtures)
 	@node tools/ui_workbench/workspace_journey.mjs
 
 ui-workbench-down: ## Stop the UI workbench
