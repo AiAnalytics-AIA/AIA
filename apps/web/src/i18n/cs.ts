@@ -786,6 +786,9 @@ export const cs = {
   },
   home: {
     title: "AIA",
+    lockup: "Agentic AI Analytics",
+    tagline: "Výzkum a simulace nad kalibrovanou syntetickou populací.",
+    signInTitle: "Přihlášení",
     liveIntro:
       "Přihlaste se účtem Google Workspace vaší organizace (Cognito). Oprávnění rozhoduje AIA, nikoli token.",
     openStudies: "Otevřít studie",
