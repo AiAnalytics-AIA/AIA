@@ -37,7 +37,7 @@ type Loaded =
   | { kind: "failed"; message: string }
   | { kind: "awaiting_migration" }
   | { kind: "unrecoverable"; template: Template; canEdit: boolean }
-  | { kind: "ready"; store: ResearchStore; template: Template };
+  | { kind: "ready"; store: ResearchStore; template: Template; origin: string | null };
 
 type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown> };
 const SessionContext = createContext<Session | null>(null);
@@ -60,7 +60,7 @@ export function ResearchSession({ studyId, children }: { studyId: string; childr
         if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
         const s = new ResearchStore(r.state, studyId);
         store = s;
-        setLoaded({ kind: "ready", store: s, template: r.template });
+        setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin });
       },
       (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
     );
@@ -73,7 +73,7 @@ export function ResearchSession({ studyId, children }: { studyId: string; childr
   // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
   // from the template. The first save records it with the study (ADR 0018).
   const startAgain = useCallback(() => {
-    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId), template: l.template } : l));
+    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId), template: l.template, origin: null } : l));
   }, [studyId]);
 
   const value = useMemo(
@@ -167,11 +167,11 @@ export function ResearchScreen({ step, frame: given }: { step: StepKey; frame?: 
       </StageChrome>
     );
   }
-  return <Ready store={loaded.store} template={loaded.template} memory={session.memory} step={step} frame={frame} reload={session.retry} />;
+  return <Ready store={loaded.store} template={loaded.template} origin={loaded.origin} memory={session.memory} step={step} frame={frame} reload={session.retry} />;
 }
 
-function Ready({ store, template, memory, step, frame, reload }: {
-  store: ResearchStore; template: Template; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame; reload: () => void;
+function Ready({ store, template, origin, memory, step, frame, reload }: {
+  store: ResearchStore; template: Template; origin: string | null; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame; reload: () => void;
 }) {
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
   const { onStage, stepHref } = frame;
@@ -239,6 +239,7 @@ function Ready({ store, template, memory, step, frame, reload }: {
   return (
     <ResearchContext.Provider value={value}>
       <StageChrome frame={frame} step={step} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+        {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
         {Screen ? <Screen /> : <StepPlaceholder step={step} />}
         {frame.canEdit ? <section className="mt-6 flex flex-wrap gap-2 border-t border-border pt-4" aria-label="AI pomoc s výzkumem">
           <Button disabled={agents.busy} onClick={() => void askAgent("critique_design", "Kontrola návrhu")}>AI zkontroluje návrh</Button>

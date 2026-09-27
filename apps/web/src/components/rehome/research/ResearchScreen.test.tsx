@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { t } from "@/i18n/t";
+import { t, tv } from "@/i18n/t";
 import { REBUILT_STEPS, STEP_KEYS } from "@/research/steps";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { STEP_SCREENS } from "./steps";
@@ -90,6 +90,16 @@ describe("ResearchScreen", () => {
     fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Znovu od začátku" } });
     await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 4000 });
     expect(saves()[0].body).toMatchObject({ base_revision: null, content: { goal: "Znovu od začátku" } });
+  });
+
+  it("says a recovered study's content is its last submitted design, and edits it as any other", async () => {
+    api(() => content({ state: "RECOVERED", revision: 1, revision_id: "REV-1", lineage: { outcome: "recovered", design_revision: 4 } }));
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const notice = await screen.findByText(tv("research.recoveredFrom", { revision: 4 }));
+    expect(notice.getAttribute("role")).toBe("status");
+    fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Pokračujeme" } });
+    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 4000 });
+    expect(saves()[0].body).toMatchObject({ base_revision: 1, content: { goal: "Pokračujeme" } });
   });
 
   it("does not offer a reader to start a lost study again", async () => {
