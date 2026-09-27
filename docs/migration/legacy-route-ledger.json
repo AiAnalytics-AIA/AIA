@@ -2364,7 +2364,7 @@
    "status": "LEGACY",
    "aia_route": null,
    "scope": "undecided (D8)",
-   "notes": "",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
    "decision": null
   },
   {
@@ -2397,7 +2397,7 @@
    "status": "LEGACY",
    "aia_route": null,
    "scope": "undecided (D8)",
-   "notes": "",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
    "decision": null
   },
   {
@@ -3153,7 +3153,7 @@
    "status": "LEGACY",
    "aia_route": null,
    "scope": "undecided (D8)",
-   "notes": "",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
    "decision": null
   },
   {
@@ -3178,7 +3178,7 @@
    "status": "LEGACY",
    "aia_route": null,
    "scope": "undecided (D8)",
-   "notes": "",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
    "decision": null
   },
   {
@@ -3203,7 +3203,7 @@
    "status": "LEGACY",
    "aia_route": null,
    "scope": "undecided (D8)",
-   "notes": "",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
    "decision": null
   },
   {
@@ -3228,7 +3228,7 @@
    "status": "LEGACY",
    "aia_route": null,
    "scope": "undecided (D8)",
-   "notes": "",
+   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
    "decision": null
   },
   {

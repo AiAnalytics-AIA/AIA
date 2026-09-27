@@ -60,6 +60,17 @@ def good() -> dict[str, Any]:
             },
         ),
         sub(["/app", "/app/*"], GATE, proxy("web:3000")),
+        sub(
+            [
+                "/api/providers/claude-code/*",
+                "/api/settings/api_keys",
+                "/api/settings/anthropic_check",
+                "/api/settings/ai_check",
+                "/api/settings/ai_diagnose",
+            ],
+            GATE,
+            {"handler": "static_response", "status_code": 410},
+        ),
         sub(["/api/*", "/files/*", "/health"], GATE, proxy("legacy-panel:8765")),
         sub(None, proxy("web:3000")),
     ]
@@ -128,7 +139,7 @@ def test_a_cookie_reaching_the_unit_or_the_classic_page_is_refused(routes: Any) 
     config = good()
     leaky = copy.deepcopy(proxy("legacy-panel:8765"))
     leaky["headers"] = {}
-    product(config)[5] = sub(["/api/*"], GATE, leaky)
+    product(config)[6] = sub(["/api/*"], GATE, leaky)
     classic = copy.deepcopy(proxy("web:3000"))
     classic["headers"] = {}
     product(config)[2] = sub(
@@ -148,3 +159,16 @@ def test_an_ungated_app_or_an_open_oracle_is_refused(routes: Any) -> None:
     problems = routes.check(config)
     assert any(p.startswith("/app must be the gate") for p in problems)
     assert any("legacy hostname must be basic auth" in p for p in problems)
+
+
+def test_retired_connection_routes_are_gated_and_cannot_be_shadowed(routes: Any) -> None:
+    config = good()
+    retired = product(config)[5]
+    retired["handle"][0]["routes"][0]["handle"] = [
+        {"handler": "static_response", "status_code": 410}
+    ]
+    assert any("must be the gate, then 410" in problem for problem in routes.check(config))
+    config = good()
+    retired = product(config).pop(5)
+    product(config).insert(6, retired)
+    assert any("shadowed by the unit" in problem for problem in routes.check(config))

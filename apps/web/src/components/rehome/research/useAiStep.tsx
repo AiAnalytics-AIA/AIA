@@ -8,13 +8,12 @@
 
 import { useState } from "react";
 
-import { classicHref } from "@/lib/interface-handoff";
 import { t, tv } from "@/i18n/t";
 import { JobError } from "@/unit/research/jobs";
 import { activeProvider, notReadyMessage, providerReady } from "@/unit/research/provider";
 import { createSupportBundle } from "@/unit/support";
 import { Icon } from "../icons";
-import { Button, ClassicLink } from "../ui";
+import { Button } from "../ui";
 import { useResearch } from "./context";
 
 export type AiFailure = { kind: "job"; message: string; jobId: string | null } | { kind: "provider"; message: string };
@@ -31,7 +30,7 @@ export function useAiStep() {
     const s = store.get();
     const provider = activeProvider(s.preferredProvider, s.project.run_policy?.provider, boot);
     if (await providerReady(provider, { boot, model: String(s.project.model || "") })) return true;
-    setFailure({ kind: "provider", message: notReadyMessage(provider) });
+    setFailure({ kind: "provider", message: notReadyMessage() });
     return false;
   };
 
@@ -72,10 +71,6 @@ export function AiFailureCard({ failure, title, sub, onRetry }: { failure: AiFai
           <Icon name="you" size={14} />
           {failure.message}
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button onClick={onRetry}>{t("research.retry")}</Button>
-          <ClassicLink href={classicHref({ go: "settings" })}>{t("research.openSettings")}</ClassicLink>
-        </div>
       </section>
     );
   }

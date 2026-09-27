@@ -145,7 +145,49 @@
     document.body.appendChild(el);
   }
 
+  // Product-only retirement. The independent oracle never receives this script.
+  function retireConnections() {
+    if (typeof document.querySelectorAll !== "function") return;
+    var waited = 0;
+    (function install() {
+      if (window.NPC_BOOT_STAGE !== "ready") {
+        waited += 100;
+        if (waited <= 60000) setTimeout(install, 100);
+        return;
+      }
+      var go = window.go;
+      window.go = function (route) {
+        if (route === "settings") return window.location.assign("/app/settings");
+        return go.apply(this, arguments);
+      };
+      window.renderSettings = function () { window.location.assign("/app/settings"); };
+      window.ensureClaudeReady1776 = function () {
+        window.alert("AI návrhové asistenty zatím nejsou převedeny do AIA. Amazon Bedrock zajišťuje odpovědi respondentů.");
+        return Promise.resolve(false);
+      };
+      function clean() {
+        if (document.getElementById("anthKey1790") || document.getElementById("anthKey") || document.getElementById("openaiKey")) {
+          window.location.assign("/app/settings");
+          return;
+        }
+        document.querySelectorAll("#keyState, #claudeState, .hubState1783 > div, button[onclick], select[onchange]").forEach(function (el) {
+          var action = el.getAttribute("onclick") || el.getAttribute("onchange") || "";
+          var oldStatus = el.id === "keyState" || el.id === "claudeState" ||
+            (el.parentElement && el.parentElement.classList.contains("hubState1783") && /Claude Code/.test(el.textContent));
+          var oldControl = /setupClaudeCode|saveClaudeApi|testClaudeApi|continueClaudeApi|setInlineAIProvider|setAIProvider/.test(action) ||
+            (/go\(['"]settings['"]\)/.test(action) && /Claude Code/.test(el.textContent));
+          if (oldStatus || oldControl) el.hidden = true;
+        });
+      }
+      clean();
+      if (typeof window.MutationObserver === "function") {
+        new window.MutationObserver(clean).observe(document.body, { childList: true, subtree: true });
+      }
+    })();
+  }
+
   bar();
+  retireConnections();
   handle();
   window.addEventListener("hashchange", handle);
 })();

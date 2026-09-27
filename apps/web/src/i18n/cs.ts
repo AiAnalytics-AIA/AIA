@@ -194,8 +194,14 @@ export const cs = {
       classic: "Klasické rozhraní 18.6.6",
       classicText:
         "Dočasně pro to, co ještě není přestavěné. Otevírá se vždy výslovně a vrátíte se tlačítkem Zpět do AIA.",
-      classicSettings: "Obecné nastavení",
-      classicClaude: "Claude Code",
+      aiManaged: "Připojení spravuje AIA. Přihlášení k poskytovateli ani API klíč se zde nezadávají.",
+      aiEnabled: "AI odpovědi respondentů jsou povolené pouze pro schválené fiktivní studie pro interní použití.",
+      aiDisabled: "AI odpovědi respondentů jsou vypnuté.",
+      aiUnknown: "Stav konfigurace AI se nepodařilo načíst.",
+      aiRegion: "Výchozí oblast: {region}",
+      aiModel: "Model: {model}",
+      aiDesignPending: "AI návrh výzkumu a další návrhové asistenty zatím nejsou převedeny do AIA.",
+      aiConfigOnly: "Zobrazuje konfiguraci aplikace; neprovádí placené testovací volání modelu.",
       diagnostics: "Diagnostika",
       classicProjects: "Projekty klasického úložiště",
       classicProjectsText:

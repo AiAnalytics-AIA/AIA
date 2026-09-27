@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-25 · **Branch:** `claude/modest-hypatia-9gvdpx` (Agent Runtime Foundation) ·
+**Updated:** 2026-09-27 · **Branch:** `feature/bedrock-settings-cleanup` (Codex Research repair) ·
 **Trunk:** `main` (release) · **Integration:** `develop` (deployed, ADR 0009)
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -15,6 +15,16 @@ Every claim about code carries `file:line @ SHA` or a test name. An unanchored
 entry is a **hypothesis**, not a finding.
 
 ---
+
+## In progress — develop Research repair
+
+- Preserve mutable legacy state seeds and back up live working SQLite databases.
+  The overwrite defect is reproduced by `test_legacy_state_hydration.py`; WAL
+  backup coverage is in `test_legacy_state_backup.py`; export is off by default
+  until separately approved. Recovery of affected
+  working copies remains an operational task; do not infer it from the code fix.
+- Remove old Claude Code/direct API connection controls and accurately describe
+  the unmigrated design assistants. Plan: [bedrock-settings-cleanup.md](plans/bedrock-settings-cleanup.md).
 
 ## Completed
 

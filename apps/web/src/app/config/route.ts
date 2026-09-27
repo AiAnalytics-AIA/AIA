@@ -13,6 +13,7 @@ export type PublicConfig = {
   cognitoClientId: string | null;
   publicOrigin: string | null;
   apiBase: string;
+  aiRuntime: { enabled: boolean; provider: "aws_bedrock"; region: string | null; model: string | null; approvedFor: string | null };
   build: { sha: string | null; built_at: string | null };
 };
 
@@ -22,6 +23,13 @@ export function GET() {
     cognitoClientId: process.env.AIA_COGNITO_CLIENT_ID?.trim() || null,
     publicOrigin: process.env.AIA_PUBLIC_ORIGIN?.trim() || null,
     apiBase: process.env.AIA_API_BASE?.trim() || "",
+    aiRuntime: {
+      enabled: process.env.AIA_AI_RUNTIME_ENABLED?.trim().toLowerCase() === "true",
+      provider: "aws_bedrock",
+      region: process.env.AIA_BEDROCK_REGION?.trim() || null,
+      model: process.env.AIA_BEDROCK_MODEL_ID?.trim() || null,
+      approvedFor: process.env.AIA_AI_ROUTE_APPROVED_FOR?.trim() || null,
+    },
     build: buildIdentity(),
   };
   return NextResponse.json(config, { headers: { "Cache-Control": "no-store" } });

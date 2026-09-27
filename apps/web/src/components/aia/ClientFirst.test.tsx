@@ -251,3 +251,29 @@ describe("Nastavení", () => {
     expect(await screen.findByText("Role v organizaci: vlastník")).toBeTruthy();
   });
 });
+
+
+describe("Bedrock settings", () => {
+  it("shows fictional fieldwork configuration and no legacy credential controls", async () => {
+    path = "/app/settings";
+    api({ "GET /config": () => ({ apiBase: "", aiRuntime: {
+      enabled: true, provider: "aws_bedrock", region: "eu-central-1",
+      model: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", approvedFor: "CLASS_C_INTERNAL",
+    } }) });
+    render(<SettingsPage />);
+    expect(await screen.findByText(/AI odpovědi respondentů jsou povolené pouze/)).toBeTruthy();
+    expect(screen.getByText("Výchozí oblast: eu-central-1")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Claude Code" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Obecné nastavení" })).toBeNull();
+    expect(screen.queryByLabelText("ANTHROPIC_API_KEY")).toBeNull();
+    expect(screen.getByText(/AI návrh výzkumu a další návrhové asistenty zatím/)).toBeTruthy();
+    expect(called("POST", "/api/settings/ai_check")).toEqual([]);
+  });
+  it("reports an absent configuration as unknown rather than connected", async () => {
+    path = "/app/settings";
+    api();
+    render(<SettingsPage />);
+    expect(await screen.findByText("Stav konfigurace AI se nepodařilo načíst.")).toBeTruthy();
+    expect(screen.queryByText(/AI odpovědi respondentů jsou povolené pouze/)).toBeNull();
+  });
+});

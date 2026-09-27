@@ -14,7 +14,6 @@ import { useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
 import { fileToBase64 } from "@/unit/research/brief";
-import { PROVIDER_LABEL } from "@/unit/research/jobs";
 import {
   BUILD_FAILED_SUFFIX,
   BUILD_TITLE,
@@ -155,7 +154,7 @@ export function QuestionnaireStep() {
     const tiles: [QuestionnairePath, string, string, string?][] = [
       ["upload", t("research.questionnaire.pathUpload"), t("research.questionnaire.pathUploadText")],
       ["manual", t("research.questionnaire.pathManual"), t("research.questionnaire.pathManualText")],
-      ["ai", t("research.questionnaire.pathAi"), t("research.questionnaire.pathAiText"), `${PROVIDER_LABEL} · ${String(p.model || "")}`],
+      ["ai", t("research.questionnaire.pathAi"), t("research.questionnaire.pathAiText"), t("aia.settings.aiDesignPending")],
     ];
     return (
       <div className="flex max-w-5xl flex-col gap-4">
