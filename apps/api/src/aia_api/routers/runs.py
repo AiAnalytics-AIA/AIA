@@ -169,6 +169,28 @@ def artifact_response(artifact: Artifact, payload: Any) -> ArtifactResponse:
     )
 
 
+def artifact_corrupt(session: SessionDep) -> HTTPException:
+    """Commit the artifact's CORRUPT mark, then build the 409 that reports it.
+
+    ``ArtifactRepository.read`` flushes the mark into this request's transaction
+    and raises. ``get_session`` rolls that transaction back when the exception
+    leaves the route, so without this commit the mark goes with it and the
+    artifact reads ``VALID`` again -- in every listing, and to ``find_reusable``.
+    The same reason ``panel.open_session`` commits its refusal's audit row.
+
+    It commits the whole request, so a route calls it only before it has written
+    anything the refusal should undo.
+    """
+    session.commit()
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "artifact_corrupt",
+            "message": "The stored bytes are missing or do not match the recorded hash.",
+        },
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Runs
 # --------------------------------------------------------------------------- #
@@ -307,8 +329,9 @@ def get_artifact(
 ) -> ArtifactResponse:
     """Metadata and provenance; the decoded payload when it is small JSON.
 
-    The bytes are hash-verified on read. A mismatch marks the artifact CORRUPT
-    and answers 409 rather than serving content that may have been altered.
+    The bytes are hash-verified on read. A mismatch or a missing object marks the
+    artifact CORRUPT, durably, and answers 409 rather than serving content that
+    may have been altered.
     """
     repo = ArtifactRepository(session, scope, store)
     try:
@@ -323,11 +346,5 @@ def get_artifact(
         try:
             payload = repo.read_json(artifact_id)
         except (IntegrityError, ObjectNotFound) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "code": "artifact_corrupt",
-                    "message": "The stored bytes do not match the recorded hash.",
-                },
-            ) from exc
+            raise artifact_corrupt(session) from exc
     return artifact_response(artifact, payload)
