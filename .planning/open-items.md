@@ -2031,7 +2031,7 @@ PCG64 port justified, and it would need its own named exception to §2.
 
 ---
 
-## OI-63 · Decision owed (data owner) · Who may declare a client fictional, making its designs Class C?
+## OI-63 · Direction recorded, engineering open · A fictional-client flag is not production data authority
 
 **Claim.** A respondent request is `CLASS_C_INTERNAL` only when its personas are the
 fictional roster *and* the Study's client is listed in `AIA_AI_FICTIONAL_CLIENT_IDS`
@@ -2049,12 +2049,15 @@ operator's deployment setting, refused in production.
 exercise AI fieldwork over ADR 0010's Class C route. Anyone who can set the parameter
 can downgrade a client's designs to Class C.
 
-**Question for the data owner.** Is an operator-maintained list the right authority, or
-should "fictional client" be a recorded attribute of the client (set once, audited,
-never by the browser)? Engineering chose the list because it needs no schema change
-and fails closed; a client attribute would need a migration and a route.
+**Data-owner direction (2026-09-28).** Stop treating a Study as fictional. A Study's production
+state and the actual provenance/content of each item determine what can be sent. Do not add a
+product "fictional client" attribute or promote this operator list into production authority.
+Keep the existing allowlist confined to local/test synthetic fixtures, where the runtime already
+refuses it in production. OI-79 owns the design-input classification gap; the respondent source
+and any production Class A/B route also need their own approval and proof.
 
-**Status.** Open. The engineering default stands until answered.
+**Status.** Direction decided; implementation and production-route acceptance open. A local
+fixture's Class C path is not evidence that client work has an approved egress route.
 
 ---
 
@@ -2444,7 +2447,7 @@ claims OI-77.
 
 ---
 
-## OI-79 · Decision owed (data owner) · May a file attached to a fictional client's study reach a model as Class C?
+## OI-79 · Direction recorded, engineering open · Classify actual design inputs before model egress
 
 **Claim.** A native design job sends the brief's attachment text to the model, and classifies the
 request by only two things: the client allowlist and the approved knowledge. A study of an
@@ -2482,22 +2485,24 @@ python -c "from aia_core.domain.research_agents import ResearchAction as A, agen
   (`POST /api/v1/studies/{id}/workspace/attachments`), so this path no longer runs through the
   unit.
 
-**Question for the data owner.** Is a file attached to a fictional client's study fictional
-material, and so Class C? Or is uploaded content client material, and so Class A, whatever the
-client's declaration?
+**Data-owner direction (2026-09-28).** A Study is not declared fictional to decide egress.
+Classify each material input by actual provenance and content, including a file's extracted text
+and text pasted into the brief. Client-supplied or unknown content cannot inherit Class C merely
+because a local test client is allowlisted. A request takes the most restrictive class of its
+parts; unknown classification refuses the model call. Class A/B material still needs an approved
+route before any live send. A generated test fixture may exercise Class C only when its own
+synthetic provenance is established; that does not authorize a production Study.
 
-**Smallest fix**, for each answer:
+**Engineering fix.** Job 6, owner of the design jobs' context and request, must carry the
+classification of attached and pasted material into `agent_request`, or omit unclassified text
+from a Class C request. Preserve the exact material fingerprint and the resulting class in the
+request's audit record. Add tests where (1) a synthetic local fixture uses its recorded Class C
+route, (2) an allowlisted local client with uploaded or pasted client/unknown text is refused
+before dispatch, and (3) approved knowledge and another client's material cannot lower the
+request's class. The existing reproduction above must change from `CLASS_C_INTERNAL True` to a
+refusal or a more restrictive request under the chosen implementation.
 
-- *Class A:* `agent_request` classifies a design Class A whenever its brief carries a file's
-  extracted text. Alternatively, a Class C context leaves the extracted text out and keeps only
-  the file's name.
-- *Class C:* the documented rule says so, beside the knowledge rule in `research-agents.md`.
-
-**Test that would have caught it.** A test in `test_research_agents.py` that asserts the chosen
-rule for a design whose brief carries an attachment's text.
-
-**Status.** Open. The code's behaviour stands until answered. Owner of the decision: the data
-owner, with OI-63. Numbered OI-73 on this entry's branch until #83 put OI-76 on `develop`; renumbered
-under the contract's rule for concurrent entries (§5). Engineering owner: Job 6, which owns the design jobs' executor composition.
-The research journey's contract no longer claims attachment text stays out of Class C calls
-(`docs/architecture/research-journey.md` §6 rule 5, §10).
+**Status.** Direction decided; code still has the unsafe inheritance shown above, and design
+jobs must remain off for studies with unclassified attachments or pasted material. Numbered
+OI-73 on this entry's earlier branch until #83 put OI-76 on `develop`; renumbered under the
+contract's concurrent-entry rule (§5). This is not a new approval for Class A/B egress.

@@ -34,6 +34,15 @@ behavioural reference and parity oracle: its logic, methodology and code may be 
 is **not a runtime fallback**. Native execution uses AIA's study scope, worker, gateway and
 Bedrock runtime only, and legacy provider settings never control it (§6, rule 9).
 
+**Production-state direction (user, 2026-09-28).** Studies are product work, not a class of
+"fictional clients". INT-1 is a synthetic, recorded test fixture, not an authority to lower the
+classification of any material in a production study. Classify each brief, pasted passage,
+attachment, approved knowledge item and respondent source by its actual content and provenance.
+Unknown or client-supplied material cannot inherit Class C from a client allowlist. A route must
+refuse a request containing material outside its approval before anything is sent. The existing
+allowlist is refused in production and is retained only for local/test fixture execution until
+OI-63 and OI-79's engineering changes are made and verified.
+
 **Two verdicts, always reported apart:**
 
 - **Independence** of the currently supported workflows: the PO's final legacy-offline
@@ -56,6 +65,9 @@ make independence pass.
 A cell reads `MET (anchor)`, `UNMET`, `BLOCKED (decision)` or `—`. Merging a PR moves the first
 column at most. A later level is never inferred from an earlier one, and nothing is "live"
 without evidence of the fourth kind.
+Recorded acceptance on synthetic inputs does not establish a production study's data route,
+methodology approval, or client-facing evidence. Those require their own enablement and live
+evidence, with a blocked result where approval is absent.
 
 ## 2. Stage map
 
@@ -134,18 +146,20 @@ does (§4.3).
 
 | | |
 |---|---|
-| Client A | `acceptance-client`, *Akceptační klient (fiktivní)*. On the local fictional allowlist (`AIA_AI_FICTIONAL_CLIENT_IDS`) and with **no approved Client Knowledge**, so its design material is Class C (OI-63) |
-| Client B | `control-client`, *Kontrolní klient (fiktivní)*. **Not** allowlisted, with one approved knowledge item. Its study proves the refusals of §8 and cross-client denial |
+| Client A | `acceptance-client`, a synthetic **test fixture** on the local-only allowlist (`AIA_AI_FICTIONAL_CLIENT_IDS`) with no approved Client Knowledge. Its fixture inputs may exercise the Class C recorded route; this says nothing about a production client's inputs (OI-63, OI-79) |
+| Client B | `control-client`, a separate test scope **not** on the allowlist, with one approved knowledge item. Its study proves the refusals of §8 and cross-client denial |
 | People | a researcher (A: `RESEARCHER`, which exports), a reviewer (A: `REVIEWER`, which signs off), an outsider (B only), an organization admin |
 | Study | `int-1`, `RESEARCH`, budget USD 5, self-approval **disallowed** |
 | Brief | MVP-ACCEPT-1's brief, in Czech: *Jak dospělí ve věku 18–65 let hodnotí pět navrhovaných změn služeb městských knihoven a které skupiny by je využily?* (`docs/migration/mvp-acceptance.md` §1) |
 | Objects | `service_a` … `service_e`, fictional service concepts |
 | Questionnaire | one rating battery over the five objects (it feeds Aggregate and the Sociomap), one single-choice question, one open question |
 | Fieldwork | n = 20 from the fictional roster; datasets `SYNTHETIC_AI_FICTIONAL`; no panel lineage (OI-61) |
-| Attachment | one fictional text file, stored and scoped by the PO's workspace. The scenario records each model request that carries its text, and that request's class. Which class is right waits on OI-79 (§6 rule 5) |
+| Attachment | one generated text fixture, stored and scoped by the PO's workspace. The scenario records each request carrying its text and its class, and separately proves that pasted or attached client/unknown material is refused on a Class C route (OI-79, §6 rule 5) |
 
 The seed (`application/develop_seed.py`, `SEED_PROJECT_CONTENT`) and the 2026-09-26 live fieldwork
-study use the same brief and objects, so recorded and live evidence stay comparable.
+study use the same fixture brief and objects, so recorded and live transport evidence stay
+comparable. That live call did not establish a production study's data classification or
+client-facing methodology.
 
 ### 3.2 The recorded composition (J6)
 
@@ -435,12 +449,16 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
    request id, cost, population binding and `data_origin`.
 4. Every paid call is reserved before dispatch, settled once and ledgered. An uncertain delivery
    goes to `RECOVERY_REQUIRED` and is never retried automatically.
-5. Class C applies only to an allowlisted fictional client (OI-63) whose request carries no
-   approved knowledge. Approved knowledge makes a request Class A
-   (`domain/research_agents.py:273, 294-296`), and the approved route refuses Class A. An
-   attachment's text has no class of its own: it travels in the class of the design that carries
-   it until the data owner answers OI-79. Panel-derived data is refused by the licence gate
-   (OI-61).
+5. **Required product rule:** every material part of a request, including extracted attachment
+   text and text pasted into a brief, has a provenance and a class. The whole request takes the
+   most restrictive class; missing provenance or classification refuses egress. A test fixture's
+   local allowlist cannot lower client or unknown material to Class C (OI-63, OI-79). **Current
+   code differs:** `domain/research_agents.py:273, 294-296` chooses from the fictional-client
+   allowlist and approved knowledge, while `context_snapshot` includes attachment text without
+   classifying it separately. The Class C route is approved only for its stated class and the
+   Class A route remains unapproved. Job 6 must close this gap before enabling design jobs for
+   studies carrying uploads or pasted material. Panel-derived data is separately refused by the
+   licence gate (OI-61).
 6. A number reaches a result or a report only as an `AdmittedClaim`. `NON_EVIDENCE_ORIGINS` never
    become client-facing claims, and every evidence row carries the origin of its data (OI-78). The
    Sociomap stays `INTERNAL_ONLY` while D6 (Sociomap methodology) is open.
@@ -465,7 +483,7 @@ Executable column names what exists; the later columns name what is missing. Lin
 | 1 | Sign in → client and study → native draft edit, save, reload → scoped attachment | PO | sign-in, client and study creation (`test_client_api.py`); on `develop` the draft is still the unit's (OI-58). In #74, not merged, the draft and its attachments are native (`test_study_workspaces.py`, `test_client_api.py` @ `7b9e9dc`) | UNMET | `/app` needs `AIA_LEGACY_PANEL_ENABLED` and an owner or admin role (`apps/api/src/aia_api/routers/panel.py:53-62`, `application/scope.py:170-197`), and is refused in production (`apps/api/src/aia_api/config.py:213-215`, OI-59) | UNMET |
 | 2 | Accurate runtime settings; the disabled and unconfigured behaviour | J1 | `app/config/route.test.ts`; a park on a disabled runtime (`test_ai_fieldwork.py`, `test_research_agent_executor.py`) | UNMET | the settings document calls the legacy subscription provider AIA's default (§10) | UNMET |
 | 3 | Recorded Deep Research → reviewed design proposal → immutable revision → stale proposal refused | J5, J6 | proposals, acceptance and the stale refusal (`test_research_agent_executor.py`, `test_two_reviewed_design_proposals_cannot_overwrite_each_other`); Deep Research: none | UNMET | design switch off by default (`docker-compose.yml:176`); no search route (DR-2) | UNMET. The $2 fieldwork budget is spent |
-| 4 | Readiness → fieldwork → aggregation and QC → validation → admitted analysis | J3, J6 | readiness to Sociomap (`test_research_executors.py`, `test_ai_fieldwork.py`); QC, validation, analysis execution: none | UNMET | fieldwork: fictional Class C approved (ADR 0010). Analysis: unbound | fieldwork MET at `0310091` (2026-09-26: 20 calls, $0.2303301; the fieldwork executor, gateway and adapter are unchanged since); the rest UNMET |
+| 4 | Readiness → fieldwork → aggregation and QC → validation → admitted analysis | J3, J6 | readiness to Sociomap (`test_research_executors.py`, `test_ai_fieldwork.py`); QC, validation, analysis execution: none | UNMET | fixture fieldwork: local Class C route approved (ADR 0010); production material route unapproved. Analysis: unbound | fixture fieldwork transport MET at `0310091` (2026-09-26: 20 calls, $0.2303301; the fieldwork executor, gateway and adapter are unchanged since); production study and the rest UNMET |
 | 5 | Fixed-object research reuse → verification and alignment → stored report → authorized download → explicit review and delivery state | J4, J5, J6 | renderer and templates (`test_report_docx_*.py`). Nothing composes, stores or delivers a report | UNMET | none | UNMET |
 | 6 | Cross-client denial; cancel and reload; failure states; retry and recovery; budgets and settled usage | J6 (and every job for its own stage) | 404 isolation, cancel, park, `RECOVERY_REQUIRED`, reservations (`test_research_api.py`, `test_workflow_concurrency.py`, `test_worker_processes.py`, `test_ai_usage_ledger.py`). A retry repeats paid respondents (OI-64) | UNMET | — | fieldwork settlement MET at `0310091` (all 20 reservations settled); the rest UNMET |
 | 7 | AIA starts, deploys and passes readiness and smoke with no reference service and no legacy health requirement | PO | start and readiness need no unit: no `depends_on` on it, and `/api/v1/ready` checks only the database; CI's `startup-smoke` boots the API and worker without it | UNMET | the deploy pulls and starts `legacy-panel` (`deploy/develop/bin/deploy.sh:40,97`); smoke fails without a healthy unit (`bin/smoke.sh:98-105`) | UNMET |
@@ -479,12 +497,12 @@ independence.
 
 | Path | Blocked by | How the scenario shows it |
 |---|---|---|
-| Client material, or an attachment's content, sent to a model | D6 (a Class A/B route) | client B's design jobs park on the egress refusal with zero calls |
+| Client or unknown material, including pasted or attached text, sent to a model | OI-79's per-material classification; D6 for any resulting Class A/B route | client B's design jobs park with zero calls; a locally allowlisted test client carrying client/unknown text must also park before OI-79 closes |
 | Panel-derived respondents | OI-61 (licence); the withheld archive (population import) | only the fictional roster runs; there is no `v17_4_0` binding |
 | Web search | DR-2 (a search route); D8 (a key, for a keyed service) | Deep Research parks at its first external call |
 | A client-facing Sociomap | D6 (methodology) | the report omits it and says so |
-| A report delivered to a real client | AC-11's legal gate (`governance.legal` `NOT_STARTED`); every claim here is fictional | the review records *internal, fictional*; no client delivery exists |
-| Fictional status beyond the allowlist | OI-63 | `AIA_AI_FICTIONAL_CLIENT_IDS` only, refused in production |
+| A report delivered to a client | AC-11's legal gate (`governance.legal` `NOT_STARTED`); synthetic and modeled origins are not observed evidence | the fixture review records *internal, synthetic*; no client delivery exists |
+| Production study routed by a "fictional client" declaration | OI-63 and OI-79; no such production authority exists | `AIA_AI_FICTIONAL_CLIENT_IDS` is local/test-only and refused in production |
 
 ## 9. Phase B: what it needs
 
@@ -530,7 +548,7 @@ every component head recorded.
 | The unit stays "as the oracle and a fallback" | ADR 0015 decision 5; OI-58 | the oracle and a frozen reference only; no runtime fallback (the user's direction) | handed to the PO. ADR 0018 in #74 says *reference only*; OI-58's removal condition still ends *as the oracle and a fallback* at `7b9e9dc` |
 | AIA's AI default is `claude_code_subscription` / `CLAUDE_CODE_ONLY` | `GET /api/v1/settings` (`routers/settings.py:200-217`) | these are persisted legacy fields; the worker binds Bedrock capabilities only | handed to J1; #75 @ `efa3971` corrects it (its own OI entry) |
 | Run, Progress and Results use no unit route; the rebuilt stages call unit AI routes | `docs/migration/interface-screens.json` | all eight stages need `/api/bootstrap` and `/api/projects/load`; the AI actions are native agent jobs | handed to the PO. #74 empties the research stages' `unit_routes`, which is true on that branch |
-| Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the question is OI-79 |
+| Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the product rule is now recorded in OI-79, the code gap remains |
 | Implementation states of `ai.gateway`, `ai.usage_ledger`, `ai.credentials`, `reports.generation` (`NOT_STARTED`) and `workflow.step_execution`'s note ("No research step body exists") | `parity-matrix.json` | all have merged code. Re-grading them touches the module inventory (OI-30) | handed to the parity owner |
 
 ## 11. Handoff to the phase-out owner

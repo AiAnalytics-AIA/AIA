@@ -61,6 +61,9 @@ each shared file, what each job hands the next, the INT-1 scenario, and acceptan
 levels. Job 6 integrates the research graph, executors, endpoints and results, and builds the
 reusable recorded scenario. It consumes the phase-out owner's native workspace and does not
 build one.
+INT-1 uses generated inputs to test the system; a production Study is never declared fictional
+to determine its egress route. The data-owner direction of 2026-09-28 is recorded in contract
+§6 rule 5 and OI-63/OI-79. The Class C fixture route does not authorize client material.
 
 - [x] I0. **Phase A: the contract.** `research-journey.md`; stale claims corrected; the
       `research/agent-jobs` routes asserted by the API contract check
@@ -71,6 +74,10 @@ build one.
 - [ ] I2. The recorded composition and the reusable scenario (contract §3.2, §3.4). Two layer
       rules, both passing today: `aia_worker.testing` stays out of deployments, and the legacy
       provider fields stay out of the executors and the worker.
+- [ ] I2a. Close OI-79 before design jobs can send actual study material: classify each brief,
+      pasted passage, attachment and approved knowledge item by provenance/content; make the
+      request take its most restrictive class and refuse missing classification. Prove that a
+      local allowlisted fixture carrying client/unknown text cannot use the Class C route.
 - [ ] I3. Results, Report and Review destinations and actions: native report retrieval, and
       the review and delivery decisions over `ArtifactRepository.approve` / `freeze`.
 - [ ] I4. OI-64: fieldwork retries must not re-ask respondents who already answered.
@@ -78,7 +85,8 @@ build one.
       `184699c` saves it first, so a copy that lost a save conflict is never run (contract §4.2:
       reproduced at `7b9e9dc`, fixed at `184699c`). Done when #74 merges.
 - [ ] I6. The activation and live-acceptance runbook for the combined candidate (not
-      executed without a new, explicit budget).
+      executed without a new, explicit budget). It separates recorded synthetic testing from
+      a production-state Study and names the approved route for each actual input class.
 
 ## Methodology that remains code
 
