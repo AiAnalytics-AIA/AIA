@@ -131,8 +131,9 @@ validation (only support and suppression), verification or alignment.
 - [x] 4. Artifact contract and graph spec: `analysis/artifact.py`, `analysis/steps.py`. —
       code + tests: `test_analysis_artifact.py` (22), including the eight nodes joining the
       research graph as a valid DAG
-- [ ] 5. Scoped sources and reconstruction: `application/analysis_results.py`. — code +
-      tests (**PR A ends here**)
+- [x] 5. Scoped sources and reconstruction: `application/analysis_results.py`. — code +
+      tests: `test_analysis_results.py` (15; SQLite and PostgreSQL 16), upstream steps driven
+      through the real workflow repository (**PR A ends here**)
 - [ ] 6. Executor: `aia_executors/analysis.py`, generator with turn checkpoints, config,
       registry; real worker over recorded Bedrock: complete, blocked after 3 calls,
       schema failure counted, client-facing and unconfigured and Class A refused with no
