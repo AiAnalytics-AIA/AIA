@@ -99,7 +99,9 @@ describe("Zadání", () => {
     render(<ResearchScreen projectId="PRJ-1" step="brief" frame={TEST_FRAME} />);
     const tile = await screen.findByRole("button", { name: /Nový produkt \/ koncept/ });
     fireEvent.click(tile);
-    expect(tile.getAttribute("aria-pressed")).toBe("true");
+    // The tile can be on screen before the store's subscription effect has run;
+    // a click then renders when it subscribes, not synchronously (AGENTS.md § Next.js / TypeScript).
+    await screen.findByRole("button", { name: /Nový produkt \/ koncept/, pressed: true }, { timeout: 5_000 });
     const goal = screen.getByPlaceholderText(/Co chcete zjistit/) as HTMLTextAreaElement;
     expect(goal.value).toBe(PROBLEM_TYPES[1][3]);
     expect((screen.getByRole("button", { name: /Další · vytvořit návrh/ }) as HTMLButtonElement).disabled).toBe(false);
