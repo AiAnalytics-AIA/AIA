@@ -1,0 +1,262 @@
+/* AIA component stylesheet. Every colour, length and face is a token from tokens.css.
+   Two registers: .aia (Studio) and .aia-doc (Deliverable). */
+
+.aia, .aia * { box-sizing: border-box; }
+.aia {
+  font-family: var(--font-sans);
+  font-size: 14px; line-height: 20px;
+  color: var(--ink); background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.aia-compact { font-size: 13px; line-height: 18px; }
+.aia :focus-visible { outline: var(--stroke-emphasis) solid var(--focus-ring); outline-offset: 2px; box-shadow: 0 0 0 2px var(--surface); }
+.aia-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.aia-mono { font-family: var(--font-mono); font-feature-settings: "zero" 1; font-size: 13px; }
+.aia-muted { color: var(--ink-muted); }
+.aia-faint { color: var(--ink-faint); }
+.aia-num { font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+.aia-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.aia-stack { display: flex; flex-direction: column; gap: var(--space-2); }
+.aia-h { font-size: 15px; line-height: 20px; font-weight: 600; margin: 0; }
+.aia-title { font-size: 20px; line-height: 26px; font-weight: 600; margin: 0; }
+.aia-label { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: .01em; }
+.aia-caption { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.aia-panel { background: var(--surface-raised); border: var(--stroke-hairline) solid var(--border); border-radius: var(--radius-md); }
+.aia-panel-h { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-bottom: var(--stroke-hairline) solid var(--border); }
+.aia-panel-b { padding: var(--space-3) var(--space-4); }
+.aia-grid { display: grid; gap: var(--space-4); }
+.aia-icon { display: inline-block; flex: none; vertical-align: -3px; }
+
+/* ---------- Buttons & keys ---------- */
+.aia-btn { font: inherit; font-weight: 500; font-size: 13px; line-height: 18px; min-height: var(--control-comfortable); padding: 0 var(--space-3);
+  display: inline-flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-sm); cursor: pointer;
+  border: var(--stroke-hairline) solid var(--border-strong); background: var(--surface-raised); color: var(--ink); }
+.aia-btn:hover { background: var(--surface-sunken); }
+.aia-btn-primary { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+.aia-btn-primary:hover { background: var(--signal); filter: brightness(1.08); }
+.aia-btn-danger { color: var(--status-fault); border-color: var(--status-fault); }
+.aia-btn-quiet { border-color: transparent; background: transparent; }
+.aia-btn-compact { min-height: var(--control-compact); padding: 0 var(--space-2); font-size: 12px; }
+.aia-kbd { font-family: var(--font-mono); font-size: 12px; line-height: 16px; padding: 0 4px; min-width: 18px; text-align: center;
+  border: var(--stroke-hairline) solid var(--border-strong); border-bottom-width: 2px; border-radius: var(--radius-sm); background: var(--surface-sunken); color: var(--ink-muted); display: inline-block; }
+
+/* ---------- Status ---------- */
+.aia-glyph { display: inline-block; flex: none; }
+.aia-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 var(--space-2) 0 6px; border-radius: var(--radius-sm);
+  font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: .01em; white-space: nowrap; border: var(--stroke-hairline) solid transparent; }
+.aia-chip-sm { height: 20px; padding: 0 6px 0 4px; gap: 4px; }
+.aia-tone-running  { color: var(--status-running); background: var(--status-running-wash); }
+.aia-tone-you      { color: var(--on-status-you); background: var(--status-you); font-weight: 600; }
+.aia-tone-world    { color: var(--status-world); background: var(--status-world-wash); border-color: var(--status-world); border-style: dashed; }
+.aia-tone-fault    { color: var(--status-fault); background: var(--status-fault-wash); border-color: var(--status-fault); }
+.aia-tone-recovery { color: var(--on-status-recovery); background: var(--status-recovery); font-weight: 600;
+  background-image: repeating-linear-gradient(135deg, var(--status-recovery-hatch) 0 2px, transparent 2px 6px); background-size: 6px 100%; background-repeat: no-repeat; padding-left: 12px; }
+.aia-tone-done, .aia-tone-done-warn { color: var(--status-done); background: transparent; border-color: var(--border); }
+.aia-tone-ready    { color: var(--ink-muted); background: transparent; border-color: var(--border-strong); }
+.aia-tone-inert, .aia-tone-invalid, .aia-tone-cancelled, .aia-tone-skipped, .aia-tone-blocked { color: var(--status-inert); background: transparent; border-color: var(--border); border-style: dashed; }
+.aia-tone-invalid { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+/* Row washes for lists (Portfolio, run log) */
+.aia-wash-you { background: var(--status-you-wash); box-shadow: inset 4px 0 0 var(--status-you); }
+.aia-wash-world { background: var(--status-world-wash); }
+.aia-wash-fault { background: var(--status-fault-wash); }
+.aia-wash-recovery { background: var(--status-recovery); color: var(--on-status-recovery); }
+.aia-wash-running { background: var(--status-running-wash); }
+
+/* ---------- Evidence grades & null states ---------- */
+.aia-ev { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+.aia-ev-mark { display: inline-block; width: 8px; height: 8px; flex: none; position: relative; top: -1px; }
+.aia-ev-v-MODELED_BEHAVIOR_PRIOR { text-decoration: underline dotted var(--evidence-mark) 1.5px; text-underline-offset: 3px; }
+.aia-ev-v-EXTERNAL_HOLDOUT_PENDING { text-decoration: underline dotted var(--evidence-mark) 1.5px; text-underline-offset: 3px; }
+.aia-ev-v-UNKNOWN { text-decoration: underline dashed var(--evidence-mark) 1.5px; text-underline-offset: 3px; }
+.aia-ev-tag { font-size: 11px; line-height: 14px; font-weight: 600; padding: 0 3px; border: 1px solid var(--evidence-mark); border-radius: var(--radius-sm); }
+.aia-na { display: inline-block; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .02em; color: var(--null-mark); padding: 0 4px; border: 1px solid var(--null-mark); border-radius: var(--radius-sm);
+  background: repeating-linear-gradient(135deg, transparent 0 3px, var(--border) 3px 4px); }
+.aia-supp { display: inline-flex; align-items: center; gap: 3px; color: var(--ink-muted); font-size: 12px; }
+.aia-supp-bar { display: inline-block; height: 10px; border-radius: 1px; background: var(--suppressed-fill); }
+.aia-loading { display: inline-block; height: 12px; border-bottom: 1.5px dotted var(--ink-faint); color: transparent; }
+.aia-zero { color: var(--ink); }
+
+/* ---------- Tables ---------- */
+.aia-table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 18px; }
+.aia-table th { text-align: left; font-weight: 500; font-size: 12px; color: var(--ink-muted); background: var(--surface-sunken); padding: 0 var(--space-2); height: var(--row-compact); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.aia-table td { padding: 0 var(--space-2); height: var(--row-compact); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.aia-table.is-comfortable td { height: var(--row-comfortable); font-size: 14px; }
+.aia-table .r { text-align: right; }
+.aia-table tbody tr:hover td { background: var(--surface-sunken); }
+.aia-table tr.is-selected td { background: var(--selection); }
+.aia-cell-na { background: repeating-linear-gradient(135deg, transparent 0 4px, var(--border) 4px 5px); }
+
+/* ---------- Scope chrome ---------- */
+.aia-scope { position: sticky; top: 0; z-index: var(--z-scope); background: var(--surface-raised); border-bottom: 1px solid var(--border-strong); }
+.aia-scope-band { height: var(--stroke-scope); }
+.aia-scope-band.is-above { background: repeating-linear-gradient(135deg, var(--scope-above) 0 3px, transparent 3px 7px); }
+.aia-scope-bar { display: flex; align-items: center; gap: var(--space-3); min-height: 44px; padding: 0 var(--space-4); flex-wrap: wrap; }
+.aia-scope-crumb { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.aia-scope-client { font-weight: 600; }
+.aia-scope-sep { color: var(--ink-faint); }
+.aia-scope-ro { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 8px; border: 1px solid var(--ink); border-radius: var(--radius-sm); }
+.aia-scope-spacer { flex: 1; }
+.aia-mono-tile { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-sm); font-weight: 600; font-size: 12px; color: var(--on-client); letter-spacing: .02em; flex: none; }
+.aia-mono-tile.is-above { background: var(--surface-inverse); color: var(--ink-inverse); }
+.aia-readonly { background-image: repeating-linear-gradient(0deg, transparent 0 23px, var(--border) 23px 24px); }
+
+/* ---------- Stage rail ---------- */
+.aia-rail { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); border: 1px solid var(--border); background: var(--surface-raised); border-radius: var(--radius-0); }
+.aia-rail-cell { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 6px 6px 8px; border-right: 1px solid var(--border); min-width: 0; cursor: pointer; background: none; border-top: 0; border-bottom: 0; border-left: 0; font: inherit; color: inherit; text-align: left; }
+.aia-rail-cell:last-child { border-right: 0; }
+.aia-rail-idx { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-muted); }
+.aia-rail-name { font-size: 12px; line-height: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aia-rail-state { font-size: 11px; line-height: 14px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aia-rail-cell.is-current::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--signal); }
+.aia-rail-cell.t-you { background: var(--status-you); color: var(--on-status-you); }
+.aia-rail-cell.t-you .aia-rail-idx, .aia-rail-cell.t-you .aia-rail-state { color: var(--on-status-you); }
+.aia-rail-cell.t-running { background: var(--status-running-wash); box-shadow: inset 0 2px 0 var(--status-running); }
+.aia-rail-cell.t-fault { background: var(--status-fault-wash); box-shadow: inset 0 2px 0 var(--status-fault); }
+.aia-rail-cell.t-recovery { background: var(--status-recovery); color: var(--on-status-recovery); }
+.aia-rail-cell.t-recovery .aia-rail-idx, .aia-rail-cell.t-recovery .aia-rail-state { color: var(--on-status-recovery); }
+.aia-rail-cell.t-world { background: var(--status-world-wash); }
+.aia-rail-cell.t-invalid .aia-rail-name { text-decoration: line-through; color: var(--ink-muted); }
+.aia-rail-cell.t-inert .aia-rail-name { color: var(--ink-faint); }
+.aia-rail.is-narrow .aia-rail-name, .aia-rail.is-narrow .aia-rail-state { display: none; }
+.aia-rail.is-narrow .aia-rail-cell.is-current .aia-rail-name, .aia-rail.is-narrow .aia-rail-cell.is-current .aia-rail-state { display: block; }
+.aia-rail.is-narrow { grid-template-columns: repeat(13, auto); }
+.aia-rail.is-narrow .aia-rail-cell.is-current { min-width: 150px; }
+.aia-rail-kind { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+
+/* ---------- Budget meter ---------- */
+.aia-meter { position: relative; height: 16px; background: var(--surface-sunken); border: 1px solid var(--border-strong); display: flex; overflow: hidden; }
+.aia-meter > span { height: 100%; }
+.aia-meter .m-spent { background: var(--budget-spent); }
+.aia-meter .m-uncertain { background: repeating-linear-gradient(135deg, var(--budget-uncertain) 0 3px, var(--surface-sunken) 3px 5px); border-left: 2px solid var(--surface-sunken); }
+.aia-meter .m-reserved { background: repeating-linear-gradient(45deg, var(--budget-reserved) 0 2px, var(--surface-sunken) 2px 5px); border-left: 2px solid var(--surface-sunken); }
+.aia-meter-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: var(--space-2) var(--space-4); margin-top: var(--space-2); }
+.aia-meter-key { display: flex; gap: 6px; align-items: flex-start; }
+.aia-meter-sw { width: 12px; height: 12px; flex: none; margin-top: 3px; border: 1px solid var(--border-strong); }
+
+/* ---------- Dialog ---------- */
+.aia-dialog { background: var(--surface-overlay); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); max-width: 560px; width: 100%; }
+.aia-dialog-h { padding: var(--space-4) var(--space-6) var(--space-2); }
+.aia-dialog-b { padding: var(--space-2) var(--space-6) var(--space-4); display: grid; gap: var(--space-3); }
+.aia-dialog-f { padding: var(--space-3) var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: var(--space-2); flex-wrap: wrap; }
+.aia-dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px var(--space-4); margin: 0; }
+.aia-dl dt { color: var(--ink-muted); font-size: 12px; font-weight: 500; }
+.aia-dl dd { margin: 0; }
+
+/* ---------- Recovery block ---------- */
+.aia-recovery { background: var(--status-recovery); color: var(--on-status-recovery); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 10px);
+  background-image: repeating-linear-gradient(135deg, var(--status-recovery-hatch) 0 3px, transparent 3px 8px); background-size: 10px 100%; background-repeat: no-repeat; }
+.aia-recovery .aia-btn { background: transparent; color: var(--on-status-recovery); border-color: var(--on-status-recovery); }
+
+/* ---------- Parked banner ---------- */
+.aia-parked { background: var(--status-you); color: var(--on-status-you); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); display: flex; gap: var(--space-3); align-items: flex-start; flex-wrap: wrap; }
+.aia-parked .aia-btn { background: var(--on-status-you); color: var(--status-you); border-color: var(--on-status-you); }
+.aia-world { background: var(--status-world-wash); border: 1px dashed var(--status-world); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); display: flex; gap: var(--space-3); align-items: flex-start; flex-wrap: wrap; }
+
+/* ---------- Timeline ---------- */
+.aia-tl { list-style: none; margin: 0; padding: 0; }
+.aia-tl li { display: grid; grid-template-columns: 20px 1fr auto; gap: var(--space-2); align-items: start; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.aia-tl li:last-child { border-bottom: 0; }
+.aia-live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--status-running); box-shadow: 0 0 0 3px var(--status-running-wash); }
+
+/* ---------- Impact preview ---------- */
+.aia-impact-rail { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; }
+.aia-impact-rail > span { height: 28px; display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+.aia-impact-rail .keep { background: var(--surface-sunken); color: var(--ink-muted); border: 1px solid var(--border); }
+.aia-impact-rail .root { background: var(--ink); color: var(--ink-inverse); }
+.aia-impact-rail .reopen { background: repeating-linear-gradient(135deg, var(--surface-raised) 0 3px, var(--border-strong) 3px 4px); color: var(--ink); border: 1px solid var(--ink); }
+.aia-impact-rail .present { background: var(--surface-raised); border: 1px dashed var(--ink); color: var(--ink); }
+
+/* ---------- Tabs / segmented ---------- */
+.aia-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.aia-tab { font: inherit; font-size: 13px; font-weight: 500; padding: 8px 12px; border: 0; background: none; color: var(--ink-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.aia-tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--signal); }
+
+/* ---------- Sociomapa ---------- */
+.aia-map { background: var(--surface-raised); border: 1px solid var(--border); position: relative; }
+.aia-map svg { display: block; width: 100%; height: auto; }
+.aia-map-layer { position: absolute; left: var(--space-2); top: var(--space-2); display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.aia-layer-tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-sm); border: 1px dashed var(--ink); background: var(--surface-raised); }
+.aia-layer-tag.is-whatif { background: repeating-linear-gradient(135deg, var(--surface-raised) 0 4px, var(--border) 4px 6px); }
+.aia-whatif-band { font-size: 12px; font-weight: 600; text-align: center; padding: 4px; border-top: 1px dashed var(--ink); border-bottom: 1px dashed var(--ink);
+  background: repeating-linear-gradient(135deg, var(--surface-raised) 0 6px, var(--border) 6px 8px); }
+
+/* ---------- Headline answer ---------- */
+.aia-headline { border-top: 2px solid var(--ink); padding-top: var(--space-3); }
+.aia-headline-q { font-size: 12px; color: var(--ink-muted); font-weight: 500; }
+.aia-headline-a { font-size: 20px; line-height: 28px; font-weight: 500; margin: var(--space-1) 0 var(--space-2); max-width: 64ch; }
+.aia-headline-find { list-style: none; padding: 0; margin: var(--space-3) 0 0; display: grid; gap: var(--space-2); }
+.aia-headline-find li { display: grid; grid-template-columns: 16px 1fr; gap: var(--space-2); }
+
+/* ---------- Revision ---------- */
+.aia-superseded { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; padding: var(--space-2) var(--space-4); border: 1px solid var(--ink); background: repeating-linear-gradient(135deg, var(--surface-raised) 0 8px, var(--surface-sunken) 8px 16px); font-weight: 500; }
+
+/* ---------- App frame (screens) ---------- */
+.aia-app { display: grid; grid-template-columns: 208px 1fr; min-height: 100%; }
+.aia-nav { background: var(--surface-sunken); border-right: 1px solid var(--border); padding: var(--space-3) var(--space-2); display: flex; flex-direction: column; gap: 2px; }
+.aia-nav a { display: flex; align-items: center; gap: var(--space-2); padding: 6px var(--space-2); border-radius: var(--radius-sm); color: var(--ink-muted); text-decoration: none; font-size: 13px; font-weight: 500; }
+.aia-nav a[aria-current="page"] { background: var(--surface-raised); color: var(--ink); box-shadow: inset 2px 0 0 var(--signal); }
+.aia-nav .count { margin-left: auto; font-size: 12px; font-weight: 600; padding: 0 6px; border-radius: var(--radius-sm); background: var(--status-you); color: var(--on-status-you); }
+.aia-main { min-width: 0; display: flex; flex-direction: column; }
+.aia-content { padding: var(--space-4); display: grid; gap: var(--space-4); align-content: start; }
+.aia-section-label { font-size: 12px; font-weight: 600; color: var(--ink-muted); margin: 0 0 var(--space-2); display: flex; align-items: center; gap: var(--space-2); }
+.aia-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-2); }
+.aia-gallery-cell { border: 1px solid var(--border); background: var(--surface-raised); padding: var(--space-2) var(--space-3); display: grid; gap: 4px; align-content: start; }
+.aia-enum { font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted); }
+.aia-divider { height: 8px; background-image: radial-gradient(circle, var(--ink-faint) 1px, transparent 1.4px); background-size: 8px 8px; opacity: .8; }
+@media (max-width: 720px) { .aia-app { grid-template-columns: 1fr; } .aia-nav { flex-direction: row; overflow-x: auto; } }
+
+/* ================= Deliverable register ================= */
+.aia-doc { font-family: var(--font-serif); color: var(--doc-ink); background: var(--doc-paper); font-size: 15px; line-height: 24px; font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "kern" 1; }
+.aia-doc-page { max-width: 720px; margin: 0 auto; padding: var(--space-12) var(--space-12); }
+.aia-doc h1 { font-size: 26px; line-height: 32px; font-weight: 600; margin: var(--space-8) 0 var(--space-3); }
+.aia-doc h2 { font-size: 19px; line-height: 26px; font-weight: 600; margin: var(--space-6) 0 var(--space-2); }
+.aia-doc .num { color: var(--doc-accent); font-family: var(--font-sans); font-weight: 600; margin-right: 12px; }
+.aia-doc p { margin: 0 0 12px; hyphens: auto; }
+.aia-doc .lede { font-size: 18px; line-height: 28px; }
+.aia-doc figure { margin: var(--space-6) 0; }
+.aia-doc figcaption, .aia-doc .cap { font-family: var(--font-sans); font-size: 12px; line-height: 17px; color: var(--doc-muted); }
+.aia-doc table { border-collapse: collapse; width: 100%; font-family: var(--font-sans); font-size: 12px; line-height: 16px; }
+.aia-doc th { text-align: left; font-weight: 600; border-bottom: 1px solid var(--doc-ink); padding: 4px 6px; }
+.aia-doc td { border-bottom: 1px solid var(--doc-rule); padding: 4px 6px; }
+.aia-doc td.r, .aia-doc th.r { text-align: right; }
+.aia-doc .fn { font-size: 12px; line-height: 16px; color: var(--doc-muted); border-top: 1px solid var(--doc-rule); padding-top: 8px; margin-top: 16px; }
+.aia-doc .holdout { font-family: var(--font-sans); font-size: 13px; line-height: 18px; border: 1.5px solid var(--doc-ink); padding: 10px 12px; margin: 16px 0; display: grid; grid-template-columns: 20px 1fr; gap: 8px; }
+.aia-doc .margin-ev { position: relative; }
+.aia-doc .margin-ev > .gm { position: absolute; left: -28px; top: 7px; }
+.aia-doc .aia-ev-mark { top: 0; }
+.aia-doc-cover { aspect-ratio: 210 / 297; background: var(--doc-paper); color: var(--doc-ink); position: relative; overflow: hidden; border: 1px solid var(--doc-rule); }
+@media print {
+  .aia-doc { font-size: 10.5pt; line-height: 16.8pt; }
+  .aia-scope, .aia-nav { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .aia * { transition: none !important; animation: none !important; } }
+
+/* The Deliverable register re-scopes the Studio tokens: a report is paper even when the Studio is dark. */
+.aia-doc {
+  --ink: var(--doc-ink); --ink-muted: var(--doc-muted); --ink-faint: var(--doc-muted);
+  --surface: var(--doc-paper); --surface-raised: var(--doc-paper); --surface-sunken: var(--doc-paper);
+  --border: var(--doc-rule); --border-strong: var(--doc-muted);
+  --evidence-mark: var(--doc-ink); --null-mark: var(--doc-ink); --suppressed-fill: var(--doc-muted);
+  --viz-grid: var(--doc-rule); --viz-axis: var(--doc-muted);
+}
+.aia-wash-recovery .aia-muted, .aia-wash-recovery .aia-caption, .aia-wash-recovery .aia-faint { color: inherit; }
+.aia-table tbody tr.aia-wash-recovery:hover td { background: transparent; }
+.aia-table tbody tr.aia-wash-you:hover td { background: transparent; }
+.aia-ev-unknown { font-family: var(--font-sans); font-size: 12px; line-height: 1; font-weight: 700; color: var(--evidence-mark); }
+.aia-gallery-cell.aia-wash-you { background: var(--status-you-wash); }
+.aia-gallery-cell.aia-wash-world { background: var(--status-world-wash); }
+.aia-gallery-cell.aia-wash-fault { background: var(--status-fault-wash); }
+.aia-gallery-cell.aia-wash-running { background: var(--status-running-wash); }
+.aia-gallery-cell.aia-wash-recovery { background: var(--status-recovery); color: var(--on-status-recovery); }
+/* Czech runs ~35% longer than English: every layout child may shrink, table text may wrap. */
+.aia-content > *, .aia-grid > *, .aia-stack > * { min-width: 0; }
+.aia-table td { overflow-wrap: anywhere; }
+.aia-dl dd { min-width: 0; overflow-wrap: anywhere; }
+.aia-scroll-x { overflow-x: auto; }
+/* A status label is never truncated: a chip wraps before it clips. */
+.aia-chip { max-width: 100%; height: auto; min-height: 24px; }
+.aia-chip-sm { min-height: 20px; }
+.aia-chip > span:last-child { white-space: normal; }
+.aia-gallery-cell, .aia-gallery-cell > *, .aia-doc .holdout > div { min-width: 0; overflow-wrap: anywhere; }
