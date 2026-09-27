@@ -1,7 +1,7 @@
 """A copy of the 18.6.6 unit's project store, read and never written (ADR 0018, decision 2).
 
 The migration reads a **copy** of ``/app/data/project_store.sqlite`` -- the WAL-safe
-one ``deploy/develop/bin/backup-legacy-state.py`` writes, either the database itself
+one ``deploy/reference/bin/backup-legacy-state.py`` writes, either the database itself
 or the ZIP it streams -- and a copy of ``/app/data/ui_uploads/project_attachments``.
 Nothing here can change either:
 
@@ -74,7 +74,7 @@ class UnitProjectStore:
             raise ValueError(
                 f"{database} has a write-ahead log or shared-memory file beside it: it "
                 "is a live database. Read a copy made with "
-                "deploy/develop/bin/backup-legacy-state.py."
+                "deploy/reference/bin/backup-legacy-state.py."
             )
         uri = database.resolve().as_uri() + "?mode=ro&immutable=1"
         self._cx = sqlite3.connect(uri, uri=True)
