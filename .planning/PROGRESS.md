@@ -23,9 +23,8 @@ entry is a **hypothesis**, not a finding.
 it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully contained in it
 (`git rev-list --count origin/develop..<branch>` = 0). The 14 that are not:
 
-- **In flight:** `feature/research-agents` (#63), the two fixes (#64, #65; all three merged
-  since), and
-  `claude/trusting-turing-2b9oyl` (a settings page, no PR yet). That branch was started
+- **In flight at 10:20:** `feature/research-agents` (#63), the two fixes (#64, #65), and
+  `claude/trusting-turing-2b9oyl` (the settings page, #67); all four merged since. That branch was started
   from `main`, so it carries `main`'s `7f8cb2a` and had to merge `develop` in: the
   cost of `main` being GitHub's default branch (human action 1, below).
 - **`main`**: one commit `develop` lacks, `7f8cb2a`, an older copy of
@@ -50,8 +49,13 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `e0edf2a`, green again since 10:46 UTC** (*Deploy develop* run 28: host step,
-every smoke check, and "Confirm from outside"). Before that, the host had been on `ff463a3`:
+**Deployed: `85fa951` (#63's merge), with one smoke check red (OI-71).** *Deploy develop*
+runs 29 (`14a124b`, 11:11 UTC) and 30 (`85fa951`, 11:33) replaced every service, and every smoke
+check passed except `legacy: the 18.6.6 unit is healthy`, read as `starting` 19 s after the
+unit was recreated. The site served each new build throughout (`/health` and `/version`
+reported it). PR #70 is the fix. Until it merges, a red deploy on that one line means the
+unit was read too early, not that the site is down. The last deploy with every check green was
+run 28 @ `e0edf2a` (10:46 UTC). Before that, the host had been on `ff463a3`:
 - *Deploy develop* run 26 (PR #59 @ `043b0dd`) failed on the host with
   `bin/lib.sh: line 62: HOME: unbound variable`, and run 27 failed too. PR #64 fixed it
   (merged 10:29, OI-67), and run 28 is the first deploy that carried it.
@@ -71,9 +75,12 @@ attempt 3, green).
 |---|---|---|---|---|
 | #64 | `fix/deploy-without-home` | Deploy fails when SSM gives no `HOME` (OI-67) | **Merged** 10:29 | 1 |
 | #65 | `fix/api-tests-file-backed-sqlite` | Flaky API tests on shared in-memory SQLite (OI-69) | **Merged** 10:30 | 2 |
-| #66 | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
+| #66 | `chore/consolidate-tracker` | This reconciliation | **Merged** 10:57 (`14a124b`) | 3 |
 | #63 | `feature/research-agents` | Native Research design agents on Bedrock | **Merged** 11:17 (`85fa951`); CI green on `614b6a7` | 4, see below |
-| — | `claude/trusting-turing-2b9oyl` | Settings page on the real API | No PR yet; based on `main` | open a PR into `develop` |
+| #67 | `claude/trusting-turing-2b9oyl` | Settings control panel on `/app/settings`: `GET /settings`, `GET`/`PUT /self-approval`, `PUT /clients/{id}/status` ([plan](plans/done/settings-control-panel.md)) | **Merged** 11:34 (`2beafd9`) | 5 |
+| #68 | `chore/record-deploy-and-oi-70` | Records run 28, #63's and #67's merges, OI-70, OI-71 | Docs only | 6 |
+| #70 | `fix/smoke-waits-for-unit-start` | Smoke judges the 18.6.6 unit after its start period (OI-71) | Draft into `develop` | 7: turns *Deploy develop* green again |
+| #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | Draft into `develop` | not yet reviewed here |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
 by default. The browser journey it named (enqueue → reload → review → accept → stale

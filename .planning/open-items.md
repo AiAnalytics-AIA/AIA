@@ -2241,3 +2241,35 @@ click. First confirm the cause by running the file under load.
 **Test that would have caught it.** The test itself, run repeatedly under load.
 
 **Status.** Open (2026-09-27).
+
+---
+
+## OI-71 · Finding · Smoke reads the 18.6.6 unit's health before its first probe has passed
+
+**Claim.** `smoke.sh` reads the unit's health once, about 20 s after `bin/deploy.sh` recreates it.
+Docker reports `starting` until the unit's first healthcheck probe passes. The probes run every
+15 s during a 120 s start period, so a healthy unit that is not up by the first probe (15 s) fails
+the deploy.
+
+**Anchor.** `deploy/develop/bin/smoke.sh:101-104 @ 85fa951` (one `docker inspect`, no wait);
+`legacy/npc-panel-18.6.6/Dockerfile:50 @ 85fa951` (`--interval=15s --start-period=120s`).
+
+**Reproduction.** *Deploy develop* runs 29 (`36314741586`) and 30 (`36315831550`): the host printed
+`replacing services`, then `smoke tests` 19 s later, and `FAIL  legacy: the 18.6.6 unit is healthy`
+with `state 'starting'`. Every other check passed. Run 28 (`36313351584`) had the same 19 s gap and
+passed, because its unit was up by the first probe. Offline:
+`packages/aia_core/tests/test_develop_legacy_unit_health.py` on PR #70 fails all 5 tests against
+the scripts @ `85fa951`.
+
+**Consequence.** *Deploy develop* goes red although the new build is serving, and "Confirm from
+outside" is skipped. The failure message points the operator at the data bundle, which was fine.
+
+**Smallest fix.** Wait out `starting` in the smoke read only, bounded (PR #70:
+`lib.sh` › `legacy_unit_health`, at most `LEGACY_START_WAIT_SECONDS`, default 150). The fix is not
+`compose up --wait` on the unit, which OI-44 removed so that a broken unit cannot keep the site
+down.
+
+**Test that would have caught it.** `test_develop_legacy_unit_health.py` (PR #70).
+
+**Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
+deploy that carries it.

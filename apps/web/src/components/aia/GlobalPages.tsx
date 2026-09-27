@@ -21,6 +21,7 @@ import { ClassicLink, Field, Tag, TextInput } from "../rehome/ui";
 import { AppShell } from "./AppShell";
 import { studyHref } from "./clients/ClientOverview";
 import { CARD, Empty, Loaded } from "./states";
+import { ControlPanel } from "./settings/ControlPanel";
 import { useResource } from "./useResource";
 
 export function IntelligencePage() {
@@ -132,6 +133,9 @@ export function SettingsPage() {
             <p className="mt-1 text-xs text-ink-faint">{t("aia.settings.classicProjectsText")}</p>
           </div>
         </section>
+      </div>
+      <div className="mt-6">
+        <ControlPanel />
       </div>
     </AppShell>
   );

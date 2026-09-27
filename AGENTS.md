@@ -633,6 +633,13 @@ except ScopeDenied as exc:
     raise _forbidden(...) from exc
 ```
 
+**A closed response model rejects a repository's extra key at runtime, not in
+mypy.** `GET /access-audit` answered 500 for every organization with a grant,
+because `audit_trail()` returns a `payload` key that `AuditEntryResponse`
+(`extra="forbid"`) did not declare; no API test had called the route with data
+in it. Fixed by declaring the field (`87da177`). Every route needs one API test
+that returns *data*, not only one that is refused.
+
 ## Pydantic strict mode
 
 **Strict *Python* mode rejects what JSON can express.** `model_validate(data,
@@ -1030,6 +1037,19 @@ Errors derived from the URL (`useSearchParams`) are computed during render, not
 set in an effect; only the asynchronous outcome of a promise is `setState`d. `apps/web` has its own lockfile, so CI caches
 on `apps/web/package-lock.json` — caching on a branch name gives a stale
 `node_modules` that fails for reasons unrelated to the change.
+
+**A constant exported from a `"use client"` module is not a constant on the
+server.** A server component that imports it gets a client *reference*, and
+`className={inputClass}` renders the text of a thrown error into the HTML. Only
+components cross that boundary; shared constants live in a plain module.
+
+```ts
+// WRONG -- ActionForm.tsx starts with "use client"
+export const inputClass = "h-8 rounded-md …";   // imported by a server component
+
+// RIGHT -- components/settings/styles.ts, no directive
+export const inputClass = "h-8 rounded-md …";
+```
 
 The client renders state the server computed. `GET …/impact` exists precisely so
 no component reasons about which stages an edit invalidates.

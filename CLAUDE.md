@@ -55,7 +55,8 @@ apps/
                             a study's frame and its unit-project binding, ADR 0015),
                             panel (the session + gate in front of /app, /classic and the unit, ADR 0012),
                             research (a study's Design Revisions, readiness, runs, their steps and
-                            artifacts (ADR 0016), and native agent-jobs beneath each Study
+                            artifacts (ADR 0016), and native agent-jobs beneath each Study,
+                            settings (the read-only settings document: every control and how it is set)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data.
@@ -66,6 +67,8 @@ apps/
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs), the client workspace and its areas, ResearchStudy
                             (a study's frame from its AIA binding), useResource (404 = nothing here),
+                            settings/ControlPanel (every control from GET /settings, how each is set;
+                            live forms over the admin routes with the signed-in token, lib/api.ts `admin`),
                             FrontDoor (the branded frame of /login, /logout, /auth/callback)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
     src/components/rehome/  Primitives (token utilities only), the research stages and the classic
@@ -630,12 +633,22 @@ are fast and stay in the foreground.
 
 ### Known flakes
 
-None recorded. Add an entry here the moment one is confirmed, in this shape:
+Add an entry here the moment one is confirmed, in this shape:
 
 ```
 - `packages/aia_core/tests/test_x.py::test_y` — symptom: …
   Confirmation: passes when run alone. Cause: … Fix or waiver: …
 ```
+
+- `apps/api/tests/test_research_api.py::test_research_artifacts_are_read_only_through_the_run_that_produced_them`
+  — symptom: the run ends `FAILED` instead of `COMPLETED`; its `sociomap` step's
+  attempt records `IntegrityError` ("raised as a result of Query-invoked autoflush")
+  inserting a `(child, parent)` pair into `project_artifact_dependencies`, failure
+  class `UNKNOWN`. Confirmation: fails 3 of 20 runs alone on `develop` @ `46b7337`,
+  1 of 20 on `claude/trusting-turing-2b9oyl`; the other 19 pass. Cause: *hypothesis*,
+  not reproduced deterministically — a duplicate dependency edge when an input
+  artifact is reused by content hash. Fix or waiver: none yet; it is a defect in the
+  artifact repository, not a test to retry.
 
 Mocks live at interface boundaries — external services are mocked through their
 protocol, always. Real HTTP only in explicitly manual or integration runs; if a
