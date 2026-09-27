@@ -155,8 +155,9 @@ private EU S3 storage, native client/study interface, scoped Research design/run
 APIs, five Research executors, governed model gateway, pinned Bedrock adapter
 and per-call usage/reservation ledger. The approved fictional respondent runtime
 has completed a measured live study; details are in the dated activation record.
-Research editing still bridges to the unit store (OI-58), and `/app` retains its
-temporary owner/admin gate (OI-59).
+In code, research editing is AIA's own (OI-58, ADR 0018 increment 1) and `/app` has
+AIA's own gate, open to any active member (OI-59, increment 3); the develop host
+runs them from the first deploy after they merge.
 
 **Remaining:** durable design/analysis/report agents, checkpointed fieldwork,
 full ledger lineage, OpenTelemetry and wider Class A/B or panel-data approval.

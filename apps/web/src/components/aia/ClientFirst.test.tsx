@@ -241,11 +241,12 @@ describe("a research, re-homed under its client", () => {
 });
 
 describe("Nastavení", () => {
-  it("says the owner/admin restriction is temporary", async () => {
+  it("says who may open AIA and that grants decide what they see (ADR 0018)", async () => {
     path = "/app/settings";
     api();
     render(<SettingsPage />);
-    expect(await screen.findByText(/Novou aplikaci teď mohou otevřít jen vlastníci a správci/)).toBeTruthy();
+    expect(await screen.findByText(/AIA otevře každý aktivní člen organizace/)).toBeTruthy();
+    expect(screen.queryByText(/jen vlastníci a správci/)).toBeNull();
     expect(await screen.findByText("Role v organizaci: vlastník")).toBeTruthy();
   });
 });

@@ -190,7 +190,7 @@ export const cs = {
       signedInAs: "Přihlášen jako {email}",
       orgRole: "Role v organizaci: {role}",
       accessNote:
-        "Novou aplikaci teď mohou otevřít jen vlastníci a správci organizace. Výzkumníci s přístupem ke klientovi ji dostanou, až budou rozpracované studie uložené v AIA.",
+        "AIA otevře každý aktivní člen organizace. Které klienty a studie v ní uvidí, rozhoduje přístup, který mu ke klientovi nebo ke studii udělí správce.",
       aiManaged: "Připojení spravuje AIA. Přihlášení k poskytovateli ani API klíč se zde nezadávají.",
       aiEnabled: "AI odpovědi respondentů jsou povolené pouze pro schválené fiktivní studie pro interní použití.",
       aiDisabled: "AI odpovědi respondentů jsou vypnuté.",
