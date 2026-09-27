@@ -33,14 +33,45 @@ licence, route, tool permissions or budgets.
 - [ ] 5. Evidence-backed interpretation and reports through existing analysis
       admission gates; suppressed/non-evidence material never becomes client claims.
       Fieldwork/aggregation/Sociomap stay integrated with their existing provenance.
+      *Now Job 3 (analysis) and Job 4 (report composition); graph and Results
+      integration: Job 6 (§ Integration).*
 - [ ] 6. Deep Research integration with PR #54: scoped knowledge retrieval,
       owned search/fetch tools, frozen sources and grounding/quarantine. An unapproved
       search route remains unavailable; do not call model recollection web research.
+      *Now Job 5; its graph and registration: Job 6.*
 - [ ] 7. Meaningful tests: isolation, duplicate submissions, frozen memory, stale
       proposals, unknown fields, unsupported claims, cancel/reload, real worker with
       a recorded adapter, budgets and uncertain delivery. Layer/types/lint and UI flow.
+      *Each job tests its own stage. The combined recorded scenario is Job 6's; the
+      phase-out owner runs it in the legacy-offline environment.*
 - [ ] 8. Documentation, owned PR, deployment and authorized fictional acceptance.
       PR creation is not deployment; no new live calls without an authorized budget.
+      *Deployment separation and the final legacy-offline acceptance: the phase-out
+      owner. The activation and live-acceptance runbook: Job 6.*
+
+## Integration — Job 6
+
+From 2026-09-27 the remaining work is split across the phase-out owner and Jobs 1, 3, 4, 5
+and 6 (the user's scope addendum). The contract they share is
+[research-journey.md](../../docs/architecture/research-journey.md): the stage map, who owns
+each shared file, what each job hands the next, the INT-1 scenario, and acceptance at four
+levels. Job 6 integrates the research graph, executors, endpoints and results, and builds the
+reusable recorded scenario. It consumes the phase-out owner's native workspace and does not
+build one.
+
+- [x] I0. **Phase A: the contract.** `research-journey.md`; stale claims corrected; the
+      `research/agent-jobs` routes asserted by the API contract check
+      (`.github/workflows/ci.yml` `api-contract`).
+- [ ] I1. Register nodes, executors and capability bindings for Jobs 3–5 as their PRs land,
+      and add the `report` extra to the worker image with the report executor.
+- [ ] I2. The recorded composition and the reusable scenario (contract §3.2, §3.4), and the
+      layer rule that keeps `aia_worker.testing` out of deployments.
+- [ ] I3. Results, Report and Review destinations and actions: native report retrieval, and
+      the review and delivery decisions over `ArtifactRepository.approve` / `freeze`.
+- [ ] I4. OI-64: fieldwork retries must not re-ask respondents who already answered.
+- [ ] I5. The Run stage submits the phase-out owner's native draft, once it exists.
+- [ ] I6. The activation and live-acceptance runbook for the combined candidate (not
+      executed without a new, explicit budget).
 
 ## Methodology that remains code
 
