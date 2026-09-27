@@ -4,8 +4,8 @@
     python tools/ui_workbench/workbench.py status    # what is running, and answering
     python tools/ui_workbench/workbench.py down      # stop everything
     python tools/ui_workbench/workbench.py up --fresh  # also reset the unit's state
-    python tools/ui_workbench/workbench.py up --no-unit  # AIA alone: the unit not started,
-                                                     # its paths answer 502 (ADR 0018)
+    python tools/ui_workbench/workbench.py up --no-unit  # AIA alone: the unit not started
+                                                     # (ADR 0018)
 
 Five processes, all under tmp/ui-workbench/ (git-ignored):
 
@@ -17,12 +17,13 @@ Five processes, all under tmp/ui-workbench/ (git-ignored):
              the workbench composition (aia_executors.workbench: the fictional
              fieldwork source, ADR 0016), so a research run finishes here
     web      `next dev` for apps/web                            127.0.0.1:13000
-    facade   routes like the develop Caddyfile, minus the gate  127.0.0.1:8780
+    facade   routes like the develop Caddyfile, minus the gates 127.0.0.1:8780
 
 http://127.0.0.1:8780/workbench/sign-in signs in as the seeded operator and
 opens the client directory, as develop does after sign-in (ADR 0015).
 http://127.0.0.1:8767/ is the unit, byte for byte: the reference to compare a
-screen with, never part of AIA (ADR 0018). AIA reaches nothing of it.
+screen with, never part of AIA (ADR 0018). The facade routes nothing to it, as
+the develop Caddyfile does not: its old paths are the web client's 404.
 
 The unit's own Python dependencies go into tmp/ui-workbench/venv (uv when
 present, else venv + pip), keyed by the requirements file's hash. The API runs
@@ -56,9 +57,6 @@ LOGS = HOME / "logs"
 STATE = HOME / "state.json"
 
 UNIT_PORT, API_PORT, WEB_PORT, FACADE_PORT = 8767, 8766, 13000, 8780
-# With --no-unit the unit's upstream is a port nothing listens on: a request that
-# still reached for the unit would fail loudly (502), never quietly succeed.
-CLOSED = "127.0.0.1:9"
 NO_UNIT = HOME / "no-unit"
 NAMES = ("unit", "api", "worker", "web", "facade")
 DB = HOME / "aia.sqlite"
@@ -192,7 +190,6 @@ def up(fresh: bool, no_unit: bool = False) -> int:
         ensure_venv()
         ensure_unit_copy(fresh)
     ensure_web_modules()
-    unit_at = CLOSED if no_unit else f"127.0.0.1:{UNIT_PORT}"
 
     if "unit" not in state and not no_unit:
         state["unit"] = _spawn(
@@ -238,8 +235,6 @@ def up(fresh: bool, no_unit: bool = False) -> int:
                 f"127.0.0.1:{FACADE_PORT}",
                 "--web",
                 f"127.0.0.1:{WEB_PORT}",
-                "--unit",
-                unit_at,
                 "--api",
                 f"127.0.0.1:{API_PORT}",
             ],
@@ -270,7 +265,7 @@ def up(fresh: bool, no_unit: bool = False) -> int:
     _wait(f"http://127.0.0.1:{FACADE_PORT}/app/clients", "the facade and web client", 240)
     print(f"workbench: AIA      http://127.0.0.1:{FACADE_PORT}/workbench/sign-in")
     if no_unit:
-        print(f"workbench: no unit  its paths answer 502 (upstream {CLOSED})")
+        print("workbench: no unit  not started; its old paths are AIA's 404, as on develop")
     else:
         print(f"workbench: unit     http://127.0.0.1:{UNIT_PORT}/ (reference only)")
     print(f"workbench: logs     {LOGS.relative_to(REPO)}/")
@@ -330,7 +325,7 @@ def main(argv: list[str]) -> int:
     p_up.add_argument(
         "--no-unit",
         action="store_true",
-        help="AIA alone: do not start the 18.6.6 unit; its paths answer 502 (ADR 0018)",
+        help="AIA alone: do not start the 18.6.6 unit (ADR 0018)",
     )
     sub.add_parser("down")
     sub.add_parser("status")

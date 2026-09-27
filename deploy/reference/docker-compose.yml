@@ -1,0 +1,62 @@
+# The NPC Panel 18.6.6 reference unit, apart from the product (ADR 0018 decision 5).
+#
+#   legacy-panel  the vendored unit (legacy/npc-panel-18.6.6, ADR 0011): the parity
+#                 oracle and the behavioural reference. Never part of AIA; nothing
+#                 in the product deployment names, starts, waits on or routes to it.
+#   gate          Caddy with HTTP basic authentication in front of it, on the host's
+#                 loopback only. The unit has no authentication of its own
+#                 (AIA-reference R14), so it is never published without the gate.
+#
+# Optional and started by hand (bin/up.sh, README.md). The product stack in
+# deploy/develop keeps running whether this one is up, down or absent; the two
+# share no network, no service name and no Compose project. This one reads the
+# host's .env for the registry and the gate's credentials, and nothing of the
+# product reads anything of this one.
+#
+# The unit's working volume is the one the product stack used before ADR 0018,
+# declared external: Compose never creates it, `down` never removes it, and a
+# missing one stops `up` instead of starting an empty unit in its place.
+
+name: aia-reference
+
+services:
+  legacy-panel:
+    image: ${AIA_IMAGE_REGISTRY:?}/aia-legacy-panel:${AIA_REFERENCE_TAG:?the git SHA of an aia-legacy-panel image}
+    # Started when a comparison needs it, and not again by itself after a reboot.
+    restart: "no"
+    environment:
+      NPC_VERIFY: strict
+      NPC_START_WORKER: "1"
+      # No provider credential: the unit runs every deterministic route without
+      # one. A live-AI run on the oracle is a separate, recorded decision.
+    expose: ["8765"]
+    volumes:
+      - legacy_state:/app
+      - ${AIA_REFERENCE_DATA_DIR:-/opt/aia/develop/legacy-data}:/data:ro
+    networks: [reference]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+  gate:
+    image: caddy:2-alpine
+    restart: "no"
+    environment:
+      AIA_LEGACY_BASIC_USER: ${AIA_LEGACY_BASIC_USER:?the oracle's basic-auth user (SSM aia_legacy_basic_user)}
+      AIA_LEGACY_BASIC_HASH: ${AIA_LEGACY_BASIC_HASH:?the oracle's bcrypt hash (SSM aia_legacy_basic_hash)}
+    # The host's loopback only: reached from elsewhere through an SSM port
+    # forward (README.md), never from the internet.
+    ports:
+      - "127.0.0.1:${AIA_REFERENCE_PORT:-8765}:8765"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [reference]
+    security_opt: ["no-new-privileges:true"]
+    depends_on: [legacy-panel]
+
+networks:
+  reference:
+
+volumes:
+  legacy_state:
+    external: true
+    name: ${AIA_REFERENCE_STATE_VOLUME:-aia-develop_legacy_state}

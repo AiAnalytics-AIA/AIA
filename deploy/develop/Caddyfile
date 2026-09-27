@@ -1,19 +1,16 @@
-# Two hostnames. On both Caddy terminates TLS with an ACME certificate it renews
-# itself and redirects HTTP to HTTPS (its default when a site is named with a
-# hostname).
+# One hostname: the product, AIA (ADR 0015). Caddy terminates TLS with an ACME
+# certificate it renews itself and redirects HTTP to HTTPS (its default when a
+# site is named with a hostname).
 #
-# The product hostname is AIA (ADR 0015): `/` answers 302 /app/clients, the
-# React client-first application, behind AIA's own gate (ADR 0018). /api/v1/* goes to FastAPI,
-# AIA's own pages to Next.js. The NPC Panel 18.6.6 interface is no longer served
-# here (ADR 0018 decision 4): /classic is the web client's page saying so. The
-# unit is still reached on the paths it serves (@unit), each through the panel's
-# gate, until the deployment stops running it (ADR 0018 decision 5); nothing in
-# AIA's pages calls them. There is no catch-all to the unit, so an unknown path
-# is the web client's 404 and normal navigation never falls into the old
-# product. One origin, so no CORS configuration exists.
-#
-# The legacy hostname fronts the same unit behind HTTP basic authentication, as
-# the parity oracle the harness reaches (ADR 0011), unchanged and unskinned.
+# `/` answers 302 /app/clients, the React client-first application, behind AIA's
+# own gate (ADR 0018). /api/v1/* goes to FastAPI, everything else to Next.js,
+# whose own 404 answers a path it does not know. NPC Panel 18.6.6 is not served
+# here in any form (ADR 0018 decisions 4 and 5): /classic is the web client's page
+# saying so, and the unit's old paths (/api/bootstrap, /files/*, /health, ...)
+# are the web client's 404 like any other unknown path. The unit, when a
+# comparison needs it, runs from deploy/reference/ on the host's loopback behind
+# its own gate; nothing here routes to it. One origin, so no CORS configuration
+# exists.
 
 {
 	email {$AIA_ACME_EMAIL}
@@ -38,8 +35,8 @@
 	}
 
 	# The AIA API. Uvicorn runs with --proxy-headers and trusts this network, so
-	# the client address and scheme it logs are the browser's. Only /api/v1: the
-	# unit's own /api/* paths fall through to the last block.
+	# the client address and scheme it logs are the browser's. Only /api/v1: any
+	# other /api/* path falls through to the web client's 404.
 	handle /api/v1/* {
 		reverse_proxy api:8000 {
 			header_up X-Request-Start {time.now.unix_ms}
@@ -49,7 +46,6 @@
 	# AIA's own pages: the sign-in the gate sends people to, the live studies,
 	# the build identity and Next.js's assets; AIA's self-hosted fonts and
 	# identity under /skin/ (no data, public like /_next/*); and AIA's icon set.
-	# No unit path collides with these.
 	@web path /login /logout /auth/* /config /version /studies /studies/* /_next/* /skin/* /favicon.ico /icon.svg /apple-icon.png
 	handle @web {
 		reverse_proxy web:3000
@@ -67,7 +63,7 @@
 	# session; a navigation without one goes to /login. Nothing about the 18.6.6
 	# unit decides it. The pages hold no data: they read /api/v1 with the person's
 	# own token, where ScopeResolver authorizes every client and study again, per
-	# call. No unit path begins with /app (the route ledger).
+	# call.
 	@app path /app /app/*
 	handle @app {
 		route {
@@ -80,84 +76,13 @@
 		}
 	}
 
-	# Legacy connection controls are retired on the product hostname. Keep the
-	# independent oracle unchanged; a stale client cannot save a direct API key
-	# or install/login to Claude Code through the broad /api/* unit matcher.
-	@retired_ai path /api/providers/claude-code/* /api/settings/api_keys /api/settings/anthropic_check /api/settings/ai_check /api/settings/ai_diagnose
-	handle @retired_ai {
-		route {
-			forward_auth api:8000 {
-				uri /api/v1/panel/gate
-			}
-			header Content-Type application/json
-			respond `{ "code": "legacy_ai_connection_retired", "message": "AI connections are managed by AIA through Amazon Bedrock." }` 410
-		}
-	}
-
-	# The 18.6.6 unit, only on the paths it serves (docs/migration/legacy-route-ledger.json):
-	# its API (the React stages still read the working content through it,
-	# OI-58), its files and artifacts, its maps' arena and its health. Behind AIA
-	# sign-in: forward_auth asks the gate first with the request's headers
-	# (cookie, Origin, Accept) and the original method and URI; a 2xx lets the
-	# request through unchanged, and any other answer (302 to /login, 401, 403)
-	# is returned to the browser as is. The gate answers 404 when
-	# AIA_LEGACY_PANEL_ENABLED is off, so this block then forwards nothing. The
-	# unit's relay rewrites Host/Origin/Referer for its own origin guard.
-	@unit path /api/* /files/* /artifacts/* /project-attachments/* /brand/* /fullsim-arena /health /status
-	handle @unit {
-		forward_auth api:8000 {
-			uri /api/v1/panel/gate
-		}
-		reverse_proxy legacy-panel:8765 {
-			# The session cookie holds the user's id token and the unit reads no
-			# cookie of its own, so none is passed on.
-			header_up -Cookie
-		}
-	}
-
 	# Everything else is AIA's: the web client answers, with its own 404 for a
-	# path it does not know. Nothing falls through to the classic product.
+	# path it does not know, the 18.6.6 unit's old paths among them.
 	handle {
 		reverse_proxy web:3000 {
 			header_up -Cookie
 		}
 	}
-
-	log {
-		output stdout
-		format json
-	}
-}
-
-# Unconfigured, this block must not take the product hostname down with it: an
-# empty site address makes the whole file unparseable, which is how the first
-# deploy to reach the host with it (run 10, 2026-09-23) left Caddy stopped.
-# docker-compose.yml therefore defaults all three values when they are unset or
-# empty (Caddy's own `{$VAR:default}` does not apply to an empty value): a
-# *.localhost name (internal CA, never ACME) and a hash of a random value that
-# was discarded when it was generated, so the gate stays shut.
-{$AIA_LEGACY_HOSTNAME} {
-	encode zstd gzip
-
-	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
-		Referrer-Policy "strict-origin-when-cross-origin"
-		-Server
-	}
-
-	# The reference API has no authentication (AIA-reference
-	# high-risk-behaviors.md R14). This gate is not optional; forward-auth to
-	# Cognito may replace it later, a bare reverse_proxy may not. The hash is
-	# produced by `caddy hash-password` and stored in SSM like every secret.
-	basic_auth {
-		{$AIA_LEGACY_BASIC_USER} {$AIA_LEGACY_BASIC_HASH}
-	}
-
-	# The unit's own relay rewrites Host/Origin/Referer for the reference's
-	# origin guard, so nothing is rewritten here.
-	reverse_proxy legacy-panel:8765
 
 	log {
 		output stdout

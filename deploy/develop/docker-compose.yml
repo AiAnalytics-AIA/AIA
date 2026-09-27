@@ -1,15 +1,17 @@
-# The develop environment: one host, six services, ADR 0009 and ADR 0011.
+# The develop environment: one host, five services, ADR 0009.
 #
-#   caddy         public HTTPS entrypoint (80/443), proxies to web, api and legacy-panel
-#                 (the product hostname is AIA, ADR 0015; the 18.6.6 unit behind the
-#                 panel's gate on its own paths only, which no AIA page calls, ADR 0018)
+#   caddy         public HTTPS entrypoint (80/443), proxies to web and api: the
+#                 product hostname is AIA (ADR 0015) and nothing else
 #   web           Next.js standalone, internal only
 #   api           FastAPI under uvicorn, internal only
 #   worker        aia-worker, no inbound port
 #   postgres      PostgreSQL 16 on a named volume, internal only
-#   legacy-panel  the vendored NPC Panel 18.6.6 unit: its own hostname behind basic auth
-#                 as the oracle, and its paths on the product hostname until ADR 0018
-#                 decision 5 takes it out of this file
+#
+# NPC Panel 18.6.6 is not part of this stack (ADR 0018 decision 5): no image,
+# service, volume, hostname, credential, data sync or health check of it. The
+# vendored unit runs, when a comparison needs it, from deploy/reference/ beside
+# this stack, on the working volume this file used to mount, which neither
+# file ever removes.
 #
 # Every image is pulled by immutable git SHA (AIA_IMAGE_TAG), never by a floating
 # tag, so the running deployment is always traceable to one commit. Migrations
@@ -48,13 +50,6 @@ services:
     environment:
       AIA_PUBLIC_HOSTNAME: ${AIA_PUBLIC_HOSTNAME}
       AIA_ACME_EMAIL: ${AIA_ACME_EMAIL}
-      # The oracle hostname is optional configuration; unset or empty, these
-      # defaults keep the Caddyfile loadable and its gate shut (see the
-      # Caddyfile's legacy block). The hash is of a random value discarded when
-      # it was generated; `$$` is Compose's escape for a literal `$`.
-      AIA_LEGACY_HOSTNAME: ${AIA_LEGACY_HOSTNAME:-legacy-unconfigured.localhost}
-      AIA_LEGACY_BASIC_USER: ${AIA_LEGACY_BASIC_USER:-unconfigured}
-      AIA_LEGACY_BASIC_HASH: ${AIA_LEGACY_BASIC_HASH:-$$2a$$14$$sy9kBdx8X2CPlJ78PHv3rea2RaYWuDCXnWR/wUpzucd5aARTiUnKa}
     # The Caddyfile's hash, so a changed file changes this service's
     # configuration and `compose up` recreates Caddy; Caddy reads the file only
     # at start (bin/lib.sh, OI-45). Unset outside the deploy scripts.
@@ -69,9 +64,6 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
-      # Not legacy-panel: the product hostname serves AIA's own pages and the API
-      # whatever state the 18.6.6 unit is in. An unhealthy unit answers 502 on its
-      # own paths; it must never keep Caddy from starting (run 10, 2026-09-23).
     networks: [edge, internal]
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/metrics"]
@@ -100,8 +92,6 @@ services:
       AIA_COGNITO_DOMAIN: ${AIA_COGNITO_DOMAIN}
       AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
       AIA_PUBLIC_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
-      # Nothing of 18.6.6 (ADR 0018): the web client neither fetches the unit's
-      # document nor skins it, and /app has no switch. No depends_on legacy-panel.
     expose: ["3000"]
     networks: [internal]
     read_only: true
@@ -121,11 +111,6 @@ services:
       AIA_COGNITO_TOKEN_USE: id
       # Same-origin through Caddy: an empty list means no CORS middleware at all.
       AIA_CORS_ORIGINS: "[]"
-      # The gate Caddy asks before forwarding to the 18.6.6 unit (ADR 0012).
-      # Develop only: the API refuses it when AIA_ENV=production. The origin is
-      # the one a state-changing request to the unit must name.
-      AIA_LEGACY_PANEL_ENABLED: "true"
-      AIA_LEGACY_PANEL_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
     expose: ["8000"]
     depends_on:
       postgres:
@@ -184,29 +169,6 @@ services:
     stop_grace_period: 60s
     logging: *logging
 
-  legacy-panel:
-    # The extracted 18.6.6 product (legacy/npc-panel-18.6.6, ADR 0011): the
-    # rebuild's behavioural baseline and parity oracle, unchanged. Its code is
-    # in the image; the licence-bound data is synced from the ops bucket to
-    # /opt/aia/develop/legacy-data by bin/deploy.sh and hydrated at start with
-    # hash verification. The working tree is written at run time (SQLite state,
-    # logs, runs), so this service is not read_only.
-    image: ${AIA_IMAGE_REGISTRY}/aia-legacy-panel:${AIA_IMAGE_TAG}
-    restart: unless-stopped
-    environment:
-      NPC_VERIFY: strict
-      NPC_START_WORKER: "1"
-      # No provider credential: the baseline runs every deterministic route
-      # without one. A live-AI run on the oracle is a separate, recorded decision.
-    expose: ["8765"]
-    volumes:
-      - legacy_state:/app
-      - /opt/aia/develop/legacy-data:/data:ro
-    networks: [internal]
-    security_opt: ["no-new-privileges:true"]
-    stop_grace_period: 30s
-    logging: *logging
-
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -239,4 +201,6 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
-  legacy_state:
+  # Not legacy_state: the 18.6.6 unit's working volume (aia-develop_legacy_state)
+  # is deploy/reference's, declared external there. Undeclared here, nothing this
+  # file runs -- `up --remove-orphans` included -- can remove it.
