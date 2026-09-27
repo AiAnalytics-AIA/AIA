@@ -471,10 +471,13 @@ client's `/version` reports the same, and every artifact records it as its
 Caddy answers `/` itself with `302 /app/clients`. `/api/v1/*` goes to the API;
 AIA's own pages (`/login`, `/logout`, `/auth/*`, `/config`, `/version`,
 `/studies*`, `/_next/*`, the skin's `/skin/*` and the icon set) to the web
-client. `/app` and `/app/*` -- Clients → client workspace → study → stages
-(`AIA_INTERFACE_REHOME_ENABLED`, off by default) -- go through `forward_auth` to
-`GET /api/v1/panel/gate`, then the web client. The 18.6.6 interface is a
-labelled hand-off at `/classic`: the same gate, then the web client's
+client. `/app` and `/app/*` -- Clients → client workspace → study → stages -- go
+through `forward_auth` to AIA's own gate, `GET /api/v1/session/gate` (ADR 0018): any
+active member of the organization with an AIA session (`aia_session`, opened by
+`POST /api/v1/session` and admitted by `ScopeResolver.authorize_session`), GET and
+HEAD only, then the web client. No legacy setting touches it; what a page shows is
+authorized per call by the API. The 18.6.6 interface is a
+labelled hand-off at `/classic`: the panel's gate, then the web client's
 `/interface-document`, which fetches the unit's document and adds the AIA skin
 and the hand-off script (with its way back) only when it is the pinned
 `ui_app.html` ([ADR 0013](docs/architecture/adr/0013-interface-skin-at-the-facade.md),
@@ -486,14 +489,13 @@ no longer use them: their content, attachments, questionnaire import, catalogues
 AI steps are AIA's (ADR 0018); only the classic projects screens still call the unit,
 through one ledger-checked client (`apps/web/src/unit/`), until increment 4 removes
 them. Every other path is the web client's, so nothing falls
-through to the classic product. The gate is the whole of the unit's access control:
-it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as every
-API call, admits only what `ScopeResolver.authorize_legacy_panel` admits
+through to the classic product. The panel's gate is the whole of the unit's access
+control: it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as
+every API call, admits only what `ScopeResolver.authorize_legacy_panel` admits
 (organization owners and admins), and refuses a state-changing request whose
-`Origin` is not the product origin. Its owner/admin rule is a temporary
-restriction while the stages read the single-tenant unit, not the target model
-(OI-59). Rebuilding a feature moves its paths from the unit to the API; it never
-removes the gate from what remains. `tools/caddy_routes.py` holds the adapted
+`Origin` is not the product origin. That owner/admin rule is for what remains of
+the unit only, and goes with it (OI-59). Rebuilding a feature moves its paths from
+the unit to the API; it never removes the gate from what remains. `tools/caddy_routes.py` holds the adapted
 Caddyfile to this paragraph in CI; `tools/develop_routing_proof.py` runs it.
 `AIA_LEGACY_PANEL_ENABLED` is off by default and refused in production.
 

@@ -72,7 +72,10 @@ The data owner chose 3.
    tests.
 
 6. **Behind a switch.** `AIA_INTERFACE_REHOME_ENABLED` (off by default, on in the
-   develop compose) decides whether `/app` renders or answers 404.
+   develop compose) decides whether `/app` renders or answers 404. *Retired for `/app`
+   by [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 3 (2026-09-27): AIA is the
+   product, so nothing stands in for it; `/app` answers whenever AIA's gate admits the
+   person.*
 
 7. **A hand-off, not a patch, joins the two interfaces.** The classic interface
    has no deep links: it opens a project from its own state. So a rebuilt screen

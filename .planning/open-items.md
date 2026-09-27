@@ -1965,6 +1965,24 @@ then `/app` moves to a gate that admits any provisioned member, and the unit's o
 owner/admin gate until the unit is out of the stage path.
 
 **Status.** Open; **temporary restriction**, accepted by the data owner for this PR (2026-09-24).
+Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-6.md) decision 3:
+
+- **Landed in code (`feature/aia-session-gate`, 2026-09-27):** `/app` is behind AIA's own gate,
+  `GET /api/v1/session/gate`, which admits any active member of the organization with an AIA
+  session (`POST /api/v1/session`, cookie `aia_session`) and nothing else. Admission is
+  `ScopeResolver.authorize_session`, recorded in the access audit (`AIA_SESSION`). No setting
+  turns it off and no legacy setting touches it, so the production blocker above is gone for
+  `/app`. The pages' data is authorized per call, as before. The gate refuses every method but
+  GET and HEAD, because the pages take no writes. The web client's `/app` switch
+  (`AIA_INTERFACE_REHOME_ENABLED`) no longer decides whether `/app` is served. Tests:
+  `apps/api/tests/test_session_api.py` › *every active member gets an httponly lax session cookie*,
+  *a members session passes the gate* (a researcher, a viewer, a member with no client grant),
+  *the session and its gate do not depend on the legacy panel*;
+  `packages/aia_core/tests/test_caddy_routes.py` › *app behind the 18 6 6 panels gate is refused*;
+  `apps/web/src/app/login/page.test.tsx`.
+- **Still open:** `/classic` and the unit's own paths keep the owner/admin panel gate until the
+  unit leaves the product (plan chunks 9–11). Then `LEGACY_PANEL_ROLES`, the panel gate and
+  this item go.
 
 ## OI-60 · Finding, fixed · `GET /api/v1/access-audit` always failed
 

@@ -1147,6 +1147,23 @@ URL.createObjectURL = () => "blob:1";
 onTestFinished(() => { URL.createObjectURL = real; });
 ```
 
+**jsdom does not navigate.** `window.location.replace` and `assign` only print *Not
+implemented: navigation to another Document* to jsdom's console, so a page that leaves by a full
+navigation (`/login` sending the person on, `logout()`) looks as if it did nothing.
+`window.location` cannot be assigned, but it can be stubbed, and
+`vi.unstubAllGlobals` puts it back (`src/app/login/page.test.tsx`,
+`src/lib/session.test.ts`).
+
+```ts
+// WRONG: jsdom logs "Not implemented: navigation to another Document"; nothing moved
+render(<LoginPage />); expect(window.location.pathname).toBe("/app/clients");
+// RIGHT
+const replace = vi.fn();
+vi.stubGlobal("location", { ...window.location, replace });
+render(<LoginPage />);
+await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients"));
+```
+
 **Don't list the router in a load effect's dependencies.** A test's
 `vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))` returns a
 new object on every render, so an effect keyed on `router` re-runs on every

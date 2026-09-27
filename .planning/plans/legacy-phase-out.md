@@ -189,8 +189,15 @@ PR 2 — migration (`feature/legacy-workspace-migration`)
   operator's step 2 below.
 
 PR 3 — AIA's own session gate (`feature/aia-session-gate`)
-- [ ] 8. `POST/DELETE /api/v1/session`, `GET /api/v1/session/gate`; login;
-  `/app` Caddy route; OI-59
+- [x] 8. `POST/DELETE /api/v1/session`, `GET /api/v1/session/gate`
+  (`routers/session.py`; admission `ScopeResolver.authorize_session`: any active
+  member, audited `AIA_SESSION`; GET and HEAD only); `/login` opens AIA's session and
+  the panel's best effort (`lib/session.ts`); sign-out clears both; Caddy's `@app`
+  behind `/api/v1/session/gate`; the `/app` switch retired (ADR 0014 decision 6);
+  `tools/caddy_routes.py` refuses `/app` behind the panel's gate; smoke checks that a
+  panel cookie does not open AIA and a page takes no writes; the routing proof and
+  journey open both sessions; OI-59 — tests: `test_session_api.py`,
+  `test_caddy_routes.py`, `login/page.test.tsx`, `lib/session.test.ts`
 
 PR 4 — the interface without 18.6.6 (`feature/interface-without-classic`)
 - [ ] 9. Remove `/classic`, `interface-document`, hand-offs, the skin, the classic
