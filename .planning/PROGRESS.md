@@ -3,8 +3,9 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-27 · **Branch:** `claude/modest-hypatia-9gvdpx` (registry credentials on the develop host) ·
-**Trunk:** `main` (release) · **Integration:** `develop` (deployed, ADR 0009)
+**Updated:** 2026-09-27 · **Code of record:** `develop` @ `e0edf2a` · **Release:** `main` @ `9cf1f58`,
+208 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
+branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
 is the **narrative** — it carries the reasoning, the verification tables and the
@@ -16,20 +17,119 @@ entry is a **hypothesis**, not a finding.
 
 ---
 
-## In progress — develop Research repair
+## Where the code is — consolidation, 2026-09-27
 
-- Preserve mutable legacy state seeds and back up live working SQLite databases.
-  First installation is atomic (PR #57 P2 review). The overwrite defect is reproduced by `test_legacy_state_hydration.py`; WAL
-  backup coverage is in `test_legacy_state_backup.py`; export is off by default
-  until separately approved. Recovery of affected
-  working copies remains an operational task; do not infer it from the code fix.
-- Remove old Claude Code/direct API connection controls and accurately describe
-  the unmigrated design assistants. Plan: [bedrock-settings-cleanup.md](plans/bedrock-settings-cleanup.md).
+**`develop` holds the newest code, and nothing merged anywhere else is missing from
+it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully contained in it
+(`git rev-list --count origin/develop..<branch>` = 0). The 14 that are not:
+
+- **In flight:** `feature/research-agents` (#63), the two fixes (#64, #65; both merged
+  since), and
+  `claude/trusting-turing-2b9oyl` (a settings page, no PR yet). That branch was started
+  from `main`, so it carries `main`'s `7f8cb2a` and had to merge `develop` in: the
+  cost of `main` being GitHub's default branch (human action 1, below).
+- **`main`**: one commit `develop` lacks, `7f8cb2a`, an older copy of
+  `deploy-develop.yml` that `develop` has superseded. It exists only so the
+  workflow could be dispatched (OI-37). Release PR #60 (`develop` → `main`) was
+  closed unmerged on 2026-09-27.
+- **`fix/register-develop-workflow`**: the same `7f8cb2a`.
+- **`claude/sharp-newton-csu6fz`** (`b445ac6`, ADR 0008): superseded, because
+  `docs/architecture/adr/0008-eu-data-residency.md` is on `develop`.
+- **The web-component stack**: `feature/web-vocabulary`, `claude/determined-clarke-q6002c`,
+  `feature/design-tokens`, `feature/enum-binding`, `feature/web-primitives` and
+  `feature/web-first-slice`.
+  - Its PRs (#16, #17, #18, #24) were merged into intermediate branches **after**
+    their base had already merged (#15 into `main`), so their content never reached `main`
+    or `develop`.
+  - Missing on `develop`: `tools/enum_parity_check.py` (the Python ⇄ TypeScript
+    enum tripwire), `design/status.ts` / `enums.ts` / `evidence.ts` / `lifecycle.ts`,
+    the typed API client `lib/api/`, and `tools/dev_seed.py`.
+  - This is deliberate for the screens: [design-system.md](plans/design-system.md)
+    chunks 2–3 "return when areas are re-homed".
+  - `feature/design-tokens` and `feature/enum-binding` are the tips holding
+    all of it. **Do not delete them without an archive tag.**
+- `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
+
+**Deployed: `ff463a3`, not `develop`.**
+- *Deploy develop* run 26 (PR #59 @ `043b0dd`) failed on the host with
+  `bin/lib.sh: line 62: HOME: unbound variable`, and run 27 failed too. PR #64 fixed it
+  (merged 10:29, OI-67). The first deploy carrying the fix follows the next green CI on
+  `develop`.
+- Merged today after the outage: #61 (10:08), #54 (10:15), #62 (10:16), #64 (10:29),
+  #65 (10:30). CI on `develop` @ `46b7337` crashed with a segmentation fault in the
+  OI-69 test (run 36312008574). #65 is its fix.
+
+**CI outage, 09:37–10:05 UTC, resolved.** Jobs failed in about 3 s with no runner
+and no log: GitHub reported "recent account payments have failed or your spending
+limit needs to be increased" (PR #63 body). The organization moved to GitHub Team,
+and runners were assigned again from 10:05 UTC (PR #61's re-run, run 36309896393
+attempt 3, green).
+
+### Open pull requests, and the order to merge them
+
+| # | Branch | What | State | Order |
+|---|---|---|---|---|
+| #64 | `fix/deploy-without-home` | Deploy fails when SSM gives no `HOME` (OI-67) | **Merged** 10:29 | 1 |
+| #65 | `fix/api-tests-file-backed-sqlite` | Flaky API tests on shared in-memory SQLite (OI-69) | **Merged** 10:30 | 2 |
+| #66 | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
+| #63 | `feature/research-agents` | Native Research design agents on Bedrock | Draft, "do not merge as completion"; `develop` merged in @ `5718383` (2026-09-27); conflicts with 3 in this file's header | 4, see below |
+| — | `claude/trusting-turing-2b9oyl` | Settings page on the real API | No PR yet; based on `main` | open a PR into `develop` |
+
+**PR #63** is one slice, not the whole agent workflow. Land what it has built as a slice:
+native design jobs and reviewed proposals, once CI is green and the browser journey is
+recorded. Then take interpretation, report execution and Deep Research as their own
+PRs, each against the plan that already exists for it, not in the same branch.
+- Its handoff tells the next agent to "continue report-docx.md: #58 supplies… not a
+  complete renderer". **#62 is that renderer, merged at 10:16.** Merge `develop` into
+  #63 and start the report work at R10/R11, not R4.
+- Deep Research is planned in `plans/deep-research.md` (#54, merged 10:15).
+
+**Is AIA its own application?** Not yet, and the gap is precise.
+- **Standalone:** the back end (API, worker, executors, core). None of it calls the
+  unit, and no Compose service `depends_on` it.
+- **Not standalone:** the interface at `/app`.
+  - Five research stages keep their working content in the unit's store, and every
+    research stage page loads the unit's bootstrap and project before it renders
+    (OI-58).
+  - Simulation, verify/next and the 18.6.6 report exist only in `/classic`.
+  - `/app` sits behind the legacy-panel gate, which production refuses
+    (`apps/api/src/aia_api/config.py:213-215`), so as wired `/app` cannot be served in
+    production (OI-59).
+- **Ledgers:** route ledger 153 routes, 0 `PORTED`. Screens 28: 6 `REBUILT`,
+  3 `REBUILDING`, 19 `CLASSIC`.
+- **The path, in order:** OI-58 (store and bootstrap into AIA), the unit-only reads
+  (audience, library, populations, uploads), the design helpers as governed steps
+  (#63), the classic-only screens, OI-59 (a gate of its own), then remove
+  `legacy-panel` from Compose, Caddy, smoke and deploy. The unit stays only as the
+  oracle.
+
+### Human actions (repository settings; an agent session cannot make them)
+
+1. **Make `develop` the default branch** (Settings → General → Default branch).
+   `main` is the default today (`git ls-remote --symref origin HEAD` → `main` @
+   `9cf1f58`, 2026-09-23). Every new clone, agent session and *New pull request*
+   therefore starts four days and 208 commits back, as `claude/trusting-turing-2b9oyl`
+   did. `main` stays the release branch. `deploy-develop.yml` is already on
+   `develop`, so dispatch keeps working, and later changes to it take effect without
+   a release (OI-37).
+2. **Protect `develop` and `main`**, as [`infra/develop/README.md`](../infra/develop/README.md)
+   § Human actions items 10–11 describe. Require the CI checks before merge (OI-32).
+   The organization moved to GitHub Team on 2026-09-27, and Team is the plan that
+   offers protection rules on a private repository.
+3. **Watch Actions usage** (Settings → Billing → budgets and alerts) so a quota
+   stop is an email, not a morning of red PRs.
+4. **Release `develop` → `main`** once #64 has merged and a deploy is green. PR #60,
+   the previous attempt, was closed unmerged.
+5. **After the open PRs land, delete the 24 contained feature branches**: the 25 above,
+   less `coordination/agent-status`, which CLAUDE.md §5 keeps for agents' status files.
+   Tag the web-component stack first (`feature/design-tokens`, `feature/enum-binding`),
+   then delete it.
 
 ## Completed
 
 | Phase | What | Anchor |
 |---|---|---|
+| Repair | **PR #57 merged** @ `ff463a3`, 2026-09-27 (deploy run 25 green): saved Research projects survive a restart (OI-66: an edited `state_seed` is kept, a new one installed atomically), live SQLite backups include WAL (export off by default), and the Claude Code / direct API connection controls are retired in favour of Bedrock runtime metadata. Recovery of the affected working copies is operational and still open (OI-66); the fix sits in a hand-edited file of the frozen unit (OI-68) | `legacy/npc-panel-18.6.6/runtime/hydrate_data.py` · `test_legacy_state_hydration.py`, `test_legacy_state_backup.py` · [bedrock-settings-cleanup.md](plans/bedrock-settings-cleanup.md) |
 | Host | **No registry token at rest on the develop host.** `ecr_login` pulls through Amazon's ECR credential helper (instance role), installs the Ubuntu package on first use, removes the token `docker login` had stored unencrypted in root's `~/.docker/config.json`, and turns the helper's plain-text cache off. If the package cannot be installed, the deploy falls back to `docker login` and logs a warning. No Terraform or user-data change (a changed `user_data` would stop and start the host on apply) | `deploy/develop/bin/lib.sh` › `ecr_login` · `packages/aia_core/tests/test_develop_registry_credentials.py` |
 | Agent Runtime | **PR #56 merged and deployed** at `0310091`, 2026-09-26. CI `36234914562` and deploy `36235378083` passed; running worker SHA verified. ADR 0010 human approval recorded for fictional Class C on develop only, retention unspecified. Verified EU prices: input $3.30 / output $16.50 per million tokens. Audited Terraform apply removed only the unused eu-central-2 model grant. Live acceptance study completed: five steps succeeded; 20 primary calls; $0.2303301 ledger cost against $2; all reservations settled. | `apps/executors/src/aia_executors/ai_runtime.py` @ `0310091` · [activation evidence](../docs/architecture/bedrock-develop-activation-2026-09-26.md) · OI-63–65 |
 | PR C | **Research execution (ADR 0016)**: Design Revisions, the `research` workflow (`compile → preflight → run → aggregate → sociomap`), the honest park at fieldwork, Aggregate and the internal Sociomap, the Run/Progress/Results stages, the workbench proof. Merged PR #52 @ `b3bd42f`, CI green. Plan: [research-execution.md](plans/done/research-execution.md) | `apps/executors/src/aia_executors/research.py` · OI-61, OI-62 |
@@ -45,14 +145,17 @@ entry is a **hypothesis**, not a finding.
 | 8 (readiness) | **Population consumption readiness.** Field policy as code over the 400-field dictionary (closed tables; unmapped refused; client use needs positive support); companion-set validation for the 15 v17 companions with the fail-closed `CORE_JOINT_STATUS` gate; population-operator authority closing OI-8; bindings and loaded populations carry policy and joint identity. OI-7 proven archive-blocked; 8-field decision checklist prepared | `domain/population/{policy,companions,authority}.py` · `application/population_authority.py` · `tests/test_population_{policy,companions,authority}.py` · `docs/architecture/population.md` · `.planning/plans/done/population-consumption-readiness.md` |
 | — | **Development rules adopted**: `ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`, `.planning/`, `tools/layer_check.sh` blocking in CI | `tools/layer_check.sh` @ this change · `.planning/plans/done/development-rules-adoption.md` |
 | 3 | **The worker process** (`apps/worker`): claim → execute through a `StepExecutor` → record, with heartbeats, checkpointed cancellation, per-call metering, lease-fenced writes, clean `SIGTERM` release and in-worker reconciliation. Eight engine defects found and fixed on the way (W1–W8) | `apps/worker/src/aia_worker/worker.py` · `apps/worker/tests/test_worker_processes.py` · `.planning/plans/done/worker-process.md` |
-
-
 | 9 (core) | **Sociomap deterministic engine**: spec + artifact contract v2; relation coercion, mutual projection, ipsatization, normaliser, object metrics / T-score and both terrain fields ported from the browser and the reference backend; layout **declared** (legacy algorithms refused, AIA row-conditional unfolding implemented, no parity claimed); drag and what-if as layers. F1–F9 vendored and run in every CI job | `packages/aia_core/src/aia_core/domain/sociomap/` · `test_sociomap_{relations,metrics,terrain,layout,engine,contracts,golden_fixtures}.py` · `docs/architecture/sociomapa-deterministic-engine.md` · `.planning/plans/done/sociomap-deterministic-engine.md` |
 | 6 | **Evidence governance foundation**: field dictionary as enforced policy (all 400 fields re-derive identically to the reference export), `CORE_JOINT_STATUS` hash-bound certificate, permissible-claim policy, effective-n `SUPPRESS`-by-default support, allowed-metric enum, validation bound to system fingerprint, tier gate, factual layer, `AdmittedClaim` capability enforced by `layer_check` | `packages/aia_core/src/aia_core/domain/evidence/` · `tests/test_evidence_gate_parity.py` · `.planning/plans/done/evidence-governance-foundation.md` |
 | 6 | **The eight analysis modules** against those contracts: order, input fingerprints and resume, closed draft schema, 100% prose number coverage, prompts rendered from the enums, results that hold only admitted claims; runner with repair ≤ 2 and pre-flight blocking | `packages/aia_core/src/aia_core/domain/analysis/`, `application/analysis.py` · `tests/test_analysis_runner.py` |
-| — | **The `develop` environment — live at <https://aia-develop.art-chain.io/>.** Build identity (`AIA_BUILD_SHA`) and typed `AIA_STORAGE_*` in every process, deployed-environment guards extended (build SHA required, S3 only); api/worker/web images; one-host Compose with Caddy, deploy/backup/restore/smoke scripts and runbook; Terraform root (EC2 + instance role, S3 ×2, ECR ×3, SSM, Cognito + Google, GitHub OIDC role, DLM, alarms, budget); the vertical slice `develop_snapshot` (template → `start_workflow` → `apps/executors` → `ArtifactRepository` → run/artifact routes → `/studies` pages with Cognito PKCE login); idempotent seed; CI on `develop`; `deploy-develop.yml` registered on `main` (PR #32 @ `7f8cb2a`, OI-37 closed) and dispatched by CI after every green `develop` push. Applied 2026-09-23: the host runs `develop` @ `848ec11`; the live smoke passed HTTPS, build SHA, staging guards, readiness, 401s, schema head, worker, S3 round-trip and one completed vertical slice with provenance (PR #35 body). Later deploy runs passed all smoke checks: the original facade was live by run 12 and the client-first interface by run 20. The earlier run-4 smoke failure is historical (OI-38), not the current deployment verdict. ADR 0009 accepted (develop only), ADR 0010 proposed. **No model call yet**: the gateway is merged (D12), the Bedrock adapter is Next #5c | `deploy/develop/`, `infra/develop/`, `apps/executors/`, `.github/workflows/deploy-develop.yml` · `apps/executors/tests/`, `apps/api/tests/test_runs_api.py` · `.planning/plans/done/develop-deployment.md` |
+| — | **The `develop` environment — live at <https://aia-develop.art-chain.io/>.** Build identity (`AIA_BUILD_SHA`) and typed `AIA_STORAGE_*` in every process, deployed-environment guards extended (build SHA required, S3 only); api/worker/web images; one-host Compose with Caddy, deploy/backup/restore/smoke scripts and runbook; Terraform root (EC2 + instance role, S3 ×2, ECR ×3, SSM, Cognito + Google, GitHub OIDC role, DLM, alarms, budget); the vertical slice `develop_snapshot` (template → `start_workflow` → `apps/executors` → `ArtifactRepository` → run/artifact routes → `/studies` pages with Cognito PKCE login); idempotent seed; CI on `develop`; `deploy-develop.yml` registered on `main` (PR #32 @ `7f8cb2a`, OI-37 closed) and dispatched by CI after every green `develop` push. Applied 2026-09-23: the host runs `develop` @ `848ec11`; the live smoke passed HTTPS, build SHA, staging guards, readiness, 401s, schema head, worker, S3 round-trip and one completed vertical slice with provenance (PR #35 body). Later deploy runs passed all smoke checks: the original facade was live by run 12 and the client-first interface by run 20. The earlier run-4 smoke failure is historical (OI-38), not the current deployment verdict. ADR 0009 accepted (develop only). Model calls began with PR #56 (the Agent Runtime row above) | `deploy/develop/`, `infra/develop/`, `apps/executors/`, `.github/workflows/deploy-develop.yml` · `apps/executors/tests/`, `apps/api/tests/test_runs_api.py` · `.planning/plans/done/develop-deployment.md` |
 | strangler 1 | **Legacy strangler — slice 1, merged in PR #40 @ `764f9f7`** ([plan](plans/legacy-strangler.md)). The 18.6.6 unit is the oracle; AIA replaces one capability at a time behind it. Slice 1 is Phase 0 + both parity harnesses, no port: the oracle endpoint contract (`AIA_LEGACY_REFERENCE_URL` + `_USER`/`_PASSWORD`, `legacy_oracle` fixture, `oracle` marker, `make test-oracle`, CI `oracle-parity` job, `tools/legacy_oracle.py` probe/record/compare with tolerances and volatile-field masks, proven against a gated local stub); the route ledger (`docs/migration/legacy-route-ledger.json`: 153 routes / 162 arms, **14 `PORTING`, 139 `LEGACY`, 0 `PORTED`**, D9 rows marked, every arm anchored to a line of the unit); the UI function ledger (`docs/migration/legacy-ui-functions.json`: the reference's 88 + `normalizer66` as a recorded addition, REF-DISC-3 / OI-40, each row pinned to its source SHA256); the function-level harness (`tools/ui_functions.py` extracts 737/737 declarations as the reference did; `tools/ui_function_runner.mjs` + `ui_function_capture.py` run them under Node) and its first **10 unit-captured fixtures** `U01`–`U10`, of which U01/U02 gate `build_normalizer` / `object_metric` on inputs F5/F6 never used (two reference quirks recorded as intentional differences: an unknown mode/metric id is refused, a `null` rating stays `null` instead of `0`) and U03–U10 await their port. **Phase 0 found the oracle undeployed** (OI-39): *Deploy develop* run 6 built the unit image from a SHA without the unit; run 7 with it waited on the `develop` environment and was cancelled; run 8 @ `764f9f7` built all four images and was refused pushing `aia-legacy-panel` (ECR 403) because `infra/develop/main.tf` `local.images` — the repository set and the deploy role's push grant — still listed three (OI-41, fixed in code, `terraform apply` pending); cloud sessions cannot reach the develop host, so the oracle gate is `NOT_EXECUTED` until the operator applies, re-runs the deploy and provisions the three secrets Measured 2026-09-23 (SQLite, Python 3.12.3, reference repo @ 678e298, Node v22.22.2, **no PostgreSQL, no oracle**): **2286 passed / 135 skipped** across core, API, worker and executors (2177 / 132 before this slice; the 3 new skips are the oracle tests); `mypy --strict` clean across 121 files including the three new tools; `ruff` clean; `layer_check` 42/42; `exposure_check` 7/7 on the staged tree; `parity_status --available reference_repo`: PASS 9 · NOT_EXECUTED 6 · NOT_RUNNABLE 54 · FAIL 0 (`api.http` moved PASS → NOT_EXECUTED: its new oracle gate skipped, which is the honest reading). Not run here: PostgreSQL suites, the legacy-tree parity suite | `.planning/plans/legacy-strangler.md` · `tools/legacy_oracle.py`, `tools/ui_functions.py`, `tools/ui_function_capture.py` · `packages/aia_core/tests/test_legacy_{oracle,route_ledger,ui_functions}.py`, `apps/api/tests/test_legacy_route_claims.py` · `packages/aia_core/tests/fixtures/legacy_ui/` · OI-39, OI-40 |
 | — | **`apps/web` dependency advisories cleared.** `npm audit` 13 → 0 (was 1 critical, 8 high, 3 moderate, 1 low): `next` and `eslint-config-next` 16.1.6 → 16.3.6 (16.3.3 is the first release with no advisory; 16.2.12 still has a critical), which brings `sharp` 0.35.4 and its own `postcss` 8.5.23; the rest are in-range lockfile bumps (`@babel/*`, `@humanfs/node`, `ajv`, `baseline-browser-mapping`, `brace-expansion`, `browserslist`, `flatted`, `js-yaml`, `minimatch`, `picomatch`). Lockfile written with npm 11, installed with CI's npm 10 (`npm ci`). One new lint rule answered at the call site, not by changing the navigation (`AGENTS.md` § Next.js). Unblocks OI-2's npm promotion | Measured 2026-09-24 (Node 22.22.2, npm 10.9.7): `npm run lint` clean, `tsc --noEmit` clean, `npm test` 307/307 in 13 files (after merging `develop` @ `0932c5d`, the React rebuild), `tokens:check` / `skin:check` / `check:design` pass; `next build` from a copy of `apps/web` alone succeeds with the same route table as `develop` and the standalone `server.js` at its root; every route of both standalone builds answers with the same status. Not run: the Docker image build (no daemon in the session) | `apps/web/package.json` · `apps/web/package-lock.json` · `apps/web/src/lib/auth.ts` (`logout`) · OI-2 |
+| Agent Runtime (build) | **Agent Runtime Foundation — AI respondent fieldwork** ([plan](plans/done/agent-runtime-foundation.md)). The `ai_runtime` source of the `research_fieldwork` step: AI respondents on a fictional roster, through `GovernedModelGateway` over ADR 0010's Bedrock route, answers drawn by code; Aggregate and the Sociomap unchanged. D11 resolved (one reservation per request). First live path: fictional Class C only (OI-63); panel lineage refused (OI-61); ADR 0010 accepted for fictional Class C on develop, 2026-09-26 — *merged; the state as last recorded in progress:* Chunks 0–1 Bedrock adapter, signer, live transport (`2e8beb5`); 2 gateway preflight (`125a8be`); 3 response process + factual layer against the unit (`b2cc9ff`); 4 the respondent agent (`9b7fa9b`); 5 the bridge and producer, 26 end-to-end tests (`dec2fd1`); 6 deployable configuration, the grant narrowed to six regions (`2840d34`); 7–8 proof and documents (`539085b`); review fix: a TLS failure after sending is UNKNOWN, not NOT_SENT (`4d99e6a`, `test_an_ssl_failure_after_sending_needs_recovery_and_is_never_settled_as_free`); `develop` @ `2990157` (PR #53, DOCX report) merged in (`a44bc13`, extras conflict only). Measured before the merge: `make verify` exit 0 (SQLite core 2388 / API 199 / worker 43 / executors 56, web 741, layer_check 61, exposure_check 7); PostgreSQL 16 with `AIA_REQUIRE_POSTGRES=1` core 2410 / API 199 / worker 49 / executors 56, `alembic check` clean (no migration); legacy parity against the vendored unit 99 passed, 3 failed that need the archive (manifest vs extracted tree, the real panel). Not run: a live Bedrock call (not authorised), `terraform validate` (registry refused), the archive-backed parity tests (no archive) | `apps/executors/src/aia_executors/ai_fieldwork.py` · `apps/executors/tests/test_ai_fieldwork.py` · OI-63–65 |
+| strangler 2 | **Legacy strangler — slice 2: the develop site shows 18.6.6** — *`/` superseded by ADR 0015 (2026-09-24): the 18.6.6 document is now the hand-off at `/classic`; the gate stands* ([plan](plans/legacy-strangler.md), [ADR 0012](../docs/architecture/adr/0012-legacy-interface-as-product-facade.md)). Data owner's decision 2026-09-23: the product hostname serves the 18.6.6 interface from the unit, behind AIA sign-in, and features are rebuilt behind the same screens. The API's gate (`POST`/`DELETE /api/v1/panel/session`, `GET /api/v1/panel/gate`) admits active organization owners and admins only (`ScopeResolver.authorize_legacy_panel`), refuses cross-origin writes, sends anonymous navigations to `/login`; Caddy routes everything that is not AIA's to the unit after `forward_auth`, stripping the cookie; the web client lost its mock-up and gained `/login` / `/logout`; CI validates the Caddyfile (`develop-host-config`). Proven locally end to end in Chromium against the real 18.6.6 `ui_server.py` (plan, chunk 3). Merged in PR #42 @ `9e42f24`; `terraform apply` for OI-41 done by the operator. Deploy run 10 took the site down (OI-44), fixed in PR #43 @ `5b51640`. **Live since 2026-09-23 23:34 UTC**: *Deploy develop* run 12 (`35933806783`, attempt 2) passed every smoke check, including `legacy: the 18.6.6 unit is healthy`, after the operator set `aia_legacy_data_prefix` (the bundle was already in the ops bucket). Found on the way: OI-42 (refusals' audit rows roll back), OI-43 (three develop-only gate choices) — *merged; the state as last recorded in progress:* Measured 2026-09-23 (`make verify`, SQLite, Python 3.12.3, **no PostgreSQL, no oracle, no data bundle**): **2318 passed / 135 skipped** across core (2089 / 129), API (168), worker (43 / 6) and executors (18); 2286 / 135 before this slice. `mypy --strict` clean across 119 files; `ruff` clean; `layer_check` 42/42; `exposure_check` 7/7; web `lint`, `tsc --noEmit` and `build` clean; Caddyfile validated and adapted with Caddy 2.11.4 built from source. Not run here: PostgreSQL suites, the legacy-tree parity suite, the CI job itself (Docker images are pulled on the runner) | `apps/api/src/aia_api/routers/panel.py` · `apps/web/src/app/login/page.tsx` · `deploy/develop/Caddyfile` · `apps/api/tests/test_panel_api.py`, `packages/aia_core/tests/test_legacy_panel_access.py` · OI-42, OI-43 |
+| Unit | **Legacy product unit** (ADR 0011). Strategy change by the data owner: the working 18.6.6 product becomes the day-one baseline and parity oracle. The reference repository runs the audited snapshot as a hash-verified container (its PRs #1–#3) and extracts the product as a frozen unit: 924 code/config files byte-identical to the archive, 245 data files hydrated from the EU ops bucket at start, 69 client-material files excluded. Proven on the operator's machine: unit built, 245/245 hydrated, tree verified 12/12 + 22/22, UI working — *merged; the state as last recorded in progress:* This branch: `.gitignore` anchored, `.dockerignore`, `exposure_check` path exemptions with real-client names still enforced, `legacy-panel` compose service, Caddy site + basic-auth gate, data sync in `bin/deploy.sh`, smoke check, fourth image in the deploy workflow, docs. **Blocked on the unit commit** (the generated `legacy/npc-panel-18.6.6/` from the operator's extraction) before merge; decisions D-L1 (client identifiers inside code) and reference D4 (which demos ship) recorded in the ADR | `docs/architecture/adr/0011-vendor-legacy-product-unit.md` · `legacy/README.md` · `deploy/develop/docker-compose.yml` · `tools/exposure_check.sh` |
+| 4 | **Phase 4 — AI runtime contract** ([plan](plans/done/ai-runtime-contract.md)) — *merged; the state as last recorded in progress:* All 7 chunks on PR #28; Codex findings fixed; `main` merged twice (a15be65: worker, lease fencing, population, evidence governance; b85431f: simulation core). Measured on the latest merge: SQLite 2128 passed / 132 skipped (core + API + worker); PostgreSQL 16 with `AIA_REQUIRE_POSTGRES=1` core 1994 / 104 skipped, API 114, worker 48, concurrency 22; golden fixtures 24 against reference @ 678e298; `mypy --strict` clean (105 files); `layer_check` 36/36; `exposure_check` 7/7; migration `1cd2a5acd29f` single head on `85637e58c7dd`, `alembic check` clean, reversible. Next slice: the AI step executor over `StepContext` (D11) | `application/model_gateway.py` · `infrastructure/ai_call_journal.py` · `tests/test_ai_usage_ledger.py` |
+| 7 (core) | **Phase 7 — simulation deterministic core.** Typed, pure-Python core driven from a frozen `WorldModel`: reference constants and bounds (versioned `sim-constants-1`), reject-not-clip validation with a per-field record of intentional differences, nearest-correlation projection, calibrate-on-baseline inoculation producing `FS_*` columns, scenario contracts with approval bound to the contract hash, independently modelled variants and their deltas, frozen predictions, write-once truth, eligibility, scoring — *merged; the state as last recorded in progress:* All 7 chunks landed; in review (PR #27). Measured 2026-09-23 after merging `main` @ a15be65: PostgreSQL 16 core **1699 passed / 104 skipped**, API **114 passed**, concurrency **22 passed** and worker **48 passed** with `AIA_REQUIRE_POSTGRES=1`; SQLite **1833 passed / 132 skipped**; migrations up, check, down to base and up again clean; `mypy --strict` 93 files and `tsc` clean; `layer_check` 34/34; `exposure_check` 7/7; reference-repo parity **45 passed** (the 3 F13 tests skip, not captured). Not run: the legacy-tree parity suite (archive withheld) | `.planning/plans/done/simulation-deterministic-core.md` · `docs/architecture/simulation-deterministic-engine.md` · `tests/test_simulation_*.py` |
 
 **Verified state, evidence governance merged with main @ `121b746` (population,
 Sociomap, worker, population readiness) plus the four review fixes (2026-09-23).**
@@ -107,23 +210,18 @@ reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
 ## In progress
 
-**The `develop` environment is live.** The original facade passed its live smoke gate, and the client-first interface followed. PR #52 is merged into `develop`; the deployed Research composition parks at fieldwork until the governed AI runtime exists. No live model invocation or full Research acceptance is claimed.
+**The `develop` environment is live** (deployed `ff463a3`; see *Where the code is*). Research execution and Bedrock respondent fieldwork are merged, and the fictional Class C acceptance completed on 2026-09-26 (Completed, Agent Runtime). Design assistants, interpretation, report execution and Deep Research are the open work (PRs #63, #62, #54).
 
 | What | State | Anchor |
 |---|---|---|
-| **Agent Runtime Foundation — AI respondent fieldwork** ([plan](plans/agent-runtime-foundation.md)). The `ai_runtime` source of the `research_fieldwork` step: AI respondents on a fictional roster, through `GovernedModelGateway` over ADR 0010's Bedrock route, answers drawn by code; Aggregate and the Sociomap unchanged. D11 resolved (one reservation per request). First live path: fictional Class C only (OI-63); panel lineage refused (OI-61); ADR 0010 accepted for fictional Class C on develop, 2026-09-26 | Chunks 0–1 Bedrock adapter, signer, live transport (`2e8beb5`); 2 gateway preflight (`125a8be`); 3 response process + factual layer against the unit (`b2cc9ff`); 4 the respondent agent (`9b7fa9b`); 5 the bridge and producer, 26 end-to-end tests (`dec2fd1`); 6 deployable configuration, the grant narrowed to six regions (`2840d34`); 7–8 proof and documents (`539085b`); review fix: a TLS failure after sending is UNKNOWN, not NOT_SENT (`4d99e6a`, `test_an_ssl_failure_after_sending_needs_recovery_and_is_never_settled_as_free`); `develop` @ `2990157` (PR #53, DOCX report) merged in (`a44bc13`, extras conflict only). Measured before the merge: `make verify` exit 0 (SQLite core 2388 / API 199 / worker 43 / executors 56, web 741, layer_check 61, exposure_check 7); PostgreSQL 16 with `AIA_REQUIRE_POSTGRES=1` core 2410 / API 199 / worker 49 / executors 56, `alembic check` clean (no migration); legacy parity against the vendored unit 99 passed, 3 failed that need the archive (manifest vs extracted tree, the real panel). Not run: a live Bedrock call (not authorised), `terraform validate` (registry refused), the archive-backed parity tests (no archive) | `apps/executors/src/aia_executors/ai_fieldwork.py` · `apps/executors/tests/test_ai_fieldwork.py` · OI-63–65 |
-| **Legacy strangler — slice 2: the develop site shows 18.6.6** — *`/` superseded by ADR 0015 (2026-09-24): the 18.6.6 document is now the hand-off at `/classic`; the gate stands* ([plan](plans/legacy-strangler.md), [ADR 0012](../docs/architecture/adr/0012-legacy-interface-as-product-facade.md)). Data owner's decision 2026-09-23: the product hostname serves the 18.6.6 interface from the unit, behind AIA sign-in, and features are rebuilt behind the same screens. The API's gate (`POST`/`DELETE /api/v1/panel/session`, `GET /api/v1/panel/gate`) admits active organization owners and admins only (`ScopeResolver.authorize_legacy_panel`), refuses cross-origin writes, sends anonymous navigations to `/login`; Caddy routes everything that is not AIA's to the unit after `forward_auth`, stripping the cookie; the web client lost its mock-up and gained `/login` / `/logout`; CI validates the Caddyfile (`develop-host-config`). Proven locally end to end in Chromium against the real 18.6.6 `ui_server.py` (plan, chunk 3). Merged in PR #42 @ `9e42f24`; `terraform apply` for OI-41 done by the operator. Deploy run 10 took the site down (OI-44), fixed in PR #43 @ `5b51640`. **Live since 2026-09-23 23:34 UTC**: *Deploy develop* run 12 (`35933806783`, attempt 2) passed every smoke check, including `legacy: the 18.6.6 unit is healthy`, after the operator set `aia_legacy_data_prefix` (the bundle was already in the ops bucket). Found on the way: OI-42 (refusals' audit rows roll back), OI-43 (three develop-only gate choices) | Measured 2026-09-23 (`make verify`, SQLite, Python 3.12.3, **no PostgreSQL, no oracle, no data bundle**): **2318 passed / 135 skipped** across core (2089 / 129), API (168), worker (43 / 6) and executors (18); 2286 / 135 before this slice. `mypy --strict` clean across 119 files; `ruff` clean; `layer_check` 42/42; `exposure_check` 7/7; web `lint`, `tsc --noEmit` and `build` clean; Caddyfile validated and adapted with Caddy 2.11.4 built from source. Not run here: PostgreSQL suites, the legacy-tree parity suite, the CI job itself (Docker images are pulled on the runner) | `apps/api/src/aia_api/routers/panel.py` · `apps/web/src/app/login/page.tsx` · `deploy/develop/Caddyfile` · `apps/api/tests/test_panel_api.py`, `packages/aia_core/tests/test_legacy_panel_access.py` · OI-42, OI-43 |
-| **Interface skin — the AIA design system on the 18.6.6 screens** ([plan](plans/interface-skin.md), [ADR 0013](../docs/architecture/adr/0013-interface-skin-at-the-facade.md), Proposed). Data owner's direction 2026-09-23: the develop deployment is the canonical baseline for every screen; the screens get a major design upgrade from the existing design system; skin now, re-home later; verify against the live oracle. The web client adds one token-generated stylesheet to the document the unit serves at `/`, only when its SHA256 is the pinned `ui_app.html` hash; the unit stays byte-identical, the oracle hostname unskinned, `AIA_INTERFACE_SKIN_ENABLED` off by default. Supersedes the screen chunks of [design-system.md](plans/design-system.md) (V, 4–11); its foundation carries forward | Chunks 0 (plan, ADR), 1 (token foundation on `develop`: `tokens.json`, generator with drift check, self-hosted fonts, identity, contrast 146/146, Vitest 4.1.11) 2 (the hash-pinned injector at `/`, gated, off by default; proven end to end locally through the real Caddyfile and `ui_server.py`) 3 (the variable layer: 29 18.6.6 variables re-pointed at tokens, light only, contrast 164/164) and 4 (shared components, token-only; verified on a specimen of 18.6.6's own templates at 1440/1024 px and under the +35 % Czech stress) done. Merged in PR #45 @ `4dc7966`; **live since deploy run 15** @ `230ee7e` (PR #46, OI-45: Caddy is recreated when its Caddyfile changes; smoke "caddy: running the deployed Caddyfile" ok), confirmed by the data owner 2026-09-24. **Blocked for chunk 5** (live baseline): `legacy.aia-develop.art-chain.io` is refused by the cloud session's egress policy and the `AIA_LEGACY_REFERENCE_*` values are not in its secrets; a local run stops at `/api/bootstrap` without the data bundle | `legacy/npc-panel-18.6.6/app-manifest.json` (`ui_app.html` sha256 `d844dd6f…81eaee`) · `plans/interface-skin.md` |
+| **Interface skin — the AIA design system on the 18.6.6 screens** ([plan](plans/interface-skin.md), [ADR 0013](../docs/architecture/adr/0013-interface-skin-at-the-facade.md), Accepted 2026-09-24; only chunk 6, per-area passes, remains). Data owner's direction 2026-09-23: the develop deployment is the canonical baseline for every screen; the screens get a major design upgrade from the existing design system; skin now, re-home later; verify against the live oracle. The web client adds one token-generated stylesheet to the document the unit serves at `/`, only when its SHA256 is the pinned `ui_app.html` hash; the unit stays byte-identical, the oracle hostname unskinned, `AIA_INTERFACE_SKIN_ENABLED` off by default. Supersedes the screen chunks of [design-system.md](plans/design-system.md) (V, 4–11); its foundation carries forward | Chunks 0 (plan, ADR), 1 (token foundation on `develop`: `tokens.json`, generator with drift check, self-hosted fonts, identity, contrast 146/146, Vitest 4.1.11) 2 (the hash-pinned injector at `/`, gated, off by default; proven end to end locally through the real Caddyfile and `ui_server.py`) 3 (the variable layer: 29 18.6.6 variables re-pointed at tokens, light only, contrast 164/164) and 4 (shared components, token-only; verified on a specimen of 18.6.6's own templates at 1440/1024 px and under the +35 % Czech stress) done. Merged in PR #45 @ `4dc7966`; **live since deploy run 15** @ `230ee7e` (PR #46, OI-45: Caddy is recreated when its Caddyfile changes; smoke "caddy: running the deployed Caddyfile" ok), confirmed by the data owner 2026-09-24. **Blocked for chunk 5** (live baseline): `legacy.aia-develop.art-chain.io` is refused by the cloud session's egress policy and the `AIA_LEGACY_REFERENCE_*` values are not in its secrets; a local run stops at `/api/bootstrap` without the data bundle | `legacy/npc-panel-18.6.6/app-manifest.json` (`ui_app.html` sha256 `d844dd6f…81eaee`) · `plans/interface-skin.md` |
 | **UI workbench + the React re-home** ([plan](plans/ui-workbench.md), [re-home plan](plans/interface-rehome.md), [ADR 0014](../docs/architecture/adr/0014-rebuild-the-interface-in-react.md), Proposed). Data owner 2026-09-24: full UI control, not only the skin, edited quickly and seen by the agent; decided: rebuild the screens in React, area by area, D-L1 extended to the rebuilt screens. Agent sessions cannot reach develop (egress 403), so the workbench runs the real `ui_app.html` locally on a fictional panel with the web client in front, routed by the Caddyfile's `@web` | Workbench chunks 1–2 done: `make ui-workbench` (skinned `:8780`, bare `:8767`, 30 DEMO projects), skin rebuilt on save, `test_ui_workbench.py` 15 passed; `make ui-capture`: 48 screens × 2 widths, bare and skinned, 0 page errors, 0 overflow. Re-home chunks 0–2 and 4 done, 3 in part: `/app` behind the same gate (CI adapt check, smoke), the ledger-checked unit client, the hand-off into the classic interface (`#aia:open=…`), the rail, and **Správa projektů rebuilt in React** (`/app/projects`, ledger `REBUILT`, 0 classic texts missing, 220 parity checks, 7 component tests). Found OI-46: the classic rail prints *Core joint · VALID* as a literal. **Live on develop** (run 16 @ `0932c5d`). Now: **A4 research flow** ([plan](plans/research-flow-rehome.md)) — the data owner's next choice, 2026-09-24; survey done, OI-47 (classic *verify* never renders; *verify*/*next* unreachable) and OI-48 (four aliased unit routes missing from the ledger) recorded; **chunk 1 (foundation) done**: research routes, model, store with visible save state, job runner and panel, `/app/research/<id>/<step>` with the rail, `open@step` hand-off, `make ui-fixtures` (100 tests); **chunk 2 (Zadání) done**: `/app/research/<id>/brief`, 46 parity checks, 9 component tests, capture pair 0 missing; the workbench unit can no longer reach any AI provider (it had found the session's signed-in CLI). **Chunk 3 (Návrh) done**: `/app/research/<id>/plan`, 39 parity checks, 7 component tests, fixture capture pair 0 missing; the open@step hand-off no longer lands on the overview. **PR A complete** (merged, PR #49). **PR B** on `feature/research-flow-b`: survey recorded (OI-49 to OI-55); **chunk 4 (Dotazník) done**: `/app/research/<id>/questionnaire`, 62 parity checks, 10 component tests, fixture capture pair with only the dead button missing. **Chunk 5 (Audience) done**: one project session for all steps (OI-56, a lost-save defect from PR A, fixed); `/app/research/<id>/audience`, 72 parity checks, 8 component tests, capture pair with only the `[object Object]` print missing. **Chunk 6 (Dimenze) done**: `/app/research/<id>/persona`, 45 parity checks, 9 component tests, capture pair 0 missing; the model's *Deep Research* reaches the classic Data Library by a new hand-off verb; OI-57 (a failed audience catalogue re-requested on every draw) recorded. **PR B merged** (PR #50). **PR C merged** as #52 after the client-first IA; its Run, Progress and Results stages are under `/app/clients/<client>/research/<study>/` | `tools/ui_workbench/` · `packages/aia_core/tests/test_ui_workbench.py` |
-| **Legacy product unit** (ADR 0011). Strategy change by the data owner: the working 18.6.6 product becomes the day-one baseline and parity oracle. The reference repository runs the audited snapshot as a hash-verified container (its PRs #1–#3) and extracts the product as a frozen unit: 924 code/config files byte-identical to the archive, 245 data files hydrated from the EU ops bucket at start, 69 client-material files excluded. Proven on the operator's machine: unit built, 245/245 hydrated, tree verified 12/12 + 22/22, UI working | This branch: `.gitignore` anchored, `.dockerignore`, `exposure_check` path exemptions with real-client names still enforced, `legacy-panel` compose service, Caddy site + basic-auth gate, data sync in `bin/deploy.sh`, smoke check, fourth image in the deploy workflow, docs. **Blocked on the unit commit** (the generated `legacy/npc-panel-18.6.6/` from the operator's extraction) before merge; decisions D-L1 (client identifiers inside code) and reference D4 (which demos ship) recorded in the ADR | `docs/architecture/adr/0011-vendor-legacy-product-unit.md` · `legacy/README.md` · `deploy/develop/docker-compose.yml` · `tools/exposure_check.sh` |
-| **Phase 4 — AI runtime contract** ([plan](plans/ai-runtime-contract.md)) | All 7 chunks on PR #28; Codex findings fixed; `main` merged twice (a15be65: worker, lease fencing, population, evidence governance; b85431f: simulation core). Measured on the latest merge: SQLite 2128 passed / 132 skipped (core + API + worker); PostgreSQL 16 with `AIA_REQUIRE_POSTGRES=1` core 1994 / 104 skipped, API 114, worker 48, concurrency 22; golden fixtures 24 against reference @ 678e298; `mypy --strict` clean (105 files); `layer_check` 36/36; `exposure_check` 7/7; migration `1cd2a5acd29f` single head on `85637e58c7dd`, `alembic check` clean, reversible. Next slice: the AI step executor over `StepContext` (D11) | `application/model_gateway.py` · `infrastructure/ai_call_journal.py` · `tests/test_ai_usage_ledger.py` |
-| **Phase 7 — simulation deterministic core.** Typed, pure-Python core driven from a frozen `WorldModel`: reference constants and bounds (versioned `sim-constants-1`), reject-not-clip validation with a per-field record of intentional differences, nearest-correlation projection, calibrate-on-baseline inoculation producing `FS_*` columns, scenario contracts with approval bound to the contract hash, independently modelled variants and their deltas, frozen predictions, write-once truth, eligibility, scoring | All 7 chunks landed; in review (PR #27). Measured 2026-09-23 after merging `main` @ a15be65: PostgreSQL 16 core **1699 passed / 104 skipped**, API **114 passed**, concurrency **22 passed** and worker **48 passed** with `AIA_REQUIRE_POSTGRES=1`; SQLite **1833 passed / 132 skipped**; migrations up, check, down to base and up again clean; `mypy --strict` 93 files and `tsc` clean; `layer_check` 34/34; `exposure_check` 7/7; reference-repo parity **45 passed** (the 3 F13 tests skip, not captured). Not run: the legacy-tree parity suite (archive withheld) | `.planning/plans/simulation-deterministic-core.md` · `docs/architecture/simulation-deterministic-engine.md` · `tests/test_simulation_*.py` |
 
 **Production parity matrix and parity gates** — owner parity-quality. Plan:
-[`plans/parity-matrix-and-gates.md`](plans/parity-matrix-and-gates.md).
-All seven chunks are written, verified and committed as one change on
-`claude/sleepy-keller-kg48oz`. The plan moves to `done/` once the PR merges and
-CI has run the new jobs once.
+the plan below.
+**Merged in PR #25** @ `a15be65`; the `golden-fixtures` and `parity-status` jobs
+run in CI (`.github/workflows/ci.yml`). Plan archived:
+[`plans/done/parity-matrix-and-gates.md`](plans/done/parity-matrix-and-gates.md).
 
 - [x] `docs/migration/parity-matrix.json` — all 78 capabilities, keyed by
       capability id; `test_parity_matrix.py`
@@ -246,7 +344,7 @@ Ordered. Take the top item unless told otherwise, and **write the plan to
 
 **After the client-first IA (ADR 0015), merged in PR #51.** **Order confirmed by
 the data owner, 2026-09-24: PR C → OI-58 → OI-59.** PR C merged as #52;
-PR #56 has merged and deployed; activate the approved fictional Class C route and verify its isolated $2 study. Checkpointing (OI-64), persistent lineage (OI-65), OI-58 and OI-59 follow.
+PR #56 has merged and deployed, and the fictional Class C acceptance is done (20 calls, $0.2303301). Now: the merge order under *Open pull requests*, then checkpointing (OI-64), persistent lineage (OI-65), OI-58 and OI-59.
 
 - ~~**PR C, research execution**~~ — merged (PR #52 @ `b3bd42f`); see Completed.
 - **Agent Runtime Foundation**: AI respondent fieldwork is built and deployed in PR #56 @ `0310091`; ADR 0010 approval and EU pricing are recorded. The runtime is active for the approved synthetic client; the isolated $2 study completed with 20 calls costing $0.2303301. Design-generation assistants remain unmigrated. Then checkpointed fieldwork (OI-64), ledger lineage (OI-65), analysis and report agents. Panel-derived transmission remains blocked by OI-61.
@@ -289,7 +387,8 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
   process-wide cache for workers. population-data, when the research engine needs
   them.
 
-00. **Sign in at <https://aia-develop.art-chain.io/> and look at the 18.6.6
+00. *Superseded by ADR 0015 (the develop site is AIA; 18.6.6 is `/classic`); kept
+   for the oracle half.* **Sign in at <https://aia-develop.art-chain.io/> and look at the 18.6.6
    screens** (data owner): the smoke test proves the gate and the unit's health,
    not what a person sees. Then, optional for the interface but needed for the
    parity gate: the oracle hostname's three `aia_legacy_*` parameters and the
@@ -335,14 +434,17 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
    `ai_usage_events`, with compensating entries for uncertain calls. The
    generalized ledger should extend it or derive from it, not duplicate it, and
    the reconciliation of `Study.spent_usd` it would own is OI-36.
-3. **Phase 4, second slice — live transport and the AI step executor.** The
+3. ~~**Phase 4, second slice — live transport and the AI step executor.**~~ —
+   **done in PR #56** (`live_transport.py`, the instance-role SigV4 signer,
+   `ai_step.py`); D6 answered for fictional Class C by ADR 0010. What follows is history. The
    contract, registry, gateway, ledger and three adapters exist (In progress,
    above). What remains before any model call is real: an approved route per
    data class (D6), a transport (D7), a credential store (D8), a published
    catalog/policy (D9), and a worker executor that drives
    [the contract](../docs/architecture/ai-step-executor-contract.md).
-4. **Wire `apps/web` to the real API** and delete `lib/mock.ts`. **Partly
-   done:** the live `/studies` pages (Cognito PKCE sign-in, studies → projects →
+4. ~~**Wire `apps/web` to the real API** and delete `lib/mock.ts`.~~ — **done**:
+   `lib/mock.ts` and the `/org/*` demo were deleted in `297b573`
+   (`git ls-files apps/web | grep -icE 'mock|/org/'` = 0). History: the live `/studies` pages (Cognito PKCE sign-in, studies → projects →
    runs → artifact) are real and the `/org/*` demo is labelled mock; the demo
    pages and `lib/mock.ts` remain until the design-system rewire replaces them.
    Planned together with the design system in
@@ -395,11 +497,14 @@ v0.1 queue and workers claim with `FOR UPDATE SKIP LOCKED`. There is no transpor
 left to build.
 6. PostgreSQL row-level security as a second isolation layer.
 7. Rate limiting.
-8. Delete `src/server.js` + `src/views/` and their root dependencies, once step 4
-   removes the last thing that needs them.
-9. **Sociomap as a durable job and a route** — **blocked on the shared worker
-   (platform-runtime)**; the Sociomap context is paused until the worker execution
-   contract lands, and the first path that can emit a Sociomap to a client must
+8. Delete `src/server.js` + `src/views/` and their root dependencies. **Unblocked**:
+   step 4 is done, and nothing in the Makefile, CI, Compose or any Dockerfile runs
+   the root `package.json` (`apps/web/Dockerfile`'s `server.js` is Next.js's own).
+9. **Sociomap as a durable job and a route** — *the job and the route exist*: the
+   `sociomap` research step (`apps/executors/src/aia_executors/research.py`
+   `SociomapExecutor`), served to researchers only (`routers/research.py`
+   `_RESEARCHERS_ONLY`) and `INTERNAL_ONLY` while D6 is open. What remains is the
+   client-deliverable gate (OI-17) and the web rendering. Originally: the first path that can emit a Sociomap to a client must
    carry the client-deliverable gate (OI-17). Then:
    `compute_sociomap` executed as a workflow step, its payload stored through
    `ArtifactRepository.put_json`, a study-scoped `GET` that serves it, and the
@@ -409,11 +514,17 @@ left to build.
 
 ## Decisions needed
 
+*The ids D6–D11 are used twice: the first set (provider route, transport,
+credentials, catalog, capacity, reservations) is the AI runtime's, the second
+(Sociomap declarations, RELIGION, field-policy authority, Simulation in the MVP,
+world-model factors, simulation numerics) is methodology and simulation. Cite them
+with the topic until they are renumbered in one change with every reference.*
+
 | # | Decision | Blocks | Anchor |
 |---|---|---|---|
 | IA-1 | ~~Who may start a study~~ — **resolved 2026-09-24**: a client-level `RESEARCHER` or `LEAD` (`CREATE_STUDY`); nobody else | — | ADR 0015 decision 6 · `test_client_api.py` |
 | IA-2 | ~~Order after the client-first IA~~ — **resolved 2026-09-24**: PR C → OI-58 → OI-59 | — | *Next*, above |
-| IA-3 | ~~Does the client-first shell become the develop interface~~ — **resolved 2026-09-24**: yes, once its checks are green; `/classic` stays the temporary 18.6.6 escape hatch and reference | — | [plan](plans/client-first-ia.md) · ADR 0015 |
+| IA-3 | ~~Does the client-first shell become the develop interface~~ — **resolved 2026-09-24**: yes, once its checks are green; `/classic` stays the temporary 18.6.6 escape hatch and reference | — | [plan](plans/done/client-first-ia.md) · ADR 0015 |
 | DR-1 | ~~What drives Deep Research~~ — **resolved 2026-09-25**: both the research questions and the tracked objects | — | [plans/deep-research.md](plans/deep-research.md) |
 | DR-2 | **Which search provider route(s) carry Deep Research queries, and is any approved for Class B.** Intent (data owner, 2026-09-25): the best results, which means queries carrying client context — Class B, EU-approved routes only (ADR 0008). Also the list of client terms that make a query Class B. Until decided, only Class C queries leave | Live web research | ADR 0017 decision 2 |
 | DR-3 | ~~Client Knowledge to the model~~ — **resolved 2026-09-25**: target Bedrock EU for Class A and B; this is D6's decision for that route, not a separate one | — (D6 blocks live use) | ADR 0017 · D6 |

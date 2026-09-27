@@ -1,5 +1,7 @@
 # Bedrock settings cleanup — 2026-09-26
 
+**Status:** done — merged in PR #57 @ `ff463a3` (2026-09-27), deployed by run 25. Native Bedrock design jobs continue in PR #63, which links this file; it moves to `done/` once #63 has merged.
+
 User request: remove Claude Code connection settings and the Anthropic API-key
 field from the AIA product, including the design-action notice.
 
