@@ -1,0 +1,953 @@
+{
+  "manifestVersion": 3,
+  "name": "AIA Design System",
+  "namespace": "AIA",
+  "files": [
+    "assets/Accessibility/README.md",
+    "assets/Favicons/README.md",
+    "assets/Icons/README.md",
+    "assets/Logos/README.md",
+    "assets/Motif/README.md",
+    "components/ApprovalPanel/README.md",
+    "components/BudgetMeter/README.md",
+    "components/Button/README.md",
+    "components/ClientMonogram/README.md",
+    "components/EvidenceLegend/README.md",
+    "components/EvidenceMark/README.md",
+    "components/GradedBars/README.md",
+    "components/HeadlineAnswer/README.md",
+    "components/Icon/README.md",
+    "components/ImpactPreview/README.md",
+    "components/Kbd/README.md",
+    "components/Lattice/README.md",
+    "components/Mark/README.md",
+    "components/Money/README.md",
+    "components/ParkAndAsk/README.md",
+    "components/ProviderChoice/README.md",
+    "components/RecoveryDecision/README.md",
+    "components/ReportCover/README.md",
+    "components/ReportPage/README.md",
+    "components/RevisionBanner/README.md",
+    "components/RevisionHistory/README.md",
+    "components/RunTimeline/README.md",
+    "components/ScopeBar/README.md",
+    "components/Sociomap/README.md",
+    "components/StageRail/README.md",
+    "components/StatusChip/README.md",
+    "components/StatusGlyph/README.md",
+    "components/UsageLedger/README.md",
+    "components/Value/README.md",
+    "components/Wordmark/README.md",
+    "components/bundle.css",
+    "components/bundle.js",
+    "components/index.d.ts",
+    "fonts/IBMPlexMono-Medium.woff2",
+    "fonts/IBMPlexMono-Regular.woff2",
+    "fonts/IBMPlexSans-Italic.woff2",
+    "fonts/IBMPlexSans-Medium.woff2",
+    "fonts/IBMPlexSans-Regular.woff2",
+    "fonts/IBMPlexSans-SemiBold.woff2",
+    "fonts/SourceSerif4-Italic.woff2",
+    "fonts/SourceSerif4-Regular.woff2",
+    "fonts/SourceSerif4-Semibold.woff2",
+    "fonts/SourceSerif4Display-Semibold.woff2",
+    "guidelines/01-direction.md",
+    "guidelines/02-status.md",
+    "guidelines/03-evidence.md",
+    "guidelines/04-scope-and-money.md",
+    "guidelines/05-lifecycle-review-results.md",
+    "guidelines/06-deliverable.md",
+    "guidelines/07-accessibility.md",
+    "guidelines/08-implementation.md",
+    "guidelines/09-open-items.md",
+    "tokens.css"
+  ],
+  "libraries": [
+    {
+      "name": "react",
+      "version": "18",
+      "global": "React"
+    },
+    {
+      "name": "react-dom",
+      "version": "18",
+      "global": "ReactDOM"
+    }
+  ],
+  "components": [
+    {
+      "name": "StatusChip",
+      "group": "Status",
+      "summary": "Renders any domain status as a glyph plus a label in its tone."
+    },
+    {
+      "name": "StatusGlyph",
+      "group": "Status",
+      "summary": "The 16-unit status glyph set: shape carries the state."
+    },
+    {
+      "name": "EvidenceMark",
+      "group": "Evidence",
+      "summary": "The epistemic grade mark: ■ measured, ▣ calibrated, □ modelled, ⬚ holdout pending, ? unknown."
+    },
+    {
+      "name": "Value",
+      "group": "Evidence",
+      "summary": "The one way a figure is rendered: value, zero, chybí, potlačeno or loading, with an optional evidence grade."
+    },
+    {
+      "name": "EvidenceLegend",
+      "group": "Evidence",
+      "summary": "The persistent legend for the five evidence grades."
+    },
+    {
+      "name": "Money",
+      "group": "Money",
+      "summary": "A monetary amount with its currency, in Czech formatting."
+    },
+    {
+      "name": "Button",
+      "group": "Actions",
+      "summary": "Action buttons: primary (signal), secondary (bordered), quiet, danger; comfortable or compact."
+    },
+    {
+      "name": "Kbd",
+      "group": "Actions",
+      "summary": "A keyboard shortcut hint."
+    },
+    {
+      "name": "Icon",
+      "group": "Identity",
+      "summary": "The AIA icon set: 24 grid, 1.5 stroke, square caps."
+    },
+    {
+      "name": "Mark",
+      "group": "Identity",
+      "summary": "The AIA mark: a 5 × 5 population lattice resolving into A, the apex in signal."
+    },
+    {
+      "name": "Wordmark",
+      "group": "Identity",
+      "summary": "The AIA wordmark: the I is a column of five individuals."
+    },
+    {
+      "name": "Lattice",
+      "group": "Identity",
+      "summary": "The motif as a deterministic dot field, for empty states and dividers."
+    },
+    {
+      "name": "ScopeBar",
+      "group": "Scope",
+      "summary": "Persistent scope chrome: client accent band, monogram, client / study, study status, revision and role."
+    },
+    {
+      "name": "ClientMonogram",
+      "group": "Scope",
+      "summary": "A client's two-letter monogram on its accent."
+    },
+    {
+      "name": "StageRail",
+      "group": "Lifecycle",
+      "summary": "The thirteen-stage lifecycle rail and a project's primary navigation."
+    },
+    {
+      "name": "RunTimeline",
+      "group": "Lifecycle",
+      "summary": "Honest progress: real elapsed time, heartbeat, real counts, the current step and what it waits on."
+    },
+    {
+      "name": "ImpactPreview",
+      "group": "Lifecycle",
+      "summary": "Shows an edit's consequences before it is committed: kept vs reopened stages, artifacts kept, cost and time."
+    },
+    {
+      "name": "BudgetMeter",
+      "group": "Money",
+      "summary": "A study budget: spent, uncertain (SETTLED_UNCERTAIN), reserved and remaining, each with an exact amount."
+    },
+    {
+      "name": "ParkAndAsk",
+      "group": "Money",
+      "summary": "The spending-authorisation dialog when work parks on budget."
+    },
+    {
+      "name": "ProviderChoice",
+      "group": "Money",
+      "summary": "An explicit choice when a provider cannot serve: wait (free) or switch (paid, changes provenance)."
+    },
+    {
+      "name": "RecoveryDecision",
+      "group": "Money",
+      "summary": "RECOVERY_REQUIRED: a metered call may have been billed with an unknown outcome."
+    },
+    {
+      "name": "UsageLedger",
+      "group": "Money",
+      "summary": "The immutable AI usage ledger: dense, sortable, attributable."
+    },
+    {
+      "name": "ApprovalPanel",
+      "group": "Review",
+      "summary": "Gate approval and sign-off, including the separation-of-duties refusal."
+    },
+    {
+      "name": "RevisionBanner",
+      "group": "Lifecycle",
+      "summary": "Marks that you are looking at a superseded revision."
+    },
+    {
+      "name": "RevisionHistory",
+      "group": "Lifecycle",
+      "summary": "Immutable revision list with what each change reopened."
+    },
+    {
+      "name": "HeadlineAnswer",
+      "group": "Results",
+      "summary": "The single sentence a client pays for, with its grade, n and interval, and the findings one level down."
+    },
+    {
+      "name": "GradedBars",
+      "group": "Results",
+      "summary": "A bar chart whose bars carry their evidence grade, with direct labels."
+    },
+    {
+      "name": "Sociomap",
+      "group": "Results",
+      "summary": "Respondent and object maps over immutable originals; view overrides and what-if are visible layers."
+    },
+    {
+      "name": "ReportCover",
+      "group": "Deliverable",
+      "summary": "The Deliverable cover."
+    },
+    {
+      "name": "ReportPage",
+      "group": "Deliverable",
+      "summary": "A Deliverable page: chapter, headline paragraph, holdout statement, evidence margin, figure, table and footnotes."
+    },
+    {
+      "name": "Admin",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "CostBudget",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "DataLibrary",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "DirectionB",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "Portfolio",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "ReportDelivery",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "ResearchStage",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "Results",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "SimulationStudio",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "SociomapaPage",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "StateGallery",
+      "group": "Screens",
+      "page": true
+    },
+    {
+      "name": "StudyOverview",
+      "group": "Screens",
+      "page": true
+    }
+  ],
+  "assetGroups": [
+    {
+      "name": "Logos",
+      "tile": "l",
+      "order": [
+        "aia-mark.svg",
+        "aia-mark-on-graphite.svg",
+        "aia-wordmark.svg",
+        "aia-wordmark-on-graphite.svg",
+        "aia-lockup.svg",
+        "aia-mark-mono-black.svg",
+        "aia-mark-mono-white.svg",
+        "aia-wordmark-mono.svg",
+        "aia-lockup-mono.svg",
+        "README.md"
+      ],
+      "files": [
+        {
+          "path": "assets/Logos/aia-mark.svg",
+          "id": "937c30bca8105e3a198497609ef295ce"
+        },
+        {
+          "path": "assets/Logos/aia-mark-on-graphite.svg",
+          "id": "8803ea344d4608c6dc2312e7ee895ca6"
+        },
+        {
+          "path": "assets/Logos/aia-wordmark.svg",
+          "id": "2e5db96265741a2dcecfd7fcbe6d9f55"
+        },
+        {
+          "path": "assets/Logos/aia-wordmark-on-graphite.svg",
+          "id": "6b0469ffde51fba36dabd3a139f1e99e"
+        },
+        {
+          "path": "assets/Logos/aia-lockup.svg",
+          "id": "bae166c91a247822a67850c6fbf7923f"
+        },
+        {
+          "path": "assets/Logos/aia-mark-mono-black.svg",
+          "id": "3d118f31920a4b357dc941420bfb4bf0"
+        },
+        {
+          "path": "assets/Logos/aia-mark-mono-white.svg",
+          "id": "a02454ac41c4447f08b85534f9bbfaad"
+        },
+        {
+          "path": "assets/Logos/aia-wordmark-mono.svg",
+          "id": "f76436bd502afba68966c85924aca0bc"
+        },
+        {
+          "path": "assets/Logos/aia-lockup-mono.svg",
+          "id": "1145a262674eb9db10b1aef1d65f8f75"
+        }
+      ]
+    },
+    {
+      "name": "Icons",
+      "tile": "xs",
+      "order": [
+        "artifact.svg",
+        "budget.svg",
+        "check.svg",
+        "chevron.svg",
+        "client.svg",
+        "clock.svg",
+        "close.svg",
+        "evidence.svg",
+        "export.svg",
+        "fingerprint.svg",
+        "gate.svg",
+        "keyboard.svg",
+        "ledger.svg",
+        "library.svg",
+        "map.svg",
+        "missing.svg",
+        "parked.svg",
+        "population.svg",
+        "portfolio.svg",
+        "provider.svg",
+        "recovery.svg",
+        "reservation.svg",
+        "revision.svg",
+        "search.svg",
+        "settings.svg",
+        "signoff.svg",
+        "stage.svg",
+        "study.svg",
+        "suppressed.svg",
+        "view.svg",
+        "waiting.svg",
+        "whatif.svg"
+      ],
+      "files": [
+        {
+          "path": "assets/Icons/artifact.svg",
+          "id": "e06aaeeb054d7ce8996917bde8337266"
+        },
+        {
+          "path": "assets/Icons/budget.svg",
+          "id": "1bc0e66d68afa1009e05928a80f6766c"
+        },
+        {
+          "path": "assets/Icons/check.svg",
+          "id": "ec57ab8c4622b1dfee74cfab7f3ee200"
+        },
+        {
+          "path": "assets/Icons/chevron.svg",
+          "id": "a754142e9cc512caee0de59370c97c50"
+        },
+        {
+          "path": "assets/Icons/client.svg",
+          "id": "cadbe9b40f157e96112a27df044a9ab9"
+        },
+        {
+          "path": "assets/Icons/clock.svg",
+          "id": "3cd1dc310aa680d3fba6f17cb6644c11"
+        },
+        {
+          "path": "assets/Icons/close.svg",
+          "id": "352a23db04c0de547493867255bf72b1"
+        },
+        {
+          "path": "assets/Icons/evidence.svg",
+          "id": "8b7f9fe735b1f0db7c94d09be19ac7c9"
+        },
+        {
+          "path": "assets/Icons/export.svg",
+          "id": "b0e2ca8e1ba07d15eb1cf5e77200d484"
+        },
+        {
+          "path": "assets/Icons/fingerprint.svg",
+          "id": "fb234dfa1d08cec39be23132a869bd3b"
+        },
+        {
+          "path": "assets/Icons/gate.svg",
+          "id": "8fb7a35cff61d00afc769f931c0e9d1e"
+        },
+        {
+          "path": "assets/Icons/keyboard.svg",
+          "id": "61d6e848f5db87725de1c4adf953498b"
+        },
+        {
+          "path": "assets/Icons/ledger.svg",
+          "id": "97b95f3944c2ae849e818a3a3360a853"
+        },
+        {
+          "path": "assets/Icons/library.svg",
+          "id": "16edd9051b820541ddc2612ff6cf5eb2"
+        },
+        {
+          "path": "assets/Icons/map.svg",
+          "id": "d8db81c7fe7ac82b6a4d30f9bc423a91"
+        },
+        {
+          "path": "assets/Icons/missing.svg",
+          "id": "bcbb3af4a989e8e8bb437c0f42fcd26d"
+        },
+        {
+          "path": "assets/Icons/parked.svg",
+          "id": "15a02409bff2e7cac9cee7e517edd3c0"
+        },
+        {
+          "path": "assets/Icons/population.svg",
+          "id": "2f85193d23a23976c8c1bb9433daf317"
+        },
+        {
+          "path": "assets/Icons/portfolio.svg",
+          "id": "8b72c64abeae18ad0fbd93ef4a6ec1f9"
+        },
+        {
+          "path": "assets/Icons/provider.svg",
+          "id": "7e2581a3d2144b26762301134e0bf036"
+        },
+        {
+          "path": "assets/Icons/recovery.svg",
+          "id": "f9928516aefa487c6bebfcd32767a591"
+        },
+        {
+          "path": "assets/Icons/reservation.svg",
+          "id": "ca785ed442f65de2cef0333acdd50be5"
+        },
+        {
+          "path": "assets/Icons/revision.svg",
+          "id": "cefca1b91f01660184544e1d4914deab"
+        },
+        {
+          "path": "assets/Icons/search.svg",
+          "id": "54ba6a63a00de6dbea1bc3f618bff8b3"
+        },
+        {
+          "path": "assets/Icons/settings.svg",
+          "id": "0a6fdee0cd6cc90c563f539a913d6534"
+        },
+        {
+          "path": "assets/Icons/signoff.svg",
+          "id": "945c6843e3144a8e495079c46319c99f"
+        },
+        {
+          "path": "assets/Icons/stage.svg",
+          "id": "f9cf2b1524fa93ba34a45d88cce498c0"
+        },
+        {
+          "path": "assets/Icons/study.svg",
+          "id": "02e7789562f6b17513873d58aeccb992"
+        },
+        {
+          "path": "assets/Icons/suppressed.svg",
+          "id": "eca4ef282a0a6522b04576023249716f"
+        },
+        {
+          "path": "assets/Icons/view.svg",
+          "id": "bb1e5478413bb3224fad2f5d359efd70"
+        },
+        {
+          "path": "assets/Icons/waiting.svg",
+          "id": "8a67cb78689fcb72a69d16cb6381ef91"
+        },
+        {
+          "path": "assets/Icons/whatif.svg",
+          "id": "2d1898ac53953a4ec7638a7b2d612107"
+        }
+      ]
+    },
+    {
+      "name": "Motif",
+      "tile": "l",
+      "order": [
+        "lattice-field-on-graphite.svg",
+        "lattice-field.svg",
+        "report-cover-field.svg",
+        "section-divider.svg"
+      ],
+      "files": [
+        {
+          "path": "assets/Motif/lattice-field-on-graphite.svg",
+          "id": "46891a7e8691d8997003765d4bcdf695"
+        },
+        {
+          "path": "assets/Motif/lattice-field.svg",
+          "id": "6f1af03cf9ddde4e7ab7b0ae6c97e5f2"
+        },
+        {
+          "path": "assets/Motif/report-cover-field.svg",
+          "id": "fc6370a7b1d1e4d5490baeb68b9c2c7a"
+        },
+        {
+          "path": "assets/Motif/section-divider.svg",
+          "id": "a6e2a6a5c0c44c28713a939d43d6d080"
+        }
+      ]
+    },
+    {
+      "name": "Favicons",
+      "tile": "s",
+      "order": [
+        "app-icon.svg",
+        "apple-touch-icon-180.png",
+        "favicon-16.png",
+        "favicon-16.svg",
+        "favicon-32.png",
+        "icon-512.png"
+      ],
+      "files": [
+        {
+          "path": "assets/Favicons/app-icon.svg",
+          "id": "2093b1ef67efba6543e690a75cf0de90"
+        },
+        {
+          "path": "assets/Favicons/apple-touch-icon-180.png",
+          "id": "b3d366aa24c36238ff5d315e42712022"
+        },
+        {
+          "path": "assets/Favicons/favicon-16.png",
+          "id": "9414f7946ef570e07ea8dedd0af463da"
+        },
+        {
+          "path": "assets/Favicons/favicon-16.svg",
+          "id": "a22ef70a9125b350c6e9734175041bf8"
+        },
+        {
+          "path": "assets/Favicons/favicon-32.png",
+          "id": "737c2374bb935c0f83b2d52f15e30de4"
+        },
+        {
+          "path": "assets/Favicons/icon-512.png",
+          "id": "43c4c06b97a484b6bcdc5b6aa55a7e47"
+        }
+      ]
+    },
+    {
+      "name": "Accessibility",
+      "tile": "l",
+      "order": [
+        "greyscale-GradedBars.png",
+        "greyscale-ReportPage.png",
+        "greyscale-evidence-grades.png",
+        "greyscale-five-states.png",
+        "greyscale-null-states.png"
+      ],
+      "files": [
+        {
+          "path": "assets/Accessibility/greyscale-GradedBars.png",
+          "id": "d42b78e6b3cc8da0f7457053f10c081e"
+        },
+        {
+          "path": "assets/Accessibility/greyscale-ReportPage.png",
+          "id": "1f392364a9be5dba9d1fe1001cc2351a"
+        },
+        {
+          "path": "assets/Accessibility/greyscale-evidence-grades.png",
+          "id": "0dd295bd6819adff17fe5a2f118eecaf"
+        },
+        {
+          "path": "assets/Accessibility/greyscale-five-states.png",
+          "id": "b9410b0ed4f9ccc7b111015836d10b74"
+        },
+        {
+          "path": "assets/Accessibility/greyscale-null-states.png",
+          "id": "22777918d64e8afdd596ef16e67c9ab4"
+        }
+      ]
+    }
+  ],
+  "storage": {
+    "files": {
+      "assets/Accessibility/greyscale-GradedBars.png": {
+        "store": "blob",
+        "id": "d42b78e6b3cc8da0f7457053f10c081e",
+        "bytes": 11769,
+        "type": "image/png"
+      },
+      "assets/Accessibility/greyscale-ReportPage.png": {
+        "store": "blob",
+        "id": "1f392364a9be5dba9d1fe1001cc2351a",
+        "bytes": 73420,
+        "type": "image/png"
+      },
+      "assets/Accessibility/greyscale-evidence-grades.png": {
+        "store": "blob",
+        "id": "0dd295bd6819adff17fe5a2f118eecaf",
+        "bytes": 48278,
+        "type": "image/png"
+      },
+      "assets/Accessibility/greyscale-five-states.png": {
+        "store": "blob",
+        "id": "b9410b0ed4f9ccc7b111015836d10b74",
+        "bytes": 34570,
+        "type": "image/png"
+      },
+      "assets/Accessibility/greyscale-null-states.png": {
+        "store": "blob",
+        "id": "22777918d64e8afdd596ef16e67c9ab4",
+        "bytes": 32981,
+        "type": "image/png"
+      },
+      "assets/Favicons/app-icon.svg": {
+        "store": "blob",
+        "id": "2093b1ef67efba6543e690a75cf0de90",
+        "bytes": 1645,
+        "type": "image/svg+xml"
+      },
+      "assets/Favicons/apple-touch-icon-180.png": {
+        "store": "blob",
+        "id": "b3d366aa24c36238ff5d315e42712022",
+        "bytes": 7279,
+        "type": "image/png"
+      },
+      "assets/Favicons/favicon-16.png": {
+        "store": "blob",
+        "id": "9414f7946ef570e07ea8dedd0af463da",
+        "bytes": 412,
+        "type": "image/png"
+      },
+      "assets/Favicons/favicon-16.svg": {
+        "store": "blob",
+        "id": "a22ef70a9125b350c6e9734175041bf8",
+        "bytes": 434,
+        "type": "image/svg+xml"
+      },
+      "assets/Favicons/favicon-32.png": {
+        "store": "blob",
+        "id": "737c2374bb935c0f83b2d52f15e30de4",
+        "bytes": 1153,
+        "type": "image/png"
+      },
+      "assets/Favicons/icon-512.png": {
+        "store": "blob",
+        "id": "43c4c06b97a484b6bcdc5b6aa55a7e47",
+        "bytes": 22494,
+        "type": "image/png"
+      },
+      "assets/Icons/artifact.svg": {
+        "store": "blob",
+        "id": "e06aaeeb054d7ce8996917bde8337266",
+        "bytes": 239,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/budget.svg": {
+        "store": "blob",
+        "id": "1bc0e66d68afa1009e05928a80f6766c",
+        "bytes": 279,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/check.svg": {
+        "store": "blob",
+        "id": "ec57ab8c4622b1dfee74cfab7f3ee200",
+        "bytes": 224,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/chevron.svg": {
+        "store": "blob",
+        "id": "a754142e9cc512caee0de59370c97c50",
+        "bytes": 209,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/client.svg": {
+        "store": "blob",
+        "id": "cadbe9b40f157e96112a27df044a9ab9",
+        "bytes": 262,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/clock.svg": {
+        "store": "blob",
+        "id": "3cd1dc310aa680d3fba6f17cb6644c11",
+        "bytes": 244,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/close.svg": {
+        "store": "blob",
+        "id": "352a23db04c0de547493867255bf72b1",
+        "bytes": 229,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/evidence.svg": {
+        "store": "blob",
+        "id": "8b7f9fe735b1f0db7c94d09be19ac7c9",
+        "bytes": 389,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/export.svg": {
+        "store": "blob",
+        "id": "b0e2ca8e1ba07d15eb1cf5e77200d484",
+        "bytes": 263,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/fingerprint.svg": {
+        "store": "blob",
+        "id": "fb234dfa1d08cec39be23132a869bd3b",
+        "bytes": 288,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/gate.svg": {
+        "store": "blob",
+        "id": "8fb7a35cff61d00afc769f931c0e9d1e",
+        "bytes": 302,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/keyboard.svg": {
+        "store": "blob",
+        "id": "61d6e848f5db87725de1c4adf953498b",
+        "bytes": 316,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/ledger.svg": {
+        "store": "blob",
+        "id": "97b95f3944c2ae849e818a3a3360a853",
+        "bytes": 289,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/library.svg": {
+        "store": "blob",
+        "id": "16edd9051b820541ddc2612ff6cf5eb2",
+        "bytes": 274,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/map.svg": {
+        "store": "blob",
+        "id": "d8db81c7fe7ac82b6a4d30f9bc423a91",
+        "bytes": 369,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/missing.svg": {
+        "store": "blob",
+        "id": "bcbb3af4a989e8e8bb437c0f42fcd26d",
+        "bytes": 269,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/parked.svg": {
+        "store": "blob",
+        "id": "15a02409bff2e7cac9cee7e517edd3c0",
+        "bytes": 252,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/population.svg": {
+        "store": "blob",
+        "id": "2f85193d23a23976c8c1bb9433daf317",
+        "bytes": 611,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/portfolio.svg": {
+        "store": "blob",
+        "id": "8b72c64abeae18ad0fbd93ef4a6ec1f9",
+        "bytes": 283,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/provider.svg": {
+        "store": "blob",
+        "id": "7e2581a3d2144b26762301134e0bf036",
+        "bytes": 275,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/recovery.svg": {
+        "store": "blob",
+        "id": "f9928516aefa487c6bebfcd32767a591",
+        "bytes": 273,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/reservation.svg": {
+        "store": "blob",
+        "id": "ca785ed442f65de2cef0333acdd50be5",
+        "bytes": 287,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/revision.svg": {
+        "store": "blob",
+        "id": "cefca1b91f01660184544e1d4914deab",
+        "bytes": 232,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/search.svg": {
+        "store": "blob",
+        "id": "54ba6a63a00de6dbea1bc3f618bff8b3",
+        "bytes": 250,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/settings.svg": {
+        "store": "blob",
+        "id": "0a6fdee0cd6cc90c563f539a913d6534",
+        "bytes": 323,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/signoff.svg": {
+        "store": "blob",
+        "id": "945c6843e3144a8e495079c46319c99f",
+        "bytes": 256,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/stage.svg": {
+        "store": "blob",
+        "id": "f9cf2b1524fa93ba34a45d88cce498c0",
+        "bytes": 255,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/study.svg": {
+        "store": "blob",
+        "id": "02e7789562f6b17513873d58aeccb992",
+        "bytes": 235,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/suppressed.svg": {
+        "store": "blob",
+        "id": "eca4ef282a0a6522b04576023249716f",
+        "bytes": 255,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/view.svg": {
+        "store": "blob",
+        "id": "bb1e5478413bb3224fad2f5d359efd70",
+        "bytes": 280,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/waiting.svg": {
+        "store": "blob",
+        "id": "8a67cb78689fcb72a69d16cb6381ef91",
+        "bytes": 274,
+        "type": "image/svg+xml"
+      },
+      "assets/Icons/whatif.svg": {
+        "store": "blob",
+        "id": "2d1898ac53953a4ec7638a7b2d612107",
+        "bytes": 265,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-lockup-mono.svg": {
+        "store": "blob",
+        "id": "1145a262674eb9db10b1aef1d65f8f75",
+        "bytes": 12363,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-lockup.svg": {
+        "store": "blob",
+        "id": "bae166c91a247822a67850c6fbf7923f",
+        "bytes": 12363,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-mark-mono-black.svg": {
+        "store": "blob",
+        "id": "3d118f31920a4b357dc941420bfb4bf0",
+        "bytes": 1579,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-mark-mono-white.svg": {
+        "store": "blob",
+        "id": "a02454ac41c4447f08b85534f9bbfaad",
+        "bytes": 1579,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-mark-on-graphite.svg": {
+        "store": "blob",
+        "id": "8803ea344d4608c6dc2312e7ee895ca6",
+        "bytes": 1633,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-mark.svg": {
+        "store": "blob",
+        "id": "937c30bca8105e3a198497609ef295ce",
+        "bytes": 1579,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-wordmark-mono.svg": {
+        "store": "blob",
+        "id": "f76436bd502afba68966c85924aca0bc",
+        "bytes": 821,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-wordmark-on-graphite.svg": {
+        "store": "blob",
+        "id": "6b0469ffde51fba36dabd3a139f1e99e",
+        "bytes": 962,
+        "type": "image/svg+xml"
+      },
+      "assets/Logos/aia-wordmark.svg": {
+        "store": "blob",
+        "id": "2e5db96265741a2dcecfd7fcbe6d9f55",
+        "bytes": 821,
+        "type": "image/svg+xml"
+      },
+      "assets/Motif/lattice-field-on-graphite.svg": {
+        "store": "blob",
+        "id": "46891a7e8691d8997003765d4bcdf695",
+        "bytes": 52370,
+        "type": "image/svg+xml"
+      },
+      "assets/Motif/lattice-field.svg": {
+        "store": "blob",
+        "id": "6f1af03cf9ddde4e7ab7b0ae6c97e5f2",
+        "bytes": 52324,
+        "type": "image/svg+xml"
+      },
+      "assets/Motif/report-cover-field.svg": {
+        "store": "blob",
+        "id": "fc6370a7b1d1e4d5490baeb68b9c2c7a",
+        "bytes": 19018,
+        "type": "image/svg+xml"
+      },
+      "assets/Motif/section-divider.svg": {
+        "store": "blob",
+        "id": "a6e2a6a5c0c44c28713a939d43d6d080",
+        "bytes": 5354,
+        "type": "image/svg+xml"
+      }
+    },
+    "blobBytesUsed": 406252
+  }
+}

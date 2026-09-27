@@ -1,0 +1,12 @@
+<!-- @dsCard group="Money" height=150 subtitle="Spent · uncertain · reserved · remaining" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>BudgetMeter</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{padding:16,maxWidth:640}},h(A.BudgetMeter,{limit:12000,spent:7420.5,uncertain:0.84,reserved:1480,currency:"USD"})));
+</script>
+</body>
+</html>

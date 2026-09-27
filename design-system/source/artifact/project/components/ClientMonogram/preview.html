@@ -1,0 +1,12 @@
+<!-- @dsCard group="Scope" height=90 subtitle="Deterministic accent, six rooms" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>ClientMonogram</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia aia-row",style:{padding:16,gap:16}},["cl_horizont","cl_morava","cl_salvia","cl_tecka","cl_brazda","cl_nova","cl_x7"].map(function(id,i){return h("span",{key:id,className:"aia-row",style:{gap:6}},h(A.ClientMonogram,{clientId:id,code:["BH","EM","SL","OT","NB","NV","X7"][i]}),h("span",{className:"aia-enum"},"client-"+A.clientAccentIndex(id)));}),h(A.ClientMonogram,{above:true})));
+</script>
+</body>
+</html>

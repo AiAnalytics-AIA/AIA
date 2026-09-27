@@ -3,7 +3,7 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-27 · **Branch:** `claude/modest-hypatia-9gvdpx` (registry credentials on the develop host) ·
+**Updated:** 2026-09-27 · **Branch:** `chore/design-system-reference` (design-system reference package) ·
 **Trunk:** `main` (release) · **Integration:** `develop` (deployed, ADR 0009)
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -30,6 +30,7 @@ entry is a **hypothesis**, not a finding.
 
 | Phase | What | Anchor |
 |---|---|---|
+| Design | **Design-system reference package** for design tools that read the repo: the AIA Design System artifact's tokens as plain CSS (`:root` / `[data-theme="dark"]`, density, one purpose comment per token) and flat JSON, the ten OFL woff2 faces (Czech checked with fontTools), identity/favicon/motif/icon SVGs, `status-map.md` derived from the nine domain status enums @ `043b0dd`, and three no-build HTML pages (state gallery, components, type and colour) with no hex values. The artifact's 12 rendered screens were judged wrong by the data owner and left out. Found: `FailureClass.RUNTIME_UNAVAILABLE` is absent from the artifact; mapped to `world` pending the design owner. Not wired into `apps/web` | `design-system/README.md` · `design-system/status-map.md` |
 | Host | **No registry token at rest on the develop host.** `ecr_login` pulls through Amazon's ECR credential helper (instance role), installs the Ubuntu package on first use, removes the token `docker login` had stored unencrypted in root's `~/.docker/config.json`, and turns the helper's plain-text cache off. If the package cannot be installed, the deploy falls back to `docker login` and logs a warning. No Terraform or user-data change (a changed `user_data` would stop and start the host on apply) | `deploy/develop/bin/lib.sh` › `ecr_login` · `packages/aia_core/tests/test_develop_registry_credentials.py` |
 | Agent Runtime | **PR #56 merged and deployed** at `0310091`, 2026-09-26. CI `36234914562` and deploy `36235378083` passed; running worker SHA verified. ADR 0010 human approval recorded for fictional Class C on develop only, retention unspecified. Verified EU prices: input $3.30 / output $16.50 per million tokens. Audited Terraform apply removed only the unused eu-central-2 model grant. Live acceptance study completed: five steps succeeded; 20 primary calls; $0.2303301 ledger cost against $2; all reservations settled. | `apps/executors/src/aia_executors/ai_runtime.py` @ `0310091` · [activation evidence](../docs/architecture/bedrock-develop-activation-2026-09-26.md) · OI-63–65 |
 | PR C | **Research execution (ADR 0016)**: Design Revisions, the `research` workflow (`compile → preflight → run → aggregate → sociomap`), the honest park at fieldwork, Aggregate and the internal Sociomap, the Run/Progress/Results stages, the workbench proof. Merged PR #52 @ `b3bd42f`, CI green. Plan: [research-execution.md](plans/done/research-execution.md) | `apps/executors/src/aia_executors/research.py` · OI-61, OI-62 |
