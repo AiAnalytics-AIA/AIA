@@ -7,8 +7,10 @@ another client, is a 404; a missing permission inside a visible Study is a 403.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+import pytest
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
@@ -20,7 +22,22 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
+from aia_api.config import Settings
+
 API = "/api/v1"
+
+
+@pytest.fixture
+def settings(settings: Settings, tmp_path: Path) -> Settings:
+    """A file-backed SQLite database: these tests start a worker (AGENTS.md § SQLite).
+
+    Its heartbeat thread would otherwise share in-memory SQLite's one connection
+    and roll back a step's uncommitted artifact row mid-transaction.
+    """
+    if settings.database_url and ":memory:" not in settings.database_url:
+        return settings
+    return settings.model_copy(update={"database_url": f"sqlite+pysqlite:///{tmp_path / 'api.db'}"})
+
 
 DESIGN = {
     "title": "Ranní nápoj",

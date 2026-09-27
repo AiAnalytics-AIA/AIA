@@ -342,7 +342,11 @@ attempt = session.scalar(
 `:memory:` a single shared connection (`StaticPool`) so separate sessions see one
 database — which also means a second thread (the worker's heartbeat) shares that
 connection mid-transaction. Tests with more than one thread use a **file-backed**
-SQLite database per test (`apps/worker/tests/conftest.py`).
+SQLite database per test (`apps/worker/tests/conftest.py`). That includes an API
+test that starts a `Worker`: `test_research_api.py` and `test_runs_api.py` ran on
+`:memory:` and failed about one run in fourteen, the heartbeat's session close
+rolling back a step's flushed artifact row so its dependency insert failed its
+foreign key (found on PR #54, 2026-09-25). Both now override `settings`.
 
 
 **SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
