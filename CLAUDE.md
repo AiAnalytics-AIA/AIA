@@ -261,7 +261,7 @@ deploy/docker/              python.Dockerfile (api + worker targets); apps/web/D
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook
   bin/backup-legacy-state.py Live SQLite database copies for pre-deploy/nightly backup (WAL-safe)
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
-docs/architecture/          System design + 17 ADRs; ai-step-executor-contract.md;
+docs/architecture/          System design + the ADRs; ai-step-executor-contract.md;
                             research-journey.md (the research journey: stage owners, interfaces, acceptance)
 docs/design/                Brand and UI direction; the design-system brief
 design-system/              The AIA Design System artifact as a static reference package for design tools:

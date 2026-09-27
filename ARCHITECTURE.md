@@ -24,7 +24,7 @@ It deliberately does not describe the product. That lives in
 | [sociomapa-deterministic-engine.md](docs/architecture/sociomapa-deterministic-engine.md) | Sociomapping engine: what is ported, declared and refused |
 | [sociomapa-methodology-decision.md](docs/architecture/sociomapa-methodology-decision.md) | The D6 decision package for the methodology owner |
 | [simulation-deterministic-engine.md](docs/architecture/simulation-deterministic-engine.md) | Simulation core boundary and parity status |
-| [adr/](docs/architecture/adr/README.md) | Seventeen decision records, with the reasoning |
+| [adr/](docs/architecture/adr/README.md) | The decision records, with the reasoning |
 
 ---
 
