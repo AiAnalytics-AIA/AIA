@@ -344,6 +344,7 @@ jobs:
               "/api/v1/access-audit",
               "/api/v1/settings",
               "/api/v1/self-approval",
+              "/api/v1/clients/{client_id}/status",
           ]
           missing = [p for p in required if p not in paths]
           if missing:

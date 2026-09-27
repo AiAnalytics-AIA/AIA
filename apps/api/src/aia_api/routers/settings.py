@@ -150,6 +150,8 @@ def _groups() -> list[SettingGroup]:
             key="access",
             items=[
                 _item("members", None, _API, "POST /api/v1/members"),
+                _item("clients", None, _API, "POST /api/v1/clients"),
+                _item("client_status", None, _API, "PUT /api/v1/clients/{client_id}/status"),
                 _item("client_grants", None, _API, "POST /api/v1/clients/{client_id}/grants"),
                 _item("study_grants", None, _API, "POST /api/v1/studies/{study_id}/grants"),
                 _item(
@@ -161,8 +163,10 @@ def _groups() -> list[SettingGroup]:
             ],
         ),
         SettingGroup(
-            key="budgets",
+            key="studies",
             items=[
+                _item("studies", None, _API, "POST /api/v1/studies"),
+                _item("study_status", None, _API, "PUT /api/v1/studies/{study_id}/status"),
                 _item("study_budget", None, _API, "PUT /api/v1/studies/{study_id}/budget", "USD"),
                 _item(
                     "default_project_max_api_cost",

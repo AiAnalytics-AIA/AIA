@@ -40,7 +40,7 @@ def test_a_member_does_not_see_the_deployment_group(researcher: TestClient) -> N
     assert body["may_administer"] is False
     assert "deployment" not in _groups(body)
     # Everything else is the same document.
-    assert "budgets" in _groups(body)
+    assert "studies" in _groups(body)
 
 
 def test_no_secret_reaches_the_document(owner: TestClient) -> None:
@@ -55,7 +55,7 @@ def test_no_secret_reaches_the_document(owner: TestClient) -> None:
 
 def test_values_are_the_domain_constants(owner: TestClient) -> None:
     groups = _groups(owner.get(f"{API}/settings").json())
-    assert groups["budgets"]["default_project_max_api_cost"]["value"] == DEFAULT_MAX_API_COST_USD
+    assert groups["studies"]["default_project_max_api_cost"]["value"] == DEFAULT_MAX_API_COST_USD
     assert groups["workflow"]["lease_seconds"]["value"] == DEFAULT_LEASE_SECONDS
     assert groups["evidence"]["min_cell"]["value"] == REFERENCE_THRESHOLDS.min_cell
     assert groups["evidence"]["tier_C_permits"]["value"] == ["internal_experimental"]

@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from aia_core.domain.scope import (
+    ClientStatus,
     OrganizationRole,
     Permission,
     ScopeDenied,
@@ -73,6 +74,14 @@ class ClientResponse(BaseModel):
     reference: str = ""
     study_count: int = 0
     created_at: datetime | None = None
+
+
+class ClientStatusRequest(BaseModel):
+    """Change a client's lifecycle status."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["ACTIVE", "DORMANT", "ARCHIVED"]
 
 
 class StudyCreateRequest(BaseModel):
@@ -353,6 +362,44 @@ def grant_client_access(
             status_code=404, detail={"code": "not_found", "message": "No such client."}
         ) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put(
+    "/clients/{client_id}/status",
+    response_model=ClientResponse,
+    summary="Change a client's status",
+)
+def set_client_status(
+    client_id: Annotated[str, Path(max_length=64, pattern=r"^CLI-[0-9a-f]{1,32}$")],
+    body: ClientStatusRequest,
+    admin: OrganizationDep,
+    repo: ScopeRepositoryDep,
+) -> ClientResponse:
+    """Mark a client ACTIVE, DORMANT or ARCHIVED. Requires organization administration.
+
+    Archiving hides the client from the default list; it deletes nothing and
+    revokes no grant. The change is written to the access audit.
+    """
+    try:
+        client = repo.set_client_status(
+            admin, client_id=client_id, status=ClientStatus(body.status)
+        )
+    except ScopeDenied as exc:
+        if exc.reason == "insufficient_role":
+            raise _forbidden(exc) from exc
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "No such client."}
+        ) from exc
+    counts = repo.client_study_counts(admin)
+    return ClientResponse(
+        client_id=client.client_id,
+        slug=client.slug,
+        name=client.name,
+        status=client.status.value,
+        reference=client.reference,
+        study_count=counts.get(client.client_id, 0),
+        created_at=client.created_at,
+    )
 
 
 # --------------------------------------------------------------------------- #
