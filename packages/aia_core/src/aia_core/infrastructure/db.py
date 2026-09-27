@@ -28,6 +28,7 @@ __all__ = [
     "is_sqlite",
     "resolve_database_url",
     "session_scope",
+    "shares_one_connection",
 ]
 
 DEFAULT_SQLITE_URL = "sqlite+pysqlite:///:memory:"
@@ -56,6 +57,20 @@ def resolve_database_url(url: str | None = None) -> str:
 def is_sqlite(url: str) -> bool:
     """True when the URL points at SQLite."""
     return url.startswith("sqlite")
+
+
+def shares_one_connection(engine: Engine) -> bool:
+    """True when every session on this engine gets the same DBAPI connection.
+
+    That is the in-memory SQLite engine ``create_app_engine`` builds: one
+    connection, so separate sessions see one database. It cannot serve two
+    threads. Closing a session on one thread returns *the* connection to the pool,
+    which rolls back whatever a session on another thread has flushed but not yet
+    committed.
+    """
+    from sqlalchemy.pool import StaticPool
+
+    return isinstance(engine.pool, StaticPool)
 
 
 def _enable_sqlite_foreign_keys(engine: Engine) -> None:

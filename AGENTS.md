@@ -348,6 +348,25 @@ test that starts a `Worker`: `test_research_api.py` and `test_runs_api.py` ran o
 rolling back a step's flushed artifact row so its dependency insert failed its
 foreign key (found on PR #54, 2026-09-25). Both now override `settings`.
 
+A per-module override only holds until the next test forgets it, so `Worker` now
+refuses such an engine at construction (`shares_one_connection` in
+`infrastructure/db.py`). The race becomes a `ValueError` on every run instead of a
+step failing one run in fourteen. The failure looked like a repository bug, an
+`IntegrityError` "raised as a result of Query-invoked autoflush" inserting into
+`project_artifact_dependencies`, but the repository's transaction was correct: it
+had been rolled back from underneath it. `apps/worker/tests/test_shared_connection.py`
+replays the heartbeat's close at that point, so the race is reproduced
+deterministically.
+
+```python
+# WRONG: the heartbeat thread's session close rolls back the step's transaction
+engine = create_app_engine("sqlite+pysqlite:///:memory:")   # StaticPool
+Worker(session_factory=create_session_factory(engine), ...)  # now raises ValueError
+
+# RIGHT: a connection per session
+engine = create_app_engine(f"sqlite+pysqlite:///{tmp_path / 'worker.db'}")
+```
+
 
 **SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
 aware `datetime` on PostgreSQL and a **naive** one on SQLite, which has no

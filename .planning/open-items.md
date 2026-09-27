@@ -2214,3 +2214,20 @@ in `AGENTS.md` beside the worker's own conftest.
 **Status.** Fixed: PR #65, merged 2026-09-27 10:30 (`e0edf2a`). Before it landed, the same race
 also crashed CI on `develop` @ `46b7337` with a segmentation fault inside this test (run
 36312008574; the crashing thread was in a worker transaction on the shared connection).
+
+**Structural fix, 2026-09-27 (`claude/loving-hopper-qiflcr`).** PR #65 fixed the two modules; it
+did not stop a third from doing the same. `Worker.__init__` now refuses a session factory
+whose engine `shares_one_connection` (`apps/worker/src/aia_worker/worker.py`,
+`_require_a_connection_per_thread`). The race is reproduced deterministically by
+`apps/worker/tests/test_shared_connection.py::test_a_heartbeat_session_closing_mid_step_breaks_only_a_shared_connection`,
+which closes a second session straight after the artifact row flushes and gets the reported
+`IntegrityError` (foreign key, "Query-invoked autoflush", `project_artifact_dependencies`) on
+`:memory:` and none with a connection per session. With PR #65's override removed, the
+research test now fails 3 of 3 runs with that `ValueError`, instead of about one in fourteen.
+The hypothesis of a duplicate edge on content-hash reuse is refuted: the Sociomap step's
+`depends_on` is `[spec_id, dataset_id]`, two distinct ids, and the failing insert is the first
+edge, whose parent row had been rolled back.
+
+The known-flakes entry for this test in CLAUDE.md, added by `08bf3c7` on
+`claude/trusting-turing-2b9oyl` (PR #67), was measured at `46b7337`, before `e0edf2a`. It is
+not on `develop`, and PR #67 should drop it before merging.

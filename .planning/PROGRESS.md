@@ -74,6 +74,7 @@ attempt 3, green).
 | #66 | `chore/consolidate-tracker` | This reconciliation | Docs only | 3 |
 | #63 | `feature/research-agents` | Native Research design agents on Bedrock | Draft, "do not merge as completion"; `develop` merged in @ `5718383` (2026-09-27); conflicts with 3 in this file's header | 4, see below |
 | — | `claude/trusting-turing-2b9oyl` | Settings page on the real API | No PR yet; based on `main` | open a PR into `develop` |
+| — | `claude/loving-hopper-qiflcr` | A worker refuses an in-memory SQLite engine; deterministic reproduction of OI-69 | Draft PR into `develop` | any |
 
 **PR #63** is one slice, not the whole agent workflow. Land what it has built as a slice:
 native design jobs and reviewed proposals, once CI is green and the browser journey is

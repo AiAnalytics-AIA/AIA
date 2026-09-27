@@ -95,7 +95,8 @@ apps/
     src/app/interface-document/  The document Caddy serves at /classic: fetch the unit, apply the skin
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
     executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
-    worker.py               The loop: claim, execute, record; reconcile on an interval
+    worker.py               The loop: claim, execute, record; reconcile on an interval.
+                            Refuses a one-connection engine (in-memory SQLite)
     context.py              Checkpoints, per-call metering, lease-fenced transactions
     heartbeat.py            Lease extension + cancellation carried back, one thread per attempt
     settings.py             Typed, validated settings from the environment
