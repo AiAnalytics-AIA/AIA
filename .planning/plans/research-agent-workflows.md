@@ -71,3 +71,49 @@ publication and live acceptance remain separate; no skipped check is a pass.
 Search preparation: Tavily Search/Extract, free evaluation proposed, paid overage
 off. Public terms/region/retention/storage findings are prepared for user review;
 no account/key/approved route or call. Chunks 5–6 remain required for the full goal.
+
+## Claude continuation handoff — 2026-09-27
+
+User requested immediate publication so Claude can continue. Branch
+`feature/research-agents`, base develop `043b0dd`. Backend `c88ec50`, browser
+proposal flow `45a2651`; a final listing regression follows them. A new design job
+must not hide fieldwork results: filter workflow type before pagination. The test
+failed with an empty list before the fix; PostgreSQL Research/native-job follow-up
+is 30/30. No new live model call, runtime activation, Terraform or deployment.
+
+Next work in order:
+
+1. Read this plan, `docs/architecture/research-agents.md`, the triad and PROGRESS.
+   Read the new PR's latest CI and review findings. This draft is incomplete for
+   the full goal; do not equate eight design actions with the full Research flow.
+2. Run a real browser journey through enqueue, reload, review, accept and stale
+   refusal. Recorded model exchanges and component tests passed; a real browser
+   journey has not yet run. Keep local model calls recorded/offline.
+3. Complete chunk 5 using `application/analysis.py`, closed analysis drafts and
+   existing evidence admission. Do not turn fictional synthetic fieldwork into
+   client evidence. PR #58's report model/styles are merged, but its plan says
+   no complete DOCX renderer exists yet. Continue the report plan and wire
+   interpretation/composition/execution/export through scoped durable jobs.
+4. Complete chunk 6 against PR #54's Deep Research plan: scoped knowledge,
+   owned search/fetch, separate non-model cost accounting, frozen sources,
+   citation grounding and quarantine. Confidential-derived queries retain
+   their class regardless of missing keywords. The search service is not selected.
+5. The user asked about free search options. Tavily offers 1,000 credits/month
+   without a card; Exa offers $10/month plus an onboarding bonus. Proposed
+   Tavily free evaluation: six basic searches and two five-URL extraction batches,
+   reserve eight credits/job; no paid overage. Bedrock inference remains paid.
+   No account, key, terms acceptance or route approval exists. The prepared local
+   review/config files are included as `docs/architecture/web-search-service-proposal.md`
+   and `docs/architecture/web-search-config-draft.json`; neither is deployed.
+   Recheck current official pricing/terms before configuring anything.
+6. Preserve approval boundaries: existing ADR 0010 covers fictional Class C
+   allowlist only. Design capability has its own off-by-default switch and
+   worst-case primary/repair reservation. No confidential Class A/B approval.
+   The earlier $2 live fieldwork acceptance budget is already consumed; obtain
+   a new explicit run budget before another live model acceptance.
+7. Required gates, documentation and final review precede merge/deployment.
+   Study working-copy recoveries and legacy backup export remain operational
+   approval questions; publishing this PR does not resolve them.
+
+Full-process acceptance still requires chunks 5–8 above. Continue on this branch;
+reference source remains frozen. No Claude session trailer was fabricated.

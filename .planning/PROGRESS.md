@@ -434,3 +434,15 @@ left to build.
 Open defects and questions live in
 [`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);
 finished ones move to [`plans/done/`](plans/done/).
+
+### Research agent publication checkpoint — 2026-09-27
+
+Native backend `c88ec50` and proposal screens `45a2651` on
+`feature/research-agents`; full-workflow continuation is in the
+[plan handoff](plans/research-agent-workflows.md#claude-continuation-handoff--2026-09-27).
+Final review reproduced and fixed fieldwork runs disappearing behind newer design
+jobs at a pagination limit. Regression:
+`test_design_jobs_do_not_hide_fieldwork_when_the_list_is_limited`; PostgreSQL
+Research/native-agent follow-up 30/30. A real browser journey, interpretation,
+complete DOCX output and owned Deep Research remain required. Draft publication
+is not completion or activation.

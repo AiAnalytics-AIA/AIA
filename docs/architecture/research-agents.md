@@ -17,6 +17,8 @@ proposal acceptance. The API exposes these beneath
 Creation requires editing and running work in an open Study. Cancellation
 requires the existing cancellation permission. Cost is returned only with
 `VIEW_COSTS`. Browser inputs cannot choose providers, models, routes or authority.
+Fieldwork runs and design jobs filter their workflow type before pagination;
+new proposal jobs cannot hide a Study's older fieldwork results.
 
 The executor uses the existing `StepModelCaller`, governed gateway, Bedrock
 adapter and usage ledger. One logical request permits one bounded schema repair.

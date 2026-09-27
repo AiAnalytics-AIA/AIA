@@ -1156,6 +1156,19 @@ deploy script installs what it needs, idempotently.
 
 ## Durable AI proposal reuse and browser lifetime
 
+Apply the workflow-type filter in the repository before the list limit. Filtering
+after pagination lets a burst of design jobs hide the older fieldwork run on the
+same owned project. The regression in `test_research_runs.py` first returned an
+empty fieldwork list with `limit=1` after two proposals were enqueued.
+
+```python
+# WRONG: unrelated jobs consume the list's page.
+[r for r in repo.list_runs(limit=20) if r["workflow_type"] == RESEARCH]
+
+# RIGHT: paginate the requested workflow family.
+repo.list_runs(limit=20, workflow_type=RESEARCH)
+```
+
 A full-project proposal artifact must include its input revision in the reuse
 fingerprint. Two revisions can have identical model context when provider/policy
 fields are excluded, while their full saved baselines differ. Reusing the older

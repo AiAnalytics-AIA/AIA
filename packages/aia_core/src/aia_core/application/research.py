@@ -196,7 +196,9 @@ class ResearchRuns:
             return []
         runs = [
             r
-            for r in self._workflows().list_runs(project_id=project_id, limit=limit)
+            for r in self._workflows().list_runs(
+                project_id=project_id, limit=limit, workflow_type=RESEARCH
+            )
             if r["workflow_type"] == RESEARCH
         ]
         for r in runs:
