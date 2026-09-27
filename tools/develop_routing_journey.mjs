@@ -8,11 +8,11 @@
  *
  * Signed in as /login leaves a person (the gates' cookies and the tab's session),
  * it opens the hostname's root and follows it to the client directory, starts a
- * research under a fictional client, lets the first save bind the study to its
- * unit project, opens the run stage (AIA's: the empty design is not ready), hands
- * off to the classic interface from a stage still there and comes back, and tries two
- * direct routes that must find nothing: another client's study under this
- * client's URL, and a unit project id in a study's place. Prints one line per
+ * research under a fictional client, lets the first save store its content in AIA,
+ * opens the run stage (AIA's: the empty design is not ready), sees that a stage
+ * AIA has not rebuilt says so with no hand-off and that /classic is AIA's page,
+ * and tries two direct routes that must find nothing: another client's study under
+ * this client's URL, and a unit project id in a study's place. Prints one line per
  * check; exits 1 on any failure. Needs Playwright with a Chromium (resolved from
  * the environment, as tools/ui_workbench/capture.mjs does).
  */
@@ -101,24 +101,14 @@ const revisions = await api(`/studies/${studyId}/design/revisions`);
 check(revisions.status === 200 && revisions.body.items.length >= 1, "the design on screen was submitted as a Design Revision", `${revisions.status} ${revisions.body?.items?.length} revision(s)`);
 await page.screenshot({ path: `${OUT}/4a-run-stage.png` });
 
-// 4b. The hand-off to the classic interface is explicit, labelled and returnable,
-// from a stage that still lives there.
+// 4b. Nothing hands off to 18.6.6 (ADR 0018): a stage AIA has not rebuilt says so,
+// with no link out, and /classic itself is AIA's page saying the interface is gone.
 await page.goto(`${HOST}/app/clients/${clientId}/research/${studyId}/verify`, { waitUntil: "networkidle" });
-await page.waitForTimeout(1500);
-const stagePath = new URL(page.url()).pathname;
-const classic = page.locator("a[href^='/classic']").first();
-const href = await classic.getAttribute("href").catch(() => null);
-if (href) {
-  await classic.click();
-  await page.waitForURL(/\/classic/, { timeout: 60000 });
-  const bar = page.locator("#aia-return-bar");
-  await bar.waitFor({ timeout: 60000 });
-  check((await bar.innerText()).includes("Klasické rozhraní 18.6.6"), "classic page carries its label", (await bar.innerText()).replace(/\s+/g, " "));
-  await page.screenshot({ path: `${OUT}/4-classic.png` });
-  await bar.getByRole("link", { name: "Zpět do AIA" }).click();
-  await page.waitForURL((u) => u.pathname.startsWith("/app/"), { timeout: 60000 });
-  check(new URL(page.url()).pathname === stagePath, "Zpět do AIA returns to the stage", `${href} -> ${new URL(page.url()).pathname}`);
-} else check(false, "a hand-off link on the stage");
+await page.getByText("Tento krok v AIA zatím není.").first().waitFor({ timeout: 60000 });
+check((await page.locator("a[href^='/classic']").count()) === 0, "a stage not in AIA says so, with no hand-off");
+await page.goto(`${HOST}/classic`, { waitUntil: "networkidle" });
+check(!(await page.content()).includes("NPC_BOOT_STAGE") && (await page.getByText("už není součástí AIA").count()) > 0, "/classic is AIA's page, not 18.6.6");
+await page.screenshot({ path: `${OUT}/4-classic.png` });
 
 // 5. Isolation: another client's study under this client's URL, and a made-up unit id, fail closed.
 const clients = (await api("/workspace/clients")).body;
@@ -129,7 +119,8 @@ await page.waitForTimeout(1500);
 const text = await page.locator("main").innerText();
 check(/nenalezen|Nenalezeno|neexistuje|nemáte/i.test(text) && !text.includes(lumenStudies[0].name), "Lumen study under Horizont's URL: not found", text.split("\n")[0]);
 await page.screenshot({ path: `${OUT}/5-isolation.png` });
-await page.goto(`${HOST}/app/clients/${clientId}/research/${bound}/brief`, { waitUntil: "networkidle" });
+const unitId = "PRJ-0a1b2c3d4e5f60"; // the shape of an 18.6.6 project id, never a way in
+await page.goto(`${HOST}/app/clients/${clientId}/research/${unitId}/brief`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
 check(/nenalezen|Nenalezeno|neexistuje|nemáte/i.test(await page.locator("main").innerText()), "a unit project id in place of a study: not found");
 // Knowledge is read only inside a resolved scope: without one, nothing comes back.

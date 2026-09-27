@@ -69,16 +69,16 @@ def test_the_unit_matcher_is_the_one_the_route_check_holds_develop_to() -> None:
 @pytest.mark.parametrize(
     ("path", "target", "upstream"),
     [
-        # AIA is the front door; the classic interface only when asked (ADR 0015).
+        # AIA is the front door (ADR 0015); the 18.6.6 interface is not served
+        # (ADR 0018): /classic is the web client's own page, the old document its 404.
         ("/", "redirect", "/app/clients"),
         ("/?lang=cs", "redirect", "/app/clients"),
-        ("/classic", "web", "/interface-document"),
-        ("/classic?lang=cs", "web", "/interface-document?lang=cs"),
-        ("/interface-document", "404", "/interface-document"),
+        ("/classic", "web", "/classic"),
+        ("/interface-document", "web", "/interface-document"),
         ("/api/v1/panel/gate", "api", "/api/v1/panel/gate"),
         ("/api/v1/workspace/clients", "api", "/api/v1/workspace/clients"),
         ("/api/bootstrap", "unit", "/api/bootstrap"),
-        ("/skin/skin.css?v=abc", "web", "/skin/skin.css?v=abc"),
+        ("/skin/fonts/IBMPlexSans-Regular.woff2", "web", "/skin/fonts/IBMPlexSans-Regular.woff2"),
         ("/_next/static/x.js", "web", "/_next/static/x.js"),
         ("/studies", "web", "/studies"),
         ("/brand/logo.svg", "unit", "/brand/logo.svg"),
@@ -167,10 +167,9 @@ def test_the_root_is_a_redirect_to_the_client_directory(running: int) -> None:
     conn.close()
 
 
-def test_the_classic_document_reaches_the_web_client_with_the_cookie(running: int) -> None:
+def test_classic_is_the_web_clients_own_page(running: int) -> None:
     got = _get(running, "/classic", {"Cookie": "aia_session=x"})
-    assert got["upstream"] == "web" and got["path"] == "/interface-document"
-    assert got["headers"]["Cookie"] == "aia_session=x"  # type: ignore[index]
+    assert got["upstream"] == "web" and got["path"] == "/classic"
 
 
 def test_the_aia_api_gets_the_callers_credential(running: int) -> None:
@@ -214,10 +213,9 @@ def test_the_unit_sees_its_own_origin_and_no_cookie(running: int) -> None:
     assert headers["Referer"] == f"http://{headers['Host']}/"  # type: ignore[index]
 
 
-def test_the_direct_document_path_is_not_an_entry(running: int) -> None:
-    with pytest.raises(urllib.error.HTTPError) as err:
-        _get(running, "/interface-document")
-    assert err.value.code == 404
+def test_the_old_document_path_goes_to_the_web_client_not_the_unit(running: int) -> None:
+    # The web client has no such page any more: its 404, never the unit's document.
+    assert _get(running, "/interface-document")["upstream"] == "web"
 
 
 def test_a_websocket_upgrade_is_tunnelled_to_the_web_client() -> None:

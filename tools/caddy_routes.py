@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the develop Caddyfile's routing, from `caddy adapt` JSON (ADR 0012, 0013, 0015).
+"""Check the develop Caddyfile's routing, from `caddy adapt` JSON (ADR 0012, 0015, 0018).
 
     caddy adapt --config deploy/develop/Caddyfile --adapter caddyfile > caddy.json
     python3 tools/caddy_routes.py caddy.json
@@ -10,11 +10,10 @@ only. What it asserts, and why each line must never go missing:
 
 * ``/`` is a redirect to ``/app/clients`` and nothing else: the product's front
   door is AIA, never the 18.6.6 document (ADR 0015).
-* ``/classic`` is the gate, then the rewrite to ``/interface-document``, then the
-  web client, without the session cookie: the classic interface is an explicit
-  hand-off, never public, and the gate runs before the rewrite (else a
-  signed-out visitor is sent back to ``/interface-document`` after sign-in).
-* ``/interface-document`` is not an entry point (404).
+* The 18.6.6 interface is not served (ADR 0018 decision 4): no route rewrites to
+  the old ``/interface-document``, and ``/classic`` -- if it is named at all --
+  goes to the web client, whose page says the interface is gone, never to the
+  unit or through the panel's gate.
 * ``/app`` and ``/app/*`` are AIA's own gate (``/api/v1/session/gate``, ADR 0018),
   then the web client, without the cookie: never the 18.6.6 panel's gate, so
   nothing about the unit decides whether AIA can be reached.
@@ -135,15 +134,12 @@ def check(config: dict[str, Any]) -> list[str]:
 
     if (r := only("/")) is not None and steps(r) != ["static:302:/app/clients"]:
         problems.append(f"/ must answer 302 /app/clients and nothing else; got {steps(r)}")
-    if (r := only("/classic")) is not None:
-        if steps(r) != [f"gate:{GATE}", "rewrite:/interface-document", f"proxy:{WEB}"]:
-            problems.append(
-                f"/classic must be the gate, the rewrite, the web client; got {steps(r)}"
-            )
-        if not cookie_dropped(r):
-            problems.append("/classic: the session cookie (an id token) reaches the web client")
-    if (r := only("/interface-document")) is not None and steps(r) != ["static:404:"]:
-        problems.append(f"/interface-document must be 404; got {steps(r)}")
+    for r in routes:
+        if any(s.startswith("rewrite:/interface-document") for s in steps(r)):
+            problems.append(f"{paths_of(r)} rewrites to the 18.6.6 document: it is not served")
+    for r in (r for r in routes if "/classic" in paths_of(r)):
+        if steps(r) != [f"proxy:{WEB}"]:
+            problems.append(f"/classic must be the web client's page and nothing else; got {steps(r)}")
     for path in ("/app", "/app/*"):
         if (r := only(path)) is not None:
             if steps(r) != [f"gate:{APP_GATE}", f"proxy:{WEB}"]:
@@ -205,8 +201,8 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     print(
-        "caddy routes: / -> /app/clients; /app behind AIA's gate; /classic and the "
-        "unit only on its own paths, behind the panel gate"
+        "caddy routes: / -> /app/clients; /app behind AIA's gate; no 18.6.6 document; "
+        "the unit only on its own paths, behind the panel gate"
     )
     return 0
 

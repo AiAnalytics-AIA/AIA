@@ -101,25 +101,28 @@ def test_a_changed_caddyfile_recreates_caddy() -> None:
 
 
 def test_the_smoke_check_proves_caddy_runs_the_deployed_caddyfile() -> None:
+    # /classic is AIA's own page only on this Caddyfile; the one before gated it.
     text = SMOKE.read_text(encoding="utf-8")
-    assert 'code "$BASE/interface-document"' in text
-    assert '[ "$direct_code" = "404" ]' in text
+    assert '"$BASE/classic"' in text
+    assert '[ "$classic_code" = "200" ]' in text and "už není součástí AIA" in text
+    assert 'code "$BASE/interface-document"' in text and '[ "$direct_code" = "404" ]' in text
 
 
-def test_the_rebuilt_interface_is_switched_on_for_develop_and_smoke_checked() -> None:
-    # ADR 0014: /app renders only with the switch on, and the smoke check proves
-    # an anonymous browser is sent to sign-in there, never served the screens.
+def test_aia_needs_no_switch_and_the_smoke_check_proves_its_gate() -> None:
+    # ADR 0018: /app has no switch of its own, and the smoke check proves an
+    # anonymous browser is sent to sign-in there, never served the screens.
     web = _service_block(COMPOSE.read_text(encoding="utf-8"), "web")
-    assert 'AIA_INTERFACE_REHOME_ENABLED: "true"' in web
+    for gone in ("AIA_INTERFACE_REHOME_ENABLED", "AIA_INTERFACE_SKIN_ENABLED", "AIA_LEGACY_PANEL_URL"):
+        assert gone not in web, gone
     text = SMOKE.read_text(encoding="utf-8")
     assert '"$BASE/app/clients"' in text
     assert '[ "$app_location" = "/login?next=%2Fapp%2Fclients" ]' in text
 
 
 def test_the_smoke_check_proves_the_product_hostname_opens_aia_not_18_6_6() -> None:
-    # ADR 0015: / redirects to the client directory, the classic interface is a
-    # gated hand-off at /classic, and no path falls through to the unit.
+    # ADR 0015: / redirects to the client directory; ADR 0018: the 18.6.6
+    # interface is not served; and no path falls through to the unit.
     text = SMOKE.read_text(encoding="utf-8")
     assert '[ "$root_code" = "302" ] && [ "$root_location" = "/app/clients" ]' in text
-    assert '[ "$classic_location" = "/login?next=%2Fclassic" ]' in text
+    assert "18.6.6 is not served" in text
     assert '"$BASE/no-such-page"' in text and '[ "$stray_code" = "404" ]' in text

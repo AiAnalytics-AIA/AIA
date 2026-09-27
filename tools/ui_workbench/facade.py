@@ -1,10 +1,7 @@
 """The workbench facade: one local origin, routed the way the develop Caddyfile
-routes the product hostname (ADR 0015) -- minus the gate.
+routes the product hostname (ADR 0015, ADR 0018) -- minus the gates.
 
     /                      -> 302 /app/clients, AIA's front door
-    /classic               -> the web client's /interface-document (the skin and
-                              the hand-off script with its "Zpět do AIA" bar)
-    /interface-document    -> 404, as on develop: reachable only through /classic
     /api/v1/*              -> the workbench's AIA API (api_standin.py), else 502
     @web, @app, ...        -> the web client: every named matcher whose handle
                               proxies to web:3000 in deploy/develop/Caddyfile
@@ -121,13 +118,9 @@ def route(
     The target is one of web, unit, api, redirect, sign-in or 404.
     """
     split = urlsplit(path)
-    p, query = split.path, ("?" + split.query if split.query else "")
+    p = split.path
     if p == "/":
         return "redirect", "/app/clients"
-    if p == "/classic":
-        return "web", "/interface-document" + query
-    if p == "/interface-document":
-        return "404", p
     if p == SIGN_IN:
         return "sign-in", p
     if p.startswith("/api/v1/"):

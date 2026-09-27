@@ -31,7 +31,7 @@ code() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$@"; }
 echo "Smoke: $BASE expecting build $SHA"
 echo
 
-# --- web: AIA is the product; 18.6.6 is an explicit hand-off (ADR 0015) -----
+# --- web: AIA is the product; 18.6.6 is not part of it (ADR 0015, ADR 0018) --
 headers() { curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' "$1" || true; }
 status_of() { printf '%s' "$1" | awk 'NR==1{print $2}'; }
 location_of() { printf '%s' "$1" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}'; }
@@ -64,12 +64,14 @@ page_write="$(code -X POST -H 'Accept: text/html' "$BASE/app/clients")"
 if [ "$page_write" = "403" ]; then pass "security: a write to AIA's pages is refused (403)"
 else fail "security: a write to AIA's pages is refused" "POST /app/clients returned ${page_write}, expected 403"; fi
 
-# The classic interface is served only at /classic, behind the same gate.
-classic_headers="$(headers "$BASE/classic")"
-classic_code="$(status_of "$classic_headers")"; classic_location="$(location_of "$classic_headers")"
-if [ "$classic_code" = "302" ] && [ "$classic_location" = "/login?next=%2Fclassic" ]; then
-  pass "web: the classic interface is a gated hand-off at /classic (302 /login)"
-else fail "web: the classic interface is a gated hand-off at /classic" "got ${classic_code} Location '${classic_location}'"; fi
+# The 18.6.6 interface is not served: /classic is AIA's own page saying so, to
+# anyone, without sign-in. It doubles as the check that the running Caddy is on
+# the deployed Caddyfile -- the one before this answered 302 /login there (OI-45).
+classic_body="$(curl -s --max-time 10 -H 'Accept: text/html' -w '\n%{http_code}' "$BASE/classic" || true)"
+classic_code="$(printf '%s' "$classic_body" | tail -n1)"
+if [ "$classic_code" = "200" ] && printf '%s' "$classic_body" | grep -q "už není součástí AIA"; then
+  pass "caddy: running the deployed Caddyfile (/classic is AIA's page: 18.6.6 is not served)"
+else fail "caddy: running the deployed Caddyfile" "GET /classic returned ${classic_code} without AIA's page; the running Caddy predates this Caddyfile (docker compose up -d --force-recreate caddy)"; fi
 
 # No catch-all to the unit: a path neither AIA nor the unit serves is the web
 # client's own 404, not a gate answer (302/401) from a forward to 18.6.6.
@@ -77,14 +79,10 @@ stray_code="$(code -H 'Accept: text/html' "$BASE/no-such-page")"
 if [ "$stray_code" = "404" ]; then pass "web: an unknown path is AIA's 404, never the 18.6.6 unit"
 else fail "web: an unknown path is AIA's 404" "GET /no-such-page returned ${stray_code}, expected 404"; fi
 
-# The interface document is reached only through the gated rewrite of /classic
-# (ADR 0013, 0015); asked for directly, Caddy itself answers 404. Anything else
-# means the running Caddy is not on the deployed Caddyfile -- how run 14 left
-# the skin unseen with every other check green (OI-45).
+# The 18.6.6 document is gone from the web client too.
 direct_code="$(code "$BASE/interface-document")"
-if [ "$direct_code" = "404" ]; then
-  pass "caddy: running the deployed Caddyfile (/interface-document answers 404)"
-else fail "caddy: running the deployed Caddyfile" "GET /interface-document returned ${direct_code}, expected 404; the running Caddy predates this Caddyfile (docker compose up -d --force-recreate caddy)"; fi
+if [ "$direct_code" = "404" ]; then pass "web: the 18.6.6 document is not served (/interface-document 404)"
+else fail "web: the 18.6.6 document is not served" "GET /interface-document returned ${direct_code}, expected 404"; fi
 
 if [ "$(code "$BASE/login")" = "200" ] && curl -fsS --max-time 10 "$BASE/login" | grep -qi '<html'; then
   pass "web: the sign-in page renders"

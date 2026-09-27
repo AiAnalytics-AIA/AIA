@@ -16,7 +16,7 @@ the worker the host runs beside them, each a local process on this machine:
     api           the real aia_api on a scratch SQLite file, the local
                   environment's development identity, AIA's session gate and the
                   panel's switched on (tools/ui_workbench/api_standin.py --panel-origin)
-    web           ``next dev`` for apps/web, skin, hand-off and re-home on
+    web           ``next dev`` for apps/web
     worker        ``python -m aia_worker`` with the production registry
                   (``aia_executors.registry``), over the API's database and
                   artifact directory: a research run parks at fieldwork (ADR 0016)
@@ -148,14 +148,19 @@ def prove(caddy: str) -> list[tuple[bool, str]]:
         f"GET https://{PRODUCT}/ (signed out)",
         f"{s} Location: {h.get('location')} body {len(b)} B",
     )
-    for path in ("/app/clients", "/classic"):
-        s, h, _ = product.get(path, html)
-        want = "/login?next=" + path.replace("/", "%2F")
-        line(
-            s == 302 and h.get("location") == want,
-            f"GET {path} (signed out)",
-            f"{s} -> {h.get('location')}",
-        )
+    s, h, _ = product.get("/app/clients", html)
+    line(
+        s == 302 and h.get("location") == "/login?next=%2Fapp%2Fclients",
+        "GET /app/clients (signed out)",
+        f"{s} -> {h.get('location')}",
+    )
+    # The 18.6.6 interface is not served (ADR 0018): /classic is AIA's own page.
+    s, h, b = product.get("/classic", html)
+    line(
+        s == 200 and "už není součástí AIA".encode() in b and not is_unit_document(b),
+        "GET /classic (signed out): AIA's page, not 18.6.6",
+        f"{s} {len(b)} B",
+    )
     s, h, _ = product.get("/api/bootstrap", {"Accept": "application/json"})
     line(s == 401, "GET /api/bootstrap, the unit (signed out)", str(s))
 
@@ -203,11 +208,10 @@ def prove(caddy: str) -> list[tuple[bool, str]]:
     names = [c["name"] for c in json.loads(b)] if s == 200 else []
     line(s == 200 and len(names) >= 2, "GET /api/v1/workspace/clients", f"{s} {names}")
     s, h, b = product.get("/classic", signed)
-    handoff = b"data-aia-handoff" in b
     line(
-        s == 200 and h.get("x-aia-skin") == "applied" and handoff,
-        "GET /classic (signed in): the hand-off, skinned",
-        f"{s} X-AIA-Skin: {h.get('x-aia-skin')}, hand-off {'present' if handoff else 'absent'}",
+        s == 200 and not is_unit_document(b) and "x-aia-skin" not in h,
+        "GET /classic (signed in): still AIA's page, no hand-off",
+        f"{s} {len(b)} B",
     )
     s, h, b = product.get("/api/bootstrap", {"Accept": "application/json", "Cookie": panel_cookie})
     line(
@@ -397,12 +401,7 @@ def main(argv: list[str]) -> int:
             "web",
             [str(WEB / "node_modules/.bin/next"), "dev", "-p", "3000", "-H", "127.0.0.1"],
             WEB,
-            {
-                "AIA_LEGACY_PANEL_URL": "http://legacy-panel:8765",
-                "AIA_INTERFACE_SKIN_ENABLED": "true",
-                "AIA_INTERFACE_REHOME_ENABLED": "true",
-                "NEXT_TELEMETRY_DISABLED": "1",
-            },
+            {"NEXT_TELEMETRY_DISABLED": "1"},
         ),
         _spawn(
             "caddy",
