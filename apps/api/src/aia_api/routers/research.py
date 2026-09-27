@@ -38,7 +38,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..dependencies import ArtifactStoreDep, SessionDep, StudyScopeDep
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import ArtifactResponse, RunEventResponse
-from .runs import artifact_response
+from .runs import artifact_corrupt, artifact_response
 
 router = APIRouter(
     prefix="/studies/{study_id}",
@@ -577,8 +577,9 @@ def run_artifact(
 ) -> ArtifactResponse:
     """Only an artifact this run's steps produced; any other id is a 404.
 
-    Needs ``VIEW_RESULTS``. The bytes are hash-verified on read; a mismatch
-    answers 409 rather than serving content that may have been altered.
+    Needs ``VIEW_RESULTS``. The bytes are hash-verified on read; a mismatch or a
+    missing object marks the artifact CORRUPT, durably, and answers 409 rather
+    than serving content that may have been altered.
     """
     try:
         scope.require(Permission.VIEW_RESULTS)
@@ -609,13 +610,7 @@ def run_artifact(
         try:
             payload = repo.read_json(artifact_id)
         except (IntegrityError, ObjectNotFound) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "code": "artifact_corrupt",
-                    "message": "The stored bytes do not match the recorded hash.",
-                },
-            ) from exc
+            raise artifact_corrupt(session) from exc
     return artifact_response(artifact, payload)
 
 
@@ -669,7 +664,7 @@ def _agent_response(run: dict[str, Any], scope: StudyContext) -> AgentJobRespons
 
 
 @contextmanager
-def _agent_errors() -> Iterator[None]:
+def _agent_errors(session: SessionDep) -> Iterator[None]:
     try:
         yield
     except ScopeDenied as exc:
@@ -680,6 +675,9 @@ def _agent_errors() -> Iterator[None]:
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        # The proposal's bytes failed verification on read: keep its CORRUPT mark.
+        raise artifact_corrupt(session) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=422, detail={"code": "invalid_agent_input", "message": str(exc)}
@@ -690,7 +688,7 @@ def _agent_errors() -> Iterator[None]:
 def start_agent_job(
     body: AgentJobStart, scope: StudyScopeDep, session: SessionDep, response: Response
 ) -> AgentJobResponse:
-    with _agent_errors():
+    with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
         started = jobs.start(
             design_revision_id=body.design_revision_id,
@@ -704,7 +702,7 @@ def start_agent_job(
 
 @router.get("/research/agent-jobs", response_model=list[AgentJobResponse])
 def list_agent_jobs(scope: StudyScopeDep, session: SessionDep) -> list[AgentJobResponse]:
-    with _agent_errors():
+    with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
         return [_agent_response(jobs.get(r["run_id"]), scope) for r in jobs.jobs()]
 
@@ -713,7 +711,7 @@ def list_agent_jobs(scope: StudyScopeDep, session: SessionDep) -> list[AgentJobR
 def read_agent_job(
     run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
 ) -> AgentJobResponse:
-    with _agent_errors():
+    with _agent_errors(session):
         return _agent_response(ResearchAgentJobs(session, scope).get(run_id), scope)
 
 
@@ -721,7 +719,7 @@ def read_agent_job(
 def cancel_agent_job(
     run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
 ) -> AgentJobResponse:
-    with _agent_errors():
+    with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
         jobs.cancel(run_id)
         return _agent_response(jobs.get(run_id), scope)
@@ -731,7 +729,7 @@ def cancel_agent_job(
 def read_agent_result(
     run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
 ) -> dict[str, Any]:
-    with _agent_errors():
+    with _agent_errors(session):
         result = ResearchAgentJobs(session, scope).result(run_id, store=store)
         if not scope.has(Permission.VIEW_COSTS):
             result["provenance"].pop("cost_usd", None)
@@ -746,7 +744,7 @@ def accept_agent_result(
     session: SessionDep,
     store: ArtifactStoreDep,
 ) -> DesignRevisionResponse:
-    with _agent_errors():
+    with _agent_errors(session):
         revision, created = ResearchAgentJobs(session, scope).accept(
             run_id, store=store, expected_revision_id=body.expected_revision_id
         )
