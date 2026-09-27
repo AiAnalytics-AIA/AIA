@@ -1,8 +1,11 @@
 # Native Research agent jobs
 
-Implemented on `feature/research-agents`, based on develop after PR #57 merged. Not deployed or
-enabled by this change. The complete-workflow tracker is
-[research-agent-workflows](../../.planning/plans/research-agent-workflows.md).
+Merged in PR #63 (`85fa951`, 2026-09-27) and in every develop build since *Deploy develop*
+run 31. Off by default (`AIA_AI_RESEARCH_AGENTS_ENABLED`, `deploy/develop/docker-compose.yml:176`);
+no live design call is recorded, so nothing here has been verified against Bedrock. The
+complete-workflow tracker is
+[research-agent-workflows](../../.planning/plans/research-agent-workflows.md); what the other
+stages need from these jobs is in [research-journey.md](research-journey.md).
 
 ## Actions and boundaries
 

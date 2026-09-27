@@ -1,9 +1,11 @@
 # AI runtime
 
 **Status: Bedrock respondent fieldwork is implemented and was activated for
-fictional Class C on develop on 2026-09-26. Native design proposal jobs are
-implemented on this branch with a separate switch, off by default. Analysis/report
-execution and owned web retrieval remain required for the complete workflow.**
+fictional Class C on develop on 2026-09-26. Native design proposal jobs merged in
+PR #63 (`85fa951`) with a separate switch, off by default; they are in every develop
+build since deploy run 31, and no live design call is recorded. Analysis/report
+execution and owned web retrieval remain required for the complete workflow
+([research-journey.md](research-journey.md)).**
 
 The dated [activation evidence](bedrock-develop-activation-2026-09-26.md) records
 20 successful requests, $0.2303301, settled reservations and the exact authorised
@@ -25,7 +27,7 @@ scope. This is a historical acceptance result, not approval for another live run
 | Live transport and credentials | Bedrock HTTP transport with SigV4 and the develop instance role is implemented. No direct Anthropic key or Claude Code login is required |
 | Approved route | `bedrock-eu-primary`, accepted for fictional Class C on develop only ([ADR 0010](adr/0010-bedrock-eu-inference-route.md)). Pinned EU profile, six destinations; retention unspecified. No approval for confidential Class A/B follows from it |
 | Generalized metered-cost ledger for non-model tools | **Not built.** See *Cost accounting* |
-| Research prompts and agents | Respondent fieldwork is deployed; eight native design/advice contracts, prompts and proposal jobs are implemented locally. Interpretation/report and Deep Research integration remain incomplete |
+| Research prompts and agents | Respondent fieldwork is deployed and was activated; eight native design/advice contracts, prompts and proposal jobs are merged (PR #63) and off by default. Interpretation/report and Deep Research integration remain incomplete |
 
 The gateway, adapter, ledger and real worker are checked against recorded
 exchanges and delivery failures. The isolated fictional fieldwork acceptance also

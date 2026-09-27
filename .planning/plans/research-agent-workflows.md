@@ -2,6 +2,9 @@
 
 Owner: Codex. User direction 2026-09-27: implement the full process, not only respondents.
 Base refreshed to develop 043b0dd after PRs #55, #57, #58 and #59 merged.
+**Chunks 0–4 merged as PR #63** (`85fa951`, 2026-09-27 11:17 UTC). The remaining chunks are
+split across jobs (§ Integration). The handoff below is kept as written, with its superseded
+statements marked.
 
 ## Reference and decisions
 
@@ -125,6 +128,8 @@ Next work in order:
    client evidence. PR #58's report model/styles are merged, but its plan says
    no complete DOCX renderer exists yet. Continue the report plan and wire
    interpretation/composition/execution/export through scoped durable jobs.
+   *(Superseded: PR #62, `46b7337`, merged the renderer and templates, R4–R9.
+   Composition (R10) and the report step (R11) remain; Job 4 owns them.)*
 4. Complete chunk 6 against PR #54's Deep Research plan: scoped knowledge,
    owned search/fetch, separate non-model cost accounting, frozen sources,
    citation grounding and quarantine. Confidential-derived queries retain
@@ -148,3 +153,5 @@ Next work in order:
 
 Full-process acceptance still requires chunks 5–8 above. Continue on this branch;
 reference source remains frozen. No Claude session trailer was fabricated.
+*(Superseded: the branch merged as #63. Chunks 5–8 continue on the owning jobs' branches;
+see § Integration.)*
