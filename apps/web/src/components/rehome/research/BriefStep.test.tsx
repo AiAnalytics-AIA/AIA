@@ -4,8 +4,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AGENTS_PATH, DESIGN_PATH, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
-import { ANALYSIS_REUSED, LINK_INVALID } from "@/unit/research/brief";
+import { LINK_INVALID } from "@/unit/research/brief";
 import { PROBLEM_TYPES, briefFingerprint, defaultsMerge } from "@/unit/research/model";
 import { ResearchScreen } from "./ResearchScreen";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -28,6 +29,7 @@ let calls: Call[] = [];
 /** The unit, answering by path; `over` replaces any answer. */
 function unitStub(project: Record<string, unknown>, over: Record<string, (body: unknown) => unknown> = {}, analysis: unknown = null) {
   calls = [];
+  const native = nativeAgentFixture((_action, baseline) => ({ project: { ...baseline, research_plan: { status: "analyzed", objectives: ["Změřit zájem"] } }, proposal: { objectives: ["Změřit zájem"] }, analysis: { objectives: ["Změřit zájem"] } }), over);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -47,12 +49,12 @@ function unitStub(project: Record<string, unknown>, over: Record<string, (body: 
         }),
         ...over,
       };
-      const answer = answers[path]?.(body) ?? {};
+      const answer = native(path, init?.method ?? "GET", body) ?? answers[path]?.(body) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
-const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path);
+const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 
 // jsdom's Blob has no arrayBuffer() (every current browser has); read it through FileReader. AGENTS.md § jsdom.
 if (!Blob.prototype.arrayBuffer) {
@@ -131,48 +133,46 @@ describe("Zadání", () => {
     unitStub({ goal: "Zjistit zájem o nový nápoj" });
     render(<ResearchScreen projectId="PRJ-1" step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));
+    await approveProposal();
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")), { timeout: 4000 });
-    const [analyze] = posted("/api/research/analyze");
-    expect(analyze.body).toMatchObject({
-      briefing: { goal: "Zjistit zájem o nový nápoj", study_config: {}, attachments_context: "" },
-      model: "sonnet",
-      provider: "claude_code_subscription",
-      project_id: "PRJ-1",
-      project_revision: 3,
-    });
+    expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "analyze_brief", design_revision_id: "REV-A" });
+    expect(posted("/api/research/analyze")).toEqual([]);
+    expect(posted("/api/providers/claude-code/status")).toEqual([]);
+    expect(posted(DESIGN_PATH)[0].body).toMatchObject({ content: { briefing: { goal: "Zjistit zájem o nový nápoj" } } });
     // The merged project is saved with the classic reason once the debounce runs.
     expect((screen.getByPlaceholderText(/Co chcete zjistit/) as HTMLTextAreaElement).value).toBe("Zjistit zájem o nový nápoj");
   });
 
-  it("reuses the analysis of the same brief without asking the model", async () => {
+  it("requests a frozen native context even when legacy brief signatures match", async () => {
     const project = { goal: "Zjistit zájem" };
     const sig = briefFingerprint(defaultsMerge(project, BOOT));
     unitStub(project, {}, { objectives: ["A"], _brief_signature: sig });
     render(<ResearchScreen projectId="PRJ-1" step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));
+    await approveProposal();
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")));
     expect(posted("/api/research/analyze")).toEqual([]);
-    expect(screen.getByText(ANALYSIS_REUSED)).toBeTruthy();
+    expect(posted(AGENTS_PATH)).toHaveLength(1);
   });
 
   it("explains the unavailable design capability without obsolete connection settings", async () => {
-    unitStub({ goal: "Cíl" }, { "/api/providers/claude-code/status": () => ({ ok: false }) });
+    unitStub({ goal: "Cíl" }, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
     render(<ResearchScreen projectId="PRJ-1" step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));
-    expect(await screen.findByText("AI návrh výzkumu zatím není dostupný. Amazon Bedrock nyní zajišťuje odpovědi respondentů. Projekt zůstává uložený.")).toBeTruthy();
+    expect(await screen.findByText(PARK_MESSAGE)).toBeTruthy();
     expect(screen.queryByRole("link", { name: /Otevřít Nastavení/ })).toBeNull();
     expect(posted("/api/research/analyze")).toEqual([]);
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("shows the classic error card with what failed when the job fails", async () => {
-    unitStub({ goal: "Cíl" }, { "/api/job": () => ({ state: "error", result: { error: "MODEL_TIMEOUT: nic se nevrátilo" } }) });
+  it("shows the native failure and keeps the saved brief", async () => {
+    unitStub({ goal: "Cíl" }, { "native/job": () => ({ status: "RECOVERY_REQUIRED", is_terminal: false, needs_attention: true, steps: [{ error_message: "MODEL_TIMEOUT: nic se nevrátilo" }], run_id: "RUN-A" }) });
     render(<ResearchScreen projectId="PRJ-1" step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "AI doplní a navrhne výzkum" }));
     expect(await screen.findByText("AI analýza se nedokončila", {}, { timeout: 4000 })).toBeTruthy();
     expect(screen.getByText("Zadání zůstalo uložené.")).toBeTruthy();
     expect(screen.getByText("MODEL_TIMEOUT: nic se nevrátilo")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Diagnostika" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Diagnostika" })).toBeNull();
     expect(push).not.toHaveBeenCalled();
   });
 

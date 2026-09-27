@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DESIGN_PATH, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
 import { briefFingerprint, defaultsMerge } from "@/unit/research/model";
 import { CONFIRM_REMOVE_SET, PROMPT_COMMENT, PROMPT_SET_OBJECTS, PROMPT_SET_TITLE } from "@/unit/research/plan";
@@ -34,6 +35,7 @@ type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown) => unknown> = {}) {
   calls = [];
+  const native = nativeAgentFixture((_action, baseline) => ({ project: { ...baseline, research_plan: { ...ANALYSIS, problem_summary: "Nové shrnutí." } }, proposal: { ...ANALYSIS, problem_summary: "Nové shrnutí." }, analysis: { ...ANALYSIS, problem_summary: "Nové shrnutí." } }), over);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -49,12 +51,12 @@ function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown
         "/api/job": () => ({ state: "done", result: { analysis: { ...ANALYSIS, problem_summary: "Nové shrnutí.", _brief_signature: undefined }, project: {} } }),
         ...over,
       };
-      const answer = answers[u.split("?")[0]]?.(body) ?? {};
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
-const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path);
+const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 
 /** The rebuilt dialog, answered as a person would. */
 async function answerDialog(question: string, value: string | null) {
@@ -139,9 +141,10 @@ describe("Návrh", () => {
     expect((await screen.findByRole("alert")).textContent).toBe("Napište odpovědi.");
     fireEvent.change(screen.getByPlaceholderText("Odpovězte jen na relevantní body…"), { target: { value: "Ano, jen MHD." } });
     fireEvent.click(screen.getByRole("button", { name: "Doplnit a aktualizovat návrh" }));
+    await approveProposal();
     expect(await screen.findByText("Nové shrnutí.", {}, { timeout: 4000 })).toBeTruthy();
-    const [analyze] = posted("/api/research/analyze");
-    expect((analyze.body?.briefing as { what_is_known: string }).what_is_known).toBe("Víme A.\n\nDoplnění k analýze:\nAno, jen MHD.");
+    const [analyze] = posted(DESIGN_PATH);
+    expect(((analyze.body?.content as { briefing: { what_is_known: string } }).briefing).what_is_known).toBe("Víme A.\n\nDoplnění k analýze:\nAno, jen MHD.");
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -163,10 +166,11 @@ describe("Návrh", () => {
     expect(screen.getByText("„Jde o test“")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Zpracovat komentáře" }));
+    await approveProposal();
     expect(await screen.findByText("Upraveno podle vašich komentářů", {}, { timeout: 4000 })).toBeTruthy();
-    const [analyze] = posted("/api/research/analyze");
-    // Forced: the same brief would otherwise have been reused without a job.
-    expect((analyze.body?.briefing as { review_comments: string }).review_comments).toBe("1. K textu „Jde o test“: Není to test.");
+    const [analyze] = posted(DESIGN_PATH);
+    // The revised briefing is frozen in the native Design Revision.
+    expect(((analyze.body?.content as { briefing: { review_comments: string } }).briefing).review_comments).toBe("1. K textu „Jde o test“: Není to test.");
     expect(screen.queryByText("Není to test.")).toBeNull();
     expect(screen.getByText("Komentáře zapracovány")).toBeTruthy();
   });
