@@ -1,6 +1,6 @@
 # Settings control panel
 
-**Status:** in progress · **Owner:** product-surface · **Started:** 2026-09-27
+**Status:** all chunks done; PR into `develop` · **Owner:** product-surface · **Started:** 2026-09-27
 
 ## Problem
 
@@ -73,9 +73,7 @@ deployed worker's values, which it cannot see.
 
 ## Progress
 
-All six chunks written and verified 2026-09-27. Chunks 1 and the audit fix are
-committed locally (`0a4960a`, and the commit after it); chunks 2–6 are in the
-working tree awaiting permission to commit (CLAUDE.md §5).
+Chunks 1–6 committed on this branch (`0a4960a` … `a87807d`); the port onto `develop` is chunks 7–8 below.
 
 - [x] 1 — `GET /api/v1/settings` · `apps/api/tests/test_settings_api.py` (9 tests)
 - [x] 2 — `GET`/`PUT /api/v1/self-approval`, `ScopeRepository.self_approval_levels` ·
@@ -90,16 +88,14 @@ working tree awaiting permission to commit (CLAUDE.md §5).
 ### Found on the way
 
 - **`GET /api/v1/access-audit` answered 500 for any organization with a grant.**
-  `ScopeResolver.audit_trail` returns a `payload` key that the closed
-  `AuditEntryResponse` forbids; no API test called the route. Fixed by dropping
-  the payload at the edge; `apps/api/tests/test_access_audit_api.py::test_an_owner_reads_the_trail`.
-- **`get_settings()` is process-cached and ignores `create_app(settings)`** — every
-  route depending on `SettingsDep` reads the environment, not the app's settings.
-  The settings route reads `app.state.settings`; `AGENTS.md` § FastAPI. The other
-  users of `SettingsDep` (`dependencies.py:150`) are unchanged — *hypothesis* that
-  it matters there, not reproduced.
+  `ScopeResolver.audit_trail` returns a `payload` key the closed `AuditEntryResponse`
+  did not declare. Fixed here first (`34961a3`, by dropping the payload); `develop`
+  fixed it independently by declaring it (`87da177`), and that fix is the one kept at
+  the merge. Test: `apps/api/tests/test_scope_api.py::test_the_access_audit_lists_entries_with_their_payload`.
+- **`get_settings()` ignored `create_app(settings)`.** Already fixed on `develop`
+  (`get_app_settings`); the settings route uses `SettingsDep` since the merge.
 
-### Verification (driven run)
+### Verification of the first cut (driven run, since superseded by the port)
 
 API on SQLite with development identity, `next start` with `AIA_API_URL`, driven
 with Playwright: set organization self-approval (the level reads back *povoleno*),
@@ -108,3 +104,35 @@ study, archived a client (leaves the default list), and a RESEARCHER's budget
 change came back refused (`HTTP 404 · not_found`) and was shown as given. A MEMBER
 sees no deployment group; with no `AIA_API_URL` the page says *not connected* and
 renders no data.
+
+## Port onto `develop` (2026-09-27)
+
+This branch was cut from `main` @ `9cf1f58`; `develop` is the integration branch
+(its `CLAUDE.md` § Branches) and carries Cognito sign-in and the `/app` interface.
+`develop` deleted the `/org` tree the first page lived in, and its token lives in the
+browser (`sessionStorage`, `apps/web/src/lib/auth.ts`), so a server-rendered page
+calling the API from Next.js could never carry it.
+
+- [x] 7 — **Merge `develop`** (`984a5df`). Develop wins on the web surface; the `/org`
+      page, its server actions and the server-side client are removed. Develop's own
+      `/access-audit` fix (`87da177`, payload declared) replaces this branch's
+      strip-the-payload fix; develop's `SettingsDep` already reads `app.state.settings`.
+- [x] 8 — **The panel on `/app/settings`.** `components/aia/settings/ControlPanel.tsx`
+      below develop's account / Bedrock / classic cards; client-side, through
+      `lib/api.ts` `admin` with `Authorization: Bearer <id token>` — no development
+      header anywhere. Client and study *creation* are left to the client workspace
+      (`workspace.startClient` / `startStudy`); the panel links there instead of adding
+      a second creation path. `ControlPanel.test.tsx` (9 tests): the bearer token and no
+      `X-AIA-Subject`, control per setting, null ≠ value, hidden costs ≠ zero, an
+      unknown group still renders, a change re-reads, a refusal shown verbatim, a
+      member not asked for admin reads, a malformed document, sign-out → `/login`.
+
+Driven on the UI workbench (`make ui-workbench`: real API on SQLite with local identity
+and the develop seed, `next dev`, the facade): every `/api/v1/settings` and
+`/self-approval` request carried `Authorization: Bearer …` and no `X-AIA-Subject`;
+setting organization self-approval to *allow* answered *Uloženo.*, the level re-read as
+*povoleno*, and `SELF_APPROVAL_CONFIGURED organization=true` headed the audit.
+
+Superseded from the first cut: `AIA_API_URL` / `AIA_WEB_DEV_SUBJECT`, the `make
+dev-web` default and the `.env.example` web section (develop's config route and
+same-origin `apiBase` replace them).
