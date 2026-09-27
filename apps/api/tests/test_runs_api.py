@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+import pytest
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.db import create_session_factory
 from aia_executors.registry import registry_for
@@ -12,8 +14,22 @@ from aia_worker.worker import Worker
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from aia_api.config import Settings
+
 API = "/api/v1"
 BUILD = BuildIdentity(sha="a15be650937aacaa")
+
+
+@pytest.fixture
+def settings(settings: Settings, tmp_path: Path) -> Settings:
+    """A file-backed SQLite database: these tests start a worker (AGENTS.md § SQLite).
+
+    Its heartbeat thread would otherwise share in-memory SQLite's one connection
+    and roll back a step's uncommitted artifact row mid-transaction.
+    """
+    if settings.database_url and ":memory:" not in settings.database_url:
+        return settings
+    return settings.model_copy(update={"database_url": f"sqlite+pysqlite:///{tmp_path / 'api.db'}"})
 
 
 def _project(client: TestClient, study_id: str) -> str:

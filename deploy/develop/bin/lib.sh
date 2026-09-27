@@ -57,10 +57,28 @@ require_sha() {
 # so: a pull that works beats a deploy that fails over credential hygiene.
 export AWS_ECR_DISABLE_CACHE=true
 
+# The directory docker reads config.json from. SSM Run Command starts these
+# scripts as root with no HOME at all (deploy run 26, 2026-09-27, stopped on
+# "HOME: unbound variable"); docker then falls back to the passwd entry's home,
+# so this does the same rather than guess.
+docker_config_dir() {
+  if [ -n "${DOCKER_CONFIG:-}" ]; then
+    printf '%s\n' "$DOCKER_CONFIG"
+    return
+  fi
+  local home="${HOME:-}"
+  if [ -z "$home" ]; then
+    home="$(getent passwd "$(id -u)" | cut -d: -f6)" || home=""
+  fi
+  [ -n "$home" ] || die "no home directory for uid $(id -u); set HOME or DOCKER_CONFIG so docker and this script read the same config.json"
+  printf '%s/.docker\n' "$home"
+}
+
 ecr_login() {
   local registry="${AIA_IMAGE_REGISTRY%%/*}"
-  local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
-  local config="$config_dir/config.json" next
+  local config_dir config next
+  config_dir="$(docker_config_dir)" || exit 1
+  config="$config_dir/config.json"
   if ! command -v docker-credential-ecr-login >/dev/null 2>&1; then
     log "installing the ECR credential helper"
     export DEBIAN_FRONTEND=noninteractive

@@ -342,7 +342,11 @@ attempt = session.scalar(
 `:memory:` a single shared connection (`StaticPool`) so separate sessions see one
 database — which also means a second thread (the worker's heartbeat) shares that
 connection mid-transaction. Tests with more than one thread use a **file-backed**
-SQLite database per test (`apps/worker/tests/conftest.py`).
+SQLite database per test (`apps/worker/tests/conftest.py`). That includes an API
+test that starts a `Worker`: `test_research_api.py` and `test_runs_api.py` ran on
+`:memory:` and failed about one run in fourteen, the heartbeat's session close
+rolling back a step's flushed artifact row so its dependency insert failed its
+foreign key (found on PR #54, 2026-09-25). Both now override `settings`.
 
 
 **SQLite hands back naive timestamps.** `DateTime(timezone=True)` round-trips an
@@ -1222,6 +1226,22 @@ aws ecr get-login-password | docker login --username AWS --password-stdin "$REGI
 export AWS_ECR_DISABLE_CACHE=true
 jq --arg r "$REGISTRY" \
   '.credHelpers[$r] = "ecr-login" | if has("auths") then .auths |= del(.[$r]) else . end' config.json
+```
+
+**SSM Run Command gives the script no `HOME`.** `AWS-RunShellScript` starts the
+deploy as root with `HOME` unset, and under `set -u` a bare `$HOME` stops the
+script: deploy run 26 (2026-09-27) failed at `ecr_login` on "HOME: unbound
+variable", and the host stayed on the previous build. The tests had passed because
+they set `HOME`. Docker itself falls back to the passwd entry's home, so resolve
+it the same way, and test the path with `HOME` absent
+(`test_a_deploy_without_home_writes_the_config_docker_reads`).
+
+```bash
+# WRONG: fine in an operator shell, fatal under SSM
+local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
+
+# RIGHT: where docker looks when HOME is unset (lib.sh › docker_config_dir)
+home="${HOME:-$(getent passwd "$(id -u)" | cut -d: -f6)}"
 ```
 
 **A host package does not go in user-data.** cloud-init runs once per instance, so

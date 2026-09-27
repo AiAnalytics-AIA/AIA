@@ -1,6 +1,6 @@
 # Production parity matrix and parity gates
 
-**Status:** in progress · **Owner:** parity-quality · **Started:** 2026-09-22
+**Status:** done — merged in PR #25 @ `a15be65` (2026-09-23); the `golden-fixtures` and `parity-status` jobs run in CI. Archived 2026-09-27. · **Owner:** parity-quality · **Started:** 2026-09-22
 
 ## Problem
 

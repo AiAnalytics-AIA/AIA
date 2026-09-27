@@ -40,7 +40,7 @@ changing domain logic runs `make test-parity` locally against
 than zero tests, rather than that it exited zero.
 
 **Status.** **Reporting half closed** by the parity-matrix work
-(`.planning/plans/parity-matrix-and-gates.md`): the `|| true` is gone, every CI
+(`.planning/plans/done/parity-matrix-and-gates.md`): the `|| true` is gone, every CI
 pytest step writes JUnit, and the `parity-status` job reports each of these
 tests' gates as `NOT_EXECUTED` — a skip can no longer read as a pass
 (`packages/aia_core/tests/test_parity_status_tool.py::test_a_skipped_gate_is_not_executed_never_passed`,
@@ -562,7 +562,12 @@ registration is accepted, and a registered version with a different fingerprint
 is refused.
 
 **Status.** Open, not yet exposed. Must land before, or with, the first path that
-can emit a Sociomap to a client.
+can emit a Sociomap to a client. *2026-09-27:* the Consequence's "no such path exists
+yet" is stale. The `sociomap` research step and its route exist
+(`apps/executors/src/aia_executors/research.py` `SociomapExecutor`,
+`apps/api/src/aia_api/routers/research.py` `_RESEARCHERS_ONLY`), and the artifact is
+`INTERNAL_ONLY`; `research_sociomap.require_client_facing` refuses it while D6 is open.
+The exposure is still nil, and the registry this item asks for is still owed.
 
 ---
 
@@ -1056,7 +1061,10 @@ schedules; first tests on `auth.ts` (`parseBuildSha`-style pure functions,
 
 **Test that would catch it.** A CI step `npm test` that fails on a missing script.
 
-**Status.** Open.
+**Status.** Runner half **closed**: Vitest landed in `23873d4` (2026-09-24),
+`apps/web/package.json` `"test": "vitest run"`, and CI runs `npm test`
+(`.github/workflows/ci.yml`, *Frontend*). Still open: `src/lib/auth.ts` and
+`src/lib/api.ts`, the two files this item named, have no test file (2026-09-27).
 
 ---
 
@@ -1340,8 +1348,10 @@ pulls and `local.images` in the Terraform must be the same set. Terraform does
 not run in CI, so a text-level check is the only one that fires before
 `apply`; the test explains why it parses with regular expressions.
 
-**Status.** Fixed in code in this change; `terraform apply` and the re-run are
-human actions, tracked under OI-39.
+**Status.** **Closed.** The operator applied Terraform (PROGRESS, Completed ›
+strangler 2), deploy run 12 went green with the unit healthy, and every deploy since
+builds and pushes `aia-legacy-panel` (run 26, step *Build and push aia-legacy-panel*,
+success, 2026-09-27). The oracle's own secrets remain OI-39.
 
 ## OI-42 · Finding · A refused study request's audit row is rolled back with the request
 
@@ -1897,7 +1907,12 @@ depend on the caller being an owner or admin: every page's data already comes fr
 routes, which apply the grants, not the gate.
 
 **Consequence of leaving it.** Researchers who hold the right client and study grants cannot use
-the product; owners and admins become the only users by accident of the migration.
+the product; owners and admins become the only users by accident of the migration. **In
+production, `/app` cannot be served at all:** its gate answers only when
+`AIA_LEGACY_PANEL_ENABLED` is on (`apps/api/src/aia_api/routers/panel.py` `_require_enabled`),
+and `Settings.validate_for_production` refuses that setting
+(`apps/api/src/aia_api/config.py:213-215 @ 043b0dd`). So this item blocks a production `/app`,
+not only its audience (recorded 2026-09-27).
 
 **Removal condition.** Stage state is fully AIA-scoped for the stages a researcher uses (OI-58);
 then `/app` moves to a gate that admits any provisioned member, and the unit's own paths keep the
@@ -2106,3 +2121,96 @@ SQLite's backup API to include WAL. Keep the pinned application unchanged.
 **Recovery.** Two missing projects have native submitted design copies. No saved
 copy has yet been found for the two other fictional demos. Recovery or explicit
 recreation must preserve study identity and must not invent original content.
+
+**Status.** Fixed in code: PR #57 @ `ff463a3`, deployed by run 25 (2026-09-27). The
+recovery above is still open, and it is operational. The fix is a hand edit inside the frozen
+unit (OI-68).
+
+---
+
+## OI-67 · Reproduced defect · A deploy under SSM stops on `HOME: unbound variable`
+
+**Claim.** `ecr_login` reads `$HOME` under `set -u`, and SSM Run Command starts the
+deploy as root with no `HOME`, so every deploy since PR #59 stops before pulling.
+
+**Anchor.** `deploy/develop/bin/lib.sh:62 @ 043b0dd`
+(`local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"`); *Deploy develop* run 26
+(`36309424041`), host output `bin/lib.sh: line 62: HOME: unbound variable`.
+
+**Reproduction.** `pytest packages/aia_core/tests/test_develop_registry_credentials.py`
+on PR #64's branch with `lib.sh` reverted: the two HOME-less tests fail with that
+message.
+
+**Consequence.** The host stays on `ff463a3`. PRs #59, #61, #54 and #62 are merged but
+not deployed, and every dispatched deploy fails red.
+
+**Smallest fix.** Resolve the config directory as docker does: `DOCKER_CONFIG`, then
+`HOME`, then the passwd entry's home. Refuse, with a message, when none exists.
+PR #64.
+
+**Test that would have caught it.**
+`test_a_deploy_without_home_writes_the_config_docker_reads`,
+`test_a_deploy_with_no_home_anywhere_stops_and_says_why`.
+
+**Status.** Fixed in code: PR #64, merged 2026-09-27 10:29 (`96581bc`). On the host it is proven
+only by the first deploy that carries it.
+
+---
+
+## OI-68 · Hypothesis · The OI-66 fix lives in a generated file that re-extraction would overwrite
+
+**Claim.** PR #57 fixed OI-66 by editing `legacy/npc-panel-18.6.6/runtime/hydrate_data.py`
+by hand (`65b5e9d`, `3932e5d`). `legacy/README.md` says the whole `npc-panel-18.6.6/`
+tree is generated by `AIA-reference/tools/extract_legacy.py`, and that "nothing under it
+is edited by hand". CLAUDE.md §2's map says "Frozen: regenerated, never edited", though its
+prose narrows the rule to `app/`. Unless the same change is in the extractor's
+copy, the next extraction restores the code that deleted saved projects.
+
+**Anchor.** `legacy/README.md:5-8 @ 46b7337`; `git log -- legacy/npc-panel-18.6.6/runtime/`.
+The file is not pinned by `runtime-assets.SHA256SUMS.txt` or `EXTRACTION.json`, so no
+verification step would notice either way.
+
+**Reproduction.** None here. The extractor is in the private reference repository,
+which this session cannot read. A hypothesis until someone re-runs the extraction into
+a scratch tree and diffs `runtime/`.
+
+**Consequence.** If the hypothesis holds, a routine re-extraction silently brings back
+OI-66's data loss.
+
+**Smallest fix.** Land the same change in the reference repository's `runtime/` source.
+Or state `runtime/` as an AIA-owned exception to "never edited" in `legacy/README.md` and
+CLAUDE.md §2, and make the extractor refuse to overwrite it.
+
+**Test that would have caught it.** `test_legacy_state_hydration.py` already fails on the
+old code, so a re-extraction that reverts the fix turns CI red. The risk is a
+re-extraction merged on a red CI, which OI-32's branch protection closes.
+
+**Status.** Open (2026-09-27). Owner: whoever next runs `extract_legacy.py`.
+
+---
+
+## OI-69 · Reproduced defect · Two API test modules run a worker on in-memory SQLite
+
+**Claim.** `test_research_api.py` and `test_runs_api.py` start a real `Worker` on
+`:memory:` SQLite. The heartbeat thread's session close rolls back the shared
+connection, and a step's artifact dependency then fails its foreign key.
+
+**Anchor.** `apps/api/tests/conftest.py` `settings` (`:memory:` default) and
+`packages/aia_core/src/aia_core/infrastructure/db.py` (`StaticPool`) @ `043b0dd`.
+Diagnosed on PR #54 (comment, 2026-09-25).
+
+**Reproduction.** Run
+`pytest "apps/api/tests/test_research_api.py::test_research_artifacts_are_read_only_through_the_run_that_produced_them"`
+40 times with `DATABASE_URL` unset: 3 failures in 41 runs on 2026-09-27.
+
+**Consequence.** A red *Backend* job on any PR, unrelated to that PR's change.
+
+**Smallest fix.** A file-backed database per test in those two modules, the rule
+`AGENTS.md` already states. PR #65; 0 failures in 60 runs after it.
+
+**Test that would have caught it.** The test itself, run repeatedly. The rule is now named
+in `AGENTS.md` beside the worker's own conftest.
+
+**Status.** Fixed: PR #65, merged 2026-09-27 10:30 (`e0edf2a`). Before it landed, the same race
+also crashed CI on `develop` @ `46b7337` with a segmentation fault inside this test (run
+36312008574; the crashing thread was in a worker transaction on the shared connection).
