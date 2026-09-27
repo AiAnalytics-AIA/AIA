@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import { t } from "@/i18n/t";
 import { appRoutes } from "@/lib/app-routes";
 import { useSession } from "@/lib/auth";
-import { signOut } from "@/lib/panel";
+import { signOut } from "@/lib/session";
 import { Icon, type IconName } from "../rehome/icons";
 
 export type Crumb = { label: string; href?: string };

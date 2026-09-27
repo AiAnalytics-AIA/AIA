@@ -983,15 +983,21 @@ export const cs = {
     openStudies: "Otevřít studie",
     signInGoogle: "Přihlásit se přes Google Workspace",
   },
-  panel: {
-    opening: "Otevírám NPC Panel…",
-    adminsOnly:
-      "NPC Panel 18.6.6 je zatím přístupný jen vlastníkům a správcům organizace. Studie v AIA jsou dostupné dál.",
-    notEnabled: "NPC Panel není v tomto prostředí zapnutý.",
+  session: {
+    opening: "Otevírám AIA…",
+    notMember:
+      "AIA je přístupná aktivním členům organizace. O přidání požádejte vlastníka nebo správce organizace.",
+    openAia: "Otevřít AIA",
     loop: "Přihlášení se nepodařilo udržet. Zkuste to znovu, případně povolte cookies pro tento web.",
-    failed: "Otevření NPC Panelu selhalo",
+    failed: "Přihlášení do AIA selhalo",
     retry: "Zkusit znovu",
     signingOut: "Odhlašuji…",
+  },
+  panel: {
+    adminsOnly:
+      "NPC Panel 18.6.6 je zatím přístupný jen vlastníkům a správcům organizace. AIA je dostupná dál.",
+    notEnabled: "NPC Panel není v tomto prostředí zapnutý.",
+    failed: "NPC Panel se nepodařilo otevřít.",
   },
   live: {
     badge: "Živá data",
