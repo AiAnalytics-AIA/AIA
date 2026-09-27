@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { FrontDoor } from "@/components/aia/FrontDoor";
 import { completeLogin } from "@/lib/auth";
 import { t } from "@/i18n/t";
 
@@ -31,15 +32,17 @@ function Callback() {
   }, [requestError, code, state, router]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-10">
-      <div className="mx-auto max-w-md rounded-xl border border-zinc-200 bg-white p-6 text-sm">
-        {error ? (
-          <div className="text-red-800">{error}</div>
-        ) : (
-          <div className="text-zinc-600">{t("live.completingLogin")}</div>
-        )}
-      </div>
-    </div>
+    <FrontDoor>
+      {error ? (
+        <p className="rounded-sm border border-status-fault/40 bg-status-fault-wash px-3 py-2 text-status-fault" role="alert">
+          {error}
+        </p>
+      ) : (
+        <p className="text-ink-muted" role="status">
+          {t("live.completingLogin")}
+        </p>
+      )}
+    </FrontDoor>
   );
 }
 

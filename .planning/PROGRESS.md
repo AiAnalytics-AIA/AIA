@@ -251,6 +251,14 @@ PR #56 has merged and deployed; activate the approved fictional Class C route an
 
 - ~~**PR C, research execution**~~ — merged (PR #52 @ `b3bd42f`); see Completed.
 - **Agent Runtime Foundation**: AI respondent fieldwork is built and deployed in PR #56 @ `0310091`; ADR 0010 approval and EU pricing are recorded. The runtime is active for the approved synthetic client; the isolated $2 study completed with 20 calls costing $0.2303301. Design-generation assistants remain unmigrated. Then checkpointed fieldwork (OI-64), ledger lineage (OI-65), analysis and report agents. Panel-derived transmission remains blocked by OI-61.
+- **Deep Research** ([plan](plans/deep-research.md), [ADR 0017](../docs/architecture/adr/0017-deep-research-external-retrieval.md),
+  Proposed). Asked for by the data owner 2026-09-25: research driven by the study's
+  questions and tracked objects, over Client Knowledge and the web, bounded only by
+  budget. The first multi-agent workload on the Agent Runtime Foundation; chunks 1–8
+  are offline (no model, no network, no decision) and can proceed alongside it.
+  Live use waits on DR-2 and D6; AR-2 accepted ADR 0010 for fictional Class C on
+  develop only (2026-09-26), so a Class C smoke run needs only DR-2, and Class B
+  needs D6. Where it sits against OI-58 / OI-59 is the data owner's call.
 - **OI-58**: port the research store from the unit into AIA's study-scoped
   project, stage by stage; remove `study_workspaces` when no stage reads the unit.
 - **OI-59**: open `/app` to members by client and study grant once OI-58 no
@@ -360,8 +368,21 @@ owner — the consumer contract is [`docs/architecture/population.md`](../docs/a
    **The DOCX output side is in progress** as its own plan,
    [`plans/report-docx.md`](plans/report-docx.md): the document model, every
    report component, the style sheet generated from the design tokens, and the
-   templates. Chunk R1 (print tokens) has landed; R10 composes from
-   `AnalysisModuleResult` once this item's contract is agreed.
+   templates. **R0–R9 are done**: `DocxRenderer.render(doc) -> bytes`
+   (`infrastructure/report_docx/renderer.py`) renders a validated document to
+   a deterministic, lint-clean DOCX — cover, front matter, body, appendices,
+   every component, tables, charts, evidence marks — and four templates
+   (`domain/report/templates.py`) compose client, final, internal and
+   documentation reports (`test_report_docx_*.py`, `test_report_templates.py`).
+   R10 (composition from `AnalysisModuleResult`) and R11 (the REPORT step and
+   download) are planned in the plan file and wait on analysis-governance and
+   platform-runtime. Measured 2026-09-27 on `claude/focused-edison-wglopy`
+   (SQLite, Python 3.12, no PostgreSQL): `make verify` exit 0 — core 2507
+   passed / 200 skipped, API 199, worker 43 / 6, executors 58, web 750;
+   `mypy` clean over 175 files; `layer_check` 62; `exposure_check` 7. The
+   four samples were rendered through LibreOffice 24.2 and inspected in
+   colour, greyscale and +35 % stress (`make report-preview`). Not run: Word
+   itself (no Windows/macOS in the session), PostgreSQL suites.
 5b. **`statistics.uncertainty`** — Kish n, donor support and bootstrap intervals
    computed rather than supplied; `EvidenceRow` already refuses a client
    estimate without one. NUMERICAL parity, tolerance 1e-9, needs the archive.
@@ -394,6 +415,11 @@ left to build.
 | IA-1 | ~~Who may start a study~~ — **resolved 2026-09-24**: a client-level `RESEARCHER` or `LEAD` (`CREATE_STUDY`); nobody else | — | ADR 0015 decision 6 · `test_client_api.py` |
 | IA-2 | ~~Order after the client-first IA~~ — **resolved 2026-09-24**: PR C → OI-58 → OI-59 | — | *Next*, above |
 | IA-3 | ~~Does the client-first shell become the develop interface~~ — **resolved 2026-09-24**: yes, once its checks are green; `/classic` stays the temporary 18.6.6 escape hatch and reference | — | [plan](plans/client-first-ia.md) · ADR 0015 |
+| DR-1 | ~~What drives Deep Research~~ — **resolved 2026-09-25**: both the research questions and the tracked objects | — | [plans/deep-research.md](plans/deep-research.md) |
+| DR-2 | **Which search provider route(s) carry Deep Research queries, and is any approved for Class B.** Intent (data owner, 2026-09-25): the best results, which means queries carrying client context — Class B, EU-approved routes only (ADR 0008). Also the list of client terms that make a query Class B. Until decided, only Class C queries leave | Live web research | ADR 0017 decision 2 |
+| DR-3 | ~~Client Knowledge to the model~~ — **resolved 2026-09-25**: target Bedrock EU for Class A and B; this is D6's decision for that route, not a separate one | — (D6 blocks live use) | ADR 0017 · D6 |
+| DR-4 | **The fifth Deep Research output.** The data owner chose Research Design input, respondent context, knowledge proposals and a report, plus "something else" left unnamed | Completing chunk 11 | [plans/deep-research.md](plans/deep-research.md) § Outputs |
+| DR-5 | **Default Deep Research budget and depth presets** — how far "as far as the budget allows" goes by default, and who may extend a parked run | Chunk 10 defaults | [plans/deep-research.md](plans/deep-research.md) § Decisions |
 | IA-4 | ~~Commit the files `next dev` regenerates~~ — **resolved 2026-09-24**: only when their diff carries an intentional canonical instruction change | — | `AGENTS.md` § Next.js |
 | D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |

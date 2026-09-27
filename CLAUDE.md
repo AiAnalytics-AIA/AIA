@@ -68,7 +68,9 @@ apps/
                             action, tabs), the client workspace and its areas, ResearchStudy
                             (a study's frame from its AIA binding), useResource (404 = nothing here),
                             settings/ControlPanel (every control from GET /settings, how each is set;
-                            live forms over the admin routes with the signed-in token, lib/api.ts `admin`)
+                            live forms over the admin routes with the signed-in token, lib/api.ts `admin`),
+                            FrontDoor (the branded frame of /login, /logout, /auth/callback)
+    src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
     src/components/rehome/  Primitives (token utilities only), the research stages and the classic
                             projects screens, re-homed under the shell above
     src/unit/               The ONLY way it reaches the unit: routes named by ledger row, parsers,
@@ -172,6 +174,9 @@ packages/aia_core/src/aia_core/
       numbers.py            Czech print formatting; never re-rounds; effective n rounds down
       copy.py               The report's own Czech vocabulary
       outline.py            Every printed number: chapters, appendices, headings, figures, cross-ref labels
+      rendering.py          ReportRenderer protocol: the seam to the DOCX adapter
+      templates.py          client / final / internal / documentation recipes; the client report
+                            keeps the legacy client_report_v2 section order
     evidence/               What may be claimed — every gate fails closed
       field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
       joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
@@ -201,6 +206,21 @@ packages/aia_core/src/aia_core/
     report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
       embed.py              ECMA-376 obfuscated font embedding; deterministic keys
       styles.py             The Word style sheet, built from print_tokens (S = every style name)
+      renderer.py           DocxRenderer.render(doc) -> bytes: validate, outline, write, finish;
+                            deterministic bytes (fixed zip timestamps)
+      layout.py             Sections (cover / front i, ii / body 1, 2 / appendix), running heads,
+                            the draft footer, cover, document control, TOC fields
+      blocks.py             One renderer per model block; no direct formatting
+      tables.py             The data table: SEQ caption with base n, repeating header, suppressed
+                            rows removed and counted, landscape sections
+      charts.py, figures.py Charts from the ledger with the viz tokens (7 kinds, hatched modelled
+                            series, direct labels); figures; the Sociomap gate (require_client_facing)
+      dispatch.py           Which renderer draws which block
+      marks.py, images.py   Evidence marks (one glyph per grade; unknown prints "?"), SVG + PNG
+                            fallback images with alt text (asvg:svgBlip)
+      plotting.py           Matplotlib for the report: vendored fonts, tokens, deterministic SVG/PNG
+      context.py            RenderContext: the state of one render
+      lint.py               lint_docx: no direct formatting, schema order kept
       ooxml.py, numbering.py, footnotes.py  Fields and bookmarks; lists; the footnotes part
       fonts/                Upstream TTFs, unmodified, with licences + SHA256SUMS
     tables.py               SQLAlchemy tables
@@ -246,6 +266,8 @@ docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
+tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via LibreOffice,
+                            lint, greyscale, +35 % Czech stress (manual)
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
 tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
@@ -401,6 +423,7 @@ ungated fixture.
 | Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
 | **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |
 | Capture UI function fixtures | `python tools/ui_function_capture.py capture` (needs Node); `verify` re-runs and compares |
+| **Report preview** | `make report-preview` — the four sample reports as pages, in colour, greyscale and +35 % stress (needs `libreoffice-writer`, `poppler-utils`) |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` |
 | Format | `make format` |
