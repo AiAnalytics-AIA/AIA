@@ -92,6 +92,12 @@ convenience setting into privilege escalation.
 arrange self-approval for their own study. A control that is self-service is not a
 control, and the change itself is written to `access_audit`.
 
+Over HTTP, `PUT /api/v1/self-approval` sets one level (`{"allowed": true | false |
+null}`, plus `client_id` or `study_id`; neither means the organization) and answers
+with the policy that now resolves there and its source. `GET /api/v1/self-approval`
+returns the levels as stored, not as resolved, because an administrator changing
+the policy needs to see which level decided it. Both are OWNER / ADMIN only.
+
 ### The approval ledger
 
 `approval_decisions` is append-only and records every gate decision and artifact

@@ -184,6 +184,7 @@ def _groups() -> list[SettingGroup]:
         SettingGroup(
             key="approvals",
             items=[
+                _item("self_approval", None, _API, "PUT /api/v1/self-approval"),
                 _item(
                     "default_self_approval",
                     DEFAULT_SELF_APPROVAL_ALLOWED,

@@ -343,6 +343,7 @@ jobs:
               "/api/v1/studies/{study_id}/projects/{project_id}/impact",
               "/api/v1/access-audit",
               "/api/v1/settings",
+              "/api/v1/self-approval",
           ]
           missing = [p for p in required if p not in paths]
           if missing:

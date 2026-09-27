@@ -158,6 +158,59 @@ class MemberResponse(BaseModel):
     organization_role: str
 
 
+class SelfApprovalRequest(BaseModel):
+    """Configure self-approval at one level.
+
+    Neither id configures the organization; ``client_id`` a client; ``study_id``
+    a study. ``allowed: null`` clears the level so it inherits again, which is
+    not the same as ``false``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    allowed: bool | None
+    client_id: str | None = Field(default=None, max_length=64)
+    study_id: str | None = Field(default=None, max_length=64)
+
+
+class SelfApprovalPolicyResponse(BaseModel):
+    """The policy that now resolves at the level that was changed, and why."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    allowed: bool
+    source: Literal["default", "organization", "client", "study"]
+
+
+class ClientSelfApproval(BaseModel):
+    """A client-level override."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    client_id: str
+    allowed: bool
+
+
+class StudySelfApproval(BaseModel):
+    """A study-level override."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    study_id: str
+    client_id: str
+    allowed: bool
+
+
+class SelfApprovalLevelsResponse(BaseModel):
+    """Every configured level. An absent client or study inherits."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    organization: bool | None
+    clients: list[ClientSelfApproval]
+    studies: list[StudySelfApproval]
+
+
 class AuditEntryResponse(BaseModel):
     """One access-audit entry."""
 
@@ -445,6 +498,56 @@ def grant_study_access(
     except ScopeDenied as exc:
         raise _forbidden(exc) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --------------------------------------------------------------------------- #
+# Self-approval
+# --------------------------------------------------------------------------- #
+
+
+@router.get(
+    "/self-approval",
+    response_model=SelfApprovalLevelsResponse,
+    summary="Self-approval levels",
+)
+def get_self_approval(
+    admin: OrganizationDep, repo: ScopeRepositoryDep
+) -> SelfApprovalLevelsResponse:
+    """Return the stored self-approval levels. Requires organization administration."""
+    try:
+        return SelfApprovalLevelsResponse(**repo.self_approval_levels(admin))
+    except ScopeDenied as exc:
+        raise _forbidden(exc) from exc
+
+
+@router.put(
+    "/self-approval",
+    response_model=SelfApprovalPolicyResponse,
+    summary="Configure self-approval",
+)
+def set_self_approval(
+    body: SelfApprovalRequest, admin: OrganizationDep, repo: ScopeRepositoryDep
+) -> SelfApprovalPolicyResponse:
+    """Allow, forbid or inherit self-approval at one level. Audited.
+
+    Self-approval weakens independent review, so only an organization OWNER or
+    ADMIN may configure it; a study LEAD cannot arrange it for their own study.
+    """
+    try:
+        policy = repo.set_self_approval(
+            admin, allowed=body.allowed, client_id=body.client_id, study_id=body.study_id
+        )
+    except ScopeDenied as exc:
+        if exc.reason == "insufficient_role":
+            raise _forbidden(exc) from exc
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "No such client or study."}
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": "invalid_level", "message": str(exc)}
+        ) from exc
+    return SelfApprovalPolicyResponse(allowed=policy.allowed, source=policy.source.value)
 
 
 # --------------------------------------------------------------------------- #
