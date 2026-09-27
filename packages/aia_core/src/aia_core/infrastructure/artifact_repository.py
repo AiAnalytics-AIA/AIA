@@ -20,6 +20,7 @@ row is what the rest of the system trusts.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -52,6 +53,9 @@ __all__ = [
     "ArtifactStatus",
     "new_artifact_id",
 ]
+
+
+_ARTIFACT_ID = re.compile(r"^ART-[0-9a-f]{16}$")
 
 
 def new_artifact_id() -> str:
@@ -288,6 +292,7 @@ class ArtifactRepository:
         metadata: dict[str, Any] | None = None,
         depends_on: list[str] | None = None,
         reuse: bool = True,
+        artifact_id: str | None = None,
     ) -> tuple[Artifact, bool]:
         """Store an artifact, reusing an existing one when the inputs match.
 
@@ -298,8 +303,14 @@ class ArtifactRepository:
         The upload happens before the metadata row is committed, so a crash
         between the two leaves an orphaned object (harmless, reaped later) rather
         than a row pointing at nothing (which the system would trust).
+
+        ``artifact_id`` is for a caller that must name the artifact before it is
+        stored -- the 18.6.6 migration writes a revision citing a file in the same
+        transaction -- and is one :func:`new_artifact_id` made; any other is refused.
         """
         self._scope.require(Permission.EDIT_STUDY)
+        if artifact_id is not None and not _ARTIFACT_ID.fullmatch(artifact_id):
+            raise ValueError("an artifact id is ART- and 16 hex characters")
 
         project = self._owned_project(project_id)
         stage = resolve_stage(project.project_type, stage_type)
@@ -314,7 +325,7 @@ class ArtifactRepository:
             if existing is not None:
                 return existing, False
 
-        artifact_id = new_artifact_id()
+        artifact_id = artifact_id or new_artifact_id()
         key = build_storage_key(
             organization_id=self._scope.organization_id,
             client_id=self._scope.client_id,
