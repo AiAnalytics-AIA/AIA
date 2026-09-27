@@ -194,7 +194,10 @@ shows a research run parking at fieldwork, `ai_runtime_unavailable` (ADR 0016).
 - **The site does not depend on the unit** (OI-44). Caddy starts without it,
   the deploy waits only on AIA's services, and the unit's health is a smoke
   check: an unhealthy unit fails the deploy but `/login`, `/studies` and the API
-  stay up. The deploy also loads the Caddyfile with this host's `.env` before it
+  stay up. The check waits out the unit's `starting` state (its 120 s start
+  period, while it hydrates) for at most `LEGACY_START_WAIT_SECONDS`, default
+  150, then judges; deploy runs 29 and 30 failed on `starting` with every other
+  check green. The deploy also loads the Caddyfile with this host's `.env` before it
   touches anything, and stops if it does not load.
 
 ### Switching the unit on
