@@ -652,6 +652,38 @@ except ScopeDenied as exc:
     raise _forbidden(...) from exc
 ```
 
+It happened again with a write a *repository* makes on the caller's behalf
+(OI-77). `ArtifactRepository.read` flushes `CORRUPT` onto an artifact whose bytes
+fail their hash, then re-raises. The route answered 409 `artifact_corrupt`, and
+the rollback took the mark with it, so a tampered artifact went on reading
+`VALID` and `find_reusable` kept offering it for reuse. Nothing caught it: the
+repository's tests read the mark back through the session that had flushed it,
+which says `CORRUPT` whether or not the mark survives
+(`test_artifacts.py::test_corrupted_content_is_refused_and_flagged`), and no API
+test reached the 409. Two habits:
+
+- A route that turns such an error into an answer commits first. For artifacts
+  that is one function, `routers/runs.py` › `artifact_corrupt`, and no route
+  builds that 409 itself.
+- Test the stored state from a session of its own, not only the response
+  (`apps/api/tests/conftest.py` › `artifact_status`).
+
+```python
+# WRONG -- the CORRUPT that read() flushed is rolled back with the 409
+except (IntegrityError, ObjectNotFound) as exc:
+    raise HTTPException(status_code=409, detail={"code": "artifact_corrupt", ...}) from exc
+
+# RIGHT -- commit the mark, then raise
+except (IntegrityError, ObjectNotFound) as exc:
+    raise artifact_corrupt(session) from exc
+```
+
+An error the route does not map at all loses the mark the same way, as a 500:
+the agent-job proposal routes did, until `_agent_errors` learned the storage
+errors. The worker's `StepContext.transaction` rolls back on any exception too,
+so an executor that lets the storage error escape still loses the mark (OI-77,
+open).
+
 **A closed response model rejects a repository's extra key at runtime, not in
 mypy.** `GET /access-audit` answered 500 for every organization with a grant,
 because `audit_trail()` returns a `payload` key that `AuditEntryResponse`

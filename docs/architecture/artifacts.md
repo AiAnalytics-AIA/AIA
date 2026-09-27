@@ -62,10 +62,22 @@ committed and verified.
 
 ## Read protocol
 
-`sha256` is verified on read. A mismatch marks the artifact `CORRUPT` and raises,
-rather than returning bytes that may have been silently altered. For a system
-that makes research claims, serving unverified content as a finding is worse than
-an error.
+`sha256` is verified on read. A mismatch, or a missing object, marks the artifact
+`CORRUPT` and raises, rather than returning bytes that may have been silently
+altered. For a system that makes research claims, serving unverified content as a
+finding is worse than an error.
+
+**Whoever answers the error keeps the mark.** `ArtifactRepository` flushes and
+never commits, so the mark is part of the caller's transaction and lasts only if
+that transaction commits. A caller that lets the exception end its unit of work
+rolls the mark back, and the artifact reads `VALID` again: in every listing, and
+to `find_reusable`, which checks only that the object exists, so it goes on
+offering the artifact for reuse. The API answers 409 `artifact_corrupt` through
+one function, `routers/runs.py` › `artifact_corrupt`, which commits the mark
+before it raises (the pattern `panel.open_session` uses for a refusal's audit
+row). A new route that reads artifact bytes answers through it too. A step
+executor still loses the mark: it raises, `StepContext.transaction` rolls back,
+and the worker records the step `UNKNOWN` (OI-77).
 
 Clients never receive a storage key or a filesystem path. Downloads go through
 a short-lived pre-signed URL scoped to the artifact, issued only after the tenant
