@@ -240,7 +240,7 @@ Measured at the time of writing.
 Additional consequences:
 
 - **Every commit SHA after the rewrite point changes.** Every anchor of the form
-  `file:line @ SHA` in `.planning/PROGRESS.md`, `docs/migration/status.md` and
+  `file:line @ SHA` in `.planning/overview.md`, `docs/migration/status.md` and
   the ADRs becomes dangling and must be re-pointed.
 - **Open PRs may show as fully rewritten**, losing inline review threads.
 - **Forks are unaffected and keep the content.** A fork cannot be rewritten by

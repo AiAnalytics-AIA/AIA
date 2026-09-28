@@ -24,7 +24,8 @@ is shaped that way. The companion documents go deeper:
 | [boards-v2.2-content-spec.md](boards-v2.2-content-spec.md) | What the visual architecture boards must assert, and must not |
 
 Migration documents live in [`../migration/`](../migration/). The current
-implementation state is [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md);
+implementation state is each plan's front-matter (`python tools/progress.py`) and
+[`.planning/overview.md`](../../.planning/overview.md);
 [status.md](../migration/status.md) is the older narrative.
 
 ## The one idea that explains the rest

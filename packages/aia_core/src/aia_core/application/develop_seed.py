@@ -1,17 +1,26 @@
 """Synthetic develop data, provisioned through the same paths production uses.
 
 The develop environment holds no client data. This use case creates enough
-valid domain state to exercise the application -- an organization with its
-owner, a synthetic client and study with a budget, a project, and one example
-workflow run -- by calling the repositories and the authorization layer exactly
-as the API does. There is no direct insert that skips an invariant, and no
-back door: the owner is provisioned as an organization OWNER and granted LEAD on
-the client, and everything else is done under contexts issued for them.
+valid domain state to exercise the application, in two organizations:
+
+* **the operator's** (``aia-develop``): the showcase world a person signs in to --
+  fictional clients with studies and knowledge, the operator named in
+  ``AIA_SEED_OWNER_EMAIL`` as its owner and LEAD on each client;
+* **the smoke's own** (``aia-develop-smoke``): a synthetic owner, one synthetic
+  client and study with a budget, a project and one example workflow run -- what
+  the deployment smoke acts on. The operator is not a member, so none of it is in
+  their client list or their Settings, and nothing they archive there can stop
+  the smoke (OI-80: an archived ``synthetic-client`` failed deploys 36-41).
+
+Everything is done by calling the repositories and the authorization layer
+exactly as the API does. There is no direct insert that skips an invariant, and
+no back door: each owner is provisioned as an organization OWNER and granted LEAD
+on its clients, and everything else is done under contexts issued for them.
 
 **Idempotent.** Every object is found by a stable slug or title before it is
 created, so re-running changes nothing and reports the same ids. ``reset``
-removes the seeded organization and everything cascading from it, and nothing
-else: it refuses any slug but the seed's own.
+removes the two seeded organizations and everything cascading from them, and
+nothing else: it refuses any slug but the seed's own.
 """
 
 from __future__ import annotations
@@ -25,12 +34,20 @@ from sqlalchemy.orm import Session
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.workflows import StartedRun, start_workflow
 from aia_core.domain.knowledge import KnowledgeKind
-from aia_core.domain.scope import ScopeRole, StudyContext, StudyKind, StudyStatus
+from aia_core.domain.scope import (
+    ClientStatus,
+    OrganizationContext,
+    OrganizationRole,
+    ScopeRole,
+    StudyContext,
+    StudyKind,
+    StudyStatus,
+)
 from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from aia_core.infrastructure.tables import OrganizationRow, StudyRow
+from aia_core.infrastructure.tables import OrganizationMemberRow, OrganizationRow, StudyRow
 
 __all__ = [
     "SEED_CLIENT_SLUG",
@@ -38,13 +55,20 @@ __all__ = [
     "SEED_PROJECT_TITLE",
     "SEED_STUDY_SLUG",
     "SEED_WORKSPACES",
+    "SMOKE_ORGANIZATION_SLUG",
+    "SMOKE_OWNER_EMAIL",
     "SeedResult",
     "reset_develop_seed",
     "seed_develop",
     "seeded_study_scope",
 ]
 
+#: The operator's organization: the showcase world a person signs in to.
 SEED_ORGANIZATION_SLUG: Final = "aia-develop"
+#: The smoke's own organization, owned by a synthetic principal nobody signs in as.
+#: The client, study and project below live here, never in the operator's.
+SMOKE_ORGANIZATION_SLUG: Final = "aia-develop-smoke"
+SMOKE_OWNER_EMAIL: Final = "smoke.seed@aia-develop.invalid"
 SEED_CLIENT_SLUG: Final = "synthetic-client"
 SEED_STUDY_SLUG: Final = "develop-smoke"
 SEED_STUDY_BUDGET_USD: Final = 25.0
@@ -162,11 +186,18 @@ SEED_CURATOR_EMAIL: Final = "curator.seed@aia-develop.invalid"
 
 @dataclass(frozen=True, slots=True)
 class SeedResult:
-    """Every id the seed provisioned or found."""
+    """Every id the seed provisioned or found.
+
+    ``organization_id``, ``owner_user_id`` and ``workspaces`` are the operator's
+    organization; ``client_id``, ``study_id``, ``project_id`` and ``run_id`` are the
+    smoke's, in ``smoke_organization_id`` under ``smoke_owner_user_id``.
+    """
 
     organization_id: str
     owner_user_id: str
     owner_email: str
+    smoke_organization_id: str
+    smoke_owner_user_id: str
     client_id: str
     study_id: str
     project_id: str
@@ -179,6 +210,54 @@ def _find_organization(session: Session, slug: str) -> OrganizationRow | None:
     return session.scalar(select(OrganizationRow).where(OrganizationRow.slug == slug))
 
 
+def _owned_organization(
+    session: Session,
+    scope_repo: ScopeRepository,
+    resolver: ScopeResolver,
+    *,
+    slug: str,
+    name: str,
+    owner_email: str,
+    owner_name: str = "",
+) -> tuple[OrganizationContext, str, str, bool]:
+    """The organization ``slug`` with ``owner_email`` as a member, found or created.
+
+    Returns its administration context, its id, the owner's user id, and whether
+    the organization is new.
+    """
+    org_row = _find_organization(session, slug)
+    if org_row is None:
+        org, owner = scope_repo.create_organization(
+            slug=slug, name=name, owner_email=owner_email, owner_name=owner_name
+        )
+        organization_id, owner_id, created = org.organization_id, owner.user_id, True
+    else:
+        organization_id = org_row.organization_id
+        owner_id = scope_repo.upsert_user(email=owner_email)["user_id"]
+        created = False
+
+    # A returning owner who is not yet a member (a fresh e-mail against an
+    # existing seed) becomes its owner; an existing member keeps their role.
+    # This has to happen before the context is resolved: the resolver denies a
+    # non-member (`not_a_member`), which is how a changed operator e-mail made
+    # every develop smoke fail with a bare "ScopeDenied: not found". The seed
+    # is an operator command with the database's credentials, as the creation
+    # of the organization above is; it does not widen what a request can do.
+    if organization_id not in scope_repo.memberships_for_user(owner_id):
+        session.add(
+            OrganizationMemberRow(
+                organization_id=organization_id,
+                user_id=owner_id,
+                role=OrganizationRole.OWNER.value,
+            )
+        )
+        session.flush()
+    admin = resolver.organization_context(
+        AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
+    )
+    return admin, organization_id, owner_id, created
+
+
 def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
     """Provision the develop world for ``owner_email``, or find it. Commits nothing."""
     email = owner_email.strip().lower()
@@ -189,37 +268,50 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
     scope_repo = ScopeRepository(session)
     resolver = ScopeResolver(session)
 
-    org_row = _find_organization(session, SEED_ORGANIZATION_SLUG)
-    if org_row is None:
-        org, owner = scope_repo.create_organization(
-            slug=SEED_ORGANIZATION_SLUG, name="AIA develop (synthetic)", owner_email=email
-        )
-        organization_id, owner_id = org.organization_id, owner.user_id
-        created["organization"] = True
-    else:
-        organization_id = org_row.organization_id
-        owner_id = scope_repo.upsert_user(email=email)["user_id"]
-        created["organization"] = False
-
-    admin = resolver.organization_context(
-        AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
+    admin, organization_id, owner_id, created["organization"] = _owned_organization(
+        session,
+        scope_repo,
+        resolver,
+        slug=SEED_ORGANIZATION_SLUG,
+        name="AIA develop (synthetic)",
+        owner_email=email,
     )
-    # A returning operator who was not yet a member (a fresh e-mail against an
-    # existing seed) becomes one; an existing owner keeps their role.
-    if organization_id not in scope_repo.memberships_for_user(owner_id):
-        scope_repo.add_member(admin, email=email)
+    # The smoke acts on a world of its own. The operator's organization may hold
+    # an archived `synthetic-client` from before this split: it is left as its
+    # owner left it, and nothing below looks for it there.
+    (
+        smoke_admin,
+        smoke_organization_id,
+        smoke_owner_id,
+        created["smoke_organization"],
+    ) = _owned_organization(
+        session,
+        scope_repo,
+        resolver,
+        slug=SMOKE_ORGANIZATION_SLUG,
+        name="AIA develop smoke (synthetic)",
+        owner_email=SMOKE_OWNER_EMAIL,
+        owner_name="Smoke (seed)",
+    )
+    smoke_owner = AuthenticatedPrincipal(
+        user_id=smoke_owner_id, organization_id=smoke_organization_id
+    )
 
-    clients = {c.slug: c for c in scope_repo.list_clients(admin, include_archived=True)}
+    clients = {c.slug: c for c in scope_repo.list_clients(smoke_admin, include_archived=True)}
     client = clients.get(SEED_CLIENT_SLUG)
     if client is None:
         client = scope_repo.create_client(
-            admin, slug=SEED_CLIENT_SLUG, name="Synthetic client (develop)"
+            smoke_admin, slug=SEED_CLIENT_SLUG, name="Synthetic client (develop)"
         )
     created["client"] = SEED_CLIENT_SLUG not in clients
 
     # LEAD on the client covers every study under it, including ones seeded later.
     resolver.grant_client_access(
-        admin, client_id=client.client_id, user_id=owner_id, role=ScopeRole.LEAD, reason="seed"
+        smoke_admin,
+        client_id=client.client_id,
+        user_id=smoke_owner_id,
+        role=ScopeRole.LEAD,
+        reason="seed",
     )
 
     study_row = session.scalar(
@@ -229,7 +321,7 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
     )
     if study_row is None:
         study = scope_repo.create_study(
-            admin,
+            smoke_admin,
             client_id=client.client_id,
             slug=SEED_STUDY_SLUG,
             name="Develop smoke study",
@@ -241,16 +333,10 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         study_id = study_row.study_id
         created["study"] = False
 
-    scope = resolver.study_context(
-        AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id),
-        study_id=study_id,
-    )
+    scope = resolver.study_context(smoke_owner, study_id=study_id)
     if scope.study_status is StudyStatus.DRAFT:
         scope_repo.set_study_status(scope, StudyStatus.ACTIVE)
-        scope = resolver.study_context(
-            AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id),
-            study_id=study_id,
-        )
+        scope = resolver.study_context(smoke_owner, study_id=study_id)
 
     projects = ProjectRepository(session, scope)
     page = projects.list_projects(search=SEED_PROJECT_TITLE, limit=200)
@@ -259,7 +345,7 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         project, _ = projects.create(
             title=SEED_PROJECT_TITLE,
             content=dict(SEED_PROJECT_CONTENT),
-            created_by=owner_id,
+            created_by=smoke_owner_id,
         )
         project_id = project.project_id
         created["project"] = True
@@ -285,6 +371,8 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         organization_id=organization_id,
         owner_user_id=owner_id,
         owner_email=email,
+        smoke_organization_id=smoke_organization_id,
+        smoke_owner_user_id=smoke_owner_id,
         client_id=client.client_id,
         study_id=study_id,
         project_id=project_id,
@@ -308,7 +396,8 @@ def _seed_workspaces(
     Knowledge goes the governed way: the operator proposes, a synthetic curator
     (a REVIEWER on the client) approves, so every item has a revision and
     provenance like any other. Returns slug -> client id, and whether anything
-    was new.
+    was new. A client a person has archived is left as they left it: nothing is
+    granted or seeded into it.
     """
     knowledge = ClientKnowledgeRepository(session)
     owner = AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
@@ -330,6 +419,12 @@ def _seed_workspaces(
             client = scope_repo.create_client(admin, slug=slug, name=spec["name"])
             fresh = True
         out[slug] = client.client_id
+        if client.status is ClientStatus.ARCHIVED:
+            # Archiving a showcase client is a person's decision (Settings, PUT
+            # /clients/{id}/status). The resolver refuses an archived client, so
+            # seeding into it failed every later deploy (OI-80, deploy run 40);
+            # leaving it alone is the seed respecting that decision, not undoing it.
+            continue
         resolver.grant_client_access(
             admin, client_id=client.client_id, user_id=owner_id, role=ScopeRole.LEAD, reason="seed"
         )
@@ -386,17 +481,18 @@ def _seed_workspaces(
     return out, fresh
 
 
-def seeded_study_scope(session: Session, *, owner_email: str) -> StudyContext:
-    """The seeded operator's context on the seeded study, issued by the resolver.
+def seeded_study_scope(session: Session) -> StudyContext:
+    """The smoke owner's context on the smoke's study, issued by the resolver.
 
-    For the smoke command, which acts as the operator would through the API.
-    Raises :class:`LookupError` when the seed has not run.
+    For the smoke command, which acts as a person would through the API, in the
+    smoke's own organization (never the operator's). Raises :class:`LookupError`
+    when the seed has not run.
     """
-    org_row = _find_organization(session, SEED_ORGANIZATION_SLUG)
+    org_row = _find_organization(session, SMOKE_ORGANIZATION_SLUG)
     if org_row is None:
         raise LookupError("the develop seed has not run; nothing to act on")
     scope_repo = ScopeRepository(session)
-    user = scope_repo.upsert_user(email=owner_email.strip().lower())
+    user = scope_repo.upsert_user(email=SMOKE_OWNER_EMAIL)
     resolver = ScopeResolver(session)
     study_row = session.scalar(
         select(StudyRow).where(
@@ -413,14 +509,16 @@ def seeded_study_scope(session: Session, *, owner_email: str) -> StudyContext:
 
 
 def reset_develop_seed(session: Session) -> bool:
-    """Delete the seeded organization and everything under it. Commits nothing.
+    """Delete the two seeded organizations and everything under them. Commits nothing.
 
-    Returns True when something was removed. Only the seed's own slug is ever
+    Returns True when something was removed. Only the seed's own slugs are ever
     deleted; the function has no parameter for any other.
     """
-    org_row = _find_organization(session, SEED_ORGANIZATION_SLUG)
-    if org_row is None:
-        return False
-    session.delete(org_row)
+    removed = False
+    for slug in (SEED_ORGANIZATION_SLUG, SMOKE_ORGANIZATION_SLUG):
+        org_row = _find_organization(session, slug)
+        if org_row is not None:
+            session.delete(org_row)
+            removed = True
     session.flush()
-    return True
+    return removed

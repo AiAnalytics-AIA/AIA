@@ -6,8 +6,10 @@ running deployment. It proves, in order:
 1. **Storage** -- a synthetic object round-trips through the configured
    :class:`ArtifactStore` (S3 in develop) and is hash-verified on read.
 2. **Seed** -- the develop world exists (idempotent; creates it on first run).
-3. **Worker + slice** -- a fresh ``develop_snapshot`` run is created as the seeded
-   operator through the same use case the API calls; the *running* worker
+3. **Worker + slice** -- a fresh ``develop_snapshot`` run is created as the smoke's
+   own synthetic owner, in the seed's smoke organization (never the operator's,
+   so nothing a person archives in their workspace can stop it), through the
+   same use case the API calls; the *running* worker
    claims and executes it, and its step output names the deployed build; the
    artifact is read back from the store and hash-verified. A freshly stored
    artifact carries the deployed build as its ``runtime_version``; one reused
@@ -33,6 +35,7 @@ from typing import Any
 
 from aia_core.application.develop_seed import seed_develop, seeded_study_scope
 from aia_core.application.workflows import start_workflow
+from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
 from aia_core.infrastructure.artifact_repository import ArtifactRepository
@@ -101,7 +104,6 @@ def storage_round_trip(store: ArtifactStore, report: Report) -> None:
 def wait_for_snapshot(
     sessions: sessionmaker[Session],
     *,
-    owner_email: str,
     run_id: str,
     timeout_s: float,
     poll_s: float = 1.0,
@@ -112,7 +114,7 @@ def wait_for_snapshot(
     deadline = clock() + timeout_s
     while True:
         with sessions() as session:
-            scope = seeded_study_scope(session, owner_email=owner_email)
+            scope = seeded_study_scope(session)
             run = WorkflowRepository(session, scope).get_run(run_id)
         if WorkflowRunStatus(run["status"]).is_terminal or clock() >= deadline:
             return run
@@ -137,7 +139,7 @@ def slice_check(
     # worker, not the reuse of a run an earlier deploy already completed.
     nonce = uuid.uuid4().hex[:12]
     with sessions() as session:
-        scope = seeded_study_scope(session, owner_email=owner_email)
+        scope = seeded_study_scope(session)
         started = start_workflow(
             session,
             scope,
@@ -147,11 +149,9 @@ def slice_check(
             metadata={"smoke": True},
         )
         session.commit()
-    report.ok(f"slice: run {started.run_id} created as the seeded operator")
+    report.ok(f"slice: run {started.run_id} created as the smoke's own owner")
 
-    run = wait_for_snapshot(
-        sessions, owner_email=owner_email, run_id=started.run_id, timeout_s=timeout_s
-    )
+    run = wait_for_snapshot(sessions, run_id=started.run_id, timeout_s=timeout_s)
     status = WorkflowRunStatus(run["status"])
     if status is not WorkflowRunStatus.COMPLETED:
         step = run["steps"][0] if run["steps"] else {}
@@ -167,7 +167,7 @@ def slice_check(
     output = run["steps"][0]["output"]
     artifact_id = output.get("artifact_id")
     with sessions() as session:
-        scope = seeded_study_scope(session, owner_email=owner_email)
+        scope = seeded_study_scope(session)
         artifacts = ArtifactRepository(session, scope, store)
         artifact = artifacts.get(artifact_id)
         payload = artifacts.read_json(artifact_id)
@@ -200,6 +200,18 @@ def slice_check(
         report.ok(f"slice: artifact provenance names build {artifact.runtime_version}")
     if payload.get("project_id") != seed.project_id:
         report.fail("slice: the snapshot describes the seeded project", str(payload)[:200])
+
+
+def describe_failure(exc: Exception) -> str:
+    """One line for an unexpected slice error, with a denial's reason.
+
+    A ``ScopeDenied`` says "not found" whatever the cause, so that a request
+    learns nothing; the operator reading the smoke needs the reason to know
+    which row to look at (membership, user, client, grant).
+    """
+    if isinstance(exc, ScopeDenied):
+        return f"ScopeDenied: {exc} (reason: {exc.reason})"
+    return f"{type(exc).__name__}: {exc}"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -235,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
             report=report,
         )
     except Exception as exc:
-        report.fail("slice: unexpected error", f"{type(exc).__name__}: {exc}")
+        report.fail("slice: unexpected error", describe_failure(exc))
     finally:
         engine.dispose()
 

@@ -97,7 +97,7 @@ Some decisions sit beside the table:
 
 | Field | Reference | Production | Why |
 | --- | --- | --- | --- |
-| Minimum factors | prompt 6, schema 4, code tops `< 4` up to 6 | **6**, declared | The only count the model is asked for, and the reference's own top-up target. Decision **D10** in `PROGRESS.md` |
+| Minimum factors | prompt 6, schema 4, code tops `< 4` up to 6 | **6**, declared | The only count the model is asked for, and the reference's own top-up target. Decision **D10** in `.planning/overview.md` |
 | Minimum drivers | prompt 1, code accepts 0 | **1** | A factor with no driver is pure noise dressed as a hypothesis |
 | Missing mean / SD / confidence | defaults 5.0 / 2.0 / 0.3 | reject | Never stamp a guess (`CLAUDE.md §8`) |
 | Epistemic status | stamped over whatever the model said | may be omitted, then stamped; a *different* value is rejected | A model claiming its factor is measured is misbehaving |

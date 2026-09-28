@@ -1,3 +1,16 @@
+---
+status: done
+chunks:
+  - "[x] 0. This plan"
+  - "[x] 1. Bedrock provider and adapter (2e8beb5)"
+  - "[x] 2. The gateway can preflight (125a8be)"
+  - "[x] 3. Deterministic respondent layer (b2cc9ff)"
+  - "[x] 4. The respondent agent (9b7fa9b)"
+  - "[x] 5. The bridge and the producer (dec2fd1)"
+  - "[x] 6. Composition and deployable configuration (dec2fd1, 2840d34)"
+  - "[x] 7. Proof: end-to-end worker run on recorded exchanges"
+  - "[x] 8. Documents and records; merged PR #56, deployed at 0310091"
+---
 # Agent Runtime Foundation — AI respondent fieldwork, the first end-to-end Research integration
 
 **Status:** done — chunks 0–8 merged in PR #56 @ `0310091` (2026-09-26) and deployed; ADR 0010 accepted for fictional Class C on develop (AR-2). Follow-ups are carried in PROGRESS *Next* (OI-64, OI-65). Archived 2026-09-27.
