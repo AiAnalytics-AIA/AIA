@@ -7,12 +7,14 @@ stored with the one builder the executor uses; nothing here trusts a stored numb
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import uuid
 from typing import Any
 
 import pytest
 
+from aia_core.application import analysis_results
 from aia_core.application.analysis import ModuleOutcomeKind
 from aia_core.application.analysis_results import (
     AGGREGATE_ARTIFACT,
@@ -35,6 +37,7 @@ from aia_core.domain.analysis.artifact import (
     ProducedBy,
     parse_module_artifact,
 )
+from aia_core.domain.analysis.native import NativeEvidenceRefused
 from aia_core.domain.analysis.steps import (
     ANALYSIS_STEP_KIND,
     analysis_step_definitions,
@@ -56,6 +59,7 @@ from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow_templates import RESEARCH, steps_for_workflow
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.tables import ProjectArtifactRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 DESIGN: dict[str, Any] = {
@@ -149,19 +153,25 @@ class World:
         lineage: bool = True,
         stop_before: str | None = None,
         spec_revision: str | None = None,
+        spec_design: dict[str, Any] | None = None,
         reused: dict[str, str] | None = None,
+        payloads: dict[str, Any] | None = None,
     ) -> None:
         """compile, preflight, run and aggregate, as their executors store them.
 
         ``spec_revision`` names the revision the specification records, as when the
-        compile step reused the artifact of an earlier revision; ``reused`` maps a step
-        kind to an earlier run's artifact that step reuses instead of storing one.
+        compile step reused the artifact of an earlier revision; ``spec_design`` is the
+        content it is compiled from, and the fieldwork and aggregate built around, when
+        that is not the revision it records; ``reused`` maps a step kind to an earlier
+        run's artifact that step reuses instead of storing one; ``payloads`` replaces
+        what ``compile`` or ``aggregate`` stores with exactly that JSON.
         """
         latest = StudyDesignRepository(self.session, self.scope).latest()
         assert latest is not None
         revision_id = latest.revision_id
         content = StudyDesignRepository(self.session, self.scope).content(revision_id)
-        spec, _ = compile_design(content)
+        spec, _ = compile_design(spec_design if spec_design is not None else content)
+        stored = payloads or {}
         assert spec is not None
         dataset = synthetic_dataset(spec, seed=20260816)
         ids: dict[str, str] = {}
@@ -169,12 +179,15 @@ class World:
         def compile_(work: Any) -> str:
             ids["spec"] = self.put(
                 work,
-                {
-                    "kind": SPECIFICATION_ARTIFACT,
-                    "design_revision_id": spec_revision or revision_id,
-                    "specification": spec.model_dump(mode="json"),
-                    "specification_fingerprint": spec.fingerprint(),
-                },
+                stored.get(
+                    "compile",
+                    {
+                        "kind": SPECIFICATION_ARTIFACT,
+                        "design_revision_id": spec_revision or revision_id,
+                        "specification": spec.model_dump(mode="json"),
+                        "specification_fingerprint": spec.fingerprint(),
+                    },
+                ),
                 SPECIFICATION_ARTIFACT,
             )
             return ids["spec"]
@@ -195,7 +208,10 @@ class World:
         def aggregate(work: Any) -> str:
             return self.put(
                 work,
-                {"kind": AGGREGATE_ARTIFACT, "aggregate": aggregate_dataset(spec, dataset)},
+                stored.get(
+                    "aggregate",
+                    {"kind": AGGREGATE_ARTIFACT, "aggregate": aggregate_dataset(spec, dataset)},
+                ),
                 AGGREGATE_ARTIFACT,
                 depends_on=[ids["spec"], ids["dataset"]] if lineage else [ids["spec"]],
                 metadata={"data_origin": DataOrigin.SYNTHETIC_FIXTURE.value},
@@ -433,6 +449,137 @@ def test_a_source_of_the_wrong_type_is_refused(world: World) -> None:
     assert refused.value.reason == "source_type"
 
 
+def test_a_specification_compiled_from_other_content_is_refused_whatever_it_records(
+    world: World,
+) -> None:
+    """The specification is checked against the revision itself, not only against the
+    revision it names: compiled from another questionnaire, with the fieldwork and the
+    aggregate built around it, it is not this run's although it says it is."""
+    run_id = world.start()
+    first_question = DESIGN["sections"][0]["questions"][0]
+    world.upstream(
+        spec_design={**DESIGN, "sections": [{"type": "questions", "questions": [first_question]}]}
+    )
+    with pytest.raises(SourcesRefused) as refused:
+        world.sources(run_id)
+    assert refused.value.reason == "design_revision"
+
+
+@pytest.mark.parametrize("names_the_run", [True, False], ids=["the-run", "another"])
+def test_another_compilers_specification_is_held_to_the_revision_it_records(
+    world: World, names_the_run: bool
+) -> None:
+    """This system cannot recompile what another compiler produced, and a run parked
+    across a deploy must still be analysed: such a specification is held to the revision
+    it records, which must be the run's (or an identical one's) as for any other."""
+    designs = StudyDesignRepository(world.session, world.scope)
+    other, _ = designs.submit(content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run")
+    run_id = world.start()
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    older = spec.model_copy(update={"compiler_version": "aia-research-compile-0"})
+    run_revision = world.run(run_id)["metadata"]["design_revision_id"]
+    world.upstream(
+        payloads={
+            "compile": {
+                "kind": SPECIFICATION_ARTIFACT,
+                "design_revision_id": run_revision if names_the_run else other.revision_id,
+                "specification": older.model_dump(mode="json"),
+                "specification_fingerprint": older.fingerprint(),
+            }
+        }
+    )
+    if names_the_run:
+        assert world.sources(run_id).specification.compiler_version == "aia-research-compile-0"
+    else:
+        with pytest.raises(SourcesRefused) as refused:
+            world.sources(run_id)
+        assert refused.value.reason == "design_revision"
+
+
+@pytest.mark.parametrize(
+    ("step", "payload", "reason"),
+    [
+        ("compile", ["kind", SPECIFICATION_ARTIFACT], "specification_shape"),
+        (
+            "compile",
+            {"kind": SPECIFICATION_ARTIFACT, "specification": {"title": "Jiný tvar"}},
+            "specification_shape",
+        ),
+        ("aggregate", ["kind", AGGREGATE_ARTIFACT], "aggregate_shape"),
+    ],
+    ids=["specification-not-an-object", "specification-unreadable", "aggregate-not-an-object"],
+)
+def test_a_source_of_another_shape_is_refused_not_raised(
+    world: World, step: str, payload: Any, reason: str
+) -> None:
+    """Hash-valid JSON of another shape -- an older producer's artifact, say -- is a
+    refusal with a reason, never an AttributeError or a validation error."""
+    run_id = world.start()
+    world.upstream(payloads={step: payload})
+    with pytest.raises(SourcesRefused) as refused:
+        world.sources(run_id)
+    assert refused.value.reason == reason
+
+
+def _damage(world: World, artifact_id: str, how: str) -> str:
+    """Tamper with an artifact's bytes, or remove its object. Returns its storage key."""
+    key = research_artifacts(world.session, world.scope, world.store).get(artifact_id).storage_key
+    if how == "tampered":
+        world.store.put(key, b'{"kind": "tampered"}')
+    else:
+        world.store.delete(key)
+    return key
+
+
+@pytest.mark.parametrize("how", ["tampered", "missing"])
+@pytest.mark.parametrize("node", ["compile", "aggregate"])
+def test_a_corrupt_source_is_refused_by_reason_without_its_storage_key(
+    world: World, node: str, how: str
+) -> None:
+    """Bytes that fail their hash, or an object that is gone: refused by reason, and the
+    message carries no storage key, since it reaches a step's error and a reader."""
+    run_id = world.start()
+    world.upstream()
+    key = _damage(world, _outputs(world, run_id)[node], how)
+    with pytest.raises(SourcesRefused) as refused:
+        world.sources(run_id)
+    assert refused.value.reason == "source_corrupt"
+    assert key not in str(refused.value)
+
+
+@pytest.mark.parametrize("how", ["tampered", "missing"])
+def test_a_corrupt_ai_dataset_is_refused_by_reason_not_raised(world: World, how: str) -> None:
+    """An AI runtime dataset is read for its lineage. Bytes that fail their hash are a
+    refusal by reason like any other source's, not a storage error: an executor returns
+    it from inside its transaction, which then keeps the CORRUPT mark (OI-77)."""
+    run_id = world.start()
+    world.upstream()
+    sources = dataclasses.replace(
+        world.sources(run_id), fieldwork_source=FieldworkSource.AI_RUNTIME.value
+    )
+    key = _damage(world, sources.refs.dataset.artifact_id, how)
+    with pytest.raises(SourcesRefused) as refused:
+        dataset_material(world.session, world.scope, world.store, sources)
+    assert refused.value.reason == "source_corrupt"
+    assert key not in str(refused.value)
+
+
+def test_an_earlier_specification_of_another_shape_is_not_the_runs(world: World) -> None:
+    """An aggregate reused from an earlier run is the run's own only through a
+    specification of the run's fingerprint; one that cannot be read is not one."""
+    first = world.start()
+    world.upstream(payloads={"compile": ["kind", SPECIFICATION_ARTIFACT]})
+    earlier = _outputs(world, first)
+    second = world.start({**DESIGN, "research_plan": {"research_questions": ["Jiná otázka?"]}})
+    world.upstream(
+        reused={"research_fieldwork": earlier["run"], "research_aggregate": earlier["aggregate"]}
+    )
+    with pytest.raises(SourcesRefused) as refused:
+        world.sources(second)
+    assert refused.value.reason == "aggregate_lineage"
+
+
 # --- preparation ----------------------------------------------------------------------------
 
 
@@ -626,6 +773,54 @@ def test_tampered_bytes_are_refused(world: World) -> None:
             module_id=AnalysisModuleId.EXECUTIVE,
         )
     assert refused.value.reason == "outcome_corrupt"
+
+
+def _rewrite(world: World, artifact_id: str, payload: Any) -> None:
+    """Store ``payload`` as the artifact's bytes and record their hash: valid bytes of
+    another shape, as an older producer might have left them."""
+    data = json.dumps(payload).encode("utf-8")
+    row = world.session.get(ProjectArtifactRow, artifact_id)
+    assert row is not None
+    world.store.put(row.storage_key, data)
+    row.sha256 = hashlib.sha256(data).hexdigest()
+    row.size_bytes = len(data)
+    world.session.flush()
+
+
+def test_a_source_that_became_another_shape_refuses_the_reconstruction(world: World) -> None:
+    """A reader gets a refusal with its reason, whatever the source's bytes became."""
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed)
+    _rewrite(world, _outputs(world, run_id)["compile"], ["kind", SPECIFICATION_ARTIFACT])
+    with pytest.raises(ReconstructionRefused) as refused:
+        reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    assert refused.value.reason == "sources_refused"
+    assert str(refused.value).startswith("specification_shape:")
+
+
+def test_evidence_the_adapter_now_refuses_refuses_the_reconstruction(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The same sources, read by an adapter that refuses them (a later one, say): a
+    refusal with its reason, not the adapter's exception."""
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed)
+
+    def refuse(*_: Any, **__: Any) -> Any:
+        raise NativeEvidenceRefused("this adapter does not read that aggregate")
+
+    monkeypatch.setattr(analysis_results, "native_evidence", refuse)
+    with pytest.raises(ReconstructionRefused) as refused:
+        reconstruct_module(
+            world.session,
+            world.scope,
+            world.store,
+            run_id=run_id,
+            module_id=AnalysisModuleId.EXECUTIVE,
+        )
+    assert refused.value.reason == "evidence_refused"
 
 
 def test_an_outcome_is_read_only_in_its_study_and_internal_ones_by_its_researchers(

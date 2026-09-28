@@ -93,7 +93,7 @@ job's summary in CI.
 | `questionnaire.instruments` | research *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
 | `reports.generation` | reporting *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `research.copilot` | research *(unconfirmed)* | NOT_STARTED | NO_PARITY_REQUIRED | — | — | — | — | no |
-| `research.design` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
+| `research.design` | research *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x1 | — | yes |
 | `respondents.context` | research *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `respondents.engine` | research *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x1 | — | yes |
 | `respondents.factual_layer` | research *(unconfirmed)* | PARTIAL | EXACT | — | — | production_contract x2 | — | yes |

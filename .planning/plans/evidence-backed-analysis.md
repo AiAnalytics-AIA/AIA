@@ -195,4 +195,23 @@ validation (only support and suppression), verification or alignment.
 
 ## Review outcome
 
-Filled in when the plan is archived.
+Filled in when the plan is archived. Findings so far:
+
+- **Codex on #76 @ `986a55e`, two P2s, each reproduced before its fix.**
+  1. A source whose bytes pass their hash but hold another shape (not an object, or a
+     specification this system cannot read) raised `AttributeError` or `ValidationError`
+     out of `native_sources`, so a reader got an exception, not a refusal. Now it is
+     refused as `specification_shape` or `aggregate_shape`, and an earlier specification
+     of another shape is simply not the run's (`aggregate_lineage`). Beside it, the same
+     class of escape in `_reconstruct`: an evidence adapter's refusal left the API as
+     `NativeEvidenceRefused`, and is now `evidence_refused`. Tests in
+     `test_analysis_results.py`: `test_a_source_of_another_shape_is_refused_not_raised`,
+     `test_an_earlier_specification_of_another_shape_is_not_the_runs`,
+     `test_a_source_that_became_another_shape_refuses_the_reconstruction` and
+     `test_evidence_the_adapter_now_refuses_refuses_the_reconstruction`.
+  2. A specification that names the run's revision was never compared with the
+     revision's content. When this system's compiler produced it, it is now compiled
+     again and compared (`design_revision`). Another compiler's cannot be, and a run
+     parked across a deploy must still be read, so it is held to the revision it
+     records. Tests: `test_a_specification_compiled_from_other_content_is_refused_whatever_it_records`
+     and `test_another_compilers_specification_is_held_to_the_revision_it_records`.

@@ -1,0 +1,1227 @@
+{
+ "canonical_url": [
+  {
+   "canonical": "https://example.org/zprava",
+   "url": "https://www.Example.org/zprava/"
+  },
+  {
+   "canonical": "https://example.org/zprava",
+   "url": "https://example.org/zprava"
+  },
+  {
+   "canonical": "https://example.org/zprava?x=1",
+   "url": "HTTPS://WWW.EXAMPLE.ORG/zprava?x=1#frag"
+  },
+  {
+   "canonical": "http://example.org/a/b",
+   "url": "http://example.org/a/b/"
+  },
+  {
+   "canonical": "https://example.org/a/b/",
+   "url": "https://example.org/a/b//"
+  },
+  {
+   "canonical": "",
+   "url": "ftp://example.org/file"
+  },
+  {
+   "canonical": "",
+   "url": "example.org/no-scheme"
+  },
+  {
+   "canonical": "",
+   "url": "https:///no-host"
+  },
+  {
+   "canonical": "",
+   "url": ""
+  },
+  {
+   "canonical": "https://sub.www.example.org/path",
+   "url": "   https://sub.www.example.org/path/   "
+  },
+  {
+   "canonical": "https://example.org:8443/port",
+   "url": "https://example.org:8443/port/"
+  },
+  {
+   "canonical": "https://user:secret@example.org/cred",
+   "url": "https://user:secret@example.org/cred"
+  },
+  {
+   "canonical": "https://www.example.org/double",
+   "url": "https://www.www.example.org/double"
+  },
+  {
+   "canonical": "https://example.org?q=%C4%8Desk%C3%A9",
+   "url": "https://example.org/?q=%C4%8Desk%C3%A9"
+  },
+  {
+   "canonical": "",
+   "url": "not a url at all"
+  }
+ ],
+ "similarity": [
+  {
+   "a": "Spotřeba rostlinných nápojů roste",
+   "b": "Spotřeba rostlinných nápojů v Česku roste",
+   "similarity": 0.8
+  },
+  {
+   "a": "Průměrná cena litru je 32 Kč",
+   "b": "Průměrná cena litru",
+   "similarity": 1.0
+  },
+  {
+   "a": "",
+   "b": "cokoli",
+   "similarity": 0.0
+  },
+  {
+   "a": "a i v ve na se",
+   "b": "je jsou pro do z ze že to u",
+   "similarity": 0.0
+  },
+  {
+   "a": "Čeština s diakritikou: žluťoučký kůň úpěl ďábelské ódy",
+   "b": "zlutoucky kun upel dabelske ody",
+   "similarity": 0.0
+  },
+  {
+   "a": "Straße à la façon",
+   "b": "strasse a la facon",
+   "similarity": 0.0
+  },
+  {
+   "a": "ÆØÅ æøå ÿ Ā ž ſ",
+   "b": "æøå ÿ ā ž",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score 4.2 for brand intent",
+   "b": "brand intent mean score",
+   "similarity": 1.0
+  },
+  {
+   "a": "Purchase intent 38 % among respondents",
+   "b": "purchase intent among respondents",
+   "similarity": 1.0
+  },
+  {
+   "a": "12345 67890 abcd",
+   "b": "12345 abcd efgh",
+   "similarity": 0.5
+  },
+  {
+   "a": "Tabák, alkohol a hazard: regulace 2024",
+   "b": "regulace hazardu a tabáku 2024",
+   "similarity": 0.2857142857142857
+  },
+  {
+   "a": "MIXED Case Tokens Here",
+   "b": "mixed case tokens here",
+   "similarity": 1.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "similarity": 0.2222222222222222
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Trh s kávou roste o 3 % ročně.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Purchase intent for electric scooters is 22 % this year.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Electric scooter sharing is regulated in Prague since 2021.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Mean score of scooter appeal was 3.9.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Plechovky tvoří 18 % obalového odpadu.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Respondenti preferují levnější varianty.",
+   "similarity": 0.0
+  },
+  {
+   "a": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "b": "Nikdo neví.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "b": "Trh s kávou roste o 3 % ročně.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.1
+  },
+  {
+   "a": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Trh s kávou roste o 3 % ročně.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Trh s kávou roste o 3 % ročně.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Trh s kávou roste o 3 % ročně.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Purchase intent for electric scooters is 22 % this year.",
+   "b": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Purchase intent for electric scooters is 22 % this year.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Purchase intent for electric scooters is 22 % this year.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Purchase intent for electric scooters is 22 % this year.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Purchase intent for electric scooters is 22 % this year.",
+   "b": "Trh s kávou roste o 3 % ročně.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Purchase intent for electric scooters is 22 % this year.",
+   "b": "Respondenti preferují levnější varianty.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Trh s kávou roste o 3 % ročně.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Purchase intent for electric scooters is 22 % this year.",
+   "similarity": 0.08333333333333333
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Mean score of scooter appeal was 3.9.",
+   "similarity": 0.1
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Plechovky tvoří 18 % obalového odpadu.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Respondenti preferují levnější varianty.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Electric scooter sharing is regulated in Prague since 2021.",
+   "b": "Nikdo neví.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Trh s kávou roste o 3 % ročně.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Purchase intent for electric scooters is 22 % this year.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Plechovky tvoří 18 % obalového odpadu.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Respondenti preferují levnější varianty.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Mean score of scooter appeal was 3.9.",
+   "b": "Nikdo neví.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Plechovky tvoří 18 % obalového odpadu.",
+   "b": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Plechovky tvoří 18 % obalového odpadu.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Plechovky tvoří 18 % obalového odpadu.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Plechovky tvoří 18 % obalového odpadu.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Plechovky tvoří 18 % obalového odpadu.",
+   "b": "Trh s kávou roste o 3 % ročně.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Plechovky tvoří 18 % obalového odpadu.",
+   "b": "Purchase intent for electric scooters is 22 % this year.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Plechovky tvoří 18 % obalového odpadu.",
+   "b": "Respondenti preferují levnější varianty.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Respondenti preferují levnější varianty.",
+   "b": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Respondenti preferují levnější varianty.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Respondenti preferují levnější varianty.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Respondenti preferují levnější varianty.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Respondenti preferují levnější varianty.",
+   "b": "Trh s kávou roste o 3 % ročně.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Nikdo neví.",
+   "b": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Nikdo neví.",
+   "b": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Nikdo neví.",
+   "b": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Nikdo neví.",
+   "b": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Nikdo neví.",
+   "b": "Trh s kávou roste o 3 % ročně.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Nikdo neví.",
+   "b": "Purchase intent for electric scooters is 22 % this year.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Nikdo neví.",
+   "b": "Plechovky tvoří 18 % obalového odpadu.",
+   "similarity": 0.0
+  },
+  {
+   "a": "Nikdo neví.",
+   "b": "Respondenti preferují levnější varianty.",
+   "similarity": 0.0
+  }
+ ],
+ "target_overlap": [
+  {
+   "claim": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "overlap": true,
+   "per_question": [
+    true,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "overlap": true,
+   "per_question": [
+    false,
+    false,
+    true,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Trh s kávou roste o 3 % ročně.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Purchase intent for electric scooters is 22 % this year.",
+   "overlap": true,
+   "per_question": [
+    false,
+    false,
+    false,
+    true
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Electric scooter sharing is regulated in Prague since 2021.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Mean score of scooter appeal was 3.9.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Plechovky tvoří 18 % obalového odpadu.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Respondenti preferují levnější varianty.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  },
+  {
+   "claim": "Nikdo neví.",
+   "overlap": false,
+   "per_question": [
+    false,
+    false,
+    false,
+    false
+   ],
+   "questions": [
+    {
+     "id": "q1",
+     "kategorie": [
+      "Denně",
+      "Týdně",
+      "Měsíčně",
+      "Nikdy"
+     ],
+     "text": "Jak často kupujete rostlinné nápoje?"
+    },
+    {
+     "id": "q2",
+     "kategorie": [],
+     "text": "Souhlasíte se zavedením zálohování plechovek?"
+    },
+    {
+     "id": "q3",
+     "kategorie": [
+      "Aroma",
+      "Borealis"
+     ],
+     "text": "Kterou značku kávy preferujete?"
+    },
+    {
+     "id": "q4",
+     "text": "How likely would you buy an electric scooter this year?"
+    }
+   ]
+  }
+ ],
+ "tokens": [
+  {
+   "text": "",
+   "tokens": []
+  },
+  {
+   "text": "12345 67890 abcd",
+   "tokens": [
+    "12345",
+    "67890",
+    "abcd"
+   ]
+  },
+  {
+   "text": "12345 abcd efgh",
+   "tokens": [
+    "12345",
+    "abcd",
+    "efgh"
+   ]
+  },
+  {
+   "text": "38 % respondentů kupuje rostlinné nápoje týdně.",
+   "tokens": [
+    "kupuje",
+    "nápoje",
+    "respondentů",
+    "rostlinné",
+    "týdně"
+   ]
+  },
+  {
+   "text": "Electric scooter sharing is regulated in Prague since 2021.",
+   "tokens": [
+    "2021",
+    "electric",
+    "prague",
+    "regulated",
+    "scooter",
+    "sharing",
+    "since"
+   ]
+  },
+  {
+   "text": "MIXED Case Tokens Here",
+   "tokens": [
+    "case",
+    "here",
+    "mixed",
+    "tokens"
+   ]
+  },
+  {
+   "text": "Mean score 4.2 for brand intent",
+   "tokens": [
+    "brand",
+    "intent",
+    "mean",
+    "score"
+   ]
+  },
+  {
+   "text": "Mean score of scooter appeal was 3.9.",
+   "tokens": [
+    "appeal",
+    "mean",
+    "scooter",
+    "score"
+   ]
+  },
+  {
+   "text": "Nikdo neví.",
+   "tokens": [
+    "neví",
+    "nikdo"
+   ]
+  },
+  {
+   "text": "Plechovky tvoří 18 % obalového odpadu.",
+   "tokens": [
+    "obalového",
+    "odpadu",
+    "plechovky",
+    "tvoří"
+   ]
+  },
+  {
+   "text": "Průměrná cena litru",
+   "tokens": [
+    "cena",
+    "litru",
+    "průměrná"
+   ]
+  },
+  {
+   "text": "Průměrná cena litru je 32 Kč",
+   "tokens": [
+    "cena",
+    "litru",
+    "průměrná"
+   ]
+  },
+  {
+   "text": "Purchase intent 38 % among respondents",
+   "tokens": [
+    "among",
+    "intent",
+    "purchase",
+    "respondents"
+   ]
+  },
+  {
+   "text": "Purchase intent for electric scooters is 22 % this year.",
+   "tokens": [
+    "electric",
+    "intent",
+    "purchase",
+    "scooters",
+    "this",
+    "year"
+   ]
+  },
+  {
+   "text": "Respondenti preferují levnější varianty.",
+   "tokens": [
+    "levnější",
+    "preferují",
+    "respondenti",
+    "varianty"
+   ]
+  },
+  {
+   "text": "Rostlinné nápoje zdražily o 12 procent kvůli clům.",
+   "tokens": [
+    "clům",
+    "kvůli",
+    "nápoje",
+    "procent",
+    "rostlinné",
+    "zdražily"
+   ]
+  },
+  {
+   "text": "Spotřeba rostlinných nápojů roste",
+   "tokens": [
+    "nápojů",
+    "roste",
+    "rostlinných",
+    "spotřeba"
+   ]
+  },
+  {
+   "text": "Spotřeba rostlinných nápojů v Česku roste",
+   "tokens": [
+    "nápojů",
+    "roste",
+    "rostlinných",
+    "spotřeba",
+    "česku"
+   ]
+  },
+  {
+   "text": "Straße à la façon",
+   "tokens": [
+    "façon",
+    "stra"
+   ]
+  },
+  {
+   "text": "Tabák, alkohol a hazard: regulace 2024",
+   "tokens": [
+    "2024",
+    "alkohol",
+    "hazard",
+    "regulace",
+    "tabák"
+   ]
+  },
+  {
+   "text": "Trh s kávou roste o 3 % ročně.",
+   "tokens": [
+    "kávou",
+    "roste",
+    "ročně"
+   ]
+  },
+  {
+   "text": "Většina dotázaných souhlasí se zálohováním plechovek.",
+   "tokens": [
+    "dotázaných",
+    "plechovek",
+    "souhlasí",
+    "většina",
+    "zálohováním"
+   ]
+  },
+  {
+   "text": "Značku kávy Aroma preferuje 41 % kupujících.",
+   "tokens": [
+    "aroma",
+    "kupujících",
+    "kávy",
+    "preferuje",
+    "značku"
+   ]
+  },
+  {
+   "text": "Zálohování plechovek zavedlo Slovensko v roce 2022.",
+   "tokens": [
+    "2022",
+    "plechovek",
+    "roce",
+    "slovensko",
+    "zavedlo",
+    "zálohování"
+   ]
+  },
+  {
+   "text": "a i v ve na se",
+   "tokens": []
+  },
+  {
+   "text": "brand intent mean score",
+   "tokens": [
+    "brand",
+    "intent",
+    "mean",
+    "score"
+   ]
+  },
+  {
+   "text": "cokoli",
+   "tokens": [
+    "cokoli"
+   ]
+  },
+  {
+   "text": "je jsou pro do z ze že to u",
+   "tokens": []
+  },
+  {
+   "text": "mixed case tokens here",
+   "tokens": [
+    "case",
+    "here",
+    "mixed",
+    "tokens"
+   ]
+  },
+  {
+   "text": "purchase intent among respondents",
+   "tokens": [
+    "among",
+    "intent",
+    "purchase",
+    "respondents"
+   ]
+  },
+  {
+   "text": "regulace hazardu a tabáku 2024",
+   "tokens": [
+    "2024",
+    "hazardu",
+    "regulace",
+    "tabáku"
+   ]
+  },
+  {
+   "text": "strasse a la facon",
+   "tokens": [
+    "facon",
+    "strasse"
+   ]
+  },
+  {
+   "text": "zlutoucky kun upel dabelske ody",
+   "tokens": [
+    "dabelske",
+    "upel",
+    "zlutoucky"
+   ]
+  },
+  {
+   "text": "ÆØÅ æøå ÿ Ā ž ſ",
+   "tokens": []
+  },
+  {
+   "text": "æøå ÿ ā ž",
+   "tokens": []
+  },
+  {
+   "text": "Čeština s diakritikou: žluťoučký kůň úpěl ďábelské ódy",
+   "tokens": [
+    "diakritikou",
+    "úpěl",
+    "čeština",
+    "ďábelské",
+    "žluťoučký"
+   ]
+  }
+ ]
+}

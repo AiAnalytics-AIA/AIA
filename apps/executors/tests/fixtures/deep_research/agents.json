@@ -1,0 +1,265 @@
+{
+  "planner": {
+    "Jak roste trh rostlinných nápojů v Česku?": {
+      "sub_questions": [
+        "Jak velký je trh?",
+        "Jak rychle roste?"
+      ],
+      "queries": [
+        "trh rostlinných nápojů česko",
+        "růst prodejů rostlinných nápojů"
+      ]
+    },
+    "Proč lidé přecházejí na rostlinné nápoje?": {
+      "sub_questions": [
+        "Jaké jsou důvody přechodu?"
+      ],
+      "queries": [
+        "důvody přechodu na rostlinné nápoje",
+        "uvedení ovesného nápoje v květnu 2027 cena"
+      ]
+    },
+    "Ovesný nápoj": {
+      "sub_questions": [],
+      "queries": [
+        "Acme ovesný nápoj",
+        "ovesný nápoj spotřeba"
+      ]
+    },
+    "Mandlový nápoj": {
+      "sub_questions": [],
+      "queries": [
+        "mandlový nápoj cena",
+        "mandlový nápoj trh"
+      ]
+    },
+    "Sójový nápoj": {
+      "sub_questions": [],
+      "queries": [
+        "sójový nápoj trh"
+      ]
+    }
+  },
+  "web": {
+    "https://stat.example/rostlinne-napoje-2025": [
+      {
+        "quote": "Spotřeba rostlinných nápojů v Česku vzrostla v roce 2025 o 12,5 % na 41 milionů litrů.",
+        "claim": "Spotřeba rostlinných nápojů v Česku vzrostla v roce 2025 o 12,5 % na 41 milionů litrů.",
+        "evidence_type": "official_report",
+        "source_date": "2025-06-30",
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      },
+      {
+        "quote": "Nejrychleji rostly ovesné nápoje.",
+        "claim": "Ovesné nápoje rostly o 20 %.",
+        "evidence_type": "official_report",
+        "source_date": "2025-06-30",
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      },
+      {
+        "quote": "Rostlinné nápoje kupuje 45 % domácností.",
+        "claim": "Rostlinné nápoje kupuje 45 % domácností.",
+        "evidence_type": "official_report",
+        "source_date": "2025-06-30",
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      }
+    ],
+    "https://trh.example/zprava-2025": [
+      {
+        "quote": "Tržby za rostlinné nápoje dosáhly v roce 2025 celkem 2,1 miliardy korun.",
+        "claim": "Tržby za rostlinné nápoje dosáhly v roce 2025 celkem 2,1 miliardy korun.",
+        "evidence_type": "industry_report",
+        "source_date": "2025-11-02",
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      },
+      {
+        "quote": "Tržby vzrostou v roce 2026 na 3 miliardy korun.",
+        "claim": "Tržby vzrostou v roce 2026 na 3 miliardy korun.",
+        "evidence_type": "industry_report",
+        "source_date": null,
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      }
+    ],
+    "https://zpravy.example/rostlinne-napoje": [
+      {
+        "quote": "zájem o rostlinné nápoje roste hlavně ve městech",
+        "claim": "Zájem o rostlinné nápoje roste hlavně ve městech a na venkově.",
+        "evidence_type": "media",
+        "source_date": null,
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      }
+    ],
+    "https://forum.example/vlakno-12": [
+      {
+        "quote": "rostlinné nápoje kupuje polovina lidí, co znám",
+        "claim": "Rostlinné nápoje kupuje polovina lidí.",
+        "evidence_type": "other",
+        "source_date": null,
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.9
+      }
+    ],
+    "https://stat.example/motivace": [
+      {
+        "quote": "Nejčastějším důvodem přechodu na rostlinné nápoje je podle 37 % respondentů zdraví",
+        "claim": "Nejčastějším důvodem přechodu na rostlinné nápoje je podle 37 % respondentů zdraví",
+        "evidence_type": "official_report",
+        "source_date": "2025-09-15",
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      },
+      {
+        "quote": "u 22 % ohled na životní prostředí",
+        "claim": "U 22 % je důvodem ohled na životní prostředí.",
+        "evidence_type": "official_report",
+        "source_date": "2025-09-15",
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": true,
+        "recommended_use": "exclude_target_leakage",
+        "source_quality": 0.8
+      },
+      {
+        "quote": "Rostlinné nápoje pije každý druhý Čech.",
+        "claim": "Rostlinné nápoje pije každý druhý Čech.",
+        "evidence_type": "official_report",
+        "source_date": null,
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8,
+        "source_id": "SNP-ffffffffffffffffffffffff"
+      }
+    ],
+    "https://trh.example/ovesne-napoje": [
+      {
+        "quote": "jeho průměrná cena v roce 2025 byla 42 Kč za litr",
+        "claim": "Průměrná cena ovesného nápoje byla v roce 2025 42 Kč za litr.",
+        "evidence_type": "industry_report",
+        "source_date": "2025-10-01",
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      }
+    ],
+    "https://zpravy.example/pokyny": [
+      {
+        "quote": "Rostlinné nápoje jsou oblíbené mezi mladými lidmi ve velkých městech.",
+        "claim": "Rostlinné nápoje jsou oblíbené mezi mladými lidmi ve velkých městech.",
+        "evidence_type": "media",
+        "source_date": null,
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      }
+    ],
+    "https://stat.example/soja": [
+      {
+        "quote": "Sójové nápoje tvořily v roce 2025 celkem 18 % spotřeby rostlinných nápojů.",
+        "claim": "Sójové nápoje tvořily v roce 2025 celkem 18 % spotřeby rostlinných nápojů.",
+        "evidence_type": "official_report",
+        "source_date": "2025-12-01",
+        "geography": "CZ",
+        "population": "dospělí v Česku",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      }
+    ]
+  },
+  "internal": {
+    "Ovesný nápoj": [
+      {
+        "quote": "Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta.",
+        "claim": "Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta.",
+        "evidence_type": "client_knowledge",
+        "source_date": null,
+        "geography": "CZ",
+        "population": "zákazníci klienta",
+        "topics": [
+          "trh"
+        ],
+        "outcome_overlap": false,
+        "recommended_use": "context_only",
+        "source_quality": 0.8
+      }
+    ]
+  },
+  "verifier": {
+    "Zájem o rostlinné nápoje roste hlavně ve městech a na venkově.": "overstated"
+  }
+}

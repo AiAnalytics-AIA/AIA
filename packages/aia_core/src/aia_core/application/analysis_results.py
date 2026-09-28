@@ -7,8 +7,10 @@ judged on and what a reader re-checks cannot differ:
   dataset, aggregate), found through the run's recorded step outputs, read through the
   Study's research artifacts, and checked against each other: the specification is the
   run's Design Revision compiled (or an identical earlier revision's, which the compile
-  step reuses), the aggregate was computed from that dataset and a specification of
-  that fingerprint (its recorded dependencies), the types are what they must be.
+  step reuses) -- the revision it records, and, when this system's compiler produced
+  it, the revision compiled again -- the aggregate was computed from that dataset and a
+  specification of that fingerprint (its recorded dependencies), and the types and
+  shapes are what they must be.
 * :func:`prepare_module` -- those sources as the :class:`AnalysisInputs` one module is
   judged on, with the domain's module fingerprint, the artifact's reuse key and the
   deterministic preflight. The executor calls this before any reservation.
@@ -73,17 +75,24 @@ from ..domain.analysis.harness import (
 from ..domain.analysis.native import (
     NATIVE_EVIDENCE_VERSION,
     NativeEvidence,
+    NativeEvidenceRefused,
     native_evidence,
     native_preflight,
     research_questions_of,
 )
 from ..domain.analysis.steps import analysis_node_key, module_of_node
-from ..domain.evidence import INSTRUMENT_POLICY_VERSION, ClaimSurface, Violation, method_status
+from ..domain.evidence import (
+    INSTRUMENT_POLICY_VERSION,
+    ClaimSurface,
+    InstrumentPolicyRefused,
+    Violation,
+    method_status,
+)
 from ..domain.fieldwork import DataOrigin, FieldworkSource
 from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from ..domain.pipeline import fingerprint
-from ..domain.research_design import ResearchSpecification
+from ..domain.research_design import COMPILER_VERSION, ResearchSpecification, compile_design
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..infrastructure.artifact_repository import (
@@ -206,6 +215,8 @@ def _computed_from(
         if dependency.artifact_type != SPECIFICATION_ARTIFACT:
             continue
         recorded = repo.read_json(dependency.artifact_id)
+        if not isinstance(recorded, Mapping):
+            continue
         try:
             other = ResearchSpecification.model_validate(recorded.get("specification"))
         except ValueError:
@@ -213,6 +224,31 @@ def _computed_from(
         if other.fingerprint() == recorded.get("specification_fingerprint") == spec.fingerprint():
             return True
     return False
+
+
+def _corrupt(what: str) -> SourcesRefused:
+    """A source whose bytes failed verification, or whose object is gone.
+
+    The read has marked the artifact CORRUPT in the caller's transaction. A caller keeps
+    that mark only by ending the transaction without raising: the worker's rolls back
+    on any exception (OI-77). The storage error's text is not repeated, because it holds
+    the object's key, and this message reaches a step's error and a reader.
+    """
+    return SourcesRefused("source_corrupt", f"{what} failed verification and is marked corrupt")
+
+
+def _specification(payload: Any) -> ResearchSpecification:
+    """The specification a compile artifact holds: bytes that pass their hash but are of
+    another shape (an older producer's, say) hold none, and are refused as such."""
+    if not isinstance(payload, Mapping):
+        raise SourcesRefused("specification_shape", "the specification artifact holds no object")
+    try:
+        return ResearchSpecification.model_validate(payload.get("specification"))
+    except ValueError as exc:
+        raise SourcesRefused(
+            "specification_shape",
+            f"the specification artifact holds no specification this system reads: {exc}",
+        ) from exc
 
 
 def native_sources(
@@ -235,7 +271,7 @@ def native_sources(
         aggregate_row = _typed(repo.get(ids["aggregate"]), AGGREGATE_ARTIFACT)
         spec_payload = repo.read_json(spec_row.artifact_id)
         aggregate_payload = repo.read_json(aggregate_row.artifact_id)
-        spec = ResearchSpecification.model_validate(spec_payload.get("specification"))
+        spec = _specification(spec_payload)
         computed_from = _computed_from(
             repo,
             repo.dependencies(aggregate_row.artifact_id),
@@ -248,7 +284,7 @@ def native_sources(
             "source_not_found", f"an upstream artifact is not in scope: {exc}"
         ) from exc
     except (IntegrityError, ObjectNotFound) as exc:
-        raise SourcesRefused("source_corrupt", f"an upstream artifact is corrupt: {exc}") from exc
+        raise _corrupt("an upstream artifact") from exc
 
     if spec_payload.get("specification_fingerprint") != spec.fingerprint():
         raise SourcesRefused(
@@ -270,11 +306,24 @@ def native_sources(
         raise SourcesRefused(
             "design_revision", "the specification is not the run's Design Revision"
         )
+    # What the compile step recorded is checked against what it compiles: the revision is
+    # immutable and the compiler deterministic, so a specification of this compiler is
+    # exactly the revision compiled. Another compiler's cannot be compiled again here,
+    # and a run parked across a deploy must still be read, so it is held to the revision
+    # it records, above.
+    if spec.compiler_version == COMPILER_VERSION:
+        recompiled, _ = compile_design(content)
+        if recompiled is None or recompiled.fingerprint() != spec.fingerprint():
+            raise SourcesRefused(
+                "design_revision", "the specification is not the run's Design Revision compiled"
+            )
     if not computed_from:
         raise SourcesRefused(
             "aggregate_lineage", "the aggregate does not record this specification and dataset"
         )
-    aggregate = aggregate_payload.get("aggregate")
+    aggregate = (
+        aggregate_payload.get("aggregate") if isinstance(aggregate_payload, Mapping) else None
+    )
     if not isinstance(aggregate, Mapping):
         raise SourcesRefused("aggregate_shape", "the aggregate artifact holds no aggregate")
 
@@ -319,6 +368,9 @@ def dataset_material(
     D1), which is exactly its licence determination's dataset. Anything else, or a
     record without them, declares nothing -- and the gateway refuses an undeclared
     lineage before any adapter.
+
+    A dataset whose bytes fail verification is refused (``source_corrupt``), as in
+    :func:`native_sources`.
     """
     if sources.fieldwork_source == FieldworkSource.SYNTHETIC_FIXTURE.value:
         fixture = sources.dataset_origin is DataOrigin.SYNTHETIC_FIXTURE
@@ -328,7 +380,12 @@ def dataset_material(
         )
     if sources.fieldwork_source != FieldworkSource.AI_RUNTIME.value:
         return DatasetMaterial(lineage=None, respondents_fictional=False)
-    payload = research_artifacts(session, scope, store).read_json(sources.refs.dataset.artifact_id)
+    try:
+        payload = research_artifacts(session, scope, store).read_json(
+            sources.refs.dataset.artifact_id
+        )
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise _corrupt("the fieldwork dataset") from exc
     provenance = payload.get("provenance") if isinstance(payload, Mapping) else None
     provenance = provenance if isinstance(provenance, Mapping) else {}
     recorded = provenance.get("lineage")
@@ -571,13 +628,18 @@ def _reconstruct(
         raise ReconstructionRefused(
             "sources_moved", "the run's sources are not the ones this outcome was judged on"
         )
-    prepared = prepare_module(
-        sources,
-        module_id=module_id,
-        surface=record.surface,
-        language=record.harness.language,
-        max_repairs=record.harness.max_repairs,
-    )
+    try:
+        prepared = prepare_module(
+            sources,
+            module_id=module_id,
+            surface=record.surface,
+            language=record.harness.language,
+            max_repairs=record.harness.max_repairs,
+        )
+    except (NativeEvidenceRefused, InstrumentPolicyRefused) as exc:
+        raise ReconstructionRefused(
+            "evidence_refused", f"the recorded sources no longer make evidence: {exc}"
+        ) from exc
     if (
         record.input_fingerprint != prepared.module_fingerprint
         or record.reuse_fingerprint != prepared.reuse_fingerprint

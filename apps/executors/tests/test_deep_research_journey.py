@@ -1,0 +1,1047 @@
+"""Deep Research end to end, recorded: the real worker, gateway, adapter and retrieval gate.
+
+The acceptance journey of the recorded/offline core (``.planning/plans/deep-research.md``,
+chunk h). Nothing leaves the process: Bedrock's side is :class:`RecordedAgents`, one
+recorded answer per agent keyed by what the agent is shown, and the web's side is
+``fixtures/deep_research/web.json`` through the recorded composition. Everything
+between is production code: the worker loop and its leases, ``StepModelCaller`` and
+the governed gateway with the Bedrock adapter, the retrieval gate and the fetcher,
+the executors, the artifacts, the application service.
+
+The world is a fictional client (its designs are Class C). Its approved knowledge is
+one FACT (Class B) and one DOCUMENT (Class A, whose text a planner query reproduces).
+The test route is approved for Class B, so the internal channel can be exercised on
+recorded exchanges; no deployed route is (D6), and the production-shaped test below
+uses a Class C route, as develop has.
+"""
+
+from __future__ import annotations
+
+import json
+from collections import Counter
+from collections.abc import Iterator
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import pytest
+from aia_core.application.deep_research import DeepResearchRuns
+from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.application.web_retrieval import RetrievalGate
+from aia_core.domain.ai_contracts import Delivery
+from aia_core.domain.deep_research.bundle import EvidenceBundle
+from aia_core.domain.deep_research.contracts import (
+    Channel,
+    ClientTerm,
+    EvidenceOrigin,
+    QualityStatus,
+    QuarantineReason,
+    QueryDecision,
+    RetrievalMode,
+    SourceKind,
+    StopReason,
+    SubjectKind,
+    TrackStatus,
+    subject_key,
+    track_id,
+)
+from aia_core.domain.deep_research.grounding import locate_quote, normalise_text
+from aia_core.domain.deep_research.merge import RespondentUse
+from aia_core.domain.deep_research.quarantine import (
+    RecordedEvidenceRefused,
+    require_live_evidence,
+    respondent_context,
+)
+from aia_core.domain.deep_research.synthesis import SynthesisStatus
+from aia_core.domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolOutcome
+from aia_core.domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
+from aia_core.domain.knowledge import KnowledgeKind
+from aia_core.domain.residency import DataClass
+from aia_core.domain.scope import ScopeRole, StudyContext, StudyStatus
+from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
+from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from aia_core.infrastructure.model_adapters.transport import (
+    HttpRequest,
+    HttpResponse,
+    TransportFailure,
+)
+from aia_core.infrastructure.scope_repository import ScopeRepository
+from aia_core.infrastructure.storage import InMemoryArtifactStore
+from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.web_retrieval import RecordedSearch
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
+from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
+from aia_executors.deep_research import (
+    DeepResearchConfig,
+    DeepResearchRuntime,
+    StepToolMeter,
+    deep_research_registry,
+)
+from aia_executors.deep_research_recorded import recorded_retrieval, recorded_runtime
+from aia_executors.deep_research_runtime import deep_research_runtime
+from aia_worker.executor import CancellationRequested
+from aia_worker.settings import WorkerSettings
+from aia_worker.worker import Worker
+from sqlalchemy.orm import Session, sessionmaker
+
+FIXTURES = Path(__file__).parent / "fixtures" / "deep_research"
+WEB = FIXTURES / "web.json"
+ANSWERS: dict[str, Any] = json.loads((FIXTURES / "agents.json").read_text(encoding="utf-8"))
+
+Q1 = "Jak roste trh rostlinných nápojů v Česku?"
+Q2 = "Proč lidé přecházejí na rostlinné nápoje?"
+OATS, ALMOND, SOY = "Ovesný nápoj", "Mandlový nápoj", "Sójový nápoj"
+
+DESIGN: dict[str, Any] = {
+    "title": "Rostlinné nápoje v Česku",
+    "goal": "Porozumět trhu rostlinných nápojů před uvedením nového nápoje.",
+    "decision_use": "Rozhodnutí o uvedení produktu.",
+    "briefing": "Klient zvažuje nový nápoj pro dojíždějící.",
+    "research_plan": {"research_questions": [Q1, Q2]},
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {
+                    "id": "q1",
+                    "text": "Jaký podíl domácností kupuje rostlinné nápoje?",
+                    "kategorie": ["Ano", "Ne"],
+                }
+            ],
+        },
+        {
+            "type": "object_battery",
+            "objects": [OATS, ALMOND],
+            "object_question": "Jak hodnotíte {object}?",
+        },
+    ],
+}
+#: The second pass: one tracked object more, nothing else changed.
+DESIGN_2: dict[str, Any] = {
+    **DESIGN,
+    "sections": [
+        DESIGN["sections"][0],
+        {**DESIGN["sections"][1], "objects": [OATS, ALMOND, SOY]},
+    ],
+}
+
+FACT = "Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta."
+PLAN_A = "Interní plán: uvedení ovesného nápoje v květnu 2027 za 39 Kč."
+
+
+def tid(kind: SubjectKind, text: str, channel: Channel) -> str:
+    return track_id(subject_key(kind, text), channel)
+
+
+IN, WEB_ = Channel.INTERNAL, Channel.WEB
+QS, OS = SubjectKind.QUESTION, SubjectKind.OBJECT
+
+
+# --------------------------------------------------------------------------- #
+# Bedrock's side, recorded
+# --------------------------------------------------------------------------- #
+
+
+class Signer:
+    def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
+        return {**dict(headers), "authorization": "AWS4-HMAC-SHA256 test"}
+
+
+@dataclass
+class RecordedAgents:
+    """One recorded answer per agent, chosen by what the agent was shown.
+
+    ``lose`` names roles whose next request gets no answer (the delivery unknown).
+    """
+
+    answers: dict[str, Any]
+    requests: list[HttpRequest] = field(default_factory=list)
+    lose: set[str] = field(default_factory=set)
+
+    def roles(self) -> Counter[str]:
+        return Counter(self._role(r) for r in self.requests)
+
+    @staticmethod
+    def _role(request: HttpRequest) -> str:
+        name = str(request.body["toolConfig"]["tools"][0]["toolSpec"]["name"])
+        return name.removeprefix("aia_deep_research_")
+
+    async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
+        self.requests.append(request)
+        role = self._role(request)
+        if role in self.lose:
+            self.lose.discard(role)
+            raise TransportFailure("lost response", delivery=Delivery.UNKNOWN)
+        payload = json.loads(request.body["messages"][0]["content"][0]["text"])
+        answer = getattr(self, f"_{role}")(payload)
+        name = request.body["toolConfig"]["tools"][0]["toolSpec"]["name"]
+        return HttpResponse(
+            status=200,
+            headers={"x-amzn-requestid": f"rec-{role}-{len(self.requests)}"},
+            body={
+                "output": {
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"toolUse": {"toolUseId": "t", "name": name, "input": answer}}],
+                    }
+                },
+                "stopReason": "tool_use",
+                "usage": {"inputTokens": 1000, "outputTokens": 200, "totalTokens": 1200},
+            },
+        )
+
+    def _planner(self, payload: dict[str, Any]) -> dict[str, Any]:
+        plans = self.answers["planner"]
+        return {
+            "tracks": [
+                {
+                    "track_id": t["track_id"],
+                    "sub_questions": plans.get(t["subject"], {}).get("sub_questions", []),
+                    "queries": plans.get(t["subject"], {}).get("queries", [t["subject"]]),
+                }
+                for t in payload["tracks"]
+            ],
+            "notes": "",
+        }
+
+    def _web_investigator(self, payload: dict[str, Any]) -> dict[str, Any]:
+        evidence = [
+            {"source_id": s["source_id"], **e}
+            for s in payload["sources"]
+            for e in self.answers["web"].get(s["url"], [])
+        ]
+        return {"evidence": evidence, "gaps": []}
+
+    def _internal_investigator(self, payload: dict[str, Any]) -> dict[str, Any]:
+        evidence = [
+            {"source_id": s["source_id"], **e}
+            for s in payload["sources"]
+            for e in self.answers["internal"].get(s["title"], [])
+        ]
+        return {"evidence": evidence, "gaps": []}
+
+    def _verifier(self, payload: dict[str, Any]) -> dict[str, Any]:
+        overrides = self.answers["verifier"]
+        return {
+            "verdicts": [
+                {
+                    "evidence_id": i["evidence_id"],
+                    "verdict": overrides.get(i["claim"], "supported"),
+                    "reason": "posouzeno podle citace",
+                }
+                for i in payload["items"]
+            ]
+        }
+
+    def _synthesizer(self, payload: dict[str, Any]) -> dict[str, Any]:
+        by_subject: dict[str, list[dict[str, Any]]] = {}
+        for e in payload["evidence"]:
+            by_subject.setdefault(e["subject_key"], []).append(e)
+        first = payload["evidence"][0]
+        findings = [
+            {"subject_key": k, "text": v[0]["claim"], "evidence_ids": [v[0]["evidence_id"]]}
+            for k, v in by_subject.items()
+        ]
+        findings += [
+            # A number no cited quote carries, and a citation of nothing accepted.
+            {
+                "subject_key": first["subject_key"],
+                "text": "Trh do roku 2030 vzroste o 99 %.",
+                "evidence_ids": [first["evidence_id"]],
+            },
+            {
+                "subject_key": first["subject_key"],
+                "text": "Tvrzení bez přijatého důkazu.",
+                "evidence_ids": ["EV-0000000000000000"],
+            },
+        ]
+        return {
+            "summary": first["claim"],
+            "findings": findings,
+            "gaps": [s["text"] for s in payload["subjects"] if s["subject_key"] not in by_subject],
+            "limitations": ["Externí kontext, nikoli výsledky panelu."],
+        }
+
+
+# --------------------------------------------------------------------------- #
+# The world and the compositions
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class ResearchWorld:
+    """A fictional client with an ACTIVE study, a lead and a reviewer; another client too."""
+
+    organization_id: str
+    client_id: str
+    study_id: str
+    lead_id: str
+    reviewer_id: str
+    other_study_id: str
+    other_lead_id: str
+    sessions: sessionmaker[Session]
+
+    def _principal(self, user_id: str) -> AuthenticatedPrincipal:
+        return AuthenticatedPrincipal(user_id=user_id, organization_id=self.organization_id)
+
+    def lead_scope(self, session: Session) -> StudyContext:
+        return ScopeResolver(session).study_context(
+            self._principal(self.lead_id), study_id=self.study_id
+        )
+
+    def other_scope(self, session: Session) -> StudyContext:
+        return ScopeResolver(session).study_context(
+            self._principal(self.other_lead_id), study_id=self.other_study_id
+        )
+
+    def approve(self, kind: KnowledgeKind, title: str, text: str) -> None:
+        """Knowledge the lead proposes and the reviewer approves (ADR 0015)."""
+        with self.sessions() as session:
+            resolver, repo = ScopeResolver(session), ClientKnowledgeRepository(session)
+            proposal = repo.propose(
+                resolver.client_context(self._principal(self.lead_id), client_id=self.client_id),
+                kind=kind,
+                title=title,
+                content={"text": text},
+            )
+            repo.decide(
+                resolver.client_context(
+                    self._principal(self.reviewer_id), client_id=self.client_id
+                ),
+                proposal_id=proposal.proposal_id,
+                approve=True,
+            )
+            session.commit()
+
+
+@pytest.fixture
+def research(sessions: sessionmaker[Session]) -> ResearchWorld:
+    with sessions() as session:
+        repo, resolver = ScopeRepository(session), ScopeResolver(session)
+        org, owner = repo.create_organization(
+            slug="aia", name="AIA", owner_email="owner@art-chain.io"
+        )
+        admin = resolver.organization_context(
+            AuthenticatedPrincipal(user_id=owner.user_id, organization_id=org.organization_id)
+        )
+        client = repo.create_client(admin, slug="acme", name="Acme")
+        other = repo.create_client(admin, slug="globex", name="Globex")
+        study = repo.create_study(
+            admin,
+            client_id=client.client_id,
+            slug="projekt-zelena",
+            name="Projekt Zelená",
+            budget_usd=25.0,
+        )
+        other_study = repo.create_study(
+            admin,
+            client_id=other.client_id,
+            slug="projekt-modra",
+            name="Projekt Modrá",
+            budget_usd=25.0,
+        )
+        users = {}
+        for label, client_id, role in (
+            ("lead", client.client_id, ScopeRole.LEAD),
+            ("reviewer", client.client_id, ScopeRole.LEAD),
+            ("other", other.client_id, ScopeRole.LEAD),
+        ):
+            member = repo.add_member(admin, email=f"{label}@art-chain.io")
+            resolver.grant_client_access(
+                admin, client_id=client_id, user_id=member.user_id, role=role
+            )
+            users[label] = member.user_id
+        session.flush()
+        for user, study_id in (
+            (users["lead"], study.study_id),
+            (users["other"], other_study.study_id),
+        ):
+            scope = resolver.study_context(
+                AuthenticatedPrincipal(user_id=user, organization_id=org.organization_id),
+                study_id=study_id,
+            )
+            repo.set_study_status(scope, StudyStatus.ACTIVE)
+        session.commit()
+        return ResearchWorld(
+            organization_id=org.organization_id,
+            client_id=client.client_id,
+            study_id=study.study_id,
+            lead_id=users["lead"],
+            reviewer_id=users["reviewer"],
+            other_study_id=other_study.study_id,
+            other_lead_id=users["other"],
+            sessions=sessions,
+        )
+
+
+def ai_settings(fictional: str, *, approved_for: str) -> AIRuntimeSettings:
+    settings = AIRuntimeSettings.from_env(
+        {
+            "AIA_ENV": "test",
+            "AIA_AI_RUNTIME_ENABLED": "true",
+            "AIA_AI_ROUTE_ID": "bedrock-eu-primary",
+            "AIA_BEDROCK_REGION": "eu-central-1",
+            "AIA_BEDROCK_MODEL_ID": "eu.test-research-v1:0",
+            "AIA_AI_POLICY_VERSION": "test-deep-research-v1",
+            "AIA_BEDROCK_INPUT_USD_PER_MTOK": "3",
+            "AIA_BEDROCK_OUTPUT_USD_PER_MTOK": "15",
+            "AIA_BEDROCK_MAX_OUTPUT_TOKENS": "8192",
+            "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
+            "AIA_AI_ROUTE_EU_PROCESSING_APPROVED": "true",
+            "AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING": "true",
+            "AIA_AI_ROUTE_APPROVED_FOR": approved_for,
+            "AIA_AI_ROUTE_RETENTION_DAYS": "0",
+            "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
+            "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
+            "AIA_AI_RESEARCH_AGENTS_ENABLED": "true",
+            "AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS": "8192",
+            "AIA_AI_RESEARCH_RESERVATION_USD": "2",
+            "AIA_AI_FICTIONAL_CLIENT_IDS": fictional,
+        }
+    )
+    assert settings is not None
+    return settings
+
+
+#: The test route: Class C, and Class B so the internal channel runs on recorded exchanges.
+TEST_ROUTE = "CLASS_C_INTERNAL,CLASS_B_DERIVED_CLIENT"
+#: What develop's route is approved for.
+DEVELOP_ROUTE = "CLASS_C_INTERNAL"
+
+
+def recorded(
+    world: ResearchWorld,
+    agents: RecordedAgents,
+    *,
+    fictional: bool = True,
+    approved_for: str = TEST_ROUTE,
+    policy: str | None = None,
+) -> DeepResearchRuntime:
+    settings = ai_settings(world.client_id if fictional else "", approved_for=approved_for)
+    return recorded_runtime(
+        gateway=build_gateway(settings, transport=agents, signer=Signer()),
+        config=DeepResearchConfig(
+            policy_version=policy or settings.policy_version,
+            max_output_tokens=settings.research_max_output_tokens,
+            context_window_tokens=settings.context_window_tokens,
+            reservation_usd=settings.research_reservation_usd,
+            fictional_client_ids=settings.fictional_client_ids,
+        ),
+        fixture=WEB,
+        env={"AIA_ENV": "test"},
+    )
+
+
+def worker(
+    world: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    runtime: DeepResearchRuntime | None,
+) -> Worker:
+    return Worker(
+        session_factory=world.sessions,
+        executors=deep_research_registry(store=store, build=build, runtime=runtime),
+        settings=WorkerSettings(
+            database_url=database_url,
+            worker_id="deep-research-test",
+            executors="aia_executors.registry:build_registry",
+            lease_seconds=30,
+            heartbeat_seconds=0.1,
+            poll_seconds=0.05,
+            maintenance_seconds=0.2,
+        ),
+    )
+
+
+def drain(w: Worker, *, limit: int = 20) -> int:
+    """Run the worker until nothing is claimable; the number of attempts it made."""
+    for n in range(limit):
+        if w.run_once() is None:
+            return n
+    raise AssertionError("the worker kept finding work")
+
+
+def start(world: ResearchWorld, content: dict[str, Any] = DESIGN, **kwargs: Any) -> str:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=content, source_stage="brief"
+        )
+        run = DeepResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id, preset_name=kwargs.get("preset", "QUICK")
+        )
+        session.commit()
+        return run.run_id
+
+
+def read(
+    world: ResearchWorld, run_id: str, store: InMemoryArtifactStore
+) -> tuple[dict[str, Any], EvidenceBundle]:
+    with world.sessions() as session:
+        runs = DeepResearchRuns(session, world.lead_scope(session))
+        return runs.get(run_id), runs.bundle(run_id, store=store)
+
+
+def tool_events(world: ResearchWorld, run_id: str) -> list[dict[str, Any]]:
+    with world.sessions() as session:
+        events = DeepResearchRuns(session, world.lead_scope(session)).events(run_id, limit=2000)
+    kinds = set(TOOL_EVENT_KINDS.values())
+    return [e for e in events if e["message"] in kinds]
+
+
+def approve_knowledge(world: ResearchWorld) -> None:
+    world.approve(KnowledgeKind.FACT, OATS, FACT)
+    world.approve(KnowledgeKind.DOCUMENT, "Interní plán uvedení", PLAN_A)
+
+
+@dataclass(frozen=True)
+class Journey:
+    world: ResearchWorld
+    agents: RecordedAgents
+    worker: Worker
+    runtime: DeepResearchRuntime
+    run_id: str
+
+    def web_calls(self) -> tuple[int, int]:
+        """(searches, page requests) that reached the recorded web's transports."""
+        retrieval = self.runtime.retrieval
+        assert retrieval is not None and isinstance(retrieval.search, RecordedSearch)
+        return len(retrieval.search.calls), len(retrieval.fetcher._transport.calls)  # type: ignore[attr-defined]
+
+
+@pytest.fixture
+def pass_one(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> Iterator[Journey]:
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS)
+    runtime = recorded(research, agents)
+    w = worker(research, database_url, store, build, runtime)
+    run_id = start(research)
+    assert drain(w) == 6
+    yield Journey(world=research, agents=agents, worker=w, runtime=runtime, run_id=run_id)
+
+
+# --------------------------------------------------------------------------- #
+# Pass 1: every phase, a grounded bundle
+# --------------------------------------------------------------------------- #
+
+
+def test_pass_one_runs_every_phase_to_a_sealed_grounded_bundle(
+    pass_one: Journey, store: InMemoryArtifactStore
+) -> None:
+    world, agents, run_id = pass_one.world, pass_one.agents, pass_one.run_id
+    run, bundle = read(world, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    assert [s["status"] for s in run["steps"]] == [StepRunStatus.SUCCEEDED] * 6
+    assert bundle.verify() and bundle.request_fingerprint == run["metadata"]["request_fingerprint"]
+    assert bundle.quality_status is QualityStatus.PARTIAL  # some tracks were blocked, and say why
+    assert bundle.origins == (EvidenceOrigin.CLIENT_KNOWLEDGE, EvidenceOrigin.RECORDED_FIXTURE)
+    assert bundle.fictional_client and bundle.client_facing is False
+
+    tracks = {t.track_id: t for t in bundle.tracks}
+    assert {k: (t.status, t.stop_reason) for k, t in tracks.items()} == {
+        tid(QS, Q1, IN): (TrackStatus.COMPLETED, StopReason.SINGLE_PASS),
+        tid(QS, Q1, WEB_): (TrackStatus.COMPLETED, StopReason.DEPTH_TARGET_MET),
+        # Q2 matches only the Class A plan: the gateway refuses it before any request.
+        tid(QS, Q2, IN): (TrackStatus.BLOCKED, StopReason.MODEL_ROUTE_REFUSED),
+        tid(QS, Q2, WEB_): (TrackStatus.COMPLETED, StopReason.QUERIES_EXHAUSTED),
+        tid(OS, OATS, IN): (TrackStatus.COMPLETED, StopReason.SINGLE_PASS),
+        tid(OS, OATS, WEB_): (TrackStatus.COMPLETED, StopReason.QUERIES_EXHAUSTED),
+        tid(OS, ALMOND, IN): (TrackStatus.COMPLETED, StopReason.SINGLE_PASS),
+        # A known failure, then a search whose answer never came: stopped, not retried.
+        tid(OS, ALMOND, WEB_): (TrackStatus.INCOMPLETE, StopReason.TOOL_OUTCOME_UNCERTAIN),
+    }
+    assert tracks[tid(QS, Q2, IN)].detail.startswith("model_route: ")
+    assert not any(t.reused for t in bundle.tracks)
+
+    # The queries code refused: the client's name (Class B) and the client's plan (Class A).
+    refused = {
+        q.text: (q.data_class, q.refusal)
+        for t in bundle.tracks
+        for q in t.queries
+        if q.decision is QueryDecision.REFUSED
+    }
+    assert refused == {
+        "Acme ovesný nápoj": (
+            DataClass.CLASS_B_DERIVED_CLIENT,
+            "egress_route_not_approved_for_class",
+        ),
+        "uvedení ovesného nápoje v květnu 2027 cena": (
+            DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+            "class_a_query",
+        ),
+    }
+
+    accepted = {a.evidence.claim: a for a in bundle.accepted}
+    assert set(accepted) == {
+        FACT,
+        "Spotřeba rostlinných nápojů v Česku vzrostla v roce 2025 o 12,5 % na 41 milionů litrů.",
+        "Rostlinné nápoje kupuje 45 % domácností.",
+        "Tržby za rostlinné nápoje dosáhly v roce 2025 celkem 2,1 miliardy korun.",
+        "Nejčastějším důvodem přechodu na rostlinné nápoje je podle 37 % respondentů zdraví",
+        "U 22 % je důvodem ohled na životní prostředí.",
+        "Průměrná cena ovesného nápoje byla v roce 2025 42 Kč za litr.",
+    }
+    # The same approved fact, found by three tracks, is one finding that remembers the others.
+    assert len(accepted[FACT].merged_ids) == 2
+    # Survey answers stay as alignment evidence and never reach respondents.
+    excluded = {
+        c: a.respondent_exclusion
+        for c, a in accepted.items()
+        if a.respondent_use is RespondentUse.EXCLUDED
+    }
+    assert excluded == {
+        "Rostlinné nápoje kupuje 45 % domácností.": QuarantineReason.DETERMINISTIC_TARGET_OVERLAP,
+        "U 22 % je důvodem ohled na životní prostředí.": QuarantineReason.TARGET_OUTCOME_OVERLAP,
+    }
+
+    assert Counter(q.reason for q in bundle.quarantined) == Counter(
+        {
+            QuarantineReason.NUMBER_NOT_IN_QUOTE: 1,
+            QuarantineReason.UNGROUNDED_EXCERPT: 1,
+            QuarantineReason.CITATION_OUTSIDE_TRACK: 1,
+            QuarantineReason.SOURCE_CONTAINS_INSTRUCTIONS: 1,
+            QuarantineReason.LOW_SOURCE_QUALITY: 1,
+            QuarantineReason.OVERSTATED_BY_VERIFIER: 1,
+        }
+    )
+
+    # The brief: what cites accepted evidence with its own numbers is kept; the rest is not.
+    assert bundle.synthesis is not None
+    check = bundle.synthesis.check
+    assert check.status is SynthesisStatus.PARTIAL
+    assert sorted(e.reason for e in check.excluded) == [
+        "citation_not_accepted",
+        "number_not_in_cited_evidence",
+    ]
+    assert all(
+        set(f.evidence_ids) <= {a.evidence.evidence_id for a in bundle.accepted}
+        for f in check.findings
+    )
+
+    # What it did, measured: by the transport, and by the run's own counts.
+    assert agents.roles() == Counter(
+        planner=1, internal_investigator=3, web_investigator=4, verifier=4, synthesizer=1
+    )
+    assert bundle.counts["model_requests"] == len(agents.requests) == 13
+    assert bundle.counts["search_calls"] == 6 and bundle.counts["fetches"] == 8
+    assert bundle.counts["queries_refused"] == 2 and bundle.counts["tracks_reused"] == 0
+    assert bundle.spend_usd["tool_usd"] == 0.0  # recorded routes have no price
+    # 13 requests of 1000 input and 200 output tokens at the test route's $3 / $15 per Mtok.
+    assert bundle.spend_usd["model_usd"] == pytest.approx(0.078)
+    # The private address was refused at resolution: dispatched, never requested.
+    assert pass_one.web_calls() == (6, 7)
+
+
+def test_every_accepted_finding_quotes_a_snapshot_the_run_captured(
+    pass_one: Journey, store: InMemoryArtifactStore
+) -> None:
+    world, run_id = pass_one.world, pass_one.run_id
+    _run, bundle = read(world, run_id, store)
+    refs = {s.snapshot_id: s for s in bundle.snapshots}
+    with world.sessions() as session:
+        runs = DeepResearchRuns(session, world.lead_scope(session))
+        for accepted in bundle.accepted:
+            item = accepted.evidence
+            if item.source_kind is SourceKind.CLIENT_KNOWLEDGE:
+                assert (
+                    item.source_ref.endswith("@1")
+                    and item.data_class is DataClass.CLASS_B_DERIVED_CLIENT
+                )
+                continue
+            snapshot = runs.snapshot(run_id, item.source_ref, store=store)
+            assert snapshot.retrieval_mode is RetrievalMode.RECORDED
+            assert snapshot.snapshot_id == item.source_ref and item.source_ref in refs
+            assert locate_quote(snapshot.text, normalise_text(item.quote)) == item.quote_span
+            assert snapshot.url == item.source_url or snapshot.final_url == item.source_url
+            # Captured when it was recorded, not when it was replayed.
+            assert snapshot.retrieved_at.isoformat() == "2026-09-01T09:00:00+00:00"
+    injected = [s for s in bundle.snapshots if s.instructions_detected]
+    assert [s.final_url for s in injected] == ["https://zpravy.example/pokyny"]
+    assert set(injected[0].instructions_detected) == {"ignore_instructions", "verdict_override"}
+
+
+def test_a_recorded_bundle_is_never_client_evidence_nor_respondent_context(
+    pass_one: Journey, store: InMemoryArtifactStore
+) -> None:
+    world, run_id = pass_one.world, pass_one.run_id
+    _run, bundle = read(world, run_id, store)
+    with pytest.raises(RecordedEvidenceRefused):
+        require_live_evidence(bundle)
+    with world.sessions() as session:
+        questionnaire = (
+            DeepResearchRuns(session, world.lead_scope(session))
+            .freeze(design_revision_id=bundle.design_revision_id, preset_name="QUICK")
+            .questionnaire
+        )
+    with pytest.raises(RecordedEvidenceRefused):
+        respondent_context(bundle, questionnaire)
+    context = respondent_context(bundle, questionnaire, allow_recorded=True)
+    texts = " ".join(b.text for b in context.blocks)
+    assert "45 %" not in texts and "22 %" not in texts  # the survey's own answers
+    assert "12,5 %" in texts
+
+
+def test_every_tool_call_is_journaled_before_it_leaves_and_names_no_query(
+    pass_one: Journey, store: InMemoryArtifactStore
+) -> None:
+    world, run_id = pass_one.world, pass_one.run_id
+    events = tool_events(world, run_id)
+    outcomes = Counter(e["payload"]["outcome"] for e in events)
+    assert outcomes == Counter(
+        {
+            ToolOutcome.DISPATCHED.value: 14,  # 6 searches and 8 fetches
+            ToolOutcome.SUCCEEDED.value: 11,
+            ToolOutcome.FAILED.value: 2,  # a provider error; a private address after dispatch
+            ToolOutcome.UNCERTAIN.value: 1,
+            ToolOutcome.REFUSED.value: 2,
+        }
+    )
+    first: dict[str, int] = {}
+    for e in events:
+        call = e["payload"]["call_id"]
+        if e["payload"]["outcome"] == ToolOutcome.DISPATCHED.value:
+            first[call] = e["event_id"]
+        elif e["payload"]["outcome"] != ToolOutcome.REFUSED.value:
+            assert first[call] < e["event_id"]  # the dispatch is on record before the outcome
+    journal = json.dumps([e["payload"] for e in events], ensure_ascii=False)
+    assert "Acme" not in journal and "ovesný" not in journal  # fingerprints, never the text
+
+
+# --------------------------------------------------------------------------- #
+# Pass 2: reuse what did not change, research what did
+# --------------------------------------------------------------------------- #
+
+
+def test_a_second_pass_reuses_unchanged_tracks_and_measures_what_it_bought(
+    pass_one: Journey, store: InMemoryArtifactStore
+) -> None:
+    world, agents, w, first_run = pass_one.world, pass_one.agents, pass_one.worker, pass_one.run_id
+    searched, fetched = pass_one.web_calls()
+    _run, first = read(world, first_run, store)
+    before = len(agents.requests)
+
+    second_run = start(world, DESIGN_2)
+    assert drain(w) == 6
+    run, second = read(world, second_run, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED and second.verify()
+
+    tracks = {t.track_id: t for t in second.tracks}
+    reused = {k for k, t in tracks.items() if t.reused}
+    assert reused == {
+        tid(QS, Q1, IN),
+        tid(QS, Q1, WEB_),
+        tid(QS, Q2, WEB_),
+        tid(OS, OATS, IN),
+        tid(OS, OATS, WEB_),
+        tid(OS, ALMOND, IN),
+    }
+    for k in reused:  # the same stored result, not a new one
+        assert tracks[k].artifact_id == {t.track_id: t for t in first.tracks}[k].artifact_id
+    # A blocked or cut-short track is never reused: the gate may have opened.
+    assert (
+        tracks[tid(QS, Q2, IN)].status is TrackStatus.BLOCKED and not tracks[tid(QS, Q2, IN)].reused
+    )
+    assert tracks[tid(OS, ALMOND, WEB_)].status is TrackStatus.INCOMPLETE
+    assert tracks[tid(OS, SOY, IN)].status is TrackStatus.COMPLETED
+    assert tracks[tid(OS, SOY, WEB_)].status is TrackStatus.COMPLETED
+
+    # Exactly what the new object and the unfinished track cost, and nothing else.
+    bought = Counter(RecordedAgents._role(r) for r in agents.requests[before:])
+    assert bought == Counter(
+        planner=1, internal_investigator=1, web_investigator=1, verifier=1, synthesizer=1
+    )
+    assert second.counts["model_requests"] == 5
+    assert second.counts["tracks_reused"] == 6 and second.counts["tracks_researched"] == 4
+    assert second.counts["search_calls"] == 3 and second.counts["fetches"] == 2
+    assert second.counts["verification_batches"] == 5
+    assert second.counts["verification_batches_reused"] == 4
+    assert second.counts["accepted"] == 8 and second.counts["quarantined"] == 6
+    # Both pages were requested; the redirect's second hop, to the metadata service, never was.
+    assert pass_one.web_calls() == (searched + 3, fetched + 2)
+
+    soy = [a for a in second.accepted if a.evidence.track_id == tid(OS, SOY, WEB_)]
+    assert [a.evidence.claim for a in soy] == [
+        "Sójové nápoje tvořily v roce 2025 celkem 18 % spotřeby rostlinných nápojů."
+    ]
+    assert {a.evidence.evidence_id for a in first.accepted} <= {
+        a.evidence.evidence_id for a in second.accepted
+    }
+    # The redirect to the metadata service was refused on its second hop.
+    soy_web = tracks[tid(OS, SOY, WEB_)]
+    assert soy_web.fetches == 2 and len(soy_web.snapshot_ids) == 1
+
+
+# --------------------------------------------------------------------------- #
+# What production can have today, and nothing at all
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize("fictional", [True, False])
+def test_the_production_shape_blocks_every_track_and_sends_nothing(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    fictional: bool,
+) -> None:
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS)
+    settings = ai_settings(research.client_id if fictional else "", approved_for=DEVELOP_ROUTE)
+    runtime = deep_research_runtime(
+        settings, env={"AIA_DEEP_RESEARCH_ENABLED": "true"}, transport=agents, signer=Signer()
+    )
+    assert runtime is not None and runtime.retrieval is None
+    run_id = start(research)
+    assert drain(worker(research, database_url, store, build, runtime)) == 6
+    run, bundle = read(research, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    assert agents.requests == []  # no model was asked anything
+    web = [t for t in bundle.tracks if t.channel is WEB_]
+    internal = [t for t in bundle.tracks if t.channel is IN]
+    assert {(t.status, t.stop_reason) for t in web} == {
+        (TrackStatus.BLOCKED, StopReason.WEB_RETRIEVAL_UNAVAILABLE)
+    }
+    # Client Knowledge is Class B or A; develop's route carries Class C only.
+    assert {(t.status, t.stop_reason) for t in internal} == {
+        (TrackStatus.BLOCKED, StopReason.MODEL_ROUTE_REFUSED)
+    }
+    assert bundle.quality_status is QualityStatus.PARTIAL and bundle.accepted == ()
+    assert bundle.synthesis is not None
+    assert bundle.synthesis.check.status is SynthesisStatus.EMPTY
+    assert bundle.counts["model_requests"] == 0 and bundle.counts["search_calls"] == 0
+
+
+def test_unconfigured_parks_the_run_before_anything_is_read(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    assert deep_research_runtime(None, env={}) is None
+    run_id = start(research)
+    assert drain(worker(research, database_url, store, build, None)) == 1
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    assert run["status"] is WorkflowRunStatus.WAITING_PROVIDER
+    [attempt] = run["steps"][0]["attempts"]
+    assert attempt["error"]["reason"] == "deep_research_unconfigured"
+    assert [s["status"] for s in run["steps"][1:]] == [StepRunStatus.BLOCKED] * 5
+
+
+def test_enabling_it_without_research_agents_refuses_to_start(research: ResearchWorld) -> None:
+    with pytest.raises(AIRuntimeConfigError, match="AIA_AI_RESEARCH_AGENTS_ENABLED"):
+        deep_research_runtime(None, env={"AIA_DEEP_RESEARCH_ENABLED": "true"})
+    with pytest.raises(AIRuntimeConfigError, match="not true or false"):
+        deep_research_runtime(None, env={"AIA_DEEP_RESEARCH_ENABLED": "maybe"})
+
+
+def test_the_recorded_composition_refuses_outside_local_and_test(
+    research: ResearchWorld,
+) -> None:
+    agents = RecordedAgents(ANSWERS)
+    settings = ai_settings("", approved_for=DEVELOP_ROUTE)
+    for env in ({"AIA_ENV": "production"}, {"AIA_ENV": "develop"}, {}):
+        with pytest.raises(RuntimeError, match="refuses AIA_ENV"):
+            recorded_runtime(
+                gateway=build_gateway(settings, transport=agents, signer=Signer()),
+                config=DeepResearchConfig(
+                    policy_version="p",
+                    max_output_tokens=1,
+                    context_window_tokens=1,
+                    reservation_usd=1.0,
+                    fictional_client_ids=frozenset(),
+                ),
+                fixture=WEB,
+                env=env,
+            )
+
+
+# --------------------------------------------------------------------------- #
+# Confidential material, scope and tampering
+# --------------------------------------------------------------------------- #
+
+
+def test_a_real_clients_design_writes_no_query_and_sends_nothing(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    """Not a fictional client: the design is Class A, so no query written from it may leave."""
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS)
+    runtime = recorded(research, agents, fictional=False)
+    run_id = start(research)
+    assert drain(worker(research, database_url, store, build, runtime)) == 6
+    _run, bundle = read(research, run_id, store)
+    web = [t for t in bundle.tracks if t.channel is WEB_]
+    assert {(t.status, t.stop_reason) for t in web} == {
+        (TrackStatus.BLOCKED, StopReason.SEARCH_ROUTE_REFUSED)
+    }
+    assert all("class_a_query" in t.detail for t in web)
+    assert agents.requests == []  # no planner was paid to write queries that cannot leave
+    assert bundle.counts["search_calls"] == 0 and tool_events(research, run_id) == []
+    assert not bundle.fictional_client
+
+
+def _enqueue(world: ResearchWorld, request: Any, *, fingerprint: str) -> str:
+    """A run created around the application service, as a forged or altered payload would be."""
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        designs = StudyDesignRepository(session, scope)
+        if designs.project_id() is None:
+            designs.submit(content=DESIGN, source_stage="brief")
+        project_id = designs.project_id()
+        assert project_id is not None
+        steps = deep_research_steps()
+        run_id = WorkflowRepository(session, scope).create_run(
+            project_id=project_id,
+            project_revision=request.design_revision,
+            workflow_type=DEEP_RESEARCH,
+            steps=steps,
+            idempotency_key=f"forged:{fingerprint}",
+            fingerprints={s.node_key: fingerprint for s in steps},
+            step_inputs={"plan": {"request": request.model_dump(mode="json")}},
+        )
+        session.commit()
+        return run_id
+
+
+def test_a_run_cannot_research_another_clients_design(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    with research.sessions() as session:
+        other = research.other_scope(session)
+        revision, _ = StudyDesignRepository(session, other).submit(
+            content=DESIGN, source_stage="brief"
+        )
+        foreign = DeepResearchRuns(session, other).freeze(
+            design_revision_id=revision.revision_id, preset_name="QUICK"
+        )
+        session.commit()
+    run_id = _enqueue(research, foreign, fingerprint=foreign.fingerprint())
+    agents = RecordedAgents(ANSWERS)
+    drain(worker(research, database_url, store, build, recorded(research, agents)))
+    with research.sessions() as session:
+        run = WorkflowRepository(session, research.lead_scope(session)).get_run(run_id)
+    assert run["status"] is WorkflowRunStatus.FAILED
+    assert run["steps"][0]["attempts"][0]["error"]["reason"] == "design_not_in_scope"
+    assert agents.requests == [] and tool_events(research, run_id) == []
+
+
+def test_an_altered_request_is_refused(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    with research.sessions() as session:
+        scope = research.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="brief"
+        )
+        request = DeepResearchRuns(session, scope).freeze(
+            design_revision_id=revision.revision_id, preset_name="QUICK"
+        )
+        session.commit()
+    # The client terms removed after the fingerprint was taken: queries would be less safe.
+    altered = request.model_copy(update={"client_terms": ()})
+    run_id = _enqueue(research, altered, fingerprint=request.fingerprint())
+    agents = RecordedAgents(ANSWERS)
+    drain(worker(research, database_url, store, build, recorded(research, agents)))
+    with research.sessions() as session:
+        run = WorkflowRepository(session, research.lead_scope(session)).get_run(run_id)
+    assert run["steps"][0]["attempts"][0]["error"]["reason"] == "request_altered"
+    assert agents.requests == []
+
+
+# --------------------------------------------------------------------------- #
+# Stopping, recovery and a changed composition
+# --------------------------------------------------------------------------- #
+
+
+def test_cancelling_between_steps_sends_nothing_more(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS)
+    w = worker(research, database_url, store, build, recorded(research, agents))
+    run_id = start(research)
+    assert w.run_once() is not None  # the plan, with its one planner request
+    with research.sessions() as session:
+        DeepResearchRuns(session, research.lead_scope(session)).cancel(run_id)
+        session.commit()
+    drain(w)
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    assert run["status"] is WorkflowRunStatus.CANCELLED
+    assert agents.roles() == Counter(planner=1)
+    assert tool_events(research, run_id) == []
+
+
+class _Cancelled:
+    """A step context that has been cancelled: what the worker's context says once asked."""
+
+    def __init__(self, scope: StudyContext) -> None:
+        self.scope = scope
+        self.journal: list[str] = []
+
+    def checkpoint(self) -> None:
+        raise CancellationRequested("run")
+
+    def progress(self, message: str, **payload: Any) -> None:
+        self.journal.append(message)
+
+
+def test_a_cancelled_step_stops_before_its_tool_call_leaves(research: ResearchWorld) -> None:
+    retrieval, _table = recorded_retrieval(WEB)
+    with research.sessions() as session:
+        context = _Cancelled(research.lead_scope(session))
+    meter = StepToolMeter(context)  # type: ignore[arg-type]
+    gate = RetrievalGate(
+        retrieval=retrieval,
+        scope=context.scope,
+        meter=meter,
+        client_terms=(ClientTerm(term="Acme", source="client.name"),),
+        class_a_texts=(),
+    )
+    with pytest.raises(CancellationRequested):
+        gate.search(
+            "trh rostlinných nápojů česko",
+            context_class=DataClass.CLASS_C_INTERNAL,
+            track_id="T",
+            max_results=2,
+        )
+    assert isinstance(retrieval.search, RecordedSearch) and retrieval.search.calls == []
+    assert meter.events() == () and context.journal == []
+
+
+def test_a_lost_model_answer_waits_for_recovery_and_is_not_bought_again(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS, lose={"web_investigator"})
+    w = worker(research, database_url, store, build, recorded(research, agents))
+    run_id = start(research)
+    drain(w)
+    drain(w)  # nothing more is claimable: an uncertain call is never retried automatically
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    assert run["status"] is WorkflowRunStatus.RECOVERY_REQUIRED
+    assert run["steps"][1]["status"] is StepRunStatus.RECOVERY_REQUIRED
+    assert agents.roles()["web_investigator"] == 1
+    # The internal track that finished before it is stored, and a later run reuses it.
+    with research.sessions() as session:
+        runs = DeepResearchRuns(session, research.lead_scope(session))
+        events = runs.events(run_id, limit=2000)
+    done = [e for e in events if e["message"] == "deep_research_track"]
+    assert [e["payload"]["track_id"] for e in done] == [tid(QS, Q1, IN)]
+
+
+def test_a_changed_composition_is_refused_mid_run(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS)
+    run_id = start(research)
+    assert worker(research, database_url, store, build, recorded(research, agents)).run_once()
+    changed = recorded(research, agents, policy="another-policy-v2")
+    drain(worker(research, database_url, store, build, changed))
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    assert run["steps"][1]["attempts"][0]["error"]["reason"] == "composition_changed"
+    assert agents.roles() == Counter(planner=1)

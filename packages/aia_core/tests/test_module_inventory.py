@@ -134,6 +134,9 @@ def test_only_ported_modules_claim_progress(inventory: dict[str, dict[str, Any]]
         "behavior.py",
         "styly.py",
         "factual_layer.py",
+        # Deep Research: the leakage screen and merge, exact against captures of the
+        # unit's own research_context.py (test_deep_research_legacy.py).
+        "research_context.py",
     }, (
         "The set of modules claiming progress changed. Update this assertion "
         "deliberately, with the parity or behavioural evidence for the new entry."
