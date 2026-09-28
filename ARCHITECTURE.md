@@ -279,7 +279,10 @@ script, then confirm it passes before committing.
   panel has no certificate, and says so (`MISSING`). A stored module outcome holds the
   accepted draft, never claims: `application/analysis_results.py` rebuilds the evidence
   from the run's own artifacts, requires every fingerprint to match and puts the draft
-  through the gate again, so a file cannot mint an `AdmittedClaim`.
+  through the gate again, so a file cannot mint an `AdmittedClaim`. The executor
+  (`aia_executors/analysis.py`) runs one module per step: what code can refuse is stored
+  `BLOCKED` before anything is reserved, a gate refusal after three turns is an outcome
+  too, and a provider failure is never one -- it goes back to the worker's recovery rules.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal
   so a later gate cannot launder an earlier one.

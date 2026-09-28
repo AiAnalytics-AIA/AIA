@@ -5,8 +5,11 @@ closed schema, admits its numeric claims through the evidence gate
 (:func:`aia_core.domain.evidence.admit_numeric_claims`), and then enforces the
 rule the reference stated only in its prompt: *every number in the research
 question answers and the key findings must appear in numeric_claims*
-(methodology-ledger M17). The reference's gate passed at 95% coverage; this one
-requires every number.
+(methodology-ledger M17). The reference's validator never read the prose: it
+checked declared claims within 0.051 and passed when 95 % of the findings cited
+evidence. This one requires every number in the prose to be a cited claim's, copied
+exactly; a finding that states no number cites nothing, which the reference would
+have counted against its coverage (decision ANL-4, ``test_analysis_gate_parity.py``).
 
 A number in prose is covered when it is
 

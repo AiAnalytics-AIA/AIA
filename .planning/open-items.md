@@ -2690,7 +2690,15 @@ retried run that recomputes the spec.
 
 **Status.** API half merged: PR #84 (`8c13a11`, 2026-09-27), both artifact routes and the
 proposal routes. Worker half open. It is not fixed there because it needs the failure-class
-decision and, for design jobs, a decision to spend on a recompute.
+decision and, for design jobs, a decision to spend on a recompute. The native analysis
+executor (#80) keeps the mark already. Every source refusal, `source_corrupt` included, is
+returned from inside its transaction as `SCHEMA_VIOLATION`, the class it gives every
+other source refusal, and the message names no storage key
+(`test_analysis_executor.py::test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt`,
+`test_analysis_results.py::test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`).
+The recompute question belongs to the step that produced the artifact, not to that reader.
+If the decision picks another class, `_sources_refused` in `aia_executors/analysis.py` is the
+one place to change.
 
 ---
 
