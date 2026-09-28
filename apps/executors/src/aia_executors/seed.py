@@ -48,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
                     "organization_id": result.organization_id,
                     "owner_user_id": result.owner_user_id,
                     "owner_email": result.owner_email,
+                    "smoke_organization_id": result.smoke_organization_id,
+                    "smoke_owner_user_id": result.smoke_owner_user_id,
                     "client_id": result.client_id,
                     "study_id": result.study_id,
                     "project_id": result.project_id,
