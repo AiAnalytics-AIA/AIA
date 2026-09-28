@@ -2835,3 +2835,35 @@ deactivated owner is a person's decision, which the seed does not undo.
 host is in is **not established**: it needs a read-only look at the seed organization's
 member, user and client rows, or the next deploy's smoke line, which now names the reason.
 
+## OI-81 · Question · Migrating a closed Study means reopening it, and delivering it again rewrites `delivered_at`
+
+**Claim.** The 18.6.6 content migration leaves a Study that no longer accepts work
+(delivered, archived or cancelled) waiting until someone reopens it. Delivering it again
+after its migration stamps a new `delivered_at`, so the Study stops saying when it was first
+delivered.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/workspace_migration.py:306-307 @ b0ce309`
+(the `accepts_work` gate); `packages/aia_core/src/aia_core/infrastructure/scope_repository.py:576-577 @ b0ce309`
+(every change to `DELIVERED` stamps `utcnow()`).
+
+**Reproduction.** The cutover dress rehearsal of 2026-09-28, fictional Study S7 (see
+`.planning/PROGRESS.md`). This is a rehearsal run, not yet a test.
+1. A `DELIVERED` Study bound to an 18.6.6 project is reported `NOT_MIGRATED`: *the Study is
+   DELIVERED: reopen it to migrate*.
+2. After `ACTIVE`, then `--apply --study <id>`, then `DELIVERED` again, its `delivered_at`
+   moved from 19:52:23 to 19:57:26 UTC.
+
+**Consequence.** After the cutover the unit is out of the product, so such a Study's
+content cannot be read in AIA until it is reopened, and reopening it rewrites its delivery
+time. How many such Studies the develop host has is not known until its dry run.
+
+**Options.**
+1. Let the migration write a closed Study's content without reopening it. The migration moves
+   storage and starts no work. This is a change to that gate, with a test.
+2. Keep the gate, and stamp `delivered_at` only on the first delivery, with a test.
+3. Change nothing: the owner reopens the Study and accepts the new time.
+
+The data owner decides; nothing changes until then.
+
+**Status.** Open. It needs an answer before the cutover only if the host's dry run lists a
+closed Study.

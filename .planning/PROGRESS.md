@@ -19,7 +19,29 @@ entry is a **hypothesis**, not a finding.
 
 ## Where the code is — consolidation, 2026-09-27
 
-**Combined cutover candidate:** `integration/phaseout-cutover-review` assembles #74/#77/#78/#82/#85, the latest #74 tests, #75 and #73, plus current `develop`. Settings keeps #75's truthful controls and #82's classic-navigation removal. It is isolated and not release-ready: chunks 10–12 are implemented in #85; combined acceptance and a validated migration-before-exposure or agreed maintenance transition remain open. [The phase-out plan](plans/legacy-phase-out.md) now requires one cutover instead of separate parent deployments.
+**Combined cutover candidate:** #86, `integration/phaseout-cutover-review`, is the single release of the 2026-09-28 consolidation plan.
+- **What it holds:** every open component head (#85 with #74/#77/#78/#82, then #73, #81, #76 and #80), plus `develop` @ `28eedce`, which includes #75. Settings keeps #75's truthful controls and #82's classic-navigation removal.
+- **State:** CI green on `b0ce309`; not merged, not deployed. [The phase-out plan](plans/legacy-phase-out.md) requires one cutover instead of separate parent deployments.
+- **Remaining:** the host's rehearsal on copies, then one maintenance cutover and the merge (`deploy/develop/README.md` § The cutover).
+
+**Cutover dress rehearsal, 2026-09-28.** Fictional data, on a scratch PostgreSQL 16 with a filesystem artifact store and an 18.6.6 store written by the unit's own `ProjectStore`. No host data and no Docker, so it is not the host rehearsal. Its scripts ran in the session and are not kept here: each finding rests on the code anchors in the runbook and in OI-81.
+- **Before.** On `develop`'s code at `1777fcb96352`, 7 Studies were bound to 18.6.6 projects. The pre-deploy dump restored into a scratch database with the same counts.
+- **Upgrade.** `5b1d0f3e9a21` made every binding `AWAITING_MIGRATION`. The tool refused the live store (exit 2) and read the WAL-safe copy.
+- **Dry run and apply.** 3 Studies `MIGRATED` and 4 waited, each with a reason (exit 3).
+  - Every revision came over one for one, and the file bytes equal the originals' SHA256.
+  - A file missing from the copy is reported and shown as not in AIA.
+  - Re-running wrote nothing but one access-audit row.
+  - A grant, a reopen and `--recover-missing` settled the other four: `MIGRATED`, `MIGRATED`, `RECOVERED` and `UNRECOVERABLE`.
+- **Through the release's API.** An edit made revision 4. A stale save got 409 `stale_revision`, and a Study still waiting refused a save with 409 `awaiting_migration`.
+- **Rollback.**
+  - `alembic downgrade` refused.
+  - `develop`'s code on the release schema failed new bindings (`NotNullViolation`), could not read a Study started in AIA (`ValidationError`), and opened a migrated Study's 18.6.6 project.
+  - Restoring the pre-deploy dump brought `develop`'s code back whole, with the unit's files byte-identical.
+  - A second roll-forward gave the same outcomes.
+- **What it changed.**
+  - The rollback restores the database together with the code, never the code alone; the runbook's § Rolling back the content cutover is new.
+  - The dry-run and copy wording in the runbook is corrected.
+  - A closed Study must be reopened to migrate, which rewrites `delivered_at` (OI-81).
 
 **`develop` holds the newest code, and nothing merged anywhere else is missing from
 it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully contained in it
@@ -193,7 +215,12 @@ On `develop` today, the gap is precise:
    stop is an email, not a morning of red PRs.
 4. **Release `develop` → `main`** once #64 has merged and a deploy is green. PR #60,
    the previous attempt, was closed unmerged.
-5. **After the open PRs land, delete the 24 contained feature branches**: the 25 above,
+5. **Hold `develop`'s deploy for the cutover.** Every green `develop` head deploys
+   itself, so merging #86 would install it before its content migration. Add a hold
+   before #86 merges, for example a required reviewer on the `develop` environment
+   (Settings → Environments), and lift it only for the release's deploy
+   (`deploy/develop/README.md` § The cutover, step 1).
+6. **After the open PRs land, delete the 24 contained feature branches**: the 25 above,
    less `coordination/agent-status`, which CLAUDE.md §5 keeps for agents' status files.
    Tag the web-component stack first (`feature/design-tokens`, `feature/enum-binding`),
    then delete it.

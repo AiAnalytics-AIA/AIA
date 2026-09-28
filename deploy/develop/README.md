@@ -346,7 +346,10 @@ The copies come from the volume itself, in throwaway containers of the unit's im
 that start nothing of the unit: the product stack no longer runs it, and the unit need
 not run at all. If the reference unit is up, stop it first
 (`/opt/aia/reference/bin/down.sh`), so nothing changes the store between the copy and
-the migration. The copier, `backup-legacy-state.py`, comes with the reference bundle
+the migration. Take the copies only once writes have stopped (§ The cutover, below).
+A Study bound, or a project saved, after the copy is not in it: it waits as *not in this
+copy*, and `--recover-missing` would then decide it wrongly. The copier,
+`backup-legacy-state.py`, comes with the reference bundle
 ([`deploy/reference`](../reference/README.md) § Getting it onto the host); the image is
 any `aia-legacy-panel` SHA in ECR (`aws ecr list-images --repository-name
 aia-legacy-panel`); it runs as the user who owns the unit's stores, which a read-only
@@ -365,7 +368,7 @@ cid="$(docker create --network none -v aia-develop_legacy_state:/app "$IMAGE")"
 docker cp "$cid:/app/data/ui_uploads/project_attachments" /opt/aia/migration/project_attachments
 docker rm "$cid"
 
-# 2. A dry run: nothing is written; the report says what would happen to each Study.
+# 2. A dry run: no content is written; the report says what would happen to each Study.
 docker compose run --rm --no-deps -T -v /opt/aia/migration:/migration:ro worker \
   python -m aia_executors.legacy_workspace \
     --store /migration/legacy-state.zip --attachments /migration/project_attachments \
@@ -380,7 +383,9 @@ client whose studies are waiting first. Each Study's `outcome` is `MIGRATED`,
 `RECOVERED`, `UNRECOVERABLE` or `NOT_MIGRATED` with its `reason`; `files_missing` and
 `files_mismatched` name brief files the copy lacks or whose bytes no longer match;
 `unit_projects_not_bound` lists every unit project no Study refers to, which stays in
-the unit's volume.
+the unit's volume. A Study the person may not open also leaves one access-audit record
+of that refusal, as every refused access does. That record is the only thing a dry run
+writes.
 
 ```bash
 # 3. Back up PostgreSQL, then apply. Each Study is its own transaction, validated
@@ -406,9 +411,61 @@ with `--recover-missing`: such a Study becomes `RECOVERED` from its newest Desig
 Revision, whose stages say so, or `UNRECOVERABLE`, where a person who may edit starts
 again (OI-66).
 
+**A Study that is delivered, archived or cancelled** stays waiting, with a reason such as
+*the Study is DELIVERED: reopen it to migrate*
+(`application/workspace_migration.py:306-307`). Reopening it (`ACTIVE`), migrating it
+with `--study <id>` and closing it again all work. But delivering it again sets a new
+`delivered_at` (`infrastructure/scope_repository.py:576-577`), so the original delivery
+time is then kept only in `access_audit` (`STUDY_STATUS_CHANGED`, `created_at`). Decide
+each such Study with its owner before the cutover (OI-81).
+
 **Undo.** `bin/restore.sh --live <the pre-migration dump>` puts PostgreSQL back as it
-was; the files already copied into the artifact bucket are then unreferenced objects.
-The unit's volume was never changed, so nothing there needs undoing.
+was before the apply, with the schema still at the release's. The files already copied
+into the artifact bucket are then unreferenced objects. The unit's volume was never
+changed, so nothing there needs undoing. Undoing the release itself is § Rolling back
+the content cutover.
+
+## The cutover
+
+The release that takes the unit out of the product (ADR 0018) is deployed once, in a
+maintenance window. Its first deploy makes every Study bound to 18.6.6 read *Čeká na
+migraci z 18.6.6* until the migration above has run, and `bin/deploy.sh` upgrades the
+schema and switches the services but migrates no content. The order, from the
+2026-09-28 consolidation plan:
+
+1. **Hold the deploy.** Every green `develop` head deploys itself (§ Normal deployment),
+   so a person puts a hold in place before the release is merged. One way is a required
+   reviewer on the `develop` GitHub environment, which the deploy job runs in.
+2. **Stop writes** and close public access, by the means the operator chooses; nothing
+   here builds one. Stop the workers.
+3. **Copy, before the release deploys.**
+   - Take `bin/backup.sh pre-adr-0018`. With the data owner's approval it also exports
+     the unit's databases (§ The first deploy without the unit).
+   - For the migration, take the WAL-safe copy of the unit's store and
+     `project_attachments` (§ Migrating 18.6.6 content, step 1).
+   - Record each copy's SHA256, and check that the dump restores with
+     `bin/restore.sh --test`.
+4. **Rehearse on the copies,** in an isolated PostgreSQL: the release's migration, the
+   dry run, the apply, every Study's disposition, and § Rolling back the content
+   cutover. Keep the reports.
+5. **Merge the release once**, as a merge commit, and release the hold.
+   `bin/deploy.sh` takes `pre-deploy-<sha>`, migrates to `5b1d0f3e9a21` and switches the
+   services. Public access stays closed.
+6. **Migrate** (§ Migrating 18.6.6 content, steps 2 and 3), and give every Study left
+   waiting its disposition.
+7. **Accept.** Run the smoke and the browser checks on the deployed head:
+   - sign-in and an active researcher's access;
+   - refusal across studies;
+   - open, save, reload, import and download;
+   - stale-save and Run protection;
+   - Settings that tell the truth;
+   - the native workspace, with the unit stopped.
+8. **Reopen** only when steps 6 and 7 pass. Otherwise roll back while access is still
+   closed.
+
+A dress rehearsal of steps 3, 4 and 6, and of the database rollback, ran on 2026-09-28.
+It used fictional data on a scratch PostgreSQL 16 (`.planning/PROGRESS.md`). It is not
+step 4: it had none of the host's data and ran no Docker.
 
 ## Rollback
 
@@ -429,6 +486,41 @@ the schema moved back, a person decides it, takes a backup, runs
 
 Previous SHAs are in ECR (`aws ecr list-images --repository-name aia-api`) and in
 the *Deploy develop* run history.
+
+### Rolling back the content cutover
+
+Migration `5b1d0f3e9a21` is the exception to the paragraph above. The dress rehearsal
+on 2026-09-28 (§ The cutover) found three things.
+
+- **A code-only rollback is not safe.** On the release's schema, `develop`'s code
+  (`8017b54`) did three things wrong:
+  - It failed every new binding with `NotNullViolation` on `content_state`. The
+    migration drops that column's default (`20260927_5b1d0f3e9a21_…py:69`), and the old
+    row does not know the column (`infrastructure/tables.py:643 @ 8017b54`).
+  - It could not read a Study started in AIA: its `unit_project_id` is null, which the
+    old model refuses (`domain/workspace.py:59 @ 8017b54`).
+  - It opened a migrated Study's 18.6.6 project, without anything saved in AIA since.
+- **`alembic downgrade` refuses** once any Study holds content in AIA or has no 18.6.6
+  project (`…py:88-100`). It is possible only before the apply, while nothing has been
+  saved.
+- **The rollback moves the database and the code together.** While writes are still
+  stopped:
+  1. Run `bin/restore.sh --live <key>`, where the key is that of the
+     `pre-deploy-<release sha>` dump `bin/deploy.sh` took before it migrated. It first
+     dumps what is there (`pre-restore`). Its closing smoke runs the release's code on
+     the older schema, so it is not the verdict; step 3 is.
+  2. Deploy the previous SHA with `migrate` unchecked, through the workflow, which
+     unpacks that SHA's bundle. Its Compose file still has `legacy-panel`, which starts
+     on the volume the release left untouched. From the host instead, unpack
+     `s3://<ops-bucket>/deploy/<previous-sha>.tar.gz` into `/opt/aia/develop` and run
+     `bin/write-env.sh` before `bin/deploy.sh <previous-sha> --no-migrate`: the release's
+     bundle has no unit service.
+  3. That deploy's smoke must pass. The files the migration copied into the artifact
+     bucket stay there, unreferenced.
+
+After reopening, a rollback discards everything saved in AIA since that dump, so it
+needs its own decision and an export first. The rehearsal covered the database, the
+migration and both code revisions; it did not cover the Compose or SSM steps.
 
 ## Resize
 
