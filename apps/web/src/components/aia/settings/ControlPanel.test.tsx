@@ -6,6 +6,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { loadConfig, resetConfigCache } from "@/lib/auth";
 import { SettingsPage } from "../GlobalPages";
 import { ControlPanel } from "./ControlPanel";
 
@@ -123,13 +124,18 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}, mayAdmi
 }
 const called = (method: string, path: string) => calls.filter((c) => c.method === method && c.url.split("?")[0] === path);
 
+// Every API request reads /config through loadConfig(), which keeps the page's read. Each
+// test starts and ends with that cache empty, so its requests read its own stub and never
+// a read an earlier test left (CLAUDE.md §7; OI-76 is the same trap in the research tests).
 beforeEach(() => {
+  resetConfigCache();
   replace.mockReset();
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "owner@example.test", subject: "s" }));
 });
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  resetConfigCache();
   sessionStorage.clear();
 });
 
@@ -305,6 +311,10 @@ describe("what powers AIA", () => {
   });
 
   it("an unreadable configuration: unknown, nothing claimed, and the rest of the panel still renders", async () => {
+    // The page read /config when it loaded, and loadConfig() keeps that read for the API.
+    // The panel reads /config again for the switches, and that read is the one that fails.
+    api();
+    await loadConfig();
     api({ "GET /config": () => new Response("upstream", { status: 502 }) });
     render(<ControlPanel />);
     await waitFor(() => expect(card("respondent_fieldwork").getAttribute("data-state")).toBe("unknown"));

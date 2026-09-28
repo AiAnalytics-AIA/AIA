@@ -20,6 +20,7 @@ It deliberately does not describe the product. That lives in
 | [research-journey.md](docs/architecture/research-journey.md) | The research journey's integration contract: who owns each stage, the interfaces between jobs, shared files, what "accepted" means |
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](docs/architecture/scope-and-authorization.md) | Client/Study isolation |
+| [deep-research.md](docs/architecture/deep-research.md) | Deep Research: tracks, grounding, query classes, quarantine, the tool-cost contract |
 | [security.md](docs/architecture/security.md) | Threat model |
 | [sociomapa-deterministic-engine.md](docs/architecture/sociomapa-deterministic-engine.md) | Sociomapping engine: what is ported, declared and refused |
 | [sociomapa-methodology-decision.md](docs/architecture/sociomapa-methodology-decision.md) | The D6 decision package for the methodology owner |
@@ -215,6 +216,18 @@ script, then confirm it passes before committing.
   admitted report claim. Activation, budget and classification are independent
   of fieldwork; confidential knowledge cannot use the fictional Class C allowance.
   See [native Research agents](docs/architecture/research-agents.md).
+- **A Deep Research finding is a quote in a captured source, or it is nothing**
+  ([ADR 0017](docs/architecture/adr/0017-deep-research-external-retrieval.md),
+  [deep-research.md](docs/architecture/deep-research.md)). `domain/deep_research/` is pure: code
+  chooses the subjects and tracks (research questions and tracked objects), and a model only
+  proposes queries and findings in closed schemas, holding no tools. A finding is admitted only
+  when its quote occurs in a content-addressed snapshot the same track retrieved and every number
+  of its claim is in that quote; source quality comes from declared tables, never the agent's
+  score. A query's data class is the most restrictive of its context, its client terms and any
+  Class A overlap, and nothing lowers it. The 18.6.6 leakage rule (EXACT) bars a finding from
+  respondent context; respondent context is re-screened against the final questionnaire. Tool
+  calls follow the model-call bracket (reserve, durable dispatch, outcome, uncertain at its
+  ceiling), and a priced tool route is refused until tool spend is held against the study budget.
 - **Fieldwork is a boundary, and `ai_runtime` is answered only by AI respondents.**
   The deployed composition (`aia_executors.registry`) has no deterministic dataset
   producer. It builds the AI respondent engine (`aia_executors.ai_fieldwork`) only
