@@ -10,6 +10,10 @@
   `b28e1bf` (PO; #77 is stacked on #74), #75 @ `efa3971` (J1) and #76 @ `7c46e0c` (J3). J4 and J5
   had none. The live list is PROGRESS's open pull request table, where each PR adds its own row.
   §9 lists what Phase B needs.
+- **One cutover, not separate merges** (2026-09-28, 00:40 UTC). The PO's draft #86 @ `619149a`
+  assembles #74, #75, #77, #78, #82, #85 and this PR @ `e904b1c` into one release. Every `develop`
+  merge deploys, so its parents are not merged one at a time. Where this document says *once #74
+  merges*, read *once #74's head reaches `develop`, through #86 or alone*.
 
 Tracker: [PROGRESS](../../.planning/PROGRESS.md). Chunks:
 [research-agent-workflows.md](../../.planning/plans/research-agent-workflows.md) § Integration.
@@ -365,6 +369,12 @@ in `apps/api/src/aia_api/routers/workspace.py`:
   yet saved before the design becomes a revision* and *never submits a copy whose save AIA refused
   because someone saved a newer one*. Re-run there, the reproduction fails, and #74's ten
   `ExecutionSteps` tests pass.
+- **Pinned further at `936702f`** (#74 @ `d5dfb62`, CI green). Two more ways in have tests, and in
+  each no revision and no run is created:
+  - *submits nothing while an earlier save's conflict stands, and prepares the version AIA holds
+    once it is reloaded*;
+  - *submits nothing when the save before it fails, and says why* (a 500).
+  - Its commit reports both failing on `7b9e9dc`.
 
 ### 4.3 What #74 changes, if it merges
 
@@ -421,6 +431,8 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
 - A trial merge of `7b9e9dc` into this PR's head is clean, and no OI number is reused.
 - The one semantic overlap was the ADR counts, which ADR 0018 would have made wrong. This PR drops
   the numbers.
+- **Re-checked at `d5dfb62`** (2026-09-28, 00:45 UTC). A trial merge into this PR's head (`5cc436d`)
+  is clean. It leaves one migration head, `5b1d0f3e9a21`, and no OI number twice.
 
 **Checked at 18:05 UTC against #75, #76 and #77.**
 
@@ -435,9 +447,9 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
   them in that PR.
 - **Applied at 22:47 UTC.** #83 merged first (`48bf3e2`) and put OI-76 on `develop`, for the
   flake #75 had filed under that number. This PR's entries became OI-78 and OI-79, above it and
-  clear of #84's OI-77, which merged at 23:09 UTC (`8c13a11`). #75 renumbers OI-72 to OI-75 when
-  it merges; its OI-76 is `develop`'s
-  already.
+  clear of #84's OI-77, which merged at 23:09 UTC (`8c13a11`). #75 merged on 2026-09-28 at 19:00 UTC
+  (`8017b54`) with OI-72 to OI-75, numbers no merged PR had taken, so nothing was renumbered; its
+  OI-76 was already `develop`'s.
 - #77 adds no migration, so the one head after #74 stays `5b1d0f3e9a21`.
 
 ## 6. Rules every PR keeps
@@ -534,7 +546,7 @@ every component head recorded.
    spend, rollback, and the evidence to collect. It is not executed without a new, explicit
    budget: the 2026-09-26 $2 authorisation is spent.
 
-## 10. Stale claims found on 2026-09-27
+## 10. Stale claims found on 2026-09-27 and 28
 
 "Corrected" means changed in this PR; "handed over" means the owner is named.
 
@@ -551,6 +563,7 @@ every component head recorded.
 | Run, Progress and Results use no unit route; the rebuilt stages call unit AI routes | `docs/migration/interface-screens.json` | all eight stages need `/api/bootstrap` and `/api/projects/load`; the AI actions are native agent jobs | handed to the PO. #74 empties the research stages' `unit_routes`, which is true on that branch |
 | Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the product rule is now recorded in OI-79, the code gap remains |
 | Implementation states of `ai.gateway`, `ai.usage_ledger`, `ai.credentials`, `reports.generation` (`NOT_STARTED`) and `workflow.step_execution`'s note ("No research step body exists") | `parity-matrix.json` | all have merged code. Re-grading them touches the module inventory (OI-30) | handed to the parity owner |
+| The smoke's AI check and the runbook's § AI: no Bedrock adapter or governed route is wired, ADR 0010 is *Proposed*, and no live model call has been made (found 2026-09-28) | `apps/executors/src/aia_executors/smoke.py:16-18, 243-246`, `deploy/develop/bin/smoke.sh:13-14` and `deploy/develop/README.md:288-294` @ `f1c486f`; the smoke prints it on every deploy (run 38) | the adapter is `infrastructure/model_adapters/bedrock.py` (PR #56 @ `0310091`); ADR 0010 is accepted for fictional Class C on develop only (`adr/0010-bedrock-eu-inference-route.md:3`); the fictional acceptance run made 20 model calls for $0.2303301 (`docs/migration/status.md:11-13`). `NOT_RUNNABLE` itself stays right: the smoke makes no model call | handed to the PO, who owns the develop deployment: the reason string and the paragraph. #75, #85 and #86 leave both unchanged at `bd24d20`, `daa3d0b` and `619149a` |
 
 ## 11. Handoff to the phase-out owner
 
