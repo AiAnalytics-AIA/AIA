@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DESIGN_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
+import { DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
 import { CONFIRM_REMOVE_SET, PROMPT_COMMENT, PROMPT_SET_OBJECTS, PROMPT_SET_TITLE } from "@/research/plan";
 import { ResearchScreen } from "./ResearchScreen";
@@ -171,7 +171,8 @@ describe("Návrh", () => {
     // The revised briefing is frozen in the native Design Revision.
     expect(((analyze.body?.content as { briefing: { review_comments: string } }).briefing).review_comments).toBe("1. K textu „Jde o test“: Není to test.");
     expect(screen.queryByText("Není to test.")).toBeNull();
-    expect(screen.getByText("Komentáře zapracovány")).toBeTruthy();
+    // Set when the analysis resolves, after the plan above is drawn: waited for, never read at once.
+    expect(await screen.findByText("Komentáře zapracovány", {}, NATIVE_JOB_WAIT)).toBeTruthy();
   });
 
   it("goes on to the questionnaire at its three paths", async () => {

@@ -29,14 +29,25 @@ export type Session = {
 
 let configPromise: Promise<PublicConfig> | null = null;
 
+/** The page's one read of /config; a failure is not cached, so the next call reads again (as loadBoot does). */
 export function loadConfig(): Promise<PublicConfig> {
   if (!configPromise) {
-    configPromise = fetch("/config", { cache: "no-store" }).then(async (r) => {
-      if (!r.ok) throw new Error(`/config answered ${r.status}`);
-      return (await r.json()) as PublicConfig;
-    });
+    configPromise = fetch("/config", { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`/config answered ${r.status}`);
+        return (await r.json()) as PublicConfig;
+      })
+      .catch((e: unknown) => {
+        configPromise = null;
+        throw e;
+      });
   }
   return configPromise;
+}
+
+/** Tests only. */
+export function resetConfigCache(): void {
+  configPromise = null;
 }
 
 function base64url(bytes: ArrayBuffer | Uint8Array): string {

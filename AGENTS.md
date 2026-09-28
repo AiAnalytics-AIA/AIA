@@ -671,6 +671,38 @@ except ScopeDenied as exc:
     raise _forbidden(...) from exc
 ```
 
+It happened again with a write a *repository* makes on the caller's behalf
+(OI-77). `ArtifactRepository.read` flushes `CORRUPT` onto an artifact whose bytes
+fail their hash, then re-raises. The route answered 409 `artifact_corrupt`, and
+the rollback took the mark with it, so a tampered artifact went on reading
+`VALID` and `find_reusable` kept offering it for reuse. Nothing caught it: the
+repository's tests read the mark back through the session that had flushed it,
+which says `CORRUPT` whether or not the mark survives
+(`test_artifacts.py::test_corrupted_content_is_refused_and_flagged`), and no API
+test reached the 409. Two habits:
+
+- A route that turns such an error into an answer commits first. For artifacts
+  that is one function, `routers/runs.py` › `artifact_corrupt`, and no route
+  builds that 409 itself.
+- Test the stored state from a session of its own, not only the response
+  (`apps/api/tests/conftest.py` › `artifact_status`).
+
+```python
+# WRONG -- the CORRUPT that read() flushed is rolled back with the 409
+except (IntegrityError, ObjectNotFound) as exc:
+    raise HTTPException(status_code=409, detail={"code": "artifact_corrupt", ...}) from exc
+
+# RIGHT -- commit the mark, then raise
+except (IntegrityError, ObjectNotFound) as exc:
+    raise artifact_corrupt(session) from exc
+```
+
+An error the route does not map at all loses the mark the same way, as a 500:
+the agent-job proposal routes did, until `_agent_errors` learned the storage
+errors. The worker's `StepContext.transaction` rolls back on any exception too,
+so an executor that lets the storage error escape still loses the mark (OI-77,
+open).
+
 **A closed response model rejects a repository's extra key at runtime, not in
 mypy.** `GET /access-audit` answered 500 for every organization with a grant,
 because `audit_trail()` returns a `payload` key that `AuditEntryResponse`
@@ -1208,7 +1240,10 @@ runner. `findByRole("dialog")` (1 s) and `approveProposal`'s 4 s wait failed
 PlanStep and AudienceStep one run in two locally, and once in CI. A wait
 resolves as soon as its element appears, so give it room. A file that uses
 `vi.setConfig` raises its own test timeout; nothing else is affected
-(`test-native-agents.ts`: `NATIVE_JOB_WAIT`, `NATIVE_TEST_TIMEOUT_MS`).
+(`test-native-agents.ts`: `NATIVE_JOB_WAIT`, `NATIVE_TEST_TIMEOUT_MS`). A wait
+that runs out at its full size is a job that never settled, not a slow runner:
+OI-76's 15 s failures were a cached `/config` failure (two entries down), and in
+the runs that passed the same tests took under 1 s.
 
 ```ts
 // WRONG: passes on a laptop, fails under CI load
@@ -1237,6 +1272,53 @@ expect(tile.getAttribute("aria-pressed")).toBe("true");
 // RIGHT: resolves on the render the subscription makes
 fireEvent.click(tile);
 await screen.findByRole("button", { name: /Nový produkt/, pressed: true }, { timeout: 5_000 });
+```
+
+**A mount effect the last `findBy*` outran runs inside `cleanup()`, and its
+request outlives the test's `fetch` stub.** The same gap as above, at the end of a test: when a
+test ends on a `findBy*` that resolved on the commit that drew the screen, that
+commit's passive effects may not have run. `cleanup()` unmounts, and React runs
+the pending mount effect first (`cleanup → unmount → flushPendingEffects →
+flushPassiveEffects`). The effect's request is still awaiting when
+`vi.unstubAllGlobals()`, the next line of the `afterEach`, puts the real `fetch`
+back. Under jsdom the real `fetch` rejects a relative URL at once (`TypeError:
+Failed to parse URL from /config`), and `loadConfig()` kept its first read for
+the page, rejection included: for the rest of the file. The agents' mount request
+did exactly this in a research file's first test, and every later native job in
+the file failed at its first request. Tests waiting for a review dialog timed out
+at their full 15 s wait; one waiting for the failure card failed fast on its
+message (OI-76). With probes on the effect and on the real `fetch`, each of the
+5 failing full runs in 10 had exactly this one leak, in the failing file's first
+test; the passing runs had none. A cache a test reads through must not keep a failure, and
+the test empties it before it stubs `fetch`.
+
+```ts
+// WRONG: one failed read is the answer to every later request, in a test file as on a page
+if (!configPromise) configPromise = fetch("/config").then(read);
+// RIGHT: a failure is not kept (as loadBoot), and each test starts from an empty cache
+if (!configPromise) configPromise = fetch("/config").then(read).catch((e) => { configPromise = null; throw e; });
+resetConfigCache(); onTestFinished(resetConfigCache); // nativeAgentFixture, before the stub
+```
+
+**What a job's continuation sets is not on screen when what its store drew is.**
+A store update (`useSyncExternalStore`) renders straight away; a `useState` update
+made after an `await` is an ordinary update, which React's scheduler renders in a
+later macrotask. When a test waits for something the store drew and then reads
+something set one step later, the read races the scheduler. Testing Library returns
+from a `findBy*` after a `setTimeout(0)`, and on a loaded runner that timer can fire
+before the scheduler's task. PlanStep's *Komentáře zapracovány* toast is set when
+`analyse` resolves, after the accepted plan is in the store, and its synchronous
+read failed one full CI run of #74 (2026-09-27). Answering the job-list read after
+the accept from a `setImmediate` and holding the loop 5 ms reproduces it every time:
+the synchronous read failed 3 of 3, the awaited one passed. Wait for each thing that
+arrives on its own.
+
+```ts
+// WRONG: the toast comes after the plan this waited for
+expect(await screen.findByText("Upraveno podle vašich komentářů", {}, { timeout: 4000 })).toBeTruthy();
+expect(screen.getByText("Komentáře zapracovány")).toBeTruthy();
+// RIGHT
+expect(await screen.findByText("Komentáře zapracovány", {}, NATIVE_JOB_WAIT)).toBeTruthy();
 ```
 
 **A fragment-only navigation does not reload the page.** Following
