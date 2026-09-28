@@ -14,6 +14,9 @@ import pytest
 
 from aia_core.domain.providers import (
     DEFAULT_MAX_API_COST_USD,
+    DEFAULT_POLICY,
+    DEFAULT_PROVIDER,
+    NATIVE_PROVIDERS,
     PROJECT_PROVIDERS,
     Provider,
     ProviderPolicy,
@@ -377,3 +380,15 @@ def test_a_project_can_never_prefer_bedrock() -> None:
     assert Provider.AWS_BEDROCK not in PROJECT_PROVIDERS
     for spelling in ("aws_bedrock", "bedrock", Provider.AWS_BEDROCK):
         assert normalize_provider(spelling) is Provider.CLAUDE_CODE
+
+
+def test_the_native_runtime_calls_bedrock_and_every_prototype_provider_is_historical() -> None:
+    """One definition of what AIA calls; the rest is only ever read from records."""
+    assert {Provider.AWS_BEDROCK} == NATIVE_PROVIDERS
+    assert NATIVE_PROVIDERS.isdisjoint(PROJECT_PROVIDERS)
+    assert set(Provider) == NATIVE_PROVIDERS | PROJECT_PROVIDERS
+    # Native calls are metered, so every one is reserved against a Study budget.
+    assert all(is_paid(p) for p in NATIVE_PROVIDERS)
+    # The project model's default is the prototype's, not AIA's AI default.
+    assert DEFAULT_PROVIDER not in NATIVE_PROVIDERS
+    assert policy_for_provider(DEFAULT_PROVIDER) is DEFAULT_POLICY
