@@ -26,6 +26,7 @@ from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.workflows import StartedRun, start_workflow
 from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.domain.scope import (
+    ClientStatus,
     OrganizationRole,
     ScopeRole,
     StudyContext,
@@ -326,7 +327,8 @@ def _seed_workspaces(
     Knowledge goes the governed way: the operator proposes, a synthetic curator
     (a REVIEWER on the client) approves, so every item has a revision and
     provenance like any other. Returns slug -> client id, and whether anything
-    was new.
+    was new. A client a person has archived is left as they left it: nothing is
+    granted or seeded into it.
     """
     knowledge = ClientKnowledgeRepository(session)
     owner = AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
@@ -348,6 +350,12 @@ def _seed_workspaces(
             client = scope_repo.create_client(admin, slug=slug, name=spec["name"])
             fresh = True
         out[slug] = client.client_id
+        if client.status is ClientStatus.ARCHIVED:
+            # Archiving a showcase client is a person's decision (Settings, PUT
+            # /clients/{id}/status). The resolver refuses an archived client, so
+            # seeding into it failed every later deploy (OI-80, deploy run 40);
+            # leaving it alone is the seed respecting that decision, not undoing it.
+            continue
         resolver.grant_client_access(
             admin, client_id=client.client_id, user_id=owner_id, role=ScopeRole.LEAD, reason="seed"
         )
