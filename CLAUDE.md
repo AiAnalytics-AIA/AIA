@@ -245,16 +245,7 @@ packages/aia_core/src/aia_core/
       validation.py         Validation bound to system fingerprint; tier gate
       factual.py            Factual layer: panel facts are read, never invented
       admission.py          AdmittedClaim — the ONLY way a number enters a result
-      instrument.py         A Study's own questionnaire items as evidence fields: declared
-                            from the run's record, modelled, aggregate only, INTERNAL_ONLY
     analysis/               The eight analysis modules, drafts, prompts, results
-      native.py             A native run's specification + aggregate -> evidence table,
-                            instrument policy, MISSING certificate; research questions; preflight
-      harness.py            One module turn = one governed request: agent aia.analysis.module,
-                            no gateway schema repair (<= 3 calls a module), Class C/A, lineage
-      artifact.py           The stored outcome (aia-analysis-module-artifact-1), turn
-                            checkpoints, reuse keys; no claim is ever stored
-      steps.py              The eight analysis nodes as data, for the research template
     simulation/             Deterministic simulation core from a frozen WorldModel:
                             reference constants, reject-not-clip validation,
                             inoculation, scenarios, variants, frozen results
@@ -266,8 +257,6 @@ packages/aia_core/src/aia_core/
     population.py           PopulationRuntime — the ONLY loader of population data
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
-    analysis_results.py     A native run's analysis: its sources in scope, one module prepared,
-                            outcomes reconstructed by re-admission (the reader Job 4 uses)
     workflows.py            start_workflow: a run from a template, idempotent per revision
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
                             found only through the Study; research_artifacts, the ONLY reader
