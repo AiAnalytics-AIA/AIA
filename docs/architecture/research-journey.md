@@ -10,6 +10,10 @@
   `b28e1bf` (PO; #77 is stacked on #74), #75 @ `efa3971` (J1) and #76 @ `7c46e0c` (J3). J4 and J5
   had none. The live list is PROGRESS's open pull request table, where each PR adds its own row.
   §9 lists what Phase B needs.
+- **One cutover, not separate merges** (2026-09-28, 00:40 UTC). The PO's draft #86 @ `619149a`
+  assembles #74, #75, #77, #78, #82, #85 and this PR @ `e904b1c` into one release. Every `develop`
+  merge deploys, so its parents are not merged one at a time. Where this document says *once #74
+  merges*, read *once #74's head reaches `develop`, through #86 or alone*.
 
 Tracker: [PROGRESS](../../.planning/PROGRESS.md). Chunks:
 [research-agent-workflows.md](../../.planning/plans/research-agent-workflows.md) § Integration.
@@ -365,6 +369,12 @@ in `apps/api/src/aia_api/routers/workspace.py`:
   yet saved before the design becomes a revision* and *never submits a copy whose save AIA refused
   because someone saved a newer one*. Re-run there, the reproduction fails, and #74's ten
   `ExecutionSteps` tests pass.
+- **Pinned further at `936702f`** (#74 @ `d5dfb62`, CI green). Two more ways in have tests, and in
+  each no revision and no run is created:
+  - *submits nothing while an earlier save's conflict stands, and prepares the version AIA holds
+    once it is reloaded*;
+  - *submits nothing when the save before it fails, and says why* (a 500).
+  - Its commit reports both failing on `7b9e9dc`.
 
 ### 4.3 What #74 changes, if it merges
 
@@ -421,6 +431,8 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
 - A trial merge of `7b9e9dc` into this PR's head is clean, and no OI number is reused.
 - The one semantic overlap was the ADR counts, which ADR 0018 would have made wrong. This PR drops
   the numbers.
+- **Re-checked at `d5dfb62`** (2026-09-28, 00:45 UTC). A trial merge into this PR's head (`5cc436d`)
+  is clean. It leaves one migration head, `5b1d0f3e9a21`, and no OI number twice.
 
 **Checked at 18:05 UTC against #75, #76 and #77.**
 
