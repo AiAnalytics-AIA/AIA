@@ -24,13 +24,21 @@ latency, money. Otherwise: `n/a`.
 
 What was in reach and left alone, and why.
 
+## Doc follow-up
+
+What `CLAUDE.md`, `ARCHITECTURE.md`, `AGENTS.md`, `.planning/overview.md` or
+`.planning/open-items.md` need once this merges — exact text, or precise enough
+to apply without you. A feature PR never edits those files itself (CLAUDE.md §1);
+the next docs-only PR applies this section. `none` if nothing moved.
+
 ## Checks
 
 - [ ] `make verify` passes locally (typecheck, layering, format, tests)
 - [ ] Parity suite run locally against `AIA_LEGACY_REFERENCE` **if this touches
       domain logic** — CI cannot run it, so green CI is not evidence
-- [ ] `ARCHITECTURE.md` / `CLAUDE.md` / `AGENTS.md` updated in this change set,
-      if anything they describe moved
-- [ ] `.planning/PROGRESS.md` and the plan file reflect what landed
+- [ ] No shared file edited (`ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`,
+      `.planning/overview.md`, `.planning/open-items.md`); what moved is under
+      Doc follow-up — unless this is the docs-only PR
+- [ ] This feature's plan file front-matter reflects what landed
 - [ ] Every new public function has tests; every new job and event has a test file
 - [ ] No test skipped, disabled, quarantined or loosened to get green

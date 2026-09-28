@@ -1,3 +1,16 @@
+---
+status: in-progress
+chunks:
+  - "[x] 0. This plan and ADR 0013"
+  - "[x] 1. Token foundation onto develop"
+  - "[x] 2. The injector (applySkin)"
+  - "[x] 3. The variable layer (build-skin.mjs → skin.css)"
+  - "[x] 4. Shared components (components.css)"
+  - "[x] 5. Baseline, locally (replaced by the UI workbench)"
+  - "[ ] 6. Per-area passes, while an area waits for its React rebuild"
+  - "[x] 6a. Switched on for develop"
+  - "[x] 7. Promote: ADR 0013 Accepted, 2026-09-24"
+---
 # Interface skin — the AIA design system on the 18.6.6 screens
 
 **Status:** in progress · **Owner:** product-surface (A9) + web · **Started:** 2026-09-23

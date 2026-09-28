@@ -30,7 +30,7 @@ emits `::warning::Legacy prototype not available in CI` and exits 0 through
 from the prototype merges green. The methodology is the product; parity is the
 only evidence it is preserved.
 
-**Smallest fix.** Decision D3 in `PROGRESS.md` — vendor the reference as a
+**Smallest fix.** Decision D3 in `overview.md` — vendor the reference as a
 private submodule, or publish a fixture pack of recorded prototype outputs.
 Until then the mitigation stands and is documented in `CLAUDE.md §10`: anyone
 changing domain logic runs `make test-parity` locally against
@@ -824,7 +824,7 @@ provider call must leave through an egress route approved under
 [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) — the boundary
 currently approves nothing.
 
-**Consequence.** Simulation is off the MVP path (decision D9 in `PROGRESS.md`), so this
+**Consequence.** Simulation is off the MVP path (decision D9 in `overview.md`), so this
 blocks no release today; it blocks the first release that ships the Simulation
 lifecycle.
 

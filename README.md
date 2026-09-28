@@ -49,8 +49,10 @@ implementation.
 | [CLAUDE.md](CLAUDE.md) | The project map, the commands, and how work is done here |
 | [AGENTS.md](AGENTS.md) | Framework gotchas, with the wrong and right versions side by side |
 
-Then [.planning/PROGRESS.md](.planning/PROGRESS.md) for what is done, in progress
-and next. Keeping all four current is part of every change set, not a follow-up.
+Then `python tools/progress.py` for every plan's status, and
+[.planning/overview.md](.planning/overview.md) for the roadmap, the decisions and
+the history. Keeping the shared documents current is done in docs-only PRs, from
+each feature PR's *Doc follow-up* (CLAUDE.md §1).
 
 Authentication is Amazon Cognito federated to Google Workspace. There are no
 local AIA passwords. For local development, `AIA_IDENTITY_PROVIDER=development`

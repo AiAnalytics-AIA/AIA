@@ -14,11 +14,12 @@ calls and settled cost $0.2303301; results were verified in the signed-in UI.
 Fieldwork and aggregate artifacts are `SYNTHETIC_AI_FICTIONAL`; Sociomap is
 `INTERNAL_ONLY`. Panel-derived transmission and Bedrock design assistants
 remain unapproved/unimplemented. The material below records the earlier
-implementation narrative; [`.planning/PROGRESS.md`](../../.planning/PROGRESS.md)
-is the current tracker.
+implementation narrative; the current tracker is each plan's front-matter
+(`python tools/progress.py`) and [`.planning/overview.md`](../../.planning/overview.md).
 
 > **This document is the narrative, not the tracker.** What is done, in
-> progress and next lives in [`../../.planning/PROGRESS.md`](../../.planning/PROGRESS.md),
+> progress and next lives in the plans' front-matter and
+> [`../../.planning/overview.md`](../../.planning/overview.md),
 > and open defects in [`../../.planning/open-items.md`](../../.planning/open-items.md).
 > Where the two disagree, the tracker wins and this document is stale.
 
@@ -289,7 +290,7 @@ review map are in `.planning/plans/done/evidence-governance-foundation.md`.
 
 ## The develop environment — live
 
-Narrative for the tracker entry in `PROGRESS.md` (Completed, "The `develop`
+Narrative for the tracker entry in `overview.md` (Completed, "The `develop`
 environment") and the plan `.planning/plans/done/develop-deployment.md`, which also
 holds the audit of `main` @ `a15be65` this work started from.
 
@@ -337,7 +338,7 @@ Nothing. The tree is green and the slice is complete.
 - [x] **A worker process.** Built as `apps/worker`; see
       [`.planning/plans/done/worker-process.md`](../../.planning/plans/done/worker-process.md)
       and [workflows.md § The worker](../architecture/workflows.md#the-worker).
-      `PROGRESS.md` is the tracker; this line is narrative.
+      The plans' front-matter is the tracker; this line is narrative.
 - [ ] **Phase 4 — AI runtime.** `AgentDefinition`, `ModelCapability`,
       `ModelPolicy`, `ModelRegistry`, `ModelGateway`, `ToolRegistry`,
       `AIUsageEvent`. [ADR 0005](../architecture/adr/0005-llm-gateway.md) decision

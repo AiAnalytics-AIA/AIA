@@ -1,3 +1,14 @@
+---
+status: done
+chunks:
+  - "[x] 1. Parity matrix JSON for all 78 capabilities + consistency tests"
+  - "[x] 2. Golden-fixture harness: pinned fetch, integrity checks"
+  - "[x] 3. tools/parity_status.py"
+  - "[x] 4. CI wiring: JUnit everywhere, golden-fixtures and parity-status jobs"
+  - "[x] 5. MVP acceptance test definition"
+  - "[x] 6. Own REF-GAP-SOCIO-R-SMACOF and REF-GAP-SIMULATION-WORLD-MODEL"
+  - "[x] 7. Parity-status section naming the highest-risk capability"
+---
 # Production parity matrix and parity gates
 
 **Status:** in progress · **Owner:** parity-quality · **Started:** 2026-09-22

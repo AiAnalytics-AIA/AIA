@@ -1,3 +1,13 @@
+---
+status: done
+chunks:
+  - "[x] 0. Correct the archived foundation plan's review outcome"
+  - "[x] 1. Field policy"
+  - "[x] 2. Companion contract + joint-certificate gate"
+  - "[x] 3. Population operator authority; close OI-8"
+  - "[x] 4. Binding + RuntimePopulation carry policy and joint status"
+  - "[x] 5. Derived-field decision matrix, OI-7 artifact, docs"
+---
 # Population consumption readiness
 
 **Status:** done — awaiting review in its PR · **Owner:** population-data · **Started:** 2026-09-22

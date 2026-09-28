@@ -133,8 +133,9 @@ Two things make this survive contact with a busy week:
   check is green the day it lands and a red run always means a regression, never
   a backlog.
 
-To add one: state it in the table above, then add one `forbid` line to the
-script, then confirm it passes before committing.
+To add one: state it in the script beside its `forbid` line and under Doc
+follow-up in the PR (the docs PR adds it to the table above; CLAUDE.md §1), then
+confirm it passes before committing.
 
 ## 4. Contracts at boundaries
 
@@ -272,7 +273,9 @@ What are you building?
 │    → apps/web/src/…  — renders state the server computed. No rules.
 │
 └─ A framework gotcha you just lost an hour to?
-     → AGENTS.md, immediately, with the wrong and right versions side by side.
+     → AGENTS.md, with the wrong and right versions side by side: written
+       immediately under Doc follow-up in your PR, added by the docs PR
+       (CLAUDE.md §1).
 ```
 
 ## 6. Anti-patterns — do not do these

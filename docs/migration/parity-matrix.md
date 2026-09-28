@@ -280,7 +280,7 @@ violations at once. The bounds themselves are the reference's, unchanged. Each
 difference is one row of `aia_core.domain.simulation.reference.FIELD_POLICY`:
 the legacy mechanism, and production handling `REJECT` — no field is clamped.
 The one bound the reference left ambiguous (minimum factors: 6 in the prompt,
-4 in the schema) is declared as 6, pending decision D10 in `PROGRESS.md`.
+4 in the schema) is declared as 6, pending decision D10 in `.planning/overview.md`.
 
 **Why not preserve it:** the reference contract names reject as the production
 target. A clip hides a misbehaving model; a silent top-up simulates factors the

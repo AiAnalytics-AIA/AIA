@@ -1,3 +1,17 @@
+---
+status: done
+chunks:
+  - "[x] 1. Gate primitives + field policy"
+  - "[x] 2. CORE_JOINT_STATUS certificate"
+  - "[x] 3. Allowed analysis metrics + effective-n support"
+  - "[x] 4. Validation status bound to a system fingerprint + tier gate"
+  - "[x] 5. Permissible claim policy"
+  - "[x] 6. AdmittedClaim capability + layer_check rule"
+  - "[x] 7. Gate-decision parity suite"
+  - "[x] 8. The eight analysis modules"
+  - "[x] 9. Application runner"
+  - "[x] 10. Documents in sync"
+---
 # Evidence and governance foundation, then the eight analysis modules
 
 **Status:** done · **Owner:** analysis-governance · **Started:** 2026-09-22 · **Finished:** 2026-09-22

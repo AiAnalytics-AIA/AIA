@@ -1,3 +1,11 @@
+---
+status: done
+chunks:
+  - "[x] 1. Native Bedrock configuration card and accurate design failure message"
+  - "[x] 2. Product classic wrapper and endpoint retirement; matching workbench"
+  - "[x] 3. Regression checks, routing validation, documentation"
+  - "[x] 4. PR publication; merged PR #57 at ff463a3"
+---
 # Bedrock settings cleanup — 2026-09-26
 
 User request: remove Claude Code connection settings and the Anthropic API-key

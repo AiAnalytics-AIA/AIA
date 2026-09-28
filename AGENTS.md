@@ -8,8 +8,10 @@ For the project map and the working rules see [CLAUDE.md](CLAUDE.md); for
 layering see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Adding an entry is not optional.** When you lose an hour to a framework
-behaving differently than it reads, it goes here in the same change set — with
-the wrong version, the right version, and what it cost. This file exists because
+behaving differently than it reads, it comes here — with the wrong version, the
+right version, and what it cost. A feature PR does not edit this file: it writes
+the entry under **Doc follow-up** in its PR description, and the next docs-only
+PR adds it here (CLAUDE.md §1). This file exists because
 the same debugging session was happening twice.
 
 ---

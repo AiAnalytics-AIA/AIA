@@ -1,3 +1,14 @@
+---
+status: done
+chunks:
+  - "[x] 1. Reference constants, field policy, WorldModel contract"
+  - "[x] 2. Numerics"
+  - "[x] 3. Population inoculation"
+  - "[x] 4. Scenario contract, approval, variants"
+  - "[x] 5. Outcomes, ensembling, deltas, frozen predictions"
+  - "[x] 6. Regression golden; F13 parity scaffold"
+  - "[x] 7. Documents; merged PR #27 at b85431f"
+---
 # Simulation deterministic core
 
 **Status:** all chunks landed, in review · **Owner:** simulation-engine · **Started:** 2026-09-22
