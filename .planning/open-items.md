@@ -2417,13 +2417,12 @@ down.
 **Test that would have caught it.** `test_develop_legacy_unit_health.py` (PR #70).
 
 **Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
-deploy that carries it. *Update, 2026-09-27:* #70 merged at 15:52 (`ceee2dc`), and *Deploy
-develop* run 34 (`36331833716`), the first deploy that carries it, passed its host step (which
-ends with smoke, `deploy.sh:103-104`) at 16:07:55 UTC. Whether that run needed the wait is not
-visible from the job's summary.
-
-**Moot in the combined cutover:** increment 5 removes the product unit and its health
-check. Its replacement verifies no product unit exists and that its volume is preserved.
+deploy that carries it. **Fixed:** #70 merged into `develop` at 15:52. **Moot** once increment 5
+of ADR 0018 lands (`feature/deploy-without-legacy` @ `9138977`): the product's smoke no longer
+reads the unit's health, and `legacy_unit_health` and `test_develop_legacy_unit_health.py` go
+with the unit; the smoke checks instead that no unit path answers and no unit container of
+the product project exists (`test_develop_unit_retirement.py` › *the smoke check says the
+product runs no unit and kept its volume*).
 
 ---
 
