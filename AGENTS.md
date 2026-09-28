@@ -1420,33 +1420,3 @@ operation. Use an operation identity plus an abort signal; refresh errors in
 so keyboard focus and Escape have browser behavior; jsdom needs the existing
 dialog-method stand-ins in component tests. Native HTTP fixtures distinguish
 GET inbox reads from POST creation even when the path is identical.
-
-## Research artifacts are reused by fingerprint, so an upstream id is not the run's own
-
-`ArtifactRepository.put` returns an existing valid artifact whose input fingerprint
-matches, across revisions. The research steps key on what they compute from: compile on
-the design's *content*, fieldwork and aggregate on the *specification's fingerprint*. So
-a run's recorded upstream artifacts need not be the ones its own revision would have
-named. A design edited and edited back runs on the first revision's specification
-artifact (its payload names revision 1); a design edited only outside its questionnaire
-(its research questions) compiles to a new specification artifact but reuses the earlier
-run's dataset and aggregate, whose dependency is the *earlier* specification artifact.
-Both were refused by the first version of `native_sources`
-(`test_a_specification_reused_from_an_identical_revision_is_the_runs_own`,
-`test_an_aggregate_reused_over_the_same_questionnaire_is_the_runs_own`, and end to end
-`test_changed_research_questions_run_every_module_again_over_the_reused_aggregate`).
-
-```python
-# WRONG: ids. Refuses every run whose steps reused an artifact.
-assert spec_payload["design_revision_id"] == run_revision_id
-assert {spec_id, dataset_id} <= aggregate_dependency_ids
-
-# RIGHT: what the step reused on. Same content, same specification fingerprint.
-assert same_content(spec_payload["design_revision_id"], run_revision_id)
-assert dataset_id in aggregate_dependency_ids
-assert any(dep_spec.fingerprint() == spec.fingerprint() for dep_spec in aggregate_spec_deps)
-```
-
-Anything that stores a result over a run's artifacts and reads it back -- an analysis
-outcome, a report -- compares sources by content (`ModuleSources.content()`), keeping the
-ids only as provenance of where it was computed.

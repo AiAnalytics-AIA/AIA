@@ -1,6 +1,19 @@
+---
+status: done
+chunks:
+  - "[x] 0. This plan"
+  - "[x] 1. Instrument items as evidence fields: evidence/instrument.py"
+  - "[x] 2. Native evidence and inputs: analysis/native.py"
+  - "[x] 3. Harness: analysis/harness.py"
+  - "[x] 4. Artifact contract and graph spec: analysis/artifact.py, analysis/steps.py"
+  - "[x] 5. Scoped sources and reconstruction: application/analysis_results.py (PR A, #76)"
+  - "[x] 6. Executor: aia_executors/analysis.py over the real worker and recorded Bedrock"
+  - "[x] 7. Decision-table parity against the vendored evidence_validator.py (M17)"
+  - "[x] 8. Documents, and the Doc follow-up for the shared files (PR B, #80)"
+---
 # Evidence-backed analysis of native research runs
 
-**Status:** all chunks done, in review (PR A, PR B) · **Owner:** analysis (Job 3) · **Started:** 2026-09-27
+**Owner:** analysis (Job 3) · **Started:** 2026-09-27
 
 Chunk 5 of [research-agent-workflows.md](research-agent-workflows.md), in the analysis
 half; the report half is [report-docx.md](report-docx.md) R10–R11 (Job 4).
@@ -128,7 +141,7 @@ validation (only support and suppression), verification or alignment.
 
 ## Chunks
 
-- [x] 0. This plan; PROGRESS row. — docs only
+- [x] 0. This plan, and a PROGRESS row until #89 retired that file. — docs only
 - [x] 1. Instrument items as evidence fields: `evidence/instrument.py`, `InstrumentStatus`
       beside the dictionary's statuses, `FieldPolicy` typed for both, `ClaimRule.INTERNAL_ONLY`
       refused client-facing by the claim gate (`FIELD_INTERNAL_ONLY`); layer rule: no app
@@ -173,9 +186,10 @@ validation (only support and suppression), verification or alignment.
       INTENTIONAL_DIFFERENCE, 2 DECISION_OWED, the same numbers, the pin, the labels); parity
       matrix: gate `analysis.modules/unit-evidence-validator`, deviations
       `SUB-ANALYSIS-EXACT`, `-PROSE`, `-SUPPRESSED`
-- [x] 8. Documents: ARCHITECTURE §4, the CLAUDE map, AGENTS (research artifacts are reused by
-      fingerprint), `docs/architecture/analysis.md` (the executor and its outcomes table,
-      the gate against the unit's), the ANL decisions in PROGRESS; draft PRs. (**PR B**:
+- [x] 8. Documents: `docs/architecture/analysis.md` (the executor and its outcomes table,
+      the gate against the unit's) and the parity matrix on the branch; what ARCHITECTURE §4,
+      the CLAUDE map, AGENTS (research artifacts are reused by fingerprint), the ANL
+      decisions and OI-77 need goes under *Doc follow-up* below (#89); draft PRs. (**PR B**:
       chunks 6–8, stacked on PR A)
 
 ## Decisions owed (not engineering)
@@ -192,6 +206,100 @@ validation (only support and suppression), verification or alignment.
   (`test_analysis_gate_parity.py` cases `finding-without-evidence`, `no-finding-at-all`).
   Tightening is one rule in `domain/analysis/draft.py`; it is a methodology decision, so it
   is not made here.
+
+## Findings
+
+None open in PR B. It changes one existing item, OI-77, whose worker half the analysis
+executor now meets (the text is under *Doc follow-up*, PR B). Codex's P2 on #80 is under
+*Review outcome*.
+
+## Doc follow-up
+
+What the shared documents need once this feature merges. Until #89 its branches made these
+edits themselves; the docs PR applies them now. The text is exact.
+
+### PR B (#80)
+
+**`CLAUDE.md` § 2, the map.** Under `apps/executors/src/aia_executors/`, after
+`ai_fieldwork.py`:
+
+```text
+    analysis.py             research_analysis: one module per step over StepModelCaller; preflight
+                            BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
+                            twice), AnalysisConfig.from_settings; registered by no composition yet
+```
+
+**`ARCHITECTURE.md` § 4.** In PR A's bullet *A native run's analysis is internal, and an
+outcome is re-admitted whenever it is read*, the last line
+``  through the gate again, so a file cannot mint an `AdmittedClaim`.`` becomes:
+
+```markdown
+  through the gate again, so a file cannot mint an `AdmittedClaim`. The executor
+  (`aia_executors/analysis.py`) runs one module per step: what code can refuse is stored
+  `BLOCKED` before anything is reserved, a gate refusal after three turns is an outcome
+  too, and a provider failure is never one -- it goes back to the worker's recovery rules.
+```
+
+**`AGENTS.md`**, a new section at the end:
+
+````markdown
+## Research artifacts are reused by fingerprint, so an upstream id is not the run's own
+
+`ArtifactRepository.put` returns an existing valid artifact whose input fingerprint
+matches, across revisions. The research steps key on what they compute from: compile on
+the design's *content*, fieldwork and aggregate on the *specification's fingerprint*. So
+a run's recorded upstream artifacts need not be the ones its own revision would have
+named. A design edited and edited back runs on the first revision's specification
+artifact (its payload names revision 1); a design edited only outside its questionnaire
+(its research questions) compiles to a new specification artifact but reuses the earlier
+run's dataset and aggregate, whose dependency is the *earlier* specification artifact.
+Both were refused by the first version of `native_sources`
+(`test_a_specification_reused_from_an_identical_revision_is_the_runs_own`,
+`test_an_aggregate_reused_over_the_same_questionnaire_is_the_runs_own`, and end to end
+`test_changed_research_questions_run_every_module_again_over_the_reused_aggregate`).
+
+```python
+# WRONG: ids. Refuses every run whose steps reused an artifact.
+assert spec_payload["design_revision_id"] == run_revision_id
+assert {spec_id, dataset_id} <= aggregate_dependency_ids
+
+# RIGHT: what the step reused on. Same content, same specification fingerprint.
+assert same_content(spec_payload["design_revision_id"], run_revision_id)
+assert dataset_id in aggregate_dependency_ids
+assert any(dep_spec.fingerprint() == spec.fingerprint() for dep_spec in aggregate_spec_deps)
+```
+
+Anything that stores a result over a run's artifacts and reads it back -- an analysis
+outcome, a report -- compares sources by content (`ModuleSources.content()`), keeping the
+ids only as provenance of where it was computed.
+````
+
+**`.planning/open-items.md`**, OI-77's **Status.** paragraph. After "…and, for design jobs,
+a decision to spend on a recompute.", add:
+
+```markdown
+The native analysis
+executor (#80) keeps the mark already. Every source refusal, `source_corrupt` included, is
+returned from inside its transaction as `SCHEMA_VIOLATION`, the class it gives every
+other source refusal, and the message names no storage key
+(`test_analysis_executor.py::test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt`,
+`test_analysis_results.py::test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`).
+The recompute question belongs to the step that produced the artifact, not to that reader.
+If the decision picks another class, `_sources_refused` in `aia_executors/analysis.py` is the
+one place to change.
+```
+
+**`.planning/overview.md`.** Four rows in *Decisions needed*, after DR-4:
+
+```markdown
+| ANL-1 | **The instrument evidence policy.** Approve (or replace) `aia-instrument-evidence-1` for internal interpretation of simulated respondents, and decide whether any instrument evidence may ever be client-facing, and on what origin. Methodology owner | Reading analysis outcomes as anything but internal and fictional | `domain/evidence/instrument.py` · [plan](plans/evidence-backed-analysis.md) |
+| ANL-2 | **Should thin support pause analysis for a person** (`donor_qc`'s `review_if_warning`), or is per-row suppression enough | A review gate before the analysis nodes | `legacy/npc-panel-18.6.6/app/worker_job.py:558-566` · [plan](plans/evidence-backed-analysis.md) |
+| ANL-3 | **Port run QC (`qc.kontrola`)** with its author-calibrated thresholds as warnings, as gates, or not at all | `analysis.qc` | `legacy/npc-panel-18.6.6/app/qc.py:24`, `:70-262` |
+| ANL-4 | **Must every key finding cite evidence, and must a module state a finding?** The unit refused an analysis where fewer than 95 % of findings cited evidence, or with none; AIA admits both | Parity of the analysis gate's two looser cases | `test_analysis_gate_parity.py` cases `finding-without-evidence`, `no-finding-at-all` |
+```
+
+And a row for #80 in *Open pull requests*, from its description. Nothing else: this
+feature's status is the front-matter above.
 
 ## Review outcome
 
