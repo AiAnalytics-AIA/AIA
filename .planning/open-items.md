@@ -2831,9 +2831,16 @@ the operator could not tell which row to look at.
 denial's reason in the smoke line (done, `smoke.describe_failure`). An archived client or a
 deactivated owner is a person's decision, which the seed does not undo.
 
-**Status.** Fixed in code on the release branch (#86). Which of the three states the develop
-host is in is **not established**: it needs a read-only look at the seed organization's
-member, user and client rows, or the next deploy's smoke line, which now names the reason.
+**Status.** The operator membership is fixed on `develop` by #87 (`28eedce`) and in the
+release (`73d3136`). Deploy run 40 of `28eedce` then named the develop host's state:
+`client_archived`, an archived client in the seed organization.
+- **An archived showcase client.** The seed resolved a context on each of its two showcase
+  clients, so archiving either one failed every deploy. #88 makes the seed leave such a
+  client as it is, with a test that fails before it:
+  `test_seed_leaves_an_archived_fictional_client_as_it_was`.
+- **The smoke's own `synthetic-client`.** If it is the archived one, the seed still stops, and
+  un-archiving it is a person's decision. `access_audit` (`CLIENT_STATUS_CHANGED`) says who
+  archived it and when.
 
 ## OI-81 · Question · Migrating a closed Study means reopening it, and delivering it again rewrites `delivered_at`
 

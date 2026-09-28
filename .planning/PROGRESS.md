@@ -3,8 +3,8 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-28 · **Code of record:** `develop` @ `8017b54` · **Release:** `main` @ `9cf1f58`,
-289 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
+**Updated:** 2026-09-28 · **Code of record:** `develop` @ `28eedce` · **Release:** `main` @ `9cf1f58`,
+291 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -73,19 +73,20 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `f1c486f` (#79's merge), smoke red** (*Deploy develop* run 38, 23:52–23:57 UTC).
-- Every service was replaced and reports that build.
-- 24 smoke checks passed and one failed: `slice: unexpected error` with `ScopeDenied: not found`,
-  raised in the develop seed step of `aia_executors.smoke`
-  (`apps/executors/src/aia_executors/smoke.py:122-134, 238` @ `f1c486f`). `ai` printed
-  `NOT_RUNNABLE`, which never counts as a pass.
-- Runs 36 (`48bf3e2`, #83's merge, 22:58–23:04) and 37 (`8c13a11`, #84's merge, 23:20–23:25) failed
-  the same check after replacing every service.
-- No Python changed between `dd27f68` and `48bf3e2`, so the cause is probably the host's data, not
-  code. That is a hypothesis: it is not reproduced, and the smoke does not print the `ScopeDenied`
-  reason.
-- Owner: the operator of the develop host (the phase-out owner's deployment area). The PO's draft
-  #86 lists it among its release conditions.
+**Deployed: `28eedce` (#87's merge), smoke red** (*Deploy develop* run 40, 20:05–20:11 UTC).
+- Every service was replaced and reports that build. The schema is at `1777fcb96352`.
+- Every smoke check passed but one:
+  `slice: unexpected error — ScopeDenied: not found (reason: client_archived)`.
+  `ai` printed `NOT_RUNNABLE`, which never counts as a pass.
+- That reason, which #87 made the smoke print, settles OI-80 for this host: a client of the
+  seed organization is archived. The cause is not the operator membership that #87 fixed.
+  Settings can archive a client (`PUT /api/v1/clients/{id}/status`, #67); run 35 (16:52 UTC,
+  2026-09-27) was green and run 36 (22:58) was not.
+- #88 makes the seed leave an archived showcase client alone. If the archived one is the smoke's
+  own `synthetic-client`, un-archiving it is a person's call. `access_audit`
+  (`CLIENT_STATUS_CHANGED`) says who archived it and when.
+- Runs 36 (`48bf3e2`), 37 (`8c13a11`), 38 (`f1c486f`) and 39 (`8017b54`, 19:11–19:17) failed the
+  same check after replacing every service.
 
 The last green deploy is run 35 (`dd27f68`, #72's merge, 16:52 UTC, after CI run 211). Runs 34
 (`ceee2dc`, #70's merge, 16:08, after CI run 209), 32 (`4c4c3dd`, 14:28) and 33 (`53de110`, 15:11)
@@ -138,6 +139,9 @@ attempt 3, green).
 | #84 | `fix/durable-corrupt-mark` | The API keeps a corrupt artifact's `CORRUPT` mark when it refuses to serve it: the artifact routes' 409 no longer rolls it back, and the agent-job proposal routes answer 409, not 500 (OI-77; its worker half stays open) | **Merged** into `develop` (`8c13a11`, 23:09 UTC) | deployment smoke still fails in seed loading |
 | #80 | `feature/analysis-executors` | Native analysis, PR B of Job 3, stacked on #76: the `research_analysis` executor (one recoverable step per module, turn checkpoints so a retry never pays twice, blocked outcomes stored), and the analysis gate compared decision by decision with the unit's `evidence_validator.py` (two looser cases wait on ANL-4). Not registered or in the template | Reconciled with #76 and current develop; fresh head CI required | after #76 |
 | #85 | `feature/deploy-without-legacy` | Phase-out increment 5: the product deployment without the unit, which runs only from `deploy/reference/`; the panel's gate retired (ADR 0018 decision 5, chunks 10–12) | Draft, stacked on #82 | after #82, last of the phase-out; then the operator sequence (plan) |
+| #86 | `integration/phaseout-cutover-review` | The single release of the 2026-09-28 consolidation plan: every component head above that is still open, with `develop` | Draft; CI green on `b0ce309` | once, in the maintenance window (`deploy/develop/README.md` § The cutover); then close the absorbed PRs |
+| #87 | `fix/develop-seed-returning-operator` | The develop seed admits a returning operator before resolving their context; the smoke names a denial's reason (OI-80; plan step 3) | **Merged** into `develop` (`28eedce`, 19:53 UTC); deployed by run 40 | complete; the same hunks are in #86 |
+| #88 | `fix/develop-seed-archived-client` | The develop seed leaves an archived showcase client alone instead of failing on it (OI-80, run 40) | Draft into `develop` | before the cutover: the smoke baseline (plan step 3) |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
 by default. The browser journey it named (enqueue → reload → review → accept → stale
