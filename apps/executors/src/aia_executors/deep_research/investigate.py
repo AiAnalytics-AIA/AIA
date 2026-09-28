@@ -514,6 +514,10 @@ class InvestigateExecutor(_Step):
                     refs[ref.snapshot_id] = ref
                     stored[ref.snapshot_id] = snap
                     pages.append(snap)
+            if status is TrackStatus.INCOMPLETE:
+                # The round's last fetch may have been served: nothing more is sent, not
+                # even the investigator request over the pages it did capture.
+                break
             if pages:
                 new = self._investigate_pages(
                     caller, runtime, plan, track, planned, pages, stored, findings, calls
@@ -531,8 +535,6 @@ class InvestigateExecutor(_Step):
                 new_by_round.append(new)
             else:
                 new_by_round.append(0)
-            if status is TrackStatus.INCOMPLETE:
-                break
 
         searches, fetches, charged, tool_cost = meter.track_usage(track.track_id)
         sent = [r for r in records if r.decision is QueryDecision.SENT]

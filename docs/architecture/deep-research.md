@@ -248,10 +248,11 @@ snapshots, batches and reused batches, accepted, quarantined) and `spend_usd` (`
 A web track runs round by round: the stop rule is checked before each query; a refused query
 and a known search failure do not count as rounds; each result is fetched once per track within
 the track's allowance and snapshotted; one investigator request reads the round's new pages; an
-uncertain search or fetch ends the track `INCOMPLETE` (never retried). A track whose queries
-were all refused is `BLOCKED` (`all_queries_refused`). Every request is preflighted first, and a
-refused one (`model_route_refused`, `context_too_large`) spends nothing. Each step re-checks
-that the composition's versions, policy and retrieval are the ones the plan recorded
+uncertain search or fetch ends the track `INCOMPLETE` at once (never retried): nothing more is
+sent for it, not even the investigator request over pages the round did capture. A track whose
+queries were all refused is `BLOCKED` (`all_queries_refused`). Every request is preflighted
+first, and a refused one (`model_route_refused`, `context_too_large`) spends nothing. Each step
+re-checks that the composition's versions, policy and retrieval are the ones the plan recorded
 (`composition_changed`), that the request matches the step's fingerprint (`request_altered`)
 and that its Design Revision is the held Study's (`design_not_in_scope`).
 
