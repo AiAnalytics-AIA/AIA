@@ -1,0 +1,10 @@
+{
+ "captured_with": "tools/deep_research_capture.py",
+ "fixtures": {
+  "merge.json": "0d527bd86c32cb58ddb653b4f4bb0808c6e32882b00388b0ae110d254771c6b6",
+  "screen.json": "30ae529a8cf55aff05e3b9ae34db74f8a4d6ffaa9990d5881a52627e76c91cf2"
+ },
+ "unit_source": {
+  "research_context.py": "03b468153686dbdb3e591e6bfe9687d1043dc08858478bb85afd58d78e203c71"
+ }
+}

@@ -200,6 +200,65 @@ describe("Run", () => {
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
   });
 
+  it("submits nothing while an earlier save's conflict stands, and prepares the version AIA holds once it is reloaded", async () => {
+    let served = workspaceFixture(PROJECT).answer(CONTENT_PATH, "GET", null) as Record<string, unknown>;
+    api({
+      "GET /api/v1/studies/STU-1/workspace/content": () => served,
+      "PUT /api/v1/studies/STU-1/workspace/content": () =>
+        new Response(JSON.stringify({ code: "stale_revision", message: "The working content changed.", details: { current_revision: 4 } }), { status: 409 }),
+    });
+    const at = (step: "brief" | "run") => (
+      <ResearchSession studyId="STU-1">
+        <ResearchScreen step={step} frame={TEST_FRAME} />
+      </ResearchSession>
+    );
+    const { rerender } = render(at("brief"));
+    fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA odmítla" } });
+    // The debounced save meets the newer revision while the person is still on the brief.
+    expect(await screen.findByText(t("research.saveConflict"), {}, { timeout: 4000 })).toBeTruthy();
+    rerender(at("run"));
+    expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
+    expect(screen.getAllByText(CONFLICT_MESSAGE).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: t("research.exec.start") })).toBeNull();
+    // The refused copy is not saved again, not made a revision, not run.
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+
+    // What the person can do: load the version AIA holds; Run then prepares that one.
+    served = { ...served, revision: 4, revision_id: "REV-4", content: { ...PROJECT, goal: "Cíl, který uložil kolega" } };
+    fireEvent.click(screen.getByRole("button", { name: t("research.saveReload") }));
+    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
+    expect((submitted.body as { content: { goal: string } }).content.goal).toBe("Cíl, který uložil kolega");
+    expect(called("GET", CONTENT_PATH)).toHaveLength(2);
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+  }, 15_000);
+
+  it("submits nothing when the save before it fails, and says why", async () => {
+    api({
+      "PUT /api/v1/studies/STU-1/workspace/content": () =>
+        new Response(JSON.stringify({ code: "internal_error", message: "Obsah se teď nepodařilo uložit.", details: {} }), { status: 500 }),
+    });
+    const at = (step: "brief" | "run") => (
+      <ResearchSession studyId="STU-1">
+        <ResearchScreen step={step} frame={TEST_FRAME} />
+      </ResearchSession>
+    );
+    const { rerender } = render(at("brief"));
+    fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA neuložila" } });
+    rerender(at("run")); // before the 1.8 s autosave
+    expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
+    expect(screen.getAllByText("Obsah se teď nepodařilo uložit.").length).toBeGreaterThan(0);
+    expect(screen.getByText(t("research.saveFailed"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("research.saveRetry") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.start") })).toBeNull();
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+  });
+
   it("cannot start a design that fails a check", async () => {
     api({
       "GET /api/v1/studies/STU-1/research/readiness": () => ({
