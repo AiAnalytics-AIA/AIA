@@ -522,6 +522,49 @@ def test_a_source_of_another_shape_is_refused_not_raised(
     assert refused.value.reason == reason
 
 
+def _damage(world: World, artifact_id: str, how: str) -> str:
+    """Tamper with an artifact's bytes, or remove its object. Returns its storage key."""
+    key = research_artifacts(world.session, world.scope, world.store).get(artifact_id).storage_key
+    if how == "tampered":
+        world.store.put(key, b'{"kind": "tampered"}')
+    else:
+        world.store.delete(key)
+    return key
+
+
+@pytest.mark.parametrize("how", ["tampered", "missing"])
+@pytest.mark.parametrize("node", ["compile", "aggregate"])
+def test_a_corrupt_source_is_refused_by_reason_without_its_storage_key(
+    world: World, node: str, how: str
+) -> None:
+    """Bytes that fail their hash, or an object that is gone: refused by reason, and the
+    message carries no storage key, since it reaches a step's error and a reader."""
+    run_id = world.start()
+    world.upstream()
+    key = _damage(world, _outputs(world, run_id)[node], how)
+    with pytest.raises(SourcesRefused) as refused:
+        world.sources(run_id)
+    assert refused.value.reason == "source_corrupt"
+    assert key not in str(refused.value)
+
+
+@pytest.mark.parametrize("how", ["tampered", "missing"])
+def test_a_corrupt_ai_dataset_is_refused_by_reason_not_raised(world: World, how: str) -> None:
+    """An AI runtime dataset is read for its lineage. Bytes that fail their hash are a
+    refusal by reason like any other source's, not a storage error: an executor returns
+    it from inside its transaction, which then keeps the CORRUPT mark (OI-77)."""
+    run_id = world.start()
+    world.upstream()
+    sources = dataclasses.replace(
+        world.sources(run_id), fieldwork_source=FieldworkSource.AI_RUNTIME.value
+    )
+    key = _damage(world, sources.refs.dataset.artifact_id, how)
+    with pytest.raises(SourcesRefused) as refused:
+        dataset_material(world.session, world.scope, world.store, sources)
+    assert refused.value.reason == "source_corrupt"
+    assert key not in str(refused.value)
+
+
 def test_an_earlier_specification_of_another_shape_is_not_the_runs(world: World) -> None:
     """An aggregate reused from an earlier run is the run's own only through a
     specification of the run's fingerprint; one that cannot be read is not one."""

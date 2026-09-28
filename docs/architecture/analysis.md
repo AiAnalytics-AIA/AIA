@@ -113,7 +113,11 @@ run's revision compiled again (`compile_design` is deterministic and the revisio
 immutable), so one that names the run's revision but was compiled from another
 questionnaire is refused (`design_revision`). Another compiler's specification cannot be
 compiled again here, and a run parked across a deploy must still be read, so it is held
-to the revision it records.
+to the revision it records. A source whose bytes fail their hash, or whose object is
+gone -- the AI runtime's dataset included, which `dataset_material` reads for its lineage
+-- is refused as `source_corrupt`, and the message names no storage key: it reaches a
+step's error and a reader. The read has marked the artifact CORRUPT in the caller's
+transaction, which keeps that mark only by ending without raising (OI-77).
 Anything else raises `ReconstructionRefused(reason)`:
 
 | `reason` | When |
@@ -121,7 +125,7 @@ Anything else raises `ReconstructionRefused(reason)`:
 | `run_not_found` | No such research run in the Study in scope |
 | `not_in_run`, `no_outcome` | The run has no such module, or its step has not succeeded |
 | `outcome_not_found`, `outcome_invalid`, `outcome_corrupt`, `contract` | The artifact is missing, of another type or status, fails its hash, or breaks the contract |
-| `sources_refused`, `sources_moved` | The run's sources cannot be loaded (the message starts with the source's reason: `design_revision`, `aggregate_lineage`, `specification_shape` …), or are not the ones recorded |
+| `sources_refused`, `sources_moved` | The run's sources cannot be loaded (the message starts with the source's reason: `design_revision`, `aggregate_lineage`, `source_corrupt`, `specification_shape` …), or are not the ones recorded |
 | `evidence_refused` | The recorded sources no longer make evidence (a later evidence adapter refuses them) |
 | `fingerprint_mismatch` | Evidence, policy, research questions, method status or harness moved |
 | `readmission_refused` | The stored draft no longer passes the gate |

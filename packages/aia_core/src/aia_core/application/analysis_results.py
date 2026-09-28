@@ -226,6 +226,17 @@ def _computed_from(
     return False
 
 
+def _corrupt(what: str) -> SourcesRefused:
+    """A source whose bytes failed verification, or whose object is gone.
+
+    The read has marked the artifact CORRUPT in the caller's transaction. A caller keeps
+    that mark only by ending the transaction without raising: the worker's rolls back
+    on any exception (OI-77). The storage error's text is not repeated, because it holds
+    the object's key, and this message reaches a step's error and a reader.
+    """
+    return SourcesRefused("source_corrupt", f"{what} failed verification and is marked corrupt")
+
+
 def _specification(payload: Any) -> ResearchSpecification:
     """The specification a compile artifact holds: bytes that pass their hash but are of
     another shape (an older producer's, say) hold none, and are refused as such."""
@@ -273,7 +284,7 @@ def native_sources(
             "source_not_found", f"an upstream artifact is not in scope: {exc}"
         ) from exc
     except (IntegrityError, ObjectNotFound) as exc:
-        raise SourcesRefused("source_corrupt", f"an upstream artifact is corrupt: {exc}") from exc
+        raise _corrupt("an upstream artifact") from exc
 
     if spec_payload.get("specification_fingerprint") != spec.fingerprint():
         raise SourcesRefused(
@@ -357,6 +368,9 @@ def dataset_material(
     D1), which is exactly its licence determination's dataset. Anything else, or a
     record without them, declares nothing -- and the gateway refuses an undeclared
     lineage before any adapter.
+
+    A dataset whose bytes fail verification is refused (``source_corrupt``), as in
+    :func:`native_sources`.
     """
     if sources.fieldwork_source == FieldworkSource.SYNTHETIC_FIXTURE.value:
         fixture = sources.dataset_origin is DataOrigin.SYNTHETIC_FIXTURE
@@ -366,7 +380,12 @@ def dataset_material(
         )
     if sources.fieldwork_source != FieldworkSource.AI_RUNTIME.value:
         return DatasetMaterial(lineage=None, respondents_fictional=False)
-    payload = research_artifacts(session, scope, store).read_json(sources.refs.dataset.artifact_id)
+    try:
+        payload = research_artifacts(session, scope, store).read_json(
+            sources.refs.dataset.artifact_id
+        )
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise _corrupt("the fieldwork dataset") from exc
     provenance = payload.get("provenance") if isinstance(payload, Mapping) else None
     provenance = provenance if isinstance(provenance, Mapping) else {}
     recorded = provenance.get("lineage")
