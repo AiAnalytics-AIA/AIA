@@ -56,7 +56,9 @@ apps/
                             panel (the session + gate in front of /app, /classic and the unit, ADR 0012),
                             research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), and native agent-jobs beneath each Study,
-                            settings (the read-only settings document: every control and how it is set)
+                            settings (the read-only settings document: every control and how it is set;
+                            ai_runtime, what powers AIA's model calls from code; ai_history, the
+                            prototype's provider fields, readable and never offered)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data.
@@ -68,7 +70,8 @@ apps/
                             action, tabs), the client workspace and its areas, ResearchStudy
                             (a study's frame from its AIA binding), useResource (404 = nothing here),
                             settings/ControlPanel (every control from GET /settings, how each is set;
-                            live forms over the admin routes with the signed-in token, lib/api.ts `admin`),
+                            live forms over the admin routes with the signed-in token, lib/api.ts `admin`;
+                            the one AI section: ai_runtime beside /config's switches, never "connected"),
                             FrontDoor (the branded frame of /login, /logout, /auth/callback)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
     src/components/rehome/  Primitives (token utilities only), the research stages and the classic
@@ -86,6 +89,8 @@ apps/
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
                             fictional data is labelled every time, the park is explained
+    src/lib/ai-runtime.ts   How Settings reads an AI activity: on in configuration, off and by which
+                            switch, invalid (the worker will not start), unknown -- never verified
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts,
                               and aia_core domain/report/print_tokens.py (the report's print register)
@@ -187,7 +192,8 @@ packages/aia_core/src/aia_core/
       companions.py         Companion assets + the fail-closed joint certificate gate
       authority.py          Population-operator capability (establish / promote)
     project.py              Project, revisions, stage state
-    providers.py            Provider policy, model roles, budget and error semantics
+    providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
+                            (Bedrock) -- the prototype's providers and policies are read from records only
     residency.py            EU residency, data classes, the fail-closed egress boundary
     scope.py                Organization/Client/Study vocabulary, roles, permissions; StudyKind
                             (RESEARCH / SIMULATION); ClientContext + ClientPermission
