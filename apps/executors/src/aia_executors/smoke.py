@@ -33,6 +33,7 @@ from typing import Any
 
 from aia_core.application.develop_seed import seed_develop, seeded_study_scope
 from aia_core.application.workflows import start_workflow
+from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
 from aia_core.infrastructure.artifact_repository import ArtifactRepository
@@ -202,6 +203,18 @@ def slice_check(
         report.fail("slice: the snapshot describes the seeded project", str(payload)[:200])
 
 
+def describe_failure(exc: Exception) -> str:
+    """One line for an unexpected slice error, with a denial's reason.
+
+    A ``ScopeDenied`` says "not found" whatever the cause, so that a request
+    learns nothing; the operator reading the smoke needs the reason to know
+    which row to look at (membership, user, client, grant).
+    """
+    if isinstance(exc, ScopeDenied):
+        return f"ScopeDenied: {exc} (reason: {exc.reason})"
+    return f"{type(exc).__name__}: {exc}"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expect-build", default=None, help="the git SHA the deployment runs")
@@ -235,7 +248,7 @@ def main(argv: list[str] | None = None) -> int:
             report=report,
         )
     except Exception as exc:
-        report.fail("slice: unexpected error", f"{type(exc).__name__}: {exc}")
+        report.fail("slice: unexpected error", describe_failure(exc))
     finally:
         engine.dispose()
 
