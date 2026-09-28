@@ -546,7 +546,7 @@ every component head recorded.
    spend, rollback, and the evidence to collect. It is not executed without a new, explicit
    budget: the 2026-09-26 $2 authorisation is spent.
 
-## 10. Stale claims found on 2026-09-27
+## 10. Stale claims found on 2026-09-27 and 28
 
 "Corrected" means changed in this PR; "handed over" means the owner is named.
 
@@ -563,6 +563,7 @@ every component head recorded.
 | Run, Progress and Results use no unit route; the rebuilt stages call unit AI routes | `docs/migration/interface-screens.json` | all eight stages need `/api/bootstrap` and `/api/projects/load`; the AI actions are native agent jobs | handed to the PO. #74 empties the research stages' `unit_routes`, which is true on that branch |
 | Approved knowledge *or an attachment's content* makes a request Class A, so attachment text reaches no Class C call | this document, §3.1 and §6 rule 5, as first published | only knowledge does. `context_snapshot` copies the whole design, attachment text included, and the class comes from the allowlist and knowledge (`domain/research_agents.py:225, 294-296`) | corrected; the product rule is now recorded in OI-79, the code gap remains |
 | Implementation states of `ai.gateway`, `ai.usage_ledger`, `ai.credentials`, `reports.generation` (`NOT_STARTED`) and `workflow.step_execution`'s note ("No research step body exists") | `parity-matrix.json` | all have merged code. Re-grading them touches the module inventory (OI-30) | handed to the parity owner |
+| The smoke's AI check and the runbook's § AI: no Bedrock adapter or governed route is wired, ADR 0010 is *Proposed*, and no live model call has been made (found 2026-09-28) | `apps/executors/src/aia_executors/smoke.py:16-18, 243-246`, `deploy/develop/bin/smoke.sh:13-14` and `deploy/develop/README.md:288-294` @ `f1c486f`; the smoke prints it on every deploy (run 38) | the adapter is `infrastructure/model_adapters/bedrock.py` (PR #56 @ `0310091`); ADR 0010 is accepted for fictional Class C on develop only (`adr/0010-bedrock-eu-inference-route.md:3`); the fictional acceptance run made 20 model calls for $0.2303301 (`docs/migration/status.md:11-13`). `NOT_RUNNABLE` itself stays right: the smoke makes no model call | handed to the PO, who owns the develop deployment: the reason string and the paragraph. #75, #85 and #86 leave both unchanged at `bd24d20`, `daa3d0b` and `619149a` |
 
 ## 11. Handoff to the phase-out owner
 
