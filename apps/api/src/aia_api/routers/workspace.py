@@ -73,6 +73,7 @@ from ..dependencies import (
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .runs import artifact_corrupt
 
 router = APIRouter(
     tags=["workspace"],
@@ -1093,7 +1094,7 @@ def attach_study_file(
     summary="Download a file attached to the research study's brief",
     responses={
         200: {"content": {"application/octet-stream": {}}, "description": "The file"},
-        409: {"model": ErrorResponse, "description": "The stored bytes do not match"},
+        409: {"model": ErrorResponse, "description": "The stored bytes are missing or altered"},
     },
 )
 def download_study_file(
@@ -1105,20 +1106,15 @@ def download_study_file(
     """The file's bytes, for anyone who may read the study; any other id is a 404.
 
     Always ``application/octet-stream`` and ``attachment``, never rendered in AIA's
-    origin, whatever the file claims to be. The bytes are hash-verified on read.
+    origin, whatever the file claims to be. The bytes are hash-verified on read: a
+    mismatch or a missing object marks the file CORRUPT, durably, and answers 409.
     """
     try:
         artifact, data = StudyWorkspaceRepository(session).attachment(scope, store, attachment_id)
     except ArtifactNotFound as exc:
         raise _not_found() from exc
     except (IntegrityError, ObjectNotFound) as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "attachment_corrupt",
-                "message": "The stored bytes do not match the recorded hash.",
-            },
-        ) from exc
+        raise artifact_corrupt(session) from exc
     filename = str(artifact.metadata.get("filename") or "attachment")
     return Response(
         content=data,
