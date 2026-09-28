@@ -215,3 +215,14 @@ Filled in when the plan is archived. Findings so far:
      parked across a deploy must still be read, so it is held to the revision it
      records. Tests: `test_a_specification_compiled_from_other_content_is_refused_whatever_it_records`
      and `test_another_compilers_specification_is_held_to_the_revision_it_records`.
+- **Codex on #80 @ `4739c06`, one P2, reproduced before its fix.** An AI runtime dataset
+  that failed verification raised out of `dataset_material` inside the executor's
+  transaction. That rolled back the CORRUPT mark the read had made (OI-77's worker half),
+  so the step failed `UNKNOWN` and a retry read the same bytes. The storage error's text,
+  which is the object's key, reached the step's error too. `dataset_material` and
+  `native_sources` now refuse a corrupt source as `source_corrupt` with no key (#76,
+  `1caa26f`), and the executor returns every source refusal from inside its transaction
+  (`_sources_refused`), so the mark is committed with the failure. Tests:
+  `test_analysis_executor.py::test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt`
+  (tampered and missing, stored status read from a session of its own) and
+  `test_analysis_results.py::test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`.

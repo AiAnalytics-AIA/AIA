@@ -238,6 +238,18 @@ def _target(step: StepInput) -> tuple[AnalysisModuleId, ClaimSurface] | Failed:
     return module, surface
 
 
+def _sources_refused(refused: SourcesRefused) -> Failed:
+    """A source refusal as the step's failure. Returned from inside the transaction, never
+    raised through it: the worker's rolls back on an exception, and with it the CORRUPT
+    mark a read made (OI-77)."""
+    failure = (
+        FailureClass.MISSING_CONFIGURATION
+        if refused.reason == "missing_upstream"
+        else FailureClass.SCHEMA_VIOLATION
+    )
+    return Failed(failure, error={"reason": refused.reason, "message": str(refused)})
+
+
 class _Turns:
     """The runner's generator for one attempt: each turn replayed, or asked once."""
 
@@ -483,12 +495,7 @@ class AnalysisModuleExecutor:
                     sources, module_id=module, surface=surface, language=self._language
                 )
             except SourcesRefused as refused:
-                failure = (
-                    FailureClass.MISSING_CONFIGURATION
-                    if refused.reason == "missing_upstream"
-                    else FailureClass.SCHEMA_VIOLATION
-                )
-                return Failed(failure, error={"reason": refused.reason, "message": str(refused)})
+                return _sources_refused(refused)
             except (NativeEvidenceRefused, InstrumentPolicyRefused) as refused:
                 return Failed(
                     FailureClass.SCHEMA_VIOLATION,
@@ -515,7 +522,10 @@ class AnalysisModuleExecutor:
                     FailureClass.RUNTIME_UNAVAILABLE,
                     error={"reason": ANALYSIS_UNCONFIGURED, "message": _UNCONFIGURED_MESSAGE},
                 )
-            material = dataset_material(session, context.scope, self._store, sources)
+            try:
+                material = dataset_material(session, context.scope, self._store, sources)
+            except SourcesRefused as refused:
+                return _sources_refused(refused)
         cfg, gateway = self._config, self._gateway
         data_class = classify_analysis_material(
             client_declared_fictional=context.scope.client_id in cfg.fictional_client_ids,

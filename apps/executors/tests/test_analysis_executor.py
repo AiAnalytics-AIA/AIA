@@ -58,6 +58,7 @@ from aia_core.domain.workflow import (
 )
 from aia_core.domain.workflow_templates import RESEARCH, steps_for_workflow
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
+from aia_core.infrastructure.artifact_repository import ArtifactStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.model_adapters.transport import (
     HttpRequest,
@@ -987,6 +988,50 @@ def test_ai_respondents_answer_and_the_eight_modules_interpret_them_in_one_run(
     events = [e for e in _ledger(world, run_id) if e.agent_id == "aia.analysis.module"]
     assert len(events) == 16
     assert {e.data_class.value for e in events} == {"CLASS_C_INTERNAL"}
+
+
+@pytest.mark.parametrize("how", ["tampered", "missing"])
+def test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], how: str
+) -> None:
+    """A module reads the AI runtime's dataset for its lineage. Bytes that fail their hash,
+    or an object that is gone, fail it by reason before any call, and the CORRUPT mark the
+    read made is committed with the failure (OI-77): read from a session of its own, the
+    dataset is CORRUPT, so no later step or run reuses it."""
+    models = ScriptedModels()
+    run_id = _start(world, {**DESIGN, "n": 150}, source=FieldworkSource.AI_RUNTIME)
+    worker = run_with(models, ai_fieldwork=True)
+    research = {"compile", "preflight", "run", "aggregate", "sociomap"}
+    while not research <= {
+        s["node_key"]
+        for s in _run(world, run_id)["steps"]
+        if s["status"] is StepRunStatus.SUCCEEDED
+    }:
+        assert worker.run_once() is not None, _unfinished(world, run_id)
+    assert not any(s["attempts"] for s in _analysis(_run(world, run_id)).values())
+    dataset_id = next(
+        s["output"]["artifact_id"] for s in _run(world, run_id)["steps"] if s["node_key"] == "run"
+    )
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        key = repo.get(dataset_id).storage_key
+    if how == "tampered":
+        store.put(key, b'{"kind": "tampered"}')
+    else:
+        store.delete(key)
+    sent = len(models.requests)
+
+    _drain(worker)
+    assert len(models.requests) == sent
+    failed = [s for s in _analysis(_run(world, run_id)).values() if s["attempts"]]
+    assert failed
+    attempt = failed[0]["attempts"][-1]
+    assert attempt["failure_class"] is FailureClass.SCHEMA_VIOLATION
+    assert attempt["error"]["reason"] == "source_corrupt"
+    assert key not in json.dumps(attempt, default=str)
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        assert repo.get(dataset_id).status is ArtifactStatus.CORRUPT
 
 
 def test_a_checkpoint_whose_bytes_changed_is_never_replayed_and_the_turn_is_asked_again(

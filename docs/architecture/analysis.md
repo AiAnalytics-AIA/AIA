@@ -153,7 +153,10 @@ analysis nodes should be exempt from that is the integration's decision.
 2. A stored outcome under the same reuse key is returned (`reused: true`, no call).
 3. The deterministic preflight: if it refuses, a `BLOCKED` outcome with 0 calls is stored,
    configured or not.
-4. Unconfigured (no gateway and `AnalysisConfig`): the step parks.
+4. Unconfigured (no gateway and `AnalysisConfig`): the step parks. Otherwise the dataset's
+   lineage and whether its respondents are fictional (`dataset_material`), in the same
+   transaction. Every source refusal is returned from inside it, never raised through it,
+   so a CORRUPT mark a read made is committed with the failure (OI-77).
 5. The runner (`run_analysis_module`) drives the turns. Each turn: stop if cancelled; replay
    a stored `research_analysis_turn` for exactly this request, or check the request fits the
    model window (the first with room for a repair), ask the gateway's preflight once (a
@@ -173,6 +176,7 @@ analysis nodes should be exempt from that is the integration's decision.
 | A call whose outcome is unknown | `RECOVERY_REQUIRED`; a person resumes it, answered turns replay | -- |
 | A turn larger than the model window | `FAILED` before any reservation | `context_window_exceeded` |
 | Upstream artifacts missing or inconsistent | `FAILED` | `native_sources`' reason |
+| An upstream artifact fails verification (the AI runtime's dataset included) | `FAILED` before any call; the artifact stays `CORRUPT`, so nothing reuses it | `source_corrupt` |
 
 `AnalysisConfig.from_settings(settings, max_output_tokens=..., reservation_usd=...)` refuses
 an output cap above the model's, a reservation below one call at the model's ceilings, and
