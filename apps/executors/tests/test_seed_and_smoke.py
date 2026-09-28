@@ -163,6 +163,48 @@ def test_seed_names_why_an_archived_seed_client_is_denied(
     assert smoke.describe_failure(RuntimeError("boom")) == "RuntimeError: boom"
 
 
+def test_seed_leaves_an_archived_fictional_client_as_it_was(
+    sessions: sessionmaker[Session],
+) -> None:
+    # A person archiving one of the showcase clients (Settings, PUT
+    # /clients/{id}/status) must not fail every later deploy: the seed leaves
+    # that client archived and seeds nothing into it. Deploy run 40 failed on
+    # an archived client (OI-80).
+    with sessions() as session:
+        seeded = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    archived = seeded.workspaces["lumen-pojistovna"]
+    with sessions() as session:
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        ScopeRepository(session).set_client_status(
+            admin, client_id=archived, status=ClientStatus.ARCHIVED
+        )
+        session.commit()
+
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+
+    assert again.workspaces["lumen-pojistovna"] == archived
+    assert again.study_id == seeded.study_id
+    with sessions() as session:
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        statuses = {
+            c.slug: c.status
+            for c in ScopeRepository(session).list_clients(admin, include_archived=True)
+        }
+    assert statuses["lumen-pojistovna"] is ClientStatus.ARCHIVED
+    assert statuses["horizont-mobility"] is ClientStatus.ACTIVE
+
+
 def test_seed_refuses_a_blank_operator(sessions: sessionmaker[Session]) -> None:
     with sessions() as session, pytest.raises(ValueError, match="AIA_SEED_OWNER_EMAIL"):
         seed_develop(session, owner_email="")
