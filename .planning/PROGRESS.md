@@ -73,20 +73,22 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
-**Deployed: `28eedce` (#87's merge), smoke red** (*Deploy develop* run 40, 20:05–20:11 UTC).
+**Deployed: `92a0bdd` (#88's merge), smoke red** (*Deploy develop* run 41, 20:43–20:48 UTC).
 - Every service was replaced and reports that build. The schema is at `1777fcb96352`.
 - Every smoke check passed but one:
   `slice: unexpected error — ScopeDenied: not found (reason: client_archived)`.
   `ai` printed `NOT_RUNNABLE`, which never counts as a pass.
-- That reason, which #87 made the smoke print, settles OI-80 for this host: a client of the
-  seed organization is archived. The cause is not the operator membership that #87 fixed.
-  Settings can archive a client (`PUT /api/v1/clients/{id}/status`, #67); run 35 (16:52 UTC,
+- #88 makes the seed leave an archived showcase client alone, so this refusal can only be the
+  smoke's own `synthetic-client`: it is archived on the host (OI-80). The seed does not undo that.
+  - **Un-archiving it is a person's decision**, made in Settings (`PUT /api/v1/clients/{id}/status`).
+    `access_audit` (`CLIENT_STATUS_CHANGED`) says who archived it and when.
+  - If it was archived on purpose, to keep it out of the client list, the smoke needs a client of
+    its own instead.
+  - Until one of the two happens, no develop smoke can pass, and plan step 3's baseline waits.
+- Run 40 (`28eedce`, #87's merge, 20:05–20:11) was the first to print the reason.
+- Runs 36 (`48bf3e2`), 37 (`8c13a11`), 38 (`f1c486f`) and 39 (`8017b54`) failed the same check
+  after replacing every service. Settings can archive a client since #67; run 35 (16:52 UTC,
   2026-09-27) was green and run 36 (22:58) was not.
-- #88 makes the seed leave an archived showcase client alone. If the archived one is the smoke's
-  own `synthetic-client`, un-archiving it is a person's call. `access_audit`
-  (`CLIENT_STATUS_CHANGED`) says who archived it and when.
-- Runs 36 (`48bf3e2`), 37 (`8c13a11`), 38 (`f1c486f`) and 39 (`8017b54`, 19:11–19:17) failed the
-  same check after replacing every service.
 
 The last green deploy is run 35 (`dd27f68`, #72's merge, 16:52 UTC, after CI run 211). Runs 34
 (`ceee2dc`, #70's merge, 16:08, after CI run 209), 32 (`4c4c3dd`, 14:28) and 33 (`53de110`, 15:11)

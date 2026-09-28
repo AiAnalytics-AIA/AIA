@@ -2838,9 +2838,14 @@ release (`73d3136`). Deploy run 40 of `28eedce` then named the develop host's st
   clients, so archiving either one failed every deploy. #88 makes the seed leave such a
   client as it is, with a test that fails before it:
   `test_seed_leaves_an_archived_fictional_client_as_it_was`.
-- **The smoke's own `synthetic-client`.** If it is the archived one, the seed still stops, and
-  un-archiving it is a person's decision. `access_audit` (`CLIENT_STATUS_CHANGED`) says who
-  archived it and when.
+- **The smoke's own `synthetic-client`.** Deploy run 41 of `92a0bdd`, #88's merge, still read
+  `client_archived`. With the showcase clients left alone, that is `synthetic-client`: the smoke's
+  own client is archived on the host.
+  - The seed does not undo that. Un-archiving it in Settings is a person's decision, and
+    `access_audit` (`CLIENT_STATUS_CHANGED`) says who archived it and when.
+  - If it was archived on purpose, the smoke needs a client of its own.
+
+**Open:** that decision. Every code cause found is fixed.
 
 ## OI-81 · Question · Migrating a closed Study means reopening it, and delivering it again rewrites `delivered_at`
 
