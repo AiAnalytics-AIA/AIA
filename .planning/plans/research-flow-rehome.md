@@ -1,3 +1,21 @@
+---
+status: in-progress
+chunks:
+  - "[x] 0. This plan; OI-47, OI-48"
+  - "[x] 1. Foundation: research routes, model, project store"
+  - "[x] 2. brief"
+  - "[x] 3. plan"
+  - "[x] 4. questionnaire"
+  - "[x] 5. audience"
+  - "[x] 6. persona (PR #50)"
+  - "[-] 7. run (superseded by done/research-execution.md, ADR 0016)"
+  - "[-] 8. progress (superseded by done/research-execution.md, ADR 0016)"
+  - "[-] 9. results (superseded by done/research-execution.md, ADR 0016)"
+  - "[ ] 10. next: ideal group from results, manual propensity, child project"
+  - "[ ] 11. verify: its intended screen (OI-47)"
+  - "[x] —. Re-home under the client"
+  - "[ ] 12. Switch-over"
+---
 # Research flow, rebuilt — area A4 of the React re-home
 
 **Status:** in progress · **Owner:** product-surface (A9) + web · **Started:** 2026-09-24

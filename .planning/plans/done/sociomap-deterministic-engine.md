@@ -1,3 +1,14 @@
+---
+status: done
+chunks:
+  - "[x] 1. Vendor F1–F9"
+  - "[x] 2. Relation transforms"
+  - "[x] 3. Normaliser and object metrics"
+  - "[x] 4. Terrain"
+  - "[x] 5. Layout registry, AIA unfolding"
+  - "[x] 6. Spec v2, artifact v2, compute_sociomap, view overrides"
+  - "[x] 7. Documents"
+---
 # Sociomap deterministic engine — versioned spec, artifact, Python numerical path
 
 **Status:** done (all chunks landed; gaps carried as OI-13 – OI-16) · **Owner:** sociomapa-deterministic (+ parity-quality for

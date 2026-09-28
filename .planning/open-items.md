@@ -30,7 +30,7 @@ emits `::warning::Legacy prototype not available in CI` and exits 0 through
 from the prototype merges green. The methodology is the product; parity is the
 only evidence it is preserved.
 
-**Smallest fix.** Decision D3 in `PROGRESS.md` — vendor the reference as a
+**Smallest fix.** Decision D3 in `overview.md` — vendor the reference as a
 private submodule, or publish a fixture pack of recorded prototype outputs.
 Until then the mitigation stands and is documented in `CLAUDE.md §10`: anyone
 changing domain logic runs `make test-parity` locally against
@@ -829,7 +829,7 @@ provider call must leave through an egress route approved under
 [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) — the boundary
 currently approves nothing.
 
-**Consequence.** Simulation is off the MVP path (decision D9 in `PROGRESS.md`), so this
+**Consequence.** Simulation is off the MVP path (decision D9 in `overview.md`), so this
 blocks no release today; it blocks the first release that ships the Simulation
 lifecycle.
 
@@ -2689,7 +2689,10 @@ the worker, the reproduction as an executor test: the stored status after the fa
 retried run that recomputes the spec.
 
 **Status.** API half merged: PR #84 (`8c13a11`, 2026-09-27), both artifact routes and the
-proposal routes. Worker half open. It is not fixed there because it needs the failure-class
+proposal routes. The native attachment download is also fixed in #86 (`e4690b4`):
+`routers/workspace.py` › `download_study_file` uses `artifact_corrupt` to commit the
+mark before its 409. Regression: `test_client_api.py::test_a_damaged_attachment_stays_marked_corrupt_after_the_409`
+(tampered and missing objects). Worker half open. It is not fixed there because it needs the failure-class
 decision and, for design jobs, a decision to spend on a recompute. The native analysis
 executor (#80) keeps the mark already. Every source refusal, `source_corrupt` included, is
 returned from inside its transaction as `SCHEMA_VIOLATION`, the class it gives every
@@ -2859,7 +2862,7 @@ delivered.
 (every change to `DELIVERED` stamps `utcnow()`).
 
 **Reproduction.** The cutover dress rehearsal of 2026-09-28, fictional Study S7 (see
-`.planning/PROGRESS.md`). This is a rehearsal run, not yet a test.
+`.planning/overview.md`). This is a rehearsal run, not yet a test.
 1. A `DELIVERED` Study bound to an 18.6.6 project is reported `NOT_MIGRATED`: *the Study is
    DELIVERED: reopen it to migrate*.
 2. After `ACTIVE`, then `--apply --study <id>`, then `DELIVERED` again, its `delivered_at`

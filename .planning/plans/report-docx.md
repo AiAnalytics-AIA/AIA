@@ -1,3 +1,19 @@
+---
+status: in-progress
+chunks:
+  - "[x] R0. This plan"
+  - "[x] R1. Print tokens"
+  - "[x] R2. Fonts and embedding"
+  - "[x] R3. Document model"
+  - "[ ] R4. Style sheet and furniture (started; paused 2026-09-27, see Handoff)"
+  - "[ ] R5. Text and report components"
+  - "[ ] R6. Tables"
+  - "[ ] R7. Figures and evidence marks"
+  - "[ ] R8. Templates"
+  - "[ ] R9. Verification tooling"
+  - "[ ] R10. Composition from analysis results (needs the agreed contract)"
+  - "[ ] R11. The REPORT step"
+---
 # Plan: the report output stage — DOCX from the design system
 
 **Status:** R0–R9 done (2026-09-27); R10–R11 planned, waiting on other contexts' contracts. See **Handoff** at the end. **Owner:** product-surface (A9).

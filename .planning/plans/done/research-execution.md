@@ -1,3 +1,18 @@
+---
+status: done
+chunks:
+  - "[x] 0. This plan; ADR 0016"
+  - "[x] 1. Design Revisions"
+  - "[x] 1b. Only the design repository writes a Study's design"
+  - "[x] 2. The research workflow and the execution API"
+  - "[x] 3. Licence eligibility, a gate beside residency"
+  - "[x] 4. compile, preflight and the fieldwork boundary"
+  - "[x] 5. Aggregate"
+  - "[x] 6. Sociomap, integrated"
+  - "[x] 7. Web: Run, Progress, Results"
+  - "[x] 8. Workbench and proof"
+  - "[x] 9. Documents; merged PR #52 at b3bd42f"
+---
 # PR C — Research execution: Run → Progress → Results, under the client
 
 **Status:** merged as PR #52 into `develop` at `b3bd42f`. PR #56 subsequently merged and deployed at `0310091`; its AI respondent source is configured separately under ADR 0010. Human approval for fictional Class C on develop is recorded on 2026-09-26; live fictional activation/test completed (20 calls, $0.2303301). When runtime is disabled, the default park remains.

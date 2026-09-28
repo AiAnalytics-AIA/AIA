@@ -1,3 +1,16 @@
+---
+status: in-progress        # all chunks done; PR A (#76) and PR B (#80) in review, released through #86
+chunks:
+  - "[x] 0. This plan"
+  - "[x] 1. Instrument items as evidence fields"
+  - "[x] 2. Native evidence and inputs"
+  - "[x] 3. Harness"
+  - "[x] 4. Artifact contract and graph spec"
+  - "[x] 5. Scoped sources and reconstruction"
+  - "[x] 6. Executor"
+  - "[x] 7. Decision-table parity against the vendored evidence_validator.py"
+  - "[x] 8. Documents"
+---
 # Evidence-backed analysis of native research runs
 
 **Status:** all chunks done, in review (PR A, PR B) · **Owner:** analysis (Job 3) · **Started:** 2026-09-27

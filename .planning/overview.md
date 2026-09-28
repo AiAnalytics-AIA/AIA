@@ -1,16 +1,25 @@
-# PROGRESS
+# Overview
 
-**Single source of truth for what is done, in progress and next.**
-Read this at the start of every session, before doing any work.
+**The cross-feature state: the roadmap, the decisions, the parity status and the
+history.** Only docs-only PRs edit this file (CLAUDE.md §1); a feature PR puts
+what this file needs under *Doc follow-up* in its description. A feature's own
+status is its plan file's front-matter — run `python tools/progress.py` — and
+where this file disagrees with a plan's front-matter, the front-matter wins.
 
-**Updated:** 2026-09-28 · **Code of record:** `develop` @ `abbc3af` · **Release:** `main` @ `9cf1f58`,
-295 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
+It replaced `.planning/PROGRESS.md` on 2026-09-28. **Decision ids keep that
+name:** code, the interface, stored artifacts and older documents cite
+`PROGRESS D6`, `PROGRESS D11` and so on, and they mean the rows of *Decisions
+needed* below.
+
+**Updated:** 2026-09-28 · **Code of record:** `develop` @ `877e63e` · **Release:** `main` @ `9cf1f58`,
+298 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
+Since 2026-09-28 docs PRs keep that table, from each PR's own description; a feature PR
+never adds its own row (CLAUDE.md §1).
 
-This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
-is the **narrative** — it carries the reasoning, the verification tables and the
-bug write-ups. When the two disagree, **this file wins and the narrative is
-stale**. Do not open a third backlog anywhere.
+[`docs/migration/status.md`](../docs/migration/status.md) is the **narrative** —
+it carries the reasoning, the verification tables and the bug write-ups. When it
+disagrees with this file or with a plan's front-matter, the narrative is stale.
 
 Every claim about code carries `file:line @ SHA` or a test name. An unanchored
 entry is a **hypothesis**, not a finding.
@@ -20,9 +29,9 @@ entry is a **hypothesis**, not a finding.
 ## Where the code is — consolidation, 2026-09-27
 
 **Combined cutover candidate:** #86, `integration/phaseout-cutover-review`, is the single release of the 2026-09-28 consolidation plan.
-- **What it holds:** every open component head (#85 with #74/#77/#78/#82, then #73, #81, #76 and #80), plus `develop` @ `abbc3af`, which includes #75, #87, #88 and #90. Settings keeps #75's truthful controls and #82's classic-navigation removal.
-- **State:** CI green on `b0ce309`; not merged, not deployed. [The phase-out plan](plans/legacy-phase-out.md) requires one cutover instead of separate parent deployments.
-- **Remaining:** the host's rehearsal on copies, then one maintenance cutover and the merge (`deploy/develop/README.md` § The cutover).
+- **What it holds:** every open component head (#85 with #74/#77/#78/#82, then #73, #81, #76 and #80), plus `develop` @ `877e63e`, which includes #75, #87, #88, #89 and #90. Settings keeps #75's truthful controls and #82's classic-navigation removal.
+- **State:** `608b6be` passed all ten checks; `e4690b4` adds #89 and the attachment corruption fix. Current component tips are reconciled in the final assembly; its CI is required. Not merged, not deployed. [The phase-out plan](plans/legacy-phase-out.md) requires one cutover instead of separate parent deployments.
+- **Remaining:** accept the host-data recovery dispositions, complete the database/code rollback proof and baseline smoke acceptance, then one maintenance cutover and the merge (`deploy/develop/README.md` § The cutover).
 
 **Cutover dress rehearsal, 2026-09-28.** Fictional data, on a scratch PostgreSQL 16 with a filesystem artifact store and an 18.6.6 store written by the unit's own `ProjectStore`. No host data and no Docker, so it is not the host rehearsal. Its scripts ran in the session and are not kept here: each finding rests on the code anchors in the runbook and in OI-81.
 - **Before.** On `develop`'s code at `1777fcb96352`, 7 Studies were bound to 18.6.6 projects. The pre-deploy dump restored into a scratch database with the same counts.
@@ -42,6 +51,27 @@ entry is a **hypothesis**, not a finding.
   - The rollback restores the database together with the code, never the code alone; the runbook's § Rolling back the content cutover is new.
   - The dry-run and copy wording in the runbook is corrected.
   - A closed Study must be reopened to migrate, which rewrites `delivered_at` (OI-81).
+
+**Host-data rehearsal, 2026-09-28 (operator checkpoint).** The user authorized a
+maintenance preparation window. Public access and writers stopped for the consistent
+snapshot at `/opt/aia/consolidation/snapshot-20260928T212738Z`, then resumed on
+`92a0bdd`; both attachment files were hash-checked. Five WAL-safe SQLite databases and
+PostgreSQL were restored to an internal Docker network with no published ports or live
+credentials, under `/opt/aia/consolidation/rehearsal-608b6bed15f5`.
+- Ten bound workspaces: one in an active client, nine in deliberately archived clients.
+  The first dry run refused the nine; their live archive statuses have not changed.
+- On the isolated copy only, the three clients were temporarily activated, then returned
+  to their original statuses. The complete-store recovery rehearsal applied three
+  `MIGRATED`, three `RECOVERED` (from saved Design Revisions), and four `UNRECOVERABLE`
+  (no legacy project and no submitted design). One unbound legacy project stays preserved.
+- A second apply found all ten done and changed no database table contents. The private
+  reports are `applied-active-copy.json`, `repeated-apply-active-copy.json`, and the
+  database signatures. Recovery dispositions require explicit acceptance before live use.
+- The database/code rollback proof is being completed; no live content migration or #86
+  deployment has occurred. A fresh consistent snapshot is required for the final cutover.
+- The deployment workflow is held (`365126516`, `disabled_manually`). The verified
+  baseline `877e63e`, with #90's separate smoke organization, was deliberately dispatched
+  once with no schema migration; the hold was immediately restored (run `36488374205`).
 
 **`develop` holds the newest code, and nothing merged anywhere else is missing from
 it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully contained in it
@@ -222,11 +252,10 @@ On `develop` today, the gap is precise:
    stop is an email, not a morning of red PRs.
 4. **Release `develop` → `main`** once #64 has merged and a deploy is green. PR #60,
    the previous attempt, was closed unmerged.
-5. **Hold `develop`'s deploy for the cutover.** Every green `develop` head deploys
-   itself, so merging #86 would install it before its content migration. Add a hold
-   before #86 merges, for example a required reviewer on the `develop` environment
-   (Settings → Environments), and lift it only for the release's deploy
-   (`deploy/develop/README.md` § The cutover, step 1).
+5. **Deployment hold established.** Workflow `365126516` is `disabled_manually`
+   since 2026-09-28 21:18 UTC. One deliberate baseline repair deployment was dispatched
+   under operator control, then the hold restored. Keep the hold through #86 assembly;
+   lift it only for the accepted cutover (`deploy/develop/README.md` § The cutover).
 6. **After the open PRs land, delete the 24 contained feature branches**: the 25 above,
    less `coordination/agent-status`, which CLAUDE.md §5 keeps for agents' status files.
    Tag the web-component stack first (`feature/design-tokens`, `feature/enum-binding`),
@@ -315,7 +344,10 @@ the parent commit — +187 tests, no new skips. `mypy --strict` clean across 42
 source files, `ruff` clean, `layer_check` 12/12. F4 and F8 are only partly
 reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
-## In progress
+## Status notes as of 2026-09-27
+
+*Kept as written when PROGRESS.md was retired. Current status is in the plans'
+front-matter (`python tools/progress.py`).*
 
 **The `develop` environment is live** (see *Where the code is* for what is deployed). Research execution and Bedrock respondent fieldwork are merged, and the fictional Class C acceptance completed on 2026-09-26 (Completed, Agent Runtime). Native design proposals are merged (PR #63) and remain off by default. Evidence-backed interpretation/report execution and owned Deep Research remain required for the complete agent workflow.
 
@@ -675,8 +707,9 @@ with the topic until they are renumbered in one change with every reference.*
 | D12 | ~~**Merge order for the AI runtime.**~~ — **resolved 2026-09-23.** PR #28 (the `ModelGateway` contract) merged into `main` at `676bc1f`, and this change merges `main` into `develop`, so the gateway, its three recorded-exchange adapters and the `ai_usage_events` ledger are on both branches. Next #5c (the Bedrock adapter) is unblocked. Nothing forked ADR 0005 A | Brief items 11–13; Next #5c; ADR 0010 → Accepted | `.planning/plans/done/develop-deployment.md` § Contradictions, C1 |
 
 Open defects and questions live in
-[`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);
-finished ones move to [`plans/done/`](plans/done/).
+[`open-items.md`](open-items.md). Plans live in [`plans/`](plans/), their status
+in their front-matter; [`plans/done/`](plans/done/) holds those archived before
+2026-09-28.
 
 ### Research agent publication checkpoint — 2026-09-27
 

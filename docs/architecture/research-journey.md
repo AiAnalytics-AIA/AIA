@@ -15,8 +15,10 @@
   merge deploys, so its parents are not merged one at a time. Where this document says *once #74
   merges*, read *once #74's head reaches `develop`, through #86 or alone*.
 
-Tracker: [PROGRESS](../../.planning/PROGRESS.md). Chunks:
-[research-agent-workflows.md](../../.planning/plans/research-agent-workflows.md) § Integration.
+Tracker: the front-matter of
+[research-agent-workflows.md](../../.planning/plans/research-agent-workflows.md)
+(`python tools/progress.py`); its chunks are in its § Integration. The cross-feature state is
+[overview.md](../../.planning/overview.md), which replaced `PROGRESS.md` on 2026-09-28.
 
 **Who does what** (user's scope addendum, 2026-09-27):
 

@@ -100,6 +100,6 @@ Establish and promote additionally need a `PopulationOperatorContext`
 |---|---|---|
 | The seven enrichment derivations | the ANALYSIS view | OI-7, [archive dependency](../migration/population-enrichment-archive-dependency.md) |
 | Classification of the 8 derived fields | any use of them | [decision checklist](../migration/population-derived-fields-decision.md) |
-| The EU asset source and the first real import | any real data at all | `PROGRESS.md` Next |
-| Typed / columnar views (numbers, the M07 age floor) | numeric work without re-parsing text | `PROGRESS.md` Next |
+| The EU asset source and the first real import | any real data at all | `.planning/overview.md` Next |
+| Typed / columnar views (numbers, the M07 age floor) | numeric work without re-parsing text | `.planning/overview.md` Next |
 | An operator configuration key at the composition root | establish / promote in a deployment | OI-8 note |

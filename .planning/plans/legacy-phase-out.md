@@ -1,3 +1,19 @@
+---
+status: in-progress        # all 12 chunks done; the one cutover remains (§ One cutover)
+chunks:
+  - "[x] 1. Working content in AIA"
+  - "[x] 2. Web: the research flow's logic out of src/unit/research"
+  - "[x] 3. Attachments in AIA storage"
+  - "[x] 4. Questionnaire import ported"
+  - "[x] 5. Audience and Dimenze without the unit"
+  - "[x] 6. Documents"
+  - "[x] 7. The migration command, its validation and its report"
+  - "[x] 8. AIA's own session gate for /app"
+  - "[x] 9. The interface hands nothing to 18.6.6"
+  - "[x] 10. Retire the panel gate and its settings"
+  - "[x] 11. Product Compose, Caddy, deploy, smoke and CI without the unit"
+  - "[x] 12. Workbench without the unit by default"
+---
 # Phase out NPC Panel 18.6.6 from AIA's product runtime
 
 **Status:** in progress · **Owner:** integration-architecture (all chunks) ·

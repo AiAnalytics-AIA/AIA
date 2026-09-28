@@ -11,6 +11,7 @@ import base64
 import hashlib
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 API = "/api/v1"
@@ -371,6 +372,35 @@ def test_a_file_is_attached_in_aia_and_downloaded_only_through_its_study(
     assert other_client_lead.get(f"{url}/attachments/{record['attachment_id']}").status_code == 404
     assert other_client_lead.post(f"{url}/attachments", json=body).status_code == 404
     assert lead.get(f"{url}/attachments/ART-0123456789abcdef").status_code == 404
+
+
+@pytest.mark.parametrize("damage", ["tampered", "missing"])
+def test_a_damaged_attachment_stays_marked_corrupt_after_the_409(
+    lead: TestClient,
+    viewer: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+    damage: str,
+) -> None:
+    """Regression: the attachment's CORRUPT mark was rolled back with the 409 that reported it.
+
+    The download reads the bytes through ``ArtifactRepository.read``, which flushes
+    the mark into the request's session and raises. The route answered 409 without
+    committing, so ``get_session`` rolled the mark back and the file read VALID
+    again, as #84 found for the run and research artifact routes.
+    """
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    body = {"filename": "zadani.txt", "data_b64": base64.b64encode(b"Fiktivni zadani").decode()}
+    attachment_id = lead.post(f"{url}/attachments", json=body).json()["attachment_id"]
+    damage_artifact(attachment_id, damage)
+
+    refused = viewer.get(f"{url}/attachments/{attachment_id}")
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "artifact_corrupt"
+    assert artifact_status(attachment_id) == "CORRUPT"
+    assert viewer.get(f"{url}/attachments/{attachment_id}").status_code == 409
 
 
 def test_an_attachment_is_checked_before_it_is_stored(lead: TestClient, world: Any) -> None:
