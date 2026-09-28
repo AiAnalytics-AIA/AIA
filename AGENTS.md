@@ -410,6 +410,23 @@ response = await adapter.send(request)
 `test_ai_usage_ledger.py::test_without_a_committed_dispatch_the_same_crash_is_retried`
 runs the crash both ways.
 
+**A durable mark nobody reads is a log, not a guard.** The reconciler decides a
+lapsed attempt's fate from the attempt row's `paid_call_dispatched`; it reads no
+progress event. A step that journals its own side effects as progress events --
+Deep Research's searches and fetches -- has to read them back when it runs again,
+or the retry resends what the dead attempt may already have sent.
+
+```python
+# WRONG -- the dispatch is on record, and the next attempt starts blind
+meter = StepToolMeter(context)       # an empty ledger: the lost search is sent again
+
+# RIGHT -- take the step's journal over first; a lone DISPATCHED is closed UNCERTAIN
+meter = StepToolMeter.resuming(context, clock=runtime.clock)
+```
+
+`test_deep_research_journey.py::test_a_search_left_in_flight_by_a_lost_attempt_is_closed_uncertain_and_never_sent_again`
+takes the lease mid-search, recovers it, and counts the search once.
+
 **A `before_update` listener guards the ORM, not the table.** `project_revisions`
 rows are immutable, and `tables.py` refuses an ORM flush that would UPDATE one.
 That hook fires only for objects the session flushes; a bulk `update()` statement

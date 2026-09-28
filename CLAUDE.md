@@ -126,6 +126,14 @@ apps/
                             the one gateway over ADR 0010's route; the only builder of the adapter
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check)
+    deep_research/          The six Deep Research steps (not registered): plan, investigate, merge,
+                            verify, synthesize, publish; StepToolMeter (every tool call journaled,
+                            fenced, before it leaves; a retry takes the journal over and never
+                            resends a call left in flight); deep_research_registry(runtime=None) parks
+    deep_research_runtime.py  AIA_DEEP_RESEARCH_ENABLED: needs research agents; no web retrieval
+                            exists, so web tracks are blocked and nothing is sent
+    deep_research_recorded.py  The ONLY composition with recorded web retrieval; refuses unless
+                            AIA_ENV is local/test, and no deployment may name it (layer_check)
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
     legacy_workspace.py     Operator command: the one-off migration of Studies' content from a copy
                             of the 18.6.6 store (dry run unless --apply; ADR 0018 decision 2)
@@ -157,6 +165,8 @@ packages/aia_core/src/aia_core/
       synthesis.py          the brief: cite accepted evidence, write only its quotes' numbers
       bundle.py, quarantine.py  the sealed bundle; respondent context (re-screened against the
                             final questionnaire), design input, analysis context
+      steps.py              what each step stores; reusable (by content) vs this run's own;
+                            tally: what a run bought, a reused unit costing nothing
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
                             contract, fictional roster, facts by code, interpretation, the dataset
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
@@ -240,6 +250,11 @@ packages/aia_core/src/aia_core/
     workflows.py            start_workflow: a run from a template, idempotent per revision
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
                             found only through the Study; research_artifacts, the ONLY reader
+    deep_research.py        DeepResearchRuns: the request frozen at enqueue (knowledge via
+                            for_study, client terms), start/get/runs/events/cancel/retry; the
+                            bundle (seal verified) and its snapshots only through the run
+    web_retrieval.py        RetrievalGate: the ONLY way a query or URL leaves -- classify, egress,
+                            metering, reserve, journal the dispatch, call, journal the outcome
     develop_seed.py         The synthetic develop world, through the same paths the API uses
     workspace_migration.py  migrate_unit_workspaces: each waiting Study as a named person, through
                             ScopeResolver, in its own transaction; missing is not lost until said so
@@ -296,6 +311,9 @@ packages/aia_core/src/aia_core/
                             instance or container role only)
     storage.py              ArtifactStore: S3 / filesystem / memory
     storage_settings.py     AIA_STORAGE_*: one typed definition for every composition root
+    web_retrieval.py        WebFetcher (every hop and address checked, caps, HTML to a content-
+                            addressed snapshot); search/fetch protocols; recorded doubles (they say
+                            RECORDED and nothing else); no live adapter exists (DR-2)
     build_identity.py       AIA_BUILD_SHA: the commit a process runs; null, never a guess
 
 migrations/                 Alembic
@@ -470,8 +488,11 @@ reference's recorded outputs, vendored under
 sends every query and fetch, and grounds every quote in a content-addressed snapshot of the same
 track; models only propose. A query's data class is inherited from what it was written from and
 never lowered by keywords. The 18.6.6 leakage rule is kept exactly and bars a finding from
-respondent context, which is re-screened against the final questionnaire. The core is
-recorded/offline: no live search, no route, nothing registered in production.
+respondent context, which is re-screened against the final questionnaire. It runs through the
+worker as six steps whose every unit is an artifact with a fingerprint, so a later pass buys only
+what changed. It is recorded/offline: no live search, no route, nothing registered in production;
+the production-shaped composition blocks every web track and sends nothing, and recorded web
+retrieval exists only in `aia_executors.deep_research_recorded` (local and test).
 
 **Evidence is a capability, like scope.** A number reaches an analysis result only
 as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,
@@ -532,6 +553,7 @@ ungated fixture.
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
+| **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |

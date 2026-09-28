@@ -289,16 +289,43 @@ respondent and analysis consumers to the contracts published here.
       merge,synthesis,bundle_and_quarantine}.py` (55). Core suite 2783 passed / 201 skipped
       (2530 / 201 on `develop` @ `ceee2dc`).
 
-**PR 2 — recorded execution** (stacked on PR 1):
+**PR 2 — recorded execution** (stacked on PR 1, #79):
 
-- [ ] e. Retrieval adapters and the governed gate [5, 7]: search/fetch protocols, the fetcher
-      (addresses re-checked across redirects, caps, HTML to text), recorded doubles; classify →
-      egress → meter → call → usage event.
-- [ ] f. Application service [8, 10]: `DeepResearchRuns` (freeze, start, read, cancel, bundle).
-- [ ] g. Executors and compositions [10]: the six steps with artifact checkpoints; settings and
-      the honest unconfigured state; the recorded composition; `layer_check` rules.
-- [ ] h. Worker journey [10, 11]: pass 1 through every phase, pass 2 reusing unchanged tracks
-      with measured counts, and the failure modes of the task.
+- [x] e. Retrieval adapters and the governed gate [5, 7]: search/fetch protocols, the fetcher
+      (addresses re-checked across redirects, caps, HTML to text), recorded doubles that state
+      their own mode; classify → egress → meter → reserve → durable dispatch → call → outcome;
+      charges decided in the gate. `test_web_retrieval.py` (25), including
+      `test_every_redirect_hop_is_checked_and_the_metadata_service_is_never_reached`,
+      `test_a_call_is_charged_by_what_may_have_been_served`,
+      `test_a_recorded_replay_can_never_stand_behind_a_live_route`.
+- [x] f. Application service [8, 10]: `DeepResearchRuns` (freeze, start, get, runs, events,
+      cancel, retry, bundle, snapshot). `test_deep_research_runs.py` (10), including
+      `test_starting_twice_is_one_run_and_an_approval_in_between_is_a_new_one` and
+      `test_a_run_is_found_only_through_its_own_study_and_type`.
+- [x] g. Executors and compositions [10]: the six steps with artifact checkpoints
+      (`aia_executors/deep_research/`), the step records (`domain/deep_research/steps.py`,
+      `test_deep_research_steps.py` (4)), the production-shaped composition and its switch
+      (`deep_research_runtime.py`), the recorded composition (`deep_research_recorded.py`), 7
+      `layer_check` rules and their ARCHITECTURE.md §3 row.
+- [x] h. Worker journey [10, 11]: `apps/executors/tests/test_deep_research_journey.py` (20):
+      `test_pass_one_runs_every_phase_to_a_sealed_grounded_bundle` (13 model requests, 6
+      searches, 8 fetches, 7 accepted, 6 quarantined), `test_a_second_pass_reuses_unchanged_tracks_and_measures_what_it_bought`
+      (6 tracks reused; 5 requests, 3 searches, 2 fetches), and the failure modes: production
+      shape, unconfigured, a real client's design, foreign and altered requests, cancellation,
+      a lost model answer, a changed composition. After review (#81): an uncertain fetch ends its
+      round before the investigator request
+      (`test_a_fetch_that_may_have_been_served_ends_its_track_before_a_model_sees_its_round`), a
+      retried step takes its tool journal over and never resends a call left in flight
+      (`test_a_search_left_in_flight_by_a_lost_attempt_is_closed_uncertain_and_never_sent_again`,
+      `test_deep_research_contracts.py::test_a_ledger_takes_over_a_journal_and_closes_a_call_left_in_flight`),
+      and a meter that did not take it over sends nothing
+      (`test_a_meter_that_never_took_over_its_step_s_journal_sends_nothing`).
+
+Decisions taken while building PR 2 (ADR 0017 amendments 8–10): only completed work is
+reusable (a refused or cut-short track is its run's alone); tool charges are decided in the gate
+and never in AIA's favour; the planner is not asked when no query could leave. Execution,
+compositions, registration and the live-search decisions: `docs/architecture/deep-research.md`
+§§ 8–12.
 
 Not in this job: the ledger migration [4], the API and screen [12], live enablement [13], the
 knowledge-proposal write path and the report DOCX [11, partly], the `RESEARCH_DESIGN`

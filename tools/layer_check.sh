@@ -242,6 +242,34 @@ forbid "among the executors, only the workbench composition builds fictional fie
 forbid "no deployment runs the workbench composition" \
   'aia_executors\.workbench|aia_executors/workbench' \
   deploy
+# Recorded web retrieval (Deep Research, plan decision I-9) replays captured
+# exchanges and is never a production fallback: it is defined only beside the web
+# adapters, built only by the recorded composition, imported by nothing in the
+# API or the worker, and named by no deployment.
+RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web'
+forbid "recorded web retrieval is defined only beside the web adapters" \
+  "$RECORDED_WEB" \
+  "$CORE/infrastructure" \
+  web_retrieval.py
+forbid "application code never names recorded web retrieval" \
+  "$RECORDED_WEB" \
+  "$CORE/application"
+forbid "domain code never names recorded web retrieval" \
+  "$RECORDED_WEB" \
+  "$CORE/domain"
+forbid "no API code imports recorded web retrieval" \
+  "$RECORDED_WEB|deep_research_recorded" \
+  "$API"
+forbid "the worker never imports recorded web retrieval" \
+  "$RECORDED_WEB|deep_research_recorded" \
+  "$WORKER"
+forbid "among the executors, only the recorded composition builds recorded web retrieval" \
+  "$RECORDED_WEB|deep_research_recorded" \
+  "$EXECUTORS" \
+  deep_research_recorded.py
+forbid "no deployment runs the recorded Deep Research composition" \
+  'deep_research_recorded|load_recorded_web' \
+  deploy
 # A revision is what a run executed. The ORM refuses to UPDATE one
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \

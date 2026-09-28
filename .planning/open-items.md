@@ -2654,6 +2654,19 @@ cannot recover by retry. The proposal routes answered 500 instead of 409. On the
 storage key (`org/…/client/…/study/…`), which a client is never to receive
 (`docs/architecture/artifacts.md` § Read protocol).
 
+**Deep Research (#81, not merged).** Its six steps read the same way, inside
+`StepContext.transaction`: every upstream record and every reused unit goes through `_Step._read`
+(`apps/executors/src/aia_executors/deep_research/_shared.py:176-177` @ `65eb50c`, unchanged at
+`ae6f55f`), and a reusable unit is found by `find_reusable`, which checks only that the object
+exists. Reproduced once at `ae6f55f` on file-backed SQLite, a scratch test not committed:
+`apps/executors/tests/test_deep_research_journey.py`'s `pass_one`, then the stored bytes (not the
+row) of a completed track that pass 2 reuses altered, then pass 2. Investigate fails `UNKNOWN`
+with an `IntegrityError` whose message carries the storage key, no paid call is dispatched, and
+the track is still `VALID`; retrying the run fails the same way. Reuse there is across runs, by
+fingerprint, so one corrupt completed track, snapshot or verification batch fails every later run
+of that Study that plans the same unit. The worker fix, once decided, is needed in `_Step` too, and
+its recompute question is the same one: a recomputed track costs model requests and tool calls.
+
 **Smallest fix.** *API:* commit the mark before raising, in one place: `routers/runs.py` ›
 `artifact_corrupt`, used by both artifact routes and by `_agent_errors`. Not taken: the repository
 recording `CORRUPT` in its own short transaction. That changes the shared "flush, never commit"

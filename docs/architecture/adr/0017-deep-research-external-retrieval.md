@@ -113,6 +113,17 @@ different and why; the contracts are in [deep-research.md](../deep-research.md).
    fingerprint is the track fingerprint; `ArtifactRepository.find_reusable` is both the per-track
    checkpoint and the cross-pass reuse. The fingerprint excludes the other subjects, so a pass that
    adds an object re-buys only that object's tracks.
+8. **Decision 6, further: only completed work is reusable.** A track a gate refused, or one an
+   uncertain tool call cut short, is stored for its own run alone (a resumed step finds it; no
+   other run can), as are the plan and the review records. A refused track reused after its gate
+   opened would never be researched.
+9. **Decision 1, further: what a tool call is charged is decided in the gate, never in AIA's
+   favour.** A provider that answered is charged the route's price, error or not; a failure that
+   sent nothing is free; an uncertain call and a page refused after its dispatch are charged the
+   ceiling. Recorded routes have no price, so nothing moves today.
+10. **Decision 2, further: no model is paid to write a query that cannot leave.** The planner is
+    not asked when retrieval does not exist, when the design's class is A, or when the route or
+    its metering would refuse every query; the web tracks are blocked with the gate named.
 
 ## Revisit when
 

@@ -110,6 +110,7 @@ attempt 3, green).
 | #82 | `feature/interface-without-classic` | Phase-out increment 4: the interface without 18.6.6 -- no hand-off, no skin, and what AIA lacks says so (ADR 0018 decision 4, chunk 9) | Draft, stacked on #78 | after #78 |
 | #75 | `fix/truthful-ai-controls` | Settings says truthfully what powers AIA's AI: `ai_runtime` from code, each switch from `/config`, never "connected"; the prototype's provider fields as collapsed history ([plan](plans/truthful-ai-controls.md), OI-72; handoffs OI-73–OI-75; OI-76, first filed here, fixed by #83) | **Merged** into `develop` (`8017b54`, 19:00 UTC, 2026-09-28) | any time: no migration, no new variable. Settings overlap is resolved in draft cutover #86: retain these native controls and remove classic navigation there |
 | #79 | `feature/deep-research-core` | Deep Research core, 1 of 2: the pure domain -- closed contracts, the 18.6.6 leakage screen and merge EXACT against the vendored unit, grounding, source tables, query classes, fetch policy, frozen knowledge, tracks and fingerprints, merge/verify, the brief's checks, the sealed bundle, respondent quarantine ([plan](plans/deep-research.md) chunks a–d). Recorded/offline; nothing registered | **Merged** into `develop` (`f1c486f`, 23:39 UTC) | complete |
+| #81 | `feature/deep-research-execution` | Deep Research, 2 of 2: recorded execution through the worker -- the retrieval gate (the only way a query or URL leaves), runs frozen at enqueue (`DeepResearchRuns`), six executors with artifact reuse by fingerprint, a production-shaped composition that blocks every web track and sends nothing, a recorded composition (local/test only, 7 `layer_check` rules), and the journey: pass 1 13 model requests / 6 searches / 8 fetches, pass 2 5 / 3 / 2 with 6 tracks reused ([plan](plans/deep-research.md) chunks e–h). Contains #79's commits | Draft into `develop` | after #79 |
 | #83 | `fix/native-tests-config-cache` | Native Research tests no longer inherit a `/config` failure an earlier test cached; `loadConfig()` keeps no failed read (OI-76) | **Merged** into `develop` (`48bf3e2`, 22:45 UTC) | complete |
 | #84 | `fix/durable-corrupt-mark` | The API keeps a corrupt artifact's `CORRUPT` mark when it refuses to serve it: the artifact routes' 409 no longer rolls it back, and the agent-job proposal routes answer 409, not 500 (OI-77; its worker half stays open) | **Merged** into `develop` (`8c13a11`, 23:09 UTC) | deployment smoke still fails in seed loading |
 | #85 | `feature/deploy-without-legacy` | Phase-out increment 5: the product deployment without the unit, which runs only from `deploy/reference/`; the panel's gate retired (ADR 0018 decision 5, chunks 10–12) | Draft, stacked on #82 | after #82, last of the phase-out; then the operator sequence (plan) |
@@ -423,12 +424,15 @@ PR #56 has merged and deployed, and the fictional Class C acceptance is done (20
   Proposed, amended 2026-09-27; contracts: [deep-research.md](../docs/architecture/deep-research.md)).
   Asked for by the data owner 2026-09-25: research driven by the study's
   questions and tracked objects, over Client Knowledge and the web, bounded only by
-  budget. **Recorded/offline core on `feature/deep-research-core` (Job 5):** PR 1 (#79), the pure
+  budget. **Recorded/offline core (Job 5), all chunks a–h done:** PR 1 (#79, `feature/deep-research-core`), the pure
   domain (plan chunks a–d: contracts, the leakage screen and merge EXACT against the vendored
   unit, grounding, source tables, query classes, fetch policy, frozen knowledge, tracks and
   fingerprints, merge/verify, the brief's checks, the sealed bundle, respondent quarantine);
-  PR 2, recorded execution through the worker (chunks e–h). Not registered, not deployed, not
-  enabled. Live use waits on DR-2 (and DR-2b, below) and D6; AR-2 accepted ADR 0010 for
+  PR 2 (#81, `feature/deep-research-execution`), recorded execution through the worker (chunks
+  e–h): the gate, the runs, six executors, the production-shaped composition (every web track
+  blocked, nothing sent) and the recorded one; the journey measures two passes. Not registered,
+  not deployed, not enabled. Next for it is Job 6's registration list and the eight live-search
+  decisions ([deep-research.md](../docs/architecture/deep-research.md) §§ 10, 12). Live use waits on DR-2 (and DR-2b, below) and D6; AR-2 accepted ADR 0010 for
   fictional Class C on develop only (2026-09-26). Where it sits against OI-58 / OI-59 is the
   data owner's call.
 - **OI-58**: port the research store from the unit into AIA's study-scoped
@@ -605,7 +609,7 @@ with the topic until they are renumbered in one change with every reference.*
 | DR-3 | ~~Client Knowledge to the model~~ — **resolved 2026-09-25**: target Bedrock EU for Class A and B; this is D6's decision for that route, not a separate one | — (D6 blocks live use) | ADR 0017 · D6 |
 | DR-4 | **The fifth Deep Research output.** The data owner chose Research Design input, respondent context, knowledge proposals and a report, plus "something else" left unnamed | Completing chunk 11 | [plans/deep-research.md](plans/deep-research.md) § Outputs |
 | DR-5 | **Default Deep Research budget and depth presets** — how far "as far as the budget allows" goes by default, and who may extend a parked run. Proposed presets QUICK / STANDARD / DEEP exist as data (`domain/deep_research/planning.py` `PRESETS`, status `PROPOSED_DR5`); a run must name one | Choosing a default | [plans/deep-research.md](plans/deep-research.md) § Decisions |
-| DR-2b | **May a code-built digest of a client's design (its research questions and object names) travel as Class B?** Until decided, a query written from a real client's design inherits the design's Class A and never leaves (ADR 0017 amendment 2) | Web research for any non-fictional client | [deep-research.md](../docs/architecture/deep-research.md) § 8 |
+| DR-2b | **May a code-built digest of a client's design (its research questions and object names) travel as Class B?** Until decided, a query written from a real client's design inherits the design's Class A and never leaves (ADR 0017 amendment 2) | Web research for any non-fictional client | [deep-research.md](../docs/architecture/deep-research.md) §§ 12–13 |
 | IA-4 | ~~Commit the files `next dev` regenerates~~ — **resolved 2026-09-24**: only when their diff carries an intentional canonical instruction change | — | `AGENTS.md` § Next.js |
 | D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |

@@ -126,6 +126,7 @@ Run it before every commit. It is blocking in CI.
 | no statement updates a project revision (the ORM refuses an UPDATE; this forbids the bulk one) | A run's executed content changing under it |
 | licence determinations and policies are built only in their policy-data module, never by an app | An approval of panel-derived transmission nobody gave (ADR 0016 decision 5, OI-61) |
 | the fictional fieldwork generator is imported only by the workbench composition; nothing in the API or worker imports either, and no deployment names it | Fictional respondents reaching a deployed run, or a deployed worker configured with the test composition |
+| recorded web retrieval (Deep Research's search and fetch doubles) is defined only beside the web adapters and built only by the recorded composition (`aia_executors/deep_research_recorded.py`); application and domain code never name it, nothing in the API or worker imports it, and no deployment names it | A replayed page standing in for a live source: a recorded route selected as a production fallback, or a deployed worker composed with it |
 | claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
 | the API never admits its own claims | The same, at the edge where untrusted input arrives |
 | a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
@@ -228,6 +229,10 @@ script, then confirm it passes before committing.
   respondent context; respondent context is re-screened against the final questionnaire. Tool
   calls follow the model-call bracket (reserve, durable dispatch, outcome, uncertain at its
   ceiling), and a priced tool route is refused until tool spend is held against the study budget.
+  A query or URL leaves only through `RetrievalGate`; a run is frozen at enqueue
+  (`DeepResearchRuns`) and executed by six steps whose completed tracks, snapshots, verification
+  batches and brief are reused by fingerprint, while anything a gate refused is its run's alone.
+  Production has no retrieval, so web tracks are blocked; recorded retrieval is local and test only.
 - **Fieldwork is a boundary, and `ai_runtime` is answered only by AI respondents.**
   The deployed composition (`aia_executors.registry`) has no deterministic dataset
   producer. It builds the AI respondent engine (`aia_executors.ai_fieldwork`) only

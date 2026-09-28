@@ -288,6 +288,40 @@ def test_a_refusal_is_recorded_without_a_dispatch() -> None:
     assert ledger.committed_usd() == 0.0 and len(ledger.events()) == 1
 
 
+def test_a_ledger_takes_over_a_journal_and_closes_a_call_left_in_flight() -> None:
+    served, refused, lost = new_tool_call_id(), new_tool_call_id(), new_tool_call_id()
+    journal = [
+        _event(served, ToolOutcome.DISPATCHED, ceiling_usd=0.02),
+        _event(served, ToolOutcome.SUCCEEDED, cost_usd=0.02, ceiling_usd=0.02),
+        _event(refused, ToolOutcome.REFUSED),
+        _event(lost, ToolOutcome.DISPATCHED, ceiling_usd=0.03),  # its process died in flight
+    ]
+    closed_at = datetime(2026, 9, 27, 23, 50, tzinfo=UTC)
+    ledger = InMemoryToolLedger(budget_usd=0.0)
+    closures = ledger.adopt([*journal, journal[1]], closed_at=closed_at)  # a repeat is kept once
+
+    assert [(c.call_id, c.outcome, c.occurred_at) for c in closures] == [
+        (lost, ToolOutcome.UNCERTAIN, closed_at)
+    ]
+    assert closures[0].event_id != journal[3].event_id and closures[0].cost_usd == 0.0
+    # What was served costs its price; what may have been served, its ceiling.
+    assert ledger.committed_usd() == pytest.approx(0.05)
+    assert [e.outcome for e in ledger.events()] == [
+        ToolOutcome.DISPATCHED,
+        ToolOutcome.SUCCEEDED,
+        ToolOutcome.REFUSED,
+        ToolOutcome.DISPATCHED,
+        ToolOutcome.UNCERTAIN,
+    ]
+    # A later attempt that adopts the closure too has nothing left to close.
+    assert (
+        InMemoryToolLedger(budget_usd=0.0).adopt([*journal, *closures], closed_at=closed_at) == ()
+    )
+    # A ledger adopts only before its own first entry: the journal is history.
+    with pytest.raises(ValueError, match="before its own first entry"):
+        ledger.adopt(journal, closed_at=closed_at)
+
+
 def test_a_ledger_refuses_an_impossible_budget() -> None:
     for bad in (-1.0, math.nan):
         with pytest.raises(ValueError):
