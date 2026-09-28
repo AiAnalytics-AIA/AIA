@@ -484,7 +484,7 @@ jobs:
           unscoped = [
               p
               for p in paths
-              if any(k in p for k in ("/projects", "/runs", "/artifacts"))
+              if any(k in p for k in ("/projects", "/runs", "/artifacts", "/agent-jobs"))
               and not p.startswith("/api/v1/studies/")
           ]
           if unscoped:
