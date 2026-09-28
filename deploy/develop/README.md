@@ -73,9 +73,15 @@ Done once, by a person with AWS access. Everything after this is automatic.
    docker compose run --rm --no-deps -T -e AIA_SEED_OWNER_EMAIL worker python -m aia_executors.seed
    ```
 
-   Idempotent. Creates the organization, the operator named in
-   `AIA_SEED_OWNER_EMAIL` as its owner, a synthetic client and study with a
-   budget, a project, and one example workflow run. Re-running changes nothing.
+   Idempotent. It creates two organizations.
+   - **The operator's**, `aia-develop`: the operator named in `AIA_SEED_OWNER_EMAIL`
+     as its owner, and the fictional showcase clients with their studies and knowledge.
+   - **The smoke's own**, `aia-develop-smoke`: a synthetic owner
+     (`smoke.seed@aia-develop.invalid`, never signed in as), a synthetic client and
+     study with a budget, a project, and one example workflow run. The operator is not
+     a member, so none of it appears in their client list or in Settings.
+
+   Re-running changes nothing.
 9. **Sign in.** Open the public hostname (`https://aia-develop.art-chain.io/`).
    The gate sends you to `/login`; choose *Sign in* and authenticate with the
    Google Workspace account from step 8. You land on AIA's client directory,
@@ -323,11 +329,18 @@ prompt hash, class, lineage, every call).
 
 ```bash
 docker compose run --rm --no-deps -T -e AIA_SEED_OWNER_EMAIL worker python -m aia_executors.seed           # idempotent
-docker compose run --rm --no-deps -T -e AIA_SEED_OWNER_EMAIL worker python -m aia_executors.seed --reset   # drop the seeded org's data, then seed
+docker compose run --rm --no-deps -T -e AIA_SEED_OWNER_EMAIL worker python -m aia_executors.seed --reset   # drop the two seeded orgs' data, then seed
 ```
 
-Synthetic data only. `--reset` removes only what the seed created (its
-organization slug), never anything else.
+Synthetic data only. `--reset` removes only what the seed created (its two
+organization slugs, `aia-develop` and `aia-develop-smoke`), never anything else.
+
+The deployment smoke (`aia_executors.smoke`) acts only in `aia-develop-smoke`, as its
+synthetic owner, so nothing a person archives or changes in their own workspace can
+stop it. Before 2026-09-28 the smoke's client, `synthetic-client`, sat in the
+operator's organization. Archiving it to keep it out of the client list failed deploy
+runs 36–41 (OI-80). If that client is still there, archived, the seed leaves it as it
+is.
 
 To start completely fresh: `docker compose down -v` (destroys the PostgreSQL
 volume and Caddy's certificates), then `bin/deploy.sh <sha>` and the seed.
