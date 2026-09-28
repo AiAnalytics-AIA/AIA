@@ -1,3 +1,12 @@
+---
+status: in-progress
+chunks:
+  - "[x] 0. This plan"
+  - "[x] 1. tools/ui_workbench/: up / down / status"
+  - "[x] 2. capture.mjs: every classic screen, bare and skinned"
+  - "[ ] 3. Docs, PR into develop, first capture published (docs for chunk 1 done)"
+  - "[x] 4. The capture covers the rebuilt React screens too"
+---
 # UI workbench — see every screen, change the skin in seconds
 
 **Status:** in progress · **Owner:** product-surface (A9) + web · **Started:** 2026-09-24

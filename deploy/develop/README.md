@@ -477,7 +477,7 @@ schema and switches the services but migrates no content. The order, from the
    closed.
 
 A dress rehearsal of steps 3, 4 and 6, and of the database rollback, ran on 2026-09-28.
-It used fictional data on a scratch PostgreSQL 16 (`.planning/PROGRESS.md`). It is not
+It used fictional data on a scratch PostgreSQL 16 (`.planning/overview.md`). It is not
 step 4: it had none of the host's data and ran no Docker.
 
 ## Rollback

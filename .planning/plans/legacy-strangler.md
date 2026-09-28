@@ -1,3 +1,20 @@
+---
+status: in-progress
+chunks:
+  - "[x] 1.0. Slice 1: this plan"
+  - "[x] 1.1. Slice 1: oracle endpoint contract"
+  - "[x] 1.2. Slice 1: HTTP harness (tools/legacy_oracle.py)"
+  - "[x] 1.3. Slice 1: route ledger"
+  - "[x] 1.4. Slice 1: UI function extraction and ledger"
+  - "[x] 1.5. Slice 1: Node runner and first fixtures"
+  - "[x] 1.6. Slice 1: matrix, CI and documents; merged PR #40"
+  - "[x] 2.0. Slice 2: this revision and ADR 0012"
+  - "[x] 2.1. Slice 2: gate and session in the API"
+  - "[x] 2.2. Slice 2: web /login, /logout, no mock-up"
+  - "[x] 2.3. Slice 2: develop host (Caddy)"
+  - "[x] 2.4. Slice 2: documents"
+  - "[ ] 3. Slice 3: Projects, after the open question on where a request gets its study"
+---
 # Legacy strangler — 18.6.6 as the AIA product, behind the running oracle
 
 **Status:** in progress · **Owner:** parity-quality + api (slices 1–2); one owner per

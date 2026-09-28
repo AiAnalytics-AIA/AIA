@@ -1,3 +1,12 @@
+---
+status: done
+chunks:
+  - "[x] 1. Domain: identity, DatasetVersion, Population, lineage"
+  - "[x] 2. Domain: import contract, validation, derived fields"
+  - "[x] 3. Infrastructure: parser, asset source, registry"
+  - "[x] 4. Application: PopulationRuntime"
+  - "[x] 5. Parity against AIA-reference; merged PR #12 at 8da7261"
+---
 # Population version + import foundation
 
 **Status:** done — merged to `main` in PR #12 (`8da7261`) · **Owner:** population-data · **Started:** 2026-09-22

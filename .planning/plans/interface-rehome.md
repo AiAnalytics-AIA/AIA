@@ -1,3 +1,14 @@
+---
+status: in-progress
+chunks:
+  - "[x] 0. ADR 0014, this plan, the screen ledger"
+  - "[x] 1. Routing: /app gated; facade follows the Caddyfile"
+  - "[ ] 2. Foundation: unit client done; primitives and catalogue pending"
+  - "[-] 3. A1 Shell (replaced by the client-first AppShell, ADR 0015)"
+  - "[x] 4. A2 Projects"
+  - "[ ] 5+. A3–A8, one chunk per area, inside the client workspace"
+  - "[x] —. / moves to the rebuilt interface (done early, ADR 0015)"
+---
 # Interface re-home — the screens rebuilt in React, area by area
 
 **Status:** in progress · **Owner:** product-surface (A9) + web · **Started:** 2026-09-24

@@ -1,3 +1,19 @@
+---
+status: done
+chunks:
+  - "[x] 0. This plan and ADR 0015"
+  - "[x] 1. Core: studies.kind, ClientContext"
+  - "[x] 2. Core: study_workspaces"
+  - "[x] 3. Core: Client Knowledge"
+  - "[x] 4. API: client routes"
+  - "[x] 5. Seed: two fictional clients"
+  - "[x] 6. Web: AppShell, client directory, workspace"
+  - "[x] 7. Web: research stages under client/study"
+  - "[x] 8. Hand-off to /classic with a way back"
+  - "[x] 9. Caddy, smoke, CI routing checks, runbook"
+  - "[x] 10. Workbench, fixtures, capture"
+  - "[x] 11. Documents; merged PR #51 at 4ad5f66"
+---
 # Client-first information architecture — the React AIA shell becomes the product
 
 **Status:** complete, in review on `feature/client-first-ia` (from `develop` @ `8e7a6db`, PR #50 merged).
