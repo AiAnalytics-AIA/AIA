@@ -3,8 +3,8 @@
 **Single source of truth for what is done, in progress and next.**
 Read this at the start of every session, before doing any work.
 
-**Updated:** 2026-09-28 · **Code of record:** `develop` @ `28eedce` · **Release:** `main` @ `9cf1f58`,
-291 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
+**Updated:** 2026-09-28 · **Code of record:** `develop` @ `92a0bdd` · **Release:** `main` @ `9cf1f58`,
+293 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
 
 This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
@@ -20,7 +20,7 @@ entry is a **hypothesis**, not a finding.
 ## Where the code is — consolidation, 2026-09-27
 
 **Combined cutover candidate:** #86, `integration/phaseout-cutover-review`, is the single release of the 2026-09-28 consolidation plan.
-- **What it holds:** every open component head (#85 with #74/#77/#78/#82, then #73, #81, #76 and #80), plus `develop` @ `28eedce`, which includes #75. Settings keeps #75's truthful controls and #82's classic-navigation removal.
+- **What it holds:** every open component head (#85 with #74/#77/#78/#82, then #73, #81, #76 and #80), plus `develop` @ `92a0bdd`, which includes #75, #87 and #88. Settings keeps #75's truthful controls and #82's classic-navigation removal.
 - **State:** CI green on `b0ce309`; not merged, not deployed. [The phase-out plan](plans/legacy-phase-out.md) requires one cutover instead of separate parent deployments.
 - **Remaining:** the host's rehearsal on copies, then one maintenance cutover and the merge (`deploy/develop/README.md` § The cutover).
 
@@ -141,7 +141,7 @@ attempt 3, green).
 | #85 | `feature/deploy-without-legacy` | Phase-out increment 5: the product deployment without the unit, which runs only from `deploy/reference/`; the panel's gate retired (ADR 0018 decision 5, chunks 10–12) | Draft, stacked on #82 | after #82, last of the phase-out; then the operator sequence (plan) |
 | #86 | `integration/phaseout-cutover-review` | The single release of the 2026-09-28 consolidation plan: every component head above that is still open, with `develop` | Draft; CI green on `b0ce309` | once, in the maintenance window (`deploy/develop/README.md` § The cutover); then close the absorbed PRs |
 | #87 | `fix/develop-seed-returning-operator` | The develop seed admits a returning operator before resolving their context; the smoke names a denial's reason (OI-80; plan step 3) | **Merged** into `develop` (`28eedce`, 19:53 UTC); deployed by run 40 | complete; the same hunks are in #86 |
-| #88 | `fix/develop-seed-archived-client` | The develop seed leaves an archived showcase client alone instead of failing on it (OI-80, run 40) | Draft into `develop` | before the cutover: the smoke baseline (plan step 3) |
+| #88 | `fix/develop-seed-archived-client` | The develop seed leaves an archived showcase client alone instead of failing on it (OI-80, run 40) | **Merged** into `develop` (`92a0bdd`, 20:30 UTC) | complete; the same hunks are in #86 |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
 by default. The browser journey it named (enqueue → reload → review → accept → stale
