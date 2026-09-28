@@ -1,3 +1,14 @@
+---
+status: done
+chunks:
+  - "[x] 1. Domain: model catalog, policy, registry"
+  - "[x] 2. Domain: call contracts, taxonomy, structured output"
+  - "[x] 3. Domain: StepExecutor contract + ToolRegistry"
+  - "[x] 4. Application: GovernedModelGateway"
+  - "[x] 5. Infrastructure: three adapters + 42 recorded exchanges"
+  - "[x] 6. Infrastructure: ai_usage_events ledger + WorkflowCallJournal"
+  - "[x] 7. Enforcement + docs; merged PR #28 at 676bc1f"
+---
 # AI runtime contract (Phase 4, first slice)
 
 **Status:** done — merged in PR #28 @ `676bc1f` (2026-09-23). Archived 2026-09-27. · **Owner:** ai-runtime · **Started:** 2026-09-22

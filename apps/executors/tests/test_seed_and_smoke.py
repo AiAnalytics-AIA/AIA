@@ -7,15 +7,18 @@ from typing import Any
 
 import pytest
 from aia_core.application.develop_seed import (
+    SEED_CLIENT_SLUG,
     SEED_ORGANIZATION_SLUG,
     SEED_PROJECT_TITLE,
     SEED_WORKSPACES,
+    SMOKE_ORGANIZATION_SLUG,
     reset_develop_seed,
     seed_develop,
     seeded_study_scope,
 )
+from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.workflows import start_workflow
-from aia_core.domain.scope import ScopeRole, StudyStatus
+from aia_core.domain.scope import ClientStatus, ScopeDenied, ScopeRole, StudyStatus
 from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
 from aia_core.infrastructure.repositories import ProjectRepository
@@ -37,6 +40,7 @@ def test_seed_provisions_a_complete_world_once(sessions: sessionmaker[Session]) 
         session.commit()
     assert first.created == {
         "organization": True,
+        "smoke_organization": True,
         "client": True,
         "study": True,
         "project": True,
@@ -47,17 +51,25 @@ def test_seed_provisions_a_complete_world_once(sessions: sessionmaker[Session]) 
     with sessions() as session:
         second = seed_develop(session, owner_email=OWNER)
         session.commit()
-    assert (second.organization_id, second.client_id, second.study_id, second.project_id) == (
+    assert (
+        second.organization_id,
+        second.smoke_organization_id,
+        second.client_id,
+        second.study_id,
+        second.project_id,
+    ) == (
         first.organization_id,
+        first.smoke_organization_id,
         first.client_id,
         first.study_id,
         first.project_id,
     )
+    assert first.smoke_organization_id != first.organization_id
     assert second.run_id == first.run_id
     assert not any(second.created.values())
 
     with sessions() as session:
-        scope = seeded_study_scope(session, owner_email=OWNER)
+        scope = seeded_study_scope(session)
         assert scope.role is ScopeRole.LEAD
         assert scope.study_status is StudyStatus.ACTIVE
         projects = ProjectRepository(session, scope).list_projects()
@@ -114,12 +126,191 @@ def test_seed_gives_two_fictional_clients_their_own_work_and_knowledge(
         assert not a & b
 
 
+def test_seed_admits_a_new_operator_to_an_existing_world(
+    sessions: sessionmaker[Session],
+) -> None:
+    # A changed AIA_SEED_OWNER_EMAIL used to be denied as `not_a_member` before
+    # the seed could add it, which failed every develop smoke with a bare
+    # "ScopeDenied: not found" (deploy runs 36-38).
+    with sessions() as session:
+        first = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        second = seed_develop(session, owner_email="second-operator@example.test")
+        session.commit()
+    assert second.organization_id == first.organization_id
+    assert second.study_id == first.study_id
+    assert second.owner_user_id != first.owner_user_id
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    assert again.owner_user_id == first.owner_user_id
+
+
+def test_seed_names_why_an_archived_seed_client_is_denied(
+    sessions: sessionmaker[Session],
+) -> None:
+    # Archiving the smoke's own client is a decision the seed does not undo, and
+    # the smoke line says which row stopped it. Nobody sees that client in their
+    # workspace, so only someone acting in the smoke's organization can do it.
+    with sessions() as session:
+        seeded = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.smoke_owner_user_id,
+                organization_id=seeded.smoke_organization_id,
+            )
+        )
+        ScopeRepository(session).set_client_status(
+            admin, client_id=seeded.client_id, status=ClientStatus.ARCHIVED
+        )
+        session.commit()
+    with sessions() as session, pytest.raises(ScopeDenied) as denied:
+        seed_develop(session, owner_email=OWNER)
+    assert denied.value.reason == "client_archived"
+    assert smoke.describe_failure(denied.value) == (
+        "ScopeDenied: not found (reason: client_archived)"
+    )
+    assert smoke.describe_failure(RuntimeError("boom")) == "RuntimeError: boom"
+
+
+def test_seed_leaves_an_archived_fictional_client_as_it_was(
+    sessions: sessionmaker[Session],
+) -> None:
+    # A person archiving one of the showcase clients (Settings, PUT
+    # /clients/{id}/status) must not fail every later deploy: the seed leaves
+    # that client archived and seeds nothing into it. Deploy run 40 failed on
+    # an archived client (OI-80).
+    with sessions() as session:
+        seeded = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    archived = seeded.workspaces["lumen-pojistovna"]
+    with sessions() as session:
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        ScopeRepository(session).set_client_status(
+            admin, client_id=archived, status=ClientStatus.ARCHIVED
+        )
+        session.commit()
+
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+
+    assert again.workspaces["lumen-pojistovna"] == archived
+    assert again.study_id == seeded.study_id
+    with sessions() as session:
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        statuses = {
+            c.slug: c.status
+            for c in ScopeRepository(session).list_clients(admin, include_archived=True)
+        }
+    assert statuses["lumen-pojistovna"] is ClientStatus.ARCHIVED
+    assert statuses["horizont-mobility"] is ClientStatus.ACTIVE
+
+
 def test_seed_refuses_a_blank_operator(sessions: sessionmaker[Session]) -> None:
     with sessions() as session, pytest.raises(ValueError, match="AIA_SEED_OWNER_EMAIL"):
         seed_develop(session, owner_email="")
 
 
-def test_reset_removes_only_the_seeded_organization(sessions: sessionmaker[Session]) -> None:
+def test_the_smoke_acts_in_an_organization_the_operator_never_sees(
+    sessions: sessionmaker[Session],
+) -> None:
+    # The operator's client list (GET /workspace/clients) holds the showcase
+    # clients only: the smoke's client is in an organization they are not in.
+    with sessions() as session:
+        seeded = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        resolver = ScopeResolver(session)
+        repo = ScopeRepository(session)
+        operator = AuthenticatedPrincipal(
+            user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+        )
+        assert set(resolver.accessible_clients(operator)) == set(seeded.workspaces.values())
+        assert seeded.smoke_organization_id not in repo.memberships_for_user(seeded.owner_user_id)
+        assert seeded.organization_id not in repo.memberships_for_user(seeded.smoke_owner_user_id)
+        slugs = {
+            c.slug
+            for c in repo.list_clients(
+                resolver.organization_context(operator), include_archived=True
+            )
+        }
+        assert SEED_CLIENT_SLUG not in slugs
+        scope = seeded_study_scope(session)
+        assert (scope.organization_id, scope.client_id, scope.study_id) == (
+            seeded.smoke_organization_id,
+            seeded.client_id,
+            seeded.study_id,
+        )
+        assert scope.actor_id == seeded.smoke_owner_user_id
+        assert scope.role is ScopeRole.LEAD
+
+
+def test_an_archived_synthetic_client_in_the_operator_organization_does_not_stop_the_smoke(
+    sessions: sessionmaker[Session],
+) -> None:
+    # The develop host's state after deploy runs 36-41: the operator's
+    # organization holds the smoke client the seed used to make there, with the
+    # operator LEAD on it, archived on purpose to keep it out of the client list.
+    with sessions() as session:
+        seeded = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        resolver = ScopeResolver(session)
+        repo = ScopeRepository(session)
+        admin = resolver.organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        old = {c.slug: c for c in repo.list_clients(admin, include_archived=True)}.get(
+            SEED_CLIENT_SLUG
+        )
+        if old is None:
+            old = repo.create_client(
+                admin, slug=SEED_CLIENT_SLUG, name="Synthetic client (develop)"
+            )
+            resolver.grant_client_access(
+                admin,
+                client_id=old.client_id,
+                user_id=seeded.owner_user_id,
+                role=ScopeRole.LEAD,
+                reason="seed before OI-80",
+            )
+        repo.set_client_status(admin, client_id=old.client_id, status=ClientStatus.ARCHIVED)
+        session.commit()
+
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        scope = seeded_study_scope(session)
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        statuses = {
+            c.slug: c.status
+            for c in ScopeRepository(session).list_clients(admin, include_archived=True)
+        }
+    assert again.client_id == seeded.client_id != old.client_id
+    assert scope.client_id == seeded.client_id
+    assert statuses[SEED_CLIENT_SLUG] is ClientStatus.ARCHIVED
+
+
+def test_reset_removes_only_the_seeded_organizations(sessions: sessionmaker[Session]) -> None:
     with sessions() as session:
         ScopeRepository(session).create_organization(
             slug="other", name="Other", owner_email="other@example.com"
@@ -133,10 +324,11 @@ def test_reset_removes_only_the_seeded_organization(sessions: sessionmaker[Sessi
     with sessions() as session:
         slugs = session.scalars(select(OrganizationRow.slug)).all()
         assert slugs == ["other"]
+        assert SMOKE_ORGANIZATION_SLUG not in slugs
         assert session.scalar(select(func.count()).select_from(OrganizationRow)) == 1
         assert reset_develop_seed(session) is False
         with pytest.raises(LookupError):
-            seeded_study_scope(session, owner_email=OWNER)
+            seeded_study_scope(session)
 
 
 def test_storage_round_trip_reports_ok_and_leaves_nothing(store: InMemoryArtifactStore) -> None:
@@ -204,13 +396,13 @@ def test_slice_check_passes_when_a_worker_executes_the_run(
     ), lines
     # The seeded run and the smoke's own run both exist.
     with sessions() as session:
-        scope = seeded_study_scope(session, owner_email=OWNER)
+        scope = seeded_study_scope(session)
         runs = WorkflowRepository(session, scope).list_runs(project_id=scope_project(session))
     assert len(runs) == 2
 
 
 def scope_project(session: Session) -> str:
-    scope = seeded_study_scope(session, owner_email=OWNER)
+    scope = seeded_study_scope(session)
     return ProjectRepository(session, scope).list_projects().items[0].project_id
 
 
@@ -350,7 +542,7 @@ def test_start_workflow_for_the_seed_is_visible_to_the_seeded_scope(
 ) -> None:
     with sessions() as session:
         seed = seed_develop(session, owner_email=OWNER)
-        scope = seeded_study_scope(session, owner_email=OWNER)
+        scope = seeded_study_scope(session)
         again = start_workflow(
             session, scope, project_id=seed.project_id, workflow_type=DEVELOP_SNAPSHOT
         )

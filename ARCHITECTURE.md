@@ -16,7 +16,6 @@ It deliberately does not describe the product. That lives in
 | [workflows.md](docs/architecture/workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](docs/architecture/ai-runtime.md) | Providers, provenance, budgets, failure behaviour |
 | [ai-step-executor-contract.md](docs/architecture/ai-step-executor-contract.md) | The one seam between the model gateway and the workflow worker |
-| [analysis.md](docs/architecture/analysis.md) | A native run's analysis: evidence from its artifacts, the stored outcome, reconstruction by re-admission |
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](docs/architecture/scope-and-authorization.md) | Client/Study isolation |
 | [deep-research.md](docs/architecture/deep-research.md) | Deep Research: tracks, grounding, query classes, quarantine, the tool-cost contract |
@@ -129,7 +128,6 @@ Run it before every commit. It is blocking in CI.
 | claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
 | the API never admits its own claims | The same, at the edge where untrusted input arrives |
 | a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
-| the API, worker and executors never build field policy or a joint status (no `FieldPolicyBook(`, `FieldPolicy(`, `load_joint_status(`, instrument declaration or dictionary loader in `apps/`) | A permissive policy book for a questionnaire, or a certificate for a run with no panel, presented as the authority a claim rests on |
 | no statically skipped or xfailed tests | Deleting the signal instead of fixing the defect |
 | the web client does not talk to a database | The presentation boundary crossed in the most expensive possible way |
 
@@ -144,8 +142,9 @@ Two things make this survive contact with a busy week:
   check is green the day it lands and a red run always means a regression, never
   a backlog.
 
-To add one: state it in the table above, then add one `forbid` line to the
-script, then confirm it passes before committing.
+To add one: state it in the script beside its `forbid` line and under Doc
+follow-up in the PR (the docs PR adds it to the table above; CLAUDE.md §1), then
+confirm it passes before committing.
 
 ## 4. Contracts at boundaries
 
@@ -261,15 +260,6 @@ script, then confirm it passes before committing.
   unit's own relation matrix by AIA's engine and marked `INTERNAL_ONLY` while
   PROGRESS D6 is open; every client-facing surface, export or report calls
   `require_client_facing`, which refuses it and fails closed on a missing status.
-- **A native run's analysis is internal, and an outcome is re-admitted whenever it is
-  read** ([analysis.md](docs/architecture/analysis.md)). The Study's own questionnaire
-  items become evidence fields only from what the run recorded
-  (`domain/evidence/instrument.py`): modelled, aggregate only, `INTERNAL_ONLY`, which the
-  claim gate refuses client-facing whatever the certificate or origin says. A run with no
-  panel has no certificate, and says so (`MISSING`). A stored module outcome holds the
-  accepted draft, never claims: `application/analysis_results.py` rebuilds the evidence
-  from the run's own artifacts, requires every fingerprint to match and puts the draft
-  through the gate again, so a file cannot mint an `AdmittedClaim`.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal
   so a later gate cannot launder an earlier one.
@@ -319,7 +309,9 @@ What are you building?
 │    → apps/web/src/…  — renders state the server computed. No rules.
 │
 └─ A framework gotcha you just lost an hour to?
-     → AGENTS.md, immediately, with the wrong and right versions side by side.
+     → AGENTS.md, with the wrong and right versions side by side: written
+       immediately under Doc follow-up in your PR, added by the docs PR
+       (CLAUDE.md §1).
 ```
 
 ## 6. Anti-patterns — do not do these

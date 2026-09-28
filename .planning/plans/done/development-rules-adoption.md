@@ -1,3 +1,12 @@
+---
+status: done
+chunks:
+  - "[x] 1. tools/layer_check.sh + make layer_check / make verify"
+  - "[x] 2. ARCHITECTURE.md"
+  - "[x] 3. CLAUDE.md + AGENTS.md"
+  - "[x] 4. .planning/"
+  - "[x] 5. CI: layer_check blocking"
+---
 # Development rules adoption
 
 **Status:** complete · **Landed:** 2026-09-22 · **Branch:** `claude/amazing-cerf-1lhmze`

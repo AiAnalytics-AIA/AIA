@@ -1,3 +1,11 @@
+---
+status: done
+chunks:
+  - "[x] 1. Native Bedrock configuration card and accurate design failure message"
+  - "[x] 2. Product classic wrapper and endpoint retirement; matching workbench"
+  - "[x] 3. Regression checks, routing validation, documentation"
+  - "[x] 4. PR publication; merged PR #57 at ff463a3"
+---
 # Bedrock settings cleanup — 2026-09-26
 
 **Status:** done — merged in PR #57 @ `ff463a3` (2026-09-27), deployed by run 25. Native Bedrock design jobs followed in PR #63 (merged 2026-09-27). Archived 2026-09-27.

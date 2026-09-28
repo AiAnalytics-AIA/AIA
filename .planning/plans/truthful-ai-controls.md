@@ -1,3 +1,12 @@
+---
+status: done
+chunks:
+  - "[x] 1. Domain: NATIVE_PROVIDERS"
+  - "[x] 2. /config: aiRuntime.switches and approvedClasses"
+  - "[x] 3. The settings document: ai_runtime, ProviderEntry.use"
+  - "[x] 4. The Settings UI"
+  - "[x] 5. Documents; merged PR #75 at 8017b54"
+---
 # Truthful AI controls on Settings
 
 **Status:** in progress · **Owner:** native AI controls (job 1) · **Started:** 2026-09-27 ·

@@ -1,3 +1,15 @@
+---
+status: done
+chunks:
+  - "[x] 1. Fence the lease (W1–W3)"
+  - "[x] 2. Close reservations at attempt end (W4, W5)"
+  - "[x] 3. Release and resume (W6, W7)"
+  - "[x] 4. Cross-study queue and execution scope"
+  - "[x] 5. apps/worker"
+  - "[x] 6. Multi-process tests on PostgreSQL"
+  - "[x] 7a. Serialise step transitions per run (W8)"
+  - "[x] 7. Wiring and documents"
+---
 # Worker process
 
 **Status:** done · **Owner:** platform-runtime · **Started:** 2026-09-22 · **Finished:** 2026-09-22

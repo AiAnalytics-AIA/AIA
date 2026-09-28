@@ -1,3 +1,16 @@
+---
+status: in-progress
+chunks:
+  - "[x] 0. Plan and workflow/reference mapping"
+  - "[x] 1. Closed task contracts, versioned prompts, bounded context"
+  - "[x] 2. Durable Study-scoped jobs over Design Revisions"
+  - "[x] 3. Bedrock executor composition through StepModelCaller"
+  - "[x] 4. Native Research screens: enqueue, follow, restore, review"
+  - "[ ] 5. Evidence-backed interpretation and reports"
+  - "[ ] 6. Deep Research integration"
+  - "[ ] 7. Meaningful tests: isolation, duplicates, frozen memory, stale state"
+  - "[ ] 8. Documentation, owned PR, deployment, fictional acceptance"
+---
 # Research agents through the complete Study workflow
 
 Owner: Codex. User direction 2026-09-27: implement the full process, not only respondents.

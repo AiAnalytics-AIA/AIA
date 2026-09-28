@@ -209,14 +209,88 @@ validation (only support and suppression), verification or alignment.
 
 ## Findings
 
-None open in PR B. It changes one existing item, OI-77, whose worker half the analysis
-executor now meets (the text is under *Doc follow-up*, PR B). Codex's P2 on #80 is under
-*Review outcome*.
+None open. Building PR B against this contract found two defects in it: a reused
+specification and a reused aggregate, each refused as not the run's own. Codex found three
+more, two on #76 and one on #80. #80's is fixed in two places: PR A's `1caa26f` refuses a
+corrupt source by its reason, without its storage key, and PR B's `5372bdb` keeps its CORRUPT
+mark (`test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`,
+`test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt`). Each was reproduced
+by a test that failed first, then fixed. All five are listed with their tests under
+*Chunks* (5) and *Review outcome*. PR A closes and changes no existing OI. PR B changes one:
+OI-77, whose worker half the analysis executor now meets (the text is under *Doc
+follow-up*, PR B).
 
 ## Doc follow-up
 
 What the shared documents need once this feature merges. Until #89 its branches made these
 edits themselves; the docs PR applies them now. The text is exact.
+
+### PR A (#76)
+
+**`CLAUDE.md` § 2, the map.** Under `domain/evidence/`, after `admission.py`:
+
+```text
+      instrument.py         A Study's own questionnaire items as evidence fields: declared
+                            from the run's record, modelled, aggregate only, INTERNAL_ONLY
+```
+
+Under `domain/analysis/`, after the `analysis/` line itself:
+
+```text
+      native.py             A native run's specification + aggregate -> evidence table,
+                            instrument policy, MISSING certificate; research questions; preflight
+      harness.py            One module turn = one governed request: agent aia.analysis.module,
+                            no gateway schema repair (<= 3 calls a module), Class C/A, lineage
+      artifact.py           The stored outcome (aia-analysis-module-artifact-1), turn
+                            checkpoints, reuse keys; no claim is ever stored
+      steps.py              The eight analysis nodes as data, for the research template
+```
+
+Under `application/`, after `analysis.py`:
+
+```text
+    analysis_results.py     A native run's analysis: its sources in scope, one module prepared,
+                            outcomes reconstructed by re-admission (the reader Job 4 uses)
+```
+
+**`ARCHITECTURE.md`.** In the table of companion documents, after
+`ai-step-executor-contract.md`:
+
+```markdown
+| [analysis.md](docs/architecture/analysis.md) | A native run's analysis: evidence from its artifacts, the stored outcome, reconstruction by re-admission |
+```
+
+In the `layer_check` table, after *a joint status is issued only by its loader*. The rule
+itself is already in `tools/layer_check.sh`:
+
+```markdown
+| the API, worker and executors never build field policy or a joint status (no `FieldPolicyBook(`, `FieldPolicy(`, `load_joint_status(`, instrument declaration or dictionary loader in `apps/`) | A permissive policy book for a questionnaire, or a certificate for a run with no panel, presented as the authority a claim rests on |
+```
+
+In § 4, after the research Sociomap bullet, the one that ends "…which refuses it and fails
+closed on a missing status.":
+
+```markdown
+- **A native run's analysis is internal, and an outcome is re-admitted whenever it is
+  read** ([analysis.md](docs/architecture/analysis.md)). The Study's own questionnaire
+  items become evidence fields only from what the run recorded
+  (`domain/evidence/instrument.py`): modelled, aggregate only, `INTERNAL_ONLY`, which the
+  claim gate refuses client-facing whatever the certificate or origin says. A run with no
+  panel has no certificate, and says so (`MISSING`). A stored module outcome holds the
+  accepted draft, never claims: `application/analysis_results.py` rebuilds the evidence
+  from the run's own artifacts, requires every fingerprint to match and puts the draft
+  through the gate again, so a file cannot mint an `AdmittedClaim`.
+```
+
+**`docs/architecture/README.md`**, in the companion table, after
+`ai-step-executor-contract.md`:
+
+```markdown
+| [analysis.md](analysis.md) | A native run's analysis: evidence from its artifacts, the stored outcome, reconstruction by re-admission |
+```
+
+**`.planning/overview.md`.** A row for #76 in *Open pull requests*, from its description.
+Nothing else: this feature's status is the front-matter above.
 
 ### PR B (#80)
 
