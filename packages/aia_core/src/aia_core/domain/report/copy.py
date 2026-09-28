@@ -10,6 +10,11 @@ from __future__ import annotations
 
 from typing import Final
 
+from aia_core.domain.evidence.validation import (
+    METHOD_STATUS_HOLDOUT_VALIDATED,
+    METHOD_STATUS_PENDING,
+)
+
 CS: Final[dict[str, str]] = {
     # furniture
     "contents": "Obsah",
@@ -36,6 +41,14 @@ CS: Final[dict[str, str]] = {
     "approval": "Schválení",
     "revision_history": "Historie revizí",
     "identifiers": "Identifikátory",
+    "study_id": "Označení studie",
+    "method": "Metoda",
+    "reviewer": "Schvalovatel",
+    "decided_on": "Datum schválení",
+    "change": "Změna",
+    "draft": "KONCEPT — NESCHVÁLENO",
+    "draft_long": "Tato revize dosud nebyla schválena. Nepředávejte ji jako finální.",
+    "separator": " \u00b7 ",
     # report kinds
     "kind_client": "Závěrečná zpráva",
     "kind_final": "Závěrečná zpráva s externí triangulací",
@@ -70,13 +83,54 @@ CS: Final[dict[str, str]] = {
     "grade_modelled_long": "Modelováno z behaviorálního prioru — nejde o měření.",
     "grade_holdout_pending_long": "Externí prediktivní validace dosud neproběhla.",
     "grade_unknown_long": "Evidenční role nedorazila nebo ji systém nezná — nečtěte jako měření.",
+    "indicative_note": "orientační hodnota: nízká efektivní velikost vzorku, čtěte opatrně.",
     "suppressed_rows": "Potlačeno pro nedostatečnou efektivní velikost vzorku",
     "interval": "interval",
+    "evidence": "Evidence",
+    "interval_head": "Interval",
+    "effective_n_head": "Efektivní n",
+    "disclosure_short_SCOPE": "rozsah",
+    "disclosure_short_MODELED_VALUE": "modelováno",
+    "disclosure_short_HISTORICAL": "historické",
+    "value": "Hodnota",
+    "support": "Podpora",
+    "basis": "Základ",
+    "grade": "Síla evidence",
+    "disclosures": "Upozornění",
+    "basis_MEASURED": "měřeno",
+    "basis_MODELED": "modelováno",
+    "support_REPORTABLE": "dostatečná",
+    "support_INDICATIVE": "orientační",
+    "stress": "stres 1",
+    "sociomap_internal": "interní: metodika Sociomapy není schválena pro klienta",
+    "audit": "Audit",
+    "audit_key": "Položka",
+    "no_value": "\u2013",
     "effective_n": "efektivní n",
     # disclosures (claims.Disclosure)
     "disclosure_SCOPE": "Platí pro sledovanou populaci a období, nikoli obecně.",
     "disclosure_MODELED_VALUE": "Hodnota je modelovaná, nikoli změřená.",
     "disclosure_HISTORICAL": "Údaj je historický; nemusí odpovídat současnému stavu.",
+    # templates: chapter titles and fixed labels
+    "tpl_executive_summary": "Shrnutí pro vedení",
+    "tpl_research_questions": "Výzkumné otázky",
+    "tpl_questions_table": "Odpovědi na výzkumné otázky",
+    "tpl_question": "Otázka",
+    "tpl_answer": "Odpověď",
+    "tpl_strength": "Síla evidence",
+    "tpl_source_analysis": "AIA, analýza studie {study}",
+    "tpl_findings": "Co jsme zjistili",
+    "tpl_recommendations": "Doporučení",
+    "tpl_external_evidence": "Jak výsledky zapadají do dostupné externí evidence",
+    "tpl_confidence": "Jistota závěrů",
+    "tpl_method": "Metodika",
+    "tpl_limitations": "Limity",
+    "tpl_conclusion": "Závěr",
+    "tpl_triangulation": "Externí kontext a triangulace",
+    "tpl_support": "Efektivní podpora vzorku",
+    "tpl_purpose": "Účel studie",
+    "tpl_design": "Design studie",
+    "tpl_population": "Populace a vzorek",
     # method status (validation.METHOD_STATUS_*), printed on the page
     "method_status_pending": (
         "Syntetický a modelovaný výzkum. Externí prediktivní validace proti lidskému "
@@ -86,6 +140,21 @@ CS: Final[dict[str, str]] = {
         "Syntetický a modelovaný výzkum, externě validovaný proti slepému lidskému vzorku."
     ),
 }
+
+#: validation.METHOD_STATUS_* → the copy key that prints it. A status with no
+#: wording is refused (validation), never printed raw.
+METHOD_STATUS_COPY: Final[dict[str, str]] = {
+    METHOD_STATUS_PENDING: "method_status_pending",
+    METHOD_STATUS_HOLDOUT_VALIDATED: "method_status_validated",
+}
+
+
+def method_status_text(status: str) -> str:
+    """The Czech sentence the page prints for a document's method status."""
+    try:
+        return t(METHOD_STATUS_COPY[status])
+    except KeyError:
+        raise KeyError(f"no printed wording for method status {status!r}") from None
 
 
 def t(key: str) -> str:

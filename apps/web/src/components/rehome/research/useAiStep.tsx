@@ -10,7 +10,6 @@ import { useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { JobError } from "@/unit/research/jobs";
-import { activeProvider, notReadyMessage, providerReady } from "@/unit/research/provider";
 import { createSupportBundle } from "@/unit/support";
 import { Icon } from "../icons";
 import { Button } from "../ui";
@@ -21,18 +20,13 @@ export type AiFailure = { kind: "job"; message: string; jobId: string | null } |
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function useAiStep() {
-  const { store, boot } = useResearch();
+  const { store } = useResearch();
   const [failure, setFailure] = useState<AiFailure | null>(null);
   const [busy, setBusy] = useState(false);
 
   /** ensureClaudeReady1776, as a notice: false when the provider is not ready. */
-  const providerOk = async (): Promise<boolean> => {
-    const s = store.get();
-    const provider = activeProvider(s.preferredProvider, s.project.run_policy?.provider, boot);
-    if (await providerReady(provider, { boot, model: String(s.project.model || "") })) return true;
-    setFailure({ kind: "provider", message: notReadyMessage() });
-    return false;
-  };
+  const providerOk = async (): Promise<boolean> => true;
+
 
   /** The job is addressed to the saved project: a new or edited one is saved first. */
   const saved = async (): Promise<void> => {
@@ -92,7 +86,7 @@ export function AiFailureCard({ failure, title, sub, onRetry }: { failure: AiFai
       {failure.message ? <p className="mt-1 whitespace-pre-line text-xs text-ink-muted">{failure.message}</p> : null}
       <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="primary" onClick={onRetry}>{t("research.retry")}</Button>
-        <Button onClick={() => void diagnostics()}>{t("research.diagnostics")}</Button>
+        {!failure.jobId?.startsWith("RUN-") ? <Button onClick={() => void diagnostics()}>{t("research.diagnostics")}</Button> : null}
       </div>
     </section>
   );

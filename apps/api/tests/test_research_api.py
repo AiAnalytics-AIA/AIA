@@ -7,8 +7,10 @@ another client, is a 404; a missing permission inside a visible Study is a 403.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+import pytest
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
@@ -20,7 +22,22 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
+from aia_api.config import Settings
+
 API = "/api/v1"
+
+
+@pytest.fixture
+def settings(settings: Settings, tmp_path: Path) -> Settings:
+    """A file-backed SQLite database: these tests start a worker (AGENTS.md § SQLite).
+
+    Its heartbeat thread would otherwise share in-memory SQLite's one connection
+    and roll back a step's uncommitted artifact row mid-transaction.
+    """
+    if settings.database_url and ":memory:" not in settings.database_url:
+        return settings
+    return settings.model_copy(update={"database_url": f"sqlite+pysqlite:///{tmp_path / 'api.db'}"})
+
 
 DESIGN = {
     "title": "Ranní nápoj",
@@ -473,3 +490,30 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     for artifact_id in (spec_id, dataset_id, aggregate_id, sociomap_id):
         generic = researcher.get(f"{projects_url()}/{design_project}/artifacts/{artifact_id}")
         assert generic.status_code == 404
+
+
+@pytest.mark.parametrize("damage", ["tampered", "missing"])
+def test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409(
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+    damage: str,
+) -> None:
+    """Regression, the research twin: the 409's rollback took the CORRUPT mark with it."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    compiled = _real_worker(app, workbench=False).run_once()
+    assert compiled is not None and compiled.ending == "completed"
+    steps = {s["node_key"]: s for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]}
+    spec_id = steps["compile"]["artifact_id"]
+    damage_artifact(spec_id, damage)
+
+    url = f"{_runs(world)}/{run_id}/artifacts/{spec_id}"
+    refused = researcher.get(url)
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "artifact_corrupt"
+    assert artifact_status(spec_id) == "CORRUPT"
+    assert researcher.get(url).status_code == 409

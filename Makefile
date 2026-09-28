@@ -12,7 +12,7 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web web_design ui-workbench ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
@@ -114,6 +114,10 @@ ui-research: ## One research run end to end in a browser on the workbench: Run -
 
 ui-workbench-down: ## Stop the UI workbench
 	@python3 tools/ui_workbench/workbench.py down
+
+report-preview: ## Render the four report samples DOCX -> PDF -> PNG (needs libreoffice-writer, poppler-utils) -> tmp/report-preview/
+	@$(PY) tools/report_preview.py --samples --grey
+	@$(PY) tools/report_preview.py --samples --stress
 
 web_design: ## Design tokens and the 18.6.6 skin: generated files current, contrast / palette / accent evidence holds
 	@cd apps/web && npm run tokens:check && npm run skin:check && npm run check:design

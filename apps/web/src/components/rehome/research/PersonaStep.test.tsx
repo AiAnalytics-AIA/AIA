@@ -5,11 +5,15 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DIMENSION_RESEARCH_KEY } from "@/lib/interface-handoff";
+import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { resetBootCache } from "@/unit/boot";
 import { resetAudienceCatalog } from "@/unit/research/audience";
 import { REQUEST_AI_DONE, REQUEST_DONE, REQUEST_EMPTY } from "@/unit/research/persona";
 import { ResearchScreen } from "./ResearchScreen";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+// Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
+vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/dimensions", useRouter: () => ({ push, replace: vi.fn() }) }));
@@ -36,6 +40,7 @@ type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 function unitStub(project: Record<string, unknown>, over: Record<string, (b: unknown) => unknown> = {}) {
   calls = [];
+  const native = nativeAgentFixture((_action, baseline) => ({ project: baseline, proposal: { ...SUGGESTION, new_dimension_suggestions: SUGGESTION.new_dimension_suggestions.map((s) => ({ ...s, evidence_needed: [s.evidence_needed] })) }, dimensions: [], new_dimension_suggestions: SUGGESTION.new_dimension_suggestions }), over);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -54,12 +59,12 @@ function unitStub(project: Record<string, unknown>, over: Record<string, (b: unk
         "/api/library": () => ({ summary: { active_dimensions: { vztah_k_ai: { label: "Vztah k AI" }, nova: { label: "Nová z knihovny" } } } }),
         ...over,
       };
-      const answer = answers[u.split("?")[0]]?.(body) ?? {};
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
 }
-const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path);
+const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 type Saved = { project: Record<string, unknown> & { persona_dimensions: { approved: string[] } }; reason: string };
 const lastSave = () => posted("/api/projects/save").at(-1)?.body as Saved;
 const savedWith = (reason: string) => waitFor(() => expect(lastSave()?.reason).toBe(reason), { timeout: 4000 });
@@ -111,17 +116,19 @@ describe("Dimenze", () => {
     expect(lastSave().project.persona_dimensions.approved).toEqual(["zdravi", "media"]);
   }, 20_000);
 
-  it("AI doporučí: the model's dimensions become the approval, and its new ones are offered", async () => {
-    unitStub(PLANNED);
+  it("reviews new dimensions without automatically approving them", async () => {
+    unitStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] } });
     render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "Co už panel umí popsat a segmentovat" });
     fireEvent.click(screen.getByRole("button", { name: "AI doporučí" }));
-    expect(await screen.findByRole("heading", { name: "Claude navrhuje doplnit nové dimenze" }, { timeout: 4000 })).toBeTruthy();
-    expect(posted("/api/persona/suggest")[0].body).toMatchObject({ provider: "claude_code_subscription", model: "sonnet", project_id: "PRJ-1", dimension_labels: { vztah_k_ai: "Vztah k AI" } });
-    await savedWith("persona_ai_1793");
-    // Not in the catalogue, approved all the same (OI-53).
-    expect(lastSave().project.persona_dimensions.approved).toEqual(["cena", "uplne_nova_vec"]);
-    expect(screen.getByRole("button", { name: "Odebrat dimenzi uplne_nova_vec" })).toBeTruthy();
+    await approveProposal();
+    expect(await screen.findByRole("heading", { name: "AI navrhuje doplnit nové dimenze" }, NATIVE_JOB_WAIT)).toBeTruthy();
+    expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "suggest_dimensions" });
+    expect(posted("/api/persona/suggest")).toEqual([]);
+    await savedWith("native_ai_proposal_accepted");
+    // Existing researcher choices survive; unsupported dimensions are proposals.
+    expect(lastSave().project.persona_dimensions.approved).toEqual(["cena"]);
+    expect(screen.queryByRole("button", { name: "Odebrat dimenzi uplne_nova_vec" })).toBeNull();
     expect(screen.getByText("Mění ochotu · evidence: průzkum")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Založit v Data Library" }));
     expect(await screen.findByText(REQUEST_AI_DONE)).toBeTruthy();
@@ -129,8 +136,8 @@ describe("Dimenze", () => {
     expect(screen.getByText("Důvěra v AI · čeká na evidenci")).toBeTruthy();
   }, 20_000);
 
-  it("stops at the provider notice when the provider is not ready", async () => {
-    unitStub(PLANNED, { "/api/providers/claude-code/status": () => ({ ok: false }) });
+  it("parks the native job when the governed runtime is unavailable", async () => {
+    unitStub(PLANNED, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
     render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "AI doporučí" }));
     expect(await screen.findByRole("alert")).toBeTruthy();
@@ -201,6 +208,7 @@ describe("Dimenze", () => {
     render(<ResearchScreen projectId="PRJ-1" step="persona" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "Co už panel umí popsat a segmentovat" });
     fireEvent.click(screen.getByRole("button", { name: "AI doporučí" }));
+    await approveProposal();
     const research = await screen.findByRole("button", { name: "Deep Research" }, { timeout: 4000 });
     const loc = { href: "" };
     const spy = vi.spyOn(window, "location", "get").mockReturnValue(loc as Location);

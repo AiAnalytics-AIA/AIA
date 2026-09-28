@@ -25,12 +25,19 @@ from sqlalchemy.orm import Session
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.workflows import StartedRun, start_workflow
 from aia_core.domain.knowledge import KnowledgeKind
-from aia_core.domain.scope import ScopeRole, StudyContext, StudyKind, StudyStatus
+from aia_core.domain.scope import (
+    ClientStatus,
+    OrganizationRole,
+    ScopeRole,
+    StudyContext,
+    StudyKind,
+    StudyStatus,
+)
 from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from aia_core.infrastructure.tables import OrganizationRow, StudyRow
+from aia_core.infrastructure.tables import OrganizationMemberRow, OrganizationRow, StudyRow
 
 __all__ = [
     "SEED_CLIENT_SLUG",
@@ -201,13 +208,25 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         owner_id = scope_repo.upsert_user(email=email)["user_id"]
         created["organization"] = False
 
+    # A returning operator who is not yet a member (a fresh e-mail against an
+    # existing seed) becomes its owner; an existing member keeps their role.
+    # This has to happen before the context is resolved: the resolver denies a
+    # non-member (`not_a_member`), which is how a changed operator e-mail made
+    # every develop smoke fail with a bare "ScopeDenied: not found". The seed
+    # is an operator command with the database's credentials, as the creation
+    # of the organization above is; it does not widen what a request can do.
+    if organization_id not in scope_repo.memberships_for_user(owner_id):
+        session.add(
+            OrganizationMemberRow(
+                organization_id=organization_id,
+                user_id=owner_id,
+                role=OrganizationRole.OWNER.value,
+            )
+        )
+        session.flush()
     admin = resolver.organization_context(
         AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
     )
-    # A returning operator who was not yet a member (a fresh e-mail against an
-    # existing seed) becomes one; an existing owner keeps their role.
-    if organization_id not in scope_repo.memberships_for_user(owner_id):
-        scope_repo.add_member(admin, email=email)
 
     clients = {c.slug: c for c in scope_repo.list_clients(admin, include_archived=True)}
     client = clients.get(SEED_CLIENT_SLUG)
@@ -308,7 +327,8 @@ def _seed_workspaces(
     Knowledge goes the governed way: the operator proposes, a synthetic curator
     (a REVIEWER on the client) approves, so every item has a revision and
     provenance like any other. Returns slug -> client id, and whether anything
-    was new.
+    was new. A client a person has archived is left as they left it: nothing is
+    granted or seeded into it.
     """
     knowledge = ClientKnowledgeRepository(session)
     owner = AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
@@ -330,6 +350,12 @@ def _seed_workspaces(
             client = scope_repo.create_client(admin, slug=slug, name=spec["name"])
             fresh = True
         out[slug] = client.client_id
+        if client.status is ClientStatus.ARCHIVED:
+            # Archiving a showcase client is a person's decision (Settings, PUT
+            # /clients/{id}/status). The resolver refuses an archived client, so
+            # seeding into it failed every later deploy (OI-80, deploy run 40);
+            # leaving it alone is the seed respecting that decision, not undoing it.
+            continue
         resolver.grant_client_access(
             admin, client_id=client.client_id, user_id=owner_id, role=ScopeRole.LEAD, reason="seed"
         )

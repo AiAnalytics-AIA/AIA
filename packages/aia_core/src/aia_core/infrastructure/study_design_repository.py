@@ -76,14 +76,15 @@ class StudyDesignRepository:
             )
         )
 
-    def _require_research(self) -> StudyRow:
+    def _require_research(self, *, lock: bool = False) -> StudyRow:
         s = self._scope
-        study = self._session.scalar(
-            select(StudyRow).where(
-                StudyRow.study_id == s.study_id,
-                StudyRow.client_id == s.client_id,
-            )
+        stmt = select(StudyRow).where(
+            StudyRow.study_id == s.study_id,
+            StudyRow.client_id == s.client_id,
         )
+        if lock:
+            stmt = stmt.with_for_update().execution_options(populate_existing=True)
+        study = self._session.scalar(stmt)
         if study is None:  # pragma: no cover - an issued scope names an existing study
             raise ScopeDenied("not found", reason="unknown_study")
         if study.kind != StudyKind.RESEARCH.value:
@@ -112,7 +113,7 @@ class StudyDesignRepository:
         if source_stage not in DESIGN_SOURCE_STAGES:
             raise DesignRejected("unknown source stage", reason="unknown_source_stage")
         design = validate_design(content)
-        study = self._require_research()
+        study = self._require_research(lock=True)
         projects = ProjectRepository(self._session, s, owner=DESIGN_PROJECT_OWNER)
         reason = _REASON_PREFIX + source_stage
 
@@ -141,6 +142,25 @@ class StudyDesignRepository:
         outcome = projects.save(row.project_id, content=design, reason=reason, actor_id=s.actor_id)
         revision = self._revision_row(row.project_id, outcome.revision)
         return _to_domain(revision, s.study_id), not outcome.deduplicated
+
+    def submit_if_current(
+        self, *, content: Any, source_stage: str, expected_revision_id: str
+    ) -> tuple[DesignRevision, bool]:
+        """Apply a reviewed proposal only against its unchanged baseline.
+
+        The same Study row lock serializes ordinary submit() and proposal
+        acceptance, including first-design creation. The caller commits.
+        """
+        self._scope.require(Permission.EDIT_STUDY)
+        self._scope.require_open_study()
+        self._require_research(lock=True)
+        self.get(expected_revision_id)
+        latest = self.latest()
+        if latest is None or latest.revision_id != expected_revision_id:
+            raise DesignRejected(
+                "the proposal's design baseline has changed", reason="stale_proposal"
+            )
+        return self.submit(content=content, source_stage=source_stage)
 
     # -- reads --------------------------------------------------------------
 

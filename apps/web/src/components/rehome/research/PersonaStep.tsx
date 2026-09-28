@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { DIMENSION_RESEARCH_KEY, classicHref, rememberReturn } from "@/lib/interface-handoff";
+import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import { unit } from "@/unit/client";
 import { type Catalog, loadAudienceCatalog } from "@/unit/research/audience";
@@ -89,6 +90,7 @@ export function PersonaStep() {
       await step.saved();
       const res = (await runJob("personaSuggest", suggestPayload(store.get().project, active), { title: SUGGEST_TITLE, warnMs: SUGGEST_WARN_MS })) as Suggestion;
       setSuggestion(res);
+      if (isNativeResult(res)) return;
       apply(applySuggestion(store.get().project, res || {}));
     }, (m) => m + SUGGEST_FAILED_SUFFIX);
 

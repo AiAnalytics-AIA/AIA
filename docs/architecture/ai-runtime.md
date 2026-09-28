@@ -1,6 +1,14 @@
 # AI runtime
 
-**Status: the contract is implemented; live transport is not.**
+**Status: Bedrock respondent fieldwork is implemented and was activated for
+fictional Class C on develop on 2026-09-26. Native design proposal jobs are
+implemented on this branch with a separate switch, off by default. Analysis/report
+execution and owned web retrieval remain required for the complete workflow.**
+
+The dated [activation evidence](bedrock-develop-activation-2026-09-26.md) records
+20 successful requests, $0.2303301, settled reservations and the exact authorised
+scope. This is a historical acceptance result, not approval for another live run.
+[Native Research jobs](research-agents.md) describe the new proposal path.
 
 | Piece | State |
 | --- | --- |
@@ -12,16 +20,17 @@
 | `ModelGateway` contract and the step-executor seam (`domain/ai_execution.py`) | **Implemented** — see [ai-step-executor-contract.md](ai-step-executor-contract.md) |
 | `ToolRegistry` (`domain/ai_tools.py`) | **Implemented** — scope never from arguments |
 | `GovernedModelGateway` (`application/model_gateway.py`) | **Implemented** — the one implementation of the semantics |
-| Adapters: Anthropic Messages, OpenAI Chat Completions, Claude Code CLI (`infrastructure/model_adapters/`) | **Implemented against recorded exchanges.** No live transport; no call has been made |
+| Adapters (`infrastructure/model_adapters/`) | Bedrock Converse is the deployed model path. Anthropic, OpenAI and Claude Code adapters remain recorded-exchange compatibility code; they are not connected product settings |
 | AI usage ledger `ai_usage_events` + `AIUsageRepository` + `WorkflowCallJournal` | **Implemented** — append-only, compensating entries |
-| Live HTTP / CLI transports, credential store | **Not built.** Needs an approved route (ADR 0008; [ADR 0010](adr/0010-bedrock-eu-inference-route.md) proposes the first) and a transport decision |
-| First approved route | **Proposed**: `bedrock-eu-primary`, Amazon Bedrock in the EU geography, Class C only ([ADR 0010](adr/0010-bedrock-eu-inference-route.md)). No adapter is bound to it yet, so nothing can leave over it; the develop host's instance role may already invoke exactly one pinned EU model |
+| Live transport and credentials | Bedrock HTTP transport with SigV4 and the develop instance role is implemented. No direct Anthropic key or Claude Code login is required |
+| Approved route | `bedrock-eu-primary`, accepted for fictional Class C on develop only ([ADR 0010](adr/0010-bedrock-eu-inference-route.md)). Pinned EU profile, six destinations; retention unspecified. No approval for confidential Class A/B follows from it |
 | Generalized metered-cost ledger for non-model tools | **Not built.** See *Cost accounting* |
-| Research prompts and agents | **Not built**, deliberately (research-engine) |
+| Research prompts and agents | Respondent fieldwork is deployed; eight native design/advice contracts, prompts and proposal jobs are implemented locally. Interpretation/report and Deep Research integration remain incomplete |
 
-The rules a call must obey are enforced by code that has been exercised end to
-end — gateway, adapter, recorded exchange, ledger, workflow attempt — but never
-against a live provider.
+The gateway, adapter, ledger and real worker are checked against recorded
+exchanges and delivery failures. The isolated fictional fieldwork acceptance also
+exercised the deployed Bedrock path. Native proposal jobs have recorded-adapter
+tests; they have not been activated or tested with a live model.
 
 ## The call path
 
@@ -54,12 +63,13 @@ When a provider cannot serve a request, the system parks the work and asks the
 user. It never quietly moves to a different provider. This is not a performance
 choice; it protects two things the product sells:
 
-- **Cost.** A silent move from the flat-rate Claude Code subscription to the
-  metered Claude API spends the user's money without consent.
+- **Cost.** Any unapproved model switch or repeat request can spend the user's
+  money. Bedrock calls reserve their worst-case exposure before dispatch.
 - **Provenance.** A research finding produced by a different model is a different
   finding. Swapping models mid-analysis silently invalidates the audit trail.
 
-The rule is enforced in code by three mechanisms:
+The rule is enforced by the governed gateway and reservation journal. Historical
+provider-policy contracts remain tested for persisted state:
 
 1. `provider_for_stage()` resolves a provider from explicit policy only. A paid
    API continuation requires `explicit_api_continue=True`, which may be set **only
@@ -83,11 +93,18 @@ The rule is enforced in code by three mechanisms:
 
 ## Providers
 
-| Internal id (persisted) | UI label | Billing |
-| --- | --- | --- |
-| `claude_code_subscription` | Claude Code | Subscription; no marginal API cost |
-| `anthropic` | **Claude API** | Per token |
-| `openai` | OpenAI API | Per token |
+The deployed composition binds AWS Bedrock only. Other identifiers below are
+retained for persisted provenance and reference parity; they are not connection
+choices in the rebuilt product. Legacy policies in the following section do not
+authorize the native executor, which resolves explicit capability bindings.
+
+
+| Internal id (persisted) | UI label | Use (`NATIVE_PROVIDERS`) | Billing, as its records read |
+| --- | --- | --- | --- |
+| `aws_bedrock` | Amazon Bedrock | **Native**: the one provider the worker calls | Per token over the pinned route |
+| `claude_code_subscription` | Claude Code | Historical: the prototype's subscription runtime | Subscription; no marginal API cost |
+| `anthropic` | **Claude API** | Historical | Per token |
+| `openai` | OpenAI API | Historical | Per token |
 
 The internal id is written into artifact provenance and must never change. The UI
 label is separate: `anthropic` displays as "Claude API" to distinguish it from
@@ -102,9 +119,13 @@ retargeting a provider breaks provenance.
 
 ## Policies
 
+Every policy is historical: the prototype's per-project rule, kept so persisted
+projects read as they did. No native run consults one; the worker's `ModelPolicy`
+binds each capability to its model.
+
 | Policy | Behaviour |
 | --- | --- |
-| `CLAUDE_CODE_ONLY` | Subscription only. The default |
+| `CLAUDE_CODE_ONLY` | Subscription only. The generic project model's default (`DEFAULT_POLICY`) |
 | `CLAUDE_API_ONLY` | Claude API only |
 | `OPENAI_ONLY` | OpenAI only |
 | `CLAUDE_CODE_THEN_API` | Starts on the subscription; may move to the Claude API **only** on an explicit user continuation |
@@ -114,8 +135,12 @@ the transition is a user action, not an automatic retry path.
 
 ## Budget control
 
-Every project has `max_api_cost_usd`, default **$10.00** (from
-`PRODUCT_POLICY.json` → `ai_runtime.default_max_api_cost_usd`).
+A native run is held to its **Study's budget**: every paid request reserves its
+ceiling against the Study row before dispatch (`WorkflowRepository.reserve_budget`),
+and the gateway checks each call against that reservation. The prototype's
+per-project ceiling, `max_api_cost_usd` (default **$10.00**, from
+`PRODUCT_POLICY.json` → `ai_runtime.default_max_api_cost_usd`), is still stored on
+generic projects and read by no native path.
 
 Before a paid call:
 
@@ -290,8 +315,10 @@ incurred, nor a token count it does not have.
 
 ## Credentials
 
-Provider keys are stored encrypted at rest, are never returned by any API
-response, and are never placed in frontend state. The logging layer redacts
+The deployed Bedrock signer obtains temporary credentials from the host's
+instance role. The product exposes no Claude Code login or direct Anthropic API
+key setting. No static model key is placed in browser state, and no provider
+credential store is claimed to exist for this native path. The logging layer redacts
 secret-shaped keys and values (`sk-ant-…`, `sk-proj-…`, bearer tokens) before
 anything reaches a log sink — see `aia_api.observability.redact`, and
 [security.md](security.md).
@@ -299,4 +326,25 @@ anything reaches a log sink — see `aia_api.observability.redact`, and
 The prototype documents a real operational trap worth carrying over: machine-level
 `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_PROFILE` and `ANTHROPIC_BASE_URL` variables
 override an explicit API key and cause a 401 that looks like a wrong key. The
-runtime deliberately ignores them and diagnostics should report their presence.
+historical CLI adapter strips those overrides. The native Bedrock path does not
+invoke that adapter or read those credentials.
+
+## What Settings shows
+
+`/app/settings` has one AI section from two sources, and neither is a connection:
+
+| Source | What | Where |
+| --- | --- | --- |
+| Code | The native providers, the worker's role credential, the switch it reads first, each native activity (`respondent_fieldwork`, `design_agents`) with its step kind, capabilities, harness/agent/prompt versions, switches and actions, and the capabilities no native step asks for | `GET /api/v1/settings` → `ai_runtime`, any organization member |
+| Deployment | Each switch by variable name (the worker's vocabulary; `null` is a value it refuses), the source region, the model's inference profile, the approved data classes | `/config` → `aiRuntime`, public and nonsecret |
+
+An activity reads *on in configuration* when every switch it needs is on; *off*,
+naming the first switch that is not; *invalid* when a switch holds a value the
+worker refuses -- the worker then refuses to start, so every activity is invalid;
+and *unknown* when the page cannot read a switch. It never reads *connected*,
+*healthy* or *verified*: nothing on the page calls a model, and whether the worker
+accepted the rest of its configuration shows only in its runs.
+`apps/executors/tests/test_settings_presentation.py` holds the description to the
+worker's composition, and `apps/web/src/lib/ai-runtime.ts` states the one worker
+rule it mirrors. The prototype's providers, policies and project fields are listed
+under a collapsed history, for reading older records.

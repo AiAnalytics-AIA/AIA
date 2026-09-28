@@ -14,8 +14,9 @@ from aia_core.application.develop_seed import (
     seed_develop,
     seeded_study_scope,
 )
+from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.workflows import start_workflow
-from aia_core.domain.scope import ScopeRole, StudyStatus
+from aia_core.domain.scope import ClientStatus, ScopeDenied, ScopeRole, StudyStatus
 from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
 from aia_core.infrastructure.repositories import ProjectRepository
@@ -112,6 +113,96 @@ def test_seed_gives_two_fictional_clients_their_own_work_and_knowledge(
         # Each client's knowledge is its own.
         a, b = seen.values()
         assert not a & b
+
+
+def test_seed_admits_a_new_operator_to_an_existing_world(
+    sessions: sessionmaker[Session],
+) -> None:
+    # A changed AIA_SEED_OWNER_EMAIL used to be denied as `not_a_member` before
+    # the seed could add it, which failed every develop smoke with a bare
+    # "ScopeDenied: not found" (deploy runs 36-38).
+    with sessions() as session:
+        first = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        second = seed_develop(session, owner_email="second-operator@example.test")
+        session.commit()
+    assert second.organization_id == first.organization_id
+    assert second.study_id == first.study_id
+    assert second.owner_user_id != first.owner_user_id
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    assert again.owner_user_id == first.owner_user_id
+
+
+def test_seed_names_why_an_archived_seed_client_is_denied(
+    sessions: sessionmaker[Session],
+) -> None:
+    # Archiving the synthetic client is a person's decision; the seed does not
+    # undo it, and the smoke line says which row stopped it.
+    with sessions() as session:
+        seeded = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        ScopeRepository(session).set_client_status(
+            admin, client_id=seeded.client_id, status=ClientStatus.ARCHIVED
+        )
+        session.commit()
+    with sessions() as session, pytest.raises(ScopeDenied) as denied:
+        seed_develop(session, owner_email=OWNER)
+    assert denied.value.reason == "client_archived"
+    assert smoke.describe_failure(denied.value) == (
+        "ScopeDenied: not found (reason: client_archived)"
+    )
+    assert smoke.describe_failure(RuntimeError("boom")) == "RuntimeError: boom"
+
+
+def test_seed_leaves_an_archived_fictional_client_as_it_was(
+    sessions: sessionmaker[Session],
+) -> None:
+    # A person archiving one of the showcase clients (Settings, PUT
+    # /clients/{id}/status) must not fail every later deploy: the seed leaves
+    # that client archived and seeds nothing into it. Deploy run 40 failed on
+    # an archived client (OI-80).
+    with sessions() as session:
+        seeded = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    archived = seeded.workspaces["lumen-pojistovna"]
+    with sessions() as session:
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        ScopeRepository(session).set_client_status(
+            admin, client_id=archived, status=ClientStatus.ARCHIVED
+        )
+        session.commit()
+
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+
+    assert again.workspaces["lumen-pojistovna"] == archived
+    assert again.study_id == seeded.study_id
+    with sessions() as session:
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(
+                user_id=seeded.owner_user_id, organization_id=seeded.organization_id
+            )
+        )
+        statuses = {
+            c.slug: c.status
+            for c in ScopeRepository(session).list_clients(admin, include_archived=True)
+        }
+    assert statuses["lumen-pojistovna"] is ClientStatus.ARCHIVED
+    assert statuses["horizont-mobility"] is ClientStatus.ACTIVE
 
 
 def test_seed_refuses_a_blank_operator(sessions: sessionmaker[Session]) -> None:

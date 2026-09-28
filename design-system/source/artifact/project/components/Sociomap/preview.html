@@ -1,0 +1,12 @@
+<!-- @dsCard group="Results" height=470 subtitle="Nodes over immutable originals; view overrides are layers" -->
+<!doctype html>
+<html lang="cs">
+<head><meta charset="utf-8"><title>Sociomap</title><style>html,body{margin:0;background:var(--surface);}</style></head>
+<body>
+<div id="root"></div>
+<script>
+  var A = window.AIA, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div",{className:"aia",style:{padding:16,maxWidth:760}},h(A.Sociomap,{label:"Sociomapa objektů",nodes:A.fixtures.MAP_NODES,edges:A.fixtures.MAP_EDGES,overrideBy:"Tomáš Beneš 21. 9.",selected:"d"})));
+</script>
+</body>
+</html>

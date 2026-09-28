@@ -194,7 +194,10 @@ shows a research run parking at fieldwork, `ai_runtime_unavailable` (ADR 0016).
 - **The site does not depend on the unit** (OI-44). Caddy starts without it,
   the deploy waits only on AIA's services, and the unit's health is a smoke
   check: an unhealthy unit fails the deploy but `/login`, `/studies` and the API
-  stay up. The deploy also loads the Caddyfile with this host's `.env` before it
+  stay up. The check waits out the unit's `starting` state (its 120 s start
+  period, while it hydrates) for at most `LEGACY_START_WAIT_SECONDS`, default
+  150, then judges; deploy runs 29 and 30 failed on `starting` with every other
+  check green. The deploy also loads the Caddyfile with this host's `.env` before it
   touches anything, and stops if it does not load.
 
 ### Switching the unit on
@@ -441,11 +444,17 @@ start. Replacing edited state with archive bytes is prohibited.
 
 ### AI settings
 
-`/app/settings` displays Bedrock configuration from the web container's nonsecret
-runtime environment through `/config`. It has no provider login, direct API-key
-field, selector or paid test button. Classic settings navigation is redirected
-there by the product wrapper. The currently enabled capability is fictional,
-internal-only respondent fieldwork; research design generation remains unmigrated.
-The switch is read with the worker's vocabulary (`1`/`true`/`yes`/`on`); a value the
-worker refuses is shown as invalid, not as off. This display is not a live health probe. Historical provider labels in archived
-projects remain historical metadata, not connection controls.
+`/app/settings` has one AI section. What powers AIA comes from code, in the
+settings document's `ai_runtime`: Bedrock, the instance-role credential, and each
+native activity with its capabilities, versions and switches. The switches, region,
+model and approved data classes come from the web container's nonsecret runtime
+environment through `/config`. It has no provider login, direct API-key field,
+selector or paid test button. Classic settings navigation is redirected there by
+the product wrapper. On develop the enabled capability is fictional, internal-only
+respondent fieldwork; native design proposals are implemented and off
+(`AIA_AI_RESEARCH_AGENTS_ENABLED`). Each switch is read with the worker's vocabulary
+(`1`/`true`/`yes`/`on`); a value the worker refuses is shown as invalid, not as off,
+and with the runtime on it stops the whole worker. This display is not a live health
+probe and never says connected or verified. Historical provider labels in archived
+projects remain historical metadata, listed under a collapsed history, not
+connection controls.

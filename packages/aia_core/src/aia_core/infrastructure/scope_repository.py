@@ -706,6 +706,46 @@ class ScopeRepository:
             study=study_row.allow_self_approval if study_row is not None else None,
         )
 
+    def self_approval_levels(self, admin: OrganizationContext) -> dict[str, Any]:
+        """Return every configured self-approval level, as stored.
+
+        ``organization`` is the base value (``None`` = not configured, which
+        resolves to the default). ``clients`` and ``studies`` list only the levels
+        that are set: an absent entry inherits. The raw values are returned, not
+        resolved ones, because an administrator changing the policy needs to see
+        which level decided it, and a resolved ``False`` does not say.
+
+        Requires organization administration, like the write: which parts of the
+        organization have weakened review is itself security-relevant.
+        """
+        admin.require_administer()
+        organization = self._session.scalar(
+            select(OrganizationRow.allow_self_approval).where(
+                OrganizationRow.organization_id == admin.organization_id
+            )
+        )
+        clients = self._session.execute(
+            select(ClientRow.client_id, ClientRow.allow_self_approval)
+            .where(
+                ClientRow.organization_id == admin.organization_id,
+                ClientRow.allow_self_approval.is_not(None),
+            )
+            .order_by(ClientRow.client_id)
+        ).all()
+        studies = self._session.execute(
+            select(StudyRow.study_id, StudyRow.client_id, StudyRow.allow_self_approval)
+            .where(
+                StudyRow.organization_id == admin.organization_id,
+                StudyRow.allow_self_approval.is_not(None),
+            )
+            .order_by(StudyRow.study_id)
+        ).all()
+        return {
+            "organization": organization,
+            "clients": [{"client_id": c, "allowed": bool(a)} for c, a in clients],
+            "studies": [{"study_id": s, "client_id": c, "allowed": bool(a)} for s, c, a in studies],
+        }
+
     def study_spend(self, scope: StudyContext) -> dict[str, float]:
         """Return the study's budget position."""
         scope.require(Permission.VIEW_COSTS)

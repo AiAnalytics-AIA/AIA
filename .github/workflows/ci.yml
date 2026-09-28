@@ -446,6 +446,10 @@ jobs:
               # forward_auth names /panel/gate, so a rename breaks the site.
               "/api/v1/panel/session",
               "/api/v1/panel/gate",
+              # The settings page (.planning/plans/settings-control-panel.md).
+              "/api/v1/settings",
+              "/api/v1/self-approval",
+              "/api/v1/clients/{client_id}/status",
           ]
           missing = [p for p in required if p not in paths]
           if missing:

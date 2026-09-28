@@ -8,13 +8,31 @@ import { buildIdentity } from "@/lib/build";
 // Nothing here is a secret: the Cognito app client is public (PKCE) by design.
 export const dynamic = "force-dynamic";
 
+// The switches native AI activities are turned on by, in the worker's environment
+// (apps/executors/src/aia_executors/ai_runtime.py). Compose hands the web the same
+// raw values; the settings document names which activity needs which.
+export const AI_SWITCHES = ["AIA_AI_RUNTIME_ENABLED", "AIA_AI_RESEARCH_AGENTS_ENABLED"] as const;
+
 export type PublicConfig = {
   cognitoDomain: string | null;
   cognitoClientId: string | null;
   publicOrigin: string | null;
   apiBase: string;
-  // null: the switch holds a value the worker refuses, so it does not start (ai_runtime._flag).
-  aiRuntime: { enabled: boolean | null; provider: "aws_bedrock"; region: string | null; model: string | null; approvedFor: string | null };
+  // A display of the deployment's AI configuration, never a health check: nothing
+  // here says the worker accepted it or that Bedrock answered.
+  aiRuntime: {
+    // null means a flag value the worker rejects.
+    enabled: boolean | null;
+    researchAgentsEnabled: boolean | null;
+    provider: "aws_bedrock";
+    region: string | null;
+    model: string | null;
+    // AIA_AI_ROUTE_APPROVED_FOR as given; approvedClasses is the same, split as the worker splits it.
+    approvedFor: string | null;
+    approvedClasses: string[];
+    // Each switch by its variable name, read with the worker's vocabulary.
+    switches: Record<(typeof AI_SWITCHES)[number], boolean | null>;
+  };
   build: { sha: string | null; built_at: string | null };
 };
 
@@ -32,18 +50,28 @@ export function runtimeSwitch(raw: string | undefined): boolean | null {
   return null;
 }
 
+/** AIA_AI_ROUTE_APPROVED_FOR as the worker reads it: comma-separated, blanks dropped. */
+export function approvedClasses(raw: string | undefined): string[] {
+  return (raw ?? "").split(",").map((c) => c.trim()).filter(Boolean);
+}
+
 export function GET() {
+  const switches = Object.fromEntries(AI_SWITCHES.map((name) => [name, runtimeSwitch(process.env[name])])) as PublicConfig["aiRuntime"]["switches"];
+  const runtime = switches.AIA_AI_RUNTIME_ENABLED;
   const config: PublicConfig = {
     cognitoDomain: process.env.AIA_COGNITO_DOMAIN?.trim() || null,
     cognitoClientId: process.env.AIA_COGNITO_CLIENT_ID?.trim() || null,
     publicOrigin: process.env.AIA_PUBLIC_ORIGIN?.trim() || null,
     apiBase: process.env.AIA_API_BASE?.trim() || "",
     aiRuntime: {
-      enabled: runtimeSwitch(process.env.AIA_AI_RUNTIME_ENABLED),
+      enabled: runtime,
+      researchAgentsEnabled: runtime === false ? false : runtime === null ? null : switches.AIA_AI_RESEARCH_AGENTS_ENABLED,
       provider: "aws_bedrock",
       region: process.env.AIA_BEDROCK_REGION?.trim() || null,
       model: process.env.AIA_BEDROCK_MODEL_ID?.trim() || null,
       approvedFor: process.env.AIA_AI_ROUTE_APPROVED_FOR?.trim() || null,
+      approvedClasses: approvedClasses(process.env.AIA_AI_ROUTE_APPROVED_FOR),
+      switches,
     },
     build: buildIdentity(),
   };

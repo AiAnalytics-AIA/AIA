@@ -69,6 +69,7 @@ import {
 import type { ResearchProject } from "@/unit/research/model";
 import { Icon } from "../icons";
 import { Button, Field, Tag, TextArea, TextInput } from "../ui";
+import { isNativeResult } from "@/lib/research-agent-jobs";
 import { useResearch } from "./context";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
@@ -106,6 +107,7 @@ export function QuestionnaireStep() {
       await step.saved();
       const s = store.get();
       const result = await runJob("researchBuildQuestionnaire", buildPayload(s.project, s.analysis), { title: BUILD_TITLE, warnMs: BUILD_WARN_MS });
+      if (isNativeResult(result)) return;
       store.update(() => ({ project: applyBuilt(result, boot) }), { reason: "questionnaire_ai_1776" });
     }, (m) => m + BUILD_FAILED_SUFFIX);
   };
@@ -116,6 +118,7 @@ export function QuestionnaireStep() {
       await step.saved();
       const s = store.get();
       const result = await runJob("questionnaireOptimize", optimizePayload(s.project), { title: OPTIMIZE_TITLE });
+      if (isNativeResult(result)) return;
       store.update(({ analysis: a }) => applyOptimized(result, a, boot), { reason: "questionnaire_optimized" });
       toast(OPTIMIZE_DONE);
     });

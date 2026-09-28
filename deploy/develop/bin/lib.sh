@@ -57,10 +57,28 @@ require_sha() {
 # so: a pull that works beats a deploy that fails over credential hygiene.
 export AWS_ECR_DISABLE_CACHE=true
 
+# The directory docker reads config.json from. SSM Run Command starts these
+# scripts as root with no HOME at all (deploy run 26, 2026-09-27, stopped on
+# "HOME: unbound variable"); docker then falls back to the passwd entry's home,
+# so this does the same rather than guess.
+docker_config_dir() {
+  if [ -n "${DOCKER_CONFIG:-}" ]; then
+    printf '%s\n' "$DOCKER_CONFIG"
+    return
+  fi
+  local home="${HOME:-}"
+  if [ -z "$home" ]; then
+    home="$(getent passwd "$(id -u)" | cut -d: -f6)" || home=""
+  fi
+  [ -n "$home" ] || die "no home directory for uid $(id -u); set HOME or DOCKER_CONFIG so docker and this script read the same config.json"
+  printf '%s/.docker\n' "$home"
+}
+
 ecr_login() {
   local registry="${AIA_IMAGE_REGISTRY%%/*}"
-  local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"
-  local config="$config_dir/config.json" next
+  local config_dir config next
+  config_dir="$(docker_config_dir)" || exit 1
+  config="$config_dir/config.json"
   if ! command -v docker-credential-ecr-login >/dev/null 2>&1; then
     log "installing the ECR credential helper"
     export DEBIAN_FRONTEND=noninteractive
@@ -89,6 +107,28 @@ ecr_login() {
   chmod 600 "$next"
   mv "$next" "$config"
   log "registry credentials: ECR credential helper (instance role), nothing stored"
+}
+
+# The 18.6.6 unit's health once it has finished starting. The unit is recreated on
+# every deploy (its image is tagged by SHA) and hydrates its data on start, so its
+# healthcheck says "starting" for up to its start period (120 s,
+# legacy/npc-panel-18.6.6/Dockerfile). The deploy does not wait for it, by design,
+# and a single read raced it: deploy runs 29 and 30 (2026-09-27) failed smoke
+# on "starting", about 20 s after the unit was recreated, while every other
+# check passed. This waits out "starting" for at most
+# LEGACY_START_WAIT_SECONDS (default 150), then prints the state. An unhealthy,
+# exited or missing unit is reported at once.
+legacy_unit_health() {
+  local id="$1" state waited=0
+  local limit="${LEGACY_START_WAIT_SECONDS:-150}" step="${LEGACY_POLL_SECONDS:-5}"
+  while :; do
+    state="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null)" || state="missing"
+    [ -n "$state" ] || state="missing"
+    if [ "$state" != "starting" ] || [ "$waited" -ge "$limit" ]; then break; fi
+    sleep "$step"
+    waited=$((waited + step))
+  done
+  printf '%s\n' "$state"
 }
 
 # The running API's build, as /health reports it. Empty when it is not answering.

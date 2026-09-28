@@ -74,7 +74,10 @@ apps/
                             a study's frame and its unit-project binding, ADR 0015),
                             panel (the session + gate in front of /app, /classic and the unit, ADR 0012),
                             research (a study's Design Revisions, readiness, runs, their steps and
-                            artifacts, ADR 0016)
+                            artifacts (ADR 0016), and native agent-jobs beneath each Study,
+                            settings (the read-only settings document: every control and how it is set;
+                            ai_runtime, what powers AIA's model calls from code; ai_history, the
+                            prototype's provider fields, readable and never offered)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data.
@@ -84,7 +87,12 @@ apps/
                             settings (+ settings/classic-projects, the unit's store, OI-58)
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs), the client workspace and its areas, ResearchStudy
-                            (a study's frame from its AIA binding), useResource (404 = nothing here)
+                            (a study's frame from its AIA binding), useResource (404 = nothing here),
+                            settings/ControlPanel (every control from GET /settings, how each is set;
+                            live forms over the admin routes with the signed-in token, lib/api.ts `admin`;
+                            the one AI section: ai_runtime beside /config's switches, never "connected"),
+                            FrontDoor (the branded frame of /login, /logout, /auth/callback)
+    src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
     src/components/rehome/  Primitives (token utilities only), the research stages and the classic
                             projects screens, re-homed under the shell above
     src/unit/               The ONLY way it reaches the unit: routes named by ledger row, parsers,
@@ -96,8 +104,12 @@ apps/
     src/components/rehome/research/  The stage frame (StudyFrame: client, study, binding): rail,
                             save state, job panel, the shared brief analysis (useAnalysis), one
                             screen per stage; ExecutionSteps.tsx: Run, Progress, Results (ADR 0016)
+    src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
+                            live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
                             fictional data is labelled every time, the park is explained
+    src/lib/ai-runtime.ts   How Settings reads an AI activity: on in configuration, off and by which
+                            switch, invalid (the worker will not start), unknown -- never verified
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts,
                               and aia_core domain/report/print_tokens.py (the report's print register)
@@ -112,7 +124,8 @@ apps/
     src/app/interface-document/  The document Caddy serves at /classic: fetch the unit, apply the skin
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
     executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
-    worker.py               The loop: claim, execute, record; reconcile on an interval
+    worker.py               The loop: claim, execute, record; reconcile on an interval.
+                            Refuses a one-connection engine (in-memory SQLite)
     context.py              Checkpoints, per-call metering, lease-fenced transactions
     heartbeat.py            Lease extension + cancellation carried back, one thread per attempt
     settings.py             Typed, validated settings from the environment
@@ -123,6 +136,8 @@ apps/
     registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build
     research.py             The research steps: compile, preflight, fieldwork (parks without a
                             source), aggregate, sociomap; every artifact on the owned design project
+    research_agents.py     Native proposal executor: frozen design/context, StepModelCaller,
+                            provenance artifact; no automatic write or retry
     ai_fieldwork.py         The ai_runtime source: fictional roster, class + lineage, gateway preflight
                             (a refusal parks), one request per respondent block, answers drawn by code
     ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
@@ -140,6 +155,26 @@ packages/aia_core/src/aia_core/
                             structured-output validation, AgentDefinition, FallbackPolicy
     ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
     ai_tools.py             ToolRegistry — scope never from model arguments
+    research_agents.py     Eight closed Research task contracts, prompt/harness versions,
+                            bounded context and task-owned proposal mapping
+    deep_research/          Deep Research (ADR 0017), pure; recorded/offline, nothing registered:
+      contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
+                            stop reasons, the request a run is frozen to
+      workflow.py           the deep_research graph: plan → investigate → merge → verify →
+                            synthesize → publish (defined here; registration is the integrator's)
+      tooling.py            the tool-cost contract: ToolRoute, reserve → dispatching → outcome
+      legacy.py             18.6.6 research_context leakage screen + merge, EXACT (unit captures)
+      grounding.py          a quote must be in a source the same track retrieved; numbers too
+      sources.py            source class + score from declared tables; unknown scores lowest
+      classification.py     a query's class: inherited from its context, never lowered by keywords
+      web.py                what a fetch may reach: public http(s), every hop, every address
+      knowledge_access.py   Client Knowledge frozen at enqueue, classed by kind, retrieved by code
+      planning.py           subjects → tracks → fingerprints; presets (DR-5, proposed); stop rule
+      agents.py             five agents: closed contracts, prompts from the enums, no tools
+      merge.py              declared scores, dedupe, confirmation bonus, the verifier's verdicts
+      synthesis.py          the brief: cite accepted evidence, write only its quotes' numbers
+      bundle.py, quarantine.py  the sealed bundle; respondent context (re-screened against the
+                            final questionnaire), design input, analysis context
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
                             contract, fictional roster, facts by code, interpretation, the dataset
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
@@ -164,7 +199,8 @@ packages/aia_core/src/aia_core/
       companions.py         Companion assets + the fail-closed joint certificate gate
       authority.py          Population-operator capability (establish / promote)
     project.py              Project, revisions, stage state
-    providers.py            Provider policy, model roles, budget and error semantics
+    providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
+                            (Bedrock) -- the prototype's providers and policies are read from records only
     residency.py            EU residency, data classes, the fail-closed egress boundary
     scope.py                Organization/Client/Study vocabulary, roles, permissions; StudyKind
                             (RESEARCH / SIMULATION); ClientContext + ClientPermission
@@ -188,6 +224,9 @@ packages/aia_core/src/aia_core/
       numbers.py            Czech print formatting; never re-rounds; effective n rounds down
       copy.py               The report's own Czech vocabulary
       outline.py            Every printed number: chapters, appendices, headings, figures, cross-ref labels
+      rendering.py          ReportRenderer protocol: the seam to the DOCX adapter
+      templates.py          client / final / internal / documentation recipes; the client report
+                            keeps the legacy client_report_v2 section order
     evidence/               What may be claimed — every gate fails closed
       field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
       joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
@@ -217,6 +256,21 @@ packages/aia_core/src/aia_core/
     report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
       embed.py              ECMA-376 obfuscated font embedding; deterministic keys
       styles.py             The Word style sheet, built from print_tokens (S = every style name)
+      renderer.py           DocxRenderer.render(doc) -> bytes: validate, outline, write, finish;
+                            deterministic bytes (fixed zip timestamps)
+      layout.py             Sections (cover / front i, ii / body 1, 2 / appendix), running heads,
+                            the draft footer, cover, document control, TOC fields
+      blocks.py             One renderer per model block; no direct formatting
+      tables.py             The data table: SEQ caption with base n, repeating header, suppressed
+                            rows removed and counted, landscape sections
+      charts.py, figures.py Charts from the ledger with the viz tokens (7 kinds, hatched modelled
+                            series, direct labels); figures; the Sociomap gate (require_client_facing)
+      dispatch.py           Which renderer draws which block
+      marks.py, images.py   Evidence marks (one glyph per grade; unknown prints "?"), SVG + PNG
+                            fallback images with alt text (asvg:svgBlip)
+      plotting.py           Matplotlib for the report: vendored fonts, tokens, deterministic SVG/PNG
+      context.py            RenderContext: the state of one render
+      lint.py               lint_docx: no direct formatting, schema order kept
       ooxml.py, numbering.py, footnotes.py  Fields and bookmarks; lists; the footnotes part
       fonts/                Upstream TTFs, unmodified, with licences + SHA256SUMS
     tables.py               SQLAlchemy tables
@@ -252,6 +306,10 @@ deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/
 infra/develop/              Terraform for the develop AWS resources (one root, no modules)
 docs/architecture/          System design + 16 ADRs; ai-step-executor-contract.md
 docs/design/                Brand and UI direction; the design-system brief
+design-system/              The AIA Design System artifact as a static reference package for design tools:
+                            tokens (CSS + flat JSON), fonts, identity SVGs, status-map.md (from the domain
+                            enums), three no-build HTML pages, the artifact verbatim. Not imported by apps/web,
+                            whose token source stays apps/web/src/design/tokens.json
 docs/migration/             Plan, status, legacy map, MVP acceptance test
   parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
   legacy-route-ledger.json  The strangler's route ledger: 153 legacy routes, LEGACY/PORTING/PORTED/RETIRED
@@ -262,6 +320,8 @@ docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
+tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via LibreOffice,
+                            lint, greyscale, +35 % Czech stress (manual)
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
 tools/progress.py           Every plan's status from its front-matter; `--check` validates it
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
@@ -269,6 +329,8 @@ tools/aggregate_capture.py  Research fixtures from the unit's own functions: `ca
                             the unit's venv), `self` (AIA's pinned bounds)
 tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own behavior.py / styly.py
                             (`capture`, in an environment with NumPy, pandas and SciPy)
+tools/deep_research_capture.py  Leakage-screen and merge fixtures from the unit's own
+                            research_context.py (`capture`, `verify`; stdlib only)
 tools/bootstrap_seed_sensitivity.py  The unit's bootstrap spread over seeds: the evidence for OI-62
 tools/ui_functions.py       Extract ui_app.html's 737 functions verbatim; `effective` prints the binding
                             that runs (the last declaration or reassignment); check the UI ledger
@@ -375,6 +437,14 @@ reference's recorded outputs, vendored under
 `packages/aia_core/tests/fixtures/sociomap/` and pinned by SHA256 in its
 `index.json`. They run in every CI job. Never edit one to make a test pass.
 
+**A Deep Research finding is a quote in a captured source, or it is nothing** (ADR 0017,
+[deep-research.md](docs/architecture/deep-research.md)). Code picks the subjects and tracks,
+sends every query and fetch, and grounds every quote in a content-addressed snapshot of the same
+track; models only propose. A query's data class is inherited from what it was written from and
+never lowered by keywords. The 18.6.6 leakage rule is kept exactly and bars a finding from
+respondent context, which is re-screened against the final questionnaire. The core is
+recorded/offline: no live search, no route, nothing registered in production.
+
 **Evidence is a capability, like scope.** A number reaches an analysis result only
 as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,
 joint structure, support, interval and tier have all passed. Prompts state the
@@ -404,7 +474,7 @@ ungated fixture.
 | Purpose | Command |
 |---|---|
 | One-time setup | `make setup` |
-| Start Postgres / Redis / MinIO | `make services` |
+| Start Postgres / MinIO | `make services` |
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
 | Run everything | `make dev` |
@@ -419,6 +489,7 @@ ungated fixture.
 | **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |
 | Capture UI function fixtures | `python tools/ui_function_capture.py capture` (needs Node); `verify` re-runs and compares |
 | **Plan status** | `python tools/progress.py`; `--check` validates every plan's front-matter |
+| **Report preview** | `make report-preview` — the four sample reports as pages, in colour, greyscale and +35 % stress (needs `libreoffice-writer`, `poppler-utils`) |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` |
 | Format | `make format` |
@@ -430,6 +501,7 @@ ungated fixture.
 | Workbench research fixtures | `make ui-fixtures` (workbench running): fictional projects, prints their `/app` links |
 | **A research run, end to end** | `make ui-research` (workbench + fixtures): Run → Progress → Results in a browser, on fictional fieldwork |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
+| Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, every router route and DEMO view, bare and skinned, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **The 18.6.6 skin** | Edit `apps/web/src/skin/*`, then `npm run skin` (in `apps/web`); `npm run skin:check` is the drift check |
 | **Layering** | `make layer_check` |
@@ -547,7 +619,7 @@ purpose and was the right tool.
 ```
 main                       release branch; receives release PRs from develop
   └── develop              integration branch; CI on every push; every green head is
-       │                   deployed to https://dev.<domain>/ (ADR 0009)
+       │                   deployed to https://aia-develop.art-chain.io/ (ADR 0009)
        ├── feature/<slug>  new capability
        ├── fix/<slug>      defect
        └── chore/<slug>    docs, plan archiving, dependency bumps, tooling
@@ -733,3 +805,13 @@ plainly without hedging.
 
 Do not narrate options you are not going to take, and do not re-explain a
 decision that has already been made.
+
+## Native Research agents (2026-09-27)
+
+[research-agents.md](docs/architecture/research-agents.md) describes contracts,
+context, acceptance and activation. Fieldwork activation does not activate design
+jobs. The additional worker keys are `AIA_AI_RESEARCH_AGENTS_ENABLED`,
+`AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS` and `AIA_AI_RESEARCH_RESERVATION_USD`; the
+reservation covers primary plus one schema repair. Analysis/report execution and
+owned web retrieval remain in the complete-workflow plan, not delivered by the
+proposal executor. Do not describe model recollection as web research.

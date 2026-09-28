@@ -40,7 +40,7 @@ changing domain logic runs `make test-parity` locally against
 than zero tests, rather than that it exited zero.
 
 **Status.** **Reporting half closed** by the parity-matrix work
-(`.planning/plans/parity-matrix-and-gates.md`): the `|| true` is gone, every CI
+(`.planning/plans/done/parity-matrix-and-gates.md`): the `|| true` is gone, every CI
 pytest step writes JUnit, and the `parity-status` job reports each of these
 tests' gates as `NOT_EXECUTED` — a skip can no longer read as a pass
 (`packages/aia_core/tests/test_parity_status_tool.py::test_a_skipped_gate_is_not_executed_never_passed`,
@@ -562,7 +562,12 @@ registration is accepted, and a registered version with a different fingerprint
 is refused.
 
 **Status.** Open, not yet exposed. Must land before, or with, the first path that
-can emit a Sociomap to a client.
+can emit a Sociomap to a client. *2026-09-27:* the Consequence's "no such path exists
+yet" is stale. The `sociomap` research step and its route exist
+(`apps/executors/src/aia_executors/research.py` `SociomapExecutor`,
+`apps/api/src/aia_api/routers/research.py` `_RESEARCHERS_ONLY`), and the artifact is
+`INTERNAL_ONLY`; `research_sociomap.require_client_facing` refuses it while D6 is open.
+The exposure is still nil, and the registry this item asks for is still owed.
 
 ---
 
@@ -1056,7 +1061,10 @@ schedules; first tests on `auth.ts` (`parseBuildSha`-style pure functions,
 
 **Test that would catch it.** A CI step `npm test` that fails on a missing script.
 
-**Status.** Open.
+**Status.** Runner half **closed**: Vitest landed in `23873d4` (2026-09-24),
+`apps/web/package.json` `"test": "vitest run"`, and CI runs `npm test`
+(`.github/workflows/ci.yml`, *Frontend*). Still open: `src/lib/auth.ts` and
+`src/lib/api.ts`, the two files this item named, have no test file (2026-09-27).
 
 ---
 
@@ -1340,8 +1348,10 @@ pulls and `local.images` in the Terraform must be the same set. Terraform does
 not run in CI, so a text-level check is the only one that fires before
 `apply`; the test explains why it parses with regular expressions.
 
-**Status.** Fixed in code in this change; `terraform apply` and the re-run are
-human actions, tracked under OI-39.
+**Status.** **Closed.** The operator applied Terraform (PROGRESS, Completed ›
+strangler 2), deploy run 12 went green with the unit healthy, and every deploy since
+builds and pushes `aia-legacy-panel` (run 26, step *Build and push aia-legacy-panel*,
+success, 2026-09-27). The oracle's own secrets remain OI-39.
 
 ## OI-42 · Finding · A refused study request's audit row is rolled back with the request
 
@@ -1897,7 +1907,12 @@ depend on the caller being an owner or admin: every page's data already comes fr
 routes, which apply the grants, not the gate.
 
 **Consequence of leaving it.** Researchers who hold the right client and study grants cannot use
-the product; owners and admins become the only users by accident of the migration.
+the product; owners and admins become the only users by accident of the migration. **In
+production, `/app` cannot be served at all:** its gate answers only when
+`AIA_LEGACY_PANEL_ENABLED` is on (`apps/api/src/aia_api/routers/panel.py` `_require_enabled`),
+and `Settings.validate_for_production` refuses that setting
+(`apps/api/src/aia_api/config.py:213-215 @ 043b0dd`). So this item blocks a production `/app`,
+not only its audience (recorded 2026-09-27).
 
 **Removal condition.** Stage state is fully AIA-scoped for the stages a researcher uses (OI-58);
 then `/app` moves to a gate that admits any provisioned member, and the unit's own paths keep the
@@ -2106,3 +2121,439 @@ SQLite's backup API to include WAL. Keep the pinned application unchanged.
 **Recovery.** Two missing projects have native submitted design copies. No saved
 copy has yet been found for the two other fictional demos. Recovery or explicit
 recreation must preserve study identity and must not invent original content.
+
+**Status.** Fixed in code: PR #57 @ `ff463a3`, deployed by run 25 (2026-09-27). The
+recovery above is still open, and it is operational. The fix is a hand edit inside the frozen
+unit (OI-68).
+
+---
+
+## OI-67 · Reproduced defect · A deploy under SSM stops on `HOME: unbound variable`
+
+**Claim.** `ecr_login` reads `$HOME` under `set -u`, and SSM Run Command starts the
+deploy as root with no `HOME`, so every deploy since PR #59 stops before pulling.
+
+**Anchor.** `deploy/develop/bin/lib.sh:62 @ 043b0dd`
+(`local config_dir="${DOCKER_CONFIG:-$HOME/.docker}"`); *Deploy develop* run 26
+(`36309424041`), host output `bin/lib.sh: line 62: HOME: unbound variable`.
+
+**Reproduction.** `pytest packages/aia_core/tests/test_develop_registry_credentials.py`
+on PR #64's branch with `lib.sh` reverted: the two HOME-less tests fail with that
+message.
+
+**Consequence.** The host stays on `ff463a3`. PRs #59, #61, #54 and #62 are merged but
+not deployed, and every dispatched deploy fails red.
+
+**Smallest fix.** Resolve the config directory as docker does: `DOCKER_CONFIG`, then
+`HOME`, then the passwd entry's home. Refuse, with a message, when none exists.
+PR #64.
+
+**Test that would have caught it.**
+`test_a_deploy_without_home_writes_the_config_docker_reads`,
+`test_a_deploy_with_no_home_anywhere_stops_and_says_why`.
+
+**Status.** **Closed.** PR #64, merged 2026-09-27 10:29 (`96581bc`). Proven on the host by *Deploy
+develop* run 28 (`36313351584`) @ `e0edf2a`: the SSM step passed, smoke passed every check, and
+`/api/v1/health` and `/version` both report `e0edf2a`.
+
+---
+
+## OI-68 · Hypothesis · The OI-66 fix lives in a generated file that re-extraction would overwrite
+
+**Claim.** PR #57 fixed OI-66 by editing `legacy/npc-panel-18.6.6/runtime/hydrate_data.py`
+by hand (`65b5e9d`, `3932e5d`). `legacy/README.md` says the whole `npc-panel-18.6.6/`
+tree is generated by `AIA-reference/tools/extract_legacy.py`, and that "nothing under it
+is edited by hand". CLAUDE.md §2's map says "Frozen: regenerated, never edited", though its
+prose narrows the rule to `app/`. Unless the same change is in the extractor's
+copy, the next extraction restores the code that deleted saved projects.
+
+**Anchor.** `legacy/README.md:5-8 @ 46b7337`; `git log -- legacy/npc-panel-18.6.6/runtime/`.
+The file is not pinned by `runtime-assets.SHA256SUMS.txt` or `EXTRACTION.json`, so no
+verification step would notice either way.
+
+**Reproduction.** None here. The extractor is in the private reference repository,
+which this session cannot read. A hypothesis until someone re-runs the extraction into
+a scratch tree and diffs `runtime/`.
+
+**Consequence.** If the hypothesis holds, a routine re-extraction silently brings back
+OI-66's data loss.
+
+**Smallest fix.** Land the same change in the reference repository's `runtime/` source.
+Or state `runtime/` as an AIA-owned exception to "never edited" in `legacy/README.md` and
+CLAUDE.md §2, and make the extractor refuse to overwrite it.
+
+**Test that would have caught it.** `test_legacy_state_hydration.py` already fails on the
+old code, so a re-extraction that reverts the fix turns CI red. The risk is a
+re-extraction merged on a red CI, which OI-32's branch protection closes.
+
+**Status.** Open (2026-09-27). Owner: whoever next runs `extract_legacy.py`.
+
+---
+
+## OI-69 · Reproduced defect · Two API test modules run a worker on in-memory SQLite
+
+**Claim.** `test_research_api.py` and `test_runs_api.py` start a real `Worker` on
+`:memory:` SQLite. The heartbeat thread's session close rolls back the shared
+connection, and a step's artifact dependency then fails its foreign key.
+
+**Anchor.** `apps/api/tests/conftest.py` `settings` (`:memory:` default) and
+`packages/aia_core/src/aia_core/infrastructure/db.py` (`StaticPool`) @ `043b0dd`.
+Diagnosed on PR #54 (comment, 2026-09-25).
+
+**Reproduction.** Run
+`pytest "apps/api/tests/test_research_api.py::test_research_artifacts_are_read_only_through_the_run_that_produced_them"`
+40 times with `DATABASE_URL` unset: 3 failures in 41 runs on 2026-09-27.
+
+**Consequence.** A red *Backend* job on any PR, unrelated to that PR's change.
+
+**Smallest fix.** A file-backed database per test in those two modules, the rule
+`AGENTS.md` already states. PR #65; 0 failures in 60 runs after it.
+
+**Test that would have caught it.** The test itself, run repeatedly. The rule is now named
+in `AGENTS.md` beside the worker's own conftest.
+
+**Status.** Fixed: PR #65, merged 2026-09-27 10:30 (`e0edf2a`). Before it landed, the same race
+also crashed CI on `develop` @ `46b7337` with a segmentation fault inside this test (run
+36312008574; the crashing thread was in a worker transaction on the shared connection).
+
+**Structural fix, 2026-09-27 (`claude/loving-hopper-qiflcr`).** PR #65 fixed the two modules; it
+did not stop a third from doing the same. `Worker.__init__` now refuses a session factory
+whose engine `shares_one_connection` (`apps/worker/src/aia_worker/worker.py`,
+`_require_a_connection_per_thread`). The race is reproduced deterministically by
+`apps/worker/tests/test_shared_connection.py::test_a_heartbeat_session_closing_mid_step_breaks_only_a_shared_connection`,
+which closes a second session straight after the artifact row flushes and gets the reported
+`IntegrityError` (foreign key, "Query-invoked autoflush", `project_artifact_dependencies`) on
+`:memory:` and none with a connection per session. With PR #65's override removed, the
+research test now fails 3 of 3 runs with that `ValueError`, instead of about one in fourteen.
+The hypothesis of a duplicate edge on content-hash reuse is refuted: the Sociomap step's
+`depends_on` is `[spec_id, dataset_id]`, two distinct ids, and the failing insert is the first
+edge, whose parent row had been rolled back.
+
+The known-flakes entry for this test in CLAUDE.md, added by `08bf3c7` and merged to `develop`
+with PR #67 (`2beafd9`), was measured at `46b7337`, before `e0edf2a`, and named the wrong cause.
+PR #69 removes it.
+
+---
+
+## OI-70 · Observed flake · BriefStep's problem-type toggle is read before it re-renders
+
+**Claim.** `apps/web/src/components/rehome/research/BriefStep.test.tsx` › *a problem type
+is a toggle that fills an empty goal with its default* clicks a tile and synchronously
+expects `aria-pressed="true"`. It failed once with `expected 'false' to be 'true'`
+(`BriefStep.test.tsx:99`).
+
+**Anchor.** `BriefStep.test.tsx:97-99` @ `cfb1532` (2026-09-24); unchanged by PR #63.
+
+**Reproduction.** Intermittent: 1 failure in 26 full `npm test` runs on a 4-core machine
+(2026-09-27; 20 on #63 merged with `develop`, 6 on #63 before the merge). The same failure
+hit CI once, on #68's *Frontend* job @ `78f1473` (a docs-only commit). The same day it was
+reproduced 2 times in 61 runs of the test alone (`repeats: 60`), and 2 times in 6 full suites.
+
+**Cause (confirmed).** The tile can be on screen before the research store is subscribed:
+`useSyncExternalStore` subscribes in a passive effect, which runs after the commit that drew
+the tile, and `findByRole` can resolve in between. The click's `store.update` then has no
+subscriber, so nothing renders until the effect subscribes. With a log at the click, the 2
+failures in 61 runs were exactly the 2 in which the same commit's other effect (the agents'
+`agent-jobs` request) had not run yet; all 59 passes had it. The product renders the click a
+moment later, so no click is lost; only the test's synchronous read is wrong.
+
+**Consequence.** A red *Frontend* job on any PR, unrelated to that PR's change.
+
+**Smallest fix.** Assert through `await waitFor(...)`, or find the pressed tile with
+`findByRole("button", { name: …, pressed: true })`, not a synchronous read after the
+click.
+
+**Test that would have caught it.** The test itself, run repeatedly under load.
+
+**Status.** Fixed in code: PR #71 (2026-09-27). The test waits for the pressed tile
+(`findByRole(..., { pressed: true }, { timeout: 5_000 })`). 305 runs passed, 2 of them with
+the click before the effects, and the full web suite passed 772 of 772. `AGENTS.md`
+§ Next.js / TypeScript has the trap.
+
+---
+
+## OI-71 · Finding · Smoke reads the 18.6.6 unit's health before its first probe has passed
+
+**Claim.** `smoke.sh` reads the unit's health once, about 20 s after `bin/deploy.sh` recreates it.
+Docker reports `starting` until the unit's first healthcheck probe passes. The probes run every
+15 s during a 120 s start period, so a healthy unit that is not up by the first probe (15 s) fails
+the deploy.
+
+**Anchor.** `deploy/develop/bin/smoke.sh:101-104 @ 85fa951` (one `docker inspect`, no wait);
+`legacy/npc-panel-18.6.6/Dockerfile:50 @ 85fa951` (`--interval=15s --start-period=120s`).
+
+**Reproduction.** *Deploy develop* runs 29 (`36314741586`) and 30 (`36315831550`): the host printed
+`replacing services`, then `smoke tests` 19 s later, and `FAIL  legacy: the 18.6.6 unit is healthy`
+with `state 'starting'`. Every other check passed. Run 28 (`36313351584`) had the same 19 s gap and
+passed, because its unit was up by the first probe, and run 31 (`36316771795`, `2beafd9`) passed
+too: 2 of the 4 deploys that reached smoke on 2026-09-27 failed on it. Offline:
+`packages/aia_core/tests/test_develop_legacy_unit_health.py` on PR #70 fails all 5 tests against
+the scripts @ `85fa951`.
+
+**Consequence.** *Deploy develop* goes red although the new build is serving, and "Confirm from
+outside" is skipped. The failure message points the operator at the data bundle, which was fine.
+
+**Smallest fix.** Wait out `starting` in the smoke read only, bounded (PR #70:
+`lib.sh` › `legacy_unit_health`, at most `LEGACY_START_WAIT_SECONDS`, default 150). The fix is not
+`compose up --wait` on the unit, which OI-44 removed so that a broken unit cannot keep the site
+down.
+
+**Test that would have caught it.** `test_develop_legacy_unit_health.py` (PR #70).
+
+**Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
+deploy that carries it.
+
+---
+
+## OI-72 · Finding, fixed in code · Settings said AIA runs on the Claude Code subscription
+
+**Claim.** `GET /api/v1/settings` presented `claude_code_subscription` under `CLAUDE_CODE_ONLY`
+as AIA's AI default, listed the prototype's providers and policies as choices, and offered a
+project provider policy and a per-project API ceiling "on the project screen", while the worker
+builds exactly one provider, Bedrock, and holds native spend to the Study budget.
+
+**Anchor.** `apps/api/src/aia_api/routers/settings.py:172-184, 204-220, 386-387 @ ceee2dc`;
+`apps/web/src/components/aia/settings/ControlPanel.tsx:135-147, 489-517 @ ceee2dc`;
+the card above it, `apps/web/src/components/aia/GlobalPages.tsx:110-124 @ ceee2dc`
+("Připojení spravuje AIA" whatever the switch said). The worker's one provider:
+`apps/executors/src/aia_executors/ai_runtime.py:259-298 @ ceee2dc`.
+
+**Reproduction.** `apps/api/tests/test_settings_api.py` ›
+`test_no_native_choice_or_default_is_spelled_as_the_prototype` fails against the router
+@ `ceee2dc`; on develop, the *AI poskytovatelé a modely* section of `/app/settings`.
+
+**Consequence.** A researcher reading Settings was told AIA needs a Claude Code subscription
+and that project fields steer model choice and spend; neither is true of a native run.
+
+**Smallest fix.** Describe the native runtime from code, show the switches from `/config`,
+never claim a connection, and keep the prototype's identifiers as history
+([plan](plans/truthful-ai-controls.md)).
+
+**Test that would have caught it.** The test above;
+`test_the_runtime_is_bedrock_from_code_and_claims_no_connection`;
+`apps/executors/tests/test_settings_presentation.py`; `ControlPanel.test.tsx` › *what powers AIA*.
+
+**Status.** Fix in code on `fix/truthful-ai-controls` (draft PR). Not merged, not deployed.
+
+---
+
+## OI-73 · Handoff · Research editing and the classic projects screen still speak the subscription runtime
+
+**Claim.** The research stages' unit-backed jobs, their store and the classic projects screen
+still label or write work in the prototype's subscription terms: the job cost line
+"subscription · API $0 · tokeny po dokončení", the pause note "Čekám na dostupnost Claude
+Pro.", `run_policy.provider = "claude_code_subscription"` written into the unit's project, the
+provider tag "Claude Code" and "Projekt čeká na obnovení Claude Code kreditů".
+
+**Anchor.** `apps/web/src/unit/research/jobs.ts:86-87, 137 @ ceee2dc` (imported by
+`components/rehome/research/JobPanel.tsx`); `unit/research/model.ts:61` (`PROVIDER_FORCED`),
+`unit/research/brief.ts:141, 176`, `unit/research/questionnaire.ts:359-393`,
+`unit/research/store.ts:49`; `unit/projects.ts:239, 247`,
+`components/rehome/projects/ProjectCard.tsx:46`; the unused rail labels
+`rehome.navSettingsClaude`, `rehome.statusClaude` (`i18n/cs.ts:468, 471 @ ceee2dc`).
+
+**Reproduction.** `grep -rn 'claude_code\|Claude Pro\|subscription · API' apps/web/src/unit apps/web/src/components/rehome`.
+
+**Consequence.** Wherever a stage still follows a unit job, a researcher can see subscription
+wording that Settings no longer uses; the unit's stored project names a provider no native
+run reads.
+
+**Smallest fix.** Owned by the phase-out agent (research draft serialization, classic
+screens, legacy navigation): drop the subscription branches when each stage leaves the
+unit's store (OI-58), and delete the two unused rail labels.
+
+**Test that would have caught it.** A text check like `ControlPanel.test.tsx`'s `OVERCLAIM` /
+`LOGIN` patterns over the research job panel.
+
+**Status.** Open. Found by the truthful-ai-controls audit, deliberately not edited there.
+
+---
+
+## OI-74 · Question · The generic project API still stores provider fields no native run reads
+
+**Claim.** `PATCH /api/v1/studies/{study_id}/projects/{project_id}` still accepts and stores
+`preferred_provider`, `provider_policy` and `max_api_cost_usd`; no native execution path reads
+them (native models come from the worker's policy, native spend from the Study budget).
+
+**Anchor.** `apps/api/src/aia_api/schemas/projects.py:31-35 @ ceee2dc`;
+`packages/aia_core/src/aia_core/infrastructure/repositories.py:532-577 @ ceee2dc`.
+
+**Reproduction.** `grep -rn "max_api_cost\|provider_policy\|preferred_provider" apps/*/src packages/aia_core/src/aia_core/application`
+finds the project repository and schema only.
+
+**Consequence.** An API client can set a value that looks like a control and changes nothing;
+Settings now says so (`ai_history`), but the route still accepts it.
+
+**Question.** Freeze them (read-only, kept for persisted projects) or retire them from the
+request schema? Owner: whoever owns the generic projects API. Not a blocker for anything.
+
+---
+
+## OI-75 · Question · Should Settings show recorded evidence that the runtime answered?
+
+**Claim.** Settings can say a capability is switched on in configuration, never that it works:
+the only truthful *verified* signal without a probe is the usage ledger's last `SUCCEEDED`
+call per activity, and reading it for Settings would be an organization-wide query across
+every client's studies.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/tables.py:1203-1290 @ ceee2dc`
+(`ai_usage_events` carries `organization_id`, `capability`, `model`, `route_id`, `outcome`);
+`ARCHITECTURE.md` §3 ("only the work queue may query across studies").
+
+**Question.** Is an aggregate (last success time, model and build per activity, no client or
+study identifiers, owners and admins only) an acceptable second cross-study read, or does
+evidence stay on each Study's runs? Until decided, Settings says *Neověřeno* and points at the
+runs. Data owner + integration-architecture.
+
+---
+
+## OI-76 · Finding, fixed · Native Research screen tests fail on a /config failure an earlier test left cached
+
+*Filed as "Observed flake · Native research-agent screen tests outrun their 15 s budget under
+load" on `fix/truthful-ai-controls` (PR #75), and closed here, where the fix lands. When #75
+merges, this entry replaces its copy.*
+
+**Claim.** In a full web run, a research test file's native jobs can all fail at their first
+request: the file's first test can leave `loadConfig()` holding a rejected `/config` read, and
+`loadConfig()` kept it for every later test in the file. A test waiting for a review dialog then
+times out at its full 15 s wait; one waiting for the failure card fails fast on its message.
+
+**Anchor.** `apps/web/src/lib/auth.ts:30-40 @ dd27f68` (`loadConfig` keeps its first promise,
+rejection included, and nothing resets it); `apps/web/src/components/rehome/research/useResearchAgents.tsx:43-46 @ dd27f68`
+(the mount effect's `refresh()`, the request that outlives its test) and
+`apps/web/src/lib/api.ts:22-25 @ dd27f68` (`request()` awaits the token, then `loadConfig()`). As
+first reported: `test-native-agents.ts:53 @ ceee2dc` (`NATIVE_JOB_WAIT`). Failing tests:
+`AudienceStep.test.tsx` › *reviews an audience proposal while preserving researcher-controlled
+filters*; `BriefStep.test.tsx` › *runs the analysis as a job…*, *requests a frozen native
+context…*, *explains the unavailable design capability…* and *shows the native failure…* (the
+fast one); `PlanStep.test.tsx` › *answers the follow-up questions…* and *comments on selected
+text…*, found here.
+
+**Reproduction.** Deterministic, one file: give `BriefStep.test.tsx` a
+`beforeAll(() => loadConfig().catch(() => {}))`, so its first `/config` read goes through the real
+`fetch` as the leaked request's does, and run `npx vitest run src/components/rehome/research/BriefStep.test.tsx`
+in `apps/web`. On `dd27f68` 4 of 9 fail, OI-76's pattern exactly: three at 15.1 s and *shows the
+native failure…* at 139 ms. Under load, as first seen: the full `npx vitest run`, one 4-core cloud
+container, 2026-09-27. `dd27f68` failed 2 of 10 runs (AudienceStep at 15 093 ms; the two PlanStep
+tests at 15 252 and 15 277 ms). The first report had `ceee2dc` 2 of 6 and `fix/truthful-ai-controls`
+1 of 8. Every failing file passes alone.
+
+**Cause (confirmed).** A research screen's first request is the agents' `agent-jobs` read, from
+the mount effect of `useResearchAgents`. A file's first test can end on a `findBy*` that resolved on
+the commit that drew the screen, before that commit's passive effects ran (the OI-70 gap). The
+`afterEach` then calls `cleanup()`, and React runs the pending mount effect while it unmounts
+(`cleanup → unmount → flushPendingEffects → flushPassiveEffects`). The effect's request is still
+awaiting its token when `vi.unstubAllGlobals()`, the next line, restores the real `fetch`. Its next
+step, `loadConfig()`, finds the cache empty and reads `/config` through the real `fetch`, which under
+jsdom rejects a relative URL at once (`TypeError: Failed to parse URL from /config`). `loadConfig()`
+kept that rejection, so every native request later in the file failed at `loadConfig()`. The jobs
+never reached review, and the failure card and the agents' notice both read *Failed to parse URL
+from /config*. The fast failure is the same cause, not fallout from the test before it: its card
+showed the config error where the test expects `MODEL_TIMEOUT: nic se nevrátilo`. Measured with
+probes on the mount effect, on `loadConfig()` and on the real `fetch` (an experiment, not
+committed): 5 of 10 instrumented full runs failed, and each had exactly one research request through
+the real `fetch`: `/config`, from the failing file's first test, with the cache empty. The 5 passing
+runs had none. With the full stack recorded, the effect that leaked ran inside `cleanup()`, the only
+one of that run's 62 that did. Not a timer, and not load: in the 10 baseline runs the same tests
+passed in at most 0.9 s (at most 0.99 s in the 20 runs with the fix), and failed only at the full
+15 s.
+
+**Consequence.** A red *Frontend* job on pull requests that never touched the research screens,
+because CI runs the whole Vitest suite. The same code in the product: once a page's one `/config`
+read failed (a deploy replacing the web container, a dropped connection), every later API call on
+that page failed with it until a reload. That follows from the code and `auth.test.ts` pins it;
+nobody has reported it from a browser.
+
+**Smallest fix.** Two changes, each enough on its own for the reproduction:
+1. `loadConfig()` does not keep a failed read; the next call reads `/config` again, as `loadBoot()`
+   already does (`apps/web/src/lib/auth.ts` › `loadConfig`).
+2. `nativeAgentFixture` empties the config cache (`resetConfigCache()`, tests only) before each
+   test stubs `fetch`, and again when the test finishes, so a test's requests read `/config`
+   through its own stub (`test-native-agents.ts`).
+
+No wait was changed: a larger one would only have made the failures slower. The leaked request
+still runs, harmlessly. `request()` takes no abort signal, and giving it one would change
+`useResearchAgents` (PR #74's file), which this fix leaves alone.
+
+**Test that would have caught it.** `apps/web/src/lib/auth.test.ts` › *does not keep a failed read:
+the next call reads /config again* and *does not keep a refused answer either*; both fail against
+`dd27f68`'s `loadConfig` given only the reset hook. The one-file reproduction above.
+
+**Status.** Merged in PR #83 (`fix/native-tests-config-cache`, 2026-09-27). The reproduction passes
+9 of 9 with both changes, and with each alone. Full runs with the fix, on the same container:
+20 of 20 passed, 776 tests each, where `develop` @ `dd27f68` failed 2 of 10. Under doubled load
+(both trees' full suites at once, the Python suites alongside), `develop` passed 8 of 8 and this
+branch 7 of 8. That one failure was an unrelated test, `ClientFirst.test.tsx` › *loads the working
+content its AIA binding names…*: a separate race that `develop` has too, since it fails the same way
+on `dd27f68` when the stage's load starts 30 ms late (described in PR #83). `AGENTS.md`
+§ Next.js / TypeScript has the trap. Owner of the research screens: job 6 / the phase-out agent.
+PRs #74 and #77 touch neither `auth.ts` nor `test-native-agents.ts`, and their rewritten tests
+call `nativeAgentFixture`, so they carry the reset.
+
+---
+
+## OI-77 · Reproduced defect · A corrupt artifact's CORRUPT mark is rolled back with the read that found it
+
+**Claim.** `ArtifactRepository.read` flushes `CORRUPT` onto an artifact whose bytes fail
+verification (a hash mismatch or a missing object) and re-raises, and every caller then ends its
+transaction on that exception, so the mark is rolled back and the artifact stays `VALID`.
+
+**Anchor.** All @ `ceee2dc`, unchanged at `dd27f68`:
+- `packages/aia_core/src/aia_core/infrastructure/artifact_repository.py:411-418`: `read` marks,
+  flushes and re-raises. `:262-267`: `find_reusable` checks only that the object exists.
+- The API: `apps/api/src/aia_api/routers/runs.py:325` and `routers/research.py:611` answer 409
+  `artifact_corrupt`; `routers/research.py:671-686` (`_agent_errors`) maps no storage error, so the
+  proposal read at `packages/aia_core/src/aia_core/application/research.py:328` becomes a 500;
+  `apps/api/src/aia_api/dependencies.py:129-131`: `get_session` rolls back on either.
+- The worker: `apps/worker/src/aia_worker/context.py:267-269` (`StepContext.transaction` rolls
+  back), `apps/worker/src/aia_worker/worker.py:383-390` (the step fails `UNKNOWN`), with the readers
+  `apps/executors/src/aia_executors/research.py:114-116` (`_read_spec`, first called at `:228`) and
+  `apps/executors/src/aia_executors/research_agents.py:121-123` (the proposal reuse check).
+
+**Reproduction.** Reported 2026-09-27 on `develop` @ `ceee2dc` with PostgreSQL 16; reproduced the
+same day at `dd27f68` on PostgreSQL 16 and on file-backed SQLite.
+- *API, as reported.* `apps/api/tests/test_runs_api.py::test_a_corrupt_artifact_stays_marked_corrupt_after_the_409`
+  and `test_research_api.py::test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409`,
+  each `[tampered]` and `[missing]`: 4 of 4 answered 409, then failed on
+  `assert 'VALID' == 'CORRUPT'`.
+- *API, the proposal read.* `test_research_agent_jobs_api.py::test_a_corrupt_proposal_is_a_409_and_stays_marked_corrupt`:
+  `GET …/research/agent-jobs/{run}/result` and `POST …/accept` answered 500 `internal_error`
+  (read through a `TestClient` with `raise_server_exceptions=False`), and the row stayed `VALID`.
+- *Worker.* With `test_research_api.py`'s `submit`, `start` and `_real_worker(app, workbench=False)`:
+  run one step (compile), tamper with the spec's object (`damage_artifact`), run the next. Preflight
+  fails `UNKNOWN` and the spec is still `VALID`. Retry the run: its compile reuses the same spec
+  (same artifact id), and its preflight fails `UNKNOWN` again. A scratch test, run once on
+  PostgreSQL 16, not committed.
+
+**Consequence.** A tampered or truncated artifact reads `VALID` in every listing (the client
+overview's recent outputs among them), and nothing durable tells an operator. `find_reusable` keeps
+offering it, so a retried research run reuses the corrupt artifact and fails the same way: the run
+cannot recover by retry. The proposal routes answered 500 instead of 409. On the worker the step's
+`error_message`, which the browser reads, is the storage error's text, and that carries the
+storage key (`org/…/client/…/study/…`), which a client is never to receive
+(`docs/architecture/artifacts.md` § Read protocol).
+
+**Smallest fix.** *API:* commit the mark before raising, in one place: `routers/runs.py` ›
+`artifact_corrupt`, used by both artifact routes and by `_agent_errors`. Not taken: the repository
+recording `CORRUPT` in its own short transaction. That changes the shared "flush, never commit"
+contract, and a second connection that writes the row once the request holds its lock waits on the
+request itself. Measured 2026-09-27 with a scratch table, after an uncommitted `UPDATE` on the first
+connection, as `read` leaves it: the second connection's `UPDATE` waited out a 2 s `lock_timeout` on
+PostgreSQL 16 (with no timeout it waits for ever, since the request is waiting on it) and got
+`database is locked` after SQLite's busy timeout. On in-memory SQLite's single shared connection it
+would instead commit the caller's half-done work (`AGENTS.md` § SQLAlchemy and PostgreSQL,
+*In-memory SQLite cannot serve two threads*). *Worker:* an executor that reads an upstream artifact
+returns a `Failed` outcome from inside `StepContext.transaction` instead of raising, so the
+transaction commits the mark, with a message that names the step and not the key. Still to decide:
+the failure class (`MISSING_CONFIGURATION`, as `_missing_upstream` uses for an upstream step with no
+artifact, or a new one), and whether the proposal executor's reuse check falls through to a fresh,
+paid call.
+
+**Test that would have caught it.** The API tests above, which read the stored status from a
+session of their own (`apps/api/tests/conftest.py` › `artifact_status`), not only the response. For
+the worker, the reproduction as an executor test: the stored status after the failed step, and a
+retried run that recomputes the spec.
+
+**Status.** API half merged: PR #84 (`8c13a11`, 2026-09-27), both artifact routes and the
+proposal routes. Worker half open. It is not fixed there because it needs the failure-class
+decision and, for design jobs, a decision to spend on a recompute.
