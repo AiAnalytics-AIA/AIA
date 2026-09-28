@@ -196,3 +196,43 @@ def test_the_full_slice_over_http(app: FastAPI, researcher: TestClient, world: A
     # Another client's lead cannot read the artifact, and is not told it exists.
     other_base = f"{API}/studies/{world.study_id('other_client')}/projects/{project_id}"
     assert researcher.get(f"{other_base}/artifacts/{artifact_id}").status_code == 404
+
+
+@pytest.mark.parametrize("damage", ["tampered", "missing"])
+def test_a_corrupt_artifact_stays_marked_corrupt_after_the_409(
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+    damage: str,
+) -> None:
+    """Regression: the CORRUPT mark was rolled back with the 409 that reported it.
+
+    ``ArtifactRepository.read`` flushes the mark into the request's session and
+    raises; the route answered 409, and ``get_session`` rolled the mark back with
+    it, so the artifact read VALID in every listing afterwards.
+    """
+    study_id = world.study_id()
+    project_id = _project(researcher, study_id)
+    base = f"{API}/studies/{study_id}/projects/{project_id}"
+    run_id = researcher.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"}).json()[
+        "run_id"
+    ]
+    result = _worker(app).run_once()
+    assert result is not None and result.ending == "completed"
+    artifact_id = researcher.get(f"{base}/runs/{run_id}").json()["steps"][0]["output"][
+        "artifact_id"
+    ]
+    damage_artifact(artifact_id, damage)
+
+    refused = researcher.get(f"{base}/artifacts/{artifact_id}")
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "artifact_corrupt"
+    assert artifact_status(artifact_id) == "CORRUPT"
+
+    # The next read refuses again, and the study's listing now says what happened.
+    assert researcher.get(f"{base}/artifacts/{artifact_id}").status_code == 409
+    outputs = researcher.get(f"{API}/clients/{world.client_id()}/overview").json()
+    listed = {o["artifact_id"]: o["status"] for o in outputs["recent_outputs"]}
+    assert listed[artifact_id] == "CORRUPT"

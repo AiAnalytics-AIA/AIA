@@ -88,7 +88,10 @@ attempt 3, green).
 | #74 | `feature/native-research-workspace` | Phase-out increment 1: the research flow on AIA's own state (ADR 0018, chunks 1–6) | Draft into `develop`; the Run stage saves before it submits (`184699c`, its tests `936702f`) | before the migration PR, which is stacked on it |
 | #77 | `feature/legacy-workspace-migration` | Phase-out increment 2: the one-off migration of Studies' 18.6.6 content from a copy of the unit's store (ADR 0018 decision 2, chunk 7) | Draft, stacked on #74 | after #74 |
 | #78 | `feature/aia-session-gate` | Phase-out increment 3: AIA's own gate in front of `/app`, for any active member (ADR 0018 decision 3, chunk 8) | Draft, stacked on #77 | after #77 |
+| #79 | `feature/deep-research-core` | Deep Research core, 1 of 2: the pure domain -- closed contracts, the 18.6.6 leakage screen and merge EXACT against the vendored unit, grounding, source tables, query classes, fetch policy, frozen knowledge, tracks and fingerprints, merge/verify, the brief's checks, the sealed bundle, respondent quarantine ([plan](plans/deep-research.md) chunks a–d). Recorded/offline; nothing registered | Draft into `develop` | before its stacked 2 of 2 |
 | #82 | `feature/interface-without-classic` | Phase-out increment 4: the interface without 18.6.6 -- no hand-off, no skin, and what AIA lacks says so (ADR 0018 decision 4, chunk 9) | Draft, stacked on #78 | after #78 |
+| #83 | `fix/native-tests-config-cache` | Native Research tests no longer inherit a `/config` failure an earlier test cached; `loadConfig()` keeps no failed read (OI-76) | **Merged** into `develop` (`48bf3e2`, 22:45 UTC) | complete |
+| #84 | `fix/durable-corrupt-mark` | The API keeps a corrupt artifact's `CORRUPT` mark when it refuses to serve it: the artifact routes' 409 no longer rolls it back, and the agent-job proposal routes answer 409, not 500 (OI-77; its worker half stays open) | Ready into `develop` | after conflict resolution and CI on the updated head |
 | #85 | `feature/deploy-without-legacy` | Phase-out increment 5: the product deployment without the unit, which runs only from `deploy/reference/`; the panel's gate retired (ADR 0018 decision 5, chunks 10–12) | Draft, stacked on #82 | after #82, last of the phase-out; then the operator sequence (plan) |
 
 **PR #63 merged (11:17 UTC) as one slice**: native design jobs and reviewed proposals, off
@@ -396,13 +399,17 @@ PR #56 has merged and deployed, and the fictional Class C acceptance is done (20
 - ~~**PR C, research execution**~~ — merged (PR #52 @ `b3bd42f`); see Completed.
 - **Agent Runtime Foundation**: AI respondent fieldwork is built and deployed in PR #56 @ `0310091`; ADR 0010 approval and EU pricing are recorded. The runtime is active for the approved synthetic client; the isolated $2 study completed with 20 calls costing $0.2303301. Native design assistants are implemented on this branch, not deployed or activated. Remaining work: checkpointed fieldwork (OI-64), ledger lineage (OI-65), analysis/report execution and owned Deep Research. Panel-derived transmission remains blocked by OI-61.
 - **Deep Research** ([plan](plans/deep-research.md), [ADR 0017](../docs/architecture/adr/0017-deep-research-external-retrieval.md),
-  Proposed). Asked for by the data owner 2026-09-25: research driven by the study's
+  Proposed, amended 2026-09-27; contracts: [deep-research.md](../docs/architecture/deep-research.md)).
+  Asked for by the data owner 2026-09-25: research driven by the study's
   questions and tracked objects, over Client Knowledge and the web, bounded only by
-  budget. The first multi-agent workload on the Agent Runtime Foundation; chunks 1–8
-  are offline (no model, no network, no decision) and can proceed alongside it.
-  Live use waits on DR-2 and D6; AR-2 accepted ADR 0010 for fictional Class C on
-  develop only (2026-09-26), so a Class C smoke run needs only DR-2, and Class B
-  needs D6. Where it sits against OI-58 / OI-59 is the data owner's call.
+  budget. **Recorded/offline core on `feature/deep-research-core` (Job 5):** PR 1 (#79), the pure
+  domain (plan chunks a–d: contracts, the leakage screen and merge EXACT against the vendored
+  unit, grounding, source tables, query classes, fetch policy, frozen knowledge, tracks and
+  fingerprints, merge/verify, the brief's checks, the sealed bundle, respondent quarantine);
+  PR 2, recorded execution through the worker (chunks e–h). Not registered, not deployed, not
+  enabled. Live use waits on DR-2 (and DR-2b, below) and D6; AR-2 accepted ADR 0010 for
+  fictional Class C on develop only (2026-09-26). Where it sits against OI-58 / OI-59 is the
+  data owner's call.
 - **OI-58**: port the research store from the unit into AIA's study-scoped
   project, stage by stage; remove `study_workspaces` when no stage reads the unit.
 - **OI-59**: open `/app` to members by client and study grant once OI-58 no
@@ -576,7 +583,8 @@ with the topic until they are renumbered in one change with every reference.*
 | DR-2 | **Which search provider route(s) carry Deep Research queries, and is any approved for Class B.** Intent (data owner, 2026-09-25): the best results, which means queries carrying client context — Class B, EU-approved routes only (ADR 0008). Also the list of client terms that make a query Class B. Until decided, only Class C queries leave | Live web research | ADR 0017 decision 2 |
 | DR-3 | ~~Client Knowledge to the model~~ — **resolved 2026-09-25**: target Bedrock EU for Class A and B; this is D6's decision for that route, not a separate one | — (D6 blocks live use) | ADR 0017 · D6 |
 | DR-4 | **The fifth Deep Research output.** The data owner chose Research Design input, respondent context, knowledge proposals and a report, plus "something else" left unnamed | Completing chunk 11 | [plans/deep-research.md](plans/deep-research.md) § Outputs |
-| DR-5 | **Default Deep Research budget and depth presets** — how far "as far as the budget allows" goes by default, and who may extend a parked run | Chunk 10 defaults | [plans/deep-research.md](plans/deep-research.md) § Decisions |
+| DR-5 | **Default Deep Research budget and depth presets** — how far "as far as the budget allows" goes by default, and who may extend a parked run. Proposed presets QUICK / STANDARD / DEEP exist as data (`domain/deep_research/planning.py` `PRESETS`, status `PROPOSED_DR5`); a run must name one | Choosing a default | [plans/deep-research.md](plans/deep-research.md) § Decisions |
+| DR-2b | **May a code-built digest of a client's design (its research questions and object names) travel as Class B?** Until decided, a query written from a real client's design inherits the design's Class A and never leaves (ADR 0017 amendment 2) | Web research for any non-fictional client | [deep-research.md](../docs/architecture/deep-research.md) § 8 |
 | IA-4 | ~~Commit the files `next dev` regenerates~~ — **resolved 2026-09-24**: only when their diff carries an intentional canonical instruction change | — | `AGENTS.md` § Next.js |
 | D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |
 | D2 | ~~Confirm ADR 0006~~ — **resolved**. *Accepted — constrained use*; the index had contradicted the file and was corrected | — | `docs/architecture/adr/0006-langgraph-agent-execution.md` @ 8f545a5 |
