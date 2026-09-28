@@ -53,10 +53,17 @@ point; nothing outside it touches its internals.
 | — | **Legacy stub** | `src/server.js` | Frozen and unused: nothing in the Makefile, CI, Compose or a Dockerfile runs it, and sign-in is Cognito through `apps/web`. Deleting it is PROGRESS *Next* 8. | Nothing. Receives no new features. |
 | — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only behind the gate, at `/classic` and on its own paths (ADR 0015). | Nothing. The back end never calls it. The web client reaches it over HTTP through Caddy, only from `apps/web/src/unit/`, for the stages still in its store (OI-58); parity tests reach it over HTTP. |
 
-The web `/config` endpoint may expose nonsecret runtime configuration for
-Settings (switch, Bedrock model/profile, source region and approval class).
-This is a configuration display, never a provider health test or authority to
-invoke a capability. Native design jobs have a separate activation switch;
+Settings shows AI from two sources and calls neither a connection. The settings
+document's `ai_runtime` describes the native runtime from code: the providers the
+worker calls (`aia_core.domain.providers.NATIVE_PROVIDERS`), its role credential,
+and each native AI activity with its capabilities, versions and switches
+(`apps/executors/tests/test_settings_presentation.py` holds it to the worker's
+composition). The prototype's providers are marked `HISTORICAL` and its project
+fields sit in `ai_history`: readable, never offered. The web `/config` endpoint
+may expose nonsecret runtime configuration for Settings (each switch by variable
+name, Bedrock model/profile, source region and approved data classes). Neither is
+a provider health test or authority to invoke a capability, and the page never
+says connected or verified. Native design jobs have a separate activation switch;
 an active fieldwork route does not enable them. Product-only Caddy
 retirement blocks legacy credential/login/probe endpoints after the existing
 gate; the independent oracle and pinned reference application stay unchanged.
