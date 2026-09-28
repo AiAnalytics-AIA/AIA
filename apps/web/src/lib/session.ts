@@ -47,21 +47,10 @@ export async function closeSession(): Promise<void> {
 }
 
 /**
- * Clear the 18.6.6 panel's cookie, which sign-ins before ADR 0018 decision 4 opened.
- * The panel's gate still admits it to the unit's own paths until the deployment stops
- * running the unit (increment 5), so signing out must not leave it behind. Best effort.
+ * Sign out: AIA's session cookie, then the Cognito session. A cookie the 18.6.6 panel
+ * set before ADR 0018 opens nothing: its gate and every path it guarded are gone.
  */
-async function closePanelSession(): Promise<void> {
-  try {
-    const config = await loadConfig();
-    await fetch(`${config.apiBase}/api/v1/panel/session`, { method: "DELETE", cache: "no-store" });
-  } catch {
-    // It holds an id token that expires within the hour regardless.
-  }
-}
-
-/** Sign out: AIA's session cookie and any panel cookie left from before, then the Cognito session. */
 export async function signOut(): Promise<void> {
-  await Promise.all([closeSession(), closePanelSession()]);
+  await closeSession();
   await logout();
 }

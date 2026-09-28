@@ -21,8 +21,8 @@
  *   3. every AIA screen (`aia_screens` of docs/migration/interface-screens.json),
  *      and every classic screen's AIA counterpart the ledger names.
  *
- * Steps 1 and 2 run only when the unit answers (`make ui-workbench`, not
- * `--no-unit`). Per screen and width: a full-page PNG, the unit's as shipped and
+ * Steps 1 and 2 run only when the unit answers (`make ui-workbench-reference`,
+ * `up --with-unit`). Per screen and width: a full-page PNG, the unit's as shipped and
  * AIA's; page errors; horizontal overflow; on an AIA screen every computed colour
  * on a visible element that is not a design-system token, with a sample selector;
  * and the unit's text an AIA counterpart does not show. Writes report.json and

@@ -12,6 +12,9 @@ paths on the product hostname) and 5 (the unit store as a bridge), and its OI-59
 consequence (`/app` open to owners and admins only). **Amends**
 [ADR 0011](0011-vendor-legacy-product-unit.md): the vendored unit stays, frozen, as the
 behavioural reference and parity oracle; it is no longer part of the product deployment.
+All five increments are implemented, each on its own draft pull request, stacked in order
+(#74, #77, #78, #82 and increment 5's); the migration of decision 2 has not been run on
+develop, which is an operator's step.
 **Date:** 2026-09-27
 
 ## Context
@@ -110,10 +113,13 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
    session goes to `/login`, a fetch gets 401, and any method but GET and HEAD is refused,
    because the pages take no writes. The web client's switch for `/app`
    (`AIA_INTERFACE_REHOME_ENABLED`, ADR 0014) is retired there: it existed so the classic
-   interface could stand in. While the unit's paths remain on the product hostname, they
-   keep the owner/admin panel gate. Until increment 4, `/login` opened that session too, best
-   effort, for the 18.6.6 interface alone; since increment 4 it does not, and sign-out still
-   clears a panel cookie an earlier sign-in left, as long as the panel's gate stands.
+   interface could stand in. While the unit's paths remained on the product hostname, they
+   kept the owner/admin panel gate. Until increment 4, `/login` opened that session too, best
+   effort, for the 18.6.6 interface alone; since increment 4 it does not. Increment 5 removes
+   the panel's gate with the unit's paths (`/api/v1/panel/*` is gone, and so are
+   `ScopeResolver.authorize_legacy_panel`, `LEGACY_PANEL_ROLES` and the
+   `AIA_LEGACY_PANEL_*` settings); sign-out clears AIA's own cookie, and an `aia_panel`
+   cookie left from before is read by nothing.
    *Rejected:* opening `/app` to anyone signed in to Cognito (a page shell is harmless, but
    a person who is no member has no business in the product); keeping the panel gate with a
    wider role set (it answers 404 when the legacy flag is off and is refused in production,
@@ -146,6 +152,34 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
    Caddyfile that routes to the unit. The unit runs, when a comparison needs it, from a
    separate optional reference setup (`deploy/reference/`), reached on the host's loopback.
    Its working volume and data bundle are left exactly as they are.
+   - **The product stack** builds and pulls `aia-api`, `aia-worker` and `aia-web` only. Its
+     Caddyfile has one site, the product hostname: `/api/v1/*` to the API and everything else
+     to the web client, whose 404 answers the unit's old paths. `tools/caddy_routes.py` fails a
+     second hostname, any upstream but the API and the web client, and the panel's gate; the
+     API contract check fails a `/api/v1/panel` path; the smoke check fails a deploy on which
+     a unit path answers or a `legacy-panel` container of the product project exists.
+   - **The first deploy without the unit** stops the product project's `legacy-panel`
+     container as its service did (`docker stop -t 30`), `compose up --remove-orphans`
+     removes it, and the deploy fails if the unit's volume vanished. Nothing removes the
+     volume (`aia-develop_legacy_state`: the unit's databases and the files people attached,
+     the only copy of content not yet migrated), the data directory, the data bundle or the
+     unit's images.
+   - **The reference setup** is the Compose project `aia-reference`: the unit on that volume,
+     declared `external` (never created or removed there), and a basic-auth gate published
+     only on `127.0.0.1:8765`, reached through an SSM port forward; `restart: "no"`, a
+     network of its own, started and stopped by hand (`bin/up.sh`, `bin/down.sh`). It copies
+     the unit's databases WAL-safe (`bin/backup-state.sh`, with the data owner's approval),
+     which the product's backup no longer does. `.github/workflows/reference-unit.yml`,
+     dispatched by hand, builds the unit's image and ships the bundle; it changes nothing on
+     the host.
+   - **The UI workbench** runs AIA alone; the unit runs beside it only on request
+     (`make ui-workbench-reference`), on its own port, never behind the facade.
+   *Rejected:* keeping the unit as an optional service of the product stack behind a profile
+   or a flag (a product that can start the unit can come to need it again, and the smoke and
+   health coupling of OI-44 and OI-71 returns with it); serving the oracle on its own public
+   hostname from the product's Caddy (the product would still carry the unit's hostname,
+   credentials and upstream); removing the unit's volume or data bundle with the service (they
+   hold content not yet migrated, OI-58).
 
 ## Consequences
 
@@ -154,8 +188,14 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
   between increments 2 and 5.
 - Capabilities that exist only in 18.6.6 are unavailable in the product until rebuilt, and
   say so; they are no longer reachable through a hand-off.
-- The parity oracle is reachable only from the reference setup; the oracle CI job still skips
-  without its secrets, as it did.
+- The parity oracle is reachable only from the reference setup, through an SSM port forward;
+  the oracle CI job still skips without its secrets, and a GitHub-hosted runner could not
+  reach the host's loopback even with them (OI-39).
+- The develop deployment starts, deploys and passes its smoke checks with nothing of 18.6.6:
+  no image, container, hostname, credential, data hydration or health check.
+- Until the migration's report is accepted, the content of Studies still waiting for it is
+  only in the unit's volume, which stays on the host untouched; its backups are the reference
+  setup's, taken by hand, not the product's nightly dump.
 
 ## Revisit when
 

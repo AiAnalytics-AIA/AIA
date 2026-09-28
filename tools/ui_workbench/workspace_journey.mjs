@@ -4,8 +4,8 @@
  *
  *   node tools/ui_workbench/workspace_journey.mjs [--out DIR]
  *
- * Needs the workbench running without the 18.6.6 unit (`make ui-workbench-aia`, whose
- * facade sends the unit's paths to a closed port: 502) and its fixtures (`make
+ * Needs the workbench (`make ui-workbench`: AIA alone, routed like the develop
+ * Caddyfile, so nothing of the 18.6.6 unit answers) and its fixtures (`make
  * ui-fixtures`, for the client). Signed in as the workbench operator, it starts a new
  * research study through the API and then, in the browser:
  *
@@ -18,7 +18,7 @@
  *     becomes a proposal to the client's knowledge.
  *
  * Every request the page makes is recorded. The journey fails on any request to a
- * path the unit serves, on any 502 (the closed unit port), and on any page error.
+ * path the unit served, on any 502 from the facade, and on any page error.
  * Screenshots go to --out (default tmp/ui-workbench/shots/workspace-<time>).
  */
 import { execSync } from "node:child_process";
@@ -40,7 +40,8 @@ const OUT = arg("out", join(REPO, "tmp/ui-workbench/shots", `workspace-${stamp}`
 const OPERATOR = "workbench@example.invalid";
 const GOAL = "Zjistit, zda by lidé kupovali fiktivní ranní nápoj.";
 const FILE = { name: "zadani.txt", body: "Fiktivní zadání: ranní nápoj pro dospělé, test konceptu." };
-// The paths the 18.6.6 unit serves (the Caddyfile's @unit, /classic and its document).
+// The paths the 18.6.6 unit served on the product hostname (its @unit matcher until ADR
+// 0018 decision 5, /classic and its document): now the web client's, never the unit's.
 const UNIT_PATH = /^\/(api\/(?!v1\/)|files\/|artifacts\/|project-attachments\/|brand\/|fullsim-arena|status$|health$|classic|interface-document)/;
 
 async function loadPlaywright() {
@@ -160,7 +161,7 @@ await browser.close();
 const toUnit = requests.filter((r) => { try { return UNIT_PATH.test(new URL(r.url).pathname); } catch { return false; } });
 writeFileSync(join(OUT, "requests.json"), JSON.stringify(requests, null, 1));
 if (toUnit.length) fail(`requests to the unit's paths: ${toUnit.map((r) => `${r.method} ${r.url}`).join(" | ")}`);
-if (bad.length) fail(`502 responses (the closed unit port): ${bad.join(" | ")}`);
+if (bad.length) fail(`502 responses: ${bad.join(" | ")}`);
 if (errors.length) fail(`page errors: ${errors.join(" | ")}`);
 ok(`${requests.length} requests, none to a path of the unit, no 502`);
 console.log(`workspace journey: PASS (screenshots and requests.json in ${OUT})`);

@@ -8,6 +8,10 @@ Supersedes one consequence of [ADR 0011](0011-vendor-legacy-product-unit.md):
 AIA's client directory, and the 18.6.6 document is an explicit hand-off at
 `/classic`. The gate, its owner/admin rule and the unit's own paths behind it
 stand.
+**Superseded by [ADR 0018](0018-aia-runs-without-18-6-6.md)** (2026-09-27): the 18.6.6
+interface is not served (decision 4), and the product deployment has no unit (decision 5), so
+the panel's gate, its owner/admin rule and the unit's paths on the product hostname are gone.
+This ADR is history.
 **Date:** 2026-09-23
 
 ## Context

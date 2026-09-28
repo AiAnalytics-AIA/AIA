@@ -5,8 +5,9 @@ The explicit, one-off migration of ADR 0018 (decision 2). Every Study still
 its brief names or the unit bound to it -- as its AIA working content, from a
 **copy** of the unit's state:
 
-    --store        the unit's project store: the ZIP ``bin/backup-legacy-state.py``
-                   streams, or one ``project_store.sqlite`` copied from it
+    --store        the unit's project store: the ZIP that
+                   ``deploy/reference/bin/backup-legacy-state.py`` streams, or one
+                   ``project_store.sqlite`` copied from it
     --attachments  a copy of ``/app/data/ui_uploads/project_attachments``
     --as           the AIA person the migration acts as; each Study is opened through
                    the scope that person holds on it, so a Study they may not edit is

@@ -6,7 +6,7 @@
  *   python3 tools/develop_routing_proof.py --keep     # Caddy and its upstreams, left running
  *   node tools/develop_routing_journey.mjs [OUT_DIR]  # then this; screenshots into OUT_DIR
  *
- * Signed in as /login leaves a person (the gates' cookies and the tab's session),
+ * Signed in as /login leaves a person (AIA's session cookie and the tab's session),
  * it opens the hostname's root and follows it to the client directory, starts a
  * research under a fictional client, lets the first save store its content in AIA,
  * opens the run stage (AIA's: the empty design is not ready), sees that a stage
@@ -45,17 +45,22 @@ const browser = await chromium.launch();
 // Caddy's local CA for *.localhost is not in Chromium's own store; the proof
 // script has already verified these hostnames' TLS against that CA.
 const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 } });
-// Signed in as /login leaves it: AIA's session cookie (POST /api/v1/session, ADR 0018),
-// the panel's for /classic (POST /api/v1/panel/session) and the tab's session.
-for (const [path, what] of [["/api/v1/session", "AIA session"], ["/api/v1/panel/session", "panel session"]]) {
-  const opened = await ctx.request.fetch(HOST + path, { method: "POST", headers: { authorization: `Bearer ${OP}`, origin: HOST } });
-  check(opened.status() === 204, `${what} opened`, String(opened.status()));
-}
+// Signed in as /login leaves it: AIA's session cookie (POST /api/v1/session, ADR 0018)
+// and the tab's session. Nothing of 18.6.6 is opened: there is none to open.
+const opened = await ctx.request.fetch(HOST + "/api/v1/session", { method: "POST", headers: { authorization: `Bearer ${OP}`, origin: HOST } });
+check(opened.status() === 204, "AIA session opened", String(opened.status()));
 const session = JSON.stringify({ idToken: OP, refreshToken: "", expiresAt: 4102444800000, email: OP, subject: OP });
 await ctx.addInitScript((s) => sessionStorage.setItem("aia.session", s), session);
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
+// Any request the pages make to a path the 18.6.6 unit served is a dependency on it.
+const UNIT_PATH = /^\/(api\/(?!v1\/)|files\/|artifacts\/|project-attachments\/|brand\/|fullsim-arena|status$|health$|interface-document)/;
+const unitRequests = [];
+page.on("request", (r) => {
+  const u = new URL(r.url());
+  if (u.hostname === "aia.localhost" && UNIT_PATH.test(u.pathname)) unitRequests.push(`${r.method()} ${u.pathname}`);
+});
 
 // 1. The product hostname's root is AIA.
 const nav = await page.goto(HOST + "/", { waitUntil: "networkidle" });
@@ -128,6 +133,7 @@ check(/nenalezen|Nenalezeno|neexistuje|nemáte/i.test(await page.locator("main")
 const stranger = await api(`/clients/${lumen.client_id}/knowledge`, { headers: { authorization: "Bearer stranger@example.invalid" } });
 check(stranger.status === 403 && stranger.body === null, "a caller outside the organization reads no client knowledge", String(stranger.status));
 check(errors.length === 0, "no page errors", errors.slice(0, 2).join(" | "));
+check(unitRequests.length === 0, "no request reached a path of the 18.6.6 unit", unitRequests.slice(0, 3).join(" "));
 await browser.close();
 console.log(results.join("\n"));
 process.exit(results.some((r) => r.startsWith("FAIL")) ? 1 : 0);
