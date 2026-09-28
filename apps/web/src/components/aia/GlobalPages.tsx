@@ -12,7 +12,6 @@ import { useMemo, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { type ClientCard, type WorkspaceStudy, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import type { PublicConfig } from "@/app/config/route";
 import { useSession } from "@/lib/auth";
 import { relative } from "@/lib/format";
 import { classicHref } from "@/lib/interface-handoff";
@@ -91,13 +90,6 @@ export function MemoryPage() {
 export function SettingsPage() {
   const session = useSession();
   const [me] = useResource(() => workspace.me(), []);
-  const [runtime, retryRuntime] = useResource(async () => {
-    const response = await fetch("/config", { cache: "no-store" });
-    if (!response.ok) throw new Error(t("aia.settings.aiUnknown"));
-    const config = await response.json() as PublicConfig;
-    if (!config.aiRuntime) throw new Error(t("aia.settings.aiUnknown"));
-    return config.aiRuntime;
-  }, []);
   return (
     <AppShell title={t("aia.settings.title")} sub={t("aia.settings.sub")}>
       <div className="grid max-w-5xl gap-6 lg:grid-cols-2">
@@ -106,21 +98,6 @@ export function SettingsPage() {
           {session?.email ? <p className="mt-2 text-sm">{tv("aia.settings.signedInAs", { email: session.email })}</p> : null}
           {me.state === "ready" ? <p className="mt-1 text-sm text-ink-muted">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}
           <p className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">{t("aia.settings.accessNote")}</p>
-        </section>
-        <section className={CARD} aria-labelledby="set-ai">
-          <h2 id="set-ai" className="text-base font-semibold">Amazon Bedrock</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t("aia.settings.aiManaged")}</p>
-          <Loaded res={runtime} retry={retryRuntime}>
-            {(ai) => (
-              <div className="mt-3 space-y-2 text-sm">
-                <p>{t(ai.enabled === null ? "aia.settings.aiInvalid" : ai.enabled ? "aia.settings.aiEnabled" : "aia.settings.aiDisabled")}</p>
-                {ai.region ? <p>{tv("aia.settings.aiRegion", { region: ai.region })}</p> : null}
-                {ai.model ? <p className="break-all">{tv("aia.settings.aiModel", { model: ai.model })}</p> : null}
-                <p className="text-ink-muted">{t(ai.researchAgentsEnabled === null ? "aia.settings.aiDesignInvalid" : ai.researchAgentsEnabled ? "aia.settings.aiDesignEnabled" : "aia.settings.aiDesignDisabled")}</p>
-                <p className="text-xs text-ink-faint">{t("aia.settings.aiConfigOnly")}</p>
-              </div>
-            )}
-          </Loaded>
         </section>
         <section className={CARD} aria-labelledby="set-classic">
           <h2 id="set-classic" className="text-base font-semibold">{t("aia.settings.classic")}</h2>
