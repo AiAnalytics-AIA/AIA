@@ -369,6 +369,16 @@ forbid "a joint status is issued only by its loader" \
   "$CORE" \
   joint_status.py companions.py
 
+# Field policy and the joint certificate are authority: what a claim may rest on.
+# An app that built its own -- a permissive book for a questionnaire, a certificate
+# for a run with no panel -- would be a guess presented as that authority. They
+# come from the evidence domain's loaders and its instrument declaration, reached
+# through the analysis inputs in aia_core, never from the API, the worker or an
+# executor (.planning/plans/evidence-backed-analysis.md).
+forbid "the API, worker and executors never build field policy or a joint status" \
+  '\b(FieldPolicyBook|FieldPolicy|FieldEligibility)\(|\b(load_joint_status|instrument_policy|instrument_policy_book|from_dictionary_rows|from_policy_document)\(' \
+  apps
+
 # --- Population: one resolver, one loader ----------------------------------
 #
 # The reference answered "which population is in use" in four places and loaded

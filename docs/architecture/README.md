@@ -15,6 +15,7 @@ is shaped that way. The companion documents go deeper:
 | [workflows.md](workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](ai-runtime.md) | Provider abstraction, provenance, budgets, failure behaviour |
 | [ai-step-executor-contract.md](ai-step-executor-contract.md) | The contract between the model gateway and the step executor |
+| [analysis.md](analysis.md) | A native run's analysis: evidence from its artifacts, the stored outcome, reconstruction by re-admission |
 | [research-agents.md](research-agents.md) | Native design-proposal jobs: the eight actions, frozen context, review and acceptance |
 | [research-journey.md](research-journey.md) | The research journey's integration contract: who owns each stage, the interfaces between jobs, shared files, what "accepted" means |
 | [artifacts.md](artifacts.md) | Artifact lifecycle and storage |

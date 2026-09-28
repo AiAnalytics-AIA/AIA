@@ -40,6 +40,7 @@ __all__ = [
     "FieldPolicyError",
     "FieldPolicyInconsistent",
     "FieldUse",
+    "InstrumentStatus",
     "ProductionGrade",
     "ProvenanceClass",
     "UndeclaredField",
@@ -107,8 +108,28 @@ class ProductionGrade(StrEnum):
     T = "T"
 
 
+class InstrumentStatus(StrEnum):
+    """The evidence role of a Study's own questionnaire item. Never a dictionary's status.
+
+    Kept apart from :class:`EvidenceStatus` so that the dictionary's 22 codes stay
+    exactly the dictionary's: a dictionary row naming one of these is an unknown
+    ``evidence_status`` and is refused (``derive_field_policy`` parses only
+    :class:`EvidenceStatus`). Declared by :mod:`.instrument`, and only there.
+    """
+
+    #: Answered by simulated respondents: code-invented, or a model answering as an
+    #: invented persona. Modelled, never measured.
+    SIMULATED_RESPONSE = "SIMULATED_RESPONSE"
+
+
 class ClaimRule(StrEnum):
-    """Machine-checkable claim restrictions extracted from ``recommended_use`` prose."""
+    """Machine-checkable claim restrictions extracted from ``recommended_use`` prose.
+
+    All but :attr:`INTERNAL_ONLY` are the reference catalogue, extracted by
+    :func:`claim_rules_for`. ``INTERNAL_ONLY`` is never extracted from dictionary
+    prose: only AIA's own declarations carry it (:mod:`.instrument`), and the claim
+    gate refuses any client-facing claim on a field that does.
+    """
 
     NEVER_MEASURED_FACT = "NEVER_MEASURED_FACT"
     NEVER_DIRECT_SCHWARTZ = "NEVER_DIRECT_SCHWARTZ"
@@ -119,6 +140,7 @@ class ClaimRule(StrEnum):
     REQUIRES_MODELED_DISCLOSURE = "REQUIRES_MODELED_DISCLOSURE"
     HISTORICAL_OR_EXPLORATORY = "HISTORICAL_OR_EXPLORATORY"
     SPECIFIED_WEIGHT_REQUIRED = "SPECIFIED_WEIGHT_REQUIRED"
+    INTERNAL_ONLY = "INTERNAL_ONLY"
 
 
 class FieldUse(StrEnum):
@@ -238,14 +260,20 @@ def derive_eligibility(
 
 @dataclass(frozen=True, slots=True)
 class FieldPolicy:
-    """The complete, typed policy of one population field."""
+    """The complete, typed policy of one population field, or of one instrument item.
+
+    A population field's policy comes from the dictionary (:func:`derive_field_policy`).
+    An instrument item -- a question the Study itself asked -- carries an
+    :class:`InstrumentStatus` and no production grade, because no dictionary grades
+    it; only :mod:`.instrument` declares one.
+    """
 
     field: str
     block: str
     source: str
-    evidence_status: EvidenceStatus
+    evidence_status: EvidenceStatus | InstrumentStatus
     provenance_class: ProvenanceClass
-    production_grade: ProductionGrade
+    production_grade: ProductionGrade | None
     recommended_use_verbatim: str
     description: str
     persona_eligible: bool
