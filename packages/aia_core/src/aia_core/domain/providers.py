@@ -8,6 +8,11 @@ moving to a different provider that costs money or changes provenance.
 Nothing here talks to a provider SDK. Transport lives in the infrastructure layer
 behind a gateway interface so that domain code never imports ``anthropic`` or
 ``openai`` directly.
+
+AIA's own runtime calls only :data:`NATIVE_PROVIDERS`. The prototype's providers,
+its project policies and its project defaults stay because persisted projects,
+artifact provenance and the usage ledger carry them; none of them steers a native
+run, which the worker's ``ModelPolicy`` resolves (``domain/ai_models.py``).
 """
 
 from __future__ import annotations
@@ -18,6 +23,7 @@ from typing import Any, Final
 
 __all__ = [
     "DEFAULT_MAX_API_COST_USD",
+    "NATIVE_PROVIDERS",
     "PROJECT_PROVIDERS",
     "BudgetDecision",
     "ModelRole",
@@ -33,7 +39,10 @@ __all__ = [
 
 
 class Provider(StrEnum):
-    """Live AI providers.
+    """AI provider identities.
+
+    ``AWS_BEDROCK`` is the one AIA's runtime calls (:data:`NATIVE_PROVIDERS`); the
+    other three are the prototype's, kept because records carry them.
 
     The value is the stable internal id persisted in the database and in artifact
     provenance; it must not change. The user-facing name comes from
@@ -57,6 +66,11 @@ PROJECT_PROVIDERS: Final[frozenset[Provider]] = frozenset(
     {Provider.CLAUDE_CODE, Provider.ANTHROPIC, Provider.OPENAI}
 )
 
+#: The providers AIA's own runtime calls (ADR 0010). Every other member is a
+#: historical identifier: it is read from persisted rows and provenance, never
+#: offered, and nothing native is sent to it.
+NATIVE_PROVIDERS: Final[frozenset[Provider]] = frozenset({Provider.AWS_BEDROCK})
+
 
 class ProviderPolicy(StrEnum):
     """How a project is permitted to choose providers across stages.
@@ -64,6 +78,9 @@ class ProviderPolicy(StrEnum):
     ``CLAUDE_CODE_THEN_API`` is the only policy allowing a provider transition, and
     even then the transition is an explicit, audited user action -- it is not an
     automatic retry path.
+
+    Every member is the prototype's per-project rule, kept to read persisted
+    projects. A native run never consults one.
     """
 
     CLAUDE_CODE_ONLY = "CLAUDE_CODE_ONLY"
@@ -82,11 +99,15 @@ class ModelRole(StrEnum):
     REPORT_POLISH = "report_polish_model"
 
 
+# The prototype's defaults for a project's provider and policy: what a project
+# row, or a spelling nobody recognises, reads as. They are not AIA's AI default --
+# the native runtime has no project-level provider at all.
 DEFAULT_PROVIDER: Final = Provider.CLAUDE_CODE
 DEFAULT_POLICY: Final = ProviderPolicy.CLAUDE_CODE_ONLY
 
 # Default ceiling on paid API spend per project, from PRODUCT_POLICY.json
-# (ai_runtime.default_max_api_cost_usd).
+# (ai_runtime.default_max_api_cost_usd). A native run is held to its Study's
+# budget through reservations instead; no native path reads a project's ceiling.
 DEFAULT_MAX_API_COST_USD: Final = 10.0
 
 _UI_LABELS: Final[dict[Provider, str]] = {

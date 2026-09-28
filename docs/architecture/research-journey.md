@@ -447,9 +447,9 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
   them in that PR.
 - **Applied at 22:47 UTC.** #83 merged first (`48bf3e2`) and put OI-76 on `develop`, for the
   flake #75 had filed under that number. This PR's entries became OI-78 and OI-79, above it and
-  clear of #84's OI-77, which merged at 23:09 UTC (`8c13a11`). #75 renumbers OI-72 to OI-75 when
-  it merges; its OI-76 is `develop`'s
-  already.
+  clear of #84's OI-77, which merged at 23:09 UTC (`8c13a11`). #75 merged on 2026-09-28 at 19:00 UTC
+  (`8017b54`) with OI-72 to OI-75, numbers no merged PR had taken, so nothing was renumbered; its
+  OI-76 was already `develop`'s.
 - #77 adds no migration, so the one head after #74 stays `5b1d0f3e9a21`.
 
 ## 6. Rules every PR keeps

@@ -101,12 +101,12 @@ choices in the rebuilt product. Legacy policies in the following section do not
 authorize the native executor, which resolves explicit capability bindings.
 
 
-| Internal id (persisted) | UI label | Billing |
-| --- | --- | --- |
-| `aws_bedrock` | AWS Bedrock | Per token over the pinned route |
-| `claude_code_subscription` | Claude Code | Subscription; no marginal API cost |
-| `anthropic` | **Claude API** | Per token |
-| `openai` | OpenAI API | Per token |
+| Internal id (persisted) | UI label | Use (`NATIVE_PROVIDERS`) | Billing, as its records read |
+| --- | --- | --- | --- |
+| `aws_bedrock` | Amazon Bedrock | **Native**: the one provider the worker calls | Per token over the pinned route |
+| `claude_code_subscription` | Claude Code | Historical: the prototype's subscription runtime | Subscription; no marginal API cost |
+| `anthropic` | **Claude API** | Historical | Per token |
+| `openai` | OpenAI API | Historical | Per token |
 
 The internal id is written into artifact provenance and must never change. The UI
 label is separate: `anthropic` displays as "Claude API" to distinguish it from
@@ -121,9 +121,13 @@ retargeting a provider breaks provenance.
 
 ## Policies
 
+Every policy is historical: the prototype's per-project rule, kept so persisted
+projects read as they did. No native run consults one; the worker's `ModelPolicy`
+binds each capability to its model.
+
 | Policy | Behaviour |
 | --- | --- |
-| `CLAUDE_CODE_ONLY` | Subscription only. The default |
+| `CLAUDE_CODE_ONLY` | Subscription only. The generic project model's default (`DEFAULT_POLICY`) |
 | `CLAUDE_API_ONLY` | Claude API only |
 | `OPENAI_ONLY` | OpenAI only |
 | `CLAUDE_CODE_THEN_API` | Starts on the subscription; may move to the Claude API **only** on an explicit user continuation |
@@ -133,8 +137,12 @@ the transition is a user action, not an automatic retry path.
 
 ## Budget control
 
-Every project has `max_api_cost_usd`, default **$10.00** (from
-`PRODUCT_POLICY.json` → `ai_runtime.default_max_api_cost_usd`).
+A native run is held to its **Study's budget**: every paid request reserves its
+ceiling against the Study row before dispatch (`WorkflowRepository.reserve_budget`),
+and the gateway checks each call against that reservation. The prototype's
+per-project ceiling, `max_api_cost_usd` (default **$10.00**, from
+`PRODUCT_POLICY.json` → `ai_runtime.default_max_api_cost_usd`), is still stored on
+generic projects and read by no native path.
 
 Before a paid call:
 
@@ -322,3 +330,23 @@ The prototype documents a real operational trap worth carrying over: machine-lev
 override an explicit API key and cause a 401 that looks like a wrong key. The
 historical CLI adapter strips those overrides. The native Bedrock path does not
 invoke that adapter or read those credentials.
+
+## What Settings shows
+
+`/app/settings` has one AI section from two sources, and neither is a connection:
+
+| Source | What | Where |
+| --- | --- | --- |
+| Code | The native providers, the worker's role credential, the switch it reads first, each native activity (`respondent_fieldwork`, `design_agents`) with its step kind, capabilities, harness/agent/prompt versions, switches and actions, and the capabilities no native step asks for | `GET /api/v1/settings` → `ai_runtime`, any organization member |
+| Deployment | Each switch by variable name (the worker's vocabulary; `null` is a value it refuses), the source region, the model's inference profile, the approved data classes | `/config` → `aiRuntime`, public and nonsecret |
+
+An activity reads *on in configuration* when every switch it needs is on; *off*,
+naming the first switch that is not; *invalid* when a switch holds a value the
+worker refuses -- the worker then refuses to start, so every activity is invalid;
+and *unknown* when the page cannot read a switch. It never reads *connected*,
+*healthy* or *verified*: nothing on the page calls a model, and whether the worker
+accepted the rest of its configuration shows only in its runs.
+`apps/executors/tests/test_settings_presentation.py` holds the description to the
+worker's composition, and `apps/web/src/lib/ai-runtime.ts` states the one worker
+rule it mirrors. The prototype's providers, policies and project fields are listed
+under a collapsed history, for reading older records.

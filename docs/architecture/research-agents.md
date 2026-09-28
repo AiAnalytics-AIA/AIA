@@ -83,8 +83,10 @@ worker keys, all off/unset by default:
 Output allowance must fit the verified model ceiling. The reservation covers two
 calls at the model input/context and output ceilings, using verified token prices.
 An undersized reservation fails worker startup. `RESEARCH_REASONING` and `CRITIC`
-capabilities are bound only when enabled. The web displays the switch separately
-from respondent fieldwork; this display is not a health check or invocation grant.
+capabilities are bound only when enabled. Settings lists design agents as their
+own activity, which needs `AIA_AI_RUNTIME_ENABLED` and this switch, and names the
+one that is off; the display is not a health check or invocation grant
+([ai-runtime.md § What Settings shows](ai-runtime.md#what-settings-shows)).
 
 ## Remaining full-process work
 
