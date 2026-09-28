@@ -2805,3 +2805,33 @@ refusal or a more restrictive request under the chosen implementation.
 jobs must remain off for studies with unclassified attachments or pasted material. Numbered
 OI-73 on this entry's earlier branch until #83 put OI-76 on `develop`; renumbered under the
 contract's concurrent-entry rule (§5). This is not a new approval for Class A/B egress.
+
+---
+
+## OI-80 · Finding, one cause fixed in code · The develop smoke's `ScopeDenied: not found` has three reproducible causes
+
+**Claim.** `seed_develop` resolved the operator's organization context before adding a
+returning operator who was not a member, so its "becomes one" branch could never run. A
+changed `AIA_SEED_OWNER_EMAIL` was denied as `not_a_member`. Two other host states give the
+same bare message: an archived seed client (`client_archived`) and a deactivated owner
+(`user_deactivated`). The smoke printed none of the reasons.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/develop_seed.py:204-210 @ 8017b54`
+(context before membership); `apps/executors/src/aia_executors/smoke.py:237-238 @ 8017b54`
+(no reason printed); the denials in `application/scope.py:108, 122, 245`.
+
+**Reproduction.** `apps/executors/tests/test_seed_and_smoke.py` ›
+`test_seed_admits_a_new_operator_to_an_existing_world` fails before the fix;
+`test_seed_names_why_an_archived_seed_client_is_denied` pins the archived case.
+
+**Consequence.** Deploy runs 36, 37 and 38 replaced every service and then failed smoke, and
+the operator could not tell which row to look at.
+
+**Smallest fix.** Add the operator as owner before resolving the context (done); print a
+denial's reason in the smoke line (done, `smoke.describe_failure`). An archived client or a
+deactivated owner is a person's decision, which the seed does not undo.
+
+**Status.** Fixed in code on the release branch (#86). Which of the three states the develop
+host is in is **not established**: it needs a read-only look at the seed organization's
+member, user and client rows, or the next deploy's smoke line, which now names the reason.
+
