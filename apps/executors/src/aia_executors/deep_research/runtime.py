@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.web_retrieval import WebRetrieval
@@ -89,6 +90,34 @@ class DeepResearchRuntime:
 # --------------------------------------------------------------------------- #
 
 
+#: The event type ``WorkflowRepository.record_progress`` writes a progress event under.
+_PROGRESS: Final = "STEP_PROGRESS"
+#: ``WorkflowRepository.events`` returns at most this many events per page.
+_EVENTS_PAGE: Final = 2000
+
+
+def _earlier_tool_entries(context: StepContext) -> list[ToolUsageEvent]:
+    """The tool entries earlier attempts of this step journaled, in journal order."""
+    step = context.step
+    kinds = frozenset(TOOL_EVENT_KINDS.values())
+    entries: list[ToolUsageEvent] = []
+    since = 0
+    with context.transaction() as (_session, workflow):
+        while True:
+            page = workflow.events(step.run_id, since=since, limit=_EVENTS_PAGE)
+            entries.extend(
+                ToolUsageEvent.model_validate(event["payload"])
+                for event in page
+                if event["step_id"] == step.step_id
+                and event["attempt_id"] != step.attempt_id
+                and event["event_type"] == _PROGRESS
+                and event["message"] in kinds
+            )
+            if len(page) < _EVENTS_PAGE:
+                return entries
+            since = int(page[-1]["event_id"])
+
+
 class StepToolMeter:
     """The cost contract for tools, over a step's context. It never charges the study.
 
@@ -99,11 +128,32 @@ class StepToolMeter:
     dispatch on record. Its ceiling is zero and it does not charge the study's
     budget, so only a free call can be reserved at all: a priced route is refused
     by the gate (``tool_metering_unavailable``) and, were it not, by the ledger.
+
+    A step that sends tool calls builds its meter with :meth:`resuming`: recovery
+    reads a model call's dispatch mark but not these entries, so the meter reads
+    them itself, and a call an earlier attempt left in flight is never sent again.
+    A meter built plainly (to ask the gate what could leave) refuses to dispatch.
     """
 
     def __init__(self, context: StepContext) -> None:
         self._context = context
         self._ledger = InMemoryToolLedger(budget_usd=0.0)
+        self._resumed = False
+
+    @classmethod
+    def resuming(cls, context: StepContext, *, clock: Callable[[], datetime]) -> StepToolMeter:
+        """The meter of a step that sends tool calls, holding its earlier attempts' entries.
+
+        Everything they journaled counts again (a track's allowance spans attempts),
+        and a call one left ``DISPATCHED`` -- its process died, or its lease went, in
+        flight -- is closed ``UNCERTAIN`` and journaled so: :meth:`uncertain` is then
+        true for its track, which ends ``INCOMPLETE`` without sending anything.
+        """
+        meter = cls(context)
+        for closure in meter._ledger.adopt(_earlier_tool_entries(context), closed_at=clock()):
+            meter._journal(closure)
+        meter._resumed = True
+        return meter
 
     @property
     def charges_study_budget(self) -> bool:
@@ -121,6 +171,11 @@ class StepToolMeter:
 
     def dispatching(self, event: ToolUsageEvent) -> None:
         self._context.checkpoint()
+        if not self._resumed:
+            raise RuntimeError(
+                "a meter sends a tool call only once it holds its step's journal: "
+                "build it with StepToolMeter.resuming"
+            )
         self._ledger.dispatching(event)
         self._journal(event)
 
@@ -133,6 +188,13 @@ class StepToolMeter:
 
     def events(self) -> tuple[ToolUsageEvent, ...]:
         return self._ledger.events()
+
+    def uncertain(self, track_id: str) -> bool:
+        """True once a call of this track may have been served with no answer on record."""
+        return any(
+            e.track_id == track_id and e.outcome is ToolOutcome.UNCERTAIN
+            for e in self._ledger.events()
+        )
 
     def track_usage(self, track_id: str) -> tuple[int, int, int, float]:
         """(searches sent, fetches sent, credits, cost) of one track, from the journal."""

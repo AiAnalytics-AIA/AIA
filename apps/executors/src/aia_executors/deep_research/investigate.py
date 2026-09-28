@@ -203,7 +203,7 @@ class InvestigateExecutor(_Step):
                 repo.read(existing.artifact_id)
                 return _produced(existing, reused=True)
 
-        meter = StepToolMeter(context)
+        meter = StepToolMeter.resuming(context, clock=runtime.clock)
         gate = (
             RetrievalGate(
                 retrieval=runtime.retrieval,
@@ -467,6 +467,15 @@ class InvestigateExecutor(_Step):
         status, stop, detail = TrackStatus.COMPLETED, None, ""
 
         for i, query in enumerate(queries):
+            if meter.uncertain(track.track_id):
+                # An earlier attempt of this step sent a call for this track and stopped
+                # before its outcome was on record: resuming closed it as uncertain.
+                status, stop = TrackStatus.INCOMPLETE, StopReason.TOOL_OUTCOME_UNCERTAIN
+                detail = (
+                    "a call an earlier attempt sent for this track may have been served; "
+                    "nothing more is sent"
+                )
+                break
             searches, fetches, _credits, _cost = meter.track_usage(track.track_id)
             stop = stop_reason(
                 grounded=len(findings.evidence),

@@ -212,7 +212,12 @@ without journaling, whether any query of a class could leave.
 progress event named by `TOOL_EVENT_KINDS` (`deep_research_tool_dispatched`, …); the dispatch
 is written after a checkpoint and before the call, so a cancelled, stopping or lease-less step
 stops first. The journal holds the request's fingerprint, never the query text. Its ceiling is
-zero: only a free call can be reserved at all.
+zero: only a free call can be reserved at all. Recovery reads a model call's dispatch mark but
+not these entries, so a step that sends calls builds its meter with `StepToolMeter.resuming`:
+it adopts every tool entry the step's earlier attempts journaled (a track's allowance spans
+attempts), and a `DISPATCHED` entry with no outcome -- its process died, or lost its lease, in
+flight -- is closed `UNCERTAIN` at its ceiling and journaled so. Its track then ends
+`INCOMPLETE` without sending anything again. A meter built plainly refuses to dispatch.
 
 **Adapters state their own mode.** A `SearchAdapter` and a `FetchTransport` each say
 `RECORDED` or `LIVE`, and a recorded one cannot say anything else; `WebRetrieval` refuses an

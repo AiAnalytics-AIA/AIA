@@ -124,7 +124,8 @@ apps/
                             local/test, and no deployment may name it (layer_check)
     deep_research/          The six Deep Research steps (not registered): plan, investigate, merge,
                             verify, synthesize, publish; StepToolMeter (every tool call journaled,
-                            fenced, before it leaves); deep_research_registry(runtime=None) parks
+                            fenced, before it leaves; a retry takes the journal over and never
+                            resends a call left in flight); deep_research_registry(runtime=None) parks
     deep_research_runtime.py  AIA_DEEP_RESEARCH_ENABLED: needs research agents; no web retrieval
                             exists, so web tracks are blocked and nothing is sent
     deep_research_recorded.py  The ONLY composition with recorded web retrieval; refuses unless

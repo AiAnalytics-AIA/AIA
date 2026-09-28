@@ -21,6 +21,7 @@ memory; a worker's meter journals them through the step's context.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
@@ -251,6 +252,54 @@ class InMemoryToolLedger:
             self._held.pop(event.reservation_id, None)
         self._spent += charge
         self._events.append(event)
+
+    def adopt(
+        self, journal: Sequence[ToolUsageEvent], *, closed_at: datetime
+    ) -> tuple[ToolUsageEvent, ...]:
+        """Take over what earlier attempts of a step journaled, and close what they left open.
+
+        Every entry is kept once (by its id), and each terminal entry's charge counts
+        as spent: its reservation went with its attempt. A ``DISPATCHED`` entry with no
+        terminal entry is a call whose process stopped in flight -- it died, or lost
+        its lease -- so it may have been served: it is closed ``UNCERTAIN``, charged at
+        its ceiling, and never sent again. Returns those closures, for the caller to
+        journal. Only an empty ledger adopts: the journal is history, not a reservation.
+        """
+        if self._events or self._held:
+            raise ValueError("a ledger adopts a journal before its own first entry")
+        seen: set[str] = set()
+        closed = {e.call_id for e in journal if e.outcome.is_terminal}
+        open_calls: dict[str, ToolUsageEvent] = {}
+        for event in journal:
+            if event.event_id in seen:
+                continue
+            seen.add(event.event_id)
+            self._events.append(event)
+            if event.outcome.is_terminal:
+                self._spent += (
+                    event.ceiling_usd if event.outcome is ToolOutcome.UNCERTAIN else event.cost_usd
+                )
+            elif event.call_id not in closed:
+                open_calls.setdefault(event.call_id, event)
+        closures = tuple(
+            ToolUsageEvent.model_validate(
+                {
+                    **dispatched.model_dump(),
+                    "event_id": new_tool_event_id(),
+                    "outcome": ToolOutcome.UNCERTAIN,
+                    "provider_request_id": None,
+                    "credits": 0,
+                    "cost_usd": 0.0,
+                    "occurred_at": closed_at,
+                    "note": "its attempt stopped before the outcome was recorded",
+                }
+            )
+            for dispatched in open_calls.values()
+        )
+        for closure in closures:
+            self._events.append(closure)
+            self._spent += closure.ceiling_usd
+        return closures
 
     def committed_usd(self) -> float:
         return self._spent
