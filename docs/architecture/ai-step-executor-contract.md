@@ -152,7 +152,7 @@ own. Filed so nothing is assumed:
    while this contract checks each call against **one attempt reservation**.
    Either the executor reserves per call through `StepContext`, or the worker
    exposes the attempt reservation; the choice is shared, and is recorded as
-   D11 in `PROGRESS.md`. Also relevant: OI-21, which the worker's executor contract
+   D11 in `.planning/overview.md`. Also relevant: OI-21, which the worker's executor contract
    closes by settling a refused call at zero first -- the gateway already does
    this, because a provider refusal is a `RESPONDED` failure whose outcome is
    recorded as known before the step fails.

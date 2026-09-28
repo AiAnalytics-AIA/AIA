@@ -221,7 +221,7 @@ never used for another family's job.
   `Provider` values in `domain/providers.py`: `claude_code_subscription`,
   `anthropic` and `openai`. The develop runtime now routes through Bedrock, and
   removing the old Claude Code/direct-API controls is in progress
-  (`.planning/PROGRESS.md`). Treat the provider names in the reference as
+  (`.planning/overview.md`). Treat the provider names in the reference as
   placeholders.
 - `ImpactPreview` has no cost or time estimate from the domain yet, so both
   read *chybí* (`packages/aia_core/src/aia_core/domain/pipeline.py:423` @ `043b0dd`).

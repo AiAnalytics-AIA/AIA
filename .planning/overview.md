@@ -1,16 +1,25 @@
-# PROGRESS
+# Overview
 
-**Single source of truth for what is done, in progress and next.**
-Read this at the start of every session, before doing any work.
+**The cross-feature state: the roadmap, the decisions, the parity status and the
+history.** Only docs-only PRs edit this file (CLAUDE.md §1); a feature PR puts
+what this file needs under *Doc follow-up* in its description. A feature's own
+status is its plan file's front-matter — run `python tools/progress.py` — and
+where this file disagrees with a plan's front-matter, the front-matter wins.
 
-**Updated:** 2026-09-27 · **Code of record:** `develop` @ `e0edf2a` · **Release:** `main` @ `9cf1f58`,
+It replaced `.planning/PROGRESS.md` on 2026-09-28. **Decision ids keep that
+name:** code, the interface, stored artifacts and older documents cite
+`PROGRESS D6`, `PROGRESS D11` and so on, and they mean the rows of *Decisions
+needed* below.
+
+**Last updated as PROGRESS.md:** 2026-09-27 · **Code of record:** `develop` @ `e0edf2a` · **Release:** `main` @ `9cf1f58`,
 208 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
+Since 2026-09-28 docs PRs keep that table, from each PR's own description; a feature PR
+never adds its own row (CLAUDE.md §1).
 
-This file is the **tracker**. [`docs/migration/status.md`](../docs/migration/status.md)
-is the **narrative** — it carries the reasoning, the verification tables and the
-bug write-ups. When the two disagree, **this file wins and the narrative is
-stale**. Do not open a third backlog anywhere.
+[`docs/migration/status.md`](../docs/migration/status.md) is the **narrative** —
+it carries the reasoning, the verification tables and the bug write-ups. When it
+disagrees with this file or with a plan's front-matter, the narrative is stale.
 
 Every claim about code carries `file:line @ SHA` or a test name. An unanchored
 entry is a **hypothesis**, not a finding.
@@ -237,7 +246,10 @@ the parent commit — +187 tests, no new skips. `mypy --strict` clean across 42
 source files, `ruff` clean, `layer_check` 12/12. F4 and F8 are only partly
 reproducible and are carried as OI-13 / OI-14; R parity is OI-15.
 
-## In progress
+## Status notes as of 2026-09-27
+
+*Kept as written when PROGRESS.md was retired. Current status is in the plans'
+front-matter (`python tools/progress.py`).*
 
 **The `develop` environment is live** (see *Where the code is* for what is deployed). Research execution and Bedrock respondent fieldwork are merged, and the fictional Class C acceptance completed on 2026-09-26 (Completed, Agent Runtime). Native design proposals are merged (PR #63) and remain off by default. Evidence-backed interpretation/report execution and owned Deep Research remain required for the complete agent workflow.
 
@@ -588,8 +600,9 @@ with the topic until they are renumbered in one change with every reference.*
 | D12 | ~~**Merge order for the AI runtime.**~~ — **resolved 2026-09-23.** PR #28 (the `ModelGateway` contract) merged into `main` at `676bc1f`, and this change merges `main` into `develop`, so the gateway, its three recorded-exchange adapters and the `ai_usage_events` ledger are on both branches. Next #5c (the Bedrock adapter) is unblocked. Nothing forked ADR 0005 A | Brief items 11–13; Next #5c; ADR 0010 → Accepted | `.planning/plans/done/develop-deployment.md` § Contradictions, C1 |
 
 Open defects and questions live in
-[`open-items.md`](open-items.md). Plans in flight live in [`plans/`](plans/);
-finished ones move to [`plans/done/`](plans/done/).
+[`open-items.md`](open-items.md). Plans live in [`plans/`](plans/), their status
+in their front-matter; [`plans/done/`](plans/done/) holds those archived before
+2026-09-28.
 
 ### Research agent publication checkpoint — 2026-09-27
 

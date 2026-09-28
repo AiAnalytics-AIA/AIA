@@ -1,3 +1,15 @@
+---
+status: done
+chunks:
+  - "[x] 1. Read-only settings document"
+  - "[x] 2. Self-approval over HTTP"
+  - "[x] 3. Client status over HTTP"
+  - "[x] 4. Web API client"
+  - "[x] 5. The settings page"
+  - "[x] 6. Shell vocabulary"
+  - "[x] 7. Merge develop"
+  - "[x] 8. The panel on /app/settings; merged PR #67 at 2beafd9"
+---
 # Settings control panel
 
 **Status:** done — merged in PR #67 @ `2beafd9` (2026-09-27). Archived 2026-09-27 · **Owner:** product-surface · **Started:** 2026-09-27

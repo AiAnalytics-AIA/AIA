@@ -1,8 +1,8 @@
 # CLAUDE.md — standing instructions for AIA
 
 Read this file, then [ARCHITECTURE.md](ARCHITECTURE.md), then
-[AGENTS.md](AGENTS.md), before writing any code. Then read
-[`.planning/PROGRESS.md`](.planning/PROGRESS.md).
+[AGENTS.md](AGENTS.md), before writing any code. Then run
+`python tools/progress.py`: every plan's status, from its own front-matter (§4).
 
 These rules are not advisory. They apply to every session, every branch and
 every agent working in this repository.
@@ -15,7 +15,8 @@ You are working in someone else's long-lived codebase. Two things are true and
 they order everything below.
 
 1. **The repository is the memory.** Nothing you learn survives this session
-   unless it lands in code, a test, or one of the three documents above. A
+   unless it lands in code, a test, one of the three documents above, or your
+   feature's plan file and PR description (§1, §4). A
    decision explained only in chat is a decision that will be re-litigated in six
    weeks by someone with less context.
 2. **Solid over fast.** When you hit a blocker, do not rush to clear only that
@@ -30,16 +31,34 @@ they order everything below.
 | **CLAUDE.md** (this file) | The project map, the commands, the working rules | What exists, where, and how work is done here. |
 | [AGENTS.md](AGENTS.md) | Framework-level gotchas — FastAPI, SQLAlchemy, Alembic, Pydantic, pytest, Next.js | Tool-agnostic. Anyone's agent can use it. |
 
-**Keeping them in sync is mandatory, in the same change set.** When you add,
-rename or remove anything they describe — a module, a table, a route, a job, a
-config key, a command — the document changes in the same commit range as the
-code. The reviewer reads the doc diff alongside the code diff. **Stale docs are
-worse than no docs, because they are believed.**
+**Keeping them in sync is mandatory — through a docs PR, never inside a feature
+PR.** When you add, rename or remove anything they describe — a module, a table,
+a route, a job, a config key, a command — the document must change. The feature
+PR does not make that edit. It writes the change under **Doc follow-up** in its
+PR description, as exact text or a description precise enough to apply without
+the author, and a separate, small, docs-only PR applies the follow-ups of one or
+more merged feature PRs. The reviewer reads the Doc follow-up alongside the code
+diff. **Stale docs are worse than no docs, because they are believed**, so open
+the docs PR soon after the merge; until it lands, the merged PR's Doc follow-up
+is the record.
+
+**Shared files no feature PR edits:** `CLAUDE.md`, `ARCHITECTURE.md`,
+`AGENTS.md`, `.planning/overview.md`, `.planning/open-items.md`,
+`.planning/plans/README.md`, and the indexes and status narratives
+(`docs/architecture/README.md`, `docs/architecture/adr/README.md`,
+`docs/migration/status.md`). Every open PR was editing them, so each merge
+conflicted with every other open PR (the hand-resolved file in 24 of the last 60
+merges was the retired `PROGRESS.md`, 21 `open-items.md`, 18 `CLAUDE.md`, 16
+`ARCHITECTURE.md`). Files that code or a test is checked against are **not**
+shared docs and still change with the code: `parity-matrix.json`, the route and
+UI function ledgers, the design tokens, and every generated file — a test fails
+otherwise.
 
 When you solve a non-obvious framework problem — a race, a silent truncation, a
-config that behaves differently under test — write it into `AGENTS.md`
-immediately, with the wrong version and the right version side by side. That file
-exists because the same three-hour debugging session was happening twice.
+config that behaves differently under test — record it immediately, with the
+wrong version and the right version side by side, in your plan file and under
+Doc follow-up; the docs PR carries it into `AGENTS.md`. That file exists because
+the same three-hour debugging session was happening twice.
 
 ## 2. The map
 
@@ -304,6 +323,7 @@ tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
 tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via LibreOffice,
                             lint, greyscale, +35 % Czech stress (manual)
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
+tools/progress.py           Every plan's status from its front-matter; `--check` validates it
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
 tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
                             the unit's venv), `self` (AIA's pinned bounds)
@@ -468,6 +488,7 @@ ungated fixture.
 | Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
 | **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |
 | Capture UI function fixtures | `python tools/ui_function_capture.py capture` (needs Node); `verify` re-runs and compares |
+| **Plan status** | `python tools/progress.py`; `--check` validates every plan's front-matter |
 | **Report preview** | `make report-preview` — the four sample reports as pages, in colour, greyscale and +35 % stress (needs `libreoffice-writer`, `poppler-utils`) |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` |
@@ -500,20 +521,44 @@ Progress and design live in the repository, not in the chat log.
 
 ```
 .planning/
-├── PROGRESS.md        single source of truth: done / in progress / next
-├── plans/             one file per feature, broken into chunks
-│   └── done/          archived plans: design decisions + review outcomes
+├── overview.md        roadmap, decisions (ids `PROGRESS D<n>`), parity status, history
+├── plans/             one file per feature, broken into chunks; its status on top
+│   └── done/          plans archived before 2026-09-28; nothing new moves here
 └── open-items.md      the live defect and question register
 ```
 
-- **Read `.planning/PROGRESS.md` at the start of every session**, before any work.
+A feature's status lives in **its own plan file**, as front-matter at the top:
+
+```markdown
+---
+status: in-progress        # planned | in-progress | done
+chunks:
+  - "[x] 1. Security audits on a weekly schedule"
+  - "[ ] 2. Fold the parity jobs into backend"
+---
+# <feature>
+```
+
+- **At the start of every session, run `python tools/progress.py`** before any
+  work: one table of every plan's status and next chunk, read from the
+  front-matter. `--check` validates the front-matter (allowed status, well-formed
+  chunks, both keys present, no open chunk under `done`); it compares nothing
+  with a committed file and is not a CI job. There is no committed status index:
+  `PROGRESS.md` was retired on 2026-09-28, and its hand-written parts live in
+  `overview.md`, which only docs PRs edit. Its decision ids keep the name
+  (`PROGRESS D6`), because code and the interface cite them.
 - When a design discussion produces an implementation plan, **save it** to
   `.planning/plans/<feature>.md` with the agreed chunks *before* writing code.
-- After each chunk lands, update both `PROGRESS.md` and the plan file.
-- When every chunk is done, move the feature to Completed and the plan file to
-  `plans/done/`.
-- **Do not open a parallel backlog.** If `PROGRESS.md` and a narrative document
-  disagree, `PROGRESS.md` wins and the narrative is stale.
+- After each chunk lands, tick it in the plan file's `chunks:` and update
+  `status:`. **A feature PR touches only its own plan file**, never another
+  feature's, never `overview.md`.
+- When every chunk is done, set `status: done`. The file stays where it is: a
+  move is a rename, and a rename conflicts with any open PR that edits the file.
+- Progress is recorded in two places only: the PR description and the plan file.
+  The docs PR carries what crosses features (roadmap, decisions, history) into
+  `overview.md` (§1).
+- **Do not open a parallel backlog.** If `overview.md` or a narrative document
+  disagrees with the plan files, the plan files win and the other is stale.
 
 ### The anchor rule
 
@@ -703,7 +748,8 @@ money in the commit body.
 
 ## 9. A finding is only actionable with all six
 
-When reporting a defect — to a human or into `.planning/open-items.md`:
+When reporting a defect — to a human, in your plan file, or into
+`.planning/open-items.md`:
 
 1. The claim, in one sentence.
 2. The anchor: `file:line @ SHA`.
@@ -714,6 +760,11 @@ When reporting a defect — to a human or into `.planning/open-items.md`:
 
 Missing the reproduction makes it a **hypothesis**, and it is labelled as one.
 Hypotheses are reproduced or deleted; they are never budgeted for.
+
+A feature PR records a new finding in its plan file under **Findings** and lists
+it under Doc follow-up; a fix that closes an existing OI says so there too. The
+docs PR moves findings into `open-items.md` and gives them their OI numbers.
+Numbers are allocated only there, so two open PRs never take the same one.
 
 ## 10. Before you say a task is done
 
@@ -729,9 +780,9 @@ make test-web
 
 or `make verify`, which runs exactly that sequence.
 
-- [ ] The three documents in §1 are updated in the same change set, if anything
-      they describe moved.
-- [ ] `.planning/PROGRESS.md` and the plan file reflect the chunk that just landed.
+- [ ] No shared file from §1 is edited on this feature branch; anything they
+      describe that moved is written under Doc follow-up in the PR description.
+- [ ] The plan file's front-matter reflects the chunk that just landed.
 - [ ] Every new public function has tests; every new job and event has a test file.
 - [ ] No test was skipped, disabled or loosened to get green.
 - [ ] Nothing was committed or pushed without permission.

@@ -1,3 +1,16 @@
+---
+status: done
+chunks:
+  - "[x] 1. This plan, ADR 0009, ADR 0010 (Proposed)"
+  - "[x] 2. Build identity and storage settings"
+  - "[x] 3. Containers"
+  - "[x] 4. Single host"
+  - "[x] 5. Terraform"
+  - "[x] 6. Vertical slice, backend"
+  - "[x] 7. Vertical slice, frontend"
+  - "[x] 8. CI/CD"
+  - "[x] 9. Docs sync, make verify, develop branch, PR"
+---
 # The first continuously deployed `develop` environment
 
 **Status:** completed 2026-09-23 (live at <https://aia-develop.art-chain.io/>) · **Owner:** integration-architecture · **Started:** 2026-09-23

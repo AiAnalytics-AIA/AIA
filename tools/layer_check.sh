@@ -9,7 +9,7 @@
 #
 # Exit 0 = every rule passes. Run it before every commit; CI runs it blocking.
 #
-# Adding a rule: state it in ARCHITECTURE.md first, then add one `forbid` line
+# Adding a rule: state it under Doc follow-up (the docs PR adds it to ARCHITECTURE.md), then add one `forbid` line
 # here. Rules are a ratchet -- each one is added only once it already passes, so
 # this script is green from the day it lands and a red run always means a
 # regression rather than a backlog.

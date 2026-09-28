@@ -1,3 +1,13 @@
+---
+status: in-progress
+chunks:
+  - "[ ] 0. Vocabulary alignment (state not recorded in this plan)"
+  - "[x] 1. Tokens, themes, identity (landed through interface-skin.md)"
+  - "[ ] 2. Domain enum binding (returns when areas are re-homed)"
+  - "[ ] 3. Primitives + Vitest (returns when areas are re-homed)"
+  - "[-] V. First vertical slice (superseded 2026-09-23, ADR 0012)"
+  - "[-] 4–11. Screen compositions (superseded 2026-09-23, ADR 0012)"
+---
 # Plan: AIA design system → apps/web
 
 **Status:** foundation carried forward; **screen compositions superseded** (2026-09-23). The develop deployment's 18.6.6 interface is the canonical baseline for every screen (ADR 0012), so chunks V and 4–11 below no longer describe work to do. Chunk 1 (tokens, fonts, identity) lands through [`interface-skin.md`](interface-skin.md) and [ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md); chunks 2–3 (enum binding, primitives) return when areas are re-homed (legacy strangler, slice 16+). Decisions DS-1 to DS-3 stand. **Owner:** product-surface (A9).

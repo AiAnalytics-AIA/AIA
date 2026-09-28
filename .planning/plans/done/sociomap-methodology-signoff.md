@@ -1,3 +1,10 @@
+---
+status: done
+chunks:
+  - "[x] 1. Decision document"
+  - "[x] 2. Integration rule; layer_check"
+  - "[x] 3. Agent status on coordination/agent-status"
+---
 # Sociomap methodology sign-off package (D6 / OI-16)
 
 **Status:** done — awaiting the methodology owner's decision (D6) · **Owner:** sociomapa-deterministic · **Started:** 2026-09-22

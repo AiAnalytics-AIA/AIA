@@ -1,3 +1,19 @@
+---
+status: in-progress
+chunks:
+  - "[x] 0. This plan and ADR 0017 (Proposed)"
+  - "[x] a. Contracts"
+  - "[x] b. Legacy leakage screen and merge, EXACT"
+  - "[x] c. Grounding, source tables, query classifier, URL safety"
+  - "[x] d. Planning, fingerprints, coverage, agents and prompts (PR #79)"
+  - "[ ] e. Retrieval adapters and the governed gate"
+  - "[ ] f. Application service (DeepResearchRuns)"
+  - "[ ] g. Executors and compositions"
+  - "[ ] h. Worker journey"
+  - "[ ] 4. Tool usage in the ledger (migration)"
+  - "[ ] 12. API and the Deep Research stage screen"
+  - "[ ] 13. Live enablement (blocked on DR-2 and, for Class B, D6)"
+---
 # Deep Research — a governed research swarm over Client Knowledge and the web
 
 **Status:** planned — chunk 0 (this plan, ADR 0017 *Proposed*) only · **Owner:** research-engine +
