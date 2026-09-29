@@ -15,9 +15,11 @@ running deployment. It proves, in order:
    artifact carries the deployed build as its ``runtime_version``; one reused
    by content fingerprint keeps the build that first produced it, and the
    check says so instead of failing (reuse is the design, ``snapshot.py``).
-4. **AI** -- reported ``NOT_RUNNABLE`` until a Bedrock adapter and governed
-   route are wired into the deployed revision (ADR 0010). Printed, never
-   counted as a pass.
+4. **AI** -- reported ``NOT_RUNNABLE``: the smoke makes no paid model call. The
+   AI runtime (``ai_runtime.py``) is off by default and fail-closed when on, and
+   is proven by its own acceptance (ADR 0010, accepted for fictional Class C on
+   develop only; ``docs/architecture/bedrock-develop-activation-2026-09-26.md``),
+   not on each deploy. Printed, never counted as a pass.
 
 Output is one ``ok``/``FAIL``/``NOT_RUNNABLE`` line per check, in the same shape
 as ``smoke.sh``; exit status is non-zero on any ``FAIL``.
@@ -47,7 +49,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from ._db import engine_from_env
 
-__all__ = ["main", "storage_round_trip", "wait_for_snapshot"]
+__all__ = ["ai_check", "main", "storage_round_trip", "wait_for_snapshot"]
 
 
 class Report:
@@ -202,6 +204,16 @@ def slice_check(
         report.fail("slice: the snapshot describes the seeded project", str(payload)[:200])
 
 
+def ai_check(report: Report) -> None:
+    """Report the AI check as not runnable, and say why; it is never a pass."""
+    report.not_runnable(
+        "ai: governed model call through ModelGateway -> bedrock-eu-primary",
+        "the smoke makes no paid model call; the AI runtime is off by default "
+        "and is checked by its own acceptance, not on each deploy (ADR 0010, "
+        "docs/architecture/bedrock-develop-activation-2026-09-26.md)",
+    )
+
+
 def describe_failure(exc: Exception) -> str:
     """One line for an unexpected slice error, with a denial's reason.
 
@@ -251,11 +263,7 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         engine.dispose()
 
-    report.not_runnable(
-        "ai: governed model call through ModelGateway -> bedrock-eu-primary",
-        "ModelGateway exists, but no Bedrock adapter or live governed route "
-        "is wired (ADR 0010 is Proposed)",
-    )
+    ai_check(report)
     return 1 if report.failed else 0
 
 

@@ -294,10 +294,14 @@ replaces the `aia` database, starts them, runs the smoke test.
 
 The worker can run AI respondent fieldwork (the research `ai_runtime` source)
 through `GovernedModelGateway` over ADR 0010's route `bedrock-eu-primary`. **It is
-off** (`AIA_AI_RUNTIME_ENABLED=false`): a research run parks at fieldwork
-(`WAITING_PROVIDER` / `ai_runtime_unavailable`) until an operator configures it,
-and ADR 0010 is still *Proposed*. No live model call has been made from this
-environment. The smoke test's AI check is still `NOT_RUNNABLE`.
+off by default** (`AIA_AI_RUNTIME_ENABLED=false`): a research run parks at
+fieldwork (`WAITING_PROVIDER` / `ai_runtime_unavailable`) until an operator
+configures it. ADR 0010 is accepted for fictional Class C on develop only
+(2026-09-26); the one authorised acceptance run is recorded in
+[`bedrock-develop-activation-2026-09-26.md`](../../docs/architecture/bedrock-develop-activation-2026-09-26.md).
+The smoke test's AI check is `NOT_RUNNABLE` by design: the smoke makes no paid
+model call, so it proves nothing about whether the runtime is on for a given
+deploy.
 
 What the environment provides:
 

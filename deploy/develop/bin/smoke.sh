@@ -9,9 +9,10 @@
 # runbook as a manual acceptance step, because a smoke test holding a user's
 # Google credentials would be worse than the gap it closes.
 #
-# Exit status: 0 only when every check passed. The AI check reports
-# NOT_RUNNABLE while no Bedrock adapter and governed EU route are wired into
-# the deployed revision; that is printed as such and never counted as a pass.
+# Exit status: 0 only when every check passed. The AI check always reports
+# NOT_RUNNABLE: the smoke makes no paid model call, and the AI runtime -- off by
+# default -- is checked by its own acceptance (ADR 0010), not on each deploy.
+# It is printed as such and never counted as a pass.
 
 # shellcheck source=deploy/develop/bin/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
