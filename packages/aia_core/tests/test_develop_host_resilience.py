@@ -1,15 +1,17 @@
-"""The product hostname must survive a missing or unhealthy 18.6.6 unit.
+"""The develop host serves AIA whatever state anything else is in.
 
 *Deploy develop* run 10 (2026-09-23) was the first to reach the host with the
-legacy unit, and it took the whole site down: the host's env file had none of
+18.6.6 unit, and it took the whole site down: the host's env file had none of
 the ``AIA_LEGACY_*`` values, so the Caddyfile's legacy site had an empty address
 and Caddy could not parse the file; Caddy also waited for the unit to be
 healthy, and the unit refuses to start without its data bundle. The services
-had already been replaced, so nothing answered on the product hostname.
+had already been replaced, so nothing answered on the product hostname. Since
+ADR 0018 the product stack has no unit at all: no service, image, volume,
+setting, hostname, data sync or health check of it (deploy/reference runs it).
 
 These checks read the files as text, like ``test_deploy_images.py``: the real
-proof (Caddy loading through Compose with and without the settings) runs in the
-``develop-host-config`` CI job, which has Docker.
+proof (Caddy loading through Compose) runs in the ``develop-host-config`` CI
+job, which has Docker.
 """
 
 from __future__ import annotations
@@ -34,27 +36,26 @@ def _service_block(text: str, name: str) -> str:
     return match.group(1)
 
 
-def test_caddy_does_not_wait_for_the_legacy_unit() -> None:
+def _code(text: str) -> str:
+    """The lines that do something: comments dropped, so a note may name the unit."""
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+
+
+def test_the_product_stack_has_nothing_of_the_18_6_6_unit() -> None:
+    compose = _code(COMPOSE.read_text(encoding="utf-8"))
+    for gone in ("legacy-panel", "aia-legacy-panel", "legacy_state", "legacy-data", "AIA_LEGACY_"):
+        assert gone not in compose, gone
     caddy = _service_block(COMPOSE.read_text(encoding="utf-8"), "caddy")
     depends = re.search(r"^    depends_on:\n((?:      .*\n)+)", caddy, re.M)
     assert depends, "caddy should still wait for web and api"
-    assert "legacy-panel" not in re.sub(r"#.*", "", depends.group(1))
 
 
-def test_every_legacy_setting_caddy_reads_has_a_default() -> None:
-    caddy = _service_block(COMPOSE.read_text(encoding="utf-8"), "caddy")
-    for name in ("AIA_LEGACY_HOSTNAME", "AIA_LEGACY_BASIC_USER", "AIA_LEGACY_BASIC_HASH"):
-        value = re.search(rf"^      {name}: (.+)$", caddy, re.M)
-        assert value, f"caddy no longer receives {name}"
-        # `:-` covers unset *and* empty; Caddy's own `{$VAR:default}` does not.
-        assert value.group(1).startswith(f"${{{name}:-"), f"{name} has no Compose default"
-
-
-def test_the_default_hostname_never_asks_for_a_public_certificate() -> None:
-    caddy = _service_block(COMPOSE.read_text(encoding="utf-8"), "caddy")
-    default = re.search(r"AIA_LEGACY_HOSTNAME: \$\{AIA_LEGACY_HOSTNAME:-([^}]+)\}", caddy)
-    assert default
-    assert default.group(1).endswith(".localhost")
+def test_the_caddyfile_reads_no_legacy_setting() -> None:
+    # An unset AIA_LEGACY_HOSTNAME left the site address empty and Caddy unable
+    # to parse the file (run 10). With no such site, no such setting is read.
+    caddyfile = _code((DEVELOP / "Caddyfile").read_text(encoding="utf-8"))
+    assert "AIA_LEGACY" not in caddyfile
+    assert "legacy-panel" not in caddyfile
 
 
 def test_the_deploy_checks_the_caddyfile_before_it_touches_anything() -> None:
@@ -65,15 +66,16 @@ def test_the_deploy_checks_the_caddyfile_before_it_touches_anything() -> None:
     assert check < text.index('log "replacing services"')
 
 
-def test_the_deploy_waits_only_on_aias_services_and_smoke_checks_the_unit() -> None:
-    text = DEPLOY.read_text(encoding="utf-8")
-    waits = [line for line in text.splitlines() if "up -d" in line and "--wait" in line]
-    replace = [line for line in waits if "--wait-timeout" in line]
+def test_the_deploy_pulls_syncs_and_waits_on_nothing_of_18_6_6() -> None:
+    text = _code(DEPLOY.read_text(encoding="utf-8"))
+    assert '"${COMPOSE[@]}" pull --quiet api worker web\n' in text + "\n"
+    assert "legacy-panel" not in text and "aws s3 sync" not in text
+    replace = [line for line in text.splitlines() if "up -d" in line and "--wait-timeout" in line]
     assert replace, "the service replacement no longer waits"
-    for line in replace:
-        assert "legacy-panel" not in line
-        assert line.rstrip().endswith("postgres api worker web caddy")
-    assert "the 18.6.6 unit is healthy" in SMOKE.read_text(encoding="utf-8")
+    smoke = _code(SMOKE.read_text(encoding="utf-8"))
+    assert "the 18.6.6 unit is healthy" not in smoke and "AIA_LEGACY_HOSTNAME" not in smoke
+    # The unit's old paths are the web client's 404, not a gate's answer.
+    assert "the 18.6.6 unit's paths are AIA's 404" in smoke
 
 
 def test_the_env_file_quotes_every_value() -> None:
@@ -101,25 +103,32 @@ def test_a_changed_caddyfile_recreates_caddy() -> None:
 
 
 def test_the_smoke_check_proves_caddy_runs_the_deployed_caddyfile() -> None:
+    # /classic is AIA's own page only on this Caddyfile; the one before gated it.
     text = SMOKE.read_text(encoding="utf-8")
-    assert 'code "$BASE/interface-document"' in text
-    assert '[ "$direct_code" = "404" ]' in text
+    assert '"$BASE/classic"' in text
+    assert '[ "$classic_code" = "200" ]' in text and "už není součástí AIA" in text
+    assert 'code "$BASE/interface-document"' in text and '[ "$direct_code" = "404" ]' in text
 
 
-def test_the_rebuilt_interface_is_switched_on_for_develop_and_smoke_checked() -> None:
-    # ADR 0014: /app renders only with the switch on, and the smoke check proves
-    # an anonymous browser is sent to sign-in there, never served the screens.
+def test_aia_needs_no_switch_and_the_smoke_check_proves_its_gate() -> None:
+    # ADR 0018: /app has no switch of its own, and the smoke check proves an
+    # anonymous browser is sent to sign-in there, never served the screens.
     web = _service_block(COMPOSE.read_text(encoding="utf-8"), "web")
-    assert 'AIA_INTERFACE_REHOME_ENABLED: "true"' in web
+    for gone in (
+        "AIA_INTERFACE_REHOME_ENABLED",
+        "AIA_INTERFACE_SKIN_ENABLED",
+        "AIA_LEGACY_PANEL_URL",
+    ):
+        assert gone not in web, gone
     text = SMOKE.read_text(encoding="utf-8")
     assert '"$BASE/app/clients"' in text
     assert '[ "$app_location" = "/login?next=%2Fapp%2Fclients" ]' in text
 
 
 def test_the_smoke_check_proves_the_product_hostname_opens_aia_not_18_6_6() -> None:
-    # ADR 0015: / redirects to the client directory, the classic interface is a
-    # gated hand-off at /classic, and no path falls through to the unit.
+    # ADR 0015: / redirects to the client directory; ADR 0018: the 18.6.6
+    # interface is not served; and no path falls through to the unit.
     text = SMOKE.read_text(encoding="utf-8")
     assert '[ "$root_code" = "302" ] && [ "$root_location" = "/app/clients" ]' in text
-    assert '[ "$classic_location" = "/login?next=%2Fclassic" ]' in text
+    assert "18.6.6 is not served" in text
     assert '"$BASE/no-such-page"' in text and '[ "$stray_code" = "404" ]' in text

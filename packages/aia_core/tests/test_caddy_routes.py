@@ -17,11 +17,18 @@ def routes(tool_loader: Any) -> Any:
     return tool_loader("caddy_routes")
 
 
-GATE = {
+# The 18.6.6 panel's gate (ADR 0012): retired with the unit, refused wherever it appears.
+PANEL_GATE = {
     "handler": "reverse_proxy",
     "rewrite": {"method": "GET", "uri": "/api/v1/panel/gate"},
     "upstreams": [{"dial": "api:8000"}],
 }
+APP_GATE = {
+    "handler": "reverse_proxy",
+    "rewrite": {"method": "GET", "uri": "/api/v1/session/gate"},
+    "upstreams": [{"dial": "api:8000"}],
+}
+UNIT = "legacy-panel:8765"
 
 
 def proxy(dial: str) -> dict[str, Any]:
@@ -41,15 +48,16 @@ def sub(paths: list[str] | None, *handlers: dict[str, Any]) -> dict[str, Any]:
     return r
 
 
+def site(host: str, routes: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"match": [{"host": [host]}], "handle": [{"handler": "subroute", "routes": routes}]}
+
+
 def good() -> dict[str, Any]:
     product = [
         sub(["/api/v1/*"], {"handler": "reverse_proxy", "upstreams": [{"dial": "api:8000"}]}),
-        sub(["/interface-document"], {"handler": "static_response", "status_code": 404}),
         sub(
-            ["/classic"],
-            GATE,
-            {"handler": "rewrite", "uri": "/interface-document"},
-            proxy("web:3000"),
+            ["/login", "/_next/*"],
+            {"handler": "reverse_proxy", "upstreams": [{"dial": "web:3000"}]},
         ),
         sub(
             ["/"],
@@ -59,47 +67,11 @@ def good() -> dict[str, Any]:
                 "headers": {"Location": ["/app/clients"]},
             },
         ),
-        sub(["/app", "/app/*"], GATE, proxy("web:3000")),
-        sub(
-            [
-                "/api/providers/claude-code/*",
-                "/api/settings/api_keys",
-                "/api/settings/anthropic_check",
-                "/api/settings/ai_check",
-                "/api/settings/ai_diagnose",
-            ],
-            GATE,
-            {"handler": "static_response", "status_code": 410},
-        ),
-        sub(["/api/*", "/files/*", "/health"], GATE, proxy("legacy-panel:8765")),
+        sub(["/app", "/app/*"], APP_GATE, proxy("web:3000")),
         sub(None, proxy("web:3000")),
     ]
-    legacy = [
-        sub(
-            None,
-            {"handler": "authentication"},
-            {"handler": "reverse_proxy", "upstreams": [{"dial": "legacy-panel:8765"}]},
-        )
-    ]
     return {
-        "apps": {
-            "http": {
-                "servers": {
-                    "srv0": {
-                        "routes": [
-                            {
-                                "match": [{"host": ["aia.example.test"]}],
-                                "handle": [{"handler": "subroute", "routes": product}],
-                            },
-                            {
-                                "match": [{"host": ["legacy.example.test"]}],
-                                "handle": [{"handler": "subroute", "routes": legacy}],
-                            },
-                        ]
-                    }
-                }
-            }
-        }
+        "apps": {"http": {"servers": {"srv0": {"routes": [site("aia.example.test", product)]}}}}
     }
 
 
@@ -107,68 +79,120 @@ def product(config: dict[str, Any]) -> list[dict[str, Any]]:
     return config["apps"]["http"]["servers"]["srv0"]["routes"][0]["handle"][0]["routes"]  # type: ignore[no-any-return]
 
 
-def test_the_routing_adr_0015_describes_passes(routes: Any) -> None:
+def at(config: dict[str, Any], path: str) -> int:
+    """The index of the product route that names ``path``."""
+    return next(
+        i
+        for i, r in enumerate(product(config))
+        if path in [p for m in r.get("match", []) for p in m.get("path", [])]
+    )
+
+
+def test_the_routing_adr_0018_describes_passes(routes: Any) -> None:
     assert routes.check(good()) == []
 
 
-def test_a_catch_all_to_the_unit_is_refused(routes: Any) -> None:
+def test_the_unit_as_the_catch_all_is_refused(routes: Any) -> None:
     config = good()
-    product(config)[-1] = sub(None, GATE, proxy("legacy-panel:8765"))
+    product(config)[-1] = sub(None, PANEL_GATE, proxy(UNIT))
     problems = routes.check(config)
-    assert any("catch-all to 18.6.6" in p for p in problems)
+    assert any("reaches the 18.6.6 unit" in p for p in problems)
+    assert any("asks the 18.6.6 panel's gate" in p for p in problems)
     assert any("last route must be the web client" in p for p in problems)
+
+
+def test_the_unit_coming_back_on_its_own_paths_is_refused(routes: Any) -> None:
+    # ADR 0018 decision 5: the product deployment serves nothing of 18.6.6,
+    # gated or not, on the paths it used to or on any other.
+    for handlers in ((PANEL_GATE, proxy(UNIT)), (APP_GATE, proxy(UNIT)), (proxy(UNIT),)):
+        config = good()
+        product(config).insert(-1, sub(["/api/*", "/files/*", "/health"], *handlers))
+        problems = routes.check(config)
+        assert any(
+            "['/api/*', '/files/*', '/health'] reaches the 18.6.6 unit" in p for p in problems
+        )
+
+
+def test_any_upstream_but_the_api_and_the_web_client_is_refused(routes: Any) -> None:
+    config = good()
+    product(config).insert(-1, sub(["/elsewhere/*"], proxy("reference:8765")))
+    problems = routes.check(config)
+    assert any("reaches ['reference:8765']" in p for p in problems)
+
+
+def test_a_second_hostname_is_refused(routes: Any) -> None:
+    # The oracle hostname is not the product's: the unit runs from deploy/reference,
+    # on the host's loopback, behind its own gate.
+    config = good()
+    oracle = site(
+        "legacy.example.test",
+        [sub(None, {"handler": "authentication"}, proxy(UNIT))],
+    )
+    config["apps"]["http"]["servers"]["srv0"]["routes"].append(oracle)
+    problems = routes.check(config)
+    assert any("serves another hostname: ['legacy.example.test']" in p for p in problems)
 
 
 def test_serving_the_classic_document_at_root_is_refused(routes: Any) -> None:
     config = good()
-    product(config)[3] = sub(
-        ["/"], GATE, {"handler": "rewrite", "uri": "/interface-document"}, proxy("web:3000")
-    )
-    assert any(p.startswith("/ must answer 302 /app/clients") for p in routes.check(config))
-
-
-def test_the_unit_on_a_path_it_does_not_serve_or_without_the_gate_is_refused(routes: Any) -> None:
-    config = good()
-    product(config).insert(-1, sub(["/app/secret"], proxy("legacy-panel:8765")))
-    problems = routes.check(config)
-    assert any("paths it does not serve" in p for p in problems)
-    assert any("without the gate first" in p for p in problems)
-
-
-def test_a_cookie_reaching_the_unit_or_the_classic_page_is_refused(routes: Any) -> None:
-    config = good()
-    leaky = copy.deepcopy(proxy("legacy-panel:8765"))
-    leaky["headers"] = {}
-    product(config)[6] = sub(["/api/*"], GATE, leaky)
-    classic = copy.deepcopy(proxy("web:3000"))
-    classic["headers"] = {}
-    product(config)[2] = sub(
-        ["/classic"], GATE, {"handler": "rewrite", "uri": "/interface-document"}, classic
+    product(config)[at(config, "/")] = sub(
+        ["/"], PANEL_GATE, {"handler": "rewrite", "uri": "/interface-document"}, proxy("web:3000")
     )
     problems = routes.check(config)
-    assert any("cookie reaches the unit" in p for p in problems)
-    assert any("/classic: the session cookie" in p for p in problems)
+    assert any(p.startswith("/ must answer 302 /app/clients") for p in problems)
+    assert any("rewrites to the 18.6.6 document" in p for p in problems)
+    assert any("asks the 18.6.6 panel's gate" in p for p in problems)
 
 
-def test_an_ungated_app_or_an_open_oracle_is_refused(routes: Any) -> None:
+def test_the_classic_hand_off_coming_back_is_refused(routes: Any) -> None:
+    # ADR 0018 decision 4: the 18.6.6 interface is not served on the product hostname.
     config = good()
-    product(config)[4] = sub(["/app", "/app/*"], proxy("web:3000"))
-    config["apps"]["http"]["servers"]["srv0"]["routes"][1]["handle"][0]["routes"] = [
-        sub(None, {"handler": "reverse_proxy", "upstreams": [{"dial": "legacy-panel:8765"}]})
-    ]
+    product(config).insert(
+        1,
+        sub(
+            ["/classic"],
+            PANEL_GATE,
+            {"handler": "rewrite", "uri": "/interface-document"},
+            proxy("web:3000"),
+        ),
+    )
     problems = routes.check(config)
-    assert any(p.startswith("/app must be the gate") for p in problems)
-    assert any("legacy hostname must be basic auth" in p for p in problems)
+    assert any("rewrites to the 18.6.6 document" in p for p in problems)
+    assert any(p.startswith("/classic must be the web client's page") for p in problems)
+    # /classic named, and sent to AIA's own page, is fine.
+    config = good()
+    product(config).insert(1, sub(["/classic"], proxy("web:3000")))
+    assert routes.check(config) == []
 
 
-def test_retired_connection_routes_are_gated_and_cannot_be_shadowed(routes: Any) -> None:
+def test_a_cookie_reaching_aias_pages_is_refused(routes: Any) -> None:
     config = good()
-    retired = product(config)[5]
-    retired["handle"][0]["routes"][0]["handle"] = [
-        {"handler": "static_response", "status_code": 410}
-    ]
-    assert any("must be the gate, then 410" in problem for problem in routes.check(config))
+    app = copy.deepcopy(proxy("web:3000"))
+    app["headers"] = {}
+    product(config)[at(config, "/app")] = sub(["/app", "/app/*"], APP_GATE, app)
+    problems = routes.check(config)
+    assert any("/app: the session cookie reaches the web client" in p for p in problems)
+
+
+def test_an_ungated_app_is_refused(routes: Any) -> None:
     config = good()
-    retired = product(config).pop(5)
-    product(config).insert(6, retired)
-    assert any("shadowed by the unit" in problem for problem in routes.check(config))
+    product(config)[at(config, "/app")] = sub(["/app", "/app/*"], proxy("web:3000"))
+    problems = routes.check(config)
+    assert any(p.startswith("/app must be AIA's own gate") for p in problems)
+
+
+def test_app_behind_the_18_6_6_panels_gate_is_refused(routes: Any) -> None:
+    # Whether AIA can be reached is never the unit's gate's call (ADR 0018).
+    config = good()
+    product(config)[at(config, "/app")] = sub(["/app", "/app/*"], PANEL_GATE, proxy("web:3000"))
+    problems = routes.check(config)
+    assert any(p.startswith("/app must be AIA's own gate") for p in problems)
+    assert any(p.startswith("/app/* must be AIA's own gate") for p in problems)
+    assert any("asks the 18.6.6 panel's gate" in p for p in problems)
+
+
+def test_the_api_elsewhere_is_refused(routes: Any) -> None:
+    config = good()
+    product(config)[at(config, "/api/v1/*")] = sub(["/api/v1/*"], proxy("web:3000"))
+    problems = routes.check(config)
+    assert any(p.startswith("/api/v1/* must be the API") for p in problems)

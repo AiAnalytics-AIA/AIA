@@ -412,6 +412,23 @@ response = await adapter.send(request)
 `test_ai_usage_ledger.py::test_without_a_committed_dispatch_the_same_crash_is_retried`
 runs the crash both ways.
 
+**A durable mark nobody reads is a log, not a guard.** The reconciler decides a
+lapsed attempt's fate from the attempt row's `paid_call_dispatched`; it reads no
+progress event. A step that journals its own side effects as progress events --
+Deep Research's searches and fetches -- has to read them back when it runs again,
+or the retry resends what the dead attempt may already have sent.
+
+```python
+# WRONG -- the dispatch is on record, and the next attempt starts blind
+meter = StepToolMeter(context)       # an empty ledger: the lost search is sent again
+
+# RIGHT -- take the step's journal over first; a lone DISPATCHED is closed UNCERTAIN
+meter = StepToolMeter.resuming(context, clock=runtime.clock)
+```
+
+`test_deep_research_journey.py::test_a_search_left_in_flight_by_a_lost_attempt_is_closed_uncertain_and_never_sent_again`
+takes the lease mid-search, recovers it, and counts the search once.
+
 **A `before_update` listener guards the ORM, not the table.** `project_revisions`
 rows are immutable, and `tables.py` refuses an ORM flush that would UPDATE one.
 That hook fires only for objects the session flushes; a bulk `update()` statement
@@ -448,6 +465,25 @@ alembic downgrade base && alembic upgrade head   # it is reversible
 `migrations/versions/` is excluded from `mypy` and from `ruff`'s extended
 selection: revisions are generated code, and they are verified by being executed
 in CI rather than type-checked.
+
+**A backfill default is drift unless the migration drops it.** `env.py` compares
+server defaults (`compare_server_default=True`), so a `NOT NULL` column added with a
+`server_default` to fill the existing rows makes `alembic check` report a difference
+from a model that declares none. Add the column with the default, then drop it in
+the same migration. The migrations run on PostgreSQL only (CI's `backend` job); the
+SQLite test suites build the schema with `create_all`, and `alembic upgrade head`
+on SQLite stops at the first `create_foreign_key` outside a batch (`6750a204efd9`).
+
+```python
+# WRONG -- alembic check: "modified server default" on content_state
+batch_op.add_column(sa.Column("content_state", sa.String(32), nullable=False,
+                              server_default="AWAITING_MIGRATION"))
+# RIGHT -- backfill, then leave the column as the model declares it
+batch_op.add_column(sa.Column("content_state", sa.String(32), nullable=False,
+                              server_default="AWAITING_MIGRATION"))
+...
+batch_op.alter_column("content_state", server_default=None)
+```
 
 ## mypy --strict
 
@@ -626,8 +662,8 @@ environment.** `create_app(settings)` takes an explicit, validated `Settings`
 and stores it on `app.state`; a `Depends(get_settings)` constructs a fresh one
 from the process environment. The two agree in a deployment and disagree in
 every test that builds its own settings, so a route gated on a flag answers as
-if the flag were unset. Found when the legacy-panel gate returned 404 in all its
-tests with `legacy_panel_enabled=True`.
+if the flag were unset. Found when the 18.6.6 panel's gate (since retired with the
+unit, ADR 0018) returned 404 in all its tests with `legacy_panel_enabled=True`.
 
 ```python
 # WRONG -- re-reads os.environ; ignores the Settings passed to create_app
@@ -645,8 +681,8 @@ raises a 403 therefore records nothing (OI-42). Commit the row you mean to keep
 before raising, or write it in a session of its own.
 
 ```python
-# WRONG -- the LEGACY_PANEL_DENIED row is rolled back with the 403
-resolver.authorize_legacy_panel(principal, audit=True)   # adds the row, raises
+# WRONG -- the AIA_SESSION_DENIED row is rolled back with the 403
+resolver.authorize_session(principal, audit=True)   # adds the row, raises
 
 # RIGHT
 except ScopeDenied as exc:
@@ -793,22 +829,23 @@ directive order puts `rewrite` before `forward_auth`, so a block that is written
 gate-then-rewrite runs rewrite-then-gate: the gate sees the rewritten URI and
 builds its `/login?next=` from it, sending a signed-out visitor back to an
 internal path after sign-in. Proven by adapting both forms and reading the
-handler order (`.github/workflows/ci.yml`, *The interface document is served
-only through the gate*). `route` keeps the written order:
+handler order, on the `/classic` route that served the 18.6.6 document until ADR
+0018 removed it; the rule stands for any gated rewrite. `route` keeps the
+written order:
 
 ```caddyfile
 # WRONG — the rewrite runs first
-handle /classic {
-	forward_auth api:8000 { uri /api/v1/panel/gate }
-	rewrite * /interface-document
+handle /old {
+	forward_auth api:8000 { uri /api/v1/session/gate }
+	rewrite * /new
 	reverse_proxy web:3000
 }
 
 # RIGHT
-handle /classic {
+handle /old {
 	route {
-		forward_auth api:8000 { uri /api/v1/panel/gate }
-		rewrite * /interface-document
+		forward_auth api:8000 { uri /api/v1/session/gate }
+		rewrite * /new
 		reverse_proxy web:3000
 	}
 }
@@ -834,11 +871,11 @@ caddy:
   volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro"]
 ```
 
-And smoke-check something only the new file answers (here: `/` is Caddy's own
-`302 /app/clients`, and `/classic` the gate's `302 /login?next=%2Fclassic`),
-because checks the old routing also passes prove nothing. `/interface-document`
-answering 404 no longer tells the two apart: the file before ADR 0015 said the
-same.
+And smoke-check something only the new file answers (today: `/classic` is the
+web client's page, 200, where the file before ADR 0018 sent it to `/login`),
+because checks the old routing also passes prove nothing. Each routing change
+needs its own such check: the previous one (`/interface-document` answering 404)
+stopped telling files apart as soon as a newer file said the same.
 
 **`redir`'s first argument is a matcher when it starts with `/`.** `redir
 /app/clients 302` reads `/app/clients` as a path matcher and `302` as the
@@ -1033,9 +1070,9 @@ branch's generator wrote `--font-sans-stack: var(--font-plex-sans), "Segoe UI", 
 for `next/font` variables. Where the layout does not define `--font-plex-sans`,
 the *entire* `font-family` using that stack is invalid at computed-value time
 and the element inherits its parent's font — no fallback face is tried. The
-18.6.6 skin has no `next/font` at all, so the stack names the self-hosted
-families directly and `fonts.css` declares them (`scripts/build-tokens.mjs`,
-`FACES`):
+stack must also work where no `next/font` variable exists (it did for the 18.6.6
+skin, which ADR 0018 removed), so it names the self-hosted families directly and
+`fonts.css` declares them (`scripts/build-tokens.mjs`, `FACES`):
 
 ```css
 /* WRONG — invalid wherever the variable is undefined */
@@ -1138,10 +1175,46 @@ missing; a component test stubs it to set `open` (`ProjectsScreen.test.tsx`).
 
 **jsdom's `Blob` has no `arrayBuffer()`.** Every current browser has it, so app
 code calls `file.arrayBuffer()` directly (`fileToBase64` in
-`src/unit/research/brief.ts`); a component test that uploads a `File` fails with
+`src/research/brief.ts`); a component test that uploads a `File` fails with
 an error the screen then shows, not a thrown one, which reads as a rendering
 bug. Polyfill it in the test through `FileReader`, never in app code
 (`BriefStep.test.tsx`).
+
+**jsdom has no `URL.createObjectURL`, and a clicked `<a download>` goes nowhere.**
+A download that needs the bearer token cannot be a plain link: the app fetches the
+bytes (`workspace.attachment` in `src/lib/api.ts`) and `saveBlob`
+(`src/lib/download.ts`) makes an object URL and clicks a temporary anchor. Under jsdom the first call throws `TypeError: URL.createObjectURL is
+not a function`, which the screen shows as a failed download. Stand both in for
+inside the test and put them back with `onTestFinished` -- assigning to `URL` or
+`HTMLAnchorElement.prototype` outlives the test otherwise, and `vi.unstubAllGlobals`
+does not restore a property that was assigned rather than stubbed
+(`BriefStep.test.tsx`, "downloads a kept file through the study").
+
+```ts
+// WRONG: mutates the real URL object for every later test in the file
+vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:1" }));
+// RIGHT
+const real = URL.createObjectURL;
+URL.createObjectURL = () => "blob:1";
+onTestFinished(() => { URL.createObjectURL = real; });
+```
+
+**jsdom does not navigate.** `window.location.replace` and `assign` only print *Not
+implemented: navigation to another Document* to jsdom's console, so a page that leaves by a full
+navigation (`/login` sending the person on, `logout()`) looks as if it did nothing.
+`window.location` cannot be assigned, but it can be stubbed, and
+`vi.unstubAllGlobals` puts it back (`src/app/login/page.test.tsx`,
+`src/lib/session.test.ts`).
+
+```ts
+// WRONG: jsdom logs "Not implemented: navigation to another Document"; nothing moved
+render(<LoginPage />); expect(window.location.pathname).toBe("/app/clients");
+// RIGHT
+const replace = vi.fn();
+vi.stubGlobal("location", { ...window.location, replace });
+render(<LoginPage />);
+await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients"));
+```
 
 **Don't list the router in a load effect's dependencies.** A test's
 `vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))` returns a
@@ -1220,6 +1293,27 @@ fireEvent.click(tile);
 await screen.findByRole("button", { name: /Nový produkt/, pressed: true }, { timeout: 5_000 });
 ```
 
+**What a job's continuation sets is not on screen when what its store drew is.**
+A store update (`useSyncExternalStore`) renders straight away; a `useState` update
+made after an `await` is an ordinary update, which React's scheduler renders in a
+later macrotask. When a test waits for something the store drew and then reads
+something set one step later, the read races the scheduler. Testing Library returns
+from a `findBy*` after a `setTimeout(0)`, and on a loaded runner that timer can fire
+before the scheduler's task. PlanStep's *Komentáře zapracovány* toast is set when
+`analyse` resolves, after the accepted plan is in the store, and its synchronous
+read failed one full CI run of #74 (2026-09-27). Answering the job-list read after
+the accept from a `setImmediate` and holding the loop 5 ms reproduces it every time:
+the synchronous read failed 3 of 3, the awaited one passed. Wait for each thing that
+arrives on its own.
+
+```ts
+// WRONG: the toast comes after the plan this waited for
+expect(await screen.findByText("Upraveno podle vašich komentářů", {}, { timeout: 4000 })).toBeTruthy();
+expect(screen.getByText("Komentáře zapracovány")).toBeTruthy();
+// RIGHT
+expect(await screen.findByText("Komentáře zapracovány", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+```
+
 **A mount effect the last `findBy*` outran runs inside `cleanup()`, and its
 request outlives the test's `fetch` stub.** The same gap as above, at the end of a test: when a
 test ends on a `findBy*` that resolved on the commit that drew the screen, that
@@ -1249,7 +1343,8 @@ resetConfigCache(); onTestFinished(resetConfigCache); // nativeAgentFixture, bef
 **A fragment-only navigation does not reload the page.** Following
 `/#aia:open=PRJ-1` from `/` changes `location.hash` and nothing else: no
 document load, so a script that reads the fragment once on load never sees it.
-Read it on load *and* on `hashchange` (`apps/web/public/skin/handoff.js`).
+Read it on load *and* on `hashchange` (the 18.6.6 hand-off script did, until ADR
+0018 removed it).
 Playwright's `page.goto` to the same path with a new fragment is the same trap in
 tests: go to `about:blank` first.
 
@@ -1329,6 +1424,27 @@ committed project content can still be in WAL. The host feeds the backup source
 to the old image before replacing it; a backup helper present only in the new
 image cannot protect the deployment that installs it.
 
+**Reading a copy of a WAL database from a read-only mount needs `immutable=1`,
+and `immutable=1` is only safe on a copy.** The unit's store is in WAL mode, which
+is recorded in the file itself. Opened `mode=ro`, SQLite still has to create the
+`-shm` beside it, so on a read-only directory (the migration's `-v …:/migration:ro`)
+the first query fails with *attempt to write a readonly database* (reproduced
+2026-09-27). `immutable=1` reads without the `-shm`, the `-wal` or any lock -- so on
+a database the unit still has open it reads stale or torn pages without an error.
+`UnitProjectStore` therefore opens `immutable=1` and refuses a file with a non-empty
+`-wal` or any `-shm` beside it.
+
+```python
+# WRONG: fails on a read-only mount; on a writable one it leaves a -shm behind.
+sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+# WRONG: immutable on the live file silently misses what is still in its WAL.
+sqlite3.connect(f"file:{live}?mode=ro&immutable=1", uri=True)
+
+# RIGHT: a copy (Connection.backup, or the backup ZIP), opened immutable, the path
+# escaped as a URI (a '?' or '#' in a path would otherwise end it).
+sqlite3.connect(copy.resolve().as_uri() + "?mode=ro&immutable=1", uri=True)
+```
+
 ## Docker registry credentials on the develop host
 
 **`docker login` keeps the registry token, and so does the ECR helper's cache.**
@@ -1387,6 +1503,66 @@ host, and with `user_data_replace_on_change = false` a changed `user_data` makes
 the AWS provider stop and start the instance on the next `terraform apply`. The
 deploy script installs what it needs, idempotently.
 
+## Docker and Compose on the develop host (ADR 0018, 2026-09-27)
+
+Found while taking the 18.6.6 unit out of the product stack and giving it a Compose
+project of its own on the same volume (`deploy/reference`).
+
+**`docker compose config` prints every `$` in a value as `$$`.** Its output is a
+Compose file again, so a literal dollar is re-escaped: a bcrypt hash
+(`$2a$14$...`) looks mangled there when the container receives it intact. Ask the
+container.
+
+```bash
+# WRONG -- Compose syntax, not the value: every $ comes back as $$
+docker compose config | grep AIA_LEGACY_BASIC_HASH
+
+# RIGHT -- what the process gets
+docker compose run --rm --no-deps -T gate printenv AIA_LEGACY_BASIC_HASH
+```
+
+**`run --no-deps` still needs every external volume.** Compose resolves the
+project's volumes before it starts even one service alone, and refuses an
+`external: true` volume that does not exist. In CI, create a throwaway volume and
+point the variable that names it there (`AIA_REFERENCE_STATE_VOLUME`); never create
+the real name on a host, where its absence means data is missing.
+
+**`docker run -v name:/path` creates a missing named volume, filled from the
+image.** A new empty volume mounted where the image has files gets a copy of them,
+so a typo or a missing volume produces a fresh, plausible-looking one instead of an
+error. Before touching a volume that holds data, check it exists.
+
+```bash
+# WRONG -- if the volume is gone, this makes a new one from the image and copies it
+docker run --rm -v aia-develop_legacy_state:/app "$IMAGE" ...
+
+# RIGHT
+docker volume inspect aia-develop_legacy_state >/dev/null   # stop if it is missing
+docker run --rm -v aia-develop_legacy_state:/app "$IMAGE" ...
+```
+
+**`--remove-orphans` removes only containers that carry the project's labels.** A
+container started by hand with `docker run` is nobody's orphan, so a test of "the
+old service's container is removed" must create that container with the old Compose
+file, not by hand.
+
+**A read-only SQLite connection to a WAL database still writes beside it.**
+`?mode=ro` opens the database file read-only, but reading a WAL database needs its
+`-shm` index (and the `-wal` file) next to it, created or written by the reader.
+A copier running as a user who cannot write that directory fails with *attempt to
+write a readonly database*; it works when it runs as the files' owner. The unit's
+stores belong to its image's user (uid 10001), so they are copied in a container
+of the unit's own image. Measured on a stand-in volume: root-owned stores failed,
+the unit's user's copied both a cleanly closed store and one whose writer was
+killed with committed rows only in the WAL (those rows were in the copy).
+`immutable=1` needs no write, because it ignores the WAL, which is right only for a
+copy nobody writes.
+
+**`docker cp` reads the volumes of a container that never started.**
+`docker create -v name:/app "$IMAGE"`, then `docker cp "$cid:/app/..." <dest>` and
+`docker rm "$cid"`, copies files out of a volume without running anything of the
+image.
+
 ## Durable AI proposal reuse and browser lifetime
 
 Apply the workflow-type filter in the repository before the list limit. Filtering
@@ -1422,3 +1598,33 @@ operation. Use an operation identity plus an abort signal; refresh errors in
 so keyboard focus and Escape have browser behavior; jsdom needs the existing
 dialog-method stand-ins in component tests. Native HTTP fixtures distinguish
 GET inbox reads from POST creation even when the path is identical.
+
+## Research artifacts are reused by fingerprint, so an upstream id is not the run's own
+
+`ArtifactRepository.put` returns an existing valid artifact whose input fingerprint
+matches, across revisions. The research steps key on what they compute from: compile on
+the design's *content*, fieldwork and aggregate on the *specification's fingerprint*. So
+a run's recorded upstream artifacts need not be the ones its own revision would have
+named. A design edited and edited back runs on the first revision's specification
+artifact (its payload names revision 1); a design edited only outside its questionnaire
+(its research questions) compiles to a new specification artifact but reuses the earlier
+run's dataset and aggregate, whose dependency is the *earlier* specification artifact.
+Both were refused by the first version of `native_sources`
+(`test_a_specification_reused_from_an_identical_revision_is_the_runs_own`,
+`test_an_aggregate_reused_over_the_same_questionnaire_is_the_runs_own`, and end to end
+`test_changed_research_questions_run_every_module_again_over_the_reused_aggregate`).
+
+```python
+# WRONG: ids. Refuses every run whose steps reused an artifact.
+assert spec_payload["design_revision_id"] == run_revision_id
+assert {spec_id, dataset_id} <= aggregate_dependency_ids
+
+# RIGHT: what the step reused on. Same content, same specification fingerprint.
+assert same_content(spec_payload["design_revision_id"], run_revision_id)
+assert dataset_id in aggregate_dependency_ids
+assert any(dep_spec.fingerprint() == spec.fingerprint() for dep_spec in aggregate_spec_deps)
+```
+
+Anything that stores a result over a run's artifacts and reads it back -- an analysis
+outcome, a report -- compares sources by content (`ModuleSources.content()`), keeping the
+ids only as provenance of where it was computed.

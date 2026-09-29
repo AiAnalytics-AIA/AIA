@@ -1,13 +1,18 @@
 // Native Research job following. Durable identity/state live on the server.
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob } from "./api";
-import { JobError, jobMeta, type JobUpdate } from "@/unit/research/jobs";
-import type { UnitRouteKey } from "@/unit/routes";
+import { JobError, jobMeta, type JobUpdate } from "@/research/jobs";
 
-export const ACTIONS: Partial<Record<UnitRouteKey, ResearchAgentAction>> = {
+/**
+ * The AI steps a research stage asks for, by the name the stages have always used
+ * (the classic job endpoints' keys), and the AIA research agent action each one
+ * runs. Deep research has no action yet (ADR 0017): asking for it says so.
+ */
+export const ACTIONS = {
   researchAnalyze: "analyze_brief", researchBuildQuestionnaire: "build_questionnaire",
   questionnaireOptimize: "optimize_questionnaire", audiencePropose: "propose_audience",
   personaSuggest: "suggest_dimensions",
-};
+} as const satisfies Record<string, ResearchAgentAction>;
+export type ResearchJobKey = keyof typeof ACTIONS | "researchDeep";
 export const ACTION_LABELS: Record<ResearchAgentAction, string> = {
   analyze_brief: "Analýza zadání", build_questionnaire: "Návrh dotazníku",
   optimize_questionnaire: "Úprava dotazníku", propose_audience: "Návrh audience",

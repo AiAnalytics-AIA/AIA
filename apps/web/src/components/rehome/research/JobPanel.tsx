@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 
 import { t } from "@/i18n/t";
-import { CANCEL_ARM_MS, type JobUpdate } from "@/unit/research/jobs";
+import { CANCEL_ARM_MS, type JobUpdate } from "@/research/jobs";
 import { Button } from "../ui";
 import { Icon } from "../icons";
 

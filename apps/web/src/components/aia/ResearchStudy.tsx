@@ -3,16 +3,16 @@
 // One research of one client (ADR 0015). The /app/clients/<client>/research/<study>
 // layout resolves the study through AIA's scope first -- 404 outside the caller's
 // scope, and a study under the wrong client in the URL is "not here" too -- and
-// only then loads the unit project its AIA binding names (OI-58). A new study's
-// first save binds its working content; a person who may only read never starts it.
+// then loads its working content from AIA by the study alone (ADR 0018). A person
+// who may only read never starts a study's content.
 
 import { notFound, useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo } from "react";
 
-import { t, tv } from "@/i18n/t";
+import { t } from "@/i18n/t";
 import { type StudyWorkspace, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import { type StepKey, isStepKey, stepFromSlug } from "@/unit/research/steps";
+import { type StepKey, isStepKey, stepFromSlug } from "@/research/steps";
 import { ResearchScreen, ResearchSession } from "../rehome/research/ResearchScreen";
 import { type StudyFrame, StudyFrameProvider, useStudyFrame } from "../rehome/research/frame";
 import { AppShell } from "./AppShell";
@@ -39,19 +39,9 @@ function Waiting({ children, name }: { children: ReactNode; name?: string }) {
 
 function Frame({ w, children }: { w: StudyWorkspace; children: ReactNode }) {
   const { client } = useClient();
-  const [notice, setNotice] = useState<string | null>(null);
   const studyId = w.study.study_id;
   const clientId = client.client_id;
   const canEdit = w.can_edit;
-  const onIdAssigned = useCallback(
-    (id: string) => {
-      workspace.bind(studyId, id).then(
-        () => setNotice(null),
-        (e: unknown) => setNotice(tv("aia.study.bindFailed", { message: e instanceof Error ? e.message : String(e) })),
-      );
-    },
-    [studyId],
-  );
   const onStage = useCallback(
     (step: StepKey) => {
       if (canEdit) void workspace.recordStage(studyId, step).catch(() => {});
@@ -64,21 +54,16 @@ function Frame({ w, children }: { w: StudyWorkspace; children: ReactNode }) {
       clientName: client.name,
       studyId,
       studyName: w.study.name,
-      unitProjectId: w.unit_project_id,
       lastStage: w.study.last_stage && isStepKey(w.study.last_stage) ? w.study.last_stage : null,
       canEdit,
       stepHref: (step: StepKey) => appRoutes.stage(clientId, studyId, step),
-      onIdAssigned,
       onStage,
-      notice,
     }),
-    [clientId, client.name, studyId, w.study.name, w.unit_project_id, w.study.last_stage, canEdit, onIdAssigned, onStage, notice],
+    [clientId, client.name, studyId, w.study.name, w.study.last_stage, canEdit, onStage],
   );
   return (
     <StudyFrameProvider frame={frame}>
-      <ResearchSession projectId={w.unit_project_id} onIdAssigned={onIdAssigned}>
-        {children}
-      </ResearchSession>
+      <ResearchSession studyId={studyId}>{children}</ResearchSession>
     </StudyFrameProvider>
   );
 }
@@ -102,7 +87,7 @@ export function ResearchStudy({ studyId, children }: { studyId: string; children
       </Waiting>
     );
   }
-  if (!w.unit_project_id && !w.can_edit) {
+  if (w.content_state === "EMPTY" && !w.can_edit) {
     return (
       <Waiting name={w.study.name}>
         <section className={`${CARD} max-w-xl`}>
@@ -130,5 +115,5 @@ export function ResearchStage({ slug }: { slug: string }) {
   const step = stepFromSlug(slug);
   if (!step) notFound();
   if (!frame) return null;
-  return <ResearchScreen projectId={frame.unitProjectId} step={step} frame={frame} />;
+  return <ResearchScreen step={step} frame={frame} />;
 }

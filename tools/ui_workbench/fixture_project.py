@@ -1,30 +1,26 @@
-"""Fixture research projects for the workbench's unit (research-flow plan, chunk 1).
+"""Fixture research studies for the workbench (research-flow plan, chunk 1; ADR 0018).
 
 The workbench never calls a model, so a step whose screen shows an AI answer
 (the plan's understanding, a built questionnaire, a proposed audience) can be
-seen there only from a project that already holds one. This writes such
-projects through the unit's own save route, ``POST /api/projects/save``, with
-the body ``scheduleServerSave`` sends -- nothing reaches the unit's store any
-other way.
+seen there only from a study that already holds one. This writes such studies'
+working content through AIA's own route, ``PUT
+/api/v1/studies/<study>/workspace/content``, as the seeded operator -- the route
+the stages save through -- over the research template AIA serves with the
+content. Nothing reaches the 18.6.6 unit.
 
 Every word is synthetic and fictional, written here, and not taken from a
 showcase demo: the demos' brands are reference content that stays under
-``legacy/`` (tools/exposure_check.sh, rule 3). The projects are added to as the
+``legacy/`` (tools/exposure_check.sh, rule 3). The fixtures are added to as the
 research chunks land; each stage says which screen it exists for.
 
     python tools/ui_workbench/fixture_project.py          # write or refresh them
     python tools/ui_workbench/fixture_project.py --list   # print their /app links
 
-Each project is then bound to an AIA study of the seeded fictional client
-Horizont Mobility, through the workbench's AIA API as the seeded operator:
-``POST /api/v1/clients/<client>/studies``, then ``PUT
-/api/v1/studies/<study>/workspace`` (ADR 0015, OI-58) -- so a research stage is
-opened at ``/app/clients/<client>/research/<study>/<stage>``, as on develop, and
-the browser never names a unit project to find a study.
-
-The unit ids are kept in ``tmp/ui-workbench/fixtures.json`` and the bindings in
-``tmp/ui-workbench/studies.json`` so a second run updates the same projects and
-studies instead of adding more. Stdlib only.
+Each fixture is an AIA study of the seeded fictional client Horizont Mobility
+(``POST /api/v1/clients/<client>/studies``), opened at
+``/app/clients/<client>/research/<study>/<stage>`` as on develop. The studies are
+kept in ``tmp/ui-workbench/studies.json``, so a second run saves a new revision of
+the same studies instead of adding more. Stdlib only.
 """
 
 from __future__ import annotations
@@ -39,12 +35,10 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-STATE = ROOT / "tmp" / "ui-workbench" / "fixtures.json"
 STUDIES = ROOT / "tmp" / "ui-workbench" / "studies.json"
 # The workbench's operator: the local API's development credential (api_standin.py).
 OPERATOR = "workbench@example.invalid"
 CLIENT = "Horizont Mobility"
-UNIT = "http://127.0.0.1:8767"
 FACADE = "http://127.0.0.1:8780"
 
 # The brief: problem types, title, goal, decision, briefing (renderBrief).
@@ -268,18 +262,6 @@ FIXTURES: dict[str, dict[str, Any]] = {
 }
 
 
-def _post(path: str, body: dict[str, Any]) -> dict[str, Any]:
-    req = urllib.request.Request(
-        UNIT + path,
-        data=json.dumps(body, ensure_ascii=False).encode(),
-        headers={"content-type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=30) as r:
-        out: dict[str, Any] = json.load(r)
-        return out
-
-
 def _api(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
     req = urllib.request.Request(
         FACADE + "/api/v1" + path,
@@ -291,84 +273,59 @@ def _api(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
         return json.load(r)
 
 
-def bind(ids: dict[str, str]) -> dict[str, dict[str, str]]:
-    """Each fixture's AIA study under the workbench client, bound to its unit project."""
+def _content(study: str) -> dict[str, Any] | None:
+    """The study's working content as AIA serves it, or None if AIA has no such study."""
+    try:
+        out: dict[str, Any] = _api("GET", f"/studies/{study}/workspace/content")
+    except urllib.error.HTTPError:
+        return None
+    return out
+
+
+def project_of(fx: dict[str, Any], template: dict[str, Any]) -> dict[str, Any]:
+    """The fixture's project: its own fields over the research template's."""
+    project = copy.deepcopy(template)
+    for k, v in fx["project"].items():
+        project[k] = {**project.get(k, {}), **v} if isinstance(v, dict) else v
+    return project
+
+
+def write() -> dict[str, dict[str, str]]:
+    """Each fixture's study under the workbench client, holding the fixture as its content."""
     clients = [c for c in _api("GET", "/workspace/clients") if c["name"].startswith(CLIENT)]
     if not clients:
         raise SystemExit(f"The workbench's API has no client named {CLIENT!r}; is it seeded?")
     client = clients[0]["client_id"]
     known: dict[str, dict[str, str]] = json.loads(STUDIES.read_text()) if STUDIES.exists() else {}
     out: dict[str, dict[str, str]] = {}
-    for key, unit in ids.items():
+    for key, fx in FIXTURES.items():
         study = (known.get(key) or {}).get("study")
-        if study:
-            try:
-                bound = _api("GET", f"/studies/{study}/workspace").get("unit_project_id")
-            except urllib.error.HTTPError:
-                bound = None
-            if bound != unit:
-                study = None  # a fresh API, or a fresh unit: a new study for the project
-        if not study:
+        current = _content(study) if study else None
+        if current is None:  # a fresh API: a new study for the fixture
             made = _api(
                 "POST",
                 f"/clients/{client}/studies",
                 {"name": f"Workbench · {key}", "kind": "RESEARCH"},
             )
             study = made["study_id"]
-            _api("PUT", f"/studies/{study}/workspace", {"unit_project_id": unit})
-        out[key] = {"client": client, "study": study, "unit": unit}
+            current = _content(study)
+            if current is None:
+                raise SystemExit(f"AIA does not serve the new study {study}'s content")
+        assert study is not None
+        _api(
+            "PUT",
+            f"/studies/{study}/workspace/content",
+            {
+                "content": project_of(fx, current["template"]),
+                "analysis": fx["analysis"],
+                "base_revision": current["revision"],
+                "reason": "workbench_fixture",
+            },
+        )
+        out[key] = {"client": client, "study": study}
+    STUDIES.parent.mkdir(parents=True, exist_ok=True)
     STUDIES.write_text(json.dumps(out, indent=2) + "\n")
     return out
-
-
-def _boot() -> tuple[dict[str, Any], str]:
-    """BOOT.empty_project and BOOT.panel.version, as the classic save reads them."""
-    with urllib.request.urlopen(UNIT + "/api/bootstrap", timeout=30) as r:
-        boot = json.load(r)
-    empty = boot.get("empty_project")
-    if not isinstance(empty, dict):
-        raise SystemExit("The unit's bootstrap has no empty_project.")
-    version = (boot.get("panel") or {}).get("version")
-    return empty, version if isinstance(version, str) else ""
-
-
-def _known(project_id: str) -> int | None:
-    """The project's current revision, or None if the unit no longer has it."""
-    try:
-        r = _post("/api/projects/load", {"project_id": project_id})
-    except urllib.error.HTTPError:
-        return None
-    rev = r.get("revision")
-    return rev if isinstance(rev, int) else None
-
-
-def write() -> dict[str, str]:
-    empty, panel_version = _boot()
-    ids: dict[str, str] = json.loads(STATE.read_text()) if STATE.exists() else {}
-    for key, fx in FIXTURES.items():
-        project = copy.deepcopy(empty)
-        for k, v in fx["project"].items():
-            project[k] = {**project.get(k, {}), **v} if isinstance(v, dict) else v
-        previous = ids.get(key)
-        revision = _known(previous) if previous else None
-        # scheduleServerSave's body, key for key.
-        body = {
-            "project_id": previous if revision is not None else None,
-            "parent_project_id": None,
-            "project_type": "research",
-            "project": project,
-            "analysis": fx["analysis"],
-            "panel_version": panel_version,
-            "reason": "workbench_fixture",
-        }
-        r = _post("/api/projects/save", body)
-        pid = r.get("project_id")
-        if not isinstance(pid, str):
-            raise SystemExit(f"The unit did not return a project id for {key}: {r}")
-        ids[key] = pid
-    STATE.parent.mkdir(parents=True, exist_ok=True)
-    STATE.write_text(json.dumps(ids, indent=2) + "\n")
-    return ids
 
 
 def main(argv: list[str]) -> int:
@@ -379,15 +336,15 @@ def main(argv: list[str]) -> int:
         studies = json.loads(STUDIES.read_text()) if STUDIES.exists() else {}
     else:
         try:
-            studies = bind(write())
+            studies = write()
         except urllib.error.URLError as e:
-            print(f"The workbench is not reachable at {UNIT} / {FACADE} ({e.reason}).")
+            print(f"The workbench is not reachable at {FACADE} ({e.reason}).")
             print("Start it with `make ui-workbench`.")
             return 1
     print(f"Sign in first: {FACADE}/workbench/sign-in")
     for key, s in studies.items():
         where = f"/app/clients/{s['client']}/research/{s['study']}/brief"
-        print(f"{key:13} {s['unit']}  {FACADE}{where}")
+        print(f"{key:13} {s['study']}  {FACADE}{where}")
     return 0
 
 

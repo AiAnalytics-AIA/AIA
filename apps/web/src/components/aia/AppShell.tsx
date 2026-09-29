@@ -4,8 +4,8 @@
 // inteligence, Projektová paměť, Nastavení -- and a page header that always says
 // where you are: breadcrumbs from the client down, one title, one primary action.
 // A client's areas are tabs under that header; a study's stages are the
-// `aside` rail, and only inside the study. Nothing here hands off to the classic
-// interface: that happens from the page that needs it, visibly (ClassicLink).
+// `aside` rail, and only inside the study. Nothing anywhere hands off to the
+// 18.6.6 interface (ADR 0018).
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import { t } from "@/i18n/t";
 import { appRoutes } from "@/lib/app-routes";
 import { useSession } from "@/lib/auth";
-import { signOut } from "@/lib/panel";
+import { signOut } from "@/lib/session";
 import { Icon, type IconName } from "../rehome/icons";
 
 export type Crumb = { label: string; href?: string };

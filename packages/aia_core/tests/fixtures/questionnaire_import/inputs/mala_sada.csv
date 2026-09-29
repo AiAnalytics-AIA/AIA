@@ -1,0 +1,2 @@
+id,otazka,typ,moznosti,skala_min,skala_max,blok,sledovana_sada,povolit_nevim,poznamka
+Q1,Jak {object}?,objektova_sada,A|B|C,,,,,,

@@ -10,7 +10,7 @@ import { t, tv } from "@/i18n/t";
 import { type ClientOverview as Overview, type WorkspaceStudy, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
-import { type StepKey, isStepKey } from "@/unit/research/steps";
+import { type StepKey, isStepKey } from "@/research/steps";
 import { Icon } from "../../rehome/icons";
 import { Chip, Tag } from "../../rehome/ui";
 import { CARD, Empty, Loaded } from "../states";

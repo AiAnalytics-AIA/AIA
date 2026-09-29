@@ -1,0 +1,11 @@
+id,otazka,typ,moznosti,skala_min,skala_max,blok,sledovana_sada,povolit_nevim,poznamka
+Q1,Jak často kupujete ranní nápoj?,vyber,Denně|Týdně|Méně často,,,Nákup,,ano,
+Q1,Které příchutě znáte?,multi,"Citron
+Máta
+Zázvor",,,Nákup,,0,
+,Jak hodnotíte cenu?,skala,,0,5,Cena,,TRUE,
+3,Co vám chybí?,otevrena,,,,Cena,,,
+OBJ_ZNACKY,Jak blízká je vám značka {object}?,objektova_sada,Alfa|Beta|Gama|Delta|Epsilon,1,7,Značky,Nápojové značky,,Fiktivní značky
+Q6,"Jak <b>důležitá</b> je dostupnost?",skala,,1,"5,5",Nákup,,,
+,,,,,,,,,
+OBJ2,Jak vnímáte médium,objektova_sada,TV|Rádio|TV|Web,,,Média,,,

@@ -13,8 +13,17 @@ chunks:
 ---
 # Interface skin — the AIA design system on the 18.6.6 screens
 
-**Status:** in progress · **Owner:** product-surface (A9) + web · **Started:** 2026-09-23
-**Decision:** [ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md) (Proposed)
+**Status:** superseded (2026-09-27) · **Owner:** product-surface (A9) + web · **Started:** 2026-09-23
+**Decision:** [ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md), superseded by
+[ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md) decision 4
+
+> **2026-09-27, [legacy-phase-out.md](legacy-phase-out.md) chunk 9.** The 18.6.6
+> document is no longer served, so the skin is removed with it: `src/skin/`,
+> `scripts/build-skin.mjs`, `scripts/skin-lint.mjs`, `public/skin/skin.css` and
+> `handoff.js`, `/interface-document`, `AIA_INTERFACE_SKIN_ENABLED`, `npm run skin:check`
+> in CI. The tokens, fonts and identity stay AIA's. No chunk below is work to do:
+> chunk 6 (per-area passes) is closed unfinished, and the records describe files that
+> no longer exist.
 **Design source:** [`docs/design/aia-design-system-brief.md`](../../docs/design/aia-design-system-brief.md),
 the token foundation on `feature/web-primitives` @ `cb26c15`.
 

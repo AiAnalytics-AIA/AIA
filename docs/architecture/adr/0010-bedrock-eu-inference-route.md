@@ -42,6 +42,11 @@ modelling. Other capabilities await their governed agents. That is a
 methodology simplification made explicit in the policy document, not an
 optimisation; refining it later is a versioned policy change.
 
+*Note, 2026-09-27:* since PR #63, `RESEARCH_REASONING` and `CRITIC` also resolve to
+that model when `AIA_AI_RESEARCH_AGENTS_ENABLED` is on
+(`apps/executors/src/aia_executors/ai_runtime.py:274-276`). The route and what it is
+approved for are unchanged: fictional Class C on develop only.
+
 ### Why Bedrock
 
 - **Residency is satisfiable in one account and one geography.** EU cross-region
@@ -120,7 +125,9 @@ named `layer_check` exemption); `Urllib3Transport` (no retries, delivery stated)
 20 recorded fixtures (`fixtures/model_adapters/bedrock/`, hand-authored from the
 service model); `aia_executors.ai_runtime` (the route, catalog and policy from
 `AIA_AI_*` / `AIA_BEDROCK_*`, off by default, fail closed). Only
-`ModelCapability.SIMULATION` is bound: the other capabilities wait for their agents.
+`ModelCapability.SIMULATION` is bound: the other capabilities wait for their agents
+(until PR #63 added `RESEARCH_REASONING` and `CRITIC` behind their own switch; see the
+note above).
 The approved live fictional study completed all five steps with 20 successful
 primary calls and $0.2303301 recorded cost; see the dated activation evidence.
 

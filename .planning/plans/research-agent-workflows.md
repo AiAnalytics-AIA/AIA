@@ -15,6 +15,9 @@ chunks:
 
 Owner: Codex. User direction 2026-09-27: implement the full process, not only respondents.
 Base refreshed to develop 043b0dd after PRs #55, #57, #58 and #59 merged.
+**Chunks 0–4 merged as PR #63** (`85fa951`, 2026-09-27 11:17 UTC). The remaining chunks are
+split across jobs (§ Integration). The handoff below is kept as written, with its superseded
+statements marked.
 
 ## Reference and decisions
 
@@ -46,14 +49,57 @@ licence, route, tool permissions or budgets.
 - [ ] 5. Evidence-backed interpretation and reports through existing analysis
       admission gates; suppressed/non-evidence material never becomes client claims.
       Fieldwork/aggregation/Sociomap stay integrated with their existing provenance.
+      *Now Job 3 (analysis) and Job 4 (report composition); graph and Results
+      integration: Job 6 (§ Integration).*
 - [ ] 6. Deep Research integration with PR #54: scoped knowledge retrieval,
       owned search/fetch tools, frozen sources and grounding/quarantine. An unapproved
       search route remains unavailable; do not call model recollection web research.
+      *Now Job 5; its graph and registration: Job 6.*
 - [ ] 7. Meaningful tests: isolation, duplicate submissions, frozen memory, stale
       proposals, unknown fields, unsupported claims, cancel/reload, real worker with
       a recorded adapter, budgets and uncertain delivery. Layer/types/lint and UI flow.
+      *Each job tests its own stage. The combined recorded scenario is Job 6's; the
+      phase-out owner runs it in the legacy-offline environment.*
 - [ ] 8. Documentation, owned PR, deployment and authorized fictional acceptance.
       PR creation is not deployment; no new live calls without an authorized budget.
+      *Deployment separation and the final legacy-offline acceptance: the phase-out
+      owner. The activation and live-acceptance runbook: Job 6.*
+
+## Integration — Job 6
+
+From 2026-09-27 the remaining work is split across the phase-out owner and Jobs 1, 3, 4, 5
+and 6 (the user's scope addendum). The contract they share is
+[research-journey.md](../../docs/architecture/research-journey.md): the stage map, who owns
+each shared file, what each job hands the next, the INT-1 scenario, and acceptance at four
+levels. Job 6 integrates the research graph, executors, endpoints and results, and builds the
+reusable recorded scenario. It consumes the phase-out owner's native workspace and does not
+build one.
+INT-1 uses generated inputs to test the system; a production Study is never declared fictional
+to determine its egress route. The data-owner direction of 2026-09-28 is recorded in contract
+§6 rule 5 and OI-63/OI-79. The Class C fixture route does not authorize client material.
+
+- [x] I0. **Phase A: the contract.** `research-journey.md`; stale claims corrected; the
+      `research/agent-jobs` routes asserted by the API contract check
+      (`.github/workflows/ci.yml` `api-contract`). Re-checked at 17:40 UTC against the PO's draft
+      PR #74 @ `7b9e9dc` (contract §4.2, §4.3, §5).
+- [ ] I1. Register nodes, executors and capability bindings for Jobs 3–5 as their PRs land,
+      and add the `report` extra to the worker image with the report executor.
+- [ ] I2. The recorded composition and the reusable scenario (contract §3.2, §3.4). Two layer
+      rules, both passing today: `aia_worker.testing` stays out of deployments, and the legacy
+      provider fields stay out of the executors and the worker.
+- [ ] I2a. Close OI-79 before design jobs can send actual study material: classify each brief,
+      pasted passage, attachment and approved knowledge item by provenance/content; make the
+      request take its most restrictive class and refuse missing classification. Prove that a
+      local allowlisted fixture carrying client/unknown text cannot use the Class C route.
+- [ ] I3. Results, Report and Review destinations and actions: native report retrieval, and
+      the review and delivery decisions over `ArtifactRepository.approve` / `freeze`.
+- [ ] I4. OI-64: fieldwork retries must not re-ask respondents who already answered.
+- [ ] I5. The Run stage submits the phase-out owner's native draft. #74 does this, and since
+      `184699c` saves it first, so a copy that lost a save conflict is never run (contract §4.2:
+      reproduced at `7b9e9dc`, fixed at `184699c`). Done when #74 merges.
+- [ ] I6. The activation and live-acceptance runbook for the combined candidate (not
+      executed without a new, explicit budget). It separates recorded synthetic testing from
+      a production-state Study and names the approved route for each actual input class.
 
 ## Methodology that remains code
 
@@ -107,6 +153,8 @@ Next work in order:
    client evidence. PR #58's report model/styles are merged, but its plan says
    no complete DOCX renderer exists yet. Continue the report plan and wire
    interpretation/composition/execution/export through scoped durable jobs.
+   *(Superseded: PR #62, `46b7337`, merged the renderer and templates, R4–R9.
+   Composition (R10) and the report step (R11) remain; Job 4 owns them.)*
 4. Complete chunk 6 against PR #54's Deep Research plan: scoped knowledge,
    owned search/fetch, separate non-model cost accounting, frozen sources,
    citation grounding and quarantine. Confidential-derived queries retain
@@ -130,3 +178,5 @@ Next work in order:
 
 Full-process acceptance still requires chunks 5–8 above. Continue on this branch;
 reference source remains frozen. No Claude session trailer was fabricated.
+*(Superseded: the branch merged as #63. Chunks 5–8 continue on the owning jobs' branches;
+see § Integration.)*

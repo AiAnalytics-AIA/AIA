@@ -1,10 +1,11 @@
 {
  "schema_version": 1,
- "description": "Every screen of the classic 18.6.6 interface and where its React rebuild stands (ADR 0014), re-homed under the client-first hierarchy (ADR 0015): a rebuilt research step lives at /app/clients/<client>/research/<id>/<stage>, <id> being the AIA study. `aia_screens` lists the client-first screens that have no classic counterpart. The routes are the ones its router knows, parsed from ui_app.html by tools/ui_workbench/capture.mjs routesFrom() (aliases folded: demo->home, sociomap->visualization, production->home, fullsim->sim_context); the DEMO views are one per collection with their tabs. A screen is REBUILT only with its capture pair in the workbench and its tests.",
+ "description": "Every screen of the classic 18.6.6 interface and what AIA does in its place (ADR 0014, ADR 0018: the classic interface is no longer part of the product), re-homed under the client-first hierarchy (ADR 0015): a rebuilt research step lives at /app/clients/<client>/research/<id>/<stage>, <id> being the AIA study. `aia_screens` lists the client-first screens that have no classic counterpart. The routes are the ones its router knows, parsed from ui_app.html by tools/ui_workbench/capture.mjs routesFrom() (aliases folded: demo->home, sociomap->visualization, production->home, fullsim->sim_context); the DEMO views are one per collection with their tabs. A screen is REBUILT only with its capture pair in the workbench and its tests.",
  "statuses": {
-  "CLASSIC": "served by the frozen unit at /classic, an explicit hand-off, skinned (ADR 0013, ADR 0015)",
+  "REBUILT": "the React screen carries every label, control and state of the classic one; capture pair and tests",
   "REBUILDING": "a React screen exists under /app but does not yet carry everything the classic one shows",
-  "REBUILT": "the React screen carries every label, control and state of the classic one; capture pair and tests"
+  "SUPERSEDED": "AIA does the screen's job its own way, at react_path; nothing of the classic screen is ported",
+  "NOT_IN_AIA": "not rebuilt, and 18.6.6 is not part of the product (ADR 0018): AIA says so at `notice` where a person would look for it (null when AIA has no place a person would look), and the frozen unit keeps the screen as reference only"
  },
  "areas": {
   "A1": "Shell",
@@ -24,9 +25,10 @@
    },
    "title": "Co chcete udělat?",
    "area": "A1",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "SUPERSEDED",
+   "react_path": "/app/clients",
+   "unit_routes": [],
+   "notes": "AIA's home is the client directory (ADR 0015)."
   },
   {
    "id": "route-projects",
@@ -35,16 +37,10 @@
    },
    "title": "Správa projektů",
    "area": "A2",
-   "status": "REBUILT",
-   "react_path": "/app/settings/classic-projects",
-   "unit_routes": [
-    "GET /api/projects",
-    "GET /api/projects/dashboard",
-    "POST /api/projects/history-action",
-    "GET /api/projects/trash",
-    "POST /api/demos/copy"
-   ],
-   "notes": "Trash view at /app/projects/trash. Open, new research/simulation and the portfolio dashboard hand off to the classic interface (ADR 0014 decision 7). Capture pair: 0 classic texts missing at 1440 and 1024. Status tones split running / waiting-on-you / waiting-on-the-world, which 18.6.6 paints alike."
+   "status": "SUPERSEDED",
+   "react_path": "/app/clients/<client>/research",
+   "unit_routes": [],
+   "notes": "A client's studies, found through the client. The unscoped 18.6.6 project store screens are gone (ADR 0018); its content comes over by the migration (aia_executors.legacy_workspace), which lists every unit project no study refers to."
   },
   {
    "id": "route-brief",
@@ -55,19 +51,8 @@
    "area": "A4",
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/brief",
-   "unit_routes": [
-    "GET /api/bootstrap",
-    "POST /api/projects/load",
-    "POST /api/projects/save",
-    "POST /api/project/attachment",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "POST /api/research/analyze",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle"
-   ],
-   "notes": "Also /app/research/<id>/brief. The analysis job hands on to /app/research/<id>/plan. Capture pair: 0 classic texts missing at 1440 and 1024. Differences are listed in .planning/plans/research-flow-rehome.md: the provider notice stays on the screen, the error card says what failed, one button uploads, a new project says it is not saved yet.",
+   "unit_routes": [],
+   "notes": "Also /app/research/<id>/brief. The analysis job hands on to /app/research/<id>/plan. Capture pair: 0 classic texts missing at 1440 and 1024. Differences are listed in .planning/plans/research-flow-rehome.md: the provider notice stays on the screen, the error card says what failed, one button uploads, a new project says it is not saved yet. Attachments are kept in AIA's storage (POST/GET /api/v1/studies/{study_id}/workspace/attachments, ADR 0018); nothing on the screen reaches the unit.",
    "fixture": "empty"
   },
   {
@@ -79,16 +64,7 @@
    "area": "A4",
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/plan",
-   "unit_routes": [
-    "POST /api/projects/load",
-    "POST /api/projects/save",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "POST /api/research/analyze",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle"
-   ],
+   "unit_routes": [],
    "fixture": "planned",
    "notes": "Captured on the `planned` fixture beside the classic step opened on the same project (#aia:open=<id>@plan): 0 classic texts missing at 1440 and 1024. The review note (1785) and the \"Další krok: dotazník\" card are not drawn, because the classic comment wrapper (26) removes both. Differences are listed in .planning/plans/research-flow-rehome.md."
   },
@@ -101,24 +77,9 @@
    "area": "A4",
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/questionnaire",
-   "unit_routes": [
-    "POST /api/projects/load",
-    "POST /api/projects/save",
-    "POST /api/questionnaire/upload",
-    "GET /api/questionnaire/template",
-    "GET /files/",
-    "POST /api/research/analyze",
-    "POST /api/research/build_questionnaire",
-    "POST /api/questionnaire/optimize",
-    "POST /api/research/deep",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle"
-   ],
+   "unit_routes": [],
    "fixture": "questionnaire",
-   "notes": "Captured on the `questionnaire` fixture beside the classic step opened on the same project: 1 classic text missing at 1440 and 1024, \"AI: zlepšit blok\", left out on purpose because it does nothing in the classic interface (OI-49). The choose, upload and AI views are covered by QuestionnaireStep.test.tsx. Differences are listed in .planning/plans/research-flow-rehome.md."
+   "notes": "Captured on the `questionnaire` fixture beside the classic step opened on the same project: 1 classic text missing at 1440 and 1024, \"AI: zlepšit blok\", left out on purpose because it does nothing in the classic interface (OI-49). The choose, upload and AI views are covered by QuestionnaireStep.test.tsx. Differences are listed in .planning/plans/research-flow-rehome.md. The file import and the template are AIA's (POST .../workspace/questionnaire-import, GET .../workspace/questionnaire-template, ADR 0018); the classic 'Metodika pro externí AI' link pointed at a file the unit never served and is gone, the template's NAVOD sheet being the guide."
   },
   {
    "id": "route-audience",
@@ -129,25 +90,9 @@
    "area": "A4",
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/audience",
-   "unit_routes": [
-    "POST /api/projects/load",
-    "POST /api/projects/save",
-    "GET /api/audience/dimensions",
-    "POST /api/audience",
-    "POST /api/audiences/preflight",
-    "GET /api/audiences",
-    "POST /api/audiences/upload",
-    "GET /api/audiences/template",
-    "GET /files/",
-    "POST /api/audience/propose",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle"
-   ],
+   "unit_routes": [],
    "fixture": "audience",
-   "notes": "Captured on the `audience` fixture (ČR 18+, narrowed) beside the classic step on the same project: 1 classic text missing at 1440 and 1024, \"[object Object]\", the classic summary's print of a range, drawn \"25–54\" instead. The other branches (own, special, coming soon) are covered by AudienceStep.test.tsx. OI-50 and OI-51 are kept as the classic behaves."
+   "notes": "Captured on the `audience` fixture (ČR 18+, narrowed) beside the classic step on the same project: 1 classic text missing at 1440 and 1024, \"[object Object]\", the classic summary's print of a range, drawn \"25–54\" instead. The other branches (own, special, coming soon) are covered by AudienceStep.test.tsx. OI-50 and OI-51 are kept as the classic behaves. Since ADR 0018 the screen reaches nothing of the unit: the source, the whole population, the outcome-based definition, the AI's proposed description (a native job) and the summary are AIA's; the factor catalogue and its filters, the feasibility preview, the special subpanels and customer audience upload were computed from the unit's licensed panel and audience store, and each says 'V AIA zatím není' where the person meets it. Filters and a dataset a study already stores stay visible, marked unused by the run."
   },
   {
    "id": "route-persona",
@@ -158,24 +103,9 @@
    "area": "A4",
    "status": "REBUILT",
    "react_path": "/app/clients/<client>/research/<id>/dimensions",
-   "unit_routes": [
-    "POST /api/projects/load",
-    "POST /api/projects/save",
-    "GET /api/audience/dimensions",
-    "POST /api/persona/suggest",
-    "GET /api/providers/claude-code/status",
-    "POST /api/settings/ai_check",
-    "GET /api/job",
-    "POST /api/jobs/",
-    "POST /api/support/bundle",
-    "POST /api/library/dimension/request",
-    "GET /api/library",
-    "GET /api/library/system-catalog",
-    "GET /api/populations",
-    "GET /api/results-registry"
-   ],
+   "unit_routes": [],
    "fixture": "persona",
-   "notes": "Captured on the `persona` fixture (three catalogue dimensions, one request, N=450) beside the classic step on the same project: 0 classic texts missing at 1440 and 1024. The AI suggestion, the requests, the sample and a failed catalogue are covered by PersonaStep.test.tsx. OI-53 and OI-54 are kept as the classic behaves; OI-57 is not reproduced (one catalogue request)."
+   "notes": "Captured on the `persona` fixture (three catalogue dimensions, one request, N=450) beside the classic step on the same project: 0 classic texts missing at 1440 and 1024. The AI suggestion, the requests, the sample and a failed catalogue are covered by PersonaStep.test.tsx. OI-53 and OI-54 are kept as the classic behaves; OI-57 is not reproduced (one catalogue request). Since ADR 0018 the catalogue's library is the client's approved DIMENSION knowledge (GET /api/v1/studies/{study_id}/context) and a request is a knowledge proposal (POST /api/v1/studies/{study_id}/knowledge-proposals), approved by someone else before it joins the catalogue; the society-factor card (the unit's licensed panel) says it is not in AIA, and Deep Research for a new dimension, which handed off to /classic, is gone."
   },
   {
    "id": "route-run",
@@ -223,9 +153,11 @@
    },
    "title": "8. Ověření & kontext",
    "area": "A4",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/research/<id>/verify",
+   "notes": "The stage says it is not in AIA."
   },
   {
    "id": "route-next",
@@ -234,9 +166,11 @@
    },
    "title": "9. Další krok · Ideální skupina",
    "area": "A4",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/research/<id>/next",
+   "notes": "The stage says it is not in AIA."
   },
   {
    "id": "route-command",
@@ -245,9 +179,11 @@
    },
    "title": "Command Center",
    "area": "A7",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "The 18.6.6 Command Center has no AIA page a person would look for it on; AIA's execution state is in each run's Progress and in Settings."
   },
   {
    "id": "route-data",
@@ -256,9 +192,11 @@
    },
    "title": "Data Library",
    "area": "A7",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/intelligence",
+   "notes": "Společenská inteligence says the 18.6.6 Data Library is not in AIA."
   },
   {
    "id": "route-settings",
@@ -267,9 +205,10 @@
    },
    "title": "AI nastavení",
    "area": "A7",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "SUPERSEDED",
+   "react_path": "/app/settings",
+   "unit_routes": [],
+   "notes": "AIA's settings: every control and how it is set."
   },
   {
    "id": "route-sim_context",
@@ -278,9 +217,11 @@
    },
    "title": "Simulace · 1. Kontext",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-sim_change",
@@ -289,9 +230,11 @@
    },
    "title": "Simulace · 2. Změna",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-sim_people",
@@ -300,9 +243,11 @@
    },
    "title": "Simulace · 2. Změna",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-sim_run",
@@ -311,9 +256,11 @@
    },
    "title": "Simulace · 4. Spustit",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-sim_results",
@@ -322,9 +269,11 @@
    },
    "title": "Simulace · 5. Výsledky",
    "area": "A5",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/simulations/<id>",
+   "notes": "The simulation frame says the workflow is not in AIA."
   },
   {
    "id": "route-project_overview",
@@ -333,9 +282,10 @@
    },
    "title": "Projekt",
    "area": "A6",
-   "status": "CLASSIC",
-   "react_path": null,
-   "unit_routes": []
+   "status": "SUPERSEDED",
+   "react_path": "/app/clients/<client>/research",
+   "unit_routes": [],
+   "notes": "A study's stages are its own rail; the client's study list says where each stands."
   },
   {
    "id": "route-demos",
@@ -344,9 +294,11 @@
    },
    "title": "Dema",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "The 18.6.6 demonstration collections are reference material, not product; the workbench's fictional fixtures stand in for them."
   },
   {
    "id": "route-demo_project",
@@ -355,9 +307,11 @@
    },
    "title": "Dema",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   },
   {
    "id": "route-visualization",
@@ -366,9 +320,11 @@
    },
    "title": "Sociomapa",
    "area": "A8",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": "/app/clients/<client>/research/<id>/results",
+   "notes": "Results shows the computed Sociomap to editors, INTERNAL_ONLY while D6 is open; the interactive 18.6.6 map tool (dragging, scenarios) is not in AIA."
   },
   {
    "id": "demo-complete",
@@ -378,9 +334,11 @@
    },
    "title": "DEMO · complete",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   },
   {
    "id": "demo-showcase",
@@ -390,9 +348,11 @@
    },
    "title": "DEMO · showcase",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   },
   {
    "id": "demo-visualization-showcase",
@@ -402,9 +362,11 @@
    },
    "title": "DEMO · visualization_showcase",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   },
   {
    "id": "demo-simulation",
@@ -414,9 +376,11 @@
    },
    "title": "DEMO · simulation",
    "area": "A3",
-   "status": "CLASSIC",
+   "status": "NOT_IN_AIA",
    "react_path": null,
-   "unit_routes": []
+   "unit_routes": [],
+   "notice": null,
+   "notes": "As route-demos."
   }
  ],
  "aia_screens": [

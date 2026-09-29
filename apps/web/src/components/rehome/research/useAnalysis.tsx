@@ -1,7 +1,7 @@
 "use client";
 
 // The AI analysis of the brief, shared by Zadání and Návrh: analyzeBrief ->
-// ensureAnalysis1776 (src/unit/research/brief.ts), with the provider check and
+// ensureAnalysis1776 (src/research/brief.ts), with the provider check and
 // the classic error card. Návrh runs it again after the follow-up answers and,
 // forced, after the comments.
 
@@ -16,9 +16,9 @@ import {
   briefEmpty,
   mergeAnalysis,
   withAttachmentContext,
-} from "@/unit/research/brief";
+} from "@/research/brief";
 import { isNativeResult } from "@/lib/research-agent-jobs";
-import { JobError } from "@/unit/research/jobs";
+import { JobError } from "@/research/jobs";
 import { useResearch } from "./context";
 import { AiFailureCard } from "./useAiStep";
 
@@ -27,7 +27,7 @@ export type AnalysisFailure = { kind: "analysis"; message: string; jobId: string
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function useAnalysis() {
-  const { store, boot, runJob } = useResearch();
+  const { store, template, runJob } = useResearch();
   const [failure, setFailure] = useState<AnalysisFailure | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -46,14 +46,14 @@ export function useAnalysis() {
       const withCtx = withAttachmentContext(current.project);
       if (briefEmpty(withCtx)) throw new Error(BRIEF_EMPTY);
       // The job is addressed to the saved project: a new or edited brief is saved first.
-      if (!current.projectId || current.save.kind !== "saved") await store.flush();
+      if (current.revision === null || current.save.kind !== "saved") await store.flush();
       const result = await runJob("researchAnalyze", analysisPayload(withCtx), { title: ANALYSIS_JOB_TITLE, warnMs: ANALYSIS_WARN_MS });
       if (isNativeResult(result)) {
         store.update(({ project }) => ({ project: { ...project, ui_state: { ...project.ui_state, plan_changed26: byComments } } }), { reason: "native_analysis_reviewed" });
         return true;
       }
       store.update(() => {
-        const merged = mergeAnalysis(withCtx, result, boot);
+        const merged = mergeAnalysis(withCtx, result, template);
         return { ...merged, project: { ...merged.project, ui_state: { ...merged.project.ui_state, plan_changed26: byComments } } };
       }, { reason: "ai_analysis_1780" });
       return true;

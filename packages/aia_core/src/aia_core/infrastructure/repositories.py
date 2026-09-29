@@ -330,13 +330,23 @@ class ProjectRepository:
         created_by: str | None = None,
         request_id: str | None = None,
         reason: str = "project_created",
+        analysis: dict[str, Any] | None = None,
+        panel_version: str = "",
+        author_unknown: bool = False,
     ) -> tuple[Project, SaveOutcome]:
         """Create a project and its first revision in one transaction.
 
         A project exists from the moment work begins, so that an interrupted
         session leaves a resumable project rather than nothing. The first revision
         is written immediately, which is why this returns a :class:`SaveOutcome`
-        alongside the project.
+        alongside the project. ``analysis`` and ``panel_version`` go onto that first
+        revision, as :meth:`save` would put them on a later one.
+
+        The first revision is attributed to ``created_by``, else to the scope's
+        actor. ``author_unknown`` attributes it to nobody: for content written
+        into AIA by someone who did not author it (the 18.6.6 migration, whose
+        source never recorded an author), where naming the writer would stamp a
+        guess.
         """
         self._scope.require(Permission.EDIT_STUDY)
         self._scope.require_open_study()
@@ -388,7 +398,9 @@ class ProjectRepository:
             project.project_id,
             content=body,
             reason=reason,
-            actor_id=created_by or self._scope.actor_id,
+            analysis=analysis,
+            panel_version=panel_version,
+            actor_id=None if author_unknown else (created_by or self._scope.actor_id),
             request_id=request_id or self._scope.request_id,
         )
         self.record_event(

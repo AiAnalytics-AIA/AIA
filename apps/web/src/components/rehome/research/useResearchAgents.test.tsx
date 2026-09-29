@@ -3,8 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { research, researchAgents, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
-import type { JobUpdate } from "@/unit/research/jobs";
-import type { ResearchStore } from "@/unit/research/store";
+import type { JobUpdate } from "@/research/jobs";
+import type { ResearchStore } from "@/research/store";
 import { canonicalProject, useResearchAgents } from "./useResearchAgents";
 
 vi.mock("@/lib/api", () => ({

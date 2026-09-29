@@ -1,22 +1,18 @@
 """The workbench facade: one local origin, routed the way the develop Caddyfile
-routes the product hostname (ADR 0015) -- minus the gate.
+routes the product hostname (ADR 0015, ADR 0018) -- minus the gates.
 
     /                      -> 302 /app/clients, AIA's front door
-    /classic               -> the web client's /interface-document (the skin and
-                              the hand-off script with its "Zpět do AIA" bar)
-    /interface-document    -> 404, as on develop: reachable only through /classic
     /api/v1/*              -> the workbench's AIA API (api_standin.py), else 502
-    @web, @rehome, ...     -> the web client: every named matcher whose handle
-                              proxies to web:3000 in deploy/develop/Caddyfile
-    @unit                  -> the 18.6.6 unit, on the paths its matcher lists,
-                              Host/Origin/Referer rewritten to its own origin,
-                              as the unit's runtime/relay.py does
-    everything else        -> the web client (its own 404), never the unit
+    everything else        -> the web client: AIA's pages and its own 404, the
+                              18.6.6 unit's old paths among them
     /workbench/sign-in     -> the workbench only: sign in as the seeded operator
 
-The matchers are parsed from the committed Caddyfile, not copied, so what the
-web client and the unit serve cannot drift from develop. There is no gate
-here: the workbench is a local design tool on a fictional panel
+The product hostname reaches nothing of the 18.6.6 unit (ADR 0018 decision 5),
+and neither does this: when the workbench runs the unit as a reference, it is
+on its own port, never behind the facade. The web client's matchers are parsed
+from the committed Caddyfile, not copied, so a Caddyfile that stopped sending
+AIA's pages to the web client fails here too. There is no gate here: the
+workbench is a local design tool on a fictional panel
 (tools/ui_workbench/README.md), never a deployment. Its sign-in page puts the
 local API's development credential (the operator's e-mail, trusted only in the
 local environment) into the tab's session, as /login would after Cognito.
@@ -36,7 +32,6 @@ import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import ClassVar
 from urllib.parse import urlsplit
 
 REPO = Path(__file__).resolve().parents[2]
@@ -68,9 +63,9 @@ def _block(text: str, start: int) -> str:
 def web_paths(caddyfile: str) -> list[str]:
     """The path patterns of every named matcher whose `handle` goes to the web client.
 
-    `@web` (AIA's own pages and assets) and `@rehome` (the rebuilt interface,
-    ADR 0014) today; any later matcher that proxies to web:3000 is picked up
-    the same way. The gate in front of some of them is not reproduced here.
+    `@web` (AIA's own pages and assets) and `@app` (AIA's application, ADR 0015)
+    today; any later matcher that proxies to web:3000 is picked up the same way.
+    The gates in front of some of them are not reproduced here.
     """
     patterns: list[str] = []
     for m in re.finditer(r"^\s*@(\w+)\s+path\s+(.+)$", caddyfile, re.MULTILINE):
@@ -82,62 +77,22 @@ def web_paths(caddyfile: str) -> list[str]:
     return patterns
 
 
-def unit_paths(caddyfile: str) -> list[str]:
-    """The path patterns of the named matcher whose `handle` goes to the 18.6.6 unit (@unit)."""
-    patterns: list[str] = []
-    for m in re.finditer(r"^\s*@(\w+)\s+path\s+(.+)$", caddyfile, re.MULTILINE):
-        handle = re.search(rf"^\s*handle\s+@{m.group(1)}\s*\{{", caddyfile, re.MULTILINE)
-        if handle and "legacy-panel:8765" in _block(caddyfile, handle.start()):
-            patterns += m.group(2).split()
-    if "/api/*" not in patterns:
-        raise ValueError("no `@name path ...` matcher in the Caddyfile sends /api/* to the unit")
-    return patterns
-
-
-def retired_paths(caddyfile: str) -> list[str]:
-    """Product-only retired connection endpoints, ahead of the unit matcher."""
-    match = re.search(r"^\s*@retired_ai\s+path\s+(.+)$", caddyfile, re.MULTILINE)
-    return match.group(1).split() if match else []
-
-
-def _matches(pattern: str, path: str) -> bool:
-    # Caddy's path matcher: a trailing * is a prefix match, otherwise exact.
-    if pattern.endswith("*"):
-        return path.startswith(pattern[:-1])
-    return path == pattern
-
-
 SIGN_IN = "/workbench/sign-in"
 
 
-def route(
-    path: str,
-    patterns: list[str],
-    unit: list[str] | None = None,
-    retired: list[str] | None = None,
-) -> tuple[str, str]:
+def route(path: str) -> tuple[str, str]:
     """Where a request path goes, and the path to send upstream.
 
-    The target is one of web, unit, api, redirect, sign-in or 404.
+    The target is one of web, api, redirect or sign-in: as on the product
+    hostname, anything not the API is the web client's, a named page or its 404.
     """
-    split = urlsplit(path)
-    p, query = split.path, ("?" + split.query if split.query else "")
+    p = urlsplit(path).path
     if p == "/":
         return "redirect", "/app/clients"
-    if p == "/classic":
-        return "web", "/interface-document" + query
-    if p == "/interface-document":
-        return "404", p
     if p == SIGN_IN:
         return "sign-in", p
     if p.startswith("/api/v1/"):
         return "api", path
-    if any(_matches(pat, p) for pat in (retired or [])):
-        return "410", p
-    if any(_matches(pat, p) for pat in patterns):
-        return "web", path
-    if any(_matches(pat, p) for pat in (unit or [])):
-        return "unit", path
     return "web", path
 
 
@@ -162,40 +117,18 @@ def sign_in_page(email: str) -> str:
 class Facade(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     web: tuple[str, int] = ("127.0.0.1", 13000)
-    unit: tuple[str, int] = ("127.0.0.1", 8767)
     api: tuple[str, int] | None = None
     email: str = "workbench@example.invalid"
-    patterns: ClassVar[list[str]] = []
-    unit_patterns: ClassVar[list[str]] = []
-    retired_patterns: ClassVar[list[str]] = []
-
-    def _client_origin(self) -> str:
-        return f"http://{self.headers.get('Host') or 'localhost'}"
 
     def _upstream(self, target: str) -> tuple[str, int]:
         if target == "api" and self.api is not None:
             return self.api
-        return self.web if target == "web" else self.unit
+        return self.web
 
-    def _headers_for(self, target: str) -> dict[str, str]:
-        host, port = self._upstream(target)
-        upstream_origin = f"http://{host}:{port}"
-        client_origin = self._client_origin()
-        out: dict[str, str] = {}
-        for name, value in self.headers.items():
-            lname = name.lower()
-            if lname in HOP_BY_HOP:
-                continue
-            if lname == "cookie" and target == "unit":
-                continue  # Caddy's header_up -Cookie
-            if target == "unit":
-                if lname == "host":
-                    value = f"{host}:{port}"
-                elif lname == "origin":
-                    value = upstream_origin
-                elif lname == "referer" and value.startswith(client_origin):
-                    value = upstream_origin + value[len(client_origin) :]
-            out[name] = value
+    def _headers_for(self) -> dict[str, str]:
+        out = {
+            name: value for name, value in self.headers.items() if name.lower() not in HOP_BY_HOP
+        }
         out["Connection"] = "close"
         return out
 
@@ -209,14 +142,7 @@ class Facade(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def _proxy(self) -> None:
-        target, path = route(self.path, self.patterns, self.unit_patterns, self.retired_patterns)
-        if target == "410":
-            self.close_connection = True  # do not parse an unconsumed POST body as another request
-            return self._answer(
-                410, "Legacy AI connection settings are retired. AIA uses Amazon Bedrock."
-            )
-        if target == "404":
-            return self._answer(404, "Not Found")
+        target, path = route(self.path)
         if target == "redirect":
             self.send_response(302)
             self.send_header("Location", path)
@@ -241,7 +167,7 @@ class Facade(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length else None
         conn = http.client.HTTPConnection(host, port, timeout=600)
         try:
-            conn.request(self.command, path, body=body, headers=self._headers_for(target))
+            conn.request(self.command, path, body=body, headers=self._headers_for())
             resp = conn.getresponse()
         except (ConnectionRefusedError, TimeoutError, OSError) as exc:
             conn.close()
@@ -329,21 +255,18 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--listen", default="127.0.0.1:8780")
     ap.add_argument("--web", default="127.0.0.1:13000")
-    ap.add_argument("--unit", default="127.0.0.1:8767")
     ap.add_argument("--api", default="127.0.0.1:8766", help='the AIA API; "" for none')
     ap.add_argument("--caddyfile", default=str(CADDYFILE))
     args = ap.parse_args(argv)
-    Facade.web, Facade.unit = _hostport(args.web), _hostport(args.unit)
+    Facade.web = _hostport(args.web)
     Facade.api = _hostport(args.api) if args.api else None
     caddyfile = Path(args.caddyfile).read_text(encoding="utf-8")
-    Facade.patterns = web_paths(caddyfile)
-    Facade.unit_patterns = unit_paths(caddyfile)
-    Facade.retired_patterns = retired_paths(caddyfile)
+    # Refuses a Caddyfile that no longer sends AIA's pages to the web client.
+    web_paths(caddyfile)
     listen = _hostport(args.listen)
     srv = ThreadingHTTPServer(listen, Facade)
     print(
-        f"[facade] http://{listen[0]}:{listen[1]}/ -> web {args.web}, unit {args.unit}, "
-        f"api {args.api or 'none'}",
+        f"[facade] http://{listen[0]}:{listen[1]}/ -> web {args.web}, api {args.api or 'none'}",
         flush=True,
     )
     srv.serve_forever()

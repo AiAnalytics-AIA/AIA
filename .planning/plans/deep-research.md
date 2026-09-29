@@ -6,10 +6,10 @@ chunks:
   - "[x] b. Legacy leakage screen and merge, EXACT"
   - "[x] c. Grounding, source tables, query classifier, URL safety"
   - "[x] d. Planning, fingerprints, coverage, agents and prompts (PR #79)"
-  - "[ ] e. Retrieval adapters and the governed gate"
-  - "[ ] f. Application service (DeepResearchRuns)"
-  - "[ ] g. Executors and compositions"
-  - "[ ] h. Worker journey"
+  - "[x] e. Retrieval adapters and the governed gate"
+  - "[x] f. Application service (DeepResearchRuns)"
+  - "[x] g. Executors and compositions"
+  - "[x] h. Worker journey"
   - "[ ] 4. Tool usage in the ledger (migration)"
   - "[ ] 12. API and the Deep Research stage screen"
   - "[ ] 13. Live enablement (blocked on DR-2 and, for Class B, D6)"
@@ -323,12 +323,19 @@ respondent and analysis consumers to the contracts published here.
       `test_deep_research_steps.py` (4)), the production-shaped composition and its switch
       (`deep_research_runtime.py`), the recorded composition (`deep_research_recorded.py`), 7
       `layer_check` rules and their ARCHITECTURE.md §3 row.
-- [x] h. Worker journey [10, 11]: `apps/executors/tests/test_deep_research_journey.py` (17):
+- [x] h. Worker journey [10, 11]: `apps/executors/tests/test_deep_research_journey.py` (20):
       `test_pass_one_runs_every_phase_to_a_sealed_grounded_bundle` (13 model requests, 6
       searches, 8 fetches, 7 accepted, 6 quarantined), `test_a_second_pass_reuses_unchanged_tracks_and_measures_what_it_bought`
       (6 tracks reused; 5 requests, 3 searches, 2 fetches), and the failure modes: production
       shape, unconfigured, a real client's design, foreign and altered requests, cancellation,
-      a lost model answer, a changed composition.
+      a lost model answer, a changed composition. After review (#81): an uncertain fetch ends its
+      round before the investigator request
+      (`test_a_fetch_that_may_have_been_served_ends_its_track_before_a_model_sees_its_round`), a
+      retried step takes its tool journal over and never resends a call left in flight
+      (`test_a_search_left_in_flight_by_a_lost_attempt_is_closed_uncertain_and_never_sent_again`,
+      `test_deep_research_contracts.py::test_a_ledger_takes_over_a_journal_and_closes_a_call_left_in_flight`),
+      and a meter that did not take it over sends nothing
+      (`test_a_meter_that_never_took_over_its_step_s_journal_sends_nothing`).
 
 Decisions taken while building PR 2 (ADR 0017 amendments 8–10): only completed work is
 reusable (a refused or cut-short track is its run's alone); tool charges are decided in the gate

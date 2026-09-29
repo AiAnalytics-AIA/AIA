@@ -21,6 +21,7 @@ import json
 from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -68,8 +69,9 @@ from aia_core.infrastructure.model_adapters.transport import (
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.tables import StepAttemptRow
 from aia_core.infrastructure.web_retrieval import RecordedSearch
-from aia_core.infrastructure.workflow_repository import WorkflowRepository
+from aia_core.infrastructure.workflow_repository import WorkflowRepository, WorkQueue
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.deep_research import (
     DeepResearchConfig,
@@ -82,6 +84,7 @@ from aia_executors.deep_research_runtime import deep_research_runtime
 from aia_worker.executor import CancellationRequested
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 FIXTURES = Path(__file__).parent / "fixtures" / "deep_research"
@@ -416,6 +419,7 @@ def recorded(
     fictional: bool = True,
     approved_for: str = TEST_ROUTE,
     policy: str | None = None,
+    fixture: Path = WEB,
 ) -> DeepResearchRuntime:
     settings = ai_settings(world.client_id if fictional else "", approved_for=approved_for)
     return recorded_runtime(
@@ -427,7 +431,7 @@ def recorded(
             reservation_usd=settings.research_reservation_usd,
             fictional_client_ids=settings.fictional_client_ids,
         ),
-        fixture=WEB,
+        fixture=fixture,
         env={"AIA_ENV": "test"},
     )
 
@@ -1010,6 +1014,34 @@ def test_a_cancelled_step_stops_before_its_tool_call_leaves(research: ResearchWo
     assert meter.events() == () and context.journal == []
 
 
+class _Running(_Cancelled):
+    """A step context that lets the work go on."""
+
+    def checkpoint(self) -> None:
+        return None
+
+
+def test_a_meter_that_never_took_over_its_step_s_journal_sends_nothing(
+    research: ResearchWorld,
+) -> None:
+    retrieval, _table = recorded_retrieval(WEB)
+    with research.sessions() as session:
+        context = _Running(research.lead_scope(session))
+    meter = StepToolMeter(context)  # type: ignore[arg-type]  # not StepToolMeter.resuming
+    gate = RetrievalGate(
+        retrieval=retrieval, scope=context.scope, meter=meter, client_terms=(), class_a_texts=()
+    )
+    with pytest.raises(RuntimeError, match=r"StepToolMeter\.resuming"):
+        gate.search(
+            "trh rostlinných nápojů česko",
+            context_class=DataClass.CLASS_C_INTERNAL,
+            track_id="T",
+            max_results=2,
+        )
+    assert isinstance(retrieval.search, RecordedSearch) and retrieval.search.calls == []
+    assert meter.events() == () and context.journal == []
+
+
 def test_a_lost_model_answer_waits_for_recovery_and_is_not_bought_again(
     research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
 ) -> None:
@@ -1045,3 +1077,114 @@ def test_a_changed_composition_is_refused_mid_run(
         run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
     assert run["steps"][1]["attempts"][0]["error"]["reason"] == "composition_changed"
     assert agents.roles() == Counter(planner=1)
+
+
+# --------------------------------------------------------------------------- #
+# A call whose outcome is unknown is the last thing its track sends
+# --------------------------------------------------------------------------- #
+
+
+def _recorded_web_with(tmp_path: Path, pages: dict[str, dict[str, Any]]) -> Path:
+    """The recorded web with some pages replaced, where a runtime can be pointed at it."""
+    web = json.loads(WEB.read_text(encoding="utf-8"))
+    web["pages"].update(pages)
+    path = tmp_path / "web.json"
+    path.write_text(json.dumps(web, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def _investigated_urls(agents: RecordedAgents) -> list[str]:
+    """Every page URL a web investigator request carried."""
+    return [
+        source["url"]
+        for r in agents.requests
+        if RecordedAgents._role(r) == "web_investigator"
+        for source in json.loads(r.body["messages"][0]["content"][0]["text"])["sources"]
+    ]
+
+
+def _take_the_lease(world: ResearchWorld) -> None:
+    """Another worker takes the running attempt: the one in flight can record nothing more."""
+    with world.sessions() as session:
+        attempt = session.scalar(
+            select(StepAttemptRow).where(StepAttemptRow.status.in_(("CLAIMED", "EXECUTING")))
+        )
+        assert attempt is not None
+        attempt.worker_id = "another-worker"
+        session.commit()
+
+
+def test_a_fetch_that_may_have_been_served_ends_its_track_before_a_model_sees_its_round(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    tmp_path: Path,
+) -> None:
+    # "ovesný nápoj spotřeba" returns two hits: the first page is captured, the
+    # second fetch gets no answer and may have been served.
+    web = _recorded_web_with(tmp_path, {"https://zpravy.example/pokyny": {"fail": "uncertain"}})
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS)
+    run_id = start(research)
+    runtime = recorded(research, agents, fixture=web)
+    assert drain(worker(research, database_url, store, build, runtime)) == 6
+    run, bundle = read(research, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED and bundle.verify()
+
+    oats = {t.track_id: t for t in bundle.tracks}[tid(OS, OATS, WEB_)]
+    assert oats.status is TrackStatus.INCOMPLETE
+    assert oats.stop_reason is StopReason.TOOL_OUTCOME_UNCERTAIN
+    # Nothing more is sent -- not even the investigator request over the page the
+    # round did capture before its next fetch went unanswered.
+    assert "https://trh.example/ovesne-napoje" not in _investigated_urls(agents)
+    assert agents.roles()["web_investigator"] == 3  # the questions' rounds (2 + 1); oats sent none
+
+
+def test_a_search_left_in_flight_by_a_lost_attempt_is_closed_uncertain_and_never_sent_again(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS)
+    runtime = recorded(research, agents)
+    w = worker(research, database_url, store, build, runtime)
+    run_id = start(research)
+    lost = "ovesný nápoj spotřeba"
+    served = RecordedSearch.search
+
+    def search(self: RecordedSearch, query: str, *, max_results: int) -> Any:
+        if query == lost and lost not in self.calls:
+            _take_the_lease(research)  # the dispatch is on record; its outcome will not be
+        return served(self, query, max_results=max_results)
+
+    monkeypatch.setattr(RecordedSearch, "search", search)
+    drain(w)  # the plan, then the investigation until its lease goes mid-search
+    with research.sessions() as session:  # the reconciler, once the lapsed lease is due
+        WorkQueue(session).recover_expired_attempts(now=datetime.now(UTC) + timedelta(hours=1))
+        session.commit()
+    drain(w)
+
+    run, bundle = read(research, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED and bundle.verify()
+    assert [a["status"].value for a in run["steps"][1]["attempts"]] == ["EXPIRED", "SUCCEEDED"]
+    retrieval = runtime.retrieval
+    assert retrieval is not None and isinstance(retrieval.search, RecordedSearch)
+    assert retrieval.search.calls.count(lost) == 1, (
+        "a search that may have been served is not sent again"
+    )
+    oats = {t.track_id: t for t in bundle.tracks}[tid(OS, OATS, WEB_)]
+    assert oats.status is TrackStatus.INCOMPLETE
+    assert oats.stop_reason is StopReason.TOOL_OUTCOME_UNCERTAIN
+    # The journal closes the lost call exactly once, from the attempt that took over.
+    entries = [
+        e for e in tool_events(research, run_id) if e["payload"]["track_id"] == oats.track_id
+    ]
+    dispatched = [e for e in entries if e["message"] == TOOL_EVENT_KINDS[ToolOutcome.DISPATCHED]]
+    closed = [e for e in entries if e["message"] == TOOL_EVENT_KINDS[ToolOutcome.UNCERTAIN]]
+    assert len(dispatched) == 1 and len(closed) == 1
+    assert closed[0]["payload"]["call_id"] == dispatched[0]["payload"]["call_id"]
+    assert closed[0]["attempt_id"] != dispatched[0]["attempt_id"]

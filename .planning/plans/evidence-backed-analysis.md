@@ -1,19 +1,19 @@
 ---
-status: in-progress
+status: in-progress        # all chunks done; PR A (#76) and PR B (#80) in review, released through #86
 chunks:
   - "[x] 0. This plan"
-  - "[x] 1. Instrument items as evidence fields: evidence/instrument.py"
-  - "[x] 2. Native evidence and inputs: analysis/native.py"
-  - "[x] 3. Harness: analysis/harness.py"
-  - "[x] 4. Artifact contract and graph spec: analysis/artifact.py, analysis/steps.py"
-  - "[x] 5. Scoped sources and reconstruction: application/analysis_results.py (PR A, #76)"
-  - "[ ] 6. Executor: aia_executors/analysis.py over the real worker and recorded Bedrock"
-  - "[ ] 7. Decision-table parity against the vendored evidence_validator.py (M17)"
-  - "[ ] 8. Documents, and the Doc follow-up for the shared files (PR B, #80)"
+  - "[x] 1. Instrument items as evidence fields"
+  - "[x] 2. Native evidence and inputs"
+  - "[x] 3. Harness"
+  - "[x] 4. Artifact contract and graph spec"
+  - "[x] 5. Scoped sources and reconstruction"
+  - "[x] 6. Executor"
+  - "[x] 7. Decision-table parity against the vendored evidence_validator.py"
+  - "[x] 8. Documents"
 ---
 # Evidence-backed analysis of native research runs
 
-**Owner:** analysis (Job 3) · **Started:** 2026-09-27
+**Status:** all chunks done, in review (PR A, PR B) · **Owner:** analysis (Job 3) · **Started:** 2026-09-27
 
 Chunk 5 of [research-agent-workflows.md](research-agent-workflows.md), in the analysis
 half; the report half is [report-docx.md](report-docx.md) R10–R11 (Job 4).
@@ -93,7 +93,7 @@ All anchors are in `legacy/npc-panel-18.6.6/app/` @ `ceee2dc`.
 | --- | --- | --- |
 | Evidence table from `vysledky` (distribution, mean, top-2-box) | `analysis_agent.py:25-50` | **Implemented** here: `native.py`, plus n and effective n |
 | Research questions: `research_plan.research_questions` → `objectives` → `goal`, ≤ 8 | `analysis_agent.py:12-22` | **Implemented** here, same order and cap |
-| Analysis evidence integrity (`validate_analysis`: refs, metrics, values ±0.051, coverage ≥ 0.95, score ≥ 90) | `evidence_validator.py:39-60` | **Implemented, stricter**: `check_analysis_draft` (exact values, 100 % coverage). Decision-table parity: chunk 7 |
+| Analysis evidence integrity (`validate_analysis`: refs, metrics, values ±0.051, findings citing evidence ≥ 95 %, score ≥ 90) | `evidence_validator.py:39-60` | **Implemented, compared decision by decision** (`test_analysis_gate_parity.py`, the unit's own module): stricter on exact values, numeric types, numbers in prose and fidelity-refused or suppressed rows; **looser in two cases that wait on ANL-4** -- a finding that states no number and cites nothing, and a module with no finding |
 | Eight modules in `MODULE_ORDER`, one durable module per job | `analysis_agent.py:124`, `:154-184` | **Implemented**; AIA gates *each* module and repairs it ≤ 2 times. The unit's modular path drafted once, unvalidated, and gated only at assembly (`:186-216`) |
 | Repair ≤ 2, `allow_fallback=False`, keep the better-scoring draft | `analysis_agent.py:86-121` | **Implemented** in the runner (from the unit's monolithic `analyze_results`, which the standard workflow does not run); AIA judges each draft alone and has no score |
 | Challenger/editor second pass (non-`ECONOMY`) | `analysis_agent.py:84` | **Absent**: only the monolithic path had it |
@@ -123,10 +123,21 @@ validation (only support and suppression), verification or alignment.
   `research_analysis`, stage `ANALYSIS`, each depending on `aggregate` only (a blocked or
   failed module strands no other), step input `{"analysis_module", "analysis_surface"}`,
   `max_attempts` 3 (turn checkpoints make a retry free for recorded turns).
-- **Composition for Job 6 / Job 1**: `analysis_registry(store, build, gateway, config)`;
-  `AnalysisConfig` from the AI runtime settings plus an analysis switch, output cap and
-  reservation that must cover one call at the model's ceilings. The `ai_runtime.py`
-  settings and the production registry are not edited here.
+- **Composition for Job 6 / Job 1** (`aia_executors/analysis.py`):
+  `analysis_registry(store=, build=, language="cs", gateway=None, config=None)` ->
+  `{"research_analysis": AnalysisModuleExecutor}`, merged into the worker's registry;
+  `AnalysisConfig.from_settings(settings, max_output_tokens=, reservation_usd=)` refuses an
+  output cap above the model's, a reservation below one call at the model's ceilings and a
+  policy that does not bind `RESEARCH_REASONING`. Owed by the activation work: an analysis
+  switch and its two keys (suggested `AIA_AI_ANALYSIS_ENABLED`,
+  `AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS`, `AIA_AI_ANALYSIS_RESERVATION_USD`), binding
+  `RESEARCH_REASONING` under it (today only the design agents' switch binds it), passing
+  the keys through Compose, and registering the executor in `registry.build_registry`.
+  Owed by the workflow integration: adding `analysis_step_definitions()` and
+  `analysis_step_inputs(ClaimSurface.INTERNAL)` to the `research` template, and deciding
+  whether a *failed* analysis step should fail the run (the engine's rule today; a
+  `BLOCKED` module is an outcome and never does). The `ai_runtime.py` settings, the
+  production registry and the template are not edited here.
 
 ## Chunks
 
@@ -156,16 +167,29 @@ validation (only support and suppression), verification or alignment.
       `test_a_specification_reused_from_an_identical_revision_is_the_runs_own` and
       `test_an_aggregate_reused_over_the_same_questionnaire_is_the_runs_own` (**PR A ends
       here**)
-- [ ] 6. Executor: `aia_executors/analysis.py`, generator with turn checkpoints, config,
-      registry; real worker over recorded Bedrock: complete, blocked after 3 calls,
-      schema failure counted, client-facing and unconfigured and Class A refused with no
-      call, uncertain → recovery without resend, cancel between turns, budget park, retry
-      reuse, changed research questions rerun, recovery replays checkpoints. — code + tests
-- [ ] 7. Decision-table parity against the vendored `evidence_validator.py` (M17). — tests +
-      parity matrix
-- [ ] 8. Documents: `docs/architecture/analysis.md` and the parity matrix on the branch; what
-      ARCHITECTURE, the CLAUDE map, AGENTS, open items and the overview need goes under
-      *Doc follow-up* below (#89); draft PRs. (**PR B**: chunks 6–8, stacked on PR A)
+- [x] 6. Executor: `aia_executors/analysis.py` (`AnalysisModuleExecutor`, `AnalysisConfig`,
+      `analysis_registry`), generator with turn checkpoints. — code + tests:
+      `test_analysis_executor.py` (22; SQLite and PostgreSQL 16), the real worker over
+      recorded Bedrock exchanges: eight modules complete and read back by re-admission,
+      blocked after 3 calls while the rest complete, a schema failure is one counted turn,
+      client-facing blocked with 0 calls (configured or not), research-questions module
+      without a question blocked, unconfigured / Class A / undeclared lineage park with
+      nothing reserved, budget park, window refused before reservation, throttling parks,
+      uncertain → `RECOVERY_REQUIRED` and a person's resume replays the answered turn, a
+      tampered checkpoint is asked again, cancellation between turns, a second run and an
+      edited-back design reuse every outcome (0 calls), changed research questions rerun
+      every module, a step without a surface and refused sources fail before any call, and
+      150 AI respondents then the eight modules in one run
+- [x] 7. Decision-table parity against the vendored `evidence_validator.py` (M17), imported
+      from the frozen tree and pinned by SHA-256, both gates judging the same drafts over the
+      same aggregate. — tests: `test_analysis_gate_parity.py` (16: 6 EXACT, 4
+      INTENTIONAL_DIFFERENCE, 2 DECISION_OWED, the same numbers, the pin, the labels); parity
+      matrix: gate `analysis.modules/unit-evidence-validator`, deviations
+      `SUB-ANALYSIS-EXACT`, `-PROSE`, `-SUPPRESSED`
+- [x] 8. Documents: ARCHITECTURE §4, the CLAUDE map, AGENTS (research artifacts are reused by
+      fingerprint), `docs/architecture/analysis.md` (the executor and its outcomes table,
+      the gate against the unit's), the ANL decisions in PROGRESS; draft PRs. (**PR B**:
+      chunks 6–8, stacked on PR A)
 
 ## Decisions owed (not engineering)
 
@@ -174,6 +198,13 @@ validation (only support and suppression), verification or alignment.
 - **ANL-2** Should support that is `INDICATIVE` (or a thin run) pause analysis for a person
   (`donor_qc`'s `review_if_warning`)?
 - **ANL-3** Port `qc.kontrola` with its thresholds as warnings, as gates, or not at all.
+- **ANL-4** Must every key finding cite at least one admitted claim, and must a module state
+  at least one finding? The unit refused an analysis in which fewer than 95 % of findings
+  cited evidence, or with none (`evidence_validator.py:47-48`); AIA admits a finding that
+  states no number and cites nothing, and a module that is its summary alone
+  (`test_analysis_gate_parity.py` cases `finding-without-evidence`, `no-finding-at-all`).
+  Tightening is one rule in `domain/analysis/draft.py`; it is a methodology decision, so it
+  is not made here.
 
 ## Findings
 
@@ -279,3 +310,14 @@ Filled in when the plan is archived. Findings so far:
      parked across a deploy must still be read, so it is held to the revision it
      records. Tests: `test_a_specification_compiled_from_other_content_is_refused_whatever_it_records`
      and `test_another_compilers_specification_is_held_to_the_revision_it_records`.
+- **Codex on #80 @ `4739c06`, one P2, reproduced before its fix.** An AI runtime dataset
+  that failed verification raised out of `dataset_material` inside the executor's
+  transaction. That rolled back the CORRUPT mark the read had made (OI-77's worker half),
+  so the step failed `UNKNOWN` and a retry read the same bytes. The storage error's text,
+  which is the object's key, reached the step's error too. `dataset_material` and
+  `native_sources` now refuse a corrupt source as `source_corrupt` with no key (#76,
+  `1caa26f`), and the executor returns every source refusal from inside its transaction
+  (`_sources_refused`), so the mark is committed with the failure. Tests:
+  `test_analysis_executor.py::test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt`
+  (tampered and missing, stored status read from a session of its own) and
+  `test_analysis_results.py::test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`.
