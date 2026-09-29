@@ -24,6 +24,11 @@ report = ["python-docx>=1.2,<2", "matplotlib>=3.9,<4"]
 # The Bedrock route (ADR 0010): botocore's SigV4 signer and urllib3, its own HTTP
 # dependency, for the one live transport. No boto3 client is built for Bedrock.
 bedrock = ["botocore>=1.35,<2", "urllib3>=1.26,<3"]
+# Reading a brief attachment's text (infrastructure/document_text, ADR 0018): the
+# libraries 18.6.6 read them with, so the analysis reads the same text. Imported
+# only there, only when a file of that kind is attached; the API image installs
+# them. pypdf from 6.1, whose stream decompression is bounded.
+documents = ["pypdf>=6.1,<7", "python-docx>=1.1,<2", "openpyxl>=3.1,<4"]
 dev = [
     "pytest>=8.3,<9",
     "pytest-cov>=5,<8",

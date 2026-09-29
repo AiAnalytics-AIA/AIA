@@ -22,3 +22,9 @@ uploaded once to the EU ops bucket (`deploy/develop/env.example`,
 
 What the unit is for, how it is deployed and what it does not do are in its own
 `README.md` and `AIA-INTEGRATION.md`, and in ADR 0011.
+
+Since [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-6.md) decision 5
+the unit is not part of the product deployment: it runs, when a comparison needs it,
+from [`deploy/reference/`](../deploy/reference/README.md), behind a basic-auth gate on
+the develop host's loopback. The generated `AIA-INTEGRATION.md` still describes it as a
+service of the develop stack, as extracted; being generated, it is not edited here.

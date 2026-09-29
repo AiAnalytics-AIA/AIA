@@ -31,7 +31,7 @@ code() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$@"; }
 echo "Smoke: $BASE expecting build $SHA"
 echo
 
-# --- web: AIA is the product; 18.6.6 is an explicit hand-off (ADR 0015) -----
+# --- web: AIA is the product; 18.6.6 is not part of it (ADR 0015, ADR 0018) --
 headers() { curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' "$1" || true; }
 status_of() { printf '%s' "$1" | awk 'NR==1{print $2}'; }
 location_of() { printf '%s' "$1" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}'; }
@@ -44,48 +44,61 @@ if [ "$root_code" = "302" ] && [ "$root_location" = "/app/clients" ]; then
   pass "web: / opens AIA (302 /app/clients), not the 18.6.6 document"
 else fail "web: / opens AIA (302 /app/clients)" "got ${root_code} Location '${root_location}'"; fi
 
-# AIA is behind the gate: anonymous, a browser is sent to sign-in and comes back
-# to /app/clients. A 200 would mean the screens are public; a 404 from Caddy,
-# that the running Caddy predates @rehome.
+# AIA is behind its own gate (ADR 0018): anonymous, a browser is sent to sign-in
+# and comes back to /app/clients. A 200 would mean the screens are public; a 404
+# from Caddy, that the running Caddy predates the @app route.
 app_headers="$(headers "$BASE/app/clients")"
 app_code="$(status_of "$app_headers")"; app_location="$(location_of "$app_headers")"
 if [ "$app_code" = "302" ] && [ "$app_location" = "/login?next=%2Fapp%2Fclients" ]; then
   pass "web: an anonymous visit to /app/clients is sent to sign-in (302 /login)"
 else fail "web: an anonymous visit to /app/clients is sent to sign-in" "got ${app_code} Location '${app_location}'"; fi
 
-# The classic interface is served only at /classic, behind the same gate.
-classic_headers="$(headers "$BASE/classic")"
-classic_code="$(status_of "$classic_headers")"; classic_location="$(location_of "$classic_headers")"
-if [ "$classic_code" = "302" ] && [ "$classic_location" = "/login?next=%2Fclassic" ]; then
-  pass "web: the classic interface is a gated hand-off at /classic (302 /login)"
-else fail "web: the classic interface is a gated hand-off at /classic" "got ${classic_code} Location '${classic_location}'"; fi
+# A cookie that is not AIA's session -- the retired 18.6.6 panel's among them --
+# is not a way into AIA.
+panel_cookie_headers="$(curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' -H 'Cookie: aia_panel=forged' "$BASE/app/clients" || true)"
+if [ "$(status_of "$panel_cookie_headers")" = "302" ]; then
+  pass "security: a cookie that is not AIA's session does not open AIA (302 /login)"
+else fail "security: a cookie that is not AIA's session does not open AIA" "got $(status_of "$panel_cookie_headers")"; fi
 
-# No catch-all to the unit: a path neither AIA nor the unit serves is the web
-# client's own 404, not a gate answer (302/401) from a forward to 18.6.6.
+# AIA's pages take no writes; the API is /api/v1.
+page_write="$(code -X POST -H 'Accept: text/html' "$BASE/app/clients")"
+if [ "$page_write" = "403" ]; then pass "security: a write to AIA's pages is refused (403)"
+else fail "security: a write to AIA's pages is refused" "POST /app/clients returned ${page_write}, expected 403"; fi
+
+# The 18.6.6 interface is not served: /classic is AIA's own page saying so, to
+# anyone, without sign-in. It doubles as the check that the running Caddy is on
+# the deployed Caddyfile -- the one before this answered 302 /login there (OI-45).
+classic_body="$(curl -s --max-time 10 -H 'Accept: text/html' -w '\n%{http_code}' "$BASE/classic" || true)"
+classic_code="$(printf '%s' "$classic_body" | tail -n1)"
+if [ "$classic_code" = "200" ] && printf '%s' "$classic_body" | grep -q "už není součástí AIA"; then
+  pass "caddy: running the deployed Caddyfile (/classic is AIA's page: 18.6.6 is not served)"
+else fail "caddy: running the deployed Caddyfile" "GET /classic returned ${classic_code} without AIA's page; the running Caddy predates this Caddyfile (docker compose up -d --force-recreate caddy)"; fi
+
+# An unknown path is the web client's own 404.
 stray_code="$(code -H 'Accept: text/html' "$BASE/no-such-page")"
-if [ "$stray_code" = "404" ]; then pass "web: an unknown path is AIA's 404, never the 18.6.6 unit"
+if [ "$stray_code" = "404" ]; then pass "web: an unknown path is AIA's 404"
 else fail "web: an unknown path is AIA's 404" "GET /no-such-page returned ${stray_code}, expected 404"; fi
 
-# The interface document is reached only through the gated rewrite of /classic
-# (ADR 0013, 0015); asked for directly, Caddy itself answers 404. Anything else
-# means the running Caddy is not on the deployed Caddyfile -- how run 14 left
-# the skin unseen with every other check green (OI-45).
+# Nothing of the 18.6.6 unit is served (ADR 0018 decision 5): the paths it
+# answered on this hostname are the web client's 404 like any other unknown
+# path -- not a gate's 401 or 403, not a 502 from a proxy with nobody behind it.
+unit_paths_ok=1
+for path in /api/bootstrap /files/x /health /status; do
+  c="$(code -H 'Accept: application/json' "$BASE$path")"
+  [ "$c" = "404" ] || { unit_paths_ok=0; fail "web: the 18.6.6 unit's paths are AIA's 404" "GET $path returned $c, expected 404"; }
+done
+write_code="$(code -X POST -H 'Content-Type: application/json' -d '{}' "$BASE/api/projects")"
+[ "$write_code" = "404" ] || { unit_paths_ok=0; fail "web: the 18.6.6 unit's paths are AIA's 404" "POST /api/projects returned $write_code, expected 404"; }
+[ "$unit_paths_ok" = 1 ] && pass "web: the 18.6.6 unit's paths are AIA's 404 (/api/bootstrap, /files/*, /health, /status, POST /api/projects)"
+
+# The 18.6.6 document is gone from the web client too.
 direct_code="$(code "$BASE/interface-document")"
-if [ "$direct_code" = "404" ]; then
-  pass "caddy: running the deployed Caddyfile (/interface-document answers 404)"
-else fail "caddy: running the deployed Caddyfile" "GET /interface-document returned ${direct_code}, expected 404; the running Caddy predates this Caddyfile (docker compose up -d --force-recreate caddy)"; fi
+if [ "$direct_code" = "404" ]; then pass "web: the 18.6.6 document is not served (/interface-document 404)"
+else fail "web: the 18.6.6 document is not served" "GET /interface-document returned ${direct_code}, expected 404"; fi
 
 if [ "$(code "$BASE/login")" = "200" ] && curl -fsS --max-time 10 "$BASE/login" | grep -qi '<html'; then
   pass "web: the sign-in page renders"
 else fail "web: the sign-in page renders" "GET $BASE/login did not return 200 HTML"; fi
-
-panel_code="$(code "$BASE/api/bootstrap")"
-if [ "$panel_code" = "401" ]; then pass "security: the 18.6.6 interface refuses an anonymous data request (401)"
-else fail "security: the 18.6.6 interface refuses an anonymous data request" "GET /api/bootstrap returned ${panel_code}, expected 401"; fi
-
-forged_code="$(code -X POST -H 'Origin: https://evil.example' -H "Cookie: aia_panel=forged" "$BASE/api/projects")"
-if [ "$forged_code" = "403" ]; then pass "security: a cross-origin write to the 18.6.6 interface is refused (403)"
-else fail "security: a cross-origin write to the 18.6.6 interface is refused" "POST /api/projects returned ${forged_code}, expected 403"; fi
 
 web_sha="$(curl -fsS --max-time 10 "$BASE/version" | json 'd["sha"] or ""' || true)"
 if [ "$web_sha" = "$SHA" ]; then pass "web: /version reports $SHA"
@@ -95,22 +108,15 @@ redirect="$(code "http://${AIA_PUBLIC_HOSTNAME}/")"
 case "$redirect" in 301|308) pass "web: HTTP redirects to HTTPS ($redirect)" ;;
   *) fail "web: HTTP redirects to HTTPS" "got $redirect" ;; esac
 
-# --- legacy unit (ADR 0011, ADR 0012) ----------------------------------------
-# Its health is checked here rather than by `compose up --wait`, so an unhealthy
-# unit fails the deploy without keeping the product hostname down. The read waits
-# out the unit's start period first (lib.sh › legacy_unit_health).
-legacy_id="$("${COMPOSE[@]}" ps -q legacy-panel 2>/dev/null || true)"
-legacy_health="$(legacy_unit_health "$legacy_id")"
-if [ "$legacy_health" = "healthy" ]; then pass "legacy: the 18.6.6 unit is healthy"
-else fail "legacy: the 18.6.6 unit is healthy" "state '${legacy_health}'; it needs AIA_LEGACY_DATA_PREFIX and its data bundle in the ops bucket (runbook § The 18.6.6 interface)"; fi
-
-# The gate is the check: the reference API is unauthenticated, so an anonymous
-# request to the legacy hostname must be refused by Caddy before it reaches it.
-if [ -n "${AIA_LEGACY_HOSTNAME:-}" ]; then
-  legacy_code="$(code "https://${AIA_LEGACY_HOSTNAME}/health")"
-  if [ "$legacy_code" = "401" ]; then pass "legacy: hostname answers and the gate refuses anonymous access (401)"
-  else fail "legacy: hostname answers and the gate refuses anonymous access" "GET /health returned ${legacy_code}, expected 401"; fi
-fi
+# --- host: the product stack runs nothing of 18.6.6 (ADR 0018) --------------
+product_unit="$(product_unit_containers)"
+if [ -z "$product_unit" ]; then pass "host: the product stack runs no 18.6.6 unit"
+else fail "host: the product stack runs no 18.6.6 unit" "container(s) $product_unit of service legacy-panel in project aia-develop"; fi
+# Its working volume is kept for the reference and the migration (OI-58), and
+# nothing the product runs may remove it. Absent on a host that never ran it.
+if unit_volume_exists; then
+  pass "host: the 18.6.6 unit's working volume $LEGACY_STATE_VOLUME is kept"
+else printf 'info  host: no 18.6.6 working volume on this host (%s)\n' "$LEGACY_STATE_VOLUME"; fi
 
 # --- api ---------------------------------------------------------------------
 health="$(curl -fsS --max-time 10 "$BASE/api/v1/health" || true)"

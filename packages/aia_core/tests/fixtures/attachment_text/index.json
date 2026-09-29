@@ -1,0 +1,25 @@
+{
+  "expected_sha256": "9693fac46e5702baef0de417dc9cc6a4d0edcee6aa6767d2fd4b7c09067625f7",
+  "inputs": {
+    "bez_rozmeru.xlsx": "fc2dda88c01cd379bfeeefbda83778c14e1bdc8cb19f1f0c9d68a9f58b0d74d5",
+    "data.csv": "8389d0ff1d6b1391a98e41bb4f8a254d8e497c16a12d2db4eda55723107099b3",
+    "kopie.xlsm": "dac29c4e3628502dc98b2790745c381b8ed2895212fcf0753d5ef223ea14a550",
+    "neplatne.txt": "78707267a6b12c63a90b081b6eacadd85bca752d889ce79944245715eec865df",
+    "obrazek.png": "d097d8741f98c629fef38d837810a600957582167d9ea37822215d159988b333",
+    "poskozeny.docx": "b6f7b85ffbbc56e131010d3ea5ba1c4fd7b4df42636f6bf76bf914ef6aad1589",
+    "poskozeny.pdf": "9b8f7410f5218ff98e7afdf4cba61533b3ce9c8b7bd362339a4f9c66de5d6729",
+    "poznamky.md": "e071d5086761a51e81df251eccc7edf1dfae81c9e06f55d14d6bb0f27bfc978c",
+    "prezentace.pdf": "9ae3838f5b6c4906e535e27ff4e98785c49acc35eb890e1e7fa7cc02860b5a04",
+    "tabulka.xlsx": "dac29c4e3628502dc98b2790745c381b8ed2895212fcf0753d5ef223ea14a550",
+    "zadani.docx": "0aba85fe93e072c4964d55a0c114d044aef3ecd51c3d2fda633dfff4bc0f6ecb",
+    "zadani.txt": "261bb936d686b7c453f5fd9d6ce5af29794a60d2dede6125f1eab1ce765af082"
+  },
+  "libraries": {
+    "openpyxl": "3.1.5",
+    "pypdf": "6.19.0",
+    "python": "3.11.15",
+    "python-docx": "1.2.0"
+  },
+  "unit_function": "legacy/npc-panel-18.6.6/app/data_library.py::_extract_text",
+  "unit_function_sha256": "1fbb4544877f1e1c6a61bd13cfe9da3aff8efe12a6335047d4c7035960c9b5e9"
+}

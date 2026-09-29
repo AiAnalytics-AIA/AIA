@@ -3,16 +3,16 @@
 // 1. Zadání, rebuilt (research-flow-rehome.md, chunk 2): the classic renderBrief
 // and its two wrappers, block for block -- what the research is about, the
 // attachments and links, the further context, and the AI analysis that turns it
-// into a plan. What each control does to the project is src/unit/research/brief.ts,
+// into a plan. What each control does to the project is src/research/brief.ts,
 // parity-tested against the original; this file only draws it.
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
-import { t } from "@/i18n/t";
-import { unit } from "@/unit/client";
+import { t, tv } from "@/i18n/t";
+import { workspace } from "@/lib/api";
+import { saveBlob } from "@/lib/download";
 import {
-  ATTACHMENT_TIMEOUT_MS,
   type BriefingField,
   MAX_FILES_PER_PICK,
   type TopField,
@@ -23,10 +23,11 @@ import {
   editBrief,
   fileToBase64,
   removeAttachment,
+  storedAttachmentId,
   titleValue,
   toggleProblemType,
-} from "@/unit/research/brief";
-import { type Attachment, PROBLEM_TYPES, selectedProblemTypes } from "@/unit/research/model";
+} from "@/research/brief";
+import { type Attachment, PROBLEM_TYPES, selectedProblemTypes } from "@/research/model";
 import { Icon } from "../icons";
 import { Button, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
@@ -147,9 +148,13 @@ export function BriefStep() {
   );
 }
 
-/** Přílohy a odkazy: files are uploaded as they are picked, links kept as http(s) only. */
+/**
+ * Přílohy a odkazy: files are kept in AIA's storage as they are picked (ADR 0018),
+ * links as http(s) only. A file belongs to the study's working content, so a study
+ * never saved is saved first; the brief then keeps each file's record and saves again.
+ */
 function Attachments() {
-  const { store, state, toast } = useResearch();
+  const { store, state, toast, frame } = useResearch();
   const files = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -163,22 +168,27 @@ function Attachments() {
     setUploading(true);
     const records: Attachment[] = [];
     try {
+      if (!store.saved) await store.flush("brief_attachments");
       for (const f of picked.slice(0, MAX_FILES_PER_PICK)) {
-        records.push(
-          (await unit("projectAttachment", {
-            body: { filename: f.name, data_b64: await fileToBase64(f) },
-            timeoutMs: ATTACHMENT_TIMEOUT_MS,
-          })) as Attachment,
-        );
+        records.push(await workspace.attach(frame.studyId, { filename: f.name, data_b64: await fileToBase64(f) }));
       }
       toast(t("research.brief.uploaded"));
     } catch (e) {
       setError(message(e));
     } finally {
-      // What the unit already stored is kept, even when a later file failed.
+      // What AIA already stored is kept, even when a later file failed.
       if (records.length) store.update(({ project }) => ({ project: addAttachments(project, records) }), { reason: "brief_attachments" });
       setUploading(false);
       if (files.current) files.current.value = "";
+    }
+  };
+
+  const download = async (x: Attachment, attachmentId: string) => {
+    setError(null);
+    try {
+      saveBlob(await workspace.attachment(frame.studyId, attachmentId), x.filename || "priloha");
+    } catch (e) {
+      setError(message(e));
     }
   };
 
@@ -245,13 +255,27 @@ function Attachments() {
         {list.length ? (
           list.map((x, i) => {
             const line = attachmentLine(x);
+            const stored = storedAttachmentId(x);
             return (
               <li key={`${i}-${x.sha256 || x.url || x.filename}`} className="flex items-center gap-3 px-3 py-2">
                 <Icon name={x.kind === "url" ? "link" : "attach"} size={14} className="text-ink-muted" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{line.name}</div>
-                  <div className="truncate text-xs text-ink-muted">{line.detail}</div>
+                  <div className="truncate text-xs text-ink-muted">
+                    {line.detail}
+                    {x.kind !== "url" && !stored ? ` · ${t("research.brief.notInAia")}` : ""}
+                  </div>
                 </div>
+                {stored ? (
+                  <Button
+                    small
+                    variant="quiet"
+                    aria-label={tv("research.brief.downloadAria", { name: line.name })}
+                    onClick={() => void download(x, stored)}
+                  >
+                    {t("research.brief.download")}
+                  </Button>
+                ) : null}
                 <Button
                   small
                   variant="quiet"

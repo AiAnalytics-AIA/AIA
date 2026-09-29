@@ -102,9 +102,10 @@ def reference_repo() -> Path:
 # --------------------------------------------------------------------------- #
 # The running oracle (ADR 0011)
 #
-# Distinct from both of the above. The vendored 18.6.6 unit runs as the
-# ``legacy-panel`` service on the develop host behind Caddy's basic-auth gate,
-# and the differential parity tests reach it over HTTP through
+# Distinct from both of the above. The vendored 18.6.6 unit runs, when a
+# comparison needs it, from deploy/reference on the develop host, behind a
+# basic-auth gate on the host's loopback (ADR 0018; reached through an SSM port
+# forward), and the differential parity tests reach it over HTTP through
 # ``tools/legacy_oracle.py``. ``AIA_LEGACY_REFERENCE_URL`` names it;
 # ``AIA_LEGACY_REFERENCE_USER`` / ``AIA_LEGACY_REFERENCE_PASSWORD`` pass the
 # gate. Absent URL is valid and skips; ``AIA_REQUIRE_LEGACY_ORACLE=1`` makes
@@ -139,6 +140,27 @@ def tool_loader() -> Any:
 def legacy_oracle_tool() -> Any:
     """The ``tools/legacy_oracle.py`` module, for tests that need the oracle or its harness."""
     return load_tool("legacy_oracle")
+
+
+def load_unit_store() -> Any:
+    """``tests/unit_store.py`` by path: a copy of an 18.6.6 project store, for tests."""
+    import importlib.util
+
+    name = "aia_test_unit_store"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, Path(__file__).with_name("unit_store.py"))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="session")
+def unit_store() -> Any:
+    """The helper that writes an 18.6.6 project store as the unit writes one."""
+    return load_unit_store()
 
 
 @pytest.fixture(scope="session")

@@ -8,10 +8,9 @@
 // came from -- and when it came from the fictional dataset, that it is fiction.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { classicHref } from "@/lib/interface-handoff";
 import {
   ApiError,
   type Artifact,
@@ -37,8 +36,8 @@ import {
   supportNote,
   type ResultTable,
 } from "@/lib/research-execution";
-import { CLASSIC_ROUTE } from "@/unit/research/steps";
-import { Button, Chip, ClassicLink } from "../ui";
+import { CONFLICT_MESSAGE } from "@/research/store";
+import { Button, Chip } from "../ui";
 import { useResearch } from "./context";
 
 const POLL_MS = 2000;
@@ -75,7 +74,7 @@ function useFrame() {
 // ---------------------------------------------------------------- Run --------
 
 export function RunStep() {
-  const { state, stepHref } = useResearch();
+  const { store, stepHref } = useResearch();
   const frame = useFrame();
   const router = useRouter();
   const [prepared, setPrepared] = useState<
@@ -87,8 +86,6 @@ export function RunStep() {
   const [runs, setRuns] = useState<ResearchRunSummary[]>([]);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
-  // The design as the person sees it, submitted once per visit.
-  const content = useRef(state.project);
 
   useEffect(() => {
     let live = true;
@@ -96,7 +93,18 @@ export function RunStep() {
       let revisionId: string;
       let revision: number;
       if (frame.canEdit) {
-        const r = await research.submitDesign(frame.studyId, content.current, "run");
+        // The design the person sees, once per visit -- but only as AIA holds it: a
+        // change still waiting for its save is saved first, and a copy whose save was
+        // refused (someone saved a newer one) never becomes a revision a run executes.
+        const s = store.get();
+        if (s.revision === null || s.save.kind !== "saved") {
+          try {
+            await store.flush("run");
+          } catch (e) {
+            throw store.get().save.kind === "conflict" ? new Error(CONFLICT_MESSAGE) : e;
+          }
+        }
+        const r = await research.submitDesign(frame.studyId, store.get().project, "run");
         revisionId = r.revision_id;
         revision = r.revision;
       } else {
@@ -112,7 +120,7 @@ export function RunStep() {
     return () => {
       live = false;
     };
-  }, [frame.studyId, frame.canEdit]);
+  }, [frame.studyId, frame.canEdit, store]);
 
   const start = async () => {
     if (prepared.kind !== "ready") return;
@@ -413,13 +421,12 @@ function Table({ table }: { table: ResultTable }) {
 }
 
 export function ResultsStep() {
-  const { state } = useResearch();
   const [run] = useRun();
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
-  const classic = state.projectId ? (
-    <ClassicLink href={classicHref({ open: state.projectId, step: CLASSIC_ROUTE.results })}>{t("research.exec.results.classicReport")}</ClassicLink>
-  ) : null;
+  // The 18.6.6 client report has no AIA counterpart yet (report-docx.md): said
+  // here, not handed off to an interface that is no longer part of AIA.
+  const reportNote = <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
   if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null || run.phase !== "COMPLETED") {
@@ -428,7 +435,7 @@ export function ResultsStep() {
         <Card>
           <p className="text-sm">{run && parkedForRuntime(run) ? t("research.exec.noResultsParked") : t("research.exec.noResults")}</p>
         </Card>
-        {classic}
+        {reportNote}
       </div>
     );
   }
@@ -443,11 +450,12 @@ export function ResultsStep() {
       {sociomap && sociomap.state !== "hidden" ? (
         <Card title={t("research.exec.results.sociomap")} tone="notice">
           <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.internal")}</p>
+          <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
           {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
       ) : null}
-      {classic}
+      {reportNote}
     </div>
   );
 }

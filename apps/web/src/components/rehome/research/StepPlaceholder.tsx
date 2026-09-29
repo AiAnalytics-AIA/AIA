@@ -1,29 +1,17 @@
 "use client";
 
-// A step not yet rebuilt: said plainly, with the hand-off to the same step of
-// the same project in the classic interface (#aia:open=<id>@<route>).
+// A research step AIA has not rebuilt (verify, next; OI-47). It says so where the
+// person is (ADR 0018): there is no 18.6.6 interface to hand off to any more, and a
+// capability hidden behind a link is not a capability AIA has.
 
-import { classicHref } from "@/lib/interface-handoff";
 import { t } from "@/i18n/t";
-import { CLASSIC_ROUTE, type StepKey } from "@/unit/research/steps";
-import { ClassicLink } from "../ui";
+import type { StepKey } from "@/research/steps";
 
-export function StepPlaceholder({ projectId, step }: { projectId: string | null; step: StepKey }) {
+export function StepPlaceholder({ step }: { step: StepKey }) {
   return (
-    <section className="max-w-2xl rounded-md border border-border bg-surface-raised p-6">
-      <h2 className="text-base font-semibold">{t("research.notRebuilt")}</h2>
-      {projectId ? (
-        <>
-          <p className="mt-1 text-sm leading-6 text-ink-muted">{t("research.notRebuiltHelp")}</p>
-          <div className="mt-4">
-            <ClassicLink href={classicHref({ open: projectId, step: CLASSIC_ROUTE[step] })} variant="primary">
-              {t("research.openStepInClassic")}
-            </ClassicLink>
-          </div>
-        </>
-      ) : (
-        <p className="mt-1 text-sm leading-6 text-ink-muted">{t("research.unsavedForClassic")}</p>
-      )}
+    <section className="max-w-2xl rounded-md border border-border bg-surface-raised p-6" data-step={step}>
+      <h2 className="text-base font-semibold">{t("research.notInAia")}</h2>
+      <p className="mt-1 text-sm leading-6 text-ink-muted">{t("research.notInAiaHelp")}</p>
     </section>
   );
 }

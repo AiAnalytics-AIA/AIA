@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { STEP_KEYS, stepFromSlug, stepSlug } from "@/unit/research/steps";
+import { STEP_KEYS, stepFromSlug, stepSlug } from "@/research/steps";
 import { appRoutes } from "./app-routes";
 
 describe("the client-first URLs (ADR 0015)", () => {

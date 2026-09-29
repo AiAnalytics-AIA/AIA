@@ -1267,6 +1267,16 @@ gate (ADR 0012). The oracle hostname is not configured yet, so the parity gate
 still reports `NOT_EXECUTED`: remaining are the three optional `aia_legacy_*`
 hostname parameters (runbook § Switching the unit on), the DNS record, and the
 three repository secrets.
+2026-09-27 (ADR 0018 decision 5, increment 5 on `feature/deploy-without-legacy`): the
+product deployment no longer runs the unit or serves an oracle hostname. The unit runs
+from `deploy/reference/` behind its own basic-auth gate on the host's loopback,
+`127.0.0.1:8765`, reached through an SSM port forward (`deploy/reference/README.md` §
+Reaching it; `test_reference_setup.py` › *the unit is reached only through the gate on
+the hosts loopback*). What the human actions become: the hostname parameters and the DNS
+record are no longer needed (the record, if it exists, can be removed); the parity gate
+needs a runner that can reach the host's loopback (inside the VPC, or on the host) and
+the three repository secrets holding the reference gate's credentials. Until then an
+operator runs `make test-oracle` through the port forward, and CI reports `NOT_EXECUTED`.
 
 ---
 
@@ -1873,9 +1883,11 @@ owner/admin gate (OI-59), with no row-level scope of its own.
 
 **Removal condition.** The research (then simulation) stage state is stored and served by AIA's
 study-scoped contracts (`/api/v1/studies/{study_id}/…`); the rebuilt stages no longer call the
-unit's project store; the bound working content is migrated into AIA. Then `study_workspaces` is
-dropped by a migration and ADR 0015 decision 5 is retired. The unit remains only as the oracle
-and a fallback.
+unit's project store; the bound working content is migrated into AIA. Then ADR 0015 decision 5
+is retired and `study_workspaces.unit_project_id` is history only (ADR 0018 keeps the table: it
+names each Study's AIA working project). The unit remains only as the oracle and a frozen
+reference, never a runtime fallback (ADR 0018; the "fallback" wording here was stale, handed over
+by [#73](https://github.com/AiAnalytics-AIA/AIA/pull/73) § 10).
 
 **Carried from OI-66.** Some bindings already name unit projects that no longer exist (four
 at the time of OI-66). The migration accounts for each one explicitly: a study with a
@@ -1886,8 +1898,72 @@ keeps two invariants the unit lacked: seed or fixture data never overwrites work
 and a study whose content is missing says so by name rather than "Projekt/revize nenalezena".
 
 **Status.** Open; **migration debt**, accepted temporarily by the data owner (2026-09-24).
+Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-6.md)
+([plan](plans/legacy-phase-out.md)):
 
-## OI-59 · Temporary restriction · `/app` admits organization owners and admins only
+- **Landed in code (`feature/native-research-workspace`, 2026-09-27):** the stages load and
+  save a Study's working content in AIA (`GET`/`PUT /api/v1/studies/{study_id}/workspace/content`,
+  `StudyWorkspaceRepository`, owned working project); the binding route
+  `PUT /studies/{id}/workspace` is gone; every existing binding became `AWAITING_MIGRATION`
+  (migration `5b1d0f3e9a21`), which refuses edits so the content cannot fork. The two
+  invariants above hold by construction: nothing but a person's save writes a working
+  project, and a missing or lost content says so by state. Tests:
+  `test_study_workspaces.py`, `test_workflow_concurrency.py` ›
+  *two editors saving from one revision cannot overwrite each other*,
+  `test_client_api.py` › *a save from a stale revision is a conflict…*.
+- **Landed (same branch, chunk 3):** the brief's attachments are artifacts of the working
+  project in AIA's storage (`POST`/`GET /api/v1/studies/{study_id}/workspace/attachments`),
+  their text read by the unit's own libraries and compared with the unit's function
+  (`test_document_text.py`); nothing of the brief reaches the unit. Tests:
+  `test_study_workspaces.py` › *an attachment is served only through its own study*,
+  `test_client_api.py` › *a file is attached in AIA and downloaded only through its study*.
+- **Landed (chunk 5):** Audience and Dimenze call nothing of the unit. Dimensions come from
+  the client's approved knowledge and a request is a knowledge proposal; what the unit
+  computed from its panel or audience store says it is not in AIA. With chunks 1-4, the
+  research flow reaches no unit route: `ResearchScreen`, `BriefStep`, `PlanStep`,
+  `QuestionnaireStep`, `AudienceStep`, `PersonaStep` tests fail on any unit URL.
+- **Landed (chunk 4):** a questionnaire file is read in AIA and only its sections come back
+  (`POST …/workspace/questionnaire-import`), normalized by the unit's rules and compared with
+  the unit's own import (`test_questionnaire_import.py`); the template is AIA's own workbook.
+- **Landed (chunk 7, `feature/legacy-workspace-migration`):** the migration command,
+  `python -m aia_executors.legacy_workspace` (ADR 0018 decision 2): from a copy of the unit's
+  store and attachment directory, as a named person through their own grants; every revision
+  one for one, author unknown, lineage kept; every file into AIA storage or reported; the copy
+  checked against the unit's own hashes before writing and the result after; dry run unless
+  `--apply`; each Study its own transaction. The OI-66 cases are decided only with
+  `--recover-missing`: `RECOVERED` from the newest Design Revision, else `UNRECOVERABLE`.
+  Tests: `test_workspace_migration.py` › *a study gets every revision and file and keeps who
+  it belongs to*, *what does not validate is rolled back and left waiting*, *a project missing
+  from the copy waits until the copy is said complete*, *the operator migrates only what their
+  own grants let them edit*, *a second run changes nothing and says what was done before*;
+  `apps/executors/tests/test_legacy_workspace.py`.
+- **Landed (chunk 9, `feature/interface-without-classic`):** the last caller of the unit's
+  store, the classic projects screens at `/app/settings/classic-projects`, is removed with the
+  typed unit client (`apps/web/src/unit/`); the web client calls no path of the unit. A Study's
+  bound content comes over by the migration, and a unit project no Study refers to stays in the
+  unit's volume, listed in the migration's report. Tests: `NotInAia.test.tsx` › *settings offer
+  no way into the classic interface or its project store*; the research flow's tests above.
+- **Landed (chunks 10–11, `feature/deploy-without-legacy`):** the product deployment has no
+  unit (ADR 0018 decision 5), and its volume is kept: the first deploy without it stops the
+  old container as its service did and fails if the volume vanished, and nothing removes the
+  volume, the data directory, the data bundle or the images (`deploy/develop/bin/deploy.sh`,
+  `bin/lib.sh` › `retire_product_unit` @ `9138977`; `test_develop_unit_retirement.py` ›
+  *the deploy stops the unit before replacing services and proves the volume after*). The
+  migration's copies are taken from the volume in throwaway containers of the unit's image,
+  not from a running unit (runbook § Migrating 18.6.6 content), checked on a stand-in volume:
+  a store whose writer was killed with committed rows only in its WAL was copied with those
+  rows, and the attachments came out, with no container left. The copier needs the unit's own
+  user (AGENTS.md § Docker and Compose): run as another user, it cannot open a WAL store
+  read-only. The unit's databases are backed up by the reference setup
+  (`deploy/reference/bin/backup-state.sh`), no longer by the product's nightly dump.
+- **Still open:** **running** the migration on develop -- an operator action on the live
+  host, by the runbook (`deploy/develop/README.md` § Migrating 18.6.6 content), not done by
+  any change here -- preceded by a copy of the unit's databases taken before the first deploy
+  without it (`bin/backup.sh pre-adr-0018`, with the data owner's approval, runbook § The
+  first deploy without the unit). Until it runs, the develop Studies bound to 18.6.6 stay
+  `AWAITING_MIGRATION` and their content stays in the unit's volume, untouched.
+
+## OI-59 · Temporary restriction, closed · `/app` admits organization owners and admins only
 
 **Claim.** The client-first shell at `/app` sits behind the panel gate, which admits only
 organization owners and admins (`LEGACY_PANEL_ROLES`), because the rebuilt stages still depend on
@@ -1919,6 +1995,37 @@ then `/app` moves to a gate that admits any provisioned member, and the unit's o
 owner/admin gate until the unit is out of the stage path.
 
 **Status.** Open; **temporary restriction**, accepted by the data owner for this PR (2026-09-24).
+Being retired by [ADR 0018](../docs/architecture/adr/0018-aia-runs-without-18-6-6.md) decision 3:
+
+- **Landed in code (`feature/aia-session-gate`, 2026-09-27):** `/app` is behind AIA's own gate,
+  `GET /api/v1/session/gate`, which admits any active member of the organization with an AIA
+  session (`POST /api/v1/session`, cookie `aia_session`) and nothing else. Admission is
+  `ScopeResolver.authorize_session`, recorded in the access audit (`AIA_SESSION`). No setting
+  turns it off and no legacy setting touches it, so the production blocker above is gone for
+  `/app`. The pages' data is authorized per call, as before. The gate refuses every method but
+  GET and HEAD, because the pages take no writes. The web client's `/app` switch
+  (`AIA_INTERFACE_REHOME_ENABLED`) no longer decides whether `/app` is served. Tests:
+  `apps/api/tests/test_session_api.py` › *every active member gets an httponly lax session cookie*,
+  *a members session passes the gate* (a researcher, a viewer, a member with no client grant),
+  *the session and its gate do not depend on the legacy panel*;
+  `packages/aia_core/tests/test_caddy_routes.py` › *app behind the 18 6 6 panels gate is refused*;
+  `apps/web/src/app/login/page.test.tsx`.
+- **Landed (chunk 9, `feature/interface-without-classic`):** `/classic` no longer serves 18.6.6:
+  it is the web client's public page saying so, with no data and no gate; `/login` no longer
+  opens the panel's session, and sign-out still clears a panel cookie an earlier sign-in left.
+  Tests: `NotInAia.test.tsx` › *tells an old link the interface is gone, and leads into AIA*;
+  `test_caddy_routes.py` › *the classic hand off coming back is refused*;
+  `apps/web/src/lib/session.test.ts` › *clears AIA's session and a panel cookie left from
+  before, then the sign-in*.
+- **Closed (chunk 11, `feature/deploy-without-legacy` @ `caa7ed8`):** the product deployment
+  no longer runs the unit, so its paths are gone from the product hostname, and the panel's
+  gate with them: `apps/api/src/aia_api/routers/panel.py`, `ScopeResolver.authorize_legacy_panel`,
+  `LEGACY_PANEL_ROLES` and the `AIA_LEGACY_PANEL_*` settings are removed, and
+  `/api/v1/panel/*` answers 404. Nothing in AIA depends on a caller being an owner or admin
+  to be let in. Tests: `apps/api/tests/test_session_api.py` › *the session and its gate need
+  nothing of 18 6 6* (no legacy setting exists; the panel routes answer 404);
+  `test_caddy_routes.py` › *app behind the 18 6 6 panels gate is refused* and *the unit
+  coming back on its own paths is refused*; CI's API contract fails a `/api/v1/panel` path.
 
 ## OI-60 · Finding, fixed · `GET /api/v1/access-audit` always failed
 
@@ -2031,7 +2138,7 @@ PCG64 port justified, and it would need its own named exception to §2.
 
 ---
 
-## OI-63 · Decision owed (data owner) · Who may declare a client fictional, making its designs Class C?
+## OI-63 · Direction recorded, engineering open · A fictional-client flag is not production data authority
 
 **Claim.** A respondent request is `CLASS_C_INTERNAL` only when its personas are the
 fictional roster *and* the Study's client is listed in `AIA_AI_FICTIONAL_CLIENT_IDS`
@@ -2049,12 +2156,15 @@ operator's deployment setting, refused in production.
 exercise AI fieldwork over ADR 0010's Class C route. Anyone who can set the parameter
 can downgrade a client's designs to Class C.
 
-**Question for the data owner.** Is an operator-maintained list the right authority, or
-should "fictional client" be a recorded attribute of the client (set once, audited,
-never by the browser)? Engineering chose the list because it needs no schema change
-and fails closed; a client attribute would need a migration and a route.
+**Data-owner direction (2026-09-28).** Stop treating a Study as fictional. A Study's production
+state and the actual provenance/content of each item determine what can be sent. Do not add a
+product "fictional client" attribute or promote this operator list into production authority.
+Keep the existing allowlist confined to local/test synthetic fixtures, where the runtime already
+refuses it in production. OI-79 owns the design-input classification gap; the respondent source
+and any production Class A/B route also need their own approval and proof.
 
-**Status.** Open. The engineering default stands until answered.
+**Status.** Direction decided; implementation and production-route acceptance open. A local
+fixture's Class C path is not evidence that client work has an approved egress route.
 
 ---
 
@@ -2076,7 +2186,13 @@ calls. At production N it matters.
 **Test that would catch it.** A resumed attempt sends only the calls the previous one did
 not complete.
 
-**Status.** Open; plan follow-up 2.
+**Status.** Open; plan follow-up 2. *Re-confirmed at `ceee2dc`, 2026-09-27:* each attempt starts
+at the first persona (`ai_fieldwork.py:167-173`), and `context.checkpoint()` only checks for a
+stop and persists nothing (`apps/worker/src/aia_worker/context.py:125-138`). The attempts that
+trigger it include a quota or capacity park resuming, a retryable failure, and a lapsed lease
+with no call in flight. An uncertain call still goes to `RECOVERY_REQUIRED` and is never
+retried. Owner: Job 6, inside the existing executor and recovery contract. Until it is fixed,
+no acceptance claims to be retry-safe (`docs/architecture/research-journey.md` §7, line 6).
 
 ---
 
@@ -2301,7 +2417,12 @@ down.
 **Test that would have caught it.** `test_develop_legacy_unit_health.py` (PR #70).
 
 **Status.** Fix in code: PR #70 (draft, 2026-09-27). It is proven on the host only by the first
-deploy that carries it.
+deploy that carries it. **Fixed:** #70 merged into `develop` at 15:52. **Moot** once increment 5
+of ADR 0018 lands (`feature/deploy-without-legacy` @ `9138977`): the product's smoke no longer
+reads the unit's health, and `legacy_unit_health` and `test_develop_legacy_unit_health.py` go
+with the unit; the smoke checks instead that no unit path answers and no unit container of
+the product project exists (`test_develop_unit_retirement.py` › *the smoke check says the
+product runs no unit and kept its volume*).
 
 ---
 
@@ -2533,6 +2654,19 @@ cannot recover by retry. The proposal routes answered 500 instead of 409. On the
 storage key (`org/…/client/…/study/…`), which a client is never to receive
 (`docs/architecture/artifacts.md` § Read protocol).
 
+**Deep Research (#81, not merged).** Its six steps read the same way, inside
+`StepContext.transaction`: every upstream record and every reused unit goes through `_Step._read`
+(`apps/executors/src/aia_executors/deep_research/_shared.py:176-177` @ `65eb50c`, unchanged at
+`ae6f55f`), and a reusable unit is found by `find_reusable`, which checks only that the object
+exists. Reproduced once at `ae6f55f` on file-backed SQLite, a scratch test not committed:
+`apps/executors/tests/test_deep_research_journey.py`'s `pass_one`, then the stored bytes (not the
+row) of a completed track that pass 2 reuses altered, then pass 2. Investigate fails `UNKNOWN`
+with an `IntegrityError` whose message carries the storage key, no paid call is dispatched, and
+the track is still `VALID`; retrying the run fails the same way. Reuse there is across runs, by
+fingerprint, so one corrupt completed track, snapshot or verification batch fails every later run
+of that Study that plans the same unit. The worker fix, once decided, is needed in `_Step` too, and
+its recompute question is the same one: a recomputed track costs model requests and tool calls.
+
 **Smallest fix.** *API:* commit the mark before raising, in one place: `routers/runs.py` ›
 `artifact_corrupt`, used by both artifact routes and by `_agent_errors`. Not taken: the repository
 recording `CORRUPT` in its own short transaction. That changes the shared "flush, never commit"
@@ -2555,5 +2689,196 @@ the worker, the reproduction as an executor test: the stored status after the fa
 retried run that recomputes the spec.
 
 **Status.** API half merged: PR #84 (`8c13a11`, 2026-09-27), both artifact routes and the
-proposal routes. Worker half open. It is not fixed there because it needs the failure-class
-decision and, for design jobs, a decision to spend on a recompute.
+proposal routes. The native attachment download is also fixed in #86 (`e4690b4`):
+`routers/workspace.py` › `download_study_file` uses `artifact_corrupt` to commit the
+mark before its 409. Regression: `test_client_api.py::test_a_damaged_attachment_stays_marked_corrupt_after_the_409`
+(tampered and missing objects). Worker half open. It is not fixed there because it needs the failure-class
+decision and, for design jobs, a decision to spend on a recompute. The native analysis
+executor (#80) keeps the mark already. Every source refusal, `source_corrupt` included, is
+returned from inside its transaction as `SCHEMA_VIOLATION`, the class it gives every
+other source refusal, and the message names no storage key
+(`test_analysis_executor.py::test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt`,
+`test_analysis_results.py::test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`).
+The recompute question belongs to the step that produced the artifact, not to that reader.
+If the decision picks another class, `_sources_refused` in `aia_executors/analysis.py` is the
+one place to change.
+
+---
+
+## OI-78 · Finding · An evidence row that names no data origin is admitted as observed data
+
+**Claim.** `EvidenceRow.data_origin` defaults to `None`, and the admission gate refuses a
+client-facing claim only when the origin is in `NON_EVIDENCE_ORIGINS`. A row that does not say
+where its respondents came from is therefore admitted client-facing, as if it were observed
+data: *unknown* scored as *good* (CLAUDE.md §8).
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/evidence/admission.py:91` (the default) and
+`:244` (the check) @ `ceee2dc`. `DataOrigin` has no value for observed data at all, only the two
+synthetic ones (`domain/fieldwork.py:50-68`).
+
+**Reproduction.** `pytest packages/aia_core/tests/test_analysis_runner.py::test_a_passing_first_draft_completes`.
+It uses the shared `evidence_row` fixture, which sets no `data_origin` (`tests/conftest.py:807-839`),
+and completes a `CLIENT_FACING` module from it.
+
+**Consequence.** Nothing is wrong yet, because no production code builds an `EvidenceRow`. But
+the first adapter from a fieldwork aggregate to an `EvidenceTable` (Job 3) needs only to forget
+to copy `aggregate["data_origin"]` (`domain/research_aggregate.py:571`). With that one omission,
+fictional respondents become client-facing claims, and no error is raised.
+
+**Smallest fix.**
+- Make `data_origin` required on `EvidenceRow`, with an explicit value for observed data once
+  real fieldwork exists.
+- Until then, refuse a `CLIENT_FACING` claim whose row names no origin.
+- Every adapter copies the dataset's origin onto each row it builds.
+
+Changing the gate changes the shared test fixture as well; that is the point.
+
+**Test that would have caught it.** Admitting a `CLIENT_FACING` claim from a row with
+`data_origin=None` is refused.
+
+**Status.** Open. Owner: Job 3, with evidence governance, before or together with the aggregate
+adapter. It is a rule of the research journey's contract (`docs/architecture/research-journey.md`
+§4, §6 rule 6).
+
+*2026-09-27, 18:05 UTC:* Job 3's draft PR #76 @ `7c46e0c` closes the path for native instrument
+evidence. Its rows carry the aggregate's origin, and its instrument policy refuses a row that
+names none (`domain/evidence/instrument.py:132-139`). The gate's default is unchanged
+(`admission.py:91, 244`), so this stays open for any other builder of an `EvidenceRow`. Its
+number follows the contract's rule for concurrent entries (§5). It was OI-72 on this entry's branch
+until #83 put OI-76 on `develop` (`48bf3e2`, 22:45 UTC). #84 merged OI-77 at 23:09 UTC (`8c13a11`), and #75 still claims OI-72 to OI-75.
+
+---
+
+## OI-79 · Direction recorded, engineering open · Classify actual design inputs before model egress
+
+**Claim.** A native design job sends the brief's attachment text to the model, and classifies the
+request by only two things: the client allowlist and the approved knowledge. A study of an
+allowlisted fictional client with no approved knowledge sends its attachments' text as
+`CLASS_C_INTERNAL`. No rule classifies an attachment's content on its own.
+
+**Anchor** (all @ `56b5768`):
+
+- `context_snapshot` copies the whole design into the context
+  (`packages/aia_core/src/aia_core/domain/research_agents.py:218-251`; `:225`);
+- the request's class comes from `fictional_client` and knowledge only (`:273, 294-296`);
+- the snapshot is the whole Design Revision (`application/research.py:245-248`), and
+  `fictional_client` is the allowlist (`apps/executors/src/aia_executors/research_agents.py:129`);
+- the brief keeps each file's `context_excerpt` and up to 22 000 characters of attachment text in
+  `briefing.attachments_context`, as 18.6.6's `briefAttachmentContext1785` did
+  (`apps/web/src/unit/research/brief.ts:101-111`);
+- the documented rule names knowledge, not attachments (`docs/architecture/research-agents.md:49-53`).
+
+**Reproduction.** Prints `CLASS_C_INTERNAL True`:
+
+```
+python -c "from aia_core.domain.research_agents import ResearchAction as A, agent_request, context_snapshot; r = agent_request(A.ANALYZE, context_snapshot({'briefing': {'attachments': [{'kind': 'file', 'filename': 'zadani.docx', 'context_excerpt': 'TEXT Z PRILOHY'}]}}, []), instruction='', policy_version='p', fictional_client=True, max_output_tokens=512); print(r.data_classification.value, 'TEXT Z PRILOHY' in r.messages[0].content)"
+```
+
+**Consequence.**
+
+- Nothing is sent today: the design jobs are off on develop (`AIA_AI_RESEARCH_AGENTS_ENABLED`,
+  `deploy/develop/docker-compose.yml:176`).
+- Once they are on, a document someone attaches to an allowlisted client's study leaves AIA
+  under ADR 0010's Class C approval, which does not cover confidential material, up to the 64 KB
+  context cap. Pasting the same text into the brief does the same. The allowlist (OI-63) is the
+  only control.
+- A real client's requests are Class A, and the approved route refuses them.
+- The phase-out owner's draft PR #74 stores attachments in AIA and fills the same fields
+  (`POST /api/v1/studies/{id}/workspace/attachments`), so this path no longer runs through the
+  unit.
+
+**Data-owner direction (2026-09-28).** A Study is not declared fictional to decide egress.
+Classify each material input by actual provenance and content, including a file's extracted text
+and text pasted into the brief. Client-supplied or unknown content cannot inherit Class C merely
+because a local test client is allowlisted. A request takes the most restrictive class of its
+parts; unknown classification refuses the model call. Class A/B material still needs an approved
+route before any live send. A generated test fixture may exercise Class C only when its own
+synthetic provenance is established; that does not authorize a production Study.
+
+**Engineering fix.** Job 6, owner of the design jobs' context and request, must carry the
+classification of attached and pasted material into `agent_request`, or omit unclassified text
+from a Class C request. Preserve the exact material fingerprint and the resulting class in the
+request's audit record. Add tests where (1) a synthetic local fixture uses its recorded Class C
+route, (2) an allowlisted local client with uploaded or pasted client/unknown text is refused
+before dispatch, and (3) approved knowledge and another client's material cannot lower the
+request's class. The existing reproduction above must change from `CLASS_C_INTERNAL True` to a
+refusal or a more restrictive request under the chosen implementation.
+
+**Status.** Direction decided; code still has the unsafe inheritance shown above, and design
+jobs must remain off for studies with unclassified attachments or pasted material. Numbered
+OI-73 on this entry's earlier branch until #83 put OI-76 on `develop`; renumbered under the
+contract's concurrent-entry rule (§5). This is not a new approval for Class A/B egress.
+
+---
+
+## OI-80 · Finding, one cause fixed in code · The develop smoke's `ScopeDenied: not found` has three reproducible causes
+
+**Claim.** `seed_develop` resolved the operator's organization context before adding a
+returning operator who was not a member, so its "becomes one" branch could never run. A
+changed `AIA_SEED_OWNER_EMAIL` was denied as `not_a_member`. Two other host states give the
+same bare message: an archived seed client (`client_archived`) and a deactivated owner
+(`user_deactivated`). The smoke printed none of the reasons.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/develop_seed.py:204-210 @ 8017b54`
+(context before membership); `apps/executors/src/aia_executors/smoke.py:237-238 @ 8017b54`
+(no reason printed); the denials in `application/scope.py:108, 122, 245`.
+
+**Reproduction.** `apps/executors/tests/test_seed_and_smoke.py` ›
+`test_seed_admits_a_new_operator_to_an_existing_world` fails before the fix;
+`test_seed_names_why_an_archived_seed_client_is_denied` pins the archived case.
+
+**Consequence.** Deploy runs 36, 37 and 38 replaced every service and then failed smoke, and
+the operator could not tell which row to look at.
+
+**Smallest fix.** Add the operator as owner before resolving the context (done); print a
+denial's reason in the smoke line (done, `smoke.describe_failure`). An archived client or a
+deactivated owner is a person's decision, which the seed does not undo.
+
+**Status.** The operator membership is fixed on `develop` by #87 (`28eedce`) and in the
+release (`73d3136`). Deploy run 40 of `28eedce` then named the develop host's state:
+`client_archived`, an archived client in the seed organization.
+- **An archived showcase client.** The seed resolved a context on each of its two showcase
+  clients, so archiving either one failed every deploy. #88 makes the seed leave such a
+  client as it is, with a test that fails before it:
+  `test_seed_leaves_an_archived_fictional_client_as_it_was`.
+- **The smoke's own `synthetic-client`.** Deploy run 41 of `92a0bdd`, #88's merge, still read
+  `client_archived`. With the showcase clients left alone, that is `synthetic-client`: the smoke's
+  own client is archived on the host.
+  - The seed does not undo that. Un-archiving it in Settings is a person's decision, and
+    `access_audit` (`CLIENT_STATUS_CHANGED`) says who archived it and when.
+  - If it was archived on purpose, the smoke needs a client of its own.
+
+**Open:** that decision. Every code cause found is fixed.
+
+## OI-81 · Question · Migrating a closed Study means reopening it, and delivering it again rewrites `delivered_at`
+
+**Claim.** The 18.6.6 content migration leaves a Study that no longer accepts work
+(delivered, archived or cancelled) waiting until someone reopens it. Delivering it again
+after its migration stamps a new `delivered_at`, so the Study stops saying when it was first
+delivered.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/workspace_migration.py:306-307 @ b0ce309`
+(the `accepts_work` gate); `packages/aia_core/src/aia_core/infrastructure/scope_repository.py:576-577 @ b0ce309`
+(every change to `DELIVERED` stamps `utcnow()`).
+
+**Reproduction.** The cutover dress rehearsal of 2026-09-28, fictional Study S7 (see
+`.planning/overview.md`). This is a rehearsal run, not yet a test.
+1. A `DELIVERED` Study bound to an 18.6.6 project is reported `NOT_MIGRATED`: *the Study is
+   DELIVERED: reopen it to migrate*.
+2. After `ACTIVE`, then `--apply --study <id>`, then `DELIVERED` again, its `delivered_at`
+   moved from 19:52:23 to 19:57:26 UTC.
+
+**Consequence.** After the cutover the unit is out of the product, so such a Study's
+content cannot be read in AIA until it is reopened, and reopening it rewrites its delivery
+time. How many such Studies the develop host has is not known until its dry run.
+
+**Options.**
+1. Let the migration write a closed Study's content without reopening it. The migration moves
+   storage and starts no work. This is a change to that gate, with a test.
+2. Keep the gate, and stamp `delivered_at` only on the first delivery, with a test.
+3. Change nothing: the owner reopens the Study and accepts the new time.
+
+The data owner decides; nothing changes until then.
+
+**Status.** Open. It needs an answer before the cutover only if the host's dry run lists a
+closed Study.

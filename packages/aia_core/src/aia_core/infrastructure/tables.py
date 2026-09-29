@@ -622,17 +622,31 @@ class AccessAuditRow(Base):
     __table_args__ = (Index("ix_access_audit_org", "organization_id", "event_id"),)
 
 
-class StudyWorkspaceRow(Base):
-    """The unit project holding a study's working content -- a migration bridge.
+WORKSPACE_CONTENT_STATES = (
+    "EMPTY",
+    "NATIVE",
+    "MIGRATED",
+    "RECOVERED",
+    "UNRECOVERABLE",
+    "AWAITING_MIGRATION",
+)
 
-    ADR 0015 decision 5, open item OI-58. The rebuilt research stages still keep
-    their working content in the 18.6.6 unit's single-tenant project store; this
-    row is the AIA-owned binding from a study to that unit project. It is read
-    and written only under an issued ``StudyContext`` (the study's client comes
-    from the study row), written once per study, and ``unit_project_id`` is
-    unique, so one unit project can never be reached through two studies. No
-    query looks a study up by ``unit_project_id``: a unit id is never a way in.
-    Dropped when stage state moves into AIA's own study-scoped storage.
+
+class StudyWorkspaceRow(Base):
+    """A research Study's workspace: its working content's state, project and lineage.
+
+    ADR 0018, open item OI-58. The research stages keep their working content in
+    the Study's *working project* (``projects.owner = study_workspace``), which is
+    found only through this row -- all three scope columns, under an issued
+    ``StudyContext`` -- and ``project_id`` is unique, so a working project can never
+    serve two Studies.
+
+    ``unit_project_id`` is **lineage only**: the 18.6.6 project a Study's content
+    was bound to before ADR 0018, kept so the migration knows what to bring over and
+    the Study keeps where its content came from. Nothing loads content by it and no
+    query looks a Study up by it; it is unique, so one 18.6.6 project was never two
+    Studies'. ``content_state`` names where the content stands
+    (``aia_core.domain.workspace.ContentState``).
     """
 
     __tablename__ = "study_workspaces"
@@ -640,7 +654,12 @@ class StudyWorkspaceRow(Base):
     study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
     client_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    unit_project_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    content_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    # The AIA working project holding the content; NULL until the Study has any.
+    project_id: Mapped[str | None] = mapped_column(String(64))
+    unit_project_id: Mapped[str | None] = mapped_column(String(160))
+    # Migration provenance: source, source revisions and hashes, who migrated and when.
+    lineage: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     # The stage the study was last opened on, for "continue where you left off".
     last_stage: Mapped[str | None] = mapped_column(String(32))
     bound_by: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -654,7 +673,19 @@ class StudyWorkspaceRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        # RESTRICT: a Study's working content may not vanish from under its workspace.
+        ForeignKeyConstraint(["project_id"], ["projects.project_id"], ondelete="RESTRICT"),
         UniqueConstraint("unit_project_id", name="study_workspace_unit_project_unique"),
+        UniqueConstraint("project_id", name="study_workspace_project_unique"),
+        CheckConstraint(
+            "content_state in (" + ",".join(f"'{s}'" for s in WORKSPACE_CONTENT_STATES) + ")",
+            name="content_state_known",
+        ),
+        # A state with content has a working project, and one without has none.
+        CheckConstraint(
+            "(content_state in ('NATIVE','MIGRATED','RECOVERED')) = (project_id IS NOT NULL)",
+            name="content_state_matches_project",
+        ),
         Index("ix_study_workspaces_client", "client_id", "modified_at"),
     )
 

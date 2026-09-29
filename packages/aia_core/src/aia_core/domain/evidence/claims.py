@@ -27,6 +27,8 @@ field refuses
 client-facing disclosures               ``REQUIRES_SCOPE``, ``REQUIRES_MODELED_DISCLOSURE``,
                                         ``HISTORICAL_OR_EXPLORATORY``
 mandated weight scheme                  ``SPECIFIED_WEIGHT_REQUIRED``; no weight fallback (R3)
+internal-only field backs nothing       ``INTERNAL_ONLY``: AIA's own declaration of a Study
+client-facing                           instrument item (``instrument.py``), never prose
 joint structure                         ``CORE_JOINT_STATUS`` (M03/R6), see
                                         :func:`.joint_status.evaluate_joint_structure`
 ======================================  ===================================================
@@ -146,6 +148,8 @@ def _field_rules(policy: FieldPolicy, request: ClaimRequest) -> Iterable[GateDec
         )
 
     if request.surface is ClaimSurface.CLIENT_FACING:
+        if policy.has(ClaimRule.INTERNAL_ONLY):
+            yield block(ViolationCode.FIELD_INTERNAL_ONLY, f, "declared for internal analysis only")
         if policy.has(ClaimRule.REQUIRES_SCOPE) and Disclosure.SCOPE not in request.disclosures:
             yield block(ViolationCode.SCOPE_DISCLOSURE_MISSING, f, "needs a scope disclosure")
         if (

@@ -18,10 +18,6 @@ production answer, parks every run at fieldwork; ``synthetic_fixture`` -- legal
 only because this is the ``local`` environment -- gives the workbench worker
 (``aia_executors.workbench``) fictional respondents to finish the chain with.
 
-``--panel-origin`` also switches on the legacy-panel gate (ADR 0012) for that
-origin, for the develop routing proof (tools/develop_routing_proof.py), where
-Caddy asks it before every gated path.
-
 Needs the repository's own Python environment (``make setup``), not the
 workbench venv, which holds the 18.6.6 unit's requirements.
 """
@@ -41,7 +37,6 @@ WORKBENCH_EMAIL = "workbench@example.invalid"
 
 def build(
     db: Path,
-    panel_origin: str = "",
     *,
     artifacts: Path | None = None,
     fieldwork: str = "ai_runtime",
@@ -58,8 +53,6 @@ def build(
         identity_provider="development",
         log_level="WARNING",
         log_format="console",
-        legacy_panel_enabled=bool(panel_origin),
-        legacy_panel_origin=panel_origin,
         storage_backend="filesystem",
         storage_root=str(artifacts or db.parent / "artifacts"),
         research_fieldwork_source=fieldwork,
@@ -73,7 +66,6 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--port", type=int, default=8766)
     ap.add_argument("--fresh", action="store_true", help="start from an empty database")
     ap.add_argument("--db", default=str(DB), help="the SQLite file")
-    ap.add_argument("--panel-origin", default="", help="switch the legacy-panel gate on")
     ap.add_argument("--artifacts", default="", help="the artifact directory the worker shares")
     ap.add_argument(
         "--fieldwork",
@@ -94,7 +86,6 @@ def main(argv: list[str]) -> int:
         shutil.rmtree(artifacts or db.parent / "artifacts", ignore_errors=True)
     app, base, seed_develop, session_cls = build(
         db,
-        args.panel_origin,
         artifacts=artifacts,
         fieldwork=args.fieldwork,
     )

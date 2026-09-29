@@ -545,13 +545,13 @@
    ],
    "parity_type": "INTENTIONAL_DIFFERENCE",
    "tolerance": null,
-   "parity_reason": "Local keystore replaced by Secrets Manager + KMS",
+   "parity_reason": "The local keystore is replaced by no stored model credential: the approved Bedrock route signs with the deployment's role (ADR 0010); a keyed service's secret lives in Secrets Manager + KMS (D8)",
    "fixtures": [],
    "gates": [],
    "recorded_evidence": [],
    "intentional_difference": {
-    "legacy": "Local keystore replaced by Secrets Manager + KMS",
-    "production_target": "Secrets Manager + KMS; no local keystore",
+    "legacy": "Provider API keys saved from NPC Settings into a local .env file (provider_auth.py)",
+    "production_target": "No stored credential for the approved Bedrock route: SigV4 with the instance or container role only (infrastructure/model_adapters/aws_signing.py, ADR 0010). Secrets Manager + KMS for any keyed service (D8). No local keystore",
     "override": null
    },
    "documented_deviations": [],
@@ -927,7 +927,10 @@
    "implementation_state": "PARTIAL",
    "implementation": [
     "packages/aia_core/src/aia_core/domain/analysis/",
-    "packages/aia_core/src/aia_core/application/analysis.py"
+    "packages/aia_core/src/aia_core/application/analysis.py",
+    "packages/aia_core/src/aia_core/application/analysis_results.py",
+    "packages/aia_core/src/aia_core/domain/evidence/instrument.py",
+    "apps/executors/src/aia_executors/analysis.py"
    ],
    "reference_modules": [
     "analysis_agent.py"
@@ -944,13 +947,46 @@
      "tests": [
       "packages/aia_core/tests/test_analysis_draft.py",
       "packages/aia_core/tests/test_analysis_modules.py",
-      "packages/aia_core/tests/test_analysis_runner.py"
+      "packages/aia_core/tests/test_analysis_runner.py",
+      "packages/aia_core/tests/test_analysis_native.py",
+      "packages/aia_core/tests/test_analysis_harness.py",
+      "packages/aia_core/tests/test_analysis_artifact.py",
+      "packages/aia_core/tests/test_analysis_results.py",
+      "packages/aia_core/tests/test_evidence_instrument.py",
+      "apps/executors/tests/test_analysis_executor.py"
+     ]
+    },
+    {
+     "id": "analysis.modules/unit-evidence-validator",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_analysis_gate_parity.py"
      ]
     }
    ],
    "recorded_evidence": [],
    "intentional_difference": null,
-   "documented_deviations": [],
+   "documented_deviations": [
+    {
+     "id": "SUB-ANALYSIS-EXACT",
+     "summary": "a claim's value is copied exactly and is a number; the unit accepted a value within 0.051 of the evidence, and text it could coerce",
+     "anchor": "legacy/npc-panel-18.6.6/app/evidence_validator.py @ ceee2dc :5-7, :28-37",
+     "gate": "analysis.modules/unit-evidence-validator"
+    },
+    {
+     "id": "SUB-ANALYSIS-PROSE",
+     "summary": "every number in a module's prose must be a cited claim's value; the unit stated that only in its prompt and never read the text",
+     "anchor": "legacy/npc-panel-18.6.6/app/evidence_validator.py @ ceee2dc :39-60",
+     "gate": "analysis.modules/unit-evidence-validator"
+    },
+    {
+     "id": "SUB-ANALYSIS-SUPPRESSED",
+     "summary": "rows the fidelity rule refuses (absolute willingness to pay, market size) or support suppresses are not evidence; the unit indexed every question of the result summary",
+     "anchor": "legacy/npc-panel-18.6.6/app/evidence_validator.py @ ceee2dc :9-20; fidelity.py:22-70",
+     "gate": "analysis.modules/unit-evidence-validator"
+    }
+   ],
    "high_risk": [
     "R5"
    ],
@@ -959,7 +995,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-09)."
    },
-   "notes": "The eight module definitions, draft checking and admitted-claim results are ported; no module body calls a model yet, and no reference-backed gate compares module outputs."
+   "notes": "The eight module definitions, draft checking and admitted-claim results are ported; a native run's artifacts map to evidence (instrument items internal only), with the harness, the stored-outcome contract, reconstruction by re-admission and the research_analysis executor (.planning/plans/evidence-backed-analysis.md). The draft gate is compared decision by decision with the unit's own evidence_validator.py: AIA refuses everything the unit refused except two cases that wait on decision ANL-4 (a finding that cites no evidence, a module with no finding). The executor is not registered in the production worker or added to the research template, and no module body calls a model in production."
   },
   "analysis.qc": {
    "family": "analysis",
@@ -3907,7 +3943,7 @@
    },
    {
     "id": "AC-02",
-    "statement": "From a brief, the Research lifecycle produces Deep Research, Research Design and a Questionnaire through the ModelGateway: provider and policy resolved per stage, credentials from Secrets Manager, every call on the immutable usage ledger, and no silent provider fallback.",
+    "statement": "From a brief, the Research lifecycle produces Deep Research, Research Design and a Questionnaire through the ModelGateway: provider and policy resolved per stage, no model credential stored by AIA (the approved route signs with the deployment's role, ADR 0010; a keyed service's secret comes from a secret store, D8), every call on the immutable usage ledger, and no silent provider fallback.",
     "capabilities": [
      "project.persistence",
      "pipeline.stages",

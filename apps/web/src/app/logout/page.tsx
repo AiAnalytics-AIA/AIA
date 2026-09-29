@@ -1,13 +1,12 @@
 "use client";
 
-// Sign out of the NPC Panel session and of Cognito, then back to the front door.
-// Reachable by URL from inside the 18.6.6 interface, which has no AIA sign-out
-// of its own.
+// Sign out of AIA's session and of Cognito, then back to the front door.
+// Reachable by URL too.
 
 import { useEffect } from "react";
 
 import { FrontDoor } from "@/components/aia/FrontDoor";
-import { signOut } from "@/lib/panel";
+import { signOut } from "@/lib/session";
 import { t } from "@/i18n/t";
 
 export default function LogoutPage() {
@@ -18,7 +17,7 @@ export default function LogoutPage() {
   return (
     <FrontDoor>
       <p className="text-ink-muted" role="status">
-        {t("panel.signingOut")}
+        {t("session.signingOut")}
       </p>
     </FrontDoor>
   );

@@ -104,6 +104,20 @@ def test_create_records_project_created_event(repo: ProjectRepository) -> None:
     assert "REVISION_SAVED" in types
 
 
+def test_a_first_revision_whose_author_is_unknown_names_nobody(
+    repo: ProjectRepository, session: Session
+) -> None:
+    """Content written by someone who did not author it is not attributed to them."""
+    project, outcome = repo.create(title="Převzato", content={"goal": "g"}, author_unknown=True)
+    row = session.get(ProjectRevisionRow, (project.project_id, outcome.revision))
+    assert row is not None and row.created_by is None
+    saved = [e for e in repo.events(project.project_id) if e.event_type == "REVISION_SAVED"]
+    assert [e.actor_id for e in saved] == [None]
+    # By default the first revision is the scope's actor's.
+    other, first = repo.create(title="Vlastní", content={"goal": "g"})
+    assert session.get(ProjectRevisionRow, (other.project_id, first.revision)).created_by
+
+
 # --------------------------------------------------------------------------- #
 # Save, deduplication and revisions
 # --------------------------------------------------------------------------- #

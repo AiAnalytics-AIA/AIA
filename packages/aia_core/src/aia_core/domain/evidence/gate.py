@@ -46,6 +46,9 @@ class ViolationCode(StrEnum):
     MODELED_DISCLOSURE_MISSING = "MODELED_DISCLOSURE_MISSING"
     HISTORICAL_DISCLOSURE_MISSING = "HISTORICAL_DISCLOSURE_MISSING"
     WEIGHT_SCHEME_MISMATCH = "WEIGHT_SCHEME_MISMATCH"
+    #: A field declared for internal analysis only (a Study instrument item) backs
+    #: nothing client-facing, whatever the certificate or the data origin says.
+    FIELD_INTERNAL_ONLY = "FIELD_INTERNAL_ONLY"
 
     # Joint structure (CORE_JOINT_STATUS)
     JOINT_CERTIFICATE_DEGRADED = "JOINT_CERTIFICATE_DEGRADED"

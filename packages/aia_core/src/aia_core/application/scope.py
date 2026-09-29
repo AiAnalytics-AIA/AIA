@@ -24,7 +24,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..domain.scope import (
-    LEGACY_PANEL_ROLES,
     ClientContext,
     ClientGrant,
     ClientPermission,
@@ -167,33 +166,27 @@ class ScopeResolver:
             request_id=principal.request_id,
         )
 
-    def authorize_legacy_panel(
+    def authorize_session(
         self, principal: AuthenticatedPrincipal, *, audit: bool
     ) -> OrganizationContext:
-        """Admit a principal to the vendored 18.6.6 interface, or deny (ADR 0012).
+        """Admit a principal to AIA's pages, or deny (ADR 0018 decision 3).
 
-        Only an active member whose organization role is in
-        :data:`LEGACY_PANEL_ROLES` is admitted. ``audit`` records the decision in
-        the access audit; the session is opened with it on, and the per-request
-        gate re-checks with it off, because a record per asset and API call of one
+        Any active member of the organization is admitted: a page holds no data
+        of its own, and everything it shows is read through ``/api/v1`` with the
+        person's own token, where each client and study is authorized again by
+        :meth:`study_context` and :meth:`client_context`. ``audit`` records the
+        decision; the session is opened with it on, and the per-request gate
+        re-checks with it off, because a record per asset and API call of one
         page would drown every other entry.
         """
-        context = self.organization_context(principal)
-        if context.organization_role not in LEGACY_PANEL_ROLES:
+        try:
+            context = self.organization_context(principal)
+        except ScopeDenied as exc:
             if audit:
-                self._record(
-                    principal,
-                    action="LEGACY_PANEL_DENIED",
-                    role=context.organization_role.value,
-                    reason="organization_role",
-                )
-            raise ScopeDenied("not found", reason="legacy_panel_role")
+                self._record(principal, action="AIA_SESSION_DENIED", reason=exc.reason)
+            raise
         if audit:
-            self._record(
-                principal,
-                action="LEGACY_PANEL_SESSION",
-                role=context.organization_role.value,
-            )
+            self._record(principal, action="AIA_SESSION", role=context.organization_role.value)
         return context
 
     def study_context(

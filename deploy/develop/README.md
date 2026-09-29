@@ -62,7 +62,7 @@ Done once, by a person with AWS access. Everything after this is automatic.
 
 7. **First deploy.** Merge anything into `develop`, or run the
    *Deploy develop* workflow by hand with the SHA of `develop`'s head. Watch the
-   Actions run: it builds the four images, pushes them by SHA, ships this
+   Actions run: it builds the three images, pushes them by SHA, ships this
    directory to `s3://<ops-bucket>/deploy/<sha>.tar.gz`, and runs
    `bin/deploy.sh <sha>` on the host through SSM. The first run has no database
    to back up and says so.
@@ -85,8 +85,8 @@ Done once, by a person with AWS access. Everything after this is automatic.
 9. **Sign in.** Open the public hostname (`https://aia-develop.art-chain.io/`).
    The gate sends you to `/login`; choose *Sign in* and authenticate with the
    Google Workspace account from step 8. You land on AIA's client directory,
-   `/app/clients` (ADR 0015). The classic 18.6.6 interface is at `/classic`,
-   and a stage not yet rebuilt links there with a way back.
+   `/app/clients` (ADR 0015). The 18.6.6 interface is not part of the product
+   (ADR 0018): a stage AIA has not rebuilt says so where you meet it.
 
 ## Normal deployment
 
@@ -101,7 +101,7 @@ Merge a pull request into `develop`. Then:
    on `develop` lets the environment's develop-only branch rule apply. It
    runs in the `develop` GitHub environment,
    assumes the deploy role through OIDC (no stored AWS keys), builds
-   `aia-api`, `aia-worker`, `aia-legacy-panel` and `aia-web` at the verified SHA, pushes them to ECR
+   `aia-api`, `aia-worker` and `aia-web` at the verified SHA, pushes them to ECR
    tagged `<sha>` (and `develop` as a convenience alias), uploads this directory
    as `deploy/<sha>.tar.gz`, and sends one SSM command to the host.
 3. On the host, `bin/deploy.sh <sha>`: pull → backup → `alembic upgrade head`
@@ -131,108 +131,94 @@ and its log says `WARNING: the ECR credential helper is not installed`. Docker's
 An operator pulling by hand outside these scripts should
 `export AWS_ECR_DISABLE_CACHE=true` first, or the helper writes its cache.
 
-## AIA and the 18.6.6 unit on the product hostname
+## AIA on the product hostname
 
 Since [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)
 `https://aia-develop.art-chain.io/` is AIA: `/` redirects to the client
-directory, `/app/clients`. The NPC Panel 18.6.6 interface, served by the
-`legacy-panel` container, is a labelled, temporary hand-off at `/classic`, and
-the unit still answers its own paths, which the React stages read (OI-58). The
-Caddyfile routes:
+directory, `/app/clients`. Nothing of NPC Panel 18.6.6 is served or run by this
+stack ([ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md)
+decisions 4 and 5): it has no unit image, service, volume mount, hostname,
+credential, data sync or health check, and `/classic` is AIA's page saying the
+interface is gone. The Caddyfile routes:
 
 | Path | Goes to |
 |---|---|
 | `/api/v1/*` | the AIA API |
 | `/login`, `/logout`, `/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`, `/skin/*`, `/favicon.ico`, `/icon.svg`, `/apple-icon.png` | the AIA web client |
 | `/` | `302 /app/clients`; nothing is served |
-| `/app`, `/app/*` | after `forward_auth` to `GET /api/v1/panel/gate`, the web client: AIA, Clients → client workspace → study → stages; 404 while `AIA_INTERFACE_REHOME_ENABLED` is off |
-| `/classic` | after the same `forward_auth`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) and `/skin/handoff.js` (its "Zpět do AIA" bar) when it applies |
-| `/interface-document` (requested directly) | 404 |
-| Legacy Claude Code setup/status and `/api/settings/{api_keys,anthropic_check,ai_check,ai_diagnose}` | after the gate, HTTP 410; no direct credentials or provider probes on the product hostname |
-| `/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`, `/health`, `/status` | `legacy-panel`, after the same `forward_auth` |
-| everything else | the web client (its own 404 for a path it does not know); never the unit |
+| `/app`, `/app/*` | after `forward_auth` to AIA's own gate, `GET /api/v1/session/gate`, the web client: AIA, Clients → client workspace → study → stages |
+| `/classic` | the web client's public page: the 18.6.6 interface is gone, and the way into AIA |
+| everything else | the web client, with its own 404 for a path it does not know. The unit's old paths are among them: `/interface-document`, `/api/bootstrap` and every other `/api/*` outside `/api/v1`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`, `/health`, `/status` |
 
-`tools/caddy_routes.py` checks this table against the adapted Caddyfile in CI;
-`tools/develop_routing_proof.py` and `tools/develop_routing_journey.mjs` run the
-real file locally, with a browser, when the routing changes. The proof also runs
-the worker as this host does (`aia_executors.registry`, no fieldwork source) and
-shows a research run parking at fieldwork, `ai_runtime_unavailable` (ADR 0016).
+`tools/caddy_routes.py` checks this table against the adapted Caddyfile in CI, and
+fails a second hostname, any upstream but the API and the web client, and the
+retired panel gate; `tools/develop_routing_proof.py` and
+`tools/develop_routing_journey.mjs` run the real file locally, with a browser, when
+the routing changes. The proof also runs the worker as this host does
+(`aia_executors.registry`, no fieldwork source) and shows a research run parking at
+fieldwork, `ai_runtime_unavailable` (ADR 0016).
 
-- **Who gets in.** An active member of the organization whose role is `OWNER`
-  or `ADMIN`. Anyone else who signs in is shown a message and can still use
-  `/studies`. To let someone in, make them an organization admin; there is no
-  separate list. This is a temporary restriction while the stages read the
-  single-tenant unit, not the target model (OI-59); inside AIA each person
-  still sees only the clients and studies they hold grants in.
-- **How.** `/login` turns the Google sign-in into an HttpOnly session cookie
-  (`aia_panel`) through `POST /api/v1/panel/session`; the gate re-verifies it on
-  every request and Caddy strips it before the request reaches the unit.
-  Opening a session is recorded in the access audit (`LEGACY_PANEL_SESSION`,
-  `LEGACY_PANEL_DENIED`); individual requests are not.
-- **Signing out.** `/logout` clears the cookie and the Cognito session.
-- **Switching it off.** Set `AIA_LEGACY_PANEL_ENABLED: "false"` on the `api`
-  service and `docker compose up -d api`. The gate then answers 404 to
-  everything, so nothing reaches the unit from the product hostname -- and,
-  while `/app` sits behind the same gate (OI-59), AIA's pages answer 404 too:
-  `/` still redirects, to a 404. `/login`, `/studies` and the API stay up.
-- **The oracle hostname** (`AIA_LEGACY_HOSTNAME`, basic auth) is unchanged and
-  reaches the same container, so both share its state.
-- **When `/classic` or a research stage shows an error.** `docker compose ps legacy-panel`: the unit needs
-  its data bundle synced by `bin/deploy.sh` (OI-39). A 401 or 403 JSON body on a
-  page means the gate refused it; the `code` field says why (`unauthenticated`,
-  `legacy_panel_denied`, `cross_origin`). A 502 on `/classic` means the gate admitted
-  the request and the unit is not answering: `/classic`'s response carries
-  `X-AIA-Skin: bypassed-unreachable` when the web client could not reach it, and
-  no such header when the web client itself is down.
-- **The skin** (ADR 0013). `AIA_INTERFACE_SKIN_ENABLED` on the `web` service,
-  `"true"` on develop;
-  `"false"` serves the unit's document byte-for-byte. Every response to `/classic`
-  says what happened in `X-AIA-Skin`: `applied`, `bypassed-disabled`, or
-  `bypassed-hash-mismatch` when the unit's document is not the pinned
-  `ui_app.html` (a regenerated unit; the web log has an
-  `interface_skin_bypassed` line with the hash it received). Switching it:
-  change the value and `docker compose up -d web`.
+- **Who gets into AIA.** Any active member of the organization (ADR 0018). Inside,
+  each person sees only the clients and studies they hold grants in: the API
+  decides that per call. To let someone in, add them to the organization and
+  grant them a client or a study. Someone who signs in with Google but is no
+  member is told so.
+- **How.** `/login` turns the Google sign-in into an HttpOnly session cookie,
+  `aia_session`, through `POST /api/v1/session`; AIA's gate re-verifies it on
+  every request to `/app`. Caddy strips it before a request reaches the web
+  client. Opening a session is recorded in the access audit (`AIA_SESSION`);
+  individual requests are not.
+- **Signing out.** `/logout` clears the cookie and the Cognito session. An
+  `aia_panel` cookie a sign-in opened before ADR 0018 is read by nothing now and
+  expires by itself.
+- **When a page shows an error.** A 401 or 403 JSON body on a page means AIA's
+  gate refused it; the `code` field says why (`unauthenticated`, `not_a_member`,
+  `method_not_allowed`).
 - **A Caddyfile change** reaches the running Caddy because its hash is part of
   the caddy service's configuration (`bin/lib.sh`, `AIA_CADDYFILE_SHA256`), so
   `compose up` recreates Caddy when the file changed and not otherwise. The
   smoke check *caddy: running the deployed Caddyfile* fails if it did not; the
   remedy is `docker compose up -d --force-recreate caddy` (OI-45).
-- **The site does not depend on the unit** (OI-44). Caddy starts without it,
-  the deploy waits only on AIA's services, and the unit's health is a smoke
-  check: an unhealthy unit fails the deploy but `/login`, `/studies` and the API
-  stay up. The check waits out the unit's `starting` state (its 120 s start
-  period, while it hydrates) for at most `LEGACY_START_WAIT_SECONDS`, default
-  150, then judges; deploy runs 29 and 30 failed on `starting` with every other
-  check green. The deploy also loads the Caddyfile with this host's `.env` before it
-  touches anything, and stops if it does not load.
+- **The smoke check proves the unit is gone.** `bin/smoke.sh` fails when one of
+  the unit's old paths answers anything but the web client's 404, or when a
+  `legacy-panel` container of this Compose project exists, and says whether the
+  unit's working volume is still on the host.
 
-### Switching the unit on
+### The first deploy without the unit
 
-The 18.6.6 interface needs one value under `/aia/develop/` in Parameter Store
-and its data bundle in the ops bucket. The oracle hostname for the parity harness
-needs three more, and is optional. Terraform does not create any of them yet
-(OI-44). From a shell with the operator's AWS credentials, `eu-central-1`:
+A host deployed before ADR 0018 runs the unit as this project's service
+`legacy-panel`, on the named volume `aia-develop_legacy_state`: its working
+databases and the files people attached, which hold the only copy of the content
+of every Study still waiting for its migration (OI-58). The first deploy of this
+stack stops that container as the service did (`docker stop -t 30`, so its SQLite
+stores close), `compose up --remove-orphans` removes the stopped container, and the
+deploy fails if the volume is gone afterwards (`bin/deploy.sh`,
+`retire_product_unit` in `bin/lib.sh`). Nothing removes the volume, the data
+directory `/opt/aia/develop/legacy-data`, the data bundle in the ops bucket or the
+unit's images in ECR.
 
-```bash
-# Required. Where the data bundle lives in the ops bucket, as uploaded once with
-#   aws s3 sync <extract_legacy.py --data-out dir> s3://<ops-bucket>/<prefix>/
-# (develop: legacy-data/86b70bfb5c1b, set 2026-09-23)
-aws ssm put-parameter --name /aia/develop/aia_legacy_data_prefix --type String --value legacy-data/<bundle-id>
+**Before that deploy**, while the old scripts still reach the running unit, copy
+its databases: with the data owner's approval (the parameter
+`/aia/develop/aia_legacy_state_backup_enabled` set to `true`, then `bin/write-env.sh`),
+`bin/backup.sh pre-adr-0018` exports
+them to `s3://<ops-bucket>/backups/legacy-state-<utc>-pre-adr-0018.zip` beside the
+PostgreSQL dump. After it, `deploy/reference/bin/backup-state.sh` makes the same copy
+(§ Backup scope below).
 
-# Optional: the oracle hostname (an A record at the host's public IP) and its
-# basic-auth gate, for the parity harness (OI-39). Not needed for the interface.
-aws ssm put-parameter --name /aia/develop/aia_legacy_hostname --type String --value legacy.aia-develop.art-chain.io
-aws ssm put-parameter --name /aia/develop/aia_legacy_basic_user --type String --value oracle
-aws ssm put-parameter --name /aia/develop/aia_legacy_basic_hash --type SecureString \
-  --value "$(docker run --rm caddy:2-alpine caddy hash-password --plaintext '<password>')"
-```
+### The 18.6.6 reference unit
 
-Then re-run *Deploy develop*. Every deploy rewrites `.env` from Parameter Store
-(`bin/write-env.sh`) before `bin/deploy.sh`, so nothing is run on the host by
-hand. The smoke test reports `legacy: the 18.6.6 unit is healthy` when it worked
-(first on 2026-09-23, run 12). Without the hostname values the oracle block binds
-`legacy-unconfigured.localhost` with a gate nobody can pass, so the product
-hostname is unaffected.
+The unit still runs when a comparison needs it -- the parity oracle
+(`make test-oracle`) and the behavioural reference for a port -- from
+[`deploy/reference`](../reference/README.md), beside this stack: a Compose project of
+its own on the same volume, behind a basic-auth gate on the host's loopback
+(`127.0.0.1:8765`), reached through an SSM port forward, started and stopped by
+hand. It shares no network, file or Compose project with the product, and this stack
+starts, deploys and passes its smoke checks whether the reference is up, down or
+absent. The Parameter Store values it reads (`aia_legacy_data_prefix`,
+`aia_legacy_basic_user`, `aia_legacy_basic_hash`) are written into `.env` with the
+others and read by nothing of the product. `aia_legacy_hostname` is read by nothing
+at all: no Caddy serves the oracle hostname any more, and its DNS record can be
+removed by whoever manages the zone (OI-39).
 
 ## Logs
 
@@ -359,6 +345,141 @@ is.
 To start completely fresh: `docker compose down -v` (destroys the PostgreSQL
 volume and Caddy's certificates), then `bin/deploy.sh <sha>` and the seed.
 
+## Migrating 18.6.6 content
+
+Studies bound to an 18.6.6 project before ADR 0018 read *Čeká na migraci z 18.6.6* and
+cannot be edited until their content is migrated into AIA
+([ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md) decision 2).
+The migration is an operator's act, run once on the host, from **copies**: it never
+opens the unit's live files and never writes or deletes anything of the unit. Keep the
+unit's volume `aia-develop_legacy_state` and its data bundle exactly as they are until
+the report has been accepted.
+
+The copies come from the volume itself, in throwaway containers of the unit's image
+that start nothing of the unit: the product stack no longer runs it, and the unit need
+not run at all. If the reference unit is up, stop it first
+(`/opt/aia/reference/bin/down.sh`), so nothing changes the store between the copy and
+the migration. Take the copies only once writes have stopped (§ The cutover, below).
+A Study bound, or a project saved, after the copy is not in it: it waits as *not in this
+copy*, and `--recover-missing` would then decide it wrongly. The copier,
+`backup-legacy-state.py`, comes with the reference bundle
+([`deploy/reference`](../reference/README.md) § Getting it onto the host); the image is
+any `aia-legacy-panel` SHA in ECR (`aws ecr list-images --repository-name
+aia-legacy-panel`); it runs as the user who owns the unit's stores, which a read-only
+copy of a WAL database needs (AGENTS.md § Docker and Compose).
+
+From an SSM session, in `/opt/aia/develop`:
+
+```bash
+mkdir -p /opt/aia/migration && cd /opt/aia/develop
+docker volume inspect aia-develop_legacy_state >/dev/null   # stop here if it is missing: never create it
+IMAGE="$(sed -n 's/^AIA_IMAGE_REGISTRY=//p' .env)/aia-legacy-panel:<sha>"
+# 1. Copies: the databases through SQLite's backup API (WAL-safe), and the files.
+docker run --rm -i --network none --entrypoint python3 -v aia-develop_legacy_state:/app "$IMAGE" - \
+  < /opt/aia/reference/bin/backup-legacy-state.py > /opt/aia/migration/legacy-state.zip
+cid="$(docker create --network none -v aia-develop_legacy_state:/app "$IMAGE")"
+docker cp "$cid:/app/data/ui_uploads/project_attachments" /opt/aia/migration/project_attachments
+docker rm "$cid"
+
+# 2. A dry run: no content is written; the report says what would happen to each Study.
+docker compose run --rm --no-deps -T -v /opt/aia/migration:/migration:ro worker \
+  python -m aia_executors.legacy_workspace \
+    --store /migration/legacy-state.zip --attachments /migration/project_attachments \
+    --as <your AIA sign-in email> > /opt/aia/migration/dry-run.json
+```
+
+Read the summary (standard error) and `dry-run.json`. `--as` names the AIA person the
+migration acts as: each Study is opened with the grants that person holds on it, so a
+Study they may not edit is reported and left waiting. An organization owner has no
+implicit access to a client's studies: grant the person `LEAD` or `RESEARCHER` on each
+client whose studies are waiting first. Each Study's `outcome` is `MIGRATED`,
+`RECOVERED`, `UNRECOVERABLE` or `NOT_MIGRATED` with its `reason`; `files_missing` and
+`files_mismatched` name brief files the copy lacks or whose bytes no longer match;
+`unit_projects_not_bound` lists every unit project no Study refers to, which stays in
+the unit's volume. A Study the person may not open also leaves one access-audit record
+of that refusal, as every refused access does. That record is the only thing a dry run
+writes.
+
+```bash
+# 3. Back up PostgreSQL, then apply. Each Study is its own transaction, validated
+#    against the copy before it commits; one that does not validate is rolled back.
+bin/backup.sh pre-migration
+docker compose run --rm --no-deps -T -v /opt/aia/migration:/migration:ro worker \
+  python -m aia_executors.legacy_workspace \
+    --store /migration/legacy-state.zip --attachments /migration/project_attachments \
+    --as <your AIA sign-in email> --apply > /opt/aia/migration/applied.json
+aws s3 cp /opt/aia/migration/applied.json "s3://<ops-bucket>/backups/legacy-migration-$(date -u +%Y%m%dT%H%M%SZ).json"
+```
+
+Exit status: 0 when every Study looked at is migrated, recovered or marked
+unrecoverable; 3 when some stay waiting (each with its reason: fix it, run again);
+2 when it could not start (no such active AIA user, an unreadable copy, or a database
+the unit still has open). Running it again is safe: a Study that no longer waits is
+listed under `done_before` and never written again.
+
+**A Study whose unit project is not in the copy** stays waiting, because a partial or
+wrong copy must not decide its fate. When you know the copy is complete (the dry run's
+`unit_projects_not_bound` and the unit's own project list agree), run step 3 once more
+with `--recover-missing`: such a Study becomes `RECOVERED` from its newest Design
+Revision, whose stages say so, or `UNRECOVERABLE`, where a person who may edit starts
+again (OI-66).
+
+**A Study that is delivered, archived or cancelled** stays waiting, with a reason such as
+*the Study is DELIVERED: reopen it to migrate*
+(`application/workspace_migration.py:306-307`). Reopening it (`ACTIVE`), migrating it
+with `--study <id>` and closing it again all work. But delivering it again sets a new
+`delivered_at` (`infrastructure/scope_repository.py:576-577`), so the original delivery
+time is then kept only in `access_audit` (`STUDY_STATUS_CHANGED`, `created_at`). Decide
+each such Study with its owner before the cutover (OI-81).
+
+**Undo.** `bin/restore.sh --live <the pre-migration dump>` puts PostgreSQL back as it
+was before the apply, with the schema still at the release's. The files already copied
+into the artifact bucket are then unreferenced objects. The unit's volume was never
+changed, so nothing there needs undoing. Undoing the release itself is § Rolling back
+the content cutover.
+
+## The cutover
+
+The release that takes the unit out of the product (ADR 0018) is deployed once, in a
+maintenance window. Its first deploy makes every Study bound to 18.6.6 read *Čeká na
+migraci z 18.6.6* until the migration above has run, and `bin/deploy.sh` upgrades the
+schema and switches the services but migrates no content. The order, from the
+2026-09-28 consolidation plan:
+
+1. **Hold the deploy.** Every green `develop` head deploys itself (§ Normal deployment),
+   so a person puts a hold in place before the release is merged. One way is a required
+   reviewer on the `develop` GitHub environment, which the deploy job runs in.
+2. **Stop writes** and close public access, by the means the operator chooses; nothing
+   here builds one. Stop the workers.
+3. **Copy, before the release deploys.**
+   - Take `bin/backup.sh pre-adr-0018`. With the data owner's approval it also exports
+     the unit's databases (§ The first deploy without the unit).
+   - For the migration, take the WAL-safe copy of the unit's store and
+     `project_attachments` (§ Migrating 18.6.6 content, step 1).
+   - Record each copy's SHA256, and check that the dump restores with
+     `bin/restore.sh --test`.
+4. **Rehearse on the copies,** in an isolated PostgreSQL: the release's migration, the
+   dry run, the apply, every Study's disposition, and § Rolling back the content
+   cutover. Keep the reports.
+5. **Merge the release once**, as a merge commit, and release the hold.
+   `bin/deploy.sh` takes `pre-deploy-<sha>`, migrates to `5b1d0f3e9a21` and switches the
+   services. Public access stays closed.
+6. **Migrate** (§ Migrating 18.6.6 content, steps 2 and 3), and give every Study left
+   waiting its disposition.
+7. **Accept.** Run the smoke and the browser checks on the deployed head:
+   - sign-in and an active researcher's access;
+   - refusal across studies;
+   - open, save, reload, import and download;
+   - stale-save and Run protection;
+   - Settings that tell the truth;
+   - the native workspace, with the unit stopped.
+8. **Reopen** only when steps 6 and 7 pass. Otherwise roll back while access is still
+   closed.
+
+A dress rehearsal of steps 3, 4 and 6, and of the database rollback, ran on 2026-09-28.
+It used fictional data on a scratch PostgreSQL 16 (`.planning/overview.md`). It is not
+step 4: it had none of the host's data and ran no Docker.
+
 ## Rollback
 
 Deploy the previous SHA. The workflow accepts a SHA by hand (*Run workflow* →
@@ -378,6 +499,41 @@ the schema moved back, a person decides it, takes a backup, runs
 
 Previous SHAs are in ECR (`aws ecr list-images --repository-name aia-api`) and in
 the *Deploy develop* run history.
+
+### Rolling back the content cutover
+
+Migration `5b1d0f3e9a21` is the exception to the paragraph above. The dress rehearsal
+on 2026-09-28 (§ The cutover) found three things.
+
+- **A code-only rollback is not safe.** On the release's schema, `develop`'s code
+  (`8017b54`) did three things wrong:
+  - It failed every new binding with `NotNullViolation` on `content_state`. The
+    migration drops that column's default (`20260927_5b1d0f3e9a21_…py:69`), and the old
+    row does not know the column (`infrastructure/tables.py:643 @ 8017b54`).
+  - It could not read a Study started in AIA: its `unit_project_id` is null, which the
+    old model refuses (`domain/workspace.py:59 @ 8017b54`).
+  - It opened a migrated Study's 18.6.6 project, without anything saved in AIA since.
+- **`alembic downgrade` refuses** once any Study holds content in AIA or has no 18.6.6
+  project (`…py:88-100`). It is possible only before the apply, while nothing has been
+  saved.
+- **The rollback moves the database and the code together.** While writes are still
+  stopped:
+  1. Run `bin/restore.sh --live <key>`, where the key is that of the
+     `pre-deploy-<release sha>` dump `bin/deploy.sh` took before it migrated. It first
+     dumps what is there (`pre-restore`). Its closing smoke runs the release's code on
+     the older schema, so it is not the verdict; step 3 is.
+  2. Deploy the previous SHA with `migrate` unchecked, through the workflow, which
+     unpacks that SHA's bundle. Its Compose file still has `legacy-panel`, which starts
+     on the volume the release left untouched. From the host instead, unpack
+     `s3://<ops-bucket>/deploy/<previous-sha>.tar.gz` into `/opt/aia/develop` and run
+     `bin/write-env.sh` before `bin/deploy.sh <previous-sha> --no-migrate`: the release's
+     bundle has no unit service.
+  3. That deploy's smoke must pass. The files the migration copied into the artifact
+     bucket stay there, unreferenced.
+
+After reopening, a rollback discards everything saved in AIA since that dump, so it
+needs its own decision and an export first. The rehearsal covered the database, the
+migration and both code revisions; it did not cover the Compose or SSM steps.
 
 ## Resize
 
@@ -430,30 +586,29 @@ with nightly dumps. Synthetic data only. The path to ECS and RDS is in ADR 0009
 and is deployment work, not application work.
 
 
-### Working Research content and backup scope (2026-09-26)
+### Backup scope
 
-Until OI-58 is retired, AIA keeps Study identities/bindings in PostgreSQL while
-Research editing content is in the legacy volume's SQLite project store. A
-PostgreSQL dump alone cannot restore that editing copy. After owner approval,
-set `AIA_LEGACY_STATE_BACKUP_ENABLED=true` in the host environment. The default
-is disabled and logs that no working database export was made. When enabled,
-`bin/backup.sh` streams consistent copies of `/app/data/*.sqlite` to the same private,
-encrypted EU ops bucket under `backups/legacy-state-<utc>-<label>.zip`, using
-`bin/backup-legacy-state.py` and SQLite's backup API. Existing retention applies.
-Database snapshots are consistent individually, not an atomic cross-database
-transaction. Uploaded attachments and generated file artifacts are outside this
-ZIP. If the unit is not running the script explicitly reports no state backup.
+`bin/backup.sh` (nightly through `aia-backup.timer`, and before every deploy) dumps
+PostgreSQL, where every Study's identity, bindings, Design Revisions and, since ADR
+0018, working content live; the files a brief carries are artifacts in the artifact
+bucket. It no longer touches the 18.6.6 unit: until the migration above has run and
+its report has been accepted (OI-58), the content of Studies still waiting for it is
+only in the unit's volume `aia-develop_legacy_state`, which this stack neither mounts
+nor backs up.
 
-The backup source is fed from the deployment bundle into the old running image,
-so the first deployment of this repair can protect the databases too. Restore
-working databases only with the unit stopped, keep a backup of current state,
-and check both project IDs and PostgreSQL bindings before restarting. The
-PostgreSQL `restore.sh` does not restore the separate SQLite ZIP.
-
-Runtime hydration installs a `state_seed` only if no working file exists. It
-still hash-verifies the seed on first installation and immutable assets on every
-start. Replacing edited state with archive bytes is prohibited.
-
+Nothing writes to that volume except the reference unit while it runs. Copy it with
+`deploy/reference/bin/backup-state.sh <sha> <label>` (the data owner's approval,
+`AIA_LEGACY_STATE_BACKUP_ENABLED=true`, as above) once after the first deploy without
+the unit if no `pre-adr-0018` copy was taken (nothing has changed the volume since the
+unit stopped), after any session that used the reference unit, and before the
+migration. It writes
+`s3://<ops-bucket>/backups/legacy-state-<utc>-<label>.zip`: every `*.sqlite` under
+`/app/data`, consistent one database at a time (not one atomic snapshot across them).
+The files people attached (`/app/data/ui_uploads`) are not in the ZIP; they stay in
+the volume, and the migration copies the ones its Studies name into AIA's storage.
+`bin/restore.sh` restores PostgreSQL only; restoring the unit's databases is a
+reference-side act, with the reference unit stopped (`deploy/reference/README.md`
+§ The volume).
 
 ### AI settings
 
@@ -462,12 +617,14 @@ settings document's `ai_runtime`: Bedrock, the instance-role credential, and eac
 native activity with its capabilities, versions and switches. The switches, region,
 model and approved data classes come from the web container's nonsecret runtime
 environment through `/config`. It has no provider login, direct API-key field,
-selector or paid test button. Classic settings navigation is redirected there by
-the product wrapper. On develop the enabled capability is fictional, internal-only
-respondent fieldwork; native design proposals are implemented and off
+selector or paid test button, and no 18.6.6 settings page is reachable from the
+product. On develop the enabled capability is internal respondent fieldwork using
+synthetic provenance; this is not real respondent evidence. Native design proposals
+are implemented and off
 (`AIA_AI_RESEARCH_AGENTS_ENABLED`). Each switch is read with the worker's vocabulary
 (`1`/`true`/`yes`/`on`); a value the worker refuses is shown as invalid, not as off,
 and with the runtime on it stops the whole worker. This display is not a live health
 probe and never says connected or verified. Historical provider labels in archived
 projects remain historical metadata, listed under a collapsed history, not
-connection controls.
+connection controls. Production-study material must be classified by its actual
+content and provenance before design jobs are enabled (OI-63, OI-79).

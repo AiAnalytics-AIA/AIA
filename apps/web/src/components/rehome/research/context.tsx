@@ -1,26 +1,28 @@
 "use client";
 
-// The research flow's shared state for one screen tree: the project store, the
-// bootstrap, and the one AI job that may run at a time (ADR 0014, area A4).
+// The research flow's shared state for one screen tree: the working-content store,
+// the research template, and the one AI job that may run at a time (ADR 0014,
+// area A4; ADR 0018).
 
 import { createContext, useCallback, useContext, useState, useSyncExternalStore } from "react";
 
-import type { BootInfo } from "@/unit/boot";
-import type { JobUpdate } from "@/unit/research/jobs";
-import type { ResearchState, ResearchStore } from "@/unit/research/store";
-import type { StepKey } from "@/unit/research/steps";
-import type { UnitRouteKey } from "@/unit/routes";
+import type { ResearchJobKey } from "@/lib/research-agent-jobs";
+import type { JobUpdate } from "@/research/jobs";
+import type { Template } from "@/research/model";
+import type { ResearchState, ResearchStore } from "@/research/store";
+import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "./frame";
 
 export type RunJob = (
-  endpoint: UnitRouteKey,
+  endpoint: ResearchJobKey,
   payload: Record<string, unknown>,
   opts: { title: string; warnMs?: number; model?: string },
 ) => Promise<unknown>;
 
 export type ResearchContextValue = {
   store: ResearchStore;
-  boot: BootInfo;
+  /** The research template: what a new study starts from, and what a stored one is completed with. */
+  template: Template;
   runJob: RunJob;
   job: JobUpdate | null;
   toast: (message: string) => void;

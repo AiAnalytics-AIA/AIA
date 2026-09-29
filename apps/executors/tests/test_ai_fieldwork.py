@@ -761,7 +761,8 @@ def test_the_develop_worker_passes_every_ai_runtime_key_and_no_credential() -> N
     compose = (root / "deploy" / "develop" / "docker-compose.yml").read_text(encoding="utf-8")
     example = (root / "deploy" / "develop" / "env.example").read_text(encoding="utf-8")
     read = set(re.findall(r'"(AIA_(?:AI|BEDROCK)_[A-Z_]+)"', source))
-    worker = compose.split("\n  worker:\n", 1)[1].split("\n  legacy-panel:", 1)[0]
+    # The worker's block ends where the next service begins (two-space indent).
+    worker = re.split(r"\n  [a-z][a-z-]*:\n", compose.split("\n  worker:\n", 1)[1], maxsplit=1)[0]
     passed = set(re.findall(r"^\s+(AIA_(?:AI|BEDROCK)_[A-Z_]+):", worker, flags=re.M))
     assert read and read == passed
     assert read <= set(re.findall(r"^(AIA_(?:AI|BEDROCK)_[A-Z_]+)=", example, flags=re.M))

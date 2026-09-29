@@ -4,7 +4,7 @@
 // with the four wrappers that run over it -- the design variants (1793), the
 // wizard's way on (1789), and the comment workflow (26), which also removes the
 // review note (1785) and the "Další krok: dotazník" card, so neither is here.
-// What each control does is src/unit/research/plan.ts, parity-tested against
+// What each control does is src/research/plan.ts, parity-tested against
 // the original; this file only draws it.
 
 import { useRouter } from "next/navigation";
@@ -41,8 +41,8 @@ import {
   setTitle,
   toQuestionnaire,
   trackedSets,
-} from "@/unit/research/plan";
-import type { Analysis } from "@/unit/research/store";
+} from "@/research/plan";
+import type { Analysis } from "@/research/store";
 import { Icon } from "../icons";
 import { Button, Chip, Tag, TextArea } from "../ui";
 import { useResearch } from "./context";

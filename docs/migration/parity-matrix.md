@@ -47,7 +47,7 @@ job's summary in CI.
 | `ai.runtime_policy` | ai-runtime *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
 | `ai.single_provider_mode` | ai-runtime *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `ai.usage_ledger` | ai-runtime *(unconfirmed)* | NOT_STARTED | EXACT | — | — | — | — | yes |
-| `analysis.modules` | analysis *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x1 | R5 | yes |
+| `analysis.modules` | analysis *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | production_contract x2 | R5 | yes |
 | `analysis.qc` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | F11, U08 | — | — | yes |
 | `api.http` | api *(unconfirmed)* | PARTIAL | INTENTIONAL_DIFFERENCE | — | — | production_contract x1, reference_comparison x1 | R14 | yes |
 | `artifacts.registration` | artifacts *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |

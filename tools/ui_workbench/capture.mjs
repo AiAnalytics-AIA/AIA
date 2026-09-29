@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Capture every screen of the 18.6.6 interface, bare and skinned, every screen
- * of AIA's client-first interface, and measure what the skin did not reach
- * (tools/ui_workbench/README.md).
+ * Capture every screen of AIA's client-first interface and, when the workbench
+ * runs the 18.6.6 unit, every screen of the unit as it ships -- the reference,
+ * never the product (ADR 0018) -- and measure what each AIA screen paints outside
+ * the design system (tools/ui_workbench/README.md).
  *
  *   node tools/ui_workbench/capture.mjs [--out DIR] [--widths 1440,1024] [--only a,b]
  *
@@ -18,12 +19,14 @@
  *      one (openProject1785), and each of its tabs.
  *
  *   3. every AIA screen (`aia_screens` of docs/migration/interface-screens.json),
- *      and every rebuilt classic screen beside the classic one it replaces.
+ *      and every classic screen's AIA counterpart the ledger names.
  *
- * Per screen and width: a full-page PNG bare (the unit direct) and skinned (the
- * facade's /classic); page errors; horizontal overflow; and, on the skinned page, every
- * computed colour on a visible element that is not a design-system token, with
- * a sample selector. Writes report.json and index.html beside the images.
+ * Steps 1 and 2 run only when the unit answers (`make ui-workbench-reference`,
+ * `up --with-unit`). Per screen and width: a full-page PNG, the unit's as shipped and
+ * AIA's; page errors; horizontal overflow; on an AIA screen every computed colour
+ * on a visible element that is not a design-system token, with a sample selector;
+ * and the unit's text an AIA counterpart does not show. Writes report.json and
+ * index.html beside the images.
  */
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -50,8 +53,8 @@ const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 const OUT = arg("out", join(REPO, "tmp/ui-workbench/shots", stamp));
 const WIDTHS = arg("widths", "1440,1024").split(",").map(Number);
 const ONLY = arg("only", "") ? new Set(arg("only").split(",")) : null;
-const BASES = { bare: arg("bare", "http://127.0.0.1:8767/"), skin: arg("skinned", "http://127.0.0.1:8780/classic") };
-const FACADE = new URL(BASES.skin).origin;
+const BASES = { bare: arg("bare", "http://127.0.0.1:8767/") };
+const FACADE = arg("facade", "http://127.0.0.1:8780");
 const SETTLE_MS = Number(arg("settle", "900"));
 
 // ---- Playwright, from wherever the environment has it ----------------------
@@ -98,7 +101,7 @@ export function routesFrom(html) {
   return { routes: out, aliases: Object.fromEntries(aliases) };
 }
 
-// ---- the palette the skin is allowed to paint with -------------------------
+// ---- the palette AIA's screens are allowed to paint with ---------------------
 function palette() {
   const tokens = JSON.parse(readFileSync(TOKENS, "utf8"));
   const byName = new Map(tokens.color.tokens.map((t) => [t.name, t]));
@@ -149,8 +152,8 @@ function offPalette(allowed) {
 }
 
 // ---- driving the interface ---------------------------------------------------
-// Every context is signed in: the AIA pages read the tab's session, the classic
-// ones ignore it.
+// Every context is signed in: the AIA pages read the tab's session, the unit's
+// ignore it.
 async function context(browser, width) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
   const session = JSON.stringify({ idToken: OPERATOR, refreshToken: "", expiresAt: 4102444800000, email: OPERATOR, subject: OPERATOR });
@@ -216,8 +219,8 @@ export function missingIn(classic, rebuilt) {
   });
 }
 
-async function measure(page, allowed, skinned) {
-  return page.evaluate(({ allowed, skinned, offPaletteSrc, textsSrc }) => {
+async function measure(page, allowed, aia) {
+  return page.evaluate(({ allowed, aia, offPaletteSrc, textsSrc }) => {
     const title = document.querySelector("#pageTitle")?.innerText?.trim() || document.querySelector("h1,h2")?.innerText?.trim() || "";
     const overflow = document.documentElement.scrollWidth - window.innerWidth;
     const fn = new Function(`return (${offPaletteSrc})`)();
@@ -225,11 +228,10 @@ async function measure(page, allowed, skinned) {
       title: title.slice(0, 80),
       height: document.documentElement.scrollHeight,
       overflowPx: overflow > 1 ? overflow : 0,
-      skinLink: !!document.querySelector('link[data-aia-skin]'),
-      offPalette: skinned ? fn(allowed).slice(0, 25) : undefined,
+      offPalette: aia ? fn(allowed).slice(0, 25) : undefined,
       texts: new Function(`return (${textsSrc})`)()(),
     };
-  }, { allowed, skinned, offPaletteSrc: offPalette.toString(), textsSrc: texts.toString() });
+  }, { allowed, aia, offPaletteSrc: offPalette.toString(), textsSrc: texts.toString() });
 }
 
 async function main() {
@@ -247,7 +249,10 @@ async function main() {
     return s;
   };
 
-  for (const [variant, base] of Object.entries(BASES)) {
+  // The unit is the reference, and only when the workbench runs it.
+  const unitUp = await fetch(BASES.bare).then((r) => r.ok, () => false);
+  if (!unitUp) console.log(`capture: the unit is not answering at ${BASES.bare}: AIA's screens only`);
+  for (const [variant, base] of Object.entries(unitUp ? BASES : {})) {
     for (const width of WIDTHS) {
       const ctx = await context(browser, width);
       const page = await ctx.newPage();
@@ -258,7 +263,7 @@ async function main() {
         await page.waitForTimeout(SETTLE_MS);
         const file = join(OUT, `${id}.${variant}.${width}.png`);
         await shoot(page, file);
-        const m = await measure(page, allowed, variant === "skin");
+        const m = await measure(page, allowed, false);
         record(id, label, kind).shots[`${variant}.${width}`] = { file: relative(OUT, file), ...m, errors };
         errors = [];
         process.stdout.write(".");
@@ -291,16 +296,16 @@ async function main() {
       await ctx.close();
     }
   }
-  // 3. every AIA screen, and every screen the ledger says is rebuilt, from the
-  // facade's /app, beside the classic one it replaces
+  // 3. every AIA screen, and every classic screen's AIA counterpart the ledger
+  // names (react_path), from the facade's /app, beside the unit's when it ran
   // (docs/migration/interface-screens.json). A <client> is the one the
-  // workbench fixtures are bound under (tmp/ui-workbench/studies.json).
+  // workbench fixtures are under (tmp/ui-workbench/studies.json).
   const ledger = JSON.parse(readFileSync(join(REPO, "docs/migration/interface-screens.json"), "utf8"));
   const studies = existsSync(STUDIES) ? JSON.parse(readFileSync(STUDIES, "utf8")) : {};
   const anyBinding = Object.values(studies)[0];
   const aia = (ledger.aia_screens || []).filter((x) => !ONLY || ONLY.has(x.id));
   // A path with <id> needs a project: it is captured with its fixture, in 4.
-  const rebuilt = ledger.screens.filter((x) => x.react_path && !x.react_path.includes("<id>") && x.status !== "CLASSIC" && (!ONLY || ONLY.has(x.classic.route)));
+  const rebuilt = ledger.screens.filter((x) => x.react_path && !x.react_path.includes("<id>") && (!ONLY || ONLY.has(x.classic.route)));
   const pages = [
     ...aia.map((x) => ({ id: x.id, label: x.title, kind: "aia", path: x.path })),
     ...rebuilt.map((x) => ({ id: x.id, label: x.id.replace(/^route-/, ""), kind: "route", path: x.react_path })),
@@ -328,10 +333,8 @@ async function main() {
     await ctx.close();
   }
   // 4. screens the ledger names a fixture project for (`fixture`, a key of
-  // tmp/ui-workbench/studies.json, written by `make ui-fixtures`): the classic
-  // step opened on that unit project, beside the rebuilt one at react_path with
-  // the study bound to it for <id> and its client for <client>. What a screen
-  // shows with an AI answer in it.
+  // tmp/ui-workbench/studies.json, written by `make ui-fixtures`): the AIA
+  // screen at react_path on that study. What a screen shows with an AI answer in it.
   const paired = ledger.screens.filter((x) => x.fixture && x.react_path && (!ONLY || ONLY.has(x.classic.route)));
   for (const x of paired) {
     const binding = studies[x.fixture];
@@ -344,19 +347,11 @@ async function main() {
     for (const width of WIDTHS) {
       const ctx = await context(browser, width);
       const page = await ctx.newPage();
-      let errors = [];
+      const errors = [];
       page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
-      // Through the hand-off link a rebuilt step uses (#aia:open=<unit>@<route>), so it is exercised too.
-      await boot(page, `${BASES.skin}#aia:open=${binding.unit}@${x.classic.route}`);
-      await page.waitForFunction((r) => window.CURRENT === r, x.classic.route, { timeout: 30000 }).catch(() => {});
-      await page.waitForTimeout(SETTLE_MS + 600);
-      let file = join(OUT, `${id}.skin.${width}.png`);
-      await shoot(page, file);
-      record(id, `${x.classic.route} · ${x.fixture}`, "fixture").shots[`skin.${width}`] = { file: relative(OUT, file), ...(await measure(page, allowed, true)), errors };
-      errors = [];
       await page.goto(new URL(path, FACADE).href, { waitUntil: "networkidle", timeout: 120000 });
       await page.waitForTimeout(SETTLE_MS);
-      file = join(OUT, `${id}.react.${width}.png`);
+      const file = join(OUT, `${id}.react.${width}.png`);
       await shoot(page, file);
       record(id, `${x.classic.route} · ${x.fixture}`, "fixture").shots[`react.${width}`] = { file: relative(OUT, file), ...(await measure(page, allowed, true)), errors, path };
       await ctx.close();
@@ -366,7 +361,7 @@ async function main() {
 
   for (const sc of screens) {
     for (const width of WIDTHS) {
-      const classic = sc.shots[`skin.${width}`], react = sc.shots[`react.${width}`];
+      const classic = sc.shots[`bare.${width}`], react = sc.shots[`react.${width}`];
       if (classic && react) react.missing = missingIn(classic.texts, react.texts);
     }
   }
@@ -376,38 +371,36 @@ async function main() {
   writeFileSync(join(OUT, "report.json"), JSON.stringify(report, null, 1));
   writeFileSync(join(OUT, "index.html"), sheet(report));
   const worst = screens
-    .map((s) => ({ id: s.id, n: (s.shots[`skin.${WIDTHS[0]}`]?.offPalette || []).reduce((a, f) => a + f.count, 0) }))
+    .map((s) => ({ id: s.id, n: (s.shots[`react.${WIDTHS[0]}`]?.offPalette || []).reduce((a, f) => a + f.count, 0) }))
     .sort((a, b) => b.n - a.n).slice(0, 5);
-  console.log(`\ncapture: ${screens.length} screens x ${WIDTHS.length} widths x 2 -> ${relative(REPO, OUT)}/index.html`);
+  console.log(`\ncapture: ${screens.length} screens x ${WIDTHS.length} widths -> ${relative(REPO, OUT)}/index.html`);
   console.log(`capture: most off-palette paint: ${worst.map((w) => `${w.id} (${w.n})`).join(", ")}`);
   for (const sc of screens) {
     const r = sc.shots[`react.${WIDTHS[0]}`];
-    if (r?.missing) console.log(`capture: ${sc.id} rebuilt at ${r.path}: ${r.missing.length} classic text(s) missing${r.missing.length ? ": " + r.missing.slice(0, 12).map((x) => JSON.stringify(x)).join(", ") : ""}`);
+    if (r?.missing) console.log(`capture: ${sc.id} in AIA at ${r.path}: ${r.missing.length} text(s) of the unit's not shown${r.missing.length ? ": " + r.missing.slice(0, 12).map((x) => JSON.stringify(x)).join(", ") : ""}`);
   }
 }
 
 // ---- the contact sheet -------------------------------------------------------
-function x0(s, w) { return s.kind === "aia" ? s.shots[`react.${w}`] : undefined; }
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
 function sheet(r) {
   const w = r.widths[0];
   const rows = r.screens.map((s) => {
-    // An AIA screen has no classic counterpart: only its own shot is drawn.
-    const b = s.shots[`bare.${w}`], k = s.shots[`skin.${w}`] || x0(s, w) || {}, x = s.shots[`react.${w}`];
+    // An AIA screen with no classic counterpart draws only its own shot.
+    const b = s.shots[`bare.${w}`], x = s.shots[`react.${w}`], k = x || b || {};
     const fig = (shot, caption) => (shot ? `<figure><figcaption>${esc(caption)}</figcaption><a href="${esc(shot.file)}"><img loading="lazy" src="${esc(shot.file)}"></a></figure>` : "");
     const flags = [
       k.overflowPx ? `overflow ${k.overflowPx}px` : "",
       (k.errors || []).length ? `${k.errors.length} page error(s)` : "",
-      k.skinLink === false ? "skin missing" : "",
     ].filter(Boolean).join(" · ");
     const off = (k.offPalette || []).slice(0, 8).map((f) =>
       `<li><span class="sw" style="background:${f.hex}"></span><code>${f.prop} ${f.hex}</code> ×${f.count} <code>${esc(f.sample)}</code></li>`).join("");
-    const other = r.widths.slice(1).map((x) => ["skin", "bare", "react"].filter((v) => s.shots[`${v}.${x}`]).map((v) => `<a href="${esc(s.shots[`${v}.${x}`].file)}">${v} ${x}</a>`).join(" · ")).join(" · ");
+    const other = r.widths.slice(1).map((x) => ["bare", "react"].filter((v) => s.shots[`${v}.${x}`]).map((v) => `<a href="${esc(s.shots[`${v}.${x}`].file)}">${v} ${x}</a>`).join(" · ")).join(" · ");
     return `<section id="${esc(s.id)}"><h2>${esc(s.label)} <small>${esc(k.title || b?.title)}</small></h2>
 <p class="meta">${esc(s.kind)}${flags ? " · <b>" + esc(flags) + "</b>" : ""} · ${other}</p>
-<div class="pair">${fig(b, "18.6.6 as shipped")}${fig(s.shots[`skin.${w}`], "with the AIA skin")}${fig(x, s.kind === "aia" ? `AIA · ${x?.path}` : `rebuilt · ${x?.path}`)}</div>
-${x?.missing ? `<details${x.missing.length ? " open" : ""}><summary>Classic text the rebuilt screen does not show (${x.missing.length})</summary><ul>${x.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
-${off ? `<details><summary>Colours the skin did not reach (${(k.offPalette || []).length})</summary><ul>${off}</ul></details>` : ""}</section>`;
+<div class="pair">${fig(b, "18.6.6 as shipped (reference)")}${fig(x, `AIA · ${x?.path}`)}</div>
+${x?.missing ? `<details${x.missing.length ? " open" : ""}><summary>The unit's text the AIA screen does not show (${x.missing.length})</summary><ul>${x.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
+${off ? `<details><summary>Colours outside the design system (${(k.offPalette || []).length})</summary><ul>${off}</ul></details>` : ""}</section>`;
   }).join("\n");
   return `<!doctype html><html lang="en"><meta charset="utf-8"><title>UI capture</title>
 <style>body{font:14px/1.45 system-ui,sans-serif;margin:24px;color:#1b1f24;background:#fafaf9}h1{font-size:20px}

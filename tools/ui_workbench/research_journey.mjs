@@ -14,7 +14,9 @@
  *   * the fictional-data notice on every stage that shows the run;
  *   * a completed run: compile, preflight, fieldwork, aggregate, sociomap;
  *   * an aggregate table and the Sociomap labelled INTERNAL_ONLY (PROGRESS D6);
- *   * no page error.
+ *   * no page error, and no request to a path the 18.6.6 unit served (ADR 0018): the
+ *     facade routes none of them to the unit, as the develop Caddyfile does not, so
+ *     such a request would be a dependency on 18.6.6; and no 502 from the facade.
  *
  * Screenshots of each stage go to --out (default tmp/ui-workbench/shots/research-<time>).
  * Exits non-zero on the first thing that is not so.
@@ -74,6 +76,13 @@ await ctx.addInitScript((s) => { try { sessionStorage.setItem("aia.session", s);
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
+// The paths the 18.6.6 unit served on the product hostname (its @unit matcher until ADR
+// 0018 decision 5, /classic and its document): now the web client's, never the unit's.
+const UNIT_PATH = /^\/(api\/(?!v1\/)|files\/|artifacts\/|project-attachments\/|brand\/|fullsim-arena|status$|health$|classic|interface-document)/;
+const toUnit = [];
+const bad = [];
+page.on("request", (r) => { try { if (UNIT_PATH.test(new URL(r.url()).pathname)) toUnit.push(`${r.method()} ${r.url()}`); } catch { /* not a URL */ } });
+page.on("response", (r) => { if (r.status() === 502) bad.push(r.url()); });
 const shot = (name) => page.screenshot({ path: join(OUT, `${name}.png`), fullPage: true });
 const ok = (what) => console.log(`research journey: ok   ${what}`);
 
@@ -110,5 +119,8 @@ ok("Results: fictional notice, aggregate tables, Sociomap INTERNAL_ONLY");
 await shot("3-results");
 
 await browser.close();
+if (toUnit.length) fail(`requests to the unit's paths: ${toUnit.join(" | ")}`);
+if (bad.length) fail(`502 responses: ${bad.join(" | ")}`);
 if (errors.length) fail(`page errors: ${errors.join(" | ")}`);
+ok("no request reached a path of the unit");
 console.log(`research journey: PASS (screenshots in ${OUT})`);

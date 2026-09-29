@@ -5,20 +5,18 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
-import { resetBootCache } from "@/unit/boot";
-import { ResearchScreen } from "./ResearchScreen";
+import { CONFLICT_MESSAGE } from "@/research/store";
+import { ResearchScreen, ResearchSession } from "./ResearchScreen";
+import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
 
 const push = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/run", useRouter: () => ({ push, replace }) }));
 
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/unit/research/fixtures/empty-project.json"), "utf8"));
 const PROJECT = { title: "Ranní nápoj", n: 450, sections: [{ type: "questions", questions: [{ id: "q1", text: "Jak často?", typ: "skala", skala: [1, 5] }] }] };
 
 const READY = {
@@ -110,8 +108,7 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
       calls.push({ method, url: u, body });
       const routes: Record<string, (b: unknown) => unknown> = {
         "GET /config": () => ({ cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", apiBase: "", build: { sha: null } }),
-        "GET /api/bootstrap": () => ({ empty_project: EMPTY, ai_provider: "claude_code_subscription", panel: { version: "v17.1.2" }, edition: { version: "18.6.6" } }),
-        "POST /api/projects/load": () => ({ project_id: "PRJ-1", revision: 3, project_type: "research", project: PROJECT, analysis: null }),
+        "GET /api/v1/studies/STU-1/workspace/content": () => workspaceFixture(PROJECT).answer(CONTENT_PATH, "GET", null),
         "POST /api/v1/studies/STU-1/design/revisions": () => ({ revision_id: "REV-a1", study_id: "STU-1", revision: 3, content_sha256: "x", parent_revision: 2, source_stage: "run", created_by: "USR-1", created_at: "2026-09-25T08:00:00Z", created: true }),
         "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-old", revision: 2 }] }),
         "GET /api/v1/studies/STU-1/research/readiness": () => READY,
@@ -127,7 +124,6 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
 const called = (method: string, prefix: string) => calls.filter((c) => c.method === method && c.url.startsWith(prefix));
 
 beforeEach(() => {
-  resetBootCache();
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");
   };
@@ -141,13 +137,15 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  // Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018).
+  expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
   sessionStorage.clear();
 });
 
 describe("Run", () => {
   it("submits the design the person sees as a revision, shows AIA's checks, and starts one run over it", async () => {
     api();
-    render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
     const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
     expect(submitted.body).toMatchObject({ source_stage: "run", content: { title: "Ranní nápoj", n: 450 } });
@@ -162,6 +160,105 @@ describe("Run", () => {
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1" });
   });
 
+  it("saves a change not yet saved before the design becomes a revision", async () => {
+    const workspace = workspaceFixture(PROJECT);
+    api({ "PUT /api/v1/studies/STU-1/workspace/content": (b) => workspace.answer(CONTENT_PATH, "PUT", b) });
+    const at = (step: "brief" | "run") => (
+      <ResearchSession studyId="STU-1">
+        <ResearchScreen step={step} frame={TEST_FRAME} />
+      </ResearchSession>
+    );
+    const { rerender } = render(at("brief"));
+    fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Nový cíl" } });
+    rerender(at("run")); // before the 1.8 s autosave
+    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    const put = calls.findIndex((c) => c.method === "PUT" && c.url === CONTENT_PATH);
+    const post = calls.findIndex((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/design/revisions");
+    expect(put).toBeGreaterThanOrEqual(0);
+    expect(put).toBeLessThan(post);
+    expect((calls[post].body as { content: { goal: string } }).content.goal).toBe("Nový cíl");
+    expect(calls[post].body).toMatchObject({ content: workspace.saves[0].content });
+  });
+
+  it("never submits a copy whose save AIA refused because someone saved a newer one", async () => {
+    api({
+      "PUT /api/v1/studies/STU-1/workspace/content": () =>
+        new Response(JSON.stringify({ code: "stale_revision", message: "The working content changed.", details: { current_revision: 4 } }), { status: 409 }),
+    });
+    const at = (step: "brief" | "run") => (
+      <ResearchSession studyId="STU-1">
+        <ResearchScreen step={step} frame={TEST_FRAME} />
+      </ResearchSession>
+    );
+    const { rerender } = render(at("brief"));
+    fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA odmítla" } });
+    rerender(at("run"));
+    expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
+    expect(screen.getAllByText(CONFLICT_MESSAGE).length).toBeGreaterThan(0);
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+  });
+
+  it("submits nothing while an earlier save's conflict stands, and prepares the version AIA holds once it is reloaded", async () => {
+    let served = workspaceFixture(PROJECT).answer(CONTENT_PATH, "GET", null) as Record<string, unknown>;
+    api({
+      "GET /api/v1/studies/STU-1/workspace/content": () => served,
+      "PUT /api/v1/studies/STU-1/workspace/content": () =>
+        new Response(JSON.stringify({ code: "stale_revision", message: "The working content changed.", details: { current_revision: 4 } }), { status: 409 }),
+    });
+    const at = (step: "brief" | "run") => (
+      <ResearchSession studyId="STU-1">
+        <ResearchScreen step={step} frame={TEST_FRAME} />
+      </ResearchSession>
+    );
+    const { rerender } = render(at("brief"));
+    fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA odmítla" } });
+    // The debounced save meets the newer revision while the person is still on the brief.
+    expect(await screen.findByText(t("research.saveConflict"), {}, { timeout: 4000 })).toBeTruthy();
+    rerender(at("run"));
+    expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
+    expect(screen.getAllByText(CONFLICT_MESSAGE).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: t("research.exec.start") })).toBeNull();
+    // The refused copy is not saved again, not made a revision, not run.
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+
+    // What the person can do: load the version AIA holds; Run then prepares that one.
+    served = { ...served, revision: 4, revision_id: "REV-4", content: { ...PROJECT, goal: "Cíl, který uložil kolega" } };
+    fireEvent.click(screen.getByRole("button", { name: t("research.saveReload") }));
+    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
+    expect((submitted.body as { content: { goal: string } }).content.goal).toBe("Cíl, který uložil kolega");
+    expect(called("GET", CONTENT_PATH)).toHaveLength(2);
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+  }, 15_000);
+
+  it("submits nothing when the save before it fails, and says why", async () => {
+    api({
+      "PUT /api/v1/studies/STU-1/workspace/content": () =>
+        new Response(JSON.stringify({ code: "internal_error", message: "Obsah se teď nepodařilo uložit.", details: {} }), { status: 500 }),
+    });
+    const at = (step: "brief" | "run") => (
+      <ResearchSession studyId="STU-1">
+        <ResearchScreen step={step} frame={TEST_FRAME} />
+      </ResearchSession>
+    );
+    const { rerender } = render(at("brief"));
+    fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA neuložila" } });
+    rerender(at("run")); // before the 1.8 s autosave
+    expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
+    expect(screen.getAllByText("Obsah se teď nepodařilo uložit.").length).toBeGreaterThan(0);
+    expect(screen.getByText(t("research.saveFailed"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("research.saveRetry") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.start") })).toBeNull();
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+  });
+
   it("cannot start a design that fails a check", async () => {
     api({
       "GET /api/v1/studies/STU-1/research/readiness": () => ({
@@ -169,14 +266,14 @@ describe("Run", () => {
         checks: [{ id: "conditional_questions", status: "FAIL", message: "Podmíněné otázky AIA zatím neumí." }],
       }),
     });
-    render(<ResearchScreen projectId="PRJ-1" step="run" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.exec.notReady"))).toBeTruthy();
     expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("lets a reader see the latest revision's checks, but not write a revision or start", async () => {
     api();
-    render(<ResearchScreen projectId="PRJ-1" step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    render(<ResearchScreen step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);
     expect(await screen.findByText("Revize návrhu 2")).toBeTruthy();
     expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
     expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-old");
@@ -188,7 +285,7 @@ describe("Run", () => {
 describe("Progress", () => {
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
     api(listed(PARKED));
-    render(<ResearchScreen projectId="PRJ-1" step="progress" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení/)).toBeTruthy();
     const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
     expect(steps.map((li) => li.textContent)).toEqual([
@@ -209,7 +306,7 @@ describe("Progress", () => {
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/cancel": () => ({ ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true }),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
     });
-    render(<ResearchScreen projectId="PRJ-1" step="progress" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.cancel") }));
     fireEvent.click(await screen.findByRole("button", { name: "OK" }));
     expect(await screen.findByText("Zrušeno")).toBeTruthy();
@@ -226,7 +323,7 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
     });
-    render(<ResearchScreen projectId="PRJ-1" step="results" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
     const q2 = await screen.findByRole("region", { name: "q2" });
     expect(within(q2).getByText("34,8 %")).toBeTruthy();
@@ -236,16 +333,20 @@ describe("Results", () => {
     expect(within(t1).queryByText("3,73")).toBeNull();
     expect(within(t1).queryByText(/3,25/)).toBeNull();
     expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
+    // What 18.6.6's map tool did and AIA does not is said where the map is.
+    expect(screen.getByText(t("research.exec.results.mapToolNotInAia"))).toBeTruthy();
     const map = screen.getByRole("region", { name: "Nápoje" });
     expect(within(map).getByText("Káva")).toBeTruthy();
     expect(within(map).getByText("6,14")).toBeTruthy();
     expect(screen.getAllByText(/Artefakt ART-4/).length).toBe(1);
-    expect(screen.getByRole("link", { name: /Analytický report 18\.6\.6/ }).getAttribute("href")).toBe("/classic#aia:open=PRJ-1@results");
+    // No hand-off to 18.6.6: the report AIA does not have yet is said, not linked (ADR 0018).
+    expect(screen.queryByRole("link", { name: /18\.6\.6/ })).toBeNull();
+    expect(screen.getByText(t("research.exec.results.reportNotInAia"))).toBeTruthy();
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {
     api(listed(PARKED));
-    render(<ResearchScreen projectId="PRJ-1" step="results" frame={TEST_FRAME} />);
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.exec.noResultsParked"))).toBeTruthy();
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts")).toHaveLength(0);
   });
@@ -257,7 +358,7 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () =>
         new Response('{"code":"insufficient_role","message":"Not permitted."}', { status: 403 }),
     });
-    render(<ResearchScreen projectId="PRJ-1" step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
     expect(await screen.findByRole("region", { name: "q2" })).toBeTruthy();
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5")).toHaveLength(1));
     expect(screen.queryByText(/Interní: metodika Sociomapy/)).toBeNull();
