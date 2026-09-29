@@ -9,10 +9,19 @@ a refusal, and there is nothing to change.
 
 Secrets are reduced to *configured / not configured*. The database URL is
 reported only as its backend, never as a string that could carry a password.
+
+What powers AIA's model calls is ``ai_runtime``: the one native provider, how the
+worker authenticates, and each native AI activity with its capabilities, versions
+and switches -- all from code. It never says a switch is on (the API cannot see the
+worker's environment; the web's ``/config`` shows it) and never that a route is
+connected or verified: nothing here calls a model. The prototype's provider fields
+and defaults are in ``ai_history``, so older records stay readable without being
+offered as a choice.
 """
 
 from __future__ import annotations
 
+from aia_core.domain import ai_respondent
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.evidence import REFERENCE_THRESHOLDS, TIER_PERMITS
 from aia_core.domain.pipeline import RESEARCH_STAGES, SIMULATION_STAGES
@@ -22,11 +31,13 @@ from aia_core.domain.providers import (
     DEFAULT_MAX_API_COST_USD,
     DEFAULT_POLICY,
     DEFAULT_PROVIDER,
+    NATIVE_PROVIDERS,
     Provider,
     ProviderPolicy,
     is_paid,
     ui_label,
 )
+from aia_core.domain.research_agents import HARNESS_VERSION, ResearchAction
 from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import (
     DEFAULT_SELF_APPROVAL_ALLOWED,
@@ -43,6 +54,7 @@ from aia_core.domain.workflow import (
     DEFAULT_MAX_ATTEMPTS,
     DEFAULT_QUOTA_FALLBACK_SECONDS,
 )
+from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_KINDS
 from fastapi import APIRouter
 
 from ..config import Settings
@@ -50,8 +62,13 @@ from ..dependencies import OrganizationDep, SettingsDep
 from ..schemas.projects import ErrorResponse
 from ..schemas.settings import (
     LabelledValue,
+    NamedValue,
+    NativeActivity,
+    NativeRuntime,
     ProviderEntry,
+    ProviderUse,
     RolePermissions,
+    RuntimeCredential,
     SettingControl,
     SettingGroup,
     SettingItem,
@@ -71,6 +88,14 @@ _API = SettingControl.API
 _DEPLOYMENT = SettingControl.DEPLOYMENT
 _CODE = SettingControl.CODE
 _INVARIANT = SettingControl.INVARIANT
+
+_PROJECT_PATCH = "PATCH /api/v1/studies/{study_id}/projects/{project_id}"
+
+# The worker's switches (apps/executors/src/aia_executors/ai_runtime.py). Named, not
+# read: the API's environment does not carry them. test_settings_presentation.py
+# holds each name to the variable the worker reads and Compose passes.
+_RUNTIME_SWITCH = "AIA_AI_RUNTIME_ENABLED"
+_DESIGN_SWITCH = "AIA_AI_RESEARCH_AGENTS_ENABLED"
 
 
 def _item(
@@ -168,20 +193,6 @@ def _groups() -> list[SettingGroup]:
                 _item("studies", None, _API, "POST /api/v1/studies"),
                 _item("study_status", None, _API, "PUT /api/v1/studies/{study_id}/status"),
                 _item("study_budget", None, _API, "PUT /api/v1/studies/{study_id}/budget", "USD"),
-                _item(
-                    "default_project_max_api_cost",
-                    DEFAULT_MAX_API_COST_USD,
-                    _CODE,
-                    "aia_core.domain.providers:DEFAULT_MAX_API_COST_USD",
-                    "USD",
-                ),
-                _item(
-                    "project_max_api_cost",
-                    None,
-                    _API,
-                    "PATCH /api/v1/studies/{study_id}/projects/{project_id}",
-                    "USD",
-                ),
                 _item("no_spend_past_budget", True, _INVARIANT, "ARCHITECTURE.md §10"),
             ],
         ),
@@ -201,13 +212,28 @@ def _groups() -> list[SettingGroup]:
             key="ai",
             items=[
                 _item(
-                    "default_provider",
+                    "single_model_call_path",
+                    True,
+                    _INVARIANT,
+                    "docs/architecture/adr/0005-llm-gateway.md",
+                ),
+                _item("no_silent_provider_fallback", True, _INVARIANT, "ARCHITECTURE.md §10"),
+                _item("configuration_is_not_verification", True, _INVARIANT, "ARCHITECTURE.md §2"),
+            ],
+        ),
+        # The generic project model's provider fields, carried from the prototype.
+        # Still stored and still readable; no native run reads any of them.
+        SettingGroup(
+            key="ai_history",
+            items=[
+                _item(
+                    "project_default_provider",
                     DEFAULT_PROVIDER.value,
                     _CODE,
                     "aia_core.domain.providers:DEFAULT_PROVIDER",
                 ),
                 _item(
-                    "default_provider_policy",
+                    "project_default_provider_policy",
                     DEFAULT_POLICY.value,
                     _CODE,
                     "aia_core.domain.providers:DEFAULT_POLICY",
@@ -216,15 +242,16 @@ def _groups() -> list[SettingGroup]:
                     "project_provider_policy",
                     None,
                     _API,
-                    "PATCH /api/v1/studies/{study_id}/projects/{project_id}",
+                    _PROJECT_PATCH,
                 ),
                 _item(
-                    "single_model_call_path",
-                    True,
-                    _INVARIANT,
-                    "docs/architecture/adr/0005-llm-gateway.md",
+                    "default_project_max_api_cost",
+                    DEFAULT_MAX_API_COST_USD,
+                    _CODE,
+                    "aia_core.domain.providers:DEFAULT_MAX_API_COST_USD",
+                    "USD",
                 ),
-                _item("no_silent_provider_fallback", True, _INVARIANT, "ARCHITECTURE.md §10"),
+                _item("project_max_api_cost", None, _API, _PROJECT_PATCH, "USD"),
             ],
         ),
         SettingGroup(
@@ -370,6 +397,61 @@ def _groups() -> list[SettingGroup]:
     ]
 
 
+def _provider(provider: Provider) -> ProviderEntry:
+    return ProviderEntry(
+        id=provider.value,
+        label=ui_label(provider),
+        paid=is_paid(provider),
+        use=ProviderUse.NATIVE if provider in NATIVE_PROVIDERS else ProviderUse.HISTORICAL,
+    )
+
+
+def _native_runtime() -> NativeRuntime:
+    """What AIA's runtime calls, how, and for what: code facts only.
+
+    Each activity's capabilities are the ones its agent definition asks for
+    (``ai_respondent.respondent_agent``, ``research_agents.agent_request``) and the
+    worker's composition binds (``apps/executors/src/aia_executors/ai_runtime.py``);
+    the tests hold all three to each other, so a new binding cannot reach the worker
+    unlisted here.
+    """
+    fieldwork = NativeActivity(
+        key="respondent_fieldwork",
+        step_kind=RESEARCH_KINDS["run"],
+        capabilities=[ModelCapability.SIMULATION.value],
+        versions=[
+            NamedValue(name="generator", value=ai_respondent.GENERATOR),
+            NamedValue(
+                name="agent", value=f"{ai_respondent.AGENT_ID}@{ai_respondent.AGENT_VERSION}"
+            ),
+            NamedValue(
+                name="prompt", value=f"{ai_respondent.PROMPT_ID}@{ai_respondent.PROMPT_VERSION}"
+            ),
+            NamedValue(name="contract", value=ai_respondent.CONTRACT_VERSION),
+            NamedValue(name="roster", value=ai_respondent.ROSTER_VERSION),
+        ],
+        switches=[_RUNTIME_SWITCH],
+        actions=[],
+    )
+    design = NativeActivity(
+        key="design_agents",
+        step_kind=RESEARCH_AGENT,
+        capabilities=[ModelCapability.RESEARCH_REASONING.value, ModelCapability.CRITIC.value],
+        versions=[NamedValue(name="harness", value=HARNESS_VERSION)],
+        switches=[_RUNTIME_SWITCH, _DESIGN_SWITCH],
+        actions=[a.value for a in ResearchAction],
+    )
+    activities = [fieldwork, design]
+    used = {c for activity in activities for c in activity.capabilities}
+    return NativeRuntime(
+        providers=[_provider(p) for p in Provider if p in NATIVE_PROVIDERS],
+        credential=RuntimeCredential.INSTANCE_ROLE,
+        switch=_RUNTIME_SWITCH,
+        activities=activities,
+        unused_capabilities=[c.value for c in ModelCapability if c.value not in used],
+    )
+
+
 def _vocabularies() -> Vocabularies:
     return Vocabularies(
         organization_roles=[r.value for r in OrganizationRole],
@@ -383,7 +465,7 @@ def _vocabularies() -> Vocabularies:
         permissions=[p.value for p in Permission],
         client_statuses=[s.value for s in ClientStatus],
         study_statuses=[s.value for s in StudyStatus],
-        providers=[ProviderEntry(id=p.value, label=ui_label(p), paid=is_paid(p)) for p in Provider],
+        providers=[_provider(p) for p in Provider],
         provider_policies=[p.value for p in ProviderPolicy],
         model_capabilities=[c.value for c in ModelCapability],
         data_classes=[c.value for c in DataClass],
@@ -399,7 +481,8 @@ def get_settings_document(admin: OrganizationDep, settings: SettingsDep) -> Sett
     Any organization member may read it. The deployment group, which describes the
     deployment's security posture, is included only for OWNER and ADMIN. Its values
     are the ones this application was built with (``SettingsDep`` reads
-    ``app.state.settings``), not a fresh read of the environment.
+    ``app.state.settings``), not a fresh read of the environment. ``ai_runtime``
+    holds no secret, route id, price or client: every member may read it.
     """
     groups = _groups()
     if admin.may_administer:
@@ -409,5 +492,6 @@ def get_settings_document(admin: OrganizationDep, settings: SettingsDep) -> Sett
         your_role=admin.organization_role.value,
         may_administer=admin.may_administer,
         groups=groups,
+        ai_runtime=_native_runtime(),
         vocabularies=_vocabularies(),
     )

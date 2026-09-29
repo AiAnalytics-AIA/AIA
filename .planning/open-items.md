@@ -2417,6 +2417,108 @@ product runs no unit and kept its volume*).
 
 ---
 
+## OI-72 · Finding, fixed in code · Settings said AIA runs on the Claude Code subscription
+
+**Claim.** `GET /api/v1/settings` presented `claude_code_subscription` under `CLAUDE_CODE_ONLY`
+as AIA's AI default, listed the prototype's providers and policies as choices, and offered a
+project provider policy and a per-project API ceiling "on the project screen", while the worker
+builds exactly one provider, Bedrock, and holds native spend to the Study budget.
+
+**Anchor.** `apps/api/src/aia_api/routers/settings.py:172-184, 204-220, 386-387 @ ceee2dc`;
+`apps/web/src/components/aia/settings/ControlPanel.tsx:135-147, 489-517 @ ceee2dc`;
+the card above it, `apps/web/src/components/aia/GlobalPages.tsx:110-124 @ ceee2dc`
+("Připojení spravuje AIA" whatever the switch said). The worker's one provider:
+`apps/executors/src/aia_executors/ai_runtime.py:259-298 @ ceee2dc`.
+
+**Reproduction.** `apps/api/tests/test_settings_api.py` ›
+`test_no_native_choice_or_default_is_spelled_as_the_prototype` fails against the router
+@ `ceee2dc`; on develop, the *AI poskytovatelé a modely* section of `/app/settings`.
+
+**Consequence.** A researcher reading Settings was told AIA needs a Claude Code subscription
+and that project fields steer model choice and spend; neither is true of a native run.
+
+**Smallest fix.** Describe the native runtime from code, show the switches from `/config`,
+never claim a connection, and keep the prototype's identifiers as history
+([plan](plans/truthful-ai-controls.md)).
+
+**Test that would have caught it.** The test above;
+`test_the_runtime_is_bedrock_from_code_and_claims_no_connection`;
+`apps/executors/tests/test_settings_presentation.py`; `ControlPanel.test.tsx` › *what powers AIA*.
+
+**Status.** Fix in code on `fix/truthful-ai-controls` (draft PR). Not merged, not deployed.
+
+---
+
+## OI-73 · Handoff · Research editing and the classic projects screen still speak the subscription runtime
+
+**Claim.** The research stages' unit-backed jobs, their store and the classic projects screen
+still label or write work in the prototype's subscription terms: the job cost line
+"subscription · API $0 · tokeny po dokončení", the pause note "Čekám na dostupnost Claude
+Pro.", `run_policy.provider = "claude_code_subscription"` written into the unit's project, the
+provider tag "Claude Code" and "Projekt čeká na obnovení Claude Code kreditů".
+
+**Anchor.** `apps/web/src/unit/research/jobs.ts:86-87, 137 @ ceee2dc` (imported by
+`components/rehome/research/JobPanel.tsx`); `unit/research/model.ts:61` (`PROVIDER_FORCED`),
+`unit/research/brief.ts:141, 176`, `unit/research/questionnaire.ts:359-393`,
+`unit/research/store.ts:49`; `unit/projects.ts:239, 247`,
+`components/rehome/projects/ProjectCard.tsx:46`; the unused rail labels
+`rehome.navSettingsClaude`, `rehome.statusClaude` (`i18n/cs.ts:468, 471 @ ceee2dc`).
+
+**Reproduction.** `grep -rn 'claude_code\|Claude Pro\|subscription · API' apps/web/src/unit apps/web/src/components/rehome`.
+
+**Consequence.** Wherever a stage still follows a unit job, a researcher can see subscription
+wording that Settings no longer uses; the unit's stored project names a provider no native
+run reads.
+
+**Smallest fix.** Owned by the phase-out agent (research draft serialization, classic
+screens, legacy navigation): drop the subscription branches when each stage leaves the
+unit's store (OI-58), and delete the two unused rail labels.
+
+**Test that would have caught it.** A text check like `ControlPanel.test.tsx`'s `OVERCLAIM` /
+`LOGIN` patterns over the research job panel.
+
+**Status.** Open. Found by the truthful-ai-controls audit, deliberately not edited there.
+
+---
+
+## OI-74 · Question · The generic project API still stores provider fields no native run reads
+
+**Claim.** `PATCH /api/v1/studies/{study_id}/projects/{project_id}` still accepts and stores
+`preferred_provider`, `provider_policy` and `max_api_cost_usd`; no native execution path reads
+them (native models come from the worker's policy, native spend from the Study budget).
+
+**Anchor.** `apps/api/src/aia_api/schemas/projects.py:31-35 @ ceee2dc`;
+`packages/aia_core/src/aia_core/infrastructure/repositories.py:532-577 @ ceee2dc`.
+
+**Reproduction.** `grep -rn "max_api_cost\|provider_policy\|preferred_provider" apps/*/src packages/aia_core/src/aia_core/application`
+finds the project repository and schema only.
+
+**Consequence.** An API client can set a value that looks like a control and changes nothing;
+Settings now says so (`ai_history`), but the route still accepts it.
+
+**Question.** Freeze them (read-only, kept for persisted projects) or retire them from the
+request schema? Owner: whoever owns the generic projects API. Not a blocker for anything.
+
+---
+
+## OI-75 · Question · Should Settings show recorded evidence that the runtime answered?
+
+**Claim.** Settings can say a capability is switched on in configuration, never that it works:
+the only truthful *verified* signal without a probe is the usage ledger's last `SUCCEEDED`
+call per activity, and reading it for Settings would be an organization-wide query across
+every client's studies.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/tables.py:1203-1290 @ ceee2dc`
+(`ai_usage_events` carries `organization_id`, `capability`, `model`, `route_id`, `outcome`);
+`ARCHITECTURE.md` §3 ("only the work queue may query across studies").
+
+**Question.** Is an aggregate (last success time, model and build per activity, no client or
+study identifiers, owners and admins only) an acceptable second cross-study read, or does
+evidence stay on each Study's runs? Until decided, Settings says *Neověřeno* and points at the
+runs. Data owner + integration-architecture.
+
+---
+
 ## OI-76 · Finding, fixed · Native Research screen tests fail on a /config failure an earlier test left cached
 
 *Filed as "Observed flake · Native research-agent screen tests outrun their 15 s budget under
@@ -2564,6 +2666,6 @@ session of their own (`apps/api/tests/conftest.py` › `artifact_status`), not o
 the worker, the reproduction as an executor test: the stored status after the failed step, and a
 retried run that recomputes the spec.
 
-**Status.** API half fixed in code: PR #84 (ready after conflict resolution, 2026-09-27), both artifact routes and the
+**Status.** API half merged: PR #84 (`8c13a11`, 2026-09-27), both artifact routes and the
 proposal routes. Worker half open. It is not fixed there because it needs the failure-class
 decision and, for design jobs, a decision to spend on a recompute.

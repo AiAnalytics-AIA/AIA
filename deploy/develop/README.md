@@ -507,11 +507,17 @@ reference-side act, with the reference unit stopped (`deploy/reference/README.md
 
 ### AI settings
 
-`/app/settings` displays Bedrock configuration from the web container's nonsecret
-runtime environment through `/config`. It has no provider login, direct API-key
-field, selector or paid test button, and no 18.6.6 settings page is reachable from the
-product (ADR 0018 decision 4). The currently enabled capability is fictional,
-internal-only respondent fieldwork; research design generation remains unmigrated.
-The switch is read with the worker's vocabulary (`1`/`true`/`yes`/`on`); a value the
-worker refuses is shown as invalid, not as off. This display is not a live health probe. Historical provider labels in archived
-projects remain historical metadata, not connection controls.
+`/app/settings` has one AI section. What powers AIA comes from code, in the
+settings document's `ai_runtime`: Bedrock, the instance-role credential, and each
+native activity with its capabilities, versions and switches. The switches, region,
+model and approved data classes come from the web container's nonsecret runtime
+environment through `/config`. It has no provider login, direct API-key field,
+selector or paid test button. No 18.6.6 settings page is reachable from the
+product (ADR 0018 decision 4). On develop the enabled capability is fictional, internal-only
+respondent fieldwork; native design proposals are implemented and off
+(`AIA_AI_RESEARCH_AGENTS_ENABLED`). Each switch is read with the worker's vocabulary
+(`1`/`true`/`yes`/`on`); a value the worker refuses is shown as invalid, not as off,
+and with the runtime on it stops the whole worker. This display is not a live health
+probe and never says connected or verified. Historical provider labels in archived
+projects remain historical metadata, listed under a collapsed history, not
+connection controls.
