@@ -210,11 +210,14 @@ validation (only support and suppression), verification or alignment.
 
 None open. Building PR B against this contract found two defects in it: a reused
 specification and a reused aggregate, each refused as not the run's own. Codex found three
-more, two on #76 and one on #80. The fix for #80's is on this branch too: in `1caa26f`, a
-corrupt source is refused by its reason, without its storage key
-(`test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`). Each was reproduced
-by a test that failed first, then fixed here. The first four are listed with their tests
-under *Chunks* (5) and *Review outcome*. PR A closes and changes no existing OI.
+more, two on #76 and one on #80. #80's is fixed in two places: PR A's `1caa26f` refuses a
+corrupt source by its reason, without its storage key, and PR B's `5372bdb` keeps its CORRUPT
+mark (`test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`,
+`test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt`). Each was reproduced
+by a test that failed first, then fixed. All five are listed with their tests under
+*Chunks* (5) and *Review outcome*. PR A closes and changes no existing OI. PR B changes one:
+OI-77, whose worker half the analysis executor now meets (the text is under *Doc
+follow-up*, PR B).
 
 ## Doc follow-up
 
@@ -287,6 +290,89 @@ closed on a missing status.":
 
 **`.planning/overview.md`.** A row for #76 in *Open pull requests*, from its description.
 Nothing else: this feature's status is the front-matter above.
+
+### PR B (#80)
+
+**`CLAUDE.md` § 2, the map.** Under `apps/executors/src/aia_executors/`, after
+`ai_fieldwork.py`:
+
+```text
+    analysis.py             research_analysis: one module per step over StepModelCaller; preflight
+                            BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
+                            twice), AnalysisConfig.from_settings; registered by no composition yet
+```
+
+**`ARCHITECTURE.md` § 4.** In PR A's bullet *A native run's analysis is internal, and an
+outcome is re-admitted whenever it is read*, the last line
+``  through the gate again, so a file cannot mint an `AdmittedClaim`.`` becomes:
+
+```markdown
+  through the gate again, so a file cannot mint an `AdmittedClaim`. The executor
+  (`aia_executors/analysis.py`) runs one module per step: what code can refuse is stored
+  `BLOCKED` before anything is reserved, a gate refusal after three turns is an outcome
+  too, and a provider failure is never one -- it goes back to the worker's recovery rules.
+```
+
+**`AGENTS.md`**, a new section at the end:
+
+````markdown
+## Research artifacts are reused by fingerprint, so an upstream id is not the run's own
+
+`ArtifactRepository.put` returns an existing valid artifact whose input fingerprint
+matches, across revisions. The research steps key on what they compute from: compile on
+the design's *content*, fieldwork and aggregate on the *specification's fingerprint*. So
+a run's recorded upstream artifacts need not be the ones its own revision would have
+named. A design edited and edited back runs on the first revision's specification
+artifact (its payload names revision 1); a design edited only outside its questionnaire
+(its research questions) compiles to a new specification artifact but reuses the earlier
+run's dataset and aggregate, whose dependency is the *earlier* specification artifact.
+Both were refused by the first version of `native_sources`
+(`test_a_specification_reused_from_an_identical_revision_is_the_runs_own`,
+`test_an_aggregate_reused_over_the_same_questionnaire_is_the_runs_own`, and end to end
+`test_changed_research_questions_run_every_module_again_over_the_reused_aggregate`).
+
+```python
+# WRONG: ids. Refuses every run whose steps reused an artifact.
+assert spec_payload["design_revision_id"] == run_revision_id
+assert {spec_id, dataset_id} <= aggregate_dependency_ids
+
+# RIGHT: what the step reused on. Same content, same specification fingerprint.
+assert same_content(spec_payload["design_revision_id"], run_revision_id)
+assert dataset_id in aggregate_dependency_ids
+assert any(dep_spec.fingerprint() == spec.fingerprint() for dep_spec in aggregate_spec_deps)
+```
+
+Anything that stores a result over a run's artifacts and reads it back -- an analysis
+outcome, a report -- compares sources by content (`ModuleSources.content()`), keeping the
+ids only as provenance of where it was computed.
+````
+
+**`.planning/open-items.md`**, OI-77's **Status.** paragraph. After "…and, for design jobs,
+a decision to spend on a recompute.", add:
+
+```markdown
+The native analysis
+executor (#80) keeps the mark already. Every source refusal, `source_corrupt` included, is
+returned from inside its transaction as `SCHEMA_VIOLATION`, the class it gives every
+other source refusal, and the message names no storage key
+(`test_analysis_executor.py::test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt`,
+`test_analysis_results.py::test_a_corrupt_source_is_refused_by_reason_without_its_storage_key`).
+The recompute question belongs to the step that produced the artifact, not to that reader.
+If the decision picks another class, `_sources_refused` in `aia_executors/analysis.py` is the
+one place to change.
+```
+
+**`.planning/overview.md`.** Four rows in *Decisions needed*, after DR-4:
+
+```markdown
+| ANL-1 | **The instrument evidence policy.** Approve (or replace) `aia-instrument-evidence-1` for internal interpretation of simulated respondents, and decide whether any instrument evidence may ever be client-facing, and on what origin. Methodology owner | Reading analysis outcomes as anything but internal and fictional | `domain/evidence/instrument.py` · [plan](plans/evidence-backed-analysis.md) |
+| ANL-2 | **Should thin support pause analysis for a person** (`donor_qc`'s `review_if_warning`), or is per-row suppression enough | A review gate before the analysis nodes | `legacy/npc-panel-18.6.6/app/worker_job.py:558-566` · [plan](plans/evidence-backed-analysis.md) |
+| ANL-3 | **Port run QC (`qc.kontrola`)** with its author-calibrated thresholds as warnings, as gates, or not at all | `analysis.qc` | `legacy/npc-panel-18.6.6/app/qc.py:24`, `:70-262` |
+| ANL-4 | **Must every key finding cite evidence, and must a module state a finding?** The unit refused an analysis where fewer than 95 % of findings cited evidence, or with none; AIA admits both | Parity of the analysis gate's two looser cases | `test_analysis_gate_parity.py` cases `finding-without-evidence`, `no-finding-at-all` |
+```
+
+And a row for #80 in *Open pull requests*, from its description. Nothing else: this
+feature's status is the front-matter above.
 
 ## Review outcome
 
