@@ -1,9 +1,9 @@
 "use client";
 
-// The rebuilt interface's primitives. Token utilities only (bg-surface, text-ink,
+// AIA's interface primitives. Token utilities only (bg-surface, text-ink,
 // border-border-strong, rounded-sm/md = 2/4 px): no raw colour, radius, shadow
 // or font here or in anything built on them. Components map a value to an
-// appearance; what the value is, src/unit/ decides.
+// appearance; what the value is, the logic beside each screen decides.
 
 import {
   type ButtonHTMLAttributes, type ComponentProps, type ReactNode, type SelectHTMLAttributes,
@@ -11,8 +11,7 @@ import {
   useLayoutEffect, useRef, useState,
 } from "react";
 
-import { rememberReturn } from "@/lib/interface-handoff";
-import type { Tone } from "@/unit/projects";
+import type { Tone } from "@/lib/tone";
 import { t } from "@/i18n/t";
 import { Icon, type IconName } from "./icons";
 
@@ -41,29 +40,6 @@ export function Button({ variant = "secondary", small = false, icon, children, t
       {icon ? <Icon name={icon} size={small ? 14 : 16} /> : null}
       {children}
     </button>
-  );
-}
-
-/**
- * A link out of AIA into the classic interface (ADR 0015): a full document load
- * (not next/link), marked with the external glyph and said aloud, so a person
- * always knows which interface they are about to be in -- and the page it
- * leaves is remembered, for the classic page's "Zpět do AIA".
- */
-export function ClassicLink({ href, children, variant = "quiet", small = false, icon }: {
-  href: string; children: ReactNode; variant?: keyof typeof VARIANT; small?: boolean; icon?: IconName;
-}) {
-  return (
-    <a
-      href={href}
-      onClick={() => rememberReturn(window.location.pathname + window.location.search)}
-      className={`inline-flex items-center gap-1.5 rounded-sm border font-medium whitespace-nowrap no-underline ${small ? "min-h-7 px-2 text-xs" : "min-h-9 px-3 text-sm"} ${VARIANT[variant]} ${FOCUS}`}
-    >
-      {icon ? <Icon name={icon} size={small ? 14 : 16} /> : null}
-      {children}
-      <Icon name="external" size={12} className="opacity-60" />
-      <span className="sr-only"> ({t("rehome.inClassic")})</span>
-    </a>
   );
 }
 
@@ -193,10 +169,10 @@ function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: strin
       ) : null}
       <div className="flex justify-end gap-2">
         <Button variant="quiet" onClick={() => finish(false, value)}>
-          {t("projects.cancel")}
+          {t("dialog.cancel")}
         </Button>
         <Button variant="primary" type="submit" autoFocus={ask.kind === "confirm"}>
-          {t("projects.ok")}
+          {t("dialog.ok")}
         </Button>
       </div>
     </form>

@@ -185,8 +185,8 @@ def principal_from_credential(
     """Verify a credential and bind it to an AIA user record, or raise.
 
     The one place a raw credential becomes a principal: a bearer token on an API
-    call and the legacy-panel session cookie (ADR 0012) take the same path, so a
-    rule added here applies to both.
+    call and AIA's session cookie (ADR 0018) take the same path, so a rule added
+    here applies to both.
 
     ``organization_id`` comes from the user's membership, and ``organization_hint``
     (``X-AIA-Org``) only disambiguates when they belong to several. It is never

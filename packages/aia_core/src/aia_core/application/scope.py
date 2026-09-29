@@ -24,7 +24,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..domain.scope import (
-    LEGACY_PANEL_ROLES,
     ClientContext,
     ClientGrant,
     ClientPermission,
@@ -177,7 +176,8 @@ class ScopeResolver:
         person's own token, where each client and study is authorized again by
         :meth:`study_context` and :meth:`client_context`. ``audit`` records the
         decision; the session is opened with it on, and the per-request gate
-        re-checks with it off, as :meth:`authorize_legacy_panel` does.
+        re-checks with it off, because a record per asset and API call of one
+        page would drown every other entry.
         """
         try:
             context = self.organization_context(principal)
@@ -187,35 +187,6 @@ class ScopeResolver:
             raise
         if audit:
             self._record(principal, action="AIA_SESSION", role=context.organization_role.value)
-        return context
-
-    def authorize_legacy_panel(
-        self, principal: AuthenticatedPrincipal, *, audit: bool
-    ) -> OrganizationContext:
-        """Admit a principal to the vendored 18.6.6 interface, or deny (ADR 0012).
-
-        Only an active member whose organization role is in
-        :data:`LEGACY_PANEL_ROLES` is admitted. ``audit`` records the decision in
-        the access audit; the session is opened with it on, and the per-request
-        gate re-checks with it off, because a record per asset and API call of one
-        page would drown every other entry.
-        """
-        context = self.organization_context(principal)
-        if context.organization_role not in LEGACY_PANEL_ROLES:
-            if audit:
-                self._record(
-                    principal,
-                    action="LEGACY_PANEL_DENIED",
-                    role=context.organization_role.value,
-                    reason="organization_role",
-                )
-            raise ScopeDenied("not found", reason="legacy_panel_role")
-        if audit:
-            self._record(
-                principal,
-                action="LEGACY_PANEL_SESSION",
-                role=context.organization_role.value,
-            )
         return context
 
     def study_context(

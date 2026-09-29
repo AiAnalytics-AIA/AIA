@@ -12,7 +12,7 @@ PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
 .PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-workspace \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
 
@@ -97,16 +97,16 @@ parity-status: ## Parity verdict per capability, from a fresh run of every suite
 test-web: ## Web client tests
 	@cd apps/web && npm test --if-present
 
-ui-workbench: ## AIA's client-first interface + the classic 18.6.6 one on this machine (fictional panel): 127.0.0.1:8780
+ui-workbench: ## AIA's client-first interface on this machine, nothing of 18.6.6 (ADR 0018): 127.0.0.1:8780
 	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up
 
-ui-workbench-aia: ## AIA alone, the 18.6.6 unit not started (its paths answer 502): 127.0.0.1:8780
-	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up --no-unit
+ui-workbench-reference: ## The same, with the 18.6.6 unit beside it at :8767 to compare a screen with (fictional panel)
+	@AIA_API_PYTHON=$${AIA_API_PYTHON:-$(PY)} python3 tools/ui_workbench/workbench.py up --with-unit
 
-ui-workbench-status: ## Is the UI workbench running, and is the skin applied?
+ui-workbench-status: ## Is the UI workbench running, and do the API and /app answer?
 	@python3 tools/ui_workbench/workbench.py status
 
-ui-capture: ## Screenshot every screen of the workbench, bare and skinned -> tmp/ui-workbench/shots/<time>/index.html
+ui-capture: ## Screenshot every AIA screen, and the unit's as shipped -> tmp/ui-workbench/shots/<time>/index.html
 	@node tools/ui_workbench/capture.mjs
 
 ui-fixtures: ## Write the workbench's fictional research projects (the screens that show an AI answer)
@@ -115,7 +115,7 @@ ui-fixtures: ## Write the workbench's fictional research projects (the screens t
 ui-research: ## One research run end to end in a browser on the workbench: Run -> Progress -> Results (fictional fieldwork)
 	@node tools/ui_workbench/research_journey.mjs
 
-ui-workspace: ## A study's working content in a browser on AIA alone: brief file, template import, audience, dimensions (needs ui-workbench-aia + ui-fixtures)
+ui-workspace: ## A study's working content in a browser on AIA alone: brief file, template import, audience, dimensions (needs ui-workbench + ui-fixtures)
 	@node tools/ui_workbench/workspace_journey.mjs
 
 ui-workbench-down: ## Stop the UI workbench
@@ -125,8 +125,8 @@ report-preview: ## Render the four report samples DOCX -> PDF -> PNG (needs libr
 	@$(PY) tools/report_preview.py --samples --grey
 	@$(PY) tools/report_preview.py --samples --stress
 
-web_design: ## Design tokens and the 18.6.6 skin: generated files current, contrast / palette / accent evidence holds
-	@cd apps/web && npm run tokens:check && npm run skin:check && npm run check:design
+web_design: ## Design tokens: generated files current, contrast / palette / accent evidence holds
+	@cd apps/web && npm run tokens:check && npm run check:design
 
 lint: ## Lint Python and the web client
 	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations

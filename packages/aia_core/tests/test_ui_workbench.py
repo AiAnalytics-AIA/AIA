@@ -1,8 +1,10 @@
 """The UI workbench's facade routes like the develop Caddyfile (tools/ui_workbench).
 
-The workbench is a local design tool, but its routing facts -- which paths the
-web client and the unit serve -- are read from the committed Caddyfile, so a
-wrong parse would quietly show a screen develop never serves. These tests pin
+The workbench is a local design tool, but it must route the way the product
+hostname does: the API on /api/v1, the web client for everything else -- the
+18.6.6 unit's old paths among them, which reach nothing of the unit (ADR 0018).
+The web client's matchers are read from the committed Caddyfile, so a Caddyfile
+that stopped sending AIA's pages to the web client fails here. These tests pin
 the parse against the real file and drive the facade against local stubs.
 """
 
@@ -37,8 +39,17 @@ def _load() -> ModuleType:
 facade = _load()
 CADDYFILE = (REPO / "deploy" / "develop" / "Caddyfile").read_text()
 PATTERNS: list[str] = facade.web_paths(CADDYFILE)
-UNIT_PATTERNS: list[str] = facade.unit_paths(CADDYFILE)
-RETIRED_PATTERNS: list[str] = facade.retired_paths(CADDYFILE)
+# The paths the unit answered on the product hostname before ADR 0018.
+UNIT_PATHS = (
+    "/api/bootstrap",
+    "/files/x",
+    "/artifacts/x",
+    "/project-attachments/x",
+    "/brand/logo.svg",
+    "/fullsim-arena",
+    "/health",
+    "/status",
+)
 
 
 def test_the_web_matcher_is_read_from_the_committed_caddyfile() -> None:
@@ -51,51 +62,44 @@ def test_the_web_matcher_is_read_from_the_committed_caddyfile() -> None:
 def test_a_caddyfile_without_the_matcher_is_refused() -> None:
     with pytest.raises(ValueError, match="/_next/"):
         facade.web_paths("example.test {\n\treverse_proxy web:3000\n}\n")
-    with pytest.raises(ValueError, match="/api/"):
-        facade.unit_paths("example.test {\n\treverse_proxy legacy-panel:8765\n}\n")
 
 
-def test_the_unit_matcher_is_the_one_the_route_check_holds_develop_to() -> None:
-    # tools/caddy_routes.py asserts the adapted develop config against UNIT_PATHS.
-    spec = importlib.util.spec_from_file_location(
-        "caddy_routes", REPO / "tools" / "caddy_routes.py"
-    )
-    assert spec and spec.loader
-    routes = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(routes)
-    assert set(UNIT_PATTERNS) == routes.UNIT_PATHS
+def test_the_facade_knows_no_unit() -> None:
+    # The Caddyfile routes nothing to the unit, so neither may the facade.
+    source = FACADE_PATH.read_text(encoding="utf-8")
+    assert "legacy-panel" not in source and "8767" not in source
 
 
 @pytest.mark.parametrize(
     ("path", "target", "upstream"),
     [
-        # AIA is the front door; the classic interface only when asked (ADR 0015).
+        # AIA is the front door (ADR 0015); the 18.6.6 interface is not served
+        # (ADR 0018): /classic is the web client's own page, the old document its 404.
         ("/", "redirect", "/app/clients"),
         ("/?lang=cs", "redirect", "/app/clients"),
-        ("/classic", "web", "/interface-document"),
-        ("/classic?lang=cs", "web", "/interface-document?lang=cs"),
-        ("/interface-document", "404", "/interface-document"),
-        ("/api/v1/panel/gate", "api", "/api/v1/panel/gate"),
+        ("/classic", "web", "/classic"),
+        ("/interface-document", "web", "/interface-document"),
         ("/api/v1/workspace/clients", "api", "/api/v1/workspace/clients"),
-        ("/api/bootstrap", "unit", "/api/bootstrap"),
-        ("/skin/skin.css?v=abc", "web", "/skin/skin.css?v=abc"),
+        # The unit's old paths are the web client's, like any other (ADR 0018).
+        ("/api/bootstrap", "web", "/api/bootstrap"),
+        ("/brand/logo.svg", "web", "/brand/logo.svg"),
+        ("/skin/fonts/IBMPlexSans-Regular.woff2", "web", "/skin/fonts/IBMPlexSans-Regular.woff2"),
         ("/_next/static/x.js", "web", "/_next/static/x.js"),
         ("/studies", "web", "/studies"),
-        ("/brand/logo.svg", "unit", "/brand/logo.svg"),
         ("/app", "web", "/app"),
         (
             "/app/clients/CLI-1/research/STU-1/brief",
             "web",
             "/app/clients/CLI-1/research/STU-1/brief",
         ),
-        # No catch-all to the unit: anything else is the web client's (its 404).
+        # Anything else is the web client's (its 404).
         ("/studies-archive", "web", "/studies-archive"),
         ("/apps", "web", "/apps"),
         ("/workbench/sign-in", "sign-in", "/workbench/sign-in"),
     ],
 )
 def test_routes_like_the_product_hostname(path: str, target: str, upstream: str) -> None:
-    assert facade.route(path, PATTERNS, UNIT_PATTERNS) == (target, upstream)
+    assert facade.route(path) == (target, upstream)
 
 
 def test_sign_in_puts_the_operators_session_in_the_tab_and_opens_the_directory() -> None:
@@ -133,23 +137,15 @@ def _serve(handler: type[BaseHTTPRequestHandler]) -> ThreadingHTTPServer:
 @pytest.fixture()
 def running() -> Iterator[int]:
     web = _serve(type("Web", (_Echo,), {"name": "web"}))
-    unit = _serve(type("Unit", (_Echo,), {"name": "unit"}))
     api = _serve(type("Api", (_Echo,), {"name": "api"}))
     handler = type(
         "F",
         (facade.Facade,),
-        {
-            "web": web.server_address[:2],
-            "unit": unit.server_address[:2],
-            "api": api.server_address[:2],
-            "patterns": PATTERNS,
-            "unit_patterns": UNIT_PATTERNS,
-            "retired_patterns": RETIRED_PATTERNS,
-        },
+        {"web": web.server_address[:2], "api": api.server_address[:2]},
     )
     front = _serve(handler)
     yield int(front.server_address[1])
-    for srv in (front, web, unit, api):
+    for srv in (front, web, api):
         srv.shutdown()
 
 
@@ -167,10 +163,9 @@ def test_the_root_is_a_redirect_to_the_client_directory(running: int) -> None:
     conn.close()
 
 
-def test_the_classic_document_reaches_the_web_client_with_the_cookie(running: int) -> None:
+def test_classic_is_the_web_clients_own_page(running: int) -> None:
     got = _get(running, "/classic", {"Cookie": "aia_session=x"})
-    assert got["upstream"] == "web" and got["path"] == "/interface-document"
-    assert got["headers"]["Cookie"] == "aia_session=x"  # type: ignore[index]
+    assert got["upstream"] == "web" and got["path"] == "/classic"
 
 
 def test_the_aia_api_gets_the_callers_credential(running: int) -> None:
@@ -179,16 +174,17 @@ def test_the_aia_api_gets_the_callers_credential(running: int) -> None:
     assert got["headers"]["Authorization"] == "Bearer a@example.invalid"  # type: ignore[index]
 
 
-def test_an_unknown_path_never_reaches_the_unit(running: int) -> None:
+def test_an_unknown_path_is_the_web_clients(running: int) -> None:
     assert _get(running, "/studies-archive")["upstream"] == "web"
 
 
+@pytest.mark.parametrize("path", UNIT_PATHS)
+def test_the_units_old_paths_are_the_web_clients(running: int, path: str) -> None:
+    assert _get(running, path)["upstream"] == "web"
+
+
 def test_without_an_api_its_paths_answer_502() -> None:
-    handler = type(
-        "F",
-        (facade.Facade,),
-        {"web": ("127.0.0.1", 9), "unit": ("127.0.0.1", 9), "api": None, "patterns": PATTERNS},
-    )
+    handler = type("F", (facade.Facade,), {"web": ("127.0.0.1", 9), "api": None})
     front = _serve(handler)
     with pytest.raises(urllib.error.HTTPError) as err:
         _get(int(front.server_address[1]), "/api/v1/health")
@@ -196,28 +192,9 @@ def test_without_an_api_its_paths_answer_502() -> None:
     assert err.value.code == 502
 
 
-def test_the_unit_sees_its_own_origin_and_no_cookie(running: int) -> None:
-    port = running
-    got = _get(
-        port,
-        "/api/bootstrap",
-        {
-            "Cookie": "aia_session=x",
-            "Origin": f"http://127.0.0.1:{port}",
-            "Referer": f"http://127.0.0.1:{port}/",
-        },
-    )
-    headers = got["headers"]
-    assert got["upstream"] == "unit"
-    assert "Cookie" not in headers  # type: ignore[operator]
-    assert headers["Origin"] == f"http://{headers['Host']}"  # type: ignore[index]
-    assert headers["Referer"] == f"http://{headers['Host']}/"  # type: ignore[index]
-
-
-def test_the_direct_document_path_is_not_an_entry(running: int) -> None:
-    with pytest.raises(urllib.error.HTTPError) as err:
-        _get(running, "/interface-document")
-    assert err.value.code == 404
+def test_the_old_document_path_goes_to_the_web_client(running: int) -> None:
+    # The web client has no such page any more: its 404, never the unit's document.
+    assert _get(running, "/interface-document")["upstream"] == "web"
 
 
 def test_a_websocket_upgrade_is_tunnelled_to_the_web_client() -> None:
@@ -241,11 +218,7 @@ def test_a_websocket_upgrade_is_tunnelled_to_the_web_client() -> None:
 
     srv = socket.create_server(("127.0.0.1", 0))
     threading.Thread(target=upstream, args=(srv,), daemon=True).start()
-    handler = type(
-        "F",
-        (facade.Facade,),
-        {"web": srv.getsockname()[:2], "unit": ("127.0.0.1", 9), "patterns": PATTERNS},
-    )
+    handler = type("F", (facade.Facade,), {"web": srv.getsockname()[:2]})
     front = _serve(handler)
     client = socket.create_connection(("127.0.0.1", int(front.server_address[1])), timeout=10)
     client.sendall(
@@ -316,11 +289,8 @@ def test_the_workbench_unit_can_reach_no_ai_provider(tmp_path: Path) -> None:
         "/api/settings/anthropic_check",
     ],
 )
-def test_legacy_connection_requests_cannot_reach_the_unit(running: int, path: str) -> None:
-    assert facade.route(path + "?x=1", PATTERNS, UNIT_PATTERNS, RETIRED_PATTERNS) == ("410", path)
-    conn = http.client.HTTPConnection("127.0.0.1", running, timeout=10)
-    conn.request("POST", path, body='{"anthropic_key":"test-do-not-store"}')
-    response = conn.getresponse()
-    assert response.status == 410
-    assert b"retired" in response.read()
-    conn.close()
+def test_legacy_connection_requests_reach_no_unit(running: int, path: str) -> None:
+    # The retired connection controls (a key saved, a CLI logged in) went with the
+    # unit: the paths are the web client's, which has no such page.
+    assert facade.route(path + "?x=1") == ("web", path + "?x=1")
+    assert _get(running, path)["upstream"] == "web"

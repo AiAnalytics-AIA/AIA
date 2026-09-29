@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 // The front door (ADR 0018 decision 3): any active member gets AIA's session and is
-// sent back where they were going. The 18.6.6 panel's session is tried alongside,
-// best effort, and matters only for the 18.6.6 interface itself.
+// sent back where they were going. Nothing of 18.6.6 is asked for.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,7 +14,7 @@ type Call = { method: string; url: string };
 let calls: Call[] = [];
 let replace = vi.fn();
 
-function api(session: () => Response, panel: () => Response = () => new Response(null, { status: 204 })) {
+function api(session: () => Response) {
   calls = [];
   vi.stubGlobal(
     "fetch",
@@ -25,13 +24,11 @@ function api(session: () => Response, panel: () => Response = () => new Response
       calls.push({ method, url: u });
       if (u === "/config") return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost" }));
       if (u === "/api/v1/session" && method === "POST") return session();
-      if (u === "/api/v1/panel/session" && method === "POST") return panel();
       return new Response(null, { status: 204 });
     }),
   );
 }
 const answer = (status: number, body?: unknown) => () => new Response(body === undefined ? null : JSON.stringify(body), { status });
-const denied = answer(403, { code: "legacy_panel_denied", message: "Owners and admins only." });
 
 beforeEach(() => {
   search = "";
@@ -46,17 +43,13 @@ afterEach(() => {
 });
 
 describe("/login", () => {
-  it("opens AIA's session and goes back where the person was going, whatever the panel says", async () => {
-    for (const panel of [denied, answer(404, { code: "not_found" }), answer(500)]) {
-      cleanup();
-      sessionStorage.removeItem("aia.session.openedAt");
-      replace.mockReset();
-      search = "next=%2Fapp%2Fclients%2FCLI-1%2Fresearch";
-      api(answer(204), panel);
-      render(<LoginPage />);
-      await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients/CLI-1/research"));
-      expect(calls.filter((c) => c.method === "POST").map((c) => c.url)).toEqual(["/api/v1/session", "/api/v1/panel/session"]);
-    }
+  it("opens AIA's session and goes back where the person was going", async () => {
+    search = "next=%2Fapp%2Fclients%2FCLI-1%2Fresearch";
+    api(answer(204));
+    render(<LoginPage />);
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients/CLI-1/research"));
+    // AIA's session and nothing else: no 18.6.6 panel to open any more.
+    expect(calls.filter((c) => c.method === "POST").map((c) => c.url)).toEqual(["/api/v1/session"]);
   });
 
   it("goes to the client directory when nowhere is named, and never off this origin", async () => {
@@ -71,28 +64,11 @@ describe("/login", () => {
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
   });
 
-  it("says why the 18.6.6 interface did not open, and offers AIA instead", async () => {
-    search = "next=%2Fclassic";
-    api(answer(204), denied);
-    render(<LoginPage />);
-    expect(await screen.findByText(t("panel.adminsOnly"))).toBeTruthy();
-    expect(screen.getByRole("link", { name: t("session.openAia") }).getAttribute("href")).toBe("/app/clients");
-    expect(replace).not.toHaveBeenCalled();
-  });
-
-  it("opens the 18.6.6 interface for someone the panel admits", async () => {
-    search = "next=%2Fclassic";
-    api(answer(204));
-    render(<LoginPage />);
-    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/classic"));
-  });
-
-  it("tells someone who is no member that they are not, and never tries the panel", async () => {
+  it("tells someone who is no member that they are not", async () => {
     api(answer(403, { code: "not_provisioned", message: "This account is not a member of any organization." }));
     render(<LoginPage />);
     expect(await screen.findByText(t("session.notMember"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("live.signOut") })).toBeTruthy();
-    expect(calls.some((c) => c.url === "/api/v1/panel/session")).toBe(false);
     expect(replace).not.toHaveBeenCalled();
   });
 

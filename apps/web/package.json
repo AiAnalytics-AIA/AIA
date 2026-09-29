@@ -10,10 +10,7 @@
     "tokens": "node scripts/build-tokens.mjs",
     "tokens:check": "node scripts/build-tokens.mjs --check",
     "check:design": "node scripts/check-design.mjs",
-    "test": "vitest run",
-    "skin": "node scripts/build-skin.mjs",
-    "skin:check": "node scripts/build-skin.mjs --check",
-    "skin:watch": "node scripts/build-skin.mjs --watch"
+    "test": "vitest run"
   },
   "dependencies": {
     "next": "16.3.6",

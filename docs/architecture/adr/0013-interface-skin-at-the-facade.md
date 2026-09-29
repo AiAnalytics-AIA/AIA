@@ -8,6 +8,13 @@ leaves [ADR 0011](0011-vendor-legacy-product-unit.md) intact.
 (2026-09-24): decision 1's "at `/`" -- the skinned document is served at
 `/classic`, the hand-off -- and "the develop deployment is the canonical
 baseline for every screen". The skin itself, its pin and its kill switch stand.
+**Superseded by [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 4** (2026-09-27):
+the 18.6.6 document is no longer served, so there is nothing to skin. The skin's
+sources and build (`apps/web/src/skin/`, `scripts/build-skin.mjs`, `skin.css`), the
+document route that applied it (`/interface-document`), its pin and
+`AIA_INTERFACE_SKIN_ENABLED` are removed. What it drew on stays AIA's: the design
+tokens (`apps/web/src/design/tokens.json`) and the self-hosted fonts and identity
+under `/skin/`.
 **Date:** 2026-09-23
 
 ## Context

@@ -204,23 +204,16 @@ def test_a_page_takes_no_writes_whoever_asks(
 # --------------------------------------------------------------------------- #
 
 
-@pytest.mark.parametrize("panel", [False, True])
-def test_the_session_and_its_gate_do_not_depend_on_the_legacy_panel(
-    settings: Settings, panel: bool
-) -> None:
+def test_the_session_and_its_gate_need_nothing_of_18_6_6(settings: Settings) -> None:
+    """ADR 0018: no legacy setting decides it, and the 18.6.6 panel's routes are gone."""
     from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
     from aia_core.infrastructure.scope_repository import ScopeRepository
     from aia_core.infrastructure.tables import Base
 
     from aia_api.main import create_app
 
-    configured = settings.model_copy(
-        update={
-            "legacy_panel_enabled": panel,
-            "legacy_panel_origin": "https://aia.example.test" if panel else "",
-        }
-    )
-    application = create_app(configured)
+    assert not [name for name in Settings.model_fields if "legacy" in name or "panel" in name]
+    application = create_app(settings)
     with TestClient(application, follow_redirects=False) as client:
         Base.metadata.create_all(application.state.engine)
         factory = create_session_factory(application.state.engine)
@@ -239,12 +232,25 @@ def test_the_session_and_its_gate_do_not_depend_on_the_legacy_panel(
         opened = client.post(SESSION, headers={"Authorization": "Bearer token-member"})
         assert opened.status_code == 204
         assert _gate(client, cookie="token-member", accept=HTML).status_code == 204
-        # The panel's own gate still answers for the unit: 404 off, admins only on.
-        panel_gate = client.get(
-            f"{API}/panel/gate",
-            headers={"X-Forwarded-Method": "GET", "Cookie": "aia_panel=token-member"},
+        # The panel's session and gate, for an owner too: not there at all.
+        application.state.identity_provider.register(
+            "token-owner", subject="owner@example.test", email="owner@example.test"
         )
-        assert panel_gate.status_code == (403 if panel else 404)
+        for method, path in (
+            ("POST", f"{API}/panel/session"),
+            ("DELETE", f"{API}/panel/session"),
+            ("GET", f"{API}/panel/gate"),
+        ):
+            response = client.request(
+                method,
+                path,
+                headers={
+                    "Authorization": "Bearer token-owner",
+                    "X-Forwarded-Method": "GET",
+                    "Cookie": "aia_panel=token-owner",
+                },
+            )
+            assert response.status_code == 404, (method, path)
         Base.metadata.drop_all(application.state.engine)
 
 

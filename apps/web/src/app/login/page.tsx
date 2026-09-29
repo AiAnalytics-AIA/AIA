@@ -7,21 +7,14 @@
 // Google Workspace sign-in and comes back here after it. It never starts the
 // sign-in by itself: Cognito's sign-out lands on `/`, which leads here, and an
 // automatic sign-in would undo the sign-out the user just asked for.
-//
-// While what remains of 18.6.6 is on the product hostname (/classic and the unit
-// paths the classic projects screen reads), the page also opens the panel's own
-// session, best effort. It matters only when that is where the person is going;
-// AIA's pages never wait on it or fail with it.
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { FrontDoor } from "@/components/aia/FrontDoor";
 import { Button } from "@/components/rehome/ui";
 import { login } from "@/lib/auth";
-import { type PanelOutcome, openPanelSession } from "@/lib/panel";
-import { localPath, needsPanel, openSession, signOut } from "@/lib/session";
+import { localPath, openSession, signOut } from "@/lib/session";
 import { t } from "@/i18n/t";
 
 // Set just before returning to the page asked for. Seeing it again within this
@@ -30,23 +23,12 @@ import { t } from "@/i18n/t";
 const OPENED_KEY = "aia.session.openedAt";
 const LOOP_WINDOW_MS = 10_000;
 
-const LINK =
-  "font-medium text-signal underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
-
 type View =
   | { kind: "working" }
   | { kind: "signed-out" }
   | { kind: "denied"; message: string }
-  | { kind: "panel"; message: string }
   | { kind: "loop" }
   | { kind: "error"; message: string };
-
-/** Why the 18.6.6 interface did not open, in the words the person needs. */
-function panelRefusal(outcome: PanelOutcome | null): string {
-  if (outcome?.kind === "disabled") return t("panel.notEnabled");
-  if (outcome?.kind === "denied") return outcome.code === "legacy_panel_denied" ? t("panel.adminsOnly") : outcome.message;
-  return t("panel.failed");
-}
 
 function Login() {
   const params = useSearchParams();
@@ -90,10 +72,6 @@ function Login() {
         const member = outcome.code === "not_a_member" || outcome.code === "not_provisioned";
         return setView({ kind: "denied", message: member ? t("session.notMember") : outcome.message });
       }
-      // Best effort, and only ever in the way of the 18.6.6 interface itself.
-      const panel = await openPanelSession().catch(() => null);
-      if (cancelled) return;
-      if (needsPanel(next) && panel?.kind !== "opened") return setView({ kind: "panel", message: panelRefusal(panel) });
       try {
         sessionStorage.setItem(OPENED_KEY, String(Date.now()));
       } catch {
@@ -136,14 +114,6 @@ function Login() {
           <Button variant="quiet" onClick={() => void signOut()}>
             {t("live.signOut")}
           </Button>
-        </>
-      )}
-      {view.kind === "panel" && (
-        <>
-          <p className="text-ink">{view.message}</p>
-          <Link className={`${LINK} min-h-9 inline-flex items-center`} href="/app/clients">
-            {t("session.openAia")}
-          </Link>
         </>
       )}
       {(view.kind === "loop" || view.kind === "error") && (

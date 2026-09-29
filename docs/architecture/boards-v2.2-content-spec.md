@@ -176,10 +176,11 @@ absence of it is what let stale assumptions spread.
 | 0010 Bedrock EU inference route | **Accepted 2026-09-26 for fictional Class C develop use only**; live fictional test completed: 20 calls, $0.2303301 |
 | 0011 Vendored legacy unit | Accepted; pinned application remains the parity oracle |
 | 0012 Product facade | Accepted; product routing superseded by ADR 0015 |
-| 0013 Facade skin | Accepted; retained on the explicit classic hand-off |
+| 0013 Facade skin | Superseded by ADR 0018: the 18.6.6 document is no longer served, and the skin is removed with it |
 | 0014 React interface rehome | Proposed/superseded by ADR 0015; historical decision record |
 | 0015 Client-first interface | Accepted, develop |
 | 0016 Research execution and model-transmission rule | Accepted, develop; PR #52 merged |
+| 0018 AIA runs without 18.6.6 | **Proposed**, develop; implemented in increments (draft PRs), the unit reference and oracle only |
 | Compute service | **Not decided** |
 | Production model provider / hosting | **Not accepted for production**; Bedrock EU accepted for fictional Class C on develop only |
 | Observability backend | **Not decided** |

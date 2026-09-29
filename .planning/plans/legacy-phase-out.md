@@ -200,15 +200,57 @@ PR 3 — AIA's own session gate (`feature/aia-session-gate`)
   `test_caddy_routes.py`, `login/page.test.tsx`, `lib/session.test.ts`
 
 PR 4 — the interface without 18.6.6 (`feature/interface-without-classic`)
-- [ ] 9. Remove `/classic`, `interface-document`, hand-offs, the skin, the classic
-  project store screens, `src/unit`; explicit "not in AIA yet" states
+- [x] 9. The interface hands nothing to 18.6.6 (ADR 0018 decision 4). Removed:
+  `app/interface-document`, `lib/interface-skin*`, `lib/interface-handoff*`,
+  `lib/rehome*`, `lib/panel.ts`, `src/skin/`, `scripts/build-skin.mjs`,
+  `scripts/skin-lint.mjs`, `public/skin/skin.css` and `handoff.js`, `ClassicLink`, the
+  classic projects screens (`rehome/projects/`, `/app/settings/classic-projects`) and,
+  with them, `src/unit/`. `/classic` is the web client's public page saying 18.6.6 is
+  gone (`app/classic/page.tsx`); the simulation, the Data Library, the verify and next
+  stages, the report and the Sociomap's tools say they are not in AIA; `/login` opens
+  AIA's session only, and sign-out still clears a panel cookie left from before while
+  the panel's gate stands. The Caddyfile has no `/classic` or `/interface-document`
+  route and `tools/caddy_routes.py` fails one that comes back; smoke checks `/classic`
+  is AIA's page and `/interface-document` a 404; Compose's `web` loses
+  `AIA_INTERFACE_SKIN_ENABLED`, `AIA_INTERFACE_REHOME_ENABLED` and
+  `AIA_LEGACY_PANEL_URL`; CI loses `skin:check`; `interface-screens.json` is 5
+  `REBUILT`, 3 `REBUILDING`, 4 `SUPERSEDED`, 16 `NOT_IN_AIA`; the workbench runs no skin
+  process — tests: `NotInAia.test.tsx`, `interface-screens.test.ts`,
+  `login/page.test.tsx`, `lib/session.test.ts`, `test_caddy_routes.py`,
+  `test_develop_host_resilience.py`, `test_ui_workbench.py`
 
 PR 5 — the deployment without 18.6.6 (`feature/deploy-without-legacy`)
-- [ ] 10. Retire the panel gate and its settings
-- [ ] 11. Product Compose/Caddy/deploy/smoke/CI without the unit;
-  `deploy/reference/`; reference image workflow
-- [ ] 12. Workbench without the unit by default; offline verification recorded;
-  ADR 0018, OI-58/59, PROGRESS
+- [x] 10. Retire the panel gate and its settings (`caa7ed8`): `routers/panel.py`,
+  `ScopeResolver.authorize_legacy_panel`, `LEGACY_PANEL_ROLES`,
+  `Settings.legacy_panel_enabled` / `legacy_panel_origin` and their production guard, the
+  web client's `closePanelSession` and the stand-in's `--panel-origin` are removed;
+  `/api/v1/panel/*` answers 404 and CI's API contract fails such a path — tests:
+  `test_session_api.py` › *the session and its gate need nothing of 18 6 6*,
+  `lib/session.test.ts`; `test_panel_api.py` and `test_legacy_panel_access.py` go with
+  the code they tested
+- [x] 11. Product Compose/Caddy/deploy/smoke/CI without the unit; `deploy/reference/`;
+  reference image workflow (`9138977`, `b9b4258`). The product stack builds and pulls
+  three images and declares no unit service, volume or `AIA_LEGACY_*` setting; the
+  Caddyfile has one site, the API and the web client; the deploy pulls and syncs nothing
+  of the unit, stops a `legacy-panel` container left from before (`docker stop -t 30`),
+  lets `--remove-orphans` remove it and fails if the unit's volume vanished; smoke checks
+  the unit's old paths are the web client's 404, that no unit container of the product
+  project exists, and says whether the volume is kept; `bin/backup.sh` is PostgreSQL
+  only. `deploy/reference/`: Compose project `aia-reference` on the external volume, a
+  basic-auth gate on `127.0.0.1:8765`, `up.sh` / `down.sh` / `backup-state.sh`, the
+  copier `backup-legacy-state.py` moved here; `.github/workflows/reference-unit.yml`
+  builds the unit's image and ships the bundle by hand. `tools/caddy_routes.py` fails a
+  second hostname, any upstream but the API and the web client, and the panel gate; CI
+  validates both stacks' Compose files and the reference gate's Caddyfile — tests:
+  `test_caddy_routes.py`, `test_deploy_images.py`, `test_develop_host_resilience.py`,
+  `test_develop_unit_retirement.py`, `test_reference_setup.py`,
+  `test_legacy_state_backup.py`, `test_workspace_migration.py`
+- [x] 12. Workbench without the unit by default (`7c68d23`): `make ui-workbench` is AIA
+  alone, `make ui-workbench-reference` adds the unit on its own port, never behind the
+  facade; `ui-workbench-aia` is gone. Offline verification recorded in PROGRESS; ADR 0018
+  (decisions 3 and 5, consequences), 0011, 0012, 0015, OI-39, OI-58, OI-59 (closed), OI-71,
+  the runbooks, CLAUDE.md, ARCHITECTURE.md and AGENTS.md (§ Docker and Compose) — tests:
+  `test_ui_workbench.py`
 
 ## Operator sequence (none of it is run by an agent)
 
@@ -220,8 +262,17 @@ PR 5 — the deployment without 18.6.6 (`feature/deploy-without-legacy`)
    back up PostgreSQL, run it with `--apply`, keep both reports. Only when the copy is
    known complete, `--recover-missing` for the Studies whose project it lacks.
 3. Merge PR 3 and PR 4, deploy.
-4. Merge PR 5, deploy: the unit stops being part of the product. Its volume and
-   data bundle stay untouched; `deploy/reference/` can start it again as the oracle.
+4. Before PR 5's deploy, with the data owner's approval
+   (`aia_legacy_state_backup_enabled` = `true`), run `bin/backup.sh pre-adr-0018` on the
+   host: the last export of the unit's databases the product's scripts make. Merge PR 5,
+   deploy: the unit stops being part of the product; the deploy stops its container and
+   fails if its volume vanished. The volume and data bundle stay untouched;
+   `deploy/reference/` can start the unit again as the oracle (its bundle shipped by
+   `reference-unit.yml` once that workflow is on `main`, or by hand as its README says).
+   If the migration of step 2 has not run by then, it still can: its copies come from the
+   unit's volume in throwaway containers of the unit's image (the runbook as of PR 5).
+5. When the migration's report is accepted: the unit's volume can be retired, by a
+   decision of its own (OI-58); nothing in this plan removes it.
 
 ## Review outcome
 

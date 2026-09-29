@@ -11,8 +11,11 @@
 #   migrate              `alembic upgrade head` once, from the api image at <sha>;
 #                        a failure stops here and the running services are untouched
 #   switch               AIA_IMAGE_TAG=<sha> written to .env, then compose up; waits
-#                        on AIA's services only (the 18.6.6 unit is a smoke check)
+#                        until every service is healthy
 #   smoke                bin/smoke.sh against the public hostname
+#
+# Nothing of NPC Panel 18.6.6 is pulled, synced, started or waited on (ADR 0018
+# decision 5): the unit runs, when a comparison needs it, from deploy/reference.
 #
 # --no-migrate is for rolling back to a previous SHA whose schema is already
 # present (or older). It never runs `alembic downgrade`: schema rollback is a
@@ -37,19 +40,7 @@ log "deploying $SHA (currently running: ${previous:-nothing})"
 
 log "logging in to ECR and pulling images"
 ecr_login
-"${COMPOSE[@]}" pull --quiet api worker web legacy-panel
-
-# The legacy unit's data (population panels, demo payloads) lives in the EU ops
-# bucket, never in an image or in Git (ADR 0011). Sync it before the service
-# starts; the container hydrates and hash-verifies every file at start and
-# refuses to run on a partial or drifted bundle.
-if [ -n "${AIA_LEGACY_DATA_PREFIX:-}" ]; then
-  log "syncing the legacy unit's data bundle from s3://$AIA_OPS_BUCKET/$AIA_LEGACY_DATA_PREFIX/"
-  mkdir -p "$DEPLOY_DIR/legacy-data"
-  aws s3 sync "s3://$AIA_OPS_BUCKET/$AIA_LEGACY_DATA_PREFIX/" "$DEPLOY_DIR/legacy-data" --only-show-errors --delete
-else
-  log "AIA_LEGACY_DATA_PREFIX is unset; the legacy unit will refuse to start without its data"
-fi
+"${COMPOSE[@]}" pull --quiet api worker web
 
 # The Caddyfile decides whether anyone reaches the site. Load it with this host's
 # configuration before anything is touched: run 10 (2026-09-23) replaced every
@@ -89,13 +80,19 @@ else
   printf 'AIA_IMAGE_TAG=%s\n' "$SHA" >> "$ENV_FILE"
 fi
 
+# A host deployed before ADR 0018 still runs the 18.6.6 unit's container, which
+# `--remove-orphans` below removes: stop it gracefully first (lib.sh). Its
+# working volume stays, and the deploy fails if it were gone afterwards.
+had_unit_volume=0
+unit_volume_exists && had_unit_volume=1
+retire_product_unit
+
 log "replacing services"
-# Every service is (re)created, but the deploy waits only on AIA's own: the
-# product hostname must come up whatever state the 18.6.6 unit is in. The
-# unit's health is a smoke check below, so an unhealthy unit still fails the
-# deploy, with every other check reported, instead of keeping Caddy down.
-"${COMPOSE[@]}" up -d --remove-orphans
-"${COMPOSE[@]}" up -d --wait --wait-timeout 180 postgres api worker web caddy
+"${COMPOSE[@]}" up -d --remove-orphans --wait --wait-timeout 180
+
+if [ "$had_unit_volume" = 1 ] && ! unit_volume_exists; then
+  die "the 18.6.6 unit's working volume $LEGACY_STATE_VOLUME is gone; restore it before anything else (deploy/reference/README.md § The volume)"
+fi
 
 log "pruning images older than the previous deployment"
 docker image prune -f --filter "until=168h" >/dev/null || true

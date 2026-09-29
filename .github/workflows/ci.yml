@@ -273,8 +273,9 @@ jobs:
 
   oracle-parity:
     # Differential tests against the RUNNING 18.6.6 unit (ADR 0011): the
-    # legacy-panel service on the develop host, behind its basic-auth gate. The
-    # endpoint and its credentials are repository secrets; without them the
+    # reference setup on the develop host (deploy/reference, ADR 0018), behind its
+    # basic-auth gate on the host's loopback, which a hosted runner cannot reach.
+    # The endpoint and its credentials are repository secrets; without them the
     # `oracle` tests skip and parity-status reports their gates as NOT_EXECUTED,
     # never as a pass. With them present, `AIA_REQUIRE_LEGACY_ORACLE=1` turns an
     # unreachable oracle into a failure -- the same ratchet as AIA_REQUIRE_POSTGRES.
@@ -453,10 +454,6 @@ jobs:
               # forward_auth names /session/gate, so a rename breaks the site.
               "/api/v1/session",
               "/api/v1/session/gate",
-              # The gate in front of the 18.6.6 interface (ADR 0012); Caddy's
-              # forward_auth names /panel/gate, so a rename breaks the site.
-              "/api/v1/panel/session",
-              "/api/v1/panel/gate",
               # The settings page (.planning/plans/settings-control-panel.md).
               "/api/v1/settings",
               "/api/v1/self-approval",
@@ -470,6 +467,10 @@ jobs:
           # frame is read-only; its content is saved at /workspace/content.
           if "put" in paths.get("/api/v1/studies/{study_id}/workspace", {}):
               sys.exit("PUT /studies/{study_id}/workspace (the 18.6.6 binding) is back")
+          # ... and nothing opens or gates the 18.6.6 unit: its panel gate went with it.
+          panel = [p for p in paths if p.startswith("/api/v1/panel")]
+          if panel:
+              sys.exit(f"the 18.6.6 panel's routes are back: {panel}")
 
           # A client-derived resource outside a study prefix would mean scope is
           # no longer carried in the path, which is how isolation gets lost.
@@ -522,9 +523,6 @@ jobs:
       # tokens.json is the one source: the generated CSS/TS must match it, and
       # the contrast, palette and client-accent evidence is re-measured from it.
       - run: npm run tokens:check
-      # The 18.6.6 skin (ADR 0013): regenerated from tokens.json and linted for
-      # raw values; it also reads the vendored ui_app.html, so it runs here.
-      - run: npm run skin:check
       - run: npm run check:design
       - run: npm test
       - run: npm run build
@@ -665,37 +663,34 @@ jobs:
 
   develop-host-config:
     name: Develop host configuration (Caddy, Compose, scripts)
-    # The Caddyfile decides what the product hostname is -- AIA, with the 18.6.6
-    # unit behind the gate on its own paths only (ADR 0012, 0015) -- and ships in
-    # the deploy bundle; a syntax error would first show
-    # as a failed deployment on the host. Validated here with the Caddy image the
-    # host runs and placeholder values, never real configuration.
+    # The Caddyfile decides what the product hostname is -- AIA and nothing of
+    # 18.6.6 (ADR 0015, 0018) -- and ships in the deploy bundle; a syntax error
+    # would first show as a failed deployment on the host. Validated here with
+    # the Caddy image the host runs and placeholder values, never real
+    # configuration. So is the separate 18.6.6 reference setup (deploy/reference).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Validate the Caddyfile
         run: |
-          hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext placeholder)"
           docker run --rm \
             -e AIA_PUBLIC_HOSTNAME=aia.example.test \
-            -e AIA_LEGACY_HOSTNAME=legacy.example.test \
             -e AIA_ACME_EMAIL=ops@example.test \
-            -e AIA_LEGACY_BASIC_USER=oracle \
-            -e AIA_LEGACY_BASIC_HASH="$hash" \
             -v "$PWD/deploy/develop/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
-      - name: The product hostname is AIA, and the unit is gated on its own paths only
+      - name: The product hostname is AIA, and nothing of 18.6.6 is served
         run: |
-          # tools/caddy_routes.py says what must never go missing (ADR 0012, 0013,
-          # 0015, 0018): / is a redirect to /app/clients; /app is behind AIA's own
-          # gate and /classic behind the panel's, neither passing the session
-          # cookie on; the unit is reached only on the paths it serves, each gated
-          # -- no catch-all to 18.6.6; the legacy hostname is basic auth then the unit.
+          # tools/caddy_routes.py says what must never go missing (ADR 0015, 0018):
+          # one hostname; / is a redirect to /app/clients; /app is behind AIA's own
+          # gate, without the session cookie passed on; nothing serves the 18.6.6
+          # document, and /classic is the web client's page; nothing reaches the
+          # unit or any upstream but the API and the web client. The old oracle
+          # hostname is set so that a site for it, if one came back, shows up.
           docker run --rm \
             -e AIA_PUBLIC_HOSTNAME=aia.example.test -e AIA_LEGACY_HOSTNAME=legacy.example.test \
-            -e AIA_ACME_EMAIL=ops@example.test -e AIA_LEGACY_BASIC_USER=oracle -e AIA_LEGACY_BASIC_HASH=x \
+            -e AIA_ACME_EMAIL=ops@example.test \
             -v "$PWD/deploy/develop/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2-alpine caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile > caddy.json
           python3 tools/caddy_routes.py caddy.json
@@ -709,37 +704,52 @@ jobs:
           AIA_COGNITO_USER_POOL_ID=eu-central-1_placeholder
           AIA_IMAGE_REGISTRY=registry.example.test
           AIA_IMAGE_TAG=0000000000000000000000000000000000000000
-          AIA_LEGACY_BASIC_HASH=placeholder
-          AIA_LEGACY_BASIC_USER=oracle
-          AIA_LEGACY_HOSTNAME=legacy.example.test
           AIA_PUBLIC_HOSTNAME=aia.example.test
           AIA_STORAGE_BUCKET=placeholder
           AWS_REGION=eu-central-1
           POSTGRES_PASSWORD=placeholder
           ENV
           docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config -q
+          # ADR 0018 decision 5: the product stack is AIA's five services, nothing else.
+          services="$(docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config --services | sort | tr '\n' ' ')"
+          test "$services" = "api caddy postgres web worker " || { echo "::error::product services: $services"; exit 1; }
 
-      - name: Caddy loads through Compose without the oracle's settings
+      - name: Caddy loads through Compose
         run: |
-          # The host's env file has no AIA_LEGACY_* values until an operator
-          # provisions them; run 10 (2026-09-23) found the Caddyfile unparseable
-          # in exactly that state and the site down. This is the same check
-          # bin/deploy.sh now makes before it replaces anything: first with no
-          # AIA_LEGACY_* value at all, then with real, quoted ones.
-          grep -v '^AIA_LEGACY_' placeholder.env > unconfigured.env
-          docker compose --env-file unconfigured.env -f deploy/develop/docker-compose.yml \
+          # The same check bin/deploy.sh makes before it replaces anything (run 10,
+          # 2026-09-23, found a Caddyfile unparseable with the host's env and the
+          # site down): the product's Caddyfile needs nothing but the product's
+          # settings.
+          docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml \
             run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Validate the 18.6.6 reference setup
+        run: |
+          # deploy/reference: the unit behind a basic-auth gate on the host's
+          # loopback, on its external working volume (ADR 0018). Its settings come
+          # from the host's env file; the quoted hash must reach Caddy unmangled.
           hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext placeholder)"
-          cp unconfigured.env configured.env
-          printf "AIA_LEGACY_HOSTNAME='legacy.example.test'\nAIA_LEGACY_BASIC_USER='oracle'\nAIA_LEGACY_BASIC_HASH='%s'\n" "$hash" >> configured.env
-          docker compose --env-file configured.env -f deploy/develop/docker-compose.yml \
-            run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-          resolved="$(docker compose --env-file configured.env -f deploy/develop/docker-compose.yml \
-            run --rm --no-deps -T caddy printenv AIA_LEGACY_BASIC_HASH)"
-          test "$resolved" = "$hash" || { echo "::error::the quoted hash was mangled on its way to Caddy"; exit 1; }
+          cat > reference.env <<'ENV'
+          AIA_IMAGE_REGISTRY=registry.example.test
+          AWS_REGION=eu-central-1
+          AIA_OPS_BUCKET=placeholder
+          AIA_LEGACY_BASIC_USER='oracle'
+          ENV
+          printf "AIA_LEGACY_BASIC_HASH='%s'\n" "$hash" >> reference.env
+          AIA_REFERENCE_TAG=0000000 docker compose --env-file reference.env -f deploy/reference/docker-compose.yml config -q
+          # Compose refuses even a `run` without the external volume; a throwaway
+          # one, through the override, stands in for the host's here.
+          docker volume create aia-ci-reference-state >/dev/null
+          resolved="$(AIA_REFERENCE_TAG=0000000 AIA_REFERENCE_STATE_VOLUME=aia-ci-reference-state \
+            docker compose --env-file reference.env -f deploy/reference/docker-compose.yml \
+            run --rm --no-deps -T gate printenv AIA_LEGACY_BASIC_HASH)"
+          test "$resolved" = "$hash" || { echo "::error::the quoted hash was mangled on its way to the gate"; exit 1; }
+          docker run --rm -e AIA_LEGACY_BASIC_USER=oracle -e AIA_LEGACY_BASIC_HASH="$hash" \
+            -v "$PWD/deploy/reference/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
       - name: Shell scripts parse
-        run: for f in deploy/develop/bin/*.sh; do bash -n "$f"; done
+        run: for f in deploy/develop/bin/*.sh deploy/reference/bin/*.sh; do bash -n "$f"; done
 
   security:
     name: Security and dependency scan

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { localPath, needsPanel, openSession, signOut } from "./session";
+import { localPath, openSession, signOut } from "./session";
 
 type Call = { method: string; url: string; auth: string | null };
 let calls: Call[] = [];
@@ -57,12 +57,13 @@ describe("openSession", () => {
 });
 
 describe("signOut", () => {
-  it("clears AIA's session and the panel's, then the sign-in", async () => {
+  it("clears AIA's session, then the sign-in", async () => {
     const assign = vi.fn();
     api({});
     vi.stubGlobal("location", { ...window.location, assign });
     await signOut();
-    expect(calls.filter((c) => c.method === "DELETE").map((c) => c.url).sort()).toEqual(["/api/v1/panel/session", "/api/v1/session"]);
+    // Nothing of 18.6.6 is left to sign out of (ADR 0018).
+    expect(calls.filter((c) => c.method === "DELETE").map((c) => c.url)).toEqual(["/api/v1/session"]);
     expect(sessionStorage.getItem("aia.session")).toBeNull();
     expect(assign).toHaveBeenCalledWith("/");
   });
@@ -84,12 +85,5 @@ describe("where the person may be sent", () => {
   it("is a path on this origin, never elsewhere", () => {
     expect(localPath("/app/clients/CLI-1?tab=x")).toBe("/app/clients/CLI-1?tab=x");
     for (const bad of [null, "", "//evil.example/", "https://evil.example/", "/\\evil"]) expect(localPath(bad)).toBe("/");
-  });
-
-  it("needs the 18.6.6 panel's session only for what is left of the unit", () => {
-    expect(needsPanel("/classic")).toBe(true);
-    expect(needsPanel("/classic#aia:open=brief")).toBe(true);
-    expect(needsPanel("/app/settings/classic-projects")).toBe(true);
-    for (const own of ["/app/clients", "/app/settings", "/classical", "/studies"]) expect(needsPanel(own)).toBe(false);
   });
 });

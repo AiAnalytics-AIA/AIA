@@ -9,7 +9,7 @@
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchPhase, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
-import type { Tone } from "@/unit/projects";
+import type { Tone } from "@/lib/tone";
 
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
 export const SYNTHETIC_SOURCE = "synthetic_fixture";

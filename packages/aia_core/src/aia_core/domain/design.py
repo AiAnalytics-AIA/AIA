@@ -40,7 +40,7 @@ DESIGN_PROJECT_OWNER: Final = "study_design"
 DESIGN_MAX_BYTES: Final = 2 * 1024 * 1024
 
 #: The stage a design was submitted from, for provenance. The rebuilt stage keys
-#: (``apps/web/src/unit/research/steps.ts``); ``run`` is where a run starts.
+#: (``apps/web/src/research/steps.ts``); ``run`` is where a run starts.
 DESIGN_SOURCE_STAGES: Final = frozenset(
     {"brief", "plan", "questionnaire", "audience", "persona", "run"}
 )

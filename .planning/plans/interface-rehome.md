@@ -18,6 +18,13 @@
 **Tools:** [ui-workbench.md](ui-workbench.md) — every classic screen captured, every
 rebuilt one beside it.
 
+> **2026-09-27, [ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md)
+> ([legacy-phase-out.md](legacy-phase-out.md) chunks 8–9).** `/app` has AIA's own gate,
+> with no switch; nothing hands off to 18.6.6; the typed unit client (`src/unit/`) and
+> `/app/settings/classic-projects` are removed with their last caller. A classic screen
+> AIA has not rebuilt is `NOT_IN_AIA` in `interface-screens.json`, and says so where a
+> person meets it. The chunk records below name files that no longer exist.
+
 ## Problem
 
 The data owner wants full control of the UI — markup, copy, layout, components,

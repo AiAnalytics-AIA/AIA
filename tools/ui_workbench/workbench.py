@@ -1,30 +1,30 @@
-"""The UI workbench: AIA's client-first interface and the classic 18.6.6 one, on this machine.
+"""The UI workbench: AIA's client-first interface on this machine, the 18.6.6 unit on request.
 
-    python tools/ui_workbench/workbench.py up        # start (or confirm) everything
+    python tools/ui_workbench/workbench.py up        # start (or confirm) AIA
     python tools/ui_workbench/workbench.py status    # what is running, and answering
     python tools/ui_workbench/workbench.py down      # stop everything
-    python tools/ui_workbench/workbench.py up --fresh  # also reset the unit's state
-    python tools/ui_workbench/workbench.py up --no-unit  # AIA alone: the unit not started,
-                                                     # its paths answer 502 (ADR 0018)
+    python tools/ui_workbench/workbench.py up --fresh  # also reset the API's (and the unit's) state
+    python tools/ui_workbench/workbench.py up --with-unit  # and the 18.6.6 unit beside it, as
+                                                       # the reference (ADR 0018)
 
-Six processes, all under tmp/ui-workbench/ (git-ignored):
+Four processes, all under tmp/ui-workbench/ (git-ignored), and a fifth on request:
 
-    unit     the vendored ui_server.py on a scratch copy of app/, fictional panel
-             (unit_standin.py)                                 127.0.0.1:8767
     api      the real aia_api on a scratch SQLite file, local identity, the
              develop seed (api_standin.py)                      127.0.0.1:8766
     worker   `python -m aia_worker` over the API's SQLite file and artifact store, with
              the workbench composition (aia_executors.workbench: the fictional
              fieldwork source, ADR 0016), so a research run finishes here
-    web      `next dev` for apps/web, AIA_INTERFACE_SKIN_ENABLED=true  127.0.0.1:13000
-    skin     `build-skin.mjs --watch`: skin.css rebuilt on every save
-    facade   routes like the develop Caddyfile, minus the gate  127.0.0.1:8780
+    web      `next dev` for apps/web                            127.0.0.1:13000
+    facade   routes like the develop Caddyfile, minus the gates 127.0.0.1:8780
+    unit     with --with-unit only: the vendored ui_server.py on a scratch copy of
+             app/, fictional panel (unit_standin.py)             127.0.0.1:8767
 
 http://127.0.0.1:8780/workbench/sign-in signs in as the seeded operator and
 opens the client directory, as develop does after sign-in (ADR 0015).
-http://127.0.0.1:8780/classic is the classic interface, skinned, with its bar
-back to AIA; http://127.0.0.1:8767/ is the same unit bare, byte for byte. Edit
-apps/web/src/skin/components.css (or tokens.json, legacy-variables.json), reload.
+AIA needs none of the unit, as on develop (ADR 0018). With --with-unit,
+http://127.0.0.1:8767/ is the unit, byte for byte: the reference to compare a
+screen with, never part of AIA. The facade routes nothing to it, as the develop
+Caddyfile does not: its old paths are the web client's 404.
 
 The unit's own Python dependencies go into tmp/ui-workbench/venv (uv when
 present, else venv + pip), keyed by the requirements file's hash. The API runs
@@ -58,11 +58,8 @@ LOGS = HOME / "logs"
 STATE = HOME / "state.json"
 
 UNIT_PORT, API_PORT, WEB_PORT, FACADE_PORT = 8767, 8766, 13000, 8780
-# With --no-unit the unit's upstream is a port nothing listens on: a request that
-# still reached for the unit would fail loudly (502), never quietly succeed.
-CLOSED = "127.0.0.1:9"
-NO_UNIT = HOME / "no-unit"
-NAMES = ("unit", "api", "worker", "web", "skin", "facade")
+WITH_UNIT = HOME / "with-unit"
+NAMES = ("unit", "api", "worker", "web", "facade")
 DB = HOME / "aia.sqlite"
 ARTIFACTS = HOME / "artifacts"
 
@@ -177,26 +174,25 @@ def _wait(url: str, what: str, seconds: int) -> tuple[int, dict[str, str]]:
     raise SystemExit(f"workbench: {what} did not answer at {url} within {seconds}s; see {LOGS}")
 
 
-def up(fresh: bool, no_unit: bool = False) -> int:
+def up(fresh: bool, with_unit: bool = False) -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     state = {k: v for k, v in _read_state().items() if _alive(v)}
-    if no_unit != NO_UNIT.exists() and state:
+    if with_unit != WITH_UNIT.exists() and state:
         print("workbench: running in the other mode; `down` first", file=sys.stderr)
         return 1
     if fresh:
         for name in ("unit", "api", "worker"):
             if name in state:
                 _stop(name, state.pop(name))
-    if no_unit:
-        NO_UNIT.write_text("the 18.6.6 unit is not part of this workbench\n")
-    else:
-        NO_UNIT.unlink(missing_ok=True)
+    if with_unit:
+        WITH_UNIT.write_text("the 18.6.6 unit runs beside AIA here, as the reference\n")
         ensure_venv()
         ensure_unit_copy(fresh)
+    else:
+        WITH_UNIT.unlink(missing_ok=True)
     ensure_web_modules()
-    unit_at = CLOSED if no_unit else f"127.0.0.1:{UNIT_PORT}"
 
-    if "unit" not in state and not no_unit:
+    if "unit" not in state and with_unit:
         state["unit"] = _spawn(
             "unit", [str(_python()), str(HERE / "unit_standin.py"), "--port", str(UNIT_PORT)], UNIT
         )
@@ -216,8 +212,6 @@ def up(fresh: bool, no_unit: bool = False) -> int:
             + (["--fresh"] if fresh else []),
             REPO,
         )
-    if "skin" not in state:
-        state["skin"] = _spawn("skin", ["node", "scripts/build-skin.mjs", "--watch"], WEB)
     if "web" not in state:
         state["web"] = _spawn(
             "web",
@@ -230,12 +224,7 @@ def up(fresh: bool, no_unit: bool = False) -> int:
                 "127.0.0.1",
             ],
             WEB,
-            {
-                "AIA_LEGACY_PANEL_URL": f"http://{unit_at}",
-                "AIA_INTERFACE_SKIN_ENABLED": "true",
-                "AIA_INTERFACE_REHOME_ENABLED": "true",
-                "NEXT_TELEMETRY_DISABLED": "1",
-            },
+            {"NEXT_TELEMETRY_DISABLED": "1"},
         )
     if "facade" not in state:
         state["facade"] = _spawn(
@@ -247,8 +236,6 @@ def up(fresh: bool, no_unit: bool = False) -> int:
                 f"127.0.0.1:{FACADE_PORT}",
                 "--web",
                 f"127.0.0.1:{WEB_PORT}",
-                "--unit",
-                unit_at,
                 "--api",
                 f"127.0.0.1:{API_PORT}",
             ],
@@ -256,7 +243,7 @@ def up(fresh: bool, no_unit: bool = False) -> int:
         )
     STATE.write_text(json.dumps(state, indent=1) + "\n")
 
-    if not no_unit:
+    if with_unit:
         _wait(f"http://127.0.0.1:{UNIT_PORT}/", "the unit", 180)
     _wait(f"http://127.0.0.1:{API_PORT}/api/v1/health", "the AIA API", 120)
     # The API creates the schema on its first start; the worker claims from it.
@@ -276,26 +263,13 @@ def up(fresh: bool, no_unit: bool = False) -> int:
             },
         )
         STATE.write_text(json.dumps(state, indent=1) + "\n")
-    if no_unit:
-        _wait(f"http://127.0.0.1:{FACADE_PORT}/app/clients", "the facade and web client", 240)
-        print(f"workbench: AIA      http://127.0.0.1:{FACADE_PORT}/workbench/sign-in")
-        print(f"workbench: no unit  its paths answer 502 (upstream {CLOSED})")
-        print(f"workbench: logs     {LOGS.relative_to(REPO)}/")
-        return 0
-    status, headers = _wait(
-        f"http://127.0.0.1:{FACADE_PORT}/classic", "the facade and web client", 240
-    )
-    skin = headers.get("x-aia-skin", "absent")
+    _wait(f"http://127.0.0.1:{FACADE_PORT}/app/clients", "the facade and web client", 240)
     print(f"workbench: AIA      http://127.0.0.1:{FACADE_PORT}/workbench/sign-in")
-    print(
-        f"workbench: classic  http://127.0.0.1:{FACADE_PORT}/classic"
-        f"  (HTTP {status}, X-AIA-Skin: {skin})"
-    )
-    print(f"workbench: bare     http://127.0.0.1:{UNIT_PORT}/")
+    if with_unit:
+        print(
+            f"workbench: unit     http://127.0.0.1:{UNIT_PORT}/ (reference only; AIA reaches none)"
+        )
     print(f"workbench: logs     {LOGS.relative_to(REPO)}/")
-    if skin != "applied":
-        print("workbench: the skin is NOT applied; see logs/web.log", file=sys.stderr)
-        return 1
     return 0
 
 
@@ -319,17 +293,17 @@ def down() -> int:
         if _alive(pid):
             _stop(name, pid)
     STATE.unlink(missing_ok=True)
-    NO_UNIT.unlink(missing_ok=True)
+    WITH_UNIT.unlink(missing_ok=True)
     return 0
 
 
 def status() -> int:
     state = _read_state()
-    no_unit = NO_UNIT.exists()
+    with_unit = WITH_UNIT.exists()
     ok = True
     for name in NAMES:
-        if name == "unit" and no_unit:
-            print("unit    not part of this workbench (--no-unit)")
+        if name == "unit" and not with_unit:
+            print("unit    not started (reference only: up --with-unit)")
             continue
         pid = state.get(name)
         alive = bool(pid) and _alive(pid or 0)
@@ -337,12 +311,9 @@ def status() -> int:
         print(f"{name:7} {'running' if alive else 'stopped'} {pid or ''}")
     api, _ = _probe(f"http://127.0.0.1:{FACADE_PORT}/api/v1/health", timeout=30)
     print(f"api     http://127.0.0.1:{FACADE_PORT}/api/v1/health  HTTP {api}")
-    if no_unit:
-        return 0 if ok and api == 200 else 1
-    code, headers = _probe(f"http://127.0.0.1:{FACADE_PORT}/classic", timeout=30)
-    skin = headers.get("x-aia-skin", "-")
-    print(f"classic http://127.0.0.1:{FACADE_PORT}/classic  HTTP {code}  X-AIA-Skin: {skin}")
-    return 0 if ok and api == 200 and headers.get("x-aia-skin") == "applied" else 1
+    app, _ = _probe(f"http://127.0.0.1:{FACADE_PORT}/app/clients", timeout=60)
+    print(f"app     http://127.0.0.1:{FACADE_PORT}/app/clients  HTTP {app}")
+    return 0 if ok and api == 200 and app == 200 else 1
 
 
 def main(argv: list[str]) -> int:
@@ -353,15 +324,15 @@ def main(argv: list[str]) -> int:
         "--fresh", action="store_true", help="reset the unit's and the API's scratch state"
     )
     p_up.add_argument(
-        "--no-unit",
+        "--with-unit",
         action="store_true",
-        help="AIA alone: do not start the 18.6.6 unit; its paths answer 502 (ADR 0018)",
+        help="also start the 18.6.6 unit on its own port, as the reference (ADR 0018)",
     )
     sub.add_parser("down")
     sub.add_parser("status")
     args = ap.parse_args(argv)
     if args.cmd == "up":
-        return up(args.fresh, args.no_unit)
+        return up(args.fresh, args.with_unit)
     if args.cmd == "down":
         return down()
     return status()

@@ -11,8 +11,10 @@
 > attachments, the questionnaire import and template, and the Dimenze library are AIA's;
 > the unit job runner, provider readiness (`provider.ts`) and the support bundle
 > (`src/unit/support.ts`) are gone; what the unit computed from its panel says it is not in
-> AIA. The chunk records below describe what landed at the time, and name files that no
-> longer exist.
+> AIA. Since chunk 9 of that plan, nothing hands off to `/classic`: a stage AIA does not
+> have (verify, next) says so, and so does each capability that stayed in 18.6.6. The
+> chunk records below describe what landed at the time, and name files that no longer
+> exist.
 
 > **Re-homed under the client (2026-09-24, [client-first-ia.md](done/client-first-ia.md),
 > [ADR 0015](../../docs/architecture/adr/0015-client-first-product-interface.md)).**

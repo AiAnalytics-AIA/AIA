@@ -7,7 +7,6 @@
 // study by study. Nothing here decides either: the page only asks.
 
 import { currentIdToken, loadConfig, logout } from "@/lib/auth";
-import { closePanelSession } from "@/lib/panel";
 
 export type SessionOutcome =
   | { kind: "opened" }
@@ -47,13 +46,11 @@ export async function closeSession(): Promise<void> {
   }
 }
 
-/** Where only the 18.6.6 interface's own session lets a person in (until it leaves). */
-export function needsPanel(path: string): boolean {
-  return path === "/classic" || /^\/classic[?#]/.test(path) || path.startsWith("/app/settings/classic-projects");
-}
-
-/** Sign out of everything: both cookies, then the Cognito session. */
+/**
+ * Sign out: AIA's session cookie, then the Cognito session. A cookie the 18.6.6 panel
+ * set before ADR 0018 opens nothing: its gate and every path it guarded are gone.
+ */
 export async function signOut(): Promise<void> {
-  await Promise.all([closeSession(), closePanelSession()]);
+  await closeSession();
   await logout();
 }

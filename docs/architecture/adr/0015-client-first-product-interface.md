@@ -11,6 +11,15 @@ Everything else in those ADRs stands: the vendored unit and its oracle (0011), t
 of it and the owner/admin rule (0012), the skin as long as the classic document is served
 (0013), the ledger-checked unit client and the fragment hand-off mechanism (0014). Narrowly
 **amends [ADR 0004](0004-client-study-isolation.md) rule 1** for Client Knowledge (below).
+**Superseded in part by [ADR 0018](0018-aia-runs-without-18-6-6.md)** (2026-09-27): decision
+4's hand-off (`/classic` no longer serves 18.6.6 and nothing links to it, ADR 0018 decision 4),
+its routes to the unit's paths and the legacy hostname (the product deployment has no unit,
+decision 5);
+decision 5 (a study's working content is AIA's, and bound content comes over by an explicit
+migration, decisions 1 and 2); decision 8's classic project store under *Nastavení* (removed,
+decision 4); and the consequence that `/app` is open to owners and admins only (AIA's own
+gate, decision 3). 18.6.6 is a reference and the parity oracle only -- never a fallback.
+Decisions 1–3, 6 and 7 stand.
 **Date:** 2026-09-24
 
 ## Context
@@ -54,10 +63,16 @@ that client.
      needs a capability not yet rebuilt links there visibly (`/classic#aia:…`), remembers where
      the person came from, and the classic page shows one bar, *Zpět do AIA*, that returns
      there. That bar is the one element the script adds to the classic page.
+     *Superseded by [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 4: `/classic` is
+     AIA's page saying the 18.6.6 interface is gone; no screen links there, and a capability
+     AIA does not have says so where the person is.*
    - The unit is routed **only on the paths it serves** (`/api/*` other than `/api/v1`,
      `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`,
      `/health`, `/status`), each through the gate. There is no catch-all to the unit: an unknown
      path is the web client's 404, so normal navigation cannot fall into the old product.
+     *Superseded by [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 5: the product
+     deployment has no unit; those paths are the web client's 404 too, and the legacy hostname
+     is not served. The unit runs from `deploy/reference/` on the host's loopback.*
 
 5. **The unit store is a temporary migration bridge, not the data model** (open item OI-58).
    Until the research store is ported, the unit project that holds a study's *working content*
@@ -74,6 +89,8 @@ that client.
      decision 2; the unit holds only the working content of the rebuilt stages, as a copy the
      migration will move. The direction stays: study state and client knowledge move into
      AIA-owned storage and contracts; the unit is retained only as the oracle and a fallback.
+     *Corrected by [ADR 0018](0018-aia-runs-without-18-6-6.md): the oracle and a frozen
+     reference only. Nothing in the product falls back to it.*
    - **Removal condition:** the research (and then simulation) stage state is stored and served by
      AIA's own study-scoped contracts (`/api/v1/studies/{study_id}/…`), the rebuilt stages no
      longer call the unit's project store, and the bound working content has been migrated. Then
@@ -81,6 +98,10 @@ that client.
    The unit itself remains single-tenant and open to organization owners and admins only
    (`LEGACY_PANEL_ROLES`, ADR 0012), so isolation of the bridged content is enforced at AIA's
    resolution layer and by that gate, not by the unit.
+   *Superseded by [ADR 0018](0018-aia-runs-without-18-6-6.md) decisions 1 and 2: the stages
+   load and save AIA's own working project, found through the Study; `study_workspaces`
+   stays as that pointer and its `ContentState`, and `unit_project_id` is lineage only,
+   which nothing finds a Study by.*
 
 6. **A client-level scope.** `ScopeResolver.client_context()` is the only issuer of a
    `ClientContext`: an active member, a client of their organization that is not archived, and
@@ -111,7 +132,9 @@ that client.
 8. **Research stages are re-homed, not rewritten.** The screens of PR #49 and #50 are mounted at
    `/app/clients/<client>/research/<study>/<stage>` with their store, save state, job runner and
    parity-tested logic unchanged. `/app/research/*` (unscoped) is retired; the unscoped classic
-   project store moves under *Nastavení* as an administrative tool.
+   project store moves under *Nastavení* as an administrative tool. *That tool is removed by
+   [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 4; the content it listed comes over by
+   the migration (decision 2).*
 
 ## Alternatives considered
 
@@ -142,6 +165,8 @@ that client.
   is fully AIA-scoped (OI-58 closed for the stages a researcher uses); then `/app` moves to a gate
   that admits any provisioned member, and every page's data is resolved by `ScopeResolver` as
   now. Nothing in the client shell may depend on the caller being an owner or admin.
+  *Removed by [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 3: `/app` has AIA's own
+  gate, which admits any active member.*
 - CI's routing checks, the smoke script and the runbook change with the Caddyfile (`/` is a
   redirect; `/classic` is the gated document; no catch-all).
 - A new permission family governs client knowledge; the permission matrix grows.
@@ -151,3 +176,5 @@ that client.
 - The research store moves to AIA: the binding is migrated and dropped (OI-58).
 - Stage state is AIA-scoped: `/app` opens to every member with the right grants (OI-59).
 - The last hand-off is gone: `/classic` is removed; the legacy hostname stays as the oracle.
+  *Met by [ADR 0018](0018-aia-runs-without-18-6-6.md) decision 4: `/classic` no longer serves
+  18.6.6, and says so.*

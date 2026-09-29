@@ -12,6 +12,9 @@ paths on the product hostname) and 5 (the unit store as a bridge), and its OI-59
 consequence (`/app` open to owners and admins only). **Amends**
 [ADR 0011](0011-vendor-legacy-product-unit.md): the vendored unit stays, frozen, as the
 behavioural reference and parity oracle; it is no longer part of the product deployment.
+All five increments are implemented, each on its own draft pull request, stacked in order
+(#74, #77, #78, #82 and increment 5's); the migration of decision 2 has not been run on
+develop, which is an operator's step.
 **Date:** 2026-09-27
 
 ## Context
@@ -110,23 +113,73 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
    session goes to `/login`, a fetch gets 401, and any method but GET and HEAD is refused,
    because the pages take no writes. The web client's switch for `/app`
    (`AIA_INTERFACE_REHOME_ENABLED`, ADR 0014) is retired there: it existed so the classic
-   interface could stand in. While `/classic` and the unit's paths remain, they keep the
-   owner/admin panel gate; `/login` opens that session too, best effort, and it only ever
-   stands in the way of the 18.6.6 interface. *Rejected:* opening `/app` to anyone signed in
-   to Cognito (a page shell is harmless, but a person who is no member has no business in
-   the product); keeping the panel gate with a wider role set (it answers 404 when the
-   legacy flag is off and is refused in production, so AIA would still depend on it).
+   interface could stand in. While the unit's paths remained on the product hostname, they
+   kept the owner/admin panel gate. Until increment 4, `/login` opened that session too, best
+   effort, for the 18.6.6 interface alone; since increment 4 it does not. Increment 5 removes
+   the panel's gate with the unit's paths (`/api/v1/panel/*` is gone, and so are
+   `ScopeResolver.authorize_legacy_panel`, `LEGACY_PANEL_ROLES` and the
+   `AIA_LEGACY_PANEL_*` settings); sign-out clears AIA's own cookie, and an `aia_panel`
+   cookie left from before is read by nothing.
+   *Rejected:* opening `/app` to anyone signed in to Cognito (a page shell is harmless, but
+   a person who is no member has no business in the product); keeping the panel gate with a
+   wider role set (it answers 404 when the legacy flag is off and is refused in production,
+   so AIA would still depend on it).
 
-4. **The interface hands nothing to 18.6.6** (increment 4). No `/classic`, no hand-off links,
-   no skin. A capability AIA does not have -- simulation screens, verification, the 18.6.6
-   client report, panel-derived audience filters and previews, special and customer
-   audiences -- says so where the person is.
+4. **The interface hands nothing to 18.6.6** (increment 4). No page links to the 18.6.6
+   interface or opens one of its screens; the web client serves no 18.6.6 document and no
+   skin, and calls none of the unit's paths. `/classic` stays a path, because old links and
+   bookmarks point at it: it is the web client's public page saying the 18.6.6 interface is
+   not part of AIA, with the way into AIA; it shows no data, so it needs no gate. A capability
+   AIA does not have says so where the person is (*V AIA zatím není*): the simulation flow,
+   the Data Library, verification and the next-steps stage, the 18.6.6 client report and the
+   Sociomap's interactive tools, what 18.6.6 computed from its licensed panel (audience
+   filters, the feasibility check, subpanels, customer audiences, panel factors), and Deep
+   Research for a dimension. `docs/migration/interface-screens.json` records every classic
+   screen as `REBUILT`, `REBUILDING`, `SUPERSEDED` (AIA does its job its own way) or
+   `NOT_IN_AIA` with the AIA page that says so (none where AIA has no place a person would
+   look for it, as for the unit's DEMO library); its test fails a screen with any other
+   status. The classic projects screens (`/app/settings/classic-projects`), the last caller
+   of the unit's store, are removed: a Study's bound project comes over by the migration
+   (decision 2), and until then the Study says it is waiting; a unit project no Study refers
+   to stays in the unit's volume, listed in the migration's report. *Rejected:* redirecting `/classic`
+   to `/app/clients` without a word (a person who followed a link to 18.6.6 would land
+   elsewhere without knowing why); keeping the hand-off for owners until increment 5 (each
+   hand-off is a way for a supported workflow to keep needing the unit); removing the
+   notices with the hand-offs (hiding a missing capability does not make it AIA's).
 
 5. **The product deployment has no unit** (increment 5): no `legacy-panel` image, service,
    volume mount, hostname, credentials, data sync or health check; CI fails a product
    Caddyfile that routes to the unit. The unit runs, when a comparison needs it, from a
    separate optional reference setup (`deploy/reference/`), reached on the host's loopback.
    Its working volume and data bundle are left exactly as they are.
+   - **The product stack** builds and pulls `aia-api`, `aia-worker` and `aia-web` only. Its
+     Caddyfile has one site, the product hostname: `/api/v1/*` to the API and everything else
+     to the web client, whose 404 answers the unit's old paths. `tools/caddy_routes.py` fails a
+     second hostname, any upstream but the API and the web client, and the panel's gate; the
+     API contract check fails a `/api/v1/panel` path; the smoke check fails a deploy on which
+     a unit path answers or a `legacy-panel` container of the product project exists.
+   - **The first deploy without the unit** stops the product project's `legacy-panel`
+     container as its service did (`docker stop -t 30`), `compose up --remove-orphans`
+     removes it, and the deploy fails if the unit's volume vanished. Nothing removes the
+     volume (`aia-develop_legacy_state`: the unit's databases and the files people attached,
+     the only copy of content not yet migrated), the data directory, the data bundle or the
+     unit's images.
+   - **The reference setup** is the Compose project `aia-reference`: the unit on that volume,
+     declared `external` (never created or removed there), and a basic-auth gate published
+     only on `127.0.0.1:8765`, reached through an SSM port forward; `restart: "no"`, a
+     network of its own, started and stopped by hand (`bin/up.sh`, `bin/down.sh`). It copies
+     the unit's databases WAL-safe (`bin/backup-state.sh`, with the data owner's approval),
+     which the product's backup no longer does. `.github/workflows/reference-unit.yml`,
+     dispatched by hand, builds the unit's image and ships the bundle; it changes nothing on
+     the host.
+   - **The UI workbench** runs AIA alone; the unit runs beside it only on request
+     (`make ui-workbench-reference`), on its own port, never behind the facade.
+   *Rejected:* keeping the unit as an optional service of the product stack behind a profile
+   or a flag (a product that can start the unit can come to need it again, and the smoke and
+   health coupling of OI-44 and OI-71 returns with it); serving the oracle on its own public
+   hostname from the product's Caddy (the product would still carry the unit's hostname,
+   credentials and upstream); removing the unit's volume or data bundle with the service (they
+   hold content not yet migrated, OI-58).
 
 ## Consequences
 
@@ -135,8 +188,14 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
   between increments 2 and 5.
 - Capabilities that exist only in 18.6.6 are unavailable in the product until rebuilt, and
   say so; they are no longer reachable through a hand-off.
-- The parity oracle is reachable only from the reference setup; the oracle CI job still skips
-  without its secrets, as it did.
+- The parity oracle is reachable only from the reference setup, through an SSM port forward;
+  the oracle CI job still skips without its secrets, and a GitHub-hosted runner could not
+  reach the host's loopback even with them (OI-39).
+- The develop deployment starts, deploys and passes its smoke checks with nothing of 18.6.6:
+  no image, container, hostname, credential, data hydration or health check.
+- Until the migration's report is accepted, the content of Studies still waiting for it is
+  only in the unit's volume, which stays on the host untouched; its backups are the reference
+  setup's, taken by hand, not the product's nightly dump.
 
 ## Revisit when
 
