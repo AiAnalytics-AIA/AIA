@@ -11,6 +11,8 @@ name:** code, the interface, stored artifacts and older documents cite
 `PROGRESS D6`, `PROGRESS D11` and so on, and they mean the rows of *Decisions
 needed* below.
 
+**Last updated as PROGRESS.md:** 2026-09-27 · **Code of record:** `develop` @ `e0edf2a` · **Release:** `main` @ `9cf1f58`,
+208 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 **Updated:** 2026-09-28 · **Code of record:** `develop` @ `877e63e` · **Release:** `main` @ `9cf1f58`,
 298 commits behind it (ADR 0009). This header names `develop`, never a feature branch: a
 branch's state is a row under *Open pull requests* below, so a merge cannot leave it stale.
@@ -103,6 +105,14 @@ it.** Of the 40 remote branches (10:20 UTC), 25 besides `develop` are fully cont
     all of it. **Do not delete them without an archive tag.**
 - `fix/develop-bootstrap` is patch-equivalent to `develop` (`git cherry` `-`).
 
+**Deployed: `2beafd9` (#67's merge), green** (*Deploy develop* run 31, 11:51 UTC: host step,
+every smoke check, and "Confirm from outside"). Runs 29 (`14a124b`, 11:11) and 30 (`85fa951`,
+11:33) had replaced every service and passed every smoke check but
+`legacy: the 18.6.6 unit is healthy`, read as `starting` 19 s after the unit was recreated. That
+is a race, not a broken unit (OI-71): run 31 passed the same check with the same one-shot read.
+The site served each new build throughout. PR #70 is the fix. Until it merges, a red deploy on
+that one line means the unit was read too early, not that the site is down. Run 28 @ `e0edf2a`
+(10:46) was the first green deploy of the day. Before it, the host had been on `ff463a3`:
 **Deployed: `92a0bdd` (#88's merge), smoke red** (*Deploy develop* run 41, 20:43–20:48 UTC).
 - Every service was replaced and reports that build. The schema is at `1777fcb96352`.
 - Every smoke check passed but one:
@@ -154,6 +164,15 @@ attempt 3, green).
 | #63 | `feature/research-agents` | Native Research design agents on Bedrock | **Merged** 11:17 (`85fa951`); CI green on `614b6a7` | 4, see below |
 | #67 | `claude/trusting-turing-2b9oyl` | Settings control panel on `/app/settings`: `GET /settings`, `GET`/`PUT /self-approval`, `PUT /clients/{id}/status` ([plan](plans/done/settings-control-panel.md)) | **Merged** 11:34 (`2beafd9`) | 5 |
 | #68 | `chore/record-deploy-and-oi-70` | Records run 28, #63's and #67's merges, OI-70, OI-71 | **Merged** 14:13 (`4c4c3dd`) | 6 |
+| #70 | `fix/smoke-waits-for-unit-start` | Smoke judges the 18.6.6 unit after its start period (OI-71) | Draft into `develop` | 7: turns *Deploy develop* green again |
+| #71 | `fix/brief-toggle-test-waits` | BriefStep's toggle test waits for the pressed tile (OI-70) | Draft into `develop` | any time: ends a red *Frontend* about 1 run in 30 |
+| #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | Draft into `develop` | not yet reviewed here |
+| #72 | `chore/design-system-reference` | Design-system reference package: the AIA Design System artifact as plain files under `design-system/` (tokens CSS + flat JSON, OFL fonts, identity SVGs, `status-map.md` from the domain enums @ `043b0dd`, three no-build HTML pages); the artifact's 12 screens left out; `FailureClass.RUNTIME_UNAVAILABLE` mapped to `world` pending the design owner. Not wired into `apps/web` | Ready for review | any time: docs only |
+| #75 | `fix/truthful-ai-controls` | Settings says truthfully what powers AIA's AI: `ai_runtime` from code, each switch from `/config`, never "connected"; the prototype's provider fields as collapsed history ([plan](plans/truthful-ai-controls.md), OI-72; handoffs OI-73–OI-75; OI-76, first filed here, fixed by #83) | Draft into `develop` | any time: no migration, no new variable. Settings overlap is resolved in draft cutover #86: retain these native controls and remove classic navigation there |
+| #79 | `feature/deep-research-core` | Deep Research core, 1 of 2: the pure domain -- closed contracts, the 18.6.6 leakage screen and merge EXACT against the vendored unit, grounding, source tables, query classes, fetch policy, frozen knowledge, tracks and fingerprints, merge/verify, the brief's checks, the sealed bundle, respondent quarantine ([plan](plans/deep-research.md) chunks a–d). Recorded/offline; nothing registered | **Merged** (`f1c486f`, 2026-09-27) | complete; inactive foundation |
+| #81 | `feature/deep-research-execution` | Deep Research, 2 of 2: recorded execution through the worker -- the retrieval gate (the only way a query or URL leaves), runs frozen at enqueue (`DeepResearchRuns`), six executors with artifact reuse by fingerprint, a production-shaped composition that blocks every web track and sends nothing, a recorded composition (local/test only, 7 `layer_check` rules), and the journey: pass 1 13 model requests / 6 searches / 8 fetches, pass 2 5 / 3 / 2 with 6 tracks reused ([plan](plans/deep-research.md) chunks e–h). Contains #79's commits | Draft into `develop` | after #79 |
+| #83 | `fix/native-tests-config-cache` | Native Research tests no longer inherit a `/config` failure an earlier test cached; `loadConfig()` keeps no failed read (OI-76) | **Merged** into `develop` (`48bf3e2`, 22:45 UTC) | complete |
+| #84 | `fix/durable-corrupt-mark` | The API keeps a corrupt artifact's `CORRUPT` mark when it refuses to serve it: the artifact routes' 409 no longer rolls it back, and the agent-job proposal routes answer 409, not 500 (OI-77; its worker half stays open) | **Merged** into `develop` (`8c13a11`) | deployment smoke still fails in seed loading |
 | #71 | `fix/brief-toggle-test-waits` | BriefStep's toggle test waits for the pressed tile (OI-70) | **Merged** 14:54 (`53de110`) | 7 |
 | #69 | `claude/loving-hopper-qiflcr` | Refuse to run a worker on an engine whose threads share one connection | **Merged** 15:52 (`1800c31`) | 8 |
 | #70 | `fix/smoke-waits-for-unit-start` | Smoke judges the 18.6.6 unit after its start period (OI-71) | **Merged** 15:52 (`ceee2dc`); deployed by run 34; moot once increment 5 lands | 9 |
@@ -200,6 +219,7 @@ the next PRs, each against the plan that already exists for it, not one long bra
   skipped; executors 64; web 758; PostgreSQL focused suites 65; types/lint clean,
   layer 62 and exposure 7. Browser journey and CI are still pending.
 
+**Is AIA its own application?** Not yet, and the gap is precise.
 **Is AIA its own application?** On `develop`, not yet; with the phase-out stack merged
 (#74 → #77 → #78 → #82 → increment 5, below), yes for every supported workflow, verified
 with 18.6.6 absent (increment 5's row). What then remains is data, not code: the Studies
@@ -252,6 +272,7 @@ On `develop` today, the gap is precise:
    stop is an email, not a morning of red PRs.
 4. **Release `develop` → `main`** once #64 has merged and a deploy is green. PR #60,
    the previous attempt, was closed unmerged.
+5. **After the open PRs land, delete the 24 contained feature branches**: the 25 above,
 5. **Deployment hold established.** Workflow `365126516` is `disabled_manually`
    since 2026-09-28 21:18 UTC. One deliberate baseline repair deployment was dispatched
    under operator control, then the hold restored. Keep the hold through #86 assembly;

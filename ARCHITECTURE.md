@@ -131,7 +131,6 @@ Run it before every commit. It is blocking in CI.
 | claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
 | the API never admits its own claims | The same, at the edge where untrusted input arrives |
 | a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
-| the API, worker and executors never build field policy or a joint status (no `FieldPolicyBook(`, `FieldPolicy(`, `load_joint_status(`, instrument declaration or dictionary loader in `apps/`) | A permissive policy book for a questionnaire, or a certificate for a run with no panel, presented as the authority a claim rests on |
 | no statically skipped or xfailed tests | Deleting the signal instead of fixing the defect |
 | the web client does not talk to a database | The presentation boundary crossed in the most expensive possible way |
 
