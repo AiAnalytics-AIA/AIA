@@ -10,7 +10,7 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { api, type Health } from "@/lib/api";
 import { loadConfig, useSession } from "@/lib/auth";
-import { signOut } from "@/lib/panel";
+import { signOut } from "@/lib/session";
 import { t } from "@/i18n/t";
 
 export function LiveShell({ children }: { children: ReactNode }) {

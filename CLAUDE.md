@@ -53,7 +53,9 @@ apps/
     routers/                health, projects, scope, runs (runs + artifacts under a project),
                             workspace (clients, a client's workspace, its knowledge and proposals,
                             a study's frame and its working content in AIA, ADR 0015, ADR 0018),
-                            panel (the session + gate in front of /app, /classic and the unit, ADR 0012),
+                            session (AIA's own session + the gate in front of /app: any active
+                            member, ADR 0018), panel (the owner/admin session + gate in front of
+                            /classic and the unit's paths, ADR 0012, until the unit leaves),
                             research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), and native agent-jobs beneath each Study,
                             settings (the read-only settings document: every control and how it is set;
@@ -62,7 +64,7 @@ apps/
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data.
-    src/app/app/            AIA behind the gate, AIA_INTERFACE_REHOME_ENABLED: /app/clients (home),
+    src/app/app/            AIA behind AIA's own gate (no switch): /app/clients (home),
                             clients/<client>/{research,simulations,knowledge,data},
                             clients/<client>/research/<study>/<stage>, intelligence, memory,
                             settings (+ settings/classic-projects, the unit's store, OI-58)
@@ -400,11 +402,13 @@ Simulace, Znalosti, Data) → study → stages, and the global navigation has fo
 items: Klienti, Společenská inteligence, Projektová paměť, Nastavení. Research
 and simulation are both `Study` records, told apart by `Study.kind`. The 18.6.6
 interface is a labelled, temporary hand-off at `/classic` with a way back, and
-the oracle stays on its own basic-auth hostname. `/app`, `/classic` and the
-unit's own paths sit behind `forward_auth` to `GET /api/v1/panel/gate`; only
-organization owners and admins pass -- **a temporary restriction, not the target
-model** (OI-59: user → organization membership → client grant → study grant).
-There is no catch-all to the unit. The classic document passes through the web
+the oracle stays on its own basic-auth hostname. `/app` sits behind AIA's own
+gate, `forward_auth` to `GET /api/v1/session/gate` (ADR 0018): any active member of
+the organization with an AIA session; what they see inside is decided per call by
+the API (user → organization membership → client grant → study grant). No legacy
+setting touches it. `/classic` and the unit's own paths sit behind the panel's gate,
+`GET /api/v1/panel/gate`, where only organization owners and admins pass -- a
+restriction that goes with the unit (OI-59). There is no catch-all to the unit. The classic document passes through the web
 client, which adds the skin only when it is the pinned `ui_app.html` (ADR 0013);
 the unit's bytes never change.
 

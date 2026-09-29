@@ -139,11 +139,11 @@ Caddyfile routes:
 | `/api/v1/*` | the AIA API |
 | `/login`, `/logout`, `/auth/*`, `/config`, `/version`, `/studies*`, `/_next/*`, `/skin/*`, `/favicon.ico`, `/icon.svg`, `/apple-icon.png` | the AIA web client |
 | `/` | `302 /app/clients`; nothing is served |
-| `/app`, `/app/*` | after `forward_auth` to `GET /api/v1/panel/gate`, the web client: AIA, Clients → client workspace → study → stages; 404 while `AIA_INTERFACE_REHOME_ENABLED` is off |
-| `/classic` | after the same `forward_auth`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) and `/skin/handoff.js` (its "Zpět do AIA" bar) when it applies |
+| `/app`, `/app/*` | after `forward_auth` to AIA's own gate, `GET /api/v1/session/gate`, the web client: AIA, Clients → client workspace → study → stages |
+| `/classic` | after `forward_auth` to the panel's gate, `GET /api/v1/panel/gate`, the web client's `/interface-document`, which fetches the unit's `/` and adds the AIA skin ([ADR 0013](../../docs/architecture/adr/0013-interface-skin-at-the-facade.md)) and `/skin/handoff.js` (its "Zpět do AIA" bar) when it applies |
 | `/interface-document` (requested directly) | 404 |
-| Legacy Claude Code setup/status and `/api/settings/{api_keys,anthropic_check,ai_check,ai_diagnose}` | after the gate, HTTP 410; no direct credentials or provider probes on the product hostname |
-| `/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`, `/health`, `/status` | `legacy-panel`, after the same `forward_auth` |
+| Legacy Claude Code setup/status and `/api/settings/{api_keys,anthropic_check,ai_check,ai_diagnose}` | after the panel's gate, HTTP 410; no direct credentials or provider probes on the product hostname |
+| `/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`, `/fullsim-arena`, `/health`, `/status` | `legacy-panel`, after the panel's gate |
 | everything else | the web client (its own 404 for a path it does not know); never the unit |
 
 `tools/caddy_routes.py` checks this table against the adapted Caddyfile in CI;
@@ -152,29 +152,33 @@ real file locally, with a browser, when the routing changes. The proof also runs
 the worker as this host does (`aia_executors.registry`, no fieldwork source) and
 shows a research run parking at fieldwork, `ai_runtime_unavailable` (ADR 0016).
 
-- **Who gets in.** An active member of the organization whose role is `OWNER`
-  or `ADMIN`. Anyone else who signs in is shown a message and can still use
-  `/studies`. To let someone in, make them an organization admin; there is no
-  separate list. This is a temporary restriction while the stages read the
-  single-tenant unit, not the target model (OI-59); inside AIA each person
-  still sees only the clients and studies they hold grants in.
-- **How.** `/login` turns the Google sign-in into an HttpOnly session cookie
-  (`aia_panel`) through `POST /api/v1/panel/session`; the gate re-verifies it on
-  every request and Caddy strips it before the request reaches the unit.
-  Opening a session is recorded in the access audit (`LEGACY_PANEL_SESSION`,
-  `LEGACY_PANEL_DENIED`); individual requests are not.
-- **Signing out.** `/logout` clears the cookie and the Cognito session.
-- **Switching it off.** Set `AIA_LEGACY_PANEL_ENABLED: "false"` on the `api`
-  service and `docker compose up -d api`. The gate then answers 404 to
-  everything, so nothing reaches the unit from the product hostname -- and,
-  while `/app` sits behind the same gate (OI-59), AIA's pages answer 404 too:
-  `/` still redirects, to a 404. `/login`, `/studies` and the API stay up.
+- **Who gets into AIA.** Any active member of the organization (ADR 0018). Inside,
+  each person sees only the clients and studies they hold grants in: the API
+  decides that per call. To let someone in, add them to the organization and
+  grant them a client or a study. Someone who signs in with Google but is no
+  member is told so.
+- **Who gets into what remains of 18.6.6** (`/classic`, the unit's paths, which
+  the classic projects screen reads): organization owners and admins only, until
+  the unit leaves the product (OI-59).
+- **How.** `/login` turns the Google sign-in into an HttpOnly session cookie,
+  `aia_session`, through `POST /api/v1/session`; AIA's gate re-verifies it on
+  every request to `/app`. It then opens the panel's cookie, `aia_panel`, through
+  `POST /api/v1/panel/session`, best effort: it matters only on the way to
+  `/classic`. Caddy strips both before a request reaches the web client or the
+  unit. Opening a session is recorded in the access audit (`AIA_SESSION`;
+  `LEGACY_PANEL_SESSION`, `LEGACY_PANEL_DENIED`); individual requests are not.
+- **Signing out.** `/logout` clears both cookies and the Cognito session.
+- **Switching the unit off.** Set `AIA_LEGACY_PANEL_ENABLED: "false"` on the `api`
+  service and `docker compose up -d api`. The panel's gate then answers 404 to
+  everything, so nothing reaches the unit from the product hostname. AIA is not
+  affected: its gate does not read that setting.
 - **The oracle hostname** (`AIA_LEGACY_HOSTNAME`, basic auth) is unchanged and
   reaches the same container, so both share its state.
 - **When `/classic` or a research stage shows an error.** `docker compose ps legacy-panel`: the unit needs
   its data bundle synced by `bin/deploy.sh` (OI-39). A 401 or 403 JSON body on a
-  page means the gate refused it; the `code` field says why (`unauthenticated`,
-  `legacy_panel_denied`, `cross_origin`). A 502 on `/classic` means the gate admitted
+  page means a gate refused it; the `code` field says why (`unauthenticated`,
+  `not_a_member`, `method_not_allowed` from AIA's gate; `legacy_panel_denied`,
+  `cross_origin` from the panel's). A 502 on `/classic` means the gate admitted
   the request and the unit is not answering: `/classic`'s response carries
   `X-AIA-Skin: bypassed-unreachable` when the web client could not reach it, and
   no such header when the web client itself is down.

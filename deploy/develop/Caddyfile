@@ -3,7 +3,7 @@
 # hostname).
 #
 # The product hostname is AIA (ADR 0015): `/` answers 302 /app/clients, the
-# React client-first application, behind the gate. /api/v1/* goes to FastAPI,
+# React client-first application, behind AIA's own gate (ADR 0018). /api/v1/* goes to FastAPI,
 # AIA's own pages to Next.js. The NPC Panel 18.6.6 interface is served only at
 # /classic -- an explicit, labelled, temporary hand-off -- and the unit is reached
 # only on the paths it serves (@unit), each through the gate: the unit has no
@@ -60,7 +60,7 @@
 	}
 
 	# The product's front door (ADR 0015): the client directory. No gate here --
-	# nothing is served -- /app puts the gate in front of every page.
+	# nothing is served -- /app puts AIA's gate in front of every page.
 	handle / {
 		# `*`: a first argument starting with / would be read as a path matcher.
 		redir * /app/clients 302
@@ -92,18 +92,17 @@
 		respond 404
 	}
 
-	# AIA, the React client-first application (ADR 0015). The same gate as the
-	# unit -- organization owners and admins only, a temporary restriction while
-	# the stages still read the single-tenant unit (OI-59). The pages hold no
-	# data: they read /api/v1 with the person's own token (scoped by
-	# ScopeResolver) and the unit through the gated paths below. No unit path
-	# begins with /app (the route ledger). The web client answers 404 here while
-	# AIA_INTERFACE_REHOME_ENABLED is off.
-	@rehome path /app /app/*
-	handle @rehome {
+	# AIA, the React client-first application (ADR 0015), behind AIA's own gate
+	# (ADR 0018 decision 3): any active member of an organization with an AIA
+	# session; a navigation without one goes to /login. Nothing about the 18.6.6
+	# unit decides it. The pages hold no data: they read /api/v1 with the person's
+	# own token, where ScopeResolver authorizes every client and study again, per
+	# call. No unit path begins with /app (the route ledger).
+	@app path /app /app/*
+	handle @app {
 		route {
 			forward_auth api:8000 {
-				uri /api/v1/panel/gate
+				uri /api/v1/session/gate
 			}
 			reverse_proxy web:3000 {
 				header_up -Cookie

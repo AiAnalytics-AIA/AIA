@@ -6,7 +6,7 @@ routes the product hostname (ADR 0015) -- minus the gate.
                               the hand-off script with its "Zpět do AIA" bar)
     /interface-document    -> 404, as on develop: reachable only through /classic
     /api/v1/*              -> the workbench's AIA API (api_standin.py), else 502
-    @web, @rehome, ...     -> the web client: every named matcher whose handle
+    @web, @app, ...        -> the web client: every named matcher whose handle
                               proxies to web:3000 in deploy/develop/Caddyfile
     @unit                  -> the 18.6.6 unit, on the paths its matcher lists,
                               Host/Origin/Referer rewritten to its own origin,
@@ -68,9 +68,9 @@ def _block(text: str, start: int) -> str:
 def web_paths(caddyfile: str) -> list[str]:
     """The path patterns of every named matcher whose `handle` goes to the web client.
 
-    `@web` (AIA's own pages and assets) and `@rehome` (the rebuilt interface,
-    ADR 0014) today; any later matcher that proxies to web:3000 is picked up
-    the same way. The gate in front of some of them is not reproduced here.
+    `@web` (AIA's own pages and assets) and `@app` (AIA's application, ADR 0015)
+    today; any later matcher that proxies to web:3000 is picked up the same way.
+    The gates in front of some of them are not reproduced here.
     """
     patterns: list[str] = []
     for m in re.finditer(r"^\s*@(\w+)\s+path\s+(.+)$", caddyfile, re.MULTILINE):

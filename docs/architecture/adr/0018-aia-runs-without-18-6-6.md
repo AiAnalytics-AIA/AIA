@@ -103,7 +103,19 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
 
 3. **`/app` has AIA's own gate** (increment 3): any active organization member with an AIA
    session; every page's data is authorized per call by `ScopeResolver`, as it always was.
-   No legacy flag decides whether AIA can be reached.
+   No legacy flag decides whether AIA can be reached. `/login` turns the Cognito id token
+   into an HttpOnly session cookie (`POST /api/v1/session`, `aia_session`, admission by
+   `ScopeResolver.authorize_session`, recorded in the access audit). Caddy asks
+   `GET /api/v1/session/gate` before every request to `/app`: a navigation without a
+   session goes to `/login`, a fetch gets 401, and any method but GET and HEAD is refused,
+   because the pages take no writes. The web client's switch for `/app`
+   (`AIA_INTERFACE_REHOME_ENABLED`, ADR 0014) is retired there: it existed so the classic
+   interface could stand in. While `/classic` and the unit's paths remain, they keep the
+   owner/admin panel gate; `/login` opens that session too, best effort, and it only ever
+   stands in the way of the 18.6.6 interface. *Rejected:* opening `/app` to anyone signed in
+   to Cognito (a page shell is harmless, but a person who is no member has no business in
+   the product); keeping the panel gate with a wider role set (it answers 404 when the
+   legacy flag is off and is refused in production, so AIA would still depend on it).
 
 4. **The interface hands nothing to 18.6.6** (increment 4). No `/classic`, no hand-off links,
    no skin. A capability AIA does not have -- simulation screens, verification, the 18.6.6

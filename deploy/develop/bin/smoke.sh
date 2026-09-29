@@ -44,14 +44,25 @@ if [ "$root_code" = "302" ] && [ "$root_location" = "/app/clients" ]; then
   pass "web: / opens AIA (302 /app/clients), not the 18.6.6 document"
 else fail "web: / opens AIA (302 /app/clients)" "got ${root_code} Location '${root_location}'"; fi
 
-# AIA is behind the gate: anonymous, a browser is sent to sign-in and comes back
-# to /app/clients. A 200 would mean the screens are public; a 404 from Caddy,
-# that the running Caddy predates @rehome.
+# AIA is behind its own gate (ADR 0018): anonymous, a browser is sent to sign-in
+# and comes back to /app/clients. A 200 would mean the screens are public; a 404
+# from Caddy, that the running Caddy predates the @app route.
 app_headers="$(headers "$BASE/app/clients")"
 app_code="$(status_of "$app_headers")"; app_location="$(location_of "$app_headers")"
 if [ "$app_code" = "302" ] && [ "$app_location" = "/login?next=%2Fapp%2Fclients" ]; then
   pass "web: an anonymous visit to /app/clients is sent to sign-in (302 /login)"
 else fail "web: an anonymous visit to /app/clients is sent to sign-in" "got ${app_code} Location '${app_location}'"; fi
+
+# The 18.6.6 panel's cookie is not a way into AIA: that gate is not AIA's.
+panel_cookie_headers="$(curl -s -o /dev/null -D - --max-time 10 -H 'Accept: text/html' -H 'Cookie: aia_panel=forged' "$BASE/app/clients" || true)"
+if [ "$(status_of "$panel_cookie_headers")" = "302" ]; then
+  pass "security: the 18.6.6 panel's cookie does not open AIA (302 /login)"
+else fail "security: the 18.6.6 panel's cookie does not open AIA" "got $(status_of "$panel_cookie_headers")"; fi
+
+# AIA's pages take no writes; the API is /api/v1.
+page_write="$(code -X POST -H 'Accept: text/html' "$BASE/app/clients")"
+if [ "$page_write" = "403" ]; then pass "security: a write to AIA's pages is refused (403)"
+else fail "security: a write to AIA's pages is refused" "POST /app/clients returned ${page_write}, expected 403"; fi
 
 # The classic interface is served only at /classic, behind the same gate.
 classic_headers="$(headers "$BASE/classic")"

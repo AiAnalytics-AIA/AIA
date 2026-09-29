@@ -449,6 +449,10 @@ jobs:
               "/api/v1/studies/{study_id}/research/runs/{run_id}/cancel",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/retry",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/artifacts/{artifact_id}",
+              # AIA's own session and the gate in front of /app (ADR 0018); Caddy's
+              # forward_auth names /session/gate, so a rename breaks the site.
+              "/api/v1/session",
+              "/api/v1/session/gate",
               # The gate in front of the 18.6.6 interface (ADR 0012); Caddy's
               # forward_auth names /panel/gate, so a rename breaks the site.
               "/api/v1/panel/session",
@@ -685,10 +689,10 @@ jobs:
       - name: The product hostname is AIA, and the unit is gated on its own paths only
         run: |
           # tools/caddy_routes.py says what must never go missing (ADR 0012, 0013,
-          # 0015): / is a redirect to /app/clients; /classic and /app are behind
-          # the gate without the session cookie; the unit is reached only on the
-          # paths it serves, each gated -- no catch-all to 18.6.6; the legacy
-          # hostname is basic auth then the unit.
+          # 0015, 0018): / is a redirect to /app/clients; /app is behind AIA's own
+          # gate and /classic behind the panel's, neither passing the session
+          # cookie on; the unit is reached only on the paths it serves, each gated
+          # -- no catch-all to 18.6.6; the legacy hostname is basic auth then the unit.
           docker run --rm \
             -e AIA_PUBLIC_HOSTNAME=aia.example.test -e AIA_LEGACY_HOSTNAME=legacy.example.test \
             -e AIA_ACME_EMAIL=ops@example.test -e AIA_LEGACY_BASIC_USER=oracle -e AIA_LEGACY_BASIC_HASH=x \

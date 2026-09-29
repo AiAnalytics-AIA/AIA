@@ -22,6 +22,11 @@ GATE = {
     "rewrite": {"method": "GET", "uri": "/api/v1/panel/gate"},
     "upstreams": [{"dial": "api:8000"}],
 }
+APP_GATE = {
+    "handler": "reverse_proxy",
+    "rewrite": {"method": "GET", "uri": "/api/v1/session/gate"},
+    "upstreams": [{"dial": "api:8000"}],
+}
 
 
 def proxy(dial: str) -> dict[str, Any]:
@@ -59,7 +64,7 @@ def good() -> dict[str, Any]:
                 "headers": {"Location": ["/app/clients"]},
             },
         ),
-        sub(["/app", "/app/*"], GATE, proxy("web:3000")),
+        sub(["/app", "/app/*"], APP_GATE, proxy("web:3000")),
         sub(
             [
                 "/api/providers/claude-code/*",
@@ -157,8 +162,17 @@ def test_an_ungated_app_or_an_open_oracle_is_refused(routes: Any) -> None:
         sub(None, {"handler": "reverse_proxy", "upstreams": [{"dial": "legacy-panel:8765"}]})
     ]
     problems = routes.check(config)
-    assert any(p.startswith("/app must be the gate") for p in problems)
+    assert any(p.startswith("/app must be AIA's own gate") for p in problems)
     assert any("legacy hostname must be basic auth" in p for p in problems)
+
+
+def test_app_behind_the_18_6_6_panels_gate_is_refused(routes: Any) -> None:
+    # Whether AIA can be reached must never be the unit's gate's call (ADR 0018).
+    config = good()
+    product(config)[4] = sub(["/app", "/app/*"], GATE, proxy("web:3000"))
+    problems = routes.check(config)
+    assert any(p.startswith("/app must be AIA's own gate") for p in problems)
+    assert any(p.startswith("/app/* must be AIA's own gate") for p in problems)
 
 
 def test_retired_connection_routes_are_gated_and_cannot_be_shadowed(routes: Any) -> None:
