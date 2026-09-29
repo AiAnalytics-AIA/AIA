@@ -61,6 +61,7 @@ def build_registry() -> dict[str, StepExecutor]:
                 context_window_tokens=settings.context_window_tokens,
                 reservation_usd=settings.research_reservation_usd,
                 fictional_client_ids=settings.fictional_client_ids,
+                material_approvals=settings.material_approvals,
             ),
         )
     return registry_for(

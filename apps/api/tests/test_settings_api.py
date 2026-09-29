@@ -300,7 +300,6 @@ def test_each_activity_is_what_its_agents_ask_for(owner: TestClient) -> None:
             snapshot,
             instruction="",
             policy_version="test",
-            fictional_client=True,
             max_output_tokens=100,
         ).agent.capability.value
         for action in ResearchAction

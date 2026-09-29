@@ -35,6 +35,7 @@ from aia_core.application.analysis_results import (
 )
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
+from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
     ANALYSIS_MODULE_ARTIFACT,
@@ -50,6 +51,7 @@ from aia_core.domain.analysis.steps import (
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
+from aia_core.domain.residency import DataClass
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
     FailureClass,
@@ -139,6 +141,21 @@ def _env(world: Any, **overrides: str) -> dict[str, str]:
         "AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS": "8192",
         "AIA_AI_RESEARCH_RESERVATION_USD": "2",
         "AIA_AI_FICTIONAL_CLIENT_IDS": world.client_id,
+        "AIA_AI_MATERIAL_CLASSIFICATIONS": "["
+        + ",".join(
+            MaterialApproval(
+                sha256=material_sha256(content),
+                data_class=DataClass.CLASS_C_INTERNAL,
+                provenance="generated wholly by this test",
+            ).model_dump_json()
+            for content in (
+                DESIGN,
+                {**DESIGN, "research_plan": {"research_questions": ["Proč lidé pijí čaj?"]}},
+                {k: v for k, v in DESIGN.items() if k != "research_plan"},
+                {**DESIGN, "n": 150},
+            )
+        )
+        + "]",
     }
     env.update(overrides)
     return env
@@ -752,10 +769,24 @@ def test_unconfigured_analysis_parks_every_module_and_sends_nothing(
 def test_a_real_clients_design_is_class_a_and_parks_before_any_reservation(
     world: Any, run_with: Callable[..., Worker]
 ) -> None:
-    """Without the operator's declaration the Study's questions are client material."""
+    """A content-bound Class A declaration cannot use the Class C route."""
     models = ScriptedModels()
     run_id = _start(world)
-    _drain(run_with(models, env=_env(world, AIA_AI_FICTIONAL_CLIENT_IDS="")))
+    _drain(
+        run_with(
+            models,
+            env=_env(
+                world,
+                AIA_AI_MATERIAL_CLASSIFICATIONS="["
+                + MaterialApproval(
+                    sha256=material_sha256(DESIGN),
+                    data_class=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+                    provenance="test material explicitly classified as confidential",
+                ).model_dump_json()
+                + "]",
+            ),
+        )
+    )
     assert models.requests == [], "nothing may reach the adapter"
     for step in _analysis(_run(world, run_id)).values():
         assert step["status"] is StepRunStatus.WAITING_PROVIDER
@@ -808,6 +839,7 @@ def test_a_turn_the_model_window_cannot_hold_fails_before_any_reservation(
         context_window_tokens=30_000,
         reservation_usd=1.0,
         fictional_client_ids=frozenset({world.client_id}),
+        material_approvals=_settings(world).material_approvals,
     )
     _drain(run_with(models, config=small))
     assert models.requests == [] and _reservations(world, run_id) == []

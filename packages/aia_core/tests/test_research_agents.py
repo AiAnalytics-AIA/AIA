@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from aia_core.application.research import ResearchAgentJobs, ResearchRunNotFound
 from aia_core.domain.ai_contracts import schema_node_is_open, schema_object_nodes
+from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.knowledge import KnowledgeItem, KnowledgeKind
 from aia_core.domain.research_agents import (
@@ -26,6 +27,13 @@ from aia_core.domain.scope import ScopeDenied
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 
 DESIGN = {"title": "Fictional", "goal": "Test concept", "sections": []}
+APPROVALS = (
+    MaterialApproval(
+        sha256=material_sha256(DESIGN),
+        data_class=DataClass.CLASS_C_INTERNAL,
+        provenance="test-generated design; no client input",
+    ),
+)
 
 
 def analysis() -> BriefAnalysis:
@@ -54,7 +62,7 @@ def test_every_contract_is_closed_and_has_no_tools_or_fallback() -> None:
             snapshot,
             instruction="",
             policy_version="test",
-            fictional_client=True,
+            material_approvals=APPROVALS,
             max_output_tokens=8192,
         )
         assert request.agent.output_contract is CONTRACTS[action]
@@ -86,7 +94,7 @@ def test_memory_is_frozen_bounded_and_never_downgraded_by_fictional_client() -> 
         snapshot,
         instruction="",
         policy_version="test",
-        fictional_client=True,
+        material_approvals=APPROVALS,
         max_output_tokens=8192,
     )
     assert request.data_classification is DataClass.CLASS_A_CLIENT_CONFIDENTIAL

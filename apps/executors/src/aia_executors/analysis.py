@@ -57,6 +57,11 @@ from aia_core.application.analysis_results import (
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import ModelCallFailed, ModelRequest, canonical_json
+from aia_core.domain.ai_material import (
+    MaterialApproval,
+    classify_material,
+    most_restrictive_material,
+)
 from aia_core.domain.ai_models import ResolutionError, parse_model_config
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
@@ -88,6 +93,7 @@ from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
+from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_worker.executor import (
     Failed,
     StepContext,
@@ -148,8 +154,9 @@ class AnalysisConfig:
     context_window_tokens: int
     #: Budget held per turn: one call, since the harness allows no schema repair.
     reservation_usd: float
-    #: Clients the operator declared fictional. Only their Studies' designs are Class C.
+    #: Legacy configuration retained for compatibility; it grants no classification.
     fictional_client_ids: frozenset[str]
+    material_approvals: tuple[MaterialApproval, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.policy_version:
@@ -203,6 +210,7 @@ class AnalysisConfig:
             context_window_tokens=settings.context_window_tokens,
             reservation_usd=reservation_usd,
             fictional_client_ids=settings.fictional_client_ids,
+            material_approvals=settings.material_approvals,
         )
 
 
@@ -526,12 +534,26 @@ class AnalysisModuleExecutor:
                 material = dataset_material(session, context.scope, self._store, sources)
             except SourcesRefused as refused:
                 return _sources_refused(refused)
+            design = StudyDesignRepository(session, context.scope).content(
+                sources.refs.design_revision_id
+            )
         cfg, gateway = self._config, self._gateway
-        data_class = classify_analysis_material(
-            client_declared_fictional=context.scope.client_id in cfg.fictional_client_ids,
+        dataset_class = classify_analysis_material(
+            client_declared_fictional=True,  # classify the design separately from its data
             origin=prepared.evidence.origin,
             respondents_fictional=material.respondents_fictional,
         )
+        data_class = most_restrictive_material(
+            [dataset_class, classify_material(design, cfg.material_approvals).data_class]
+        )
+        if data_class is None:
+            return Failed(
+                FailureClass.RUNTIME_UNAVAILABLE,
+                error={
+                    "reason": "egress_unclassified_material",
+                    "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
+                },
+            )
         caller = StepModelCaller(
             gateway=gateway,
             context=context,

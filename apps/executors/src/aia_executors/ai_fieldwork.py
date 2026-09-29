@@ -21,6 +21,13 @@ from typing import Any
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_contracts import ModelCallFailed
+from aia_core.domain.ai_material import (
+    MaterialApproval,
+    most_restrictive_material,
+)
+from aia_core.domain.ai_material import (
+    classify_material as classify_input,
+)
 from aia_core.domain.ai_respondent import (
     AGENT_ID,
     AGENT_VERSION,
@@ -47,6 +54,7 @@ from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
+from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_worker.executor import Failed, StepContext, StepInput
 
 from .ai_step import StepModelCaller
@@ -68,10 +76,10 @@ class AIFieldworkConfig:
     provider: Provider
     reservation_usd: float
     max_output_tokens: int
-    #: Clients the operator has declared fictional. Only their Studies' questionnaires
-    #: are Class C; every other Study's design is client material (Class A).
+    #: Legacy configuration retained for compatibility; it grants no classification.
     fictional_client_ids: frozenset[str]
     progress_every: int = 10
+    material_approvals: tuple[MaterialApproval, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,8 +121,23 @@ class AIFieldwork:
         personas = fictional_roster(spec.n, seed=seed)
         data_class, lineage = classify_material(
             personas,
-            client_declared_fictional=context.scope.client_id in cfg.fictional_client_ids,
+            client_declared_fictional=True,  # the roster's actual fictional provenance, below
         )
+        with context.transaction() as (session, workflow):
+            run = workflow.get_run(step.run_id)
+            revision_id = str(run["metadata"]["design_revision_id"])
+            design = StudyDesignRepository(session, context.scope).content(revision_id)
+        decision = classify_input(design, cfg.material_approvals)
+        classified = most_restrictive_material([data_class, decision.data_class])
+        if classified is None:
+            return Failed(
+                FailureClass.RUNTIME_UNAVAILABLE,
+                error={
+                    "reason": "egress_unclassified_material",
+                    "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
+                },
+            )
+        data_class = classified
         try:
             plans = [plan_respondent(spec, p) for p in personas]
         except UnsupportedFact as exc:
@@ -215,6 +238,7 @@ class AIFieldwork:
             "fact_layer_version": FACT_LAYER_VERSION,
             "persona_source": {"roster": ROSTER_VERSION, "fictional": True, "seed": seed},
             "data_class": data_class.value,
+            "material_classification": decision.model_dump(mode="json"),
             "lineage": sorted(lineage.datasets),
             "policy_version": cfg.policy_version,
             "route_id": resolution.route_id if resolution else None,

@@ -84,6 +84,7 @@ def deep_research_runtime(
             reservation_usd=settings.research_reservation_usd,
             fictional_client_ids=settings.fictional_client_ids,
             provider=Provider.AWS_BEDROCK,
+            material_approvals=settings.material_approvals,
         ),
         retrieval=None,
         source_table=SOURCE_TABLE_V1,

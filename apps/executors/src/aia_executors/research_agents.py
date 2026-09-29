@@ -14,6 +14,7 @@ from typing import Any
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import ModelCallFailed, canonical_json
+from aia_core.domain.ai_material import MaterialApproval, classify_material
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_agents import (
     HARNESS_VERSION,
@@ -41,6 +42,7 @@ class ResearchAgentConfig:
     context_window_tokens: int
     reservation_usd: float
     fictional_client_ids: frozenset[str]
+    material_approvals: tuple[MaterialApproval, ...] = ()
 
 
 class ResearchAgentExecutor:
@@ -126,8 +128,8 @@ class ResearchAgentExecutor:
             snapshot,
             instruction=str(step.payload.get("instruction", "")),
             policy_version=cfg.policy_version,
-            fictional_client=context.scope.client_id in cfg.fictional_client_ids,
             max_output_tokens=cfg.max_output_tokens,
+            material_approvals=cfg.material_approvals,
         )
         # UTF-8 bytes give a conservative input bound, including the contract and
         # one repair's maximum response. Fail before reserving/sending, never trim.
@@ -187,6 +189,15 @@ class ResearchAgentExecutor:
             "cost_usd": result.total_cost_usd,
             "status": "PROPOSED",
             "data_class": request.data_classification.value,
+            "material_classification": {
+                "design": classify_material(snapshot["design"], cfg.material_approvals).model_dump(
+                    mode="json"
+                ),
+                "instruction": classify_material(
+                    str(step.payload.get("instruction", "")), cfg.material_approvals
+                ).model_dump(mode="json"),
+                "knowledge_class": "CLASS_A_CLIENT_CONFIDENTIAL",
+            },
         }
         proposal["project"]["agent_provenance"] = {
             "run_id": step.run_id,

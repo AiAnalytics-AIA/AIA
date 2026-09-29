@@ -30,6 +30,7 @@ from aia_core.application.deep_research import DeepResearchRuns
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.web_retrieval import RetrievalGate
 from aia_core.domain.ai_contracts import Delivery
+from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import (
     Channel,
@@ -400,6 +401,19 @@ def ai_settings(fictional: str, *, approved_for: str) -> AIRuntimeSettings:
             "AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS": "8192",
             "AIA_AI_RESEARCH_RESERVATION_USD": "2",
             "AIA_AI_FICTIONAL_CLIENT_IDS": fictional,
+            "AIA_AI_MATERIAL_CLASSIFICATIONS": "["
+            + ",".join(
+                MaterialApproval(
+                    sha256=material_sha256(content),
+                    data_class=DataClass.CLASS_C_INTERNAL
+                    if fictional
+                    else DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+                    provenance="generated wholly by this test; class explicitly set",
+                    synthetic=bool(fictional),
+                ).model_dump_json()
+                for content in (DESIGN, DESIGN_2)
+            )
+            + "]",
         }
     )
     assert settings is not None
@@ -430,6 +444,7 @@ def recorded(
             context_window_tokens=settings.context_window_tokens,
             reservation_usd=settings.research_reservation_usd,
             fictional_client_ids=settings.fictional_client_ids,
+            material_approvals=settings.material_approvals,
         ),
         fixture=fixture,
         env={"AIA_ENV": "test"},

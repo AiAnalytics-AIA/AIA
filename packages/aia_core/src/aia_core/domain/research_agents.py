@@ -15,12 +15,13 @@ from typing import Any, Final, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .ai_contracts import AgentDefinition, Message, ModelRequest, canonical_json
+from .ai_material import MaterialApproval, classify_material, most_restrictive_material
 from .ai_models import ModelCapability
 from .knowledge import KnowledgeItem
 from .licence import DataLineage
 from .residency import DataClass
 
-HARNESS_VERSION: Final = "aia-research-harness-1"
+HARNESS_VERSION: Final = "aia-research-harness-2"
 CONTEXT_MAX_BYTES: Final = 64_000
 KNOWLEDGE_MAX_BYTES: Final = 20_000
 
@@ -262,15 +263,25 @@ def agent_request(
     *,
     instruction: str,
     policy_version: str,
-    fictional_client: bool,
     max_output_tokens: int,
+    material_approvals: tuple[MaterialApproval, ...] = (),
 ) -> ModelRequest:
     """No tool grants or fallbacks; scope never appears in a model argument.
 
-    Approved knowledge can still be confidential. A fictional client declaration
-    alone never downgrades it. Unknown dataset lineage is refused before sending.
+    The copied design includes pasted text and attachment excerpts. Only a trusted
+    classification of these exact bytes can permit it. Approved knowledge remains
+    confidential independently; an unknown design or instruction refuses dispatch.
     """
-    has_knowledge = bool(snapshot["knowledge"])
+    design = classify_material(snapshot["design"], material_approvals)
+    instruction_class = (
+        classify_material(instruction, material_approvals).data_class
+        if instruction
+        else DataClass.CLASS_C_INTERNAL
+    )
+    data_class = most_restrictive_material(
+        [design.data_class, instruction_class]
+        + [DataClass.CLASS_A_CLIENT_CONFIDENTIAL for _ in snapshot["knowledge"]]
+    )
     lineage = DataLineage.none()
     if any(k["kind"] in {"DATASET", "ARTIFACT", "FINDING"} for k in snapshot["knowledge"]):
         lineage = DataLineage.of("unclassified-client-knowledge")
@@ -291,9 +302,7 @@ def agent_request(
             schema_repair_attempts=1,
         ),
         policy_version=policy_version,
-        data_classification=DataClass.CLASS_C_INTERNAL
-        if fictional_client and not has_knowledge
-        else DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+        data_classification=data_class,
         data_lineage=lineage,
         system=prompt_for(action),
         messages=(
