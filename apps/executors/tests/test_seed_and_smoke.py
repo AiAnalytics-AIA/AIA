@@ -353,6 +353,19 @@ def test_storage_round_trip_reports_a_failure_honestly() -> None:
     assert lines[0].startswith("FAIL  storage")
 
 
+def test_the_ai_check_is_not_runnable_and_says_why_without_claiming_a_live_route() -> None:
+    lines: list[str] = []
+    report = smoke.Report(lines.append)
+    smoke.ai_check(report)
+    assert report.failed is False
+    assert lines == [
+        "NOT_RUNNABLE  ai: governed model call through ModelGateway -> bedrock-eu-primary",
+        "      the smoke makes no paid model call; the AI runtime is off by default "
+        "and is checked by its own acceptance, not on each deploy (ADR 0010, "
+        "docs/architecture/bedrock-develop-activation-2026-09-26.md)",
+    ]
+
+
 def test_slice_check_passes_when_a_worker_executes_the_run(
     sessions: sessionmaker[Session],
     store: InMemoryArtifactStore,
