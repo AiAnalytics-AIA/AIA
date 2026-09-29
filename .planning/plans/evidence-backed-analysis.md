@@ -1,19 +1,19 @@
 ---
-status: done
+status: in-progress        # all chunks done; PR A (#76) and PR B (#80) in review, released through #86
 chunks:
   - "[x] 0. This plan"
-  - "[x] 1. Instrument items as evidence fields: evidence/instrument.py"
-  - "[x] 2. Native evidence and inputs: analysis/native.py"
-  - "[x] 3. Harness: analysis/harness.py"
-  - "[x] 4. Artifact contract and graph spec: analysis/artifact.py, analysis/steps.py"
-  - "[x] 5. Scoped sources and reconstruction: application/analysis_results.py (PR A, #76)"
-  - "[x] 6. Executor: aia_executors/analysis.py over the real worker and recorded Bedrock"
-  - "[x] 7. Decision-table parity against the vendored evidence_validator.py (M17)"
-  - "[x] 8. Documents, and the Doc follow-up for the shared files (PR B, #80)"
+  - "[x] 1. Instrument items as evidence fields"
+  - "[x] 2. Native evidence and inputs"
+  - "[x] 3. Harness"
+  - "[x] 4. Artifact contract and graph spec"
+  - "[x] 5. Scoped sources and reconstruction"
+  - "[x] 6. Executor"
+  - "[x] 7. Decision-table parity against the vendored evidence_validator.py"
+  - "[x] 8. Documents"
 ---
 # Evidence-backed analysis of native research runs
 
-**Owner:** analysis (Job 3) · **Started:** 2026-09-27
+**Status:** all chunks done, in review (PR A, PR B) · **Owner:** analysis (Job 3) · **Started:** 2026-09-27
 
 Chunk 5 of [research-agent-workflows.md](research-agent-workflows.md), in the analysis
 half; the report half is [report-docx.md](report-docx.md) R10–R11 (Job 4).
@@ -186,10 +186,9 @@ validation (only support and suppression), verification or alignment.
       INTENTIONAL_DIFFERENCE, 2 DECISION_OWED, the same numbers, the pin, the labels); parity
       matrix: gate `analysis.modules/unit-evidence-validator`, deviations
       `SUB-ANALYSIS-EXACT`, `-PROSE`, `-SUPPRESSED`
-- [x] 8. Documents: `docs/architecture/analysis.md` (the executor and its outcomes table,
-      the gate against the unit's) and the parity matrix on the branch; what ARCHITECTURE §4,
-      the CLAUDE map, AGENTS (research artifacts are reused by fingerprint), the ANL
-      decisions and OI-77 need goes under *Doc follow-up* below (#89); draft PRs. (**PR B**:
+- [x] 8. Documents: ARCHITECTURE §4, the CLAUDE map, AGENTS (research artifacts are reused by
+      fingerprint), `docs/architecture/analysis.md` (the executor and its outcomes table,
+      the gate against the unit's), the ANL decisions in PROGRESS; draft PRs. (**PR B**:
       chunks 6–8, stacked on PR A)
 
 ## Decisions owed (not engineering)

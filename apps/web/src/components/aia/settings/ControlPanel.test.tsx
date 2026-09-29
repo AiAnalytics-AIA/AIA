@@ -386,9 +386,10 @@ describe("what powers AIA", () => {
     render(<SettingsPage />);
     expect(await screen.findByRole("heading", { name: "AI v AIA" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Amazon Bedrock" })).toBeNull();
-    // The account and classic cards are not this change's, and stay.
+    // The combined cutover keeps the account card and removes every classic hand-off.
     expect(screen.getByRole("heading", { name: "Účet" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Klasické rozhraní 18.6.6" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Klasické rozhraní 18.6.6" })).toBeNull();
+    expect(document.querySelector('a[href^="/classic"], a[href*="classic-projects"]')).toBeNull();
     expect(screen.queryByRole("link", { name: "Claude Code" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Obecné nastavení" })).toBeNull();
     expect(screen.queryByLabelText("ANTHROPIC_API_KEY")).toBeNull();

@@ -16,6 +16,9 @@ It deliberately does not describe the product. That lives in
 | [workflows.md](docs/architecture/workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](docs/architecture/ai-runtime.md) | Providers, provenance, budgets, failure behaviour |
 | [ai-step-executor-contract.md](docs/architecture/ai-step-executor-contract.md) | The one seam between the model gateway and the workflow worker |
+| [analysis.md](docs/architecture/analysis.md) | A native run's analysis: evidence from its artifacts, the stored outcome, reconstruction by re-admission |
+| [research-agents.md](docs/architecture/research-agents.md) | Native design-proposal jobs: the eight actions, frozen context, review and acceptance |
+| [research-journey.md](docs/architecture/research-journey.md) | The research journey's integration contract: who owns each stage, the interfaces between jobs, shared files, what "accepted" means |
 | [artifacts.md](docs/architecture/artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](docs/architecture/scope-and-authorization.md) | Client/Study isolation |
 | [deep-research.md](docs/architecture/deep-research.md) | Deep Research: tracks, grounding, query classes, quarantine, the tool-cost contract |
@@ -23,7 +26,7 @@ It deliberately does not describe the product. That lives in
 | [sociomapa-deterministic-engine.md](docs/architecture/sociomapa-deterministic-engine.md) | Sociomapping engine: what is ported, declared and refused |
 | [sociomapa-methodology-decision.md](docs/architecture/sociomapa-methodology-decision.md) | The D6 decision package for the methodology owner |
 | [simulation-deterministic-engine.md](docs/architecture/simulation-deterministic-engine.md) | Simulation core boundary and parity status |
-| [adr/](docs/architecture/adr/README.md) | Eight decision records, with the reasoning |
+| [adr/](docs/architecture/adr/README.md) | The decision records, with the reasoning |
 
 ---
 
@@ -51,7 +54,7 @@ point; nothing outside it touches its internals.
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
 | — | **Legacy stub** | `src/server.js` | Frozen and unused: nothing in the Makefile, CI, Compose or a Dockerfile runs it, and sign-in is Cognito through `apps/web`. Deleting it is PROGRESS *Next* 8. | Nothing. Receives no new features. |
-| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction; deployed as its own service: the oracle on its own basic-auth hostname, and on the product hostname only behind the gate, at `/classic` and on its own paths (ADR 0015). | Nothing. The back end never calls it. The web client reaches it over HTTP through Caddy, only from `apps/web/src/unit/`, for the stages still in its store (OI-58); parity tests reach it over HTTP. |
+| — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction. Not part of the product deployment (ADR 0018 decision 5): it runs, when a comparison needs it, from `deploy/reference/` beside the develop host's product, behind a basic-auth gate on the host's loopback. | Nothing. Neither the back end nor the web client calls it (ADR 0018); parity tests reach it over HTTP. |
 
 Settings shows AI from two sources and calls neither a connection. The settings
 document's `ai_runtime` describes the native runtime from code: the providers the
@@ -168,11 +171,19 @@ confirm it passes before committing.
   Client Knowledge is read only inside such a context -- never a global pool
   filtered afterwards -- and changes only when a proposal is approved, which writes
   a new revision ([ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).
-- **A study's working content in the unit is reached through its AIA binding.**
-  `StudyWorkspaceRepository` binds a study to one unit project, once, under
-  `EDIT_STUDY`; the web client reads the id out of the study's scope and never
-  sends one in to find a study. The unit store is temporary migration debt with a
-  removal condition (OI-58), not the target data model.
+- **A research study's working content is AIA's, found only through the Study**
+  ([ADR 0018](docs/architecture/adr/0018-aia-runs-without-18-6-6.md), OI-58).
+  `StudyWorkspaceRepository` keeps it in the Study's owned working project
+  (`projects.owner = study_workspace`, invisible to the generic project routes) and
+  names its state (`ContentState`); a save names its base revision and a stale one
+  is refused, so two editors never overwrite each other silently. A study bound to
+  18.6.6 before ADR 0018 is `AWAITING_MIGRATION` and refuses edits until its content
+  is migrated; the 18.6.6 project id it keeps is lineage, never a way in. The
+  migration (`application/workspace_migration.py`, run as `aia_executors.legacy_workspace`)
+  reads a *copy* of the unit's store (`infrastructure/unit_project_store.py`, read-only,
+  a live database refused) and writes each Study through the scope the named operator
+  holds on it, validated against the copy in the Study's own transaction; nothing in
+  the product reads the unit's state.
 - **Population data is a capability too.** `RuntimePopulation` is issuable only by
   `PopulationRuntime` through the same sentinel construction, and carries the
   `PopulationBinding` (version, content hash, weight scheme, view) it was loaded
@@ -260,6 +271,18 @@ confirm it passes before committing.
   unit's own relation matrix by AIA's engine and marked `INTERNAL_ONLY` while
   PROGRESS D6 is open; every client-facing surface, export or report calls
   `require_client_facing`, which refuses it and fails closed on a missing status.
+- **A native run's analysis is internal, and an outcome is re-admitted whenever it is
+  read** ([analysis.md](docs/architecture/analysis.md)). The Study's own questionnaire
+  items become evidence fields only from what the run recorded
+  (`domain/evidence/instrument.py`): modelled, aggregate only, `INTERNAL_ONLY`, which the
+  claim gate refuses client-facing whatever the certificate or origin says. A run with no
+  panel has no certificate, and says so (`MISSING`). A stored module outcome holds the
+  accepted draft, never claims: `application/analysis_results.py` rebuilds the evidence
+  from the run's own artifacts, requires every fingerprint to match and puts the draft
+  through the gate again, so a file cannot mint an `AdmittedClaim`. The executor
+  (`aia_executors/analysis.py`) runs one module per step: what code can refuse is stored
+  `BLOCKED` before anything is reserved, a gate refusal after three turns is an outcome
+  too, and a provider failure is never one -- it goes back to the worker's recovery rules.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal
   so a later gate cannot launder an earlier one.
@@ -442,10 +465,10 @@ declared tier.
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Executor suite (the `develop_snapshot` step under the real loop, the develop seed, the smoke module) with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
-| API contract (OpenAPI paths + study-scoping assertion, now covering `/runs` and `/artifacts` too) | **blocking** |
+| API contract (OpenAPI paths + study-scoping assertion, now covering `/runs`, `/artifacts` and the research `agent-jobs` routes) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
 | Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
-| Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (`/` → `/app/clients`, `/classic` and `/app` gated, the unit only on its own paths through the gate and without the session cookie, no catch-all to it, the oracle hostname behind basic auth); `docker compose config`, `bash -n` on the host scripts | **blocking** |
+| Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (the product hostname the only site, `/` → `/app/clients`, `/app` behind AIA's own gate and without the session cookie, no route to the 18.6.6 document and `/classic` only the web client's page, no upstream but the API and the web client, no panel gate); `docker compose config` on the product stack and on `deploy/reference` (its gate's rules validated too); `bash -n` on the host scripts | **blocking** |
 | Committed-provider-key scan | **blocking** |
 | `pip-audit` | advisory |
 | `npm audit --audit-level=high` | advisory |
@@ -470,7 +493,7 @@ running backwards.
 | `npm audit` | Drop `|| true` once `apps/web` transitive advisories are at zero or explicitly waived. The mock-up and its editor dependencies are gone (ADR 0012). The baseline is clean: 0 advisories since `next` 16.3.6 and the transitive patch bumps (2026-09-24, OI-2); the promotion itself is the remaining step. |
 | Parity suite | 94 parity and characterization tests report as skipped in CI because they execute the legacy code, which exists only inside the withheld archive. **The archive is deliberately not a CI dependency.** Promotion needs the archive's licence decision and an EU-resident home (`REF-WITHHELD-REFERENCE-ARCHIVE`). Until then **anyone changing domain logic runs them locally against `AIA_LEGACY_REFERENCE`**, and `parity-status` reports them as `NOT_EXECUTED` — never as a pass. |
 | Golden fixtures | A human provisions a read-only deploy key on `AiAnalytics-AIA/AIA-reference` as the `AIA_REFERENCE_DEPLOY_KEY` secret, then sets the repository variable `AIA_REQUIRE_REFERENCE_REPO=1`. From then on a missing checkout fails the job instead of skipping. |
-| Oracle parity | A human provisions `AIA_LEGACY_REFERENCE_URL`, `AIA_LEGACY_REFERENCE_USER` and `AIA_LEGACY_REFERENCE_PASSWORD` (the legacy hostname and its Caddy basic-auth credentials from SSM) as repository secrets, after *Deploy develop* has run green with `legacy-panel` healthy. The job then sets `AIA_REQUIRE_LEGACY_ORACLE=1` itself, so an unreachable oracle fails rather than skips (OI-39). |
+| Oracle parity | The reference unit listens only on the develop host's loopback (`deploy/reference`, ADR 0018 decision 5), which a GitHub-hosted runner cannot reach. Promotion needs a runner that can (inside the VPC, or on the host), and `AIA_LEGACY_REFERENCE_URL`, `AIA_LEGACY_REFERENCE_USER` and `AIA_LEGACY_REFERENCE_PASSWORD` (the reference gate's basic-auth credentials from SSM) as repository secrets. The job then sets `AIA_REQUIRE_LEGACY_ORACLE=1` itself, so an unreachable oracle fails rather than skips (OI-39). Until then an operator runs `make test-oracle` through an SSM port forward. |
 
 An advisory check with no promotion plan is decoration — delete it or schedule
 it. Never move a check to advisory because it is failing on your branch.
@@ -490,30 +513,37 @@ client's `/version` reports the same, and every artifact records it as its
 ([ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).**
 Caddy answers `/` itself with `302 /app/clients`. `/api/v1/*` goes to the API;
 AIA's own pages (`/login`, `/logout`, `/auth/*`, `/config`, `/version`,
-`/studies*`, `/_next/*`, the skin's `/skin/*` and the icon set) to the web
-client. `/app` and `/app/*` -- Clients → client workspace → study → stages
-(`AIA_INTERFACE_REHOME_ENABLED`, off by default) -- go through `forward_auth` to
-`GET /api/v1/panel/gate`, then the web client. The 18.6.6 interface is a
-labelled hand-off at `/classic`: the same gate, then the web client's
-`/interface-document`, which fetches the unit's document and adds the AIA skin
-and the hand-off script (with its way back) only when it is the pinned
-`ui_app.html` ([ADR 0013](docs/architecture/adr/0013-interface-skin-at-the-facade.md),
-`AIA_INTERFACE_SKIN_ENABLED`, off by default); `/interface-document` is not an
-entry point. The vendored unit is reached only on the paths it serves (`@unit`:
-`/api/*`, `/files/*`, `/artifacts/*`, `/project-attachments/*`, `/brand/*`,
-`/fullsim-arena`, `/health`, `/status`), each after the gate; the stages read
-the working content through them, via one ledger-checked client
-(`apps/web/src/unit/`). Every other path is the web client's, so nothing falls
-through to the classic product. The gate is the whole of the unit's access control:
-it re-verifies the `aia_panel` cookie with the same `IdentityProvider` as every
-API call, admits only what `ScopeResolver.authorize_legacy_panel` admits
-(organization owners and admins), and refuses a state-changing request whose
-`Origin` is not the product origin. Its owner/admin rule is a temporary
-restriction while the stages read the single-tenant unit, not the target model
-(OI-59). Rebuilding a feature moves its paths from the unit to the API; it never
-removes the gate from what remains. `tools/caddy_routes.py` holds the adapted
-Caddyfile to this paragraph in CI; `tools/develop_routing_proof.py` runs it.
-`AIA_LEGACY_PANEL_ENABLED` is off by default and refused in production.
+`/studies*`, `/_next/*`, the fonts and identity under `/skin/` and the icon set)
+to the web client. `/app` and `/app/*` -- Clients → client workspace → study → stages -- go
+through `forward_auth` to AIA's own gate, `GET /api/v1/session/gate` (ADR 0018): any
+active member of the organization with an AIA session (`aia_session`, opened by
+`POST /api/v1/session` and admitted by `ScopeResolver.authorize_session`), GET and
+HEAD only, then the web client. No legacy setting touches it; what a page shows is
+authorized per call by the API. The 18.6.6 interface is not served
+(ADR 0018 decision 4): no page hands off to it, `/classic` is the web client's page
+saying so, and what AIA does not have yet says so where a person meets it. Nothing
+of the vendored unit is served or run by the product deployment (ADR 0018 decision
+5): no unit image, service, volume mount, hostname, credential, data sync or health
+check. Every other path is the web client's, with its own 404, the unit's old paths
+(`/api/*` outside `/api/v1`, `/files/*`, `/artifacts/*`, `/project-attachments/*`,
+`/brand/*`, `/fullsim-arena`, `/health`, `/status`) among them; the panel's gate that
+guarded them (ADR 0012) is gone, `/api/v1/panel/*` with it. `tools/caddy_routes.py`
+holds the adapted Caddyfile to this paragraph in CI (one hostname; no upstream but
+the API and the web client); `tools/develop_routing_proof.py` runs it, and the smoke
+check fails a deploy on which a unit path answers or a `legacy-panel` container of
+the product's Compose project exists.
+
+**The 18.6.6 unit is a reference beside the product** (ADR 0018 decision 5).
+`deploy/reference/` runs it as the Compose project `aia-reference`, on the unit's
+working volume declared `external` (never created or removed there), behind a
+basic-auth gate published only on the host's loopback, started and stopped by
+hand; `.github/workflows/reference-unit.yml` (dispatched by hand) builds its image
+and ships its bundle, and changes nothing on the host. The two stacks share no
+network, file or Compose project, and the product starts, deploys and passes its
+smoke checks whether the reference is up, down or absent. The first product deploy
+after the change stops the unit's old container and fails if its volume vanished,
+because until the migration's report is accepted that volume holds the only copy of
+the content of Studies still waiting for it (OI-58).
 
 - Deploy only what CI verified: chain CD to CI's *completion* and guard on
   `workflow_run.conclusion == 'success'`, checking out

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 
-// Moved (ADR 0015): the unscoped classic project store is an administrative
-// tool under Nastavení, not a place to work from.
-export default function MovedProjectsPath() {
-  redirect("/app/settings/classic-projects");
+// Retired (ADR 0015, ADR 0018): the unscoped 18.6.6 project store is not part of
+// AIA. A study's work is found through its client; an old link lands on the
+// client directory.
+export default function RetiredProjectsPath() {
+  redirect("/app/clients");
 }

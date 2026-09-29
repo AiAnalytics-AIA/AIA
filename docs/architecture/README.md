@@ -15,6 +15,9 @@ is shaped that way. The companion documents go deeper:
 | [workflows.md](workflows.md) | Durable workflow and job model |
 | [ai-runtime.md](ai-runtime.md) | Provider abstraction, provenance, budgets, failure behaviour |
 | [ai-step-executor-contract.md](ai-step-executor-contract.md) | The contract between the model gateway and the step executor |
+| [analysis.md](analysis.md) | A native run's analysis: evidence from its artifacts, the stored outcome, reconstruction by re-admission |
+| [research-agents.md](research-agents.md) | Native design-proposal jobs: the eight actions, frozen context, review and acceptance |
+| [research-journey.md](research-journey.md) | The research journey's integration contract: who owns each stage, the interfaces between jobs, shared files, what "accepted" means |
 | [artifacts.md](artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](scope-and-authorization.md) | Who may touch which client's work, and approval policy |
 | [security.md](security.md) | Threat model and security architecture |
@@ -156,8 +159,9 @@ private EU S3 storage, native client/study interface, scoped Research design/run
 APIs, five Research executors, governed model gateway, pinned Bedrock adapter
 and per-call usage/reservation ledger. The approved fictional respondent runtime
 has completed a measured live study; details are in the dated activation record.
-Research editing still bridges to the unit store (OI-58), and `/app` retains its
-temporary owner/admin gate (OI-59).
+In code, research editing is AIA's own (OI-58, ADR 0018 increment 1) and `/app` has
+AIA's own gate, open to any active member (OI-59, increment 3); the develop host
+runs them from the first deploy after they merge.
 
 **Remaining:** durable design/analysis/report agents, checkpointed fieldwork,
 full ledger lineage, OpenTelemetry and wider Class A/B or panel-data approval.

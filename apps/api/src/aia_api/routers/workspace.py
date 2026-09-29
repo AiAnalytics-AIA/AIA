@@ -1,19 +1,27 @@
-"""The client workspace: clients, their studies, the unit bridge and client knowledge.
+"""The client workspace: clients, their studies, a study's working content, client knowledge.
 
-ADR 0015. Everything here resolves scope first -- a ``ClientContext`` for the
-client's own surfaces, a ``StudyContext`` for one study -- and every denial of
+ADR 0015, ADR 0018. Everything here resolves scope first -- a ``ClientContext`` for
+the client's own surfaces, a ``StudyContext`` for one study -- and every denial of
 scope is a 404, as elsewhere. Inside a client the caller demonstrably has, a
 missing permission is a 403: acknowledging the client leaks nothing.
+
+A research study's working content -- what its stages edit -- is loaded and saved
+here, in AIA (``/studies/{study_id}/workspace/content``), and so are the files its
+brief carries (``/studies/{study_id}/workspace/attachments``). No route takes a
+project id or an 18.6.6 unit project id to find a study.
 """
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 import unicodedata
 from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
+from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
     KnowledgeItem,
@@ -21,6 +29,8 @@ from aia_core.domain.knowledge import (
     KnowledgeProposal,
     ProposalStatus,
 )
+from aia_core.domain.questionnaire_import import QuestionnaireImportRejected
+from aia_core.domain.research_template import research_template
 from aia_core.domain.scope import (
     ClientContext,
     ClientPermission,
@@ -32,14 +42,25 @@ from aia_core.domain.scope import (
     StudyKind,
     StudyStatus,
 )
-from aia_core.domain.workspace import StudyWorkspace
-from aia_core.infrastructure.artifact_repository import ArtifactRepository
+from aia_core.domain.workspace import (
+    ContentState,
+    StudyWorkspace,
+    WorkingContent,
+    WorkspaceRejected,
+)
+from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from aia_core.infrastructure.questionnaire_file import (
+    TEMPLATE_FILENAME,
+    import_questionnaire,
+    template_xlsx,
+)
+from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
 )
-from fastapi import APIRouter, HTTPException, Path, Query, status
+from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
@@ -52,6 +73,7 @@ from ..dependencies import (
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .runs import artifact_corrupt
 
 router = APIRouter(
     tags=["workspace"],
@@ -63,6 +85,10 @@ router = APIRouter(
 )
 
 ClientIdPath = Annotated[str, Path(max_length=64, pattern=r"^CLI-[0-9a-f]{1,32}$")]
+AttachmentIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")]
+# The base64 of the largest attachment the domain accepts; a longer body is refused
+# before it is decoded.
+_ATTACHMENT_B64_MAX = -(-ATTACHMENT_MAX_BYTES // 3) * 4
 OPEN_STATUSES = (StudyStatus.DRAFT, StudyStatus.ACTIVE, StudyStatus.IN_REVIEW)
 
 
@@ -85,6 +111,8 @@ class WorkspaceStudy(BaseModel):
     accepts_work: bool
     last_stage: str | None = None
     has_working_content: bool = False
+    #: Where the study's working content stands (``ContentState``), by name.
+    content_state: str = ContentState.EMPTY.value
     created_at: datetime | None = None
     modified_at: datetime | None = None
 
@@ -216,7 +244,7 @@ class StudyCreate(BaseModel):
 
 
 class StudyWorkspaceResponse(BaseModel):
-    """One study as its frame needs it: the study, its client, and the bridge."""
+    """One study as its frame needs it: the study, its client, the caller's rights."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -224,15 +252,127 @@ class StudyWorkspaceResponse(BaseModel):
     client_name: str
     your_role: str
     can_edit: bool
-    unit_project_id: str | None
+    content_state: str
 
 
-class BindRequest(BaseModel):
-    """Bind the study to the unit project holding its working content (OI-58)."""
+class WorkingContentResponse(BaseModel):
+    """A research study's working content, as its stages load it (ADR 0018)."""
 
     model_config = ConfigDict(extra="forbid")
 
-    unit_project_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9_-]{1,160}$")
+    study_id: str
+    #: ``ContentState``: EMPTY, NATIVE, MIGRATED, RECOVERED, UNRECOVERABLE or AWAITING_MIGRATION.
+    state: str
+    #: The revision the content is at; a save names it as its ``base_revision``.
+    revision: int | None
+    revision_id: str | None
+    content: dict[str, Any] | None
+    analysis: dict[str, Any] | None
+    #: The document a new study starts from and every stored one is completed with.
+    template: dict[str, Any]
+    saved_at: datetime | None
+    saved_by: str | None
+    can_edit: bool
+    #: Where migrated content came from; empty for content made in AIA.
+    lineage: dict[str, Any]
+
+
+class WorkingContentSave(BaseModel):
+    """Save the study's working content as its newest revision."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    content: dict[str, Any]
+    analysis: dict[str, Any] | None = None
+    #: The revision the content was edited from; null only for a study with no content yet.
+    base_revision: int | None = Field(default=None, ge=1)
+    reason: str = Field(default="autosave", max_length=64, pattern=r"^[a-z0-9_:.-]{1,64}$")
+
+
+class WorkingContentSaved(BaseModel):
+    """What one save did."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    study_id: str
+    state: str
+    revision: int
+    revision_id: str
+    deduplicated: bool
+
+
+class WorkingRevisionResponse(BaseModel):
+    """One saved revision of a study's working content."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int
+    revision_id: str
+    parent_revision: int | None
+    reason: str
+    content_sha256: str
+    created_at: datetime
+    created_by: str | None
+
+
+class WorkingRevisionList(BaseModel):
+    """A study's working-content history, newest first."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[WorkingRevisionResponse]
+
+
+class AttachmentUpload(BaseModel):
+    """One file for the brief, base64-encoded as the classic interface sent it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filename: str = Field(min_length=1, max_length=255)
+    data_b64: str = Field(min_length=1, max_length=_ATTACHMENT_B64_MAX)
+
+
+class AttachmentResponse(BaseModel):
+    """What the brief keeps of an attached file: its record, never a storage location."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["file"]
+    attachment_id: str
+    filename: str
+    extension: str
+    content_type: str
+    size_bytes: int
+    sha256: str
+    text_extracted: bool
+    context_excerpt: str
+
+
+class QuestionnaireUpload(BaseModel):
+    """A filled-in questionnaire template, base64-encoded as the classic interface sent it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filename: str = Field(min_length=1, max_length=255)
+    data_b64: str = Field(min_length=1, max_length=_ATTACHMENT_B64_MAX)
+
+
+class ImportSummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_count: int
+    tracked_sets: int
+    sections: int
+
+
+class QuestionnaireImportResponse(BaseModel):
+    """The sections the file holds, normalized as 18.6.6 normalized them, and its summary."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sections: list[dict[str, Any]]
+    summary: ImportSummaryResponse
+    filename: str
 
 
 class StageRequest(BaseModel):
@@ -302,6 +442,7 @@ def _client_scope(principal: Any, resolver: Any, client_id: str) -> ClientContex
 
 
 def _study(study: Study, workspace: StudyWorkspace | None) -> WorkspaceStudy:
+    state = workspace.state if workspace else ContentState.EMPTY
     return WorkspaceStudy(
         study_id=study.study_id,
         client_id=study.client_id,
@@ -311,7 +452,8 @@ def _study(study: Study, workspace: StudyWorkspace | None) -> WorkspaceStudy:
         status=study.status.value,
         accepts_work=study.status.accepts_work,
         last_stage=workspace.last_stage if workspace else None,
-        has_working_content=workspace is not None,
+        has_working_content=state.has_content or state is ContentState.AWAITING_MIGRATION,
+        content_state=state.value,
         created_at=study.created_at,
         modified_at=study.modified_at,
     )
@@ -763,7 +905,7 @@ def decide_knowledge(
 
 
 # --------------------------------------------------------------------------- #
-# One study: its frame, the unit bridge, what it consumes, what it proposes
+# One study: its frame, its working content, what it consumes, what it proposes
 # --------------------------------------------------------------------------- #
 
 
@@ -776,48 +918,277 @@ def _study_workspace(scope: Any, repo: Any, session: Any) -> StudyWorkspaceRespo
         client_name=client.name,
         your_role=scope.role.value,
         can_edit=scope.has(Permission.EDIT_STUDY),
-        unit_project_id=workspace.unit_project_id if workspace else None,
+        content_state=(workspace.state if workspace else ContentState.EMPTY).value,
     )
 
 
 @router.get(
     "/studies/{study_id}/workspace",
     response_model=StudyWorkspaceResponse,
-    summary="One study's frame and bridge",
+    summary="One study's frame",
 )
 def study_workspace(
     scope: StudyScopeDep, repo: ScopeRepositoryDep, session: SessionDep
 ) -> StudyWorkspaceResponse:
-    """The study, its client's name, the caller's role, and the unit project bound to it (OI-58).
-
-    The unit project id comes out of the study's scope; nothing takes one in to
-    find a study.
-    """
+    """The study, its client's name, the caller's role and where its working content stands."""
     return _study_workspace(scope, repo, session)
+
+
+def _content_response(scope: Any, content: WorkingContent) -> WorkingContentResponse:
+    return WorkingContentResponse(
+        study_id=content.study_id,
+        state=content.state.value,
+        revision=content.revision,
+        revision_id=content.revision_id,
+        content=content.content,
+        analysis=content.analysis,
+        template=research_template(),
+        saved_at=content.saved_at,
+        saved_by=content.saved_by,
+        can_edit=scope.has(Permission.EDIT_STUDY) and content.state.editable,
+        lineage=content.lineage,
+    )
+
+
+@router.get(
+    "/studies/{study_id}/workspace/content",
+    response_model=WorkingContentResponse,
+    summary="The research study's working content",
+)
+def study_working_content(scope: StudyScopeDep, session: SessionDep) -> WorkingContentResponse:
+    """What the stages edit, at its current revision, with the template it is completed with.
+
+    A study with nothing saved is ``EMPTY``; one whose content still waits in 18.6.6
+    is ``AWAITING_MIGRATION``; one whose 18.6.6 content was lost is ``UNRECOVERABLE``.
+    Each says so, with no content, rather than answering with an empty document.
+    """
+    return _content_response(scope, StudyWorkspaceRepository(session).content(scope))
 
 
 @router.put(
-    "/studies/{study_id}/workspace",
-    response_model=StudyWorkspaceResponse,
-    summary="Bind the study's working content",
+    "/studies/{study_id}/workspace/content",
+    response_model=WorkingContentSaved,
+    summary="Save the research study's working content",
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "A newer revision exists, or the content awaits migration",
+        }
+    },
 )
-def bind_study_workspace(
-    body: BindRequest, scope: StudyScopeDep, repo: ScopeRepositoryDep, session: SessionDep
-) -> StudyWorkspaceResponse:
-    """Once per study, never to a unit project bound elsewhere.
+def save_study_working_content(
+    body: WorkingContentSave, scope: StudyScopeDep, session: SessionDep
+) -> WorkingContentSaved:
+    """A new immutable revision, or nothing when nothing changed.
 
-    Needs ``EDIT_STUDY`` on an open study.
+    Needs ``EDIT_STUDY`` on an open research study. ``base_revision`` is the revision
+    the content was edited from; a save from an older one is refused with 409
+    ``stale_revision`` and the current revision, never applied over it.
     """
     try:
-        StudyWorkspaceRepository(session).bind(scope, unit_project_id=body.unit_project_id)
+        saved = StudyWorkspaceRepository(session).save(
+            scope,
+            content=body.content,
+            analysis=body.analysis,
+            base_revision=body.base_revision,
+            reason=body.reason,
+        )
     except ScopeDenied as exc:
         raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
     except WorkspaceConflict as exc:
+        raise _workspace_conflict(exc) from exc
+    except WorkspaceRejected as exc:
         raise HTTPException(
-            status_code=409,
-            detail={"code": exc.reason, "message": "The working content is already bound."},
+            status_code=422, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
-    return _study_workspace(scope, repo, session)
+    return WorkingContentSaved(
+        study_id=saved.study_id,
+        state=saved.state.value,
+        revision=saved.revision,
+        revision_id=saved.revision_id,
+        deduplicated=saved.deduplicated,
+    )
+
+
+@router.get(
+    "/studies/{study_id}/workspace/revisions",
+    response_model=WorkingRevisionList,
+    summary="The research study's working-content history",
+)
+def study_working_revisions(
+    scope: StudyScopeDep,
+    session: SessionDep,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> WorkingRevisionList:
+    """Every saved revision, newest first: when, by whom, why, and its content hash."""
+    return WorkingRevisionList(
+        items=[
+            WorkingRevisionResponse(**r.model_dump())
+            for r in StudyWorkspaceRepository(session).revisions(scope, limit=limit)
+        ]
+    )
+
+
+def _workspace_conflict(exc: WorkspaceConflict) -> HTTPException:
+    messages = {
+        "awaiting_migration": "The working content awaits migration from 18.6.6.",
+        "not_saved": "Save the study's working content before attaching files to it.",
+    }
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": exc.reason,
+            "message": messages.get(
+                exc.reason, "The working content was saved elsewhere since it was loaded."
+            ),
+            "details": {"current_revision": exc.current_revision},
+        },
+    )
+
+
+@router.post(
+    "/studies/{study_id}/workspace/attachments",
+    response_model=AttachmentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Attach a file to the research study's brief",
+    responses={
+        409: {"model": ErrorResponse, "description": "Nothing saved yet, or awaiting migration"},
+        422: {"model": ErrorResponse, "description": "Empty, too large, or not base64"},
+    },
+)
+def attach_study_file(
+    body: AttachmentUpload, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> AttachmentResponse:
+    """Keep the file in AIA's storage and answer with the record the brief keeps.
+
+    Needs ``EDIT_STUDY`` on an open study whose working content has been saved. The
+    record's ``context_excerpt`` is the text 18.6.6 would have read of the file;
+    ``text_extracted`` is false when none could be read. The brief itself is not
+    changed: the stage adds the record and saves.
+    """
+    try:
+        data = base64.b64decode(body.data_b64, validate=True)
+    except binascii.Error as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "not_base64", "message": "The file is not valid base64."},
+        ) from exc
+    try:
+        record = StudyWorkspaceRepository(session).attach(
+            scope, store, filename=body.filename, data=data
+        )
+    except ScopeDenied as exc:
+        raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
+    except WorkspaceConflict as exc:
+        raise _workspace_conflict(exc) from exc
+    except AttachmentRejected as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    return AttachmentResponse(**record.model_dump())
+
+
+@router.get(
+    "/studies/{study_id}/workspace/attachments/{attachment_id}",
+    response_class=Response,
+    summary="Download a file attached to the research study's brief",
+    responses={
+        200: {"content": {"application/octet-stream": {}}, "description": "The file"},
+        409: {"model": ErrorResponse, "description": "The stored bytes are missing or altered"},
+    },
+)
+def download_study_file(
+    attachment_id: AttachmentIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    """The file's bytes, for anyone who may read the study; any other id is a 404.
+
+    Always ``application/octet-stream`` and ``attachment``, never rendered in AIA's
+    origin, whatever the file claims to be. The bytes are hash-verified on read: a
+    mismatch or a missing object marks the file CORRUPT, durably, and answers 409.
+    """
+    try:
+        artifact, data = StudyWorkspaceRepository(session).attachment(scope, store, attachment_id)
+    except ArtifactNotFound as exc:
+        raise _not_found() from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    filename = str(artifact.metadata.get("filename") or "attachment")
+    return Response(
+        content=data,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
+    )
+
+
+@router.post(
+    "/studies/{study_id}/workspace/questionnaire-import",
+    response_model=QuestionnaireImportResponse,
+    summary="Read a filled-in questionnaire template",
+    responses={422: {"model": ErrorResponse, "description": "The file does not import"}},
+)
+def import_study_questionnaire(
+    body: QuestionnaireUpload, scope: StudyScopeDep
+) -> QuestionnaireImportResponse:
+    """The questionnaire in an XLSX or CSV template, as the stage's new sections.
+
+    Nothing is stored: the stage puts the sections on the study's working content and
+    saves, as any other edit. Needs ``EDIT_STUDY`` on an open study. A file that breaks
+    one of 18.6.6's import rules is refused with its message (422); so is one that
+    cannot be read at all (``unreadable``).
+    """
+    try:
+        scope.require(Permission.EDIT_STUDY)
+        scope.require_open_study()
+    except ScopeDenied as exc:
+        raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
+    try:
+        data = base64.b64decode(body.data_b64, validate=True)
+    except binascii.Error as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "not_base64", "message": "The file is not valid base64."},
+        ) from exc
+    try:
+        imported = import_questionnaire(data, body.filename)
+    except QuestionnaireImportRejected as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    return QuestionnaireImportResponse(
+        sections=imported.sections,
+        summary=ImportSummaryResponse(**imported.summary.model_dump()),
+        filename=imported.filename,
+    )
+
+
+@router.get(
+    "/studies/{study_id}/workspace/questionnaire-template",
+    response_class=Response,
+    summary="The questionnaire template, as an XLSX workbook",
+    responses={
+        200: {
+            "content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}},
+            "description": "The template",
+        }
+    },
+)
+def study_questionnaire_template(scope: StudyScopeDep) -> Response:
+    """AIA's template: sheet DOTAZNIK with three example rows, sheet NAVOD with the guide."""
+    return Response(
+        content=template_xlsx(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{TEMPLATE_FILENAME}"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.put(

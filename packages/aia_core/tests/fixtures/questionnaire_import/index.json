@@ -1,0 +1,36 @@
+{
+ "expected_sha256": "59bc65d489592e0ecee9efa5c3b2a8ee1e66ace70ebc61e1099ff57b4e9a5819",
+ "inputs": {
+  "@unit/NPC_QUESTIONNAIRE_TEMPLATE_v17_6_0.xlsx": "c013f72596b9569a25daa4c4856cfce18bdca637f23f2181ce06ea23a80ce090",
+  "aia_sablona.xlsx": "9c3bd5110e0104a2b861033acf2479c76b23e91d14edc48facc4e66d6c063372",
+  "bez_listu.xlsx": "94c8a65cb824aee4f6fb597b5fedf7764cf55f2dfa1015a08dcdccd6f6ba7b0a",
+  "bez_zneni.csv": "a083b5c1f132b5ab16862d9b4781e933777205a99af22a591677728a2ca5cbdc",
+  "bom.csv": "9759bdeb0fdf2c8ebf85fd6941489db9749df744a77651fcbb6abe1bec3ae12b",
+  "chybi_sloupce.csv": "8e9790ea5b673e28031202d5eb6fd295215cad33741125a686cf7e799630a962",
+  "dotaznik.txt": "7bb3c9914f3c69cd004aaf11f8a76c8fa20a165d83867acdcb650be878c8802a",
+  "html_rodina.csv": "b6f944f79f05c70525360a55551a0a33e9944f4a5015e4d38f2355c4705fa3f1",
+  "html_zneni.csv": "ac39bf86fb6ae13e0533dee60a1c97be599ebc007cde4ef577bb048e3f73a371",
+  "jedna_moznost.csv": "9c6139c64efa78634fbddd5880e749bbddf61e1345320286a856f3ca78e67bb8",
+  "jen_bom.csv": "f1945cd6c19e56b3c1c78943ef5ec18116907a4ca1efc40a57d48ab1db7adfc5",
+  "kolize.csv": "6eaa4a4e7cc34384cda08c9d5d7b5035902cb5ade3c19576efa3b97213450107",
+  "latin2.csv": "6d8bc47c972383dae92f75ce0ece9b28536b206f06c98dfb58fc57ad058fe109",
+  "mala_sada.csv": "c8ee8c1a7643ed8c14a820e6bf3023678202134e955b29f49bec2fb9d3d3509f",
+  "nahrajte.csv": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "neznamy_typ.csv": "481fcd81848e0c92a742a4fe41fb33661531be0876de263df9420d839bc4bc7f",
+  "plny.csv": "bed47b24a9ca42e3546b57e035287cad1f61c520b357912c4eb3374a5b4c2181",
+  "prvni_list.xlsx": "2913363f780960b1ad54c6bfd890850529e748d4e6d4ca681cfd8fe31a150606",
+  "rozbity.xlsx": "7815fac04accc4507f11fa2013705bffa481daaf92b02a2f77ae3f2b24c2e4e5",
+  "sada_duplicity.csv": "e372e2bbb0dfd72515f4a5800020015bb2667b0c31b39699f05c21826364e126",
+  "typovany.xlsx": "f841a1019883b8cee107bd220426b48cf5a5de5e7605b8903292828c70a1bc08",
+  "znacky_html.csv": "1cd4fc3569c94b398019a4ab9a710931ffbb88c18324441ccc73206df6ed6390"
+ },
+ "python": "3.11.15",
+ "unit_sources": {
+  "PRODUCT_POLICY.json": "8b7cca1365469a7d8219f9bd89b46768ebe12a15095cce323ccc297e18e89ddf",
+  "product_policy.py": "38b00a9d25824be75622352dea6ee7b56573e7ca0f11b2a68d098408fc78acea",
+  "research_project.py": "17366b6f5a950fd3198863bbed246e837340f6c22ac24f2c5dd54a2d28d03cff",
+  "study_contract.py": "ba853739c535e41440618a9ca78e93b63b5210424021541b1830f3d769e013ec",
+  "ui_server.py::_xlsx_rows": "3c2b0ba281c14df52662a7d1ebee9795d95e811d30c2f85f653952696c652aa2",
+  "ui_server.py::import_questionnaire_payload": "6fab3277681861f85f7ef90988ebbc314391532d7739e18cd387e7fdeba04792"
+ }
+}

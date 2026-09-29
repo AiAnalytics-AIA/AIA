@@ -3,7 +3,7 @@
 // its areas → one study → its stages, and this module is where it is spelled.
 
 import type { StudyKind } from "@/lib/api";
-import { type StepKey, stepSlug } from "@/unit/research/steps";
+import { type StepKey, stepSlug } from "@/research/steps";
 
 const e = encodeURIComponent;
 
@@ -24,6 +24,4 @@ export const appRoutes = {
   intelligence: () => "/app/intelligence",
   memory: () => "/app/memory",
   settings: () => "/app/settings",
-  classicProjects: () => "/app/settings/classic-projects",
-  classicTrash: () => "/app/settings/classic-projects/trash",
 };

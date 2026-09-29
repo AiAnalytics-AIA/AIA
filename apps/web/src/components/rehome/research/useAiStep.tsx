@@ -8,9 +8,8 @@
 
 import { useState } from "react";
 
-import { t, tv } from "@/i18n/t";
-import { JobError } from "@/unit/research/jobs";
-import { createSupportBundle } from "@/unit/support";
+import { t } from "@/i18n/t";
+import { JobError } from "@/research/jobs";
 import { Icon } from "../icons";
 import { Button } from "../ui";
 import { useResearch } from "./context";
@@ -31,7 +30,7 @@ export function useAiStep() {
   /** The job is addressed to the saved project: a new or edited one is saved first. */
   const saved = async (): Promise<void> => {
     const s = store.get();
-    if (!s.projectId || s.save.kind !== "saved") await store.flush();
+    if (s.revision === null || s.save.kind !== "saved") await store.flush();
   };
 
   /**
@@ -57,7 +56,6 @@ export function useAiStep() {
 
 /** A failed AI step, said in words, with retry and Diagnostika; or the provider notice. */
 export function AiFailureCard({ failure, title, sub, onRetry }: { failure: AiFailure; title: string; sub?: string; onRetry: () => void }) {
-  const { toast } = useResearch();
   if (failure.kind === "provider") {
     return (
       <section role="alert" className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-5">
@@ -68,14 +66,8 @@ export function AiFailureCard({ failure, title, sub, onRetry }: { failure: AiFai
       </section>
     );
   }
-  const diagnostics = () =>
-    createSupportBundle(failure.jobId).then(
-      (url) => {
-        toast(t("research.supportCreated"));
-        window.location.href = url;
-      },
-      (e: unknown) => toast(tv("research.supportFailed", { message: message(e) })),
-    );
+  // An AIA agent job's failure is recorded on the run itself, with its steps and
+  // errors: there is no separate diagnostic bundle to make (ADR 0018).
   return (
     <section role="alert" className="rounded-md border border-status-fault/40 bg-status-fault-wash p-5">
       <h2 className="flex items-center gap-2 font-semibold text-status-fault">
@@ -86,7 +78,6 @@ export function AiFailureCard({ failure, title, sub, onRetry }: { failure: AiFai
       {failure.message ? <p className="mt-1 whitespace-pre-line text-xs text-ink-muted">{failure.message}</p> : null}
       <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="primary" onClick={onRetry}>{t("research.retry")}</Button>
-        {!failure.jobId?.startsWith("RUN-") ? <Button onClick={() => void diagnostics()}>{t("research.diagnostics")}</Button> : null}
       </div>
     </section>
   );

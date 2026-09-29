@@ -212,7 +212,12 @@ without journaling, whether any query of a class could leave.
 progress event named by `TOOL_EVENT_KINDS` (`deep_research_tool_dispatched`, …); the dispatch
 is written after a checkpoint and before the call, so a cancelled, stopping or lease-less step
 stops first. The journal holds the request's fingerprint, never the query text. Its ceiling is
-zero: only a free call can be reserved at all.
+zero: only a free call can be reserved at all. Recovery reads a model call's dispatch mark but
+not these entries, so a step that sends calls builds its meter with `StepToolMeter.resuming`:
+it adopts every tool entry the step's earlier attempts journaled (a track's allowance spans
+attempts), and a `DISPATCHED` entry with no outcome -- its process died, or lost its lease, in
+flight -- is closed `UNCERTAIN` at its ceiling and journaled so. Its track then ends
+`INCOMPLETE` without sending anything again. A meter built plainly refuses to dispatch.
 
 **Adapters state their own mode.** A `SearchAdapter` and a `FetchTransport` each say
 `RECORDED` or `LIVE`, and a recorded one cannot say anything else; `WebRetrieval` refuses an
@@ -248,10 +253,11 @@ snapshots, batches and reused batches, accepted, quarantined) and `spend_usd` (`
 A web track runs round by round: the stop rule is checked before each query; a refused query
 and a known search failure do not count as rounds; each result is fetched once per track within
 the track's allowance and snapshotted; one investigator request reads the round's new pages; an
-uncertain search or fetch ends the track `INCOMPLETE` (never retried). A track whose queries
-were all refused is `BLOCKED` (`all_queries_refused`). Every request is preflighted first, and a
-refused one (`model_route_refused`, `context_too_large`) spends nothing. Each step re-checks
-that the composition's versions, policy and retrieval are the ones the plan recorded
+uncertain search or fetch ends the track `INCOMPLETE` at once (never retried): nothing more is
+sent for it, not even the investigator request over pages the round did capture. A track whose
+queries were all refused is `BLOCKED` (`all_queries_refused`). Every request is preflighted
+first, and a refused one (`model_route_refused`, `context_too_large`) spends nothing. Each step
+re-checks that the composition's versions, policy and retrieval are the ones the plan recorded
 (`composition_changed`), that the request matches the step's fingerprint (`request_altered`)
 and that its Design Revision is the held Study's (`design_not_in_scope`).
 

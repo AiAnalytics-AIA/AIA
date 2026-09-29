@@ -22,6 +22,7 @@ from aia_core.infrastructure.artifact_repository import (
     ArtifactNotFound,
     ArtifactRepository,
     ArtifactStatus,
+    new_artifact_id,
 )
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.storage import (
@@ -216,6 +217,39 @@ def test_filesystem_writes_are_atomic(tmp_path: Any) -> None:
 # --------------------------------------------------------------------------- #
 # The repository: provenance
 # --------------------------------------------------------------------------- #
+
+
+def test_an_artifact_is_named_in_advance_only_with_an_id_the_system_makes(
+    artifacts: ArtifactRepository, project: Any
+) -> None:
+    """A caller that must cite an artifact before storing it names it; no other id is taken."""
+    named = new_artifact_id()
+    artifact, created = artifacts.put(
+        project_id=project.project_id,
+        revision=1,
+        stage_type="BRIEF",
+        artifact_type="brief_attachment",
+        data=b"fiktivni",
+        content_type="application/octet-stream",
+        artifact_id=named,
+    )
+    assert created and artifact.artifact_id == named
+    for bad in (
+        "ATT-0123456789abcd",
+        "ART-../../x",
+        "ART-0123456789ABCDEF",
+        "art-0123456789abcdef",
+    ):
+        with pytest.raises(ValueError, match="ART- and 16 hex"):
+            artifacts.put(
+                project_id=project.project_id,
+                revision=1,
+                stage_type="BRIEF",
+                artifact_type="brief_attachment",
+                data=b"x",
+                content_type="application/octet-stream",
+                artifact_id=bad,
+            )
 
 
 def test_put_records_full_provenance(artifacts: ArtifactRepository, project: Any) -> None:

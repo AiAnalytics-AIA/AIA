@@ -141,6 +141,39 @@ study with ledger entries cannot be deleted out from under its accounting record
 Attribution columns come from the egress decision, computed from an issued
 `StudyContext`. See [ai-runtime.md](ai-runtime.md).
 
+**A research Study's design and working content.** Two rows per research Study at
+most, each pointing at an *owned* project (`projects.owner`), so the generic project
+routes can neither see nor write them:
+
+| Table | Holds | Rule the schema enforces |
+| --- | --- | --- |
+| `study_designs` | The Study's design project; its immutable revisions are the Design Revisions runs execute (ADR 0016) | `project_id` unique, RESTRICT on delete: an executed design cannot vanish |
+| `study_workspaces` | The Study's working content: `content_state` (`EMPTY`, `NATIVE`, `MIGRATED`, `RECOVERED`, `UNRECOVERABLE`, `AWAITING_MIGRATION`), the working project (`project_id`, owner `study_workspace`), `lineage` (where migrated content came from), `last_stage` (ADR 0018) | `project_id` unique, RESTRICT on delete; a state with content has a project and one without has none (`content_state_matches_project`); `unit_project_id` unique and **lineage only** -- the 18.6.6 project a Study was bound to before ADR 0018, never a lookup key |
+
+Every save of the working content is a `ProjectRepository.save` on the working
+project: an immutable `project_revisions` row when content or analysis changed,
+nothing when neither did, with its `project_events` entry. A save names the
+revision it was edited from; a stale one is refused under a lock on the Study row
+(`test_two_editors_saving_from_one_revision_cannot_overwrite_each_other`).
+
+A file the brief carries is a `project_artifacts` row of the working project
+(`artifact_type = STUDY_ATTACHMENT`, stage `BRIEF`) whose bytes are in the artifact
+store under the Study's prefix, uploaded and read back before the row is written, as
+every artifact is. The brief's `attachments[]` keeps the record (`attachment_id` is
+the artifact id); nothing stores a URL. Removing a record from the brief leaves the
+artifact, as 18.6.6 left the file.
+
+Content migrated from 18.6.6 (ADR 0018 decision 2) is the same shape. Revision *k* of
+the working project is the unit's *k*-th, with `reason` `unit:<the unit's reason>` and
+`created_by` null (the unit recorded no author); one `WORKSPACE_MIGRATED` event names
+the person who ran it. A migrated file is an attachment artifact whose metadata keeps
+`legacy_attachment_id`, `legacy_stored_name`, `named_in_brief` and `migrated_from`; its
+brief record keeps `legacy_attachment_id` beside the artifact's `attachment_id`. The
+Study's `lineage` records `source`, `unit_project_id`, `outcome`, `migration_version`,
+`migrated_at`, `migrated_by` and, for a migrated Study, each revision's unit id,
+timestamp, reason and hash, the unit title and trash mark, and which files came over or
+did not; for a recovered one, the Design Revision it came from.
+
 **Population registry.** `population_dataset_versions`, `populations`,
 `population_promotions`, `population_companion_sets`, `population_companion_assets`,
 `run_population_bindings`. Platform reference data, so the

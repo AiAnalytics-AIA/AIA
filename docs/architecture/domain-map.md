@@ -179,8 +179,11 @@ assembly, client and internal report variants, export packs.
 identity, order, input fingerprints, the closed draft schema, the prose
 number-coverage check, prompts rendered from the evidence enums, and a result
 type that holds only admitted claims — and run one at a time by
-`aia_core.application.analysis`. Reporting and export are **not started, by
-design**: they come after the evidence layer is enforceable. Legacy source:
+`aia_core.application.analysis`; no workflow step runs them yet. The report's
+document model, templates and deterministic DOCX renderer exist (PR #62,
+`infrastructure/report_docx/renderer.py`); composing a report from analysis results
+(R10), the report step, storage and download (R11) are not built
+([research-journey.md](research-journey.md) §2). Legacy source:
 `analysis_agent.py`, `client_report_v2.py`, `final_client_report.py`,
 `report.py`, `report_html.py`, `output_pack.py`, `segment_intelligence.py`.
 
