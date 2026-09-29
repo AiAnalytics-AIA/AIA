@@ -141,6 +141,27 @@ def legacy_oracle_tool() -> Any:
     return load_tool("legacy_oracle")
 
 
+def load_unit_store() -> Any:
+    """``tests/unit_store.py`` by path: a copy of an 18.6.6 project store, for tests."""
+    import importlib.util
+
+    name = "aia_test_unit_store"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, Path(__file__).with_name("unit_store.py"))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="session")
+def unit_store() -> Any:
+    """The helper that writes an 18.6.6 project store as the unit writes one."""
+    return load_unit_store()
+
+
 @pytest.fixture(scope="session")
 def legacy_oracle(legacy_oracle_tool: Any) -> Any:
     """An ``OracleClient`` for the running 18.6.6 unit, skipping -- or failing -- without one."""

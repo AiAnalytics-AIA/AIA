@@ -173,7 +173,12 @@ script, then confirm it passes before committing.
   names its state (`ContentState`); a save names its base revision and a stale one
   is refused, so two editors never overwrite each other silently. A study bound to
   18.6.6 before ADR 0018 is `AWAITING_MIGRATION` and refuses edits until its content
-  is migrated; the 18.6.6 project id it keeps is lineage, never a way in.
+  is migrated; the 18.6.6 project id it keeps is lineage, never a way in. The
+  migration (`application/workspace_migration.py`, run as `aia_executors.legacy_workspace`)
+  reads a *copy* of the unit's store (`infrastructure/unit_project_store.py`, read-only,
+  a live database refused) and writes each Study through the scope the named operator
+  holds on it, validated against the copy in the Study's own transaction; nothing in
+  the product reads the unit's state.
 - **Population data is a capability too.** `RuntimePopulation` is issuable only by
   `PopulationRuntime` through the same sentinel construction, and carries the
   `PopulationBinding` (version, content hash, weight scheme, view) it was loaded

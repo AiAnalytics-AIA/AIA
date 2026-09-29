@@ -7,6 +7,7 @@
 // it was edited from: when someone else saved in between, the API refuses it
 // (409 stale_revision) and the store says so, instead of overwriting their work.
 
+import { t, tv } from "@/i18n/t";
 import { ApiError, type ContentState, type WorkingContent, workspace } from "@/lib/api";
 import { type Json, type ResearchProject, type Template, defaultsMerge } from "./model";
 
@@ -35,7 +36,7 @@ export type ResearchState = {
 };
 
 export type LoadResult =
-  | { kind: "research"; state: ResearchState; template: Template; contentState: ContentState; canEdit: boolean }
+  | { kind: "research"; state: ResearchState; template: Template; contentState: ContentState; canEdit: boolean; origin: string | null }
   /** Bound to 18.6.6 before ADR 0018; the migration has not brought the content over yet. */
   | { kind: "awaiting_migration" }
   /** The 18.6.6 content was gone and nothing recoverable existed; a person may start again. */
@@ -53,19 +54,40 @@ export function newResearch(template: Template): ResearchState {
   return { revision: null, project: defaultsMerge({}, template), analysis: null, save: { kind: "new" }, checkEpoch: 0 };
 }
 
+/**
+ * What the stages say about content the 18.6.6 migration brought (ADR 0018), or null.
+ * Recovered content is the study's last submitted design, not its last save, and a
+ * person must know that before they build on it; migrated content says so only when
+ * some of the brief's files did not come over (each is marked in the brief too).
+ */
+export function originNotice(state: ContentState, lineage: Record<string, unknown>): string | null {
+  if (state === "RECOVERED") {
+    const revision = lineage.design_revision;
+    return typeof revision === "number" ? tv("research.recoveredFrom", { revision }) : t("research.recovered");
+  }
+  if (state === "MIGRATED") {
+    const count = (key: string) => (Array.isArray(lineage[key]) ? (lineage[key] as unknown[]).length : 0);
+    const left = count("files_missing") + count("files_mismatched");
+    return left ? tv("research.migratedFilesLeft", { count: left }) : null;
+  }
+  return null;
+}
+
 /** What a load of the study's working content means for its stages. */
 export function readWorkingContent(r: WorkingContent): LoadResult {
   if (r.state === "AWAITING_MIGRATION") return { kind: "awaiting_migration" };
   const template = templateOf(r);
   if (r.state === "UNRECOVERABLE") return { kind: "unrecoverable", template, canEdit: r.can_edit, lineage: r.lineage || {} };
+  const origin = originNotice(r.state, r.lineage || {});
   if (r.state === "EMPTY" || !r.content) {
-    return { kind: "research", state: newResearch(template), template, contentState: r.state, canEdit: r.can_edit };
+    return { kind: "research", state: newResearch(template), template, contentState: r.state, canEdit: r.can_edit, origin };
   }
   return {
     kind: "research",
     template,
     contentState: r.state,
     canEdit: r.can_edit,
+    origin,
     state: {
       revision: r.revision,
       project: defaultsMerge(r.content, template),

@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, type WorkingContent, type WorkingSave } from "@/lib/api";
 import { type Template, defaultsMerge } from "./model";
-import { ResearchStore, SAVE_DEBOUNCE_MS, loadResearch, newResearch, readWorkingContent, saveReason } from "./store";
+import { t, tv } from "@/i18n/t";
+import { ResearchStore, SAVE_DEBOUNCE_MS, loadResearch, newResearch, originNotice, readWorkingContent, saveReason } from "./store";
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
 const TEMPLATE: Template = { empty_project: EMPTY };
@@ -51,6 +52,22 @@ describe("loadResearch", () => {
     expect(readWorkingContent(content({ state: "AWAITING_MIGRATION", content: null }))).toEqual({ kind: "awaiting_migration" });
     const lost = readWorkingContent(content({ state: "UNRECOVERABLE", content: null, lineage: { outcome: "missing" } }));
     expect(lost).toEqual({ kind: "unrecoverable", template: TEMPLATE, canEdit: true, lineage: { outcome: "missing" } });
+  });
+
+  it("says where migrated content came from when the person needs to know", () => {
+    // Recovered content is the last submitted design, not the last save.
+    const recovered = readWorkingContent(content({ state: "RECOVERED", revision: 1, lineage: { outcome: "recovered", design_revision: 3 } }));
+    if (recovered.kind !== "research") throw new Error(recovered.kind);
+    expect(recovered.origin).toBe(tv("research.recoveredFrom", { revision: 3 }));
+    expect(recovered.state.revision).toBe(1);
+    expect(originNotice("RECOVERED", {})).toBe(t("research.recovered"));
+    // Migrated content says so only when some of the brief's files did not come over.
+    expect(originNotice("MIGRATED", { files_missing: ["ATT-1"], files_mismatched: ["ATT-2", "ATT-3"] })).toBe(
+      tv("research.migratedFilesLeft", { count: 3 }),
+    );
+    expect(originNotice("MIGRATED", { files_missing: [], files_mismatched: [] })).toBeNull();
+    const native = readWorkingContent(content());
+    expect(native.kind === "research" && native.origin).toBe(null);
   });
 });
 

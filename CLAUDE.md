@@ -135,6 +135,8 @@ apps/
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check)
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
+    legacy_workspace.py     Operator command: the one-off migration of Studies' content from a copy
+                            of the 18.6.6 store (dry run unless --apply; ADR 0018 decision 2)
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
@@ -198,6 +200,8 @@ packages/aia_core/src/aia_core/
     attachments.py          A brief attachment's record and the unit's rules (25 MB, the name, the excerpt)
     questionnaire_import.py The questionnaire template's rows -> sections, as the unit imported them
                             (its row rules and the normalize_project rules an import meets)
+    workspace_migration.py  The 18.6.6 migration's rules: file references, the record rewrite, the
+                            copy checked against the unit's own hashes, one-for-one validation, report
     knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015)
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
@@ -245,6 +249,8 @@ packages/aia_core/src/aia_core/
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
                             found only through the Study; research_artifacts, the ONLY reader
     develop_seed.py         The synthetic develop world, through the same paths the API uses
+    workspace_migration.py  migrate_unit_workspaces: each waiting Study as a named person, through
+                            ScopeResolver, in its own transaction; missing is not lost until said so
   infrastructure/
     report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
       embed.py              ECMA-376 obfuscated font embedding; deterministic keys
@@ -280,6 +286,8 @@ packages/aia_core/src/aia_core/
                             openpyxl: the `documents` extra), with the ZIP bounds the unit lacked
     questionnaire_file.py   A questionnaire file's rows (the unit's CSV and stdlib XLSX readers) and
                             AIA's own template workbook
+    unit_project_store.py   A COPY of the 18.6.6 project store, read mode=ro&immutable=1 (a live
+                            database refused; the backup ZIP unpacked to scratch); files by base name
     client_knowledge_repository.py  The ONLY reader/writer of Client Knowledge: read inside a
                             resolved scope, changed only by an approved proposal (new revision)
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
@@ -407,8 +415,9 @@ Study's `study_workspaces` row, whose `content_state` names where it stands. A s
 names the revision it was edited from and a stale one is refused (409), never
 applied over a newer one. A study bound to 18.6.6 before ADR 0018 is
 `AWAITING_MIGRATION` -- not editable -- until the explicit migration of its 18.6.6
-content ([legacy-phase-out.md](.planning/plans/legacy-phase-out.md) chunk 7) brings it
-over; `unit_project_id` is lineage only, and nothing finds a study by it. The files a
+content (`aia_executors.legacy_workspace`, ADR 0018 decision 2) brings it over from a
+*copy* of the unit's store, as a named person through their own grants; nothing reads
+the running unit. `unit_project_id` is lineage only, and nothing finds a study by it. The files a
 brief carries are artifacts of the same working project, in AIA's storage
 (`/workspace/attachments`), served only through the Study as `application/octet-stream`;
 the brief keeps their records, never a URL. A questionnaire file is read in AIA
@@ -492,6 +501,7 @@ ungated fixture.
 | Run everything | `make dev` |
 | Run one worker | `make dev-worker` (needs `DATABASE_URL`; the real executors, over `AIA_STORAGE_*`) |
 | Seed the synthetic develop world | `make seed-develop` (needs `DATABASE_URL`, `AIA_SEED_OWNER_EMAIL`; idempotent) |
+| **Migrate 18.6.6 content** | `python -m aia_executors.legacy_workspace --store <copy> --attachments <copy> --as <email> [--apply] [--recover-missing]` (needs `DATABASE_URL`, `AIA_STORAGE_*`; dry run by default; runbook `deploy/develop/README.md` § Migrating 18.6.6 content) |
 | Tests | `make test` (core + API + worker + executors) |
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
 | Executor tests | `make test-executors` (the snapshot step under the real worker loop; seed; smoke module) |
