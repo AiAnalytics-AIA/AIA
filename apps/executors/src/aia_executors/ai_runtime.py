@@ -143,6 +143,9 @@ class AIRuntimeSettings:
     research_agents_enabled: bool = False
     research_max_output_tokens: int = 0
     research_reservation_usd: float = 0.0
+    analysis_enabled: bool = False
+    analysis_max_output_tokens: int = 0
+    analysis_reservation_usd: float = 0.0
     material_approvals: tuple[MaterialApproval, ...] = ()
 
     @classmethod
@@ -241,6 +244,13 @@ class AIRuntimeSettings:
             research_reservation_usd=float(_number(env, "AIA_AI_RESEARCH_RESERVATION_USD") or 0)
             if _flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False)
             else 0,
+            analysis_enabled=_flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False),
+            analysis_max_output_tokens=_positive_int(env, "AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS")
+            if _flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False)
+            else 0,
+            analysis_reservation_usd=float(_number(env, "AIA_AI_ANALYSIS_RESERVATION_USD") or 0)
+            if _flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False)
+            else 0,
         )
         if settings.fieldwork_max_output_tokens > settings.max_output_tokens:
             raise AIRuntimeConfigError(
@@ -285,8 +295,10 @@ class AIRuntimeSettings:
             "route_id": self.route_id,
         }
         capabilities = [ModelCapability.SIMULATION]
+        if self.research_agents_enabled or self.analysis_enabled:
+            capabilities.append(ModelCapability.RESEARCH_REASONING)
         if self.research_agents_enabled:
-            capabilities += [ModelCapability.RESEARCH_REASONING, ModelCapability.CRITIC]
+            capabilities.append(ModelCapability.CRITIC)
         return {
             "models": [
                 {

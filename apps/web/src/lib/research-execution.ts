@@ -14,6 +14,7 @@ import type { Tone } from "@/lib/tone";
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
 export const SYNTHETIC_SOURCE = "synthetic_fixture";
 export const STEP_ORDER = ["compile", "preflight", "run", "aggregate", "sociomap"] as const;
+export const ANALYSIS_ORDER = ["executive", "research_questions", "objects", "audience", "segments", "hypotheses", "implications", "limitations"] as const;
 
 export function phaseTone(phase: ResearchPhase): Tone {
   switch (phase) {

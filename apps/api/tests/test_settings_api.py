@@ -264,7 +264,11 @@ def test_the_runtime_is_bedrock_from_code_and_claims_no_connection(owner: TestCl
     # The switches are named for the worker's environment, and nothing else of it
     # is: no route id, price, retention or fictional-client list.
     switches = {s for a in runtime["activities"] for s in a["switches"]}
-    assert switches == {"AIA_AI_RUNTIME_ENABLED", "AIA_AI_RESEARCH_AGENTS_ENABLED"}
+    assert switches == {
+        "AIA_AI_RUNTIME_ENABLED",
+        "AIA_AI_RESEARCH_AGENTS_ENABLED",
+        "AIA_AI_ANALYSIS_ENABLED",
+    }
     raw = owner.get(f"{API}/settings").text
     for internal in ("AIA_AI_ROUTE_ID", "USD_PER_MTOK", "AIA_AI_FICTIONAL_CLIENT_IDS"):
         assert internal not in raw
@@ -275,7 +279,7 @@ def test_the_runtime_is_bedrock_from_code_and_claims_no_connection(owner: TestCl
 def test_each_activity_is_what_its_agents_ask_for(owner: TestClient) -> None:
     """The capabilities, versions and step kinds are the domain's own, not a copy."""
     activities = _activities(owner.get(f"{API}/settings").json())
-    assert list(activities) == ["respondent_fieldwork", "design_agents"]
+    assert list(activities) == ["respondent_fieldwork", "design_agents", "research_analysis"]
 
     fieldwork = activities["respondent_fieldwork"]
     agent = respondent_agent(Block(0, (Item("q1", "open", "Proč?"),)), max_output_tokens=100)
@@ -311,6 +315,18 @@ def test_each_activity_is_what_its_agents_ask_for(owner: TestClient) -> None:
     assert design["step_kind"] == step.kind
     # Design jobs need the runtime and their own switch, in that order.
     assert design["switches"] == ["AIA_AI_RUNTIME_ENABLED", "AIA_AI_RESEARCH_AGENTS_ENABLED"]
+
+    analysis = activities["research_analysis"]
+    assert analysis["capabilities"] == [ModelCapability.RESEARCH_REASONING.value]
+    assert analysis["step_kind"] in {
+        s.kind
+        for s in steps_for_workflow(
+            RESEARCH, project_type=ProjectType.RESEARCH, analysis_enabled=True
+        )
+        if s.node_key.startswith("analysis_")
+    }
+    assert analysis["switches"] == ["AIA_AI_RUNTIME_ENABLED", "AIA_AI_ANALYSIS_ENABLED"]
+    assert analysis["actions"] == []
 
     used = {c for a in activities.values() for c in a["capabilities"]}
     unused = owner.get(f"{API}/settings").json()["ai_runtime"]["unused_capabilities"]

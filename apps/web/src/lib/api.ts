@@ -468,6 +468,23 @@ export type ResearchRun = {
 /** A run as the Study's list gives it: its state, without its steps or artifacts. */
 export type ResearchRunSummary = Omit<ResearchRun, "steps" | "artifact_ids">;
 
+export type ResearchAnalysis = {
+  run_id: string;
+  complete: boolean;
+  internal_only: true;
+  synthetic: boolean;
+  pending: Record<string, string>;
+  modules: Record<string, {
+    outcome: "COMPLETED" | "BLOCKED";
+    artifact_id: string;
+    summary: string | null;
+    research_question_answers: { question: string; answer: string; claim_ids: string[] }[];
+    key_findings: { text: string; claim_ids: string[] }[];
+    claims: { claim_id: string; evidence_ref: string; value: number; indicative: boolean; data_origin: string | null }[];
+    violations: { code: string; subject: string; detail: string }[];
+  }>;
+};
+
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
 
 export const research = {
@@ -488,6 +505,8 @@ export const research = {
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`),
   artifact: (studyId: string, runId: string, artifactId: string) =>
     request<Artifact>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/artifacts/${enc(artifactId)}`),
+  analysis: (studyId: string, runId: string) =>
+    request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
 };
 
 export type ResearchAgentAction = "analyze_brief" | "build_questionnaire" | "optimize_questionnaire" | "propose_audience" | "suggest_dimensions" | "critique_design" | "design_copilot" | "answer_memory";

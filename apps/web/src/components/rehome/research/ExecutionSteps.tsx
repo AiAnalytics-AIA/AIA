@@ -14,6 +14,7 @@ import { t, tv } from "@/i18n/t";
 import {
   ApiError,
   type Artifact,
+  type ResearchAnalysis,
   type Readiness,
   type ResearchRun,
   type ResearchRunSummary,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/api";
 import {
   STEP_ORDER,
+  ANALYSIS_ORDER,
   isSynthetic,
   parkedForRuntime,
   phaseLabel,
@@ -302,7 +304,7 @@ export function ProgressStep() {
       </Card>
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {STEP_ORDER.map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s).map((s) => (
+          {[...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`)].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s).map((s) => (
             <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
@@ -429,7 +431,7 @@ export function ResultsStep() {
   const reportNote = <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
   if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
-  if (run === null || run.phase !== "COMPLETED") {
+  if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
     return (
       <div className="flex max-w-3xl flex-col gap-4">
         <Card>
@@ -455,8 +457,64 @@ export function ResultsStep() {
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
       ) : null}
+      {run.steps.some((step) => step.kind === "research_analysis") ? <AnalysisResults key={run.run_id} run={run} /> : null}
       {reportNote}
     </div>
+  );
+}
+
+function AnalysisResults({ run }: { run: ResearchRun }) {
+  const frame = useFrame();
+  const [loaded, setLoaded] = useState<Loaded<ResearchAnalysis>>({ state: "loading" });
+  const states = run.steps.filter((step) => step.kind === "research_analysis")
+    .map((step) => `${step.node_key}:${step.status}:${step.artifact_id ?? ""}`).join("|");
+  useEffect(() => {
+    let live = true;
+    research.analysis(frame.studyId, run.run_id).then(
+      (value) => live && setLoaded({ state: "ready", value }),
+      (error: unknown) => live && setLoaded(
+        error instanceof ApiError && error.status === 403
+          ? { state: "hidden" } : { state: "failed", message: message(error) }
+      ),
+    );
+    return () => { live = false; };
+  }, [frame.studyId, run.run_id, states]);
+  if (loaded.state === "hidden") return null;
+  return (
+    <Card title={t("research.exec.results.analysis")} tone="notice">
+      <p role="note" className="mb-3 text-sm font-semibold">
+        {loaded.state === "ready" && loaded.value.synthetic
+          ? t("research.exec.results.analysisSynthetic")
+          : t("research.exec.results.analysisInternal")}
+      </p>
+      {loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}
+      {loaded.state === "loading" ? <p>{t("research.loading")}</p> : null}
+      {loaded.state === "ready" ? (
+        <div className="flex flex-col gap-4">
+          {ANALYSIS_ORDER.map((id) => {
+            const module = loaded.value.modules[id];
+            const pending = loaded.value.pending[id];
+            return (
+              <section key={id} className="border-t border-border pt-3">
+                <h3 className="font-semibold">{stepLabel(`analysis_${id}`)}</h3>
+                {pending ? <p className="text-sm text-ink-muted">{t("research.exec.results.analysisPending")}: {pending}</p> : null}
+                {module?.outcome === "BLOCKED" ? (
+                  <ul className="text-sm text-status-you-ink">{module.violations.map((v, index) => <li key={index}>{v.code}: {v.detail}</li>)}</ul>
+                ) : null}
+                {module?.summary ? <p className="mt-2 whitespace-pre-wrap text-sm">{module.summary}</p> : null}
+                {module?.research_question_answers.map((answer, index) => (
+                  <p key={index} className="mt-2 text-sm"><strong>{answer.question}</strong> {answer.answer}</p>
+                ))}
+                {module?.key_findings.map((finding, index) => (
+                  <p key={index} className="mt-2 text-sm">{finding.text}</p>
+                ))}
+                {module?.claims.length ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.analysisEvidence")}: {module.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p> : null}
+              </section>
+            );
+          })}
+        </div>
+      ) : null}
+    </Card>
   );
 }
 

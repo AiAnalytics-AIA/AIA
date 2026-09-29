@@ -21,6 +21,7 @@ from aia_core.infrastructure.storage_settings import StorageSettings, build_arti
 from aia_worker.executor import StepExecutor
 
 from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
+from .analysis import AnalysisConfig, analysis_registry
 from .research import AIDatasetProducer, research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from .snapshot import KIND as SNAPSHOT_KIND
@@ -35,10 +36,16 @@ def registry_for(
     build: BuildIdentity,
     ai_runtime: AIDatasetProducer | None = None,
     research_agent: StepExecutor | None = None,
+    analysis: StepExecutor | None = None,
 ) -> dict[str, StepExecutor]:
     """Step kind -> executor, over explicit collaborators. Tests use this."""
     return {
         "research_agent": research_agent or ResearchAgentExecutor(store=store, build=build),
+        **(
+            analysis_registry(store=store, build=build)
+            if analysis is None
+            else {"research_analysis": analysis}
+        ),
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
         **research_registry(store=store, build=build, ai_runtime=ai_runtime),
     }
@@ -64,9 +71,20 @@ def build_registry() -> dict[str, StepExecutor]:
                 material_approvals=settings.material_approvals,
             ),
         )
+    analysis = None
+    if settings is not None and settings.analysis_enabled:
+        config = AnalysisConfig.from_settings(
+            settings,
+            max_output_tokens=settings.analysis_max_output_tokens,
+            reservation_usd=settings.analysis_reservation_usd,
+        )
+        analysis = analysis_registry(
+            store=store, build=build, gateway=build_gateway(settings), config=config
+        )["research_analysis"]
     return registry_for(
         store=store,
         research_agent=agent,
+        analysis=analysis,
         build=build,
         ai_runtime=build_ai_fieldwork(settings, build=build) if settings is not None else None,
     )

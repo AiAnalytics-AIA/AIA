@@ -64,10 +64,18 @@ def _bound(env: dict[str, str]) -> tuple[set[str], set[str]]:
 
 
 @pytest.mark.parametrize("design", ["false", "true"])
+@pytest.mark.parametrize("analysis", ["false", "true"])
 def test_every_capability_the_worker_binds_belongs_to_an_activity_the_page_lists(
     design: str,
+    analysis: str,
 ) -> None:
-    env = {**_ENV, "AIA_AI_RESEARCH_AGENTS_ENABLED": design}
+    env = {
+        **_ENV,
+        "AIA_AI_RESEARCH_AGENTS_ENABLED": design,
+        "AIA_AI_ANALYSIS_ENABLED": analysis,
+        "AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS": "4096",
+        "AIA_AI_ANALYSIS_RESERVATION_USD": "1",
+    }
     providers, bound = _bound(env)
     described = _described()
     on = [a for a in described.activities if all(env.get(s) == "true" for s in a.switches)]
@@ -78,7 +86,9 @@ def test_every_capability_the_worker_binds_belongs_to_an_activity_the_page_lists
     )
     assert providers == {p.id for p in described.providers}
     # What no switch turns on is said to be unused, never implied to be available.
-    everything = _bound({**_ENV, "AIA_AI_RESEARCH_AGENTS_ENABLED": "true"})[1]
+    everything = _bound(
+        {**env, "AIA_AI_RESEARCH_AGENTS_ENABLED": "true", "AIA_AI_ANALYSIS_ENABLED": "true"}
+    )[1]
     assert not everything & set(described.unused_capabilities)
 
 

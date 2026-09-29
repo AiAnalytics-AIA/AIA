@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from typing import Final
 
+from .analysis.steps import analysis_step_definitions
 from .pipeline import ProjectType, stage_ids
 from .workflow import StepDefinition
 
@@ -73,7 +74,9 @@ class UnknownWorkflowType(LookupError):
     """The named workflow type has no template."""
 
 
-def steps_for_workflow(workflow_type: str, *, project_type: ProjectType) -> list[StepDefinition]:
+def steps_for_workflow(
+    workflow_type: str, *, project_type: ProjectType, analysis_enabled: bool = False
+) -> list[StepDefinition]:
     """Return the step graph for ``workflow_type`` against a project of ``project_type``.
 
     The snapshot step is filed under the project's **first** stage (``BRIEF`` in
@@ -106,7 +109,7 @@ def steps_for_workflow(workflow_type: str, *, project_type: ProjectType) -> list
     if workflow_type == RESEARCH:
         if project_type is not ProjectType.RESEARCH:
             raise UnknownWorkflowType(f"{RESEARCH} needs a research project")
-        return [
+        steps = [
             StepDefinition(
                 node_key=node,
                 kind=RESEARCH_KINDS[node],
@@ -117,4 +120,5 @@ def steps_for_workflow(workflow_type: str, *, project_type: ProjectType) -> list
             )
             for node, stage, depends_on in _RESEARCH_GRAPH
         ]
+        return [*steps, *analysis_step_definitions()] if analysis_enabled else steps
     raise UnknownWorkflowType(workflow_type)

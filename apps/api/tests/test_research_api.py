@@ -247,6 +247,29 @@ def test_a_run_starts_once_per_design_revision_and_is_read_by_its_study(
     assert events[0]["event_type"] == "RUN_CREATED"
 
 
+def test_analysis_results_are_study_scoped_and_internal(
+    app: FastAPI,
+    researcher: TestClient,
+    viewer: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    response = start(researcher, world, revision)
+    assert response.status_code == 201, response.text
+    run = response.json()
+    assert len(run["steps"]) == 13
+    url = f"{_runs(world)}/{run['run_id']}/analysis"
+    internal = researcher.get(url)
+    assert internal.status_code == 200, internal.text
+    assert internal.json()["internal_only"] is True
+    assert len(internal.json()["pending"]) == 8
+    assert internal.json()["modules"] == {}
+    assert viewer.get(url).status_code == 403
+    assert other_client_lead.get(url).status_code == 404
+
+
 def test_starting_needs_run_rights_and_a_revision_of_this_study(
     researcher: TestClient,
     viewer: TestClient,

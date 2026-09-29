@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. Classify model inputs by material and verified provenance (OI-79)"
-  - "[ ] 2. Register analysis in the research workflow and expose its outcomes"
+  - "[x] 2. Register analysis in the research workflow and expose its outcomes"
   - "[ ] 3. Connect Deep Research workers, API and live retrieval"
   - "[ ] 4. Validate, deploy and complete the authorized fictional acceptance"
 ---
@@ -65,6 +65,21 @@ evidence. The paid acceptance must prove both paths within the shared $2 cap.
   instructions and questionnaires, even with the historical client allowlist.
 - No live configuration changed. No paid calls made. Deployment and both complete
   journeys remain open work in chunks 2–4.
+
+### Chunk 2, local verification (2026-09-29)
+
+- The API composition selects 13 research steps when analysis is enabled, while
+  existing five-step runs retain their idempotency key and retries retain the
+  original graph. Internal analysis is reconstructed through evidence readmission
+  before researchers see it; parked modules no longer hide completed aggregates.
+- The production worker registry includes the analysis executor. Configuration
+  validates the RESEARCH_REASONING binding and a reservation covering a model
+  call at declared ceilings; the switch is passed to API, worker and web.
+- `make verify` passed: core 3,202 (77 unavailable-reference skips), API 260,
+  worker 56, executor 133, web 482; strict Python/TypeScript checks, layer,
+  exposure, format, design tokens and contrast passed. The actual application
+  start plus worker and recorded model completed all 13 steps in integration.
+- No live AI calls or deployment yet. Deep Research and joint acceptance remain.
 
 ## Doc follow-up
 

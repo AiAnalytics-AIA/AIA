@@ -496,6 +496,29 @@ def _reservations(world: Any, run_id: str) -> list[BudgetReservationRow]:
 # --------------------------------------------------------------------------- #
 
 
+def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """Exercise the application template, not a graph assembled by the test."""
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+        )
+        session.commit()
+    run_id = started.run_id
+    assert len(started.run["steps"]) == 13
+    assert sum(step["kind"] == ANALYSIS_STEP_KIND for step in started.run["steps"]) == 8
+    models = ScriptedModels()
+    assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
+    assert _reconstruct(world, store, run_id).complete
+
+
 def test_a_completed_run_is_interpreted_module_by_module_and_reads_back_by_readmission(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
