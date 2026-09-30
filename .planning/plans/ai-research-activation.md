@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. Classify model inputs by material and verified provenance (OI-79)"
   - "[x] 2. Register analysis in the research workflow and expose its outcomes"
-  - "[ ] 3. Connect Deep Research workers, API and live retrieval"
+  - "[x] 3. Connect Deep Research workers, API and live retrieval"
   - "[ ] 4. Validate, deploy and complete the authorized fictional acceptance"
 ---
 # Make the native AI research workflow operational
@@ -80,6 +80,27 @@ evidence. The paid acceptance must prove both paths within the shared $2 cap.
   exposure, format, design tokens and contrast passed. The actual application
   start plus worker and recorded model completed all 13 steps in integration.
 - No live AI calls or deployment yet. Deep Research and joint acceptance remain.
+
+### Chunk 3, local verification (2026-09-30)
+
+- The production worker now registers all six Deep Research steps. A separate
+  switch enables a fixed Czech Wikipedia public search/fetch route for approved
+  Class C material only. Search is fee-free, bounded, and uses an HTTPS connection
+  pinned to the IP checked for public reachability; redirects and other hosts
+  are checked on every hop; other hosts are refused. A live read-only probe
+  returned two search hits and a content-hashed
+  LIVE snapshot of the article about coffee. No model call was made.
+- The API starts, lists, reads, cancels and retries study-scoped durable runs,
+  and exposes the sealed internal bundle to a researcher. The questionnaire
+  shows run history, status, sources, quotes, acceptance and quarantine; it does
+  not silently copy findings into the working design. The previous inert legacy
+  Deep Research button path is removed from that screen.
+- `make verify` passed: core 3,206 (77 unavailable-reference skips), API 262,
+  worker 56, executor 134, web 483. Strict Python/TypeScript checks, 70 layer
+  rules, format, design and accessibility checks passed. An additional focused
+  questionnaire run passed all 13 tests on Node 20.20.2.
+- Neither model calls nor a deployment has occurred yet. The shared $2 fictional
+  acceptance and operational activation remain chunk 4.
 
 ## Doc follow-up
 

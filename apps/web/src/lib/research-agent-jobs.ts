@@ -12,7 +12,7 @@ export const ACTIONS = {
   questionnaireOptimize: "optimize_questionnaire", audiencePropose: "propose_audience",
   personaSuggest: "suggest_dimensions",
 } as const satisfies Record<string, ResearchAgentAction>;
-export type ResearchJobKey = keyof typeof ACTIONS | "researchDeep";
+export type ResearchJobKey = keyof typeof ACTIONS;
 export const ACTION_LABELS: Record<ResearchAgentAction, string> = {
   analyze_brief: "Analýza zadání", build_questionnaire: "Návrh dotazníku",
   optimize_questionnaire: "Úprava dotazníku", propose_audience: "Návrh audience",

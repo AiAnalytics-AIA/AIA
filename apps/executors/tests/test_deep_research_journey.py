@@ -794,7 +794,7 @@ def test_a_second_pass_reuses_unchanged_tracks_and_measures_what_it_bought(
 
 
 # --------------------------------------------------------------------------- #
-# What production can have today, and nothing at all
+# Disabled and public-route production compositions
 # --------------------------------------------------------------------------- #
 
 
@@ -852,6 +852,28 @@ def test_enabling_it_without_research_agents_refuses_to_start(research: Research
         deep_research_runtime(None, env={"AIA_DEEP_RESEARCH_ENABLED": "true"})
     with pytest.raises(AIRuntimeConfigError, match="not true or false"):
         deep_research_runtime(None, env={"AIA_DEEP_RESEARCH_ENABLED": "maybe"})
+    with pytest.raises(AIRuntimeConfigError, match="needs AIA_DEEP_RESEARCH_ENABLED"):
+        deep_research_runtime(None, env={"AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED": "true"})
+
+
+def test_public_wikipedia_route_is_live_fee_free_and_class_c_only(research: ResearchWorld) -> None:
+    settings = ai_settings(research.client_id, approved_for=DEVELOP_ROUTE)
+    runtime = deep_research_runtime(
+        settings,
+        env={
+            "AIA_DEEP_RESEARCH_ENABLED": "true",
+            "AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED": "true",
+        },
+        transport=RecordedAgents(ANSWERS),
+        signer=Signer(),
+    )
+    assert runtime is not None and runtime.retrieval is not None
+    assert runtime.retrieval.search_route.price_usd_per_call == 0
+    assert runtime.retrieval.fetch_route.price_usd_per_call == 0
+    assert runtime.retrieval.search_route.retrieval_mode is RetrievalMode.LIVE
+    assert runtime.retrieval.fetch_route.route.approved_for == frozenset(
+        {DataClass.CLASS_C_INTERNAL}
+    )
 
 
 def test_the_recorded_composition_refuses_outside_local_and_test(

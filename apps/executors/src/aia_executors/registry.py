@@ -22,6 +22,8 @@ from aia_worker.executor import StepExecutor
 
 from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
 from .analysis import AnalysisConfig, analysis_registry
+from .deep_research import DeepResearchRuntime, deep_research_registry
+from .deep_research_runtime import deep_research_runtime
 from .research import AIDatasetProducer, research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from .snapshot import KIND as SNAPSHOT_KIND
@@ -37,6 +39,7 @@ def registry_for(
     ai_runtime: AIDatasetProducer | None = None,
     research_agent: StepExecutor | None = None,
     analysis: StepExecutor | None = None,
+    deep_research: DeepResearchRuntime | None = None,
 ) -> dict[str, StepExecutor]:
     """Step kind -> executor, over explicit collaborators. Tests use this."""
     return {
@@ -46,6 +49,7 @@ def registry_for(
             if analysis is None
             else {"research_analysis": analysis}
         ),
+        **deep_research_registry(store=store, build=build, runtime=deep_research),
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
         **research_registry(store=store, build=build, ai_runtime=ai_runtime),
     }
@@ -85,6 +89,7 @@ def build_registry() -> dict[str, StepExecutor]:
         store=store,
         research_agent=agent,
         analysis=analysis,
+        deep_research=deep_research_runtime(settings),
         build=build,
         ai_runtime=build_ai_fieldwork(settings, build=build) if settings is not None else None,
     )

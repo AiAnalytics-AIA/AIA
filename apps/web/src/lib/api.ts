@@ -509,6 +509,31 @@ export const research = {
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
 };
 
+export type DeepResearchRun = {
+  run_id: string; design_revision_id: string; preset: string; channels: string[];
+  status: string; phase: ResearchPhase; is_terminal: boolean; needs_attention: boolean;
+  retryable: boolean; created_at: string | null;
+  steps: { node_key: string; status: string; waiting_reason: string | null; error_message: string | null }[];
+  actual_cost_usd: number | null;
+};
+export type DeepResearchBundle = {
+  quality_status: string; fictional_client: boolean; client_facing: false;
+  accepted: { evidence: { claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
+  quarantined: { reason: string; detail?: string }[];
+  snapshots: { snapshot_id: string; url: string; title: string; retrieval_mode: string }[];
+  counts: Record<string, number>; sha256: string;
+};
+const deepPath = (studyId: string) => `${studyPath(studyId)}/deep-research/runs`;
+export const deepResearch = {
+  start: (studyId: string, revisionId: string) =>
+    request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
+  runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),
+  run: (studyId: string, runId: string) => request<DeepResearchRun>("GET", `${deepPath(studyId)}/${enc(runId)}`),
+  bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
+  cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
+  retry: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`),
+};
+
 export type ResearchAgentAction = "analyze_brief" | "build_questionnaire" | "optimize_questionnaire" | "propose_audience" | "suggest_dimensions" | "critique_design" | "design_copilot" | "answer_memory";
 export type ResearchAgentJob = {
   run_id: string; design_revision_id: string; action: ResearchAgentAction;

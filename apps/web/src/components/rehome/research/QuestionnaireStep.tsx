@@ -20,7 +20,6 @@ import {
   BUILD_TITLE,
   BUILD_WARN_MS,
   CONFIRM_REMOVE_SECTION,
-  DEEP_TITLE,
   GUIDED_PROMPT,
   type GuidedKind,
   OPTIMIZE_DONE,
@@ -40,19 +39,16 @@ import {
   addQuestionSection,
   addTrackedSet,
   applyBuilt,
-  applyDeep,
   applyImport,
   applyOptimized,
   buildPayload,
   changeQType,
-  deepPayload,
   optimizePayload,
   questionnaireCounts,
   questionnaireHasQuestions,
   questionnaireView,
   removeQuestion,
   removeSection,
-  researchCount,
   respondentPreview,
   sections,
   setObjectFamily,
@@ -74,6 +70,7 @@ import { isNativeResult } from "@/lib/research-agent-jobs";
 import { useResearch } from "./context";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
+import { DeepResearchPanel } from "./DeepResearchPanel";
 
 const CARD = "rounded-md border border-border bg-surface-raised p-5";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
@@ -111,7 +108,7 @@ export function QuestionnaireStep() {
     }, (m) => m + BUILD_FAILED_SUFFIX);
   };
 
-  // optimizeQuestionnaireAI and runProjectDeepResearch: no provider check, as the classic (OI-55).
+  // The optimisation remains an agent proposal; Deep Research has its own durable panel.
   const optimize = () =>
     step.run(async () => {
       await step.saved();
@@ -120,14 +117,6 @@ export function QuestionnaireStep() {
       if (isNativeResult(result)) return;
       store.update(({ analysis: a }) => applyOptimized(result, a, template), { reason: "questionnaire_optimized" });
       toast(OPTIMIZE_DONE);
-    });
-  const deep = () =>
-    step.run(async () => {
-      await step.saved();
-      const result = await runJob("researchDeep", deepPayload(store.get().project), { title: DEEP_TITLE });
-      const r = applyDeep(store.get().project, result);
-      store.update(() => ({ project: r.project }), { reason: "deep_research" });
-      toast(r.toast);
     });
 
   const back = (
@@ -203,15 +192,8 @@ export function QuestionnaireStep() {
           <section className={CARD} aria-labelledby="q-final">
             <h2 id="q-final" className="text-lg font-semibold">{t("research.questionnaire.finalTitle")}</h2>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{t("research.questionnaire.finalIntro")}</p>
-            <div className="mt-3">
-              <Tag>{researchCount(p) ? tv("research.questionnaire.researchYes", { n: researchCount(p) }) : t("research.questionnaire.researchNo")}</Tag>
-            </div>
             <AiAction label={t("research.questionnaire.optimize")} help={t("research.questionnaire.optimizeHelp")} busy={step.busy} onClick={() => void optimize()} />
-            {researchCount(p) ? (
-              <Button small variant="quiet" className="mt-2" disabled={step.busy} onClick={() => void deep()}>
-                {t("research.questionnaire.refreshResearch")}
-              </Button>
-            ) : null}
+            <div className="mt-4"><DeepResearchPanel /></div>
             <div className="mt-4">
               <Button variant="primary" onClick={toAudienceStep}>{t("research.questionnaire.done")}</Button>
             </div>
