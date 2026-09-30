@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any
 
+from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
 from aia_core.application.research import (
     DesignNotReady,
     ResearchAgentJobs,
@@ -63,7 +64,7 @@ _NEVER_INLINED = frozenset({"research_fieldwork_dataset"})
 
 # INTERNAL_ONLY while PROGRESS D6 is open (ADR 0016 decision 6): the Study's own
 # researchers may inspect it; a viewer or reviewer may not.
-_RESEARCHERS_ONLY = frozenset({"research_sociomap"})
+_RESEARCHERS_ONLY = frozenset({"research_sociomap", "research_analysis_module"})
 
 
 # --------------------------------------------------------------------------- #
@@ -448,6 +449,7 @@ def start_run(
         started = runs.start(
             design_revision_id=body.design_revision_id,
             fieldwork_source=_fieldwork_source(request),
+            analysis_enabled=request.app.state.settings.ai_analysis_enabled,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -612,6 +614,81 @@ def run_artifact(
         except (IntegrityError, ObjectNotFound) as exc:
             raise artifact_corrupt(session) from exc
     return artifact_response(artifact, payload)
+
+
+@router.get(
+    "/research/runs/{run_id}/analysis",
+    response_model=dict[str, Any],
+    summary="Evidence-checked internal analysis outcomes of a research run",
+)
+def run_analysis(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """Recheck stored outcomes against the frozen sources before showing prose."""
+    try:
+        scope.require(Permission.EDIT_STUDY)
+        analysis = reconstruct_run(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    return {
+        "run_id": run_id,
+        "complete": analysis.complete,
+        "internal_only": True,
+        "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
+        "pending": {module.value: state for module, state in analysis.pending.items()},
+        "modules": {
+            module.value: {
+                "outcome": outcome.outcome.value,
+                "artifact_id": outcome.artifact_id,
+                "summary": outcome.result.summary if outcome.result else None,
+                "research_question_answers": [
+                    {
+                        "question": answer.question,
+                        "answer": answer.answer,
+                        "claim_ids": answer.claim_ids,
+                    }
+                    for answer in outcome.result.research_question_answers
+                ]
+                if outcome.result
+                else [],
+                "key_findings": [
+                    {"text": finding.text, "claim_ids": finding.claim_ids}
+                    for finding in outcome.result.key_findings
+                ]
+                if outcome.result
+                else [],
+                "claims": [
+                    {
+                        "claim_id": claim.claim_id,
+                        "evidence_ref": claim.row.evidence_ref,
+                        "value": claim.value,
+                        "indicative": claim.indicative,
+                        "data_origin": claim.row.data_origin.value
+                        if claim.row.data_origin
+                        else None,
+                    }
+                    for claim in outcome.result.claims
+                ]
+                if outcome.result
+                else [],
+                "violations": [
+                    {
+                        "code": violation.code.value,
+                        "subject": violation.subject,
+                        "detail": violation.detail,
+                    }
+                    for violation in outcome.violations
+                ],
+            }
+            for module, outcome in analysis.modules.items()
+        },
+    }
 
 
 # Native agent jobs: the API enqueues and reads; the worker owns every model call.

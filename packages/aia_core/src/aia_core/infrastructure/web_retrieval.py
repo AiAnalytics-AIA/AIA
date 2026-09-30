@@ -5,16 +5,14 @@ which decides whether a query or a URL may leave at all, reserves and journals i
 Like the model adapters, the pieces here translate and enforce, and never decide
 to retry, reroute or substitute:
 
-* :class:`SearchAdapter` -- one search, one answer. There is **no live adapter**:
-  no provider is approved (DR-2), and one lands only with its route, terms and
-  metering. :class:`RecordedSearch` replays captured exchanges.
+* :class:`SearchAdapter` -- one search, one answer. The separately enabled live
+  Wikipedia adapter is in :mod:`web_retrieval_live`; recorded search replays tests.
 * :class:`WebFetcher` -- one page, fetched through a :class:`FetchTransport` after
   the address checks of ``domain.deep_research.web`` pass for the URL and for every
   address its host resolves to, **on every redirect hop**; then the size and type
   caps; then HTML to text, normalised, and a content-addressed
   :class:`~aia_core.domain.deep_research.contracts.SourceSnapshot`. A live
-  transport must connect to the address that was checked (DNS rebinding); none
-  exists yet.
+  transport must connect to the address that was checked (DNS rebinding).
 
 Recorded doubles are test doubles (the model adapters keep theirs beside the
 protocols too). They are never a production fallback: every adapter and transport

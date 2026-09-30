@@ -7,6 +7,8 @@ from typing import Any
 
 import pytest
 from aia_core.application.workflows import start_workflow
+from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
+from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
@@ -70,7 +72,13 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
     monkeypatch.setenv("AIA_BUILD_SHA", build.sha or "")
     loaded = load_executors("aia_executors.registry:build_registry")
     # Every closed production kind is registered, including disabled AI jobs.
-    assert set(loaded) == {RESEARCH_AGENT, KIND, *PRODUCTION_RESEARCH_KINDS}
+    assert set(loaded) == {
+        RESEARCH_AGENT,
+        ANALYSIS_STEP_KIND,
+        *DEEP_RESEARCH_KINDS.values(),
+        KIND,
+        *PRODUCTION_RESEARCH_KINDS,
+    }
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
     assert isinstance(loaded[RESEARCH_AGENT], ResearchAgentExecutor)
 
@@ -197,4 +205,10 @@ def test_a_viewer_cannot_start_a_run(world: Any, sessions: sessionmaker[Session]
 
 def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: BuildIdentity) -> None:
     registry = registry_for(store=store, build=build)
-    assert list(registry) == [RESEARCH_AGENT, KIND, *PRODUCTION_RESEARCH_KINDS]
+    assert list(registry) == [
+        RESEARCH_AGENT,
+        ANALYSIS_STEP_KIND,
+        *DEEP_RESEARCH_KINDS.values(),
+        KIND,
+        *PRODUCTION_RESEARCH_KINDS,
+    ]

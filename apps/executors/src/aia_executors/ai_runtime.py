@@ -42,12 +42,14 @@ retries). Both are injectable for tests; nothing here makes a call.
 
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
+from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.ai_models import ModelCapability, parse_model_config
 from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
@@ -55,6 +57,7 @@ from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, Re
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.model_adapters import BedrockConverseAdapter, BedrockSigner
 from aia_core.infrastructure.model_adapters.transport import HttpTransport
+from pydantic import TypeAdapter, ValidationError
 
 from .ai_fieldwork import AIFieldwork, AIFieldworkConfig
 
@@ -140,6 +143,10 @@ class AIRuntimeSettings:
     research_agents_enabled: bool = False
     research_max_output_tokens: int = 0
     research_reservation_usd: float = 0.0
+    analysis_enabled: bool = False
+    analysis_max_output_tokens: int = 0
+    analysis_reservation_usd: float = 0.0
+    material_approvals: tuple[MaterialApproval, ...] = ()
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> AIRuntimeSettings | None:
@@ -198,6 +205,14 @@ class AIRuntimeSettings:
         output_price = _number(env, "AIA_BEDROCK_OUTPUT_USD_PER_MTOK")
         assert input_price is not None and output_price is not None
         timeout = _number(env, "AIA_BEDROCK_TIMEOUT_SECONDS", optional=True) or 300.0
+        try:
+            approvals = TypeAdapter(tuple[MaterialApproval, ...]).validate_json(
+                env.get("AIA_AI_MATERIAL_CLASSIFICATIONS") or "[]"
+            )
+        except (ValidationError, json.JSONDecodeError) as exc:
+            raise AIRuntimeConfigError("invalid AIA_AI_MATERIAL_CLASSIFICATIONS") from exc
+        if len({entry.sha256 for entry in approvals}) != len(approvals):
+            raise AIRuntimeConfigError("duplicate material classification")
         settings = cls(
             route_id=_text(env, "AIA_AI_ROUTE_ID"),
             region=region,
@@ -221,12 +236,20 @@ class AIRuntimeSettings:
             fieldwork_reservation_usd=reservation,
             fictional_client_ids=fictional,
             timeout_s=timeout,
+            material_approvals=approvals,
             research_agents_enabled=_flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False),
             research_max_output_tokens=_positive_int(env, "AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS")
             if _flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False)
             else 0,
             research_reservation_usd=float(_number(env, "AIA_AI_RESEARCH_RESERVATION_USD") or 0)
             if _flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False)
+            else 0,
+            analysis_enabled=_flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False),
+            analysis_max_output_tokens=_positive_int(env, "AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS")
+            if _flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False)
+            else 0,
+            analysis_reservation_usd=float(_number(env, "AIA_AI_ANALYSIS_RESERVATION_USD") or 0)
+            if _flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False)
             else 0,
         )
         if settings.fieldwork_max_output_tokens > settings.max_output_tokens:
@@ -272,8 +295,10 @@ class AIRuntimeSettings:
             "route_id": self.route_id,
         }
         capabilities = [ModelCapability.SIMULATION]
+        if self.research_agents_enabled or self.analysis_enabled:
+            capabilities.append(ModelCapability.RESEARCH_REASONING)
         if self.research_agents_enabled:
-            capabilities += [ModelCapability.RESEARCH_REASONING, ModelCapability.CRITIC]
+            capabilities.append(ModelCapability.CRITIC)
         return {
             "models": [
                 {
@@ -356,6 +381,7 @@ def build_ai_fieldwork(
             reservation_usd=settings.fieldwork_reservation_usd,
             max_output_tokens=settings.fieldwork_max_output_tokens,
             fictional_client_ids=settings.fictional_client_ids,
+            material_approvals=settings.material_approvals,
         ),
         build=build,
     )

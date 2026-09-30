@@ -191,11 +191,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const agents = useResearchAgents(frame.studyId, store, setJob);
   const nativeRun = agents.run;
 
-  // Every AI step of the research stages is an AIA research agent job (ADR 0016,
-  // PR #63). Deep research has no agent yet (ADR 0017) and says so.
+  // Design actions remain research agent jobs; Deep Research uses its own durable panel.
   const runJob: RunJob = useCallback(
     async (endpoint, payload, { title: jobTitle }) => {
-      if (endpoint === "researchDeep") throw new JobError("Webový výzkum čeká na konfiguraci vyhledávací služby. Zadání zůstává uložené.", "error", null);
       try {
         return await nativeRun(ACTIONS[endpoint], payload, jobTitle);
       } catch (e) {

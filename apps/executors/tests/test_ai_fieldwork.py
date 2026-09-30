@@ -25,7 +25,9 @@ from typing import Any
 import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
+from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
+from aia_core.domain.residency import DataClass
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
     FailureClass,
@@ -112,6 +114,13 @@ def _env(**overrides: str) -> dict[str, str]:
         "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL",
         "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
         "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
+        "AIA_AI_MATERIAL_CLASSIFICATIONS": "["
+        + MaterialApproval(
+            sha256=material_sha256(DESIGN),
+            data_class=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+            provenance="test material explicitly classified as confidential",
+        ).model_dump_json()
+        + "]",
     }
     env.update(overrides)
     return env
@@ -288,7 +297,16 @@ def _ledger(world: Any, run_id: str) -> list[Any]:
 
 
 def _fictional(world: Any) -> dict[str, str]:
-    return _env(AIA_AI_FICTIONAL_CLIENT_IDS=world.client_id)
+    return _env(
+        AIA_AI_FICTIONAL_CLIENT_IDS=world.client_id,
+        AIA_AI_MATERIAL_CLASSIFICATIONS="["
+        + MaterialApproval(
+            sha256=material_sha256(DESIGN),
+            data_class=DataClass.CLASS_C_INTERNAL,
+            provenance="generated wholly by this test",
+        ).model_dump_json()
+        + "]",
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -410,6 +428,17 @@ def test_a_real_clients_design_is_class_a_and_the_class_c_route_refuses_it(
     error = _assert_parked_before_network(world, run_id, bedrock)
     assert error["reason"] == "egress_route_not_approved_for_class"
     assert error["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+
+
+def test_client_allowlist_does_not_classify_an_unknown_questionnaire(
+    world: Any, run_with: Callable[..., Worker]
+) -> None:
+    bedrock = ScriptedBedrock()
+    run_id = _start(world)
+    env = _fictional(world) | {"AIA_AI_MATERIAL_CLASSIFICATIONS": "[]"}
+    assert _drain(run_with(bedrock, env=env)) == ["completed", "completed", "failed"]
+    error = _assert_parked_before_network(world, run_id, bedrock)
+    assert error["reason"] == "egress_unclassified_material"
 
 
 def test_panel_derived_personas_are_refused_by_the_licence_gate_on_any_route(

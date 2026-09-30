@@ -9,6 +9,7 @@ from typing import Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.web_retrieval import WebRetrieval
+from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.deep_research.agents import PROMPT_VERSION
 from aia_core.domain.deep_research.classification import CLASSIFIER_VERSION
 from aia_core.domain.deep_research.contracts import HARNESS_VERSION, Channel
@@ -50,6 +51,7 @@ class DeepResearchConfig:
     reservation_usd: float
     fictional_client_ids: frozenset[str]
     provider: Provider = Provider.AWS_BEDROCK
+    material_approvals: tuple[MaterialApproval, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

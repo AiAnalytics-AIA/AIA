@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from aia_core.domain import ai_respondent
 from aia_core.domain.ai_models import ModelCapability
+from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.evidence import REFERENCE_THRESHOLDS, TIER_PERMITS
 from aia_core.domain.pipeline import RESEARCH_STAGES, SIMULATION_STAGES
 from aia_core.domain.population import CZ_DATASET_ID, CZ_LIVE, CZ_STATIC_REFERENCE
@@ -96,6 +97,7 @@ _PROJECT_PATCH = "PATCH /api/v1/studies/{study_id}/projects/{project_id}"
 # holds each name to the variable the worker reads and Compose passes.
 _RUNTIME_SWITCH = "AIA_AI_RUNTIME_ENABLED"
 _DESIGN_SWITCH = "AIA_AI_RESEARCH_AGENTS_ENABLED"
+_ANALYSIS_SWITCH = "AIA_AI_ANALYSIS_ENABLED"
 
 
 def _item(
@@ -441,7 +443,15 @@ def _native_runtime() -> NativeRuntime:
         switches=[_RUNTIME_SWITCH, _DESIGN_SWITCH],
         actions=[a.value for a in ResearchAction],
     )
-    activities = [fieldwork, design]
+    analysis = NativeActivity(
+        key="research_analysis",
+        step_kind=ANALYSIS_STEP_KIND,
+        capabilities=[ModelCapability.RESEARCH_REASONING.value],
+        versions=[],
+        switches=[_RUNTIME_SWITCH, _ANALYSIS_SWITCH],
+        actions=[],
+    )
+    activities = [fieldwork, design, analysis]
     used = {c for activity in activities for c in activity.capabilities}
     return NativeRuntime(
         providers=[_provider(p) for p in Provider if p in NATIVE_PROVIDERS],

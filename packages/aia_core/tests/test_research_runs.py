@@ -206,6 +206,34 @@ def test_a_run_is_pinned_to_its_design_revision_and_starting_it_twice_is_one_run
     assert [r["run_id"] for r in runs().runs()] == [second.run_id, started.run_id]
 
 
+def test_analysis_graph_is_selected_by_composition_and_preserved_on_retry(
+    runs: Any, design: Any, session: Any, scoped: Any
+) -> None:
+    revision = design()
+    basic = runs().start(design_revision_id=revision, fieldwork_source=AI)
+    analysed = runs().start(design_revision_id=revision, fieldwork_source=AI, analysis_enabled=True)
+    assert analysed.created and analysed.run_id != basic.run_id
+    assert (
+        WorkflowRepository(session, scoped.scope()).find_run_by_idempotency_key(
+            f"{RESEARCH}:{revision}"
+        )
+        is not None
+    )
+    assert [s["node_key"] for s in basic.run["steps"]] == [
+        "compile",
+        "preflight",
+        "run",
+        "aggregate",
+        "sociomap",
+    ]
+    assert len(analysed.run["steps"]) == 13
+    assert analysed.run["metadata"]["analysis_enabled"] is True
+    WorkflowRepository(session, scoped.scope()).request_cancel(analysed.run_id, reason="test")
+    retry = runs().retry(analysed.run_id, fieldwork_source=AI)
+    assert retry.created and len(retry.run["steps"]) == 13
+    assert retry.run["metadata"]["analysis_enabled"] is True
+
+
 def test_starting_needs_run_rights_on_an_open_study(runs: Any, design: Any) -> None:
     revision = design()
     for user in ("viewer", "reviewer"):

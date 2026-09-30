@@ -260,7 +260,7 @@ class RetrievalMode(StrEnum):
 
     #: Replayed from a recorded exchange (tests, the local composition).
     RECORDED = "RECORDED"
-    #: Retrieved over an approved route. No live adapter exists yet (DR-2).
+    #: Retrieved over an approved live route.
     LIVE = "LIVE"
 
 

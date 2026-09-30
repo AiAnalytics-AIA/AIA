@@ -19,7 +19,9 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ..domain.ai_contracts import canonical_json
+from ..domain.analysis.steps import analysis_step_inputs
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
+from ..domain.evidence import ClaimSurface
 from ..domain.fieldwork import FieldworkSource
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
@@ -103,6 +105,7 @@ class ResearchRuns:
         design_revision_id: str,
         fieldwork_source: FieldworkSource,
         retry_of: str | None = None,
+        analysis_enabled: bool = False,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
 
@@ -122,6 +125,8 @@ class ResearchRuns:
         project_id = designs.project_id()
         assert project_id is not None  # a revision exists, so its design project does
         key = f"{RESEARCH}:{revision.revision_id}"
+        if analysis_enabled:
+            key += ":analysis"
         if retry_of:
             key += f":retry:{retry_of}"
         return start_workflow(
@@ -135,13 +140,16 @@ class ResearchRuns:
                 "design_revision_id": revision.revision_id,
                 "design_revision": revision.revision,
                 "fieldwork_source": fieldwork_source.value,
+                "analysis_enabled": analysis_enabled,
                 **({"retry_of": retry_of} if retry_of else {}),
             },
             step_inputs={
                 "compile": {"design_revision_id": revision.revision_id},
                 "run": {"fieldwork_source": fieldwork_source.value},
+                **(analysis_step_inputs(ClaimSurface.INTERNAL) if analysis_enabled else {}),
             },
             owner=DESIGN_PROJECT_OWNER,
+            analysis_enabled=analysis_enabled,
         )
 
     def retry(self, run_id: str, *, fieldwork_source: FieldworkSource) -> StartedRun:
@@ -153,6 +161,7 @@ class ResearchRuns:
             design_revision_id=str(run["metadata"]["design_revision_id"]),
             fieldwork_source=fieldwork_source,
             retry_of=run_id,
+            analysis_enabled=bool(run["metadata"].get("analysis_enabled", False)),
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

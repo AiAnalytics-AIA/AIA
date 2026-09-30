@@ -1,7 +1,7 @@
 """Search and fetch under the gate: every hop checked, every call journaled, refusals kept.
 
 No network: the fetcher runs over recorded transports and a recorded resolver, and
-the gate over recorded search. The live half of each seam does not exist yet (DR-2).
+the gate over recorded search. The separate live adapter has its own route tests.
 """
 
 from __future__ import annotations

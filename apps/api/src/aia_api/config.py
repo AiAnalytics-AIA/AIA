@@ -88,6 +88,7 @@ class Settings(BaseSettings):
     # fieldwork. ``synthetic_fixture`` is a fictional dataset for tests and the
     # workbench, refused in every deployed environment by validate_for_production().
     research_fieldwork_source: FieldworkSource = FieldworkSource.AI_RUNTIME
+    ai_analysis_enabled: bool = False
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"

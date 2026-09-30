@@ -317,6 +317,34 @@ describe("Progress", () => {
 });
 
 describe("Results", () => {
+  it("shows evidence-checked internal analysis while another module waits", async () => {
+    const partial = run({
+      status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "synthetic_fixture",
+      steps: [
+        step("aggregate", "SUCCEEDED", { artifact_id: "ART-4", data_origin: "SYNTHETIC_FIXTURE" }),
+        step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
+        step("analysis_limitations", "WAITING_PROVIDER", { kind: "research_analysis" }),
+      ],
+    });
+    api({
+      ...listed(partial),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({
+        run_id: "RUN-1", complete: false, internal_only: true, synthetic: true,
+        pending: { limitations: "WAITING_PROVIDER" },
+        modules: { executive: { outcome: "COMPLETED", artifact_id: "ART-6",
+          summary: "Ověřené shrnutí.", research_question_answers: [], key_findings: [],
+          claims: [{ claim_id: "C1", evidence_ref: "q1.mean", value: 3, indicative: false, data_origin: "SYNTHETIC_FIXTURE" }],
+          violations: [] } },
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText("Ověřené shrnutí.")).toBeTruthy();
+    expect(screen.getByText(/C1 → q1.mean/)).toBeTruthy();
+    expect(screen.getByText(/Interní analýza fiktivních respondentů/)).toBeTruthy();
+    expect(screen.getByText(/Čeká: WAITING_PROVIDER/)).toBeTruthy();
+  });
+
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {
     api({
       ...listed(COMPLETED),

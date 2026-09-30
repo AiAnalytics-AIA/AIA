@@ -6,7 +6,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from aia_core.application.web_retrieval import RetrievalGate
-from aia_core.domain.deep_research.agents import AgentRole, PlanProposal, design_class
+from aia_core.domain.ai_material import classify_material
+from aia_core.domain.deep_research.agents import AgentRole, PlanProposal
 from aia_core.domain.deep_research.contracts import (
     Channel,
     DeepResearchRequest,
@@ -33,11 +34,12 @@ from aia_core.domain.deep_research.steps import (
     run_scoped,
 )
 from aia_core.domain.licence import DataLineage
+from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
 )
-from aia_worker.executor import StepContext, StepInput, StepOutcome
+from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
 from pydantic import ValidationError
 
 from ._shared import _class_a_texts, _detail, _invalid, _produced, _Step, _subjects, _unconfigured
@@ -73,8 +75,35 @@ class PlanExecutor(_Step):
             depth = preset(request.preset)
         except UnknownPreset as exc:
             return _invalid("unknown_preset", str(exc))
-        fictional = context.scope.client_id in runtime.config.fictional_client_ids
-        dclass = design_class(fictional_client=fictional)
+        with context.transaction() as (session, _workflow):
+            designs = StudyDesignRepository(session, context.scope)
+            try:
+                revision = designs.get(request.design_revision_id)
+            except DesignRevisionNotFound:
+                return _invalid(
+                    "design_not_in_scope", "the run's Design Revision is not this Study's"
+                )
+            if (
+                revision.revision != step.project_revision
+                or designs.project_id() != step.project_id
+            ):
+                return _invalid("design_not_in_scope", "the run's design does not match its scope")
+            decision = classify_material(
+                designs.content(request.design_revision_id), runtime.config.material_approvals
+            )
+        dclass = decision.data_class
+        if dclass is None:
+            return Failed(
+                FailureClass.RUNTIME_UNAVAILABLE,
+                error={
+                    "reason": "egress_unclassified_material",
+                    "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
+                },
+            )
+        fictional = any(
+            approval.sha256 == decision.sha256 and approval.synthetic
+            for approval in runtime.config.material_approvals
+        )
         inputs = runtime.inputs()
         tracks, beyond = build_tracks(request, depth, inputs=inputs)
         versions = runtime.versions()

@@ -154,6 +154,25 @@ describe("Dotazník", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "2 otázek · 0 sledovaných sad" })).toBeTruthy());
   });
 
+  it("starts durable public Deep Research from the saved design, without the legacy endpoint", async () => {
+    const path = "/api/v1/studies/STU-1/deep-research/runs";
+    const job = { run_id: "RUN-a1", design_revision_id: "REV-A", preset: "QUICK", channels: ["WEB"], status: "RUNNING", phase: "RUNNING", is_terminal: false, needs_attention: false, retryable: false, created_at: null, steps: [], actual_cost_usd: null };
+    let started = false;
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, {
+      [path]: (body) => {
+        if (body) { started = true; return job; }
+        return started ? [job] : [];
+      },
+    });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Spustit veřejný výzkum" }));
+    await waitFor(() => expect(posted(path)).toHaveLength(1));
+    expect(posted(path)[0].body).toEqual({ design_revision_id: "REV-A", preset_name: "QUICK", channels: ["WEB"] });
+    expect(posted("/api/v1/studies/STU-1/design/revisions")[0].body).toMatchObject({ source_stage: "questionnaire" });
+    expect(calls.some((call) => call.url === "/api/research/deep")).toBe(false);
+    expect(await screen.findByText("Stav: RUNNING · RUNNING")).toBeTruthy();
+  });
+
   const IMPORT_PATH = "/api/v1/studies/STU-1/workspace/questionnaire-import";
   const TEMPLATE_PATH = "/api/v1/studies/STU-1/workspace/questionnaire-template";
 

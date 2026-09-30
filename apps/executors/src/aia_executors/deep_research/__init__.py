@@ -13,20 +13,22 @@ What runs is the composition's, :class:`DeepResearchRuntime`:
 
 * **none** -- the plan step parks the run (``RUNTIME_UNAVAILABLE``,
   ``deep_research_unconfigured``) before anything is read or sent;
-* **a gateway, no retrieval** -- all production can have today (no search provider
-  is approved, DR-2): every web track is blocked (``web_retrieval_unavailable``)
+* **a gateway, no retrieval** -- the default: every web track is blocked
+  (``web_retrieval_unavailable``)
   without a planner call, and every internal track meets the gateway's gates,
   which refuse Client Knowledge on a Class C route before anything is sent;
 * **a gateway and recorded retrieval** -- the recorded composition, local and test
   only (a module nothing else here may import): the whole path, on captured
   exchanges.
+* **a gateway and live public retrieval** -- a separately enabled, fee-free Czech
+  Wikipedia search/fetch route for classified Class C material and internal review.
 
 Models propose and code decides (plan decision I-1): a query leaves only if the
 gate lets it, a finding exists only if its quote is in a source the track
 captured, acceptance is the declared source tables and the verifier, and a
 number reaches the brief only from a quote it cites. Every unit of work is an
 artifact with a fingerprint (I-4), so a retried step and a later pass buy nothing
-twice. Nothing here is registered in production (I-9).
+twice. The production registry includes the six kinds, including the parked state.
 """
 
 from __future__ import annotations
@@ -59,7 +61,7 @@ __all__ = [
 def deep_research_registry(
     *, store: ArtifactStore, build: BuildIdentity, runtime: DeepResearchRuntime | None
 ) -> dict[str, StepExecutor]:
-    """The six Deep Research kinds -> executors over one composition. Not registered here.
+    """The six Deep Research kinds -> executors over one composition.
 
     ``runtime=None`` is the honest unconfigured state: the plan step parks the run.
     """
