@@ -492,23 +492,23 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
       {loaded.state === "ready" ? (
         <div className="flex flex-col gap-4">
           {ANALYSIS_ORDER.map((id) => {
-            const module = loaded.value.modules[id];
+            const outcome = loaded.value.modules[id];
             const pending = loaded.value.pending[id];
             return (
               <section key={id} className="border-t border-border pt-3">
                 <h3 className="font-semibold">{stepLabel(`analysis_${id}`)}</h3>
                 {pending ? <p className="text-sm text-ink-muted">{t("research.exec.results.analysisPending")}: {pending}</p> : null}
-                {module?.outcome === "BLOCKED" ? (
-                  <ul className="text-sm text-status-you-ink">{module.violations.map((v, index) => <li key={index}>{v.code}: {v.detail}</li>)}</ul>
+                {outcome?.outcome === "BLOCKED" ? (
+                  <ul className="text-sm text-status-you-ink">{outcome.violations.map((v, index) => <li key={index}>{v.code}: {v.detail}</li>)}</ul>
                 ) : null}
-                {module?.summary ? <p className="mt-2 whitespace-pre-wrap text-sm">{module.summary}</p> : null}
-                {module?.research_question_answers.map((answer, index) => (
+                {outcome?.summary ? <p className="mt-2 whitespace-pre-wrap text-sm">{outcome.summary}</p> : null}
+                {outcome?.research_question_answers.map((answer, index) => (
                   <p key={index} className="mt-2 text-sm"><strong>{answer.question}</strong> {answer.answer}</p>
                 ))}
-                {module?.key_findings.map((finding, index) => (
+                {outcome?.key_findings.map((finding, index) => (
                   <p key={index} className="mt-2 text-sm">{finding.text}</p>
                 ))}
-                {module?.claims.length ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.analysisEvidence")}: {module.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p> : null}
+                {outcome?.claims.length ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.analysisEvidence")}: {outcome.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p> : null}
               </section>
             );
           })}

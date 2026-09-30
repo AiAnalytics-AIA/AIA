@@ -13,7 +13,8 @@ What runs is the composition's, :class:`DeepResearchRuntime`:
 
 * **none** -- the plan step parks the run (``RUNTIME_UNAVAILABLE``,
   ``deep_research_unconfigured``) before anything is read or sent;
-* **a gateway, no retrieval** -- the default: every web track is blocked (``web_retrieval_unavailable``)
+* **a gateway, no retrieval** -- the default: every web track is blocked
+  (``web_retrieval_unavailable``)
   without a planner call, and every internal track meets the gateway's gates,
   which refuse Client Knowledge on a Class C route before anything is sent;
 * **a gateway and recorded retrieval** -- the recorded composition, local and test
