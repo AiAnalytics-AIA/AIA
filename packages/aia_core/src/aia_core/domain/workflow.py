@@ -55,6 +55,7 @@ __all__ = [
     "new_run_id",
     "new_step_id",
     "resume_due",
+    "runtime_park_can_resume",
 ]
 
 
@@ -746,6 +747,30 @@ def resume_due(
     if status is StepRunStatus.WAITING_CAPACITY:
         return waited(capacity_backoff_seconds)
     return False
+
+
+def runtime_park_can_resume(
+    status: StepRunStatus,
+    *,
+    waiting_reason: str | None,
+    paid_call_dispatched: bool,
+    cancel_requested: bool,
+    attempts_consumed: int,
+    max_attempts: int,
+) -> bool:
+    """An explicit retry may reopen only a pre-dispatch runtime park.
+
+    A possibly billed call must never be repeated through this route. The usual
+    timed provider recovery remains separate; this is for a runtime installed
+    after the step parked, following a new user action.
+    """
+    return (
+        status is StepRunStatus.WAITING_PROVIDER
+        and waiting_reason == RUNTIME_UNAVAILABLE_REASON
+        and not paid_call_dispatched
+        and not cancel_requested
+        and attempts_consumed < max_attempts
+    )
 
 
 # --------------------------------------------------------------------------- #

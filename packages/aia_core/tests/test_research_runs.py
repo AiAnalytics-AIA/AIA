@@ -34,6 +34,7 @@ from aia_core.domain.workflow import (
     WorkflowRunStatus,
     decide_recovery,
     resume_due,
+    runtime_park_can_resume,
     validate_dag,
 )
 from aia_core.domain.workflow_templates import (
@@ -154,6 +155,25 @@ def test_no_timer_resumes_a_step_waiting_for_the_runtime() -> None:
     assert resume_due(
         StepRunStatus.WAITING_PROVIDER, waiting_reason="provider_quota_exhausted", **parked
     )
+
+
+def test_explicit_runtime_resume_requires_an_unbilled_park_and_remaining_attempt() -> None:
+    allowed = {
+        "waiting_reason": RUNTIME_UNAVAILABLE_REASON,
+        "paid_call_dispatched": False,
+        "cancel_requested": False,
+        "attempts_consumed": 0,
+        "max_attempts": 1,
+    }
+    assert runtime_park_can_resume(StepRunStatus.WAITING_PROVIDER, **allowed)
+    for change in (
+        {"waiting_reason": "provider_quota_exhausted"},
+        {"paid_call_dispatched": True},
+        {"cancel_requested": True},
+        {"attempts_consumed": 1},
+    ):
+        assert not runtime_park_can_resume(StepRunStatus.WAITING_PROVIDER, **{**allowed, **change})
+    assert not runtime_park_can_resume(StepRunStatus.RECOVERY_REQUIRED, **allowed)
 
 
 @pytest.mark.parametrize("status", list(WorkflowRunStatus))

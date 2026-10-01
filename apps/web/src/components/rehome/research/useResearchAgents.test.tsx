@@ -9,7 +9,7 @@ import { canonicalProject, useResearchAgents } from "./useResearchAgents";
 
 vi.mock("@/lib/api", () => ({
   research: { submitDesign: vi.fn() },
-  researchAgents: { jobs: vi.fn(), job: vi.fn(), start: vi.fn(), result: vi.fn(), accept: vi.fn(), design: vi.fn(), cancel: vi.fn() },
+  researchAgents: { jobs: vi.fn(), job: vi.fn(), start: vi.fn(), result: vi.fn(), accept: vi.fn(), design: vi.fn(), cancel: vi.fn(), resume: vi.fn() },
 }));
 const job: ResearchAgentJob = {
   run_id: "RUN-1", design_revision_id: "REV-1", action: "analyze_brief", status: "COMPLETED",
@@ -47,6 +47,7 @@ beforeEach(() => {
   vi.mocked(researchAgents.jobs).mockResolvedValue([]);
   vi.mocked(researchAgents.start).mockResolvedValue(job);
   vi.mocked(researchAgents.job).mockResolvedValue(job);
+  vi.mocked(researchAgents.resume).mockResolvedValue({ ...job, status: "RUNNING", is_terminal: false });
   vi.mocked(researchAgents.result).mockResolvedValue(result);
   vi.mocked(researchAgents.accept).mockResolvedValue({ revision_id: "REV-2" } as Awaited<ReturnType<typeof researchAgents.accept>>);
   vi.mocked(researchAgents.design).mockResolvedValue({ content: { goal: "Original" } } as unknown as Awaited<ReturnType<typeof researchAgents.design>>);
@@ -62,6 +63,18 @@ it("freezes a Study revision, follows the job, and writes nothing until review",
   fireEvent.click(screen.getByText("Použít návrh"));
   await waitFor(() => expect(project.title).toBe("Proposed"));
   expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
+});
+it("a second click resumes the same unbilled runtime park without editing the brief", async () => {
+  vi.mocked(researchAgents.start).mockResolvedValue({
+    ...job, status: "WAITING_PROVIDER", is_terminal: false,
+    steps: [{ waiting_reason: "ai_runtime_unavailable" }] as ResearchAgentJob["steps"],
+  });
+  render(<Harness />); fireEvent.click(screen.getByText("Run"));
+  await screen.findByRole("dialog");
+  expect(researchAgents.resume).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1");
+  expect(researchAgents.job).toHaveBeenCalledWith("STU-1", "RUN-1");
+  fireEvent.click(screen.getByText("Ponechat současný návrh"));
+  await act(async () => { await running; });
 });
 it("keeping the current design leaves the saved proposal unapplied", async () => {
   render(<Harness />); fireEvent.click(screen.getByText("Run"));
@@ -94,6 +107,7 @@ it("does not replace the original job error with a failed inbox refresh", async 
   render(<Harness />); fireEvent.click(screen.getByText("Run"));
   await screen.findByText(/AI krok čeká na zásah/);
   expect(researchAgents.accept).not.toHaveBeenCalled();
+  expect(researchAgents.resume).not.toHaveBeenCalled();
 });
 it("opens an older proposal for reading without allowing it to replace the current design", async () => {
   project = { goal: "Edited" }; render(<Harness />); fireEvent.click(screen.getByText("Open"));

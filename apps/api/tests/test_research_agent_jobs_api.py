@@ -5,9 +5,10 @@ from typing import Any
 
 import pytest
 from aia_core.application.research import research_artifacts
+from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.storage import ArtifactStore
-from aia_worker.executor import StepContext, StepInput, StepOutcome, Succeeded
+from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi import FastAPI
@@ -110,11 +111,11 @@ class _Proposes:
         return Succeeded(output={"artifact_id": artifact.artifact_id})
 
 
-def _worker(app: FastAPI) -> Worker:
+def _worker(app: FastAPI, executor: Any = None) -> Worker:
     settings = app.state.settings
     return Worker(
         session_factory=create_session_factory(app.state.engine),
-        executors={"research_agent": _Proposes(app.state.artifact_store)},
+        executors={"research_agent": executor or _Proposes(app.state.artifact_store)},
         settings=WorkerSettings(
             database_url=settings.database_url or "sqlite+pysqlite:///:memory:",
             executors="aia_executors.registry:build_registry",
@@ -124,6 +125,37 @@ def _worker(app: FastAPI) -> Worker:
             poll_seconds=0.05,
         ),
     )
+
+
+class _Unavailable:
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        return Failed(FailureClass.RUNTIME_UNAVAILABLE, error={"message": "runtime is off"})
+
+
+def test_same_design_can_resume_an_unbilled_runtime_park_after_activation(
+    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    rid = revision(researcher, world)
+    url = base(world)
+    job_id = researcher.post(
+        url, json={"design_revision_id": rid, "action": "analyze_brief"}
+    ).json()["run_id"]
+    assert _worker(app, _Unavailable()).run_once() is not None
+    parked = researcher.get(f"{url}/{job_id}").json()
+    assert parked["status"] == "WAITING_PROVIDER"
+    assert parked["steps"][0]["waiting_reason"] == "ai_runtime_unavailable"
+    assert parked["actual_cost_usd"] == 0
+    assert viewer.post(f"{url}/{job_id}/resume").status_code == 403
+    assert researcher.post(f"{base(world, 'sibling')}/{job_id}/resume").status_code == 404
+
+    resumed = researcher.post(f"{url}/{job_id}/resume")
+    assert resumed.status_code == 200, resumed.text
+    assert resumed.json()["run_id"] == job_id
+    assert resumed.json()["steps"][0]["status"] == "RUNNABLE"
+    assert researcher.post(f"{url}/{job_id}/resume").status_code == 200
+    assert _worker(app).run_once() is not None
+    assert researcher.get(f"{url}/{job_id}").json()["status"] == "COMPLETED"
+    assert researcher.post(f"{url}/{job_id}/resume").status_code == 409
 
 
 @pytest.mark.parametrize("damage", ["tampered", "missing"])

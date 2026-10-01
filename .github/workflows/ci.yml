@@ -459,6 +459,7 @@ jobs:
               "/api/v1/studies/{study_id}/research/agent-jobs",
               "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}",
               "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}/cancel",
+              "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}/resume",
               "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}/result",
               "/api/v1/studies/{study_id}/research/agent-jobs/{run_id}/accept",
               # The settings page (.planning/plans/settings-control-panel.md).

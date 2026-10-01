@@ -33,6 +33,7 @@ from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
 )
+from aia_core.infrastructure.workflow_repository import RuntimeParkNotResumable
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -752,6 +753,10 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
+    except RuntimeParkNotResumable as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": "runtime_park_not_resumable", "message": str(exc)}
+        ) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         # The proposal's bytes failed verification on read: keep its CORRUPT mark.
         raise artifact_corrupt(session) from exc
@@ -799,6 +804,17 @@ def cancel_agent_job(
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
         jobs.cancel(run_id)
+        return _agent_response(jobs.get(run_id), scope)
+
+
+@router.post("/research/agent-jobs/{run_id}/resume", response_model=AgentJobResponse)
+def resume_agent_job(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+) -> AgentJobResponse:
+    """Retry only a frozen, unbilled job parked before its runtime was available."""
+    with _agent_errors(session):
+        jobs = ResearchAgentJobs(session, scope)
+        jobs.resume_runtime_park(run_id)
         return _agent_response(jobs.get(run_id), scope)
 
 
