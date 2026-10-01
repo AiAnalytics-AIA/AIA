@@ -26,9 +26,81 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    # Most of what a pull request can change is code, and CI exists to prove the
+    # code. A pull request that touches only plans and decision records cannot
+    # change what any test, type check or build sees, so it skips the suites and
+    # runs `docs-checks` instead. Anything else, an unknown path included, runs
+    # everything; a push to main or develop always runs everything, because the
+    # deploy dispatch below depends on it. The list is short on purpose: add a
+    # path only after confirming that no test, tool or build reads it.
+    name: What changed
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The pull_request checkout is a merge commit: HEAD^1 is the base, so
+          # one parent of history is enough to list exactly what the PR changes.
+          fetch-depth: 2
+
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          code=true
+          if [ "$EVENT" = "pull_request" ]; then
+            files="$(git diff --name-only HEAD^1 HEAD)"
+            if [ -n "$files" ]; then
+              code=false
+              while IFS= read -r f; do
+                case "$f" in
+                  .planning/*|docs/architecture/adr/*) ;;
+                  *) code=true ;;
+                esac
+              done <<< "$files"
+            fi
+            printf 'Changed files:\n%s\n' "$files"
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "code=$code"
+
+  docs-checks:
+    # What a documentation-only change can still break: a client-identifying
+    # name (history keeps it even in a private repository), a committed key, a
+    # layering comment that names a path, or a plan whose front-matter no longer
+    # parses. Seconds, no installs.
+    name: Documentation checks
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.code == 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Layering rules
+        run: ./tools/layer_check.sh
+
+      - name: Reference-exposure rules
+        run: ./tools/exposure_check.sh
+
+      - name: Plans are well-formed
+        run: python3 tools/progress.py --check
+
+      - name: No secrets committed
+        run: |
+          if grep -rInE 'sk-ant-[A-Za-z0-9_-]{12,}|sk-proj-[A-Za-z0-9_-]{12,}' \
+               --exclude-dir=.git --exclude-dir=node_modules \
+               --exclude-dir=tests --exclude-dir=.venv . ; then
+            echo "::error::A provider API key appears to be committed."
+            exit 1
+          fi
+
   backend:
     name: Backend (lint, types, tests)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
 
     services:
       postgres:
@@ -163,6 +235,8 @@ jobs:
     # NOT_EXECUTED rather than letting the skip read as a pass.
     name: Parity against legacy prototype (needs the withheld archive)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -213,6 +287,8 @@ jobs:
     # absent checkout becomes a failure -- the same ratchet as AIA_REQUIRE_POSTGRES.
     name: Golden fixtures (reference repository)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     env:
       HAS_REFERENCE_KEY: ${{ secrets.AIA_REFERENCE_DEPLOY_KEY != '' }}
       AIA_REQUIRE_REFERENCE_REPO: ${{ vars.AIA_REQUIRE_REFERENCE_REPO }}
@@ -282,6 +358,8 @@ jobs:
     # Never a `|| true`: an oracle that answers differently is a finding.
     name: Parity against the running 18.6.6 unit (needs the oracle secrets)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     env:
       HAS_ORACLE: ${{ secrets.AIA_LEGACY_REFERENCE_URL != '' }}
     outputs:
@@ -333,8 +411,11 @@ jobs:
     # skip can no longer be read as one.
     name: Parity status
     runs-on: ubuntu-latest
-    needs: [backend, parity, golden-fixtures, oracle-parity]
-    if: always()
+    needs: [changes, backend, parity, golden-fixtures, oracle-parity]
+    # Not `always()`: that also runs when the workflow is cancelled, and a run
+    # superseded by a newer push then reported a parity failure that was only
+    # its missing artifacts.
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -375,6 +456,8 @@ jobs:
   api-contract:
     name: API contract
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -513,6 +596,8 @@ jobs:
   frontend:
     name: Frontend (lint, types, build)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     defaults:
       run:
         working-directory: apps/web
@@ -677,6 +762,8 @@ jobs:
     # the Caddy image the host runs and placeholder values, never real
     # configuration. So is the separate 18.6.6 reference setup (deploy/reference).
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -762,6 +849,8 @@ jobs:
   security:
     name: Security and dependency scan
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     steps:
       - uses: actions/checkout@v4
 
