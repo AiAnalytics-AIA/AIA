@@ -40,7 +40,7 @@ COPY apps/executors/src apps/executors/src
 
 RUN pip install --upgrade pip \
  && pip install \
-      "./packages/aia_core[postgres,s3,bedrock,documents]" \
+      "./packages/aia_core[postgres,s3,bedrock,documents,report]" \
       ./apps/api \
       ./apps/worker \
       ./apps/executors

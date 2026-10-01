@@ -246,11 +246,12 @@ def test_analysis_graph_is_selected_by_composition_and_preserved_on_retry(
         "aggregate",
         "sociomap",
     ]
-    assert len(analysed.run["steps"]) == 13
+    assert len(analysed.run["steps"]) == 14
+    assert analysed.run["steps"][-1]["node_key"] == "report"
     assert analysed.run["metadata"]["analysis_enabled"] is True
     WorkflowRepository(session, scoped.scope()).request_cancel(analysed.run_id, reason="test")
     retry = runs().retry(analysed.run_id, fieldwork_source=AI)
-    assert retry.created and len(retry.run["steps"]) == 13
+    assert retry.created and len(retry.run["steps"]) == 14
     assert retry.run["metadata"]["analysis_enabled"] is True
 
 

@@ -13,6 +13,7 @@ from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
     DEVELOP_SNAPSHOT,
+    REPORT_STEP_KIND,
     RESEARCH_AGENT,
     RESEARCH_KINDS,
     UnknownWorkflowType,
@@ -77,6 +78,7 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
         KIND,
+        REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
     }
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
@@ -209,5 +211,6 @@ def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: Buil
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
         KIND,
+        REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
     ]

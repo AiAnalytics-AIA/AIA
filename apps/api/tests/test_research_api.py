@@ -272,7 +272,8 @@ def test_analysis_results_are_study_scoped_and_internal(
     response = start(researcher, world, revision)
     assert response.status_code == 201, response.text
     run = response.json()
-    assert len(run["steps"]) == 13
+    assert len(run["steps"]) == 14
+    assert run["steps"][-1]["node_key"] == "report"
     url = f"{_runs(world)}/{run['run_id']}/analysis"
     internal = researcher.get(url)
     assert internal.status_code == 200, internal.text
