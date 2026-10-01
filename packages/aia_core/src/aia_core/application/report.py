@@ -29,6 +29,11 @@ from aia_core.domain.report.model import (
 )
 from aia_core.domain.report.validation import require_valid
 
+INTERNAL_REPORT_ARTIFACT_TYPE = "research_internal_docx"
+INTERNAL_REPORT_MEDIA_TYPE = (
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+)
+
 
 class ReportCompositionRefused(ValueError):
     """A report cannot be made from incomplete or inconsistent analysis."""

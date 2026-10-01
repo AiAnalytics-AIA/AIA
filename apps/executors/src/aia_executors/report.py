@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
-from aia_core.application.report import ReportCompositionRefused, compose_internal_report
+from aia_core.application.report import (
+    INTERNAL_REPORT_ARTIFACT_TYPE,
+    ReportCompositionRefused,
+    compose_internal_report,
+)
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
 from aia_core.domain.pipeline import fingerprint
@@ -17,7 +21,7 @@ from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 
-REPORT_ARTIFACT_TYPE = "research_internal_docx"
+REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
 REPORT_CONTRACT_VERSION = "aia-internal-report-1"
 
 

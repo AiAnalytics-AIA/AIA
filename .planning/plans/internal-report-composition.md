@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] Compose an internal draft from a complete reconstructed analysis run"
   - "[x] Store the DOCX as a Study artifact with source provenance and review state"
-  - "[ ] Add Study-scoped listing and download after a reviewer can inspect the draft"
+  - "[x] Add Study-scoped listing and download after a reviewer can inspect the draft"
   - "[ ] Wire the report into the research results stage and verify a full live run"
 ---
 # Internal report from admitted analysis
@@ -48,6 +48,22 @@ The native worker integration test drives design, fictional fieldwork, eight
 analysis modules and the report through the real queue, then checks the stored
 DOCX, draft state, eight dependencies and DOCX lint. A separate run proves the
 BLOCKED outcome ends with a plain refusal.
+
+## Slice 3 contract
+
+The Study now exposes one status route and one DOCX download route beneath the
+research run. Both first resolve the Study and run; the report id comes only
+from that run's completed `report` step, never from a caller argument. The
+status identifies a waiting, failed or ready report and returns the durable
+review state, internal-only label, synthetic label, hash and size. The download
+requires export authority and internal Study access, reads through the
+hash-checking artifact repository, and marks corrupt bytes durably rather than
+serving them. It is an internal draft download, not client delivery.
+
+An API integration test checks the waiting state, a completed artifact,
+download bytes and headers, cross-Study 404, and a tampered object refused with
+the CORRUPT mark retained. The worker integration test in slice 2 covers the
+real DOCX; the route test isolates the HTTP and scope contract.
 
 ## Verification
 

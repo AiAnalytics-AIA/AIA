@@ -15,6 +15,10 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
+from aia_core.application.report import (
+    INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_MEDIA_TYPE,
+)
 from aia_core.application.research import (
     DesignNotReady,
     ResearchAgentJobs,
@@ -27,7 +31,8 @@ from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
-from aia_core.infrastructure.artifact_repository import ArtifactNotFound
+from aia_core.domain.workflow import StepRunStatus
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
@@ -66,7 +71,9 @@ _NEVER_INLINED = frozenset({"research_fieldwork_dataset"})
 # INTERNAL_ONLY while PROGRESS D6 is open (ADR 0016 decision 6): whoever may edit
 # the Study may inspect it. Since ADR 0019 that is every member who has the Study;
 # the marker, not the role, is what keeps it out of a client-facing report.
-_RESEARCHERS_ONLY = frozenset({"research_sociomap", "research_analysis_module"})
+_RESEARCHERS_ONLY = frozenset(
+    {"research_sociomap", "research_analysis_module", INTERNAL_REPORT_ARTIFACT_TYPE}
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -691,6 +698,105 @@ def run_analysis(
             for module, outcome in analysis.modules.items()
         },
     }
+
+
+# The report is read only through the run that produced it.
+
+
+def _report_for_run(
+    run_id: str, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> tuple[dict[str, Any] | None, Artifact | None]:
+    """Find only the report recorded by this Study's own research run."""
+    try:
+        scope.require(Permission.VIEW_RESULTS)
+        scope.require(Permission.EDIT_STUDY)  # Internal draft, including its metadata.
+        run = ResearchRuns(session, scope).get(run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+
+    step = next((s for s in run["steps"] if s["node_key"] == "report"), None)
+    if step is None or step["status"] is not StepRunStatus.SUCCEEDED:
+        return step, None
+    artifact_id = (step.get("output") or {}).get("artifact_id")
+    if not artifact_id:
+        raise HTTPException(409, detail={"code": "report_artifact_missing"})
+    try:
+        artifact = research_artifacts(session, scope, store).get(str(artifact_id))
+    except ArtifactNotFound as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_missing"}) from exc
+    if (
+        artifact.artifact_type != INTERNAL_REPORT_ARTIFACT_TYPE
+        or artifact.content_type != INTERNAL_REPORT_MEDIA_TYPE
+        or artifact.stage_type != "REPORT"
+        or artifact.status is not ArtifactStatus.VALID
+        or artifact.metadata.get("run_id") != run_id
+        or artifact.metadata.get("report_kind") != "internal"
+    ):
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"})
+    return step, artifact
+
+
+@router.get(
+    "/research/runs/{run_id}/report",
+    response_model=dict[str, Any],
+    summary="Status and provenance of a run's internal report",
+)
+def run_report(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    step, artifact = _report_for_run(run_id, scope, session, store)
+    if step is None:
+        return {"run_id": run_id, "state": "NOT_IN_RUN", "internal_only": True}
+    if artifact is None:
+        attempts = step.get("attempts") or []
+        error = (attempts[-1].get("error") or {}) if attempts else {}
+        return {
+            "run_id": run_id,
+            "state": step["status"].value,
+            "internal_only": True,
+            "reason": error.get("reason"),
+        }
+    return {
+        "run_id": run_id,
+        "state": "READY",
+        "internal_only": True,
+        "review_state": "APPROVED_INTERNAL" if artifact.is_approved else "DRAFT_UNAPPROVED",
+        "artifact_id": artifact.artifact_id,
+        "sha256": artifact.sha256,
+        "size_bytes": artifact.size_bytes,
+        "synthetic": bool(artifact.metadata.get("synthetic")),
+    }
+
+
+@router.get(
+    "/research/runs/{run_id}/report/download",
+    summary="Download the run's internal AIA DOCX draft",
+)
+def download_run_report(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> Response:
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    _step, artifact = _report_for_run(run_id, scope, session, store)
+    if artifact is None:
+        raise _not_found("report")
+    try:
+        data = research_artifacts(session, scope, store).read(artifact.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    filename = f"AIA-{scope.study_id}-internal-draft.docx"
+    return Response(
+        content=data,
+        media_type=INTERNAL_REPORT_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 # Native agent jobs: the API enqueues and reads; the worker owns every model call.
