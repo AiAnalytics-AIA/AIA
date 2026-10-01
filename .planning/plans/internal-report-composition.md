@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] Compose an internal draft from a complete reconstructed analysis run"
-  - "[ ] Store the DOCX as a Study artifact with source provenance and review state"
+  - "[x] Store the DOCX as a Study artifact with source provenance and review state"
   - "[ ] Add Study-scoped listing and download after a reviewer can inspect the draft"
   - "[ ] Wire the report into the research results stage and verify a full live run"
 ---
@@ -27,6 +27,27 @@ fingerprint. A synthetic-respondent limitation is printed explicitly.
 The output is a `ReportDocument` and the existing AIA DOCX renderer can render
 it. This slice deliberately does not create a durable artifact or expose a
 download action; those require the Study report workflow and review state.
+
+## Slice 2 contract
+
+An analysis-enabled native run now includes a `report` node after all eight
+analysis nodes. The worker reconstructs every result, composes the internal
+draft, renders the DOCX and stores it as `research_internal_docx` on the Study's
+owned design project. The artifact records the run and step, is marked
+`DRAFT_UNAPPROVED`, and depends on the eight analysis artifacts. Its reuse key
+includes their content hashes and the report contract; a repeated attempt can
+reuse only the same output. The worker image installs the renderer's declared
+dependencies. A run without analysis has no report node.
+
+If a module wrote a BLOCKED outcome, the report step records
+`report_inputs_refused` and the run ends FAILED, with the analysis results still
+available to inspect. If a module step itself cannot finish, the workflow's
+existing terminal or waiting state applies; the report node cannot run ahead.
+
+The native worker integration test drives design, fictional fieldwork, eight
+analysis modules and the report through the real queue, then checks the stored
+DOCX, draft state, eight dependencies and DOCX lint. A separate run proves the
+BLOCKED outcome ends with a plain refusal.
 
 ## Verification
 

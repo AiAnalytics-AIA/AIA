@@ -67,6 +67,7 @@ from aia_core.infrastructure.model_adapters.transport import (
     HttpResponse,
     TransportFailure,
 )
+from aia_core.infrastructure.report_docx.lint import lint_docx
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.tables import BudgetReservationRow, StudyRow
@@ -85,6 +86,7 @@ from aia_executors.analysis import (
     analysis_registry,
 )
 from aia_executors.registry import registry_for
+from aia_executors.report import REPORT_ARTIFACT_TYPE
 from aia_executors.workbench import workbench_registry_for
 from aia_worker.executor import StepExecutor
 from aia_worker.settings import WorkerSettings
@@ -512,11 +514,50 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         )
         session.commit()
     run_id = started.run_id
-    assert len(started.run["steps"]) == 13
+    assert len(started.run["steps"]) == 14
     assert sum(step["kind"] == ANALYSIS_STEP_KIND for step in started.run["steps"]) == 8
     models = ScriptedModels()
-    assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
+    assert _drain(run_with(models)) == ["completed"] * 14, _unfinished(world, run_id)
     assert _reconstruct(world, store, run_id).complete
+    report_step = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")
+    assert report_step["status"] is StepRunStatus.SUCCEEDED
+    report_id = report_step["output"]["artifact_id"]
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        report = repo.get(report_id)
+        document = repo.read(report_id)
+        dependencies = repo.dependencies(report_id)
+    assert report.artifact_type == REPORT_ARTIFACT_TYPE
+    assert report.metadata["review_state"] == "DRAFT_UNAPPROVED"
+    assert report.metadata["synthetic"] is True
+    assert report.is_approved is False
+    assert len(dependencies) == 8
+    assert {d.artifact_type for d in dependencies} == {ANALYSIS_MODULE_ARTIFACT}
+    assert document.startswith(b"PK")
+    assert lint_docx(document) == []
+
+
+def test_report_step_finishes_with_a_reason_when_an_analysis_module_is_blocked(
+    world: Any, run_with: Callable[..., Worker]
+) -> None:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+        )
+        session.commit()
+    endings = _drain(run_with(ScriptedModels(invent={"objects"})))
+    assert endings[-1] == "failed"
+    run = _run(world, started.run_id)
+    assert run["status"] is WorkflowRunStatus.FAILED
+    report = next(s for s in run["steps"] if s["node_key"] == "report")
+    assert report["status"] is StepRunStatus.FAILED
+    assert report["attempts"][-1]["error"]["reason"] == "report_inputs_refused"
 
 
 def test_a_completed_run_is_interpreted_module_by_module_and_reads_back_by_readmission(

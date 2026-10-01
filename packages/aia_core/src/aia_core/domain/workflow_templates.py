@@ -25,12 +25,14 @@ from __future__ import annotations
 
 from typing import Final
 
-from .analysis.steps import analysis_step_definitions
+from .analysis.modules import ANALYSIS_MODULES
+from .analysis.steps import analysis_node_key, analysis_step_definitions
 from .pipeline import ProjectType, stage_ids
 from .workflow import StepDefinition
 
 __all__ = [
     "DEVELOP_SNAPSHOT",
+    "REPORT_STEP_KIND",
     "RESEARCH",
     "RESEARCH_KINDS",
     "WORKFLOW_TYPES",
@@ -44,6 +46,7 @@ DEVELOP_SNAPSHOT: Final = "develop_snapshot"
 #: A research Study's run over one Design Revision (ADR 0016).
 RESEARCH: Final = "research"
 RESEARCH_AGENT: Final = "research_agent"
+REPORT_STEP_KIND: Final = "research_report"
 
 #: Every workflow type a run may be created with. Closed: an unknown type is refused.
 WORKFLOW_TYPES: Final[frozenset[str]] = frozenset({DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT})
@@ -120,5 +123,17 @@ def steps_for_workflow(
             )
             for node, stage, depends_on in _RESEARCH_GRAPH
         ]
-        return [*steps, *analysis_step_definitions()] if analysis_enabled else steps
+        if analysis_enabled:
+            steps.extend(analysis_step_definitions())
+            steps.append(
+                StepDefinition(
+                    node_key="report",
+                    kind=REPORT_STEP_KIND,
+                    depends_on=tuple(analysis_node_key(m.module_id) for m in ANALYSIS_MODULES),
+                    stage_type="REPORT",
+                    artifact_target="research_internal_docx",
+                    max_attempts=3,
+                )
+            )
+        return steps
     raise UnknownWorkflowType(workflow_type)

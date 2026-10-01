@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import pytest
 
+from aia_core.domain.analysis import ANALYSIS_MODULES
+from aia_core.domain.analysis.steps import analysis_node_key
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.workflow import validate_dag
 from aia_core.domain.workflow_templates import (
     DEVELOP_SNAPSHOT,
+    REPORT_STEP_KIND,
     RESEARCH,
     RESEARCH_AGENT,
     WORKFLOW_TYPES,
@@ -43,3 +46,19 @@ def test_research_agent_is_one_step_without_automatic_paid_retries() -> None:
     assert step.consumes_population is False
     with pytest.raises(UnknownWorkflowType):
         steps_for_workflow(RESEARCH_AGENT, project_type=ProjectType.SIMULATION)
+
+
+def test_report_waits_for_every_analysis_module_when_analysis_is_enabled() -> None:
+    graph = steps_for_workflow(RESEARCH, project_type=ProjectType.RESEARCH, analysis_enabled=True)
+    validate_dag(graph)
+    report = graph[-1]
+    assert (report.node_key, report.kind, report.stage_type) == (
+        "report",
+        REPORT_STEP_KIND,
+        "REPORT",
+    )
+    assert report.depends_on == tuple(analysis_node_key(m.module_id) for m in ANALYSIS_MODULES)
+    assert all(
+        s.node_key != "report"
+        for s in steps_for_workflow(RESEARCH, project_type=ProjectType.RESEARCH)
+    )
