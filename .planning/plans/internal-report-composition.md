@@ -65,6 +65,20 @@ download bytes and headers, cross-Study 404, and a tampered object refused with
 the CORRUPT mark retained. The worker integration test in slice 2 covers the
 real DOCX; the route test isolates the HTTP and scope contract.
 
+## Slice 4 web contract and live acceptance
+
+The Results stage reads report status only for runs that include a report step.
+It shows waiting, refusal or a ready draft; a ready draft names its review state,
+synthetic limitation and artifact provenance. Download uses the authenticated
+Study route and does not offer a client-facing document. The progress stage
+also lists the report step. Browser tests cover a ready download and a refused
+analysis result.
+
+The remaining acceptance condition is a deployed `develop` run from brief and
+questionnaire through AI respondents, all eight analysis modules and this
+download. It needs the live AI worker route and a fictional, capped Study;
+offline tests and a synthetic worker run do not satisfy this condition.
+
 ## Verification
 
 The existing native-run integration fixture executes and stores all eight
