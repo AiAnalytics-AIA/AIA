@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] 1. ADR: two roles, no cross-approval, the human-with-AI gate catalogue (supersedes ADR 0015 decision 7)"
+  - "[x] 1. ADR 0019: two roles, no cross-approval, the human-with-AI gate catalogue (supersedes ADR 0004's grant rules and ADR 0015 decisions 6-7)"
   - "[ ] 2. Domain: one Researcher permission set; self-approval allowed by default; REVIEWER and LEAD gone"
   - "[ ] 3. ScopeResolver: every active member sees every client and study of the organization"
   - "[ ] 4. Admin: system settings only for ADMIN; MEMBER is the Researcher; settings document and web client"
@@ -73,9 +73,11 @@ that demands independent review can turn it back on.
 
 ## Chunks
 
-1. **ADR.** New ADR superseding ADR 0015 decision 7 and the separation-of-duties default. Records
-   the two roles, the all-clients decision (below), the gate catalogue and the trade-offs. The ADR
-   index is a shared file: its line goes under Doc follow-up, not in this PR.
+1. **ADR.** `docs/architecture/adr/0019-two-roles-and-human-ai-gates.md` supersedes the grant
+   rules of ADR 0004 (admins get no implicit access; a study grant overrides a client grant; a
+   reviewer cannot edit), decisions 6 and 7 of ADR 0015, and the separation-of-duties default.
+   ADR 0004 rules 1 and 2 stand. The ADR index is a shared file: its line goes under Doc
+   follow-up, not in this PR.
 2. **Domain.** One permission set for Researcher. Default of self-approval flips to allowed.
    Remove `REVIEWER` and `LEAD` and the client-level permission split that existed for them. The
    tests that assert refusal are rewritten to assert the new rule; none is skipped or loosened.
@@ -109,7 +111,11 @@ that demands independent review can turn it back on.
 
 ## Findings
 
-None yet.
+- The first draft of this plan cited only ADR 0015 decision 7. The grants and the "no implicit
+  admin access" rule are ADR 0004's, written because clients may be direct competitors
+  (`0004-client-study-isolation.md:8-9, 46-55`). Chunk 1 now supersedes those too, and the ADR
+  states plainly that confidentiality between clients no longer rests on the application.
+  Anchored to the ADR text, not a defect in the code.
 
 ## Doc follow-up
 
@@ -118,5 +124,7 @@ For the docs PR after merge:
 - `CLAUDE.md` §2 map: `domain/scope.py` line (roles), the Client Knowledge paragraph ("a person
   other than the proposer approves"), the `ScopeResolver` description (grants).
 - `ARCHITECTURE.md`: the scope and approval sections.
-- `docs/architecture/adr/README.md`: the new ADR's row; ADR 0015 marked partly superseded.
+- `docs/architecture/adr/README.md`: the row for ADR 0019; ADR 0004 and ADR 0015 marked partly
+  superseded (the "Superseded in part by" lines go in those two ADRs' headers, in the docs PR,
+  because they are shared index material).
 - `AGENTS.md`: nothing expected.
