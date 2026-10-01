@@ -5,7 +5,7 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t } from "@/i18n/t";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -389,9 +389,16 @@ describe("Results", () => {
     const documentBytes = new Blob(["docx bytes"], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
     const createObjectURL = vi.fn(() => "blob:report");
     const revokeObjectURL = vi.fn();
+    const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
     URL.createObjectURL = createObjectURL;
     URL.revokeObjectURL = revokeObjectURL;
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const click = vi.fn();
+    HTMLAnchorElement.prototype.click = click;
+    onTestFinished(() => {
+      URL.createObjectURL = real.create;
+      URL.revokeObjectURL = real.revoke;
+      HTMLAnchorElement.prototype.click = real.click;
+    });
     api({
       ...listed(reportRun),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
