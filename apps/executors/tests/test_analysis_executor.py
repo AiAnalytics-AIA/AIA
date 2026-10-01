@@ -68,6 +68,7 @@ from aia_core.infrastructure.model_adapters.transport import (
     TransportFailure,
 )
 from aia_core.infrastructure.report_docx.lint import lint_docx
+from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.tables import BudgetReservationRow, StudyRow
@@ -558,6 +559,44 @@ def test_report_step_finishes_with_a_reason_when_an_analysis_module_is_blocked(
     report = next(s for s in run["steps"] if s["node_key"] == "report")
     assert report["status"] is StepRunStatus.FAILED
     assert report["attempts"][-1]["error"]["reason"] == "report_inputs_refused"
+
+
+def test_cancellation_during_report_render_does_not_store_a_document(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+        )
+        session.commit()
+    worker = run_with(ScriptedModels())
+    assert [worker.run_once().ending for _ in range(13)] == ["completed"] * 13
+    original_render = DocxRenderer.render
+
+    def cancel_during_render(renderer: DocxRenderer, document: Any) -> bytes:
+        data = original_render(renderer, document)
+        with world.sessions() as session:
+            WorkflowRepository(session, world.lead_scope(session)).request_cancel(started.run_id)
+            session.commit()
+        time.sleep(0.25)  # let the worker heartbeat carry the cancellation signal
+        return data
+
+    monkeypatch.setattr(DocxRenderer, "render", cancel_during_render)
+    report_result = worker.run_once()
+    assert report_result is not None and report_result.ending == "abandoned"
+    assert _run(world, started.run_id)["status"] is WorkflowRunStatus.CANCELLED
+    with world.sessions() as session:
+        stored = research_artifacts(session, world.lead_scope(session), store).recent(limit=50)
+    assert REPORT_ARTIFACT_TYPE not in {artifact.artifact_type for artifact in stored}
 
 
 def test_a_completed_run_is_interpreted_module_by_module_and_reads_back_by_readmission(

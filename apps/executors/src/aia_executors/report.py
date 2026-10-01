@@ -77,6 +77,7 @@ class ReportExecutor:
                 "issued_on": meta.issued_on.isoformat(),
             }
         )
+        context.checkpoint()
         with context.transaction() as (session, _workflow):
             artifact, created = research_artifacts(session, context.scope, self._store).put(
                 project_id=step.project_id,
