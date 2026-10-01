@@ -181,18 +181,26 @@ def test_an_unrecoverable_study_starts_again_only_by_a_save_and_keeps_the_record
     assert lineage["restarted_after_unrecoverable"]["by"] == lead.actor_id
 
 
-def test_only_editors_of_an_open_research_study_save(
+def test_everyone_with_the_study_saves_while_it_is_open_and_nobody_once_it_is_closed(
     scoped: Any, workspaces: StudyWorkspaceRepository
 ) -> None:
-    for user in ("viewer", "reviewer"):
-        with pytest.raises(ScopeDenied):
-            workspaces.save(scoped.scope(user=user), content=BRIEF, base_revision=None)
-    workspaces.save(scoped.scope(), content=BRIEF, base_revision=None)
-    # A reader reads what the editors saved.
-    assert workspaces.content(scoped.scope(user="viewer")).content == BRIEF
+    """ADR 0019: one role, so every person who opens the study edits it.
+
+    The viewer and the reviewer were refused a save before it. What still bounds a save:
+    a person with no grant cannot open the study, and a closed study is not editable.
+    """
+    revision: int | None = None
+    for user in ("viewer", "reviewer", "researcher", "lead"):
+        saved = workspaces.save(
+            scoped.scope(user=user), content={**BRIEF, "title": user}, base_revision=revision
+        )
+        revision = saved.revision
+    assert workspaces.content(scoped.scope(user="viewer")).content["title"] == "lead"
+    with pytest.raises(ScopeDenied):
+        scoped.scope(user="outsider")
     scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)
     with pytest.raises(ScopeDenied) as closed:
-        workspaces.save(scoped.scope(), content=BRIEF, base_revision=1)
+        workspaces.save(scoped.scope(), content=BRIEF, base_revision=revision)
     assert closed.value.reason == "study_closed"
 
 
@@ -260,15 +268,18 @@ def test_the_size_limit_counts_content_and_analysis_together() -> None:
     assert nan.value.reason == "content_not_json"
 
 
-def test_the_last_stage_is_remembered_by_editors_only(
+def test_the_last_stage_is_remembered_for_whoever_opens_the_study(
     scoped: Any, workspaces: StudyWorkspaceRepository
 ) -> None:
     lead = scoped.scope()
     assert workspaces.record_stage(lead, stage="brief") is None  # nothing saved yet
     workspaces.save(lead, content=BRIEF, base_revision=None)
     assert workspaces.record_stage(lead, stage="plan").last_stage == "plan"
+    # ADR 0019: the former viewer edits like anyone else, so the stage they open is remembered.
     viewer = scoped.scope(user="viewer")
-    assert workspaces.record_stage(viewer, stage="audience").last_stage == "plan"
+    assert workspaces.record_stage(viewer, stage="audience").last_stage == "audience"
+    with pytest.raises(ScopeDenied):
+        scoped.scope(user="outsider")
     with pytest.raises(ValueError):
         workspaces.record_stage(lead, stage="nonsense")
 
@@ -353,14 +364,19 @@ def test_nothing_is_attached_to_a_study_without_saved_content_or_awaiting_migrat
     assert store._objects == {}
 
 
-def test_only_editors_of_an_open_study_attach_and_the_file_is_checked_first(
+def test_everyone_with_an_open_study_attaches_and_the_file_is_checked_first(
     scoped: Any, workspaces: StudyWorkspaceRepository
 ) -> None:
     store = InMemoryArtifactStore()
     workspaces.save(scoped.scope(), content=BRIEF, base_revision=None)
+    # ADR 0019: the former viewer and reviewer attach like anyone else.
     for user in ("viewer", "reviewer"):
-        with pytest.raises(ScopeDenied):
-            workspaces.attach(scoped.scope(user=user), store, filename="a.txt", data=b"x")
+        record = workspaces.attach(scoped.scope(user=user), store, filename="a.txt", data=b"x")
+        _, data = workspaces.attachment(scoped.scope(), store, record.attachment_id)
+        assert data == b"x"
+    store = InMemoryArtifactStore()  # the checks below must leave nothing in a store
+    with pytest.raises(ScopeDenied):
+        scoped.scope(user="outsider")
     for data, reason in ((b"", "empty"), (b"x" * (ATTACHMENT_MAX_BYTES + 1), "too_large")):
         with pytest.raises(AttachmentRejected) as rejected:
             workspaces.attach(scoped.scope(), store, filename="a.txt", data=data)

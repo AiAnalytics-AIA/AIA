@@ -1910,11 +1910,12 @@ class WorkflowRepository:
         1. The option must be one of those offered. Accepting an arbitrary string
            means acting on a decision nobody made.
         2. The gate must still be pending, so a replayed request cannot re-decide.
-        3. For an ``approval`` gate the decider must not be the producer --
-           unless self-approval has been explicitly enabled for this scope. A LEAD
-           holds both edit and sign-off authority, so the permission check alone
-           would let one person author and approve; the policy check is what makes
-           that a deliberate, configured choice rather than an accident. Gates
+        3. For an ``approval`` gate the decider must not be the producer where a
+           level of the scope hierarchy has turned self-approval off. Since ADR 0019
+           self-approval is allowed by default and a Researcher holds both edit and
+           approval authority, so the permission check alone cannot stop one person
+           authoring and approving; the policy check is what makes independent
+           review a deliberate, configured choice for a scope that wants it. Gates
            that are not approvals record the same facts without enforcing
            independence.
 

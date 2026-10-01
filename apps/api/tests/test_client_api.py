@@ -39,7 +39,7 @@ def test_the_directory_lists_only_the_clients_you_work_for(
 ) -> None:
     mine = lead.get(f"{API}/workspace/clients").json()
     assert [c["client_id"] for c in mine] == [world.client_id("primary")]
-    assert mine[0]["your_role"] == "LEAD" and mine[0]["active_count"] == 2
+    assert mine[0]["your_role"] == "RESEARCHER" and mine[0]["active_count"] == 2
     assert [c["client_id"] for c in other_client_lead.get(f"{API}/workspace/clients").json()] == [
         world.client_id("other")
     ]
@@ -55,7 +55,7 @@ def test_an_administrator_starts_a_client_and_can_open_it_members_cannot(
     assert me["may_administer"] is True and me["organization_role"] == "OWNER"
     assert lead.get(f"{API}/workspace/me").json()["may_administer"] is False
     made = owner.post(f"{API}/workspace/clients", json={"name": "Nový klient s. r. o."})
-    assert made.status_code == 201 and made.json()["your_role"] == "LEAD"
+    assert made.status_code == 201 and made.json()["your_role"] == "RESEARCHER"
     assert made.json()["slug"].startswith("novy-klient-s-r-o-")
     assert [c["client_id"] for c in owner.get(f"{API}/workspace/clients").json()] == [
         made.json()["client_id"]
@@ -74,7 +74,7 @@ def test_a_client_workspace_cannot_be_opened_outside_your_scope(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
     ok = lead.get(f"{API}/clients/{world.client_id()}")
-    assert ok.status_code == 200 and ok.json()["your_role"] == "LEAD"
+    assert ok.status_code == 200 and ok.json()["your_role"] == "RESEARCHER"
     for c in (other_client_lead, outsider):
         for path in ("", "/studies", "/overview", "/knowledge", "/knowledge/proposals"):
             r = c.get(f"{API}/clients/{world.client_id()}{path}")
@@ -104,12 +104,18 @@ def test_research_and_simulation_belong_to_the_selected_client(
     assert start(other_client_lead, world, "Hijack").status_code == 404
 
 
-def test_starting_work_needs_a_role_that_may(
-    viewer: TestClient, reviewer: TestClient, world: Any
+def test_every_granted_label_may_start_work_and_a_member_without_a_grant_gets_404(
+    viewer: TestClient, reviewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
-    for c in (viewer, reviewer):
-        r = start(c, world, "Nope")
-        assert r.status_code == 403 and r.json()["code"] == "insufficient_role"
+    """ADR 0019: "viewer" and "reviewer" hold the Researcher role, so they start work.
+
+    A client-level grant is still what shows the client; without it, 404.
+    """
+    for c, name in ((viewer, "Od prohlížeče"), (reviewer, "Od recenzenta")):
+        r = start(c, world, name)
+        assert r.status_code == 201, r.text
+        assert r.json()["client_id"] == world.client_id()
+    assert start(outsider, world, "Bez přístupu").status_code == 404
 
 
 def test_the_overview_shows_active_work_and_the_knowledge_state(
@@ -133,15 +139,24 @@ def test_the_overview_shows_active_work_and_the_knowledge_state(
 
 
 def test_knowledge_is_proposed_approved_and_never_seen_by_another_client(
-    researcher: TestClient, reviewer: TestClient, other_client_lead: TestClient, world: Any
+    owner: TestClient,
+    researcher: TestClient,
+    reviewer: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
 ) -> None:
+    # ADR 0019 made self-approval the default; this client asks for independent review.
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
     base = f"{API}/clients/{world.client_id()}/knowledge"
     proposal = researcher.post(
         f"{base}/proposals",
         json={"kind": "FACT", "title": "134 dealerů", "summary": "Výroční zpráva"},
     ).json()
     assert researcher.get(base).json() == []
-    # The proposer does not approve their own update.
+    # With independent review asked for, the proposer does not approve their own update.
     assert (
         researcher.post(
             f"{base}/proposals/{proposal['proposal_id']}/decision", json={"approve": True}
@@ -178,6 +193,32 @@ def test_knowledge_is_proposed_approved_and_never_seen_by_another_client(
     assert (
         other_client_lead.post(
             f"{theirs}/proposals", json={"kind": "FACT", "title": "x", "item_id": item["item_id"]}
+        ).status_code
+        == 404
+    )
+
+
+def test_by_default_the_proposer_may_approve_their_own_knowledge_proposal(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """ADR 0019 decision 3: no approval between people; the default allows self-approval."""
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    proposal = researcher.post(
+        f"{base}/proposals", json={"kind": "FACT", "title": "134 dealerů"}
+    ).json()
+    decided = researcher.post(
+        f"{base}/proposals/{proposal['proposal_id']}/decision", json={"approve": True}
+    )
+    assert decided.status_code == 200 and decided.json()["status"] == "APPROVED"
+    assert [i["title"] for i in researcher.get(base, params={"section": "knowledge"}).json()] == [
+        "134 dealerů"
+    ]
+    # Allowed among colleagues of the client, never across clients.
+    assert (
+        other_client_lead.post(
+            f"{API}/clients/{world.client_id('other')}/knowledge/proposals/"
+            f"{proposal['proposal_id']}/decision",
+            json={"approve": True},
         ).status_code
         == 404
     )
@@ -233,7 +274,7 @@ BRIEF = {"title": "Vnímání značky", "goal": "Co lidé o značce vědí", "se
 
 
 def test_a_new_study_starts_empty_with_the_template_and_its_first_save_is_revision_one(
-    lead: TestClient, viewer: TestClient, world: Any
+    lead: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
     url = f"{API}/studies/{world.study_id()}/workspace"
     frame = lead.get(url).json()
@@ -244,7 +285,9 @@ def test_a_new_study_starts_empty_with_the_template_and_its_first_save_is_revisi
     assert (empty["state"], empty["revision"], empty["content"]) == ("EMPTY", None, None)
     assert empty["template"]["title"] == "Nový výzkum" and empty["can_edit"] is True
 
-    assert viewer.put(f"{url}/content", json={"content": BRIEF}).status_code == 403
+    # ADR 0019: a member without a grant is told 404; the "viewer" label may edit (below).
+    assert outsider.put(f"{url}/content", json={"content": BRIEF}).status_code == 404
+    assert lead.get(f"{url}/content").json()["state"] == "EMPTY"
     saved = lead.put(f"{url}/content", json={"content": BRIEF, "reason": "autosave"})
     assert saved.status_code == 200
     assert saved.json() | {"revision_id": "x"} == {
@@ -256,7 +299,7 @@ def test_a_new_study_starts_empty_with_the_template_and_its_first_save_is_revisi
     }
     loaded = viewer.get(f"{url}/content").json()
     assert (loaded["state"], loaded["revision"], loaded["content"]) == ("NATIVE", 1, BRIEF)
-    assert loaded["can_edit"] is False
+    assert loaded["can_edit"] is True
 
     again = lead.put(
         f"{url}/content", json={"content": BRIEF, "analysis": {"x": 1}, "base_revision": 1}
@@ -264,6 +307,11 @@ def test_a_new_study_starts_empty_with_the_template_and_its_first_save_is_revisi
     assert again.json()["revision"] == 2
     history = lead.get(f"{url}/revisions").json()["items"]
     assert [r["revision"] for r in history] == [2, 1]
+
+    by_viewer = viewer.put(
+        f"{url}/content", json={"content": {**BRIEF, "goal": "G"}, "base_revision": 2}
+    )
+    assert by_viewer.status_code == 200 and by_viewer.json()["revision"] == 3
 
     assert lead.put(f"{url}/stage", json={"stage": "questionnaire"}).status_code == 204
     listed = lead.get(f"{API}/clients/{world.client_id()}/studies").json()
@@ -333,7 +381,11 @@ def test_the_unit_binding_route_is_gone(lead: TestClient, world: Any) -> None:
 
 
 def test_a_file_is_attached_in_aia_and_downloaded_only_through_its_study(
-    lead: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
+    lead: TestClient,
+    viewer: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
 ) -> None:
     url = f"{API}/studies/{world.study_id()}/workspace"
     body = {
@@ -344,7 +396,8 @@ def test_a_file_is_attached_in_aia_and_downloaded_only_through_its_study(
     assert unsaved.status_code == 409 and unsaved.json()["code"] == "not_saved"
 
     lead.put(f"{url}/content", json={"content": BRIEF})
-    assert viewer.post(f"{url}/attachments", json=body).status_code == 403
+    # ADR 0019: a member without a grant is told 404; the "viewer" label may attach (below).
+    assert outsider.post(f"{url}/attachments", json=body).status_code == 404
     created = lead.post(f"{url}/attachments", json=body)
     assert created.status_code == 201
     record = created.json()
@@ -368,6 +421,13 @@ def test_a_file_is_attached_in_aia_and_downloaded_only_through_its_study(
     assert download.headers["content-type"] == "application/octet-stream"
     assert download.headers["content-disposition"] == 'attachment; filename="Zad_n_.txt"'
     assert download.headers["x-content-type-options"] == "nosniff"
+    assert outsider.get(f"{url}/attachments/{record['attachment_id']}").status_code == 404
+    by_viewer = viewer.post(
+        f"{url}/attachments",
+        json={"filename": "Doplněk.txt", "data_b64": base64.b64encode(b"Dalsi soubor").decode()},
+    )
+    assert by_viewer.status_code == 201
+    assert by_viewer.json()["attachment_id"] != record["attachment_id"]
 
     assert other_client_lead.get(f"{url}/attachments/{record['attachment_id']}").status_code == 404
     assert other_client_lead.post(f"{url}/attachments", json=body).status_code == 404
@@ -425,14 +485,16 @@ QUESTIONNAIRE_CSV = (
 
 
 def test_a_questionnaire_file_is_read_in_aia_and_nothing_is_stored(
-    lead: TestClient, viewer: TestClient, world: Any
+    lead: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
     url = f"{API}/studies/{world.study_id()}/workspace"
     body = {
         "filename": "dotaznik.csv",
         "data_b64": base64.b64encode(QUESTIONNAIRE_CSV.encode()).decode(),
     }
-    assert viewer.post(f"{url}/questionnaire-import", json=body).status_code == 403
+    # ADR 0019: a member without a grant is told 404; the "viewer" label may import.
+    assert outsider.post(f"{url}/questionnaire-import", json=body).status_code == 404
+    assert viewer.post(f"{url}/questionnaire-import", json=body).status_code == 200
     imported = lead.post(f"{url}/questionnaire-import", json=body)
     assert imported.status_code == 200
     got = imported.json()

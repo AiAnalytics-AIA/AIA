@@ -24,6 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..domain.scope import (
+    WORKER_PERMISSIONS,
     ClientContext,
     ClientGrant,
     ClientPermission,
@@ -59,11 +60,10 @@ from ..infrastructure.tables import (
 
 __all__ = ["EXECUTION_ROLE", "AuthenticatedPrincipal", "ScopeResolver"]
 
-# The role a worker executes under: doing the work, never approving it. RESEARCHER
-# confers RUN_WORKFLOW, EDIT_STUDY and UPLOAD_DATA and withholds APPROVE_GATE,
-# APPROVE_BUDGET and every MANAGE_* permission -- so neither the worker nor any
-# executor or AI tool running inside it can sign off its own gate or raise the
-# budget it is spending.
+# The role a worker's context names, and nothing more. What it may do is
+# WORKER_PERMISSIONS, not the Researcher's set: since ADR 0019 a Researcher holds
+# every permission, and a worker must not be able to accept its own gate or raise
+# the budget it is spending.
 EXECUTION_ROLE = ScopeRole.RESEARCHER
 
 
@@ -258,8 +258,8 @@ class ScopeResolver:
         )
 
         role = effective_role(
-            client_role=ScopeRole(client_grant.role) if client_grant else None,
-            study_role=ScopeRole(study_grant.role) if study_grant else None,
+            client_role=ScopeRole.from_stored(client_grant.role) if client_grant else None,
+            study_role=ScopeRole.from_stored(study_grant.role) if study_grant else None,
         )
 
         if role is None:
@@ -372,7 +372,7 @@ class ScopeResolver:
             study_id=study.study_id,
             actor_id=run.triggered_by or f"worker:{worker_id}",
             role=EXECUTION_ROLE,
-            permissions=permissions_for(EXECUTION_ROLE),
+            permissions=WORKER_PERMISSIONS,
             organization_role=OrganizationRole.MEMBER,
             grant=ScopeGrant._issue(),
             study_status=StudyStatus(study.status),
@@ -430,7 +430,7 @@ class ScopeResolver:
             )
             raise ScopeDenied("not found", reason="no_grant")
 
-        client_role = ScopeRole(client_grant.role) if client_grant else None
+        client_role = ScopeRole.from_stored(client_grant.role) if client_grant else None
         organization = self._session.scalar(
             select(OrganizationRow).where(
                 OrganizationRow.organization_id == principal.organization_id

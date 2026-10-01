@@ -6,7 +6,8 @@ data without an issued scope. The split is:
 * ``WorkQueue`` -- claim, recover, resume, refuse; across studies; returns no
   research data;
 * ``ScopeResolver.execution_context`` -- issues a ``StudyContext`` **only against
-  a lease the worker holds**, with the RESEARCHER permission set.
+  a lease the worker holds**, with the worker's permission set
+  (``WORKER_PERMISSIONS``, ADR 0019: the Researcher's work, never its approvals).
 
 These tests pin both halves, and the isolation between them.
 """
@@ -17,10 +18,17 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from aia_core.domain.providers import Provider
-from aia_core.domain.scope import ClientStatus, Permission, ScopeDenied, ScopeRole
+from aia_core.domain.scope import (
+    WORKER_PERMISSIONS,
+    ClientStatus,
+    Permission,
+    ScopeDenied,
+    ScopeRole,
+)
 from aia_core.domain.workflow import (
     FailureClass,
     RecoveryAction,
@@ -29,7 +37,12 @@ from aia_core.domain.workflow import (
     WorkflowRunStatus,
 )
 from aia_core.infrastructure.repositories import ProjectRepository
-from aia_core.infrastructure.tables import ClientRow, StepAttemptRow, StudyRow
+from aia_core.infrastructure.tables import (
+    ApprovalDecisionRow,
+    ClientRow,
+    StepAttemptRow,
+    StudyRow,
+)
 from aia_core.infrastructure.workflow_repository import (
     WorkflowNotFound,
     WorkflowRepository,
@@ -207,13 +220,20 @@ def test_the_execution_context_names_the_claimed_study_and_nothing_else(
 def test_the_execution_role_does_the_work_and_never_approves_it(
     session: Session, scoped: Any, two_clients: dict[str, str]
 ) -> None:
-    """RESEARCHER: run, edit, upload -- but no gate, no budget, no access changes."""
+    """The worker runs, edits and uploads -- but no gate, no budget, no access changes.
+
+    ADR 0019 decision 6: a Researcher now holds every permission, so the worker's
+    narrower ``WORKER_PERMISSIONS`` is what keeps the AI's executor from accepting
+    its own work.
+    """
     work = WorkQueue(session).claim_next(worker_id="w", kinds=None)
     assert work is not None
     context = scoped.resolver.execution_context(attempt_id=work.attempt_id, worker_id="w")
 
     assert context.role is ScopeRole.RESEARCHER
     assert context.has(Permission.RUN_WORKFLOW)
+    assert context.permissions == WORKER_PERMISSIONS
+    assert frozenset(Permission) > WORKER_PERMISSIONS
     for withheld in (
         Permission.APPROVE_GATE,
         Permission.APPROVE_BUDGET,
@@ -238,12 +258,8 @@ def test_the_execution_actor_is_the_person_who_started_the_run(
         assert context.actor_id == scoped.users[expected]
 
 
-def test_a_gate_opened_under_execution_scope_cannot_be_self_approved_by_its_trigger(
-    session: Session, scoped: Any
-) -> None:
-    """Separation of duties still holds when the worker is the one asking."""
-    from aia_core.domain.scope import SeparationOfDutiesViolation
-
+def _open_gate_under_execution_scope(session: Session, scoped: Any) -> tuple[Any, str]:
+    """A run triggered by the lead, claimed by a worker that opens an approval gate."""
     _run_in(session, scoped, "primary", user="lead")
     work = WorkQueue(session).claim_next(worker_id="w", kinds=None)
     assert work is not None
@@ -251,11 +267,61 @@ def test_a_gate_opened_under_execution_scope_cannot_be_self_approved_by_its_trig
     gate_id = WorkflowRepository(session, context).open_gate(
         step_id=work.step_id, question="Proceed?", options=["approve", "cancel"]
     )
+    return context, gate_id
+
+
+def test_a_gate_opened_under_execution_scope_cannot_be_decided_by_the_execution_scope(
+    session: Session, scoped: Any
+) -> None:
+    """ADR 0019 decision 6: the worker holds no gate authority, whatever the policy says.
+
+    The trigger's own self-approval policy is permissive by default, and the
+    execution context carries it (``self_approval.allowed``), yet it still cannot
+    decide: independence is not authority, and the permission is withheld.
+    """
+    context, gate_id = _open_gate_under_execution_scope(session, scoped)
+    assert context.self_approval.allowed is True
+    assert not context.has(Permission.APPROVE_GATE)
+
+    with pytest.raises(ScopeDenied):
+        WorkflowRepository(session, context).decide_gate(gate_id, option="approve")
+
+
+def test_the_person_who_triggered_a_run_may_decide_its_gate_by_default(
+    session: Session, scoped: Any
+) -> None:
+    """ADR 0019: the gate the worker opened is the trigger's to accept, and it says so."""
+    _, gate_id = _open_gate_under_execution_scope(session, scoped)
+
+    WorkflowRepository(session, scoped.scope(user="lead")).decide_gate(gate_id, option="approve")
+
+    record = session.scalars(select(ApprovalDecisionRow)).one()
+    assert record.producer_user_id == record.approver_user_id == scoped.users["lead"]
+    assert record.self_approved is True
+    assert record.self_approval_source == "default"
+
+
+def test_a_gate_opened_under_execution_scope_cannot_be_self_approved_where_the_policy_is_off(
+    session: Session, scoped: Any
+) -> None:
+    """Separation of duties still holds when the worker is the one asking and a scope demands it."""
+    from aia_core.domain.scope import SeparationOfDutiesViolation
+
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, client_id=scoped.clients["primary"].client_id
+    )
+    session.flush()
+    _, gate_id = _open_gate_under_execution_scope(session, scoped)
 
     with pytest.raises(SeparationOfDutiesViolation):
         WorkflowRepository(session, scoped.scope(user="lead")).decide_gate(
             gate_id, option="approve"
         )
+
+    # A different person may still decide it.
+    WorkflowRepository(session, scoped.scope(user="reviewer")).decide_gate(
+        gate_id, option="approve"
+    )
 
 
 @pytest.mark.parametrize("worker_id", ["someone-else", ""])

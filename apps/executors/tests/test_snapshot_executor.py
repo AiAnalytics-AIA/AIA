@@ -172,9 +172,12 @@ def test_an_edit_produces_a_new_artifact_for_the_new_revision(
     assert len(store.keys) == 2
 
 
-def test_a_viewer_cannot_start_a_run(world: Any, sessions: sessionmaker[Session]) -> None:
+def test_a_member_with_no_grant_cannot_start_a_run(
+    world: Any, sessions: sessionmaker[Session]
+) -> None:
+    """ADR 0019 removed the read-only role; what still stops a run is having no access."""
     from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-    from aia_core.domain.scope import ScopeDenied, ScopeRole
+    from aia_core.domain.scope import ScopeDenied
     from aia_core.infrastructure.scope_repository import ScopeRepository
 
     with sessions() as session:
@@ -187,18 +190,14 @@ def test_a_viewer_cannot_start_a_run(world: Any, sessions: sessionmaker[Session]
         admin = resolver.organization_context(
             AuthenticatedPrincipal(user_id=owner_id, organization_id=world.organization_id)
         )
-        viewer = ScopeRepository(session).add_member(admin, email="viewer@art-chain.io")
-        resolver.grant_client_access(
-            admin, client_id=world.client_id, user_id=viewer.user_id, role=ScopeRole.VIEWER
-        )
+        member = ScopeRepository(session).add_member(admin, email="member@art-chain.io")
         session.flush()
-        scope = resolver.study_context(
-            AuthenticatedPrincipal(user_id=viewer.user_id, organization_id=world.organization_id),
-            study_id=world.study_id,
-        )
-        with pytest.raises(ScopeDenied, match="RUN_WORKFLOW"):
-            start_workflow(
-                session, scope, project_id=world.project_id, workflow_type=DEVELOP_SNAPSHOT
+        with pytest.raises(ScopeDenied):
+            resolver.study_context(
+                AuthenticatedPrincipal(
+                    user_id=member.user_id, organization_id=world.organization_id
+                ),
+                study_id=world.study_id,
             )
         del admin_principal
 

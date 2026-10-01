@@ -379,17 +379,18 @@ def build_scope_fixture(session: Any) -> ScopeFixture:
         ),
     }
 
+    # ADR 0019: one role. The four labels are the people the tests were written
+    # around before it, kept so that the many tests that name one still read; every
+    # one holds the same Researcher grant now. They collapse with the grants.
     users: dict[str, str] = {"owner": owner.user_id}
-    for label, role in (
-        ("lead", ScopeRole.LEAD),
-        ("researcher", ScopeRole.RESEARCHER),
-        ("reviewer", ScopeRole.REVIEWER),
-        ("viewer", ScopeRole.VIEWER),
-    ):
+    for label in ("lead", "researcher", "reviewer", "viewer"):
         member = scope_repo.add_member(admin, email=f"{label}@art-chain.io")
         users[label] = member.user_id
         resolver.grant_client_access(
-            admin, client_id=primary_client.client_id, user_id=member.user_id, role=role
+            admin,
+            client_id=primary_client.client_id,
+            user_id=member.user_id,
+            role=ScopeRole.RESEARCHER,
         )
 
     # A lead on the other client, so cross-client tests have a real counterpart
@@ -400,7 +401,7 @@ def build_scope_fixture(session: Any) -> ScopeFixture:
         admin,
         client_id=other_client.client_id,
         user_id=other_lead.user_id,
-        role=ScopeRole.LEAD,
+        role=ScopeRole.RESEARCHER,
     )
 
     # Someone in the organization with no client grant at all.

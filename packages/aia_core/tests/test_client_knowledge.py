@@ -2,8 +2,9 @@
 
 The rules these tests pin: a client's knowledge never reaches another client;
 retrieval takes an issued scope and nothing else; a study proposes but never
-writes; a person decides, and not the proposer by default; an approval appends
-a revision with its provenance and advances the client's knowledge revision.
+writes; a person decides (the proposer too, unless the client turned self-approval
+off, ADR 0019); an approval appends a revision with its provenance and advances
+the client's knowledge revision.
 """
 
 from __future__ import annotations
@@ -67,18 +68,34 @@ def test_a_studys_finding_changes_nothing_until_a_person_approves_it(
     assert rev.approved_by == scoped.users["reviewer"]
 
 
-def test_the_proposer_does_not_approve_their_own_proposal_by_default(
+def test_the_proposer_may_approve_their_own_proposal_by_default(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:
+    """ADR 0019: self-approval is allowed unless the client turns it off."""
+    lead = client_scope(scoped, "lead")
+    proposal = knowledge.propose(lead, kind=KnowledgeKind.TERM, title="Fleet buyer")
+    decided = knowledge.decide(lead, proposal_id=proposal.proposal_id, approve=True)
+    assert decided.status is ProposalStatus.APPROVED
+    [item] = knowledge.items(lead)
+    [rev] = knowledge.revisions(lead, item_id=item.item_id)
+    assert rev.approved_by == scoped.users["lead"]
+
+
+def test_the_proposer_does_not_approve_their_own_proposal_where_the_client_turned_it_off(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """A client that demands independent review gets it back through the setting."""
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, client_id=scoped.clients["primary"].client_id
+    )
     lead = client_scope(scoped, "lead")
     proposal = knowledge.propose(lead, kind=KnowledgeKind.TERM, title="Fleet buyer")
     with pytest.raises(SeparationOfDutiesViolation):
         knowledge.decide(lead, proposal_id=proposal.proposal_id, approve=True)
-    scoped.scope_repo.set_self_approval(
-        scoped.admin_context, allowed=True, client_id=scoped.clients["primary"].client_id
-    )
+    assert knowledge.items(lead) == []
+
     decided = knowledge.decide(
-        client_scope(scoped, "lead"), proposal_id=proposal.proposal_id, approve=True
+        client_scope(scoped, "reviewer"), proposal_id=proposal.proposal_id, approve=True
     )
     assert decided.status is ProposalStatus.APPROVED
 
@@ -139,25 +156,32 @@ def test_a_rejection_changes_nothing_and_a_decision_is_final(
         )
 
 
-def test_roles_propose_and_approve_as_the_matrix_says(
+def test_every_member_proposes_and_approves_and_an_outsider_does_neither(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:
-    with pytest.raises(ScopeDenied):
-        knowledge.propose(client_scope(scoped, "viewer"), kind=KnowledgeKind.TERM, title="x")
-    with pytest.raises(ScopeDenied):
-        knowledge.propose(client_scope(scoped, "reviewer"), kind=KnowledgeKind.TERM, title="x")
-    proposal = knowledge.propose(
-        client_scope(scoped, "researcher"), kind=KnowledgeKind.TERM, title="x"
-    )
-    for user in ("viewer", "researcher"):
-        with pytest.raises(ScopeDenied):
-            knowledge.decide(
-                client_scope(scoped, user), proposal_id=proposal.proposal_id, approve=True
-            )
-    with pytest.raises(ScopeDenied):
-        knowledge.propose_from_study(
-            scoped.scope(user="viewer"), kind=KnowledgeKind.FINDING, title="x"
+    """ADR 0019: one role holds every Knowledge permission; no grant holds none.
+
+    The matrix used to split propose, approve and manage across four roles. Now a
+    former viewer proposes, a former reviewer proposes, anyone approves, and the
+    one boundary left is having no grant on the client, which issues no context.
+    """
+    proposed = [
+        knowledge.propose(client_scope(scoped, user), kind=KnowledgeKind.TERM, title=f"x-{user}")
+        for user in ("viewer", "reviewer", "researcher")
+    ]
+    for user, proposal in zip(("viewer", "researcher", "reviewer"), proposed, strict=True):
+        decided = knowledge.decide(
+            client_scope(scoped, user), proposal_id=proposal.proposal_id, approve=True
         )
+        assert decided.status is ProposalStatus.APPROVED
+    assert knowledge.propose_from_study(
+        scoped.scope(user="viewer"), kind=KnowledgeKind.FINDING, title="y"
+    )
+
+    with pytest.raises(ScopeDenied):
+        client_scope(scoped, "outsider")
+    with pytest.raises(ScopeDenied):
+        scoped.scope(user="outsider")
 
 
 def test_client_a_knowledge_never_appears_under_client_b(

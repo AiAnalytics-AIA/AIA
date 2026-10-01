@@ -62,6 +62,7 @@ from .residency import (
 )
 from .scope import (
     ROLE_PERMISSIONS,
+    WORKER_PERMISSIONS,
     ApprovalIndependence,
     Client,
     ClientGrant,
@@ -120,6 +121,7 @@ __all__ = [
     "ROLE_PERMISSIONS",
     "SIMULATION_STAGES",
     "STAGE_EQUIVALENTS",
+    "WORKER_PERMISSIONS",
     "ApprovalIndependence",
     "AttemptStatus",
     "BudgetDecision",

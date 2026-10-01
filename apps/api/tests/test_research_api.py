@@ -2,7 +2,9 @@
 
 Every route is under the Study and resolves it first. The browser supplies the
 design's content and nothing else: a revision or run of another Study, or of
-another client, is a 404; a missing permission inside a visible Study is a 403.
+another client, is a 404; a member without a grant on the client is a 404. Since
+ADR 0019 every grant holds the one Researcher role, so there is no 403 left for a
+missing permission inside a visible Study.
 """
 
 from __future__ import annotations
@@ -99,12 +101,22 @@ def test_a_design_becomes_an_immutable_revision_and_resubmitting_it_changes_noth
     assert [r["revision"] for r in listed] == [2, 1]
 
 
-def test_submitting_needs_edit_rights_and_says_why_it_refuses(
-    viewer: TestClient, reviewer: TestClient, lead: TestClient, world: Any
+def test_every_granted_label_may_submit_a_design_an_ungranted_member_gets_404_and_bad_ones_422(
+    viewer: TestClient,
+    reviewer: TestClient,
+    lead: TestClient,
+    outsider: TestClient,
+    world: Any,
 ) -> None:
+    """ADR 0019: "viewer" and "reviewer" hold the Researcher role, so they may submit.
+
+    A member without a grant is told the Study does not exist; a design that
+    carries scope is still refused.
+    """
     for c in (viewer, reviewer):
-        refused = submit(c, world)
-        assert refused.status_code == 403 and refused.json()["code"] == "insufficient_role"
+        accepted = submit(c, world)
+        assert accepted.status_code in (200, 201), accepted.text
+    assert submit(outsider, world).status_code == 404
     bad = submit(lead, world, {**DESIGN, "client_id": world.client_id("other")})
     assert bad.status_code == 422 and bad.json()["code"] == "design_carries_scope"
     assert submit(lead, world, []).status_code == 422
@@ -251,6 +263,7 @@ def test_analysis_results_are_study_scoped_and_internal(
     app: FastAPI,
     researcher: TestClient,
     viewer: TestClient,
+    outsider: TestClient,
     other_client_lead: TestClient,
     world: Any,
 ) -> None:
@@ -266,21 +279,26 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert internal.json()["internal_only"] is True
     assert len(internal.json()["pending"]) == 8
     assert internal.json()["modules"] == {}
-    assert viewer.get(url).status_code == 403
+    # ADR 0019: the "viewer" label holds the Researcher role and reads it too.
+    assert viewer.get(url).status_code == 200
+    assert outsider.get(url).status_code == 404
     assert other_client_lead.get(url).status_code == 404
 
 
-def test_starting_needs_run_rights_and_a_revision_of_this_study(
+def test_starting_needs_a_grant_and_a_revision_of_this_study(
     researcher: TestClient,
     viewer: TestClient,
     reviewer: TestClient,
+    outsider: TestClient,
     other_client_lead: TestClient,
     world: Any,
 ) -> None:
+    """ADR 0019: every granted label may start; the boundary is the grant and the Study."""
     revision_id = submit(researcher, world).json()["revision_id"]
+    assert start(outsider, world, revision_id).status_code == 404
     for c in (viewer, reviewer):
-        refused = start(c, world, revision_id)
-        assert refused.status_code == 403 and refused.json()["code"] == "insufficient_role"
+        started = start(c, world, revision_id)
+        assert started.status_code in (200, 201), started.text
     # The browser cannot choose how fieldwork is done.
     extra = researcher.post(
         _runs(world),
@@ -343,7 +361,7 @@ def test_fieldwork_without_the_ai_runtime_waits_visibly_and_nothing_downstream_r
 
 
 def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
-    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
 ) -> None:
     run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
         "run_id"
@@ -353,7 +371,8 @@ def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
         pass
     failed = researcher.get(f"{_runs(world)}/{run_id}").json()
     assert failed["phase"] == "FAILED" and failed["retryable"] is True
-    assert viewer.post(f"{_runs(world)}/{run_id}/retry").status_code == 403
+    # ADR 0019: any granted member may retry; an ungranted one is told 404.
+    assert outsider.post(f"{_runs(world)}/{run_id}/retry").status_code == 404
 
     retry = researcher.post(f"{_runs(world)}/{run_id}/retry")
     assert retry.status_code == 201, retry.text
@@ -364,28 +383,37 @@ def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
     assert again.status_code == 200 and again.json()["run_id"] == body["run_id"]
 
 
-def test_cancelling_needs_cancel_rights_and_ends_the_run(
-    researcher: TestClient, viewer: TestClient, world: Any
+def test_any_granted_member_may_cancel_a_run_and_an_ungranted_one_gets_404(
+    researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
+    """ADR 0019: cancelling is no longer withheld from the "viewer" label."""
     run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
         "run_id"
     ]
-    refused = viewer.post(f"{_runs(world)}/{run_id}/cancel")
-    assert refused.status_code == 403 and refused.json()["code"] == "insufficient_role"
-    cancelled = researcher.post(f"{_runs(world)}/{run_id}/cancel")
+    assert outsider.post(f"{_runs(world)}/{run_id}/cancel").status_code == 404
+    assert researcher.get(f"{_runs(world)}/{run_id}").json()["phase"] != "CANCELLED"
+    cancelled = viewer.post(f"{_runs(world)}/{run_id}/cancel")
     assert cancelled.status_code == 200
     assert cancelled.json()["phase"] == "CANCELLED" and cancelled.json()["retryable"] is True
 
 
-def test_cost_is_shown_only_to_those_who_may_see_costs(
-    researcher: TestClient, viewer: TestClient, world: Any
+def test_cost_is_shown_to_every_granted_member_and_to_no_one_else(
+    researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
+    """ADR 0019: the Researcher role holds VIEW_COSTS, so the "viewer" label sees cost too."""
     run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
         "run_id"
     ]
     assert researcher.get(f"{_runs(world)}/{run_id}").json()["actual_cost_usd"] == 0.0
-    assert viewer.get(f"{_runs(world)}/{run_id}").json()["actual_cost_usd"] is None
-    assert all(r["actual_cost_usd"] is None for r in viewer.get(_runs(world)).json()["items"])
+    assert viewer.get(f"{_runs(world)}/{run_id}").json()["actual_cost_usd"] == 0.0
+    # The list summaries carry no steps, so no cost for anyone (routers/research.py:355);
+    # what changed is only that the viewer label no longer differs from the researcher.
+    listed = viewer.get(_runs(world)).json()["items"]
+    assert listed and [r["actual_cost_usd"] for r in listed] == [
+        r["actual_cost_usd"] for r in researcher.get(_runs(world)).json()["items"]
+    ]
+    assert outsider.get(f"{_runs(world)}/{run_id}").status_code == 404
+    assert outsider.get(_runs(world)).status_code == 404
 
 
 def test_a_run_serves_only_the_artifacts_it_produced(researcher: TestClient, world: Any) -> None:
@@ -465,7 +493,12 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
 
 
 def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
-    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any, projects_url: Any
+    app: FastAPI,
+    researcher: TestClient,
+    viewer: TestClient,
+    outsider: TestClient,
+    world: Any,
+    projects_url: Any,
 ) -> None:
     """Regression (ADR 0016 chunk 4): the generic artifact route served them.
 
@@ -504,9 +537,15 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     sociomap = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
     assert sociomap.status_code == 200
     assert sociomap.json()["payload"]["sociomap"]["methodology_status"] == "INTERNAL_ONLY"
-    # INTERNAL_ONLY while D6 is open: a viewer of the Study may not see it.
-    hidden = viewer.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
-    assert hidden.status_code == 403 and hidden.json()["code"] == "insufficient_role"
+    # INTERNAL_ONLY while D6 is open. ADR 0019: every granted member is a Researcher and
+    # reads it (the payload above still says INTERNAL_ONLY); a member without a grant
+    # cannot reach any artifact of the run.
+    internal = viewer.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
+    assert internal.status_code == 200
+    assert internal.json()["payload"]["sociomap"]["methodology_status"] == "INTERNAL_ONLY"
+    for artifact_id in (spec_id, dataset_id, aggregate_id, sociomap_id):
+        denied = outsider.get(f"{_runs(world)}/{run_id}/artifacts/{artifact_id}")
+        assert denied.status_code == 404
 
     with create_session_factory(app.state.engine)() as session:
         design_project = session.scalars(select(ProjectRow.project_id)).one()
