@@ -13,10 +13,17 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from aia_core.application.report import (
+    INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_MEDIA_TYPE,
+)
+from aia_core.application.research import research_artifacts
+from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.tables import ProjectRow
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
@@ -284,6 +291,80 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert viewer.get(url).status_code == 200
     assert outsider.get(url).status_code == 404
     assert other_client_lead.get(url).status_code == 404
+
+
+def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
+    app: FastAPI,
+    researcher: TestClient,
+    viewer: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report"
+    assert researcher.get(url).json()["state"] == "BLOCKED"
+    assert researcher.get(f"{url}/download").status_code == 404
+
+    document = b"PK\x03\x04internal-draft-test"
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        report_id = None
+        for _ in range(14):
+            work = workflow.claim_next(worker_id="report-fixture")
+            assert work is not None
+            output = {}
+            if work.node_key == "report":
+                artifact, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+                    project_id=work.project_id,
+                    revision=work.project_revision,
+                    stage_type="REPORT",
+                    artifact_type=INTERNAL_REPORT_ARTIFACT_TYPE,
+                    data=document,
+                    content_type=INTERNAL_REPORT_MEDIA_TYPE,
+                    input_fingerprint="report-route-test",
+                    produced_by_job_id=work.attempt_id,
+                    metadata={
+                        "run_id": run_id,
+                        "report_kind": "internal",
+                        "review_state": "DRAFT_UNAPPROVED",
+                        "synthetic": True,
+                    },
+                )
+                report_id = artifact.artifact_id
+                output = {"artifact_id": report_id}
+            workflow.complete_attempt(work.attempt_id, worker_id="report-fixture", output=output)
+        session.commit()
+    assert report_id is not None
+
+    listed = viewer.get(url)
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["artifact_id"] == report_id
+    assert listed.json()["review_state"] == "DRAFT_UNAPPROVED"
+    assert listed.json()["synthetic"] is True
+    downloaded = researcher.get(f"{url}/download")
+    assert downloaded.status_code == 200 and downloaded.content == document
+    assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
+    assert "internal-draft.docx" in downloaded.headers["content-disposition"]
+    assert downloaded.headers["cache-control"] == "no-store"
+    assert outsider.get(url).status_code == 404
+    assert outsider.get(f"{url}/download").status_code == 404
+    other_url = f"{_runs(world, 'other_client')}/{run_id}/report"
+    assert other_client_lead.get(other_url).status_code == 404
+    assert other_client_lead.get(f"{other_url}/download").status_code == 404
+    damage_artifact(report_id, "tampered")
+    damaged = researcher.get(f"{url}/download")
+    assert damaged.status_code == 409 and damaged.json()["code"] == "artifact_corrupt"
+    assert artifact_status(report_id) == "CORRUPT"
 
 
 def test_starting_needs_a_grant_and_a_revision_of_this_study(
