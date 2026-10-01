@@ -25,7 +25,7 @@ from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.research import ResearchPhase, phase_of, retryable
 from aia_core.domain.research_agents import ResearchAction
-from aia_core.domain.scope import ScopeDenied
+from aia_core.domain.scope import ScopeDenied, StudyStatus
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
     FailureClass,
@@ -254,13 +254,26 @@ def test_analysis_graph_is_selected_by_composition_and_preserved_on_retry(
     assert retry.run["metadata"]["analysis_enabled"] is True
 
 
-def test_starting_needs_run_rights_on_an_open_study(runs: Any, design: Any) -> None:
+def test_every_person_with_the_study_starts_a_run_on_it_while_it_is_open(
+    scoped: Any, runs: Any, design: Any
+) -> None:
+    """ADR 0019: one role holds RUN_WORKFLOW, so the former viewer and reviewer start runs.
+
+    The same design started again is the one run (idempotent), whoever starts it. What still
+    bounds a start: no grant, no study scope, and a closed study accepts no new work.
+    """
     revision = design()
-    for user in ("viewer", "reviewer"):
-        with pytest.raises(ScopeDenied) as denied:
-            runs(user=user).start(design_revision_id=revision, fieldwork_source=AI)
-        assert denied.value.reason == "insufficient_role"
-    assert runs(user="researcher").start(design_revision_id=revision, fieldwork_source=AI).created
+    first = runs().start(design_revision_id=revision, fieldwork_source=AI)
+    assert first.created
+    for user in ("viewer", "reviewer", "researcher"):
+        again = runs(user=user).start(design_revision_id=revision, fieldwork_source=AI)
+        assert not again.created and again.run_id == first.run_id, user
+    with pytest.raises(ScopeDenied):
+        runs(user="outsider")
+    scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)
+    with pytest.raises(ScopeDenied) as closed:
+        runs(user="viewer").start(design_revision_id=revision, fieldwork_source=AI)
+    assert closed.value.reason == "study_closed"
 
 
 def test_a_run_and_its_revision_are_reachable_only_through_their_own_study(
@@ -351,9 +364,8 @@ def test_only_a_failed_or_cancelled_run_is_retried_and_a_retry_is_a_linked_run(
         runs().retry(original, fieldwork_source=AI)
     assert refused.value.status is WorkflowRunStatus.RUNNING
 
-    with pytest.raises(ScopeDenied):
-        runs(user="viewer").cancel(original)
-    assert runs().cancel(original) is WorkflowRunStatus.CANCELLED
+    # ADR 0019: cancelling is not a second role's act; the former viewer cancels like anyone.
+    assert runs(user="viewer").cancel(original) is WorkflowRunStatus.CANCELLED
     cancelled = runs().get(original)
     assert cancelled["phase"] is ResearchPhase.CANCELLED and cancelled["retryable"] is True
 

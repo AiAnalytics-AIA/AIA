@@ -1,8 +1,8 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[x] 1. ADR 0019: two roles, no cross-approval, the human-with-AI gate catalogue (supersedes ADR 0004's grant rules and ADR 0015 decisions 6-7)"
-  - "[ ] 2. Domain: one Researcher permission set; self-approval allowed by default; REVIEWER and LEAD gone"
+  - "[x] 2. Domain: one Researcher permission set; self-approval allowed by default; REVIEWER and LEAD gone"
   - "[ ] 3. ScopeResolver: every active member sees every client and study of the organization"
   - "[ ] 4. Admin: system settings only for ADMIN; MEMBER is the Researcher; settings document and web client"
   - "[ ] 5. Gates: apply-an-AI-proposal, spend confirm, client-facing release; human-authored Knowledge writes directly"
@@ -110,6 +110,20 @@ that demands independent review can turn it back on.
   client does not widen what may be sent to a model.
 
 ## Findings
+
+- **The worker borrowed the Researcher's permission set.** `ScopeResolver.execution_context` built the
+  worker's scope from `permissions_for(EXECUTION_ROLE)` with `EXECUTION_ROLE = RESEARCHER`, so it was
+  the old Researcher set that withheld approval (`application/scope.py:63-67 @ 2de4093`). Giving the
+  Researcher every permission would have given the worker `APPROVE_GATE`, the exact thing ADR 0019
+  decision 6 forbids. Chunk 2 adds an explicit `WORKER_PERMISSIONS` (`domain/scope.py`) and the
+  worker's scope uses it. Reproduction before the fix: with `ROLE_PERMISSIONS[RESEARCHER]` widened,
+  `test_the_execution_role_does_the_work_and_never_approves_it` fails. Tests that now guard it:
+  that test, plus `test_worker_permissions_are_a_strict_subset_that_withholds_approval` and
+  `test_a_worker_scope_cannot_accept_a_gate_or_change_the_budget` in `test_scope_isolation.py`.
+- **Stored roles.** The grant tables' CHECK constraints still allow `VIEWER/REVIEWER/LEAD`
+  (`tables.py:565, :588`). Rows are read with `ScopeRole.from_stored`, which maps the retired values
+  to `RESEARCHER`; the grant API accepts the old names. No migration in this chunk; chunk 6 drops
+  the tables.
 
 - The first draft of this plan cited only ADR 0015 decision 7. The grants and the "no implicit
   admin access" rule are ADR 0004's, written because clients may be direct competitors

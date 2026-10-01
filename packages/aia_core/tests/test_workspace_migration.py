@@ -652,6 +652,38 @@ def test_a_project_missing_from_the_copy_waits_until_the_copy_is_said_complete(
     assert _row(session, nothing).lineage["outcome"] == "unrecoverable"
 
 
+def test_any_member_with_the_client_can_be_the_operator_whatever_their_former_role(
+    session: Any,
+    scoped: Any,
+    sessions: Any,
+    store: InMemoryArtifactStore,
+    unit: Any,
+    unit_store: Any,
+) -> None:
+    """ADR 0019: the former viewer holds the Researcher grant, so their migration is applied.
+
+    Before it, the same operator was refused with ``insufficient_role`` and a PERMISSION_DENIED
+    audit entry. The study is migrated as that person, through their own grants.
+    """
+    unit.save(PRJ, unit_store.brief("T", "G"))
+    unit.close()
+    study_id = _bind(session, scoped)
+    (study,) = _migrate(
+        sessions, store, unit_store.UnitStore(unit.root), actor="viewer@art-chain.io", apply=True
+    ).studies
+    assert (study.outcome, study.applied) == (MigrationOutcome.MIGRATED, True)
+    assert _row(session, study_id).content_state == ContentState.MIGRATED.value
+    session.expire_all()
+    user = session.scalar(select(UserRow).where(UserRow.email == "viewer@art-chain.io"))
+    denied = session.scalars(
+        select(AccessAuditRow).where(
+            AccessAuditRow.actor_id == user.user_id,
+            AccessAuditRow.action.in_(("ACCESS_DENIED", "PERMISSION_DENIED")),
+        )
+    ).all()
+    assert denied == []
+
+
 def test_the_operator_migrates_only_what_their_own_grants_let_them_edit(
     session: Any,
     scoped: Any,
@@ -664,7 +696,6 @@ def test_the_operator_migrates_only_what_their_own_grants_let_them_edit(
     unit.close()
     study_id = _bind(session, scoped)
     for actor, reason, action in (
-        ("viewer@art-chain.io", "insufficient_role", "PERMISSION_DENIED"),
         ("outsider@art-chain.io", "no_grant", "ACCESS_DENIED"),
         # An organization owner has no implicit access to a client's studies.
         ("owner@art-chain.io", "no_grant", "ACCESS_DENIED"),

@@ -135,10 +135,14 @@ def test_jobs_are_idempotent_and_hidden_across_studies(session: Any, scoped: Any
     sibling = ResearchAgentJobs(session, scoped.scope(user="lead", study="sibling"))
     with pytest.raises(ResearchRunNotFound):
         sibling.get(first.run_id)
+    # ADR 0019: the former viewer holds EDIT_STUDY and RUN_WORKFLOW like anyone; asking for the
+    # job that is already there is the same job, whoever asks. No grant means no study scope.
+    by_viewer = ResearchAgentJobs(session, scoped.scope(user="viewer")).start(
+        design_revision_id=revision.revision_id, action=ResearchAction.ANALYZE
+    )
+    assert by_viewer.run_id == first.run_id and not by_viewer.created
     with pytest.raises(ScopeDenied):
-        ResearchAgentJobs(session, scoped.scope(user="viewer")).start(
-            design_revision_id=revision.revision_id, action=ResearchAction.ANALYZE
-        )
+        scoped.scope(user="outsider")
     with pytest.raises(DesignRejected, match="completed"):
         from aia_core.infrastructure.storage import InMemoryArtifactStore
 

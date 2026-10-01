@@ -63,8 +63,9 @@ _INLINE_PAYLOAD_LIMIT = 1024 * 1024
 # results screens read what was computed from it, not the rows (ADR 0016).
 _NEVER_INLINED = frozenset({"research_fieldwork_dataset"})
 
-# INTERNAL_ONLY while PROGRESS D6 is open (ADR 0016 decision 6): the Study's own
-# researchers may inspect it; a viewer or reviewer may not.
+# INTERNAL_ONLY while PROGRESS D6 is open (ADR 0016 decision 6): whoever may edit
+# the Study may inspect it. Since ADR 0019 that is every member who has the Study;
+# the marker, not the role, is what keeps it out of a client-facing report.
 _RESEARCHERS_ONLY = frozenset({"research_sociomap", "research_analysis_module"})
 
 

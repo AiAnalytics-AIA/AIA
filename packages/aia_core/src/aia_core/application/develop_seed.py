@@ -5,7 +5,7 @@ valid domain state to exercise the application, in two organizations:
 
 * **the operator's** (``aia-develop``): the showcase world a person signs in to --
   fictional clients with studies and knowledge, the operator named in
-  ``AIA_SEED_OWNER_EMAIL`` as its owner and LEAD on each client;
+  ``AIA_SEED_OWNER_EMAIL`` as its owner and a Researcher on each client;
 * **the smoke's own** (``aia-develop-smoke``): a synthetic owner, one synthetic
   client and study with a budget, a project and one example workflow run -- what
   the deployment smoke acts on. The operator is not a member, so none of it is in
@@ -14,8 +14,8 @@ valid domain state to exercise the application, in two organizations:
 
 Everything is done by calling the repositories and the authorization layer
 exactly as the API does. There is no direct insert that skips an invariant, and
-no back door: each owner is provisioned as an organization OWNER and granted LEAD
-on its clients, and everything else is done under contexts issued for them.
+no back door: each owner is provisioned as an organization OWNER and granted access
+to its clients, and everything else is done under contexts issued for them.
 
 **Idempotent.** Every object is found by a stable slug or title before it is
 created, so re-running changes nothing and reports the same ids. ``reset``
@@ -305,12 +305,12 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         )
     created["client"] = SEED_CLIENT_SLUG not in clients
 
-    # LEAD on the client covers every study under it, including ones seeded later.
+    # A client grant covers every study under it, including ones seeded later.
     resolver.grant_client_access(
         smoke_admin,
         client_id=client.client_id,
         user_id=smoke_owner_id,
-        role=ScopeRole.LEAD,
+        role=ScopeRole.RESEARCHER,
         reason="seed",
     )
 
@@ -394,7 +394,7 @@ def _seed_workspaces(
     """The fictional clients of SEED_WORKSPACES, found by slug or created; idempotent.
 
     Knowledge goes the governed way: the operator proposes, a synthetic curator
-    (a REVIEWER on the client) approves, so every item has a revision and
+    (a second Researcher on the client) approves, so every item has a revision and
     provenance like any other. Returns slug -> client id, and whether anything
     was new. A client a person has archived is left as they left it: nothing is
     granted or seeded into it.
@@ -426,13 +426,17 @@ def _seed_workspaces(
             # leaving it alone is the seed respecting that decision, not undoing it.
             continue
         resolver.grant_client_access(
-            admin, client_id=client.client_id, user_id=owner_id, role=ScopeRole.LEAD, reason="seed"
+            admin,
+            client_id=client.client_id,
+            user_id=owner_id,
+            role=ScopeRole.RESEARCHER,
+            reason="seed",
         )
         resolver.grant_client_access(
             admin,
             client_id=client.client_id,
             user_id=curator_id,
-            role=ScopeRole.REVIEWER,
+            role=ScopeRole.RESEARCHER,
             reason="seed",
         )
         ctx = resolver.client_context(owner, client_id=client.client_id)

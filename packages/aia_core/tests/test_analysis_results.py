@@ -823,26 +823,34 @@ def test_evidence_the_adapter_now_refuses_refuses_the_reconstruction(
     assert refused.value.reason == "evidence_refused"
 
 
-def test_an_outcome_is_read_only_in_its_study_and_internal_ones_by_its_researchers(
+def test_an_outcome_is_read_only_in_its_study_and_internal_ones_by_everyone_with_the_study(
     world: World,
 ) -> None:
+    """ADR 0019: an internal outcome needs EDIT_STUDY, which every person with the study holds.
+
+    The viewer and the reviewer were refused it. What still bounds the read is the study: a run
+    of another client's study is not found, and a person with no grant has no scope at all.
+    """
     run_id = world.start()
     world.upstream()
     world.store_outcomes(run_id, completed)
     module = AnalysisModuleId.EXECUTIVE
     researcher = world.scoped.scope(user="researcher")
-    assert reconstruct_module(
+    expected = reconstruct_module(
         world.session, researcher, world.store, run_id=run_id, module_id=module
     ).result
+    assert expected
     for user in ("viewer", "reviewer"):
-        with pytest.raises(ScopeDenied):
-            reconstruct_module(
-                world.session,
-                world.scoped.scope(user=user),
-                world.store,
-                run_id=run_id,
-                module_id=module,
-            )
+        read = reconstruct_module(
+            world.session,
+            world.scoped.scope(user=user),
+            world.store,
+            run_id=run_id,
+            module_id=module,
+        )
+        assert read.result == expected, user
+    with pytest.raises(ScopeDenied):
+        world.scoped.scope(user="outsider")
     other = world.scoped.scope(user="other_lead", study="other_client")
     with pytest.raises(ReconstructionRefused) as refused:
         reconstruct_module(world.session, other, world.store, run_id=run_id, module_id=module)

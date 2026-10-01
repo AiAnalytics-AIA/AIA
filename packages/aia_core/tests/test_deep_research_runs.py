@@ -30,7 +30,7 @@ from aia_core.domain.deep_research.workflow import (
 )
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.knowledge import KnowledgeKind
-from aia_core.domain.scope import ClientContext, ScopeDenied
+from aia_core.domain.scope import ClientContext, ScopeDenied, StudyStatus
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import WORKFLOW_TYPES
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
@@ -221,15 +221,24 @@ def test_another_studys_revision_is_not_this_studys_to_research(runs: Any, desig
         runs().start(design_revision_id=design(study="other_client"), preset_name="QUICK")
 
 
-def test_starting_and_cancelling_need_the_permissions_to(runs: Any, design: Any) -> None:
+def test_every_person_with_the_study_starts_and_cancels_a_deep_research_run(
+    scoped: Any, runs: Any, design: Any
+) -> None:
+    """ADR 0019: one role holds RUN_WORKFLOW and CANCEL_WORKFLOW.
+
+    The viewer was refused a start and the reviewer a cancel; both are Researchers now. What
+    still bounds a run: no grant means no study scope, and a closed study accepts no new work.
+    """
     revision_id = design()
+    run_id = runs(user="viewer").start(design_revision_id=revision_id, preset_name="QUICK").run_id
+    assert runs(user="reviewer").get(run_id)["run_id"] == run_id
+    assert runs(user="reviewer").cancel(run_id) is WorkflowRunStatus.CANCELLED
     with pytest.raises(ScopeDenied):
+        runs(user="outsider")
+    scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)
+    with pytest.raises(ScopeDenied) as closed:
         runs(user="viewer").start(design_revision_id=revision_id, preset_name="QUICK")
-    run_id = runs().start(design_revision_id=revision_id, preset_name="QUICK").run_id
-    with pytest.raises(ScopeDenied):
-        runs(user="reviewer").cancel(run_id)
-    assert runs(user="viewer").get(run_id)["run_id"] == run_id  # reading needs only a view
-    assert runs(user="researcher").cancel(run_id) is WorkflowRunStatus.CANCELLED
+    assert closed.value.reason == "study_closed"
 
 
 # --------------------------------------------------------------------------- read
@@ -285,5 +294,5 @@ def test_a_failed_or_cancelled_run_is_retried_as_a_new_linked_run(runs: Any, des
         == runs().get(run_id)["metadata"]["request_fingerprint"]
     )
     assert runs().retry(run_id).run_id == retried.run_id  # a double click is one retry
-    with pytest.raises(ScopeDenied):
-        runs(user="viewer").retry(run_id)
+    # ADR 0019: a retry is not a second role's act; the former viewer's click is the same retry.
+    assert runs(user="viewer").retry(run_id).run_id == retried.run_id

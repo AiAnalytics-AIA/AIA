@@ -93,17 +93,24 @@ def test_a_design_is_a_bounded_json_object(content: Any, reason: str) -> None:
     assert refused.value.reason == reason
 
 
-def test_submitting_needs_edit_rights_on_an_open_research_study(scoped: Any, designs: Any) -> None:
-    for user in ("viewer", "reviewer"):
-        with pytest.raises(ScopeDenied) as denied:
-            designs(user=user).submit(content=DESIGN, source_stage="run")
-        assert denied.value.reason == "insufficient_role"
-    designs(user="researcher").submit(content=DESIGN, source_stage="run")
+def test_everyone_with_the_study_submits_a_design_while_it_is_open(
+    scoped: Any, designs: Any
+) -> None:
+    """ADR 0019: one role holds EDIT_STUDY, so the former viewer and reviewer submit a design.
+
+    A design identical to the newest is no new revision; what still bounds a submit is a
+    missing grant, a rejected source stage and a closed study.
+    """
+    for i, user in enumerate(("viewer", "reviewer", "researcher")):
+        _, created = designs(user=user).submit(content={**DESIGN, "n": i + 1}, source_stage="run")
+        assert created, user
+    with pytest.raises(ScopeDenied):
+        designs(user="outsider")
     with pytest.raises(DesignRejected):
         designs().submit(content=DESIGN, source_stage="results")
     scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)
     with pytest.raises(ScopeDenied) as closed:
-        designs().submit(content={**DESIGN, "n": 1}, source_stage="run")
+        designs().submit(content={**DESIGN, "n": 99}, source_stage="run")
     assert closed.value.reason == "study_closed"
 
 

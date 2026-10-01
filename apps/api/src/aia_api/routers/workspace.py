@@ -559,7 +559,7 @@ def start_client(
     resolver: ResolverDep,
     repo: ScopeRepositoryDep,
 ) -> ClientWorkspace:
-    """Create a client and grant its creator LEAD on it, in one transaction.
+    """Create a client and grant its creator access to it, in one transaction.
 
     Organization administration is required, as for ``POST /clients``. The grant
     is the ordinary self-grant ADR 0004 allows and audits as ``CLIENT_SELF_GRANT``:
@@ -571,7 +571,7 @@ def start_client(
             admin,
             client_id=client.client_id,
             user_id=principal.user_id,
-            role=ScopeRole.LEAD,
+            role=ScopeRole.RESEARCHER,
             reason="created the client from the directory",
         )
     except ScopeDenied as exc:

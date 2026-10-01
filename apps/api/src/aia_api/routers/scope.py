@@ -357,7 +357,7 @@ def grant_client_access(
     """
     try:
         resolver.grant_client_access(
-            admin, client_id=client_id, user_id=body.user_id, role=ScopeRole(body.role)
+            admin, client_id=client_id, user_id=body.user_id, role=ScopeRole.from_stored(body.role)
         )
     except ScopeDenied as exc:
         if exc.reason == "insufficient_role":
@@ -545,7 +545,9 @@ def grant_study_access(
     one.
     """
     try:
-        resolver.grant_study_access(scope, user_id=body.user_id, role=ScopeRole(body.role))
+        resolver.grant_study_access(
+            scope, user_id=body.user_id, role=ScopeRole.from_stored(body.role)
+        )
     except ScopeDenied as exc:
         raise _forbidden(exc) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -581,8 +583,9 @@ def set_self_approval(
 ) -> SelfApprovalPolicyResponse:
     """Allow, forbid or inherit self-approval at one level. Audited.
 
-    Self-approval weakens independent review, so only an organization OWNER or
-    ADMIN may configure it; a study LEAD cannot arrange it for their own study.
+    Turning independent review on or off is an administrative setting, so only an
+    organization OWNER or ADMIN may configure it; a person working on a study cannot
+    arrange it for their own study.
     """
     try:
         policy = repo.set_self_approval(

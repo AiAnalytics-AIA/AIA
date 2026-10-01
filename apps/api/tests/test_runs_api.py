@@ -109,17 +109,25 @@ def test_unknown_workflow_type_is_a_validation_error(researcher: TestClient, wor
     assert response.status_code == 422
 
 
-def test_a_viewer_may_read_runs_but_not_start_one(
-    researcher: TestClient, viewer: TestClient, world: Any
+def test_a_viewer_labelled_member_may_read_and_start_runs_and_an_ungranted_member_gets_404(
+    researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
+    """ADR 0019: the "viewer" label holds the Researcher role, so it may start a run.
+
+    What still differs is access to the study: a member without a grant is told
+    nothing exists (404), for reading and for starting alike.
+    """
     study_id = world.study_id()
     project_id = _project(researcher, study_id)
     base = f"{API}/studies/{study_id}/projects/{project_id}"
-    denied = viewer.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"})
-    # require_permission renders every scope denial as 404: the viewer is not
-    # told which permission they lack on a resource they can otherwise read.
-    assert denied.status_code == 404
+    started = viewer.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"})
+    assert started.status_code == 201, started.text
     assert viewer.get(f"{base}/runs").status_code == 200
+
+    assert (
+        outsider.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"}).status_code == 404
+    )
+    assert outsider.get(f"{base}/runs").status_code == 404
 
 
 def test_runs_never_cross_clients(researcher: TestClient, as_user: Any, world: Any) -> None:

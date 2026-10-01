@@ -36,7 +36,7 @@ def test_a_client_context_cannot_be_constructed_directly() -> None:
             organization_id="ORG-1",
             client_id="CLI-1",
             actor_id="USR-1",
-            client_role=ScopeRole.LEAD,
+            client_role=ScopeRole.RESEARCHER,
             permissions=frozenset(ClientPermission),
             organization_role=OrganizationRole.MEMBER,
             grant=object(),  # type: ignore[arg-type]
@@ -44,9 +44,17 @@ def test_a_client_context_cannot_be_constructed_directly() -> None:
     assert denied.value.reason == "forged_scope"
 
 
+def test_a_retired_stored_role_reads_as_a_researcher() -> None:
+    # ADR 0019: grants written before it may carry VIEWER, REVIEWER or LEAD.
+    for stored in ("VIEWER", "REVIEWER", "LEAD", "RESEARCHER"):
+        assert ScopeRole.from_stored(stored) is ScopeRole.RESEARCHER
+    with pytest.raises(ValueError):
+        ScopeRole.from_stored("ADMIN")
+
+
 def test_a_client_grant_opens_the_client_with_all_its_studies(scoped: Any) -> None:
     ctx = client_scope(scoped, "lead")
-    assert ctx.client_role is ScopeRole.LEAD
+    assert ctx.client_role is ScopeRole.RESEARCHER
     assert ctx.study_ids == {scoped.studies["primary"].study_id, scoped.studies["sibling"].study_id}
     assert ctx.has(ClientPermission.APPROVE_CLIENT_KNOWLEDGE)
 
@@ -135,24 +143,38 @@ def test_research_and_simulation_are_both_studies_told_apart_by_kind(scoped: Any
     assert study.role is ScopeRole.RESEARCHER
 
 
-def test_starting_work_for_a_client_needs_create_study_and_is_audited(
+def test_every_person_with_the_client_starts_work_for_it_and_it_is_audited(
     scoped: Any, session: Any
 ) -> None:
-    for user in ("viewer", "reviewer"):
-        with pytest.raises(ScopeDenied):
-            scoped.scope_repo.create_study_in_client(
-                client_scope(scoped, user), slug=f"by-{user}", name="x", kind=StudyKind.RESEARCH
-            )
-    study = scoped.scope_repo.create_study_in_client(
-        client_scope(scoped, "lead"), slug="brand-2027", name="Brand 2027", kind=StudyKind.RESEARCH
-    )
-    assert study.client_id == scoped.clients["primary"].client_id
-    audit = session.scalars(
-        select(AccessAuditRow).where(
-            AccessAuditRow.study_id == study.study_id, AccessAuditRow.action == "STUDY_CREATED"
+    """ADR 0019: one role, so no one with the client needs a second grant to start a study.
+
+    Each label below held a different power before ADR 0019 (the viewer and the reviewer could
+    not start work); they hold the same Researcher grant now, and each one's study is audited.
+    """
+    studies = {}
+    for user in ("viewer", "reviewer", "researcher", "lead"):
+        ctx = client_scope(scoped, user)
+        assert ctx.has(ClientPermission.CREATE_STUDY)
+        studies[user] = scoped.scope_repo.create_study_in_client(
+            ctx, slug=f"by-{user}", name="Brand 2027", kind=StudyKind.RESEARCH
         )
-    ).all()
-    assert [a.payload for a in audit] == [{"kind": "RESEARCH", "via": "client_workspace"}]
+        assert studies[user].client_id == scoped.clients["primary"].client_id
+    for user, study in studies.items():
+        audit = session.scalars(
+            select(AccessAuditRow).where(
+                AccessAuditRow.study_id == study.study_id,
+                AccessAuditRow.action == "STUDY_CREATED",
+            )
+        ).all()
+        assert [a.payload for a in audit] == [{"kind": "RESEARCH", "via": "client_workspace"}], user
+
+
+def test_a_person_with_no_grant_cannot_start_work_for_the_client(scoped: Any) -> None:
+    # The boundary that remains until the grants are retired (ADR 0019): no grant, no client
+    # context, so there is nothing to start work with.
+    with pytest.raises(ScopeDenied) as denied:
+        client_scope(scoped, "outsider")
+    assert denied.value.reason == "no_grant"
 
 
 def test_a_study_only_grantee_cannot_start_work_for_the_client(scoped: Any) -> None:
@@ -160,9 +182,12 @@ def test_a_study_only_grantee_cannot_start_work_for_the_client(scoped: Any) -> N
     lead = scoped.resolver.study_context(
         scoped.principal(scoped.users["lead"]), study_id=scoped.studies["primary"].study_id
     )
-    scoped.resolver.grant_study_access(lead, user_id=member.user_id, role=ScopeRole.LEAD)
+    scoped.resolver.grant_study_access(lead, user_id=member.user_id, role=ScopeRole.RESEARCHER)
     ctx = scoped.resolver.client_context(
         scoped.principal(member.user_id), client_id=scoped.clients["primary"].client_id
     )
+    # Until the grants are retired (ADR 0019) a study-only grantee holds no client role, so
+    # even as a Researcher of the study they hold only VIEW_CLIENT on the client.
+    assert ctx.permissions == {ClientPermission.VIEW_CLIENT}
     with pytest.raises(ScopeDenied):
         scoped.scope_repo.create_study_in_client(ctx, slug="x", name="x", kind=StudyKind.RESEARCH)

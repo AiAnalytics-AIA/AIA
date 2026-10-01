@@ -525,16 +525,16 @@ class ArtifactRepository:
 
         Two independent checks, because either alone is insufficient:
 
-        1. ``SIGN_OFF_DELIVERABLE`` authority, which a RESEARCHER does not hold.
-        2. Independence of the producer. A LEAD holds *both* ``EDIT_STUDY`` and
-           ``SIGN_OFF_DELIVERABLE``, so the permission alone would let one person
-           author a deliverable and clear its own gate by switching hats. The
-           methodology's human review gate requires independence, not merely a
-           permission.
+        1. ``SIGN_OFF_DELIVERABLE`` authority, which the worker's context does not
+           hold.
+        2. Independence of the producer, where the scope requires it. A Researcher
+           holds *both* ``EDIT_STUDY`` and ``SIGN_OFF_DELIVERABLE`` (ADR 0019), so
+           the permission alone would let one person author a deliverable and clear
+           its own gate.
 
-        Independent review is the **default**, and the producer may sign off only
-        where self-approval has been explicitly enabled by policy for this
-        organization, client or study. That policy arrives on the
+        Self-approval is allowed by default (ADR 0019). Independent review applies
+        where self-approval has been turned off for the organization, client or
+        study, and then the producer may not sign off. That policy arrives on the
         :class:`StudyContext`, resolved from persisted state -- a caller cannot
         pass it in. The permission requirement is unaffected either way.
 

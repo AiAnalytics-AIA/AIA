@@ -41,8 +41,13 @@ def revision(client: TestClient, world: Any) -> str:
 def test_native_job_start_is_idempotent_and_returns_only_public_state(
     researcher: TestClient,
     viewer: TestClient,
+    outsider: TestClient,
     world: Any,
 ) -> None:
+    """ADR 0019: the "viewer" label holds the Researcher role, so it may start the same job.
+
+    The boundary that remains is the grant: a member without one is told 404.
+    """
     rid = revision(researcher, world)
     body = {"design_revision_id": rid, "action": "analyze_brief"}
     started = researcher.post(base(world), json=body)
@@ -52,9 +57,14 @@ def test_native_job_start_is_idempotent_and_returns_only_public_state(
     assert "snapshot" not in job and "metadata" not in job
     repeated = researcher.post(base(world), json=body)
     assert repeated.status_code == 200 and repeated.json()["run_id"] == job["run_id"]
-    assert viewer.post(base(world), json=body).status_code == 403
+    assert viewer.post(base(world), json=body).status_code == 200
+    assert outsider.post(base(world), json=body).status_code == 404
+    assert outsider.get(f"{base(world)}/{job['run_id']}").status_code == 404
     read = viewer.get(f"{base(world)}/{job['run_id']}")
-    assert read.status_code == 200 and read.json()["actual_cost_usd"] is None
+    # ADR 0019: costs are no longer hidden from the "viewer" label; it reads what a
+    # researcher reads (nothing is spent yet).
+    assert read.status_code == 200 and read.json()["actual_cost_usd"] == 0
+    assert researcher.get(f"{base(world)}/{job['run_id']}").json()["actual_cost_usd"] == 0
     assert researcher.get(base(world)).json()[0]["run_id"] == job["run_id"]
     assert researcher.get(f"{base(world, 'sibling')}/{job['run_id']}").status_code == 404
     assert researcher.get(f"{base(world)}/{job['run_id']}/result").status_code == 409
@@ -78,19 +88,25 @@ def test_agent_api_rejects_authority_and_unimplemented_actions(
     )
 
 
-def test_cancel_is_scoped_and_requires_cancel_permission(
+def test_cancel_is_scoped_and_any_researcher_may_cancel_but_an_ungranted_member_gets_404(
     researcher: TestClient,
     viewer: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
     world: Any,
 ) -> None:
+    """ADR 0019: the "viewer" label holds every permission, cancel included."""
     rid = revision(researcher, world)
     job = researcher.post(
         base(world), json={"design_revision_id": rid, "action": "analyze_brief"}
     ).json()
     url = f"{base(world)}/{job['run_id']}/cancel"
-    assert viewer.post(url).status_code == 403
-    cancelled = researcher.post(url)
+    assert outsider.post(url).status_code == 404
+    assert other_client_lead.post(url).status_code == 404
+    assert researcher.get(f"{base(world)}/{job['run_id']}").json()["status"] == "RUNNING"
+    cancelled = viewer.post(url)
     assert cancelled.status_code == 200 and cancelled.json()["status"] == "CANCELLED"
+    assert researcher.get(f"{base(world)}/{job['run_id']}").json()["status"] == "CANCELLED"
 
 
 class _Proposes:
@@ -133,7 +149,7 @@ class _Unavailable:
 
 
 def test_same_design_can_resume_an_unbilled_runtime_park_after_activation(
-    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
 ) -> None:
     rid = revision(researcher, world)
     url = base(world)
@@ -145,7 +161,8 @@ def test_same_design_can_resume_an_unbilled_runtime_park_after_activation(
     assert parked["status"] == "WAITING_PROVIDER"
     assert parked["steps"][0]["waiting_reason"] == "ai_runtime_unavailable"
     assert parked["actual_cost_usd"] == 0
-    assert viewer.post(f"{url}/{job_id}/resume").status_code == 403
+    # ADR 0019: any granted member may resume; an ungranted one is told 404.
+    assert outsider.post(f"{url}/{job_id}/resume").status_code == 404
     assert researcher.post(f"{base(world, 'sibling')}/{job_id}/resume").status_code == 404
 
     resumed = researcher.post(f"{url}/{job_id}/resume")
