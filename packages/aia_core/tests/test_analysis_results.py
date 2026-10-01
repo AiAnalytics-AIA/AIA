@@ -10,6 +10,7 @@ import dataclasses
 import hashlib
 import json
 import uuid
+from datetime import date
 from typing import Any
 
 import pytest
@@ -29,6 +30,7 @@ from aia_core.application.analysis_results import (
     reconstruct_module,
     reconstruct_run,
 )
+from aia_core.application.report import ReportCompositionRefused, compose_internal_report
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
@@ -52,11 +54,15 @@ from aia_core.domain.evidence import (
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from aia_core.domain.pipeline import ProjectType, fingerprint
+from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
+from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import aggregate_dataset
 from aia_core.domain.research_design import compile_design
 from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow_templates import RESEARCH, steps_for_workflow
+from aia_core.infrastructure.report_docx.lint import lint_docx
+from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.tables import ProjectArtifactRow
@@ -655,6 +661,68 @@ def test_a_whole_run_reads_back_and_is_complete_only_with_eight_completed(world:
     world.store_outcomes(run_id, completed, count=1)
     whole = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
     assert whole.complete and list(whole.modules) == list(AnalysisModuleId)
+
+
+def test_reconstructed_analysis_composes_an_internal_branded_draft(world: World) -> None:
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed, count=7)
+    incomplete = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    with pytest.raises(ReportCompositionRefused, match="all eight"):
+        compose_internal_report(
+            incomplete, report_meta("synthetic/modelled research; holdout pending")
+        )
+
+    world.store_outcomes(run_id, completed, count=1)
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    assert first is not None
+    doc = compose_internal_report(run, report_meta(first.method_status))
+    assert len(doc.sections) == 10  # Eight modules, evidence, audit.
+    assert doc.meta.approvals == ()
+    assert "q1.mean" in cited_refs(doc)
+    assert doc.ledger.surface is ClaimSurface.INTERNAL
+    assert doc.sections[-1].appendix
+    assert not lint_docx(DocxRenderer().render(doc))
+
+    with pytest.raises(ReportCompositionRefused, match="unapproved internal"):
+        compose_internal_report(
+            run,
+            dataclasses.replace(
+                report_meta(first.method_status),
+                kind=ReportKind.CLIENT,
+                classification=Classification.CLIENT_CONFIDENTIAL,
+            ),
+        )
+    with pytest.raises(ReportCompositionRefused, match="method status"):
+        compose_internal_report(run, report_meta("holdout_validated"))
+
+    bad = dataclasses.replace(
+        run.modules[AnalysisModuleId.AUDIENCE].inputs, surface=ClaimSurface.CLIENT_FACING
+    )
+    modules = dict(run.modules)
+    modules[AnalysisModuleId.AUDIENCE] = dataclasses.replace(
+        modules[AnalysisModuleId.AUDIENCE], inputs=bad
+    )
+    with pytest.raises(ReportCompositionRefused, match="internal admission"):
+        compose_internal_report(
+            dataclasses.replace(run, modules=modules), report_meta(first.method_status)
+        )
+
+
+def report_meta(method_status: str) -> ReportMeta:
+    return ReportMeta(
+        kind=ReportKind.INTERNAL,
+        title="Interní analytický přehled",
+        subtitle="Syntetický výzkum",
+        client_name="Fiktivní klient",
+        study_name="Ranní nápoj",
+        study_id="STU-test",
+        issued_on=date(2026, 10, 1),
+        revision=1,
+        method_status=method_status,
+        classification=Classification.INTERNAL,
+    )
 
 
 def test_a_blocked_outcome_comes_back_with_its_violations_and_no_result(world: World) -> None:
