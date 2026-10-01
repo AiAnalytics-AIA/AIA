@@ -327,6 +327,20 @@ class ResearchAgentJobs:
             run_id, reason="researcher"
         )
 
+    def resume_runtime_park(self, run_id: str) -> bool:
+        """Reoffer this job after its unavailable runtime has been installed.
+
+        This keeps the frozen design and knowledge snapshot. The repository
+        refuses any attempt that dispatched a paid call, so it cannot become an
+        implicit second model request after an uncertain delivery.
+        """
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        run = self.get(run_id)
+        return WorkflowRepository(self.session, self.scope).resume_runtime_park(
+            str(run["steps"][0]["step_id"])
+        )
+
     def result(self, run_id: str, *, store: ArtifactStore) -> dict[str, Any]:
         run = self.get(run_id)
         if run["status"] is not WorkflowRunStatus.COMPLETED:

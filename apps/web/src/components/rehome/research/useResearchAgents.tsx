@@ -100,7 +100,12 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       const baseline = canonicalProject(content);
       const source = action === "analyze_brief" ? "brief" : action === "propose_audience" ? "audience" : action === "suggest_dimensions" ? "persona" : "questionnaire";
       const revision = await research.submitDesign(studyId, content, source); check(controller.signal);
-      const job = await researchAgents.start(studyId, revision.revision_id, action, String(payload.instruction || payload.popis || "")); check(controller.signal);
+      let job = await researchAgents.start(studyId, revision.revision_id, action, String(payload.instruction || payload.popis || "")); check(controller.signal);
+      // A repeated button press is an explicit request to continue a job that
+      // parked before any provider call while the runtime was unavailable.
+      if (job.status === "WAITING_PROVIDER" && job.steps.some((step) => step.waiting_reason === "ai_runtime_unavailable")) {
+        job = await researchAgents.resume(studyId, job.run_id); check(controller.signal);
+      }
       await refresh(); check(controller.signal);
       const finished = await followAgentJob(studyId, job.run_id, title, onUpdate, controller.signal);
       onUpdate(null);

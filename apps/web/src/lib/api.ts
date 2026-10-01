@@ -559,6 +559,7 @@ export const researchAgents = {
   },
   job: (studyId: string, jobId: string) => request<ResearchAgentJob>("GET", `${agentsPath(studyId)}/${enc(jobId)}`),
   cancel: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/cancel`),
+  resume: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/resume`),
   result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),
   accept: (studyId: string, jobId: string, revisionId: string) => request<DesignRevision>("POST", `${agentsPath(studyId)}/${enc(jobId)}/accept`, { expected_revision_id: revisionId }),
 };

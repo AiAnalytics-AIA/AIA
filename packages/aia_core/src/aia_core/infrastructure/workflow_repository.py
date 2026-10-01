@@ -70,6 +70,7 @@ from ..domain.workflow import (
     new_run_id,
     new_step_id,
     resume_due,
+    runtime_park_can_resume,
     validate_dag,
 )
 from .tables import (
@@ -91,6 +92,7 @@ __all__ = [
     "BudgetExceeded",
     "ClaimedWork",
     "LeaseLost",
+    "RuntimeParkNotResumable",
     "WorkQueue",
     "WorkflowNotFound",
     "WorkflowRepository",
@@ -157,6 +159,10 @@ class BudgetExceeded(RuntimeError):
         self.requested = requested
         self.remaining = remaining
         self.limit = limit
+
+
+class RuntimeParkNotResumable(ValueError):
+    """The step is not an unbilled park waiting for runtime activation."""
 
 
 class LeaseLost(RuntimeError):
@@ -1703,6 +1709,55 @@ class WorkflowRepository:
                 self._refresh_run(run_id)
             self._session.flush()
         return resumed
+
+    def resume_runtime_park(self, step_id: str) -> bool:
+        """Reoffer an unbilled runtime park after an explicit researcher action.
+
+        The Study scope and the run lock guard this transition. A repeated action
+        after the first has made the step runnable or claimed is a no-op; an
+        uncertain or already billed attempt can never enter through this path.
+        """
+        self.scope.require(Permission.RUN_WORKFLOW)
+        step = self._step(step_id)
+        self._lock_run_for(step)
+        if StepRunStatus(step.status) in (StepRunStatus.RUNNABLE, StepRunStatus.RUNNING):
+            return False
+        run = self._run(step.run_id)
+        self._session.refresh(run)
+        dispatched = bool(
+            self._session.scalar(
+                select(func.count())
+                .select_from(StepAttemptRow)
+                .where(
+                    StepAttemptRow.step_id == step_id,
+                    StepAttemptRow.paid_call_dispatched.is_(True),
+                )
+            )
+        )
+        if not runtime_park_can_resume(
+            StepRunStatus(step.status),
+            waiting_reason=step.waiting_reason,
+            paid_call_dispatched=dispatched,
+            cancel_requested=bool(run.cancel_requested or step.cancel_requested),
+            attempts_consumed=step.attempts_consumed,
+            max_attempts=step.max_attempts,
+        ):
+            raise RuntimeParkNotResumable("only an unbilled runtime park may be resumed")
+        step.status = StepRunStatus.RUNNABLE.value
+        step.waiting_reason = None
+        step.runnable_after = None
+        step.updated_at = utcnow()
+        self._event(
+            step.run_id,
+            event_type="STEP_RESUMED",
+            message=f"{step.node_key}: runtime enabled; offered after user action",
+            payload={"from": StepRunStatus.WAITING_PROVIDER.value, "actor_id": self.scope.actor_id},
+            step_id=step_id,
+        )
+        self._session.flush()
+        self._refresh_run(step.run_id)
+        self._session.flush()
+        return True
 
     # ------------------------------------------------------------ cancellation --
 
