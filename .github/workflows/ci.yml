@@ -217,6 +217,10 @@ jobs:
       - name: Domain tests on SQLite
         # The offline development path must keep working too. The worker's
         # process suite skips here by design: SQLite cannot express contention.
+        # Not on a pull request: it re-runs the whole suite a second time (about
+        # 3.7 of this job's 11.6 minutes), so a SQLite-only failure is found on
+        # the push to develop, before the deploy dispatch, not on the PR.
+        if: github.event_name != 'pull_request'
         env:
           DATABASE_URL: ""
         run: pytest packages/aia_core apps/api apps/worker apps/executors -q --junit-xml=tmp/junit/sqlite.xml -o junit_family=xunit1

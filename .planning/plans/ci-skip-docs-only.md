@@ -2,7 +2,8 @@
 status: in-progress
 chunks:
   - "[ ] 1. Skip the suites for a plans-and-ADRs-only pull request; run cheap documentation checks instead"
-  - "[ ] 2. Prove it on the next docs-only pull request, then widen or leave the list"
+  - "[ ] 2. Run the SQLite domain suite on pushes to main and develop, not on pull requests"
+  - "[ ] 3. Prove the docs-only skip on the next docs-only pull request, then widen or leave the list"
 ---
 # CI: do not run the suites for a change that cannot affect them
 
@@ -45,6 +46,23 @@ Linted with actionlint 1.7.12 (no findings) and the filter exercised against sev
 Not yet run on GitHub: the workflow cannot be tested without a push, and this change touches the
 workflow, so its own pull request runs the full suite once.
 
+## Chunk 2: SQLite off the pull request
+
+The Backend job runs the domain suite on PostgreSQL (2.3 min) and again on SQLite (3.7 min of the
+job's 11.6, `ci.yml` step "Domain tests on SQLite"). The SQLite step now runs only when the event is
+not a pull request. The deploy dispatch needs every job green on the push to `develop`, so a
+SQLite-only failure still blocks the deploy; it is found one merge later than before.
+
+`tools/parity_status.py` merges outcomes across the two runs and counts a pass on either as a pass
+(`parity_status.py:121-126`), so a missing `sqlite.xml` does not change a verdict. Not run on GitHub
+yet.
+
+Dropped from the earlier list of options: skipping the oracle and golden jobs when their secrets are
+absent. They are no-ops today (the reference checkout step is skipped even on `develop`, the oracle
+suite takes 6 seconds), but `parity-status` reads their JUnit files to report NOT_EXECUTED rather
+than a failure, so removing the jobs would change what that report says. About 2 minutes, not worth
+the risk.
+
 ## Trade-off accepted
 
 A docs-only change merges without the test suites. That is sound only while the list of paths
@@ -77,6 +95,9 @@ start and end times, not from a billing report.
   workflow logic, verified only by a run.
 
 ## Doc follow-up
+
+- `ARCHITECTURE.md` §8 (`ARCHITECTURE.md:463`) lists "pytest -- core + API, on PostgreSQL and on
+  SQLite" as blocking. After chunk 2 it blocks the deploy, not the pull request.
 
 - `CLAUDE.md` §3 or `ARCHITECTURE.md` §8 (CI tiers): one line saying a pull request that changes
   only `.planning/` and `docs/architecture/adr/` runs `Documentation checks` instead of the suites,
