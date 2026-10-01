@@ -120,6 +120,14 @@ that demands independent review can turn it back on.
   `test_the_execution_role_does_the_work_and_never_approves_it` fails. Tests that now guard it:
   that test, plus `test_worker_permissions_are_a_strict_subset_that_withholds_approval` and
   `test_a_worker_scope_cannot_accept_a_gate_or_change_the_budget` in `test_scope_isolation.py`.
+- **A CI-only script still named a removed role.** The `Application starts` job provisions its world
+  with `ScopeRole.LEAD` inline in `.github/workflows/ci.yml:622 @ 413f72d`, and `create_study`
+  answered `role="LEAD"` (`routers/scope.py:471 @ 413f72d`). Neither is reached by `make test`, so
+  the local run was green and the job went red on the PR (run 36869120448). Reproduction: the
+  workflow's own provisioning snippet against PostgreSQL raises `AttributeError: LEAD`. Fix: both
+  use `RESEARCHER`; `test_a_study_created_by_an_administrator_reports_the_one_role` fails on the old
+  response. Reproduced and passed locally (migrate, boot, provision, project lifecycle over HTTP,
+  worker start and stop) before the fix was pushed.
 - **Stored roles.** The grant tables' CHECK constraints still allow `VIEWER/REVIEWER/LEAD`
   (`tables.py:565, :588`). Rows are read with `ScopeRole.from_stored`, which maps the retired values
   to `RESEARCHER`; the grant API accepts the old names. No migration in this chunk; chunk 6 drops

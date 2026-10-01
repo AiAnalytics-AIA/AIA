@@ -619,7 +619,7 @@ jobs:
               )
               resolver.grant_client_access(
                   admin, client_id=client.client_id, user_id=owner.user_id,
-                  role=ScopeRole.LEAD,
+                  role=ScopeRole.RESEARCHER,
               )
               s.commit()
               print(f"export STUDY_ID={study.study_id}")

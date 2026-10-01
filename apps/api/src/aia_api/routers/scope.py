@@ -468,7 +468,7 @@ def create_study(
         ) from exc
 
     response.headers["Location"] = f"/api/v1/studies/{study.study_id}"
-    return _study_response(study, role="LEAD", include_costs=True)
+    return _study_response(study, role=ScopeRole.RESEARCHER.value, include_costs=True)
 
 
 @router.get("/studies/{study_id}", response_model=StudyResponse, summary="Get a study")
