@@ -5,7 +5,7 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t } from "@/i18n/t";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -377,6 +377,66 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.exec.noResultsParked"))).toBeTruthy();
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts")).toHaveLength(0);
+  });
+
+  it("shows the internal draft from the completed report step and downloads it with authentication", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
+        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
+      })],
+    });
+    const documentBytes = new Blob(["docx bytes"], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    const createObjectURL = vi.fn(() => "blob:report");
+    const revokeObjectURL = vi.fn();
+    const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+    const click = vi.fn();
+    HTMLAnchorElement.prototype.click = click;
+    onTestFinished(() => {
+      URL.createObjectURL = real.create;
+      URL.revokeObjectURL = real.revoke;
+      HTMLAnchorElement.prototype.click = real.click;
+    });
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true,
+      }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
+        new Response(documentBytes, { status: 200 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
+    expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
+    expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.results.reportDownload") }));
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
+    expect(click).toHaveBeenCalledOnce();
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
+  });
+
+  it("explains why a report could not be made when analysis was refused", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      status: "FAILED", phase: "FAILED",
+      steps: [...COMPLETED.steps, step("report", "FAILED", { kind: "research_report", stage_type: "REPORT" })],
+    });
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "FAILED", internal_only: true, reason: "report_inputs_refused",
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.results.reportInputsRefused"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownload") })).toBeNull();
   });
 
   it("leaves the Sociomap out for a person the API refuses it to", async () => {
