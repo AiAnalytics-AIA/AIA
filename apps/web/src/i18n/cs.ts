@@ -895,6 +895,12 @@ export const cs = {
       finishedAt: "Dokončeno {when}",
       attempts: "Pokus {n} z {max}",
       parked: "Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení. Další kroky se nespustí. Zkontrolujte důvod u kroku sběru dat.",
+      parkedAt: "Běh čeká u kroku „{step}“: AI model pro tento krok není dostupný nebo povolený. Další kroky se nespustí. Důvod je uvedený u kroku.",
+      wait: {
+        budget_exceeded: "Krok čeká, protože by překročil rozpočet studie.",
+        provider_quota_exhausted: "Krok čeká, protože poskytovatel modelu vyčerpal kvótu. Pokračuje po jejím obnovení.",
+        approval_required: "Krok čeká na rozhodnutí člověka.",
+      },
       failed: "Běh selhal u kroku „{step}“.",
       cancel: "Zrušit běh",
       cancelConfirm: "Opravdu zrušit tento běh? Hotové kroky zůstanou uložené.",

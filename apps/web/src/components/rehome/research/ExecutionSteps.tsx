@@ -28,6 +28,7 @@ import {
   ANALYSIS_ORDER,
   isSynthetic,
   parkedForRuntime,
+  waitingDetail,
   phaseLabel,
   phaseTone,
   resultTable,
@@ -296,7 +297,11 @@ export function ProgressStep() {
           {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
           {run.retry_of ? <span className="text-xs text-ink-muted">{tv("research.exec.retryOf", { run: run.retry_of })}</span> : null}
         </div>
-        {parked ? <p role="status" className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.parked")}</p> : null}
+        {parked ? (
+          <p role="status" className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+            {parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}
+          </p>
+        ) : null}
         {failed ? (
           <p role="alert" className="mt-3 text-sm text-status-fault">
             {tv("research.exec.failed", { step: stepLabel(failed.node_key) })} {failed.error_message ?? ""}
@@ -318,6 +323,7 @@ export function ProgressStep() {
                 {s.finished_at ? ` · ${tv("research.exec.finishedAt", { when: when(s.finished_at) })}` : null}
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
+              {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
             </li>
           ))}
         </ol>

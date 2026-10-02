@@ -2,8 +2,8 @@
 // execution stages share, without React.
 import { describe, expect, it } from "vitest";
 
-import type { ResearchRun } from "@/lib/api";
-import { isSynthetic, parkedForRuntime, phaseTone, resultTable, shouldPoll, stepLabel, supportNote } from "./research-execution";
+import type { ResearchRun, ResearchStep } from "@/lib/api";
+import { isSynthetic, parkedForRuntime, phaseTone, resultTable, shouldPoll, stepLabel, supportNote, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -47,5 +47,27 @@ describe("research execution", () => {
     expect(isSynthetic(run({ steps: [step("SYNTHETIC_AI_FICTIONAL")] }))).toBe(true);
     expect(isSynthetic(run({ steps: [step(null)] }))).toBe(false);
     expect(isSynthetic(run({ steps: [step("SOMETHING_ELSE")] }))).toBe(false);
+  });
+});
+
+
+describe("waitingDetail", () => {
+  const base = { node_key: "run", kind: "k", stage_type: "FIELDWORK", status: "WAITING_PROVIDER", waiting_reason: null, attempts_recorded: 1,
+    max_attempts: 3, started_at: null, finished_at: null, failure_class: null, error_message: null, artifact_id: null, data_origin: null } as ResearchStep;
+
+  it("prefers what the step recorded over a generic line", () => {
+    expect(waitingDetail({ ...base, waiting_reason: "budget_exceeded", error_message: "Přesný důvod." })).toBe("Přesný důvod.");
+  });
+
+  it("tells budget, quota and decisions apart", () => {
+    expect(waitingDetail({ ...base, status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded" })).toMatch(/rozpočet/);
+    expect(waitingDetail({ ...base, waiting_reason: "provider_quota_exhausted" })).toMatch(/kvótu/);
+    expect(waitingDetail({ ...base, status: "AWAITING_GATE", waiting_reason: "gate:design" })).toMatch(/rozhodnutí/);
+  });
+
+  it("says nothing for a step that is not waiting, and guesses nothing for a reason it does not know", () => {
+    expect(waitingDetail({ ...base, status: "SUCCEEDED", error_message: "stará chyba" })).toBeNull();
+    expect(waitingDetail({ ...base, status: "FAILED", error_message: "x" })).toBeNull();
+    expect(waitingDetail({ ...base, waiting_reason: "something_new" })).toBeNull();
   });
 });
