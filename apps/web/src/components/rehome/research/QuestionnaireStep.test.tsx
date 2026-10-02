@@ -240,16 +240,14 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
     await approveProposal();
-    await approveProposal();
     expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" }, { timeout: 4000 })).toBeTruthy();
     expect(posted("/api/research/analyze")).toEqual([]);
-    expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["analyze_brief", "build_questionnaire"]);
+    expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["build_questionnaire"]);
     expect(posted("/api/research/build_questionnaire")).toEqual([]);
   });
 
   it("parks the build at the native runtime boundary", async () => {
-    const sig = briefFingerprint(defaultsMerge(BRIEF, TEMPLATE));
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig }, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, null, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
     expect(await screen.findByText(PARK_MESSAGE, {}, NATIVE_JOB_WAIT)).toBeTruthy();

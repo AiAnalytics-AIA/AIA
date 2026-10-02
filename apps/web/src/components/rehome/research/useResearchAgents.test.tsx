@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { research, researchAgents, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
 import type { JobUpdate } from "@/research/jobs";
 import type { ResearchStore } from "@/research/store";
+import { briefFingerprint } from "@/research/model";
 import { canonicalProject, useResearchAgents } from "./useResearchAgents";
 
 vi.mock("@/lib/api", () => ({
@@ -21,6 +22,7 @@ const result: ResearchAgentResult = {
   provenance: { agent_id: "research", design_revision_id: "REV-1", context_sha256: "hash", status: "PROPOSED" },
 };
 let project: Record<string, unknown>;
+let analysis: Record<string, unknown> | null;
 let store: ResearchStore;
 let flush: ReturnType<typeof vi.fn>;
 let onUpdate = vi.fn<(u: JobUpdate | null) => void>();
@@ -39,9 +41,11 @@ beforeEach(() => {
   vi.resetAllMocks();
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
-  project = { goal: "Original" }; flush = vi.fn().mockResolvedValue(undefined); onUpdate = vi.fn(); running = null;
-  store = { get: () => ({ project }), flush,
-    update: (fn: (state: { project: Record<string, unknown> }) => { project: Record<string, unknown> }) => { project = fn({ project }).project; },
+  project = { goal: "Original" }; analysis = null; flush = vi.fn().mockResolvedValue(undefined); onUpdate = vi.fn(); running = null;
+  store = { get: () => ({ project, analysis }), flush,
+    update: (fn: (state: { project: Record<string, unknown>; analysis: Record<string, unknown> | null }) => { project: Record<string, unknown>; analysis?: Record<string, unknown> }) => {
+      const next = fn({ project, analysis }); project = next.project; analysis = next.analysis ?? analysis;
+    },
   } as unknown as ResearchStore;
   vi.mocked(research.submitDesign).mockResolvedValue({ revision_id: "REV-1" } as Awaited<ReturnType<typeof research.submitDesign>>);
   vi.mocked(researchAgents.jobs).mockResolvedValue([]);
@@ -63,6 +67,7 @@ it("freezes a Study revision, follows the job, and writes nothing until review",
   fireEvent.click(screen.getByText("Použít návrh"));
   await waitFor(() => expect(project.title).toBe("Proposed"));
   expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
+  expect(analysis).toMatchObject({ objectives: ["A"], _brief_signature: briefFingerprint(project as Parameters<typeof briefFingerprint>[0]) });
 });
 it("a second click resumes the same unbilled runtime park without editing the brief", async () => {
   vi.mocked(researchAgents.start).mockResolvedValue({

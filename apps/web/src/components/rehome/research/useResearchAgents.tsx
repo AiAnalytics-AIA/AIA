@@ -4,6 +4,7 @@ import { research, researchAgents, type ResearchAgentAction, type ResearchAgentJ
 import { followAgentJob } from "@/lib/research-agent-jobs";
 import { JobError, type JobUpdate } from "@/research/jobs";
 import type { ResearchProject } from "@/research/model";
+import { briefFingerprint } from "@/research/model";
 import type { Analysis, ResearchStore } from "@/research/store";
 import { AgentProposalDialog } from "./AgentProposalDialog";
 
@@ -72,8 +73,10 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     if (!approved) throw new JobError("Návrh je uložený, současný návrh jste ponechali.", "cancelled", job.run_id);
     if (canonicalProject(store.get().project) !== baseline) throw new JobError("Zadání se během AI kroku změnilo. Návrh je uložený; nejprve porovnejte změny.", "error", job.run_id);
     await researchAgents.accept(studyId, job.run_id, job.design_revision_id); check(signal);
-    store.update(() => ({ project: result.result.project as ResearchProject,
-      ...(result.result.analysis ? { analysis: result.result.analysis as Analysis } : {}) }), { reason: "native_ai_proposal_accepted" });
+    const project = result.result.project as ResearchProject;
+    const analysis = result.result.analysis as Analysis | undefined;
+    store.update(() => ({ project,
+      ...(analysis ? { analysis: { ...analysis, _brief_signature: briefFingerprint(project) } } : {}) }), { reason: "native_ai_proposal_accepted" });
     try { await store.flush(); }
     catch {
       throw new JobError("Schválená revize je uložená v AIA, ale pracovní kopii se nepodařilo uložit. Opakujte uložení; AI krok nespouštějte znovu.", "error", job.run_id);
