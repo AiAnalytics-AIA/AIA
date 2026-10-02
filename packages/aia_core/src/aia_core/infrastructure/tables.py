@@ -1565,6 +1565,13 @@ class PromptVersionRow(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
+    # The author's recorded declaration that this text holds no client data (ADR 0020
+    # decision 8): the class they declared, who, and when. NULL on a version saved before
+    # declarations existed -- "no declaration", never "declared" -- so such a version has no
+    # class until an operator gives it one.
+    declared_class: Mapped[str | None] = mapped_column(String(64))
+    declared_by: Mapped[str | None] = mapped_column(String(64))
+    declared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         UniqueConstraint(

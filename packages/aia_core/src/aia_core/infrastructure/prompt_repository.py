@@ -40,6 +40,7 @@ from sqlalchemy.orm import Session
 
 from aia_core.domain.prompt_slots import PromptSlot, get_slot, slots
 from aia_core.domain.prompts import (
+    DECLARED_CLASS,
     PromptPin,
     PromptRejected,
     prompt_sha256,
@@ -57,6 +58,7 @@ from .tables import (
     PromptActivationRow,
     PromptVersionRow,
     as_utc,
+    utcnow,
 )
 
 __all__ = [
@@ -87,6 +89,11 @@ class StoredVersion:
     note: str
     created_by: str
     created_at: datetime
+    #: The author's recorded declaration ("this text holds no client data"); None on a
+    #: version saved before declarations existed, which has no class until an operator gives it one.
+    declared_class: str | None
+    declared_by: str | None
+    declared_at: datetime | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +128,9 @@ def _version(row: PromptVersionRow) -> StoredVersion:
         note=row.note,
         created_by=row.created_by,
         created_at=as_utc(row.created_at),
+        declared_class=row.declared_class,
+        declared_by=row.declared_by,
+        declared_at=None if row.declared_at is None else as_utc(row.declared_at),
     )
 
 
@@ -193,6 +203,19 @@ def _state(
     )
 
 
+def _stored_pin(prompt_id: str, label: str, row: PromptVersionRow) -> PromptPin:
+    """A stored version as a job will carry it: its text and the declaration saved with it."""
+    declared = row.declared_class == DECLARED_CLASS and row.declared_by is not None
+    return PromptPin.of(
+        prompt_id=prompt_id,
+        version=label,
+        origin="stored",
+        text=row.text,
+        declared_class=DECLARED_CLASS if declared else None,
+        declared_by=row.declared_by if declared else None,
+    )
+
+
 def _wired_slot(prompt_id: str) -> PromptSlot:
     slot = get_slot(prompt_id)
     if slot is None:
@@ -222,12 +245,7 @@ class PromptResolver:
         state, row = _state(self._session, self._organization_id, slot)
         if row is None:
             return slot.baseline_pin()
-        return PromptPin.of(
-            prompt_id=slot.prompt_id,
-            version=state.label,
-            origin="stored",
-            text=row.text,
-        )
+        return _stored_pin(slot.prompt_id, state.label, row)
 
     def pin_for_version(self, prompt_id: str, version_number: int) -> PromptPin:
         """A specific stored version, active or not -- for testing a draft (ADR 0020)."""
@@ -241,12 +259,7 @@ class PromptResolver:
         )
         if row is None:
             raise PromptRefused("no such version", reason="unknown_version")
-        return PromptPin.of(
-            prompt_id=slot.prompt_id,
-            version=stored_version_label(row.version_number),
-            origin="stored",
-            text=row.text,
-        )
+        return _stored_pin(slot.prompt_id, stored_version_label(row.version_number), row)
 
 
 class PromptRepository:
@@ -336,9 +349,28 @@ class PromptRepository:
     # --------------------------------------------------------------- writes --
 
     def create_version(
-        self, prompt_id: str, text: str, *, note: str = "", based_on: str | None = None
+        self,
+        prompt_id: str,
+        text: str,
+        *,
+        declares_no_client_data: bool,
+        note: str = "",
+        based_on: str | None = None,
     ) -> StoredVersion:
-        """Store an edit as the next version. It does not run until it is activated."""
+        """Store an edit as the next version. It does not run until it is activated.
+
+        Saving is also the author's declaration that the text holds no client data (ADR 0020
+        decision 8). It is explicit -- the caller must say so, and there is no default -- and it
+        is stored with the version (who, when, which class) and in the audit row. That
+        declaration is what classifies the version automatically; without it the version could
+        not be sent at all.
+        """
+        if declares_no_client_data is not True:
+            raise PromptRefused(
+                "saving a prompt declares that it holds no client data; "
+                "the declaration is required",
+                reason="declaration_required",
+            )
         slot = _wired_slot(prompt_id)
         try:
             cleaned = slot.check(text)
@@ -366,6 +398,9 @@ class PromptRepository:
             based_on=based_on or "baseline",
             note=note.strip(),
             created_by=self._admin.actor_id,
+            declared_class=DECLARED_CLASS,
+            declared_by=self._admin.actor_id,
+            declared_at=utcnow(),
         )
         try:
             with self._session.begin_nested():
@@ -385,6 +420,7 @@ class PromptRepository:
                 "version": stored_version_label(number),
                 "text_sha256": row.text_sha256,
                 "based_on": row.based_on,
+                "declared_class": DECLARED_CLASS,
             },
         )
         return _version(row)

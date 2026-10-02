@@ -264,7 +264,7 @@ two-role fixtures kept the labels the tests use.
   (pasted client material is not sent as Class C; one changed character voids the approval; an approval as
   Class A raises the request) and through the real worker and gateway (an unclassified prompt, and one with
   client material, park and send nothing; an approved one travels and records how it was classified).
-  Trade-off: **an operator step per edit.** The alternative, an author attestation, is the owner's call (ADR 0020).
+  Trade-off: an operator step per edit. **Superseded by the owner's decision below.**
 - **P1, drafts on real clients.** Confirmed: the picker offered every research study and the API accepted
   `prompt_version` for any. Now `ResearchAgentJobs` takes the deployment's fictional list and refuses a draft
   on any other client (409 `prompt_test_requires_fictional_client`); the API reads `AIA_AI_FICTIONAL_CLIENT_IDS`
@@ -275,3 +275,21 @@ two-role fixtures kept the labels the tests use.
 Doc follow-up added: `deploy/develop/env.example` already documents `AIA_AI_FICTIONAL_CLIENT_IDS`; its note
 should say the API reads it too. `AGENTS.md`: "a prompt is material: anything sent as a system message is
 classified like any other text".
+
+## Automatic versioning by declaration (2026-10-02, owner decision)
+
+The owner rejected the operator step per edit: "let's version them automatically". Now every save is a new
+version carrying the author's recorded declaration that the text holds no client data (`declared_class`,
+`declared_by`, `declared_at`; migration `b3e8f1a47c60`, nullable columns). The API requires
+`declares_no_client_data` (422 `declaration_required` otherwise). `prompt_data_class` takes the strictest of the
+declaration and any operator classification, so an operator can only tighten; a version without a declaration
+(legacy rows) stays unclassified and parks until an operator classifies it. Provenance records the source
+(`code` / `declaration` / `operator` / `declaration+operator`). The page says the declaration is made on save
+and shows who declared each version. Tests: domain (declared sent, undeclared None, operator stricter wins, pin
+validation), repository (recorded, refused without, legacy NULL), executor through the real worker and gateway
+(no operator step; legacy parks; operator can classify legacy; operator A beats a declaration), API, and page.
+Trade-off: a prompt's class rests on a trusted, recorded statement rather than an independent check.
+
+Doc follow-up: ADR 0020 decision 8 rewritten here (the ADR is part of this feature). `research-agents.md`: the
+provenance `material_classification.prompt` fields. `AGENTS.md`: a stored prompt is classified by declaration at
+save, tightened only by the operator.

@@ -14,7 +14,10 @@ BUILD = "aia.research.build_questionnaire"
 
 
 def _save(owner: TestClient, text: str = "Zkritizuj návrh.", prompt: str = CRITIQUE) -> Any:
-    return owner.post(f"{PROMPTS}/{prompt}/versions", json={"text": text, "note": "test"})
+    return owner.post(
+        f"{PROMPTS}/{prompt}/versions",
+        json={"text": text, "note": "test", "declares_no_client_data": True},
+    )
 
 
 # ------------------------------------------------------------------ who may
@@ -29,7 +32,8 @@ def test_a_member_cannot_read_or_change_prompts(who: str, as_user: Any) -> None:
     member: TestClient = as_user(who)
     assert member.get(PROMPTS).status_code == 403
     assert member.get(f"{PROMPTS}/{CRITIQUE}").status_code == 403
-    assert member.post(f"{PROMPTS}/{CRITIQUE}/versions", json={"text": "x"}).status_code == 403
+    valid = {"text": "x", "declares_no_client_data": True}  # so the role, not the body, decides
+    assert member.post(f"{PROMPTS}/{CRITIQUE}/versions", json=valid).status_code == 403
     assert (
         member.put(f"{PROMPTS}/{CRITIQUE}/active", json={"version_number": None}).status_code == 403
     )
@@ -270,3 +274,28 @@ def test_the_detail_tells_the_page_where_a_draft_may_be_tried_and_what_to_classi
     version = detail["versions"][0]
     assert version["material_sha256"] == material_sha256("Zkritizuj návrh.")
     assert version["material_sha256"] != saved["text_sha256"]
+
+
+# ------------------------------------------------------------------ the author's declaration
+
+
+def test_saving_records_who_declared_the_text_holds_no_client_data(owner: TestClient) -> None:
+    saved = _save(owner).json()
+    assert saved["declared_class"] == "CLASS_C_INTERNAL"
+    assert saved["declared_by"] and saved["declared_at"]
+    listed = owner.get(f"{PROMPTS}/{CRITIQUE}").json()["versions"][0]
+    assert (listed["declared_class"], listed["declared_by"]) == (
+        "CLASS_C_INTERNAL",
+        saved["declared_by"],
+    )
+
+
+def test_a_save_that_does_not_declare_is_refused(owner: TestClient) -> None:
+    said_no = owner.post(
+        f"{PROMPTS}/{CRITIQUE}/versions", json={"text": "Moje.", "declares_no_client_data": False}
+    )
+    assert said_no.status_code == 422 and said_no.json()["code"] == "declaration_required"
+    # Omitting the field is not a quiet default for "yes": the request is invalid.
+    omitted = owner.post(f"{PROMPTS}/{CRITIQUE}/versions", json={"text": "Moje."})
+    assert omitted.status_code == 422
+    assert owner.get(f"{PROMPTS}/{CRITIQUE}").json()["versions"] == []
