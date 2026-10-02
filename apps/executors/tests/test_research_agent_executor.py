@@ -9,14 +9,18 @@ import pytest
 from aia_core.application.research import ResearchAgentJobs
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
-from aia_core.domain.research_agents import ResearchAction
+from aia_core.domain.prompts import PromptPin
+from aia_core.domain.research_agents import FIXED_PREFIX, ResearchAction, prompt_for
 from aia_core.domain.residency import DataClass
 from aia_core.domain.workflow import WorkflowRunStatus
+from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
 from aia_core.infrastructure.model_adapters.transport import (
     HttpRequest,
     HttpResponse,
     TransportFailure,
 )
+from aia_core.infrastructure.prompt_repository import PromptRepository
+from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.registry import registry_for
@@ -335,3 +339,117 @@ def test_identical_model_context_does_not_reuse_a_different_revision_baseline(
             != second_result["provenance"]["design_revision_id"]
         )
         assert second_result["result"]["project"]["provider"] == "historical-selection"
+
+
+# --------------------------------------------------------------- prompts as data (ADR 0019)
+
+CUSTOM_TASK = "Analyzuj zadání stručně a pouze z dodaných podkladů."
+
+
+def put_live(world: Any, prompt_id: str, text: str) -> None:
+    """An administrator stores an edit and puts it live (one person: self-approval on)."""
+    with world.sessions() as session:
+        admin = world.admin_context(session)
+        ScopeRepository(session).set_self_approval(admin, allowed=True)
+        repo = PromptRepository(session, admin)
+        version = repo.create_version(prompt_id, text)
+        repo.activate(prompt_id, version.version_number, reason="test")
+        session.commit()
+
+
+def system_sent(transport: RecordedBedrock) -> str:
+    return str(transport.requests[0].body["system"][0]["text"])
+
+
+def test_an_active_edit_is_what_the_model_is_sent_and_what_the_record_names(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)
+    run_id = start(world)
+    transport = RecordedBedrock()
+    assert worker(world, database_url, store, build, transport).run_once()
+
+    # The code's rails stay in front of whatever the edit says.
+    assert system_sent(transport) == FIXED_PREFIX + CUSTOM_TASK
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        jobs = ResearchAgentJobs(session, scope)
+        assert jobs.get(run_id)["status"] is WorkflowRunStatus.COMPLETED
+        provenance = jobs.result(run_id, store=store)["provenance"]
+        assert (provenance["prompt_version"], provenance["prompt_origin"]) == ("e1", "stored")
+        events = AIUsageRepository(session, scope).events(run_id=run_id)
+    assert {e.prompt_version for e in events} == {"e1"}
+    import hashlib
+
+    expected = hashlib.sha256(system_sent(transport).encode()).hexdigest()
+    assert {e.system_prompt_sha256 for e in events} == {expected}
+    assert provenance["prompt_sha256"] == expected
+
+
+def test_without_an_edit_the_model_is_sent_exactly_what_it_always_was(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    run_id = start(world)
+    transport = RecordedBedrock()
+    assert worker(world, database_url, store, build, transport).run_once()
+    assert system_sent(transport) == prompt_for(ResearchAction.ANALYZE)
+    with world.sessions() as session:
+        provenance = ResearchAgentJobs(session, world.lead_scope(session)).result(
+            run_id, store=store
+        )["provenance"]
+    assert (provenance["prompt_version"], provenance["prompt_origin"]) == ("1", "baseline")
+
+
+def test_a_queued_job_keeps_the_prompt_it_was_queued_with(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    run_id = start(world)  # queued while the code's wording is active
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)  # an edit goes live afterwards
+    transport = RecordedBedrock()
+    assert worker(world, database_url, store, build, transport).run_once()
+    assert system_sent(transport) == prompt_for(ResearchAction.ANALYZE)
+    with world.sessions() as session:
+        job = ResearchAgentJobs(session, world.lead_scope(session)).get(run_id)
+    assert job["metadata"]["prompt_origin"] == "baseline"
+    # The next job picks up the edit.
+    # The same design, queued again: the changed prompt makes it a different job.
+    second_id = start(world)
+    assert second_id != run_id
+    transport2 = RecordedBedrock()
+    assert worker(world, database_url, store, build, transport2).run_once()
+    assert system_sent(transport2) == FIXED_PREFIX + CUSTOM_TASK
+
+
+def test_a_draft_runs_only_when_an_administrator_asks_for_it(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    with world.sessions() as session:
+        admin = world.admin_context(session)
+        PromptRepository(session, admin).create_version("aia.research.analyze_brief", CUSTOM_TASK)
+        revision, _ = StudyDesignRepository(session, world.lead_scope(session)).submit(
+            content=DESIGN, source_stage="brief"
+        )
+        lead_jobs = ResearchAgentJobs(session, world.lead_scope(session))
+        with pytest.raises(DesignRejected) as refused:
+            lead_jobs.start(
+                design_revision_id=revision.revision_id,
+                action=ResearchAction.ANALYZE,
+                prompt_version=1,
+            )
+        assert refused.value.reason == "prompt_test_requires_administrator"
+        session.rollback()
+
+
+def test_a_job_whose_pin_was_altered_or_misplaced_is_refused_not_guessed() -> None:
+    from aia_executors.research_agents import _pin_of
+
+    analyze = ResearchAction.ANALYZE
+    assert _pin_of({}, analyze).origin == "baseline"  # queued before prompts were data
+    good = PromptPin.of(
+        prompt_id="aia.research.analyze_brief", version="e1", origin="stored", text="a"
+    )
+    assert _pin_of({"prompt": good.model_dump()}, analyze) == good
+    with pytest.raises(ValueError):
+        _pin_of({"prompt": {**good.model_dump(), "text": "b"}}, analyze)  # hash mismatch
+    with pytest.raises(ValueError):
+        _pin_of({"prompt": good.model_dump()}, ResearchAction.CRITIQUE)  # another action's
