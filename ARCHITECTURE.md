@@ -117,7 +117,7 @@ Run it before every commit. It is blocking in CI.
 | the API never builds or invokes the model gateway or an adapter | A model call inside a request: no lease, no reservation, no heartbeat, no recovery |
 | only the AI runtime composition (`aia_executors/ai_runtime.py`) builds the Bedrock adapter | A route nobody configured, built from values nobody validated |
 | only the work queue may query across studies | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
-| Client Knowledge rows are reached only through `ClientKnowledgeRepository` (never by the API, the worker or the executors) | Knowledge read from a global pool and filtered afterwards, or changed without an approved proposal and a revision (ADR 0015) |
+| Client Knowledge rows are reached only through `ClientKnowledgeRepository` (never by the API, the worker or the executors) | Knowledge read from a global pool and filtered afterwards, or changed without a person's write or an accepted proposal, and a revision (ADR 0015, 0019) |
 | runtime populations are issued only by the canonical loader (and never by the API) | A second loader returning different population semantics from the same bytes (reference F10, R4) |
 | population panels are parsed only by the canonical loader (and never by the API) | The first step of that second loader: a consumer reading the panel itself |
 | population-operator grants are issued only by the population authority (and never by the API) | A study context, an organization owner or a request body moving LIVE for every tenant (OI-8) |
@@ -169,8 +169,8 @@ confirm it passes before committing.
   refuse anything that is not an issued context, by type. This is the isolation
   boundary; see [scope-and-authorization.md](docs/architecture/scope-and-authorization.md).
   Client Knowledge is read only inside such a context -- never a global pool
-  filtered afterwards -- and changes only when a proposal is approved, which writes
-  a new revision ([ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).
+  filtered afterwards -- and changes only by a person's own write or when a study's
+  proposal is accepted, either of which writes a new revision ([ADR 0019](docs/architecture/adr/0019-two-roles-and-human-ai-gates.md), [ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).
 - **A research study's working content is AIA's, found only through the Study**
   ([ADR 0018](docs/architecture/adr/0018-aia-runs-without-18-6-6.md), OI-58).
   `StudyWorkspaceRepository` keeps it in the Study's owned working project
