@@ -22,7 +22,7 @@ from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
-from aia_core.infrastructure.tables import ProjectRow
+from aia_core.infrastructure.tables import ProjectRow, StudyRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from aia_worker.settings import WorkerSettings
@@ -671,3 +671,98 @@ def test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409(
     assert refused.json()["code"] == "artifact_corrupt"
     assert artifact_status(spec_id) == "CORRUPT"
     assert researcher.get(url).status_code == 409
+
+
+# --------------------------------------------------------------------------- #
+# Lifting a budget wait (plan 5b.1)
+# --------------------------------------------------------------------------- #
+
+
+def _park_first_step_on_budget(app: FastAPI, world: Any, who: str = "researcher") -> str:
+    """Claim the run's first step as a worker would, and stop it at the budget cap."""
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users[who], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        claimed = workflow.claim_next(worker_id="budget-fixture")
+        assert claimed is not None
+        workflow.fail_attempt(
+            claimed.attempt_id, worker_id="budget-fixture", failure=FailureClass.BUDGET_EXCEEDED
+        )
+        session.commit()
+        return str(claimed.node_key)
+
+
+def _study_budget(app: FastAPI, world: Any) -> float:
+    with create_session_factory(app.state.engine)() as session:
+        return float(
+            session.scalar(select(StudyRow.budget_usd).where(StudyRow.study_id == world.study_id()))
+        )
+
+
+def test_a_budget_wait_is_lifted_through_its_study_run_and_the_run_goes_on(
+    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """The dead end: the Progress page explained the wait and offered no way out."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    node = _park_first_step_on_budget(app, world)
+    before = _study_budget(app, world)
+    waiting = researcher.get(f"{_runs(world)}/{run_id}").json()
+    assert waiting["phase"] == "WAITING"
+    assert next(s for s in waiting["steps"] if s["node_key"] == node)["status"] == "AWAITING_BUDGET"
+
+    url = f"{_runs(world)}/{run_id}/steps/{node}/budget"
+    lifted = viewer.post(url, json={"budget_usd": before + 250.0, "note": "Klient souhlasil"})
+    assert lifted.status_code == 200, lifted.text
+    body = lifted.json()
+    assert body["phase"] != "WAITING"
+    assert next(s for s in body["steps"] if s["node_key"] == node)["status"] == "RUNNABLE"
+    assert _study_budget(app, world) == before + 250.0
+
+    # A second lift finds nothing waiting; it neither errors the run nor moves the budget.
+    again = researcher.post(url, json={"budget_usd": before + 900.0})
+    assert again.status_code == 409 and again.json()["code"] == "not_waiting_for_budget"
+    assert _study_budget(app, world) == before + 250.0
+
+
+def test_a_budget_lift_that_is_refused_changes_nothing(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    node = _park_first_step_on_budget(app, world)
+    before = _study_budget(app, world)
+    url = f"{_runs(world)}/{run_id}/steps/{node}/budget"
+
+    lower = researcher.post(url, json={"budget_usd": before - 1.0})
+    assert lower.status_code == 422 and lower.json()["code"] == "budget_not_raised"
+    unknown = researcher.post(
+        f"{_runs(world)}/{run_id}/steps/nope/budget", json={"budget_usd": before + 1.0}
+    )
+    assert unknown.status_code == 404
+    # Under another study's path the run is not there to lift, whoever asks.
+    elsewhere = other_client_lead.post(
+        f"{_runs(world, 'other_client')}/{run_id}/steps/{node}/budget",
+        json={"budget_usd": before + 1.0},
+    )
+    assert elsewhere.status_code == 404
+    for body in ({}, {"budget_usd": -5.0}, {"budget_usd": 10.0, "extra": 1}):
+        assert researcher.post(url, json=body).status_code == 422
+    assert _study_budget(app, world) == before
+    step = next(
+        s
+        for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]
+        if s["node_key"] == node
+    )
+    assert step["status"] == "AWAITING_BUDGET"
+
+
+def test_lifting_a_budget_wait_needs_a_signed_in_member(client: TestClient, world: Any) -> None:
+    url = f"{_runs(world)}/RUN-0a1b2c/steps/run/budget"
+    assert client.post(url, json={"budget_usd": 10.0}).status_code == 401

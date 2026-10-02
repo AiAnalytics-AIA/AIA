@@ -14,10 +14,12 @@ from typing import Any
 import pytest
 
 from aia_core.application.research import (
+    BudgetNotRaised,
     ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
+    ResearchStepNotFound,
 )
 from aia_core.application.workflows import start_workflow
 from aia_core.domain.design import DESIGN_PROJECT_OWNER
@@ -49,7 +51,10 @@ from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
 )
-from aia_core.infrastructure.workflow_repository import WorkflowRepository
+from aia_core.infrastructure.workflow_repository import (
+    BudgetWaitNotLiftable,
+    WorkflowRepository,
+)
 
 DESIGN = {
     "title": "Ranní nápoj",
@@ -416,3 +421,103 @@ def test_fieldwork_without_a_runtime_parks_the_run_and_nothing_downstream_runs(
     far = datetime.now(UTC) + timedelta(days=365)
     assert engine.resume_waiting_steps(now=far, capacity_backoff_seconds=0) == []
     assert engine.claim_next(worker_id="w") is None
+
+
+# --------------------------------------------------------------------------- #
+# Lifting a budget wait (plan 5b.1)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def parked_on_budget(session: Any, scoped: Any, runs: Any, design: Any) -> Any:
+    """A research run whose first step stopped at the study's budget cap."""
+    started = runs(user="lead").start(design_revision_id=design(), fieldwork_source=AI)
+    workflow = WorkflowRepository(session, scoped.scope(user="lead"))
+    claimed = workflow.claim_next(worker_id="w1")
+    assert claimed is not None
+    workflow.fail_attempt(claimed.attempt_id, worker_id="w1", failure=FailureClass.BUDGET_EXCEEDED)
+    return started.run_id, claimed.node_key
+
+
+def _step_status(runs: Any, run_id: str, node_key: str) -> str:
+    step = next(s for s in runs(user="lead").get(run_id)["steps"] if s["node_key"] == node_key)
+    return str(step["status"].value)
+
+
+def _budget(scoped: Any, study: str = "primary") -> float:
+    return float(scoped.scope_repo.get_study(scoped.scope(study=study)).budget_usd)
+
+
+def test_lifting_a_budget_wait_raises_the_budget_and_the_run_goes_on(
+    session: Any, scoped: Any, runs: Any, parked_on_budget: Any
+) -> None:
+    """The dead end (5b.1): the step stopped at the cap and nothing could resume it."""
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import AccessAuditRow, ApprovalDecisionRow
+
+    run_id, node = parked_on_budget
+    assert _step_status(runs, run_id, node) == "AWAITING_BUDGET"
+    assert runs(user="lead").get(run_id)["phase"] is ResearchPhase.WAITING
+    before = _budget(scoped)
+
+    after = runs(user="researcher").lift_budget_wait(
+        run_id, node, budget_usd=before + 400.0, note="Klient souhlasil"
+    )
+
+    assert _budget(scoped) == before + 400.0
+    assert _step_status(runs, run_id, node) == "RUNNABLE"
+    assert after["phase"] is not ResearchPhase.WAITING
+    [row] = session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "budget")
+    ).all()
+    assert (row.decision, row.comment) == ("lift", "Klient souhlasil")
+    assert row.approver_user_id == scoped.users["researcher"] and row.run_id == run_id
+    audit = session.scalars(
+        select(AccessAuditRow).where(AccessAuditRow.action == "STUDY_BUDGET_CHANGED")
+    ).all()
+    assert [a.reason for a in audit] == [f"{before} -> {before + 400.0}"]
+
+
+def test_a_budget_already_raised_elsewhere_can_be_lifted_without_changing_it(
+    session: Any, scoped: Any, runs: Any, parked_on_budget: Any
+) -> None:
+    run_id, node = parked_on_budget
+    scoped.scope_repo.set_study_budget(scoped.scope(), 2000.0)  # raised by hand beforehand
+    runs(user="lead").lift_budget_wait(run_id, node, budget_usd=2000.0)
+    assert _budget(scoped) == 2000.0
+    assert _step_status(runs, run_id, node) == "RUNNABLE"
+
+
+def test_a_refused_lift_changes_nothing(
+    scoped: Any, runs: Any, parked_on_budget: Any, design: Any
+) -> None:
+    run_id, node = parked_on_budget
+    before = _budget(scoped)
+
+    with pytest.raises(BudgetNotRaised):  # lowering the cap is not lifting the wait
+        runs(user="lead").lift_budget_wait(run_id, node, budget_usd=before - 1.0)
+    with pytest.raises(ResearchStepNotFound):
+        runs(user="lead").lift_budget_wait(run_id, "no_such_step", budget_usd=before + 1.0)
+    with pytest.raises(BudgetWaitNotLiftable):  # this step is not the one waiting
+        other = next(
+            s["node_key"] for s in runs(user="lead").get(run_id)["steps"] if s["node_key"] != node
+        )
+        runs(user="lead").lift_budget_wait(run_id, other, budget_usd=before + 1.0)
+    with pytest.raises(ResearchRunNotFound):  # another study's run is not this study's
+        runs(user="other_lead", study="other_client").lift_budget_wait(
+            run_id, node, budget_usd=before + 1.0
+        )
+
+    assert _budget(scoped) == before  # not even the budget moved
+    assert _step_status(runs, run_id, node) == "AWAITING_BUDGET"
+
+
+def test_a_closed_study_does_not_lift_a_budget_wait(
+    scoped: Any, runs: Any, parked_on_budget: Any
+) -> None:
+    run_id, node = parked_on_budget
+    scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)
+    with pytest.raises(ScopeDenied) as closed:
+        runs(user="lead").lift_budget_wait(run_id, node, budget_usd=_budget(scoped) + 1.0)
+    assert closed.value.reason == "study_closed"

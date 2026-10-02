@@ -20,11 +20,13 @@ from aia_core.application.report import (
     INTERNAL_REPORT_MEDIA_TYPE,
 )
 from aia_core.application.research import (
+    BudgetNotRaised,
     DesignNotReady,
     ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
+    ResearchStepNotFound,
     research_artifacts,
 )
 from aia_core.application.workflows import StartedRun
@@ -38,7 +40,10 @@ from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
 )
-from aia_core.infrastructure.workflow_repository import RuntimeParkNotResumable
+from aia_core.infrastructure.workflow_repository import (
+    BudgetWaitNotLiftable,
+    RuntimeParkNotResumable,
+)
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -533,6 +538,70 @@ def cancel_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> 
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
+
+
+NodeKeyPath = Annotated[str, Path(max_length=64, pattern=r"^[a-z][a-z0-9_]*$")]
+
+
+class BudgetLiftRequest(BaseModel):
+    """The budget the study is raised to, and why. Never a lower one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    budget_usd: float = Field(ge=0, le=1_000_000)
+    note: str = Field(default="", max_length=500)
+
+
+@router.post(
+    "/research/runs/{run_id}/steps/{node_key}/budget",
+    response_model=ResearchRunResponse,
+    summary="Raise the study's budget and let a step that stopped at the cap go on",
+    responses={
+        409: {"model": ErrorResponse, "description": "The step is not waiting for budget"},
+        422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
+    },
+)
+def lift_budget_wait(
+    run_id: RunIdPath,
+    node_key: NodeKeyPath,
+    body: BudgetLiftRequest,
+    scope: StudyScopeDep,
+    session: SessionDep,
+) -> ResearchRunResponse:
+    """Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study.
+
+    A step whose next paid call would pass the study's budget stops waiting for budget,
+    and nothing else can resume it. The person names the budget the study is raised to
+    (equal to the current one lifts the wait without changing it; lower is refused) and
+    the step is offered to a worker again. The decision is written to the approval
+    ledger and the change to the access audit. The cap stays hard: if the new budget is
+    still too small the step stops again at its next reservation.
+    """
+    runs = ResearchRuns(session, scope)
+    try:
+        return _run(
+            runs.lift_budget_wait(run_id, node_key, budget_usd=body.budget_usd, note=body.note),
+            scope,
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except ResearchStepNotFound as exc:
+        raise _not_found("step") from exc
+    except BudgetWaitNotLiftable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "not_waiting_for_budget", "message": str(exc)},
+        ) from exc
+    except BudgetNotRaised as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "budget_not_raised",
+                "message": f"The study's budget is already {exc.current:.2f}; offer at least that.",
+            },
+        ) from exc
 
 
 @router.post(
