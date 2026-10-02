@@ -126,6 +126,15 @@ inactive user all return 404, as before. The `ACCESS_DENIED / no_grant` audit en
 grant tables, routes and `grant_*` repository methods are untouched and now inert, so the change can
 be rolled back by reverting the resolver; chunk 6 removes them.
 
+**Archived clients stay invisible in listings (review finding, fixed in this chunk).**
+`accessible_studies` did not exclude the studies of an archived client, before this chunk or after
+it (`application/scope.py` @ 599fe95: the old queries joined only the grant tables). With grants that
+reached only the people granted; with membership as the access it reached every member through
+`GET /studies`, while `study_context` and `client_context` refused the same client. It now joins
+`ClientRow` and drops archived clients. Tests that would have caught it:
+`test_an_archived_clients_studies_drop_out_of_every_listing` and
+`test_an_archived_clients_studies_are_not_in_the_portfolio_listing`.
+
 **Tests rewritten, none skipped.** 69 tests asserted the grant rule (core 33, API 34, executors 2).
 Each was rewritten to assert the new rule, or to keep testing a boundary that still exists: a run,
 project, attachment, design or artifact is found only through the study the path names; knowledge is

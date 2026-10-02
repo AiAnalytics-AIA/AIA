@@ -44,3 +44,25 @@ def test_a_study_created_by_an_administrator_reports_the_one_role(
     )
     assert response.status_code == 201, response.text
     assert response.json()["your_role"] == "RESEARCHER"
+
+
+def test_an_archived_clients_studies_are_not_in_the_portfolio_listing(
+    owner: TestClient, lead: TestClient, world: Any
+) -> None:
+    """Archived clients stay invisible in `GET /studies` as on a direct read (ADR 0019).
+
+    Every member lists every study now, so an archived client's study names and metadata
+    would otherwise reach everyone, though opening the study itself is refused.
+    """
+    primary = world.study_id("primary")
+    listed = {s["study_id"] for s in lead.get(f"{API}/studies").json()}
+    assert primary in listed and world.study_id("other_client") in listed
+
+    archived = owner.put(f"{API}/clients/{world.client_id()}/status", json={"status": "ARCHIVED"})
+    assert archived.status_code == 200, archived.text
+
+    after = {s["study_id"] for s in lead.get(f"{API}/studies").json()}
+    assert primary not in after and world.study_id("other_client") in after
+    by_client = lead.get(f"{API}/studies", params={"client_id": world.client_id()})
+    assert by_client.status_code == 200 and by_client.json() == []
+    assert lead.get(f"{API}/studies/{primary}").status_code == 404
