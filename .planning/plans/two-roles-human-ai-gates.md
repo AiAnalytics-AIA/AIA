@@ -5,7 +5,8 @@ chunks:
   - "[x] 2. Domain: one Researcher permission set; self-approval allowed by default; REVIEWER and LEAD gone"
   - "[ ] 3. ScopeResolver: every active member sees every client and study of the organization"
   - "[ ] 4. Admin: system settings only for ADMIN; MEMBER is the Researcher; settings document and web client"
-  - "[ ] 5. Gates: apply-an-AI-proposal, spend confirm, client-facing release; human-authored Knowledge writes directly"
+  - "[x] 5a. Human-authored Knowledge writes directly (client workspace); a study's proposal still waits for a person, who may be its proposer"
+  - "[ ] 5b. Gates: apply-an-AI-proposal, spend confirm, client-facing release"
   - "[ ] 6. Retire the grants (tables, routes, UI) after one deploy without them"
 ---
 # Two roles, human-with-AI gates
@@ -88,6 +89,12 @@ that demands independent review can turn it back on.
    document stops listing four scope roles; the web client stops offering role pickers.
 5. **Gates.** Wire the three gates; human-authored Knowledge writes a revision directly with its
    author recorded; AI-authored Knowledge still goes through a proposal and an accept.
+   - **5a (landed).** `ClientKnowledgeRepository.add` is the person's write: it records an already-approved
+     proposal row (no migration, same lineage) and `POST /clients/{id}/knowledge/proposals` calls it.
+     The study route `/studies/{id}/knowledge-proposals` is unchanged and its proposals wait for an
+     accept; the Pending tab no longer hides Accept from the proposer. Where self-approval is
+     explicitly off, `add` files an ordinary proposal, so a client that asked for independent review
+     keeps it. Owner, 2026-10-02: knowledge from deep research stays AI-authored and is accepted by a person.
 6. **Retire grants.** After one deploy with chunk 3 live: drop the grant tables, routes, UI and
    the per-level `allow_self_approval` columns in one migration.
 
@@ -110,6 +117,17 @@ that demands independent review can turn it back on.
   client does not widen what may be sent to a model.
 
 ## Findings
+
+- **A source a person added still waited for approval, and could not be approved.** The client
+  workspace's add went through `ClientKnowledgeRepository.propose`, so every source sat `PROPOSED` and
+  stayed out of `for_study` until decided (`infrastructure/client_knowledge_repository.py`, `propose`/`_approved`
+  @ 3c2ddda); the page hid Accept on the person's own proposals (`KnowledgeArea.tsx:126 @ 3c2ddda`) while
+  the API, since chunk 2, allowed it, so a lone Researcher could not clear their own Pending tab.
+  Reproduction: `POST /clients/{id}/knowledge/proposals` as the only member, then `GET .../knowledge`
+  returned `[]`. Tests that guard it:
+  `test_what_a_person_adds_takes_effect_at_once_with_nobody_to_approve_it`,
+  `test_by_default_what_a_person_adds_to_a_client_takes_effect_at_once`, and the web test
+  "lists a source a person adds at once, with nothing left to approve".
 
 - **The worker borrowed the Researcher's permission set.** `ScopeResolver.execution_context` built the
   worker's scope from `permissions_for(EXECUTION_ROLE)` with `EXECUTION_ROLE = RESEARCHER`, so it was

@@ -378,6 +378,82 @@ class ClientKnowledgeRepository:
         if row.proposed_by == scope.actor_id and not scope.self_approval.allowed:
             raise SeparationOfDutiesViolation(scope.actor_id, what="this proposal")
 
+        return self._settle(
+            scope, row, approve=approve, note=note, action="CLIENT_KNOWLEDGE_DECIDED"
+        )
+
+    def add(
+        self,
+        scope: ClientContext,
+        *,
+        kind: KnowledgeKind,
+        title: str,
+        summary: str = "",
+        content: dict[str, Any] | None = None,
+        provenance: dict[str, Any] | None = None,
+        item_id: str | None = None,
+    ) -> KnowledgeProposal:
+        """A person adds or edits knowledge in the client workspace; it takes effect now.
+
+        ADR 0019 decision 3: no approval between people. Only what an AI produced
+        waits for a person's accept, and that comes through :meth:`propose_from_study`.
+        The write still goes through a proposal row, already approved, so the
+        revision keeps the same lineage and the audit says who wrote it.
+
+        Where the client, study or organization has turned self-approval *off*, the
+        owner asked for independent review: this then files an ordinary proposal for
+        someone else to decide, as before. Needs both knowledge permissions -- the
+        two a person needed to get the same change in before.
+        """
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        scope.require(ClientPermission.APPROVE_CLIENT_KNOWLEDGE)
+        if not scope.self_approval.allowed:
+            return self.propose(
+                scope,
+                kind=kind,
+                title=title,
+                summary=summary,
+                content=content,
+                provenance=provenance,
+                item_id=item_id,
+            )
+        proposal = self._add_proposal(
+            organization_id=scope.organization_id,
+            client_id=scope.client_id,
+            study_id=None,
+            actor_id=scope.actor_id,
+            kind=kind,
+            title=title,
+            summary=summary,
+            content=content or {},
+            provenance={**(provenance or {}), "authored": "person"},
+            item_id=item_id,
+        )
+        row = self._session.scalar(
+            select(ClientKnowledgeProposalRow)
+            .where(ClientKnowledgeProposalRow.proposal_id == proposal.proposal_id)
+            .with_for_update()
+        )
+        assert row is not None  # flushed by _add_proposal in this transaction
+        return self._settle(
+            scope,
+            row,
+            approve=True,
+            note="written by a person",
+            action="CLIENT_KNOWLEDGE_AUTHORED",
+        )
+
+    def _settle(
+        self,
+        scope: ClientContext,
+        row: ClientKnowledgeProposalRow,
+        *,
+        approve: bool,
+        note: str,
+        action: str,
+    ) -> KnowledgeProposal:
+        """Record the decision on a proposal row and, if approved, apply it."""
         now = utcnow()
         row.decided_by = scope.actor_id
         row.decided_at = now
@@ -393,7 +469,7 @@ class ClientKnowledgeRepository:
                 client_id=scope.client_id,
                 study_id=row.study_id,
                 actor_id=scope.actor_id,
-                action="CLIENT_KNOWLEDGE_DECIDED",
+                action=action,
                 reason=row.status,
                 payload={
                     "proposal_id": row.proposal_id,
