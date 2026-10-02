@@ -799,6 +799,11 @@ class AIUsageEvent:
     #: output schema and output cap -- so a primary call and its repair, or two
     #: calls from the same prompt version with different inputs, are told apart.
     input_fingerprint: str | None = None
+    #: SHA-256 of the system prompt exactly as sent. ``prompt_version`` says which
+    #: wording was meant; this says which bytes were, so an edited prompt that kept
+    #: its version label (or a code change that did not bump one) is still told
+    #: apart. ``None`` is "not recorded" -- every row written before it existed.
+    system_prompt_sha256: str | None = None
     supersedes_event_id: str | None = None
     note: str = ""
 

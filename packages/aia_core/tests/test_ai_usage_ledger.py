@@ -237,6 +237,10 @@ def test_successful_call_is_ledgered_and_closes_the_billing_question(
     assert entries == list(result.usage_events)
     assert entries[0].input_fingerprint is not None
     assert entries[0].input_fingerprint == entries[1].input_fingerprint
+    # The system prompt's own hash is stored, read back, and the same on both entries.
+    assert entries[0].system_prompt_sha256 is not None
+    assert len(entries[0].system_prompt_sha256) == 64
+    assert entries[0].system_prompt_sha256 == entries[1].system_prompt_sha256
 
     row = attempt.attempt_row()
     assert row.paid_call_dispatched is True
@@ -335,8 +339,11 @@ def test_uncertain_outcome_leaves_the_attempt_unknown_and_resolves_to_zero(
     assert call.terminal.outcome is UsageOutcome.UNCERTAIN
     assert call.recorded_exposure_usd == pytest.approx(call.dispatched.ceiling_usd)
 
-    attempt.usage.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.0)
+    resolution = attempt.usage.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.0)
     assert attempt.usage.total_cost_usd() == pytest.approx(0.0)
+    # A correction names what it supersedes and keeps the prompt identity of that call.
+    assert resolution.system_prompt_sha256 == call.dispatched.system_prompt_sha256
+    assert resolution.system_prompt_sha256 is not None
 
 
 def test_rebuilt_journal_remembers_what_the_attempt_already_spent(

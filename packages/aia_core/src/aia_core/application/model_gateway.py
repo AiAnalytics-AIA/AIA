@@ -69,6 +69,7 @@ from aia_core.domain.ai_contracts import (
 from aia_core.domain.ai_execution import ExecutionContext
 from aia_core.domain.ai_models import ModelRegistry, ModelResolution, ResolutionError
 from aia_core.domain.licence import LicenceDenied, LicencePolicy
+from aia_core.domain.prompts import prompt_sha256
 from aia_core.domain.providers import check_budget
 from aia_core.domain.residency import EgressDecision, EgressDenied, EgressPolicy
 from aia_core.domain.workflow import FailureClass
@@ -802,6 +803,7 @@ class GovernedModelGateway:
             latency_ms=_ms(started, at) if started is not None else None,
             ceiling_usd=ceiling_usd,
             input_fingerprint=input_fp,
+            system_prompt_sha256=prompt_sha256(request.system),
             note=note,
         )
 

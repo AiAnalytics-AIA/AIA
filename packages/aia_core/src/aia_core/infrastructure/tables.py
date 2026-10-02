@@ -1296,6 +1296,8 @@ class AIUsageEventRow(Base):
 
     schema_fingerprint: Mapped[str | None] = mapped_column(String(80))
     input_fingerprint: Mapped[str | None] = mapped_column(String(80))
+    # NULL is "not recorded" (every row before this column), never "no system prompt".
+    system_prompt_sha256: Mapped[str | None] = mapped_column(String(64))
     substituted_from: Mapped[str | None] = mapped_column(String(128))
     fallback_from: Mapped[str | None] = mapped_column(String(255))
     fallback_authorised_by: Mapped[str | None] = mapped_column(String(64))
