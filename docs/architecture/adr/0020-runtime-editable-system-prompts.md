@@ -84,13 +84,29 @@ Two things make "just let people edit the string" unsafe here:
    system prompt exactly as sent, because a version label alone cannot say which bytes ran
    (`NULL` for every row before it existed — not recorded, not guessed).
 
-7. **A draft is tested by an ordinary job.** `POST …/research/agent-jobs` accepts `prompt_version`
-   and, for an organization administrator only, pins that stored version instead of the active
-   one. The API still calls no model; the worker runs it through the same gateway, gates and
-   budget reservation as any job, and the result is a proposal for review. Nothing is applied
-   automatically.
+7. **A draft is tested by an ordinary job, and only on a fictional client.**
+   `POST …/research/agent-jobs` accepts `prompt_version` and, for an organization administrator
+   only, pins that stored version instead of the active one. The study's client must be on the
+   deployment's fictional list (`AIA_AI_FICTIONAL_CLIENT_IDS`, read by the worker and now by the
+   API too; empty means no draft anywhere; refused in production like the worker refuses it),
+   or the API answers 409 `prompt_test_requires_fictional_client` before a job exists. The page
+   offers only those studies, and says why when there are none. The API still calls no model;
+   the worker runs the job through the same gateway, gates and budget reservation as any job,
+   and the result is a proposal for review. Nothing is applied automatically.
 
-8. **The route is organization-level.** `/api/v1/system-prompts` is not study-scoped: a prompt
+8. **A stored prompt is unclassified material.** `validate_prompt_text` checks a prompt's shape
+   and cannot know what it contains, and the editable text is sent as the system message. So it
+   is classified the way a pasted brief is: the code's own wording is reviewed with the code and
+   is Class C, but a stored edit travels only when an operator has classified its exact text
+   (`material_sha256` of the instruction, listed in `AIA_AI_MATERIAL_CLASSIFICATIONS`). The
+   request's data class is the most restrictive of the design, the instruction, the knowledge
+   and the prompt; an unclassified prompt makes it unknown and dispatch is refused (the job
+   parks, nothing is sent), and a prompt classified above C raises the whole request so the
+   route, which is approved for Class C, refuses it. One changed character is new material and
+   needs a new approval. The page shows each version's hash and says, before a version is put
+   live, that new jobs wait until its hash is approved.
+
+9. **The route is organization-level.** `/api/v1/system-prompts` is not study-scoped: a prompt
    belongs to the organization, like members and self-approval. It takes an `OrganizationContext`,
    which carries no client or study id and cannot read research data.
 
@@ -103,15 +119,20 @@ Two things make "just let people edit the string" unsafe here:
 - **Bedrock Prompt Management.** Rejected for now: it would put the prompt where the
   provenance chain, the audit trail and the EU-pinned route policy do not reach, and needs new
   IAM and an egress review for a feature the repository can provide.
-- **Detecting client material in a prompt.** Not claimed. The editor says prompts are sent as
-  written; the data-class gate still applies to whatever a call carries. A prompt must hold no
-  client data.
+- **Detecting client material in a prompt.** Not attempted: nothing here reads a prompt and
+  judges it. Decision 8 treats every stored edit as unclassified instead, which is stricter.
+- **Letting the author classify their own prompt.** An in-app attestation ("this text holds no
+  client data", recorded with the version and audited) would restore quick iteration without an
+  operator step per edit, but it adds a second source of trusted classification next to the
+  operator's. That is the owner's decision, not made here.
 - **A prompt evaluation suite**, per-client prompts, and any automatic prompt adaptation.
 
 ## Consequences
 
-- Wording can be iterated in minutes: edit, save, test on a fictional study, put live, and go
-  back with one confirmed step.
+- Wording can be iterated in minutes once its text is classified: edit, save, test on a
+  fictional study, put live, and go back with one confirmed step. **The cost of decision 8 is an
+  operator step per edit** (add the version's hash to `AIA_AI_MATERIAL_CLASSIFICATIONS`); until
+  then a job using the edit waits. Going back to the code's wording needs none.
 - The prompt has two homes: the code baseline and the database. A long-lived active edit can
   drift from a baseline that has since changed; the page shows which is running and the hash.
 - A new activation changes the job fingerprint of later jobs, so a repeated job buys its units

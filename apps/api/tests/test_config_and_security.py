@@ -37,6 +37,23 @@ def test_production_refuses_sqlite() -> None:
         settings.validate_for_production()
 
 
+def test_the_fictional_client_list_is_read_as_a_comma_separated_set() -> None:
+    assert Settings().fictional_client_ids == frozenset()  # nothing listed: no draft anywhere
+    settings = Settings(ai_fictional_client_ids=" CLI-a , CLI-b ,, CLI-a ")
+    assert settings.fictional_client_ids == frozenset({"CLI-a", "CLI-b"})
+
+
+def test_production_refuses_a_fictional_client_list() -> None:
+    """The worker refuses it in production (ai_runtime); the API must not accept it either."""
+    settings = Settings(
+        env=Environment.PRODUCTION,
+        database_url="sqlite+pysqlite:///./aia.db",
+        ai_fictional_client_ids="CLI-a",
+    )
+    with pytest.raises(RuntimeError, match="AIA_AI_FICTIONAL_CLIENT_IDS is refused in production"):
+        settings.validate_for_production()
+
+
 def test_production_refuses_debug_mode() -> None:
     """Debug mode in production leaks internals into responses and logs."""
     settings = Settings(

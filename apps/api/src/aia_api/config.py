@@ -90,6 +90,13 @@ class Settings(BaseSettings):
     research_fieldwork_source: FieldworkSource = FieldworkSource.AI_RUNTIME
     ai_analysis_enabled: bool = False
 
+    # The clients whose studies an administrator may run a *draft* prompt on (ADR 0020). The
+    # same variable the worker reads (``AIA_AI_FICTIONAL_CLIENT_IDS``), read here so the API
+    # can refuse a draft on any other client before a job exists. Comma-separated client ids;
+    # empty (the default) means no draft can be run anywhere. Refused in production, as the
+    # worker refuses it.
+    ai_fictional_client_ids: str = ""
+
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
 
@@ -112,6 +119,11 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @property
+    def fictional_client_ids(self) -> frozenset[str]:
+        """The clients a draft prompt may be tested on; empty means none."""
+        return frozenset(c.strip() for c in self.ai_fictional_client_ids.split(",") if c.strip())
 
     @property
     def build(self) -> BuildIdentity:
@@ -198,6 +210,12 @@ class Settings(BaseSettings):
             ]
             if missing:
                 problems.append("Cognito configuration is incomplete: " + ", ".join(missing))
+
+        if self.fictional_client_ids:
+            problems.append(
+                "AIA_AI_FICTIONAL_CLIENT_IDS is refused in production: fictional material "
+                "does not belong there"
+            )
 
         # Fictional respondents must never become a deployed study's fieldwork (D1).
         if self.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE:

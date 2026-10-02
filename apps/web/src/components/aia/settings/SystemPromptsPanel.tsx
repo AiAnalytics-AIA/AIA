@@ -384,7 +384,7 @@ function Versions({ detail, people, onLoad, onCompare, onActivate, onTest }: {
   onTest: (version: number) => void;
 }) {
   const baselineRunning = detail.active.origin === "baseline";
-  const canTest = actionOf(detail.prompt_id) !== null;
+  const canTest = actionOf(detail.prompt_id) !== null && detail.draft_test_client_ids.length > 0;
   const TH = "px-2 py-1 text-left font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-ink-faint";
   const TD = "px-2 py-1.5 align-top text-sm";
   const row = (v: PromptVersion | null) => {
@@ -428,6 +428,22 @@ function Versions({ detail, people, onLoad, onCompare, onActivate, onTest }: {
         </table>
       </div>
       {!detail.versions.length ? <p className="text-xs text-ink-faint">{t(`${P}.versions.none`)}</p> : null}
+      {!canTest && actionOf(detail.prompt_id) !== null ? <p data-test-off className="text-xs text-ink-muted">{t(`${P}.test.noFictional`)}</p> : null}
+      {detail.versions.length ? (
+        <details data-approval className="rounded-sm border border-border">
+          <summary className="cursor-pointer px-3 py-2 text-sm font-medium">{t(`${P}.approval.title`)}</summary>
+          <div className="flex flex-col gap-2 border-t border-border p-3">
+            <p className="max-w-3xl text-xs text-ink-muted">{t(`${P}.approval.text`)}</p>
+            <ul className="flex flex-col gap-1 text-xs">
+              {detail.versions.map((v) => (
+                <li key={v.version_number} data-material={v.label}>
+                  <strong>{v.label}</strong> · {t(`${P}.approval.hash`)}: <code className="break-all">{v.material_sha256}</code>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      ) : null}
     </section>
   );
 }
@@ -463,6 +479,7 @@ function Activation({ detail, version, label, dirty, onCancel, onDone, textOf }:
       <h4 id="pa-h" className="text-sm font-semibold">{version === null ? t(`${P}.activate.resetTitle`) : tv(`${P}.activate.title`, { label })}</h4>
       <p className="text-sm">{tv(`${P}.activate.impact`, { from: detail.active.origin === "stored" ? detail.active.label : t(`${P}.baselineName`), to: label })}</p>
       <p className="text-xs text-ink-muted">{t(`${P}.activate.queuedKeep`)}</p>
+      {version !== null ? <p data-needs-approval className="text-xs text-ink-muted">{tv(`${P}.activate.needsApproval`, { label })}</p> : null}
       {dirty ? <p className="text-xs text-ink-muted">{t(`${P}.activate.draftStays`)}</p> : null}
       <Field label={t(`${P}.activate.reasonLabel`)}>
         <TextInput value={reason} maxLength={255} onChange={(e) => setReason(e.target.value)} />
@@ -557,7 +574,11 @@ function TestRun({ detail, version, studies, clients, onClose }: {
   const router = useRouter();
   const action = actionOf(detail.prompt_id);
   const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
-  const eligible = studies.ok ? studies.data.map((r) => r.study).filter((s) => s.kind === "RESEARCH" && s.accepts_work) : [];
+  // Only studies of a client the deployment lists as fictional; the API refuses any other server-side.
+  const fictional = new Set(detail.draft_test_client_ids);
+  const eligible = studies.ok
+    ? studies.data.map((r) => r.study).filter((s) => s.kind === "RESEARCH" && s.accepts_work && fictional.has(s.client_id))
+    : [];
   const [studyId, setStudyId] = useState(eligible[0]?.study_id ?? "");
   const [revisions, setRevisions] = useState<{ id: string; label: string }[] | null>(null);
   const [revisionId, setRevisionId] = useState("");
@@ -634,7 +655,7 @@ function TestRun({ detail, version, studies, clients, onClose }: {
       </div>
       <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.test.intro`)}</p>
       <p role="note" className="text-xs text-ink-muted">{t(`${P}.test.cost`)}</p>
-      {!eligible.length ? <Empty>{t(`${P}.test.noStudies`)}</Empty> : (
+      {!eligible.length ? <Empty>{t(`${P}.test.${fictional.size ? "noStudies" : "noFictional"}`)}</Empty> : (
         <div className="flex flex-wrap items-end gap-3">
           <Field label={t(`${P}.test.study`)}>
             <Select value={studyId} onChange={(e) => setStudyId(e.target.value)} className="w-auto">

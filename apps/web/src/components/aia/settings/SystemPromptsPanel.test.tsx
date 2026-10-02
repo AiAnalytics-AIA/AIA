@@ -38,6 +38,8 @@ type Backend = {
   history: Record<string, { activation_id: number; version_number: number | null; label: string | null; activated_by: string; reason: string; activated_at: string }[]>;
   refuseActivation: boolean;
   jobs: Record<string, { status: string }>;
+  /** The deployment's fictional-client list, as the API reports it on a prompt's detail. */
+  draftClients: string[];
 };
 let backend: Backend;
 let calls: { method: string; url: string; body: unknown }[] = [];
@@ -55,7 +57,7 @@ const summary = (s: Slot): PromptSlotSummary => ({
   active: activeOf(s), version_count: backend.versions[s.id].length, latest_number: backend.versions[s.id].at(-1)?.version_number ?? null,
 });
 const detail = (s: Slot): PromptSlotDetail => ({
-  ...summary(s), fixed_prefix: s.wired ? FRAME : "", baseline_text: s.baseline, required_literals: s.literals, max_chars: 200,
+  ...summary(s), fixed_prefix: s.wired ? FRAME : "", baseline_text: s.baseline, required_literals: s.literals, max_chars: 200, draft_test_client_ids: backend.draftClients,
   versions: [...backend.versions[s.id]].reverse(), history: [...backend.history[s.id]].reverse(),
 });
 
@@ -66,6 +68,7 @@ function fakeApi(overrides: Record<string, (body: Body, m: RegExpMatchArray) => 
     history: Object.fromEntries(SLOTS.map((s) => [s.id, []])),
     refuseActivation: false,
     jobs: {},
+    draftClients: ["CLI-a"],
   };
   calls = [];
   const refuse = (status: number, code: string, message: string) => new Response(JSON.stringify({ code, message }), { status });
@@ -77,7 +80,7 @@ function fakeApi(overrides: Record<string, (body: Body, m: RegExpMatchArray) => 
       const slot = SLOTS.find((s) => s.id === m[1]) as Slot;
       const list = backend.versions[slot.id];
       const n = list.length + 1;
-      const v: PromptVersion = { version_number: n, label: `e${n}`, text: b.text, text_sha256: sha(b.text), based_on: b.based_on ?? "baseline", note: b.note, created_by: "USR-1", created_at: new Date().toISOString() };
+      const v: PromptVersion = { version_number: n, label: `e${n}`, text: b.text, text_sha256: sha(b.text), material_sha256: `material-${b.text}`, based_on: b.based_on ?? "baseline", note: b.note, created_by: "USR-1", created_at: new Date().toISOString() };
       list.push(v);
       return v;
     }],
@@ -126,8 +129,8 @@ const versionRow = (key: string) =>
   });
 const called = (method: string, url: string) => calls.filter((c) => c.method === method && c.url === url);
 
-const STUDY = (id: string, name: string, kind = "RESEARCH") => ({
-  study: { study_id: id, client_id: "CLI-a", slug: id, name, kind, status: "ACTIVE", accepts_work: true, your_role: "LEAD", budget_usd: null, spent_usd: null, remaining_usd: null },
+const STUDY = (id: string, name: string, kind = "RESEARCH", clientId = "CLI-a") => ({
+  study: { study_id: id, client_id: clientId, slug: id, name, kind, status: "ACTIVE", accepts_work: true, your_role: "LEAD", budget_usd: null, spent_usd: null, remaining_usd: null },
   detail: { ok: false, message: "" },
 }) as unknown as StudyRow;
 const DOC = (may = true) => ({ may_administer: may }) as unknown as SettingsDocument;
@@ -135,9 +138,16 @@ const members: Part<{ user_id: string; email: string; display_name: string; is_a
   ok: true, data: [{ user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" }],
 };
 const clients: Part<{ client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: null }[]> = {
-  ok: true, data: [{ client_id: "CLI-a", slug: "a", name: "Fiktivní klient", status: "ACTIVE", reference: "", study_count: 1, created_at: null }],
+  ok: true, data: [
+    { client_id: "CLI-a", slug: "a", name: "Fiktivní klient", status: "ACTIVE", reference: "", study_count: 1, created_at: null },
+    { client_id: "CLI-b", slug: "b", name: "Skutečný klient", status: "ACTIVE", reference: "", study_count: 1, created_at: null },
+  ],
 };
-const studies: Part<StudyRow[]> = { ok: true, data: [STUDY("STU-1", "Fiktivní studie"), STUDY("STU-9", "Simulace", "SIMULATION")] };
+// STU-2 belongs to a client the deployment does not list as fictional: never offered for a draft.
+const studies: Part<StudyRow[]> = {
+  ok: true,
+  data: [STUDY("STU-1", "Fiktivní studie"), STUDY("STU-9", "Simulace", "SIMULATION"), STUDY("STU-2", "Skutečná studie", "RESEARCH", "CLI-b")],
+};
 
 function mount(may = true) {
   render(<SystemPromptsPanel doc={DOC(may)} members={members} clients={clients} studies={studies} />);
@@ -326,6 +336,41 @@ describe("putting a version live", () => {
   });
 });
 
+describe("what an operator must approve", () => {
+  it("shows each version's hash and says an unapproved prompt is never sent", async () => {
+    fakeApi();
+    mount();
+    await saveAs("Analyzuj stručně.");
+    await screen.findByText("Uloženo jako e1. Zatím neběží.");
+    await versionRow("v1");
+    const approval = document.querySelector("[data-approval]") as HTMLElement;
+    fireEvent.click(within(approval).getByText("Schválení pro odeslání modelu"));
+    expect(approval.textContent).toMatch(/AIA_AI_MATERIAL_CLASSIFICATIONS/);
+    expect(approval.textContent).toMatch(/nic se neodešle/);
+    expect(approval.querySelector('[data-material="e1"] code')?.textContent).toBe("material-Analyzuj stručně.");
+  });
+
+  it("warns, before a version goes live, that new jobs wait until its hash is approved", async () => {
+    fakeApi();
+    mount();
+    await saveAs("Analyzuj stručně.");
+    fireEvent.click(await screen.findByRole("button", { name: "Zapnout e1" }));
+    const panel = document.querySelector("[data-activation]") as HTMLElement;
+    expect(panel.querySelector("[data-needs-approval]")?.textContent).toMatch(/verze e1 se modelu odešle, jen když operátor schválil její otisk/);
+    expect(panel.querySelector("[data-needs-approval]")?.textContent).toMatch(/nově zadané úlohy čekají/);
+    cleanup();
+    // Going back to the code's wording needs no approval, so it carries no such warning.
+    fakeApi();
+    mount();
+    await saveAs("Jiný text.");
+    fireEvent.click(await screen.findByRole("button", { name: "Zapnout e1" }));
+    fireEvent.click(within(document.querySelector("[data-activation]") as HTMLElement).getByRole("button", { name: "Potvrdit" }));
+    await screen.findByText("Teď běží: e1.");
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit základ z kódu" }));
+    expect(document.querySelector("[data-activation] [data-needs-approval]")).toBeNull();
+  });
+});
+
 describe("comparing", () => {
   it("shows added and removed lines, with a word for each as well as a sign", async () => {
     fakeApi();
@@ -421,10 +466,12 @@ describe("trying a version", () => {
     fakeApi();
     mount();
     const panel = await openTest();
-    expect(within(panel).getByText(/Zkoušejte na fiktivní studii/)).toBeTruthy();
-    // Only an open research study is offered, never a simulation.
+    expect(within(panel).getByText(/Zkoušet lze jen na klientech, které nasazení označilo za fiktivní/)).toBeTruthy();
+    // Only an open research study of a client the deployment lists as fictional is offered:
+    // not a simulation, and not another client's study.
     const study = within(panel).getByLabelText("Studie") as HTMLSelectElement;
     expect([...study.options].map((o) => o.textContent)).toEqual(["Fiktivní studie · Fiktivní klient"]);
+    expect(panel.textContent).not.toContain("Skutečná studie");
     await waitFor(() => expect((within(panel).getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2")); // the newest
     fireEvent.click(within(panel).getByRole("button", { name: "Zadat zkušební úlohu" }));
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs")).toHaveLength(1));
@@ -451,6 +498,17 @@ describe("trying a version", () => {
     await waitFor(() => expect((within(panel).getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2"));
     fireEvent.click(within(panel).getByRole("button", { name: "Zadat zkušební úlohu" }));
     expect(await within(panel).findByText(/HTTP 409 · prompt_test_requires_administrator/)).toBeTruthy();
+  });
+
+  it("offers no test at all when the deployment lists no fictional client, and says why", async () => {
+    fakeApi();
+    backend.draftClients = [];
+    mount();
+    await saveAs("Analyzuj stručně.");
+    await screen.findByText("Uloženo jako e1. Zatím neběží.");
+    const row = await versionRow("v1");
+    expect(within(row).queryByRole("button", { name: "Vyzkoušet" })).toBeNull();
+    expect(document.querySelector("[data-test-off]")?.textContent).toMatch(/AIA_AI_FICTIONAL_CLIENT_IDS/);
   });
 
   it("only offers a test where a job exists to run it", () => {

@@ -275,6 +275,23 @@ def snapshot_hash(snapshot: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(snapshot).encode()).hexdigest()
 
 
+def prompt_data_class(
+    prompt: PromptPin | None, approvals: tuple[MaterialApproval, ...]
+) -> DataClass | None:
+    """What the instruction part of the system prompt may be sent as; None refuses dispatch.
+
+    The code's own wording is reviewed with the code and holds no client material, so it is
+    Class C. A stored edit is free text typed into a page: ``validate_prompt_text`` checks its
+    shape and cannot know what it contains, so it is *unclassified material* like a pasted
+    brief. It travels only when an operator has classified its exact text
+    (``material_sha256`` of the instruction), and a class above C then raises the request's
+    class and the route refuses it. Absence is unknown, and unknown refuses.
+    """
+    if prompt is None or prompt.origin == "baseline":
+        return DataClass.CLASS_C_INTERNAL
+    return classify_material(prompt.text, approvals).data_class
+
+
 def agent_request(
     action: ResearchAction,
     snapshot: dict[str, Any],
@@ -293,7 +310,8 @@ def agent_request(
 
     The copied design includes pasted text and attachment excerpts. Only a trusted
     classification of these exact bytes can permit it. Approved knowledge remains
-    confidential independently; an unknown design or instruction refuses dispatch.
+    confidential independently; an unknown design or instruction refuses dispatch,
+    and so does a stored prompt edit nobody has classified (:func:`prompt_data_class`).
     """
     design = classify_material(snapshot["design"], material_approvals)
     instruction_class = (
@@ -302,7 +320,7 @@ def agent_request(
         else DataClass.CLASS_C_INTERNAL
     )
     data_class = most_restrictive_material(
-        [design.data_class, instruction_class]
+        [design.data_class, instruction_class, prompt_data_class(prompt, material_approvals)]
         + [DataClass.CLASS_A_CLIENT_CONFIDENTIAL for _ in snapshot["knowledge"]]
     )
     lineage = DataLineage.none()

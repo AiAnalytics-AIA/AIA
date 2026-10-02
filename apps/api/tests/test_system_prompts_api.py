@@ -177,27 +177,96 @@ def test_every_change_is_in_the_access_audit(owner: TestClient) -> None:
 # ------------------------------------------------------------------ testing a draft
 
 
+def _revision(client: TestClient, world: Any) -> str:
+    return str(
+        client.post(
+            f"{API}/studies/{world.study_id()}/design/revisions",
+            json={
+                "content": {"title": "Fictional", "goal": "Test concept"},
+                "source_stage": "brief",
+            },
+        ).json()["revision_id"]
+    )
+
+
+def _start(client: TestClient, world: Any, rev: str, **extra: Any) -> Any:
+    return client.post(
+        f"{API}/studies/{world.study_id()}/research/agent-jobs",
+        json={"design_revision_id": rev, "action": "critique_design", **extra},
+    )
+
+
 def test_only_an_administrator_may_ask_a_job_to_run_a_draft(
     owner: TestClient, researcher: TestClient, world: Any
 ) -> None:
     _save(owner)
-    rev = researcher.post(
-        f"{API}/studies/{world.study_id()}/design/revisions",
-        json={"content": {"title": "Fictional", "goal": "Test concept"}, "source_stage": "brief"},
-    ).json()["revision_id"]
-    refused = researcher.post(
-        f"{API}/studies/{world.study_id()}/research/agent-jobs",
-        json={"design_revision_id": rev, "action": "critique_design", "prompt_version": 1},
-    )
+    rev = _revision(researcher, world)
+    refused = _start(researcher, world, rev, prompt_version=1)
     assert refused.status_code == 409
     assert refused.json()["code"] == "prompt_test_requires_administrator"
     # An ordinary job records that the code's wording ran.
-    ordinary = researcher.post(
-        f"{API}/studies/{world.study_id()}/research/agent-jobs",
-        json={"design_revision_id": rev, "action": "critique_design"},
-    )
+    ordinary = _start(researcher, world, rev)
     assert ordinary.status_code == 201, ordinary.text
     assert (ordinary.json()["prompt_version"], ordinary.json()["prompt_origin"]) == (
         "1",
         "baseline",
     )
+
+
+def test_a_draft_is_refused_on_a_client_the_deployment_does_not_list_as_fictional(
+    owner: TestClient, world: Any
+) -> None:
+    """Server-side, whatever the page offers: an unreviewed prompt is not tried on real work."""
+    _save(owner)
+    rev = _revision(owner, world)
+    refused = _start(owner, world, rev, prompt_version=1)  # no client is listed: none is fictional
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "prompt_test_requires_fictional_client"
+
+
+def test_a_draft_is_refused_on_an_unlisted_client_even_when_another_is_listed(
+    owner: TestClient, world: Any, app: Any
+) -> None:
+    _save(owner)
+    rev = _revision(owner, world)
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_fictional_client_ids": world.client_id("other")}
+    )
+    refused = _start(owner, world, rev, prompt_version=1)  # the study's client is "primary"
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "prompt_test_requires_fictional_client"
+
+
+def test_a_draft_runs_on_a_listed_client_and_the_job_says_which_prompt_it_ran(
+    owner: TestClient, world: Any, app: Any
+) -> None:
+    _save(owner)
+    rev = _revision(owner, world)
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_fictional_client_ids": f" {world.client_id('primary')} , CLI-else"}
+    )
+    started = _start(owner, world, rev, prompt_version=1)
+    assert started.status_code == 201, started.text
+    assert (started.json()["prompt_version"], started.json()["prompt_origin"]) == ("e1", "stored")
+    # A version that does not exist is refused, listed client or not.
+    missing = _start(owner, world, rev, prompt_version=9)
+    assert missing.status_code == 409 and missing.json()["code"] == "unknown_version"
+
+
+def test_the_detail_tells_the_page_where_a_draft_may_be_tried_and_what_to_classify(
+    owner: TestClient, world: Any, app: Any
+) -> None:
+    saved = _save(owner, "Zkritizuj návrh.").json()
+    detail = owner.get(f"{PROMPTS}/{CRITIQUE}").json()
+    assert detail["draft_test_client_ids"] == []
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_fictional_client_ids": "CLI-b, CLI-a"}
+    )
+    detail = owner.get(f"{PROMPTS}/{CRITIQUE}").json()
+    assert detail["draft_test_client_ids"] == ["CLI-a", "CLI-b"]
+    # The hash an operator lists to classify this exact text; it is not the text's plain hash.
+    from aia_core.domain.ai_material import material_sha256
+
+    version = detail["versions"][0]
+    assert version["material_sha256"] == material_sha256("Zkritizuj návrh.")
+    assert version["material_sha256"] != saved["text_sha256"]

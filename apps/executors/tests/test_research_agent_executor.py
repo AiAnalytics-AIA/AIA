@@ -144,6 +144,7 @@ def worker(
     *,
     enabled: bool = True,
     fictional: bool = True,
+    approvals: tuple[MaterialApproval, ...] = (),
 ) -> Worker:
     cfg = settings(world.client_id if fictional else "")
     executor = ResearchAgentExecutor(
@@ -156,7 +157,7 @@ def worker(
             context_window_tokens=cfg.context_window_tokens,
             reservation_usd=cfg.research_reservation_usd,
             fictional_client_ids=cfg.fictional_client_ids,
-            material_approvals=(APPROVAL,) if fictional else (),
+            material_approvals=(APPROVAL, *approvals) if fictional else (),
         )
         if enabled
         else None,
@@ -343,6 +344,18 @@ def test_identical_model_context_does_not_reuse_a_different_revision_baseline(
 # --------------------------------------------------------------- prompts as data (ADR 0020)
 
 CUSTOM_TASK = "Analyzuj zadání stručně a pouze z dodaných podkladů."
+CLIENT_MATERIAL = "Klient Acme plánuje v Q3 zvýšit ceny o 12 % a propustit 40 lidí."
+
+
+def operator_approves(
+    text: str, data_class: DataClass = DataClass.CLASS_C_INTERNAL
+) -> MaterialApproval:
+    """An operator's classification of a stored prompt's exact text (AIA_AI_MATERIAL_*)."""
+    return MaterialApproval(
+        sha256=material_sha256(text),
+        data_class=data_class,
+        provenance="operator review of the prompt",
+    )
 
 
 def put_live(world: Any, prompt_id: str, text: str) -> None:
@@ -364,7 +377,8 @@ def test_an_active_edit_is_what_the_model_is_sent_and_what_the_record_names(
     put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)
     run_id = start(world)
     transport = RecordedBedrock()
-    assert worker(world, database_url, store, build, transport).run_once()
+    approved = (operator_approves(CUSTOM_TASK),)
+    assert worker(world, database_url, store, build, transport, approvals=approved).run_once()
 
     # The code's rails stay in front of whatever the edit says.
     assert system_sent(transport) == FIXED_PREFIX + CUSTOM_TASK
@@ -413,7 +427,8 @@ def test_a_queued_job_keeps_the_prompt_it_was_queued_with(
     second_id = start(world)
     assert second_id != run_id
     transport2 = RecordedBedrock()
-    assert worker(world, database_url, store, build, transport2).run_once()
+    approved = (operator_approves(CUSTOM_TASK),)
+    assert worker(world, database_url, store, build, transport2, approvals=approved).run_once()
     assert system_sent(transport2) == FIXED_PREFIX + CUSTOM_TASK
 
 
@@ -450,3 +465,83 @@ def test_a_job_whose_pin_was_altered_or_misplaced_is_refused_not_guessed() -> No
         _pin_of({"prompt": {**good.model_dump(), "text": "b"}}, analyze)  # hash mismatch
     with pytest.raises(ValueError):
         _pin_of({"prompt": good.model_dump()}, ResearchAction.CRITIQUE)  # another action's
+
+
+def test_a_stored_prompt_nobody_classified_is_parked_and_nothing_is_sent(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Free text typed into a page is unclassified material: it never reaches the model."""
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)
+    run_id = start(world)
+    transport = RecordedBedrock()
+    assert worker(
+        world, database_url, store, build, transport
+    ).run_once()  # design approved, prompt not
+    assert transport.requests == []
+    with world.sessions() as session:
+        job = ResearchAgentJobs(session, world.lead_scope(session)).get(run_id)
+    assert job["status"] is WorkflowRunStatus.WAITING_PROVIDER
+
+
+def test_client_material_pasted_into_a_prompt_is_not_sent(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    secret_prompt = f"Analyzuj zadání. Kontext od klienta: {CLIENT_MATERIAL}"
+    put_live(world, "aia.research.analyze_brief", secret_prompt)
+    run_id = start(world)
+    transport = RecordedBedrock()
+    # An approval for some other, innocent prompt text does not carry over to this one.
+    elsewhere = (operator_approves(CUSTOM_TASK),)
+    assert worker(world, database_url, store, build, transport, approvals=elsewhere).run_once()
+    assert transport.requests == []
+    with world.sessions() as session:
+        status = ResearchAgentJobs(session, world.lead_scope(session)).get(run_id)["status"]
+    assert status is WorkflowRunStatus.WAITING_PROVIDER
+
+
+def test_a_prompt_an_operator_classified_as_client_material_is_refused_by_the_route(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The route is approved for Class C; a prompt classified A raises the whole request to A."""
+    secret_prompt = f"Analyzuj zadání. Kontext od klienta: {CLIENT_MATERIAL}"
+    put_live(world, "aia.research.analyze_brief", secret_prompt)
+    start(world)
+    transport = RecordedBedrock()
+    as_client = (operator_approves(secret_prompt, DataClass.CLASS_A_CLIENT_CONFIDENTIAL),)
+    assert worker(world, database_url, store, build, transport, approvals=as_client).run_once()
+    assert transport.requests == []
+
+
+def test_an_approved_edit_records_how_its_prompt_was_classified(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)
+    run_id = start(world)
+    approved = (operator_approves(CUSTOM_TASK),)
+    assert worker(
+        world, database_url, store, build, RecordedBedrock(), approvals=approved
+    ).run_once()
+    with world.sessions() as session:
+        provenance = ResearchAgentJobs(session, world.lead_scope(session)).result(
+            run_id, store=store
+        )["provenance"]
+    prompt = provenance["material_classification"]["prompt"]
+    assert prompt["origin"] == "stored" and prompt["data_class"] == "CLASS_C_INTERNAL"
+    assert prompt["material_sha256"] == material_sha256(CUSTOM_TASK)
+
+
+def test_the_codes_own_wording_needs_no_operator_approval(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    run_id = start(world)
+    assert worker(world, database_url, store, build, RecordedBedrock()).run_once()
+    with world.sessions() as session:
+        provenance = ResearchAgentJobs(session, world.lead_scope(session)).result(
+            run_id, store=store
+        )["provenance"]
+    prompt = provenance["material_classification"]["prompt"]
+    assert (prompt["origin"], prompt["data_class"], prompt["material_sha256"]) == (
+        "baseline",
+        "CLASS_C_INTERNAL",
+        None,
+    )

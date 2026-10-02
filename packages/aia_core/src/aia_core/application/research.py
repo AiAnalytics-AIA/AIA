@@ -242,6 +242,9 @@ class ResearchAgentJobs:
 
     session: Session
     scope: StudyContext
+    #: The clients a draft prompt may be tested on (``AIA_AI_FICTIONAL_CLIENT_IDS``). Empty
+    #: by default, so a caller that does not pass it can run no draft at all.
+    draft_client_ids: frozenset[str] = frozenset()
 
     def start(
         self,
@@ -255,7 +258,9 @@ class ResearchAgentJobs:
 
         ``prompt_version`` names a stored version to run instead of the active one --
         how a draft is tested before it is put live (ADR 0020). Only an organization
-        administrator may ask for it: a draft is not what the organization runs.
+        administrator may ask for it, and only on a client the deployment lists as
+        fictional: a draft is not what the organization runs, and an unreviewed prompt
+        is not tried on real client work.
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.RUN_WORKFLOW)
@@ -323,6 +328,11 @@ class ResearchAgentJobs:
             raise DesignRejected(
                 "only an organization administrator may test a prompt version",
                 reason="prompt_test_requires_administrator",
+            )
+        if self.scope.client_id not in self.draft_client_ids:
+            raise DesignRejected(
+                "a draft prompt can be tried only on a client listed as fictional",
+                reason="prompt_test_requires_fictional_client",
             )
         try:
             return resolver.pin_for_version(prompt_id, prompt_version)

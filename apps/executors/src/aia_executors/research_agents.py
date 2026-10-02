@@ -23,6 +23,7 @@ from aia_core.domain.research_agents import (
     HARNESS_VERSION,
     ResearchAction,
     agent_request,
+    prompt_data_class,
     prompt_for,
     proposal_result,
     snapshot_hash,
@@ -201,6 +202,9 @@ class ResearchAgentExecutor:
         except ValueError as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
         assert request.data_classification is not None
+        # A request exists only if its prompt was classified: an unknown class refused above.
+        prompt_class = prompt_data_class(pin, cfg.material_approvals)
+        assert prompt_class is not None
         provenance: dict[str, Any] = {
             "agent_id": request.agent.agent_id,
             "agent_version": request.agent.version,
@@ -233,6 +237,16 @@ class ResearchAgentExecutor:
                 "instruction": classify_material(
                     str(step.payload.get("instruction", "")), cfg.material_approvals
                 ).model_dump(mode="json"),
+                # The code's wording is reviewed with the code; a stored edit travelled only
+                # because an operator classified its exact text (prompt_data_class).
+                "prompt": {
+                    "origin": pin.origin,
+                    "data_class": prompt_class.value,
+                    "text_sha256": pin.text_sha256,
+                    "material_sha256": None
+                    if pin.origin == "baseline"
+                    else classify_material(pin.text, cfg.material_approvals).sha256,
+                },
                 "knowledge_class": "CLASS_A_CLIENT_CONFIDENTIAL",
             },
         }

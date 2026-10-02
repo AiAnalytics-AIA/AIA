@@ -42,7 +42,7 @@ from aia_core.infrastructure.workflow_repository import RuntimeParkNotResumable
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..dependencies import ArtifactStoreDep, SessionDep, StudyScopeDep
+from ..dependencies import ArtifactStoreDep, SessionDep, SettingsDep, StudyScopeDep
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import ArtifactResponse, RunEventResponse
 from .runs import artifact_corrupt, artifact_response
@@ -806,7 +806,9 @@ class AgentJobStart(BaseModel):
     action: ResearchAction
     instruction: str = Field(default="", max_length=8000)
     #: A stored prompt version to run instead of the active one, to test a draft (ADR 0020).
-    #: Organization administrators only; the job records which prompt it ran.
+    #: Organization administrators only, and only on a client the deployment lists as
+    #: fictional (409 ``prompt_test_requires_fictional_client`` otherwise); the job records
+    #: which prompt it ran.
     prompt_version: int | None = Field(default=None, ge=1)
 
 
@@ -884,10 +886,15 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
 
 @router.post("/research/agent-jobs", response_model=AgentJobResponse, status_code=201)
 def start_agent_job(
-    body: AgentJobStart, scope: StudyScopeDep, session: SessionDep, response: Response
+    body: AgentJobStart,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    response: Response,
 ) -> AgentJobResponse:
     with _agent_errors(session):
-        jobs = ResearchAgentJobs(session, scope)
+        # The deployment's fictional-client list decides where a draft prompt may be tried.
+        jobs = ResearchAgentJobs(session, scope, draft_client_ids=settings.fictional_client_ids)
         started = jobs.start(
             design_revision_id=body.design_revision_id,
             action=body.action,

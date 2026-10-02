@@ -680,6 +680,8 @@ export type PromptSlotSummary = {
 };
 export type PromptVersion = {
   version_number: number; label: string; text: string; text_sha256: string;
+  /** The hash an operator lists in AIA_AI_MATERIAL_CLASSIFICATIONS to classify this exact text. */
+  material_sha256: string;
   based_on: string; note: string; created_by: string; created_at: string;
 };
 export type PromptActivation = {
@@ -692,6 +694,8 @@ export type PromptSlotDetail = PromptSlotSummary & {
   /** The wording this code ships: the editable part's baseline. */
   baseline_text: string;
   required_literals: string[]; max_chars: number;
+  /** The clients a draft may be tried on (the deployment's fictional list); empty means none. */
+  draft_test_client_ids: string[];
   versions: PromptVersion[]; history: PromptActivation[];
 };
 

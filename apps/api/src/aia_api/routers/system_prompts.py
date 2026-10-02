@@ -18,6 +18,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
+from aia_core.domain.ai_material import material_sha256
 from aia_core.domain.prompt_slots import PromptSlot
 from aia_core.domain.prompts import PROMPT_TEXT_MAX_CHARS
 from aia_core.domain.scope import ScopeDenied
@@ -31,7 +32,7 @@ from aia_core.infrastructure.prompt_repository import (
 from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..dependencies import OrganizationDep, SessionDep
+from ..dependencies import OrganizationDep, SessionDep, SettingsDep
 from ..schemas.projects import ErrorResponse
 
 router = APIRouter(
@@ -98,6 +99,9 @@ class VersionResponse(BaseModel):
     label: str
     text: str
     text_sha256: str
+    #: The hash an operator lists in ``AIA_AI_MATERIAL_CLASSIFICATIONS`` to classify this exact
+    #: text. Until they do, the version is unclassified material and no model is sent it.
+    material_sha256: str
     based_on: str
     note: str
     created_by: str
@@ -122,6 +126,8 @@ class SlotDetail(SlotSummary):
     baseline_text: str
     required_literals: list[str]
     max_chars: int
+    #: The clients a draft may be tried on; empty means none, so the page offers no test.
+    draft_test_client_ids: list[str]
     versions: list[VersionResponse]
     history: list[ActivationResponse]
 
@@ -181,6 +187,7 @@ def _version(v: StoredVersion) -> VersionResponse:
         label=v.label,
         text=v.text,
         text_sha256=v.text_sha256,
+        material_sha256=material_sha256(v.text),
         based_on=v.based_on,
         note=v.note,
         created_by=v.created_by,
@@ -204,7 +211,7 @@ def _refused(exc: ScopeDenied | PromptRefused) -> HTTPException:
     )
 
 
-def _detail(repo: PromptRepository, prompt_id: str) -> SlotDetail:
+def _detail(repo: PromptRepository, prompt_id: str, draft_clients: frozenset[str]) -> SlotDetail:
     item = next((o for o in repo.overview() if o.slot.prompt_id == prompt_id), None)
     if item is None:
         raise PromptRefused(f"unknown prompt {prompt_id}", reason="unknown_prompt")
@@ -215,6 +222,7 @@ def _detail(repo: PromptRepository, prompt_id: str) -> SlotDetail:
         baseline_text=slot.baseline_text,
         required_literals=list(slot.required_literals),
         max_chars=PROMPT_TEXT_MAX_CHARS,
+        draft_test_client_ids=sorted(draft_clients),
         versions=[_version(v) for v in repo.versions(prompt_id)],
         history=[ActivationResponse(**h) for h in repo.history(prompt_id)],
     )
@@ -236,9 +244,11 @@ def list_prompts(admin: OrganizationDep, session: SessionDep) -> list[SlotSummar
 @router.get(
     "/{prompt_id}", response_model=SlotDetail, summary="One prompt, its versions and history"
 )
-def read_prompt(prompt_id: PromptId, admin: OrganizationDep, session: SessionDep) -> SlotDetail:
+def read_prompt(
+    prompt_id: PromptId, admin: OrganizationDep, session: SessionDep, settings: SettingsDep
+) -> SlotDetail:
     try:
-        return _detail(PromptRepository(session, admin), prompt_id)
+        return _detail(PromptRepository(session, admin), prompt_id, settings.fictional_client_ids)
     except (ScopeDenied, PromptRefused) as exc:
         raise _refused(exc) from exc
 

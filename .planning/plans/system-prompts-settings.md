@@ -254,3 +254,24 @@ Bedrock prompt management; detection of client data in a prompt.
 
 Nothing else needed to change: system settings being the Admin's matches who may edit prompts, and the
 two-role fixtures kept the labels the tests use.
+
+## Review findings addressed (2026-10-02, review of head `3cdc77c`)
+
+- **P1, prompt not in the egress classification.** Confirmed: `agent_request` classified the design, the
+  instruction and the knowledge but sent the stored prompt unclassified. Now `prompt_data_class` adds it:
+  the code's wording is Class C by review; a stored edit is unclassified material and travels only when an
+  operator has classified its exact text (`material_sha256`), otherwise dispatch is refused. Tests: domain
+  (pasted client material is not sent as Class C; one changed character voids the approval; an approval as
+  Class A raises the request) and through the real worker and gateway (an unclassified prompt, and one with
+  client material, park and send nothing; an approved one travels and records how it was classified).
+  Trade-off: **an operator step per edit.** The alternative, an author attestation, is the owner's call (ADR 0020).
+- **P1, drafts on real clients.** Confirmed: the picker offered every research study and the API accepted
+  `prompt_version` for any. Now `ResearchAgentJobs` takes the deployment's fictional list and refuses a draft
+  on any other client (409 `prompt_test_requires_fictional_client`); the API reads `AIA_AI_FICTIONAL_CLIENT_IDS`
+  (new setting, refused in production, passed to the API container in the develop compose file); the detail
+  reports the list and the picker filters to match. Tests: API refusal (no list, another client listed),
+  acceptance on a listed client, settings parsing and the production refusal, and the page.
+
+Doc follow-up added: `deploy/develop/env.example` already documents `AIA_AI_FICTIONAL_CLIENT_IDS`; its note
+should say the API reads it too. `AGENTS.md`: "a prompt is material: anything sent as a system message is
+classified like any other text".
