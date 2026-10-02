@@ -254,7 +254,7 @@ class ResearchAgentJobs:
         """Queue one proposal. The prompt it runs is chosen here and frozen into the job.
 
         ``prompt_version`` names a stored version to run instead of the active one --
-        how a draft is tested before it is put live (ADR 0019). Only an organization
+        how a draft is tested before it is put live (ADR 0020). Only an organization
         administrator may ask for it: a draft is not what the organization runs.
         """
         self.scope.require(Permission.EDIT_STUDY)
@@ -278,7 +278,7 @@ class ResearchAgentJobs:
                     "context": snapshot_hash(snapshot),
                     "instruction": instruction,
                     # The assembled prompt: for the baseline this is byte-for-byte what it
-                    # always was, so a job queued before ADR 0019 keeps its fingerprint.
+                    # always was, so a job queued before ADR 0020 keeps its fingerprint.
                     "prompt": prompt_for(action, prompt.text),
                 }
             ).encode()

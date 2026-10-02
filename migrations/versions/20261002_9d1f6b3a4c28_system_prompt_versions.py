@@ -1,6 +1,6 @@
 """system prompts as data: immutable versions and an append-only activation log
 
-ADR 0019. A system prompt's instruction can be edited at runtime by an organization
+ADR 0020. A system prompt's instruction can be edited at runtime by an organization
 administrator. Each edit is a row in ``ai_prompt_versions`` that is never updated or
 deleted; ``ai_prompt_activations`` records which version an organization runs for a
 prompt (NULL: the wording shipped in code), newest row wins, and a rollback is a new

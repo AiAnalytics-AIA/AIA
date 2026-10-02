@@ -268,7 +268,7 @@ def test_ledger_attribution_comes_from_the_issued_scope(
 def test_every_ledger_entry_records_the_hash_of_the_system_prompt_as_sent(
     model_registry: ModelRegistry, context: ExecutionContext
 ) -> None:
-    """Version labels say which wording was meant; the hash says which bytes ran (ADR 0019)."""
+    """Version labels say which wording was meant; the hash says which bytes ran (ADR 0020)."""
     import hashlib
 
     request = _request()

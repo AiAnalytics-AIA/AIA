@@ -1,4 +1,4 @@
-# ADR 0019 — System prompts are data an administrator edits; the rails stay code
+# ADR 0020 — System prompts are data an administrator edits; the rails stay code
 
 **Status:** Proposed — develop (2026-10-02). Implemented on
 `feature/system-prompts-settings` ([plan](../../../.planning/plans/system-prompts-settings.md)).
@@ -6,8 +6,9 @@
 policy change exists: a person can now edit and activate a prompt; nothing adapts one
 automatically. **Builds on** [ADR 0005](0005-llm-gateway.md) (the one call path),
 [ADR 0010](0010-bedrock-eu-inference-route.md) (policy, prompt and runtime versions on every
-call) and [ADR 0016](0016-research-execution-and-model-transmission.md) (runs found only
-through the Study).
+call), [ADR 0016](0016-research-execution-and-model-transmission.md) (runs found only through
+the Study) and [ADR 0019](0019-two-roles-and-human-ai-gates.md) (two roles; system settings are
+the Admin's; no approval between people).
 **Date:** 2026-10-02
 
 ## Context
@@ -66,12 +67,16 @@ Two things make "just let people edit the string" unsafe here:
      (`not_run_by_any_composition`): no composition registers them today, so an edit would do
      nothing. The store refuses to save a version for them (`not_editable`).
 
-5. **Authority and review.** Reading, saving, activating and testing need organization OWNER or
-   ADMIN (`OrganizationContext.require_administer`); a member is refused and never sees the text.
-   Independent review is the default, as for every approval in AIA: the author of a version does
-   not put it live unless the organization's self-approval policy allows it, or a different
-   person already activated that exact version (going back to something somebody else ran is not
-   a new decision). Returning to the code's wording is always allowed.
+5. **Authority and review.** Reading, saving, activating and testing are system settings, which
+   [ADR 0019](0019-two-roles-and-human-ai-gates.md) gives to the Admin role (an OWNER is treated
+   as one): `OrganizationContext.require_administer`. A member is refused and never sees the
+   text. There is no approval between people (ADR 0019 decision 3), and a prompt edit is a
+   person's act, not AI output, so it is not one of that ADR's gates: by default the author of a
+   version may put it live themselves. The self-approval setting ADR 0019 kept still decides the
+   rest: an organization (or client, or study) that has turned independent review on gets the
+   stricter rule, that the author does not put a version live unless a different person already
+   activated that exact version (going back to something somebody else ran is not a new
+   decision). Returning to the code's wording is always allowed.
 
 6. **Every change is audited, and every call records the bytes.** Create, activate and reset write
    an `access_audit` row (actor, prompt, versions, text hash, the stated reason) in the

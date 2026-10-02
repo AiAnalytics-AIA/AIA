@@ -1,4 +1,4 @@
-"""System prompts as data: the only reader and writer of the prompt tables (ADR 0019).
+"""System prompts as data: the only reader and writer of the prompt tables (ADR 0020).
 
 Two faces, deliberately separate:
 
@@ -18,9 +18,10 @@ Rules this module keeps:
   earlier version, so the record of what ran is complete.
 * Only a **wired** slot can be edited. Editing a prompt no composition reads would
   promise an effect that does not happen.
-* Independent review is the default, as for every approval in AIA: whoever wrote a
-  version does not activate it unless the organization allows self-approval, or someone
-  else already activated that exact version.
+* Review follows the organization's self-approval setting (ADR 0019: no approval between
+  people by default, the setting kept for a client that wants independent review). With
+  the setting off, whoever wrote a version does not activate it unless someone else
+  already activated that exact version.
 * A prompt that fails validation is refused, never repaired or truncated.
 
 ``make layer_check`` keeps the rows inside this module.
@@ -229,7 +230,7 @@ class PromptResolver:
         )
 
     def pin_for_version(self, prompt_id: str, version_number: int) -> PromptPin:
-        """A specific stored version, active or not -- for testing a draft (ADR 0019)."""
+        """A specific stored version, active or not -- for testing a draft (ADR 0020)."""
         slot = _wired_slot(prompt_id)
         row = self._session.scalar(
             select(PromptVersionRow).where(
@@ -452,7 +453,7 @@ class PromptRepository:
         )
 
     def _require_independent_activation(self, row: PromptVersionRow) -> None:
-        """Whoever wrote a version does not put it live alone, unless policy allows it.
+        """With independent review required, the author does not put a version live alone.
 
         Rolling back to a version somebody else already ran is not a new decision, so
         it is allowed: that exact text has been put live by a different person before.

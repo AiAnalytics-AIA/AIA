@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[x] 1. ADR 0019: runtime-editable system prompts (decision, limits, what stays code)"
+  - "[x] 1. ADR 0020: runtime-editable system prompts (decision, limits, what stays code)"
   - "[x] 2. Domain: the prompt slots -- editable instruction vs code-owned frame, baselines unchanged"
   - "[x] 3. Ledger: system_prompt_sha256 on AIUsageEvent and ai_usage_events"
   - "[x] 4. Storage: immutable prompt versions + append-only activations + audit, repository"
@@ -64,8 +64,10 @@ test on a fictional client, activate and roll back without a deploy; a Settings 
   behave (the prompt text is in the job fingerprint, `application/research.py:259-268`, re-checked
   at `executors/research_agents.py:71-94`), so a run keeps the prompt it was queued with.
 - **D4. Authority.** Create/edit/activate need `OrganizationContext.may_administer` (OWNER/ADMIN;
-  `scope.py:873-884`). Whether the author may activate their own version follows the organization's
-  existing `allow_self_approval` value, the repository's maker-checker pattern. *Open question 1.*
+  system settings are the Admin's under ADR 0019). Whether the author may activate their own version
+  follows the existing self-approval setting. *Resolved by `develop`'s ADR 0019 (no approval between
+  people): the default is that they may; an organization that turns independent review on gets the
+  refusal. Written before that ADR, with the opposite default; see "After merging develop".*
 - **D5. Audit.** Every create, activate and rollback writes an `access_audit` row (`tables.py:594-621`:
   actor, action, JSON before/after, request id) in the same transaction as the change.
 - **D6. Testing never calls a model from the API.** `research-agents.md`: the API never invokes a
@@ -79,9 +81,8 @@ test on a fictional client, activate and roll back without a deploy; a Settings 
 
 ## Open questions for the owner
 
-1. May the author of a version also activate it? Proposed: follow `allow_self_approval` (today the
-   organization default is `DEFAULT_SELF_APPROVAL_ALLOWED`); iteration speed on `develop` suggests
-   allowing it there and requiring a second person elsewhere.
+1. ~~May the author of a version also activate it?~~ Decided by `develop`'s ADR 0019: yes by default;
+   the self-approval setting still lets an organization require independent review.
 2. Is a pinned run on a fictional client enough as the "playground", or is a one-off
    side-by-side of two versions on the same fixed input needed in the first release?
 3. Should prompt scope ever be per client? Proposed: organization-wide only. A per-client override
@@ -93,7 +94,7 @@ test on a fictional client, activate and roll back without a deploy; a Settings 
 
 Each is small, builds and passes tests alone, and is committed on its own (after permission).
 
-1. **ADR 0019.** Records D1-D7, what stays code, the worker-startup limit, and why Bedrock prompt
+1. **ADR 0020.** Records D1-D7, what stays code, the worker-startup limit, and why Bedrock prompt
    management is not used (EU-pinned inference profile and IAM today grant only `bedrock:InvokeModel*`,
    `infra/develop/main.tf:20-29,332-333`; a new service would need new IAM and egress review).
    The ADR index is a shared file: the index line goes under Doc follow-up.
@@ -163,9 +164,9 @@ until the first chunk that touches them adds the test.
 
 ## Doc follow-up (for the PR description; shared files are not edited here)
 
-- `docs/architecture/adr/README.md`: index line for ADR 0019.
+- `docs/architecture/adr/README.md`: index line for ADR 0020.
 - `docs/architecture/research-agents.md`: change harness to `aia-research-harness-2` (F3); replace
-  "no online prompt or policy changes" with a pointer to ADR 0019 (human-edited, human-activated).
+  "no online prompt or policy changes" with a pointer to ADR 0020 (human-edited, human-activated).
 - `docs/architecture/ai-runtime.md` § What Settings shows: add the System prompts tab and the
   statement that configuration is still not verification.
 - `CLAUDE.md` §2 map: add `domain/prompts.py` (pin, validation), `domain/prompt_slots.py` (registry),
@@ -237,3 +238,19 @@ Bedrock prompt management; detection of client data in a prompt.
   `create_all`. Repro: `DATABASE_URL=sqlite:///x.db alembic upgrade head`. Consequence: migrations can only
   be verified on PostgreSQL. Smallest fix: none needed for the product (it runs PostgreSQL); a CI step that
   upgrades an empty PostgreSQL and checks `compare_metadata` would have caught any drift.
+
+## After merging develop (2026-10-02)
+
+`develop` moved 36 commits while this was built. Two of them changed the ground under it:
+
+- **ADR 0019 on `develop`** (two roles; no approval between people; gates only between a person and
+  the AI) took the number this change's ADR had, so ours is **ADR 0020**. Every reference moved with it.
+- **The self-approval default became *allowed*.** The prompt store's review rule follows that setting, so by
+  default an administrator may put their own version live, and an organization that turns independent
+  review on gets the refusal. CI caught this: `test_the_author_does_not_put_their_own_version_live_by_default`
+  failed on the merge ref ("DID NOT RAISE") although it passed on this branch alone. The tests now state
+  both cases explicitly. The rule was not removed: ADR 0019 kept the setting precisely for a client that
+  wants independent review, and a prompt is a control that deserves that option.
+
+Nothing else needed to change: system settings being the Admin's matches who may edit prompts, and the
+two-role fixtures kept the labels the tests use.

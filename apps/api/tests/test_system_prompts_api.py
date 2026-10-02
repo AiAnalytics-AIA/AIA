@@ -1,4 +1,4 @@
-"""System prompts over HTTP: an administrator's act, audited, never a member's (ADR 0019)."""
+"""System prompts over HTTP: an administrator's act, audited, never a member's (ADR 0020)."""
 
 from __future__ import annotations
 
@@ -115,15 +115,9 @@ def test_the_request_is_closed(owner: TestClient) -> None:
 # ------------------------------------------------------------------ activating
 
 
-def test_the_author_cannot_put_their_own_version_live_unless_policy_allows(
-    owner: TestClient,
-) -> None:
+def test_by_default_the_author_puts_their_own_version_live(owner: TestClient) -> None:
+    """No approval between people (ADR 0019): the default is that the person who wrote it may."""
     _save(owner)
-    refused = owner.put(f"{PROMPTS}/{CRITIQUE}/active", json={"version_number": 1})
-    assert refused.status_code == 403
-    assert refused.json()["code"] == "self_activation_not_allowed"
-
-    assert owner.put(f"{API}/self-approval", json={"allowed": True}).status_code == 200
     live = owner.put(
         f"{PROMPTS}/{CRITIQUE}/active", json={"version_number": 1, "reason": "lepší formulace"}
     )
@@ -138,8 +132,22 @@ def test_the_author_cannot_put_their_own_version_live_unless_policy_allows(
     assert [h["label"] for h in detail["history"]] == ["e1"]
 
 
+def test_when_the_organization_requires_independent_review_the_author_cannot(
+    owner: TestClient,
+) -> None:
+    assert owner.put(f"{API}/self-approval", json={"allowed": False}).status_code == 200
+    _save(owner)
+    refused = owner.put(f"{PROMPTS}/{CRITIQUE}/active", json={"version_number": 1})
+    assert refused.status_code == 403
+    assert refused.json()["code"] == "self_activation_not_allowed"
+    assert owner.get(f"{PROMPTS}/{CRITIQUE}").json()["active"]["origin"] == "baseline"
+
+    # Turning review off again is the organization's own act, and then it goes through.
+    assert owner.put(f"{API}/self-approval", json={"allowed": True}).status_code == 200
+    assert owner.put(f"{PROMPTS}/{CRITIQUE}/active", json={"version_number": 1}).status_code == 200
+
+
 def test_returning_to_the_codes_wording_is_one_call_and_is_recorded(owner: TestClient) -> None:
-    owner.put(f"{API}/self-approval", json={"allowed": True})
     _save(owner)
     owner.put(f"{PROMPTS}/{CRITIQUE}/active", json={"version_number": 1})
     back = owner.put(
@@ -158,7 +166,6 @@ def test_activating_a_missing_version_is_not_found(owner: TestClient) -> None:
 
 
 def test_every_change_is_in_the_access_audit(owner: TestClient) -> None:
-    owner.put(f"{API}/self-approval", json={"allowed": True})
     _save(owner)
     owner.put(f"{PROMPTS}/{CRITIQUE}/active", json={"version_number": 1, "reason": "proč"})
     owner.put(f"{PROMPTS}/{CRITIQUE}/active", json={"version_number": None})

@@ -1542,7 +1542,7 @@ class PopulationCompanionAssetRow(Base):
 
 
 class PromptVersionRow(Base):
-    """One stored edit of a system prompt's instruction. Immutable (ADR 0019).
+    """One stored edit of a system prompt's instruction. Immutable (ADR 0020).
 
     A version is never updated or deleted: a change is a new row, so what a run was
     queued with can always be read back. ``version_number`` counts per organization

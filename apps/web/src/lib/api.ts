@@ -566,7 +566,7 @@ export type ResearchAgentResult = {
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
-  /** `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0019). */
+  /** `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020). */
   start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number) =>
     request<ResearchAgentJob>("POST", agentsPath(studyId), {
       design_revision_id: revisionId, action, instruction, ...(promptVersion === undefined ? {} : { prompt_version: promptVersion }),
@@ -664,7 +664,7 @@ export type AuditEntry = {
   actor_id: string | null; role: string | null; reason: string; payload: Record<string, unknown>; created_at: string | null;
 };
 
-// ---- system prompts (routers/system_prompts.py, ADR 0019) -------------------
+// ---- system prompts (routers/system_prompts.py, ADR 0020) -------------------
 
 /** What runs for a prompt: "baseline" is the wording shipped in code, "stored" an administrator's edit. */
 export type PromptActive = {

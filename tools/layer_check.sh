@@ -192,7 +192,7 @@ forbid "executors never touch the client knowledge tables" \
   'ClientKnowledge(Item|Revision|Proposal)Row' \
   "$EXECUTORS"
 
-# System prompts are data an administrator edits (ADR 0019). Their rows are written and
+# System prompts are data an administrator edits (ADR 0020). Their rows are written and
 # read only through the prompt repository, which refuses anyone who may not administer
 # the organization, keeps versions immutable, and audits every change. A table used
 # anywhere else is an edit or an activation that skipped those three.

@@ -1,4 +1,4 @@
-"""System prompts: what each step tells the model, edited by an administrator (ADR 0019).
+"""System prompts: what each step tells the model, edited by an administrator (ADR 0020).
 
 Organization-level administration, so every route takes an ``OrganizationContext`` and
 refuses anyone who may not administer the organization. The prompt text is never
@@ -8,8 +8,9 @@ agent job pinned to a stored version (``POST .../research/agent-jobs``), which t
 runs like any other.
 
 A saved version does not run. Putting one live is a second, deliberate act
-(``PUT .../active``) and is refused for its own author unless the organization allows
-self-approval, exactly as for every other approval in AIA.
+(``PUT .../active``). By default the person who wrote a version may put it live (ADR 0019:
+no approval between people); an organization that has turned independent review back on
+gets a refusal for the author instead, as for every other approval in AIA.
 """
 
 from __future__ import annotations

@@ -1,14 +1,15 @@
 "use client";
 
-// The system prompts tab: what each step tells the model, edited here (ADR 0019).
+// The system prompts tab: what each step tells the model, edited here (ADR 0020).
 //
 // What an administrator can do: read a prompt, edit its instruction, save the edit as
 // a new version, compare versions, test one on a fictional study, put one live, and go
 // back to the wording shipped in code. What they cannot: edit the code's frame around
 // the instruction (shown, never editable) or make an edit take effect for a job already
 // queued -- a job keeps the prompt it was queued with. A saved version does not run until
-// it is put live, and the API refuses the author who puts their own version live unless
-// the organization allows self-approval; the refusal is shown as given.
+// it is put live. By default the author may do that themselves (ADR 0019: no approval
+// between people); an organization that requires independent review gets a refusal for
+// the author instead, shown as the API gave it.
 //
 // Nothing here calls a model. A test queues a normal agent job pinned to the version.
 

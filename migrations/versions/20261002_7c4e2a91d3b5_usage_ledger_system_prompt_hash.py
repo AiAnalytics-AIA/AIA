@@ -3,7 +3,7 @@
 The ledger recorded which prompt *version* a call used (``prompt_id``,
 ``prompt_version``) and, in ``input_fingerprint``, a hash of everything the call sent.
 It could not say which system-prompt bytes ran. With system prompts editable at
-runtime (ADR 0019) a version label is no longer enough on its own.
+runtime (ADR 0020) a version label is no longer enough on its own.
 
 A nullable column: NULL is "not recorded" and is what every existing row keeps. The
 ledger is append-only and nothing is rewritten, so no row is stamped with a guess.

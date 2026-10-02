@@ -2,7 +2,7 @@
 
 The prompts AIA sends to a model used to be string constants. Editing one needs a
 deploy. This module is the pure half of letting an administrator edit them at
-runtime (ADR 0019) without letting an edit reach anything that must stay code:
+runtime (ADR 0020) without letting an edit reach anything that must stay code:
 
 * **Only the instruction is editable.** A slot's text is the role and task wording.
   What a gate depends on -- the output contract, the "this is data, not

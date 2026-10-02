@@ -20,7 +20,6 @@ from aia_core.infrastructure.model_adapters.transport import (
     TransportFailure,
 )
 from aia_core.infrastructure.prompt_repository import PromptRepository
-from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.registry import registry_for
@@ -341,17 +340,15 @@ def test_identical_model_context_does_not_reuse_a_different_revision_baseline(
         assert second_result["result"]["project"]["provider"] == "historical-selection"
 
 
-# --------------------------------------------------------------- prompts as data (ADR 0019)
+# --------------------------------------------------------------- prompts as data (ADR 0020)
 
 CUSTOM_TASK = "Analyzuj zadání stručně a pouze z dodaných podkladů."
 
 
 def put_live(world: Any, prompt_id: str, text: str) -> None:
-    """An administrator stores an edit and puts it live (one person: self-approval on)."""
+    """An administrator stores an edit and puts it live."""
     with world.sessions() as session:
-        admin = world.admin_context(session)
-        ScopeRepository(session).set_self_approval(admin, allowed=True)
-        repo = PromptRepository(session, admin)
+        repo = PromptRepository(session, world.admin_context(session))
         version = repo.create_version(prompt_id, text)
         repo.activate(prompt_id, version.version_number, reason="test")
         session.commit()

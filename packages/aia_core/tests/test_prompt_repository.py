@@ -1,6 +1,6 @@
 """The prompt store: who may change a prompt, what a change leaves behind, what runs.
 
-Against a real database through the same scope path production uses (ADR 0019).
+Against a real database through the same scope path production uses (ADR 0020).
 """
 
 from __future__ import annotations
@@ -58,7 +58,6 @@ def test_only_an_administrator_may_open_the_store(scoped: Any, session: Any) -> 
 
 
 def test_the_resolver_reads_only_its_own_organization(scoped: Any, session: Any) -> None:
-    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=True)  # one person here
     repo = _repo(scoped, session)
     repo.create_version(CRITIQUE, "Vlastní kritika.")
     repo.activate(CRITIQUE, 1)
@@ -154,9 +153,23 @@ def test_every_change_leaves_an_audit_row_naming_who_and_what(scoped: Any, sessi
 # ------------------------------------------------------------------ activating
 
 
-def test_the_author_does_not_put_their_own_version_live_by_default(
+def _require_independent_review(scoped: Any) -> None:
+    """The organization turns independent review back on (the setting ADR 0019 kept)."""
+    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=False)
+
+
+def test_by_default_the_author_may_put_their_own_version_live(scoped: Any, session: Any) -> None:
+    """No approval between people (ADR 0019): the gate is between a person and the AI."""
+    repo = _repo(scoped, session)
+    repo.create_version(CRITIQUE, "Moje.")
+    active = repo.activate(CRITIQUE, 1)
+    assert (active.origin, active.label, active.activated_by) == ("stored", "e1", scoped.owner_id)
+
+
+def test_when_the_organization_requires_independent_review_the_author_cannot(
     scoped: Any, session: Any
 ) -> None:
+    _require_independent_review(scoped)
     repo = _repo(scoped, session)
     repo.create_version(CRITIQUE, "Moje.")
     with pytest.raises(PromptRefused) as refused:
@@ -166,7 +179,10 @@ def test_the_author_does_not_put_their_own_version_live_by_default(
     assert not [a for a in _audit(session) if a.action == "PROMPT_ACTIVATED"]
 
 
-def test_a_second_administrator_can_activate_it(scoped: Any, session: Any) -> None:
+def test_a_second_administrator_can_activate_it_when_review_is_required(
+    scoped: Any, session: Any
+) -> None:
+    _require_independent_review(scoped)
     _repo(scoped, session).create_version(CRITIQUE, "Moje.")
     second = PromptRepository(session, _admin(scoped, "second@art-chain.io"))
     active = second.activate(CRITIQUE, 1)
@@ -177,18 +193,20 @@ def test_a_second_administrator_can_activate_it(scoped: Any, session: Any) -> No
     )
 
 
-def test_an_organization_that_allows_self_approval_lets_the_author_activate(
+def test_turning_independent_review_off_again_lets_the_author_activate(
     scoped: Any, session: Any
 ) -> None:
-    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=True)
+    _require_independent_review(scoped)
     repo = _repo(scoped, session)
     repo.create_version(CRITIQUE, "Moje.")
+    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=True)
     assert repo.activate(CRITIQUE, 1).label == "e1"
 
 
 def test_the_author_may_roll_back_to_a_version_someone_else_already_ran(
     scoped: Any, session: Any
 ) -> None:
+    _require_independent_review(scoped)
     author = _repo(scoped, session)
     second = PromptRepository(session, _admin(scoped, "second@art-chain.io"))
     author.create_version(CRITIQUE, "Jedna.")
