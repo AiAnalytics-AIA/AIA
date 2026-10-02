@@ -19,9 +19,12 @@ from .ai_material import MaterialApproval, classify_material, most_restrictive_m
 from .ai_models import ModelCapability
 from .knowledge import KnowledgeItem
 from .licence import DataLineage
+from .prompts import PromptPin
 from .residency import DataClass
 
 HARNESS_VERSION: Final = "aia-research-harness-2"
+#: The prompt version of the wording this code ships; a stored edit has its own (``prompts``).
+BASELINE_PROMPT_VERSION: Final = "1"
 CONTEXT_MAX_BYTES: Final = 64_000
 KNOWLEDGE_MAX_BYTES: Final = 20_000
 
@@ -212,8 +215,23 @@ návrhů agentů není schválená evidence.""",
 }
 
 
-def prompt_for(action: ResearchAction) -> str:
-    return _COMMON + "\n" + _TASKS[action]
+#: The code-owned part of every Research prompt: the rails no stored edit can remove.
+#: Only the task wording after it is editable (``aia_core.domain.prompts``).
+FIXED_PREFIX: Final = _COMMON + "\n"
+
+
+def baseline_task(action: ResearchAction) -> str:
+    """The task wording this code ships: the editable part's baseline."""
+    return _TASKS[action]
+
+
+def prompt_for(action: ResearchAction, task: str | None = None) -> str:
+    """The system prompt of one action: the fixed rails, then its task wording.
+
+    ``task`` is a stored edit's text (a :class:`~aia_core.domain.prompts.PromptPin`);
+    without it the baseline above is used, byte for byte what the code always sent.
+    """
+    return FIXED_PREFIX + (_TASKS[action] if task is None else task)
 
 
 def context_snapshot(content: dict[str, Any], knowledge: list[KnowledgeItem]) -> dict[str, Any]:
@@ -265,8 +283,13 @@ def agent_request(
     policy_version: str,
     max_output_tokens: int,
     material_approvals: tuple[MaterialApproval, ...] = (),
+    prompt: PromptPin | None = None,
 ) -> ModelRequest:
     """No tool grants or fallbacks; scope never appears in a model argument.
+
+    ``prompt`` is the pin the job was queued with. Its identity is the request's
+    prompt identity; without one the code baseline runs as version ``"1"``. A pin
+    for another prompt is refused here, not trusted.
 
     The copied design includes pasted text and attachment excerpts. Only a trusted
     classification of these exact bytes can permit it. Approved knowledge remains
@@ -290,13 +313,16 @@ def agent_request(
         if action is ResearchAction.CRITIQUE
         else ModelCapability.RESEARCH_REASONING
     )
+    prompt_id = f"aia.research.{action.value}"
+    if prompt is not None and prompt.prompt_id != prompt_id:
+        raise ValueError(f"prompt pin {prompt.prompt_id} does not belong to {prompt_id}")
     return ModelRequest(
         agent=AgentDefinition(
-            agent_id=f"aia.research.{action.value}",
+            agent_id=prompt_id,
             version="1",
             capability=capability,
-            prompt_id=f"aia.research.{action.value}",
-            prompt_version="1",
+            prompt_id=prompt_id,
+            prompt_version=BASELINE_PROMPT_VERSION if prompt is None else prompt.version,
             output_contract=CONTRACTS[action],
             max_output_tokens=max_output_tokens,
             schema_repair_attempts=1,
@@ -304,7 +330,7 @@ def agent_request(
         policy_version=policy_version,
         data_classification=data_class,
         data_lineage=lineage,
-        system=prompt_for(action),
+        system=prompt_for(action, None if prompt is None else prompt.text),
         messages=(
             Message(
                 role="user",
