@@ -74,7 +74,8 @@ apps/
                             a study's frame and its working content in AIA, ADR 0015, ADR 0018),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
-                            artifacts (ADR 0016), and native agent-jobs beneath each Study),
+                            artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
+                            and native agent-jobs beneath each Study),
                             settings (the read-only settings document: every control and how it is set;
                             ai_runtime, what powers AIA's model calls from code; ai_history, the
                             prototype's provider fields, readable and never offered)
@@ -216,8 +217,10 @@ packages/aia_core/src/aia_core/
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
     residency.py            EU residency, data classes, the fail-closed egress boundary
-    scope.py                Organization/Client/Study vocabulary, roles, permissions; StudyKind
-                            (RESEARCH / SIMULATION); ClientContext + ClientPermission
+    scope.py                Organization/Client/Study vocabulary, permissions; one role (Researcher =
+                            every permission, ADR 0019) and WORKER_PERMISSIONS, an explicit set that
+                            withholds every approval; StudyKind (RESEARCH / SIMULATION);
+                            ClientContext + ClientPermission
     workspace.py            A research Study's working content: ContentState (EMPTY … AWAITING_MIGRATION),
                             validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58)
     research_template.py    The research template a new study starts from (the unit's empty project)
@@ -265,7 +268,9 @@ packages/aia_core/src/aia_core/
     model_gateway.py        GovernedModelGateway — the ONLY model call path (ADR 0005)
     scope.py                ScopeResolver — the ONLY issuer of a scope context,
                             including a worker's, issued only against a held lease,
-                            and of a ClientContext (client_context, accessible_clients)
+                            and of a ClientContext (client_context, accessible_clients);
+                            membership of the organization is the access, no grant is read
+                            (ADR 0019), and an archived client's studies are not listed
     population.py           PopulationRuntime — the ONLY loader of population data
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
@@ -304,7 +309,8 @@ packages/aia_core/src/aia_core/
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
     repositories.py         ProjectRepository (owner= in its isolation predicate)
-    scope_repository.py     Organizations, clients, studies, grants; studies in a client, by kind
+    scope_repository.py     Organizations, clients, studies, budgets; studies in a client, by kind
+                            (grant tables remain, unread, until ADR 0019 chunk 6 retires them)
     study_design_repository.py  A Study's design project (owned: projects.owner) and its
                             Design Revisions; the ONLY writer of a Study's design (ADR 0016)
     study_workspace_repository.py  A Study's working content in its owned working project
@@ -318,11 +324,14 @@ packages/aia_core/src/aia_core/
     unit_project_store.py   A COPY of the 18.6.6 project store, read mode=ro&immutable=1 (a live
                             database refused; the backup ZIP unpacked to scratch); files by base name
     client_knowledge_repository.py  The ONLY reader/writer of Client Knowledge: read inside a
-                            resolved scope, changed only by an approved proposal (new revision)
+                            resolved scope, changed by a person's write or an accepted proposal
+                            (a new revision each time)
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
     workflow_repository.py  Durable jobs, lease-fenced writes, cost reservations,
                             the population binding each run records; WorkQueue --
-                            the only cross-study surface (claim, recover, resume, refuse)
+                            the only cross-study surface (claim, recover, resume, refuse);
+                            resume_budget_wait: a person lifts an AWAITING_BUDGET step, in the
+                            approval ledger (the worker's scope cannot)
     population_repository.py  Population registry: versions, populations, history
     population_parser.py    Text-preserving panel + dictionary parser (stdlib)
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
@@ -450,8 +459,8 @@ so where a person meets it (`docs/migration/interface-screens.json`: every class
 screen REBUILT, REBUILDING, SUPERSEDED or NOT_IN_AIA with where AIA says it). `/app`
 sits behind AIA's own gate, `forward_auth` to `GET /api/v1/session/gate` (ADR 0018):
 any active member of the organization with an AIA session; what they see inside is
-decided per call by the API (user → organization membership → client grant → study
-grant). No legacy setting touches it. The product hostname serves nothing of the unit (ADR 0018
+decided per call by the API (user → organization membership; ADR 0019: no client or
+study grant is read). No legacy setting touches it. The product hostname serves nothing of the unit (ADR 0018
 decision 5): its old paths are the web client's 404, the panel's gate is gone with
 it, and `tools/caddy_routes.py` fails a Caddyfile that routes anywhere but the API
 and the web client.
@@ -464,7 +473,7 @@ names the revision it was edited from and a stale one is refused (409), never
 applied over a newer one. A study bound to 18.6.6 before ADR 0018 is
 `AWAITING_MIGRATION` -- not editable -- until the explicit migration of its 18.6.6
 content (`aia_executors.legacy_workspace`, ADR 0018 decision 2) brings it over from a
-*copy* of the unit's store, as a named person through their own grants; nothing reads
+*copy* of the unit's store, as a named person through their own access; nothing reads
 the running unit. `unit_project_id` is lineage only, and nothing finds a study by it. The files a
 brief carries are artifacts of the same working project, in AIA's storage
 (`/workspace/attachments`), served only through the Study as `application/octet-stream`;
@@ -473,10 +482,10 @@ the brief keeps their records, never a URL. A questionnaire file is read in AIA
 
 **Client Knowledge is scoped before it is read.** `ClientKnowledgeRepository`
 takes a `ClientContext` or `StudyContext` and queries by that client; there is
-no global pool filtered afterwards. A study proposes, a person other than the
-proposer approves (unless the client's self-approval policy allows it), and
-approval writes a new revision with provenance; nothing
-changes knowledge otherwise. `make layer_check` keeps the rows inside the
+no global pool filtered afterwards. What a person writes in the client workspace is
+knowledge at once; a study proposes and a person accepts (the proposer too, unless
+self-approval is turned off), and either writes a new revision with provenance; knowledge
+the AI wrote stays a proposal until a person accepts it. Nothing changes knowledge otherwise. `make layer_check` keeps the rows inside the
 repository.
 
 **A research run executes a Design Revision** (ADR 0016). The browser submits the
@@ -582,6 +591,7 @@ ungated fixture.
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |
+| Docs-only pull request | A PR changing only `.planning/`, `docs/architecture/adr/`, `CLAUDE.md`, `AGENTS.md` or `ARCHITECTURE.md` runs `Documentation checks` instead of the suites; the path list is the `changes` job in `.github/workflows/ci.yml` |
 | **The pre-commit sequence** | `make verify` |
 | OpenAPI document | `make openapi` |
 
