@@ -835,7 +835,7 @@ def knowledge_proposals(
     "/clients/{client_id}/knowledge/proposals",
     response_model=ProposalResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Propose a knowledge update",
+    summary="Add or edit client knowledge",
 )
 def propose_knowledge(
     client_id: ClientIdPath,
@@ -844,10 +844,15 @@ def propose_knowledge(
     resolver: ResolverDep,
     session: SessionDep,
 ) -> ProposalResponse:
-    """A proposal changes nothing until a person with the approval permission decides."""
+    """What a person writes here takes effect now (ADR 0019); the answer is the approved record.
+
+    Only when self-approval is turned off for this client does it come back ``PROPOSED``,
+    for someone else to decide. A study's findings are different: they are offered through
+    ``/studies/{study_id}/knowledge-proposals`` and always wait for a person.
+    """
     scope = _knowledge_scope(principal, resolver, client_id)
     try:
-        proposal = ClientKnowledgeRepository(session).propose(
+        proposal = ClientKnowledgeRepository(session).add(
             scope,
             kind=body.kind,
             title=body.title,
@@ -859,7 +864,7 @@ def propose_knowledge(
         if exc.reason == "unknown_item":
             raise _not_found() from exc
         raise _forbidden(
-            exc.reason, "Your role for this client does not permit proposing knowledge."
+            exc.reason, "Your role for this client does not permit adding knowledge."
         ) from exc
     except ValueError as exc:
         raise HTTPException(

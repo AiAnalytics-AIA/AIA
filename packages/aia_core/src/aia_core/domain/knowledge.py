@@ -12,11 +12,14 @@ retrieval:
 * **Study context** -- what one study consumes: the shared layer plus the
   approved knowledge of its own client, resolved from the study's scope.
 
-A study never mutates client knowledge. It **proposes**; a person holding the
-approval permission decides -- not the proposer, unless self-approval is allowed
-at that scope, exactly as for gates -- and an approval appends an item revision
-and advances the client's knowledge revision. Revisions are append-only and
-carry their provenance.
+What a **person** writes in the client workspace is knowledge at once (ADR 0019
+decision 3): it is recorded as an already-approved proposal, so the revision keeps
+its lineage and its author. A study never mutates client knowledge. It **proposes**;
+a person holding the approval permission decides -- the proposer too, unless
+self-approval is turned off at that scope, exactly as for gates -- and an approval
+appends an item revision and advances the client's knowledge revision. Where
+self-approval is off, a person's own addition is held as a proposal as well.
+Revisions are append-only and carry their provenance.
 
 Pure: stdlib and Pydantic only.
 """

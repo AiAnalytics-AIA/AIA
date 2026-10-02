@@ -122,15 +122,21 @@ def test_the_overview_shows_active_work_and_the_knowledge_state(
     lead: TestClient, researcher: TestClient, world: Any
 ) -> None:
     started = start(researcher, world, "Brand perception").json()
+    # A person's own addition is knowledge at once; only a study's finding waits.
     researcher.post(
         f"{API}/clients/{world.client_id()}/knowledge/proposals",
         json={"kind": "TERM", "title": "Flotilový zákazník"},
     )
+    researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FINDING", "title": "Mladší kupci řeší cenu"},
+    )
     body = lead.get(f"{API}/clients/{world.client_id()}/overview").json()
     assert started["study_id"] in [s["study_id"] for s in body["active"]]
     assert body["client"]["name"] == world.clients["primary"].name
+    assert body["knowledge"]["items_by_kind"] == {"TERM": 1}
     assert body["knowledge"]["pending_proposals"] == 1
-    assert [p["title"] for p in body["pending"]] == ["Flotilový zákazník"]
+    assert [p["title"] for p in body["pending"]] == ["Mladší kupci řeší cenu"]
 
 
 # --------------------------------------------------------------------------- #
@@ -198,30 +204,51 @@ def test_knowledge_is_proposed_approved_and_never_seen_by_another_client(
     )
 
 
-def test_by_default_the_proposer_may_approve_their_own_knowledge_proposal(
+def test_by_default_what_a_person_adds_to_a_client_takes_effect_at_once(
     researcher: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:
-    """ADR 0019 decision 3: no approval between people; the default allows self-approval."""
+    """ADR 0019 decision 3: no approval between people; a source a person adds is knowledge."""
     base = f"{API}/clients/{world.client_id()}/knowledge"
-    proposal = researcher.post(
-        f"{base}/proposals", json={"kind": "FACT", "title": "134 dealerů"}
-    ).json()
-    decided = researcher.post(
-        f"{base}/proposals/{proposal['proposal_id']}/decision", json={"approve": True}
+    added = researcher.post(
+        f"{base}/proposals", json={"kind": "SOURCE", "title": "Starbucks annual report"}
     )
-    assert decided.status_code == 200 and decided.json()["status"] == "APPROVED"
-    assert [i["title"] for i in researcher.get(base, params={"section": "knowledge"}).json()] == [
-        "134 dealerů"
-    ]
-    # Allowed among colleagues of the client, never across clients.
+    assert added.status_code == 201, added.text
+    record = added.json()
+    assert record["status"] == "APPROVED" and record["revision"] == 1
+    assert researcher.get(f"{base}/proposals", params={"status": "PROPOSED"}).json() == []
+    [item] = researcher.get(base, params={"section": "sources"}).json()
+    assert item["title"] == "Starbucks annual report"
+    history = researcher.get(f"{base}/items/{item['item_id']}/revisions").json()
+    assert history[0]["provenance"]["authored"] == "person"
+    # Never across clients.
+    assert other_client_lead.get(f"{API}/clients/{world.client_id('other')}/knowledge").json() == []
     assert (
         other_client_lead.post(
             f"{API}/clients/{world.client_id('other')}/knowledge/proposals/"
-            f"{proposal['proposal_id']}/decision",
+            f"{record['proposal_id']}/decision",
             json={"approve": True},
         ).status_code
         == 404
     )
+
+
+def test_by_default_the_proposer_may_approve_their_own_studys_finding(
+    researcher: TestClient, world: Any
+) -> None:
+    """What a study offers is the AI's side of the gate, and one person may accept it."""
+    proposed = researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FINDING", "title": "Mladší kupci řeší cenu"},
+    ).json()
+    assert proposed["status"] == "PROPOSED" and proposed["yours"] is True
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    decided = researcher.post(
+        f"{base}/proposals/{proposed['proposal_id']}/decision", json={"approve": True}
+    )
+    assert decided.status_code == 200 and decided.json()["status"] == "APPROVED"
+    assert [i["title"] for i in researcher.get(base, params={"section": "knowledge"}).json()] == [
+        "Mladší kupci řeší cenu"
+    ]
 
 
 def test_a_study_proposes_and_consumes_but_never_writes_client_knowledge(

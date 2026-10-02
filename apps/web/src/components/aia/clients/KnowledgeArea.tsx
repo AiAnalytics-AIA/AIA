@@ -2,8 +2,9 @@
 
 // Znalosti: this client's own context (ADR 0015 decision 7) -- never a global
 // knowledge base. The three layers are said at the top, so it is plain where a
-// piece of knowledge comes from; changes arrive only as proposals a person
-// approves, and the proposer is not the one who approves.
+// piece of knowledge comes from. What a person adds takes effect at once (ADR 0019);
+// what a study or an AI offers waits as a proposal a person accepts -- the one who
+// offered it may accept it, unless the client turned that off and the API says so.
 
 import { useState } from "react";
 
@@ -20,6 +21,8 @@ import Link from "next/link";
 type Section = KnowledgeSection | "previous" | "pending";
 const SECTIONS: Section[] = ["sources", "knowledge", "previous", "dimensions", "audiences", "pending"];
 const PROPOSABLE = ["SOURCE", "DOCUMENT", "FACT", "FINDING", "TERM", "ENTITY", "DIMENSION", "AUDIENCE", "DATASET"] as const;
+// Where an added item shows up (domain KNOWLEDGE_SECTIONS); a DATASET lives under Data, not here.
+const SECTION_OF: Record<string, Section> = { SOURCE: "sources", DOCUMENT: "sources", DIMENSION: "dimensions", AUDIENCE: "audiences" };
 
 export function Layers() {
   const layers: [string, string][] = [
@@ -123,14 +126,15 @@ function Pending({ clientId, mayApprove }: { clientId: string; mayApprove: boole
                         {p.study_name ? tv("aia.knowledge.fromStudy", { name: p.study_name }) : t("aia.knowledge.fromClient")} · {relative(p.proposed_at)}
                       </p>
                     </div>
-                    {mayApprove && !p.yours ? (
-                      <div className="flex gap-2">
-                        <Button small variant="primary" onClick={() => void decide(p, true)}>{t("aia.knowledge.approve")}</Button>
-                        <Button small onClick={() => void decide(p, false)}>{t("aia.knowledge.reject")}</Button>
-                      </div>
-                    ) : p.yours ? (
-                      <Chip tone="neutral">{t("aia.knowledge.yours")}</Chip>
-                    ) : null}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {p.yours ? <Chip tone="neutral">{t("aia.knowledge.yours")}</Chip> : null}
+                      {mayApprove ? (
+                        <>
+                          <Button small variant="primary" onClick={() => void decide(p, true)}>{t("aia.knowledge.approve")}</Button>
+                          <Button small onClick={() => void decide(p, false)}>{t("aia.knowledge.reject")}</Button>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -144,14 +148,14 @@ function Pending({ clientId, mayApprove }: { clientId: string; mayApprove: boole
   );
 }
 
-function ProposeForm({ clientId, onDone }: { clientId: string; onDone: () => void }) {
+function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Proposal) => void }) {
   const [kind, setKind] = useState<string>("FACT");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
   const submit = () => {
     if (!title.trim()) return;
-    workspace.propose(clientId, { kind, title: title.trim(), summary }).then(onDone, (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+    workspace.propose(clientId, { kind, title: title.trim(), summary }).then((added) => onDone(added), (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
   };
   return (
     <section className={`${CARD} mb-5`} aria-labelledby="kn-propose">
@@ -174,7 +178,7 @@ function ProposeForm({ clientId, onDone }: { clientId: string; onDone: () => voi
       {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
       <div className="mt-3 flex gap-2">
         <Button variant="primary" disabled={!title.trim()} onClick={submit}>{t("aia.knowledge.propose")}</Button>
-        <Button variant="quiet" onClick={onDone}>{t("aia.cancel")}</Button>
+        <Button variant="quiet" onClick={() => onDone()}>{t("aia.cancel")}</Button>
       </div>
     </section>
   );
@@ -199,11 +203,12 @@ export function KnowledgeArea() {
         <>
           <Layers />
           {proposing ? (
-            <ProposeForm
+            <AddForm
               clientId={client.client_id}
-              onDone={() => {
+              onDone={(added) => {
                 setProposing(false);
-                setSection("pending");
+                // Added knowledge is listed where it belongs; only a held-back one (the client asked for independent review) is in Pending.
+                if (added) setSection(added.status === "PROPOSED" ? "pending" : (SECTION_OF[added.kind] ?? "knowledge"));
                 setVersion((v) => v + 1);
               }}
             />
