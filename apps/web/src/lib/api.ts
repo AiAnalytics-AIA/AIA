@@ -539,6 +539,8 @@ export type ResearchAgentJob = {
   run_id: string; design_revision_id: string; action: ResearchAgentAction;
   status: string; is_terminal: boolean; needs_attention: boolean;
   context_sha256: string; harness_version: string; created_at: string | null;
+  /** The prompt the job was queued with: "1" (the code's wording) or "e<n>" (an edit). Null: queued before prompts were editable. */
+  prompt_version?: string | null; prompt_origin?: "baseline" | "stored" | null;
   steps: ResearchStep[]; actual_cost_usd: number | null;
 };
 export type ResearchAgentResult = {
@@ -548,8 +550,11 @@ export type ResearchAgentResult = {
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
-  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "") =>
-    request<ResearchAgentJob>("POST", agentsPath(studyId), { design_revision_id: revisionId, action, instruction }),
+  /** `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0019). */
+  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number) =>
+    request<ResearchAgentJob>("POST", agentsPath(studyId), {
+      design_revision_id: revisionId, action, instruction, ...(promptVersion === undefined ? {} : { prompt_version: promptVersion }),
+    }),
   jobs: async (studyId: string) => {
     const jobs = await request<unknown>("GET", agentsPath(studyId));
     if (!Array.isArray(jobs) || jobs.some((j) => !j || typeof j.run_id !== "string" || typeof j.status !== "string" || !Array.isArray(j.steps))) {
@@ -643,7 +648,45 @@ export type AuditEntry = {
   actor_id: string | null; role: string | null; reason: string; payload: Record<string, unknown>; created_at: string | null;
 };
 
+// ---- system prompts (routers/system_prompts.py, ADR 0019) -------------------
+
+/** What runs for a prompt: "baseline" is the wording shipped in code, "stored" an administrator's edit. */
+export type PromptActive = {
+  version_number: number | null; label: string; origin: "baseline" | "stored"; text_sha256: string;
+  activated_by: string | null; activated_at: string | null; reason: string;
+};
+export type PromptSlotSummary = {
+  prompt_id: string; family: string;
+  /** Wired: a running step reads it, so an edit takes effect. Otherwise `unwired_reason` says why not. */
+  wired: boolean; unwired_reason: string | null;
+  baseline_version: string; baseline_chars: number;
+  active: PromptActive; version_count: number; latest_number: number | null;
+};
+export type PromptVersion = {
+  version_number: number; label: string; text: string; text_sha256: string;
+  based_on: string; note: string; created_by: string; created_at: string;
+};
+export type PromptActivation = {
+  activation_id: number; version_number: number | null; label: string | null;
+  activated_by: string; reason: string; activated_at: string;
+};
+export type PromptSlotDetail = PromptSlotSummary & {
+  /** The code-owned text placed before the instruction. Shown, never editable. */
+  fixed_prefix: string;
+  /** The wording this code ships: the editable part's baseline. */
+  baseline_text: string;
+  required_literals: string[]; max_chars: number;
+  versions: PromptVersion[]; history: PromptActivation[];
+};
+
 export const admin = {
+  prompts: () => request<PromptSlotSummary[]>("GET", "/api/v1/system-prompts"),
+  prompt: (promptId: string) => request<PromptSlotDetail>("GET", `/api/v1/system-prompts/${enc(promptId)}`),
+  savePrompt: (promptId: string, body: { text: string; note: string; based_on: string | null }) =>
+    request<PromptVersion>("POST", `/api/v1/system-prompts/${enc(promptId)}/versions`, body),
+  /** `versionNumber` null returns to the wording shipped in code. */
+  activatePrompt: (promptId: string, versionNumber: number | null, reason: string) =>
+    request<PromptActive>("PUT", `/api/v1/system-prompts/${enc(promptId)}/active`, { version_number: versionNumber, reason }),
   settings: () => request<SettingsDocument>("GET", "/api/v1/settings"),
   members: () => request<Member[]>("GET", "/api/v1/members"),
   addMember: (body: { email: string; role: string; display_name: string }) => request<Member>("POST", "/api/v1/members", body),

@@ -12,7 +12,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type KeyboardEvent, type ReactNode, useEffect, useState } from "react";
 
 import type { PublicConfig } from "@/app/config/route";
 import { t, tv } from "@/i18n/t";
@@ -30,11 +30,12 @@ import {
   type SettingsDocument,
   type Study,
   type Vocabularies,
-  ApiError,
   Unauthenticated,
   admin,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
+import { describeError } from "./errors";
+import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
@@ -49,10 +50,7 @@ const H = `${P}.history`;
 /** One part of the panel: its data, or why it is missing. A part never blanks the page. */
 export type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 
-function describe(e: unknown): string {
-  if (e instanceof ApiError) return `HTTP ${e.status} · ${e.code}: ${e.message}${e.requestId ? ` (${e.requestId})` : ""}`;
-  return e instanceof Error ? e.message : String(e);
-}
+const describe = describeError;
 
 async function part<T>(p: Promise<T>): Promise<Part<T>> {
   try {
@@ -752,21 +750,65 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 
 // ---------------------------------------------------------------- the panel
 
-// Groups with a dedicated panel, in page order. A group the API adds later still
-// renders -- generically, after these -- so a new control is never hidden.
-// What powers AIA comes first: every reader needs it, the deployment's posture only administrators.
-const ORDER = ["ai", "ai_history", "deployment", "access", "studies", "approvals", "residency", "workflow", "population", "evidence", "simulation"];
+// The page is split into tabs by what a person came to do. Every tab's panel stays
+// mounted once drawn and only the open one is shown, so an unsaved edit in one tab is
+// never lost by looking at another. A group the API adds later still renders -- in
+// Reference -- so a new control is never hidden. What powers AIA comes first: every
+// reader needs it, the deployment's posture only administrators.
+export const TABS = ["ai", "prompts", "access", "studies", "audit", "reference"] as const;
+export type TabId = (typeof TABS)[number];
+
+// The settings-document groups each tab shows, in order. "roles", "audit" and
+// "invariants" are not API groups; the panel draws them itself.
+const TAB_SECTIONS: Record<Exclude<TabId, "prompts">, string[]> = {
+  ai: ["ai", "ai_history"],
+  access: ["access", "approvals", "roles"],
+  studies: ["studies"],
+  audit: ["audit"],
+  reference: ["deployment", "residency", "workflow", "population", "evidence", "simulation"],
+};
 // Groups whose panel draws their rows itself (inside it), so they are not drawn twice.
 const OWN_ROWS = new Set(["ai_history"]);
+
+function tabFromHash(): TabId | null {
+  if (typeof window === "undefined") return null;
+  const id = window.location.hash.replace(/^#/, "");
+  return (TABS as readonly string[]).includes(id) ? (id as TabId) : null;
+}
 
 export function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const { doc, runtime, members, clients, studies, levels, audit } = panel;
   const vocab = doc.vocabularies;
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));
-  // The AI section is drawn from ai_runtime, which a document always carries (loadPanel).
-  const present = (k: string) => byKey.has(k) || k === "ai";
-  const keys = [...ORDER.filter(present), ...doc.groups.map((g) => g.key).filter((k) => !ORDER.includes(k))];
   const invariants = doc.groups.flatMap((g) => g.items.filter((i) => i.control === "INVARIANT"));
+  const [active, setActive] = useState<TabId>("ai");
+  const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(new Set<TabId>(["ai"]));
+  const select = (tab: TabId) => {
+    setActive(tab);
+    setDrawn((d) => (d.has(tab) ? d : new Set(d).add(tab)));
+    if (typeof window !== "undefined") window.history.replaceState(null, "", `#${tab}`);
+  };
+  // A link to /app/settings#prompts opens that tab. Read after mount so the server and the
+  // first client render agree.
+  useEffect(() => {
+    const fromHash = tabFromHash();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable after mount
+    if (fromHash) select(fromHash);
+  }, []);
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const at = TABS.indexOf(active);
+    const next =
+      e.key === "ArrowRight" ? TABS[(at + 1) % TABS.length]
+      : e.key === "ArrowLeft" ? TABS[(at + TABS.length - 1) % TABS.length]
+      : e.key === "Home" ? TABS[0]
+      : e.key === "End" ? TABS[TABS.length - 1]
+      : null;
+    if (!next) return;
+    e.preventDefault();
+    select(next);
+    document.getElementById(`tab-${next}`)?.focus();
+  };
+
   const extra: Record<string, ReactNode> = {
     ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
@@ -780,32 +822,73 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
     approvals: <SelfApprovalPanel levels={levels} clients={clients} studies={studies} reload={reload} />,
     residency: <DataClasses vocab={vocab} />,
     workflow: <Stages vocab={vocab} />,
+    roles: <RoleMatrix vocab={vocab} />,
+    audit: <AuditPanel audit={audit} members={members} />,
   };
-  const nav = [...keys, "roles", "audit", "invariants"];
+  // A group is drawn when the API sent it; the AI section, roles and audit always are.
+  const present = (k: string) => byKey.has(k) || k === "ai" || k === "roles" || k === "audit";
+  const known = new Set(Object.values(TAB_SECTIONS).flat());
+  const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
+  const section = (key: string) => (
+    <Section key={key} id={key}>
+      {extra[key] ?? null}
+      {OWN_ROWS.has(key) || key === "roles" || key === "audit" ? null : <div>{(byKey.get(key)?.items ?? []).map((item) => <SettingRow key={item.key} item={item} />)}</div>}
+    </Section>
+  );
+  const body = (tab: TabId): ReactNode => {
+    if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
+    const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
+    return (
+      <>
+        {tab === "reference" ? <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.referenceNote`)}</p> : null}
+        {keys.map(section)}
+        {tab === "reference" ? <Section id="invariants"><div>{invariants.map((item) => <SettingRow key={item.key} item={item} />)}</div></Section> : null}
+      </>
+    );
+  };
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label={t(`${P}.title`)} className={`${CARD} flex flex-col gap-3`}>
+      <div className={`${CARD} flex flex-col gap-3`}>
         <h2 className="text-base font-semibold">{t(`${P}.title`)}</h2>
         <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.intro`)}</p>
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          {nav.map((k) => <li key={k}><a href={`#set-${k}`} className="text-signal underline-offset-2 hover:underline">{t(`${P}.groups.${k}.title`)}</a></li>)}
-        </ul>
         <ul className="flex flex-wrap gap-4 border-t border-border pt-3">
           {(["API", "DEPLOYMENT", "CODE", "INVARIANT"] as const).map((c) => (
             <li key={c} className="flex items-center gap-2 text-xs text-ink-muted"><ControlBadge control={c} />{t(`${P}.controlHelp.${c}`)}</li>
           ))}
         </ul>
-      </nav>
-      {keys.map((key) => (
-        <Section key={key} id={key}>
-          {extra[key] ?? null}
-          {OWN_ROWS.has(key) ? null : <div>{(byKey.get(key)?.items ?? []).map((item) => <SettingRow key={item.key} item={item} />)}</div>}
-        </Section>
+      </div>
+      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex flex-wrap gap-1 border-b border-border">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            id={`tab-${tab}`}
+            type="button"
+            role="tab"
+            aria-selected={active === tab}
+            aria-controls={`panel-${tab}`}
+            tabIndex={active === tab ? 0 : -1}
+            onClick={() => select(tab)}
+            className={`-mb-px rounded-t-sm border border-b-0 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${active === tab ? "border-border bg-surface-raised font-semibold text-ink" : "border-transparent text-ink-muted hover:text-ink"}`}
+          >
+            {t(`${P}.tabs.${tab}`)}
+          </button>
+        ))}
+      </div>
+      {TABS.map((tab) => (
+        <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
+          {tab === "prompts" && !drawn.has("prompts") ? null : body(tab)}
+        </div>
       ))}
-      <Section id="roles"><RoleMatrix vocab={vocab} /></Section>
-      <Section id="audit"><AuditPanel audit={audit} members={members} /></Section>
-      <Section id="invariants"><div>{invariants.map((item) => <SettingRow key={item.key} item={item} />)}</div></Section>
     </div>
+  );
+}
+
+/** The prompts tab, drawn as a section like every other. Mounted on the first visit only. */
+function SystemPromptsSection(props: React.ComponentProps<typeof SystemPromptsPanel>) {
+  return (
+    <Section id="prompts">
+      <SystemPromptsPanel {...props} />
+    </Section>
   );
 }
 
