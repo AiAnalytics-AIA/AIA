@@ -75,7 +75,7 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
         "GET /api/v1/clients/CLI-a/knowledge": () => [{ item_id: "KNW-1", kind: "SOURCE", title: "Výroční zpráva", summary: "", content: {}, revision: 1, modified_at: null }],
         "GET /api/v1/clients/CLI-a/knowledge/proposals": () => PROPOSALS,
         "POST /api/v1/clients/CLI-a/knowledge/proposals/KNP-1/decision": () => ({ ...PROPOSALS[0], status: "APPROVED" }),
-        "POST /api/v1/clients/CLI-a/knowledge/proposals": (b) => ({ ...PROPOSALS[1], title: (b as { title: string }).title }),
+        "POST /api/v1/clients/CLI-a/knowledge/proposals": (b) => ({ ...PROPOSALS[1], ...(b as { kind: string; title: string }), status: "APPROVED", revision: 1 }),
         "GET /api/v1/studies/STU-1/workspace": () => ({ study: STUDIES[0], client_name: "Klient A", your_role: "LEAD", can_edit: true, content_state: "NATIVE" }),
         "GET /api/v1/studies/STU-X/workspace": () => ({ study: { ...STUDIES[0], study_id: "STU-X", client_id: "CLI-other" }, client_name: "Jiný", your_role: "LEAD", can_edit: true, content_state: "NATIVE" }),
         "PUT /api/v1/studies/STU-1/workspace/stage": () => new Response(null, { status: 204 }),
@@ -188,7 +188,7 @@ describe("a client's workspace", () => {
     expect(called("POST", "/api/v1/clients/CLI-a/studies")[0].body).toEqual({ name: "Brand 2027", kind: "RESEARCH" });
   });
 
-  it("keeps the client's knowledge its own: layers said, approval by someone other than the proposer", async () => {
+  it("keeps the client's knowledge its own: layers said, a study's finding accepted by a person, even the one who offered it", async () => {
     path = "/app/clients/CLI-a/knowledge";
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
@@ -198,10 +198,27 @@ describe("a client's workspace", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Čekající aktualizace" }));
     const theirs = (await screen.findByText("Značka působí spolehlivě")).closest("li")!;
     const mine = screen.getByText("Můj pojem").closest("li")!;
-    expect(within(mine).queryByRole("button", { name: "Schválit" })).toBeNull();
-    expect(within(mine).getByText(/schválit ho musí někdo jiný/)).toBeTruthy();
+    // ADR 0019: no approval between people, so the proposer may accept their own. The API
+    // still refuses where the client turned self-approval off, and the page shows why.
+    expect(within(mine).getByRole("button", { name: "Schválit" })).toBeTruthy();
+    expect(within(mine).getByText("Váš návrh")).toBeTruthy();
     fireEvent.click(within(theirs).getByRole("button", { name: "Schválit" }));
     await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals/KNP-1/decision")[0].body).toEqual({ approve: true, note: "" }));
+  });
+
+  it("lists a source a person adds at once, with nothing left to approve", async () => {
+    path = "/app/clients/CLI-a/knowledge";
+    api();
+    render(inClient("CLI-a", <KnowledgeArea />));
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat znalost" }));
+    const form = screen.getByRole("heading", { name: "Přidat znalost klienta" }).closest("section")!;
+    fireEvent.change(within(form).getByRole("combobox"), { target: { value: "SOURCE" } });
+    fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Starbucks výroční zpráva" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Přidat znalost" }));
+    await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals")[0].body).toMatchObject({ kind: "SOURCE", title: "Starbucks výroční zpráva" }));
+    // It lands on Zdroje, not in the queue of things waiting for someone.
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Zdroje" }).getAttribute("aria-selected")).toBe("true"));
+    expect(screen.queryByRole("button", { name: "Schválit" })).toBeNull();
   });
 });
 
