@@ -485,6 +485,30 @@ batch_op.add_column(sa.Column("content_state", sa.String(32), nullable=False,
 batch_op.alter_column("content_state", server_default=None)
 ```
 
+**Name a constraint you change with `op.f(...)` on `drop_constraint` too.** `target_metadata`
+carries the naming convention `ck_%(table_name)s_%(constraint_name)s`, and Alembic applies it to
+the name passed to `op.drop_constraint` as well as to `create_check_constraint`. A check already
+stored as `ck_approval_decisions_approval_subject_type_known` is therefore not found by its own
+name: the convention prefixes it a second time and PostgreSQL truncates the result. Migration
+`8c2f4a6d1b3e` hit it when it widened `approval_decisions.subject_type` to admit `'budget'`.
+
+```python
+# WRONG -- ProgrammingError: constraint
+# "ck_approval_decisions_ck_approval_decisions_approval_su_956c" ... does not exist
+op.drop_constraint("ck_approval_decisions_approval_subject_type_known",
+                   "approval_decisions", type_="check")
+
+# RIGHT -- op.f() marks the name as final: no convention applied, on drop and on create
+_NAME = "ck_approval_decisions_approval_subject_type_known"
+op.drop_constraint(op.f(_NAME), "approval_decisions", type_="check")
+op.create_check_constraint(op.f(_NAME), "approval_decisions",
+                           "subject_type in ('gate','artifact','budget')")
+```
+
+A CHECK on an append-only table also needs a `downgrade` that refuses while a row of the new
+kind exists, rather than deleting from the ledger or re-adding a constraint those rows break.
+`alembic check` after the upgrade is the proof that model and migration agree.
+
 ## mypy --strict
 
 **An untyped third party leaks `Any` straight through a declared return type.**
@@ -1598,6 +1622,27 @@ operation. Use an operation identity plus an abort signal; refresh errors in
 so keyboard focus and Escape have browser behavior; jsdom needs the existing
 dialog-method stand-ins in component tests. Native HTTP fixtures distinguish
 GET inbox reads from POST creation even when the path is identical.
+
+## A worker's permissions are listed, never derived from a role (ADR 0019)
+
+Since ADR 0019 the one role (`ScopeRole.RESEARCHER`) holds every `Permission`. Code that
+once gave a worker "what a researcher can do" would now give it `APPROVE_GATE`,
+`APPROVE_BUDGET` and every `MANAGE_*`, so a step, or a tool a model reaches through it,
+could accept its own gate or raise the budget it is spending. `WORKER_PERMISSIONS`
+(`domain/scope.py`) is therefore an explicit set; `ScopeResolver` issues a worker's context
+from it, against a held lease, and a test (`test_the_worker_holds_no_budget_authority` in
+`test_workflow_engine.py`) fails if a worker can lift a budget wait.
+
+```python
+# WRONG -- grows with the role: today it hands a worker every approval
+worker_permissions = permissions_for(ScopeRole.RESEARCHER)
+
+# RIGHT -- a worker does the work and never accepts it
+worker_permissions = WORKER_PERMISSIONS
+```
+
+Adding a `Permission` is adding it to the Researcher automatically; decide in the same change
+whether a worker may hold it, and say so beside `WORKER_PERMISSIONS`.
 
 ## Research artifacts are reused by fingerprint, so an upstream id is not the run's own
 
