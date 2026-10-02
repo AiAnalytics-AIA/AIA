@@ -47,6 +47,7 @@ const PARKED = run({
     step("sociomap", "BLOCKED", { attempts_recorded: 0, started_at: null }),
   ],
 });
+const parkedWith = (steps: ReturnType<typeof step>[]) => run({ status: "WAITING_PROVIDER", phase: "WAITING", steps });
 const COMPLETED = run({
   status: "COMPLETED", phase: "COMPLETED", is_terminal: true, fieldwork_source: "synthetic_fixture", finished_at: "2026-09-25T08:05:00Z",
   steps: [
@@ -298,6 +299,53 @@ describe("Progress", () => {
     expect(within(steps[3]).getByText("Čeká na předchozí krok")).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("research.exec.retry") })).toBeNull();
     expect(screen.queryByRole("note")).toBeNull(); // not fictional: no fiction banner
+  });
+
+  it("shows the gate that parked fieldwork, so the banner's advice to check the step can be followed", async () => {
+    const message = "AI respondenti nejsou pro tento výzkum povoleni: licence_undetermined. Běh čeká u sběru dat.";
+    api(listed(parkedWith([
+      step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+      step("preflight", "SUCCEEDED", { artifact_id: "ART-2" }),
+      step("run", "WAITING_PROVIDER", { waiting_reason: "ai_runtime_unavailable", failure_class: "RUNTIME_UNAVAILABLE", error_message: message }),
+      step("aggregate", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+      step("sociomap", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+    ])));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti/)).toBeTruthy();
+    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    expect(within(steps[2]).getByText(message)).toBeTruthy();
+    expect(within(steps[0]).queryByText(message)).toBeNull();
+  });
+
+  it("names an analysis module as the parked step, not data collection", async () => {
+    const message = "AI model není pro tento výzkum povolen: egress_no_approved_route.";
+    api(listed(parkedWith([
+      step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+      step("preflight", "SUCCEEDED", { artifact_id: "ART-2" }),
+      step("run", "SUCCEEDED", { artifact_id: "ART-3", data_origin: "SYNTHETIC_AI_FICTIONAL" }),
+      step("aggregate", "SUCCEEDED", { artifact_id: "ART-4" }),
+      step("analysis_executive", "WAITING_PROVIDER", {
+        kind: "research_analysis", waiting_reason: "ai_runtime_unavailable", failure_class: "RUNTIME_UNAVAILABLE", error_message: message,
+      }),
+    ])));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/Běh čeká u kroku „Shrnutí analýzy“/)).toBeTruthy();
+    expect(screen.queryByText(/Běh čeká u sběru dat/)).toBeNull();
+    expect(screen.getByText(message)).toBeTruthy();
+  });
+
+  it("says why a step waits for budget, provider quota or a decision when it recorded no message", async () => {
+    for (const [reason, status, words] of [
+      ["budget_exceeded", "AWAITING_BUDGET", /překročil rozpočet studie/],
+      ["provider_quota_exhausted", "WAITING_PROVIDER", /vyčerpal kvótu/],
+      ["gate:design", "AWAITING_GATE", /rozhodnutí člověka/],
+    ] as const) {
+      api(listed(parkedWith([step("run", status, { waiting_reason: reason })])));
+      const { unmount } = render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      expect(await screen.findByText(words)).toBeTruthy();
+      expect(screen.queryByText(/Běh čeká u sběru dat/)).toBeNull(); // not a runtime park
+      unmount();
+    }
   });
 
   it("cancels only after the person confirms, and retries a failed run as a new run", async () => {
