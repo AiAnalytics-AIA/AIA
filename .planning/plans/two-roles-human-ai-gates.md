@@ -6,7 +6,11 @@ chunks:
   - "[x] 3. ScopeResolver: every active member sees every client and study of the organization"
   - "[ ] 4. Admin: system settings only for ADMIN; MEMBER is the Researcher; settings document and web client"
   - "[x] 5a. Human-authored Knowledge writes directly (client workspace); a study's proposal still waits for a person, who may be its proposer"
-  - "[ ] 5b. Gates: apply-an-AI-proposal, spend confirm, client-facing release"
+  - "[ ] 5b. Gates (design proposed below, awaiting the owner): split into 5b.1 to 5b.4"
+  - "[ ] 5b.1 A person can lift a budget wait and the run goes on (today it is a dead end)"
+  - "[ ] 5b.2 Confirm the cost of a run above a threshold, recorded"
+  - "[ ] 5b.3 One ledger entry for every acceptance of an AI proposal"
+  - "[ ] 5b.4 Client-facing release (blocked: the client-facing report contract does not exist)"
   - "[ ] 6. Retire the grants (tables, routes, UI) after one deploy without them"
 ---
 # Two roles, human-with-AI gates
@@ -151,6 +155,99 @@ organization filters in every query stay.
 
 **Not done here.** `docs/architecture/scope-and-authorization.md` carries a status note and is
 rewritten in chunk 6; the web client still shows `your_role` and a role picker (chunk 4).
+
+## Chunk 5b design (proposed 2026-10-02, awaiting the owner)
+
+Status of what ADR 0019 decision 4 calls the three gates, read against `develop` @ 78c5b9e. The ADR
+fixes **what** the gates are; this section is **how**, using what the engine already has, and
+asks for three decisions. Nothing here is built.
+
+### What exists
+
+| Gate | Already there | Missing |
+|---|---|---|
+| 1. Apply an AI proposal | A design proposal is a job; **nothing is written until a person accepts it**: `ResearchAgentJobs.accept` needs `EDIT_STUDY`, an open study and an unchanged baseline revision, then writes a new Design Revision (`application/research.py:358`). A study's Knowledge finding is a proposal that a person decides (`ClientKnowledgeRepository.decide`). | The accepts are recorded in different places. The append-only `approval_decisions` ledger is written by `decide_gate` and by `ArtifactRepository.approve` (`artifact_repository.py:555`) only; a design accept and a Knowledge decision do not write it, so "who accepted what the AI produced" has no single answer. |
+| 2. Spend | A **hard cap**: `reserve_budget` refuses a call that would pass the study budget and the step parks as `AWAITING_BUDGET` (`infrastructure/workflow_repository.py:995`, `domain/workflow.py:570`). `APPROVE_BUDGET` and `MANAGE_STUDY_BUDGET` exist and a Researcher holds both. | (a) **A budget wait cannot be lifted** (finding below). (b) There is no cost shown or confirmed before a run starts: cost exists only per call (`estimated_cost_usd` on an attempt, the gateway's ceiling). |
+| 3. Client-facing release | `ArtifactRepository.approve` (`SIGN_OFF_DELIVERABLE`) and `download_url` (`EXPORT_DELIVERABLE`); a report carries `review_state` `DRAFT_UNAPPROVED` / `APPROVED_INTERNAL` (`routers/research.py:765`). | There is **no client-facing report**. PR #97 states that one needs its own admission and approval contract, and none is written. |
+
+The engine's own gate (`open_gate`, `decide_gate`, the `approval_decisions` ledger, `AWAITING_GATE`)
+is complete, but **no research step opens one**: no executor returns a gated outcome, so it is
+unused, and there is no route or screen to decide one.
+
+### Finding: a budget wait is a dead end
+
+1. **Claim.** A step parked as `AWAITING_BUDGET` never resumes, even after the budget is raised.
+2. **Anchor.** `resume_waiting_steps` considers only `WAITING_PROVIDER` and `WAITING_CAPACITY` and
+   states that it never touches `AWAITING_*` (`workflow_repository.py:1636-1650 @ 78c5b9e`);
+   `set_study_budget` only changes the number (`scope_repository.py:594`); no other method moves
+   `AWAITING_BUDGET` to `RUNNABLE` except the operator's `force_step_status` (`:2197`).
+3. **Reproduction.** On 2026-10-02 a throwaway test (not committed) parked a step with
+   `FailureClass.BUDGET_EXCEEDED`, raised the budget with `set_study_budget(scope, 100000.0)`, and
+   ran `resume_waiting_steps()` and `claim_next()`: `RESUMED []`, `CLAIMED None`, status still
+   `AWAITING_BUDGET`. The existing test `test_budget_exhaustion_parks_in_its_own_state` covers the
+   park only, not the exit.
+4. **Consequence.** A run that hits its cap stays "waiting for budget" for good. The person can
+   raise the budget and nothing happens; since #103 the Progress page says why it waits but offers
+   no action.
+5. **Smallest fix.** `WorkflowRepository.lift_budget_wait(step_id, new_budget_usd, note)`: needs
+   `APPROVE_BUDGET` and `MANAGE_STUDY_BUDGET`, raises the study budget (never lowers it), moves the
+   step to `RUNNABLE` without consuming an attempt, and writes an `approval_decisions` row.
+6. **Test that would have caught it.** Park, lift, claim: the step is claimable and the ledger
+   has one row.
+
+### Proposed design
+
+**5b.1: lift a budget wait.** The method above, a route
+`POST /studies/{id}/research/runs/{run_id}/steps/{node_key}/budget` taking the new total and a
+note, and an action on the Progress page next to the wait it explains ("Zvýšit rozpočet na ... a
+pokračovat"). The decision is a Researcher's, as ADR 0019 already says ("set a study's budget").
+The worker keeps no such authority (`WORKER_PERMISSIONS`). Nothing else changes: the cap stays hard.
+
+**5b.2: confirm what a run will cost, above a threshold.**
+- A pure function in the domain gives an **upper-bound cost** for a research run from what readiness
+  already knows (respondents, questions, batteries, objects) and the configured reservation per
+  request, for fieldwork and for the eight analysis modules. It is a ceiling, not a forecast, and
+  is labelled that way.
+- The Run stage always shows that ceiling beside the study's remaining budget.
+- When the ceiling is at or above the threshold (a setting, `AIA_SPEND_CONFIRM_USD`, **off when
+  unset**) the start request must carry `confirm_cost_usd` at least equal to the ceiling, else the
+  API answers 409 `cost_confirmation_required` with the ceiling. The page asks, the person confirms.
+- The confirmation is one `approval_decisions` row (`subject_type = "spend"`, the ceiling, the
+  threshold, who and whether self-approved), written in the same transaction as the run. The
+  request body cannot lower the ceiling: the server recomputes it.
+- Why not a step in the graph: a gate step would put `AWAITING_GATE` in front of every run and
+  needs the gate-deciding route and screen anyway, to ask a question the person has already
+  answered by pressing Start. A confirm on the start request reuses the ledger and adds no state.
+
+**5b.3: one ledger.** The design accept (`ResearchAgentJobs.accept`) and the Knowledge decision
+(`ClientKnowledgeRepository.decide`) also write an `approval_decisions` row
+(`subject_type = "ai_proposal"`), so "who accepted what the AI produced" has one answer. Their
+behaviour is unchanged; only the record is added. The pilot chatbot's proposed actions are in the
+ADR's gate 1; I found no chatbot in the code and have not designed for one.
+
+**5b.4: client-facing release.** Not designed here. It cannot be built before a client-facing report
+exists, and that needs its own admission contract (which claims may reach a client, the licence
+gate OI-61, and synthetic or internal-only claims refused, as `compose_internal_report` already
+refuses them). The mechanism it will use is the one that exists: `approve` then `download_url`,
+recorded in the same ledger. Until then no route serves a client-facing report, so there is nothing
+to gate.
+
+### Decisions needed from the owner
+
+1. **The threshold (5b.2).** The value is yours to set. I will not guess a dollar figure: the ceiling
+   function can print it for the fictional acceptance run, and a threshold of about twice that is a
+   reasonable start. Is a confirm-above-threshold on the start request the right shape, or do you
+   want it on every run?
+2. **5b.4 deferred** until a client-facing report is designed: agreed?
+3. **Order:** 5b.1 first, because it fixes a dead end that exists today; then 5b.2; 5b.3 any time.
+
+### Trade-offs accepted
+
+- The ceiling can be far above what a run really costs; it protects against surprise, not
+  against waste. Its precision improves when the reservation settings do.
+- A confirmation on the start request is a click, not a second person. Per ADR 0019 that is the
+  point; the ledger records it.
+- The hard cap stays hard: a run past its budget still stops until a person lifts it.
 
 ## Findings
 
