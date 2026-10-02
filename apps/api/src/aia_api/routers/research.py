@@ -698,6 +698,9 @@ class AgentJobStart(BaseModel):
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
     action: ResearchAction
     instruction: str = Field(default="", max_length=8000)
+    #: A stored prompt version to run instead of the active one, to test a draft (ADR 0019).
+    #: Organization administrators only; the job records which prompt it ran.
+    prompt_version: int | None = Field(default=None, ge=1)
 
 
 class AgentProposalAccept(BaseModel):
@@ -715,6 +718,10 @@ class AgentJobResponse(BaseModel):
     needs_attention: bool
     context_sha256: str
     harness_version: str
+    #: The prompt this job was queued with (``1`` or ``e<n>``) and whether the code's
+    #: wording or an administrator's edit ran. ``None`` for a job queued before ADR 0019.
+    prompt_version: str | None = None
+    prompt_origin: str | None = None
     created_at: datetime | None
     steps: list[ResearchStepResponse]
     actual_cost_usd: float | None
@@ -731,6 +738,8 @@ def _agent_response(run: dict[str, Any], scope: StudyContext) -> AgentJobRespons
         needs_attention=run["status"].needs_attention,
         context_sha256=meta["context_sha256"],
         harness_version=meta["harness_version"],
+        prompt_version=meta.get("prompt_version"),
+        prompt_origin=meta.get("prompt_origin"),
         created_at=run.get("created_at"),
         steps=[_step(s) for s in run["steps"]],
         actual_cost_usd=sum(
@@ -776,6 +785,7 @@ def start_agent_job(
             design_revision_id=body.design_revision_id,
             action=body.action,
             instruction=body.instruction,
+            prompt_version=body.prompt_version,
         )
         if not started.created:
             response.status_code = 200

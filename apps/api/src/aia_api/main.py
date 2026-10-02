@@ -21,7 +21,17 @@ from .observability import (
     configure_logging,
     install_exception_handlers,
 )
-from .routers import deep_research, health, projects, research, runs, scope, session, workspace
+from .routers import (
+    deep_research,
+    health,
+    projects,
+    research,
+    runs,
+    scope,
+    session,
+    system_prompts,
+    workspace,
+)
 from .routers import settings as settings_router
 
 API_PREFIX = "/api/v1"
@@ -121,6 +131,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(research.router, prefix=API_PREFIX)
     app.include_router(deep_research.router, prefix=API_PREFIX)
     app.include_router(settings_router.router, prefix=API_PREFIX)
+    app.include_router(system_prompts.router, prefix=API_PREFIX)
     return app
 
 
