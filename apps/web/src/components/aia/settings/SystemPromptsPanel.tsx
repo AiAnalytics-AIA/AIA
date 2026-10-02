@@ -324,6 +324,7 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
               <Button type="submit" variant="primary" disabled={!canSave}>{busy ? t(`${P}.editor.saving`) : t(`${P}.editor.save`)}</Button>
               <Button disabled={!dirty || busy} onClick={() => { setDraft(reference); setAnswer(null); }}>{t(`${P}.editor.revert`)}</Button>
             </div>
+            <p data-declaration className="text-xs text-ink-muted">{t(`${P}.editor.declaration`)}</p>
             <p className="text-xs text-ink-faint">{t(`${P}.editor.notLiveYet`)}</p>
             {answer ? (
               <div role="status" data-answer={answer.ok ? "ok" : "refused"} className={`flex flex-wrap items-center gap-3 text-sm ${answer.ok ? "text-status-done" : "text-status-fault"}`}>
@@ -437,7 +438,11 @@ function Versions({ detail, people, onLoad, onCompare, onActivate, onTest }: {
             <ul className="flex flex-col gap-1 text-xs">
               {detail.versions.map((v) => (
                 <li key={v.version_number} data-material={v.label}>
-                  <strong>{v.label}</strong> · {t(`${P}.approval.hash`)}: <code className="break-all">{v.material_sha256}</code>
+                  <strong>{v.label}</strong> ·{" "}
+                  {v.declared_class
+                    ? tv(`${P}.approval.declaredBy`, { who: people(v.declared_by), when: when(v.declared_at) })
+                    : <span data-undeclared>{t(`${P}.approval.undeclared`)}</span>}
+                  {" · "}{t(`${P}.approval.hash`)}: <code className="break-all">{v.material_sha256}</code>
                 </li>
               ))}
             </ul>
@@ -458,6 +463,9 @@ function Activation({ detail, version, label, dirty, onCancel, onDone, textOf }:
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Only a version saved before declarations existed waits for an operator: every other edit
+  // carries its author's declaration, which classifies it.
+  const undeclared = version !== null && !detail.versions.find((v) => v.version_number === version)?.declared_class;
   async function go() {
     setBusy(true);
     setError(null);
@@ -479,7 +487,7 @@ function Activation({ detail, version, label, dirty, onCancel, onDone, textOf }:
       <h4 id="pa-h" className="text-sm font-semibold">{version === null ? t(`${P}.activate.resetTitle`) : tv(`${P}.activate.title`, { label })}</h4>
       <p className="text-sm">{tv(`${P}.activate.impact`, { from: detail.active.origin === "stored" ? detail.active.label : t(`${P}.baselineName`), to: label })}</p>
       <p className="text-xs text-ink-muted">{t(`${P}.activate.queuedKeep`)}</p>
-      {version !== null ? <p data-needs-approval className="text-xs text-ink-muted">{tv(`${P}.activate.needsApproval`, { label })}</p> : null}
+      {undeclared ? <p data-needs-approval className="text-xs text-ink-muted">{tv(`${P}.activate.needsApproval`, { label })}</p> : null}
       {dirty ? <p className="text-xs text-ink-muted">{t(`${P}.activate.draftStays`)}</p> : null}
       <Field label={t(`${P}.activate.reasonLabel`)}>
         <TextInput value={reason} maxLength={255} onChange={(e) => setReason(e.target.value)} />

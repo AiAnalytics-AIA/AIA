@@ -59,6 +59,21 @@ def _pin_of(payload: Mapping[str, Any], action: ResearchAction) -> PromptPin:
     return pin
 
 
+def _prompt_class_source(pin: PromptPin, approvals: tuple[MaterialApproval, ...]) -> str:
+    """Who answered for the class: code, declaration, operator or declaration+operator."""
+    if pin.origin == "baseline":
+        return "code"
+    operator = classify_material(pin.text, approvals).data_class is not None
+    declared = pin.declared_class is not None
+    return (
+        "declaration+operator"
+        if operator and declared
+        else "operator"
+        if operator
+        else "declaration"
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchAgentConfig:
     policy_version: str
@@ -237,15 +252,20 @@ class ResearchAgentExecutor:
                 "instruction": classify_material(
                     str(step.payload.get("instruction", "")), cfg.material_approvals
                 ).model_dump(mode="json"),
-                # The code's wording is reviewed with the code; a stored edit travelled only
-                # because an operator classified its exact text (prompt_data_class).
+                # Where the prompt's class came from (prompt_data_class): the code's wording is
+                # reviewed with the code; a stored edit travels on its author's recorded
+                # declaration, an operator's classification of its exact text, or both (the
+                # stricter one wins).
                 "prompt": {
                     "origin": pin.origin,
                     "data_class": prompt_class.value,
+                    "source": _prompt_class_source(pin, cfg.material_approvals),
                     "text_sha256": pin.text_sha256,
                     "material_sha256": None
                     if pin.origin == "baseline"
                     else classify_material(pin.text, cfg.material_approvals).sha256,
+                    "declared_class": pin.declared_class,
+                    "declared_by": pin.declared_by,
                 },
                 "knowledge_class": "CLASS_A_CLIENT_CONFIDENTIAL",
             },

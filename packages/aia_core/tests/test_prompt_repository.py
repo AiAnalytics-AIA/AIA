@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from aia_core.domain.prompt_slots import get_slot, slots, wired_prompt_ids
 from aia_core.domain.prompts import prompt_sha256
@@ -59,7 +59,7 @@ def test_only_an_administrator_may_open_the_store(scoped: Any, session: Any) -> 
 
 def test_the_resolver_reads_only_its_own_organization(scoped: Any, session: Any) -> None:
     repo = _repo(scoped, session)
-    repo.create_version(CRITIQUE, "Vlastní kritika.")
+    repo.create_version(CRITIQUE, "Vlastní kritika.", declares_no_client_data=True)
     repo.activate(CRITIQUE, 1)
     other_org, _ = scoped.scope_repo.create_organization(
         slug="other", name="Other", owner_email="o@example.org", owner_name="O"
@@ -90,9 +90,13 @@ def test_a_fresh_organization_runs_the_codes_wording_everywhere(scoped: Any, ses
 
 def test_versions_are_numbered_per_prompt_and_never_change(scoped: Any, session: Any) -> None:
     repo = _repo(scoped, session)
-    one = repo.create_version(CRITIQUE, "  První.  ", note="první pokus")
-    two = repo.create_version(CRITIQUE, "Druhá.", based_on=one.label)
-    other = repo.create_version("aia.research.design_copilot", "Jiná.")
+    one = repo.create_version(
+        CRITIQUE, "  První.  ", note="první pokus", declares_no_client_data=True
+    )
+    two = repo.create_version(CRITIQUE, "Druhá.", based_on=one.label, declares_no_client_data=True)
+    other = repo.create_version(
+        "aia.research.design_copilot", "Jiná.", declares_no_client_data=True
+    )
     assert (one.version_number, one.label, one.text) == (1, "e1", "První.")
     assert (two.version_number, two.label, two.based_on) == (2, "e2", "e1")
     assert other.version_number == 1  # numbering is per prompt
@@ -107,7 +111,7 @@ def test_a_new_version_does_not_change_the_job_queued_before_it(scoped: Any, ses
     repo = _repo(scoped, session)
     resolver = PromptResolver(session, scoped.organization_id)
     before = resolver.pin_for(CRITIQUE)
-    repo.create_version(CRITIQUE, "Nová.")
+    repo.create_version(CRITIQUE, "Nová.", declares_no_client_data=True)
     assert resolver.pin_for(CRITIQUE) == before  # still the baseline pin
 
 
@@ -128,14 +132,14 @@ def test_an_edit_that_cannot_run_is_refused_not_repaired(
 ) -> None:
     repo = _repo(scoped, session)
     with pytest.raises(PromptRefused) as refused:
-        repo.create_version(prompt_id, text)
+        repo.create_version(prompt_id, text, declares_no_client_data=True)
     assert refused.value.reason == reason
     assert session.scalar(select(PromptVersionRow)) is None  # nothing was written
 
 
 def test_every_change_leaves_an_audit_row_naming_who_and_what(scoped: Any, session: Any) -> None:
     repo = _repo(scoped, session)
-    version = repo.create_version(CRITIQUE, "Kritika.")
+    version = repo.create_version(CRITIQUE, "Kritika.", declares_no_client_data=True)
     other = PromptRepository(session, _admin(scoped, "second@art-chain.io"))
     other.activate(CRITIQUE, 1, reason="lepší než základ")
     created, activated = _audit(session)
@@ -161,7 +165,7 @@ def _require_independent_review(scoped: Any) -> None:
 def test_by_default_the_author_may_put_their_own_version_live(scoped: Any, session: Any) -> None:
     """No approval between people (ADR 0019): the gate is between a person and the AI."""
     repo = _repo(scoped, session)
-    repo.create_version(CRITIQUE, "Moje.")
+    repo.create_version(CRITIQUE, "Moje.", declares_no_client_data=True)
     active = repo.activate(CRITIQUE, 1)
     assert (active.origin, active.label, active.activated_by) == ("stored", "e1", scoped.owner_id)
 
@@ -171,7 +175,7 @@ def test_when_the_organization_requires_independent_review_the_author_cannot(
 ) -> None:
     _require_independent_review(scoped)
     repo = _repo(scoped, session)
-    repo.create_version(CRITIQUE, "Moje.")
+    repo.create_version(CRITIQUE, "Moje.", declares_no_client_data=True)
     with pytest.raises(PromptRefused) as refused:
         repo.activate(CRITIQUE, 1)
     assert refused.value.reason == "self_activation_not_allowed"
@@ -183,7 +187,7 @@ def test_a_second_administrator_can_activate_it_when_review_is_required(
     scoped: Any, session: Any
 ) -> None:
     _require_independent_review(scoped)
-    _repo(scoped, session).create_version(CRITIQUE, "Moje.")
+    _repo(scoped, session).create_version(CRITIQUE, "Moje.", declares_no_client_data=True)
     second = PromptRepository(session, _admin(scoped, "second@art-chain.io"))
     active = second.activate(CRITIQUE, 1)
     assert (active.origin, active.label, active.activated_by) == (
@@ -198,7 +202,7 @@ def test_turning_independent_review_off_again_lets_the_author_activate(
 ) -> None:
     _require_independent_review(scoped)
     repo = _repo(scoped, session)
-    repo.create_version(CRITIQUE, "Moje.")
+    repo.create_version(CRITIQUE, "Moje.", declares_no_client_data=True)
     scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=True)
     assert repo.activate(CRITIQUE, 1).label == "e1"
 
@@ -209,8 +213,8 @@ def test_the_author_may_roll_back_to_a_version_someone_else_already_ran(
     _require_independent_review(scoped)
     author = _repo(scoped, session)
     second = PromptRepository(session, _admin(scoped, "second@art-chain.io"))
-    author.create_version(CRITIQUE, "Jedna.")
-    author.create_version(CRITIQUE, "Dva.")
+    author.create_version(CRITIQUE, "Jedna.", declares_no_client_data=True)
+    author.create_version(CRITIQUE, "Dva.", declares_no_client_data=True)
     second.activate(CRITIQUE, 1)
     second.activate(CRITIQUE, 2)
     # Version 1 was put live by somebody else: going back to it is not a new decision.
@@ -224,7 +228,7 @@ def test_resetting_to_the_baseline_is_always_possible_and_recorded(
 ) -> None:
     author = _repo(scoped, session)
     second = PromptRepository(session, _admin(scoped, "second@art-chain.io"))
-    author.create_version(CRITIQUE, "Jedna.")
+    author.create_version(CRITIQUE, "Jedna.", declares_no_client_data=True)
     second.activate(CRITIQUE, 1)
     state = author.activate(CRITIQUE, None, reason="zpět na základ")
     assert (state.origin, state.version_number, state.label) == ("baseline", None, "1")
@@ -249,7 +253,7 @@ def test_activating_a_version_that_does_not_exist_is_refused(scoped: Any, sessio
 def test_history_is_the_complete_record_newest_first(scoped: Any, session: Any) -> None:
     author = _repo(scoped, session)
     second = PromptRepository(session, _admin(scoped, "second@art-chain.io"))
-    author.create_version(CRITIQUE, "Jedna.")
+    author.create_version(CRITIQUE, "Jedna.", declares_no_client_data=True)
     second.activate(CRITIQUE, 1)
     author.activate(CRITIQUE, None, reason="zpět")
     history = author.history(CRITIQUE)
@@ -266,7 +270,7 @@ def test_a_pin_is_the_exact_text_with_its_origin(scoped: Any, session: Any) -> N
     slot = get_slot(CRITIQUE)
     assert slot is not None
     assert resolver.pin_for(CRITIQUE) == slot.baseline_pin()
-    repo.create_version(CRITIQUE, "Zkus mě.")
+    repo.create_version(CRITIQUE, "Zkus mě.", declares_no_client_data=True)
     # An inactive draft can be pinned explicitly -- this is how a draft is tested.
     draft = resolver.pin_for_version(CRITIQUE, 1)
     assert (draft.origin, draft.version, draft.text) == ("stored", "e1", "Zkus mě.")
@@ -280,3 +284,61 @@ def test_an_unwired_prompt_has_no_pin_to_give(scoped: Any, session: Any) -> None
     with pytest.raises(PromptRefused) as refused:
         PromptResolver(session, scoped.organization_id).pin_for(RESPONDENT)
     assert refused.value.reason == "not_editable"
+
+
+# ------------------------------------------------------------------ the author's declaration
+
+
+def test_saving_records_the_authors_declaration_with_who_and_when(
+    scoped: Any, session: Any
+) -> None:
+    version = _repo(scoped, session).create_version(CRITIQUE, "Moje.", declares_no_client_data=True)
+    assert version.declared_class == "CLASS_C_INTERNAL"
+    assert version.declared_by == scoped.owner_id
+    assert version.declared_at is not None
+    created = next(a for a in _audit(session) if a.action == "PROMPT_VERSION_CREATED")
+    assert created.payload["declared_class"] == "CLASS_C_INTERNAL"
+
+
+@pytest.mark.parametrize("declares", [False, None])
+def test_a_save_without_the_declaration_is_refused_and_writes_nothing(
+    scoped: Any, session: Any, declares: Any
+) -> None:
+    with pytest.raises(PromptRefused) as refused:
+        _repo(scoped, session).create_version(CRITIQUE, "Moje.", declares_no_client_data=declares)
+    assert refused.value.reason == "declaration_required"
+    assert session.scalar(select(PromptVersionRow)) is None
+    assert _audit(session) == []
+
+
+def test_the_pin_a_job_takes_carries_the_declaration(scoped: Any, session: Any) -> None:
+    repo = _repo(scoped, session)
+    repo.create_version(CRITIQUE, "Moje.", declares_no_client_data=True)
+    repo.activate(CRITIQUE, 1)
+    pin = PromptResolver(session, scoped.organization_id).pin_for(CRITIQUE)
+    assert (pin.origin, pin.declared_class, pin.declared_by) == (
+        "stored",
+        "CLASS_C_INTERNAL",
+        scoped.owner_id,
+    )
+    draft = PromptResolver(session, scoped.organization_id).pin_for_version(CRITIQUE, 1)
+    assert draft.declared_by == scoped.owner_id
+
+
+def test_the_codes_wording_carries_no_declaration(scoped: Any, session: Any) -> None:
+    pin = PromptResolver(session, scoped.organization_id).pin_for(CRITIQUE)
+    assert (pin.origin, pin.declared_class, pin.declared_by) == ("baseline", None, None)
+
+
+def test_a_version_saved_before_declarations_existed_has_none_and_is_never_read_as_declared(
+    scoped: Any, session: Any
+) -> None:
+    repo = _repo(scoped, session)
+    repo.create_version(CRITIQUE, "Stará.", declares_no_client_data=True)
+    session.execute(
+        update(PromptVersionRow).values(declared_class=None, declared_by=None, declared_at=None)
+    )
+    repo.activate(CRITIQUE, 1)
+    assert repo.get_version(CRITIQUE, 1).declared_class is None
+    pin = PromptResolver(session, scoped.organization_id).pin_for(CRITIQUE)
+    assert (pin.origin, pin.declared_class, pin.declared_by) == ("stored", None, None)

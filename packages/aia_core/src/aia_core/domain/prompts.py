@@ -29,6 +29,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 
 __all__ = [
     "BASELINE_ORIGIN",
+    "DECLARED_CLASS",
     "PROMPT_TEXT_MAX_CHARS",
     "STORED_ORIGIN",
     "PromptPin",
@@ -44,6 +45,11 @@ PROMPT_TEXT_MAX_CHARS: Final = 12_000
 
 BASELINE_ORIGIN: Final = "baseline"
 STORED_ORIGIN: Final = "stored"
+
+#: The one class an author can declare for a prompt they save: "this text holds no client
+#: data". Anything stricter is an operator's classification of the exact text, never an
+#: author's, so there is no way to declare a class above this one (ADR 0020 decision 8).
+DECLARED_CLASS: Final = "CLASS_C_INTERNAL"
 
 
 class PromptRejected(ValueError):
@@ -103,6 +109,12 @@ class PromptPin(BaseModel):
     ``origin`` says whether the code's wording (``baseline``) or a stored edit ran,
     so provenance never has to guess. The hash is checked on construction: a pin
     rebuilt from a payload whose text was altered raises instead of running.
+
+    ``declared_class`` and ``declared_by`` carry the author's recorded declaration that
+    a stored edit holds no client data. They are absent for the code's wording (reviewed
+    with the code) and for a version saved before declarations existed, which therefore
+    has no class until an operator gives it one. The declaration is not part of the hash:
+    it says who vouched for the text, not what the text is.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -112,6 +124,8 @@ class PromptPin(BaseModel):
     origin: Literal["baseline", "stored"]
     text: str
     text_sha256: str
+    declared_class: Literal["CLASS_C_INTERNAL"] | None = None
+    declared_by: str | None = None
 
     @model_validator(mode="after")
     def _hash_matches(self) -> PromptPin:
@@ -119,11 +133,22 @@ class PromptPin(BaseModel):
             raise ValueError("a prompt pin names its prompt and version")
         if prompt_sha256(self.text) != self.text_sha256:
             raise ValueError("prompt pin text does not match its hash")
+        if self.origin == BASELINE_ORIGIN and (self.declared_class or self.declared_by):
+            raise ValueError("the code's wording needs no declaration")
+        if bool(self.declared_class) != bool(self.declared_by):
+            raise ValueError("a declaration names its class and who made it, or neither")
         return self
 
     @classmethod
     def of(
-        cls, *, prompt_id: str, version: str, origin: Literal["baseline", "stored"], text: str
+        cls,
+        *,
+        prompt_id: str,
+        version: str,
+        origin: Literal["baseline", "stored"],
+        text: str,
+        declared_class: Literal["CLASS_C_INTERNAL"] | None = None,
+        declared_by: str | None = None,
     ) -> PromptPin:
         return cls(
             prompt_id=prompt_id,
@@ -131,4 +156,6 @@ class PromptPin(BaseModel):
             origin=origin,
             text=text,
             text_sha256=prompt_sha256(text),
+            declared_class=declared_class,
+            declared_by=declared_by,
         )

@@ -680,8 +680,10 @@ export type PromptSlotSummary = {
 };
 export type PromptVersion = {
   version_number: number; label: string; text: string; text_sha256: string;
-  /** The hash an operator lists in AIA_AI_MATERIAL_CLASSIFICATIONS to classify this exact text. */
+  /** The hash an operator lists in AIA_AI_MATERIAL_CLASSIFICATIONS to classify this exact text more strictly. */
   material_sha256: string;
+  /** The author's recorded declaration that the text holds no client data; null on a version saved before declarations existed. */
+  declared_class: string | null; declared_by: string | null; declared_at: string | null;
   based_on: string; note: string; created_by: string; created_at: string;
 };
 export type PromptActivation = {
@@ -702,8 +704,10 @@ export type PromptSlotDetail = PromptSlotSummary & {
 export const admin = {
   prompts: () => request<PromptSlotSummary[]>("GET", "/api/v1/system-prompts"),
   prompt: (promptId: string) => request<PromptSlotDetail>("GET", `/api/v1/system-prompts/${enc(promptId)}`),
+  // Saving is the author's declaration that the text holds no client data (ADR 0020 decision 8): the
+  // editor says so next to the button, and the API requires the field and records who sent it.
   savePrompt: (promptId: string, body: { text: string; note: string; based_on: string | null }) =>
-    request<PromptVersion>("POST", `/api/v1/system-prompts/${enc(promptId)}/versions`, body),
+    request<PromptVersion>("POST", `/api/v1/system-prompts/${enc(promptId)}/versions`, { ...body, declares_no_client_data: true }),
   /** `versionNumber` null returns to the wording shipped in code. */
   activatePrompt: (promptId: string, versionNumber: number | null, reason: string) =>
     request<PromptActive>("PUT", `/api/v1/system-prompts/${enc(promptId)}/active`, { version_number: versionNumber, reason }),

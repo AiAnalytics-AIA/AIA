@@ -281,15 +281,31 @@ def prompt_data_class(
     """What the instruction part of the system prompt may be sent as; None refuses dispatch.
 
     The code's own wording is reviewed with the code and holds no client material, so it is
-    Class C. A stored edit is free text typed into a page: ``validate_prompt_text`` checks its
-    shape and cannot know what it contains, so it is *unclassified material* like a pasted
-    brief. It travels only when an operator has classified its exact text
-    (``material_sha256`` of the instruction), and a class above C then raises the request's
-    class and the route refuses it. Absence is unknown, and unknown refuses.
+    Class C. A stored edit is free text typed into a page, and ``validate_prompt_text`` cannot
+    know what it contains, so its class comes from somewhere a person answers for:
+
+    * the **author's declaration** recorded with the version when they saved it ("this text
+      holds no client data": Class C, who and when kept, audited), which classifies it
+      automatically, with no step for an operator;
+    * an **operator's classification** of the exact text (``material_sha256`` in
+      ``AIA_AI_MATERIAL_CLASSIFICATIONS``), which can only be stricter in effect: when both
+      exist the request takes the more restrictive, so an operator who finds client material
+      in a declared prompt raises it and the route refuses it.
+
+    With neither (a version saved before declarations existed) the class is unknown and
+    dispatch is refused.
     """
     if prompt is None or prompt.origin == "baseline":
         return DataClass.CLASS_C_INTERNAL
-    return classify_material(prompt.text, approvals).data_class
+    known = [
+        c
+        for c in (
+            classify_material(prompt.text, approvals).data_class,
+            DataClass(prompt.declared_class) if prompt.declared_class else None,
+        )
+        if c is not None
+    ]
+    return most_restrictive_material(known) if known else None
 
 
 def agent_request(
@@ -311,7 +327,8 @@ def agent_request(
     The copied design includes pasted text and attachment excerpts. Only a trusted
     classification of these exact bytes can permit it. Approved knowledge remains
     confidential independently; an unknown design or instruction refuses dispatch,
-    and so does a stored prompt edit nobody has classified (:func:`prompt_data_class`).
+    and so does a stored prompt edit nobody has declared or classified
+    (:func:`prompt_data_class`).
     """
     design = classify_material(snapshot["design"], material_approvals)
     instruction_class = (

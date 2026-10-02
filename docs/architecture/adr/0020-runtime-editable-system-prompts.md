@@ -94,17 +94,22 @@ Two things make "just let people edit the string" unsafe here:
    the worker runs the job through the same gateway, gates and budget reservation as any job,
    and the result is a proposal for review. Nothing is applied automatically.
 
-8. **A stored prompt is unclassified material.** `validate_prompt_text` checks a prompt's shape
-   and cannot know what it contains, and the editable text is sent as the system message. So it
-   is classified the way a pasted brief is: the code's own wording is reviewed with the code and
-   is Class C, but a stored edit travels only when an operator has classified its exact text
-   (`material_sha256` of the instruction, listed in `AIA_AI_MATERIAL_CLASSIFICATIONS`). The
-   request's data class is the most restrictive of the design, the instruction, the knowledge
-   and the prompt; an unclassified prompt makes it unknown and dispatch is refused (the job
-   parks, nothing is sent), and a prompt classified above C raises the whole request so the
-   route, which is approved for Class C, refuses it. One changed character is new material and
-   needs a new approval. The page shows each version's hash and says, before a version is put
-   live, that new jobs wait until its hash is approved.
+8. **A stored prompt is material, classified when it is saved.** `validate_prompt_text` checks a
+   prompt's shape and cannot know what it contains, and the editable text is sent as the system
+   message. So it is classified the way a pasted brief is, but without a step between people
+   (ADR 0019 decision 3; the owner rejected an operator step per edit). The code's own wording is
+   reviewed with the code and is Class C. A stored version is **versioned automatically and
+   classified by its author's declaration**: saving requires `declares_no_client_data`, and the
+   version records `declared_class` (Class C), `declared_by` and `declared_at`, and the save is
+   audited. The request's data class is the most restrictive of the design, the instruction,
+   the knowledge and the prompt, where the prompt's class is the strictest of the declaration
+   and any operator classification of the exact text (`material_sha256` in
+   `AIA_AI_MATERIAL_CLASSIFICATIONS`). An operator can therefore only make a declared prompt
+   stricter (a class above C raises the whole request and the Class C route refuses it), never
+   looser. A version with no declaration (saved before this decision) stays unclassified: it is
+   not sent, the job parks, until an operator classifies its hash. The provenance artifact
+   records which source classified the prompt. The declaration is a statement by a signed-in
+   Admin, recorded and attributable, not a detector: nothing reads the text for client data.
 
 9. **The route is organization-level.** `/api/v1/system-prompts` is not study-scoped: a prompt
    belongs to the organization, like members and self-approval. It takes an `OrganizationContext`,
@@ -121,18 +126,17 @@ Two things make "just let people edit the string" unsafe here:
   IAM and an egress review for a feature the repository can provide.
 - **Detecting client material in a prompt.** Not attempted: nothing here reads a prompt and
   judges it. Decision 8 treats every stored edit as unclassified instead, which is stricter.
-- **Letting the author classify their own prompt.** An in-app attestation ("this text holds no
-  client data", recorded with the version and audited) would restore quick iteration without an
-  operator step per edit, but it adds a second source of trusted classification next to the
-  operator's. That is the owner's decision, not made here.
+- **Verifying a declaration.** The author's statement is trusted and recorded; checking it
+  against the text is not attempted. The operator list remains the way to be stricter.
 - **A prompt evaluation suite**, per-client prompts, and any automatic prompt adaptation.
 
 ## Consequences
 
 - Wording can be iterated in minutes once its text is classified: edit, save, test on a
-  fictional study, put live, and go back with one confirmed step. **The cost of decision 8 is an
-  operator step per edit** (add the version's hash to `AIA_AI_MATERIAL_CLASSIFICATIONS`); until
-  then a job using the edit waits. Going back to the code's wording needs none.
+  fictional study, put live, and go back with one confirmed step. **The cost of decision 8 is a
+  trusted declaration**: a prompt's classification rests on its author's recorded statement,
+  which only an operator listing can tighten. Versions saved before the declaration existed wait
+  until an operator classifies them. Going back to the code's wording needs neither.
 - The prompt has two homes: the code baseline and the database. A long-lived active edit can
   drift from a baseline that has since changed; the page shows which is running and the hash.
 - A new activation changes the job fingerprint of later jobs, so a repeated job buys its units

@@ -52,6 +52,7 @@ _STATUS: dict[str, int] = {
     "unknown_prompt": 404,
     "unknown_version": 404,
     "self_activation_not_allowed": 403,
+    "declaration_required": 422,
     "concurrent_edit": 409,
     "not_editable": 409,
 }
@@ -100,12 +101,18 @@ class VersionResponse(BaseModel):
     text: str
     text_sha256: str
     #: The hash an operator lists in ``AIA_AI_MATERIAL_CLASSIFICATIONS`` to classify this exact
-    #: text. Until they do, the version is unclassified material and no model is sent it.
+    #: text more strictly than its author did (or, for a version with no declaration, at all).
     material_sha256: str
     based_on: str
     note: str
     created_by: str
     created_at: datetime
+    #: The author's recorded declaration that this text holds no client data. ``null`` on a
+    #: version saved before declarations existed: such a version has no class and is not sent
+    #: until an operator classifies its text.
+    declared_class: str | None
+    declared_by: str | None
+    declared_at: datetime | None
 
 
 class ActivationResponse(BaseModel):
@@ -136,6 +143,10 @@ class VersionCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     text: str = Field(max_length=PROMPT_TEXT_MAX_CHARS * 2)
+    #: Saving declares that the text holds no client data (ADR 0020 decision 8). Required and
+    #: never defaulted: the declaration classifies the version automatically, is stored with it
+    #: and audited, and ``false`` is refused (422 ``declaration_required``).
+    declares_no_client_data: bool
     note: str = Field(default="", max_length=255)
     #: The label this was edited from (``baseline`` or ``e<n>``). Context only.
     based_on: str | None = Field(default=None, max_length=64)
@@ -192,6 +203,9 @@ def _version(v: StoredVersion) -> VersionResponse:
         note=v.note,
         created_by=v.created_by,
         created_at=v.created_at,
+        declared_class=v.declared_class,
+        declared_by=v.declared_by,
+        declared_at=v.declared_at,
     )
 
 
@@ -264,7 +278,11 @@ def create_version(
 ) -> VersionResponse:
     try:
         version = PromptRepository(session, admin).create_version(
-            prompt_id, body.text, note=body.note, based_on=body.based_on
+            prompt_id,
+            body.text,
+            declares_no_client_data=body.declares_no_client_data,
+            note=body.note,
+            based_on=body.based_on,
         )
     except (ScopeDenied, PromptRefused) as exc:
         raise _refused(exc) from exc

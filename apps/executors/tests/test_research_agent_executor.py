@@ -21,11 +21,13 @@ from aia_core.infrastructure.model_adapters.transport import (
 )
 from aia_core.infrastructure.prompt_repository import PromptRepository
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.tables import PromptVersionRow
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.registry import registry_for
 from aia_executors.research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
+from sqlalchemy import update
 
 ANSWER = {
     "title": "Concept",
@@ -358,11 +360,24 @@ def operator_approves(
     )
 
 
-def put_live(world: Any, prompt_id: str, text: str) -> None:
-    """An administrator stores an edit and puts it live."""
+def put_live(world: Any, prompt_id: str, text: str, *, declared: bool = True) -> None:
+    """An administrator saves an edit (declaring it holds no client data) and puts it live.
+
+    ``declared=False`` makes it look like a version saved before declarations existed: the
+    rows are what an older deployment left, so no declaration is recorded on them.
+    """
     with world.sessions() as session:
         repo = PromptRepository(session, world.admin_context(session))
-        version = repo.create_version(prompt_id, text)
+        version = repo.create_version(prompt_id, text, declares_no_client_data=True)
+        if not declared:
+            session.execute(
+                update(PromptVersionRow)
+                .where(
+                    PromptVersionRow.prompt_id == prompt_id,
+                    PromptVersionRow.version_number == version.version_number,
+                )
+                .values(declared_class=None, declared_by=None, declared_at=None)
+            )
         repo.activate(prompt_id, version.version_number, reason="test")
         session.commit()
 
@@ -377,8 +392,8 @@ def test_an_active_edit_is_what_the_model_is_sent_and_what_the_record_names(
     put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)
     run_id = start(world)
     transport = RecordedBedrock()
-    approved = (operator_approves(CUSTOM_TASK),)
-    assert worker(world, database_url, store, build, transport, approvals=approved).run_once()
+    # No operator approval: the author's recorded declaration classifies the edit.
+    assert worker(world, database_url, store, build, transport).run_once()
 
     # The code's rails stay in front of whatever the edit says.
     assert system_sent(transport) == FIXED_PREFIX + CUSTOM_TASK
@@ -427,8 +442,7 @@ def test_a_queued_job_keeps_the_prompt_it_was_queued_with(
     second_id = start(world)
     assert second_id != run_id
     transport2 = RecordedBedrock()
-    approved = (operator_approves(CUSTOM_TASK),)
-    assert worker(world, database_url, store, build, transport2, approvals=approved).run_once()
+    assert worker(world, database_url, store, build, transport2).run_once()
     assert system_sent(transport2) == FIXED_PREFIX + CUSTOM_TASK
 
 
@@ -437,7 +451,9 @@ def test_a_draft_runs_only_when_an_administrator_asks_for_it(
 ) -> None:
     with world.sessions() as session:
         admin = world.admin_context(session)
-        PromptRepository(session, admin).create_version("aia.research.analyze_brief", CUSTOM_TASK)
+        PromptRepository(session, admin).create_version(
+            "aia.research.analyze_brief", CUSTOM_TASK, declares_no_client_data=True
+        )
         revision, _ = StudyDesignRepository(session, world.lead_scope(session)).submit(
             content=DESIGN, source_stage="brief"
         )
@@ -467,44 +483,47 @@ def test_a_job_whose_pin_was_altered_or_misplaced_is_refused_not_guessed() -> No
         _pin_of({"prompt": good.model_dump()}, ResearchAction.CRITIQUE)  # another action's
 
 
-def test_a_stored_prompt_nobody_classified_is_parked_and_nothing_is_sent(
+def test_a_version_saved_before_declarations_existed_is_parked_and_nothing_is_sent(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
-    """Free text typed into a page is unclassified material: it never reaches the model."""
-    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)
+    """No declaration is not a declaration: such a version has no class, so it is not sent."""
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK, declared=False)
     run_id = start(world)
     transport = RecordedBedrock()
-    assert worker(
-        world, database_url, store, build, transport
-    ).run_once()  # design approved, prompt not
+    assert worker(world, database_url, store, build, transport).run_once()
     assert transport.requests == []
     with world.sessions() as session:
         job = ResearchAgentJobs(session, world.lead_scope(session)).get(run_id)
     assert job["status"] is WorkflowRunStatus.WAITING_PROVIDER
 
 
-def test_client_material_pasted_into_a_prompt_is_not_sent(
+def test_an_operator_can_still_classify_a_version_that_has_no_declaration(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
-    secret_prompt = f"Analyzuj zadání. Kontext od klienta: {CLIENT_MATERIAL}"
-    put_live(world, "aia.research.analyze_brief", secret_prompt)
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK, declared=False)
     run_id = start(world)
     transport = RecordedBedrock()
-    # An approval for some other, innocent prompt text does not carry over to this one.
-    elsewhere = (operator_approves(CUSTOM_TASK),)
-    assert worker(world, database_url, store, build, transport, approvals=elsewhere).run_once()
-    assert transport.requests == []
+    approved = (operator_approves(CUSTOM_TASK),)
+    assert worker(world, database_url, store, build, transport, approvals=approved).run_once()
+    assert system_sent(transport) == FIXED_PREFIX + CUSTOM_TASK
     with world.sessions() as session:
-        status = ResearchAgentJobs(session, world.lead_scope(session)).get(run_id)["status"]
-    assert status is WorkflowRunStatus.WAITING_PROVIDER
+        provenance = ResearchAgentJobs(session, world.lead_scope(session)).result(
+            run_id, store=store
+        )["provenance"]
+    prompt = provenance["material_classification"]["prompt"]
+    assert (prompt["source"], prompt["declared_class"], prompt["declared_by"]) == (
+        "operator",
+        None,
+        None,
+    )
 
 
-def test_a_prompt_an_operator_classified_as_client_material_is_refused_by_the_route(
+def test_an_operator_can_classify_a_declared_prompt_as_client_material_and_it_is_not_sent(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
-    """The route is approved for Class C; a prompt classified A raises the whole request to A."""
+    """A declaration is a person's word: the operator's stricter class wins, the route refuses."""
     secret_prompt = f"Analyzuj zadání. Kontext od klienta: {CLIENT_MATERIAL}"
-    put_live(world, "aia.research.analyze_brief", secret_prompt)
+    put_live(world, "aia.research.analyze_brief", secret_prompt)  # declared, then found out
     start(world)
     transport = RecordedBedrock()
     as_client = (operator_approves(secret_prompt, DataClass.CLASS_A_CLIENT_CONFIDENTIAL),)
@@ -512,7 +531,28 @@ def test_a_prompt_an_operator_classified_as_client_material_is_refused_by_the_ro
     assert transport.requests == []
 
 
-def test_an_approved_edit_records_how_its_prompt_was_classified(
+def test_a_declared_edit_records_who_declared_it_and_that_the_declaration_classified_it(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)
+    run_id = start(world)
+    assert worker(world, database_url, store, build, RecordedBedrock()).run_once()
+    with world.sessions() as session:
+        provenance = ResearchAgentJobs(session, world.lead_scope(session)).result(
+            run_id, store=store
+        )["provenance"]
+    prompt = provenance["material_classification"]["prompt"]
+    assert (prompt["origin"], prompt["data_class"], prompt["source"]) == (
+        "stored",
+        "CLASS_C_INTERNAL",
+        "declaration",
+    )
+    assert prompt["declared_class"] == "CLASS_C_INTERNAL"
+    assert prompt["declared_by"] == world.owner_id
+    assert prompt["material_sha256"] == material_sha256(CUSTOM_TASK)
+
+
+def test_a_declaration_and_an_operator_agreeing_is_recorded_as_both(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
     put_live(world, "aia.research.analyze_brief", CUSTOM_TASK)
@@ -525,9 +565,7 @@ def test_an_approved_edit_records_how_its_prompt_was_classified(
         provenance = ResearchAgentJobs(session, world.lead_scope(session)).result(
             run_id, store=store
         )["provenance"]
-    prompt = provenance["material_classification"]["prompt"]
-    assert prompt["origin"] == "stored" and prompt["data_class"] == "CLASS_C_INTERNAL"
-    assert prompt["material_sha256"] == material_sha256(CUSTOM_TASK)
+    assert provenance["material_classification"]["prompt"]["source"] == "declaration+operator"
 
 
 def test_the_codes_own_wording_needs_no_operator_approval(
@@ -543,5 +581,10 @@ def test_the_codes_own_wording_needs_no_operator_approval(
     assert (prompt["origin"], prompt["data_class"], prompt["material_sha256"]) == (
         "baseline",
         "CLASS_C_INTERNAL",
+        None,
+    )
+    assert (prompt["source"], prompt["declared_class"], prompt["declared_by"]) == (
+        "code",
+        None,
         None,
     )

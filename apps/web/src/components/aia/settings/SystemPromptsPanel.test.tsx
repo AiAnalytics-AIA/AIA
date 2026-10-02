@@ -28,6 +28,7 @@ const SLOTS: Slot[] = [
 
 /** The JSON bodies this fake reads; whatever a test sends is checked against the real API's tests. */
 type Body = {
+  declares_no_client_data?: boolean;
   text: string; note: string; based_on?: string | null; version_number: number | null; reason: string;
   prompt_version?: number; design_revision_id: string; action: string;
 };
@@ -80,7 +81,7 @@ function fakeApi(overrides: Record<string, (body: Body, m: RegExpMatchArray) => 
       const slot = SLOTS.find((s) => s.id === m[1]) as Slot;
       const list = backend.versions[slot.id];
       const n = list.length + 1;
-      const v: PromptVersion = { version_number: n, label: `e${n}`, text: b.text, text_sha256: sha(b.text), material_sha256: `material-${b.text}`, based_on: b.based_on ?? "baseline", note: b.note, created_by: "USR-1", created_at: new Date().toISOString() };
+      const v: PromptVersion = { version_number: n, label: `e${n}`, text: b.text, text_sha256: sha(b.text), material_sha256: `material-${b.text}`, declared_class: b.declares_no_client_data ? "CLASS_C_INTERNAL" : null, declared_by: b.declares_no_client_data ? "USR-1" : null, declared_at: b.declares_no_client_data ? new Date().toISOString() : null, based_on: b.based_on ?? "baseline", note: b.note, created_by: "USR-1", created_at: new Date().toISOString() };
       list.push(v);
       return v;
     }],
@@ -258,7 +259,7 @@ describe("a prompt that can be edited", () => {
     mount();
     await saveAs("  Analyzuj stručně.  ", "kratší");
     expect(await screen.findByText("Uloženo jako e1. Zatím neběží.")).toBeTruthy();
-    expect(called("POST", `/api/v1/system-prompts/${ANALYZE}/versions`)[0].body).toEqual({ text: "Analyzuj stručně.", note: "kratší", based_on: "baseline" });
+    expect(called("POST", `/api/v1/system-prompts/${ANALYZE}/versions`)[0].body).toEqual({ text: "Analyzuj stručně.", note: "kratší", based_on: "baseline", declares_no_client_data: true });
     const row = await versionRow("v1");
     expect(row.getAttribute("data-running")).toBe("no");
     expect(within(row).getByText("owner@example.test")).toBeTruthy();
@@ -336,38 +337,58 @@ describe("putting a version live", () => {
   });
 });
 
-describe("what an operator must approve", () => {
-  it("shows each version's hash and says an unapproved prompt is never sent", async () => {
+describe("the author's declaration", () => {
+  it("says, next to the save button, that saving declares the text holds no client data", async () => {
+    fakeApi();
+    mount();
+    await editor();
+    expect(document.querySelector("[data-declaration]")?.textContent).toMatch(/Uložením prohlašujete, že text neobsahuje žádné údaje klienta/);
+    expect(document.querySelector("[data-declaration]")?.textContent).toMatch(/nikdo další ji schvalovat nemusí/);
+  });
+
+  it("sends the declaration with the save, and shows who made it", async () => {
     fakeApi();
     mount();
     await saveAs("Analyzuj stručně.");
     await screen.findByText("Uloženo jako e1. Zatím neběží.");
+    expect(called("POST", `/api/v1/system-prompts/${ANALYZE}/versions`)[0].body).toMatchObject({ declares_no_client_data: true });
     await versionRow("v1");
     const approval = document.querySelector("[data-approval]") as HTMLElement;
-    fireEvent.click(within(approval).getByText("Schválení pro odeslání modelu"));
+    fireEvent.click(within(approval).getByText("Třída dat a schválení operátora"));
+    const line = approval.querySelector('[data-material="e1"]') as HTMLElement;
+    expect(line.textContent).toMatch(/prohlásil\(a\) owner@example\.test/);
+    expect(line.querySelector("[data-undeclared]")).toBeNull();
+    expect(line.querySelector("code")?.textContent).toBe("material-Analyzuj stručně.");
     expect(approval.textContent).toMatch(/AIA_AI_MATERIAL_CLASSIFICATIONS/);
-    expect(approval.textContent).toMatch(/nic se neodešle/);
-    expect(approval.querySelector('[data-material="e1"] code')?.textContent).toBe("material-Analyzuj stručně.");
+    expect(approval.textContent).toMatch(/třída C na základě prohlášení autora/);
   });
 
-  it("warns, before a version goes live, that new jobs wait until its hash is approved", async () => {
+  it("puts a declared version live without any warning about an operator", async () => {
     fakeApi();
     mount();
     await saveAs("Analyzuj stručně.");
     fireEvent.click(await screen.findByRole("button", { name: "Zapnout e1" }));
     const panel = document.querySelector("[data-activation]") as HTMLElement;
-    expect(panel.querySelector("[data-needs-approval]")?.textContent).toMatch(/verze e1 se modelu odešle, jen když operátor schválil její otisk/);
-    expect(panel.querySelector("[data-needs-approval]")?.textContent).toMatch(/nově zadané úlohy čekají/);
-    cleanup();
-    // Going back to the code's wording needs no approval, so it carries no such warning.
+    expect(panel.querySelector("[data-needs-approval]")).toBeNull();
+  });
+
+  it("warns only for a version saved before declarations existed", async () => {
     fakeApi();
     mount();
-    await saveAs("Jiný text.");
-    fireEvent.click(await screen.findByRole("button", { name: "Zapnout e1" }));
-    fireEvent.click(within(document.querySelector("[data-activation]") as HTMLElement).getByRole("button", { name: "Potvrdit" }));
-    await screen.findByText("Teď běží: e1.");
-    fireEvent.click(await screen.findByRole("button", { name: "Vrátit základ z kódu" }));
-    expect(document.querySelector("[data-activation] [data-needs-approval]")).toBeNull();
+    await saveAs("Stará verze.");
+    await screen.findByText("Uloženo jako e1. Zatím neběží.");
+    // The server's rows from before declarations carry none.
+    for (const v of backend.versions[ANALYZE]) Object.assign(v, { declared_class: null, declared_by: null, declared_at: null });
+    cleanup();
+    mount();
+    await versionRow("v1");
+    fireEvent.click(within(await versionRow("v1")).getByRole("button", { name: "Zapnout e1" }));
+    const panel = document.querySelector("[data-activation]") as HTMLElement;
+    expect(panel.querySelector("[data-needs-approval]")?.textContent).toMatch(/byla uložena bez prohlášení autora/);
+    expect(panel.querySelector("[data-needs-approval]")?.textContent).toMatch(/nově zadané úlohy čekají/);
+    const approval = document.querySelector("[data-approval]") as HTMLElement;
+    fireEvent.click(within(approval).getByText("Třída dat a schválení operátora"));
+    expect(approval.querySelector('[data-material="e1"] [data-undeclared]')?.textContent).toBe("bez prohlášení");
   });
 });
 

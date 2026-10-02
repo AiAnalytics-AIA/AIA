@@ -60,9 +60,17 @@ def _request(
     )
 
 
-def _stored(text: str, action: ResearchAction = ResearchAction.CRITIQUE) -> PromptPin:
+def _stored(
+    text: str, action: ResearchAction = ResearchAction.CRITIQUE, *, declared: bool = True
+) -> PromptPin:
+    """A stored edit as a job carries it: with its author's recorded declaration, or without."""
     return PromptPin.of(
-        prompt_id=f"aia.research.{action.value}", version="e1", origin="stored", text=text
+        prompt_id=f"aia.research.{action.value}",
+        version="e1",
+        origin="stored",
+        text=text,
+        declared_class="CLASS_C_INTERNAL" if declared else None,
+        declared_by="USR-author" if declared else None,
     )
 
 
@@ -224,33 +232,70 @@ def test_the_codes_own_wording_needs_no_approval_and_is_class_c() -> None:
     assert request.data_classification is DataClass.CLASS_C_INTERNAL
 
 
-def test_a_stored_edit_nobody_has_classified_is_never_sent() -> None:
-    """Free text typed into a page is unclassified material, like a pasted brief."""
+def test_a_declared_edit_is_class_c_with_no_operator_step() -> None:
+    """The author's recorded declaration classifies the version automatically."""
     request = _request(ResearchAction.CRITIQUE, prompt=_stored("Zkritizuj návrh stručně."))
-    assert request.data_classification is None  # unknown refuses dispatch
+    assert request.data_classification is DataClass.CLASS_C_INTERNAL
 
 
-def test_client_material_pasted_into_a_prompt_is_not_sent_as_class_c() -> None:
+def test_a_version_with_no_declaration_is_never_sent() -> None:
+    """Saved before declarations existed: no declaration is not a declaration."""
+    undeclared = _stored("Zkritizuj návrh stručně.", declared=False)
+    assert _request(ResearchAction.CRITIQUE, prompt=undeclared).data_classification is None
+    assert prompt_data_class(undeclared, ()) is None
+
+
+def test_an_operator_can_classify_a_version_that_has_no_declaration() -> None:
+    undeclared = _stored("Zkritizuj návrh stručně.", declared=False)
+    approvals = (DESIGN_APPROVAL, _approve(undeclared.text))
+    request = _request(ResearchAction.CRITIQUE, prompt=undeclared, approvals=approvals)
+    assert request.data_classification is DataClass.CLASS_C_INTERNAL
+    # One changed character is different material: the approval no longer applies.
+    edited = _stored(undeclared.text + " ", declared=False)
+    refused = _request(ResearchAction.CRITIQUE, prompt=edited, approvals=approvals)
+    assert refused.data_classification is None
+
+
+def test_the_operators_stricter_class_beats_the_authors_declaration() -> None:
+    """A declaration is a person's word. If an operator finds client material, the request rises."""
     pin = _stored(f"Zkritizuj návrh. Kontext: {CLIENT_MATERIAL}")
-    assert _request(ResearchAction.CRITIQUE, prompt=pin).data_classification is None
-    # Even a Class C approval for some other text does not carry over to this one.
-    others = (DESIGN_APPROVAL, _approve("Zkritizuj návrh stručně."))
-    assert (
-        _request(ResearchAction.CRITIQUE, prompt=pin, approvals=others).data_classification is None
-    )
-    # If an operator classifies it for what it is, the request takes that class, not Class C.
+    # As declared, the text travels as Class C: that is the trust the declaration places in its
+    # author, which is why it is recorded with their name.
+    as_declared = _request(ResearchAction.CRITIQUE, prompt=pin)
+    assert as_declared.data_classification is DataClass.CLASS_C_INTERNAL
     as_client = (DESIGN_APPROVAL, _approve(pin.text, DataClass.CLASS_A_CLIENT_CONFIDENTIAL))
     request = _request(ResearchAction.CRITIQUE, prompt=pin, approvals=as_client)
-    assert request.data_classification is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    assert request.data_classification is DataClass.CLASS_A_CLIENT_CONFIDENTIAL  # route refuses
 
 
-def test_an_operator_approved_edit_travels_as_class_c_and_only_that_exact_text() -> None:
+def test_an_operator_and_a_declaration_that_agree_stay_class_c() -> None:
     pin = _stored("Zkritizuj návrh stručně.")
     approvals = (DESIGN_APPROVAL, _approve(pin.text))
     assert _request(
         ResearchAction.CRITIQUE, prompt=pin, approvals=approvals
     ).data_classification is (DataClass.CLASS_C_INTERNAL)
-    # One changed character is different material: the approval no longer applies.
-    edited = _stored(pin.text + " ")
-    refused = _request(ResearchAction.CRITIQUE, prompt=edited, approvals=approvals)
-    assert refused.data_classification is None
+
+
+def test_a_declaration_is_all_or_nothing_and_never_on_the_codes_wording() -> None:
+    with pytest.raises(ValueError, match="names its class and who made it"):
+        PromptPin.of(
+            prompt_id="p",
+            version="e1",
+            origin="stored",
+            text="a",
+            declared_class="CLASS_C_INTERNAL",
+        )
+    with pytest.raises(ValueError, match="names its class and who made it"):
+        PromptPin.of(prompt_id="p", version="e1", origin="stored", text="a", declared_by="USR-1")
+    with pytest.raises(ValueError, match="needs no declaration"):
+        PromptPin.of(
+            prompt_id="p",
+            version="1",
+            origin="baseline",
+            text="a",
+            declared_class="CLASS_C_INTERNAL",
+            declared_by="USR-1",
+        )
+    # A pin from a job queued before declarations existed still loads, without one.
+    old = PromptPin(**{k: v for k, v in _stored("a").model_dump().items() if "declared" not in k})
+    assert old.declared_class is None and old.declared_by is None
