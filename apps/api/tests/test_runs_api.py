@@ -109,28 +109,29 @@ def test_unknown_workflow_type_is_a_validation_error(researcher: TestClient, wor
     assert response.status_code == 422
 
 
-def test_a_viewer_labelled_member_may_read_and_start_runs_and_an_ungranted_member_gets_404(
+def test_a_viewer_labelled_member_and_one_with_no_grant_may_read_and_start_runs(
     researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
     """ADR 0019: the "viewer" label holds the Researcher role, so it may start a run.
 
-    What still differs is access to the study: a member without a grant is told
-    nothing exists (404), for reading and for starting alike.
+    A member who was never granted the study is a member: they read and start runs too.
     """
     study_id = world.study_id()
     project_id = _project(researcher, study_id)
     base = f"{API}/studies/{study_id}/projects/{project_id}"
-    started = viewer.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"})
-    assert started.status_code == 201, started.text
-    assert viewer.get(f"{base}/runs").status_code == 200
+    first = viewer.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"})
+    assert first.status_code == 201, first.text
+    # A run is idempotent per revision, so the second member is handed the same run: 200, not 201.
+    again = outsider.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"})
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == first.json()["run_id"]
+    for member in (viewer, outsider):
+        assert member.get(f"{base}/runs").status_code == 200
 
-    assert (
-        outsider.post(f"{base}/runs", json={"workflow_type": "develop_snapshot"}).status_code == 404
-    )
-    assert outsider.get(f"{base}/runs").status_code == 404
 
-
-def test_runs_never_cross_clients(researcher: TestClient, as_user: Any, world: Any) -> None:
+def test_a_run_is_found_only_through_its_own_study(
+    researcher: TestClient, as_user: Any, world: Any
+) -> None:
     study_id = world.study_id()
     project_id = _project(researcher, study_id)
     run_id = researcher.post(
@@ -140,11 +141,12 @@ def test_runs_never_cross_clients(researcher: TestClient, as_user: Any, world: A
 
     other = as_user("other_lead")
     other_study = world.study_id("other_client")
+    # Another client's lead may open this study (ADR 0019), and reads its run there.
     assert (
         other.get(f"{API}/studies/{study_id}/projects/{project_id}/runs/{run_id}").status_code
-        == 404
+        == 200
     )
-    # A real run addressed under the wrong study is not found either.
+    # A real run addressed under the wrong study is not found, whoever asks.
     assert (
         other.get(f"{API}/studies/{other_study}/projects/{project_id}/runs/{run_id}").status_code
         == 404

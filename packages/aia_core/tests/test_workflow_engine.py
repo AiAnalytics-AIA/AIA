@@ -1401,13 +1401,13 @@ def test_runs_are_invisible_across_clients(
     assert other.claim_next(worker_id="worker-x") is None
 
 
-def test_any_member_can_start_a_run_and_an_outsider_cannot(
+def test_any_member_can_start_a_run_with_or_without_a_grant(
     session: Session, scoped: Any, project: Any
 ) -> None:
     """Running a workflow spends money (ADR 0019: a Researcher may; spend is a later gate).
 
-    There is no read-only member left to refuse. What still refuses is having no
-    access to the study: the outsider holds no grant, so no scope is issued.
+    There is no read-only member left to refuse, and no grant to lack: a member of
+    the organization reaches every study of it.
     """
     viewer = WorkflowRepository(session, scoped.scope(user="viewer", study="primary"))
     run_id = viewer.create_run(
@@ -1419,8 +1419,9 @@ def test_any_member_can_start_a_run_and_an_outsider_cannot(
     )
     assert viewer.get_run(run_id)["run_id"] == run_id
 
-    with pytest.raises(ScopeDenied):
-        scoped.scope(user="outsider", study="primary")
+    # A member who was never granted the study reads the same run (ADR 0019).
+    outsider = WorkflowRepository(session, scoped.scope(user="outsider", study="primary"))
+    assert outsider.get_run(run_id)["run_id"] == run_id
 
 
 def test_events_are_ordered_and_resumable(engine_repo: WorkflowRepository, run: str) -> None:

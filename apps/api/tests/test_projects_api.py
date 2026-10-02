@@ -100,52 +100,50 @@ def test_project_endpoints_require_authentication(client: TestClient, world: Any
     assert client.get(f"{base(world)}/PRJ-abc").status_code == 401
 
 
-def test_cross_client_read_is_not_found(
+def test_a_project_is_found_only_through_its_own_study(
     researcher: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:
-    """Another client's project is indistinguishable from a missing one.
+    """A project belongs to one study; under another study's path it is simply not there.
 
-    A 403 would confirm the project exists, which would disclose another client's
-    engagement. Note the code is ``not_found`` rather than ``project_not_found``:
-    the request is refused at scope resolution, before the project repository is
-    reached at all, so the caller learns nothing about the study either.
+    A 403 would confirm the project exists. Since ADR 0019 any member may open any study, so
+    the boundary is the study the path names, not who is asking: another client's lead reads
+    the project through its own study, and finds nothing through theirs.
     """
     project = _create(researcher, world)
     pid = project["project_id"]
+    theirs = base(world, "other_client")
 
     for response in (
-        other_client_lead.get(f"{base(world)}/{pid}"),
-        other_client_lead.get(f"{base(world)}/{pid}/revisions"),
-        other_client_lead.get(f"{base(world)}/{pid}/events"),
-        other_client_lead.get(f"{base(world)}/{pid}/impact"),
+        other_client_lead.get(f"{theirs}/{pid}"),
+        other_client_lead.get(f"{theirs}/{pid}/revisions"),
+        other_client_lead.get(f"{theirs}/{pid}/events"),
+        other_client_lead.get(f"{theirs}/{pid}/impact"),
     ):
         assert response.status_code == 404
-        assert response.json()["code"] == "not_found"
+        assert response.json()["code"] == "project_not_found"
+
+    opened = other_client_lead.get(f"{base(world)}/{pid}")
+    assert opened.status_code == 200 and opened.json()["project_id"] == pid
 
 
-def test_cross_client_write_is_not_found(
+def test_a_write_under_another_studys_path_is_not_found(
     researcher: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:
-    """Mutating routes are scope-checked too, not just the reads."""
+    """Mutating routes are study-scoped too, not just the reads."""
     pid = _create(researcher, world)["project_id"]
+    theirs = base(world, "other_client")
 
-    assert (
-        other_client_lead.put(f"{base(world)}/{pid}/content", json={"content": {}}).status_code
-        == 404
-    )
-    assert (
-        other_client_lead.patch(f"{base(world)}/{pid}", json={"title": "hijacked"}).status_code
-        == 404
-    )
-    assert other_client_lead.post(f"{base(world)}/{pid}/trash").status_code == 404
+    assert other_client_lead.put(f"{theirs}/{pid}/content", json={"content": {}}).status_code == 404
+    assert other_client_lead.patch(f"{theirs}/{pid}", json={"title": "hijacked"}).status_code == 404
+    assert other_client_lead.post(f"{theirs}/{pid}/trash").status_code == 404
 
     assert researcher.get(f"{base(world)}/{pid}").json()["title"] == "Test výzkum"
 
 
-def test_listing_never_crosses_clients(
+def test_listing_never_crosses_studies(
     researcher: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:
-    """A project listing shows only the projects of the study in scope."""
+    """A project listing shows only the projects of the study in scope, whoever asks."""
     mine = base(world, "primary")
     theirs = base(world, "other_client")
 
@@ -155,9 +153,9 @@ def test_listing_never_crosses_clients(
     assert [p["title"] for p in researcher.get(mine).json()["items"]] == ["Mine"]
     assert [p["title"] for p in other_client_lead.get(theirs).json()["items"]] == ["Theirs"]
 
-    # And neither can see into the other's study at all.
-    assert researcher.get(theirs).status_code == 404
-    assert other_client_lead.get(mine).status_code == 404
+    # Any member may open either study (ADR 0019), and each listing is still its study's alone.
+    assert [p["title"] for p in researcher.get(theirs).json()["items"]] == ["Theirs"]
+    assert [p["title"] for p in other_client_lead.get(mine).json()["items"]] == ["Mine"]
 
 
 # --------------------------------------------------------------------------- #

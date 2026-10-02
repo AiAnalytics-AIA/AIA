@@ -233,8 +233,8 @@ def test_every_person_with_the_study_starts_and_cancels_a_deep_research_run(
     run_id = runs(user="viewer").start(design_revision_id=revision_id, preset_name="QUICK").run_id
     assert runs(user="reviewer").get(run_id)["run_id"] == run_id
     assert runs(user="reviewer").cancel(run_id) is WorkflowRunStatus.CANCELLED
-    with pytest.raises(ScopeDenied):
-        runs(user="outsider")
+    # A member who was never granted the study is a member (ADR 0019): they read the run too.
+    assert runs(user="outsider").get(run_id)["run_id"] == run_id
     scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)
     with pytest.raises(ScopeDenied) as closed:
         runs(user="viewer").start(design_revision_id=revision_id, preset_name="QUICK")

@@ -269,8 +269,10 @@ def test_every_person_with_the_study_starts_a_run_on_it_while_it_is_open(
     for user in ("viewer", "reviewer", "researcher"):
         again = runs(user=user).start(design_revision_id=revision, fieldwork_source=AI)
         assert not again.created and again.run_id == first.run_id, user
-    with pytest.raises(ScopeDenied):
-        runs(user="outsider")
+    # A member who was never granted the study reaches the same run (ADR 0019).
+    assert runs(user="outsider").start(design_revision_id=revision, fieldwork_source=AI).run_id == (
+        first.run_id
+    )
     scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)
     with pytest.raises(ScopeDenied) as closed:
         runs(user="viewer").start(design_revision_id=revision, fieldwork_source=AI)

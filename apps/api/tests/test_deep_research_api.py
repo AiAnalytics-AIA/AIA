@@ -35,10 +35,10 @@ def test_start_is_scoped_idempotent_and_does_not_publish_before_worker(
     other_client_lead: TestClient,
     world: Any,
 ) -> None:
-    """ADR 0019: every grant holds the Researcher role, so the "viewer" label reads it all.
+    """ADR 0019: every member holds the Researcher role, so the "viewer" label reads it all.
 
-    The boundary that remains is the grant: a member without one and another
-    client's user are told nothing exists.
+    A member who was never granted the study, and another client's lead, read it too. What
+    still bounds a run is its own study: under another study's path it does not exist.
     """
     revision = _revision(researcher, world)
     payload = {"design_revision_id": revision, "preset_name": "QUICK", "channels": ["WEB"]}
@@ -63,20 +63,23 @@ def test_start_is_scoped_idempotent_and_does_not_publish_before_worker(
     assert viewer.get(f"{run_url}/events").status_code == 200
     events = researcher.get(f"{run_url}/events")
     assert events.status_code == 200, events.text
-    assert other_client_lead.get(run_url).status_code == 404
-    for path in (run_url, f"{run_url}/bundle", f"{run_url}/events"):
-        assert outsider.get(path).status_code == 404, path
-        assert other_client_lead.get(path).status_code == 404, path
+    wrong_study = f"{_url(world, 'other_client')}/{job['run_id']}"
+    for path in (run_url, f"{run_url}/events"):
+        assert outsider.get(path).status_code == 200, path
+        assert other_client_lead.get(path).status_code == 200, path
+    for member in (outsider, other_client_lead):
+        assert member.get(f"{run_url}/bundle").status_code == 409  # not published yet
+        for path in (wrong_study, f"{wrong_study}/bundle", f"{wrong_study}/events"):
+            assert member.get(path).status_code == 404, path
 
 
-def test_invalid_or_ungranted_job_is_refused_before_enqueue_and_a_viewer_label_may_start(
+def test_an_invalid_job_is_refused_before_enqueue_and_a_viewer_label_may_start(
     researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
-    """ADR 0019: a start needs a grant, not a role; the "viewer" label holds the one role."""
+    """ADR 0019: a start needs membership, not a role; the "viewer" label holds the one role."""
     revision = _revision(researcher, world)
     base = {"design_revision_id": revision, "preset_name": "QUICK"}
-    assert outsider.post(_url(world), json=base).status_code == 404
-    assert outsider.get(_url(world)).status_code == 404
+    assert outsider.get(_url(world)).status_code == 200  # a member with no grant reads the list
     for channels in ([], ["WEB", "WEB"], ["OTHER"]):
         assert researcher.post(_url(world), json={**base, "channels": channels}).status_code == 422
     assert researcher.post(_url(world), json={**base, "preset_name": "UNKNOWN"}).status_code == 422
@@ -87,3 +90,6 @@ def test_invalid_or_ungranted_job_is_refused_before_enqueue_and_a_viewer_label_m
     assert researcher.get(f"{_url(world)}/RUN-0").status_code == 404
     started = viewer.post(_url(world), json={**base, "channels": ["WEB"]})
     assert started.status_code == 201, started.text
+    # A member who was never granted the study starts the same job: idempotent, so 200.
+    again = outsider.post(_url(world), json={**base, "channels": ["WEB"]})
+    assert again.status_code == 200 and again.json()["run_id"] == started.json()["run_id"]

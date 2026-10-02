@@ -4,7 +4,20 @@ How AIA decides who may touch which client's work.
 
 Implementation: `aia_core.domain.scope` (rules), `aia_core.application.scope`
 (resolution), `aia_core.infrastructure.scope_repository` (persistence).
-Decision record: [adr/0004](adr/0004-client-study-isolation.md).
+Decision record: [adr/0004](adr/0004-client-study-isolation.md), superseded in part by
+[adr/0019](adr/0019-two-roles-and-human-ai-gates.md).
+
+> **Status (ADR 0019, chunks 2 and 3).** AIA is for the team's own use, and the organization
+> is the only boundary. Membership of the organization is the access: every active member
+> holds the one `RESEARCHER` role on every client and study of it, and `ScopeResolver` reads no
+> grant to decide that (`study_context`, `client_context`, `accessible_clients` and
+> `accessible_studies`). `ACCESS_DENIED / no_grant` can no longer occur between members. What
+> still returns 404 is an unknown id, an archived client, an inactive user, and a client or
+> study of another organization. The worker's scope is still narrower than a person's
+> (`WORKER_PERMISSIONS`). The grant tables, routes and the roles below remain in the database
+> and the API until chunk 6 removes them and this document is rewritten; **the sections
+> below that describe grants, four roles, precedence and the `no_grant` denial are the model
+> that was superseded, kept so the migration is reviewable.**
 
 ## The model
 

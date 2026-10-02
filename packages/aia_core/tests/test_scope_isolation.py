@@ -218,58 +218,60 @@ def test_project_repository_refuses_anything_but_a_study_context(
 # --------------------------------------------------------------------------- #
 
 
-def test_researcher_cannot_reach_another_clients_study(
+def test_every_member_reaches_every_clients_study(
     resolver: ScopeResolver, world: dict[str, Any]
 ) -> None:
-    """The central confidentiality guarantee.
+    """Membership of the organization is the access (ADR 0019 decision 2).
 
-    An Acme researcher resolving Globex's study must be denied, and the denial
-    must be indistinguishable from the study not existing.
+    The Acme researcher resolves Globex's study as well as Acme's, and holds the one
+    Researcher role on both. What still returns "not found" is a study that does not
+    exist, and a study of another organization: the organization is the boundary
+    (`test_principal_from_another_organization_is_denied`).
     """
     principal = world["principal"](world["researcher"])
 
-    # Acme resolves.
-    scope = resolver.study_context(principal, study_id=world["acme_study"].study_id)
-    assert scope.client_id == world["acme"].client_id
-    assert scope.role is ScopeRole.RESEARCHER
+    for study, client in (
+        (world["acme_study"], world["acme"]),
+        (world["globex_study"], world["globex"]),
+    ):
+        scope = resolver.study_context(principal, study_id=study.study_id)
+        assert scope.client_id == client.client_id
+        assert scope.role is ScopeRole.RESEARCHER
 
-    # Globex does not.
     with pytest.raises(ScopeDenied) as exc:
-        resolver.study_context(principal, study_id=world["globex_study"].study_id)
-    assert exc.value.reason == "no_grant"
+        resolver.study_context(principal, study_id="STU-does-not-exist")
+    assert exc.value.reason == "unknown_study"
     assert "not found" in str(exc.value)
 
 
-def test_organization_member_without_a_grant_sees_nothing(
+def test_an_organization_member_with_no_grant_reaches_every_study(
     resolver: ScopeResolver, world: dict[str, Any]
 ) -> None:
-    """Organization membership alone grants no access to client data."""
+    """Membership alone is the access: nobody has to be granted a client first."""
     principal = world["principal"](world["outsider"])
 
     for study in (world["acme_study"], world["globex_study"]):
-        with pytest.raises(ScopeDenied) as exc:
-            resolver.study_context(principal, study_id=study.study_id)
-        assert exc.value.reason == "no_grant"
+        scope = resolver.study_context(principal, study_id=study.study_id)
+        assert scope.role is ScopeRole.RESEARCHER
+        assert scope.permissions == frozenset(Permission)
 
-    assert resolver.accessible_studies(principal) == []
+    assert resolver.accessible_studies(principal) == sorted(
+        [world["acme_study"].study_id, world["globex_study"].study_id]
+    )
 
 
-def test_organization_admin_has_no_implicit_client_data_access(
+def test_the_admin_is_a_researcher_and_reaches_every_study(
     resolver: ScopeResolver, world: dict[str, Any]
 ) -> None:
-    """An administrator can create clients but cannot read their research.
+    """An administrator holds everything a Researcher holds (ADR 0019).
 
-    Still true while grants exist; ADR 0019 decision 2 retires them in a later
-    change, and this test changes with that one.
-
-    Separating "may administer" from "may read client data" is what makes the
-    client boundary meaningful on a team where everyone is effectively an admin.
+    The earlier rule separated "may administer" from "may read client data". The owner
+    retired it: the product is AIA's own, and the Admin is a Researcher with the system
+    settings added. The ADR records the cost.
     """
-    admin_principal = world["admin_principal"]
-
-    with pytest.raises(ScopeDenied) as exc:
-        resolver.study_context(admin_principal, study_id=world["acme_study"].study_id)
-    assert exc.value.reason == "no_grant"
+    scope = resolver.study_context(world["admin_principal"], study_id=world["acme_study"].study_id)
+    assert scope.role is ScopeRole.RESEARCHER
+    assert scope.permissions == frozenset(Permission)
 
 
 def test_admin_self_grant_works_and_is_audited(
@@ -358,18 +360,21 @@ def test_unknown_study_is_denied_without_an_audit_entry(
     assert len(resolver.audit_trail(world["admin"])) == before
 
 
-def test_denied_grant_attempt_is_audited(resolver: ScopeResolver, world: dict[str, Any]) -> None:
-    """A member reaching for a study they hold no grant on is worth recording."""
+def test_reaching_a_study_without_a_grant_is_no_longer_a_denial_to_audit(
+    resolver: ScopeResolver, world: dict[str, Any]
+) -> None:
+    """`ACCESS_DENIED / no_grant` can no longer occur between members (ADR 0019).
+
+    A member opening a study they were never granted is simply working, so it leaves no
+    denial. A request that is refused for a reason that remains (an unknown study)
+    still leaves none, by design: an id that does not exist is noise.
+    """
     principal = world["principal"](world["outsider"])
 
-    with pytest.raises(ScopeDenied):
-        resolver.study_context(principal, study_id=world["acme_study"].study_id)
+    resolver.study_context(principal, study_id=world["acme_study"].study_id)
 
     entries = resolver.audit_trail(world["admin"])
-    denials = [e for e in entries if e["action"] == "ACCESS_DENIED"]
-    assert denials
-    assert denials[0]["study_id"] == world["acme_study"].study_id
-    assert denials[0]["actor_id"] == world["outsider"]
+    assert [e for e in entries if e["action"] == "ACCESS_DENIED"] == []
 
 
 # --------------------------------------------------------------------------- #
@@ -433,11 +438,13 @@ def test_study_grant_cannot_narrow_a_researcher(
     assert legacy.has(Permission.EDIT_STUDY)
 
 
-def test_study_grant_widens_access_for_a_single_study(
+def test_a_study_grant_adds_nothing_because_membership_is_the_access(
     resolver: ScopeResolver, world: dict[str, Any]
 ) -> None:
-    """Someone with no client grant can be brought in for one study only."""
+    """A study grant no longer brings anyone in: they are in already (ADR 0019)."""
     principal = world["principal"](world["outsider"])
+    everything = sorted([world["acme_study"].study_id, world["globex_study"].study_id])
+    assert resolver.accessible_studies(principal) == everything
 
     resolver.grant_client_access(
         world["admin"],
@@ -450,13 +457,10 @@ def test_study_grant_widens_access_for_a_single_study(
     )
     resolver.grant_study_access(owner_scope, user_id=world["outsider"], role=ScopeRole.RESEARCHER)
 
-    # They can reach that one study...
+    # Nothing narrowed and nothing widened: the same two studies, the same role.
+    assert resolver.accessible_studies(principal) == everything
     scope = resolver.study_context(principal, study_id=world["globex_study"].study_id)
     assert scope.role is ScopeRole.RESEARCHER
-    # ...and nothing else.
-    assert resolver.accessible_studies(principal) == [world["globex_study"].study_id]
-    with pytest.raises(ScopeDenied):
-        resolver.study_context(principal, study_id=world["acme_study"].study_id)
 
 
 def test_every_granted_member_holds_every_permission(
@@ -508,8 +512,8 @@ def test_required_permission_is_checked_at_resolution(
     """Resolution can demand a permission up front; a member holding the grant gets it.
 
     Since ADR 0019 every permission is held, so demanding one succeeds for every
-    member and records no PERMISSION_DENIED. Without a grant the demand never gets
-    that far: the member is refused as having no access and the refusal is audited.
+    member, with or without a grant, and records neither PERMISSION_DENIED nor
+    ACCESS_DENIED.
     """
     principal = world["principal"](world["reviewer"])
 
@@ -522,14 +526,14 @@ def test_required_permission_is_checked_at_resolution(
     actions = [e["action"] for e in resolver.audit_trail(world["admin"])]
     assert "PERMISSION_DENIED" not in actions
 
+    # A member with no grant at all holds every permission too, so demanding one succeeds.
     outsider = world["principal"](world["outsider"])
-    with pytest.raises(ScopeDenied) as exc:
-        resolver.study_context(
-            outsider, study_id=world["acme_study"].study_id, require=Permission.EDIT_STUDY
-        )
-    assert exc.value.reason == "no_grant"
+    scope = resolver.study_context(
+        outsider, study_id=world["acme_study"].study_id, require=Permission.EDIT_STUDY
+    )
+    assert scope.has(Permission.EDIT_STUDY)
     actions = [e["action"] for e in resolver.audit_trail(world["admin"])]
-    assert "ACCESS_DENIED" in actions
+    assert "ACCESS_DENIED" not in actions
 
 
 def test_a_refused_permission_is_audited_at_resolution(
@@ -874,7 +878,7 @@ def test_budget_changes_are_a_researchers_and_are_audited(
     """A study budget is money; a Researcher may change it and the change is recorded.
 
     ADR 0019: it used to need a lead. The change still leaves an audit entry with
-    the before and after, and the member without a grant cannot reach it.
+    the before and after. Any member of the organization may do it.
     """
     researcher_scope = resolver.study_context(
         world["principal"](world["researcher"]), study_id=world["acme_study"].study_id
@@ -888,22 +892,31 @@ def test_budget_changes_are_a_researchers_and_are_audited(
     assert entries and "750.0" in entries[0]["reason"]
     assert entries[0]["actor_id"] == world["researcher"]
 
-    with pytest.raises(ScopeDenied):
-        resolver.study_context(
-            world["principal"](world["outsider"]), study_id=world["acme_study"].study_id
-        )
+    # Any member may, grant or no grant (ADR 0019); the audit entry is what is left.
+    other = resolver.study_context(
+        world["principal"](world["outsider"]), study_id=world["acme_study"].study_id
+    )
+    assert other.has(Permission.MANAGE_STUDY_BUDGET)
+    assert scope_repo.set_study_budget(other, 800.0).budget_usd == 800.0
 
 
 def test_study_listing_is_restricted_to_accessible_ids(
     resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
 ) -> None:
-    """A portfolio listing is built from accessible ids, never from the table."""
+    """A portfolio listing is built from accessible ids, never from the table.
+
+    Every study of the organization is accessible now (ADR 0019), so the list is all of
+    them; the property that stays is that the listing is exactly the ids it is given.
+    """
     principal = world["principal"](world["researcher"])
     accessible = resolver.accessible_studies(principal)
-    assert accessible == [world["acme_study"].study_id]
+    assert accessible == sorted([world["acme_study"].study_id, world["globex_study"].study_id])
 
     studies = scope_repo.list_studies(world["admin"], study_ids=accessible)
-    assert [s.study_id for s in studies] == [world["acme_study"].study_id]
+    assert sorted(s.study_id for s in studies) == accessible
+
+    only_one = scope_repo.list_studies(world["admin"], study_ids=[world["acme_study"].study_id])
+    assert [s.study_id for s in only_one] == [world["acme_study"].study_id]
 
 
 def test_empty_accessible_list_returns_nothing_not_everything(
@@ -1066,13 +1079,14 @@ def test_regression_a_study_grant_never_removes_access_a_client_grant_gives(
     assert after.has(Permission.MANAGE_STUDY_ACCESS)
 
 
-def test_regression_study_grant_also_widens_for_a_single_study(
+def test_regression_a_study_created_later_is_reachable_without_anyone_granting_it(
     resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
 ) -> None:
-    """A study grant can still widen: an outsider is brought in for exactly one study.
+    """A new study needs no grant for anyone in the organization (ADR 0019).
 
-    Precedence no longer restricts (ADR 0019); widening to one study and nothing
-    else is the half of it that remains.
+    The case that used to need a study grant (an outsider brought in for exactly one
+    study) is gone with the grants: the second study is reachable by everyone the moment
+    it exists, and nothing about it narrows the studies they already had.
     """
     second = scope_repo.create_study(
         world["admin"],
@@ -1080,22 +1094,12 @@ def test_regression_study_grant_also_widens_for_a_single_study(
         slug="second-study",
         name="Acme second",
     )
-    resolver.grant_client_access(
-        world["admin"],
-        client_id=world["acme"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-    )
-    lead = resolver.study_context(world["admin_principal"], study_id=second.study_id)
-    resolver.grant_study_access(lead, user_id=world["outsider"], role=ScopeRole.RESEARCHER)
-
     principal = world["principal"](world["outsider"])
     assert resolver.study_context(principal, study_id=second.study_id).role is (
         ScopeRole.RESEARCHER
     )
-    assert resolver.accessible_studies(principal) == [second.study_id]
-    with pytest.raises(ScopeDenied):
-        resolver.study_context(principal, study_id=world["acme_study"].study_id)
+    assert second.study_id in resolver.accessible_studies(principal)
+    assert world["acme_study"].study_id in resolver.accessible_studies(principal)
 
 
 def test_self_grant_records_previous_and_new_access(

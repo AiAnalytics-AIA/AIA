@@ -493,21 +493,19 @@ def test_reads_are_confined_to_the_scope(
         assert repo.uncertain_calls() == []
 
 
-def test_every_person_with_the_study_reads_its_costs(
+def test_every_member_reads_the_costs_of_a_study(
     attempt: Attempt, scoped: Any, model_registry: ModelRegistry
 ) -> None:
     """ADR 0019: one role holds VIEW_COSTS, so the former viewer reads the ledger.
 
-    They read what the lead's attempt wrote, not an empty ledger; a person with no grant has no
-    study scope to read it through.
+    They read what the lead's attempt wrote, not an empty ledger, and so does a member who was
+    never granted the study: membership is the access.
     """
     result = attempt.invoke(Adapter([OK]), model_registry)
-    for user in ("viewer", "reviewer"):
+    for user in ("viewer", "reviewer", "outsider"):
         reader = AIUsageRepository(attempt.session, scoped.scope(user=user, study="primary"))
         assert reader.events() == attempt.usage.events() != []
         assert reader.total_cost_usd() == pytest.approx(result.actual_cost_usd)
-    with pytest.raises(ScopeDenied):
-        scoped.scope(user="outsider", study="primary")
 
 
 @pytest.mark.parametrize(

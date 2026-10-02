@@ -143,11 +143,32 @@ def test_with_apply_it_migrates_and_prints_the_report(
 def test_a_study_left_waiting_is_the_exit_code_and_the_reason(
     run: Any, world: Any, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # The organization's owner holds no grant on the client's Study.
-    assert run("--apply", actor="owner@art-chain.io") == 3
+    # A closed Study is not editable, so it is left waiting (ADR 0019: who the operator is no
+    # longer decides it, because no member lacks a grant).
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.scope import StudyStatus
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    with world.sessions() as session:
+        scope = ScopeResolver(session).study_context(
+            AuthenticatedPrincipal(user_id=world.lead_id, organization_id=world.organization_id),
+            study_id=world.study_id,
+        )
+        ScopeRepository(session).set_study_status(scope, status=StudyStatus.DELIVERED)
+        session.commit()
+    assert run("--apply") == 3
     err = capsys.readouterr().err
-    assert "NOT_MIGRATED: 1" in err and "the operator may not edit this Study (no_grant)" in err
+    assert "NOT_MIGRATED: 1" in err and "the Study is DELIVERED: reopen it to migrate" in err
     assert _state(world) == ContentState.AWAITING_MIGRATION.value
+
+
+def test_an_operator_with_no_grant_on_the_client_migrates_it_too(
+    run: Any, world: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The organization's owner holds no grant on the client's Study, and needs none (ADR 0019).
+    assert run("--apply", actor="owner@art-chain.io") == 0
+    assert "NOT_MIGRATED" not in capsys.readouterr().err
+    assert _state(world) != ContentState.AWAITING_MIGRATION.value
 
 
 def test_it_does_not_start_without_a_person_or_a_readable_copy(

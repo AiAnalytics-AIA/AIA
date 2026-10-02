@@ -58,7 +58,6 @@ from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
 from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import aggregate_dataset
 from aia_core.domain.research_design import compile_design
-from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow_templates import RESEARCH, steps_for_workflow
 from aia_core.infrastructure.report_docx.lint import lint_docx
@@ -896,8 +895,9 @@ def test_an_outcome_is_read_only_in_its_study_and_internal_ones_by_everyone_with
 ) -> None:
     """ADR 0019: an internal outcome needs EDIT_STUDY, which every person with the study holds.
 
-    The viewer and the reviewer were refused it. What still bounds the read is the study: a run
-    of another client's study is not found, and a person with no grant has no scope at all.
+    The viewer and the reviewer were refused it, and so was a member with no grant; none is
+    refused now (ADR 0019). What still bounds the read is the study: a run is found only
+    through the study it belongs to.
     """
     run_id = world.start()
     world.upstream()
@@ -908,7 +908,7 @@ def test_an_outcome_is_read_only_in_its_study_and_internal_ones_by_everyone_with
         world.session, researcher, world.store, run_id=run_id, module_id=module
     ).result
     assert expected
-    for user in ("viewer", "reviewer"):
+    for user in ("viewer", "reviewer", "outsider"):
         read = reconstruct_module(
             world.session,
             world.scoped.scope(user=user),
@@ -917,8 +917,6 @@ def test_an_outcome_is_read_only_in_its_study_and_internal_ones_by_everyone_with
             module_id=module,
         )
         assert read.result == expected, user
-    with pytest.raises(ScopeDenied):
-        world.scoped.scope(user="outsider")
     other = world.scoped.scope(user="other_lead", study="other_client")
     with pytest.raises(ReconstructionRefused) as refused:
         reconstruct_module(world.session, other, world.store, run_id=run_id, module_id=module)

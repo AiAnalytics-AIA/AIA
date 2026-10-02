@@ -684,7 +684,7 @@ def test_any_member_with_the_client_can_be_the_operator_whatever_their_former_ro
     assert denied == []
 
 
-def test_the_operator_migrates_only_what_their_own_grants_let_them_edit(
+def test_the_operator_must_be_an_active_member_and_then_any_member_may_migrate(
     session: Any,
     scoped: Any,
     sessions: Any,
@@ -692,30 +692,15 @@ def test_the_operator_migrates_only_what_their_own_grants_let_them_edit(
     unit: Any,
     unit_store: Any,
 ) -> None:
+    """ADR 0019: the migration runs as a named person, and a member needs no grant to edit.
+
+    What still refuses is not being a member (an unknown email) or no longer being active.
+    A member who was never granted the client migrates it like anyone else; the study's
+    migration is audited under their name.
+    """
     unit.save(PRJ, unit_store.brief("T", "G"))
     unit.close()
     study_id = _bind(session, scoped)
-    for actor, reason, action in (
-        ("outsider@art-chain.io", "no_grant", "ACCESS_DENIED"),
-        # An organization owner has no implicit access to a client's studies.
-        ("owner@art-chain.io", "no_grant", "ACCESS_DENIED"),
-    ):
-        again = unit_store.UnitStore(unit.root)
-        (study,) = _migrate(sessions, store, again, actor=actor, apply=True).studies
-        assert (study.outcome, study.applied) == (MigrationOutcome.NOT_MIGRATED, False)
-        assert reason in study.reason
-        session.expire_all()
-        user = session.scalar(select(UserRow).where(UserRow.email == actor))
-        audit = session.scalars(
-            select(AccessAuditRow).where(
-                AccessAuditRow.actor_id == user.user_id,
-                AccessAuditRow.study_id == study_id,
-                AccessAuditRow.action.in_(("ACCESS_DENIED", "PERMISSION_DENIED")),
-            )
-        ).all()
-        assert [a.action for a in audit] == [action]
-    assert _row(session, study_id).content_state == ContentState.AWAITING_MIGRATION.value
-    assert store.keys == []
 
     with pytest.raises(MigrationRefused):
         _migrate(sessions, store, unit_store.UnitStore(unit.root), actor="nobody@example.invalid")
@@ -724,6 +709,31 @@ def test_the_operator_migrates_only_what_their_own_grants_let_them_edit(
     session.commit()
     with pytest.raises(MigrationRefused):
         _migrate(sessions, store, unit_store.UnitStore(unit.root))
+    assert _row(session, study_id).content_state == ContentState.AWAITING_MIGRATION.value
+    assert store.keys == []
+
+    # The owner and the member with no grant are not refused (ADR 0004's "no implicit access"
+    # is retired); the first one to apply migrates the study.
+    for actor in ("owner@art-chain.io", "outsider@art-chain.io"):
+        (study,) = _migrate(
+            sessions, store, unit_store.UnitStore(unit.root), actor=actor, apply=False
+        ).studies
+        assert (study.outcome, study.applied) == (MigrationOutcome.MIGRATED, False)
+    (study,) = _migrate(
+        sessions,
+        store,
+        unit_store.UnitStore(unit.root),
+        actor="outsider@art-chain.io",
+        apply=True,
+    ).studies
+    assert (study.outcome, study.applied) == (MigrationOutcome.MIGRATED, True)
+    assert _row(session, study_id).content_state != ContentState.AWAITING_MIGRATION.value
+    denials = session.scalars(
+        select(AccessAuditRow).where(
+            AccessAuditRow.study_id == study_id, AccessAuditRow.action == "ACCESS_DENIED"
+        )
+    ).all()
+    assert denials == []  # nobody was refused
 
 
 def test_a_closed_study_or_a_simulation_project_is_left_waiting_and_says_why(
