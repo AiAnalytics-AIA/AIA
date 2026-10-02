@@ -184,6 +184,7 @@ describe("the settings control panel", () => {
   it("changes the organization's self-approval through the API, then re-reads", async () => {
     api();
     render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
     const org = (await screen.findByText("Organizace")).closest("[data-level]") as HTMLElement;
     fireEvent.change(within(org).getByLabelText("Změnit na…"), { target: { value: "allow" } });
     fireEvent.click(within(org).getByRole("button", { name: "Uložit" }));
@@ -395,5 +396,103 @@ describe("what powers AIA", () => {
     expect(screen.queryByLabelText("ANTHROPIC_API_KEY")).toBeNull();
     expect(called("POST", "/api/settings/ai_check")).toEqual([]);
     expect(elsewhere()).toEqual([]);
+  });
+});
+
+
+// ---------------------------------------------------------------- the tabs
+
+const tab = (name: string) => screen.getByRole("tab", { name });
+const panelOf = (name: string) => document.getElementById(tab(name).getAttribute("aria-controls") as string) as HTMLElement;
+
+describe("the settings tabs", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/app/settings");
+  });
+
+  it("splits the page by what a person came to do, with AI first", async () => {
+    api();
+    render(<ControlPanel />);
+    await screen.findByRole("tablist", { name: "Oddíly nastavení" });
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+      "AI běh", "Systémové prompty", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
+    ]);
+    expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
+    expect(panelOf("AI běh").hidden).toBe(false);
+    for (const other of ["Systémové prompty", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
+      expect(panelOf(other).hidden).toBe(true);
+      expect(tab(other).getAttribute("aria-selected")).toBe("false");
+    }
+  });
+
+  it("puts each group where its tab says, and the read-only material under Reference", async () => {
+    api();
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    expect(panelOf("AI běh").contains(section("ai"))).toBe(true);
+    expect(panelOf("Přístup a schvalování").contains(section("approvals"))).toBe(true);
+    expect(panelOf("Přístup a schvalování").contains(section("roles"))).toBe(true);
+    expect(panelOf("Studie a rozpočty").contains(section("studies"))).toBe(true);
+    expect(panelOf("Audit").contains(section("audit"))).toBe(true);
+    const reference = panelOf("Reference");
+    for (const id of ["deployment", "invariants"]) expect(reference.contains(section(id))).toBe(true);
+    // A group the page has no tab for lands in Reference rather than disappearing.
+    expect(within(reference).getByText("aia.settings.panel.items.something_new")).toBeTruthy();
+  });
+
+  it("shows one panel at a time and keeps the others' state when switching back", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    expect(panelOf("Přístup a schvalování").hidden).toBe(false);
+    expect(panelOf("AI běh").hidden).toBe(true);
+    const choose = () => within(panelOf("Přístup a schvalování")).getAllByLabelText("Změnit na…")[0] as HTMLSelectElement;
+    fireEvent.change(choose(), { target: { value: "allow" } });
+    fireEvent.click(tab("Audit"));
+    fireEvent.click(tab("Přístup a schvalování"));
+    // Looking at another tab did not throw away the choice that was not saved yet.
+    expect(choose().value).toBe("allow");
+  });
+
+  it("opens the tab a link names, and records the one you choose", async () => {
+    window.history.replaceState(null, "", "/app/settings#reference");
+    api();
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    await waitFor(() => expect(tab("Reference").getAttribute("aria-selected")).toBe("true"));
+    fireEvent.click(tab("Audit"));
+    expect(window.location.hash).toBe("#audit");
+  });
+
+  it("moves between tabs with the arrow keys, wrapping at the ends", async () => {
+    api();
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    fireEvent.keyDown(tab("AI běh"), { key: "ArrowRight" });
+    expect(tab("Systémové prompty").getAttribute("aria-selected")).toBe("true");
+    fireEvent.keyDown(tab("Systémové prompty"), { key: "ArrowLeft" });
+    fireEvent.keyDown(tab("AI běh"), { key: "ArrowLeft" });
+    expect(tab("Reference").getAttribute("aria-selected")).toBe("true");
+    fireEvent.keyDown(tab("Reference"), { key: "Home" });
+    expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
+    // Only the selected tab is in the tab order.
+    expect(tab("AI běh").tabIndex).toBe(0);
+    expect(tab("Audit").tabIndex).toBe(-1);
+  });
+
+  it("does not ask for the prompts until the tab is opened, and never for a member", async () => {
+    api();
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    expect(called("GET", "/api/v1/system-prompts")).toEqual([]);
+    fireEvent.click(tab("Systémové prompty"));
+    await waitFor(() => expect(called("GET", "/api/v1/system-prompts")).toHaveLength(1));
+    cleanup();
+
+    api({}, false);
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Systémové prompty" }));
+    expect(await screen.findByText(/Systémové prompty vidí a upravuje jen vlastník nebo správce/)).toBeTruthy();
+    expect(called("GET", "/api/v1/system-prompts")).toEqual([]);
   });
 });

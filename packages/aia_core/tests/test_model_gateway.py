@@ -265,6 +265,21 @@ def test_ledger_attribution_comes_from_the_issued_scope(
         assert event.reservation_id == "RSV-1"
 
 
+def test_every_ledger_entry_records_the_hash_of_the_system_prompt_as_sent(
+    model_registry: ModelRegistry, context: ExecutionContext
+) -> None:
+    """Version labels say which wording was meant; the hash says which bytes ran (ADR 0020)."""
+    import hashlib
+
+    request = _request()
+    result = _run(
+        _gateway(model_registry, ScriptedAdapter(Provider.OPENAI, [_ok()])), request, context
+    )
+    expected = hashlib.sha256(request.system.encode("utf-8")).hexdigest()
+    assert result.usage_events
+    assert {e.system_prompt_sha256 for e in result.usage_events} == {expected}
+
+
 def test_strict_mode_is_used_only_when_the_schema_supports_it_unchanged(
     model_registry: ModelRegistry, context: ExecutionContext
 ) -> None:

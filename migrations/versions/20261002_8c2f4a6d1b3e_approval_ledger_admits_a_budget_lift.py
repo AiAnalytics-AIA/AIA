@@ -12,7 +12,7 @@ and narrowing the CHECK under such a row would either fail or require deleting a
 decision somebody made. It is reversible on a database that holds none.
 
 Revision ID: 8c2f4a6d1b3e
-Revises: 5b1d0f3e9a21
+Revises: 9d1f6b3a4c28
 Created: 2026-10-02 18:10:00.000000+00:00
 """
 
@@ -22,7 +22,7 @@ from alembic import op
 
 
 revision: str = '8c2f4a6d1b3e'
-down_revision: str | None = '5b1d0f3e9a21'
+down_revision: str | None = '9d1f6b3a4c28'
 branch_labels = None
 depends_on = None
 

@@ -23,6 +23,7 @@ from ..domain.analysis.steps import analysis_step_inputs
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
 from ..domain.fieldwork import FieldworkSource
+from ..domain.prompts import PromptPin
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
     HARNESS_VERSION,
@@ -32,11 +33,12 @@ from ..domain.research_agents import (
     snapshot_hash,
 )
 from ..domain.research_design import Readiness, ResearchSpecification, prepare
-from ..domain.scope import Permission, StudyContext
+from ..domain.scope import OrganizationRole, Permission, StudyContext
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_AGENT
 from ..infrastructure.artifact_repository import ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
@@ -295,15 +297,32 @@ class ResearchAgentJobs:
 
     session: Session
     scope: StudyContext
+    #: The clients a draft prompt may be tested on (``AIA_AI_FICTIONAL_CLIENT_IDS``). Empty
+    #: by default, so a caller that does not pass it can run no draft at all.
+    draft_client_ids: frozenset[str] = frozenset()
 
     def start(
-        self, *, design_revision_id: str, action: ResearchAction, instruction: str = ""
+        self,
+        *,
+        design_revision_id: str,
+        action: ResearchAction,
+        instruction: str = "",
+        prompt_version: int | None = None,
     ) -> StartedRun:
+        """Queue one proposal. The prompt it runs is chosen here and frozen into the job.
+
+        ``prompt_version`` names a stored version to run instead of the active one --
+        how a draft is tested before it is put live (ADR 0020). Only an organization
+        administrator may ask for it, and only on a client the deployment lists as
+        fictional: a draft is not what the organization runs, and an unreviewed prompt
+        is not tried on real client work.
+        """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
         if len(instruction.encode()) > 8000:
             raise ValueError("agent instruction exceeds 8 KB")
+        prompt = self._pin(action, prompt_version)
         designs = StudyDesignRepository(self.session, self.scope)
         revision = designs.get(design_revision_id)
         snapshot = context_snapshot(
@@ -318,7 +337,9 @@ class ResearchAgentJobs:
                     "action": action.value,
                     "context": snapshot_hash(snapshot),
                     "instruction": instruction,
-                    "prompt": prompt_for(action),
+                    # The assembled prompt: for the baseline this is byte-for-byte what it
+                    # always was, so a job queued before ADR 0020 keeps its fingerprint.
+                    "prompt": prompt_for(action, prompt.text),
                 }
             ).encode()
         ).hexdigest()
@@ -329,6 +350,7 @@ class ResearchAgentJobs:
             "snapshot": snapshot,
             "job_fingerprint": digest,
             "harness_version": HARNESS_VERSION,
+            "prompt": prompt.model_dump(mode="json"),
         }
         project_id = designs.project_id()
         assert project_id is not None
@@ -344,10 +366,33 @@ class ResearchAgentJobs:
                 "action": action.value,
                 "context_sha256": snapshot_hash(snapshot),
                 "harness_version": HARNESS_VERSION,
+                "prompt_version": prompt.version,
+                "prompt_origin": prompt.origin,
             },
             step_inputs={"agent": payload},
             owner=DESIGN_PROJECT_OWNER,
         )
+
+    def _pin(self, action: ResearchAction, prompt_version: int | None) -> PromptPin:
+        """The prompt this job will run: the organization's active one, or a draft to test."""
+        resolver = PromptResolver(self.session, self.scope.organization_id)
+        prompt_id = f"aia.research.{action.value}"
+        if prompt_version is None:
+            return resolver.pin_for(prompt_id)
+        if self.scope.organization_role not in (OrganizationRole.OWNER, OrganizationRole.ADMIN):
+            raise DesignRejected(
+                "only an organization administrator may test a prompt version",
+                reason="prompt_test_requires_administrator",
+            )
+        if self.scope.client_id not in self.draft_client_ids:
+            raise DesignRejected(
+                "a draft prompt can be tried only on a client listed as fictional",
+                reason="prompt_test_requires_fictional_client",
+            )
+        try:
+            return resolver.pin_for_version(prompt_id, prompt_version)
+        except PromptRefused as exc:
+            raise DesignRejected(str(exc), reason=exc.reason) from exc
 
     def get(self, run_id: str) -> dict[str, Any]:
         try:
