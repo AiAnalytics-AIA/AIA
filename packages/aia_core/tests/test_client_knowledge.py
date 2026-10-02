@@ -2,8 +2,9 @@
 
 The rules these tests pin: a client's knowledge never reaches another client;
 retrieval takes an issued scope and nothing else; a study proposes but never
-writes; a person decides, and not the proposer by default; an approval appends
-a revision with its provenance and advances the client's knowledge revision.
+writes; a person decides (the proposer too, unless the client turned self-approval
+off, ADR 0019); an approval appends a revision with its provenance and advances
+the client's knowledge revision.
 """
 
 from __future__ import annotations
@@ -67,20 +68,104 @@ def test_a_studys_finding_changes_nothing_until_a_person_approves_it(
     assert rev.approved_by == scoped.users["reviewer"]
 
 
-def test_the_proposer_does_not_approve_their_own_proposal_by_default(
+def test_the_proposer_may_approve_their_own_proposal_by_default(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:
+    """ADR 0019: self-approval is allowed unless the client turns it off."""
+    lead = client_scope(scoped, "lead")
+    proposal = knowledge.propose(lead, kind=KnowledgeKind.TERM, title="Fleet buyer")
+    decided = knowledge.decide(lead, proposal_id=proposal.proposal_id, approve=True)
+    assert decided.status is ProposalStatus.APPROVED
+    [item] = knowledge.items(lead)
+    [rev] = knowledge.revisions(lead, item_id=item.item_id)
+    assert rev.approved_by == scoped.users["lead"]
+
+
+def test_the_proposer_does_not_approve_their_own_proposal_where_the_client_turned_it_off(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """A client that demands independent review gets it back through the setting."""
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, client_id=scoped.clients["primary"].client_id
+    )
     lead = client_scope(scoped, "lead")
     proposal = knowledge.propose(lead, kind=KnowledgeKind.TERM, title="Fleet buyer")
     with pytest.raises(SeparationOfDutiesViolation):
         knowledge.decide(lead, proposal_id=proposal.proposal_id, approve=True)
-    scoped.scope_repo.set_self_approval(
-        scoped.admin_context, allowed=True, client_id=scoped.clients["primary"].client_id
-    )
+    assert knowledge.items(lead) == []
+
     decided = knowledge.decide(
-        client_scope(scoped, "lead"), proposal_id=proposal.proposal_id, approve=True
+        client_scope(scoped, "reviewer"), proposal_id=proposal.proposal_id, approve=True
     )
     assert decided.status is ProposalStatus.APPROVED
+
+
+def test_what_a_person_adds_takes_effect_at_once_with_nobody_to_approve_it(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """ADR 0019 decision 3: a source a person adds is knowledge, not a request for it."""
+    researcher = client_scope(scoped, "researcher")
+    added = knowledge.add(
+        researcher, kind=KnowledgeKind.SOURCE, title="Starbucks annual report", summary="2025"
+    )
+    assert added.status is ProposalStatus.APPROVED and added.revision == 1
+    assert knowledge.proposals(researcher, status=ProposalStatus.PROPOSED) == []
+    [item] = knowledge.items(client_scope(scoped, "lead"))
+    assert (item.title, item.kind) == ("Starbucks annual report", KnowledgeKind.SOURCE)
+    [rev] = knowledge.revisions(researcher, item_id=item.item_id)
+    assert rev.approved_by == scoped.users["researcher"]
+    assert rev.provenance["authored"] == "person"
+    assert rev.provenance["origin"] == "CLIENT"
+    # A study of this client consumes it straight away.
+    assert [i.title for i in knowledge.for_study(scoped.scope(user="researcher"))] == [
+        "Starbucks annual report"
+    ]
+
+
+def test_a_person_editing_an_item_appends_a_revision_without_a_proposal_to_decide(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    researcher = client_scope(scoped, "researcher")
+    first = knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 120")
+    assert first.item_id is not None
+    second = knowledge.add(
+        researcher, kind=KnowledgeKind.FACT, title="Dealers: 134", item_id=first.item_id
+    )
+    assert second.status is ProposalStatus.APPROVED and second.revision == 2
+    [item] = knowledge.items(researcher)
+    assert (item.title, item.revision) == ("Dealers: 134", 2)
+    assert knowledge.summary(researcher).context_revision == 2
+    with pytest.raises(ValueError):
+        knowledge.add(researcher, kind=KnowledgeKind.TERM, title="x", item_id=first.item_id)
+    with pytest.raises(ScopeDenied):
+        knowledge.add(researcher, kind=KnowledgeKind.FACT, title="x", item_id="KNW-00000000000000")
+
+
+def test_where_the_client_turned_self_approval_off_a_persons_addition_still_waits_for_someone(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """The setting survives: a client that demands independent review keeps it for people too."""
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, client_id=scoped.clients["primary"].client_id
+    )
+    researcher = client_scope(scoped, "researcher")
+    added = knowledge.add(researcher, kind=KnowledgeKind.SOURCE, title="Annual report")
+    assert added.status is ProposalStatus.PROPOSED
+    assert knowledge.items(researcher) == []
+    decided = knowledge.decide(
+        client_scope(scoped, "reviewer"), proposal_id=added.proposal_id, approve=True
+    )
+    assert decided.status is ProposalStatus.APPROVED
+    assert [i.title for i in knowledge.items(researcher)] == ["Annual report"]
+
+
+def test_a_persons_addition_is_scoped_to_their_own_client(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    knowledge.add(client_scope(scoped, "lead"), kind=KnowledgeKind.SOURCE, title="Only A")
+    assert knowledge.items(client_scope(scoped, "other_lead", "other")) == []
+    with pytest.raises(ScopeDenied):
+        knowledge.add(scoped.scope(user="researcher"), kind=KnowledgeKind.SOURCE, title="x")  # type: ignore[arg-type]
 
 
 def test_a_revision_appends_and_advances_the_clients_knowledge_revision(
@@ -139,25 +224,34 @@ def test_a_rejection_changes_nothing_and_a_decision_is_final(
         )
 
 
-def test_roles_propose_and_approve_as_the_matrix_says(
+def test_every_member_proposes_and_approves_including_one_with_no_grant(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:
-    with pytest.raises(ScopeDenied):
-        knowledge.propose(client_scope(scoped, "viewer"), kind=KnowledgeKind.TERM, title="x")
-    with pytest.raises(ScopeDenied):
-        knowledge.propose(client_scope(scoped, "reviewer"), kind=KnowledgeKind.TERM, title="x")
-    proposal = knowledge.propose(
-        client_scope(scoped, "researcher"), kind=KnowledgeKind.TERM, title="x"
-    )
-    for user in ("viewer", "researcher"):
-        with pytest.raises(ScopeDenied):
-            knowledge.decide(
-                client_scope(scoped, user), proposal_id=proposal.proposal_id, approve=True
-            )
-    with pytest.raises(ScopeDenied):
-        knowledge.propose_from_study(
-            scoped.scope(user="viewer"), kind=KnowledgeKind.FINDING, title="x"
+    """ADR 0019: one role holds every Knowledge permission, with or without a grant.
+
+    The matrix used to split propose, approve and manage across four roles, and a member
+    with no grant on the client had none of them. Membership of the organization is the
+    access now, so the "outsider" of the old fixture proposes, approves and offers a
+    study's finding like everyone else.
+    """
+    users = ("viewer", "reviewer", "researcher", "outsider")
+    proposed = [
+        knowledge.propose(client_scope(scoped, user), kind=KnowledgeKind.TERM, title=f"x-{user}")
+        for user in users
+    ]
+    for user, proposal in zip(
+        ("outsider", "viewer", "researcher", "reviewer"), proposed, strict=True
+    ):
+        decided = knowledge.decide(
+            client_scope(scoped, user), proposal_id=proposal.proposal_id, approve=True
         )
+        assert decided.status is ProposalStatus.APPROVED
+    assert knowledge.propose_from_study(
+        scoped.scope(user="outsider"), kind=KnowledgeKind.FINDING, title="y"
+    )
+    assert {i.title for i in knowledge.items(client_scope(scoped, "outsider"))} == {
+        f"x-{user}" for user in users
+    }
 
 
 def test_client_a_knowledge_never_appears_under_client_b(
@@ -178,15 +272,19 @@ def test_client_a_knowledge_never_appears_under_client_b(
     assert knowledge.revisions(globex, item_id=acme_item.item_id) == []
     assert knowledge.summary(globex).items_by_kind == {}
     assert knowledge.for_study(scoped.scope(user="other_lead", study="other_client")) == []
-    # Direct attempts across the boundary fail closed.
+    # Direct attempts through the other client's context fail closed: knowledge is read and
+    # written by the client the context was issued for, whoever holds it.
     with pytest.raises(ScopeDenied):
         knowledge.decide(globex, proposal_id=proposal.proposal_id, approve=False)
     with pytest.raises(ScopeDenied):
         knowledge.propose(
             globex, kind=KnowledgeKind.FACT, title="hijack", item_id=acme_item.item_id
         )
-    with pytest.raises(ScopeDenied):
-        client_scope(scoped, "other_lead", "primary")
+    # Globex's lead may open Acme's workspace too (ADR 0019), and then sees Acme's knowledge
+    # there: through the Acme context, not through Globex's.
+    via_acme = client_scope(scoped, "other_lead", "primary")
+    assert [i.item_id for i in knowledge.items(via_acme)] == [acme_item.item_id]
+    assert knowledge.items(globex) == []
 
 
 def test_a_study_consumes_its_own_clients_approved_knowledge_only(
@@ -212,9 +310,11 @@ def test_a_study_consumes_its_own_clients_approved_knowledge_only(
     assert knowledge.for_study(scoped.scope(), kinds=[KnowledgeKind.TERM]) == []
 
 
-def test_a_study_only_grantee_sees_no_client_knowledge(
+def test_a_member_with_only_a_study_grant_reads_the_clients_knowledge_like_any_member(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:
+    """ADR 0019: the study-only grantee, who read none of it, is gone with the grants."""
+    knowledge.add(client_scope(scoped, "lead"), kind=KnowledgeKind.FACT, title="Dealers: 134")
     member = scoped.scope_repo.add_member(scoped.admin_context, email="guest@art-chain.io")
     scoped.resolver.grant_study_access(
         scoped.scope(), user_id=member.user_id, role=ScopeRole.RESEARCHER
@@ -222,9 +322,9 @@ def test_a_study_only_grantee_sees_no_client_knowledge(
     ctx = scoped.resolver.client_context(
         scoped.principal(member.user_id), client_id=scoped.clients["primary"].client_id
     )
-    for read in (knowledge.items, knowledge.proposals, knowledge.summary):
-        with pytest.raises(ScopeDenied):
-            read(ctx)
+    assert [i.title for i in knowledge.items(ctx)] == ["Dealers: 134"]
+    assert [p.status for p in knowledge.proposals(ctx)] == [ProposalStatus.APPROVED]
+    assert knowledge.summary(ctx).items_by_kind == {KnowledgeKind.FACT: 1}
 
 
 def test_retrieval_takes_an_issued_scope_and_nothing_else(

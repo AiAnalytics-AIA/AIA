@@ -15,17 +15,20 @@ import {
   ApiError,
   type Artifact,
   type ResearchAnalysis,
+  type ResearchReport,
   type Readiness,
   type ResearchRun,
   type ResearchRunSummary,
   type ResearchStep,
   research,
 } from "@/lib/api";
+import { saveBlob } from "@/lib/download";
 import {
   STEP_ORDER,
   ANALYSIS_ORDER,
   isSynthetic,
   parkedForRuntime,
+  waitingDetail,
   phaseLabel,
   phaseTone,
   resultTable,
@@ -294,7 +297,11 @@ export function ProgressStep() {
           {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
           {run.retry_of ? <span className="text-xs text-ink-muted">{tv("research.exec.retryOf", { run: run.retry_of })}</span> : null}
         </div>
-        {parked ? <p role="status" className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.parked")}</p> : null}
+        {parked ? (
+          <p role="status" className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+            {parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}
+          </p>
+        ) : null}
         {failed ? (
           <p role="alert" className="mt-3 text-sm text-status-fault">
             {tv("research.exec.failed", { step: stepLabel(failed.node_key) })} {failed.error_message ?? ""}
@@ -304,7 +311,7 @@ export function ProgressStep() {
       </Card>
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {[...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`)].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s).map((s) => (
+          {[...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s).map((s) => (
             <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
@@ -316,6 +323,7 @@ export function ProgressStep() {
                 {s.finished_at ? ` · ${tv("research.exec.finishedAt", { when: when(s.finished_at) })}` : null}
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
+              {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
             </li>
           ))}
         </ol>
@@ -426,9 +434,9 @@ export function ResultsStep() {
   const [run] = useRun();
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
-  // The 18.6.6 client report has no AIA counterpart yet (report-docx.md): said
-  // here, not handed off to an interface that is no longer part of AIA.
-  const reportNote = <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
+  const report = run?.steps.some((step) => step.kind === "research_report")
+    ? <InternalReport key={run.run_id} run={run} />
+    : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
   if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
@@ -437,7 +445,7 @@ export function ResultsStep() {
         <Card>
           <p className="text-sm">{run && parkedForRuntime(run) ? t("research.exec.noResultsParked") : t("research.exec.noResults")}</p>
         </Card>
-        {reportNote}
+        {report}
       </div>
     );
   }
@@ -458,8 +466,73 @@ export function ResultsStep() {
         </Card>
       ) : null}
       {run.steps.some((step) => step.kind === "research_analysis") ? <AnalysisResults key={run.run_id} run={run} /> : null}
-      {reportNote}
+      {report}
     </div>
+  );
+}
+
+function InternalReport({ run }: { run: ResearchRun }) {
+  const frame = useFrame();
+  const [loaded, setLoaded] = useState<Loaded<ResearchReport>>({ state: "loading" });
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const step = stepOf(run, "report");
+  useEffect(() => {
+    let live = true;
+    setLoaded({ state: "loading" });
+    research.report(frame.studyId, run.run_id).then(
+      (value) => live && setLoaded({ state: "ready", value }),
+      (error: unknown) => live && setLoaded(
+        error instanceof ApiError && error.status === 403
+          ? { state: "hidden" } : { state: "failed", message: message(error) }
+      ),
+    );
+    return () => { live = false; };
+  }, [frame.studyId, run.run_id, step?.status, step?.artifact_id]);
+
+  if (loaded.state === "hidden") return null;
+  const status = loaded.state === "ready" ? loaded.value : null;
+  const download = async () => {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      saveBlob(await research.downloadReport(frame.studyId, run.run_id), `AIA-${frame.studyId}-internal-draft.docx`);
+    } catch (error) {
+      setDownloadError(message(error));
+    } finally {
+      setDownloading(false);
+    }
+  };
+  return (
+    <Card title={t("research.exec.results.report")} tone="notice">
+      <p role="note" className="mb-2 text-sm font-semibold">{t("research.exec.results.reportInternal")}</p>
+      {loaded.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
+      {loaded.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{loaded.message}</p> : null}
+      {status?.state === "READY" ? (
+        <>
+          <p className="text-sm">{status.review_state === "APPROVED_INTERNAL"
+            ? t("research.exec.results.reportApprovedInternal")
+            : t("research.exec.results.reportDraft")}</p>
+          {status.synthetic ? <p className="mt-2 text-sm text-status-fault">{t("research.exec.results.reportSynthetic")}</p> : null}
+          <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
+            id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
+          })}</p>
+          <Button onClick={download} disabled={downloading || !frame.canEdit}>
+            {downloading ? t("research.exec.results.reportDownloading") : t("research.exec.results.reportDownload")}
+          </Button>
+        </>
+      ) : null}
+      {status && status.state !== "READY" ? (
+        <p className="text-sm text-ink-muted">
+          {status.state === "FAILED"
+            ? status.reason === "report_inputs_refused"
+              ? t("research.exec.results.reportInputsRefused")
+              : t("research.exec.results.reportFailed")
+            : t("research.exec.results.reportWaiting")}
+        </p>
+      ) : null}
+      {downloadError ? <p role="alert" className="mt-2 text-sm text-status-fault">{downloadError}</p> : null}
+    </Card>
   );
 }
 

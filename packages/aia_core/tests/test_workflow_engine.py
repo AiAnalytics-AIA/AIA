@@ -38,7 +38,7 @@ from aia_core.domain.workflow import (
     validate_dag,
 )
 from aia_core.infrastructure.repositories import ProjectRepository
-from aia_core.infrastructure.tables import BudgetReservationRow, StudyRow
+from aia_core.infrastructure.tables import ApprovalDecisionRow, BudgetReservationRow, StudyRow
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
     WorkflowNotFound,
@@ -1101,31 +1101,61 @@ def test_a_gate_is_decided_once(
         reviewer.decide_gate(gate_id, option="cancel")
 
 
-def test_regression_gate_producer_cannot_decide_their_own_gate(
-    engine_repo: WorkflowRepository, run: str
+def test_regression_gate_producer_cannot_decide_their_own_gate_where_self_approval_is_off(
+    engine_repo: WorkflowRepository, run: str, scoped: Any, session: Session
 ) -> None:
-    """**Independent review is the default.** Self-approval is off unless enabled.
+    """**Independent review is opt-in** (ADR 0019): a scope that turns self-approval off refuses.
 
-    A LEAD holds both EDIT_STUDY and APPROVE_GATE, so the permission check alone
-    would let one person produce the work and clear its own review gate by
-    switching hats. Independent review means a different person, not a different
-    permission.
+    A Researcher holds both EDIT_STUDY and APPROVE_GATE, so the permission check
+    alone would let one person produce the work and clear its own review gate by
+    switching hats. Where the study (or client, or organization) has explicitly
+    turned self-approval off, independent review means a different person, not a
+    different permission.
 
-    This fixture configures no self-approval anywhere, so the policy resolves to
-    the default of false and the approval is refused. The cases where policy
-    permits it are in ``test_self_approval_policy.py``; what is permanent is that
-    a deployment which has configured nothing gets this behaviour.
+    The default is now the opposite (see
+    ``test_the_default_lets_the_producer_decide_their_own_gate``), so this test
+    sets the policy itself rather than relying on a fixture that configures
+    nothing. More cases are in ``test_self_approval_policy.py``.
     """
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, study_id=scoped.studies["primary"].study_id
+    )
+    session.flush()
+    producer = WorkflowRepository(session, scoped.scope(user="lead", study="primary"))
+    claimed = producer.claim_next(worker_id="worker-1")
+    assert claimed is not None
+    gate_id = producer.open_gate(
+        step_id=claimed.step_id, question="Approve this report?", options=["proceed"]
+    )
+
+    with pytest.raises(SeparationOfDutiesViolation) as exc:
+        producer.decide_gate(gate_id, option="proceed")
+    assert exc.value.reason == "separation_of_duties"
+    assert _status(producer, run, "compile") is StepRunStatus.AWAITING_GATE
+
+
+def test_the_default_lets_the_producer_decide_their_own_gate(
+    engine_repo: WorkflowRepository, run: str, session: Session
+) -> None:
+    """ADR 0019: nothing configured, and the person who produced the work may release it.
+
+    The decision is recorded as a self-approval from the default, so the choice is
+    visible in the audit trail rather than prevented.
+    """
+    from aia_core.domain.scope import SelfApprovalSource
+
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     gate_id = engine_repo.open_gate(
         step_id=claimed.step_id, question="Approve this report?", options=["proceed"]
     )
 
-    with pytest.raises(SeparationOfDutiesViolation) as exc:
-        engine_repo.decide_gate(gate_id, option="proceed")
-    assert exc.value.reason == "separation_of_duties"
-    assert _status(engine_repo, run, "compile") is StepRunStatus.AWAITING_GATE
+    assert engine_repo.decide_gate(gate_id, option="proceed") is StepRunStatus.RUNNABLE
+
+    record = session.scalars(select(ApprovalDecisionRow)).one()
+    assert record.self_approved is True
+    assert record.self_approval_allowed is True
+    assert record.self_approval_source == SelfApprovalSource.DEFAULT.value
 
 
 def test_a_different_reviewer_can_decide_the_gate(
@@ -1157,19 +1187,29 @@ def test_deciding_cancel_on_a_gate_cancels_the_step(
     assert reviewer.decide_gate(gate_id, option="cancel") is StepRunStatus.CANCELLED
 
 
-def test_a_researcher_cannot_decide_a_gate(
+def test_a_researcher_can_decide_a_gate_and_the_worker_cannot(
     engine_repo: WorkflowRepository, run: str, scoped: Any, session: Session
 ) -> None:
-    """Approval authority is a permission, checked before independence."""
+    """Approval authority is a permission, checked before independence.
+
+    Since ADR 0019 every Researcher holds APPROVE_GATE. The context that does not
+    is the worker's (decision 6): it opens the gate and may never decide it.
+    """
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
     gate_id = engine_repo.open_gate(
         step_id=claimed.step_id, question="Approve?", options=["proceed"]
     )
 
-    researcher = WorkflowRepository(session, scoped.scope(user="researcher", study="primary"))
+    worker = WorkflowRepository(
+        session,
+        scoped.resolver.execution_context(attempt_id=claimed.attempt_id, worker_id="worker-1"),
+    )
     with pytest.raises(ScopeDenied):
-        researcher.decide_gate(gate_id, option="proceed")
+        worker.decide_gate(gate_id, option="proceed")
+
+    researcher = WorkflowRepository(session, scoped.scope(user="researcher", study="primary"))
+    assert researcher.decide_gate(gate_id, option="proceed") is StepRunStatus.RUNNABLE
 
 
 # --------------------------------------------------------------------------- #
@@ -1361,17 +1401,27 @@ def test_runs_are_invisible_across_clients(
     assert other.claim_next(worker_id="worker-x") is None
 
 
-def test_a_viewer_cannot_start_a_run(session: Session, scoped: Any, project: Any) -> None:
-    """Running a workflow spends money, so it needs more than read access."""
+def test_any_member_can_start_a_run_with_or_without_a_grant(
+    session: Session, scoped: Any, project: Any
+) -> None:
+    """Running a workflow spends money (ADR 0019: a Researcher may; spend is a later gate).
+
+    There is no read-only member left to refuse, and no grant to lack: a member of
+    the organization reaches every study of it.
+    """
     viewer = WorkflowRepository(session, scoped.scope(user="viewer", study="primary"))
-    with pytest.raises(ScopeDenied):
-        viewer.create_run(
-            project_id=project.project_id,
-            project_revision=1,
-            workflow_type="x",
-            steps=PIPELINE,
-            idempotency_key="viewer-attempt",
-        )
+    run_id = viewer.create_run(
+        project_id=project.project_id,
+        project_revision=1,
+        workflow_type="x",
+        steps=PIPELINE,
+        idempotency_key="viewer-attempt",
+    )
+    assert viewer.get_run(run_id)["run_id"] == run_id
+
+    # A member who was never granted the study reads the same run (ADR 0019).
+    outsider = WorkflowRepository(session, scoped.scope(user="outsider", study="primary"))
+    assert outsider.get_run(run_id)["run_id"] == run_id
 
 
 def test_events_are_ordered_and_resumable(engine_repo: WorkflowRepository, run: str) -> None:
@@ -1424,16 +1474,27 @@ def test_forcing_a_status_requires_authority_and_a_reason(
     """The prototype's ``force=True`` keyword was reachable by accident.
 
     Here it is a separate named method requiring MANAGE_STUDY_ACCESS and a
-    recorded reason, because it can move a step out of a terminal state.
+    recorded reason, because it can move a step out of a terminal state. Since
+    ADR 0019 a Researcher holds that permission; the worker's context, which
+    withholds every MANAGE_* permission, does not, so the work cannot force its own
+    status.
     """
     step_id = _step_id(engine_repo, run, "compile")
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
 
     with pytest.raises(ValueError, match="reason"):
         engine_repo.force_step_status(step_id, StepRunStatus.SUCCEEDED, reason="")
 
-    researcher = WorkflowRepository(session, scoped.scope(user="researcher", study="primary"))
+    worker = WorkflowRepository(
+        session,
+        scoped.resolver.execution_context(attempt_id=claimed.attempt_id, worker_id="worker-1"),
+    )
     with pytest.raises(ScopeDenied):
-        researcher.force_step_status(step_id, StepRunStatus.SUCCEEDED, reason="I know better")
+        worker.force_step_status(step_id, StepRunStatus.SUCCEEDED, reason="I know better")
+
+    researcher = WorkflowRepository(session, scoped.scope(user="researcher", study="primary"))
+    researcher.force_step_status(step_id, StepRunStatus.SKIPPED, reason="a researcher may")
 
     engine_repo.force_step_status(
         step_id, StepRunStatus.SKIPPED, reason="already delivered manually"

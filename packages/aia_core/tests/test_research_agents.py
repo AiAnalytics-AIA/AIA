@@ -23,7 +23,7 @@ from aia_core.domain.research_agents import (
     snapshot_hash,
 )
 from aia_core.domain.residency import DataClass
-from aia_core.domain.scope import ScopeDenied
+from aia_core.domain.scope import ScopeRole
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 
 DESIGN = {"title": "Fictional", "goal": "Test concept", "sections": []}
@@ -135,10 +135,13 @@ def test_jobs_are_idempotent_and_hidden_across_studies(session: Any, scoped: Any
     sibling = ResearchAgentJobs(session, scoped.scope(user="lead", study="sibling"))
     with pytest.raises(ResearchRunNotFound):
         sibling.get(first.run_id)
-    with pytest.raises(ScopeDenied):
-        ResearchAgentJobs(session, scoped.scope(user="viewer")).start(
-            design_revision_id=revision.revision_id, action=ResearchAction.ANALYZE
-        )
+    # ADR 0019: the former viewer holds EDIT_STUDY and RUN_WORKFLOW like anyone; asking for the
+    # job that is already there is the same job, whoever asks. No grant means no study scope.
+    by_viewer = ResearchAgentJobs(session, scoped.scope(user="viewer")).start(
+        design_revision_id=revision.revision_id, action=ResearchAction.ANALYZE
+    )
+    assert by_viewer.run_id == first.run_id and not by_viewer.created
+    assert scoped.scope(user="outsider").role is ScopeRole.RESEARCHER  # ADR 0019: a member is in
     with pytest.raises(DesignRejected, match="completed"):
         from aia_core.infrastructure.storage import InMemoryArtifactStore
 

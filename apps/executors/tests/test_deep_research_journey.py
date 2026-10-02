@@ -346,9 +346,9 @@ def research(sessions: sessionmaker[Session]) -> ResearchWorld:
         )
         users = {}
         for label, client_id, role in (
-            ("lead", client.client_id, ScopeRole.LEAD),
-            ("reviewer", client.client_id, ScopeRole.LEAD),
-            ("other", other.client_id, ScopeRole.LEAD),
+            ("lead", client.client_id, ScopeRole.RESEARCHER),
+            ("reviewer", client.client_id, ScopeRole.RESEARCHER),
+            ("other", other.client_id, ScopeRole.RESEARCHER),
         ):
             member = repo.add_member(admin, email=f"{label}@art-chain.io")
             resolver.grant_client_access(

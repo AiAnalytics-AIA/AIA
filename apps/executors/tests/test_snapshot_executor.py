@@ -13,6 +13,7 @@ from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
     DEVELOP_SNAPSHOT,
+    REPORT_STEP_KIND,
     RESEARCH_AGENT,
     RESEARCH_KINDS,
     UnknownWorkflowType,
@@ -77,6 +78,7 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
         KIND,
+        REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
     }
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
@@ -172,35 +174,29 @@ def test_an_edit_produces_a_new_artifact_for_the_new_revision(
     assert len(store.keys) == 2
 
 
-def test_a_viewer_cannot_start_a_run(world: Any, sessions: sessionmaker[Session]) -> None:
+def test_a_member_with_no_grant_can_start_a_run(
+    world: Any, sessions: sessionmaker[Session]
+) -> None:
+    """ADR 0019: no read-only role, and no grant to lack: any member may start a run."""
     from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-    from aia_core.domain.scope import ScopeDenied, ScopeRole
+    from aia_core.domain.scope import Permission, ScopeRole
     from aia_core.infrastructure.scope_repository import ScopeRepository
 
     with sessions() as session:
         resolver = ScopeResolver(session)
-        admin_principal = AuthenticatedPrincipal(
-            user_id=world.lead_id, organization_id=world.organization_id
-        )
-        # The lead is not an administrator; use the organization owner to grant.
+        # The lead is not an administrator; use the organization owner to add the member.
         owner_id = ScopeRepository(session).upsert_user(email="owner@art-chain.io")["user_id"]
         admin = resolver.organization_context(
             AuthenticatedPrincipal(user_id=owner_id, organization_id=world.organization_id)
         )
-        viewer = ScopeRepository(session).add_member(admin, email="viewer@art-chain.io")
-        resolver.grant_client_access(
-            admin, client_id=world.client_id, user_id=viewer.user_id, role=ScopeRole.VIEWER
-        )
+        member = ScopeRepository(session).add_member(admin, email="member@art-chain.io")
         session.flush()
         scope = resolver.study_context(
-            AuthenticatedPrincipal(user_id=viewer.user_id, organization_id=world.organization_id),
+            AuthenticatedPrincipal(user_id=member.user_id, organization_id=world.organization_id),
             study_id=world.study_id,
         )
-        with pytest.raises(ScopeDenied, match="RUN_WORKFLOW"):
-            start_workflow(
-                session, scope, project_id=world.project_id, workflow_type=DEVELOP_SNAPSHOT
-            )
-        del admin_principal
+        assert scope.role is ScopeRole.RESEARCHER
+        assert scope.has(Permission.RUN_WORKFLOW)
 
 
 def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: BuildIdentity) -> None:
@@ -210,5 +206,6 @@ def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: Buil
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
         KIND,
+        REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
     ]

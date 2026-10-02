@@ -24,6 +24,7 @@ from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
 from .analysis import AnalysisConfig, analysis_registry
 from .deep_research import DeepResearchRuntime, deep_research_registry
 from .deep_research_runtime import deep_research_runtime
+from .report import report_registry
 from .research import AIDatasetProducer, research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from .snapshot import KIND as SNAPSHOT_KIND
@@ -51,6 +52,7 @@ def registry_for(
         ),
         **deep_research_registry(store=store, build=build, runtime=deep_research),
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
+        **report_registry(store=store, build=build),
         **research_registry(store=store, build=build, ai_runtime=ai_runtime),
     }
 

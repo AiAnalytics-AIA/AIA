@@ -485,6 +485,18 @@ export type ResearchAnalysis = {
   }>;
 };
 
+export type ResearchReport = {
+  run_id: string;
+  state: "NOT_IN_RUN" | "READY" | string;
+  internal_only: true;
+  reason?: string | null;
+  review_state?: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
+  artifact_id?: string;
+  sha256?: string;
+  size_bytes?: number;
+  synthetic?: boolean;
+};
+
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
 
 export const research = {
@@ -507,6 +519,10 @@ export const research = {
     request<Artifact>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/artifacts/${enc(artifactId)}`),
   analysis: (studyId: string, runId: string) =>
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
+  report: (studyId: string, runId: string) =>
+    request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
+  downloadReport: (studyId: string, runId: string) =>
+    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
 };
 
 export type DeepResearchRun = {

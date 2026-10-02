@@ -70,7 +70,7 @@ def test_seed_provisions_a_complete_world_once(sessions: sessionmaker[Session]) 
 
     with sessions() as session:
         scope = seeded_study_scope(session)
-        assert scope.role is ScopeRole.LEAD
+        assert scope.role is ScopeRole.RESEARCHER
         assert scope.study_status is StudyStatus.ACTIVE
         projects = ProjectRepository(session, scope).list_projects()
         assert [p.title for p in projects.items] == [SEED_PROJECT_TITLE]
@@ -254,7 +254,7 @@ def test_the_smoke_acts_in_an_organization_the_operator_never_sees(
             seeded.study_id,
         )
         assert scope.actor_id == seeded.smoke_owner_user_id
-        assert scope.role is ScopeRole.LEAD
+        assert scope.role is ScopeRole.RESEARCHER
 
 
 def test_an_archived_synthetic_client_in_the_operator_organization_does_not_stop_the_smoke(
@@ -285,7 +285,7 @@ def test_an_archived_synthetic_client_in_the_operator_organization_does_not_stop
                 admin,
                 client_id=old.client_id,
                 user_id=seeded.owner_user_id,
-                role=ScopeRole.LEAD,
+                role=ScopeRole.RESEARCHER,
                 reason="seed before OI-80",
             )
         repo.set_client_status(admin, client_id=old.client_id, status=ClientStatus.ARCHIVED)

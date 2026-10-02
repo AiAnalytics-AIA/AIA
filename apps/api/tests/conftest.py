@@ -125,17 +125,17 @@ def world(app: FastAPI) -> World:
             ),
         }
 
+        # ADR 0019: one role. The labels are kept so the tests that name one still
+        # read; every one holds the same Researcher grant. They collapse with the grants.
         users = {"owner": owner.user_id}
-        for label, role in (
-            ("lead", ScopeRole.LEAD),
-            ("researcher", ScopeRole.RESEARCHER),
-            ("reviewer", ScopeRole.REVIEWER),
-            ("viewer", ScopeRole.VIEWER),
-        ):
+        for label in ("lead", "researcher", "reviewer", "viewer"):
             member = scope_repo.add_member(admin, email=f"{label}@art-chain.io")
             users[label] = member.user_id
             resolver.grant_client_access(
-                admin, client_id=primary.client_id, user_id=member.user_id, role=role
+                admin,
+                client_id=primary.client_id,
+                user_id=member.user_id,
+                role=ScopeRole.RESEARCHER,
             )
 
         other_lead = scope_repo.add_member(admin, email="other-lead@art-chain.io")
@@ -144,7 +144,7 @@ def world(app: FastAPI) -> World:
             admin,
             client_id=other.client_id,
             user_id=other_lead.user_id,
-            role=ScopeRole.LEAD,
+            role=ScopeRole.RESEARCHER,
         )
 
         # A member of the organization holding no client grant at all.
@@ -208,13 +208,13 @@ def researcher(as_user: Any) -> TestClient:
 
 @pytest.fixture
 def reviewer(as_user: Any) -> TestClient:
-    """A client authenticated as a REVIEWER: may approve, may not edit."""
+    """The person once labelled REVIEWER; a Researcher like everyone else (ADR 0019)."""
     return as_user("reviewer")
 
 
 @pytest.fixture
 def viewer(as_user: Any) -> TestClient:
-    """A client authenticated as a VIEWER: read only."""
+    """The person once labelled VIEWER; a Researcher like everyone else (ADR 0019)."""
     return as_user("viewer")
 
 

@@ -122,16 +122,36 @@ class OrganizationRole(StrEnum):
 
 
 class ScopeRole(StrEnum):
-    """A user's role on a client or a study.
+    """The one role a person holds on a client or a study (ADR 0019).
 
-    Ordered by capability. A role granted at the client level applies to every
-    study of that client unless a study-level grant overrides it.
+    Four roles (VIEWER, REVIEWER, RESEARCHER, LEAD) existed to make one person
+    review another's work. ADR 0019 removed that: a person works, and the only
+    approval is a person accepting what the AI produced. What remains is the
+    Researcher, who holds every permission. Administration is the organization
+    role (:class:`OrganizationRole`), not this one.
+
+    Grant rows written before ADR 0019 may still carry a retired value; read
+    them with :meth:`from_stored`, never ``ScopeRole(value)``. The grant tables
+    are retired in a later change.
     """
 
-    VIEWER = "VIEWER"
-    REVIEWER = "REVIEWER"
     RESEARCHER = "RESEARCHER"
-    LEAD = "LEAD"
+
+    @classmethod
+    def from_stored(cls, value: str) -> ScopeRole:
+        """Read a stored role: any role from before ADR 0019 is a Researcher.
+
+        An unknown value is still an error. The retired values were all
+        legitimate, and ADR 0019 decision 2 gives every member the access a
+        Researcher has, so reading them as Researcher widens nothing that a
+        later change does not widen anyway.
+        """
+        if value in _RETIRED_SCOPE_ROLES:
+            return cls.RESEARCHER
+        return cls(value)
+
+
+_RETIRED_SCOPE_ROLES: Final = frozenset({"VIEWER", "REVIEWER", "LEAD"})
 
 
 class Permission(StrEnum):
@@ -164,56 +184,31 @@ class Permission(StrEnum):
     DELETE_STUDY = "DELETE_STUDY"
 
 
-# Role -> permissions. A REVIEWER can approve and sign off but cannot edit the
-# study, which keeps review independent of authorship -- the separation the
-# methodology's human sign-off gate depends on.
+# Role -> permissions. A Researcher holds every permission (ADR 0019): approving
+# the AI's work, setting a budget and managing access are the same person's work
+# as editing and running. Handlers still check permissions, never roles.
 ROLE_PERMISSIONS: Final[dict[ScopeRole, frozenset[Permission]]] = {
-    ScopeRole.VIEWER: frozenset(
-        {
-            Permission.VIEW_STUDY,
-            Permission.VIEW_RESULTS,
-        }
-    ),
-    ScopeRole.REVIEWER: frozenset(
-        {
-            Permission.VIEW_STUDY,
-            Permission.VIEW_RESULTS,
-            Permission.VIEW_COSTS,
-            Permission.APPROVE_GATE,
-            Permission.SIGN_OFF_DELIVERABLE,
-        }
-    ),
-    ScopeRole.RESEARCHER: frozenset(
-        {
-            Permission.VIEW_STUDY,
-            Permission.VIEW_RESULTS,
-            Permission.VIEW_COSTS,
-            Permission.EDIT_STUDY,
-            Permission.RUN_WORKFLOW,
-            Permission.CANCEL_WORKFLOW,
-            Permission.UPLOAD_DATA,
-            Permission.EXPORT_DELIVERABLE,
-        }
-    ),
-    ScopeRole.LEAD: frozenset(
-        {
-            Permission.VIEW_STUDY,
-            Permission.VIEW_RESULTS,
-            Permission.VIEW_COSTS,
-            Permission.EDIT_STUDY,
-            Permission.RUN_WORKFLOW,
-            Permission.CANCEL_WORKFLOW,
-            Permission.UPLOAD_DATA,
-            Permission.APPROVE_GATE,
-            Permission.APPROVE_BUDGET,
-            Permission.SIGN_OFF_DELIVERABLE,
-            Permission.EXPORT_DELIVERABLE,
-            Permission.MANAGE_STUDY_ACCESS,
-            Permission.MANAGE_STUDY_BUDGET,
-            Permission.DELETE_STUDY,
-        }
-    ),
+    ScopeRole.RESEARCHER: frozenset(Permission),
 }
+
+# What a worker executes under: doing the work, never accepting it. This is NOT
+# the Researcher's set. A worker, and any executor or AI tool running inside it,
+# must not be able to accept its own gate or raise the budget it is spending, so
+# it holds RUN_WORKFLOW, EDIT_STUDY and UPLOAD_DATA and withholds APPROVE_GATE,
+# APPROVE_BUDGET, SIGN_OFF_DELIVERABLE and every MANAGE_* permission (ADR 0019
+# decision 6). It is the set the RESEARCHER role held before ADR 0019.
+WORKER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
+    {
+        Permission.VIEW_STUDY,
+        Permission.VIEW_RESULTS,
+        Permission.VIEW_COSTS,
+        Permission.EDIT_STUDY,
+        Permission.RUN_WORKFLOW,
+        Permission.CANCEL_WORKFLOW,
+        Permission.UPLOAD_DATA,
+        Permission.EXPORT_DELIVERABLE,
+    }
+)
 
 
 def permissions_for(role: ScopeRole) -> frozenset[Permission]:
@@ -226,9 +221,9 @@ def effective_role(
 ) -> ScopeRole | None:
     """Resolve the role a user holds on a study.
 
-    A study-level grant is **authoritative** when present, even when it is
-    narrower than the client-level grant. That is the point of a study grant: a
-    client LEAD can be deliberately restricted to VIEWER on one sensitive study.
+    A study-level grant is **authoritative** when present. With one role left
+    (ADR 0019) the choice no longer changes what a person may do; it remains the
+    rule until the grants are retired.
 
     With no study grant, the client grant applies to every study of that client.
     With neither, the user has no access and the study must be invisible to them.
@@ -253,30 +248,11 @@ class ClientPermission(StrEnum):
     CREATE_STUDY = "CREATE_STUDY"
 
 
-# Client role -> client permissions. Mirrors ROLE_PERMISSIONS: a REVIEWER may
-# approve knowledge but not propose it, so review stays independent of
-# authorship (ADR 0015 decision 7). A study-only grantee holds no client role
-# and gets only VIEW_CLIENT: the workspace, restricted to their studies.
+# Client role -> client permissions. A Researcher holds all of them (ADR 0019).
+# A study-only grantee holds no client role and gets only VIEW_CLIENT: the
+# workspace, restricted to their studies -- until the grants are retired.
 CLIENT_ROLE_PERMISSIONS: Final[dict[ScopeRole, frozenset[ClientPermission]]] = {
-    ScopeRole.VIEWER: frozenset(
-        {ClientPermission.VIEW_CLIENT, ClientPermission.VIEW_CLIENT_KNOWLEDGE}
-    ),
-    ScopeRole.REVIEWER: frozenset(
-        {
-            ClientPermission.VIEW_CLIENT,
-            ClientPermission.VIEW_CLIENT_KNOWLEDGE,
-            ClientPermission.APPROVE_CLIENT_KNOWLEDGE,
-        }
-    ),
-    ScopeRole.RESEARCHER: frozenset(
-        {
-            ClientPermission.VIEW_CLIENT,
-            ClientPermission.VIEW_CLIENT_KNOWLEDGE,
-            ClientPermission.PROPOSE_CLIENT_KNOWLEDGE,
-            ClientPermission.CREATE_STUDY,
-        }
-    ),
-    ScopeRole.LEAD: frozenset(set(ClientPermission)),
+    ScopeRole.RESEARCHER: frozenset(ClientPermission),
 }
 
 
@@ -302,11 +278,12 @@ class ScopeDenied(PermissionError):
 class SeparationOfDutiesViolation(ScopeDenied):
     """Raised when the producer of work approves it without policy permitting it.
 
-    Role separation alone is not enough: a LEAD holds both ``EDIT_STUDY`` and
-    ``SIGN_OFF_DELIVERABLE``, so without this check one person could author a
-    deliverable and then clear its own review gate by switching hats.
+    A Researcher holds both ``EDIT_STUDY`` and ``SIGN_OFF_DELIVERABLE``, so only
+    this check can stop one person authoring a deliverable and then clearing its
+    review gate -- where a scope has turned self-approval off.
 
-    Independent review is the **default**, not an absolute. See
+    Independent review is **optional** (ADR 0019): it applies only where a level
+    of the scope hierarchy has turned self-approval off. See
     :func:`require_approval_independence`.
     """
 
@@ -322,9 +299,10 @@ class SeparationOfDutiesViolation(ScopeDenied):
 # Self-approval policy
 # --------------------------------------------------------------------------- #
 
-# Independent review is the default posture. A deployment that has configured
-# nothing gets the safe behaviour.
-DEFAULT_SELF_APPROVAL_ALLOWED: Final = False
+# ADR 0019: a person may accept what they produced. Independent review is no
+# longer the default; it stays available as a setting for an organization, a
+# client or a study that requires it (an explicit False at a level is honoured).
+DEFAULT_SELF_APPROVAL_ALLOWED: Final = True
 
 
 class SelfApprovalSource(StrEnum):
@@ -361,7 +339,7 @@ def resolve_self_approval_policy(
 ) -> SelfApprovalPolicy:
     """Resolve self-approval from the scope hierarchy, most specific first.
 
-    ``study > client > organization > default (false)``.
+    ``study > client > organization > default (true, ADR 0019)``.
 
     Each level is **nullable and inherited** rather than a copied value: ``None``
     means "whatever my parent says". Duplicating the value down the hierarchy
@@ -439,9 +417,9 @@ def require_approval_independence(
 ) -> ApprovalIndependence:
     """Decide whether this person may approve this work, and describe the result.
 
-    Independent review is the default: when the producer is also the approver the
-    approval is refused **unless** self-approval has been explicitly enabled by
-    policy for this scope.
+    Self-approval is allowed by default (ADR 0019). When a level of the scope
+    hierarchy has turned it off and the producer is also the approver, the
+    approval is refused.
 
     Two things this function deliberately does not do:
 

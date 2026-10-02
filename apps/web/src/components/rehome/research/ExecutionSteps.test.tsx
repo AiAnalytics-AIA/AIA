@@ -5,7 +5,7 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t } from "@/i18n/t";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -47,6 +47,7 @@ const PARKED = run({
     step("sociomap", "BLOCKED", { attempts_recorded: 0, started_at: null }),
   ],
 });
+const parkedWith = (steps: ReturnType<typeof step>[]) => run({ status: "WAITING_PROVIDER", phase: "WAITING", steps });
 const COMPLETED = run({
   status: "COMPLETED", phase: "COMPLETED", is_terminal: true, fieldwork_source: "synthetic_fixture", finished_at: "2026-09-25T08:05:00Z",
   steps: [
@@ -300,6 +301,53 @@ describe("Progress", () => {
     expect(screen.queryByRole("note")).toBeNull(); // not fictional: no fiction banner
   });
 
+  it("shows the gate that parked fieldwork, so the banner's advice to check the step can be followed", async () => {
+    const message = "AI respondenti nejsou pro tento výzkum povoleni: licence_undetermined. Běh čeká u sběru dat.";
+    api(listed(parkedWith([
+      step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+      step("preflight", "SUCCEEDED", { artifact_id: "ART-2" }),
+      step("run", "WAITING_PROVIDER", { waiting_reason: "ai_runtime_unavailable", failure_class: "RUNTIME_UNAVAILABLE", error_message: message }),
+      step("aggregate", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+      step("sociomap", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+    ])));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti/)).toBeTruthy();
+    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    expect(within(steps[2]).getByText(message)).toBeTruthy();
+    expect(within(steps[0]).queryByText(message)).toBeNull();
+  });
+
+  it("names an analysis module as the parked step, not data collection", async () => {
+    const message = "AI model není pro tento výzkum povolen: egress_no_approved_route.";
+    api(listed(parkedWith([
+      step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+      step("preflight", "SUCCEEDED", { artifact_id: "ART-2" }),
+      step("run", "SUCCEEDED", { artifact_id: "ART-3", data_origin: "SYNTHETIC_AI_FICTIONAL" }),
+      step("aggregate", "SUCCEEDED", { artifact_id: "ART-4" }),
+      step("analysis_executive", "WAITING_PROVIDER", {
+        kind: "research_analysis", waiting_reason: "ai_runtime_unavailable", failure_class: "RUNTIME_UNAVAILABLE", error_message: message,
+      }),
+    ])));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/Běh čeká u kroku „Shrnutí analýzy“/)).toBeTruthy();
+    expect(screen.queryByText(/Běh čeká u sběru dat/)).toBeNull();
+    expect(screen.getByText(message)).toBeTruthy();
+  });
+
+  it("says why a step waits for budget, provider quota or a decision when it recorded no message", async () => {
+    for (const [reason, status, words] of [
+      ["budget_exceeded", "AWAITING_BUDGET", /překročil rozpočet studie/],
+      ["provider_quota_exhausted", "WAITING_PROVIDER", /vyčerpal kvótu/],
+      ["gate:design", "AWAITING_GATE", /rozhodnutí člověka/],
+    ] as const) {
+      api(listed(parkedWith([step("run", status, { waiting_reason: reason })])));
+      const { unmount } = render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      expect(await screen.findByText(words)).toBeTruthy();
+      expect(screen.queryByText(/Běh čeká u sběru dat/)).toBeNull(); // not a runtime park
+      unmount();
+    }
+  });
+
   it("cancels only after the person confirms, and retries a failed run as a new run", async () => {
     api({
       ...listed(PARKED),
@@ -377,6 +425,66 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.exec.noResultsParked"))).toBeTruthy();
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts")).toHaveLength(0);
+  });
+
+  it("shows the internal draft from the completed report step and downloads it with authentication", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
+        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
+      })],
+    });
+    const documentBytes = new Blob(["docx bytes"], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    const createObjectURL = vi.fn(() => "blob:report");
+    const revokeObjectURL = vi.fn();
+    const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+    const click = vi.fn();
+    HTMLAnchorElement.prototype.click = click;
+    onTestFinished(() => {
+      URL.createObjectURL = real.create;
+      URL.revokeObjectURL = real.revoke;
+      HTMLAnchorElement.prototype.click = real.click;
+    });
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true,
+      }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
+        new Response(documentBytes, { status: 200 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
+    expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
+    expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.results.reportDownload") }));
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
+    expect(click).toHaveBeenCalledOnce();
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
+  });
+
+  it("explains why a report could not be made when analysis was refused", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      status: "FAILED", phase: "FAILED",
+      steps: [...COMPLETED.steps, step("report", "FAILED", { kind: "research_report", stage_type: "REPORT" })],
+    });
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "FAILED", internal_only: true, reason: "report_inputs_refused",
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.results.reportInputsRefused"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownload") })).toBeNull();
   });
 
   it("leaves the Sociomap out for a person the API refuses it to", async () => {

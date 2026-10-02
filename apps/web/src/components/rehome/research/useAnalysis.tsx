@@ -15,6 +15,7 @@ import {
   analysisPayload,
   briefEmpty,
   mergeAnalysis,
+  reusableAnalysis,
   withAttachmentContext,
 } from "@/research/brief";
 import { isNativeResult } from "@/lib/research-agent-jobs";
@@ -38,8 +39,9 @@ export function useAnalysis() {
    * new analysis clears that mark.
    */
   const analyse = async ({ force = false, byComments = false }: { force?: boolean; byComments?: boolean } = {}): Promise<boolean> => {
-    void force;
     setFailure(null);
+    const existing = store.get();
+    if (!force && reusableAnalysis(withAttachmentContext(existing.project), existing.analysis)) return true;
     setBusy(true);
     try {
       const current = store.get();

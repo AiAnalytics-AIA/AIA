@@ -62,6 +62,25 @@ export function parkedForRuntime(run: ResearchRun): ResearchStep | null {
   return run.steps.find((s) => s.waiting_reason === RUNTIME_UNAVAILABLE) ?? null;
 }
 
+const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
+
+/**
+ * Why a step waits, in words, or null when the step is not waiting. What the step recorded
+ * (the gate that refused it, as the executor wrote it) comes first; a wait that records none
+ * -- budget, provider quota, a decision owed -- is told from its machine reason. It says only
+ * what is known: that the step waits, and why. It promises no action the page cannot take.
+ */
+export function waitingDetail(step: ResearchStep): string | null {
+  if (!WAITING_STATUS.test(step.status)) return null;
+  if (step.error_message) return step.error_message;
+  const reason = step.waiting_reason ?? "";
+  if (reason === "budget_exceeded" || reason === "provider_quota_exhausted" || reason === "approval_required") {
+    return t(`research.exec.wait.${reason}`);
+  }
+  if (reason.startsWith("gate:")) return t("research.exec.wait.approval_required");
+  return null;
+}
+
 /** Origins that are never evidence: the fictional fixture, and AI respondents on fictional personas. */
 export const SYNTHETIC_ORIGINS: ReadonlySet<string> = new Set(["SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"]);
 

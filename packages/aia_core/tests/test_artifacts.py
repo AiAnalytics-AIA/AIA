@@ -712,26 +712,34 @@ def test_artifacts_are_invisible_across_clients(
         other.dependencies(artifact.artifact_id)
 
 
-def test_reviewer_cannot_write_artifacts(
+def test_every_member_can_write_artifacts_including_one_with_no_grant(
     session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
 ) -> None:
-    """Writing an artifact is doing the work, which a reviewer does not do."""
-    reviewer = ArtifactRepository(session, scoped.scope(user="reviewer", study="primary"), store)
-    with pytest.raises(ScopeDenied) as exc:
-        reviewer.put_json(
+    """ADR 0019: one role, so there is no one left who may read but not write.
+
+    The former reviewer and viewer write like anyone else, and so does a member who was
+    never granted the study: membership of the organization is the access.
+    """
+    for user in ("reviewer", "viewer", "outsider"):
+        writer = ArtifactRepository(session, scoped.scope(user=user, study="primary"), store)
+        artifact, _ = writer.put_json(
             project_id=project.project_id,
             revision=1,
             stage_type="BRIEF",
             artifact_type="COMPILED_BRIEF",
-            payload={},
+            payload={"by": user},
         )
-    assert exc.value.reason == "insufficient_role"
+        assert artifact.produced_by_user_id == scoped.users[user]
 
 
-def test_researcher_cannot_sign_off_their_own_artifact(
+def test_a_researcher_can_sign_off_their_own_artifact(
     session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
 ) -> None:
-    """The human gate is meaningless if the author can clear it."""
+    """ADR 0019: the Researcher holds sign-off, so the author may clear their own work.
+
+    The audit record of that decision is asserted in
+    ``test_the_default_lets_a_person_accept_what_they_produced``.
+    """
     researcher = ArtifactRepository(
         session, scoped.scope(user="researcher", study="primary"), store
     )
@@ -743,17 +751,20 @@ def test_researcher_cannot_sign_off_their_own_artifact(
         payload={"draft": True},
     )
 
-    with pytest.raises(ScopeDenied):
-        researcher.approve(artifact.artifact_id)
+    assert researcher.approve(artifact.artifact_id).is_approved
 
     reviewer = ArtifactRepository(session, scoped.scope(user="reviewer", study="primary"), store)
-    assert reviewer.approve(artifact.artifact_id).is_approved
+    assert reviewer.get(artifact.artifact_id).is_approved
 
 
 def test_download_url_requires_export_authority(
     session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
 ) -> None:
-    """Handing out a URL is handing out the content, so it is gated like export."""
+    """Handing out a URL is handing out the content, so it is gated like export.
+
+    Every member holds export since ADR 0019, a member with no grant included; the
+    permission check still runs on every call.
+    """
     researcher = ArtifactRepository(
         session, scoped.scope(user="researcher", study="primary"), store
     )
@@ -767,9 +778,9 @@ def test_download_url_requires_export_authority(
     # In-memory issues no URL, but the permission check must still have run.
     assert researcher.download_url(artifact.artifact_id) is None
 
-    viewer = ArtifactRepository(session, scoped.scope(user="viewer", study="primary"), store)
-    with pytest.raises(ScopeDenied):
-        viewer.download_url(artifact.artifact_id)
+    for user in ("viewer", "outsider"):
+        reader = ArtifactRepository(session, scoped.scope(user=user, study="primary"), store)
+        assert reader.download_url(artifact.artifact_id) is None
 
 
 # --------------------------------------------------------------------------- #
@@ -855,17 +866,19 @@ def test_delete_removes_row_and_object(
 def test_regression_producer_cannot_approve_their_own_artifact(
     session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
 ) -> None:
-    """**Independent review is the default.** Self-approval is off unless enabled.
+    """**Independent review is opt-in** (ADR 0019): a scope that turns self-approval off refuses.
 
-    A permission check alone is insufficient: a LEAD holds both EDIT_STUDY and
+    A permission check alone is insufficient: a Researcher holds both EDIT_STUDY and
     SIGN_OFF_DELIVERABLE, so without this check one person could author a
-    deliverable and then clear its own review gate by switching hats.
-
-    The methodology's human review gate requires *independence*, not merely a
-    permission. Policy may lift that for a scope where it has been explicitly
-    enabled -- see ``test_self_approval_policy.py`` -- but a deployment that has
-    configured nothing refuses, and this test exists to keep that true.
+    deliverable and then clear its own review gate by switching hats, in a scope
+    that has asked for independence. The default is now to allow it -- see
+    ``test_the_default_lets_a_person_accept_what_they_produced`` below -- and an
+    explicit False at the study (or client, or organization) is still honoured.
     """
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, study_id=scoped.studies["primary"].study_id
+    )
+    session.flush()
     lead_scope = scoped.scope(user="lead", study="primary")
     lead = ArtifactRepository(session, lead_scope, store)
 
@@ -882,6 +895,33 @@ def test_regression_producer_cannot_approve_their_own_artifact(
         lead.approve(artifact.artifact_id)
     assert exc.value.reason == "separation_of_duties"
     assert lead.get(artifact.artifact_id).is_approved is False
+
+
+def test_the_default_lets_a_person_accept_what_they_produced(
+    session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
+) -> None:
+    """ADR 0019: nothing configured, and the author's own sign-off is allowed and recorded."""
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+
+    lead_scope = scoped.scope(user="lead", study="primary")
+    lead = ArtifactRepository(session, lead_scope, store)
+    artifact, _ = lead.put_json(
+        project_id=project.project_id,
+        revision=1,
+        stage_type="REPORT",
+        artifact_type="CLIENT_REPORT",
+        payload={"draft": True},
+    )
+
+    assert lead.approve(artifact.artifact_id).is_approved is True
+
+    record = session.scalars(select(ApprovalDecisionRow)).one()
+    assert record.producer_user_id == record.approver_user_id == lead_scope.actor_id
+    assert record.self_approved is True
+    assert record.self_approval_allowed is True
+    assert record.self_approval_source == "default"
 
 
 def test_a_different_person_with_sign_off_authority_can_approve(

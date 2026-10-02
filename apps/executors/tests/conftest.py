@@ -126,7 +126,7 @@ def world(sessions: sessionmaker[Session]) -> World:
         )
         lead = scope_repo.add_member(admin, email="lead@art-chain.io")
         resolver.grant_client_access(
-            admin, client_id=client.client_id, user_id=lead.user_id, role=ScopeRole.LEAD
+            admin, client_id=client.client_id, user_id=lead.user_id, role=ScopeRole.RESEARCHER
         )
         session.flush()
         scope = resolver.study_context(

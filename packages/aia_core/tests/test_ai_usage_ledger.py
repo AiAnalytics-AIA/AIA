@@ -500,12 +500,19 @@ def test_reads_are_confined_to_the_scope(
         assert repo.uncertain_calls() == []
 
 
-def test_reading_costs_requires_view_costs(attempt: Attempt, scoped: Any) -> None:
-    viewer = AIUsageRepository(attempt.session, scoped.scope(user="viewer", study="primary"))
-    with pytest.raises(ScopeDenied):
-        viewer.events()
-    with pytest.raises(ScopeDenied):
-        viewer.total_cost_usd()
+def test_every_member_reads_the_costs_of_a_study(
+    attempt: Attempt, scoped: Any, model_registry: ModelRegistry
+) -> None:
+    """ADR 0019: one role holds VIEW_COSTS, so the former viewer reads the ledger.
+
+    They read what the lead's attempt wrote, not an empty ledger, and so does a member who was
+    never granted the study: membership is the access.
+    """
+    result = attempt.invoke(Adapter([OK]), model_registry)
+    for user in ("viewer", "reviewer", "outsider"):
+        reader = AIUsageRepository(attempt.session, scoped.scope(user=user, study="primary"))
+        assert reader.events() == attempt.usage.events() != []
+        assert reader.total_cost_usd() == pytest.approx(result.actual_cost_usd)
 
 
 @pytest.mark.parametrize(
@@ -536,18 +543,29 @@ def test_a_known_call_cannot_be_resolved(attempt: Attempt, ledgered: list[AIUsag
         attempt.usage.resolve_uncertain(ledgered[0].call_id, billed=True, actual_cost_usd=1.0)
 
 
-def test_resolution_is_a_budget_act(
+def test_resolution_is_a_budget_act_the_worker_cannot_perform(
     attempt: Attempt, scoped: Any, model_registry: ModelRegistry
 ) -> None:
+    """ADR 0019: every Researcher holds MANAGE_STUDY_BUDGET; the worker's context does not.
+
+    The worker is the party that spent the money, so the context it executes under can read the
+    ledger but cannot decide what the provider charged (decision 6).
+    """
     with pytest.raises(WorkerKilled):
         attempt.invoke(Adapter([WorkerKilled()]), model_registry)
     [call] = attempt.usage.uncertain_calls()
 
+    worker = AIUsageRepository(
+        attempt.session,
+        scoped.resolver.execution_context(attempt_id=attempt.attempt_id, worker_id=WORKER),
+    )
+    assert [c.call_id for c in worker.uncertain_calls()] == [call.call_id]
+    with pytest.raises(ScopeDenied):
+        worker.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.0)
+    # A person other than the lead who started the work resolves it below: no second role.
     researcher = AIUsageRepository(
         attempt.session, scoped.scope(user="researcher", study="primary")
     )
-    with pytest.raises(ScopeDenied):
-        researcher.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.0)
 
     with pytest.raises(ValueError, match="unbilled call costs nothing"):
         attempt.usage.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.5)
@@ -558,7 +576,8 @@ def test_resolution_is_a_budget_act(
         with pytest.raises(ValueError, match="finite"):
             attempt.usage.resolve_uncertain(call.call_id, billed=True, actual_cost_usd=bad)
 
-    attempt.usage.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.0)
+    resolved = researcher.resolve_uncertain(call.call_id, billed=False, actual_cost_usd=0.0)
+    assert resolved.call_id == call.call_id
     with pytest.raises(LedgerConflict):
         attempt.usage.resolve_uncertain(call.call_id, billed=True, actual_cost_usd=0.1)
 

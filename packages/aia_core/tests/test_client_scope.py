@@ -1,8 +1,9 @@
 """The client-level scope (ADR 0015 decision 6) and a study's kind (decision 2).
 
-A ClientContext is issued only by ScopeResolver.client_context, from persisted
-grants. It is how the client workspace -- its studies, and later its knowledge --
-is reached; everything a client does not authorise fails closed.
+A ClientContext is issued only by ScopeResolver.client_context, for an active member of
+the client's organization (ADR 0019: membership is the access; there are no grants to
+consult). It is how the client workspace -- its studies and its knowledge -- is reached;
+a client of another organization, an unknown one and an archived one fail closed.
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ def test_a_client_context_cannot_be_constructed_directly() -> None:
             organization_id="ORG-1",
             client_id="CLI-1",
             actor_id="USR-1",
-            client_role=ScopeRole.LEAD,
+            client_role=ScopeRole.RESEARCHER,
             permissions=frozenset(ClientPermission),
             organization_role=OrganizationRole.MEMBER,
             grant=object(),  # type: ignore[arg-type]
@@ -44,23 +45,34 @@ def test_a_client_context_cannot_be_constructed_directly() -> None:
     assert denied.value.reason == "forged_scope"
 
 
-def test_a_client_grant_opens_the_client_with_all_its_studies(scoped: Any) -> None:
+def test_a_retired_stored_role_reads_as_a_researcher() -> None:
+    # ADR 0019: grants written before it may carry VIEWER, REVIEWER or LEAD.
+    for stored in ("VIEWER", "REVIEWER", "LEAD", "RESEARCHER"):
+        assert ScopeRole.from_stored(stored) is ScopeRole.RESEARCHER
+    with pytest.raises(ValueError):
+        ScopeRole.from_stored("ADMIN")
+
+
+def test_a_member_opens_the_client_with_all_its_studies(scoped: Any) -> None:
     ctx = client_scope(scoped, "lead")
-    assert ctx.client_role is ScopeRole.LEAD
+    assert ctx.client_role is ScopeRole.RESEARCHER
     assert ctx.study_ids == {scoped.studies["primary"].study_id, scoped.studies["sibling"].study_id}
     assert ctx.has(ClientPermission.APPROVE_CLIENT_KNOWLEDGE)
 
 
-def test_another_clients_lead_cannot_open_the_client(scoped: Any) -> None:
-    with pytest.raises(ScopeDenied) as denied:
-        client_scope(scoped, "other_lead", "primary")
-    assert denied.value.reason == "no_grant"
+def test_another_clients_lead_opens_the_client_too(scoped: Any) -> None:
+    """ADR 0019 decision 2: the lead of one client is a Researcher on every client."""
+    ctx = client_scope(scoped, "other_lead", "primary")
+    assert ctx.client_role is ScopeRole.RESEARCHER
+    assert ctx.study_ids == {scoped.studies["primary"].study_id, scoped.studies["sibling"].study_id}
+    assert ctx.permissions == frozenset(ClientPermission)
 
 
-def test_an_organization_owner_has_no_implicit_client_access(scoped: Any) -> None:
-    # ADR 0004: administration is not data access.
-    with pytest.raises(ScopeDenied):
-        client_scope(scoped, "owner")
+def test_an_organization_owner_is_a_researcher_on_every_client(scoped: Any) -> None:
+    # ADR 0019 retired ADR 0004's "administration is not data access".
+    ctx = client_scope(scoped, "owner")
+    assert ctx.client_role is ScopeRole.RESEARCHER
+    assert ctx.permissions == frozenset(ClientPermission)
 
 
 def test_an_unknown_or_archived_client_is_not_found(scoped: Any) -> None:
@@ -75,37 +87,36 @@ def test_an_unknown_or_archived_client_is_not_found(scoped: Any) -> None:
     with pytest.raises(ScopeDenied) as archived:
         client_scope(scoped, "lead")
     assert archived.value.reason == "client_archived"
-    assert scoped.resolver.accessible_clients(scoped.principal(scoped.users["lead"])) == []
+    # The archived client drops out of the list; the other client is still there.
+    assert scoped.resolver.accessible_clients(scoped.principal(scoped.users["lead"])) == [
+        scoped.clients["other"].client_id
+    ]
 
 
-def test_a_study_grant_alone_opens_only_that_study_and_no_knowledge(scoped: Any) -> None:
+def test_a_member_with_no_grant_opens_the_client_with_its_studies_and_knowledge(
+    scoped: Any,
+) -> None:
     member = scoped.scope_repo.add_member(scoped.admin_context, email="guest@art-chain.io")
-    lead = scoped.resolver.study_context(
-        scoped.principal(scoped.users["lead"]), study_id=scoped.studies["sibling"].study_id
-    )
-    scoped.resolver.grant_study_access(lead, user_id=member.user_id, role=ScopeRole.RESEARCHER)
     ctx = scoped.resolver.client_context(
         scoped.principal(member.user_id), client_id=scoped.clients["primary"].client_id
     )
-    assert ctx.client_role is None
-    assert ctx.study_ids == {scoped.studies["sibling"].study_id}
-    assert ctx.permissions == {ClientPermission.VIEW_CLIENT}
-    with pytest.raises(ScopeDenied):
-        ctx.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
+    assert ctx.client_role is ScopeRole.RESEARCHER
+    assert ctx.study_ids == {scoped.studies["primary"].study_id, scoped.studies["sibling"].study_id}
+    assert ctx.permissions == frozenset(ClientPermission)
+    ctx.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
     listed = scoped.scope_repo.studies_in_client(ctx)
-    assert [s.study_id for s in listed] == [scoped.studies["sibling"].study_id]
+    assert {s.study_id for s in listed} == {
+        scoped.studies["primary"].study_id,
+        scoped.studies["sibling"].study_id,
+    }
 
 
-def test_accessible_clients_are_the_granted_ones_only(scoped: Any) -> None:
-    ids = {name: c.client_id for name, c in scoped.clients.items()}
-    assert scoped.resolver.accessible_clients(scoped.principal(scoped.users["lead"])) == [
-        ids["primary"]
-    ]
-    assert scoped.resolver.accessible_clients(scoped.principal(scoped.users["other_lead"])) == [
-        ids["other"]
-    ]
-    assert scoped.resolver.accessible_clients(scoped.principal(scoped.users["outsider"])) == []
-    assert scoped.resolver.accessible_clients(scoped.principal(scoped.users["owner"])) == []
+def test_every_member_sees_every_unarchived_client(scoped: Any) -> None:
+    everything = sorted(c.client_id for c in scoped.clients.values())
+    for user in ("lead", "other_lead", "outsider", "owner"):
+        assert (
+            scoped.resolver.accessible_clients(scoped.principal(scoped.users[user])) == everything
+        )
 
 
 def test_a_clients_studies_never_include_another_clients(scoped: Any) -> None:
@@ -135,16 +146,39 @@ def test_research_and_simulation_are_both_studies_told_apart_by_kind(scoped: Any
     assert study.role is ScopeRole.RESEARCHER
 
 
-def test_starting_work_for_a_client_needs_create_study_and_is_audited(
+def test_every_person_with_the_client_starts_work_for_it_and_it_is_audited(
     scoped: Any, session: Any
 ) -> None:
-    for user in ("viewer", "reviewer"):
-        with pytest.raises(ScopeDenied):
-            scoped.scope_repo.create_study_in_client(
-                client_scope(scoped, user), slug=f"by-{user}", name="x", kind=StudyKind.RESEARCH
+    """ADR 0019: one role, so no one with the client needs a second grant to start a study.
+
+    Each label below held a different power before ADR 0019 (the viewer and the reviewer could
+    not start work); they hold the same Researcher grant now, and each one's study is audited.
+    """
+    studies = {}
+    for user in ("viewer", "reviewer", "researcher", "lead"):
+        ctx = client_scope(scoped, user)
+        assert ctx.has(ClientPermission.CREATE_STUDY)
+        studies[user] = scoped.scope_repo.create_study_in_client(
+            ctx, slug=f"by-{user}", name="Brand 2027", kind=StudyKind.RESEARCH
+        )
+        assert studies[user].client_id == scoped.clients["primary"].client_id
+    for user, study in studies.items():
+        audit = session.scalars(
+            select(AccessAuditRow).where(
+                AccessAuditRow.study_id == study.study_id,
+                AccessAuditRow.action == "STUDY_CREATED",
             )
+        ).all()
+        assert [a.payload for a in audit] == [{"kind": "RESEARCH", "via": "client_workspace"}], user
+
+
+def test_a_person_with_no_grant_starts_work_for_the_client_too(scoped: Any, session: Any) -> None:
+    # ADR 0019: membership is the access, so a member who was never granted the client
+    # may start work for it, and the study is audited like any other.
+    ctx = client_scope(scoped, "outsider")
+    assert ctx.has(ClientPermission.CREATE_STUDY)
     study = scoped.scope_repo.create_study_in_client(
-        client_scope(scoped, "lead"), slug="brand-2027", name="Brand 2027", kind=StudyKind.RESEARCH
+        ctx, slug="by-outsider", name="Brand 2027", kind=StudyKind.RESEARCH
     )
     assert study.client_id == scoped.clients["primary"].client_id
     audit = session.scalars(
@@ -152,17 +186,26 @@ def test_starting_work_for_a_client_needs_create_study_and_is_audited(
             AccessAuditRow.study_id == study.study_id, AccessAuditRow.action == "STUDY_CREATED"
         )
     ).all()
-    assert [a.payload for a in audit] == [{"kind": "RESEARCH", "via": "client_workspace"}]
+    assert [a.actor_id for a in audit] == [scoped.users["outsider"]]
 
 
-def test_a_study_only_grantee_cannot_start_work_for_the_client(scoped: Any) -> None:
+def test_a_study_grant_changes_nothing_about_what_a_member_may_do_for_the_client(
+    scoped: Any,
+) -> None:
     member = scoped.scope_repo.add_member(scoped.admin_context, email="guest2@art-chain.io")
+    before = scoped.resolver.client_context(
+        scoped.principal(member.user_id), client_id=scoped.clients["primary"].client_id
+    )
     lead = scoped.resolver.study_context(
         scoped.principal(scoped.users["lead"]), study_id=scoped.studies["primary"].study_id
     )
-    scoped.resolver.grant_study_access(lead, user_id=member.user_id, role=ScopeRole.LEAD)
-    ctx = scoped.resolver.client_context(
+    scoped.resolver.grant_study_access(lead, user_id=member.user_id, role=ScopeRole.RESEARCHER)
+    after = scoped.resolver.client_context(
         scoped.principal(member.user_id), client_id=scoped.clients["primary"].client_id
     )
-    with pytest.raises(ScopeDenied):
-        scoped.scope_repo.create_study_in_client(ctx, slug="x", name="x", kind=StudyKind.RESEARCH)
+    assert after.permissions == before.permissions == frozenset(ClientPermission)
+    assert after.study_ids == before.study_ids
+    study = scoped.scope_repo.create_study_in_client(
+        after, slug="x", name="x", kind=StudyKind.RESEARCH
+    )
+    assert study.client_id == scoped.clients["primary"].client_id
