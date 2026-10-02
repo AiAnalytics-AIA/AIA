@@ -174,34 +174,29 @@ def test_an_edit_produces_a_new_artifact_for_the_new_revision(
     assert len(store.keys) == 2
 
 
-def test_a_member_with_no_grant_cannot_start_a_run(
+def test_a_member_with_no_grant_can_start_a_run(
     world: Any, sessions: sessionmaker[Session]
 ) -> None:
-    """ADR 0019 removed the read-only role; what still stops a run is having no access."""
+    """ADR 0019: no read-only role, and no grant to lack: any member may start a run."""
     from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-    from aia_core.domain.scope import ScopeDenied
+    from aia_core.domain.scope import Permission, ScopeRole
     from aia_core.infrastructure.scope_repository import ScopeRepository
 
     with sessions() as session:
         resolver = ScopeResolver(session)
-        admin_principal = AuthenticatedPrincipal(
-            user_id=world.lead_id, organization_id=world.organization_id
-        )
-        # The lead is not an administrator; use the organization owner to grant.
+        # The lead is not an administrator; use the organization owner to add the member.
         owner_id = ScopeRepository(session).upsert_user(email="owner@art-chain.io")["user_id"]
         admin = resolver.organization_context(
             AuthenticatedPrincipal(user_id=owner_id, organization_id=world.organization_id)
         )
         member = ScopeRepository(session).add_member(admin, email="member@art-chain.io")
         session.flush()
-        with pytest.raises(ScopeDenied):
-            resolver.study_context(
-                AuthenticatedPrincipal(
-                    user_id=member.user_id, organization_id=world.organization_id
-                ),
-                study_id=world.study_id,
-            )
-        del admin_principal
+        scope = resolver.study_context(
+            AuthenticatedPrincipal(user_id=member.user_id, organization_id=world.organization_id),
+            study_id=world.study_id,
+        )
+        assert scope.role is ScopeRole.RESEARCHER
+        assert scope.has(Permission.RUN_WORKFLOW)
 
 
 def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: BuildIdentity) -> None:

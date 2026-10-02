@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. ADR 0019: two roles, no cross-approval, the human-with-AI gate catalogue (supersedes ADR 0004's grant rules and ADR 0015 decisions 6-7)"
   - "[x] 2. Domain: one Researcher permission set; self-approval allowed by default; REVIEWER and LEAD gone"
-  - "[ ] 3. ScopeResolver: every active member sees every client and study of the organization"
+  - "[x] 3. ScopeResolver: every active member sees every client and study of the organization"
   - "[ ] 4. Admin: system settings only for ADMIN; MEMBER is the Researcher; settings document and web client"
   - "[x] 5a. Human-authored Knowledge writes directly (client workspace); a study's proposal still waits for a person, who may be its proposer"
   - "[ ] 5b. Gates: apply-an-AI-proposal, spend confirm, client-facing release"
@@ -115,6 +115,33 @@ that demands independent review can turn it back on.
 - The spend threshold for gate 2 is a number someone must choose.
 - Class A/B transmission is unchanged and still unapproved (ADR 0010). Widening who can see a
   client does not widen what may be sent to a model.
+
+## Chunk 3 (landed)
+
+`ScopeResolver` stops reading grants. `study_context` and `client_context` issue the one Researcher
+role to any active member of the organization; `accessible_clients` lists every unarchived client of
+it and `accessible_studies` every study of it (optionally one client's). The organization is still
+the boundary: a study or client of another organization, an unknown id, an archived client and an
+inactive user all return 404, as before. The `ACCESS_DENIED / no_grant` audit entry is gone. The
+grant tables, routes and `grant_*` repository methods are untouched and now inert, so the change can
+be rolled back by reverting the resolver; chunk 6 removes them.
+
+**Tests rewritten, none skipped.** 69 tests asserted the grant rule (core 33, API 34, executors 2).
+Each was rewritten to assert the new rule, or to keep testing a boundary that still exists: a run,
+project, attachment, design or artifact is found only through the study the path names; knowledge is
+read under the client whose context it was issued for; a `ClientContext` of another client's path
+returns that client's rows only; respondent rows are still never inlined. Counts after: core 3,105
+passed / 203 skipped (unchanged), API 267 (unchanged), worker 50, executors 137 (+1: the migration
+CLI now has both a "left waiting" case, a closed study, and an "owner migrates" case).
+
+**Trade-off, stated once.** Any member can read and change any client's data, and the only
+isolation left is the organization. That is the owner's decision (ADR 0019 decision 2), reconfirmed
+on 2026-10-02: the software is only for AIA's internal use. No second-organization test was added for
+that reason; the existing `test_principal_from_another_organization_is_denied` and the
+organization filters in every query stay.
+
+**Not done here.** `docs/architecture/scope-and-authorization.md` carries a status note and is
+rewritten in chunk 6; the web client still shows `your_role` and a role picker (chunk 4).
 
 ## Findings
 

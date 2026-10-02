@@ -104,8 +104,9 @@ def test_everyone_with_the_study_submits_a_design_while_it_is_open(
     for i, user in enumerate(("viewer", "reviewer", "researcher")):
         _, created = designs(user=user).submit(content={**DESIGN, "n": i + 1}, source_stage="run")
         assert created, user
-    with pytest.raises(ScopeDenied):
-        designs(user="outsider")
+    # A member who was never granted the study submits like the others (ADR 0019).
+    _, created = designs(user="outsider").submit(content={**DESIGN, "n": 4}, source_stage="run")
+    assert created
     with pytest.raises(DesignRejected):
         designs().submit(content=DESIGN, source_stage="results")
     scoped.scope_repo.set_study_status(scoped.scope(), status=StudyStatus.DELIVERED)

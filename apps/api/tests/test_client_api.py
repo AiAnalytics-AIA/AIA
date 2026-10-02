@@ -30,25 +30,28 @@ def start(
 # --------------------------------------------------------------------------- #
 
 
-def test_the_directory_lists_only_the_clients_you_work_for(
+def test_the_directory_lists_every_client_to_every_member(
     lead: TestClient,
     other_client_lead: TestClient,
     outsider: TestClient,
     owner: TestClient,
     world: Any,
 ) -> None:
-    mine = lead.get(f"{API}/workspace/clients").json()
-    assert [c["client_id"] for c in mine] == [world.client_id("primary")]
-    assert mine[0]["your_role"] == "RESEARCHER" and mine[0]["active_count"] == 2
-    assert [c["client_id"] for c in other_client_lead.get(f"{API}/workspace/clients").json()] == [
-        world.client_id("other")
-    ]
-    assert outsider.get(f"{API}/workspace/clients").json() == []
-    # An owner administers the organization; opening a client's work needs a grant (ADR 0004).
-    assert owner.get(f"{API}/workspace/clients").json() == []
+    """ADR 0019 decision 2: membership of the organization is the access to every client."""
+    both = {world.client_id("primary"), world.client_id("other")}
+    for c in (lead, other_client_lead, outsider, owner):
+        listed = c.get(f"{API}/workspace/clients").json()
+        assert {x["client_id"] for x in listed} == both
+        assert {x["your_role"] for x in listed} == {"RESEARCHER"}
+    primary = next(
+        x
+        for x in lead.get(f"{API}/workspace/clients").json()
+        if x["client_id"] == world.client_id("primary")
+    )
+    assert primary["active_count"] == 2
 
 
-def test_an_administrator_starts_a_client_and_can_open_it_members_cannot(
+def test_an_administrator_starts_a_client_and_every_member_can_open_it(
     owner: TestClient, lead: TestClient, world: Any
 ) -> None:
     me = owner.get(f"{API}/workspace/me").json()
@@ -57,28 +60,30 @@ def test_an_administrator_starts_a_client_and_can_open_it_members_cannot(
     made = owner.post(f"{API}/workspace/clients", json={"name": "Nový klient s. r. o."})
     assert made.status_code == 201 and made.json()["your_role"] == "RESEARCHER"
     assert made.json()["slug"].startswith("novy-klient-s-r-o-")
-    assert [c["client_id"] for c in owner.get(f"{API}/workspace/clients").json()] == [
-        made.json()["client_id"]
-    ]
+    assert made.json()["client_id"] in {
+        c["client_id"] for c in owner.get(f"{API}/workspace/clients").json()
+    }
     audit = owner.get(f"{API}/access-audit").json()
     assert any(
         a["action"] == "CLIENT_SELF_GRANT" and a["client_id"] == made.json()["client_id"]
         for a in audit
     )
+    # Starting a client is still an administrator's act (ADR 0019 keeps it with the Admin).
     assert lead.post(f"{API}/workspace/clients", json={"name": "Nope"}).status_code == 403
-    # The new client is invisible to people without a grant on it.
-    assert lead.get(f"{API}/clients/{made.json()['client_id']}").status_code == 404
+    # The new client is the organization's: every member opens it, no grant needed.
+    opened = lead.get(f"{API}/clients/{made.json()['client_id']}")
+    assert opened.status_code == 200 and opened.json()["your_role"] == "RESEARCHER"
 
 
-def test_a_client_workspace_cannot_be_opened_outside_your_scope(
+def test_a_client_workspace_opens_for_every_member_and_an_unknown_one_is_404(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
-    ok = lead.get(f"{API}/clients/{world.client_id()}")
-    assert ok.status_code == 200 and ok.json()["your_role"] == "RESEARCHER"
-    for c in (other_client_lead, outsider):
-        for path in ("", "/studies", "/overview", "/knowledge", "/knowledge/proposals"):
+    for c in (lead, other_client_lead, outsider):
+        ok = c.get(f"{API}/clients/{world.client_id()}")
+        assert ok.status_code == 200 and ok.json()["your_role"] == "RESEARCHER"
+        for path in ("/studies", "/overview", "/knowledge", "/knowledge/proposals"):
             r = c.get(f"{API}/clients/{world.client_id()}{path}")
-            assert r.status_code == 404, (path, r.text)
+            assert r.status_code == 200, (path, r.text)
     assert lead.get(f"{API}/clients/CLI-0000000000").status_code == 404
     assert lead.get(f"{API}/clients/not-a-client").status_code == 422
 
@@ -97,25 +102,28 @@ def test_research_and_simulation_belong_to_the_selected_client(
         f"{API}/clients/{world.client_id()}/studies", params={"kind": "SIMULATION"}
     ).json()
     assert [s["study_id"] for s in listed] == [sim.json()["study_id"]]
-    # Another client's lead neither sees them nor starts work under this client.
+    # A client's studies list is that client's alone, whoever asks (ADR 0019: any member may ask).
     theirs = other_client_lead.get(f"{API}/clients/{world.client_id('other')}/studies").json()
     assert {s["client_id"] for s in theirs} == {world.client_id("other")}
     assert research.json()["study_id"] not in {s["study_id"] for s in theirs}
-    assert start(other_client_lead, world, "Hijack").status_code == 404
+    # Another client's lead may start work under this client too; it belongs to this client.
+    theirs_here = start(other_client_lead, world, "Od druhého vedoucího")
+    assert theirs_here.status_code == 201
+    assert theirs_here.json()["client_id"] == world.client_id()
 
 
-def test_every_granted_label_may_start_work_and_a_member_without_a_grant_gets_404(
+def test_every_member_may_start_work_with_or_without_a_grant(
     viewer: TestClient, reviewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
-    """ADR 0019: "viewer" and "reviewer" hold the Researcher role, so they start work.
-
-    A client-level grant is still what shows the client; without it, 404.
-    """
-    for c, name in ((viewer, "Od prohlížeče"), (reviewer, "Od recenzenta")):
+    """ADR 0019: the old labels, and a member never granted the client, all hold the one role."""
+    for c, name in (
+        (viewer, "Od prohlížeče"),
+        (reviewer, "Od recenzenta"),
+        (outsider, "Bez přidělení"),
+    ):
         r = start(c, world, name)
         assert r.status_code == 201, r.text
         assert r.json()["client_id"] == world.client_id()
-    assert start(outsider, world, "Bez přístupu").status_code == 404
 
 
 def test_the_overview_shows_active_work_and_the_knowledge_state(
@@ -184,10 +192,14 @@ def test_knowledge_is_proposed_approved_and_never_seen_by_another_client(
     history = researcher.get(f"{base}/items/{item['item_id']}/revisions").json()
     assert history[0]["provenance"]["origin"] == "CLIENT"
 
-    # Client B: nothing, and direct attempts fail closed.
+    # Client B's workspace: nothing, and direct attempts through it fail closed. Knowledge belongs
+    # to the client whose path it is read under; Globex's lead may open Acme's workspace too
+    # (ADR 0019) and sees Acme's knowledge there, never under Globex.
     assert other_client_lead.get(f"{API}/clients/{world.client_id('other')}/knowledge").json() == []
-    assert other_client_lead.get(base).status_code == 404
-    assert other_client_lead.get(f"{base}/items/{item['item_id']}/revisions").status_code == 404
+    via_acme = other_client_lead.get(base, params={"section": "knowledge"})
+    assert via_acme.status_code == 200 and [i["item_id"] for i in via_acme.json()] == [
+        item["item_id"]
+    ]
     theirs = f"{API}/clients/{world.client_id('other')}/knowledge"
     assert other_client_lead.get(f"{theirs}/items/{item['item_id']}/revisions").status_code == 404
     assert (
@@ -273,24 +285,30 @@ def test_a_study_proposes_and_consumes_but_never_writes_client_knowledge(
     ]
     other = other_client_lead.get(f"{API}/studies/{world.study_id('other_client')}/context").json()
     assert other["client"] == [] and other["client_id"] == world.client_id("other")
-    assert other_client_lead.get(f"{study}/context").status_code == 404
+    # A study's context is its own client's alone. Another client's lead may open this study
+    # (ADR 0019) and gets this study's client context, never their own client's.
+    here = other_client_lead.get(f"{study}/context")
+    assert here.status_code == 200 and here.json()["client_id"] == world.client_id()
 
 
-def test_a_study_only_grantee_sees_the_study_but_not_the_clients_knowledge(
+def test_a_study_grant_changes_nothing_a_member_sees_the_whole_client_and_its_knowledge(
     lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
+    """ADR 0019: the study-only grantee, who saw one study and no knowledge, is gone."""
+    client = f"{API}/clients/{world.client_id()}"
+    before = [s["study_id"] for s in outsider.get(f"{client}/studies").json()]
     granted = lead.post(
         f"{API}/studies/{world.study_id()}/grants",
         json={"user_id": world.users["outsider"], "role": "RESEARCHER"},
     )
     assert granted.status_code == 204
-    ws = outsider.get(f"{API}/clients/{world.client_id()}")
-    assert ws.status_code == 200 and ws.json()["your_role"] is None
-    assert [
-        s["study_id"] for s in outsider.get(f"{API}/clients/{world.client_id()}/studies").json()
-    ] == [world.study_id()]
-    assert outsider.get(f"{API}/clients/{world.client_id()}/knowledge").status_code == 403
-    assert outsider.get(f"{API}/clients/{world.client_id()}/overview").json()["knowledge"] is None
+    ws = outsider.get(client)
+    assert ws.status_code == 200 and ws.json()["your_role"] == "RESEARCHER"
+    after = [s["study_id"] for s in outsider.get(f"{client}/studies").json()]
+    assert sorted(after) == sorted(before)
+    assert len(after) == 2  # the client's two studies, granted or not
+    assert outsider.get(f"{client}/knowledge").status_code == 200
+    assert outsider.get(f"{client}/overview").json()["knowledge"] is not None
 
 
 # --------------------------------------------------------------------------- #
@@ -312,8 +330,9 @@ def test_a_new_study_starts_empty_with_the_template_and_its_first_save_is_revisi
     assert (empty["state"], empty["revision"], empty["content"]) == ("EMPTY", None, None)
     assert empty["template"]["title"] == "Nový výzkum" and empty["can_edit"] is True
 
-    # ADR 0019: a member without a grant is told 404; the "viewer" label may edit (below).
-    assert outsider.put(f"{url}/content", json={"content": BRIEF}).status_code == 404
+    # ADR 0019: a member who was never granted the study opens it like anyone else.
+    opened = outsider.get(f"{url}/content").json()
+    assert opened["state"] == "EMPTY" and opened["can_edit"] is True
     assert lead.get(f"{url}/content").json()["state"] == "EMPTY"
     saved = lead.put(f"{url}/content", json={"content": BRIEF, "reason": "autosave"})
     assert saved.status_code == 200
@@ -374,26 +393,28 @@ def test_content_is_validated_before_it_is_saved(lead: TestClient, world: Any) -
     assert lead.get(url).json()["state"] == "EMPTY"
 
 
-def test_the_workspace_of_another_clients_study_is_not_found(
+def test_a_studys_workspace_is_that_studys_alone_whoever_opens_it(
     lead: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:
-    lead.put(f"{API}/studies/{world.study_id()}/workspace/content", json={"content": BRIEF})
-    for method, path in (
-        ("get", ""),
-        ("get", "/content"),
-        ("put", "/content"),
-        ("get", "/revisions"),
-    ):
-        r = getattr(other_client_lead, method)(
-            f"{API}/studies/{world.study_id()}/workspace{path}",
-            **({"json": {"content": BRIEF}} if method == "put" else {}),
-        )
-        assert r.status_code == 404, (method, path)
-    # The other client's own study is untouched and empty.
+    """ADR 0019: another client's lead may open and edit this study; its content stays its own."""
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    for method, path in (("get", ""), ("get", "/content"), ("get", "/revisions")):
+        r = getattr(other_client_lead, method)(f"{url}{path}")
+        assert r.status_code == 200, (method, path)
+    seen = other_client_lead.get(f"{url}/content").json()
+    assert (seen["state"], seen["content"]) == ("NATIVE", BRIEF)
+    edited = other_client_lead.put(
+        f"{url}/content", json={"content": {**BRIEF, "goal": "G"}, "base_revision": 1}
+    )
+    assert edited.status_code == 200 and edited.json()["revision"] == 2
+    # Their own client's study is untouched and empty: content never moves between studies.
     theirs = other_client_lead.get(
         f"{API}/studies/{world.study_id('other_client')}/workspace/content"
     ).json()
     assert theirs["state"] == "EMPTY"
+    sibling = lead.get(f"{API}/studies/{world.study_id('sibling')}/workspace/content").json()
+    assert sibling["state"] == "EMPTY"
 
 
 def test_the_unit_binding_route_is_gone(lead: TestClient, world: Any) -> None:
@@ -423,8 +444,6 @@ def test_a_file_is_attached_in_aia_and_downloaded_only_through_its_study(
     assert unsaved.status_code == 409 and unsaved.json()["code"] == "not_saved"
 
     lead.put(f"{url}/content", json={"content": BRIEF})
-    # ADR 0019: a member without a grant is told 404; the "viewer" label may attach (below).
-    assert outsider.post(f"{url}/attachments", json=body).status_code == 404
     created = lead.post(f"{url}/attachments", json=body)
     assert created.status_code == 201
     record = created.json()
@@ -448,7 +467,8 @@ def test_a_file_is_attached_in_aia_and_downloaded_only_through_its_study(
     assert download.headers["content-type"] == "application/octet-stream"
     assert download.headers["content-disposition"] == 'attachment; filename="Zad_n_.txt"'
     assert download.headers["x-content-type-options"] == "nosniff"
-    assert outsider.get(f"{url}/attachments/{record['attachment_id']}").status_code == 404
+    # ADR 0019: a member who was never granted the study downloads it like anyone else.
+    assert outsider.get(f"{url}/attachments/{record['attachment_id']}").status_code == 200
     by_viewer = viewer.post(
         f"{url}/attachments",
         json={"filename": "Doplněk.txt", "data_b64": base64.b64encode(b"Dalsi soubor").decode()},
@@ -456,8 +476,15 @@ def test_a_file_is_attached_in_aia_and_downloaded_only_through_its_study(
     assert by_viewer.status_code == 201
     assert by_viewer.json()["attachment_id"] != record["attachment_id"]
 
-    assert other_client_lead.get(f"{url}/attachments/{record['attachment_id']}").status_code == 404
-    assert other_client_lead.post(f"{url}/attachments", json=body).status_code == 404
+    # Served only through its own study: the same attachment id under a sibling study's path,
+    # whoever asks, is not found.
+    sibling = f"{API}/studies/{world.study_id('sibling')}/workspace"
+    assert lead.get(f"{sibling}/attachments/{record['attachment_id']}").status_code == 404
+    assert (
+        other_client_lead.get(f"{sibling}/attachments/{record['attachment_id']}").status_code == 404
+    )
+    # Another client's lead may open this study (ADR 0019) and attach to it.
+    assert other_client_lead.post(f"{url}/attachments", json=body).status_code == 201
     assert lead.get(f"{url}/attachments/ART-0123456789abcdef").status_code == 404
 
 
@@ -519,8 +546,8 @@ def test_a_questionnaire_file_is_read_in_aia_and_nothing_is_stored(
         "filename": "dotaznik.csv",
         "data_b64": base64.b64encode(QUESTIONNAIRE_CSV.encode()).decode(),
     }
-    # ADR 0019: a member without a grant is told 404; the "viewer" label may import.
-    assert outsider.post(f"{url}/questionnaire-import", json=body).status_code == 404
+    # ADR 0019: the "viewer" label and a member who was never granted the study may import.
+    assert outsider.post(f"{url}/questionnaire-import", json=body).status_code == 200
     assert viewer.post(f"{url}/questionnaire-import", json=body).status_code == 200
     imported = lead.post(f"{url}/questionnaire-import", json=body)
     assert imported.status_code == 200
@@ -559,4 +586,5 @@ def test_the_questionnaire_template_is_aias_workbook_for_any_reader_of_the_study
         template.headers["content-disposition"]
         == 'attachment; filename="AIA_dotaznik_sablona.xlsx"'
     )
-    assert other_client_lead.get(url).status_code == 404
+    # Any member reads it, another client's lead included (ADR 0019).
+    assert other_client_lead.get(url).status_code == 200

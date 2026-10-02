@@ -46,7 +46,8 @@ def test_native_job_start_is_idempotent_and_returns_only_public_state(
 ) -> None:
     """ADR 0019: the "viewer" label holds the Researcher role, so it may start the same job.
 
-    The boundary that remains is the grant: a member without one is told 404.
+    So does a member who was never granted the study. The boundary that remains is the
+    study the path names: the job is not found under another study's path.
     """
     rid = revision(researcher, world)
     body = {"design_revision_id": rid, "action": "analyze_brief"}
@@ -58,8 +59,8 @@ def test_native_job_start_is_idempotent_and_returns_only_public_state(
     repeated = researcher.post(base(world), json=body)
     assert repeated.status_code == 200 and repeated.json()["run_id"] == job["run_id"]
     assert viewer.post(base(world), json=body).status_code == 200
-    assert outsider.post(base(world), json=body).status_code == 404
-    assert outsider.get(f"{base(world)}/{job['run_id']}").status_code == 404
+    assert outsider.post(base(world), json=body).status_code == 200  # idempotent: the same job
+    assert outsider.get(f"{base(world)}/{job['run_id']}").json()["run_id"] == job["run_id"]
     read = viewer.get(f"{base(world)}/{job['run_id']}")
     # ADR 0019: costs are no longer hidden from the "viewer" label; it reads what a
     # researcher reads (nothing is spent yet).
@@ -88,7 +89,7 @@ def test_agent_api_rejects_authority_and_unimplemented_actions(
     )
 
 
-def test_cancel_is_scoped_and_any_researcher_may_cancel_but_an_ungranted_member_gets_404(
+def test_cancel_is_scoped_to_its_study_and_any_member_may_cancel(
     researcher: TestClient,
     viewer: TestClient,
     outsider: TestClient,
@@ -101,8 +102,11 @@ def test_cancel_is_scoped_and_any_researcher_may_cancel_but_an_ungranted_member_
         base(world), json={"design_revision_id": rid, "action": "analyze_brief"}
     ).json()
     url = f"{base(world)}/{job['run_id']}/cancel"
-    assert outsider.post(url).status_code == 404
-    assert other_client_lead.post(url).status_code == 404
+    # Under another study's path the job is not there to cancel, whoever asks (ADR 0019).
+    for member in (outsider, other_client_lead):
+        for study in ("sibling", "other_client"):
+            wrong = f"{base(world, study)}/{job['run_id']}/cancel"
+            assert member.post(wrong).status_code == 404, (study, wrong)
     assert researcher.get(f"{base(world)}/{job['run_id']}").json()["status"] == "RUNNING"
     cancelled = viewer.post(url)
     assert cancelled.status_code == 200 and cancelled.json()["status"] == "CANCELLED"
@@ -161,8 +165,9 @@ def test_same_design_can_resume_an_unbilled_runtime_park_after_activation(
     assert parked["status"] == "WAITING_PROVIDER"
     assert parked["steps"][0]["waiting_reason"] == "ai_runtime_unavailable"
     assert parked["actual_cost_usd"] == 0
-    # ADR 0019: any granted member may resume; an ungranted one is told 404.
-    assert outsider.post(f"{url}/{job_id}/resume").status_code == 404
+    # ADR 0019: any member may resume, one who was never granted the study included; the job is
+    # not found under another study's path.
+    assert outsider.post(f"{url}/{job_id}/resume").status_code == 200
     assert researcher.post(f"{base(world, 'sibling')}/{job_id}/resume").status_code == 404
 
     resumed = researcher.post(f"{url}/{job_id}/resume")

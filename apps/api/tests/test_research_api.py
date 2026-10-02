@@ -108,7 +108,7 @@ def test_a_design_becomes_an_immutable_revision_and_resubmitting_it_changes_noth
     assert [r["revision"] for r in listed] == [2, 1]
 
 
-def test_every_granted_label_may_submit_a_design_an_ungranted_member_gets_404_and_bad_ones_422(
+def test_every_member_may_submit_a_design_with_or_without_a_grant_and_bad_ones_422(
     viewer: TestClient,
     reviewer: TestClient,
     lead: TestClient,
@@ -117,13 +117,12 @@ def test_every_granted_label_may_submit_a_design_an_ungranted_member_gets_404_an
 ) -> None:
     """ADR 0019: "viewer" and "reviewer" hold the Researcher role, so they may submit.
 
-    A member without a grant is told the Study does not exist; a design that
-    carries scope is still refused.
+    So does a member who was never granted the Study; a design that carries scope is
+    still refused.
     """
-    for c in (viewer, reviewer):
+    for c in (viewer, reviewer, outsider):
         accepted = submit(c, world)
         assert accepted.status_code in (200, 201), accepted.text
-    assert submit(outsider, world).status_code == 404
     bad = submit(lead, world, {**DESIGN, "client_id": world.client_id("other")})
     assert bad.status_code == 422 and bad.json()["code"] == "design_carries_scope"
     assert submit(lead, world, []).status_code == 422
@@ -134,18 +133,19 @@ def test_every_granted_label_may_submit_a_design_an_ungranted_member_gets_404_an
     assert extra.status_code == 422
 
 
-def test_a_design_never_crosses_studies_or_clients(
+def test_a_design_never_crosses_studies(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
     acme = submit(lead, world).json()["revision_id"]
     # Each study has a design of its own, so only the Study filter can refuse Acme's id.
     assert submit(other_client_lead, world, study="other_client").status_code == 201
     assert submit(lead, world, {**DESIGN, "n": 21}, study="sibling").status_code == 201
-    # Another client's lead: Acme's study is invisible; Acme's revision id means nothing in theirs.
-    assert submit(other_client_lead, world).status_code == 404
+    # Another client's lead may open Acme's study (ADR 0019), but Acme's revision id means
+    # nothing in theirs.
+    assert submit(other_client_lead, world).status_code in (200, 201)
     assert (
         other_client_lead.get(f"{API}/studies/{world.study_id()}/design/revisions").status_code
-        == 404
+        == 200
     )
     assert (
         other_client_lead.get(
@@ -158,7 +158,7 @@ def test_a_design_never_crosses_studies_or_clients(
         lead.get(f"{API}/studies/{world.study_id('sibling')}/design/revisions/{acme}").status_code
         == 404
     )
-    assert outsider.get(f"{API}/studies/{world.study_id()}/design/revisions").status_code == 404
+    assert outsider.get(f"{API}/studies/{world.study_id()}/design/revisions").status_code == 200
     # A malformed id is refused before any lookup.
     assert lead.get(f"{API}/studies/{world.study_id()}/design/revisions/PRJ-1").status_code == 422
 
@@ -289,8 +289,12 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert internal.json()["modules"] == {}
     # ADR 0019: the "viewer" label holds the Researcher role and reads it too.
     assert viewer.get(url).status_code == 200
-    assert outsider.get(url).status_code == 404
-    assert other_client_lead.get(url).status_code == 404
+    # So do a member with no grant and another client's lead (ADR 0019); what bounds it is the
+    # study the path names.
+    assert outsider.get(url).status_code == 200
+    assert other_client_lead.get(url).status_code == 200
+    wrong = f"{_runs(world, 'other_client')}/{run['run_id']}/analysis"
+    assert other_client_lead.get(wrong).status_code == 404
 
 
 def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
@@ -356,8 +360,8 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
     assert "internal-draft.docx" in downloaded.headers["content-disposition"]
     assert downloaded.headers["cache-control"] == "no-store"
-    assert outsider.get(url).status_code == 404
-    assert outsider.get(f"{url}/download").status_code == 404
+    assert outsider.get(url).status_code == 200  # ADR 0019: a member with no grant reads it too
+    assert outsider.get(f"{url}/download").status_code == 200
     other_url = f"{_runs(world, 'other_client')}/{run_id}/report"
     assert other_client_lead.get(other_url).status_code == 404
     assert other_client_lead.get(f"{other_url}/download").status_code == 404
@@ -367,7 +371,7 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     assert artifact_status(report_id) == "CORRUPT"
 
 
-def test_starting_needs_a_grant_and_a_revision_of_this_study(
+def test_starting_needs_a_revision_of_this_study_not_a_grant(
     researcher: TestClient,
     viewer: TestClient,
     reviewer: TestClient,
@@ -375,10 +379,9 @@ def test_starting_needs_a_grant_and_a_revision_of_this_study(
     other_client_lead: TestClient,
     world: Any,
 ) -> None:
-    """ADR 0019: every granted label may start; the boundary is the grant and the Study."""
+    """ADR 0019: every member may start; the boundary is the Study the revision belongs to."""
     revision_id = submit(researcher, world).json()["revision_id"]
-    assert start(outsider, world, revision_id).status_code == 404
-    for c in (viewer, reviewer):
+    for c in (outsider, viewer, reviewer):
         started = start(c, world, revision_id)
         assert started.status_code in (200, 201), started.text
     # The browser cannot choose how fieldwork is done.
@@ -392,10 +395,11 @@ def test_starting_needs_a_grant_and_a_revision_of_this_study(
     # Another client's lead, in their own study, cannot run Acme's revision.
     submit(other_client_lead, world, study="other_client")
     assert start(other_client_lead, world, revision_id, study="other_client").status_code == 404
-    assert start(other_client_lead, world, revision_id).status_code == 404
+    # Through Acme's own study they may run Acme's revision (ADR 0019); the same run, so 200.
+    assert start(other_client_lead, world, revision_id).status_code in (200, 201)
 
 
-def test_a_run_never_crosses_studies_or_clients(
+def test_a_run_never_crosses_studies(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
     acme = start(lead, world, submit(lead, world).json()["revision_id"]).json()["run_id"]
@@ -411,8 +415,9 @@ def test_a_run_never_crosses_studies_or_clients(
         for action in ("cancel", "retry"):
             assert c.post(f"{base}/{acme}/{action}").status_code == 404
         assert acme not in [r["run_id"] for r in c.get(base).json()["items"]]
-    assert other_client_lead.get(f"{_runs(world)}/{acme}").status_code == 404
-    assert outsider.get(_runs(world)).status_code == 404
+    # Through its own study's path any member reads the run (ADR 0019).
+    assert other_client_lead.get(f"{_runs(world)}/{acme}").status_code == 200
+    assert outsider.get(_runs(world)).status_code == 200
     assert lead.get(f"{_runs(world)}/PRJ-1").status_code == 422
 
 
@@ -453,10 +458,9 @@ def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
         pass
     failed = researcher.get(f"{_runs(world)}/{run_id}").json()
     assert failed["phase"] == "FAILED" and failed["retryable"] is True
-    # ADR 0019: any granted member may retry; an ungranted one is told 404.
-    assert outsider.post(f"{_runs(world)}/{run_id}/retry").status_code == 404
-
-    retry = researcher.post(f"{_runs(world)}/{run_id}/retry")
+    # ADR 0019: any member may retry, one who was never granted the study included. The retry is
+    # one new run, so whoever retries first gets 201 and the next gets the same run back.
+    retry = outsider.post(f"{_runs(world)}/{run_id}/retry")
     assert retry.status_code == 201, retry.text
     body = retry.json()
     assert body["run_id"] != run_id and body["retry_of"] == run_id
@@ -465,21 +469,24 @@ def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
     assert again.status_code == 200 and again.json()["run_id"] == body["run_id"]
 
 
-def test_any_granted_member_may_cancel_a_run_and_an_ungranted_one_gets_404(
+def test_any_member_may_cancel_a_run_with_or_without_a_grant(
     researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
     """ADR 0019: cancelling is no longer withheld from the "viewer" label."""
     run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
         "run_id"
     ]
-    assert outsider.post(f"{_runs(world)}/{run_id}/cancel").status_code == 404
+    # Under another study's path the run is not there to cancel, whoever asks.
+    wrong = f"{_runs(world, 'sibling')}/{run_id}/cancel"
+    assert outsider.post(wrong).status_code == 404
     assert researcher.get(f"{_runs(world)}/{run_id}").json()["phase"] != "CANCELLED"
-    cancelled = viewer.post(f"{_runs(world)}/{run_id}/cancel")
+    cancelled = outsider.post(f"{_runs(world)}/{run_id}/cancel")
     assert cancelled.status_code == 200
     assert cancelled.json()["phase"] == "CANCELLED" and cancelled.json()["retryable"] is True
+    assert viewer.post(f"{_runs(world)}/{run_id}/cancel").status_code == 200  # already cancelled
 
 
-def test_cost_is_shown_to_every_granted_member_and_to_no_one_else(
+def test_cost_is_shown_to_every_member(
     researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
     """ADR 0019: the Researcher role holds VIEW_COSTS, so the "viewer" label sees cost too."""
@@ -494,8 +501,8 @@ def test_cost_is_shown_to_every_granted_member_and_to_no_one_else(
     assert listed and [r["actual_cost_usd"] for r in listed] == [
         r["actual_cost_usd"] for r in researcher.get(_runs(world)).json()["items"]
     ]
-    assert outsider.get(f"{_runs(world)}/{run_id}").status_code == 404
-    assert outsider.get(_runs(world)).status_code == 404
+    assert outsider.get(f"{_runs(world)}/{run_id}").json()["actual_cost_usd"] == 0.0
+    assert outsider.get(_runs(world)).status_code == 200
 
 
 def test_a_run_serves_only_the_artifacts_it_produced(researcher: TestClient, world: Any) -> None:
@@ -565,8 +572,9 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     refused = start(researcher, world, not_ready)
     assert refused.status_code == 409 and refused.json()["code"] == "design_not_ready"
     assert refused.json()["details"]["failed"][0]["id"] == "conditional_questions"
-    # Another client's lead cannot read this Study's readiness, nor ask about its revision.
-    assert other_client_lead.get(url, params={"design_revision_id": revision_id}).status_code == 404
+    # Another client's lead may read this Study's readiness (ADR 0019), but cannot ask about its
+    # revision through their own study.
+    assert other_client_lead.get(url, params={"design_revision_id": revision_id}).status_code == 200
     other = f"{API}/studies/{world.study_id('other_client')}/research/readiness"
     submit(other_client_lead, world, study="other_client")
     assert (
@@ -619,15 +627,17 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     sociomap = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
     assert sociomap.status_code == 200
     assert sociomap.json()["payload"]["sociomap"]["methodology_status"] == "INTERNAL_ONLY"
-    # INTERNAL_ONLY while D6 is open. ADR 0019: every granted member is a Researcher and
-    # reads it (the payload above still says INTERNAL_ONLY); a member without a grant
-    # cannot reach any artifact of the run.
+    # INTERNAL_ONLY while D6 is open. ADR 0019: every member is a Researcher and reads it
+    # (the payload above still says INTERNAL_ONLY), a member who was never granted the study
+    # included; respondent rows are still never inlined for anyone.
     internal = viewer.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
     assert internal.status_code == 200
     assert internal.json()["payload"]["sociomap"]["methodology_status"] == "INTERNAL_ONLY"
     for artifact_id in (spec_id, dataset_id, aggregate_id, sociomap_id):
-        denied = outsider.get(f"{_runs(world)}/{run_id}/artifacts/{artifact_id}")
-        assert denied.status_code == 404
+        read = outsider.get(f"{_runs(world)}/{run_id}/artifacts/{artifact_id}")
+        assert read.status_code == 200
+        if artifact_id == dataset_id:
+            assert read.json()["payload"] is None
 
     with create_session_factory(app.state.engine)() as session:
         design_project = session.scalars(select(ProjectRow.project_id)).one()

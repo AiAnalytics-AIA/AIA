@@ -39,7 +39,6 @@ from ..domain.scope import (
     StudyGrant,
     StudyStatus,
     client_permissions_for,
-    effective_role,
     permissions_for,
     resolve_self_approval_policy,
 )
@@ -208,9 +207,9 @@ class ScopeResolver:
         2. the user is a member of the organization;
         3. the study exists **within that organization**;
         4. the client is not archived;
-        5. the user holds a client grant or a study grant, with the study grant
-           authoritative;
-        6. the effective role confers ``require``, when given.
+        5. the user holds the one Researcher role, which every active member of the
+           organization does (ADR 0019: no client or study grants);
+        6. the role confers ``require``, when given.
 
         The self-approval policy is resolved here, from the organization, client
         and study rows, and travels on the issued context. Resolving it at this
@@ -220,7 +219,8 @@ class ScopeResolver:
         permitted.
 
         Every failure raises the same exception with a distinguishing ``reason``
-        for the audit log, and callers must surface all of them as 404.
+        for the audit log, and callers must surface all of them as 404. A study of
+        another organization is one of them: the organization is the boundary.
         """
         self._active_user(principal)
         organization_role = self._membership_role(principal)
@@ -244,35 +244,10 @@ class ScopeResolver:
         if client.status == ClientStatus.ARCHIVED.value:
             raise ScopeDenied("not found", reason="client_archived")
 
-        client_grant = self._session.scalar(
-            select(ClientGrantRow).where(
-                ClientGrantRow.client_id == study.client_id,
-                ClientGrantRow.user_id == principal.user_id,
-            )
-        )
-        study_grant = self._session.scalar(
-            select(StudyGrantRow).where(
-                StudyGrantRow.study_id == study_id,
-                StudyGrantRow.user_id == principal.user_id,
-            )
-        )
-
-        role = effective_role(
-            client_role=ScopeRole.from_stored(client_grant.role) if client_grant else None,
-            study_role=ScopeRole.from_stored(study_grant.role) if study_grant else None,
-        )
-
-        if role is None:
-            # This one *is* recorded: a member of the organization reaching for a
-            # study they hold no grant on is worth seeing.
-            self._record(
-                principal,
-                action="ACCESS_DENIED",
-                client_id=study.client_id,
-                study_id=study_id,
-                reason="no_grant",
-            )
-            raise ScopeDenied("not found", reason="no_grant")
+        # ADR 0019: membership of the organization is the access. Every active member
+        # holds the one Researcher role on every client and study of it; there is no
+        # grant to look up, so there is nothing between members to deny.
+        role = ScopeRole.RESEARCHER
 
         organization = self._session.scalar(
             select(OrganizationRow).where(
@@ -394,10 +369,10 @@ class ScopeResolver:
         """Authorise scope for one client, or raise :class:`ScopeDenied` (ADR 0015).
 
         Resolution order: the user is active; a member of the organization; the
-        client exists **within that organization** and is not archived; the user
-        holds a client-level grant, or at least one study grant on a study of this
-        client (study-only access). The studies the actor may open are resolved
-        here and travel on the context. Every failure must surface as 404.
+        client exists **within that organization** and is not archived. Membership
+        is the access (ADR 0019), so no grant is consulted. The studies the actor
+        may open -- all of the client's -- are resolved here and travel on the
+        context. Every failure must surface as 404.
         """
         self._active_user(principal)
         organization_role = self._membership_role(principal)
@@ -413,24 +388,10 @@ class ScopeResolver:
         if client.status == ClientStatus.ARCHIVED.value:
             raise ScopeDenied("not found", reason="client_archived")
 
-        client_grant = self._session.scalar(
-            select(ClientGrantRow).where(
-                ClientGrantRow.client_id == client_id,
-                ClientGrantRow.user_id == principal.user_id,
-            )
-        )
+        # ADR 0019: every active member holds the Researcher role on every client of
+        # the organization, and may open every study of it.
+        client_role = ScopeRole.RESEARCHER
         study_ids = frozenset(self.accessible_studies(principal, client_id=client_id))
-        if client_grant is None and not study_ids:
-            self._record(
-                principal,
-                action="ACCESS_DENIED",
-                client_id=client_id,
-                study_id=None,
-                reason="no_grant",
-            )
-            raise ScopeDenied("not found", reason="no_grant")
-
-        client_role = ScopeRole.from_stored(client_grant.role) if client_grant else None
         organization = self._session.scalar(
             select(OrganizationRow).where(
                 OrganizationRow.organization_id == principal.organization_id
@@ -467,71 +428,36 @@ class ScopeResolver:
         return context
 
     def accessible_clients(self, principal: AuthenticatedPrincipal) -> list[str]:
-        """The clients this principal may open: a client grant, or a study grant within it.
+        """The clients this principal may open: every unarchived client of the organization.
 
+        ADR 0019: membership of the organization is the access, so no grant is read.
         Archived clients are excluded, as :meth:`client_context` refuses them.
-        Organization administrators are not silently included (ADR 0004).
         """
         self._active_user(principal)
         self._membership_role(principal)
-        via_client = (
-            select(ClientRow.client_id)
-            .join(ClientGrantRow, ClientGrantRow.client_id == ClientRow.client_id)
-            .where(
-                ClientRow.organization_id == principal.organization_id,
-                ClientRow.status != ClientStatus.ARCHIVED.value,
-                ClientGrantRow.user_id == principal.user_id,
-            )
+        stmt = select(ClientRow.client_id).where(
+            ClientRow.organization_id == principal.organization_id,
+            ClientRow.status != ClientStatus.ARCHIVED.value,
         )
-        via_study = (
-            select(ClientRow.client_id)
-            .join(StudyRow, StudyRow.client_id == ClientRow.client_id)
-            .join(StudyGrantRow, StudyGrantRow.study_id == StudyRow.study_id)
-            .where(
-                ClientRow.organization_id == principal.organization_id,
-                ClientRow.status != ClientStatus.ARCHIVED.value,
-                StudyGrantRow.user_id == principal.user_id,
-            )
-        )
-        ids = set(self._session.scalars(via_client).all())
-        ids.update(self._session.scalars(via_study).all())
-        return sorted(ids)
+        return sorted(set(self._session.scalars(stmt).all()))
 
     def accessible_studies(
         self, principal: AuthenticatedPrincipal, *, client_id: str | None = None
     ) -> list[str]:
-        """Return the study ids this principal may access.
+        """Return the study ids this principal may access: every study of the organization.
 
-        Used to scope a portfolio listing. A study reachable through either a
-        client grant or a study grant is included; nothing else is, and
-        organization administrators are not silently included.
+        Used to scope a portfolio listing; ``client_id`` narrows it to one client. ADR 0019:
+        membership of the organization is the access, so no grant is read. The organization
+        is still the boundary: a study of another organization is never listed.
         """
         self._active_user(principal)
         self._membership_role(principal)
-
-        via_client = (
-            select(StudyRow.study_id)
-            .join(ClientGrantRow, ClientGrantRow.client_id == StudyRow.client_id)
-            .where(
-                StudyRow.organization_id == principal.organization_id,
-                ClientGrantRow.user_id == principal.user_id,
-            )
-        )
-        via_study = (
-            select(StudyRow.study_id)
-            .join(StudyGrantRow, StudyGrantRow.study_id == StudyRow.study_id)
-            .where(
-                StudyRow.organization_id == principal.organization_id,
-                StudyGrantRow.user_id == principal.user_id,
-            )
+        stmt = select(StudyRow.study_id).where(
+            StudyRow.organization_id == principal.organization_id
         )
         if client_id is not None:
-            via_client = via_client.where(StudyRow.client_id == client_id)
-            via_study = via_study.where(StudyRow.client_id == client_id)
-
-        ids = set(self._session.scalars(via_client).all())
-        ids.update(self._session.scalars(via_study).all())
-        return sorted(ids)
+            stmt = stmt.where(StudyRow.client_id == client_id)
+        return sorted(set(self._session.scalars(stmt).all()))
 
     # ------------------------------------------------------------- mutations --
 

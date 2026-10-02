@@ -712,16 +712,15 @@ def test_artifacts_are_invisible_across_clients(
         other.dependencies(artifact.artifact_id)
 
 
-def test_every_member_with_access_can_write_artifacts_and_an_outsider_cannot(
+def test_every_member_can_write_artifacts_including_one_with_no_grant(
     session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
 ) -> None:
     """ADR 0019: one role, so there is no one left who may read but not write.
 
-    The former reviewer and viewer write like anyone else. What still refuses is
-    having no access at all: the outsider holds no grant, so no scope is issued and
-    there is no repository to write through.
+    The former reviewer and viewer write like anyone else, and so does a member who was
+    never granted the study: membership of the organization is the access.
     """
-    for user in ("reviewer", "viewer"):
+    for user in ("reviewer", "viewer", "outsider"):
         writer = ArtifactRepository(session, scoped.scope(user=user, study="primary"), store)
         artifact, _ = writer.put_json(
             project_id=project.project_id,
@@ -731,9 +730,6 @@ def test_every_member_with_access_can_write_artifacts_and_an_outsider_cannot(
             payload={"by": user},
         )
         assert artifact.produced_by_user_id == scoped.users[user]
-
-    with pytest.raises(ScopeDenied):
-        scoped.scope(user="outsider", study="primary")
 
 
 def test_a_researcher_can_sign_off_their_own_artifact(
@@ -766,8 +762,8 @@ def test_download_url_requires_export_authority(
 ) -> None:
     """Handing out a URL is handing out the content, so it is gated like export.
 
-    Every member holds export since ADR 0019; the gate that remains is access to
-    the study at all, which the outsider does not have.
+    Every member holds export since ADR 0019, a member with no grant included; the
+    permission check still runs on every call.
     """
     researcher = ArtifactRepository(
         session, scoped.scope(user="researcher", study="primary"), store
@@ -782,11 +778,9 @@ def test_download_url_requires_export_authority(
     # In-memory issues no URL, but the permission check must still have run.
     assert researcher.download_url(artifact.artifact_id) is None
 
-    viewer = ArtifactRepository(session, scoped.scope(user="viewer", study="primary"), store)
-    assert viewer.download_url(artifact.artifact_id) is None
-
-    with pytest.raises(ScopeDenied):
-        scoped.scope(user="outsider", study="primary")
+    for user in ("viewer", "outsider"):
+        reader = ArtifactRepository(session, scoped.scope(user=user, study="primary"), store)
+        assert reader.download_url(artifact.artifact_id) is None
 
 
 # --------------------------------------------------------------------------- #
