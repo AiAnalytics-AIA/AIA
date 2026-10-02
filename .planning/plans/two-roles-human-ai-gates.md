@@ -4,7 +4,7 @@ chunks:
   - "[x] 1. ADR 0019: two roles, no cross-approval, the human-with-AI gate catalogue (supersedes ADR 0004's grant rules and ADR 0015 decisions 6-7)"
   - "[x] 2. Domain: one Researcher permission set; self-approval allowed by default; REVIEWER and LEAD gone"
   - "[x] 3. ScopeResolver: every active member sees every client and study of the organization"
-  - "[ ] 4. Admin: system settings only for ADMIN; MEMBER is the Researcher; settings document and web client"
+  - "[x] 4. Admin: system settings only for ADMIN; MEMBER is the Researcher; settings document and web client"
   - "[x] 5a. Human-authored Knowledge writes directly (client workspace); a study's proposal still waits for a person, who may be its proposer"
   - "[ ] 5b. Gates (design proposed below, awaiting the owner): split into 5b.1 to 5b.4"
   - "[x] 5b.1 A person can lift a budget wait and the run goes on (today it is a dead end)"
@@ -155,6 +155,28 @@ organization filters in every query stay.
 
 **Not done here.** `docs/architecture/scope-and-authorization.md` carries a status note and is
 rewritten in chunk 6; the web client still shows `your_role` and a role picker (chunk 4).
+
+## Chunk 4 (landed 2026-10-02)
+
+What the Settings page said, against what the system does (ADR 0019), found by reading the page's
+own strings:
+
+| Said | Was | Now |
+|---|---|---|
+| Invariant `membership_grants_no_data: true` ("membership alone grants no client data"), in force and not editable | False since chunk 3: membership is the access (`settings.py:185 @ d5f214d`) | Invariant `membership_is_access` citing ADR 0019 |
+| "Added member sees no client data until granted" (members note); "grant a client / study" forms with a role picker | A grant is read by nothing | Forms and the web client's `grantClient` / `grantStudy` removed; the routes stay until chunk 6 |
+| Self-approval rule "default (forbidden)" | Default is allowed (`DEFAULT_SELF_APPROVAL_ALLOWED = True`) | "default (allowed)" |
+| Role labels LEAD, REVIEWER, VIEWER; organization role MEMBER "člen" | Only the Researcher exists | MEMBER reads "výzkumník"; legacy labels removed |
+
+**Tests.** `test_the_settings_say_membership_is_access_and_offer_no_grants` (fails on the old
+document); three tests pin that a Researcher cannot add a member, create a client or change
+self-approval (they were only implied); one web test asserts no grant control, no stale sentence and
+the role picker's labels (fails on the old component).
+
+**Left for the owner (a finding, not a change).** Creating a client needs an Admin
+(`scope_repository.py:272`, `workspace.py` "Starting a client needs an organization owner or admin").
+ADR 0019 lists "create studies" for a Researcher and says nothing about clients. If a Researcher
+should be able to start a client, that is a one-line permission change plus its test; I did not guess.
 
 ## Chunk 5b design (proposed 2026-10-02, awaiting the owner)
 

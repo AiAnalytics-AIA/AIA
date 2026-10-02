@@ -278,14 +278,6 @@ function RoleSelect({ roles, label, prefix }: { roles: string[]; label: string; 
   );
 }
 
-function MemberSelect({ members }: { members: Member[] }) {
-  return (
-    <Select name="user_id" aria-label={t(`${P}.members.member`)} className="w-auto" required>
-      {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name ? `${m.display_name} · ` : ""}{m.email}</option>)}
-    </Select>
-  );
-}
-
 // ---------------------------------------------------------------- panels
 
 function MembersPanel({ members, vocab, canAdminister, reload }: { members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; reload: () => void }) {
@@ -323,10 +315,9 @@ function MembersPanel({ members, vocab, canAdminister, reload }: { members: Part
   );
 }
 
-function ClientsPanel({ clients, members, vocab, canAdminister, reload }: {
-  clients: Part<AdminClient[]>; members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; reload: () => void;
+function ClientsPanel({ clients, vocab, canAdminister, reload }: {
+  clients: Part<AdminClient[]>; vocab: Vocabularies; canAdminister: boolean; reload: () => void;
 }) {
-  const scopeRoles = vocab.scope_roles.map((r) => r.role);
   return (
     <div className="flex flex-col gap-3">
       <Sub>{t(`${P}.clients.title`)}</Sub>
@@ -353,28 +344,14 @@ function ClientsPanel({ clients, members, vocab, canAdminister, reload }: {
           </tbody>
         </table>
       )}
-      {canAdminister && clients.ok && members.ok && clients.data.length ? (
-        <div className="rounded-sm border border-border p-3">
-          <p className="mb-2 text-xs font-medium text-ink-muted">{t(`${P}.clients.grant`)}</p>
-          <ActionForm submit={t(`${P}.grant`)} reload={reload} run={(f) => admin.grantClient(str(f, "client_id"), str(f, "user_id"), str(f, "role"))}>
-            <Select name="client_id" aria-label={t(`${P}.clients.client`)} className="w-auto">
-              {clients.data.map((c) => <option key={c.client_id} value={c.client_id}>{c.name}</option>)}
-            </Select>
-            <MemberSelect members={members.data} />
-            <RoleSelect roles={scopeRoles} label={t(`${P}.members.role`)} prefix="aia.roles" />
-          </ActionForm>
-          <p className="mt-2 text-xs text-ink-faint">{t(`${P}.clients.grantNote`)}</p>
-        </div>
-      ) : null}
     </div>
   );
 }
 
-function StudiesPanel({ studies, clients, members, vocab, reload }: {
-  studies: Part<StudyRow[]>; clients: Part<AdminClient[]>; members: Part<Member[]>; vocab: Vocabularies; reload: () => void;
+function StudiesPanel({ studies, clients, vocab, reload }: {
+  studies: Part<StudyRow[]>; clients: Part<AdminClient[]>; vocab: Vocabularies; reload: () => void;
 }) {
   const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
-  const scopeRoles = vocab.scope_roles.map((r) => r.role);
   if (!studies.ok) return <Unavailable what={t(`${P}.studies.title`)} message={studies.message} />;
   if (!studies.data.length) return <Empty>{t(`${P}.studies.none`)}</Empty>;
   return (
@@ -397,7 +374,7 @@ function StudiesPanel({ studies, clients, members, vocab, reload }: {
                 )}
               </span>
             </summary>
-            <div className="grid gap-4 border-t border-border p-3 lg:grid-cols-3">
+            <div className="grid gap-4 border-t border-border p-3 lg:grid-cols-2">
               <div>
                 <p className="mb-1 text-xs font-medium text-ink-muted">{t(`${P}.studies.status`)}</p>
                 <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.setStudyStatus(study.study_id, str(f, "status"))}>
@@ -416,16 +393,7 @@ function StudiesPanel({ studies, clients, members, vocab, reload }: {
                   <span className="pb-2 text-xs text-ink-faint">USD</span>
                 </ActionForm>
               </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-ink-muted">{t(`${P}.studies.grant`)}</p>
-                {members.ok ? (
-                  <ActionForm submit={t(`${P}.grant`)} reload={reload} run={(f) => admin.grantStudy(study.study_id, str(f, "user_id"), str(f, "role"))}>
-                    <MemberSelect members={members.data} />
-                    <RoleSelect roles={scopeRoles} label={t(`${P}.members.role`)} prefix="aia.roles" />
-                  </ActionForm>
-                ) : <Unavailable what={t(`${P}.members.title`)} message={members.message} />}
-              </div>
-              <p className="text-xs text-ink-faint lg:col-span-3">{t(`${P}.studies.permissionNote`)}</p>
+              <p className="text-xs text-ink-faint lg:col-span-2">{t(`${P}.studies.permissionNote`)}</p>
             </div>
           </details>
         );
@@ -815,10 +783,10 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
     access: (
       <>
         <MembersPanel members={members} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
-        <ClientsPanel clients={clients} members={members} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
+        <ClientsPanel clients={clients} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
       </>
     ),
-    studies: <StudiesPanel studies={studies} clients={clients} members={members} vocab={vocab} reload={reload} />,
+    studies: <StudiesPanel studies={studies} clients={clients} vocab={vocab} reload={reload} />,
     approvals: <SelfApprovalPanel levels={levels} clients={clients} studies={studies} reload={reload} />,
     residency: <DataClasses vocab={vocab} />,
     workflow: <Stages vocab={vocab} />,

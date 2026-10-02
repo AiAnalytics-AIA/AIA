@@ -43,6 +43,10 @@ const DOC = (mayAdminister = true) => ({
     ...(mayAdminister
       ? [{ key: "deployment", items: [item("env", "develop", "DEPLOYMENT", "AIA_ENV"), item("database_backend", null, "DEPLOYMENT", "DATABASE_URL")] }]
       : []),
+    { key: "access", items: [
+      item("members", null, "API", "POST /api/v1/members"),
+      item("membership_is_access", true, "INVARIANT", "docs/architecture/adr/0019-two-roles-and-human-ai-gates.md"),
+    ] },
     { key: "studies", items: [
       item("study_budget", null, "API", "PUT /api/v1/studies/{study_id}/budget", "USD"),
       item("no_spend_past_budget", true, "INVARIANT", "ARCHITECTURE.md §10"),
@@ -59,7 +63,7 @@ const DOC = (mayAdminister = true) => ({
   ai_runtime: AI_RUNTIME,
   vocabularies: {
     organization_roles: ["OWNER", "ADMIN", "MEMBER"],
-    scope_roles: [{ role: "VIEWER", permissions: ["VIEW_STUDY"] }, { role: "LEAD", permissions: ["VIEW_STUDY", "MANAGE_STUDY_BUDGET"] }],
+    scope_roles: [{ role: "RESEARCHER", permissions: ["VIEW_STUDY", "MANAGE_STUDY_BUDGET"] }],
     permissions: ["VIEW_STUDY", "MANAGE_STUDY_BUDGET"],
     client_statuses: ["ACTIVE", "DORMANT", "ARCHIVED"],
     study_statuses: ["DRAFT", "ACTIVE"],
@@ -163,6 +167,20 @@ describe("the settings control panel", () => {
     expect(within(db).queryByText("0")).toBeNull();
     const invariant = screen.getAllByText("Žádná útrata nad rozpočet")[0].closest("[data-setting]") as HTMLElement;
     expect(invariant.querySelector("[data-control]")?.getAttribute("data-control")).toBe("INVARIANT");
+  });
+
+  it("offers no way to grant access, and says that membership is the access", async () => {
+    api();
+    render(<ControlPanel />);
+    expect((await screen.findAllByText("Členství v organizaci je přístup: každý člen vidí všechny klienty a studie")).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Udělit přístup/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Udělit/ })).toBeNull();
+    expect(screen.queryByText(/dokud nedostane grant/)).toBeNull();
+    expect(screen.queryByText(/neuděluje přístup k datům klienta/)).toBeNull();
+    // The one role a person is added with is the researcher; there is no scope-role picker.
+    const picker = screen.getByRole("combobox", { name: "Role", hidden: true }) as HTMLSelectElement;
+    expect([...picker.options].map((o) => o.textContent)).toEqual(["vlastník (OWNER)", "správce (ADMIN)", "výzkumník (MEMBER)"]);
+    expect(called("POST", "/api/v1/clients/CLI-a/grants")).toHaveLength(0);
   });
 
   it("still renders a group the page has no panel for", async () => {
