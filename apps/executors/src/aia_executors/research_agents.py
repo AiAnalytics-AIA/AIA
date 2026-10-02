@@ -8,6 +8,7 @@ not spend again. A saved artifact is checked before any model preflight/call.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,11 +16,14 @@ from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import ModelCallFailed, canonical_json
 from aia_core.domain.ai_material import MaterialApproval, classify_material
+from aia_core.domain.prompt_slots import get_slot
+from aia_core.domain.prompts import PromptPin
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_agents import (
     HARNESS_VERSION,
     ResearchAction,
     agent_request,
+    prompt_data_class,
     prompt_for,
     proposal_result,
     snapshot_hash,
@@ -29,10 +33,30 @@ from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
+from pydantic import ValidationError
 
 from .ai_step import StepModelCaller
 
 ARTIFACT_TYPE = "research_agent_proposal"
+
+
+def _pin_of(payload: Mapping[str, Any], action: ResearchAction) -> PromptPin:
+    """The prompt this job was queued with. Never what is active now.
+
+    A job queued before prompts were data has no pin and ran the code's wording, so it
+    still does. A pin that does not hash to its own text, or that names another
+    action's prompt, is refused -- the run is not guessed at.
+    """
+    prompt_id = f"aia.research.{action.value}"
+    raw = payload.get("prompt")
+    if raw is None:
+        slot = get_slot(prompt_id)
+        assert slot is not None  # every action is a registered slot
+        return slot.baseline_pin()
+    pin = PromptPin(**raw)
+    if pin.prompt_id != prompt_id:
+        raise ValueError(f"prompt pin {pin.prompt_id} is not {prompt_id}")
+    return pin
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +98,15 @@ class ResearchAgentExecutor:
                 error={"message": "harness version changed; enqueue a new job"},
             )
         action = ResearchAction(step.payload["action"])
+        try:
+            pin = _pin_of(step.payload, action)
+        except (ValueError, TypeError, ValidationError):
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={
+                    "message": "the prompt this job was queued with is not valid; enqueue a new job"
+                },
+            )
         snapshot = dict(step.payload["snapshot"])
         expected = hashlib.sha256(
             canonical_json(
@@ -81,7 +114,7 @@ class ResearchAgentExecutor:
                     "action": action.value,
                     "context": snapshot_hash(snapshot),
                     "instruction": str(step.payload.get("instruction", "")),
-                    "prompt": prompt_for(action),
+                    "prompt": prompt_for(action, pin.text),
                 }
             ).encode()
         ).hexdigest()
@@ -130,6 +163,7 @@ class ResearchAgentExecutor:
             policy_version=cfg.policy_version,
             max_output_tokens=cfg.max_output_tokens,
             material_approvals=cfg.material_approvals,
+            prompt=pin,
         )
         # UTF-8 bytes give a conservative input bound, including the contract and
         # one repair's maximum response. Fail before reserving/sending, never trim.
@@ -168,12 +202,19 @@ class ResearchAgentExecutor:
         except ValueError as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
         assert request.data_classification is not None
+        # A request exists only if its prompt was classified: an unknown class refused above.
+        prompt_class = prompt_data_class(pin, cfg.material_approvals)
+        assert prompt_class is not None
         provenance: dict[str, Any] = {
             "agent_id": request.agent.agent_id,
             "agent_version": request.agent.version,
             "harness_version": HARNESS_VERSION,
             "prompt_version": request.agent.prompt_version,
-            "prompt_sha256": hashlib.sha256(prompt_for(action).encode()).hexdigest(),
+            # The system prompt as sent (the code's frame around the instruction), then the
+            # instruction alone and where it came from: the code's wording or an edit.
+            "prompt_sha256": hashlib.sha256(request.system.encode()).hexdigest(),
+            "prompt_origin": pin.origin,
+            "prompt_text_sha256": pin.text_sha256,
             "schema_fingerprint": result.provenance.schema_fingerprint,
             "design_revision_id": revision_id,
             "context_sha256": snapshot_hash(snapshot),
@@ -196,6 +237,16 @@ class ResearchAgentExecutor:
                 "instruction": classify_material(
                     str(step.payload.get("instruction", "")), cfg.material_approvals
                 ).model_dump(mode="json"),
+                # The code's wording is reviewed with the code; a stored edit travelled only
+                # because an operator classified its exact text (prompt_data_class).
+                "prompt": {
+                    "origin": pin.origin,
+                    "data_class": prompt_class.value,
+                    "text_sha256": pin.text_sha256,
+                    "material_sha256": None
+                    if pin.origin == "baseline"
+                    else classify_material(pin.text, cfg.material_approvals).sha256,
+                },
                 "knowledge_class": "CLASS_A_CLIENT_CONFIDENTIAL",
             },
         }
@@ -206,6 +257,8 @@ class ResearchAgentExecutor:
             "context_sha256": snapshot_hash(snapshot),
             "harness_version": HARNESS_VERSION,
             "prompt_sha256": provenance["prompt_sha256"],
+            "prompt_version": pin.version,
+            "prompt_origin": pin.origin,
         }
         with context.transaction() as (session, _):
             artifact, created = research_artifacts(session, context.scope, self._store).put_json(

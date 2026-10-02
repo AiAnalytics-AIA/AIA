@@ -192,6 +192,24 @@ forbid "executors never touch the client knowledge tables" \
   'ClientKnowledge(Item|Revision|Proposal)Row' \
   "$EXECUTORS"
 
+# System prompts are data an administrator edits (ADR 0020). Their rows are written and
+# read only through the prompt repository, which refuses anyone who may not administer
+# the organization, keeps versions immutable, and audits every change. A table used
+# anywhere else is an edit or an activation that skipped those three.
+forbid "the prompt tables are touched only by their repository" \
+  'Prompt(Version|Activation)Row' \
+  "$CORE" \
+  tables.py prompt_repository.py
+forbid "the API never touches the prompt tables" \
+  'Prompt(Version|Activation)Row' \
+  "$API"
+forbid "the worker never touches the prompt tables" \
+  'Prompt(Version|Activation)Row' \
+  "$WORKER"
+forbid "executors never touch the prompt tables" \
+  'Prompt(Version|Activation)Row' \
+  "$EXECUTORS"
+
 # A Study's design project is found only through the Study (ADR 0016 decision 1).
 # The table used anywhere but its repository is a query that could find a design
 # project -- and the revisions runs execute -- by something other than scope.

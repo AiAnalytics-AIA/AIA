@@ -113,6 +113,10 @@ services:
       AIA_COGNITO_TOKEN_USE: id
       # Same-origin through Caddy: an empty list means no CORS middleware at all.
       AIA_CORS_ORIGINS: "[]"
+      # Where an administrator may try a draft system prompt (ADR 0020): the same list the
+      # worker reads below, so the API can refuse a draft on any other client before a job
+      # exists. Empty means no draft can be run anywhere.
+      AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
     expose: ["8000"]
     depends_on:
       postgres:

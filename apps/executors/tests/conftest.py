@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-from aia_core.domain.scope import ScopeRole, StudyContext, StudyStatus
+from aia_core.domain.scope import OrganizationContext, ScopeRole, StudyContext, StudyStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.repositories import ProjectRepository
@@ -94,6 +94,13 @@ class World:
     lead_id: str
     project_id: str
     sessions: sessionmaker[Session]
+    owner_id: str = ""
+
+    def admin_context(self, session: Session) -> OrganizationContext:
+        """The organization's owner, for tests that edit what the organization runs."""
+        return ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(user_id=self.owner_id, organization_id=self.organization_id)
+        )
 
     def lead_scope(self, session: Session) -> StudyContext:
         return ScopeResolver(session).study_context(
@@ -138,6 +145,7 @@ def world(sessions: sessionmaker[Session]) -> World:
             lead_id=lead.user_id,
             project_id=project.project_id,
             sessions=sessions,
+            owner_id=owner.user_id,
         )
 
 

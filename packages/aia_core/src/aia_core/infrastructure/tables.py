@@ -1296,6 +1296,8 @@ class AIUsageEventRow(Base):
 
     schema_fingerprint: Mapped[str | None] = mapped_column(String(80))
     input_fingerprint: Mapped[str | None] = mapped_column(String(80))
+    # NULL is "not recorded" (every row before this column), never "no system prompt".
+    system_prompt_sha256: Mapped[str | None] = mapped_column(String(64))
     substituted_from: Mapped[str | None] = mapped_column(String(128))
     fallback_from: Mapped[str | None] = mapped_column(String(255))
     fallback_authorised_by: Mapped[str | None] = mapped_column(String(64))
@@ -1536,4 +1538,72 @@ class PopulationCompanionAssetRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["version_id"], ["population_companion_sets.version_id"]),
         CheckConstraint("byte_size > 0", name="population_companion_bytes_positive"),
+    )
+
+
+class PromptVersionRow(Base):
+    """One stored edit of a system prompt's instruction. Immutable (ADR 0020).
+
+    A version is never updated or deleted: a change is a new row, so what a run was
+    queued with can always be read back. ``version_number`` counts per organization
+    and prompt from 1; the baseline (the wording shipped in code) is not a row.
+    """
+
+    __tablename__ = "ai_prompt_versions"
+
+    version_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    text_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    # What this was edited from: "baseline" or an earlier version label. Context for
+    # a reader, not a constraint -- a version never depends on another's row.
+    based_on: Mapped[str] = mapped_column(String(64), nullable=False, default="baseline")
+    note: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "prompt_id", "version_number", name="uq_ai_prompt_version"
+        ),
+        CheckConstraint("version_number >= 1", name="ai_prompt_version_positive"),
+        Index("ix_ai_prompt_versions_prompt", "organization_id", "prompt_id", "version_number"),
+    )
+
+
+class PromptActivationRow(Base):
+    """Which version an organization runs for a prompt. Append-only.
+
+    The active version is the newest row for the prompt. ``version_number`` NULL means
+    the baseline wording in code: rolling back is a new row, never a delete, so the
+    history of what ran is complete. A queued job does not read this table: it was
+    given its pin when it was queued.
+    """
+
+    __tablename__ = "ai_prompt_activations"
+
+    activation_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_number: Mapped[int | None] = mapped_column(Integer)
+    activated_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    activated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "prompt_id", "version_number"],
+            [
+                "ai_prompt_versions.organization_id",
+                "ai_prompt_versions.prompt_id",
+                "ai_prompt_versions.version_number",
+            ],
+        ),
+        Index("ix_ai_prompt_activations_prompt", "organization_id", "prompt_id", "activation_id"),
     )
