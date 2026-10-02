@@ -33,7 +33,12 @@ jobs:
     # runs `docs-checks` instead. Anything else, an unknown path included, runs
     # everything; a push to main or develop always runs everything, because the
     # deploy dispatch below depends on it. The list is short on purpose: add a
-    # path only after confirming that no test, tool or build reads it.
+    # path only after confirming that no test, tool or build reads it. The root
+    # documents CLAUDE.md, AGENTS.md and ARCHITECTURE.md were added after a search
+    # of tests, tools, the Docker build contexts and the workflows (2026-10-02,
+    # .planning/plans/ci-skip-docs-only.md): they are cited in comments and in a
+    # label string, and nothing opens them. docs/migration/** stays out, because
+    # the parity tests read it.
     name: What changed
     runs-on: ubuntu-latest
     outputs:
@@ -56,7 +61,7 @@ jobs:
               code=false
               while IFS= read -r f; do
                 case "$f" in
-                  .planning/*|docs/architecture/adr/*) ;;
+                  .planning/*|docs/architecture/adr/*|CLAUDE.md|AGENTS.md|ARCHITECTURE.md) ;;
                   *) code=true ;;
                 esac
               done <<< "$files"

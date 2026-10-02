@@ -63,6 +63,38 @@ suite takes 6 seconds), but `parity-status` reads their JUnit files to report NO
 than a failure, so removing the jobs would change what that report says. About 2 minutes, not worth
 the risk.
 
+## Widening the list (2026-10-02)
+
+`CLAUDE.md`, `AGENTS.md` and `ARCHITECTURE.md` joined the list of paths that skip the suites. The
+docs PRs that apply other PRs' Doc follow-ups (`CLAUDE.md` §1) touch exactly these, and they were
+running the whole suite, about 24 billed minutes, for a sentence.
+
+**Checked first**, by searching the tracked files (not `legacy/`, `docs/archive/`, `design-system/`):
+
+- Tests, tools and source name the three files only in comments and in string labels, never to open
+  them. For example, `apps/api/src/aia_api/routers/settings.py` labels items "ARCHITECTURE.md §10",
+  `Makefile:152` and `:144` are help strings, and `tools/layer_check.sh:5` says its rules mirror
+  `ARCHITECTURE.md` by convention, not by parsing it.
+- The only `*.md` glob in code or tests is `tools/progress.py:125` over `.planning/plans/`.
+  `apps/web/.dockerignore:11` excludes `*.md`.
+- `deploy/docker/python.Dockerfile` and `apps/web/Dockerfile` copy no root document.
+- The limit of the search: a path built at runtime would not show up as a literal name. No glob or
+  directory walk over these files was found.
+- Left out on purpose: `docs/migration/**` (`test_parity_status_tool.py:29` reads
+  `docs/migration/parity-matrix.md`, and the ledgers are JSON the tests read), `README.md` and the
+  other `docs/architecture/*.md` (not searched, not asked), and a `CLAUDE.md` in a subdirectory (the
+  patterns are exact paths, so it still runs everything).
+
+**Exercised**: the workflow's own `case` block run over ten sample file lists: the three alone, with
+plans and ADRs, with code, with `README.md`, with `docs/migration/`, with the workflow file and with a
+subdirectory `CLAUDE.md`. Only the first three skip. YAML parses. Not run on GitHub: this change edits
+the workflow, so its own pull request runs the full suite once.
+
+**Chunk 3 is not ticked.** It asks that the skip be proved on a docs-only pull request, and none has
+run since #95. The next docs-only PR, the one that applies the Client Knowledge follow-up to
+`CLAUDE.md`, is the first that will take the new path: its `Documentation checks` job should run and
+the suites should be skipped. Tick chunk 3 then, or write down what it did.
+
 ## Trade-off accepted
 
 A docs-only change merges without the test suites. That is sound only while the list of paths
