@@ -315,6 +315,31 @@ def test_archived_client_denies_access(
     assert exc.value.reason == "client_archived"
 
 
+def test_an_archived_clients_studies_drop_out_of_every_listing(
+    resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    """Archived clients stay invisible, in a portfolio listing as much as on a direct read.
+
+    `study_context` and `client_context` refuse an archived client; the listing the API
+    builds from `accessible_studies` must not name its studies either. Since ADR 0019 that
+    list is every member's, so the study names and metadata would otherwise reach everyone.
+    """
+    principal = world["principal"](world["researcher"])
+    both = sorted([world["acme_study"].study_id, world["globex_study"].study_id])
+    assert resolver.accessible_studies(principal) == both
+
+    scope_repo.set_client_status(
+        world["admin"], client_id=world["acme"].client_id, status=ClientStatus.ARCHIVED
+    )
+
+    assert resolver.accessible_studies(principal) == [world["globex_study"].study_id]
+    assert resolver.accessible_studies(principal, client_id=world["acme"].client_id) == []
+    listed = scope_repo.list_studies(
+        world["admin"], study_ids=resolver.accessible_studies(principal)
+    )
+    assert [s.study_id for s in listed] == [world["globex_study"].study_id]
+
+
 def test_deactivated_user_loses_access_immediately(
     resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
 ) -> None:

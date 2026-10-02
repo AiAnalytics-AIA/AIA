@@ -448,12 +448,19 @@ class ScopeResolver:
 
         Used to scope a portfolio listing; ``client_id`` narrows it to one client. ADR 0019:
         membership of the organization is the access, so no grant is read. The organization
-        is still the boundary: a study of another organization is never listed.
+        is still the boundary: a study of another organization is never listed. Studies of an
+        archived client are not listed either, as :meth:`client_context` and
+        :meth:`study_context` refuse that client: archived clients stay invisible.
         """
         self._active_user(principal)
         self._membership_role(principal)
-        stmt = select(StudyRow.study_id).where(
-            StudyRow.organization_id == principal.organization_id
+        stmt = (
+            select(StudyRow.study_id)
+            .join(ClientRow, ClientRow.client_id == StudyRow.client_id)
+            .where(
+                StudyRow.organization_id == principal.organization_id,
+                ClientRow.status != ClientStatus.ARCHIVED.value,
+            )
         )
         if client_id is not None:
             stmt = stmt.where(StudyRow.client_id == client_id)
