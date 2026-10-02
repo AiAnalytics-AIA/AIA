@@ -515,6 +515,12 @@ export const research = {
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`),
+  /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the waiting step go on. */
+  liftBudget: (studyId: string, runId: string, nodeKey: string, budgetUsd: number, note: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/steps/${enc(nodeKey)}/budget`, {
+      budget_usd: budgetUsd,
+      note,
+    }),
   artifact: (studyId: string, runId: string, artifactId: string) =>
     request<Artifact>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/artifacts/${enc(artifactId)}`),
   analysis: (studyId: string, runId: string) =>

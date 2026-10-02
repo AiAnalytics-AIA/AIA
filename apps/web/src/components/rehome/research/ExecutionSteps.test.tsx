@@ -348,6 +348,71 @@ describe("Progress", () => {
     }
   });
 
+  describe("a step waiting for budget", () => {
+    const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 10, spent_usd: 9.5, remaining_usd: 0.5 };
+    const BUDGET_PATH = "/api/v1/studies/STU-1/research/runs/RUN-1/steps/analysis_executive/budget";
+    const waiting = () => parkedWith([
+      step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+      step("analysis_executive", "AWAITING_BUDGET", { kind: "research_analysis", waiting_reason: "budget_exceeded" }),
+    ]);
+
+    it("offers to raise the budget, showing what is spent, and posts the new total for that step", async () => {
+      const resumed = run({ steps: [step("compile", "SUCCEEDED"), step("analysis_executive", "RUNNABLE")] });
+      api({
+        ...listed(waiting()),
+        "GET /api/v1/studies/STU-1": () => STUDY,
+        [`POST ${BUDGET_PATH}`]: () => resumed,
+      });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const form = await screen.findByRole("form", { name: t("research.exec.budget.title") });
+      expect(await within(form).findByText(/10\.00/)).toBeTruthy();
+      const amount = within(form).getByLabelText(t("research.exec.budget.amount")) as HTMLInputElement;
+      expect(amount.value).toBe("10");
+      fireEvent.change(amount, { target: { value: "15" } });
+      fireEvent.change(within(form).getByLabelText(t("research.exec.budget.note")), { target: { value: "Schváleno" } });
+      fireEvent.click(within(form).getByRole("button", { name: t("research.exec.budget.lift") }));
+      await waitFor(() => expect(called("POST", BUDGET_PATH)).toHaveLength(1));
+      expect(called("POST", BUDGET_PATH)[0].body).toEqual({ budget_usd: 15, note: "Schváleno" });
+      await waitFor(() => expect(screen.queryByRole("form", { name: t("research.exec.budget.title") })).toBeNull());
+    });
+
+    it("will not offer a total below the current budget", async () => {
+      api({ ...listed(waiting()), "GET /api/v1/studies/STU-1": () => STUDY });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const form = await screen.findByRole("form", { name: t("research.exec.budget.title") });
+      await within(form).findByText(/10\.00/);
+      fireEvent.change(within(form).getByLabelText(t("research.exec.budget.amount")), { target: { value: "4" } });
+      expect((within(form).getByRole("button", { name: t("research.exec.budget.lift") }) as HTMLButtonElement).disabled).toBe(true);
+      expect(called("POST", BUDGET_PATH)).toHaveLength(0);
+    });
+
+    it("says what the API refused instead of pretending the step went on", async () => {
+      api({
+        ...listed(waiting()),
+        "GET /api/v1/studies/STU-1": () => STUDY,
+        [`POST ${BUDGET_PATH}`]: () => new Response(JSON.stringify({ code: "not_waiting_for_budget", message: "Krok už na rozpočet nečeká." }), { status: 409 }),
+      });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const form = await screen.findByRole("form", { name: t("research.exec.budget.title") });
+      await within(form).findByText(/10\.00/);
+      fireEvent.click(within(form).getByRole("button", { name: t("research.exec.budget.lift") }));
+      expect(await screen.findByText(/Krok už na rozpočet nečeká/)).toBeTruthy();
+      expect(screen.getByRole("form", { name: t("research.exec.budget.title") })).toBeTruthy();
+    });
+
+    it("offers nothing to a reader, and nothing for a step waiting for something else", async () => {
+      api({ ...listed(waiting()), "GET /api/v1/studies/STU-1": () => STUDY });
+      const { unmount } = render(<ResearchScreen step="progress" frame={{ ...TEST_FRAME, canEdit: false }} />);
+      await screen.findByText(/překročil rozpočet studie/);
+      expect(screen.queryByRole("form", { name: t("research.exec.budget.title") })).toBeNull();
+      unmount();
+      api({ ...listed(parkedWith([step("run", "WAITING_PROVIDER", { waiting_reason: "provider_quota_exhausted" })])) });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      await screen.findByText(/vyčerpal kvótu/);
+      expect(screen.queryByRole("form", { name: t("research.exec.budget.title") })).toBeNull();
+    });
+  });
+
   it("cancels only after the person confirms, and retries a failed run as a new run", async () => {
     api({
       ...listed(PARKED),
