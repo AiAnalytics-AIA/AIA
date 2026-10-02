@@ -164,10 +164,13 @@ confirm it passes before committing.
   layers, verified by `mypy --strict`, which is blocking.
 - **Scope is a capability, not an argument.** `StudyContext` is issuable only by
   `ScopeResolver` through a module-private sentinel, and so is the
-  `ClientContext` a client workspace reads through (a client grant, or study
-  grants inside the client; `ClientPermission` says what it allows). Repositories
-  refuse anything that is not an issued context, by type. This is the isolation
-  boundary; see [scope-and-authorization.md](docs/architecture/scope-and-authorization.md).
+  `ClientContext` a client workspace reads through (`ClientPermission` says what it
+  allows). A context is issued to any active member of the organization, who holds
+  the one Researcher role on every client and study of it
+  ([ADR 0019](docs/architecture/adr/0019-two-roles-and-human-ai-gates.md)); the
+  organization is the isolation boundary. Repositories refuse anything that is not
+  an issued context, by type; see
+  [scope-and-authorization.md](docs/architecture/scope-and-authorization.md).
   Client Knowledge is read only inside such a context -- never a global pool
   filtered afterwards -- and changes only by a person's own write or when a study's
   proposal is accepted, either of which writes a new revision ([ADR 0019](docs/architecture/adr/0019-two-roles-and-human-ai-gates.md), [ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).
