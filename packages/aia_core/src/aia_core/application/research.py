@@ -34,22 +34,29 @@ from ..domain.research_agents import (
 )
 from ..domain.research_design import Readiness, ResearchSpecification, prepare
 from ..domain.scope import OrganizationRole, Permission, StudyContext
-from ..domain.workflow import WorkflowRunStatus
+from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_AGENT
 from ..infrastructure.artifact_repository import ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
+from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
-from ..infrastructure.workflow_repository import WorkflowNotFound, WorkflowRepository
+from ..infrastructure.workflow_repository import (
+    BudgetWaitNotLiftable,
+    WorkflowNotFound,
+    WorkflowRepository,
+)
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
+    "BudgetNotRaised",
     "DesignNotReady",
     "ResearchAgentJobs",
     "ResearchRunNotFound",
     "ResearchRunNotRetryable",
     "ResearchRuns",
+    "ResearchStepNotFound",
     "research_artifacts",
 ]
 
@@ -84,6 +91,19 @@ class ResearchRunNotRetryable(Exception):
     def __init__(self, status: WorkflowRunStatus) -> None:
         super().__init__(f"a {status.value} run cannot be retried")
         self.status = status
+
+
+class ResearchStepNotFound(LookupError):
+    """The run has no step with this node key."""
+
+
+class BudgetNotRaised(ValueError):
+    """The budget offered is below the study's current one: that would lower the cap."""
+
+    def __init__(self, *, offered: float, current: float) -> None:
+        super().__init__(f"budget {offered:.2f} is below the current {current:.2f}")
+        self.offered = offered
+        self.current = current
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,6 +191,41 @@ class ResearchRuns:
         self.scope.require(Permission.CANCEL_WORKFLOW)
         self.get(run_id)
         return self._workflows().request_cancel(run_id, reason=reason)
+
+    def lift_budget_wait(
+        self, run_id: str, node_key: str, *, budget_usd: float, note: str = ""
+    ) -> dict[str, Any]:
+        """Raise the study's budget to ``budget_usd`` and let the waiting step go on.
+
+        A step whose reservation would pass the budget stops in ``AWAITING_BUDGET``
+        without spending an attempt; until a person lifts the wait it stays there
+        (plan 5b.1). Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open
+        Study, which a worker's scope does not hold. ``budget_usd`` equal to the current
+        budget lifts the wait without changing it (it was raised by hand), and below it
+        is refused: this lifts a cap, it does not lower one.
+
+        Checked before anything is written, so a refused lift changes nothing, not even
+        the budget; the budget change and the resume share the caller's transaction.
+        """
+        self.scope.require(Permission.APPROVE_BUDGET)
+        self.scope.require(Permission.MANAGE_STUDY_BUDGET)
+        self.scope.require_open_study()
+        run = self.get(run_id)
+        step = next((s for s in run["steps"] if s["node_key"] == node_key), None)
+        if step is None:
+            raise ResearchStepNotFound(node_key)
+        if step["status"] is not StepRunStatus.AWAITING_BUDGET:
+            raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
+        scopes = ScopeRepository(self.session)
+        current = float(scopes.get_study(self.scope).budget_usd)
+        if budget_usd < current:
+            raise BudgetNotRaised(offered=budget_usd, current=current)
+        if budget_usd > current:
+            scopes.set_study_budget(self.scope, budget_usd)
+        self._workflows().resume_budget_wait(
+            step["step_id"], note=note, budget_before=current, budget_after=budget_usd
+        )
+        return self.get(run_id)
 
     def readiness(self, design_revision_id: str) -> tuple[ResearchSpecification | None, Readiness]:
         """Compile a revision of this Study and assess it, without starting anything."""

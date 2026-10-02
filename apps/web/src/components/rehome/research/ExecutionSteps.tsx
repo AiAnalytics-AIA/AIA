@@ -13,6 +13,7 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import {
   ApiError,
+  api,
   type Artifact,
   type ResearchAnalysis,
   type ResearchReport,
@@ -42,7 +43,7 @@ import {
   type ResultTable,
 } from "@/lib/research-execution";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { Button, Chip } from "../ui";
+import { Button, Chip, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 
 const POLL_MS = 2000;
@@ -258,6 +259,63 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
   return [run, () => setVersion((v) => v + 1), setRun, error];
 }
 
+/**
+ * A step the study's budget stopped (AWAITING_BUDGET) can be let through by a person who may spend:
+ * they name a new total, never lower than the budget now, and the cap stays hard -- the step stops
+ * again if that is still not enough. The decision is recorded by the API; nothing here decides it.
+ */
+function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: ResearchStep; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
+  const frame = useFrame();
+  const [current, setCurrent] = useState<{ budget: number; spent: number } | null | undefined>(undefined);
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    let live = true;
+    api.study(frame.studyId).then(
+      (s) => {
+        if (!live) return;
+        const budget = typeof s.budget_usd === "number" ? s.budget_usd : null;
+        setCurrent(budget === null ? null : { budget, spent: s.spent_usd ?? 0 });
+        if (budget !== null) setAmount(String(budget));
+      },
+      () => live && setCurrent(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId, run.run_id]);
+  const total = amount.trim() === "" ? Number.NaN : Number(amount);
+  const valid = current != null && Number.isFinite(total) && total >= current.budget;
+  return (
+    <form
+      aria-label={t("research.exec.budget.title")}
+      className="mt-1 flex flex-col gap-2 rounded-sm border border-border bg-surface p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) void act(() => research.liftBudget(frame.studyId, run.run_id, step.node_key, total, note.trim()));
+      }}
+    >
+      {current === undefined ? (
+        <p className="text-xs text-ink-muted">{t("research.loading")}</p>
+      ) : current === null ? (
+        <p role="alert" className="text-xs text-status-fault">{t("research.exec.budget.unknown")}</p>
+      ) : (
+        <p className="text-xs">{tv("research.exec.budget.status", { budget: current.budget.toFixed(2), spent: current.spent.toFixed(2) })}</p>
+      )}
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label={t("research.exec.budget.amount")} className="w-48">
+          <TextInput type="number" inputMode="decimal" min={current?.budget ?? 0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={current == null} />
+        </Field>
+        <Field label={t("research.exec.budget.note")} className="min-w-48 flex-1">
+          <TextArea rows={1} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className="min-h-9 w-full" />
+        </Field>
+        <Button type="submit" variant="primary" disabled={!valid || busy}>{t("research.exec.budget.lift")}</Button>
+      </div>
+      <p className="text-xs text-ink-muted">{t("research.exec.budget.hardCap")}</p>
+    </form>
+  );
+}
+
 // ------------------------------------------------------------ Progress -------
 
 export function ProgressStep() {
@@ -324,6 +382,9 @@ export function ProgressStep() {
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
+              {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
+                <BudgetLift run={run} step={s} act={act} busy={busy} />
+              ) : null}
             </li>
           ))}
         </ol>

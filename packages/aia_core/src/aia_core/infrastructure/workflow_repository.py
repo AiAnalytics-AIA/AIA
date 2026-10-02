@@ -165,6 +165,10 @@ class RuntimeParkNotResumable(ValueError):
     """The step is not an unbilled park waiting for runtime activation."""
 
 
+class BudgetWaitNotLiftable(ValueError):
+    """The step is not waiting for budget (any more), or its run is being cancelled."""
+
+
 class LeaseLost(RuntimeError):
     """The caller no longer holds the attempt's lease, so it may write nothing.
 
@@ -1758,6 +1762,80 @@ class WorkflowRepository:
         self._refresh_run(step.run_id)
         self._session.flush()
         return True
+
+    def resume_budget_wait(
+        self, step_id: str, *, note: str = "", budget_before: float, budget_after: float
+    ) -> None:
+        """Let a step that stopped at the budget cap go on, after a person lifts the cap.
+
+        A reservation that would pass the study's budget parks the step in
+        ``AWAITING_BUDGET`` without spending an attempt, and nothing resumed it: the
+        provider sweep never touches an ``AWAITING_*`` step, and raising the budget
+        only changes a number (plan 5b.1). This is the person's act. It needs
+        ``APPROVE_BUDGET``, which the worker's scope does not hold (ADR 0019 decision
+        6), and writes the decision to the append-only approval ledger like a gate.
+
+        The caller raises the budget first (``ScopeRepository.set_study_budget``, which
+        audits it) and passes both figures so the event shows what was lifted. The step
+        becomes runnable again; if the budget is still too small it parks again at the
+        next reservation. Refused when the step is not waiting for budget, which also
+        makes a second lift a no-op, and when the run is being cancelled.
+        """
+        self.scope.require(Permission.APPROVE_BUDGET)
+        step = self._step(step_id)
+        self._lock_run_for(step)
+        run = self._run(step.run_id)
+        self._session.refresh(run)
+        if StepRunStatus(step.status) is not StepRunStatus.AWAITING_BUDGET:
+            raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
+        if run.cancel_requested or step.cancel_requested:
+            raise BudgetWaitNotLiftable("a run that is being cancelled is not resumed")
+
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="budget",
+                subject_id=step_id,
+                run_id=step.run_id,
+                step_id=step_id,
+                gate_type="budget",
+                decision="lift",
+                comment=note,
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        step.status = StepRunStatus.RUNNABLE.value
+        step.waiting_reason = None
+        step.runnable_after = None
+        step.updated_at = utcnow()
+        self._event(
+            step.run_id,
+            event_type="STEP_RESUMED",
+            message=(
+                f"{step.node_key}: budget lifted from {budget_before:.2f} to {budget_after:.2f}"
+            ),
+            payload={
+                "from": StepRunStatus.AWAITING_BUDGET.value,
+                "actor_id": self.scope.actor_id,
+                "budget_before_usd": budget_before,
+                "budget_after_usd": budget_after,
+                "note": note,
+                **independence.audit_fields(),
+            },
+            step_id=step_id,
+            level="WARN" if independence.self_approved else "INFO",
+        )
+        self._session.flush()
+        self._refresh_run(step.run_id)
+        self._session.flush()
 
     # ------------------------------------------------------------ cancellation --
 

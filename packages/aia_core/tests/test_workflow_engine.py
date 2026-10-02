@@ -41,6 +41,7 @@ from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.tables import ApprovalDecisionRow, BudgetReservationRow, StudyRow
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
+    BudgetWaitNotLiftable,
     WorkflowNotFound,
     WorkflowRepository,
 )
@@ -706,6 +707,102 @@ def test_budget_exhaustion_parks_in_its_own_state(
     assert decision.consumes_attempt is False
     assert _status(engine_repo, run, "compile") is StepRunStatus.AWAITING_BUDGET
     assert engine_repo.get_run(run)["status"] is WorkflowRunStatus.AWAITING_BUDGET
+
+
+def _park_on_budget(engine_repo: WorkflowRepository) -> Any:
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
+    engine_repo.fail_attempt(
+        claimed.attempt_id, worker_id=claimed.worker_id, failure=FailureClass.BUDGET_EXCEEDED
+    )
+    return claimed
+
+
+def test_a_budget_wait_can_be_lifted_and_the_step_runs_again(
+    engine_repo: WorkflowRepository, run: str, scoped: Any, session: Session
+) -> None:
+    """The dead end: a step parked on the budget cap could never go on (plan 5b.1).
+
+    Raising the budget changed a number and nothing else; the sweep never touches an
+    ``AWAITING_*`` step. A person lifting the wait makes it claimable again without
+    spending an attempt, and the decision is written to the approval ledger.
+    """
+    parked = _park_on_budget(engine_repo)
+    assert _status(engine_repo, run, "compile") is StepRunStatus.AWAITING_BUDGET
+    assert engine_repo.resume_waiting_steps() == []  # the sweep still leaves it alone
+
+    researcher = WorkflowRepository(session, scoped.scope(user="researcher", study="primary"))
+    researcher.resume_budget_wait(
+        parked.step_id, note="Klient souhlasil", budget_before=500.0, budget_after=900.0
+    )
+
+    assert _status(engine_repo, run, "compile") is StepRunStatus.RUNNABLE
+    again = engine_repo.claim_next(worker_id="worker-2")
+    assert again is not None and again.step_id == parked.step_id
+    assert again.attempt_number == parked.attempt_number + 1  # a new attempt, none burnt
+
+    [row] = session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "budget")
+    ).all()
+    assert (row.decision, row.comment) == ("lift", "Klient souhlasil")
+    assert row.step_id == parked.step_id and row.subject_id == parked.step_id
+    assert row.approver_user_id == scoped.users["researcher"]
+    events = [e["event_type"] for e in engine_repo.events(run)]
+    assert "STEP_RESUMED" in events
+
+
+def test_only_a_budget_wait_can_be_lifted_and_only_once(
+    engine_repo: WorkflowRepository, run: str, scoped: Any, session: Session
+) -> None:
+    runnable = engine_repo.claim_next(worker_id="worker-1")
+    assert runnable is not None
+    researcher = WorkflowRepository(session, scoped.scope(user="researcher", study="primary"))
+    with pytest.raises(BudgetWaitNotLiftable):  # a step that is running is not waiting for budget
+        researcher.resume_budget_wait(
+            runnable.step_id, note="", budget_before=1.0, budget_after=2.0
+        )
+
+    engine_repo.fail_attempt(
+        runnable.attempt_id, worker_id=runnable.worker_id, failure=FailureClass.BUDGET_EXCEEDED
+    )
+    researcher.resume_budget_wait(runnable.step_id, note="", budget_before=1.0, budget_after=2.0)
+    with pytest.raises(BudgetWaitNotLiftable):  # a second lift finds it already runnable
+        researcher.resume_budget_wait(
+            runnable.step_id, note="", budget_before=1.0, budget_after=2.0
+        )
+    ledger = session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "budget")
+    ).all()
+    assert len(ledger) == 1  # the refused attempts wrote nothing
+
+
+def test_the_worker_holds_no_budget_authority(
+    engine_repo: WorkflowRepository, run: str, scoped: Any, session: Session
+) -> None:
+    """ADR 0019 decision 6: the context that spends the budget cannot raise it."""
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
+    worker = WorkflowRepository(
+        session,
+        scoped.resolver.execution_context(attempt_id=claimed.attempt_id, worker_id="worker-1"),
+    )
+    with pytest.raises(ScopeDenied):
+        worker.resume_budget_wait(claimed.step_id, note="", budget_before=1.0, budget_after=2.0)
+    ledger = session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "budget")
+    ).all()
+    assert ledger == []
+
+
+def test_a_cancelled_run_stays_cancelled_when_its_budget_wait_is_lifted(
+    engine_repo: WorkflowRepository, run: str, scoped: Any, session: Session
+) -> None:
+    parked = _park_on_budget(engine_repo)
+    engine_repo.request_cancel(run, reason="no longer wanted")
+    researcher = WorkflowRepository(session, scoped.scope(user="researcher", study="primary"))
+    with pytest.raises(BudgetWaitNotLiftable):
+        researcher.resume_budget_wait(parked.step_id, note="", budget_before=1.0, budget_after=2.0)
+    assert _status(engine_repo, run, "compile") is not StepRunStatus.RUNNABLE
 
 
 @pytest.mark.parametrize(

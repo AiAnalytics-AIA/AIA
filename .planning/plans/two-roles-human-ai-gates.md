@@ -7,7 +7,7 @@ chunks:
   - "[ ] 4. Admin: system settings only for ADMIN; MEMBER is the Researcher; settings document and web client"
   - "[x] 5a. Human-authored Knowledge writes directly (client workspace); a study's proposal still waits for a person, who may be its proposer"
   - "[ ] 5b. Gates (design proposed below, awaiting the owner): split into 5b.1 to 5b.4"
-  - "[ ] 5b.1 A person can lift a budget wait and the run goes on (today it is a dead end)"
+  - "[x] 5b.1 A person can lift a budget wait and the run goes on (today it is a dead end)"
   - "[ ] 5b.2 Confirm the cost of a run above a threshold, recorded"
   - "[ ] 5b.3 One ledger entry for every acceptance of an AI proposal"
   - "[ ] 5b.4 Client-facing release (blocked: the client-facing report contract does not exist)"
@@ -231,6 +231,41 @@ gate OI-61, and synthetic or internal-only claims refused, as `compose_internal_
 refuses them). The mechanism it will use is the one that exists: `approve` then `download_url`,
 recorded in the same ledger. Until then no route serves a client-facing report, so there is nothing
 to gate.
+
+### 5b.1 progress (2026-10-02)
+
+**Backend landed** (`feature/lift-budget-wait`): `WorkflowRepository.resume_budget_wait` (needs
+`APPROVE_BUDGET`; refuses a step that is not `AWAITING_BUDGET` and a run being cancelled; writes the
+approval ledger and a `STEP_RESUMED` event), `ResearchRuns.lift_budget_wait` (raises the study budget
+through `ScopeRepository.set_study_budget`, so the change is audited, then resumes; checks everything
+before writing so a refused lift changes nothing), and
+`POST /studies/{id}/research/runs/{run_id}/steps/{node_key}/budget`. **The Progress page action is the
+remaining part of 5b.1** and has landed too (below), so the chunk is ticked.
+
+**Progress page landed.** A step in `AWAITING_BUDGET`, seen by someone who can edit the study, shows a
+form under it (`BudgetLift` in `ExecutionSteps.tsx`): the study's budget and what is spent (read from
+`GET /studies/{id}`), a new total that cannot be below the budget now (the button is disabled, and the
+API refuses it with 422 `budget_not_raised` regardless), an optional note, and "Zvýšit rozpočet a
+pokračovat" (`research.liftBudget`). The cap stays hard and the page says so: if the new total still
+does not cover the step it stops again. A 409 (`not_waiting_for_budget`) is printed and the form stays.
+Four Vitest tests in `ExecutionSteps.test.tsx` (post body and path, lower total disabled, API refusal
+shown, nothing for a reader or for a non-budget wait); three fail with the form switched off.
+
+**A correction to the design above.** It said the existing ledger could be reused as it stands. It
+cannot: `approval_decisions.subject_type` has a CHECK that admitted only `'gate'` and `'artifact'`
+(`tables.py` `approval_subject_type_known`), so a `'budget'` row failed with an integrity error.
+Migration `8c2f4a6d1b3e` widens it to `'budget'` only; 5b.2 and 5b.3 will each need to add their own
+subject type (`'spend'`, `'ai_proposal'`) the same way. Verified on PostgreSQL 16: upgrade,
+`alembic check` (no drift), downgrade to base and back, and a downgrade that is refused while a
+`'budget'` row exists (the ledger is append-only).
+
+**Gotcha for `AGENTS.md`** (Doc follow-up): the metadata's naming convention (`ck_%(table_name)s_...`)
+is applied to the name given to `op.drop_constraint` as well as to `create_check_constraint`. A
+constraint already created as `ck_approval_decisions_approval_subject_type_known` must be passed as
+`op.f('ck_approval_decisions_approval_subject_type_known')` to both. Wrong: `op.drop_constraint(
+'ck_approval_decisions_approval_subject_type_known', ...)` fails with `constraint
+"ck_approval_decisions_ck_approval_decisions_approval_su_956c" ... does not exist` (double prefix,
+truncated). Right: wrap the full name in `op.f(...)` on both calls.
 
 ### Decisions needed from the owner
 

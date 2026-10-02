@@ -1192,7 +1192,9 @@ class ApprovalDecisionRow(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
-        CheckConstraint("subject_type in ('gate','artifact')", name="approval_subject_type_known"),
+        CheckConstraint(
+            "subject_type in ('gate','artifact','budget')", name="approval_subject_type_known"
+        ),
         CheckConstraint(
             "self_approval_source in ('default','organization','client','study')",
             name="approval_self_approval_source_known",
