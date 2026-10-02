@@ -32,6 +32,15 @@ unfinished role-workflow checkout separately.
    (`apps/web/src/components/rehome/research/ExecutionSteps.tsx:431 @ 2e6d219`).
    The renderer and templates exist, while composition from admitted results,
    durable storage, retrieval and review remain.
+4. A questionnaire build reruns `analyze_brief` even after its proposal was
+   accepted (`apps/web/src/components/rehome/research/QuestionnaireStep.tsx:100`
+   and `useAnalysis.tsx:50 @ 3c2ddda`). Native acceptance stores the model's
+   analysis without the brief signature used by `reusableAnalysis`
+   (`useResearchAgents.tsx:75 @ 3c2ddda`). On develop, that repeat created a new
+   fictional design revision and the following questionnaire job parked on an
+   exact-material classification mismatch. Sign the accepted analysis and reuse
+   it only while the brief fingerprint matches; explicit Brief-stage reanalysis
+   remains an intentional fresh request.
 
 ## Acceptance
 
@@ -65,5 +74,6 @@ CI on its supported runtime remains required before merge.
 
 After each feature slice merges, update the shared architecture and migration
 status documents through a separate docs-only PR. Record the runtime-resume
-operation, report composition and retrieval contracts, and the verified live
-acceptance at their final SHAs.
+operation, report composition and retrieval contracts, the accepted-brief
+fingerprint reuse in the questionnaire path, and the verified live acceptance
+at their final SHAs.

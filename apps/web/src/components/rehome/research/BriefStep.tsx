@@ -48,7 +48,7 @@ export function BriefStep() {
 
   // analyzeBrief -> ensureAnalysis1776 -> go('plan').
   const analyse = async () => {
-    if (!(await runAnalysis())) return;
+    if (!(await runAnalysis({ force: true }))) return;
     router.push(stepHref("plan"));
   };
 
