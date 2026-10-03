@@ -29,6 +29,7 @@ from .research import AIDatasetProducer, research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from .snapshot import KIND as SNAPSHOT_KIND
 from .snapshot import SnapshotExecutor
+from .sociomap_settings import SociomapSettings
 
 __all__ = ["build_registry", "registry_for"]
 
@@ -41,6 +42,7 @@ def registry_for(
     research_agent: StepExecutor | None = None,
     analysis: StepExecutor | None = None,
     deep_research: DeepResearchRuntime | None = None,
+    workspace_enabled: bool = False,
 ) -> dict[str, StepExecutor]:
     """Step kind -> executor, over explicit collaborators. Tests use this."""
     return {
@@ -53,7 +55,9 @@ def registry_for(
         **deep_research_registry(store=store, build=build, runtime=deep_research),
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
         **report_registry(store=store, build=build),
-        **research_registry(store=store, build=build, ai_runtime=ai_runtime),
+        **research_registry(
+            store=store, build=build, ai_runtime=ai_runtime, workspace_enabled=workspace_enabled
+        ),
     }
 
 
@@ -92,6 +96,7 @@ def build_registry() -> dict[str, StepExecutor]:
         research_agent=agent,
         analysis=analysis,
         deep_research=deep_research_runtime(settings),
+        workspace_enabled=SociomapSettings.from_env().workspace_enabled,
         build=build,
         ai_runtime=build_ai_fieldwork(settings, build=build) if settings is not None else None,
     )

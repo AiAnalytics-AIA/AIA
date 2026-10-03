@@ -23,6 +23,8 @@ import {
   type ResearchStep,
   research,
 } from "@/lib/api";
+import { SociomapWorkspace } from "./SociomapWorkspace";
+import type { MapWorkspace } from "@/lib/sociomap-workspace";
 import { saveBlob } from "@/lib/download";
 import {
   STEP_ORDER,
@@ -521,7 +523,6 @@ export function ResultsStep() {
       {sociomap && sociomap.state !== "hidden" ? (
         <Card title={t("research.exec.results.sociomap")} tone="notice">
           <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.internal")}</p>
-          <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
           {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
@@ -688,7 +689,7 @@ function AggregateView({ artifact, run }: { artifact: Artifact; run: ResearchRun
 }
 
 function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun }) {
-  const payload = artifact.payload as { sociomap: { batteries: Parameters<typeof sociomapObjects>[0][] } } | null;
+  const payload = artifact.payload as { sociomap: { data_origin: string | null; batteries: (Parameters<typeof sociomapObjects>[0] & {workspace?: MapWorkspace | null})[] } } | null;
   if (!payload) return null;
   return (
     <div className="flex flex-col gap-4">
@@ -697,6 +698,8 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
         return (
           <section key={b.battery_id} aria-label={b.title}>
             <h3 className="text-sm font-semibold">{b.title}</h3>
+            <SociomapWorkspace workspace={b.workspace} labels={b.objects} origin={payload.sociomap.data_origin} />
+            <details><summary className="mt-3 text-xs text-ink-muted">Původní výpočet AIA · skóre a souřadnice</summary>
             <table className="mt-1 w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-ink-muted">
@@ -716,7 +719,7 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></details>
           </section>
         );
       })}

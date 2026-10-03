@@ -280,3 +280,38 @@ def test_no_composition_can_hand_the_ai_runtime_a_producer(
             build=build,
             producers={FieldworkSource.AI_RUNTIME: lambda spec: None},  # type: ignore[arg-type,return-value]
         )
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_native_workspace_is_stored_by_the_real_worker(
+    world: Any,
+    store: InMemoryArtifactStore,
+    build: BuildIdentity,
+    worker_with: Callable[[dict[str, StepExecutor]], Worker],
+    enabled: bool,
+) -> None:
+    run_id = _start(world, FieldworkSource.SYNTHETIC_FIXTURE)
+    worker = worker_with(
+        workbench.workbench_registry_for(store=store, build=build, workspace_enabled=enabled)
+    )
+    assert _drain(worker) == ["completed"] * 5
+    steps = _steps(_run(world, run_id))
+    artifact_id = steps["sociomap"]["output"]["artifact_id"]
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        result = repo.read_json(artifact_id)["sociomap"]
+        dependencies = {a.artifact_id for a in repo.dependencies(artifact_id)}
+    assert dependencies == {
+        steps["compile"]["output"]["artifact_id"],
+        steps["run"]["output"]["artifact_id"],
+    }
+    assert result["methodology_status"] == "INTERNAL_ONLY"
+    assert result["data_origin"] == "SYNTHETIC_FIXTURE"
+    workspace = result["batteries"][0]["workspace"]
+    if enabled:
+        assert workspace["version"] == "aia-native-workspace-1"
+        assert len(workspace["people"]) == 60 and len(workspace["objects"]) == 5
+        assert workspace["respondent_terrain"]["mode"] == "respondent_density"
+        assert workspace["object_terrains"]["mean_rating"]["mode"] == "object_metric"
+    else:
+        assert workspace is None

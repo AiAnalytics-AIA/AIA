@@ -474,8 +474,8 @@ describe("Results", () => {
     expect(within(t1).queryByText("3,73")).toBeNull();
     expect(within(t1).queryByText(/3,25/)).toBeNull();
     expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
-    // What 18.6.6's map tool did and AIA does not is said where the map is.
-    expect(screen.getByText(t("research.exec.results.mapToolNotInAia"))).toBeTruthy();
+    // Older stored runs remain readable and explain why their 3D field is absent.
+    expect(screen.getByText(/Tento běh neobsahuje 3D mapu/)).toBeTruthy();
     const map = screen.getByRole("region", { name: "Nápoje" });
     expect(within(map).getByText("Káva")).toBeTruthy();
     expect(within(map).getByText("6,14")).toBeTruthy();

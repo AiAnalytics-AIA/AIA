@@ -32,6 +32,7 @@ from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecBattery
 from .sociomap import AIA_SOCIOMAP_V1, compute_sociomap
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
+from .sociomap.workspace import compute_workspace
 
 __all__ = [
     "D6_OPEN",
@@ -129,7 +130,9 @@ def derive_relation_matrix(
     return relation, scores
 
 
-def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[str, Any]:
+def battery_sociomap(
+    battery: SpecBattery, dataset: FieldworkDataset, *, workspace_enabled: bool = False
+) -> dict[str, Any]:
     """One tracked set's relation matrix and its Sociomap, as an internal artifact body."""
     object_ids = [o.id for o in battery.objects]
     qids = [battery.question_id(o) for o in battery.objects]
@@ -182,15 +185,23 @@ def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[st
             "scores": scores,
         },
         "sociomap": artifact.model_dump(mode="json"),
+        "workspace": compute_workspace(inputs.ratings, (low, high)).model_dump(mode="json")
+        if workspace_enabled
+        else None,
     }
 
 
-def research_sociomaps(spec: ResearchSpecification, dataset: FieldworkDataset) -> dict[str, Any]:
+def research_sociomaps(
+    spec: ResearchSpecification, dataset: FieldworkDataset, *, workspace_enabled: bool = False
+) -> dict[str, Any]:
     """Every tracked set's Sociomap. A specification without one has none, and says so."""
     return {
         "sociomap_version": SOCIOMAP_VERSION,
         "methodology_status": _methodology_status().value,
         "data_origin": dataset.origin.value if dataset.origin else None,
-        "batteries": [battery_sociomap(b, dataset) for b in spec.batteries],
+        "batteries": [
+            battery_sociomap(b, dataset, workspace_enabled=workspace_enabled)
+            for b in spec.batteries
+        ],
         "note": None if spec.batteries else "Návrh nemá sledovanou sadu; Sociomapa nevznikla.",
     }

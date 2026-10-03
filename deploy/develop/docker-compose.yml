@@ -131,6 +131,7 @@ services:
     image: ${AIA_IMAGE_REGISTRY}/aia-worker:${AIA_IMAGE_TAG}
     restart: unless-stopped
     environment:
+      AIA_SOCIOMAP_WORKSPACE_ENABLED: ${AIA_SOCIOMAP_WORKSPACE_ENABLED:-true}
       <<: *app-env
       AIA_WORKER_EXECUTORS: aia_executors.registry:build_registry
       AIA_WORKER_LEASE_SECONDS: ${AIA_WORKER_LEASE_SECONDS:-120}

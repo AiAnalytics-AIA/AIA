@@ -40,6 +40,7 @@ from aia_core.domain.research_design import (
 )
 from aia_core.domain.research_sociomap import SOCIOMAP_VERSION, research_sociomaps
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V1
+from aia_core.domain.sociomap.workspace import WORKSPACE_VERSION
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_KINDS
 from aia_core.infrastructure.artifact_repository import ArtifactRepository
@@ -428,6 +429,12 @@ class AggregateExecutor(_Step):
 class SociomapExecutor(_Step):
     """Each tracked set's relation matrix and Sociomap: stored, and INTERNAL_ONLY (chunk 6)."""
 
+    def __init__(
+        self, *, store: ArtifactStore, build: BuildIdentity, workspace_enabled: bool = False
+    ) -> None:
+        super().__init__(store=store, build=build)
+        self._workspace_enabled = workspace_enabled
+
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
         with context.transaction() as (session, workflow):
@@ -445,7 +452,7 @@ class SociomapExecutor(_Step):
             validate_dataset(spec, dataset)
         except InvalidDataset as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
-        result = research_sociomaps(spec, dataset)
+        result = research_sociomaps(spec, dataset, workspace_enabled=self._workspace_enabled)
         context.checkpoint()
         origin = result["data_origin"]
         with context.transaction() as (session, _workflow):
@@ -458,6 +465,7 @@ class SociomapExecutor(_Step):
                     {
                         "dataset": dataset_sha,
                         "sociomap": SOCIOMAP_VERSION,
+                        "workspace": WORKSPACE_VERSION if self._workspace_enabled else None,
                         "preset": AIA_SOCIOMAP_V1.fingerprint(),
                         "spec": spec.fingerprint(),
                     }
@@ -485,6 +493,7 @@ def research_registry(
     build: BuildIdentity,
     producers: Mapping[FieldworkSource, DatasetProducer] | None = None,
     ai_runtime: AIDatasetProducer | None = None,
+    workspace_enabled: bool = False,
 ) -> dict[str, Any]:
     """The research step kinds -> executors. ``producers`` only from the workbench;
     ``ai_runtime`` only from a composition whose AI runtime is configured."""
@@ -495,5 +504,7 @@ def research_registry(
             store=store, build=build, producers=producers, ai_runtime=ai_runtime
         ),
         RESEARCH_KINDS["aggregate"]: AggregateExecutor(store=store, build=build),
-        RESEARCH_KINDS["sociomap"]: SociomapExecutor(store=store, build=build),
+        RESEARCH_KINDS["sociomap"]: SociomapExecutor(
+            store=store, build=build, workspace_enabled=workspace_enabled
+        ),
     }

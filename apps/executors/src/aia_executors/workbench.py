@@ -27,6 +27,7 @@ from aia_worker.executor import StepExecutor
 
 from .registry import registry_for
 from .research import research_registry
+from .sociomap_settings import SociomapSettings
 
 __all__ = ["ALLOWED_ENVIRONMENTS", "SYNTHETIC_SEED", "build_registry", "workbench_registry_for"]
 
@@ -38,7 +39,7 @@ SYNTHETIC_SEED: Final = 20260816
 
 
 def workbench_registry_for(
-    *, store: ArtifactStore, build: BuildIdentity
+    *, store: ArtifactStore, build: BuildIdentity, workspace_enabled: bool = False
 ) -> dict[str, StepExecutor]:
     """Production's registry with the fictional fieldwork source added. Tests use this."""
     return {
@@ -46,6 +47,7 @@ def workbench_registry_for(
         **research_registry(
             store=store,
             build=build,
+            workspace_enabled=workspace_enabled,
             producers={
                 FieldworkSource.SYNTHETIC_FIXTURE: lambda spec: synthetic_dataset(
                     spec, seed=SYNTHETIC_SEED
@@ -66,4 +68,5 @@ def build_registry() -> dict[str, StepExecutor]:
     return workbench_registry_for(
         store=build_artifact_store(StorageSettings.from_env()),
         build=BuildIdentity.from_env(),
+        workspace_enabled=SociomapSettings.from_env().workspace_enabled,
     )

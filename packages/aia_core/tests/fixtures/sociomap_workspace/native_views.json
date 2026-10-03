@@ -1,0 +1,359 @@
+{
+  "source_sha256": "8e06f24f890a4509af801d2e72170882b88e83f2bfcd4ca4c7dfa626b6e475d5",
+  "rows": [
+    [
+      1,
+      7,
+      2,
+      9
+    ],
+    [
+      2,
+      8,
+      4,
+      8
+    ],
+    [
+      3,
+      9,
+      6,
+      6
+    ],
+    [
+      4,
+      10,
+      8,
+      4
+    ],
+    [
+      5,
+      6,
+      10,
+      2
+    ],
+    [
+      6,
+      5,
+      9,
+      1
+    ],
+    [
+      7,
+      4,
+      7,
+      3
+    ],
+    [
+      8,
+      3,
+      5,
+      5
+    ],
+    [
+      9,
+      2,
+      3,
+      7
+    ],
+    [
+      10,
+      1,
+      1,
+      10
+    ],
+    [
+      1,
+      1,
+      1,
+      1
+    ]
+  ],
+  "object_ids": [
+    "obj_A",
+    "obj_B",
+    "obj_C",
+    "obj_D"
+  ],
+  "respondent_ids": [
+    "fixture-0",
+    "fixture-1",
+    "fixture-2",
+    "fixture-3",
+    "fixture-4",
+    "fixture-5",
+    "fixture-6",
+    "fixture-7",
+    "fixture-8",
+    "fixture-9",
+    "fixture-10"
+  ],
+  "expected": {
+    "points": [
+      {
+        "id": "fixture-0",
+        "x": -13.46737,
+        "y": 0.43139,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-1",
+        "x": 0.48571,
+        "y": 0.04975,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-2",
+        "x": 21.85624,
+        "y": 5.93687,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-3",
+        "x": 26.89958,
+        "y": 15.09511,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-4",
+        "x": 6.44457,
+        "y": 34.83095,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-5",
+        "x": 0.05057,
+        "y": 24.09055,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-6",
+        "x": 1.50364,
+        "y": 0.06872,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-7",
+        "x": -0.01735,
+        "y": -43.36933,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-8",
+        "x": -12.86235,
+        "y": -28.35316,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-9",
+        "x": -21.16887,
+        "y": -20.51985,
+        "position_status": "POSITIONED"
+      },
+      {
+        "id": "fixture-10",
+        "x": 43.54609,
+        "y": 37.39792,
+        "position_status": "UNDETERMINED"
+      }
+    ],
+    "objects": [
+      {
+        "key": "obj_A",
+        "name": "A",
+        "x": 0.0,
+        "y": -42.0,
+        "mean": 5.0909,
+        "n": 11
+      },
+      {
+        "key": "obj_B",
+        "name": "B",
+        "x": 42.0,
+        "y": 0.0,
+        "mean": 5.0909,
+        "n": 11
+      },
+      {
+        "key": "obj_C",
+        "name": "C",
+        "x": 0.0,
+        "y": 42.0,
+        "mean": 5.0909,
+        "n": 11
+      },
+      {
+        "key": "obj_D",
+        "name": "D",
+        "x": -42.0,
+        "y": 0.0,
+        "mean": 5.0909,
+        "n": 11
+      }
+    ],
+    "object_map": {
+      "names": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "source_columns": [
+        "obj_A",
+        "obj_B",
+        "obj_C",
+        "obj_D"
+      ],
+      "matrix": [
+        [
+          0.0,
+          3.0878,
+          5.7635,
+          6.1649
+        ],
+        [
+          3.0878,
+          0.0,
+          7.7703,
+          5.7189
+        ],
+        [
+          5.7635,
+          7.7703,
+          0.0,
+          2.8203
+        ],
+        [
+          6.1649,
+          5.7189,
+          2.8203,
+          0.0
+        ]
+      ],
+      "pair_r": [
+        [
+          null,
+          -0.536036,
+          0.058559,
+          0.147748
+        ],
+        [
+          -0.536036,
+          null,
+          0.504505,
+          0.048649
+        ],
+        [
+          0.058559,
+          0.504505,
+          null,
+          -0.595495
+        ],
+        [
+          0.147748,
+          0.048649,
+          -0.595495,
+          null
+        ]
+      ],
+      "pair_p": [
+        [
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "pair_n": [
+        [
+          0,
+          11,
+          11,
+          11
+        ],
+        [
+          11,
+          0,
+          11,
+          11
+        ],
+        [
+          11,
+          11,
+          0,
+          11
+        ],
+        [
+          11,
+          11,
+          11,
+          0
+        ]
+      ],
+      "positions": [
+        {
+          "x": -7.37351,
+          "y": -35.87909
+        },
+        {
+          "x": 29.399,
+          "y": 14.11899
+        },
+        {
+          "x": 15.05359,
+          "y": 30.07527
+        },
+        {
+          "x": -37.07908,
+          "y": -8.31517
+        }
+      ],
+      "scores_classic": [
+        30.0324,
+        33.1541,
+        32.7081,
+        29.4081
+      ],
+      "scores_normative": [
+        42.057,
+        61.2297,
+        58.4908,
+        38.2225
+      ],
+      "mean_rating": [
+        5.0909,
+        5.0909,
+        5.0909,
+        5.0909
+      ],
+      "support_n": [
+        11,
+        11,
+        11,
+        11
+      ],
+      "relation_source": "PAIRWISE_SIGNED_CORRELATION_FROM_RESPONDENT_RATINGS",
+      "position_method": "mutual_strength_target_distance; 800_step_relaxation; normalized_radius_38",
+      "height_contract": "position is relationship-only; display height/color are independent metrics",
+      "matrix_contract": "row sends; column receives; diagonal=0; 1..10 relation strength",
+      "statistics_contract": "pair_p is two-sided Pearson correlation p-value; pair_n is pairwise complete N. Strength and significance are separate."
+    }
+  }
+}
