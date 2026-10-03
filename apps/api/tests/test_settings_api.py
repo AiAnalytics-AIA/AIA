@@ -149,6 +149,30 @@ def test_invariants_are_in_force_and_not_editable(owner: TestClient) -> None:
     assert all(i["value"] is True for i in invariants)
 
 
+def test_the_settings_say_membership_is_access_and_offer_no_grants(owner: TestClient) -> None:
+    """ADR 0019: nothing in the document may still promise client or study grants."""
+    access = _groups(owner.get(f"{API}/settings").json())["access"]
+    assert access["membership_is_access"]["control"] == "INVARIANT"
+    assert access["membership_is_access"]["value"] is True
+    assert {"client_grants", "study_grants", "membership_grants_no_data"}.isdisjoint(access)
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "body"),
+    [
+        ("post", "/members", {"email": "new@art-chain.io", "role": "MEMBER"}),
+        ("post", "/clients", {"slug": "x", "name": "X"}),
+        ("put", "/self-approval", {"allowed": False}),
+    ],
+)
+def test_a_researcher_cannot_change_the_system_settings(
+    researcher: TestClient, method: str, path: str, body: dict[str, Any]
+) -> None:
+    """Administration is the Admin's; a Researcher holds every study permission, not this."""
+    response = getattr(researcher, method)(f"{API}{path}", json=body)
+    assert response.status_code == 403, response.text
+
+
 def test_api_controls_name_a_route_that_exists(owner: TestClient, app: Any) -> None:
     routes = {
         f"{method.upper()} {path}"

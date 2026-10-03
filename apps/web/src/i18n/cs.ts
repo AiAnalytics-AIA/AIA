@@ -19,11 +19,8 @@ export const cs = {
     cancel: "Zrušit",
     create: "Založit",
     roles: {
-      LEAD: "vedoucí",
       RESEARCHER: "výzkumník",
-      REVIEWER: "oponent",
-      VIEWER: "čtenář",
-      none: "přístup k vybraným projektům",
+      none: "bez role",
     },
     status: {
       DRAFT: "Rozpracováno",
@@ -34,7 +31,7 @@ export const cs = {
       CANCELLED: "Zrušeno",
     },
     kind: { RESEARCH: "Výzkum", SIMULATION: "Simulace" },
-    orgRoles: { OWNER: "vlastník", ADMIN: "správce", MEMBER: "člen" },
+    orgRoles: { OWNER: "vlastník", ADMIN: "správce", MEMBER: "výzkumník" },
     clients: {
       title: "Klienti",
       sub: "Pro kterého klienta dnes pracujete?",
@@ -348,7 +345,6 @@ export const cs = {
         save: "Uložit",
         saved: "Uloženo.",
         sending: "Odesílám…",
-        grant: "Udělit",
         control: { API: "API", DEPLOYMENT: "Nasazení", CODE: "Kód", INVARIANT: "Invariant" },
         controlHelp: {
           API: "Mění správce živě, přes auditovanou cestu API.",
@@ -374,7 +370,7 @@ export const cs = {
           },
           access: {
             title: "Členové a přístup",
-            intro: "Členství v organizaci neuděluje přístup k datům klienta. Přístup je vždy grant na klienta nebo studii a je auditován.",
+            intro: "Každý aktivní člen organizace je výzkumník a vidí všechny klienty a studie organizace. Správce k tomu spravuje členy, klienty a nastavení systému.",
           },
           studies: {
             title: "Studie a rozpočty",
@@ -413,7 +409,7 @@ export const cs = {
             intro:
               "Instrukce, které AIA posílá modelu v jednotlivých krocích. Upravený text se uloží jako nová verze a poběží, až ji zapnete. Kód kolem instrukce (pravidla, výstupní formát, kontroly) upravit nelze a každý výsledek si pamatuje, s jakým promptem vznikl. Upravuje jen vlastník nebo správce; každá změna je auditovaná.",
           },
-          roles: { title: "Role a oprávnění", intro: "Role na klientovi nebo studii a oprávnění, která uděluje. API kontroluje oprávnění, nikdy role." },
+          roles: { title: "Role a oprávnění", intro: "Výzkumník (člen organizace) má všechna oprávnění ke klientům a studiím. Správce k tomu spravuje členy, klienty a nastavení systému. API kontroluje oprávnění, nikdy role." },
           audit: { title: "Audit přístupu", intro: "Posledních 50 udělení, odebrání, odmítnutí a změn nastavení." },
           invariants: {
             title: "Invarianty",
@@ -436,9 +432,7 @@ export const cs = {
           members: "Členové organizace",
           clients: "Klienti",
           client_status: "Stav klienta",
-          client_grants: "Přístup ke klientovi",
-          study_grants: "Přístup ke studii",
-          membership_grants_no_data: "Členství samo neuděluje přístup k datům klienta",
+          membership_is_access: "Členství v organizaci je přístup: každý člen vidí všechny klienty a studie",
           studies: "Studie",
           study_status: "Stav studie",
           study_budget: "Rozpočet studie",
@@ -484,9 +478,8 @@ export const cs = {
           name: "Jméno",
           role: "Role",
           active: "Aktivní",
-          member: "Člen",
           add: "Přidat člena",
-          note: "Přidaný člen nevidí žádná data klienta, dokud nedostane grant.",
+          note: "Přidaný člen hned vidí všechny klienty a studie organizace.",
         },
         clients: {
           title: "Klienti",
@@ -495,8 +488,6 @@ export const cs = {
           studies: "Studií",
           status: "Stav",
           client: "Klient",
-          grant: "Udělit přístup ke klientovi",
-          grantNote: "Role na klientovi platí pro všechny jeho studie, pokud ji grant na studii nepřepíše. Grant sobě je auditován zvlášť.",
         },
         studies: {
           title: "Studie",
@@ -509,13 +500,11 @@ export const cs = {
           ceiling: "Strop rozpočtu",
           budgetInvalid: "Rozpočet musí být číslo (USD).",
           costsHidden: "náklady nevidíte (chybí oprávnění VIEW_COSTS)",
-          grant: "Udělit přístup ke studii",
-          permissionNote:
-            "Stav, rozpočet a přístup ke studii rozhoduje vaše role na studii (MANAGE_STUDY_BUDGET, MANAGE_STUDY_ACCESS, SIGN_OFF_DELIVERABLE pro předání).",
+          permissionNote: "Stav a rozpočet studie smí měnit každý výzkumník. Rozpočet je tvrdý strop: krok, který by ho překročil, se zastaví.",
         },
         approvals: {
           title: "Samoschválení",
-          rule: "Rozhoduje nejkonkrétnější nastavená úroveň: studie > klient > organizace > výchozí (zakázáno). „Dědit“ není totéž co „zakázat“.",
+          rule: "Rozhoduje nejkonkrétnější nastavená úroveň: studie > klient > organizace > výchozí (povoleno). „Dědit“ není totéž co „zakázat“.",
           level: "Úroveň",
           stored: "Uloženo",
           organization: "Organizace",

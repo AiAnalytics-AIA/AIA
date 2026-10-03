@@ -723,15 +723,11 @@ export const admin = {
   clients: () => request<AdminClient[]>("GET", "/api/v1/clients?include_archived=true"),
   setClientStatus: (clientId: string, status: string) =>
     request<AdminClient>("PUT", `/api/v1/clients/${enc(clientId)}/status`, { status }),
-  grantClient: (clientId: string, userId: string, role: string) =>
-    request<void>("POST", `/api/v1/clients/${enc(clientId)}/grants`, { user_id: userId, role }),
   studies: () => request<Study[]>("GET", "/api/v1/studies?include_archived=true"),
   study: (studyId: string) => request<Study>("GET", `/api/v1/studies/${enc(studyId)}`),
   setStudyStatus: (studyId: string, status: string) => request<Study>("PUT", `/api/v1/studies/${enc(studyId)}/status`, { status }),
   setStudyBudget: (studyId: string, budgetUsd: number) =>
     request<Study>("PUT", `/api/v1/studies/${enc(studyId)}/budget`, { budget_usd: budgetUsd }),
-  grantStudy: (studyId: string, userId: string, role: string) =>
-    request<void>("POST", `/api/v1/studies/${enc(studyId)}/grants`, { user_id: userId, role }),
   selfApproval: () => request<SelfApprovalLevels>("GET", "/api/v1/self-approval"),
   setSelfApproval: (body: { allowed: boolean | null; client_id?: string; study_id?: string }) =>
     request<SelfApprovalPolicy>("PUT", "/api/v1/self-approval", body),
