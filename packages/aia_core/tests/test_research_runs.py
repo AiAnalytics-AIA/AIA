@@ -15,11 +15,14 @@ import pytest
 
 from aia_core.application.research import (
     BudgetNotRaised,
+    CostCeilingUnknown,
+    CostConfirmationRequired,
     ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
     ResearchStepNotFound,
+    RunReservations,
 )
 from aia_core.application.workflows import start_workflow
 from aia_core.domain.design import DESIGN_PROJECT_OWNER
@@ -27,6 +30,7 @@ from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.research import ResearchPhase, phase_of, retryable
 from aia_core.domain.research_agents import ResearchAction
+from aia_core.domain.run_cost import CeilingUnknown
 from aia_core.domain.scope import ScopeDenied, StudyStatus
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
@@ -521,3 +525,146 @@ def test_a_closed_study_does_not_lift_a_budget_wait(
     with pytest.raises(ScopeDenied) as closed:
         runs(user="lead").lift_budget_wait(run_id, node, budget_usd=_budget(scoped) + 1.0)
     assert closed.value.reason == "study_closed"
+
+
+# --------------------------------------------------------------------------- #
+# The spend confirmation (5b.2): a study's limit, the run's ceiling, the person's yes
+# --------------------------------------------------------------------------- #
+
+# 450 respondents, seven closed items in one block, 0.5 reserved per request: a ceiling of 225.
+RESERVE = RunReservations(fieldwork_usd=0.5, analysis_usd=None)
+CEILING = 450 * 0.5
+
+
+def _limit(scoped: Any, usd: float | None) -> None:
+    scoped.scope_repo.set_study_spend_confirm(scoped.scope(), usd)
+
+
+def _spend_rows(session: Any) -> list[Any]:
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+
+    return list(
+        session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "spend")
+        ).all()
+    )
+
+
+def _start(runs: Any, design: Any, **kw: Any) -> Any:
+    args: dict[str, Any] = {
+        "design_revision_id": design(),
+        "fieldwork_source": AI,
+        "reservations": RESERVE,
+    }
+    args.update(kw)
+    return runs(user="researcher").start(**args)
+
+
+def test_a_study_with_no_limit_starts_without_asking(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    assert _start(runs, design).created
+    assert _spend_rows(session) == []
+
+
+def test_a_run_whose_ceiling_reaches_the_limit_asks_first_and_creates_nothing(
+    scoped: Any, runs: Any, design: Any
+) -> None:
+    _limit(scoped, 100.0)
+    with pytest.raises(CostConfirmationRequired) as asked:
+        _start(runs, design)
+    assert (asked.value.ceiling_usd, asked.value.limit_usd) == (CEILING, 100.0)
+    assert runs(user="researcher").runs() == []  # asking is not starting
+
+
+def test_a_confirmation_that_covers_the_ceiling_starts_the_run_and_is_recorded(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    import json
+
+    _limit(scoped, 100.0)
+    started = _start(runs, design, confirm_cost_usd=CEILING)
+    assert started.created
+    [row] = _spend_rows(session)
+    assert (row.decision, row.run_id, row.subject_id) == ("confirm", started.run_id, started.run_id)
+    assert row.approver_user_id == scoped.users["researcher"]
+    assert json.loads(row.comment) == {
+        "ceiling_usd": CEILING,
+        "limit_usd": 100.0,
+        "confirmed_usd": CEILING,
+    }
+
+
+def test_a_confirmation_below_the_ceiling_is_not_one(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    """The request cannot lower the ceiling: the server worked it out and holds it to that."""
+    _limit(scoped, 100.0)
+    with pytest.raises(CostConfirmationRequired):
+        _start(runs, design, confirm_cost_usd=CEILING - 1.0)
+    assert _spend_rows(session) == []
+
+
+def test_a_ceiling_under_the_limit_needs_no_confirmation(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    _limit(scoped, CEILING + 1.0)
+    assert _start(runs, design).created
+    assert _spend_rows(session) == []
+
+
+def test_an_unknown_ceiling_refuses_a_start_that_has_a_limit_and_not_one_without(
+    scoped: Any, runs: Any, design: Any
+) -> None:
+    """A missing reservation is not a cheap run: with a limit set, the start does not slip by."""
+    nothing = RunReservations(fieldwork_usd=None, analysis_usd=None)
+    _limit(scoped, 100.0)
+    with pytest.raises(CostCeilingUnknown) as unknown:
+        _start(runs, design, reservations=nothing)
+    assert unknown.value.reason is CeilingUnknown.FIELDWORK_RESERVATION_MISSING
+    _limit(scoped, None)
+    assert _start(runs, design, reservations=nothing).created
+
+
+def test_starting_the_same_revision_again_asks_nothing_and_records_nothing_more(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    """A double submission gets the run that exists; it spends nothing, so it needs no yes."""
+    _limit(scoped, 100.0)
+    revision = design()
+    first = _start(runs, design, design_revision_id=revision, confirm_cost_usd=CEILING)
+    again = _start(runs, design, design_revision_id=revision)
+    assert (again.created, again.run_id) == (False, first.run_id)
+    assert len(_spend_rows(session)) == 1
+
+
+def test_a_retry_is_a_new_run_and_asks_again(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    _limit(scoped, 100.0)
+    first = _start(runs, design, confirm_cost_usd=CEILING)
+    runs(user="researcher").cancel(first.run_id)
+    with pytest.raises(CostConfirmationRequired):
+        runs(user="researcher").retry(first.run_id, fieldwork_source=AI, reservations=RESERVE)
+    retried = runs(user="researcher").retry(
+        first.run_id, fieldwork_source=AI, reservations=RESERVE, confirm_cost_usd=CEILING
+    )
+    assert retried.created and retried.run_id != first.run_id
+    assert len(_spend_rows(session)) == 2
+
+
+def test_the_worker_holds_no_authority_to_confirm_a_spend(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    import dataclasses
+
+    from aia_core.domain.scope import WORKER_PERMISSIONS
+
+    started = _start(runs, design)
+    worker = dataclasses.replace(scoped.scope(user="researcher"), permissions=WORKER_PERMISSIONS)
+    with pytest.raises(ScopeDenied):
+        WorkflowRepository(session, worker).record_spend_confirmation(
+            started.run_id, ceiling_usd=CEILING, limit_usd=1.0, confirmed_usd=CEILING
+        )

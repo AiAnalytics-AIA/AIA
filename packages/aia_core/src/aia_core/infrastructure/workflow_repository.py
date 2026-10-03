@@ -22,6 +22,7 @@ The behavioural contract is
 
 from __future__ import annotations
 
+import json
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -1835,6 +1836,49 @@ class WorkflowRepository:
         )
         self._session.flush()
         self._refresh_run(step.run_id)
+        self._session.flush()
+
+    def record_spend_confirmation(
+        self, run_id: str, *, ceiling_usd: float, limit_usd: float, confirmed_usd: float
+    ) -> None:
+        """Write the person's yes to what a run can cost, in the append-only approval ledger.
+
+        The start of a research run asks when its cost ceiling reaches the study's limit
+        (plan 5b.2). The person who starts it is the one who confirms, so the row records
+        who, whether that was the run's own starter, and the three figures: the ceiling the
+        server worked out, the limit it was held against, and what the person confirmed.
+        Needs ``APPROVE_BUDGET``, which the worker's scope does not hold (ADR 0019
+        decision 6): a step cannot confirm the spend it is about to make.
+        """
+        self.scope.require(Permission.APPROVE_BUDGET)
+        run = self._run(run_id)
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="spend",
+                subject_id=run_id,
+                run_id=run_id,
+                gate_type="spend",
+                decision="confirm",
+                comment=json.dumps(
+                    {
+                        "ceiling_usd": ceiling_usd,
+                        "limit_usd": limit_usd,
+                        "confirmed_usd": confirmed_usd,
+                    },
+                    sort_keys=True,
+                ),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
         self._session.flush()
 
     # ------------------------------------------------------------ cancellation --
