@@ -254,6 +254,40 @@ refuses them). The mechanism it will use is the one that exists: `approve` then 
 recorded in the same ledger. Until then no route serves a client-facing report, so there is nothing
 to gate.
 
+### 5b.2 plan (2026-10-03, owner's decision: the threshold is per study, set before the run)
+
+The owner's answer to "what is the threshold and where is it set": **per study, at the beginning of
+the run**, not a deployment setting. So `AIA_SPEND_CONFIRM_USD` from the proposal above is dropped.
+
+- Each study has an optional **confirm limit** (`studies.spend_confirm_usd`, NULL = none). A
+  Researcher sets it on the Run stage before pressing Start. Audited like the budget.
+- The Run stage always shows the run's **cost ceiling** beside the study's remaining budget.
+- When a limit is set and the ceiling is at or above it, `POST .../research/runs` must carry
+  `confirm_cost_usd >= ceiling`, else 409 `cost_confirmation_required` with the ceiling. The server
+  recomputes the ceiling; the body cannot lower it. The confirmation is one `approval_decisions`
+  row (`subject_type = "spend"`), written in the run's transaction.
+- **The ceiling** is an upper bound, labelled as one: fieldwork requests x the fieldwork
+  reservation, plus analysis modules x calls per module x the analysis reservation. Fieldwork
+  requests are respondents x the most blocks a questionnaire can split into (every item asked of
+  every respondent, none answered by code), because which items code answers depends on each
+  persona. The reservations are the worker's settings (`AIA_AI_FIELDWORK_RESERVATION_USD`,
+  `AIA_AI_ANALYSIS_RESERVATION_USD`); the API reads the same variables, as it already does for
+  `AIA_AI_FICTIONAL_CLIENT_IDS`, and `deploy/develop/docker-compose.yml` passes them to the API.
+- **Unknown is not zero.** If a reservation the run needs is not set for the API, the ceiling is
+  unknown (null, with the reason). With a limit set, an unknown ceiling refuses the start
+  (409 `cost_ceiling_unknown`) rather than letting it through.
+
+Chunks (each builds and passes on its own; one PR):
+
+1. Domain: the pure ceiling function and the block-splitting helper it shares with
+   `plan_respondent`; tests that pin the arithmetic.
+2. Persistence: migration (`studies.spend_confirm_usd`; ledger `subject_type` admits `'spend'`),
+   `ScopeRepository.set_study_spend_confirm` (audited), the study's response.
+3. Application and API: the ceiling in the readiness answer, the confirmation on start, the ledger
+   row, `PUT /studies/{id}/spend-confirm`, the API settings and the Compose passthrough.
+4. Web: the Run stage shows the ceiling, the limit control and the confirm step; Czech strings.
+5. Tick 5b.2; Doc follow-up (CLAUDE.md map, AGENTS.md if a gotcha appears, the Compose variables).
+
 ### 5b.1 progress (2026-10-02)
 
 **Backend landed** (`feature/lift-budget-wait`): `WorkflowRepository.resume_budget_wait` (needs
