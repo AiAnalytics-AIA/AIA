@@ -55,8 +55,9 @@ Validation found pre-existing Next.js route exports rejected by the production
 build. Move the public configuration helpers/types to `lib/public-config.ts`;
 the route now exports only supported route values. Preserve its behavior and
 update the cross-language vocabulary tests to read the helper's new location.
-Two download tests now inspect the actual Blob bytes with FileReader, supported
-by their jsdom environment, preserving their original content assertions.
+Download assertions read actual bytes through Blob.text when supported (Node
+fetch) or FileReader for jsdom Blobs. Both Blob implementations have explicit
+coverage; the existing expected-content assertions are preserved.
 
 ## Delivery and remaining scope
 
