@@ -74,6 +74,7 @@ def _study_to_domain(row: StudyRow) -> Study:
         status=StudyStatus(row.status),
         budget_usd=row.budget_usd,
         spent_usd=row.spent_usd,
+        spend_confirm_usd=row.spend_confirm_usd,
         allow_self_approval=row.allow_self_approval,
         created_at=row.created_at,
         modified_at=row.modified_at,
@@ -612,6 +613,33 @@ class ScopeRepository:
                 action="STUDY_BUDGET_CHANGED",
                 role=scope.role.value,
                 reason=f"{previous} -> {budget_usd}",
+                request_id=scope.request_id,
+            )
+        )
+        self._session.flush()
+        return _study_to_domain(row)
+
+    def set_study_spend_confirm(self, scope: StudyContext, limit_usd: float | None) -> Study:
+        """Set the cost ceiling at which a run's start asks for confirmation; ``None`` clears it."""
+        scope.require(Permission.MANAGE_STUDY_BUDGET)
+        if limit_usd is not None and limit_usd < 0:
+            raise ValueError("limit_usd must not be negative")
+
+        row = self._session.scalar(select(StudyRow).where(StudyRow.study_id == scope.study_id))
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_study")
+
+        previous = row.spend_confirm_usd
+        row.spend_confirm_usd = None if limit_usd is None else float(limit_usd)
+        self._session.add(
+            AccessAuditRow(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                study_id=scope.study_id,
+                actor_id=scope.actor_id,
+                action="STUDY_SPEND_CONFIRM_CHANGED",
+                role=scope.role.value,
+                reason=f"{previous} -> {row.spend_confirm_usd}",
                 request_id=scope.request_id,
             )
         )
