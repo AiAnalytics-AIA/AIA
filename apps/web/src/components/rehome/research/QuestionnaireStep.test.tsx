@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
 import { CONFIRM_REMOVE_SECTION, GUIDED_PROMPT, PROMPT_SET_ITEMS, PROMPT_SET_TYPE, SET_SIZE, SET_TOO_SMALL } from "@/research/questionnaire";
+import { blobText } from "./test-blob";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -227,7 +228,7 @@ describe("Dotazník", () => {
     const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Stáhnout XLSX šablonu" }));
     await waitFor(() => expect(clicked).toHaveBeenCalledTimes(1));
-    expect(await created[0].text()).toBe("PK-template");
+    expect(await blobText(created[0])).toBe("PK-template");
     // No link into the unit's paths: the template and the guide are AIA's.
     const hrefs = [...container.querySelectorAll("a")].map((a) => a.getAttribute("href") || "");
     expect(hrefs.filter((h) => h.startsWith("/api/questionnaire") || h.startsWith("/files/"))).toEqual([]);

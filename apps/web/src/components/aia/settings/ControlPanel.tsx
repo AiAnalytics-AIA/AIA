@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, type KeyboardEvent, type ReactNode, useEffect, useState } from "react";
 
-import type { PublicConfig } from "@/app/config/route";
+import type { PublicConfig } from "@/lib/public-config";
 import { t, tv } from "@/i18n/t";
 import { type ActivityState, type SwitchValues, activityState, approvedClasses } from "@/lib/ai-runtime";
 import {

@@ -97,11 +97,9 @@ def test_every_switch_the_page_names_is_read_by_the_worker_and_handed_to_the_web
     compose = (ROOT / "deploy" / "develop" / "docker-compose.yml").read_text(encoding="utf-8")
     worker = compose.split("\n  worker:\n", 1)[1].split("\n  legacy-panel:", 1)[0]
     web = compose.split("\n  web:\n", 1)[1].split("\n  api:\n", 1)[0]
-    route = (ROOT / "apps" / "web" / "src" / "app" / "config" / "route.ts").read_text(
-        encoding="utf-8"
-    )
+    route = (ROOT / "apps" / "web" / "src" / "lib" / "public-config.ts").read_text(encoding="utf-8")
     listed = re.search(r"export const AI_SWITCHES = \[([^\]]*)\]", route)
-    assert listed, "route.ts no longer declares AI_SWITCHES"
+    assert listed, "public-config.ts no longer declares AI_SWITCHES"
     shown = set(re.findall(r'"([A-Z_]+)"', listed.group(1)))
 
     switches = {s for a in _described().activities for s in a.switches}

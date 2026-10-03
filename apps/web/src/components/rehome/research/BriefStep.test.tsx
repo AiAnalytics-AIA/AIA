@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { LINK_INVALID } from "@/research/brief";
 import { PROBLEM_TYPES, briefFingerprint, defaultsMerge } from "@/research/model";
+import { blobText } from "./test-blob";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -172,7 +173,7 @@ describe("Zadání", () => {
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Stáhnout přílohu zadani.txt" }));
     await waitFor(() => expect(clicked).toHaveBeenCalledTimes(1));
-    expect(await created[0].text()).toBe("ahoj");
+    expect(await blobText(created[0])).toBe("ahoj");
     expect(calls.map((c) => c.url)).toContain(`${ATTACH_PATH}/ART-1a`);
     // A record whose file never came into AIA offers no download, and says why.
     expect(screen.queryByRole("button", { name: "Stáhnout přílohu stare.pdf" })).toBeNull();
