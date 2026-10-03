@@ -228,7 +228,9 @@ describe("a research, re-homed under its client", () => {
     api();
     render(inClient("CLI-a", <ResearchStudy studyId="STU-1"><ResearchStage slug="questionnaire" /></ResearchStudy>));
     expect(await screen.findByRole("heading", { level: 1, name: "3. Dotazník" }, { timeout: 4000 })).toBeTruthy();
-    expect(called("GET", "/api/v1/studies/STU-1/workspace/content")).toHaveLength(1);
+    // The heading comes from the study's frame; the content is a request of its own, issued
+    // after the token and /config are read, so it is awaited rather than counted at once.
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/workspace/content")).toHaveLength(1));
     // Nothing reaches the 18.6.6 unit's project store any more.
     expect(calls.filter((c) => c.url.startsWith("/api/projects"))).toEqual([]);
     const crumbs = within(screen.getByRole("navigation", { name: "Kde jste" })).getAllByRole("listitem");
