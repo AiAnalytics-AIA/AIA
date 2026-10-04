@@ -8,7 +8,7 @@ chunks:
   - "[x] 5a. Human-authored Knowledge writes directly (client workspace); a study's proposal still waits for a person, who may be its proposer"
   - "[ ] 5b. Gates (design proposed below, awaiting the owner): split into 5b.1 to 5b.4"
   - "[x] 5b.1 A person can lift a budget wait and the run goes on (today it is a dead end)"
-  - "[ ] 5b.2 Confirm the cost of a run above a threshold, recorded"
+  - "[x] 5b.2 Confirm the cost of a run above a threshold, recorded"
   - "[ ] 5b.3 One ledger entry for every acceptance of an AI proposal"
   - "[ ] 5b.4 Client-facing release (blocked: the client-facing report contract does not exist)"
   - "[ ] 6. Retire the grants (tables, routes, UI) after one deploy without them"
@@ -287,6 +287,26 @@ Chunks (each builds and passes on its own; one PR):
    row, `PUT /studies/{id}/spend-confirm`, the API settings and the Compose passthrough.
 4. Web: the Run stage shows the ceiling, the limit control and the confirm step; Czech strings.
 5. Tick 5b.2; Doc follow-up (CLAUDE.md map, AGENTS.md if a gotcha appears, the Compose variables).
+
+### 5b.2 landed (2026-10-04, PR #117)
+
+All five chunks of the plan above, as planned, with these specifics:
+
+- **Ceiling** `domain/run_cost.py`: `run_cost_ceiling` (tests `test_run_cost.py`, incl. every persona of a
+  roster under the bound). Analysis counts `1 + MAX_REPAIRS` calls per module.
+- **Limit** `studies.spend_confirm_usd`, `ScopeRepository.set_study_spend_confirm` (audited
+  `STUDY_SPEND_CONFIRM_CHANGED`); ledger `subject_type='spend'`; migration `c5d7e9f1a2b4`.
+- **Start/retry** `ResearchRuns.start` / `retry` take `reservations` and `confirm_cost_usd`;
+  `WorkflowRepository.record_spend_confirmation` writes the row (needs `APPROVE_BUDGET`; the worker
+  cannot). Errors over HTTP: 409 `cost_confirmation_required` (details: ceiling, limit), 409
+  `cost_ceiling_unknown` (details: reason, limit).
+- **Run stage**: a "Náklady běhu" card (ceiling, its basis, "horní mez, ne odhad", what is left of the
+  budget, the limit and whether Start will ask; a limit form for an editor). Start asks with the
+  server's ceiling; Start is disabled when a limit is set and the ceiling is unknown; a retry that the
+  server answers with `cost_confirmation_required` asks and retries with the yes.
+
+**Found on the way.** The Run stage crashed on a readiness answer without the new fields (an older
+API during a rollout): it now reads a missing figure as absent, not zero, and not as a crash.
 
 ### 5b.1 progress (2026-10-02)
 
