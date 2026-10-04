@@ -117,6 +117,11 @@ services:
       # worker reads below, so the API can refuse a draft on any other client before a job
       # exists. Empty means no draft can be run anywhere.
       AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
+      # What the worker reserves per model request, read by the API too so it can say what a
+      # run can cost at most before it starts (the spend confirmation, plan 5b.2). Unset means
+      # the ceiling is unknown, and a study with a spend limit does not start such a run.
+      AIA_AI_FIELDWORK_RESERVATION_USD: ${AIA_AI_FIELDWORK_RESERVATION_USD:-}
+      AIA_AI_ANALYSIS_RESERVATION_USD: ${AIA_AI_ANALYSIS_RESERVATION_USD:-}
     expose: ["8000"]
     depends_on:
       postgres:
