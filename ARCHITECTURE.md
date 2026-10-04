@@ -456,6 +456,11 @@ CI runs on every pull request and on every push to `main`
 intends to fix today trains everyone to ignore red, so every step sits in a
 declared tier.
 
+A pull request that changes only `.planning/`, `docs/architecture/adr/`, `CLAUDE.md`,
+`AGENTS.md` or `ARCHITECTURE.md` runs `Documentation checks` (layering, exposure, plan
+front-matter, committed-key scan) instead of the suites; the path list is the `changes` job in
+`ci.yml`. A push to `main` or `develop` always runs everything.
+
 | Step | Tier |
 |---|---|
 | `ruff check` / `ruff format --check` | **blocking** |
@@ -463,7 +468,7 @@ declared tier.
 | `make layer_check` | **blocking** |
 | `make exposure_check` | **blocking** |
 | `alembic upgrade head` / `alembic check` / downgrade-to-base | **blocking** |
-| `pytest` — core + API, on PostgreSQL and on SQLite | **blocking** |
+| `pytest` — core + API, on PostgreSQL on every pull request; the SQLite run only on a push to `develop`, where it blocks the deploy | **blocking** |
 | Parity-matrix consistency (`test_parity_matrix.py`, inside the pytest steps) | **blocking** |
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
