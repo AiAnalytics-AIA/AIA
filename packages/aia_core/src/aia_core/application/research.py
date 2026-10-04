@@ -158,6 +158,10 @@ class ResearchRuns:
 
     # -- start ------------------------------------------------------------------
 
+    def spend_limit(self) -> float | None:
+        """The study's limit above which starting a run asks for confirmation; ``None``: never."""
+        return ScopeRepository(self.session).get_study(self.scope).spend_confirm_usd
+
     def cost_ceiling(
         self,
         spec: ResearchSpecification,
@@ -218,7 +222,7 @@ class ResearchRuns:
         if retry_of:
             key += f":retry:{retry_of}"
         confirmation: tuple[float, float] | None = None
-        limit = ScopeRepository(self.session).get_study(self.scope).spend_confirm_usd
+        limit = self.spend_limit()
         if limit is not None and self._workflows().find_run_by_idempotency_key(key) is None:
             assert _spec is not None  # a ready design compiles
             ceiling = self.cost_ceiling(

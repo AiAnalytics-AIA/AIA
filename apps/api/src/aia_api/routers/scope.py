@@ -116,6 +116,8 @@ class StudyResponse(BaseModel):
     budget_usd: float | None = None
     spent_usd: float | None = None
     remaining_usd: float | None = None
+    #: The cost ceiling at or above which starting a run asks for confirmation; ``None``: never.
+    spend_confirm_usd: float | None = None
     created_at: datetime | None = None
     modified_at: datetime | None = None
     delivered_at: datetime | None = None
@@ -135,6 +137,14 @@ class StudyBudgetRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     budget_usd: float = Field(ge=0, le=1_000_000)
+
+
+class StudySpendConfirmRequest(BaseModel):
+    """The cost at or above which starting a run asks for confirmation; ``null`` clears it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    limit_usd: float | None = Field(ge=0, le=1_000_000)
 
 
 class GrantRequest(BaseModel):
@@ -270,6 +280,7 @@ def _study_response(study: Any, *, role: str | None, include_costs: bool) -> Stu
         budget_usd=study.budget_usd if include_costs else None,
         spent_usd=study.spent_usd if include_costs else None,
         remaining_usd=study.remaining_usd if include_costs else None,
+        spend_confirm_usd=study.spend_confirm_usd if include_costs else None,
         created_at=study.created_at,
         modified_at=study.modified_at,
         delivered_at=study.delivered_at,
@@ -525,6 +536,24 @@ def set_study_budget(
         raise HTTPException(
             status_code=422, detail={"code": "invalid_budget", "message": str(exc)}
         ) from exc
+    return _study_response(study, role=scope.role.value, include_costs=True)
+
+
+@router.put(
+    "/studies/{study_id}/spend-confirm",
+    response_model=StudyResponse,
+    summary="Set the cost at which starting a run asks for confirmation",
+)
+def set_study_spend_confirm(
+    body: StudySpendConfirmRequest,
+    scope: Annotated[Any, Depends(require_permission(Permission.MANAGE_STUDY_BUDGET))],
+    repo: ScopeRepositoryDep,
+) -> StudyResponse:
+    """Set, or with ``null`` clear, the study's limit. Audited, like the budget."""
+    try:
+        study = repo.set_study_spend_confirm(scope, body.limit_usd)
+    except ScopeDenied as exc:
+        raise _forbidden(exc) from exc
     return _study_response(study, role=scope.role.value, include_costs=True)
 
 
